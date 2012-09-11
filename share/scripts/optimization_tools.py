@@ -111,7 +111,6 @@ def read_multi_design(filename, design1, design2 = None, design3 = None, design4
     
     out[nr-1,idx] = des  
   return out
-
   
 ## Reads a density.xml file as vector
 # @param filename from which the last 'set' is used

@@ -1166,10 +1166,10 @@ double Approximation::TransformMultiplyer(double lambda_ipopt)
     t = 1.0;
     break;
   case Function::BENSON_VANDERBEI_2:
-    t = id.CalcPosDefDeteminant(-1, g->GetLocal(), false, Function::POS_DEF_DET_MINOR_1);
+    t = id.CalcPosDefDeterminant(-1, g->GetLocal(), false, Function::POS_DEF_DET_MINOR_1);
     break;
   case Function::BENSON_VANDERBEI_3:
-    t = id.CalcPosDefDeteminant(-1, g->GetLocal(), false, Function::POS_DEF_DET_MINOR_2);
+    t = id.CalcPosDefDeterminant(-1, g->GetLocal(), false, Function::POS_DEF_DET_MINOR_2);
     break;
   default:
     assert(false);

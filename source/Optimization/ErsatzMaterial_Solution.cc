@@ -343,7 +343,7 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
       for(int e = 0; e < n; e++){
         elemList.SetElement(grid->GetElem(e+1)); // GetElem is 1-based
         const EntityIterator& it = elemList.GetIterator();
-        pde->GetSolVecOfElement((Vector<T>&) *elem_vec[e], it, resinfo);
+        pde->GetAnyDerivSolVecOfElement((Vector<T>&) *elem_vec[e], it, resinfo, derivative);
       }
       return NULL;
     }

@@ -150,7 +150,8 @@ public:
     typedef enum { UNITY = -9, NO_DERIVATIVE = -8, TENSOR_TRACE = -7, ELAST_ALL = -6, DIELEC_TRACE = -5, DIELEC_ALL = -4, PIEZO_ALL = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
                    POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12, SLACK,
-                   DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23, ALL_DESIGNS} Type;
+                   DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
+                   ROTANGLE, STIFF1, STIFF2, ALL_DESIGNS} Type;
 
   BaseDesignElement(Type type = NO_TYPE);
   virtual ~BaseDesignElement() {};
@@ -245,7 +246,6 @@ public:
   /** This defines how to access variables (design, objective_gradient, ...),
    *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
   typedef enum { PLAIN, SMART } Access;
-
 
   /** The empty constructor is the StdVector and for ghost elements */
   DesignElement();

@@ -59,6 +59,15 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case TENSOR11:
     case TENSOR22:
     case TENSOR33:
+    // Tensor trace for param mat
+    case STIFF1:
+    case STIFF2:
+    // Batian's stuff
+    // FIXMI!!
+    case POISSON:
+    case POISSONISO:
+    case EMODUL:
+    case EMODULISO:
       return true;
     default:
       return false;
@@ -362,6 +371,8 @@ int DesignElement::GetOptResultIndex(SolutionType st)
     return 7;
   case OPT_RESULT_9:
     return 8;
+  case OPT_RESULT_10:
+    return 9;
   default:
     return -1;
   }
@@ -513,12 +524,12 @@ double DesignElement::GetPhysicalDesign(bool densForElec) const
   //const TransferFunction* tf = const_cast<const TransferFunction*>(space_->GetTransferFunction(type_, ErsatzMaterial::MECH, true));
  // return tf->Transform(this);
 
-  // we need the transder function
+  // we need the transfer function
 }
 
 bool DesignElement::HasPhysicalDesign() const
 {
-  return(type_ == DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY);
+  return(type_ == DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || simp->filter.type_ == Filter::DENSITY);
 }
 
 
@@ -635,8 +646,9 @@ void DesignElement::SetEnums()
   type.Add(PIEZO_21, "piezo_21");
   type.Add(PIEZO_22, "piezo_22");
   type.Add(PIEZO_23, "piezo_23");
-
-
+  type.Add(ROTANGLE, "rotAngle");
+  type.Add(STIFF1, "stiff1");
+  type.Add(STIFF2, "stiff2");
   type.Add(SLACK, "slack");
 
   access.SetName("DesignElement::Access");

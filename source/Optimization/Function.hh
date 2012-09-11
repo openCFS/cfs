@@ -115,8 +115,11 @@ class Function
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
-      TENSOR_TRACE,              /*!< local constraint on the tensor trace for fmo. Elasticity or dielec */
+      TENSOR_TRACE,              /*!< local constraint on the tensor trace for FMO, laminates, hom_rect. Elasticity or dielec */
       TENSOR_NORM,               /*!< local squared L2 norm of the tensor coefficients (sum of the squared coefficients). For piezo-coupling in piezo FMP */
+      LAMINATES_VOL,             /*!< Volume constraint / cost function for laminates parametrization */
+      GLOBAL_LAMINATES_VOL,      /*!< global volume constraint / cost function for laminates parametrization */
+      GLOBAL_TENSOR_TRACE,       /*!< global constraint on the tensor trace for fmo or laminates */
       PARAM_PS_POS_DEF,          /*!< constraint to ensure positive definiteness in parametrized elasticity tensor formulation (plane stress). Choose > 0*/
       POS_DEF_DET_MINOR_1,       /*!< 1st minor constraint for FMO positive definiteness by positive determinants */
       POS_DEF_DET_MINOR_2,       /*!< 2nd minor constraint for FMO positive definiteness by positive determinants */
@@ -371,7 +374,8 @@ class Function
         /** identifies the element by the design type. Works only for special neighborhoods! */
         DesignElement* GetElement(DesignElement::Type type);
 
-        /** Service function. Calculates the actual objective, based on function->type
+        /** Service function. Calculates the actual objective, based on function->type.
+         * Is very fast for grad_glob and power == 1
          * @param grad_glob only active when globalized. Not the globalization but the grad of the globalization
          *                  is applied, but based on the function evaluation, not the function gradient!
          * @param von_mises_stresss only used when the function is stress -> determined by ErsatzMaterial::CalcVonMisesStressGlobalizationFactor() */
@@ -415,8 +419,10 @@ class Function
         double CalcBumpGradient(int neigh_idx) const;
 
         /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
-        double CalcSumModuli() const;
-        void CalcSumModuliGradient(int neigh_idx, const Objective* f, const Condition* g, double value);
+        double CalcSumModuli(int neigh_idx = -1, bool derivative = false) const;
+
+        /** volume of material (strong phase for plane strain) in laminate homogenization formulas */
+        double CalcLaminatesVolume(int neigh_idx = -1, bool derivative = false) const;
 
         /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to hold */
         double CalcParamPSPosDef(int neigh_idx, bool derivative) const;
@@ -429,7 +435,7 @@ class Function
 
         /** local FMO positive definiteness of (E-val*I) >= param via determinants
          * @param type the type we want to evaluate. Might be different from local->func->type_ in Approximation::TransformMultiplyer() */
-        double CalcPosDefDeteminant(int neigh_idx, const Local* local, bool derivative, Type type) const;
+        double CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const;
 
         /** local FMO positive definiteness of (E-val*I) >= param via Benson Vanderbei constraints */
         double CalcBensonVanderbei(int neigh_idx, const Local* local, bool derivative, Type type) const;
@@ -618,6 +624,9 @@ class Function
     /** Excitation index for evaluation. -1 for all excitations. Most interesting for stress constraints.
      * -2 is for unset! */
     int excite_;
+
+    /** Is this function excitation sensitive? */
+    int excite_sensitive_;
 
     /** @see FactorOmegaOmega() */
     bool omega_omega_;

@@ -66,7 +66,7 @@ Function::Function(PtrParamNode pn)
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
   if(pn->Has("design")) // will sometime be in Function, now the default is set to DEFAULT
-    this->design_ = DesignElement::type.Parse(pn->Get("design")->As<string>());
+    this->design_ = BaseDesignElement::type.Parse(pn->Get("design")->As<string>());
 
   this->parameter_ = pn->Has("parameter") ? pn->Get("parameter")->As<double>() : 0.0;
 
@@ -102,15 +102,8 @@ Function::Function(PtrParamNode pn)
   if(type_ == MAXWELL_HOM_TRACKING && !maxwell_tensor_ok)
     EXCEPTION("A 'maxwellTensor' element is mandatory  for 'maxwellHomTracking'");
 
-  if(type_ == MAXWELL_HOM_TENSOR || type_ == MAXWELL_HOM_TRACKING)
-  {
-    // we must not give a value when there is a tensor
-//    if(type_ == MAXWELL_HOM_TENSOR && pn->Has("maxwellTensor") && pn->Has("value"))
-//      throw Exception("a value must not be given when a tensor is used in a homogenization constraint");
-
-    if(type_ == MAXWELL_HOM_TRACKING && (!pn->Has("maxwellTensor") && !pn->Has("isotropic")))
-      throw Exception("a 'maxwellTensor' is mandatory for homogenization tracking");
-  }
+  if(type_ == MAXWELL_HOM_TRACKING && (!pn->Has("maxwellTensor") && !pn->Has("isotropic")))
+    throw Exception("a 'maxwellTensor' is mandatory for homogenization tracking");
 
   // check parameter
   switch(type_)
@@ -134,6 +127,7 @@ Function::Function(PtrParamNode pn)
     break;
 
   case TENSOR_TRACE:
+  case GLOBAL_TENSOR_TRACE:
     if(design_ != DesignElement::DEFAULT && design_ != DesignElement::TENSOR_TRACE && design_ != DesignElement::DIELEC_TRACE)
       throw Exception("function '" + type.ToString(type_) + "' has invalid design type " + DesignElement::type.ToString(design_));
     break;
@@ -153,9 +147,7 @@ Function::Function(PtrParamNode pn)
     break;
   }
 
-
-
-  // set linear, to be overwritten by xml in Condition
+  // set linear, to be overwritten by xml below
   switch(type_)
   {
   case VOLUME: // the volume is not linear on heaviside densities
@@ -163,15 +155,24 @@ Function::Function(PtrParamNode pn)
   case GLOBAL_SLOPE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
-  case TENSOR_TRACE:
   case SLACK:
     linear_ = true;
+    break;
+  case TENSOR_TRACE:
+  case GLOBAL_TENSOR_TRACE:
+    if(design_ != DesignElement::ALL_DESIGNS)
+      linear_ = true;
+    else
+      linear_ = false;
     break;
   default:
     linear_ = false;
     break;
   }
 
+  //  snopt only makes a difference between linear and nonlinear constraints!
+  if(pn->Has("linear"))
+    linear_ = pn->Get("linear")->As<bool>();
 
   if(physical_ && !(type_ == VOLUME || type_ == GREYNESS))
     throw Exception("'physical' is no option for '" + type.ToString(type_) + "'");
@@ -198,6 +199,7 @@ void Function::Init()
 
   // -2 is unset, -1 is all, >= 0 the excitation index
   this->excite_ = -1;
+  this->excite_sensitive_ = false;
 
   this->stressType_ = MECH; // set in Condition
 
@@ -334,7 +336,6 @@ bool Function::ReadMaxwellTensor(PtrParamNode pn, Matrix<Complex>& matrix, bool 
     tensor_read = true;
   }
 
-
   if(tensor_read)
   {
     if (!selectionTensor){
@@ -381,6 +382,10 @@ void Function::ToInfo(PtrParamNode info)
   // We might have non-standard stresses
   if(type_ == STRESS || type_ == STRESS_DENSITY)
     info->Get("stress")->SetValue(stressType.ToString(stressType_));
+
+  if(IsObjective() || !(dynamic_cast<Condition*>(this)->IsObservation()))
+    info->Get("linear")->SetValue(linear_);
+
 
   if(local != NULL)
     local->ToInfo(info_);
@@ -452,6 +457,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case PROJECTION:
     case SUM_MODULI:
     case GLOBAL_SUM_MODULI:
+    case LAMINATES_VOL:
+    case GLOBAL_LAMINATES_VOL:
     case PARAM_PS_POS_DEF:
     case POS_DEF_DET_MINOR_1:
     case POS_DEF_DET_MINOR_2:
@@ -461,13 +468,13 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case BENSON_VANDERBEI_3:
     case TENSOR_TRACE:
     case TENSOR_NORM:
+    case GLOBAL_TENSOR_TRACE:
     case DESIGN_BOUND:
     case SLACK:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
       break;
 
-    case MULTI_OBJECTIVE: // only to make the switch complete
     case COMPLIANCE:
     case OUTPUT:
     case DYNAMIC_OUTPUT:
@@ -479,7 +486,12 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case ELEC_ENERGY:
     case TEMPERATURE:
       assert(excite_index < 0);
-      excite_ = -1; // all excitations
+      if(!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all")
+        excite_ = -1; // all excitations
+      else {
+        excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
+        excite_sensitive_ = true;
+      }
       break;
 
     case STRESS:
@@ -494,7 +506,12 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
         assert(excite_index == -2); // assert there is no conflict
         excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
       }
+      excite_sensitive_ = true;
       break;
+
+    case MULTI_OBJECTIVE: // only to make the switch complete
+      break;
+
   }
 }
 
@@ -515,10 +532,7 @@ bool Function::DoEvaluateAlways() const
 
 bool Function::IsExcitationSensitive() const
 {
-  if(type_ == STRESS || type_ == STRESS_DENSITY)
-    return true;
-  else
-    return false;
+  return excite_sensitive_;
 }
 
 bool Function::IsAdjointBased() const
@@ -591,6 +605,7 @@ bool Function::IsLocal(Type t)
   case JUMP:
   case BUMP:
   case SUM_MODULI:
+  case LAMINATES_VOL:
   case TENSOR_TRACE:
   case TENSOR_NORM:
   case PARAM_PS_POS_DEF:
@@ -692,8 +707,11 @@ bool Function::ForSensitivityFiltering() const
   case PROJECTION:
   case TENSOR_TRACE:
   case TENSOR_NORM:
+  case GLOBAL_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
+  case LAMINATES_VOL:
+  case GLOBAL_LAMINATES_VOL:
   case PARAM_PS_POS_DEF:
   case POS_DEF_DET_MINOR_1:
   case POS_DEF_DET_MINOR_2:
@@ -735,7 +753,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
   // if ALL_REGIONS for condition use what we define as design space which
   // this is still not good enough
   int nd = 1;
-  if(design_ == DesignElement::DEFAULT)
+  if(design_ == DesignElement::DEFAULT || design_ == DesignElement::ALL_DESIGNS)
     nd = space->design.GetSize();
   if(design_ == DesignElement::TENSOR_TRACE)
     nd = 6; // TODO why no 3?
@@ -747,7 +765,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
     nd = 2;
   if(design_ == DesignElement::PIEZO_ALL)
     nd = 6;
-  assert((int) space->design.GetSize() >= nd);
+  //assert((int) space->design.GetSize() >= nd);
 
   elements.Reserve(nd * (region == ALL_REGIONS ? space->GetNumberOfElements() : grid->GetNumElems(region)));
 
@@ -840,8 +858,11 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case STRESS_DENSITY:
   case TENSOR_TRACE:
   case TENSOR_NORM:
+  case GLOBAL_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
+  case LAMINATES_VOL:
+  case GLOBAL_LAMINATES_VOL:
   case PARAM_PS_POS_DEF:
   case POS_DEF_DET_MINOR_1:
   case POS_DEF_DET_MINOR_2:
@@ -936,9 +957,17 @@ Function::Local::Local(Function* func, DesignSpace* space)
   case GLOBAL_SLOPE:
   case STRESS:
   case STRESS_DENSITY:
-  case GLOBAL_SUM_MODULI:
     this->globalized_ = true;
     break;
+
+  case GLOBAL_SUM_MODULI:
+  case GLOBAL_LAMINATES_VOL:
+  case GLOBAL_TENSOR_TRACE:
+    if(power_ != 1.0)
+      info->Get("optimization/header")->Get(ParamNode::WARNING)->SetValue("function '" + fname + "' has local/power " + lexical_cast<string>(power_) + ", for sum one needs power=1");
+    this->globalized_ = true;
+    break;
+
 
   default:
     this->globalized_ = false;
@@ -1017,8 +1046,11 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   case TENSOR_TRACE:
   case TENSOR_NORM:
+  case GLOBAL_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
+  case LAMINATES_VOL:
+  case GLOBAL_LAMINATES_VOL:
   case PARAM_PS_POS_DEF:
   case POS_DEF_DET_MINOR_1:
   case POS_DEF_DET_MINOR_2:
@@ -1367,16 +1399,12 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
   switch(f->GetType())
   {
   case TENSOR_TRACE:
-    assert(space->design.GetSize() >= 6); // might be the piezo fmo case!
-    // 11 is not a neighbor but the element itself
-    if(f->GetDesignType() == DesignElement::DIELEC_TRACE)
+    // we have the case of elast and piezo fmo with elec tensor
+    // but also param mat where stiff1 and stiff2, ... form the tensor
+    for(unsigned int i=1; i < space->design.GetSize(); ++i)
     {
-      des_idx.Push_back(space->FindDesign(DesignElement::DIELEC_22));
-    }
-    else
-    {
-      des_idx.Push_back(space->FindDesign(DesignElement::TENSOR22));
-      des_idx.Push_back(space->FindDesign(DesignElement::TENSOR33));
+      if(DesignElement::IsCompatible(f->GetDesignType(), space->design[i]))
+        des_idx.Push_back(i);
     }
     break;
   case TENSOR_NORM:
@@ -1432,7 +1460,7 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
   for(unsigned int e = 0; e < elems; e++)
   {
     DesignElement* de = func_->elements[e];
-    assert((int) e == space->Find(de->elem, true)); // what wanted Jannis to do here?
+    assert((int) e == space->Find(de->elem, true)); // assert that we still are on the right finite element
 
     neighbours.Resize(0);
 
@@ -1473,6 +1501,8 @@ void Function::Local::ToInfo(PtrParamNode in)
 
   if(structure_ != NULL)
     structure_->ToInfo(in->Get("neighborhood"));
+
+
 }
 
 Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local, PtrParamNode pn)
@@ -1589,6 +1619,14 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
   double fv = 0.0;
   Function* f = local->func_;
 
+  // short cut for the gradient in the 1-norm
+  if(grad_glob && local->power_ == 1.0)
+  {
+    LOG_DBG2(func) << "L:I:EF: global! p=" << local->power_ << " gg=" << grad_glob << " -> " << 1.0;
+
+    return 1.0;
+  }
+
   switch(f->type_)
   {
   case STRESS:
@@ -1626,6 +1664,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     fv = CalcSumModuli();
     break;
 
+  case LAMINATES_VOL:
+  case GLOBAL_LAMINATES_VOL:
+    fv = CalcLaminatesVolume();
+    break;
 
   case PARAM_PS_POS_DEF:
     fv = CalcParamPSPosDef(-1, false);
@@ -1634,7 +1676,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
   case POS_DEF_DET_MINOR_1:
   case POS_DEF_DET_MINOR_2:
   case POS_DEF_DET_MINOR_3:
-    fv = CalcPosDefDeteminant(-1, local, false, f->type_);
+    fv = CalcPosDefDeterminant(-1, local, false, f->type_);
     break;
 
   case BENSON_VANDERBEI_1:
@@ -1644,6 +1686,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     break;
 
   case TENSOR_TRACE:
+  case GLOBAL_TENSOR_TRACE:
     fv = CalcTensorTrace(-1, local, false);
     break;
 
@@ -1672,6 +1715,9 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
   case GLOBAL_JUMP:
   case STRESS:
   case STRESS_DENSITY:
+  case GLOBAL_SUM_MODULI:
+  case GLOBAL_LAMINATES_VOL:
+  case GLOBAL_TENSOR_TRACE:
   {
     // we normalize all values by the number of "constraints". Note that it is
     // sufficient for the function value, the gradient is then also right
@@ -1685,15 +1731,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
 
     res *= factor;
 
-    LOG_DBG2(func) << "L:I:EF: global! bound=" << f->GetParameter() << " factor=" << factor
-                   << " grad_glob=" << grad_glob << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
+    LOG_DBG2(func) << "L:I:EF: global! bound=" << f->GetParameter() << " fv=" << fv << " v=" << v << " p=" << p
+                   << " factor=" << factor << " gg=" << grad_glob << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
 
     return res;
-  }
-  case GLOBAL_SUM_MODULI:
-  {
-    double factor = local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0;
-    return fv*factor;
   }
   default:
     return fv; // check is done before
@@ -1715,7 +1756,8 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
 
   // are we global? then we don't do anything if the globalization function gives zero
   // this applies the gradient of the globalization function (max(0, fv)^2)
-  double grad_glob_fv = local->IsGlobalized() ? EvalFunction(local, true) : 0.0;
+  // EvalFunction() is very fast for power=1!
+  double grad_glob_fv = local->IsGlobalized() ? EvalFunction(local, true) : -1.0; // if not global we don't need grad_glob_fv
 
   if(local->IsGlobalized() && grad_glob_fv == 0.0)
   {
@@ -1761,12 +1803,14 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
       break;
 
     case SUM_MODULI:
-      CalcSumModuliGradient(n, f, g, 1.0);
-      continue;
-
     case GLOBAL_SUM_MODULI:
-      CalcSumModuliGradient(n, f, g, local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0);
-      continue;
+      gv = CalcSumModuli(n, true);
+      break;
+
+    case LAMINATES_VOL:
+    case GLOBAL_LAMINATES_VOL:
+      gv = CalcLaminatesVolume(n, true);
+      break;
 
     case PARAM_PS_POS_DEF:
       gv = CalcParamPSPosDef(n, true);
@@ -1775,7 +1819,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     case POS_DEF_DET_MINOR_1:
     case POS_DEF_DET_MINOR_2:
     case POS_DEF_DET_MINOR_3:
-      gv = CalcPosDefDeteminant(n, local, true, ft);
+      gv = CalcPosDefDeterminant(n, local, true, ft);
       break;
 
     case BENSON_VANDERBEI_1:
@@ -1785,6 +1829,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
       break;
 
     case TENSOR_TRACE:
+    case GLOBAL_TENSOR_TRACE:
       gv = CalcTensorTrace(n, local, true);
       break;
 
@@ -1802,19 +1847,20 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     }
 
     LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
-                   << element->elem->elemNum << " sign=" << sign << " n=" << n
+                   << element->elem->elemNum << " sign=" << sign << " n=" << n << " des=" << DesignElement::type.ToString(GetElement(n)->GetType())
                    << " curr=" << GetElement(n)->elem->elemNum << " gv=" << gv;
 
     // post process the globalized functions
     if(local->IsGlobalized())
     {
-//      double factor = local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0;
+      // actually the normalization is already in grad_glob_fv if power != 1.0!
+      double factor = local->DoNormalizeGlobal() && local->power_ == 1.0 ? 1.0/local->virtual_elem_map.GetSize() : 1.0;
 
-      gv  *= grad_glob_fv;
+      gv  *= grad_glob_fv * factor;
       LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                      << element->elem->elemNum << " sign=" << sign << " n=" << n
                      << " curr=" << GetElement(n)->elem->elemNum
-                     << " bound! grad_glob_gv=" << grad_glob_fv << " new gv=" << gv;
+                     << " bound! grad_glob_gv=" << grad_glob_fv << " factor=" << factor << " new gv=" << gv;
     }
 
     DesignElement* de = GetElement(n);
@@ -2134,8 +2180,18 @@ double Function::Local::Identifier::CalcBumpGradient(int neigh_idx) const
 }
 
 
-double Function::Local::Identifier::CalcSumModuli() const
+double Function::Local::Identifier::CalcSumModuli(int neigh_idx, bool derivative) const
 {
+  if(derivative)
+  {
+    DesignElement::Type type = GetElement(neigh_idx)->GetType();
+    if (type == DesignElement::EMODULISO || type == DesignElement::EMODUL)
+      return 1.0;
+    if(type == DesignElement::GMODUL)
+      return 2.0;
+    else return 0.0;
+  }
+
   double E1(0.0), E3(0.0), G(0.0);
   for(int i=-1; i < (int) neighbor.GetSize(); ++i)
   {
@@ -2150,19 +2206,58 @@ double Function::Local::Identifier::CalcSumModuli() const
     case DesignElement::GMODUL:
       G = GetElement(i)->GetDesign(DesignElement::PLAIN);
       break;
+    case DesignElement::POISSON:
+    case DesignElement::POISSONISO:
+    case DesignElement::DENSITY:
+    case DesignElement::ROTANGLE:
+      break;
+
     default:
       assert(false);
       break;
     }
   }
-  return E1+E3+G;
+  return E1+E3+2*G;
 }
 
-void Function::Local::Identifier::CalcSumModuliGradient(int neigh_idx, const Objective* f, const Condition* g, double value)
+
+double Function::Local::Identifier::CalcLaminatesVolume(int neigh_idx, bool derivative) const
 {
-  DesignElement::Type type = GetElement(neigh_idx)->GetType();
-  if (type == DesignElement::EMODULISO || type == DesignElement::EMODUL || type == DesignElement::GMODUL)
-    GetElement(neigh_idx)->AddGradient(f, g, value);
+  double scale(1.0), stiff1(0.0), stiff2(0.0);
+  for(int i=-1; i < (int) neighbor.GetSize(); ++i)
+  {
+    switch(GetElement(i)->GetType())
+    {
+    case DesignElement::STIFF1:
+      stiff1 = GetElement(i)->GetDesign(DesignElement::SMART);
+      break;
+    case DesignElement::STIFF2:
+      stiff2 = GetElement(i)->GetDesign(DesignElement::SMART);
+      break;
+    default:
+      break;
+    }
+  }
+  if(element->GetDesignSpace()->designMaterial->GetType() == DesignMaterial::LAMINATES)
+  {
+    scale = element->GetDesignSpace()->designMaterial->GetParameter(DesignElement::DENSITY);
+    stiff1 *= scale;
+    stiff2 *= scale;
+  }
+  if(!derivative)
+    return stiff1+stiff2-stiff1*stiff2;
+  else
+  {
+    switch(GetElement(neigh_idx)->GetType())
+    {
+    case DesignElement::STIFF1:
+      return scale-scale*stiff2;
+    case DesignElement::STIFF2:
+      return scale-scale*stiff1;
+    default:
+      return 0.0;
+    }
+  }
 }
 
 double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool derivative) const
@@ -2181,6 +2276,11 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     case DesignElement::POISSON:
       nu31 = GetElement(i)->GetDesign(DesignElement::PLAIN);
       break;
+    case DesignElement::GMODUL:
+    case DesignElement::POISSONISO:
+    case DesignElement::DENSITY:
+      break;
+
     default:
       assert(false);
       break;
@@ -2201,12 +2301,12 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     }
   else
   {
-    LOG_TRACE2(func) << "Local::Local e_num=" << element->elem->elemNum << ", E3-E1*nu31^2=" << E3-E1*nu31*nu31;
+    LOG_DBG3(func) << "Local::Local e_num=" << element->elem->elemNum << ", E3-E1*nu31^2=" << E3-E1*nu31*nu31;
     return E3-E1*nu31*nu31;
   }
 }
 
-  double Function::Local::Identifier::CalcPosDefDeteminant(int neigh_idx, const Local* local, bool derivative, Type type) const
+  double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const
   {
     const Condition* g = dynamic_cast<const Condition*>(local->func_);
 
@@ -2247,6 +2347,8 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
            ret = e11-v;
          else
            ret = neigh_idx == -1 ? 1.0 : 0.0;
+           if(g->GetDesignType() == DesignElement::DIELEC_ALL)
+             ret *= -1.0;
          break;
 
     case POS_DEF_DET_MINOR_2:
@@ -2262,17 +2364,23 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
            switch(GetElement(neigh_idx)->GetType())
            {
             case DesignElement::TENSOR11:
-            case DesignElement::DIELEC_11:
                ret = e22-v;
                break;
+            case DesignElement::DIELEC_11:
+              ret = -1.0 * (e22-v);
+              break;
              // case DesignElement::TENSOR22: ret = e11-v-eps; break;
              case DesignElement::TENSOR12:
-             case DesignElement::DIELEC_12:
                ret = -2.0 * e12;
                break;
+             case DesignElement::DIELEC_12:
+               ret = 2.0 * e12;
+               break;
              case DesignElement::TENSOR22:
-             case DesignElement::DIELEC_22:
                ret = e11-v-eps;
+               break;
+             case DesignElement::DIELEC_22:
+               ret = -1.0*(e11-v-eps);
                break;
              default: assert(false);
            }
@@ -2489,25 +2597,24 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
 
   double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const
   {
-    bool elec = local->func_->GetDesignType() == DesignElement::DIELEC_TRACE;
     Matrix<double> E;
+
     DesignMaterial::Notation notation = local->func_->notation_;
     const DesignElement* de = GetElement(neigh_idx);
+
     bool ok = local->space->GetTensor(E, local->func_->GetDesignType(), PLANE_STRAIN, element->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type does'nt matter)
+
     assert(ok);
-    assert((elec && E.GetNumRows() == 2) || (!elec && E.GetNumRows() == 3));
+    assert((local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && E.GetNumRows() == 2) || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE && E.GetNumRows() == 3));
 
     LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString(0, false);
 
-    double ret = 0.0 * (ok ? 1.0 : 1.0); // stupid stuff us use ok for compiler
+    double ret = E.Trace() * (ok ? 1.0 : 1.0); // to use ok in assert
 
-    if(!derivative)
-      ret = E[0][0] + E[1][1] + (elec ? 0.0 : E[2][2]);
-    else
-      ret = de->GetType() == DesignElement::TENSOR33 ? E[2][2] : 1.0;
-
-    assert(!(derivative && notation == DesignMaterial::HILL_MANDEL && ret != 1.0));
+    assert(!(derivative && local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && ret != -1.0));
+    assert(!(derivative && notation == DesignMaterial::HILL_MANDEL && de->GetType() == DesignElement::TENSOR33 && ret != 1.0));
     assert(!(derivative && notation == DesignMaterial::VOIGT && de->GetType() == DesignElement::TENSOR33 && ret != 0.5));
+
 
     LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " nt=" << de->type.ToString(de->GetType()) << " d=" << derivative << " -> " << ret;
     return ret;

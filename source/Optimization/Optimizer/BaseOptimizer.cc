@@ -366,7 +366,8 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
   // calc our gradient - it is not stored anywhere
     
   assert(n <= (int) grad_f.GetSize()); // FIXME
-  grad_f.window.Set(grad_f);
+  // grad_f.window.Set(grad_f);
+  grad_f.window.Set(0, n);
   optimization->CalcObjectiveGradient(&grad_f);
 
   if(objective->logscale)

@@ -132,7 +132,7 @@ int AuxDesign::WriteDesignToExtern(double* space_out, bool scale) const
 
 void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Condition* g, bool scaling) const
 {
-  LOG_DBG(aux_des) << "WGTE: ad=" << aux_design_.GetSize() << " DS:GNOV=" << DesignSpace::GetNumberOfVariables() << " ows=" << out.window.GetSize();
+  LOG_DBG(aux_des) << "WGTE: ad=" << aux_design_.GetSize() << " DS:GNOV=" << DesignSpace::GetNumberOfVariables() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
 
   bool write_aux = true;
   if(alsomatopt_)
@@ -144,8 +144,10 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
     // this is e.g. not the case for sparse gradients not touching the aux design.
     StdVector<double>::Window org_window = out.window; // I like standard constructors :)
 
-    if(out.window.GetStart() + out.window.GetSize() > data.GetSize())
-      out.window.Set(out.window.GetStart(), data.GetSize() - out.window.GetStart());
+    // FIXME! window != data!!!
+    assert(out.window.GetSize() <= data.GetSize() + aux_design_.GetSize());
+    if(out.window.GetSize() > data.GetSize())
+      out.window.Set(out.window.GetStart(), data.GetSize());
     else
       write_aux = false;
 

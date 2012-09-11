@@ -117,11 +117,6 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
       break;
     }
   }
-  
-  //  snopt only makes a difference between linear and nonlinear constraints!
-  if(pn->Has("linear"))
-    linear_ = pn->Get("linear")->As<bool>();
-
 }
 
 void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em)
@@ -810,8 +805,6 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   // if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!
   //  in->Get(ParamNode::WARNING)->SetValue("Doing homogenization without 'objective' scaling constraint '" + type.ToString(type_) + "'");
 
-  if(!observation_)
-    in->Get("linear")->SetValue(linear_);
 
   if(type_ == VOLUME && physical_ && !observation_)
     info_->Get(ParamNode::WARNING)->SetValue("a physical volume constraint should make no sense");

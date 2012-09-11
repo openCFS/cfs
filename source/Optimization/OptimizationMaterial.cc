@@ -341,8 +341,10 @@ PiezoelecMat::PiezoelecMat(ErsatzMaterial* em) :
   {
     // in the piezoelectric case K_pp is set to -K_pp. As we use the linGradBDBInt from a piezoelectric problem this is done!
     // FIXME check the sign!
-    GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_map[regionIds[r]], NULL, NULL, DesignElement::NO_DERIVATIVE, 1.0); // see above
-    GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_neg_map[regionIds[r]], NULL, NULL, DesignElement::NO_DERIVATIVE, -1.0); // see above
+    GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_map[regionIds[r]], NULL, NULL, DesignElement::NO_DERIVATIVE, -1.0); // see above
+    assert(elecStiffness_map[regionIds[r]].Trace() > 0.0);
+    GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_neg_map[regionIds[r]], NULL, NULL, DesignElement::NO_DERIVATIVE, 1.0); // see above
+    assert(elecStiffness_neg_map[regionIds[r]].Trace() < 0.0);
 
     GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], mech, elec, "linPiezoCoupling"), coupledStiffness_map[regionIds[r]]);
     coupledStiffness_map[regionIds[r]].Transpose(coupledStiffnessTransposed_map[regionIds[r]]);
@@ -367,10 +369,12 @@ PiezoelecMat::PiezoelecMat(ErsatzMaterial* em) :
   // we just need to check the sign
   Matrix<Double>& our = elecStiffness_map[regionIds[0]];
   LOG_DBG3(om) << "OptPiezoMat: our K_pp=" << our.ToString();
-  assert(mat[0][0] == our[0][0]);
+  assert(our[0][0] > 0.0);
+  assert(abs(mat[0][0]) ==  abs(our[0][0]));
 
   Matrix<Double> our_neg = elecStiffness_neg_map[regionIds[0]];
-  assert(mat[0][0] == -1.0 * our_neg[0][0]);
+  assert(our_neg[0][0] < 0.0);
+  assert(abs(mat[0][0]) == abs(our_neg[0][0]));
   LOG_DBG3(om) << "OptPiezoMat: our -K_pp=" << our_neg.ToString();
 
   delete elec_int;

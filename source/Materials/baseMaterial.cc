@@ -399,7 +399,7 @@ namespace CoupledField
       // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
       helpMat   = matTensorOrig * RT;
       matTensor = R * helpMat;
-      std::cout << "R = " << R.ToString() << " o=" << matTensorOrig.ToString() << " -> " << matTensor.ToString() << std::endl;
+      // std::cout << "R = " << R.ToString() << " o=" << matTensorOrig.ToString() << " -> " << matTensor.ToString() << std::endl;
     }
     else {
       // we also need Q;

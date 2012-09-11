@@ -108,13 +108,21 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type)
   switch(type)
   {
   case DesignElement::DENSITY:
+  case DesignElement::EMODUL:
+  case DesignElement::EMODULISO:
+  case DesignElement::GMODUL:
+  case DesignElement::POISSON:
+  case DesignElement::POISSONISO:
+  case DesignElement::ROTANGLE:
+  case DesignElement::STIFF1:
+  case DesignElement::STIFF2:
     return Optimization::MECH;
   case DesignElement::ACOU_DENSITY:
     return Optimization::LAPLACE;
   case DesignElement::POLARIZATION:
     return Optimization::PIEZO_COUPLING;
   default:
-    throw Exception("invalid");
+    throw Exception("invalid request for transfer function");
   }
 }
 

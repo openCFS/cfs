@@ -206,7 +206,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             double initial = random ? -1.0 : curr_design_pn->Get("initial")->As<double>();
 
             if(!random && (initial < lower || initial > upper))
-              throw Exception("Initial value for design " + DesignElement::type.ToString(dt) + " not within bounds");
+              info->Get("optimization/header/DesignSpace")->Get(ParamNode::WARNING)->SetValue("Initial value for design " + DesignElement::type.ToString(dt) + " not within bounds");
 
             for(unsigned int e = 0; e < n; e++)
             {
@@ -217,7 +217,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
               data.Push_back(de);
               totalElements_.Push_back(&data.Last());
               // append rucksack :)
-              if(method == ErsatzMaterial::SIMP_METHOD)
+              if(method == ErsatzMaterial::SIMP_METHOD || method == ErsatzMaterial::PARAM_MAT)
               {
                 DesignElement* ptr = &(data.Last());
                 ptr->simp = new SIMPElement(ptr);
@@ -542,6 +542,7 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
       case OPT_RESULT_7: return 6;
       case OPT_RESULT_8: return 7;
       case OPT_RESULT_9: return 8;
+      case OPT_RESULT_10: return 9;
       default: throw Exception("invalid solution type");
     }
   }
@@ -629,12 +630,11 @@ bool DesignSpace::CollectMaterialParametersForElement(const Elem* elem){
     return(false);
   }
 
-  // prevent complicated combinations when we do piezo FMO
-  designMaterial->ClearParameter();
+  // we must not clear the parameters here as only designs are rewritten but not fixed parameters
 
   for(unsigned int index = base; index < data.GetSize(); index += elements){
     DesignElement* de = &data[index];
-    designMaterial->SetParameter(de->GetType(), de->GetDesign(DesignElement::PLAIN));
+    designMaterial->SetParameter(de->GetType(), de->GetDesign(DesignElement::SMART));
   }
   return(true);
 }

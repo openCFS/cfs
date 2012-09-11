@@ -248,7 +248,7 @@ namespace CoupledField
       * Is very fast O(1) */
      int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false);
 
-     /** When we have more design types this is a divisor of data.GetSieze() */
+     /** When we have more design types this is a divisor of data.GetSize() */
      unsigned int GetNumberOfElements() { return elements; }
 
      /** The number of optimization variables over all regions. Counts every time.
@@ -286,7 +286,7 @@ namespace CoupledField
      /** Our transfer functions */
      StdVector<TransferFunction> transfer;
 
-     /** Here we store the design we have. Check with Find() for the element */
+     /** Here we store the designs we have. Check with Find() for the element */
      StdVector<DesignElement::Type> design;
 
      /** Reference to DesignMaterial */

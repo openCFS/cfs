@@ -220,7 +220,7 @@ ErsatzMaterial::~ErsatzMaterial()
 
 void ErsatzMaterial::PostInit()
 {
-  // might be constructed in SIMP::PostInit()
+  // might be constructed in SIMP::PostInit() or ParamMat::PostInit()
   if(structure_ == NULL)
     structure_ = new DesignStructure(this);
 
@@ -864,6 +864,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::GLOBAL_OSCILLATION:
       case Function::GLOBAL_JUMP:
       case Function::GLOBAL_SUM_MODULI:
+      case Function::GLOBAL_LAMINATES_VOL:
+      case Function::GLOBAL_TENSOR_TRACE:
       result = CalcGlobalFunction(f, derivative);
       break;
 
@@ -873,6 +875,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::JUMP:
       case Function::BUMP:
       case Function::SUM_MODULI:
+      case Function::LAMINATES_VOL:
       case Function::TENSOR_TRACE:
       case Function::TENSOR_NORM:
       case Function::PARAM_PS_POS_DEF:
