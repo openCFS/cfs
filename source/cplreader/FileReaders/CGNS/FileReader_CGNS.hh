@@ -97,6 +97,7 @@ namespace CoupledField{
       void CalcNumNodesPerRegion();
       UInt MapVelocityIndex(char* coordName);
       UInt MapFrictionIndex(char* coordName);
+      UInt MapForceIndex(char* coordName);
 
   };
 }

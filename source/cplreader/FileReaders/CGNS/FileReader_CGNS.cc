@@ -193,13 +193,16 @@ namespace CoupledField{
      std::vector< std::vector<Double> > solution;
      std::vector<Double> solutionPressure;
      std::vector< std::vector<Double> > solutionSkinFriction;
+     std::vector< std::vector<Double> > solutionForce;
      solution.resize(3,std::vector<Double>(numVertices_));
      solutionSkinFriction.resize(3,std::vector<Double>(numVertices_));
+     solutionForce.resize(3,std::vector<Double>(numVertices_));
 
      cg_nfields(fn, 1, 1, numsols, &nfields ); 
      bool velocityFound = false;
      bool pressureFound = false;
      bool frictionFound = false;
+     bool fluidForceFound = false;
      for(UInt aSol = 1 ; aSol <= (UInt) nfields; aSol++){
         cg_field_info(fn, 1, 1, numsols, aSol, &datatype , fieldName );
         UInt spaceIdx = MapVelocityIndex(fieldName);
@@ -223,6 +226,18 @@ namespace CoupledField{
           solutionSkinFriction[spaceIdx].resize(numVertices_,0);
           solutionSkinFriction[spaceIdx].assign(curSol,curSol +numVertices_);
           frictionFound = true;
+          delete curSol;
+          curSol = NULL;
+        }
+        spaceIdx = MapForceIndex(fieldName);
+        if(spaceIdx != 9999){
+          cgsize_t range_min[3] = {1,1,1};
+          cgsize_t range_max[3] = {numVertices_,1,1};
+          Double * curSol = new Double[numVertices_];
+          cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
+          solutionForce[spaceIdx].resize(numVertices_,0);
+          solutionForce[spaceIdx].assign(curSol,curSol +numVertices_);
+          fluidForceFound = true;
           delete curSol;
           curSol = NULL;
         }
@@ -351,6 +366,37 @@ namespace CoupledField{
               UInt idx = *curNodeIt;
               for(UInt i = 0; i < dim_; i++){
                 tmpSolStruct.data[n*numDOFs+i] = solutionSkinFriction[i][idx-1];
+              }
+              curNodeIt++;
+            }
+        }
+
+        if ( fluidForceFound){
+            /* copy the fluid velocity values */
+          FlowDataPartStruct & tmpSolStruct = curType[FLUIDMECH_FORCE];
+
+          //          if(nboundary == 0){
+            tmpSolStruct.isActive = true;
+            if (tmpSolStruct.dofNames.empty()) {
+              tmpSolStruct.unit = MapSolTypeToUnit(FLUIDMECH_FORCE);
+              tmpSolStruct.dofNames.push_back("x");
+              tmpSolStruct.dofNames.push_back("y");
+              if(dim_ == 3){
+                tmpSolStruct.dofNames.push_back("z");
+              }
+
+              tmpSolStruct.resultName = SolutionTypeEnum.ToString(FLUIDMECH_FORCE);
+              tmpSolStruct.definedOn = ResultInfo::NODE;
+              tmpSolStruct.entryType = ResultInfo::VECTOR;
+            }
+            std::set<UInt> curNodes = nodeIt->second;
+            std::set<UInt>::iterator curNodeIt = curNodes.begin();
+            UInt numDOFs = tmpSolStruct.dofNames.size();
+            tmpSolStruct.data.resize(numDOFs * curNodes.size());
+            for(UInt n = 0; n < curNodes.size() ;n++){
+              UInt idx = *curNodeIt;
+              for(UInt i = 0; i < dim_; i++){
+                tmpSolStruct.data[n*numDOFs+i] = solutionForce[i][idx-1];
               }
               curNodeIt++;
             }
@@ -647,6 +693,20 @@ namespace CoupledField{
     }else if(strcmp(coordName,"SkinFrictionY") == 0){
        coordinateIndex = 1;
     }else if(strcmp(coordName,"SkinFrictionZ") == 0){
+       coordinateIndex = 2;
+    }
+    return coordinateIndex;
+  }
+
+  UInt FileReader_CGNS::MapForceIndex(char* coordName){
+    UInt coordinateIndex = 9999;
+    //check if the name fulfils the naming convention
+    //if not, we throw an error
+    if(strcmp(coordName,"ForceX") == 0 || strcmp(coordName,"Force") == 0){
+       coordinateIndex = 0;
+    }else if(strcmp(coordName,"ForceY") == 0){
+       coordinateIndex = 1;
+    }else if(strcmp(coordName,"ForceZ") == 0){
        coordinateIndex = 2;
     }
     return coordinateIndex;
