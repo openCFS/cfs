@@ -709,4 +709,24 @@ namespace CoupledField
                                                      elecFieldPrev, idx);
    }
 
+
+   MaterialType BaseMaterial::ConvertMaterialClass(MaterialClass mc)
+   {
+     switch(mc)
+     {
+     case MECHANIC:
+       return MECH_STIFFNESS_TENSOR;
+     case PIEZO:
+       return PIEZO_TENSOR;
+     case ELECTROSTATIC:
+       return MECH_STIFFNESS_TENSOR;
+     default:
+       assert(false); // implement for your needs!
+       break;
+     }
+
+     assert(false);
+     return NO_MATERIAL;
+   }
+
 }

@@ -256,6 +256,7 @@ DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseu
   this->pseudoElementIndex_ = pseudoElementIndex;
   this->upper_ = 1.0;
   this->lower_ = 1.0;
+  this->multimaterial = NULL;
   this->specialResult.Resize(9, 0.0);
 
 }
@@ -267,6 +268,7 @@ DesignElement::DesignElement(Type dt, double lower, double upper, Elem* elem, un
   this->elem = elem;
   this->specialResult.Resize(9, 0.0);
   this->index_ = index;
+  this->multimaterial = NULL;
 
   type_ = dt;
   upper_ = upper;
@@ -616,7 +618,6 @@ void DesignElement::SetEnums()
   type.Add(DIELEC_ALL, "dielec_all");
   type.Add(PIEZO_ALL, "piezo_all");
   type.Add(DEFAULT, "default");
-  type.Add(ALL_DESIGNS, "allDesigns");
   type.Add(DENSITY, "density");
   type.Add(ACOU_DENSITY, "acouDensity");
   type.Add(POLARIZATION, "polarization");
@@ -650,6 +651,9 @@ void DesignElement::SetEnums()
   type.Add(STIFF1, "stiff1");
   type.Add(STIFF2, "stiff2");
   type.Add(SLACK, "slack");
+  type.Add(MULTIMATERIAL_DENSITY, "multimaterial_density");
+  type.Add(MULTIMATERIAL_VOID, "multimaterial_void");
+  type.Add(ALL_DESIGNS, "allDesigns");
 
   access.SetName("DesignElement::Access");
   access.Add(PLAIN, "plain");
@@ -1264,3 +1268,4 @@ ResultDescription::ResultDescription(PtrParamNode pn)
 
   excitation = pn->Get("excitation")->As<std::string>();
 }
+

@@ -31,6 +31,8 @@ class ResultDescription;
 class SIMPElement;
 class SinglePDE;
 class TransferFunction;
+class DesignSpace;
+class MultiMaterial;
 struct Elem;
 
 /** This DesignElement package provides information about the direct neighbours for uniform cartesian
@@ -151,7 +153,7 @@ public:
                    POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12, SLACK,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
-                   ROTANGLE, STIFF1, STIFF2, ALL_DESIGNS} Type;
+                   ROTANGLE, STIFF1, STIFF2, MULTIMATERIAL_DENSITY, MULTIMATERIAL_VOID, ALL_DESIGNS} Type;
 
   BaseDesignElement(Type type = NO_TYPE);
   virtual ~BaseDesignElement() {};
@@ -259,8 +261,6 @@ public:
   /** Dummy elements for Function */
   DesignElement(Elem* elem, Type type, unsigned int index, int pseudoElementIndex);
 
-
-
   virtual ~DesignElement();
 
    /** We might need the transfer functions! */
@@ -324,7 +324,6 @@ public:
 
     /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
     void static SetEnums();
-
     
     /** Write key values as attributes
      * @param tf if given prints the physical lower bound */
@@ -387,6 +386,10 @@ public:
     /** The topgrad element, will be destroyed by TopGrad */
     TopGradElement *tge;
 
+    /** if we are a multimaterial (MULTIMATERIAL_VOID or MULTIMATERIAL_DENSITY) this is our material
+     * and the index there is our own index*/
+    MultiMaterial* multimaterial;
+
     /** calculates the location on request and stores it */
     Point* GetLocation();
 
@@ -406,7 +409,6 @@ private:
 
   /** @see GetPseudoElementIndex() */
   int pseudoElementIndex_;
-
 
   /** the element volume calculated on request by CalcVolume() */
   double elemVol_;
@@ -483,6 +485,25 @@ private:
   /** We need our base design element to do the filtering */
   DesignElement* de_;
 };
+
+/** requires in DesignSpace and DesignMaterial */
+class DesignID
+{
+public:
+   DesignID(DesignElement::Type design = DesignElement::NO_TYPE, MultiMaterial* mm = NULL)
+   {
+     this->design = design;
+     this->multimaterial = mm;
+   }
+
+   DesignElement::Type design;
+   /** index. -1 for non-multimaterial */
+   MultiMaterial*      multimaterial;
+};
+
+
+/** implemented in StdVector.cc, there we need it */
+std::ostream & operator << ( std::ostream & out, const DesignID& id);
 
 
 /** <p>A result description holds the result element in the xml file which describes what data from

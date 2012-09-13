@@ -137,6 +137,10 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
   bool write_aux = true;
   if(alsomatopt_)
   {
+    // the number of DesignSpace variables is complicated because of constant region.
+    // The method is expensive as it counts
+    unsigned int data_size = DesignSpace::GetNumberOfVariables(); // is virtual
+
     // we call DesignSpace::WriteDenseGradientToExtern() for the ersatz material part.
 
     // in case the the gradient window covers DesignSpace design and aux design, we need to
@@ -145,9 +149,9 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
     StdVector<double>::Window org_window = out.window; // I like standard constructors :)
 
     // FIXME! window != data!!!
-    assert(out.window.GetSize() <= data.GetSize() + aux_design_.GetSize());
-    if(out.window.GetSize() > data.GetSize())
-      out.window.Set(out.window.GetStart(), data.GetSize());
+    assert(out.window.GetSize() <= data_size + aux_design_.GetSize());
+    if(out.window.GetSize() > data_size)
+      out.window.Set(out.window.GetStart(), data_size);
     else
       write_aux = false;
 
@@ -240,6 +244,7 @@ void AuxDesign::AddAuxDerivatives(Objective* f, Condition* g, StdVector<double>&
 inline
 BaseDesignElement* AuxDesign::GetDesignElement(unsigned int idx)
 {
+  // FIXME: data.GetSize() != DesignSpace::GetNumberOfVariables()
   if(alsomatopt_ && idx < data.GetSize())
     return DesignSpace::GetDesignElement(idx);
   else

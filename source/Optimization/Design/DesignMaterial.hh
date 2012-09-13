@@ -35,7 +35,7 @@ template <class TYPE> class StdVector;
 
     /** constructor, reads in DesignMaterial from XML
      * @param pn pointer to PtrParamNode */ 
-    DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignElement::Type>& design);
+    DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design);
     
     /** reset the parameter space */
     void ClearParameter() { params_.clear(); }

@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 
+#include "Optimization/Design/DesignElement.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "General/Enum.hh"
 #include "General/exception.hh"
@@ -1521,5 +1522,12 @@ namespace CoupledField {
   UInt MAX_NUM_FE_MATRICES;
   
   Enum<FEMatrixType> feMatrixType;
-}
+
+  std::ostream & operator << ( std::ostream & out, const DesignID& id)
+  {
+    out << id.design;
+    return out;
+  }
+
+} // end of namespace
 

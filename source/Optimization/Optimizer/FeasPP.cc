@@ -222,7 +222,7 @@ void FeasPP::PostInit()
   upper_bound.Resize((int) DesignElement::ALL_DESIGNS, 0.0);
   for(unsigned int i = 0; i < optimization->GetDesign()->design.GetSize(); i++)
   {
-    DesignElement::Type dt = optimization->GetDesign()->design[i];
+    DesignElement::Type dt = optimization->GetDesign()->design[i].design;
     assert(dt >= 0);
     DesignElement& de = optimization->GetDesign()->data[optimization->GetDesign()->elements * i]; // fallback
     assert(de.GetType() == dt);

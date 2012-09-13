@@ -309,6 +309,11 @@ namespace CoupledField
      * @return 1.0 if nothing is to be done or a factor */ 
     virtual Double GetErsatzMaterialFactor(const Elem* elem, bool forBimaterial = false);
 
+    /** Determines the multimaterial SIMP tensor if we do multimaterial and if the element is ok
+     * @param mc MECHANIC, PIEZO or ELECTROSTATIC
+     * @return if t was filled. If not try standard SIMP with GetErsatzMaterialFactor */
+    bool GetMultiMaterialTensor(Matrix<double>& t, const Elem* elem, MaterialClass mc, SubTensorType subTensor = NO_TENSOR);
+
     /** Some derived classes have a natural tensor e.g. PIEZO_TENSOR, MECH_STIFFNESS_TENSOR. Extend if you need it */
     virtual MaterialType getDMaterialType() { EXCEPTION("not implemented"); }
 

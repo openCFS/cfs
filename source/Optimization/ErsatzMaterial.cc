@@ -1190,7 +1190,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       for(unsigned int d = 0; d < nd; d++)
       { // tensortrace breaks out after the first design
         const unsigned int nr = design->regions[d].GetSize();
-        if(allDesignsRelevant || design->design[d] == dtype)
+        if(allDesignsRelevant || design->design[d].design == dtype)
         {
           for(unsigned int r = 0; r < nr; r++)
           {
@@ -1232,7 +1232,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     double sum = 0.0;
     for(unsigned int d = 0; d < nd; d++)
     {
-      if(allDesignsRelevant || design->design[d] == dtype)
+      if(allDesignsRelevant || design->design[d].design == dtype)
       { // tensortrace breaks out after the first design
         const unsigned int nr = design->regions[d].GetSize();
         for(unsigned int r = 0; r < nr; r++)

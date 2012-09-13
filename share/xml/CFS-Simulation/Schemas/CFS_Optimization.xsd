@@ -890,7 +890,9 @@
                 <xsd:attribute name="scale" use="optional" type="xsd:boolean" default="false"/>
                 <!-- If true we interpret lower as physical_lower value. Must not be concurrent with physical_lower -->
                 <xsd:attribute name="adapt_lower" use="optional" type="xsd:boolean" default="false"/>
-                <!-- bimaterial optimization is optional. The value needs to be found in the material.xml -->
+                <!-- for multimaterial_density and multimaterial_void the material attribute is mandatory. otherwise not allowed -->
+                <xsd:attribute name="material" type="xsd:token" use="optional" />
+                <!-- KILLME FIMXE depreciated!! bimaterial optimization is optional. The value needs to be found in the material.xml -->
                 <xsd:attribute name="bimaterial" use="optional" type="xsd:token"/>
               </xsd:complexType>
             </xsd:element>
@@ -1339,6 +1341,10 @@
       <xsd:enumeration value="rotAngle"/>
       <xsd:enumeration value="stiff1"/>
       <xsd:enumeration value="stiff2"/>
+      <!-- multimaterial requies the material attribute -->
+      <xsd:enumeration value="multimaterial_density"/>
+      <!-- special multimaterial for resource constraint. requies the material attribute --> 
+      <xsd:enumeration value="multimaterial_void"/>
     </xsd:restriction>
   </xsd:simpleType>
 

@@ -148,6 +148,15 @@ namespace CoupledField
      /** Get the correct Damping parameter, alpha for Mass, beta for Stiffness */
      bool GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, BaseForm* integrator, double& param);
 
+     bool HasMultiMaterial() const { return !multimaterial.IsEmpty();}
+
+     /** Gives an assembled multimaterial tensor
+      * @param elem for the element number
+      * @param tf transfer function, if not given searches by itself
+      * @param mc to find the right one in the piezo case
+      * @param derivative if given it contains the the index of the propert material */
+     bool GetMultiMaterialTensor(Matrix<double>& t, const Elem* elem, TransferFunction* tf = NULL, SubTensorType subTensor = NO_TENSOR, MaterialClass mc = MECHANIC, const DesignElement* derivative = NULL);
+
      /** This gets back a uniquely defined transfer function.
       * @param throw_exception if false NULL is returned when nothing is found!
       * @param use_single when there is only one transfer function, use this one and ignore design and application */
@@ -286,8 +295,9 @@ namespace CoupledField
      /** Our transfer functions */
      StdVector<TransferFunction> transfer;
 
-     /** Here we store the designs we have. Check with Find() for the element */
-     StdVector<DesignElement::Type> design;
+     /** Here we store the designs we have. Check with Find() for the element. 
+      * Note, that multimaterial_density is not unique here! */
+     StdVector<DesignID> design;
 
      /** Reference to DesignMaterial */
      DesignMaterial* designMaterial;
@@ -327,7 +337,7 @@ namespace CoupledField
      typedef enum { VARIABLE, CONSTANT_PER_REGION, CONSTANT_ON_ALL_REGIONS, FIXED } DesignConstant;
      
      static Enum<DesignConstant> designConstant;
-     
+
      /** This holds information about a region, valid for one design.
       * save parameters for scaling the design to [0..1] in the optimizer: 
       * our design = scaling * optimizer_design + translation 
@@ -346,6 +356,9 @@ namespace CoupledField
        double scale_design;
        double translate_design;
 
+       /** points to the multimaterial array or is NULL */
+       MultiMaterial* multimaterial;
+
        void SetBiMaterial(const std::string& material) { bimaterial_ = material; }
 
        bool HasBiMaterial() const;
@@ -356,18 +369,21 @@ namespace CoupledField
        std::string ToString() const;
 
        void ToInfo(PtrParamNode node) const;
+
      private:
        std::string bimaterial_;
+       // old bimaterial stuff
        StdVector<std::pair<BaseMaterial*, MaterialClass> > materials_;
      };
      
-     /** trivial find */
-     DesignRegion* GetRegion(RegionIdType id, bool throw_exception = true);
+     /** Get DesignRegion.  */
+     DesignRegion* GetRegion(RegionIdType id, DesignElement::Type dt = DesignElement::NO_TYPE, int multimaterial_index = -1, bool throw_exception = true);
 
      /** Convenience function */
      BaseMaterial* GetBiMaterial(RegionIdType reg, Optimization::Application app, bool throw_exception = true);
 
-     /** This now is a vector of design and region regions[design][region] */
+     /** This now is a vector of design and region regions[design][region].
+      Design is here the unique design. */
      StdVector<StdVector<DesignRegion> > regions;
 
      /** it is convenient to have such a vector for some functions. Taken from regions! */
@@ -451,6 +467,11 @@ namespace CoupledField
      /** as regionIds_ does not exist as StdVector anymore, a simple replacement for regionIds_.Find() */
      int FindRegion(RegionIdType regionId);
 
+     /** Setup the multimaterial vector and do sanity checks */
+     void SetupMultiMaterial(ParamNodeList design_list);
+
+     /** Here we store the multimaterial data */
+     StdVector<MultiMaterial> multimaterial;
      
      /** We afford a large element number to design index mapping.
       * sorted by the elemNum the design index is stored.
@@ -501,6 +522,25 @@ namespace CoupledField
   };
 
 
+  struct MultiMaterial
+  {
+    /** the material is PDE dependent therefore we create and cache it on the fly. This makes it
+     * easy to be also simple for load ersatz material */
+    BaseMaterial* GetMultiMaterial(const MaterialClass mc);
+
+
+    /** material name, to be allow creation on the fly. */
+    std::string name;
+
+    /** is this a void material. One one might be void material! */
+    bool void_material;
+
+    /** redundant multimaterial index, starting from 0 */
+    int index;
+
+    /** this is a list of materials. One for elasticity and three for piezoelectricity */
+    StdVector<std::pair<BaseMaterial*, MaterialClass> > material;
+  };
 
 
 } // end of namespace

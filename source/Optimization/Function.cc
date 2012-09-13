@@ -1403,7 +1403,7 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
     // but also param mat where stiff1 and stiff2, ... form the tensor
     for(unsigned int i=1; i < space->design.GetSize(); ++i)
     {
-      if(DesignElement::IsCompatible(f->GetDesignType(), space->design[i]))
+      if(DesignElement::IsCompatible(f->GetDesignType(), space->design[i].design))
         des_idx.Push_back(i);
     }
     break;
@@ -1420,7 +1420,7 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
   case POS_DEF_DET_MINOR_1:
   case BENSON_VANDERBEI_1:
     assert(space->design.GetSize() >= 6);
-    if(space->design[0] != DesignElement::TENSOR11 || space->design[0] != DesignElement::DIELEC_11)
+    if(space->design[0].design != DesignElement::TENSOR11 || space->design[0].design != DesignElement::DIELEC_11)
       throw Exception("'Expect first design to be 'tensor11' or 'dielec_11'");
     // only design TENSOR11 is not neighbor
     break;
@@ -1471,7 +1471,7 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
       DesignElement* other = &(space->data[elems * des + e]);
       neighbours.Push_back(other);
       LOG_DBG3(func) << "F:L:SMDEM e=" << e << " el=" << de->elem->elemNum << " d = " << d << " des=" << des << " design="
-                     << DesignElement::type.ToString(space->design[des]) << " idx=" << other->GetIndex() << " ed=" << de->GetType();
+                     << DesignElement::type.ToString(space->design[des].design) << " idx=" << other->GetIndex() << " ed=" << de->GetType();
     }
 
     virtual_elem_map.Push_back(Identifier(de, neighbours));

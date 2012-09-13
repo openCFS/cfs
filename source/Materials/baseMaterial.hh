@@ -365,6 +365,9 @@ class ApproxData;
                                  Double dampFreq, Double RatioDeltaF,
                                  bool adjustDamping, bool isHarmonic );
 
+    /** converts MaterialClass to the corresponding MaterialType tensor. Extend for your needs */
+    static MaterialType ConvertMaterialClass(MaterialClass mc);
+
   protected:
 
     //! Error for material type not defined

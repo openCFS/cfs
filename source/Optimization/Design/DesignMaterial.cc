@@ -25,7 +25,7 @@ Enum<DesignMaterial::Type>         DesignMaterial::type;
 Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
 Enum<DesignMaterial::Notation>     DesignMaterial::notation;
 
-DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignElement::Type>& design)
+DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design)
 {
   type_ = type.Parse(pn->Get("type")->As<string>());
   
@@ -49,7 +49,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   d.Reserve(r);
   // copy the ones from DesignSpace
   for(unsigned int i=0; i < design.GetSize(); ++i){
-    d.Push_back(design[i]);
+    d.Push_back(design[i].design);
   }
   // read non-design parameters
   ParamNodeList params = pn->GetList("param");

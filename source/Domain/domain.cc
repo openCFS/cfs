@@ -1055,7 +1055,7 @@ BaseMaterial* Domain::GetErsatzBiMaterial(const Elem* elem, const MaterialClass 
 {
   if(ersatzMaterial == NULL) return NULL;
 
-  DesignSpace::DesignRegion* dr = ersatzMaterial->GetRegion(elem->regionId, false); // silent
+  DesignSpace::DesignRegion* dr = ersatzMaterial->GetRegion(elem->regionId, DesignElement::NO_TYPE, -1, false); // silent
 
   if(dr != NULL && dr->HasBiMaterial())
     return dr->GetBiMaterial(mc);
