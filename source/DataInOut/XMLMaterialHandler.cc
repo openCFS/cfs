@@ -148,7 +148,7 @@ namespace CoupledField {
       }
       if(pct->Has("imag"))
       {
-        ParamTools::AsStringTensor( pct->Get("imag"), 18, realVals );
+        ParamTools::AsStringTensor( pct->Get("imag"), 18, imagVals );
       }
       pctCoef = CoefFunction::Generate( Global::COMPLEX, 3, 6,
                                       realVals, imagVals );
