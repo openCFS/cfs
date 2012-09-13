@@ -24,6 +24,7 @@ public:
   CoefFunctionApprox() {
     // this type of coefficient is nonlinear (i.e. solution dependend)
     dependType_ = SOLUTION;
+    isAnalytic_ = false;
   }
 
   //! Destructor

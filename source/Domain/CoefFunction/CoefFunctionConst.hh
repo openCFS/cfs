@@ -57,20 +57,28 @@ public:
   //! \copydoc CoefFunction::GetVector
   void GetVector(Vector<T>& coefVec, 
                  const LocPointMapped& lpm ) {
-    assert(this->dimType_ == VECTOR);
+    assert(this->dimType_ == VECTOR ||
+           this->dimType_ == SCALAR );
 
-    // if no coordinate system is set, just
-    // use internal vector
-    if( !coordSys_ ) {
-      coefVec = coefVec_;
-
+    // in case of scalars, just set one entry in the vector
+    if( this->dimType_ == SCALAR ) {
+      coefVec.Resize(1);
+      coefVec[0] = coefScalar_;
     } else {
-      // otherwise, perform local -> global mapping
-      Vector<Double> pointCoord;
-      lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
-      
-      // Afterwards rotate the local vector back to global coordinates
-      this->coordSys_->Local2GlobalVector( coefVec, coefVec_, pointCoord );
+
+      // if no coordinate system is set, just
+      // use internal vector
+      if( !coordSys_ ) {
+        coefVec = coefVec_;
+
+      } else {
+        // otherwise, perform local -> global mapping
+        Vector<Double> pointCoord;
+        lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+
+        // Afterwards rotate the local vector back to global coordinates
+        this->coordSys_->Local2GlobalVector( coefVec, coefVec_, pointCoord );
+      }
     }
   }
 

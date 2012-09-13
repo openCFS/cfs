@@ -120,7 +120,6 @@ void HeatPDE::ReadSpecialBCs() {
   // iterate over all parameter nodes
   for( UInt i = 0; i < rbcNodes.GetSize(); i++ ) {
     try {
-      myDof.clear();
       rbcNodes[i]->GetValue( "name", myName );
       rbcNodes[i]->GetValue( "entityType", myType );
       rbcNodes[i]->GetValue( "heatTransferCoefficient", myHTC );
@@ -136,11 +135,6 @@ void HeatPDE::ReadSpecialBCs() {
       actBc->entities = actList;
       actBc->result = results_[0];
       //      actBc->eqnMap = eqnMap_;
-      if( myDof.empty() ) {
-        actBc->dof = 1;
-      } else {
-        actBc->dof = results_[0]->GetDofIndex( myDof );
-      }
       actBc->HTC = myHTC;
       actBc->bulkTemp = myBulkTemp;
 
@@ -721,6 +715,11 @@ void HeatPDE::DefinePrimaryResults() {
   DefineFieldResult( feFunctions_[HEAT_TEMPERATURE], res1 );
 
 
+  // -----------------------------------
+  //  Define xml-names of Dirichlet BCs
+  // -----------------------------------
+  idbcSolNameMap_[HEAT_TEMPERATURE] = "temperature";
+  
   // === TEMPERATURE RHS ===
   shared_ptr<ResultInfo> rhs ( new ResultInfo );
   rhs->resultType = HEAT_RHS_LOAD;

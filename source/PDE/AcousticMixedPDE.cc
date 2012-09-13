@@ -264,8 +264,9 @@ namespace CoupledField{
         
         // Read coefficient flow coefficient function for this region and add it to flow functor
         PtrCoefFct regionFlow;
+        std::set<UInt> definedDofs;
         ReadUserFieldValues( regionName, flowNode, flowInfo->dofNames, flowInfo->entryType, 
-                             isComplex_, regionFlow );
+                             isComplex_, regionFlow, definedDofs );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
 
         //now create the integrators
@@ -588,6 +589,13 @@ namespace CoupledField{
       velocity->SetFeFunction(feFunctions_[ACOU_VELOCITY]);
       DefineFieldResult( feFunctions_[ACOU_VELOCITY], velocity );
 
+      //  Define xml-names of Dirichlet BCs
+      // -----------------------------------
+      hdbcSolNameMap_[ACOU_PRESSURE] = "soundSoft";
+      hdbcSolNameMap_[ACOU_VELOCITY] = "soundHard";
+      idbcSolNameMap_[ACOU_PRESSURE] = "pressure";
+      idbcSolNameMap_[ACOU_VELOCITY] = "velocity";
+      
       //// === ACOUSTIC RHS ===
       //shared_ptr<ResultInfo> rhs ( new ResultInfo );
       //rhs->resultType = ACOU_RHS_LOAD;

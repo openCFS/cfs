@@ -66,7 +66,7 @@
           <xsd:element name="flowList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="flow" type="DT_RHSVector"/>
+                <xsd:element name="flow" type="DT_BcInhomVector"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -75,11 +75,18 @@
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="dirichletHom"   type="DT_AcousticMixedHD"  />
-                <xsd:element name="dirichletInhom" type="DT_AcousticMixedID"  />
+                <!-- Dirichlet Boundary Conditions -->
+                <xsd:element name="soundSoft"  type="DT_BcHomScalar"    />
+                <xsd:element name="soundHard"  type="DT_BcHomVector"    />
+                <xsd:element name="pressure"   type="DT_BcInhomScalar"  />
+                <xsd:element name="velocity"   type="DT_BcInhomVector"  />
+              
+                <!-- RHS Load Values-->
+                <xsd:element name="massEquationLoad"  type="DT_BcInhomScalar"/>
+                <xsd:element name="momentumEquationLoad" type="DT_BcInhomVector"/>
+                
+                <!-- Special Boundary Conditions -->
                 <xsd:element name="absorbingBCs"   type="DT_AbsorbingBCMixed" />
-                <xsd:element name="massEquationLoad"  type="DT_RHSScalar"/>
-                <xsd:element name="momentumEquationLoad" type="DT_RHSVector"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>

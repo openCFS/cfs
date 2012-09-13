@@ -189,8 +189,14 @@ namespace CoupledField {
     //! Set containing markers for the potentially required matrices
     std::set<FEMatrixType> myMatrices_;
 
-    //! Array containing links to all internal auxilliary matrices
+    //! Array containing links to all internal auxiliary matrices
     std::map<FEMatrixType, SBM_Matrix *> auxMat_;
+    
+    //! Array containing links to all internal auxiliary vectors
+    
+    //! These vectors are used for the multiplication of the auxiliary
+    //! matrix with a given IDBC vector
+    SBM_Vector  *auxVec_;
 
     //! Vector for storing the inhomogeneous Dirichlet values
     SBM_Vector *vecIDBC_;

@@ -1208,6 +1208,41 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         }
       }
     }
+    
+    void FeSpace::GetEntityListEqns(StdVector<Integer>& eqns, 
+                                    shared_ptr<EntityList> ent,
+                                    UInt dof,
+                                    BaseFE::EntityType entType) {
+      std::set<Integer> allEqns;
+      StdVector<Integer> tmp;
+      EntityIterator it = ent->GetIterator();
+      for( it.Begin(); ! it.IsEnd(); it++ ) {
+        tmp.Init();
+        GetEqns( tmp, it, dof, entType );
+        allEqns.insert(tmp.Begin(), tmp.End());
+      }
+      eqns.Clear();
+      eqns.Resize(allEqns.size());
+      std::copy(allEqns.begin(), allEqns.end(), eqns.Begin());
+    }
+    
+    
+    void FeSpace::GetEntityListEqns(StdVector<Integer>& eqns, 
+                                    shared_ptr<EntityList> ent,
+                                    BaseFE::EntityType entType) {
+      std::set<Integer> allEqns;
+      StdVector<Integer> tmp;
+      EntityIterator it = ent->GetIterator();
+      for( it.Begin(); ! it.IsEnd(); it++ ) {
+        tmp.Init();
+        GetEqns( tmp, it, entType);
+        allEqns.insert(tmp.Begin(), tmp.End());
+      }
+      eqns.Clear();
+      eqns.Resize(allEqns.size());
+      std::copy(allEqns.begin(), allEqns.end(), eqns.Begin());
+    }
+      
 
     //! Get Equation numbers for a specific element
     void FeSpace::GetElemEqns(StdVector<Integer>& eqns,const Elem* elem, UInt dof){

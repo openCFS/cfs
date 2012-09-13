@@ -191,6 +191,7 @@ CoefFunctionTimeFreq<Complex>::
 CoefFunctionTimeFreq() : CoefFunctionAnalytic() {
   
   dependType_ = TIMEFREQ;
+  isAnalytic_ = true;
   
   // obtain handle from internal variable coefficient function
   mp_ = domain->GetMathParser();

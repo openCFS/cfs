@@ -50,6 +50,14 @@ namespace CoupledField {
 
     //! Re-Set status of matrix re-assembly
     void ResetMatrixReassembly();
+    
+    //! Set an additional custom mapping for equation numbers
+    
+    //! This method registers an additional map for equations numbers.
+    //! This can be used, e.g. to handle bilinearforms, which are defined
+    //! on just a sub-set of the original domain.
+    void SetEqnCustomMap( const std::map<Integer, Integer>& eqnMap,
+                          const std::map<FeFctIdType, FeFctIdType>& fctIdMap );
 
     // ======================================================
     //  ASSEMBLING METHODS
@@ -146,6 +154,12 @@ namespace CoupledField {
 
     //! Create map for mapping general FEMatrixtype to analysis-specific ones
     void CreateMatrixMap();
+    
+    //! Perform re-mapping of equation numbers in case of eqn permutation
+    void ReMapEquations( StdVector<Integer>&  eqns, FeFctIdType& fctId );
+    
+    //! Perform re-mapping of functionId
+    void ReMapFctId( FeFctIdType& fctId );
 
     //! Insert matrix into algebraic system and adapt harmonic matrices
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
@@ -197,6 +211,12 @@ namespace CoupledField {
     //! Map with flags if FE matrix has to be reassembled
     std::map<FEMatrixType, bool> matReassemble_;
 
+    //! Map with additional permutation for equations
+    std::map<Integer, Integer> customEqnMap_;
+    
+    //! Map with additional permutation for function Ids
+    std::map<FeFctIdType, FeFctIdType> customFctIdMap_;
+    
     // ======================================================
     //  MISCELLANEOUS DATA
     // ======================================================

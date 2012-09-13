@@ -27,8 +27,9 @@ CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound
                                     StdVector<RegionIdType> pdeDomains):
   CoefFunction(){
 
-
-
+  isAnalytic_ = false;
+  dependType_ = GENERAL;
+  
   //prepare dimenstions of propagation region
   innerMinMaxComp_.Resize(3,2);
   innerMinMaxComp_.Init();

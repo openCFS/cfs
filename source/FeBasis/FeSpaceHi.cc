@@ -49,15 +49,17 @@ void FeSpaceHi::MapNodalBCs() {
         nodeMap_.BcKeys[vNode] = StdVector<BcType>(dofsPerUnknown);
         nodeMap_.BcKeys[vNode].Init(NOBC);
       }
-      LOG_DBG(feSpaceHi) << "\tHDBC for vNode " << vNode << ", dof " <<  (*actHBC)->dof;
-      nodeMap_.BcKeys[vNode][(*actHBC)->dof] = HDBC;
-      bcCounter_[HDBC]++;
+      
+      // loop over all dofs
+      std::set<UInt>::const_iterator dofIt = (*actHBC)->dofs.begin();
+      for( ; dofIt != (*actHBC)->dofs.end(); ++dofIt) { 
+        LOG_DBG(feSpaceHi) << "\tHDBC for vNode " << vNode << ", dof " <<  *dofIt;
+        nodeMap_.BcKeys[vNode][*dofIt] = HDBC;
+        bcCounter_[HDBC]++;
+      } // dofs
     }
   }
-  /* 
-   * In a hierarchical space, only the equations corresponding to a vertex
-   * get fixed. The edge / face / inner equations are set to zero.
-   */
+  //Get Grip of IdBC List for the fefunction
   const IdBcList idbcs = feFct->GetInHomDirichletBCs();
   IdBcList::const_iterator actIBC;
   for(actIBC = idbcs.Begin(); actIBC != idbcs.End(); actIBC++) {
@@ -72,20 +74,16 @@ void FeSpaceHi::MapNodalBCs() {
         nodeMap_.BcKeys[vNode] = StdVector<BcType>(dofsPerUnknown);
         nodeMap_.BcKeys[vNode].Init(NOBC);
       }
-
-      // check, if this node belongs to a vertex
-      // yes set "true" IDBC
-      //  no: set HDBC
-      if( nodesType_[vNode] == BaseFE::VERTEX ) {
-
+      // check first, if this node was already processed
+      // loop over all dofs
+      std::set<UInt>::const_iterator dofIt = (*actIBC)->dofs.begin();
+      for( ; dofIt != (*actIBC)->dofs.end(); ++dofIt) { 
         // check first, if this node was already processed
-        if( nodeMap_.BcKeys[vNode][(*actIBC)->dof] != IDBC) {
-          nodeMap_.BcKeys[vNode][(*actIBC)->dof] = IDBC;
+        if( nodeMap_.BcKeys[vNode][*dofIt] != IDBC) {
+          nodeMap_.BcKeys[vNode][*dofIt] = IDBC;
           bcCounter_[IDBC]++;
         }
-      } else {
-        nodeMap_.BcKeys[vNode][(*actIBC)->dof] = HDBC ;
-      }
+      } // dofs
     } // loop over virtual nodes
   } // loop over idbcs
 

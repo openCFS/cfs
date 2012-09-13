@@ -357,6 +357,16 @@ public:
   //! Get Equation numbers for a specific element
   virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem, UInt dof);
 
+  //! Get equations for a given entityList
+  virtual void GetEntityListEqns(StdVector<Integer>& eqns, 
+                                 shared_ptr<EntityList> ent,
+                                 BaseFE::EntityType = BaseFE::ALL );
+  
+  //! Get equations for a given entityList for a given dof
+  virtual void GetEntityListEqns(StdVector<Integer>& eqns, 
+                                 shared_ptr<EntityList> ent, UInt dof,
+                                 BaseFE::EntityType = BaseFE::ALL );
+  
   //! Return SBM-block and Matrix-SubBlock definition according to strategy
   
   //! This methods returns a list of SBMBlock definitions and minorBlock

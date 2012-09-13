@@ -26,6 +26,9 @@ namespace CoupledField {
   class BaseResult;
   class AlgebraicSys;
   class BaseBOperator;
+  class LinearForm;
+  class BiLinearForm;
+  class SBM_Vector;
   //class BaseTimeScheme;
 
 //!  Base class for a function approximated by Finite Elements 
@@ -46,7 +49,8 @@ namespace CoupledField {
 */
 
 
-class BaseFeFunction : public CoefFunction {
+class BaseFeFunction : public CoefFunction, 
+                       public boost::enable_shared_from_this<BaseFeFunction> {
 public:
   
 
@@ -112,7 +116,7 @@ public:
   shared_ptr<BaseTimeScheme> GetTimeScheme();
 
   void SetTimeScheme(shared_ptr<BaseTimeScheme> scheme);
-
+  
   //@}
   
   
@@ -139,7 +143,6 @@ public:
   const IdBcList GetInHomDirichletBCs(){
     return idBcs_;
   }
-
   
   //! Get Constraint Boundary Conditions
   const ConstraintList GetConstraints(){
@@ -229,7 +232,42 @@ protected:
 
   //! pointer to timestepping scheme
   shared_ptr<BaseTimeScheme> timeScheme_;
-
+  
+  //! Helper struct for caching the result of a function mapping
+  
+  //! This struct is used to store the auxiliary data related to the
+  //! the mapping of a general coefficient function to this feFunction /
+  //! its associated function space.
+  struct MapContext {
+    
+    //! Constructor
+    MapContext();
+    
+    //! Destructor
+    virtual ~MapContext();
+    
+    //! Parameter node algebraic system
+    PtrParamNode olasNode;
+    
+    //! Infonode for algebraic system
+    PtrParamNode infoNode;
+    
+    //! Pointer to algebraic system
+    AlgebraicSys* algSys;
+    
+    //! Pointer to assemble class
+    Assemble* assemble;
+    
+    //! Equation numbers of entity to be mapped
+    StdVector<Integer> entityEqns;
+    
+    //! Vector containing the solution
+    SBM_Vector * sol;
+  };
+  
+  //! Associate entity name with mapping context
+  std::map<std::string, MapContext*> entityCtx_;
+  
 };
 
 
@@ -276,6 +314,26 @@ public:
   void GetElemSolution( Vector<T>& elemSol,
                         const Elem* elem );
   
+  //! Map a general coefficient function onto the current finite element space
+  
+  //! This method can be used to map a general coefficient function
+  //! to the current finite element space. It returns a map, containing the 
+  //! equations numbers and the corresponding coefficients.
+  //! \param entityList Entitylist on which the function is defined
+  //! \param coefFct Coefficient function to be mapped 
+  //! \param vals Map containing the equations numbers (key) and the
+  //!             coefficient values (value)
+  //! \param cache Flag, if mapping should be cached (e.g. for boundary
+  //!              conditions, depending on frequency, time)
+  //! \param comp Set containing the components, which should get mapped.
+  //!             If empty, all components of the (vector-valued) function
+  //!             get mapped
+  void MapCoefFctToSpace(shared_ptr<EntityList> entityList, 
+                         shared_ptr<CoefFunction> coefFct,
+                         std::map<Integer, T>& vals,
+                         bool cache,
+                         const std::set<UInt>& comp = std::set<UInt>() );  
+  
   //! Return vector containing the function coefficients
   SingleVector* GetSingleVector() {return coeffs_;}
     
@@ -314,6 +372,12 @@ protected:
   //! generates an interpolation operator by determining the space used
   BaseBOperator* GenerateInterpolationOperator(UInt dim, UInt dofDim);
 
+  //! Generate interpolation bilinear form
+  BiLinearForm* GenerateInterpolBilinForm( UInt spaceDim, UInt dofDim );
+  
+  //! Generate interpolation linear form
+  LinearForm* GenerateInterpolLinForm( UInt spaceDim, UInt dofDim, PtrCoefFct );
+  
   //! Update factor for time derivative (only complex case)
   void UpdateTimeDeriv();
   

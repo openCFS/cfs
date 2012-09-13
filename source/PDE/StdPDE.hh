@@ -253,18 +253,15 @@ namespace CoupledField {
     // -----------------------------------------------------------------------    
 
     //@{
-    //! \name boundary conitions
+    //! \name boundary conditions
 
-    //! Homogeneous Dirichlet boundary coniditions
-    HdBcList hdBcs_;
-
-    //! Inhomogeneous Dirichlet boundary conditions
-    IdBcList idBcs_;
-
-    //! List of constraints
-    ConstraintList constraints_;
-
-    //! Number of additional in. dirichlet boundary equations due to coupling
+    //! Associate the xml-name of hom. Dirichlet Bc with the SolutionType
+    std::map<SolutionType, std::string> hdbcSolNameMap_;
+    
+    //! Associate the xml-name of inhom. Dirichlet Bc with SolutionType
+    std::map<SolutionType, std::string> idbcSolNameMap_;
+        
+    //! Number of additional in. Dirichlet boundary equations due to coupling
     UInt numCouplingBcs_;
 
     //@}

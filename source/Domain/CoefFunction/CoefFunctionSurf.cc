@@ -11,6 +11,7 @@ CoefFunctionSurf( bool mapNormal )
 
   // not sure about the following one
   dependType_ = GENERAL;
+  isAnalytic_ = false;
   mapNormal_ = mapNormal;
   
 }

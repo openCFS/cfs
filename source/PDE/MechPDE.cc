@@ -664,6 +664,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     disp->definedOn = ResultInfo::NODE;
     feFunctions_[MECH_DISPLACEMENT]->SetResultInfo(disp);
     
+    // -----------------------------------
+    //  Define xml-names of Dirichlet BCs
+    // -----------------------------------
+    hdbcSolNameMap_[MECH_DISPLACEMENT] = "fix";
+    idbcSolNameMap_[MECH_DISPLACEMENT] = "displacement";
+    
     // this defines the primary unknown
     results_.Push_back( disp );
     availResults_.insert( disp);

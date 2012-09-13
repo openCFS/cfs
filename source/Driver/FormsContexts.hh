@@ -108,7 +108,7 @@ namespace CoupledField
                       shared_ptr<EntityList> list2 );
 
     void SetFeFunctions( shared_ptr<BaseFeFunction> fct1, 
-                                      shared_ptr<BaseFeFunction> fct2); 
+                         shared_ptr<BaseFeFunction> fct2); 
 
     //! Return first set of current entities
     shared_ptr<EntityList> GetFirstEntities() { return ent1_; }
@@ -129,10 +129,10 @@ namespace CoupledField
     shared_ptr<ResultInfo> GetSecondResultInfo() { return result2_; }
 
     //! Returns information about first feFunction
-    shared_ptr<BaseFeFunction> GetFirstFeFunction() { return feFct1_; }
+    weak_ptr<BaseFeFunction> GetFirstFeFunction() { return feFct1_; }
 
     //! Returns information about second feFunction
-    shared_ptr<BaseFeFunction> GetSecondFeFunction() { return feFct2_; }
+    weak_ptr<BaseFeFunction> GetSecondFeFunction() { return feFct2_; }
 
     //! Set function for SetCounterPart
     void SetCounterPart( bool setCounterPart ) {
@@ -208,10 +208,10 @@ namespace CoupledField
     shared_ptr<EntityList> ent2_;
 
     //! Pointer to first FeFunction
-    shared_ptr<BaseFeFunction> feFct1_;
+    weak_ptr<BaseFeFunction> feFct1_;
 
     //! Pointer to second FeFunction
-    shared_ptr<BaseFeFunction> feFct2_;
+    weak_ptr<BaseFeFunction> feFct2_;
 
   };
 
@@ -290,7 +290,7 @@ namespace CoupledField
     //shared_ptr<EqnMap> map_;
 
     //! Pointer to FeFunction
-    shared_ptr<BaseFeFunction> feFct_;
+    weak_ptr<BaseFeFunction> feFct_;
 
   };
 

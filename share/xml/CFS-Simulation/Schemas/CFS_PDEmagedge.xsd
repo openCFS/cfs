@@ -75,15 +75,12 @@
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <!-- "standard" boundary conditions -->
-                <xsd:element name="dirichletHom"   type="DT_MagneticEdgeHD"/>
-                <xsd:element name="dirichletInhom" type="DT_MagneticEdgeID"/>
-                <xsd:element name="neumannInhom"   type="DT_MagneticEdgeIN"/>
-                <xsd:element name="constraint"     type="DT_MagneticEdgeCS"   />
+                 <!-- Dirichlet Boundary Conditions -->
+                <xsd:element name="fluxParallel"  type="DT_BcHomScalar"    />
+                <xsd:element name="potential"     type="DT_BcInhomScalar"  />
                 
-                 <!-- magnetic edge specific boundary conditions -->
-                <xsd:element name="fluxDensity"   type="DT_RHSVector"/>
-                
+                <!-- RHS Load Values-->
+                <xsd:element name="fluxDensity"   type="DT_BcInhomVector"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>

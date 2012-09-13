@@ -271,9 +271,14 @@ public:
   //@}
 
 
-  //! Return associated coordinate system
+  //! Set associated coordinate system
   void SetCoordinateSystem(CoordSystem* cSys){
     coordSys_ = cSys;
+  }
+  
+  //! Get associated coordinate system
+  CoordSystem* GetCoordinateSystem(){
+    return coordSys_;
   }
   
   //! Return dependency of CoefFunction

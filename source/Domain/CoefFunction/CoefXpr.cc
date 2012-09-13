@@ -10,7 +10,7 @@ inline std::string B(const std::string& xpr ) {
   return "(" + xpr + ")";
 }
 
-// helper function to determin if function is zero
+// helper function to determine if function is zero
 const std::string zero1 = boost::lexical_cast<std::string>(0.0);
 const std::string zero2 = "0.0";
 const std::string zero3 = "0";

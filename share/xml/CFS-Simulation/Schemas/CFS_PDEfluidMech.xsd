@@ -80,7 +80,7 @@
           <xsd:element name="flowList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="flow" type="DT_RHSVector"/>
+                <xsd:element name="flow" type="DT_BcInhomVector"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -88,18 +88,13 @@
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
-
-              <xsd:choice minOccurs="0" maxOccurs="unbounded">
-                <xsd:element name="dirichletHom"   type="DT_FluidMechHD"        />
-                <xsd:element name="dirichletInhom" type="DT_FluidMechID"        />
-                <xsd:element name="dirichletFileInhom" type="DT_FluidMechIdFile"        />
-                <xsd:element name="pressure"       type="DT_FluidMechPressure"  />
-             <!--   <xsd:element name="regionLoad"     type="DT_FluidMechRegionLoad"/>
-                <xsd:element name="surfStress"     type="DT_FluidMechSurfStress"/>
-                <xsd:element name="constraint"     type="DT_FluidMechCS"   />
-                <xsd:element name="periodic"       type="DT_FluidMechPeriodic"   />  -->
+              <xsd:choice minOccurs="0" maxOccurs="unbounded">                
+                <!-- Dirichlet Boundary Conditions --> 
+                <xsd:element name="noPressure" type="DT_BcHomScalar"  />
+                <xsd:element name="noSlip"     type="DT_BcHomVector"  />
+                <xsd:element name="pressure"   type="DT_BcInhomScalar"/>
+                <xsd:element name="velocity"   type="DT_BcInhomVector"/>              
               </xsd:choice>
-
             </xsd:complexType>
 
           </xsd:element>

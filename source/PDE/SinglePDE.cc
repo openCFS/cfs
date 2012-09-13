@@ -1,6 +1,7 @@
 #include "PDE/SinglePDE.hh"
 
 #include <fstream>
+#include <boost/algorithm/string.hpp>
 
 // for coordinate handling
 #include "Domain/Domain.hh"
@@ -503,68 +504,97 @@ namespace CoupledField {
   }
 
    /** can generally be called multiple times. We overwrite old values! Brute force but keeps data size */
-   void SinglePDE::WriteGeneralPDEdefines()
-   {
-    // loads
-    PtrParamNode base = infoNode_->Get(ParamNode::HEADER)->Get("loads");
+   void SinglePDE::WriteGeneralPDEdefines() {
+     
+     PtrParamNode feFctNode = infoNode_->Get("feFunctions");
+     
+     // loop over all feFunctions
+     std::map<SolutionType, shared_ptr<BaseFeFunction> >::const_iterator it = feFunctions_.begin();
+     for( ; it != feFunctions_.end(); ++it ) {
+       
+       SolutionType solType = it->first;
+       shared_ptr<BaseFeFunction> feFct = it->second;
+       
+       std::string solName = SolutionTypeEnum.ToString(solType);
+       PtrParamNode actNode = feFctNode->Get(solName);
+       
+       // === Homogeneous Dirichlet BC ===
+       PtrParamNode hdbcNode = feFctNode->Get("homDirichletBC");
+       HdBcList hdbcs = feFct->GetHomDirichletBCs();
+       
+       HdBcList::iterator hdbcIt = hdbcs.Begin();
+       for( ; hdbcIt != hdbcs.End(); ++hdbcIt ) {
+         HomDirichletBc & actBc = *(*hdbcIt);
+         EntityList const & actList = *actBc.entities;
+        
+         PtrParamNode in = hdbcNode->GetByVal(actList.listType.ToString(actList.GetType()), 
+                                              "name", actList.GetName());
+         std::string dofString;
+         std::set<UInt>::const_iterator dofIt = actBc.dofs.begin();
+         for(; dofIt != actBc.dofs.end(); ++dofIt) {
+           dofString += feFct->GetResultInfo()->dofNames[*dofIt] + " "; 
+         }
+         boost::trim(dofString);
+         in->Get("dofs")->SetValue(dofString);
+       }
 
+       // === Inhomogeneous Dirichlet BC ===
+       PtrParamNode idbcNode = feFctNode->Get("inhomDirichletBC");
+       IdBcList idbcs = feFct->GetInHomDirichletBCs();
 
-    // Homogeneous Dirichlet BC
-    base = infoNode_->Get(ParamNode::HEADER)->Get("homDirichletBC");
+       IdBcList::iterator idbcIt = idbcs.Begin();
+       for( ; idbcIt != idbcs.End(); ++idbcIt ) {
+         InhomDirichletBc & actBc = *(*idbcIt);
+         EntityList const & actList = *actBc.entities;
 
-    for(unsigned int i = 0, nn = hdBcs_.GetSize(); i < nn; i++)
-    {
-      HomDirichletBc const & actBc = *hdBcs_[i];
-      EntityList const & actList = *actBc.entities;
+         PtrParamNode in = idbcNode->GetByVal(actList.listType.ToString(actList.GetType()), 
+                                              "name", actList.GetName());
+         std::string dofString;
+         std::set<UInt>::const_iterator dofIt = actBc.dofs.begin();
+         for(; dofIt != actBc.dofs.end(); ++dofIt) {
+           dofString += feFct->GetResultInfo()->dofNames[*dofIt] + " "; 
+         }
+         boost::trim(dofString);
+         in->Get("dofs")->SetValue(dofString);
+         in->Get("value")->SetValue(actBc.value->ToString());
+       }
+     }
+     
+     
+//    // loads
+//    PtrParamNode base = infoNode_->Get(ParamNode::HEADER)->Get("loads");
 
-      PtrParamNode in = base->GetByVal(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
-      in->Get("dof")->SetValue(actBc.result->GetDofName(actBc.dof));
-    }
-
-    // Inhomogeneous Dirichlet BC
-    base = infoNode_->Get(ParamNode::HEADER)->Get("inhomDirichletBC");
-
-    for(unsigned int i = 0, nn = idBcs_.GetSize(); i < nn; i++)
-    {
-      InhomDirichletBc const & actBc = *idBcs_[i];
-      EntityList const & actList = *actBc.entities;
-
-      PtrParamNode in = base->GetByVal(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
-      in->Get("dof")->SetValue(actBc.result->GetDofName(actBc.dof));
-      in->Get("value")->SetValue(actBc.value);
-      in->Get("phase")->SetValue(actBc.phase);
-    }
-
-
-    // constraints
-    base = infoNode_->Get(ParamNode::HEADER)->Get("constraints");
-    // periodic boundary conditions blow this up.
-    if(constraints_.GetSize() <= 5 )
-    {
-      for(unsigned int i = 0, nn = constraints_.GetSize(); i < nn; i++)
-      {
-        Constraint const & actBc = *constraints_[i];
-        EntityList const & masterList = *actBc.masterEntities;
-        EntityList const & slaveList = *actBc.slaveEntities;
-
-        PtrParamNode in = base->GetByVal("pair", "master", masterList.GetName());
-        in->Get("slave")->SetValue(slaveList.GetName());
-        // the names are repeated for the different dofs
-        std::string dof = actBc.result->GetDofName(actBc.masterDof);
-        if(!in->HasByVal("dof", dof))
-          in->Get("dof", ParamNode::APPEND)->SetValue(dof);
-
-        in->Get("periodic")->SetValue(actBc.periodic);
-      }
-    }
-    else
-    {
-      if(constraints_.GetSize() > 5)
-      {
-        base->Get("number")->SetValue(constraints_.GetSize());
-        base->SetComment("run cfs with -l for list");
-      }
-    }
+//
+//
+//    // constraints
+//    base = infoNode_->Get(ParamNode::HEADER)->Get("constraints");
+//    // periodic boundary conditions blow this up.
+//    if(constraints_.GetSize() <= 5 )
+//    {
+//      for(unsigned int i = 0, nn = constraints_.GetSize(); i < nn; i++)
+//      {
+//        Constraint const & actBc = *constraints_[i];
+//        EntityList const & masterList = *actBc.masterEntities;
+//        EntityList const & slaveList = *actBc.slaveEntities;
+//
+//        PtrParamNode in = base->GetByVal("pair", "master", masterList.GetName());
+//        in->Get("slave")->SetValue(slaveList.GetName());
+//        // the names are repeated for the different dofs
+//        std::string dof = actBc.result->GetDofName(actBc.masterDof);
+//        if(!in->HasByVal("dof", dof))
+//          in->Get("dof", ParamNode::APPEND)->SetValue(dof);
+//
+//        in->Get("periodic")->SetValue(actBc.periodic);
+//      }
+//    }
+//    else
+//    {
+//      if(constraints_.GetSize() > 5)
+//      {
+//        base->Get("number")->SetValue(constraints_.GetSize());
+//        base->SetComment("run cfs with -l for list");
+//      }
+//    }
   }
 
   void SinglePDE::ReadStoreResults() {
@@ -1176,81 +1206,97 @@ namespace CoupledField {
     std::string name, resultName, dof, entType, inputId, value, phase;
     shared_ptr<BaseFeFunction> actFeFunction;
 
-
     // =====================================================================
     // homogeneous Dirichlet BC
     // =====================================================================
-
-    // fetch paramnodes for hdbc
-    ParamNodeList hdbcNodes = bcsNode->GetList("dirichletHom");
-
-    // iterate over all parameter nodes
-    for( UInt i = 0; i < hdbcNodes.GetSize(); i++ ) {
-
-      try {
-        // read parameters
-        dof.clear();
-        hdbcNodes[i]->GetValue( "name", name );
-        hdbcNodes[i]->GetValue( "quantity", resultName );
-        hdbcNodes[i]->GetValue( "dof", dof, ParamNode::PASS );
-
-        shared_ptr<HomDirichletBc> actBc ( new HomDirichletBc );
-        shared_ptr<EntityList> actList;
-        switch( ptGrid_->GetEntityType(name) ) {
-          case EntityList::NAMED_NODES:
-            actList = ptGrid_->GetEntityList( EntityList::NODE_LIST, name); 
-            break;
-          case EntityList::REGION:
-          case EntityList::NAMED_ELEMS:
-            actList = ptGrid_->GetEntityList( EntityList::ELEM_LIST, name );
-            break;
-          case EntityList::NO_TYPE:
-            EXCEPTION("No entities with name '" << name << "' known");
-            break;
-        }
-        
-        // fetch related feFunction object
-        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName));
-        
-        actBc->entities = actList;
-        actBc->result = actFeFunction->GetResultInfo();
-        if( dof.empty() ) {
-          actBc->dof = 0;
-        } else {
-          actBc->dof = actFeFunction->GetResultInfo()->GetDofIndex( dof );
-        }
-
-        // add definition
-        //hdBcs_.Push_back( actBc );
-        actFeFunction->AddHomDirichletBc(actBc);
-      } catch (Exception & ex ) {
-        RETHROW_EXCEPTION( ex, "Can not create homogeneous boundary conditions on '"
-                           << name << "'" );
+    // iterate over all available result tyes
+    std::map<SolutionType,std::string>::const_iterator hdbcIt;
+    hdbcIt = hdbcSolNameMap_.begin();
+    for( ; hdbcIt != hdbcSolNameMap_.end(); ++hdbcIt ) {
+      
+      // get for each solutiontype the corresponding element name for the
+      // homogeneous Dirichlet Bc
+      actFeFunction = GetFeFunction( hdbcIt->first );
+      std::string elemName = hdbcIt->second;
+      shared_ptr<ResultInfo> info = actFeFunction->GetResultInfo();
+      StdVector<std::string>  dofNames = info->dofNames;
+      // additional check: if we have a vector-valued function approximation,
+      // we might have scalar unknowns
+      if( actFeFunction->GetFeSpace()->GetNumDofs() == 1 ) {
+        dofNames.Clear();
+        dofNames.Push_back("_");
       }
-    }
+      ParamNodeList hdbcNodes = bcsNode->GetList(elemName);
 
+      // iterate over all parameter nodes
+      for( UInt i = 0; i < hdbcNodes.GetSize(); i++ ) {
+          hdbcNodes[i]->GetValue( "name", name );
+
+          shared_ptr<HomDirichletBc> actBc ( new HomDirichletBc );
+          shared_ptr<EntityList> actList;
+          switch( ptGrid_->GetEntityType(name) ) {
+            case EntityList::NAMED_NODES:
+              actList = ptGrid_->GetEntityList( EntityList::NODE_LIST, name); 
+              break;
+            case EntityList::REGION:
+            case EntityList::NAMED_ELEMS:
+              actList = ptGrid_->GetEntityList( EntityList::ELEM_LIST, name );
+              break;
+            case EntityList::NO_TYPE:
+              EXCEPTION("No entities with name '" << name << "' known");
+              break;
+          }
+          
+          // Read defined excitation
+          std::set<UInt> definedDofs;
+          PtrCoefFct coef;
+          ReadUserFieldValues( name, hdbcNodes[i], dofNames, ResultInfo::VECTOR,
+                               isComplex_, coef, definedDofs );
+          
+          // ensure, that only the default coordinate system is used
+          if( coef->GetCoordinateSystem() ) {
+            if( coef->GetCoordinateSystem()->GetName() != "default" ) {
+              EXCEPTION( "Dirichlet boundary conditions can only be defined on "
+                        << "the default Cartesian system" );
+            }
+          }
+          actBc->entities = actList;
+          actBc->result = actFeFunction->GetResultInfo();
+          actBc->dofs = definedDofs;
+          
+          // add definition to feFunction
+          actFeFunction->AddHomDirichletBc(actBc);
+      } // loop: hdbcs
+    } // loop: solutiontypes
+    
+    
     //=====================================================================
     // inhomogeneous Dirichlet BC
     // =====================================================================
+    // iterate over all available result tyes
+    std::map<SolutionType,std::string>::const_iterator idbcIt;
+    idbcIt = idbcSolNameMap_.begin();
+    for( ; idbcIt != idbcSolNameMap_.end(); ++idbcIt ) {
 
-    // fetch paramnodes for idbc
-    ParamNodeList idbcNodes = bcsNode->GetList("dirichletInhom");
+      // get for each solutiontype the corresponding element name for the
+      // homogeneous Dirichlet Bc
+      actFeFunction = GetFeFunction( idbcIt->first );
+      std::string elemName = idbcIt->second;
+      shared_ptr<ResultInfo> info = actFeFunction->GetResultInfo();
+      StdVector<std::string>  dofNames = info->dofNames;
+      // additional check: if we have a vector-valued function approximation,
+      // we might have scalar unknowns
+      if( actFeFunction->GetFeSpace()->GetNumDofs() == 1 ) {
+        dofNames.Clear();
+        dofNames.Push_back("_");
+      }
+      ParamNodeList idbcNodes = bcsNode->GetList(elemName);
 
-    // iterate over all parameter nodes
-    for( UInt i = 0; i < idbcNodes.GetSize(); i++ ) {
-
-      try {
-        // read parameters
-        dof.clear();
+      // iterate over all parameter nodes
+      for( UInt i = 0; i < idbcNodes.GetSize(); i++ ) {
         idbcNodes[i]->GetValue( "name", name );
-        idbcNodes[i]->GetValue( "quantity", resultName );
-        idbcNodes[i]->GetValue( "dof", dof, ParamNode::PASS );
-        idbcNodes[i]->GetValue( "value", value );
-        idbcNodes[i]->GetValue( "phase", phase );
 
-        // Create inhomogeneous boundary condition
         shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
-
         shared_ptr<EntityList> actList;
         switch( ptGrid_->GetEntityType(name) ) {
           case EntityList::NAMED_NODES:
@@ -1264,28 +1310,31 @@ namespace CoupledField {
             EXCEPTION("No entities with name '" << name << "' known");
             break;
         }
+
+        // Read defined excitation
+        std::set<UInt> definedDofs;
+        PtrCoefFct coef;
+        ReadUserFieldValues( name, idbcNodes[i], dofNames, ResultInfo::VECTOR,
+                             isComplex_, coef, definedDofs );
         
-        // fetch related feFunction object
-        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName));
-        
+        // ensure, that only the default coordinate system is used
+        if( coef->GetCoordinateSystem() ) {
+          if( coef->GetCoordinateSystem()->GetName() != "default" ) {
+            EXCEPTION( "Dirichlet boundary conditions can only be defined on "
+                << "the default Cartesian system" );
+          }
+        }
+
         actBc->entities = actList;
         actBc->result = actFeFunction->GetResultInfo();
-        //actBc->eqnMap = eqnMap_;
-        if( dof.empty() ) {
-          actBc->dof = 0;
-        } else {
-          actBc->dof = actFeFunction->GetResultInfo()->GetDofIndex( dof );
-        }
-        actBc->value = value;
-        actBc->phase = phase;
+        actBc->dofs = definedDofs;
+        actBc->value = coef;
 
+        // add definition to feFunction
         actFeFunction->AddInhomDirichletBc(actBc);
-      } catch (Exception & ex ) {
-        RETHROW_EXCEPTION( ex, "Can not create inhomogeneous boundary conditions on '"
-                           << name << "'" );
-      }
-     }
-
+      } // loop: idbcs
+    } // loop: solutiontypes
+    
     // =====================================================================
     // Constraint Conditions
     // =====================================================================
@@ -1466,7 +1515,9 @@ namespace CoupledField {
           break;
       }
 
-      ReadUserFieldValues(entName,xml,compNames,type,isComplex,coef[i]);
+      std::set<UInt> definedDofs;
+      ReadUserFieldValues(entName,xml,compNames,type,isComplex,coef[i],
+                          definedDofs );
 
     }
   }
@@ -1476,12 +1527,14 @@ namespace CoupledField {
                                        const StdVector<std::string>& compNames,
                                        ResultInfo::EntryType type,
                                        bool isComplex,
-                                       PtrCoefFct & coef){
+                                       PtrCoefFct & coef,
+                                       std::set<UInt>& definedDofs ){
 
     UInt numComp = compNames.GetSize();
     StdVector<std::string> vals(numComp), phases(numComp);
     vals.Init("0.0");
     phases.Init("0.0");
+    definedDofs.clear();
 
     // switch type of coef function
     if( valueNode->Has("grid") ) {
@@ -1500,10 +1553,13 @@ namespace CoupledField {
         // --------------
         //  S C A L A R
         // --------------
-
-        std::string val, phase;
-        valueNode->GetValue("value", val);
-        valueNode->GetValue("phase", phase);
+        // in the scalar case, the coponent with index 0 is always defined
+        definedDofs.insert(0);
+        std::string val = "0.0";
+        std::string phase = "0.0";
+        // allow for optional value / phase attributes 
+        valueNode->GetValue("value", val, ParamNode::PASS );
+        valueNode->GetValue("phase", phase, ParamNode::PASS );
         std::string real = AmplPhaseToReal(val, phase );
       
         if( type == ResultInfo::SCALAR) {
@@ -1556,25 +1612,34 @@ namespace CoupledField {
                          << " phase values!");
             }
           }
+          
+          // add all dofs to the definedDofs
+          for( UInt i = 0; i < compNames.GetSize(); ++i ) {
+            definedDofs.insert(i);
+          }
         }
         // b) values are given component-wise
         else if(valueNode->Has("comp")) {
           ParamNodeList compList = valueNode->GetList("comp");
           Integer index = 0;
-          std::string dof, val, phase;
+          std::string dof;
+          std::string val = "0.0";
+          std::string phase = "0.0";
           for( UInt j = 0; j < compList.GetSize(); ++j  ) {
            compList[j]->GetValue("dof", dof);
-           compList[j]->GetValue("value", val);
-           compList[j]->GetValue("phase", phase);
+           compList[j]->GetValue("value", val, ParamNode::PASS );
+           compList[j]->GetValue("phase", phase, ParamNode::PASS);
 
            // find index
            if( compNames.GetSize() == 0 ) {
              index = 0;
+             definedDofs.insert(0);
            } else {
              index = compNames.Find(dof);
              if( index == -1 ) {
                EXCEPTION("Could not find component with name '" << dof << "'");
              }
+             definedDofs.insert(UInt(index));
            }
 
            vals[index] = val;
@@ -1582,6 +1647,8 @@ namespace CoupledField {
           } // loop components
 
         } else {
+          // This branch will only be handled for homogeneous values, i.e. it
+          // is okay to have no value given. In this case
           EXCEPTION( "No values given for boundary condition '"
               << valueNode->GetParent()->GetName() << "' on '" << name << "'" );
         }
@@ -1963,30 +2030,6 @@ namespace CoupledField {
 
   }
 
-  void SinglePDE::SetIDBC( const std::string &name,
-                           const std::string &dofString,
-                           const std::string &value,
-                           const std::string &phase ) {
-
-    // Try ro find existing entry in IDBC vector
-    Integer index = -1;
-
-    for( UInt i = 0; i < idBcs_.GetSize(); i++ ) {
-      if( idBcs_[i]->entities->GetName() == name ) {
-        index = i;
-        break;
-      }
-    }
-
-    if( index == -1 ) {
-      EXCEPTION( "Entities '" << name << "' not found for "
-                 << "Dirichlet values!" );
-    } else {
-      idBcs_[index]->value = value;
-      idBcs_[index]->phase = phase;
-    }
-  }
-  
   void SinglePDE::UpdateToSolStrategy() {
     
     // this is hopefully a general way to update all information related

@@ -290,7 +290,7 @@
             <xsd:element name="surfRegionList" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
-                  <xsd:element name="surfRegion" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:element name="surfRegion" minOccurs="0" maxOccurs="unbounded">
                     <xsd:complexType>
                       <xsd:attribute name="name" type="xsd:token" use="required"/>
                     </xsd:complexType>

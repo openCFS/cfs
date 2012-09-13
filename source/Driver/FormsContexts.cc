@@ -60,12 +60,12 @@ namespace CoupledField {
                                   FeFctIdType& id1, FeFctIdType& id2 ) {
 
     // Get equation numbers
-    feFct1_->GetFeSpace()->GetEqns( eqnVec1, it1 );
-    feFct2_->GetFeSpace()->GetEqns( eqnVec2, it2 );
+    feFct1_.lock()->GetFeSpace()->GetEqns( eqnVec1, it1 );
+    feFct2_.lock()->GetFeSpace()->GetEqns( eqnVec2, it2 );
 
     // Get PDE IDs
-    id1 = feFct1_->GetFctId();
-    id2 = feFct2_->GetFctId();
+    id1 = feFct1_.lock()->GetFctId();
+    id2 = feFct2_.lock()->GetFctId();
 
   }
     
@@ -81,10 +81,10 @@ namespace CoupledField {
                                          shared_ptr<BaseFeFunction> fct2) {
     feFct1_ = fct1;
     feFct2_ = fct2;  
-    result1_ = feFct1_->GetResultInfo();
-    result2_ = feFct2_->GetResultInfo();
-    ptPde1_ = feFct1_->GetPDE();
-    ptPde2_ = feFct2_->GetPDE();
+    result1_ = feFct1_.lock()->GetResultInfo();
+    result2_ = feFct2_.lock()->GetResultInfo();
+    ptPde1_ = feFct1_.lock()->GetPDE();
+    ptPde2_ = feFct2_.lock()->GetPDE();
 
     assert( integrator_ != NULL);
     // THIS HAS TO BE REPLACED BY FESPACE
@@ -160,10 +160,10 @@ namespace CoupledField {
     
     // Get equation numbers
     //map_->GetEqns( eqnVec, *result_, it );
-    feFct_->GetFeSpace()->GetEqns(eqnVec,it);
+    feFct_.lock()->GetFeSpace()->GetEqns(eqnVec,it);
     
     // Get Pde Id
-    id = feFct_->GetFctId();
+    id = feFct_.lock()->GetFctId();
     
   }
   
@@ -182,8 +182,8 @@ namespace CoupledField {
 
   void LinearFormContext::SetFeFunction(shared_ptr<BaseFeFunction>  fct ){
     feFct_ = fct;
-    result_ = feFct_->GetResultInfo();
-    ptPde_ = feFct_->GetPDE();
+    result_ = feFct_.lock()->GetResultInfo();
+    ptPde_ = feFct_.lock()->GetPDE();
     integrator_->SetFeSpace( fct->GetFeSpace() );
   }
 

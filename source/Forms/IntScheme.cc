@@ -132,7 +132,6 @@ IntScheme::IntScheme() {
   FillIntegPoints(20);
 }
 
-
 //================================================================
 //Fill Gauss Lobatto Points and weights
 //================================================================
@@ -292,7 +291,6 @@ void IntScheme::FillIntegPoints(UInt order){
 }
 
 IntScheme::~IntScheme() {
-
 }
 
 void IntScheme::AddIntegrationSet( IntegMethod method, Elem::ShapeType shape, 

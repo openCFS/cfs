@@ -32,6 +32,7 @@ CoefFunctionGridBase<DATA_TYPE>::CoefFunctionGridBase(PtrParamNode configNode){
   ReadXmlNode(configNode);
 
   dependType_ = GENERAL;
+  isAnalytic_ = false;
 
 
   UInt dofDim = 0;

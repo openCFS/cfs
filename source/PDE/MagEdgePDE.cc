@@ -540,6 +540,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     feFunctions_[MAG_POTENTIAL]->SetResultInfo(res1);
     DefineFieldResult( feFunctions_[MAG_POTENTIAL], res1 );
    
+    // -----------------------------------
+    //  Define xml-names of Dirichlet BCs
+    // -----------------------------------
+    hdbcSolNameMap_[MAG_POTENTIAL] = "fluxParallel";
+    idbcSolNameMap_[MAG_POTENTIAL] = "potential";
   }
   
   void MagEdgePDE::DefinePostProcResults() {

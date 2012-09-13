@@ -5,7 +5,7 @@
 #ifndef FILE_CFS_BCS_HH
 #define FILE_CFS_BCS_HH
 
-#include <ostream>
+#include <set>
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
@@ -23,7 +23,7 @@ namespace CoupledField {
     //! Constructor
     HomDirichletBc();
 
-    /** Add this virtual destructor because we hava a virtul Dump now */
+    //! Destructor
     virtual ~HomDirichletBc();
 
     //! EntityList where the condition is defined on
@@ -32,14 +32,11 @@ namespace CoupledField {
     //! Type of result the boundary condition is assigned with
     shared_ptr<ResultInfo> result;
 
-    //! Degree of freedom index
-    UInt dof;
+    //! Set of indices, to which the Dirichlet BC applies
+    std::set<UInt> dofs;
 
-    /** Ouptut our content to info.xml */
+    //! Output content to info.xml 
     virtual void ToInfo(PtrParamNode in) const;
-
-    /** Just a simple Dump() for developers */
-    virtual std::string ToString();
   };
 
 
@@ -51,19 +48,13 @@ namespace CoupledField {
     //! Constructor
     InhomDirichletBc();
 
-    //! Value of entities
-    std::string value;
+    //! Coefficient function for the values
+    PtrCoefFct value; 
 
-    //! Phase value of entities
-    std::string phase;
-
-    /** Ouptut our content to info.xml */
+    //!  Output our content to info.xml 
     virtual void ToInfo(PtrParamNode in) const;
-
-    virtual std::string ToString();
   };
 
-  // -------------------------------------------------------------------------
   // -------------------------------------------------------------------------
   struct Constraint {
 

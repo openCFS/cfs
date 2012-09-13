@@ -21,7 +21,6 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEacoustic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEacousticMixed.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmagnetic.xsd"/>
-  <xsd:include schemaLocation="Schemas/CFS_PDEmagneticScalar.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmagedge.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEsmooth.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEheatConduction.xsd"/>
@@ -46,7 +45,6 @@
     <xsd:include schemaLocation="Schemas/CFS_Documentation.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_FileFormats.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_ErsatzMaterial.xsd" />
-	<!--<xsd:include schemaLocation="Schemas/CFS_Optimization.xsd" />-->
 	<xsd:include schemaLocation="Schemas/CFS_FePolynomial.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_IntegrationScheme.xsd"/>
 

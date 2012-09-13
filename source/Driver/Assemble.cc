@@ -93,6 +93,12 @@ namespace CoupledField
     isFirstTime_ = true;
     matrixUpdated_ = true;
   }
+  
+  void Assemble::SetEqnCustomMap( const std::map<Integer, Integer>& eqnMap,
+                                  const std::map<FeFctIdType, FeFctIdType>& fctIdMap ) {
+    customEqnMap_ = eqnMap;
+    customFctIdMap_ = fctIdMap;
+  }
 
   
   BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator, bool silent)
@@ -227,8 +233,12 @@ namespace CoupledField
       biLinForms_[pair].Push_back(biLinContext);
 
       // Pass needed matrix type to algebraic system
-      FeFctIdType id1 = biLinContext->GetFirstFeFunction()->GetFctId();
-      FeFctIdType id2 = biLinContext->GetSecondFeFunction()->GetFctId();
+      assert(biLinContext->GetFirstFeFunction().lock());
+      assert(biLinContext->GetSecondFeFunction().lock());
+      FeFctIdType id1 = biLinContext->GetFirstFeFunction().lock()->GetFctId();
+      FeFctIdType id2 = biLinContext->GetSecondFeFunction().lock()->GetFctId();
+      ReMapFctId(id1);
+      ReMapFctId(id2);
 
       // determine symmetry type and complex status
       bool isSym = IsFEMatSymmetric(biLinContext);
@@ -268,6 +278,10 @@ namespace CoupledField
 
     StdVector<Integer> eqnVec1, eqnVec2;
     FeFctIdType id1, id2;
+    
+    // Perform re-mapping of FctIds
+    ReMapFctId( fctId1 );
+    ReMapFctId( fctId2 );
 
     // iterate over all entitylist-pairs and 
     BiLinContextListType::iterator listIt = biLinForms_.begin();
@@ -302,16 +316,19 @@ namespace CoupledField
           setCounterPart = actContext.IsSetCounterPart();
         }
 
+        assert(actContext.GetFirstFeFunction().lock());
+        assert(actContext.GetSecondFeFunction().lock());
+        
         // case a)
-        if( actContext.GetFirstFeFunction()->GetFctId() == fctId1 &&
-            actContext.GetSecondFeFunction()->GetFctId() == fctId2 ) {
+        if( actContext.GetFirstFeFunction().lock()->GetFctId() == fctId1 &&
+            actContext.GetSecondFeFunction().lock()->GetFctId() == fctId2 ) {
           doAssemble = true;
           doTranspose = false;
         } else
 
           //case b)
-          if( actContext.GetFirstFeFunction()->GetFctId() == fctId1 &&
-              actContext.GetSecondFeFunction()->GetFctId() == fctId2 &&
+          if( actContext.GetFirstFeFunction().lock()->GetFctId() == fctId1 &&
+              actContext.GetSecondFeFunction().lock()->GetFctId() == fctId2 &&
               actContext.IsSetCounterPart() ) {
             doAssemble = true;
             doTranspose = true;
@@ -324,6 +341,10 @@ namespace CoupledField
 
             // Get equation numbers
             actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, id1, id2 );
+            
+            // Perform remapping
+            ReMapEquations(eqnVec1, id1);
+            ReMapEquations(eqnVec2, id2);
 
             // Pass entity eqn-connectivity to algebraic system
             if( !doTranspose ) {
@@ -484,6 +505,9 @@ namespace CoupledField
 
                // Map equation numbers
                actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
+               // Perform remapping
+               ReMapEquations(eqnVec1, fctId1);
+               ReMapEquations(eqnVec2, fctId2);
 
 
    //            assert((form->IsComplex() && 
@@ -677,7 +701,10 @@ namespace CoupledField
 
             // Map equation numbers
             actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
-       
+            // Perform remapping
+            ReMapEquations(eqnVec1, fctId1);
+            ReMapEquations(eqnVec2, fctId2);
+
         } // loop over bilinearforms    // increment iterators
 //            assert((form->IsComplex() && 
 //                    eqnVec1.GetSize() == elemMatrixC.GetNumRows() && 
@@ -808,7 +835,8 @@ namespace CoupledField
 
             // Map equation numbers
             actContext.MapEqns( entIt, eqnVec, fctId );
-
+            // Perform remapping
+            ReMapEquations(eqnVec, fctId);
 
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
 
@@ -831,6 +859,9 @@ namespace CoupledField
 
             // Map equation numbers
             actContext.MapEqns( entIt, eqnVec, fctId );
+            
+            // Perform remapping
+            ReMapEquations(eqnVec, fctId);
             
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
             // Pass element vector to algebraic system
@@ -889,8 +920,10 @@ namespace CoupledField
       col->Get("pde")->SetValue(context.GetSecondPde()->GetName());
       
       // associated FeFunctions
-      row->Get("functionId")->SetValue(context.GetFirstFeFunction()->GetFctId());
-      col->Get("functionId")->SetValue(context.GetSecondFeFunction()->GetFctId());
+      assert(context.GetFirstFeFunction().lock());
+      assert(context.GetSecondFeFunction().lock());
+      row->Get("functionId")->SetValue(context.GetFirstFeFunction().lock()->GetFctId());
+      col->Get("functionId")->SetValue(context.GetSecondFeFunction().lock()->GetFctId());
 
       // associated result types
       std::string tmp;
@@ -1135,7 +1168,31 @@ namespace CoupledField
     }
   }
 
+  void Assemble::ReMapEquations( StdVector<Integer>&  eqns,
+                                 FeFctIdType& fctId) {
+    if( customEqnMap_.size() == 0 ) 
+      return;
+    
+    UInt numEqns = eqns.GetSize();
+    StdVector<Integer> tmp(numEqns);
+    for( UInt i = 0; i < numEqns; ++i )  {
+      tmp[i] = customEqnMap_[eqns[i]];
+    }
+    eqns = tmp;
+    fctId = customFctIdMap_[fctId];
+  }
 
+  void Assemble::ReMapFctId(  FeFctIdType& fctId ) {
+    if( customFctIdMap_.size() != 0 ) {
+      std::map<FeFctIdType, FeFctIdType>::const_iterator it;
+      it = customFctIdMap_.find(fctId);
+      if( it != customFctIdMap_.end() ) {
+        fctId = it->second;
+      } else {
+        EXCEPTION("Can not re-amp FeFct with id '" << fctId << "'");
+      }
+    }
+  }
 
   bool Assemble::IsFEMatSymmetric( BiLinFormContext* actCt  ) {
 
@@ -1145,7 +1202,7 @@ namespace CoupledField
     std::set<shared_ptr<ResultInfo> > allResults, diagResults;
 
     // Check, where bilinearform gets assembled to diagonal block
-    if( (actCt->GetFirstFeFunction() == actCt->GetSecondFeFunction())
+    if( (actCt->GetFirstFeFunction().lock() == actCt->GetSecondFeFunction().lock())
         && (actCt->GetFirstEntities() == actCt->GetSecondEntities() ) ) {
 
       // Bilinearform gets assembled to main diagonal.
@@ -1193,7 +1250,7 @@ namespace CoupledField
     // if destination matrix is NOTYPE -> leave
     if( mappedDest == NOTYPE )
       return;
-
+    
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
 
     if( analysisType_ == BasePDE::TRANSIENT

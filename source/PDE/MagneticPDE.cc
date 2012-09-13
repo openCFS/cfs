@@ -504,6 +504,12 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
     vecFct->SetResultInfo(res1);
     DefineFieldResult( vecFct, res1);
     
+    // -----------------------------------
+    //  Define xml-names of Dirichlet BCs
+    // -----------------------------------
+    hdbcSolNameMap_[MAG_POTENTIAL] = "fluxParallel";
+    idbcSolNameMap_[MAG_POTENTIAL] = "potential";
+
     
     // === MAGNETIC SCALAR POTENTIAL ===
     if (isMixed_) {
@@ -518,6 +524,12 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
       availResults_.insert( res2 );
       scalFct->SetResultInfo(res2);
       DefineFieldResult( scalFct, res2 );
+      
+      // -----------------------------------
+      //  Define xml-names of Dirichlet BCs
+      // -----------------------------------
+      hdbcSolNameMap_[ELEC_POTENTIAL] = "ground";
+      idbcSolNameMap_[ELEC_POTENTIAL] = "elecPotential";
     }
     
   }

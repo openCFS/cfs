@@ -32,23 +32,6 @@
       <xsd:extension base="DT_PDEBasic">
         <xsd:sequence>
 
-          <!-- Regions the PDE lives on (including optional damping model) -->
-          <!--xsd:element name="regionList" minOccurs="1" maxOccurs="1">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
-                  <xsd:complexType>
-                    <xsd:attribute name="name" type="xsd:token" use="required"/>
-                    <xsd:attribute name="dampingId" type="xsd:token" 
-                      use="optional" default=""/>
-                    <xsd:attribute name="nonLinId" type="xsd:token" 
-                      use="optional" default=""/>
-                  </xsd:complexType>
-                </xsd:element>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element-->
-
           <!-- Regions the PDE lives on -->
           <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
             <xsd:complexType>
@@ -109,83 +92,29 @@
           <xsd:element name="valRHS" type="DT_CFSBool" minOccurs="0"
             maxOccurs="1" default="no"/>
 
-          <!--  Parameter to check if we are using acousrcs computed 
-          from fluid pressure (optional) -->
-          <xsd:element name="pressFormul" type="DT_CFSBool" minOccurs="0"
-            maxOccurs="1" default="no"/>
-
-          <!--  Three parameters are to activate the write out of the
-          grid and coupled values (optional) -->
-
-
 
           <!-- Type of FlowData (optional) -->
           <!-- List defining flows -->
           <xsd:element name="flowList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="flow" type="DT_RHSVector"/>
+                <xsd:element name="flow" type="DT_BcInhomVector"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
 
 
-          <!-- Type of Combustion Data (optional) -->
-          <xsd:element name="combustionData" minOccurs="0">
-            <xsd:complexType>
-              <xsd:sequence>
-               <xsd:element name="coupledRegion" type="xsd:token"/>
-               <xsd:element name="fileName" type="xsd:token"/>
-               <xsd:element name="numDataInCFD" type="xsd:nonNegativeInteger"/>
-               <xsd:element name="varSpeedOfSound" type="xsd:nonNegativeInteger"/>
-               <xsd:element name="ReynoldStress" type="xsd:nonNegativeInteger"/>
-               <xsd:element name="momentum" type="xsd:nonNegativeInteger"/>
-               <xsd:element name="chemical" type="xsd:nonNegativeInteger"/>
-               <xsd:element name="densityDeriv2" type="xsd:nonNegativeInteger"/>
-               <xsd:element name="heatRelease" type="xsd:nonNegativeInteger"/>
-               <xsd:element name="gasConstDeriv2" type="xsd:nonNegativeInteger"/>
-               <xsd:element name="shearTerm" type="xsd:nonNegativeInteger"/>
-               <xsd:element name="xfmin"       type="xsd:float"/>	
-               <xsd:element name="yfmin"       type="xsd:float"/>
-               <xsd:element name="zfmin"       type="xsd:float"/>
-               <xsd:element name="xfmax"       type="xsd:float"/>
-               <xsd:element name="yfmax"       type="xsd:float"/>
-               <xsd:element name="zfmax"       type="xsd:float"/>
-               <xsd:element name="facrampXmin" type="xsd:float"/>
-               <xsd:element name="facrampYmin" type="xsd:float"/>
-               <xsd:element name="facrampZmin" type="xsd:float"/> 
-               <xsd:element name="facrampXmax" type="xsd:float"/>
-               <xsd:element name="facrampYmax" type="xsd:float"/>
-               <xsd:element name="facrampZmax" type="xsd:float"/>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element>
-
-          <!-- Information for simulation including bubbles (optional) -->
-          <xsd:element name="bubbles" minOccurs="0">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="bubbleType">
-                  <xsd:simpleType>
-                    <xsd:restriction base="xsd:token">
-                      <xsd:enumeration value="Gilmore"/>
-                      <xsd:enumeration value="KellerMiksis"/>
-                    </xsd:restriction>
-                  </xsd:simpleType>
-                </xsd:element>
-                <xsd:element name="bubbleNumDensity" type="DT_NonNegFloat"/>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element>
 
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="dirichletHom"   type="DT_AcousticHD"  />
-                <xsd:element name="dirichletInhom" type="DT_AcousticID"  />
-                <xsd:element name="neumannInhom"   type="DT_AcousticIN"  />
-                <xsd:element name="load"           type="DT_AcousticLoad"/>
+                <!-- Dirichlet Boundary Conditions -->
+                <xsd:element name="soundSoft"  type="DT_BcHomScalar"    />
+                <xsd:element name="pressure"   type="DT_BcInhomScalar"  />
+                <xsd:element name="potential"  type="DT_BcInhomScalar"  />
+                
+                <!-- Special Boundary Conditions -->
                 <xsd:element name="absorbingBCs"   type="DT_AbsorbingBC" />
                 <xsd:element name="flowData"       type="DT_AcousticFlow"/>
                 <xsd:element name="rhsValues"      type="DT_AcousticRHS"

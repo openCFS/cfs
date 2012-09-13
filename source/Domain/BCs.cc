@@ -1,25 +1,26 @@
 #include "BCs.hh"
 #include "General/Environment.hh"
+#include "Domain/ElemMapping/EntityLists.hh"
+#include "Domain/CoefFunction/CoefFunction.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
 
   HomDirichletBc::HomDirichletBc() {
-    dof = 1;
   }
 
   void HomDirichletBc::ToInfo(PtrParamNode in) const
   {
-    in->Get("dof")->SetValue(dof);
+    in->Get("name")->SetValue(entities->GetName() );
+    std::set<UInt>::const_iterator it = dofs.begin();
+    StdVector<UInt> dofVec;
+    for( ; it != dofs.end(); ++it ) {
+      dofVec.Push_back(*it);
+    }
+    in->Get("dofs")->SetValue(dofVec.Serialize());
   }
 
-  std::string HomDirichletBc::ToString()
-  {
-    std::stringstream ss;
-    ss << "dof=" << dof;
-    return ss.str();
-  }
 
 
   HomDirichletBc::~HomDirichletBc()
@@ -35,16 +36,7 @@ namespace CoupledField {
   void InhomDirichletBc::ToInfo(PtrParamNode in) const
   {
     HomDirichletBc::ToInfo(in);
-    in->Get("value")->SetValue(value);
-    in->Get("phase")->SetValue(phase);
-  }
-
-
-  std::string InhomDirichletBc::ToString()
-  {
-    std::stringstream ss;
-    ss << HomDirichletBc::ToString() << ", value=" << value << ", phase=" << phase;
-    return ss.str();
+    in->Get("value")->SetValue(value->ToString());
   }
 
 

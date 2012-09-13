@@ -109,20 +109,20 @@
             <xsd:complexType>
 
               <xsd:choice minOccurs="0" maxOccurs="unbounded">
+                <!-- Dirichlet Boundary Conditions -->
+                <xsd:element name="fix"          type="DT_BcHomVector"   />
+                <xsd:element name="displacement" type="DT_BcInhomVector" />
                 
-                <!-- "standard" boundary conditions -->
-                <xsd:element name="dirichletHom"   type="DT_MechHD" />
-                <xsd:element name="dirichletInhom" type="DT_MechID" />
+                <!-- RHS Load Values-->
+                <xsd:element name="stress"        type="DT_BcInhomTensor"/>
+                <xsd:element name="strain"        type="DT_BcInhomTensor"/>
+                <xsd:element name="traction"      type="DT_BcInhomVector"/>
+                <xsd:element name="pressure"      type="DT_BcInhomScalar"/>
+                <xsd:element name="force"         type="DT_BcInhomVector"/>
+                <xsd:element name="forceDensity"  type="DT_BcInhomVector"/>
+                
+                <!-- Special Boundary Conditions -->
                 <xsd:element name="constraint"     type="DT_MechCS" />
-                
-                <!-- mechanic specific boundary conditions -->
-                <xsd:element name="stress"        type="DT_RHSTensor"/>
-                <xsd:element name="strain"        type="DT_RHSTensor"/>
-                <xsd:element name="traction"      type="DT_RHSVector"/>
-                <xsd:element name="pressure"      type="DT_RHSScalar"/>
-                <xsd:element name="force"         type="DT_RHSVector"/>
-                <xsd:element name="forceDensity"  type="DT_RHSVector"/>
-                
                 
             <!--<xsd:element name="spring"         type="DT_MechSpring"    />
                 <xsd:element name="preStress"      type="DT_MechPreStress"/>

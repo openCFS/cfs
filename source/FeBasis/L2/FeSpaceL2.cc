@@ -202,8 +202,12 @@ namespace CoupledField{
           nodeMap_.BcKeys[vNode] = StdVector<BcType>(dofsPerUnknown);
           nodeMap_.BcKeys[vNode].Init(NOBC);
         }
-        nodeMap_.BcKeys[vNode][(*actHBC)->dof] = HDBC;
-        bcCounter_[HDBC]++;
+        // loop over all dofs
+        std::set<UInt>::const_iterator dofIt = (*actHBC)->dofs.begin();
+        for( ; dofIt != (*actHBC)->dofs.end(); ++dofIt) { 
+          nodeMap_.BcKeys[vNode][*dofIt] = HDBC;
+          bcCounter_[HDBC]++;
+        } // dofs
       }
     }
 
@@ -220,11 +224,15 @@ namespace CoupledField{
           nodeMap_.BcKeys[vNode] = StdVector<BcType>(dofsPerUnknown);
           nodeMap_.BcKeys[vNode].Init(NOBC);
         }
-        // check first, if this node was already processed
-        if( nodeMap_.BcKeys[vNode][(*actIBC)->dof] != IDBC) {
-          nodeMap_.BcKeys[vNode][(*actIBC)->dof] = IDBC;
-          bcCounter_[IDBC]++;
-        }
+        // loop over all dofs
+        std::set<UInt>::const_iterator dofIt = (*actIBC)->dofs.begin();
+        for( ; dofIt != (*actIBC)->dofs.end(); ++dofIt) { 
+          // check first, if this node was already processed
+          if( nodeMap_.BcKeys[vNode][*dofIt] != IDBC) {
+            nodeMap_.BcKeys[vNode][*dofIt] = IDBC;
+            bcCounter_[IDBC]++;
+          }
+        } // dofs
       }
     }
 

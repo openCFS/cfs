@@ -746,14 +746,11 @@ share/xml/CFS-Simulation/Schemas/CFS_Coupling.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_DirectCoupling.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Documentation.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_Domain.xsd svneol=native#text/xml
-share/xml/CFS-Simulation/Schemas/CFS_ErsatzMaterial.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_FePolynomial.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_FileFormats.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_IntegrationScheme.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_LinearSystem.xsd svneol=native#text/xml
-share/xml/CFS-Simulation/Schemas/CFS_MeshDeformations.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_Misc.xsd svneol=native#text/xml
-share/xml/CFS-Simulation/Schemas/CFS_Optimization.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDEacoustic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEacousticMixed.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDEbasic.xsd svneol=native#text/xml
@@ -762,10 +759,8 @@ share/xml/CFS-Simulation/Schemas/CFS_PDEfluidMech.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEheatConduction.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmagedge.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmagnetic.xsd svneol=native#text/xml
-share/xml/CFS-Simulation/Schemas/CFS_PDEmagneticScalar.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmechanic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEsmooth.xsd svneol=native#text/xml
-share/xml/CFS-Simulation/Schemas/CFS_PDEstokesFluid.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PostProc.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Preconds.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Solvers.xsd svneol=native#text/xml

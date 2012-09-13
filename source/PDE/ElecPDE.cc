@@ -518,6 +518,12 @@ namespace CoupledField {
     }
     feFunctions_[ELEC_POTENTIAL]->SetResultInfo(res1);
 
+    // -----------------------------------
+    //  Define xml-names of Dirichlet BCs
+    // -----------------------------------
+    hdbcSolNameMap_[ELEC_POTENTIAL] = "ground";
+    idbcSolNameMap_[ELEC_POTENTIAL] = "potential";
+    
     res1->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
     results_.Push_back( res1 );
     availResults_.insert( res1 );

@@ -81,35 +81,81 @@
     </xsd:complexContent>
   </xsd:complexType>
   
-  <!-- ******************************************************************** -->
-  <!--   Definition of standard type for right hand side values -->
-  <!-- ******************************************************************** -->
-  
-  <!-- Base element type for specifying boundary conditions -->
-  <xsd:complexType name="DT_RHSBasic">    
+  <!-- ******************************************************************* -->
+  <!--   Definition of standard types for Bcs and RHS values               -->
+  <!-- ******************************************************************* -->
+  <!-- Base element type for specifying boundary conditions and RHS values-->
+  <xsd:complexType name="DT_BcBasic">    
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
-       <!-- <xsd:attribute name="quantity" type="xsd:token"  use="required"/>-->
         <xsd:attribute name="name" type="xsd:token"  use="required"/>
         <xsd:attribute name="coordSysId" type="xsd:token"  default="default"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
   
-  <!-- RHS scalar values -->
-  <xsd:complexType name="DT_RHSScalar">
+  <!-- ******************************************************************* -->
+  <!--   Homogeneous Boundary Conditions                                   -->
+  <!-- ******************************************************************* --> 
+  
+  <!-- Homogeneous scalar boundary condition -->
+  <xsd:complexType name="DT_BcHomScalar">
     <xsd:complexContent>
-      <xsd:extension base="DT_RHSBasic">
+      <xsd:extension base="DT_BcBasic">
+      </xsd:extension>
+    </xsd:complexContent> 
+  </xsd:complexType>
+  
+  <!-- Homogeneous vector-valued boundary condition -->
+  <xsd:complexType name="DT_BcHomVector">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BcBasic">
+        <!-- single components given -->
+        <xsd:sequence>
+          <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="dof" type="xsd:token" use="required"/>
+            </xsd:complexType>  
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent> 
+  </xsd:complexType>
+  
+   <!-- Homogeneous tensor-valued boundary condition -->
+  <xsd:complexType name="DT_BcHomTensor">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BcBasic">
+        <!-- single components given -->
+        <xsd:sequence>
+          <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="dof" type="xsd:token" use="required"/>
+            </xsd:complexType>  
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent> 
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Inomogeneous Boundary Conditions / RHS Excitation                 -->
+  <!-- ******************************************************************* --> 
+
+  <!-- Inhomogeneous scalar boundary condition / RHS value -->
+  <xsd:complexType name="DT_BcInhomScalar">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BcBasic">
         <xsd:attribute name="value" type="xsd:token"  use="required"/>
         <xsd:attribute name="phase" type="xsd:token"  default="0.0"/>
       </xsd:extension>
     </xsd:complexContent> 
   </xsd:complexType>
   
-  <!-- RHS vector valued entries -->
-  <xsd:complexType name="DT_RHSVector">
+  <!-- Inhomogeneous vector-valued boundary condition / RHS value -->
+  <xsd:complexType name="DT_BcInhomVector">
     <xsd:complexContent>
-      <xsd:extension base="DT_RHSBasic">
+      <xsd:extension base="DT_BcBasic">
         <xsd:choice>
           
           <!-- 1) complete vector given -->
@@ -137,10 +183,10 @@
     </xsd:complexContent> 
   </xsd:complexType>
   
-  <!-- RHS tensor valued entries -->
-  <xsd:complexType name="DT_RHSTensor">
+  <!-- Inhomogeneous tensor-valued boundary condition / RHS value -->
+  <xsd:complexType name="DT_BcInhomTensor">
     <xsd:complexContent>
-      <xsd:extension base="DT_RHSBasic">
+      <xsd:extension base="DT_BcBasic">
         <xsd:choice>
           
           <!-- 1) complete vector given -->

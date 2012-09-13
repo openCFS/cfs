@@ -79,7 +79,12 @@ class BaseTimeScheme{
      *   \param[in] initDerivOrder Does the BC specify the unknown itselfs or the initDerivOrder-th time derivative
      *   \param[in] eqnNumber to obtain the correct values from GLM vector
     */
-    virtual void AdaptBC(Double& transVal, Double initValue,UInt initDerivOrder, Integer eqnNumber) = 0;
+    virtual void AdaptBC(Double& transVal, Double initValue,
+                         UInt initDerivOrder, Integer eqnNumber) = 0;
+    virtual void AdaptBC(Complex& transVal, Complex initValue,
+                         UInt initDerivOrder, Integer eqnNumber) {
+      // nothing to do for complex valued peoblems
+    }
 
     /*! Obtain the time derivative of the solution
      *   \param[in] order requested order of time derivative

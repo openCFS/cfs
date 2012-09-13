@@ -92,13 +92,6 @@ namespace CoupledField
     //! set special PDE dependent boundary conditions
     virtual void SetSpecialBCs(){ return; }
 
-    //! Method for modifying an inhomogeneous boundary condition
-    void SetIDBC( const std::string &name,
-                  const std::string &dofString, 
-                  const std::string &value, 
-                  const std::string &phase );
-
-
     //! Update PDE due to updated step in multistep solution strategy
     virtual void UpdateToSolStrategy();
     
@@ -158,7 +151,7 @@ namespace CoupledField
     PtrCoefFct GetCoefFct( SolutionType solType );
     
     //! Read general external field information from given xml node
-    //! The node has to contian either a values tag, a number of comp tags or
+    //! The node has to contain either a values tag, a number of comp tags or
     //! a grid node
     //! \param[in] name The name of the entityList the Field should be applied to
     //! \param[in] valueNode The xml node of the user parameters
@@ -166,12 +159,15 @@ namespace CoupledField
     //! \param[in] type Type of CoefFunction to be read in (scalar, vector, tensor)
     //! \param[in] isComplex Indicates if we need to account for Complex results
     //! \param[out] coef The generated coefficient function
+    //! \param[out] definedDofs Set containing all defined dofs in case of a
+    //!             vector-valued quantity.
     void ReadUserFieldValues( const std::string name,
                               PtrParamNode valueNode,
                               const StdVector<std::string>& compNames,
                               ResultInfo::EntryType type,
                               bool isComplex,
-                              PtrCoefFct & coef);
+                              PtrCoefFct & coef,
+                              std::set<UInt>& definedDofs );
 
   protected:
 

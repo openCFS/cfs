@@ -296,8 +296,9 @@ namespace CoupledField {
         
         // Read coefficient flow coefficient function for this region
         PtrCoefFct regionFlow;
+        std::set<UInt> definedDofs;
         ReadUserFieldValues( regionName, flowNode, flowInfo->dofNames, flowInfo->entryType, 
-                             isComplex_, regionFlow );
+                             isComplex_, regionFlow, definedDofs );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
         
 //        if(isComplex_){
@@ -483,6 +484,15 @@ namespace CoupledField {
 
     // MEAN VELOCITY
     CreateMeanFlowFunction(velDofNames);
+    
+    // -----------------------------------
+    //  Define xml-names of Dirichlet BCs
+    // -----------------------------------
+    idbcSolNameMap_[FLUIDMECH_PRESSURE] = "pressure";
+    idbcSolNameMap_[FLUIDMECH_VELOCITY] = "velocity";
+  
+    hdbcSolNameMap_[FLUIDMECH_PRESSURE] = "noPressure";
+    hdbcSolNameMap_[FLUIDMECH_VELOCITY] = "noSlip";
   }
   
   

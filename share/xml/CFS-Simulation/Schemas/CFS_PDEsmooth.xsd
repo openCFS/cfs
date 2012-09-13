@@ -61,7 +61,11 @@
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="dirichletHom"   type="DT_SmoothHD"      />
+                <!-- Dirichlet Boundary Conditions -->
+                <xsd:element name="fix"          type="DT_BcHomVector"   />
+                <xsd:element name="displacement" type="DT_BcInhomVector" />
+
+                <!-- Old Style Boundary Conditions -->
                 <xsd:element name="dirichletInhom" type="DT_SmoothID"      />
                 <xsd:element name="dirichletFileInhom" type="DT_SmoothIdFile"/>
                 <xsd:element name="neumannInhom"   type="DT_SmoothIN"      />

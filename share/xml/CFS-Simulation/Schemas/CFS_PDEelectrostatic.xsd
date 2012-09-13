@@ -91,17 +91,16 @@
             maxOccurs="unbounded">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded" minOccurs="0">
-                <!-- "standard" boundary conditions -->
-                <xsd:element name="dirichletHom"   type="DT_ElecHD" />
-                <xsd:element name="dirichletInhom" type="DT_ElecID" />
-                <xsd:element name="constraint" type="DT_ElecCS" />
+                <!-- Dirichlet Boundary Conditions -->  
+                <xsd:element name="ground"    type="DT_BcHomScalar"/>
+                <xsd:element name="potential" type="DT_BcInhomScalar"/>              
 
-                <!-- electrostatic specific boundary conditions -->
-                <xsd:element name="charge"        type="DT_RHSScalar"/>
-                <xsd:element name="chargeDensity" type="DT_RHSScalar"/>
-                <xsd:element name="fluxDensity"   type="DT_RHSVector"/>
+                <!-- RHS Load Values-->
+                <xsd:element name="charge"        type="DT_BcInhomScalar"/>
+                <xsd:element name="chargeDensity" type="DT_BcInhomScalar"/>
+                <xsd:element name="fluxDensity"   type="DT_BcInhomVector"/>
                 
-                
+                <xsd:element name="constraint" type="DT_ElecCS" />
                 <!--<xsd:element name="impedance" type="DT_ElecImpedance" />-->
               </xsd:choice>
             </xsd:complexType>

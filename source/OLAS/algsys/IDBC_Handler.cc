@@ -133,7 +133,8 @@ namespace CoupledField {
 
       // Insert pointer into BaseMatrix array
       auxMat_[*it] = sbmMat;
-    }
+      
+    } // loop over matrix types
 
 
     // ------------------------------------------------
@@ -143,6 +144,13 @@ namespace CoupledField {
         GenerateVectorObject( *auxMat_[*(myMatrices_.begin())] ));
     vecIDBC_->Init();
 
+    // ------------------------------------------------------------------
+    // Generate vector for storing temporary values for AddFixedToFreeRHS
+    // ------------------------------------------------------------------
+    auxVec_ = dynamic_cast<SBM_Vector*>(
+        GenerateVectorObject( *auxMat_[*(myMatrices_.begin())] ));
+    auxVec_->Init();
+    
     // -------------------------
     // Set internal status flags
     // -------------------------
@@ -158,6 +166,10 @@ namespace CoupledField {
 
     // Delete vector of Dirichlet values
     delete vecIDBC_;
+    vecIDBC_ = NULL;
+    
+    delete auxVec_;
+    auxVec_ = NULL;
 
     // Delete internal FE matrices
     mySetIterator it;
@@ -196,7 +208,6 @@ namespace CoupledField {
   // ****************
   //   AddIDBCToRHS
   // ****************
-  //! @copydoc BaseIDBC_Handler::AddIDBCToRHS()
   template <typename T> void IDBC_Handler<T>::
   AddIDBCToRHS( SBM_Vector *rhs ) {
     
@@ -290,13 +301,11 @@ namespace CoupledField {
       LOG_DBG2(idbcElim) << "\tcolInd:   " << colInd;
       LOG_DBG2(idbcElim) << "\value:     " << val;
 
-      SBM_Vector* tmpVec = dynamic_cast<SBM_Vector*>(
-              GenerateVectorObject( *auxMat_[matID] ));
-      tmpVec->Init();
-      SingleVector * curVec = tmpVec->GetPointer(colBlock);
+      auxVec_->Init();
+      SingleVector * curVec = auxVec_->GetPointer(colBlock);
       curVec->SetEntry(colInd - numFreeDofs_[colBlock] - 1,val);
 
-      auxMat_[matID]->MultAdd(*tmpVec,*rhs);
+      auxMat_[matID]->MultAdd(*auxVec_,*rhs);
     }
 
   // ************************

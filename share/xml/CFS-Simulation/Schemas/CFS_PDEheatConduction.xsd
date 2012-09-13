@@ -84,19 +84,11 @@
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
               <xsd:choice minOccurs="0" maxOccurs="unbounded">
-                
-                <!-- "standard" boundary conditions -->
-                <xsd:element name="dirichletHom"   type="DT_HeatHD"   />
-                <xsd:element name="dirichletInhom" type="DT_HeatID"   />
-                <!--<xsd:element name="constraint"     type="DT_HeatCS"   />-->
+                <!-- Dirichlet Boundary Conditions -->
+                <xsd:element name="temperature"   type="DT_BcInhomScalar"  />
                 
                 <!-- heat specific boundary conditions -->
-                <xsd:element name="heatSourceDensity" type="DT_RHSScalar"/>
-                
-                <!-- "old" style boundary conditions                 -->
-                <!--<xsd:element name="robin"          type="DT_HeatR"    />
-                <xsd:element name="load"           type="DT_HeatLoad" />
-                <xsd:element name="rhsValues"      type="DT_HeatRHS"  />-->
+                <xsd:element name="heatSourceDensity" type="DT_BcInhomScalar"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>

@@ -73,10 +73,12 @@
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="dirichletHom" type="DT_MagneticHD"/>
-                <xsd:element name="dirichletInhom" type="DT_MagneticID"/>
-                <xsd:element name="neumannInhom" type="DT_MagneticIN"/>
-                <xsd:element name="constraint" type="DT_MagneticCS"/>
+                <!-- Dirichlet Boundary Conditions -->
+                <xsd:element name="fluxParallel"  type="DT_BcHomVector"    />
+                <xsd:element name="ground"        type="DT_BcHomScalar"    />
+                <xsd:element name="potential"     type="DT_BcInhomVector"  />
+                <xsd:element name="elecPotential" type="DT_BcInhomScalar"  />
+                
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>

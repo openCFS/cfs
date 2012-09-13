@@ -65,21 +65,28 @@ class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
   //! \copydoc CoefFunction::GetVector
   void GetVector(Vector<Double>& coefVec, 
                  const LocPointMapped& lpm ) {
-    assert(this->dimType_ == VECTOR);
+    assert(this->dimType_ == VECTOR ||
+           this->dimType_ == SCALAR );
 
-    // if no coordinate system is set, just
-    // use internal vector
-    if( !coordSys_ ) {
-      coefVec = constCoefVec_;
-
+    // in case of scalars, just set one entry in the vector
+    if( this->dimType_ == SCALAR ) {
+      coefVec.Resize(1);
+      coefVec[0] = constCoefScalar_;
     } else {
-      // otherwise, perform local -> global mapping
-      Vector<Double> pointCoord;
-      lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+      // if no coordinate system is set, just
+      // use internal vector
+      if( !coordSys_ ) {
+        coefVec = constCoefVec_;
 
-      // Afterwards rotate the local vector back to global coordinates
-      this->coordSys_->Local2GlobalVector( coefVec, 
-                                           constCoefVec_, pointCoord );
+      } else {
+        // otherwise, perform local -> global mapping
+        Vector<Double> pointCoord;
+        lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+
+        // Afterwards rotate the local vector back to global coordinates
+        this->coordSys_->Local2GlobalVector( coefVec, 
+                                             constCoefVec_, pointCoord );
+      }
     }
   }
 
@@ -230,20 +237,28 @@ public:
   //! \copydoc CoefFunction::GetVector
   void GetVector(Vector<Complex>& coefVec, 
                  const LocPointMapped& lpm ) {
-    assert(this->dimType_ == VECTOR);
+    assert(this->dimType_ == VECTOR ||
+           this->dimType_ == SCALAR );
 
-    // if no coordinate system is set, just
-    // use internal vector
-    if( !coordSys_ ) {
-      coefVec = constCoefVec_;
+    // in case of scalars, just set one entry in the vector
+    if( this->dimType_ == SCALAR ) {
+      coefVec.Resize(1);
+      coefVec[0] = constCoefScalar_;
     } else {
-      // otherwise, perform local -> global mapping
-      Vector<Double> pointCoord;
-      lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
 
-      // Afterwards rotate the local vector back to global coordinates
-      this->coordSys_->Local2GlobalVector( coefVec, constCoefVec_,
-                                           pointCoord );
+      // if no coordinate system is set, just
+      // use internal vector
+      if( !coordSys_ ) {
+        coefVec = constCoefVec_;
+      } else {
+        // otherwise, perform local -> global mapping
+        Vector<Double> pointCoord;
+        lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+
+        // Afterwards rotate the local vector back to global coordinates
+        this->coordSys_->Local2GlobalVector( coefVec, constCoefVec_,
+                                             pointCoord );
+      }
     }
   }
 
