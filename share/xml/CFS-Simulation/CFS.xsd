@@ -44,7 +44,6 @@
 	<xsd:include schemaLocation="Schemas/CFS_Domain.xsd" />
     <xsd:include schemaLocation="Schemas/CFS_Documentation.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_FileFormats.xsd" />
-	<xsd:include schemaLocation="Schemas/CFS_ErsatzMaterial.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_FePolynomial.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_IntegrationScheme.xsd"/>
 
@@ -175,10 +174,6 @@
 						</xsd:attribute>
 					</xsd:complexType>
 				</xsd:element>
-
-				<!-- Optional paramteter for ersatz Material -->
-				<xsd:element name="loadErsatzMaterial"
-					type="DT_ErsatzMaterial" minOccurs="0" />
 
 				<!-- Enforce parameter settings by disabling Expert() (optional) -->
 				<xsd:element name="expert" minOccurs="0"
