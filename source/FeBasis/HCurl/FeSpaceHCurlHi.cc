@@ -361,7 +361,9 @@ namespace CoupledField{
       ApproxOrder order;
       order.SetIsoOrder(0);
       myFe = refElems1St_[eRegion][ent.GetElem()->type];
-      SetElemOrder( ent.GetElem(), myFe, order, true );
+      // attention: here we do NOT apply the max/min rule, as we assume constant
+      // element order for all elements
+      SetElemOrder( ent.GetElem(), myFe, order, false );
     } else {
       // Fetch reference element and set correct order
       myFe = refElems_[eRegion][ent.GetElem()->type];
@@ -396,7 +398,9 @@ namespace CoupledField{
       ApproxOrder order;
       order.SetIsoOrder(0);
       myFe = refElems1St_[eRegion][ptElem->type];
-      SetElemOrder( ptElem, myFe, order, true );
+      // attention: here we do NOT apply the max/min rule, as we assume constant
+      // element order for all elements
+      SetElemOrder( ptElem, myFe, order, false );
     } else {
       // Fetch reference element and set correct order
       myFe = refElems_[eRegion][ptElem->type];
