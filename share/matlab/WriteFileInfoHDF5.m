@@ -1,22 +1,22 @@
-% ==============================================================
+%WRITEFILEINFOHDF5 writes the FileInfo group of a CFS++ HDF5 file.
 %
-%    GENERAL
-%    Writes the FileInfo group of an HDF5 file.
+% WRITEFILEINFOHDF5(FILENAME,CONTENT) opens FILENAME and creates the group
+% /FileInfo, in which four new dataset are created:
 %
-%    INPUT/S
-%      filename  - full path of a new or existing HDF5 file
-%      content   - integer vector indicating the content of the file
+% - "Creator" contains the signature of this program (including user,
+%   hostname, OS version, processor architecture and MATLAB version).
 %
-%    OUTPUT/S
+% - "Date" contains the current date and time.
 %
-%      
-%    ABOUT
+% - "Version" is the version of the CFS++ HDF5 specification (= 0.9).
 %
-%      -Created:     25 Oct 2007
-%      -Revision:    0.1
-%      -Authors:     Jens Grabinger
-% ==============================================================
+% - "Content" is a 32-bit integer array filled with the CONTENT parameter.
+%   It describes the contents of the file by a combination the following flags:
+%     1: file contains a mesh
+%     2: file contains volume results
+%     4: file contains history results
 
+% $Id$
 
 function [] = WriteFileInfoHDF5(filename, content)
 
@@ -28,16 +28,15 @@ if isempty(os)
 end
 proc = getenv('HOSTTYPE');
 
-creator = sprintf('CFS++ HDF5 tools for MATLAB run by %s@%s (MATLAB %s, %s %s)', user, host, version, os, proc);
+creator = sprintf('CFS++ HDF5 tools for MATLAB run by %s@%s (MATLAB %s, %s %s)', ...
+                  user, host, version, os, proc);
 
-if exist(filename, 'file') == 2
-  hdf5write(filename, '/FileInfo/Creator', creator, 'WriteMode', 'append');
-else
-  hdf5write(filename, '/FileInfo/Creator', creator);
-end
+h5datacreate(filename, '/FileInfo/Content', 'type', 'uint32', ...
+             'size', length(content));
+h5varput(filename, '/FileInfo/Content', uint32(content));
 
-hdf5write(filename, '/FileInfo/Date', datestr(now, 0), 'WriteMode', 'append');
+h5WriteVLStrDset(filename, '/FileInfo', 'Creator', creator, true);
 
-hdf5write(filename, '/FileInfo/Version', '0.9', 'WriteMode', 'append');
+h5WriteVLStrDset(filename, '/FileInfo', 'Date', datestr(now, 0), true);
 
-hdf5write(filename, '/FileInfo/Content', uint32(content), 'WriteMode', 'append');
+h5WriteVLStrDset(filename, '/FileInfo', 'Version', '0.9', true);
