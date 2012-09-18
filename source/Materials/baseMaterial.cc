@@ -48,6 +48,11 @@ namespace CoupledField
 
     coosy_ = NULL;
     hyst_  = NULL;
+    hystY_ = NULL;
+    hystZ_ = NULL;
+    vecHyst_ = NULL;
+    dimVecHyst_ = 0;
+    computeHystInverse_ = false;
 
     symmetryType_  = GENERAL;
     isHysteresis_  = false;
