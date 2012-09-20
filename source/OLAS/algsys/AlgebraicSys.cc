@@ -161,7 +161,8 @@ namespace CoupledField {
       // In case of a two-level strategy, we have to adjust the 
       // "effective" matrix / vector size, depending on the step.
       
-      if( solStrat_->GetActSolStep() == 1 ) {
+      if( solStrat_->GetActSolStep() == 1
+          && solStrat_->GetNumSolSteps() == 2) {
         // --------------------------
         //  Step 1: Only (1,1) block
         // --------------------------
@@ -176,7 +177,8 @@ namespace CoupledField {
         
         // important: also de-activate static condensation
         statCond_ = false;
-      } else if( solStrat_->GetActSolStep() == 2 ) {
+      } else if( solStrat_->GetActSolStep() == 2 ||
+                 solStrat_->GetNumSolSteps() == 1 ) {
         // --------------------------
         //  Step 2: Complete system
         // --------------------------

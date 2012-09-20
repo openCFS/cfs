@@ -271,10 +271,11 @@ namespace CoupledField{
   }
   
   void FeSpaceHCurlHi::UpdateToSolStrategy() {
-
     if( solStrat_->GetType() == SolStrategy::TWO_LEVEL_STRATEGY &&
+        solStrat_->GetNumSolSteps() == 2 &&
         solStrat_->GetActSolStep() == 1 ) {
       onlyLowestOrder_ = true;
+      std::cerr << "=> only lowest order\n";
     } else {
       onlyLowestOrder_ = false;
     }
