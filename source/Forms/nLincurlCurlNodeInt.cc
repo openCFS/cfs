@@ -157,7 +157,7 @@ namespace CoupledField
                   (eB[0]*eB[0]*xiDx[p][1]*xiDx[q][1] +
                    eB[1]*eB[1]*xiDx[p][0]*xiDx[q][0] -
                    eB[0]*eB[1]*xiDx[p][1]*xiDx[q][0] -
-                   eB[1]*eB[0]*xiDx[p][0]*xiDx[q][1] );
+                   eB[1]*eB[0]*xiDx[p][0]*xiDx[q][1] ) * Babs;
               }
           }
         }
