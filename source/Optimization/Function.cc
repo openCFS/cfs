@@ -470,6 +470,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case TENSOR_NORM:
     case GLOBAL_TENSOR_TRACE:
     case DESIGN_BOUND:
+    case MULTIMATERIAL_SUM:
     case SLACK:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
@@ -616,6 +617,7 @@ bool Function::IsLocal(Type t)
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
   case DESIGN_BOUND:
+  case MULTIMATERIAL_SUM:
     return true;
   default:
     return false;
@@ -645,7 +647,8 @@ bool Function::ForDensityFiltering() const
   {
   case PROJECTION:
   case SLACK:
-  case DESIGN_BOUND:
+  case DESIGN_BOUND: // TODO check if this is realy true as pyhsical material might harm the bound ?!
+  case MULTIMATERIAL_SUM:
     // for the projection case we have a density filter manually on Function::projectionDesign only
     return false;
 
@@ -720,6 +723,7 @@ bool Function::ForSensitivityFiltering() const
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
   case DESIGN_BOUND:
+  case MULTIMATERIAL_SUM:
   case SLACK:
     return false;
 
@@ -871,6 +875,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
   case DESIGN_BOUND:
+  case MULTIMATERIAL_SUM:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -1058,6 +1063,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case MULTIMATERIAL_SUM:
     if(locality_ != MULT_DESIGNS_ELEMENT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = MULT_DESIGNS_ELEMENT;
@@ -1698,6 +1704,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     fv = CalcDesignBound(false);
     break;
 
+  case MULTIMATERIAL_SUM:
+    fv = CalcMultiMaterialSum(-1, local, false);
+    break;
+
   default:
     assert(false);
     break;
@@ -1839,6 +1849,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
 
     case DESIGN_BOUND:
       gv = CalcDesignBound(true);
+      break;
+
+    case MULTIMATERIAL_SUM:
+      gv = CalcMultiMaterialSum(n, local, true);
       break;
 
     default:
@@ -2593,6 +2607,25 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     return ret;
   }
 
+
+  double Function::Local::Identifier::CalcMultiMaterialSum(int neigh_idx, const Local* local, bool derivative) const
+  {
+    Matrix<double> E;
+
+    double ret = 0.0;
+
+    if(derivative)
+    {
+      for(int i=-1; i < (int) neighbor.GetSize(); ++i)
+        ret += GetElement(i)->GetDesign(DesignElement::PLAIN);
+    }
+    else
+    {
+      ret = 1.0;
+    }
+    LOG_DBG3(func) << "L::I::CMMS e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
+    return ret;
+  }
 
 
   double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const

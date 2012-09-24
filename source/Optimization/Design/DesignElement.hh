@@ -149,11 +149,11 @@ public:
     /** The type of this design element, influences the Get*Bound() methods.
      * By definition the design elements are stored in the ordering of the type!!
      * make sure, that ALL_DESIGNS is the last with the highest number!!! */
-    typedef enum { UNITY = -9, NO_DERIVATIVE = -8, TENSOR_TRACE = -7, ELAST_ALL = -6, DIELEC_TRACE = -5, DIELEC_ALL = -4, PIEZO_ALL = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
+    typedef enum { UNITY = -10, NO_DERIVATIVE = -9, NO_MULTIMATERIAL = -8, TENSOR_TRACE = -7, ELAST_ALL = -6, DIELEC_TRACE = -5, DIELEC_ALL = -4, PIEZO_ALL = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
                    POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12, SLACK,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
-                   ROTANGLE, STIFF1, STIFF2, MULTIMATERIAL_DENSITY, MULTIMATERIAL_VOID, ALL_DESIGNS} Type;
+                   ROTANGLE, STIFF1, STIFF2, MULTIMATERIAL, ALL_DESIGNS} Type;
 
   BaseDesignElement(Type type = NO_TYPE);
   virtual ~BaseDesignElement() {};
@@ -256,7 +256,7 @@ public:
    * Is slow as it does the same evaluation often but is only O(n)
    * @param space to output 'penalizedDesign' the pointer is needed to find the transfer function
    * @param index location within the design space */
-  DesignElement(Type dt, double lower, double upper, Elem* elem, unsigned int index);
+  DesignElement(Type dt, double lower, double upper, Elem* elem, unsigned int index, MultiMaterial* mm);
 
   /** Dummy elements for Function */
   DesignElement(Elem* elem, Type type, unsigned int index, int pseudoElementIndex);
@@ -386,7 +386,7 @@ public:
     /** The topgrad element, will be destroyed by TopGrad */
     TopGradElement *tge;
 
-    /** if we are a multimaterial (MULTIMATERIAL_VOID or MULTIMATERIAL_DENSITY) this is our material
+    /** if we are a multimaterial this is our material
      * and the index there is our own index*/
     MultiMaterial* multimaterial;
 

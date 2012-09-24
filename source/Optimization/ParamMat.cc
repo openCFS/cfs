@@ -72,10 +72,10 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Applic
   Matrix<double>& out = dynamic_cast<Matrix<double>& >(*mat_out);
   switch(app){
   case MECH:
-    out = mech_mat_->MechStiffness(de->elem, false, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
+    out = mech_mat_->MechStiffness(de->elem, false, -1, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
     break;
   case MASS:
-    out = mech_mat_->MechMass(de->elem, false, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
+    out = mech_mat_->MechMass(de->elem, false, -1, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
     break;
   default:
     Exception("Only mech and mass matrix are available for paramMat");

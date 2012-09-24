@@ -30,8 +30,10 @@ namespace CoupledField
   class BaseOptimizer;
   class BaseResult;
   class SinglePDE;
+  class MultiMaterial;
   struct Elem;
   struct ResultInfo;
+
 
   /** This is the container of DesingElements which also holds the transferFunctions.
    * It can be initialized by Optimization of can contain the ersatz material stuff. */
@@ -150,7 +152,9 @@ namespace CoupledField
 
      bool HasMultiMaterial() const { return !multimaterial.IsEmpty();}
 
-     /** Gives an assembled multimaterial tensor
+     StdVector<MultiMaterial>& GetMultiMaterials() { return multimaterial; }
+
+     /** Gives an assembled multimaterial tensor.
       * @param elem for the element number
       * @param tf transfer function, if not given searches by itself
       * @param mc to find the right one in the piezo case
@@ -379,6 +383,8 @@ namespace CoupledField
      /** Get DesignRegion.  */
      DesignRegion* GetRegion(RegionIdType id, DesignElement::Type dt = DesignElement::NO_TYPE, int multimaterial_index = -1, bool throw_exception = true);
 
+     DesignRegion* GetRegion(RegionIdType id, MultiMaterial* mm, bool throw_exception = true);
+
      /** Convenience function */
      BaseMaterial* GetBiMaterial(RegionIdType reg, Optimization::Application app, bool throw_exception = true);
 
@@ -528,12 +534,8 @@ namespace CoupledField
      * easy to be also simple for load ersatz material */
     BaseMaterial* GetMultiMaterial(const MaterialClass mc);
 
-
     /** material name, to be allow creation on the fly. */
     std::string name;
-
-    /** is this a void material. One one might be void material! */
-    bool void_material;
 
     /** redundant multimaterial index, starting from 0 */
     int index;

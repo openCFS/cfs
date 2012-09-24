@@ -262,13 +262,13 @@ DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseu
 }
 
 
-DesignElement::DesignElement(Type dt, double lower, double upper, Elem* elem, unsigned int index) : BaseDesignElement()
+DesignElement::DesignElement(Type dt, double lower, double upper, Elem* elem, unsigned int index, MultiMaterial* mm) : BaseDesignElement()
 {
   Init();
   this->elem = elem;
   this->specialResult.Resize(9, 0.0);
   this->index_ = index;
-  this->multimaterial = NULL;
+  this->multimaterial = mm;
 
   type_ = dt;
   upper_ = upper;
@@ -542,6 +542,11 @@ void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf) const
   in->Get("lowerBound")->SetValue(lower_);
   if(tf != NULL)
     in->Get("physicalLowerBound")->SetValue(tf->Transform(this, DesignElement::PLAIN, lower_));
+  if(multimaterial != NULL)
+  {
+    in->Get("material")->SetValue(multimaterial->name);
+    in->Get("mm_index")->SetValue(multimaterial->index);
+  }
 }
 
 std::string DesignElement::ToString(const DesignElement* de)
@@ -651,8 +656,7 @@ void DesignElement::SetEnums()
   type.Add(STIFF1, "stiff1");
   type.Add(STIFF2, "stiff2");
   type.Add(SLACK, "slack");
-  type.Add(MULTIMATERIAL_DENSITY, "multimaterial_density");
-  type.Add(MULTIMATERIAL_VOID, "multimaterial_void");
+  type.Add(MULTIMATERIAL, "multimaterial");
   type.Add(ALL_DESIGNS, "allDesigns");
 
   access.SetName("DesignElement::Access");

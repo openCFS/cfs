@@ -128,6 +128,7 @@ class Function
       BENSON_VANDERBEI_2,        /*!< 2st minor constraint for numerical problemantic FMO pos def constraint */
       BENSON_VANDERBEI_3,        /*!< 3st minor constraint for numerical problemantic FMO pos def constraint */
       DESIGN_BOUND,              /*!< local design bound */
+      MULTIMATERIAL_SUM,         /*!< local sum of multimaterial designs */
       SLACK                      /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function
                                       but triggers AuxDesign instead of DesignSpace. */
     } Type; // in ConditionContainer::VirtualView::Refresh() we assume a maximal value for the type. Check!!
@@ -432,6 +433,9 @@ class Function
 
         /** squared L2 norm of all tensor entries. Meant for the piezoelectric coupling tensor */
         double CalcTensorNorm(int neigh_idx, const Local* local, bool derivative) const;
+
+        /** sum of all multimaterial designs */
+        double CalcMultiMaterialSum(int neigh_idx, const Local* local, bool derivative) const;
 
         /** local FMO positive definiteness of (E-val*I) >= param via determinants
          * @param type the type we want to evaluate. Might be different from local->func->type_ in Approximation::TransformMultiplyer() */

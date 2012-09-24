@@ -57,11 +57,11 @@ public:
   System GetSystem() const { return system_; }
 
   /** works fine for standard single pde SIMP stuff */
-  virtual const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false) {
+  virtual const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
     EXCEPTION("overload!");
   }
 
-  virtual const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false) {
+  virtual const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
     EXCEPTION("overload!");
   }
 
@@ -126,24 +126,25 @@ public:
   /** Get the ElementStiffness Matrix for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
    * @param bimaterial if true gets the material from the design space by the element's region
+   * @param multimaterial index or negative
    * @param direction if given, calculate derivative of Stiffness Matrix instead
    * @return a pointer to the Element Stiffness Matrix*/
-  const Matrix<double>& MechStiffness(const Elem* elem, bool bimaterial = false, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& MechStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** overwrites OptimizationMaterial::Stiffness */
-  const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false) {
-    return MechStiffness(elem, bimaterial, DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1 ) {
+    return MechStiffness(elem, bimaterial, multimaterial, DesignElement::NO_DERIVATIVE);
   }
 
   /** Get the ElementMass Matrix for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
    * @param direction if given, calculate derivative of mass Matrix instead
    * @return a pointer to the Element Mass Matrix*/
-  const Matrix<double>& MechMass(const Elem* elem,  bool bimaterial = false, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& MechMass(const Elem* elem,  bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** overwrites OptimizationMaterial::Mass */
-  const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false) {
-    return MechMass(elem, bimaterial, DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
+    return MechMass(elem, bimaterial, multimaterial, DesignElement::NO_DERIVATIVE);
   }
 
   
@@ -153,12 +154,12 @@ public:
 
 protected:  
   /** The mechanical element stiffness matrix is constant.
-   * We store the results for standard (first) and bimaterial (second)  */
-  std::map<RegionIdType, std::pair<Matrix<double>, Matrix<double> > > mechStiffness_map;
+   * We store multimaterial as a vector. No material one entry and legacy bimaterial two entries */
+  std::map<RegionIdType, StdVector<Matrix<double> > > mechStiffness_map;
 
   /** The mechanical element mass matrix is also constant. Only for harmonic!
    * @see mechStiffness_map*/
-  std::map<RegionIdType, std::pair<Matrix<double>, Matrix<double> > > mechMass_map;
+  std::map<RegionIdType, StdVector<Matrix<double> > > mechMass_map;
   
   /** We do not cache the vectors but always precalculate them */
   Vector<double> mechStrainRHS;

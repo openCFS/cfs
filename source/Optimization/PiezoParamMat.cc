@@ -47,7 +47,7 @@ void PiezoParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, A
   switch(app)
   {
   case MECH:
-    out = piezo_mat_->MechStiffness(de->elem, false, dt);
+    out = piezo_mat_->MechStiffness(de->elem, false, -1, dt);
     break;
 
   case ELEC:

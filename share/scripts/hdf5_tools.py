@@ -68,8 +68,9 @@ def find_corners(centers):
 def get_element(hdf5_file, name, region, step=99999):
   ms = hdf5_file['/Results/Mesh/MultiStep_1']
   # for optimization we assume steps to be numbered from 0, in simulation they start from 1
+  print "ms=" + str(len(ms))
   if step >= len(ms):
-    step = len(ms) - 2 # reset to last, first element is ResultDescription
+    step = max((len(ms) - 2,0)) # reset to last, first element is ResultDescription
   key = "/Results/Mesh/MultiStep_1/Step_" + str(step) + "/" + name + "/" + region + "/Elements/Real"
   try:
     data = ms[key]
@@ -144,7 +145,7 @@ def show_rot_rect(centers, s1, s2, angle, show, nx, scale=-1):
 
   im, draw, dim, dx, dy, min, max = create_image(centers, nx)
 
-  length = 0.9 * (centers[1][0] - centers[0][0]) * dx
+  length = 0.8 * (centers[1][0] - centers[0][0]) * dx
   
   sm = cmx.ScalarMappable(colors.Normalize(vmin=0.0, vmax=0.5), cmap=plt.get_cmap('jet'))
   
@@ -194,7 +195,7 @@ def orientational_stiffness(centers, angle, data, nx, scale=-1):
    
   if scale == -1:
     dist = 1.0 if len(centers) == 1 else centers[1][0] - centers[0][0] 
-    scale = 0.48 * dx * dist / max_val
+    scale = 0.35 * dx * dist / max_val
    
   sm = cmx.ScalarMappable(colors.Normalize(vmin=min_val, vmax=max_val), cmap=plt.get_cmap('jet'))
     

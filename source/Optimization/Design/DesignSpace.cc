@@ -94,7 +94,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     if(dt == DesignElement::SLACK)
       continue;
 
-    if(dt == DesignElement::MULTIMATERIAL_DENSITY || dt == DesignElement::MULTIMATERIAL_VOID) // uniqueness of void checked in SetupMultiMaterial()
+    if(dt == DesignElement::MULTIMATERIAL)
     {
       DesignID id(dt, &multimaterial[mm_count]);
       design.Push_back(id);
@@ -114,7 +114,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     if(trans_in.GetSize() == 0)
       throw Exception("no transferFunctions given");
     transfer.Reserve(trans_in.GetSize());
-    if(trans_in.GetSize() < design.GetSize())
+    if(trans_in.GetSize() < design.GetSize() && ! HasMultiMaterial())
       throw Exception("less transferFunctions than design variable types is infeasible");
     for(unsigned int i = 0; i < trans_in.GetSize(); i++)
       transfer.Push_back(TransferFunction(trans_in[i], design.GetSize() == 1 ? design[0].design : DesignElement::NO_TYPE));
@@ -169,7 +169,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
         PtrParamNode curr_design_pn = pn_design[d];
         if(DesignElement::type.Parse(curr_design_pn->Get("name")->As<std::string>()) != dt)
           continue;
-        if(dt == DesignElement::MULTIMATERIAL_DENSITY || dt == DesignElement::MULTIMATERIAL_VOID)
+        if(dt == DesignElement::MULTIMATERIAL)
         {
           mm_count++; // now zero for the first
           if(design[dti].multimaterial->index != mm_count)
@@ -197,8 +197,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             regions[dti].Push_back(tmp);
             DesignRegion& dr   = regions[dti].Last();
             dr.design = dt;
-            if(dt == DesignElement::MULTIMATERIAL_DENSITY || dt == DesignElement::MULTIMATERIAL_VOID)
-              dr.multimaterial = &(multimaterial[mm_count]);
+            dr.multimaterial = dt == DesignElement::MULTIMATERIAL ? &(multimaterial[mm_count]) : NULL;
             dr.regionId = reg_data[r];
             dr.base = prev == NULL ? dti * elements : prev->base + prev->elements;
             LOG_DBG2(designSpace) << "dti=" << dti << " d=" << d << " r=" << r << " el=" << elements << " size=" << regions[dti].GetSize()
@@ -232,7 +231,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
 
             for(unsigned int e = 0; e < n; e++)
             {
-              DesignElement de(dt, lower, upper, elems[e], data.GetSize());
+              DesignElement de(dt, lower, upper, elems[e], data.GetSize(), dr.multimaterial);
 
               de.SetDesign(random ? (((float) rand()/RAND_MAX) * (upper - lower) + lower) : initial);
 
@@ -745,7 +744,7 @@ bool DesignSpace::GetMultiMaterialTensor(Matrix<double>& t, const Elem* elem, Tr
   if(tf == NULL && derivative != NULL)
     tf = GetTransferFunction(derivative);
   if(tf == NULL)
-    tf = GetTransferFunction(DesignElement::MULTIMATERIAL_DENSITY, Optimization::MECH);
+    tf = GetTransferFunction(DesignElement::MULTIMATERIAL, Optimization::MECH);
 
   if(derivative != NULL)
   {
@@ -765,15 +764,22 @@ bool DesignSpace::GetMultiMaterialTensor(Matrix<double>& t, const Elem* elem, Tr
       return false;
 
     static Matrix<double> tmp;
-    t.Init();
+
     for(unsigned int d = 0; d < design.GetSize(); d++)
     {
       DesignElement& de = data[elements * d + idx];
-      if(de.GetType() == DesignElement::MULTIMATERIAL_DENSITY || de.GetType() == DesignElement::MULTIMATERIAL_VOID)
+      if(de.GetType() == DesignElement::MULTIMATERIAL)
       {
         assert(de.multimaterial != NULL);
         BaseMaterial* bm = de.multimaterial->GetMultiMaterial(mc);
         bm->GetTensor(tmp, BaseMaterial::ConvertMaterialClass(mc), Global::REAL, stt); // up to now no complex stuff
+
+        // initial tensor initialization
+        if(t.GetNumRows() == 0)
+        {
+          t.Resize(tmp.GetNumRows(), tmp.GetNumCols());
+          t.Init();
+        }
 
         t.Add(tf->Transform(&de, DesignElement::SMART), tmp);
       }
@@ -1357,6 +1363,11 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   }
 }
 
+DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, MultiMaterial* mm, bool throw_exception)
+{
+  return GetRegion(id, DesignElement::MULTIMATERIAL, mm->index, throw_exception);
+}
+
 BaseMaterial* DesignSpace::GetBiMaterial(RegionIdType reg, Optimization::Application app, bool throw_exception)
 {
   DesignRegion* dr = GetRegion(reg, DesignElement::NO_TYPE, -1, false); // tolerant for off-design stress constraints
@@ -1383,14 +1394,14 @@ BaseMaterial* DesignSpace::GetBiMaterial(RegionIdType reg, Optimization::Applica
 
 DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, DesignElement::Type dt, int multimaterial_index, bool throw_exception)
 {
-  assert(!((dt == DesignElement::MULTIMATERIAL_DENSITY || dt == DesignElement::MULTIMATERIAL_VOID) && multimaterial_index < 0));
+  assert(!((dt == DesignElement::MULTIMATERIAL) && multimaterial_index < 0));
 
   for(unsigned int d = 0, dn = regions.GetSize(); d < dn; d++)
   {
     StdVector<DesignRegion>& regs = regions[d];
     if(dt != DesignElement::NO_TYPE && regs[0].design != dt)
       continue;
-    if((dt == DesignElement::MULTIMATERIAL_DENSITY || dt == DesignElement::MULTIMATERIAL_VOID) && regs[0].design == dt && regs[0].multimaterial->index != multimaterial_index)
+    if((dt == DesignElement::MULTIMATERIAL) && regs[0].design == dt && regs[0].multimaterial->index != multimaterial_index)
       continue;
     for(unsigned r = 0, rn = regs.GetSize(); r < rn; r++)
     {
@@ -1427,29 +1438,22 @@ void DesignSpace::SetupMultiMaterial(ParamNodeList design_list)
 {
   assert(multimaterial.IsEmpty());
 
-  bool has_void = false;
-
   for(unsigned int d = 0; d < design_list.GetSize(); d++)
   {
     PtrParamNode pn = design_list[d];
     DesignElement::Type dt = DesignElement::type.Parse(pn->Get("name")->As<std::string>());
-    if(dt == DesignElement::MULTIMATERIAL_DENSITY || dt == DesignElement::MULTIMATERIAL_DENSITY)
+    if(dt == DesignElement::MULTIMATERIAL)
     {
       if(!pn->Has("material"))
         throw Exception("mutlimaterial designs require the 'material' attribute");
       std::string material = pn->Get("material")->As<std::string>();
 
-      // check for material and void
+      // check for material
       for(unsigned int m = 0; m < multimaterial.GetSize(); m++)
       {
         if(multimaterial[m].name == material)
           throw Exception("multimaterial design " + material + " not unique");
-        if(multimaterial[m].void_material)
-          has_void = true;
       }
-
-      if(dt == DesignElement::MULTIMATERIAL_VOID && has_void)
-        throw Exception("only one design can be 'multimaterial_void'"); // TODO add regions later
 
       if(pn->Get("region")->As<std::string>() != "all")
         throw Exception("multimaterial not yet compatible with multiregion");
@@ -1458,7 +1462,6 @@ void DesignSpace::SetupMultiMaterial(ParamNodeList design_list)
       MultiMaterial& mm = multimaterial.Last();
       mm.name = material;
       mm.index = multimaterial.GetSize() - 1;
-      mm.void_material = dt == DesignElement::MULTIMATERIAL_VOID;
       // the real material id set on the fly by GetMultiMaterial()
     }
     else if(pn->Has("material"))

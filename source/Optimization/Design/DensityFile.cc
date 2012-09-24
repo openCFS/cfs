@@ -249,9 +249,11 @@ void DensityFile::SetCurrent(int current_iteration)
   {
     DesignElement* de = &ersatzMaterial_->data[i];
     std::stringstream ss;
-    ss << "<element nr=\"" << de->elem->elemNum
-       << "\" type=\"" << DesignElement::type.ToString(de->GetType())
-       << "\" design=\"";
+    ss << "<element nr=\"" << de->elem->elemNum;
+    ss << "\" type=\"" << DesignElement::type.ToString(de->GetType());
+    if(de->GetType() == DesignElement::MULTIMATERIAL)
+      ss << "\" index=\"" << de->multimaterial->index;
+    ss << "\" design=\"";
     ss.precision(11);
     ss << de->GetDesign(DesignElement::PLAIN) << "\"";
     if(de->HasPhysicalDesign())

@@ -194,10 +194,10 @@ void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const Design
   // Bastian's stuff. If not applicable we might consider doing SIMP
   if(!GetErsatzMaterialTensor(dMat, elem, direction))
   {
-    if(GetMultiMaterialTensor(dMat, elem, MECHANIC, subTensorType_))
+    if(direction != DesignElement::NO_MULTIMATERIAL && GetMultiMaterialTensor(dMat, elem, MECHANIC, subTensorType_))
     {
       assert(direction == DesignElement::NO_DERIVATIVE);
-      assert(force_factor == 1.0); // not implemented!
+      assert(force_factor == 0.0); // not implemented!
     }
     else
     {

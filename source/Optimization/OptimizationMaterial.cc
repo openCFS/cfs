@@ -174,72 +174,111 @@ void MechMat::Init()
   system_ = MECH;
   mech = dynamic_cast<MechPDE*>(opt != NULL ? opt->ToPDE(Optimization::MECH) : domain->GetSinglePDE("mechanic"));
   assert(mech != NULL);
+  StdVector<MultiMaterial>& mm = space->GetMultiMaterials();
 
   for(unsigned int r=0; r < regionIds.GetSize(); r++)
   {
     RegionIdType reg_id = regionIds[r];
-    DesignSpace::DesignRegion* dr = space->GetRegion(reg_id);
+    StdVector<Matrix<double> >& K = mechStiffness_map[reg_id];
 
-    GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "linElastInt"), mechStiffness_map[reg_id].first);
-    LOG_DBG(om) << "OptMechMat: MechStiffness region=" << domain->GetGrid()->GetRegion().ToString(reg_id)
-                << std::endl << mechStiffness_map[reg_id].first.ToString(0,true);
-
-    if(dr->HasBiMaterial())
+    // three cases: multimaterial, (legacy) bimagterial, normal. Run once for the last tow
+    for(unsigned int m = 0; m < (space->HasMultiMaterial() ? mm.GetSize() : 1); m++)
     {
-      GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "linElastInt"), mechStiffness_map[reg_id].second, NULL, dr->GetBiMaterial(MECHANIC));
-      LOG_DBG(om) << "OptMechMat: MechStiffness region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << " bimaterial"
-                  << std::endl << mechStiffness_map[reg_id].second.ToString(0,true);
-    }
+      DesignSpace::DesignRegion* dr = space->HasMultiMaterial() ? space->GetRegion(reg_id, DesignElement::MULTIMATERIAL, mm[m].index) : space->GetRegion(reg_id);
 
-    if(harmonic_)
-    {
-      GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "MassInt"), mechMass_map[reg_id].first);
-      LOG_DBG(om) << "OptMechMat MechMass region=" << domain->GetGrid()->GetRegion().ToString(reg_id)
-                  << std::endl << mechMass_map[reg_id].first.ToString(0,true);
+      // either system material or multimaterial
+      BaseMaterial* bm = space->HasMultiMaterial() ? mm[m].GetMultiMaterial(MECHANIC) : NULL;
+      // prepare target
+      K.Push_back(Matrix<double>());
+
+      GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "linElastInt"), K.Last(), NULL, bm, DesignElement::NO_MULTIMATERIAL);
+      LOG_DBG(om) << "OptMechMat: MechStiffness region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << std::endl << K.Last().ToString(0,true);
 
       if(dr->HasBiMaterial())
       {
-        GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "MassInt"), mechMass_map[reg_id].second, NULL, dr->GetBiMaterial(MECHANIC));
-        LOG_DBG(om) << "OptMechMat MechMass region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << " bimaterial"
-                    << std::endl << mechMass_map[reg_id].second.ToString(0,true);
+        K.Push_back(Matrix<double>());
+
+        GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "linElastInt"), K.Last(), NULL, dr->GetBiMaterial(MECHANIC));
+        LOG_DBG(om) << "OptMechMat: MechStiffness region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << " bimaterial" << std::endl << K.Last().ToString(0,true);
+      }
+
+      if(harmonic_)
+      {
+        mechMass_map[reg_id].Push_back(Matrix<double>());
+
+        GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "MassInt"), mechMass_map[reg_id].Last(), NULL, bm, DesignElement::NO_MULTIMATERIAL);
+        LOG_DBG(om) << "OptMechMat MechMass region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << std::endl << mechMass_map[reg_id].Last().ToString(0,true);
+
+        if(dr->HasBiMaterial())
+        {
+          mechMass_map[reg_id].Push_back(Matrix<double>());
+
+          GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "MassInt"), mechMass_map[reg_id].Last(), NULL, dr->GetBiMaterial(MECHANIC));
+          LOG_DBG(om) << "OptMechMat MechMass region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << " bimaterial" << std::endl << mechMass_map[reg_id].Last().ToString(0,true);
+        }
       }
     }
   }
 }
 
 
-const Matrix<double>& MechMat::MechStiffness(const Elem* elem, bool bimaterial, DesignElement::Type direction)
+const Matrix<double>& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction)
 {
+  unsigned int index = multimaterial < 0 ? 0 : (unsigned int) multimaterial;
+
+  // in the multimaterial case we do not want the form to obtain the multimaterial tensor but only the one of the currently material
+  if(space->HasMultiMaterial())
+    direction = DesignElement::NO_MULTIMATERIAL;
+
+  LOG_DBG3(om) << "MS: el=" << elem->elemNum << " bi=" << bimaterial << " mm=" << multimaterial << " d=" << direction << " index=" << index;
+
   if(!structured_ || direction != DesignElement::NO_DERIVATIVE)
   {
+    BaseMaterial* bm = NULL;
+    if(multimaterial >= 0) // TODO is actually nonsense but due to non-region dependency of DesignSpace::multimaterial
+      bm = space->GetRegion(elem->regionId, &space->GetMultiMaterials()[multimaterial])->multimaterial->GetMultiMaterial(MECHANIC);
+
     if(!bimaterial)
-      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId].first, elem, NULL, direction);
+      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId][index], elem, bm, direction);
     else
     {
       BaseMaterial* bm = space->GetRegion(elem->regionId)->GetBiMaterial(MECHANIC);
-      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId].second, elem, bm, direction);
+      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId][1], elem, bm, direction);
     }
   }
 
-  return !bimaterial ? mechStiffness_map[elem->regionId].first : mechStiffness_map[elem->regionId].second;
+  if(bimaterial)
+    return mechStiffness_map[elem->regionId][1];
+
+  LOG_DBG3(om) << "MS: el=" << elem->elemNum << " -> " << mechStiffness_map[elem->regionId][index].ToString();
+
+  return mechStiffness_map[elem->regionId][index]; // no multimaterial is frst material
 }
 
-const Matrix<double>& MechMat::MechMass(const Elem* elem, bool bimaterial, DesignElement::Type direction)
+const Matrix<double>& MechMat::MechMass(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction)
 {
   assert(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "MassInt")->GetMaterialDescriptor().Enabled());
+  unsigned int index = multimaterial < 0 ? 0 : (unsigned int) multimaterial;
 
   if(!structured_ || direction != DesignElement::NO_DERIVATIVE)
   {
+    BaseMaterial* bm = NULL;
+    if(multimaterial >= 0) // TODO is actually nonsense but due to non-region dependency of DesignSpace::multimaterial
+      bm = space->GetRegion(elem->regionId, &space->GetMultiMaterials()[multimaterial])->multimaterial->GetMultiMaterial(MECHANIC);
+
     if(!bimaterial)
-      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "MassInt"), mechMass_map[elem->regionId].first, elem, NULL, direction);
+      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "MassInt"), mechMass_map[elem->regionId][index], elem, bm, direction);
     else
     {
       BaseMaterial* bm = space->GetRegion(elem->regionId)->GetBiMaterial(MECHANIC);
-      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "MassInt"), mechMass_map[elem->regionId].second, elem, bm, direction);
+      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "MassInt"), mechMass_map[elem->regionId][1], elem, bm, direction);
     }
   }
 
-  return !bimaterial ? mechMass_map[elem->regionId].first :  mechMass_map[elem->regionId].second;
+  if(bimaterial)
+    return mechMass_map[elem->regionId][1];
+
+  return mechMass_map[elem->regionId][index];
 }
 
 const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStrain testStrain)

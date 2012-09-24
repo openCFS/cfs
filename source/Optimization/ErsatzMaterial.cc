@@ -619,12 +619,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     // in ErsatzMaterialTensor case we loop over all elements, else only over the elements belonging to this design
     int elements = design->GetNumberOfElements();
     int base_lower = 0;
-    int base_upper = 0;
-    if (domain->HasErsatzMaterialTensor())
-    {
-      base_upper = design->data.GetSize();
-    }
-    else
+    int base_upper = design->data.GetSize(); // ErsatzMatzerialTensor and MultiMaterial
+    if(!design->HasErsatzMaterialTensor() && !design->HasMultiMaterial())
     {
       base_lower = design->FindDesign(tf->GetDesign()) * elements;
       base_upper = base_lower + elements;
@@ -886,6 +882,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::BENSON_VANDERBEI_2:
       case Function::BENSON_VANDERBEI_3:
       case Function::DESIGN_BOUND:
+      case Function::MULTIMATERIAL_SUM:
       assert(c == NULL);
       result = CalcLocalConstraint(g, derivative);
       break;
@@ -1481,7 +1478,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       // calculate the compliance which is according to
       // "A 99 line topology optimization code written in Matlab"; O.Sigmund, 2001
       // -> dc/dx_e = -p * x_e ^(p-1) u_e^T k_0 u_e
-      TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH, true);
+      TransferFunction* tf = design->GetTransferFunction(func->GetDesignType() , MECH, true);
       double factor = excite.GetWeightedFactor(func);
 
       if(IsTransient())
