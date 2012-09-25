@@ -486,6 +486,20 @@ namespace CoupledField {
     //@}
 
 
+    // ========================================================================
+    // BLOCK STRUCTURE RELATED METHODS
+    // ========================================================================
+    //@{
+    //! \name Block Structure Related Methods
+
+    //! \copydoc StdMatrix::GetNumBlocks
+    virtual void GetNumBlocks( UInt& nRowBlocks, UInt& nColBlocks, 
+                               UInt& numBlocks ) const;
+
+    //! \copydoc StdMatrix::GetDiagBlock
+    virtual void GetDiagBlock( UInt blockRow, DenseMatrix& diagBlock ) const;
+    //@}
+    
     // =======================================================================
     // I/O operations
     // =======================================================================
@@ -566,17 +580,6 @@ namespace CoupledField {
 
     //@}
 
-    //! Adapt vector to account for penalty approach
-
-    //! This method can be used to modify e.g. an initial guess, such that it
-    //! fulfills the in/homogeneous Dirichlet boundary conditions. The routine
-    //! will determine from the diagonal entries of the matrix those unknowns
-    //! that correspond to in/homogeneous Dirichlet boundary conditions,
-    //! extract their values from the right hand side vector and put them into
-    //! the specified vector.
-    void AccountForPenalty( Vector<T> &vec, const Vector<T> &rhs ) const;
-
-
   private:
 
     //! Number of stored non-zero entries
@@ -596,6 +599,10 @@ namespace CoupledField {
     //! Array containing the (potentially) non-zero matrix entries
     T* data_;
 
+    //! Final representation of blocks
+    StdVector<std::pair<UInt,UInt> > rowBlocks_;
+    StdVector<std::pair<UInt,UInt> > colBlocks_;
+    
     //! Flag indicating whether the sparsity pattern belongs to a pattern pool
 
     //! This is a pointer to a PatternPool object. If the pointer is NULL

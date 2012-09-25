@@ -4,6 +4,7 @@
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "MatVec/BLASLAPACKInterface.hh"
+#include "MatVec/Matrix.hh"
 
 DECLARE_LOG(vbrMat)
 DEFINE_LOG(vbrMat, "vbrMatrix")
@@ -869,6 +870,7 @@ namespace CoupledField {
     numBlocks = nBlocks_;
   }
   
+  
   template <typename T>
   Double VBR_Matrix<T>::GetMemoryUsage() const {
     
@@ -892,12 +894,18 @@ namespace CoupledField {
   }
   
   template<typename T>
-   T* VBR_Matrix<T>::GetDiagBlock( UInt blockRow, UInt& size, UInt& rowStart ) {
-   
-    T* ret = &data_[diagBlockPtr_[blockRow]];
-    size = bRow_[blockRow+1] - bRow_[blockRow]; 
-    rowStart = bRow_[blockRow];
-    return ret;
+  void VBR_Matrix<T>::GetDiagBlock( UInt blockRow, 
+                                    DenseMatrix& diagBlock ) const {
+
+    Matrix<T> & ret = static_cast<Matrix<T>& >(diagBlock);
+    const T* intPt = &data_[diagBlockPtr_[blockRow]];
+    UInt size = bRow_[blockRow+1] - bRow_[blockRow]; 
+    ret.Resize( size );
+    for( UInt i = 0; i < size; ++ i ) {
+      for( UInt j = 0; j < size; ++ j ) {
+        ret[i][j] = intPt[size*i+j];
+      }
+    }
   }
   
   template<typename T>

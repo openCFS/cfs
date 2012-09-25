@@ -15,7 +15,7 @@ namespace CoupledField {
 
   //! Forward declarations
   class PatternPool;
-
+  class DenseMatrix;
 
   //! base class for unstructured matrices
   class StdMatrix : public BaseMatrix {
@@ -345,7 +345,36 @@ namespace CoupledField {
                 "class, but is not!");
     };
     //@}
+    
+    // ========================================================================
+    // BLOCK STRUCTURE RELATED METHODS
+    // ========================================================================
+    //@{
+    //! \name Block Structure Related Methods
+    
+    //! Get dimension of matrix blocks
 
+    //! This method returns the dimension of the matrix in terms of blocks.
+    //! \param nRowBlocks number of row blocks
+    //! \param nColBlocks number of column blocks
+    //! \param numBlocks total number of (nonzero) blocks
+    virtual void GetNumBlocks( UInt& nRowBlocks, UInt& nColBlocks, 
+                               UInt& numBlocks ) const {
+      EXCEPTION( "Not implemented in the base class" );
+    }
+        
+    
+    //! Return the diagonal block
+    
+    //! This method returns the dense diagonal matrix block in case block 
+    //! information is supported by the matrix structure and information is 
+    //! provided by the graph during setup.
+    virtual void GetDiagBlock( UInt blockRow, DenseMatrix& diagBlock ) const {
+      EXCEPTION( "Not implemented in the base class" );
+    }
+
+    //@}
+    
     // *****************************************************
     //   The following two methods can probably be removed
     // *****************************************************

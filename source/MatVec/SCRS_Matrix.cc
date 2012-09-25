@@ -4,6 +4,7 @@
 #include "CoordFormat.hh"
 #include "SCRS_Matrix.hh"
 #include "opdefs.hh"
+#include "Matrix.hh"
 
 // Implementation of methods for the symmetric compressed row storage SCRS
 // matrix class
@@ -291,6 +292,9 @@ namespace CoupledField {
     // obtained with GetGraphRow(). But, it is also expected that the array
     // contains an entry for the node itself.
 
+    // Obtain block definition from graph object
+    this->rowBlocks_ = graph.GetRowBlockDefinition();
+    this->colBlocks_= graph.GetColBlockDefinition();
 
     UInt rs;
     UInt *index;
@@ -1128,47 +1132,47 @@ namespace CoupledField {
       //    << "non-empty row and column index sets!" );
     }
   }
-
-
-
-  // *********************
-  //   AccountForPenalty
-  // *********************
   template<typename T>
-  void SCRS_Matrix<T>::AccountForPenalty( Vector<T> &vec,
-                                          const Vector<T> &rhs ) const {
-
-    EXCEPTION( "Method not defined for this kind of template!" );
+  void SCRS_Matrix<T>::GetNumBlocks( UInt& nRowBlocks, UInt& nColBlocks, 
+                                     UInt& numBlocks ) const {
+    nRowBlocks = rowBlocks_.GetSize();
+    nColBlocks = colBlocks_.GetSize();
+    numBlocks = nRowBlocks * nColBlocks;
   }
 
-
-  // *********************
-  //   AccountForPenalty
-  // *********************
-  template<>
-  void SCRS_Matrix<Double>::AccountForPenalty( Vector<Double> &vec,
-                                               const Vector<Double> &rhs )
-    const {
-
-
-    // Determine value of penalty approach
-    Double penalty = GetMaxDiag();
-
-    // We need a safety factor, since at some place, we have some
-    // rounding errors in determining GetMaxDiag()
-    Double safety = 0.1;
-
-    // Loop over diagonal and look for Dirichlet cases
-    Double diag, entry;
-    for ( UInt k = 0; k < this->nrows_; k++ ) {
-      GetDiagEntry( k, diag );
-      if ( diag > penalty * safety ) {
-        rhs.GetEntry( k, entry );
-        vec.SetEntry( k, entry / penalty );
+  template<typename T>
+  void SCRS_Matrix<T>::GetDiagBlock( UInt blockRow, DenseMatrix& diagBlock ) const {
+    // obtain row/col indices of given block
+    const std::pair<UInt,UInt> & rowSet = rowBlocks_[blockRow];
+    const std::pair<UInt,UInt> & colSet = colBlocks_[blockRow];
+    
+    // copy entries to diagBlock
+    UInt sizeRow = rowSet.second - rowSet.first + 1;
+    UInt sizeCol = colSet.second - colSet.first + 1;
+    
+    Matrix<T> & mat = static_cast<Matrix<T>& >(diagBlock);
+    mat.Resize( sizeRow, sizeCol );
+    mat.Init();
+    UInt i, j, k, rs, c, rr, rc;
+    for ( i = rowSet.first; i < rowSet.second+1; i++ ) {
+      k = rowPtr_[i];
+      rs = rowPtr_[i+1] - k;
+      rr = i - rowSet.first;
+      mat[rr][rr] = this->data_[k]; // diagonal entry
+      k++;
+      
+      for( j = 1; j < rs; ++j ) {
+        c = colInd_[k];
+        rc = c-colSet.first;
+        if( c < colSet.second + 1 && c >= colSet.first ) {
+          mat[rr][rc] = this->data_[k]; 
+          mat[rc][rr] = this->data_[k]; // transposed part
+        }
+        k++;
       }
     }
+    
   }
-
 // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class SCRS_Matrix<Double>;

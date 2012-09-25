@@ -451,7 +451,22 @@ namespace CoupledField{
     // obtain list of faces which have to be grouped together
     GetThinFaceGroups( faceElems, faceGroups );
     
+    PtrParamNode thinNode = infoNode_->Get("thinElements");
+    
     UInt numGroups = faceGroups.GetSize();
+    UInt totalEntries = 0.0;
+    for( UInt i = 0; i < numGroups; ++i) {
+      totalEntries += faceGroups[i].GetSize();
+    }
+    UInt avgGroupSize = 0;
+    if( numGroups > 0 )
+      avgGroupSize = totalEntries / numGroups;
+    thinNode->Get("active")->SetValue(groupAnisoEdges_);
+    thinNode->Get("maxAspectRatio")->SetValue(maxAspectRatio_);
+    thinNode->Get("numGroups")->SetValue(numGroups);
+    thinNode->Get("avgGroupSize")->SetValue(avgGroupSize);
+    
+    
     // Loop over all faceGroups
     for(UInt iGroup = 0; iGroup < numGroups; ++iGroup ) {
       std::set<Integer>  faceEqns;

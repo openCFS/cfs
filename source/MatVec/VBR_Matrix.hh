@@ -155,12 +155,7 @@ namespace CoupledField {
       return BaseMatrix::VAR_BLOCK_ROW;
     }
     
-    //! Get dimension of matrix blocks
-
-    //! This method returns the dimension of the matrix in terms of blocks.
-    //! \param nRowBlocks number of row blocks
-    //! \param nColBlocks number of column blocks
-    //! \param numBlocks total number of (nonzero) blocks
+    //! \copydoc StdMatrix::GetNumBlocks
     void GetNumBlocks(UInt& nRowBlocks, UInt& nColBlocks, UInt& numBlocks ) const ;
     
     
@@ -401,8 +396,8 @@ namespace CoupledField {
     //! encapsulation, these methods are provided for the sake of efficiency.
     //@{
     
-    //! Get diagonal block pointer
-    T* GetDiagBlock( UInt blockRow, UInt& size, UInt& rowStart ); 
+    //! \copydoc StdMatrix::GetDiagBlock
+    void GetDiagBlock( UInt blockRow,  DenseMatrix& diagBlock ) const; 
     //@}
 
   private:

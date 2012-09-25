@@ -10,6 +10,7 @@
 #include "DataInOut/ResultCache.hh"
 #include "Domain/Results/BaseResults.hh"
 #include "Utils/EvalIntegrals/BiotSavart.hh"
+#include "Utils/Timer.hh"
 #include "Driver/SingleDriver.hh"
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
@@ -189,12 +190,18 @@ namespace CoupledField {
     //  Outer loop: Multilevel strategy 
     // =================================
     UInt numLevels = solStrat_->GetNumSolSteps();
-//    for( UInt iLevel = 0; iLevel < 1; ++iLevel ) {
     for( UInt iLevel = 0; iLevel < numLevels; ++iLevel ) {
 
       std::cerr << "=========================================================\n";
       std::cerr << " Multistep Level:    " << iLevel+1 << std::endl;
       std::cerr << "=========================================================\n";
+
+      // create new timer object and put it to related info element
+      shared_ptr<Timer> timer(new Timer());
+      PtrParamNode iter = info->Get("PDE")->Get(pdename_)->Get("nonlinearConvergence");
+      iter->GetByVal("solStep","value",iLevel+1,ParamNode::INSERT)
+          ->Get("timer")->SetValue(timer);
+      timer->Start();
       
       // update the current solution step in a multilevel approach and
       // inform PDEs (containing the FeSpaces), as well as the AlgebraicSystem
@@ -316,6 +323,8 @@ namespace CoupledField {
 
       } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
+      // stop timer
+      timer->Stop();
     } // loop over levels
   }
 

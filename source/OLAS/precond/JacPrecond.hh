@@ -91,8 +91,41 @@ namespace CoupledField {
 
   // ================================================================s========
   //   B L O C K   J A C O B I   P R E C O N D I T I O N E R
-  // ========================================================================
-  
+  // =======================================
+
+  //! Helper class implementing the block related part
+    template<class T_Stype>
+    class BlockJacPrecondImpl {
+    public:
+      //! Constructor
+
+      //! This constructor takes as input a system matrix from which the problem
+      //! size, matrix and entry types are derived and two pointers to the
+      //! communication objects. This is the constructor required by the
+      //! GeneratePrecondObject function.
+      BlockJacPrecondImpl( const StdMatrix &mat );
+
+      //! Default Destructor
+      ~BlockJacPrecondImpl();
+
+      //! Scales the residual with the inverse diagonal of system matrix
+      void Apply(  const Vector<T_Stype> &r,
+                   Vector<T_Stype> &z );
+
+      //! Triggers setup of the Jacobi Preconditioner
+
+      //! The setup phase generates a vector containing the inverses of the
+      //! diagonal entries of the system matrix
+      void Setup( StdMatrix &sysmat );
+
+    private:
+      //! Number of block rows 
+      UInt numRows_;
+
+      //! Vector containing matrices with factorization
+      StdVector<Matrix<T_Stype> > factors_;
+    };
+    
   //! Block Jacobi Preconditioner
 
   //! This class implements Block-Jacobi preconditioning. Applying the Jacobi
@@ -158,13 +191,11 @@ namespace CoupledField {
       EXCEPTION( "Default constructor of JacPrecond should never be called!");
     };
     
-    //! Number of block rows 
-    UInt numRows_;
-    
-    //! Vector containing matrices with factorization
-    StdVector<Matrix<T_Stype> > factors_;
-
+    //! Pointer to implementation
+    BlockJacPrecondImpl<T> * pimpl_;
   };
+  
+  
 
   
 }//namespace

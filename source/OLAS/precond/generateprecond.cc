@@ -69,7 +69,9 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
   typedef JacPrecond<Diag_Matrix<Double>,Double> RDIAGJacDof1;
   typedef JacPrecond<Diag_Matrix<Complex>,Complex> CDIAGJacDof1;
   
-  // Block Jacobi preconditioner for VBR matrix
+  // Block Jacobi preconditioner 
+  typedef BlockJacPrecond<SCRS_Matrix<Double>,Double> RSCRSBlockJac;
+  typedef BlockJacPrecond<SCRS_Matrix<Complex>,Complex> CSCRSBlockJac;
   typedef BlockJacPrecond<VBR_Matrix<Double>,Double> RVBRBlockJac;
   typedef BlockJacPrecond<VBR_Matrix<Complex>,Complex> CVBRBlockJac;
 
@@ -166,6 +168,13 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
       //   Block Jacobi Preconditioner
       // ===============================
     case BasePrecond::BLOCK_JACOBI:
+
+      // real SCRS Block Jacobi
+      PRECOND_OBJ(BaseMatrix::DOUBLE, BaseMatrix::SPARSE_SYM, RSCRSBlockJac);
+      
+      // complex SCRS Block Jacobi
+      PRECOND_OBJ(BaseMatrix::COMPLEX, BaseMatrix::SPARSE_SYM, CSCRSBlockJac);
+
       
       // real VBR Block Jacobi
       PRECOND_OBJ(BaseMatrix::DOUBLE, BaseMatrix::VAR_BLOCK_ROW, RVBRBlockJac);
@@ -559,6 +568,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
         break;
 
       case BasePrecond::BLOCK_JACOBI :
+        ret.insert(BaseMatrix::SPARSE_SYM);
         ret.insert(BaseMatrix::VAR_BLOCK_ROW);
         break;
 
