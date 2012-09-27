@@ -15,7 +15,6 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
-#include "Domain/CoefFunction/CoefFunctionApprox.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
@@ -144,26 +143,15 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       // Switch, if region is linear / nonlinear
       if ( nonLinTypes.GetSize() > 0 ) {
         
-        
-        // obtain BH-curve from nonlinear material and initialize it
-        actMat->NeedApproxMatCurve( MAG_PERMEABILITY );
-        actMat->InitApproxCurves();
-        ApproxData * nLinFnc = actMat->GetNonlinFnc(MAG_PERMEABILITY);
-        assert(nLinFnc);
-        Double nuLin;
-        actMat->GetScalar(nuLin , MAG_RELUCTIVITY, Global::REAL );
-        // obtain initial value for material (cast to double)
-        
         // ================================
         //  Nonlinear Stiffness Integrator 
         // =================================
         
-        // create CoefFunctionApprox with nlinFnc, initial value and feFunction
-        shared_ptr<CoefFunctionApprox<CurlOperator<FeHCurl,3, Double> > > nuNl (
-            new CoefFunctionApprox<CurlOperator<FeHCurl,3, Double> >() );
-        nuNl->Init( nuLin, nLinFnc, 
-                    dynamic_pointer_cast<FeFunction<Double > > (feFunc) );
         // create stiffness integrator
+        BaseBOperator* bOp = new CurlOperator<FeHCurl,3, Double>();
+        PtrCoefFct nuNl = 
+            actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, 
+                                          feFunc, bOp );
         BaseBDBInt* stiff1 = NULL;
         stiff1 = new BBInt< CurlOperator<FeHCurl,3, Double> >(nuNl, 1.0) ;
         stiff1->SetName("CurlCurlIntegrator-NL");
@@ -185,11 +173,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        // Note: currently we set the nonlinear method hard-coded to NEWTON for
        // testing purpose
        if( nonLinMethod_ == NEWTON ) {
-         //create CoefFunctionApproxDeriv with nlinFnc and feFunction
-         shared_ptr<CoefFunctionApproxDeriv<CurlOperator<FeHCurl,3, Double> > > nuDeriv (
-             new CoefFunctionApproxDeriv<CurlOperator<FeHCurl,3, Double> >() );
-         nuDeriv->Init( nLinFnc, dynamic_pointer_cast<FeFunction<Double > > (feFunc) );
 
+         BaseBOperator* bOp = new CurlOperator<FeHCurl,3, Double>();
+         PtrCoefFct nuDeriv = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY_DERIV, 
+                                                            Global::REAL, feFunc, bOp );
+         
          //create stiffness integrator
          BiLinearForm* stiff2 = NULL;
          stiff2 = new BDBInt< CurlOperator<FeHCurl,3, Double> >(nuDeriv, 1.0) ;
@@ -232,9 +220,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        stiffContext->SetEntities( actSDList, actSDList );
        stiffContext->SetFeFunctions( feFunc, feFunc );
        assemble_->AddBiLinearForm( stiffContext );
+       
        // Important: Add bdb-integrator to global list, as we need them later
        // for calculation of postprocessing results
        bdbInts_[actRegion] = curlcurl;
+       
        // add also material to global, distributed reluctivity coefficient function
        reluc_->AddRegion(actRegion, curCoef);
 
@@ -752,45 +742,46 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   template<class TYPE>
   void MagEdgePDE::CalcPermeability( shared_ptr<BaseResult> result ) {
 
-    TYPE elemPerm;
-    Vector<TYPE> elemFlux;
-    Double bAbs, reluct;
-
-    // fetch result object and convert data
-    Result<TYPE> &  actSol = 
-        dynamic_cast<Result<TYPE>&>(*result);
-    Vector<TYPE> & actVal = actSol.GetVector();
-    actVal.Resize( actSol.GetEntityList()->GetSize());
-
-    // loop over elements
-    EntityIterator it = actSol.GetEntityList()->GetIterator();
-    for ( it.Begin(); !it.IsEnd(); it++ ) {
-
-      // Determine regionId of element
-      const Elem & actEl = *(it.GetElem());
-      RegionIdType actRegion = actEl.regionId; 
-
-      //get possible nonlinearities defined in this region
-      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
-
-      // Check, if region is nonlinear
-      if ( nonLinTypes[actRegion] == PERMEABILITY ) {
-
-        // Obtain nonlinear approximation functional
-        ApproxData * approx  = materials_[actRegion]->GetNonlinFnc(MAG_PERMEABILITY);
-
-        // Calculate flux density in element midpoint
-        LocPoint lp;
-        lp.coord = Elem::shapes[actEl.type].midPointCoord;
-        CalcFluxDensityAtIP( it.GetElem(), lp, elemFlux );
-        bAbs = elemFlux.NormL2();
-        reluct = approx->EvaluateFuncNu(bAbs);
-        elemPerm = 1.0 / reluct;
-      } else {
-        materials_[actRegion]->GetScalar( elemPerm, MAG_PERMEABILITY,Global::REAL); 
-      }
-      actVal[it.GetPos() ] = elemPerm;
-    }
+    EXCEPTION("Move permeability calculation to functor method");
+//    TYPE elemPerm;
+//    Vector<TYPE> elemFlux;
+//    Double bAbs, reluct;
+//
+//    // fetch result object and convert data
+//    Result<TYPE> &  actSol = 
+//        dynamic_cast<Result<TYPE>&>(*result);
+//    Vector<TYPE> & actVal = actSol.GetVector();
+//    actVal.Resize( actSol.GetEntityList()->GetSize());
+//
+//    // loop over elements
+//    EntityIterator it = actSol.GetEntityList()->GetIterator();
+//    for ( it.Begin(); !it.IsEnd(); it++ ) {
+//
+//      // Determine regionId of element
+//      const Elem & actEl = *(it.GetElem());
+//      RegionIdType actRegion = actEl.regionId; 
+//
+//      //get possible nonlinearities defined in this region
+//      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
+//
+//      // Check, if region is nonlinear
+//      if ( nonLinTypes[actRegion] == PERMEABILITY ) {
+//
+//        // Obtain nonlinear approximation functional
+//        ApproxData * approx  = materials_[actRegion]->GetNonlinFnc(MAG_PERMEABILITY);
+//
+//        // Calculate flux density in element midpoint
+//        LocPoint lp;
+//        lp.coord = Elem::shapes[actEl.type].midPointCoord;
+//        CalcFluxDensityAtIP( it.GetElem(), lp, elemFlux );
+//        bAbs = elemFlux.NormL2();
+//        reluct = approx->EvaluateFuncNu(bAbs);
+//        elemPerm = 1.0 / reluct;
+//      } else {
+//        materials_[actRegion]->GetScalar( elemPerm, MAG_PERMEABILITY,Global::REAL); 
+//      }
+//      actVal[it.GetPos() ] = elemPerm;
+//    }
   }
 //  template<class TYPE>
 //  void MagEdgePDE::CalcMagPotentialDiv( shared_ptr<BaseResult> result ) {

@@ -937,6 +937,7 @@ source/Domain/CMakeLists.txt svneol=native#text/plain
 source/Domain/CoefFunction/CMakeLists.txt -text
 source/Domain/CoefFunction/CoefFunction.cc -text
 source/Domain/CoefFunction/CoefFunction.hh -text
+source/Domain/CoefFunction/CoefFunctionApprox.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/CoefFunction/CoefFunctionApprox.hh -text
 source/Domain/CoefFunction/CoefFunctionCompound.cc -text
 source/Domain/CoefFunction/CoefFunctionCompound.hh -text

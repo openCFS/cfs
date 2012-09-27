@@ -1,6 +1,7 @@
 SET(COEFFUNCTION_SRCS
   CoefXpr.cc
   CoefFunction.cc
+  CoefFunctionApprox.cc
   CoefFunctionFormBased.cc
   CoefFunctionCompound.cc
   CoefFunctionConst.cc

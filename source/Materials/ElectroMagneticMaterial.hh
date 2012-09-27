@@ -55,14 +55,17 @@ namespace CoupledField {
     void GetTensor( Matrix<Complex>& param, MaterialType matType,
 		    Global::ComplexPart dataType,
 		    SubTensorType = FULL ) const;	
-
-    //Initialize approximations of nonlinear curves
-    void InitApproxCurves();
-
-    ApproxData* GetNonlinFnc( MaterialType matType ) {
-      return nlinFncBH_;
-    }
-
+    
+    // ======================================================================
+    //  Coefficient Function Related Methods
+    // ======================================================================
+    //@{ \name Coefficient Function Related Method
+    //! Return scalar-valued coefficient function (linear)
+    virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
+                                            Global::ComplexPart matDataType,
+                                            shared_ptr<BaseFeFunction> feFct,
+                                            BaseBOperator* bOp );
+    //@}
     //============================ HYSTERESIS ===================================
 
     //Initialize hysteresis
@@ -113,8 +116,6 @@ namespace CoupledField {
     //! Calculate full tensor from scalar values
     void ComputeFullMuTensor();
     
-    ApproxData* nlinFncBH_;
-
     UInt dim_;
 
     Matrix<Double> vecXprevious_; //! previous Xval in hysteresis

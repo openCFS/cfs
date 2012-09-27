@@ -11,7 +11,7 @@ namespace CoupledField
   ApproxData::ApproxData(std::string nlFileName, MaterialType matType )
   {
     matType_ = matType;
-
+    nlFileName_ = nlFileName;
     ReadNlinFunc(nlFileName);
     PerformChecksOnInputData(nlFileName);
 

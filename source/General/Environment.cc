@@ -1254,8 +1254,10 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MAG_PERMEABILITY_1, "Magnetic_permeability_1" ); 
     MaterialTypeEnum.Add( MAG_PERMEABILITY_2, "Magnetic_permeability_2" ); 
     MaterialTypeEnum.Add( MAG_PERMEABILITY_3, "Magnetic_permeability_3" );
+    MaterialTypeEnum.Add( MAG_PERMEABILITYCURVES, "Magnetic_permeability_curves" );
     MaterialTypeEnum.Add( MAG_RELUCTIVITY, "Magnetic_reluctivity" );
-    MaterialTypeEnum.Add( MAG_CONDUCTIVITY, "Magnetic_Conductiuvity" ); 
+    MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV, "Magnetic_reluctivity_derivative" );
+    MaterialTypeEnum.Add( MAG_CONDUCTIVITY, "Magnetic_Conductivity" ); 
     MaterialTypeEnum.Add( ELEC_PERMITTIVITY, "Electric_Permittivity" );
     MaterialTypeEnum.Add( MECH_STIFFNESS_TENSOR, "MechanicStiffnessTensor" );
     MaterialTypeEnum.Add( COEFF_STRAIN_IRREVERSIBLE, "Coeff_Strain_Irreversible" ); 
@@ -1335,6 +1337,13 @@ namespace CoupledField {
     feMatrixType.Add( MASS, "mass" );
     feMatrixType.Add( AUXILIARY, "auxiliary" );
 
+    // ==== Initialization of ApproxCurveTypes ====
+    ApproxCurveTypeEnum.Add( NO_APPROX_TYPE , "No approximation" );
+    ApproxCurveTypeEnum.Add( LIN_INTERPOLATE, "LinInterpolate" );
+    ApproxCurveTypeEnum.Add( CUBIC_SPLINES, "CubicSplines" );
+    ApproxCurveTypeEnum.Add( SMOOTH_SPLINES, "smoothSplines" );
+    
+    
     MAX_NUM_FE_MATRICES = feMatrixType.map.size() - 1;
 
     // ==== Initialization of NonLinMethodEnum ====
@@ -1344,6 +1353,7 @@ namespace CoupledField {
 
   Enum<SolutionType> SolutionTypeEnum;
   Enum<MaterialType> MaterialTypeEnum;
+  Enum<ApproxCurveType> ApproxCurveTypeEnum;
   Enum<NonLinMethodType> NonLinMethodTypeEnum;
   Enum<FEMatrixType> feMatrixType;
   UInt MAX_NUM_FE_MATRICES;

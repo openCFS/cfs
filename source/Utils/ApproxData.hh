@@ -20,6 +20,11 @@ namespace CoupledField {
     //! reads in the sampled data form file with name fncName
     void ReadNlinFunc( std::string fncName );
 
+    //! return file name
+    std::string GetNlFileName() {
+      return nlFileName_;
+    }
+    
     //! perform checks
     void PerformChecksOnInputData( std::string fncName );
 
@@ -77,6 +82,7 @@ namespace CoupledField {
     Vector<Double> y_;  //!< function value
     UInt numMeas_;      //!< number of sampled points
     MaterialType matType_; //!< material parameter to be approximated
+    std::string nlFileName_; //!< name of file
 
   };
 

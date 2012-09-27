@@ -718,9 +718,9 @@ namespace CoupledField
     std::ofstream out_func;
     std::ofstream out_prime;
 
-    out_orig.open("orig.dat");
-    out_func.open("func.dat");
-    out_prime.open("prime.dat");
+    out_orig.open(std::string(nlFileName_+std::string(".orig.dat")).c_str());
+    out_func.open(std::string(nlFileName_+std::string(".func.dat")).c_str());
+    out_prime.open(std::string(nlFileName_+std::string(".prime.dat")).c_str());
 
     // output of the data
     for (i=0; i<node_+2; i++) {
@@ -809,9 +809,9 @@ namespace CoupledField
     std::ofstream out_func;
     std::ofstream out_prime;
 
-    out_orig.open("originv.dat");
-    out_func.open("funcinv.dat");
-    out_prime.open("primeinv.dat");
+    out_orig.open(std::string(nlFileName_+std::string(".originv.dat")).c_str());
+    out_func.open(std::string(nlFileName_+std::string(".funcinv.dat")).c_str());
+    out_prime.open(std::string(nlFileName_+std::string(".primeinv.dat")).c_str());
 
     // output of the data
 
@@ -840,7 +840,7 @@ namespace CoupledField
   {
 
     std::ofstream out_nu;
-    out_nu.open("nu_B.dat");
+    out_nu.open(std::string(nlFileName_+std::string(".nu_B.dat")).c_str());
 
     UInt numPoints = 500;
     Double maxB = yEnd_ * 1.5;

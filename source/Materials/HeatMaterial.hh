@@ -64,18 +64,6 @@ namespace CoupledField {
 		    Global::ComplexPart dataType,
 		    SubTensorType = FULL ) const;	
 
-    //! get correct nonlinear function
-    virtual ApproxData* GetNonlinFnc( MaterialType matType ) {
-      if ( matType == HEAT_CONDUCTIVITY )
-        return nlinFncConductivity_;
-      else 
-        return  nlinFncCapacity_;
-    }
-
-    //Initialize approximations of nonlinear curves
-    void InitApproxCurves();
-
-
   private:
 
     //! compute the correct subTensor (3D, AXI, ..)
@@ -87,8 +75,6 @@ namespace CoupledField {
     //! Calculate full tensor from scalar values
     void ComputeFullMuTensor();
 
-    ApproxData* nlinFncConductivity_;
-    ApproxData* nlinFncCapacity_;
   };
 
 } // end of namespace

@@ -23,6 +23,8 @@ namespace CoupledField {
   class PiezoMicroModelHF;
   class PiezoMicroModelBK;
   class CoefFunction;
+  class BaseBOperator;
+  class BaseFeFunction;
 
   //! Class for Material Data
   /*! 
@@ -32,6 +34,37 @@ namespace CoupledField {
   class BaseMaterial {
 
   public:
+    
+    //! Helper struct, defining a single nonlinear dependency
+    struct MatDescriptorNl {
+      
+      //! Constructor
+      MatDescriptorNl();
+      
+      //! Destructor
+      ~MatDescriptorNl();
+      
+      //! Type of approximation (smooth spline etc.)
+      ApproxCurveType approxType;
+      
+      //! File containing the nonlinearity
+      std::string fileName;
+      
+      //! Accuracy of measured values (needed for approximation)
+      Double measAccuracy;
+      
+      //! Maximum value of approximation (limit value)
+      Double maxVal;
+      
+      //! Angle, for which this curve is defined (0 for no angular dependency)
+      Double angle;
+
+      //! Pointer to interpolation class
+      ApproxData* approxData;
+      
+    };
+    
+    //@{ \name public typedefs
     typedef std::map<MaterialType, Matrix<Complex> > tensorMap;
     typedef std::map<MaterialType, Vector<Complex> > vectorMap;
     typedef std::map<MaterialType, Complex > scalarMap;
@@ -39,8 +72,14 @@ namespace CoupledField {
     typedef std::map<MaterialType, Integer > integerMap;
     typedef std::map<MaterialType, MathParser::HandleType > handleMap;
     typedef std::map<MaterialType, PtrCoefFct> CoefMap;
+    typedef std::map<MaterialType, MatDescriptorNl> nonLinIsoMap;
+    typedef std::map<MaterialType, StdVector<MatDescriptorNl> > nonLinAnisoMap;
 
+    //! Denote the symmetry type 
     typedef enum {GENERAL, ISOTROPIC, ORTHOTROPIC, TRANS_OTHOTROP } SymmetryType;
+    
+    //@}
+    
 
     //! Default constructor
     BaseMaterial();
@@ -70,6 +109,37 @@ namespace CoupledField {
       return materialDatabaseName_;
     }
 
+    // ======================================================================
+    //  Coefficient Function Related Methods
+    // ======================================================================
+    //@{ \name Coefficient Function Related Method
+
+    //! Return a tensor valued coefficient function (linear)
+    virtual PtrCoefFct GetTensorCoefFnc(MaterialType matType,
+                                        SubTensorType type,
+                                        Global::ComplexPart matDataType,
+                                        bool transposed = false );
+
+    //! Return vector-valued coefficient function (linear)
+    virtual PtrCoefFct GetVectorCoefFnc(MaterialType matType,
+                                        Global::ComplexPart matDataType);
+
+    //! Return scalar-valued coefficient function (linear)
+    virtual PtrCoefFct GetScalCoefFnc(MaterialType matType,
+                                      Global::ComplexPart matDataType);
+
+    //! Return a specific sub-tensor as coefficient function (linear)
+    virtual PtrCoefFct GetSubTensorCoefFnc( MaterialType matType, 
+                                            SubTensorType tensorType,
+                                            bool transposed  ) ;
+    
+    //! Return scalar-valued coefficient function (linear)
+    virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
+                                            Global::ComplexPart matDataType,
+                                            shared_ptr<BaseFeFunction> feFct,
+                                            BaseBOperator* bOp );
+    //@}
+    
     //! get info, which material parameter is set
     std::set<MaterialType> GetIsSetInfo() const
     { return isSet_;};
@@ -94,40 +164,27 @@ namespace CoupledField {
     integerMap GetIntegerParams() const
     { return integerParams_;};
 
-    //! set file name containing the nonlinear data
-    void SetNonlinFileName( const char *filename, MaterialType matType) {
-      nonlinFileName_[matType].assign( filename );
-    }
-
-    //! get nonlinear file name
-    std::string GetNonlinFileName( MaterialType matType ) {
-      stringMap::const_iterator pos;
-      pos = nonlinFileName_.find( matType );
-      if ( pos == nonlinFileName_.end() ) 
-        return "";
-      else
-        return (pos->second);
-    }
-
-    //! set, which nonlinear curves are needed by forms
-    void NeedApproxMatCurve( MaterialType matType );
-
-    virtual ApproxData* GetNonlinFnc( MaterialType matType ) {
-      EXCEPTION("BaseMaterial: GetNlinFncBH() not implemented");
-      return NULL;
-    };
-
     //! Query if a given parameter is set
     virtual bool IsSet( MaterialType matType ) const;
 
     //! set the symmetry type
-    void SetSymmetryType(SymmetryType symType) {
-      symmetryType_=symType; 
+    void SetSymmetryType(MaterialType matType, SymmetryType symType) {
+      symmetryType_[matType]=symType; 
     };
 
     //! get the symmetry type
-    SymmetryType GetSymmetryType() const {
-      return symmetryType_; 
+    SymmetryType GetSymmetryType(MaterialType matType) const {
+      SymmetryType ret = GENERAL;
+      std::map<MaterialType, SymmetryType>::const_iterator it;
+      it = symmetryType_.find(matType);
+      if( it == symmetryType_.end() ) {
+        EXCEPTION("Could not find symmetry type for material '"
+            << MaterialTypeEnum.ToString(matType) << "'");
+      } else {
+        ret = it->second;
+      }
+         
+      return ret; 
     };
 
    //! set a scalar string material parameter
@@ -171,6 +228,12 @@ namespace CoupledField {
     {
       EXCEPTION("not implemented");
     }
+    
+    //! Set a nonlinear isotropic approximation
+    virtual void SetNonLinMatIso( MaterialType matType, MatDescriptorNl& data );
+    
+    //! Set a nonlinear anisotropic approximation
+    virtual void SetNonLinMatAniso( MaterialType matType, StdVector<MatDescriptorNl>& data );
     
     //! Set a coefficient function
     virtual void SetCoefFct( MaterialType matType, PtrCoefFct coef );
@@ -241,10 +304,11 @@ namespace CoupledField {
     //! Get coordinate system from material
     CoordSystem* GetCoordSys() { return coosy_; }
 
-    //Initialize approximations of nonlinear curves
-    virtual void InitApproxCurves() {;};
+    // ======================================================================
+    //  Hysteresis Related Information
+    // ======================================================================
+    //@{ \name Hysteresis Related Information
 
-    //======================================= Hysteresis methods ============================
     //Initialize hysteresis
     virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList, 
                            bool isInverse = false, bool computeInverse = false );
@@ -277,16 +341,6 @@ namespace CoupledField {
       EXCEPTION( "SetPreviousHystVal not implemented" );
     };
 
-
-//     //! compute scalar differential parameter: scalar hyst
-//     virtual Double ComputeScalarDiffVal( UInt nrElem, Double Xval ) {
-//       EXCEPTION( "ComputeScalarDiffValue not implemented" );
-//       return 1.0;
-//     };
-
-//     //! compute scalar differential parameter: vector hyst
-//     virtual Double ComputeScalarDiffVal( UInt nrElem, Vector<Double>& Xval );
-
     //! computes the scalar hystereis value
     virtual Double ComputeScalarHystVal( UInt nrElem, Double Xval ) {
       EXCEPTION( "ComputeScalarHystVal not implemented" );
@@ -315,9 +369,11 @@ namespace CoupledField {
     virtual void GetVectorHystVal( UInt nrElem, Vector<Double>& Val ) {
       EXCEPTION( "ComputeVectorHystVal not implemented" );
     };
-
-
-    //========================== micro-piezoelectric-model: start==================
+    //@}
+    // ======================================================================
+    //  Micro-Piezoelectric Model
+    // ======================================================================
+    //@{ \name Micro-Piezoelectric Model
 
     //Initialize piezoelectric-micro-model
     virtual void InitPiezoMicro( UInt numElemSD, shared_ptr<ElemList> actSDList, 
@@ -353,6 +409,7 @@ namespace CoupledField {
       return piezoMicroModel_;
     };
 
+    //@}
     //========================== micro-piezoelectric-model:end ===================
 
 
@@ -361,22 +418,6 @@ namespace CoupledField {
                                  Double dampFreq, Double RatioDeltaF,
                                  bool adjustDamping, bool isHarmonic );
 
-    //========================== Create Coeficient Function for use in integrators====
-    virtual PtrCoefFct GetTensorCoefFnc(MaterialType matType,
-                                        SubTensorType type,
-                                        Global::ComplexPart matDataType,
-                                        bool transposed = false );
-
-    virtual PtrCoefFct GetVectorCoefFnc(MaterialType matType,
-                                        Global::ComplexPart matDataType );
-
-    virtual PtrCoefFct GetScalCoefFnc(MaterialType matType,
-                                      Global::ComplexPart matDataType );
-
-    //! Return a specific sub-tensor
-    virtual PtrCoefFct GetSubTensorCoefFnc( MaterialType matType, 
-                                            SubTensorType tensorType,
-                                            bool transposed  ) ;
 
   protected:
 
@@ -407,12 +448,6 @@ namespace CoupledField {
 
     //! name of material file
     std::string matFileName_;
-
-    //! name of file containing the nonlinear data
-    stringMap nonlinFileName_;
-
-    //! set, which knows, which material parameters have been set
-    std::set<MaterialType> needApproxMatCurves_;
 
     //! set, which knows about the allowed material parameters for a material class
     std::set<MaterialType> isAllowed_;
@@ -453,6 +488,11 @@ namespace CoupledField {
     //! map, which knows about the original tensorial material parameters before being rotated
     tensorMap tensorParamsOrig_;
 
+    //! map storing the isotropic nonlinear material parameters
+    nonLinIsoMap nonlinIsoParams_;
+    
+    //! map storinf the anisotropic nonlinear material parameters
+    nonLinAnisoMap nonlinAnisoParams_;
     
     // ========================================================
     //  New coefficient based material representation
@@ -476,7 +516,8 @@ namespace CoupledField {
     //! Pointer to attaches coordinate system
     CoordSystem * coosy_;
 
-    SymmetryType symmetryType_;
+    //! Store symmetryType per material data type
+    std::map<MaterialType, SymmetryType> symmetryType_;
 
     //! hysteresis object
     Hysteresis * hyst_;

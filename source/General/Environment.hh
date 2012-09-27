@@ -159,8 +159,8 @@ namespace CoupledField {
     extern Enum<SolutionType> SolutionTypeEnum;
 
     //! describes the possible material types
-    typedef enum{NO_MATERIAL, MAG_PERMEABILITY, MAG_RELUCTIVITY, MAG_CONDUCTIVITY,
-      MAG_PERMEABILITY_1, MAG_PERMEABILITY_2, MAG_PERMEABILITY_3,
+    typedef enum{NO_MATERIAL, MAG_PERMEABILITY, MAG_RELUCTIVITY, MAG_RELUCTIVITY_DERIV, MAG_CONDUCTIVITY,
+      MAG_PERMEABILITY_1, MAG_PERMEABILITY_2, MAG_PERMEABILITY_3,MAG_PERMEABILITYCURVES, 
       ELEC_PERMITTIVITY, MECH_STIFFNESS_TENSOR, MECH_EMODULUS,
       MECH_POISSON, MECH_KMODULUS, MECH_GMODULUS,
       MECH_LAME_MU, MECH_LAME_LAMBDA, COEFF_STRAIN_IRREVERSIBLE,
@@ -196,6 +196,7 @@ namespace CoupledField {
 
   // type of approximation / interpolation
   typedef enum{ NO_APPROX_TYPE, LIN_INTERPOLATE, CUBIC_SPLINES, SMOOTH_SPLINES } ApproxCurveType;
+  extern Enum<ApproxCurveType> ApproxCurveTypeEnum;
 
   //! material parameter to be approximated / interpolated
   typedef enum{ GENERIC, MAGNETIC_MAT_BH, HEAT_MAT_CONDUCTIVITY, HEAT_MAT_CAPACITY }  ApproxMaterialCurves;

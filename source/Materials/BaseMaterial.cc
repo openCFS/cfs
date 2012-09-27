@@ -20,8 +20,10 @@
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
+#include "Domain/CoefFunction/CoefFunctionApprox.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 
+#include "Utils/SmoothSpline.hh"
 using std::string;
 using std::map;
 using std::set;
@@ -29,6 +31,19 @@ using std::set;
 
 namespace CoupledField
 {
+
+  BaseMaterial::MatDescriptorNl::MatDescriptorNl() {
+    measAccuracy = 0.0;
+    maxVal = 0.0;
+    angle = 0.0;
+    approxData = NULL;
+  }
+  
+  BaseMaterial::MatDescriptorNl::~MatDescriptorNl() {
+      delete approxData;
+    }
+
+
 
   // ***********************
   //   Default Constructor
@@ -43,7 +58,6 @@ namespace CoupledField
     coosy_ = NULL;
     hyst_  = NULL;
 
-    symmetryType_  = GENERAL;
     isHysteresis_  = false;
     isHystInverse_ = false;
 
@@ -58,11 +72,6 @@ namespace CoupledField
 
   }
 
-
-  void BaseMaterial::NeedApproxMatCurve( MaterialType type ) {
-
-    needApproxMatCurves_.insert( type );
-  }
 
 
   void BaseMaterial::SetScalar(const std::string& param, MaterialType matType) {
@@ -132,6 +141,22 @@ namespace CoupledField
     }
   }
 
+  void BaseMaterial::SetNonLinMatIso( MaterialType matType, MatDescriptorNl& data ) {
+    
+    if( nonlinIsoParams_.find(matType) != nonlinIsoParams_.end() ) {
+      EXCEPTION( "Nonlinear material parameter '" << MaterialTypeEnum.ToString(matType)
+                 << "' was already set");
+    }
+    nonlinIsoParams_[matType] = data;
+  }
+
+  void BaseMaterial::SetNonLinMatAniso( MaterialType matType, StdVector<MatDescriptorNl>& data ) {
+    if( nonlinAnisoParams_.find(matType) != nonlinAnisoParams_.end() ) {
+      EXCEPTION( "Nonlinear material parameter '" << MaterialTypeEnum.ToString(matType)
+                 << "' was already set");
+    }
+    nonlinAnisoParams_[matType] = data;
+  }
   
   void BaseMaterial::SetCoefFct( MaterialType matType, PtrCoefFct coef ) {
     
@@ -846,7 +871,6 @@ namespace CoupledField
                                               bool transpose ) {
      PtrCoefFct mFunct;
      
-     
      if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
        // --------------------------------------
        //  Coefficient Function already defined
@@ -893,12 +917,12 @@ namespace CoupledField
    }
    
    PtrCoefFct  BaseMaterial::GetVectorCoefFnc(MaterialType matType,
-                                                            Global::ComplexPart matDataType ) {
+                                              Global::ComplexPart matDataType) {
      EXCEPTION("Not implemented")
    }
 
    PtrCoefFct  BaseMaterial::GetScalCoefFnc(MaterialType matType,
-                                            Global::ComplexPart matDataType ) {
+                                            Global::ComplexPart matDataType) {
      PtrCoefFct mFunct;
      if(matDataType == Global::REAL){
        CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
@@ -919,16 +943,16 @@ namespace CoupledField
      mFunct->SetCoordinateSystem(this->coosy_);
      return mFunct;
    }
-   
+
    PtrCoefFct BaseMaterial::GetSubTensorCoefFnc( MaterialType matType, 
                                                  SubTensorType tensorType,
                                                  bool transposed  ) {
-     
+
      PtrCoefFct mFunct;
      if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
-       
+
        CoefXprSubTensor subTensorXpr( tensorCoef_[matType] );
-       
+
        subTensorXpr.SetSubTensorType( tensorType, transposed );
        mFunct = CoefFunction::Generate( Global::COMPLEX, subTensorXpr );
      } else {
@@ -936,5 +960,50 @@ namespace CoupledField
      }
      return mFunct;
    }
-   
+
+
+   PtrCoefFct BaseMaterial::GetScalCoefFncNonLin(MaterialType matType,
+                                                 Global::ComplexPart matDataType,
+                                                 shared_ptr<BaseFeFunction> feFct,
+                                                 BaseBOperator* bOp) {
+     shared_ptr<CoefFunctionApprox> coef;
+     
+     // Ensure that only real-valued parameters are used
+     if( matDataType != Global::REAL ) {
+       EXCEPTION( "Only real-valued nonlinear parameters are supported");
+     }
+     
+     // check if isotropic material type is defined
+     if( nonlinIsoParams_.find(matType) == nonlinIsoParams_.end() ) {
+       EXCEPTION( "No nonlinear definition found for material type '"
+           << MaterialTypeEnum.ToString(matType) << "'");
+     }
+     
+     // check, if nonlinear curve was already calculated
+     MatDescriptorNl & matNl = nonlinIsoParams_[matType];
+     
+     // Check, if smooth spline approximation was already created 
+     // and initialized
+     if( !matNl.approxData ) {
+       SmoothSpline * sp = new SmoothSpline( matNl.fileName, matType ); 
+       sp->SetAccuracy( matNl.measAccuracy );
+       sp->SetMaxY( matNl.maxVal );
+       sp->CalcBestParameter();
+       sp->CalcApproximation();
+       sp->Print();
+       matNl.approxData = sp;
+     }
+     
+     ApproxData * sp = matNl.approxData;
+     
+     // get linear starting value
+     Double startVal = 0.0;
+     this->GetScalar( startVal, matType, Global::REAL );
+     coef.reset(new CoefFunctionApprox());
+     shared_ptr<FeFunction<Double> > dfeFct = 
+         dynamic_pointer_cast<FeFunction<Double> >(feFct);
+     coef->Init( startVal, sp, dfeFct, bOp );
+
+     return coef;
+   }
 } // end of namespace

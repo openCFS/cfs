@@ -229,21 +229,10 @@ void HeatPDE::DefineIntegrators() {
       // informs material that approx./interpol. for heat conductivity is needed
       std::cout << "Do NL Cond" << std::endl;
 
-      actSDMat->NeedApproxMatCurve( HEAT_CONDUCTIVITY );
-      actSDMat->InitApproxCurves();
-      ApproxData * nLinFnc = actSDMat->GetNonlinFnc( HEAT_CONDUCTIVITY );
-      assert(nLinFnc);
-
-      Double heatCondLin;
-      actSDMat->GetScalar(heatCondLin,HEAT_CONDUCTIVITY,Global::REAL);
-
-      // create CoefFunctionApprox with nlinFnc, initial value and feFunction
-      shared_ptr<CoefFunctionApprox<IdentityOperator<FeH1> > > 
-        condNL ( new CoefFunctionApprox<IdentityOperator<FeH1> >() );
-
-      condNL->Init( heatCondLin, nLinFnc, 
-                    dynamic_pointer_cast<FeFunction<Double > > (feFunc) );
-
+      BaseBOperator * bOp = new IdentityOperator<FeH1>();
+      PtrCoefFct condNL = 
+          actSDMat->GetScalCoefFncNonLin( HEAT_CONDUCTIVITY, Global::REAL, feFunc, bOp);
+                                      
       // create stiffness integrator
       BaseBDBInt* stiffInt = NULL;
       if( dim_ == 2 ) {
@@ -291,7 +280,7 @@ void HeatPDE::DefineIntegrators() {
           
       //stiffIntDescr->SetPtPdes(this, this);
       stiffIntDescr->SetEntities( actSDList, actSDList );
-      stiffIntDescr->SetFeFunctions(feFunctions_[HEAT_TEMPERATURE],feFunctions_[HEAT_TEMPERATURE]);
+      stiffIntDescr->SetFeFunctions(feFunc,feFunc);
       stiffInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace());
       
       assemble_->AddBiLinearForm( stiffIntDescr );
@@ -315,27 +304,16 @@ void HeatPDE::DefineIntegrators() {
     if ( nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ) {
       // informs material that approx./interpol. for heat conductivity is needed
       std::cout << "Do NL Capacity" << std::endl;
+//      
+      BaseBOperator * bOp = new IdentityOperator<FeH1>();
+      PtrCoefFct capNL = 
+          actSDMat->GetScalCoefFncNonLin( HEAT_CAPACITY, Global::REAL,
+                                          feFunc, bOp);
 
-      actSDMat->NeedApproxMatCurve( HEAT_CAPACITY );
-      actSDMat->InitApproxCurves();
-      ApproxData * nLinFnc = actSDMat->GetNonlinFnc( HEAT_CAPACITY );
-      assert(nLinFnc);
-
-      // create CoefFunctionApprox with nlinFnc, initial value and feFunction
-      shared_ptr<CoefFunctionApprox<IdentityOperator<FeH1> > > 
-        capNL ( new CoefFunctionApprox<IdentityOperator<FeH1> >() );
-
-      // Take constant heatCapacity for initial value of 
-      Double heatCapInitial;
-       actSDMat->GetScalar( heatCapInitial, HEAT_CAPACITY, Global::REAL );
-      capNL->Init( heatCapInitial, nLinFnc, 
-                    dynamic_pointer_cast<FeFunction<Double > > (feFunc) );
-
-      PtrCoefFct coefNLCast = dynamic_pointer_cast<CoefFunction>(capNL);
       PtrCoefFct nlMassCoeff = 
           CoefFunction::Generate(Global::REAL,
-                                 CoefXprBinOp( coefNLCast, density, CoefXpr::OP_MULT ) );
-      
+                                 CoefXprBinOp( capNL, density, CoefXpr::OP_MULT ) );
+
       // create stiffness integrator
       BaseBDBInt* massIntNL = NULL;
       if( dim_ == 2 ) {

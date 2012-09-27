@@ -633,8 +633,8 @@ namespace CoupledField
   void MechanicMaterial::ComputeFullStiffTensor() {
 
       Matrix<Complex> elasticityTensor;
-
-    switch(symmetryType_)
+      SymmetryType symType = GetSymmetryType(MECH_STIFFNESS_TENSOR);
+    switch(symType)
     {
     case GENERAL:
       // check that general stiffness tensor is present
@@ -719,7 +719,7 @@ namespace CoupledField
     }
     default:
       EXCEPTION( "Calculation of full stiffness matrix for symmetryType '"
-                       << symmetryType_ << "' not implemented!" );
+                       << symType << "' not implemented!" );
     }
     
   }

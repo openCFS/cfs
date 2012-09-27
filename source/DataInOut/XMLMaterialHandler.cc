@@ -293,6 +293,7 @@ namespace CoupledField {
         elastCoef = CoefFunction::Generate( Global::COMPLEX, 6, 6,
                                         realVals, imagVals );
         material->SetCoefFct( MECH_STIFFNESS_TENSOR, elastCoef);
+        material->SetSymmetryType(MECH_STIFFNESS_TENSOR,BaseMaterial::GENERAL);
         
       } // end tensor  
  
@@ -415,7 +416,7 @@ namespace CoupledField {
     if (flagEModulReal==true && 
         flagPoissonReal==true && 
         flagElastTensorReal==false) {
-         material->SetSymmetryType(BaseMaterial::ISOTROPIC);
+         material->SetSymmetryType(MECH_STIFFNESS_TENSOR,BaseMaterial::ISOTROPIC);
     }
     else if (flagEModulReal==false && 
              flagPoissonReal==false && 
@@ -431,7 +432,7 @@ namespace CoupledField {
              flagShearModulYZReal==true &&
              flagShearModulZXReal==true &&
              flagShearModulXYReal==true) {
-               material->SetSymmetryType(BaseMaterial::ORTHOTROPIC);
+               material->SetSymmetryType(MECH_STIFFNESS_TENSOR,BaseMaterial::ORTHOTROPIC);
     }
     else if (flagEModulReal==true && 
              flagPoissonReal==true && 
@@ -717,6 +718,7 @@ namespace CoupledField {
     bool isOrthotropic = false;
     bool isTensor = false;
     
+    
     // read electric conductivity
     if(mag->Has("electricConductivity"))
       material->SetScalar(mag->Get("electricConductivity")->As<Double>(), MAG_CONDUCTIVITY, Global::REAL);
@@ -799,13 +801,13 @@ namespace CoupledField {
       
       // Try to determine, if a unique symmetry type can be obtained
       if( isIsotropic && !isOrthotropic && !isTensor ) {
-        material->SetSymmetryType(BaseMaterial::ISOTROPIC);
+        material->SetSymmetryType(MAG_PERMEABILITY,BaseMaterial::ISOTROPIC);
       
       } else if( !isIsotropic && isOrthotropic && !isTensor ) {
-        material->SetSymmetryType(BaseMaterial::ORTHOTROPIC );
+        material->SetSymmetryType(MAG_PERMEABILITY,BaseMaterial::ORTHOTROPIC );
       
       } else if( !isIsotropic && !isOrthotropic && isTensor ) {
-        material->SetSymmetryType(BaseMaterial::GENERAL );
+        material->SetSymmetryType(MAG_PERMEABILITY,BaseMaterial::GENERAL );
       
       } else {
         EXCEPTION("Could not determine unique material symmetry. "
@@ -814,24 +816,93 @@ namespace CoupledField {
       }
 
       // we know only nonlinear isotropic material
-      if(mag->Get("magneticPermeability")->Has("nonlinear") && 
-         mag->Get("magneticPermeability")->Get("nonlinear")->Has("isotropic"))
-      {
-        PtrParamNode iso = mag->Get("magneticPermeability")->Get("nonlinear")->Get("isotropic");
-        // In r7562  dependency and  approxType are not set in Material
-        
-        // read nonlinear approxType of magnetic permeability
-        if(iso->Has("measAccuracy"))
-          material->SetScalar(iso->Get("measAccuracy")->As<Double>(), DATA_ACCURACY, Global::REAL );
-                  
-        // read nonlinear approxType of magnetic permeability
-        if(iso->Has("maxApproxVal"))
-          material->SetScalar(iso->Get("maxApproxVal")->As<Double>(), MAX_APPROX_VAL, Global::REAL );
+      if(mag->Get("magneticPermeability")->Has("nonlinear") ) {
+        if (mag->Get("magneticPermeability")->Get("nonlinear")->Has("isotropic")) {
+          PtrParamNode iso = mag->Get("magneticPermeability")->Get("nonlinear")->Get("isotropic");
+          BaseMaterial::MatDescriptorNl info;
+          info.approxType = NO_APPROX_TYPE;
+          info.measAccuracy = 0.01;
+          info.maxVal = 2.5;
+          info.fileName = "";
 
-        // read nonlinear dataName of magnetic permeability
-        if(iso->Has("dataName"))
-          material->SetNonlinFileName(iso->Get("dataName")->As<std::string>().c_str(), MAG_PERMEABILITY);
-      } // nonlinear isotropic material   
+          // read approximation type  
+          if(iso->Has("approxType")) {
+            std::string type =  iso->Get("approxType")->As<std::string>();
+            info.approxType = ApproxCurveTypeEnum.Parse(type );
+                      }
+          
+          // read nonlinear approxType of magnetic permeability
+          if(iso->Has("measAccuracy"))
+            info.measAccuracy = iso->Get("measAccuracy")->As<Double>();
+
+          // read nonlinear approxType of magnetic permeability
+          if(iso->Has("maxApproxVal"))
+            info.maxVal = iso->Get("maxApproxVal")->As<Double>();
+
+          // read nonlinear dataName of magnetic permeability
+          if(iso->Has("dataName"))
+            info.fileName = iso->Get("dataName")->As<std::string>();
+
+          // pass info to material class
+          material->SetNonLinMatIso( MAG_PERMEABILITY, info);
+        } // nonlinear isotropic material   
+      else if (mag->Get("magneticPermeability")->Get("nonlinear")->Has("anisotropic")) {
+        
+        //anisotropic case: bundle of nonlinear curves
+        PtrParamNode nonLin = mag->Get("magneticPermeability")->Get("nonlinear")->Get("anisotropic");
+
+        // fetch paramnodes for hdbc
+        ParamNodeList anIsoNodes = nonLin->GetList("data");
+
+        if ( anIsoNodes.GetSize() > 0 ) {
+          StdVector<BaseMaterial::MatDescriptorNl> nlData;
+          nlData.Resize(anIsoNodes.GetSize());
+
+          // iterate over all parameter nodes
+          for( UInt i = 0; i < anIsoNodes.GetSize(); i++ ) {
+            // read parameters
+            BaseMaterial::MatDescriptorNl info;
+            info.angle = 0.0;
+            info.approxType = NO_APPROX_TYPE;
+            info.measAccuracy = 0.01;
+            info.maxVal = 2.5;
+            info.fileName = "";
+
+            // read approximation type  
+            if(anIsoNodes[i]->Has("angle")) {
+              info.angle =  anIsoNodes[i]->Get("angle")->As<Double>();
+            }
+
+            // read approximation type  
+            if(anIsoNodes[i]->Has("approxType")) {
+              std::string type =  anIsoNodes[i]->Get("approxType")->As<std::string>();
+              info.approxType = ApproxCurveTypeEnum.Parse(type );
+            }
+
+            // read measurement accuracy
+            if(anIsoNodes[i]->Has("measAccuracy")) 
+              info.measAccuracy = anIsoNodes[i]->Get("measAccuracy")->As<Double>();
+
+            // read maximum value for approximation
+            if(anIsoNodes[i]->Has("maxApproxVal")) 
+              info.maxVal = anIsoNodes[i]->Get("maxApproxVal")->As<Double>();
+
+            // read name of function file 
+            if(anIsoNodes[i]->Has("dataName")) 
+              info.fileName = anIsoNodes[i]->Get("dataName")->As<std::string>().c_str();
+
+
+            nlData[i].angle        = info.angle;
+            nlData[i].fileName     = info.fileName;
+            nlData[i].approxType   = info.approxType;
+            nlData[i].measAccuracy = info.measAccuracy;
+            nlData[i].maxVal       = info.maxVal;
+          }
+          material->SetNonLinMatAniso( MAG_PERMEABILITY, nlData );
+        }        
+
+      } // end of anisotropic nonlinear material
+      } // end of nonlinear section
     } // end of magneticPermeability  
 
 
@@ -870,7 +941,7 @@ namespace CoupledField {
 
 //**********************************************************************
 //*************  READ THERMIC ******************************************
-//**********************************************************************
+  //**********************************************************************
   void XMLMaterialHandler::ReadThermic(BaseMaterial *material, PtrParamNode therm)
   {
     // read density
@@ -878,85 +949,105 @@ namespace CoupledField {
       material->SetScalar(therm->Get("density")->As<Double>(), DENSITY, Global::REAL);
 
     // read heat capacity
-    if(therm->Has("heatCapacity"))
-    {
-      if(therm->Get("heatCapacity")->Has("linear"))
-      {
+    if(therm->Has("heatCapacity")) {
+      if(therm->Get("heatCapacity")->Has("linear")) {
         PtrParamNode lin = therm->Get("heatCapacity")->Get("linear");
-     
+
         // === ISOTROPIC ===
-        if(lin->Has("isotropic"))
-        {
+        if(lin->Has("isotropic")) {
           material->SetScalar(lin->Get("isotropic")->As<Double>(),  HEAT_CAPACITY, Global::REAL );
           //          isIsotropic = true;
         }
       }
       // we know only nonlinear isotropic material
       if(therm->Get("heatCapacity")->Has("nonlinear") && 
-         therm->Get("heatCapacity")->Get("nonlinear")->Has("isotropic"))
-        {
-          PtrParamNode iso = therm->Get("heatCapacity")->Get("nonlinear")->Get("isotropic");
-              
-          // read nonlinear approxType of magnetic permeability
-          if(iso->Has("measAccuracy"))
-            material->SetScalar(iso->Get("measAccuracy")->As<Double>(), DATA_ACCURACY, Global::REAL );
-          
-          // read nonlinear approxType of magnetic permeability
-          if(iso->Has("maxApproxVal"))
-            material->SetScalar(iso->Get("maxApproxVal")->As<Double>(), MAX_APPROX_VAL, Global::REAL );
-          
-          // read nonlinear dataName of magnetic permeability
-          if(iso->Has("dataName"))
-            material->SetNonlinFileName(iso->Get("dataName")->As<std::string>().c_str(), HEAT_CAPACITY);
-        } // nonlinear isotropic material  
+          therm->Get("heatCapacity")->Get("nonlinear")->Has("isotropic")) {
+        PtrParamNode iso = therm->Get("heatCapacity")->Get("nonlinear")->Get("isotropic");
+
+        BaseMaterial::MatDescriptorNl info;
+        info. approxType = NO_APPROX_TYPE;
+        info.measAccuracy = 0.01;
+        info.maxVal = 1000;
+        info.fileName = "";
+        // read approximation type  
+        if(iso->Has("approxType")) {
+          std::string type =  iso->Get("approxType")->As<std::string>();
+          info.approxType = ApproxCurveTypeEnum.Parse(type);
+        }
+        // read measurement accuracy
+        if(iso->Has("measAccuracy")) 
+          info.measAccuracy = iso->Get("measAccuracy")->As<Double>();
+
+        // read maximum value for approximation
+        if(iso->Has("maxApproxVal")) 
+          info.maxVal = iso->Get("maxApproxVal")->As<Double>();
+
+        // read name of function file 
+        if(iso->Has("dataName")) 
+          info.fileName = iso->Get("dataName")->As<std::string>().c_str();
+
+        //set info to material class
+        material->SetNonLinMatIso(HEAT_CAPACITY, info);
+
+      } // nonlinear isotropic material  
     }
 
     // read thermal conductivity
-    if(therm->Has("heatConductivity"))
-      {
-        if (therm->Get("heatConductivity")->Has("linear"))
-          {
-            PtrParamNode lin = therm->Get("heatConductivity")->Get("linear");
-            
-            // === ISOTROPIC ===
-            if (lin->Has("isotropic"))
-              {
-                material->SetScalar(lin->Get("isotropic")->As<Double>(), HEAT_CONDUCTIVITY, Global::REAL);
-                material->SetSymmetryType(BaseMaterial::ISOTROPIC);
-              }
-                  else if (lin->Has("tensor"))
-              {
-                // can only be a real 3x3 tensor
-                Matrix<double> tensor(3,3);
-                PtrParamNode tens_pn = 
-                  lin->GetByVal("tensor","dim1","3")->Get("real");
-                
-                ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
-                material->SetTensor(tensor, HEAT_CONDUCTIVITY_TENSOR, Global::REAL);
-                
-              }
-          }
+    if(therm->Has("heatConductivity")) {
+      if (therm->Get("heatConductivity")->Has("linear")) {
+        PtrParamNode lin = therm->Get("heatConductivity")->Get("linear");
 
-        // we know only nonlinear isotropic material
-        if(therm->Get("heatConductivity")->Has("nonlinear") && 
-           therm->Get("heatConductivity")->Get("nonlinear")->Has("isotropic"))
-          {
-            PtrParamNode iso = therm->Get("heatConductivity")->Get("nonlinear")->Get("isotropic");
-            
-            // read nonlinear approxType 
-            if(iso->Has("measAccuracy"))
-              material->SetScalar(iso->Get("measAccuracy")->As<Double>(), DATA_ACCURACY, Global::REAL );
-            
-            // read nonlinear approxType 
-            if(iso->Has("maxApproxVal"))
-              material->SetScalar(iso->Get("maxApproxVal")->As<Double>(), MAX_APPROX_VAL, Global::REAL );
-            
-            // read nonlinear dataName 
-            if(iso->Has("dataName"))
-              material->SetNonlinFileName(iso->Get("dataName")->As<std::string>().c_str(), HEAT_CONDUCTIVITY);
-          } // nonlinear isotropic material  
-        
+        // === ISOTROPIC ===
+        if (lin->Has("isotropic")) {
+          material->SetScalar(lin->Get("isotropic")->As<Double>(), HEAT_CONDUCTIVITY, Global::REAL);
+          material->SetSymmetryType(HEAT_CONDUCTIVITY,BaseMaterial::ISOTROPIC);
+        }
+        else if (lin->Has("tensor")){
+          // can only be a real 3x3 tensor
+          Matrix<double> tensor(3,3);
+          PtrParamNode tens_pn = 
+              lin->GetByVal("tensor","dim1","3")->Get("real");
+
+          ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
+          material->SetTensor(tensor, HEAT_CONDUCTIVITY_TENSOR, Global::REAL);
+
+        }
       }
+
+      // we know only nonlinear isotropic material
+      if(therm->Get("heatConductivity")->Has("nonlinear") && 
+          therm->Get("heatConductivity")->Get("nonlinear")->Has("isotropic"))
+      {
+        PtrParamNode iso = therm->Get("heatConductivity")->Get("nonlinear")->Get("isotropic");
+        BaseMaterial::MatDescriptorNl info;
+        info. approxType = NO_APPROX_TYPE;
+        info.measAccuracy = 0.01;
+        info.maxVal = 1000;
+        info.fileName = "";
+
+        // read approximation type  
+        if(iso->Has("approxType")) {
+          std::string type =  iso->Get("approxType")->As<std::string>();
+          info.approxType = ApproxCurveTypeEnum.Parse(type );
+        }
+
+        // read measurement accuracy
+        if(iso->Has("measAccuracy")) 
+          info.measAccuracy = iso->Get("measAccuracy")->As<Double>();
+
+        // read maximum value for approximation
+        if(iso->Has("maxApproxVal")) 
+          info.maxVal = iso->Get("maxApproxVal")->As<Double>();
+
+        // read name of function file 
+        if(iso->Has("dataName")) 
+          info.fileName = iso->Get("dataName")->As<std::string>().c_str();
+
+        //set info to material class
+        material->SetNonLinMatIso(HEAT_CONDUCTIVITY, info);
+      } // nonlinear isotropic material  
+
+    }
   }
 
   //**********************************************************************
