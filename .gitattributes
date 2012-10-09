@@ -49,6 +49,7 @@ cfsdeps/boost/boost-multi_array.patch -text
 cfsdeps/boost/boost-patch.cmake.in -text
 cfsdeps/boost/boost-tuple-newline.patch -text
 cfsdeps/boost/boost-unordered-table.patch -text
+cfsdeps/boost/libstdcpp3.hpp.patch -text
 cfsdeps/bzip2/External_bzip2.cmake -text
 cfsdeps/bzip2/bzip2-shared-patch.cmake.in -text
 cfsdeps/bzip2/bzip2-static-patch.cmake.in -text

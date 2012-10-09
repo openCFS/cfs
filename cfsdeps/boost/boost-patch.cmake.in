@@ -8,8 +8,11 @@ SET(patches
   "boost-lexical_cast-format-string.patch"
   "boost-tuple-newline.patch"
   # Prevent warning message related to the unordered map detail implementation. See
-  #    # https://svn.boost.org/trac/boost/ticket/6370
+  # https://svn.boost.org/trac/boost/ticket/6370
   "boost-unordered-table.patch"
+  # Patch for problem BOOST_ENABLE_THREADS/BOOST_DISABLE_THREADS wrongly configured on GCC 4.7
+  # https://svn.boost.org/trac/boost/ticket/6165
+  "libstdcpp3.hpp.patch"
 )
 
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
