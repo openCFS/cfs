@@ -7,6 +7,7 @@
 #include "DesignElement.hh"
 #include "General/Enum.hh"
 #include "General/environment.hh"
+#include "Optimization/OptimizationMaterial.hh"
 #include "MatVec/matrix.hh"
 
 namespace CoupledField {
@@ -34,17 +35,28 @@ template <class TYPE> class StdVector;
 
     /** constructor, reads in DesignMaterial from XML
      * @param pn pointer to PtrParamNode */ 
-    DesignMaterial(PtrParamNode pn, StdVector<DesignElement::Type>& design);
+    DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design);
     
+    /** reset the parameter space */
+    void ClearParameter() { params_.clear(); }
+
     /** Set a parameter for the parametric material optimization */
     void SetParameter(const DesignElement::Type p, const double value);
 
     /** Get a parameter of the parametric material optimization */
-    double GetParameter(const DesignElement::Type p);
+    double GetParameter(const DesignElement::Type p) { assert(HasParameter(p)); return params_[p]; }
     
+    /** checks for a parameter */
+    bool HasParameter(const DesignElement::Type p) const { return params_.find(p) != params_.end(); }
+
     /** Calculate the derivative tensor from the given material parameters */
     void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
     
+    void GetPiezoCouplingTensor(Matrix<double>& t, DesignElement::Type direction);
+
+    /** returns the tensor with negative design variables such the design vector is still pos. definite */
+    void GetDielecTensor(Matrix<double>& t, DesignElement::Type direction);
+
     /** retrieve rel. mass of element (tensor trace) or derivative thereof */
     double GetMaterialMass(DesignElement::Type direction);
     
@@ -70,6 +82,10 @@ template <class TYPE> class StdVector;
     static Enum<Notation> notation;
 
   protected:
+
+    /** for debugging */
+    void DumpParams();
+
     std::map<DesignElement::Type, double> params_;
    
     /** mass is considered an independent design */
@@ -96,7 +112,7 @@ template <class TYPE> class StdVector;
     unsigned int dim;
     
     /** returns the numbers of parameters required for this material */
-    unsigned int RequiredParameters();    
+    unsigned int RequiredParameters(OptimizationMaterial::System material);
     
     /** Check whether all required designs are available */
     bool CheckRequiredDesigns(StdVector<DesignElement::Type>& design);

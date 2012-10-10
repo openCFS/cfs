@@ -115,9 +115,10 @@ class Function
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
+      TENSOR_TRACE,              /*!< local constraint on the tensor trace for FMO, laminates, hom_rect. Elasticity or dielec */
+      TENSOR_NORM,               /*!< local squared L2 norm of the tensor coefficients (sum of the squared coefficients). For piezo-coupling in piezo FMP */
       LAMINATES_VOL,             /*!< Volume constraint / cost function for laminates parametrization */
       GLOBAL_LAMINATES_VOL,      /*!< global volume constraint / cost function for laminates parametrization */
-      TENSOR_TRACE,              /*!< local constraint on the tensor trace for fmo or laminates */
       GLOBAL_TENSOR_TRACE,       /*!< global constraint on the tensor trace for fmo or laminates */
       PARAM_PS_POS_DEF,          /*!< constraint to ensure positive definiteness in parametrized elasticity tensor formulation (plane stress). Choose > 0*/
       POS_DEF_DET_MINOR_1,       /*!< 1st minor constraint for FMO positive definiteness by positive determinants */
@@ -127,6 +128,7 @@ class Function
       BENSON_VANDERBEI_2,        /*!< 2st minor constraint for numerical problemantic FMO pos def constraint */
       BENSON_VANDERBEI_3,        /*!< 3st minor constraint for numerical problemantic FMO pos def constraint */
       DESIGN_BOUND,              /*!< local design bound */
+      MULTIMATERIAL_SUM,         /*!< local sum of multimaterial designs */
       SLACK                      /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function
                                       but triggers AuxDesign instead of DesignSpace. */
     } Type; // in ConditionContainer::VirtualView::Refresh() we assume a maximal value for the type. Check!!
@@ -428,6 +430,12 @@ class Function
 
         /** local tensor trace for FMO */
         double CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const;
+
+        /** squared L2 norm of all tensor entries. Meant for the piezoelectric coupling tensor */
+        double CalcTensorNorm(int neigh_idx, const Local* local, bool derivative) const;
+
+        /** sum of all multimaterial designs */
+        double CalcMultiMaterialSum(int neigh_idx, const Local* local, bool derivative) const;
 
         /** local FMO positive definiteness of (E-val*I) >= param via determinants
          * @param type the type we want to evaluate. Might be different from local->func->type_ in Approximation::TransformMultiplyer() */

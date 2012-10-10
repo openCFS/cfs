@@ -59,6 +59,7 @@ FeasPP::FeasPP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Opti
   refine_steps_ = 0.1;
   max_reductions_ = 10;
   kkt_ = 1e-5;
+  early_kkt_eval_ = true;
 
   if(this_opt_pn_ != NULL)
   {
@@ -67,6 +68,7 @@ FeasPP::FeasPP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Opti
     approx_feasibility = this_opt_pn_->Get("approx_feasible")->As<bool>();
     convex_tau         = this_opt_pn_->Get("convex_tau")->As<double>();
     kkt_               = this_opt_pn_->Get("kkt")->As<double>();
+    early_kkt_eval_    = this_opt_pn_->Get("kkt_eval")->As<string>() == "before_linesearch";
 
     if(this_opt_pn_->Has("asymptotes"))
     {
@@ -215,34 +217,40 @@ void FeasPP::PostInit()
   L.Resize(n);
   U.Resize(n);
 
-  // setup lowe and upper bounds, they might be from design bounds. After this we must not use DesignElement::GetLowe/UpperBound() !!
+  // setup lower and upper bounds, they might be from design bounds. After this we must not use DesignElement::GetLower/UpperBound() !!
   lower_bound.Resize((int) DesignElement::ALL_DESIGNS, 0.0);
   upper_bound.Resize((int) DesignElement::ALL_DESIGNS, 0.0);
-  unsigned int bc_count = 0;
   for(unsigned int i = 0; i < optimization->GetDesign()->design.GetSize(); i++)
   {
-    DesignElement::Type dt = optimization->GetDesign()->design[i];
+    DesignElement::Type dt = optimization->GetDesign()->design[i].design;
     assert(dt >= 0);
     DesignElement& de = optimization->GetDesign()->data[optimization->GetDesign()->elements * i]; // fallback
     assert(de.GetType() == dt);
     Condition* g = optimization->constraints.Get(Function::DESIGN_BOUND, dt, Condition::LOWER_BOUND, false);
     assert(!(g != NULL && g->GetBoundValue() < de.GetLowerBound())); // the design bound shall be -inf then!
     lower_bound[dt] = g != NULL ? g->GetBoundValue() : de.GetLowerBound();
-    if(g != NULL) bc_count++;
     g = optimization->constraints.Get(Function::DESIGN_BOUND, dt, Condition::UPPER_BOUND, false);
     assert(!(g != NULL && g->GetBoundValue() > de.GetUpperBound()));
     upper_bound[dt] = g != NULL ? g->GetBoundValue() : de.GetUpperBound();
-    if(g != NULL) bc_count++;
     LOG_DBG3(feasPP) << "FP:PI dt=" << dt << "=" << DesignElement::type.ToString(dt) << " lb=" << lower_bound[dt] << " ub=" << upper_bound[dt];
   }
-  full_design_bound_constraints_ = bc_count == optimization->GetDesign()->design.GetSize();
+  // handle slack as special case :( FIXMI -> extend DesignSpace::design
+  if(optimization->GetDesign()->HasSlackVariable())
+  {
+    BaseDesignElement* de = optimization->GetDesign()->full_data.Last();
+    DesignElement::Type dt = de->GetType();
+    assert(dt == de->SLACK);
+    lower_bound[dt] = de->GetLowerBound();
+    upper_bound[dt] = de->GetUpperBound();
+    LOG_DBG3(feasPP) << "FP:PI dt=" << dt << "=" << DesignElement::type.ToString(dt) << " lb=" << lower_bound[dt] << " ub=" << upper_bound[dt];
+  }
 
-  assert(n == optimization->GetDesign()->data.GetSize()); // TODO include aux design!
+  assert(n == optimization->GetDesign()->full_data.GetSize()); // TODO include aux design!
   for(unsigned int i = 0; i < n; i++)
   {
-    DesignElement& de = optimization->GetDesign()->data[i];
-    L[i] = lower_bound[de.GetType()] > 0 ? 0.0 : lower_bound[de.GetType()] * 1.1; // be smaller!!
-    U[i] = upper_bound[de.GetType()] * 1.1;
+    BaseDesignElement* de = optimization->GetDesign()->full_data[i];
+    L[i] = lower_bound[de->GetType()] > 0 ? 0.0 : lower_bound[de->GetType()] * 1.1; // be smaller!!
+    U[i] = upper_bound[de->GetType()] * 1.1;
     assert(L[i] >= l_min_ && U[i] <= u_max_);
   }
   optimization->constraints.view->Done();
@@ -308,11 +316,8 @@ void FeasPP::SolveProblem()
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_old = [" << x_outer.ToString() << "]";
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_new_org = [" << ipopt->x_final.ToString() << "]";
 
-    CalcKKT(ipopt->x_final, in->Get("kkt_det"), true, true, true);  // subproblem max-norm
-    if(approx_vanderbei_by_determinants)
-      CalcKKT(ipopt->x_final, in->Get("kkt_vb"), true, false, true);  // sub problem max-norm
-    CalcKKT(ipopt->x_final, in->Get("kkt_out"), false, false, true);  // sub problem max-norm
-    CalcKKT(ipopt->x_final, in->Get("kkt_out"), false, false, false);  // sub problem L2-norm
+    if(early_kkt_eval_)
+      EvalKKT(ipopt->x_final, in);
 
     in->Get("ul")->SetValue(NormL2(U.GetPointer(), L.GetPointer(), n));
 
@@ -348,8 +353,11 @@ void FeasPP::SolveProblem()
     // evaluate all functions such that we have the function values for the current design
     // the subproblem is based on the approximated values only
     UpdateToCurrentStep();
-    optimization->CommitIteration();
 
+    if(!early_kkt_eval_)
+      EvalKKT(x_outer, in);
+
+    optimization->CommitIteration();
     iter = optimization->GetCurrentIteration();
   }
 
@@ -774,6 +782,16 @@ void FeasPP::UpdateAsymptotes(const Vector<double>&x_vec, int iter, bool force_r
   return kkt;
 }
 */
+
+void FeasPP::EvalKKT(const Vector<double>& x, PtrParamNode in)
+{
+  CalcKKT(x, in->Get("kkt_det"), true, true, true);  // subproblem max-norm
+  if(approx_vanderbei_by_determinants)
+    CalcKKT(x, in->Get("kkt_vb"), true, false, true);  // sub problem max-norm
+  CalcKKT(x, in->Get("kkt_out"), false, false, true);  // sub problem max-norm
+  CalcKKT(x, in->Get("kkt_out"), false, false, false);  // sub problem L2-norm
+}
+
 void FeasPP::CalcKKT(const Vector<double>& x, PtrParamNode in, bool sub, bool det, bool max_norm)
 {
   assert(!(det && !sub)); // makes not much sense
@@ -847,6 +865,7 @@ void FeasPP::ToInfo(PtrParamNode in)
   in->Get("globalize")->SetValue(global.ToString(global_));
   if(global_ != NONE)
   {
+    in->Get("kkt_eval")->SetValue(early_kkt_eval_ ? "before_linesearch" : "after_linesearch");
     in->Get("max_refinement")->SetValue(max_refine_);
     in->Get("refinement_steps")->SetValue(refine_steps_);
   }

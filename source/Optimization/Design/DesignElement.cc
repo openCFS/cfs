@@ -40,7 +40,7 @@ DEFINE_LOG(desel, "designElement")
 Enum<Filter::Type>                  Filter::type;
 Enum<Filter::Density>               Filter::density;
 Enum<Filter::Sensitivity>           Filter::sensitivity;
-Enum<DesignElement::Type>           DesignElement::type;
+Enum<BaseDesignElement::Type>       BaseDesignElement::type;
 Enum<DesignElement::ValueSpecifier> DesignElement::valueSpecifier;
 Enum<DesignElement::Access>         DesignElement::access;
 Enum<DesignElement::Detail>         DesignElement::detail;
@@ -48,10 +48,120 @@ Enum<DesignElement::Detail>         DesignElement::detail;
 // is a static attribute
 DesignSpace* DesignElement::space_(NULL);
 
-BaseDesignElement::BaseDesignElement() {
+std::string BaseDesignElement::ToString() const
+{
+ return " t=" + type.ToString(type_);
+
+}
+
+
+bool BaseDesignElement::IsCompatible(Type super, Type test)
+{
+  switch(super)
+  {
+  case TENSOR_TRACE:
+  {
+    switch(test)
+    {
+    case TENSOR11:
+    case TENSOR22:
+    case TENSOR33:
+    // Tensor trace for param mat
+    case STIFF1:
+    case STIFF2:
+    // Batian's stuff
+    // FIXMI!!
+    case POISSON:
+    case POISSONISO:
+    case EMODUL:
+    case EMODULISO:
+      return true;
+    default:
+      return false;
+    }
+    break;
+  }
+
+  case ELAST_ALL:
+  {
+    switch(test)
+    {
+    case TENSOR11:
+    case TENSOR12:
+    case TENSOR13:
+    case TENSOR22:
+    case TENSOR23:
+    case TENSOR33:
+      return true;
+    default:
+      return false;
+    }
+    break;
+  }
+
+  case DIELEC_TRACE:
+  {
+    switch(test)
+    {
+    case DIELEC_11:
+    case DIELEC_22:
+      return true;
+    default:
+      return false;
+    }
+    break;
+  }
+
+  case DIELEC_ALL:
+  {
+    switch(test)
+    {
+    case DIELEC_11:
+    case DIELEC_12:
+    case DIELEC_22:
+      return true;
+    default:
+      return false;
+    }
+    break;
+  }
+
+  case PIEZO_ALL:
+  {
+    switch(test)
+    {
+    case PIEZO_11:
+    case PIEZO_12:
+    case PIEZO_13:
+    case PIEZO_21:
+    case PIEZO_22:
+    case PIEZO_23:
+      return true;
+    default:
+      return false;
+    }
+    break;
+  }
+
+  case DEFAULT:
+  case ALL_DESIGNS:
+    return true;
+    break;
+
+  default:
+    if(super == test)
+      return true;
+    else
+      return false;
+  }
+
+}
+
+BaseDesignElement::BaseDesignElement(Type t) {
   design          = 0.0;
   upper_          = 0.0;
   lower_          = 0.0;
+  type_           = t;
 }
 
 
@@ -153,17 +263,19 @@ DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseu
   this->pseudoElementIndex_ = pseudoElementIndex;
   this->upper_ = 1.0;
   this->lower_ = 1.0;
+  this->multimaterial = NULL;
   this->specialResult.Resize(9, 0.0);
 
 }
 
 
-DesignElement::DesignElement(Type dt, double lower, double upper, Elem* elem, unsigned int index) : BaseDesignElement()
+DesignElement::DesignElement(Type dt, double lower, double upper, Elem* elem, unsigned int index, MultiMaterial* mm) : BaseDesignElement()
 {
   Init();
   this->elem = elem;
   this->specialResult.Resize(9, 0.0);
   this->index_ = index;
+  this->multimaterial = mm;
 
   type_ = dt;
   upper_ = upper;
@@ -437,6 +549,11 @@ void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf) const
   in->Get("lowerBound")->SetValue(lower_);
   if(tf != NULL)
     in->Get("physicalLowerBound")->SetValue(tf->Transform(this, DesignElement::PLAIN, lower_));
+  if(multimaterial != NULL)
+  {
+    in->Get("material")->SetValue(multimaterial->name);
+    in->Get("mm_index")->SetValue(multimaterial->index);
+  }
 }
 
 std::string DesignElement::ToString(const DesignElement* de)
@@ -449,21 +566,46 @@ std::string DesignElement::ToString(const DesignElement* de)
     ss << "ghost";
     if(de->vicinity != NULL) ss << de->vicinity->ToString();
   }
-  else ss << boost::lexical_cast<std::string>(de->elem->elemNum);
+  else
+  {
+    ss << "e=" << boost::lexical_cast<std::string>(de->elem->elemNum);
+    ss << " t=" << type.ToString(de->type_);
+  }
   
   return ss.str();
 }
 
-std::string DesignElement::ToString(const StdVector<DesignElement*>& vec)
+std::string DesignElement::ToString(const StdVector<DesignElement*>& vec, bool print_type)
 {
   std::stringstream ss;
   ss << "[";
   for(unsigned int i = 0, s = vec.GetSize(); i < s; ++i)
-    ss << ToString(vec[i]) << (i < s - 1 ? "," : "");
+  {
+    ss << ToString(vec[i]);
+    if(print_type) ss << "=" << vec[i]->type_;
+    if(i < s-1) ss << ",";
+  }
   ss << "]";
 
   return ss.str();
 }
+
+std::string DesignElement::ToString(const StdVector<DesignElement>& vec, bool print_val, bool print_type)
+{
+  std::stringstream ss;
+  ss << "[";
+  for(unsigned int i = 0, s = vec.GetSize(); i < s; ++i)
+  {
+    ss << vec[i].elem->elemNum;
+    if(print_val)  ss << ":" << vec[i].GetPlainDesignValue();
+    if(print_type) ss << "=" << vec[i].type_;
+    if(i < s-1) ss << ",";
+  }
+  ss << "]";
+
+  return ss.str();
+}
+
 
 void DesignElement::SetEnums()
 {
@@ -485,10 +627,15 @@ void DesignElement::SetEnums()
   Filter::density.Add(Filter::MOD_HEAVISIDE, "mod_heaviside");
   Filter::density.Add(Filter::TANH, "tanh");
 
-  type.SetName("DesignElement::Type");
+  type.SetName("BaseDesignElement::Type");
+  type.Add(NO_MULTIMATERIAL, "no_multimaterial");
+  type.Add(NO_DERIVATIVE, "no_derivative");
   type.Add(TENSOR_TRACE, "tensor_trace");
+  type.Add(ELAST_ALL, "elast_all");
+  type.Add(DIELEC_TRACE, "dielec_trace");
+  type.Add(DIELEC_ALL, "dielec_all");
+  type.Add(PIEZO_ALL, "piezo_all");
   type.Add(DEFAULT, "default");
-  type.Add(ALL_DESIGNS, "allDesigns");
   type.Add(DENSITY, "density");
   type.Add(ACOU_DENSITY, "acouDensity");
   type.Add(POLARIZATION, "polarization");
@@ -509,10 +656,21 @@ void DesignElement::SetEnums()
   type.Add(TENSOR23, "tensor23");
   type.Add(TENSOR13, "tensor13");
   type.Add(TENSOR12, "tensor12");
+  type.Add(DIELEC_11, "dielec_11");
+  type.Add(DIELEC_12, "dielec_12");
+  type.Add(DIELEC_22, "dielec_22");
+  type.Add(PIEZO_11, "piezo_11");
+  type.Add(PIEZO_12, "piezo_12");
+  type.Add(PIEZO_13, "piezo_13");
+  type.Add(PIEZO_21, "piezo_21");
+  type.Add(PIEZO_22, "piezo_22");
+  type.Add(PIEZO_23, "piezo_23");
   type.Add(ROTANGLE, "rotAngle");
   type.Add(STIFF1, "stiff1");
   type.Add(STIFF2, "stiff2");
   type.Add(SLACK, "slack");
+  type.Add(MULTIMATERIAL, "multimaterial");
+  type.Add(ALL_DESIGNS, "allDesigns");
 
   access.SetName("DesignElement::Access");
   access.Add(PLAIN, "plain");
@@ -1127,3 +1285,4 @@ ResultDescription::ResultDescription(PtrParamNode pn)
 
   excitation = pn->Get("excitation")->As<std::string>();
 }
+

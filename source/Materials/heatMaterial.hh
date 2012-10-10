@@ -77,14 +77,12 @@ template <class TYPE> class Matrix;
     //Initialize approximations of nonlinear curves
     void InitApproxCurves();
 
-
-  private:
-
-    //! compute the correct subTensor (3D, AXI, ..)
+    /** overloads BaseMaterial::ComputeSubTensor() */
     void ComputeSubTensor(Matrix<Complex>& matMatrix,
 			  const MaterialType& matType, 
 			  const SubTensorType& subTensor) const;
     
+  private:
 
     ApproxData* nlinFncConductivity_;
     ApproxData* nlinFncCapacity_;

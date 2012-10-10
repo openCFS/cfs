@@ -93,8 +93,8 @@ def read_multi_design(filename, design1, design2 = None, design3 = None, design4
   out = numpy.zeros((length, designs))
   for element in sett:
     nr   = int(element.get("nr"))
-    #des  = float(element.get("design"))
-    des  = float(element.get("physical"))
+    des  = float(element.get("design"))
+    #des  = float(element.get("physical"))
     type = element.get("type")
     idx  = -1
     if type == design1:
@@ -111,7 +111,6 @@ def read_multi_design(filename, design1, design2 = None, design3 = None, design4
     
     out[nr-1,idx] = des  
   return out
-
   
 ## Reads a density.xml file as vector
 # @param filename from which the last 'set' is used

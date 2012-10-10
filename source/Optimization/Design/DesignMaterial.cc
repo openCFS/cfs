@@ -1,6 +1,8 @@
 #include <math.h>
 #include <string>
 
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "DesignMaterial.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
@@ -13,6 +15,9 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
 
+DECLARE_LOG(dm)
+DEFINE_LOG(dm, "designMaterial")
+
 using namespace CoupledField;
 using std::string;
 
@@ -20,11 +25,8 @@ Enum<DesignMaterial::Type>         DesignMaterial::type;
 Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
 Enum<DesignMaterial::Notation>     DesignMaterial::notation;
 
-DECLARE_LOG(dm)
-DEFINE_LOG(dm, "designMaterial")
-
-
-DesignMaterial::DesignMaterial(PtrParamNode pn, StdVector<DesignElement::Type>& design){
+DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design)
+{
   type_ = type.Parse(pn->Get("type")->As<string>());
   
   dim = domain->GetGrid()->GetDim();
@@ -42,12 +44,12 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, StdVector<DesignElement::Type>& 
   dampingIsDesign_ = pn->Get("optimizeDamping")->As<bool>();
 
   // collect all designs here, to check whether all are given
-  unsigned int r = RequiredParameters();
+  unsigned int r = RequiredParameters(material);
   StdVector<DesignElement::Type> d;
   d.Reserve(r);
   // copy the ones from DesignSpace
   for(unsigned int i=0; i < design.GetSize(); ++i){
-    d.Push_back(design[i]);
+    d.Push_back(design[i].design);
   }
   // read non-design parameters
   ParamNodeList params = pn->GetList("param");
@@ -60,8 +62,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, StdVector<DesignElement::Type>& 
   }
   if(!CheckRequiredDesigns(d)){
     throw Exception("Not all Parameters for chosen DesignMaterial given");
-  }else if(design.GetSize() > r){ // design.GetSize() < r is impossible as CheckRequiredDesigns passed  
-    WARN("There are designs specified that are not used!");
+  }else if(design.GetSize() > r){ // design.GetSize() < r is impossible as CheckRequiredDesigns passed
+    info->Get("optimization/header/designSpace")->Get(ParamNode::WARNING)->SetValue("There are designs specified that are not used!");
   }
 
   if(type_ == HOM_RECT)
@@ -94,14 +96,16 @@ void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx, 
   hom_rect_samples_[idx][DesignElement::TENSOR23 - DesignElement::TENSOR11] = 0.0;
 }
 
-unsigned int DesignMaterial::RequiredParameters(){
+unsigned int DesignMaterial::RequiredParameters(OptimizationMaterial::System material)
+{
   unsigned int r = MassIsDesign() ? 1 : 0;
   if(DampingIsDesign()){
     r += 2;
   }
   switch(type_){
   case FMO:
-    return r+6;
+    assert(material == OptimizationMaterial::MECH || material == OptimizationMaterial::PIEZOCOUPLING);
+    return r + (material == OptimizationMaterial::MECH ? 6 : 15);
   case ISOTROPIC:
   case LAME_ISOTROPIC:
     return r+2;
@@ -209,11 +213,9 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
 
 void DesignMaterial::SetParameter(const DesignElement::Type p, const double value){
   params_[p] = value;
+  // LOG_DBG3(dm) << "SP p=" << DesignElement::type.ToString(p) << " v=" << value;
 }
 
-double DesignMaterial::GetParameter(const DesignElement::Type p){
-  return params_[p];
-}
 
 void DesignMaterial::GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction){
   double E = params_[DesignElement::EMODUL];
@@ -614,7 +616,9 @@ double DesignMaterial::GetTransIsoMaterialMass(DesignElement::Type direction){
   return(GetTransIsoMass(dD, dG, dD3, dG3));
 }
 
-void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction){
+void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction)
+{
+  // DumpParams();
   double e11 = 0;
   double e22 = 0;
   double e33 = 0;
@@ -738,8 +742,8 @@ void DesignMaterial::GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type
     Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
     break;
   default:
-    // ZeroTensor(t, subTensor);
-    assert(false);
+    // for piezo FMO the derivative w.r.t. dielec_11, ... is zero
+    ZeroTensor(t, PLANE_STRAIN);
     return;
   }
 }
@@ -1170,6 +1174,96 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
   }  
 }
 
+void DesignMaterial::GetDielecTensor(Matrix<double>& t, DesignElement::Type direction)
+{
+  // only 2D!
+  double e11 = 0;
+  double e22 = 0;
+  double e12 = 0;
+  if(direction == DesignElement::NO_DERIVATIVE)
+  {
+    e11 = params_[DesignElement::DIELEC_11];
+    e22 = params_[DesignElement::DIELEC_22];
+    e12 = params_[DesignElement::DIELEC_12];
+  }
+  t.Resize(2,2);
+  t.Init();
+
+  switch(direction)
+  {
+  case DesignElement::NO_DERIVATIVE:
+    // negative for the piezo case
+    t[0][0] = -e11; t[0][1] = -e12;
+    t[1][0] = -e12; t[1][1] = -e22;
+    break;
+  case DesignElement::DIELEC_11:
+    t[0][0] = -1.0;
+    break;
+  case DesignElement::DIELEC_22:
+    t[1][1] = -1.0;
+    break;
+  case DesignElement::DIELEC_12:
+    t[0][1] = -1.0;
+    break;
+  default:
+    // sensitivity is zero!
+    break;
+  }
+}
+
+void DesignMaterial::GetPiezoCouplingTensor(Matrix<double>& t, DesignElement::Type direction)
+{
+  // only 2D!
+  double e11 = 0;
+  double e12 = 0;
+  double e13 = 0;
+  double e21 = 0;
+  double e22 = 0;
+  double e23 = 0;
+  if(direction == DesignElement::NO_DERIVATIVE)
+  {
+    e11 = params_[DesignElement::PIEZO_11];
+    e12 = params_[DesignElement::PIEZO_12];
+    e13 = params_[DesignElement::PIEZO_13];
+    e21 = params_[DesignElement::PIEZO_21];
+    e22 = params_[DesignElement::PIEZO_22];
+    e23 = params_[DesignElement::PIEZO_23];
+  }
+  t.Resize(2,3);
+  t.Init();
+
+  switch(direction)
+  {
+  case DesignElement::NO_DERIVATIVE:
+    t[0][0] = e11; t[0][1] = e12; t[0][2] = e13;
+    t[1][0] = e21; t[1][1] = e22; t[1][2] = e23;
+    break;
+  case DesignElement::PIEZO_11:
+    t[0][0] = 1.0;
+    break;
+  case DesignElement::PIEZO_12:
+    t[0][1] = 1.0;
+    break;
+  case DesignElement::PIEZO_13:
+    t[0][2] = 1.0;
+    break;
+  case DesignElement::PIEZO_21:
+    t[1][0] = 1.0;
+    break;
+  case DesignElement::PIEZO_22:
+    t[1][1] = 1.0;
+    break;
+  case DesignElement::PIEZO_23:
+    t[1][2] = 1.0;
+    break;
+
+  default:
+    // empty, sensitivity is zero
+    break;
+  }
+}
+
+
 double DesignMaterial::GetMaterialMass(DesignElement::Type direction){
   if(massIsDesign_){
     switch(direction){
@@ -1219,6 +1313,14 @@ bool DesignMaterial::GetMaterialDamping(double& alpha, double& beta, DesignEleme
   }else{
     return(false);
   }
+}
+
+void DesignMaterial::DumpParams()
+{
+  std::map<DesignElement::Type, double>::iterator iter;
+
+  for(iter = params_.begin(); iter != params_.end(); ++iter)
+    std::cout << "params[" << DesignElement::type.ToString(iter->first) << "] = " << iter->second << std::endl;
 }
 
 void DesignMaterial::SetEnums()

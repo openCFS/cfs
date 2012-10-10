@@ -117,11 +117,6 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
       break;
     }
   }
-  
-  //  snopt only makes a difference between linear and nonlinear constraints!
-  if(pn->Has("linear"))
-    linear_ = pn->Get("linear")->As<bool>();
-
 }
 
 void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em)
@@ -810,8 +805,6 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   // if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!
   //  in->Get(ParamNode::WARNING)->SetValue("Doing homogenization without 'objective' scaling constraint '" + type.ToString(type_) + "'");
 
-  if(!observation_)
-    in->Get("linear")->SetValue(linear_);
 
   if(type_ == VOLUME && physical_ && !observation_)
     info_->Get(ParamNode::WARNING)->SetValue("a physical volume constraint should make no sense");
@@ -878,23 +871,30 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
 {
   assert(IsLocal());
 
+  bool elec = GetDesignType() == DesignElement::DIELEC_ALL;
+
   Function::Local::Identifier& id = GetCurrentVirtualContext();
 
   switch(type_)
   {
   case POS_DEF_DET_MINOR_2:
   {
+    DesignElement::Type t11 = elec ? DesignElement::DIELEC_11 : DesignElement::TENSOR11;
+    DesignElement::Type t12 = elec ? DesignElement::DIELEC_12 : DesignElement::TENSOR12;
+    DesignElement::Type t22 = elec ? DesignElement::DIELEC_22 : DesignElement::TENSOR22;
+
     hess_sparsity_.Resize(2, 2);
 
-    hess_sparsity_(0, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
-    hess_sparsity_(0, 1) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
+    hess_sparsity_(0, 0) = id.GetElement(t11)->GetIndex();
+    hess_sparsity_(0, 1) = id.GetElement(t22)->GetIndex();
 
-    hess_sparsity_(1, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(1, 1) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(1, 0) = id.GetElement(t12)->GetIndex();
+    hess_sparsity_(1, 1) = id.GetElement(t12)->GetIndex();
 
     break;
   }
   case POS_DEF_DET_MINOR_3:
+    assert(!elec);
     hess_sparsity_.Resize(12, 2);
 
     hess_sparsity_(0, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
@@ -939,7 +939,7 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
     break;
   }
 
-  LOG_DBG3(conditions) << "LC:GHSP: g=" << ToString() << " -> " << hess_sparsity_.ToString();
+  LOG_DBG3(conditions) << "LC:GHSP: g=" << ToString() << " -> " << hess_sparsity_.ToString() << " n=" << DesignElement::ToString(id.neighbor, true);
   return hess_sparsity_;
 }
 

@@ -66,7 +66,7 @@ Function::Function(PtrParamNode pn)
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
   if(pn->Has("design")) // will sometime be in Function, now the default is set to DEFAULT
-    this->design_ = DesignElement::type.Parse(pn->Get("design")->As<string>());
+    this->design_ = BaseDesignElement::type.Parse(pn->Get("design")->As<string>());
 
   this->parameter_ = pn->Has("parameter") ? pn->Get("parameter")->As<double>() : 0.0;
 
@@ -102,11 +102,8 @@ Function::Function(PtrParamNode pn)
   if(type_ == MAXWELL_HOM_TRACKING && !maxwell_tensor_ok)
     EXCEPTION("A 'maxwellTensor' element is mandatory  for 'maxwellHomTracking'");
 
-  if(type_ == MAXWELL_HOM_TENSOR || type_ == MAXWELL_HOM_TRACKING)
-  {
-    if(type_ == MAXWELL_HOM_TRACKING && (!pn->Has("maxwellTensor") && !pn->Has("isotropic")))
-      throw Exception("a 'maxwellTensor' is mandatory for homogenization tracking");
-  }
+  if(type_ == MAXWELL_HOM_TRACKING && (!pn->Has("maxwellTensor") && !pn->Has("isotropic")))
+    throw Exception("a 'maxwellTensor' is mandatory for homogenization tracking");
 
   // check parameter
   switch(type_)
@@ -129,11 +126,28 @@ Function::Function(PtrParamNode pn)
       throw Exception("function '" + type.ToString(type_) + "' cannot be region restricted");
     break;
 
+  case TENSOR_TRACE:
+  case GLOBAL_TENSOR_TRACE:
+    if(design_ != DesignElement::DEFAULT && design_ != DesignElement::TENSOR_TRACE && design_ != DesignElement::DIELEC_TRACE)
+      throw Exception("function '" + type.ToString(type_) + "' has invalid design type " + DesignElement::type.ToString(design_));
+    break;
+
+  case POS_DEF_DET_MINOR_1:
+  case POS_DEF_DET_MINOR_2:
+  case POS_DEF_DET_MINOR_3:
+  case BENSON_VANDERBEI_1:
+  case BENSON_VANDERBEI_2:
+  case BENSON_VANDERBEI_3:
+    if(design_ != DesignElement::ELAST_ALL && design_ != DesignElement::DIELEC_ALL)
+      throw Exception("mandatory 'design' for '" + type.ToString(type_) + "' is 'elast_all' and 'dielec_all'");
+
+    break;
+
   default:
     break;
   }
 
-  // set linear, to be overwritten by xml in Condition
+  // set linear, to be overwritten by xml below
   switch(type_)
   {
   case VOLUME: // the volume is not linear on heaviside densities
@@ -156,6 +170,9 @@ Function::Function(PtrParamNode pn)
     break;
   }
 
+  //  snopt only makes a difference between linear and nonlinear constraints!
+  if(pn->Has("linear"))
+    linear_ = pn->Get("linear")->As<bool>();
 
   if(physical_ && !(type_ == VOLUME || type_ == GREYNESS))
     throw Exception("'physical' is no option for '" + type.ToString(type_) + "'");
@@ -366,6 +383,10 @@ void Function::ToInfo(PtrParamNode info)
   if(type_ == STRESS || type_ == STRESS_DENSITY)
     info->Get("stress")->SetValue(stressType.ToString(stressType_));
 
+  if(IsObjective() || !(dynamic_cast<Condition*>(this)->IsObservation()))
+    info->Get("linear")->SetValue(linear_);
+
+
   if(local != NULL)
     local->ToInfo(info_);
 }
@@ -446,8 +467,10 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
     case TENSOR_TRACE:
+    case TENSOR_NORM:
     case GLOBAL_TENSOR_TRACE:
     case DESIGN_BOUND:
+    case MULTIMATERIAL_SUM:
     case SLACK:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
@@ -585,6 +608,7 @@ bool Function::IsLocal(Type t)
   case SUM_MODULI:
   case LAMINATES_VOL:
   case TENSOR_TRACE:
+  case TENSOR_NORM:
   case PARAM_PS_POS_DEF:
   case POS_DEF_DET_MINOR_1:
   case POS_DEF_DET_MINOR_2:
@@ -593,6 +617,7 @@ bool Function::IsLocal(Type t)
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
   case DESIGN_BOUND:
+  case MULTIMATERIAL_SUM:
     return true;
   default:
     return false;
@@ -622,7 +647,8 @@ bool Function::ForDensityFiltering() const
   {
   case PROJECTION:
   case SLACK:
-  case DESIGN_BOUND:
+  case DESIGN_BOUND: // TODO check if this is realy true as pyhsical material might harm the bound ?!
+  case MULTIMATERIAL_SUM:
     // for the projection case we have a density filter manually on Function::projectionDesign only
     return false;
 
@@ -683,6 +709,7 @@ bool Function::ForSensitivityFiltering() const
   case DESIGN_TRACKING:
   case PROJECTION:
   case TENSOR_TRACE:
+  case TENSOR_NORM:
   case GLOBAL_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
@@ -696,6 +723,7 @@ bool Function::ForSensitivityFiltering() const
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
   case DESIGN_BOUND:
+  case MULTIMATERIAL_SUM:
   case SLACK:
     return false;
 
@@ -729,27 +757,41 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
   // if ALL_REGIONS for condition use what we define as design space which
   // this is still not good enough
   int nd = 1;
-  if(design_ == DesignElement::TENSOR_TRACE || design_ == DesignElement::DEFAULT) {
+  if(design_ == DesignElement::DEFAULT || design_ == DesignElement::ALL_DESIGNS)
     nd = space->design.GetSize();
-  }
+  if(design_ == DesignElement::TENSOR_TRACE)
+    nd = 6; // TODO why no 3?
+  if(design_ == DesignElement::ELAST_ALL)
+    nd = 6;
+  if(design_ == DesignElement::DIELEC_TRACE)
+    nd = 2;
+  if(design_ == DesignElement::DIELEC_ALL)
+    nd = 2;
+  if(design_ == DesignElement::PIEZO_ALL)
+    nd = 6;
+  //assert((int) space->design.GetSize() >= nd);
+
   elements.Reserve(nd * (region == ALL_REGIONS ? space->GetNumberOfElements() : grid->GetNumElems(region)));
 
   if(region == ALL_REGIONS || space->Contains(region))
   {
-    for(unsigned int i = 0; i < space->data.GetSize(); i++)
-    {
-      DesignElement* de = &(space->data[i]);
-      if((design_ == DesignElement::DEFAULT || design_ == DesignElement::TENSOR_TRACE || design_ == de->GetType())
-          && (region == ALL_REGIONS || de->elem->regionId == region))
-        elements.Push_back(de);
-    }
     if(design_ == DesignElement::ALL_DESIGNS)
     {
+      // FIXME - what the hell??? :(
       for(unsigned int i = 0; i < space->GetNumberOfElements(); i++)
-          {
-            DesignElement* de = &(space->data[i]);
-            elements.Push_back(de);
-          }
+      {
+        DesignElement* de = &(space->data[i]);
+        elements.Push_back(de);
+      }
+    }
+    else
+    {
+      for(unsigned int i = 0; i < space->data.GetSize(); i++)
+      {
+        DesignElement* de = &(space->data[i]);
+        if(DesignElement::IsCompatible(design_, de->GetType()) && (region == ALL_REGIONS || de->elem->regionId == region))
+          elements.Push_back(de);
+      }
     }
   }
   else
@@ -819,6 +861,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case STRESS:
   case STRESS_DENSITY:
   case TENSOR_TRACE:
+  case TENSOR_NORM:
   case GLOBAL_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
@@ -832,6 +875,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
   case DESIGN_BOUND:
+  case MULTIMATERIAL_SUM:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -869,6 +913,11 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
     }
     break;
   }
+
+  case SLACK:
+    if(!space->HasSlackVariable())
+      throw Exception("'slack' as objective function requires 'slack' design");
+    break;
 
 
   default: // do nothing
@@ -1001,6 +1050,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
     break;
 
   case TENSOR_TRACE:
+  case TENSOR_NORM:
   case GLOBAL_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
@@ -1013,6 +1063,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case MULTIMATERIAL_SUM:
     if(locality_ != MULT_DESIGNS_ELEMENT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = MULT_DESIGNS_ELEMENT;
@@ -1354,40 +1405,65 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
   switch(f->GetType())
   {
   case TENSOR_TRACE:
-    assert((space->design.GetSize() == 6) || (func_->GetDesignType() == DesignElement::ALL_DESIGNS));
-    if(func_->GetDesignType() != DesignElement::ALL_DESIGNS)
+  {
+    // we have the case of elast and piezo fmo with elec tensor
+    // but also param mat where stiff1 and stiff2, ... form the tensor
+    // The problem is, that the first *compatible* design shall not be within the neighborhood,
+    // but for piezo-FMO the first element might not be a compatible one
+    bool first_compatible_found = false;
+    for(unsigned int i=0; i < space->design.GetSize(); ++i)
     {
-    // 11 is not a neighbor but the element itself
-    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR22));
-    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR33));
-    }
-    else
-    {
-      for(UInt i=1; i<space->design.GetSize(); ++i)
+      if(DesignElement::IsCompatible(f->GetDesignType(), space->design[i].design))
       {
-        des_idx.Push_back(i);
+        if(!first_compatible_found)
+          first_compatible_found = true; // we do not add the first compatible designs to the neighbors
+        else
+          des_idx.Push_back(i);
       }
     }
+    break;
+  }
+  case TENSOR_NORM:
+    if(f->GetDesignType() != DesignElement::PIEZO_ALL)
+      throw Exception("'tensor_norm' only defined for 'piezo_all' design");
+    des_idx.Push_back(space->FindDesign(DesignElement::PIEZO_12));
+    des_idx.Push_back(space->FindDesign(DesignElement::PIEZO_13));
+    des_idx.Push_back(space->FindDesign(DesignElement::PIEZO_21));
+    des_idx.Push_back(space->FindDesign(DesignElement::PIEZO_22));
+    des_idx.Push_back(space->FindDesign(DesignElement::PIEZO_23));
     break;
 
   case POS_DEF_DET_MINOR_1:
   case BENSON_VANDERBEI_1:
-    assert(space->design.GetSize() == 6);
-    if(space->design[0] != DesignElement::TENSOR11)
-      throw Exception("'Expect first design to be 'tensor11'");
+    assert(space->design.GetSize() >= 6);
+    if(space->design[0].design != DesignElement::TENSOR11 || space->design[0].design != DesignElement::DIELEC_11)
+      throw Exception("'Expect first design to be 'tensor11' or 'dielec_11'");
     // only design TENSOR11 is not neighbor
     break;
   case POS_DEF_DET_MINOR_2:
   case BENSON_VANDERBEI_2:
-    assert(space->design.GetSize() == 6);
-    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR22));
-    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR12));
+    assert(space->design.GetSize() >= 6);
+    if(f->GetDesignType() == DesignElement::DIELEC_ALL)
+    {
+      des_idx.Push_back(space->FindDesign(DesignElement::DIELEC_22));
+      des_idx.Push_back(space->FindDesign(DesignElement::DIELEC_12));
+    }
+    else
+    {
+      des_idx.Push_back(space->FindDesign(DesignElement::TENSOR22));
+      des_idx.Push_back(space->FindDesign(DesignElement::TENSOR12));
+    }
     break;
   case POS_DEF_DET_MINOR_3:
   case BENSON_VANDERBEI_3:
-    assert(space->design.GetSize() == 6);
+    assert(space->design.GetSize() >= 6);
     // note, that the indices are sorted in sparse pattern
-    // conditionally no break!
+    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR22));
+    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR33));
+    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR23));
+    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR13));
+    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR12));
+    break;
   default:
     // all designs but the first one
     des_idx.Reserve(space->design.GetSize()-1);
@@ -1411,7 +1487,7 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
       DesignElement* other = &(space->data[elems * des + e]);
       neighbours.Push_back(other);
       LOG_DBG3(func) << "F:L:SMDEM e=" << e << " el=" << de->elem->elemNum << " d = " << d << " des=" << des << " design="
-                     << DesignElement::type.ToString(space->design[des]) << " idx=" << other->GetIndex() << " ed=" << de->GetType();
+                     << DesignElement::type.ToString(space->design[des].design) << " idx=" << other->GetIndex() << " ed=" << de->GetType();
     }
 
     virtual_elem_map.Push_back(Identifier(de, neighbours));
@@ -1441,6 +1517,8 @@ void Function::Local::ToInfo(PtrParamNode in)
 
   if(structure_ != NULL)
     structure_->ToInfo(in->Get("neighborhood"));
+
+
 }
 
 Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local, PtrParamNode pn)
@@ -1628,8 +1706,16 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     fv = CalcTensorTrace(-1, local, false);
     break;
 
+  case TENSOR_NORM:
+    fv = CalcTensorNorm(-1, local, false);
+    break;
+
   case DESIGN_BOUND:
     fv = CalcDesignBound(false);
+    break;
+
+  case MULTIMATERIAL_SUM:
+    fv = CalcMultiMaterialSum(-1, local, false);
     break;
 
   default:
@@ -1767,8 +1853,16 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
       gv = CalcTensorTrace(n, local, true);
       break;
 
+    case TENSOR_NORM:
+      gv = CalcTensorNorm(n, local, true);
+      break;
+
     case DESIGN_BOUND:
       gv = CalcDesignBound(true);
+      break;
+
+    case MULTIMATERIAL_SUM:
+      gv = CalcMultiMaterialSum(n, local, true);
       break;
 
     default:
@@ -2245,9 +2339,11 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
 
     Matrix<double> E;
 
+    bool ok = local->space->GetTensor(E, g->GetDesignType(), PLANE_STRAIN, element->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
     // the sub-tensor-type does'nt matter
-    // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation
-    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, element->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
+    // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation (elasticity only)
+    assert(ok);
+
 
     // LOG_DBG3(func) << "L::I::CPDD e_num=" << element->elem->elemNum << " v=" << v << " obs=" << obs << " eps=" <<  eps << " E=" << E.ToString(0, false);
 
@@ -2259,7 +2355,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     // d_3 is done by Sonja using the Laplace formula, we use Sarrus
     // d_3 := ...
 
-    double ret = -12345678.0;
+    double ret = -12345678.0 * (ok ? 1.0 : 1.0); // stupid stuff to use ok in release mode
 
     double e11, e22, e33, e23, e13, e12;
 
@@ -2275,6 +2371,8 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
            ret = e11-v;
          else
            ret = neigh_idx == -1 ? 1.0 : 0.0;
+           if(g->GetDesignType() == DesignElement::DIELEC_ALL)
+             ret *= -1.0;
          break;
 
     case POS_DEF_DET_MINOR_2:
@@ -2284,15 +2382,30 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
          // Standard: (e11-v)*(e22-v) - (e12*e12);
          // Standard with eps: (e11-v-eps)*(e22-v) - (e12*e12) - eps;
          if(!derivative)
-           ret = (e11-v-eps)*(e22-v) - (e12*e12);
+           ret = (e11-v-eps)*(e22-v) - (e12*e12) -eps;
          else
          {
            switch(GetElement(neigh_idx)->GetType())
            {
-             case DesignElement::TENSOR11: ret = e22-v; break;
+            case DesignElement::TENSOR11:
+               ret = e22-v;
+               break;
+            case DesignElement::DIELEC_11:
+              ret = -1.0 * (e22-v);
+              break;
              // case DesignElement::TENSOR22: ret = e11-v-eps; break;
-             case DesignElement::TENSOR12: ret = -2.0 * e12; break;
-             case DesignElement::TENSOR22: ret = e11-v-eps; break;
+             case DesignElement::TENSOR12:
+               ret = -2.0 * e12;
+               break;
+             case DesignElement::DIELEC_12:
+               ret = 2.0 * e12;
+               break;
+             case DesignElement::TENSOR22:
+               ret = e11-v-eps;
+               break;
+             case DesignElement::DIELEC_22:
+               ret = -1.0*(e11-v-eps);
+               break;
              default: assert(false);
            }
          }
@@ -2312,7 +2425,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
          // Sonja with eps: ((e33-v) *((e11-v-eps)*(e22-v) - (e12*e12) - eps) + 2.0* e12*e13 *e23 - e13**2 * (e22-v) - e23**2 * (e11-v-eps)) - eps;
          if(!derivative)
          {
-           ret = (e33-v) *((e11-v-eps)*(e22-v) - (e12*e12) - eps) + 2.0* e12*e13 *e23 - e13*e13 * (e22-v) - e23*e23 * (e11-v-eps);
+           ret = (e33-v) *((e11-v-eps)*(e22-v) - (e12*e12) - eps) + 2.0* e12*e13 *e23 - e13*e13 * (e22-v) - e23*e23 * (e11-v-eps) -eps;
          }
          else
          {
@@ -2505,24 +2618,100 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
   }
 
 
+  double Function::Local::Identifier::CalcMultiMaterialSum(int neigh_idx, const Local* local, bool derivative) const
+  {
+    Matrix<double> E;
+
+    double ret = 0.0;
+
+    if(!derivative)
+    {
+      for(int i=-1; i < (int) neighbor.GetSize(); ++i)
+      {
+        ret += GetElement(i)->GetDesign(DesignElement::PLAIN);
+        LOG_DBG3(func) << "L::I::CMMS e_num=" << element->elem->elemNum << " i=" << i << " e=" <<  GetElement(i)->elem->elemNum << " mi=" << GetElement(i)->multimaterial->index << " -> " << ret;
+      }
+    }
+    else
+    {
+      ret = 1.0;
+    }
+    LOG_DBG3(func) << "L::I::CMMS e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
+    return ret;
+  }
+
 
   double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const
   {
     Matrix<double> E;
+
     DesignMaterial::Notation notation = local->func_->notation_;
     const DesignElement* de = GetElement(neigh_idx);
-    local->space->GetErsatzMaterialTensor(E, domain->GetSinglePDE("mechanic")->GetSubTensorType(), element->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type does'nt matter
 
-    LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " E=" << E.ToString(0, false);
+    bool ok = local->space->GetTensor(E, local->func_->GetDesignType(), PLANE_STRAIN, element->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type does'nt matter)
 
-    double ret = E.Trace();
+    assert(ok);
+    assert((local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && E.GetNumRows() == 2) || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE && E.GetNumRows() == 3));
 
-    assert(!(derivative && notation == DesignMaterial::HILL_MANDEL && ret != 1.0) || local->func_->GetDesignType() != DesignElement::TENSOR_TRACE);
-    assert(!(derivative && notation == DesignMaterial::VOIGT && de->GetType() == DesignElement::TENSOR33 && ret != 0.5)  || local->func_->GetDesignType() != DesignElement::TENSOR_TRACE);
+    LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString(0, false);
 
-    LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret << " E=" << E.ToString();
+    double ret = E.Trace() * (ok ? 1.0 : 1.0); // to use ok in assert
+
+    assert(!(derivative && local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && ret != -1.0));
+    assert(!(derivative && notation == DesignMaterial::HILL_MANDEL && de->GetType() == DesignElement::TENSOR33 && ret != 1.0));
+    assert(!(derivative && notation == DesignMaterial::VOIGT && de->GetType() == DesignElement::TENSOR33 && ret != 0.5));
+
+
+    LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " nt=" << de->type.ToString(de->GetType()) << " d=" << derivative << " -> " << ret;
     return ret;
   }
+
+  double Function::Local::Identifier::CalcTensorNorm(int neigh_idx, const Local* local, bool derivative) const
+  {
+    Matrix<double> E;
+    const DesignElement* de = GetElement(neigh_idx);
+    assert(local->func_->GetDesignType() == DesignElement::PIEZO_ALL);
+    // as we square we do not need the linear derivative
+    local->space->GetPiezoCouplingTensor(E, element->elem, DesignElement::NO_DERIVATIVE);
+
+    LOG_DBG3(func) << "L::I::CTN e_num=" << element->elem->elemNum << " E=" << E.ToString(0, false);
+
+    double ret = 0.0;
+
+    if(!derivative)
+      ret = pow(E.NormL2(), 2);
+    else
+    {
+      switch(de->GetType())
+      {
+      case DesignElement::PIEZO_11:
+        ret = 2.0 * E[0][0];
+        break;
+      case DesignElement::PIEZO_12:
+        ret = 2.0 * E[0][1];
+        break;
+      case DesignElement::PIEZO_13:
+        ret = 2.0 * E[0][2];
+        break;
+      case DesignElement::PIEZO_21:
+        ret = 2.0 * E[1][0];
+        break;
+      case DesignElement::PIEZO_22:
+        ret = 2.0 * E[1][1];
+        break;
+      case DesignElement::PIEZO_23:
+        ret = 2.0 * E[1][2];
+        break;
+      default:
+        assert(false);
+        break;
+      }
+    }
+
+    LOG_DBG3(func) << "L::I::CTN e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
+    return ret;
+  }
+
 
   double Function::Local::Identifier::CalcDesignBound(bool derivative) const
   {

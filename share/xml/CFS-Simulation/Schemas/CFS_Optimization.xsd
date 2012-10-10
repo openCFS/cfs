@@ -63,6 +63,8 @@
                       <xsd:attribute name="coord" use="optional" type="DT_HomTensorEntries"/>
                       <!-- only the globalSlope has a value and only within multiObjective -->
                       <xsd:attribute name="parameter" use="optional" type="xsd:float"/>
+                      <!-- switching linear/nonliear makes an effect for feasPP and snopt -->
+                      <xsd:attribute name="linear" use="optional" type="xsd:boolean"/>
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>
@@ -180,28 +182,7 @@
               </xsd:complexType>
             </xsd:element>
             
-            <xsd:element name="output" minOccurs="0" maxOccurs="1">
-              <xsd:complexType>
-                <xsd:sequence>
-                  <xsd:element name="displacement" minOccurs="0" maxOccurs="unbounded" type="DT_MechLoad"/>
-                  <xsd:element name="elecPotential" minOccurs="0" maxOccurs="unbounded" type="DT_ElecLoad"/>
-                  <!-- here the quantity attribute shall be set in the probem file. Default is acouPressure! -->
-                  <xsd:element name="acoustic" minOccurs="0" maxOccurs="unbounded" type="DT_AcousticLoad"/>
-                  <xsd:element name="energyFlux" minOccurs="0" maxOccurs="1">
-                    <xsd:complexType>
-                      <xsd:sequence>
-                        <xsd:element name="surfRegion" maxOccurs="1" minOccurs="1">
-                          <xsd:complexType>
-                            <xsd:attribute name="name" type="xsd:token" use="required"/>
-                            <xsd:attribute name="neighborRegion" type="xsd:token" use="required"/>
-                          </xsd:complexType>
-                        </xsd:element>
-                      </xsd:sequence>
-                    </xsd:complexType>
-                  </xsd:element>
-                </xsd:sequence>                                  
-              </xsd:complexType>
-            </xsd:element>
+            <xsd:element name="output" minOccurs="0" maxOccurs="1" type="DT_output"/>
             
             <!-- this is the tensor for the homogenizationTracking objective -->
             <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
@@ -256,8 +237,8 @@
             The corresponding element is optional -->
           <xsd:attribute name="multiple_excitation" type="xsd:boolean" use="optional" default="false" />
 
-
-
+          <!-- switching linear/nonliear makes an effect for feasPP and snopt -->
+          <xsd:attribute name="linear" use="optional" type="xsd:boolean"/>
         </xsd:complexType>
       </xsd:element>
       
@@ -278,6 +259,8 @@
             <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1"/>
             <!-- only for the projection constraint -->
             <xsd:element name="filter" type="DT_Filter" minOccurs="0" maxOccurs="1"/>
+            <!-- only for the output constroaint which is an displacement constraint -->
+            <xsd:element name="output" type="DT_output" minOccurs="0" maxOccurs="1"/>
           </xsd:all>
           <!-- mandatory to give the name -->
           <xsd:attribute name="type" use="required">
@@ -287,6 +270,7 @@
                 <xsd:enumeration value="penalizedVolume"/>
                 <xsd:enumeration value="gap"/>
                 <xsd:enumeration value="compliance"/>
+                <xsd:enumeration value="output"/>
                 <xsd:enumeration value="greyness"/>
                 <xsd:enumeration value="realvolume"/>
                 <xsd:enumeration value="homTensor"/>
@@ -332,6 +316,8 @@
                 <xsd:enumeration value="globalLaminatesVolume"/>
                 <!-- for FMO and laminates only -->
                 <xsd:enumeration value="tensorTrace"/>
+                <!-- for piezo FMO to have a local squared L2 norm for the coupling tensor (sum of squared coefficients) -->
+                <xsd:enumeration value="tensorNorm"/>
                 <xsd:enumeration value="globalTensorTrace"/>
                 <!--  from anisotropic param-mat (= FMO) ensure positive definiteness including bound on diagonal elements (E-value*I) larger param -->
                 <xsd:enumeration value="fmoPosDefMinor1"/>
@@ -343,6 +329,8 @@
                 <xsd:enumeration value="bensonVanderbeiMinor3"/>
                 <!-- this allows to formulate design bounds as functions. Set box constraints then to +- inf -->
                 <xsd:enumeration value="designBound"/>
+                <!-- local sum of all multimaterial designs -->
+                <xsd:enumeration value="multimaterial_sum"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -351,7 +339,7 @@
           <!-- A constraint value is either 'slack' or a scalar. Allowed only when constraint and no tensor homogenization tensor is given -->
           <xsd:attribute name="value" use="optional" >
             <xsd:simpleType>
-              <!-- either 'slack' or a floar -->
+              <!-- either 'slack' or a float -->
               <xsd:union memberTypes="slack_token xsd:float"></xsd:union>
             </xsd:simpleType>
           </xsd:attribute>
@@ -558,6 +546,15 @@
                 <xsd:attribute name="convex_tau" default="0.0" use="optional" type="xsd:float"/>
                 <!-- a KKT criterion from Sonja's thesis. See FeasPP::CalcKKT() -->
                 <xsd:attribute name="kkt" default="1e-5" type="xsd:float" use="optional"/>
+                <!-- when do we evaluate the kkt error? -->
+                <xsd:attribute name="kkt_eval" default="before_linesearch" use="optional">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <xsd:enumeration value="before_linesearch"/>
+                      <xsd:enumeration value="after_linesearch"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>                
                 
               </xsd:complexType>
             </xsd:element>
@@ -877,7 +874,12 @@
                   </xsd:simpleType>
                 </xsd:attribute>
                 
-                <xsd:attribute name="initial" use="required" type="xsd:float"/>
+                <!-- either 'random' or a float -->
+                <xsd:attribute name="initial" use="required">
+                  <xsd:simpleType>
+                    <xsd:union memberTypes="xsd:float random_token"/>
+                  </xsd:simpleType>
+                </xsd:attribute>
                 <!-- The lower bound which is the physical lower bound when adapt_lower is set. Not to be set when pyhsical_lower is set -->
                 <xsd:attribute name="lower" use="optional" type="xsd:float"/>
                 <!-- Insteead of lower one can set physical_lower, then lower is determined by the transfer function. Redundant to adapt_lower -->
@@ -890,7 +892,9 @@
                 <xsd:attribute name="scale" use="optional" type="xsd:boolean" default="false"/>
                 <!-- If true we interpret lower as physical_lower value. Must not be concurrent with physical_lower -->
                 <xsd:attribute name="adapt_lower" use="optional" type="xsd:boolean" default="false"/>
-                <!-- bimaterial optimization is optional. The value needs to be found in the material.xml -->
+                <!-- for multimaterial the material attribute is mandatory. otherwise not allowed -->
+                <xsd:attribute name="material" type="xsd:token" use="optional" />
+                <!-- KILLME FIMXE depreciated!! bimaterial optimization is optional. The value needs to be found in the material.xml -->
                 <xsd:attribute name="bimaterial" use="optional" type="xsd:token"/>
               </xsd:complexType>
             </xsd:element>
@@ -1298,7 +1302,16 @@
       <xsd:enumeration value="density"/>
       <xsd:enumeration value="acouDensity"/>
       <xsd:enumeration value="polarization"/>
+      <!-- trace for elastic FMO and other paramMat stuff -->
       <xsd:enumeration value="tensor_trace"/>
+      <!-- all elasticity tensor coefficients for elast FMO -->
+      <xsd:enumeration value="elast_all"/>
+      <!-- trace for piezo FMO for permitivity -->
+      <xsd:enumeration value="dielec_trace"/>
+      <!-- all permitivity coefficients for piezo FMO -->
+      <xsd:enumeration value="dielec_all"/>
+      <!-- all piezoc coupling tensor coefficients for piezo FMO -->
+      <xsd:enumeration value="piezo_all"/>
       <!-- Constraint is defined per element and uses all designs on that element -->
       <xsd:enumeration value="allDesigns"/> 
       <xsd:enumeration value="emodul"/>
@@ -1318,12 +1331,20 @@
       <xsd:enumeration value="tensor23"/>
       <xsd:enumeration value="tensor13"/>
       <xsd:enumeration value="tensor12"/>
+      <xsd:enumeration value="dielec_11"/>
+      <xsd:enumeration value="dielec_12"/>
+      <xsd:enumeration value="dielec_22"/>
+      <xsd:enumeration value="piezo_11"/>
+      <xsd:enumeration value="piezo_12"/>
+      <xsd:enumeration value="piezo_13"/>
+      <xsd:enumeration value="piezo_21"/>
+      <xsd:enumeration value="piezo_22"/>
+      <xsd:enumeration value="piezo_23"/>
       <xsd:enumeration value="rotAngle"/>
       <xsd:enumeration value="stiff1"/>
       <xsd:enumeration value="stiff2"/>
-      <!-- similar to laminates, this describes for a homogenized cross the bar width a, see also Bendsoe, Kikuchi 1988 -->
-      <xsd:enumeration value="hom_rect_a"/>
-      <xsd:enumeration value="hom_rect_b"/>
+      <!-- multimaterial requies the material attribute -->
+      <xsd:enumeration value="multimaterial"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -1446,7 +1467,14 @@
       <xsd:enumeration value="slack"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+  <xsd:simpleType name="random_token">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="random"/>
+    </xsd:restriction>
+  </xsd:simpleType>
   
+
   <!-- This are some IPOPT 3 option names -->
   <xsd:simpleType name="ipopt_name_values">
     <xsd:restriction base="xsd:token">
@@ -1811,5 +1839,28 @@
     
   </xsd:complexType>
 
+
+  <xsd:complexType name="DT_output">
+    <xsd:sequence>
+      <xsd:element name="displacement" minOccurs="0" maxOccurs="unbounded" type="DT_MechLoad"/>
+      <xsd:element name="elecPotential" minOccurs="0" maxOccurs="unbounded" type="DT_ElecLoad"/>
+      <!-- here the quantity attribute shall be set in the probem file. Default is acouPressure! -->
+      <xsd:element name="acoustic" minOccurs="0" maxOccurs="unbounded" type="DT_AcousticLoad"/>
+      <xsd:element name="energyFlux" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="surfRegion" maxOccurs="1" minOccurs="1">
+              <xsd:complexType>
+                <xsd:attribute name="name" type="xsd:token" use="required"/>
+                <xsd:attribute name="neighborRegion" type="xsd:token" use="required"/>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>               
+</xsd:complexType>    
+    
+  
 </xsd:schema>
 
