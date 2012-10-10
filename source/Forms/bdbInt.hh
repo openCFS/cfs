@@ -89,7 +89,7 @@ template <class TYPE> class Matrix;
      * @param elem only relevant for SIMP, the D-Mat is in general no element specific! */
     virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem)
     {
-      EXCEPTION("not correctly overwritten!");
+      calcDMat(dMat); // call nonlinear stuff, elem was actually introducted for optimization
     };
 
     /** This is the ParamMat optimization version, overwrite this to provide Derivatives for the tensor

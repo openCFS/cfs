@@ -70,12 +70,15 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Applic
   // therefore we always return a derivative, de indicating which
   // for transient problems, this does also need to return the derivative of the mass matrix
   Matrix<double>& out = dynamic_cast<Matrix<double>& >(*mat_out);
-  switch(app){
+  int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
+
+  switch(app)
+  {
   case MECH:
-    out = mech_mat_->MechStiffness(de->elem, false, -1, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
+    out = mech_mat_->MechStiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
     break;
   case MASS:
-    out = mech_mat_->MechMass(de->elem, false, -1, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
+    out = mech_mat_->MechMass(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
     break;
   default:
     Exception("Only mech and mass matrix are available for paramMat");

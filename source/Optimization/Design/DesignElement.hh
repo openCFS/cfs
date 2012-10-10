@@ -173,6 +173,9 @@ public:
    * In the derived DesignElement() the instance is overloaded and invalidated! */
   virtual double GetDesign() const { return(this->design); }
 
+  /** returns the type */
+  virtual std::string ToString() const;
+
   /** Get the gradient values for either objective or constraint.
    * if neither f nor g is given the objective gradient sum is returned */
   double GetPlainGradient(const Objective* c, const Condition* g) const;
@@ -329,6 +332,7 @@ public:
      * @param tf if given prints the physical lower bound */
     void ToInfo(PtrParamNode in, TransferFunction* tf) const;
 
+    /** @see BaseDesignElement::ToString() */
     std::string ToString() const { return ToString(this); }
 
     /** makes a short dump, handles NULL */

@@ -257,7 +257,9 @@ namespace CoupledField
         const Matrix<Complex>& mat = posTens->second;
         StoreTensor(in_->Get("tensor"), isComplex, mat);
 
-        if(stt != FULL) // electrostatic is NO_TENSOR
+        // e.g. in the flatShellPlateEV test case we have NO_TENSOR which cannot be
+        // handled by ComputeSubTensor()
+        if(stt != FULL && stt != NO_TENSOR) // electrostatic is NO_TENSOR
         {
           Matrix<Complex> sub_mat;
           ComputeSubTensor(sub_mat, mt, stt);

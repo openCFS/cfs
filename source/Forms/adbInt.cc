@@ -50,7 +50,11 @@ namespace CoupledField {
 
     // Setup material matrix once and for all
     calcDMat(dMat, ent1.GetElem(), direction);
-
+/*    if(direction != DesignElement::NO_DERIVATIVE)
+       calcDMat(dMat, ent1.GetElem(), direction);
+    else
+      calcDMat(dMat, ent1.GetElem());
+*/
     // Loop over all integration points
     for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
       

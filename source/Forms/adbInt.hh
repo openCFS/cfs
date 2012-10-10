@@ -107,10 +107,17 @@ template <class TYPE> class Matrix;
       EXCEPTION("not correctly overwritten!");
     };
 
-    
-    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE)
+    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem)
     {
-      EXCEPTION("not correctly overwritten!");
+      calcDMat(dMat); // ugly stuff to make thermopiezo/transient_2d works
+    }
+
+    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem, DesignElement::Type direction)
+    {
+      if(direction == DesignElement::NO_DERIVATIVE)
+        calcDMat(dMat, elem);
+      else
+        EXCEPTION("not correctly overwritten!");
     };
 
     //! Query number of degrees of freedom for first physical quantity.

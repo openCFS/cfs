@@ -76,15 +76,12 @@ namespace CoupledField {
 
       // // Check if material has to be rotated
       if( ptMaterial->GetCoordSys() == NULL )
-        calcDMat(dMat, ent1.GetElem(), direction);
-      /* shall be obsolete, may be deleted - Fabian
       {
-        if(direction == DesignElement::NO_DERIVATIVE){
-          calcDMat(dMat, ent1.GetElem());
-        }else{
+        if(direction == DesignElement::NO_DERIVATIVE)
+          calcDMat(dMat, ent1.GetElem()); // to handle all the derived stuff (nonlin, ..) which has nothing to do with optimization
+        else
           calcDMat(dMat, ent1.GetElem(), direction);
-        }
-      }*/
+      }
 
       Vector<Double> globIntPoint;
 

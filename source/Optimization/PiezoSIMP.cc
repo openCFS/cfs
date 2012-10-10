@@ -93,7 +93,7 @@ void PiezoSIMP::PostInit()
   SIMP::PostInit();
 
   // just created in PostInit
-  piezo_mat_ = dynamic_cast<PiezoelecMat*>(material);
+  piezo_mat_ = dynamic_cast<PiezoElecMat*>(material);
   assert(piezo_mat_ != NULL);
 }
 
@@ -132,7 +132,7 @@ double PiezoSIMP::CalcElecEnergy(Excitation& excite)
 
     LOG_DBG3(simp) << "CalcElecEnergy: e=" << i << " 'density'=" << tf->Transform(de, DesignElement::SMART) << " p=" << p_vec.ToString();
     
-    Assign(mat, piezo_mat_->ElecStiffness(de->elem, 1), tf->Transform(de, DesignElement::SMART));
+    Assign(mat, piezo_mat_->ElecStiffnessPos(de), tf->Transform(de, DesignElement::SMART));
     
     LOG_DBG3(simp) << "CalcElecEnergy: mat: " << mat.ToString();
     
@@ -188,7 +188,7 @@ void PiezoSIMP::ConstructAdjointRHS(Excitation& excite, Function* f)
     DesignElement* de = &design->data[e];
 
     // gain +K_pp(rho), the plus because K_pp is only in the piezo -K_pp
-    Assign(mat, piezo_mat_->ElecStiffness(de->elem, 1), tf->Transform(de, DesignElement::SMART));
+    Assign(mat, piezo_mat_->ElecStiffnessPos(de), tf->Transform(de, DesignElement::SMART));
 
     // in the complex case with the conjugate complex
     mat.MultInner(p_vec, mat_vec);
@@ -340,19 +340,18 @@ void PiezoSIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Appli
   {
   case ELEC:
     if(calcMode == CONJ_QUAD)
-      Assign(out, piezo_mat_->ElecStiffness(de->elem, 1), factor); // we need the K_pp matrix
+      Assign(out, piezo_mat_->ElecStiffnessPos(de), factor); // we need the K_pp matrix
     else // STANDARD and GRAD_N
-      Assign(out, piezo_mat_->ElecStiffness(de->elem, -1), factor); // we need the -K_pp matrix
+      Assign(out, piezo_mat_->ElecStiffnessNeg(de), factor); // we need the -K_pp matrix
     break;
 
   case PIEZO_COUPLING:
   {
-    const Matrix<double>& coupledStiffness = piezo_mat_->CoupledStiffness(de->elem);
-    // we see on the size of in if we cave to be transposed!
-    if(out.GetNumCols() == coupledStiffness.GetNumCols())
-      Assign(out, coupledStiffness, factor);
+    assert(out.GetNumCols() != out.GetNumRows());
+    if(out.GetNumRows() > out.GetNumCols())
+      Assign(out, piezo_mat_->CoupledStiffness(de), factor);
     else
-      Assign(out, piezo_mat_->CoupledStiffnessTransposed(de->elem), factor);
+      Assign(out, piezo_mat_->CoupledStiffnessTransposed(de), factor);
     break;
   }
 

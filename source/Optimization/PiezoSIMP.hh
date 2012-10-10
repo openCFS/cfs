@@ -20,7 +20,7 @@ class TransferFunction;
 namespace CoupledField
 {
 class ElecPDE;
-class PiezoelecMat;
+class PiezoElecMat;
 
 /** Extension from lin elast SIMP to the piezoelectric case */
 class PiezoSIMP : public SIMP
@@ -62,7 +62,7 @@ protected:
   }
 
   /** is a cast of the ErsatzMaterial::material attribute. Set in PostInit() */
-  PiezoelecMat* piezo_mat_;
+  PiezoElecMat* piezo_mat_;
 
   /** shortcut to our pde, is also in ErsatzMaterial::pdes */
   ElecPDE* elec;

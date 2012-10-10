@@ -89,29 +89,37 @@ namespace CoupledField {
         !domain->HasErsatzMaterialDielecTensor() ||
         !domain->GetErsatzMaterial()->GetDielecTensor(dMat, elem, direction))
     {
-      ptMaterial->GetTensor(dMat,matType_,matDataType_,subTensorType_);
-      dMat *= mParser_->Eval( mHandle_ );
-
-      Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
-      if(density != 1.0)
+      if(direction != DesignElement::NO_MULTIMATERIAL && GetMultiMaterialTensor(dMat, elem, ELECTROSTATIC))
       {
-        dMat *= density;
-
-        // BiMaterial case only valid for "simpVar" scheme (rho^param MAT + (1-rho)^param) BIMAT)
-        BaseMaterial* bm = elem != NULL ? domain->GetErsatzBiMaterial(elem,  ELECTROSTATIC) : NULL;
-
-        if(bm != NULL)
-        {
-          Double bidensity = GetErsatzMaterialFactor(elem, true);
-          Matrix<Double> tmp;
-          bm->GetTensor(tmp, matType_, matDataType_, subTensorType_);
-          // tmp *= (1.0 - density);
-          tmp *= bidensity;
-          dMat +=  tmp;
-          LOG_DBG3(forms) << "linGradBDBInt::calcDMat: e=" << elem->elemNum << " bimat=" << tmp.ToString();
-        }
+        assert(direction == DesignElement::NO_DERIVATIVE);
+        assert(force_factor == 0.0); // not implemented!
       }
-      LOG_DBG3(forms) << GetName() << "::calcDMat(" << (elem != NULL ? Integer(elem->elemNum) : -1) << ") -> density=" << density;
+      else
+      {
+        ptMaterial->GetTensor(dMat,matType_,matDataType_,subTensorType_);
+        dMat *= mParser_->Eval( mHandle_ );
+
+        Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
+        if(density != 1.0)
+        {
+          dMat *= density;
+
+          // BiMaterial case only valid for "simpVar" scheme (rho^param MAT + (1-rho)^param) BIMAT)
+          BaseMaterial* bm = elem != NULL ? domain->GetErsatzBiMaterial(elem,  ELECTROSTATIC) : NULL;
+
+          if(bm != NULL)
+          {
+            Double bidensity = GetErsatzMaterialFactor(elem, true);
+            Matrix<Double> tmp;
+            bm->GetTensor(tmp, matType_, matDataType_, subTensorType_);
+            // tmp *= (1.0 - density);
+            tmp *= bidensity;
+            dMat +=  tmp;
+            LOG_DBG3(forms) << "linGradBDBInt::calcDMat: e=" << elem->elemNum << " bimat=" << tmp.ToString();
+          }
+        }
+        LOG_DBG3(forms) << GetName() << "::calcDMat(" << (elem != NULL ? Integer(elem->elemNum) : -1) << ") -> density=" << density;
+      }
     }
     LOG_DBG3(forms) << GetName() << "::calcDMat(" << (elem != NULL ? Integer(elem->elemNum) : -1) << ") -> " << dMat.ToString();
   }

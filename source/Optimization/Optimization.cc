@@ -340,7 +340,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
   Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
   Function::type.Add(Function::DESIGN_BOUND, "designBound");
-  Function::type.Add(Function::MULTIMATERIAL_SUM, "multimateral_sum");
+  Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
 
   Function::Local::locality.SetName("Function::Local::Locality");
@@ -439,7 +439,7 @@ void Optimization::SetEnums()
   MultipleExcitation::type.Add(MultipleExcitation::MAXWELL_HOMOGENIZATION_TEST_STRAINS, "maxwellHomogenizationTestStrains");
 }
 
-bool Optimization::IsTransient() const{
+bool Optimization::IsTransient() {
   return(domain->GetDriver()->GetAnalysisType() == BasePDE::TRANSIENT);
 }
 

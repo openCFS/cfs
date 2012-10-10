@@ -73,14 +73,15 @@ void EvaluateOnly::SolveProblem()
     optimization->SolveAdjointProblems();
     optimization->CalcObjectiveGradient(&grad);
     for(unsigned int i = 0; i < grad.GetSize(); i++) {
-      LOG_DBG2(eval) << "SP: obj grad i=" << i << " -> " << grad[i];
+      BaseDesignElement* de = optimization->GetDesign()->GetDesignElement(i);
+      LOG_DBG2(eval) << "SP: obj grad i=" << i << " (" << (i+1) <<  ") de=\"" << de->ToString() << "\" -> " << grad[i];
     }
     
     for(int c = 0; c < optimization->constraints.view->GetNumberOfTotalConstraints(); c++)
     {
       Condition* g = optimization->constraints.view->Get(c);
       v = optimization->CalcConstraint(g);
-      LOG_DBG(eval) << "SP: g[" << c << "]=" << g->ToString() << " -> " << v;
+      LOG_DBG(eval) << "SP: g[" << c << " (" << (c+2) << ")]=" << g->ToString() << " -> " << v; // snopt index in brackets
       if(!g->IsObservation()) // not for observation stuff
       {
         StdVector<unsigned int>& pattern = g->GetSparsityPattern();
@@ -88,7 +89,8 @@ void EvaluateOnly::SolveProblem()
         optimization->CalcConstraintGradient(g, &grad);
         for(unsigned int i = 0; i < pattern.GetSize(); i++) {
           BaseDesignElement* de = optimization->GetDesign()->GetDesignElement(pattern[i]);
-          LOG_DBG2(eval) << "SP: grad g=" << g->ToString() << " i=" << i << " pi=" << pattern[i] << " dt=" << de->type.ToString(de->GetType()) << " -> " << grad[i];
+          LOG_DBG2(eval) << "SP: grad g[" << c << " (" << (c+2) << ")]=" << g->ToString() << " i=" << i
+                         << "(" << (i+1) << ") pi=" << pattern[i] << "(" << (pattern[i]+1) <<  ") de=\"" << de->ToString() << "\" -> " << grad[i];
         }
       }
     }

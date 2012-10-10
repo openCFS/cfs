@@ -47,11 +47,11 @@ void PiezoParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, A
   switch(app)
   {
   case MECH:
-    out = piezo_mat_->MechStiffness(de->elem, false, -1, dt);
+    out = piezo_mat_->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt);
     break;
 
   case ELEC:
-    out = piezo_mat_->ElecStiffness(de->elem, -1, dt); // we need the -K_pp matrix
+    out = piezo_mat_->ElecStiffnessNeg(de, dt); // we need the -K_pp matrix
     break;
 
   case PIEZO_COUPLING:
@@ -59,9 +59,9 @@ void PiezoParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, A
     assert(out.GetNumCols() != out.GetNumRows());
 
     if(out.GetNumCols() > out.GetNumRows())
-      out = piezo_mat_->CoupledStiffnessTransposed(de->elem, dt);
+      out = piezo_mat_->CoupledStiffnessTransposed(de, dt);
     else
-      out = piezo_mat_->CoupledStiffness(de->elem, dt);
+      out = piezo_mat_->CoupledStiffness(de, dt);
     break;
 
   default:

@@ -49,6 +49,7 @@ OptimizationMaterial::OptimizationMaterial(ErsatzMaterial* em, DesignSpace* spac
   regionIds = this->space->GetRegionIds();
 
   harmonic_ =  BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
+  transient_ = em->IsTransient();
   structured_ = em != NULL ? em->IsDomainStructured() : false; // we would have a problem with the L-Shape!
 }
 
@@ -61,7 +62,7 @@ OptimizationMaterial* OptimizationMaterial::CreateInstance(System sys, ErsatzMat
   switch(sys)
   {
   case PIEZOCOUPLING:
-    return new PiezoelecMat(em);
+    return new PiezoElecMat(em);
 
   case MECH:
     return new MechMat(em);
@@ -157,6 +158,57 @@ void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_
     form->SetMaterial(org_mat);
 }
 
+Matrix<double>& OptimizationMaterial::GeneralStiffness(std::map<RegionIdType, StdVector<Matrix<double> > >& map, const DesignElement* de, MaterialClass mc,
+                                                       StdPDE* pde1, StdPDE* pde2, DesignElement::Type direction, double factor, bool transposed)
+{
+  unsigned int index = de->multimaterial != NULL ? de->multimaterial->index : 0;
+
+  StdVector<Matrix<double> >& mat_vec = map[de->elem->regionId];
+
+  // generate entries on the fly
+  for(unsigned int i = mat_vec.GetSize(); i <= index; i++)
+    mat_vec.Push_back(Matrix<double>());
+
+  Matrix<double>& mat = mat_vec[index];
+
+  if(space->HasMultiMaterial())
+    direction = DesignElement::NO_MULTIMATERIAL;
+
+  std::string form;
+  switch(mc)
+  {
+  case MECHANIC:
+    form = "linElastInt";
+    break;
+  case ELECTROSTATIC:
+    form = "linGradBDBInt";
+    break;
+  case PIEZO:
+    form = "linPiezoCoupling";
+    break;
+  default:
+    assert(false);
+    break;
+  }
+
+  if(mat.GetNumRows() == 0 || !structured_ || direction != DesignElement::NO_DERIVATIVE)
+  {
+    BaseMaterial* bm = NULL;
+    if(de != NULL && de->multimaterial != NULL) // TODO is actually nonsense but due to non-region dependency of DesignSpace::multimaterial
+      bm = space->GetRegion(de->elem->regionId, &space->GetMultiMaterials()[index])->multimaterial->GetMultiMaterial(mc);
+
+    GetElementMatrix(ErsatzMaterial::GetForm(de->elem->regionId, pde1, pde2, form), mat, NULL, bm, direction, factor);
+    if(transposed)
+    {
+      Matrix<double> tmp = mat;
+      tmp.Transpose(mat);
+    }
+  }
+
+  return mat;
+}
+
+
 
 
 MechMat::MechMat(ErsatzMaterial* em) : OptimizationMaterial(em)
@@ -202,7 +254,7 @@ void MechMat::Init()
         LOG_DBG(om) << "OptMechMat: MechStiffness region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << " bimaterial" << std::endl << K.Last().ToString(0,true);
       }
 
-      if(harmonic_)
+      if(harmonic_ || transient_)
       {
         mechMass_map[reg_id].Push_back(Matrix<double>());
 
@@ -220,6 +272,9 @@ void MechMat::Init()
     }
   }
 }
+
+
+
 
 
 const Matrix<double>& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction)
@@ -369,7 +424,7 @@ const Matrix<double>& AcouMat::AcouMass(const Elem* elem, bool bimaterial)
 
 
 
-PiezoelecMat::PiezoelecMat(ErsatzMaterial* em) :
+PiezoElecMat::PiezoElecMat(ErsatzMaterial* em) :
   MechMat(em)
 {
   system_ = PIEZOCOUPLING;
@@ -378,80 +433,49 @@ PiezoelecMat::PiezoelecMat(ErsatzMaterial* em) :
 
   for(unsigned int r = 0; r < regionIds.GetSize(); r++)
   {
-    // in the piezoelectric case K_pp is set to -K_pp. As we use the linGradBDBInt from a piezoelectric problem this is done!
-    // FIXME check the sign!
-    GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_map[regionIds[r]], NULL, NULL, DesignElement::NO_DERIVATIVE, -1.0); // see above
-    assert(elecStiffness_map[regionIds[r]].Trace() > 0.0);
-    GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_neg_map[regionIds[r]], NULL, NULL, DesignElement::NO_DERIVATIVE, 1.0); // see above
-    assert(elecStiffness_neg_map[regionIds[r]].Trace() < 0.0);
+    Elem elem;
+    DesignElement de;
+    de.elem = &elem;
+    de.elem->regionId = regionIds[r];
 
-    GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], mech, elec, "linPiezoCoupling"), coupledStiffness_map[regionIds[r]]);
-    coupledStiffness_map[regionIds[r]].Transpose(coupledStiffnessTransposed_map[regionIds[r]]);
+    // three cases: multimaterial, (legacy) bimagterial, normal. Run once for the last two
+    for(int m = -1; m < (int) space->GetMultiMaterials().GetSize(); m++)
+    {
+      de.multimaterial = (m == -1) ? NULL : &(space->GetMultiMaterials()[m]);
+
+      ElecStiffnessPos(&de, DesignElement::NO_DERIVATIVE); // has assert
+      ElecStiffnessNeg(&de, DesignElement::NO_DERIVATIVE);
+      CoupledStiffness(&de, DesignElement::NO_DERIVATIVE);
+      CoupledStiffnessTransposed(&de, DesignElement::NO_DERIVATIVE);
+    }
   }
-
-  // validate that we indeed have the real form
-#ifndef NDEBUG
-  // create a real linGradBDBInt object
-
-  SubTensorType tensor = domain->GetGrid()->GetDim() == 2 ? PLANE_STRAIN : FULL; // assume AXI not possible
-  BaseForm* elec_int =  new linGradBDBInt(elec->getPDEMaterialData()[regionIds[0]], ELEC_PERMITTIVITY, tensor);
-
-  ElemList list(domain->GetGrid());
-  list.SetRegion(regionIds[0]);
-  EntityIterator elemIt = list.GetIterator();
-  elemIt.Begin();
-
-  Matrix<Double> mat;
-  GetElementMatrix(elec_int, mat, const_cast<Elem*>(elemIt.GetElem())); // checks the pseudo density disable stuff
-  LOG_DBG3(om) << "OptPiezoMat: true K_pp=" << mat.ToString();
-
-  // we just need to check the sign
-  Matrix<Double>& our = elecStiffness_map[regionIds[0]];
-  LOG_DBG3(om) << "OptPiezoMat: our K_pp=" << our.ToString();
-  assert(our[0][0] > 0.0);
-  assert(abs(mat[0][0]) ==  abs(our[0][0]));
-
-  Matrix<Double> our_neg = elecStiffness_neg_map[regionIds[0]];
-  assert(our_neg[0][0] < 0.0);
-  assert(abs(mat[0][0]) == abs(our_neg[0][0]));
-  LOG_DBG3(om) << "OptPiezoMat: our -K_pp=" << our_neg.ToString();
-
-  delete elec_int;
-
-#endif
-
 }
 
-const Matrix<double>& PiezoelecMat::ElecStiffness(const Elem* elem, int factor, DesignElement::Type direction)
+const Matrix<double>& PiezoElecMat::ElecStiffnessPos(const DesignElement* de, DesignElement::Type direction)
 {
-  assert(factor == 1 || factor == -1);
-
-  std::map<RegionIdType, Matrix<double> >& map = factor == 1 ? elecStiffness_map : elecStiffness_neg_map;
-  // overwrite the element
-  if(!structured_)
-    GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, elec, elec, "linGradBDBInt"), map[elem->regionId], NULL, NULL, direction, (double) factor);
-
-  return map[elem->regionId];
+  Matrix<double>& mat = GeneralStiffness(elecStiffness_map, de, ELECTROSTATIC, elec, elec, direction, -1.0 , false); // piezo form already negates
+  assert(direction != DesignElement::NO_DERIVATIVE || mat.Trace() >= 0.0); // allow zero in case of piezo-fmo for non-DIELEC direction
+  return mat;
 }
 
-const Matrix<double>& PiezoelecMat::CoupledStiffness(const Elem* elem, DesignElement::Type direction)
+const Matrix<double>& PiezoElecMat::ElecStiffnessNeg(const DesignElement* de, DesignElement::Type direction)
 {
-  if(!structured_)
-    GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, elec, "linPiezoCoupling"), coupledStiffness_map[elem->regionId], NULL, NULL, direction);
-
-  return coupledStiffness_map[elem->regionId];
+  Matrix<double>& mat = GeneralStiffness(elecStiffness_neg_map, de, ELECTROSTATIC, elec, elec, direction, 1.0, false); // piezo form already negates
+  //   type.Add(NO_MULTIMATERIAL, "no_multimaterial");LOG_DBG3(om) << "PEM:ESN de=" << de->ToString() << " dt=" << DesignElement::type.ToString(direction) << " -> " << mat.ToString();
+  assert(direction != DesignElement::NO_DERIVATIVE || mat.Trace() <= 0.0); // allow zero in case of piezo-fmo for non-DIELEC direction
+  return mat;
 }
 
 
-const Matrix<double>& PiezoelecMat::CoupledStiffnessTransposed(const Elem* elem, DesignElement::Type direction)
+const Matrix<double>& PiezoElecMat::CoupledStiffness(const DesignElement* de, DesignElement::Type direction)
 {
-  if(!structured_)
-  {
-    GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, elec, "linPiezoCoupling"), coupledStiffness_map[elem->regionId], NULL, NULL, direction);
-    coupledStiffness_map[elem->regionId].Transpose(coupledStiffnessTransposed_map[elem->regionId]);
-  }
+  return GeneralStiffness(coupledStiffness_map, de, PIEZO, mech, elec, direction, 1.0, false);
+}
 
-  return coupledStiffnessTransposed_map[elem->regionId];
+
+const Matrix<double>& PiezoElecMat::CoupledStiffnessTransposed(const DesignElement* de, DesignElement::Type direction)
+{
+  return GeneralStiffness(coupledStiffnessTransposed_map, de, PIEZO, mech, elec, direction, 1.0, true);
 }
 
 HeatMat::HeatMat(ErsatzMaterial* em) :

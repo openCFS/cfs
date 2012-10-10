@@ -1405,14 +1405,24 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
   switch(f->GetType())
   {
   case TENSOR_TRACE:
+  {
     // we have the case of elast and piezo fmo with elec tensor
     // but also param mat where stiff1 and stiff2, ... form the tensor
-    for(unsigned int i=1; i < space->design.GetSize(); ++i)
+    // The problem is, that the first *compatible* design shall not be within the neighborhood,
+    // but for piezo-FMO the first element might not be a compatible one
+    bool first_compatible_found = false;
+    for(unsigned int i=0; i < space->design.GetSize(); ++i)
     {
       if(DesignElement::IsCompatible(f->GetDesignType(), space->design[i].design))
-        des_idx.Push_back(i);
+      {
+        if(!first_compatible_found)
+          first_compatible_found = true; // we do not add the first compatible designs to the neighbors
+        else
+          des_idx.Push_back(i);
+      }
     }
     break;
+  }
   case TENSOR_NORM:
     if(f->GetDesignType() != DesignElement::PIEZO_ALL)
       throw Exception("'tensor_norm' only defined for 'piezo_all' design");
@@ -2614,10 +2624,13 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
 
     double ret = 0.0;
 
-    if(derivative)
+    if(!derivative)
     {
       for(int i=-1; i < (int) neighbor.GetSize(); ++i)
+      {
         ret += GetElement(i)->GetDesign(DesignElement::PLAIN);
+        LOG_DBG3(func) << "L::I::CMMS e_num=" << element->elem->elemNum << " i=" << i << " e=" <<  GetElement(i)->elem->elemNum << " mi=" << GetElement(i)->multimaterial->index << " -> " << ret;
+      }
     }
     else
     {

@@ -48,6 +48,13 @@ Enum<DesignElement::Detail>         DesignElement::detail;
 // is a static attribute
 DesignSpace* DesignElement::space_(NULL);
 
+std::string BaseDesignElement::ToString() const
+{
+ return " t=" + type.ToString(type_);
+
+}
+
+
 bool BaseDesignElement::IsCompatible(Type super, Type test)
 {
   switch(super)
@@ -559,7 +566,11 @@ std::string DesignElement::ToString(const DesignElement* de)
     ss << "ghost";
     if(de->vicinity != NULL) ss << de->vicinity->ToString();
   }
-  else ss << boost::lexical_cast<std::string>(de->elem->elemNum);
+  else
+  {
+    ss << "e=" << boost::lexical_cast<std::string>(de->elem->elemNum);
+    ss << " t=" << type.ToString(de->type_);
+  }
   
   return ss.str();
 }
@@ -617,6 +628,8 @@ void DesignElement::SetEnums()
   Filter::density.Add(Filter::TANH, "tanh");
 
   type.SetName("BaseDesignElement::Type");
+  type.Add(NO_MULTIMATERIAL, "no_multimaterial");
+  type.Add(NO_DERIVATIVE, "no_derivative");
   type.Add(TENSOR_TRACE, "tensor_trace");
   type.Add(ELAST_ALL, "elast_all");
   type.Add(DIELEC_TRACE, "dielec_trace");
