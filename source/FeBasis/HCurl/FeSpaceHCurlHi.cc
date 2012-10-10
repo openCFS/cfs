@@ -454,7 +454,7 @@ namespace CoupledField{
     PtrParamNode thinNode = infoNode_->Get("thinElements");
     
     UInt numGroups = faceGroups.GetSize();
-    UInt totalEntries = 0.0;
+    UInt totalEntries = 0;
     for( UInt i = 0; i < numGroups; ++i) {
       totalEntries += faceGroups[i].GetSize();
     }
