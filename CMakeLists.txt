@@ -209,6 +209,12 @@ SET(USE_METIS ${USE_METIS_DEFAULT}
   CACHE INTERNAL "Use Metis Graph partitioning.")
 
 #-----------------------------------------------------------------------------
+# CGNS - CFD General Notation System
+#-----------------------------------------------------------------------------
+OPTION(USE_CGNS "Enable support for the CFD General Notation System."
+  ${USE_CGNS_DEFAULT})
+
+#-----------------------------------------------------------------------------
 # SCPIP optimizer library.
 #-----------------------------------------------------------------------------
 OPTION(USE_SCPIP "Use the external SCPIP optimizer." ${USE_SCPIP_DEFAULT})

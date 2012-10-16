@@ -81,6 +81,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gidpost.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_hdf5.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_hdf5.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_cgns.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_cgns.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gmsh.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_gmsh.hh")
 

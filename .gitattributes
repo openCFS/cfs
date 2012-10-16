@@ -65,6 +65,12 @@ cfsdeps/cgal/External_CGAL.cmake -text
 cfsdeps/cgal/cgal-intel-isfinite.patch -text
 cfsdeps/cgal/cgal-patch.cmake.in -text
 cfsdeps/cgns/External_CGNS.cmake -text
+cfsdeps/cgns/cgns-arch-mac.patch -text
+cfsdeps/cgns/cgns-cmake-mac.patch -text
+cfsdeps/cgns/cgns-cmake-policy.patch -text
+cfsdeps/cgns/cgns-install-target.patch -text
+cfsdeps/cgns/cgns-patch.cmake.in -text
+cfsdeps/cgns/cgnsview-ccmio.patch -text
 cfsdeps/cmake/External_CMake.cmake -text
 cfsdeps/cmake/cmake-configure.cmake.in -text
 cfsdeps/cmake/cmake-install.cmake.in -text
@@ -200,6 +206,7 @@ include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
 include/def_use_blas.hh.in -text
 include/def_use_cgal.hh.in -text
+include/def_use_cgns.hh.in -text
 include/def_use_cholmod.hh.in -text
 include/def_use_comsol.hh.in -text
 include/def_use_gidpost.hh.in -text

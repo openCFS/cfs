@@ -115,6 +115,18 @@ IF(USE_HDF5)
 ENDIF(USE_HDF5)
 
 #-------------------------------------------------------------------------------
+# Search for CGNS library
+#-------------------------------------------------------------------------------
+IF(USE_CGNS)
+  SET(CGNS_URL "${LSE17_SOURCES_DIR}/cgns")
+  SET(CGNS_GZ "cgnslib_3.1.3-2.tar.gz")
+  SET(CGNS_MD5 "164040363bd821a5e22820487dc441b3")
+
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cgns/External_CGNS.cmake")
+ENDIF(USE_CGNS)
+
+
+#-------------------------------------------------------------------------------
 # Search for METIS library
 #-------------------------------------------------------------------------------
 IF(USE_METIS)
