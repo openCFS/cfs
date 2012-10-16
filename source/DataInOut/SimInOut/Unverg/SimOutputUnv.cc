@@ -424,6 +424,29 @@ namespace CoupledField {
           (*output) << std::setw(10) << connect[1];
           (*output) << std::setw(10) << connect[2];
           break;
+
+        case Elem::ET_TRIA6:
+          (*output) << std::setw(10) << 6 << std::endl;
+          (*output) << std::setw(10) << connect[0];
+          (*output) << std::setw(10) << connect[3];
+          (*output) << std::setw(10) << connect[1];
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[2];
+          (*output) << std::setw(10) << connect[5];
+          break;
+
+        case Elem::ET_QUAD8:
+        case Elem::ET_QUAD9:
+          (*output) << std::setw(10) << 8 << std::endl;
+          (*output) << std::setw(10) << connect[0];
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[1];
+          (*output) << std::setw(10) << connect[5];
+          (*output) << std::setw(10) << connect[2];
+          (*output) << std::setw(10) << connect[6];
+          (*output) << std::setw(10) << connect[3];
+          (*output) << std::setw(10) << connect[7];
+          break;
           
         case Elem::ET_TET10:
           (*output) << std::setw(10) << 10 << std::endl;
@@ -456,6 +479,7 @@ namespace CoupledField {
           break;
 
     case Elem::ET_PYRA13:
+    case Elem::ET_PYRA14:
           (*output) << std::setw(10) << 20 << std::endl;
           (*output) << std::setw(10) << connect[0];
           (*output) << std::setw(10) << connect[5];
@@ -488,6 +512,7 @@ namespace CoupledField {
           break;
 
     case Elem::ET_WEDGE15:
+    case Elem::ET_WEDGE18:
           (*output) << std::setw(10) << 15 << std::endl;
           (*output) << std::setw(10) << connect[0];
           (*output) << std::setw(10) << connect[6];
@@ -607,12 +632,14 @@ namespace CoupledField {
       id       = 115;
       break;
     case Elem::ET_PYRA13:
+    case Elem::ET_PYRA14:
       id       = 116;
       break;
     case Elem::ET_WEDGE6:
       id       = 112;
       break;
     case Elem::ET_WEDGE15:
+    case Elem::ET_WEDGE18:
       id       = 113;
       break;
     default:
