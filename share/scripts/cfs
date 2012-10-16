@@ -367,7 +367,7 @@ st_mtime="0"
 
 hdf5_file_name="results_hdf5/${sim_name}.h5"
 if [ ! "$sim_name" = "" ] && [ -r "$hdf5_file_name" ]; then
-    if [ "$OS" = "Mac" ]; then
+    if [ "$OS" = "MAC OS X" ]; then
         eval "$(stat -s $hdf5_file_name)"
         st_size_before=$st_size
         st_mtime_before=$st_mtime
@@ -394,7 +394,7 @@ fi
 
 # Get file state of output HDF5 file
 if [ -r "$hdf5_file_name" ]; then
-    if [ "$OS" = "Mac" ]; then
+    if [ "$OS" = "MAC OS X" ]; then
         eval "$(stat -s $hdf5_file_name)"
         st_size_after=$st_size
         st_mtime_after=$st_mtime
@@ -410,7 +410,7 @@ if [ "$st_size_before" = "$st_size_after" ] && [ "$st_mtime_before" = "$st_mtime
 fi
 
 # Create OS-specific hardware info files
-if [ "$OS" = "Mac" ]; then
+if [ "$OS" = "MAC OS X" ]; then
     /usr/sbin/system_profiler SPHardwareDataType SPSoftwareDataType > macosx_info.txt
     OSFILELIST="macosx_info.txt";
     STATCMD="stat -x"
