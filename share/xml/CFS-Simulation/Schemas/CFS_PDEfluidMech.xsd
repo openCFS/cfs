@@ -269,9 +269,10 @@
   <!-- Definition of element result types of fluid-mechanic PDE -->
   <xsd:simpleType name="DT_FluidMechElemResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="fluidMechStrain"/>
-      <xsd:enumeration value="fluidMechStress"/>
       <xsd:enumeration value="stabilParam"/>
+      <xsd:enumeration value="fluidMechPresGradient"/>
+      <xsd:enumeration value="fluidMechStress"/>
+      <xsd:enumeration value="fluidMechStrainRate"/>
     </xsd:restriction>
   </xsd:simpleType>
 
