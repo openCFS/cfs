@@ -267,7 +267,7 @@ SET(MAJOR_REV "${MAJOR_REV}")
 SET(ARCH "${ARCH}")
 SET(SUBARCH "${SUBARCH}")
 DELIM
-) | sed 'y/'$LOWER'/'$UPPER'/;s/) /)\n/g' ;;
+) | sed 'y/'$LOWER'/'$UPPER'/;s/) /)#/g' | tr '#' '\n' ;;
         -s) # Shell syntax
 echo $(cat << DELIM
 OS="${OS}"
@@ -278,7 +278,7 @@ MAJOR_REV="${MAJOR_REV}"
 ARCH="${ARCH}"
 SUBARCH="${SUBARCH}"
 DELIM
-) | sed 'y/'$LOWER'/'$UPPER'/;s/" /"\n/g' ;;
+) | sed 'y/'$LOWER'/'$UPPER'/;s/" /"#/g' | tr '#' '\n' ;;
         -p) echo "DIST='${DIST}'; REV='${REV}'; ARCH='${ARCH}'" | sed 'y/'$LOWER'/'$UPPER'/' ;;
         *) break ;;
     esac

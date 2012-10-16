@@ -60,7 +60,7 @@ esac
 case "$OS" in
     LINUX)
 	OS_SUPPORTED=1 ;;
-    MACOSX)
+    MAC OS X)
 	OS_SUPPORTED=1 ;;
     *)
 	OS_SUPPORTED=0 ;;
