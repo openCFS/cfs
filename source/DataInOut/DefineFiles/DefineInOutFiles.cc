@@ -42,6 +42,8 @@
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
 
+#include "DataInOut/SimInOut/RefElems/SimInputRefElems.hh"
+
 // XDMF writer
 #include "DataInOut/SimInOut/xdmf/SimOutputXDMF.hh"
 #endif
@@ -201,6 +203,13 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
 #else
       EXCEPTION( "No support for GMV input file format." );
 #endif // USE_GMV
+    }
+    else if (informat == "refelem")
+    {
+      if(meshFile.empty())
+      meshFile = simName + ".refelem";
+      inFiles[actId] = shared_ptr<SimInput>(new SimInputRefElems(meshFile,
+              actNode));
     }
     else if (informat == "gmsh")
     {

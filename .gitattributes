@@ -886,6 +886,9 @@ source/DataInOut/SimInOut/GiD/SimOutGiD.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/InfoResultOutput/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/SimInOut/RefElems/CMakeLists.txt -text
+source/DataInOut/SimInOut/RefElems/SimInputRefElems.cc -text
+source/DataInOut/SimInOut/RefElems/SimInputRefElems.hh -text
 source/DataInOut/SimInOut/Streaming/CMakeLists.txt -text
 source/DataInOut/SimInOut/Streaming/SimOutputStreaming.cc -text
 source/DataInOut/SimInOut/Streaming/SimOutputStreaming.hh -text

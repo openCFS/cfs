@@ -522,6 +522,8 @@ IF(USE_GMSH)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/gmsh)
 ENDIF(USE_GMSH)
 
+ADD_SUBDIRECTORY(source/DataInOut/SimInOut/RefElems)
+
 IF(USE_HDF5)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/hdf5)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/xdmf)

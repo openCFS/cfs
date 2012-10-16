@@ -50,6 +50,8 @@ namespace fs = boost::filesystem;
 #include "DataInOut/SimInOut/xdmf/SimOutputXDMF.hh"
 #endif
 
+#include "DataInOut/SimInOut/RefElems/SimInputRefElems.hh"
+
 #ifdef USE_GIDPOST
 #include "DataInOut/SimInOut/GiD/SimOutGiD.hh"
 #endif
@@ -84,7 +86,8 @@ namespace CFSTool {
     // determine suffix of fileName
     shared_ptr<SimInput> reader;
 
-    if (!fs::exists( fileName ))
+    if (fileName.find( ".refelem") == std::string::npos &&
+        !fs::exists( fileName ))
       EXCEPTION( "\nFile '" << fileName << "' does not exist!");
 
     if( fileName.find( ".mesh") != std::string::npos ) {
@@ -99,6 +102,8 @@ namespace CFSTool {
 #else
       EXCEPTION( "No support for HDF5 input file format." );
 #endif
+    } else if( fileName.find( ".refelem") != std::string::npos ) {
+      reader = shared_ptr<SimInput>(new SimInputRefElems(fileName, param));
     } else if( fileName.find( ".msh") != std::string::npos ) {
 #ifdef USE_GMSH
       PtrParamNode gmshNode(new ParamNode (ParamNode::EX, ParamNode::ELEMENT));

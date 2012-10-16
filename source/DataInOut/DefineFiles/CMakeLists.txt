@@ -40,6 +40,8 @@ IF(USE_COMSOL)
   SET(TARGET_LL ${TARGET_LL} siminmphtxt)
 ENDIF(USE_COMSOL)
 
+SET(TARGET_LL ${TARGET_LL} siminrefelems)
+
 SET(TARGET_LL ${TARGET_LL} simoutinfo)
 
 SET(TARGET_LL ${TARGET_LL} datainout)
