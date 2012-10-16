@@ -316,12 +316,13 @@ namespace CoupledField{
   template<class DATA_TYPE>
   void CoefFunctionNodalGrid<DATA_TYPE>::ReadXmlNode(PtrParamNode configNode){
 
-    this->inputId_ = configNode->Get("input")->Get("inputId")->As<std::string>();
-    this->gridId_ = configNode->Get("input")->Get("gridId")->As<std::string>();
-    std::string solString = configNode->Get("input")->Get("quantity")->As<std::string>();
-    this->solType_ = SolutionTypeEnum.Parse(solString );
+    std::string solString;
+    configNode->Get("input")->GetValue("inputId", inputId_);
+    configNode->Get("input")->GetValue("gridId", gridId_);
+    configNode->Get("input")->GetValue("quantity", solString);
+    solType_ = SolutionTypeEnum.Parse(solString );
     srcGrid_ = domain->GetGrid(gridId_);
-    std::string factorString;
+    std::string factorString = "1.0";
     configNode->GetValue("factor",factorString);
     factorFnc_ = CoefFunction::Generate(Global::REAL,factorString,"");
 
