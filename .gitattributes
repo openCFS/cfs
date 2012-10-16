@@ -67,6 +67,8 @@ cfsdeps/cfx_custom/cfx_custom_v121_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v121_linux-amd64.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v130_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v130_linux-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v140_include.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v140_linux-amd64.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfxio-build.cmake.in -text
 cfsdeps/cfx_custom/cfxio-install.cmake.in -text
 cfsdeps/cgal/CGAL-3.2.1-install_cgal-no_versions_in_compiler_config.h.patch -text
