@@ -447,9 +447,16 @@ public:
   //! and the full set.
   virtual void UpdateToSolStrategy() {;}
  //@}
-  
+
+  void SetLagrSurfSpace() 
+  {
+    lagrangeSurfSpace_ = true;
+  }
+
 protected:
   
+  bool lagrangeSurfSpace_;  
+
   //! Parameter node
   PtrParamNode myParam_;
   

@@ -139,7 +139,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   //! Constructor
   FeSpace::FeSpace( PtrParamNode paramNode, PtrParamNode infoNode, 
                     Grid* ptGrid ){
-    
+   
+    lagrangeSurfSpace_ = false;
     myParam_ = paramNode;
     infoNode_ = infoNode;
     ptGrid_ = ptGrid;
@@ -920,6 +921,12 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       ret = ptElem;
     } else if( gridDim-elemDim == 1 ) {
       // 2) Real surface case
+
+      if(lagrangeSurfSpace_) 
+      {
+        return ptElem;
+      }
+
       const SurfElem * ptSurfEl = dynamic_cast<const SurfElem*>(ptElem);
       boost::array<Elem*,2>::const_iterator it = ptSurfEl->ptVolElems.begin();
       for( ; it != ptSurfEl->ptVolElems.end(); it++ ) {

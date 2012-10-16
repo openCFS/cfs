@@ -189,16 +189,20 @@ namespace CoupledField {
       materials_[actRegion]->GetScalar(density,DENSITY,Global::REAL);
       materials_[actRegion]->GetScalar(viscosity,DYNAMIC_VISCOSITY,Global::REAL);
 
+      WARN("density: " << density << " viscosity " << viscosity);
+      
+
       // Create set of flow regions and map of density functions for surface integrators.
       flowRegions.insert(actRegion);
       oneOverDensityFuncs[actRegion] = CoefFunction::Generate(Global::REAL,
-                                                       lexical_cast<std::string>(1.0/density));
+                                                       lexical_cast<std::string>(1.0));
 
       // ====================================================================
       // stiffness integrators
       // ====================================================================
       // --------------------------------------------------------------------
       //  VERSION 1: K_PV Integrator (lower off-diagonal integrator)
+      //  \int_{\Omega_f} phi div(v') d\Omega = 0
       // --------------------------------------------------------------------
 
       PtrCoefFct coeffKPV
@@ -248,9 +252,9 @@ namespace CoupledField {
                 = CoefFunction::Generate(Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
       if( dim_ == 2 ) {
-        stiffIntVP = new ABInt< DivOperator<FeH1,2> , MultiIdOp<FeH1,2> >(coeffKVP, -1.0 / density );
+        stiffIntVP = new ABInt< DivOperator<FeH1,2> , MultiIdOp<FeH1,2> >(coeffKVP, -1.0 );
       } else {
-        stiffIntVP = new ABInt< DivOperator<FeH1,3> , MultiIdOp<FeH1,3> >(coeffKVP, -1.0 / density );
+        stiffIntVP = new ABInt< DivOperator<FeH1,3> , MultiIdOp<FeH1,3> >(coeffKVP, -1.0 );
       }
       stiffIntVP->SetName("PerturbedStiffIntVP");
       //stiffIntVP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
@@ -265,27 +269,30 @@ namespace CoupledField {
       //  VERSION 2: K_Laplace Integrator
       // --------------------------------------------------------------------
       PtrCoefFct coeffKvv
-                = CoefFunction::Generate(Global::REAL, "1.0");
+                = CoefFunction::Generate(Global::REAL,
+                                         lexical_cast<std::string>(viscosity));
       BiLinearForm * stiffIntLaplace = NULL;
       if( dim_ == 2 ) {
-        stiffIntLaplace = new BBInt< LaplOperator<FeH1,2> >(coeffKvv, viscosity / density);
+        stiffIntLaplace = new BBInt< LaplOperator<FeH1,2> >(coeffKvv, 1.0);
       } else {
-        stiffIntLaplace = new BBInt< LaplOperator<FeH1,3> >(coeffKvv, viscosity / density);
+        stiffIntLaplace = new BBInt< LaplOperator<FeH1,3> >(coeffKvv, 1.0);
       }
       stiffIntLaplace->SetName("PerturbedStiffIntViscous");
-      BiLinFormContext *stiffContLaplace = new BiLinFormContext(stiffIntLaplace, STIFFNESS );
+      BiLinFormContext *stiffContLaplace;
+      stiffContLaplace = new BiLinFormContext(stiffIntLaplace, STIFFNESS );
 
       stiffContLaplace->SetEntities( actSDList, actSDList );
-      stiffContLaplace->SetFeFunctions( velFct, velFct);
+      stiffContLaplace->SetFeFunctions( velFct, velFct );
       assemble_->AddBiLinearForm( stiffContLaplace );
 
 
       PtrCoefFct coeffMVV
-                = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0));
+                = CoefFunction::Generate(Global::REAL,
+                                         lexical_cast<std::string>(density));
 
       //======================================================================
       // CHECK FOR FLOW
-      //=====================================================================
+      //======================================================================
       std::string flowId = curRegNode->Get("flowId")->As<std::string>();
       if(flowId != ""){
         // Get result info object for flow
@@ -332,7 +339,7 @@ namespace CoupledField {
       // damping integrators
       // ====================================================================
       PtrCoefFct coeffDvv
-                = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0));
+                = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(density));
 
       BiLinearForm *dampIntvv = NULL;
       if( dim_ == 2 ) {

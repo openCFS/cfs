@@ -71,6 +71,7 @@ class BiLinearForm;
                                     shared_ptr<BaseFeFunction>& lmFct,
                                     shared_ptr<SurfElemList>& actSDList,
                                     const std::map< RegionIdType, PtrCoefFct >& densityFuncs,
+                                    const std::map< RegionIdType, PtrCoefFct >& muFuncs,
                                     const std::map< RegionIdType, PtrCoefFct >& oneFuncs,
                                     const std::set< RegionIdType >& flowRegions);
     

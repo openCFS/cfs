@@ -101,20 +101,27 @@ namespace CoupledField {
       flowMat->GetScalar(density,DENSITY,Global::REAL);
       flowMat->GetScalar(viscosity,DYNAMIC_VISCOSITY,Global::REAL);
 
+      //      densityFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
+      //                                                   lexical_cast<std::string>(1.0/density));
       densityFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
-                                                   lexical_cast<std::string>(1.0/density));
+                                                   lexical_cast<std::string>(1.0));
+      //      muFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
+      //                                                   lexical_cast<std::string>(viscosity) * lexical_cast<std::string>(1.0/density));
+
       muFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
-                                                   lexical_cast<std::string>(viscosity));
+                                                   lexical_cast<std::string>(1.0));
       oneFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
                                                    lexical_cast<std::string>(1.0));
+
+      WARN("density: " << density << " viscosity " << viscosity);
 
       shared_ptr<ElemList> actSDList( new ElemList( ptGrid_ ) );
       actSDList->SetRegion( volRegId );
 
-      if(actSDList->GetType() != EntityList::SURF_ELEM_LIST) {
-        lagrangeMultFct->AddEntityList( actSDList );
-        lagrangeMultSpace->SetRegionApproximation(volRegId, "velPolyId", "velIntegId");
-      }
+      //      if(actSDList->GetType() != EntityList::SURF_ELEM_LIST) {
+      //        lagrangeMultFct->b( actSDList );
+      //        lagrangeMultSpace->SetRegionApproximation(volRegId, "velPolyId", "velIntegId");
+      //      }
     }
 
     for ( UInt actSD = 0, n = entityLists_.GetSize(); actSD < n; actSD++ ) {
@@ -149,6 +156,7 @@ namespace CoupledField {
                                  actSDList,
                                  densityFuncs,
                                  muFuncs,
+                                 oneFuncs,
                                  flowRegions);
     }
   }
@@ -198,6 +206,7 @@ namespace CoupledField {
                                                 shared_ptr<BaseFeFunction>& lmFct,
                                                 shared_ptr<SurfElemList>& actSDList,
                                                 const std::map< RegionIdType, PtrCoefFct >& densityFuncs,
+                                                const std::map< RegionIdType, PtrCoefFct >& muFuncs,
                                                 const std::map< RegionIdType, PtrCoefFct >& oneFuncs,
                                                 const std::set< RegionIdType >& flowRegions){
     BiLinearForm * stiffInt = NULL;
@@ -270,19 +279,23 @@ namespace CoupledField {
     if( subType_ == "axi" ) {
         stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
             IdentityOperator<FeH1,2,2> >
-          (densityFuncs, 1.0, flowRegions);
+          (oneFuncs, 1.0, flowRegions);
+        //          (densityFuncs, 1.0, flowRegions);
     } else if( subType_ == "planeStrain" ) {
       stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
           IdentityOperator<FeH1,2,2> >
-        (densityFuncs, 1.0, flowRegions);
+          (oneFuncs, 1.0, flowRegions);
+                 //        (densityFuncs, 1.0, flowRegions);
     } else if( subType_ == "planeStress" ) {
       stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
           IdentityOperator<FeH1,2,2> >
-        (densityFuncs, 1.0, flowRegions);
+          (oneFuncs, 1.0, flowRegions);
+                 //        (densityFuncs, 1.0, flowRegions);
     } else if( subType_ == "3d") {
       stiffInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
           IdentityOperator<FeH1,3,3> >
-        (densityFuncs, 1.0, flowRegions);
+          (oneFuncs, 1.0, flowRegions);
+                 //        (densityFuncs, 1.0, flowRegions);
     } else {
       EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
     }
@@ -295,6 +308,7 @@ namespace CoupledField {
     context->SetCounterPart(false);
 
     assemble_->AddBiLinearForm( context );
+
   }
 
   void FluidMechCoupling::DefineAvailResults() {
@@ -344,6 +358,9 @@ namespace CoupledField {
 
    crSpaces[formulation_] =
        FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
+
+   crSpaces[formulation_]->SetLagrSurfSpace();
+
    crSpaces[formulation_]->Init(solStrat_);
   }
   
