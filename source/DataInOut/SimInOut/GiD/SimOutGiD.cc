@@ -222,7 +222,9 @@ namespace CoupledField {
         break;
       case 10:
       case 13:
+      case 14:
       case 15:
+      case 18:
       case 20:
         numElemNodes = 20;
         break;
@@ -499,14 +501,17 @@ namespace CoupledField {
       break;
 
     case Elem::ET_PYRA13:
+    case Elem::ET_PYRA14:
       connect[0]= connectDummy[0];
       connect[1]= connectDummy[1];
       connect[2]= connectDummy[2];
       connect[3]= connectDummy[3];
+
       connect[4]= connectDummy[4];
       connect[5]= connectDummy[4];
       connect[6]= connectDummy[4];
       connect[7]= connectDummy[4];
+
       connect[8]= connectDummy[5];
       connect[9]= connectDummy[6];
       connect[10]= connectDummy[7];
@@ -515,11 +520,13 @@ namespace CoupledField {
       connect[13]= connectDummy[10];
       connect[14]= connectDummy[11];
       connect[15]= connectDummy[12];
+
       connect[16]= connectDummy[4];
       connect[17]= connectDummy[4];
       connect[18]= connectDummy[4];
       connect[19]= connectDummy[4];
       break;
+
 
     case Elem::ET_WEDGE6:
       connect[0]= connectDummy[0];
@@ -533,6 +540,7 @@ namespace CoupledField {
       break;
 
     case Elem::ET_WEDGE15:
+    case Elem::ET_WEDGE18:
       connect[0] = connectDummy[0];
       connect[1] = connectDummy[1];
       connect[2] = connectDummy[2];

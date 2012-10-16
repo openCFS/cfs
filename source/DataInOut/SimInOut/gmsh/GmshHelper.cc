@@ -370,8 +370,8 @@ namespace CoupledField {
     elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(14, 10) );
 
     elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(15, 15) );
-    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(16, 16) );
-    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(17, 17) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(16, 17) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(17, 16) );
 }
 
 }
