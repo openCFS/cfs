@@ -1,4 +1,3 @@
-
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
   targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org"
@@ -353,7 +352,10 @@
                 </xsd:sequence>
               </xsd:complexType>
             </xsd:element>
-            
+
+            <!-- Desired solution values (optional) -->
+            <xsd:element name="storeResults" type="DT_FluidMechDirectStoreResults"
+              minOccurs="0" maxOccurs="1"/>          
           </xsd:sequence>
         </xsd:extension>
       </xsd:complexContent>
@@ -436,6 +438,36 @@
     </xsd:sequence>
   </xsd:complexType>
 
+  <!-- Definition of surface element result types of fluid-mech coupling -->
+  <xsd:simpleType name="DT_FluidMechDirectNodeResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="LagrangeMultiplier"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+
+  <!-- FluidMech - Case -->
+  <!-- Global type for specifying the desired  output quantities -->
+  <xsd:complexType name="DT_FluidMechDirectStoreResults">
+    <xsd:sequence>
+      <xsd:choice maxOccurs="unbounded">
+        
+        <!-- Surface element result definition -->
+        <xsd:element name="nodeResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_NodeResult">
+                <xsd:attribute name="type" type="DT_FluidMechDirectNodeResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType>
+  
   
   <!-- Magnetostritive - Case -->
   <!-- Definition of nodal result types of mag-mech coupling -->
