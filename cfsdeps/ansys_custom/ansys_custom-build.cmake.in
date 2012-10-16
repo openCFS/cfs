@@ -27,7 +27,7 @@ SET(ARCHIVES
   "v120_include"
   "v121_include"
   "v130_include"
-#  "v140_include"
+  "v140_include"
 )
 
 IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -50,6 +50,7 @@ IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
       ${ARCHIVES}	
       "v120_linx64"
       "v130_linx64"
+      "v140_linx64"
       )
   ENDIF(CFS_ARCH STREQUAL "X86_64")
 

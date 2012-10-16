@@ -27,6 +27,7 @@ cfsdeps/ansys_custom/ansys_custom_v130_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v130_linx64.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v130_winx64.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v140_include.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v140_linx64.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v140_winx64.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_nacscmdargs_win32.tar.bz2 -text svneol=unset#unset
 cfsdeps/arpack/CMakeLists.txt -text
@@ -888,6 +889,7 @@ source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev100/CMakeLists.txt svneol=
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev110/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev120/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev130/CMakeLists.txt -text
+source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev140/CMakeLists.txt -text
 source/DataInOut/SimInOut/AnsysRST/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/ResRd.F -text
 source/DataInOut/SimInOut/AnsysRST/ResRdDemo.F -text
