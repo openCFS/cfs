@@ -213,7 +213,7 @@ elif [ ${OS} = "Darwin" ]; then
 	    OS="Mac OS X"
             DIST="MACOSX"
 	    FULL_REV=$MACOSVER
-            MAJOR_REV=`echo $FULL_REV | sed s/\.[0-9]$//`
+            MAJOR_REV=`echo $FULL_REV | sed -e 's/\.[0-9]$//' -e 's/Server //'`
 
 	    case "$MAJOR_REV" in
                 "10.0") PSEUDONAME="Cheetah";;
