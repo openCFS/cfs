@@ -41,6 +41,7 @@ EvalResult( shared_ptr<BaseResult> res ) {
   switch( entityListType ) 
   {
   case EntityList::ELEM_LIST:
+  case EntityList::SURF_ELEM_LIST:
     // loop over elements
     for ( it.Begin(); !it.IsEnd(); it++ ) {
       const Elem * el = it.GetElem();

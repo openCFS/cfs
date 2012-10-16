@@ -343,6 +343,10 @@ namespace CoupledField {
         return "J";
         break;
 
+      case FLUIDMECH_NORMAL_PRES:
+        return "Pa/m";
+        break;
+
       case HEAT_TEMPERATURE:
         return "K";
         break;
@@ -1219,6 +1223,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_FORCE, "fluidMechForce");
     SolutionTypeEnum.Add(FLUIDMECH_DENSITY, "fluidMechDensity");
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");
+    SolutionTypeEnum.Add(FLUIDMECH_NORMAL_PRES, "fluidMechNormalPres");
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
     // optimization
     SolutionTypeEnum.Add(HOMOGENIZED_TENSOR, "homogenizedTensor");

@@ -17,6 +17,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
+#include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
 #include "CoupledPDE/PDECoupling.hh"
@@ -197,13 +198,14 @@ namespace CoupledField {
       //  \int_{\Omega_f} phi div(v') d\Omega = 0
       // --------------------------------------------------------------------
 
-      PtrCoefFct coeffKPV
-                = CoefFunction::Generate(Global::REAL, "1.0");
+//      PtrCoefFct coeffKPV
+//                = CoefFunction::Generate(Global::REAL, "1.0");
+                
       BiLinearForm * stiffIntPV = NULL;
       if( dim_ == 2 ) {
-        stiffIntPV = new ABInt< MultiIdOp<FeH1,2> , DivOperator<FeH1,2> >(coeffKPV, 1.0 );
+        stiffIntPV = new ABInt< MultiIdOp<FeH1,2> , DivOperator<FeH1,2> >(density, 1.0 );
       } else {
-        stiffIntPV = new ABInt< MultiIdOp<FeH1,3> , DivOperator<FeH1,3> >(coeffKPV, 1.0 );
+        stiffIntPV = new ABInt< MultiIdOp<FeH1,3> , DivOperator<FeH1,3> >(density, 1.0 );
       }
       stiffIntPV->SetName("PerturbedStiffIntPV");
       //stiffIntPV->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
@@ -496,6 +498,45 @@ namespace CoupledField {
   
   
   void PerturbedFlowPDE::DefinePostProcResults() {
+    // === Normal derivative of pressure ===
+    shared_ptr<ResultInfo> ef ( new ResultInfo );
+    ef->resultType = FLUIDMECH_NORMAL_PRES;
+    ef->SetVectorDOFs(dim_, isaxi_);
+    ef->unit = "Pa/m";
+    ef->definedOn = ResultInfo::SURF_ELEM;
+    ef->entryType = ResultInfo::SCALAR;
+    availResults_.insert( ef );
+    
+    PtrCoefFct pNormal;
+    
+    // ============================
+    // Initialize result functors:
+    // ============================
+    // collect the flux volume flux coefficient functionf for each region
+    std::map<RegionIdType, PtrCoefFct> pCoefs;
+    
+    //  Loop over all regions
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {      
+      RegionIdType region = it->first;
+
+      pCoefs[region] = fieldCoefs_[FLUIDMECH_PRESSURE];
+    }
+    
+    // define missing surface charge density
+    if( isComplex_ ) {
+      shared_ptr<CoefFunctionSurf<Complex> > presNormal (
+          new CoefFunctionSurf<Complex>(true));
+      presNormal->SetVolumeCoefs(pCoefs);
+      pNormal= presNormal;
+    } else {
+      shared_ptr<CoefFunctionSurf<Double> > presNormal (
+          new CoefFunctionSurf<Double>(true));
+      presNormal->SetVolumeCoefs(pCoefs);
+      pNormal = presNormal;
+    }
+
+    DefineFieldResult( pNormal, ef );
 
   }
 

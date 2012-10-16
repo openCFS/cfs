@@ -256,7 +256,7 @@
   <!--   Definition of syntax for specifying output quantities of CFS -->
   <!-- ******************************************************************* -->
 
-  <!-- Definition of nodal result types of mechanic PDE -->
+  <!-- Definition of nodal result types of fluid-mechanic PDE -->
   <xsd:simpleType name="DT_FluidMechNodeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="fluidMechVelocity"/>
@@ -266,7 +266,7 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <!-- Definition of element result types of mechanic PDE -->
+  <!-- Definition of element result types of fluid-mechanic PDE -->
   <xsd:simpleType name="DT_FluidMechElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="fluidMechStrain"/>
@@ -275,7 +275,14 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <!-- Definition of surface region result types of mechanic PDE -->
+  <!-- Definition of surface element result types of fluid-mechanic PDE -->  
+  <xsd:simpleType name="DT_FluidMechSurfElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="fluidMechNormalPres"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Definition of surface region result types of fluid-mechanic PDE -->
   <xsd:simpleType name="DT_FluidMechRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="fluidMechEnergy"/>
@@ -287,7 +294,7 @@
      <xsd:union memberTypes="DT_FluidMechNodeResult DT_FluidMechElemResult"/>
    </xsd:simpleType>
    
- <!-- Global type for specifying desired electrostatic output quantities -->
+  <!-- Global type for specifying desired fluid-mechanic output quantities -->
   <xsd:complexType name="DT_FluidMechStoreResults">
     <xsd:sequence>
       <xsd:choice maxOccurs="unbounded">
@@ -324,6 +331,19 @@
             <xsd:complexContent>
               <xsd:extension base="DT_RegionResult">
                 <xsd:attribute name="type" type="DT_FluidMechRegionResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- Surface element result definition -->
+        <xsd:element name="surfElemResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfElemResult">
+                <xsd:attribute name="type"
+                type="DT_FluidMechSurfElemResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
