@@ -1,4 +1,0 @@
-// Define used to check if UMFPACK direct solver is activate
-
-#cmakedefine USE_UMFPACK
-
