@@ -996,7 +996,7 @@ namespace CoupledField {
 
               // read analytic expression of derivative of function
               if(anIsoNodes[i]->Has("fncDerivExpr")) 
-                info.fncDerivStr = anIsoNodes[i]->Get("fncDericExpr")->As<std::string>().c_str();
+                info.fncDerivStr = anIsoNodes[i]->Get("fncDerivExpr")->As<std::string>().c_str();
              
               nlData[i].angle        = info.angle;
               nlData[i].fileName     = info.fileName;

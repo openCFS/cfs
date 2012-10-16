@@ -380,6 +380,7 @@ namespace CoupledField
         nlinFncBH_ = new ApproxAnalytic("", MAG_PERMEABILITY);
         nlinFncBH_->SetAnalyticExpressions( nonLinMatInfo_[MAG_PERMEABILITY].fncStr,
                                             nonLinMatInfo_[MAG_PERMEABILITY].fncDerivStr);
+        nlinFncBH_->SetMaxY( nonLinMatInfo_[MAG_PERMEABILITY].maxVal );
       }
       else {
         std::string nlfnc = nonLinMatInfo_[MAG_PERMEABILITY].fileName;
@@ -400,14 +401,21 @@ namespace CoupledField
       anisotropicAngles_.Resize(nonLinMagBHcurvesInfo_.size());
 
       for ( UInt i=0; i< nonLinMagBHcurvesInfo_.size(); i++ ) {
-        std::string nlfncName = nonLinMagBHcurvesInfo_[i].fileName; 
-        nlinFncBHcurves_[i] = new SmoothSpline(nlfncName, MAG_PERMEABILITY);
-        nlinFncBHcurves_[i]->SetAccuracy( nonLinMagBHcurvesInfo_[i].measAccuracy );
-        nlinFncBHcurves_[i]->SetMaxY( nonLinMagBHcurvesInfo_[i].maxVal );   
-        nlinFncBHcurves_[i]->CalcBestParameter();
-        nlinFncBHcurves_[i]->CalcApproximation();
-        nlinFncBHcurves_[i]->Print(); 
-
+        if ( nonLinMagBHcurvesInfo_[i].fncStr !="" ) {
+          nlinFncBHcurves_[i] = new ApproxAnalytic("", MAG_PERMEABILITY);
+          nlinFncBHcurves_[i]->SetAnalyticExpressions(  nonLinMagBHcurvesInfo_[i].fncStr,
+                                                        nonLinMagBHcurvesInfo_[i].fncDerivStr);
+          nlinFncBHcurves_[i]->SetMaxY( nonLinMagBHcurvesInfo_[i].maxVal );   
+        }
+        else {
+          std::string nlfncName = nonLinMagBHcurvesInfo_[i].fileName; 
+          nlinFncBHcurves_[i] = new SmoothSpline(nlfncName, MAG_PERMEABILITY);
+          nlinFncBHcurves_[i]->SetAccuracy( nonLinMagBHcurvesInfo_[i].measAccuracy );
+          nlinFncBHcurves_[i]->SetMaxY( nonLinMagBHcurvesInfo_[i].maxVal );   
+          nlinFncBHcurves_[i]->CalcBestParameter();
+          nlinFncBHcurves_[i]->CalcApproximation();
+          nlinFncBHcurves_[i]->Print(); 
+        }
         anisotropicAngles_[i] =  nonLinMagBHcurvesInfo_[i].angle;
       }
     }

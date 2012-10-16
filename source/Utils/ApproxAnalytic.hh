@@ -45,7 +45,7 @@ namespace CoupledField {
 
     //! set maximal y-value
     virtual void SetMaxY( Double val ) {
-      EXCEPTION(" ApproxAnalytic: SetMaxY not implemented");
+      yMax_ = val;
     };
 
     //! evaluates the functions
@@ -92,6 +92,8 @@ namespace CoupledField {
 
     //! math parser handle for derivative of function
     MathParser::HandleType mphFactorDeriv_;
+
+    Double yMax_;      //!< maximal value for y
 
   };
 

@@ -35,6 +35,10 @@ namespace CoupledField
 
   //! computes the magnetic reluctivity
   Double ApproxAnalytic::EvaluateFuncNu( Double t ) {     
+    //limit the maximal value
+    if (t > yMax_ ) {
+      t = yMax_;
+    }
 
     //set the value
     mParser_->SetValue( mphFactor_, "b", t );
@@ -45,6 +49,10 @@ namespace CoupledField
 
   //! computes the magnetic reluctivity
   Double ApproxAnalytic::EvaluatePrimeNu( Double t ) {     
+    //limit the maximal value
+    if (t > yMax_ ) {
+      t = yMax_;
+    }
 
     //set the value
     mParser_->SetValue( mphFactorDeriv_, "b", t );

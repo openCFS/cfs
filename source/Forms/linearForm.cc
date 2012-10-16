@@ -3273,6 +3273,8 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
       angleB = 90.0;
     }
 
+    //    std::cout << "angle: " << angleB << std::endl;
+
     StdVector<Double>& anglesCurve =  matData_->GetAnisotropicAngles();
     UInt pos = 0;
     Double dist, minDist;
@@ -3284,6 +3286,9 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
         minDist = dist;
       }
     }
+
+    //    std::cout << "Use angle: " << anglesCurve[pos] << std::endl;
+
     Double absB = vecB.NormL2();
     Double strainVal = nlinFncs[pos]->EvaluateFunc( absB );
 
@@ -3306,6 +3311,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     else 
       EXCEPTION("AddMagStrictStrainRHSInt: Just 3D implmeneted");
 
+    //    std::cout << "Tensor:\n " << strainIrr_ <<  std::endl;
   }
 
 
