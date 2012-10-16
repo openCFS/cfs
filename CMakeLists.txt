@@ -117,6 +117,9 @@ OPTION(USE_PYTHON
 OPTION(USE_MESH
   "Use the mesh file reader for input from ANSYS/GiD."
   ${USE_MESH_DEFAULT})
+OPTION(USE_COMSOL
+  "Use Comsol .mphtxt meshes for simulation input."
+  ${USE_COMSOL_DEFAULT})
 OPTION(USE_GIDPOST
   "Use the GiD library for simulation output."
   ${USE_GIDPOST_DEFAULT})
@@ -493,6 +496,10 @@ IF(USE_MESH)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/AnsysFile)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/internalMesh)
 ENDIF(USE_MESH)
+
+IF(USE_COMSOL)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/COMSOL)
+ENDIF(USE_COMSOL)
 
 IF(USE_GMV)
  SET(USE_GMV_INPUT ON 

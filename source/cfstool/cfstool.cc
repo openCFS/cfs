@@ -14,6 +14,7 @@
 #include <def_use_gmv.hh>
 #include <def_use_unv.hh>
 #include <def_use_ansysrst.hh>
+#include <def_use_comsol.hh>
 
 #include <iostream>
 #include <boost/tokenizer.hpp>
@@ -62,6 +63,10 @@ namespace fs = boost::filesystem;
 #include "DataInOut/SimInOut/AnsysRST/SimOutputRST.hh"
 #endif
 
+#ifdef USE_COMSOL
+#include "DataInOut/SimInOut/COMSOL/SimInputMPHTXT.hh"
+#endif
+
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
@@ -100,6 +105,13 @@ namespace CFSTool {
       reader = shared_ptr<SimInput>(new SimInputGmsh(fileName, gmshNode) );
 #else  
       EXCEPTION( "No support for Gmsh input file format." );
+#endif
+    } else if( fileName.find( ".mphtxt") != std::string::npos ) {
+#ifdef USE_COMSOL
+      PtrParamNode comsolNode(new ParamNode (ParamNode::EX, ParamNode::ELEMENT));
+      reader = shared_ptr<SimInput>(new SimInputMPHTXT(fileName, comsolNode) );
+#else  
+      EXCEPTION( "No support for Comsol .mphtxt input file format." );
 #endif
     } else if( fileName.find( ".gmv") != std::string::npos ) {
 #ifdef USE_GMV

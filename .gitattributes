@@ -872,6 +872,9 @@ source/DataInOut/SimInOut/AnsysRST/SimOutputRST.hh svneol=native#text/x-c%2B%2Bh
 source/DataInOut/SimInOut/AnsysRST/bintrd.F -text
 source/DataInOut/SimInOut/AnsysRST/bintst.F -text
 source/DataInOut/SimInOut/AnsysRST/bintwr.F -text
+source/DataInOut/SimInOut/COMSOL/CMakeLists.txt -text
+source/DataInOut/SimInOut/COMSOL/SimInputMPHTXT.cc -text
+source/DataInOut/SimInOut/COMSOL/SimInputMPHTXT.hh -text
 source/DataInOut/SimInOut/GiD/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/GiD/SimOutGiD.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/GiD/SimOutGiD.hh svneol=native#text/x-c%2B%2Bhdr

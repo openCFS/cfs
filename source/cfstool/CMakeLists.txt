@@ -77,6 +77,7 @@ SET(TARGET_LL ${TARGET_LL}
   cfsgeneral
 #  paramident
   logging
+  -lpthread
   simouttext
   ${BOOST_SERIALIZATION_LIB}
   ${BOOST_FILESYSTEM_LIB}

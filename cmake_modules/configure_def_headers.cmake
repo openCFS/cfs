@@ -69,6 +69,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_xerces.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_mesh.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_mesh.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_comsol.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_comsol.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gidpost.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_gidpost.hh")
 

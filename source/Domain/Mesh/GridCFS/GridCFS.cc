@@ -1403,6 +1403,7 @@ namespace CoupledField {
     // determine grid parameter
     RegionData& rd = regionData[reg];
     assert(rd.id == reg);
+    assert(rd.type != NOT_SET);
 
     StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? 
         volElems_[rd.type_idx] : surfElems_[rd.type_idx];
@@ -1848,12 +1849,15 @@ namespace CoupledField {
                             RegionIdType region,
                             const UInt* connect)
   {
+    assert(type != Elem::ET_UNDEF);
+
     UInt idx=ielem-1;
     Elem* el = orderedElems_[idx];
     el->type = type;
+    el->regionId = region;
     UInt d = 2;
     UInt numNodes = Elem::shapes[type].numNodes;
-    el->type = type;
+
     numElemTypes_[type]++;
 
     switch(type)
@@ -1876,7 +1880,6 @@ namespace CoupledField {
                  << " to 2D grid." );
     }
 
-    el->regionId = region;
     el->connect.Resize(numNodes);
     bool hasError = false;
     for( UInt i = 0; i < numNodes; i++ ) {
