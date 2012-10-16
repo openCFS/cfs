@@ -343,7 +343,15 @@ namespace CoupledField {
         return "J";
         break;
 
-      case FLUIDMECH_NORMAL_PRES:
+      case FLUIDMECH_STRESS:
+        return "Pa";
+        break;
+
+      case FLUIDMECH_STRAINRATE:
+        return "1/s";
+        break;
+
+      case FLUIDMECH_PRES_GRADIENT:
         return "Pa/m";
         break;
 
@@ -1223,7 +1231,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_FORCE, "fluidMechForce");
     SolutionTypeEnum.Add(FLUIDMECH_DENSITY, "fluidMechDensity");
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");
-    SolutionTypeEnum.Add(FLUIDMECH_NORMAL_PRES, "fluidMechNormalPres");
+    SolutionTypeEnum.Add(FLUIDMECH_STRESS, "fluidMechStress");
+    SolutionTypeEnum.Add(FLUIDMECH_STRAINRATE, "fluidMechStrainRate");
+    SolutionTypeEnum.Add(FLUIDMECH_PRES_GRADIENT, "fluidMechPresGradient");
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
     // optimization
     SolutionTypeEnum.Add(HOMOGENIZED_TENSOR, "homogenizedTensor");
