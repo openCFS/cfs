@@ -271,22 +271,22 @@ namespace CoupledField {
     if( subType_ == "axi" ) {
         stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
             IdentityOperator<FeH1,2,2> >
-          (oneFuncs, 1.0, flowRegions);
+          (oneFuncs, -1.0, flowRegions);
         //          (densityFuncs, 1.0, flowRegions);
     } else if( subType_ == "planeStrain" ) {
       stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
           IdentityOperator<FeH1,2,2> >
-          (oneFuncs, 1.0, flowRegions);
+          (oneFuncs, -1.0, flowRegions);
                  //        (densityFuncs, 1.0, flowRegions);
     } else if( subType_ == "planeStress" ) {
       stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
           IdentityOperator<FeH1,2,2> >
-          (oneFuncs, 1.0, flowRegions);
+          (oneFuncs, -1.0, flowRegions);
                  //        (densityFuncs, 1.0, flowRegions);
     } else if( subType_ == "3d") {
       stiffInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
           IdentityOperator<FeH1,3,3> >
-          (oneFuncs, 1.0, flowRegions);
+          (oneFuncs, -1.0, flowRegions);
                  //        (densityFuncs, 1.0, flowRegions);
     } else {
       EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
@@ -322,19 +322,21 @@ namespace CoupledField {
       velDofNames = "r", "z";
     }
 
-  // === LAGRANGE MULTIPLIER ===
-  shared_ptr<ResultInfo> res1( new ResultInfo);
-  res1->resultType = LAGRANGE_MULT;
-
-  res1->dofNames = velDofNames;
-  res1->unit = "Pa";
-  res1->definedOn = ResultInfo::NODE;
-  res1->entryType = ResultInfo::VECTOR;
-  feFunctions_[LAGRANGE_MULT]->SetResultInfo(res1);
-  results_.Push_back( res1 );
-  availResults_.insert( res1 );
-
-  res1->SetFeFunction(feFunctions_[LAGRANGE_MULT]);
+    // === LAGRANGE MULTIPLIER ===
+    shared_ptr<ResultInfo> res1( new ResultInfo);
+    res1->resultType = LAGRANGE_MULT;
+    
+    res1->dofNames = velDofNames;
+    res1->unit = "Pa";
+    res1->definedOn = ResultInfo::NODE;
+    res1->entryType = ResultInfo::VECTOR;
+    feFunctions_[LAGRANGE_MULT]->SetResultInfo(res1);
+    results_.Push_back( res1 );
+    availResults_.insert( res1 );
+    
+    res1->SetFeFunction(feFunctions_[LAGRANGE_MULT]);
+    
+    DefineFieldResult( feFunctions_[LAGRANGE_MULT], res1 );
   }
 
 
