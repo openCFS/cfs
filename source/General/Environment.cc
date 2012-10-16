@@ -351,10 +351,6 @@ namespace CoupledField {
         return "1/s";
         break;
 
-      case FLUIDMECH_PRES_GRADIENT:
-        return "Pa/m";
-        break;
-
       case HEAT_TEMPERATURE:
         return "K";
         break;
@@ -1233,7 +1229,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");
     SolutionTypeEnum.Add(FLUIDMECH_STRESS, "fluidMechStress");
     SolutionTypeEnum.Add(FLUIDMECH_STRAINRATE, "fluidMechStrainRate");
-    SolutionTypeEnum.Add(FLUIDMECH_PRES_GRADIENT, "fluidMechPresGradient");
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
     // optimization
     SolutionTypeEnum.Add(HOMOGENIZED_TENSOR, "homogenizedTensor");
