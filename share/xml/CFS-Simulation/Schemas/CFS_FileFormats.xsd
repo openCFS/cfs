@@ -224,12 +224,7 @@
   <xsd:complexType name="DT_InputComsol_RegionType">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
-        The region names have either been assigned to the physical entities in
-        Gmsh or CFS++ chooses them based  on the integer index of the physical
-        entity. In the  former case CFS++ will use the names  from Gmsh and it
-        is not  necessary to  redefine the  names.  In the  latter case  it is
-        recommended to use  cfstool for converting the .msh in  order to get a
-        list of the actual region names.
+        Since no information about physical regions is saved in .mphtxt files, the regions have to be reassembled from surface and volume ids. The CFS++ regions are therefore assembled by specifying the domtype (volume or surface) and the list of ids in domains.
       </xsd:documentation>
     </xsd:annotation>              
     
@@ -240,8 +235,8 @@
           default="default">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
-              This name will be assigned  by CFS++ to the given phsical entity
-              from the .msh file.
+              This name will be assigned  by CFS++ to the given physical entity
+              assembled from the domain ids in the .mphtxt file.
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
@@ -290,6 +285,24 @@
             </xsd:documentation>
           </xsd:annotation>          
         </xsd:attribute>
+        <xsd:attribute name="info"
+          type="xsd:boolean"
+          default="false">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              Print out infos while reading the .mphtxt file.
+            </xsd:documentation>
+          </xsd:annotation>          
+        </xsd:attribute>        
+        <xsd:attribute name="debug"
+          type="xsd:boolean"
+          default="false">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              Print out debug information while reading the .mphtxt file.
+            </xsd:documentation>
+          </xsd:annotation>          
+        </xsd:attribute>        
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

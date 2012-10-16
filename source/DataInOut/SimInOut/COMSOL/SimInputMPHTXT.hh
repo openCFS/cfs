@@ -188,8 +188,14 @@ namespace CoupledField {
     //! This method maps the type number of an element - as given in the 
     //! mesh file - to a pointer to a reference finite element.
     //! \param itype (input) element type number as read in from the mesh
-    Elem::FEType ElmerType2ElemType(const UInt itype);
+    static Elem::FEType ElmerType2ElemType(const UInt itype);
     //@}
+
+    static int next_int(char **start);
+    static Double next_real(char **start);
+    static int Comsolrow(char *line1,FILE *io);
+    static void ReorderComsolNodes(int elementtype,UInt *topo);
+    int LoadComsolMesh(Grid *data, const char *prefix, bool readInfos);
 
     // =======================================================================
     // CLASS ATTRIBUTES
