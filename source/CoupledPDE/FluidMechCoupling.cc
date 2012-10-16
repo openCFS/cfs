@@ -76,8 +76,6 @@ namespace CoupledField {
     flowMaterials = flowPDE->GetMaterialData();
 
     // Create coefficient functions for all fluid densities
-    std::map< RegionIdType, PtrCoefFct > densityFuncs;
-    std::map< RegionIdType, PtrCoefFct > muFuncs;
     std::map< RegionIdType, PtrCoefFct > oneFuncs;
     std::set< RegionIdType > flowRegions;
     std::map<RegionIdType, BaseMaterial*>::iterator it, end;
@@ -96,24 +94,18 @@ namespace CoupledField {
 
       // Get bulk density for acoustics
       BaseMaterial * flowMat = flowMaterials[volRegId];
-      Double density = 1.0;
-      Double viscosity = 1.0;
-      flowMat->GetScalar(density,DENSITY,Global::REAL);
-      flowMat->GetScalar(viscosity,DYNAMIC_VISCOSITY,Global::REAL);
+//      Double density = 1.0;
+//      Double viscosity = 1.0;
+//      flowMat->GetScalar(density,DENSITY,Global::REAL);
+//      flowMat->GetScalar(viscosity,DYNAMIC_VISCOSITY,Global::REAL);
 
-      //      densityFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
-      //                                                   lexical_cast<std::string>(1.0/density));
-      densityFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
-                                                   lexical_cast<std::string>(1.0));
-      //      muFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
-      //                                                   lexical_cast<std::string>(viscosity) * lexical_cast<std::string>(1.0/density));
-
-      muFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
-                                                   lexical_cast<std::string>(1.0));
+      PtrCoefFct density = flowMat->GetScalCoefFnc( DENSITY, Global::REAL );
+      PtrCoefFct viscosity = flowMat->GetScalCoefFnc( DYNAMIC_VISCOSITY, Global::REAL );
+      
       oneFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
                                                    lexical_cast<std::string>(1.0));
 
-      WARN("density: " << density << " viscosity " << viscosity);
+      WARN("fluid density: " << density->ToString() << " dynamic viscosity " << viscosity->ToString());
 
       shared_ptr<ElemList> actSDList( new ElemList( ptGrid_ ) );
       actSDList->SetRegion( volRegId );
@@ -154,8 +146,8 @@ namespace CoupledField {
                                  velFct,
                                  lagrangeMultFct,
                                  actSDList,
-                                 densityFuncs,
-                                 muFuncs,
+                                 oneFuncs,
+                                 oneFuncs,
                                  oneFuncs,
                                  flowRegions);
     }

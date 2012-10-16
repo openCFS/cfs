@@ -46,6 +46,7 @@ IF(CFS_ARCH STREQUAL "X86_64")
     /home/data/programs/intel/Compiler/fce/10.1.018/lib
     /home/data/programs/intel/Compiler/11.0/081/lib/intel64
     /opt/pckg/intel/parallel_studio_xe_2011_sp1_update1/lib/intel64
+    /opt/pckg/ansys/v140/icemcfd/linux64_amd/lib
     )
   ENDIF(NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")  
 
