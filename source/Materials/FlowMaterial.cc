@@ -137,19 +137,31 @@ namespace CoupledField
       matTypeNotInDataBase( matType, dim );
     }
     else {
+      // The material law states [\sigma] = 2\mu (1/2 (\nabla v + (\nabla v)^T))
+      // Since we use Voigt notation, we have to take care that only the diagonal entries of the strain tensor are halved
+      // TODO: also account for \lambda div(v) in case of compressible fluids
       Matrix<Complex> matTensor;
       if ( subTensor == FULL ) {
-        matTensor.Resize(3,3);
+        matTensor.Resize(6,6);
         matTensor.Init();
         matTensor[0][0] = pos->second;
         matTensor[1][1] = pos->second;
         matTensor[2][2] = pos->second;
+        matTensor[0][0] *= 2;
+        matTensor[1][1] *= 2;
+        matTensor[2][2] *= 2;
+        matTensor[3][3] = pos->second;
+        matTensor[4][4] = pos->second;
+        matTensor[5][5] = pos->second;
       }
       else {
-          matTensor.Resize(2,2);
-          matTensor.Init();
-          matTensor[0][0] = pos->second;
-          matTensor[1][1] = pos->second;
+        matTensor.Resize(3,3);
+        matTensor.Init();
+        matTensor[0][0] = pos->second;
+        matTensor[1][1] = pos->second;
+        matTensor[0][0] *= 2;
+        matTensor[1][1] *= 2;
+        matTensor[2][2] = pos->second;
       }
 
       if ( dataType == Global::REAL || dataType == Global::IMAG) {
@@ -178,17 +190,21 @@ namespace CoupledField
     else {
       Matrix<Complex> matTensor;
       if ( subTensor == FULL ) {
+          matTensor.Resize(6,6);
+          matTensor.Init();
+          matTensor[0][0] = pos->second;
+          matTensor[1][1] = pos->second;
+          matTensor[2][2] = pos->second;
+          matTensor[3][3] = pos->second;
+          matTensor[4][4] = pos->second;
+          matTensor[5][5] = pos->second;
+      }
+      else {
           matTensor.Resize(3,3);
           matTensor.Init();
           matTensor[0][0] = pos->second;
           matTensor[1][1] = pos->second;
           matTensor[2][2] = pos->second;
-      }
-      else {
-          matTensor.Resize(2,2);
-          matTensor.Init();
-          matTensor[0][0] = pos->second;
-          matTensor[1][1] = pos->second;
       }
 
       if ( dataType == Global::REAL || dataType == Global::IMAG) {
