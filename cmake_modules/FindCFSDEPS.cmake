@@ -125,6 +125,12 @@ IF(USE_CGNS)
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cgns/External_CGNS.cmake")
 ENDIF(USE_CGNS)
 
+#-------------------------------------------------------------------------------
+# Search for CFX I/O library
+#-------------------------------------------------------------------------------
+IF(USE_CFXIO)
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cfx_custom/External_CFX_Custom.cmake")
+ENDIF(USE_CFXIO)
 
 #-------------------------------------------------------------------------------
 # Search for METIS library

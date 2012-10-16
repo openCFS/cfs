@@ -215,6 +215,12 @@ OPTION(USE_CGNS "Enable support for the CFD General Notation System."
   ${USE_CGNS_DEFAULT})
 
 #-----------------------------------------------------------------------------
+# CFXIO - Support for reading ANSYS CFX result files
+#-----------------------------------------------------------------------------
+OPTION(USE_CFXIO "Enable support for reading ANSYS CFX result files."
+  ${USE_CFXIO_DEFAULT})
+
+#-----------------------------------------------------------------------------
 # SCPIP optimizer library.
 #-----------------------------------------------------------------------------
 OPTION(USE_SCPIP "Use the external SCPIP optimizer." ${USE_SCPIP_DEFAULT})

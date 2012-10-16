@@ -53,7 +53,22 @@ cfsdeps/boost/libstdcpp3.hpp.patch -text
 cfsdeps/bzip2/External_bzip2.cmake -text
 cfsdeps/bzip2/bzip2-shared-patch.cmake.in -text
 cfsdeps/bzip2/bzip2-static-patch.cmake.in -text
-cfsdeps/cfx_custom/External_CGNS.cmake -text
+cfsdeps/cfx_custom/External_CFX_Custom.cmake -text
+cfsdeps/cfx_custom/cfx_custom_v100_include.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v100_linux-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v100_linux.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v110_include.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v110_linux-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v110_linux-ia64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v110_linux.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v120_include.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v120_linux-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v121_include.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v121_linux-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v130_include.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v130_linux-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfxio-build.cmake.in -text
+cfsdeps/cfx_custom/cfxio-install.cmake.in -text
 cfsdeps/cgal/CGAL-3.2.1-install_cgal-no_versions_in_compiler_config.h.patch -text
 cfsdeps/cgal/CGAL-3.3-build-library.patch -text
 cfsdeps/cgal/CGAL-README.Fedora -text
@@ -205,6 +220,7 @@ include/def_fortran_interface.hh.in -text
 include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
 include/def_use_blas.hh.in -text
+include/def_use_cfxio.hh.in -text
 include/def_use_cgal.hh.in -text
 include/def_use_cgns.hh.in -text
 include/def_use_cholmod.hh.in -text
