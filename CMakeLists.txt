@@ -161,25 +161,22 @@ SET(CFS_PARDISO  ${CFS_PARDISO_DEFAULT}
   "Pardiso implementation for CFS. May be one of MKL or SCHENK.")
 
 OPTION(USE_PARDISO "Use Pardiso" ${USE_PARDISO_DEFAULT})
-OPTION(USE_UMFPACK "Use UMFPACK direct solver" ${USE_UMFPACK_DEFAULT})
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library." ${USE_ARPACK_DEFAULT})
 OPTION(USE_ILUPACK "Use Preconditioners from ILUPACK." ${USE_ILUPACK_DEFAULT})
-OPTION(USE_CHOLMOD "Use the CholMod solver." ${USE_CHOLMOD_DEFAULT})
+OPTION(USE_SUITESPARSE "Use CholMod and UMFPACK solvers from SuiteSparse." ${USE_SUITESPARSE_DEFAULT})
 
 IF(USE_PARDISO OR
-   USE_UMFPACK OR
    USE_ARPACK OR
    USE_ILUPACK OR
-   USE_CHOLMOD)
+   USE_SUITESPARSE)
   SET(USE_BLAS ON CACHE BOOL
     "Use the Basic Linear Algebra Subroutines library." FORCE)
   SET(USE_LAPACK ON CACHE BOOL
     "Use the LAPACK linear algebra library." FORCE)
 ELSE(USE_PARDISO OR
-     USE_UMFPACK OR
      USE_ARPACK OR
      USE_ILUPACK OR
-     USE_CHOLMOD)
+     USE_SUITESPARSE)
   OPTION(USE_LAPACK
     "Use the LAPACK linear algebra library."
     ${USE_LAPACK_DEFAULT})
@@ -187,10 +184,9 @@ ELSE(USE_PARDISO OR
     "Use the Basic Linear Algebra Subroutines library."
     ${USE_BLAS_DEFAULT})
 ENDIF(USE_PARDISO OR
-      USE_UMFPACK OR
       USE_ARPACK OR
       USE_ILUPACK OR
-      USE_CHOLMOD)
+      USE_SUITESPARSE)
 
 #-----------------------------------------------------------------------------
 # Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
@@ -503,13 +499,10 @@ IF(USE_PARDISO)
   ADD_SUBDIRECTORY(source/OLAS/external/pardiso)
 ENDIF(USE_PARDISO)
 
-IF(USE_UMFPACK)
+IF(USE_SUITESPARSE)
   ADD_SUBDIRECTORY(source/OLAS/external/umfpack)
-ENDIF(USE_UMFPACK)
-
-IF(USE_CHOLMOD)
   ADD_SUBDIRECTORY(source/OLAS/external/cholmod)
-ENDIF(USE_CHOLMOD)
+ENDIF(USE_SUITESPARSE)
 
 ADD_SUBDIRECTORY(source/CoupledPDE)
 ADD_SUBDIRECTORY(source/DataInOut)

@@ -7,7 +7,6 @@
 #include <def_use_pardiso.hh>
 #include <def_use_lapack.hh>
 #include <def_use_ilupack.hh>
-#include <def_use_cholmod.hh>
 #include <def_use_arpack.hh>
 
 #include "OLAS/algsys/AlgebraicSys.hh"

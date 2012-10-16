@@ -13,3 +13,6 @@ SET(TARGET_LL
 
 TARGET_LINK_LIBRARIES(umfpack-olas ${TARGET_LL})
 
+ADD_EXECUTABLE(umfpack_di_demo umfpack_di_demo.cc)
+
+TARGET_LINK_LIBRARIES(umfpack_di_demo ${TARGET_LL})

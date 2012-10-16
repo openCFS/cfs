@@ -197,10 +197,6 @@ namespace CoupledField {
     //! The type of the matrix in a special encoding used by Pardiso
     int mType_;
 
-    //! The type of the solver used by Pardiso. Possible values are zero for 
-    //! sparse direct solver (0) or one for multi-recursive iterative solver (1).
-    int mSolver_;
-
     //! This double array is used to communicate parameters to and from
     //! Pardiso. It has been introduced in Pardiso 4.0. Instead of 
     //! Fortran-/one-based indexing we use C-/zero-based element indexing.
@@ -230,12 +226,6 @@ namespace CoupledField {
     //! method corresponding to the PARDISO_stats parameter.
     int msgLvl_;
 
-    //! Integer value of zero for passing to Pardiso
-    int zeroINT_;
-
-    //! Floating point value of zero for passing to Pardiso
-    Double zeroDBL_;
-
     //! Array containing entries of problem matrix
 
     //! This array contains the entries of the problem matrix of the linear
@@ -260,6 +250,9 @@ namespace CoupledField {
     //! number of non zero entries
     UInt nnz_;
 
+      int n_row, n_col, status, *Ap, *Ai, *P, *Q, *Rp, *Ri;
+      double *Ax, *Rx ;
+    
   };
 
 }

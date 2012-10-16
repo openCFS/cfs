@@ -8,7 +8,7 @@
 #include <def_use_unv.hh>
 #include <def_use_gidpost.hh>
 #include <def_use_ilupack.hh>
-#include <def_use_cholmod.hh>
+#include <def_use_suitesparse.hh>
 #include <def_use_metis.hh>
 #include <def_use_xerces.hh>
 #include <def_use_arpack.hh>
@@ -43,16 +43,14 @@
 
 #include <H5public.h>
 
-#ifdef USE_ILUPACK
-#include <amd.h>
-#endif
-
 #ifdef USE_METIS
 #include <defs.h> 
 #endif
 
-#ifdef USE_CHOLMOD
+#ifdef USE_SUITESPARSE
 #include <cholmod.h> 
+#include <umfpack.h> 
+#include <amd.h> 
 #endif
 
 #ifdef USE_ARPACK
@@ -660,25 +658,33 @@ namespace CoupledField {
     out << endl;
     out << "USE_ILUPACK:           "
         << fg_blue << "YES" << fg_reset << endl;
-    out << "AMD_VERSION:           "
-        << fg_blue << AMD_MAIN_VERSION << "." << AMD_SUB_VERSION << "."
-        << AMD_SUBSUB_VERSION << " " << AMD_DATE
-        << fg_reset << endl;
  #else
     out << "USE_ILUPACK:           "
         << fg_blue  << "NO" << fg_reset << endl;
  #endif
 
- #ifdef USE_CHOLMOD
+ #ifdef USE_SUITESPARSE
     out << endl;
-    out << "USE_CHOLMOD:           "
+    out << "USE_SUITESPARSE:       "
         << fg_blue << "YES" << fg_reset << endl;
     out << "SUITESPARSE_VERSION:   "
         << fg_blue << SUITESPARSE_MAIN_VERSION << "." << SUITESPARSE_SUB_VERSION << "."
-        << SUITESPARSE_SUBSUB_VERSION << " " << SUITESPARSE_DATE
+        << SUITESPARSE_SUBSUB_VERSION << " (" << SUITESPARSE_DATE << ") "
+        << fg_reset << endl;
+    out << "AMD_VERSION:           "
+        << fg_blue << AMD_MAIN_VERSION << "." << AMD_SUB_VERSION << "."
+        << AMD_SUBSUB_VERSION << " (" << AMD_DATE << ") "
+        << fg_reset << endl;
+    out << "CHOLMOD_VERSION:       "
+        << fg_blue << CHOLMOD_MAIN_VERSION << "." << CHOLMOD_SUB_VERSION << "."
+        << CHOLMOD_SUBSUB_VERSION << " (" << CHOLMOD_DATE << ") "
+        << fg_reset << endl;
+    out << "UMFPACK_VERSION:       "
+        << fg_blue << UMFPACK_MAIN_VERSION << "." << UMFPACK_SUB_VERSION << "."
+        << UMFPACK_SUBSUB_VERSION << " (" << UMFPACK_DATE << ") "
         << fg_reset << endl;
  #else
-    out << "USE_CHOLMOD:           "
+    out << "USE_SUITESPARSE:           "
         << fg_blue  << "NO" << fg_reset << endl;
  #endif
 

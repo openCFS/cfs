@@ -1,8 +1,7 @@
 #include <def_use_ilupack.hh>
 #include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
-#include <def_use_umfpack.hh>
-#include <def_use_cholmod.hh>
+#include <def_use_suitesparse.hh>
 
 #include "OLAS/algsys/SolStrategy.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -21,16 +20,13 @@
 #include "OLAS/external/pardiso/PardisoSolver.hh"
 #endif
 
-#ifdef USE_UMFPACK
-#include "OLAS/external/umfpack/UMFPACKSolver.hh"
-#endif
-
 #ifdef USE_ILUPACK
 #include "OLAS/external/ilupack/Ilupack.hh"
 #endif
 
-#ifdef USE_CHOLMOD
+#ifdef USE_SUITESPARSE
 #include "OLAS/external/cholmod/CholMod.hh"
+#include "OLAS/external/umfpack/UMFPACKSolver.hh"
 #endif
 
 // include source code for templated solvers
@@ -280,7 +276,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 
   case BaseSolver::UMFPACK:
 
-#ifdef USE_UMFPACK
+#ifdef USE_SUITESPARSE
 
     // Check suitability of matrix
     if ( mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
@@ -306,7 +302,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     }
 #else
 
-    EXCEPTION( "Compile with USE_UMFPACK to enable interface to UMFPACK "
+    EXCEPTION( "Compile with USE_SUITESPARSE to enable interface to UMFPACK "
                "library" );
 #endif
     break;
@@ -340,7 +336,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
   break;
   
   case BaseSolver::CHOLMOD:
-#ifdef USE_CHOLMOD
+#ifdef USE_SUITESPARSE
   {
     if(mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX || dynamic_cast<const StdMatrix &>(mat).GetStorageType() != BaseMatrix::SPARSE_SYM){
       EXCEPTION("CholMod only works with SCRS_Matrix class!");
@@ -354,7 +350,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     }
   }
 #else
-    EXCEPTION("Compile with USE_CHOLMOD to enable interface to CholMod");
+    EXCEPTION("Compile with USE_SUITESPARSE to enable interface to CholMod");
 #endif
     break;
 
@@ -398,7 +394,6 @@ GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {
       break;
 
     case BaseSolver::UMFPACK:
-      ret.insert(BaseMatrix::SPARSE_SYM);
       ret.insert(BaseMatrix::SPARSE_NONSYM);
       break;
 

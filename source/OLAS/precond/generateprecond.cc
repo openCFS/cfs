@@ -1,6 +1,6 @@
 #include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
-#include <def_use_cholmod.hh>
+#include <def_use_suitesparse.hh>
 
 #include "OLAS/precond/IdPrecondStd.hh"
 #include "OLAS/precond/generateprecond.hh"
@@ -12,9 +12,10 @@
 #include "OLAS/external/pardiso/PardisoSolver.hh"
 #endif
 
-#ifdef USE_CHOLMOD
+#ifdef USE_SUITESPARSE
 #include "OLAS/external/cholmod/CholMod.hh"
 #endif
+
 #include "OLAS/solver/LDLSolver.hh"
 
 // include source code for templated preconditioners
@@ -365,7 +366,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
       //   Cholmod Preconditioner
       // ============================
     case BasePrecond::CHOLMOD:
-#ifdef USE_CHOLMOD
+#ifdef USE_SUITESPARSE
   {
     if(mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX || 
         dynamic_cast<const StdMatrix &>(mat).GetStorageType() != BaseMatrix::SPARSE_SYM){
@@ -380,7 +381,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
     }
   }
 #else
-    EXCEPTION("Compile with USE_CHOLMOD to enable interface to CholMod");
+    EXCEPTION("Compile with USE_SUITESPARSE to enable interface to CholMod");
 #endif
     break;
     

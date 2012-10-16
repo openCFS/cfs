@@ -17,8 +17,8 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_arpack.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ilupack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_ilupack.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_cholmod.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_cholmod.hh")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_suitesparse.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_suitesparse.hh")
 
 IF(CFS_BLAS_LAPACK STREQUAL "MKL")
   SET(USE_MKL 1)
@@ -44,9 +44,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_lapack.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_pardiso.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_pardiso.hh")
-
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_umfpack.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_umfpack.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_metis.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_metis.hh")

@@ -226,7 +226,6 @@ include/def_use_blas.hh.in -text
 include/def_use_cfxio.hh.in -text
 include/def_use_cgal.hh.in -text
 include/def_use_cgns.hh.in -text
-include/def_use_cholmod.hh.in -text
 include/def_use_comsol.hh.in -text
 include/def_use_gidpost.hh.in -text
 include/def_use_gmsh.hh.in -text
@@ -242,7 +241,7 @@ include/def_use_openmp.hh.in -text
 include/def_use_pardiso.hh.in -text
 include/def_use_scpip.hh.in -text
 include/def_use_snopt.hh.in -text
-include/def_use_umfpack.hh.in -text
+include/def_use_suitesparse.hh.in -text
 include/def_use_unv.hh.in -text
 include/def_use_xerces.hh.in -text
 include/def_user_scpip.hh.in -text
@@ -1283,6 +1282,7 @@ source/OLAS/external/pardiso/PardisoSolver.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/umfpack/CMakeLists.txt -text
 source/OLAS/external/umfpack/UMFPACKSolver.cc -text
 source/OLAS/external/umfpack/UMFPACKSolver.hh -text
+source/OLAS/external/umfpack/umfpack_di_demo.cc -text
 source/OLAS/graph/BaseGraph.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/graph/BaseGraph.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/graph/BaseOrdering.cc svneol=native#text/x-c%2B%2Bsrc

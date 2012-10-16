@@ -14,9 +14,6 @@ namespace fs = boost::filesystem;
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
 
-#include "def_use_pardiso.hh"
-#include <def_fortran_interface.hh>
-
 #include "UMFPACKSolver.hh"
 
 namespace CoupledField {
@@ -24,30 +21,7 @@ namespace CoupledField {
   // Declare logging stream and make sure that it is also available in
   // release mode by using BOOST_DECLARE_LOG() instead of DECLARE_LOG()
   BOOST_DECLARE_LOG(umfpackSolver)
-  DEFINE_LOG(umfpackSolver, "olas.solvers.pardiso")
-
-#if PARDISO_API_VER == 3
-extern "C" {
-    void FORTRAN_CALL F77NAME(pardisoinit) (void *, int *, int *);
-
-    void FORTRAN_CALL F77NAME(pardiso) (void *, int *, int *, int *, int *, int *,
-                            const Double *, const int *, const int *, int *,
-                            int *, int *, int *, const Double *,
-                            Double *, int *);
-}
-#endif
-
-#if PARDISO_API_VER == 4
-extern "C" {
-  void FORTRAN_CALL F77NAME(pardisoinit) (void *pt, int *mtype, int *solver,
-                              int *iparm, Double *dparm, int *error);
-
-  void FORTRAN_CALL F77NAME(pardiso) (void *pt, int *maxfct, int *mnum, int *mtype,
-                           int *phase, int *n, const Double *a, const int *ia, const int *ja,
-                           int *perm, int *nrhs, int *iparm, int *msglvl,
-                           const Double *b, Double *x, int *error, double *dparm );
-}
-#endif
+  DEFINE_LOG(umfpackSolver, "olas.solvers.umfpack")
 
   // ***********************
   //   Default Constructor
@@ -116,7 +90,7 @@ extern "C" {
 
     // Set pointers to communication objects
     xml_ = solverNode;
-    infoNode_ = olasInfo->Get("pardiso",ParamNode::APPEND);
+    infoNode_ = olasInfo->Get("umfpack",ParamNode::APPEND);
 
     // Initialise attributes
     firstCall_ = true;
@@ -131,25 +105,6 @@ extern "C" {
     std::string solverType = "direct";
     xml_->GetValue("type", solverType, ParamNode::INSERT);
       
-    if(solverType == "direct") {
-      mSolver_ = 0;
-    } else {
-      mSolver_ = 1;
-    }
-
-    PtrParamNode stopRulenode = xml_->Get("stoppingRule", ParamNode::INSERT);
-    std::string sRule = "relNormRes0";
-    stopRulenode->GetValue("type", sRule, ParamNode::INSERT);
-
-    if(mSolver_ && sRule != "relNormRes0") {
-      WARN("The iterative solver in PARDISO only supports relative " \
-           "residual minimization as stopping rule");
-    }
-
-    // Our private Fortran zeros
-    zeroINT_ = 0;
-    zeroDBL_ = 0.0;
-
     // For production runs, we need no identity reordering
     idPerm_     = NULL;
     idPermSize_ = 0;
@@ -172,55 +127,24 @@ extern "C" {
     umfpack_di_free_symbolic( &Symbolic );
     umfpack_di_free_numeric( &Numeric );
 
+    free(Rp);
+    free(Ri);
+    free(Rx);
+    
     // PARDISO - Last Phase: Cleaning up the parameters
     if ( firstCall_ == false ) {
 
       int errorFlag = 0;
-      int phase = -1;
-
-#if PARDISO_API_VER == 4
-      F77NAME(pardiso) ( &pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                         &probDim_, theMatrix_, rowPtr_, colPtr_,
-                         idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
-                         &zeroDBL_, &errorFlag, &dparm_[0] );
-#endif
-
-#if PARDISO_API_VER == 3
-      F77NAME(pardiso) ( &pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                         &probDim_, theMatrix_, rowPtr_, colPtr_,
-                         idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
-                         &zeroDBL_, &errorFlag );
-#endif
 
       if ( errorFlag != NO_ERROR) {
         EXCEPTION( "Error occured during cleanup:\n"
                    << GetErrorString(errorFlag) )
       }
-
-    // Read iterative solver statistics
-    if(mSolver_ && msgLvl_ && fs::exists("pardiso-ml.out")) {
-      std::ifstream pardisoMLOut("pardiso-ml.out", std::ifstream::binary);
-      
-      LOG_TRACE(umfpackSolver) << "Contents of pardiso-ml.out:"
-                               << std::endl
-                               << pardisoMLOut.rdbuf() << std::endl;
-      LOG_TRACE(umfpackSolver) << " -------------------------------------------------------"
-                               << "-----------------------";
-      pardisoMLOut.close();
-
-      try {
-        fs::remove("pardiso-ml.out");
-      } catch (std::exception &ex) {
-        EXCEPTION("Error while trying to remove pardiso-ml.out: " << ex.what());
-      }      
-    }
-
     }
 
     // Delete identity re-ordering (if exists)
     delete [] ( idPerm_ );  idPerm_  = NULL;
     idPermSize_ = 0;
-
   }
 
 
@@ -364,55 +288,6 @@ extern "C" {
       LOG_TRACE(umfpackSolver) << " Classified matrix as mType = " << mType_;
     }
 
-    if(mSolver_ == 1) {
-      LOG_TRACE(umfpackSolver) << " Using iterative solver";
-      switch(mType_) {
-        case 11:
-        case 13:
-          EXCEPTION( "UMFPACKSolver: The iterative solver just supports symmetric matrices!" );
-          break;
-      }
-    } else {
-      LOG_TRACE(umfpackSolver) << " Using direct solver";
-    }
-
-    // Set default input values for dparm_;
-    dparm_[0] = 300;   // Maximum number of Krylov-subspace iterations
-    xml_->GetValue("maxIter", dparm_[0], ParamNode::INSERT);
-
-    dparm_[1] = 1e-6;  // Relative residual reduction
-    xml_->GetValue("tol", dparm_[1], ParamNode::INSERT);
-
-    dparm_[2] = 1e-6;  // Coarse Grid Matrix Dimension.
-    xml_->GetValue("coarseGridDim", dparm_[2], ParamNode::INSERT);
-
-    dparm_[3] = 10;    // Maximum Number of Grid Levels.
-    xml_->GetValue("maxNumGridLevels", dparm_[3], ParamNode::INSERT);
-
-    dparm_[4] = 1e-2;  // Dropping value for the incomplete factor.
-    xml_->GetValue("incompFacDropVal", dparm_[4], ParamNode::INSERT);
-
-    dparm_[5] = 5e-5;  // Dropping value for the schurcomplement.
-    xml_->GetValue("schurcompDropVal", dparm_[5], ParamNode::INSERT);
-
-    dparm_[6] = 10;    // Maximum number of ﬁll-in in each column in the factor.
-    xml_->GetValue("maxNumFillIn", dparm_[6], ParamNode::INSERT);
-
-    dparm_[7] = 500;   // Bound for the inverse of the incomplete factor L.
-    xml_->GetValue("invBoundIncompFac", dparm_[0], ParamNode::INSERT);
-
-    dparm_[8] = 25;    // Maximum number of non-improvement steps in Krylov-Subspace method
-    xml_->GetValue("maxNumStagnationSteps", dparm_[0], ParamNode::INSERT);
-
-    // Remove output file for iterative solver
-    if(mSolver_ && fs::exists("pardiso-ml.out")) {
-      try {
-        fs::remove("pardiso-ml.out");
-      } catch (std::exception &ex) {
-        EXCEPTION("Error while trying to remove pardiso-ml.out: " << ex.what());
-      }      
-    }
-    
     // We do not need to call pardisoinit, if the matrix pattern
     // has not changed
     if ( facSymbolic ) {
@@ -497,7 +372,6 @@ extern "C" {
                << "' is not available with the UMFPACKSolver" );
     }
 
-    if(!mSolver_) {
       if ( facSymbolic == true ) {
         if ( ordering != BaseOrdering::NOREORDERING ) {
           std::string tmp;
@@ -510,7 +384,6 @@ extern "C" {
           LOG_TRACE(umfpackSolver) << " Factorisation uses original matrix ordering";
         }
       }
-    }
     
     // Do we need to determine MFLOPs for the LU factorisation
     bool stats = false;
@@ -548,53 +421,6 @@ extern "C" {
       msgLvl_ = 1;
     }
 
-    // Switch on out-of-core
-    if (xml_->Has("outOfCore"))
-    {
-      if(std::string(CFS_PARDISO) != "MKL") 
-      {
-        WARN( "The value of outOfCore has no effect for " << CFS_PARDISO << ".\n"
-              << "Switch to MKL if want to use out-of-core memory." );
-      }
-      xml_->GetValue("outOfCore", iparm_[59], ParamNode::INSERT);
-    }
-
-    // Switch to iterative solver
-    if(mSolver_) {
-#if PARDISO_API_VER == 3
-      EXCEPTION("This CFS++ executable has been linked to a PARDISO 3.x library.\n"
-                << "PARDISO implements iterative solvers since version 4.0.\n"
-                << "To get iterative solvers switch CFS_PARDISO to SCHENK.");
-#endif      
-      
-      iparm_[31] = 1;
-    }
-
-    /* The facotrisation algorithm in pardiso rows/columns which have the about
-     * the same magnitude and structure into one supernode. This may cause
-     * numerical errors due to pivotisation, the iterative refine step remedies
-     * this. (see O.Schenk et al "Solving unsymmetric sparse systems of linear
-     * equations with PARDISO")
-     */
-    if (xml_->Has("IterRefineSteps"))
-    {
-      xml_->GetValue("IterRefineSteps", iparm_[7], ParamNode::INSERT);
-    } else if (iparm_[7] == 0 && mType_ > 10) {
-      WARN( "Iterative refinement steps is not set!\n" 
-            << "PARDISO did not set it neither.\n"
-            << "It is advisable for unsymmetric to set it in the xml,\n"
-            << "since bad pivotisation may result in numerical errors!" );
-    }
-    
-    // we have to icrement the entries of the col- and row-position arrays
-    // by one, so that the first col and first row start with index 1 (and
-    // not with zero) to be consistent with fortran
-    // at the end of the method we will undo it!!
-    //    for (UInt i=0; i < static_cast<UInt>(probDim_+1); i++ )
-    //    rowPtr_[i] += 1;
-
-    // for (UInt i=0; i< nnz_; i++ )
-    //   colPtr_[i] += 1;
 
     // ========================
     //  Symbolic Factorisation
@@ -605,36 +431,35 @@ extern "C" {
       LOG_TRACE(umfpackSolver) << " Performing analyse phase (symbolic factorisation)"
                                << " ... ";
 
-      umfpack_di_symbolic (probDim_, probDim_, rowPtr_, colPtr_, theMatrix_, &Symbolic, 0, 0) ;
+      n_row = probDim_;
+      n_col = probDim_;
+      Ap = rowPtr_;
+      Ai = colPtr_;
+      Ax = theMatrix_;
+      P = NULL;
+      Q = NULL;
+      Rp = (int *) malloc ((probDim_+1) * sizeof (int)) ;
+      Ri = (int *) malloc (nnz_ * sizeof (int)) ;
+      Rx = (double *) malloc (nnz_ * sizeof (double)) ;
 
-#if 0
-      // only analyse
-      int phase = 11;
+      double Control [UMFPACK_CONTROL];
 
-      // let pardiso go for it
-#if PARDISO_API_VER == 4
-      F77NAME(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                        &probDim_, theMatrix_, rowPtr_, colPtr_,
-                        idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
-                        &zeroDBL_, &errorFlag, &dparm_[0] );
-#endif
+      /* get the default control parameters */
+      umfpack_di_defaults (Control) ;
 
-#if PARDISO_API_VER == 3
-      F77NAME(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                        &probDim_, theMatrix_, rowPtr_, colPtr_,
-                        idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
-                        &zeroDBL_, &errorFlag );
-#endif
+      /* change the default print level for this demo */
+      /* (otherwise, nothing will print) */
+      Control [UMFPACK_PRL] = 6 ;      
 
-      // Check return status
-      if ( errorFlag != NO_ERROR ) {
-        EXCEPTION( "Error occured during symbolic factorization:\n"
-                   << GetErrorString(errorFlag));
-      }
-      else {
-        LOG_TRACE(umfpackSolver) << "done";
-      }
-#endif
+//    printf ("\nMatrix A: ") ;
+//    (void) umfpack_di_report_matrix (probDim_, probDim_, rowPtr_, colPtr_, theMatrix_, 1, NULL) ;
+      
+      status = umfpack_di_transpose (probDim_, probDim_, Ap, Ai, Ax, P, Q, Rp, Ri, Rx) ;
+
+//    printf ("\nTranspose of A: ") ;
+//    (void) umfpack_di_report_matrix (probDim_, probDim_, Rp, Ri, Rx, 1, Control) ;
+    
+      umfpack_di_symbolic (n_col, n_row, Rp, Ri, Rx, &Symbolic, 0, 0) ;
 
     }
 
@@ -649,54 +474,12 @@ extern "C" {
                                << "factorisation) ... ";
 
 
-      umfpack_di_numeric (rowPtr_, colPtr_, theMatrix_, Symbolic, &Numeric, 0, 0);
-
       // only factorise (numerical)
-#if 0
-      int phase = 22;
-
-
-
-      // let pardiso go for it
-#if PARDISO_API_VER == 4
-      F77NAME(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                        &probDim_, theMatrix_, rowPtr_, colPtr_,
-                        idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
-                        &zeroDBL_, &errorFlag, &dparm_[0] );
-#endif
-
-#if PARDISO_API_VER == 3
-      F77NAME(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                        &probDim_, theMatrix_, rowPtr_, colPtr_,
-                        idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
-                        &zeroDBL_, &errorFlag );
-#endif
-      
-      // Check return status
-      if ( errorFlag != NO_ERROR ) {
-        EXCEPTION( "Error occured during numerical factorization:\n"
-                   << GetErrorString(errorFlag) );
-      }
-      else {
-        LOG_TRACE(umfpackSolver) << "done";
-      }
-
-#endif
-
+      umfpack_di_numeric (Rp, Ri, Rx, Symbolic, &Numeric, 0, 0);
     }
 
     // Now we were called once, and a factorisation is available
     firstCall_ = false;
-
-#if 0
-    // now we undo our increment, since on our side the frist col and row
-    // has an value of zero!!
-    for (UInt i=0; i <  static_cast<UInt>(probDim_+1); i++ )
-      rowPtr_[i] -= 1;
-
-    for (UInt i=0; i< nnz_; i++ )
-      colPtr_[i] -= 1;
-#endif
 
   }
 
@@ -742,7 +525,7 @@ extern "C" {
     theSol = (Double *) hatred;
 
 
-    umfpack_di_solve (UMFPACK_A, rowPtr_, colPtr_, theMatrix_, theSol, theRHS, Numeric, 0, 0) ;
+    umfpack_di_solve (UMFPACK_A, Rp, Ri, Rx, theSol, theRHS, Numeric, 0, 0) ;
 
 #if 0
     // PARDISO - Third Phase : Solution of the system
@@ -793,17 +576,10 @@ extern "C" {
 
 
     // Finish log report
-    if(!mSolver_) {
       LOG_TRACE(umfpackSolver) << " number of iterative refinement steps: " << iparm_[6];
       LOG_TRACE(umfpackSolver) << " number of perturbed pivots: " << iparm_[13];
       LOG_TRACE(umfpackSolver) << " number of positive eigenvalues: " << iparm_[21];
       LOG_TRACE(umfpackSolver) << " number of negative eigenvalues: " << iparm_[22];
-    } else {
-      LOG_TRACE(umfpackSolver) << " Maximum number of iterations: " << dparm_[0];
-      LOG_TRACE(umfpackSolver) << " Number of iterations after solve step: " << dparm_[34];
-      LOG_TRACE(umfpackSolver) << " Relative Residual Reduction: " << dparm_[1];
-      LOG_TRACE(umfpackSolver) << " Relative residual after Krylov-Subspace convergence: " << dparm_[33];
-    }
     LOG_TRACE(umfpackSolver) << " -------------------------------------------------------"
                              << "-----------------------";
 
