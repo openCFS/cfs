@@ -1,11 +1,8 @@
 # Find executables of a few required programs
 
 #-----------------------------------------------------------------------------
-# Find Perl interpreter and configure a Perl source file with the current
-# settings for compilers and tools for building dependencies
+# Find Python interpreter and libs
 #-----------------------------------------------------------------------------
-FIND_PACKAGE(Perl)
-
 FIND_PACKAGE(PythonInterp)
 FIND_PACKAGE(PythonLibs)
 

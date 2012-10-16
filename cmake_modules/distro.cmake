@@ -2,16 +2,32 @@ SET(DISTRO_SCRIPT "${CFS_SOURCE_DIR}/share/scripts/distro.sh")
 
 EXEC_PROGRAM("${DISTRO_SCRIPT}"
   ARGS -c
-  OUTPUT_VARIABLE CFS_ARCH_TEST
+  OUTPUT_VARIABLE CFS_DISTRO_TEST
   RETURN_VALUE RETVAL)
 
-LIST(GET CFS_ARCH_TEST 0 CFS_DISTRO)
-LIST(GET CFS_ARCH_TEST 1 CFS_DISTRO_VER)
-LIST(GET CFS_ARCH_TEST 2 CFS_ARCH)
-# Determine the subarchitecture of the platform.
-LIST(GET CFS_ARCH_TEST 3 CFS_SUBARCH)
+EXECUTE_PROCESS(
+  COMMAND "${CMAKE_COMMAND}" -E make_directory "${CFS_BINARY_DIR}/tmp"
+  WORKING_DIRECTORY "${CFS_BINARY_DIR}"
+  RESULT_VARIABLE RETVAL
+  )
 
-# MESSAGE("CFS_ARCH_TEST: ${CFS_ARCH_TEST}")
+FILE(WRITE "${CFS_BINARY_DIR}/tmp/distro_test.cmake" "${CFS_DISTRO_TEST}")
+
+INCLUDE("${CFS_BINARY_DIR}/tmp/distro_test.cmake")
+
+IF(DIST_FAMILY)
+  SET(CFS_DISTRO "${DIST_FAMILY}")
+  SET(CFS_DISTRO_VER "${MAJOR_REV}")
+ELSE()
+  SET(CFS_DISTRO "${DIST}")
+  SET(CFS_DISTRO_VER "${REV}")
+ENDIF()
+
+SET(CFS_ARCH "${ARCH}")
+SET(CFS_ARCH_STR "${CFS_DISTRO}_${ARCH}_${CFS_DISTRO_VER}")
+# Determine the subarchitecture of the platform.
+SET(CFS_SUBARCH "${SUBARCH}")
+
 
 # MESSAGE("CFS_DISTRO: ${CFS_DISTRO}")
 # MESSAGE("CFS_DISTRO_VER: ${CFS_DISTRO_VER}")
@@ -26,20 +42,6 @@ IF(CFS_DISTRO STREQUAL "SUSE" OR
    CFS_DISTRO STREQUAL "OPENSUSE" OR
    CFS_DISTRO STREQUAL "SLE")
 
- # Supply a list of SUSE system packages which are needed to compile CFS
- SET(CFS_PCKG_HINT
-   "blas"
-   "boost(-devel)"
-   "compat-g77"
-   "lapack"
-   "python(-devel)"
-   "subversion"
-   "tcl(-devel)"
-   "Xerces-C(-devel)"
-   "doxygen"
-   "graphviz"
-   )
-
  IF(CFS_DISTRO_VER GREATER 9.3)
    SET(CFS_PCKG_HINT ${CFS_PCKG_HINT} gfortran)
    SET(CFS_FORTRAN_LIBS ${CFS_FORTRAN_LIBS} ${GFORTRAN_LIBRARY})   
@@ -50,20 +52,6 @@ ENDIF(CFS_DISTRO STREQUAL "SUSE" OR
   CFS_DISTRO STREQUAL "SLE")
 
 IF(CFS_DISTRO STREQUAL "DEBIAN")
-  SET(CFS_PCKG_HINT
-   "blas-dev, refblas3-dev"
-   "libg2c0-dev"
-   "libboost-*-dev"
-   "lapack-dev, lapack99-dev, lapack3-dev"
-   "python2.4-dev"
-   "tcl8.4-dev"
-   "subversion"
-   "libxerces25-dev, libxerces26-dev, libxerces27-dev"
-   "doxygen"
-   "tetex-bin"
-   "graphviz"
-   )
-
   IF(CFS_DISTRO_VER GREATER 3)
     SET(CFS_FORTRAN_LIBS ${GFORTRAN_LIBRARY})
     SET(CFS_PCKG_HINT ${CFS_PCKG_HINT} "gfortran, libgfortran1-dev")
@@ -75,22 +63,6 @@ ENDIF(CFS_DISTRO STREQUAL "DEBIAN")
 
 
 IF(CFS_DISTRO STREQUAL "UBUNTU")
-
-  # Supply a list of Ubuntu system packages which are needed to compile CFS
-  SET(CFS_PCKG_HINT
-   "refblas3-dev"
-   "libboost-*-dev"
-   "libg2c0-dev"
-   "lapack3-dev"
-   "python2.4-dev"
-   "subversion"
-   "tcl8.4-dev"
-   "libxerces27-dev"
-   "doxygen"
-   "tetex-bin"
-   "graphviz"
-   )
-
   # The CFS_FORTRAN_LIBS variable has been set empirically.
   # At the moment I just have Edgy Eft (6.10)!
   IF(CFS_DISTRO_VER GREATER 6)
@@ -105,21 +77,6 @@ IF(CFS_DISTRO STREQUAL "FEDORA" OR
    CFS_DISTRO STREQUAL "RHEL" OR
    CFS_DISTRO STREQUAL "CENTOS")
 
-  SET(CFS_PCKG_HINT
-   "blas, libblas.so.3"
-   "boost, boost-devel"
-   "compat-gcc-g77, compat-gcc-34-g77, compat-gcc-32-g77, gcc-g77"
-   "gcc-gfortran"
-   "lapack, lapack-devel"
-   "python, python-devel"
-   "tcl, tcl-devel"
-   "subversion"
-   "xerces-c, xerces-c-devel"
-   "doxygen"
-   "graphviz"
-   "tetex-latex"
-   )
-
    # Fortran support for Fedora/Redhat/RHEL never tested
    # TODO: add a sane check here
    SET(CFS_FORTRAN_LIBS ${GFORTRAN_LIBRARY})
@@ -132,27 +89,13 @@ ENDIF(CFS_DISTRO STREQUAL "FEDORA" OR
 IF(CFS_DISTRO STREQUAL "MANDRAKE" OR
    CFS_DISTRO STREQUAL "MANDRIVA")
 
-  SET(CFS_PCKG_HINT
-   "libblas1.1-devel libblas3-devel, libblas-devel, blas-devel"
-   "libboost1, libboost, boost, libboost1-devel, libboost-devel boost-devel"
-   "gcc3.3-g77"
-   "libgfortran0, libgfortran, libgfortran4.0 libgfortran.so.0"
-   "lapack"
-   "libpython2.5-devel, python-devel, libpython-devel"
-   "libtcl8.4-devel, tcl-devel, libtcl-devel"
-   "subversion"
-   "libxerces-c26-devel, xerces-c-devel, libxerces-c-devel"
-   "doxygen"
-   "tetex-latex"
-   "graphviz"
-   )
-
    # Fortran support for Mandrake/Mandriva never tested
    # TODO: add a sane check here
    SET(CFS_FORTRAN_LIBS ${G2C_LIBRARY} ${GFORTRAN_LIBRARY})
 
 ENDIF(CFS_DISTRO STREQUAL "MANDRAKE" OR
    CFS_DISTRO STREQUAL "MANDRIVA")
+
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
 

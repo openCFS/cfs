@@ -50,6 +50,7 @@ SetupDebian() {
 SetupSuse() {
     MAJOR=$(echo $REV | cut -d'.' -f1)
     MINOR=$(echo $REV | cut -d'.' -f2)
+
     if [ "$ARCH" = "I386" ]; then SUSEARCH=x86; fi
     if [ "$ARCH" = "X86_64" ]; then SUSEARCH=x64; fi
 
@@ -89,20 +90,20 @@ SetupSuse() {
 	    PCKGS="$PCKGS java-1_6_0-ibm java-1_6_0-ibm-devel"
         fi
     else
-	PCKGS="$PCKGS java-1_6_0-openjdk-devel"
+        PCKGS="$PCKGS java-1_7_0-openjdk-devel"
+        PCKGS="$PCKGS java-1_6_0-openjdk-devel"
     fi
 
     for pckg in $PCKGS
     do
-	zypper --non-interactive install $pckg
+        zypper --non-interactive install $pckg
     done
 
-    if [ "$MAJOR" = "11" ] && [ $MINOR -ge 3 ]; then
-	REPO="http://download.opensuse.org/repositories/home:/tsokar/openSUSE_$REV \
-              http://download.opensuse.org/repositories/home:/scorot/openSUSE_$REV"
+    if [ "$MAJOR" = "11" ] && [ $MINOR -ge 4 ]; then
+        REPO="http://download.opensuse.org/repositories/science/openSUSE_$REV/science.repo"
         for repo in $REPO
         do
-          zypper addrepo --check $repo Gmsh
+          zypper addrepo $repo
           if [ $? -eq 0 ]; then
             break;
           fi
@@ -110,8 +111,24 @@ SetupSuse() {
         if [ $? -ne 0 ]; then
           ExitFail
         fi
-	zypper install gmsh || ExitFail
+        zypper install gmsh || ExitFail
     fi
+
+    if [ "$MAJOR" = "12" ]; then
+        REPO="http://download.opensuse.org/repositories/science/openSUSE_$REV/science.repo"
+        for repo in $REPO
+        do
+          zypper addrepo $repo
+          if [ $? -eq 0 ]; then
+            break;
+          fi
+        done
+        if [ $? -ne 0 ]; then
+          ExitFail
+        fi
+        zypper install gmsh || ExitFail
+    fi
+
 }
 
 SetupFedora() {
@@ -179,7 +196,7 @@ SetupRHEL() {
                 automake autoconf cmake gcc-gfortran ncurses-devel \
                 java-1.6.0-openjdk-devel tk-devel python-pygments doxygen \
                 tcl-devel python-devel git-svn patch diffutils zip \
-                libXt-devel libXp mesa-libGLU-devel libXmu-devel || ExitFail
+                libXt-devel libXp mesa-libGLU-devel libXmu-devel make || ExitFail
            
     if [ "$ARCH" = "X86_64" ]; then
 	LIB="lib64"
@@ -301,7 +318,7 @@ SetupCMake() {
         return 1
     fi
 
-    PCKG_BASE_NAME="cmake-2.8.8";
+    PCKG_BASE_NAME="cmake-2.8.9";
     MYTMPDIR="$TMPDIR/$(basename $0).$$"
     echo "$MYTMPDIR"
 
@@ -310,17 +327,17 @@ SetupCMake() {
     cd "$MYTMPDIR"
 
     # Define list of mirrors
-    mirrors="ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/cmake/$PCKG_BASE_NAME.tar.gz
-             http://www.cmake.org/files/v2.8/$PCKG_BASE_NAME.tar.gz"
+    mirrors="http://www.cmake.org/files/v2.8/$PCKG_BASE_NAME.tar.gz
+             ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/cmake/$PCKG_BASE_NAME.tar.gz"
 
-    MD5SUM="ba74b22c788a0c8547976b880cd02b17"
+    MD5SUM="801f4c87f8b604f727df5bf1f05a59e7"
 
     # Download source
     for mirror in $mirrors; do
         if [ -f $PCKG_BASE_NAME.tar.gz ]; then
             rm -f $PCKG_BASE_NAME.tar.gz
         fi
-        wget $mirror
+        wget --timeout=30 $mirror
         if [ $? -eq 0 ]; then break; fi
     done
 
@@ -391,10 +408,9 @@ case "$DIST" in
         echo "You are encouraged to contribute a new boostrap routine by taking"
         echo "the Setup* functions in $0 as a reference for implementing a function"
         echo "for $DIST. When finished please place your modified $0 into"
-	echo "CFS_SOURCE_DIR/share/scripts and commit it to the Subversion repo"
-	echo "or send it to one of the CFS++ developers."
-        exit 1
-        ;;
+        echo "CFS_SOURCE_DIR/share/scripts and commit it to the Subversion repo"
+        echo "or send it to one of the CFS++ developers."
+        exit 1 ;;
 esac
 
 SetupCMake
