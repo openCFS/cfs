@@ -132,9 +132,12 @@ OPTION(USE_GMV
 OPTION(USE_UNV
   "Use Universal File for simulation output."
   ${USE_UNV_DEFAULT})
-OPTION(USE_ANSYSRST
-  "Use ANSYS .RST format for simulation output."
-  ${USE_ANSYSRST_DEFAULT})
+
+IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  OPTION(USE_ANSYSRST
+    "Use ANSYS .RST format for simulation output."
+    ${USE_ANSYSRST_DEFAULT})
+ENDIF()
 
 #-----------------------------------------------------------------------------
 # Options concerning linear algebra and direct solver libraries
@@ -217,8 +220,10 @@ OPTION(USE_CGNS "Enable support for the CFD General Notation System."
 #-----------------------------------------------------------------------------
 # CFXIO - Support for reading ANSYS CFX result files
 #-----------------------------------------------------------------------------
-OPTION(USE_CFXIO "Enable support for reading ANSYS CFX result files."
-  ${USE_CFXIO_DEFAULT})
+IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  OPTION(USE_CFXIO "Enable support for reading ANSYS CFX result files."
+    ${USE_CFXIO_DEFAULT})
+ENDIF()
 
 #-----------------------------------------------------------------------------
 # SCPIP optimizer library.
