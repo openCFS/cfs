@@ -18,6 +18,7 @@
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
+#include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
 #include "CoupledPDE/PDECoupling.hh"
@@ -42,6 +43,7 @@
 #include "Forms/Operators/LaplOp.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
+#include "Forms/Operators/StrainOperator.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -75,6 +77,9 @@ namespace CoupledField {
     // Check the subtype of the problem
     paramNode->GetValue("subType", subType_);
 
+    if(ptGrid_->GetDim() == 3)
+      subType_ = "3d";
+      
     // Obtain regions the pde is defined on
     PtrParamNode presSurfaceNode = myParam_->Get("presSurfaceList", ParamNode::PASS);
     ParamNodeList regionNodes;
@@ -299,7 +304,7 @@ namespace CoupledField {
         PtrCoefFct regionFlow;
         std::set<UInt> definedDofs;
         ReadUserFieldValues( regionName, flowNode, flowInfo->dofNames, flowInfo->entryType, 
-                             isComplex_, regionFlow, definedDofs );
+                             false, regionFlow, definedDofs );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
         
 //        if(isComplex_){
@@ -498,45 +503,97 @@ namespace CoupledField {
   
   
   void PerturbedFlowPDE::DefinePostProcResults() {
-    // === Normal derivative of pressure ===
+
+    shared_ptr<BaseFeFunction> feFct = feFunctions_[FLUIDMECH_PRESSURE];
+
+    StdVector<std::string> stressComponents;
+    if( subType_ == "3d" ) {
+      stressComponents = "xx", "yy", "zz", "yz", "xz", "xy";
+    } else if( subType_ == "plane" ) {
+      stressComponents = "xx", "yy", "xy";
+    } else if( subType_ == "axi" ) {
+      stressComponents = "rr", "zz", "rz", "phiphi";
+    }
+    StdVector<std::string > dispDofNames;
+    dispDofNames = feFunctions_[FLUIDMECH_VELOCITY]->GetResultInfo()->dofNames;
+    shared_ptr<BaseFeFunction> velFeFct = feFunctions_[FLUIDMECH_VELOCITY];
+
+
+    // === ELECTRIC FIELD INTENSITY ===
     shared_ptr<ResultInfo> ef ( new ResultInfo );
-    ef->resultType = FLUIDMECH_NORMAL_PRES;
+    ef->resultType = FLUIDMECH_PRES_GRADIENT;
     ef->SetVectorDOFs(dim_, isaxi_);
-    ef->unit = "Pa/m";
-    ef->definedOn = ResultInfo::SURF_ELEM;
-    ef->entryType = ResultInfo::SCALAR;
+    ef->unit = MapSolTypeToUnit(FLUIDMECH_PRES_GRADIENT);
+    ef->definedOn = ResultInfo::ELEMENT;
+    ef->entryType = ResultInfo::VECTOR;
     availResults_.insert( ef );
+    shared_ptr<CoefFunctionFormBased> eFunc;
+    if( isComplex_ ) {
+      eFunc.reset(new CoefFunctionBOp<Complex>(feFct, ef, -1.0));
+    } else {
+      eFunc.reset(new CoefFunctionBOp<Double>(feFct, ef, -1.0));
+    }
+
+      PtrCoefFct coeffKVP
+                = CoefFunction::Generate(Global::REAL, "1.0");
+      BaseBDBInt * stiffIntVP = NULL;
+      if( dim_ == 2 ) {
+        stiffIntVP = new ABInt< IdentityOperator<FeH1,2,2> , GradientOperator<FeH1,2> >(coeffKVP, 1.0 );
+      } else {
+        stiffIntVP = new ABInt< IdentityOperator<FeH1,3,3> , GradientOperator<FeH1,3> >(coeffKVP, 1.0 );
+      }
+      
+    DefineFieldResult( eFunc, ef );
+
+    // === FLUID-MECHANIC STRESS ===
+    shared_ptr<ResultInfo> stress(new ResultInfo);
+    stress->resultType = FLUIDMECH_STRESS;
+    stress->dofNames = stressComponents;
+    stress->unit = MapSolTypeToUnit(FLUIDMECH_STRESS);
+    stress->entryType = ResultInfo::TENSOR;
+    stress->definedOn = ResultInfo::ELEMENT;
+    availResults_.insert( stress );
+    shared_ptr<CoefFunctionFormBased> sigmaFunc;
+    if( isComplex_ ) {
+      sigmaFunc.reset(new CoefFunctionFlux<Complex>(velFeFct, stress));
+    } else {
+      sigmaFunc.reset(new CoefFunctionFlux<Double>(velFeFct, stress));
+    }
+    DefineFieldResult( sigmaFunc, stress );
     
-    PtrCoefFct pNormal;
-    
+    // === FLUID-MECHANIC STRAINRATE ===
+    shared_ptr<ResultInfo> strain(new ResultInfo);
+    strain->resultType = FLUIDMECH_STRAINRATE;
+    strain->dofNames = stressComponents;
+    strain->unit =  MapSolTypeToUnit(FLUIDMECH_STRAINRATE);;
+    strain->entryType = ResultInfo::TENSOR;
+    strain->definedOn = ResultInfo::ELEMENT;
+    availResults_.insert( strain );
+    shared_ptr<CoefFunctionFormBased> strainFunc;
+    if( isComplex_ ) {
+      strainFunc.reset(new CoefFunctionBOp<Complex>(velFeFct, strain));
+    } else {
+      strainFunc.reset(new CoefFunctionBOp<Double>(velFeFct, strain));
+    }
+    DefineFieldResult( strainFunc, strain );
+
+      
     // ============================
     // Initialize result functors:
     // ============================
-    // collect the flux volume flux coefficient functionf for each region
-    std::map<RegionIdType, PtrCoefFct> pCoefs;
     
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {      
       RegionIdType region = it->first;
+      BaseMaterial* actSDMat = it->second;
 
-      pCoefs[region] = fieldCoefs_[FLUIDMECH_PRESSURE];
-    }
-    
-    // define missing surface charge density
-    if( isComplex_ ) {
-      shared_ptr<CoefFunctionSurf<Complex> > presNormal (
-          new CoefFunctionSurf<Complex>(true));
-      presNormal->SetVolumeCoefs(pCoefs);
-      pNormal= presNormal;
-    } else {
-      shared_ptr<CoefFunctionSurf<Double> > presNormal (
-          new CoefFunctionSurf<Double>(true));
-      presNormal->SetVolumeCoefs(pCoefs);
-      pNormal = presNormal;
-    }
+      // 2) pass integrators to functors
+      eFunc->AddIntegrator(stiffIntVP, region);
+      sigmaFunc->AddIntegrator(GetStiffIntegrator( actSDMat, region, isComplex_ ), region);
+      strainFunc->AddIntegrator(GetStiffIntegrator( actSDMat, region, isComplex_ ), region);
 
-    DefineFieldResult( pNormal, ef );
+    }
 
   }
 
@@ -583,6 +640,73 @@ namespace CoupledField {
     
     meanFlowCoef_.reset(new CoefFunctionMulti());
     DefineFieldResult( meanFlowCoef_, flowvelocity );
+  }
+
+  BaseBDBInt *
+  PerturbedFlowPDE::GetStiffIntegrator( BaseMaterial* actSDMat,
+                                        RegionIdType regionId,
+                                        bool isComplex )
+  {
+
+    // Get region name
+    std::string regionName = ptGrid_->GetRegion().ToString( regionId );
+
+    // ------------------------
+    //  Obtain linear material
+    // ------------------------
+    shared_ptr<CoefFunction > curCoef;
+
+    BaseMaterial* regionMat = materials_[regionId];
+    SubTensorType subTensorType = NO_TENSOR;
+    Global::ComplexPart complexPart = Global::REAL;
+
+    if( isComplex ) {
+      complexPart = Global::COMPLEX;
+    }
+    
+    if( subType_ == "axi" ) {
+      subTensorType = AXI;
+    } else if( subType_ == "plane" ) {
+      subTensorType = PLANE;
+    } else if( subType_ == "3d") {
+      subTensorType = FULL;
+    } else {
+      EXCEPTION( "Subtype '" << subType_ << "' unknown for fluid-mechanic physic" );
+    }
+
+    curCoef = regionMat->GetTensorCoefFnc( DYNAMIC_VISCOSITY, subTensorType, complexPart );
+
+    // ----------------------------------------
+    //  Determine correct stiffness integrator 
+    // ----------------------------------------
+    BaseBDBInt * integ = NULL;
+    if( isComplex ) {
+      if( subType_ == "axi" ) {
+        integ = new BDBInt<StrainOperatorAxi<FeH1,Complex>,Complex,Complex>(curCoef, 1.0);
+      } else if( subType_ == "plane" ) {
+        integ = new BDBInt<StrainOperator2D<FeH1,Complex>,Complex,Complex>(curCoef, 1.0);
+      } else if( subType_ == "3d") {
+        integ = new BDBInt<StrainOperator3D<FeH1,Complex>,Complex,Complex>(curCoef, 1.0);
+      } else {
+        EXCEPTION( "Subtype '" << subType_ << "' unknown for fluid-mechanic physic" );
+      }
+    }
+    else {
+      if( subType_ == "axi" ) {
+        integ = new BDBInt<StrainOperatorAxi<FeH1> >(curCoef, 1.0);
+      } else if( subType_ == "plane" ) {
+        integ = new BDBInt<StrainOperator2D<FeH1> >(curCoef, 1.0);
+      } else if( subType_ == "3d") {
+        integ = new BDBInt<StrainOperator3D<FeH1> >(curCoef, 1.0);
+      } else {
+        EXCEPTION( "Subtype '" << subType_ << "' unknown for fluid-mechanic physic" );
+      }
+    }
+
+    integ->SetName("LinElastInt");
+    integ->SetFeSpace( feFunctions_[FLUIDMECH_VELOCITY]->GetFeSpace() );
+
+    return integ;
   }
 
 }

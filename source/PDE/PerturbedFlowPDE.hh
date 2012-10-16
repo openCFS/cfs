@@ -95,6 +95,12 @@ namespace CoupledField
     //! create feFunction for meanFluidMech velocity
     void CreateMeanFlowFunction(StdVector<std::string> dofNames);
 
+  BaseBDBInt *
+  GetStiffIntegrator( BaseMaterial* actSDMat,
+                               RegionIdType regionId,
+                               bool isComplex );
+
+
     //! Coefficient function for the flow field
     
     //! This coefficient function describes the flow field. As this 
