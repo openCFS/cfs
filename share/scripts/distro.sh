@@ -222,9 +222,9 @@ elif [ ${OS} = "Darwin" ]; then
                 "10.3") PSEUDONAME="Panther";;
 		"10.4") PSEUDONAME="Tiger";;
 		"10.5") PSEUDONAME="Leopard";;
-                "10.6") PSEUDONAME="Snow Leopard";;
-                "10.7") PSEUDONAME="Lion";;
-                "10.8") PSEUDONAME="Mountain Lion";;
+                "10.6") PSEUDONAME="Snow Leopard"; ARCH="X86_64";;
+                "10.7") PSEUDONAME="Lion"; ARCH="X86_64";;
+                "10.8") PSEUDONAME="Mountain Lion"; ARCH="X86_64";;
 	    esac
 
             REV=$MAJOR_REV
