@@ -1,0 +1,4 @@
+// Define used to check if COMSOL .mphtxt mesh input is activate
+
+#cmakedefine USE_COMSOL
+
