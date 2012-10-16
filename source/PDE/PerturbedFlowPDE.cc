@@ -518,8 +518,8 @@ namespace CoupledField {
     dispDofNames = feFunctions_[FLUIDMECH_VELOCITY]->GetResultInfo()->dofNames;
     shared_ptr<BaseFeFunction> velFeFct = feFunctions_[FLUIDMECH_VELOCITY];
 
-
-    // === ELECTRIC FIELD INTENSITY ===
+#if 0
+    // === PRESSURE GRADIENT (just for debugging purposes) ===
     shared_ptr<ResultInfo> ef ( new ResultInfo );
     ef->resultType = FLUIDMECH_PRES_GRADIENT;
     ef->SetVectorDOFs(dim_, isaxi_);
@@ -544,6 +544,7 @@ namespace CoupledField {
       }
       
     DefineFieldResult( eFunc, ef );
+#endif
 
     // === FLUID-MECHANIC STRESS ===
     shared_ptr<ResultInfo> stress(new ResultInfo);
@@ -589,7 +590,7 @@ namespace CoupledField {
       BaseMaterial* actSDMat = it->second;
 
       // 2) pass integrators to functors
-      eFunc->AddIntegrator(stiffIntVP, region);
+      // eFunc->AddIntegrator(stiffIntVP, region);
       sigmaFunc->AddIntegrator(GetStiffIntegrator( actSDMat, region, isComplex_ ), region);
       strainFunc->AddIntegrator(GetStiffIntegrator( actSDMat, region, isComplex_ ), region);
 
