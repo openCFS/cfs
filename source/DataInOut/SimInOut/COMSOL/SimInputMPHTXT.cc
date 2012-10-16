@@ -79,48 +79,60 @@ static int Comsolrow(char *line1,FILE *io)
 static void ReorderComsolNodes(int elementtype,UInt *topo) 
 {
   int i,tmptopo[MAXNODESD2];
+  int order306[]={1,2,3,4,6,5};
   int order404[]={1,2,4,3};
-  int order706[]={1,2,3,4,5,6};
+  int order409[]={1,2,4,3,5,8,9,6,7};
+  int order510[]={1,2,3,4,5,7,6,8,9,10};
+  int order718[]={1,2,3,4,5,6,7,9,8,16,18,17,10,12,15,11,14,13};
   int order808[]={1,2,4,3,5,6,8,7};
  
+  for(i=0;i<elementtype%100;i++) 
+    tmptopo[i] = topo[i];
    
   switch (elementtype) {
  
-  case 404:
+  case 306:
     for(i=0;i<elementtype%100;i++) 
-      tmptopo[i] = topo[i];
+      topo[i] = tmptopo[order306[i]-1];
+    break;
+
+  case 404:
     for(i=0;i<elementtype%100;i++) 
       topo[i] = tmptopo[order404[i]-1];
     break;
 
-  case 706:
+  case 409:
     for(i=0;i<elementtype%100;i++) 
-      tmptopo[i] = topo[i];
+      topo[i] = tmptopo[order409[i]-1];
+    break;
+
+  case 510:
     for(i=0;i<elementtype%100;i++) 
-      topo[i] = tmptopo[order706[i]-1];
+      topo[i] = tmptopo[order510[i]-1];
     break;
     
   case 808:
     for(i=0;i<elementtype%100;i++) 
-      tmptopo[i] = topo[i];
-    for(i=0;i<elementtype%100;i++) 
       topo[i] = tmptopo[order808[i]-1];
     break;
 
+  case 718:
+    for(i=0;i<elementtype%100;i++) 
+      topo[i] = tmptopo[order718[i]-1];
+    break;
+
   case 408:
-  case 409:
   case 820:
   case 827:
-  case 510:
+    // case 510:
   case 715:
-  case 718:
+    // case 718:
     EXCEPTION("Reordering for Elmer elemtype " << elementtype << " not yet implemented.");    
     break;
 
   default:
     break;
   }
-
 
 }
 
