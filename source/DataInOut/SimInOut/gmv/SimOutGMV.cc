@@ -611,6 +611,12 @@ namespace CoupledField {
       case Elem::ET_QUAD9:
         numNodes = 8;
         break;
+      case Elem::ET_PYRA14:
+        numNodes = 13;
+        break;
+      case Elem::ET_WEDGE18:
+        numNodes = 15;
+        break;
       default:
         break;
       }
@@ -708,12 +714,14 @@ namespace CoupledField {
       id       = "ppyrmd5 ";
       break;
     case Elem::ET_PYRA13:
+    case Elem::ET_PYRA14:
       id       = "ppyrmd13";
       break;
     case Elem::ET_WEDGE6:
       id       = "pprism6 ";
       break;
     case Elem::ET_WEDGE15:
+    case Elem::ET_WEDGE18:
       id       = "pprism15";
       break;
     default:
