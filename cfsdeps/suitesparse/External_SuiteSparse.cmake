@@ -95,5 +95,10 @@ SET(CHOLMOD_LIBRARY
   "${LD}/libcholmod.a;${LD}/libamd.a;${LD}/libcolamd.a;${LD}/libcamd.a;${LD}/libccolamd.a"
   CACHE FILEPATH "CholMod library.")
 
+SET(UMFPACK_LIBRARY
+  "${LD}/libumfpack.a;${CHOLMOD_LIBRARY}"
+  CACHE FILEPATH "UMFPACK library.")
+
 MARK_AS_ADVANCED(CHOLMOD_LIBRARY)
+MARK_AS_ADVANCED(UMFPACK_LIBRARY)
 

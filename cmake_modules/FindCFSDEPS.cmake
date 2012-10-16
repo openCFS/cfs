@@ -222,13 +222,13 @@ IF(USE_BLAS OR USE_LAPACK)
   #-----------------------------------------------------------------------------
   # Find SuiteSparse/CholMod/AMD library
   #-----------------------------------------------------------------------------
-  IF(USE_CHOLMOD OR USE_ILUPACK)
+  IF(USE_CHOLMOD OR USE_UMFPACK OR USE_ILUPACK)
     SET(SUITESPARSE_URL "${LSE17_SOURCES_DIR}/suitesparse")
     SET(SUITESPARSE_GZ "SuiteSparse-3.7.0.tar.gz")
     SET(SUITESPARSE_MD5 "ecb1d1cc1101cf31f077bab46678e791")
 
     INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/suitesparse/External_SuiteSparse.cmake")
-  ENDIF(USE_CHOLMOD OR USE_ILUPACK)
+  ENDIF(USE_CHOLMOD OR USE_UMFPACK OR USE_ILUPACK)
 
   #-----------------------------------------------------------------------------
   # Find ILUPACK library

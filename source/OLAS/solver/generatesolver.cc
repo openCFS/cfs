@@ -1,6 +1,7 @@
 #include <def_use_ilupack.hh>
 #include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
+#include <def_use_umfpack.hh>
 #include <def_use_cholmod.hh>
 
 #include "OLAS/algsys/SolStrategy.hh"
@@ -18,6 +19,10 @@
 
 #ifdef USE_PARDISO
 #include "OLAS/external/pardiso/PardisoSolver.hh"
+#endif
+
+#ifdef USE_UMFPACK
+#include "OLAS/external/umfpack/UMFPACKSolver.hh"
 #endif
 
 #ifdef USE_ILUPACK
@@ -273,6 +278,38 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 #endif
     break;
 
+  case BaseSolver::UMFPACK:
+
+#ifdef USE_UMFPACK
+
+    // Check suitability of matrix
+    if ( mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
+      EXCEPTION( "UMFPACKSolver only works with (S)CRS_Matrix class!" );
+    }
+    else {
+      const StdMatrix &stdmat = dynamic_cast<const StdMatrix &>(mat);
+      if ( stdmat.GetStorageType() != BaseMatrix::SPARSE_NONSYM &&
+          stdmat.GetStorageType() != BaseMatrix::SPARSE_SYM  ) {
+        EXCEPTION( "UMFPACKSolver only works with (S)CRS_Matrix class!" );
+      }
+    }
+
+    if ( eType == BaseMatrix::DOUBLE ) {
+      retSolver = new UMFPACKSolver<Double>( solverNode, olasInfo );
+      ASSERTMEM( retSolver, sizeof(UMFPACKSolver<Double>) );
+      LOG_DBG(genSolver) << " GenerateSolver: Generated real UMFPACK solver";
+    }
+    if ( eType == BaseMatrix::COMPLEX ) {
+      retSolver = new UMFPACKSolver<Complex>( solverNode, olasInfo );
+      ASSERTMEM( retSolver, sizeof(UMFPACKSolver<Complex>) );
+      LOG_DBG(genSolver) << " GenerateSolver: Generated complex UMFPACK solver";
+    }
+#else
+
+    EXCEPTION( "Compile with USE_UMFPACK to enable interface to UMFPACK "
+               "library" );
+#endif
+    break;
 
   case BaseSolver::ILUPACK:
 
@@ -356,6 +393,11 @@ GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {
       break;
 
     case BaseSolver::PARDISO:
+      ret.insert(BaseMatrix::SPARSE_SYM);
+      ret.insert(BaseMatrix::SPARSE_NONSYM);
+      break;
+
+    case BaseSolver::UMFPACK:
       ret.insert(BaseMatrix::SPARSE_SYM);
       ret.insert(BaseMatrix::SPARSE_NONSYM);
       break;

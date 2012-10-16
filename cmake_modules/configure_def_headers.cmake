@@ -45,6 +45,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_lapack.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_pardiso.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_pardiso.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_umfpack.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_umfpack.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_metis.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_metis.hh")
 

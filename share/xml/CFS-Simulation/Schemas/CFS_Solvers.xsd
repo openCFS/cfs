@@ -361,6 +361,64 @@
       <xsd:enumeration value="iterative"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+  <!-- =================================================================== -->
+  <!-- ==                                                               == -->
+  <!-- ==                         UMFPACK Solver                        == -->
+  <!-- ==                                                               == -->
+  <!-- =================================================================== -->
+  
+  
+  <!-- ******************************************************************* -->
+  <!-- Definition of element for UMFPACK Solver -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="umfpack" type="DT_SolverUMFPACK"
+    substitutionGroup="SolverBasic"/>
+  
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for UMFPACK Solver -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_SolverUMFPACK">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence minOccurs="0" maxOccurs="1">
+          <xsd:element name="posDef"    type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="hermitean" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="symStruct" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="ordering"  type="DT_UMFPACKOrdering" minOccurs="0"/>
+          
+          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0" default="no">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                If logging is set to yes, then the solution process will log the convergence history
+                (absolute and relative residual norm) to the log stream.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
+          <xsd:element name="stats"     type="DT_CFSBool" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Let UMFPACK print statistics while it is solving the problem.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+            
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <xsd:simpleType name="DT_UMFPACKOrdering">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="noReordering"/>
+      <xsd:enumeration value="amd"/>
+      <xsd:enumeration value="metis"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
   
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
