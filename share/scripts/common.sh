@@ -32,7 +32,8 @@ fi
 
 # Get operating system
 eval $($DISTRO_SH -s)
-# OS=$($DISTRO_SH -h | cut -d' ' -f1)
+OS_DUMMY=$(echo $OS | sed 's/ //g')
+OS=$OS_DUMMY
 
 # Get architecture and distribution
 if [ ! "$DIST_FAMILY" = "" ]; then
@@ -60,7 +61,7 @@ esac
 case "$OS" in
     LINUX)
 	OS_SUPPORTED=1 ;;
-    MAC OS X)
+    MACOSX)
 	OS_SUPPORTED=1 ;;
     *)
 	OS_SUPPORTED=0 ;;

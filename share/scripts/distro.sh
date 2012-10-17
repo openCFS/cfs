@@ -254,7 +254,20 @@ esac
 while :
 do
     case "$1" in
-        -h) echo ${OSSTR} ;;
+        -h) # Human readable
+echo
+echo ${OSSTR}
+echo $(cat << DELIM
+#
+OS: ${OS}#
+DIST: ${DIST}#
+DIST_FAMILY: ${DIST_FAMILY}#
+REV: ${REV}#
+MAJOR_REV: ${MAJOR_REV}#
+ARCH: ${ARCH}#
+SUBARCH: ${SUBARCH}#
+DELIM
+) | sed 'y/'$LOWER'/'$UPPER'/' | tr '#' '\n' ;;
         -a) echo "${DIST} ${REV} ${ARCH} ${SUBARCH}" | sed 'y/'$LOWER'/'$UPPER'/';;
         -u) echo "${DIST}_${REV}_${ARCH}" | sed 'y/'$LOWER'/'$UPPER'/' ;;
         -c) # CMake syntax

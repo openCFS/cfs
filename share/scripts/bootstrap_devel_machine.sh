@@ -35,8 +35,8 @@ SetupDebian() {
     PCKGS="subversion gcc g++ gfortran automake autoconf cmake \
         perl-base graphviz texlive-latex-base tex4ht xsltproc \
         python-pygments doxygen tcl-dev python-dev git-svn \
-        cmake-curses-gui cmake-qt-gui gmsh openjdk-6-jdk \
-        patch diff diffutils zip libxt-dev libxp6 tk-dev \
+        cmake-curses-gui cmake-qt-gui gmsh default-jre openjdk-6-jdk \
+        patch diff diffutils zip libxt-dev libxp6 tk-dev xsltproc \
         libgl1-mesa-dev libglu1-mesa-dev libxmuu-dev libncurses5-dev"
 
     for pckg in $PCKGS; do
@@ -57,7 +57,7 @@ SetupSuse() {
     PCKGS="subversion gcc gcc-c++ gcc-fortran automake autoconf \
         cmake perl-base perl-Switch graphviz texlive-latex texlive-tex4ht \
         python-pygments doxygen tcl-devel python-devel git-svn \
-        cmake-gui xorg-x11-libXt-devel \
+        java-1_6_0-openjdk-devel cmake-gui xorg-x11-libXt-devel \
         diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel \
         ncurses-devel perl"
     
@@ -327,7 +327,7 @@ SetupCMake() {
     cd "$MYTMPDIR"
 
     # Define list of mirrors
-    mirrors="http://www.cmake.org/files/v2.8/$PCKG_BASE_NAME.tar.gz
+    mirrors="http://www.cmake.org/files/v$CMAKE_MAJOR_VERSION.$CMAKE_MINOR_VERSION/$PCKG_BASE_NAME.tar.gz
              ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/cmake/$PCKG_BASE_NAME.tar.gz"
 
     MD5SUM="801f4c87f8b604f727df5bf1f05a59e7"
