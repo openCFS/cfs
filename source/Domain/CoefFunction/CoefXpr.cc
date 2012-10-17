@@ -177,8 +177,11 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
   } else {
     // 2) Both arguments have different dimension
     // case: vec - scalar
-    if( a->GetDimType() == CoefFunction::VECTOR &&  
-        b->GetDimType() == CoefFunction::SCALAR ) {
+    if( (a->GetDimType() == CoefFunction::VECTOR &&  
+        b->GetDimType() == CoefFunction::SCALAR) ||
+        (a->GetDimType() == CoefFunction::SCALAR &&  
+         b->GetDimType() == CoefFunction::VECTOR)
+        ) {
       dim = CoefFunction::VECTOR;
     }
     // case: tensor - scalar
@@ -577,9 +580,6 @@ void CoefXprBinOp::Init( PtrCoefFct a,
                          PtrCoefFct b,
                          CoefXpr::OpType op ) {
   
-  if( a->GetDimType() != b->GetDimType() ) {
-     EXCEPTION( "Both arguments have same dimension" );
-   }
    if( GetNumOperands(op) != 2  ) {
      EXCEPTION( "Operand must have exactly 2 operands" );
    }
@@ -846,7 +846,44 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
       EXCEPTION( "The only allowed (vector,vector)->vector operations "
                 << "are OP_ADD, OP_SUB and OP_CROSS" );
     }
-    
+  } else if( a_->GetDimType() == CoefFunction::SCALAR  &&
+         b_->GetDimType() == CoefFunction::VECTOR ) {
+      std::string aR, aI; 
+      StdVector<std::string>  bR, bI;
+       if( isAnalytical_) {
+         CoefFunctionAnalytic & coefA = 
+             dynamic_cast<CoefFunctionAnalytic&>(*a_);
+         CoefFunctionAnalytic & coefB = 
+             dynamic_cast<CoefFunctionAnalytic&>(*b_);
+         coefA.GetStrScalar( aR, aI );
+         coefB.GetStrVector( bR, bI );
+       } else {
+         CoefFunction::GenScalCompNames(aR, aI, aName_, a_);
+         CoefFunction::GenVecCompNames(bR, bI, bName_, b_);
+       }
+       UInt numEntries = bR.GetSize();
+       real.Resize( numEntries );
+       imag.Resize( numEntries );
+
+       // switch depending on operation type
+       // === OP_ADD / OP_SUB ===
+       if( op_ == OP_ADD || op_ == OP_SUB ||  
+           op_ == OP_SUB || op_ == OP_MULT) {
+         if( !isComplex_ ) {
+           for( UInt i = 0; i < numEntries; ++ i ) {
+             CoefXpr::ApplyBinaryFunc( real[i], aR, bR[i], op_ );
+             imag[i] = "0.0";
+           }
+         } else {
+           for( UInt i = 0; i < numEntries; ++ i ) {
+             CoefXpr::ApplyBinaryFunc( real[i], imag[i], aR, bR[i],
+                                       aI, bI[i], op_ );
+           }
+         }
+    } else {
+      EXCEPTION( "The only allowed (scalar,vector)->vector operations "
+          << "are OP_ADD, OP_SUB, OP_MULT and OP_DIV" );
+    }
   } else {
     EXCEPTION("Arguments must be both of vector type.")
   }

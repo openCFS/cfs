@@ -165,7 +165,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        // for calculation of postprocessing results
        bdbInts_[actRegion] = stiff1;
        // add also material to global, distributed reluctivity coefficient function
-       //reluc_->AddRegion(actRegion, nuNl);
+       reluc_->AddRegion(actRegion, nuNl);
 
        // ================================================
        //  Nonlinear Stiffness Integrator (only Newton )
@@ -210,9 +210,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        //  Standard Stiffness Integrator
        // ===============================
         PtrCoefFct curCoef = 
-            actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
+            //actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
+            actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
         BaseBDBInt* curlcurl;
-        curlcurl = new BDBInt< CurlOperator<FeHCurl,3, Double> >(curCoef,1.0) ;
+        //curlcurl = new BDBInt< CurlOperator<FeHCurl,3, Double> >(curCoef,1.0) ;
+        curlcurl = new BBInt< CurlOperator<FeHCurl,3, Double> >(curCoef,1.0) ;
         curlcurl->SetName("CurlCurlIntegrator");
 
        BiLinFormContext * stiffContext =
@@ -396,13 +398,22 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           ent[i]->GetType() == EntityList::SURF_ELEM_LIST ) {
         EXCEPTION("Prescribed magnetic flux density can only be defined im volume")
       }
+      
+      PtrCoefFct factor = CoefFunction::Generate(Global::REAL,
+                                                 CoefXprBinOp(reluc_, coef[i] , CoefXpr::OP_MULT ) );
+      
+//      if(isComplex_) {
+//        lin = new BDUIntegrator<CurlOperator<FeHCurl,3, Double>, Complex>(Complex(1.0), coef[i],
+//                                                                          reluc_);
+//      } else {
+//        lin = new BDUIntegrator<CurlOperator<FeHCurl,3, Double>, Double>(1.0, coef[i],
+//                                                                         reluc_ );
+//      }
       if(isComplex_) {
-        lin = new BDUIntegrator<CurlOperator<FeHCurl,3, Double>, Complex>(Complex(1.0), coef[i],
-                                                                          reluc_);
-      } else {
-        lin = new BDUIntegrator<CurlOperator<FeHCurl,3, Double>, Double>(1.0, coef[i],
-                                                                         reluc_ );
-      }
+             lin = new BUIntegrator<CurlOperator<FeHCurl,3, Double>, Complex>(Complex(1.0), factor);
+           } else {
+             lin = new BUIntegrator<CurlOperator<FeHCurl,3, Double>, Double>(1.0, factor);
+           }
       lin->SetName("FluxIntegrator");
       LinearFormContext *ctx = new LinearFormContext( lin );
       ctx->SetEntities( ent[i] );
@@ -696,6 +707,13 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       perm->definedOn = ResultInfo::ELEMENT;
       perm->entryType = ResultInfo::SCALAR;
       availResults_.insert( perm );
+      
+      // assemble coefficient function mu = 1 / nu
+      Double oneOverMu0 = 1.0 / (4*PI*1e-7);
+       PtrCoefFct muFunc = CoefFunction::Generate( part, 
+                CoefXprBinOp( lexical_cast<std::string>(oneOverMu0), reluc_, CoefXpr::OP_DIV ) );
+       DefineFieldResult( muFunc, perm);
+      
 
       // === MAGNETIC ENERGY ===
       shared_ptr<ResultInfo> energy(new ResultInfo);

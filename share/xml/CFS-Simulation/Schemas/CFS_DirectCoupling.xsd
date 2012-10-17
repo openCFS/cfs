@@ -334,6 +334,9 @@
                   <xsd:element name="surfRegion" minOccurs="1" maxOccurs="unbounded">
                     <xsd:complexType>
                       <xsd:attribute name="name" type="xsd:token" use="required"/>
+                      <xsd:attribute name="polyId"  type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="integId"
+                      type="xsd:string" use="optional" default="default"/>
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>

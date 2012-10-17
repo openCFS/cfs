@@ -1189,7 +1189,7 @@ namespace CoupledField
       if( it != customFctIdMap_.end() ) {
         fctId = it->second;
       } else {
-        EXCEPTION("Can not re-amp FeFct with id '" << fctId << "'");
+        EXCEPTION("Can not re-map FeFct with id '" << fctId << "'");
       }
     }
   }

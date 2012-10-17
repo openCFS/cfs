@@ -1,12 +1,12 @@
 #include "FeFunctions.hh"
 
 #include <boost/bind.hpp>
+#include <boost/tr1/type_traits.hpp>
 
 #include "PDE/SinglePDE.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
-#include <boost/tr1/type_traits.hpp>
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/Assemble.hh"
 #include "BaseFE.hh"
@@ -629,7 +629,20 @@ DECLARE_LOG(fefunc)
     //    according RHS integrator. The auxilliary data needed can be cached for
     //    repeated access / changing values (e.g. time / frequency dependend boundary+
     //    conditions.
-
+    
+    if (IS_LOG_ENABLED(fefunc, trace)) {
+      StdVector<UInt> compVec;
+      std::set<UInt>::const_iterator it = comp.begin();
+      for (; it != comp.end(); ++it ) {
+        compVec.Push_back(*it);
+      }
+      LOG_TRACE(fefunc) << "Mapping coeffct " << coefFct->ToString() 
+                          << " on " << entityList->GetName() << " for dofs "
+                          << compVec.ToString() << " for FeFunction "
+                          << SolutionTypeEnum.ToString(result_->resultType);
+    }
+    
+    
     if( coefFct->GetDependency() == CoefFunction::CONST ||
         coefFct->GetDependency() == CoefFunction::TIMEFREQ ) {
       // --------------------------
@@ -690,14 +703,18 @@ DECLARE_LOG(fefunc)
         // generate new context
         ctx = new MapContext();
         
+        bool isComplex = std::tr1::is_same<T,Complex>::value;
+        
         // generate new algebraic system
         ctx->olasNode.reset(new ParamNode());
         ctx->olasNode->SetName(std::string("IDBC-") + name);
         ctx->infoNode.reset(new ParamNode(ParamNode::INSERT));
-        ctx->algSys = new AlgebraicSys( ctx->olasNode, ctx->infoNode, false );
+        ctx->algSys = new AlgebraicSys( ctx->olasNode, ctx->infoNode, isComplex );
         
         // generate new assemble class    
-        ctx->assemble = new Assemble( ctx->algSys, BasePDE::STATIC, 0 );
+        BasePDE::AnalysisType aType = 
+            isComplex ? BasePDE::HARMONIC : BasePDE::STATIC;
+        ctx->assemble = new Assemble( ctx->algSys, aType, 0 );
         
         // --------------------------------------------------------------------
         // generate (dimensional and space-dependent) interpolation (bi)linear
@@ -754,7 +771,7 @@ DECLARE_LOG(fefunc)
         ctx->algSys->GraphSetupInit( 1,  false );
         FeFctIdType newFctId = ctx->algSys->ObtainFctId("interpolation");
         ctx->algSys->RegisterFct(newFctId, eqnMap.size(), eqnMap.size() );
-        feFctIdMap[fctId_] = newFctId;
+        feFctIdMap[newFctId] = fctId_;
         ctx->assemble->SetEqnCustomMap(eqnMap, feFctIdMap);
         
         // define matrix graph and SBM blocks
@@ -815,8 +832,9 @@ DECLARE_LOG(fefunc)
           vals[ctx->entityEqns[i]] = sol[i];
         }
       }
+      
       // Print out information about the solution of the system
-      //ctx->infoNode->ToXML(std::cerr);
+      // ctx->infoNode->ToXML(std::cerr);
 
     } // end of general mapping section
   }

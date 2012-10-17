@@ -230,6 +230,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         if( regList->HasByVal("region", "polyId", id ) ) {
           usedPolys.insert(polys[i]);
         }
+        if( regList->HasByVal("surfRegion", "polyId", id ) ) {
+          usedPolys.insert(polys[i]);
+        }
       }
       
       // check consistency of referenced polynomials
