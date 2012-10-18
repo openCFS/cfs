@@ -45,10 +45,10 @@
 #define CFS_FORTRAN_COMPILER_VER "@CFS_FORTRAN_COMPILER_VER@"
 
 // Linux/UNIX/Windows distribution for which CFS++ has been built
-#define CFS_DISTRO "@CFS_DISTRO@"
+#define CFS_DISTRO "@CFS_FULL_DISTRO@"
 
 // Linux/UNIX/Windows version for which CFS++ has been built
-#define CFS_DISTRO_VER "@CFS_DISTRO_VER@"
+#define CFS_DISTRO_VER "@CFS_FULL_DISTRO_VER@"
 
 // Hardware architecture for which CFS++ has been built
 #define CFS_ARCH "@CFS_ARCH@"
