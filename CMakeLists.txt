@@ -53,10 +53,15 @@ SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}"
   CACHE INTERNAL "CFS_BUILD_HOST")
 
 #-----------------------------------------------------------------------------
-# Set user who builds CFS++
+# Set user who builds CFS++, in order to track back who built a 
+# given binary.
 #-----------------------------------------------------------------------------
-SET(CFS_BUILD_USER "$ENV{USER}"
-    CACHE INTERNAL "CFS_BUILD_USER")
+EXECUTE_PROCESS(
+  COMMAND id -u -nr 
+  WORKING_DIRECTORY "."
+  OUTPUT_VARIABLE CFS_BUILD_USER
+  )
+STRING(STRIP "${CFS_BUILD_USER}" CFS_BUILD_USER)
 
 #-----------------------------------------------------------------------------
 # Set default values according to environment or platform
