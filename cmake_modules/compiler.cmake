@@ -78,7 +78,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
     # fgrep 'warning: use of old-style cast' out.txt | grep CFS_SOURCE_DIR | sort -u > old-style-cast.txt
     # 
     # -frounding-math: is needed for CGAL library
-    SET(CFS_CXX_FLAGS "-ftemplate-depth-55 -frounding-math")
+    SET(CFS_CXX_FLAGS "-ftemplate-depth-200 -frounding-math")
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
     SET(CHECK_MEM_ALLOC 1)
 
@@ -86,7 +86,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
 
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
     SET(CFS_C_FLAGS "-std=c++98 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "-ftemplate-depth-55")
+    SET(CFS_CXX_FLAGS "-ftemplate-depth-200")
 
     IF(CFS_ARCH STREQUAL "I386")
       SET(CFS_OPT_FLAGS "-m32 -march=pentium4")
