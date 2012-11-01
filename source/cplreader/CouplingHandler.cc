@@ -137,7 +137,6 @@ namespace CoupledField
     uint32_t dim = settings.GetInt("dim");
     int numRegions = ptFileReader_->GetNumRegions();
     std::vector<UInt>::iterator it, it2, end;
-    std::set<UInt> regionNodeSet;
     UInt maxNumElemNodes = 0;
     std::vector<std::string> regionNames;
 
@@ -252,7 +251,6 @@ namespace CoupledField
       const std::string& actRegionName = regionNames[actRegion];
 
       // Clear temporary containers
-      regionNodeSet.clear();
       regionNodes_[actRegionName].clear();
 
       std::cout << "Writing region " << (*regionNames.rbegin())
@@ -282,7 +280,7 @@ namespace CoupledField
         {
           EXCEPTION("Elements with different dimensions have been "
               << "encountered in region '" << (*regionNames.rbegin()) << "'!\n"
-              << "The error occured while examining element "
+              << "The error occurred while examining element "
               << elemNum << ".\n"
               << "Please check your mesh file!");
         }    
@@ -758,7 +756,7 @@ namespace CoupledField
     std::vector<Double>& acouRhsField = fdps2.data;
 
     // Fill acouRhsLoad field with zeros
-    std::fill(acouRhsField.begin(), acouRhsField.end(), 0);
+    std::fill(acouRhsField.begin(), acouRhsField.end(), 0.0);
 
     
     FlowDataPartStruct& fdps3 = flowData[ACOU_RHS_LOAD_DENSITY];
@@ -773,7 +771,7 @@ namespace CoupledField
     std::vector<Double>& acouRhsDensityField = fdps3.data;
 
     // Fill acouRhsLoadDensity field with zeros
-    std::fill(acouRhsDensityField.begin(), acouRhsDensityField.end(), 0);
+    std::fill(acouRhsDensityField.begin(), acouRhsDensityField.end(), 0.0);
 
     int nElems = ptFileReader_->GetNumElems(regionIdx);
     
@@ -793,7 +791,7 @@ namespace CoupledField
     std::vector<Double>& acouDivLighthillTensor = fdps4.data;
 
     // Fill acouDivLighthillTensor field with zeros
-    std::fill(acouDivLighthillTensor.begin(), acouDivLighthillTensor.end(), 0);
+    std::fill(acouDivLighthillTensor.begin(), acouDivLighthillTensor.end(), 0.0);
 
     Matrix<Double> coordMat;
     Matrix<Double> nodaldTijdxj;
@@ -929,7 +927,7 @@ namespace CoupledField
         idx = regionNodeIndices_[regionIdx][nodeNum];
 
 #ifndef NDEBUG
-        if (std::isnan(elemVec[n]) || std::isinf(elemVec[n])) {
+        if (isnan(elemVec[n]) || isinf(elemVec[n])) {
           EXCEPTION("Source term calculated on element " << i+1
                     << " is Inf or Nan.");
         }

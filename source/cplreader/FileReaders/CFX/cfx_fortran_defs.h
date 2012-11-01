@@ -22,15 +22,16 @@ extern "C" {
                     int *whatfile);
 
     void redsht_(int *dattyp, int *length, int *nerr,
-                 char *what, char *where, int *when,
+                 const char *what, const char *where, const int *when,
                  int *nsize,
-                 int *iopt, int *ioptar,
+                 const int *iopt, const int *ioptpar,
                  float *rarr, int *iarr, char* carr,
                  int *larr, double *darr, char *sarr,
                  int len_what, int len_where, int len_carr);
     
-    void readlong_(int *dattyp, int *nerr, char *what, char *where, 
-                   int *when, int *nsize, int *iopt,
+    void readlong_(int *dattyp, int *nerr,
+                   const char *what, const char *where, const int *when,
+                   int *nsize, const int *iopt,
                    float *rarr, int *iarr, char* carr,
                    int *larr, double *darr, char *sarr,
                    int len_what, int len_where, int len_carr);
@@ -156,15 +157,17 @@ extern "C" {
 
 //-------- define data type
 //
-#define            __real_data_type__ 1 
-#define             __int_data_type__ 2 
-#define            __char_data_type__ 3 
-#define         __logical_data_type__ 4 
-#define          __double_data_type__ 5 
-#define          __string_data_type__ 6
+#define            __real_data_type__  1 
+#define             __int_data_type__  2 
+#define            __char_data_type__  3 
+#define         __logical_data_type__  4 
+#define          __double_data_type__  5 
+#define          __string_data_type__  6
+#define          __struct_data_type__ -1
 
-#define          __io_offset_type__ INTEGER*8
-#define          __io_string_type__ CHARACTER*(IO_BUFSIZE)
+#define                   IO_BUFSIZE  80
+#define          __io_offset_type__   int[8]
+#define          __io_string_type__   char[IO_BUFSIZE]
 
 //
 //-------- io error return code
@@ -249,6 +252,7 @@ extern "C" {
 #define   __io_read_located_primary_ds_as__ 44
 #define        __io_copy_ds_compress_when__ 45
 #define           __io_set_default_format__ 46
+
 //
 //-------- action
 //
@@ -256,5 +260,11 @@ extern "C" {
 #define               __not_stop_if_failed__ 2
 #define                   __warn_if_failed__ 3
 #define                   __skip_if_failed__ 4
+
+//
+//-------- parallel run flags
+//
+#define __cm_to_all_partitions__  1
+#define __cm_to_one_partition__   2
 
 #endif // CFX_FORTRAN_DEFS_H
