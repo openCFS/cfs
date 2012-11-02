@@ -787,7 +787,7 @@ namespace CoupledField
     //-----------------------------------------------------------------------
     UInt numFaces;
     std::vector<Integer> ksfbcp, ipsfbcp;
-    ReadShortVector(ksfbcp, nsf, "G/KSFBCP");
+    ReadShortVector(ksfbcp, surfaces.size(), "G/KSFBCP");
     ReadShortVector(ipsfbcp, numBCPs_+1, "G/IPSFBCP");
     
     for ( UInt ibcp=0; ibcp<numBCPs_; ++ibcp ) {
