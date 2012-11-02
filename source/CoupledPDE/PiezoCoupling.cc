@@ -395,7 +395,6 @@ namespace CoupledField {
      TYPE charge = 0.0;
      Elem * ptVolElem;
      BaseFE * ptSurfElemFE, * ptVolElemFE;
-     SurfElem * ptSurfElem = NULL;
 
      StdVector<Elem*> elemssd;
      StdVector<SurfElem*> surfElems;
@@ -459,10 +458,10 @@ namespace CoupledField {
          // Find correct material for volume element
        regionIndex = subdoms_.Find( ptVolElem->regionId );
        if ( regionIndex == -1 ) {
-         EXCEPTION( "PiezoPDE:CalcCharges The region with Name "
+         EXCEPTION( "PiezoPDE::CalcCharges: The region with name '"
                     << ptGrid_->GetRegion().ToString(ptVolElem->regionId)
-                    << " of surface element Nr. " << ptSurfElem->elemNum
-                    << "is not contained in my set of regions!." );
+                    << "' of surface element no. " << it.GetSurfElem()->elemNum
+                    << " is not contained in my set of regions!." );
        }
 
        BaseMaterial* matPiezo  = materials_[ptVolElem->regionId];
