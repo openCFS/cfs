@@ -734,8 +734,8 @@ namespace CoupledField
         
         if (beVerbose)
         {
-          std::cout << "- Volume region  '" << regionNames_[iVol] << "':\t"
-              << numElemsPerRegion_[iVol] << " Elements\n";
+          std::cout << "- Volume region  '" << regionNames_[currVol] << "':\t"
+              << numElemsPerRegion_[currVol] << " Elements\n";
         }
       } // loop over iVol
     } // loop over iZone
@@ -1551,7 +1551,6 @@ namespace CoupledField
                                     std::string indent,
                                     std::ostream& outFile)
   {
-    Settings& settings = Settings::Instance();
     int actPos = pos;
     int nextTokenPos;
     char endTest[4];
@@ -1587,10 +1586,6 @@ namespace CoupledField
       actPos++;
     }
 
-    if(settings.GetInt("verbose"))
-    {
-      std::cout << indent << cmd << " " << attrib << std::endl;
-    }
     outFile << indent << cmd << " " << attrib << std::endl;
 
 
@@ -1647,10 +1642,6 @@ namespace CoupledField
         {
           actPos +=3;
 
-          if(settings.GetInt("verbose"))
-          {
-            std::cout << indent << "END" << std::endl;
-          }
           outFile << indent << cmd << " " << attrib << std::endl;
 
           while( isspace((int)cmdstr[actPos]) )
