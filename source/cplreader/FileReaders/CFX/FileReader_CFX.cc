@@ -57,6 +57,8 @@ namespace CoupledField
     numBCPs_(0),
     numNodes_(0),
     numElems_(0),
+    numVolElems_(0),
+    numSurfElems_(0),
     whatfile_(0)
   {
     Settings& settings = Settings::Instance();
@@ -110,7 +112,7 @@ namespace CoupledField
   {
     int dattyp = 0;
     int length = 1;
-    int nsize  = 1;
+    int nsize  = sizeof(carr_);
     int iopt   = __not_stop_if_failed__;
     int ioptpar = 0;
     int nerr   = 0;
@@ -121,16 +123,21 @@ namespace CoupledField
     redsht_(&dattyp, &length, &nerr,
             what_, where_, &when,
             &nsize, &iopt, &ioptpar,
-            NULL, NULL, NULL, NULL, NULL, sarr_,
+            NULL, NULL, carr_, NULL, NULL, sarr_,
             strlen(what_), strlen(where_), 0);
     
     if ( nerr == __io_ok__ ) {
-      if ( dattyp != __string_data_type__ ) {
+      switch ( dattyp ) {
+      case __char_data_type__:
+        return boost::algorithm::trim_right_copy(
+            std::string(carr_, sizeof(carr_)));
+      case __string_data_type__:
+        return boost::algorithm::trim_right_copy(
+            std::string(sarr_, sizeof(sarr_)));
+      default:
         if (throwEx) EXCEPTION("Dataset does not contain a string");
         return std::string();
       }
-      return boost::algorithm::trim_right_copy(
-          std::string(sarr_, sizeof(sarr_)));
     } else {
       if ( throwEx ) CHECK_CFX_IO(nerr);
       return std::string();
@@ -563,7 +570,6 @@ namespace CoupledField
     
     nodeOffsetPerZone_.resize(numZones_);
     elemOffsetPerZone_.resize(numZones_);
-    faceOffsetPerZone_.resize(numZones_);
     
     std::vector< std::string > zoneNames;
     zoneNames.resize(numZones_);
@@ -734,6 +740,7 @@ namespace CoupledField
       } // loop over iVol
     } // loop over iZone
 
+    numVolElems_ = numElems_;
 
     //-----------------------------------------------------------------------
     // Surfaces and face sets
@@ -758,7 +765,6 @@ namespace CoupledField
              << "'. This case has never been tested!");
       }
 
-      faceOffsetPerZone_[iZone-1] = numElems_;
       
       ReadShortVector(ksffs, nsf, "G/KSFFS", zoneStr.str());
       ReadShortVector(ipsffs, nfs+1, "G/IPSFFS", zoneStr.str());
@@ -770,17 +776,18 @@ namespace CoupledField
           surfaces[sfIdx].zone = iZone;
           surfaces[sfIdx].num = ifs+1;
           surfaces[sfIdx].numElems = nfcfs[ifs];
-          numElems_ += nfcfs[ifs];
         }
       }
     }
+    
+    numSurfElems_ = numElems_ - numVolElems_;
     
     //-----------------------------------------------------------------------
     // Surfaces per boundary condition patch
     //-----------------------------------------------------------------------
     UInt numFaces;
     std::vector<Integer> ksfbcp, ipsfbcp;
-    ReadShortVector(ksfbcp, (Integer) surfaces.size(), "G/KSFBCP");
+    ReadShortVector(ksfbcp, nsf, "G/KSFBCP");
     ReadShortVector(ipsfbcp, numBCPs_+1, "G/IPSFBCP");
     
     for ( UInt ibcp=0; ibcp<numBCPs_; ++ibcp ) {
@@ -795,6 +802,7 @@ namespace CoupledField
       }
       
       numElemsPerRegion_[numVolumes_+ibcp] = numFaces;
+      numElems_ += numFaces;
       
       if (beVerbose)
       {
@@ -867,7 +875,7 @@ namespace CoupledField
     
     bool beVerbose = settings.GetInt("verbose");
     UInt i, j;
-    UInt elemOffset, nodeOffset, numElemNodes, locIdx, globIdx, volElemIdx;
+    UInt nodeOffset, numElemNodes, locIdx, globIdx, volElemIdx;
     std::vector<UInt> elConnect(maxNumElemNodes_);
     std::vector<UInt> buffer1, buffer2; 
     std::ostringstream zoneStr;
@@ -899,12 +907,11 @@ namespace CoupledField
         ReadLongVector(buffer2, esIt->numElems*numElemNodes,
                        "G/KVXPE", zoneStr.str());
         
-        elemOffset = elemOffsetPerZone_[volumes_[iVol].zone-1];
         nodeOffset = nodeOffsetPerZone_[volumes_[iVol].zone-1];
         locIdx = 0;
         
         for ( i=0; i<esIt->numElems; ++i, locIdx+=numElemNodes ) {
-          globIdx = buffer1[i] + elemOffset;
+          globIdx = buffer1[i] + elemOffsetPerZone_[volumes_[iVol].zone-1];
           regionElems_[iVol].push_back( globIdx );
           elemTypes[--globIdx] = esIt->elemType;
           
@@ -937,6 +944,9 @@ namespace CoupledField
       }
     }
     
+    // start numbering of surface elements just after last volume element
+    UInt surfElemIdx = numVolElems_;
+    
     for ( UInt ibcp=0; ibcp<numBCPs_; ++ibcp ) {
       std::vector<FaceSet>::iterator fsIt = faceSetsPerBCP_[ibcp].begin(),
                                      fsEnd = faceSetsPerBCP_[ibcp].end();
@@ -947,27 +957,27 @@ namespace CoupledField
         zoneStr.str("");
         zoneStr << "ZN" << fsIt->zone << "/FS" << fsIt->num;
         
-        ReadLongVector( buffer1, fsIt->numElems, "G/KFCPF", zoneStr.str() );
-        ReadLongVector( buffer2, 2*fsIt->numElems, "G/KELPF", zoneStr.str() );
+        // DO NOT USE the dataset "G/KFCPF" here, because its numbering may
+        // not be contiguous!
+        ReadLongVector( buffer1, 2*fsIt->numElems, "G/KELPF", zoneStr.str() );
         
-        elemOffset = faceOffsetPerZone_[fsIt->zone-1];
         nodeOffset = nodeOffsetPerZone_[fsIt->zone-1];
         
-        for ( i=0; i<fsIt->numElems; ++i ) {
-          globIdx = buffer1[i] + elemOffset; 
-          regionElems_[numVolumes_+ibcp].push_back( globIdx );
+        for ( i=0; i<fsIt->numElems; ++i, ++surfElemIdx ) {
+          regionElems_[numVolumes_+ibcp].push_back( surfElemIdx+1 );
           
-          --globIdx;
-          volElemIdx = buffer2[2*i] - 1 + elemOffsetPerZone_[fsIt->zone-1];
+          volElemIdx = buffer1[2*i] - 1 + elemOffsetPerZone_[fsIt->zone-1];
           std::vector<UInt>::const_iterator connectIt
               = topologyData.begin() + volElemIdx * maxNumElemNodes_;
           
-          elemTypes[globIdx] = GetFaceOfElement( (UInt)elemTypes[volElemIdx],
-                                                 buffer2[2*i+1],
-                                                 connectIt,
-                                                 elConnect );
-          std::copy( elConnect.begin(), elConnect.end(),
-                     topologyData.begin() + globIdx * maxNumElemNodes_ );
+          elemTypes[surfElemIdx] = GetFaceOfElement( elemTypes[volElemIdx],
+                                                     buffer1[2*i+1],
+                                                     connectIt,
+                                                     elConnect );
+          numElemNodes = elConnect.size();
+          for ( j=0; j<numElemNodes; ++j ) {
+            topologyData[surfElemIdx*maxNumElemNodes_+j] = elConnect[j]; 
+          }
         }
       }
       
@@ -977,7 +987,6 @@ namespace CoupledField
       }
     }
     
-
     // close .def file
     CloseCFXFile();
   }

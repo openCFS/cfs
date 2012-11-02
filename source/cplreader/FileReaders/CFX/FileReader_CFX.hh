@@ -168,14 +168,17 @@ namespace CoupledField
     //! Total number of Elements
     UInt numElems_;
     
+    //! Number of volume elements
+    UInt numVolElems_;
+    
+    //! Number of surface elements
+    UInt numSurfElems_;
+    
     //! Offset per zone for node numbers
     std::vector<UInt> nodeOffsetPerZone_;
     
     //! Offset per zone for element numbers
     std::vector<UInt> elemOffsetPerZone_;
-    
-    //! Offset per zone for surfElem numbers
-    std::vector<UInt> faceOffsetPerZone_;
     
     //! Struct for storing info about an element set
     typedef struct {
@@ -220,9 +223,9 @@ namespace CoupledField
     char where_[IO_BUFSIZE];
     float rarr_[IO_BUFSIZE];
     int iarr_[IO_BUFSIZE];
-    char carr_[IO_BUFSIZE];
+    char carr_[2*IO_BUFSIZE];
     double darr_[IO_BUFSIZE];
-    char sarr_[IO_BUFSIZE];
+    char sarr_[2*IO_BUFSIZE];
 
     static std::vector<int> intvec_;
     static std::vector<double> doublevec_;
