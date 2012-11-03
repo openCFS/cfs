@@ -1060,6 +1060,11 @@ namespace CoupledField {
       material->SetScalar(flow->Get("density")->As<Double>(), DENSITY, Global::REAL);
 
     // read dynamicViscosity 
+    if( flow->Has("dynamicViscosity") &&
+        flow->Has("kinematicViscosity") ) {
+      EXCEPTION("Please specify either dynamic or kinematic viscosity but not both!");
+    }
+    
     if(flow->Has("dynamicViscosity"))
       material->SetScalar(flow->Get("dynamicViscosity")->As<Double>(), DYNAMIC_VISCOSITY, Global::REAL);
 
