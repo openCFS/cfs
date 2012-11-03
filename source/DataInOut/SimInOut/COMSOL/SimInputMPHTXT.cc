@@ -141,7 +141,8 @@ namespace CoupledField {
                                      bool readInfos)
     /* Load the grid in Comsol Multiphysics mesh format */
   {
-    int noknots,noelements,noelements_dom,elemcode,maxnodes,material;
+    int noknots,noelements,noelements_dom,maxnodes,material;
+    // int elemcode;
     // int foundsame;
     // int mode,nvalue,maxknot,nosides,sideelemtype;
     int allocated;
@@ -195,7 +196,7 @@ namespace CoupledField {
     noknots = 0;
     noelements = 0;
     noelements_dom = 0;
-    elemcode = 0;
+    // elemcode = 0;
     material = 0;
     domains = 0;
     
