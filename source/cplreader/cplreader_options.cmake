@@ -167,7 +167,7 @@ ADD_OPTION(outputfields
 ADD_OPTION(firststep
   uint32_t
   1
-  "Index of first time step (only for CFX_EXPORT, FASTEST)"
+  "Index of first time step (only for CFX, CFX_EXPORT, FASTEST)"
   "To start reading at a different time step than the first one this parameter can by used.
    It is just implemented for CFX\\\\_EXPORT and FASTEST at the moment."
   )
@@ -369,7 +369,7 @@ ADD_OPTION(doCalcMultiNodes
 ADD_OPTION(calcSurfaceTerms
   string
   none
-  "This flag anable the calculation of the surface integral within for lighthill source term. Specify 'all' or give a list of surface regions speperated by SPACE or SEMICOLON or |"
+  "This flag enables the calculation of the surface integral within for lighthill source term. Specify 'all' or give a list of surface regions separated by SPACE or SEMICOLON or |"
   "This flag indicates if we wish to calculate the surface integral of the 
   Lighthill right hand side which is up to now a very costly operation and therefore 
   off by default."

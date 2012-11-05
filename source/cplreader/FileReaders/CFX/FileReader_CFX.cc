@@ -321,7 +321,6 @@ namespace CoupledField
     std::stringstream sstr;
     sstr << baseName_ << name_ << ".res";
     std::string resFileName = sstr.str();
-    std::cout << "resFileName: " << resFileName << std::endl;
 
     if(fs::exists(resFileName))
     {
@@ -344,7 +343,7 @@ namespace CoupledField
       sprintf(what_, "G/TRANSIENT");
       sprintf(where_, "ZN1");
       
-      int when   = -1;
+      int when;
       int dattyp = 0;
       int length = 1;
       int nsize  = 3;
@@ -353,10 +352,20 @@ namespace CoupledField
       intvec_.resize(length*nsize);
       floatvec_.resize(length*nsize);
       
+      try {
+        when = settings.GetInt("firststep");
+      } catch (Exception &ex) {
+        when = -1;
+      }
+      
       redsht_(&dattyp, &length, &nerr, what_, where_, &when, &nsize,
               &iopt, &ioptpar,
               floatvec_.data(), intvec_.data(), NULL, NULL, NULL, NULL,
               strlen(what_), strlen(where_), 0);
+      if ( nerr == __io_ds_not_found__ ) {
+        EXCEPTION("First time step could not be determined automatically.\n"
+                  << "Please provide it using the --firststep option.");
+      }
       CHECK_CFX_IO(nerr);
       
       int its = intvec_[2];
@@ -529,7 +538,9 @@ namespace CoupledField
     {
       if(beVerbose)
       {
-        std::cerr << "Trying to open deffile: " << defFileNames[i] << " ";
+        std::cout << "Trying to open CFX definition file: "
+                  << defFileNames[i] << " ";
+        std::cout.flush();
       }
 
       inFile_.clear();
@@ -540,7 +551,7 @@ namespace CoupledField
         inFile_.close();
         if(beVerbose)
         {
-          std::cerr << "-> OK!" << std::endl;
+          std::cout << "-> OK!" << std::endl;
         }
 
         break;
@@ -548,7 +559,7 @@ namespace CoupledField
 
       if(beVerbose)
       {
-        std::cerr << "-> failed!" << std::endl;
+        std::cout << "-> failed!" << std::endl;
       }
     }
 
@@ -1669,7 +1680,6 @@ namespace CoupledField
                                    std::string indent,
                                    std::ostream& outFile)
   {
-    Settings& settings = Settings::Instance();
     int actPos = pos;
 
     while( isprint((int)cmdstr[actPos]) )
@@ -1706,10 +1716,6 @@ namespace CoupledField
     cmdstr[actPos] = 0;
     value = &cmdstr[pos];
 
-    if(settings.GetInt("verbose"))
-    {
-      std::cout << indent << option << " = " << value << std::endl;
-    }
     outFile << indent << option << " = " << value << std::endl;
 
     do
