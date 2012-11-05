@@ -628,7 +628,6 @@ namespace CoupledField
         iss.str(nameMap[4*i+1]);
         iss >> tmp;
         if ( tmp > 0 && tmp <= numZones_ ) {
-          replace(nameMap[4*i].begin(), nameMap[4*i].end(), ' ', '_');
           zoneNames[tmp-1] = nameMap[4*i];
         }
       } else if ( nameMap[4*i+3] == "BCP" ) {
@@ -711,7 +710,9 @@ namespace CoupledField
       for ( Integer iVol=0; iVol<nvl; ++iVol, ++currVol ) {
         volumes_[currVol].zone = iZone;
         regionNames_[currVol] = zoneNames[iZone-1] + "." + volNames[iVol];
-        
+        replace( regionNames_[currVol].begin(), regionNames_[currVol].end(),
+                 ' ', '_' );
+
         for ( Integer ies=ipesvl[iVol]; ies<ipesvl[iVol+1]; ++ies ) {
           newES.num = (UInt) kesvl[ies-1];
           newES.numElems = (UInt) neles[ies-1];
