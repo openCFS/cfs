@@ -452,7 +452,7 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
 #endif
     }
 
-    if (actFormat == "text")
+    if (actFormat == "text" || actFormat == "csv")
     {
       out[actId] = shared_ptr<SimOutput> (new SimOutputText(simName, actNode));
     }

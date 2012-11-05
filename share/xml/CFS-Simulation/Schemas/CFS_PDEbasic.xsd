@@ -573,7 +573,11 @@
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
           Format output file as comma separated values which can be read directly into ParaView.
-          The Matlab code to read such files is: matrix = csvread('vel-line.csv',1,0);
+          
+          The Matlab/Octave code to read such files is: matrix = csvread('vel-line.csv',1,0);
+          
+          For Python refer to http://matplotlib.org/api/mlab_api.html#matplotlib.mlab.csv2rec or
+          http://docs.python.org/2/library/csv.html
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>

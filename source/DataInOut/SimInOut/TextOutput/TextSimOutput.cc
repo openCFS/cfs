@@ -14,22 +14,28 @@ namespace fs = boost::filesystem;
 
 namespace CoupledField {
 
-
-  // initialize delimiter string
-  std::string SimOutputText::delim_ = "  ";
-
   SimOutputText::SimOutputText( const std::string& fileName,
                                 PtrParamNode outputNode )
     : SimOutput( fileName, outputNode ){
 
     // initialize variables
     formatName_ = "text";
+    csv_ = false;
+    
+    if( outputNode ) 
+    {
+      formatName_ = outputNode->GetName();
+      csv_ = (formatName_ == "csv");
+    }
+
     dirName_ = "history";
     fileName_ = fileName;
     coordSys_ = NULL;
     stepNumOffset_ = 0;
     stepValOffset_ = 0.0;
     globalNumbering_ = true;
+    // initialize delimiter string
+    delim_ = "  ";
 
     capabilities_.insert( HISTORY );
 
@@ -42,16 +48,30 @@ namespace CoupledField {
     
     // Get comment char 
     cmChar_ = '#';
-    if( outputNode )
-      cmChar_ = (outputNode->Get("commentChar")->As<std::string>())[0];
-
+    if( !csv_ ) 
+    {
+      if( outputNode ) 
+      {
+        cmChar_ = (outputNode->Get("commentChar")->As<std::string>())[0];
+      }
+    }
+    else 
+    {
+      delim_ = (outputNode->Get("delimiter")->As<std::string>())[0];
+    }
+    
     // Get type of collection
     collecType_ = ENTITY;
     if ( outputNode ) {
       if( outputNode->Get("fileCollect")->As<std::string>() == "timeFreq" )
         collecType_ = TIMEFREQ;
-      if( outputNode->Get("fileCollect")->As<std::string>() == "altogether" )
+      if( outputNode->Get("fileCollect")->As<std::string>() == "altogether" ) {
         collecType_ = ALTOGETHER;
+
+        if(csv_) {
+          WARN("Collection type ALTOGETHER is not supported for CSV files.");
+        }
+      }
     }
     
     // Get type of entity numbering
@@ -149,7 +169,7 @@ namespace CoupledField {
       stepValOffset_ = actStepVal_;
      }
    }
-  
+
   void SimOutputText::WriteStepCollectTimeFreq() {
 
     // iterate over all result types
@@ -351,6 +371,8 @@ namespace CoupledField {
   
   void SimOutputText::WriteStepCollectAltogether() {
 
+    if(csv_) return;
+    
     // iterate over all result types
     ResultMapType::iterator it = resultMap_.begin();
     for( ; it != resultMap_.end(); it++ ) {
@@ -509,7 +531,13 @@ namespace CoupledField {
         totalName += entTypeString;
         totalName += "-";
     
-        totalName += entityString + ".hist";
+        if(csv_) {
+          totalName += entityString + ".csv";
+        }
+        else {
+          totalName += entityString + ".hist";
+        }
+
       
         if( usedFileNames_.find( totalName ) != usedFileNames_.end() ) {
           outFiles[it.GetPos()] = new std::ofstream( totalName.c_str(), 
@@ -522,29 +550,44 @@ namespace CoupledField {
 
         // write header to file
         std::ofstream & actFile = *outFiles[it.GetPos()];
-        actFile << cmChar_ << " Result: '" << actInfo.resultName 
-                << "' on " << entTypeString << "(s) '" 
-                << list->GetName() << "'";
+
+        if(!csv_) {
+          actFile << cmChar_ << " Result: '" << actInfo.resultName 
+                  << "' on " << entTypeString << "(s) '" 
+                  << list->GetName() << "'";
+
+          // now we have to switch the naming scheme
+          switch (list->GetType() ) {
+            case EntityList::NODE_LIST:
+            case EntityList::ELEM_LIST:
+            case EntityList::SURF_ELEM_LIST:
+              actFile << " number #" << it.GetIdString();
+              break;
+            default:
+              break;
+          }
+          actFile << "\n" << cmChar_;
         
-        // now we have to switch the naming scheme
-        switch (list->GetType() ) {
-          case EntityList::NODE_LIST:
-          case EntityList::ELEM_LIST:
-          case EntityList::SURF_ELEM_LIST:
-            actFile << " number #" << it.GetIdString();
-            break;
-          default:
-            break;
-        }
-        actFile << "\n" << cmChar_;
-        
-        if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
-          actFile << " t (s)  ";        
+          if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
+            actFile << " t (s)  ";        
+          } else {
+            actFile << " f (Hz)  ";
+          }
+          actFile << ResultDofString( res) << "\n" << cmChar_ 
+                  << " ---------------------------------------------------------------------------\n";
         } else {
-          actFile << " f (Hz)  ";
-        }
-        actFile << ResultDofString( res) << "\n" << cmChar_ 
-                << " ---------------------------------------------------------------------------\n";
+          if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
+            actFile << "Time_(s)" << delim_;
+          } else {
+            actFile << "Frequency_(Hz)" << delim_;
+          }
+          
+          actFile << ResultDofStringCSV(res,
+                                        it.GetIdString(),
+                                        entTypeString,
+                                        list->GetName()) << std::endl;
+        }        
+
       }      
       // CHECK, if creation of file succeeded
       outFiles_[res] = outFiles;
@@ -568,38 +611,61 @@ namespace CoupledField {
 //      } else {
 //        totalName += "Hz";
 //      }
-      totalName +=+ ".hist";
+      if(csv_) {
+        totalName += ".csv";
+      }
+      else {
+        totalName += ".hist";
+      }
+      
 
       // open stream
       outFile = new std::ofstream( totalName.c_str() );
       
-      // Write header
-      *outFile << cmChar_ << " Result: '" << actInfo.resultName 
-              << "' on " << entTypeString << "(s) '" 
-              << list->GetName();
-      if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
-        *outFile << "' at time " << stepVal << " s";
-      } else {
-        *outFile << "' at frequency " << stepVal << " Hz";
-      }
-      *outFile << "\n" << cmChar_ << "\n";
-
-      // write entityTypeString
-      *outFile <<  cmChar_ << " " << entTypeString << delim_;
-      
-      // write coordinate system entries(only for node/elem/surfElem results)
-      if( actInfo.definedOn == ResultInfo::NODE 
-          || actInfo.definedOn == ResultInfo::ELEMENT
-          || actInfo.definedOn == ResultInfo::SURF_ELEM ) {
-        for (UInt iDim = 0; iDim < ptGrid_->GetDim(); iDim++ ) {
-          *outFile << coordSys_->GetDofName(iDim+1) << delim_;
+      if(!csv_) {
+        // Write header
+        *outFile << cmChar_ << " Result: '" << actInfo.resultName 
+                << "' on " << entTypeString << "(s) '" 
+                << list->GetName();
+        if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
+          *outFile << "' at time " << stepVal << " s";
+        } else {
+          *outFile << "' at frequency " << stepVal << " Hz";
         }
+        *outFile << "\n" << cmChar_ << "\n";
+
+        // write entityTypeString
+        *outFile <<  cmChar_ << " " << entTypeString << delim_;
+      
+        // write coordinate system entries(only for node/elem/surfElem results)
+        if( actInfo.definedOn == ResultInfo::NODE 
+            || actInfo.definedOn == ResultInfo::ELEMENT
+            || actInfo.definedOn == ResultInfo::SURF_ELEM ) {
+          for (UInt iDim = 0; iDim < ptGrid_->GetDim(); iDim++ ) {
+            *outFile << coordSys_->GetDofName(iDim+1) << delim_;
+          }
+        }
+        
+        // write dof result string
+        *outFile << ResultDofString( res) << "\n" << cmChar_ 
+                << " ---------------------------------------------------------------------------\n";
+      } else {
+
+        *outFile << entTypeString << delim_;
+        if( actInfo.definedOn == ResultInfo::NODE 
+            || actInfo.definedOn == ResultInfo::ELEMENT
+            || actInfo.definedOn == ResultInfo::SURF_ELEM ) {
+          for (UInt iDim = 0; iDim < ptGrid_->GetDim(); iDim++ ) {
+            *outFile << coordSys_->GetDofName(iDim+1) << delim_;
+          }
+        }
+
+        *outFile << ResultDofStringCSV(res,
+                                       "0",
+                                       entTypeString,
+                                       list->GetName()) << std::endl;
       }
       
-      // write dof result string
-      *outFile << ResultDofString( res) << "\n" << cmChar_ 
-              << " ---------------------------------------------------------------------------\n";
-
        // Push back file to outFiles_
       outFiles_[res].Resize(1);
       outFiles_[res][0] = outFile;
@@ -616,66 +682,73 @@ namespace CoupledField {
       shared_ptr<EntityList> list = res->GetEntityList();
       totalName = namePrefix + "-";
       totalName += list->GetName();
-      totalName +=+ ".hist";
+      
+      if(csv_) {
+        // totalName += ".csv";
+        WARN("Collection type ALTOGETHER is not supported for CSV files.");
+      }
+      else {
+        totalName += ".hist";
 
-      // open stream
-      outFile = new std::ofstream( totalName.c_str() );
+        // open stream
+        outFile = new std::ofstream( totalName.c_str() );
       
-      // write header to file
-      *outFile << cmChar_ << " Result: '" << actInfo.resultName 
-               << "' on " << entTypeString << "(s) '" 
-               << list->GetName() << "' with\n"
-               << cmChar_ << "   line 1: " << entTypeString 
-               << " number, line 2-3/2-4: " << entTypeString
-               << " coordinates\n" << cmChar_ 
-               << "   1st column is placeholder for equal no. of columns in all rows!\n";
+        // write header to file
+        *outFile << cmChar_ << " Result: '" << actInfo.resultName 
+                 << "' on " << entTypeString << "(s) '" 
+                 << list->GetName() << "' with\n"
+                 << cmChar_ << "   line 1: " << entTypeString 
+                 << " number, line 2-3/2-4: " << entTypeString
+                 << " coordinates\n" << cmChar_ 
+                 << "   1st column is placeholder for equal no. of columns in all rows!\n";
       
-      // write node/element number and coordinates
-      StdVector<StdVector<std::string> > entityMatrix;
-      StdVector<std::string> entityVector;
+        // write node/element number and coordinates
+        StdVector<StdVector<std::string> > entityMatrix;
+        StdVector<std::string> entityVector;
       
-      EntityIterator it = list->GetIterator();
-      for( it.Begin(); !it.IsEnd(); it++ ) {
+        EntityIterator it = list->GetIterator();
+        for( it.Begin(); !it.IsEnd(); it++ ) {
 
-        // pointer to function, which retrieves node/element number and coordinates
-        StdVector<std::string> (SimOutputText::*pt2Func)(EntityIterator&) const;
-        switch (actInfo.definedOn) {
-        case ResultInfo::NODE:
-          pt2Func = &SimOutputText::GetNodeInfo;
-          break;
-        case ResultInfo::ELEMENT:
-          pt2Func = &SimOutputText::GetElemInfo;
-          break;
-        case ResultInfo::SURF_ELEM:
-          pt2Func = &SimOutputText::GetElemInfo;
-          break;
-        default:
-          EXCEPTION( "Case not implemented" );
+          // pointer to function, which retrieves node/element number and coordinates
+          StdVector<std::string> (SimOutputText::*pt2Func)(EntityIterator&) const;
+          switch (actInfo.definedOn) {
+          case ResultInfo::NODE:
+            pt2Func = &SimOutputText::GetNodeInfo;
+            break;
+          case ResultInfo::ELEMENT:
+            pt2Func = &SimOutputText::GetElemInfo;
+            break;
+          case ResultInfo::SURF_ELEM:
+            pt2Func = &SimOutputText::GetElemInfo;
+            break;
+          default:
+            EXCEPTION( "Case not implemented" );
+          }
+          // node/element number and coordinates 
+          entityVector = (this->*pt2Func)(it);
+          entityMatrix.Push_back(entityVector);
         }
-        // node/element number and coordinates 
-        entityVector = (this->*pt2Func)(it);
-        entityMatrix.Push_back(entityVector);
-      }
-      for( UInt iDim=0; iDim<entityVector.GetSize(); iDim++) {
-        *outFile << " 0 ";
-        for( UInt numEnt=0; numEnt<entityMatrix.GetSize(); numEnt++) {
-          *outFile << delim_ << entityMatrix[numEnt][iDim];
+        for( UInt iDim=0; iDim<entityVector.GetSize(); iDim++) {
+          *outFile << " 0 ";
+          for( UInt numEnt=0; numEnt<entityMatrix.GetSize(); numEnt++) {
+            *outFile << delim_ << entityMatrix[numEnt][iDim];
+          }
+          *outFile << "\n";
         }
-        *outFile << "\n";
-      }
       
-      // write dof result string
-      if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
-        *outFile << cmChar_ << " t (s)  ";        
-      } else {
-        *outFile << cmChar_ << " f (Hz)  ";
-      }
-      *outFile << ResultDofString( res) << "\n" << cmChar_ 
-              << " ---------------------------------------------------------------------------\n";
+        // write dof result string
+        if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
+          *outFile << cmChar_ << " t (s)  ";        
+        } else {
+          *outFile << cmChar_ << " f (Hz)  ";
+        }
+        *outFile << ResultDofString( res) << "\n" << cmChar_ 
+                << " ---------------------------------------------------------------------------\n";
 
-      // Push back file to outFiles_
-      outFiles_[res].Resize(1);
-      outFiles_[res][0] = outFile;
+        // Push back file to outFiles_
+        outFiles_[res].Resize(1);
+        outFiles_[res][0] = outFile;
+      }
     }
   }
 
@@ -724,6 +797,112 @@ namespace CoupledField {
     }
 
     return ret.str();
+  }
+
+  std::string SimOutputText::ResultDofStringCSV( shared_ptr<BaseResult> res,
+                                                 const std::string& entityNum,
+                                                 const std::string& entityType,
+                                                 const std::string& entityName ) {
+    
+    // extract result info object
+    ResultInfo & actInfo = *(res->GetResultInfo());
+
+    std::stringstream ret;
+
+    if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
+      for( UInt i = 0; i < actInfo.dofNames.GetSize(); i++ ) {
+        ret << actInfo.resultName << "_"
+            << entityType << "_";
+        if(entityNum != "0") {
+          ret << entityNum << "_";
+        }
+        ret << entityName << "_";
+            if(actInfo.dofNames[i] != "") {
+              ret << actInfo.dofNames[i] << "_";
+            }
+            ret << "(" << actInfo.unit << ")" << delim_;
+      }
+    } else {
+      if( actInfo.complexFormat == REAL_IMAG ) {
+        for( UInt i = 0; i < actInfo.dofNames.GetSize(); i++ ) {
+          if( actInfo.dofNames[i] != "" ) {
+            ret << actInfo.resultName << "-real-" << actInfo.dofNames[i] << "-"
+                << entityType << "_";
+            if(entityNum != "0") {
+              ret << entityNum << "_";
+            }
+            ret << entityName << "_"
+                << "(" << actInfo.unit << ")" << delim_
+                << actInfo.resultName << "-imag-" << actInfo.dofNames[i] << "_"
+                << entityType << "_";
+            if(entityNum != "0") {
+              ret << entityNum << "_";
+            }
+            ret << entityName << "_"
+                << "(" << actInfo.unit << ")" << delim_;
+          } else {
+            ret << actInfo.resultName << "-" << "real_"
+                << entityType << "_";
+            if(entityNum != "0") {
+              ret << entityNum << "_";
+            }
+            ret << entityName << "_"
+                << "(" << actInfo.unit << ")" << delim_
+                << actInfo.resultName << "-" << "imag_"
+                << entityType << "_";
+            if(entityNum != "0") {
+              ret << entityNum << "_";
+            }
+            ret << entityName << "_"
+                << "(" << actInfo.unit << ")" << delim_;              
+          }
+        }
+      } else {
+        for( UInt i = 0; i < actInfo.dofNames.GetSize(); i++ ) {
+          if( actInfo.dofNames[i] != "" ) {
+            ret << actInfo.resultName << "-ampl-" << actInfo.dofNames[i] << "_"
+                << entityType << "_";
+            if(entityNum != "0") {
+              ret << entityNum << "_";
+            }
+            ret << entityName << "_"
+                << "(" << actInfo.unit << ")" << delim_
+                << actInfo.resultName << "-phase-" << actInfo.dofNames[i] << "_"
+                << entityType << "_";
+            if(entityNum != "0") {
+              ret << entityNum << "_";
+            }
+            ret << entityName << "_"
+                << "(deg)" << delim_;
+          } else {
+            ret << actInfo.resultName << "-" << "ampl_"
+                << entityType << "_";
+            if(entityNum != "0") {
+              ret << entityNum << "_";
+            }
+            ret << entityName << "_"
+                << "(" << actInfo.unit << ")" << delim_
+                << actInfo.resultName << "-" << "phase_"
+                << entityType << "_";
+            if(entityNum != "0") {
+              ret << entityNum << "_";
+            }
+            ret << entityName << "_"
+                << "(deg)" << delim_;
+          }
+        }
+      }
+    }
+
+    std::string retstr = ret.str();
+    std::string key (delim_);
+    size_t found;
+
+    found=retstr.rfind(key);
+    if (found!=std::string::npos)
+      retstr.replace (found,key.length(),"");
+  
+    return retstr;
   }
 
   StdVector<std::string> SimOutputText::GetNodeInfo( EntityIterator & it ) const {

@@ -73,6 +73,12 @@ namespace CoupledField {
     //! Create header information depending on result
     std::string ResultDofString( shared_ptr<BaseResult> res );
 
+    //! Create header information for CSV format depending on result
+    std::string ResultDofStringCSV( shared_ptr<BaseResult> res,
+                                    const std::string& entityNum,
+                                    const std::string& entityType,
+                                    const std::string& entityName );
+    
     // =======================================================================
     //  Helper functions to iterate over a list of entities
     // =======================================================================    
@@ -113,7 +119,10 @@ namespace CoupledField {
     char cmChar_;
 
     //! Delimiter string
-    static std::string delim_;
+    std::string delim_;
+
+    //! Format output as CSV
+    bool csv_;
 
     //! Coordinate system
     CoordSystem * coordSys_;

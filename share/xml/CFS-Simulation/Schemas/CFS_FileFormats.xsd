@@ -421,6 +421,8 @@
 		   minOccurs="0" maxOccurs="1"/>
       <xsd:element name="text" type="DT_OutputText"
 		   minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="csv" type="DT_OutputCSV"
+        minOccurs="0" maxOccurs="1"/>
       <xsd:element name="info" type="DT_OutputInfo"
         minOccurs="0" maxOccurs="1"/>
       <xsd:element name="streaming" type="DT_OutputStreaming"
@@ -583,6 +585,57 @@
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
   
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for CSV output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputCSV">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Format history output file as comma separated values which can be read directly into ParaView.
+        
+        The Matlab/Octave code to read such files is: matrix = csvread('vel-line.csv',1,0);
+        
+        For Python refer to http://matplotlib.org/api/mlab_api.html#matplotlib.mlab.csv2rec or
+        http://docs.python.org/2/library/csv.html
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="delimiter" type="DT_Character" default=",">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          The delimiter character for the CSV file can be defined here. By default a comma is used.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
+    <xsd:attribute name="fileCollect" default="entity">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="entity"/>
+          <xsd:enumeration value="timeFreq"/>
+          <xsd:enumeration value="altogether"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="entityNumbering" default="global">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Determines the naming scheme for text files of nodes / element
+          results: In case of 'global' numbering, the text files contain the
+          global node / element number. In case of 'consecutive', the text
+          files of a node / element list get enumerated from 1 on based on a 
+          consecutive numbering.
+        </xsd:documentation>
+      </xsd:annotation>
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="global"/>
+          <xsd:enumeration value="consecutive"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="id" type="xsd:token" default="csv"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
+  </xsd:complexType>
   
   <!-- Data type for name of file containing material data -->
   <xsd:complexType name="DT_MatFile">
