@@ -961,7 +961,10 @@ namespace CoupledField {
       
       // Obtain field resultFunctor object
       SolutionType solType = fap.resultInfo->resultType;
-      UInt numDofs = fap.resultInfo->dofNames.GetSize();
+      StdVector<std::string> dofNames = fap.resultInfo->dofNames;
+      UInt numDofs = dofNames.GetSize();
+      std::string solTypeString;
+      solTypeString = SolutionTypeEnum.ToString(solType);
       std::map<SolutionType, PtrCoefFct >::iterator fctIt;
       fctIt = fieldCoefs_.find(solType);
       if( fctIt == fieldCoefs_.end() )  {
@@ -1009,15 +1012,45 @@ namespace CoupledField {
       std::ofstream  out(fap.fileName.c_str(),std::ios::out );
 
       Vector<Double> globPoint;
+      StdVector<std::string> globCoordNames;
+      StdVector<std::string> locCoordNames;
+      globCoordNames.Push_back("x");
+      globCoordNames.Push_back("y");
+      globCoordNames.Push_back("z");      
+      locCoordNames.Push_back("xi");
+      locCoordNames.Push_back("eta");
+      locCoordNames.Push_back("zeta");      
+      char delim = '\t';
+      if(fap.csv) 
+      {
+        delim = fap.delim;
+      }
+      
       
       // print out information
       if( isComplex_ ){
         // cast solution vector
         Vector<Complex>& vec = dynamic_cast<Vector<Complex> &>(*(fap.field));
 
-        // obtain result info and print header
-        UInt numDofs = fap.resultInfo->dofNames.GetSize();
-
+        // Write header line with descriptions of columns
+        if(fap.csv) 
+        {
+          out << "origElemNum" << delim;        
+          for(UInt j = 0; j < dim_; ++j ) {
+            out << "globCoord-" << globCoordNames[j] << delim;
+          }
+          for(UInt j = 0; j < numDofs; ++j ) {
+            out << solTypeString << "-real" << "-" << dofNames[j] << delim;
+          }
+          for(UInt j = 0; j < numDofs; ++j ) {
+            out << solTypeString << "-imag" << "-" << dofNames[j] << delim;
+          }
+          for(UInt j = 0; j < dim_-1; ++j ) {
+            out << "locCoord-" << locCoordNames[j] << delim;
+          }
+          out << "locCoord-" << locCoordNames[dim_-1] << std::endl;
+        }
+      
         // Loop over all points
         for( UInt iPoint = 0; iPoint < fap.locPoints.GetSize(); iPoint++) { 
           
@@ -1025,28 +1058,40 @@ namespace CoupledField {
               ptGrid_->GetElemShapeMap(fap.elems[iPoint], true);
           esm->Local2Global(globPoint, fap.locPoints[iPoint]);
           // write to file
-          out << fap.elems[iPoint]->elemNum << "\t";
-          out << globPoint.ToString(0, '\t') << "\t";
+          out << fap.elems[iPoint]->elemNum << delim;
+          out << globPoint.ToString(0, delim) << delim;
           for(UInt j = 0; j < numDofs; ++j ) {
-            out << vec[iPoint*numDofs + j].real() << "\t";
+            out << vec[iPoint*numDofs + j].real() << delim;
           }
           for(UInt j = 0; j < numDofs; ++j ) {
-            out << vec[iPoint*numDofs + j].imag() << "\t";
+            out << vec[iPoint*numDofs + j].imag() << delim;
           }
-          for(UInt j = 0; j < dim_; ++j ) {
-            out << fap.locPoints[iPoint][j] << "\t";
+          for(UInt j = 0; j < dim_-1; ++j ) {
+            out << fap.locPoints[iPoint][j] << delim;
           }
-          out << fap.elems[iPoint]->elemNum << "\t";
-          out << std::endl;
+          out << fap.locPoints[iPoint][dim_-1] << std::endl;
         }
 
       } else {
         // cast solution vector
         Vector<Double>& vec = dynamic_cast<Vector<Double> &>(*(fap.field));
 
-        // obtain result info and print header
-        UInt numDofs = fap.resultInfo->dofNames.GetSize();
-
+        // Write header line with descriptions of columns
+        if(fap.csv) 
+        {
+          out << "origElemNum" << delim;        
+          for(UInt j = 0; j < dim_; ++j ) {
+            out << "globCoord-" << globCoordNames[j] << delim;
+          }
+          for(UInt j = 0; j < numDofs; ++j ) {
+            out << solTypeString << "-" << dofNames[j] << delim;
+          }
+          for(UInt j = 0; j < dim_-1; ++j ) {
+            out << "locCoord-" << locCoordNames[j] << delim;
+          }
+          out << "locCoord-" << locCoordNames[dim_-1] << std::endl;
+        }
+        
         // Loop over all points
         for( UInt iPoint = 0; iPoint < fap.locPoints.GetSize(); iPoint++) { 
           
@@ -1054,16 +1099,15 @@ namespace CoupledField {
               ptGrid_->GetElemShapeMap(fap.elems[iPoint], true);
           esm->Local2Global(globPoint, fap.locPoints[iPoint]);
           // write to file
-          out << fap.elems[iPoint]->elemNum << "\t";
-          out << globPoint.ToString(0, '\t') << "\t";
+          out << fap.elems[iPoint]->elemNum << delim;
+          out << globPoint.ToString(0, delim) << delim;
           for(UInt j = 0; j < numDofs; ++j ) {
-            out << vec[iPoint*numDofs + j] << "\t";
+            out << vec[iPoint*numDofs + j] << delim;
           }
-          for(UInt j = 0; j < dim_; ++j ) {
-            out << fap.locPoints[iPoint][j] << "\t";
+          for(UInt j = 0; j < dim_-1; ++j ) {
+            out << fap.locPoints[iPoint][j] << delim;
           }
-          out << fap.elems[iPoint]->elemNum << "\t";
-          out << std::endl;
+          out << fap.locPoints[iPoint][dim_-1] << std::endl;
         }
       }
 
@@ -1088,6 +1132,16 @@ namespace CoupledField {
       
       FieldAtPoints & actField = fields_[iPart];
       actField.fileName = actNode->Get("fileName")->As<std::string>();
+      actField.csv = actNode->Get("csv")->As<bool>();
+      std::string delim = actNode->Get("delimiter")->As<std::string>();
+      if(actField.csv && delim.length() == 0) 
+      {
+        actField.delim = ',';
+      }
+      else 
+      {        
+        actField.delim = delim[0];
+      }
       
       // check for solution type
       solTypeString = actNode->Get("type")->As<std::string>();

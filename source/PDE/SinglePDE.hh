@@ -255,6 +255,12 @@ namespace CoupledField
       //! Filename where points get written to
       std::string fileName;
 
+      //! Format output file as CSV (comma separated values)
+      bool csv;
+
+      //! Delimiter for CSV fields
+      char delim;
+
       //! Vector with elements 
       StdVector<const Elem*> elems;
       

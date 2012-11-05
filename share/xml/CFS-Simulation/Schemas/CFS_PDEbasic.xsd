@@ -569,6 +569,21 @@
       </xsd:element>
     </xsd:sequence>
     <xsd:attribute name="fileName" default="xsd:token"/>
+    <xsd:attribute name="csv" default="no" type="DT_CFSBool">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Format output file as comma separated values which can be read directly into ParaView.
+          The Matlab code to read such files is: matrix = csvread('vel-line.csv',1,0);
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="delimiter" default="," type="xsd:token">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          The delimiter character for the CSV file can be defined here. By default a comma is used.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
   
   
