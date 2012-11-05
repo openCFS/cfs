@@ -469,49 +469,54 @@ namespace CoupledField
       UInt stepNum;
       std::string fn;
 
-      for ( fs::directory_iterator dir_itr( trnDir );
-            dir_itr != end_iter;
-            ++dir_itr )
-      {
-        if ( !fs::is_directory( *dir_itr ) )
+      if(fs::exists(trnDir)) {
+        for ( fs::directory_iterator dir_itr( trnDir );
+              dir_itr != end_iter;
+              ++dir_itr )
         {
-          fn = dir_itr->path().filename().string();
-
-          if(algo::ends_with(fn, ".trn"))
+          if ( !fs::is_directory( *dir_itr ) )
           {
-            sstr.clear(); sstr.str("");
-            sstr << fn;
-            sstr >> stepNum;
-            stepNumSet.insert(stepNum);
+            fn = dir_itr->path().filename().string();
+  
+            if(algo::ends_with(fn, ".trn"))
+            {
+              sstr.clear(); sstr.str("");
+              sstr << fn;
+              sstr >> stepNum;
+              stepNumSet.insert(stepNum);
+            }
           }
         }
-      }
 
-      it = stepNumSet.begin();
-      end = stepNumSet.end();
+        it = stepNumSet.begin();
+        end = stepNumSet.end();
       
-      trnFilenames_.reserve(stepNumSet.size());
-      timeStepNumbers_.reserve(stepNumSet.size());
+        trnFilenames_.reserve(stepNumSet.size());
+        timeStepNumbers_.reserve(stepNumSet.size());
 
-      for( ; it != end; it++ )
-      {
-        stepNum = *it;
-        sstr.clear(); sstr.str("");
-        sstr << baseName_ << name_ << "/" << stepNum << ".trn";
+        for( ; it != end; it++ )
+        {
+          stepNum = *it;
+          sstr.clear(); sstr.str("");
+          sstr << baseName_ << name_ << "/" << stepNum << ".trn";
 
-        fn = sstr.str();
+          fn = sstr.str();
 
-        numSteps_++;
-        trnFilenames_.push_back(fn);
-        timeStepNumbers_.push_back(stepNum);
+          numSteps_++;
+          trnFilenames_.push_back(fn);
+          timeStepNumbers_.push_back(stepNum);
+        }
       }
     }
 
-    if(settings.GetDouble("timestep") <= 0)
-      EXCEPTION("Time step could not be determined. Please specify it using --timestep X.");
-
-    CheckTransientFiles();
-
+    if(!settings.GetInt("justmesh")) 
+    {
+      if(settings.GetDouble("timestep") <= 0) {
+        EXCEPTION("Time step could not be determined. Please specify it using --timestep X.");
+      } else {
+        CheckTransientFiles();
+      }
+    }
     if (settings.GetInt("numsteps"))
     {
       UInt tmp = (UInt) settings.GetInt("numsteps");
