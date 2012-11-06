@@ -408,19 +408,34 @@ h5attput(outfile, '/Results/Mesh', 'ExternalFiles', uint32(0));
 % write ResultDescription of quantity
 rdpath = [basepath '/ResultDescription/'  quantity];
 % create first dataset explicitly, so that groups get created as well
-h5datacreate(outfile, [rdpath '/DefinedOn'], 'type', 'uint32', 'size', 1);
-h5varput(outfile, [rdpath '/DefinedOn'], uint32(restype));
-h5datacreate(outfile, [rdpath '/EntryType'], 'type', 'uint32', 'size', 1);
-h5varput(outfile, [rdpath '/EntryType'], uint32(1));
-h5datacreate(outfile, [rdpath '/NumDOFs'], 'type', 'uint32', 'size', 1);
-h5varput(outfile, [rdpath '/NumDOFs'], uint32(1));
-h5datacreate(outfile, [rdpath '/StepNumbers'], 'type', 'uint32', 'size', numfiles);
-h5varput(outfile, [rdpath '/StepNumbers'], uint32(1:numfiles));
-h5datacreate(outfile, [rdpath '/StepValues'], 'type', 'double', 'size', numfiles);
-if mode == 1
-  h5varput(outfile, [rdpath '/StepValues'], f);
-else
-  h5varput(outfile, [rdpath '/StepValues'], t);
+try
+  h5datacreate(outfile, [rdpath '/DefinedOn'], 'type', 'uint32', 'size', 1);
+  h5varput(outfile, [rdpath '/DefinedOn'], uint32(restype));
+catch %#ok<CTCH>
+end
+try
+  h5datacreate(outfile, [rdpath '/EntryType'], 'type', 'uint32', 'size', 1);
+  h5varput(outfile, [rdpath '/EntryType'], uint32(1));
+catch %#ok<CTCH>
+end
+try
+  h5datacreate(outfile, [rdpath '/NumDOFs'], 'type', 'uint32', 'size', 1);
+  h5varput(outfile, [rdpath '/NumDOFs'], uint32(1));
+catch %#ok<CTCH>
+end
+try
+  h5datacreate(outfile, [rdpath '/StepNumbers'], 'type', 'uint32', 'size', numfiles);
+  h5varput(outfile, [rdpath '/StepNumbers'], uint32(1:numfiles));
+catch %#ok<CTCH>
+end
+try
+  h5datacreate(outfile, [rdpath '/StepValues'], 'type', 'double', 'size', numfiles);
+  if mode == 1
+    h5varput(outfile, [rdpath '/StepValues'], f);
+  else
+    h5varput(outfile, [rdpath '/StepValues'], t);
+  end
+catch %#ok<CTCH>
 end
 
 h5WriteVLStrDset(outfile, rdpath, 'DOFNames', '-', true);

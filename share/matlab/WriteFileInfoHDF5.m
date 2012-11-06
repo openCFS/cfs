@@ -30,10 +30,12 @@ proc = getenv('HOSTTYPE');
 
 creator = sprintf('CFS++ HDF5 tools for MATLAB run by %s@%s (MATLAB %s, %s %s)', ...
                   user, host, version, os, proc);
-
-h5datacreate(filename, '/FileInfo/Content', 'type', 'uint32', ...
-             'size', length(content));
-h5varput(filename, '/FileInfo/Content', uint32(content));
+try
+  h5datacreate(filename, '/FileInfo/Content', 'type', 'uint32', ...
+               'size', length(content));
+  h5varput(filename, '/FileInfo/Content', uint32(content));
+catch %#ok<CTCH>
+end
 
 h5WriteVLStrDset(filename, '/FileInfo', 'Creator', creator, true);
 
