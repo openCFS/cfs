@@ -137,7 +137,11 @@ namespace CoupledField {
 
             // make sure, that this is the correct grid
             listNode->GetValue("gridId", gridId);
-            if (domain->GetGrid(gridId) != this) return;
+            try {
+              if (domain->GetGrid(gridId) != this) return;
+            } catch (Exception &ex) {
+              return;
+            }
 
             // get coordinate system
             listNode->GetValue( "coordSysId", coordSysId );

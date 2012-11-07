@@ -1168,7 +1168,7 @@ namespace CoupledField
     else if ( numInputNodes < numNodes )
     {
       EXCEPTION( "Cannot shrink vector (length " << numInputNodes
-                 << "), because there are too much nodes ("
+                 << "), because there are too many nodes ("
                  << numNodes << ") in region " << partitionIdx );
     }
 
