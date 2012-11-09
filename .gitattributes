@@ -89,6 +89,7 @@ include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
 include/def_use_blas.hh.in -text
 include/def_use_cholmod.hh.in -text
+include/def_use_fftw.hh.in -text
 include/def_use_gidpost.hh.in -text
 include/def_use_gmsh.hh.in -text
 include/def_use_gmv.hh.in -text
@@ -1618,6 +1619,8 @@ source/cfstool/CMakeLists.txt svneol=native#text/plain
 source/cfstool/ParamsInit.cc -text
 source/cfstool/ParamsInit.hh -text
 source/cfstool/cfstool.cc svneol=native#text/plain
+source/cfstool/fft.cc -text
+source/cfstool/fft.hh -text
 source/cplreader/CMakeLists.txt svneol=native#text/plain
 source/cplreader/CouplingHandler.cc svneol=native#text/plain
 source/cplreader/CouplingHandler.hh svneol=native#text/plain

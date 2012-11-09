@@ -128,6 +128,14 @@ ADD_OPTION(extfiles
    goes into one big .h5 file. It may be tricky to copy such big files to USB hard
    disks, which are usually formatted with a FAT32 file system."
   )
+  
+ADD_OPTION(pressureRhsForWave
+  bool
+  false
+  "Compute wave equation source term based on Laplacian of fluid pressure."
+  "If this parameter is true, the acouRhsLoad for the wave equation is computed by the Lighthill
+   Tensor but by the Laplacian of the fluid pressure."
+  )
 
 ADD_OPTION(dim
   uint32_t
@@ -157,7 +165,7 @@ ADD_OPTION(activeparts
 ADD_OPTION(outputfields
   string
   acouRhsLoad
-  "Which physical fields should be output ([acouDivLighthillTensor | acouRhsLoad | acouRhsLoadDensity | fluidMechDensity | fluidMechPressure | fluidMechVelocity | fluidMechTKE | fluidMechSkinFriction | acouLambVec | acouLambRhs]).  Values may be separated by SPACE or SEMICOLON or |"
+  "Which physical fields should be output ([acouDivLighthillTensor | acouRhsLoad | acouRhsLoadDensity | fluidMechDensity | fluidMechPressure | fluidMechVelocity | fluidMechTKE | fluidMechSkinFriction | acouLambVec | acouLambRhs | aeroAcouSourceRhs]).  Values may be separated by SPACE or SEMICOLON or |"
   "Sometimes it may be necessary to do some post-processing on the fluid fields
    to get some understanding of the problem at hand. For this reason it is possible
    to write the most important fields (velocity, pressure, source terms, turbulence
@@ -185,6 +193,30 @@ ADD_OPTION(timestep
   "Time step length T in seconds"
   "This parameter specifies the length of each timestep in seconds."
   )
+  
+ADD_OPTION(calcMeanPresField
+  bool
+  0
+  "Toggle calculation of mean pressure field"
+  "This parameter toggles the calculation of the time averaged mean pressure field"
+  )
+  
+ADD_OPTION(calcMeanVelField
+  bool
+  0
+  "Toggle calculation of mean velocity field"
+  "This parameter toggles the calculation of the time averaged mean velocity field"
+  )
+  
+    
+ADD_OPTION(numStepsForMeanField
+  uint32_t
+  0
+  "Specify how many files to consider for the mean field calculation"
+  "By default we will take the value given by the numSteps parameter to perform the 
+   temporal average of the flow and pressure field. By this parameter we can take more or 
+   less steps for the mean flow computation."
+  )
 
 ADD_OPTION(calcsrc
   bool
@@ -209,6 +241,15 @@ ADD_OPTION(velscale
   "Scale factors for velocity field in the format factorX factorY factorZ"
   "This parameter specifies the factors to be multiplied with the corresponding
    components of the velocity field. This can be useful, if the CFD computation
+   used a different scaling (cf. OpenFOAM simulations of the Freiberg guys)"
+  )
+  
+ADD_OPTION(presscale
+  string
+  "1.0"
+  "Scale factors for pressure field in the format factor"
+  "This parameter specifies the factor to be multiplied with the pressure field. 
+   This can be useful, if the CFD computation
    used a different scaling (cf. OpenFOAM simulations of the Freiberg guys)"
   )
 

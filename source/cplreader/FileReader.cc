@@ -64,8 +64,10 @@ namespace CoupledField
       }
     }
 
-    if(requiredResults_[ACOU_RHS_LOAD] || settings.GetInt("calcsrc"))
+    if(requiredResults_[ACOU_RHS_LOAD]  || settings.GetInt("calcsrc") || requiredResults_[ACOU_LAMB_RHS] )
       requiredResults_[FLUIDMECH_VELOCITY] = true;
+    if((requiredResults_[ACOUMIXED_MASS_LOAD] || (requiredResults_[ACOU_RHS_LOAD] && settings.GetInt("pressureRhsForWave")) || requiredResults_[NO_SOLUTION_TYPE]) && settings.GetInt("calcsrc"))
+      requiredResults_[FLUIDMECH_PRESSURE] = true;
   }
 
   FileReader::~FileReader()

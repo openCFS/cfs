@@ -1546,6 +1546,28 @@ DEFINE_LOG(linForm, "linForm")
     divLHTensorTmp.Init(0.0);
     divLHTensor.Resize(dimelem);
     divLHTensor.Init(0.0);
+    
+//    //--------THis is hack
+//    // OK we have the problem that we need the derivative
+//    // of the velocities. nevertheless, we only have
+//    // the potential of the compressible field.
+//    // idea we compute the compressible velocity at the center and subtract it
+//    // from the nodal velocities.
+//    const UInt dof = NodalVel.GetNumCols();
+//    Vector<Double> centreNode(dimelem, 0.0);
+//    Matrix<Double> derivCentre;
+//    Vector<Double> VelDerivAtCentre;
+//    ptelem->GetGlobDerivShFnc(derivCentre, centreNode, ptCoord, elem, dof);
+//    Matrix<Double> trans;
+//    derivCentre.Transpose(trans);
+//    VelDerivAtCentre =  trans * nodalPressure;
+//    //std::cout << "VelDerivAtCentre" << std::endl;
+//    //std::cout << VelDerivAtCentre << std::endl<< std::endl;
+//    for(UInt curSh =0;curSh <(UInt) n;curSh++){
+//      for(UInt d =0;d < (UInt)dimelem;d++){
+//        NodalVel[d][n] -= VelDerivAtCentre[d];
+//      }
+//    }
 
     
     Vector<double> intWeights = ptelem->GetIntWeights();
@@ -1555,7 +1577,7 @@ DEFINE_LOG(linForm, "linForm")
 
 
     // Loop over all integration points 
-    for(Integer actInt=1; actInt <= l; actInt++)
+    for(Integer actInt=1; actInt <= (Integer)l; actInt++)
     {
       ptelem->GetShFncAtIp(Sf, actInt, elem);
       ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
@@ -1564,11 +1586,14 @@ DEFINE_LOG(linForm, "linForm")
       // velocity at integration point: (vx  vy)^T  (2x1)
       VelAtIP = NodalVel * Sf;
 
+      VelAtIP = VelAtIP;
+
       //first derivative of velocity at integration point: (2x2)
       //  vx,x   vx,y
       //  vy,x   vy,y
       //
       VelDerAtIP = NodalVel * xiDx;
+
 
       helpVec[0] = 2.0 * VelAtIP[0] * VelDerAtIP[0][0] 
                        + VelAtIP[1] * VelDerAtIP[0][1]
@@ -1610,6 +1635,119 @@ DEFINE_LOG(linForm, "linForm")
 
 
   } // end of method
+
+  void LinearFlowNoiseInt::CalcElemVec4AeroAcouSrc(const Matrix<Double>& ptCoord,
+                                                   const Matrix<Double> & NodalVel,
+                                                   const Matrix<Double> & nodalMeanVel,
+                                                   Vector<Double> & Result,
+                                                   const Elem* elem){
+
+    Integer l = ptelem->GetNumIntPoints();
+    Integer n = ptelem->GetNumNodes();
+    Integer dimelem = ptCoord.GetNumRows();
+
+    Matrix<Double> xiDx;
+    Vector<Double> Sf;
+
+    Vector<Double> VelAtIP;
+    Matrix<Double> VelDerAtIP;
+
+    Double jacDet;
+
+    Result.Resize(n);
+    Result.Init(0.0);
+
+    Vector<double> intWeights = ptelem->GetIntWeights();
+
+//    //--------THis is hack
+//    // OK we have the problem that we need the derivative
+//    // of the velocities. nevertheless, we only have
+//    // the potential of the compressible field.
+//    // idea we compute the compressible velocity at the center and subtract it
+//    // from the nodal velocities.
+//    const UInt dof = NodalVel.GetNumCols();
+//    Vector<Double> centreNode(dimelem, 0.0);
+//    Matrix<Double> derivCentre;
+//    Vector<Double> VelDerivAtCentre;
+//    ptelem->GetGlobDerivShFnc(derivCentre, centreNode, ptCoord, elem, dof);
+//    Matrix<Double> trans;
+//    derivCentre.Transpose(trans);
+//    VelDerivAtCentre =  trans * nodalPressure;
+//    //std::cout << "VelDerivAtCentre" << std::endl;
+//    //std::cout << VelDerivAtCentre << std::endl<< std::endl;
+//    for(UInt curSh =0;curSh <(UInt) n;curSh++){
+//      for(UInt d =0;d < (UInt)dimelem;d++){
+//        NodalVel[d][n] -= VelDerivAtCentre[d];
+//      }
+//    }
+
+    // Loop over all integration points
+    for(Integer actInt=1; actInt <= l; actInt++)
+    {
+      ptelem->GetShFncAtIp(Sf, actInt, elem);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+      //std::cout << "Normal:\n" << nVec << std::endl;
+
+      // ------------- compute (u . grad) u ------------------ //
+      // ok this part computes
+      // velocity at integration point: (vx  vy)^T  (2x1)
+      VelAtIP = NodalVel * Sf;
+
+      //first derivative of velocity at integration point: (2x2)
+      //  vx,x   vx,y
+      //  vy,x   vy,y
+      //
+      VelDerAtIP = NodalVel * xiDx;
+
+      //helpVec[0] = VelAtIP[0] * VelDerAtIP[0][0] +
+      //             VelAtIP[1] * VelDerAtIP[0][1];
+      //
+      //helpVec[1] = VelAtIP[0] * VelDerAtIP[1][0] +
+      //             VelAtIP[1] * VelDerAtIP[1][1];
+      //
+      //if(dimelem==3){
+      //  helpVec[0] += VelAtIP[2] * VelDerAtIP[0][2];
+      //  helpVec[1] += VelAtIP[2] * VelDerAtIP[1][2];
+      //  helpVec[2]  = VelAtIP[0] * VelDerAtIP[2][0] + VelAtIP[1] * VelDerAtIP[2][1] +
+      //                VelAtIP[2] * VelDerAtIP[2][2];
+      //}
+      //
+      //helpVec *= (jacDet *  intWeights[actInt -1]);
+      //partResult = xiDx * helpVec;
+      //Result += partResult;
+      //now compute convective term
+      for(UInt i=0;i<(UInt)n;++i){
+        for(UInt d1=0;d1<(UInt)dimelem;++d1){
+          for(UInt d2=0;d2<(UInt)dimelem;++d2){
+            Result[i] +=  xiDx[i][d1] * VelAtIP[d2] * VelDerAtIP[d1][d2] * jacDet *  intWeights[actInt -1];
+          }
+        }
+      }
+      // ------------- END compute (u . grad) u ------------------ //
+    /*  // ------------- compute div ( u - u_mean) ------------------ //
+
+      //first derivative of velocity at integration point: (2x2)
+      //  vx,x   vx,y
+      //  vy,x   vy,y
+      //
+      VelDerAtIP = (NodalVel-nodalMeanVel) * xiDx;
+
+      Double divAtIp = 0;
+      for(UInt d =0;d<(UInt)dimelem;d++){
+         divAtIp += VelDerAtIP[d][d];
+      }
+
+
+      //now compute convective term
+      for(UInt i=0;i<(UInt)n;++i){
+         Result[i] +=  Sf[i] * divAtIp * jacDet *  intWeights[actInt -1];
+      }
+      // ------------- END compute (u . grad) u ------------------ //
+      */
+    }
+
+  }
+
 
   void LinearFlowNoiseInt::CalcLighthillSurfaceTermVel(const Elem* volElem,
                                    const Elem* surfElem,
@@ -1733,6 +1871,199 @@ DEFINE_LOG(linForm, "linForm")
     ResultLHTens *= (divLHNormal / (volElem->ptElem->CalcVolume() * volume ));
   } // end of CalcLighthillSurfaceTerm
 
+
+  void LinearFlowNoiseInt::CalcElemVecLHwithPress(const Matrix<Double>& ptCoord, const Vector<Double> & NodalPress,
+                                                     Vector<Double> & Result,Vector<Double>& nodalLoadDensity, const Elem* elem){
+
+    Integer l = ptelem->GetNumIntPoints();
+    Integer n = ptelem->GetNumNodes();
+    Integer dimelem = ptCoord.GetNumRows();
+
+    Matrix<Double> xiDx;
+    Matrix<Double> xiDxT;
+    Vector<Double> presDerivAtIp(dimelem,0.0);
+    Vector<Double> partResult(n,0.0);
+
+    Double jacDet;
+    Vector<Double> intWeights = ptelem->GetIntWeights();
+    Result.Resize(n);
+    nodalLoadDensity.Resize(n);
+    Result.Init();
+    nodalLoadDensity.Init();
+    Double volume = 0;
+    // Loop over all integration points
+    for(Integer actInt=1; actInt <= l; actInt++){
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+      //compute pressure derivative at IP
+      xiDx.Transpose(xiDxT);
+      presDerivAtIp = xiDxT * NodalPress;
+
+      // Multiplication with the derivatives of the shape functions
+      partResult  = xiDx * presDerivAtIp;
+      partResult *= jacDet * intWeights[actInt -1];
+      Result     += partResult;
+
+
+      volume += jacDet * intWeights[actInt-1];
+    }
+    nodalLoadDensity = Result / volume;
+  }
+
+  // computeation of total derivative of perturbed pressure for PE
+  void LinearFlowNoiseInt::CalcElemVec4QuadwithPress(const Matrix<Double>& ptCoord,
+                                                     const Vector<Double> & NodalPress,
+                                                     const Vector<Double> & NodalPresTDeriv,
+                                                     const Matrix<Double> & NodalMeanVelocity,
+                                                     Vector<Double> & Result,
+                                                     const Elem* elem,
+                                                     Double density){
+
+    // Source term =  integral ( Sf . ( (curl(vel) x vel) - (curl(MeanVel) x MeanVel)))
+    Integer l = ptelem->GetNumIntPoints();
+    Integer n = ptelem->GetNumNodes();
+    Integer dimelem = ptCoord.GetNumRows();
+
+    Matrix<Double> xiDx;
+    Matrix<Double> xiDxT;
+    Vector<Double> Sf;
+    Vector<Double> SfPresScaled;
+    Result.Resize(n,0.0);
+
+    Vector<Double> MeanVelAtIp(dimelem,0.0);
+    Vector<Double> presDerivAtIp(dimelem,0.0);
+    Double PresTDerivAtIp = 0.0;
+    Double convectivePres = 0.0;
+    Double jacDet;
+    Vector<Double> intWeights = ptelem->GetIntWeights();
+
+    // Loop over all integration points
+    for(Integer actInt=1; actInt <= l; actInt++)
+    {
+      ptelem->GetShFncAtIp(Sf, actInt, elem);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+
+      MeanVelAtIp = NodalMeanVelocity * Sf;
+      PresTDerivAtIp = NodalPresTDeriv * Sf;
+      xiDx.Transpose(xiDxT);
+      presDerivAtIp = xiDxT * NodalPress;
+
+      //sum up the derivatives with respcet to mean velocity
+      convectivePres = 0.0;
+      for(UInt d=0;d<(UInt)dimelem;d++){
+        convectivePres += presDerivAtIp[d] *  MeanVelAtIp[d];
+      }
+
+
+      for(Integer i = 0;i<n;++i){
+       Result[i] += (Sf[i] * (PresTDerivAtIp+convectivePres)) * jacDet * intWeights[actInt -1];
+       //Result[i] += ((SfVelScaled[i] * PresAtIp))* jacDet * intWeights[actInt -1];
+       //Result[i] += ((Sf[i] * PresDerivAtIp)) * jacDet * intWeights[actInt -1];
+      }
+    }
+    //Result = NodalPress;
+  }
+
+  ///Calcualte aeroacoustic source term based on lamb vector
+  void LinearFlowNoiseInt::CalcElemVecWithLamb(const Matrix<Double>& ptCoord,
+                                               const Matrix<Double> & NodalVelocity,
+                                               const Matrix<Double> & NodalMeanVelocity,
+                                               Vector<Double> & Result,
+                                               Vector<Double> & elemLambvec,
+                                               const Elem* elem,
+                                               Double density){
+
+    // Source term =  integral ( Sf . ( (curl(vel) x vel) - (curl(MeanVel) x MeanVel)))
+    // lamb 2 is \omega' \times meanVel
+    // lamb 1 is mean\omega \times vel'
+
+    Integer l = ptelem->GetNumIntPoints();
+    Integer n = ptelem->GetNumNodes();
+    Integer dimelem = ptCoord.GetNumRows();
+
+    Matrix<Double> xiDx;
+    Vector<Double> Sf;
+
+    Vector<Double> VelAtIp(dimelem,0.0);
+    Vector<Double> PertVelAtIp(dimelem,0.0);
+    Matrix<Double> PertVelDerivAtIp(dimelem,dimelem);
+
+
+    Vector<Double> MeanVelAtIp(dimelem,0.0);
+    Matrix<Double> MeanVelDerivAtIp(dimelem,dimelem);
+
+    Vector<Double> LambAtIp1(dimelem,0.0);
+    Vector<Double> LambAtIp2(dimelem,0.0);
+
+    Vector<Double> PerturbedLambAtIp(dimelem,0.0);
+
+    Double jacDet;
+
+    Result.Resize(n*dimelem,0.0);
+    elemLambvec.Resize(dimelem,0.0);
+
+    Vector<Double> intWeights = ptelem->GetIntWeights();
+    Double volume = 0;
+
+    // Loop over all integration points
+    for(Integer actInt=1; actInt <= l; actInt++)
+    {
+      ptelem->GetShFncAtIp(Sf, actInt, elem);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+
+      MeanVelAtIp = NodalMeanVelocity * Sf;
+      VelAtIp = NodalVelocity * Sf;
+
+      PertVelAtIp = VelAtIp - MeanVelAtIp;
+
+      PertVelDerivAtIp = (NodalVelocity-NodalMeanVelocity) * xiDx;
+      MeanVelDerivAtIp = NodalMeanVelocity * xiDx;
+
+      LambAtIp1[0] = PertVelAtIp[1] * (MeanVelDerivAtIp[0][1] - MeanVelDerivAtIp[1][0]);
+      LambAtIp1[1] = PertVelAtIp[0] * (MeanVelDerivAtIp[1][0] - MeanVelDerivAtIp[0][1]);
+      LambAtIp2[0] = MeanVelAtIp[1] * (PertVelDerivAtIp[0][1] - PertVelDerivAtIp[1][0]);
+      LambAtIp2[1] = MeanVelAtIp[0] * (PertVelDerivAtIp[1][0] - PertVelDerivAtIp[0][1]);
+
+      if (dimelem == 3)
+      {
+          LambAtIp1[0] += PertVelAtIp[2] * (MeanVelDerivAtIp[0][2] - MeanVelDerivAtIp[2][0]);
+          LambAtIp1[1] += PertVelAtIp[2] * (MeanVelDerivAtIp[1][2] - MeanVelDerivAtIp[2][1]);
+          LambAtIp1[2] = PertVelAtIp[1] * (MeanVelDerivAtIp[2][1] - MeanVelDerivAtIp[1][2]) +
+                         PertVelAtIp[0] * (MeanVelDerivAtIp[2][0] - MeanVelDerivAtIp[0][2]);
+
+          LambAtIp2[0] += MeanVelAtIp[2] * (PertVelDerivAtIp[0][2] - PertVelDerivAtIp[2][0]);
+          LambAtIp2[1] += MeanVelAtIp[2] * (PertVelDerivAtIp[1][2] - PertVelDerivAtIp[2][1]);
+          LambAtIp2[2] = MeanVelAtIp[1] * (PertVelDerivAtIp[2][1] - PertVelDerivAtIp[1][2]) +
+                            MeanVelAtIp[0] * (PertVelDerivAtIp[2][0] - PertVelDerivAtIp[0][2]);
+      }
+
+      PerturbedLambAtIp = (LambAtIp1 + LambAtIp2);
+      //PerturbedLambAtIp = LambAtIp;
+
+      PerturbedLambAtIp *= (jacDet * intWeights[actInt -1]);
+
+      for(Integer i = 0;i<n;++i){
+        for(Integer d=0;d<dimelem; d++){
+          Result[i*dimelem+d] += Sf[i] * PerturbedLambAtIp[d];
+        }
+      }
+      elemLambvec += PerturbedLambAtIp;
+      volume += jacDet * intWeights[actInt-1];
+    }
+
+    elemLambvec /= volume;
+  }
+
+  void LinearFlowNoiseInt::CalcLambSurfaceTermVel(const Elem* volElem,
+                                                  const Elem* surfElem,
+                                                  const Matrix<Double>& ptVolCoord,
+                                                  const Matrix<Double>& ptSurfCoord,
+                                                  const Matrix<Double> & volumeVel,
+                                                  const Matrix<Double> & volumeMeanVel,
+                                                  Vector<Double> & surfNormal,
+                                                  Double density,
+                                                  Vector<Double> & Result){
+    EXCEPTION("Not implemented yet");
+  }
 
 //===================================================================================
 //=========================== Combustion Noise ======================================

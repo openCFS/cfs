@@ -166,18 +166,42 @@ exec(sprintf('mkdir %s', tempdir));
 items_per_iter = ceil(num_items / numiter);
 
 % initialize chunk counters
-item_start = 1;
 if items_per_iter < num_items
   item_end = items_per_iter;
 else
   item_end = num_items;
 end
 
+% initialize chunk counters while takeing into account
+% a possible restart (right now hardcoded as its only prepared)
+
+%flag if we really wanna do this...
+resumefile =0; 
+
+if resumefile == 1;
+  %specify the chunk number to START!! with
+  %NOT the number of chunks to skip...
+  startChunkNum = 3;
+  itercount = startChunkNum;
+  item_start = ((startChunkNum-1)*items_per_iter) + 1;
+  item_end = (startChunkNum)*items_per_iter;
+  if item_end > num_items
+    item_end = num_items;
+  end 
+else
+  item_start = 1;
+  itercount = 1;
+  exec(sprintf('rm -rf %s', tempdir));
+  exec(sprintf('mkdir %s', tempdir));
+end
+
+
+
 % create buffer with chunk size
 mat = zeros(numsteps, items_per_iter);
 
 % read in transient data divided into chunks
-for iter=1:numiter
+for iter=itercount:numiter
 
   for i=1:numsteps
   

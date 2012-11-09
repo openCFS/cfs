@@ -577,6 +577,7 @@ namespace CoupledField {
         std::string actTypeString = nonLinNodes[i]->GetName();
         std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
 
+
         NonLinType actType;
         String2Enum( actTypeString, actType );
 

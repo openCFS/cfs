@@ -12,6 +12,7 @@ ENDIF(USE_IPOPT)
 SET(CFSTOOL_SRCS
   cfstool.cc
   ParamsInit.cc
+  fft.cc
 )
 
 # Main CFS++ Tool executable target.
@@ -31,6 +32,10 @@ SET(TARGET_LL
   ${BOOST_FILESYSTEM_LIB}
   ${BOOST_SYSTEM_LIB}
 )
+
+#check if cfstool is on for fftw
+OPTION(CFSTOOL_FFTW "Build support for the FFTW library to perform FFTs and IFFTs of hdf5 files" ON)
+MARK_AS_ADVANCED(CFSTOOL_FFTW)
 
 IF(USE_GMV)
   IF(USE_GMV_INPUT)
@@ -59,6 +64,11 @@ IF(USE_HDF5)
   SET(TARGET_LL ${TARGET_LL} siminouthdf5 simoutxdmf)
 ENDIF(USE_HDF5)
 
+IF(CFSTOOL_FFTW)
+  INCLUDE_DIRECTORIES(${FFTW_INCLUDE_DIR}) 
+  SET(TARGET_LL ${TARGET_LL} fftw3)
+ENDIF(CFSTOOL_FFTW)
+
 IF(USE_ANSYSRST)
   SET(TARGET_LL ${TARGET_LL} simoutansysrst)
 ENDIF(USE_ANSYSRST)
@@ -75,9 +85,14 @@ IF(USE_PYTHON)
   SET(TARGET_LL ${TARGET_LL} pythonmess scripting)
 ENDIF(USE_PYTHON)
 
+
+
 SET(TARGET_LL ${TARGET_LL} 
   ${CFS_FORTRAN_DYNRT_LIBS}
 )
+
+
+
 
 TARGET_LINK_LIBRARIES(cfstoolbin ${TARGET_LL})
 

@@ -397,6 +397,14 @@ namespace CoupledField
                           const  Matrix<Double> & NodaldTijdxj,
                           Vector<Double> & Result);
 
+    /// Calculation of vector of right hand side for aeroacouSource PDE in fespace branch
+    /// i.e. for extraction of fluidmech pressure
+    void CalcElemVec4AeroAcouSrc(const Matrix<Double>& ptCoord,
+                                 const Matrix<Double> & NodalVel,
+                                 const Matrix<Double> & NodalMeanVel,
+                                 Vector<Double> & Result,
+                                 const Elem* elem);
+
     /// Calculation of vector of right hand side using nodal velocity values at
     /// the centre of an element
     void CalcElemVec4QuadwithVelCentre(const Matrix<Double>& ptCoord, 
@@ -425,6 +433,7 @@ namespace CoupledField
                                  Vector<Double> & Result,
                                  Vector<Double> & ResultLHTens);
 
+
     void CalcLighthillSurfaceTermVelCenter(const Elem* VolElem,
                                      const Elem* surfElem,
                                      const Matrix<Double>& ptVolCoord,
@@ -447,6 +456,37 @@ namespace CoupledField
   /// Calculation of vector of right hand side using nodal pressure values
   void CalcElemVec4QuadwithPress(const Matrix<Double>& ptCoord, const Matrix<Double> & NodalPress,
                                  Vector<Double> & Result, const Elem* elem);
+
+  /// Calculation of vector of right hand side for wave equation using laplacian pressure values
+  void CalcElemVecLHwithPress(const Matrix<Double>& ptCoord, const Vector<Double> & NodalPress,
+                              Vector<Double> & Result, Vector<Double>& nodalLoadDensity,const Elem* elem);
+
+  /// Calculation of vector of right hand side using nodal mean pressure values
+  /// Computes the integration of the total differential
+  void CalcElemVec4QuadwithPress(const Matrix<Double>& ptCoord,
+                                 const Vector<Double> & NodalPress,
+                                 const Vector<Double> & NodalPresTDeriv,
+                                 const Matrix<Double> & NodalMeanVelocity,
+                                 Vector<Double> & Result, const Elem* elem,
+                                 Double density);
+
+  ///Calcualte aeroacoustic source term based on lamb vector
+  void CalcElemVecWithLamb(const Matrix<Double>& ptCoord,
+                           const Matrix<Double> & NodalVelocity,
+                           const Matrix<Double> & NodalMeanVelocity,
+                           Vector<Double> & Result, Vector<Double> & elemLambvec,
+                           const Elem* elem,
+                           Double density);
+
+  void CalcLambSurfaceTermVel(const Elem* volElem,
+                              const Elem* surfElem,
+                              const Matrix<Double>& ptVolCoord,
+                              const Matrix<Double>& ptSurfCoord,
+                              const Matrix<Double> & volumeVel,
+                              const Matrix<Double> & volumeMeanVel,
+                              Vector<Double> & surfNormal,
+                              Double density,
+                              Vector<Double> & Result);
 
 
   //================= Combustion Noise ========================================================

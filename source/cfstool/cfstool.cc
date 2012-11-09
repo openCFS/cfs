@@ -2,7 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -29,6 +29,7 @@
 #include "def_use_hdf5.hh"
 #include "def_use_mesh.hh"
 #include "def_use_unv.hh"
+#include "def_use_fftw.hh"
 
 namespace fs = boost::filesystem;
 
@@ -84,11 +85,40 @@ namespace fs = boost::filesystem;
 #include "DataInOut/SimInOut/AnsysRST/simOutputRST.hh"
 #endif
 
+
+#ifdef CFSTOOL_FFTW
+#include <fftw3.h>
+#include "fft.hh"
+
+//include boost stuff for file system access for chunced fft
+#include <unistd.h>
+#include <fstream>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/complex.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/progress.hpp>
+#endif
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 using namespace CoupledField;
 
 namespace CFSTool {
+  void prepareChunkResults(std::vector< std::vector< std::vector<Complex> > >& fftVals,
+                              UInt size, UInt nChunk,StdVector<std::string> fNames,
+                              UInt numRes);
+
+  void updateChunkResult(std::vector< std::vector< std::vector<Complex> > >& fftVals,
+                            UInt freqStep,const StdVector<std::string> & fNames,
+                            UInt chunkSize,UInt numRes);
+
+  void updateChunkResultone(std::vector< std::vector< std::vector<Double> > >& fftVals,
+                            UInt freqStep,const StdVector<std::string> & fNames,
+                            UInt chunkSize,UInt numRes);
 
   void setFreeCoord(std::string coordSysId="default",
       std::string node_name="averageDomain");
@@ -949,6 +979,690 @@ namespace CFSTool {
     delete ptGrid;
   } //calcAverage
 
+
+  //==========================================================================================================
+  // FFT SECTION
+  //==========================================================================================================
+
+  void updateChunkResult(std::vector< std::vector< std::vector<Complex> > >& fftVals,
+                              UInt freqStep,const StdVector<std::string> & fNames,
+                              UInt chunkSize,UInt numRes){
+      std::cout << "Reading data from chunk files...";
+      std::cout.flush();
+      std::vector< std::vector<Complex> > inData;
+      fftVals.clear();
+      fftVals.resize(numRes);
+      //now lets read in each chunk file, for each result
+      StdVector<std::string>::const_iterator fIter = fNames.Begin();
+      for(;fIter!=fNames.End();fIter++){
+        std::fstream curFile((*fIter).c_str(),std::ios_base::in|std::ios_base::binary);
+        boost::archive::binary_iarchive ia(curFile);
+        ia >> inData;
+        //analyse which result/chunk we are dealing with
+        boost::char_separator<char> sep("_");
+        boost::tokenizer< boost::char_separator<char> > tokenizer(*fIter, sep);
+        std::vector<std::string> fTok;
+        std::copy(tokenizer.begin(), tokenizer.end(),
+                        std::back_inserter(fTok));
+        UInt resNum = boost::lexical_cast<UInt>(fTok[1]);
+        //UInt cNum = boost::lexical_cast<UInt>(*(tokenizer+2));
+        for(UInt i=0;i<inData.size();i++){
+          fftVals[resNum].push_back(std::vector<Complex>(chunkSize));
+          //alternatively perform just a copy command...
+          for(UInt j = 0;j<chunkSize && j+freqStep < inData[i].size();j++){
+            fftVals[resNum][fftVals[resNum].size()-1][j] = inData[i][freqStep+j];
+          }
+        }
+      }
+      //open the chunkfile and just assign it to fftVals
+      std::cout << "done" << std::endl;
+    }
+
+  void updateChunkResultone(std::vector< std::vector< std::vector<Double> > >& fftVals,
+                              UInt freqStep,const StdVector<std::string> & fNames,
+                              UInt chunkSize,UInt numRes){
+      std::vector< std::vector<Double> > inData;
+      fftVals.clear();
+      fftVals.resize(numRes);
+      //now lets read in each chunk file, for each result
+      StdVector<std::string>::const_iterator fIter = fNames.Begin();
+      for(;fIter!=fNames.End();fIter++){
+        std::fstream curFile((*fIter).c_str(),std::ios_base::in|std::ios_base::binary);
+        boost::archive::binary_iarchive ia(curFile);
+        ia >> inData;
+        //analyse which result/chunk we are dealing with
+        boost::char_separator<char> sep("_");
+        boost::tokenizer< boost::char_separator<char> > tokenizer(*fIter, sep);
+        std::vector<std::string> fTok;
+        std::copy(tokenizer.begin(), tokenizer.end(),
+                        std::back_inserter(fTok));
+        UInt resNum = boost::lexical_cast<UInt>(fTok[1]);
+        //UInt cNum = boost::lexical_cast<UInt>(*(tokenizer+2));
+        for(UInt i=0;i<inData.size();i++){
+          fftVals[resNum].push_back(std::vector<Double>(chunkSize));
+          //alternatively perform just a copy command...
+          for(UInt j = 0;j<chunkSize && j+freqStep < inData[i].size();j++){
+            fftVals[resNum][fftVals[resNum].size()-1][j] = inData[i][freqStep+j];
+          }
+        }
+      }
+      //open the chunkfile and just assign it to fftVals
+    }
+
+  /**
+   * calcFFT calclulates the frequency transformation of a given input file
+   * @param inFile The file which carries the data (e.g. acoustic pressure , mechanical
+   * displacement)
+   * @param meshFile The mesh file to associate each value with a point in space
+   * Import not all points should be included into the averagin.
+   * @param regs various programm options
+   * @param iFFT performs an inversrse fourier transform at the end to obtain transient data again
+   * @param window performs an additional windowing of time data before computing the fft
+   * @return void
+   */
+  void PerformFFT(const std::string& inFile,
+                    const std::string& outFile,
+                    std::vector<std::string> regs,
+                    bool iFFT,bool window){
+
+
+    Double maxMem = 0;
+    UInt numNodes = 0;
+
+    std::vector<std::string> chunkFileNames;
+
+    PtrParamNode maxMemNode = param->Get("maxMemory",ParamNode::PASS);
+    if(maxMemNode){
+      try{
+        maxMem = boost::lexical_cast<Double>(maxMemNode->As<std::string>());
+      } catch(bad_lexical_cast &) {
+      EXCEPTION("Error converting maxMem parameter");
+      }
+    }else{
+      std::cerr << "No maxMemory parameter specified. Trying to guess from system and use 20% of it..." << std::endl;
+      long pages = sysconf(_SC_PHYS_PAGES);
+      long page_size = sysconf(_SC_PAGE_SIZE);
+      long mem = pages * page_size;
+      //compute in MB
+      maxMem = mem / (1024*1024) * 0.2;
+      std::cerr << "\t Maximum available memory in MB for FFT: " << maxMem << std::endl;
+    }
+
+    //================================================================================
+    // INITIALIZATION
+    //================================================================================
+    shared_ptr<SimInput> input = GetInputReader( inFile );
+    input->InitModule();
+    UInt dim = input->GetDim();
+    Grid * ptGrid = new GridCFS(dim);
+    input->ReadMesh(ptGrid);
+
+    ptGrid->FinishInit();
+
+    // obtain output writer
+    if( outFile == "" ) {
+      Exception("Outputfile is needed for FFT");
+    }
+    shared_ptr<SimOutput> output;
+    output = GetOutputWriter( outFile );
+    output->Init( ptGrid, false);
+
+
+    //=================================================================================
+    //GATHER INFORMATION ABOUT THE INPUT RESULT FILE
+    //=================================================================================
+
+    std::map<UInt, BasePDE::AnalysisType> types;
+    std::map<UInt, UInt> numSteps;
+    std::map<UInt, UInt>::iterator it;
+
+    input->GetNumMultiSequenceSteps( types, numSteps, false );
+
+    std::cout << "\nFound " << types.size() << " sequence step(s) in '" << inFile << "'\n";
+
+    for( it = numSteps.begin(); it != numSteps.end(); it++ ) {
+      StdVector< std::pair<UInt,UInt> > nodeChunks;
+      UInt freqChunkSize;
+      UInt numFreqChunks = 1;
+      UInt timeChunkSize;
+      UInt numTimeChunks = 1;
+
+      StdVector<shared_ptr<BaseResult> > inResults, outResults;
+      std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
+      StdVector<shared_ptr<ResultInfo> > infos;
+      UInt actMsStep = it->first;
+     // std::string param_analysisList = param->Get("analysisList")->As<std::string>();
+
+      //if(param_analysisList == "TRANSIENT"){
+      //std::cout<< BasePDE::HARMONIC<<endl;
+      /*if( types[actMsStep] == BasePDE::HARMONIC) {
+        std::cerr << "FFT does not make sense on anything but transient data.... going to continue" << std::endl;
+        continue;
+        cout<< "what the hell is this"<<endl;
+      }*/
+      //}
+      std::cout << " Performing FFT of Sequence step " << actMsStep << std::endl
+                << "-------------------------\n\n";
+
+      // get resulttypes
+      input->GetResultTypes( actMsStep, infos, false );
+
+      if( infos.GetSize() > 0 ){
+        std::cout << "Performing FFT on the following results:\n";
+      }else{
+        std::cout << "Found no results for Sequence Step " << actMsStep << std::endl;
+        continue;
+      }
+
+      // iterate over all result types of input
+      for( UInt iRes = 0; iRes < infos.GetSize(); iRes++) {
+        StdVector<shared_ptr<EntityList> > regions;
+        shared_ptr<ResultInfo> actRes = infos[iRes];
+
+        input->GetResultEntities( actMsStep, infos[iRes],regions, false );
+        input->GetStepValues( actMsStep, actRes,resultSteps[actRes], false);
+        std::cout << "\t" << infos[iRes]->resultName << "\n";
+
+        //iterate over each region the result is definied on
+        for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
+          std::string regName = regions[iRegion]->GetName();
+          //chekc if we need this region
+          if(std::find(regs.begin(),regs.end(), regName) == regs.end() &&
+             std::find(regs.begin(),regs.end(), "allRegions") == regs.end()){
+            continue;
+          }
+          UInt regNodes = 0;
+          if(regions[iRegion]->GetType() == EntityList::NODE_LIST){
+            regNodes = regions[iRegion]->GetSize();
+            numNodes += regNodes;
+          }else{
+            std::cerr << "Got entity list which is not a node list. Cannot cope with that" << std::endl;
+            continue;
+          }
+          //=====================================
+          //Determine Nodal Chunks Information
+          //=====================================
+          //calc memory requirements in MB
+          Double memRequired = regNodes * sizeof(Double) * resultSteps[actRes].size()/1048576.0;
+//maxMem=10;
+          //now determine the number of chunks
+          if(memRequired > maxMem){
+            UInt numChunks =  std::ceil(memRequired/maxMem);
+            UInt chunksize = std::ceil(regNodes/numChunks);
+            nodeChunks.Push_back(std::pair<UInt,UInt>(numChunks,chunksize));
+            //std::cout << numChunks << endl;
+          }else{
+            UInt numChunks =  1;
+            UInt chunksize = regNodes;
+            nodeChunks.Push_back(std::pair<UInt,UInt>(numChunks,chunksize));
+          }
+
+          std::cout << "\t\t Adding region " << regName  << " with " << regNodes << " nodes -> "\
+              "process in " << nodeChunks[iRes].first << " chunks" <<std::endl;
+
+
+          if(iFFT==true){
+
+          shared_ptr<BaseResult > inResult = shared_ptr<BaseResult>( new Result<Double>() );
+          shared_ptr<BaseResult > outResult = shared_ptr<BaseResult>( new Result<Double>() );
+
+          //define input regions and results
+          inResult->SetResultInfo( actRes );
+          inResult->SetEntityList( regions[iRegion] );
+          inResults.Push_back( inResult );
+
+          //define the output
+          outResult->SetEntityList( regions[iRegion] );
+          outResult->SetResultInfo( infos[iRes] );
+          outResult->GetResultInfo()->complexFormat = REAL_IMAG;
+          outResults.Push_back( outResult );
+
+          }else{
+
+            shared_ptr<BaseResult > inResult = shared_ptr<BaseResult>( new Result<Double>() );
+            shared_ptr<BaseResult > outResult = shared_ptr<BaseResult>( new Result<Complex>() );
+
+              //define input regions and results
+              inResult->SetResultInfo( actRes );
+              inResult->SetEntityList( regions[iRegion] );
+              inResults.Push_back( inResult );
+
+              //define the output
+              outResult->SetEntityList( regions[iRegion] );
+              outResult->SetResultInfo( infos[iRes] );
+              outResult->GetResultInfo()->complexFormat = REAL_IMAG;
+              outResults.Push_back( outResult );
+
+          }
+
+        }
+      }
+
+      StdVector<std::string> fileNames;
+
+      //==============================================================================
+      //READ IN TIMEVALUES AND PERFORM FFT (CHUNKED)
+      //==============================================================================
+      UInt numFrequencies = 0;
+      UInt numTimes = 0;
+
+      for(UInt aRes = 0; aRes < inResults.GetSize(); aRes++){
+       // std::cout << "----> Processing results...." << std::endl;
+      //std::cout<<inResults.GetSize()<<endl;
+        UInt actNumChunks = nodeChunks[aRes].first;
+        //std::cout<<actNumChunks<<endl;
+        UInt actChunkSize = nodeChunks[aRes].second;
+        //std::cout<< actChunkSize<<endl;
+        UInt numRegNodes = inResults[aRes]->GetEntityList()->GetSize();
+        UInt remainder = (numRegNodes - (actNumChunks-1)*actChunkSize);
+        UInt offset = 0;
+        //READ IN TIMESTEPS
+        UInt numSteps = resultSteps[inResults[aRes]->GetResultInfo()].size();
+
+        //=======================================================================
+        // Guess or just read in cut on/off freqeuncies and determine timestep
+        //=======================================================================
+        Double ts1 = resultSteps[inResults[aRes]->GetResultInfo()][1];
+        Double ts2 = resultSteps[inResults[aRes]->GetResultInfo()][2];
+        Double tStep =abs(ts2-ts1);
+        //total runtime
+        Double fs = 1/tStep;
+        Double df = fs/numSteps;
+        std::cout << std::endl <<  "Time freqeuncy information for Result " << inResults[aRes]->GetResultInfo()->resultName << std::endl;
+        std::cout << "\t Found time step size to be :" << tStep << std::endl;
+        std::cout << "\t Frequency resolution :" << df << std::endl;
+
+        std::vector<std::string> fRange;
+        // Initialize vector with output fields
+        Double fMin=0;
+        Double fMax=0;
+
+        typedef boost::tokenizer< boost::char_separator<char> > Tok;
+        boost::char_separator<char> sep(";| ");
+
+        //lets read in frequency range the user specified
+        PtrParamNode freqRangeNode = param->Get("frequencyRange",ParamNode::PASS);
+        if(freqRangeNode){
+          std::string freq = freqRangeNode->As<std::string>();
+          Tok tokenizer(freq, sep);
+          std::copy(tokenizer.begin(), tokenizer.end(),
+              std::back_inserter(fRange));
+          if(fRange.size() != 2){
+              EXCEPTION("frequency range parameter invalid "  \
+                  << "specify 'min max'");
+          }
+
+          try {
+            fMin = boost::lexical_cast<Double>(fRange[0]);
+            fMax = boost::lexical_cast<Double>(fRange[1]);
+          } catch(bad_lexical_cast &) {
+             EXCEPTION("Error converting freqeuncy range to double parameter");
+          }
+
+        }else{
+          std::cerr << "\n\tNo frequency range specified. Trying to guess from time data..." << std::endl;
+          //compute ampling freqeuncy and divide by two
+          Double fs = 1/tStep;
+          fMax = fs/2;
+        }
+        fMin = 0;
+        fMax = 10000;
+
+        std::cout << "\t Cut on freqeuncy= " << fMin << " Hz" <<  std::endl;
+        std::cout << "\t Cut off freqeuncy = " << fMax << " Hz" << std::endl << std::endl;
+
+
+
+        for(UInt aChunk = 0; aChunk < actNumChunks;aChunk++){
+          std::cout << "Processing '" << inResults[aRes]->GetResultInfo()->resultName \
+                    << "' on region '" << inResults[aRes]->GetEntityList()->GetName() << "' chunk " << aChunk+1 << " :" << std::endl;
+          std::cout.flush();
+
+
+          UInt curNumNodes = (aChunk==actNumChunks-1)? remainder : actChunkSize;
+          Matrix<Double> tVals(numSteps,curNumNodes );
+          boost::progress_display show_progress(numSteps);
+          for( UInt iStep = 0; iStep < numSteps; iStep++ ) {
+            UInt actStepNum = iStep+1;
+            input->GetResult( actMsStep, actStepNum, inResults[aRes], false );
+            Vector<Double> & inVec = dynamic_cast<Result<Double>& >(*inResults[aRes]).GetVector();
+            for(UInt i=0; i< curNumNodes;i++){
+              tVals[iStep][i]=inVec[offset+i];
+            }
+            ++show_progress;
+          }
+
+          offset +=curNumNodes;
+          //FFT::WindowType WINDOW;
+
+
+
+          FFT::WindowType windows;
+          PtrParamNode windowNode = param->Get("windowsList",ParamNode::PASS);
+          std::string param_windowsList;
+          if(windowNode){
+            param_windowsList = windowNode->As<std::string>();
+          }else{
+            std::cout << "no Window specified... using RECTANGULAR." << std::endl;
+            param_windowsList = "RECTANGULAR";
+          }
+          //PERFORM FFT
+          FFT ff;
+          std::vector< std::vector<Complex> > fVals;
+          Matrix<Double> wtVals;
+          std::vector< std::vector<Complex> > wfVals;
+         // Vector<Complex>   winfftVals;
+          StdVector<Double> freqs;
+          std::vector< std::vector<Double> > ifft;
+          StdVector<Double> times;
+          //std::vector< std::vector<Complex> > wtempVals;
+
+
+          ff.FT(tVals,fs,fMin,fMax,fVals,freqs);
+
+          //ff.FT(tVals,ts1,fVals,freqs);
+
+       /*   for(UInt i=0; i<curNumNodes; i++){
+            for( UInt j = 0; j < 1000; j++ ) {
+               if(freqs[j]>=fMin && freqs[j]<fMax){
+            cout<<freqs[j]<<"\n"<<fVals[i][j]<<endl;
+
+
+               }
+            }
+
+          }*/
+
+          if(param_windowsList == "HANNING"){
+            ff.WIN(windows = FFT::HANNING,tVals,wtVals);
+          }else if(param_windowsList == "RECTANGULAR"){
+            ff.WIN(windows = FFT::RECTANGULAR,tVals,wtVals);
+          }else if(param_windowsList == "BLACKMAN"){
+            ff.WIN(windows = FFT::BLACKMAN,tVals,wtVals);
+          }else if(param_windowsList == "BLACKMANHARRIS"){
+            ff.WIN(windows = FFT::BLACKMANHARRIS,tVals,wtVals);
+          }else if(param_windowsList == "NUTTALL"){
+            ff.WIN(windows = FFT::BLACKMANHARRIS,tVals,wtVals);
+          }else if(param_windowsList == "BLACKMANNUTTALL"){
+            ff.WIN(windows = FFT::BLACKMANHARRIS,tVals,wtVals);
+          }
+
+
+/*
+          if(param_windowsList == "HANNING"){
+          ff.WIN(windows = FFT::HANNING,tVals,winfftVals);
+          }else if(param_windowsList == "RECTANGULAR"){
+           ff.WIN(windows = FFT::RECTANGULAR,tVals,winfftVals);
+           }else if(param_windowsList == "BLACKMAN"){
+           ff.WIN(windows = FFT::BLACKMAN,tVals,winfftVals);
+           }else if(param_windowsList == "HAMMING"){
+           ff.WIN(windows = FFT::HAMMING,tVals,winfftVals);
+           }*/
+
+
+           //ff.WINFFT(tVals,wtVals,fMin,fMax,wfVals,freqs);
+
+
+           //ff.WINMUL(tVals,fVals,wfVals,freqs,fMin,fMax,ts1,wtempVals,winfftVals);
+
+          //ff.IFT(tVals,wfVals,ifft,tStep,freqs,times);
+
+          //ff.IFFT(tVals,wfVals,ifft,tStep,freqs,times);
+
+          //WRITE FREQUENCY SCALE FOR FIRST RESULT ONLY
+          //IF WE HAVE DIFFERENT TIMESTEPVALUES IN THE RESULTS WE THROW AN ERROR
+
+
+
+          if(iFFT==true){
+
+            std::fstream scaleFile("scale.ifft", std::ios_base::out | std::ios_base::trunc);
+            scaleFile << times.GetSize() << std::endl;
+              scaleFile << times << std::endl;
+              scaleFile.close();
+            numTimes = times.GetSize();
+
+          }else{
+          if(aRes == 0){
+            std::fstream scaleFile("scaleone.fft", std::ios_base::out | std::ios_base::trunc);
+            scaleFile << freqs.GetSize() << std::endl;
+            scaleFile << freqs << std::endl;
+            scaleFile.close();
+            numFrequencies = freqs.GetSize();
+          }else{
+            if(numFrequencies != freqs.GetSize()){
+              EXCEPTION("The FFTs from different results have different frequency scalings. This cannot be handled right now");
+            }
+          }
+          }
+          //WRITE THE CHUNK TO A FILE
+          std::stringstream fName;
+          if(iFFT==true){
+          fName << "values_" << aRes << "_" << aChunk << ".ifft";
+
+          }
+          else{
+            fName << "values_" << aRes << "_" << aChunk << ".fft";
+          }
+          std::fstream chunkFile(fName.str().c_str(),std::ios_base::out|std::ios_base::binary|std::ios_base::trunc);
+          if ( chunkFile.good() ) {
+            try{
+              if(iFFT == true){
+              boost::archive::binary_oarchive oa(chunkFile);
+              oa << ((const std::vector< std::vector<Double> > &) ifft);
+              std::cout<< "ifft is successful" << std::endl;
+              }
+
+              if(window == true){
+              boost::archive::binary_oarchive oa(chunkFile);
+              oa << ((const std::vector< std::vector<Complex> > &) wfVals);
+              std::cout<< "window is successful"<<std::endl;
+
+              }
+              else{
+               std::cout << "Buffering result...";
+               std::cout.flush();
+                    boost::archive::binary_oarchive oa(chunkFile);
+                    oa << ((const std::vector< std::vector<Complex> > &) fVals);
+                    std::cout << "done."<<std::endl;
+                    //cout<<"no window"<<endl;
+              }
+            }catch(std::exception &ex){
+              EXCEPTION("The following problem occurred while trying to "\
+                        << "write conservative interpolation weights to '"\
+                        << fName.str() << "': " << ex.what());
+            }
+            chunkFile.close();
+            chunkFileNames.push_back(fName.str());
+          }else{
+          WARN("An error occured while writing the chunk file ");
+          }
+          std::cout.flush();
+        }
+
+
+       if(iFFT == true){
+        output->RegisterResult( outResults[aRes], 1, 1,
+                numTimes,
+                                false );
+        }
+        else{
+            output->RegisterResult( outResults[aRes], 1, 1,
+                                    numFrequencies,
+                                    false );
+        }
+
+      }
+
+      //std::cout<<"done"<< std::endl;
+
+      if(iFFT==true){
+      //==============================================================================================
+      //WRITE OUT IFFT CHUNKED ASSUPTION
+      //==============================================================================================
+      //create datastructure for IFFT values
+        std::vector< std::vector< std::vector<Double> > > curIFFTVals;
+
+      //Read in Frequency Scale
+      std::fstream sFile("scale.ifft",std::ios_base::in);
+      std::string curline = "";
+      getline(sFile,curline);
+      UInt numTsteps = boost::lexical_cast<UInt>(curline);
+
+      //Determine memory requirement for one IFFT step in MB
+      Double memPerTime = sizeof(Double) * numNodes / 1048576.0;
+      if(memPerTime>maxMem){
+        EXCEPTION("Not even a single frequency step fits into memory. Incease the maximum Memory to at least"\
+                 << memPerTime << "MBytes" );
+      }
+      if(memPerTime*numTsteps > maxMem){
+        numTimeChunks = std::ceil(memPerTime*(Double)numTsteps/maxMem);
+        timeChunkSize = std::ceil((Double)numTsteps/(Double)numTimeChunks);
+      }else{
+        numTimeChunks = 1;
+        timeChunkSize = numTsteps;
+      }
+
+      //prepareChunkResults(curFFTVals,freqChunkSize,numFreqChunks,outResults.GetSize());
+
+      output->BeginMultiSequenceStep( actMsStep, BasePDE::TRANSIENT,
+                                      numSteps[actMsStep] );
+
+      UInt fCounter = 0;
+      updateChunkResultone(curIFFTVals,0,chunkFileNames, timeChunkSize,outResults.GetSize());
+
+      for(UInt i = 0 ; i<numTsteps ; i++){
+        if(fCounter >= curIFFTVals[0][0].size()){
+          updateChunkResultone(curIFFTVals,i,chunkFileNames, timeChunkSize,outResults.GetSize());
+          fCounter = 0;
+        }
+        Double curStep = 0;
+        getline(sFile,curline);
+        boost::erase_all(curline, " ");
+        curStep = boost::lexical_cast<Double>(curline);
+        //std::cout << "writing frequency step " << i << "->" << curStep << "Hz" << std::endl;
+        //std::cout.flush();
+
+        if(curStep>0){
+        output->BeginStep( i, curStep );
+        std::cout << "writing time step " << i << "->" << curStep << "Sec" << std::endl;
+        std::cout.flush();
+        for(UInt aRes = 0; aRes < outResults.GetSize(); aRes++){
+
+          Vector<Double> & outVec =  dynamic_cast<Result<Double>& >(*outResults[aRes]).GetVector();
+
+          UInt actNumNodes = outResults[aRes]->GetEntityList()->GetSize();
+          outVec.Resize(actNumNodes);
+          for(UInt actN = 0;actN< actNumNodes ;actN++){
+              outVec[actN] = curIFFTVals[aRes][actN][fCounter];
+          }
+          output->AddResult( outResults[aRes] );
+        }
+        fCounter++;
+        output->FinishStep();
+      }
+       }
+      } else{
+      //==============================================================================================
+      //WRITE OUT FFT CHUNKED. ASSUPTION: at least one frequency fits completely into memory
+      //==============================================================================================
+      //create datastructure for FFT values
+      std::vector< std::vector< std::vector<Complex> > > curFFTVals;
+
+      //Read in Frequency Scale
+      std::fstream sFile("scaleone.fft",std::ios_base::in);
+      std::string curline = "";
+      getline(sFile,curline);
+      UInt numFsteps = boost::lexical_cast<UInt>(curline);
+
+
+
+      //Determine memory requirement for one FFT step in MB
+      Double memPerFreq = sizeof(Complex) * numNodes / 1048576.0;
+      if(memPerFreq>maxMem){
+        EXCEPTION("Not even a single frequency step fits into memory. Incease the maximum Memory to at least"\
+                 << memPerFreq << "MBytes" );
+      }
+      if(memPerFreq*numFsteps > maxMem){
+        numFreqChunks = std::ceil(memPerFreq*(Double)numFsteps/maxMem);
+        freqChunkSize = std::ceil((Double)numFsteps/(Double)numFreqChunks);
+      }else{
+        numFreqChunks = 1;
+        freqChunkSize = numFsteps;
+      }
+
+
+      //prepareChunkResults(curFFTVals,freqChunkSize,numFreqChunks,outResults.GetSize());
+
+      output->BeginMultiSequenceStep( actMsStep, BasePDE::HARMONIC,
+                                      numSteps[actMsStep] );
+
+      UInt fCounter = 0;
+      updateChunkResult(curFFTVals,0,chunkFileNames,freqChunkSize,outResults.GetSize());
+      for(UInt i = 0 ; i<numFsteps; i++){
+        //cout<<curFFTVals[0][0].size()<<endl;
+        //cout<<fCounter<<endl;
+        if(fCounter >= curFFTVals[0][0].size()){
+          updateChunkResult(curFFTVals,i,chunkFileNames,freqChunkSize,outResults.GetSize());
+          fCounter = 0;
+        }
+        Double curStep = 0;
+        getline(sFile,curline);
+        boost::erase_all(curline, " ");
+        curStep = boost::lexical_cast<Double>(curline);
+
+
+        output->BeginStep( i, curStep );
+        std::cout << "writing frequency step " << i << "->" << curStep << "Hz" << std::endl;
+        std::cout.flush();
+
+      //
+
+        for(UInt aRes = 0; aRes < outResults.GetSize(); aRes++){
+
+          Vector<Complex> & outVec =  dynamic_cast<Result<Complex>& >(*outResults[aRes]).GetVector();
+
+          UInt actNumNodes = outResults[aRes]->GetEntityList()->GetSize();
+          outVec.Resize(actNumNodes);
+          //cout<<"actno.nodes"<<actNumNodes<<endl;
+          for(UInt actN = 0;actN< actNumNodes ;actN++){
+              outVec[actN] = curFFTVals[aRes][actN][fCounter];
+              //cout<< outVec[actN]<<endl;
+
+           }
+          output->AddResult( outResults[aRes] );
+        }
+        fCounter++;
+        output->FinishStep();
+
+       }
+      }
+       output->FinishMultiSequenceStep();
+     }
+     output->Finalize();
+     std::cout << "\nOutput successfully written to " << outFile << std::endl;
+     //================================================================================
+     // DELETE ALL TEMPORARY FILES
+     //================================================================================
+     if(iFFT==true){
+     chunkFileNames.push_back("scale.ifft");
+     }
+     else{
+       chunkFileNames.push_back("scaleone.fft");
+     }
+     for(UInt i=0;i<chunkFileNames.size();i++){
+       if(fs::exists(chunkFileNames[i])){
+         fs::remove(chunkFileNames[i]);
+       }
+     }
+   }
+
+  //===================================================================================
+  // END OF FFT SECTION
+  //===================================================================================
+
+
+
   /** Initialize static Enums.
    * todo: do better once - Fabian */
   void InitEnums()
@@ -1138,6 +1852,70 @@ int main(int argc, char** argv)
         EXCEPTION( "Please provide a reference file and output File" );
       }
       CFSTool::calcAverage(inputFile, outputFile);
+    } else if (param_mode == "fft" || param_mode == "ifft" || param_mode == "window") {
+      if( outputFile == ""){
+        std::cerr << "no output-file specified for FFT mode. Trying to guess from compare file..." << std::endl;
+        outputFile = compareFile;
+        if( outputFile == ""){
+          EXCEPTION( "FAILED: Please provide <inFile> AND <outFile>" );
+        }else{
+          std::cout << "Output file is: " << outputFile << std::endl;
+        }
+      }
+
+
+
+      //std::vector<std::string> fRange;
+      std::vector<std::string> regList;
+      typedef boost::tokenizer< boost::char_separator<char> > Tok;
+      boost::char_separator<char> sep(";| ");
+      // Initialize vector with output fields
+
+   /* Double fMin;
+      Double fMax;
+      std::string freq = param->Get("frequencyRange")->As<std::string>();
+      Tok tokenizer(freq, sep);
+      std::copy(tokenizer.begin(), tokenizer.end(),
+                std::back_inserter(fRange));
+      if(fRange.size() != 2){
+        EXCEPTION("frequency range parameter invalid "  \
+            << "specify 'min max'");
+      }
+
+
+      try {
+         fMin = boost::lexical_cast<Double>(fRange[0]);
+         fMax = boost::lexical_cast<Double>(fRange[1]);
+      } catch(bad_lexical_cast &) {
+        EXCEPTION("Error converting freqeuncy range to double parameter");
+      }*/
+
+      PtrParamNode regNode = param->Get("regionList",ParamNode::PASS);
+      std::string regions;
+      if(regNode){
+        regions = regNode->As<std::string>();
+        if(regions == ""){
+          regions = "allRegions";
+        }
+      }else{
+        regions = "allRegions";
+      }
+
+      Tok tokenizer1(regions, sep);
+      std::copy(tokenizer1.begin(), tokenizer1.end(),
+                std::back_inserter(regList));
+
+      if(param_mode == "fft"){
+        CFSTool::PerformFFT( inputFile, outputFile, \
+                            regList, false,false);
+      }else if(param_mode == "ifft") {
+        CFSTool::PerformFFT( inputFile, outputFile, \
+                             regList,true,false);
+       }
+      else if(param_mode == "window") {
+              CFSTool::PerformFFT( inputFile, outputFile, \
+                                   regList, false,true);
+      }
     } else if (param_mode == "convert") {
       if (outputFile != "")
       {
