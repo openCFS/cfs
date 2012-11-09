@@ -2877,6 +2877,7 @@ namespace CoupledField
         {
           //std::cout << percentage_ << "% done... " << std::endl;
           std::cout << "."; // use a short status display
+          std::cout.flush();
         }
         oldPercentage_ = percentage_;
       }

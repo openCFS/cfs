@@ -461,6 +461,7 @@ namespace CoupledField {
           if (isFirstStep_) {
             // print name of current region
             std::cout << srcRegions_[i] << " ";
+            std::cout.flush();
             
             std::ostringstream fNameStr;
             fNameStr << progOpts->GetSimName() << "_ms"
@@ -484,7 +485,7 @@ namespace CoupledField {
                 }
               }
               else {
-                WARN("An error occured while reading the restart file "
+                WARN("An error occurred while reading the restart file "
                      << "for conservative interpolation weights. All "
                      << "weights will be recalculated.");
               }
@@ -602,15 +603,15 @@ namespace CoupledField {
             if (node_warnings_ & CI_WARN_YES) {
               sum_orig += resVec[j];
 
-              // Check for conservitveness every modval source nodes or at least once in the end
+              // Check for conservativeness every modval source nodes or at least once in the end
               //            if(j % modval == 0 || j == n - 1)
               if(j == n - 1)
               {
                 Double ratio = (sum - sum_orig) / sum_orig;
-                if( abs(ratio) > 0.01 ) 
+                if( abs(ratio) > 0.01 && sum_orig > 1e-14 ) 
                 {
                   // If this condition occurs it means that some source nodes
-                  // do not have coservative interpolation weights in consInterpWeights_[i]
+                  // do not have conservative interpolation weights in consInterpWeights_[i]
                   // so that the for loop above does not do anything.
                   WARN("Sum of interpolated source terms (" << sum << ") off by "
                        << (ratio * 100) << "% of sum of original source terms ("

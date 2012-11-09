@@ -108,6 +108,8 @@ namespace fs = boost::filesystem;
 using namespace CoupledField;
 
 namespace CFSTool {
+
+#ifdef CFSTOOL_FFTW
   void prepareChunkResults(std::vector< std::vector< std::vector<Complex> > >& fftVals,
                               UInt size, UInt nChunk,StdVector<std::string> fNames,
                               UInt numRes);
@@ -119,6 +121,7 @@ namespace CFSTool {
   void updateChunkResultone(std::vector< std::vector< std::vector<Double> > >& fftVals,
                             UInt freqStep,const StdVector<std::string> & fNames,
                             UInt chunkSize,UInt numRes);
+#endif
 
   void setFreeCoord(std::string coordSysId="default",
       std::string node_name="averageDomain");
@@ -983,7 +986,8 @@ namespace CFSTool {
   //==========================================================================================================
   // FFT SECTION
   //==========================================================================================================
-
+#ifdef CFSTOOL_FFTW
+  
   void updateChunkResult(std::vector< std::vector< std::vector<Complex> > >& fftVals,
                               UInt freqStep,const StdVector<std::string> & fNames,
                               UInt chunkSize,UInt numRes){
@@ -1657,6 +1661,15 @@ namespace CFSTool {
      }
    }
 
+#else //ifdef CFSTOOL_FFTW
+  void PerformFFT(const std::string& inFile,
+                    const std::string& outFile,
+                    std::vector<std::string> regs,
+                    bool iFFT,bool window){
+    EXCEPTION("This executable does not support FFT. "
+        << "If you need this feature, recompile with CFSTOOL_FFTW=ON.");
+  }
+#endif
   //===================================================================================
   // END OF FFT SECTION
   //===================================================================================

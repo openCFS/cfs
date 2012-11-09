@@ -8,12 +8,18 @@ IF(USE_IPOPT)
   LINK_DIRECTORIES(${IPOPT_LINK_DIR})
 ENDIF(USE_IPOPT)
 
+#check if cfstool is on for fftw
+OPTION(CFSTOOL_FFTW "Build support for the FFTW library to perform FFTs and IFFTs of hdf5 files" ON)
+MARK_AS_ADVANCED(CFSTOOL_FFTW)
+
 # List of source codes for current target.
 SET(CFSTOOL_SRCS
   cfstool.cc
   ParamsInit.cc
-  fft.cc
 )
+IF(CFSTOOL_FFTW)
+  SET(CFSTOOL_SRCS ${CFSTOOL_SRCS} fft.cc)
+ENDIF(CFSTOOL_FFTW)
 
 # Main CFS++ Tool executable target.
 ADD_EXECUTABLE(cfstoolbin ${CFSTOOL_SRCS})
@@ -32,10 +38,6 @@ SET(TARGET_LL
   ${BOOST_FILESYSTEM_LIB}
   ${BOOST_SYSTEM_LIB}
 )
-
-#check if cfstool is on for fftw
-OPTION(CFSTOOL_FFTW "Build support for the FFTW library to perform FFTs and IFFTs of hdf5 files" ON)
-MARK_AS_ADVANCED(CFSTOOL_FFTW)
 
 IF(USE_GMV)
   IF(USE_GMV_INPUT)
