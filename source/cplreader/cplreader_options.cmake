@@ -177,7 +177,7 @@ ADD_OPTION(firststep
   1
   "Index of first time step (only for CFX, CFX_EXPORT, FASTEST)"
   "To start reading at a different time step than the first one this parameter can by used.
-   It is just implemented for CFX\\\\_EXPORT and FASTEST at the moment."
+   It is just implemented for CFX, CFX\\\\_EXPORT and FASTEST at the moment."
   )
 
 ADD_OPTION(stepincr
