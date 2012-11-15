@@ -153,14 +153,10 @@ numiter = ceil(size_in_mb / bufsize * 6); % scale by 6, because we need
                                           % 6*bufsize for fft
 
 % Delete temp files from last run.
-[pathstr, name, ~] = fileparts(outfile);
-if isempty(pathstr)
-  tempdir = './.TEMP_FFT';
-else
-  tempdir = sprintf('%s/.TEMP_FFT', pathstr);
-end
-exec(sprintf('rm -rf %s', tempdir));
-exec(sprintf('mkdir %s', tempdir));
+[~, name, ~] = fileparts(outfile);
+tmpdir = tempname();
+exec(sprintf('rm -rf %s', tmpdir));
+exec(sprintf('mkdir %s', tmpdir));
                                          
 % Number of scalars treated in one iteration (= chunk size)
 items_per_iter = ceil(num_items / numiter);
@@ -191,8 +187,8 @@ if resumefile == 1;
 else
   item_start = 1;
   itercount = 1;
-  exec(sprintf('rm -rf %s', tempdir));
-  exec(sprintf('mkdir %s', tempdir));
+  exec(sprintf('rm -rf %s', tmpdir));
+  exec(sprintf('mkdir %s', tmpdir));
 end
 
 
@@ -237,7 +233,7 @@ for iter=itercount:numiter
   MAT = fft(mat);
   
   % mode 1: write out harmonic data
-  outfile_iter = sprintf('%s/%s_%d.h5', tempdir, name, iter);
+  outfile_iter = sprintf('%s/%s_%d.h5', tmpdir, name, iter);
   if mode == 1
     % split result into real and imaginary part
     real_MAT = 2.*real(MAT)./numsteps;
@@ -331,7 +327,7 @@ for i=1:numfiles
 
   % store chunks into one dataset
   for iter=1:numiter
-    outfile_iter = sprintf('%s/%s_%d.h5', tempdir, name, iter);
+    outfile_iter = sprintf('%s/%s_%d.h5', tmpdir, name, iter);
 
     idx = (iter-1)*items_per_iter;
     idxend = idx+items_per_iter;
@@ -485,4 +481,4 @@ end
 WriteFileInfoHDF5(outfile, [1 2]);
 
 % Delete temp files
-exec(sprintf('rm -rf %s', tempdir));
+exec(sprintf('rm -rf %s', tmpdir));

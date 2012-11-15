@@ -175,9 +175,9 @@ ADD_OPTION(outputfields
 ADD_OPTION(firststep
   uint32_t
   1
-  "Index of first time step (only for CFX, CFX_EXPORT, FASTEST)"
+  "Index of first time step (only for CFX_EXPORT, FASTEST)"
   "To start reading at a different time step than the first one this parameter can by used.
-   It is just implemented for CFX, CFX\\\\_EXPORT and FASTEST at the moment."
+   It is just implemented for CFX\\\\_EXPORT and FASTEST at the moment."
   )
 
 ADD_OPTION(stepincr
@@ -401,7 +401,7 @@ ADD_OPTION(doCalcMultiNodes
   bool
   true
   "This flag needs to be set to remedy region interface artifacts."
-  "If multiple regions exist, nodes which are shared by both are stored multplie
+  "If multiple regions exist, nodes which are shared by both are stored multiple
   times, once for each region. But their acouRhsLoad is only calculated in each
   region seperatly and therefore get different values which need to be added.
   This flag should be set on otherwise artifacts at the region interface occur."
@@ -433,6 +433,17 @@ ADD_OPTION(cfxUseStnFrame
     "Whether cplreader should expect float or double precision datasets."
     )
 
+ADD_OPTION(cfxLastStep
+  int32_t
+  -1
+  "Last time step computed by CFX simulation run"
+  "Specifies the number of the last time step computed by the CFX simulation
+  run (not necessarily the same as the last step that was written out). This
+  option must be given for data produced by CFX 12 and later. For data
+  produced by CFX 11 and earlier this option can be omitted, because it is
+  determined automatically."
+  )
+   
 CONFIGURE_FILE("ParamsInit.cc.in"
   "${CMAKE_CURRENT_BINARY_DIR}/ParamsInit.cc")
 

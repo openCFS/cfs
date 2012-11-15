@@ -353,7 +353,7 @@ namespace CoupledField
       floatvec_.resize(length*nsize);
       
       try {
-        when = settings.GetInt("firststep");
+        when = settings.GetInt("cfxLastStep");
       } catch (Exception &ex) {
         when = -1;
       }
@@ -363,8 +363,8 @@ namespace CoupledField
               floatvec_.data(), intvec_.data(), NULL, NULL, NULL, NULL,
               strlen(what_), strlen(where_), 0);
       if ( nerr == __io_ds_not_found__ ) {
-        EXCEPTION("First time step could not be determined automatically.\n"
-                  << "Please provide it using the --firststep option.");
+        EXCEPTION("Last time step of CFX run could not be determined automatically.\n"
+                  << "Please provide it using the --cfxLastStep option.");
       }
       CHECK_CFX_IO(nerr);
       
