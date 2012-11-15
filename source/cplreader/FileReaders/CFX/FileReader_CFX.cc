@@ -51,7 +51,7 @@ namespace CoupledField
     FileReader(name, dim, numFiles, 1),
     multiLine_(false),
     timeStep_(0.0),
-    determineFloatDS_(true),
+    determineFloatDS_(false),
     numZones_(0),
     numVolumes_(0),
     numBCPs_(0),
@@ -1044,12 +1044,14 @@ namespace CoupledField
     bool beVerbose = settings.GetInt("verbose");
     bool floatDS, retVal;
     
-    if(determineFloatDS_) 
-    {
+
+    // swillmitzer: changed this to first check floatDataset
+    // before, floatDS was set to determineFloatDS_ which was
+    // true by default before checking floatDataset
+    if( settings.GetInt("floatDataset") ) {
       floatDS = true;
-    } 
-    else {
-      floatDS = settings.GetInt("floatDataset");
+    } else {
+      floatDS = true;
     }
     
     // Open input file

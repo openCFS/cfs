@@ -425,6 +425,13 @@ ADD_OPTION(cfxUseStnFrame
   option if you need the velocity in the stationary frame (i.e. absolute
   velocity)."
   )
+ 
+ ADD_OPTION(floatDataset
+    bool
+    true
+    "Type of dataset (CFX only)"
+    "Whether cplreader should expect float or double precision datasets."
+    )
 
 CONFIGURE_FILE("ParamsInit.cc.in"
   "${CMAKE_CURRENT_BINARY_DIR}/ParamsInit.cc")
