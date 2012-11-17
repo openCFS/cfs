@@ -497,7 +497,7 @@ namespace CoupledField
           // <-- end scaling velocity
           
           // Override the setting of --outprec for CFX
-          if(settings.GetString("type") == "CFX" && settings.GetInt("floatDataset"))
+          if(settings.GetString("type") == "CFX" && settings.GetInt("cfxSinglePrecision"))
             settings.SetString("outprec", "single");
           
           readOK = true;
@@ -842,7 +842,7 @@ namespace CoupledField
          ptFileReader_->ReduceOrderOfNodalValues(flowData, regionNodes_);
        }
       // Override the setting of --outprec for CFX
-      if(settings.GetString("type") == "CFX" && settings.GetInt("floatDataset"))
+      if(settings.GetString("type") == "CFX" && settings.GetInt("cfxSinglePrecision"))
         settings.SetString("outprec", "single");
 
       readOK = true;

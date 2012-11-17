@@ -51,7 +51,7 @@ namespace CoupledField
     FileReader(name, dim, numFiles, 1),
     multiLine_(false),
     timeStep_(0.0),
-    determineFloatDS_(false),
+    determineFloatDS_(true),
     numZones_(0),
     numVolumes_(0),
     numBCPs_(0),
@@ -68,6 +68,8 @@ namespace CoupledField
     baseName_+= "/";
     baseName_+= name_;
     baseName_+= "/";
+    
+    determineFloatDS_ = (settings.GetString("cfxSinglePrecision") == "auto");
   }
 
   FileReader_CFX::~FileReader_CFX()
@@ -1048,10 +1050,10 @@ namespace CoupledField
     // swillmitzer: changed this to first check floatDataset
     // before, floatDS was set to determineFloatDS_ which was
     // true by default before checking floatDataset
-    if( settings.GetInt("floatDataset") ) {
+    if ( determineFloatDS_ ) {
       floatDS = true;
     } else {
-      floatDS = true;
+      floatDS = settings.GetInt("cfxSinglePrecision");
     }
     
     // Open input file
@@ -1109,7 +1111,7 @@ namespace CoupledField
         }
         if (retVal) {
           if (determineFloatDS_) {
-            settings.SetInt("floatDataset", 1);
+            settings.SetInt("cfxSinglePrecision", 1);
             determineFloatDS_ = false;
           }
         } else {
@@ -1118,7 +1120,7 @@ namespace CoupledField
                                  velPath, zonePath.str(),
                                  timeStepNumbers_[timeStepIdx], false ) )
             {
-              settings.SetInt("floatDataset", 0);
+              settings.SetInt("cfxSinglePrecision", 0);
               floatDS = false;
               determineFloatDS_ = false;
             } else {

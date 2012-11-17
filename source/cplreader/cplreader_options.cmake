@@ -426,12 +426,12 @@ ADD_OPTION(cfxUseStnFrame
   velocity)."
   )
  
- ADD_OPTION(floatDataset
-    bool
-    true
-    "Type of dataset (CFX only)"
-    "Whether cplreader should expect float or double precision datasets."
-    )
+ADD_OPTION(cfxSinglePrecision
+  string
+  "auto"
+  "Single or double precision datasets. 'auto' for auto-detection. (CFX only)"
+  "Tells cplreader if it should expect float or double precision datasets in CFX result files. Set to 'auto' for auto-detection."
+  )
 
 ADD_OPTION(cfxLastStep
   int32_t
