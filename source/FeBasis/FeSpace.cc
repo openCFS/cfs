@@ -327,7 +327,15 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       std::string name= ent->GetName();
       shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
       assert(feFct);
-      feFct->GetGrid()->GetNodesByName( tempNodes, name );
+      
+      // If we have a nodal entity list, we can directly access those nodes.
+      // Otherwise the grid class is queried
+      if( ent->GetType() == EntityList::NODE_LIST ) {
+        tempNodes = static_cast<NodeList&>(*ent).GetNodes();
+      } else {
+        feFct->GetGrid()->GetNodesByName( tempNodes, name );
+      }
+      
       
       // careful: not all nodes of the entity list are necessarily mapped for
       // this space. So only select those nodes, also contained in the nodesType_ array.
