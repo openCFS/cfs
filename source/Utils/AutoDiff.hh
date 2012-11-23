@@ -21,12 +21,16 @@ public:
   typedef AutoDiff<T,DIM> TA;
   
   // ========================================================================
-  //  Constructors & Asisgnement
+  //  Constructors & Assignment
   // ========================================================================
   //@{ \name Constructors / Assignment
   
-  //! Default constructor (values uninitialized)
-  AutoDiff() {};
+  //! Default constructor (initialize to zero)
+  AutoDiff() {
+    // initialize object to constant 0
+    val_ = 0.0;
+    AD_LOOP( deriv_[i] = 0.0; )
+  };
   
   //! Constructor for constant value
   AutoDiff( T val ) {
@@ -128,7 +132,6 @@ public:
   }
 
   //@}
-  
   
 private:
   
