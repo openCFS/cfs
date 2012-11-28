@@ -23,14 +23,15 @@ IF(WIN32)
     PATHS ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
     )
 ELSE(WIN32)
-  FIND_LIBRARY(FFTW_LIBRARY_DEBUG
-    NAMES fftw3
-    PATHS ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
-    )
-  FIND_LIBRARY(FFTW_LIBRARY_RELEASE
-    NAMES fftw3 
-    PATHS ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
-    )
+# find library will not work here!!!
+# find library caches contents of each directory it has already seen, and metis searches the same directory, too
+# as this libfile is added after metis has used find_library, we will never get found in first cmake pass
+  SET(FFTW_LIBRARY_DEBUG
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libfftw3.a"
+    CACHE FILEPATH "GiDpost library")
+  SET(FFTW_LIBRARY_RELEASE
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libfftw3.a"
+    CACHE FILEPATH "GiDpost library")
 ENDIF(WIN32)
 
 #-------------------------------------------------------------------------------

@@ -212,6 +212,7 @@ OPTION(PROFILING "Turn on compiler profiling (DEBUG/RELEASE)." ${PROFILING_DEFAU
 OPTION(COVERAGE "Turn on code coverage output." ${COVERAGE_DEFAULT})
 
 OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)." ${CFSTOOL_DEFAULT})
+
 OPTION(CPLREADER "Build cplreader for fluid/acoustic coupling."
   ${CPLREADER_DEFAULT})
   
@@ -279,6 +280,13 @@ OPTION(BUILD_HDFVIEW
   "Build the HDF 4/5 file viewer?"
    ${BUILD_HDFVIEW_DEFAULT})
 
+# Shall FFTW be used by CFSTOOL, this has to be done here, as FindCFSDeps has to be run after this line
+# also it has to be after testsuite check, as the testsuite might enable cfstool (if disabled otherwise)
+IF(CFSTOOL)
+  #check if cfstool is on for fftw
+  OPTION(CFSTOOL_FFTW "Build support for the FFTW library to perform FFTs and IFFTs of hdf5 files" ${CFSTOOL_FFTW})
+  MARK_AS_ADVANCED(CFSTOOL_FFTW)
+ENDIF(CFSTOOL)
 
 
 #-----------------------------------------------------------------------------

@@ -8,10 +8,6 @@ IF(USE_IPOPT)
   LINK_DIRECTORIES(${IPOPT_LINK_DIR})
 ENDIF(USE_IPOPT)
 
-#check if cfstool is on for fftw
-OPTION(CFSTOOL_FFTW "Build support for the FFTW library to perform FFTs and IFFTs of hdf5 files" ON)
-MARK_AS_ADVANCED(CFSTOOL_FFTW)
-
 # List of source codes for current target.
 SET(CFSTOOL_SRCS
   cfstool.cc
