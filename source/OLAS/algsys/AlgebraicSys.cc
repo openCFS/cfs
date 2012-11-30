@@ -2036,6 +2036,10 @@ namespace CoupledField {
           LOG_DBG3(algSys) << "\t\tcolIndices: " << cList1.ToString();
           // 2) Assemble all free <-> free entries
           // loop over all rows/col
+
+          // Note: The following statement is experimental and not
+          // thorougly tested!
+#pragma omp parallel for private(colInd, rowInd)
           for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
             rowInd = rIndList1[i];
             for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
@@ -2069,6 +2073,7 @@ namespace CoupledField {
           LOG_DBG3(algSys) << "\t3) free-fixed entries:";
           LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
           LOG_DBG3(algSys) << "\t\tcolIndices: " << cList2.ToString();
+#pragma omp parallel for private(colInd, rowInd)
           for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
             rowInd = rIndList1[i];
             for ( UInt j = 0; j < cList2.GetSize(); j++ ) {
@@ -2086,6 +2091,7 @@ namespace CoupledField {
             LOG_DBG3(algSys) << "\t4) free-fixed entries (transposed):";
             LOG_DBG3(algSys) << "\t\trowIndices: " << cList1.ToString();
             LOG_DBG3(algSys) << "\t\tcolIndices: " << rList2.ToString();
+#pragma omp parallel for private(colInd, rowInd)
             for ( UInt i = 0; i < rList2.GetSize(); i++ ) {
               rowInd = rIndList2[i];
               for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
@@ -2350,6 +2356,7 @@ namespace CoupledField {
     if( ptSol.GetEntryType() == BaseMatrix::DOUBLE ) {
       Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
       Double entry = 0.0;
+#pragma omp parallel for private (entry)
       for( UInt i = 0; i < size; ++i ) {
 
         // if index number is larger the lastFree dof, insert Dirichlet value
@@ -2368,6 +2375,7 @@ namespace CoupledField {
     } else {
       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptSol );
       Complex entry = 0.0;
+#pragma omp parallel for private (entry)
       for( UInt i = 0; i < size; ++i ) {
 
         // if index number is larger the lastFree dof, insert Dirichlet value
@@ -2414,6 +2422,7 @@ namespace CoupledField {
     if( ptRhs.GetEntryType() == BaseMatrix::DOUBLE ) {
       Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptRhs );
       Double entry = 0.0;
+#pragma omp parallel for private (entry)
       for( UInt i = 0; i < size; ++i ) {
 
         // if index number is larger the lastFree dof, insert 0
@@ -2429,6 +2438,7 @@ namespace CoupledField {
 
       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptRhs );
       Complex entry = 0.0;
+#pragma omp parallel for private (entry)
       for( UInt i = 0; i < size; ++i ) {
 
         // if index number is larger the lastFree dof, insert 0

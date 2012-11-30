@@ -12,6 +12,7 @@ CoefFunctionSurf( bool mapNormal )
   // not sure about the following one
   dependType_ = GENERAL;
   isAnalytic_ = false;
+  isComplex_ =  std::tr1::is_same<T,Complex>::value;
   mapNormal_ = mapNormal;
   
 }
@@ -105,12 +106,6 @@ template<typename T> void
 CoefFunctionSurf<T>::GetTensorSize( UInt& numRows, UInt& numCols ) const {
 
 }
-
-template<typename T> bool
-CoefFunctionSurf<T>::IsComplex() {
-  return std::tr1::is_same<T,Complex>::value; 
-}
-
 
 template<typename T> std::string 
 CoefFunctionSurf<T>::ToString() const {

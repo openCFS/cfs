@@ -93,15 +93,16 @@ public:
   // --------------------------------------------------------------------------
   //! Typedef for defined mathematical operations
   typedef enum {
-    NOOP,     /*!< No operation */
-    OP_ADD,   /*!< Binary + operation */
-    OP_SUB,   /*!< Binary - operation*/
-    OP_MULT,  /*!< Binary * operation */
-    OP_DIV,   /*!< Binary / operation */
-    OP_CROSS, /*!< Binary x operation (cross product) */
-    OP_POW,   /*!< Binary x^y operation */
-    OP_NORM,  /*!< Unary L2-Norm operation */
-    OP_SQRT   /*!< Unary square root operation */
+    NOOP,                     /*!< No operation */
+    OP_ADD,                   /*!< Binary + operation */
+    OP_SUB,                   /*!< Binary - operation*/
+    OP_MULT,                  /*!< Binary * operation (scal-scal, scalar-vector)*/
+    OP_MULT_VOIGT_TENSOR_VEC, /*!< Binary * operation (tensor-vector, Voigt case)*/
+    OP_DIV,                   /*!< Binary / operation */
+    OP_CROSS,                 /*!< Binary x operation (cross product) */
+    OP_POW,                   /*!< Binary x^y operation */
+    OP_NORM,                  /*!< Unary L2-Norm operation */
+    OP_SQRT                   /*!< Unary square root operation */
   } OpType;
   
   //! Get number of operands for OpType

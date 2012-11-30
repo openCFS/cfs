@@ -28,8 +28,7 @@ namespace CoupledField {
     //! Typedef for all geometric entities
     typedef enum {NO_LIST, ELEM_LIST, SURF_ELEM_LIST, NC_ELEM_LIST, 
                   NODE_LIST, REGION_LIST, COIL_LIST, 
-
-                  NUMBER_LIST} ListType;
+                  NUMBER_LIST, NAME_LIST} ListType;
 
     //! Typedef describing the type the list is defined by
     typedef enum {NO_TYPE, REGION, NAMED_NODES, NAMED_ELEMS}  DefineType;
@@ -311,6 +310,35 @@ namespace CoupledField {
 
     std::string name_;
   };
+  
+  
+  //! List for names (regions or element/node groups)
+  class NameList : public EntityList {
+
+  public:
+    friend class EntityIterator;
+
+    //! Constructor
+    NameList( Grid* grid );
+
+    //! Returns the name of the region / group contained in the entitylist
+    std::string GetName() const;
+
+    //! Set Name
+    void SetName( const std::string& name );
+
+    //! Set list of names
+    void SetNames( const StdVector<std::string>& names );
+
+
+    //! Get iterator
+    EntityIterator GetIterator() const;
+
+  private:
+    StdVector<std::string> list_;
+  };
+
+  
 
   //! Iterator class for all kinds of iterable entities
   class EntityIterator {
@@ -321,6 +349,7 @@ namespace CoupledField {
     friend class SurfElemList;
     friend class NodeList;
     friend class RegionList;
+    friend class NameList;
     friend class CoilList;
     friend class NumberList;
     friend class NcElemList;
@@ -351,6 +380,9 @@ namespace CoupledField {
 
     //! Return current region id
     RegionIdType GetRegion() const;
+    
+    //! Return current name
+    std::string GetName() const;
 
     //! Return current node number
     UInt GetNode() const;
@@ -378,9 +410,6 @@ namespace CoupledField {
     //! NUMBER_LIST: unknown number
     std::string GetIdString() const;
     
-    //! Returns the name of the list, i.e. region name, etc.
-    std::string GetName() const;
-    
     
   protected:
     EntityList::ListType type_;
@@ -388,12 +417,12 @@ namespace CoupledField {
     const SurfElemList* surfElemList_;
     const NodeList* nodeList_;
     const RegionList* regionList_;
+    const NameList* nameList_;
     const CoilList * coilList_;
     const NumberList* numberList_;
     const NcElemList* ncElemList_;
     UInt pos_;
     UInt size_;
-    std::string name_;
   };
 
 }

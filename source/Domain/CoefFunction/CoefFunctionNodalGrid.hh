@@ -81,7 +81,6 @@ public:
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const;
 
-  virtual bool IsComplex();
 protected:
    //! reads information from configNode
    void ReadXmlNode(PtrParamNode configNode);

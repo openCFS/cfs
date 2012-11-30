@@ -63,9 +63,6 @@ public:
   //! \copydoc CoefFunction::ToString
   virtual std::string ToString() const;
   
-  //! \copydoc CoefFunction::IsComplex
-  virtual bool IsComplex();
-  
 private:
   
   //! Return coefficient function for a given region
@@ -81,9 +78,6 @@ private:
   
   //! Map storing coefFunction of the analytical regions
   std::map<RegionIdType,PtrCoefFct > regionCoefs_;
-  
-  //! Flag if coefficient function is complex
-  bool isComplex_;
   
 };
 

@@ -314,6 +314,11 @@ namespace CoupledField
         EXCEPTION( "GetEntityList with REGION_LIST works only with regions!" );
       }
       ret = regionList;
+    } else if( listType == EntityList::NAME_LIST ) {
+      shared_ptr<NameList> nameList =
+          shared_ptr<NameList>( new NameList(this) );
+      nameList->SetName( name );
+      ret = nameList;
     } else {
       EXCEPTION( "Type '" << listType << "' describes no EntityList which is created "
                  << "by the grid-class." );

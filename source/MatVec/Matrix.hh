@@ -614,7 +614,7 @@ namespace CoupledField
  
     /** Dumps for developers or internal use
      * @param level -1=list of all, 0=all data with structure, 1=summary info */
-    virtual std::string ToString(const int level = 0, const bool newline = false) const;
+    virtual std::string ToString(const int level = -1, const bool newline = true) const;
 
     /** Creates a xml string of the following form.
      * <name dim1="6" dim2="6">

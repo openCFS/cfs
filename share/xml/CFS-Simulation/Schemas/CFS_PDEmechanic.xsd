@@ -460,6 +460,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="mechStrain"/>
       <xsd:enumeration value="mechStress"/>
+      <xsd:enumeration value="mechStructIntensity"/>
       <xsd:enumeration value="vonMisesStress"/>
       <xsd:enumeration value="vonMisesStrain"/>
       <xsd:enumeration value="lumpedMechDisplacement"/>

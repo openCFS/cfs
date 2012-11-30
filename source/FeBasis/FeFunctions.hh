@@ -359,11 +359,6 @@ public:
   virtual void GetScalar(T& scalar, 
                          const LocPointMapped& lpm );
    
-  //! \copydoc CoefFunction::IsComplex
-  bool IsComplex() {
-    return std::tr1::is_same<T,Complex>::value;
-  }
-    
    //@}
   
   

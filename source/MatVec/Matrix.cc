@@ -147,11 +147,13 @@ namespace CoupledField
     switch(level)
     {
       case -1:
-        for(UInt j = 0; j < size_row_; j++)
+        for(UInt j = 0; j < size_row_; j++) {
           for(UInt i = 0; i < size_col_; i++)
             os << data_[j][i] << (j == size_row_ - 1 && i == size_col_ - 1 ? "" : " "); // space not for last element
 
-        os << "]";
+          if(newline) os << std::endl;
+          else os << " ";
+        }
       break;
 
       case 0:

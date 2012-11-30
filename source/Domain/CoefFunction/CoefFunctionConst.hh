@@ -23,6 +23,7 @@ public:
     // this type of coefficient is always constant
     dependType_ = CONST;
     isAnalytic_ = true;
+    isComplex_ = std::tr1::is_same<T,Complex>::value;
   }
 
   //! Destructor
@@ -122,11 +123,6 @@ public:
     this->dimType_ = SCALAR;
   }
 
-  //! \copydoc CoefFunction::IsComplex
-  bool IsComplex(){
-    return std::tr1::is_same<T,Complex>::value;
-  }
-  
   //! \copydoc CoefFunction::ToString
   std::string ToString() const {
     switch( dimType_ ) {

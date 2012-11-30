@@ -680,6 +680,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   }
     
   void MechPDE::DefinePostProcResults() {
+
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     StdVector<std::string> stressComponents;
     if( subType_ == "3d" ) {
       stressComponents = "xx", "yy", "zz", "yz", "xz", "xy";
@@ -760,6 +762,30 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     }
     DefineFieldResult( strainFunc, strain );
 
+    if ( (analysistype_ == TRANSIENT) || (analysistype_ == HARMONIC)) {
+      // === MECHANIC STRUCTURAL INTENSTIY ===
+      shared_ptr<ResultInfo> intens(new ResultInfo);
+      intens->resultType = MECH_STRUCT_INTENSTIY;
+      intens->dofNames = dispDofNames ;
+      intens->unit =  "N/ms";
+      intens->entryType = ResultInfo::VECTOR;
+      intens->definedOn = ResultInfo::ELEMENT;
+      availResults_.insert( intens );
+
+      // The mechanic structural intensity calculates as
+      // I = -[stress] * v
+      PtrCoefFct velFnc = this->GetCoefFct( MECH_VELOCITY );
+      // define temporary function, without the -1 sign
+      PtrCoefFct intensTmp = 
+          CoefFunction::Generate(part,
+                                 CoefXprBinOp( sigmaFunc, velFnc,
+                                               CoefXpr::OP_MULT_VOIGT_TENSOR_VEC ) );
+      PtrCoefFct intensFct = 
+          CoefFunction::Generate(part,
+                                 CoefXprBinOp( "-1.0", intensTmp , CoefXpr::OP_MULT ));
+      DefineFieldResult( intensFct, intens );                                    
+    }
+    
     // === MECHANIC ENERGY ===
     shared_ptr<ResultInfo> energy(new ResultInfo);
     energy->resultType = MECH_ENERGY;

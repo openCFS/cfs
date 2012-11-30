@@ -118,11 +118,6 @@ class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
   //! Set string scalar representation
   void SetScalar(const std::string& val);
 
-  //! \copydoc CoefFunction::IsComplex
-  bool IsComplex(){ 
-    return false; 
-  }
-
   //! \copydoc CoefFunction::ToString
   std::string ToString() const;
 
@@ -293,11 +288,6 @@ public:
   //! Set string scalar representation
   void SetScalar(const std::string& realVal,
                  const std::string& imagVal);
-
-  //! \copydoc CoefFunction::IsComplex
-  bool IsComplex(){ 
-    return true; 
-  }
 
   //! \copydoc CoefFunction::ToString
   std::string ToString() const;

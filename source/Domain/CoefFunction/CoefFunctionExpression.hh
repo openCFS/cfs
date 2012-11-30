@@ -41,7 +41,7 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
   public:
     CoefFunctionExpression();
 
-    ~CoefFunctionExpression();
+    virtual ~CoefFunctionExpression();
 
     //! \copydoc CoefFunction::GetComplexPart
     virtual PtrCoefFct GetComplexPart( Global::ComplexPart part );
@@ -59,7 +59,7 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
     void SetScalar(const std::string& val);
     
     //! \copydoc CoefFunction::GetVecSize
-    UInt GetVecSize() const {
+    virtual UInt GetVecSize() const {
       assert(this->dimType_ == VECTOR );
       return coefVec_.GetSize();
     }
@@ -70,9 +70,6 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
       numRows = numRows_;
       numCols = numCols_;
     }
-    
-    //! \copydoc CoefFunction::IsComplex
-    bool IsComplex(){ return false;}
     
     std::string ToString() const;
     
@@ -126,7 +123,7 @@ class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic,
   public:
     CoefFunctionExpression();
 
-    ~CoefFunctionExpression();
+    virtual ~CoefFunctionExpression();
 
     //! \copydoc CoefFunction::GetComplexPart
     virtual PtrCoefFct GetComplexPart( Global::ComplexPart part );
@@ -148,7 +145,7 @@ class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic,
                    const std::string& imagVal);
     
     //! \copydoc CoefFunction::GetVecSize
-    UInt GetVecSize() const {
+    virtual UInt GetVecSize() const {
       assert(this->dimType_ == VECTOR );
       return coefVecReal_.GetSize();
     }
@@ -159,9 +156,6 @@ class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic,
       numRows = numRows_;
       numCols = numCols_;
     }
-    
-    //! \copydoc CoefFunction::IsComplex
-    bool IsComplex(){ return true;}
     
     std::string ToString() const;
     

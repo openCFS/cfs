@@ -19,6 +19,7 @@ CoefFunctionApprox::CoefFunctionApprox() : CoefFunction() {
   dependType_ = SOLUTION;
   isAnalytic_ = false;
   bOperator_ = NULL;
+  isComplex_ = false;
 }
 
 CoefFunctionApprox::~CoefFunctionApprox(){
@@ -79,6 +80,7 @@ std::string CoefFunctionApprox::ToString() const {
 CoefFunctionApproxDeriv::CoefFunctionApproxDeriv() : CoefFunction() {
   // this type of coefficient is nonlinear, i.e. spatial and time dependent
   dependType_ = GENERAL;
+  isComplex_ = false;
 }
 
 CoefFunctionApproxDeriv::~CoefFunctionApproxDeriv(){
@@ -140,6 +142,7 @@ CoefFunctionApproxAniso::CoefFunctionApproxAniso() : CoefFunction() {
   // this type of coefficient is nonlinear (i.e. solution dependend)
   dependType_ = SOLUTION;
   isAnalytic_ = false;
+  isComplex_ = false;
   bOperator_ = NULL;
 }
 
@@ -271,6 +274,7 @@ CoefFunctionApproxDerivAniso::CoefFunctionApproxDerivAniso() : CoefFunction() {
   // this type of coefficient is nonlinear (i.e. solution dependend)
   dependType_ = SOLUTION;
   isAnalytic_ = false;
+  isComplex_ = false;
   bOperator_ = NULL;
 }
 

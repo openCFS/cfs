@@ -147,11 +147,15 @@ namespace CoupledField {
     PtrCoefFct coefElecD = pde2_->GetCoefFct( ELEC_FLUX_DENSITY);
     
     // b) coupling part -> use own ADB-form
+    // Note: As the "B"-operator of the ADB operator only calculates 
+    //       the gradient and we need the electric field (E = - grad(V_p)),
+    //       we have to multiply the entries by -1.0.
+    Double cplFactor = -1.0;
     shared_ptr<CoefFunctionFormBased> cplFunc;
     if( isComplex_ ) {
-      cplFunc.reset(new CoefFunctionFlux<Complex,true>(dispFct, flux, 1));
+      cplFunc.reset(new CoefFunctionFlux<Complex,true>(dispFct, flux, cplFactor));
     } else {
-      cplFunc.reset(new CoefFunctionFlux<Double,true>(dispFct, flux, 1));
+      cplFunc.reset(new CoefFunctionFlux<Double,true>(dispFct, flux, cplFactor));
     }
     // Build compound coefficient function for flux density
     PtrCoefFct coefFlux = CoefFunction::Generate(part,
@@ -174,20 +178,20 @@ namespace CoupledField {
     // a) mechanic  -> take from mechanic PDE
     PtrCoefFct coefMechSigma = pde1_->GetCoefFct( MECH_STRESS );
         
-    // b) coupling part -> use own ADB-form
+    // b) coupling part [e]*E = - [e] grad(V_p) -> use own ADB-form
     shared_ptr<CoefFunctionFormBased> stressCplFunc;
+    // Note: As the "B"-operator of the ADB operator only calculates 
+    //       the gradient and we need the electric field (E = - grad(V_p)),
+    //       we have to multiply the entries by -1.0.
+    Double stressCplFactor = -1.0;
     if( isComplex_ ) {
-      stressCplFunc.reset(new CoefFunctionFlux<Complex>(elecFct, stress, 1));
+      stressCplFunc.reset(new CoefFunctionFlux<Complex>(elecFct, stress, stressCplFactor));
     } else {
-      stressCplFunc.reset(new CoefFunctionFlux<Double>(elecFct, stress, 1));
+      stressCplFunc.reset(new CoefFunctionFlux<Double>(elecFct, stress, stressCplFactor));
     }
-    // Build compound coefficient function for flux density
-    // Note: from the formula above, we would need to subtract the electric based
-    // part from the first one, so we should check, if the mechanical stress is really
-    // correct. 
     PtrCoefFct coefStress = CoefFunction::Generate(part,
                             CoefXprBinOp(coefMechSigma, stressCplFunc, 
-                                         CoefXpr::OP_ADD ) ); 
+                                         CoefXpr::OP_SUB ) ); 
     DefineFieldResult(coefStress, stress);
 
 

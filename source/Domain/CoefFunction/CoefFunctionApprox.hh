@@ -41,11 +41,6 @@ public:
                  const LocPointMapped& lpm );
     
 
-  //! \see CoefFunction::IsComplex
-  bool IsComplex(){
-    return false;
-  }
-  
   //! \see CoefFunction::ToString
   std::string ToString() const;
 
@@ -88,11 +83,6 @@ public:
   void GetTensor(Matrix<Double>& coefMat, 
                  const LocPointMapped& lpm );
 
-  //! \see CoefFunction::IsComplex
-  bool IsComplex(){
-    return false;
-  }
-  
   //! \see CoefFunction::ToString
   std::string ToString() const;
 
@@ -141,11 +131,6 @@ public:
   void GetScalar(Double& coefScalar, 
                  const LocPointMapped& lpm );
 
-  //! \see CoefFunction::IsComplex
-  bool IsComplex(){
-    return false;
-  }
-  
   //! \see CoefFunction::ToString
   std::string ToString() const;
 
@@ -192,11 +177,6 @@ public:
   void GetTensor(Matrix<Double>& coefMat, 
                  const LocPointMapped& lpm );
 
-  //! \see CoefFunction::IsComplex
-  bool IsComplex(){
-    return false;
-  }
-  
   //! \see CoefFunction::ToString
   std::string ToString() const;
 

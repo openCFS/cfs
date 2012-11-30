@@ -20,6 +20,8 @@ CoefFunctionExpression<Double>::CoefFunctionExpression() :
   // is defined by analytical expressions.
   isAnalytic_ = true;
   
+  isComplex_ = false;
+  
   // always store default coordinate system
   this->coordSys_ = domain->GetCoordSystem();
 }   
@@ -205,6 +207,8 @@ CoefFunctionExpression<Complex>::CoefFunctionExpression() :
   // this coefficient function is still analytic, as it
   // is defined by analytical expressions.
   isAnalytic_ = true;
+  
+  isComplex_ = true;
 
   // always store default coordinate system
   this->coordSys_ = domain->GetCoordSystem();

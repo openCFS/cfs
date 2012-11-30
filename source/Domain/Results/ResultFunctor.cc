@@ -4,7 +4,7 @@ namespace CoupledField {
 
 
 // --------------------------------------------------------------------------
-//  RESULT BASED ON COEFFICIENT FUNCTION
+//  FIELDS BASED ON COEFFICIENT FUNCTION
 // --------------------------------------------------------------------------
 template<class TYPE> FieldCoefFunctor<TYPE>::
   FieldCoefFunctor( PtrCoefFct coef,
@@ -153,15 +153,15 @@ template<class TYPE> EnergyResultFunctor<TYPE>::
 template<class TYPE> void EnergyResultFunctor<TYPE>::
 EvalResult(shared_ptr<BaseResult> res ) {
   Result<TYPE>& actSol = static_cast<Result<TYPE>& >(*res);
-  EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
+  EntityIterator nameIt = actSol.GetEntityList()->GetIterator();
   Vector<TYPE>& vec = actSol.GetVector();
-  vec.Resize( regionIt.GetSize() );
+  vec.Resize( nameIt.GetSize() );
 
   // Loop over regions
-  for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
-    ElemList actSDList(ptGrid_);
-    actSDList.SetRegion( regionIt.GetRegion() );
-    EntityIterator elemIt = actSDList.GetIterator();
+  for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
+    shared_ptr<EntityList> actSDList = 
+        ptGrid_->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
+    EntityIterator elemIt = actSDList->GetIterator();
 
     TYPE tempEnergy = 0.0;
     // loop over elements
@@ -175,7 +175,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
       temp = elemMat * elemSol;
       tempEnergy += (temp * elemSol) * 0.5;
     }
-    vec[regionIt.GetPos()] = tempEnergy;
+    vec[nameIt.GetPos()] = tempEnergy;
   }
 }
 
@@ -204,13 +204,13 @@ template<class TYPE> ResultFunctorIntegrate<TYPE>::
 template<class TYPE> void ResultFunctorIntegrate<TYPE>:: 
  EvalResult(shared_ptr<BaseResult> res ) {
   Result<TYPE>& actSol = static_cast<Result<TYPE>& >(*res);
-  EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
+  EntityIterator nameIt = actSol.GetEntityList()->GetIterator();
   shared_ptr<FeSpace> feSpace = feFct_->GetFeSpace();
   shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
   Vector<TYPE>& vec = actSol.GetVector();
   UInt numDofs =actSol.GetResultInfo()->dofNames.GetSize();
-  vec.Resize( regionIt.GetSize() * numDofs );
-
+  vec.Resize( nameIt.GetSize() * numDofs );
+  vec.Init();
   
   // switch depending on type of coefficient function:
   
@@ -220,11 +220,11 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
     // ---------------
     //  SCALAR RESULT
     // ---------------
-    // Loop over regions
-    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
-      ElemList actSDList(ptGrid_);
-      actSDList.SetRegion( regionIt.GetRegion() );
-      EntityIterator elemIt = actSDList.GetIterator();
+    // Loop over names (= regions / surface regions / named elements)
+    for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
+      shared_ptr<EntityList> actSDList = 
+          ptGrid_->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
+      EntityIterator elemIt = actSDList->GetIterator();
 
       TYPE tempVal = 0.0;
       // loop over elements
@@ -246,7 +246,6 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
         StdVector<Double> weights;
         intScheme->GetIntPoints( Elem::GetShapeType(el->type), method, order, 
                                  intPoints, weights );
-
         // Loop over all integration points
         tempVal = 0.0;
         LocPointMapped lpm;
@@ -258,7 +257,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
           coef_->GetScalar(tempVal, lpm );
           elemVal += tempVal * lpm.jacDet * weights[i];
         } // loop integration points
-        vec[regionIt.GetPos()] += elemVal;
+        vec[nameIt.GetPos()] += elemVal;
       } // loop elements
     } // loop regions
     
@@ -268,10 +267,10 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
     // ---------------
     // Loop over regions
     UInt pos = 0;
-    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
-      ElemList actSDList(ptGrid_);
-      actSDList.SetRegion( regionIt.GetRegion() );
-      EntityIterator elemIt = actSDList.GetIterator();
+    for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
+      shared_ptr<EntityList> actSDList = 
+          ptGrid_->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
+      EntityIterator elemIt = actSDList->GetIterator();
 
       Vector<TYPE> tempVal;
       // loop over elements

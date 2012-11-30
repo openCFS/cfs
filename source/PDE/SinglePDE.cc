@@ -674,7 +674,7 @@ namespace CoupledField {
           break;
         case ResultInfo::REGION:
         case ResultInfo::SURF_REGION:
-          entityType = EntityList::REGION_LIST;
+          entityType = EntityList::NAME_LIST;
           break;
         case ResultInfo::SURF_ELEM:
           entityType = EntityList::SURF_ELEM_LIST;

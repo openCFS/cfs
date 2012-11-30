@@ -28,7 +28,8 @@ namespace CoupledField{
   CoefFunctionNodalGrid<DATA_TYPE>::CoefFunctionNodalGrid(PtrParamNode configNode){
 
     this->ReadXmlNode(configNode);
-
+    isComplex_ = std::tr1::is_same<DATA_TYPE,Complex>::value;
+    
     UInt dofDim = 0;
      if(resultInfo_->entryType == ResultInfo::SCALAR){
        dofDim = 1;
@@ -93,11 +94,6 @@ namespace CoupledField{
   template<class DATA_TYPE>
   void CoefFunctionNodalGrid<DATA_TYPE>::GetTensorSize( UInt& numRows, UInt& numCols ) const {
     EXCEPTION("Not tensor valued data available yet");
-  }
-
-  template<class DATA_TYPE>
-  bool CoefFunctionNodalGrid<DATA_TYPE>:: IsComplex(){
-    return std::tr1::is_same<DATA_TYPE,Complex>::value;
   }
 
 

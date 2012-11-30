@@ -45,9 +45,6 @@ public:
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const;
 
-  //! \copydoc CoefFunction::IsComplex
-  bool IsComplex();
-
   //! \copydoc CoefFunction::ToString
   std::string ToString() const;
 

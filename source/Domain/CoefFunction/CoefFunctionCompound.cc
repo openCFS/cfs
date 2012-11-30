@@ -11,7 +11,7 @@ namespace CoupledField {
 CoefFunctionCompound<Double>::CoefFunctionCompound() {
   dependType_ = GENERAL;
   isAnalytic_ = false;
-
+  isComplex_ = false;
   numRows_ = 0;
   numCols_ = 0;
   parser_ = NULL;
@@ -155,6 +155,17 @@ SetTensor( StdVector<std::string>& expr,
   parser_->SetExpr( handle_, expr_ );
 }
 
+UInt CoefFunctionCompound<Double>::GetVecSize() const {
+  assert(this->dimType_ == VECTOR );
+  return parser_->GetNumExprs(handle_);
+}
+
+void CoefFunctionCompound<Double>::GetTensorSize( UInt& numRows, UInt& numCols ) const {
+  assert(this->dimType_ == TENSOR );
+  numRows = numRows_;
+  numCols = numCols_;
+}
+
 std::string CoefFunctionCompound<Double>::ToString() const {
   std::stringstream out;
   out << "expression: '" << expr_ << std::endl;
@@ -253,7 +264,8 @@ UpdateXpr( const LocPointMapped& lpm ) {
 CoefFunctionCompound<Complex>::CoefFunctionCompound() {
   dependType_ = GENERAL;
   isAnalytic_ = false;
-
+  isComplex_ = true;
+  
   numRows_ = 0;
   numCols_ = 0;
   parser_ = NULL;
@@ -422,6 +434,17 @@ SetTensor( StdVector<std::string>& exprReal,
   exprImag_ = exprImag.Serialize(',');
   parser_->SetExpr( handleReal_, exprReal_ );
   parser_->SetExpr( handleImag_, exprImag_ );
+}
+
+UInt CoefFunctionCompound<Complex>::GetVecSize() const {
+  assert(this->dimType_ == VECTOR );
+  return parser_->GetNumExprs(handleReal_);
+}
+
+void CoefFunctionCompound<Complex>::GetTensorSize( UInt& numRows, UInt& numCols ) const {
+  assert(this->dimType_ == TENSOR );
+  numRows = numRows_;
+  numCols = numCols_;
 }
 
 std::string CoefFunctionCompound<Complex>::ToString() const {

@@ -196,7 +196,7 @@ DECLARE_LOG(fefunc)
     factor_ = 1.0;
     timeDerivOrder_ = 0;
     idOp_ = NULL;
-    
+    isComplex_ = std::tr1::is_same<T,Complex>::value;
     MathParser * mp = domain->GetMathParser();
     
     // Add expression for calculating the time derivative in the

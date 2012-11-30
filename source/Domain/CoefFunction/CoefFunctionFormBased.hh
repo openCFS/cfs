@@ -104,11 +104,6 @@ public:
   //! \copydoc CoefFunction::ToString
   virtual std::string ToString() const;
   
-  //! \copydoc CoefFunction::IsComplex
-  bool IsComplex(){
-    return std::tr1::is_same<TYPE,Complex>::value;
-  }
-  
 protected:
 
   //! Differential operator for each region
@@ -180,11 +175,6 @@ public:
   //! \copydoc CoefFunction::ToString
   virtual std::string ToString() const;
 
-  //! \copydoc CoefFunction::IsComplex
-  bool IsComplex(){
-    return std::tr1::is_same<TYPE,Complex>::value;
-  }
-
 protected:
 
   //! FeFunction containing the coefficients
@@ -241,11 +231,6 @@ public:
 
   //! \copydoc CoefFunction::ToString
   virtual std::string ToString() const;
-
-  //! \copydoc CoefFunction::IsComplex
-  bool IsComplex(){
-    return std::tr1::is_same<TYPE,Complex>::value;
-  }
 
 protected:
 

@@ -104,14 +104,5 @@ std::string CoefFunctionMulti::ToString() const {
   return ret.str();
 }
 
-bool CoefFunctionMulti::IsComplex() {
-  if( regionCoefs_.size() == 0 ) {
-    WARN("No entries set yet");
-    return false;
-  }
-  return isComplex_;
-}
-
-
 
 } // end of namespace

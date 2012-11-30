@@ -33,6 +33,7 @@ CoefFunctionGridBase<DATA_TYPE>::CoefFunctionGridBase(PtrParamNode configNode){
 
   dependType_ = GENERAL;
   isAnalytic_ = false;
+  isComplex_ =  std::tr1::is_same<DATA_TYPE,Complex>::value;
 
 
   UInt dofDim = 0;

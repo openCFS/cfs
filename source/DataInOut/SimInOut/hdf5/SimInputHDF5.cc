@@ -557,8 +557,10 @@ namespace CoupledField {
       listType = EntityList::SURF_ELEM_LIST;
       break;
     case ResultInfo::REGION:
-    case ResultInfo::SURF_REGION:
       listType = EntityList::REGION_LIST;
+      break;
+    case ResultInfo::SURF_REGION:
+      listType = EntityList::NAME_LIST;
       break;
     default:
       EXCEPTION( "Only results defined on nodes and elements "

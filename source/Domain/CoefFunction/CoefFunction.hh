@@ -171,6 +171,7 @@ public:
     dimType_ = NO_DIM;
     dependType_ = CONST;
     isAnalytic_ = false;
+    isComplex_ = false;
     
     // by default, the coefficients do not
     // depend on any coordinate system
@@ -287,12 +288,12 @@ public:
   }
 
   //! Return type of entry (scalar, vector, tensor)
-  virtual CoefDimType GetDimType(){
+  virtual CoefDimType GetDimType() const{
     return dimType_;
   }
   
   //! Return if coeffunction is zero
-  virtual bool IsZero() {
+  virtual bool IsZero() const {
     EXCEPTION("Method not properly overwritten");
     return false;
   }
@@ -301,14 +302,13 @@ public:
   
   //! This method can be used to query, if a coefficient function can be
   //! described by a closed formula (= string). 
-  virtual bool IsAnalytic() {
+  virtual bool IsAnalytic() const {
     return isAnalytic_;
   }
   
   //! Return if coeffunction is complex
-  virtual bool IsComplex() {
-    EXCEPTION("Method not properly overwritten");
-    return false;
+  virtual bool IsComplex() const {
+    return isComplex_;
   }
 
   virtual void AddEntities(shared_ptr<EntityList> ent){
@@ -375,6 +375,9 @@ protected:
   
   //! Flag, if coefficient function is analytic (= can be represented as string)
   bool isAnalytic_;
+  
+  //! Flag, if coefficient function is complex-valued
+  bool isComplex_;
 
   //! Support of the CoefFunction. Only needed for grid/solution results
   StdVector<shared_ptr<EntityList> > entities_;

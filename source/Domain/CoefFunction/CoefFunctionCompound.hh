@@ -101,6 +101,12 @@ public:
                   UInt numRows, UInt numCols,
                   std::map<std::string, PtrCoefFct >& vars );
 
+  //! \copydoc CoefFunction::GetVecSize
+  virtual UInt GetVecSize() const;
+
+  //! \copydoc CoefFunction::GetTensorSize
+  virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const;
+     
   //! \copydoc CoefFunction::ToString
   std::string ToString() const;
   
@@ -183,6 +189,12 @@ public:
                   UInt numRows, UInt numCols,
                   std::map<std::string, PtrCoefFct >& vars );
 
+  //! \copydoc CoefFunction::GetVecSize
+  virtual UInt GetVecSize() const;
+
+  //! \copydoc CoefFunction::GetTensorSize
+  virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const;
+     
   //! \copydoc CoefFunction::ToString
   std::string ToString() const;
   

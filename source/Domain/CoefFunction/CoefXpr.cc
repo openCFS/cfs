@@ -41,6 +41,7 @@ UInt CoefXpr::GetNumOperands(OpType op ) {
     case OP_ADD:
     case OP_SUB:
     case OP_MULT:
+    case OP_MULT_VOIGT_TENSOR_VEC:
     case OP_DIV:
     case OP_CROSS:
     case OP_POW:
@@ -139,6 +140,11 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
            case OP_ADD:
            case OP_SUB:
            case OP_CROSS:
+             dim = CoefFunction::VECTOR;
+             break;
+           case OP_MULT_VOIGT_TENSOR_VEC:
+             // the first "tensor" is assumed to be symmetric, so we 
+             // assume Voigt notation, so technically both arguments are "vectors"
              dim = CoefFunction::VECTOR;
              break;
            case OP_MULT:
@@ -737,6 +743,9 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
 
   if( a_->GetDimType() == CoefFunction::VECTOR  &&
       b_->GetDimType() == CoefFunction::VECTOR ) {
+    // --------------------
+    //  VECTOR-VECTOR CASE
+    // --------------------
     StdVector<std::string> aR, aI, bR, bI;
     if( isAnalytical_) {
       CoefFunctionAnalytic & coefA = 
@@ -841,13 +850,163 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
          
       } else 
         EXCEPTION( "Vector / cross product only defined in 1D and 3D");
-
+    }
+    // === OP_MULT_TENSOR_VEC
+    else if( op_ == OP_MULT_VOIGT_TENSOR_VEC ) {
+      // Here we assume that the first "vector" represents a symmetric
+      // tensor in Voigt Notation and the second argument is a vector.
+      // We allow three cases:
+      // a) FULL: (3x3) tensor * vector with 3 components
+      // b) PLANE: (2x2) tensor * vector with 2 components
+      // c) AXI: (3 x 3 )tensor * vector with 2 components. 
+      //          Attention: Here only the upper 2x2 block is considered
+      //          for multiplication (circumferential components can
+      //          not be considered)
+      
+      // Attention: We have to re-size the result to the number
+      //            of vector components
+      real.Resize( bR.GetSize() );
+      imag.Resize( bR.GetSize() );
+      
+      if( aR.GetSize() == 6 && bR.GetSize() == 3 ) {
+        // ----------------
+        //  3D / FULL case
+        // ----------------
+        // tensor [t] = (t_xx, t_yy, t_zz, t_yz, t_xz, t_xy)
+        // 1st row
+        if(!isComplex_) {
+          std::string temp;
+          // 1st row
+          CoefXpr::ApplyBinaryFunc( temp, aR[0], bR[0], OP_MULT );
+          real[0] = temp + " + ";
+          CoefXpr::ApplyBinaryFunc( temp, aR[5], bR[1], OP_MULT );
+          real[0] += temp + " + ";
+          CoefXpr::ApplyBinaryFunc( temp, aR[4], bR[2], OP_MULT );
+          real[0] += temp;
+          // 2nd row
+          CoefXpr::ApplyBinaryFunc( temp, aR[5], bR[0], OP_MULT );
+          real[1] = temp + " + ";
+          CoefXpr::ApplyBinaryFunc( temp, aR[1], bR[1], OP_MULT );
+          real[1] += temp + " + ";
+          CoefXpr::ApplyBinaryFunc( temp, aR[3], bR[2], OP_MULT );
+          real[1] += temp;
+          // 3rd row
+          CoefXpr::ApplyBinaryFunc( temp, aR[4], bR[0], OP_MULT );
+          real[2] = temp + " + ";
+          CoefXpr::ApplyBinaryFunc( temp, aR[3], bR[1], OP_MULT );
+          real[2] += temp + " + ";
+          CoefXpr::ApplyBinaryFunc( temp, aR[2], bR[2], OP_MULT );
+          real[2] += temp;
+        } else {
+          std::string tempR, tempI;
+          // 1st row
+          CoefXpr::ApplyBinaryFunc( tempR, tempI, 
+                                    aR[0], bR[0], 
+                                    aI[0], bI[0], OP_MULT );
+          real[0] = tempR + " + ";
+          imag[0] = tempI + " + ";
+          CoefXpr::ApplyBinaryFunc( tempR, tempI, 
+                                    aR[5], bR[1], 
+                                    aI[5], bI[1], OP_MULT );
+          real[0] += tempR + " + ";
+          imag[0] += tempI + " + ";
+          CoefXpr::ApplyBinaryFunc( tempR, tempI, 
+                                    aR[4], bR[2], 
+                                    aI[4], bI[2], OP_MULT );
+          real[0] += tempR;
+          imag[0] += tempI;
+          // 2nd row
+          CoefXpr::ApplyBinaryFunc( tempR, tempI, 
+                                    aR[5], bR[0], 
+                                    aI[5], bI[0], OP_MULT );
+          real[1] = tempR + " + ";
+          imag[1] = tempI + " + ";
+          CoefXpr::ApplyBinaryFunc( tempR, tempI, 
+                                    aR[1], bR[1], 
+                                    aI[1], bI[1], OP_MULT );
+          real[1] += tempR + " + ";
+          imag[1] += tempI + " + ";
+          CoefXpr::ApplyBinaryFunc( tempR, tempI, 
+                                    aR[3], bR[2], 
+                                    aI[3], bI[2], OP_MULT );
+          real[1] += tempR;
+          imag[1] += tempI;
+          // 3rd row
+          CoefXpr::ApplyBinaryFunc( tempR, tempI, 
+                                    aR[4], bR[0], 
+                                    aI[4], bI[0], OP_MULT );
+          real[2] = tempR + " + ";
+          imag[2] = tempI + " + ";
+          CoefXpr::ApplyBinaryFunc( tempR, tempI, 
+                                    aR[3], bR[1], 
+                                    aI[3], bI[1], OP_MULT );
+          real[2] += tempR + " + ";
+          imag[2] += tempI + " + ";
+          CoefXpr::ApplyBinaryFunc( tempR, tempI, 
+                                    aR[2], bR[2], 
+                                    aI[2], bI[2], OP_MULT );
+          real[2] += tempR;
+          imag[2] += tempI;
+        }
+      } else if ( (aR.GetSize() == 3 && bR.GetSize() == 2) ||  
+                  (aR.GetSize() == 4 && bR.GetSize() == 2) ) {
+        // ----------------
+        //  2D / AXI case
+        // ----------------
+        // PLANE case: tensor [t] = (t_xx, t_yy, t_xy) 
+        // AXI case: tensor [t] = (t_rr, t_zz, t_rz, r_phiphi)
+        // 1st row
+        if(!isComplex_) {
+          std::string temp;
+          // 1st row
+          CoefXpr::ApplyBinaryFunc( temp, aR[0], bR[0], OP_MULT );
+          real[0] = temp + " + ";
+          CoefXpr::ApplyBinaryFunc( temp, aR[2], bR[1], OP_MULT );
+          real[0] += temp;
+          // 2nd row
+          CoefXpr::ApplyBinaryFunc( temp, aR[2], bR[0], OP_MULT );
+          real[1] += temp + " + ";
+          CoefXpr::ApplyBinaryFunc( temp, aR[1], bR[1], OP_MULT );
+          real[1] += temp;
+        } else {
+          std::string tempR, tempI;
+          // 1st row
+          CoefXpr::ApplyBinaryFunc( tempR, tempI, 
+                                    aR[0], bR[0], 
+                                    aI[0], bI[0], OP_MULT );
+          real[0] = tempR + " + ";
+          imag[0] = tempI + " + ";
+          CoefXpr::ApplyBinaryFunc( tempR, tempI, 
+                                    aR[2], bR[1], 
+                                    aI[2], bI[1], OP_MULT );
+          real[0] += tempR;
+          imag[0] += tempI;
+          // 2nd row
+          CoefXpr::ApplyBinaryFunc( tempR, tempI, 
+                                    aR[2], bR[0], 
+                                    aI[2], bI[0], OP_MULT );
+          real[1] = tempR + " + ";
+          imag[1] = tempI + " + ";
+          CoefXpr::ApplyBinaryFunc( tempR, tempI, 
+                                    aR[1], bR[1], 
+                                    aI[1], bI[1], OP_MULT );
+          real[1] += tempR;
+          imag[1] += tempI;
+        }
+      } else {
+        EXCEPTION( "Dimension of arguments wrong." )
+      }
+      
+      
     } else {
       EXCEPTION( "The only allowed (vector,vector)->vector operations "
                 << "are OP_ADD, OP_SUB and OP_CROSS" );
     }
   } else if( a_->GetDimType() == CoefFunction::SCALAR  &&
-         b_->GetDimType() == CoefFunction::VECTOR ) {
+              b_->GetDimType() == CoefFunction::VECTOR ) {
+    // --------------------
+    //  SCALAR-VECTOR CASE
+    // --------------------
       std::string aR, aI; 
       StdVector<std::string>  bR, bI;
        if( isAnalytical_) {
@@ -1554,8 +1713,8 @@ void CoefXprSubTensor::GetTensorXpr( UInt& numRows, UInt& numCols,
     //  6 x 3 TENSOR 
     // --------------------
     if( tensorType_ == FULL ) {
-      numRows = 6;
-      numCols = 3;
+      numRows = 3;
+      numCols = 6;
       real = aR;
       imag = aI;
       if( !isComplex_ )

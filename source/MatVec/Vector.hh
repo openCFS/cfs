@@ -396,7 +396,7 @@ template<typename T> class ElemStoreSol;
     /** Prints the content for Logging
      * @param level 0 is all content, 1 is only non zero
      * @param separator as default a comma  */
-    std::string ToString(const int level = 0, const char separator = ',') const;
+    std::string ToString(const int level = 0, const char separator = ' ') const;
 
     //! Export vector to file
 

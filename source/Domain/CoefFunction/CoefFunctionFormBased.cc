@@ -45,6 +45,7 @@ CoefFunctionBOp( shared_ptr<BaseFeFunction> feFct,
   factor_ = factor;
   feSpace_ = feFct->GetFeSpace();
   
+  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
   
   // set inherited attributes
   dimType_ = CoefFunction::VECTOR;
@@ -125,6 +126,7 @@ CoefFunctionFlux( shared_ptr<BaseFeFunction> feFct,
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
   res_ = info;
   factor_ = factor;
+  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
 
   // set inherited attributes
   dimType_ = CoefFunction::VECTOR;
@@ -203,6 +205,8 @@ CoefFunctionBdBKernel(shared_ptr<BaseFeFunction> feFct,
 : CoefFunctionFormBased() {
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
   factor_ = factor;
+  
+  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
 
   // set inherited attributes
   dimType_ = CoefFunction::SCALAR;

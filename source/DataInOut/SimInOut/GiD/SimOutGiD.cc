@@ -108,19 +108,21 @@ namespace CoupledField {
     if ( dim_ == GiD_2D ) {
       GiD_BeginGaussPoint( "mid-2D", GiD_Quadrilateral, NULL, 1, 1, 1);
       GiD_EndGaussPoint();
-      if ( ptGrid_->GetNumSurfElems() > 0 ) {
+      if ( ptGrid_->GetNumElemOfDim(1) > 0 ) {
         GiD_BeginGaussPoint( "mid-2D", GiD_Linear, NULL, 1, 0, 1);
         GiD_EndGaussPoint();
       }
     } else {
       GiD_BeginGaussPoint( "mid-3D", GiD_Hexahedra, NULL, 1, 1, 1);
       GiD_EndGaussPoint();
-      if ( ptGrid_->GetNumSurfElems() > 0 ) {
-        GiD_BeginGaussPoint( "mid-3D", GiD_Quadrilateral, NULL, 1, 1, 1);
+      if ( ptGrid_->GetNumElemOfDim(2) > 0 ) {
+        GiD_BeginGaussPoint( "mid-3", GiD_Quadrilateral, NULL, 1, 1, 1);
         GiD_EndGaussPoint();
       }
-      GiD_BeginGaussPoint( "mid-3D", GiD_Linear, NULL, 1, 0, 1);
-      GiD_EndGaussPoint();
+      if ( ptGrid_->GetNumElemOfDim(1) > 0 ) {
+        GiD_BeginGaussPoint( "mid-3D", GiD_Linear, NULL, 1, 0, 1);
+        GiD_EndGaussPoint();
+      }
     }
 
     // close mesh file (only needed in ASCII case)

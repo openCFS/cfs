@@ -27,6 +27,7 @@ namespace CoupledField {
     EntityList::listType.Add(EntityList::SURF_ELEM_LIST, "surfRegion", false);
     EntityList::listType.Add(EntityList::NC_ELEM_LIST, "ncElemList");
     EntityList::listType.Add(EntityList::NODE_LIST, "nodeList");
+    EntityList::listType.Add(EntityList::NAME_LIST, "nameList" );
     EntityList::listType.Add(EntityList::REGION_LIST, "regionList", false);
     EntityList::listType.Add(EntityList::REGION_LIST, "region", false);
     EntityList::listType.Add(EntityList::NUMBER_LIST, "numberList");
@@ -112,7 +113,6 @@ namespace CoupledField {
     it.elemList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
-    it.name_ = name_;
     return it;
   }
  
@@ -171,7 +171,6 @@ namespace CoupledField {
     it.surfElemList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
-    it.name_ = name_;
     return it;
   }
  
@@ -225,7 +224,6 @@ namespace CoupledField {
     it.nodeList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
-    it.name_ = name_;
     return it;
   }
 
@@ -268,9 +266,45 @@ namespace CoupledField {
     it.regionList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
-    it.name_ = "no_name";
     return it;
   }
+  
+  // --- Name List ---
+   NameList::NameList( Grid* grid )
+   : EntityList( grid ) {
+     type_ = NAME_LIST;
+     size_ = 0;
+   }
+
+   std::string NameList::GetName() const {
+     if( list_.GetSize() == 0  ) {
+       return "";
+     } else {
+       return list_[0];
+     }
+   }
+
+   void NameList::SetName( const std::string& name ) {
+     list_.Clear();
+     list_.Resize( 1 );
+     list_[0] = name;
+     size_ = 1;
+   }
+   void NameList::SetNames( const StdVector<std::string>& names ) {
+     list_ = names;
+     size_ = list_.GetSize();
+   }
+
+   EntityIterator NameList::GetIterator() const {
+     EntityIterator it;
+     it.type_ = NAME_LIST;
+     it.nameList_ = this;
+     it.pos_ = 0;
+     it.size_ = list_.GetSize();
+     return it;
+   }
+  
+  
 
   // --- Number List ---
   NumberList::NumberList( Grid* grid )
@@ -319,7 +353,6 @@ namespace CoupledField {
     it.ncElemList_ = this;
     it.pos_ = 0;
     it.size_ = ncElems_.GetSize();
-    it.name_ = name_;
     return it;
   }
 
@@ -384,6 +417,10 @@ namespace CoupledField {
     return regionList_->list_[ pos_ ];
   }
   
+  std::string  EntityIterator::GetName() const {
+     return nameList_->list_[ pos_ ];
+   }
+  
   UInt EntityIterator::GetNode() const {
     return nodeList_->list_[ pos_ ];
   }
@@ -405,19 +442,18 @@ namespace CoupledField {
     case EntityList::NODE_LIST:
       id = lexical_cast<std::string>(GetNode());
       break;
+    case EntityList::NAME_LIST:
+      id = nameList_->GetName();
+      break;
     case EntityList::REGION_LIST:
       id = regionList_->grid_->GetRegion().ToString( GetRegion() );
       break;
     default:
-        EXCEPTION( "Not implemented" );
+      EXCEPTION( "Not implemented" );
     }
       
      return id; 
   }
 
-  std::string EntityIterator::GetName() const
-  {
-    return name_;
-  }
 
 } // end of namespace

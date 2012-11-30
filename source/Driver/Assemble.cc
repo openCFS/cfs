@@ -61,7 +61,7 @@ namespace CoupledField
 
     // Delete bilinear contexts
     std::set<BiLinFormContext*>::iterator it = allBiLinForms_.begin();
-    for( ; it != allBiLinForms_.end(); ++ it){
+    for( ; it != allBiLinForms_.end(); ++it){
       delete (*it);
     }
     

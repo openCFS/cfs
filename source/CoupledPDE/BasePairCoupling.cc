@@ -571,9 +571,9 @@ namespace CoupledField {
       if( (*it)->definedOn == ResultInfo::NODE ) {
         entityType = EntityList::NODE_LIST;
       } else if( (*it)->definedOn == ResultInfo::REGION ) {
-        entityType = EntityList::REGION_LIST;
+        entityType = EntityList::NAME_LIST;
       } else if( (*it)->definedOn == ResultInfo::SURF_REGION ) {
-        entityType = EntityList::REGION_LIST;
+        entityType = EntityList::NAME_LIST;
       } else if( (*it)->definedOn == ResultInfo::SURF_ELEM ) {
         entityType = EntityList::SURF_ELEM_LIST;
       } else if( (*it)->definedOn == ResultInfo::ELEMENT ) {
