@@ -390,7 +390,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     }
     case DesignElement::GMODUL:
     {
-      SetTransIsoTensor(t, subTensor, 0, 0, 0, 0, 0, dens);
+      SetTransIsoTensor(t, subTensor, 0, 0, 0, 0, 0, type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED ? 2*dens : dens);
       break;
     }
     default:

@@ -170,7 +170,11 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
 
     unsigned int nr = elems[e]->Get("nr")->As<unsigned int>();
     DesignElement::Type dt = (DesignElement::Type) DesignElement::type.Parse(elems[e]->Get("type")->As<string>());
-    double val = elems[e]->Get(name)->As<double>();
+    double val;
+    if (name != "design" && elems[e]->Has(name))
+      val = elems[e]->Get(name)->As<double>();
+    else
+      val = elems[e]->Get("design")->As<double>();
 
     // replace the value of the DesignElement
     // we call Find(..,..,false) for meshes with two regions (e. g. cube and void)
