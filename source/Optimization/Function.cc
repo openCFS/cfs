@@ -616,6 +616,8 @@ bool Function::ForDensityFiltering() const
   case PROJECTION:
   case SLACK:
   case DESIGN_BOUND:
+  case SUM_MODULI:
+  case GLOBAL_SUM_MODULI:
     // for the projection case we have a density filter manually on Function::projectionDesign only
     return false;
 
@@ -2129,6 +2131,7 @@ double Function::Local::Identifier::CalcSumModuli() const
 
 void Function::Local::Identifier::CalcSumModuliGradient(int neigh_idx, const Objective* f, const Condition* g, double value)
 {
+  assert(value == 1);
   DesignElement::Type type = GetElement(neigh_idx)->GetType();
   if (type == DesignElement::EMODULISO || type == DesignElement::EMODUL)
     GetElement(neigh_idx)->AddGradient(f, g, value);
