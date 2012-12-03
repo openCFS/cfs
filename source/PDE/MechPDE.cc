@@ -396,7 +396,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       // determine dimension
       EntityIterator it = ent[i]->GetIterator();
       UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
-      if( elemDim != dim_ ) {
+      if( elemDim != dim_-1 ) {
         EXCEPTION("Force density can only be defined on surface elements");
       }
       
