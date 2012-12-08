@@ -100,25 +100,37 @@ namespace CoupledField {
     //! Describes all possible solution types in a CFS simulation
     typedef enum{
       NO_SOLUTION_TYPE, 
-      // === Mechanic results ===    
-      MECH_DISPLACEMENT,
-      LUMPED_MECH_DISPLACEMENT, MECH_ACCELERATION,
-      MECH_VELOCITY, MECH_FORCE, MECH_STRESS, MECH_STRAIN, MECH_STRAIN_IRR, 
-      VON_MISES_STRESS, VON_MISES_STRAIN,
-      MECH_ENERGY, MECH_DEF_VOLUME, MECH_RHS_LOAD, MECH_PRESSURE,
-      MECH_PSEUDO_DENSITY, PHYSICAL_PSEUDO_DENSITY, MECH_SHAPE,
-      MECH_STRUCT_INTENSTIY,
-
-      // === Electrostatic results ===
+      // ============
+      //  MECHANICAL 
+      // ============
+      // -- primary results --
+      MECH_DISPLACEMENT, MECH_ACCELERATION, MECH_VELOCITY,MECH_RHS_LOAD,
+      // --- flux / derived quantities --
+      MECH_STRESS, MECH_STRAIN,MECH_STRUCT_INTENSTIY, VON_MISES_STRESS, 
+      VON_MISES_STRAIN, MECH_KIN_ENERGY_DENS, MECH_DEFORM_ENERGY_DENS,
+      MECH_TOTAL_ENERGY_DENS,
+      // -- integrated quantities --
+      MECH_KIN_ENERGY, MECH_DEFORM_ENERGY, MECH_TOTAL_ENERGY,
+      MECH_POWER, MECH_DEF_SURF_VOLUME, MECH_WEIGHT, 
+      // -- coupling quantities --
+      MECH_FORCE, 
+      
+      // ===============
+      //  ELECTROSTATIC  
+      // ===============
       ELEC_POTENTIAL, ELEC_FIELD_INTENSITY, ELEC_FORCE_VWP,
-      ELEC_INTERFACE_FORCE, ELEC_CHARGE, ELEC_CHARGE_DENSITY, ELEC_FLUX_DENSITY,
+      ELEC_CHARGE, ELEC_CHARGE_DENSITY, ELEC_FLUX_DENSITY,
       ELEC_ENERGY, ELEC_ENERGY_DENSITY,
       ELEC_POLARIZATION,ELEC_RHS_LOAD,ELEC_PSEUDO_POLARIZATION,
 
-      // === Pseude mechanic smoothing results ===
+      // =================
+      //  PSEUDO MECHANIC
+      // =================
       SMOOTH_DISPLACEMENT, SMOOTH_VELOCITY, GRID_VELOCITY, SMOOTH_STRAIN,  
 
-      // === Acoustic results ===
+      // ==========
+      //  ACOUSTIC 
+      // ==========
       ACOU_POTENTIAL, ACOU_PRESSURE, ACOU_PRESSURE_DERIV_1,
       ACOU_PRESSURE_DERIV_2,ACOU_VELOCITY,ACOU_ACCELERATION, ACOU_FORCE, 
       ACOU_PSEUDO_DENSITY, ACOU_POWERDENSITY, ACOU_POWER, ACOU_INTENSITY, ACOU_ENERGY,
@@ -128,7 +140,9 @@ namespace CoupledField {
       ACOU_PMLAUXVEC, ACOU_PMLAUXSCALAR,
       ACOU_ELEM_SPEED_OF_SOUND,
 
-      // === Magnetic results ===
+      // ==========
+      //  MAGNETIC 
+      // ==========
       MAG_POTENTIAL, MAG_POTENTIAL_DERIV1, MAG_SCALAR_POTENTIAL, 
       MAG_FLUX_DENSITY, MAG_HFIELD, MAG_EDDY_CURRENT_DENSITY,
       MAG_COIL_CURRENT_DENSITY, MAG_TOTAL_CURRENT_DENSITY, 
@@ -136,15 +150,24 @@ namespace CoupledField {
       MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_FORCE_LORENTZ_DENSITY, MAG_ENERGY,
       MAG_EDDY_POWER, MAG_RHS_LOAD, MAG_ELEM_PERMEABILITY,
 
-      // === Heat results ===
+      // =================
+      //  HEAT CONDUCTION
+      // =================
       HEAT_TEMPERATURE, HEAT_RHS_LOAD, HEAT_SOURCE_DENSITY,
+      
+      // ===============
+      //  FLUIDMECHANIC
+      // ===============
       FLUID_FORCE,
-      ACOU_PRESSUREXYZ,
       LAMBDA_K, MEAN_FLUIDMECH_VELOCITY, FLUIDMECH_VELOCITY, FLUIDMECH_PRESSURE,
       FLUIDMECH_VELOCITY_DERIV_1, FLUIDMECH_PRESSURE_DERIV_1,
       FLUIDMECH_VELOCITY_DERIV_2, FLUIDMECH_PRESSURE_DERIV_2,
       FLUIDMECH_DENSITY, FLUIDMECH_FORCE, FLUIDMECH_TKE, 
       FLUIDMECH_STRESS, FLUIDMECH_STRAINRATE, FLUIDMECH_ENERGY, FLUIDMECH_STABILPARAM,
+      
+      // ======
+      //  MISC
+      // ======
       HOMOGENIZED_TENSOR = 200,
       OPT_RESULT_1, OPT_RESULT_2, OPT_RESULT_3,
       OPT_RESULT_4, OPT_RESULT_5, OPT_RESULT_6,
@@ -153,7 +176,9 @@ namespace CoupledField {
       GRAD_ACOU_SOLUTION, GRAD_ELEC_POTENTIAL,
       GRAD_X_DISPLACEMENT, GRAD_Y_DISPLACEMENT, GRAD_Z_DISPLACEMENT, // nodal gradients
       
-      // === Geometric Information ===
+      // ==========
+      //  GEOMETRY
+      // ==========
       ELEM_LOC_DIR, JACOBIAN, ASPECT_RATIO
     } SolutionType;
 

@@ -460,9 +460,6 @@ namespace CoupledField {
       case ELEC_FIELD_INTENSITY:
         return true;
         break;
-      case ELEC_INTERFACE_FORCE:
-        return true;
-        break;
       default:
         return false;
         break;
@@ -538,6 +535,7 @@ namespace CoupledField {
     rhs->definedOn = results_[0]->definedOn;
     rhs->entryType = ResultInfo::SCALAR;
     availResults_.insert( rhs );
+    DefineFieldResult( feFunctions_[ELEC_POTENTIAL], rhs );
 
     // ===================================
     // Check for non-conforming interfaces
@@ -700,7 +698,7 @@ namespace CoupledField {
     // ============================
     // Initialize result functors:
     // ============================
-    // collect the flux volume flux coefficient functionf for each region
+    // collect the flux volume flux coefficient function for each region
     std::map<RegionIdType, PtrCoefFct> dCoefs;
     
     // 1) Loop over all BDB-integrators

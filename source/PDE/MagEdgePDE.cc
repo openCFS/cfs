@@ -585,7 +585,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       DefineFieldResult( bFunc, flux );
       
       
-      // === MECHANIC RHS ===
+      // === MAGNETIC RHS ===
       shared_ptr<ResultInfo> rhs(new ResultInfo);
       rhs->resultType = MAG_RHS_LOAD;
       rhs->dofNames = vecComponents;
@@ -595,8 +595,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       availResults_.insert( rhs );
       rhsFeFunctions_[MAG_POTENTIAL]->SetResultInfo(rhs);
       DefineFieldResult( rhsFeFunctions_[MAG_POTENTIAL], rhs );
-      //DefineFieldResult()
-      
       
       // === EDDY CURRENT DENSITY ===
       shared_ptr<CoefFunctionFormBased> jFunc;

@@ -36,7 +36,7 @@ class SingleVector;
     UInt GetActStep( const std::string& pdename ) { return 1;}
 
     /** Helper method which determines if an AnalyisType is complex. */
-    virtual bool IsComplex() { return isQuadratic_; };
+    virtual bool IsComplex() { return true; };
 
   private:
     /** This is the templated form to handle the general and quadratic case */

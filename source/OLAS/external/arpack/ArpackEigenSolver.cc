@@ -555,14 +555,14 @@ namespace CoupledField {
     condNumber = evs[evs.GetSize()-1] / evs[0];
   }
 
-  void ArpackEigenSolver::CalcEigenMode( UInt modeNr, Vector<Double> & mode ) {
+  void ArpackEigenSolver::CalcEigenMode( UInt modeNr, Vector<Complex> & mode ) {
 
     UInt size = matrixA_->GetNumRows();
     mode.Resize( size );
     mode.Init();
 
     for ( UInt i = 0; i < size; i++ ) {
-        mode[i] = (arpackSolver_->GetEigenvector( modeNr ))[i];
+        mode[i] = Complex((arpackSolver_->GetEigenvector( modeNr ))[i],0);
     }
   }
 

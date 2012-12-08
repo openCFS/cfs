@@ -116,7 +116,7 @@ namespace CoupledField {
       GiD_BeginGaussPoint( "mid-3D", GiD_Hexahedra, NULL, 1, 1, 1);
       GiD_EndGaussPoint();
       if ( ptGrid_->GetNumElemOfDim(2) > 0 ) {
-        GiD_BeginGaussPoint( "mid-3", GiD_Quadrilateral, NULL, 1, 1, 1);
+        GiD_BeginGaussPoint( "mid-3D", GiD_Quadrilateral, NULL, 1, 1, 1);
         GiD_EndGaussPoint();
       }
       if ( ptGrid_->GetNumElemOfDim(1) > 0 ) {
@@ -723,7 +723,7 @@ namespace CoupledField {
 
     UInt numDofs = dofNames.GetSize();
 
-    // In case of an eigenfrequency analysis we 
+    // In case of an eigenfrequency analysis we can optionally group the eigenfrequencies
     std::string outName;
     if (actAnalysis_ == BasePDE::EIGENFREQUENCY  &&
         groupEigenFreqs_ == true )  {
@@ -843,18 +843,33 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
         dummy = "mid-3D";
       }
     }
+    
+    // In case of an eigenfrequency analysis we can optionally group the eigenfrequencies
+    std::string outBase;
+    if (actAnalysis_ == BasePDE::EIGENFREQUENCY  &&
+        groupEigenFreqs_ == true )  {
+      std::string temp;
+      temp = "ef" + lexical_cast<std::string>(lastStepRepeated_+1);
+      temp += "//";
+      temp += name;
+      outBase = temp;
+    } else {
+      outBase = name;
+    }
 
     // determine complete name of output quantities
     std::string outName1, outName2;
     if (outputFormat == REAL_IMAG) {
-      outName1 = name + "-real";
-      outName2 = name + "-imag";
+      outName1 = outBase + "-real";
+      outName2 = outBase + "-imag";
     } else {
-      outName1 = name + "-amp";
-      outName2 = name + "-phase";
+      outName1 = outBase + "-amp";
+      outName2 = outBase + "-phase";
     }
 
     UInt numDofs = dofNames.GetSize();
+    
+
 
     // === Scalar entries ===
     if ( entryType == ResultInfo::SCALAR ) {

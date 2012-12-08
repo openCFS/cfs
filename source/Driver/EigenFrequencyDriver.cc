@@ -110,6 +110,10 @@ namespace CoupledField {
     if ( writeModes_ == true ) {
 
       for ( UInt i = 0 ; i < numConverged; i++ ) {
+        // Set current frequency value in the mathParser
+        domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", abs(eigenFreqs[i]) );
+        domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", i+1 );
+        
         ptPDE_->GetSolveStep()->SetActStep(i);
         ptPDE_->GetSolveStep()->SetActFreq(std::abs(eigenFreqs[i]));
         ptPDE_->GetSolveStep()->CalcEigenMode( i );
@@ -180,6 +184,11 @@ namespace CoupledField {
 
       for ( UInt i = 0 ; i < numConverged; i++ ) {
         Double actFreq = eigenFreqs[i].imag()/(8.0*atan(1.0));
+        
+        // Set current frequency value in the mathParser
+        domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq );
+        domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", i+1 );
+        
         ptPDE_->GetSolveStep()->SetActStep(i);
         ptPDE_->GetSolveStep()->SetActFreq(actFreq);
         ptPDE_->GetSolveStep()->CalcEigenMode( i );

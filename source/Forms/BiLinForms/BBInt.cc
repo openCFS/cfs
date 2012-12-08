@@ -152,7 +152,6 @@ namespace CoupledField{
 
      // Calculate scalar factor
      this->coefScalar_->GetScalar(fac, lpm);
-     fac *= MAT_DATA_TYPE(lpm.jacDet); 
      this->bOperator_.TransformJacDet(fac, lpm, ptFe);
 
 #ifdef USE_BLAS_VERSION

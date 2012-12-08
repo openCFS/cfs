@@ -251,10 +251,6 @@ namespace CoupledField {
         return "Pa/s^2";
         break;
 
-      case ACOU_PRESSUREXYZ:
-        return "Pa";
-        break;
-
       case ACOU_RHS_LOAD:
         return "kg m^-3 s^-2";
         break;
@@ -408,12 +404,11 @@ namespace CoupledField {
         return "N";
         break;
 
-      case MECH_DEF_VOLUME:
+      case MECH_DEF_SURF_VOLUME:
         return "m^3";
         break;
 
       case MECH_DISPLACEMENT:
-      case LUMPED_MECH_DISPLACEMENT:
         return "m";
         break;
 
@@ -429,18 +424,15 @@ namespace CoupledField {
         return "N";
         break;
 
-      case MECH_ENERGY:
+      case MECH_KIN_ENERGY:
+      case MECH_DEFORM_ENERGY: 
+      case MECH_TOTAL_ENERGY:
         return "Ws";
         break;
 
-      case MECH_PSEUDO_DENSITY:
-      case PHYSICAL_PSEUDO_DENSITY:
-        return "";
         break;
 
       case MECH_STRESS:
-      case MECH_PRESSURE:
-      case MECH_STRAIN_IRR:
         return "N/m^2";
         break;
 
@@ -1134,30 +1126,32 @@ namespace CoupledField {
     SolutionTypeEnum.SetName("SolutionTypeEnum");
     //mechanics
     SolutionTypeEnum.Add(MECH_DISPLACEMENT, "mechDisplacement");
-    SolutionTypeEnum.Add(LUMPED_MECH_DISPLACEMENT, "lumpedMechDisplacement");
+    
     SolutionTypeEnum.Add(MECH_ACCELERATION, "mechAcceleration");
     SolutionTypeEnum.Add(MECH_VELOCITY, "mechVelocity");
-    SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
+    SolutionTypeEnum.Add(MECH_RHS_LOAD, "mechRhsLoad");    
+    
     SolutionTypeEnum.Add(MECH_STRESS, "mechStress");
+    SolutionTypeEnum.Add(MECH_STRAIN, "mechStrain");
+    SolutionTypeEnum.Add(MECH_STRUCT_INTENSTIY, "mechStructIntensity");
     SolutionTypeEnum.Add(VON_MISES_STRESS, "vonMisesStress");
     SolutionTypeEnum.Add(VON_MISES_STRAIN, "vonMisesStrain");
-    SolutionTypeEnum.Add(MECH_STRAIN, "mechStrain");
-    SolutionTypeEnum.Add(MECH_STRAIN_IRR, "mechStrainIrr");
-    SolutionTypeEnum.Add(MECH_ENERGY, "mechEnergy");
-    SolutionTypeEnum.Add(MECH_DEF_VOLUME, "volumeAboveDefSurf");
-    SolutionTypeEnum.Add(MECH_RHS_LOAD, "mechRhsLoad");
-    SolutionTypeEnum.Add(MECH_PRESSURE, "mechPressure");
-    SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity");
-    SolutionTypeEnum.Add(PHYSICAL_PSEUDO_DENSITY, "physicalPseudoDensity");
-    SolutionTypeEnum.Add(MECH_SHAPE, "mechShape");
-    SolutionTypeEnum.Add(MECH_STRUCT_INTENSTIY, "mechStructIntensity");
+    SolutionTypeEnum.Add(MECH_KIN_ENERGY_DENS, "mechKinEnergyDensity");
+    SolutionTypeEnum.Add(MECH_DEFORM_ENERGY_DENS, "mechDeformEnergyDensity");
+    SolutionTypeEnum.Add(MECH_TOTAL_ENERGY_DENS, "mechTotalEnergyDensity");
+    SolutionTypeEnum.Add(MECH_KIN_ENERGY, "mechKinEnergy");
+    SolutionTypeEnum.Add(MECH_DEFORM_ENERGY, "mechDeformEnergy");
+    SolutionTypeEnum.Add(MECH_TOTAL_ENERGY, "mechTotalEnergy");
+    SolutionTypeEnum.Add(MECH_POWER, "mechPower");
+    SolutionTypeEnum.Add(MECH_DEF_SURF_VOLUME, "mechDisplacedSurfVolume");
+    SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
+    
     //electrostatics
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");
     SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
     SolutionTypeEnum.Add(ELEC_PSEUDO_POLARIZATION, "elecPseudoPolarization");
     SolutionTypeEnum.Add(ELEC_FORCE_VWP, "elecForceVWP");
-    SolutionTypeEnum.Add(ELEC_INTERFACE_FORCE, "elecInterfaceForce");
     SolutionTypeEnum.Add(ELEC_CHARGE, "elecCharge");
     SolutionTypeEnum.Add(ELEC_CHARGE_DENSITY, "elecChargeDensity");
     SolutionTypeEnum.Add(ELEC_FLUX_DENSITY, "elecFluxDensity");
@@ -1185,7 +1179,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_RHSVAL, "acouRHSval");
     SolutionTypeEnum.Add(ACOUSURF_RHSVAL, "acouSurfRHSval");
     SolutionTypeEnum.Add(ACOU_ELEM_SPEED_OF_SOUND,"acouSpeedOfSound");
-    SolutionTypeEnum.Add(ACOU_PRESSUREXYZ, "acouPressureXYZ");
     SolutionTypeEnum.Add(ACOU_POWERDENSITY, "acouPowerDensity");
     SolutionTypeEnum.Add(ACOU_POWER, "acouPower");
     SolutionTypeEnum.Add(ACOU_INTENSITY, "acouIntensity");

@@ -2946,7 +2946,7 @@ namespace CoupledField {
                                          SolutionType primSolType ) {
     
     // only define time derivatives in transient or harmonic case 
-    if ( (analysistype_ != TRANSIENT) && (analysistype_ != HARMONIC)){
+    if ( analysistype_ == STATIC){
       return;
     }
       
@@ -2986,7 +2986,7 @@ namespace CoupledField {
     derivFeFct->Finalize();
     
     // set the time derivative information
-    if( analysistype_ == HARMONIC ) {
+    if( analysistype_ == HARMONIC ||  analysistype_ == EIGENFREQUENCY) {
       FeFunction<Complex> & cDerivFct = 
           dynamic_cast<FeFunction<Complex>& >(*derivFeFct);
       shared_ptr<FeFunction<Complex> > cPrimFct = 

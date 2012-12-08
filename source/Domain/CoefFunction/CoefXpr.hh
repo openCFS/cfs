@@ -323,7 +323,7 @@ protected:
 //!
 //! To generate e.g. a binary expression "coef1 / coef2", write:
 //! \code
-//! CoefXprBinOp xpr(coef1, coef2, CoefXpr::OP_MULT); 
+//! CoefXprBinOp xpr(coef1, coef2, CoefXpr::OP_DIV); 
 //! \endcode
 
 class CoefXprBinOp : public CoefXpr {

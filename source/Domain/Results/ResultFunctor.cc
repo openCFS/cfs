@@ -144,6 +144,9 @@ EnergyResultFunctor(shared_ptr<BaseFeFunction> feFct,
                     ResultFunctor( inf) {
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
   derivType_ = INTEGRATED;
+  
+  // default: use full integration order 
+  accuracy_ = FULL;
 }
   
 template<class TYPE> EnergyResultFunctor<TYPE>::
@@ -151,10 +154,20 @@ template<class TYPE> EnergyResultFunctor<TYPE>::
 }
 
 template<class TYPE> void EnergyResultFunctor<TYPE>::
+SetIntegAccuracy( IntegAccuracy acc ){
+  accuracy_ = acc;
+}
+
+template<class TYPE> void EnergyResultFunctor<TYPE>::
 EvalResult(shared_ptr<BaseResult> res ) {
-  Result<TYPE>& actSol = static_cast<Result<TYPE>& >(*res);
+  EXCEPTION("General implementation not available");
+}
+
+template<> void EnergyResultFunctor<Double>::
+EvalResult(shared_ptr<BaseResult> res ) {
+  Result<Double>& actSol = static_cast<Result<Double>& >(*res);
   EntityIterator nameIt = actSol.GetEntityList()->GetIterator();
-  Vector<TYPE>& vec = actSol.GetVector();
+  Vector<Double>& vec = actSol.GetVector();
   vec.Resize( nameIt.GetSize() );
 
   // Loop over regions
@@ -163,18 +176,140 @@ EvalResult(shared_ptr<BaseResult> res ) {
         ptGrid_->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
     EntityIterator elemIt = actSDList->GetIterator();
 
-    TYPE tempEnergy = 0.0;
+    Double tempEnergy = 0.0;
     // loop over elements
     for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
       const Elem * el = elemIt.GetElem();
-      forms_[el->regionId]->CalcElementMatrix(elemMat, 
-                                              elemIt, elemIt);
+      // energy density is 1/2 * elemSol^T * kernel * elemSol
+      this->feFct_->GetElemSolution( elemSol, el);
+      if( accuracy_ == FULL ) {
+        // ==================
+        //  FULL INTEGRATION
+        // ==================
+        forms_[el->regionId]->CalcElementMatrix(elemMatR, 
+                                                elemIt, elemIt);
+        temp = elemMatR * elemSol;
+        tempEnergy += (temp * elemSol) * 0.5;
+        
+      } else if ( accuracy_ == MIDPOINT ) {
+        // =====================
+        //  REDUCED INTEGRATION
+        // =====================
+        // Obtain FE element from feSpace and integration scheme
+        IntegOrder order;
+        // Use at least 2nd order integration, as the kernel
+        // is composed by a product of 2 functions.
+        order.SetIsoOrder(2);
+        shared_ptr<FeSpace> feSpace = feFct_->GetFeSpace();
+        shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
+        // Get shape map from grid
+        shared_ptr<ElemShapeMap> esm = 
+            domain->GetGrid()->GetElemShapeMap( el, true );
+
+        // Get integration points
+        StdVector<LocPoint> intPoints;
+        StdVector<Double> weights;
+        intScheme->GetIntPoints( Elem::GetShapeType(el->type), IntScheme::GAUSS, order, 
+                                 intPoints, weights );
+        // Loop over all integration points
+        LocPointMapped lpm;
+        for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+          // Calculate for each integration point the LocPointMapped
+          lpm.Set( intPoints[i], esm );
+          forms_[el->regionId]->CalcKernel(elemMatR, lpm );
+          temp = elemMatR * elemSol;
+          tempEnergy += (temp * elemSol) * 0.5 * lpm.jacDet * weights[i]; 
+        } // loop integration points
+        
+      } else {
+        EXCEPTION("No valid integration method defined");
+      }
+    } // loop elements
+    vec[nameIt.GetPos()] = tempEnergy;
+  }
+}
+
+template<> void EnergyResultFunctor<Complex>::
+EvalResult(shared_ptr<BaseResult> res ) {
+  Result<Complex>& actSol = static_cast<Result<Complex>& >(*res);
+  EntityIterator nameIt = actSol.GetEntityList()->GetIterator();
+  Vector<Complex>& vec = actSol.GetVector();
+  vec.Resize( nameIt.GetSize() );
+
+  // Loop over regions
+  for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
+    shared_ptr<EntityList> actSDList = 
+        ptGrid_->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
+    EntityIterator elemIt = actSDList->GetIterator();
+
+    Complex tempEnergy = 0.0;
+    // loop over elements
+    for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+      const Elem * el = elemIt.GetElem();
 
       // energy density is 1/2 * elemSol^T * kernel * elemSol
       this->feFct_->GetElemSolution( elemSol, el);
-      temp = elemMat * elemSol;
-      tempEnergy += (temp * elemSol) * 0.5;
-    }
+
+      
+      if( accuracy_ == FULL ) {
+        // ==================
+        //  FULL INTEGRATION
+        // ==================
+
+        // in the complex valued case, we can have either
+        // real-valued matrices or complex ones.
+        if( forms_[el->regionId]->IsComplex() )  {
+          forms_[el->regionId]->CalcElementMatrix(elemMatC, 
+                                                  elemIt, elemIt);
+          temp = elemMatC * elemSol;
+        } else {
+          forms_[el->regionId]->CalcElementMatrix(elemMatR, 
+                                                  elemIt, elemIt);
+          temp = elemMatR * elemSol;
+        }
+        tempEnergy += (temp * elemSol) * 0.5;
+      }  else if( accuracy_ == MIDPOINT ) {
+
+        // =====================
+        //  REDUCED INTEGRATION
+        // =====================
+
+        // Obtain FE element from feSpace and integration scheme
+        IntegOrder order;
+        // Use at least 2nd order integration, as the kernel
+        // is composed by a product of 2 functions.
+        order.SetIsoOrder(2);
+        shared_ptr<FeSpace> feSpace = feFct_->GetFeSpace();
+        shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
+        // Get shape map from grid
+        shared_ptr<ElemShapeMap> esm = 
+            domain->GetGrid()->GetElemShapeMap( el, true );
+
+        // Get integration points
+        StdVector<LocPoint> intPoints;
+        StdVector<Double> weights;
+        intScheme->GetIntPoints( Elem::GetShapeType(el->type), IntScheme::GAUSS, order, 
+                                 intPoints, weights );
+        // Loop over all integration points
+        LocPointMapped lpm;
+        for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+          //std::cerr << "i = " << i << ", point = " << intPoints[i] << ", weight = " << weights[i] << std::endl;
+          // Calculate for each integration point the LocPointMapped
+          lpm.Set( intPoints[i], esm );
+          if( forms_[el->regionId]->IsComplex() )  {
+            forms_[el->regionId]->CalcKernel(elemMatC, lpm );
+            temp = elemMatC * elemSol;
+          } else {
+            forms_[el->regionId]->CalcKernel(elemMatR, lpm );
+            temp = elemMatR * elemSol;
+          }
+          tempEnergy += (temp * elemSol) * 0.5 * lpm.jacDet * weights[i]; 
+        } // loop integration points
+      } else {
+        EXCEPTION("No valid integration method defined");
+      }
+    } // loop elements
+
     vec[nameIt.GetPos()] = tempEnergy;
   }
 }

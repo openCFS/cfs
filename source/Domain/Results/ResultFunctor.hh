@@ -43,6 +43,11 @@ public:
   //! INTEGRATED: denotes values, which get integrated
   typedef enum {NOT_DEFINED, PRIMARY, VOL_FIELD, SURF_FIELD, INTEGRATED} ResultDerivType;
   
+  //! Typedef for integration accuracy
+  //! MIDPOINT: only the element midpoints is used for integration of results
+  //! FULL: use full accuracy, i.e. all integration points for result integration
+  typedef enum {NO_ACCURACY, MIDPOINT, FULL} IntegAccuracy;
+  
   //! Evaluate result for complete entity list
   virtual void EvalResult(shared_ptr<BaseResult> res ) = 0;
   
@@ -158,13 +163,15 @@ private:
 template<class TYPE>
 class EnergyResultFunctor : public ResultFunctor {
 public:
-
   //! Constructor
   EnergyResultFunctor(shared_ptr<BaseFeFunction> feFct,
                       shared_ptr<ResultInfo> inf );
 
   //! Destructor
   virtual ~EnergyResultFunctor();
+  
+  //! Set integration accuracy
+  void SetIntegAccuracy( IntegAccuracy acc );
 
   //! Evaluate result for complete entity list
   virtual void EvalResult(shared_ptr<BaseResult> res );
@@ -174,11 +181,17 @@ protected:
   //! FeFunction containing the coefficients, on which the functor computes
   shared_ptr<FeFunction<TYPE> > feFct_;
 
+  //! Accuracy for integration
+  IntegAccuracy accuracy_;
+  
   //! Solution of element
   Vector<TYPE> elemSol, temp;
 
-  //! Element matrix
-  Matrix<TYPE> elemMat;
+  //! Element matrix (real-valued case)
+  Matrix<Double> elemMatR;
+  
+  //! Element matrix (complex-valued case)
+  Matrix<Complex> elemMatC;
 
   //! Mapped local points
   LocPointMapped lpm;

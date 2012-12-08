@@ -30,6 +30,7 @@
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 
 #include "Domain/CoefFunction/CoefXpr.hh"
+#include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 #include "CoupledPDE/PDECoupling.hh"
@@ -292,7 +293,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       PtrCoefFct densCoeff 
           = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(density));
       
-      BiLinearForm *massInt = NULL;
+      BaseBDBInt *massInt = NULL;
       if( dim_ == 2 ) {
         massInt = new BBInt<IdentityOperator<FeH1,2,2> >(densCoeff, 1.0);
       } else {
@@ -311,6 +312,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         massContext->SetSecDestMat( DAMPING, actDamp.alpha );
       }
       
+      // Important: Add mass-integrator to global list, as we need them later
+      // for calculation of postprocessing results
+      massInts_[actRegion] = massInt;
       assemble_->AddBiLinearForm( massContext );
 
       
@@ -695,9 +699,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     StdVector<std::string > dispDofNames;
     dispDofNames = feFunctions_[MECH_DISPLACEMENT]->GetResultInfo()->dofNames;
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MECH_DISPLACEMENT];
-    
-    if ( (analysistype_ == TRANSIENT) || (analysistype_ == HARMONIC))
-    {
+    shared_ptr<BaseFeFunction> vFct;
+    if ( analysistype_ != STATIC ) {
       // === MECHANIC VELOCITY ===
       shared_ptr<ResultInfo> vel(new ResultInfo);
       vel->resultType = MECH_VELOCITY;
@@ -708,7 +711,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       availResults_.insert( vel );
 
       DefineTimeDerivResult( MECH_VELOCITY, 1, MECH_DISPLACEMENT );
-
+      vFct = timeDerivFeFunctions_[MECH_VELOCITY];
+      
       // === MECHANIC ACCELERATION ===
       shared_ptr<ResultInfo> acc(new ResultInfo);
       acc->resultType = MECH_ACCELERATION;
@@ -729,6 +733,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     rhs->entryType = ResultInfo::VECTOR;
     rhs->definedOn = ResultInfo::NODE;
     availResults_.insert( rhs );
+    DefineFieldResult( rhsFeFunctions_[MECH_DISPLACEMENT], rhs );
     
     // === MECHANIC STRESS ===
     shared_ptr<ResultInfo> stress(new ResultInfo);
@@ -762,7 +767,13 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     }
     DefineFieldResult( strainFunc, strain );
 
-    if ( (analysistype_ == TRANSIENT) || (analysistype_ == HARMONIC)) {
+    
+    PtrCoefFct intensFct;
+    shared_ptr<CoefFunctionFormBased> kedFunc;
+    shared_ptr<ResultFunctor> keFunc;
+    PtrCoefFct sNormStructIntens;
+    shared_ptr<ResultFunctor> powerFunc;
+    if ( analysistype_ != STATIC ) {
       // === MECHANIC STRUCTURAL INTENSTIY ===
       shared_ptr<ResultInfo> intens(new ResultInfo);
       intens->resultType = MECH_STRUCT_INTENSTIY;
@@ -780,166 +791,180 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
           CoefFunction::Generate(part,
                                  CoefXprBinOp( sigmaFunc, velFnc,
                                                CoefXpr::OP_MULT_VOIGT_TENSOR_VEC ) );
-      PtrCoefFct intensFct = 
+      intensFct = 
           CoefFunction::Generate(part,
                                  CoefXprBinOp( "-1.0", intensTmp , CoefXpr::OP_MULT ));
-      DefineFieldResult( intensFct, intens );                                    
+      DefineFieldResult( intensFct, intens );
+      
+      
+      // === MECHANIC KINETIC ENERGY DENSITY ===
+      shared_ptr<ResultInfo> kinEnergyDens(new ResultInfo);
+      kinEnergyDens->resultType = MECH_KIN_ENERGY_DENS;
+      kinEnergyDens->dofNames = "";
+      kinEnergyDens->unit = "Ws/m^3";
+      kinEnergyDens->entryType = ResultInfo::SCALAR;
+      kinEnergyDens->definedOn = ResultInfo::ELEMENT;
+      availResults_.insert( kinEnergyDens );
+      if( isComplex_ ) {
+        kedFunc.reset(new CoefFunctionBdBKernel<Complex>(vFct, 0.5));
+      } else {
+        kedFunc.reset(new CoefFunctionBdBKernel<Double>(vFct, 0.5));
+      }
+      DefineFieldResult( kedFunc, kinEnergyDens );
+      
+      // === MECHANIC KINETIC ENERGY ===
+      shared_ptr<ResultInfo> kinEnergy(new ResultInfo);
+      kinEnergy->resultType = MECH_KIN_ENERGY;
+      kinEnergy->dofNames = "";
+      kinEnergy->unit = "Ws";
+      kinEnergy->entryType = ResultInfo::SCALAR;
+      kinEnergy->definedOn = ResultInfo::REGION;
+      availResults_.insert( kinEnergy );
+      
+      if( isComplex_ ) {
+        keFunc.reset(new EnergyResultFunctor<Complex>(vFct, kinEnergy));
+      } else {
+        keFunc.reset(new EnergyResultFunctor<Double>(vFct, kinEnergy));
+      }
+      resultFunctors_[MECH_KIN_ENERGY] = keFunc;
+      
+      // === MECHANIC POWER ===
+      shared_ptr<ResultInfo> power(new ResultInfo);
+      power->resultType = MECH_POWER;
+      power->dofNames = "";
+      power->unit = "W";
+      power->entryType = ResultInfo::SCALAR;
+      power->definedOn = ResultInfo::SURF_REGION;
+      availResults_.insert( power );
+      
+      // first, project structural intensity normal 
+      // define missing normal structural surface intensity
+      if( isComplex_ ) {
+        sNormStructIntens.reset(new CoefFunctionSurf<Complex>(true));
+      } else {
+        sNormStructIntens.reset(new CoefFunctionSurf<Double>(true));
+      }
+      
+      // then, integrate values
+      if( isComplex_ ) {
+        powerFunc.reset(new ResultFunctorIntegrate<Complex>(sNormStructIntens, 
+                                                            feFct, power ) );
+      } else {
+        powerFunc.reset(new ResultFunctorIntegrate<Double>(sNormStructIntens, 
+                                                           feFct, power ) );
+      }
+      resultFunctors_[MECH_POWER] = powerFunc;
     }
-    
-    // === MECHANIC ENERGY ===
-    shared_ptr<ResultInfo> energy(new ResultInfo);
-    energy->resultType = MECH_ENERGY;
-    energy->dofNames = "";
-    energy->unit = "Ws";
-    energy->entryType = ResultInfo::SCALAR;
-    energy->definedOn = ResultInfo::REGION;
-    availResults_.insert( energy );
-    shared_ptr<ResultFunctor> energyFunc;
-    if( isComplex_ ) {
-      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy));
-    } else {
-      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy));
-    }
-    resultFunctors_[MECH_ENERGY] = energyFunc;
 
+
+    // === MECHANIC DEFORMATION ENERGY DENSITY ===
+    shared_ptr<ResultInfo> defEnergyDens(new ResultInfo);
+    defEnergyDens->resultType = MECH_DEFORM_ENERGY_DENS;
+    defEnergyDens->dofNames = "";
+    defEnergyDens->unit = "Ws/m^3";
+    defEnergyDens->entryType = ResultInfo::SCALAR;
+    defEnergyDens->definedOn = ResultInfo::ELEMENT;
+    availResults_.insert( defEnergyDens );
+    shared_ptr<CoefFunctionFormBased> dedFunc;
+    if( isComplex_ ) {
+      dedFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, 0.5));
+    } else {
+      dedFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 0.5));
+    }
+    DefineFieldResult( dedFunc, defEnergyDens );
+
+    // === MECHANIC DEFORMATION ENERGY ===
+    shared_ptr<ResultInfo> defEnergy(new ResultInfo);
+    defEnergy->resultType = MECH_DEFORM_ENERGY;
+    defEnergy->dofNames = "";
+    defEnergy->unit = "Ws";
+    defEnergy->entryType = ResultInfo::SCALAR;
+    defEnergy->definedOn = ResultInfo::REGION;
+    availResults_.insert( defEnergy );
+    shared_ptr<ResultFunctor> deFunc;
+    if( isComplex_ ) {
+      deFunc.reset(new EnergyResultFunctor<Complex>(feFct, defEnergy));
+    } else {
+      deFunc.reset(new EnergyResultFunctor<Double>(feFct, defEnergy));
+    }
+    resultFunctors_[MECH_DEFORM_ENERGY] = deFunc;
+
+    // === MECHANIC TOTAL ENERGY DENSITY ===
+    shared_ptr<ResultInfo> totEnergyDens(new ResultInfo);
+    totEnergyDens->resultType = MECH_TOTAL_ENERGY_DENS;
+    totEnergyDens->dofNames = "";
+    totEnergyDens->unit = "Ws";
+    totEnergyDens->entryType = ResultInfo::SCALAR;
+    totEnergyDens->definedOn = ResultInfo::ELEMENT;
+    availResults_.insert( totEnergyDens );
+    shared_ptr<CoefFunction> tedFunc;
+    // in static analysis, the total energy density equals the deformation one
+    if (analysistype_ == STATIC ) {
+      tedFunc = dedFunc;
+    } else {
+      tedFunc = CoefFunction::Generate(part, 
+                                       CoefXprBinOp( dedFunc, kedFunc, CoefXpr::OP_ADD) );
+      std::cerr << "total energy density is defines as " << tedFunc->ToString() << std::endl;
+    }
+    DefineFieldResult(tedFunc, totEnergyDens ); 
+
+    // === MECHANIC TOTALENERGY ===
+    shared_ptr<ResultInfo> tEnergy(new ResultInfo);
+    tEnergy->resultType = MECH_TOTAL_ENERGY;
+    tEnergy->dofNames = "";
+    tEnergy->unit = "Ws";
+    tEnergy->entryType = ResultInfo::SCALAR;
+    tEnergy->definedOn = ResultInfo::REGION;
+    availResults_.insert( tEnergy );
+    shared_ptr<ResultFunctor> teFunc;
+    if( isComplex_ ) {
+      teFunc.reset(new ResultFunctorIntegrate<Complex>(tedFunc, feFct, tEnergy ) );
+    } else {
+      teFunc.reset(new ResultFunctorIntegrate<Double>(tedFunc, feFct, tEnergy ) );
+    }
+    resultFunctors_[MECH_TOTAL_ENERGY] = teFunc;
+
+
+    // === MECHANIC DISPLACED SURFACE VOLUME ===
+     // ... to be implemented
+    
     // ============================
     // Initialize result functors:
     // ============================
+     // collect the intensity coefficient function for each regions
+     std::map<RegionIdType, PtrCoefFct> intensCoefs;
+     
     // 1) Loop over all BDB-integrators
     std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
     for( ; it != bdbInts_.end(); ++it ) {
       RegionIdType region = it->first;
       BaseBDBInt* bdb = it->second;
 
-      // 2) pass integrators to functors
       sigmaFunc->AddIntegrator(bdb, region);
       strainFunc->AddIntegrator(bdb, region);
-      energyFunc->AddIntegrator(bdb, region);
+      dedFunc->AddIntegrator(bdb, region);
+      deFunc->AddIntegrator(bdb, region);
+      intensCoefs[region] = intensFct;
     }
     
-   
-    //
-//    // === MECHANIC PRESSURE ===
-//    shared_ptr<ResultInfo> pressure(new ResultInfo);
-//    pressure->resultType = MECH_PRESSURE;
-//    pressure->dofNames = "";
-//    pressure->unit = "N/m^2";
-//    pressure->entryType = ResultInfo::SCALAR;
-//    pressure->definedOn = ResultInfo::SURF_ELEM;
-//    pressure->fctType = shared_ptr<ConstFct>( new ConstFct() );
-//    availResults_.insert( pressure );
-//
-//    // === MECHANIC VON MISES STRESS (yield criterion, a scalar value)===
-//    shared_ptr<ResultInfo> vonMises(new ResultInfo);
-//    vonMises->resultType = VON_MISES_STRESS;
-//    vonMises->dofNames = "";
-//    vonMises->unit =  "";
-//    vonMises->entryType = ResultInfo::SCALAR;
-//    vonMises->definedOn = ResultInfo::ELEMENT;
-//    vonMises->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//    availResults_.insert( vonMises );
-//
-//
-//    // === MECHANIC VON MISES STRAIN (yield criterion, a scalar value)===
-//    shared_ptr<ResultInfo> vonMisesStrain(new ResultInfo);
-//    vonMisesStrain->resultType = VON_MISES_STRAIN;
-//    vonMisesStrain->dofNames = "";
-//    vonMisesStrain->unit =  "";
-//    vonMisesStrain->entryType = ResultInfo::SCALAR;
-//    vonMisesStrain->definedOn = ResultInfo::ELEMENT;
-//    vonMisesStrain->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//    availResults_.insert( vonMisesStrain );
-//
-//
-//
-
-//
-
-//
-//    // === LUMPED_MECHANIC DISPLACEMENT ===
-//    shared_ptr<ResultInfo> elem_disp(new ResultInfo);
-//    elem_disp->resultType = LUMPED_MECH_DISPLACEMENT;
-//    elem_disp->dofNames = dispDofNames;
-//    elem_disp->unit = "m";
-//    if(subType_ != "flatShell") {
-//      elem_disp->entryType = ResultInfo::VECTOR;
-//    } else {
-//      elem_disp->entryType = ResultInfo::TENSOR;
-//    }
-//    elem_disp->definedOn = ResultInfo::ELEMENT;
-//    elem_disp->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//    availResults_.insert(elem_disp);
-//
-//    // === PSEUDO DENSITY for SIMP ===
-//    shared_ptr<ResultInfo> mechPD(new ResultInfo);
-//    mechPD->resultType = MECH_PSEUDO_DENSITY;
-//    mechPD->dofNames = "";
-//    mechPD->unit = "";
-//    mechPD->entryType = ResultInfo::SCALAR;
-//    mechPD->definedOn = ResultInfo::ELEMENT;
-//    mechPD->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//    availResults_.insert( mechPD );
-//
-//    shared_ptr<ResultInfo> pysicalPD(new ResultInfo);
-//    pysicalPD->resultType = PHYSICAL_PSEUDO_DENSITY;
-//    pysicalPD->dofNames = "";
-//    pysicalPD->unit = "";
-//    pysicalPD->entryType = ResultInfo::SCALAR;
-//    pysicalPD->definedOn = ResultInfo::ELEMENT;
-//    pysicalPD->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//    availResults_.insert( pysicalPD );
-//
-//
-//    // === SHAPE offset ===
-//    shared_ptr<ResultInfo> shape(new ResultInfo);
-//    shape->resultType = MECH_SHAPE;
-//    shape->dofNames = dispDofNames;
-//    shape->unit = "m";
-//    shape->entryType = disp->entryType;
-//    shape->definedOn = disp->definedOn;
-//    shape->fctType = disp->fctType;
-//    availResults_.insert( shape );
-//
-//    // === HOMOGENIZED_TENSOR ===
-//    // calculated as a special optimization result
-//    shared_ptr<ResultInfo> homogenTensor(new ResultInfo);
-//    homogenTensor->resultType = HOMOGENIZED_TENSOR;
-//    homogenTensor->dofNames = "";
-//    homogenTensor->unit = "";
-//    homogenTensor->entryType = ResultInfo::TENSOR;
-//    homogenTensor->definedOn = ResultInfo::REGION;
-//    homogenTensor->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//    availResults_.insert(homogenTensor);
-//
-//
-//    // gradDisplacement as a nodal property
-//    // TODO a method would reduce the copy and paste!
-//    shared_ptr<ResultInfo> grad_x_displ(new ResultInfo);
-//    grad_x_displ->resultType = GRAD_X_DISPLACEMENT;
-//    grad_x_displ->SetVectorDOFs(dim_, isaxi_);
-//    grad_x_displ->unit = "m/m";
-//    grad_x_displ->entryType = ResultInfo::VECTOR;
-//    grad_x_displ->definedOn = ResultInfo::NODE;
-//    grad_x_displ->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//    availResults_.insert(grad_x_displ);
-//
-//    shared_ptr<ResultInfo> grad_y_displ(new ResultInfo);
-//    grad_y_displ->resultType = GRAD_Y_DISPLACEMENT;
-//    grad_y_displ->SetVectorDOFs(dim_, isaxi_);
-//    grad_y_displ->unit = "m/m";
-//    grad_y_displ->entryType = ResultInfo::VECTOR;
-//    grad_y_displ->definedOn = ResultInfo::NODE;
-//    grad_y_displ->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//    availResults_.insert(grad_y_displ);
-//
-//    shared_ptr<ResultInfo> grad_z_displ(new ResultInfo);
-//    grad_z_displ->resultType = GRAD_Z_DISPLACEMENT;
-//    grad_z_displ->SetVectorDOFs(dim_, isaxi_);
-//    grad_z_displ->unit = "m/m";
-//    grad_z_displ->entryType = ResultInfo::VECTOR;
-//    grad_z_displ->definedOn = ResultInfo::NODE;
-//    grad_z_displ->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//    availResults_.insert(grad_z_displ);
+    // 2) Loop over all mass integrators
+    if( analysistype_ != STATIC ) {
+      it = massInts_.begin();
+      for( ; it != massInts_.end(); ++it ) {
+        RegionIdType region = it->first;
+        BaseBDBInt* massInt = it->second;
+        kedFunc->AddIntegrator(massInt, region);
+        keFunc->AddIntegrator(massInt, region);
+      }
+      // define missing normal structural surface intensity
+      if( isComplex_ ) {
+        dynamic_pointer_cast<CoefFunctionSurf<Complex> >(sNormStructIntens)
+                  ->SetVolumeCoefs(intensCoefs);
+      } else {
+        dynamic_pointer_cast<CoefFunctionSurf<Double> >(sNormStructIntens)
+                        ->SetVolumeCoefs(intensCoefs);
+      }
+    }
   }
   
   

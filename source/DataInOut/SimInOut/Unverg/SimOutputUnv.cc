@@ -1323,10 +1323,6 @@ namespace CoupledField {
         ideas5xSolType = "STRAIN";
         ideas2414SolType = 3;
         break;
-      case MECH_PSEUDO_DENSITY:
-        capaSolType = "pseudo density";
-        ideas5xSolType = "PSEUDENS";
-        break;
       case MECH_RHS_LOAD:
         capaSolType = "mechRhsLoad";
         ideas5xSolType = "MECHRHS";
@@ -1347,9 +1343,6 @@ namespace CoupledField {
       case ELEC_FORCE_VWP: 
         EXCEPTION("Not implemented" );
         break;
-      case ELEC_INTERFACE_FORCE:
-        EXCEPTION("Not implemented" );
-        break; 
       case ELEC_CHARGE:
         capaSolType = "electric charge";
         ideas5xSolType = "ECHARGE";

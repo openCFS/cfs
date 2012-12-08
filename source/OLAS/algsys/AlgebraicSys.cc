@@ -794,8 +794,8 @@ namespace CoupledField {
          dynamic_cast<Vector<Complex> &> ((*sol_)(0));
        eigenSolver_->CalcQuadEigenMode( numMode, solHelp );
     } else {
-      Vector<Double> & solHelp =
-        dynamic_cast<Vector<Double> &> ((*sol_)(0));
+      Vector<Complex> & solHelp =
+        dynamic_cast<Vector<Complex> &> ((*sol_)(0));
       eigenSolver_->CalcEigenMode( numMode, solHelp );
     }
 

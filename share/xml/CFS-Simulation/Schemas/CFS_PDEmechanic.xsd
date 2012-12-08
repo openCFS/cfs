@@ -159,23 +159,6 @@
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
-        <xsd:attribute name="type" use="optional" default="lagrange">
-          <xsd:simpleType>
-            <xsd:restriction base="xsd:token">
-              <xsd:enumeration value="lagrange"/>
-              <xsd:enumeration value="legendre"/>
-              <xsd:enumeration value="spectral"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute>
-        <xsd:attribute name="isIsotropic" type="DT_CFSBool"
-          use="optional" default="yes"/> 
-        <xsd:attribute name="order" use="optional" type="xsd:positiveInteger" default="1"/>
-        <xsd:attribute name="anisotropic" type="DT_DoubleList"
-        default="1" use="optional" />
-        <xsd:attribute name="fsi" type="DT_CFSBool" default="no"/>
-        <xsd:attribute name="fsiRelaxationParam" use="optional" type="xsd:token" default="0.5"/>
-        <xsd:attribute name="useAitken" type="DT_CFSBool" default="no"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -439,19 +422,6 @@
       <xsd:enumeration value="mechVelocity"/>
       <xsd:enumeration value="mechAcceleration"/>
       <xsd:enumeration value="mechRhsLoad"/>
-      <xsd:enumeration value="mechShape"/>
-      <xsd:enumeration value="optResult_1"/>      
-      <xsd:enumeration value="optResult_2"/>      
-      <xsd:enumeration value="optResult_3"/>                  
-      <xsd:enumeration value="optResult_4"/>
-      <xsd:enumeration value="optResult_5"/>
-      <xsd:enumeration value="optResult_6"/>
-      <xsd:enumeration value="optResult_7"/>
-      <xsd:enumeration value="optResult_8"/>
-      <xsd:enumeration value="optResult_9"/>
-      <xsd:enumeration value="gradXDisplacement"/>
-      <xsd:enumeration value="gradYDisplacement"/>
-      <xsd:enumeration value="gradZDisplacement"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -463,18 +433,9 @@
       <xsd:enumeration value="mechStructIntensity"/>
       <xsd:enumeration value="vonMisesStress"/>
       <xsd:enumeration value="vonMisesStrain"/>
-      <xsd:enumeration value="lumpedMechDisplacement"/>
-      <xsd:enumeration value="mechPseudoDensity"/>
-      <xsd:enumeration value="physicalPseudoDensity"/>
-      <xsd:enumeration value="optResult_1"/>      
-      <xsd:enumeration value="optResult_2"/>      
-      <xsd:enumeration value="optResult_3"/>                  
-      <xsd:enumeration value="optResult_4"/>
-      <xsd:enumeration value="optResult_5"/>
-      <xsd:enumeration value="optResult_6"/>
-      <xsd:enumeration value="optResult_7"/>
-      <xsd:enumeration value="optResult_8"/>
-      <xsd:enumeration value="optResult_9"/>
+      <xsd:enumeration value="mechKinEnergyDensity"/>
+      <xsd:enumeration value="mechDeformEnergyDensity"/>
+      <xsd:enumeration value="mechTotalEnergyDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
    
@@ -486,7 +447,9 @@
   <!-- Definition of surface region result types of mechanic PDE -->
   <xsd:simpleType name="DT_MechRegionResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="mechEnergy"/>
+      <xsd:enumeration value="mechKinEnergy"/>
+      <xsd:enumeration value="mechDeformEnergy"/>
+      <xsd:enumeration value="mechTotalEnergy"/>
       <xsd:enumeration value="homogenizedTensor"/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -494,7 +457,8 @@
   <!-- Definition of region result types of mechanic PDE -->
   <xsd:simpleType name="DT_MechSurfRegionResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="volumeAboveDefSurf"/>
+      <xsd:enumeration value="mechDisplacedSurfVolume"/>
+      <xsd:enumeration value="mechPower"/>
     </xsd:restriction>
   </xsd:simpleType>
   

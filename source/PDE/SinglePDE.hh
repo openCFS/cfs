@@ -400,15 +400,20 @@ namespace CoupledField
     //! calculating spatial derivatives, fluxes and energy.
     std::map<RegionIdType, BaseBDBInt*> bdbInts_;
     
+
+    //! Map for storing the primary mass integrator of the problem
+    
+    //! This map stores the primary MASS integrators, which can be used for 
+    //! calculating spatial derivatives, fluxes and energy.
+    std::map<RegionIdType, BaseBDBInt*> massInts_;
+
+    
     //! Map storing functors for calculating general results
     std::map<SolutionType, shared_ptr<ResultFunctor> > resultFunctors_;
     
     //! Store field coefficient functions
     std::map<SolutionType, PtrCoefFct > fieldCoefs_;
     
-    
-    
-    //@}
   private:
   };
 
