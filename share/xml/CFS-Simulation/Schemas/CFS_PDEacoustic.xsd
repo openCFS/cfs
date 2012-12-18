@@ -554,9 +554,9 @@
                         <xsd:all>
                           <xsd:element name="global" minOccurs="0" maxOccurs="1">
                             <xsd:complexType>
-                              <xsd:attribute name="start" type="DT_NonNegFloat"
+                              <xsd:attribute name="start" type="DT_PosFloat"
                                 use="required"/>
-                              <xsd:attribute name="end" type="DT_NonNegFloat"
+                              <xsd:attribute name="end" type="DT_PosFloat"
                                 use="optional"/>
                               <xsd:attribute name="inc" type="DT_PosFloat"
                                 use="optional"/>

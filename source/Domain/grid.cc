@@ -2540,7 +2540,7 @@ namespace CoupledField
           Double z,
           Double zEpsilon,
           std::vector< std::map<UInt, Double> >& consInterpWeights,
-          StdVector<UInt> &unmapped_nodes)
+          std::set<UInt> &unmapped_nodes)
   {
     Double xmin, ymin, xmax, ymax, zmin, zmax;
     Double globEps, locEps;
@@ -2568,6 +2568,13 @@ namespace CoupledField
       nodeCoords[i].Clear();
     }
 
+    // This function may be called for different destination regions,
+    // so check if we have to update the element's bounding boxes
+    if ( ciDestRegion_ != destElemList.GetName() ) {
+      elemBoxes_.clear();
+      ciDestRegion_ != destElemList.GetName();
+    }
+    
     // If we haven't initialized the grid bounding boxes yet, do so now!
     if (elemBoxes_.empty()) {
       
@@ -2739,10 +2746,10 @@ namespace CoupledField
 
     for (UInt i=0; i<numActualSourceNodes; ++i) {
       if (consInterpWeights[sourceNodeIndices[i]].empty()) {
-        // just add the number of the unmapped node.
-        // DO NOT CLEAR the vector before this loop,
+        // just insert the number of the unmapped node.
+        // DO NOT CLEAR the set before this loop,
         // because this function is called several times.
-        unmapped_nodes.Push_back(sourceNodeNumbers[i]);
+        unmapped_nodes.insert(sourceNodeNumbers[i]);
       }
     }
 

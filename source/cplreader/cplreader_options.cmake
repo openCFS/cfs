@@ -175,7 +175,7 @@ ADD_OPTION(outputfields
 ADD_OPTION(firststep
   uint32_t
   1
-  "Index of first time step (only for CFX_EXPORT, FASTEST)"
+  "Index of first time step (only for CFX, CFX_EXPORT, FASTEST)"
   "To start reading at a different time step than the first one this parameter can by used.
    It is just implemented for CFX\\\\_EXPORT and FASTEST at the moment."
   )
@@ -262,9 +262,14 @@ ADD_OPTION(density
    air $1.2041 kg/m^3$ (at $20^\\\\circ C$ and $101.325 kPa$), water $998.2 kg/m^3$ (at $20^\\\\circ C$)"
   )
 
+IF(DEBUG)
+  SET(OPTION_SEGFAULT "true")
+ELSE(DEBUG)
+  SET(OPTION_SEGFAULT "false")
+ENDIF(DEBUG)
 ADD_OPTION(segfault
   bool
-  true
+  ${OPTION_SEGFAULT}
   "Cause program to segfault if an exception is encountered."
   "This parameter is especially important for debugging purposes and
    should not be necessary in standard runs."

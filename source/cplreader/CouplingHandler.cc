@@ -497,8 +497,12 @@ namespace CoupledField
           // <-- end scaling velocity
           
           // Override the setting of --outprec for CFX
-          if(settings.GetString("type") == "CFX" && settings.GetInt("cfxSinglePrecision"))
+          if ( settings.GetString("type") == "CFX"
+               && settings.GetString("cfxSinglePrecision") != "auto"
+               && settings.GetInt("cfxSinglePrecision") )
+          {
             settings.SetString("outprec", "single");
+          }
           
           readOK = true;
         } catch (std::exception& ex)
@@ -842,8 +846,12 @@ namespace CoupledField
          ptFileReader_->ReduceOrderOfNodalValues(flowData, regionNodes_);
        }
       // Override the setting of --outprec for CFX
-      if(settings.GetString("type") == "CFX" && settings.GetInt("cfxSinglePrecision"))
-        settings.SetString("outprec", "single");
+       if ( settings.GetString("type") == "CFX"
+            && settings.GetString("cfxSinglePrecision") != "auto"
+            && settings.GetInt("cfxSinglePrecision") )
+       {
+         settings.SetString("outprec", "single");
+       }
 
       readOK = true;
       } catch (std::exception& ex)

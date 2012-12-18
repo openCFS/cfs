@@ -147,10 +147,10 @@ void Domain::CreateGrid()
     if (libmesh == "cfsGrid")
     {
       if (gridId == "default")
-        actGrid = new GridCFS(dim_);
+        actGrid = new GridCFS(dim_, gridId);
       else
       {
-        actGrid = new GridCFS(inputs[0]->GetDim());
+        actGrid = new GridCFS(inputs[0]->GetDim(), gridId);
       }
     }
     else

@@ -1006,7 +1006,12 @@ namespace CoupledField {
             writeResults.Push_back( regionNodes[i]->Get("writeResult")->As<std::string>() );
             if ( checkVolRegion ) {
               RegionIdType regionId = ptgrid_->GetRegion().Parse(regionNames[i]);
-              if ( regionId != NO_REGION_ID && subdoms_.Find(regionId) == -1 ) {
+              StdVector<Integer> volRegions;
+              ptgrid_->GetVolRegionIds(volRegions);
+              if ( regionId != NO_REGION_ID
+                   && volRegions.Find(regionId) != -1
+                   && subdoms_.Find(regionId) == -1 )
+              {
                 EXCEPTION("Cannot create result '" << quantity << "' on region '"
                     << regionNames[i]
                     << "', because this region is not assigned to the "

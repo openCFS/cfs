@@ -318,6 +318,7 @@ namespace CoupledField
     Settings& settings = Settings::Instance();
     
     bool beVerbose = settings.GetInt("verbose");
+    int firstStep = settings.GetInt("firststep");
     int nerr = 0;
     
     std::stringstream sstr;
@@ -415,6 +416,8 @@ namespace CoupledField
       {
         int its  = intvec_[i];
 
+        if ( its < firstStep ) continue;
+        
         char* trnnam = &charvec_[i*80];
         int n;
         for(n = 0; n< 80; n++)
@@ -490,7 +493,7 @@ namespace CoupledField
           }
         }
 
-        it = stepNumSet.begin();
+        it = stepNumSet.lower_bound(firstStep);
         end = stepNumSet.end();
       
         trnFilenames_.reserve(stepNumSet.size());
@@ -517,6 +520,10 @@ namespace CoupledField
         EXCEPTION("Time step could not be determined. Please specify it using --timestep X.");
       } else {
         CheckTransientFiles();
+      }
+      if ( numSteps_ == 0 ) {
+        EXCEPTION("No usable .trn files found. Either there are no .trn files"
+            << " or the value of the --firststep option is too high.");
       }
     }
     if (settings.GetInt("numsteps"))
@@ -1748,7 +1755,7 @@ namespace CoupledField
 
     std::ostringstream sstr;
 
-    for(UInt i=0, n=timeStepNumbers_.size(); i<n; i++)
+    for(UInt i=0; i<numSteps_; ++i)
     {
       sstr << timeStepNumbers_[i] << ".trn -> step " << (i+1) << std::endl;
     }
