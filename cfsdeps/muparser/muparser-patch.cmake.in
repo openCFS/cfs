@@ -25,6 +25,7 @@ CHANGE_NEWLINE_STYLE("${files}" ${muparser_source}/dummy.txt UNIX)
 SET(patches
   "muparser-strfun45.patch"
   "muparser-dummy-math.patch"
+  "muparser-pow-intel.patch"
 )
 
 # The following patch is due to some missing intrinsic functions
