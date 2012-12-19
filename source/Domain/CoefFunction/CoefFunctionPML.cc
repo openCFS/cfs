@@ -24,7 +24,8 @@ namespace CoupledField{
 template<typename T>
 CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
                                     shared_ptr<EntityList> EntList,
-                                    StdVector<RegionIdType> pdeDomains):
+                                    StdVector<RegionIdType> pdeDomains,
+                                    bool isVector):
   CoefFunction(){
 
   isAnalytic_ = false;
@@ -39,14 +40,15 @@ CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound
   outerMinMaxComp_.Init();
 
   this->entities_.Push_back(EntList);
-
+  dim_ = entities_[0]->GetGrid()->GetDim();
+  
   //check if the coefficient function is real valued and scalar
   if(speedOfSound->GetDimType() != CoefFunction::SCALAR || speedOfSound->IsComplex()){
     EXCEPTION("The PML coefficient function needs a real valued scalar coeffunction as speed of sound");
   }
 
   speedOfSound_ = speedOfSound;
-
+  isVector_ = isVector;
   pmlType_ = DampFunction::NO_TYPE;
 
   ReadDataPML(pmlDef,pdeDomains);
@@ -63,7 +65,11 @@ CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound
       boost::bind(&CoefFunctionPML<T>::UpdateOmega, this ),
       mHandle_ );
 
-  this->dimType_ = CoefFunction::SCALAR;
+  if (isVector_ ) {
+    this->dimType_ = CoefFunction::VECTOR;
+  } else {
+    this->dimType_ = CoefFunction::SCALAR;
+  }
 }
 
 template<typename T>
@@ -76,15 +82,15 @@ template<typename T>
 void CoefFunctionPML<T>::GetTensor(Matrix<Complex>& tensor,
                               const LocPointMapped& lpm ){
   //this is diagonal tensor with the coefficients
-  UInt gridDim = entities_[0]->GetGrid()->GetDim();
-  tensor.Resize(gridDim,gridDim);
+  
+  tensor.Resize(dim_, dim_);
   tensor.Init();
   Double locThick=0.0;
   Double position=0.0;
   Complex dummy(1.0,0.0);
   Double sos;
   speedOfSound_->GetScalar(sos,lpm);
-  for(UInt i=0;i<gridDim;++i){
+  for(UInt i=0;i<dim_;++i){
     GetThicknessAtPoint(locThick,position,lpm,i);
     if(abs(locThick)>0.0){
       Complex fac(0.0,-1.0 * sos* dampFunction_->ComputeFactor(position,locThick)/omega_);
@@ -99,14 +105,13 @@ template<typename T>
 void CoefFunctionPML<T>::GetTensor(Matrix<Double>& tensor,
                               const LocPointMapped& lpm ){
   //this is diagonal tensor with the coefficients
-  UInt gridDim = entities_[0]->GetGrid()->GetDim();
-  tensor.Resize(gridDim,gridDim);
+  tensor.Resize(dim_,dim_);
   tensor.Init();
   Double locThick=0.0;
   Double position=0.0;
   Double sos;
   speedOfSound_->GetScalar(sos,lpm);
-  for(UInt i=0;i<gridDim;++i){
+  for(UInt i=0;i<dim_;++i){
     GetThicknessAtPoint(locThick,position,lpm,i);
     if(abs(locThick)>0.0){
       tensor[i][i] = dampFunction_->ComputeFactor(position,locThick) * sos;
@@ -120,15 +125,14 @@ template<typename T>
 void CoefFunctionPML<T>::GetVector(Vector<Complex>& vec,
                               const LocPointMapped& lpm ){
   //this is diagonal tensor with the coefficients
-  UInt gridDim = entities_[0]->GetGrid()->GetDim();
-  vec.Resize(gridDim);
+  vec.Resize(dim_);
   vec.Init();
   Double locThick=0.0;
   Double position=0.0;
   Complex dummy(1.0,0.0);
   Double sos;
   speedOfSound_->GetScalar(sos,lpm);
-  for(UInt i=0;i<gridDim;++i){
+  for(UInt i=0;i<dim_;++i){
     GetThicknessAtPoint(locThick,position,lpm,i);
     if(abs(locThick)>0.0){
       Complex fac(1.0,-1.0 * sos* dampFunction_->ComputeFactor(position,locThick)/omega_);
@@ -144,13 +148,12 @@ void CoefFunctionPML<T>::GetVector(Vector<Double>& vec,
                               const LocPointMapped& lpm ){
 
   //first loop over every entry and determine the factor
-  UInt gridDim = entities_[0]->GetGrid()->GetDim();
-  vec.Resize(gridDim,0.0);
+  vec.Resize(dim_,0.0);
   Double locThick=0.0;
   Double position=0.0;
   Double sos;
   speedOfSound_->GetScalar(sos,lpm);
-  for(UInt i=0;i<gridDim;++i){
+  for(UInt i=0;i<dim_;++i){
     GetThicknessAtPoint(locThick,position,lpm,i);
     if(abs(locThick)>0.0){
       vec[i] = dampFunction_->ComputeFactor(position,locThick) * sos;
@@ -164,14 +167,13 @@ template<typename T>
 void CoefFunctionPML<T>::GetScalar(Complex& val,
                               const LocPointMapped& lpm ){
   //computes (1-j pml_x/omega) *(1-j pml_y/omega)*(1-j pml_z/omega))
-  UInt gridDim = entities_[0]->GetGrid()->GetDim();
   Double locThick=0.0;
   Double position=0.0;
   Complex dummy(1.0,0.0);
   val = dummy;
   Double sos;
   speedOfSound_->GetScalar(sos,lpm);
-  for(UInt i=0;i<gridDim;++i){
+  for(UInt i=0;i<dim_;++i){
     GetThicknessAtPoint(locThick,position,lpm,i);
     if(abs(locThick)>0.0){
       Complex fac(1.0,-1.0  *  sos * dampFunction_->ComputeFactor(position,locThick)/omega_);
@@ -218,8 +220,7 @@ void CoefFunctionPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType>
     cSysId = "default";
   }
 
-  CoordSystem* cSys = domain->GetCoordSystem(cSysId);
-  this->SetCoordinateSystem(cSys);
+  this->SetCoordinateSystem(domain->GetCoordSystem(cSysId));
 
   //in some cases we can have a propagation node
   PtrParamNode propNode = pmlDef->Get("propRegion",ParamNode::PASS);
@@ -237,7 +238,7 @@ void CoefFunctionPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType>
        ppNode = dirNodes[iDir]->Get("max");       
        innerMinMaxComp_[dirIndex-1][1] = ppNode->MathParse<Double>();
     }
-    if(dirNodes.GetSize() != entities_[0]->GetGrid()->GetDim())
+    if(dirNodes.GetSize() != dim_)
       GuessLayerData(pdeDomains);
   }else{
     //try to guess the data from grid
@@ -247,13 +248,13 @@ void CoefFunctionPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType>
   //in any case we determine the layer data for the outer bounds
   this->entities_[0]->GetGrid()->CalcBoundingBoxOfRegion(entities_[0]->GetRegion(),outerMinMaxComp_,coordSys_);
 
-  UInt gridDim = entities_[0]->GetGrid()->GetDim();
-  std::cout << "computed boundingbox of pml region:" << std::endl;
-  for(UInt i=0;i<gridDim;++i){
-    std::string vComp = coordSys_->GetDofName(i+1);
-    std::cout << vComp << "_min: " << outerMinMaxComp_[i][0] << std::endl;
-    std::cout << vComp << "_max: " << outerMinMaxComp_[i][1] << std::endl;
-  }
+  // => Put the following information to the info xml
+//  std::cout << "computed boundingbox of pml region:" << std::endl;
+//  for(UInt i=0;i<dim_;++i){
+//    std::string vComp = coordSys_->GetDofName(i+1);
+//    std::cout << vComp << "_min: " << outerMinMaxComp_[i][0] << std::endl;
+//    std::cout << vComp << "_max: " << outerMinMaxComp_[i][1] << std::endl;
+//  }
 
   std::string typeOfPml;
   pmlDef->GetValue("type",typeOfPml);
@@ -328,12 +329,13 @@ void CoefFunctionPML<T>::GuessLayerData(StdVector<RegionIdType> pdeDomains){
 
     }
   }
-  std::cout << "computed boundingbox of propagation region:" << std::endl;
-  for(UInt i=0;i<gridDim;++i){
-    std::string vComp = coordSys_->GetDofName(i+1);
-    std::cout << vComp << "_min: " << innerMinMaxComp_[i][0] << std::endl;
-    std::cout << vComp << "_max: " << innerMinMaxComp_[i][1] << std::endl;
-  }
+  // Put the following definition to the info xml.
+//  std::cout << "computed boundingbox of propagation region:" << std::endl;
+//  for(UInt i=0;i<gridDim;++i){
+//    std::string vComp = coordSys_->GetDofName(i+1);
+//    std::cout << vComp << "_min: " << innerMinMaxComp_[i][0] << std::endl;
+//    std::cout << vComp << "_max: " << innerMinMaxComp_[i][1] << std::endl;
+//  }
 }
 
 template<typename T>

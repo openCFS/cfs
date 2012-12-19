@@ -14,7 +14,6 @@ namespace CoupledField {
 //! surface element, it looks for the "correct" volume coefficient function
 //! and returns it. In addition, it can also perform a normal-mapping of
 //! the coefficient function.
-template<typename T>
 class CoefFunctionSurf : public CoefFunction {
 public:
 
@@ -24,20 +23,35 @@ public:
   //! Destructor
   virtual ~CoefFunctionSurf();
 
+  //! Set single volume coefficient function
+  void SetVolumeCoef( RegionIdType, PtrCoefFct );
+  
   //! Pass volume coefficients
   void SetVolumeCoefs( std::map<RegionIdType, PtrCoefFct> coefs ); 
 
   //! \copydoc CoefFunction::GetTensor
-  void GetTensor(Matrix<T>& coefMat, 
+  void GetTensor(Matrix<Double>& coefMat, 
                  const LocPointMapped& lpm );
+  
+  //! \copydoc CoefFunction::GetTensor
+    void GetTensor(Matrix<Complex>& coefMat, 
+                   const LocPointMapped& lpm );
 
   //! \copydoc CoefFunction::GetVector
-  void GetVector(Vector<T>& coefVec, 
+  void GetVector(Vector<Double>& coefVec, 
+                 const LocPointMapped& lpm );
+  
+  //! \copydoc CoefFunction::GetVector
+  void GetVector(Vector<Complex>& coefVec, 
                  const LocPointMapped& lpm );
 
   //! \copydoc CoefFunction::GetScalar
-  void GetScalar(T& coefScalar, 
+  void GetScalar(Double& coefScalar, 
                  const LocPointMapped& lpm );
+  
+  //! \copydoc CoefFunction::GetScalar
+    void GetScalar(Complex& coefScalar, 
+                   const LocPointMapped& lpm );
 
   //! \copydoc CoefFunction::GetVecSize
   UInt GetVecSize() const;

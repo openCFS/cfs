@@ -3,7 +3,7 @@
 namespace CoupledField  {
 
 
-CoefFunctionMulti::CoefFunctionMulti() {
+CoefFunctionMulti::CoefFunctionMulti( bool zeroEmptyRegions ) {
 
   // set global data
   dimType_ = CoefFunction::NO_DIM;
@@ -12,6 +12,8 @@ CoefFunctionMulti::CoefFunctionMulti() {
   // a ditributed coefficient function can never be analytic
   isAnalytic_ = false;
   isComplex_ = false;
+  
+  zeroEmptyRegions_ = zeroEmptyRegions;
 }
 
 CoefFunctionMulti::~CoefFunctionMulti() {
@@ -24,6 +26,27 @@ void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
   if( regionCoefs_.size() == 0 ) {
     dimType_ = coef->GetDimType();
     isComplex_ = coef->IsComplex();
+    
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+    
+    // generate empty coefficient functions
+    if( dimType_ == CoefFunction::SCALAR) {
+      zeroCeof_ = CoefFunction::Generate(part, "0.0","0.0");
+    } else if( dimType_ == CoefFunction::VECTOR ) {
+      StdVector<std::string> zeroVec(coef->GetVecSize());
+      zeroVec.Init("0.0");
+      zeroCeof_ = CoefFunction::Generate(part, zeroVec, zeroVec);
+    } else if( dimType_ == CoefFunction::TENSOR ) {
+      UInt numRows, numCols;
+      coef->GetTensorSize( numRows, numCols);
+      StdVector<std::string> zeroVec(numRows*numCols);
+      zeroVec.Init("0.0");
+      zeroCeof_ = CoefFunction::Generate(part, numRows, numCols, 
+                                         zeroVec, zeroVec);
+    } else  {
+      EXCEPTION( "Unknown dimension type" );
+    }
+    
   } else {
     PtrCoefFct first = regionCoefs_.begin()->second;
     if( coef->GetDimType() != first->GetDimType() ) {
@@ -48,6 +71,7 @@ void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
 void CoefFunctionMulti::GetTensor(Matrix<Complex>& coefMat,
                                   const LocPointMapped& lpm ) {
   RegionIdType curRegion = lpm.ptEl->regionId;
+  
   return GetRegionCoef(curRegion)->GetTensor(coefMat, lpm);
 }
 

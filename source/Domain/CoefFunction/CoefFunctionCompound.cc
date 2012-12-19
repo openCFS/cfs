@@ -54,7 +54,7 @@ GetTensor( Matrix<Double>& coefMat, const LocPointMapped& lpm ) {
               "Here we have to add a call to the method BaseMaterial::PerformRotation "
               "This method should be moved to the base class of the CoefFunction"
               "In addition the initial rotation of the material must be incorporated"
-              "somewehre in string-notation, as we are generally dealing with string"
+              "somewhere in string-notation, as we are generally dealing with string"
               "parameters."
               "Thus we should treat the case, where rotation angles are multiples of "
               "90 degree separately, where the entries are just interchanged");
@@ -450,7 +450,7 @@ void CoefFunctionCompound<Complex>::GetTensorSize( UInt& numRows, UInt& numCols 
 std::string CoefFunctionCompound<Complex>::ToString() const {
   std::stringstream out;
   out << "expression (real): '" << exprReal_ << std::endl;
-  out << "expression (imag): '" << exprReal_ << std::endl;
+  out << "expression (imag): '" << exprImag_ << std::endl;
   out << "registered variables:\n";
   std::map<std::string, PtrCoefFct>::const_iterator it;
   it = coefs_.begin();
@@ -555,13 +555,16 @@ UpdateXpr( const LocPointMapped& lpm ) {
       it->second->GetScalar( temp, lpm );
       scalVarsReal_[name] = temp.real();
       scalVarsImag_[name] = temp.imag();
-      
+//      std::cerr << "setting " << name << " to (" << temp.real() 
+//          << ", " << temp.imag()<< ")\n"; 
     } else if( dim == VECTOR ) {
       Vector<Complex> temp;
       it->second->GetVector( temp, lpm );
       vecVarsReal_[name] = temp.GetPart(Global::REAL);
       vecVarsImag_[name] = temp.GetPart(Global::IMAG);
-      
+//      std::cerr << "setting " << name << " to \n\tREAL:" 
+//          << (temp.GetPart(Global::REAL)).ToString() 
+//          << "\n\tIMAG: " << (temp.GetPart(Global::IMAG)).ToString() << "\n";
     } else if( dim == TENSOR ) {
       Matrix<Complex> temp;
       it->second->GetTensor( temp, lpm );

@@ -523,7 +523,6 @@ namespace CoupledField {
     
     res1->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
     results_.Push_back( res1 );
-    availResults_.insert( res1 );
     DefineFieldResult( feFunctions_[ELEC_POTENTIAL], res1 );
     
     // Electric RHS Load
@@ -611,7 +610,6 @@ namespace CoupledField {
     ef->unit = "V/m";
     ef->definedOn = ResultInfo::ELEMENT;
     ef->entryType = ResultInfo::VECTOR;
-    availResults_.insert( ef );
     shared_ptr<CoefFunctionFormBased> eFunc;
     if( isComplex_ ) {
       eFunc.reset(new CoefFunctionBOp<Complex>(feFct, ef, -1.0));
@@ -627,7 +625,6 @@ namespace CoupledField {
     flux->unit = "C/m^2";
     flux->definedOn = ResultInfo::ELEMENT;
     flux->entryType = ResultInfo::VECTOR;
-    availResults_.insert( flux );
     shared_ptr<CoefFunctionFormBased> fluxFunc;
     if( isComplex_ ) {
       fluxFunc.reset(new CoefFunctionFlux<Complex>(feFct, flux));
@@ -645,7 +642,7 @@ namespace CoupledField {
     chargeD->entryType = ResultInfo::SCALAR;
     availResults_.insert( chargeD );
     // the coefficient function is defined later
-    PtrCoefFct sChargeDens;
+    shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true));
     
     // === TOTAL ELECTRIC CHARGE ===
     shared_ptr<ResultInfo> charge(new ResultInfo);
@@ -670,7 +667,6 @@ namespace CoupledField {
     ed->unit = "Ws/m^3";
     ed->definedOn = ResultInfo::ELEMENT;
     ed->entryType = ResultInfo::SCALAR;
-    availResults_.insert( ed );
     shared_ptr<CoefFunctionFormBased> edFunc;
     if( isComplex_ ) {
       edFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, 0.5));
@@ -686,7 +682,7 @@ namespace CoupledField {
     energy->entryType = ResultInfo::SCALAR;
     energy->dofNames = "";
     energy->unit = "Ws";
-    availResults_.insert ( energy );
+    availResults_.insert( energy );
     shared_ptr<ResultFunctor> energyFunc;
     if( isComplex_ ) {
       energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy));
@@ -698,9 +694,6 @@ namespace CoupledField {
     // ============================
     // Initialize result functors:
     // ============================
-    // collect the flux volume flux coefficient function for each region
-    std::map<RegionIdType, PtrCoefFct> dCoefs;
-    
     // 1) Loop over all BDB-integrators
     std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
     for( ; it != bdbInts_.end(); ++it ) {
@@ -711,22 +704,8 @@ namespace CoupledField {
       fluxFunc->AddIntegrator(bdb, region);
       energyFunc->AddIntegrator(bdb, region);
       edFunc->AddIntegrator(bdb, region);
-      
-      dCoefs[region] = fluxFunc;
+      sChargeDens->SetVolumeCoef(region, fluxFunc);
     }
-    
-    // define missing surface charge density
-    if( isComplex_ ) {
-      shared_ptr<CoefFunctionSurf<Complex> > dNormal (
-          new CoefFunctionSurf<Complex>(true));
-      dNormal->SetVolumeCoefs(dCoefs);
-      sChargeDens= dNormal;
-    } else {
-      shared_ptr<CoefFunctionSurf<Double> > dNormal (
-          new CoefFunctionSurf<Double>(true));
-      dNormal->SetVolumeCoefs(dCoefs);
-      sChargeDens = dNormal;
-    }  
   }
 
   

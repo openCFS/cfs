@@ -191,7 +191,7 @@ namespace CoupledField{
                                      BaseFE* ptFe );
 
     protected:
-
+    
   };
 
   template<class FE, UInt D, class TYPE>
@@ -206,9 +206,20 @@ namespace CoupledField{
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: nrNodes x spaceDim)
-    Matrix<Double> xiDx;
+    Matrix<Double> xiDx, xiDxTmp, rotMat;
     FE *fe = (static_cast<FE*>(ptFe));
-    fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    
+    if (this->coef_->GetCoordinateSystem() ) {
+      fe->GetGlobDerivShFnc( xiDxTmp, lp, lp.shapeMap->GetElem() , 1 );
+
+      // If coordinate system is set at the coefficient function, rotate B-matrix
+      Vector<Double> globPoint;
+      lp.shapeMap->Local2Global(globPoint,lp.lp.coord);
+      this->coef_->GetCoordinateSystem()->GetGlobRotationMatrix(rotMat, globPoint);
+      xiDx = xiDxTmp * rotMat;
+    } else {
+      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    }
 
 
     Vector<Complex> coefs;
@@ -242,10 +253,20 @@ namespace CoupledField{
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: nrNodes x spaceDim)
-    Matrix<Double> xiDx;
+    Matrix<Double> xiDx, xiDxTmp, rotMat;
     FE *fe = (static_cast<FE*>(ptFe));
-    fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
 
+    if (this->coef_->GetCoordinateSystem() ) {
+      fe->GetGlobDerivShFnc( xiDxTmp, lp, lp.shapeMap->GetElem() , 1 );
+
+      // If coordinate system is set at the coefficient function, rotate B-matrix
+      Vector<Double> globPoint;
+      lp.shapeMap->Local2Global(globPoint,lp.lp.coord);
+      this->coef_->GetCoordinateSystem()->GetGlobRotationMatrix(rotMat, globPoint);
+      xiDx = xiDxTmp * rotMat;
+    } else {
+      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    }
 
     Vector<Complex> coefs;
     this->coef_->GetVector(coefs,lp);

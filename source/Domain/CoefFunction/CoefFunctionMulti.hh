@@ -17,7 +17,12 @@ namespace CoupledField  {
 class CoefFunctionMulti : public CoefFunction {
 public:
   //! Constructor
-  CoefFunctionMulti();
+  
+  //! Generic constructor.
+  //! \param zeroEmptyRegions If true, the class returns a zero-CoefFunction
+  //!                         for regions without assigned CoefFunction.
+  //!                         Otherwise an exception is thrown.
+  CoefFunctionMulti(bool zeroEmptyRegions = true);
   
   //! Destructor 
   virtual ~CoefFunctionMulti();
@@ -25,6 +30,11 @@ public:
   //! Set coefficient function for a region
   void AddRegion( RegionIdType region, PtrCoefFct coef );
 
+  //! Get all region definitions
+  std::map<RegionIdType,PtrCoefFct > GetRegionCoefs() {
+    return regionCoefs_;
+  }
+  
   // ========================
   //  ACCESS METHODS
   // ========================
@@ -70,8 +80,9 @@ private:
     std::map<RegionIdType,PtrCoefFct >::const_iterator it = 
         regionCoefs_.find(region);
     if(it == regionCoefs_.end()){
-      EXCEPTION("Region " << region << " is not contained in functor");
-      return PtrCoefFct();
+      if ( !zeroEmptyRegions_ )
+        EXCEPTION("Region " << region << " is not contained in functor");
+      return zeroCeof_;
     }
     return it->second;
   }
@@ -79,6 +90,11 @@ private:
   //! Map storing coefFunction of the analytical regions
   std::map<RegionIdType,PtrCoefFct > regionCoefs_;
   
+  //! "Zero" coefficient function, returned for empty regions
+  PtrCoefFct zeroCeof_;  
+  
+  //! Flag, if zero coefficient function is return for non-set regions
+  bool zeroEmptyRegions_;
 };
 
 } // end of namespace

@@ -353,6 +353,11 @@ SetScalar(const std::string& realVal,
               << "Refusing to create CoefFunctionTimeFreq." );
   }
 
+  // set value and recalculate
+  this->coefScalarReal_ = realVal;
+  this->coefScalarImag_ = imagVal;
+  this->dimType_ = CoefFunction::SCALAR;
+  
   // Register expression at math parser
   mp_->SetExpr(mHandleReal_, realVal);
   mp_->SetExpr(mHandleImag_, imagVal);
@@ -369,9 +374,9 @@ std::string CoefFunctionTimeFreq<Complex>::ToString() const {
       break;
     case SCALAR:
       ret = std::string("(") + this->coefScalarReal_;
-      ret + ", ";
+      ret += ", ";
       ret += this->coefScalarImag_;
-      ret +" )";
+      ret +=" )";
       return ret;
       break;
     case VECTOR:

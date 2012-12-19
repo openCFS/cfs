@@ -28,6 +28,7 @@ namespace CoupledField
   class BaseFieldFunctor;
   class LinearFormContext;
   class CoefFunction;
+  class CoefFunctionMulti;
   
   //! Base class for all kinds of single field problems.
 
@@ -407,6 +408,13 @@ namespace CoupledField
     //! calculating spatial derivatives, fluxes and energy.
     std::map<RegionIdType, BaseBDBInt*> massInts_;
 
+    //! Map for storing "material" parameters as coefficient functions
+    
+    //! This map holds the coefficient functions for the different material
+    //! parameters. As material parameters are typically defined per region,
+    //! we store them in a CoefFunctionMulti object
+    std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs_;
+    
     
     //! Map storing functors for calculating general results
     std::map<SolutionType, shared_ptr<ResultFunctor> > resultFunctors_;

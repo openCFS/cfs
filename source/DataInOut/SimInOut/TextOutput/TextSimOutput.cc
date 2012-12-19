@@ -945,8 +945,13 @@ namespace CoupledField {
     
     StdVector<std::string> ret;
     ret.Resize(1);
-    
+    if( it.GetType() == EntityList::REGION_LIST ) {
     ret[0] = lexical_cast<std::string>( it.GetRegion() );
+    } else if( it.GetType() == EntityList::NAME_LIST ){
+      ret[0] = it.GetName();
+    } else {
+      EXCEPTION( "Unknown iterator type");
+    }
     return ret;
   }
   

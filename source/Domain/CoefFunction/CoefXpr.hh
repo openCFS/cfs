@@ -97,7 +97,9 @@ public:
     OP_ADD,                   /*!< Binary + operation */
     OP_SUB,                   /*!< Binary - operation*/
     OP_MULT,                  /*!< Binary * operation (scal-scal, scalar-vector)*/
+    OP_MULT_CONJ,             /*!< Binary * operation (scal-scal, scalar-vector), conjugated*/
     OP_MULT_VOIGT_TENSOR_VEC, /*!< Binary * operation (tensor-vector, Voigt case)*/
+    OP_MULT_VOIGT_TENSOR_VEC_CONJ, /*!< Binary * operation (tensor-vector, Voigt case), conjugated*/
     OP_DIV,                   /*!< Binary / operation */
     OP_CROSS,                 /*!< Binary x operation (cross product) */
     OP_POW,                   /*!< Binary x^y operation */

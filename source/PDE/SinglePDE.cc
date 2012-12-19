@@ -51,6 +51,7 @@ using std::string;
 
 //coefFunctions
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
+#include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
 #include "Domain/CoefFunction/CoefFunctionNodalGrid.hh"
 
@@ -931,12 +932,17 @@ namespace CoupledField {
                           << SolutionTypeEnum.ToString( type );
     
     PtrCoefFct ret;
+    // 1) look in fieldCoefs
     if ( fieldCoefs_.find(type) == fieldCoefs_.end() ) {
+      if( matCoefs_.find(type) == matCoefs_.end() ) {
       EXCEPTION( "No coefficient function for result type '"
           << SolutionTypeEnum.ToString( type ) << "' found");
+      } else {
+        ret = matCoefs_[type];
+      }
+    } else {
+      ret = fieldCoefs_[type];
     }
-    
-    ret = fieldCoefs_[type];
     return ret;
   }
   
@@ -1538,6 +1544,9 @@ namespace CoupledField {
                                      StdVector<PtrCoefFct >& coef ) {
     
     // get grip of all elements of that type
+    if( !myParam_->Has("bcsAndLoads") )
+      return;
+    
     ParamNodeList elems = myParam_->Get("bcsAndLoads")->GetList(elemName);
     
     entities.Resize(elems.GetSize());
@@ -2939,6 +2948,7 @@ namespace CoupledField {
     // insert result to list of available results and field functors
     resultFunctors_[res->resultType] = func;
     fieldCoefs_[res->resultType] = coef;
+    availResults_.insert(res);
   }
   
   void SinglePDE::DefineTimeDerivResult( SolutionType derivSolType,

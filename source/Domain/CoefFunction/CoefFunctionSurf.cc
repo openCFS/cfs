@@ -4,41 +4,34 @@
 namespace CoupledField {
 
 
-template<typename T> CoefFunctionSurf<T>::
-CoefFunctionSurf( bool mapNormal ) 
+CoefFunctionSurf::CoefFunctionSurf( bool mapNormal ) 
 : CoefFunction() {
 
 
   // not sure about the following one
   dependType_ = GENERAL;
   isAnalytic_ = false;
-  isComplex_ =  std::tr1::is_same<T,Complex>::value;
+  isComplex_ =  false;
   mapNormal_ = mapNormal;
   
 }
 
 
-template<typename T> void
-CoefFunctionSurf<T>::SetVolumeCoefs( std::map<RegionIdType, PtrCoefFct> coefs ) {
-  // ensure that at least one entry is present
-    assert( coefs.size() != 0);
 
-    std::map<RegionIdType, PtrCoefFct>::iterator it = coefs.begin();
-
-    // loop over all entries and set following variables
-    dimType_ = it->second->GetDimType();
-    regions_.insert(it->first);
-    it++;
-    for( ; it != coefs.end(); ++it ) {
-      if( it->second->GetDimType() != dimType_ ) {
+void CoefFunctionSurf::SetVolumeCoef( RegionIdType region, PtrCoefFct coef ) {
+  
+  // check, if there are already volume coeffiencts set
+  if (coefs_.size() ) {
+    std::map<RegionIdType, PtrCoefFct>::iterator it = coefs_.begin();
+    for(;  it != coefs_.end(); ++it )  {
+      if( it->second->GetDimType() != coef->GetDimType() ) {
         EXCEPTION( "CoefFunctions for surface CoefFunction have " <<
-                    "inconsistent dimension type" );
+                   "inconsistent dimension type" );
       }
-      regions_.insert(it->first);
     }
-    
-    coefs_ = coefs;
-    
+  } else {
+    isComplex_ = coef->IsComplex();
+    dimType_ = coef->GetDimType();
     // adjust dimensionality: In case of normal mapping,
     // we perform a vector multiplication.
     if( mapNormal_ ) {
@@ -56,32 +49,57 @@ CoefFunctionSurf<T>::SetVolumeCoefs( std::map<RegionIdType, PtrCoefFct> coefs ) 
           EXCEPTION( "Unknown dimensionality" ); 
           break;     
       }
-    }
+    } 
+  }
+  regions_.insert(region);
+  coefs_[region] = coef;
 }
 
-template<typename T>
-CoefFunctionSurf<T>::~CoefFunctionSurf() {
+
+void CoefFunctionSurf::SetVolumeCoefs( std::map<RegionIdType, PtrCoefFct> coefs ) {
+  // ensure that at least one entry is present
+  assert( coefs.size() != 0);
+  std::map<RegionIdType, PtrCoefFct>::iterator it = coefs.begin();
+
+  // loop over all entries and set following variables
+  for( ; it != coefs.end(); ++it ) {
+    SetVolumeCoef( it->first, it->second);
+  }
+}
+
+
+CoefFunctionSurf::~CoefFunctionSurf() {
 
 }
 
 
-template<typename T> void  
-CoefFunctionSurf<T>::GetTensor(Matrix<T>& coefMat, 
-                               const LocPointMapped& lpm ){
+void CoefFunctionSurf::GetTensor(Matrix<Double>& coefMat, 
+                            const LocPointMapped& lpm ){
   assert(this->dimType_ == TENSOR);
 }
 
-template<typename T> void 
-CoefFunctionSurf<T>::GetVector(Vector<T>& coefVec, 
+void CoefFunctionSurf::GetTensor(Matrix<Complex>& coefMat, 
+                            const LocPointMapped& lpm ){
+  assert(this->dimType_ == TENSOR);
+}
+
+
+void CoefFunctionSurf::GetVector(Vector<Double>& coefVec, 
                                const LocPointMapped& lpm ) {
   assert(this->dimType_ == VECTOR);
   EXCEPTION("not implemented");
 
 }
 
-template<typename T> void
-CoefFunctionSurf<T>::GetScalar(T& coefScalar, 
-                               const LocPointMapped& lpm ){
+void CoefFunctionSurf::GetVector(Vector<Complex>& coefVec, 
+                               const LocPointMapped& lpm ) {
+  assert(this->dimType_ == VECTOR);
+  EXCEPTION("not implemented");
+}
+
+
+void CoefFunctionSurf::GetScalar(Double& coefScalar, 
+                                 const LocPointMapped& lpm ){
   assert(this->dimType_ == SCALAR);
 
   // create local point for surface
@@ -89,7 +107,7 @@ CoefFunctionSurf<T>::GetScalar(T& coefScalar,
   surfLpm.SetSurfInfo( regions_);
   RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
   if( mapNormal_ ) {
-    Vector<T> coefVec;
+    Vector<Double> coefVec;
     coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
     coefScalar = coefVec * surfLpm.normal;
   } else {
@@ -97,21 +115,40 @@ CoefFunctionSurf<T>::GetScalar(T& coefScalar,
   }
 }
 
-template<typename T> UInt
-CoefFunctionSurf<T>::GetVecSize() const {
+void CoefFunctionSurf::GetScalar(Complex& coefScalar, 
+                                 const LocPointMapped& lpm ){
+  assert(this->dimType_ == SCALAR);
+
+  // create local point for surface
+  LocPointMapped surfLpm(lpm);
+  surfLpm.SetSurfInfo( regions_);
+  RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
+  if( mapNormal_ ) {
+    Vector<Complex> coefVec;
+    coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
+    coefScalar = coefVec * surfLpm.normal;
+  } else {
+    coefs_[region]->GetScalar(coefScalar, *surfLpm.lpmVol );
+  }
+}
+
+UInt CoefFunctionSurf::GetVecSize() const {
   return 0;
 }
 
-template<typename T> void
-CoefFunctionSurf<T>::GetTensorSize( UInt& numRows, UInt& numCols ) const {
+
+void CoefFunctionSurf::GetTensorSize( UInt& numRows, UInt& numCols ) const {
 
 }
 
-template<typename T> std::string 
-CoefFunctionSurf<T>::ToString() const {
-  return "";
+std::string  CoefFunctionSurf::ToString() const {
+  std::stringstream ret;
+    ret << "CoefFunctionSurf defined on:\n";
+    std::map<RegionIdType,PtrCoefFct >::const_iterator it = coefs_.begin();
+    for( ; it != coefs_.end(); ++it ) {
+      ret << "regionId " << it->first << ", value:" << it->second->ToString() << std::endl;
+    }
+  return ret.str();
 }
 
-template class CoefFunctionSurf<Double>;
-template class CoefFunctionSurf<Complex>;
 }

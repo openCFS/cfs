@@ -35,13 +35,12 @@ namespace CoupledField{
 
     //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators( );
+    
+    //! Define all RHS linearforms for load / excitation 
+    void DefineRhsLoadIntegrators();
 
     //! define the SoltionStep-Driver
     void DefineSolveStep();
-
-    //! Initialize all the nodes by this value
-    void SetInitialCondition();
-
     // ======================================================
     // COUPLING SECTION
     // ======================================================

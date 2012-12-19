@@ -195,23 +195,6 @@ namespace CoupledField {
     DefineFieldResult(coefStress, stress);
 
 
-    // ============================
-    // Initialize result functors:
-    // ============================
-    std::map<RegionIdType, PtrCoefFct> dCoefs;
-    
-    // 1) Loop over all BDB-integrators
-    std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
-    for( ; it != bdbInts_.end(); ++it ) {
-      RegionIdType region = it->first;
-      BaseBDBInt* bdb = it->second;
-
-      // 2) pass integrators to functors
-      cplFunc->AddIntegrator(bdb, region);
-      stressCplFunc->AddIntegrator(bdb, region);
-      dCoefs[region] = coefFlux;
-    }
-    
     // === Electric Charge Density (surface) ===
     shared_ptr<ResultInfo> chargeD(new ResultInfo);
     chargeD->resultType = ELEC_CHARGE_DENSITY;
@@ -220,22 +203,9 @@ namespace CoupledField {
     chargeD->definedOn = ResultInfo::SURF_ELEM;
     chargeD->entryType = ResultInfo::SCALAR;
     availResults_.insert( chargeD );
-
-    // build surface coefficient function
-    PtrCoefFct sChargeDens;
-    if( isComplex_ ) {
-      shared_ptr<CoefFunctionSurf<Complex> > dNormal (
-          new CoefFunctionSurf<Complex>(true));
-      dNormal->SetVolumeCoefs(dCoefs);
-      sChargeDens= dNormal;
-    } else {
-      shared_ptr<CoefFunctionSurf<Double> > dNormal (
-          new CoefFunctionSurf<Double>(true));
-      dNormal->SetVolumeCoefs(dCoefs);
-      sChargeDens = dNormal;
-    }  
+    shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true));
     DefineFieldResult( sChargeDens, chargeD);
-
+    
     // === Electric Charge (integrated) ===
     shared_ptr<ResultInfo> charge(new ResultInfo);
     charge->resultType = ELEC_CHARGE;
@@ -253,6 +223,22 @@ namespace CoupledField {
       chargeFunc.reset(new ResultFunctorIntegrate<Double>(sChargeDens, dispFct, charge ) );
     }
     resultFunctors_[ELEC_CHARGE] = chargeFunc;
+    
+    
+    // ============================
+    // Initialize result functors:
+    // ============================
+    // 1) Loop over all BDB-integrators
+    std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
+    for( ; it != bdbInts_.end(); ++it ) {
+      RegionIdType region = it->first;
+      BaseBDBInt* bdb = it->second;
+
+      // 2) pass integrators to functors
+      cplFunc->AddIntegrator(bdb, region);
+      stressCplFunc->AddIntegrator(bdb, region);
+      sChargeDens->SetVolumeCoef(region, coefFlux);
+    }
   }
   
   

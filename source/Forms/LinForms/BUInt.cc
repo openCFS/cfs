@@ -50,11 +50,12 @@ BUIntegrator(VEC_DATA_TYPE factor,
   factor_ = factor;
   this->name_ = "RhsBUIntegrator";
 
-  assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
+  assert(rhsCoef->GetDimType() == CoefFunction::VECTOR ||
+         rhsCoef->GetDimType() == CoefFunction::SCALAR);
 #ifndef NDEBUG
-  if(rhsCoef->GetDimType() != CoefFunction::VECTOR){
-    Exception("BDB integrator expects the coefficient function to be vectorial!\n \
-                     For scalar valued Things, create a vectorial function with one component");
+  if(rhsCoef->GetDimType()  != CoefFunction::VECTOR &&
+      rhsCoef->GetDimType() != CoefFunction::SCALAR){
+    Exception("BDB integrator expects the coefficient function to be vectorial or scalar!");
   }
 #endif
   this->rhsCoefs_ = rhsCoef;
@@ -109,7 +110,12 @@ BUIntegrator(VEC_DATA_TYPE factor,
        // Call the CalcBMat()-method
        operator_.CalcOpMatTransposed( bMat, lp, ptFe);
 
-       rhsCoefs_->GetVector(cVec,lp);  
+       if( rhsCoefs_->GetDimType() == CoefFunction::SCALAR ) {
+         cVec.Resize(1);
+         rhsCoefs_->GetScalar(cVec[0],lp);
+       } else {
+         rhsCoefs_->GetVector(cVec,lp);
+       }
        elemVec += bMat * cVec * fac;
      }
 

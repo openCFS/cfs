@@ -676,7 +676,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     
     // this defines the primary unknown
     results_.Push_back( disp );
-    availResults_.insert( disp);
     
     // define functor for interpolation of the field
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MECH_DISPLACEMENT];
@@ -709,7 +708,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       vel->entryType = ResultInfo::VECTOR;
       vel->definedOn = ResultInfo::NODE;
       availResults_.insert( vel );
-
       DefineTimeDerivResult( MECH_VELOCITY, 1, MECH_DISPLACEMENT );
       vFct = timeDerivFeFunctions_[MECH_VELOCITY];
       
@@ -721,7 +719,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       acc->entryType = ResultInfo::VECTOR;
       acc->definedOn = ResultInfo::NODE;
       availResults_.insert( acc );
-
       DefineTimeDerivResult( MECH_ACCELERATION, 2, MECH_DISPLACEMENT );
     }
 
@@ -732,7 +729,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     rhs->unit = "N";
     rhs->entryType = ResultInfo::VECTOR;
     rhs->definedOn = ResultInfo::NODE;
-    availResults_.insert( rhs );
     DefineFieldResult( rhsFeFunctions_[MECH_DISPLACEMENT], rhs );
     
     // === MECHANIC STRESS ===
@@ -742,7 +738,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     stress->unit =  "N/m^2";
     stress->entryType = ResultInfo::TENSOR;
     stress->definedOn = ResultInfo::ELEMENT;
-    availResults_.insert( stress );
     shared_ptr<CoefFunctionFormBased> sigmaFunc;
     if( isComplex_ ) {
       sigmaFunc.reset(new CoefFunctionFlux<Complex>(feFct, stress));
@@ -758,7 +753,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     strain->unit =  "";
     strain->entryType = ResultInfo::TENSOR;
     strain->definedOn = ResultInfo::ELEMENT;
-    availResults_.insert( strain );
     shared_ptr<CoefFunctionFormBased> strainFunc;
     if( isComplex_ ) {
       strainFunc.reset(new CoefFunctionBOp<Complex>(feFct, strain));
@@ -771,7 +765,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     PtrCoefFct intensFct;
     shared_ptr<CoefFunctionFormBased> kedFunc;
     shared_ptr<ResultFunctor> keFunc;
-    PtrCoefFct sNormStructIntens;
+    shared_ptr<CoefFunctionSurf> sNormStructIntens;
     shared_ptr<ResultFunctor> powerFunc;
     if ( analysistype_ != STATIC ) {
       // === MECHANIC STRUCTURAL INTENSTIY ===
@@ -781,16 +775,15 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       intens->unit =  "N/ms";
       intens->entryType = ResultInfo::VECTOR;
       intens->definedOn = ResultInfo::ELEMENT;
-      availResults_.insert( intens );
 
       // The mechanic structural intensity calculates as
-      // I = -[stress] * v
+      // I = -[stress] * conj(v)
       PtrCoefFct velFnc = this->GetCoefFct( MECH_VELOCITY );
       // define temporary function, without the -1 sign
       PtrCoefFct intensTmp = 
           CoefFunction::Generate(part,
                                  CoefXprBinOp( sigmaFunc, velFnc,
-                                               CoefXpr::OP_MULT_VOIGT_TENSOR_VEC ) );
+                                               CoefXpr::OP_MULT_VOIGT_TENSOR_VEC_CONJ ) );
       intensFct = 
           CoefFunction::Generate(part,
                                  CoefXprBinOp( "-1.0", intensTmp , CoefXpr::OP_MULT ));
@@ -804,7 +797,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       kinEnergyDens->unit = "Ws/m^3";
       kinEnergyDens->entryType = ResultInfo::SCALAR;
       kinEnergyDens->definedOn = ResultInfo::ELEMENT;
-      availResults_.insert( kinEnergyDens );
       if( isComplex_ ) {
         kedFunc.reset(new CoefFunctionBdBKernel<Complex>(vFct, 0.5));
       } else {
@@ -819,13 +811,13 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       kinEnergy->unit = "Ws";
       kinEnergy->entryType = ResultInfo::SCALAR;
       kinEnergy->definedOn = ResultInfo::REGION;
-      availResults_.insert( kinEnergy );
-      
+      availResults_.insert ( kinEnergy );
       if( isComplex_ ) {
         keFunc.reset(new EnergyResultFunctor<Complex>(vFct, kinEnergy));
       } else {
         keFunc.reset(new EnergyResultFunctor<Double>(vFct, kinEnergy));
       }
+      
       resultFunctors_[MECH_KIN_ENERGY] = keFunc;
       
       // === MECHANIC POWER ===
@@ -836,15 +828,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       power->entryType = ResultInfo::SCALAR;
       power->definedOn = ResultInfo::SURF_REGION;
       availResults_.insert( power );
-      
-      // first, project structural intensity normal 
-      // define missing normal structural surface intensity
-      if( isComplex_ ) {
-        sNormStructIntens.reset(new CoefFunctionSurf<Complex>(true));
-      } else {
-        sNormStructIntens.reset(new CoefFunctionSurf<Double>(true));
-      }
-      
+      sNormStructIntens.reset(new CoefFunctionSurf(true));
       // then, integrate values
       if( isComplex_ ) {
         powerFunc.reset(new ResultFunctorIntegrate<Complex>(sNormStructIntens, 
@@ -864,7 +848,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     defEnergyDens->unit = "Ws/m^3";
     defEnergyDens->entryType = ResultInfo::SCALAR;
     defEnergyDens->definedOn = ResultInfo::ELEMENT;
-    availResults_.insert( defEnergyDens );
     shared_ptr<CoefFunctionFormBased> dedFunc;
     if( isComplex_ ) {
       dedFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, 0.5));
@@ -896,7 +879,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     totEnergyDens->unit = "Ws";
     totEnergyDens->entryType = ResultInfo::SCALAR;
     totEnergyDens->definedOn = ResultInfo::ELEMENT;
-    availResults_.insert( totEnergyDens );
     shared_ptr<CoefFunction> tedFunc;
     // in static analysis, the total energy density equals the deformation one
     if (analysistype_ == STATIC ) {
@@ -904,7 +886,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     } else {
       tedFunc = CoefFunction::Generate(part, 
                                        CoefXprBinOp( dedFunc, kedFunc, CoefXpr::OP_ADD) );
-      std::cerr << "total energy density is defines as " << tedFunc->ToString() << std::endl;
     }
     DefineFieldResult(tedFunc, totEnergyDens ); 
 
@@ -931,8 +912,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     // ============================
     // Initialize result functors:
     // ============================
-     // collect the intensity coefficient function for each regions
-     std::map<RegionIdType, PtrCoefFct> intensCoefs;
      
     // 1) Loop over all BDB-integrators
     std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
@@ -944,7 +923,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       strainFunc->AddIntegrator(bdb, region);
       dedFunc->AddIntegrator(bdb, region);
       deFunc->AddIntegrator(bdb, region);
-      intensCoefs[region] = intensFct;
+      if( analysistype_ != STATIC ) {
+        sNormStructIntens->SetVolumeCoef( region, intensFct );
+      }
     }
     
     // 2) Loop over all mass integrators
@@ -955,14 +936,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         BaseBDBInt* massInt = it->second;
         kedFunc->AddIntegrator(massInt, region);
         keFunc->AddIntegrator(massInt, region);
-      }
-      // define missing normal structural surface intensity
-      if( isComplex_ ) {
-        dynamic_pointer_cast<CoefFunctionSurf<Complex> >(sNormStructIntens)
-                  ->SetVolumeCoefs(intensCoefs);
-      } else {
-        dynamic_pointer_cast<CoefFunctionSurf<Double> >(sNormStructIntens)
-                        ->SetVolumeCoefs(intensCoefs);
       }
     }
   }

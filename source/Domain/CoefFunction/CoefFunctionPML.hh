@@ -121,7 +121,8 @@ public:
 
   CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
                   shared_ptr<EntityList> EntList,
-                  StdVector<RegionIdType> pdeDomains);
+                  StdVector<RegionIdType> pdeDomains,
+                  bool isVector );
 
   ~CoefFunctionPML();
 
@@ -154,6 +155,12 @@ public:
  void GetScalar(Complex& val,
                 const LocPointMapped& lpm ) ;
 
+ //! \copydoc CoefFunction::GetVecSize
+ UInt GetVecSize() const {
+   assert(this->dimType_ == VECTOR );
+   return dim_;
+ }
+ 
 
   void AddEntities(shared_ptr<EntityList>){
     EXCEPTION("Add Entities may not be called in PML CoefFunction. Specify the region in the constructor!");
@@ -208,7 +215,12 @@ private:
 
     //! storing the current frequency
     Double omega_;
+    
+    //! dimension of the problem
+    UInt dim_;
 
+    //! flag, if PML coefficient functions describes the vector 
+    bool isVector_;
 
 };
 

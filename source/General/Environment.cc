@@ -1168,6 +1168,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_ACCELERATION, "acouAcceleration");
     SolutionTypeEnum.Add(ACOU_POTENTIAL, "acouPotential");
     SolutionTypeEnum.Add(ACOU_VELOCITY, "acouVelocity");
+    SolutionTypeEnum.Add(ACOU_NORMAL_VELOCITY, "acouNormalVelocity");
     SolutionTypeEnum.Add(ACOU_PRESSURE_DERIV_1, "acouPressureD1");
     SolutionTypeEnum.Add(ACOU_PRESSURE_DERIV_2, "acouPressureD2");
     SolutionTypeEnum.Add(ACOU_FORCE, "acouForce");
@@ -1246,6 +1247,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(GRAD_Y_DISPLACEMENT, "gradYDisplacement"); // node property!
     SolutionTypeEnum.Add(GRAD_Z_DISPLACEMENT, "gradZDisplacement"); // node property!
     SolutionTypeEnum.Add(GRAD_ELEC_POTENTIAL, "gradElecPotential");
+    SolutionTypeEnum.Add(ELEM_DENSITY, "density");
+    SolutionTypeEnum.Add(PML_DAMP_FACTOR, "pmlDampFactor");
 
     // General (grid related) results
     SolutionTypeEnum.Add(ELEM_LOC_DIR, "localDirection");

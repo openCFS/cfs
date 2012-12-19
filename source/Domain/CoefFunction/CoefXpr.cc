@@ -41,7 +41,9 @@ UInt CoefXpr::GetNumOperands(OpType op ) {
     case OP_ADD:
     case OP_SUB:
     case OP_MULT:
+    case OP_MULT_CONJ:
     case OP_MULT_VOIGT_TENSOR_VEC:
+    case OP_MULT_VOIGT_TENSOR_VEC_CONJ:
     case OP_DIV:
     case OP_CROSS:
     case OP_POW:
@@ -67,6 +69,7 @@ std::string CoefXpr::OpToString( OpType op ) {
       return "-";
       break;
     case OP_MULT:
+    case OP_MULT_CONJ:
       return "*";
       break;
     case OP_DIV:
@@ -143,11 +146,13 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
              dim = CoefFunction::VECTOR;
              break;
            case OP_MULT_VOIGT_TENSOR_VEC:
+           case OP_MULT_VOIGT_TENSOR_VEC_CONJ:
              // the first "tensor" is assumed to be symmetric, so we 
              // assume Voigt notation, so technically both arguments are "vectors"
              dim = CoefFunction::VECTOR;
              break;
            case OP_MULT:
+           case OP_MULT_CONJ:
              // scalar product of two vectors
              dim = CoefFunction::SCALAR;
              break;
@@ -165,6 +170,7 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
            case OP_ADD:
            case OP_SUB:
            case OP_MULT:
+           case OP_MULT_CONJ:
              dim = CoefFunction::TENSOR;
              break;
            case OP_DIV:
@@ -292,6 +298,7 @@ void CoefXpr::ApplyBinaryFunc( std::string& retReal,
     case OP_ADD:
     case OP_SUB:
     case OP_MULT:
+    case OP_MULT_CONJ:
     case OP_DIV:
       if( IsZero(arg1Real) && IsZero(arg2Real) ) {
         retReal = zero2;
@@ -300,7 +307,6 @@ void CoefXpr::ApplyBinaryFunc( std::string& retReal,
         retReal = B(args.Serialize(' ') );
       }
       break;
-
     case OP_POW:
       args = B(arg1Real), "^", B(arg2Real);
       retReal = B(args.Serialize(' ' ));
@@ -362,7 +368,7 @@ void CoefXpr::ApplyBinaryFunc( std::string& retReal, std::string& retImag,
         } else {
           args = "(", B(arg1Real), "*", B(arg2Real), ") - (", B(arg1Imag), "*", B(arg2Imag), ")";
         }
-          retReal = B(args.Serialize(' '));
+        retReal = B(args.Serialize(' '));
         args.Clear();
         if( z1Real || z2Imag ) {
           args = "(", B(arg1Imag), "*", B(arg2Real), ")";
@@ -371,9 +377,35 @@ void CoefXpr::ApplyBinaryFunc( std::string& retReal, std::string& retImag,
         } else {
           args = "(", B(arg1Real), "*", B(arg2Imag), ") + (", B(arg1Imag), "*", B(arg2Real), ")";
         }
-          retImag = B(args.Serialize(' '));
+        retImag = B(args.Serialize(' '));
       }
       break;
+    case OP_MULT_CONJ:
+      // if one of the two operands is zero, just take the shortcut
+      if( ( z1Real && z1Imag ) || (z2Real && z2Imag) ) { 
+        retReal = zero2;
+        retImag = zero2;
+      } else {
+        if( z1Real || z2Real ) {
+          args = "(", B(arg1Imag), "*", B(arg2Imag), ")";
+        } else if (z1Imag || z2Imag ) {
+          args = "(", B(arg1Real), "*", B(arg2Real), ")";
+        } else {
+          args = "(", B(arg1Real), "*", B(arg2Real), ") + (", B(arg1Imag), "*", B(arg2Imag), ")";
+        }
+        retReal = B(args.Serialize(' '));
+        args.Clear();
+        if( z1Real || z2Imag ) {
+          args = "(", B(arg1Imag), "*", B(arg2Real), ")";
+        } else if ( z1Imag || z2Real ) {
+          args = "-(", B(arg1Real), "*", B(arg2Imag), ")";
+        } else {
+          args = "-(", B(arg1Real), "*", B(arg2Imag), ") + (", B(arg1Imag), "*", B(arg2Real), ")";
+        }
+        retImag = B(args.Serialize(' '));
+      }
+      break;
+
 
     case OP_DIV:
       args = "(", B(arg2Real), "*", B(arg2Real), ") + (", B(arg2Imag), "*", B(arg2Imag), ")";
@@ -682,7 +714,7 @@ void CoefXprBinOp::GetScalarXpr( std::string& real, std::string& imag ) const {
     // --------------------
     
     // Only known (vec,vec)->scalar operation is scalar product
-    if( op_ == OP_MULT ) {
+    if( op_ == OP_MULT || op_ == OP_MULT_CONJ ) {
       StdVector<std::string> aR, aI, bR, bI;
       if( isAnalytical_) {
         CoefFunctionAnalytic & coefA = 
@@ -700,7 +732,7 @@ void CoefXprBinOp::GetScalarXpr( std::string& real, std::string& imag ) const {
       if( !isComplex_ ) {
         std::string temp;
         // treat first entry
-        CoefXpr::ApplyBinaryFunc( real, aR[0], bR[0], OP_MULT );
+        CoefXpr::ApplyBinaryFunc( real, aR[0], bR[0], op_ );
         for( UInt i = 1; i < numEntries; ++ i ) {
           CoefXpr::ApplyBinaryFunc( temp, aR[i], bR[i], op_ );
           real += "+" + temp;
@@ -710,10 +742,10 @@ void CoefXprBinOp::GetScalarXpr( std::string& real, std::string& imag ) const {
         std::string tempReal, tempImag;
         // treat first entry
         CoefXpr::ApplyBinaryFunc( real, imag, aR[0], bR[0], 
-                                  aI[0], bI[0], OP_MULT );
+                                  aI[0], bI[0], op_ );
         for( UInt i = 1; i < numEntries; ++ i ) {
           CoefXpr::ApplyBinaryFunc( tempReal, tempImag , 
-                                    aR[i], bR[i],aI[i], bI[i], OP_MULT );
+                                    aR[i], bR[i],aI[i], bI[i], op_ );
           real += "+" + tempReal;
           imag += "+" + tempImag;
         }
@@ -724,7 +756,7 @@ void CoefXprBinOp::GetScalarXpr( std::string& real, std::string& imag ) const {
         
     } else {
       EXCEPTION("The only allowed binary vector-vector operation "
-                << "is OP_MULT" ); 
+                << "is OP_MULT and OP_MULT_CONJ" ); 
     } // if OP_MULT
   } else {
     EXCEPTION("Arguments must be either both of scalar or vector type.")
@@ -852,7 +884,9 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
         EXCEPTION( "Vector / cross product only defined in 1D and 3D");
     }
     // === OP_MULT_TENSOR_VEC
-    else if( op_ == OP_MULT_VOIGT_TENSOR_VEC ) {
+    else if( op_ == OP_MULT_VOIGT_TENSOR_VEC ||
+             op_ == OP_MULT_VOIGT_TENSOR_VEC_CONJ ) {
+      
       // Here we assume that the first "vector" represents a symmetric
       // tensor in Voigt Notation and the second argument is a vector.
       // We allow three cases:
@@ -868,6 +902,13 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
       real.Resize( bR.GetSize() );
       imag.Resize( bR.GetSize() );
       
+      CoefXpr::OpType scalOp;
+      if( op_ == OP_MULT_VOIGT_TENSOR_VEC ) {
+        scalOp = OP_MULT;
+      } else {
+        scalOp = OP_MULT_CONJ;
+      }
+      
       if( aR.GetSize() == 6 && bR.GetSize() == 3 ) {
         // ----------------
         //  3D / FULL case
@@ -877,74 +918,74 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
         if(!isComplex_) {
           std::string temp;
           // 1st row
-          CoefXpr::ApplyBinaryFunc( temp, aR[0], bR[0], OP_MULT );
+          CoefXpr::ApplyBinaryFunc( temp, aR[0], bR[0], scalOp );
           real[0] = temp + " + ";
-          CoefXpr::ApplyBinaryFunc( temp, aR[5], bR[1], OP_MULT );
+          CoefXpr::ApplyBinaryFunc( temp, aR[5], bR[1], scalOp );
           real[0] += temp + " + ";
-          CoefXpr::ApplyBinaryFunc( temp, aR[4], bR[2], OP_MULT );
+          CoefXpr::ApplyBinaryFunc( temp, aR[4], bR[2], scalOp );
           real[0] += temp;
           // 2nd row
-          CoefXpr::ApplyBinaryFunc( temp, aR[5], bR[0], OP_MULT );
+          CoefXpr::ApplyBinaryFunc( temp, aR[5], bR[0], scalOp );
           real[1] = temp + " + ";
-          CoefXpr::ApplyBinaryFunc( temp, aR[1], bR[1], OP_MULT );
+          CoefXpr::ApplyBinaryFunc( temp, aR[1], bR[1], scalOp );
           real[1] += temp + " + ";
-          CoefXpr::ApplyBinaryFunc( temp, aR[3], bR[2], OP_MULT );
+          CoefXpr::ApplyBinaryFunc( temp, aR[3], bR[2], scalOp );
           real[1] += temp;
           // 3rd row
-          CoefXpr::ApplyBinaryFunc( temp, aR[4], bR[0], OP_MULT );
+          CoefXpr::ApplyBinaryFunc( temp, aR[4], bR[0], scalOp );
           real[2] = temp + " + ";
-          CoefXpr::ApplyBinaryFunc( temp, aR[3], bR[1], OP_MULT );
+          CoefXpr::ApplyBinaryFunc( temp, aR[3], bR[1], scalOp );
           real[2] += temp + " + ";
-          CoefXpr::ApplyBinaryFunc( temp, aR[2], bR[2], OP_MULT );
+          CoefXpr::ApplyBinaryFunc( temp, aR[2], bR[2], scalOp );
           real[2] += temp;
         } else {
           std::string tempR, tempI;
           // 1st row
           CoefXpr::ApplyBinaryFunc( tempR, tempI, 
                                     aR[0], bR[0], 
-                                    aI[0], bI[0], OP_MULT );
+                                    aI[0], bI[0], scalOp );
           real[0] = tempR + " + ";
           imag[0] = tempI + " + ";
           CoefXpr::ApplyBinaryFunc( tempR, tempI, 
                                     aR[5], bR[1], 
-                                    aI[5], bI[1], OP_MULT );
+                                    aI[5], bI[1], scalOp );
           real[0] += tempR + " + ";
           imag[0] += tempI + " + ";
           CoefXpr::ApplyBinaryFunc( tempR, tempI, 
                                     aR[4], bR[2], 
-                                    aI[4], bI[2], OP_MULT );
+                                    aI[4], bI[2], scalOp );
           real[0] += tempR;
           imag[0] += tempI;
           // 2nd row
           CoefXpr::ApplyBinaryFunc( tempR, tempI, 
                                     aR[5], bR[0], 
-                                    aI[5], bI[0], OP_MULT );
+                                    aI[5], bI[0], scalOp );
           real[1] = tempR + " + ";
           imag[1] = tempI + " + ";
           CoefXpr::ApplyBinaryFunc( tempR, tempI, 
                                     aR[1], bR[1], 
-                                    aI[1], bI[1], OP_MULT );
+                                    aI[1], bI[1], scalOp );
           real[1] += tempR + " + ";
           imag[1] += tempI + " + ";
           CoefXpr::ApplyBinaryFunc( tempR, tempI, 
                                     aR[3], bR[2], 
-                                    aI[3], bI[2], OP_MULT );
+                                    aI[3], bI[2], scalOp );
           real[1] += tempR;
           imag[1] += tempI;
           // 3rd row
           CoefXpr::ApplyBinaryFunc( tempR, tempI, 
                                     aR[4], bR[0], 
-                                    aI[4], bI[0], OP_MULT );
+                                    aI[4], bI[0], scalOp );
           real[2] = tempR + " + ";
           imag[2] = tempI + " + ";
           CoefXpr::ApplyBinaryFunc( tempR, tempI, 
                                     aR[3], bR[1], 
-                                    aI[3], bI[1], OP_MULT );
+                                    aI[3], bI[1], scalOp );
           real[2] += tempR + " + ";
           imag[2] += tempI + " + ";
           CoefXpr::ApplyBinaryFunc( tempR, tempI, 
                                     aR[2], bR[2], 
-                                    aI[2], bI[2], OP_MULT );
+                                    aI[2], bI[2], scalOp );
           real[2] += tempR;
           imag[2] += tempI;
         }
@@ -959,37 +1000,37 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
         if(!isComplex_) {
           std::string temp;
           // 1st row
-          CoefXpr::ApplyBinaryFunc( temp, aR[0], bR[0], OP_MULT );
+          CoefXpr::ApplyBinaryFunc( temp, aR[0], bR[0], scalOp );
           real[0] = temp + " + ";
-          CoefXpr::ApplyBinaryFunc( temp, aR[2], bR[1], OP_MULT );
+          CoefXpr::ApplyBinaryFunc( temp, aR[2], bR[1], scalOp );
           real[0] += temp;
           // 2nd row
-          CoefXpr::ApplyBinaryFunc( temp, aR[2], bR[0], OP_MULT );
+          CoefXpr::ApplyBinaryFunc( temp, aR[2], bR[0], scalOp );
           real[1] += temp + " + ";
-          CoefXpr::ApplyBinaryFunc( temp, aR[1], bR[1], OP_MULT );
+          CoefXpr::ApplyBinaryFunc( temp, aR[1], bR[1], scalOp );
           real[1] += temp;
         } else {
           std::string tempR, tempI;
           // 1st row
           CoefXpr::ApplyBinaryFunc( tempR, tempI, 
                                     aR[0], bR[0], 
-                                    aI[0], bI[0], OP_MULT );
+                                    aI[0], bI[0], scalOp );
           real[0] = tempR + " + ";
           imag[0] = tempI + " + ";
           CoefXpr::ApplyBinaryFunc( tempR, tempI, 
                                     aR[2], bR[1], 
-                                    aI[2], bI[1], OP_MULT );
+                                    aI[2], bI[1], scalOp );
           real[0] += tempR;
           imag[0] += tempI;
           // 2nd row
           CoefXpr::ApplyBinaryFunc( tempR, tempI, 
                                     aR[2], bR[0], 
-                                    aI[2], bI[0], OP_MULT );
+                                    aI[2], bI[0], scalOp );
           real[1] = tempR + " + ";
           imag[1] = tempI + " + ";
           CoefXpr::ApplyBinaryFunc( tempR, tempI, 
                                     aR[1], bR[1], 
-                                    aI[1], bI[1], OP_MULT );
+                                    aI[1], bI[1], scalOp );
           real[1] += tempR;
           imag[1] += tempI;
         }
@@ -1027,7 +1068,8 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
        // switch depending on operation type
        // === OP_ADD / OP_SUB ===
        if( op_ == OP_ADD || op_ == OP_SUB ||  
-           op_ == OP_SUB || op_ == OP_MULT) {
+           op_ == OP_SUB || op_ == OP_MULT || 
+           op_ == OP_MULT_CONJ ) {
          if( !isComplex_ ) {
            for( UInt i = 0; i < numEntries; ++ i ) {
              CoefXpr::ApplyBinaryFunc( real[i], aR, bR[i], op_ );
@@ -1041,7 +1083,7 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
          }
     } else {
       EXCEPTION( "The only allowed (scalar,vector)->vector operations "
-          << "are OP_ADD, OP_SUB, OP_MULT and OP_DIV" );
+          << "are OP_ADD, OP_SUB, OP_MULT, OP_MULT_CONJ and OP_DIV" );
     }
   } else {
     EXCEPTION("Arguments must be both of vector type.")
@@ -1103,7 +1145,7 @@ void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
                                      aI[i], bI[i], op_ );
          }
        }
-     } else  if( op_ == OP_MULT ) {
+     } else  if( op_ == OP_MULT || op_ == OP_MULT_CONJ ) {
        
        // ensure that both tensors can be "multiplied"
        if( numColsA != numRowsB  ) {
@@ -1124,11 +1166,11 @@ void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
              std::string temp1, temp2;
              posA = i*numColsA;
              posB = j;
-             CoefXpr::ApplyBinaryFunc( temp1, aR[posA], bR[posB], OP_MULT );
+             CoefXpr::ApplyBinaryFunc( temp1, aR[posA], bR[posB], op_ );
              for( UInt k = 1; k < numColsA; ++k ) {
                posA ++;
                posB += numCols;
-               CoefXpr::ApplyBinaryFunc( temp2, aR[posA], bR[posB], OP_MULT );
+               CoefXpr::ApplyBinaryFunc( temp2, aR[posA], bR[posB], op_ );
                if( !IsZero(temp2)) {
                  temp1 += " + " + temp2;
                }
@@ -1148,12 +1190,12 @@ void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
              posA = i*numColsA;
              posB = j;
              CoefXpr::ApplyBinaryFunc( temp1R, temp1I, aR[posA], bR[posB], 
-                                       aI[posA], bI[posB], OP_MULT );
+                                       aI[posA], bI[posB], op_ );
              for( UInt k = 1; k < numColsA; ++k ) {
                posA ++;
                posB += numCols;
                CoefXpr::ApplyBinaryFunc( temp2R, temp2I, aR[posA], bR[posB], 
-                                         aI[posA], bI[posB], OP_MULT );
+                                         aI[posA], bI[posB], op_ );
                if( !IsZero(temp2R)) {
                  temp1R += " + " + temp2R;
                }
@@ -1180,7 +1222,7 @@ void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
        
      } else {
        EXCEPTION( "The only allowed (tensor,tensor)->tensor operations "
-                << "are OP_ADD, OP_SUB and OP_MULT");
+                << "are OP_ADD, OP_SUB, OP_MULT and OP_MULT_CONJ");
      }
   } else {
     EXCEPTION("Arguments must be both of tensor type.")

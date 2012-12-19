@@ -107,7 +107,8 @@ template<class TYPE>
 std::string CoefFunctionBOp<TYPE>::ToString() const {
   std::stringstream out;
   out << "CoefFunctionBOp\n";
-  out << "\tFeFunction: " << feFct_->GetResultInfo()->resultName;
+  out << "\tFeFunction: " << 
+      SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType);
   return out.str();
 
 }
