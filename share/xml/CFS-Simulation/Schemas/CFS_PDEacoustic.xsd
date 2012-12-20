@@ -114,6 +114,10 @@
                 <xsd:element name="pressure"   type="DT_BcInhomScalar"  />
                 <xsd:element name="potential"  type="DT_BcInhomScalar"  />
                 
+                <!-- RHS Load Values-->
+                <xsd:element name="velocity"       type="DT_BcInhomVector"/>
+                <xsd:element name="normalVelocity" type="DT_BcInhomScalar"/>
+
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="absorbingBCs"   type="DT_AbsorbingBC" />
                 <xsd:element name="flowData"       type="DT_AcousticFlow"/>
@@ -626,7 +630,6 @@
       <xsd:enumeration value="acouPotentialD1"/>
       <xsd:enumeration value="acouPotentialD2"/>
       <xsd:enumeration value="acouRhsLoad"/>
-      <xsd:enumeration value="gradAcousticSolution"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -635,23 +638,24 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouPressure"/>
       <xsd:enumeration value="acouIntensity"/>
-      <!-- topology optimization -->
-      <xsd:enumeration value="acouPseudoDensity"/>      
+      <xsd:enumeration value="acouSpeedOfSound"/>
+      <xsd:enumeration value="acouVelocity"/>
+      <xsd:enumeration value="density"/>
+      <xsd:enumeration value="pmlDampFactor"/>
     </xsd:restriction>
   </xsd:simpleType>
 
   <!-- Definition of surface element result types of acoustic PDE -->
   <xsd:simpleType name="DT_AcousticSurfElemResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="acouForce"/>
       <xsd:enumeration value="acouSurfIntensity"/>
+      <xsd:enumeration value="acouNormalVelocity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
  <!-- Definition of surface region result types of acoustic PDE -->
   <xsd:simpleType name="DT_AcousticSurfRegionResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="acouForce"/>
       <xsd:enumeration value="acouPower"/>
     </xsd:restriction>
   </xsd:simpleType>
