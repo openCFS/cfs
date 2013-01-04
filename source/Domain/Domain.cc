@@ -943,6 +943,14 @@ void Domain::RegisterVariables()
    for(; it != varNodes.End(); it++ ) {
      (*it)->GetValue("name", varName);
      (*it)->GetValue("value", valString);
+     // check for reserved variable names
+     if ( (varName == "t") || (varName == "dt") 
+         || (varName == "f") || (varName == "step") )
+     {
+       EXCEPTION("The variable '" << varName
+                 << "' is reserved, its value will be set automatically. "
+                 << "Please choose a different name.");
+     }
      mathParser_.SetExpr(handle, valString);
      value = mathParser_.Eval(handle);
      mathParser_.SetValue(MathParser::GLOB_HANDLER, varName, value);

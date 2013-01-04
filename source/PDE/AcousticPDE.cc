@@ -544,7 +544,7 @@ namespace CoupledField{
         EXCEPTION( "Normal velocity can only be prescribed for potential "
             << "formulation or for harmonic pressure formulation" )
       }
-      lin->SetName("elocityIntegrator");
+      lin->SetName("VelocityIntegrator");
       LinearFormContext *ctx = new LinearFormContext( lin );
       ctx->SetEntities( ent[i] );
       ctx->SetFeFunction(myFct);
