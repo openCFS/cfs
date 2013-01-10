@@ -8,6 +8,7 @@ namespace CoupledField{
     
    // initialize rotation matrix
     rotationMat_.Resize(dim_, dim_);
+    rotationMat_.Init();
     rotationMat_[0][0] = 1.0;
     rotationMat_[1][1] = 1.0;
     if( dim_ == 3 ) {
@@ -17,6 +18,7 @@ namespace CoupledField{
     
     // "calculate" full inverse rotation matrix
     invRotationMatFull_.Resize(3,3);
+    invRotationMatFull_.Init();
     invRotationMatFull_.SetSubMatrix( invRotationMat_, 0, 0);
   }
   
