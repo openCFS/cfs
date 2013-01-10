@@ -648,6 +648,7 @@ namespace CoupledField {
         }
         copy->Export((base+"_precond.mtx").c_str());
 
+        delete copy;
 
         if(els->HasByVal("damping", true) && sysMat_[DAMPING] != NULL)
           sysMat_[DAMPING]->Export((base+"_damping.mtx").c_str() );
