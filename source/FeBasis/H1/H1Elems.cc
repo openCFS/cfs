@@ -19,12 +19,17 @@ namespace CoupledField {
   }
   
   void FeH1::GetShFnc( Vector<Double>& S, const LocPoint& lp,
-                 const Elem* ptElem,  UInt comp ){
-    
+                       const Elem* ptElem,  UInt comp ){
     //check if the shape function is already computed
     if(shapeFncsAtIp_.find(lp.number) == shapeFncsAtIp_.end() || comp !=1 ){
+
       CalcShFnc( S, lp.coord, ptElem, comp);
-      shapeFncsAtIp_[lp.number] = S;
+      
+      //add them to the map only, if we are allowed to!
+      if( preComputShFnc_ && lp.number != LocPoint::NOT_SET ) {
+        shapeFncsAtIp_[lp.number] = S;    
+      }
+      
     }else{
       S = shapeFncsAtIp_[lp.number];
     }
