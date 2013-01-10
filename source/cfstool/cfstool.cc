@@ -686,7 +686,10 @@ namespace CFSTool {
                    if ( iDiff > iMax)
                      iMax = iDiff;
                  }
-
+                 std::cout << "\n\t-- Info for " <<
+                                    inResults1[iRes]->GetResultInfo()->resultName << " on " 
+                                    << inResults1[iRes]->GetEntityList()->GetName() <<", DOF = " << 
+                                    inResults1[iRes]->GetResultInfo()->dofNames[dof] << " --\n";
                  if( normedtomax == true)
                    std::cout << "\n\tMaximum rel. + amplitude difference:  " << aMax*100 << " %\n"
                              << "\tMaximum rel. - amplitude difference: " << aMin*100 << " %\n";
@@ -702,14 +705,14 @@ namespace CFSTool {
                    maxDiff = rMax;
                  else if ( (iMax > rMax) && (iMax > maxDiff) )
                    maxDiff = iMax;
-               }
+               } // loop dof
                std::cout << "\n\tMaximum overall rel. difference = " << maxDiff << "\n\n";
              }
 
              // add result to output file
              if (output )
                output->AddResult( outResults[iRes] );
-           }
+           } // loop over results
            if( output )
              output->FinishStep();
          }
