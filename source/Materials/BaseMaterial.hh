@@ -194,7 +194,10 @@ namespace CoupledField {
     virtual void SetScalar(int param, MaterialType matType);
 
     //! set a scalar real material parameter
-    virtual void SetScalar(double param, MaterialType matType, Global::ComplexPart dataType ) = 0;
+    virtual void SetScalar(double param, MaterialType matType, Global::ComplexPart dataType ) 
+    {
+     EXCEPTION("not implemented for " << materialDatabaseName_);
+    };
 
 
     //! set a scalar complex material parameter
@@ -251,7 +254,10 @@ namespace CoupledField {
     void GetScalar( Integer& param, MaterialType matType, Global::ComplexPart dataType) const;
 
     //! get a scalar real material parameter
-    virtual void GetScalar( Double& param, MaterialType matType, Global::ComplexPart dataType ) const = 0;
+    virtual void GetScalar( Double& param, MaterialType matType, Global::ComplexPart dataType ) const 
+    {
+      EXCEPTION("not implemented for " << materialDatabaseName_);
+    }
 
     //! get a scalar complex material parameter
     virtual void GetScalar( Complex& param, MaterialType matType, Global::ComplexPart dataType ) const

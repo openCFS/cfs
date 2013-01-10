@@ -64,6 +64,9 @@ CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound
   mp_->AddExpChangeCallBack(
       boost::bind(&CoefFunctionPML<T>::UpdateOmega, this ),
       mHandle_ );
+  // important: Trigger first-time calculation
+  UpdateOmega();
+  
 
   if (isVector_ ) {
     this->dimType_ = CoefFunction::VECTOR;

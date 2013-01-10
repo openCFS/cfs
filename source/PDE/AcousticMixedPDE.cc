@@ -500,28 +500,33 @@ namespace CoupledField{
 
         RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
         //
-        Double density=0.0,compressibility=0.0,c0;
-
-        //
-        materials_[aRegion]->GetScalar(density,DENSITY,Global::REAL);
-        materials_[aRegion]->GetScalar(compressibility,ACOU_BULK_MODULUS,Global::REAL);
-        c0 = std::sqrt(compressibility/density);
+        PtrCoefFct density = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
+        PtrCoefFct compressibility = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+        
+        // c0 = sqrt(bulk_modulus / density)
+        PtrCoefFct c0 = 
+            CoefFunction::Generate( Global::REAL,
+                                    CoefXprUnaryOp( CoefXprBinOp(compressibility, density, CoefXpr::OP_DIV),
+                                    CoefXpr::OP_SQRT) );
 
         PtrCoefFct coeffKPV
-                  = CoefFunction::Generate(Global::REAL, "1.0");
-
+        = CoefFunction::Generate(Global::REAL,
+                                 CoefXprBinOp("1.0", 
+                                              CoefXprBinOp(density, c0, CoefXpr::OP_MULT ),
+                                              CoefXpr::OP_DIV) ) ;
+              
         BiLinearForm * abcInt = NULL;
 
         if( dim_ == 2 ) {
           if(isComplex_)
-            abcInt = new BBInt<IdentityOperator<FeH1,2,1,Complex>, Complex,Complex >(coeffKPV,1.0/(density*c0) );
+            abcInt = new BBInt<IdentityOperator<FeH1,2,1,Complex>, Complex,Complex >(coeffKPV,1.0 );
           else
-            abcInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double,Double >(coeffKPV,1.0/(density*c0) );
+            abcInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double,Double >(coeffKPV,1.0 );
         } else {
           if(isComplex_)
-            abcInt = new BBInt<IdentityOperator<FeH1,3,1,Complex>, Complex,Complex >(coeffKPV,1.0/(density*c0) );
+            abcInt = new BBInt<IdentityOperator<FeH1,3,1,Complex>, Complex,Complex >(coeffKPV,1.0 );
           else
-            abcInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double,Double >(coeffKPV,1.0/(density*c0) );
+            abcInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double,Double >(coeffKPV,1.0 );
         }
 
         abcInt->SetName("abcIntegrator");

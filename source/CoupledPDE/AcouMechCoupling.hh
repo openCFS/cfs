@@ -44,9 +44,6 @@ class BiLinearForm;
     //! Definition of the (bi)linear forms
     void DefineIntegrators();
 
-    //! Define available results
-    void DefineAvailResults();
-
     //! Create a particular bilinear form integrator
     void DefCouplInt( const std::string& name,
                       bool assembleTransposed,
@@ -57,14 +54,6 @@ class BiLinearForm;
                       shared_ptr<SurfElemList>& actSDList,
                       const std::map< RegionIdType, PtrCoefFct >& coefFuncs,
                       const std::set< RegionIdType >& acouRegions) ;
-    
-    
-    //! Returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
-    BiLinearForm * GetStiffIntegrator( BaseMaterial* actSDMat,
-                                       RegionIdType regionId,
-                                       bool isComplex );
-
-
     //! Subtype of related mechanical PDE
     std::string subType_;
     

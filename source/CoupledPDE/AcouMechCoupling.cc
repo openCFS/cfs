@@ -84,11 +84,7 @@ namespace CoupledField {
 
       // Get bulk density for acoustics
       BaseMaterial * acouMat = acouMaterials[volRegId];
-      Double density = 1.0;
-      acouMat->GetScalar(density,DENSITY,Global::REAL);
-
-      coefFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
-                                                   lexical_cast<std::string>(density));
+      coefFuncs[volRegId] = acouMat->GetScalCoefFnc(DENSITY,Global::REAL);
       oneCoefFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
                                                    lexical_cast<std::string>(1.0));
     }
@@ -220,59 +216,4 @@ namespace CoupledField {
     assemble_->AddBiLinearForm( context );
   }
   
-  void AcouMechCoupling::DefineAvailResults() {
-    REFACTOR  
-  }
-
-  BiLinearForm *
-  AcouMechCoupling::GetStiffIntegrator( BaseMaterial* actSDMat,
-                                     RegionIdType regionId,
-                                     bool isComplex ) {
-#if 0
-    // Get region name
-    std::string regionName = ptGrid_->GetRegion().ToString( regionId );
-
-    SubTensorType tensorType = NO_TENSOR;
-    if( subType_ != "3d") {
-      tensorType = PLANE_STRAIN;
-    } else {
-      tensorType = FULL;
-    }
-    // ------------------------
-    //  Obtain linear material
-    // ------------------------
-    shared_ptr<CoefFunction > curCoef;
-    if( isComplex ) {
-      curCoef = actSDMat->GetCoefFunction(PIEZO_TENSOR,
-                                          tensorType, Global::COMPLEX, true );
-    } else {
-      curCoef = actSDMat->GetCoefFunction(PIEZO_TENSOR,
-                                          tensorType, Global::REAL, true );
-    }
-    
-    // ----------------------------------------
-    //  Determine correct stiffness integrator 
-    // ----------------------------------------
-    BiLinearForm * integ = NULL;
-    if( subType_ == "axi" ) {
-      integ = new ADBInt<StrainOperatorAxi<FeH1>,
-          GradientOperator<FeH1,2> >(curCoef, 1.0);
-    } else if( subType_ == "planeStrain" ) {
-      integ = new ADBInt<StrainOperator2D<FeH1>,
-          GradientOperator<FeH1,2> >(curCoef, 1.0);
-    } else if( subType_ == "planeStress" ) {
-      integ = new ADBInt<StrainOperator2D<FeH1>,
-          GradientOperator<FeH1,2> >(curCoef, 1.0);
-    } else if( subType_ == "3d") {
-      integ = new ADBInt<StrainOperator3D<FeH1>,
-          GradientOperator<FeH1,3> >(curCoef, 1.0);
-    } else {
-      EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
-    }
-    return integ;
-#endif
-    return NULL;
-  }
-  
 }
-

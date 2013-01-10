@@ -358,8 +358,8 @@ try {\
     COPY_MATRIX_OBJ( COMPLEX, VAR_BLOCK_ROW, VBRComplexDof1 );
     
     // DIAG_Matrix case
-    COPY_MATRIX_OBJ( DOUBLE,  DIAG, SCRSRealDof1    );
-    COPY_MATRIX_OBJ( COMPLEX, DIAG, SCRSComplexDof1 );
+    COPY_MATRIX_OBJ( DOUBLE,  DIAG, DiagRealDof1    );
+    COPY_MATRIX_OBJ( COMPLEX, DIAG, DiagComplexDof1 );
     
     
 

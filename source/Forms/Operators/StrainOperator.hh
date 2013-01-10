@@ -259,6 +259,7 @@ namespace CoupledField{
     fe->GetShFnc( shape, lpm.lp, lpm.shapeMap->GetElem() );
     Vector<Double> globPoint;
     lpm.shapeMap->Local2Global(globPoint, lpm.lp);
+    const Double oneOverR = 1.0 /  globPoint[0];
     
     UInt iFunc = 0;
     UInt pos = 0;
@@ -279,7 +280,7 @@ namespace CoupledField{
       // phi-phi component: N_i / r
       // The formula is taken from:
       // Zienkiewicz, The FEM - Vol.1 - The Basis, 5th ed., p. 114
-      bMat[3][pos+0] = shape[iFunc] / globPoint[0];
+      bMat[3][pos+0] = shape[iFunc] * oneOverR;
     }
   }
 
@@ -303,6 +304,7 @@ namespace CoupledField{
     fe->GetShFnc( shape, lpm.lp, lpm.shapeMap->GetElem() );
     Vector<Double> globPoint;
     lpm.shapeMap->Local2Global(globPoint, lpm.lp);
+    const Double oneOverR = 1.0 /  globPoint[0];
 
     UInt iFunc = 0;
     UInt pos = 0;
@@ -313,7 +315,7 @@ namespace CoupledField{
       // phi-phi component: N_i / r
       // The formula is taken from:
       // Zienkiewicz, The FEM - Vol.1 - The Basis, 5th ed., p. 114
-      bMat[pos+0][3] = shape[iFunc] / globPoint[0];
+      bMat[pos+0][3] = shape[iFunc] * oneOverR;
     }
     
     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {

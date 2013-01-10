@@ -219,15 +219,17 @@ namespace CoupledField {
   }
 
   void ResultHandler::UpdateResults() {
-    
+    LOG_TRACE(resHandler) << "Updating results" << std::endl;
     // iterate over all results, which are needed
     std::set<shared_ptr<BaseResult> >::iterator it = isNeeded_.begin();
     for( ; it != isNeeded_.end(); it++ ) {
       ResultContext & actContext = *(resultContexts_[*it]);
 
-      // Note: this is a "dirty" hack, as currently we have results, which are 
-      // directly written, without defining a functor. We silently ignore those results.
       if( actContext.functor ) {
+        LOG_DBG(resHandler) << "Evaluating result '" << 
+           SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType )
+           << "' on '" << actContext.result->GetEntityList()->GetName() 
+           << "'";
         actContext.functor->EvalResult( actContext.result);
         UpdateResult(actContext.result);
       }

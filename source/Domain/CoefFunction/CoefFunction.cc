@@ -78,7 +78,7 @@ CoefFunction::Generate( Global::ComplexPart format,
 
 }
 
-//! Generate vector-valued coefficient function
+//! Generate vector-valued coefficient function from string
 PtrCoefFct 
 CoefFunction::Generate( Global::ComplexPart format, 
                         const StdVector<std::string>& realVal, 
@@ -167,8 +167,59 @@ CoefFunction::Generate( Global::ComplexPart format,
 
 }
 
+//! Generate vector-valued coefficient function from CoefFunctions
+PtrCoefFct 
+CoefFunction::Generate( Global::ComplexPart format, 
+                        const StdVector<PtrCoefFct>& realVal, 
+                        const StdVector<PtrCoefFct>& imagVal ) {
+  
+  PtrCoefFct ret;
+  // Check, if all entries are analytical
+  bool isAnalytical = false;
+  for( UInt i = 0; i < realVal.GetSize(); ++i ) {
+    isAnalytical |= realVal[i]->IsAnalytic();
+    // also ensure, that every CoefFunction is of scalar type
+    if( realVal[i]->GetDimType() != CoefFunction::SCALAR )  {
+      EXCEPTION( "Vector valued expression can be only composed of "
+          << "scalar entries!" );
+    }
+  }
+  for( UInt i = 0; i < imagVal.GetSize(); ++i ) {
+    isAnalytical |= imagVal[i]->IsAnalytic();
+    // also ensure, that every CoefFunction is of scalar type
+    if( imagVal[i]->GetDimType() != CoefFunction::SCALAR )  {
+      EXCEPTION( "Vector valued expression can be only composed of "
+          << "scalar entries!" );
+    }
+  }
+  
+  if( isAnalytical ) {
+    // use string generation method to generate the vector valued CoefFct
+    StdVector<std::string> rStrVals, iStrVals;
+    std::string empty;
+    rStrVals.Resize( realVal.GetSize() );
+    iStrVals.Resize( imagVal.GetSize() );
+    for( UInt i = 0; i < realVal.GetSize(); ++i ) {
+      shared_ptr<CoefFunctionAnalytic> tmp;
+      tmp = dynamic_pointer_cast<CoefFunctionAnalytic>(realVal[i]);
+      tmp->GetStrScalar(rStrVals[i], empty);
+    }
+    for( UInt i = 0; i < imagVal.GetSize(); ++i ) {
+      shared_ptr<CoefFunctionAnalytic> tmp;
+      tmp = dynamic_pointer_cast<CoefFunctionAnalytic>(realVal[i]);
+      tmp->GetStrScalar(iStrVals[i], empty);
+    }
+    ret = Generate(format, rStrVals, iStrVals);
+  } else {
+    EXCEPTION( "Vector-valued expression can only be composed of "
+        << "analytical expressions currently!" );
 
-//! Generate tensor-valued coefficient function
+  }
+  return ret;
+}
+
+
+//! Generate tensor-valued coefficient function from strings
 PtrCoefFct 
 CoefFunction::Generate( Global::ComplexPart format,
                         UInt numRows, UInt numCols,
@@ -256,6 +307,58 @@ CoefFunction::Generate( Global::ComplexPart format,
 
    return ret;
 
+}
+
+//! Generate tensor-valued coefficient function from CoefFunctions
+PtrCoefFct 
+CoefFunction::Generate( Global::ComplexPart format,
+                        UInt numRows, UInt numCols,
+                        const StdVector<PtrCoefFct>& realVal,
+                        const StdVector<PtrCoefFct>& imagVal ) {
+  PtrCoefFct ret;
+   // Check, if all entries are analytical
+   bool isAnalytical = false;
+   for( UInt i = 0; i < realVal.GetSize(); ++i ) {
+     isAnalytical |= realVal[i]->IsAnalytic();
+     // also ensure, that every CoefFunction is of scalar type
+     if( realVal[i]->GetDimType() != CoefFunction::SCALAR )  {
+       EXCEPTION( "Vector valued expression can be only composed of "
+           << "scalar entries!" );
+     }
+   }
+   for( UInt i = 0; i < imagVal.GetSize(); ++i ) {
+     isAnalytical |= imagVal[i]->IsAnalytic();
+     // also ensure, that every CoefFunction is of scalar type
+     if( imagVal[i]->GetDimType() != CoefFunction::SCALAR )  {
+       EXCEPTION( "Vector valued expression can be only composed of "
+           << "scalar entries!" );
+     }
+   }
+   
+   if( isAnalytical ) {
+     // use string generation method to generate the vector valued CoefFct
+     StdVector<std::string> rStrVals, iStrVals;
+     std::string empty;
+     rStrVals.Resize( realVal.GetSize() );
+     iStrVals.Resize( imagVal.GetSize() );
+     for( UInt i = 0; i < realVal.GetSize(); ++i ) {
+       shared_ptr<CoefFunctionAnalytic> tmp;
+       tmp = dynamic_pointer_cast<CoefFunctionAnalytic>(realVal[i]);
+       tmp->GetStrScalar(rStrVals[i], empty);
+     }
+     for( UInt i = 0; i < imagVal.GetSize(); ++i ) {
+       shared_ptr<CoefFunctionAnalytic> tmp;
+       tmp = dynamic_pointer_cast<CoefFunctionAnalytic>(realVal[i]);
+       tmp->GetStrScalar(iStrVals[i], empty);
+     }
+     ret = Generate(format, numRows, numCols, rStrVals, iStrVals);
+   } else {
+     EXCEPTION( "Vector-valued expression can only be composed of "
+         << "analytical expressions currently!" );
+
+   }
+   return ret;
+  
 }
 
 PtrCoefFct CoefFunction::Generate( Global::ComplexPart type,

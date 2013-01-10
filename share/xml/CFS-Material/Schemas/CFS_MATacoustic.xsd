@@ -18,8 +18,8 @@
 
   <xsd:complexType name="DT_MatAcoustic">
     <xsd:sequence>
-      <xsd:element name="density" type="DT_NonNegFloat"/>
-      <xsd:element name="compressionModulus" type="DT_NonNegFloat"/>
+      <xsd:element name="density" type="xsd:token"/>
+      <xsd:element name="compressionModulus" type="xsd:token"/>
       <xsd:element name="acousticDamping" type="DT_AcousticDamping"
         minOccurs="0"/>
       <xsd:element name="acousticNonlinear" type="DT_AcousticNonlinear"

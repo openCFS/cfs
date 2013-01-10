@@ -18,21 +18,21 @@
 
   <xsd:complexType name="DT_MatFlow">
     <xsd:sequence>
-      <xsd:element name="density" type="DT_NonNegFloat">
+      <xsd:element name="density" type="xsd:token">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             Mean density of the fluid in kg/m^3.
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="dynamicViscosity" minOccurs="0" type="DT_NonNegFloat">
+      <xsd:element name="dynamicViscosity" minOccurs="0" type="xsd:token">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             Dynamic viscosity of the fluid in Pas.
           </xsd:documentation>
         </xsd:annotation>        
       </xsd:element>
-      <xsd:element name="kinematicViscosity" minOccurs="0" type="DT_NonNegFloat">
+      <xsd:element name="kinematicViscosity" minOccurs="0" type="xsd:token">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             Kinematic viscosity (dynamic viscosity / density) of the fluid in m^2/s = 10,000 Stokes = 1,000,000 Centistokes.

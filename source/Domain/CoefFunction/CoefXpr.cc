@@ -1175,7 +1175,7 @@ void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
                  temp1 += " + " + temp2;
                }
              } // numColsA
-             if( !IsZero(temp1)) {
+             if( IsZero(temp1)) {
                real[posRet++] = zero2;
              } else {
                real[posRet++] = Bracket(temp1);
@@ -1668,8 +1668,9 @@ void CoefXprSubTensor::Init( PtrCoefFct a ) {
   UInt numRowsA, numColsA;
   a->GetTensorSize(numRowsA, numColsA);
   if( !((numRowsA == 3 && numColsA == 6) || 
-        (numRowsA == 3 && numColsA == 3 ) ) ) {
-    EXCEPTION( "Tensor must have eiter dimension 3 x 3 or 3 x 6" );
+        (numRowsA == 3 && numColsA == 3 ) ||
+        (numRowsA == 6 && numColsA == 6 ) ) ) {
+    EXCEPTION( "Tensor must have either dimension 3 x 3, 3 x 6 or 6 x 6" );
   }
   
   dimType_ = CoefFunction::TENSOR;
@@ -1749,7 +1750,38 @@ void CoefXprSubTensor::GetTensorXpr( UInt& numRows, UInt& numCols,
       }
     }
     
-    
+  } else if( numRowsA == 6 && numColsA == 6 ) {
+    // --------------------
+    //  6 x 6 TENSOR 
+    // --------------------
+    if( tensorType_ == FULL ) {
+      numRows = 6;
+      numCols = 6;
+      real = aR;
+      imag = aI;
+      if( !isComplex_ )
+        imag.Init("0.0");
+    } else {
+      // in all other cases, we just consider the 4x4 submatrix
+      numRows = 3;
+      numCols = 3;
+      real.Resize(9);
+      imag.Resize(9);
+      UInt indices[] = {0,1,3};
+      imag.Init("0.0");
+      for( UInt i = 0; i < numRows; ++i ) {
+        for( UInt j = 0; j < numCols; ++j ) {
+          real[i*numCols+j] = aR[indices[i]*6+indices[j]];
+        }
+      }
+      if( isComplex_ ) {
+        for( UInt i = 0; i < numRows; ++i ) {
+          for( UInt j = 0; j < numCols; ++j ) {
+            imag[i*numCols+j] = aI[indices[i]*6+indices[j]];
+          }
+        }
+      }
+    }
   } else if( numRowsA == 3 && numColsA == 6 ) {
     // --------------------
     //  6 x 3 TENSOR 

@@ -33,6 +33,9 @@ namespace CoupledField {
 
     if ( origMat.patternPool_ == NULL ) {
 
+      patternPool_ = NULL;
+      patternID_   = NO_PATTERN_ID;
+      
       // Allocate memory for internal arrays
       NEWARRAY( colInd_, UInt, numEntries_ );
       NEWARRAY( rowPtr_, UInt, this->nrows_ + 1 );
@@ -362,7 +365,6 @@ namespace CoupledField {
   template<typename T>
   void SCRS_Matrix<T>::SetSparsityPattern( PatternPool *patternPool,
                                            PatternIdType patternID ) {
-
 
     // Safety checks
     if ( patternPool == NULL ) {

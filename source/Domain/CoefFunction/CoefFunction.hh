@@ -95,7 +95,7 @@ public:
   // ========================
   //@{ \name Factory Methods
 
-  //! Generate scalar-valued coefficient function
+  //! Generate scalar-valued coefficient function from string(s)
   
   //! This method generates a scalar-valued coefficient function, either
   //! real- or complex valued.
@@ -112,7 +112,7 @@ public:
             const std::string& realVal, 
             const std::string& imagVal = "0" );
 
-  //! Generate vector-valued coefficient function
+  //! Generate vector-valued coefficient function from strings
     
   //! This method generates a vector-valued coefficient function, either
   //! real- or complex valued.
@@ -130,7 +130,14 @@ public:
             const StdVector<std::string>& imagVal = StdVector<std::string>() );
 
 
-  //! Generate tensor-valued coefficient function
+  //! Generate vector-valued coefficient function from scalar CoefFunctions
+  static PtrCoefFct 
+  Generate( Global::ComplexPart type, 
+            const StdVector<PtrCoefFct>& realVal, 
+            const StdVector<PtrCoefFct>& imagVal = StdVector<PtrCoefFct>() );
+
+
+  //! Generate tensor-valued coefficient function from strings
 
   //! This method generates a tensor-valued coefficient function, either
   //! real- or complex valued.
@@ -150,8 +157,16 @@ public:
             const StdVector<std::string>& realVal,
             const StdVector<std::string>& imagVal = StdVector<std::string>() );
   
+  //! Generate tensor-valued coefficient function from scalar CoefFunctions
+  static PtrCoefFct 
+  Generate( Global::ComplexPart type,
+            UInt numRows, UInt numCols,
+            const StdVector<PtrCoefFct>& realVal,
+            const StdVector<PtrCoefFct>& imagVal = StdVector<PtrCoefFct>() );
+
+
   //! Generate coefficient function from coefficient expression
-  
+
   //! This method generates a new coefficient function based on an expression.
   //! The method investigates the expression and tries to generate the most
   //! efficient coefficient representation, i.e. if the expression evaluates
@@ -273,7 +288,7 @@ public:
 
 
   //! Set associated coordinate system
-  void SetCoordinateSystem(CoordSystem* cSys){
+  virtual void SetCoordinateSystem(CoordSystem* cSys){
     coordSys_ = cSys;
   }
   
@@ -293,8 +308,10 @@ public:
   }
   
   //! Return if coeffunction is zero
+  
+  //! Returns, if the coefficient function is zero. In general, this
+  //! is true for all but the CoefFunctionConst class.
   virtual bool IsZero() const {
-    EXCEPTION("Method not properly overwritten");
     return false;
   }
   

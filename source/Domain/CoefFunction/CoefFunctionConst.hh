@@ -102,6 +102,12 @@ public:
     numRows = constCoefMat_.GetNumRows();
     numCols = constCoefMat_.GetNumCols();
   }
+  
+  //! Set associated coordinate system
+  virtual void SetCoordinateSystem(CoordSystem* cSys) {
+    if( cSys->GetName() != "default")
+      coordSys_ = cSys;
+  }
 
   //! Set tensor value
   void SetTensor(const Matrix<T>& CoefMat){
@@ -123,6 +129,9 @@ public:
     this->dimType_ = SCALAR;
   }
 
+  //! \copydoc CoefFunction::IsZero
+  bool IsZero() const;
+  
   //! \copydoc CoefFunction::ToString
   std::string ToString() const {
     switch( dimType_ ) {

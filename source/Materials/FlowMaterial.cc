@@ -7,6 +7,8 @@
 #include <string>
 #include <utility>
 
+#include "Domain/CoefFunction/CoefFunction.hh"
+#include "Domain/CoefFunction/CoefXpr.hh"
 #include "General/Exception.hh"
 #include "Materials/BaseMaterial.hh"
 #include "FlowMaterial.hh"
@@ -42,182 +44,61 @@ namespace CoupledField
    ComputeAllViscosities();
   }
  
-  void FlowMaterial::SetScalar( Double param, MaterialType matType, 
-				Global::ComplexPart dataType ) {
-
-
-    //check, if allowed
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotAllowed( matType, dim );
-    }
-    else {
-      isSet_.insert( matType );
-
-      Complex val;
-      if ( dataType == Global::REAL ) {
-	val = Complex ( param, 0.0 );
-      }
-      else if (dataType == Global::IMAG ) {
-	val = Complex ( 0.0, param );
-	isComplex_.insert( matType );
-      }
-      else {
-	std::string msg = "SetScalar-Double";
-	dataTypeNotAllowed4SetGet( dataType, msg );
-      }
-      
-      scalarParams_[matType] = val;
-    }
-  }
-
-
-  void FlowMaterial::GetScalar( Double& param, MaterialType matType, 
-				Global::ComplexPart dataType ) const {
-
-
-    scalarMap::const_iterator pos;
-    pos = scalarParams_.find( matType );
-
-    if ( pos == scalarParams_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      Complex val = pos->second;
-      if ( dataType == Global::REAL ) {
-	param = val.real();
-      }
-      else if ( dataType == Global::IMAG ) {
-	param = val.imag();
-      }
-      else {
-	std::string msg = "GetScalar-Double";
-	dataTypeNotAllowed4SetGet( dataType, msg );
-      }
-    }
-  }
+ 
   
   void FlowMaterial::ComputeAllViscosities(){
 
-    Double density, dynamicViscosity, kinematicViscosity;
+    PtrCoefFct density, dynamicViscosity, kinematicViscosity;
     if (IsSet(DENSITY))
-      GetScalar(density,DENSITY,Global::REAL);
+      density = GetScalCoefFnc(DENSITY,Global::REAL);
     else
       EXCEPTION("No fluid density is specified in the material file!");
     
 
     if (IsSet(DYNAMIC_VISCOSITY)) {
-      GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,Global::REAL);
-      kinematicViscosity=dynamicViscosity/density;
-      SetScalar( kinematicViscosity, KINEMATIC_VISCOSITY, Global::REAL );
+      dynamicViscosity = GetScalCoefFnc(DYNAMIC_VISCOSITY,Global::REAL);
+      kinematicViscosity = 
+          CoefFunction::Generate(Global::REAL,CoefXprBinOp(dynamicViscosity, density,
+                                              CoefXpr::OP_DIV ) );
+      GenerateTensor( KINEMATIC_VISCOSITY, kinematicViscosity );
 
     }
     else if (IsSet(KINEMATIC_VISCOSITY)){
-      GetScalar(kinematicViscosity,KINEMATIC_VISCOSITY,Global::REAL);
-      dynamicViscosity=kinematicViscosity*density;
-      SetScalar( dynamicViscosity, DYNAMIC_VISCOSITY, Global::REAL );
+      kinematicViscosity = GetScalCoefFnc(KINEMATIC_VISCOSITY,Global::REAL);
+      dynamicViscosity = 
+          CoefFunction::Generate(Global::REAL,CoefXprBinOp(kinematicViscosity, density,
+                                              CoefXpr::OP_MULT ) );
     }
     else
       EXCEPTION("No fluid viscosity is specified in the material file!");
+
+
+    // In the end, generate the tensors from the scalar values
+    GenerateTensor( DYNAMIC_VISCOSITY, dynamicViscosity );
+    GenerateTensor( KINEMATIC_VISCOSITY, kinematicViscosity );
   }
 
-  void FlowMaterial::GetTensor( Matrix<Double>& param,
-                                MaterialType matType,
-                                Global::ComplexPart dataType,
-                                SubTensorType subTensor) const {
-
-
-
-    scalarMap::const_iterator pos;
-    pos = scalarParams_.find( matType );
-
-    if ( pos == scalarParams_.end() ) {
-      std::string dim = "tensor";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      // The material law states [\sigma] = 2\mu (1/2 (\nabla v + (\nabla v)^T))
-      // Since we use Voigt notation, we have to take care that only the diagonal entries of the strain tensor are halved
-      // TODO: also account for \lambda div(v) in case of compressible fluids
-      Matrix<Complex> matTensor;
-      if ( subTensor == FULL ) {
-        matTensor.Resize(6,6);
-        matTensor.Init();
-        matTensor[0][0] = pos->second;
-        matTensor[1][1] = pos->second;
-        matTensor[2][2] = pos->second;
-        matTensor[0][0] *= 2;
-        matTensor[1][1] *= 2;
-        matTensor[2][2] *= 2;
-        matTensor[3][3] = pos->second;
-        matTensor[4][4] = pos->second;
-        matTensor[5][5] = pos->second;
-      }
-      else {
-        matTensor.Resize(3,3);
-        matTensor.Init();
-        matTensor[0][0] = pos->second;
-        matTensor[1][1] = pos->second;
-        matTensor[0][0] *= 2;
-        matTensor[1][1] *= 2;
-        matTensor[2][2] = pos->second;
-      }
-
-      if ( dataType == Global::REAL || dataType == Global::IMAG) {
-        param = matTensor.GetPart( dataType );
-      }
-      else {
-        std::string msg = "GetTensor-Double";
-        dataTypeNotAllowed4SetGet( dataType, msg );
-      }
-    }
-  }
-
-  void FlowMaterial::GetTensor( Matrix<Complex>& param,
-                                MaterialType matType,
-                                Global::ComplexPart dataType,
-                                SubTensorType subTensor) const {
-
-
-    scalarMap::const_iterator pos;
-    pos = scalarParams_.find( matType );
-
-    if ( pos == scalarParams_.end() ) {
-      std::string dim = "tensor";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      Matrix<Complex> matTensor;
-      if ( subTensor == FULL ) {
-          matTensor.Resize(6,6);
-          matTensor.Init();
-          matTensor[0][0] = pos->second;
-          matTensor[1][1] = pos->second;
-          matTensor[2][2] = pos->second;
-          matTensor[3][3] = pos->second;
-          matTensor[4][4] = pos->second;
-          matTensor[5][5] = pos->second;
-      }
-      else {
-          matTensor.Resize(3,3);
-          matTensor.Init();
-          matTensor[0][0] = pos->second;
-          matTensor[1][1] = pos->second;
-          matTensor[2][2] = pos->second;
-      }
-
-      if ( dataType == Global::REAL || dataType == Global::IMAG) {
-        Matrix<Double> help;
-        help = matTensor.GetPart( dataType );
-        param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
-        param.SetPart( dataType, help );
-      }
-      else if ( dataType == Global::COMPLEX ) {
-        param = matTensor;
-      }
-    }
-  }
-
+  void FlowMaterial::GenerateTensor( MaterialType matType, PtrCoefFct scalar ) {
+   
+    PtrCoefFct tens;
+    
+    PtrCoefFct z = CoefFunction::Generate(Global::REAL,"0");
+    PtrCoefFct twice = 
+        CoefFunction::Generate(Global::REAL, 
+                               CoefXprBinOp("2.0", scalar, CoefXpr::OP_MULT ));
+    
+    StdVector<PtrCoefFct> vals(36);
+    vals.Init(z);
+    vals[0+0*6] = twice;
+    vals[1+1*6] = twice;
+    vals[2+2*6] = twice;
+    vals[3+3*6] = scalar;
+    vals[4+4*6] = scalar;
+    vals[5+5*6] = scalar;
+    tens = CoefFunction::Generate(Global::REAL, 6, 6, vals );
+    SetCoefFct(matType, tens);
+    
+    PtrCoefFct check = tensorCoef_[matType];
+   }
 
 }

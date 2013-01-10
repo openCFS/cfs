@@ -288,10 +288,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       // ====================================================================
       //  Standard Mass Integrator
       // ====================================================================
-      Double density = 0.0;
-      actSDMat->GetScalar(density,DENSITY,Global::REAL);
-      PtrCoefFct densCoeff 
-          = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(density));
+      PtrCoefFct densCoeff = actSDMat->GetScalCoefFnc( DENSITY,Global::REAL );
       
       BaseBDBInt *massInt = NULL;
       if( dim_ == 2 ) {

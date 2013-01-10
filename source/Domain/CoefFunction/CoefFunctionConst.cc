@@ -1,6 +1,39 @@
 #include "CoefFunctionConst.hh"
 
+#include <limits>
+
 namespace CoupledField {
+
+
+template<typename T>
+bool CoefFunctionConst<T>::IsZero() const {
+  bool flag = false;
+  switch(dimType_ ) {
+    case NO_DIM:
+      return true;
+      break;
+    case SCALAR:
+      flag =  std::abs(coefScalar_) < std::numeric_limits<double>::min();
+      break;
+    case VECTOR:
+      for( UInt i = 0; i < coefVec_.GetSize(); ++i ) {
+        flag |= std::abs(coefVec_[i]) < std::numeric_limits<double>::min();
+      }
+      break;
+    case TENSOR:
+      for( UInt i = 0; i < constCoefMat_.GetNumRows(); ++i ) {
+        for( UInt j = 0; j < constCoefMat_.GetNumCols(); ++j ) {
+          flag |= std::abs(constCoefMat_[i][j]) < 
+                           std::numeric_limits<double>::min();
+        }
+      }
+      break;
+  }
+  return flag;
+}
+template bool CoefFunctionConst<Double>::IsZero() const;
+template bool CoefFunctionConst<Complex>::IsZero() const;
+
 template<>
 PtrCoefFct CoefFunctionConst<Double>::GetComplexPart( Global::ComplexPart part ) {
   // the only meaningful value here is part == Global::REAL, 

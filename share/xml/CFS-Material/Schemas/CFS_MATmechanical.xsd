@@ -18,7 +18,7 @@
 
   <xsd:complexType name="DT_MatMechanical">
     <xsd:sequence>
-      <xsd:element name="density" type="DT_NonNegFloat"/>
+      <xsd:element name="density" type="xsd:token"/>
       <xsd:element name="elasticity" type="DT_MechElasticity"/>
       <xsd:element name="elasticityCoefficient"
         type="DT_NonLinMechElastCoeff" minOccurs="0"/>

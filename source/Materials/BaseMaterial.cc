@@ -65,6 +65,9 @@ namespace CoupledField
     isPiezoMicroModel_ = false;
     
     mp_ = domain->GetMathParser();
+    
+    // obtain standard coordinate system
+    coosy_ = domain->GetCoordSystem("default");
   }
 
    BaseMaterial::~BaseMaterial() {
@@ -191,10 +194,16 @@ namespace CoupledField
     stringMap::const_iterator stringIt = stringParams_.find( matType );
     scalarMap::const_iterator scalarIt = scalarParams_.find( matType );
     tensorMap::const_iterator tensorIt = tensorParams_.find( matType );
-
+    CoefMap::const_iterator coefScalIt = scalarCoef_.find( matType );
+    CoefMap::const_iterator coefVecIt = vectorCoef_.find( matType );
+    CoefMap::const_iterator coefTensIt = tensorCoef_.find( matType );
+        
     if( stringIt != stringParams_.end() ||
         scalarIt != scalarParams_.end() || 
-        tensorIt != tensorParams_.end() ) {
+        tensorIt != tensorParams_.end() || 
+        coefScalIt != scalarCoef_.end() ||
+        coefVecIt != vectorCoef_.end()  ||
+        coefTensIt != tensorCoef_.end() ) {
       found = true;
     }
 
@@ -625,8 +634,10 @@ namespace CoupledField
       }
       else if (rowSize == 6 && colSize == 6 ) {
         CoefXprBinOp tmp( origCoef, cQT, CoefXpr::OP_MULT );
+        PtrCoefFct tmp2 = CoefFunction::Generate( part, tmp );
         CoefXprBinOp final( cQ, tmp, CoefXpr::OP_MULT );
         rotatedCoef = CoefFunction::Generate( part, final );
+      
       }
       //  else {
       //    EXCEPTION("Cannot rotate tensor due to dimensions!");
@@ -924,21 +935,33 @@ namespace CoupledField
    PtrCoefFct  BaseMaterial::GetScalCoefFnc(MaterialType matType,
                                             Global::ComplexPart matDataType) {
      PtrCoefFct mFunct;
-     if(matDataType == Global::REAL){
-       CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
-       Double real;
-       GetScalar(real,matType,matDataType);
-       tmpFnc->SetScalar(real);
-       mFunct.reset(tmpFnc);
-     }else if(matDataType == Global::COMPLEX){
-       CoefFunctionConst<Complex>* tmpFnc = new CoefFunctionConst<Complex>();
-       Complex val;
-       // transpose if flag is true
-       GetScalar(val,matType,matDataType);
-       tmpFnc->SetScalar(val);
-       mFunct.reset(tmpFnc);
-     }else{
-       EXCEPTION("Material Data Type not supported");
+
+     if( scalarCoef_.find(matType) !=  scalarCoef_.end() ) {
+       // --------------------------------------
+       //  Coefficient Function already defined
+       // --------------------------------------
+       mFunct = scalarCoef_[matType]->GetComplexPart( matDataType );
+
+     } else {
+       // -------------------------------------------
+       //  Create CoefFunction from constant entries
+       // -------------------------------------------
+       if(matDataType == Global::REAL){
+         CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
+         Double real;
+         GetScalar(real,matType,matDataType);
+         tmpFnc->SetScalar(real);
+         mFunct.reset(tmpFnc);
+       }else if(matDataType == Global::COMPLEX){
+         CoefFunctionConst<Complex>* tmpFnc = new CoefFunctionConst<Complex>();
+         Complex val;
+         // transpose if flag is true
+         GetScalar(val,matType,matDataType);
+         tmpFnc->SetScalar(val);
+         mFunct.reset(tmpFnc);
+       }else{
+         EXCEPTION("Material Data Type not supported");
+       }
      }
      mFunct->SetCoordinateSystem(this->coosy_);
      return mFunct;
@@ -950,7 +973,6 @@ namespace CoupledField
 
      PtrCoefFct mFunct;
      if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
-
        CoefXprSubTensor subTensorXpr( tensorCoef_[matType] );
 
        subTensorXpr.SetSubTensorType( tensorType, transposed );

@@ -29,25 +29,9 @@ namespace CoupledField {
     //! Trigger finalization of flow material (calculation of kinematic viscosity)
     void Finalize();
 
+    //! Expand scalar variable to tensor
+    void GenerateTensor( MaterialType matType, PtrCoefFct scalar );
     
-    //! set a scalar real material parameter
-    void SetScalar( Double param, MaterialType matType, 
-		    Global::ComplexPart dataType );
-
-
-    //! get a scalar real material parameter
-    void GetScalar( Double& param, MaterialType matType, 
-		    Global::ComplexPart dataType ) const;
-
-    //! get a real material tensor
-    void GetTensor( Matrix<Double>& param, MaterialType matType,
-		    Global::ComplexPart dataType,
-		    SubTensorType = FULL ) const;
-
-    //! get a complex material tensor
-    void GetTensor( Matrix<Complex>& param, MaterialType matType,
-		    Global::ComplexPart dataType,
-		    SubTensorType = FULL ) const;
   private:
     void ComputeAllViscosities();
   };
