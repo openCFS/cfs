@@ -18,7 +18,7 @@ namespace CoupledField {
 
   //! forward class declarations
   class Timer;
-class AdjointParameters;
+  class AdjointParameters;
 
   //! driver for transient problems.it is derived from BaseDriver;
   class TransientDriver : virtual public SingleDriver {
@@ -55,11 +55,11 @@ class AdjointParameters;
     //! Read restart information
     void ReadRestart();
 
-    //! offset for first timestep (due to multiSequence )
-    UInt stepOffset_;
+    // offset for first timestep (due to multiSequence )
+    //UInt stepOffset_;     // disabled, because it is unused
 
-    //! offset for first time (due to multiSequence)
-    Double timeOffset_;
+    // offset for first time (due to multiSequence)
+    //Double timeOffset_;   // disabled, because it is unused
 
     //! Number of timesteps~
     UInt numstep_;

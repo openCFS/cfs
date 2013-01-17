@@ -57,6 +57,10 @@
         </xsd:complexType>
       </xsd:element>
 
+      <!-- Export linear system? (optional) -->
+      <xsd:element name="exportNodeToEqns" type="DT_CFSBool" minOccurs="0"
+            maxOccurs="1" default="no"/>
+
       <!-- Description of eigensolver properties (optional) -->
       <xsd:element name="eigenSolver" type="DT_EigenSolverSpec" minOccurs="0"/>
 

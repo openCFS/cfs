@@ -22,6 +22,7 @@ namespace CoupledField {
   /*! 
      Class for handling mechanic material data
   */
+  class ApproxData;
 
   class MechanicMaterial : public BaseMaterial {
 
@@ -33,7 +34,7 @@ namespace CoupledField {
     //! Destructor
     virtual ~MechanicMaterial();
 
-    //! Trigger finalization of mataterial (calculation of rotated matrices)
+    //! Trigger finalization of material (calculation of rotated matrices)
     void Finalize();
 
     //! set a scalar real material parameter
@@ -85,6 +86,24 @@ namespace CoupledField {
 		    Global::ComplexPart dataType,
 		    SubTensorType = FULL ) const;	
     
+    //! returns the pointer to NL-object for nonlinear curves
+    virtual StdVector<ApproxData*>& GetNonlinFncs( MaterialType matType ) {     
+      if ( matType == MAGNETOSTRICTION_NLCURVES ) {
+        return nlinFncMagStrict_;
+      }
+      else {
+        EXCEPTION( "MechanicMaterial::GetNonlinFncs currently just for MAGNETOSTRICTION_NLCURVES");
+      }
+    };
+
+    // get ansiotropic angles
+    virtual StdVector<Double>& GetAnisotropicAngles() {     
+      return anisotropicAngles_;
+    };
+
+    //Initialize approximations of nonlinear curves
+    void InitApproxCurves();
+
     /** Computes the error to an isotropic elasticity tensor.
      * Assume isotropy and calculate E and v, construct E(E,v) and return ||E(E,v) - tensor||_1 */
     static double CalcIsotropyError(const Matrix<double>& tensor, SubTensorType stt);
@@ -146,21 +165,14 @@ namespace CoupledField {
     //! Compute elasticity tensor from given parameters
     void ComputeFullStiffTensor();
 
-    
-    MathParser::HandleType mHandle_;
-    
-    Double density_;
-    Double PoissonRatio_;
-    Double RayleighAlpha_;
-    Double RayleighBeta_;
-    Double RayleighFrequency_;
-    Double lossTangens_;
 
     Complex scalarEmodulus_;
     Complex scalarLameLambda_;
     Complex scalarLameMu_;
 
     Matrix<Complex> stiffnessTensor_;
+
+    StdVector<ApproxData*> nlinFncMagStrict_;
 
   };
 

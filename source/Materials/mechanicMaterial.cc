@@ -3,7 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <assert.h>
- #include <stdlib.h>
+#include <stdlib.h>
 #include <cmath>
 #include <complex>
 #include <fstream>
@@ -16,6 +16,7 @@
 #include "General/exception.hh"
 #include "Materials/baseMaterial.hh"
 #include "Utils/tools.hh"
+#include "Utils/LinInterpolate.hh"
 #include "boost/bind.hpp" // TODO what do we need bind here?? - Fabian
 #include "boost/lexical_cast.hpp"
 #include "limits.h"
@@ -35,7 +36,6 @@ namespace CoupledField
   MechanicMaterial::MechanicMaterial() : BaseMaterial() {
 
     materialDatabaseName_ = "Mechanics";
-    mHandle_ = mp_->GetNewHandle(true);
 
     //set the allowed material parameters
     isAllowed_.insert( DENSITY );
@@ -64,12 +64,21 @@ namespace CoupledField
     isAllowed_.insert( NONLIN_DEPENDENCY );
     isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
     isAllowed_.insert( NONLIN_DATA_NAME );
-
+    isAllowed_.insert( MAGNETOSTRICTION_NLCURVES );
   }
 
   MechanicMaterial::~MechanicMaterial() {
+    handleMap::iterator it = scalarStringHandlesReal_.begin(),
+                        itEnd = scalarStringHandlesReal_.end();
+    for ( ; it != itEnd; ++it ) {
+      mp_->ReleaseHandle(it->second);
+    }
 
-    mp_->ReleaseHandle(mHandle_);
+    it = scalarStringHandlesImag_.begin();
+    itEnd = scalarStringHandlesImag_.end();
+    for ( ; it != itEnd; ++it ) {
+      mp_->ReleaseHandle(it->second);
+    }
   }
 
   void MechanicMaterial::Finalize() {
@@ -491,6 +500,7 @@ namespace CoupledField
 
     default:
       EXCEPTION("fail");
+      return 0.0;
     }
   }
 
@@ -513,6 +523,7 @@ namespace CoupledField
 
     default:
       assert(false);
+      break;
     }
 
     return E11;
@@ -614,13 +625,14 @@ namespace CoupledField
     default:
       // PLAIN is unspecific
       subTensorNotAvailable(NO_MATERIAL, subTensor); // shall be clear
+      break;
     }
   }
  
 
   void MechanicMaterial::ComputeFullStiffTensor() {
 
-      Matrix<Complex> elasticityTensor;
+    Matrix<Complex> elasticityTensor;
 
     switch(symmetryType_)
     {
@@ -708,6 +720,7 @@ namespace CoupledField
     default:
       EXCEPTION( "Calculation of full stiffness matrix for symmetryType '"
                        << symmetryType_ << "' not implemented!" );
+      break;
     }
     
   }
@@ -761,6 +774,7 @@ namespace CoupledField
     }
     default:
       assert(false);
+      break;
     }
     return res;
   }
@@ -830,6 +844,7 @@ namespace CoupledField
 
     default:
       assert(false);
+      break;
     }
 
     return res;
@@ -914,6 +929,22 @@ namespace CoupledField
 
     return res;
   }
+
+  void MechanicMaterial::InitApproxCurves() {
+
+    // check, if we need to approx curve
+    if ( needApproxMatCurves_.find( MAGNETOSTRICTION_NLCURVES ) != needApproxMatCurves_.end() ) {
+      nlinFncMagStrict_.Resize(nonLinMagStrictInfoVec_.size());
+      anisotropicAngles_.Resize(nonLinMagStrictInfoVec_.size());
+      for ( UInt i=0; i< nonLinMagStrictInfoVec_.size(); i++ ) {
+        std::string nlfncName = nonLinMagStrictInfoVec_[i].fileName; 
+        nlinFncMagStrict_[i] = new LinInterpolate( nlfncName, MAGNETOSTRICTION_NLCURVES );
+        anisotropicAngles_[i] = nonLinMagStrictInfoVec_[i].angle; 
+      }
+    }
+
+  }   
+
 
   // required in ErsatzMaterial. The complex version is explictely called here
   template void MechanicMaterial::ComputeSubTensor<Double>(Matrix<Double>& matMatrix, SubTensorType subTensor, const Matrix<Double>& mat);

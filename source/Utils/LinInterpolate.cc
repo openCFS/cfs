@@ -17,7 +17,9 @@ namespace CoupledField
     : ApproxData(nlFileName, matType)
   {
 
+    ReadNlinFunc(nlFileName);
 
+    PerformChecksOnInputData();
   }
 
   LinInterpolate::~LinInterpolate()

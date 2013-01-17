@@ -60,6 +60,7 @@ namespace CoupledField
   private:
 
     bool doInit_;
+    Vector<Double> prevLinRHS_;
 
   };
 

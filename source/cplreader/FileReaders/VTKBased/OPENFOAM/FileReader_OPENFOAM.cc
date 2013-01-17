@@ -126,8 +126,10 @@ namespace CoupledField
   {
 
     Settings& settings = Settings::Instance();
-    std::cout << "Entering FileReader_OPENFOAM::ReadNodalValues..." << std::endl;
     
+    //This is really annoying
+    //std::cout << "Entering FileReader_OPENFOAM::ReadNodalValues..." << std::endl;
+
     
     
     SetTimeValue(timeValues_[timeStepIdx]);

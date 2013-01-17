@@ -16,9 +16,6 @@ namespace CoupledField
     matType_ = matType;
     nlFileName_ = nlFileName;
 
-    ReadNlinFunc(nlFileName);
-
-    PerformChecksOnInputData();
   }
 
 
@@ -118,18 +115,18 @@ namespace CoupledField
         }
       }
       
-      //now check, if we have monoton increasing x- and y-values
+      //now check, if we have monotonically increasing x- and y-values
       for ( UInt k=0; k<numMeas_-1; k++ ) {
         Double epsX = 1.0;
         Double epsY = 1e-3;
         if ( x_[k+1] - x_[k] < epsX ) {
           std::string str = "The H-values in file '" + nlFileName_ +
-            "', are not monoton increasing (epsH = 1)!";
+            "', are not monotonically increasing (epsH = 1)!";
           EXCEPTION( str );
         }
         if ( y_[k+1] - y_[k] < epsY ) {
           std::string str = "The B-values in file '" + nlFileName_ +
-            "', are not monoton increasing (epsB = 1e-3)!";
+            "', are not monotonically increasing (epsB = 1e-3)!";
           EXCEPTION( str );
         }
       }

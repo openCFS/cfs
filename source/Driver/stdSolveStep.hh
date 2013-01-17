@@ -231,6 +231,9 @@ namespace CoupledField
     bool nonLinLogging_;    //!< log progress of non-linear iterations
     //! map for each region the type of nonlinearity
      std::map<RegionIdType, StdVector<NonLinType> > regionNonLinTypes_;
+
+    //! counter how often etaMin has been used (LineSearch)
+    UInt etaMinCount_;
     
     bool effectiveMatrixIsWrong_; //!< indicate that the effectiveMatrix was replaced by just K (in Optimization, this might be used for starting a simulation in deformed state) and has to be recalculated
 

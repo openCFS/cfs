@@ -120,3 +120,8 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_expl_templ_inst.hh.in"
   
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_cplreader.hh.in"
   "${CFS_BINARY_DIR}/include/def_cplreader.hh")
+  
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_fftw.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_fftw.hh")
+  
+  

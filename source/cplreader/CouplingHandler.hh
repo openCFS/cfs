@@ -85,6 +85,15 @@ namespace CoupledField
     ///fills the surface region related datastructures if requested
     void PrepareSurfaceRegions();
 
+    ///compute the temporal mean flow field for velocity or for pressure
+    void ComputeMeanValues(std::vector<FlowDataType> & flowData);
+
+    ///Compute the time derivative of hydrodynamic pressure
+    void UpdatePressureTimeDeriv(const std::vector<Double> & actPresField, const int regIdx);
+
+    /// Compute the perturbed hydrodynamic pressure i.e. pressure - meanpressure
+    void ComputePerturbedPressureField(const std::vector<Double> & actPresField,const int regIdx,
+                                       FlowDataPartStruct& fdps);
 
     ///excplicit storage of volume regions
     std::vector<UInt> volumeRegionIndices_;
@@ -104,6 +113,17 @@ namespace CoupledField
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //surface element section END 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    //! stores time derivative
+    std::map<UInt, std::vector<Double> > pressureTimeDeriv_;
+
+    //! stores the perturbed pressure field
+    std::map<UInt, std::vector<Double> > perturbedPressureField_;
+
+    //! stores last timestep for time derivative computation
+    std::map<UInt, std::vector<Double> > oldPressureField_n_1_;
+
+    std::map<UInt, std::vector<Double> > oldPressureField_n_2_;
 
     shared_ptr<FileReader>  ptFileReader_;
     std::vector<Double> nodalCoords_;
@@ -126,6 +146,7 @@ namespace CoupledField
     std::map<UInt, ElemIntegr *> ptElemIntegr_;
     std::vector<std::string> outputFields_;
     std::vector<bool> activeParts_;
+
 
     OutputWriterVectorType outputWriters_;
 
