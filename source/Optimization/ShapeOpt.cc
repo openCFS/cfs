@@ -67,10 +67,12 @@ ShapeOpt::ShapeOpt() : ParamMat() {
   }
 }
 
-double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative, bool normalized){
+double ShapeOpt::CalcVolume(Objective* c, Condition* g, bool derivative, bool normalized){
   // the exponent is used in Ersatzmaterial for the volume cost function
   // if an exponent != 1.0 at this point makes any sense is unknown
   
+  Function* f = Function::GetFunction(c, g);
+
   if(derivative){
     StdVector<double> der; // solution
     Matrix<double> CornerCoords;
@@ -80,13 +82,13 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
     Matrix<double> dJ;
     Matrix<double> diJ;
 
-    int np = shapedesign->GetNumberOfShapeParameters();
+    int np = shapedesign->GetNumberOfAuxParameters();
     der.Resize(np, 0);
     if(alsomatopt_){
       // this needs to be done before, we do use fraction
-      ErsatzMaterial::CalcVolume(f, constraint, derivative, normalized);
+      ErsatzMaterial::CalcVolume(c, g, derivative, normalized);
     }
-    if(!alsomatopt_ || (constraint && constraint->design == DesignElement::UNITY)){
+    if(!alsomatopt_ || (g && g->GetDesignType() == DesignElement::UNITY)){
       if(!normalized){
         // this is independent of material optimization, simply the derivative of the real volume
         Grid* grd = domain->GetGrid();
@@ -94,7 +96,7 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
         grd->GetVolRegionIds(regs);
         for(unsigned int ri = 0; ri < regs.GetSize(); ri++){
           RegionIdType rid = regs[ri];
-          if(!constraint || constraint->IsForRegion(rid)){
+          if(!g || g->IsForRegion(rid)){
             StdVector<Elem*> elems;
             grd->GetElems(elems,rid);
             for( UInt i = 0; i < elems.GetSize(); i++ ) {
@@ -130,24 +132,24 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
     }else{ // volume is average or sum of design
       // this is similar to ErsatzMaterial::CalcVolume but calculates derivatives w.r.t. shape
       Grid* grd = domain->GetGrid();
-      bool isObjective = constraint == NULL;
-      double fraction = isObjective ? volume_fraction_ : constraint->volume_fraction; // this already considers everything
+      bool isObjective = g == NULL;
+      double fraction = isObjective ? volume_fraction_ : g->volume_fraction; // this already considers everything
       double volume = 0.0;
       if(!normalized){  // needed for derivative in normalized versions
-        volume = CalcVolume(f, constraint, derivative, normalized);
+        volume = CalcVolume(c, g, derivative, normalized);
       }
-      bool allDesignsRelevant = constraint == NULL || constraint->design == DesignElement::TENSOR_TRACE || constraint->design == DesignElement::DEFAULT;
+      bool allDesignsRelevant = g == NULL || g->GetDesignType() == DesignElement::TENSOR_TRACE || g->GetDesignType() == DesignElement::DEFAULT;
       bool ersatzMaterialTensor = domain->HasErsatzMaterialTensor() && allDesignsRelevant;
       unsigned int upper = ersatzMaterialTensor ? design->GetNumberOfElements() : design->data.GetSize();
       Matrix<double> material;
       for(unsigned int i = 0; i < upper; i++) {
         DesignElement* de = &design->data[i];
-        bool relevant = (allDesignsRelevant || constraint->design == de->GetType()) && (isObjective || constraint->IsForRegion(de->elem->regionId));
+        bool relevant = (allDesignsRelevant || g->GetDesignType() == de->GetType()) && (isObjective || g->IsForRegion(de->elem->regionId));
         const Elem* elem = de->elem;
         if(relevant && shapedesign->IsElemDependentAtAll(elem->connect)){
           double des;
           if(ersatzMaterialTensor){ // use the trace of the stiffness Tensor as "volume"
-            GetErsatzMaterialTensor(material, de->elem);
+            design->GetErsatzMaterialTensor(material, pde->GetSubTensorType(), de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
             des = material.Trace();
           }else{
             des = de->GetDesign(DesignElement::PLAIN);
@@ -179,9 +181,9 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
     // derivative in direction of our parameters is always needed and calculated here
     // derivative in direction of design-element parameters only if on that regions
     // these derivatives are independent of our parameters and can be calculated as before
-    shapedesign->AddShapeDerivatives(f, constraint, der, 1.0);
+    shapedesign->AddAuxDerivatives(c, g, der, 1.0);
   }else{ // derivative
-    if(!alsomatopt_ || (constraint && constraint->design == DesignElement::UNITY)){ // this is the real volume, not multiplied by design, we also use this if no design available
+    if(!alsomatopt_ || (g && g->GetDesignType() == DesignElement::UNITY)){ // this is the real volume, not multiplied by design, we also use this if no design available
       // if design is unity, we use the grid instead of designspace
       if(normalized) return(1.0);
       Grid* grd = domain->GetGrid();
@@ -190,13 +192,13 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
       double s = 0.0;
       for(unsigned int i = 0; i < regs.GetSize(); i++){
         int rid = regs[i];
-        if(!constraint || constraint->IsForRegion(rid)){
+        if(!g || g->IsForRegion(rid)){
           s += grd->CalcVolumeOfRegion(rid, false, true);
         }
       }
       return(s);
     }else{ // working on a design, alsomatopt_ must be true
-      return(ErsatzMaterial::CalcVolume(f, constraint, derivative, normalized));
+      return(ErsatzMaterial::CalcVolume(c, g, derivative, normalized));
     }
   }
   return 0.0;
@@ -204,7 +206,7 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
 
 void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective* f, Condition* constraint, const Matrix<double>* tensor_diff){
   StdVector<double> der; // solution
-  int np = shapedesign->GetNumberOfShapeParameters();
+  int np = shapedesign->GetNumberOfAuxParameters();
   der.Resize(np, 0.0);
   const bool homogenization = tensor_diff != NULL;
   const unsigned int ex_size(me->excitations.GetSize());
@@ -394,9 +396,8 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
                   }
                   double v = 0.0;
                   for(unsigned int t = 0; t < timesteps; ++t){ // loop over all timesteps, static analysis has 1 timestep
-                    // Get() requires f exclusively for adjoint solutions.
-                    Vector<double>& u_vec = dynamic_cast<Vector<double>&>(*(*forward_ex[t])[e]);
                     Vector<double>& p_vec = dynamic_cast<Vector<double>&>(*(*adjoint_ex[t])[e]);
+                    Vector<double>& u_vec = dynamic_cast<Vector<double>&>(*(*forward_ex[t])[e]);
                     dKp = dK * p_vec;
                     v -= u_vec * dKp;
                     if(transient && (t > 0 || !IsFirstTransientStepStatic())){
@@ -442,13 +443,13 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
     } // element loop
   } // biLinForm loop
   
-  shapedesign->AddShapeDerivatives(f, constraint, der, 1.0);
+  shapedesign->AddAuxDerivatives(f, constraint, der, 1.0);
   
   parser->ReleaseHandle(mathParserHandle);
 }
 
 void ShapeOpt::CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, double w){
-  int np(shapedesign->GetNumberOfShapeParameters());
+  int np(shapedesign->GetNumberOfAuxParameters());
   const unsigned int ex_size(me->excitations.GetSize());
   UInt timesteps(domain->GetDriver()->GetNumSteps());
 
@@ -587,7 +588,7 @@ void ShapeOpt::CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, 
     } // timesteps
   } // excitations  
 
-  shapedesign->AddShapeDerivatives(f, constraint, der, w);
+  shapedesign->AddAuxDerivatives(f, constraint, der, w);
 }
 
 double ShapeOpt::CalcCompliance(Excitation& excite, Objective* f, Condition* constraint, bool derivative){
@@ -691,7 +692,7 @@ Matrix<double> ShapeOpt::CalcHomogenizedTensor(){
 void ShapeOpt::StorePDESolution(Solutions& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment){
   ParamMat::StorePDESolution(solutions, excite, f, timestep, read_sol, read_rhs, save_sol, derivative, comment);
   if(read_sol){
-    solutions.Get(excite, f, timestep)->Read(Solution::GRIDELEM_VECTORS, pde, MECH, false, derivative);
+    solutions.Get(excite, f, timestep, derivative)->Read(Solution::GRIDELEM_VECTORS, pde, MECH, false, derivative);
   }
 }
 

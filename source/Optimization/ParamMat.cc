@@ -11,6 +11,8 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Optimization/ParamMat.hh"
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 
 namespace CoupledField {
 class TransferFunction;
@@ -18,14 +20,14 @@ class TransferFunction;
 
 using namespace CoupledField;
 
+DECLARE_LOG(em)
+
 ParamMat::ParamMat() : ErsatzMaterial()
 {
   // Note: this constructor is also called from constructor of ShapeOpt even when no ParamMat is used, in this case, nothing may be done
-
-  method_ = method.Parse(pn->Get("method")->As<std::string>());
   
   if((method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT) && pn->Has("paramMat")){ 
-    design->SetDesignMaterial(pn->Get("paramMat")->Get("designMaterial"));  
+    design->SetDesignMaterial(pn->Get("paramMat/designMaterial"), OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()));
   }
   
   mech_mat_ = NULL; // set in PostInit()
@@ -33,6 +35,29 @@ ParamMat::ParamMat() : ErsatzMaterial()
 
 void ParamMat::PostInit()
 {
+  PtrParamNode simp_pn = pn->Get("SIMP", ParamNode::PASS);
+
+  // There might be a filter regularization based on the design element.
+  if(simp_pn)
+  {
+    if(simp_pn->HasByVal("regularization", "type", "filter"))
+    {
+      ParamNodeList list = simp_pn->Get("regularization")->GetList("filter");
+      // this is save for design=polarization
+      for(unsigned int i = 0; i < list.GetSize(); i++)
+      {
+        if(structure_ == NULL)
+          structure_ = new DesignStructure(this);
+        structure_->SetFilters(list[i], this->optInfoNode);
+      }
+    }
+    else
+    {
+      if(simp_pn->Has("regularization"))
+        throw Exception("regularization not implemented");
+    }
+  }
+
   ErsatzMaterial::PostInit();
   
   mech_mat_ = dynamic_cast<MechMat*>(material); // just set in EM:PostInit()
@@ -45,14 +70,19 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Applic
   // therefore we always return a derivative, de indicating which
   // for transient problems, this does also need to return the derivative of the mass matrix
   Matrix<double>& out = dynamic_cast<Matrix<double>& >(*mat_out);
-  switch(app){
+  int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
+
+  switch(app)
+  {
   case MECH:
-    out = mech_mat_->MechStiffness(de->elem, false, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
+    out = mech_mat_->MechStiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
     break;
   case MASS:
-    out = mech_mat_->MechMass(de->elem, false, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
+    out = mech_mat_->MechMass(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
     break;
   default:
     Exception("Only mech and mass matrix are available for paramMat");
+    break;
   }
+  LOG_DBG3(em) << "PM:SEK de=" << de->ToString() << " d=" << derivative << " out=" << mat_out->ToString(0, false);
 }

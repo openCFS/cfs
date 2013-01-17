@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 #include <string>
-#include <vector>
-
 
 typedef int32_t integer;
 typedef double doublereal;
@@ -19,7 +17,6 @@ namespace CoupledField
 class Optimization;
 class Timer;
 
-using std::vector;
 using std::string;
 
 /** Interface class to the SnOpt-Optimizer
@@ -49,7 +46,7 @@ private:
   }
   
   /** mainly calls sninit_ (which must be called prior to anything else from snopt)
-   *  and resizes the data vectors according to the problem dimensions
+   *  and resizes the data StdVectors according to the problem dimensions
    *  Also set snopt options to values defined in xml */
   inline void Init();
   
@@ -89,7 +86,7 @@ private:
    *  must be called after get_nlp_info! */
   inline void SetSnOptOptions();
   
-  /** mainly fills the index vectors iGfun, jGvar, iAfun, jAvar */
+  /** mainly fills the index StdVectors iGfun, jGvar, iAfun, jAvar */
   inline void initJacobians();
   
   /** if we have linear constraints we only have to set them up once;
@@ -180,43 +177,43 @@ private:
   const integer ObjRow; // which row of F do we use as objective? -> by definition, it will be 1! NOTE: Me must add one to mesh with fortran
   doublereal ObjAdd; // add this value to objective when outputting
   
-  /** The optimizer ParamNode - away from the constructor to support restart */
-  PtrParamNode optimizer_pn_;
-  
   /** number of linear constraints */
   int lin_constraints;
   
   /** number of nonlinear constraints */
   int nonlin_constraints;
   
-  vector<doublereal> rw;
-  vector<integer> iw;
-  vector<char> cw; // must be 8 times larger than lencw!!!
+  StdVector<doublereal> rw;
+  StdVector<integer> iw;
+  StdVector<char> cw; // must be 8 times larger than lencw!!!
   
-  vector<doublereal> x;     // start values
-  vector<doublereal> xlow;  // holds the lower bounds on x
-  vector<doublereal> xupp;   // holds the upper bounds on x
-  vector<doublereal> xmul;
-  vector<integer> xstate; // is a set of initial states for each x  (0,1,2,3,4,5)
+  StdVector<doublereal> x;     // start values
+  StdVector<doublereal> xlow;  // holds the lower bounds on x
+  StdVector<doublereal> xupp;   // holds the upper bounds on x
+  StdVector<doublereal> xmul;
+  StdVector<integer> xstate; // is a set of initial states for each x  (0,1,2,3,4,5)
   
-  vector<doublereal> F;     // nonlinear objective and constraint terms
-  vector<doublereal> Flow;  // holds the lower bounds on F
-  vector<doublereal> Fupp;   // holds the upper bounds on F
-  vector<doublereal> Fmul;   // set of initial values for the dual variables
-  vector<integer> Fstate;
+  StdVector<doublereal> F;     // nonlinear objective and constraint terms
+  StdVector<doublereal> Flow;  // holds the lower bounds on F
+  StdVector<doublereal> Fupp;   // holds the upper bounds on F
+  StdVector<doublereal> Fmul;   // set of initial values for the dual variables
+  StdVector<integer> Fstate;
   
   // G and A always have n colums!
-  vector<doublereal> G;  // nonlinear objective and constraint gradient terms
-  vector<integer> iGfun; // (iGfun(k),jGvar(k)), k = 1,2,...,nG, define the 
-  vector<integer> jGvar; // coordinates of the nonzero nonlinear problem derivatives
+  StdVector<doublereal> G;  // nonlinear objective and constraint gradient terms
+  StdVector<integer> iGfun; // (iGfun(k),jGvar(k)), k = 1,2,...,nG, define the
+  StdVector<integer> jGvar; // coordinates of the nonzero nonlinear problem derivatives
   
-  vector<doublereal> A;     // linear objective and constraint gradient terms
-  vector<integer> iAfun; // (iAfun(k),jAvar(k)), k = 1,2,...,nA, define the 
-  vector<integer> jAvar; // coordinates of the nonzero linear problem derivatives
+  StdVector<doublereal> A;     // linear objective and constraint gradient terms
+  StdVector<integer> iAfun; // (iAfun(k),jAvar(k)), k = 1,2,...,nA, define the
+  StdVector<integer> jAvar; // coordinates of the nonzero linear problem derivatives
  
   /** interface for eval_grad_f and eval_jac_g requires a StdVector */
   StdVector<doublereal> gradhelper;
   
+  /** this is the size of the objective gradients */
+  unsigned int n_obj_grad;
+
   /** We do not know when the major iterations and define it as the last function evaluation
    * before a new gradient step is evaluated. Such we can do the CommitIteration() only "post mortem" :(
    * This is therefore the "static" helper to be used in Callback(). */

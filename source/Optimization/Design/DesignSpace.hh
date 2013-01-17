@@ -30,8 +30,10 @@ namespace CoupledField
   class BaseOptimizer;
   class BaseResult;
   class SinglePDE;
+  class MultiMaterial;
   struct Elem;
   struct ResultInfo;
+
 
   /** This is the container of DesingElements which also holds the transferFunctions.
    * It can be initialized by Optimization of can contain the ersatz material stuff. */
@@ -54,7 +56,7 @@ namespace CoupledField
      /** PostInit as usual when not all can be stuffed into the constructor
       * @param objectives the number of objectives
       * @param constraints the number of constraints to initialize constraintGradients */
-     void PostInit(int objectives, int constraints);
+     virtual void PostInit(int objectives, int constraints);
 
      /** Consist all regions of the design of a regular grid?.
       * In the derived design space we assume a non-regular grid for SHAPE_OPT and SHAPE_PARAM_MAT */
@@ -65,7 +67,7 @@ namespace CoupledField
 
      /** Set the DesignMaterial this is only used in parametric material optimization and therefore not in constructor
       * @param dm ParamNode in XML */
-     void SetDesignMaterial(PtrParamNode dm);
+     void SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material);
 
      /** Set the optimizer, required for level set give the level set values as nodal values.
       * Otherwise not required to be called */
@@ -91,21 +93,31 @@ namespace CoupledField
        return GetErsatzMaterialFactor(design_index, (Optimization::Application) applicationForm.Parse(form->GetName()), forBimaterial);
      }
 
+     /** do we have a slack variable and such an AuxDesign? */
+     virtual bool HasSlackVariable() const { return false; }
+
+     /** returns the slack variable if present or throws an exception */
+     virtual double GetSlackVariable() const { assert(false); return -1; }
+
      /** Returns true if optimization does provide a complete tensor, not just a density */
-     bool HasErsatzMaterialTensor() const
-     {
-       return designMaterial != NULL;
-     }
+     bool HasErsatzMaterialTensor() const { return designMaterial != NULL; }
      
      /** Returns true if optimization does provide a mass, currently density is not handled by this */
-     bool HasErsatzMaterialMass(){
-       return designMaterial != NULL;
-     }
+     bool HasErsatzMaterialMass() const { return designMaterial != NULL; }
      
      /** Returns true if optimization also provides damping parameters for Rayleigh-Damping (alpha, beta) */
-     bool HasErsatzMaterialDamping(){
+     bool HasErsatzMaterialDamping() {
        return(designMaterial != NULL && designMaterial->DampingIsDesign());
      }
+
+     bool HasPiezoCouplingTensor() const { return designMaterial != NULL; }
+
+     bool HasDielecTensor() const { return designMaterial != NULL; }
+
+     /** gives either elasticity tensor, dielec tensor or piezo coupling tensor
+      * @param type TENSOR_TRACE, ELAST_ALL, DIELEC_TRACE, DIELEC_ALL, PIEZO_ALL. Allways the complete tensor!
+      * @see GetErsatzMaterialTensor() */
+     bool GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation = DesignMaterial::VOIGT);
 
      /** Calculates the corresponding ErsatzMaterialTensor for the given element
       * @param t holds the resulting MaterialTensor
@@ -114,8 +126,12 @@ namespace CoupledField
       * @param design_index index of designElement
       * @param direction if !=DEFAULT calculate derivative of Tensor instead of Tensor 
       * @returns whether the given element is subject to optimization and the tensor therefore could be retrieved */
-     bool GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction);
+     bool GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation = DesignMaterial::VOIGT);
      
+     bool GetDielecTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
+
+     bool GetPiezoCouplingTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
+
      /** Calculates the corresponding Mass for the given element, this is usually tensor trace
       * @param elem Element
       * @param direction if !=NO_DERIVATIVE calculate the derivative instead of value
@@ -134,9 +150,21 @@ namespace CoupledField
      /** Get the correct Damping parameter, alpha for Mass, beta for Stiffness */
      bool GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, BaseForm* integrator, double& param);
 
+     bool HasMultiMaterial() const { return !multimaterial.IsEmpty();}
+
+     StdVector<MultiMaterial>& GetMultiMaterials() { return multimaterial; }
+
+     /** Gives an assembled multimaterial tensor.
+      * @param elem for the element number
+      * @param tf transfer function, if not given searches by itself
+      * @param mc to find the right one in the piezo case
+      * @param derivative if given it contains the the index of the propert material */
+     bool GetMultiMaterialTensor(Matrix<double>& t, const Elem* elem, TransferFunction* tf = NULL, SubTensorType subTensor = NO_TENSOR, MaterialClass mc = MECHANIC, const DesignElement* derivative = NULL);
+
      /** This gets back a uniquely defined transfer function.
-      * @param throw_exception if false NULL is returned when nothing is found! */
-     TransferFunction* GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception = true);
+      * @param throw_exception if false NULL is returned when nothing is found!
+      * @param use_single when there is only one transfer function, use this one and ignore design and application */
+     TransferFunction* GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception = true, bool use_single = false);
 
      /** Try to determine the transfer function from the design element uniquely */
      TransferFunction* GetTransferFunction(const DesignElement* de);
@@ -179,10 +207,11 @@ namespace CoupledField
       * @see SetDesignSpace() */
      virtual int WriteDesignToExtern(double* space_out, bool scaling = true) const;
      int WriteDesignToExtern(StdVector<double>& space_out, bool scaling = true) const;
+     int WriteDesignToExtern(Vector<double>& space_out, bool scaling = true) const;
 
      /** Similar but more general as WriteDesignToExtern().
       * @param out if it has a window writes to the window of the vector! */
-     void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
+     virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
                                 DesignElement::Access access, Condition* g = NULL, bool scaling = true) const
      {
        if(g == NULL || g->HasDenseJacobian())
@@ -215,6 +244,9 @@ namespace CoupledField
       * @return -1 if not throw_exception and not found */
      int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
 
+     /** gives a design element by idx. Handles als AuxDesign */
+     virtual BaseDesignElement* GetDesignElement(unsigned int idx);
+
      /** Service method to find a specific design element by element number and design type */
      DesignElement* Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception = true, bool include_pseudo_designs = false);
 
@@ -229,13 +261,17 @@ namespace CoupledField
       * Is very fast O(1) */
      int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false);
 
-     /** When we have more design types this is a divisor of data.GetSieze() */
+     /** When we have more design types this is a divisor of data.GetSize() */
      unsigned int GetNumberOfElements() { return elements; }
 
      /** The number of optimization variables over all regions. Counts every time.
       * Takes constant regions into account - hence can be smaller than the number of elements even for
       * multiple regions. */
      virtual unsigned int GetNumberOfVariables() const;
+
+     /** this is the number of ersatz material variables. Only below GetNumberOfVariables()
+      * if AuxDesign or ShapeDesign is used*/
+     unsigned int GetNumberOfErsatzMaterialVariables() const { return DesignSpace::GetNumberOfVariables(); }
      
      /** Find the element with the largest Filter neighborhood, if no filter is used or if the
       * value is not unique (what should be the case) any suitable is returned.
@@ -256,11 +292,16 @@ namespace CoupledField
       * @see totalElements_*/
      StdVector<DesignElement> data;
 
+     /** This is the total set of design variables, including aux designs.
+      * @see the difference to totalElements_ */
+     StdVector<BaseDesignElement*> full_data;
+
      /** Our transfer functions */
      StdVector<TransferFunction> transfer;
 
-     /** Here we store the design we have. Check with Find() for the element */
-     StdVector<DesignElement::Type> design;
+     /** Here we store the designs we have. Check with Find() for the element. 
+      * Note, that multimaterial_density is not unique here! */
+     StdVector<DesignID> design;
 
      /** Reference to DesignMaterial */
      DesignMaterial* designMaterial;
@@ -295,12 +336,12 @@ namespace CoupledField
      std::string ToString();
 
      /** Writes summary information about design variables and transfer functions into the node */
-     void ToInfo(PtrParamNode in);
+     virtual void ToInfo(PtrParamNode in);
      
      typedef enum { VARIABLE, CONSTANT_PER_REGION, CONSTANT_ON_ALL_REGIONS, FIXED } DesignConstant;
      
      static Enum<DesignConstant> designConstant;
-     
+
      /** This holds information about a region, valid for one design.
       * save parameters for scaling the design to [0..1] in the optimizer: 
       * our design = scaling * optimizer_design + translation 
@@ -319,6 +360,9 @@ namespace CoupledField
        double scale_design;
        double translate_design;
 
+       /** points to the multimaterial array or is NULL */
+       MultiMaterial* multimaterial;
+
        void SetBiMaterial(const std::string& material) { bimaterial_ = material; }
 
        bool HasBiMaterial() const;
@@ -329,18 +373,23 @@ namespace CoupledField
        std::string ToString() const;
 
        void ToInfo(PtrParamNode node) const;
+
      private:
        std::string bimaterial_;
+       // old bimaterial stuff
        StdVector<std::pair<BaseMaterial*, MaterialClass> > materials_;
      };
      
-     /** trivial find */
-     DesignRegion* GetRegion(RegionIdType id, bool throw_exception = true);
+     /** Get DesignRegion.  */
+     DesignRegion* GetRegion(RegionIdType id, DesignElement::Type dt = DesignElement::NO_TYPE, int multimaterial_index = -1, bool throw_exception = true);
+
+     DesignRegion* GetRegion(RegionIdType id, MultiMaterial* mm, bool throw_exception = true);
 
      /** Convenience function */
      BaseMaterial* GetBiMaterial(RegionIdType reg, Optimization::Application app, bool throw_exception = true);
 
-     /** This now is a vector of design and region regions[design][region] */
+     /** This now is a vector of design and region regions[design][region].
+      Design is here the unique design. */
      StdVector<StdVector<DesignRegion> > regions;
 
      /** it is convenient to have such a vector for some functions. Taken from regions! */
@@ -376,8 +425,13 @@ namespace CoupledField
 
 
      /** handles design and region reordering */
-     virtual void WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
+     void WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
                                 DesignElement::Access access, Condition* g = NULL, bool scaling = true) const;
+
+     /** can handle the sparse slope constraint but no reordering as the dense version */
+     void WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
+                                DesignElement::Access access, Condition* g = NULL, bool scaling = true) const;
+
 
      /** This number identifies the design space. It is always incremented if ReadDesignFromExtern() reads
       * a different design */
@@ -419,10 +473,11 @@ namespace CoupledField
      /** as regionIds_ does not exist as StdVector anymore, a simple replacement for regionIds_.Find() */
      int FindRegion(RegionIdType regionId);
 
+     /** Setup the multimaterial vector and do sanity checks */
+     void SetupMultiMaterial(ParamNodeList design_list);
 
-     /** can handle the sparse slope constraint but no reordering as the dense version */
-     void WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
-                                DesignElement::Access access, Condition* g = NULL, bool scaling = true) const;
+     /** Here we store the multimaterial data */
+     StdVector<MultiMaterial> multimaterial;
      
      /** We afford a large element number to design index mapping.
       * sorted by the elemNum the design index is stored.
@@ -456,6 +511,7 @@ namespace CoupledField
      StdVector<StdVector<DesignElement> > pseudoDesigns_;
 
      /** This is a sequential list of all elements. design and pseudo-design. Multiple designs, more elements :)
+      * It does not include aux design as in full_data!
       * Updated eventually by RegisterPseudoDesignRegion(). */
      StdVector<DesignElement*> totalElements_;
 
@@ -472,6 +528,21 @@ namespace CoupledField
   };
 
 
+  struct MultiMaterial
+  {
+    /** the material is PDE dependent therefore we create and cache it on the fly. This makes it
+     * easy to be also simple for load ersatz material */
+    BaseMaterial* GetMultiMaterial(const MaterialClass mc);
+
+    /** material name, to be allow creation on the fly. */
+    std::string name;
+
+    /** redundant multimaterial index, starting from 0 */
+    int index;
+
+    /** this is a list of materials. One for elasticity and three for piezoelectricity */
+    StdVector<std::pair<BaseMaterial*, MaterialClass> > material;
+  };
 
 
 } // end of namespace

@@ -77,17 +77,34 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     return;
   }
 
-  // number of different designs
+  // setup designs
   ParamNodeList pn_design = pn->GetList("design");
-  unsigned int nd = 0;
+
+  // preprocess multimaterial - does not know regions yet
+  SetupMultiMaterial(pn_design);
+
+  int mm_count = 0;
+
+  // number of different designs, where multimaterial design is special
   for(unsigned int d = 0; d < pn_design.GetSize(); d++)
   {
     DesignElement::Type dt = DesignElement::type.Parse(pn_design[d]->Get("name")->As<std::string>());
-    if(design.Find(dt) < 0)
+    // actually we want the designs unique, but we make an exception for MULTIMATERIAL_DENSITY
+    // don't add slack, it is not really a design but triggers AuxDesign
+    if(dt == DesignElement::SLACK)
+      continue;
+
+    if(dt == DesignElement::MULTIMATERIAL)
     {
-      design.Push_back(dt);
-      nd++;
+      DesignID id(dt, &multimaterial[mm_count]);
+      design.Push_back(id);
+      mm_count++;
     }
+    else if(FindDesign(dt, false) < 0)
+    {
+      design.Push_back(DesignID(dt, NULL));
+    }
+    // tolerate non unique designs - e.g. for different regions
   }
 
   // now read the transfer functions
@@ -97,15 +114,15 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     if(trans_in.GetSize() == 0)
       throw Exception("no transferFunctions given");
     transfer.Reserve(trans_in.GetSize());
-    if(trans_in.GetSize() < nd)
+    if(trans_in.GetSize() < design.GetSize() && ! HasMultiMaterial())
       throw Exception("less transferFunctions than design variable types is infeasible");
     for(unsigned int i = 0; i < trans_in.GetSize(); i++)
-      transfer.Push_back(TransferFunction(trans_in[i], design.GetSize() == 1 ? design[0] : DesignElement::NO_TYPE));
+      transfer.Push_back(TransferFunction(trans_in[i], design.GetSize() == 1 ? design[0].design : DesignElement::NO_TYPE));
     // check for mass if we have harmonic and density
-    if(BasePDE::IsComplex(domain->GetBasePDE()->GetAnalysisType()) && design.Contains(DesignElement::DENSITY)) {
+    if(BasePDE::IsComplex(domain->GetBasePDE()->GetAnalysisType()) && FindDesign(DesignElement::DENSITY, false) >= 0) {
       TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, Optimization::MASS, false); // silend
       if(tf == NULL && domain->GetBasePDE()->GetName() != "electrostatic") {
-        std::cout << domain->GetBasePDE()->GetName() << std::endl;
+        // std::cout << domain->GetBasePDE()->GetName() << std::endl;
         PtrParamNode in = info->Get("optimization")->Get(ParamNode::HEADER)->Get("designSpace/transferFunctions")->Get(ParamNode::WARNING);
         in->SetValue("no transfer function 'mass' given for harmonic model");
       }
@@ -113,43 +130,51 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   }
 
 
-
-  if(elements == 0 || nd == 0)
+  if(elements == 0 || design.IsEmpty())
   { // this may happen in shape optimization
     if(method !=ErsatzMaterial::SHAPE_GRAD)
     {
       if(elements == 0) throw Exception("empty regions");
-      if(nd == 0) throw Exception("no designs types given.");
+      if(design.IsEmpty()) throw Exception("no designs types given.");
     }
   }
   else // 'standard' SIMP case
   {
     // set our own structure with is element times design parameters
-    data.Reserve(elements * nd);
-    totalElements_.Reserve(elements  * nd); // the quick access copy which also combines pseudo design elements
+    data.Reserve(elements * design.GetSize());
+    totalElements_.Reserve(elements  * design.GetSize()); // the quick access copy which also combines pseudo design elements
 
     const unsigned int nr = reg_data.GetSize();
     // check whether all regions have all design variables and all design variables are given in all regions
     StdVector<bool> region_design;
-    region_design.Resize(nd * nr, true);
+    region_design.Resize(design.GetSize() * nr, true);
     StdVector<std::string> regNames;
     domain->GetGrid()->GetRegionNames(regNames);
     // only temporary
     StdVector<Elem*> elems;
     // set size of regions
-    regions.Resize(nd);
+    regions.Resize(design.GetSize());
     // iterate over all designs, we have to always have the same order of designs not the order from the xml file
-    for(unsigned int dti = 0; dti < nd; dti++)
+    for(unsigned int dti = 0; dti < design.GetSize(); dti++)
     {
       assert(regions[dti].IsEmpty());
       regions[dti].Reserve(reg_data.GetSize()); // we use push back as the order of r is unknown!!
-      DesignElement::Type dt = design[dti];
+      DesignElement::Type dt = design[dti].design;
+      // dt is unique or one of many multimaterials
 
+      // find the proper design in pn_design
+      int mm_count = -1; // multimaterial only
       for(unsigned int d = 0; d < pn_design.GetSize(); d++)
       {
         PtrParamNode curr_design_pn = pn_design[d];
         if(DesignElement::type.Parse(curr_design_pn->Get("name")->As<std::string>()) != dt)
           continue;
+        if(dt == DesignElement::MULTIMATERIAL)
+        {
+          mm_count++; // now zero for the first
+          if(design[dti].multimaterial->index != mm_count)
+            continue;
+        }
         std::string design_reg = curr_design_pn->Get("region")->As<std::string>();
         std::string design_bim = curr_design_pn->Has("bimaterial") ? curr_design_pn->Get("bimaterial")->As<std::string>() : "";
 
@@ -158,13 +183,13 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
           domain->GetGrid()->GetElems(elems, reg_data[r]);
           unsigned int n = elems.GetSize();
           std::string reg = regNames[reg_data[r]];
-
+	
           bool design_all = design_reg == "all";
           if(design_all || design_reg == reg)
           {
-            if(!region_design[r*nd + dti])
+            if(!region_design[r*design.GetSize() + dti])
               throw Exception("Design/Region combination given twice!");
-            region_design[r*nd + dti] = false;
+            region_design[r*design.GetSize() + dti] = false;
 
             // this is now done for all designs per region, this is called for every design and every region here
             DesignRegion* prev = regions[dti].IsEmpty() ? NULL : &(regions[dti].Last());
@@ -172,6 +197,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             regions[dti].Push_back(tmp);
             DesignRegion& dr   = regions[dti].Last();
             dr.design = dt;
+            dr.multimaterial = dt == DesignElement::MULTIMATERIAL ? &(multimaterial[mm_count]) : NULL;
             dr.regionId = reg_data[r];
             dr.base = prev == NULL ? dti * elements : prev->base + prev->elements;
             LOG_DBG2(designSpace) << "dti=" << dti << " d=" << d << " r=" << r << " el=" << elements << " size=" << regions[dti].GetSize()
@@ -197,21 +223,22 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
               dr.scale_design = (upper - lower);
               dr.translate_design = lower;
             }
-            double initial = curr_design_pn->Get("initial")->As<double>();
-            LOG_DBG2(designSpace) << "add design initial=" << boost::lexical_cast<std::string>(initial) << dr.ToString();
+            bool random = curr_design_pn->Get("initial")->As<std::string>() == "random";
+            double initial = random ? -1.0 : curr_design_pn->Get("initial")->As<double>();
+
+            if(!random && (initial < lower || initial > upper))
+              info->Get("optimization/header/DesignSpace")->Get(ParamNode::WARNING)->SetValue("Initial value for design " + DesignElement::type.ToString(dt) + " not within bounds");
 
             for(unsigned int e = 0; e < n; e++)
             {
-              DesignElement de(dt, lower, upper, elems[e], data.GetSize());
-              // simple extension: if the passed value is smaller
-              // than 0.0 (which makes no sense as the element contribution
-              // is always positive), we put a random number -> random initial design
-              de.SetDesign(initial < 0.0 ? ((rand()%100 + 10)/110.0) : initial);
+              DesignElement de(dt, lower, upper, elems[e], data.GetSize(), dr.multimaterial);
+
+              de.SetDesign(random ? (((float) rand()/RAND_MAX) * (upper - lower) + lower) : initial);
 
               data.Push_back(de);
               totalElements_.Push_back(&data.Last());
               // append rucksack :)
-              if(method == ErsatzMaterial::SIMP_METHOD)
+              if(method == ErsatzMaterial::SIMP_METHOD || method == ErsatzMaterial::PARAM_MAT)
               {
                 DesignElement* ptr = &(data.Last());
                 ptr->simp = new SIMPElement(ptr);
@@ -228,13 +255,19 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
         }
       }
     }
-    for(unsigned int rd=0; rd < nd * nr; rd++){
+    for(unsigned int rd=0; rd < design.GetSize() * nr; rd++){
       if(region_design[rd]){
         throw Exception("not all designs given for all regions");
       }
     }
     LOG_DBG(designSpace) << "data size: " << elements << "*" << pn_design.GetSize() << "=" << data.GetSize();
   } // no design elements given
+
+  // copy to be extended by aux design
+  full_data.Resize(data.GetSize());
+  for(unsigned int i = 0; i < data.GetSize(); i++)
+    full_data[i] = dynamic_cast<BaseDesignElement*>(&(data[i]));
+
   // set the result descriptions which identify the solution types
   ParamNodeList result = pn->GetList("result");
   resultDescriptions.Reserve(result.GetSize());
@@ -248,15 +281,17 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     for(unsigned int d = 0; d < design.GetSize(); d++)
       for(unsigned int r = 0; r < domain->GetGrid()->regionData.GetSize(); r++)
         if(!Contains(domain->GetGrid()->regionData[r].id))
-          RegisterPseudoDesignRegion(domain->GetGrid()->regionData[r].id, design[d]);
+          RegisterPseudoDesignRegion(domain->GetGrid()->regionData[r].id, design[d].design);
   }
 }
+
 DesignSpace::~DesignSpace(){
   if(designMaterial != NULL){
     delete designMaterial;
     designMaterial = NULL;
   }
 }
+
 double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
 {
   bool pl = pn->Has("physical_lower");
@@ -316,19 +351,25 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
   assert(false);
   return -1;
 }
-DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method){
-  switch(method){
+DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method)
+{
+  switch(method)
+  {
   case ErsatzMaterial::SHAPE_OPT:
   case ErsatzMaterial::SHAPE_PARAM_MAT:
     return new ShapeDesign(reg_data, pn, method);
   default:
-    return new DesignSpace(reg_data, pn, method);
+    if(pn->HasByVal("design", "name", "slack"))
+      return new AuxDesign(reg_data, pn, method, 1); // slack variable
+    else
+      return new DesignSpace(reg_data, pn, method);
   }
 }
 DesignSpace* DesignSpace::Clone()
 {
   return new DesignSpace(regionIds_, pn_, ErsatzMaterial::SIMP_METHOD);
 }
+
 void DesignSpace::PostInit(int objectives, int constraints)
 {
   LOG_DBG(designSpace) << "# objectives = " << objectives << ", # constraints = " << constraints;
@@ -336,6 +377,7 @@ void DesignSpace::PostInit(int objectives, int constraints)
   for(unsigned int i = 0, n = totalElements_.GetSize(); i < n; i++)
     totalElements_[i]->PostInit(objectives, constraints);
 }
+
 bool DesignSpace::Contains(const RegionIdType reg, bool include_pseduo) const
 {
   for(unsigned int i = 0, n = regions[0].GetSize(); i < n; i++)
@@ -408,12 +450,11 @@ unsigned int DesignSpace::CalcPseudoDesignElements() const
     sum += pseudoDesigns_[i].GetSize();
   return sum;
 }
-void DesignSpace::SetDesignMaterial(PtrParamNode dm){
+void DesignSpace::SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material){
   if(transfer.GetSize() > 0)
     throw Exception("designmaterial can not be given when using transferFunctions");
   transfer.Push_back(TransferFunction()); // create an identity transfer function
-  DesignMaterial::SetEnums();
-  designMaterial = new DesignMaterial(dm, design);
+  designMaterial = new DesignMaterial(dm, material, design);
 }
 void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
 {
@@ -522,6 +563,7 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
       case OPT_RESULT_7: return 6;
       case OPT_RESULT_8: return 7;
       case OPT_RESULT_9: return 8;
+      case OPT_RESULT_10: return 9;
       default: throw Exception("invalid solution type");
     }
   }
@@ -537,12 +579,13 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception) const
   // do a fallback for NO_TYPE and DEFAULT
   if(design.GetSize() == 1 && (dt == DesignElement::NO_TYPE || dt == DesignElement::DEFAULT))
     return 0;
-  if(dt == DesignElement::TENSOR_TRACE && HasErsatzMaterialTensor()) // this is not a real type of design, but volume constraint can operate on it, if optimization returns a complete tensor
+  // this is not a real type of design, but volume constraint can operate on it, if optimization returns a complete tensor
+  if(dt == DesignElement::TENSOR_TRACE && HasErsatzMaterialTensor())
     return 0;
   // search where in data we are
   int base = -1;
   for(unsigned int i = 0; i < design.GetSize(); i++)
-    if(design[i] == dt) base = i;
+    if(design[i].design == dt) base = i;
   if(base == -1 && throw_exception)
     EXCEPTION("Design " << DesignElement::type.ToString(dt) << " not within " << design.GetSize() << " actual designs.");
   return base;
@@ -601,26 +644,76 @@ bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& ele
   LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << " ->" << elemMat.ToString();
   return true;
 }
+
 bool DesignSpace::CollectMaterialParametersForElement(const Elem* elem){
   int base = Find(elem, false);
   if(base < 0){
     return(false);
   }
 
+  // we must not clear the parameters here as only designs are rewritten but not fixed parameters
+
   for(unsigned int index = base; index < data.GetSize(); index += elements){
     DesignElement* de = &data[index];
-    designMaterial->SetParameter(de->GetType(), de->GetDesign(DesignElement::PLAIN));
+    designMaterial->SetParameter(de->GetType(), de->GetDesign(DesignElement::SMART));
   }
   return(true);
 }
-bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction){
+
+bool DesignSpace::GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation)
+{
+  switch(type)
+  {
+  case DesignElement::TENSOR_TRACE:
+  case DesignElement::ELAST_ALL:
+    return GetErsatzMaterialTensor(t, subTensor, elem, direction, notation);
+  case DesignElement::DIELEC_TRACE:
+  case DesignElement::DIELEC_ALL:
+    return GetDielecTensor(t, elem, direction);
+  case DesignElement::PIEZO_ALL:
+    return GetPiezoCouplingTensor(t, elem, direction);
+  default:
+    return false;
+    break;
+  }
+  return false;
+}
+
+bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation){
   // collect all parameters
   if(CollectMaterialParametersForElement(elem)){
-    designMaterial->GetMaterialTensor(t, subTensor, direction);
+    designMaterial->GetMaterialTensor(t, subTensor, direction, notation);
     return(true);
   }
   return(false);
 }
+
+bool DesignSpace::GetDielecTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction)
+{
+  // believe if there is one then there are all :)
+  if(direction == DesignElement::NO_DERIVATIVE && !designMaterial->HasParameter(DesignElement::DIELEC_11))
+    return false;
+  if(CollectMaterialParametersForElement(elem)) {
+    designMaterial->GetDielecTensor(t, direction);
+    return true;
+  }
+  else
+    return false;
+}
+
+bool DesignSpace::GetPiezoCouplingTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction)
+{
+  if(direction == DesignElement::NO_DERIVATIVE && !designMaterial->HasParameter(DesignElement::PIEZO_11))
+    return false;
+  if(CollectMaterialParametersForElement(elem)) {
+    designMaterial->GetPiezoCouplingTensor(t, direction);
+    return true;
+  }
+  else
+    return false;
+}
+
+
 double DesignSpace::GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction){
   // collect all parameters
   if(CollectMaterialParametersForElement(elem)){
@@ -642,6 +735,61 @@ bool DesignSpace::GetErsatzMaterialDampingParameterForIntegrator(const Elem* ele
   }
   return(false);
 }
+
+bool DesignSpace::GetMultiMaterialTensor(Matrix<double>& t, const Elem* elem, TransferFunction* tf, SubTensorType stt, MaterialClass mc, const DesignElement* derivative)
+{
+  if(multimaterial.IsEmpty())
+    return false;
+
+  if(tf == NULL && derivative != NULL)
+    tf = GetTransferFunction(derivative);
+  if(tf == NULL)
+    tf = GetTransferFunction(DesignElement::MULTIMATERIAL, Optimization::MECH);
+
+  if(derivative != NULL)
+  {
+    assert(derivative->multimaterial != NULL);
+    assert(elem->elemNum == derivative->elem->elemNum);
+
+    BaseMaterial* bm = derivative->multimaterial->GetMultiMaterial(mc);
+    bm->GetTensor(t, BaseMaterial::ConvertMaterialClass(mc), Global::REAL, stt); // up to now no complex stuff
+
+    t *= tf->Derivative(derivative, DesignElement::SMART);
+  }
+  else
+  {
+    int idx = Find(elem, false);
+
+    if(idx < 0)
+      return false;
+
+    static Matrix<double> tmp;
+
+    for(unsigned int d = 0; d < design.GetSize(); d++)
+    {
+      DesignElement& de = data[elements * d + idx];
+      if(de.GetType() == DesignElement::MULTIMATERIAL)
+      {
+        assert(de.multimaterial != NULL);
+        BaseMaterial* bm = de.multimaterial->GetMultiMaterial(mc);
+        bm->GetTensor(tmp, BaseMaterial::ConvertMaterialClass(mc), Global::REAL, stt); // up to now no complex stuff
+
+        // initial tensor initialization
+        if(t.GetNumRows() == 0)
+        {
+          t.Resize(tmp.GetNumRows(), tmp.GetNumCols());
+          t.Init();
+        }
+
+        t.Add(tf->Transform(&de, DesignElement::SMART), tmp);
+      }
+    }
+  }
+
+  return true;
+}
+
+
 TransferFunction* DesignSpace::GetTransferFunction(const DesignElement* de)
 {
   TransferFunction* res = NULL;
@@ -658,11 +806,15 @@ TransferFunction* DesignSpace::GetTransferFunction(const DesignElement* de)
     EXCEPTION("None of the " << transfer.GetSize() << " transfer functions matches " << de->ToString());
   return res;
 }
-TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception)
+
+TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception, bool use_single)
 {
-  if(HasErsatzMaterialTensor()){
+  if(HasErsatzMaterialTensor())
     return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization
-  }
+
+  if(use_single && transfer.GetSize() == 1)
+    return &transfer[0];
+
   for(unsigned int i = 0; i < transfer.GetSize(); i++)
   {
     TransferFunction* tf = &transfer[i];
@@ -792,11 +944,19 @@ int DesignSpace::WriteDesignToExtern(double* space, bool scaling) const
   assert(d == DesignSpace::GetNumberOfVariables());
   return design_id;
 }
+
 int DesignSpace::WriteDesignToExtern(StdVector<double>& space_out, bool scaling) const
 {
   space_out.Reserve(GetNumberOfVariables());
   return WriteDesignToExtern(space_out.GetPointer(), scaling);
 }
+
+int DesignSpace::WriteDesignToExtern(Vector<double>& space_out, bool scaling) const
+{
+  space_out.Resize(GetNumberOfVariables());
+  return WriteDesignToExtern(space_out.GetPointer(), scaling);
+}
+
 void DesignSpace::WriteBoundsToExtern(double* x_l, double* x_u) const {
   const unsigned int nd = design.GetSize();
   const unsigned int nr = regions[0].GetSize();
@@ -863,8 +1023,8 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
       {
         for(unsigned int s = cur_reg.base; s < u; s++)
         {
+          LOG_DBG3(designSpace) << "DS:WDGtE: non-constant region r=" << r << " rid=" << cur_reg.regionId << " out[" << n << "] = design[" << s << "]=" << data[s].GetValue(vs, access, g);
           assert(out.InWindow(n));
-          LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: non-constant region " << r << ": out[" << n << "] = design[" << s << "]=" << data[s].GetValue(vs, access, g);
           out[n++] = data[s].GetValue(vs, access, g) * scaling;
         }
       }
@@ -911,6 +1071,14 @@ void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type de
     }
   }
 }
+
+inline
+BaseDesignElement* DesignSpace::GetDesignElement(unsigned int idx)
+{
+  assert(idx < data.GetSize());
+  return dynamic_cast<BaseDesignElement*>(&data[idx]);
+}
+
 DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception, bool include_pseudo_designs)
 {
   int idx = Find(elemNum, throw_exception, include_pseudo_designs);
@@ -1033,10 +1201,11 @@ void DesignSpace::EnableTransferFunctions()
 {
   for(unsigned int i = 0; i < transfer.GetSize(); i++) transfer[i].Enable(true);
 }
+
 unsigned int DesignSpace::GetNumberOfVariables() const 
 {
   const unsigned int nd = design.GetSize();
-  const unsigned int nr = regions[0].GetSize();
+  const unsigned int nr = regions.GetSize() > 0 ? regions[0].GetSize() : 0; // e.g. for pure shape optimization
   unsigned int n = 0;
   for(unsigned int des = 0; des < nd; des++){
     for(unsigned int r = 0; r < nr; r++){
@@ -1193,9 +1362,15 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
       result_data[it.GetPos() * dofs + i] = result_value[i];
   }
 }
+
+DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, MultiMaterial* mm, bool throw_exception)
+{
+  return GetRegion(id, DesignElement::MULTIMATERIAL, mm->index, throw_exception);
+}
+
 BaseMaterial* DesignSpace::GetBiMaterial(RegionIdType reg, Optimization::Application app, bool throw_exception)
 {
-  DesignRegion* dr = GetRegion(reg, false); // tolerant for off-design stress constraints
+  DesignRegion* dr = GetRegion(reg, DesignElement::NO_TYPE, -1, false); // tolerant for off-design stress constraints
   if(dr == NULL || !dr->HasBiMaterial())
   {
     if(!throw_exception)
@@ -1216,19 +1391,35 @@ BaseMaterial* DesignSpace::GetBiMaterial(RegionIdType reg, Optimization::Applica
     return NULL;
   }
 }
-DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, bool throw_exception)
+
+DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, DesignElement::Type dt, int multimaterial_index, bool throw_exception)
 {
-  for(unsigned int i = 0, n = regions[0].GetSize(); i < n; i++)
-    if(regions[0][i].regionId == id)
-      return &regions[0][i];
+  assert(!((dt == DesignElement::MULTIMATERIAL) && multimaterial_index < 0));
+
+  for(unsigned int d = 0, dn = regions.GetSize(); d < dn; d++)
+  {
+    StdVector<DesignRegion>& regs = regions[d];
+    if(dt != DesignElement::NO_TYPE && regs[0].design != dt)
+      continue;
+    if((dt == DesignElement::MULTIMATERIAL) && regs[0].design == dt && regs[0].multimaterial->index != multimaterial_index)
+      continue;
+    for(unsigned r = 0, rn = regs.GetSize(); r < rn; r++)
+    {
+      if(regs[r].regionId == id)
+        return &regs[r];
+    }
+  }
+
   if(!throw_exception)
     return NULL;
   else
-    EXCEPTION("invalid region id");
+    EXCEPTION("cannot find design region");
 }
+
 DesignSpace::DesignRegion::DesignRegion()
 {
   regionId = -1;
+  multimaterial = NULL;
 }
 std::string DesignSpace::DesignRegion::ToString() const
 {
@@ -1242,6 +1433,43 @@ bool DesignSpace::DesignRegion::HasBiMaterial() const
 {
   return bimaterial_ != "";
 }
+
+void DesignSpace::SetupMultiMaterial(ParamNodeList design_list)
+{
+  assert(multimaterial.IsEmpty());
+
+  for(unsigned int d = 0; d < design_list.GetSize(); d++)
+  {
+    PtrParamNode pn = design_list[d];
+    DesignElement::Type dt = DesignElement::type.Parse(pn->Get("name")->As<std::string>());
+    if(dt == DesignElement::MULTIMATERIAL)
+    {
+      if(!pn->Has("material"))
+        throw Exception("mutlimaterial designs require the 'material' attribute");
+      std::string material = pn->Get("material")->As<std::string>();
+
+      // check for material
+      for(unsigned int m = 0; m < multimaterial.GetSize(); m++)
+      {
+        if(multimaterial[m].name == material)
+          throw Exception("multimaterial design " + material + " not unique");
+      }
+
+      if(pn->Get("region")->As<std::string>() != "all")
+        throw Exception("multimaterial not yet compatible with multiregion");
+
+      multimaterial.Push_back(MultiMaterial());
+      MultiMaterial& mm = multimaterial.Last();
+      mm.name = material;
+      mm.index = multimaterial.GetSize() - 1;
+      // the real material id set on the fly by GetMultiMaterial()
+    }
+    else if(pn->Has("material"))
+      throw Exception("the 'design' attribute 'material' is only for multimaterial designs");
+  }
+}
+
+
 BaseMaterial* DesignSpace::DesignRegion::GetBiMaterial(const MaterialClass mc)
 {
   assert(bimaterial_ != ""); // check with HasBiMaterial()!
@@ -1254,12 +1482,28 @@ BaseMaterial* DesignSpace::DesignRegion::GetBiMaterial(const MaterialClass mc)
   materials_.Push_back(std::make_pair(mat, mc));
   return mat;
 }
+
 void DesignSpace::DesignRegion::ToInfo(PtrParamNode node) const
 {
   node->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(regionId));
   node->Get("elements")->SetValue(elements);
   node->Get("bimaterial")->SetValue(HasBiMaterial() ? bimaterial_ : "-");
 }
+
+BaseMaterial* MultiMaterial::GetMultiMaterial(const MaterialClass mc)
+{
+  for(unsigned int m = 0; m < material.GetSize(); m++)
+    if(material[m].second == mc)
+      return material[m].first;
+
+  // apparently first run
+  MaterialHandler* matLoader = domain->GetMaterialHandler();
+  BaseMaterial* mat = matLoader->LoadMaterial(name, mc);
+  material.Push_back(std::make_pair(mat, mc));
+  return mat;
+}
+
+
 // explicit template instantiation for GCC compiler
 #ifdef __GNUC__
 template

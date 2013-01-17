@@ -190,6 +190,18 @@ namespace CoupledField
         }
         break;
 
+      case 2:
+        os << "[";
+        for(UInt j = 0; j < size_row_; j++)
+        {
+          for(UInt i = 0; i < size_col_; i++)
+            os << data_[j][i] << (i < size_col_-1 ? " " : "");
+          if(j < size_row_-1)
+            os << "; ";
+        }
+        os << "]";
+        break;
+
 
       default:
         os << "size_row=" << size_row_ << " size_col=" << size_col_;
@@ -1261,7 +1273,27 @@ namespace CoupledField
       EXCEPTION( "Matrix<Complex>::SetPart: Only possible for REAL or IMAG part!" );
     }
   }
- 
+
+  template<class TYPE>
+  void Matrix<TYPE>::GetRow(Vector<TYPE>& vec, UInt row) const
+  {
+    assert(size_row_ > row);
+    vec.Resize(size_col_);
+
+    for(unsigned int i = 0; i < size_col_; i++)
+      vec[i] = (*this)[row][i]; // do it faster if you like
+  }
+
+  template<class TYPE>
+  void Matrix<TYPE>::GetCol(Vector<TYPE>& vec, UInt col) const
+  {
+    assert(size_col_ > col);
+    vec.Resize(size_row_);
+
+    for(unsigned int i = 0; i < size_row_; i++)
+      vec[i] = (*this)[i][col]; // do it faster if you like
+  }
+
 
   // copies a submatrix at the position (row, col) into subMat, 
   // the amount of copied elements depends on the size of subMat

@@ -241,12 +241,11 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
     switch (action)
     {
     case DEFAULT:
-      EXCEPTION("Some action has to be performed")
-      ;
+      EXCEPTION("Some action has to be performed");
       break;
     case EX:
-      EXCEPTION("None of the " << children_.GetSize() << " childs of element '"
-          << this->name_ << "'" << " has a child '" << myName << "'")
+      throw Exception("None of the " + lexical_cast<string>(children_.GetSize()) + " childs of element '"
+                      + this->name_ + "' has a child '" + myName + "'");
       ;
       break;
     case PASS:
@@ -267,6 +266,25 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
 
   return result;
 }
+
+PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child1,  const string& value1,
+                                 const string& child2,  const string& value2)
+{
+  ParamNodeList l = GetListByVal(parent_raw, child1, value1);
+  if(l.IsEmpty())
+    EXCEPTION("parent " << parent_raw << " has no child " << child1 << " with value " << value1);
+
+  for(unsigned int i = 0; i < l.GetSize(); i++)
+  {
+    // assert(l[i]->HasByVal(child1, value1));
+    if(l[i]->HasByVal(child2, value2))
+      return l[i];
+  }
+
+  EXCEPTION("parent " << parent_raw << " has  child " << child1 << " with value " << value1 <<
+            " but not also child " << child2 << " with value " << value2);
+}
+
 
 template<typename TYPE>
 PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child_raw,

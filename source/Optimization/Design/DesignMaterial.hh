@@ -7,20 +7,22 @@
 #include "DesignElement.hh"
 #include "General/Enum.hh"
 #include "General/environment.hh"
+#include "Optimization/OptimizationMaterial.hh"
+#include "MatVec/matrix.hh"
 
 namespace CoupledField {
 
   /** This implements a function from $R^n$ to $R^{d \times d}$ for transforming a vector of Parameters
    * to a material tensor.  */
-template <class TYPE> class Matrix;
 template <class TYPE> class StdVector;
 
   class DesignMaterial {
     
   public:
     
-    typedef enum { ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
-      DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR, DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE } Type;
+    typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
+      DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR,
+      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT } Type;
     
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -28,19 +30,33 @@ template <class TYPE> class StdVector;
      * GMODUL is G_io where i is in the isotropic plane o not (note G_io = G_jo) */
     typedef enum { TRANSISO_XY, TRANSISO_YZ, TRANSISO_XZ } TransIsoType;
     
+    /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt */
+    typedef enum { VOIGT, HILL_MANDEL } Notation;
+
     /** constructor, reads in DesignMaterial from XML
      * @param pn pointer to PtrParamNode */ 
-    DesignMaterial(PtrParamNode pn, StdVector<DesignElement::Type>& design);
+    DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design);
     
+    /** reset the parameter space */
+    void ClearParameter() { params_.clear(); }
+
     /** Set a parameter for the parametric material optimization */
     void SetParameter(const DesignElement::Type p, const double value);
 
     /** Get a parameter of the parametric material optimization */
-    double GetParameter(const DesignElement::Type p);
+    double GetParameter(const DesignElement::Type p) { assert(HasParameter(p)); return params_[p]; }
     
+    /** checks for a parameter */
+    bool HasParameter(const DesignElement::Type p) const { return params_.find(p) != params_.end(); }
+
     /** Calculate the derivative tensor from the given material parameters */
-    void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+    void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
     
+    void GetPiezoCouplingTensor(Matrix<double>& t, DesignElement::Type direction);
+
+    /** returns the tensor with negative design variables such the design vector is still pos. definite */
+    void GetDielecTensor(Matrix<double>& t, DesignElement::Type direction);
+
     /** retrieve rel. mass of element (tensor trace) or derivative thereof */
     double GetMaterialMass(DesignElement::Type direction);
     
@@ -59,7 +75,17 @@ template <class TYPE> class StdVector;
     
     void static SetEnums();
     
+    Type GetType() const { return type_; }
+
+    /** the actual notation is not stored but assumed as HILL_MANDEL for FMO problems.
+     * The enum is necessary for the constraint parameter notation. */
+    static Enum<Notation> notation;
+
   protected:
+
+    /** for debugging */
+    void DumpParams();
+
     std::map<DesignElement::Type, double> params_;
    
     /** mass is considered an independent design */
@@ -79,13 +105,14 @@ template <class TYPE> class StdVector;
     
     static Enum<Type> type;
     Type type_;   
+
     static Enum<TransIsoType> transIsoType;
     TransIsoType transIsoType_;
     
     unsigned int dim;
     
     /** returns the numbers of parameters required for this material */
-    unsigned int RequiredParameters();    
+    unsigned int RequiredParameters(OptimizationMaterial::System material);
     
     /** Check whether all required designs are available */
     bool CheckRequiredDesigns(StdVector<DesignElement::Type>& design);
@@ -102,15 +129,27 @@ template <class TYPE> class StdVector;
     /** Calculate the Trans-Iso Tensor */
     inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
     
+    /* general anisotropic FMO tensor */
+    inline void GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
+
     /** Calculate the Tensor for Density times Tensor */
     inline void GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
     
+    /** Calculate the tensor for Laminates */
+    inline void GetLaminatesTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
+
+    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+     * @param shape might also be the x or y component of the derivative! */
+    void ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const;
+
+    /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
+    inline void GetHomRectTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
 
     /** initialize the tensor with zeros */
     inline void ZeroTensor(Matrix<double>& t, SubTensorType subTensor);
     
     /** put values from Voigt vector to correct positions in tensor */
-    inline void Set2dVoigtTensor(Matrix<double>& t, SubTensorType subTensor, double t11, double t22, double t33, double t23, double t13, double t12);
+    inline void Set2dVoigtTensor(Matrix<double>& t, double t11, double t22, double t33, double t23, double t13, double t12);
     
     /** put the entries of the transversal_isotropic tensor at the right places */
     inline void SetTransIsoTensor(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG);
@@ -118,6 +157,9 @@ template <class TYPE> class StdVector;
     /** put the entries of the isotropic tensor at the right places */
     inline void SetIsoTensor(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
     
+    /** rotate elasticity tensor in t (in Hill-Mandel notation!) by the angle a and adjust the entries back to notation to fit with CFS++ */
+    inline void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation = VOIGT);
+
 
     /** Calculate the mass isotropic case */
     inline double GetIsoMaterialMass(DesignElement::Type direction);    
@@ -134,6 +176,13 @@ template <class TYPE> class StdVector;
     
     /** Get the isotropic mass (tensor trace) out of the corresponding tensor entries */
     inline double GetIsoMass(double D, double G);
+
+    /** fills the row in hom_rect_samples_ */
+    void FillHomRectSamples(PtrParamNode homRect, unsigned int idx, const std::string& a, const std::string& b);
+
+    /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
+     * 9 rows and 6 columns for with TENSOR11 being the first */
+    Matrix<double> hom_rect_samples_;
 
   };
 

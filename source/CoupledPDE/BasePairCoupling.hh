@@ -101,6 +101,8 @@ namespace CoupledField
     std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData()
     {return materials_;};
 
+    /** copy and pase from SinglePDE */
+    SubTensorType GetSubTensorType() const;
 
     //! Return identifier of first PDE
     PdeIdType GetPdeId1();

@@ -25,7 +25,8 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "linElastInt.hh"
 
-DECLARE_LOG(forms)
+DECLARE_LOG(lin_elast_int)
+DEFINE_LOG(lin_elast_int, "lin_elast_int")
 
 namespace CoupledField {
 
@@ -178,11 +179,11 @@ void linElastInt::CalcBMat( Matrix<Double> &bMat, UInt ip,
   else
     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
   
-  // LOG_DBG3(forms) << "calcBMat: xiDx: " << xiDx.ToString() << std::endl;
+  // LOG_DBG3(lin_elast_int) << "calcBMat: xiDx: " << xiDx.ToString() << std::endl;
   
   ReorderBLikeMatrix(xiDx, bMat, ip, ptelem, ptCoord);
 
-  // LOG_DBG2(forms) << "calcBMat: bMat: " << bMat.ToString() << std::endl;
+  // LOG_DBG2(lin_elast_int) << "calcBMat: bMat: " << bMat.ToString() << std::endl;
 
   isSetIntPoint_ = false;
 }
@@ -193,25 +194,36 @@ void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const Design
   // Bastian's stuff. If not applicable we might consider doing SIMP
   if(!GetErsatzMaterialTensor(dMat, elem, direction))
   {
-    // check if we do SIMP optimization
-    Double pseudo_density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
-    // pseudo_density can be overwritten by force_factor
-    assert(!(elem != NULL && force_factor != 0.0));
-    if(force_factor != 0.0) pseudo_density = force_factor;
-
-    // do SIMP?
-    if(pseudo_density != 1.0)
+    if(direction != DesignElement::NO_MULTIMATERIAL && GetMultiMaterialTensor(dMat, elem, MECHANIC, subTensorType_))
     {
-      LOG_DBG3(forms) << GetName() << "::calcDMat(Matrix<Double>, " << (elem != NULL ? Integer(elem->elemNum) : -1)  << ") -> density=" << pseudo_density;
-
-      // is there any chance we do bimaterial stuff at all?
-      BaseMaterial* bm = elem != NULL && pseudo_density != 1.0 ? domain->GetErsatzBiMaterial(elem,  MECHANIC) : NULL;
-      // Get the material tensor, in the standard case simply the tensor
-      GetScaledMaterial(pseudo_density, false, bm, dMat);
+      assert(direction == DesignElement::NO_DERIVATIVE);
+      assert(force_factor == 0.0); // not implemented!
     }
     else
-      ptMaterial->GetTensor(dMat, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
+    {
+      // check if we do SIMP optimization
+      Double pseudo_density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
+      // pseudo_density can be overwritten by force_factor
+      assert(!(elem != NULL && force_factor != 0.0));
+      if(force_factor != 0.0) pseudo_density = force_factor;
+
+      // do SIMP?
+      if(pseudo_density != 1.0)
+      {
+        LOG_DBG3(lin_elast_int) << GetName() << "::calcDMat(Matrix<Double>, " << (elem != NULL ? Integer(elem->elemNum) : -1)  << ") -> density=" << pseudo_density;
+
+        // is there any chance we do bimaterial stuff at all?
+        BaseMaterial* bm = elem != NULL && pseudo_density != 1.0 ? domain->GetErsatzBiMaterial(elem,  MECHANIC) : NULL;
+        // Get the material tensor, in the standard case simply the tensor
+        GetScaledMaterial(pseudo_density, false, bm, dMat);
+      }
+      else
+        ptMaterial->GetTensor(dMat, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
+    }
   }
+  LOG_DBG3(lin_elast_int) << GetName() << "lEi::cDM(Matrix<Double>, " << (elem != NULL ? Integer(elem->elemNum) : -1)  << ") -> mat=" << dMat.ToString();
+  //if(direction == DesignElement::NO_DERIVATIVE)
+  //  std::cout << GetName() << "lEi::cDM(Matrix<Double>, " << (elem != NULL ? Integer(elem->elemNum) : -1)  << ") -> mat=\n" << dMat.ToString(0, true) << std::endl;
 
   //check for softening model
   if ( subTensorType_ == AXI ) {
@@ -336,7 +348,7 @@ void linElastInt::calcDMat(Matrix<Complex> & dMat, const Elem* elem)
       
   Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
   if(density != 1.0) dMat *= density;
-  LOG_DBG3(forms) << GetName() << "->linElastInt::calcDMat(<Complex>, "
+  LOG_DBG3(lin_elast_int) << GetName() << "->linElastInt::calcDMat(<Complex>, "
                   << (elem != NULL ? Integer(elem->elemNum) : -1)
                   << ") -> density=" << density;
 }

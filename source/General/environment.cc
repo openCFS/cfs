@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 
+#include "Optimization/Design/DesignElement.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "General/Enum.hh"
 #include "General/exception.hh"
@@ -1324,14 +1325,18 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_PRESSURE, "mechPressure");
     SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity");
     SolutionTypeEnum.Add(PHYSICAL_PSEUDO_DENSITY, "physicalPseudoDensity");
-    SolutionTypeEnum.Add(ELEC_PHYSICAL_PSEUDO_DENSITY, "elecPhysicalPseudoDensity");
     SolutionTypeEnum.Add(MECH_SHAPE, "mechShape");
     SolutionTypeEnum.Add(MECH_REL_DILATATION, "mechRelativeDilatation");
+    SolutionTypeEnum.Add(MECH_TENSOR_TRACE, "mechTensorTrace");
+    SolutionTypeEnum.Add(MECH_TENSOR, "mechTensor");
     //electrostatics
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");
     SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
     SolutionTypeEnum.Add(ELEC_PSEUDO_POLARIZATION, "elecPseudoPolarization");
+    SolutionTypeEnum.Add(ELEC_PHYSICAL_PSEUDO_DENSITY, "elecPhysicalPseudoDensity");
+    SolutionTypeEnum.Add(ELEC_TENSOR, "elecTensor");
+    SolutionTypeEnum.Add(ELEC_TENSOR_TRACE, "elecTensorTrace");
     SolutionTypeEnum.Add(ELEC_FORCE_VWP, "elecForceVWP");
     SolutionTypeEnum.Add(ELEC_INTERFACE_FORCE, "elecInterfaceForce");
     SolutionTypeEnum.Add(ELEC_CHARGE, "elecCharge");
@@ -1422,8 +1427,10 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_7, "optResult_7");
     SolutionTypeEnum.Add(OPT_RESULT_8, "optResult_8");
     SolutionTypeEnum.Add(OPT_RESULT_9, "optResult_9");
+    SolutionTypeEnum.Add(OPT_RESULT_10, "optResult_10");
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "LagrangeMultiplier");
+    SolutionTypeEnum.Add(PIEZO_COUPL_TENSOR, "piezoTensor");
     // evaluates the spacial gradient of the solution at the nodes.
     // common for all PDEs, no unit
     SolutionTypeEnum.Add(GRAD_ACOU_SOLUTION, "gradAcousticSolution"); // independent on acoustic formulation
@@ -1536,5 +1543,12 @@ namespace CoupledField {
   UInt MAX_NUM_FE_MATRICES;
   
   Enum<FEMatrixType> feMatrixType;
-}
+
+  std::ostream & operator << ( std::ostream & out, const DesignID& id)
+  {
+    out << id.design;
+    return out;
+  }
+
+} // end of namespace
 

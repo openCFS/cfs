@@ -17,6 +17,7 @@
 #include "Materials/baseMaterial.hh"
 #include "Utils/tools.hh"
 #include "baseForm.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 namespace CoupledField {
 class BaseFE;
@@ -232,6 +233,18 @@ double BaseForm::MaterialDescriptor::GetErsatzMaterial(BaseForm* form, const Ele
     return ok ? factor : 1.0;
   }
   
+  bool BaseForm::GetMultiMaterialTensor(Matrix<double>& t, const Elem* elem, MaterialClass mc, SubTensorType stt)
+  {
+    DesignSpace* space = domain->GetErsatzMaterial(false);
+    if(space == NULL)
+      return false;
+
+    if(!space->HasMultiMaterial())
+      return false;
+
+    return space->GetMultiMaterialTensor(t, elem, NULL, stt, mc);
+  }
+
   void BaseForm::GetScaledMaterial(Double factor, bool derivative, BaseMaterial* bimat, Matrix<Double>& out)
   {
     // works clearly only for ADB and BDB integrators
