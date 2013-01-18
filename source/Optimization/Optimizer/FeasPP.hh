@@ -58,7 +58,7 @@ public:
   /** upper asymptote */
   StdVector<double> U;
 
-  /** As we might use design bounds, this are the lower design bounbs. Either from design or the design bound constraints
+  /** As we might use design bounds, this are the lower design bounds. Either from design or the design bound constraints
    * Indices by design type */
   StdVector<double> lower_bound;
   StdVector<double> upper_bound;
@@ -147,6 +147,9 @@ private:
   /** calc a not KKT like stopping criteria following (7.24) in Sonja's thesis */
   // double CalcStopingCriteria(const Vector<double>& x, const Vector<double>& x_old, const Vector<double>& y);
 
+  /** eval all kkt errors */
+  void EvalKKT(const Vector<double>& x, PtrParamNode in);
+
   /** calc the three KKT values and outputs them to the param node
    * @approx true for inner problem (ipopt-result), false for outer-problem */
   void CalcKKT(const Vector<double>& x, PtrParamNode in,  bool sub, bool det, bool max_norm = true);
@@ -164,6 +167,9 @@ private:
   Enum<Globalization> global;
 
   Globalization global_;
+
+  /** evaluate the kkt error before globalization? */
+  bool early_kkt_eval_;
 
   typedef enum { FIXED, MMA } Asymptotes;
 
@@ -221,9 +227,6 @@ private:
 
   /** the KKT criterion for CalcKKT() */
   double kkt_;
-
-  /** do we have a complete set of design bound constraints? */
-  bool full_design_bound_constraints_;
 
 };
 

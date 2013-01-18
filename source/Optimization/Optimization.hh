@@ -172,7 +172,7 @@ namespace CoupledField
         bool IsHarmonic() const { return harmonic; }
         
         /** are we in transient optimization? */
-        bool IsTransient() const;
+        static bool IsTransient();
         
         /** in transient, first step can be static, so that start displacement can depend on material parameters */
         bool IsFirstTransientStepStatic() const {return firstStepStatic; };

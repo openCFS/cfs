@@ -82,6 +82,8 @@ hsize_t H5IO::maxChunkSize_= 100;
                                                                 \
     virtual ~HdfTypeConversion() {                              \
       CleanUp();                                                \
+      delete nativeType_;                                       \
+      delete stdType_;                                          \
     };                                                          \
                                                                 \
     const void * GetOutBufferPtr() {                            \
@@ -1277,7 +1279,8 @@ hsize_t H5IO::maxChunkSize_= 100;
     try {
       stepGroup = actMsGroup.openGroup( groupName );
     } H5_CATCH( "Could not open group for results of step " << stepNum
-                << " in multiStep " << msStep );
+                << " in multiStep " << msStep << " in file '"
+                << file.getFileName() << "'");
     actMsGroup.close();
     return stepGroup;
   }
@@ -1309,6 +1312,7 @@ hsize_t H5IO::maxChunkSize_= 100;
     default:
       EXCEPTION( "Could not map capability '" << c
                  << "' to hdf5 representation" );
+      break;
     }
     return ret;
   }

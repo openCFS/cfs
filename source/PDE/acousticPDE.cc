@@ -107,9 +107,11 @@ namespace CoupledField {
       param->Get("domain")->GetValue("geometryType", probGeo );
 
       // since we have no special subType as in mechanics, 
-      // the subType 9is equal to the geometry type
+      // the subType 9 is equal to the geometry type
       subType_ = probGeo;
 
+      // TODO: this was never initialized up to now! Don't know if this is OK. 
+      saveNodalSourcesRHS_ = false;
     }
 
 
@@ -1005,9 +1007,17 @@ namespace CoupledField {
       // get current Bc
       InhomNeumannBc const & actBc = *inBcs_[iBc];
 
+      std::string magnStr;
+      if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
+        // reverse the sign to get a symmetric system
+        magnStr = "-(" + actBc.value + ")";
+      } else {
+        magnStr = actBc.value;
+      }
+
       //BaseForm *neumannBC = new VolumeSrcInt( amplitude, isaxi_ );
       LinearSurfForm *neumannBC =
-          new LinNeumannInt( actBc.value, actBc.phase,
+          new LinNeumannInt( magnStr, actBc.phase,
                              formulation_ == ACOU_PRESSURE ?
                                  ACOU_ACCELERATION : ACOU_VELOCITY,
                              DENSITY, isaxi_ );
@@ -1085,6 +1095,41 @@ namespace CoupledField {
       eqnMap_->AddResult( *results_[0], impedanceBCs_[i]->entities );
     }
     
+
+    // =======================================================================
+    //check for flow sources: pressure formulation
+    // =======================================================================
+    PtrParamNode bcNode = myParam_->Get("bcsAndLoads", ParamNode::PASS);
+    
+    if ( bcNode ) {
+      ParamNodeList flowSrcNodes = bcNode->GetList("flowPresSrc");
+  
+      std::string rhsFileId;
+      try {
+        // iterate over all parameter nodes
+        for( UInt i = 0; i < flowSrcNodes.GetSize(); i++ ) {
+          std::string rhsRegion(flowSrcNodes[i]->Get("region")->As<std::string>());
+          rhsFileId = flowSrcNodes[i]->Get("inputId")->As<std::string>();
+  
+          linFlowPressureRHSInt* sourceRHSInt = 
+            new linFlowPressureRHSInt( isaxi_, rhsFileId, rhsRegion );
+  
+          LinearFormContext* sourceRHSContext = new LinearFormContext( sourceRHSInt );
+          sourceRHSContext->SetPtPde( this );
+  
+          shared_ptr<ElemList> rhsElemList( new ElemList(ptgrid_ ) );
+          rhsElemList->SetRegion( ptgrid_->GetRegion().Parse(rhsRegion) );
+          sourceRHSContext->SetResult( results_[0], rhsElemList );
+          assemble_->AddLinearForm( sourceRHSContext );
+        }
+      }
+      catch(Exception & ex) {
+        RETHROW_EXCEPTION(ex, "Could not assemble RHSFlowPressureRHSInt integrator"
+                          <<" in acousticPDE" );
+      }
+    }
+
+
     
     // =======================================================================
     // Integrators for NonConforming Interfaces
@@ -1735,6 +1780,7 @@ namespace CoupledField {
 
     default:
       WARN( "Result type not computable by acoustic PDE" );
+      break;
     }
   }
 
@@ -2227,9 +2273,11 @@ namespace CoupledField {
         // Determine, which volume element is the right neighbor for the
         // calculation;
         // our normal should point out of the correct neighbor volume element!
-        if ( (actSurfElem->ptVolElem1->regionId
-              == actSurfElem->ptVolElem2->regionId)
-              && (actSurfElem->ptVolElem1->regionId != NO_REGION_ID) )
+        if ( (actSurfElem->ptVolElem1 != NULL)
+             && (actSurfElem->ptVolElem2 != NULL)
+             && (actSurfElem->ptVolElem1->regionId
+                == actSurfElem->ptVolElem2->regionId)
+             && (actSurfElem->ptVolElem1->regionId != NO_REGION_ID) )
         {
           /* That means the surfRegion lies inside of a volume region. Why
            * would anyone do that? This is a problem, because we cannot

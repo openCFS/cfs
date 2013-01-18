@@ -71,6 +71,9 @@ class AuxDesign : public DesignSpace
     /** see DesignSpace::ToInfo() */
     void ToInfo(PtrParamNode in);
 
+    /** @see DesignSpace::GetDesignElement() */
+    BaseDesignElement* GetDesignElement(unsigned int idx);
+
   protected:
 
     bool alsomatopt_;

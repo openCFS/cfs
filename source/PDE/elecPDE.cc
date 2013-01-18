@@ -668,6 +668,12 @@ class Hysteresis;
          domain->GetErsatzMaterial()->ExtractResults(res, isComplex_);
        break;
 
+     case ELEC_TENSOR:
+     case ELEC_TENSOR_TRACE:
+       CalcTensorResults(res);
+       break;
+
+
      case GRAD_ELEC_POTENTIAL:
        if(isComplex_)
          CalcGradSolution<Complex>(res);
@@ -1073,6 +1079,39 @@ class Hysteresis;
     }
   }
 
+  void ElecPDE::CalcTensorResults(shared_ptr<BaseResult> vals)
+  {
+    Result<Double>& res = dynamic_cast< Result<Double>& >(*vals);
+    EntityIterator elemIt = res.GetEntityList()->GetIterator();
+    Vector<Double>& resVec = res.GetVector();
+    resVec.Resize(res.GetEntityList()->GetSize() * (vals->GetResultInfo()->resultType == ELEC_TENSOR ? 3 : 1));
+
+    Matrix<double> E(2,2);
+
+    for (elemIt.Begin(); !elemIt.IsEnd(); elemIt++)
+    {
+      elemIt.GetElem()->ptElem;
+
+      if(domain->HasErsatzMaterialTensor())
+        domain->GetErsatzMaterial()->GetDielecTensor(E, elemIt.GetElem(), DesignElement::NO_DERIVATIVE);
+      else
+        E.Init();
+
+      if(vals->GetResultInfo()->resultType == ELEC_TENSOR)
+      {
+        unsigned int base = elemIt.GetPos() * 3;
+        resVec[base + 0] = E[0][0];
+        resVec[base + 1] = E[1][1];
+        resVec[base + 2] = E[0][1];
+      }
+      else
+      {
+        resVec[elemIt.GetPos()] = E.Trace();
+      }
+    }
+  }
+
+
 
   // ======================================================
   // COUPLING SECTION
@@ -1373,7 +1412,7 @@ class Hysteresis;
     pol->unit = "C/m^2";
     availResults_.insert( pol );
 
-    // pesudo electric polarization for piezo simp
+    // pseudo electric polarization for piezo simp
     shared_ptr<ResultInfo> pseudoPol( new ResultInfo );
     pseudoPol->resultType = ELEC_PSEUDO_POLARIZATION;
     pseudoPol->definedOn = ResultInfo::ELEMENT;
@@ -1381,6 +1420,27 @@ class Hysteresis;
     pseudoPol->dofNames = "";
     pseudoPol->unit = "";
     availResults_.insert( pseudoPol );
+
+    // elec tensor for piezo FMO optimization
+    shared_ptr<ResultInfo> elec_tensor(new ResultInfo);
+    elec_tensor->resultType = ELEC_TENSOR;
+    elec_tensor->dofNames = "eps11", "eps22", "eps12";
+    elec_tensor->unit = "F/m";
+    elec_tensor->entryType = ResultInfo::TENSOR;
+    elec_tensor->definedOn = ResultInfo::ELEMENT;
+    elec_tensor->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert(elec_tensor);
+
+    // elec tensor trace for piezo FMO optimization
+    shared_ptr<ResultInfo> elec_tensor_trace(new ResultInfo);
+    elec_tensor_trace->resultType = ELEC_TENSOR_TRACE;
+    elec_tensor_trace->dofNames = "Tr(eps)";
+    elec_tensor_trace->unit = "F/m";
+    elec_tensor_trace->entryType = ResultInfo::SCALAR;
+    elec_tensor_trace->definedOn = ResultInfo::ELEMENT;
+    elec_tensor_trace->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert(elec_tensor_trace);
+
 
     // grad elec potential
     shared_ptr<ResultInfo> grad_sol(new ResultInfo);

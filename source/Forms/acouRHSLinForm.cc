@@ -399,7 +399,7 @@ namespace CoupledField {
 #ifdef USE_INTERPOLATION
         UInt numSourceRegions = srcRegions_.GetSize();
         //        StdVector<UInt> regionNodes;
-        StdVector<UInt> unmapped_nodes;
+        std::set<UInt> unmapped_nodes;
 
         ptGrid_->GetNodesByRegion( regionNodes, ptGrid_->GetRegion().Parse(regionName_));
         rhsValues_.Resize(regionNodes.GetSize());
@@ -461,6 +461,7 @@ namespace CoupledField {
           if (isFirstStep_) {
             // print name of current region
             std::cout << srcRegions_[i] << " ";
+            std::cout.flush();
             
             std::ostringstream fNameStr;
             fNameStr << progOpts->GetSimName() << "_ms"
@@ -484,7 +485,7 @@ namespace CoupledField {
                 }
               }
               else {
-                WARN("An error occured while reading the restart file "
+                WARN("An error occurred while reading the restart file "
                      << "for conservative interpolation weights. All "
                      << "weights will be recalculated.");
               }
@@ -517,7 +518,7 @@ namespace CoupledField {
                 }
               }
               else {
-                WARN("An error occured while writing the restart file "
+                WARN("An error occurred while writing the restart file "
                      << "for conservative interpolation weights.");
               }
             }
@@ -602,15 +603,15 @@ namespace CoupledField {
             if (node_warnings_ & CI_WARN_YES) {
               sum_orig += resVec[j];
 
-              // Check for conservitveness every modval source nodes or at least once in the end
+              // Check for conservativeness every modval source nodes or at least once in the end
               //            if(j % modval == 0 || j == n - 1)
               if(j == n - 1)
               {
                 Double ratio = (sum - sum_orig) / sum_orig;
-                if( abs(ratio) > 0.01 ) 
+                if( abs(ratio) > 0.01 && sum_orig > 1e-14 ) 
                 {
                   // If this condition occurs it means that some source nodes
-                  // do not have coservative interpolation weights in consInterpWeights_[i]
+                  // do not have conservative interpolation weights in consInterpWeights_[i]
                   // so that the for loop above does not do anything.
                   WARN("Sum of interpolated source terms (" << sum << ") off by "
                        << (ratio * 100) << "% of sum of original source terms ("
@@ -626,7 +627,7 @@ namespace CoupledField {
         // interpolation weights are calculated in the first time step only,
         // so we need to check for unmapped nodes only in this case.
         if (isFirstStep_) {
-          UInt numBadNodes = unmapped_nodes.GetSize();
+          UInt numBadNodes = unmapped_nodes.size();
           if (numBadNodes > 0)  {
             std::ostringstream fNameStr;
             std::ofstream badNodesFile;
@@ -637,7 +638,8 @@ namespace CoupledField {
             }
 
             if (node_warnings_ & CI_WARN_LIST) {
-              fNameStr << progOpts->GetSimName() << "_ci_unmapped_nodes.txt";
+              fNameStr << progOpts->GetSimName() << "_" << regionName_
+                       << "_ci_unmapped_nodes.txt";
               badNodesFile.open(fNameStr.str().c_str(),
                   std::ios_base::out | std::ios_base::trunc);
               if (!badNodesFile)
@@ -646,15 +648,21 @@ namespace CoupledField {
               badNodesFile << std::ios_base::left;
             }
 
-            for(UInt i=0; i<numBadNodes; ++i) {
-              if (node_warnings_ & CI_WARN_VERBOSE) {
-                WARN("Node " << unmapped_nodes[i] << " from source "
-                     << "grid could not be mapped to destination grid.");
-              }
-              if ((node_warnings_ & CI_WARN_LIST) && badNodesFile) {
-                badNodesFile << unmapped_nodes[i] << std::endl;
-                if (!badNodesFile)
-                  EXCEPTION("Error writing to file " << fNameStr.str());
+            if ( (node_warnings_ & CI_WARN_VERBOSE)
+                 || (node_warnings_ & CI_WARN_LIST) )
+            {
+              std::set<UInt>::iterator nodeIt = unmapped_nodes.begin(),
+                  endIt = unmapped_nodes.end();
+              for ( ; nodeIt != endIt; ++nodeIt) {
+                if (node_warnings_ & CI_WARN_VERBOSE) {
+                  WARN("Node " << *nodeIt << " from source "
+                      << "grid could not be mapped to destination grid.");
+                }
+                if ((node_warnings_ & CI_WARN_LIST) && badNodesFile) {
+                  badNodesFile << *nodeIt << std::endl;
+                  if (!badNodesFile)
+                    EXCEPTION("Error writing to file " << fNameStr.str());
+                }
               }
             }
 

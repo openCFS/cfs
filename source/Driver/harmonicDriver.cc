@@ -53,10 +53,9 @@ namespace CoupledField
     startFreq_ = 0.0;
     stopFreq_ = 0.0;
     numFreq_ = 0;
+    actFreq_ = 0.0;
     actFreqStep_ = 0;
-    
-    // register frequency variable at math parser
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
+    samplingType_ = NO_SAMPLING_TYPE;
   }
 
   HarmonicDriver::~HarmonicDriver()
@@ -293,8 +292,8 @@ namespace CoupledField
     analysis_id_->Get("value")->SetValue(actFreq_);
 
     // Set curent frequency value in the mathParser
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", actFreqStep_ );
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actFreqStep_ );
 
     // Perform steps for the solution
     ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
@@ -365,6 +364,7 @@ namespace CoupledField
         EXCEPTION( "HarmonicDriver::ComputeNextFrequency: '"
                  << damp
                  << "' is not supported as sampling type" );
+        break;
       }
     }
 

@@ -8,6 +8,7 @@
 
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
+#include "Domain/domain.hh"
 #include "Domain/elem.hh"
 #include "Domain/entityList.hh"
 #include "Elements/basefe.hh"
@@ -16,6 +17,7 @@
 #include "MatVec/vector.hh"
 #include "Materials/baseMaterial.hh"
 #include "linPiezoCoupling.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 DECLARE_LOG(forms)
 
@@ -190,17 +192,28 @@ namespace CoupledField {
   // ============
   //   calcDMat
   // ============
-  void linPiezoCoupling::calcDMat(Matrix<Double> &dMat, const Elem* elem)
+  void linPiezoCoupling::calcDMat(Matrix<Double> &dMat, const Elem* elem, DesignElement::Type direction)
   {
     Matrix<Double> matMatrix;
-    ptMaterial->GetTensor(matMatrix,PIEZO_TENSOR,matDataType_,subTensorType_);
-    matMatrix.Transpose(dMat);
- 
-    Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
-    if(density != 1.0) dMat *= density;  
-    LOG_DBG3(forms) << GetName() << "::calcDMat("
-                    << (elem != NULL ? Integer(elem->elemNum) : -1)
-                    << ") -> density=" << density;
+
+    // consider standard FEM, SIMP and FMO
+    if(elem != NULL &&
+       domain->HasErsatzMaterialPiezoCouplingTensor() &&
+       domain->GetErsatzMaterial()->GetPiezoCouplingTensor(matMatrix, elem, direction))
+    {
+      matMatrix.Transpose(dMat); // this is the FMO tensor
+      LOG_DBG3(forms) << GetName() << "::calcDMat("  << (elem != NULL ? Integer(elem->elemNum) : -1)  << ") -> FMO=" << dMat.ToString();
+    }
+    else
+    {
+      ptMaterial->GetTensor(matMatrix,PIEZO_TENSOR,matDataType_,subTensorType_);
+      matMatrix.Transpose(dMat);
+
+      // possibly SIMP?
+      Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
+      if(density != 1.0) dMat *= density;
+      LOG_DBG3(forms) << GetName() << "::calcDMat("  << (elem != NULL ? Integer(elem->elemNum) : -1)  << ") density=" << density << " -> " << dMat.ToString();
+    }
   }
 
 

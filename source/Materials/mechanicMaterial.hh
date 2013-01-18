@@ -22,6 +22,7 @@ namespace CoupledField {
   /*! 
      Class for handling mechanic material data
   */
+  class ApproxData;
 
   class MechanicMaterial : public BaseMaterial {
 
@@ -33,7 +34,7 @@ namespace CoupledField {
     //! Destructor
     virtual ~MechanicMaterial();
 
-    //! Trigger finalization of mataterial (calculation of rotated matrices)
+    //! Trigger finalization of material (calculation of rotated matrices)
     void Finalize();
 
     //! set a scalar real material parameter
@@ -85,6 +86,24 @@ namespace CoupledField {
 		    Global::ComplexPart dataType,
 		    SubTensorType = FULL ) const;	
     
+    //! returns the pointer to NL-object for nonlinear curves
+    virtual StdVector<ApproxData*>& GetNonlinFncs( MaterialType matType ) {     
+      if ( matType == MAGNETOSTRICTION_NLCURVES ) {
+        return nlinFncMagStrict_;
+      }
+      else {
+        EXCEPTION( "MechanicMaterial::GetNonlinFncs currently just for MAGNETOSTRICTION_NLCURVES");
+      }
+    };
+
+    // get ansiotropic angles
+    virtual StdVector<Double>& GetAnisotropicAngles() {     
+      return anisotropicAngles_;
+    };
+
+    //Initialize approximations of nonlinear curves
+    void InitApproxCurves();
+
     /** Computes the error to an isotropic elasticity tensor.
      * Assume isotropy and calculate E and v, construct E(E,v) and return ||E(E,v) - tensor||_1 */
     static double CalcIsotropyError(const Matrix<double>& tensor, SubTensorType stt);
@@ -109,6 +128,12 @@ namespace CoupledField {
     
     /** static helper function to calculate complex stiffness tensor from lame parameters */
     static void CalcComplexIsotropicStiffnessTensor(Matrix<Complex>& out, Complex lambda, Complex mu);
+
+    /** overloads BaseMateriak::GetTensorMaterialType() */
+    MaterialType GetTensorMaterialType() const { return MECH_STIFFNESS_TENSOR; }
+
+    /** overloads BaseMaterial::ComputeSubTensor() */
+    void ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const;
 
     /** Computes from a given tensor the sub-type */
     template<class T>
@@ -137,28 +162,17 @@ namespace CoupledField {
      * @return a vector with 2 or 6 entries  v_21, v_12(, v_31, v_13, v_32, v_23) */
     static StdVector<double> CalcOrthotropePoissonsRatio(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol);
 
-    /** compute the correct subTensor (3D, AXI, ..) from the material */
-    void ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const;
-
-
     //! Compute elasticity tensor from given parameters
     void ComputeFullStiffTensor();
 
-    
-    MathParser::HandleType mHandle_;
-    
-    Double density_;
-    Double PoissonRatio_;
-    Double RayleighAlpha_;
-    Double RayleighBeta_;
-    Double RayleighFrequency_;
-    Double lossTangens_;
 
     Complex scalarEmodulus_;
     Complex scalarLameLambda_;
     Complex scalarLameMu_;
 
     Matrix<Complex> stiffnessTensor_;
+
+    StdVector<ApproxData*> nlinFncMagStrict_;
 
   };
 

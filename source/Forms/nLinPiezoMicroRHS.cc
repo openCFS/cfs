@@ -40,6 +40,8 @@ class StdPDE;
                                                     SubTensorType type)
     : LinearForm() {
 
+    isSolDependent_ = true;
+
     matDataCouple_ = matDataCouple;
     matDataMech_   = matDataMech;
     matDataElec_   = matDataElec;
@@ -96,6 +98,7 @@ class StdPDE;
     : MicroPiezoPolarizationRhsInt( matDataCouple, matDataMech, matDataElec, type ) {
 
     name_  = "MicroPiezoPolarisationElecRhsInt";
+    isSolDependent_ = true;
 
   }
 
@@ -246,6 +249,7 @@ class StdPDE;
     : MicroPiezoPolarizationRhsInt( matDataCouple, matDataMech, matDataElec, type ) {
 
     name_  = "MicroPiezoPolarisationMechRhsInt";
+    isSolDependent_ = true;
 
   }
 

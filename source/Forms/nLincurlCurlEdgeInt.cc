@@ -33,28 +33,17 @@ namespace CoupledField
     isSolDependent_ = true;
     nonLinType_ = NEWTON;
 
+    //check for anisotropic / isotropic material
+    isAnisotropic_ = false;    
+    if ( ptMaterial->IsNonLinMagBHcurves() )
+      isAnisotropic_ = true;
+
     // get pointer to nonlinear BH curve approximation
     ptMaterial->NeedApproxMatCurve( MAG_PERMEABILITY );
     
     // fetch real start values for BH-curve
-    if( isOrthotropic_ ) {
-      EXCEPTION("Not implemented")
-//      reluctivityVec_.Resize(3);
-//      ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_START_1, REAL);
-//      reluctivityVec_[0] = 1.0 / matVal_;
-//      ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_START_2, REAL);
-//      reluctivityVec_[1] = 1.0 / matVal_;
-//      ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_START_3, REAL);
-//      reluctivityVec_[2] = 1.0 / matVal_;
-//
-//      // resize for some additional arrays
-//      currReluctivityVec_.Resize(3);
-//      currDerivReluctivityVec_.Resize(3);
-    } else {
-      //ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_START, Global::REAL);
-      //matVal_ = 1.0 / matVal_;
-      ptMaterial->GetScalar( matVal_, MAG_RELUCTIVITY,Global::REAL);
-    }
+    ptMaterial->GetScalar( matVal_, MAG_RELUCTIVITY,Global::REAL);
+
   }
 
 
@@ -114,23 +103,16 @@ namespace CoupledField
       Double Babs = elemFlux.NormL2();
       
       if ( Babs == 0 ) {
-        if ( isOrthotropic_ ) 
-          currReluctivityVec_ = reluctivityVec_;
-        else 
           reluctivity = matVal_;
       }
-      else {
-        if ( isOrthotropic_ ) {
-//          for ( UInt i=0; i<3; i++ ) {
-//            currReluctivityVec_[i] = 
-//              nlinFnc_[i]->EvaluateFuncNu( abs(elemFlux[i]) );
-//          }
-        }
-        else {
-          reluctivity = nlinFnc->EvaluateFuncNu(Babs);
-        }
+      else if ( isAnisotropic_ ) {
+        ComputeAnisotropicReluctivityOrDeriv( reluctivity, 
+                                              elemFlux, true);
       }
-        
+      else {
+        reluctivity = nlinFnc->EvaluateFuncNu(Babs);
+      }
+              
       jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, 
                                            ent1.GetElem());
       
@@ -139,9 +121,6 @@ namespace CoupledField
       // point. The result is added to the element matrix.
       fac = jacDet * intWeights[actIntPt-1] * reluctivity;
       for ( UInt k = 0; k < curl.GetNumRows(); k++ ) {
-        if ( isOrthotropic_ ) 
-          fac =  jacDet * intWeights[actIntPt-1] * currReluctivityVec_[k];
-        
         ptr1 = curl[k];
         ptr2 = curl[k];
         for ( UInt i = 0; i < curl.GetNumCols(); i++ ) {
@@ -152,61 +131,105 @@ namespace CoupledField
         }
       }
 //      std::cerr << "\n\n-------------------------------\n";
-//      std::cerr << "matrix before:\n" << elemMat << std::endl; 
+//      std::cerr << "matrix before:\n" << elemMat << reluctivity = std::endl; 
       if ( nonLinType_ == NEWTON ) {
-        if ( Babs == 0.0 ) 
+        if ( Babs == 0.0 ) {
           derivReluctivity = 0;
-        else {          
-          //Newton method
-          if ( isOrthotropic_ ) {
-            //fac = jacDet * intWeights[actIntPt-1] * Babs;
-            //          if ( isOrthotropic_ ) {
-            //            for ( UInt i=0; i<3; i++ ) {
-            //              currDerivReluctivityVec_[i] = 
-            //                nlinFnc_[i]->EvaluatePrimeNu( abs(elemFlux[i]) );
-            //           }
-          } else {
-            derivReluctivity =  nlinFnc->EvaluatePrimeNu(Babs);
-            fac = jacDet * intWeights[actIntPt-1] * derivReluctivity * Babs;
-          }
-
-          Vector<Double> eB(3); eB = elemFlux /Babs;
-          curl.MultT(eB, help);
-//          for ( UInt k = 0; k < curl.GetNumCols(); k++ ) 
-//            for ( UInt i = 0; i < curl.GetNumRows(); i++ ) 
-//              help[k] =  curl[i][k] * eB[i];
-          
-          if ( isOrthotropic_ ) {
-            for ( UInt k = 0; k < curl.GetNumCols(); k++ ) 
-              for ( UInt i = 0; i < curl.GetNumRows(); i++ ) 
-                helpAI[k] =  curl[i][k] * eB[i] 
-                  * currDerivReluctivityVec_[i];
-          }
-          
-          if ( isOrthotropic_ ) {
-            for ( UInt i = 0; i< curl.GetNumCols(); i++ ) 
-              for ( UInt j = 0; j< curl.GetNumCols(); j++ ) 
-                elemMat[i][j] += fac * helpAI[i] * help[j];
+        }
+        else {
+          if ( isAnisotropic_ ) {
+            ComputeAnisotropicReluctivityOrDeriv( derivReluctivity,
+                                                  elemFlux, false);
           }
           else {
-            for ( UInt i = 0; i< curl.GetNumCols(); i++ ) 
-              for ( UInt j = 0; j< curl.GetNumCols(); j++ ) 
-                elemMat[i][j] += fac * help[i] * help[j];
+            //Newton method
+            derivReluctivity =  nlinFnc->EvaluatePrimeNu(Babs);
           }
+
+          fac = jacDet * intWeights[actIntPt-1] * derivReluctivity * Babs;
+          
+          Vector<Double> eB(3); eB = elemFlux * (1/Babs);
+
+          Matrix<Double> dMat;
+          dMat.DyadicMult( eB, eB );
+          dMat *= fac;
+
+          Matrix<Double> dbMat;
+          dbMat = dMat * curl;
+
+          for ( UInt k = 0; k < curl.GetNumRows(); k++ ) {
+            ptr1 = curl[k];
+            ptr2 = dbMat[k];
+            for ( UInt i = 0; i < curl.GetNumCols(); i++ ) {
+              aux1 = ptr1[i];
+              for ( UInt j = 0; j < dbMat.GetNumCols(); j++ ) {
+                elemMat[i][j] += aux1 * ptr2[j];
+              }
+            }
+          }
+
+// ==============  old implementation: wrong!! =================
+//           for ( UInt k = 0; k < curl.GetNumCols(); k++ ) 
+//             for ( UInt i = 0; i < curl.GetNumRows(); i++ ) 
+//               help[k] =  curl[i][k] * eB[i];
+          
+//           for ( UInt i = 0; i< curl.GetNumCols(); i++ ) 
+//             for ( UInt j = 0; j< curl.GetNumCols(); j++ ) 
+//               elemMat[i][j] += fac * help[i] * help[j];
+
         }
-      //std::cerr << "matrix after:\n" << elemMat << "\n\n";
       }
+
     }
 
-#ifndef NDEBUG 
-    (*OutInfo::debug) << "nLinCurCurlEdge Matrix:  "  << std::endl
-             << elemMat << std::endl << std::endl;
-#endif
+    //#ifndef NDEBUG 
+    //    (*OutInfo::debug) << "nLinCurCurlEdge Matrix:  "  << std::endl
+    //             << elemMat << std::endl << std::endl;
+    //#endif
   
   }
 
   void  nLinCurlCurlEdgeInt::SetNonLinMethod(NonLinMethodType atype) {
     nonLinType_ = atype;
+  }
+
+
+  void nLinCurlCurlEdgeInt::ComputeAnisotropicReluctivityOrDeriv( Double& val,
+                                                                  Vector<double>& vecB,
+                                                                  bool isReluctivity ) {
+
+    //get pointers to the nlFunctions
+    StdVector<ApproxData*> nlinFncs = 
+     ptMaterial->GetNonlinFncs(  MAG_PERMEABILITYCURVES );
+
+    //compute angle 
+    Double angleB;
+    if ( abs(vecB[0]) > 1e-5 ) {
+      angleB = abs( std::atan( vecB[1] / vecB[0] ) );
+      angleB *= 180.0/3.1416;
+    }
+    else {
+      angleB = 90.0;
+    }
+
+    StdVector<Double>& anglesCurve = ptMaterial->GetAnisotropicAngles();
+    UInt pos = 0;
+    Double dist, minDist;
+    minDist = abs( anglesCurve[0] - angleB );
+    for (UInt i=1; i<anglesCurve.GetSize(); i++ ) {
+      dist = abs( anglesCurve[i] - angleB );
+      if ( dist < minDist ) {
+        pos = i;
+        minDist = dist;
+      }
+    }
+
+    Double absB = vecB.NormL2();
+    if ( isReluctivity ) 
+      val = nlinFncs[pos]->EvaluateFuncNu( absB );
+    else
+      val = nlinFncs[pos]->EvaluatePrimeNu( absB );
+
   }
 
 } // end namespace CoupledField

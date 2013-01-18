@@ -165,6 +165,9 @@ public:
     /** @see GetRealVector() */
     Vector<std::complex<double> >& GetComplexVector(StorageType st);
 
+    /** For debug output */
+    std::string ToString();
+
     /** This is an element wise storage of the solution
      * the Application shall be MECH or ELEC */
     std::map<Application, StdVector<SingleVector*> > elem;
@@ -395,8 +398,7 @@ public:
   /** Calculates the objective only, no derivative */
   double CalcGlobalDynamicCompliance(Excitation& excite, Objective* f);
   /** Calculates <l,u> or <conj(u) L, u> where l/L is adjoint[idx]->rhs */
-  template<class T> double CalcOutputObjective(Excitation& excite,
-      Objective* f);
+  template<class T> double CalcOutput(Excitation& excite, Function* f);
   /** Handles the Tracking constraint/objective. Has a objective, objective derivative, 
    * constraint and constraint derivative mode
    * @param excite  the excitation used 

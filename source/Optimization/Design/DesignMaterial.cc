@@ -1,28 +1,37 @@
 #include <math.h>
 #include <string>
 
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "DesignMaterial.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 #include "General/defs.hh"
 #include "General/exception.hh"
-#include "MatVec/matrix.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
+#include "Elements/2D/quad9fe.hh"
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+
+DECLARE_LOG(dm)
+DEFINE_LOG(dm, "designMaterial")
 
 using namespace CoupledField;
+using std::string;
 
 Enum<DesignMaterial::Type>         DesignMaterial::type;
 Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
 Enum<DesignMaterial::Notation>     DesignMaterial::notation;
 
-DesignMaterial::DesignMaterial(PtrParamNode pn, StdVector<DesignElement::Type>& design){
-  type_ = type.Parse(pn->Get("type")->As<std::string>());
+DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design)
+{
+  type_ = type.Parse(pn->Get("type")->As<string>());
   
   dim = domain->GetGrid()->GetDim();
   
-  transIsoType_ = transIsoType.Parse(pn->Get("isoplane")->As<std::string>());
+  transIsoType_ = transIsoType.Parse(pn->Get("isoplane")->As<string>());
   
   massIsDesign_ = pn->Get("optimizeMass")->As<bool>();
   
@@ -35,17 +44,17 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, StdVector<DesignElement::Type>& 
   dampingIsDesign_ = pn->Get("optimizeDamping")->As<bool>();
 
   // collect all designs here, to check whether all are given
-  unsigned int r = RequiredParameters();
+  unsigned int r = RequiredParameters(material);
   StdVector<DesignElement::Type> d;
   d.Reserve(r);
   // copy the ones from DesignSpace
   for(unsigned int i=0; i < design.GetSize(); ++i){
-    d.Push_back(design[i]);
+    d.Push_back(design[i].design);
   }
   // read non-design parameters
   ParamNodeList params = pn->GetList("param");
   for(unsigned int i=0; i < params.GetSize(); i++){
-    DesignElement::Type dt = DesignElement::type.Parse(params[i]->Get("name")->As<std::string>());
+    DesignElement::Type dt = DesignElement::type.Parse(params[i]->Get("name")->As<string>());
     SetParameter(dt, params[i]->Get("value")->As<Double>());
     if(d.Find(dt) < 0){
       d.Push_back(dt);
@@ -53,19 +62,50 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, StdVector<DesignElement::Type>& 
   }
   if(!CheckRequiredDesigns(d)){
     throw Exception("Not all Parameters for chosen DesignMaterial given");
-  }else if(design.GetSize() > r){ // design.GetSize() < r is impossible as CheckRequiredDesigns passed  
-    WARN("There are designs specified that are not used!");
+  }else if(design.GetSize() > r){ // design.GetSize() < r is impossible as CheckRequiredDesigns passed
+    info->Get("optimization/header/designSpace")->Get(ParamNode::WARNING)->SetValue("There are designs specified that are not used!");
+  }
+
+  if(type_ == HOM_RECT)
+  {
+    PtrParamNode hr = pn->Get("homRect");
+    hom_rect_samples_.Resize(9, 6);
+    FillHomRectSamples(hr, 0, "0.0", "0.0");
+    FillHomRectSamples(hr, 1, "0.5", "0.0");
+    FillHomRectSamples(hr, 2, "0.5", "0.5");
+    FillHomRectSamples(hr, 3, "0.0", "0.5");
+    FillHomRectSamples(hr, 4, "0.25", "0.0");
+    FillHomRectSamples(hr, 5, "0.5", "0.25");
+    FillHomRectSamples(hr, 6, "0.25", "0.5");
+    FillHomRectSamples(hr, 7, "0.0", "0.25");
+    FillHomRectSamples(hr, 8, "0.25", "0.25");
   }
 }
 
-unsigned int DesignMaterial::RequiredParameters(){
+void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx, const string& a, const string& b)
+{
+  // the internal tensor representation in hom_rect_samples_ is HILL-MANDEL!
+  Notation notation = homRect->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
+
+  PtrParamNode data = homRect->GetByVal("data", "a", a, "b", b);
+  hom_rect_samples_[idx][DesignElement::TENSOR11 - DesignElement::TENSOR11] = data->Get("e11")->As<double>();
+  hom_rect_samples_[idx][DesignElement::TENSOR12 - DesignElement::TENSOR11] = data->Get("e12")->As<double>();
+  hom_rect_samples_[idx][DesignElement::TENSOR22 - DesignElement::TENSOR11] = data->Get("e22")->As<double>();
+  hom_rect_samples_[idx][DesignElement::TENSOR33 - DesignElement::TENSOR11] = data->Get("e33")->As<double>() * (notation == VOIGT ? 2.0 : 1.0);
+  hom_rect_samples_[idx][DesignElement::TENSOR13 - DesignElement::TENSOR11] = 0.0;
+  hom_rect_samples_[idx][DesignElement::TENSOR23 - DesignElement::TENSOR11] = 0.0;
+}
+
+unsigned int DesignMaterial::RequiredParameters(OptimizationMaterial::System material)
+{
   unsigned int r = MassIsDesign() ? 1 : 0;
   if(DampingIsDesign()){
     r += 2;
   }
   switch(type_){
   case FMO:
-    return r+6;
+    assert(material == OptimizationMaterial::MECH || material == OptimizationMaterial::PIEZOCOUPLING);
+    return r + (material == OptimizationMaterial::MECH ? 6 : 15);
   case ISOTROPIC:
   case LAME_ISOTROPIC:
     return r+2;
@@ -76,15 +116,18 @@ unsigned int DesignMaterial::RequiredParameters(){
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED:
   case LAMINATES:
     return r+5;
+  case HOM_RECT:
+    return r+3;
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
   case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED:
     return r+6;
   case DENSITY_TIMES_2D_TENSOR:
   case DENSITY_TIMES_ROTATED_2D_TENSOR:
     return r+7;
-  default:
-    throw Exception("DesignMaterial Type not implemented yet (RequiredParameters)");
   }
+
+  assert(false);
+  return 0;
 }
 
 bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design){
@@ -158,20 +201,21 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
         && design.Find(DesignElement::STIFF2) >= 0
         && design.Find(DesignElement::ROTANGLE) >= 0
         && design.Find(DesignElement::EMODUL) >= 0
-        && design.Find(DesignElement::POISSON) >= 0
+        && design.Find(DesignElement::POISSON) >= 0);
+  case HOM_RECT:
+    return(design.Find(DesignElement::STIFF1) >= 0
+        && design.Find(DesignElement::STIFF2) >= 0
         && design.Find(DesignElement::ROTANGLE) >= 0);
-  default:
-    throw Exception("DesignMaterial Type not implemented yet (CheckRequiredDesigns)");
   }
+  assert(false);
+  return false;
 }
 
 void DesignMaterial::SetParameter(const DesignElement::Type p, const double value){
   params_[p] = value;
+  // LOG_DBG3(dm) << "SP p=" << DesignElement::type.ToString(p) << " v=" << value;
 }
 
-double DesignMaterial::GetParameter(const DesignElement::Type p){
-  return params_[p];
-}
 
 void DesignMaterial::GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction){
   double E = params_[DesignElement::EMODUL];
@@ -572,7 +616,9 @@ double DesignMaterial::GetTransIsoMaterialMass(DesignElement::Type direction){
   return(GetTransIsoMass(dD, dG, dD3, dG3));
 }
 
-void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction){
+void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction)
+{
+  // DumpParams();
   double e11 = 0;
   double e22 = 0;
   double e33 = 0;
@@ -696,10 +742,112 @@ void DesignMaterial::GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type
     Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
     break;
   default:
-    // ZeroTensor(t, subTensor);
-    assert(false);
+    // for piezo FMO the derivative w.r.t. dielec_11, ... is zero
+    ZeroTensor(t, PLANE_STRAIN);
     return;
   }
+}
+
+void DesignMaterial::GetHomRectTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
+{
+   Quad9FE fe;
+
+   double a = params_[DesignElement::STIFF1];
+   double b = params_[DesignElement::STIFF2];
+   double rotAngle = params_[DesignElement::ROTANGLE];
+
+   Vector<double> p(2);
+   p[0] = -1.0 + 4 * a; // assume max 0.5
+   p[1] = -1.0 + 4 * b; // assume max 0.5
+
+   LOG_DBG2(dm) << "GHRT: dir=" << (direction == DesignElement::NO_DERIVATIVE ? "no_derivative" : DesignElement::type.ToString(direction))
+                << " not=" << notation << " rotAngle=" << rotAngle << " a=" << a << " b=" << b << " -> " << p.ToString();
+
+   switch(direction)
+   {
+   case DesignElement::NO_DERIVATIVE:
+   case DesignElement::ROTANGLE:
+   {
+     Vector<double> shape;
+     fe.GetShFnc(shape, p, NULL);
+     ApplyHomRectTensor(E, shape);
+
+     LOG_DBG2(dm) << "GHRT: shape=" << shape.ToString();
+     break;
+   }
+
+   case DesignElement::STIFF1:
+   case DesignElement::STIFF2:
+   {
+     Matrix<double> jac;
+     Matrix<double> dummy; // not used -> strange function ?! :(
+     fe.GetLocDerivShFnc(jac, p, dummy, NULL);
+     LOG_DBG3(dm) << "GHRT: jac=" << jac.ToString(2);
+
+     Vector<double> d_shape;
+     jac.GetCol(d_shape, direction == DesignElement::STIFF1 ? 0 : 1); // a or by
+
+     ApplyHomRectTensor(E, d_shape);
+
+     // correct scaling to local FE coordinates
+     E *= 4;
+
+     LOG_DBG2(dm) << "GHRT: d_shape=" << d_shape.ToString();
+
+     break;
+   }
+
+   default:
+     ZeroTensor(E, PLANE);
+   }
+
+   LOG_DBG2(dm) << "GHRT: E before rotation = " << E.ToString(2);
+   RotateHMStiffnessTensor(E, PLANE, direction, rotAngle, notation);
+
+   LOG_DBG2(dm) << "GHRT: E after rotation =  " << E.ToString(2);
+
+/*   for(double y = 0; y <= 0.5; y += 0.25)
+   {
+     for(double x = 0; x <= 0.5; x += 0.25 )
+     {
+       p[0] = -1.0 + 4 * x; //
+       p[1] = -1.0 + 4 * y;
+       fe.GetShFnc(shape, p, NULL);
+       hom_rect_samples_.GetCol(data, DesignElement::TENSOR11 - DesignElement::TENSOR11);
+       assert(shape.GetSize() == data.GetSize());
+
+       double val = shape * data;
+       std::cout << "x=" << x << " y=" << y << " xi=" << p[0] << " eta=" << p[1] << " -> " << val << std::endl; //" s=" << shape.ToString() << " d=" << data.ToString() << std::endl;
+     }
+   }
+*/
+}
+
+void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const
+{
+  E.Resize(3,3);
+  E.Init(); // for off-diagonal
+
+  Vector<double> data;
+
+  hom_rect_samples_.GetCol(data, DesignElement::TENSOR11 - DesignElement::TENSOR11);
+  E[1-1][1-1] = shape * data;
+  LOG_DBG(dm) << "AHRT 11=" << E[1-1][1-1] << " data=" << data.ToString();
+
+  hom_rect_samples_.GetCol(data, DesignElement::TENSOR12 - DesignElement::TENSOR11);
+  E[1-1][2-1] = shape * data;
+  E[2-1][1-1] = E[1-1][2-1];
+  LOG_DBG(dm) << "AHRT 12=" << E[1-1][2-1] << " data=" << data.ToString();
+
+  hom_rect_samples_.GetCol(data, DesignElement::TENSOR22 - DesignElement::TENSOR11);
+  E[2-1][2-1] = shape * data;
+  LOG_DBG(dm) << "AHRT 22=" << E[2-1][2-1] << " data=" << data.ToString();
+
+  hom_rect_samples_.GetCol(data, DesignElement::TENSOR33 - DesignElement::TENSOR11);
+  E[3-1][3-1] = shape * data;
+  LOG_DBG(dm) << "AHRT 33=" << E[3-1][3-1] << " data=" << data.ToString();
+
+
 }
 
 void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
@@ -829,6 +977,7 @@ void DesignMaterial::ZeroTensor(Matrix<double>& t, SubTensorType subTensor){
     break;
   case PLANE_STRAIN:
   case PLANE_STRESS:
+  case PLANE:
     t.Resize(3, 3);
     break;
   default:
@@ -908,6 +1057,7 @@ void DesignMaterial::RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType su
   switch(subTensor){
   case PLANE_STRAIN:
   case PLANE_STRESS:
+  case PLANE:
   {
     Matrix<double> theta(3,3);
      Matrix<double> help(3,3);
@@ -990,7 +1140,7 @@ double DesignMaterial::GetIsoMass(double D, double G){
 
 void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
 {
-  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES));
+  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != HOM_RECT));
   switch(type_){
   case FMO:
     GetAnisotropicTensor(t, direction, notation);
@@ -1016,10 +1166,103 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
   case LAMINATES:
     GetLaminatesTensor(t, subTensor, direction, notation);
     break;
+  case HOM_RECT:
+    GetHomRectTensor(t, direction, notation);
+    break;
   default: // case default
     throw Exception("DesignMaterial Type not implemented yet");
   }  
 }
+
+void DesignMaterial::GetDielecTensor(Matrix<double>& t, DesignElement::Type direction)
+{
+  // only 2D!
+  double e11 = 0;
+  double e22 = 0;
+  double e12 = 0;
+  if(direction == DesignElement::NO_DERIVATIVE)
+  {
+    e11 = params_[DesignElement::DIELEC_11];
+    e22 = params_[DesignElement::DIELEC_22];
+    e12 = params_[DesignElement::DIELEC_12];
+  }
+  t.Resize(2,2);
+  t.Init();
+
+  switch(direction)
+  {
+  case DesignElement::NO_DERIVATIVE:
+    // negative for the piezo case
+    t[0][0] = -e11; t[0][1] = -e12;
+    t[1][0] = -e12; t[1][1] = -e22;
+    break;
+  case DesignElement::DIELEC_11:
+    t[0][0] = -1.0;
+    break;
+  case DesignElement::DIELEC_22:
+    t[1][1] = -1.0;
+    break;
+  case DesignElement::DIELEC_12:
+    t[0][1] = -1.0;
+    break;
+  default:
+    // sensitivity is zero!
+    break;
+  }
+}
+
+void DesignMaterial::GetPiezoCouplingTensor(Matrix<double>& t, DesignElement::Type direction)
+{
+  // only 2D!
+  double e11 = 0;
+  double e12 = 0;
+  double e13 = 0;
+  double e21 = 0;
+  double e22 = 0;
+  double e23 = 0;
+  if(direction == DesignElement::NO_DERIVATIVE)
+  {
+    e11 = params_[DesignElement::PIEZO_11];
+    e12 = params_[DesignElement::PIEZO_12];
+    e13 = params_[DesignElement::PIEZO_13];
+    e21 = params_[DesignElement::PIEZO_21];
+    e22 = params_[DesignElement::PIEZO_22];
+    e23 = params_[DesignElement::PIEZO_23];
+  }
+  t.Resize(2,3);
+  t.Init();
+
+  switch(direction)
+  {
+  case DesignElement::NO_DERIVATIVE:
+    t[0][0] = e11; t[0][1] = e12; t[0][2] = e13;
+    t[1][0] = e21; t[1][1] = e22; t[1][2] = e23;
+    break;
+  case DesignElement::PIEZO_11:
+    t[0][0] = 1.0;
+    break;
+  case DesignElement::PIEZO_12:
+    t[0][1] = 1.0;
+    break;
+  case DesignElement::PIEZO_13:
+    t[0][2] = 1.0;
+    break;
+  case DesignElement::PIEZO_21:
+    t[1][0] = 1.0;
+    break;
+  case DesignElement::PIEZO_22:
+    t[1][1] = 1.0;
+    break;
+  case DesignElement::PIEZO_23:
+    t[1][2] = 1.0;
+    break;
+
+  default:
+    // empty, sensitivity is zero
+    break;
+  }
+}
+
 
 double DesignMaterial::GetMaterialMass(DesignElement::Type direction){
   if(massIsDesign_){
@@ -1072,7 +1315,16 @@ bool DesignMaterial::GetMaterialDamping(double& alpha, double& beta, DesignEleme
   }
 }
 
-void DesignMaterial::SetEnums(){
+void DesignMaterial::DumpParams()
+{
+  std::map<DesignElement::Type, double>::iterator iter;
+
+  for(iter = params_.begin(); iter != params_.end(); ++iter)
+    std::cout << "params[" << DesignElement::type.ToString(iter->first) << "] = " << iter->second << std::endl;
+}
+
+void DesignMaterial::SetEnums()
+{
   type.SetName("DesignMaterial::Type");
   type.Add(FMO, "fmo");
   type.Add(ISOTROPIC, "isotropic");
@@ -1086,6 +1338,8 @@ void DesignMaterial::SetEnums(){
   type.Add(DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, "density-times-2dtensor-constant-trace");
   type.Add(DENSITY_TIMES_ROTATED_2D_TENSOR, "density-times-rotated-2dtensor");
   type.Add(LAMINATES, "laminates");
+  type.Add(HOM_RECT, "hom-rect");
+
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");
   transIsoType.Add(TRANSISO_YZ, "yz");

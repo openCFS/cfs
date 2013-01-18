@@ -52,6 +52,7 @@
 #include "Utils/nodestoresol.hh"
 #include "Utils/result.hh"
 #include "Utils/tools.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 namespace CoupledField {
 
@@ -154,6 +155,17 @@ namespace CoupledField {
       break;
 
     case MECH_STRESS:
+      if ( nonLinPiezoMicroHF_ ) 
+        CalcStressStrain<Double>( result );
+      else {
+        if ( isComplex_ ) {
+          CalcStressStrain<Complex>( result );
+        } else {
+          CalcStressStrain<Double>( result );
+        }
+      }
+      break;
+
     case MECH_STRAIN:
       if ( isComplex_ ) {
         CalcStressStrain<Complex>( result );
@@ -167,6 +179,10 @@ namespace CoupledField {
         CalcStressStrain<Complex>(result);
       else
         CalcStressStrain<Double>(result);
+      break;
+
+    case PIEZO_COUPL_TENSOR:
+      CalcPiezoTensor(result);
       break;
 
 
@@ -275,11 +291,6 @@ namespace CoupledField {
       Vector<TYPE> & actVal = actRes.GetVector();
       actVal.Resize( actRes.GetEntityList()->GetSize() * stressDim );
 
-      // Fetch material: As we assume, that all elements belong to
-      // one and the same region, we simply take the subdomain of the first
-      // element
-      it.Begin();
-
       //transform the type
       SubTensorType type;
       String2Enum(subType_,type);
@@ -342,15 +353,42 @@ namespace CoupledField {
 
         //total stress
         elemStressStrain -= TempDField;
+      
+        for(UInt iDof = 0; iDof < stressDim; iDof++ ) {
+          actVal[it.GetPos()*stressDim + iDof] = elemStressStrain[iDof];
+        }
       }
-
-      for(UInt iDof = 0; iDof < stressDim; iDof++ ) {
-        actVal[it.GetPos()*stressDim + iDof] = elemStressStrain[iDof];
-      }
-
       // Delete integrator again (Stressabbau ;-)
       delete mechStressOp;
       delete FieldOp2;
+    }
+  }
+
+  void PiezoCoupling::CalcPiezoTensor(shared_ptr<BaseResult> vals)
+  {
+    Result<Double>& res = dynamic_cast< Result<Double>& >(*vals);
+    EntityIterator elemIt = res.GetEntityList()->GetIterator();
+    Vector<Double>& resVec = res.GetVector();
+    resVec.Resize(res.GetEntityList()->GetSize() * 6);
+
+    Matrix<double> E(2,3);
+
+    for (elemIt.Begin(); !elemIt.IsEnd(); elemIt++)
+    {
+      elemIt.GetElem()->ptElem;
+
+      if(domain->HasErsatzMaterialTensor())
+        domain->GetErsatzMaterial()->GetPiezoCouplingTensor(E, elemIt.GetElem(), DesignElement::NO_DERIVATIVE);
+      else
+        E.Init();
+
+      unsigned int base = elemIt.GetPos() * 6;
+      resVec[base + 0] = E[0][0];
+      resVec[base + 1] = E[0][1];
+      resVec[base + 2] = E[0][2];
+      resVec[base + 3] = E[1][0];
+      resVec[base + 4] = E[1][1];
+      resVec[base + 5] = E[1][2];
     }
   }
 
@@ -390,7 +428,6 @@ namespace CoupledField {
      TYPE charge = 0.0;
      Elem * ptVolElem;
      BaseFE * ptSurfElemFE, * ptVolElemFE;
-     SurfElem * ptSurfElem = NULL;
 
      StdVector<Elem*> elemssd;
      StdVector<SurfElem*> surfElems;
@@ -454,10 +491,10 @@ namespace CoupledField {
          // Find correct material for volume element
        regionIndex = subdoms_.Find( ptVolElem->regionId );
        if ( regionIndex == -1 ) {
-         EXCEPTION( "PiezoPDE:CalcCharges The region with Name "
+         EXCEPTION( "PiezoPDE::CalcCharges: The region with name '"
                     << ptGrid_->GetRegion().ToString(ptVolElem->regionId)
-                    << " of surface element Nr. " << ptSurfElem->elemNum
-                    << "is not contained in my set of regions!." );
+                    << "' of surface element no. " << it.GetSurfElem()->elemNum
+                    << " is not contained in my set of regions!." );
        }
 
        BaseMaterial* matPiezo  = materials_[ptVolElem->regionId];
@@ -1432,6 +1469,16 @@ namespace CoupledField {
     strainIrr->definedOn = ResultInfo::ELEMENT;
     strainIrr->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( strainIrr );
+
+    //  tensor for piezo FMO optimization
+    shared_ptr<ResultInfo> piezo_tensor(new ResultInfo);
+    piezo_tensor->resultType = PIEZO_COUPL_TENSOR;
+    piezo_tensor->dofNames = "e11", "e12", "e13", "e21", "e22", "e23";
+    piezo_tensor->unit = "N/C";
+    piezo_tensor->entryType = ResultInfo::TENSOR;
+    piezo_tensor->definedOn = ResultInfo::ELEMENT;
+    piezo_tensor->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert(piezo_tensor);
 
     // === ELECTRIC POLARIZATION ===
     shared_ptr<ResultInfo> pol( new ResultInfo );

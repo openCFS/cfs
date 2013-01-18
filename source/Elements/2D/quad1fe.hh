@@ -140,9 +140,12 @@ namespace CoupledField
 
     UInt GetNumFncs( const shared_ptr<AnsatzFct>& fncType );
 
+#if 0 // DEBUG_SZOERNER: does not work with non-matching
+    // Responsable: ahueppe, strieben, szoerner
     void Global2LocalCoords(Matrix<Double> & localCoords,
                                const Matrix<Double> & globalCoords,
                                const Matrix<Double> & coordMat );
+#endif
 
   private:
     virtual void CalcSpectralShFct( Vector<Double> & Shape,

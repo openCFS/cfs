@@ -174,7 +174,7 @@
             </xsd:element>
 
             <!-- List defining nonlinear types -->
-            <xsd:element name="nonLinList" minOccurs="0" maxOccurs="0">
+            <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:choice maxOccurs="unbounded">
                   <xsd:element name="geometric" type="DT_PiezoDirectNonLinGeo"/>
@@ -334,7 +334,8 @@
       <xsd:enumeration value="mechStress"/>
       <xsd:enumeration value="vonMisesStress"/>
       <xsd:enumeration value="elecPolarization"/> 
-      <xsd:enumeration value="elecFluxDensity"/> 
+      <xsd:enumeration value="elecFluxDensity"/>
+      <xsd:enumeration value="piezoTensor"/>
     </xsd:restriction>
   </xsd:simpleType>
 

@@ -116,13 +116,14 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type)
   case DesignElement::ROTANGLE:
   case DesignElement::STIFF1:
   case DesignElement::STIFF2:
+  case DesignElement::MULTIMATERIAL:
     return Optimization::MECH;
   case DesignElement::ACOU_DENSITY:
     return Optimization::LAPLACE;
   case DesignElement::POLARIZATION:
     return Optimization::PIEZO_COUPLING;
   default:
-    throw Exception("invalid");
+    throw Exception("invalid request for transfer function");
   }
 }
 

@@ -112,7 +112,9 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
   case MECH:
   case ACOUSTIC:
   {
-    const Matrix<double>& stiffness = material->Stiffness(de->elem, false); // no bimaterial
+    int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
+
+    const Matrix<double>& stiffness = material->Stiffness(de->elem, false, mm); // no bimaterial
     
     // Find the transfer function for K (e.g. DENSITY, MECH)
     T k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
@@ -120,7 +122,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
     // copy from real mechStiffness to potential complex out and factor the derivative
     Assign(out, stiffness, k_factor);
     // This log is very expensive, it blows up inv_tensor in the debug mode
-    // LOG_DBG3(simp) << "SetElementK: K_org=" <<  stiffness.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
+    LOG_DBG3(simp) << "SetElementK: el=" << de->elem->elemNum << " di=" << de->GetIndex() << " mm=" << mm << " K_org=" <<  stiffness.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
 
     if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
     {
@@ -243,7 +245,11 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
 
   // change name only
   Matrix<complex<double> >& S = K_in_S_out;
-  const Matrix<double>& M = material->Mass(de->elem, bimaterial);
+
+  // multimaterial stuff
+  int index = de->multimaterial != NULL ? de->multimaterial->index : -1;
+
+  const Matrix<double>& M = material->Mass(de->elem, bimaterial, index);
   assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
 
   // find alpha, beta and omega

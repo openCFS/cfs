@@ -111,6 +111,13 @@ IF(USE_GIDPOST)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindGiDpost.cmake")
 ENDIF(USE_GIDPOST)
 
+#-----------------------------------------------------------------------------
+# Find FFTW for cfstool fftw feature
+#-----------------------------------------------------------------------------
+IF(CFSTOOL_FFTW)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindFFTW.cmake")
+ENDIF(CFSTOOL_FFTW)
+
 IF(USE_BLAS OR USE_LAPACK)
   #-----------------------------------------------------------------------------
   # Find ACML library

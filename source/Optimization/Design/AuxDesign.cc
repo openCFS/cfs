@@ -26,7 +26,7 @@ AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzM
   {
     slack_  = pn->GetByVal("design", "name", "slack");
     aux_design_.Reserve(1);
-    BaseDesignElement de;
+    BaseDesignElement de(BaseDesignElement::SLACK);
     de.SetLowerBound(slack_->Get("lower")->As<double>());
     de.SetUpperBound(slack_->Get("upper")->As<double>());
     de.SetDesign(slack_->Get("initial")->As<double>());
@@ -49,6 +49,12 @@ void AuxDesign::PostInit(int objectives, int constraints)
     assert(objectives == 1);
     aux_design_[0].PostInit(objectives, constraints);
   }
+
+  // extend full_data
+  unsigned int offset = DesignSpace::GetNumberOfVariables();
+  full_data.Resize(offset + aux_design_.GetSize());
+  for(unsigned int i = 0; i < aux_design_.GetSize(); i++)
+    full_data[offset + i] = &(aux_design_[i]);
 }
 
 void AuxDesign::ToInfo(PtrParamNode in)
@@ -126,10 +132,15 @@ int AuxDesign::WriteDesignToExtern(double* space_out, bool scale) const
 
 void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Condition* g, bool scaling) const
 {
-  LOG_DBG(aux_des) << "WGTE: ad=" << aux_design_.GetSize() << " DS:GNOV=" << DesignSpace::GetNumberOfVariables() << " ows=" << out.window.GetSize();
+  LOG_DBG(aux_des) << "WGTE: ad=" << aux_design_.GetSize() << " DS:GNOV=" << DesignSpace::GetNumberOfVariables() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
 
+  bool write_aux = true;
   if(alsomatopt_)
   {
+    // the number of DesignSpace variables is complicated because of constant region.
+    // The method is expensive as it counts
+    unsigned int data_size = DesignSpace::GetNumberOfVariables(); // is virtual
+
     // we call DesignSpace::WriteDenseGradientToExtern() for the ersatz material part.
 
     // in case the the gradient window covers DesignSpace design and aux design, we need to
@@ -137,8 +148,12 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
     // this is e.g. not the case for sparse gradients not touching the aux design.
     StdVector<double>::Window org_window = out.window; // I like standard constructors :)
 
-    if(out.window.GetStart() + out.window.GetSize() > data.GetSize())
-      out.window.Set(out.window.GetStart(), data.GetSize() - out.window.GetStart());
+    // FIXME! window != data!!!
+    assert(out.window.GetSize() <= data_size + aux_design_.GetSize());
+    if(out.window.GetSize() > data_size)
+      out.window.Set(out.window.GetStart(), data_size);
+    else
+      write_aux = false;
 
     if(g == NULL || g->HasDenseJacobian())
       DesignSpace::WriteDenseGradientToExtern(out, vs, access, g, scaling);
@@ -152,7 +167,10 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
   }
 
   // makes use of the window within out even  if only a part of the window is used in the alsomatopt_ case
-  WriteAuxGradientToExtern(out, g, scaling);
+  // check if there is something to write. E.g. for FeasPP out.size is the size sparsity size, don't overwrite
+  // a single designBound value with 0 from aux_design_.
+  if(write_aux)
+    WriteAuxGradientToExtern(out, g, scaling);
 }
 
 
@@ -221,6 +239,16 @@ void AuxDesign::AddAuxDerivatives(Objective* f, Condition* g, StdVector<double>&
     LOG_DBG3(aux_des) << "AAD[" << i << "]+=" << d[i] << "*" << weight << "=" << d[i]*weight;
     aux_design_[i].AddGradient(f, g, d[i]*weight);
   }
+}
+
+inline
+BaseDesignElement* AuxDesign::GetDesignElement(unsigned int idx)
+{
+  // FIXME: data.GetSize() != DesignSpace::GetNumberOfVariables()
+  if(alsomatopt_ && idx < data.GetSize())
+    return DesignSpace::GetDesignElement(idx);
+  else
+    return &aux_design_[idx - (alsomatopt_ ? data.GetSize() : 0)];
 }
 
 

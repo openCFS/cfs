@@ -270,15 +270,6 @@ class CoordSystem;
         // Read data
         materials_[actRegionId] = matLoader->LoadMaterial( material, materialClass_ );
 
-        if(progOpts->DoDetailedInfo())
-        {
-          // log the just read material. LoadMaterial() so to say initializes the ToInfo()
-          PtrParamNode in = infoNode_->GetByVal("material", "name", material);
-          // additional regions are automatically appended
-          in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
-          materials_[actRegionId]->ToInfo(in);
-        }
-        
         // Check for local coordinate system
         if( refCoordSys != "" ) {
           CoordSystem * actCoosy = 
@@ -287,7 +278,7 @@ class CoordSystem;
         }
         
         // Check for material rotation parameters
-        PtrParamNode rotNode = regionNodes[i]->Get("matRotation", ParamNode::INSERT);
+        PtrParamNode rotNode = regionNodes[i]->Get("matRotation", ParamNode::PASS);
         
         Vector<Double> rotVec (3);
         rotVec.Init();
@@ -296,22 +287,28 @@ class CoordSystem;
         // 2D, -> material is rotated by
         // alpha = -90 and gamma = -90 degree, 
         // so that we pick by default the yz-plane      
-        if( !rotNode->HasChildren() ) {
-          if( dim_ == 2) {
-            rotVec[0] = -90.0;
-            rotVec[2] = -90.0;
-            materials_[actRegionId]->
-              RotateAllTensorsByRotationAngles( rotVec, true );
-          }
-          continue;
-        } else {
+        if(!rotNode && dim_ == 2)
+        {
+          rotVec[0] = -90.0;
+          rotVec[2] = -90.0;
+          materials_[actRegionId]->RotateAllTensorsByRotationAngles( rotVec, true );
+        }
+        if(rotNode)
+        {
           rotVec[0] = rotNode->Get( "alpha" )->MathParse<Double>();
           rotVec[1] = rotNode->Get( "beta" )->MathParse<Double>(); 
           rotVec[2] = rotNode->Get( "gamma" )->MathParse<Double>();
-          materials_[actRegionId]->
-            RotateAllTensorsByRotationAngles( rotVec, true );
+          materials_[actRegionId]->RotateAllTensorsByRotationAngles( rotVec, true );
         }
 
+        if(progOpts->DoDetailedInfo())
+        {
+          // log the just read material. LoadMaterial() so to say initializes the ToInfo()
+          PtrParamNode in = infoNode_->GetByVal("material", "name", material);
+          // additional regions are automatically appended
+          in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
+          materials_[actRegionId]->ToInfo(in, GetSubTensorType(), &rotVec);
+        }
         
       } catch (Exception& ex ) {
         std::string matClassString;
@@ -623,7 +620,7 @@ class CoordSystem;
         } 
         
         // only enter, at least one region is present
-        if( listNode->HasChildren() ) {
+        if( listNode != NULL && listNode->HasChildren() ) {
           // fetch saveBegin, saveEnd and saveInc
           saveBegin = listNode->Get("saveBegin")->MathParse<UInt>();
           saveEnd = listNode->Get("saveEnd")->MathParse<UInt>();
@@ -846,4 +843,12 @@ class CoordSystem;
     return pde2_->GetPDEId();
   }
 
+  SubTensorType BasePairCoupling::GetSubTensorType() const
+  {
+    if(subType_ == "") return NO_TENSOR;
+
+    SubTensorType stt;
+    String2Enum(subType_, stt);
+    return stt;
+  }
 } // end of namespace

@@ -87,6 +87,11 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
   // to be appended by the set name
   std::cout << "++ Load ersatz material file: '" << file << "'" << std::flush;
 
+  PtrParamNode in = ersatzMaterial ? info->Get("optimization/header/designSpace/ersatzMaterialFile")
+                                   : info->Get("ersatzMaterialFile");
+  in->Get("file")->SetValue(file);
+  in->Get("source")->SetValue(cmd ? "command line" : "problem file");
+
   // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
   // Initialize our xerces dom parser to handle the external xml file
   Xerces* xerces = new Xerces(file);
@@ -248,9 +253,11 @@ void DensityFile::SetCurrent(int current_iteration)
   {
     DesignElement* de = &ersatzMaterial_->data[i];
     std::stringstream ss;
-    ss << "<element nr=\"" << de->elem->elemNum
-       << "\" type=\"" << DesignElement::type.ToString(de->GetType())
-       << "\" design=\"";
+    ss << "<element nr=\"" << de->elem->elemNum;
+    ss << "\" type=\"" << DesignElement::type.ToString(de->GetType());
+    if(de->GetType() == DesignElement::MULTIMATERIAL)
+      ss << "\" index=\"" << de->multimaterial->index;
+    ss << "\" design=\"";
     ss.precision(11);
     ss << de->GetDesign(DesignElement::PLAIN) << "\"";
     if(de->HasPhysicalDesign())

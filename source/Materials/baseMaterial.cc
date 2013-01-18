@@ -48,6 +48,11 @@ namespace CoupledField
 
     coosy_ = NULL;
     hyst_  = NULL;
+    hystY_ = NULL;
+    hystZ_ = NULL;
+    vecHyst_ = NULL;
+    dimVecHyst_ = 0;
+    computeHystInverse_ = false;
 
     symmetryType_  = GENERAL;
     isHysteresis_  = false;
@@ -56,6 +61,9 @@ namespace CoupledField
     piezoMicroModel_   = NULL;
     isPiezoMicroModel_ = false;
     
+//     nonLinMagStrictInfoVec_.Resize(1);
+//     nonLinMagStrictInfoVec_[0] =  NULL;
+
     mp_ = domain->GetMathParser();
   }
 
@@ -207,7 +215,23 @@ namespace CoupledField
   }
 
 
-  void BaseMaterial::ToInfo(PtrParamNode in)
+  void BaseMaterial::StoreTensor(PtrParamNode in, bool isComplex, const Matrix<Complex>& mat)
+  {
+    // get the tensor by default as complex
+    if(isComplex)
+    {
+      if(mat.GetPart(Global::IMAG).NormL2() == 0.0)
+        in->SetValue(mat.GetPart(Global::REAL));
+      else
+        in->SetValue(mat);
+    }
+    else
+    {
+      in->SetValue(mat.GetPart(Global::REAL));
+    }
+  }
+
+  void BaseMaterial::ToInfo(PtrParamNode in, SubTensorType stt, const Vector<Double>* rot)
   {
     set<MaterialType>::iterator iter;
 
@@ -227,24 +251,27 @@ namespace CoupledField
       PtrParamNode in_ = in->Get("property", ParamNode::APPEND);
       in_->Get("name")->SetValue(MaterialTypeEnum.ToString(mt));
 
+      if(rot != NULL && rot->NormMax() > 0)
+      {
+        assert(rot->GetSize() == 3);
+        PtrParamNode rot_ = in_->Get("rotation");
+        rot_->Get("alpha")->SetValue((*rot)[0]);
+        rot_->Get("beta")->SetValue((*rot)[1]);
+        rot_->Get("gamma")->SetValue((*rot)[2]);
+      }
+
       if(posTens != tensorParams_.end())
       {
         const Matrix<Complex>& mat = posTens->second;
+        StoreTensor(in_->Get("tensor"), isComplex, mat);
 
-        // TODO: It makes sense to output the actual sub tensor type,
-        // the "problem" is that ComputeSubTensor() is not virtual, has different signature and is not transparent to full
-
-        // get the tensor by default as complex
-        if(isComplex)
+        // e.g. in the flatShellPlateEV test case we have NO_TENSOR which cannot be
+        // handled by ComputeSubTensor()
+        if(stt != FULL && stt != NO_TENSOR) // electrostatic is NO_TENSOR
         {
-          if(mat.GetPart(Global::IMAG).NormL2() == 0.0)
-            in_->Get("tensor")->SetValue(mat.GetPart(Global::REAL));
-          else
-            in_->Get("tensor")->SetValue(mat);
-        }
-        else
-        {
-          in_->Get("tensor")->SetValue(mat.GetPart(Global::REAL));
+          Matrix<Complex> sub_mat;
+          ComputeSubTensor(sub_mat, mt, stt);
+          StoreTensor(in_->Get("subtensor"), isComplex, sub_mat);
         }
       }
 
@@ -382,6 +409,7 @@ namespace CoupledField
       // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
       helpMat   = matTensorOrig * RT;
       matTensor = R * helpMat;
+      // std::cout << "R = " << R.ToString() << " o=" << matTensorOrig.ToString() << " -> " << matTensor.ToString() << std::endl;
     }
     else {
       // we also need Q;
@@ -391,6 +419,7 @@ namespace CoupledField
       // Ref.: M.Richter, "Entwicklung mechanischer Modelle zur analytischen
       // Beschreibung der Materialeigenschaften von textilbewehrtem Feinbeton",
       // Diss., Dresden, 2005, p. 27
+      // also see Diss of Alex Sutor and Fred - take care in one is a missprint!
 
       Q.Resize(6,6);  
 
@@ -688,6 +717,26 @@ namespace CoupledField
 
     piezoMicroModel_->ComputeEffectiveCouplingTensor(dMatEff, elecFieldAct,
                                                      elecFieldPrev, idx);
+   }
+
+
+   MaterialType BaseMaterial::ConvertMaterialClass(MaterialClass mc)
+   {
+     switch(mc)
+     {
+     case MECHANIC:
+       return MECH_STIFFNESS_TENSOR;
+     case PIEZO:
+       return PIEZO_TENSOR;
+     case ELECTROSTATIC:
+       return MECH_STIFFNESS_TENSOR;
+     default:
+       assert(false); // implement for your needs!
+       break;
+     }
+
+     assert(false);
+     return NO_MATERIAL;
    }
 
 }

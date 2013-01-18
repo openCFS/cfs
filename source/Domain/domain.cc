@@ -147,10 +147,10 @@ void Domain::CreateGrid()
     if (libmesh == "cfsGrid")
     {
       if (gridId == "default")
-        actGrid = new GridCFS(dim_);
+        actGrid = new GridCFS(dim_, gridId);
       else
       {
-        actGrid = new GridCFS(inputs[0]->GetDim());
+        actGrid = new GridCFS(inputs[0]->GetDim(), gridId);
       }
     }
     else
@@ -946,6 +946,13 @@ void Domain::RegisterVariables()
    Double value = 0.0;
    for(; it != varNodes.End(); it++ ) {
      (*it)->GetValue("name", varName);
+     if ( (varName == "t") || (varName == "dt") || (varName == "f")
+          || (varName == "step") )
+     {
+       EXCEPTION("The variable '" << varName
+                 << "' is reserved, its value will be set automatically. "
+                 << "Please choose a different name.");
+     }
      (*it)->GetValue("value", valString);
      mathParser_.SetExpr(handle, valString);
      value = mathParser_.Eval(handle);
@@ -1055,7 +1062,7 @@ BaseMaterial* Domain::GetErsatzBiMaterial(const Elem* elem, const MaterialClass 
 {
   if(ersatzMaterial == NULL) return NULL;
 
-  DesignSpace::DesignRegion* dr = ersatzMaterial->GetRegion(elem->regionId, false); // silent
+  DesignSpace::DesignRegion* dr = ersatzMaterial->GetRegion(elem->regionId, DesignElement::NO_TYPE, -1, false); // silent
 
   if(dr != NULL && dr->HasBiMaterial())
     return dr->GetBiMaterial(mc);
@@ -1076,6 +1083,16 @@ bool Domain::HasErsatzMaterialTensor()
 {
   return ersatzMaterial == NULL ? false
       : ersatzMaterial->HasErsatzMaterialTensor();
+}
+
+bool Domain::HasErsatzMaterialPiezoCouplingTensor()
+{
+  return ersatzMaterial == NULL ? false : ersatzMaterial->HasPiezoCouplingTensor();
+}
+
+bool Domain::HasErsatzMaterialDielecTensor()
+{
+  return ersatzMaterial == NULL ? false  : ersatzMaterial->HasDielecTensor();
 }
 
 bool Domain::HasErsatzMaterialMass()
