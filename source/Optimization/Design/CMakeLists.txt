@@ -3,7 +3,6 @@ SET(DESIGN_SRCS
   DesignElement.cc
   DesignStructure.cc
   DensityFile.cc
-  AuxDesign.cc
   ShapeDesign.cc
   DesignMaterial.cc
   Filter.cc

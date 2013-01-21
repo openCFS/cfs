@@ -163,11 +163,11 @@ namespace CoupledField {
   }
 
 
-  Double NormL2(const Double* data1, const Double* data2, const UInt size)
+  Double NormL2(const Double* data, const UInt size)
   {
     Double result = 0.0;
     for(UInt i = 0; i < size; i++)
-      result += (data1[i] - data2[i]) * (data1[i] - data2[i]);
+      result += data[i] * data[i];
 
     return std::sqrt(result);
   }

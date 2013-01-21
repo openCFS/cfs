@@ -395,6 +395,7 @@ namespace CoupledField
         // iterate over all entities
         for ( UInt i=0; i<size; i++ ) {
           
+
           // Calc element matrix
           if ( form->IsComplex() )
             form->CalcElementMatrix( elemMatrixC, it1, it2 );

@@ -701,7 +701,6 @@ void HeatCondPDE::CalcResults( shared_ptr<BaseResult> result ) {
   case OPT_RESULT_7:
   case OPT_RESULT_8:
   case OPT_RESULT_9:
-  case OPT_RESULT_10:
     // design should work, this is checked in AvailabeResults()
     domain->GetErsatzMaterial()->ExtractResults(result, isComplex_);
     break;

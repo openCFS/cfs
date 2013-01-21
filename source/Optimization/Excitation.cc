@@ -447,12 +447,9 @@ double Excitation::GetFactor(Function* cost) const
   return factor;
 }
 
-double Excitation::GetWeightedFactor(Function* f) const
+double Excitation::GetWeightedFactor(Function* cost) const
 {
-  if(f->DoEvaluateAlways())
-   return normalized_weight * GetFactor(f);
-  else
-    return GetFactor(f);
+  return normalized_weight * GetFactor(cost);
 }
 
 void Excitation::ReadTrackings(PtrParamNode ts){

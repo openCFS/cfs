@@ -120,12 +120,6 @@ template <class TYPE> class Matrix;
       @see BaseForm::CalcBMat() */
     void CalcBMat(Matrix<Double> &bMat, UInt ip, const Matrix<Double> &ptCoord);
 
-
-    /** fuck this overwriting/overloading nonsense - time for the FE-Space! Fabian */
-    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem) {
-      calcDMat(dMat, elem, DesignElement::NO_DERIVATIVE);
-    }
-
     /*!   Compute the data-matrix \f$ D \f$
       The method computes the matrix \f$ D \f$  of the piezoelectric coupling
       properties of the element's material. In the 3D setting the latter
@@ -133,9 +127,8 @@ template <class TYPE> class Matrix;
       \f$[
       D = \left( e^T \right) \in \mathcal{R}^{6\times 3}.
       \f$]
-      where \f$ e^T \f$ is the local tensor of piezoelectric coupling.
-      @param direction for FMO. If != NO_DERIVATVE gives the the derivative wrt the coefficient*/
-    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem, DesignElement::Type direction);
+      where \f$ e^T \f$ is the local tensor of piezoelectric coupling.*/
+    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem);
 
     /*!   Query dimension of the matrix \f$ D \f$
 

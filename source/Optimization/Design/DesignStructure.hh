@@ -158,9 +158,6 @@ private:
   /** The reference filter setting */
   Filter filter_;
 
-  /** The filtered design (for multiple designs only) */
-  DesignElement::Type design;
-
   /** This maps the periodic boundaries.
    * Nodes which are not part of a periodic b.c. have an empty vector.
    * Nodes with exactly one periodic partner are like: n_1 <-> n_2: constraintMapping[n_1][0] = n_2

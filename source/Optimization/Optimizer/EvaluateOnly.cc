@@ -12,12 +12,6 @@
 #include "Optimization/Optimizer/EvaluateOnly.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/Timer.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/Logging/log.hpp"
-
-
-DECLARE_LOG(eval)
-DEFINE_LOG(eval, "eval")
 
 using namespace CoupledField;
 
@@ -27,7 +21,7 @@ EvaluateOnly::EvaluateOnly(Optimization* optimization, PtrParamNode pn)
   // reduce to our actual ParamNode
   pn = pn->Get(Optimization::optimizer.ToString(Optimization::EVALUATE_INITIAL_DESIGN), ParamNode::PASS);
 
-  PostInitScale(1.0, true);
+  PostInit(1.0, true);
 }
 
 void EvaluateOnly::SolveProblem()
@@ -66,32 +60,20 @@ void EvaluateOnly::SolveProblem()
     // special case only in harmonic case with more frequencies but not multiple_loads optimization
     optimization->SolveStateProblem();
 
-    double v = optimization->CalcObjective();
-    LOG_DBG(eval) << "SP: obj=" << v;
+    optimization->CalcObjective();
     // calc gradients, they might be stored in store results!
     // gradients might need adjoints
     optimization->SolveAdjointProblems();
     optimization->CalcObjectiveGradient(&grad);
-    for(unsigned int i = 0; i < grad.GetSize(); i++) {
-      BaseDesignElement* de = optimization->GetDesign()->GetDesignElement(i);
-      LOG_DBG2(eval) << "SP: obj grad i=" << i << " (" << (i+1) <<  ") de=\"" << de->ToString() << "\" -> " << grad[i];
-    }
     
     for(int c = 0; c < optimization->constraints.view->GetNumberOfTotalConstraints(); c++)
     {
       Condition* g = optimization->constraints.view->Get(c);
-      v = optimization->CalcConstraint(g);
-      LOG_DBG(eval) << "SP: g[" << c << " (" << (c+2) << ")]=" << g->ToString() << " -> " << v; // snopt index in brackets
+      optimization->CalcConstraint(g);
       if(!g->IsObservation()) // not for observation stuff
       {
-        StdVector<unsigned int>& pattern = g->GetSparsityPattern();
-        grad.window.Set(0, pattern.GetSize()); // necessary for a local condition assert
+        grad.window.Set(0, g->GetSparsityPattern().GetSize()); // necessary for a local condition assert
         optimization->CalcConstraintGradient(g, &grad);
-        for(unsigned int i = 0; i < pattern.GetSize(); i++) {
-          BaseDesignElement* de = optimization->GetDesign()->GetDesignElement(pattern[i]);
-          LOG_DBG2(eval) << "SP: grad g[" << c << " (" << (c+2) << ")]=" << g->ToString() << " i=" << i
-                         << "(" << (i+1) << ") pi=" << pattern[i] << "(" << (pattern[i]+1) <<  ") de=\"" << de->ToString() << "\" -> " << grad[i];
-        }
       }
     }
     optimization->constraints.view->Done(); // reset the slope constraints to global

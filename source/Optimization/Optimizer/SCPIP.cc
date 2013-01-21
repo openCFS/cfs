@@ -22,59 +22,48 @@ using namespace CoupledField;
 DECLARE_LOG(scpip)
 DEFINE_LOG(scpip, "scpip")
 
-SCPIP::SCPIP(Optimization* optimization, PtrParamNode optimizer_pn, Optimization::Optimizer type) :
- BaseOptimizer(optimization, optimizer_pn, type)
+SCPIP::SCPIP(Optimization* optimization, PtrParamNode optimizer_pn) :
+ BaseOptimizer(optimization, optimizer_pn, Optimization::SCPIP_SOLVER)
 {
   LOG_TRACE(scpip) << "Initialize SCPIP";
 
+  // reduce to our actual ParamNode
+  PtrParamNode scpip_pn =  optimizer_pn->Get(Optimization::optimizer.ToString(Optimization::SCPIP_SOLVER), 
+                                             ParamNode::PASS);
+  
   // we do NOT use the SCPIPBase scaling but the one from BaseOptimizer!
-  PostInitScale(1.0); // does autoscale
+  PostInit(1.0); // does autoscale
 
   std::cout << objective->ToString() << std::endl;
   
   SetIntegerValue("max_iter", optimization->GetMaxIterations());
   
   // check for optional parameters
-  if(this_opt_pn_ != NULL)
+  if(scpip_pn != NULL)
   {
     ParamNodeList list;
-
-    list = this_opt_pn_->GetListByVal("option", "type", "string");
+    
+    list = scpip_pn->GetListByVal("option", "type", "string");
     for(unsigned int i = 0; i < list.GetSize(); i++)
       SetStringValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<std::string>());
 
-    list = this_opt_pn_->GetListByVal("option", "type", "integer");
+    list = scpip_pn->GetListByVal("option", "type", "integer");
     for(unsigned int i = 0; i < list.GetSize(); i++)
-      SetIntegerValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<int>());
+      SetIntegerValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Integer>());
 
-    list = this_opt_pn_->GetListByVal("option", "type", "real");
+    list = scpip_pn->GetListByVal("option", "type", "real");
     for(unsigned int i = 0; i < list.GetSize(); i++)
     {
-      SetNumericValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<double>());
+      SetNumericValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Double>());
     }
   }
+  
+  Initialize();
 }
 
 SCPIP::~SCPIP()
 {}
 
-void SCPIP::PostInit()
-{
-  Initialize();
-}
-
-void SCPIP::ToInfo(PtrParamNode pn)
-{
-  BaseOptimizer::ToInfo(pn);
-
-  PtrParamNode pn_ = pn->Get("icntl");
-  for(int i = 0; i < 13; i++)
-    pn_->Get("i" + lexical_cast<std::string>(i + 1))->SetValue(icntl[i]);
-
-  pn_ = pn->Get("rcntl");
-  for(int i = 0; i < 7; i++)
-    pn_->Get("r" + lexical_cast<std::string>(i + 1))->SetValue(rcntl[i]);
-}
 
 void SCPIP::SolveProblem()
 {
@@ -105,8 +94,8 @@ void SCPIP::SolveProblem()
       }
     }
     
-    // call the base solver, which is SCPIPBase::solve_problem() or FeasSCP::solve_problem()
-    int status = solve_problem();
+    // call the base solver !!!!!!!!!!!
+    int status = SCPIPBase::SolveProblem();
     
     PtrParamNode in = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("break");
     
@@ -162,12 +151,7 @@ void SCPIP::SetConstraintSparsityPattern()
   int ie_nnz = 0; // counter
   int eq_nnz = 0;
 
-  assert(m == optimization->constraints.view->GetNumberOfActiveConstraints());
-
-  ie_idx.Reserve(m);
-  eq_idx.Reserve(m);
-
-  for(int c = 0; c < m; c++)
+  for(int c = 0, nc = optimization->constraints.view->GetNumberOfActiveConstraints(); c < nc; c++)
   {
     Condition* g = optimization->constraints.view->Get(c);
     if(g->GetBound() != Condition::EQUAL)
@@ -185,7 +169,6 @@ void SCPIP::SetConstraintSparsityPattern()
         ie_active++;
       }
       ie++;
-      ie_idx.Push_back(c);
     }
     else // equality constraint
     {
@@ -197,7 +180,6 @@ void SCPIP::SetConstraintSparsityPattern()
         eq_nnz++;
       }
       eq++;
-      eq_idx.Push_back(c);
     }
   }
 
@@ -230,7 +212,7 @@ int SCPIP::get_sparsity_pattern_size(int m, int* jac_g_dim)
   for(int i = 0; i < m; i++)
   {
     Condition* g = optimization->constraints.view->Get(i);
-    int local = g->GetSparsityPatternSize();
+    int local = g->GetSparsityPattern().GetSize();
     jac_g_dim[i] = local;
     nnz += local;
     LOG_DBG3(scpip) << "gsps: i=" << i << " g=" << g->ToString() << " sps=" << local << " nnz=" << nnz;
@@ -245,7 +227,6 @@ bool SCPIP::get_bounds_info(int n, double* x_l, double* x_u,
                             int m, double* g_l, double* g_u)
 {
   GetBounds(n, x_l, x_u, m, g_l, g_u);
-
   return true;
 }
 
@@ -257,23 +238,18 @@ bool SCPIP::get_starting_point(int n, double* x)
   return true;
 }
 
-bool SCPIP::eval_f(int n, const double* x_org, double& obj_value)
+bool SCPIP::eval_f(int n, const double* x, double& obj_value)
 {
-  StdVector<double> x_srt;
-  x_srt.Import(x_org, n);
-
-  obj_value = EvalObjective(n, x_srt.GetPointer(), true); // always CFS scale!
+  obj_value = EvalObjective(n, x, true); // always CFS scale!
   return true;
 }
 
-bool SCPIP::eval_grad_f(int n, const double* x_org, double* grad_f)
+bool SCPIP::eval_grad_f(int n, const double* x, double* grad_f)
 {
-  StdVector<double> x_srt;
-  x_srt.Import(x_org, n);
   
   // restart_requested handled in intermediate_callback
   assert(grad_f == df.GetPointer());
-  bool result = EvalGradObjective(n, x_srt.GetPointer(), true, df);
+  bool result = EvalGradObjective(n, x, true, df);
 
   // do we have to write the initial iteration in the non-autoscale case?
   // SCPIP first does eval_f and then eval_grad_f
@@ -282,26 +258,20 @@ bool SCPIP::eval_grad_f(int n, const double* x_org, double* grad_f)
   return result;
 }
 
-bool SCPIP::eval_g(int n, const double* x_org, int m, double* g)
+bool SCPIP::eval_g(int n, const double* x, int m, double* g)
 {
-  StdVector<double> x_srt;
-  x_srt.Import(x_org, n);
-
-  EvalConstraints(n, x_srt.GetPointer(), m, true, g, false); // we normalize in SCPIPBase
+  EvalConstraints(n, x, m, true, g);
 
   return true;
 }
 
-bool SCPIP::eval_jac_g(int n, const double* x_org, int m, int nele_jac, double* values)
+bool SCPIP::eval_jac_g(int n, const double* x, int m, int nele_jac, double* values)
 {
-  StdVector<double> x_srt;
-  x_srt.Import(x_org, n);
-
   // the gradients are dense in SCPIPBase
   assert(values != NULL);
   assert(jac_g.GetPointer() == values);
   
-  EvalGradConstraints(n, x_srt.GetPointer(), m, nele_jac, true, false, jac_g);  // we normalize in SCPIPBase
+  EvalGradConstraints(n, x, m, nele_jac, true, jac_g);
 
   return true;
 }

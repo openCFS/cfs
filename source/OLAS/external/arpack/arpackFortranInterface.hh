@@ -9,7 +9,6 @@
 
 using CoupledField::Integer;
 using CoupledField::Double;
-using CoupledField::Complex;
 
 //! arpack driver routine controling calculation
 #define ARPACK_DSAUPD dsaupd_
@@ -25,20 +24,12 @@ extern "C" {
                    Integer *iparam, Integer *ipntr, Double *workd,
                    Double *workl, Integer *lworkl, Integer *info);
 
-  void ARPACK_ZNAUPD(int* ido, char* bmat, int* n, char* which,
-                     int* nev, double* tol, Complex* resid,
-                     int* ncv, Complex* V, int* ldv,
-                     int* iparam, int* ipntr, Complex* workd,
-                     Complex* workl, int* lworkl, double* work, int* info);
-
   void ARPACK_DSEUPD(bool *rvec, char *howMny, Double *select, Double *d,
                    Double *z, Integer *ldz, Double *shift, char *bmat,
                    Integer* size, char *which, Integer *nev, Double *tol, Double *resid,
                    Integer *ncv, Double *V, Integer *ldv,
                    Integer *iparam, Integer *ipntr, Double *workd,
                    Double *workl, Integer *lworkl, Integer *info);
-
-  // void ARPACK_ZNEUPD(bool* rvec, )
 
   // arpack debug "common" statement.
 

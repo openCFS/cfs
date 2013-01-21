@@ -203,9 +203,6 @@ namespace CoupledField
     template <class TYPE>
     void CalcElecFluxDensity( shared_ptr<BaseResult> res );
 
-    /** gives the result for piezo FMO optimization for the coupling tensor */
-    void CalcPiezoTensor(shared_ptr<BaseResult> res);
-
     // Data section
 
   };

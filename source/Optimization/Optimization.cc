@@ -33,7 +33,6 @@
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/ParamMat.hh"
 #include "Optimization/PiezoSIMP.hh"
-#include "Optimization/PiezoParamMat.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
 #include "Optimization/ShapeOpt.hh"
@@ -45,18 +44,13 @@
 #include "def_use_knitro.hh"
 #include "def_use_scpip.hh"
 #include "def_use_snopt.hh"
-#include "def_use_feas_scp.hh"
 
 // IPOPT, SCPIP and SnOpt are not necessarily linked
 #ifdef USE_IPOPT
   #include "Optimization/Optimizer/IPOPTHolder.hh"
-  #include "Optimization/Optimizer/FeasPP.hh"
 #endif
 #ifdef USE_SCPIP
   #include "Optimization/Optimizer/SCPIP.hh"
-#endif
-#ifdef USE_FEAS_SCP
-  #include "Optimization/Optimizer/FeasSCP.hh"
 #endif
 #ifdef USE_SNOPT
   #include "Optimization/Optimizer/SnOpt.hh"
@@ -110,14 +104,14 @@ Optimization::Optimization()
   }
 
   // the tool to solve the optimization problem
-  optimizer_ = optimizer.Parse(pn->Get("optimizer")->Get("type")->As<string>());
+  optimizer_ = optimizer.Parse(pn->Get("optimizer")->Get("type")->As<std::string>());
   maxIterations = pn->Get("optimizer")->Get("maxIterations")->As<Integer>();
 
   // might read a multiObjective problem
   objectives.Read(pn->Get("costFunction"));
   objectives.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("objective"));
 
-  SetPDEs(OptimizationMaterial::system.Parse(pn->Get("ersatzMaterial")->Get("material")->As<string>()));
+  SetPDEs(OptimizationMaterial::system.Parse(pn->Get("ersatzMaterial")->Get("material")->As<std::string>()));
 
   this->assemble_ = pde->getPDE_assemble();
 
@@ -152,10 +146,10 @@ Optimization::Optimization()
     }
   }
 
-  log.Init(pn->Get("log")->As<string>(), pn->Get("logging", ParamNode::PASS)); // is fail save
+  log.Init(pn->Get("log")->As<std::string>(), pn->Get("logging", ParamNode::PASS)); // is fail save
 
   // the commit stuff
-  string cm = pn->Has("commit") ? pn->Get("commit")->Get("mode")->As<string>() : "forward";
+  string cm = pn->Has("commit") ? pn->Get("commit")->Get("mode")->As<std::string>() : "forward";
   this->commitMode_ = commitMode.Parse(cm);
   this->commitStride = pn->Has("commit") ? pn->Get("commit")->Get("stride")->As<Integer>() : 1;
   optInfoNode->Get("commit")->Get("mode")->SetValue(cm);
@@ -196,28 +190,9 @@ void Optimization::PostInitSecond()
 
     case SCPIP_SOLVER:
          #ifdef USE_SCPIP
-           #ifdef USE_FEAS_SCP
-             throw Exception("CFS++ was compiled with FeasSCP - this disables SCPIP");
-           #endif
            baseOptimizer_ = new SCPIP(this, opt);
          #else
            throw Exception("CFS++ was compiled w/o SCPIP");
-         #endif
-         break;
-
-    case FEAS_PP_SOLVER:
-         #ifndef USE_IPOPT
-           throw Exception("CFS++ needs to be compiled with IPOPT to use feasPP");
-         #else
-           baseOptimizer_ = new FeasPP(this, opt);
-         #endif
-         break;
-
-    case FEAS_SCP_SOLVER:
-         #ifdef USE_FEAS_SCP
-           baseOptimizer_ = new FeasSCP(this, opt);
-         #else
-           throw Exception("CFS++ was compiled w/o FeasSCP");
          #endif
          break;
          
@@ -252,9 +227,9 @@ void Optimization::PostInitSecond()
     case GRADIENT_CHECK:
          baseOptimizer_ = new GradientCheck(this, opt);
          break;
-  }
 
-  baseOptimizer_->PostInit();
+    default: throw Exception("optimizer not implemented");
+  }
 
   constraints.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("constraints"), GetMultipleExcitation());
 
@@ -327,21 +302,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
   Function::type.Add(Function::SUM_MODULI, "sumModuli");
   Function::type.Add(Function::GLOBAL_SUM_MODULI, "globalSumModuli");
-  Function::type.Add(Function::LAMINATES_VOL, "laminatesVolume");
-  Function::type.Add(Function::GLOBAL_LAMINATES_VOL, "globalLaminatesVolume");
-  Function::type.Add(Function::TENSOR_TRACE, "tensorTrace");
-  Function::type.Add(Function::GLOBAL_TENSOR_TRACE, "globalTensorTrace");
-  Function::type.Add(Function::TENSOR_NORM, "tensorNorm");
   Function::type.Add(Function::PARAM_PS_POS_DEF, "parametrized-plane-stress-pos-def");
-  Function::type.Add(Function::POS_DEF_DET_MINOR_1, "fmoPosDefMinor1");
-  Function::type.Add(Function::POS_DEF_DET_MINOR_2, "fmoPosDefMinor2");
-  Function::type.Add(Function::POS_DEF_DET_MINOR_3, "fmoPosDefMinor3");
-  Function::type.Add(Function::BENSON_VANDERBEI_1, "bensonVanderbeiMinor1");
-  Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
-  Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
-  Function::type.Add(Function::DESIGN_BOUND, "designBound");
-  Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
-  Function::type.Add(Function::SLACK, "slack");
+
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
@@ -384,8 +346,6 @@ void Optimization::SetEnums()
   optimizer.Add(OPTIMALITY_CONDITION, "optimalityCondition");
   optimizer.Add(IPOPT_SOLVER, "ipopt");
   optimizer.Add(SCPIP_SOLVER, "scpip");
-  optimizer.Add(FEAS_SCP_SOLVER, "feasSCP");
-  optimizer.Add(FEAS_PP_SOLVER, "feasPP");
   optimizer.Add(SNOPT_SOLVER, "snopt");
   optimizer.Add(KNITRO_SOLVER, "knitro");
   optimizer.Add(SHAPE_SOLVER, "shapeOpt");
@@ -439,7 +399,7 @@ void Optimization::SetEnums()
   MultipleExcitation::type.Add(MultipleExcitation::MAXWELL_HOMOGENIZATION_TEST_STRAINS, "maxwellHomogenizationTestStrains");
 }
 
-bool Optimization::IsTransient() {
+bool Optimization::IsTransient() const{
   return(domain->GetDriver()->GetAnalysisType() == BasePDE::TRANSIENT);
 }
 
@@ -511,23 +471,21 @@ Optimization* Optimization::CreateInstance()
   // set the enums we need
   Optimization::SetEnums(); // sets also ErsatzMaterial::Method
   DesignElement::SetEnums();
-  DesignMaterial::SetEnums();
 
   if(!param->Has("optimization")) return NULL;
 
   // we assume ersatz material, currently there is nothing else.
   // note, we read method again in the ersatz material constructor.
   PtrParamNode em = param->Get("optimization")->Get("ersatzMaterial");
-
-  ErsatzMaterial::Method method = ErsatzMaterial::method.Parse(em->Get("method")->As<string>());
-  OptimizationMaterial::System material = OptimizationMaterial::system.Parse(em->Get("material")->As<string>());
+  ErsatzMaterial::Method method = 
+      ErsatzMaterial::method.Parse(em->Get("method")->As<std::string>());
   
   Optimization* opt = NULL;
   
   switch(method)
   {
   case ErsatzMaterial::SIMP_METHOD:
-    switch(material)
+    switch(OptimizationMaterial::system.Parse(em->Get("material")->As<std::string>()))
     {
     case OptimizationMaterial::MECH:
     case OptimizationMaterial::ACOUSTIC:
@@ -540,18 +498,13 @@ Optimization* Optimization::CreateInstance()
       opt = new PiezoSIMP();
       break;
       
-    default:
-      assert(false);
-      break;
+    default: assert(false);
     }
     break;
     
-  // FMO, ShapeGrad, ...
+  // FreeMat, ShapeGrad, ...
   case ErsatzMaterial::PARAM_MAT:
-    if(material == OptimizationMaterial::PIEZOCOUPLING)
-      opt = new PiezoParamMat();
-    else
-      opt = new ParamMat();
+    opt = new ParamMat();
     break;
   case ErsatzMaterial::SHAPE_OPT:
   case ErsatzMaterial::SHAPE_PARAM_MAT:
@@ -593,10 +546,7 @@ void Optimization::SolveProblem()
   Exception* e = NULL;
   try
   {
-    PtrParamNode in = optInfoNode->Get(ParamNode::HEADER)->Get(optimizer.ToString(optimizer_));
-    baseOptimizer_->ToInfo(in);
     baseOptimizer_->SolveOptimizationProblem();
-    baseOptimizer_->ToInfo(in);
   }
   catch(Exception& ex)
   {
@@ -612,11 +562,11 @@ void Optimization::SolveProblem()
   if(e != NULL) throw *e;
   delete e;
 }
-PtrParamNode Optimization::CreateAdjointAnalysisIdNode(string child_name, Excitation* excite)
+PtrParamNode Optimization::CreateAdjointAnalysisIdNode(std::string child_name, Excitation* excite)
 {
   BaseDriver* driver = domain->GetDriver();
   PtrParamNode base = driver->GetAnalysisId();
-  string temp = "excite";
+  std::string temp = "excite";
   PtrParamNode in = excite == NULL ? driver->CreateAnalysisIdChild(base, child_name) : driver->CreateAnalysisIdChild(base, "excite", excite->index, child_name);
   
   return in;
@@ -831,9 +781,9 @@ double Optimization::CalcConstraint(Condition* g)
     Excitation& excite = me->excitations[e];
     // in the evaluate once case only the last excitation
     double v = g->DoEvaluate(&excite) ? CalcFunction(excite, g, false) : 0.0;
-    double w = g->DoEvaluateAlways() ? excite.GetWeightedFactor(g) : 1.0;
+    double w = g->DoEvaluateAlways() ? excite.GetFactor(g) : 1.0;
     result += v * w;
-    LOG_DBG(opt) << "CC ex=" << e << " eval=" << g->DoEvaluate(&excite) << " v=" << v << " alw=" << g->DoEvaluateAlways() << " w=" << w << " -> " << result;
+    LOG_DBG(opt) << "CC ex=" << e << " eval=" << g->DoEvaluate(&excite) << " v=" << v << " w=" << w << " -> " << result;
   }
 
   g->SetValue(result);
@@ -861,7 +811,7 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
   // if there is a <result ... value="constraintGradient" detail="penalizedVolume/*"
   if(g->special_result_idx != -1)
   {
-    int base = design->FindDesign(g->GetDesignType());
+    int base = design->FindDesign(g->design);
     int n    = design->GetNumberOfElements();
     for(int i = n * base; i < n * (base + 1); i++) // TODO add access!
       design->data[i].specialResult[g->special_result_idx] = design->data[i].GetPlainGradient(NULL, g);
@@ -939,7 +889,7 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
   }
 
   // IPOPT does own logging -> otherwise show the user we are alive
-  string f = GetIterationFrequency();
+  std::string f = GetIterationFrequency();
   if(optimizer_ != IPOPT_SOLVER && optimizer_ != SNOPT_SOLVER && optimizer_ != KNITRO_SOLVER)
   {
     cout << "iteration " << (currentIteration);
@@ -1050,20 +1000,20 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   if(out) out->flush();
 }
 
-LinearFormContext* Optimization::GetLinearFormContext(const RegionIdType regionId, StdPDE* pde, const string& integrator, Global::ComplexPart entryType)
+LinearFormContext* Optimization::GetLinearFormContext(const RegionIdType regionId, StdPDE* pde, const std::string& integrator, Global::ComplexPart entryType)
 {
   Assemble* ass = domain->GetBasePDE()->getPDE_assemble();
   return(ass->GetLinearForm(regionId, pde, integrator, false, entryType));
 }
 
 
-BiLinFormContext* Optimization::GetFormContext(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const string& integrator, bool throw_exception, Global::ComplexPart entryType)
+BiLinFormContext* Optimization::GetFormContext(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception, Global::ComplexPart entryType)
 {
   Assemble* ass = domain->GetBasePDE()->getPDE_assemble();
   return(ass->GetBiLinForm(regionId, pde1, pde2, integrator, !throw_exception, entryType));
 }
 
-BaseForm* Optimization::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const string& integrator, bool throw_exception, Global::ComplexPart entryType)
+BaseForm* Optimization::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception, Global::ComplexPart entryType)
 {
   if (pde2 != NULL){
     BiLinFormContext* bc = GetFormContext(regionId, pde1, pde2, integrator, throw_exception, entryType);
@@ -1078,7 +1028,7 @@ BaseForm* Optimization::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPD
 BaseForm* Optimization::GetForm(const RegionIdType reg, Application app1, Application app2, bool throw_exception)
 {
   Application a1, a2;
-  string integrator = "";
+  std::string integrator = "";
 
   if(app1 == MECH && (app2 == MECH || app2 == NO_APP))
   {

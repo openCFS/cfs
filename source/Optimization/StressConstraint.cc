@@ -62,7 +62,7 @@ StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMat
   M = dynamic_cast<MechPDE*>(em->ToPDE(Optimization::MECH))->GetVonMisesMatrix(domain->GetGrid()->GetDim());
 
   if(f->region != ALL_REGIONS && !space->Contains(f->region))
-    tf = TransferFunction(Optimization::NO_APP, TransferFunction::FULL, 0.0, f->GetDesignType());
+    tf = TransferFunction(Optimization::NO_APP, TransferFunction::FULL, 0.0, f->design);
   else
     tf = *(space->GetTransferFunction(DesignElement::DENSITY, Optimization::STRESS)); // for qp = rho^3/rho^2.8 use SIMP with 0.2
 

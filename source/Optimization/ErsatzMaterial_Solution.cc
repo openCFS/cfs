@@ -94,16 +94,11 @@ ErsatzMaterial::Solutions::Unit::~Unit()
 
 ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(Excitation& excitation, Function* f, unsigned int timestep, const DERIVType derivative)
 {
-  Solution* sol = Get(excitation.index, f, timestep, derivative);
-  LOG_DBG2(emsol) << "S:G: e=" << excitation.index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep << " d=" << derivative
-                  << " -> rhs=" << sol->ToString();
-  return sol;
+  return Get(excitation.index, f, timestep, derivative);
 }
 
 ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(int excitation_index, Function* f, unsigned int timestep, const DERIVType derivative)
 {
-  LOG_DBG2(emsol) << "S:G: ei=" << excitation_index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep << " d=" << derivative << " iF=" << isForward;
-
   if(isForward){ // if this is true, f is ignored and forward_data_ is used to avoid one map access
     if(forward_data_ == NULL){
       if(data_.find(NULL) == data_.end()){
@@ -158,13 +153,6 @@ ErsatzMaterial::Solution::~Solution()
       delete data[i];
     }
   }
-}
-
-std::string ErsatzMaterial::Solution::ToString()
-{
-  std::stringstream ss;
-  ss <<  "raw=" << (raw != NULL ) << " rhs=" << (rhs != NULL) << " select=" << (select != NULL);
-  return ss.str();
 }
 
 SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Application app, bool save_sol, DERIVType derivative)
@@ -250,7 +238,6 @@ void ErsatzMaterial::Solution::Write(StdPDE* pde, SingleVector* vec)
 template <class T>
 SingleVector* ErsatzMaterial::Solution::GetVector(StorageType st, bool create)
 {
-  LOG_DBG2(emsol) << "S:GV st=" << st << ToString() << " create=" << create;
   switch(st)
   {
   case RAW_VECTOR:
@@ -343,7 +330,7 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
       for(int e = 0; e < n; e++){
         elemList.SetElement(grid->GetElem(e+1)); // GetElem is 1-based
         const EntityIterator& it = elemList.GetIterator();
-        pde->GetAnyDerivSolVecOfElement((Vector<T>&) *elem_vec[e], it, resinfo, derivative);
+        pde->GetSolVecOfElement((Vector<T>&) *elem_vec[e], it, resinfo);
       }
       return NULL;
     }
@@ -428,7 +415,6 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
       }
       if(*tmp == NULL){
         *tmp = new Vector<T>(0);
-        LOG_DBG2(emsol) << ":S:R: new vector of type " << st << " created";
       }
       if(st == RAW_VECTOR) {
         if(derivative == NO_DERIVTYPE){

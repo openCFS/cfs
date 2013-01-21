@@ -43,7 +43,7 @@ SET(CFS_VERSION
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Legacy")
+SET(CFS_NAME "Heldendaemmerung")
 
 #-----------------------------------------------------------------------------
 # Set hostname of build host
@@ -172,8 +172,6 @@ SET(USE_METIS ${USE_METIS_DEFAULT}
 # SCPIP optimizer library.
 #-----------------------------------------------------------------------------
 OPTION(USE_SCPIP "Use the external SCPIP optimizer." ${USE_SCPIP_DEFAULT})
-OPTION(USE_FEAS_SCP "Use the external Feasible SCPIP optimizer." FALSE)
-
 
 #-----------------------------------------------------------------------------
 # Yet another optimization library.

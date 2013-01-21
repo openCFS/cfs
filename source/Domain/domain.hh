@@ -192,20 +192,12 @@ namespace CoupledField
      
      /** Returns true, if optimization does provide a complete tensor */
      bool HasErsatzMaterialTensor();
-
+     
      /** Returns true, if optimization does provide a mass value */
      bool HasErsatzMaterialMass();
      
      /** Return true, if optimization does provide damping parameters */
      bool HasErsatzMaterialDamping();
-
-     /** FMO for piezoelectric coupling */
-     bool HasErsatzMaterialPiezoCouplingTensor();
-
-     /** FMO for piezoelectric permittivity */
-     bool HasErsatzMaterialDielecTensor();
-
-
      
      /** Gets the Material Tensor for the given element in the current iteration, or its derivative */
 //     void GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction);

@@ -23,16 +23,17 @@
 #include "Optimization/Optimization.hh"
 #include "Utils/tools.hh"
 
-using std::string;
+namespace CoupledField {
+class DesignStructure;
+}  // namespace CoupledField
 
 using namespace CoupledField;
-class DesignStructure;
+
 
 DECLARE_LOG(conditions)
 
 // instantiation of the static elements
 Enum<Condition::Bound> Condition::bound;
-double Condition::SLACK_VALUE_ = -45217861;
 
 Condition::Condition(PtrParamNode pn) : Function(pn)
 {
@@ -41,22 +42,23 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   blown_up_ = false;
   index_ = -1; // to be set by ConditionContainer::Read()
   virtual_base_index_ = -1;
-  // fmo_pos_def_minor_ = 0;
 
-  observation_ = pn->Get("mode")->As<string>() == "observation";
+
+  observation_ = pn->Get("mode")->As<std::string>() == "observation";
 
   // the bound value is mandatory when we have a constraint
   if(!observation_ && !pn->Has("bound") && type_ != ISOTROPY && type_ != ISO_ORTHOTROPY && type_ != ORTHOTROPY && type_ != MAXWELL_ISOTROPY && type_ != BIISOTROPY)
     throw Exception("bound type for constraint '" + type.ToString(type_) + "' mandatory");
-  bound_ = pn->Has("bound") ? bound.Parse(pn->Get("bound")->As<string>()) : EQUAL;
+  bound_ = pn->Has("bound") ? bound.Parse(pn->Get("bound")->As<std::string>()) : EQUAL;
   // the bound value is called value in the problem file!
   // there must not  be a value when a homogenization tensor is given
-  this->boundValue_ = -1.0;
-  if(pn->Has("value"))
-    this->boundValue_ = pn->Get("value")->As<string>() == "slack" ? SLACK_VALUE_ : pn->Get("value")->As<double>();
+  this->boundValue_ = pn->Has("value") ? pn->Get("value")->As<double>() : -1.0;
+
+  if(pn->Has("design")) // will sometime be in Function, now the default is set to DEFAULT
+    design = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
 
   // special handling of scaling
-  objective_scaling_ = pn->Get("scaling")->As<string>() == "objective";
+  objective_scaling_ = pn->Get("scaling")->As<std::string>() == "objective";
   manual_scaling_value = objective_scaling_ ? -1.0 : pn->Get("scaling")->As<double>();
 
 
@@ -72,11 +74,11 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   penalty = pn->Get("penalty")->As<double>();
 
   // validated in StressConstraint::GetApplications()
-  stressType_ = stressType.Parse(pn->Get("stress")->As<string>());
+  stressType_ = stressType.Parse(pn->Get("stress")->As<std::string>());
 
   // default is set in Function, may this moves later to Function, too
-  if(pn->Has("region") && pn->Get("region")->As<string>() != "all")
-    region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<string>());
+  if(pn->Has("region") && pn->Get("region")->As<std::string>() != "all")
+    region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<std::string>());
 
   // value is not mandatory for all almost all constraints. Check for homogenization later
   if(!observation_)
@@ -92,16 +94,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
       if(!pn->Has("tensor"))
         throw Exception("Tensor is mandatory for '" + type.ToString(type_) + "'");
       break;
-    // case FMO_POS_DEF:
-    case POS_DEF_DET_MINOR_1:
-    case POS_DEF_DET_MINOR_2:
-    case POS_DEF_DET_MINOR_3:
-    case BENSON_VANDERBEI_1:
-    case BENSON_VANDERBEI_2:
-    case BENSON_VANDERBEI_3:
-      if(!pn->Has("parameter"))
-        throw Exception("parameter (very small value) mandatory for '" + type.ToString(type_) + "'");
-      break;
+
     case ISOTROPY:
     case ISO_ORTHOTROPY:
     case MAXWELL_ISOTROPY:
@@ -117,6 +110,13 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
       break;
     }
   }
+  
+  // generally we are not linear, the volume is not linear on heaviside densities.
+  linear_ = type_ == VOLUME || type_ == SLOPE || type_ == SUM_MODULI || type_ == GLOBAL_SUM_MODULI ? true : false;
+  //  snopt only makes a difference between linear and nonlinear constraints!
+  if(pn->Has("linear"))
+    linear_ = pn->Get("linear")->As<bool>();
+
 }
 
 void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em)
@@ -141,7 +141,7 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzM
 
 bool Condition::ReadCoord(PtrParamNode pn)
 {
-  string val = pn->Get("coord")->As<string>();
+  std::string val = pn->Get("coord")->As<std::string>();
   if(val == "all") return false;
 
   assert(val.size() == 2);
@@ -156,8 +156,10 @@ bool Condition::ReadCoord(PtrParamNode pn)
 
 void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
 {
-  Type t = type.Parse(pn->Get("type")->As<string>());
-  list.Push_back(IsLocal(t) ? new LocalCondition(pn) : new Condition(pn));
+  Type t = type.Parse(pn->Get("type")->As<std::string>());
+
+  list.Push_back(t == SLOPE || t == MOLE || t == OSCILLATION || t == JUMP || t == BUMP
+      || t == SUM_MODULI || t == PARAM_PS_POS_DEF ? new LocalCondition(pn) : new Condition(pn));
 
   // note that the pointer becomes invalid by AddSubCondition()
   Condition* g = list.Last();
@@ -170,9 +172,6 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
   // isotropy is a special constraint which blows up special tensor entry constraints
   if(g->type_ == ISOTROPY || g->type_ == ISO_ORTHOTROPY || g->type_ == ORTHOTROPY)
     AddXtropyConstraints(pn, list, g);
-
-  //if(g->type_ == FMO_POS_DEF_MINOR_1 || FMO_POS_DEF_MINOR_2 || POS_DEF_DET_MINOR_3)
-  //  AddFMOPosDefConstraints(pn, list, g);
 
   if(g->type_ == MAXWELL_ISOTROPY)
   {
@@ -253,6 +252,8 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
       g->coords.Push_back(make_tuple(1,2,-1.0));
       g->coords.Push_back(make_tuple(3,3,-2.0));
     } // else case is common for 2D and 3D
+
+
   }
   else
   {
@@ -478,6 +479,7 @@ void Condition::AddMaxwellIsotropyConstraints(PtrParamNode pn, StdVector<Conditi
 
 }
 
+
 void Condition::AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
 {
   // homogenization are special constraints which constraints which "blow up" to more constraints
@@ -574,11 +576,7 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
 
 Condition* Condition::AppendSubCondition(StdVector<Condition*>& list, bool biisotropy, bool imag)
 {
-  if(this->IsLocalCondition())
-    list.Push_back(new LocalCondition(*dynamic_cast<LocalCondition*>(this)));
-  else
-    list.Push_back(new Condition(*this)); // make a copy of this element by the (default) copy constructor
-
+  list.Push_back(new Condition(*this)); // make a copy of this element by the (default) copy constructor
   Condition* sub = list.Last(); // copy this entry as reference
   sub->index_ = list.GetSize() - 1;
   sub->blown_up_ = true;
@@ -629,7 +627,7 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* s
   // read the pattern file
   if(!pn->Has("designTarget"))
     throw Exception("Attribute 'designTarget' holding a density file name is mandatory of 'designTracking'");
-  string file = pn->Get("designTarget")->As<string>();
+  std::string file = pn->Get("designTarget")->As<std::string>();
   Xerces* xerces = new Xerces(file);
   PtrParamNode xml = xerces->CreateParamNodeInstance();
   delete xerces;
@@ -658,20 +656,20 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* s
     pattern[i] = tmp[elements[i]->elem->elemNum];
 }
 
-double Condition::GetBoundValue() const
+void Condition::SetDenseSparsityPattern(DesignSpace* space)
 {
-  // see GetSlackBoundValue()
-  return HasSlackBound() ? 0.0 : boundValue_; // all slack constraints g <= slack need to be g - slack <= 0
-
-  assert(!HasSlackBound());
-  return boundValue_;
+  unsigned int size = space->GetNumberOfVariables();
+  sparsity_.Resize(size);
+  
+  for(unsigned int i = 0; i < size; i++)
+    sparsity_[i] = i;
 }
 
-
-double Condition::GetSlackBoundValue(const DesignSpace* space) const
+StdVector<unsigned int>& Condition::GetSparsityPattern()
 {
-  assert(HasSlackBound());
-  return space->GetSlackVariable();
+  assert(!sparsity_.IsEmpty()); // SetSparsityPattern() needs to be called before
+  
+  return sparsity_;
 }
 
 bool Condition::IsFeasible() const
@@ -694,25 +692,7 @@ bool Condition::IsFeasible() const
   return false;
 }
 
-bool Condition::IsFeasibilityConstraint() const
-{
-  switch(type_)
-  {
-  case POS_DEF_DET_MINOR_1:
-  case POS_DEF_DET_MINOR_2:
-  case POS_DEF_DET_MINOR_3:
-  case BENSON_VANDERBEI_1:
-  case BENSON_VANDERBEI_2:
-  case BENSON_VANDERBEI_3:
-  case DESIGN_BOUND:
-    return true;
-  default:
-    return false;
-  }
-}
-
-
-string Condition::ToString(MultipleExcitation* me) const
+std::string Condition::ToString(MultipleExcitation* me) const
 {
   std::ostringstream os;
   
@@ -723,8 +703,8 @@ string Condition::ToString(MultipleExcitation* me) const
   if(region != ALL_REGIONS)
     os << "_" << domain->GetGrid()->GetRegion().ToString(region);
 
-  if(design_ != DesignElement::DEFAULT)
-    os << "_(" << DesignElement::type.ToString(design_) << ")";
+  if(design != DesignElement::DEFAULT)
+    os << "_(" << DesignElement::type.ToString(design) << ")";
 
   if(type_ == HOM_TENSOR)
     os << ToString(coords);
@@ -736,7 +716,7 @@ string Condition::ToString(MultipleExcitation* me) const
   return os.str();  
 }
 
-string Condition::ToString(const StdVector<tuple<int, int, double> >& coords)
+std::string Condition::ToString(const StdVector<tuple<int, int, double> >& coords)
 {
   assert(coords.GetSize() > 0);
   assert(get<2>(coords[0]) == 1.0); // so we don't have to start with a minus
@@ -772,12 +752,12 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   Function::ToInfo(in);
 
   in->Get("mode")->SetValue(observation_ ? "observation" : "constraint");
-  in->Get("design")->SetValue(DesignElement::type.ToString(design_));
+  in->Get("design")->SetValue(DesignElement::type.ToString(design));
   if(IsActive())
   {
     in->Get("bound")->SetValue(bound.ToString(bound_));
     if(type_ != HOM_TRACKING)
-      HasSlackBound() ? in->Get("bound_value")->SetValue("slack") : in->Get("bound_value")->SetValue(boundValue_);
+      in->Get("bound_value")->SetValue(boundValue_);
   }
   if(type_ == HOM_TENSOR)
   {
@@ -805,12 +785,11 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   // if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!
   //  in->Get(ParamNode::WARNING)->SetValue("Doing homogenization without 'objective' scaling constraint '" + type.ToString(type_) + "'");
 
+  if(!observation_)
+    in->Get("linear")->SetValue(linear_);
 
   if(type_ == VOLUME && physical_ && !observation_)
     info_->Get(ParamNode::WARNING)->SetValue("a physical volume constraint should make no sense");
-
-  if((type_ == VOLUME || type_ == TENSOR_TRACE) && design_ == DesignElement::TENSOR_TRACE)
-    info_->Get("notation")->SetValue(DesignMaterial::notation.ToString(notation_));
 
 }
 
@@ -834,15 +813,15 @@ Function::Local::Identifier& LocalCondition::GetCurrentVirtualContext()
   return local->virtual_elem_map[idx];
 }
 
-unsigned int LocalCondition::GetSparsityPatternSize() const
-{
-  return local->virtual_elem_map[0].neighbor.GetSize() + 1;
-}
-
 StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
 {
   /* for debug purposes you can enable the dense pattern by commenting out
    * the two lines */
+  /*
+  SetDenseSparsityPattern(space_);
+  return sparsity_;
+  */
+  
   assert(IsLocal());
 
   Function::Local::Identifier& id = GetCurrentVirtualContext();
@@ -859,141 +838,12 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
 
   // sort and copy
   indices.sort();
-  jac_sparsity_.Resize(0); // keeps capacity, hence Push_back is cheap
+  sparsity_.Resize(0); // keeps capacity, hence Push_back is cheap
   for(std::list<unsigned int>::const_iterator it = indices.begin(); it != indices.end(); ++it)
-    jac_sparsity_.Push_back(*it);
+    sparsity_.Push_back(*it);
 
-  LOG_DBG3(conditions) << "LC:GSP: current_view_index_=" << current_view_index_ << " -> " << jac_sparsity_.ToString();
-  return jac_sparsity_;
-}
-
-Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
-{
-  assert(IsLocal());
-
-  bool elec = GetDesignType() == DesignElement::DIELEC_ALL;
-
-  Function::Local::Identifier& id = GetCurrentVirtualContext();
-
-  switch(type_)
-  {
-  case POS_DEF_DET_MINOR_2:
-  {
-    DesignElement::Type t11 = elec ? DesignElement::DIELEC_11 : DesignElement::TENSOR11;
-    DesignElement::Type t12 = elec ? DesignElement::DIELEC_12 : DesignElement::TENSOR12;
-    DesignElement::Type t22 = elec ? DesignElement::DIELEC_22 : DesignElement::TENSOR22;
-
-    hess_sparsity_.Resize(2, 2);
-
-    hess_sparsity_(0, 0) = id.GetElement(t11)->GetIndex();
-    hess_sparsity_(0, 1) = id.GetElement(t22)->GetIndex();
-
-    hess_sparsity_(1, 0) = id.GetElement(t12)->GetIndex();
-    hess_sparsity_(1, 1) = id.GetElement(t12)->GetIndex();
-
-    break;
-  }
-  case POS_DEF_DET_MINOR_3:
-    assert(!elec);
-    hess_sparsity_.Resize(12, 2);
-
-    hess_sparsity_(0, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
-    hess_sparsity_(0, 1) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
-
-    hess_sparsity_(1, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
-    hess_sparsity_(1, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
-
-    hess_sparsity_(2, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
-    hess_sparsity_(2, 1) = id.GetElement(DesignElement::TENSOR33)->GetIndex();
-
-    hess_sparsity_(3, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(3, 1) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-
-    hess_sparsity_(4, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(4, 1) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
-
-    hess_sparsity_(5, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(5, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
-
-    hess_sparsity_(6, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(6, 1) = id.GetElement(DesignElement::TENSOR33)->GetIndex();
-
-    hess_sparsity_(7, 0) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
-    hess_sparsity_(7, 1) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
-
-    hess_sparsity_(8, 0) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
-    hess_sparsity_(8, 1) = id.GetElement(DesignElement::TENSOR33)->GetIndex();
-
-    hess_sparsity_(9, 0) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
-    hess_sparsity_(9, 1) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
-
-    hess_sparsity_(10, 0) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
-    hess_sparsity_(10, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
-
-    hess_sparsity_(11, 0) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
-    hess_sparsity_(11, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
-
-    break;
-  default:
-    hess_sparsity_.Resize(0, 0);
-    break;
-  }
-
-  LOG_DBG3(conditions) << "LC:GHSP: g=" << ToString() << " -> " << hess_sparsity_.ToString() << " n=" << DesignElement::ToString(id.neighbor, true);
-  return hess_sparsity_;
-}
-
-void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
-{
-  assert(IsLocal());
-
-
-  assert(out.GetSize() == GetHessianSparsityPattern().GetNumRows());
-
-  switch(type_)
-  {
-  case POS_DEF_DET_MINOR_2:
-    // (6.69) in the diss of Sonja Lehmann
-    out[0] = factor * 1;
-    out[1] = factor * -2;
-    break;
-  case POS_DEF_DET_MINOR_3:
-  {
-    Matrix<double> E;
-    // (E - v*I) >= gamma
-    double v = GetParameter();
-    double eps = 1.0 * GetBoundValue();
-
-    Function::Local::Identifier& id = GetCurrentVirtualContext();
-    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, id.element->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL); // the sub-tensor-type does'nt matter
-    double e11 = E[0][0]; // 1
-    double e12 = E[0][1]; // 2
-    double e22 = E[1][1]; // 3
-    double e13 = E[0][2]; // 4
-    double e23 = E[1][2]; // 5
-    double e33 = E[2][2]; // 6
-
-    // (6.72) in the diss of Sonja Lehmann. For the eps see Function::CalcPosDefDeterminant()!
-    out[0]  = factor * (e33 - v);      // 1
-    out[1]  = factor * (-2.0 * e23);   // 2
-    out[2]  = factor * (e22 - v);      // 3
-    out[3]  = factor * (-2.0*(e33-v)); // 4
-    out[4]  = factor * (2.0*e23);      // 5
-    out[5]  = factor * (2.0*e13);      // 6
-    out[6]  = factor * (-2.0*e12);     // 7
-    out[7]  = factor * (-2.0*e13);     // 8
-    out[8]  = factor * (e11-v-eps);    // 9
-    //out[8]  = factor * (e11-v);    // 9
-    out[9]  = factor * (-2.0*(e22-v)); // 10
-    out[10] = factor * (2.0*e12);      // 11
-    out[11] = factor * (-2.0*(e11-v-eps)); // 12
-    //out[11] = factor * (-2.0*(e11-v)); // 12
-    break;
-  }
-  default:
-    assert(out.GetSize() == 0);
-    break;
-  }
+  LOG_DBG3(conditions) << "LC:GSP: current_view_index_=" << current_view_index_ << " -> " << sparsity_.ToString();
+  return sparsity_;
 }
 
 double LocalCondition::CalcMeanValue() const
@@ -1044,7 +894,7 @@ void LocalCondition::SetValue(double val)
 }
 
 
-string LocalCondition::ToString(MultipleExcitation* me) const
+std::string LocalCondition::ToString(MultipleExcitation* me) const
 {
   std::stringstream ss;
 
@@ -1084,7 +934,7 @@ void ConditionContainer::Read(ParamNodeList pn_list)
   for(unsigned int i = 0; i < pn_list.GetSize(); i++)
   {
     PtrParamNode pn = pn_list[i];
-    bool act = pn->Get("mode")->As<string>() == "constraint";
+    bool act = pn->Get("mode")->As<std::string>() == "constraint";
     Condition::AddCondition(pn, act ? active : observe);
   }
 
@@ -1120,22 +970,22 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
 {
   this->space_ = space;
 
-  // the conditions have no space
+  // the conditions have no space 
   for(unsigned int i = 0; i < all.GetSize(); i++)
     if(all[i]->HasDenseJacobian())
       all[i]->SetDenseSparsityPattern(space);
-
+  
   // check for special result index if there was a <result> for value=constraintGradient
   for(unsigned int i = 0; i < all.GetSize(); i++)
   {
     Condition* g = all[i];
 
     // the strings for Function::Type are (partially) repeated as DesignElement::Detail
-    string constr_str = g->type.ToString(g->type_); // our type as string
+    std::string constr_str = g->type.ToString(g->type_); // our type as string
     if(DesignElement::detail.IsValid(constr_str)) // is it defined for output?
     {
       DesignElement::Detail detail = DesignElement::detail.Parse(constr_str);
-      g->special_result_idx = space->GetSpecialResultIndex(g->design_, DesignElement::CONSTRAINT_GRADIENT, detail);
+      g->special_result_idx = space->GetSpecialResultIndex(g->design, DesignElement::CONSTRAINT_GRADIENT, detail);
     } // -1 for else by default in constructor
   }
 
@@ -1160,45 +1010,28 @@ void ConditionContainer::ToInfo(PtrParamNode in, MultipleExcitation* me)
     all[i]->ToInfo(in->Get("constraint", ParamNode::APPEND), me);
 }
 
-
-
-Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type design, Condition::Bound bound, bool throw_exception)
-{
-  assert(design != DesignElement::NO_TYPE);
-
-  for(unsigned int i = 0; i < active.GetSize(); i++)
-    if(active[i]->GetType() == type && active[i]->design_ == design && active[i]->bound_ == bound)
-      return active[i]; // shall be unique
-
-  if(throw_exception)
-    throw Exception("have no active constraint " + Condition::type.ToString(type) + " with design " + DesignElement::type.ToString(design) + " and bound " + Condition::bound.ToString(bound));
-
-  return NULL;
-}
-
 StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignElement::Type design, bool only_active)
 {
   StdVector<Condition*> result;
 
   for(unsigned int i = 0; i < active.GetSize(); i++)
-    if(active[i]->GetType() == type && (design != DesignElement::NO_TYPE ? active[i]->design_ == design : true))
+    if(active[i]->GetType() == type && (design != DesignElement::NO_TYPE ? active[i]->design == design : true))
       result.Push_back(active[i]);
 
   for(unsigned int i = 0; !only_active && i < observe.GetSize(); i++)
-    if(observe[i]->GetType() == type && (design != DesignElement::NO_TYPE ? observe[i]->design_ == design : true))
+    if(observe[i]->GetType() == type && (design != DesignElement::NO_TYPE ? observe[i]->design == design : true))
       result.Push_back(observe[i]);
 
   return result;
 }
 
-bool ConditionContainer::Has(Condition::Type type, DesignElement::Type design, bool only_active)
+bool ConditionContainer::Has(Condition::Type type, DesignElement::Type design)
 {
   // be save and check for uniqueness!
-  StdVector<Condition*> list = GetList(type, design, only_active);
+  StdVector<Condition*> list = GetList(type, design, true);
 
   return !list.IsEmpty();
 }
-
 
 Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type design, bool only_active, bool throw_exception)
 {
@@ -1231,18 +1064,31 @@ void ConditionContainer::VirtualView::Refresh()
   std::list<unsigned int> tmp;
 
   // search also for observe conditions!
-  for(int i = 0; i < 100; i++) // assume to get all valid function types
-  {
-    Function::Type cand = (Function::Type) i;
-    if(Function::IsLocal(cand))
-    {
-      const StdVector<Condition*>& c = container_->GetList(cand, DesignElement::NO_TYPE, false);
-      for(UInt i=0; i<c.GetSize(); ++i) {
-        tmp.push_back(c[i]->GetIndex());
-        LOG_DBG2(conditions) << "CC:VV:R: add " << Function::type.ToString(cand) << " c=" << c.GetSize() << " idx=" << c[i]->GetIndex();
-      }
-    }
-  }
+  StdVector<Condition*> c = container_->GetList(Condition::SLOPE, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+  c = container_->GetList(Condition::MOLE, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+  c = container_->GetList(Condition::JUMP, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+  c = container_->GetList(Condition::BUMP, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+  c = container_->GetList(Condition::SUM_MODULI, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+  c = container_->GetList(Condition::PARAM_PS_POS_DEF, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+
+
+  // we might combine oscillation for void and material with different sizes
+  StdVector<Condition*> list = container_->GetList(Condition::OSCILLATION, DesignElement::NO_TYPE, false);
+  for(unsigned int i = 0; i < list.GetSize(); i++)
+    tmp.push_back(list[i]->GetIndex());
+
   tmp.sort();
 
   // copy sorted
@@ -1267,8 +1113,6 @@ void ConditionContainer::VirtualView::Refresh()
 
     if(lc->GetConstraintSize() > 0)
       virtual_total_size_ += lc->GetConstraintSize() -1;
-
-    LOG_DBG2(conditions) << "CC:VV:R i=" << i << " lci=" << local_cond_index_[i] << " lc=" << lc->ToString() << " vas=" << virtual_active_size_ << " vts=" << virtual_total_size_;
   }
 
   // set the virtual base indices
@@ -1281,7 +1125,7 @@ void ConditionContainer::VirtualView::Refresh()
       curr += std::max((int) dynamic_cast<LocalCondition*>(g)->GetConstraintSize(), 1);
     else
       curr++;
-    LOG_DBG2(conditions) << "CC:VV:R g=" << g->ToString() << " vbi=" << g->virtual_base_index_ << " new curr=" << curr;
+    LOG_DBG2(conditions) << "CC:VV:Refresh() g=" << g->ToString() << " vbi=" << g->virtual_base_index_ << " new curr=" << curr;
   }
   assert(curr == virtual_total_size_);
 }

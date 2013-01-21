@@ -219,7 +219,6 @@
       <xsd:enumeration value="optResult_7"/>
       <xsd:enumeration value="optResult_8"/>
       <xsd:enumeration value="optResult_9"/>
-      <xsd:enumeration value="optResult_10"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -235,7 +234,6 @@
       <xsd:enumeration value="optResult_7"/>
       <xsd:enumeration value="optResult_8"/>
       <xsd:enumeration value="optResult_9"/>
-      <xsd:enumeration value="optResult_10"/>
     </xsd:restriction>
   </xsd:simpleType>
   

@@ -212,16 +212,6 @@ def cleanOversampledArray(data):
   return result    
 
 
-## convert a list to a numpy array 
-def listToNDArray(data):
-  ret = numpy.zeros((len(data)))
-  
-  for i in range(len(data)):
-    ret[i] = data[i]
-    
-  return ret  
-
-
 ## finds a value in an ndarray
 # @param silent if True -1,-1,-1 is returned, otherwise an error
 # @return the coordinates x, y, z or an error, see silent

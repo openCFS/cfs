@@ -129,12 +129,6 @@ namespace CoupledField {
     /** static helper function to calculate complex stiffness tensor from lame parameters */
     static void CalcComplexIsotropicStiffnessTensor(Matrix<Complex>& out, Complex lambda, Complex mu);
 
-    /** overloads BaseMateriak::GetTensorMaterialType() */
-    MaterialType GetTensorMaterialType() const { return MECH_STIFFNESS_TENSOR; }
-
-    /** overloads BaseMaterial::ComputeSubTensor() */
-    void ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const;
-
     /** Computes from a given tensor the sub-type */
     template<class T>
     static void ComputeSubTensor(Matrix<T>& matMatrix, SubTensorType subTensor, const Matrix<T>& input);
@@ -161,6 +155,10 @@ namespace CoupledField {
      * @param vol only for plane strain
      * @return a vector with 2 or 6 entries  v_21, v_12(, v_31, v_13, v_32, v_23) */
     static StdVector<double> CalcOrthotropePoissonsRatio(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol);
+
+    /** compute the correct subTensor (3D, AXI, ..) from the material */
+    void ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const;
+
 
     //! Compute elasticity tensor from given parameters
     void ComputeFullStiffTensor();

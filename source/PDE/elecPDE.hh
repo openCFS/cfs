@@ -151,9 +151,6 @@ namespace CoupledField
     //! Calculates the polarization vector
     void CalcPolarizationField( shared_ptr<BaseResult> vals );
 
-    /** for the piezo FMO optimization results */
-    void CalcTensorResults(shared_ptr<BaseResult> vals);
-
     //! Calculate electric charges
     template <class TYPE>
     void CalcCharges( shared_ptr<BaseResult> vals );

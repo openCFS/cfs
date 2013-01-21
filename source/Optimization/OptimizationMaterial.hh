@@ -57,11 +57,11 @@ public:
   System GetSystem() const { return system_; }
 
   /** works fine for standard single pde SIMP stuff */
-  virtual const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
+  virtual const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false) {
     EXCEPTION("overload!");
   }
 
-  virtual const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
+  virtual const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false) {
     EXCEPTION("overload!");
   }
 
@@ -91,12 +91,6 @@ protected:
   void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL,
                         BaseMaterial* bimaterial = NULL, const Vector<double>* ts = NULL);
 
-  /** service function handling multimaterial
-   * @param de we need elem->region, multimaterial might be NULL otherwise we check for index */
-  Matrix<double>& GeneralStiffness(std::map<RegionIdType, StdVector<Matrix<double> > >& map,
-      const DesignElement* de, MaterialClass mc, StdPDE* pde1, StdPDE* pde2, DesignElement::Type direction,
-      double factor, bool transposed);
-
   StdVector<RegionIdType> regionIds;
 
   /** might be NULL when using other constructor */
@@ -106,7 +100,6 @@ protected:
   
   // short cuts
   bool harmonic_;
-  bool transient_;
   bool structured_;
 
   // what we are;
@@ -119,7 +112,7 @@ private:
   /** This is the common implementation for GetElementMatrix() and GetElementVector() */
   void GetElementEntity(BaseForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem = NULL,
                         BaseMaterial* bimaterial = NULL,
-                        DesignElement::Type direction = DesignElement::NO_DERIVATIVE, const Vector<double>* ts = NULL);
+                        const DesignElement::Type direction = DesignElement::NO_DERIVATIVE, const Vector<double>* ts = NULL);
   
 };
 
@@ -133,25 +126,24 @@ public:
   /** Get the ElementStiffness Matrix for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
    * @param bimaterial if true gets the material from the design space by the element's region
-   * @param multimaterial index or negative
    * @param direction if given, calculate derivative of Stiffness Matrix instead
    * @return a pointer to the Element Stiffness Matrix*/
-  const Matrix<double>& MechStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& MechStiffness(const Elem* elem, bool bimaterial = false, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** overwrites OptimizationMaterial::Stiffness */
-  const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1 ) {
-    return MechStiffness(elem, bimaterial, multimaterial, DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false) {
+    return MechStiffness(elem, bimaterial, DesignElement::NO_DERIVATIVE);
   }
 
   /** Get the ElementMass Matrix for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
    * @param direction if given, calculate derivative of mass Matrix instead
    * @return a pointer to the Element Mass Matrix*/
-  const Matrix<double>& MechMass(const Elem* elem,  bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& MechMass(const Elem* elem,  bool bimaterial = false, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** overwrites OptimizationMaterial::Mass */
-  const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
-    return MechMass(elem, bimaterial, multimaterial, DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false) {
+    return MechMass(elem, bimaterial, DesignElement::NO_DERIVATIVE);
   }
 
   
@@ -161,12 +153,12 @@ public:
 
 protected:  
   /** The mechanical element stiffness matrix is constant.
-   * We store multimaterial as a vector. No material one entry and legacy bimaterial two entries */
-  std::map<RegionIdType, StdVector<Matrix<double> > > mechStiffness_map;
+   * We store the results for standard (first) and bimaterial (second)  */
+  std::map<RegionIdType, std::pair<Matrix<double>, Matrix<double> > > mechStiffness_map;
 
   /** The mechanical element mass matrix is also constant. Only for harmonic!
    * @see mechStiffness_map*/
-  std::map<RegionIdType, StdVector<Matrix<double> > > mechMass_map;
+  std::map<RegionIdType, std::pair<Matrix<double>, Matrix<double> > > mechMass_map;
   
   /** We do not cache the vectors but always precalculate them */
   Vector<double> mechStrainRHS;
@@ -208,41 +200,40 @@ protected:
 };
 
 
-class PiezoElecMat : public MechMat
+class PiezoelecMat : public MechMat
 {
 public:
-  PiezoElecMat(ErsatzMaterial* em);
+  PiezoelecMat(ErsatzMaterial* em);
   
   /** Get the elec stiffness matrix $K_{\phi \phi}$ for this element, this is the region constant version.
    * Note, that in piezoelectriciy one usually requires -K_pp, use the the factor -1! 
-   * @param de only elem for number and region is used and multimaterial is checked
+   * @param elem the Element for which the Matrix should be returned
+   * @param factor has to be either 1 or -1 
    * @return a pointer to the Element Mass Matrix*/
-  const Matrix<double>& ElecStiffnessPos(const DesignElement* de, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
-
-  const Matrix<double>& ElecStiffnessNeg(const DesignElement* de, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& ElecStiffness(Elem* elem, int factor);
 
   /** Get the coupling stiffness matrix $K_{u \phi}$ for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
    * @return a pointer to the Element Mass Matrix*/
-  const Matrix<double>& CoupledStiffness(const DesignElement* de, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& CoupledStiffness(Elem* elem);
 
   /** Get the elec stiffness matrix $K_{\phi \phi}$ for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
    * @return a pointer to the Element Mass Matrix*/
-  const Matrix<double>& CoupledStiffnessTransposed(const DesignElement* de, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& CoupledStiffnessTransposed(Elem* elem);
   
 private:
   /** The elec stiffness matrix $K_{\phi \phi}$. */
-  std::map<RegionIdType, StdVector<Matrix<double> > > elecStiffness_map;
+  std::map<RegionIdType, Matrix<double> > elecStiffness_map;
 
   /** The negative elec stiffness matrix $-K_{\phi \phi}$. */
-  std::map<RegionIdType, StdVector<Matrix<double> > > elecStiffness_neg_map;
+  std::map<RegionIdType, Matrix<double> > elecStiffness_neg_map;
   
   /** The coupling stiffness matrix $K_{u \phi}$ */
-  std::map<RegionIdType, StdVector<Matrix<double> > > coupledStiffness_map;
+  std::map<RegionIdType, Matrix<double> > coupledStiffness_map;
 
   /** The transposed coupling stiffness matrix $K_{u \phi}^T$ */
-  std::map<RegionIdType, StdVector<Matrix<double> > > coupledStiffnessTransposed_map;
+  std::map<RegionIdType, Matrix<double> > coupledStiffnessTransposed_map;
   
   ElecPDE* elec;
 };
@@ -258,8 +249,6 @@ protected:
   HeatCondPDE* heat;
 };
 
-
-/** For Jannis' Maxwell homogenization. The PiezoElecMat has elec for piezo */
 class ElecMat : public OptimizationMaterial
 {
 public:

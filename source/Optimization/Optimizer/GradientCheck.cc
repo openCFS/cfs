@@ -47,7 +47,7 @@ GradientCheck::GradientCheck(Optimization* optimization, PtrParamNode pn) :
   error_result_index_ = design->GetSpecialResultIndex(de.DEFAULT,
       de.COST_GRADIENT, de.ERROR_COST_GRADIENT, de.PLAIN);
 
-  PostInitScale(1.0, true);
+  PostInit(1.0, true);
 
   info_->Get(ParamNode::HEADER)->Get("type")->SetValue(
       Optimization::optimizer.ToString(Optimization::GRADIENT_CHECK));

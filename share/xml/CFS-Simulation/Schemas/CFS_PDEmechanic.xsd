@@ -519,7 +519,6 @@
       <xsd:enumeration value="optResult_7"/>
       <xsd:enumeration value="optResult_8"/>
       <xsd:enumeration value="optResult_9"/>
-      <xsd:enumeration value="optResult_10"/>
       <xsd:enumeration value="gradXDisplacement"/>
       <xsd:enumeration value="gradYDisplacement"/>
       <xsd:enumeration value="gradZDisplacement"/>
@@ -533,17 +532,10 @@
       <xsd:enumeration value="mechStress"/>
       <xsd:enumeration value="vonMisesStress"/>
       <xsd:enumeration value="vonMisesStrain"/>
-      <!-- averaged nodal displacements -->
       <xsd:enumeration value="lumpedMechDisplacement"/>
       <xsd:enumeration value="mechRelativeDilatation"/>
-      <!-- non-physical design variable for simp topology optimization --> 
       <xsd:enumeration value="mechPseudoDensity"/>
-      <!-- physical application of design variable in the simulation -->
       <xsd:enumeration value="physicalPseudoDensity"/>
-      <!-- For parametrized or free material optimization the local tensor trace -->
-      <xsd:enumeration value="mechTensorTrace"/>
-      <!-- For parametrized or free material optimization the complete local tensor-->
-      <xsd:enumeration value="mechTensor"/>
       <xsd:enumeration value="optResult_1"/>      
       <xsd:enumeration value="optResult_2"/>      
       <xsd:enumeration value="optResult_3"/>                  
@@ -553,7 +545,6 @@
       <xsd:enumeration value="optResult_7"/>
       <xsd:enumeration value="optResult_8"/>
       <xsd:enumeration value="optResult_9"/>
-      <xsd:enumeration value="optResult_10"/>
     </xsd:restriction>
   </xsd:simpleType>
 

@@ -14,7 +14,6 @@
 #include "MatVec/vector.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignStructure.hh"
-#include "Optimization/Design/DesignMaterial.hh"
 #include "Utils/StdVector.hh"
 #include "boost/tuple/tuple.hpp"
 
@@ -115,23 +114,8 @@ class Function
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
-      TENSOR_TRACE,              /*!< local constraint on the tensor trace for FMO, laminates, hom_rect. Elasticity or dielec */
-      TENSOR_NORM,               /*!< local squared L2 norm of the tensor coefficients (sum of the squared coefficients). For piezo-coupling in piezo FMP */
-      LAMINATES_VOL,             /*!< Volume constraint / cost function for laminates parametrization */
-      GLOBAL_LAMINATES_VOL,      /*!< global volume constraint / cost function for laminates parametrization */
-      GLOBAL_TENSOR_TRACE,       /*!< global constraint on the tensor trace for fmo or laminates */
-      PARAM_PS_POS_DEF,          /*!< constraint to ensure positive definiteness in parametrized elasticity tensor formulation (plane stress). Choose > 0*/
-      POS_DEF_DET_MINOR_1,       /*!< 1st minor constraint for FMO positive definiteness by positive determinants */
-      POS_DEF_DET_MINOR_2,       /*!< 2nd minor constraint for FMO positive definiteness by positive determinants */
-      POS_DEF_DET_MINOR_3,       /*!< 3rd minor constraint for FMO positive definiteness by positive determinants */
-      BENSON_VANDERBEI_1,        /*!< 1st minor constraint for numerical problemantic FMO pos def constraint */
-      BENSON_VANDERBEI_2,        /*!< 2st minor constraint for numerical problemantic FMO pos def constraint */
-      BENSON_VANDERBEI_3,        /*!< 3st minor constraint for numerical problemantic FMO pos def constraint */
-      DESIGN_BOUND,              /*!< local design bound */
-      MULTIMATERIAL_SUM,         /*!< local sum of multimaterial designs */
-      SLACK                      /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function
-                                      but triggers AuxDesign instead of DesignSpace. */
-    } Type; // in ConditionContainer::VirtualView::Refresh() we assume a maximal value for the type. Check!!
+      PARAM_PS_POS_DEF           /*!< constraint to ensure positive definiteness in parametrized elasticity tensor formulation (plane stress). Choose > 0*/
+    } Type;
 
     /** to convert string/enum for this type */
     static Enum<Type> type;
@@ -186,27 +170,6 @@ class Function
     /** Are we generally excitation sensitive? E.g. stress */
     bool IsExcitationSensitive() const;
 
-    /** to be overwritten in Condition */
-    virtual bool HasDenseJacobian() const { return true; }
-
-    /** Gives the sparsity pattern of the Jacobian. It gives the sorted, 0-based indices which have
-     * values. For the dens case this is 0, 1, ... m.
-     * This works only after ConditionContainer::PostProc() is called as otherwise the design is not known yet.
-     * Is overwritten for local constraint which actually has spare patterns. */
-    virtual StdVector<unsigned int>& GetSparsityPattern();
-
-    /** LocalCondition::GetSparsityPattern() is always evaluated, this allows to a speed up */
-    virtual unsigned int GetSparsityPatternSize() const { return jac_sparsity_.GetSize(); }
-
-    /** Gives the sparsity pattern of the Hessian. Only for special nonlinear local functions */
-    virtual Matrix<unsigned int>& GetHessianSparsityPattern();
-
-    /** FeasPP can use the original functions for its strictly feasible MMA approximation. Makes only sense for
-     * some special non-linear local constraints.
-     * @param out needs to be the size of rows of GetHessianSparsityPattern()
-     * @param factor -1 for normalizing lower bound constraints to c <= 0 */
-    virtual void CalcHessian(StdVector<double>& out, double factor);
-
     /** Requires this function an adjoint solution for the gradient? */
     bool IsAdjointBased() const;
 
@@ -221,12 +184,6 @@ class Function
     bool IsMaxwellHomogenization() const;
 
     bool IsBitensor() {return type_ == BITENSOR;}
-
-    /** Is this a linear function? E.g. SnOpt can handle them more efficiently */
-    bool IsLinear() const { return linear_; }
-
-    /** Is this a local function type */
-    static bool IsLocal(Type t);
 
     bool HasSelectionTensor() { return HasSelectionTensor_; }
 
@@ -270,9 +227,6 @@ class Function
     static Enum<StressType> stressType;
 
     StressType GetStressType() { return stressType_; }
-
-    /** for volume to check the notation in the FMO case with tensor_trace design. */
-    DesignMaterial::Notation GetNotation() const { return notation_; }
 
     /** A function can be be a local function when it is calculated by the local neighborhood state.
      * This does NOT mean, that the function may not be a global function, e.g. when a the L2 norm
@@ -372,11 +326,7 @@ class Function
           return const_cast<const DesignElement*>(idx == -1 ? element : neighbor[idx]);
         }
 
-        /** identifies the element by the design type. Works only for special neighborhoods! */
-        DesignElement* GetElement(DesignElement::Type type);
-
-        /** Service function. Calculates the actual objective, based on function->type.
-         * Is very fast for grad_glob and power == 1
+        /** Service function. Calculates the actual objective, based on function->type
          * @param grad_glob only active when globalized. Not the globalization but the grad of the globalization
          *                  is applied, but based on the function evaluation, not the function gradient!
          * @param von_mises_stresss only used when the function is stress -> determined by ErsatzMaterial::CalcVonMisesStressGlobalizationFactor() */
@@ -390,9 +340,6 @@ class Function
         /** calculates the slope identified by this neighbor. When sign is not set assumes sign=1.
          * "Petersson, Sigmund; Slope Constrained Topology Optimization; 1998" */
         double CalcSlope() const;
-
-        /** calculates the design bound as constraint. */
-        double CalcDesignBound(bool derivative) const;
 
         /** calculate the slope gradient for a given element
          * @param neigh_idx for -1 for the own element, otherwise the neighbor */
@@ -420,29 +367,11 @@ class Function
         double CalcBumpGradient(int neigh_idx) const;
 
         /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
-        double CalcSumModuli(int neigh_idx = -1, bool derivative = false) const;
+        double CalcSumModuli() const;
+        void CalcSumModuliGradient(int neigh_idx, const Objective* f, const Condition* g, double value);
 
-        /** volume of material (strong phase for plane strain) in laminate homogenization formulas */
-        double CalcLaminatesVolume(int neigh_idx = -1, bool derivative = false) const;
-
-        /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to hold */
+        /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to holf */
         double CalcParamPSPosDef(int neigh_idx, bool derivative) const;
-
-        /** local tensor trace for FMO */
-        double CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const;
-
-        /** squared L2 norm of all tensor entries. Meant for the piezoelectric coupling tensor */
-        double CalcTensorNorm(int neigh_idx, const Local* local, bool derivative) const;
-
-        /** sum of all multimaterial designs */
-        double CalcMultiMaterialSum(int neigh_idx, const Local* local, bool derivative) const;
-
-        /** local FMO positive definiteness of (E-val*I) >= param via determinants
-         * @param type the type we want to evaluate. Might be different from local->func->type_ in Approximation::TransformMultiplyer() */
-        double CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const;
-
-        /** local FMO positive definiteness of (E-val*I) >= param via Benson Vanderbei constraints */
-        double CalcBensonVanderbei(int neigh_idx, const Local* local, bool derivative, Type type) const;
 
         /** CalcStress() and the gradient are actually done in EM/SIMP */
 
@@ -491,9 +420,8 @@ class Function
       /** trival case form ELEMENT (stress) -> on the element itself */
       void SetupSingularElementMap();
 
-      /** multiple designs on one element for paramMat
-       * @param for FMO_POS_DEF_* we need to know which minor */
-      void SetupMultDesignsElementMap(const Function* f = NULL);
+      /** multiple designs on one element (parametrized PLANE_STRESS) */
+      void SetupMultDesignsElementMap();
 
       /** small helper to determine the number of neighbors in each (diagonal)
        * direction if we use a neighborhood. Parses the whole stuff */
@@ -550,9 +478,6 @@ class Function
     /** Give the local information. Check for NULL */
     Local* GetLocal() { return local; }
 
-    /** The design type is by default DEFAULT :) */
-    DesignElement::Type GetDesignType() const {return design_; }
-
     /** Give the projection data */
     StdVector<DesignElement>& GetProjectionDesignClone();
 
@@ -566,6 +491,9 @@ class Function
 
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
     PtrParamNode pn;
+
+    /** This is DEFAULT (= applies always) if not defined */
+    DesignElement::Type design;
 
     /** If condition supports constriction to one region. Currently ALL_REGIONS for objectives */
     RegionIdType region;
@@ -588,13 +516,6 @@ class Function
     
     /** extract the "coord" element and parse it to coord */
     static void ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord);
-
-    /** By the size of DesignSpace::GetNumberOfVariables() which might include slack - to be handled in AuxDesign.
-     * the sparse patterns are determined on the fly by LocalCondition::GetSparsityPattern() */
-    void SetDenseSparsityPattern(DesignSpace* space);
-
-    /** This is DEFAULT (= applies always) if not defined */
-    DesignElement::Type design_;
 
     /** The actual kind of cost function. */
     Type type_;
@@ -629,16 +550,10 @@ class Function
      * -2 is for unset! */
     int excite_;
 
-    /** Is this function excitation sensitive? */
-    int excite_sensitive_;
-
     /** @see FactorOmegaOmega() */
     bool omega_omega_;
 
     bool harmonic_;
-
-    /** Conditions mark themselves as (non) linear -> no power in the design variable, ...*/
-    bool linear_;
 
     /** Do we have local information? E.G. (global) slopes */
     Local* local;
@@ -653,18 +568,6 @@ class Function
     PtrParamNode preInfo_;
 
     StressType stressType_;
-
-    /** the sparsity pattern of the Jacobian to be set by ConditionContainer::PostProc() via SetSparsity() */
-    StdVector<unsigned int> jac_sparsity_;
-
-    /** the sparsity pattern of the Hessian for special local functions to be used by FeasPP.
-     * @see jac_sparsity_
-     * @see Approximation::hess_pattern */
-    Matrix<unsigned int> hess_sparsity_;
-
-    /** only for tensor trace and volume */
-    DesignMaterial::Notation notation_;
-
 };
 
 

@@ -123,7 +123,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
   vault_.Resize(optimization->GetDesign()->data.GetSize());
   evaluate_tmp_.Resize(optimization->GetDesign()->data.GetSize());
   
-  PostInitScale(1.0, true);
+  PostInit(1.0, true);
 }
 
 void OptimalityCondition::SolveProblem()

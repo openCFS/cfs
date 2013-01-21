@@ -348,12 +348,6 @@ template <typename T> class Vector;
     //!  v might be a Double, Complex or a tiny Matrix of either type
     void GetMatrixEntry( UInt i, UInt j, T &v ) const;
 
-    const T GetMatrixEntry(UInt i, UInt j) const
-    {
-      T v;
-      GetMatrixEntry(i, j, v);
-      return v;
-    }
     //! Return the diagonal entry of row i
     inline
     T& GetDiag( UInt i ) {

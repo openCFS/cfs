@@ -54,9 +54,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ipopt.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_scpip.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_scpip.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_feas_scp.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_feas_scp.hh")
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_snopt.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_snopt.hh")
 

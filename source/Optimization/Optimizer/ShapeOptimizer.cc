@@ -63,7 +63,7 @@ ShapeOptimizer::ShapeOptimizer(Optimization* optimization, PtrParamNode pn) :
   cout << "\t levelset: " << (levelset_ ? "yes" : "no") << "\t";
   cout << "\t shapeopt: " << (shapeopt_ ? "yes" : "no") << endl;
 
-  PostInitScale(1.0, true);
+  PostInit(1.0, true);
 }
 
 ShapeOptimizer::~ShapeOptimizer()

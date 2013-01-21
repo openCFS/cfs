@@ -87,8 +87,6 @@ TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_
   if(design_ == DesignElement::POLARIZATION && application_ != Optimization::PIEZO_COUPLING)
     throw Exception("transfer functions for 'polarization' can only be '" 
         + Optimization::application.ToString(Optimization::PIEZO_COUPLING) + "'");
-
-  LOG_DBG(trans) << "TF::TF " << ToString();
 }
 
 
@@ -108,22 +106,13 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type)
   switch(type)
   {
   case DesignElement::DENSITY:
-  case DesignElement::EMODUL:
-  case DesignElement::EMODULISO:
-  case DesignElement::GMODUL:
-  case DesignElement::POISSON:
-  case DesignElement::POISSONISO:
-  case DesignElement::ROTANGLE:
-  case DesignElement::STIFF1:
-  case DesignElement::STIFF2:
-  case DesignElement::MULTIMATERIAL:
     return Optimization::MECH;
   case DesignElement::ACOU_DENSITY:
     return Optimization::LAPLACE;
   case DesignElement::POLARIZATION:
     return Optimization::PIEZO_COUPLING;
   default:
-    throw Exception("invalid request for transfer function");
+    throw Exception("invalid");
   }
 }
 

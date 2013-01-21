@@ -28,7 +28,7 @@ IPOPT::IPOPT(Optimization* optimization, BaseOptimizer* base, PtrParamNode pn)
   
   double manual_scaling = optimizer_pn_ != NULL && optimizer_pn_->Has("obj_scaling_factor") ?
       optimizer_pn_->Get("obj_scaling_factor")->Get("value")->As<Double>() : 1.0;
-  base->PostInitScale(manual_scaling);
+  base->PostInit(manual_scaling);
   Init();
 }
 
@@ -127,21 +127,20 @@ void IPOPT::SolveProblem()
          
     case Restoration_Failed:
       in->Get("converged")->SetValue("no");
-      in->Get("reason/msg")->SetValue("IPOPT: 'Restoration failed'");
-      throw Exception("IPOPT stopped with 'Restoration failed'");
+      in->Get("reason/msg")->SetValue("IPOPT: 'Restautation failed'");
+      throw Exception("IPOPT stopped with 'Restautation failed'");  
          
     case Insufficient_Memory:
       in->Get("converged")->SetValue("no");
       in->Get("reason/msg")->SetValue("IPOPT: insufficient memory");
      throw Exception("IPOPT reports insufficient memory.");
          
+    case Invalid_Number_Detected:
+         if(base_->restart_requested) return; 
+
     case Maximum_Iterations_Exceeded:
       in->Get("converged")->SetValue("no");
       in->Get("reason/msg")->SetValue("Maximum iterations exceeded");
-      break;
-
-    case Invalid_Number_Detected:
-         if(base_->restart_requested) return;
       
     default:
       // positive is warning
@@ -152,7 +151,6 @@ void IPOPT::SolveProblem()
         in->Get("reason/error")->SetValue(status);
         EXCEPTION("IPOPT reported error " << status);
       }
-      break;
       // else is no bad error and exits this void method :)  
   }
 }
@@ -261,7 +259,7 @@ bool IPOPT::eval_g(Index n, const Number* x, bool new_x, Index m, Number* g)
   // we overwrite the design space, but we do this all the time - especially befor eval_f
   optimization_->GetDesign()->ReadDesignFromExtern(x);
   
-  base_->EvalConstraints(n, x, m, false, g, false);
+  base_->EvalConstraints(n, x, m, false, g);
 
   return true;
 }
@@ -294,7 +292,7 @@ bool IPOPT::eval_jac_g(Index n, const Number* x, bool new_x,
   {
     StdVector<double> tmp(nele_jac);
 
-    base_->EvalGradConstraints(n, x, m, nele_jac, false, false, tmp);
+    base_->EvalGradConstraints(n, x, m, nele_jac, false, tmp);
 
     for(unsigned int i = 0; i < tmp.GetSize(); i++)
       values[i] = tmp[i];

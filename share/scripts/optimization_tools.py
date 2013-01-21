@@ -21,17 +21,12 @@ def read_density(filename, attribute="design", x = None, y = None, z = None):
 
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
   root = tree.getroot()
-  if x == None and len(root.xpath("//mesh/@x")) > 0:
+  if x == None:
     x = int(root.xpath("//mesh/@x")[0])
-  if y == None and len(root.xpath("//mesh/@y")) > 0:  
+  if y == None:  
     y = int(root.xpath("//mesh/@y")[0])
-  if z == None and len(root.xpath("//mesh/@z")) > 0:
+  if z == None:
     z = int(root.xpath("//mesh/@z")[0])
-
-  if x == None and y == None and z == None:
-    x = len(vals)
-    y = 1
-    z = 1
 
   assert(x > 0 and y > 0 and z > 0)  
 
@@ -70,47 +65,7 @@ def read_density(filename, attribute="design", x = None, y = None, z = None):
         
   return ret
 
-## read arbitrary multi-design density file as numpy array
-def read_multi_design(filename, design1, design2 = None, design3 = None, design4 = None):
-  if not os.path.exists(filename):
-    raise RuntimeError("file '" + filename + "' doesn't exist")
-  
-  tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
-  
-  root = tree.getroot()
-  sett = root.xpath("//set[last()]")[0]
-  
-  designs = 1
-  if design2:
-    designs = 2
-  if design3:
-    designs = 3  
-  if design4:
-    designs = 4
-    
-  length = len(sett) / designs
-  
-  out = numpy.zeros((length, designs))
-  for element in sett:
-    nr   = int(element.get("nr"))
-    des  = float(element.get("design"))
-    #des  = float(element.get("physical"))
-    type = element.get("type")
-    idx  = -1
-    if type == design1:
-      idx = 0
-    if design2 and type == design2:
-      idx = 1
-    if design3 and type == design3:
-      idx = 2
-    if design4 and type == design4:
-      idx = 3
-    if idx == -1:
-      print "design '" + type + "' not handled"  
-    assert(idx != -1)
-    
-    out[nr-1,idx] = des  
-  return out
+
   
 ## Reads a density.xml file as vector
 # @param filename from which the last 'set' is used
@@ -197,36 +152,6 @@ def write_density_file(filename, data_inp, setname_inp, param = 0, elemnr=None):
 
   out.write(' </cfsErsatzMaterial>\n')
   out.close()
-
-
-## write simple multi-design density files
-def write_multi_design_file(filename, data, design1, design2 = None, design3 = None, design4 = None):
-
-  designs = []
-  designs.append(design1)
-  if design2:
-    designs.append(design2)
-  if design3:
-    designs.append(design3)  
-  if design4:
-    designs.append(design4)
-
-  assert(data.shape[1] == len(designs))
-
-  out = open(filename, "w")
-  out.write('<?xml version="1.0"?>\n')
-  out.write('<cfsErsatzMaterial>\n')
-  out.write('  <header>\n')
-  out.write('  </header>\n')
-  out.write('  <set id="optimization_tools.py">\n')
-  
-  for d in range(len(designs)):
-    for e in range(len(data)):
-      out.write('    <element nr="' + str(e+1) + '" type="' + designs[d] + '" design="' + str(data[e, d]) + '"/>\n')
-  out.write('  </set>\n')
-  out.write(' </cfsErsatzMaterial>\n')
-  out.close()
-
 
 
 ## replaces the element numbers by new element numbers.
@@ -847,40 +772,9 @@ def is_valid_density_file(infile):
 
   return (ersatzfound and headerfound and setfound)
 
+
+
 # do an ascii print of the density data
 def ascii_print(data, threshold):
   x, y, z = getDim(data)
   assert()
-  
-## convert textual tensordata to XML for rectangle homogenization
-# @param tensordata: file with lines  a b 11 12 22 33 where a and b are percent
-# @param xmlfile writes the xml file if given
-# return a string with the text 
-def convert_hom_rect_tensor_to_xml(tensordata, xmlfile = None):
-  a = numpy.genfromtxt(tensordata)
-  assert(a.shape[1] == 6)
-  
-  out = "<homRect>\n"
-  for i in range(len(a)):
-    data = a[i]
-    #<data a="0.0" b="0.0" e11="" e12="" e22="" e33="" />
-    out += '<data a="' + str(data[0] / 100.0) + '" b="' + str(data[1] / 100.0)
-    out += '" e11="' + str(data[2]) + '" e12="' + str(data[3]) + '" e22="' + str(data[4]) + '" e33="'  + str(data[5]) + '"/>\n'
-  out += "</homRect>\n"    
-
-  if xmlfile:
-    file = open(xmlfile, "w")
-    file.write(out)
-    file.close()
-
-  return out    
-    
-#a = read_multi_design("fmomulti-40.density.xml", "stiff1", "stiff2", "rotAngle", "rotAngle2")
-#a[:,0] *= 0.11
-#a[:,1] *= 0.11
-#b = a[:,0:3]
-#write_multi_design_file("hom_rect_40.density.xml", b, "hom_rect_a", "hom_rect_b", "rotAngle")
-
-#a = read_multi_design("hom_rect_ml_min_compl.density.xml", "stiff1", "stiff2", "rotAngle")
-#numpy.savetxt("hom_rect_ml_min_compl.dat", a)
-    

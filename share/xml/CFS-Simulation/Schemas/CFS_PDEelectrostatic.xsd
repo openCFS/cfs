@@ -259,7 +259,6 @@
       <xsd:enumeration value="optResult_7"/>
       <xsd:enumeration value="optResult_8"/>
       <xsd:enumeration value="optResult_9"/>
-      <xsd:enumeration value="optResult_10"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -270,8 +269,6 @@
       <xsd:enumeration value="elecFluxDensity"/>
       <xsd:enumeration value="elecPolarization"/>
       <xsd:enumeration value="elecPseudoPolarization"/>
-      <xsd:enumeration value="elecTensor"/>
-      <xsd:enumeration value="elecTensorTrace"/>
       <xsd:enumeration value="mechPseudoDensity"/>
       <xsd:enumeration value="elecPhysicalPseudoDensity"/>
       <xsd:enumeration value="optResult_1"/>      
@@ -283,7 +280,6 @@
       <xsd:enumeration value="optResult_7"/>
       <xsd:enumeration value="optResult_8"/>
       <xsd:enumeration value="optResult_9"/>
-      <xsd:enumeration value="optResult_10"/>
     </xsd:restriction>
   </xsd:simpleType>
 

@@ -133,13 +133,13 @@ class ElemList;
 
     Double ComputeMatDiff( Vector<Double>& dX, Vector<Double>& dY, UInt idx );
 
-    /** overloads BaseMaterial::ComputeSubTensor() */
-    void ComputeSubTensor(Matrix<Complex>& matMatrix,
-			  MaterialType matType, 
-			  SubTensorType subTensor) const;
 
   private:
 
+    //! compute the correct subTensor (3D, AXI, ..)
+    void ComputeSubTensor(Matrix<Complex>& matMatrix,
+			  MaterialType matType, 
+			  SubTensorType subTensor) const;
 
     
     //! Calculate full tensor from scalar values

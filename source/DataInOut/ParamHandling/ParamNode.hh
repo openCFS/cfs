@@ -199,10 +199,6 @@ namespace CoupledField
                           ActionType action = DEFAULT );
     //@}
 
-    /** Get an element with two queries. Extend to the full standard GetByVal() features if you need them :) */
-    PtrParamNode GetByVal(const std::string& parent_raw, const std::string& child1,  const std::string& value1,
-                          const std::string& child2,  const std::string& value2);
-
     /** Get all direct childs of a name
     * example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").GetList("dirichletInHom") */
     ParamNodeList GetList(const std::string&  name);

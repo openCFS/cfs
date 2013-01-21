@@ -26,16 +26,11 @@ namespace CoupledField
     friend class IPOPT;
     
   public:
-
-    /** cass PostInit() afterwards!
-     * @param optimization this is the actual optimization problem
+    /** @param optimization this is the actual optimization problem
      * @param pn to hold the complete "optimizer" element!. Not NULL! */
     BaseOptimizer(Optimization* optimization, PtrParamNode pn, Optimization::Optimizer type);
 
     virtual ~BaseOptimizer();
-
-    /** call this after the constructor */
-    virtual void PostInit() {};
 
     /** This solves the complete Optimization problem by using
      * the CalcObjective, CalcConstraint(), ... from the Optimization problem
@@ -50,38 +45,9 @@ namespace CoupledField
      * specific data. Shall match LogFileHeader().Don't add a new-line here!! */
     virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
     
-    /** optionally adds some general information after initialization. */
-    virtual void ToInfo(PtrParamNode pn) { };
-
     /* snopt needs separated evalutations for the linear and nonlinear constraint gradients
      * all other optimizers always need everything */
     typedef enum { ALL, LINEAR, NONLINEAR } GradientType;
-
-    Optimization* optimization;
-
-    /** Evaluates the objective. In the autoscale case checks for old value.
-     * @param cfs_scale if true use cfs scaling values, not the optimizer values.
-     *        Do it also for the gradient!!
-     * @return the objective */
-    double EvalObjective(int n, const double* x, bool cfs_scale);
-
-    /* Evaluates the objective gradient. In the autoscale case checks for old evaluation first.
-     * Also does an EvalObjective() implicit!
-     * @param cfs_scale @see EvalObjective()
-     * @return true if within autoscale tolerance - false if restart necessary */
-    bool EvalGradObjective(int n, const double* x, bool cfs_scale, StdVector<double>& grad_f);
-
-    /** helper for EvalConstraints() assuming the design to be set
-     * @param normalize @see EvalConstraints() */
-    double EvalConstraint(Condition* g, bool cfs_scale, bool normalize);
-
-    /** Helper vor EvalGradConstraint()
-     * Called directly by FeasPP
-     * @return nnz of constraint */
-    int EvalGradConstraint(Condition* g, int start, bool cfs_scale, bool normalize, StdVector<double>& values);
-
-    /** Return the infinty value (here for ipopt) */
-    virtual double GetInfBound() const { return 1e19; }
 
   protected:
 
@@ -89,29 +55,47 @@ namespace CoupledField
     virtual void SolveProblem() = 0;
     
     /** Call this in the optimizer constructor when you have manual_scaling. */
-    void PostInitScale(double manual_scaling, bool no_autoscale = false);
+    void PostInit(double manual_scaling, bool no_autoscale = false);
 
-
-    /** Evaluates the constraints or rather passes them on to the optimization
-     * @param cfs_scale @see EvalObjective()
-     * @param normalize transform to g <= 0 constraint. */
-    void EvalConstraints(int n, const double* x, int m, bool cfs_scale, double* g, bool normalize);
+    /** Evaluates the objective. In the autoscale case checks for old value.
+     * @param cfs_scale if true use cfs scaling values, not the optimizer values.
+     *        Do it also for the gradient!!
+     * @return the objective */
+    double EvalObjective(int n, const double* x, bool cfs_scale);
     
-    /** Evaluates the constraint gradients
+    /* Evaluates the objective gradient. In the autoscale case checks for old evaluation first.
+     * Also does an EvalObjective() implicit!
+     * @param cfs_scale @see EvalObjective()
+     * @return true if within autoscale tolerance - false if restart necessary */
+    bool EvalGradObjective(int n, const double* x, bool cfs_scale, StdVector<double>& grad_f);
+    
+    /** Evaluates the constraints or rather passes them on to the optimization
+     * @param cfs_scale @see EvalObjective() */
+    void EvalConstraints(int n, const double* x, int m, bool cfs_scale, double* g);
+    
+    /** Evaluates the constraint gradients and does reordering if necessary
      * @param cfs_scale @see EvalObjective()
      * @param nonlin_only snopt makes a difference between linear and nonlinear constraints and only
      *  need evaluation for the nonlinear part */
-    void EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale, bool normalize,
+    void EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale,
         StdVector<double>& values, GradientType grtype = ALL);
 
     /** Provide Upper and Lower bounds to the optimizer */
     void GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u);
     
+    /** Return the infinty value (here for ipopt) */
+    virtual double GetInfBound() const
+    {
+      return 1e19;
+    }
+    
     /** If the actual optimizer is able to handle active sets return here the total number of active
      * constraints (including equality constraints which usually always active).
      * @return < 0 does not implement active sets, >= 0 the current active set */
-    virtual int GetCurrenActiveSetSize() const { return -1; }
-
+    virtual int GetCurrenActiveSetSize() const
+    {
+      return -1;
+    }
 
     /** Combines a design_in with an objective */
     struct DesignMemory
@@ -181,6 +165,8 @@ namespace CoupledField
       
       BaseOptimizer* base_;
     };
+    
+    Optimization* optimization;
 
     /** out type */
     Optimization::Optimizer type_;
@@ -196,19 +182,18 @@ namespace CoupledField
     /** Determine the time spent in the external optimizer.
      * This is SolveProblem minus all evaluations */
     boost::shared_ptr<Timer> timer_;
-
-    /** this is the link to the general optimization where we can find autoscale. Is not NULL */
-    PtrParamNode gen_opt_pn_;
-
-    /** this is the link to the general optimization where we can find autoscale. Is not NULL */
-    PtrParamNode this_opt_pn_;
-
+    
   private:
-
+    /** helper function for snopt-optimizer which separates linear and nonlinear constraint gradients */
+    int EvalGradConstraints(Condition* g, int start, bool cfs_scale, 
+        StdVector<double>& values, GradientType grtype = ALL);
+    
     bool SolveAdjointProblemsIfNeeded(int n, const double* x, bool cfs_scale);
     
     /** Here we store the objective value for a design. */
     DesignMemory design_;
+    
+    PtrParamNode optimizer_pn_;
     
   };
 

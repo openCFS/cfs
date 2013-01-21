@@ -90,7 +90,6 @@ include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
 include/def_use_blas.hh.in -text
 include/def_use_cholmod.hh.in -text
-include/def_use_feas_scp.hh.in -text
 include/def_use_fftw.hh.in -text
 include/def_use_gidpost.hh.in -text
 include/def_use_gmsh.hh.in -text
@@ -113,6 +112,7 @@ include/def_use_snopt.hh.in -text
 include/def_use_tcl.hh.in -text
 include/def_use_unv.hh.in -text
 include/def_use_xerces.hh.in -text
+include/def_user_scpip.hh.in -text
 include/def_xmlschema.hh.in -text
 share/MaterialFile/mat.xml svneol=native#text/xml
 share/doc/auxilliaries/LaTeX/lsepaper.sty svneol=native#text/plain
@@ -640,15 +640,12 @@ share/scripts/checkbashisms -text
 share/scripts/common.sh svneol=native#text/plain
 share/scripts/compile_mkl_test.sh.in -text
 share/scripts/continuation.py -text
-share/scripts/convert_fms_to_hom.py -text
 share/scripts/cplreader -text
-share/scripts/create-sparse-gid-mesh-2d-quadratic.py -text
 share/scripts/create_density.py -text
 share/scripts/cubemesh.pl -text
 share/scripts/density-to-png.py -text
 share/scripts/distro.sh svneol=native#text/plain
 share/scripts/extract_info_xml_results.py -text
-share/scripts/extract_kkt.py -text
 share/scripts/gid_screenshots.py -text
 share/scripts/h5tool -text
 share/scripts/hdf5_aux.sh.in -text
@@ -656,7 +653,6 @@ share/scripts/hdf5_concat.sh.in -text
 share/scripts/hdf5_concat2.sh.in -text
 share/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
 share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
-share/scripts/hdf5_tools.py -text
 share/scripts/identify_compiler.pl svneol=native#text/plain
 share/scripts/log.py -text
 share/scripts/log.tcl svneol=native#text/x-tcl
@@ -664,12 +660,10 @@ share/scripts/nas-tool-gid-to-nas.py -text
 share/scripts/nas-tool-nas2msh.py -text
 share/scripts/nas-tool-voidmesh.py -text
 share/scripts/optimization_tools.py -text
-share/scripts/paraview_fmo.py -text
 share/scripts/printElemMatVec.py -text
 share/scripts/printElemMatVec.tcl svneol=native#text/x-tcl
 share/scripts/probe_ilupack_parameters.py -text
 share/scripts/rstinfo -text
-share/scripts/show_fmo_tensor.py -text
 share/scripts/voidmesh.pl -text
 share/scripts/xmlreplace.py -text
 share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
@@ -1420,8 +1414,6 @@ source/OLAS/utils/math/ldlsystemsolve.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/CMakeLists.txt -text
 source/Optimization/Condition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Condition.hh svneol=native#text/x-c%2B%2Bhdr
-source/Optimization/Design/AuxDesign.cc -text
-source/Optimization/Design/AuxDesign.hh -text
 source/Optimization/Design/CMakeLists.txt -text
 source/Optimization/Design/DensityFile.cc -text
 source/Optimization/Design/DensityFile.hh -text
@@ -1457,12 +1449,6 @@ source/Optimization/Optimizer/BaseOptimizer.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimizer/CMakeLists.txt -text
 source/Optimization/Optimizer/EvaluateOnly.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Optimizer/EvaluateOnly.hh svneol=native#text/x-c%2B%2Bhdr
-source/Optimization/Optimizer/FeasPP.cc -text
-source/Optimization/Optimizer/FeasPP.hh -text
-source/Optimization/Optimizer/FeasSCP.cc -text
-source/Optimization/Optimizer/FeasSCP.hh -text
-source/Optimization/Optimizer/FeasSubProblem.cc -text
-source/Optimization/Optimizer/FeasSubProblem.hh -text
 source/Optimization/Optimizer/GradientCheck.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Optimizer/GradientCheck.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimizer/IPOPT.cc -text
@@ -1485,13 +1471,9 @@ source/Optimization/Optimizer/SnOpt.hh -text
 source/Optimization/Optimizer/SnOptInterface.f -text
 source/Optimization/Optimizer/SnOptInterface.hh -text
 source/Optimization/Optimizer/scpip30.hh svneol=native#text/x-c%2B%2Bhdr
-source/Optimization/Optimizer/scpip40i.hh -text
-source/Optimization/Optimizer/scpip40nlph.hh -text
 source/Optimization/Optimizer/scpip_test.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/ParamMat.cc -text
 source/Optimization/ParamMat.hh -text
-source/Optimization/PiezoParamMat.cc -text
-source/Optimization/PiezoParamMat.hh -text
 source/Optimization/PiezoSIMP.cc -text
 source/Optimization/PiezoSIMP.hh -text
 source/Optimization/SIMP.cc svneol=native#text/plain

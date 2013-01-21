@@ -31,9 +31,6 @@
          the element numbering. This implies that the element numbering within the region is 
          of the same order -->
     <xsd:attribute name="force_region" use="optional" type="xsd:string"/>
-    <!-- this is either design or physical. Physical is used to get start values for slopes
-         by applying a density filter first -->
-    <xsd:attribute name="name" use="optional" type="xsd:string" default="design"/>
   </xsd:complexType>
 </xsd:schema>
 

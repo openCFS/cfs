@@ -9,7 +9,6 @@
   #include "General/exception.hh"
   #include "Optimization/Optimizer/SCPIPBase.hh"
   #include "Optimization/Optimizer/scpip30.hh"
-  #include "def_use_feas_scp.hh"
 
   using namespace CoupledField;
 
@@ -49,7 +48,6 @@ SCPIPBase::SCPIPBase()
   obj_scaling = 1.0;
   ieleng = 0;
   eqleng = 0;
-  f_org = 0.0;
 
   f_evals = grad_evals = 0;
 
@@ -95,11 +93,6 @@ void SCPIPBase::Initialize()
 
 void SCPIPBase::SetDefaultParameters()
 {
-  // this are the default parameter from Sonja in ScpSolver.cc
-  // ioptions[13] = {2, 1, 500, 3, 3, 0, 0, 1, 0, 0, 0, 0, 0}
-  // doptions[10] = {1.0e-6, 1.0e30, 1.0e30, 1.0e-6, 1.0e-1, 1.0e-1, 0.e0, 1.0e30, 1.0e30, 1.0e30};
-
-
   icntl[1-1] = 1;   // method of moving asymptotes
   icntl[2-1] = 1;   // current svanberg
   icntl[3-1] = 100; // maximum allowed number of iterations
@@ -108,7 +101,7 @@ void SCPIPBase::SetDefaultParameters()
   icntl[6-1] = 0;   // convergence check ->  KT
   icntl[11-1] = 0;  // warmstart
   icntl[12-1] = 0;  // ip matrix not fixed
-  icntl[13-1] = 1;  // dynamic allocation - overwritten in FeasSCP
+  icntl[13-1] = 1;  // dynamic allocation
 
   rcntl[1-1] = 1.e-7; // final accuray of costraint violation
   rcntl[2-1] = 1.e30; // infinity
@@ -120,7 +113,7 @@ void SCPIPBase::SetDefaultParameters()
   nout = 7;
 }
 
-int SCPIPBase::solve_problem(bool fromWarmstart)
+int SCPIPBase::SolveProblem(bool fromWarmstart)
 {
   // set start parameters here to allow restarted SolveProblem()
   get_starting_point(n, x.GetPointer());
@@ -173,101 +166,38 @@ int SCPIPBase::solve_problem(bool fromWarmstart)
     int spiwdim = spiw.GetSize();
     int spdwdim = spdw.GetSize();
 
-    LOG_DBG2(scpip_base) << "sp1: n = " << n << ", mie = " << mie << ", meq = " << meq << ", iemax = " << iemax << ", eqmax = " << eqmax;
-    LOG_DBG3(scpip_base) << "sp1: initial guess = " << x.ToString();
-    LOG_DBG3(scpip_base) << "sp1: lower bounds = " << x_l.ToString();
-    LOG_DBG3(scpip_base) << "sp1: upper bounds = " << x_u.ToString();
-    LOG_DBG2(scpip_base) << "sp1: function value = " << f_org;
-    LOG_DBG3(scpip_base) << "sp1: inequality constraints = " << h_org.ToString();
-    LOG_DBG3(scpip_base) << "sp1: equality constraints = " << g_org.ToString();
-    LOG_DBG3(scpip_base) << "sp1: gradient = " << df.ToString();
-    LOG_DBG3(scpip_base) << "sp1: lagrange multipliers (ineq.) = " << y_ie.ToString();
-    LOG_DBG3(scpip_base) << "sp1: lagrange multipliers (eq.) = " << y_eq.ToString();
-    LOG_DBG3(scpip_base) << "sp1: lagrange multipliers (l.b.) = " << y_l.ToString();
-    LOG_DBG3(scpip_base) << "sp1: lagrange multipliers (u.b.) = " << y_u.ToString();
-    LOG_DBG2(scpip_base) << "sp1: icntl = " << icntl.ToString();
-    LOG_DBG2(scpip_base) << "sp1: rcntl = " << rcntl.ToString();
-    LOG_DBG2(scpip_base) << "sp1: info = " << info.ToString();
-    LOG_DBG2(scpip_base) << "sp1: rinfo = " << rinfo.ToString();
-    LOG_DBG2(scpip_base) << "sp1: nout = " << nout;
-    LOG_DBG3(scpip_base) << "sp1: r_scp = " << r_scp.ToString();
-    LOG_DBG3(scpip_base) << "sp1: r_dim = " << rdim;
-    LOG_DBG3(scpip_base) << "sp1: r_sub = " << r_sub.ToString();
-    LOG_DBG3(scpip_base) << "sp1: r_subdim = " << rsubdim;
-    LOG_DBG3(scpip_base) << "sp1: i_scp = " << i_scp.ToString();
-    LOG_DBG3(scpip_base) << "sp1: i_dim = " << idim;
-    LOG_DBG3(scpip_base) << "sp1: i_sub = " << i_sub.ToString();
-    LOG_DBG3(scpip_base) << "sp1: i_subdim = " << isubdim;
-    LOG_DBG3(scpip_base) << "sp1: active = " << active.ToString();
-    LOG_DBG2(scpip_base) << "sp1: mode = " << mode << ", ierr = " << ierr;
-    LOG_DBG3(scpip_base) << "sp1: iern = " << iern.ToString();
-    LOG_DBG3(scpip_base) << "sp1: iecn = " << iecn.ToString();
-    LOG_DBG3(scpip_base) << "sp1: iederv = " << iederv.ToString();
-    LOG_DBG3(scpip_base) << "sp1: ielpar = " << ielpar << ", ieleng = " << ieleng;
-    LOG_DBG3(scpip_base) << "sp1: eqrn = " << eqrn.ToString();
-    LOG_DBG3(scpip_base) << "sp1: eqcn = " << eqcn.ToString();
-    LOG_DBG3(scpip_base) << "sp1: eqcoef = " << eqcoef.ToString();
-    LOG_DBG3(scpip_base) << "sp1: eqlpar = " << eqlpar << ", eqleng = " << eqleng << ", mactiv = " << mactiv;
-    LOG_DBG3(scpip_base) << "sp1: spiw = " << spiw.ToString();
-    LOG_DBG3(scpip_base) << "sp1: spiwdim = " << spiwdim;
-    LOG_DBG3(scpip_base) << "sp1: spdw = " << spdw.ToString();
-    LOG_DBG3(scpip_base) << "sp1: spdwdim = " << spdwdim;
-    LOG_DBG2(scpip_base) << "sp1: spstrat = " << spstrat << ", linsys = " << linsys;
+    LOG_DBG3(scpip_base) << "before call to scpip: n = " << n << ", mie = " << mie << ", meq = " << meq
+        << ", iemax = " << iemax << ", eqmax = " << eqmax << ", initial guess = " << x.ToString()
+        << ", lower bounds = " << x_l.ToString() << ", upper bounds = " << x_u.ToString()
+        << ", function value = " << f_org << ", inequality constraints = " << h_org.ToString() << ", equality constraints = " << g_org.ToString()
+        << ", gradient = " << df.ToString() << ", lagrange multipliers (ineq.) = " << y_ie.ToString() << ", lagrange multipliers (eq.) = " << y_eq.ToString()
+        << ", lagrange multipliers (l.b.) = " << y_l.ToString() << ", lagrange multipliers (u.b.) = " << y_u.ToString()
+        << ", icntl = " << icntl.ToString() << ", rcntl = " << rcntl.ToString()
+        << ", info = " << info.ToString() << ", rinfo = " << rinfo.ToString()
+        << ", nout = " << nout << ", r_scp = " << r_scp.ToString() << ", r_dim = " << rdim
+        << ", r_sub = " << r_sub.ToString() << ", r_subdim = " << rsubdim
+        << ", i_scp = " << i_scp.ToString() << ", i_dim = " << idim
+        << ", i_sub = " << i_sub.ToString() << ", i_subdim = " << isubdim
+        << ", active = " << active.ToString() 
+        << ", mode = " << mode << ", ierr = " << ierr 
+        << ", iern = " << iern.ToString() << ", iecn = " << iecn.ToString() << ", iederv = " << iederv.ToString()
+        << ", ielpar = " << ielpar << ", ieleng = " << ieleng
+        << ", eqrn = " << eqrn.ToString() << ", eqcn = " << eqcn.ToString() << ", eqcoef = " << eqcoef.ToString()
+        << ", eqlpar = " << eqlpar << ", eqleng = " << eqleng
+        << ", mactiv = " << mactiv
+        << ", spiw = " << spiw.ToString() << ", spiwdim = " << spiwdim
+        << ", spdw = " << spdw.ToString() << ", spdwdim = " << spdwdim
+        << ", spstrat = " << spstrat << ", linsys = " << linsys;
     
-// we must NOT link libscpip30.a when using libscpip40i.a because of double function names.
-// but USE_SCPIP needs to be enabled for USE_FEAS_SCP because it is a subclass!
-
-#ifndef USE_FEAS_SCP
-    scpip30_(&n,                      // 1
-             &mie,                    // 2
-             &meq,                    // 3
-             &iemax,                  // 4
-             &eqmax,                  // 5
-             x.GetPointer(),          // 6
-             x_l.GetPointer(),        // 7
-             x_u.GetPointer(),        // 8
-             &f_org,                  // 9
-             h_org.GetPointer(),      // 10
-             g_org.GetPointer(),      // 11
-             df.GetPointer(),         // 12
-             y_ie.GetPointer(),       // 13
-             y_eq.GetPointer(),       // 14
-             y_l.GetPointer(),        // 15
-             y_u.GetPointer(),        // 16
-             icntl.GetPointer(),      // 17
-             rcntl.GetPointer(),      // 18
-             info.GetPointer(),       // 19
-             rinfo.GetPointer(),      // 20
-             &nout,                   // 21
-             r_scp.GetPointer(),      // 22
-             &rdim,                   // 23
-             r_sub.GetPointer(),      // 24
-             &rsubdim,                // 25
-             i_scp.GetPointer(),      // 26
-             &idim,                   // 27
-             i_sub.GetPointer(),      // 28
-             &isubdim,                // 29
-             active.GetPointer(),     // 30
-             &mode,                   // 31
-             &ierr,                   // 32
-             iern.GetPointer(),       // 33
-             iecn.GetPointer(),       // 34
-             iederv.GetPointer(),     // 35
-             &ielpar,                 // 36
-             &ieleng,                 // 37
-             eqrn.GetPointer(),       // 38
-             eqcn.GetPointer(),       // 39
-             eqcoef.GetPointer(),     // 40
-             &eqlpar,                 // 41
-             &eqleng,                 // 42
-             &mactiv,                 // 43
-             spiw.GetPointer(),       // 44
-             &spiwdim,                // 45
-             spdw.GetPointer(),       // 46
-             &spdwdim,                // 47
-             &spstrat,                // 48
-             &linsys);                // 49
-#endif
+    scpip30_(&n, &mie, &meq, &iemax, &eqmax, x.GetPointer(), x_l.GetPointer(), x_u.GetPointer(),
+             &f_org, h_org.GetPointer(), g_org.GetPointer(), df.GetPointer(),
+             y_ie.GetPointer(), y_eq.GetPointer(), y_l.GetPointer(), y_u.GetPointer(),
+             icntl.GetPointer(), rcntl.GetPointer(),info.GetPointer(), rinfo.GetPointer(),
+             &nout, r_scp.GetPointer(), &rdim, r_sub.GetPointer(),
+             &rsubdim, i_scp.GetPointer(), &idim, i_sub.GetPointer(), &isubdim, active.GetPointer(),
+             &mode, &ierr, iern.GetPointer(), iecn.GetPointer(), iederv.GetPointer(), &ielpar, &ieleng,
+             eqrn.GetPointer(), eqcn.GetPointer(), eqcoef.GetPointer(), &eqlpar, &eqleng,
+             &mactiv, spiw.GetPointer(), &spiwdim, spdw.GetPointer(), &spdwdim, &spstrat, &linsys);
     
     LOG_DBG3(scpip_base) << "after call to scpip: n = " << n << ", mie = " << mie << ", meq = " << meq
         << ", iemax = " << iemax << ", eqmax = " << eqmax << ", initial guess = " << x.ToString()
@@ -410,7 +340,7 @@ void SCPIPBase::AllocateFixed()
 {
   // these are constant arrays. We use StdVector() to have index checks
   icntl.Resize(13, 0);
-  rcntl.Resize(7, 0.0);
+  rcntl.Resize(6, 0.0);
   info.Resize(23, 0);
   rinfo.Resize(5, 0.0);
 }
@@ -534,7 +464,7 @@ void SCPIPBase::AllocateProblem()
 
   // take care of sparse constraint gradients
   // there is no NULL pointer, hence the minimal size is 1
-  ielpar = std::max(ieleng, 1);
+  int ielpar = std::max(ieleng, 1);
   iern.Resize(ielpar, 0);
   iecn.Resize(ielpar, 0);
   iederv.Resize(ielpar, 0);
@@ -921,7 +851,6 @@ void SCPIPBase::SetStringValue(const std::string& key, const std::string& value)
   }
 
   icntl[idx] = ival;
-  LOG_DBG(scpip_base) << "SSV key=" << key << " idx=" << idx << " value=" << value << " ival=" << ival;
 }
 
 void SCPIPBase::SetIntegerValue(const std::string& key, int value)
@@ -940,8 +869,6 @@ void SCPIPBase::SetIntegerValue(const std::string& key, int value)
   // icntl has the index of the parameter in C-style
   int idx = icntl_.Parse(key);
   icntl[idx] = value;
-
-  LOG_DBG(scpip_base) << "SIV key=" << key << " idx=" << idx << " value=" << value;
 }
 
 void SCPIPBase::SetNumericValue(const std::string& key, double value)
@@ -958,7 +885,6 @@ void SCPIPBase::SetNumericValue(const std::string& key, double value)
   // rcntl has the index of the parameter in C-style
   int idx = rcntl_.Parse(key);
   rcntl[idx] = value;
-  LOG_DBG(scpip_base) << "SNV key=" << key << " idx=" << idx << " value=" << value;
 }
 
 
@@ -966,15 +892,11 @@ void SCPIPBase::SetEnums()
 {
   icntl_.SetName("ICNTL");
   icntl_.Add(1-1, "optimization_method");
-  icntl_.Add(2-1, "asymptotes_strategy");
   icntl_.Add(3-1, "max_iter");
   icntl_.Add(4-1, "output_level");
   icntl_.Add(5-1, "maximum_linesearch_function_calls");
   icntl_.Add(6-1, "convergence_criteria");
-  icntl_.Add(7-1, "linesearch_queue");
-  icntl_.Add(8-1, "icntl_8");
   icntl_.Add(11-1, "warmstart");
-  icntl_.Add(12-1, "fix_interior_point_matrix");
 
   rcntl_.SetName("RCNTL");
   rcntl_.Add(1-1, "max_kuhn_tucker_constraint_violation");
@@ -983,7 +905,6 @@ void SCPIPBase::SetEnums()
   rcntl_.Add(4-1, "relaxed_relative_objective_change");
   rcntl_.Add(5-1, "relaxed_absolut_objective_change");
   rcntl_.Add(6-1, "relaxed_relative_iteration_move");
-  rcntl_.Add(7-1, "max_constraint_violation");
 
   opt_meth_.SetName("desired optimization method");
   opt_meth_.Add(1, "moving_asymptotes");
@@ -994,7 +915,6 @@ void SCPIPBase::SetEnums()
   output_level_.Add(2, "only_final_convergence_analysis");
   output_level_.Add(3, "one_line_of_intermediate_results");
   output_level_.Add(4, "more_detailed_and_intermediate_results");
-  output_level_.Add(5, "additional_intermediate_results");
 
   converge_.SetName("convergence criteria");
   converge_.Add(0, "kuhn_tucker");

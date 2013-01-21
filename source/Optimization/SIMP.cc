@@ -112,9 +112,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
   case MECH:
   case ACOUSTIC:
   {
-    int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
-
-    const Matrix<double>& stiffness = material->Stiffness(de->elem, false, mm); // no bimaterial
+    const Matrix<double>& stiffness = material->Stiffness(de->elem, false); // no bimaterial
     
     // Find the transfer function for K (e.g. DENSITY, MECH)
     T k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
@@ -122,7 +120,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
     // copy from real mechStiffness to potential complex out and factor the derivative
     Assign(out, stiffness, k_factor);
     // This log is very expensive, it blows up inv_tensor in the debug mode
-    LOG_DBG3(simp) << "SetElementK: el=" << de->elem->elemNum << " di=" << de->GetIndex() << " mm=" << mm << " K_org=" <<  stiffness.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
+    // LOG_DBG3(simp) << "SetElementK: K_org=" <<  stiffness.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
 
     if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
     {
@@ -245,11 +243,7 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
 
   // change name only
   Matrix<complex<double> >& S = K_in_S_out;
-
-  // multimaterial stuff
-  int index = de->multimaterial != NULL ? de->multimaterial->index : -1;
-
-  const Matrix<double>& M = material->Mass(de->elem, bimaterial, index);
+  const Matrix<double>& M = material->Mass(de->elem, bimaterial);
   assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
 
   // find alpha, beta and omega
@@ -305,8 +299,16 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   // this app is for the PDE
   Application app = ToApp(pde);
 
-  if(!derivative)
+  // this implements only the gradients of some functions
+
+  //TODO Jannis Greifenstein: other way than explicit check?
+  if(!derivative || maxwellHomogenization_)
     return ErsatzMaterial::CalcFunction(excite, f, derivative);
+
+  TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(pde), TransferFunction::Default(pde), true);
+  double weight = excite.GetWeightedFactor(f);
+  LOG_DBG(simp) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight
+                << " factor=" << excite.GetFactor(f) << " weight=" << weight;
 
   // only special derivatives, the rest also EM
   switch(f->GetType())
@@ -314,25 +316,20 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   case Function::STRESS:
   case Function::STRESS_DENSITY:
   {
-    TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(pde), TransferFunction::Default(pde), true);
     CalcVonMisesStressGradient(excite, f, tf);
     break;
   }
+
 
   case Function::GLOBAL_DYNAMIC_COMPLIANCE:
   case Function::OUTPUT:
   case Function::DYNAMIC_OUTPUT:
   case Function::CONJUGATE_COMPLIANCE:
   case Function::ABS_OUTPUT:
-  {
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
-    TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(pde), TransferFunction::Default(pde), true, true); // excpetion and use_single
-    double weight = excite.GetWeightedFactor(f);
-    LOG_DBG(simp) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight  << " factor=" << excite.GetFactor(f) << " weight=" << weight;
     CalcU1KU2(tf, adjoint.Get(excite, f)->elem[app], app, forward.Get(excite)->elem[app], NULL, weight, STANDARD, f);
     break;
-  }
 
   default:
     return ErsatzMaterial::CalcFunction(excite, f, derivative);
