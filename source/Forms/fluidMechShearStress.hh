@@ -52,9 +52,6 @@ namespace CoupledField
       elemPres_ = presSol;};
     
   protected:  
-  
-    /// returns B 
-    void CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord);
 
     /// velocities of all nodes of actual element
     Matrix<TYPE> elemVelo_;

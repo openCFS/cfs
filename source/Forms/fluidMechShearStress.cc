@@ -275,20 +275,6 @@ namespace CoupledField
     }
   }
 
-  // returns linear B - matrix
-
-  template <class TYPE>
-  void FluidMechShearStress<TYPE>::
-  CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord)
-  {
-
-    // linear differential operator B_lin
-    linElastInt::CalcBMat(bMat, ip, ptCoord);
-  }
-
-
-
-
 #ifdef __GNUC__
   // Explicite template instantiation
   template class FluidMechShearStress<Double>;
