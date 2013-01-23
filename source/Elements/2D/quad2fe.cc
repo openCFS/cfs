@@ -11,6 +11,7 @@
 
 namespace CoupledField
 {
+  const UInt Quad2FE::nodeNumbering_[8] = { 0, 4, 1, 5, 2, 6, 3, 7};
 
 
   Quad2FE::Quad2FE() : RectangleFE()
@@ -216,6 +217,133 @@ namespace CoupledField
 
   }
 
+  void Quad2FE::fastGlobal2LocalCoords(Matrix<Double> & localCoords,
+                                   const Matrix<Double> & globalCoords,
+                                   const Matrix<Double> & coordMat ){
+    //BaseFE::Global2LocalCoords(localCoords,globalCoords,coordMat);
+    //return;
+    //Version 0 algorithm from duester script
+    Vector<Double> delta_xi; // update for Newton-Raphson method
+    Vector<Double> xi_start; // local start point for Newton-Raphson method
+    Vector<Double> xi_k; // local point at iteration k
+    Vector<Double> f; //current right hand side
+    Vector<Double> f_start; //current right hand side
+    Vector<Double> globalPoint; // global point coordinates
+    UInt numPoints = globalCoords.GetNumCols(); // number of global points
+    Double f_old; //storing the absolute value of search direction
+    Double f_test; //storing the absolute value of search direction
+    UInt k = 0; //iteration counter
+    Integer l = 0; //stepping value
+    Double jacDet = 0;
+    Matrix<Double> J; // Jacobian at local point xi_k
+    localCoords.Resize(2, numPoints);
+    localCoords.Init();
+
+    Double tolerance = 1e-14;
+
+    //initialize everything
+    xi_start.Resize(2);
+    delta_xi.Resize(2);
+    xi_k.Resize(2);
+    J.Resize(2, 2);
+    globalPoint.Resize(2);
+
+    //first initial guess is zero
+    f.Resize(2);
+
+   // Perform Newton-Raphson method on the list of global points
+   // to find local coordinates within this element.
+   for(UInt i = 0; i < numPoints; i++)
+   {
+     f.Init();
+     globalPoint.Init();
+     J.Init();
+     xi_start.Init();
+     xi_k.Init();
+     k = 0;
+     f_old = 222e20;
+     f_test = 0;
+     for(UInt j = 0; j < 2; j++) {
+       globalPoint[j] = globalCoords[j][i];
+     }
+     Local2GlobalCoord(f, xi_k, coordMat, NULL);
+     f = f - globalPoint;
+     f_old = f.NormL2();
+     f_start = f;
+     for(Double w=0.5; w <= 1.0; w+=0.5){
+       for(UInt j=1;j<3;j++){
+         for(UInt m=1;m<3;m++){
+           xi_k[0] = pow(-1,j)*w;
+           xi_k[1] = pow(-1,m)*w;
+           Local2GlobalCoord(f, xi_k, coordMat, NULL);
+           f = f - globalPoint;
+           f_test = f.NormL2();
+           if(f_old > f_test){
+             xi_start  = xi_k;
+             f_start = f;
+             f_old = f_test;
+           }
+         }
+       }
+     }
+     xi_k = xi_start;
+     f = f_start;
+     while(f_test > tolerance && k < 1000){
+        delta_xi.Init();
+        xi_start.Init();
+        // Calculate Jacobian at iteration point xi_k
+        CalcJacobian(J, xi_k, coordMat, NULL );
+        jacDet = + J[0][0]*J[1][1] - J[1][0]*J[0][1];
+        //  ( f_0  J_01 )
+        //  ( f_1  J_11 )
+        delta_xi[0] =  (-J[1][1]*f[0] + J[0][1]*f[1])/jacDet;
+
+        //  ( J_00  f_0 )
+        //  ( J_10  f_1 )
+        delta_xi[1] =  (-J[0][0]*f[1] + J[1][0]*f[0])/jacDet;
+        //xi_start = xi_k + (delta_xi * 2.0);
+        //Local2GlobalCoord(f, xi_start, coordMat, NULL);
+        //f = f - globalPoint;
+        //f_test = f.NormL2();
+        l = 1;
+        //perform damping
+        while(l<30 && f_test >= f_old){
+           Double dampFac = 1.0/std::pow(2.0,l-1.0);
+           xi_start = xi_k + (delta_xi * dampFac);
+           Local2GlobalCoord(f, xi_start, coordMat, NULL);
+           f = f - globalPoint;
+           f_test = f.NormL2();
+           l++;
+        }
+        f_old = f_test;
+        //if(l >= 30){
+        //  std::cout << "Daming iteration was not convergend" << std::endl;
+        //}
+        xi_k = xi_start;
+        k++;
+     }
+     if( f_test > tolerance){
+       std::cout << "performed " << k << " iterations to reach the point" << std::endl<< xi_k << std::endl;
+       //ONLY for DEBUGGING
+       Local2GlobalCoord(f, xi_k, coordMat, NULL);
+       std::cout << "Calculated global point :" << std::endl << f << std::endl;
+       std::cout << "Original global coord " << std::endl << globalPoint << std::endl;
+       std::cout << "The error was: " << f_test << std::endl<< std::endl;
+       //std::cout << std::endl;
+     }
+
+     // Put local coordinate of point into matrix.
+     for(UInt j = 0; j < 2; j++) {
+       if(xi_k.GetSize() == 0){
+         std::cerr << "local2global messed up setting everything to zero" << std::endl;
+         std::cerr << globalCoords << std::endl;
+         xi_k.Resize(2);
+         xi_k.Init();
+       }
+       localCoords[j][i] = xi_k[j];
+     }
+   }
+ }
 
 } // end of namespace
 
