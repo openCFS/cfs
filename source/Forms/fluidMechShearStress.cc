@@ -118,8 +118,6 @@ namespace CoupledField
           << volElem->elemNum);
     }
 
-    jacDet = surfElem->ptElem->CalcJacobianDet(intPoints[0], \
-                                     surfElemCoords, surfElem);
     for (UInt actIntPt = 0; actIntPt < numIntPoints; ++actIntPt)
     {
       for (UInt j = 0; j < spaceDim; ++j)
@@ -133,6 +131,8 @@ namespace CoupledField
         WARN(ex.GetMsg() << "\n volume element: " << volElem->elemNum
              << "\tsurface element: " << surfElem->elemNum);
       }
+      jacDet = surfElem->ptElem->CalcJacobianDet(intPoints[0], \
+                                       surfElemCoords, surfElem);
       surfElem->ptElem->GetShFncAtIp(xi, actIntPt +1, surfElem);
 
       for (UInt i = 0; i < nrVolFncs; ++i)
@@ -219,8 +219,6 @@ namespace CoupledField
                                surfElem->connect, \
                                true );
 
-    jacDet = surfElem->ptElem->CalcJacobianDetAtIp(1, \
-                                      surfElemCoords, surfElem );
     for (UInt actIntPt = 0; actIntPt < numIntPoints; ++actIntPt)
     {
       surfElem->ptElem->Local2GlobalCoord(point, intPoints[actIntPt], \
@@ -252,6 +250,8 @@ namespace CoupledField
         WARN(ex.GetMsg() << "\n volume element: " << volElem->elemNum
              << "\tsurface element: " << surfElem->elemNum);
       }
+      jacDet = surfElem->ptElem->CalcJacobianDetAtIp(1, \
+                                        surfElemCoords, surfElem );
       surfElem->ptElem->GetShFncAtIp(xi, actIntPt +1, surfElem);
 
       pressScalar  = elemPres_ * shpFncVolume;
