@@ -51,6 +51,7 @@ namespace CoupledField {
     amReordered_    = false;
     newOrder_       = BaseOrdering::NOREORDERING;
     numNodes_       = nRows;
+    numNonDiagEntries_=0;
     numRowsMat_     = nRows;
     numColsMat_     = nCols;
     bwlower_        = 0;
@@ -81,6 +82,7 @@ namespace CoupledField {
     numRowsMat_  = nRows;
     numColsMat_  = nCols;
     nne_         = nne;
+    numNonDiagEntries_ = 0;
     newOrder_    = BaseOrdering::NOREORDERING;
     csNodes_     = cs_nodes;
     csEdges_     = cs_edges;
@@ -239,8 +241,22 @@ namespace CoupledField {
   void BaseGraph::CountNNE() {
     UInt i;
     nne_ = 0;
+    numNonDiagEntries_ = 0;
+    NodeListIterator iter;
     for ( i = 0; i < numNodes_; i++ ) {
       nne_ += element_[i].size();
+      bool diagFound = false;
+      for ( iter = element_[i].begin(); iter != element_[i].end(); iter++ ) {
+        if ( *iter == i ) {
+          diagFound = true;
+          break;
+        }
+      }
+      
+      if( !diagFound) {
+        numNonDiagEntries_++;
+      }
+
     }
   }
 
@@ -497,7 +513,7 @@ namespace CoupledField {
 
     // Allocate memory for CRS structure
     NEWARRAY( (*rptr), UInt, numNodes_ + 1 );
-    NEWARRAY( (*cidx), UInt, nne_ - numNodes_ );
+    NEWARRAY( (*cidx), UInt, nne_ - numNodes_ + numNonDiagEntries_ );
 
     // the first col and first row start with index 1 
     // to be consistent with Metis
@@ -508,9 +524,7 @@ namespace CoupledField {
     UInt pos;
 
     for ( i = 0; i < numNodes_; i++ ) {
-
       // set number of edges for current node (minus self-reference of node)
-        
       // insert edge information (minus self-reference of node)
       j = (*rptr)[i];
       for ( iter = element_[i].begin(); iter != element_[i].end(); iter++ ) {
@@ -523,7 +537,6 @@ namespace CoupledField {
 
       // Set start of next CRS row
       (*rptr)[i+1] = j;
-
     }
         
     // Debugging output

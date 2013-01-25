@@ -290,6 +290,9 @@ namespace CoupledField {
     //! Number of nodes/vertices in the matrix graph
     UInt numNodes_;
 
+    //! Number of nodes without self-reference, i.e. without diagonal element
+    UInt numNonDiagEntries_;
+    
     //! Number of edges in the graph
     UInt nne_;
 
