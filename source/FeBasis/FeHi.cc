@@ -15,8 +15,8 @@ DEFINE_LOG(feHi, "feHi")
     elemShape_ = Elem::shapes[feType]; 
     
     updateUnknowns_ = true;
-    isoOrder_ = -1;
-    maxOrder_ = -1;
+    isoOrder_ = 0;
+    maxOrder_ = 0;
   }
   
   FeHi::~FeHi() {

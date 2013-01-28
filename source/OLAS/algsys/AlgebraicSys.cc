@@ -921,7 +921,7 @@ namespace CoupledField {
     } // if logging enabled
     
     // return value: valid sbmIndex, if block is non-empty
-    UInt sbmIndex = -1;
+    UInt sbmIndex = 0;
     
     // check, if map contains any entries at all
     if (eqns.size() == 0 || eqns.begin()->second.size() == 0) {
