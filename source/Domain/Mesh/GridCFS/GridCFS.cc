@@ -227,10 +227,9 @@ namespace CoupledField {
     }
 
 
-    StdVector<UInt> entityNums(totalNum);
+    std::set<UInt> entityNums;
     Vector<Double> locCoord( dim_), globCoord( dim_ );
     Vector<Double> actEntCoord(dim_), temp;
-    UInt pos = 0;
 
     // loop over all entries in the (first)free component vector
     // update first component, if it is free
@@ -258,23 +257,30 @@ namespace CoupledField {
           for( UInt iSample3 = 0; iSample3 < sampleVals[2].GetSize(); iSample3++ ) {
             locCoord[dofs[2]] = sampleVals[2][iSample3];
             cosy->Local2GlobalCoord( globCoord, locCoord );
-            entityNums[pos++] = FindEntityMinDistance( isNode, globCoord );
+            entityNums.insert(FindEntityMinDistance( isNode, globCoord ));
           }
 
         } // dim == 3
         else {
           cosy->Local2GlobalCoord( globCoord, locCoord );
-          entityNums[pos++] = FindEntityMinDistance( isNode, globCoord );
+          entityNums.insert(FindEntityMinDistance( isNode, globCoord ));
         }
       }
     }
 
+    // copy unique set of nodes / elements to vector
+    StdVector<UInt> entityNumVec(entityNums.size());
+    std::set<UInt>::const_iterator setIt = entityNums.begin();
+    for(UInt pos = 0 ; setIt != entityNums.end(); ++setIt, ++pos ) {
+      entityNumVec[pos] = *setIt;
+    }
+    
     if( isNode) {
 
       // add named nodes to grid
-      AddNamedNodes( name, entityNums );
+      AddNamedNodes( name, entityNumVec );
     } else {
-      AddNamedElems( name, entityNums );
+      AddNamedElems( name, entityNumVec );
     }
 
     // release handles of math parser
