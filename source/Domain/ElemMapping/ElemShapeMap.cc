@@ -117,9 +117,10 @@ namespace CoupledField {
       // if the regionId of the element is in the map "myRegions"
       boost::array<Elem*,2>::const_iterator it = surfElem.ptVolElems.begin();
       for( ; it != surfElem.ptVolElems.end(); it++ ) {
-        normalFactor *= -1;
-        // check, if element is set at all
+        normalFactor *= -1.0;
+        // check if element is set at all
         if( *it) {
+          // check if regionId is in the "allowed" list
           if(myRegions.find( (*it)->regionId) != myRegions.end()) {
             ptVolElem = *it;
             break;
@@ -136,7 +137,7 @@ namespace CoupledField {
       lpmVol.reset(new LocPointMapped());
       esmVol = 
           shapeMap->GetGrid()->GetElemShapeMap( ptVolElem, 
-                                                shapeMap->IsUpadet() );
+                                                shapeMap->IsUpdated() );
     } else {
       esmVol = lpmVol->shapeMap;
     } // elemIsSame

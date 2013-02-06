@@ -74,7 +74,7 @@ namespace CoupledField {
   //! Struct representing mapped element local information at a given point
   
   //! This class represents all geometry related information of a finite element
-  //! at a given local point. The idea is to bundel up any geometry related
+  //! at a given local point. The idea is to bundle up any geometry related
   //! information when it is computed first (e.g. within the integration loop
   //! of an integrator) and to pass it to any succeeding functions (e.g. within
   //! the bilinearforms, the mapped point is passed to the differential operators,
@@ -279,7 +279,7 @@ namespace CoupledField {
     bool IsAxi() const {return isAxi_;}
     
     //! Return if updated geometry is used
-    bool IsUpadet() const {return isUpdated_;}
+    bool IsUpdated() const {return isUpdated_;}
 
     //! Calculate Local -> Global Mapping
     //! \param globPoint output Global point in Cartesian coordinates
@@ -357,12 +357,12 @@ namespace CoupledField {
     
     //! Returns whether a given local coordinate is within this element
     //! \param point input Local point
-    //! \param tolerance input Additioanl (relative) tolerance
+    //! \param tolerance input Additional (relative) tolerance
     //! \return flag if point is inside the element
     virtual bool CoordIsInsideElem( const Vector<Double>& point,Double tolerance = 0.0 ) = 0;
 
     //! Calculate the diameter vector of the element.
-    //! Handles the element by itself and no axis-symmetric case.
+    //! Handles the element by itself and no axi-symmetric case.
     //! \param diameter output vector with only positive entries. */
     virtual void CalcDiameter( Vector<Double>& diameter ) = 0;
 
@@ -388,7 +388,7 @@ namespace CoupledField {
     //! direction is taken. Thus the diagonal extension of the element is not
     //! considered.
     //! \param extension Contains the extension (in global coordinates) of the
-    //!                  element w.r.t. local coordainte directions.
+    //!                  element w.r.t. local coordinate directions.
     virtual void GetExtensionLocalDir( Vector<Double>& extension ) = 0;
 
     // ---------------------------------------------------
@@ -425,7 +425,7 @@ namespace CoupledField {
     //! Pointer to grid
     Grid *ptGrid_;
 
-    //! Flag for axisymmtry
+    //! Flag for axisymmetry
     bool isAxi_;
 
     //! Flag if updated coordinates are uses (updated Lagrange)
