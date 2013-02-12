@@ -183,6 +183,12 @@ namespace CoupledField
       reader->SetTimeValue(val);
     }    
   }
+
+  void FileReader_EnSight::ReadElemValues(std::vector<FlowDataType>& nodalFlowData,
+                                          const std::vector<bool>& activeParts,
+                                          const UInt timeStepIdx){
+  }
+
   
   /* get nodal values from the corresponding fluid datafile the new way */
   void FileReader_EnSight::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
@@ -418,6 +424,71 @@ namespace CoupledField
       sstr << reader->GetCaseFileName();
       userData[sstr.str()] = str;
       fin.close();
+  }
+
+  void FileReader_EnSight::InitElemNodeMapping()
+  {
+    EnumMap::iterator it, end;
+
+    it = Elem::feType.map.begin();
+    end = Elem::feType.map.end();
+
+    for( ; it != end; it++ ) 
+    {
+      UInt et = it->first;
+      UInt numElemNodes = Elem::GetNumElemNodes((Elem::FEType)et);
+      
+      unstrucElemNodeMapping_[et].resize(numElemNodes);
+      uniformElemNodeMapping_[et].resize(numElemNodes);
+      
+      for(UInt i=0; i<numElemNodes; i++) 
+      {
+        unstrucElemNodeMapping_[et][i] = i;
+        uniformElemNodeMapping_[et][i] = i;
+      }
+
+      switch((Elem::FEType)et)
+      {
+      case Elem::QUAD4:
+        uniformElemNodeMapping_[et][0] = 0;
+        uniformElemNodeMapping_[et][1] = 1;
+        uniformElemNodeMapping_[et][2] = 3;
+        uniformElemNodeMapping_[et][3] = 2;
+        break;
+        
+      case Elem::WEDGE6:
+        unstrucElemNodeMapping_[et][0] = 0;
+        unstrucElemNodeMapping_[et][1] = 1;
+        unstrucElemNodeMapping_[et][2] = 2;
+        unstrucElemNodeMapping_[et][3] = 3;
+        unstrucElemNodeMapping_[et][4] = 4;
+        unstrucElemNodeMapping_[et][5] = 5;
+        break;
+      case Elem::HEXA8:
+        uniformElemNodeMapping_[et][0] = 0;
+        uniformElemNodeMapping_[et][1] = 1;
+        uniformElemNodeMapping_[et][2] = 3;
+        uniformElemNodeMapping_[et][3] = 2;
+        uniformElemNodeMapping_[et][4] = 4;
+        uniformElemNodeMapping_[et][5] = 5;
+        uniformElemNodeMapping_[et][6] = 7;
+        uniformElemNodeMapping_[et][7] = 6;
+
+        unstrucElemNodeMapping_[et][0] = 0;
+        unstrucElemNodeMapping_[et][1] = 1;
+        unstrucElemNodeMapping_[et][2] = 2;
+        unstrucElemNodeMapping_[et][3] = 3;
+        unstrucElemNodeMapping_[et][4] = 4;
+        unstrucElemNodeMapping_[et][5] = 5;
+        unstrucElemNodeMapping_[et][6] = 6;
+        unstrucElemNodeMapping_[et][7] = 7;
+        break;
+
+      default:
+        break;
+      }
+    }
+    
   }
 
 } // end of namespace

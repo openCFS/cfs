@@ -710,6 +710,7 @@ namespace CoupledField
     }
   }
 
+  //BE warned this is now overloaded in Ensight file reader!!!!
   void FileReader_VTKMultiBlock::InitElemNodeMapping()
   {
     EnumMap::iterator it, end;
