@@ -120,16 +120,16 @@ namespace CoupledField
     }                                                                      \
 
     Vector<Double> globalPoint; // global point coordinates
-    UInt globDim = globalCoords.GetNumRows(); // determine global dimension
-    UInt numPoints = globalCoords.GetNumCols(); // number of global points
-    UInt locDim = LCornerCoords_.GetNumRows(); // dimension of current element
+    const UInt globDim = globalCoords.GetNumRows(); // determine global dimension
+    const UInt numPoints = globalCoords.GetNumCols(); // number of global points
+    const UInt locDim = LCornerCoords_.GetNumRows(); // dimension of current element
     //    UInt numCorners = LCornerCoords_.GetNumCols(); // number of element corners
     if (globDim == 2)
     {
-      if (GetShapeName() ==  Elem::feType.ToString(Elem::QUAD4)
-          || GetShapeName() ==  Elem::feType.ToString(Elem::QUAD8))
+      if (feType() ==  Elem::QUAD8)
       {
         fastGlobal2LocalCoords(localCoords, globalCoords, coordMat);
+        return;
       }
     }
 
