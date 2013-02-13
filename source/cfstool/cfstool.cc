@@ -577,6 +577,10 @@ namespace CFSTool {
            if( output) {
              output->BeginStep( actStepNum, actStepVal );
            }
+           std::cout << "\n\t=============================================\n";
+           std::cout << "\t  Treating step " << actStepNum << ", " << actStepVal
+               << "s / Hz\n";
+           std::cout << "\t=============================================\n";
 
            // iterate over all results
            for( UInt iRes = 0; iRes < inResults1.GetSize(); iRes++) {
