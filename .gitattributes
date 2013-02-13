@@ -43,14 +43,9 @@ cfsdeps/arpack/arpack-patch.cmake.in -text
 cfsdeps/arpack/instruction.arpack -text
 cfsdeps/arpack/readme.arpack -text
 cfsdeps/boost/External_Boost.cmake -text
-cfsdeps/boost/boost-intel-fpclassify.patch -text
 cfsdeps/boost/boost-intel-signbit-intrinsic.patch -text
-cfsdeps/boost/boost-lexical_cast-format-string.patch -text
 cfsdeps/boost/boost-multi_array.patch -text
 cfsdeps/boost/boost-patch.cmake.in -text
-cfsdeps/boost/boost-tuple-newline.patch -text
-cfsdeps/boost/boost-unordered-table.patch -text
-cfsdeps/boost/libstdcpp3.hpp.patch -text
 cfsdeps/bzip2/External_bzip2.cmake -text
 cfsdeps/bzip2/bzip2-shared-patch.cmake.in -text
 cfsdeps/bzip2/bzip2-static-patch.cmake.in -text

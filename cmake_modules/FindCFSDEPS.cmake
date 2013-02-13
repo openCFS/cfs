@@ -277,8 +277,8 @@ ENDIF(USE_BLAS OR USE_LAPACK)
 # Find Boost
 #-------------------------------------------------------------------------------
 SET(BOOST_URL "${LSE17_SOURCES_DIR}/boost")
-SET(BOOST_GZ "boost-1.48.0.tar.gz")
-SET(BOOST_MD5 "e8614c0ceecce2a388bce03fcc4d73b4")
+SET(BOOST_GZ "boost-cmake-1.52.0.zip")
+SET(BOOST_MD5 "d091f4af89691a1e6592c8855273eea0")
 INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/boost/External_Boost.cmake")
 
 #-------------------------------------------------------------------------------

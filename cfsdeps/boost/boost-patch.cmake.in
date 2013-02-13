@@ -4,15 +4,7 @@ SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 SET(patches
-  "boost-multi_array.patch"
-  "boost-lexical_cast-format-string.patch"
-  "boost-tuple-newline.patch"
-  # Prevent warning message related to the unordered map detail implementation. See
-  # https://svn.boost.org/trac/boost/ticket/6370
-  "boost-unordered-table.patch"
-  # Patch for problem BOOST_ENABLE_THREADS/BOOST_DISABLE_THREADS wrongly configured on GCC 4.7
-  # https://svn.boost.org/trac/boost/ticket/6165
-  "libstdcpp3.hpp.patch"
+    "boost-multi_array.patch"
 )
 
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
@@ -24,7 +16,6 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
     #    http://secure-software.intel.com/en-us/forums/showthread.php?t=98532
     # As soon as there is an official patch available, we should incorporate it here.
     "boost-intel-signbit-intrinsic.patch"
-    "boost-intel-fpclassify.patch"
     )
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
 
