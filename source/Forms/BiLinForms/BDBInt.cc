@@ -15,15 +15,14 @@
 //        Company:  Universitaet Klagenfurt
 // 
 // =====================================================================================
-
+#include "BDBInt.hh"
 
 namespace CoupledField{
 
-  template< class B_OP,
-            class MAT_DATA_TYPE,
-            class COEF_DATA_TYPE>
-  BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-  BDBInt(PtrCoefFct dData, MAT_DATA_TYPE factor, bool coordUpdate )
+  template< class COEF_DATA_TYPE,
+            class B_DATA_TYPE>
+  BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
+  BDBInt(BaseBOperator* bOp, PtrCoefFct dData, MAT_DATA_TYPE factor, bool coordUpdate )
   : BaseBDBInt(coordUpdate) 
   {
       name_ = "BDBInt";
@@ -34,23 +33,22 @@ namespace CoupledField{
         Exception("BDB integrator expects the coefficient function to be tensorial");
       }
 #endif
+      bOperator_ = bOp;
       dData_ = dData;
       factor_ = factor;
   }
 
   //! Destructor
-  template< class B_OP,
-              class MAT_DATA_TYPE,
-              class COEF_DATA_TYPE>
-  BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::~BDBInt(){
-
+  template< class COEF_DATA_TYPE,
+            class B_DATA_TYPE>
+  BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::~BDBInt(){
+    delete this->bOperator_;
   }
 
   //! Calculate the element matrix
-  template< class B_OP,
-              class MAT_DATA_TYPE,
-              class COEF_DATA_TYPE>
-  void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+  template< class COEF_DATA_TYPE,
+            class B_DATA_TYPE>
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
   CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                      EntityIterator& ent1,
                      EntityIterator& ent2) {
@@ -58,8 +56,6 @@ namespace CoupledField{
     // Extract physical element
     const Elem* ptElem = ent1.GetElem();
 
-    Matrix<MAT_DATA_TYPE> bMat, dbMat;
-    Matrix<COEF_DATA_TYPE> dMat;
     MAT_DATA_TYPE fac = 0.0;
 
     // Obtain FE element from feSpace and integration scheme
@@ -68,7 +64,7 @@ namespace CoupledField{
     BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, method, order );
 
     
-    UInt nrFncs = ptFe->GetNumFncs();
+    const UInt nrFncs = ptFe->GetNumFncs();
 
     // Get shape map from grid
     shared_ptr<ElemShapeMap> esm = 
@@ -80,32 +76,32 @@ namespace CoupledField{
     intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order, 
                               intPoints, weights );
 
-    elemMat.Resize( nrFncs * B_OP::DIM_DOF);
+    elemMat.Resize( nrFncs * bOperator_->GetDimDof());
     elemMat.Init();
     
 #define USE_BLAS_VERSION
 
     // Loop over all integration points
     LocPointMapped lp;
-    for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+    const UInt numIntPts = intPoints.GetSize();
+    for( UInt i = 0; i < numIntPts; i++  ) {
 
       // Calculate for each integration point the LocPointMapped
       lp.Set( intPoints[i], esm );
 
       // Call the CalcBMat()-method
-      bOperator_.CalcOpMat( bMat, lp, ptFe);
+      bOperator_->CalcOpMat( bMat_, lp, ptFe);
 
       // Calculate D-Mat
-      dData_->GetTensor(dMat,lp);
+      dData_->GetTensor(dMat_,lp);
 
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
-      bOperator_.TransformJacDet(fac,lp,ptFe);
 
-      dbMat.Resize(dMat.GetNumRows(),nrFncs * B_OP::DIM_DOF);
+      dbMat_.Resize(dMat_.GetNumRows(),nrFncs * bOperator_->GetDimDof());
 
 #ifdef USE_BLAS_VERSION
-      dMat.Mult_Blas(bMat,dbMat,false,false,1.0,0);
-      bMat.Mult_Blas(dbMat,elemMat,true,false,factor_*fac,1.0);
+      dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);
+      bMat_.Mult_Blas(dbMat_,elemMat,true,false,factor_*fac,1.0);
 #else
       dbMat = (dMat * bMat) * fac;
       elemMat += Transpose(bMat) * dbMat * factor_;
@@ -116,116 +112,220 @@ namespace CoupledField{
 
   }
 
-  //! Multiply element matrix with vector
-  template< class B_OP,
-  class MAT_DATA_TYPE,
-  class COEF_DATA_TYPE>
-  void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-  ApplyElemMat( Vector<MAT_DATA_TYPE>&ret, 
+  // ===============
+  //  Apply ElemMat
+  // ===============
+  // 1) General template for double-case -> not implemented
+  template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
+  ApplyElemMat( Vector<Double>&ret, 
+                const Vector<Double>& sol,
+                EntityIterator& ent1,
+                EntityIterator& ent2 ) {
+    EXCEPTION("Not implemented")
+  }  
+  
+  // 2) Special double-only case
+  template<>
+  void BDBInt<Double, Double>::
+  ApplyElemMat( Vector<Double>&ret, 
                 const Vector<Double>& sol,
                 EntityIterator& ent1,
                 EntityIterator& ent2 ) {
     Matrix<MAT_DATA_TYPE> elemMat;
     CalcElementMatrix(elemMat, ent1, ent2);
     ret = elemMat * sol;
+  }  
+  
+  // 3) Complex case is always possible
+  template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
+  ApplyElemMat( Vector<Complex>&ret, 
+                const Vector<Complex>& sol,
+                EntityIterator& ent1,
+                EntityIterator& ent2 ) {
+    Matrix<MAT_DATA_TYPE> elemMat;
+    CalcElementMatrix(elemMat, ent1, ent2);
+    ret = elemMat * sol;
+  }  
+  
+  // ===============
+  //  Apply BMatrix
+  // ===============
+  // 1) General template for double-case -> not implemented
+  template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
+  ApplyBMat( Vector<Double>&ret, 
+                        const Vector<Double>& sol,
+                        const LocPointMapped& lpm ) {
+    EXCEPTION("Not implemented");
   }
 
-  //! Apply B-operator on vector
-  template< class B_OP,
-  class MAT_DATA_TYPE,
-  class COEF_DATA_TYPE>
-  void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-  ApplyBMat( Vector<MAT_DATA_TYPE>&ret, 
-             const Vector<MAT_DATA_TYPE>& sol,
+  // 2) Special double-only case
+  template<>
+  void BDBInt<Double, Double>::
+  ApplyBMat( Vector<Double>&ret, 
+             const Vector<Double>& sol,
              const LocPointMapped& lpm ) {
-    Matrix<MAT_DATA_TYPE> bOp;
     BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
-    bOperator_.CalcOpMat(bOp, lpm, ptFe);
-    ret = bOp * sol;
+    bOperator_->CalcOpMat(bMat_, lpm, ptFe);
+    ret = bMat_ * sol;
   }
+  
+  // 3) Complex case is always possible
+  template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
+  ApplyBMat( Vector<Complex>&ret, 
+             const Vector<Complex>& sol,
+             const LocPointMapped& lpm ) {
+    BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+    bOperator_->CalcOpMat(bMat_, lpm, ptFe);
+    ret = bMat_ * sol;
+  }
+  
 
-  //! Apply dB-operator on vector
-  template< class B_OP,
-  class MAT_DATA_TYPE,
-  class COEF_DATA_TYPE>
-  void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-  ApplydBMat( Vector<MAT_DATA_TYPE>&ret, 
-              const Vector<MAT_DATA_TYPE>& sol,
+  // ===============
+  //  Apply dBMatrix
+  // ===============
+  // 1) General template for double-case -> not implemented
+  template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
+  ApplydBMat( Vector<Double>&ret, 
+              const Vector<Double>& sol,
               const LocPointMapped& lpm ) {
-    Matrix<MAT_DATA_TYPE> bOp, dMat, dbMat;
-    BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
-    bOperator_.CalcOpMat(bOp, lpm, ptFe);
-    dData_->GetTensor(dMat,lpm);
-    dbMat.Resize(dMat.GetNumRows(), bOp.GetNumCols());
-    dMat.Mult_Blas(bOp,dbMat,false,false,1.0,0);
-    ret = dbMat* sol;
+    EXCEPTION("Not implemented")
   }
   
-  //! Apply A-Transposed-operator on vector
-  template< class B_OP,
-  class MAT_DATA_TYPE,
-  class COEF_DATA_TYPE>
-  void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-  ApplyATransMat( Vector<MAT_DATA_TYPE>&ret, 
-                  const Vector<MAT_DATA_TYPE>& sol,
+  // 2) Special double-only case
+  template<>
+  void BDBInt<Double, Double>::
+  ApplydBMat( Vector<Double>&ret, 
+              const Vector<Double>& sol,
+              const LocPointMapped& lpm ) {
+    BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+    bOperator_->CalcOpMat(bMat_, lpm, ptFe);
+    dData_->GetTensor(dMat_,lpm);
+    dbMat_.Resize(dMat_.GetNumRows(), bMat_.GetNumCols());
+    dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);
+    ret = dbMat_ * sol;
+  }
+  
+  // 3) Complex case is always possible
+  template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
+  ApplydBMat( Vector<Complex>&ret, 
+              const Vector<Complex>& sol,
+              const LocPointMapped& lpm ) {
+    BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+    bOperator_->CalcOpMat(bMat_, lpm, ptFe);
+    dData_->GetTensor(dMat_,lpm);
+    dbMat_.Resize(dMat_.GetNumRows(), bMat_.GetNumCols());
+    dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);
+    ret = dbMat_ * sol;
+  }
+  
+  
+  // ===========================
+  //  Apply transposed A Matrix
+  // ============================
+  // 1) General template for double-case -> not implemented
+  template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
+  ApplyATransMat( Vector<Double>&ret, 
+                  const Vector<Double>& sol,
                   const LocPointMapped& lpm ) {
-    Matrix<MAT_DATA_TYPE> bOp;
-    BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
-    bOperator_.CalcOpMat(bOp, lpm, ptFe);
-    ret = bOp * sol;
-  }
-
-  //! Apply dATrans-operator on vector
-  template< class B_OP,
-  class MAT_DATA_TYPE,
-  class COEF_DATA_TYPE>
-  void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-  ApplydATransMat( Vector<MAT_DATA_TYPE>&ret, 
-                   const Vector<MAT_DATA_TYPE>& sol,
-                   const LocPointMapped& lpm ) {
-    Matrix<MAT_DATA_TYPE> bOp, dMat, dbMat;
-    BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
-    bOperator_.CalcOpMat(bOp, lpm, ptFe);
-    dData_->GetTensor(dMat,lpm);
-    dbMat.Resize(dMat.GetNumRows(), bOp.GetNumCols());
-    dMat.Mult_Blas(bOp,dbMat,false,false,1.0,0);
-    ret = dbMat* sol;
+    EXCEPTION("Not implemented");
   }
   
+  // 2) Special double-only case
+  template<>
+  void BDBInt<Double, Double>::
+  ApplyATransMat( Vector<Double>&ret, 
+                  const Vector<Double>& sol,
+                  const LocPointMapped& lpm ) {
+    BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+    bOperator_->CalcOpMat(bMat_, lpm, ptFe);
+    ret = bMat_ * sol;
+  }
 
+  // 3) Complex case is always possible
+  template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
+  ApplyATransMat( Vector<Complex>&ret, 
+                  const Vector<Complex>& sol,
+                  const LocPointMapped& lpm ) {
+    BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+    bOperator_->CalcOpMat(bMat_, lpm, ptFe);
+    ret = bMat_ * sol;
+  }
+  
+  // ============================
+  //  Apply transposed dA Matrix
+  // =============================
+  
+  template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
+  ApplydATransMat( Vector<Double>&ret, 
+                   const Vector<Double>& sol,
+                   const LocPointMapped& lpm ) {
+    EXCEPTION("Not implemented");
+  }
+  
+  // 2) Special double-only case
+  template<>
+  void BDBInt<Double, Double>::
+  ApplydATransMat( Vector<Double>&ret, 
+                   const Vector<Double>& sol,
+                   const LocPointMapped& lpm ) {
+    BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+    bOperator_->CalcOpMat(bMat_, lpm, ptFe);
+    dData_->GetTensor(dMat_,lpm);
+    dbMat_.Resize(dMat_.GetNumRows(), bMat_.GetNumCols());
+    dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);
+    ret = dbMat_* sol;
+  }
+  
+  // 3) Complex case is always possible
+  template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
+  ApplydATransMat( Vector<Complex>&ret, 
+                   const Vector<Complex>& sol,
+                   const LocPointMapped& lpm ) {
+    BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+    bOperator_->CalcOpMat(bMat_, lpm, ptFe);
+    dData_->GetTensor(dMat_,lpm);
+    dbMat_.Resize(dMat_.GetNumRows(), bMat_.GetNumCols());
+    dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);
+    ret = dbMat_* sol;
+  }
+  
   //! Calculate the integration kernel
-  template< class B_OP,
-            class MAT_DATA_TYPE,
-            class COEF_DATA_TYPE>
-  void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+  template< class COEF_DATA_TYPE,
+            class B_DATA_TYPE>
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
   CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
               const LocPointMapped& lpm ) {
-
-    Matrix<MAT_DATA_TYPE> bMat, dbMat;
-    Matrix<COEF_DATA_TYPE> dMat;
-    MAT_DATA_TYPE fac = 0.0;
 
     // Obtain FE element from feSpace and integration scheme
     BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
 
     UInt nrFncs = ptFe->GetNumFncs();
 
-    kernel.Resize( nrFncs * B_OP::DIM_DOF);
+    kernel.Resize( nrFncs * bOperator_->GetDimDof());
     kernel.Init();
 
 #define USE_BLAS_VERSION
 
     // Call the CalcBMat()-method
-    bOperator_.CalcOpMat( bMat, lpm, ptFe);
+    bOperator_->CalcOpMat( bMat_, lpm, ptFe);
 
     // Calculate D-Mat
-    dData_->GetTensor(dMat,lpm);
-    bOperator_.TransformJacDet(fac,lpm,ptFe);
-    dbMat.Resize(dMat.GetNumRows(),nrFncs* B_OP::DIM_DOF);
+    dData_->GetTensor(dMat_,lpm);
+    dbMat_.Resize(dMat_.GetNumRows(),nrFncs* bOperator_->GetDimDof());
 
 #ifdef USE_BLAS_VERSION
-    dMat.Mult_Blas(bMat,dbMat,false,false,1.0,0);
-    bMat.Mult_Blas(dbMat,kernel,true,false,factor_,1.0);
+    dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);
+    bMat_.Mult_Blas(dbMat_,kernel,true,false,factor_,1.0);
 #else
     dbMat = (dMat * bMat) * fac;
     kernel += Transpose(bMat) * dbMat * factor_;
@@ -233,10 +333,9 @@ namespace CoupledField{
 
   }
   
-  template< class B_OP,
-             class MAT_DATA_TYPE,
-             class COEF_DATA_TYPE>
-   void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::__Instantiate() {
+  template< class COEF_DATA_TYPE,
+            class B_DATA_TYPE>
+   void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::__Instantiate() {
     EXCEPTION("This method may never be called.");
     
     Vector<Double> rVec;
@@ -245,5 +344,12 @@ namespace CoupledField{
     ApplyBMat(rVec, rVec, lpm);
     ApplyBMat(cVec, cVec, lpm);
   }
+  
+  
+// Explicit template instantiation
+template class BDBInt<Double,Double>;
+template class BDBInt<Double,Complex>;
+template class BDBInt<Complex,Double>;
+template class BDBInt<Complex,Complex>;
   
 } // namespace

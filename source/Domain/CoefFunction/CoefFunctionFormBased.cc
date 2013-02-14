@@ -221,12 +221,17 @@ template<class TYPE> void CoefFunctionBdBKernel<TYPE>::
 GetScalar( TYPE& coefScal,
            const LocPointMapped& lpm ) {
   
-  this->forms_[lpm.ptEl->regionId]->CalcKernel(kernel_, lpm);
   
   // energy density is factor * elemSol^T * kernel * elemSol
   this->feFct_->GetElemSolution( elemSol_, lpm.ptEl);
   Vector<TYPE> temp;
-  temp = kernel_ * elemSol_;
+  if( !this->forms_[lpm.ptEl->regionId]->IsComplex() ) {
+    this->forms_[lpm.ptEl->regionId]->CalcKernel(kernelR_, lpm);
+    temp = kernelR_ * elemSol_;
+  } else {
+    this->forms_[lpm.ptEl->regionId]->CalcKernel(kernel_, lpm);
+    temp = kernel_ * elemSol_;
+  }
   coefScal = (temp * elemSol_) * factor_;
   
 }

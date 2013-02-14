@@ -153,7 +153,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
             actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, 
                                           feFunc, bOp );
         BaseBDBInt* stiff1 = NULL;
-        stiff1 = new BBInt< CurlOperator<FeHCurl,3, Double> >(nuNl, 1.0) ;
+        stiff1 = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, 1.0) ;
         stiff1->SetName("CurlCurlIntegrator-NL");
 
        BiLinFormContext * stiffContext =
@@ -180,7 +180,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
          
          //create stiffness integrator
          BiLinearForm* stiff2 = NULL;
-         stiff2 = new BDBInt< CurlOperator<FeHCurl,3, Double> >(nuDeriv, 1.0) ;
+         stiff2 = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nuDeriv, 1.0) ;
          stiff2->SetName("CurlCurlIntegrator-NL-Newton");
 
          BiLinFormContext * stiffContext2 =
@@ -214,7 +214,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
             actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
         BaseBDBInt* curlcurl;
         //curlcurl = new BDBInt< CurlOperator<FeHCurl,3, Double> >(curCoef,1.0) ;
-        curlcurl = new BBInt< CurlOperator<FeHCurl,3, Double> >(curCoef,1.0) ;
+        curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), curCoef,1.0) ;
         curlcurl->SetName("CurlCurlIntegrator");
 
        BiLinFormContext * stiffContext =
@@ -273,16 +273,19 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         // we have to guarantee, that we add some mass to curl-curl integrator.
         // Additionally, the integrator gets scaled by the edge size for a uniform
         // conditioning
-        massInt = new BBIntMassEdge<ScaledByEdgeIdentityOperator<3,Double> >(coeff,1.0);
+        massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<3,Double>(),
+                                      coeff,1.0);
         massInt->SetName("MassIntegrator");
         massContext =  new BiLinFormContext(massInt, STIFFNESS );
       } else {
         // here we add the "normal" mass integrator, which gets not scaled by the 
         // edge size
         if( scaleByEdgeSize ) {
-          massInt = new BBIntMassEdge<ScaledByEdgeIdentityOperator<3,Double> >(coeff,1.0);
+          massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<3,Double>(),
+                                        coeff,1.0);
         } else {
-          massInt = new BBIntMassEdge<IdentityOperator<FeHCurl,3,1,Double> >(coeff,1.0);
+          massInt = new BBIntMassEdge<>(new IdentityOperator<FeHCurl,3,1,Double>(),
+                                        coeff,1.0);
         }
         massInt->SetName("MassIntegrator");
         massContext =

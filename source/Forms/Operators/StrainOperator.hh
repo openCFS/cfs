@@ -97,7 +97,7 @@ namespace CoupledField{
   void StrainOperator2D<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
                                             const LocPointMapped& lp, 
                                             BaseFE* ptFe ){
-    UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialize with zeros
     bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
     bMat.Init();
@@ -127,7 +127,7 @@ namespace CoupledField{
   void StrainOperator2D<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
                                                       const LocPointMapped& lp, 
                                                       BaseFE* ptFe ){
-    UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialise with zeros
     bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT );
     bMat.Init();
@@ -242,7 +242,7 @@ namespace CoupledField{
   void StrainOperatorAxi<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
                                             const LocPointMapped& lpm, 
                                             BaseFE* ptFe ){
-    UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
     
     // Set correct size of matrix B and initialize with zeros
     bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
@@ -288,7 +288,7 @@ namespace CoupledField{
   void StrainOperatorAxi<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
                                                       const LocPointMapped& lpm, 
                                                       BaseFE* ptFe ){
-    UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialize with zeros
     bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT );
     bMat.Init();
@@ -417,7 +417,7 @@ namespace CoupledField{
    void StrainOperator3D<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
                                              const LocPointMapped& lp, 
                                              BaseFE* ptFe ){
-     UInt numFncs = ptFe->GetNumFncs();
+     const UInt numFncs = ptFe->GetNumFncs();
      // Set correct size of matrix B and initialize with zeros
      bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
      bMat.Init();

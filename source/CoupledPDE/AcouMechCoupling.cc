@@ -179,28 +179,28 @@ namespace CoupledField {
     
     // check for position of integrator
     SolutionType rowType = fnc1->GetResultInfo()->resultType;
-
+std::cerr << "coefFuncs has size" << coefFuncs.size() << std::endl;
+std::cerr << "first coefFunct is " << coefFuncs.begin()->second->ToString()<< std::endl;
     BiLinearForm * cplInt = NULL;
     if( dim_ == 2  ) {
       if(rowType == MECH_DISPLACEMENT) {
-        cplInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-            IdentityOperatorNormal<FeH1,2> >
-        (coefFuncs, factor, acouRegions);
-
+        cplInt = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                    new IdentityOperatorNormal<FeH1,2>(),
+                                    coefFuncs, factor, acouRegions);
       } else {
-        cplInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
-            IdentityOperator<FeH1,2,2> >
-        (coefFuncs, factor, acouRegions);
+        cplInt = new SurfaceABInt<>(new IdentityOperatorNormal<FeH1,2>(),
+                                    new IdentityOperator<FeH1,2,2>(),
+                                    coefFuncs, factor, acouRegions);
       }
     } else if( dim_ == 3) {
       if(rowType == MECH_DISPLACEMENT) {
-        cplInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
-            IdentityOperatorNormal<FeH1,3> >
-        (coefFuncs, factor, acouRegions);
+        cplInt = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
+                                    new IdentityOperatorNormal<FeH1,3>(),
+                                    coefFuncs, factor, acouRegions);
       } else {
-        cplInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,3>,
-            IdentityOperator<FeH1,3,3> >
-        (coefFuncs, factor, acouRegions);
+        cplInt = new SurfaceABInt<>(new IdentityOperatorNormal<FeH1,3>(),
+                                    new IdentityOperator<FeH1,3,3>(),
+                                    coefFuncs, factor, acouRegions);
       }
     } else {
       EXCEPTION( "Coupling only for two and three dimensions defined" );

@@ -466,33 +466,33 @@ DECLARE_LOG(fefunc)
           //  1D Entities
           // =============
           if(dofDim==1) {
-            massInt = new BBInt<IdentityOperator<FeH1,1,1,T>,T,T>(unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,1,1,T>(), unity, 1.0);
           } else if(dofDim==2) {
-            massInt = new BBInt<IdentityOperator<FeH1,1,2,T>,T,T>(unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,1,2,T>(), unity, 1.0);
           }else if(dofDim==3){
-            massInt = new BBInt<IdentityOperator<FeH1,1,3,T>,T,T>(unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,1,3,T>(), unity, 1.0);
           }
         } else if(spaceDim==2){
           // =============
           //  2D Entities
           // =============
           if(dofDim==1) {
-            massInt = new BBInt<IdentityOperator<FeH1,2,1,T>,T,T>(unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,2,1,T>(), unity, 1.0);
           } else if(dofDim==2) {
-            massInt = new BBInt<IdentityOperator<FeH1,2,2,T>,T,T>(unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,2,2,T>(), unity, 1.0);
           }else if(dofDim==3){
-            massInt = new BBInt<IdentityOperator<FeH1,2,3,T>,T,T>(unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,2,3,T>(), unity, 1.0);
           }
         } else if(spaceDim==3){
           // =============
           //  3D Entities
           // =============
           if(dofDim==1) {
-            massInt = new BBInt<IdentityOperator<FeH1,3,1,T>,T,T>(unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,3,1,T>(), unity, 1.0);
           } else if(dofDim==2) {
-            massInt = new BBInt<IdentityOperator<FeH1,3,2,T>,T,T>(unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,3,2,T>(), unity, 1.0);
           }else if(dofDim==3){
-            massInt = new BBInt<IdentityOperator<FeH1,3,3,T>,T,T>(unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,3,3,T>(), unity, 1.0);
           }
         }
         break;

@@ -243,6 +243,9 @@ protected:
   //! Kernel of element matrix
   Matrix<TYPE> kernel_;
   
+  //! Kernel of element matrix (always real-valued)
+  Matrix<Double> kernelR_;
+  
   //! Solution of element
   Vector<TYPE> elemSol_;
 

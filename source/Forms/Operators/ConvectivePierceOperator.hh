@@ -116,7 +116,7 @@ namespace CoupledField{
     Vector<TYPE> myVec;
     this->coef_->GetVector(myVec,lp);
 
-    UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialize with zeros
     bMat.Resize( DIM_DOF, numFncs * DIM_DOF );
     bMat.Init();
@@ -143,7 +143,7 @@ namespace CoupledField{
     Vector<TYPE> myVec;
     this->coef_->GetVector(myVec,lp);
 
-    UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialize with zeros
     bMat.Resize( numFncs * DIM_DOF , DIM_DOF);
     bMat.Init();

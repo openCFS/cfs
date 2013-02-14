@@ -33,6 +33,7 @@ SET(TARGET_LL
   febasis
   coeffunction
   linforms
+  bilinforms
 )
 
 IF(USE_HDF5)

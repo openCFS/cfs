@@ -32,4 +32,5 @@ TARGET_LINK_LIBRARIES(febasis
   pde
   utils
   integration
+  bilinforms
 )

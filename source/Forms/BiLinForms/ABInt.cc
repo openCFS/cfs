@@ -1,6 +1,5 @@
 // =====================================================================================
 // 
-//       Filename:  abInt.cc
 // 
 //    Description:  Implementation file for BBIntegrators
 //                  TAKE care:
@@ -15,32 +14,33 @@
 //        Company:  Universitaet Klagenfurt
 // 
 // =====================================================================================
+#include "ABInt.hh"
 
 namespace CoupledField{
 
 
-   template< class A_OP, class B_OP, class MAT_DATA_TYPE >
-   ABInt<A_OP, B_OP,MAT_DATA_TYPE>::
-   ABInt( PtrCoefFct scalCoef, 
-          MAT_DATA_TYPE factor,
-          bool coordUpdate )
-     : BBInt<B_OP, MAT_DATA_TYPE,MAT_DATA_TYPE>(scalCoef, factor, coordUpdate ) {
+   template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+   ABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+   ABInt(BaseBOperator * aOp, BaseBOperator * bOp, 
+         PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+         bool coordUpdate )
+     : BBInt<COEF_DATA_TYPE, B_DATA_TYPE>(bOp, scalCoef, factor, coordUpdate ) {
      this->name_ = "ABInt";
+     this->aOperator_ = aOp;
      
      // Note: In general the AB-Integrator is not symmetric, as is should 
      // get only used, if the A- and B differential operators are distinct.
      this->isSymmetric_ = false;
    }
 
-   template< class A_OP, class B_OP, class MAT_DATA_TYPE >
-   void ABInt<A_OP, B_OP,MAT_DATA_TYPE>::
+   template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+   void ABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
    CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                       EntityIterator& ent1,
                       EntityIterator& ent2 ) {
      // Extract physical element
      const Elem* ptElem = ent1.GetElem();
 
-     Matrix<MAT_DATA_TYPE> aMat, bMat;
      MAT_DATA_TYPE fac = 0.0;
 
      // Obtain FE element from feSpace and integration scheme
@@ -49,8 +49,8 @@ namespace CoupledField{
      BaseFE* ptFeA = this->ptFeSpace1_->GetFe( ent1, method1, order1 );
      BaseFE* ptFeB = this->ptFeSpace2_->GetFe( ent1, method2, order2 );
 
-     UInt nrFncsA = ptFeA->GetNumFncs();
-     UInt nrFncsB = ptFeB->GetNumFncs();
+     const UInt nrFncsA = ptFeA->GetNumFncs();
+     const UInt nrFncsB = ptFeB->GetNumFncs();
 
      // Get shape map from grid
      shared_ptr<ElemShapeMap> esm = 
@@ -63,60 +63,61 @@ namespace CoupledField{
                                      method1, order1, method2, order2,
                                      intPoints, weights );
 
-     elemMat.Resize( nrFncsA * A_OP::DIM_DOF, 
-                     nrFncsB * B_OP::DIM_DOF );
+     elemMat.Resize( nrFncsA * aOperator_->GetDimDof(), 
+                     nrFncsB * this->bOperator_->GetDimDof() );
      elemMat.Init();
 
 #define USE_BLAS_VERSION
      // Loop over all integration points
      LocPointMapped lp;
-     for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+     const UInt numIntPts = intPoints.GetSize();
+     for( UInt i = 0; i < numIntPts; ++i  ) {
 
        // Calculate for each integration point the LocPointMapped
        lp.Set( intPoints[i], esm );
 
        // Calculate A-matrix (first differential operator)
-       this->aOperator_.CalcOpMat( aMat, lp, ptFeA );
+       this->aOperator_->CalcOpMat( aMat_, lp, ptFeA );
        
        // Calculate B-matrix (second differential operator)
-       this->bOperator_.CalcOpMat( bMat, lp, ptFeB );
+       this->bOperator_->CalcOpMat( this->bMat_, lp, ptFeB );
 
        // Calculate scalar factor
        this->coefScalar_->GetScalar(fac, lp);
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
 
-       this->aOperator_.TransformJacDet(fac,lp,ptFeA);
-       this->bOperator_.TransformJacDet(fac,lp,ptFeB);
 
 #ifdef USE_BLAS_VERSION
-       aMat.Mult_Blas(bMat,elemMat,true,false,this->factor_*fac,1.0);
+       aMat_.Mult_Blas(this->bMat_,elemMat,true,false,this->factor_*fac,1.0);
 #else
-       elemMat += Transpose(aMat) * bMat * this->factor_;
+       elemMat += Transpose(aMat_) * this->bMat * this->factor_;
 #endif
 
      }
 
    }
 
-   template< class A_OP, class B_OP, class MAT_DATA_TYPE >
-   SurfaceABInt<A_OP, B_OP,MAT_DATA_TYPE>::
-   SurfaceABInt(PtrCoefFct scalCoef,
-                MAT_DATA_TYPE factor,
-                const std::set<RegionIdType>& volRegions,
-                bool coordUpdate)
-            : ABInt<A_OP,B_OP,MAT_DATA_TYPE>(scalCoef, factor, coordUpdate ){
+   template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+   SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+   SurfaceABInt( BaseBOperator * aOp, BaseBOperator * bOp,
+                 PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+                 const std::set<RegionIdType>& volRegions,
+                 bool coordUpdate )
+            : ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(aOp, bOp, scalCoef, factor, coordUpdate ){
      this->name_ = "SurfaceABInt";
      volRegions_ = volRegions;
      this->isSymmetric_ = false;
    }
 
-   template< class A_OP, class B_OP, class MAT_DATA_TYPE >
-   SurfaceABInt<A_OP, B_OP,MAT_DATA_TYPE>::
-   SurfaceABInt(const std::map< RegionIdType, PtrCoefFct >& regionCoefs,
-                MAT_DATA_TYPE factor,
-                const std::set<RegionIdType>& volRegions,
-                bool coordUpdate)
-     : ABInt<A_OP,B_OP,MAT_DATA_TYPE>(regionCoefs.begin()->second, factor, coordUpdate )
+   template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+   SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+   SurfaceABInt( BaseBOperator * aOp, BaseBOperator * bOp,
+                 const std::map< RegionIdType, PtrCoefFct >& regionCoefs,
+                 MAT_DATA_TYPE factor,
+                 const std::set<RegionIdType>& volRegions,
+                 bool coordUpdate)
+     : ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(aOp, bOp,regionCoefs.begin()->second, 
+                                         factor, coordUpdate )
    {
      this->name_ = "SurfaceABInt";
      volRegions_ = volRegions;
@@ -124,8 +125,8 @@ namespace CoupledField{
      regionCoefs_ = regionCoefs;
    }
 
-   template< class A_OP, class B_OP, class MAT_DATA_TYPE >
-   void SurfaceABInt<A_OP, B_OP,MAT_DATA_TYPE>::
+   template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+   void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
    CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                       EntityIterator& ent1,
                       EntityIterator& ent2 ) {
@@ -143,15 +144,14 @@ namespace CoupledField{
      BaseFE* ptFeB = this->ptFeSpace2_->GetFe( ent2, method2, order2 );
 
 
-     UInt nrFncsA = ptFeA->GetNumFncs();
-     UInt nrFncsB = ptFeB->GetNumFncs();
+     const UInt nrFncsA = ptFeA->GetNumFncs();
+     const UInt nrFncsB = ptFeB->GetNumFncs();
 
      // Get shape map from grid
      shared_ptr<ElemShapeMap> esm1 =
          domain->GetGrid()->GetElemShapeMap( ptElem1, this->coordUpdate_ );
      shared_ptr<ElemShapeMap> esm2 =
          domain->GetGrid()->GetElemShapeMap( ptElem2, this->coordUpdate_ );
-
 
      // Get integration points
      StdVector<LocPoint> intPoints;
@@ -160,49 +160,53 @@ namespace CoupledField{
                                      method1, order1, method2, order2,
                                      intPoints, weights );
 
-     elemMat.Resize( nrFncsA * A_OP::DIM_DOF,
-                     nrFncsB * B_OP::DIM_DOF );
+     elemMat.Resize( nrFncsA * this->aOperator_->GetDimDof(),
+                     nrFncsB * this->bOperator_->GetDimDof() );
      elemMat.Init();
 
 #define USE_BLAS_VERSION
      // Loop over all integration points
      LocPointMapped lp1,lp2;
-     for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+     const UInt numIntPts = intPoints.GetSize();
+     for( UInt i = 0; i < numIntPts; ++i ) {
 
        // Calculate for each integration point the LocPointMapped
        lp1.Set( intPoints[i], esm1, volRegions_ );
        lp2.Set( intPoints[i], esm2, volRegions_ );
 
        // Calculate A-matrix (first differential operator)
-       this->aOperator_.CalcOpMat( aMat, lp1, ptFeA );
+       this->aOperator_->CalcOpMat( this->aMat_, lp1, ptFeA );
 
        // Calculate B-matrix (second differential operator)
-       this->bOperator_.CalcOpMat( bMat, lp2, ptFeB );
+       this->bOperator_->CalcOpMat( this->bMat_, lp2, ptFeB );
 
        // Calculate scalar factor
-       if(!regionCoefs_.empty()) 
-       {
+       if(!regionCoefs_.empty()) {
          regionCoefs_[lp1.lpmVol->ptEl->regionId]->GetScalar(fac, lp1);
-       }
-       else
-       {
+       } else {
          this->coefScalar_->GetScalar(fac, lp1);
        }
        
        fac *= MAT_DATA_TYPE(lp1.jacDet * weights[i]);
 
-       this->aOperator_.TransformJacDet(fac,lp1,ptFeA);
-       this->bOperator_.TransformJacDet(fac,lp2,ptFeB);
-
 #ifdef USE_BLAS_VERSION
-       aMat.Mult_Blas(bMat,elemMat,true,false,this->factor_*fac,1.0);
+       this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false,
+                             this->factor_*fac, 1.0);
 #else
-       elemMat += Transpose(aMat) * bMat * this->factor_;
+       elemMat += Transpose(this->aMat_) * thisbMat_ * this->factor_;
 #endif
 
      }
 
    }
-
+ // Explicit template instantiation
+ template class ABInt<Double,Double>;
+ template class ABInt<Double,Complex>;
+ template class ABInt<Complex,Double>;
+ template class ABInt<Complex,Complex>;
+ template class SurfaceABInt<Double,Double>;
+ template class SurfaceABInt<Double,Complex>;
+ template class SurfaceABInt<Complex,Double>;
+ template class SurfaceABInt<Complex,Complex>;
   
 } // name

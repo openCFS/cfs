@@ -105,15 +105,14 @@ namespace CoupledField{
     // is set at the mapped local point
     assert(lp.isSurface);
     
-    UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
 
     // Set correct size of matrix B and initialize with zeros
     bMat.Resize( DIM_SPACE, numFncs);
-    bMat.Init();
 
     Vector<Double> s;
     FE *fe = (static_cast<FE*>(ptFe));
-    for(UInt d = 0; d < DIM_SPACE; d ++){
+    for(UInt d = 0; d < DIM_SPACE; d++){
       fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
       for(UInt sh = 0; sh < numFncs; sh ++){
         bMat[d][sh] = s[sh] * lp.normal[d];
@@ -130,10 +129,9 @@ namespace CoupledField{
     // is set at the mapped local point
     assert(lp.isSurface);
     
-    UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialize with zeros
     bMat.Resize( numFncs , DIM_SPACE );
-    bMat.Init();
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: nrNodes x spaceDim)
@@ -141,7 +139,7 @@ namespace CoupledField{
     FE *fe = (static_cast<FE*>(ptFe));
     for(UInt d = 0; d < DIM_SPACE ; d ++){
       fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
-      for(UInt sh = 0; sh < numFncs; sh ++){
+      for(UInt sh = 0; sh < numFncs; sh++){
         bMat[sh][d] = s[sh] * lp.normal[d];
       }
     }
@@ -208,7 +206,7 @@ namespace CoupledField{
     // is set at the mapped local point
     assert(lp.isSurface);
 
-    UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
 
     //first get usual identity OP
     Matrix<Double> bId;
@@ -259,7 +257,7 @@ namespace CoupledField{
     assert(lp.isSurface);
     EXCEPTION("DO NOT USE THIS!");
 
-    UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
 
     //first get usual identity OP
     Matrix<Double> bId;

@@ -578,7 +578,7 @@ ADD_SUBDIRECTORY(source/Forms)
 #we have just headers right now. but perhaps this will change...
 #ADD_SUBDIRECTORY(source/Forms/Operators)
 ADD_SUBDIRECTORY(source/Forms/LinForms)
-# ADD_SUBDIRECTORY(source/Forms/BiLinForms)
+ADD_SUBDIRECTORY(source/Forms/BiLinForms)
 
 ADD_SUBDIRECTORY(source/General)
 ADD_SUBDIRECTORY(source/Materials)

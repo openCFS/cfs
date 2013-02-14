@@ -16,16 +16,20 @@
 // 
 // =====================================================================================
 
+#include "BBInt.hh"
+
 namespace CoupledField{
 
 
-   template< class B_OP, class MAT_DATA_TYPE, class COEF_DATA_TYPE> 
-   BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-   BBInt(PtrCoefFct scalCoef, MAT_DATA_TYPE factor, 
+   template< class COEF_DATA_TYPE, class B_DATA_TYPE> 
+   BBInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+   BBInt(BaseBOperator * bOp,
+         PtrCoefFct scalCoef, MAT_DATA_TYPE factor, 
          bool coordUpdate) :
    BaseBDBInt(coordUpdate) {
      this->name_ = "BBInt";
      this->isSymmetric_ = true;
+     this->bOperator_ = bOp;
      this->coefScalar_ = scalCoef;
      this->factor_ = factor;
      
@@ -36,8 +40,8 @@ namespace CoupledField{
      }
    }
 
-   template< class B_OP, class MAT_DATA_TYPE, class COEF_DATA_TYPE> 
-   void BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+   template< class COEF_DATA_TYPE, class B_DATA_TYPE> 
+   void BBInt<COEF_DATA_TYPE, B_DATA_TYPE>::
    CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                       EntityIterator& ent1,
                       EntityIterator& ent2) {
@@ -51,7 +55,7 @@ namespace CoupledField{
      IntegOrder order;
       IntScheme::IntegMethod method;
       BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, method, order );
-     UInt nrFncs = ptFe->GetNumFncs();
+     const UInt nrFncs = ptFe->GetNumFncs();
 
      // Get shape map from grid
      shared_ptr<ElemShapeMap> esm = 
@@ -63,25 +67,24 @@ namespace CoupledField{
      intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order,
                                intPoints, weights );
 
-     elemMat.Resize( nrFncs * B_OP::DIM_DOF );
+     elemMat.Resize( nrFncs * bOperator_->GetDimDof() );
      elemMat.Init();
 
 #define USE_BLAS_VERSION
      // Loop over all integration points
      LocPointMapped lp;
-     for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+     const UInt numIntPts = intPoints.GetSize();
+     for( UInt i = 0; i < numIntPts; ++i ) {
 
        // Calculate for each integration point the LocPointMapped
        lp.Set( intPoints[i], esm );
 
        // Call the CalcBMat()-method
-       this->bOperator_.CalcOpMat( bMat, lp, ptFe);
+       this->bOperator_->CalcOpMat( bMat, lp, ptFe);
 
        // Calculate scalar factor
        this->coefScalar_->GetScalar(fac, lp);
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
-
-       this->bOperator_.TransformJacDet(fac,lp,ptFe);
 
 #ifdef USE_BLAS_VERSION
        bMat.Mult_Blas(bMat, elemMat, true, false, this->factor_ * fac, 1.0);
@@ -92,10 +95,23 @@ namespace CoupledField{
      }
    }
    
-   //! Multiply element matrix with vector
-   template< class B_OP, class MAT_DATA_TYPE, class COEF_DATA_TYPE> 
-   void BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-   ApplyElemMat( Vector<MAT_DATA_TYPE>&ret, const Vector<Double>& sol,
+   // ===============
+   //  Apply ElemMat
+   // ===============
+   // 1) General template for double-case -> not implemented
+   template< class COEF_DATA_TYPE, class B_DATA_TYPE> 
+   void BBInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+   ApplyElemMat( Vector<Double>&ret, const Vector<Double>& sol,
+                 EntityIterator& ent1,
+                 EntityIterator& ent2 ) {
+     EXCEPTION("Not implemented");
+   }
+   
+   // 2) Special double-only case
+   template<> 
+   void BBInt<Double, Double>::
+   ApplyElemMat( Vector<Double>&ret, 
+                 const Vector<Double>& sol,
                  EntityIterator& ent1,
                  EntityIterator& ent2 ) {
      Matrix<MAT_DATA_TYPE> elemMat;
@@ -103,61 +119,117 @@ namespace CoupledField{
      ret = elemMat * sol;
    }
 
-   //! Apply B-operator on vector
-   template< class B_OP, class MAT_DATA_TYPE, class COEF_DATA_TYPE> 
-   void BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-   ApplyBMat( Vector<MAT_DATA_TYPE>&ret, 
-              const Vector<MAT_DATA_TYPE>& sol,
+   // 3) Complex case is always possible
+   template< class COEF_DATA_TYPE, class B_DATA_TYPE> 
+   void BBInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+   ApplyElemMat( Vector<Complex>&ret, 
+                 const Vector<Complex>& sol,
+                 EntityIterator& ent1,
+                 EntityIterator& ent2 ) {
+     Matrix<MAT_DATA_TYPE> elemMat;
+     CalcElementMatrix(elemMat, ent1, ent2);
+     ret = elemMat * sol;
+   }
+   
+   // ===============
+   //  Apply BMatrix
+   // ===============
+   // 1) General template for double-case -> not implemented
+   template< class COEF_DATA_TYPE, class B_DATA_TYPE> 
+   void BBInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+   ApplyBMat( Vector<Double>&ret, 
+              const Vector<Double>& sol,
               const LocPointMapped& lpm ) {
-     Matrix<MAT_DATA_TYPE> bOp;
-     BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
-     bOperator_.CalcOpMat(bOp, lpm, ptFe);
-     ret = bOp * sol;
+     EXCEPTION( "Not implemented" );
    }
 
-   //! Apply dB-operator on vector
-   template< class B_OP, class MAT_DATA_TYPE, class COEF_DATA_TYPE> 
-   void BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-   ApplydBMat( Vector<MAT_DATA_TYPE>&ret, 
-               const Vector<MAT_DATA_TYPE>& sol,
+   // 2) Special double-only case
+   template<> 
+   void BBInt<Double, Double>::
+   ApplyBMat( Vector<Double>&ret, 
+              const Vector<Double>& sol,
+              const LocPointMapped& lpm ) {
+     BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+     bOperator_->CalcOpMat(bMat_, lpm, ptFe);
+     ret = bMat_ * sol;
+   }
+   
+   // 3) Complex case is always possible
+   template< class COEF_DATA_TYPE, class B_DATA_TYPE> 
+   void BBInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+   ApplyBMat( Vector<Complex>&ret, 
+              const Vector<Complex>& sol,
+              const LocPointMapped& lpm ) {
+     BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+     bOperator_->CalcOpMat(bMat_, lpm, ptFe);
+     ret = bMat_ * sol;
+   }
+
+   // ================
+   //  Apply dBMatrix
+   // ================   
+   // 1) General template for double-case -> not implemented
+    template< class COEF_DATA_TYPE, class B_DATA_TYPE> 
+    void BBInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+    ApplydBMat( Vector<Double>&ret, 
+               const Vector<Double>& sol,
                const LocPointMapped& lpm ) {
-     Matrix<MAT_DATA_TYPE> bMat;
-     COEF_DATA_TYPE fac;
-     BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
-     bOperator_.CalcOpMat(bMat, lpm, ptFe);
-     this->coefScalar_->GetScalar(fac, lpm);
-
-     ret = (bMat * sol) * fac;
+      Exception( "Not implemented" );
    }
+    
+    template<> 
+    void BBInt<Double, Double>::
+    ApplydBMat( Vector<Double>&ret, 
+                const Vector<Double>& sol,
+                const LocPointMapped& lpm ) {
+      Double fac;
+      BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+      bOperator_->CalcOpMat(bMat_, lpm, ptFe);
+      this->coefScalar_->GetScalar(fac, lpm);
 
-   template< class B_OP, class MAT_DATA_TYPE, class COEF_DATA_TYPE> 
-   void BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+      ret = (bMat_ * sol) * fac;
+    }
+
+    template< class COEF_DATA_TYPE, class B_DATA_TYPE> 
+    void BBInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+    ApplydBMat( Vector<Complex>&ret, 
+                const Vector<Complex>& sol,
+                const LocPointMapped& lpm ) {
+      COEF_DATA_TYPE fac;
+      BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+      bOperator_->CalcOpMat(bMat_, lpm, ptFe);
+      this->coefScalar_->GetScalar(fac, lpm);
+
+      ret = (bMat_ * sol) * Complex(fac);
+    }
+
+    
+   template< class COEF_DATA_TYPE, class B_DATA_TYPE> 
+   void BBInt<COEF_DATA_TYPE, B_DATA_TYPE>::
    CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
                const LocPointMapped& lpm ) {
 
-     Matrix<MAT_DATA_TYPE> bMat;
      MAT_DATA_TYPE fac = 0.0;
 
      // Obtain FE element from feSpace and integration scheme
      BaseFE* ptFe = this->ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
-     UInt nrFncs = ptFe->GetNumFncs();
+     const UInt nrFncs = ptFe->GetNumFncs();
 
-     kernel.Resize( nrFncs * B_OP::DIM_DOF );
+     kernel.Resize( nrFncs * bOperator_->GetDimDof() );
      kernel.Init();
 
 #define USE_BLAS_VERSION
 
      // Call the CalcBMat()-method
-     this->bOperator_.CalcOpMat( bMat, lpm, ptFe);
+     this->bOperator_->CalcOpMat( bMat_, lpm, ptFe);
 
      // Calculate scalar factor
      this->coefScalar_->GetScalar(fac, lpm);
-     this->bOperator_.TransformJacDet(fac, lpm, ptFe);
 
 #ifdef USE_BLAS_VERSION
-     bMat.Mult_Blas(bMat, kernel, true, false, this->factor_ * fac, 1.0);
+     bMat_.Mult_Blas(bMat_, kernel, true, false, this->factor_ * fac, 1.0);
 #else
-     elemMat += Transpose(bMat) * bMat * this->factor_ * fac;
+     elemMat += Transpose(bMat) * bMat_ * this->factor_ * fac;
 #endif
    }
    
@@ -165,15 +237,14 @@ namespace CoupledField{
    // =======================================================================
    
    
-   template<class B_OP, class MAT_DATA_TYPE>
-     void BBIntMassEdge<B_OP,MAT_DATA_TYPE>::
+   template< class COEF_DATA_TYPE, class B_DATA_TYPE> 
+     void BBIntMassEdge<COEF_DATA_TYPE, B_DATA_TYPE>::
    CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                       EntityIterator& ent1,
                       EntityIterator& ent2 ) {
      // Extract physical element
      const Elem* ptElem = ent1.GetElem();
 
-     Matrix<MAT_DATA_TYPE> bMat,bbMat;
      MAT_DATA_TYPE fac = 0.0;
 
      // Obtain FE element from feSpace and integration scheme
@@ -186,7 +257,7 @@ namespace CoupledField{
      // Special: Only use lower order functions
      ptFe->SetOnlyLowestOrder(true);
 
-     UInt nrFncs = ptFe->BaseFE::GetNumFncs();
+     const UInt nrFncs = ptFe->BaseFE::GetNumFncs();
 
      // Get shape map from grid
      shared_ptr<ElemShapeMap> esm = 
@@ -198,36 +269,36 @@ namespace CoupledField{
      this->intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order,
                                      intPoints, weights );
 
-     elemMat.Resize( nrFncs * B_OP::DIM_DOF );
+     elemMat.Resize( nrFncs * this->bOperator_->GetDimDof() );
      elemMat.Init();
 
      // Loop over all integration points
      LocPointMapped lp;
-     for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+     const UInt numIntPts = intPoints.GetSize();
+     for( UInt i = 0; i < numIntPts; ++i  ) {
 
        // Calculate for each integration point the LocPointMapped
        lp.Set( intPoints[i], esm );
 
        // Call the CalcBMat()-method
-       this->bOperator_.CalcOpMat( bMat, lp, ptFe);
+       this->bOperator_->CalcOpMat( this->bMat_, lp, ptFe);
 
        // Calculate scalar factor
        this->coefScalar_->GetScalar(fac, lp);
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
-       this->bOperator_.TransformJacDet(fac,lp,ptFe);
 
 #ifdef USE_BLAS_VERSION
-       bMat.Mult_Blas(bMat, elemMat, true, false, this->factor_*fac, 1.0);
+       this->bMat_.Mult_Blas(this->bMat_, elemMat, true, false, this->factor_*fac, 1.0);
 #else
-       elemMat += Transpose(bMat) * bMat * this->factor_ * fac;
+       elemMat += Transpose(bMat) * this->bMat_ * this->factor_ * fac;
 #endif
 
      }
      ptFe->SetOnlyLowestOrder(false);
    }
 
-   template<class B_OP, class MAT_DATA_TYPE,class COEF_DATA_TYPE>
-     void SurfaceBBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+   template< class COEF_DATA_TYPE, class B_DATA_TYPE> 
+   void SurfaceBBInt<COEF_DATA_TYPE, B_DATA_TYPE>::
    CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                       EntityIterator& ent1,
                       EntityIterator& ent2 ) {
@@ -235,7 +306,6 @@ namespace CoupledField{
      const Elem* ptElem1 = ent1.GetElem();
      const Elem* ptElem2 = ent2.GetElem();
 
-     Matrix<MAT_DATA_TYPE> bMat,bMatT;
      MAT_DATA_TYPE fac = 0.0;
 
      // Obtain FE element from feSpace and integration scheme
@@ -243,7 +313,7 @@ namespace CoupledField{
      IntScheme::IntegMethod method1, method2;
      BaseFE* ptFe1 = this->ptFeSpace1_->GetFe( ent1, method1, order1 );
      BaseFE* ptFe2 = this->ptFeSpace1_->GetFe( ent2, method2, order2 );
-     UInt nrFncs1 = ptFe1->GetNumFncs();
+     const UInt nrFncs1 = ptFe1->GetNumFncs();
 
 
      // Get shape map from grid
@@ -259,21 +329,22 @@ namespace CoupledField{
                                      method1, order1, method2, order2,
                                      intPoints, weights );
 
-     elemMat.Resize( nrFncs1 * B_OP::DIM_DOF );
+     elemMat.Resize( nrFncs1 * this->bOperator_->GetDimDof() );
      elemMat.Init();
 
 #define USE_BLAS_VERSION
      // Loop over all integration points
      LocPointMapped lp1,lp2;
-     for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+     const UInt numIntPts = intPoints.GetSize();
+     for( UInt i = 0; i < numIntPts; ++i  ) {
 
        // Calculate for each integration point the LocPointMapped
        lp1.Set( intPoints[i], esm1, volRegions_ );
        lp2.Set( intPoints[i], esm2, volRegions_ );
 
        // Call the CalcBMat()-method
-       this->bOperator_.CalcOpMatTransposed( bMatT, lp1, ptFe1);
-       this->bOperator_.CalcOpMat( bMat, lp2, ptFe2);
+       this->bOperator_->CalcOpMatTransposed( bMatT_, lp1, ptFe1);
+       this->bOperator_->CalcOpMat( this->bMat_, lp2, ptFe2);
 
        // Calculate scalar factor
        //TODO: Which point to take? lp1 or lp2?
@@ -281,16 +352,29 @@ namespace CoupledField{
        this->coefScalar_->GetScalar(fac, lp1);
        fac *= MAT_DATA_TYPE(lp1.jacDet * weights[i]);
 
-       this->bOperator_.TransformJacDet(fac,lp1,ptFe1);
 
 #ifdef USE_BLAS_VERSION
-       bMatT.Mult_Blas(bMat, elemMat, false, false, this->factor_ * fac, 1.0);
+       bMatT_.Mult_Blas(this->bMat_, elemMat, false, false, this->factor_ * fac, 1.0);
 #else
-       elemMat += Transpose(bMat) * bMat * this->factor_ * fac;
+       elemMat += Transpose(bMat_) * bMat_ * this->factor_ * fac;
 #endif
 
      }
    }
 
-
+   // Explicit template instantiation
+   template class BBInt<Double,Double>;
+   template class BBInt<Double,Complex>;
+   template class BBInt<Complex,Double>;
+   template class BBInt<Complex,Complex>;
+   
+   template class BBIntMassEdge<Double,Double>;
+   template class BBIntMassEdge<Double,Complex>;
+   template class BBIntMassEdge<Complex,Double>;
+   template class BBIntMassEdge<Complex,Complex>;
+   
+   template class SurfaceBBInt<Double,Double>;
+   template class SurfaceBBInt<Double,Complex>;
+   template class SurfaceBBInt<Complex,Double>;
+   template class SurfaceBBInt<Complex,Complex>;
 }

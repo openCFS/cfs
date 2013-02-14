@@ -473,7 +473,8 @@ template<typename T> class ElemStoreSol;
     Vector<Double> GetPart( Global::ComplexPart part ) const;
 
     //! Set special part ( real, imag, amplitude, phase) of a vector
-    void SetPart( Global::ComplexPart part, const Vector<Double> & partVector );
+    void SetPart( Global::ComplexPart part, const Vector<Double> & partVector,
+                  bool zeroOtherPart = false );
 
     //@}
 

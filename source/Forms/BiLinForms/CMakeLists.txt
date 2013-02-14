@@ -1,6 +1,10 @@
 SET(BILINFORMS_SRCS
   #nothing right now, each cc file
-  #is included directly in the header 
+  #is included directly in the header
+  ABInt.cc 
+  ADBInt.cc
+  BBInt.cc
+  BDBInt.cc
   )
 
 ADD_LIBRARY(bilinforms STATIC ${BILINFORMS_SRCS})

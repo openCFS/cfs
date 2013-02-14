@@ -99,7 +99,7 @@ public:
   void DivOperator<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
                                          const LocPointMapped& lp, 
                                          BaseFE* ptFe ){
-    UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialize with zeros
     bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
     bMat.Init();
@@ -120,7 +120,7 @@ public:
   void DivOperator<FE,D,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
                                                    const LocPointMapped& lp, 
                                                    BaseFE* ptFe ){
-    UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialize with zeros
     bMat.Resize( numFncs * DIM_SPACE, DIM_D_MAT );
     bMat.Init();

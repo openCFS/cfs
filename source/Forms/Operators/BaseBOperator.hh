@@ -41,15 +41,10 @@ public:
                          const LocPointMapped& lp, BaseFE* ptFe ){
     Matrix<Double> realMat;
     this->CalcOpMat(realMat,lp,ptFe);
-    UInt nrow = realMat.GetNumRows();
-    UInt ncol = realMat.GetNumCols();
+    const UInt nrow = realMat.GetNumRows();
+    const UInt ncol = realMat.GetNumCols();
     bMat.Resize(nrow,ncol);
-    bMat.Init();
-    for(UInt i=0;i<nrow;++i){
-      for(UInt j=0;j<ncol;++j){
-        bMat[i][j] = Complex(1.0,0.0) * realMat[i][j];
-      }
-    }
+    bMat.SetPart(Global::REAL, realMat, true );
   }
 
   //! Calculate transposed complex valued operator matrix
@@ -58,17 +53,10 @@ public:
                                    BaseFE* ptFe ){
     Matrix<Double> realMat;
     this->CalcOpMatTransposed(realMat,lp,ptFe);
-    UInt nrow = realMat.GetNumRows();
-    UInt ncol = realMat.GetNumCols();
+    const UInt nrow = realMat.GetNumRows();
+    const UInt ncol = realMat.GetNumCols();
     bMat.Resize(nrow,ncol);
-    
-    bMat.Init();
-    bMat = realMat * Complex(1.0, 0.0);
-//    for(UInt i=0;i<nrow;++i){
-//      for(UInt j=0;j<ncol;++j){
-//        bMat[i][j] = Complex(1.0,0.0) * realMat[i][j];
-//      }
-//    }
+    bMat.SetPart(Global::REAL, realMat, true);
   }
 
   //! Apply the operator matrix on a vector
@@ -111,18 +99,6 @@ public:
     retVec = Transpose(bOp) * solVec;
   }
   
-  //OBSOLETE!!!!
-  //! Additional transformation of the Jacobian determinant (e.g. for PML)
-  virtual void TransformJacDet(Double & jacLoc,
-                               const LocPointMapped & lp, BaseFE* ptFe){
-    return;
-  }
-  
-  //! Additional transformation of the Jacobian determinant (e.g. for PML)
-  virtual void TransformJacDet(Complex & jacLoc,
-                               const LocPointMapped & lp, BaseFE* ptFe){
-    return;
-  }
   //@}
   
   // ===============

@@ -162,21 +162,21 @@ namespace CoupledField {
     BiLinearForm * dampInt = NULL;
 
     if( subType_ == "axi" ) {
-      dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-          IdentityOperator<FeH1,2,2> >
-        (oneFuncs, 1.0, flowRegions);
+      dampInt = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                   new IdentityOperator<FeH1,2,2>(),
+                                   oneFuncs, 1.0, flowRegions);
     } else if( subType_ == "planeStrain" ) {
-      dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-          IdentityOperator<FeH1,2,2> >
-        (oneFuncs, 1.0, flowRegions);
+      dampInt = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                   new IdentityOperator<FeH1,2,2>(),
+                                   oneFuncs, 1.0, flowRegions);
     } else if( subType_ == "planeStress" ) {
-      dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-          IdentityOperator<FeH1,2,2> >
-        (oneFuncs, 1.0, flowRegions);
+      dampInt = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                   new IdentityOperator<FeH1,2,2>(),
+                                   oneFuncs, 1.0, flowRegions);
     } else if( subType_ == "3d") {
-      dampInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
-          IdentityOperator<FeH1,3,3> >
-        (oneFuncs, 1.0, flowRegions);
+      dampInt = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
+                                   new IdentityOperator<FeH1,3,3>(),
+                                   oneFuncs, 1.0, flowRegions);
     } else {
       EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
     }
@@ -184,7 +184,7 @@ namespace CoupledField {
     dampInt->SetName(name);
     BiLinFormContext * context =
         new BiLinFormContext(dampInt, DAMPING );
-
+    
     context->SetEntities( actSDList, actSDList );
     context->SetFeFunctions( lmFct, dispFct );
     context->SetCounterPart(false);
@@ -206,21 +206,21 @@ namespace CoupledField {
     // LM-velocity integrator in row of LM and column of velocity
     std::string intName  = name + "LMVelCouplingInt";
     if( subType_ == "axi" ) {
-        stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-            IdentityOperator<FeH1,2,2> >
-          (oneFuncs, -1.0, flowRegions);
+        stiffInt = new SurfaceABInt<>( new IdentityOperator<FeH1,2,2>(),
+                                       new IdentityOperator<FeH1,2,2>(),
+                                       oneFuncs, -1.0, flowRegions);
     } else if( subType_ == "planeStrain" ) {
-      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-          IdentityOperator<FeH1,2,2> >
-        (oneFuncs, -1.0, flowRegions);
+      stiffInt = new SurfaceABInt<>(new  IdentityOperator<FeH1,2,2>(),
+                                    new IdentityOperator<FeH1,2,2>(),
+                                    oneFuncs, -1.0, flowRegions);
     } else if( subType_ == "planeStress" ) {
-      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-          IdentityOperator<FeH1,2,2> >
-        (oneFuncs, -1.0, flowRegions);
+      stiffInt = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                    new IdentityOperator<FeH1,2,2>(),
+                                    oneFuncs, -1.0, flowRegions);
     } else if( subType_ == "3d") {
-      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
-          IdentityOperator<FeH1,3,3> >
-        (oneFuncs, -1.0, flowRegions);
+      stiffInt = new SurfaceABInt<>( new IdentityOperator<FeH1,3,3>(),
+                                     new IdentityOperator<FeH1,3,3>(),
+                                     oneFuncs, -1.0, flowRegions);
     } else {
       EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
     }
@@ -238,21 +238,21 @@ namespace CoupledField {
     // Displacement-LM integrator in row of displacement and column of LM
     intName  = name + "DispLMCouplingInt";
     if( subType_ == "axi" ) {
-        stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-            IdentityOperator<FeH1,2,2> >
-          (oneFuncs, 1.0, flowRegions);
+        stiffInt = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                      new IdentityOperator<FeH1,2,2>(),
+                                      oneFuncs, 1.0, flowRegions);
     } else if( subType_ == "planeStrain" ) {
-      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-          IdentityOperator<FeH1,2,2> >
-        (oneFuncs, 1.0, flowRegions);
+      stiffInt = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                    new IdentityOperator<FeH1,2,2>(),
+                                    oneFuncs, 1.0, flowRegions);
     } else if( subType_ == "planeStress" ) {
-      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-          IdentityOperator<FeH1,2,2> >
-        (oneFuncs, 1.0, flowRegions);
+      stiffInt = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                    new IdentityOperator<FeH1,2,2>(),
+                                    oneFuncs, 1.0, flowRegions);
     } else if( subType_ == "3d") {
-      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
-          IdentityOperator<FeH1,3,3> >
-        (oneFuncs, 1.0, flowRegions);
+      stiffInt = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
+                                    new IdentityOperator<FeH1,3,3>(),
+                                    oneFuncs, 1.0, flowRegions);
     } else {
       EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
     }
@@ -269,24 +269,24 @@ namespace CoupledField {
     // Velocity-LM integrator in row of velocity and column of LM
     intName  = name + "VelLMCouplingInt";
     if( subType_ == "axi" ) {
-        stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-            IdentityOperator<FeH1,2,2> >
-          (oneFuncs, -1.0, flowRegions);
+        stiffInt = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                      new IdentityOperator<FeH1,2,2>(),
+                                      oneFuncs, -1.0, flowRegions);
         //          (densityFuncs, 1.0, flowRegions);
     } else if( subType_ == "planeStrain" ) {
-      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-          IdentityOperator<FeH1,2,2> >
-          (oneFuncs, -1.0, flowRegions);
+      stiffInt = new SurfaceABInt<>(new  IdentityOperator<FeH1,2,2>(),
+                                    new IdentityOperator<FeH1,2,2>(),
+                                    oneFuncs, -1.0, flowRegions);
                  //        (densityFuncs, 1.0, flowRegions);
     } else if( subType_ == "planeStress" ) {
-      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-          IdentityOperator<FeH1,2,2> >
-          (oneFuncs, -1.0, flowRegions);
+      stiffInt = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                    new IdentityOperator<FeH1,2,2>(),
+                                    oneFuncs, -1.0, flowRegions );
                  //        (densityFuncs, 1.0, flowRegions);
     } else if( subType_ == "3d") {
-      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
-          IdentityOperator<FeH1,3,3> >
-          (oneFuncs, -1.0, flowRegions);
+      stiffInt = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
+                                    new IdentityOperator<FeH1,3,3>(),
+                                    oneFuncs, -1.0, flowRegions );
                  //        (densityFuncs, 1.0, flowRegions);
     } else {
       EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );

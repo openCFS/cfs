@@ -170,13 +170,13 @@ namespace CoupledField{
       BiLinearForm * stiffIntPV = NULL;
 
       if(usePiola_)
-        stiffIntPV = new ABInt<GradientOperator<FeH1,DIM,DATA_TYPE>,
-                               IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE> , 
-                               DATA_TYPE >(coeffKPV,1.0 );
+        stiffIntPV = new ABInt<DATA_TYPE>(new GradientOperator<FeH1,DIM,DATA_TYPE>(),
+                                          new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>() , 
+                                          coeffKPV,1.0 );
       else
-        stiffIntPV = new ABInt< GradientOperator<FeH1,DIM,DATA_TYPE> , 
-                                IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,  
-                                DATA_TYPE >(coeffKPV,1.0 );
+        stiffIntPV = new ABInt<DATA_TYPE>(new  GradientOperator<FeH1,DIM,DATA_TYPE>() , 
+                                          new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(),  
+                                          coeffKPV,1.0 );
 
       stiffIntPV->SetName("MixedStiffIntPV");
       //
@@ -196,13 +196,15 @@ namespace CoupledField{
       BiLinearForm * stiffIntVP = NULL;
 
       if(usePiola_)
-        stiffIntVP = new ABInt< IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE> , //
-                                GradientOperator<FeH1,DIM,DATA_TYPE>, //
-                                DATA_TYPE >(coeffKVP,-1.0 );
+        stiffIntVP = 
+            new ABInt<DATA_TYPE >(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>() , //
+                                  new GradientOperator<FeH1,DIM,DATA_TYPE>(), //
+                                  coeffKVP,-1.0 );
       else
-        stiffIntVP = new ABInt< IdentityOperator<FeH1,DIM,DIM,DATA_TYPE> , //
-                                GradientOperator<FeH1,DIM,DATA_TYPE>,  //
-                                DATA_TYPE  >(coeffKVP,-1.0 );
+        stiffIntVP = 
+            new ABInt<DATA_TYPE>(new  IdentityOperator<FeH1,DIM,DIM,DATA_TYPE> , //
+                                 new GradientOperator<FeH1,DIM,DATA_TYPE>(),  //
+                                 coeffKVP,-1.0 );
 
       stiffIntVP->SetName("MixedStiffIntVP");
       BiLinFormContext *stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
@@ -221,8 +223,8 @@ namespace CoupledField{
 
       BiLinearForm *massIntPP = NULL;
 
-      massIntPP = new BBInt<IdentityOperator<FeH1,DIM,1,DATA_TYPE> , 
-                            DATA_TYPE, DATA_TYPE>(coeffMPP, 1.0);
+      massIntPP = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,1,DATA_TYPE>() , 
+                                       coeffMPP, 1.0);
 
       massIntPP->SetName("PressureTimeInt");
       //massIntPP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace() );
@@ -235,9 +237,11 @@ namespace CoupledField{
 
       BiLinearForm *massIntVV = NULL;
       if( usePiola_)
-        massIntVV = new BBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE, DATA_TYPE >(density, 1.0);
+        massIntVV = new BBInt<DATA_TYPE>(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(), 
+                                         density, 1.0);
       else
-        massIntVV = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE, DATA_TYPE >(density, 1.0);
+        massIntVV = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(),
+                                         density, 1.0);
 
       massIntVV->SetName("VelocityTimeInt");
       //massIntVV->SetFeSpace( feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
@@ -283,13 +287,15 @@ namespace CoupledField{
         }
 
         if(usePiola_){
-          convectiveVV = new ABInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, 
-                                   ConvectiveOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, 
-                                   DATA_TYPE >(convFactor, 1.0);
+          convectiveVV = 
+              new ABInt<DATA_TYPE>( new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(), 
+                                    new ConvectiveOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(), 
+                                    convFactor, 1.0);
         } else {
-          convectiveVV = new ABInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>, 
-                                   ConvectiveOperator<FeH1,DIM,DIM,DATA_TYPE>, 
-                                   DATA_TYPE >(convFactor, 1.0);
+          convectiveVV = 
+              new ABInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(), 
+                                   new ConvectiveOperator<FeH1,DIM,DIM,DATA_TYPE>(), 
+                                   convFactor, 1.0);
         }
         
         // Coefficient for mass integrator: 1.0 / compressibility
@@ -297,8 +303,10 @@ namespace CoupledField{
         = CoefFunction::Generate(Global::REAL, 
                                  CoefXprBinOp("1.0", compressibility, CoefXpr::OP_DIV) );
         
-        convectivePP = new ABInt<IdentityOperator<FeH1,DIM,1,DATA_TYPE>, 
-            ConvectiveOperator<FeH1,DIM,1,DATA_TYPE>, DATA_TYPE >(coeffPP, 1.0 );
+        convectivePP = 
+            new ABInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,1,DATA_TYPE>(), 
+                                 new ConvectiveOperator<FeH1,DIM,1,DATA_TYPE>(),
+                                 coeffPP, 1.0 );
 
         convectiveVV->SetBCoefFunctionOpB(meanFlowCoef_);
         convectivePP->SetBCoefFunctionOpB(meanFlowCoef_);
@@ -335,13 +343,17 @@ namespace CoupledField{
           std::set<RegionIdType> volRegion;
           volRegion.insert(actRegion);
           if( usePiola_ ) {
-            convectiveVOpp = new SurfaceBBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(formFactor, -0.5,volRegion);
-            convectiveV    = new SurfaceBBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(formFactor, 0.5,volRegion);
-            exteriorVV    = new SurfaceBBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(formFactor, -0.5,volRegion);
+            convectiveVOpp = new SurfaceBBInt<DATA_TYPE>(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),
+                                                         formFactor, -0.5,volRegion);
+            convectiveV    = new SurfaceBBInt<DATA_TYPE>(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),
+                                                         formFactor, 0.5, volRegion);
+            exteriorVV     = new SurfaceBBInt<DATA_TYPE>(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),
+                                                         formFactor, -0.5,volRegion);
           } else {
-            convectiveVOpp = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(formFactor, -0.5 );
-            convectiveV    = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(formFactor, 0.5);
-            exteriorVV    = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(formFactor, -0.5);
+            convectiveVOpp = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(),
+                                                  formFactor, -0.5 );
+            convectiveV    = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(), formFactor, 0.5);
+            exteriorVV     = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(), formFactor, -0.5);
           }
           convectiveV->SetName("penaltyMass");
           convectiveVOpp->SetName("penalityOpposite");
@@ -375,21 +387,21 @@ namespace CoupledField{
           volRegion.insert(actRegion);
 
           if( usePiola_ ) {
-            fluxTerm = new SurfaceABInt< IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,//
-                                         NormalFluxOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,//
-                                         DATA_TYPE >(density, -0.5 ,volRegion);
+            fluxTerm = new SurfaceABInt<DATA_TYPE>(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),//
+                                                   new NormalFluxOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),//
+                                                   density, -0.5 ,volRegion);
 
-            convectiveVVTrans = new ABInt< ConvectiveOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,//
-                                           IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,//
-                                           DATA_TYPE >(density, -0.5);
+            convectiveVVTrans = new ABInt<DATA_TYPE>(new  ConvectiveOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),//
+                                                     new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),//
+                                                     density, -0.5);
           } else {
-            fluxTerm = new SurfaceABInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,//
-                                        NormalFluxOperator<FeH1,DIM,DIM,DATA_TYPE>,//
-                                        DATA_TYPE >(density, -0.5,volRegion);
+            fluxTerm = new SurfaceABInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(),//
+                                                   new NormalFluxOperator<FeH1,DIM,DIM,DATA_TYPE>(),//
+                                                   density, -0.5,volRegion);
 
-            convectiveVVTrans = new ABInt< ConvectiveOperator<FeH1,DIM,DIM,DATA_TYPE>, //
-                                           IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>, //
-                                           DATA_TYPE >(density, -0.5);
+            convectiveVVTrans = new ABInt<DATA_TYPE>(new  ConvectiveOperator<FeH1,DIM,DIM,DATA_TYPE>(), //
+                                                     new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(), //
+                                                     density, -0.5);
           }
 
           convectiveVVTrans->SetBCoefFunctionOpA(meanFlowCoef_);
@@ -519,14 +531,14 @@ namespace CoupledField{
 
         if( dim_ == 2 ) {
           if(isComplex_)
-            abcInt = new BBInt<IdentityOperator<FeH1,2,1,Complex>, Complex,Complex >(coeffKPV,1.0 );
+            abcInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), coeffKPV,1.0 );
           else
-            abcInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double,Double >(coeffKPV,1.0 );
+            abcInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>(), coeffKPV,1.0 );
         } else {
           if(isComplex_)
-            abcInt = new BBInt<IdentityOperator<FeH1,3,1,Complex>, Complex,Complex >(coeffKPV,1.0 );
+            abcInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(), coeffKPV,1.0 );
           else
-            abcInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double,Double >(coeffKPV,1.0 );
+            abcInt = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>(), coeffKPV,1.0 );
         }
 
         abcInt->SetName("abcIntegrator");

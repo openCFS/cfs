@@ -124,14 +124,14 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
         if( dim_ == 2) {
           if( isaxi_ ) {
             // axisymmetric case
-            stiffInt = new BDBInt<CurlOperatorAxi<Double> >(curCoef, 1.0);
+            stiffInt = new BDBInt<>(new CurlOperatorAxi<Double>(), curCoef, 1.0);
           } else {
             // plane 2D case
-            stiffInt = new BDBInt<CurlOperator<FeH1,2,Double> >(curCoef, 1.0);
+            stiffInt = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef, 1.0);
           }
         } else {
           // 3D case
-          stiffInt = new BDBInt<CurlOperator<FeH1,3,Double> >(curCoef, 1.0);
+          stiffInt = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, 1.0);
         }
         stiffInt->SetName("CurlCurlIntegrator");    
         stiffInt->SetFeSpace( mySpace);
@@ -152,10 +152,10 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
         // ====================================================================
         if( dim_ == 3 ) {
           BaseBDBInt * divInt = 
-              new BDBInt<DivOperator<FeH1,3,Double> > (curCoef, 1.0);
+              new BDBInt<>(new DivOperator<FeH1,3,Double>(), curCoef, 1.0);
           divInt->SetFeSpace( mySpace );
           divInt->SetName("DivDivIntegrator");
-          BiLinFormContext * divIntDescr =
+          BiLinFormContext * divIntDescr =  
                       new BiLinFormContext(divInt, STIFFNESS );
           divIntDescr->SetEntities( actSDList, actSDList );
           divIntDescr->SetFeFunctions( myFct, myFct );
@@ -178,9 +178,9 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
         {
           BiLinearForm *massInt = NULL;
           if( dim_ == 2 ) {
-            massInt = new BBInt<IdentityOperator<FeH1,2,1> >(conducCoef,1.0);
+            massInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), conducCoef,1.0);
           } else {
-            massInt = new BBInt<IdentityOperator<FeH1,3,3> >(conducCoef,1.0);
+            massInt = new BBInt<>(new IdentityOperator<FeH1,3,3>(), conducCoef,1.0 );
           }
           massInt->SetName("MassIntegrator");
           BiLinFormContext * massContext = new BiLinFormContext(massInt, MASS );
@@ -207,7 +207,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
           // ------------------------------
           {
             BiLinearForm * phiDivInt = 
-                new BBInt<GradientOperator<FeH1,3,Double> > (conducCoef, 1.0);
+                new BBInt<>(new GradientOperator<FeH1,3,Double>(), conducCoef, 1.0);
             phiDivInt->SetName("MassIntegrator_PhiPhi");
             BiLinFormContext * massContext = 
                 new BiLinFormContext(phiDivInt, MASS );
@@ -221,8 +221,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
           // ------------------------------
           {
             BiLinearForm * cplInt = 
-                new ABInt< IdentityOperator<FeH1,3,3,Double>,
-                           GradientOperator<FeH1,3,Double> > (conducCoef, 1.0);
+                new ABInt<>(new IdentityOperator<FeH1,3,3,Double>() ,
+                            new GradientOperator<FeH1,3,Double>(), conducCoef, 1.0);
             cplInt->SetName("MassIntegrator_Coupling_Phi_A");
             BiLinFormContext * cplContext = 
                 new BiLinFormContext(cplInt, MASS );

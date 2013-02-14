@@ -236,9 +236,9 @@ void HeatPDE::DefineIntegrators() {
       // create stiffness integrator
       BaseBDBInt* stiffInt = NULL;
       if( dim_ == 2 ) {
-        stiffInt = new BBInt<GradientOperator<FeH1,2> >(condNL,1.0 );
+        stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), condNL,1.0 );
       } else {
-        stiffInt = new BBInt<GradientOperator<FeH1,3> >(condNL,1.0 );
+        stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), condNL,1.0 );
       }
       stiffInt->SetName("StiffnessIntegrator-NL");
 
@@ -269,9 +269,9 @@ void HeatPDE::DefineIntegrators() {
 
       BaseBDBInt* stiffInt = NULL;
       if( dim_ == 2 ) {
-        stiffInt = new BDBInt<GradientOperator<FeH1,2> >(curCoef,1.0 );
+        stiffInt = new BDBInt<>(new GradientOperator<FeH1,2>(), curCoef,1.0 );
       } else {
-        stiffInt = new BDBInt<GradientOperator<FeH1,3> >(curCoef,1.0 );
+        stiffInt = new BDBInt<>(new GradientOperator<FeH1,3>(), curCoef,1.0 );
       }
       stiffInt->SetName("StiffnessIntegrator");
       
@@ -317,9 +317,9 @@ void HeatPDE::DefineIntegrators() {
       // create stiffness integrator
       BaseBDBInt* massIntNL = NULL;
       if( dim_ == 2 ) {
-        massIntNL = new BBInt<IdentityOperator<FeH1,2> >(nlMassCoeff, 1.0 );
+        massIntNL = new BBInt<>(new IdentityOperator<FeH1,2>(), nlMassCoeff, 1.0 );
       } else {
-        massIntNL = new BBInt<IdentityOperator<FeH1,3> >(nlMassCoeff, 1.0 );
+        massIntNL = new BBInt<>(new IdentityOperator<FeH1,3>(), nlMassCoeff, 1.0 );
       }
       massIntNL->SetName("MassIntegrator-NL");
 
@@ -345,9 +345,9 @@ void HeatPDE::DefineIntegrators() {
     else {
       BiLinearForm *massInt = NULL;
       if(dim_==2)
-        massInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double  >(massFactor,1.0 );
+        massInt = new BBInt<>(new IdentityOperator<FeH1,2,1,Double>(), massFactor,1.0 );
       else
-        massInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double  >(massFactor,1.0 );
+        massInt = new BBInt<>(new IdentityOperator<FeH1,3,1,Double>(), massFactor,1.0 );
 
       massInt->SetName("MassIntegrator");
       massInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace() );

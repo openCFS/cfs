@@ -7,66 +7,81 @@
 
 namespace CoupledField {
 
-  //! general class for calculation of AB-Forms
-  template<class A_OP, class B_OP, class MAT_DATA_TYPE=Double>
-  class ABInt : public BBInt<B_OP, MAT_DATA_TYPE,MAT_DATA_TYPE> {
-    public:
-
-      //! Constructor with pointer to BaseElem
-      ABInt( PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
-             bool coordUpdate = false );
-
-      //! Destructor
-      virtual ~ABInt(){
-
-      }
-      //! Compute element matrix associated to AB form
-      void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                                 EntityIterator& ent1,
-                                 EntityIterator& ent2 );
-
-      //! Set Coefficient Function of B operator
-      virtual void SetBCoefFunctionOpA(PtrCoefFct coef){
-        this->aOperator_.SetCoefFunction(coef);
-      }
-
-      
-    protected:
-      
-      //! First differential operator
-      A_OP aOperator_;
-  };
-
-  //! general class for calculation of AB-Forms
-  template<class A_OP, class B_OP, class MAT_DATA_TYPE=Double>
-  class SurfaceABInt : public ABInt<A_OP,B_OP, MAT_DATA_TYPE>{
+  //! General class for calculation of AB-Forms
+  //! \tparam COEF_DAATA_TYPE Data type of the material tensor  
+  //! \tparam B_DATA_TYPE Data type of the differential operator
+  template<class COEF_DATA_TYPE=Double, class B_DATA_TYPE=Double>
+  class ABInt : public BBInt<COEF_DATA_TYPE, B_DATA_TYPE> {
   public:
-      //! Constructor with pointer to BaseElem
-      SurfaceABInt(PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
-                   const std::set<RegionIdType>& volRegions, bool coordUpdate = false);
 
-      //! Constructor with CoefFunctions for a number of volume regions
-      SurfaceABInt(const std::map< RegionIdType, PtrCoefFct >& regionCoefs,
-                   MAT_DATA_TYPE factor,
-                   const std::set<RegionIdType>& volRegions,
-                   bool coordUpdate = false);
+    //! Define data type for matrix entries, derived by type trait
+    typedef PROMOTE(B_DATA_TYPE, COEF_DATA_TYPE) MAT_DATA_TYPE;
 
-      //! Destructor
-      ~SurfaceABInt() {}
+    //! Constructor with pointer to BaseElem
+    ABInt( BaseBOperator * aOp, BaseBOperator * bOp,
+           PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+           bool coordUpdate = false );
 
-      //! Compute element matrix associated to BDB form
-      void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                                 EntityIterator& ent1,
-                                 EntityIterator& ent2 );
-    protected:
-      //! Set containing all volume regions for surface integrators
-      std::set<RegionIdType> volRegions_;
+    //! Destructor
+    virtual ~ABInt(){
+      delete aOperator_;
+    }
+    
+    //! Compute element matrix associated to AB form
+    void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                            EntityIterator& ent1,
+                            EntityIterator& ent2 );
 
-      //! Map containing all coefficient functions for volume regions for operator A
-      std::map< RegionIdType, PtrCoefFct > regionCoefs_;    
+    //! Set Coefficient Function of B operator
+    virtual void SetBCoefFunctionOpA(PtrCoefFct coef){
+      this->aOperator_->SetCoefFunction(coef);
+    }
+
+
+  protected:
+
+    //! First differential operator
+    BaseBOperator* aOperator_;
+    
+    //! Store intermediate A-matrix
+    Matrix<MAT_DATA_TYPE> aMat_;
+    
+};
+
+  //! general class for calculation of AB-Forms
+  template<class COEF_DATA_TYPE=Double, class B_DATA_TYPE=Double>
+  class SurfaceABInt : public ABInt<COEF_DATA_TYPE,B_DATA_TYPE>{
+  public:
+
+    //! Define data type for matrix entries, derived by type trait
+    typedef PROMOTE(B_DATA_TYPE, COEF_DATA_TYPE) MAT_DATA_TYPE;
+    
+    //! Constructor with pointer to CoefFunction for surface itself
+    SurfaceABInt( BaseBOperator * aOp, BaseBOperator * bOp,
+                  PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+                  const std::set<RegionIdType>& volRegions, bool coordUpdate = false);
+
+    //! Constructor with CoefFunctions for a number of volume regions
+    SurfaceABInt( BaseBOperator * aOp, BaseBOperator * bOp,
+                  const std::map< RegionIdType, PtrCoefFct >& regionCoefs,
+                  MAT_DATA_TYPE factor,
+                  const std::set<RegionIdType>& volRegions,
+                  bool coordUpdate = false);
+
+    //! Destructor
+    ~SurfaceABInt() {}
+
+    //! Compute element matrix associated to BDB form
+    void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                            EntityIterator& ent1,
+                            EntityIterator& ent2 );
+  protected:
+    //! Set containing all volume regions for surface integrators
+    std::set<RegionIdType> volRegions_;
+
+    //! Map containing all coefficient functions for volume regions for operator A
+    std::map< RegionIdType, PtrCoefFct > regionCoefs_;    
   };
 }
 
-//Include template definition file
-#include "ABInt.cc"
 #endif

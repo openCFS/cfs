@@ -199,7 +199,7 @@ namespace CoupledField{
                                                 const LocPointMapped& lp,
                                                 BaseFE* ptFe ){
     assert(this->coef_ != NULL);
-    UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialise with zeros
     bMat.Resize( DIM_SPACE, numFncs * DIM_DOF );
     bMat.Init();
@@ -246,7 +246,7 @@ namespace CoupledField{
                                                           const LocPointMapped& lp,
                                                           BaseFE* ptFe ){
     assert(this->coef_ != NULL);
-    UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialise with zeros
     bMat.Resize( numFncs * DIM_DOF, DIM_SPACE  );
     bMat.Init();

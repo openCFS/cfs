@@ -22,7 +22,8 @@
 #include <boost/tr1/type_traits.hpp>
 
 #include "BiLinearForm.hh"
-
+#include "Forms/Operators/BaseBOperator.hh"
+#include "MatVec/promote.hh"
 #include "FeBasis/BaseFE.hh"
 
 
@@ -64,80 +65,28 @@ public:
   //! to calculate the energy of a field on the element level. 
   virtual void ApplyElemMat( Vector<Double>&ret, const Vector<Double>& sol,
                              EntityIterator& ent1,
-                             EntityIterator& ent2 ) {
-    EXCEPTION("BaseBDBInt: ApplyBMat not implemented");
-  }
+                             EntityIterator& ent2 ) = 0;
   virtual void ApplyElemMat( Vector<Complex>&ret, const Vector<Complex>& sol,
                              EntityIterator& ent1,
-                             EntityIterator& ent2 ) {
-    
-    // provide default implementation in base class
-    Vector<Double>  rRet(sol.GetSize() ), rSol( sol.GetSize() );
-    
-    // 1) real part
-    rSol.Resize( sol.GetSize() );
-    rSol = sol.GetPart( Global::REAL );
-    this->ApplyElemMat( rRet, rSol, ent1, ent2 );
-    ret.Resize(rRet.GetSize());
-    ret.SetPart(Global::REAL, rRet);
-    
-    // 2) imag part
-    rSol = sol.GetPart( Global::IMAG );
-    this->ApplyElemMat( rRet, rSol, ent1, ent2 );
-    ret.SetPart(Global::IMAG, rRet);
-  }  
+                             EntityIterator& ent2 ) = 0;
   //@}
 
   //@{
   //! Apply B-Operator on vector
   virtual void ApplyBMat( Vector<Double>&ret, const Vector<Double>& sol,
-                          const LocPointMapped& lpm ) {
-    EXCEPTION("BaseBDBInt: ApplyBMat not implemented");
-  }
+                          const LocPointMapped& lpm ) = 0;
   virtual void ApplyBMat( Vector<Complex>&ret, const Vector<Complex>& sol,
-                          const LocPointMapped& lpm ) {
-    // provide default implementation in base class
-    Vector<Double>  rRet(sol.GetSize() ), rSol( sol.GetSize() );
-
-    // 1) real part
-    rSol.Resize( sol.GetSize() );
-    rSol = sol.GetPart( Global::REAL );
-    this->ApplyBMat( rRet, rSol, lpm );
-    ret.Resize(rRet.GetSize());
-    ret.SetPart(Global::REAL, rRet);
-
-    // 2) imag part
-    rSol = sol.GetPart( Global::IMAG );
-    this->ApplyBMat( rRet, rSol, lpm );
-    ret.SetPart(Global::IMAG, rRet);
-  }
+                          const LocPointMapped& lpm )  = 0;
   //@}
 
 
   //@{
   //! Apply dB-Operator on vector
   virtual void ApplydBMat( Vector<Double>&ret, const Vector<Double>& sol,
-                           const LocPointMapped& lpm ) {
-    EXCEPTION("BaseBDBInt: ApplydBMat not implemented");
-  }
+                           const LocPointMapped& lpm ) = 0;
 
   virtual void ApplydBMat( Vector<Complex>&ret, const Vector<Complex>& sol,
-                           const LocPointMapped& lpm ) {
-    // provide default implementation in base class
-    Vector<Double>  rRet(sol.GetSize() ), rSol( sol.GetSize() );
-
-    // 1) real part
-    rSol.Resize( sol.GetSize() );
-    rSol = sol.GetPart( Global::REAL );
-    this->ApplydBMat( rRet, rSol, lpm );
-    ret.Resize(rRet.GetSize());
-    ret.SetPart(Global::REAL, rRet);
-
-    // 2) imag part
-    rSol = sol.GetPart( Global::IMAG );
-    this->ApplydBMat( rRet, rSol, lpm );
-    ret.SetPart(Global::IMAG, rRet);
-  }
+                           const LocPointMapped& lpm ) = 0;
   //@}
   
   //! Apply transposed A-Operator on vector
@@ -146,63 +95,22 @@ public:
   //! and allows to apply the transposed A-Matrix (i.e. first differential
   //! operator) to a vector.
    virtual void ApplyATransMat( Vector<Double>&ret, const Vector<Double>& sol,
-                                const LocPointMapped& lpm ) {
-     EXCEPTION("BaseBDBInt: ApplyATransMat not implemented");
-   }
+                                const LocPointMapped& lpm ) = 0;
+   
    virtual void ApplyATransMat( Vector<Complex>&ret, const Vector<Complex>& sol,
-                           const LocPointMapped& lpm ) {
-     // provide default implementation in base class
-     Vector<Double>  rRet(sol.GetSize() ), rSol( sol.GetSize() );
-
-     // 1) real part
-     rSol.Resize( sol.GetSize() );
-     rSol = sol.GetPart( Global::REAL );
-     this->ApplyATransMat( rRet, rSol, lpm );
-     ret.Resize(rRet.GetSize());
-     ret.SetPart(Global::REAL, rRet);
-
-     // 2) imag part
-     rSol = sol.GetPart( Global::IMAG );
-     this->ApplyATransMat( rRet, rSol, lpm );
-     ret.SetPart(Global::IMAG, rRet);
-   }
+                           const LocPointMapped& lpm ) = 0;
    //@}
 
 
    //@{
    //! Apply dA-Operator on vector
    virtual void ApplydATransMat( Vector<Double>&ret, const Vector<Double>& sol,
-                                 const LocPointMapped& lpm ) {
-     EXCEPTION("BaseBDBInt: ApplydATransMat not implemented");
-   }
+                                 const LocPointMapped& lpm ) = 0;
 
    virtual void ApplydATransMat( Vector<Complex>&ret, const Vector<Complex>& sol,
-                                 const LocPointMapped& lpm ) {
-     // provide default implementation in base class
-     Vector<Double>  rRet(sol.GetSize() ), rSol( sol.GetSize() );
-
-     // 1) real part
-     rSol.Resize( sol.GetSize() );
-     rSol = sol.GetPart( Global::REAL );
-     this->ApplydATransMat( rRet, rSol, lpm );
-     ret.Resize(rRet.GetSize());
-     ret.SetPart(Global::REAL, rRet);
-
-     // 2) imag part
-     rSol = sol.GetPart( Global::IMAG );
-     this->ApplydATransMat( rRet, rSol, lpm );
-     ret.SetPart(Global::IMAG, rRet);
-   }
+                                 const LocPointMapped& lpm ) = 0;
    //@}
 
-  
-  
-  
-  
-  
-  
-  
-  
 
   //@{
   //! Calculate integration kernel, i.e. B*d*B without integration
@@ -217,26 +125,35 @@ public:
   }
   //@}
 
+  
 };
 
 
-  //! general class for calculation of bdb forms
-  template< class B_OP,
-            class MAT_DATA_TYPE=Double,
-            class COEF_DATA_TYPE=Double>
+  //! General class for calculating BdB bilinearforms
+  
+  //! This class calculates the general BdB-form, where B
+  //! denotes an arbitrary differential operator and d
+  //! denotes the material tensor
+  //! \tparam COEF_DATA_TYPE Data type of the material tensor  
+  //! \tparam B_DATA_TYPE Data type of the differential operator
+  template<class COEF_DATA_TYPE=Double, class B_DATA_TYPE=Double>
   class BDBInt : public BaseBDBInt {
-    public:
+  public:
 
-      //! Constructor with pointer to BaseElem
-      BDBInt(PtrCoefFct dData, MAT_DATA_TYPE factor,
-             bool coordUpdate = false );
+    //! Define data type for matrix entries, derived by type trait
+    typedef PROMOTE(B_DATA_TYPE, COEF_DATA_TYPE) MAT_DATA_TYPE;
+    
+    //! Constructor with pointer to BaseElem
+    BDBInt( BaseBOperator * bOp,
+            PtrCoefFct dData, MAT_DATA_TYPE factor,
+            bool coordUpdate = false );
 
       //! Destructor
       virtual ~BDBInt();
 
       //! \copydoc BaseBDBInt::GetBOp
       virtual BaseBOperator* GetBOp() {
-        return &bOperator_;
+        return bOperator_;
       }
       
       //! \copydoc BaseBDBInt::GetCoef
@@ -249,37 +166,56 @@ public:
                               EntityIterator& ent1,
                               EntityIterator& ent2 );
 
-      //! Multiply element matrix with vector
-      void ApplyElemMat( Vector<MAT_DATA_TYPE>&ret, 
+      //@{
+      void ApplyElemMat( Vector<Double>&ret, 
                          const Vector<Double>& sol,
                          EntityIterator& ent1,
                          EntityIterator& ent2 );
-
       
-      //! Calculate integration kernel, i.e. B*d*B without integration
+      void ApplyElemMat( Vector<Complex>&ret, 
+                         const Vector<Complex>& sol,
+                         EntityIterator& ent1,
+                         EntityIterator& ent2 );
+      //@}
+
+
       void CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
                        const LocPointMapped& lpm );
-      
-      //! Apply B-Operator on vector 
-      void ApplyBMat( Vector<MAT_DATA_TYPE>&ret, 
-                      const Vector<MAT_DATA_TYPE>& sol,
+
+      //@{
+      void ApplyBMat( Vector<Double>&ret, 
+                      const Vector<Double>& sol,
                       const LocPointMapped& lpm );
+      void ApplyBMat( Vector<Complex>&ret, 
+                      const Vector<Complex>& sol,
+                      const LocPointMapped& lpm );
+      //@}
 
-      //! Apply dB-Operator on vector
-      void ApplydBMat( Vector<MAT_DATA_TYPE>&ret, 
-                       const Vector<MAT_DATA_TYPE>& sol,
-                       const LocPointMapped& lpm );
-      
+      //@{
+      virtual void ApplydBMat( Vector<Double>&ret, const Vector<Double>& sol,
+                               const LocPointMapped& lpm );
+      virtual void ApplydBMat( Vector<Complex>&ret, const Vector<Complex>& sol,
+                               const LocPointMapped& lpm );
+      //@}
 
-      //! Apply A-Trans-Operator on vector
-      void ApplyATransMat( Vector<MAT_DATA_TYPE>&ret, 
-                           const Vector<MAT_DATA_TYPE>& sol,
+
+      //@{
+      void ApplyATransMat( Vector<Double>&ret, 
+                           const Vector<Double>& sol,
                            const LocPointMapped& lpm );
+      void ApplyATransMat( Vector<Complex>&ret, 
+                           const Vector<Complex>& sol,
+                           const LocPointMapped& lpm );
+      //@}
 
-      //! Apply dATrans-Operator on vector
-      void ApplydATransMat( Vector<MAT_DATA_TYPE>&ret, 
-                            const Vector<MAT_DATA_TYPE>& sol,
+      //@{
+      void ApplydATransMat( Vector<Double>&ret, 
+                            const Vector<Double>& sol,
                             const LocPointMapped& lpm );
+      void ApplydATransMat( Vector<Complex>&ret, 
+                            const Vector<Complex>& sol,
+                            const LocPointMapped& lpm );
+      //@}
 
 
       bool IsComplex(){
@@ -303,26 +239,36 @@ public:
         this->intScheme_ = ptFeSpace1_->GetIntScheme();
       }
       
+      
       //! Set Coefficient Function of B operator
       virtual void SetBCoefFunctionOpA(PtrCoefFct coef){
-        this->bOperator_.SetCoefFunction(coef);
+        this->bOperator_->SetCoefFunction(coef);
       }
       void __Instantiate();
        
 
     protected:
-      B_OP bOperator_;
 
+      //! Differential operator
+      BaseBOperator * bOperator_;
+      
       //! set a constant factor for multiplication with the element matrix
       MAT_DATA_TYPE factor_;
 
       //! Pointer to coefficient function computing the d-matrix of the BDB Integrator
       shared_ptr<CoefFunction > dData_;
+      
+      //! Store intermediate operator matrix for B
+      Matrix<MAT_DATA_TYPE> bMat_;
+      
+      //! Store intermediate material matrix c
+      Matrix<MAT_DATA_TYPE> dMat_;
+      
+      //! Store intermediate matrix
+      Matrix<MAT_DATA_TYPE> dbMat_;
+      
   };
 
 }
-
-//Include template definition file
-#include "BDBInt.cc"
 
 #endif

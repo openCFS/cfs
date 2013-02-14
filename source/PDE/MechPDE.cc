@@ -292,9 +292,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       
       BaseBDBInt *massInt = NULL;
       if( dim_ == 2 ) {
-        massInt = new BBInt<IdentityOperator<FeH1,2,2> >(densCoeff, 1.0);
+        massInt = new BBInt<>(new IdentityOperator<FeH1,2,2>(), densCoeff, 1.0);
       } else {
-        massInt = new BBInt<IdentityOperator<FeH1,3,3> >(densCoeff, 1.0);
+        massInt = new BBInt<>(new IdentityOperator<FeH1,3,3>, densCoeff, 1.0);
       }
       massInt->SetName("MassInt");
       massInt->SetFeSpace( mySpace );
@@ -537,26 +537,26 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     BaseBDBInt * integ = NULL;
     if( isComplex ) {
       if( subType_ == "axi" ) {
-        integ = new BDBInt<StrainOperatorAxi<FeH1,Complex>,Complex,Complex>(curCoef, 1.0);
+        integ = new BDBInt<Complex>(new StrainOperatorAxi<FeH1,Complex>(), curCoef, 1.0);
       } else if( subType_ == "planeStrain" ) {
-        integ = new BDBInt<StrainOperator2D<FeH1,Complex>,Complex,Complex>(curCoef, 1.0);
+        integ = new BDBInt<Complex>(new StrainOperator2D<FeH1,Complex>(), curCoef, 1.0);
       } else if( subType_ == "planeStress" ) {
-        integ = new BDBInt<StrainOperator2D<FeH1,Complex>,Complex,Complex>(curCoef, 1.0);
+        integ = new BDBInt<Complex>(new StrainOperator2D<FeH1,Complex>(), curCoef, 1.0);
       } else if( subType_ == "3d") {
-        integ = new BDBInt<StrainOperator3D<FeH1,Complex>,Complex,Complex>(curCoef, 1.0);
+        integ = new BDBInt<Complex>(new StrainOperator3D<FeH1,Complex>(), curCoef, 1.0);
       } else {
         EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
       }
     }
     else {
       if( subType_ == "axi" ) {
-        integ = new BDBInt<StrainOperatorAxi<FeH1> >(curCoef, 1.0);
+        integ = new BDBInt<>(new StrainOperatorAxi<FeH1>(), curCoef, 1.0);
       } else if( subType_ == "planeStrain" ) {
-        integ = new BDBInt<StrainOperator2D<FeH1> >(curCoef, 1.0);
+        integ = new BDBInt<>(new StrainOperator2D<FeH1>(), curCoef, 1.0);
       } else if( subType_ == "planeStress" ) {
-        integ = new BDBInt<StrainOperator2D<FeH1> >(curCoef, 1.0);
+        integ = new BDBInt<>(new StrainOperator2D<FeH1>(), curCoef, 1.0);
       } else if( subType_ == "3d") {
-        integ = new BDBInt<StrainOperator3D<FeH1> >(curCoef, 1.0);
+        integ = new BDBInt<>(new StrainOperator3D<FeH1>(), curCoef, 1.0);
       } else {
         EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
       }

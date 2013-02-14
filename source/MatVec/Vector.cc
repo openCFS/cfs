@@ -452,13 +452,15 @@ namespace CoupledField {
   }
   
   template<typename T>
-  void Vector<T>::SetPart( Global::ComplexPart part, const Vector<Double> & partVector )
+  void Vector<T>::SetPart( Global::ComplexPart part, const Vector<Double> & partVector,
+                           bool zeroOtherPart )
   {
     EXCEPTION( "Vector::SetPart: Only Implemented for Real and Complex vectors!" );
   }
 
   template<>
-  void Vector<Double>::SetPart( Global::ComplexPart part, const Vector<Double> & partVector )
+  void Vector<Double>::SetPart( Global::ComplexPart part, const Vector<Double> & partVector,
+                                bool zeroOtherPart )
   {
     if(size_ != partVector.GetSize())
       EXCEPTION( "Vector<Double>::SetPart: Dimension of vectors do not match!" );
@@ -470,23 +472,43 @@ namespace CoupledField {
   }
 
   template<>
-  void Vector<Complex>::SetPart( Global::ComplexPart part, const Vector<Double> & partVector )
-  {
+  void Vector<Complex>::SetPart( Global::ComplexPart part, const Vector<Double> & partVector,
+                                 bool zeroOtherPart ) {
     if(size_ != partVector.GetSize())
       EXCEPTION( "Vector<Complex>::SetPart: Dimension of vectors do not match!" );
 
-    switch(part)
-    {
-    case Global::REAL:
-      for(unsigned int i = 0; i < size_; ++i)
-        data_[i] = Complex(partVector[i], data_[i].imag());
-      break;
-    case Global::IMAG:
-      for(unsigned int i = 0; i < size_; ++i)
-        data_[i] = Complex(data_[i].real(), partVector[i]);
-      break;
-    default:
-      EXCEPTION( "Vector<Complex>::SetPart: Only possible for REAL or IMAG part!" );
+    if( zeroOtherPart) {
+      // ------------------
+      //  Zero other part
+      // ------------------
+      switch(part)  {
+        case Global::REAL:
+          for(unsigned int i = 0; i < size_; ++i)
+            data_[i] = Complex(partVector[i], 0.0);
+          break;
+        case Global::IMAG:
+          for(unsigned int i = 0; i < size_; ++i)
+            data_[i] = Complex(0.0, partVector[i]);
+          break;
+        default:
+          EXCEPTION( "Vector<Complex>::SetPart: Only possible for REAL or IMAG part!" );
+      }
+    } else {
+      // ------------------
+      //  Keep other part
+      // ------------------
+      switch(part)  {
+        case Global::REAL:
+          for(unsigned int i = 0; i < size_; ++i)
+            data_[i] = Complex(partVector[i], data_[i].imag());
+          break;
+        case Global::IMAG:
+          for(unsigned int i = 0; i < size_; ++i)
+            data_[i] = Complex(data_[i].real(), partVector[i]);
+          break;
+        default:
+          EXCEPTION( "Vector<Complex>::SetPart: Only possible for REAL or IMAG part!" );
+      }
     }
   }
 

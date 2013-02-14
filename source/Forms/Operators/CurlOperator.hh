@@ -495,7 +495,7 @@ namespace CoupledField{
 
     void CalcOpMat(Matrix<Double> & bMat,
                    const LocPointMapped& lp, BaseFE* ptFe ){
-      UInt numFncs = ptFe->GetNumFncs();
+      const UInt numFncs = ptFe->GetNumFncs();
       
       // Set correct size of matrix B and initialize with zeros
       bMat.Resize( 2, numFncs );
@@ -518,7 +518,7 @@ namespace CoupledField{
     void CalcOpMatTransposed(Matrix<Double> & bMat,
                              const LocPointMapped& lp, BaseFE* ptFe ){
       
-      UInt numFncs = ptFe->GetNumFncs();
+      const UInt numFncs = ptFe->GetNumFncs();
 
       // Set correct size of matrix B and initialize with zeros
       bMat.Resize( numFncs, 2 );

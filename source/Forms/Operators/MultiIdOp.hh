@@ -115,11 +115,10 @@ namespace CoupledField{
   void MultiIdOp<FE,D,D_DOF,TYPE>::
   CalcOpMat(Matrix<Double> & bMat,
             const LocPointMapped& lp, BaseFE* ptFe){
-     UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
      
      // Set correct size of matrix B and initialize with zeros
      bMat.Resize( DIM_SPACE, numFncs * DIM_DOF );
-     bMat.Init();
 
      Vector<Double> s;
      FE *fe = (static_cast<FE*>(ptFe));
@@ -136,10 +135,9 @@ namespace CoupledField{
     void MultiIdOp<FE,D,D_DOF,TYPE>::
   CalcOpMatTransposed(Matrix<Double> & bMat,
                       const LocPointMapped& lp, BaseFE* ptFe){
-    UInt numFncs = ptFe->GetNumFncs();
+    const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialize with zeros
     bMat.Resize( DIM_SPACE, numFncs * DIM_DOF );
-    bMat.Init();
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: nrNodes x spaceDim)

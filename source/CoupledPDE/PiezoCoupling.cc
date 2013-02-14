@@ -293,34 +293,42 @@ namespace CoupledField {
     BaseBDBInt * integ = NULL;
     if ( isComplex ) {
       if( subType_ == "axi" ) {
-        integ = new ADBInt<StrainOperatorAxi<FeH1,Complex>,
-          GradientOperator<FeH1,2,Complex>,Complex,Complex >(curCoef, 1.0, true );
+        integ = new ADBInt<Complex>(new StrainOperatorAxi<FeH1,Complex>(),
+                                    new GradientOperator<FeH1,2,Complex>(), 
+                                    curCoef, 1.0, true );
       } else if( subType_ == "planeStrain" ) {
-        integ = new ADBInt<StrainOperator2D<FeH1,Complex>,
-          GradientOperator<FeH1,2,Complex>,Complex,Complex >(curCoef, 1.0, true);
+        integ = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
+                                    new GradientOperator<FeH1,2,Complex>(),
+                                    curCoef, 1.0, true);
       } else if( subType_ == "planeStress" ) {
-        integ = new ADBInt<StrainOperator2D<FeH1,Complex>,
-          GradientOperator<FeH1,2,Complex>,Complex,Complex >(curCoef, 1.0, true);
+        integ = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
+                                    new GradientOperator<FeH1,2,Complex>(),
+                                    curCoef, 1.0, true);
       } else if( subType_ == "3d") {
-        integ = new ADBInt<StrainOperator3D<FeH1,Complex>,
-          GradientOperator<FeH1,3,Complex>,Complex,Complex >(curCoef, 1.0, true);
+        integ = new ADBInt<Complex>(new StrainOperator3D<FeH1,Complex>(),
+                                    new GradientOperator<FeH1,3,Complex>(),
+                                    curCoef, 1.0, true);
       } else {
         EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
       }
     }
     else {
       if( subType_ == "axi" ) {
-        integ = new ADBInt<StrainOperatorAxi<FeH1>,
-          GradientOperator<FeH1,2> >(curCoef, 1.0, true );
+        integ = new ADBInt<Double>(new StrainOperatorAxi<FeH1>(),
+                                   new GradientOperator<FeH1,2>(),
+                                   curCoef, 1.0, true );
       } else if( subType_ == "planeStrain" ) {
-        integ = new ADBInt<StrainOperator2D<FeH1>,
-          GradientOperator<FeH1,2> >(curCoef, 1.0, true);
+        integ = new ADBInt<Double>(new StrainOperator2D<FeH1>(),
+                                   new GradientOperator<FeH1,2>(),
+                                   curCoef, 1.0, true);
       } else if( subType_ == "planeStress" ) {
-        integ = new ADBInt<StrainOperator2D<FeH1>,
-          GradientOperator<FeH1,2> >(curCoef, 1.0, true);
+        integ = new ADBInt<Double>(new StrainOperator2D<FeH1>(),
+                                   new GradientOperator<FeH1,2>(), 
+                                   curCoef, 1.0, true);
       } else if( subType_ == "3d") {
-        integ = new ADBInt<StrainOperator3D<FeH1>,
-          GradientOperator<FeH1,3> >(curCoef, 1.0, true);
+        integ = new ADBInt<Double>(new StrainOperator3D<FeH1>(),
+                                   new GradientOperator<FeH1,3>(), 
+                                   curCoef, 1.0, true);
       } else {
         EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
       }

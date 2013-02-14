@@ -197,18 +197,18 @@ namespace CoupledField{
       BaseBDBInt * stiffInt = NULL;
       if( dim_ == 2 ) {
         if(harmonicPML){
-          stiffInt = new BBInt<ScaledGradientOperator<FeH1,2,Complex>, Complex,Complex >( coeffPMLfactor, 1.0 );
+          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(), coeffPMLfactor, 1.0 );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
         }else{
-          stiffInt = new BBInt<GradientOperator<FeH1,2>, Double >( factor, 1.0 );
+          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), factor, 1.0 );
         }
       }
       else{
         if(harmonicPML){
-          stiffInt = new BBInt<ScaledGradientOperator<FeH1,3,Complex>, Complex,Complex >( coeffPMLfactor, 1.0 );
+          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),  coeffPMLfactor, 1.0 );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
         }else{
-          stiffInt = new BBInt<GradientOperator<FeH1,3>, Double >( factor, 1.0 );
+          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), factor, 1.0 );
         }
       }
       stiffInt->SetName("LaplaceIntegrator");
@@ -235,14 +235,14 @@ namespace CoupledField{
       
       if(dim_==2){
         if(harmonicPML)
-          massInt = new BBInt<IdentityOperator<FeH1,2,1,Complex>, Complex, Complex  >(coeffPMLMass, 1.0 );
+          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), coeffPMLMass, 1.0 );
         else
-          massInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double  >(coeffM, 1.0 );
+          massInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 1.0 );
       }else{
         if(harmonicPML)
-          massInt = new BBInt<IdentityOperator<FeH1,3,1,Complex>, Complex, Complex  >(coeffPMLMass, 1.0 );
+          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(), coeffPMLMass, 1.0 );
         else
-          massInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double  >(coeffM, 1.0 );
+          massInt = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 1.0 );
       }
 
       massInt->SetName("MassIntegrator");
@@ -285,11 +285,15 @@ namespace CoupledField{
         BiLinearForm *convectiveStiff = NULL;
         BiLinearForm *convectiveDamp = NULL;
         if( dim_ == 2 ) {
-          convectiveDamp  = new ABInt<IdentityOperator<FeH1,2,1>,ConvectiveOperator<FeH1,2,1> >(coeffM, 2.0);
-          convectiveStiff = new ABInt<ConvectivePierceOperator<FeH1,2,1>,ConvectiveOperator<FeH1,2,1> >(coeffM, -1.0);
+          convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
+                                        new ConvectiveOperator<FeH1,2,1>(), coeffM, 2.0);
+          convectiveStiff = new ABInt<>(new ConvectivePierceOperator<FeH1,2,1>(),
+                                        new ConvectiveOperator<FeH1,2,1>(),coeffM, -1.0);
         } else {
-          convectiveDamp  = new ABInt<IdentityOperator<FeH1,3,1>,ConvectiveOperator<FeH1,3,1> >(coeffM, 2.0);
-          convectiveStiff = new ABInt<ConvectivePierceOperator<FeH1,3,1>,ConvectiveOperator<FeH1,3,1> >(coeffM, -1.0);
+          convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),
+                                        new ConvectiveOperator<FeH1,3,1>(), coeffM, 2.0);
+          convectiveStiff = new ABInt<>(new ConvectivePierceOperator<FeH1,3,1>(),
+                                        new ConvectiveOperator<FeH1,3,1>(), coeffM, -1.0);
         }
         convectiveDamp->SetBCoefFunctionOpB(meanFlowCoef_);
         convectiveDamp->SetName("convectiveDampPierce");
@@ -352,9 +356,9 @@ namespace CoupledField{
                                CoefXprBinOp(factor, c0, CoefXpr::OP_DIV ) );
         BiLinearForm * abcInt = NULL;
         if( dim_ == 2 ) {
-          abcInt = new BBInt<IdentityOperator<FeH1,2,1> >(coeffDamp, 1.0 );
+          abcInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), coeffDamp, 1.0 );
         } else {
-          abcInt = new BBInt<IdentityOperator<FeH1,3,1> >(coeffDamp, 1.0 );
+          abcInt = new BBInt<>(new IdentityOperator<FeH1,3,1>(), coeffDamp, 1.0 );
         }
 
         abcInt->SetName("abcIntegrator");

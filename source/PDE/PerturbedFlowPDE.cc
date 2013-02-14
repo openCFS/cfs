@@ -208,9 +208,10 @@ namespace CoupledField {
                 
       BiLinearForm * stiffIntPV = NULL;
       if( dim_ == 2 ) {
-        stiffIntPV = new ABInt< MultiIdOp<FeH1,2> , DivOperator<FeH1,2> >(density, 1.0 );
+        stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,2>(), 
+                                  new DivOperator<FeH1,2>(), density, 1.0 );
       } else {
-        stiffIntPV = new ABInt< MultiIdOp<FeH1,3> , DivOperator<FeH1,3> >(density, 1.0 );
+        stiffIntPV = new ABInt<>(new MultiIdOp<FeH1,3>() , new DivOperator<FeH1,3>(), density, 1.0 );
       }
       stiffIntPV->SetName("PerturbedStiffIntPV");
       //stiffIntPV->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
@@ -251,9 +252,9 @@ namespace CoupledField {
                 = CoefFunction::Generate(Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
       if( dim_ == 2 ) {
-        stiffIntVP = new ABInt< DivOperator<FeH1,2> , MultiIdOp<FeH1,2> >(coeffKVP, -1.0 );
+        stiffIntVP = new ABInt<>(new  DivOperator<FeH1,2>(), new MultiIdOp<FeH1,2>(), coeffKVP, -1.0 );
       } else {
-        stiffIntVP = new ABInt< DivOperator<FeH1,3> , MultiIdOp<FeH1,3> >(coeffKVP, -1.0 );
+        stiffIntVP = new ABInt<>(new DivOperator<FeH1,3>() , new MultiIdOp<FeH1,3>(), coeffKVP, -1.0 );
       }
       stiffIntVP->SetName("PerturbedStiffIntVP");
       //stiffIntVP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
@@ -272,9 +273,9 @@ namespace CoupledField {
 //                                         lexical_cast<std::string>(viscosity));
       BiLinearForm * stiffIntLaplace = NULL;
       if( dim_ == 2 ) {
-        stiffIntLaplace = new BBInt< LaplOperator<FeH1,2> >(viscosity, 1.0);
+        stiffIntLaplace = new BBInt<>(new LaplOperator<FeH1,2>(), viscosity, 1.0);
       } else {
-        stiffIntLaplace = new BBInt< LaplOperator<FeH1,3> >(viscosity, 1.0);
+        stiffIntLaplace = new BBInt<>(new LaplOperator<FeH1,3>(), viscosity, 1.0);
       }
       stiffIntLaplace->SetName("PerturbedStiffIntViscous");
       BiLinFormContext *stiffContLaplace;
@@ -318,9 +319,12 @@ namespace CoupledField {
         //now create the integrators
         BiLinearForm *convectiveVv = NULL;
         if( dim_ == 2 ) {
-          convectiveVv = new ABInt<IdentityOperator<FeH1,2,2>,ConvectiveOperator<FeH1,2,2> >(density, 1.0);
+          convectiveVv = new ABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                     new ConvectiveOperator<FeH1,2,2>(),
+                                     density, 1.0);
         } else {
-          convectiveVv = new ABInt<IdentityOperator<FeH1,3,3>,ConvectiveOperator<FeH1,3,3>  >(density, 1.0);
+          convectiveVv = new ABInt<>(new IdentityOperator<FeH1,3,3>(),
+                                     new ConvectiveOperator<FeH1,3,3>(), density, 1.0);
         }
 
         convectiveVv->SetBCoefFunctionOpB(meanFlowCoef_);
@@ -342,9 +346,9 @@ namespace CoupledField {
 
       BiLinearForm *dampIntvv = NULL;
       if( dim_ == 2 ) {
-        dampIntvv = new BBInt<IdentityOperator<FeH1,2,2> >(density, 1.0 );
+        dampIntvv = new BBInt<>(new IdentityOperator<FeH1,2,2>(), density, 1.0 );
       } else {
-        dampIntvv = new BBInt<IdentityOperator<FeH1,3,3> >(density, 1.0 );
+        dampIntvv = new BBInt<>(new IdentityOperator<FeH1,3,3>(), density, 1.0 );
       }
       dampIntvv->SetName("PerturbedDampInt");
       //massIntPP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace() );
@@ -375,13 +379,13 @@ namespace CoupledField {
       // --------------------------------------------------------------------
       BiLinearForm * stiffIntVPSurf = NULL;
       if( dim_ == 2 ) {
-        stiffIntVPSurf = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-                                           IdentityOperatorNormal<FeH1,2> >
-            (oneFuncs, 1.0, flowRegions);
+        stiffIntVPSurf = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
+                                            new IdentityOperatorNormal<FeH1,2>(),
+                                            oneFuncs, 1.0, flowRegions);
       } else {
-        stiffIntVPSurf = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
-                                           IdentityOperatorNormal<FeH1,3> >
-            (oneFuncs, 1.0, flowRegions);
+        stiffIntVPSurf = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
+                                            new IdentityOperatorNormal<FeH1,3>(),
+                                            oneFuncs, 1.0, flowRegions);
       }
       stiffIntVPSurf->SetName("PerturbedStiffIntVPSurf");
       //stiffIntVP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
@@ -538,9 +542,11 @@ namespace CoupledField {
                 = CoefFunction::Generate(Global::REAL, "1.0");
       BaseBDBInt * stiffIntVP = NULL;
       if( dim_ == 2 ) {
-        stiffIntVP = new ABInt< IdentityOperator<FeH1,2,2> , GradientOperator<FeH1,2> >(coeffKVP, 1.0 );
+        stiffIntVP = new ABInt<>(new IdentityOperator<FeH1,2,2>(), 
+                                 new GradientOperator<FeH1,2>(), coeffKVP, 1.0 );
       } else {
-        stiffIntVP = new ABInt< IdentityOperator<FeH1,3,3> , GradientOperator<FeH1,3> >(coeffKVP, 1.0 );
+        stiffIntVP = new ABInt<>(new IdentityOperator<FeH1,3,3>(), 
+                                 new GradientOperator<FeH1,3>(), coeffKVP, 1.0 );
       }
       
     DefineFieldResult( eFunc, ef );
@@ -683,22 +689,22 @@ namespace CoupledField {
     BaseBDBInt * integ = NULL;
     if( isComplex ) {
       if( subType_ == "axi" ) {
-        integ = new BDBInt<StrainOperatorAxi<FeH1,Complex>,Complex,Complex>(curCoef, 1.0);
+        integ = new BDBInt<Complex>(new StrainOperatorAxi<FeH1,Complex>(), curCoef, 1.0);
       } else if( subType_ == "plane" ) {
-        integ = new BDBInt<StrainOperator2D<FeH1,Complex>,Complex,Complex>(curCoef, 1.0);
+        integ = new BDBInt<Complex>(new StrainOperator2D<FeH1,Complex>(), curCoef, 1.0);
       } else if( subType_ == "3d") {
-        integ = new BDBInt<StrainOperator3D<FeH1,Complex>,Complex,Complex>(curCoef, 1.0);
+        integ = new BDBInt<Complex>(new StrainOperator3D<FeH1,Complex>(), curCoef, 1.0);
       } else {
         EXCEPTION( "Subtype '" << subType_ << "' unknown for fluid-mechanic physic" );
       }
     }
     else {
       if( subType_ == "axi" ) {
-        integ = new BDBInt<StrainOperatorAxi<FeH1> >(curCoef, 1.0);
+        integ = new BDBInt<>(new StrainOperatorAxi<FeH1>(), curCoef, 1.0);
       } else if( subType_ == "plane" ) {
-        integ = new BDBInt<StrainOperator2D<FeH1> >(curCoef, 1.0);
+        integ = new BDBInt<>(new StrainOperator2D<FeH1>(), curCoef, 1.0);
       } else if( subType_ == "3d") {
-        integ = new BDBInt<StrainOperator3D<FeH1> >(curCoef, 1.0);
+        integ = new BDBInt<>(new StrainOperator3D<FeH1>(), curCoef, 1.0);
       } else {
         EXCEPTION( "Subtype '" << subType_ << "' unknown for fluid-mechanic physic" );
       }

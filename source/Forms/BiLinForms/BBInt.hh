@@ -21,32 +21,38 @@
 #ifndef FILE_BBINT
 #define FILE_BBINT
 
+#include <boost/tr1/type_traits.hpp>
+
 #include "BDBInt.hh"
 #include "FeBasis/BaseFE.hh"
-#include <boost/tr1/type_traits.hpp>
+#include "MatVec/promote.hh"
 #include "FeBasis/HCurl/HCurlElemsHi.hh"
 
 
 namespace CoupledField {
 
   //! general class for calculation of bb forms
-  template<class B_OP, 
-           class MAT_DATA_TYPE=Double,
-           class COEF_DATA_TYPE=Double>
+  template< class COEF_DATA_TYPE=Double,
+            class B_DATA_TYPE=Double >
   class BBInt : public BaseBDBInt {
     public:
 
+    //! Define data type for matrix entries, derived by type trait
+    typedef PROMOTE(B_DATA_TYPE, COEF_DATA_TYPE) MAT_DATA_TYPE;
+    
       //! Constructor with pointer to BaseElem
-      BBInt( PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+      BBInt( BaseBOperator * bOp,
+             PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
              bool coordUpdate = false);
 
       //! Destructor
       ~BBInt(){
+        delete this->bOperator_;
 
       }
       //! \copydoc BaseBDBInt::GetBOp
       virtual BaseBOperator* GetBOp() {
-        return &bOperator_;
+        return bOperator_;
       }
       
       //! \copydoc BaseBDBInt::GetCoef
@@ -56,29 +62,72 @@ namespace CoupledField {
 
       //! Compute element matrix associated to BDB form
       void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                                 EntityIterator& ent1,
-                                 EntityIterator& ent2 );
+                              EntityIterator& ent1,
+                              EntityIterator& ent2 );
 
-      //! Multiply element matrix with vector
-      void ApplyElemMat( Vector<MAT_DATA_TYPE>&ret, 
+      //@{
+      void ApplyElemMat( Vector<Double>&ret, 
                          const Vector<Double>& sol,
                          EntityIterator& ent1,
                          EntityIterator& ent2 );
+      
+      void ApplyElemMat( Vector<Complex>&ret, 
+                         const Vector<Complex>& sol,
+                         EntityIterator& ent1,
+                         EntityIterator& ent2 );
+
+      //@}
 
 
       //! Calculate integration kernel, i.e. B*d*B without integration
       void CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
                        const LocPointMapped& lpm );
 
-      //! Apply B-Operator on vector 
-      void ApplyBMat( Vector<MAT_DATA_TYPE>&ret, 
-                      const Vector<MAT_DATA_TYPE>& sol,
+      //@{
+      void ApplyBMat( Vector<Double>&ret, 
+                      const Vector<Double>& sol,
                       const LocPointMapped& lpm );
+      
+      void ApplyBMat( Vector<Complex>&ret, 
+                      const Vector<Complex>& sol,
+                      const LocPointMapped& lpm );
+      //@}
 
-      //! Apply dB-Operator on vector
-      void ApplydBMat( Vector<MAT_DATA_TYPE>&ret, 
-                       const Vector<MAT_DATA_TYPE>& sol,
+      //@{
+      void ApplydBMat( Vector<Double>&ret, 
+                       const Vector<Double>& sol,
                        const LocPointMapped& lpm );
+      
+      void ApplydBMat( Vector<Complex>&ret, 
+                       const Vector<Complex>& sol,
+                       const LocPointMapped& lpm );
+      //@}
+      
+      //@{
+      void ApplyATransMat( Vector<Double>&ret, 
+                           const Vector<Double>& sol,
+                           const LocPointMapped& lpm ) {
+        EXCEPTION("Not implemented");
+      }
+      void ApplyATransMat( Vector<Complex>&ret, 
+                           const Vector<Complex>& sol,
+                           const LocPointMapped& lpm ) {
+        EXCEPTION("Not implemented");
+      }
+      //@}
+
+      //@{
+      void ApplydATransMat( Vector<Double>&ret, 
+                            const Vector<Double>& sol,
+                            const LocPointMapped& lpm ) {
+        EXCEPTION("Not implemented");
+      }
+      void ApplydATransMat( Vector<Complex>&ret, 
+                            const Vector<Complex>& sol,
+                            const LocPointMapped& lpm ) {
+        EXCEPTION("Not implemented");
+      }
+      //@}
 
       bool IsComplex(){
         return std::tr1::is_same<MAT_DATA_TYPE,Complex>::value;
@@ -101,31 +150,39 @@ namespace CoupledField {
       }
       //! Set Coefficient Function of B operator
       virtual void SetBCoefFunctionOpB(PtrCoefFct coef){
-        this->bOperator_.SetCoefFunction(coef);
+        this->bOperator_->SetCoefFunction(coef);
       }
 
     protected:
       
       //! Differential operator
-      B_OP bOperator_;
+      BaseBOperator * bOperator_;
 
+      //! Store intermediate operator matrix for B
+      Matrix<MAT_DATA_TYPE> bMat_;
+      
       //! A constant factor for multiplication with the element matrix
       MAT_DATA_TYPE factor_;
 
-      
       //! Pointer to coefficient function for scalar values
       shared_ptr<CoefFunction > coefScalar_;
   };
+  
+  // ========================================================================
 
-  //! general class for calculation of bb forms
-  template<class B_OP, class MAT_DATA_TYPE=Double>
-  class BBIntMassEdge : public BBInt<B_OP, MAT_DATA_TYPE> {
+  //! Specialized class for calculating the mass bilienarform for edge elements
+  template<class COEF_DATA_TYPE=Double,
+      class B_DATA_TYPE=Double >
+  class BBIntMassEdge : public BBInt<COEF_DATA_TYPE, B_DATA_TYPE> {
     public:
 
+    typedef PROMOTE(B_DATA_TYPE, COEF_DATA_TYPE) MAT_DATA_TYPE;
+    
       //! Constructor with pointer to BaseElem
-      BBIntMassEdge(PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+      BBIntMassEdge(BaseBOperator * bOp,
+                    PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
                     bool coordUpdate = false):
-        BBInt<B_OP,MAT_DATA_TYPE>(scalCoef, factor, coordUpdate ){
+        BBInt<COEF_DATA_TYPE, B_DATA_TYPE>(bOp, scalCoef, factor, coordUpdate ){
         this->name_ = "BBIntMassEdge";
       }
 
@@ -140,16 +197,21 @@ namespace CoupledField {
                                  EntityIterator& ent2 );
   };
 
+  
+  // ========================================================================
   //! general class for calculation of bb forms on surfaces
-  template<class B_OP, class MAT_DATA_TYPE=Double,
-      class COEF_DATA_TYPE=Double>
-  class SurfaceBBInt : public BBInt<B_OP, MAT_DATA_TYPE,COEF_DATA_TYPE> {
+  template<class COEF_DATA_TYPE=Double,
+        class B_DATA_TYPE=Double >
+  class SurfaceBBInt : public BBInt<COEF_DATA_TYPE, B_DATA_TYPE> {
     public:
+    
+    typedef PROMOTE(B_DATA_TYPE, COEF_DATA_TYPE) MAT_DATA_TYPE;
 
       //! Constructor with pointer to BaseElem
-    SurfaceBBInt(PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+    SurfaceBBInt(BaseBOperator * bOp,
+                 PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
                  const std::set<RegionIdType>& volRegions, bool coordUpdate = false):
-        BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>(scalCoef, factor, coordUpdate ){
+        BBInt<COEF_DATA_TYPE, B_DATA_TYPE>(bOp, scalCoef, factor, coordUpdate ){
         this->name_ = "SurfaceBBInt";
         volRegions_ = volRegions;
         this->isSymmetric_ = false;
@@ -167,9 +229,9 @@ namespace CoupledField {
     protected:
       //! set containing all volume regions for surface integrators
       std::set<RegionIdType> volRegions_;
+      
+      Matrix<MAT_DATA_TYPE> bMatT_;
   };
 }
 
-//Include template definition file
-#include "BBInt.cc"
 #endif

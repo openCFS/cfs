@@ -365,16 +365,20 @@ namespace CoupledField {
     
     if ( isComplex ) {
       if( dim_ == 2 ) {
-        integ = new BDBInt<GradientOperator<FeH1,2,Complex>,Complex,Complex >(curCoef, factor );
+        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,Complex>(), 
+                                             curCoef, factor );
       } else {
-        integ = new BDBInt<GradientOperator<FeH1,3,Complex>,Complex,Complex >(curCoef, factor );
+        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,Complex>(), 
+                                             curCoef, factor );
       }
     }
     else {
       if( dim_ == 2 ) {
-        integ = new BDBInt<GradientOperator<FeH1,2> >(curCoef, factor );
+        integ = new BDBInt<>(new GradientOperator<FeH1,2> (), 
+            curCoef, factor );
       } else {
-        integ = new BDBInt<GradientOperator<FeH1,3> >(curCoef, factor );
+        integ = new BDBInt<>(new GradientOperator<FeH1,3>(),
+            curCoef, factor );
       }
     }
 
