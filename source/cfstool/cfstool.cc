@@ -320,7 +320,8 @@ namespace CFSTool {
            for( UInt iEntity = 0; iEntity < resEntities.GetSize(); iEntity++ ) {
              // generate new result object and add it to output writer
              shared_ptr<BaseResult > result;
-             if( types[actMsStep] != BasePDE::HARMONIC ) {
+             if( types[actMsStep] == BasePDE::STATIC || 
+                 types[actMsStep] == BasePDE::TRANSIENT ) {
                result = shared_ptr<BaseResult>( new Result<Double>() );
              } else {
                result = shared_ptr<BaseResult>( new Result<Complex>() );
@@ -441,6 +442,9 @@ namespace CFSTool {
             << "' have different number of sequence steps!\n";
          exit(EXIT_FAILURE);
        }
+       
+       
+       
 
        // iterate over all Sequence Steps
        Double maxDiff = 0.0;
@@ -452,15 +456,17 @@ namespace CFSTool {
                    << "-------------------------\n\n";
 
          // get resulttypes
-         StdVector<shared_ptr<ResultInfo> > infos;
+         StdVector<shared_ptr<ResultInfo> > infos, infos2;
          input1->GetResultTypes( actMsStep, infos, isHistory );
+         input2->GetResultTypes( actMsStep, infos2, isHistory );
 
          StdVector<shared_ptr<BaseResult> > inResults1, inResults2, outResults;
          // stepnumbers, for which at least one result is defined
-         std::map<UInt, Double> stepVals;
+         std::map<UInt, Double> stepVals, stepVals2;
          // contains the stepnumbers/-values in which the particular result is
          // defined in
          std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
+         std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps2;
 
          if( infos.GetSize() > 0 ){
            std::cout << "Performing diff on the following results:\n";
@@ -470,12 +476,43 @@ namespace CFSTool {
 
            std::cout << "\t" << infos[iRes]->resultName << "\n";
 
-           // get stepvalues
+           // get stepvalues of reference file
            shared_ptr<ResultInfo> actRes = infos[iRes];
+           shared_ptr<ResultInfo> actRes2 = infos2[iRes];
            input1->GetStepValues( actMsStep, actRes,
                                   resultSteps[actRes], isHistory);
            stepVals.insert( resultSteps[actRes].begin(),
                             resultSteps[actRes].end() );
+
+           // get stepvalues of second file
+           input2->GetStepValues( actMsStep, actRes2,
+                                  resultSteps2[actRes2], isHistory);
+           stepVals2.insert( resultSteps2[actRes2].begin(),
+                             resultSteps2[actRes2].end() );
+           
+           // Loop over all step values in both sets and compare them. Thus we can see
+           // differences e.g. in eigenfrequency analysis
+           std::map<UInt, Double>::const_iterator svIt1, svIt2;
+           svIt1 = stepVals.begin();
+           svIt2 = stepVals2.begin();
+           for( ; svIt1 != stepVals.end(); ++svIt1, ++svIt2 ) {
+             if( svIt1->first != svIt2->first ) {
+               EXCEPTION( "Encountered different result steps for result " << 
+                          infos[iRes]->resultName );
+             } else {
+               
+               Double val1 = svIt1->second;
+               Double val2 = svIt2->second;
+               Double relDiff = std::abs(std::abs(val1-val2))/std::abs(val1);
+               if ( relDiff > 1e-4 ) {
+                 EXCEPTION("Time / Frequency values of step " << svIt1->first << " differ by " 
+                           << relDiff*100.0 << " %:\n"
+                           << "\treference value: " << val1 <<" s / Hz\n\tcompared value:  " << val2 
+                           << " s / Hz" << std::endl );
+               }
+             }
+           }
+           
 
            // iterate over all regions
            StdVector<shared_ptr<EntityList> > regions;
@@ -484,7 +521,8 @@ namespace CFSTool {
            for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
              // generate new result object and add it to output writer
              shared_ptr<BaseResult > inResult1, inResult2, outResult;
-             if( types[actMsStep] != BasePDE::HARMONIC ) {
+             if( types[actMsStep] == BasePDE::TRANSIENT ||
+                 types[actMsStep] == BasePDE::STATIC ) {
                inResult1 = shared_ptr<BaseResult>( new Result<Double>() );
                inResult2 = shared_ptr<BaseResult>( new Result<Double>() );
                outResult = shared_ptr<BaseResult>( new Result<Double>() );
@@ -522,7 +560,8 @@ namespace CFSTool {
          maxResVec2.Resize( inResults2.GetSize() );
 
          // For transient simulation find maximum amplitude over all timesteps
-         if( types[actMsStep] != BasePDE::HARMONIC ) {
+         if( types[actMsStep] == BasePDE::STATIC ||
+             types[actMsStep] == BasePDE::TRANSIENT ) {
 
            // iterate over all results
            for( UInt iRes = 0; iRes < inResults2.GetSize(); iRes++) {
@@ -594,11 +633,16 @@ namespace CFSTool {
              input1->GetResult( actMsStep, actStepNum, inResults1[iRes], isHistory );
              input2->GetResult( actMsStep, actStepNum, inResults2[iRes], isHistory );
 
+             std::cout << "\n\t-- Comparing result " <<
+                  inResults1[iRes]->GetResultInfo()->resultName << " on " 
+                  << inResults1[iRes]->GetEntityList()->GetName() << " --\n";
+             
              // get number of dofs of result
              UInt numDofs = inResults1[iRes]->GetResultInfo()->dofNames.GetSize();
 
              // cast result objects, get vector and calculate difference vector
-             if( types[actMsStep] != BasePDE::HARMONIC ) {
+             if( types[actMsStep] == BasePDE::STATIC || 
+                 types[actMsStep] == BasePDE::TRANSIENT ) {
                Vector<Double> & inVec1 =
                  dynamic_cast<Result<Double>& >(*inResults1[iRes]).GetVector();
                Vector<Double> & inVec2 =
@@ -627,7 +671,9 @@ namespace CFSTool {
                  }
                }
 
-             } else {
+             } else if( types[actMsStep] == BasePDE::EIGENFREQUENCY ) {
+               // in the eigenfrequency case we only compare the absolute value,
+               // as the sign is not defined uniquely
                Vector<Complex> & inVec1 =
                  dynamic_cast<Result<Complex>& >(*inResults1[iRes]).GetVector();
                Vector<Complex> & inVec2 =
@@ -642,7 +688,61 @@ namespace CFSTool {
                  if( std::abs(inVec2[i]) > maxRes2)
                    maxRes2 = std::abs(inVec2[i]);
                }
+               
+               Double aDiff, pDiff;
+               // iterate over all dofs
+               for (UInt dof = 0; dof<numDofs ; dof++) {
+                 // iterate over number of entities
+                 for( UInt i = 0; i<UInt(inVec2.GetSize()/numDofs); i++ ) {
 
+                   // index to access entity 'i' of dof 'dof'
+                   UInt actIndex = i * numDofs + dof;
+
+                   // amplitude difference
+                   if (normedtomax == true)
+                     aDiff = std::abs(( std::abs(inVec1[actIndex]) - std::abs(inVec2[actIndex]) )/maxRes2);
+                   else 
+                     aDiff = std::abs(std::abs(inVec1[actIndex]) - std::abs(inVec2[actIndex]));
+
+                   
+                   // phase difference in multiples of pi (just used for
+                   // grid diffs
+                   pDiff = RadPhase(inVec1[actIndex]) - RadPhase(inVec2[actIndex]);
+
+                   // correct 2*pi-offset if phase angles have different signs
+                   if ( (std::abs(pDiff)>PI) && (pDiff<0) )
+                     pDiff+= 2*PI;
+                   if ( (std::abs(pDiff)>PI) && (pDiff>0) )
+                     pDiff-= 2*PI;
+
+                   // Dirty hack! Write differences in real_imag format.
+                   outVec[actIndex] = Complex( aDiff, pDiff*180/PI );
+                   
+                   // return maximum of amplitude difference
+                   if  (aDiff > maxDiff)
+                     maxDiff = aDiff;
+                 }
+
+                 
+               } // loop dof
+               std::cout << "\n\tMaximum overall rel. difference = " << maxDiff << "\n\n";
+             
+             }  else if( types[actMsStep] == BasePDE::HARMONIC ) { 
+               Vector<Complex> & inVec1 =
+                   dynamic_cast<Result<Complex>& >(*inResults1[iRes]).GetVector();
+               Vector<Complex> & inVec2 =
+                   dynamic_cast<Result<Complex>& >(*inResults2[iRes]).GetVector();
+               Vector<Complex> & outVec =
+                   dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
+               outVec.Resize( inVec1.GetSize() );
+
+               // find maximum amplitude of inResult2 in every frequency step
+               Double maxRes2 = 0.0;
+               for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
+                 if( std::abs(inVec2[i]) > maxRes2)
+                   maxRes2 = std::abs(inVec2[i]);
+               }
+               
                Double aDiff, pDiff, aMax=0.0, aMin=0.0, pMax=0.0, pMin=0.0;
                Double rDiff, iDiff, rMax=0.0, iMax=0.0;
 
@@ -690,19 +790,15 @@ namespace CFSTool {
                    if ( iDiff > iMax)
                      iMax = iDiff;
                  }
-                 std::cout << "\n\t-- Info for " <<
-                                    inResults1[iRes]->GetResultInfo()->resultName << " on " 
-                                    << inResults1[iRes]->GetEntityList()->GetName() <<", DOF = " << 
-                                    inResults1[iRes]->GetResultInfo()->dofNames[dof] << " --\n";
                  if( normedtomax == true)
                    std::cout << "\n\tMaximum rel. + amplitude difference:  " << aMax*100 << " %\n"
-                             << "\tMaximum rel. - amplitude difference: " << aMin*100 << " %\n";
+                   << "\tMaximum rel. - amplitude difference: " << aMin*100 << " %\n";
                  else
                    std::cout << "\n\tMaximum + amplitude difference:  " << aMax <<  "\n"
-                             << "\tMaximum - amplitude difference: " << aMin <<  "\n";
+                   << "\tMaximum - amplitude difference: " << aMin <<  "\n";
 
                  std::cout << "\tMaximum + phase difference:      " << pMax*180/PI <<  " deg\n"
-                           << "\tMaximum - phase difference:     " << pMin*180/PI <<  " deg\n";
+                     << "\tMaximum - phase difference:     " << pMin*180/PI <<  " deg\n";
 
                  // return maxDiff for differences in real and imaginary part
                  if ( (rMax > iMax) && (rMax > maxDiff) )
@@ -711,8 +807,8 @@ namespace CFSTool {
                    maxDiff = iMax;
                } // loop dof
                std::cout << "\n\tMaximum overall rel. difference = " << maxDiff << "\n\n";
-             }
 
+             } // switch: Analysitype
              // add result to output file
              if (output )
                output->AddResult( outResults[iRes] );
@@ -1191,7 +1287,6 @@ int main(int argc, char** argv)
       return EXIT_FAILURE;
     }
   } catch(std::exception& ex) {
-    std::cerr << "The following error occured:\n" << ex.what();
     if (info != NULL)
     {
       info->Get(ParamNode::ERROR)->SetValue(ex.what());
