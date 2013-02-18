@@ -33,11 +33,11 @@ SET (MKL_POSSIBLE_PATHS
   /opt/intel/Compiler/11.0/081/mkl
   /opt/intel/Compiler/11.0/074/mkl
   /opt/intel/mkl/10.0.5.025
-  /home/data/programs/intel/Compiler/11.0/081/mkl
-  /home/data/programs/intel/mkl/10.0.5.025
+  /home/shareAll/linux_bin/intel/Compiler/11.0/081/mkl
+  /home/shareAll/linux_bin/intel/mkl/10.0.5.025
   /opt/intel/mkl/9.1.023
   /opt/intel/mkl/9.1.021
-  /home/data/programs/intel/mkl/9.1.021
+  /home/shareAll/linux_bin/intel/mkl/9.1.021
   # Paths on Woody
   /apps/intel/ComposerXE/mkl
   /apps/intel/ComposerXE/composerxe-2011.4.191/mkl
@@ -80,7 +80,7 @@ IF(NOT MKL_ROOT_DIR)
     " 1. Set an environment variable MKL_ROOT_DIR or MKLROOT " 
     " 2. Set '-DMKL_ROOT_DIR:PATH=...' on the CMake command line "
     " 3. Or adapt the MKL_POSSIBLE_PATHS at the beginning of cmake_modules/FindIntelMKL.cmake. "
-    "You may also just copy MKL from LSE /home/data/programs/intel/mkl. "
+    "You may also just copy MKL from LSE /home/shareAll/linux_bin/intel/mkl. "
     "Another option is to change CFS_BLAS_LAPACK and CFS_PARDISO to different "
     "implementations. GotoBLAS and ACML should provide similar performance like MKL.")
 ELSE(NOT MKL_ROOT_DIR)
