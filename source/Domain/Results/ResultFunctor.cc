@@ -114,6 +114,7 @@ EvalResult( shared_ptr<BaseResult> res ) {
 template<class TYPE> void FieldCoefFunctor<TYPE>::
 GetVector(Vector<TYPE>& vec, 
           const LocPointMapped& lpm) {
+
   switch( coef_->GetDimType()) {
     case CoefFunction::VECTOR:
       coef_->GetVector( vec, lpm );

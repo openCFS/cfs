@@ -44,8 +44,6 @@
 // Coupling of Single PDEs
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "CoupledPDE/IterCoupledPDE.hh"
-#include "CoupledPDE/PDECoupling.hh"
-#include "CoupledPDE/CoupledPDEDef.hh"
 #include "CoupledPDE/PiezoCoupling.hh"
 #include "CoupledPDE/AcouMechCoupling.hh"
 #include "CoupledPDE/FluidMechCoupling.hh"
@@ -511,6 +509,7 @@ void Domain::InitPDEs(UInt sequenceStep)
     it = isDirectCoupled_.find(ptSinglePde_[i]);
     if ((*it).second == false)
     {
+      std::cerr << "defining algebraic sys of pde " << ptSinglePde_[i]->GetName();
       ptSinglePde_[i]->DefineAlgSys();
     }
   }
@@ -622,75 +621,76 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep)
     return;
   ParamNodeList iterCplNodes = iterNode->GetChildren();
 
-  // iterate over all pairwise iterative couplings
-  StdVector<StdPDE*> iterCoupledPDEs;
-  for (UInt i = 0; i < iterCplNodes.GetSize(); i++)
-  {
-
-    // HACK: Since the child nodes of the "iterative" node
-    // do no only contain the two pdes, but also
-    // the nonLinear node, we have to catch the latter case,
-    // as we are only interested in the names of the pdes here
-    if (iterCplNodes[i]->GetName() == "nonLinear")
-      continue;
-
-    // fetch names of related pdes
-    ParamNodeList pdeNodes = iterCplNodes[i]->GetChildren();
-
-    for (UInt iPde = 0; iPde < pdeNodes.GetSize(); iPde++)
-    {
-      std::string name = pdeNodes[iPde]->GetName();
-      if (name != "method")
-      {
-        SinglePDE * pde = GetSinglePDE(name);
-        if (iterCoupledPDEs.Find(pde) < 0)
-        {
-          iterCoupledPDEs.Push_back(pde);
-        }
-      }
-    } // pde
-  } // couplings
-
-  CoupledPDEDef * CouplingDef = new CoupledPDEDef(gridMap_["default"]);
-
-  // create coupling objects
-  StdVector<StdPDE*> orderedPdes;
-  CouplingDef->CreateCoupling(orderedPdes, couplings_, iterCoupledPDEs,
-      iterNode);
-
-  // Sort the different orderedPDEs into the singlePDEs
-  StdVector<SinglePDE*> iterSinglePDEs;
-  for (UInt i = 0; i < orderedPdes.GetSize(); i++)
-  {
-    iterSinglePDEs.Push_back((SinglePDE*) orderedPdes[i]);
+  // Now collect all SinglePDEs which are not coupling directly,
+  // as well as a direct coupled PDE and pass them to the IterCoupledPDE
+  WARN("Currently only single PDEs are passed for coupling");
+  StdVector<StdPDE*> stdPdes;
+  for( UInt i=0; i < ptSinglePde_.GetSize(); ++i ) {
+    stdPdes.Push_back(ptSinglePde_[i]);
   }
-
-  // Delete all of the singlePDEs, which are DirectCoupled and
-  // replace them by the direct-coupled ones. This is necessary,
-  // since the iterCoupledPDE has to solve StdPDEs, whereas the
-  // pairwise iterative couplings are defined only for
-  // SinglePDEs
-
-  Integer index = 0;
-  for (UInt i = 0; i < ptSinglePde_.GetSize(); i++)
-  {
-    if (isDirectCoupled_[ptSinglePde_[i]] == true)
-    {
-      index = orderedPdes.Find(ptSinglePde_[i]);
-
-      if (index != -1)
-      {
-        orderedPdes[index] = ptDirectCoupledPde_[0];
-        ptDirectCoupledPde_[0]->InitCoupling(NULL);
-      }
-    }
+  
+  // Create IterCoupledPDE and pass all StdPDEs to it
+  ptIterCoupledPde_ = new IterCoupledPDE( stdPdes, iterNode);
+  
+  
+  // Loop over all SinglePDEs and pass pointer to iterative coupled PDE
+  for( UInt i = 0; i < ptSinglePde_.GetSize(); ++i ) {
+    ptSinglePde_[i]->SetIterCoupledPDE( ptIterCoupledPde_ );
   }
+  
+//  // iterate over all pairwise iterative couplings
+//  StdVector<StdPDE*> iterCoupledPDEs;
+//  for (UInt i = 0; i < iterCplNodes.GetSize(); i++)
+//  {
+//
+//    // HACK: Since the child nodes of the "iterative" node
+//    // do no only contain the two pdes, but also
+//    // the nonLinear node, we have to catch the latter case,
+//    // as we are only interested in the names of the pdes here
+//    if (iterCplNodes[i]->GetName() == "nonLinear")
+//      continue;
+//
+//    // fetch names of related pdes
+//    ParamNodeList pdeNodes = iterCplNodes[i]->GetChildren();
+//
+//    for (UInt iPde = 0; iPde < pdeNodes.GetSize(); iPde++)
+//    {
+//      std::string name = pdeNodes[iPde]->GetName();
+//      if (name != "method")
+//      {
+//        SinglePDE * pde = GetSinglePDE(name);
+//        if (iterCoupledPDEs.Find(pde) < 0)
+//        {
+//          iterCoupledPDEs.Push_back(pde);
+//        }
+//      }
+//    } // pde
+//  } // couplings
+//
+//
+//  // Delete all of the singlePDEs, which are DirectCoupled and
+//  // replace them by the direct-coupled ones. This is necessary,
+//  // since the iterCoupledPDE has to solve StdPDEs, whereas the
+//  // pairwise iterative couplings are defined only for
+//  // SinglePDEs
+//
+//  Integer index = 0;
+//  for (UInt i = 0; i < ptSinglePde_.GetSize(); i++)
+//  {
+//    if (isDirectCoupled_[ptSinglePde_[i]] == true)
+//    {
+//      index = iterCoupledPDEs.Find(ptSinglePde_[i]);
+//
+//      if (index != -1)
+//      {
+//        iterCoupledPDEs[index] = ptDirectCoupledPde_[0];
+//      }
+//    }
+//  }
+//
+//  // create new iterative coupeld PDE
+//  ptIterCoupledPde_ = new IterCoupledPDE( iterSinglePDEs, iterNode);
 
-  // create new iterative coupeld PDE
-  ptIterCoupledPde_ = new IterCoupledPDE(orderedPdes, iterSinglePDEs,
-      couplings_, iterNode);
-
-  delete CouplingDef;
 }
 
 // ***************************
@@ -1107,12 +1107,6 @@ void Domain::Dump()
   for (UInt i = 0; i < ptSinglePde_.GetSize(); i++)
   {
     std::cout << "  single pde: " << ptSinglePde_[i]->GetName() << std::endl;
-  }
-
-  for (UInt i = 0; i < couplings_.GetSize(); i++)
-  {
-    std::cout << "  coupled pde: " << couplings_[i]->GetPDE()->GetName()
-        << std::endl;
   }
 
   for (UInt i = 0; i < ptDirectCoupledPde_.GetSize(); i++)

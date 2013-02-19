@@ -375,8 +375,9 @@ namespace CoupledField{
     }
 
     void CalcOpMat(Matrix<Double> & bMat,
-                   const LocPointMapped& lp, BaseFE* ptFe ){
-      UInt numFncs = ptFe->GetNumFncs();
+                   const LocPointMapped& lpm, 
+                   BaseFE* ptFe ){
+      const UInt numFncs = ptFe->GetNumFncs();
       
       // Set correct size of matrix B and initialize with zeros
       bMat.Resize( 2, numFncs );
@@ -385,21 +386,21 @@ namespace CoupledField{
       // coords (format: nrNodes x spaceDim)
       Matrix<Double> xiDx;
       FeH1 *fe = (static_cast<FeH1*>(ptFe));
-      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+      fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
 
       UInt iFunc = 0;
       for( iFunc = 0; iFunc < numFncs; ++iFunc ) {
-        bMat[0][iFunc] = -xiDx[iFunc][1];
+        bMat[0][iFunc] =  xiDx[iFunc][1];
       }
       for( iFunc = 0; iFunc < numFncs; ++iFunc ) {
-        bMat[1][iFunc] =  xiDx[iFunc][0];
+        bMat[1][iFunc] = -xiDx[iFunc][0];
       }
     }
 
     void CalcOpMatTransposed(Matrix<Double> & bMat,
-                             const LocPointMapped& lp, BaseFE* ptFe ){
+                             const LocPointMapped& lpm, BaseFE* ptFe ){
       
-      UInt numFncs = ptFe->GetNumFncs();
+      const UInt numFncs = ptFe->GetNumFncs();
 
       // Set correct size of matrix B and initialize with zeros
       bMat.Resize( numFncs, 2 );
@@ -408,7 +409,8 @@ namespace CoupledField{
       // coords (format: nrNodes x spaceDim)
       Matrix<Double> xiDx;
       FeH1 *fe = (static_cast<FeH1*>(ptFe));
-      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+      fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
+      
       UInt iFunc = 0;
       for( iFunc = 0; iFunc < numFncs; ++iFunc ) {
         bMat[iFunc][0] =  xiDx[iFunc][1];
@@ -494,9 +496,10 @@ namespace CoupledField{
     }
 
     void CalcOpMat(Matrix<Double> & bMat,
-                   const LocPointMapped& lp, BaseFE* ptFe ){
+                   const LocPointMapped& lpm, 
+                   BaseFE* ptFe ){
       const UInt numFncs = ptFe->GetNumFncs();
-      
+
       // Set correct size of matrix B and initialize with zeros
       bMat.Resize( 2, numFncs );
 
@@ -504,19 +507,28 @@ namespace CoupledField{
       // coords (format: nrNodes x spaceDim)
       Matrix<Double> xiDx;
       FeH1 *fe = (static_cast<FeH1*>(ptFe));
-      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+      fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
+
+      // Calculate phi-phi component
+      Vector<Double> shape;
+      fe->GetShFnc( shape, lpm.lp, lpm.shapeMap->GetElem() );
+      Vector<Double> globPoint;
+      lpm.shapeMap->Local2Global(globPoint, lpm.lp);
+      const Double oneOverR = 1.0 /  globPoint[0];
 
       UInt iFunc = 0;
       for( iFunc = 0; iFunc < numFncs; ++iFunc ) {
         bMat[0][iFunc] = -xiDx[iFunc][1];
       }
+      
       for( iFunc = 0; iFunc < numFncs; ++iFunc ) {
-        bMat[1][iFunc] =  xiDx[iFunc][0];
+        bMat[1][iFunc] =  xiDx[iFunc][0] + shape[iFunc] * oneOverR;
       }
     }
 
     void CalcOpMatTransposed(Matrix<Double> & bMat,
-                             const LocPointMapped& lp, BaseFE* ptFe ){
+                             const LocPointMapped& lpm, 
+                             BaseFE* ptFe ){
       
       const UInt numFncs = ptFe->GetNumFncs();
 
@@ -527,11 +539,19 @@ namespace CoupledField{
       // coords (format: nrNodes x spaceDim)
       Matrix<Double> xiDx;
       FeH1 *fe = (static_cast<FeH1*>(ptFe));
-      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+      fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
+      
+      // Calculate phi-phi component
+      Vector<Double> shape;
+      fe->GetShFnc( shape, lpm.lp, lpm.shapeMap->GetElem() );
+      Vector<Double> globPoint;
+      lpm.shapeMap->Local2Global(globPoint, lpm.lp);
+      const Double oneOverR = 1.0 /  globPoint[0];
+
       UInt iFunc = 0;
       for( iFunc = 0; iFunc < numFncs; ++iFunc ) {
         bMat[iFunc][0] = -xiDx[iFunc][1];
-        bMat[iFunc][1] =  xiDx[iFunc][0];
+        bMat[iFunc][1] =  xiDx[iFunc][0] + shape[iFunc] * oneOverR;
       }
     }
 

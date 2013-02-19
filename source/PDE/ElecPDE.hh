@@ -77,15 +77,6 @@ namespace CoupledField
     // COUPLING SECTION
     // ======================================================
 
-    //! Initalize PDE coupling
-    void InitCoupling(PDECoupling * Coupling);
-
-    //! Calculate coupling terms
-    void CalcOutputCoupling();
-
-    //! Returns if PDE can compute the quantity
-    bool HasOutput(SolutionType output);
-  
     //! Turn the piezo coupling on
 
     //! Triggers the correct assembly of the electrostatic block in a 
@@ -120,7 +111,6 @@ namespace CoupledField
     //! Define available postprocessing results
     void DefinePostProcResults();
 
-    
     //! Calculates the polarization vector
     void CalcPolarizationField( shared_ptr<BaseResult> vals );
 
@@ -150,9 +140,6 @@ namespace CoupledField
 
     //! flag for piezo-coupling
     bool isPiezoCoupled_;
-
-    //! force operator (for coupling as well as postprocessing)
-    ElecForceOp* ForceOp_;
 
     //! vector containing regionIds of non-conforming interfaces
     StdVector<RegionIdType> ncIFaces_;

@@ -46,19 +46,6 @@ namespace CoupledField
     //! define the SoltionStep-Driver
     void DefineSolveStep();
     
-    // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-
-    //! initalize PDE coupling
-    void InitCoupling(PDECoupling * Coupling);
-  
-    //! calculate coupling terms
-    void CalcOutputCoupling();
-
-    //! returns if PDE can compute the quantity
-    bool HasOutput(SolutionType output);
-    
   protected:
     
     // =======================================================================
@@ -68,6 +55,9 @@ namespace CoupledField
     //! Define available primary result types
     void DefinePrimaryResults();
 
+    //! \copydoc SinglePDE::FinalizePostProcResults
+    void FinalizePostProcResults();
+     
     //! Define available postprocessing results
     void DefinePostProcResults();
     
@@ -84,53 +74,10 @@ namespace CoupledField
     //  POSTPROCESSING
     // =======================================================================
 
-    template<class TYPE>
-    void CalcPermeability( shared_ptr<BaseResult> result );
-
     
     //! Store all mass integrators for postprocessing
     std::map<RegionIdType, BaseBDBInt*> massInts_;
     
-    // ---- Magnetic Force variables ---
- 
-    //! map coupling node number to its position
-    StdVector<std::map<UInt, UInt> > cplNodeNumPos_;
-
-    //! assigns each coupling element node the according Coupling Node number
-    
-    StdVector<StdVector<StdVector<UInt> > > elemNodeToCouplingNode_; 
-
-    // =======================================================================
-    //   HELPER METHODS FOR CALCULATING AUXILIARY QUANTITIES 
-    // =======================================================================
-    
-    //! Calc Magnetic vector potential in integration point
-
-    //! Calculates the magnetic vector potential  at the given integration point
-    template<class TYPE>
-    void CalcVecPotentialAtIP( EntityIterator it,
-                               LocPoint lp,
-                               Vector<TYPE>& field );
-
-    
-    //! Calc FluxDensity in integration point
-
-    //! Calculates the flux density B = rot(A) at the given integration point.
-    //! If ip is 0, the midpoint of the element is evaluated.
-    template<class TYPE>
-    void CalcFluxDensityAtIP( const Elem *ptElem,
-                              LocPoint lp,
-                              Vector<TYPE>& field );
-
-    //! Calc EddyCurrent in integration point
-
-    //! Calculates the eddy current (density) at the given integration point.
-    //! If ip is 0, the midpoint of the element is evaluated.
-    template<class TYPE>
-    void CalcEddyCurrentAtIP( EntityIterator it,
-                              UInt ip,
-                              Vector<TYPE>& field );
-                              
     // =======================================================================
     //   COILS
     // =======================================================================

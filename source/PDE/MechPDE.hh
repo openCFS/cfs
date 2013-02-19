@@ -51,19 +51,6 @@ namespace CoupledField
     //! Read special results definition
     void ReadSpecialResults();
 
-    // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-
-    //! initalize PDE coupling
-    void InitCoupling(PDECoupling * Coupling);
-
-    //! calculate coupling terms
-    void CalcOutputCoupling();
-
-    //! returns if PDE can compute the quantity
-    bool HasOutput(SolutionType output);
-
     //! \copydoc SinglePDE::CreateFeSpaces
     virtual std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string&  formulation,

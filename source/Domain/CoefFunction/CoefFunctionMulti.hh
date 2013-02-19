@@ -22,7 +22,9 @@ public:
   //! \param zeroEmptyRegions If true, the class returns a zero-CoefFunction
   //!                         for regions without assigned CoefFunction.
   //!                         Otherwise an exception is thrown.
-  CoefFunctionMulti(bool zeroEmptyRegions = true);
+  CoefFunctionMulti(CoefDimType dimType, 
+                    UInt dim1, UInt dim2,
+                    bool isComplex, bool zeroEmptyRegions = true);
   
   //! Destructor 
   virtual ~CoefFunctionMulti();
@@ -95,6 +97,13 @@ private:
   
   //! Flag, if zero coefficient function is return for non-set regions
   bool zeroEmptyRegions_;
+  
+  //! Size for vector and row-count for tensors
+  UInt rowSize_;
+  
+  //! Size for columns for tensors
+  UInt colSize_;
+  
 };
 
 } // end of namespace

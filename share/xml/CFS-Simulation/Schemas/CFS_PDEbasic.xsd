@@ -50,7 +50,7 @@
   </xsd:complexType>
   
   <!-- ******************************************************************** -->
-  <!--   Definition of data from external fields                                         -->
+  <!--   Definition of data from external fields                            -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_BaseGridData">
     <xsd:complexContent>
@@ -81,6 +81,25 @@
     </xsd:complexContent>
   </xsd:complexType>
   
+	<!-- ******************************************************************** -->
+  <!--   Definition of data from iterative coupled field problems           -->
+  <!-- ******************************************************************** -->
+	<xsd:complexType name="DT_IterCplData">
+		<xsd:complexContent>
+	  	<xsd:restriction base="xsd:anyType">        
+	    	<xsd:sequence>
+		    	<xsd:element name="quantity">
+		    		<xsd:complexType>
+		    			<xsd:attribute name="name" type="xsd:token" use="required"/>	    		
+		    		</xsd:complexType>	    	
+		    	</xsd:element>
+				</xsd:sequence>
+				<xsd:attribute name="pdeName" type="xsd:token" use="required"/>
+			</xsd:restriction>
+		</xsd:complexContent>
+	</xsd:complexType>
+  
+
   <!-- ******************************************************************* -->
   <!--   Definition of standard types for Bcs and RHS values               -->
   <!-- ******************************************************************* -->
@@ -178,6 +197,8 @@
           <!-- Read Data from external Grids -->
           <xsd:element name="grid" maxOccurs="1" type="DT_BaseGridData"/>
             
+					<!-- Obtain data from iterative coupling -->
+					<xsd:element name="coupling" maxOccurs="1" type="DT_IterCplData"/>
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent> 

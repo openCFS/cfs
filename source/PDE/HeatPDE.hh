@@ -59,19 +59,6 @@ namespace CoupledField {
     //! Initialize all the nodes by this value
     void SetInitialCondition();
 
-    // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-
-    //! Initalize PDE coupling
-    void InitCoupling(PDECoupling * Coupling) {;};
-
-    //! Calculate coupling terms
-    void CalcOutputCoupling() {;};
-
-    //! Returns if PDE can compute the quantity
-    bool HasOutput(SolutionType output) { return false;};
-
   protected:
 	  
     //!  Define available postprocessing results

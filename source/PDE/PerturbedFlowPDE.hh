@@ -50,24 +50,9 @@ namespace CoupledField
     //! Read special boundary conditions
     void ReadSpecialBCs();
 
-    // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-
-    //! Initalize PDE coupling
-    void InitCoupling(PDECoupling * Coupling);
-
-    //! Calculate coupling terms
-    void CalcOutputCoupling();
-
-    //! Returns if PDE can compute the quantity
-    bool HasOutput(SolutionType output);
-  
     //! Calculate field variables at arbitrary points
     void CalcField( SolutionType solType, StdVector<const Elem*>& elems,
                     StdVector<LocPoint>& points, SingleVector& values );
-
-
 
   protected:
 
@@ -84,6 +69,9 @@ namespace CoupledField
     //! Define available postprocessing results
     void DefinePostProcResults();
 
+    //! \copydoc SinglePDE::FinalizePostProcResults
+    void FinalizePostProcResults();
+     
     //! \copydoc SinglePDE::CreateFeSpaces
     virtual std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string&  formulation,

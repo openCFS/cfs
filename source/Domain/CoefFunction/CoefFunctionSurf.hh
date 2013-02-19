@@ -24,7 +24,7 @@ public:
   virtual ~CoefFunctionSurf();
 
   //! Set single volume coefficient function
-  void SetVolumeCoef( RegionIdType, PtrCoefFct );
+  void AddVolumeCoef( RegionIdType, PtrCoefFct );
   
   //! Pass volume coefficients
   void SetVolumeCoefs( std::map<RegionIdType, PtrCoefFct> coefs ); 

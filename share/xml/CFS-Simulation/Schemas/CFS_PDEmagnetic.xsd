@@ -243,10 +243,7 @@
   <xsd:simpleType name="DT_MagneticNodeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magPotential"/>
-      <xsd:enumeration value="magRhsLoad"/>
       <xsd:enumeration value="elecPotential"/>
-      <xsd:enumeration value="magForceLorentz"/>
-      <xsd:enumeration value="magForceVWP"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -254,9 +251,10 @@
   <xsd:simpleType name="DT_MagneticElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magFluxDensity"/>
-      <xsd:enumeration value="magHfield"/>
-      <xsd:enumeration value="magEddyCurrent"/>
-      <xsd:enumeration value="magElemPermeability"/> 
+      <xsd:enumeration value="magEddyCurrentDensity"/>
+      <xsd:enumeration value="magTotalCurrentDensity"/>
+      <xsd:enumeration value="magCoilCurrentDensity"/>
+      <xsd:enumeration value="magForceLorentzDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -265,6 +263,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magEnergy"/>
       <xsd:enumeration value="magEddyPower"/>
+      <xsd:enumeration value="magForceLorentz"/>
     </xsd:restriction>
   </xsd:simpleType>
 

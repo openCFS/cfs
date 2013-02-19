@@ -29,9 +29,6 @@
 #include "Driver/TransientDriver.hh"
 #include "Driver/HarmonicDriver.hh"
 
-// header for iterative coupling
-#include "CoupledPDE/PDECoupling.hh"
-
 // header for memento/restart handling
 #include "MatVec/vectorSerialization.hh"
 
@@ -42,6 +39,7 @@
 #include "DataInOut/PostProc.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "CoupledPDE/BasePairCoupling.hh"
+#include "CoupledPDE/IterCoupledPDE.hh"
 //#include "Forms/linearForm.hh"
 
 //feSpaces
@@ -54,6 +52,8 @@ using std::string;
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
 #include "Domain/CoefFunction/CoefFunctionNodalGrid.hh"
+#include "Domain/CoefFunction/CoefFunctionFormBased.hh"
+#include "Domain/CoefFunction/CoefFunctionSurf.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -74,7 +74,7 @@ namespace CoupledField {
     isDirectCoupled_(false),
     isInitialized_(false),
     maxTimeDerivOrder_(0),
-    mHandle_(domain->GetMathParser()->GetNewHandle()) // Obtain mathParser handler
+    iterCplPde_(NULL)
   {
     
     // get id for linear system
@@ -231,12 +231,6 @@ namespace CoupledField {
     DefinePrimaryResults();
     
     // =====================================================================
-    // read in material data
-    // =====================================================================
-    LOG_TRACE(singlepde) << pdename_ << ": Reading material information";
-    ReadMaterialData();
-
-    // =====================================================================
     // read in damping information
     // =====================================================================
     LOG_TRACE(singlepde) << pdename_ << ": Reading damping information";
@@ -254,7 +248,7 @@ namespace CoupledField {
     {
       PtrParamNode in_ = in->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(regions_[i]));
 
-    // Not needed at the moment. Commented out due to gcc 4.6.
+      // Not needed at the moment. Commented out due to gcc 4.6.
 #if 0
       std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(regions_[i]);
       DampingType dampType;
@@ -275,6 +269,24 @@ namespace CoupledField {
     }
 
     // =====================================================================
+    // Create time stepping algorithm
+    // =====================================================================
+    if ( analysistype_ == TRANSIENT ) {
+      InitTimeStepping();
+    }
+
+    // =====================================================================
+    // trigger definition of available postprocessing results
+    // =====================================================================
+    DefinePostProcResults();
+    
+    // =====================================================================
+    // read in material data
+    // =====================================================================
+    LOG_TRACE(singlepde) << pdename_ << ": Reading material information";
+    ReadMaterialData();
+
+    // =====================================================================
     // read in boundary conditions
     // =====================================================================
 
@@ -290,13 +302,6 @@ namespace CoupledField {
     ReadBCs();
     ReadSpecialBCs();
     //
-
-    // =====================================================================
-    // Create time stepping algorithm
-    // =====================================================================
-    if ( analysistype_ == TRANSIENT ) {
-      InitTimeStepping();
-    }
 
     // =====================================================================
     // define the integrators for PDE and initialize eqn object
@@ -342,7 +347,8 @@ namespace CoupledField {
       rhsFeFunctions_[fncIt->first]->Finalize();
       fncIt++;
     }
-
+    
+   
 
     if ( analysistype_ == TRANSIENT ) {
       Double dt;
@@ -364,7 +370,29 @@ namespace CoupledField {
         actFct->GetTimeScheme()->Init(actFct->GetSingleVector(),dt);
         fncIt++;
       }
+    }
+    if( analysistype_ != STATIC ) {
+      // Workaround for transient simulation:
+      // We have to pass directly the time-derivative vector of the time integration
+      // scheme to the feFunctions related to time derivative results
+      std::map<SolutionType, shared_ptr<BaseFeFunction> >::const_iterator it;
+      for( it = timeDerivFeFunctions_.begin(); it != timeDerivFeFunctions_.end(); ++it ) {
+        shared_ptr<BaseFeFunction> primFeFct = feFunctions_[timeDerivPrimaryResults_[it->first]];
+        shared_ptr<BaseFeFunction> derivFeFct = it->second;
+        derivFeFct->Finalize();
+        UInt timeDerivOrder = timeDerivOrder_[it->first];
+        if( analysistype_ == HARMONIC ||  analysistype_ == EIGENFREQUENCY) {
+          FeFunction<Complex> & cDerivFct = 
+              dynamic_cast<FeFunction<Complex>& >(*derivFeFct);
+          shared_ptr<FeFunction<Complex> > cPrimFct = 
+              dynamic_pointer_cast<FeFunction<Complex> >(primFeFct);
+          cDerivFct.SetTimeDerivOrder( timeDerivOrder, cPrimFct );
 
+        } else {
+          primFeFct->GetTimeScheme()
+                                 ->SetTimeDerivVector(timeDerivOrder, derivFeFct->GetSingleVector() );
+        }
+      }
     }
 
     // =======================================================================
@@ -385,7 +413,7 @@ namespace CoupledField {
     // =====================================================================
     LOG_TRACE(singlepde) << pdename_ << ": Reading store results";
 
-    DefinePostProcResults();
+    FinalizePostProcResults();
     ReadStoreResults();
     ReadFieldResults();
 
@@ -413,6 +441,10 @@ namespace CoupledField {
     SubTensorType stt;
     String2Enum(subType_, stt);
     return stt;
+  }
+  
+  void SinglePDE::SetIterCoupledPDE( IterCoupledPDE* itCplPde ) {
+    iterCplPde_ = itCplPde;
   }
 
   
@@ -926,6 +958,58 @@ namespace CoupledField {
       }
     return true;
   }
+  
+  void SinglePDE::FinalizePostProcResults() {
+    {
+    std::map<RegionIdType, BaseBDBInt*>::iterator stiffIt = bdbInts_.begin();
+     for(; stiffIt != bdbInts_.end(); ++stiffIt ) {
+       RegionIdType region = stiffIt->first;
+       BaseBDBInt* bdb = stiffIt->second;
+       std::cerr << "treating region " << region << std::endl;
+       // 1) pass it to all coefficient functions related to stiffness
+       std::set<shared_ptr<CoefFunctionFormBased> >::iterator stiffCoefIt;
+       for( stiffCoefIt = stiffFormCoefs_.begin();
+           stiffCoefIt != stiffFormCoefs_.end(); ++stiffCoefIt) {
+         (*stiffCoefIt)->AddIntegrator(bdb, region);
+       }
+       // 2) pass it to all result functors related to stiffness
+       std::set<shared_ptr<ResultFunctor> >::iterator stiffFuncIt;
+       for( stiffFuncIt = stiffFormFunctors_.begin();
+           stiffFuncIt != stiffFormFunctors_.end(); ++stiffFuncIt) {
+         (*stiffFuncIt)->AddIntegrator(bdb, region);
+       }
+       // 3) set region to to all surfCoefFcts
+       std::map<shared_ptr<CoefFunctionSurf>, PtrCoefFct >::iterator surfCoefIt;
+       for( surfCoefIt = surfCoefFcts_.begin(); 
+           surfCoefIt != surfCoefFcts_.end(); ++surfCoefIt ) {
+         surfCoefIt->first->AddVolumeCoef(region, surfCoefIt->second);
+       }
+     }
+    }
+     
+    std::map<RegionIdType, BaseBDBInt*>::iterator massIt = massInts_.begin();
+    for( ; massIt != massInts_.end(); ++massIt ) {
+      
+      RegionIdType region = massIt->first;
+      BaseBDBInt* mass = massIt->second;
+      std::cerr << "treating region " << region << std::endl;
+      // 1) pass it to all coefficient functions related to mass
+      std::set<shared_ptr<CoefFunctionFormBased> >::iterator massCoefIt;
+      for( massCoefIt = massFormCoefs_.begin();
+          massCoefIt != massFormCoefs_.end(); ++massCoefIt) {
+        std::cerr << "Adding region " << region << std::endl;
+        (*massCoefIt)->AddIntegrator(mass, region);
+      }
+      // 2) pass it to all result functors related to mass
+      std::set<shared_ptr<ResultFunctor> >::iterator massFuncIt;
+      for( massFuncIt = massFormFunctors_.begin();
+          massFuncIt != massFormFunctors_.end(); ++massFuncIt) {
+        (*massFuncIt)->AddIntegrator(mass, region);
+      }
+    }
+
+  }
+      
 
   PtrCoefFct SinglePDE::GetCoefFct( SolutionType type ) {
     LOG_DBG(singlepde) << "Requesting coefficient function for solution type "
@@ -935,8 +1019,8 @@ namespace CoupledField {
     // 1) look in fieldCoefs
     if ( fieldCoefs_.find(type) == fieldCoefs_.end() ) {
       if( matCoefs_.find(type) == matCoefs_.end() ) {
-      EXCEPTION( "No coefficient function for result type '"
-          << SolutionTypeEnum.ToString( type ) << "' found");
+//      EXCEPTION( "No coefficient function for result type '"
+//          << SolutionTypeEnum.ToString( type ) << "' found");
       } else {
         ret = matCoefs_[type];
       }
@@ -1310,7 +1394,7 @@ namespace CoupledField {
           // Read defined excitation
           std::set<UInt> definedDofs;
           PtrCoefFct coef;
-          ReadUserFieldValues( name, hdbcNodes[i], dofNames, ResultInfo::VECTOR,
+          ReadUserFieldValues( actList, hdbcNodes[i], dofNames, ResultInfo::VECTOR,
                                isComplex_, coef, definedDofs );
           
           // ensure, that only the default coordinate system is used
@@ -1374,7 +1458,7 @@ namespace CoupledField {
         // Read defined excitation
         std::set<UInt> definedDofs;
         PtrCoefFct coef;
-        ReadUserFieldValues( name, idbcNodes[i], dofNames, ResultInfo::VECTOR,
+        ReadUserFieldValues( actList, idbcNodes[i], dofNames, ResultInfo::VECTOR,
                              isComplex_, coef, definedDofs );
         
         // ensure, that only the default coordinate system is used
@@ -1579,13 +1663,13 @@ namespace CoupledField {
       }
 
       std::set<UInt> definedDofs;
-      ReadUserFieldValues(entName,xml,compNames,type,isComplex,coef[i],
+      ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
                           definedDofs );
 
     }
   }
 
-  void SinglePDE::ReadUserFieldValues( const std::string name,
+  void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
                                        PtrParamNode valueNode,
                                        const StdVector<std::string>& compNames,
                                        ResultInfo::EntryType type,
@@ -1601,6 +1685,9 @@ namespace CoupledField {
 
     // switch type of coef function
     if( valueNode->Has("grid") ) {
+      // ====================
+      //  EXTERNAL GRID DATA 
+      // ====================
       if(!isComplex) {
         //this is hardcoded so far. should be changed or generated depending on the type
         //of grid (nodal or higher order)
@@ -1608,7 +1695,30 @@ namespace CoupledField {
       } else {
         coef.reset(new CoefFunctionNodalGrid<Complex>(valueNode->Get("grid")));
       }
+    } else if( valueNode->Has("coupling") ) {
+      // ====================
+      //  ITERATIVE COUPLING 
+      // ====================
+      // read pdeName and quantity
+      std::string pdeName, quantity;
+      PtrParamNode cplNode =valueNode->Get("coupling"); 
+      cplNode->GetValue("pdeName", pdeName);
+      cplNode->Get("quantity")->GetValue("name", quantity);
+      
+      SolutionType solType = SolutionTypeEnum.Parse(quantity);
+      
+      // try to access SinglePDE and acquire result from there
+      if( !iterCplPde_) {
+        EXCEPTION( "Can not get quantity '" << quantity << "' from physic '"
+                   << pdeName << "', as no coupling object is defined.");
+      }
+      
+      coef = iterCplPde_->GetCouplingCoefFct(solType, list, pdeName);
+      
     }else{
+      // ======================================
+      //  STANDARD EXPLICIT BOUNDARY CONDITION 
+      // ======================================
       // Note: In case someone request a "vector" valued result and
       // provides no dofNames, we use the scalar parameters.
       if( type == ResultInfo::SCALAR  ||
@@ -1713,7 +1823,8 @@ namespace CoupledField {
           // This branch will only be handled for homogeneous values, i.e. it
           // is okay to have no value given. In this case
           EXCEPTION( "No values given for boundary condition '"
-              << valueNode->GetParent()->GetName() << "' on '" << name << "'" );
+              << valueNode->GetParent()->GetName() << "' on '" 
+              << list->GetName() << "'" );
         }
 
         // generate coefficient function
@@ -1951,147 +2062,147 @@ namespace CoupledField {
   // ======================================================
   // COUPLING SECTION
   // ======================================================
-
-  void SinglePDE::CalcInputCoupling() {
-
-
-    std::string errMsg;
-    StdVector<UInt> * nodes;
-    SingleVector * val;
-//    Integer eqnNr;
-    // UInt couplingDof;
-
-    // Determine maximal allowed equation number for algebraic system
-//    Integer maxAllowedEqn = (Integer)algsys_->GetDimension();
-
-    // at first, check if this PDE is iterative coupled
-    if (isIterCoupled_ == false)
-      return;
-
-    // Outer loop over all INPUT coupling terms
-    for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++) {
-
-      //    ptCoupling_ = &ptCoupling_[i];
-      ptCoupling_->GetInputValues(i, val);
-      // couplingDof = ptCoupling_->GetInputDof(i);
-
-      // Up to now, Coupling is only possible with
-      // Real valued solutions
-      Vector<Double> const & help = dynamic_cast<Vector<Double>&>(*val);
-
-
-      switch(ptCoupling_->GetInputType(i)) {
-
-        // -------------------
-        // COORDINATE COUPLING
-        // -------------------
-      case COORD:
-
-        ptCoupling_->GetInputNodes(i, nodes);
-        ptGrid_->SetNodeOffset( *nodes , help );
-
-        break;
-
-        // -------------------
-        // RHS COUPLING
-        // -------------------
-      case RHS:
-        REFACTOR;
-//        ptCoupling_->GetInputNodes(i, nodes);
 //
-//        for ( UInt dof = 0; dof < couplingDof; dof++ ) {
-//          for ( UInt j = 0; j < nodes->GetSize(); j++ ) {
-//            eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
-//            if ( eqnNr != 0 && eqnNr <= maxAllowedEqn ) {
-//              algsys_->SetNodeRHS( help[ dof + couplingDof * j ], pdeId_,
-//                                   eqnNr );
-//            }
+//  void SinglePDE::CalcInputCoupling() {
 //
-//#ifndef NDEBUG
-//            /*
-//            else if ( eqnNr > maxAllowedEqn ) {
-//              (*debug) << "SinglePDE::CalcInputCoupling: "
-//                       << "(" << pdename_ << ") "
-//                       << "Refused to pass "
-//                       << "eqnNr = " << eqnNr << " to SetNodeRHS(), since "
-//                       << "it execeeds numLastFreeDof = " << maxAllowedEqn
-//                       << std::endl;
-//            }
-//            else if ( eqnNr == 0 ) {
-//              (*debug) << "SinglePDE::CalcInputCoupling: "
-//                       << "(" << pdename_ << ") "
-//                       << "Refused to pass node " << (*nodes)[j] << "to SetNodeRHS(), since "
-//                       << "it is fixed by hom. Dirichlet BC" << std::endl;
-//            }
-//            */
-//#endif
 //
-//          }
-//        }
-        break;
-
-        // -----------------------
-        // InhomDirichlet COUPLING
-        // -----------------------
-      case ID_BC:
-        REFACTOR;
-//        // How do we want to treat inhomogeneous Dirichlet boundary
-//        // conditions?
-//        {
-//          if ( usePenalty_ == false ) {
-//            EXCEPTION( "Cannot use inhom. Dirichlet coupling together with "
-//                       << "IDBC elimination, since the equation numbering "
-//                       << "object does currently not have the information "
-//                       << "required to put those values at the end of the "
-//                       << "equation number interval! Please set idbcHandling="
-//                       << '"' << "penalty" << '"' << " in your xml-file" );
-//          }
-//        }
+//    std::string errMsg;
+//    StdVector<UInt> * nodes;
+//    SingleVector * val;
+////    Integer eqnNr;
+//    // UInt couplingDof;
 //
-//        // Set flag that the boundary conditions have to be incorporated
-//        updateCouplingBCs_ = true;
+//    // Determine maximal allowed equation number for algebraic system
+////    Integer maxAllowedEqn = (Integer)algsys_->GetDimension();
+//
+//    // at first, check if this PDE is iterative coupled
+//    if (isIterCoupled_ == false)
+//      return;
+//
+//    // Outer loop over all INPUT coupling terms
+//    for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++) {
+//
+//      //    ptCoupling_ = &ptCoupling_[i];
+//      ptCoupling_->GetInputValues(i, val);
+//      // couplingDof = ptCoupling_->GetInputDof(i);
+//
+//      // Up to now, Coupling is only possible with
+//      // Real valued solutions
+//      Vector<Double> const & help = dynamic_cast<Vector<Double>&>(*val);
+//
+//
+//      switch(ptCoupling_->GetInputType(i)) {
+//
+//        // -------------------
+//        // COORDINATE COUPLING
+//        // -------------------
+//      case COORD:
 //
 //        ptCoupling_->GetInputNodes(i, nodes);
+//        ptGrid_->SetNodeOffset( *nodes , help );
 //
-//        for ( UInt dof = 0; dof < ptCoupling_->GetInputDof(i); dof++ ) {
-//          for ( UInt j = 0; j < nodes->GetSize(); j++) {
+//        break;
 //
-//            eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
+//        // -------------------
+//        // RHS COUPLING
+//        // -------------------
+//      case RHS:
+//        REFACTOR;
+////        ptCoupling_->GetInputNodes(i, nodes);
+////
+////        for ( UInt dof = 0; dof < couplingDof; dof++ ) {
+////          for ( UInt j = 0; j < nodes->GetSize(); j++ ) {
+////            eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
+////            if ( eqnNr != 0 && eqnNr <= maxAllowedEqn ) {
+////              algsys_->SetNodeRHS( help[ dof + couplingDof * j ], pdeId_,
+////                                   eqnNr );
+////            }
+////
+////#ifndef NDEBUG
+////            /*
+////            else if ( eqnNr > maxAllowedEqn ) {
+////              (*debug) << "SinglePDE::CalcInputCoupling: "
+////                       << "(" << pdename_ << ") "
+////                       << "Refused to pass "
+////                       << "eqnNr = " << eqnNr << " to SetNodeRHS(), since "
+////                       << "it execeeds numLastFreeDof = " << maxAllowedEqn
+////                       << std::endl;
+////            }
+////            else if ( eqnNr == 0 ) {
+////              (*debug) << "SinglePDE::CalcInputCoupling: "
+////                       << "(" << pdename_ << ") "
+////                       << "Refused to pass node " << (*nodes)[j] << "to SetNodeRHS(), since "
+////                       << "it is fixed by hom. Dirichlet BC" << std::endl;
+////            }
+////            */
+////#endif
+////
+////          }
+////        }
+//        break;
 //
-//            if (eqnNr==0) {
-//              // In this case, we can not perform the coupling
-//              // The best would be to inform the user ONCE, that some nodes
-//              // can not couple. To accomplish this, we would need some way
-//              // to remember the warning we have already issued
-//              //EXCEPTION( "Coupling node " << (*nodes)[j] << " has a "
-//              //           << "zero equation number, so no Dirichlet BC "
-//              //           << "can be assigned" );
-//        //        std::cerr << "node=" << *nodes)[j]
-//            } else {
-//            algsys_->SetDirichlet( pdeId_, eqnNr,
-//                                   help[dof+j*couplingDof] );
-//            
-//            }
-//          }
-//        }
-        break;
-
-      case MAT:
-        break;
-
-      default:
-        EXCEPTION( "Not implemented yet" );
-        break;
-      }
-    }
-  }
-
-  void SinglePDE::ResetCoupling() {
-
-    iterCoupledCounter_ = 0;
-
-
-  }
+//        // -----------------------
+//        // InhomDirichlet COUPLING
+//        // -----------------------
+//      case ID_BC:
+//        REFACTOR;
+////        // How do we want to treat inhomogeneous Dirichlet boundary
+////        // conditions?
+////        {
+////          if ( usePenalty_ == false ) {
+////            EXCEPTION( "Cannot use inhom. Dirichlet coupling together with "
+////                       << "IDBC elimination, since the equation numbering "
+////                       << "object does currently not have the information "
+////                       << "required to put those values at the end of the "
+////                       << "equation number interval! Please set idbcHandling="
+////                       << '"' << "penalty" << '"' << " in your xml-file" );
+////          }
+////        }
+////
+////        // Set flag that the boundary conditions have to be incorporated
+////        updateCouplingBCs_ = true;
+////
+////        ptCoupling_->GetInputNodes(i, nodes);
+////
+////        for ( UInt dof = 0; dof < ptCoupling_->GetInputDof(i); dof++ ) {
+////          for ( UInt j = 0; j < nodes->GetSize(); j++) {
+////
+////            eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
+////
+////            if (eqnNr==0) {
+////              // In this case, we can not perform the coupling
+////              // The best would be to inform the user ONCE, that some nodes
+////              // can not couple. To accomplish this, we would need some way
+////              // to remember the warning we have already issued
+////              //EXCEPTION( "Coupling node " << (*nodes)[j] << " has a "
+////              //           << "zero equation number, so no Dirichlet BC "
+////              //           << "can be assigned" );
+////        //        std::cerr << "node=" << *nodes)[j]
+////            } else {
+////            algsys_->SetDirichlet( pdeId_, eqnNr,
+////                                   help[dof+j*couplingDof] );
+////            
+////            }
+////          }
+////        }
+//        break;
+//
+//      case MAT:
+//        break;
+//
+//      default:
+//        EXCEPTION( "Not implemented yet" );
+//        break;
+//      }
+//    }
+//  }
+//
+//  void SinglePDE::ResetCoupling() {
+//
+//    iterCoupledCounter_ = 0;
+//
+//
+//  }
 
   void SinglePDE::UpdateToSolStrategy() {
     
@@ -2993,22 +3104,18 @@ namespace CoupledField {
     derivFeFct->SetGrid(ptGrid_);
     derivFeFct->SetResultInfo(derivRes);
     derivFeFct->SetFctId( primFeFct->GetFctId());
-    derivFeFct->Finalize();
+    //derivFeFct->Finalize();
     
-    // set the time derivative information
-    if( analysistype_ == HARMONIC ||  analysistype_ == EIGENFREQUENCY) {
-      FeFunction<Complex> & cDerivFct = 
-          dynamic_cast<FeFunction<Complex>& >(*derivFeFct);
-      shared_ptr<FeFunction<Complex> > cPrimFct = 
-               dynamic_pointer_cast<FeFunction<Complex> >(primFeFct);
-      cDerivFct.SetTimeDerivOrder( timeDerivOrder, cPrimFct );
-    } else {
-      primFeFct->GetTimeScheme()
-          ->SetTimeDerivVector(timeDerivOrder, derivFeFct->GetSingleVector() );
-    }    
+    // Note:
+    // The initialization of the time derivative function has to be performed
+    // at a later step, as the primary FeFct and the TimeStepping algorithm
+    // are not initialized yet (see SinglePDE::FinalizeInit()); 
+    
     
     // insert the fefunction to the time derivative section
     timeDerivFeFunctions_[derivSolType] = derivFeFct;
+    timeDerivPrimaryResults_[derivSolType] = primRes->resultType;
+    timeDerivOrder_[derivSolType] = timeDerivOrder;
     
     // define field result
     DefineFieldResult( derivFeFct, derivRes );

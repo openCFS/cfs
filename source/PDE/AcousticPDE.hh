@@ -41,22 +41,6 @@ namespace CoupledField{
 
     //! define the SoltionStep-Driver
     void DefineSolveStep();
-    // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-
-    //! Initalize PDE coupling
-    void InitCoupling(PDECoupling * Coupling) {
-      EXCEPTION("Coupling not supported for acousticPDE.");
-    };
-
-    //! Calculate coupling terms
-    void CalcOutputCoupling() {
-      EXCEPTION("Coupling not supported for acousticPDE.");
-    };
-
-    //! Returns if PDE can compute the quantity
-    bool HasOutput(SolutionType output) { return false;};
 
     //! Return acoustic formulation. Can either be pressure or potential.
     SolutionType GetFormulation() const { return formulation_; }

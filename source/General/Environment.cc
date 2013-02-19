@@ -218,6 +218,10 @@ namespace CoupledField {
       case ACOU_INTENSITY:
         return "W/m^2";
         break;
+        
+      case ACOU_NORMAL_INTENSITY:
+        return "W/m^2";
+        break;
 
       case ACOU_POTENTIAL:
         return "m^2/s";
@@ -1134,6 +1138,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_STRESS, "mechStress");
     SolutionTypeEnum.Add(MECH_STRAIN, "mechStrain");
     SolutionTypeEnum.Add(MECH_STRUCT_INTENSTIY, "mechStructIntensity");
+    SolutionTypeEnum.Add(MECH_NORMAL_STRUCT_INTENSITY, "mechNormalStructIntensity");
     SolutionTypeEnum.Add(VON_MISES_STRESS, "vonMisesStress");
     SolutionTypeEnum.Add(VON_MISES_STRAIN, "vonMisesStrain");
     SolutionTypeEnum.Add(MECH_KIN_ENERGY_DENS, "mechKinEnergyDensity");
@@ -1183,6 +1188,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_POWERDENSITY, "acouPowerDensity");
     SolutionTypeEnum.Add(ACOU_POWER, "acouPower");
     SolutionTypeEnum.Add(ACOU_INTENSITY, "acouIntensity");
+    SolutionTypeEnum.Add(ACOU_NORMAL_INTENSITY, "acouNormalIntensity");
     SolutionTypeEnum.Add(ACOU_SURFINTENSITY, "acouSurfIntensity");
     SolutionTypeEnum.Add(ACOU_ENERGY, "acouEnergy");
     SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");

@@ -3,7 +3,6 @@
 #include "MatVec/BaseMatrix.hh"
 #include "PDE/StdPDE.hh"
 #include "CoupledPDE/IterCoupledPDE.hh"
-#include "CoupledPDE/PDECoupling.hh"
 #include "DataInOut/ResultCache.hh"
 
 namespace CoupledField
@@ -12,8 +11,7 @@ namespace CoupledField
 
   IterSolveStep::IterSolveStep(IterCoupledPDE &apde) 
     : BaseSolveStep(),
-      rPDE_(apde),
-      rCouplings_(apde.Couplings_)
+      rPDE_(apde)
   {
     
     startStep_ = 1;
@@ -30,7 +28,7 @@ namespace CoupledField
   void IterSolveStep::SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams)
   {
   
-    SingleVector *val, *oldVal;
+//    SingleVector *val, *oldVal;
     UInt iter = 0;
     bool normsReached = false;
 
@@ -58,7 +56,7 @@ namespace CoupledField
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic();
         try {
-        rPDE_.PDEs_[i]->CalcInputCoupling();
+//        rPDE_.PDEs_[i]->CalcInputCoupling();
         } catch( Exception& ex ) {
           RETHROW_EXCEPTION(ex, "Could not calculate input coupling for PDE '"
                             << rPDE_.PDEs_[i]->GetName() << "'");
@@ -66,34 +64,34 @@ namespace CoupledField
         
         rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(analysis_id, adjointParams);
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
-        rPDE_.PDEs_[i]->CalcOutputCoupling();
+//        rPDE_.PDEs_[i]->CalcOutputCoupling();
         
-        // Calculate Norms
-        for (UInt k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++) {
-          
-          rCouplings_[i]->GetOutputValues(k, val);
-          rCouplings_[i]->GetOutputOldValues(k, oldVal);
-          
-          rPDE_.norms_[i] = 
-            CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
-          
-          if (rPDE_.nonLinLogging_) {
-            WARN("Adjust printing of coupled iterations to InfoNode");
-//            Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
-//                         (rCouplings_[i]->GetPDE()->GetName()).c_str(),
-//                         (SolutionTypeEnum.ToString(rCouplings_[i]->GetOutputQuantity(k))).c_str(),
-//                         rPDE_.norms_[i]);
-          }
-          
-          if (rPDE_.norms_[i] > rCouplings_[i]->GetOutputEpsilon(k) && 
-              rCouplings_[i]->GetOutputNormType(k) != NO_NORM)
-            normsReached = false;
-          
-          //copy values of new solution to old one
-          dynamic_cast<Vector<Double>&>(*oldVal) = 
-            dynamic_cast<Vector<Double>&>(*val);
-          
-        }
+//        // Calculate Norms
+//        for (UInt k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++) {
+//          
+//          rCouplings_[i]->GetOutputValues(k, val);
+//          rCouplings_[i]->GetOutputOldValues(k, oldVal);
+//          
+//          rPDE_.norms_[i] = 
+//            CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
+//          
+//          if (rPDE_.nonLinLogging_) {
+//            WARN("Adjust printing of coupled iterations to InfoNode");
+////            Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
+////                         (rCouplings_[i]->GetPDE()->GetName()).c_str(),
+////                         (SolutionTypeEnum.ToString(rCouplings_[i]->GetOutputQuantity(k))).c_str(),
+////                         rPDE_.norms_[i]);
+//          }
+//          
+//          if (rPDE_.norms_[i] > rCouplings_[i]->GetOutputEpsilon(k) && 
+//              rCouplings_[i]->GetOutputNormType(k) != NO_NORM)
+//            normsReached = false;
+//          
+//          //copy values of new solution to old one
+//          dynamic_cast<Vector<Double>&>(*oldVal) = 
+//            dynamic_cast<Vector<Double>&>(*val);
+//          
+//        }
       } // end of for-loop
       
       iter++;
@@ -126,7 +124,7 @@ namespace CoupledField
     // the coupling data has to be reseted
     for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
       
-      rPDE_.PDEs_[i]->ResetCoupling();
+//      rPDE_.PDEs_[i]->ResetCoupling();
       rPDE_.PDEs_[i]->GetSolveStep()->SetStartStep(startStep_);
     }
 
@@ -140,7 +138,7 @@ namespace CoupledField
 //                     iter+1);
       }
 
-      UInt counter = 0;
+//      UInt counter = 0;
       normsReached = true;
 
       for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
@@ -155,38 +153,38 @@ namespace CoupledField
         rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans();
-        rPDE_.PDEs_[i]->CalcInputCoupling();
+//        rPDE_.PDEs_[i]->CalcInputCoupling();
         rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(analysis_id, adjointParams);
 
-        rPDE_.PDEs_[i]->CalcOutputCoupling();
+//        rPDE_.PDEs_[i]->CalcOutputCoupling();
               
-        // Calculate Norms
-        for (UInt k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++) {
-            
-          SingleVector *val, *oldVal;
-          rCouplings_[i]->GetOutputValues(k, val);
-          rCouplings_[i]->GetOutputOldValues(k, oldVal);
-          rPDE_.norms_[counter] = 
-            CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
-            
-          if (rPDE_.nonLinLogging_) {
-              
-//            Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
-//                         (rCouplings_[i]->GetPDE()->GetName()).c_str(),
-//                         (SolutionTypeEnum.ToString(rCouplings_[i]->GetOutputQuantity(k))).c_str(), 
-//                         rPDE_.norms_[counter]);
-//
-//            Info->PrintF(rPDE_.pdename_, " actStep_ = %d\n", actStep_);
-//            Info->PrintF(rPDE_.pdename_, " numTimeStep_ = %d\n", numTimeStep_);
-          }
-          if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k)) 
-            normsReached = false;
-                  
-          dynamic_cast<Vector<Double>&>(*oldVal) = 
-            dynamic_cast<Vector<Double>&>(*val);
-          //*oldVal = *val;
-          counter++;              
-        }
+//        // Calculate Norms
+//        for (UInt k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++) {
+//            
+//          SingleVector *val, *oldVal;
+//          rCouplings_[i]->GetOutputValues(k, val);
+//          rCouplings_[i]->GetOutputOldValues(k, oldVal);
+//          rPDE_.norms_[counter] = 
+//            CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
+//            
+//          if (rPDE_.nonLinLogging_) {
+//              
+////            Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
+////                         (rCouplings_[i]->GetPDE()->GetName()).c_str(),
+////                         (SolutionTypeEnum.ToString(rCouplings_[i]->GetOutputQuantity(k))).c_str(), 
+////                         rPDE_.norms_[counter]);
+////
+////            Info->PrintF(rPDE_.pdename_, " actStep_ = %d\n", actStep_);
+////            Info->PrintF(rPDE_.pdename_, " numTimeStep_ = %d\n", numTimeStep_);
+//          }
+//          if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k)) 
+//            normsReached = false;
+//                  
+//          dynamic_cast<Vector<Double>&>(*oldVal) = 
+//            dynamic_cast<Vector<Double>&>(*val);
+//          //*oldVal = *val;
+//          counter++;              
+//        }
       } // end of for-loop
 
       iter++;

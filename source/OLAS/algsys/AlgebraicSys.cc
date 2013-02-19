@@ -2696,7 +2696,7 @@ namespace CoupledField {
         //  no precond set -> use default ID 
         // ----------------------------------
         pt = BasePrecond::ID;
-        precondList->Get("ID",ParamNode::INSERT)->
+        precondList->Get("Id",ParamNode::INSERT)->
             Get("id",ParamNode::INSERT)->SetValue(precondId);
       } else {
         // ---------------------------------------------------

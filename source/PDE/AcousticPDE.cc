@@ -277,7 +277,7 @@ namespace CoupledField{
         // Read coefficient flow coefficient function for this region and add it to flow functor
         PtrCoefFct regionFlow;
         std::set<UInt> definedDofs;
-        ReadUserFieldValues( regionName, flowNode, flowInfo->dofNames, flowInfo->entryType, 
+        ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames, flowInfo->entryType, 
                              isComplex_, regionFlow, definedDofs );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
 
@@ -671,7 +671,8 @@ namespace CoupledField{
     density->unit = "kg/m^3";
     density->definedOn = ResultInfo::ELEMENT;
     density->entryType = ResultInfo::SCALAR;
-    shared_ptr<CoefFunctionMulti> densFct(new CoefFunctionMulti());
+    shared_ptr<CoefFunctionMulti> densFct(new CoefFunctionMulti(CoefFunction::SCALAR,1,1,
+                                                                false));
     matCoefs_[ELEM_DENSITY] = densFct;
     DefineFieldResult(densFct, density);
     
@@ -682,7 +683,8 @@ namespace CoupledField{
     sos->unit = "m/s";
     sos->definedOn = ResultInfo::ELEMENT;
     sos->entryType = ResultInfo::SCALAR;
-    shared_ptr<CoefFunctionMulti> sosFct(new CoefFunctionMulti());
+    shared_ptr<CoefFunctionMulti> sosFct(new CoefFunctionMulti(CoefFunction::SCALAR,1,1,
+                                                               false));
     matCoefs_[ACOU_ELEM_SPEED_OF_SOUND] = sosFct;
     DefineFieldResult(sosFct, sos);
     
@@ -695,13 +697,15 @@ namespace CoupledField{
     pml->unit = "";
     pml->definedOn = ResultInfo::ELEMENT;
     pml->entryType = ResultInfo::VECTOR;
-    shared_ptr<CoefFunctionMulti> pmlFct(new CoefFunctionMulti());
+    shared_ptr<CoefFunctionMulti> pmlFct(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, 
+                                                               isComplex_));
     matCoefs_[PML_DAMP_FACTOR] = pmlFct;
     DefineFieldResult(pmlFct, pml);
     //}
   }
   
   void AcousticPDE::DefinePostProcResults(){
+    
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     shared_ptr<BaseFeFunction> feFct = feFunctions_[formulation_];
     shared_ptr<ResultInfo> res1 = feFct->GetResultInfo();
@@ -771,7 +775,7 @@ namespace CoupledField{
     }
     
     
-    shared_ptr<ResultInfo> vel, velNormal, intensity, power, pres;
+    shared_ptr<ResultInfo> vel, velNormal, intensity, intensNormal, power, pres;
     PtrCoefFct intensFct, velFct;
     shared_ptr<CoefFunctionSurf> sNormIntens, velFctNormal;
     shared_ptr<CoefFunctionFormBased>  presGradFct, velFctPot;
@@ -813,6 +817,14 @@ namespace CoupledField{
       intensity->entryType = ResultInfo::VECTOR;
       intensity->definedOn = ResultInfo::ELEMENT;
       
+      // === ACOU_NORMAL_INTENSITY ===
+      intensNormal.reset(new ResultInfo);
+      intensNormal->resultType = ACOU_NORMAL_INTENSITY;
+      intensNormal->dofNames = "";
+      intensNormal->unit = "W/m^2";
+      intensNormal->entryType = ResultInfo::SCALAR;
+      intensNormal->definedOn = ResultInfo::ELEMENT;
+      
       // === ACOU_POWER ===
       power.reset(new ResultInfo);
       power->resultType = ACOU_POWER;
@@ -834,11 +846,13 @@ namespace CoupledField{
         velFctPot.reset(new CoefFunctionBOp<Double>(feFct, vel, -1.0));
       }
       velFct = velFctPot;
+      stiffFormCoefs_.insert(velFctPot);
       DefineFieldResult( velFct, vel );
       
       // === ACOU_NORMAL_VELOCITY ===
       velFctNormal.reset(new CoefFunctionSurf(true));
       DefineFieldResult(velFctNormal, velNormal);
+      surfCoefFcts_[velFctNormal] = velFctPot;
       
       // === ACOU_INTENSITY ===
       // Intensity I = p * conj(v)
@@ -847,12 +861,14 @@ namespace CoupledField{
                                  CoefXprBinOp(presFct, velFct, CoefXpr::OP_MULT_CONJ ) );
       DefineFieldResult(intensFct, intensity);
       
+      // === ACOU_NORMAL_INTENSITY ===
+      sNormIntens.reset(new CoefFunctionSurf(true));
+      DefineFieldResult( sNormIntens, intensNormal );
+      surfCoefFcts_[sNormIntens] = intensFct;
+      
       // === ACOU_POWER ===
       // Power p = \int_Gamma I *n dGamma
-      // a) first, define surface normal intensity
-      sNormIntens.reset(new CoefFunctionSurf(true));
-      
-      // b) then, integrate values
+      // Integrate normal intensity
       if( isComplex_ ) {
         powerFct.reset(new ResultFunctorIntegrate<Complex>(sNormIntens, 
                                                             feFct, power ) );
@@ -878,6 +894,7 @@ namespace CoupledField{
       } else {
         presGradFct.reset(new CoefFunctionBOp<Double>(feFct, vel, 1.0));
       }
+      stiffFormCoefs_.insert(presGradFct);
       
       // b) multiply by factor
       PtrCoefFct densFct = this->GetCoefFct( ELEM_DENSITY);
@@ -894,6 +911,7 @@ namespace CoupledField{
       // === ACOU_NORMAL_VELOCITY ===
       velFctNormal.reset(new CoefFunctionSurf(true));
       DefineFieldResult(velFctNormal, velNormal);
+      surfCoefFcts_[velFctNormal] = velFct;
       
       // === ACOU_INTENSITY ===
       // Intensity I = p * v
@@ -902,43 +920,20 @@ namespace CoupledField{
                                  CoefXprBinOp(presFct, velFct, CoefXpr::OP_MULT_CONJ ) );
       DefineFieldResult(intensFct, intensity);
 
+      // === ACOU_NORMAL_INTENSITY ===
+      sNormIntens.reset(new CoefFunctionSurf(true));
+      DefineFieldResult( sNormIntens, intensNormal );
+      surfCoefFcts_[sNormIntens] = intensFct;
+      
       // === ACOU_POWER ===
       // Power p = \int_Gamma I *n dGamma
-      // a) first, define surface normal intensity
-      sNormIntens.reset(new CoefFunctionSurf(true));
-
-      // b) then, integrate values
+      //  Integrate normal intensity
       powerFct.reset(new ResultFunctorIntegrate<Complex>(sNormIntens, 
                                                          feFct, power ) );
       resultFunctors_[ACOU_POWER] = powerFct;
       availResults_.insert(power);
     }
     
-    // ============================
-    // Initialize result functors:
-    // ============================
-    // collect the flux volume flux coefficient function for each region
-    std::map<RegionIdType, PtrCoefFct> intensCoefs, velCoefs;
-
-    // 1) Loop over all BDB-integrators
-    std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
-    for( ; it != bdbInts_.end(); ++it ) {
-      RegionIdType region = it->first;
-      BaseBDBInt* bdb = it->second;
-      if( velFctPot)
-        velFctPot->AddIntegrator(bdb, region);
-      if( presGradFct)
-        presGradFct->AddIntegrator(bdb, region);
-      intensCoefs[region] = intensFct;
-      velCoefs[region] = velFct;
-    }
-    
-    if( intensFct) {
-      sNormIntens->SetVolumeCoefs(intensCoefs);
-    }
-    if( velFct) {
-      velFctNormal->SetVolumeCoefs(velCoefs);
-    }
   }
 
    void AcousticPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){
@@ -951,7 +946,7 @@ namespace CoupledField{
      flowvelocity->definedOn = ResultInfo::NODE;
      flowvelocity->entryType = ResultInfo::VECTOR;
      
-     meanFlowCoef_.reset(new CoefFunctionMulti());
+     meanFlowCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
      DefineFieldResult( meanFlowCoef_, flowvelocity );
 
      results_.Push_back( flowvelocity );

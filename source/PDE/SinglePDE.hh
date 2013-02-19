@@ -17,7 +17,6 @@ namespace CoupledField
 {
   // forward class declaration
   class SpaceErrorEstimator;
-  class BasePairCoupling;
   class DirectCoupledPDE;
   class Assemble;
   class BaseForm;
@@ -28,7 +27,10 @@ namespace CoupledField
   class BaseFieldFunctor;
   class LinearFormContext;
   class CoefFunction;
+  class CoefFunctionSurf;
   class CoefFunctionMulti;
+  class CoefFunctionFormBased;
+  class IterCoupledPDE;
   
   //! Base class for all kinds of single field problems.
 
@@ -37,8 +39,8 @@ namespace CoupledField
   public:
 
     // friend declaration
-    friend class BasePairCoupling;
     friend class DirectCoupledPDE;
+    friend class BasePairCoupling;
 
     
     typedef StdVector<shared_ptr<BaseResult> > ResultList;
@@ -59,24 +61,6 @@ namespace CoupledField
   
   
     // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-  
-    //! Initalize PDE coupling (only done once)
-    virtual void InitCoupling(PDECoupling * Coupling) = 0;
-
-    //! Reset coupling counters and data (done after each timestep)
-    virtual void ResetCoupling();
-
-    //! Fill in input coupling terms
-    virtual void CalcInputCoupling();
-  
-  
-    //! Calculate coupling terms
-    virtual void CalcOutputCoupling() = 0;
-
-  
-    // ======================================================
     // GET /SET  METHODS
     // ======================================================
 
@@ -87,6 +71,12 @@ namespace CoupledField
     //! Set Direct coupling information
     virtual void SetDirectCoupling();
 
+    //! Set iterative coupled PDE 
+    
+    //! Set the iterative coupled PDE this SinglePDE belongs to. This is
+    //! needed in order to retrieve coupling quantities.
+    void SetIterCoupledPDE( IterCoupledPDE* iterCplPde );
+    
     //! set boundary condition
     void SetBCs();
 
@@ -154,7 +144,7 @@ namespace CoupledField
     //! Read general external field information from given xml node
     //! The node has to contain either a values tag, a number of comp tags or
     //! a grid node
-    //! \param[in] name The name of the entityList the Field should be applied to
+    //! \param[in] name EentityList the Field should be applied to
     //! \param[in] valueNode The xml node of the user parameters
     //! \param[in] compNames Names of the components (vector, tensor)
     //! \param[in] type Type of CoefFunction to be read in (scalar, vector, tensor)
@@ -162,7 +152,7 @@ namespace CoupledField
     //! \param[out] coef The generated coefficient function
     //! \param[out] definedDofs Set containing all defined dofs in case of a
     //!             vector-valued quantity.
-    void ReadUserFieldValues( const std::string name,
+    void ReadUserFieldValues( shared_ptr<EntityList> list,
                               PtrParamNode valueNode,
                               const StdVector<std::string>& compNames,
                               ResultInfo::EntryType type,
@@ -199,9 +189,20 @@ namespace CoupledField
     //! Define post-processing results
     
     //! This method defines the post-processing results, which are computed
-    //! mostly using the bilienarform of the main problem.
-    //! Thus, this method gets called after the integrators are defined
+    //! mostly using the bilinearform of the main problem.
+    //! \note This method gets called very early in the initialization 
+    //! process, so that other PDEs can access already CoefFunctions using
+    //! the GetCoefFct() method. The finalization is performed in the 
+    //! method FinalizePostProcResults()
     virtual void DefinePostProcResults() {};
+    
+    
+    //! Finalize post-processing results
+     
+    //! This method finalizes the setup of postprocessing results, e.g. 
+    //! assigning bdb-forms to the calculation routines etc. This method 
+    //! gets called at a very late stage.
+    virtual void FinalizePostProcResults();
 
     //! Obtain information on desired output quantities from parameter file
     //! This method is used to query the parameter handling object for the
@@ -386,14 +387,14 @@ namespace CoupledField
     //! maximum order of partial derivatives w.r.t. time
     UInt maxTimeDerivOrder_;
 
+    //! pointer to iterative coupled PDE
+    IterCoupledPDE* iterCplPde_;
+    
     //! PDEMemento
     shared_ptr<PDEMemento> memento_;
 
     //! usage type of memento
     bool mementoAsDirichlet_;
-
-    //! Handle for MathParser object
-    MathParser::HandleType mHandle_;
 
     //! Map for storing the primary BDB integrators of the problem
     
@@ -408,6 +409,19 @@ namespace CoupledField
     //! calculating spatial derivatives, fluxes and energy.
     std::map<RegionIdType, BaseBDBInt*> massInts_;
 
+    
+    // -----------------------------------------------------------------------
+    //  Result Handling
+    // -----------------------------------------------------------------------
+    //@{ \name Data for Result Handling
+    
+    //! Store field coefficient functions
+
+    //! This map contains all coefficient functions, which calculate a "field"
+    //! result, i.e. a spatially varying result (in contrast to an integrated 
+    //! result like e.g. energy) 
+    std::map<SolutionType, PtrCoefFct > fieldCoefs_;
+    
     //! Map for storing "material" parameters as coefficient functions
     
     //! This map holds the coefficient functions for the different material
@@ -415,12 +429,43 @@ namespace CoupledField
     //! we store them in a CoefFunctionMulti object
     std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs_;
     
-    
     //! Map storing functors for calculating general results
+    
+    //! This map stores the result functors for non-spatially varying results,
+    //! e.g. energy, total force etc.
     std::map<SolutionType, shared_ptr<ResultFunctor> > resultFunctors_;
     
-    //! Store field coefficient functions
-    std::map<SolutionType, PtrCoefFct > fieldCoefs_;
+    //! Store bilinarform-based coefficient function for stiffness integrator
+    
+    //! In this set we store all coefficient functions, which compute by the
+    //! help of the primary stiffness matrix (e.g. flux values, energy values).
+    //! In the method SinglePde::FinalizePostProcResults() every CoefFunction in
+    //! this map gets related to the stiffness integrator on each region.
+    std::set<shared_ptr<CoefFunctionFormBased> > stiffFormCoefs_;
+    
+    //! Store bilinarform-based coefficient function for mass integrator
+    
+    //! In this set we store all coefficient functions, which compute by the
+    //! help of the mass matrix (e.g. kinetic energy, eddy current density).
+    //! In the method SinglePde::FinalizePostProcResults() every CoefFunction in
+    //! this map gets related to the mass integrator on each region.
+    std::set<shared_ptr<CoefFunctionFormBased> > massFormCoefs_;
+    
+    //! Store result functors related to stiffness integrator
+    std::set<shared_ptr<ResultFunctor> > stiffFormFunctors_;
+
+    //! Store bilinarform-based coefficient function for mass integrator
+    std::set<shared_ptr<ResultFunctor> > massFormFunctors_;
+    
+    //! Store volume coefficient functions for surface CoefFunctions
+    
+    //! This map stores fore every coefficient function on a surface (e.g. surface
+    //! charge density, normal velocity) the related volume CoefFunction,
+    //! which has to be set for each region the surface is neighboring to.
+    //! This is performed in the method  SinglePde::FinalizePostProcResults().
+    std::map<shared_ptr<CoefFunctionSurf>, PtrCoefFct > surfCoefFcts_;
+
+    //@}
     
   private:
   };

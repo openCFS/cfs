@@ -10,7 +10,6 @@ namespace CoupledField
 {
   // forward class declarations
   class IterCoupledPDE;
-  class PDECoupling;
 
   //! Derived class for step-wise solving of iterative coupled StdPDEs
   class IterSolveStep : public BaseSolveStep
@@ -91,9 +90,6 @@ namespace CoupledField
 
     //! reference to PDE
     IterCoupledPDE &rPDE_;
-
-    //! reference to coupling
-    StdVector<PDECoupling*> & rCouplings_;
 
     //! analysis type of all iteratively coupled PDEs is retrieved
     BasePDE::AnalysisType actAnalysisType_;

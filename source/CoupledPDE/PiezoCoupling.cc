@@ -237,7 +237,7 @@ namespace CoupledField {
       // 2) pass integrators to functors
       cplFunc->AddIntegrator(bdb, region);
       stressCplFunc->AddIntegrator(bdb, region);
-      sChargeDens->SetVolumeCoef(region, coefFlux);
+      sChargeDens->AddVolumeCoef(region, coefFlux);
     }
   }
   

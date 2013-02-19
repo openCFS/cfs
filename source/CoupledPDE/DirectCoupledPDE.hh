@@ -87,23 +87,6 @@ namespace CoupledField {
     //@}
 
 
-    // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-  
-    //! initalize PDE coupling (only done once)
-    void InitCoupling(PDECoupling * Coupling);
-
-    //! reset coupling counters and data (done after each timestep)
-    void ResetCoupling();
-  
-    //! Fill in input coupling terms
-    void CalcInputCoupling();
-  
-  
-    //! calculate coupling terms
-    void CalcOutputCoupling();
-    
     //! Set initial conditions
     void SetInitialCondition();
 

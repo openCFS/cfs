@@ -101,7 +101,8 @@ public:
     OP_MULT_VOIGT_TENSOR_VEC, /*!< Binary * operation (tensor-vector, Voigt case)*/
     OP_MULT_VOIGT_TENSOR_VEC_CONJ, /*!< Binary * operation (tensor-vector, Voigt case), conjugated*/
     OP_DIV,                   /*!< Binary / operation */
-    OP_CROSS,                 /*!< Binary x operation (cross product) */
+    OP_CROSS,                 /*!< Binary x operation (cross product 3D and 2D) */
+    OP_CROSS_AXI,             /*!< Binary x operation (axisymmetric cross product) */
     OP_POW,                   /*!< Binary x^y operation */
     OP_NORM,                  /*!< Unary L2-Norm operation */
     OP_SQRT                   /*!< Unary square root operation */

@@ -16,7 +16,6 @@
 #include "Domain/CoefFunction/CoefFunctionApprox.hh"
 #include "Utils/StdVector.hh"
 
-#include "CoupledPDE/PDECoupling.hh"
 #include "Driver/Assemble.hh"
 #include "Utils/ApproxData.hh"
 #include "Utils/SmoothSpline.hh"
@@ -31,7 +30,6 @@
 
 
 #include "Driver/Assemble.hh"
-#include "CoupledPDE/PDECoupling.hh"
 
 //new integrator concept
 #include "Forms/BiLinForms/BDBInt.hh"

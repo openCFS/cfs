@@ -46,6 +46,7 @@ UInt CoefXpr::GetNumOperands(OpType op ) {
     case OP_MULT_VOIGT_TENSOR_VEC_CONJ:
     case OP_DIV:
     case OP_CROSS:
+    case OP_CROSS_AXI:
     case OP_POW:
       return 2;
       break;
@@ -143,6 +144,7 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
            case OP_ADD:
            case OP_SUB:
            case OP_CROSS:
+           case OP_CROSS_AXI:
              dim = CoefFunction::VECTOR;
              break;
            case OP_MULT_VOIGT_TENSOR_VEC:
@@ -815,13 +817,32 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
       
       // switch, depending on dimension
       if( numEntries == 1 ) {
-        
-        // 1) simple product ob both entries
+        // 1) reduced cross product in 2D
         if(!isComplex_) {
-          CoefXpr::ApplyBinaryFunc( real[0], aR[0], bR[0], OP_MULT );
+          real.Resize(2);
+          // 1st row
+          std::string temp;
+          CoefXpr::ApplyBinaryFunc( temp, aR[0], bR[1], OP_MULT );
+          real[0] = "-" + B(temp);
+          // 2nd row
+          CoefXpr::ApplyBinaryFunc( temp, aR[0], bR[0], OP_MULT );
+          real[1] = temp;
         } else {
-          CoefXpr::ApplyBinaryFunc( real[0], imag[0], aR[0], bR[0],
+          real.Resize(2);
+          imag.Resize(2);
+          std::string tempR, tempI;
+          // 1st row
+          CoefXpr::ApplyBinaryFunc( tempR, tempI,  
+                                    aR[0], bR[1],
+                                    aI[0], bI[1], OP_MULT );
+          real[0] = "-" + B(tempR);
+          imag[0] = "-" + B(tempI);
+          // 2nd row
+          CoefXpr::ApplyBinaryFunc( tempR, tempI,  
+                                    aR[0], bR[0],
                                     aI[0], bI[0], OP_MULT );
+          real[1] = tempR;
+          imag[1] = tempI;
         }
        } else if( numEntries == 3) {
          
@@ -880,8 +901,53 @@ void CoefXprBinOp::GetVectorXpr( StdVector<std::string>& real,
            imag[2] += tempI;
          }
          
-      } else 
-        EXCEPTION( "Vector / cross product only defined in 1D and 3D");
+       } else { 
+         EXCEPTION( "Vector / cross product only defined in 1D and 3D");
+       }
+      // === OP_CROSS_AXI ===
+    } else if( op_ == OP_CROSS_AXI ) {
+
+      // switch, depending on dimension
+      if( numEntries == 1 ) {
+        // this case occurs e.g. in the 2D / axisymmetric case, when
+        // the first operand is pointing into the third direction e.g.
+        //
+        //     (0  )    (B_x)   (-J_z * B_y)
+        // F = (0  ) x  (B_y) = ( J_z * B_x)
+        //     (J_z)    ( 0 )   (     0    )
+        // 
+        // Here, H is just given as a scalar coefficient function
+        // 1) reduced cross product
+        if(!isComplex_) {
+          real.Resize(2);
+          // 1st row
+          std::string temp;
+          CoefXpr::ApplyBinaryFunc( temp, aR[0], bR[1], OP_MULT );
+          real[0] = temp;
+          // 2nd row
+          CoefXpr::ApplyBinaryFunc( temp, aR[0], bR[0], OP_MULT );
+          real[1] = "-"+B(temp);
+        } else {
+          real.Resize(2);
+          imag.Resize(2);
+          std::string tempR, tempI;
+          // 1st row
+          CoefXpr::ApplyBinaryFunc( tempR, tempI,  
+                                    aR[0], bR[1],
+                                    aI[0], bI[1], OP_MULT );
+          real[0] = tempR;
+          imag[0] = tempI;
+          // 2nd row
+          CoefXpr::ApplyBinaryFunc( tempR, tempI,  
+                                    aR[0], bR[0],
+                                    aI[0], bI[0], OP_MULT );
+          real[1] = "-"+B(tempR);
+          imag[1] = "-"+B(tempI);
+        }
+      } else {
+        EXCEPTION("Wrong dimension");
+      }
+     
     }
     // === OP_MULT_TENSOR_VEC
     else if( op_ == OP_MULT_VOIGT_TENSOR_VEC ||

@@ -3,15 +3,21 @@
 namespace CoupledField  {
 
 
-CoefFunctionMulti::CoefFunctionMulti( bool zeroEmptyRegions ) {
+CoefFunctionMulti::CoefFunctionMulti( CoefDimType dimType,
+                                      UInt dim1, UInt dim2,
+                                      bool isComplex,
+                                      bool zeroEmptyRegions ) {
 
   // set global data
-  dimType_ = CoefFunction::NO_DIM;
+  dimType_ = dimType;
   dependType_ = CoefFunction::GENERAL;
   
-  // a ditributed coefficient function can never be analytic
+  // a distributed coefficient function can never be analytic
   isAnalytic_ = false;
-  isComplex_ = false;
+  
+  isComplex_ = isComplex;
+  rowSize_ = dim1;
+  colSize_ = dim2;
   
   zeroEmptyRegions_ = zeroEmptyRegions;
 }
@@ -24,8 +30,6 @@ CoefFunctionMulti::~CoefFunctionMulti() {
 void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
   // check, if this is the first entry
   if( regionCoefs_.size() == 0 ) {
-    dimType_ = coef->GetDimType();
-    isComplex_ = coef->IsComplex();
     
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     
@@ -49,11 +53,29 @@ void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
     
   } else {
     PtrCoefFct first = regionCoefs_.begin()->second;
-    if( coef->GetDimType() != first->GetDimType() ) {
+    if( coef->GetDimType() != dimType_ ) {
       EXCEPTION( "The dimensionality of the coefficient functions "
           << "is not the same");
     }
-    if( isComplex_ != first->IsComplex() ) {
+    
+    // check size of tensor
+    UInt nRows, nCols;
+    switch (coef->GetDimType() ) {
+      case VECTOR:
+        if(coef->GetVecSize() != rowSize_ ) {
+          EXCEPTION( "Vector size inconsistent" );
+        }
+      break;
+      case TENSOR:
+        coef->GetTensorSize(nRows, nCols);
+        if( nRows != rowSize_ || nCols != colSize_) {
+          EXCEPTION( "Tensor size inconsistent" );
+        }
+        break;
+      default:
+        break;
+    }
+    if( isComplex_ != coef->IsComplex() ) {
       EXCEPTION( "All coefficient functions must have the same complexType");
     }
   }
@@ -109,13 +131,15 @@ void CoefFunctionMulti::GetScalar(Double& coef,
 }
 
 UInt CoefFunctionMulti::GetVecSize() const {
-  assert(regionCoefs_.size());
-  return regionCoefs_.begin()->second->GetVecSize();
+  assert(dimType_ == CoefFunction::VECTOR);
+  return rowSize_;
 }
 
 void CoefFunctionMulti::GetTensorSize( UInt& numRows, UInt& numCols ) const {
-  assert(regionCoefs_.size());
-  return regionCoefs_.begin()->second->GetTensorSize(numRows, numCols);
+  assert(dimType_ == CoefFunction::TENSOR);
+  numRows = rowSize_;
+  numCols = colSize_;
+
 }
 
 std::string CoefFunctionMulti::ToString() const {

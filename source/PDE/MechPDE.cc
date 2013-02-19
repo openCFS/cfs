@@ -33,7 +33,6 @@
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
-#include "CoupledPDE/PDECoupling.hh"
 
 namespace CoupledField {
 
@@ -395,11 +394,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       }
       
       // determine dimension
-      EntityIterator it = ent[i]->GetIterator();
-      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
-      if( elemDim != dim_-1 ) {
-        EXCEPTION("Force density can only be defined on surface elements");
-      }
+//      EntityIterator it = ent[i]->GetIterator();
+//      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
+//      if( elemDim != dim_-1 ) {
+//        EXCEPTION("Force density can only be defined on surface elements");
+//      }
       
       if( dim_ == 2) {
         if(isComplex_) {
@@ -571,59 +570,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   }
 
 
-
-  // ======================================================
-  // COUPLING SECTION
-  // ======================================================
-
-
-  void MechPDE::InitCoupling(PDECoupling * Coupling)
-  {
-
-    isIterCoupled_ = true;
-    ptCoupling_   = Coupling;
-
-    for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
-      {
-        if (ptCoupling_->GetOutputQuantity(i) == MECH_DISPLACEMENT)
-          {
-            // Intialize the memory of the coupling values
-            ptCoupling_->CreateCouplingVector(i,isComplex_);
-          }
-
-        if (ptCoupling_->GetOutputQuantity(i) == MECH_VELOCITY)
-          {
-            // Intialize the memory of the coupling values
-            ptCoupling_->CreateCouplingVector(i,isComplex_);
-          }
-
-        if (ptCoupling_->GetOutputQuantity(i) == MECH_FORCE)
-          {
-            // Intialize the memory of the coupling values
-            ptCoupling_->CreateCouplingVector(i,isComplex_);
-
-            //now since we need a incremental formulation, initialize some necessary vectors
-            isIncrFormulation_ = true;
-          }
-      }
-
-  }
-
-
-  void MechPDE::CalcOutputCoupling()
-  {
-    REFACTOR;
-  }
-
-  bool MechPDE::HasOutput(SolutionType output)
-  {
-
-    if (output == MECH_DISPLACEMENT || output == MECH_VELOCITY || output == MECH_FORCE)
-      return true;
-
-    return false;
-  }
-
   // ======================================================
   // TIME STEPPING SECTION
   // ======================================================
@@ -680,7 +626,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   }
     
   void MechPDE::DefinePostProcResults() {
-
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     StdVector<std::string> stressComponents;
     if( subType_ == "3d" ) {
@@ -707,7 +652,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       availResults_.insert( vel );
       DefineTimeDerivResult( MECH_VELOCITY, 1, MECH_DISPLACEMENT );
       vFct = timeDerivFeFunctions_[MECH_VELOCITY];
-      
+
       // === MECHANIC ACCELERATION ===
       shared_ptr<ResultInfo> acc(new ResultInfo);
       acc->resultType = MECH_ACCELERATION;
@@ -727,7 +672,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     rhs->entryType = ResultInfo::VECTOR;
     rhs->definedOn = ResultInfo::NODE;
     DefineFieldResult( rhsFeFunctions_[MECH_DISPLACEMENT], rhs );
-    
+
     // === MECHANIC STRESS ===
     shared_ptr<ResultInfo> stress(new ResultInfo);
     stress->resultType = MECH_STRESS;
@@ -742,7 +687,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       sigmaFunc.reset(new CoefFunctionFlux<Double>(feFct, stress));
     }
     DefineFieldResult( sigmaFunc, stress );
-    
+    stiffFormCoefs_.insert(sigmaFunc);
+
     // === MECHANIC STRAIN ===
     shared_ptr<ResultInfo> strain(new ResultInfo);
     strain->resultType = MECH_STRAIN;
@@ -757,8 +703,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       strainFunc.reset(new CoefFunctionBOp<Double>(feFct, strain));
     }
     DefineFieldResult( strainFunc, strain );
+    stiffFormCoefs_.insert(strainFunc);
 
-    
+
     PtrCoefFct intensFct;
     shared_ptr<CoefFunctionFormBased> kedFunc;
     shared_ptr<ResultFunctor> keFunc;
@@ -785,8 +732,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
           CoefFunction::Generate(part,
                                  CoefXprBinOp( "-1.0", intensTmp , CoefXpr::OP_MULT ));
       DefineFieldResult( intensFct, intens );
-      
-      
+
+
       // === MECHANIC KINETIC ENERGY DENSITY ===
       shared_ptr<ResultInfo> kinEnergyDens(new ResultInfo);
       kinEnergyDens->resultType = MECH_KIN_ENERGY_DENS;
@@ -800,7 +747,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         kedFunc.reset(new CoefFunctionBdBKernel<Double>(vFct, 0.5));
       }
       DefineFieldResult( kedFunc, kinEnergyDens );
-      
+      massFormCoefs_.insert(kedFunc);
+
       // === MECHANIC KINETIC ENERGY ===
       shared_ptr<ResultInfo> kinEnergy(new ResultInfo);
       kinEnergy->resultType = MECH_KIN_ENERGY;
@@ -814,8 +762,19 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       } else {
         keFunc.reset(new EnergyResultFunctor<Double>(vFct, kinEnergy));
       }
-      
       resultFunctors_[MECH_KIN_ENERGY] = keFunc;
+      massFormFunctors_.insert(keFunc);
+
+      // === MECHANIC NORMAL STRUCTURAL INTENSTIY ===
+      shared_ptr<ResultInfo> intensNormal(new ResultInfo);
+      intensNormal->resultType = MECH_NORMAL_STRUCT_INTENSITY;
+      intensNormal->dofNames = "" ;
+      intensNormal->unit =  "N/ms";
+      intensNormal->entryType = ResultInfo::SCALAR;
+      intensNormal->definedOn = ResultInfo::SURF_ELEM;
+      sNormStructIntens.reset(new CoefFunctionSurf(true));
+      DefineFieldResult( sNormStructIntens, intensNormal );
+      surfCoefFcts_[sNormStructIntens] = intensFct;
       
       // === MECHANIC POWER ===
       shared_ptr<ResultInfo> power(new ResultInfo);
@@ -825,7 +784,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       power->entryType = ResultInfo::SCALAR;
       power->definedOn = ResultInfo::SURF_REGION;
       availResults_.insert( power );
-      sNormStructIntens.reset(new CoefFunctionSurf(true));
       // then, integrate values
       if( isComplex_ ) {
         powerFunc.reset(new ResultFunctorIntegrate<Complex>(sNormStructIntens, 
@@ -852,6 +810,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       dedFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 0.5));
     }
     DefineFieldResult( dedFunc, defEnergyDens );
+    stiffFormCoefs_.insert(dedFunc);
 
     // === MECHANIC DEFORMATION ENERGY ===
     shared_ptr<ResultInfo> defEnergy(new ResultInfo);
@@ -868,6 +827,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       deFunc.reset(new EnergyResultFunctor<Double>(feFct, defEnergy));
     }
     resultFunctors_[MECH_DEFORM_ENERGY] = deFunc;
+    stiffFormFunctors_.insert(deFunc);
 
     // === MECHANIC TOTAL ENERGY DENSITY ===
     shared_ptr<ResultInfo> totEnergyDens(new ResultInfo);
@@ -904,39 +864,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
 
     // === MECHANIC DISPLACED SURFACE VOLUME ===
-     // ... to be implemented
-    
-    // ============================
-    // Initialize result functors:
-    // ============================
-     
-    // 1) Loop over all BDB-integrators
-    std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
-    for( ; it != bdbInts_.end(); ++it ) {
-      RegionIdType region = it->first;
-      BaseBDBInt* bdb = it->second;
-
-      sigmaFunc->AddIntegrator(bdb, region);
-      strainFunc->AddIntegrator(bdb, region);
-      dedFunc->AddIntegrator(bdb, region);
-      deFunc->AddIntegrator(bdb, region);
-      if( analysistype_ != STATIC ) {
-        sNormStructIntens->SetVolumeCoef( region, intensFct );
-      }
-    }
-    
-    // 2) Loop over all mass integrators
-    if( analysistype_ != STATIC ) {
-      it = massInts_.begin();
-      for( ; it != massInts_.end(); ++it ) {
-        RegionIdType region = it->first;
-        BaseBDBInt* massInt = it->second;
-        kedFunc->AddIntegrator(massInt, region);
-        keFunc->AddIntegrator(massInt, region);
-      }
-    }
+    // ... to be implemented
   }
-  
   
   std::map<SolutionType, shared_ptr<FeSpace> >
    MechPDE::CreateFeSpaces(const std::string& formulation, PtrParamNode infoNode) {

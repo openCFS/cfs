@@ -18,7 +18,7 @@ CoefFunctionSurf::CoefFunctionSurf( bool mapNormal )
 
 
 
-void CoefFunctionSurf::SetVolumeCoef( RegionIdType region, PtrCoefFct coef ) {
+void CoefFunctionSurf::AddVolumeCoef( RegionIdType region, PtrCoefFct coef ) {
   
   // check, if there are already volume coeffiencts set
   if (coefs_.size() ) {
@@ -63,7 +63,7 @@ void CoefFunctionSurf::SetVolumeCoefs( std::map<RegionIdType, PtrCoefFct> coefs 
 
   // loop over all entries and set following variables
   for( ; it != coefs.end(); ++it ) {
-    SetVolumeCoef( it->first, it->second);
+    AddVolumeCoef( it->first, it->second);
   }
 }
 

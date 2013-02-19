@@ -17,7 +17,6 @@
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
-#include "CoupledPDE/PDECoupling.hh"
 #include "Driver/Assemble.hh"
 #include "Utils/ApproxData.hh"
 #include "Utils/SmoothSpline.hh"
@@ -433,44 +432,6 @@ namespace CoupledField {
   }
 
 
-  // ======================================================
-  // COUPLING SECTION
-  // ======================================================
-
-  void ElecPDE::InitCoupling(PDECoupling * Coupling)
-  {
-  REFACTOR;
-  }
-  
-
-
-  void ElecPDE::CalcOutputCoupling()
-  {
-    REFACTOR;
-  }
-
-
-  bool ElecPDE::HasOutput(SolutionType output)
-  {
-  
-    switch (output)
-      {
-      case ELEC_FORCE_VWP:
-        return true;
-        break;
-      case ELEC_POTENTIAL:
-        return true;
-        break;
-      case ELEC_FIELD_INTENSITY:
-        return true;
-        break;
-      default:
-        return false;
-        break;
-      }
-    return false;
-  }
-
 
   void ElecPDE::SetPiezoCoupling()
   {
@@ -621,6 +582,7 @@ namespace CoupledField {
       eFunc.reset(new CoefFunctionBOp<Double>(feFct, ef, -1.0));
     }
     DefineFieldResult( eFunc, ef );
+    stiffFormCoefs_.insert(eFunc);
     
     // === ELECTRIC FLUX DENSITY ===
     shared_ptr<ResultInfo> flux ( new ResultInfo );
@@ -636,6 +598,7 @@ namespace CoupledField {
       fluxFunc.reset(new CoefFunctionFlux<Double>(feFct, flux));
     }
     DefineFieldResult( fluxFunc, flux );
+    stiffFormCoefs_.insert(fluxFunc);
 
     // === ELECTRIC SURFACE CHARGE DENSITY ===
     shared_ptr<ResultInfo> chargeD(new ResultInfo);
@@ -647,6 +610,7 @@ namespace CoupledField {
     availResults_.insert( chargeD );
     // the coefficient function is defined later
     shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true));
+    surfCoefFcts_[sChargeDens] = fluxFunc;
     
     // === TOTAL ELECTRIC CHARGE ===
     shared_ptr<ResultInfo> charge(new ResultInfo);
@@ -678,6 +642,7 @@ namespace CoupledField {
       edFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 0.5));
     }
     DefineFieldResult( edFunc, ed );
+    stiffFormCoefs_.insert(edFunc);
     
     // Electric energy
     shared_ptr<ResultInfo> energy( new ResultInfo );
@@ -694,22 +659,8 @@ namespace CoupledField {
       energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy));
     }
     resultFunctors_[ELEC_ENERGY] = energyFunc;
+    stiffFormFunctors_.insert(energyFunc);
     
-    // ============================
-    // Initialize result functors:
-    // ============================
-    // 1) Loop over all BDB-integrators
-    std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
-    for( ; it != bdbInts_.end(); ++it ) {
-      RegionIdType region = it->first;
-      BaseBDBInt* bdb = it->second;
-      // 2) pass integrators to functors
-      eFunc->AddIntegrator(bdb, region);
-      fluxFunc->AddIntegrator(bdb, region);
-      energyFunc->AddIntegrator(bdb, region);
-      edFunc->AddIntegrator(bdb, region);
-      sChargeDens->SetVolumeCoef(region, fluxFunc);
-    }
   }
 
   

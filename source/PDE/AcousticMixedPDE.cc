@@ -269,7 +269,7 @@ namespace CoupledField{
         // Read coefficient flow coefficient function for this region and add it to flow functor
         PtrCoefFct regionFlow;
         std::set<UInt> definedDofs;
-        ReadUserFieldValues( regionName, flowNode, flowInfo->dofNames, flowInfo->entryType, 
+        ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames, flowInfo->entryType, 
                              isComplex_, regionFlow, definedDofs );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
 
@@ -638,7 +638,8 @@ namespace CoupledField{
      flowvelocity->entryType = ResultInfo::VECTOR;
      results_.Push_back( flowvelocity );
      availResults_.insert( flowvelocity );
-     meanFlowCoef_.reset(new CoefFunctionMulti());
+     meanFlowCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, 
+                                               isComplex_));
      
      DefineFieldResult( meanFlowCoef_, flowvelocity );
    }

@@ -378,44 +378,6 @@ namespace CoupledField {
 
   }
 
-
-  // ======================================================
-  // COUPLING SECTION
-  // ======================================================
-
-  void DirectCoupledPDE::InitCoupling(PDECoupling * Coupling)
-  {
-    isIterCoupled_ = true;
-  }
-  void DirectCoupledPDE::ResetCoupling()
-  {
-
-    iterCoupledCounter_ = 0;
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++)
-      {
-        singlePDEs_[i]->ResetCoupling();
-      }
-  }
-
-  void DirectCoupledPDE::CalcInputCoupling()
-  {
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++)
-      {
-        singlePDEs_[i]->CalcInputCoupling();
-      }
-  }
-
-  void DirectCoupledPDE::CalcOutputCoupling()
-  {
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++)
-      {
-        singlePDEs_[i]->CalcOutputCoupling();
-      }
-  }
-
-
-
-
   void DirectCoupledPDE::DefineSolveStep() {
     solveStep_ = new StdSolveStep(*this);
   }

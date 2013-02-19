@@ -16,8 +16,8 @@ namespace CoupledField
   class IterSolveStep;
   class StdPDE;
   class SinglePDE;
-  class PDECoupling;
   class ParamNode;
+  class EntityList;
 
   //! This class iteratively solve a list of given SinglePDEs 
   class IterCoupledPDE : public BasePDE
@@ -30,8 +30,6 @@ namespace CoupledField
 
     //! Constructor
     IterCoupledPDE(StdVector<StdPDE*> & PDEs,
-                   StdVector<SinglePDE*> & sinlgePDEs,
-                   StdVector<PDECoupling*> & Couplings,
                    PtrParamNode paramNode); 
 
     //! Destructor
@@ -50,6 +48,16 @@ namespace CoupledField
     //! Return pointer to the SolveStep object
     BaseSolveStep * GetSolveStep();
 
+    //! Obtain coupling quantity
+    
+    //! This method returns a given coefficient function
+    //! from a contained SinglePDE. Internally, it creates an additional
+    //! surrounding struct to calculate some norm for determining an
+    //! stopping criterion when evaluating the CoefFunction.
+    PtrCoefFct GetCouplingCoefFct( SolutionType type,
+                                   shared_ptr<EntityList>  list,
+                                   const std::string& pdeName );
+    
     //! Update PDE due to updated step in multistep solution strategy
     virtual void UpdateToSolStrategy();
     
@@ -93,8 +101,7 @@ namespace CoupledField
     BasePDE::AnalysisType analysistype_;         //!< type of analysis
     StdVector<StdPDE *> PDEs_;         //!< list of belonging PDEs
     StdVector<SinglePDE*> singlePDEs_;
-    StdVector<PDECoupling*> Couplings_; //!< vector of coupling objects
-    UInt NumPDEs_;                   //!< number of PDEs 
+    UInt numPDEs_;                   //!< number of PDEs 
   
 
   };

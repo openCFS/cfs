@@ -19,7 +19,6 @@ namespace CoupledField
   class StdPDE;
   class SinglePDE;
   class IterCoupledPDE;
-  class PDECoupling;
   class DirectCoupledPDE;
   class Grid;
   class FileType;
@@ -142,58 +141,6 @@ namespace CoupledField
     CoordSystem * GetCoordSystem( const std::string & name 
                                   = std::string("default") );
 
-//    /** For some optimization (SIMP) or normal simulation with external
-//     * ersatz material file the forms get the density value by this
-//     * function. Any transfer function (e.g. x^3 in SIMP) is applied!
-//     * @param elem elemNum and regionId are used. Note that it is checked,
-//     *        if for surface elements the neighbour region applies!
-//     * @param form the actual bilinearform, this is used to find the power for SIMP
-//     * @param result we return the result in the parameter, to indicate clearly if it is valid
-//     * @return true if result was set,.false if there is no ersatz materal for the input params */
-//    bool GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result);
-//    
-//    /** Check for the existence of bi-material.
-//     * Use as (1-result)*BM with result from GetErsatzMaterial() and add it to the original result*OrgMat
-//     * @return NULL if no bi-material for this element/region/type or no optimization */
-//    BaseMaterial* GetErsatzBiMaterial(const Elem* elem, const MaterialClass mc);
-//
-//    /** In case we do pamping, the contribution to the damping matrix is set.
-//     * Pamping is additional complex mass to the damping matrix for intermediate material.
-//     * @param elemMat not touch if not applied, otherwise set (not added)
-//     * @return if the matrix was set */
-//    bool GetErsatzMaterialPamping(const Elem* elem, const BaseForm* form, Matrix<double>& elemMat);
-//
-//    /** This is set by optimization which holds the data (in a derved form). It
-//     * is also reset here by the optimization destructor.
-//     * @param ersatzMaterial pointer to a data set. NULL to reset, such that ~Domain() doesn't delete it.
-//     * @param regionId the region for the ersatz material */
-//     void SetErsatzMaterial(DesignSpace* data)
-//     {
-//         ersatzMaterial = data;
-//     }
-//     
-//     /** E.g. the MechPDE needs it in CalcResuls() to write pseudo densities. 
-//      * @return  NULL but an exception if not set and not silent*/
-//     DesignSpace* GetErsatzMaterial(bool throw_exception = true); 
-//     
-//     /** Returns true, if optimization does provide a complete tensor */
-//     bool HasErsatzMaterialTensor();
-//     
-//     /** Returns true, if optimization does provide a mass value */
-//     bool HasErsatzMaterialMass();
-//     
-//     /** Return true, if optimization does provide damping parameters */
-//     bool HasErsatzMaterialDamping();
-//     
-//     /** Gets the Material Tensor for the given element in the current iteration, or its derivative */
-////     void GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction);
-//     
-//    /** Returns the optimization
-//     *  @return null if there is none */
-//    
-//    /** Sets the optimization from outside, like the driver */
-//    void SetOptimization(Optimization* optimization) { this->optimization_ = optimization; };  
-
     //! Return Math Parser object for evaluating math expressions
     MathParser * GetMathParser() { return &mathParser_; }
 
@@ -277,12 +224,6 @@ namespace CoupledField
 
     //! Pointer to iterative coupled PDE
     IterCoupledPDE * ptIterCoupledPde_;
-
-    //! Pointer to coupling objects
-
-    //! Pointer to the object which hold the information for
-    //! pairwise iterative coupling of two StdPDEs
-    StdVector<PDECoupling*> couplings_; //!<pointer to coupling objects
 
     //! Direct coupling status of each SinglePDE
 

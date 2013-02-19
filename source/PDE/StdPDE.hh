@@ -14,12 +14,10 @@ namespace CoupledField {
 
 
   // forward class declarations
-  class PDECoupling;
   class BasePairCoupling;
   class WriteResults;
   class BaseNodeStoreSol;
   class StdSolveStep;
-  class PDECoupling;
   class ParamNode;
   class BiotSavart;
   class BaseFeFunction;
@@ -30,9 +28,6 @@ namespace CoupledField {
   {
   
   public:
-
-    // friend cStdlass declarations
-    friend class PDECoupling;
 
     // public typedefs
     typedef StdVector<shared_ptr<ResultInfo> > ResultInfoList;
@@ -53,23 +48,6 @@ namespace CoupledField {
     //! Create the matrices and Solver as well as Preconditioner
     virtual void CreateMatrices_Solver();
     
-    // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-  
-    //! initalize PDE coupling (only done once)
-    virtual void InitCoupling(PDECoupling * Coupling) = 0;
-
-    //! reset coupling counters and data (done after each timestep)
-    virtual void ResetCoupling() = 0;
-  
-    //! Fill in input coupling terms
-    virtual void CalcInputCoupling() = 0;
-  
-  
-    //! calculate coupling terms
-    virtual void CalcOutputCoupling() = 0;
-
 
     // ======================================================
     // GET/SET METHODS
@@ -184,9 +162,6 @@ namespace CoupledField {
 
     UInt& GetIterCoupledCounter() 
     { return iterCoupledCounter_;};
-
-    PDECoupling* GetCoupling()
-    {return ptCoupling_;};
 
     //! Return material class
     MaterialClass GetMaterialClass() const { return pdematerialclass_; }
@@ -316,7 +291,6 @@ namespace CoupledField {
     bool isIterCoupled_;        //!< PDE couples with others
     Vector<Double> matParam_;      //!< change to material parameter
     bool updateCouplingBCs_ ;  //!< flag if coupling BC were already set
-    PDECoupling *ptCoupling_;     //!< pointer to coupling object
   
     //! nodes at which coupling terms are calculated
     std::list<UInt> couplingNodes;    
@@ -400,6 +374,12 @@ namespace CoupledField {
 
     //! Map storing time derivatives of FeFunctions
     std::map<SolutionType, shared_ptr<BaseFeFunction> > timeDerivFeFunctions_;
+    
+    //! Map Storing the time derivative order of the specific result
+    std::map<SolutionType, UInt> timeDerivOrder_;
+    
+    //! Map associating the primary time derivative results with the primary one
+    std::map<SolutionType, SolutionType> timeDerivPrimaryResults_;
     
     //! Map storing the feFunctions of the RHS
     std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
