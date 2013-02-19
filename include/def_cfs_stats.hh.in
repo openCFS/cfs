@@ -1,0 +1,76 @@
+// Define version of CFS++ (year and month)
+#define CFS_VERSION "@CFS_VERSION@"
+#define CFS_VERSION_YEAR "@CFS_VERSION_YEAR@"
+#define CFS_VERSION_MONTH "@CFS_VERSION_MONTH@"
+
+// Define verion name of CFS++
+#define CFS_NAME "@CFS_NAME@"
+
+// Date on which the source tree has been configured
+#define CFS_CONF_DATE "@CFS_CONF_DATE@"
+
+// Hostname on which the source tree has been configured
+#define CFS_BUILD_HOST "@CFS_BUILD_HOST@"
+// User name who configured the build dir
+#define CFS_BUILD_USER "@CFS_BUILD_USER@"
+
+// Type of working copy SVN or git
+#define CFS_WC_TYPE "@CFS_WC_TYPE@"
+
+// Global version of SVN working copy
+#define CFS_WC_REVISION "@CFS_WC_REVISION@"
+
+// URL of SVN repository
+#define CFS_WC_URL "@CFS_WC_URL@"
+
+// Was WC modified?
+#define CFS_WC_MODIFIED "@CFS_WC_MODIFIED@"
+
+// Git commit corresponding to built exe
+#define CFS_GIT_COMMIT "@CFS_GIT_COMMIT@"
+
+// Local git branch corresponding to built exe
+#define CFS_GIT_BRANCH "@CFS_GIT_BRANCH@"
+
+// Name of the C++ compiler used to compile CFS++
+#define CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@"
+
+// Version of the C++ compiler used to compile CFS++
+#define CFS_CXX_COMPILER_VER "@CFS_CXX_COMPILER_VER@"
+
+// Fortran compiler used to compile CFS++
+#define CFS_FORTRAN_COMPILER_NAME "@CFS_FORTRAN_COMPILER_NAME@"
+
+// Version of the Fortran compiler used to compile CFS++
+#define CFS_FORTRAN_COMPILER_VER "@CFS_FORTRAN_COMPILER_VER@"
+
+// Linux/UNIX/Windows distribution for which CFS++ has been built
+#define CFS_DISTRO "@CFS_FULL_DISTRO@"
+
+// Linux/UNIX/Windows version for which CFS++ has been built
+#define CFS_DISTRO_VER "@CFS_FULL_DISTRO_VER@"
+
+// Hardware architecture for which CFS++ has been built
+#define CFS_ARCH "@CFS_ARCH@"
+
+// Variables from the CMAKE build system
+#define CMAKE_BUILD_TYPE "@CMAKE_BUILD_TYPE@"
+
+#define CMAKE_C_FLAGS "@CMAKE_C_FLAGS@"
+#define CMAKE_CXX_FLAGS "@CMAKE_CXX_FLAGS@"
+#define CMAKE_EXE_LINKER_FLAGS "@CMAKE_EXE_LINKER_FLAGS@"
+#define CMAKE_MODULE_LINKER_FLAGS "@CMAKE_MODULE_LINKER_FLAGS@"
+#define CMAKE_SHARED_LINKER_FLAGS "@CMAKE_SHARED_LINKER_FLAGS@"
+
+#define CMAKE_C_FLAGS_DEBUG "@CMAKE_C_FLAGS_DEBUG@"
+#define CMAKE_CXX_FLAGS_DEBUG "@CMAKE_CXX_FLAGS_DEBUG@"
+#define CMAKE_EXE_LINKER_FLAGS_DEBUG "@CMAKE_EXE_LINKER_FLAGS_DEBUG@"
+#define CMAKE_MODULE_LINKER_FLAGS_DEBUG "@CMAKE_MODULE_LINKER_FLAGS_DEBUG@"
+#define CMAKE_SHARED_LINKER_FLAGS_DEBUG "@CMAKE_SHARED_LINKER_FLAGS_DEBUG@"
+
+#define CMAKE_C_FLAGS_RELEASE "@CMAKE_C_FLAGS_RELEASE@"
+#define CMAKE_CXX_FLAGS_RELEASE "@CMAKE_CXX_FLAGS_RELEASE@"
+#define CMAKE_EXE_LINKER_FLAGS_RELEASE "@CMAKE_EXE_LINKER_FLAGS_RELEASE@"
+#define CMAKE_MODULE_LINKER_FLAGS_RELEASE "@CMAKE_MODULE_LINKER_FLAGS_RELEASE@"
+#define CMAKE_SHARED_LINKER_FLAGS_RELEASE "@CMAKE_SHARED_LINKER_FLAGS_RELEASE@"
+

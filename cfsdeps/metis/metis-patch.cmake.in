@@ -1,0 +1,15 @@
+set(metis_source  "@metis_source@")
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
+
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/metis/CMakeLists.txt" "${metis_source}/CMakeLists.txt"
+)
+
+SET(patches
+  "metis-gcc44.patch";
+)
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/metis")

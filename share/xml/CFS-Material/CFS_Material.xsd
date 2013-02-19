@@ -1,0 +1,70 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Material file schema for the Coupled Field Solver project CFS++
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <!-- ******************************************************************* -->
+  <!--   Include definition of Material classes                            -->
+  <!-- ******************************************************************* -->
+  <xsd:include schemaLocation="Schemas/CFS_MATacoustic.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_MATelectric.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_MATflow.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_MATheatConduction.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_MATmagnetic.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_MATmechanical.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_MATpiezo.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_MATpyroelectric.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_MATthermoelastic.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_MATmagStrict.xsd"/>
+  
+  <!-- ******************************************************************* -->
+  <!--   Include further definitions -->
+  <!-- ******************************************************************* -->
+  <xsd:include schemaLocation="Schemas/CFS_Misc.xsd"/>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of enclosing main element                              -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="cfsMaterialDataBase">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="material" minOccurs="1" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element name="mechanical" type="DT_MatMechanical"
+	        minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="acoustic" type="DT_MatAcoustic"
+                minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="electric" type="DT_MatElectric"
+	        minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="flow" type="DT_MatFlow"
+	        minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="heatConduction" type="DT_MatHeatConduction"
+	        minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="magnetic" type="DT_MatMagnetic"
+              minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="magnetoStrictive" type="DT_MatMagStrict"
+                minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="piezo" type="DT_MatPiezo"
+	        minOccurs="0" maxOccurs="1"/>
+			  <xsd:element name="pyroelectric" type="DT_MatPyroelectric"
+	        minOccurs="0" maxOccurs="1"/>
+			  <xsd:element name="thermoelastic" type="DT_Matthermoelastic"
+	        minOccurs="0" maxOccurs="1"/>
+            </xsd:sequence>
+            <xsd:attribute name="name" type="xsd:token"/>
+          </xsd:complexType>
+        </xsd:element>
+      </xsd:sequence>
+    </xsd:complexType>
+    
+  </xsd:element>
+
+</xsd:schema>

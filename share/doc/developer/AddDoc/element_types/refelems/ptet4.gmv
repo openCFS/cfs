@@ -1,0 +1,20 @@
+gmvinput ascii
+nodev   10
+0 0 0
+1 0 0
+0 1 0
+0 0 1
+
+0.5 0 0
+0.5 0.5 0
+0 0.5 0
+0.5 0 0.5
+0 0.5 0.5
+0 0 0.5
+cells   1
+ptet4 4
+ 1 2 3 4
+material 1 0
+ptet4
+1
+endgmv

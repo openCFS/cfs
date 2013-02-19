@@ -1,0 +1,5 @@
+// Define used to check if Xerces-C library is used
+
+#cmakedefine USE_XERCES
+
+#define CFS_XERCES_VERSION "@CFS_XERCES_VERSION@"

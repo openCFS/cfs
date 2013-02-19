@@ -1,0 +1,32 @@
+SET(PRECOND_SRCS
+    BasePrecond.cc
+    IdPrecondStd.cc
+    generateprecond.cc
+    )
+
+IF(EXPLICIT_TEMPLATE_INSTANTIATION)
+SET(PRECOND_SRCS
+    ${PRECOND_SRCS}
+    IC0Precond.cc
+    ILU0Precond.cc
+    ILUK_Precond.cc
+    ILUTP_Precond.cc
+    JacPrecond.cc
+    SSORPrecond.cc
+    SBMDiagPrecond.cc
+    ILDLPrecond/ildl0factoriser.cc
+    ILDLPrecond/ildlcnfactoriser.cc
+    ILDLPrecond/ildlkfactoriser.cc
+    ILDLPrecond/ildlprecond.cc
+    ILDLPrecond/ildltpfactoriser.cc    
+    )
+ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
+
+ADD_LIBRARY(precond-olas STATIC ${PRECOND_SRCS})
+
+SET(TARGET_LL
+    matvec
+    utils-olas
+    )
+    
+TARGET_LINK_LIBRARIES(precond-olas ${TARGET_LL})

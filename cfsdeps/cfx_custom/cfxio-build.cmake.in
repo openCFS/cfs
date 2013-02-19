@@ -1,0 +1,62 @@
+SET(cfxio_source "@cfxio_source@")
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CMAKE_COMMAND "@CMAKE_COMMAND@")
+SET(CMAKE_SYSTEM_NAME "@CMAKE_SYSTEM_NAME@")
+SET(CFS_ARCH "@CFS_ARCH@")
+SET(CFS_SUBARCH "@CFS_SUBARCH@")
+
+#-------------------------------------------------------------------------------
+# Untar archives
+#-------------------------------------------------------------------------------
+MACRO (UNTAR_ARCHIVES ARCHIVES)
+  foreach(archive ${ARCHIVES})
+    MESSAGE(STATUS "Unpacking cfxio_${archive}.tar.bz2")
+    EXECUTE_PROCESS(
+      COMMAND "${CMAKE_COMMAND}" -E tar xjf "${CFS_SOURCE_DIR}/cfsdeps/cfx_custom/cfx_custom_${archive}.tar.bz2"
+      WORKING_DIRECTORY "@cfxio_source@"
+      OUTPUT_QUIET
+      RESULT_VARIABLE rv
+      )
+
+  endforeach(archive)
+ENDMACRO (UNTAR_ARCHIVES)
+
+SET(ARCHIVES
+  "v100_include"
+  "v110_include"
+  "v120_include"
+  "v121_include"
+  "v130_include"
+  "v140_include"
+)
+
+IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  IF(CFS_ARCH STREQUAL "X86_64")
+    SET(ARCHIVES
+        ${ARCHIVES}
+        "v100_linux-amd64"
+        "v110_linux-amd64"
+        "v120_linux-amd64"
+        "v121_linux-amd64"
+        "v130_linux-amd64"
+        "v140_linux-amd64"
+      )
+  ENDIF(CFS_ARCH STREQUAL "X86_64")
+
+  IF(CFS_ARCH STREQUAL "IA64")
+    SET(ARCHIVES
+      ${ARCHIVES}
+      "v110_linux-ia64"
+      )
+  ENDIF(CFS_ARCH STREQUAL "IA64")
+  
+  IF(CFS_ARCH STREQUAL "I386")
+    SET(ARCHIVES
+      ${ARCHIVES}
+      "v100_linux"
+      "v110_linux"
+      )
+  ENDIF(CFS_ARCH STREQUAL "I386")
+ENDIF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+
+UNTAR_ARCHIVES("${ARCHIVES}")

@@ -1,0 +1,235 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="http://www.cfs++.org"
+            xmlns="http://www.cfs++.org"
+            xmlns:cfs="http://www.cfs++.org"
+            elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description for tags needed to document simulations
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <xsd:complexType name="DT_Documentation">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Tag for incorporating a documentation directly into the XML
+        simulation description.
+      </xsd:documentation>
+    </xsd:annotation>
+
+    <xsd:sequence>
+      <xsd:element name="title" minOccurs="1" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Title of the simulation.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="authors" minOccurs="1" maxOccurs="1" type="DT_DocAuthorsList">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Authors of this simulation.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="date" minOccurs="1" maxOccurs="1"
+                   type="xsd:date" default="2009-10-31">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Date when this simulation was created.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="keywords" type="DT_DocKeywordList">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Keywords for identifying certain topics.
+            Add more keywords in share/xml/CFS-Simulation/Schemas/CFS_Documentation.xsl
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="references" minOccurs="1" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            What literature has been used to create this simulation?
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="isVerified" minOccurs="1" maxOccurs="1" type="DT_CFSBool">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Is this a verified example, i.e. an analytical solution or measured
+            values (yes), or is this just a "functional" example which ensures the 
+            operability of a certain feature (no)?
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="description" minOccurs="1" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Detailed description of the current simulation.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="free" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            More informations the authors want to add.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_DocAuthorsList">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Type for a list of authors
+      </xsd:documentation>
+    </xsd:annotation>
+    
+    <xsd:sequence>
+      <xsd:element name="author" minOccurs="1" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <xsd:complexType name="DT_DocKeywordList">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Type for a list of keywords
+      </xsd:documentation>
+    </xsd:annotation>
+
+    <xsd:sequence>
+      <xsd:element name="keyword" minOccurs="1" maxOccurs="unbounded"
+                   type="DT_DocAllowedKeywords"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <xsd:simpleType name="DT_DocAllowedKeywords">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Restriction of string type with allowed keywords. This type has to
+        extended as needed.
+      </xsd:documentation>
+    </xsd:annotation>
+
+    <xsd:restriction base="xsd:string">
+      
+      <!-- ========================================================== -->
+      <!--  Analysis Related Keywords                                 -->
+      <!-- ========================================================== -->
+      <xsd:enumeration value="static"/>
+      <xsd:enumeration value="transient"/>
+      <xsd:enumeration value="harmonic"/>
+      <xsd:enumeration value="eigenFrequency"/>
+      <xsd:enumeration value="multiSequence"/>
+      
+      <!-- ========================================================== -->
+      <!--  Physic Related Keywords                                   -->
+      <!-- ========================================================== -->
+      
+      <!-- Acoustic -->
+      <xsd:enumeration value="acoustic"/>
+      <xsd:enumeration value="abc"/>
+      <xsd:enumeration value="pml"/>
+      <xsd:enumeration value="aeroacoustics"/>
+      
+      <!-- Electrostatic -->
+      <xsd:enumeration value="electrostatic"/>
+      
+      <!-- Fluid -->
+      
+      <!-- Heat / Thermal -->
+      <xsd:enumeration value="heatConduction"/>
+      <xsd:enumeration value="volumeSrc"/>
+      
+      <!-- Magnetic -->
+      <xsd:enumeration value="magneticNodal"/>
+      <xsd:enumeration value="magneticScalar"/>
+      <xsd:enumeration value="magneticEdge"/>
+      <xsd:enumeration value="biot-savart"/>
+      <xsd:enumeration value="coil"/>
+      <xsd:enumeration value="magnet"/>
+      
+      <!-- Mechanic -->
+      <xsd:enumeration value="mechanic"/>
+      <xsd:enumeration value="prestress"/>
+      <xsd:enumeration value="shell elements"/>
+
+      <!-- Flow -->
+      <xsd:enumeration value="flow"/>
+      <xsd:enumeration value="CFD"/>
+      <xsd:enumeration value="FluidMechPerturbedPDE"/>
+      <xsd:enumeration value="Endress+Hauser"/>
+      
+      
+      <!-- ========================================================== -->
+      <!--  Coupling Related Keywords                                 -->
+      <!-- ========================================================== -->
+      <xsd:enumeration value="electrostatic-mechanic"/>
+      <xsd:enumeration value="magneto-mechanic"/>
+      <xsd:enumeration value="magneto-striction"/>
+      <xsd:enumeration value="mechanic-acoustic"/>
+      <xsd:enumeration value="piezo"/>
+      <xsd:enumeration value="thermo-mechanic"/>
+      
+      <!-- ========================================================== -->
+      <!--  General Feature Keywords                                  -->
+      <!-- ========================================================== -->
+      <xsd:enumeration value="complex material parameters"/>
+      <xsd:enumeration value="damping"/>
+      <xsd:enumeration value="nonlinear"/>
+      
+      <!-- ========================================================== -->
+      <!--  Approximation Related Keywords                            -->
+      <!-- ========================================================== -->
+      <xsd:enumeration value="mixed fem"/>
+      <xsd:enumeration value="spectral fem"/>
+      <xsd:enumeration value="p-FEM-Legendre"/>
+      
+      <!-- ========================================================== -->
+      <!--  Optimization Related Keywords                             -->
+      <!-- ========================================================== -->
+      <xsd:enumeration value="optimization"/>      
+      <xsd:enumeration value="filter"/>      
+      <xsd:enumeration value="SIMP"/>      
+      <xsd:enumeration value="mathematical_limit_homogenization"/>
+      <xsd:enumeration value="snopt"/>      
+      <xsd:enumeration value="shape_optimization"/>
+      <xsd:enumeration value="tensor_tracking"/>
+      
+      <!-- ========================================================== -->
+      <!--  Solver Related Keywords                                   -->
+      <!-- ========================================================== -->
+      <!-- this are solver keywords -->
+      <xsd:enumeration value="solver"/>
+      <xsd:enumeration value="static condensation"/>
+      <xsd:enumeration value="elimination"/>
+      
+      <!-- ========================================================== -->
+      <!--  Nonmatching Grid Related Keywords                         -->
+      <!-- ========================================================== -->
+      <xsd:enumeration value="lagrange multiplier"/>
+      <xsd:enumeration value="mortar fem"/>
+      <xsd:enumeration value="nonmatching grids"/>
+      <xsd:enumeration value="crosspoints"/>
+      <xsd:enumeration value="dual LM"/>
+      <xsd:enumeration value="grid projection"/>
+      <xsd:enumeration value="intersection operations"/>
+      <xsd:enumeration value="wire baskets"/>
+      <xsd:enumeration value="automatic interface determination"/>
+      
+      <!-- ========================================================== -->
+      <!--  File-IO Related Keywords                                  -->
+      <!-- ========================================================== -->
+      <xsd:enumeration value="input"/>
+      <xsd:enumeration value="output"/>
+      <xsd:enumeration value="file format"/>
+      
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+</xsd:schema>

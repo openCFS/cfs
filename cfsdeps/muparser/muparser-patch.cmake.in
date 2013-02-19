@@ -1,0 +1,42 @@
+set(muparser_source  "@muparser_source@")
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
+
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+  "${CFS_SOURCE_DIR}/cfsdeps/muparser/CMakeLists.txt"
+  "${muparser_source}/CMakeLists.txt"
+)
+
+SET(files
+  "include/muParserDef.h"
+  "include/muParserBase.h"
+  "include/muParserCallback.h"
+  "include/muParserTemplateMagic.h"
+  "src/muParser.cpp"
+  "src/muParser.cpp"
+  "src/muParserBase.cpp"
+  "src/muParserCallback.cpp")
+
+CHANGE_NEWLINE_STYLE("${files}" ${muparser_source}/dummy.txt UNIX)
+
+SET(patches
+  "muparser-strfun45.patch"
+  "muparser-dummy-math.patch"
+  "muparser-pow-intel.patch"
+)
+
+# The following patch is due to some missing intrinsic functions
+# in Intel compiler. Cf. Intel® C++ Compiler for Linux 
+# Intrinsics Reference
+# http://download.intel.com/support/performancetools/c/linux/v9/intref_cls.pdf
+IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+SET(patches
+  "${patches}"
+  "muparser-intel-atomic.patch"
+)
+ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/muparser")

@@ -1,0 +1,194 @@
+\chapter{Single Field PDEs}
+
+\section{Mechanics}
+
+\begin{itemize}
+\item Tensor of elasticity
+\begin{verbatim}
+<elasticityTensor dataType="real" dim1="6">
+ 1.07800E+11 5.49300E+10 5.49300E+10 0.00000E+00 0.00000E+00 0.00000E+00
+ 5.49300E+10 1.07800E+11 5.49300E+10 0.00000E+00 0.00000E+00 0.00000E+00
+ 5.49300E+10 5.49300E+10 1.07800E+11 0.00000E+00 0.00000E+00 0.00000E+00
+ 0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+10 0.00000E+00 0.00000E+00
+ 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+10 0.00000E+00
+ 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+10
+</elasticityTensor>
+<elasticityTensor dataType="imag" dim1="6">
+ 1.07800E+06 5.49300E+05 5.49300E+05 0.00000E+00 0.00000E+00 0.00000E+00
+ 5.49300E+05 1.07800E+06 5.49300E+05 0.00000E+00 0.00000E+00 0.00000E+00
+ 5.49300E+05 5.49300E+05 1.07800E+06 0.00000E+00 0.00000E+00 0.00000E+00
+ 0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+05 0.00000E+00 0.00000E+00
+ 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+05 0.00000E+00
+ 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+05
+</elasticityTensor>
+<elasticityTensor dataType="real" class="isotrop">
+  <eModule>   1.5E10  </eModule>
+  <poisson>   0.3     </poisson>
+</elasticityTensor>
+<elasticityCoefficient nonlinear="function">
+  <entry>      33            </entry>
+  <dependency> mechStress    </dependency>
+  <approxType> smoothSplines </approxType>
+  <dataName>   alu33NL1      </dataName>
+</elasticityCoefficient>
+\end{verbatim}
+
+\item Density
+\begin{verbatim}
+<density>
+  2.70031E+03
+</density>
+\end{verbatim}
+
+\item Damping
+\begin{verbatim}
+<mechanicDamping type="Rayleigh">
+  <alpha>  1E+04 </alpha>
+  <beta>   1E-08 </beta>
+  <freq>   1E6   </freq>
+<mechanicDamping>
+<mechanicDamping type="fractional">
+  <alg>             blank </alg>
+  <memory>          10    </memory>
+  <interpolation>   lin1p </interpolation>
+<mechanicDamping>
+\end{verbatim}
+\end{itemize}
+
+
+\section{Acoustics}
+\begin{itemize}
+
+\item Density
+\begin{verbatim}
+<density>
+ 1.00000E+03 
+</density>
+\end{verbatim}
+
+
+\item Compression Modulus
+\begin{verbatim}
+<CompressionModulus>
+ 2.25000E+09
+</CompressionModulus>
+\end{verbatim}
+
+
+\item Damping
+\begin{verbatim}
+<acousticDamping type="Rayleigh">
+  <alpha>  1E+04 </alpha>
+  <beta>   1E-08 </beta>
+  <freq>   1E6   </freq>
+<acousticDamping>
+\end{verbatim}
+Fractional and thermoviscous damping are defined with the equation
+$$ \alpha = \alpha_0 | \omega |^y  $$ 
+For thermoviscous damping the exponent $y$ is equal to $2$ and need not be specified.
+\begin{verbatim}
+<acousticDamping type="thermoViscous">
+  <alpha0>  1E-16 </alpha0>
+<acousticDamping>
+<acousticDamping type="fractional">
+  <alpha0>  1E-08 </alpha0>
+  <y>       1.1   </y>
+<acousticDamping>
+\end{verbatim}
+
+\item Nonlinearity
+\begin{verbatim}
+<acousticNonlinear>
+  <BoverA>  5 </BoverA>
+</acousticNonlinear>
+\end{verbatim}
+\end{itemize}
+
+\section{Electrostatics}
+
+\begin{itemize}
+
+\item Tensor of permittivity
+\begin{verbatim}
+<permittivityTensor dataType="real" dim1="3">
+ 4.42700E-11 0.00000E+00 0.00000E+00
+ 0.00000E+00 4.42700E-11 0.00000E+00
+ 0.00000E+00 0.00000E+00 4.42700E-11
+</permittivityTensor>
+<permittivityTensor dataType="imag" dim1="3">
+ 4.42700E-13 0.00000E+00 0.00000E+00
+ 0.00000E+00 4.42700E-13 0.00000E+00
+ 0.00000E+00 0.00000E+00 4.42700E-13
+</permittivityTensor>
+<permittivityTensor dataType="real" class="isotrop">
+  8.854000E-12
+</permittivityTensor>
+<permittivityCoefficient nonlinear="function">
+  <entry>      33            </entry>
+  <dependency> elecField     </dependency>
+  <approxType> smoothSplines </approxType>
+  <dataName>   PZTeps33NL1   </dataName>
+</permittivityCoefficient>
+<permittivityCoefficient nonlinear="hysteresis" model="scalarPreisach">
+  <entry>      33       </entry>
+  <eSat>       1E06     </eSat>
+  <pSat>       0.04     </pSat>
+  <pFunction>  constant </pFunction>
+</permittivityCoefficient>
+\end{verbatim}
+\end{itemize}
+
+\section{Magnetics}
+
+\begin{itemize}
+\item Conductivity
+\begin{verbatim}
+<electricConductivity>
+  5.800E7
+</electricConductivity>
+\end{verbatim}
+
+\item Permeability
+\begin{verbatim}
+<magneticPermeability class="isotrop">
+  1.256E-03
+</magneticPermeability>
+<magneticPermeability class="isotrop" nonlinear="function">
+  <dependency> magInduction  </dependency>
+  <approxType> smoothSplines </approxType>
+  <dataName>   ironMuNL1   </dataName>
+</magneticPermeability>
+\end{verbatim}
+\end{itemize}
+
+\section{Heat}
+\begin{itemize}
+\item Density
+\begin{verbatim}
+<density>
+  2.70031E+03
+</density>
+\end{verbatim}
+
+\item Capacity
+\begin{verbatim}
+<heatCapacity>
+  0.3
+</heatCapacity>
+\end{verbatim}
+
+\item Conductivity
+\begin{verbatim}
+<thermalConductivity>
+  5.800E2
+</thermalConductivity>
+\end{verbatim}
+
+
+\end{itemize}
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "matRef"
+%%% End: 

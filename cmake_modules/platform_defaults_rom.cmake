@@ -1,0 +1,26 @@
+#-----------------------------------------------------------------------------
+# These defaults are for rom workstation at Applied Mechatronics Klagenfurt.
+#-----------------------------------------------------------------------------
+SET(CFS_BLAS_LAPACK_DEFAULT "MKL")
+SET(USE_PARDISO_DEFAULT "ON")
+SET(CFS_PARDISO_DEFAULT "MKL")
+
+SET(MKL_ROOT_DIR_DEFAULT "/opt/pckg/intel/parallel_studio_xe_2011_sp1_update1/mkl")
+
+#SET(CFS_GCC43_OPT_SWITCHES "${CFS_GCC43_OPT_SWITCHES} -mtune=native")
+#SET(CFS_GCC43_OPT_SWITCHES "${CFS_GCC43_OPT_SWITCHES} -march=native")
+#SET(CFS_GCC43_OPT_SWITCHES "${CFS_GCC43_OPT_SWITCHES} -combine")
+#SET(CFS_GCC43_OPT_SWITCHES "${CFS_GCC43_OPT_SWITCHES} -fprefetch-loop-arrays")
+#SET(CFS_GCC43_OPT_SWITCHES "${CFS_GCC43_OPT_SWITCHES} -funroll-all-loops")
+#SET(CFS_GCC43_OPT_SWITCHES "${CFS_GCC43_OPT_SWITCHES} -ftree-parallelize-loops=2")
+#SET(CFS_GCC43_OPT_SWITCHES "${CFS_GCC43_OPT_SWITCHES} -fwhole-program")
+SET(CFS_GCC43_OPT_SWITCHES "${CFS_GCC43_OPT_SWITCHES} -Wno-unused")
+
+SET(CFS_INTEL11_OPT_SWITCHES "${CFS_INTEL11_OPT_SWITCHES} -xhost")
+SET(CFS_INTEL11_OPT_SWITCHES "${CFS_INTEL11_OPT_SWITCHES} -parallel")
+
+
+# Options to keep in mind for rom and sedici
+# cf. http://dberkholz.wordpress.com/2007/10/12/new-gcc-hotness/
+# 4.2 -mtune=native -march=native
+# 4.3 x86_64 acml -mveclibabi=acml

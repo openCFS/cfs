@@ -1,0 +1,20 @@
+set(gidpost_source  "@gidpost_source@")
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
+
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/gidpost/CMakeLists.txt" "${gidpost_source}/CMakeLists.txt"
+)
+
+SET(files
+  "source/gidpost.cpp")
+
+CHANGE_NEWLINE_STYLE(${files} ${gidpost_source}/dummy.txt UNIX)
+
+SET(patches
+  "gidpost-sprintf-format.patch"
+)
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/gidpost")

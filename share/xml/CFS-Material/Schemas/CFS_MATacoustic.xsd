@@ -1,0 +1,73 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for material description of an acoustic material
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of material for acoustic PDEs                          -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_MatAcoustic">
+    <xsd:sequence>
+      <xsd:element name="density" type="xsd:token"/>
+      <xsd:element name="compressionModulus" type="xsd:token"/>
+      <xsd:element name="acousticDamping" type="DT_AcousticDamping"
+        minOccurs="0"/>
+      <xsd:element name="acousticNonlinear" type="DT_AcousticNonlinear"
+        minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of acoustic damping model                              -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_AcousticDamping">
+    <xsd:sequence>
+      <xsd:element name="rayleigh" type="DT_RayleighDamping" minOccurs="0"/>
+      <xsd:element name="thermoViscous" type="DT_AcouThermoViscousDamping"
+        minOccurs="0"/>
+      <xsd:element name="fractional" type="DT_AcouFractionalDamping"
+        minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of acoustic nonlinearities                             -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_AcousticNonlinear">
+    <xsd:sequence>
+      <xsd:element name="bOverA" type="xsd:double" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of acoustic thermo viscous damping model               -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_AcouThermoViscousDamping">
+    <xsd:sequence>
+      <xsd:element name="alpha0" type="xsd:double"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of acoustic fractional damping model                   -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_AcouFractionalDamping">
+    <xsd:sequence>
+      <xsd:element name="alpha0" type="xsd:double"/>
+      <xsd:element name="y" type="xsd:double"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+</xsd:schema>

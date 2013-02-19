@@ -1,0 +1,20 @@
+set(gmp_source  "@gmp_source@")
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
+SET(CFS_DISTRO "@CFS_DISTRO@")
+
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC" AND
+   NOT CFS_DISTRO STREQUAL "MACOSX")
+ SET(patches
+   # The following patch is due to some missing intrinsic functions
+   # in Intel compiler. Cf. Intel® C++ Compiler for Linux 
+   # Intrinsics Reference
+   # http://download.intel.com/support/performancetools/c/linux/v9/intref_cls.pdf
+   "gmp-intel-atomic.patch"
+   )
+ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC" AND
+  NOT CFS_DISTRO STREQUAL "MACOSX")
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/gmp")

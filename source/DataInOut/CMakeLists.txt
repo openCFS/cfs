@@ -1,0 +1,40 @@
+IF(USE_XERCES)
+  INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
+ENDIF(USE_XERCES)
+
+IF(CFS_BLAS_LAPACK STREQUAL "MKL")
+  SET_SOURCE_FILES_PROPERTIES(ProgramOptions.cc
+    PROPERTIES COMPILE_FLAGS "-I${MKL_INCLUDE_DIR} -fno-strict-aliasing")
+ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
+
+SET(DATAINOUT_SRCS 
+  ColoredConsole.cc
+  PostProc.cc
+  ProgramOptions.cc
+  ResultCache.cc
+  ResultHandler.cc
+  SimOutput.cc
+  XMLMaterialHandler.cc
+)
+
+ADD_LIBRARY(datainout STATIC ${DATAINOUT_SRCS})
+
+SET(TARGET_LL
+  materials
+  simouttext
+  simoutinfo
+  simoutstreaming
+  ${BOOST_PROGRAM_OPTIONS_LIB}
+  ${BOOST_FILESYSTEM_LIB}
+  ${BOOST_SYSTEM_LIB}
+  ${BZIP2_LIBRARY}
+)
+
+IF(USE_XERCES)
+  SET(TARGET_LL
+    ${TARGET_LL}
+    ${XERCES_LIBRARY}
+    )
+ENDIF(USE_XERCES)
+
+TARGET_LINK_LIBRARIES(datainout ${TARGET_LL})

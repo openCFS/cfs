@@ -1,0 +1,14 @@
+--- CMakeLists.txt.orig	2011-07-27 10:44:04.000000000 +0200
++++ CMakeLists.txt	2011-07-27 10:44:51.000000000 +0200
+@@ -1,9 +1,9 @@
+ cmake_minimum_required(VERSION 2.6)
+ if(COMMAND cmake_policy)
+   cmake_policy(SET CMP0003 NEW)
+-  if (${CMAKE_MAJOR_VERSION} GREATER 2 OR ${CMAKE_MINOR_VERSION} GREATER 7)
++  if (POLICY CMP0015)
+     cmake_policy(SET CMP0015 OLD)
+-  endif (${CMAKE_MAJOR_VERSION} GREATER 2 OR ${CMAKE_MINOR_VERSION} GREATER 7)
++  endif (POLICY CMP0015)
+ endif(COMMAND cmake_policy)
+ 
+ set(CMAKE_BUILD_TYPE "Release" CACHE STRING

@@ -1,0 +1,22 @@
+SET(cmake_source "@cmake_source@")
+
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+
+SET(ENV{CC} "@CMAKE_C_COMPILER@")
+SET(ENV{CXX} "@CMAKE_CXX_COMPILER@")
+SET(ENV{FC} "@CMAKE_Fortran_COMPILER@")
+SET(ENV{CFLAGS} "@CFLAGS@")
+SET(ENV{CXXFLAGS} "@CFLAGS@")
+
+SET(CONFIGURE_CMD
+  "sh"
+  "./configure"
+  "--prefix=${CFS_BINARY_DIR}/cmake"
+  "--no-qt-gui"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${CONFIGURE_CMD}
+  WORKING_DIRECTORY "@cmake_source@"
+  RESULT_VARIABLE rv
+  )

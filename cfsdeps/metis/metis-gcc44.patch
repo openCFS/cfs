@@ -1,0 +1,13 @@
+--- Lib/proto.h.orig	2012-04-04 17:00:36.052864589 +0200
++++ Lib/proto.h	2012-04-04 17:01:18.152864586 +0200
+@@ -455,8 +455,8 @@
+ float sdot(int n, float *, float *);
+ void saxpy(int, float, float *, int, float *, int);
+ void RandomPermute(int, idxtype *, int);
+-double drand48();
+-void srand48(long);
++// double drand48();
++// void srand48(long);
+ int ispow2(int);
+ void InitRandom(int);
+ int ilog2(int);

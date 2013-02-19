@@ -1,0 +1,86 @@
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+SET(CMAKE_C_COMPILER "@CMAKE_C_COMPILER@")
+SET(CMAKE_CXX_COMPILER "@CMAKE_CXX_COMPILER@")
+SET(CMAKE_Fortran_COMPILER "@CMAKE_Fortran_COMPILER@")
+SET(METIS_LIBRARY "@METIS_LIBRARY@")
+SET(LIB_SUFFIX "@LIB_SUFFIX@")
+SET(CFS_DISTRO "@CFS_DISTRO@")
+SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
+SET(BLAS_LIBRARY "@BLAS_LIBRARY@")
+SET(LAPACK_LIBRARY "@LAPACK_LIBRARY@")
+SET(CFS_OPT_FLAGS "@CFS_OPT_FLAGS@")
+SET(CFLAGS "@CFLAGS@")
+SET(CMAKE_MAKE_PROGRAM "@CMAKE_MAKE_PROGRAM@")
+
+SET(DUMMY "")
+foreach(lib IN LISTS BLAS_LIBRARY)
+  SET(DUMMY "${DUMMY} ${lib}")
+endforeach(lib)
+
+SET(BLAS_LIBRARY "${DUMMY}")
+
+SET(DUMMY "")
+foreach(lib IN LISTS LAPACK_LIBRARY)
+  SET(DUMMY "${DUMMY} ${lib}")
+endforeach(lib)
+
+SET(LAPACK_LIBRARY "${DUMMY}")
+
+# Add dependencies to Fortran libs since examples get linked using C compiler
+if(CMAKE_Fortran_COMPILER MATCHES "ifort") 
+  SET(BLAS_LIBRARY "${BLAS_LIBRARY} -lifcoremt_pic -lirc -limf -ldl -lpthread")
+endif(CMAKE_Fortran_COMPILER MATCHES "ifort") 
+
+if(CMAKE_Fortran_COMPILER MATCHES "gfortran") 
+  SET(BLAS_LIBRARY "${BLAS_LIBRARY} -lgfortran")
+endif(CMAKE_Fortran_COMPILER MATCHES "gfortran") 
+
+FILE(READ "UFconfig/UFconfig.mk" lines)
+
+foreach(line IN LISTS lines)
+#  MESSAGE("line: ${line}")
+  STRING(REPLACE "# Generic configuration"
+    "# Generic configuration
+CC = ${CMAKE_C_COMPILER}
+CXX = ${CMAKE_CXX_COMPILER}
+BLAS = ${BLAS_LIBRARY}
+LAPACK = ${LAPACK_LIBRARY}
+CFLAGS = -w ${CFLAGS} ${CFS_OPT_FLAGS}
+MAKE = ${CMAKE_MAKE_PROGRAM}" 
+    line
+    ${line})
+
+  STRING(REPLACE "F77 = gfortran"
+    "F77 = ${CMAKE_Fortran_COMPILER}" line
+    ${line})
+
+  STRING(REPLACE "METIS_PATH = ../../metis-4.0"
+    "METIS_PATH = ${CFS_BINARY_DIR}/include -I.." line
+    ${line})
+
+  STRING(REPLACE "METIS = ../../metis-4.0/libmetis.a"
+    "METIS = ${METIS_LIBRARY}" line
+    ${line})
+
+  STRING(REPLACE "INSTALL_LIB = /usr/local/lib"
+    "INSTALL_LIB = ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}" 
+    line
+    ${line})
+
+  STRING(REPLACE "INSTALL_INCLUDE = /usr/local/include"
+    "INSTALL_INCLUDE = ${CFS_BINARY_DIR}/include" 
+    line
+    ${line})
+
+  STRING(REPLACE "CFLAGS="
+    "CFLAGS=${CFLAGS} " line
+    ${line})
+
+  foreach(part IN LISTS line)
+    LIST(APPEND OUTPUT "${part}")
+  endforeach(part)
+endforeach(line)
+
+FILE(WRITE "UFconfig/UFconfig.mk" "${OUTPUT}")
+

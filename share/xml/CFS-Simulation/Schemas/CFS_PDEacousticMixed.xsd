@@ -1,0 +1,371 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for PDE description for an acoustic mixed PDE
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of element for stokesFluid PDEs -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="acousticMixed" type="DT_PDEAcousticMixed"
+    substitutionGroup="PDEBasic">
+    <xsd:unique name="CS_AcousticMixedRegion">
+      <xsd:selector xpath="cfs:region"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+  </xsd:element>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for stokesFluid PDEs -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_PDEAcousticMixed">
+    <xsd:complexContent>   
+      <xsd:extension base="DT_PDEBasic">
+
+        <xsd:sequence>
+
+                  <!-- Regions the PDE lives on -->
+          <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
+                    <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="penalizationFactor" type="xsd:double" use="optional" default="0.5"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- List defining damping types -->
+          <xsd:element name="dampingList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="pml" type="DT_AcousticMixedDampingPML"/>
+                <xsd:element name="dampLayer" type="DT_AcousticDampingLayer"/>
+                <xsd:element name="rayleigh" type="DT_AcousticDampingRayl"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- List defining flows -->
+          <xsd:element name="flowList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="flow" type="DT_BcInhomVector"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <!-- Dirichlet Boundary Conditions -->
+                <xsd:element name="soundSoft"  type="DT_BcHomScalar"    />
+                <xsd:element name="soundHard"  type="DT_BcHomVector"    />
+                <xsd:element name="pressure"   type="DT_BcInhomScalar"  />
+                <xsd:element name="velocity"   type="DT_BcInhomVector"  />
+              
+                <!-- RHS Load Values-->
+                <xsd:element name="massEquationLoad"  type="DT_BcInhomScalar"/>
+                <xsd:element name="momentumEquationLoad" type="DT_BcInhomVector"/>
+                
+                <!-- Special Boundary Conditions -->
+                <xsd:element name="absorbingBCs"   type="DT_AbsorbingBCMixed" />
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Desired solution values (optional) -->
+          <xsd:element name="storeResults" type="DT_AcousticMixedStoreResults"
+            minOccurs="0" maxOccurs="1"/>
+
+        </xsd:sequence>
+        <xsd:attribute name="penalized" type="xsd:boolean" default="true"/>
+        <xsd:attribute name="usePiolaTransform" type="xsd:boolean" default="true"/>
+        <xsd:attribute name="fluxTerm" type="xsd:boolean" default="true"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of Flow Data -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of pml damping type -->
+  <xsd:complexType name="DT_AcousticMixedFlow">
+    <xsd:complexContent>
+      <xsd:extension base="DT_FlowBasic">
+        <xsd:sequence>
+
+         <xsd:element name="Mach" type="xsd:double" minOccurs="1" maxOccurs="1" />
+
+          <!-- Geometric definition of region -->
+          <xsd:element name="velocityData" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="Vx" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+                <xsd:element name="Vy" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+                <xsd:element name="Vz" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of enumeration type describing the degrees of freedom  -->
+  <!-- ******************************************************************* -->
+
+  <xsd:simpleType name="DT_AcousticMixedDOF">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="x"/>
+      <xsd:enumeration value="y"/>
+      <xsd:enumeration value="z"/>
+      <xsd:enumeration value="r"/>
+      <xsd:enumeration value=""/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of the acousticMixed unknown types -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_AcousticMixedUnknownType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="acouPressure"/>
+      <xsd:enumeration value="acouVelocity"/>
+      <!--xsd:enumeration value="acouAcceleration"/-->
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of the boundary condition types for acoustics -->
+  <!-- ******************************************************************* -->
+
+  <!-- Element type for homogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the base type -->
+  <!-- Element type for homogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_AcousticMixedHD">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="DT_AcousticMixedDOF" use="optional" default=""/>
+        <xsd:attribute name="quantity" default="acouPressure"
+          type="DT_AcousticMixedUnknownType"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the homogeneous case -->
+   <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_AcousticMixedID">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AcousticMixedHD">
+        <xsd:attribute name="value" type="xsd:token" use="required"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional" default="0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- Element type for specifying inhomogeneous neumann conditions -->
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_AcousticMixedIN">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AcousticMixedID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- Element type for specifying loads -->
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_AcouMixedLoad">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AcousticMixedID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying absorbing boundary conditions -->
+  <!-- Identical to that of homogeneous Dirichlet case -->
+  <xsd:complexType name="DT_AbsorbingBCMixed">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AcousticMixedHD">
+       <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>     
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying unknow surface particle velocity -->
+  <!-- in normal direction                                          -->
+  <xsd:complexType name="DT_SurfVelLHS">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AcousticMixedHD"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for region Loads -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_AcouMixedRegionLoad">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AcouMixedLoad">
+        <xsd:attribute name="coordSysId" type="xsd:token"
+          use="optional" default="default"/>
+        <xsd:attribute name="type" use="optional" default="total">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="total"/>
+              <xsd:enumeration value="unit"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of syntax for specifying output quantities of CFS -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of surface region result types of acoustic PDE -->
+  <xsd:simpleType name="DT_AcousticMixedSurfRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="acouPower"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- What data can a single node have in an acoustic PDE -->
+  <xsd:simpleType name="DT_AcousticMixedNodeResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="acouVelocity"/>
+      <xsd:enumeration value="acouPressure"/>
+      <xsd:enumeration value="meanFluidMechVelocity"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Global type for specifying the desired acoustic output quantities -->
+  <xsd:complexType name="DT_AcousticMixedStoreResults">
+    <xsd:sequence>
+      <xsd:choice maxOccurs="unbounded">
+        <!-- Nodal result definition -->
+        <xsd:element name="nodeResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_NodeResult">
+                <xsd:attribute name="type" type="DT_AcousticMixedNodeResult"
+                  use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- Element result definition -->
+       <!--  <xsd:element name="elemResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_ElemResult">
+                <xsd:attribute name="type" type="DT_AcousticMixedElemResults"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element> -->
+
+        <!-- Surface region result definition -->
+        <xsd:element name="surfRegionResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfRegionResult">
+                <xsd:attribute name="type" type="DT_AcousticMixedSurfRegionResult"
+                  use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for non-linearity in stokesFluid PDEs -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_AcousticMixedNonLin">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="no"/>
+      <xsd:enumeration value="convection"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of PML damping -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of pml damping type -->
+  <xsd:complexType name="DT_AcousticMixedDampingPML">
+    <xsd:complexContent>
+      <xsd:extension base="DT_DampingBasic">
+        <xsd:sequence>
+
+          <!-- Geometric definition of region -->
+          <xsd:element name="propRegion" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="xMin" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+                <xsd:element name="xMax" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+                <xsd:element name="yMin" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+                <xsd:element name="yMax" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+                <xsd:element name="zMin" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+                <xsd:element name="zMax" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Type of PML -->
+          <xsd:element name="type" minOccurs="0" maxOccurs="1" default="inverseDist">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="constant"   />
+                <xsd:enumeration value="quadDist"     />
+                <xsd:enumeration value="inverseDist"     />
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+
+          <!-- Damping factor -->
+          <xsd:element name="dampFactor" type="xsd:double"
+            minOccurs="0" maxOccurs="1" />
+        </xsd:sequence>
+
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+</xsd:schema>

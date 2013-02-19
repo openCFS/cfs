@@ -1,0 +1,260 @@
+
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for PDE description for a heat conduction PDE
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of element for heatConduction PDEs -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="heatConduction" type="DT_PDEHeatConduction"
+    substitutionGroup="PDEBasic">
+    <xsd:unique name="CS_HeatConductionRegion">
+      <xsd:selector xpath="cfs:region"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+  </xsd:element>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for heatConduction PDEs -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_PDEHeatConduction">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PDEBasic">
+        <xsd:sequence>
+
+          <!-- Regions the PDE lives on -->
+          <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
+                    <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- List defining nonlinear types -->
+          <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="heatCapacity" type="DT_HeatNonLin"/>
+                <xsd:element name="heatConductivity" type="DT_HeatNonLin"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Surface regions on which results can be calculated-->
+          <xsd:element name="surface" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Non-conforming interfaces of the PDE -->
+          <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:choice minOccurs="0" maxOccurs="unbounded">
+                <!-- Dirichlet Boundary Conditions -->
+                <xsd:element name="temperature"   type="DT_BcInhomScalar"  />
+                
+                <!-- heat specific boundary conditions -->
+                <xsd:element name="heatSourceDensity" type="DT_BcInhomScalar"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+		  <!-- Section for specifying initial conditions (optional) -->
+          <xsd:element name="InitialCondition" type="xsd:double" minOccurs="0"/>
+
+		  <!-- Section for specifying reference conditions (optional) -->
+          <xsd:element name="referenceTemperature" type="xsd:double" minOccurs="0"/>
+          
+          <!-- Desired solution values (optional) -->
+          <xsd:element name="storeResults" type="DT_HeatStoreResults"
+            minOccurs="0" maxOccurs="1"/>
+
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of the headConduction unknown types -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_HeatUnknownType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="heatTemperature"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of the boundary condition types for heatConduction -->
+  <!-- ******************************************************************* -->
+
+  <!-- Element type for homogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_HeatHD">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="quantity" default="heatTemperature"
+          type="DT_HeatUnknownType"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_HeatID">
+    <xsd:complexContent>
+      <xsd:extension base="DT_HeatHD">
+        <xsd:attribute name="value" type="xsd:token" use="required"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional"
+          default="0.0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying inhomogeneous neumann boundary conditions -->
+  <xsd:complexType name="DT_HeatIN">
+    <xsd:complexContent>
+      <xsd:extension base="DT_HeatHD">
+        <xsd:attribute name="value" type="xsd:double" use="optional"
+          default="0.0"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional"
+          default="0.0"/>
+      </xsd:extension>    
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- Element type for specifying cauchy boundary condition -->
+  <xsd:complexType name="DT_HeatR">
+    <xsd:complexContent>
+      <xsd:extension base="DT_HeatHD">
+        <xsd:attribute name="heatTransferCoefficient" type="xsd:token"
+           use="required"/>
+        <xsd:attribute name="bulkTemperature" type="xsd:token" use="optional"
+           default="0.0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  
+
+  <!-- Element type for specifying rhs source term -->
+  <xsd:complexType name="DT_HeatRHS">
+    <xsd:attribute name="region" type="xsd:token" use="required"/>
+    <xsd:attribute name="isharmonic" type="DT_CFSBool" use="required"/>
+    <xsd:attribute name="inputId" type="xsd:token" use="optional"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of syntax for specifying output quantities of CFS -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of nodal result types of heatConduction PDE -->
+  <xsd:simpleType name="DT_HeatNodeResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="heatTemperature"/>
+      <xsd:enumeration value="heatRhsLoad"/>
+      <xsd:enumeration value="optResult_1"/>      
+      <xsd:enumeration value="optResult_2"/>      
+      <xsd:enumeration value="optResult_3"/>                  
+      <xsd:enumeration value="optResult_4"/>
+      <xsd:enumeration value="optResult_5"/>
+      <xsd:enumeration value="optResult_6"/>
+      <xsd:enumeration value="optResult_7"/>
+      <xsd:enumeration value="optResult_8"/>
+      <xsd:enumeration value="optResult_9"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Definition of element result types of heatConduction PDE -->
+  <xsd:simpleType name="DT_HeatElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="optResult_1"/>      
+      <xsd:enumeration value="optResult_2"/>      
+      <xsd:enumeration value="optResult_3"/>                  
+      <xsd:enumeration value="optResult_4"/>
+      <xsd:enumeration value="optResult_5"/>
+      <xsd:enumeration value="optResult_6"/>
+      <xsd:enumeration value="optResult_7"/>
+      <xsd:enumeration value="optResult_8"/>
+      <xsd:enumeration value="optResult_9"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- Global type for specifying desired electrostatic output quantities -->
+  <xsd:complexType name="DT_HeatStoreResults">
+    <xsd:sequence>
+      <xsd:choice maxOccurs="unbounded">
+
+        <!-- Nodal result definition -->
+        <xsd:element name="nodeResult" minOccurs="0" maxOccurs="unbounded"> <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_NodeResult">
+                <xsd:attribute name="type" type="DT_HeatNodeResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- Element result definition -->
+        <xsd:element name="elemResult" minOccurs="0" maxOccurs="unbounded"> <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_ElemResult">
+                <xsd:attribute name="type" type="DT_HeatElemResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of heat nonlinarity -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of heat nonlinearity type -->
+  <xsd:complexType name="DT_HeatNonLin">
+    <xsd:complexContent>
+      <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+</xsd:schema>

@@ -1,0 +1,273 @@
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <stdio.h>
+#include <list>
+#include <math.h>
+
+
+#include <boost/filesystem.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+#include "TransientDriver.hh"
+#include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Utils/Timer.hh"
+
+#include "DataInOut/ProgramOptions.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/SinglePDE.hh"
+#include "Domain/Domain.hh"
+#include "DataInOut/ResultHandler.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+
+using std::cout;
+using std::endl;
+namespace fs = boost::filesystem;
+namespace pt = boost::posix_time;
+
+namespace CoupledField {
+
+  DECLARE_LOG(trans_driver)
+  DEFINE_LOG(trans_driver, "transient_driver")
+
+  // ===============
+  //   Constructor
+  // ===============
+  TransientDriver::TransientDriver( UInt sequenceStep,
+                                    bool isPartOfSequence) 
+    : SingleDriver( sequenceStep, isPartOfSequence ), timer_(new Timer())
+    {
+    
+    LOG_TRACE(trans_driver) << "TransientDriver():  "
+                            << " sequenceStep: " << sequenceStep
+                            << " isPartOfSequence: " << isPartOfSequence;
+    // Set analysistype
+    analysis_ = BasePDE::TRANSIENT;
+
+    actTimeStep_ = 0;
+    firstdt_ = 0.0;
+    restartIncr_ = 0;
+    restartStep_ = 0;
+
+    // get parameter node
+    PtrParamNode myNode = 
+      param->GetByVal("sequenceStep", std::string("index"), sequenceStep)
+      ->Get("analysis")->Get("transient");
+
+    driverNode = driverNode->Get("transient");
+    driverNode->Get("sequenceStep")->SetValue(sequenceStep);
+    driverNode->Get(ParamNode::HEADER)->Get("unit")->SetValue("s");
+    
+    // for the evaluation of deltaT, we make use of math Parser to
+    // allow variable definitions of time step size
+    firstdt_ = myNode->Get( "deltaT")->MathParse<Double>();
+    
+    // Get time stepping information from parameter object
+    numstep_ = myNode->Get( "numSteps")->MathParse<UInt>();
+    
+    // Get save increment for restart file (optional)
+    PtrParamNode restartNode = myNode->Get("writeRestartInc", ParamNode::PASS); 
+    if (restartNode)
+      restartIncr_ = restartNode->MathParse<UInt>();
+  
+    // remove HALTCFS File at the beginning
+    if(fs::exists("./HALTCFS")) 
+      fs::remove("./HALTCFS");
+    
+    // in the end, directly register the global transient variables
+    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                       "t", 0 );
+    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                       "dt", 0.0 );    
+    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                       "step", 1 );
+  }
+
+  // ==============
+  //   Destructor
+  // ==============
+  TransientDriver::~TransientDriver()
+  { }
+
+  // ==================
+  //   Initialization
+  // ==================
+  void TransientDriver::Init() 
+  {
+    InitializePDEs();
+  }
+    
+  void TransientDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams) 
+  {
+    // notify resultHandler about beginning of new sequence step 
+    ResultHandler * resHandler = domain->GetResultHandler();
+
+    int direction = adjointParams ? -1 : 1; // for adjoint the time is backwards
+    UInt startStep = restartStep_ + 1;
+    UInt endStep = restartStep_ + numstep_;
+    Double  steptime  = firstdt_ * (adjointParams ? endStep : startStep);
+    UInt nextRestart  = restartStep_ + restartIncr_ * direction;
+    Double  dt = firstdt_;
+    bool haltFlag=false;
+    
+    Double timeStepPercent = (double)numstep_/10;
+    Double percentCounter = timeStepPercent;
+    if(direction < 0){
+      percentCounter = (double)numstep_ - timeStepPercent;
+    }
+  
+    if(write_results){
+      resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, numstep_ );
+    }
+  
+    ptPDE_->WriteGeneralPDEdefines();
+
+    ptPDE_->GetSolveStep()->SetStartStep( startStep );
+    
+    ptPDE_->GetSolveStep()->SetNumTimeSteps(restartStep_+numstep_);
+    
+    //just initialize some variables
+    ptPDE_->GetSolveStep()->InitTimeStepping();
+
+    //// to save the initial state
+    //resHandler->BeginStep( 0, 0 );
+    //ptPDE_->WriteResultsInFile(stepOffset_, timeOffset_);
+    //resHandler->FinishStep( );
+    
+    timer_->Start();
+
+    // Outer loop over all timesteps
+    
+    UInt count = 0;
+    for (actTimeStep_ = adjointParams ? endStep : startStep; 
+         actTimeStep_ <= endStep && actTimeStep_ >= startStep; 
+         actTimeStep_ += direction, count++) {
+      
+      LOG_DBG(trans_driver) << "loop over timestep " << actTimeStep_;
+      // check for a HALTCFS File
+      // if there exist a file with name HALTCFS in the executing directory
+      // than CFS++ will end after the current time step
+      std::ifstream readHALTCFS("HALTCFS", std::ios_base::in );
+      if (readHALTCFS) {
+        readHALTCFS.close();
+        haltFlag = true;
+        numstep_=actTimeStep_;
+        ptPDE_->GetSolveStep()->SetNumTimeSteps(numstep_);
+      }
+      
+      // Set curent value of timestep and time step size in the mathParser
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "t", steptime );
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "dt", dt );    
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "step", actTimeStep_ );    
+
+      // Determine when to write logging information on terminal
+      bool log = false;
+      if(numstep_ <= 50)
+        log = true;
+      if(numstep_ > 50 && numstep_ <= 500 && ! (actTimeStep_ % 10)) // every tenth step, not all but the tenth
+        log = true;
+      if(numstep_ > 500 && ( (direction > 0 &&  (double) actTimeStep_ >= percentCounter) || (direction < 0 && (double) actTimeStep_ <= percentCounter) ) ){
+        log = true;
+        percentCounter += timeStepPercent * direction;
+      }
+
+      if(log)
+      {
+        if(progOpts->IsQuiet())
+          cout << ptPDE_->GetName() << ": Time step " << actTimeStep_ << " time " << steptime << endl;
+        else
+          // write std::out info
+          cout << endl << ptPDE_->GetName() << ": Time step "
+          << actTimeStep_ <<" ======================= " << endl;
+      }
+      
+
+      if(given_analysis_id == NULL)
+      {
+        // do we really want to create a new entry? Might blast up the output
+        ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+        analysis_id_ = driverNode->Get(ParamNode::PROCESS)->Get("step", at);
+        analysis_id_->Get("analysis_id")->SetValue(actTimeStep_);
+      }
+      else
+      {
+        assert(given_analysis_id->Has("analysis_id"));
+        analysis_id_ = CreateAnalysisIdChild(given_analysis_id, given_analysis_id->Get("analysis_id")->As<std::string>(), actTimeStep_, "step", actTimeStep_);
+      }
+      analysis_id_->Get("step")->SetValue(actTimeStep_);
+      analysis_id_->Get("value")->SetValue(steptime);
+      
+      // Perform actions
+      ptPDE_->GetSolveStep()->SetActTime(steptime);
+      ptPDE_->GetSolveStep()->SetActStep(actTimeStep_);
+      ptPDE_->GetSolveStep()->PreStepTrans();
+      ptPDE_->GetSolveStep()->SolveStepTrans(analysis_id_, adjointParams);
+      ptPDE_->GetSolveStep()->PostStepTrans();
+
+      if(write_results){
+        // writing results in output-file(s)
+        resHandler->BeginStep( actTimeStep_, steptime );
+        ptPDE_->WriteResultsInFile(actTimeStep_, steptime );
+        resHandler->FinishStep( );
+      }
+
+      // writing current PDE-state into the restart-file
+      if (restartIncr_ >= 1){
+        if (  actTimeStep_ == nextRestart  ) { 
+          std::cout << std::endl << "Write a restart file after step " 
+                    << actTimeStep_ <<" *********** " << std::endl;      
+          
+          ptPDE_->WriteRestart( );
+          nextRestart+=restartIncr_ * direction;
+        }
+      }
+      if (haltFlag) {
+        std::cout << std::endl << "Write a restart file after interuppting a simulation "
+                  << "run with a HALTCFS-file at step:  " 
+                  << actTimeStep_ <<" *********** " << std::endl;      
+
+        ptPDE_->WriteRestart( );
+      }    
+
+      steptime+=dt*direction;
+      
+      // perform runtime estimation
+      Double totalTime = timer_->GetWallTime();
+      Double timePerStep = totalTime / (Double) count;
+      Double remainingTime = (endStep - actTimeStep_) * timePerStep;
+      pt::ptime now = pt::second_clock::local_time();
+      now += pt::seconds(static_cast<long int>(remainingTime));
+      analysis_id_->Get("timePerStep")->SetValue( timePerStep );
+      PtrParamNode envNode = info->Get(ParamNode::HEADER)->Get("environment");
+      envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
+      envNode->Get("remainingTime")->SetValue(remainingTime);
+    }
+
+
+    // notify resultHandler about finishing of current sequence step
+    if(!isPartOfSequence_ && write_results) {
+      resHandler->FinishMultiSequenceStep();
+    }
+    
+  }
+  
+  void TransientDriver::ReadRestart() {
+    
+    if ( progOpts->GetRestart() ){
+      ptPDE_->ReadRestart( restartStep_ );
+      //startStep = restartStep_ + 1;
+      //stepsave=startStep;
+      //numstep_+=lastStepToRestartFrom;
+      //steptime=(startStep)*dt;
+      //restartStep  = startStep + restartIncr_ - 1;
+      std::cout << std::endl << "Reading a restart file from step " 
+                << restartStep_ <<" ********** " << std::endl;      
+    }
+    
+  }
+
+} // end of namespace
