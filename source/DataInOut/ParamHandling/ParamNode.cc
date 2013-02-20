@@ -299,7 +299,7 @@ PtrParamNode ParamNode::GetByVal(const std::string& parent,
   return this->GetByVal(parent, child, std::string(value), action);
 }
 
-StdVector<PtrParamNode> ParamNode::GetList(const string& name)
+ParamNodeList ParamNode::GetList(const string& name)
 {
   const unsigned int chsize(children_.GetSize());
   StdVector<PtrParamNode> result;
@@ -313,7 +313,7 @@ StdVector<PtrParamNode> ParamNode::GetList(const string& name)
 }
 
 template<typename TYPE>
-StdVector<PtrParamNode> ParamNode::GetListByVal(const string& parent_raw,
+ParamNodeList ParamNode::GetListByVal(const string& parent_raw,
     const string& child_raw, const TYPE& value)
 {
   StdVector<PtrParamNode> result;
@@ -345,7 +345,7 @@ StdVector<PtrParamNode> ParamNode::GetListByVal(const string& parent_raw,
   return result; // copy-constructor magic stuff!
 }
 
-StdVector<PtrParamNode> ParamNode::GetListByVal(const string& parent,
+ParamNodeList ParamNode::GetListByVal(const string& parent,
     const string& child, const char * value)
 {
   return GetListByVal(parent, child, std::string(value));
@@ -1118,7 +1118,7 @@ INSTANTIATE_METHOD_GETVALUE(boost::shared_ptr<Timer>)
                const TYPE& value,\
                const ActionType action );\
     template\
-    StdVector<PtrParamNode> ParamNode::GetListByVal<TYPE>\
+    ParamNodeList ParamNode::GetListByVal<TYPE>\
     (const string& parent, const string& child, const TYPE& value);\
   template  bool ParamNode::HasByVal<TYPE>\
   ( const std::string& name, const std::string& child,const TYPE& value ) const;\
