@@ -829,6 +829,9 @@ namespace CoupledField {
     // parameter file
     CreateUserDefinedNodesElems();
     
+    // Initialize non-conforming interfaces
+    InitNcInterfaces();
+    
     // In the end, trim all vectors, i.e. delete any non-used memory from its
     // capacity.
     coords_.Trim();

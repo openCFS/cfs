@@ -5,6 +5,7 @@ ENDIF(USE_XERCES)
 
 SET(MESH_SRCS 
   Grid.cc
+  NcInterface.cc
   GridCFS/GridCFS.cc
   )
 

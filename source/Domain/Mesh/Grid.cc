@@ -1,4 +1,5 @@
 #include "Grid.hh"
+#include "NcInterface.hh"
 #include "PolygonIterators.hh"
 
 #include <cmath>
@@ -364,6 +365,24 @@ namespace CoupledField
      }
    }
 
+   void Grid::InitNcInterfaces() {
+
+     // if no param object is present, just leave
+     if (!param) return;
+
+     // check if there is a ncInterfaceList, if not just leave
+     PtrParamNode nciListNode = param->Get("domain")
+         ->Get("ncInterfaceList", ParamNode::PASS);
+     if (!nciListNode) return;
+     
+     ParamNodeList nciList = nciListNode->GetList("ncInterface");
+     ParamNodeList::iterator nciIt = nciList.Begin(), endIt = nciList.End();
+     
+     for ( ; nciIt != endIt; ++nciIt ) {
+       ncInterfaces_[(*nciIt)->Get("name")->As<std::string>()] =
+           new NcInterface(this, *nciIt);
+     }
+   }
 /*
   bool Grid::InitNonmatchingInterfaces() {
     UInt numIfaces;

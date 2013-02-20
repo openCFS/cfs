@@ -31,6 +31,7 @@ namespace CoupledField
   //! Forward class declaration
   class ResultHandler;
   class CoordSystem;
+  class NcInterface;
 
   //! Class representing geometrical entities (elements, nodes, ...) of a
   //! FE simulation.
@@ -187,7 +188,7 @@ namespace CoupledField
     //+++++++++++++++++++++++++++ ELEM INFORMATION +++++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-   virtual shared_ptr<ElemShapeMap> GetElemShapeMap( const Elem* ptElem,
+    virtual shared_ptr<ElemShapeMap> GetElemShapeMap( const Elem* ptElem,
                                                         bool updated = false );
     
     virtual void AddElems(UInt nElems) = 0;
@@ -628,23 +629,11 @@ namespace CoupledField
 
 
     // =======================================================================
-    // NONCONFORMING GRID SECTION COMMENTED OUT DUE TO REFACTORING
+    // NONCONFORMING GRID SECTION
     // =======================================================================
     //@{ \name Methods for nonconforming grids
+
 /*
-    enum ISecType
-    {
-      LINE_LINE,
-      TRI_TRI,
-      TRI_QUAD,
-      QUAD_QUAD
-    };
-
-    ISecType itype;
-
-    //! NC_SIMON: Main nonmatching grid intersection method
-    bool InitNonmatchingInterfaces();
-
     //! NC_SIMON: check if NC interface is coplanar
     bool IsNcInterfaceCoplanar(const std::string &ncIfaceName);
     bool IsNcInterfaceCoplanar(RegionIdType regionId);
@@ -793,6 +782,12 @@ namespace CoupledField
     // =======================================================================
 
     //@{ \name Non-matching grid helper functions
+
+    //! Initialize non-conforming interfaces from XML files
+    virtual void InitNcInterfaces();
+    
+    //! map for storing ncInterfaces
+    std::map< std::string, NcInterface* > ncInterfaces_;
 /*
     //! type of intersection calculation for ncInterfaces
     enum IntersectType { LINE_INTERSECT, RECT_INTERSECT, POLYGON_INTERSECT };
