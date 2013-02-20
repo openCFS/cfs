@@ -509,7 +509,6 @@ void Domain::InitPDEs(UInt sequenceStep)
     it = isDirectCoupled_.find(ptSinglePde_[i]);
     if ((*it).second == false)
     {
-      std::cerr << "defining algebraic sys of pde " << ptSinglePde_[i]->GetName();
       ptSinglePde_[i]->DefineAlgSys();
     }
   }

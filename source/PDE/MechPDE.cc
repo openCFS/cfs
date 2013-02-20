@@ -226,7 +226,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       }
 
       if( softNodes.GetSize() ) {
-        softInfo = info->Get("softeningList");
+        softInfo = infoNode_->Get("softeningList");
       }
     }
 
@@ -488,21 +488,27 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         EXCEPTION("Mechanical pressure must be defined on elements")
       }
             
+      // Factor for the pressure:
+      // The pressure is by definition in the opposite direction as the 
+      // normal stress, i.e. a positive pressure means a compressive stress
+      // (<0). Thus we have to take the minus sign into account
+      const Double presFac = -1.0;
+      
       if( dim_ == 2) {
         if(isComplex_) {
           lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,2>, 
-                                 Complex,true>(Complex(1.0), coef[i], volRegions);
+                                 Complex,true>(Complex(presFac), coef[i], volRegions);
         } else {
           lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,2>, 
-                                 Double,true>(1.0, coef[i], volRegions);
+                                 Double,true>(presFac, coef[i], volRegions);
         }
       } else  {
         if(isComplex_) {
           lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,3>, 
-                                 Complex, true>(Complex(1.0), coef[i], volRegions);
+                                 Complex, true>(Complex(presFac), coef[i], volRegions);
         } else {
           lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,3>, 
-                                 Double, true>(1.0, coef[i], volRegions);
+                                 Double, true>(presFac, coef[i], volRegions);
         }
       }
       lin->SetName("PressureInt");

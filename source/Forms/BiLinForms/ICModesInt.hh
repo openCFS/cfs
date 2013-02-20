@@ -12,13 +12,10 @@ namespace CoupledField {
   //! Thus, it adds internally so-called incompatible bubble modes,
   //! which can be eliminated directly on the element level, i.e.
   //! the final element matrix has the same size as a standard approximation.
-
-  //! General class for calculation of AB-Forms
   //! \tparam COEF_DAATA_TYPE Data type of the material tensor  
   //! \tparam B_DATA_TYPE Data type of the differential operator
   template< class COEF_DATA_TYPE = Double, 
             class B_DATA_TYPE = Double>
-  
   class ICModesInt : public BDBInt<COEF_DATA_TYPE, B_DATA_TYPE> {
   public:
 
@@ -44,7 +41,6 @@ namespace CoupledField {
     void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                             EntityIterator& ent1,
                             EntityIterator& ent2 );
-
 
   protected:
 
