@@ -965,7 +965,6 @@ namespace CoupledField {
      for(; stiffIt != bdbInts_.end(); ++stiffIt ) {
        RegionIdType region = stiffIt->first;
        BaseBDBInt* bdb = stiffIt->second;
-       std::cerr << "treating region " << region << std::endl;
        // 1) pass it to all coefficient functions related to stiffness
        std::set<shared_ptr<CoefFunctionFormBased> >::iterator stiffCoefIt;
        for( stiffCoefIt = stiffFormCoefs_.begin();
@@ -992,7 +991,6 @@ namespace CoupledField {
       
       RegionIdType region = massIt->first;
       BaseBDBInt* mass = massIt->second;
-      std::cerr << "treating region " << region << std::endl;
       // 1) pass it to all coefficient functions related to mass
       std::set<shared_ptr<CoefFunctionFormBased> >::iterator massCoefIt;
       for( massCoefIt = massFormCoefs_.begin();

@@ -61,6 +61,9 @@ namespace CoupledField
     BaseBDBInt * GetStiffIntegrator( BaseMaterial* actSDMat,
                                      RegionIdType regionId,
                                      bool isComplex );
+    
+    //! Return strain operator 
+    BaseBOperator * GetStrainOperator( bool isComplex, bool icModes );
 
     // ========================
     // set solution information

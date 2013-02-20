@@ -276,6 +276,8 @@ namespace CoupledField {
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 4;
     order_ = 1; 
+    // This element supports incompatible modes
+    hasICModes_ = true;
   }
     
   FeH1LagrangeQuad1::~FeH1LagrangeQuad1() {
@@ -307,6 +309,27 @@ namespace CoupledField {
   }
   
   
+   void FeH1LagrangeQuad1::CalcShFncICModes( Vector<Double>& shape,
+                                             const Vector<Double>& point,
+                                             const Elem* ptElem,
+                                             UInt comp  ) {
+     shape.Resize( 2 );
+     shape[0] = 1.0 - point[0] * point[0];
+     shape[1] = 1.0 - point[1] * point[1];
+   }
+
+   void FeH1LagrangeQuad1::CalcLocDerivShFncICModes( Matrix<Double> & deriv, 
+                                                     const Vector<Double>& point,
+                                                     const Elem* ptElem,
+                                                     UInt comp ) {
+     deriv.Resize( 2, 2);
+     deriv.Init();
+     deriv[0][0] = -2.0 * point[0];
+     deriv[1][1] = -2.0 * point[1];
+   }
+
+
+
   bool FeH1LagrangeQuad::CoordIsInsideElem( const Vector<Double>& point,
                                             Double tolerance )  {
     const Double & xi = point[0];
@@ -426,6 +449,9 @@ namespace CoupledField {
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 8;
     order_ = 1; 
+    
+    // This element supports incompatible modes
+    hasICModes_ = true;
   }
     
   FeH1LagrangeHex1::~FeH1LagrangeHex1() {
@@ -470,6 +496,28 @@ namespace CoupledField {
     
   }
   
+  void FeH1LagrangeHex1::CalcShFncICModes( Vector<Double>& shape,
+                                           const Vector<Double>& point,
+                                           const Elem* ptElem,
+                                           UInt comp  ) {
+    shape.Resize( 3 );
+    shape[0] = 1.0 - point[0] * point[0];
+    shape[1] = 1.0 - point[1] * point[1];
+    shape[2] = 1.0 - point[2] * point[2];
+
+  }
+
+  void FeH1LagrangeHex1::CalcLocDerivShFncICModes( Matrix<Double> & deriv, 
+                                                   const Vector<Double>& point,
+                                                   const Elem* ptElem,
+                                                   UInt comp ) {
+    deriv.Resize( 3, 3);
+    deriv.Init();
+    deriv[0][0] = -2.0 * point[0];
+    deriv[1][1] = -2.0 * point[1];
+    deriv[2][2] = -2.0 * point[2];
+  }
+
   bool FeH1LagrangeHex::CoordIsInsideElem( const Vector<Double>& point,
                                            Double tolerance )  {
     const Double & xi = point[0];

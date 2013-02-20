@@ -1107,6 +1107,8 @@ source/Forms/BiLinForms/BDBInt.cc -text
 source/Forms/BiLinForms/BDBInt.hh -text
 source/Forms/BiLinForms/BiLinearForm.hh -text
 source/Forms/BiLinForms/CMakeLists.txt -text
+source/Forms/BiLinForms/ICModesInt.cc -text
+source/Forms/BiLinForms/ICModesInt.hh -text
 source/Forms/CMakeLists.txt svneol=native#text/plain
 source/Forms/IntScheme.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/IntScheme.hh svneol=native#text/x-c%2B%2Bhdr

@@ -466,6 +466,22 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+  
+
+  //! @copydoc FeH1::GetNumICModes
+  virtual UInt GetNumICModes() { return 2;}
+    
+  //! @copydoc FeH1::CalcShFncICModes
+  void CalcShFncICModes( Vector<Double>& shape,
+                         const Vector<Double>& point,
+                         const Elem* ptElem,
+                         UInt comp = 1 );
+
+  //! @copydoc FeH1::CalcLocDerivShFncICModes
+  void CalcLocDerivShFncICModes( Matrix<Double> & deriv, 
+                                 const Vector<Double>& point,
+                                 const Elem* ptElem,
+                                 UInt comp = 1 );
 };
 
 //! Lagrangian hexahedral element of 1st order (ET_HEXA8)
@@ -492,6 +508,21 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+  
+  //! @copydoc FeH1::GetNumICModes
+  virtual UInt GetNumICModes() { return 3;}
+  
+  //! @copydoc FeH1::CalcShFncICModes
+  void CalcShFncICModes( Vector<Double>& shape,
+                         const Vector<Double>& point,
+                         const Elem* ptElem,
+                         UInt comp = 1 );
+
+  //! @copydoc FeH1::CalcLocDerivShFncICModes
+  void CalcLocDerivShFncICModes( Matrix<Double> & deriv, 
+                                 const Vector<Double>& point,
+                                 const Elem* ptElem,
+                                 UInt comp = 1 );
 };
 
 

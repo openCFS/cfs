@@ -5,6 +5,7 @@ SET(BILINFORMS_SRCS
   ADBInt.cc
   BBInt.cc
   BDBInt.cc
+  ICModesInt.cc
   )
 
 ADD_LIBRARY(bilinforms STATIC ${BILINFORMS_SRCS})

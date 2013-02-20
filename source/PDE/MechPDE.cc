@@ -19,6 +19,7 @@
 // new integrator concept
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
+#include "Forms/BiLinForms/ICModesInt.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/Operators/IdentityOperator.hh"
@@ -209,7 +210,52 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
   void MechPDE::ReadSoftening() {
 
-    REFACTOR;
+    // Check if softeningList node is present
+    std::string type, id;
+    std::map<std::string, std::string> idSoftTypeMap;
+    PtrParamNode softListNode = myParam_->Get("softeningList", ParamNode::PASS );
+    PtrParamNode softInfo;
+    if( softListNode ) {
+
+      // Get child elements and read data
+      ParamNodeList softNodes = softListNode->GetChildren();
+      for( UInt i = 0; i < softNodes.GetSize(); i++ ) {
+        type = softNodes[i]->GetName();
+        softNodes[i]->GetValue( "id", id );
+        idSoftTypeMap[id] = type;
+      }
+
+      if( softNodes.GetSize() ) {
+        softInfo = info->Get("softeningList");
+      }
+    }
+
+    // Now iterate over all regions and check for softening type
+    ParamNodeList regionNodes =
+        myParam_->Get("regionList")->GetList("region");
+    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+
+      // get region Name
+      std::string regionName = regionNodes[i]->Get("name")->As<std::string>();
+      RegionIdType regionId = ptGrid_->GetRegion().Parse( regionName );
+      
+      // get softeningId of current region
+      id = "";
+      regionNodes[i]->GetValue( "softeningId", id, ParamNode::PASS );
+      if (id == "") continue;
+
+      // try to find related softening definition
+      if( idSoftTypeMap.find( id) == idSoftTypeMap.end() ) {
+        EXCEPTION( "Softening with id '" << id << "' for region '"
+                   << regionName << "' could not be found in "
+                   << "softeningList " );
+      }
+      // assign correct softening type to current region and map to log
+      regionSoftening_[regionId] = idSoftTypeMap[id];
+      PtrParamNode regionNode = softInfo->Get("region",ParamNode::APPEND);
+      regionNode->Get("name")->SetValue(regionName);
+      regionNode->Get("type")->SetValue(idSoftTypeMap[id]);
+    }
   }
 
   void MechPDE::InitNonLin()
@@ -222,6 +268,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
   void MechPDE::DefineIntegrators() {
 
+    // =======================================
+    //  Get information about softening types
+    // =======================================
+    ReadSoftening();
+    
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
 
@@ -533,37 +584,64 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     // ----------------------------------------
     //  Determine correct stiffness integrator 
     // ----------------------------------------
+    
     BaseBDBInt * integ = NULL;
-    if( isComplex ) {
-      if( subType_ == "axi" ) {
-        integ = new BDBInt<Complex>(new StrainOperatorAxi<FeH1,Complex>(), curCoef, 1.0);
-      } else if( subType_ == "planeStrain" ) {
-        integ = new BDBInt<Complex>(new StrainOperator2D<FeH1,Complex>(), curCoef, 1.0);
-      } else if( subType_ == "planeStress" ) {
-        integ = new BDBInt<Complex>(new StrainOperator2D<FeH1,Complex>(), curCoef, 1.0);
-      } else if( subType_ == "3d") {
-        integ = new BDBInt<Complex>(new StrainOperator3D<FeH1,Complex>(), curCoef, 1.0);
-      } else {
-        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
-      }
-    }
-    else {
-      if( subType_ == "axi" ) {
-        integ = new BDBInt<>(new StrainOperatorAxi<FeH1>(), curCoef, 1.0);
-      } else if( subType_ == "planeStrain" ) {
-        integ = new BDBInt<>(new StrainOperator2D<FeH1>(), curCoef, 1.0);
-      } else if( subType_ == "planeStress" ) {
-        integ = new BDBInt<>(new StrainOperator2D<FeH1>(), curCoef, 1.0);
-      } else if( subType_ == "3d") {
-        integ = new BDBInt<>(new StrainOperator3D<FeH1>(), curCoef, 1.0);
-      } else {
-        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
-      }
+    BaseBOperator * bOp = GetStrainOperator( isComplex, false );
+    
+    if( regionSoftening_[regionId] == "icModesTW") {
+      // ===================
+      //  ICModes Softening 
+      // ===================
+      BaseBOperator * gOp = GetStrainOperator( isComplex, true );
+      if (isComplex ) 
+        integ = new ICModesInt<Complex>(bOp, gOp, curCoef, 1.0);
+      else
+        integ = new ICModesInt<Double>(bOp, gOp, curCoef, 1.0);
+      
+    } else {
+      // ====================
+      //  Standard Stiffness 
+      // ====================
+      if (isComplex ) 
+        integ = new BDBInt<Complex>(bOp, curCoef, 1.0);
+      else
+        integ = new BDBInt<Double>(bOp, curCoef, 1.0);
     }
 
     return integ;
   }
 
+  
+  BaseBOperator * MechPDE::GetStrainOperator( bool isComplex, bool icModes ){
+    BaseBOperator * bOp = NULL;
+    if( isComplex ) {
+      if( subType_ == "axi" ) {
+        bOp = new StrainOperatorAxi<FeH1,Complex>(icModes);
+      } else if( subType_ == "planeStrain" ) {
+        bOp = new StrainOperator2D<FeH1,Complex>(icModes);
+      } else if( subType_ == "planeStress" ) {
+        bOp = new StrainOperator2D<FeH1,Complex>(icModes);
+      } else if( subType_ == "3d") {
+        bOp = new StrainOperator3D<FeH1,Complex>(icModes);
+      } else {
+        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+      }
+    } else {
+      if( subType_ == "axi" ) {
+        bOp = new StrainOperatorAxi<FeH1,Double>(icModes);
+      } else if( subType_ == "planeStrain" ) {
+        bOp = new StrainOperator2D<FeH1,Double>(icModes);
+      } else if( subType_ == "planeStress" ) {
+        bOp = new StrainOperator2D<FeH1,Double>(icModes);
+      } else if( subType_ == "3d") {
+        bOp = new StrainOperator3D<FeH1,Double>(icModes);
+      } else {
+        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+      }
+    }
+    return bOp;
+  }
+  
   void MechPDE::DefineSolveStep()
   {
 		  solveStep_ = new StdSolveStep(*this);
