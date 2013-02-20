@@ -98,7 +98,7 @@ namespace CoupledField
       
       
     } // end of while-loop
-    if (iter >= rPDE_.maxiter_)
+    if (iter >= rPDE_.maxiter_ && !normsReached)
     {
       std::cerr << "WARNING: Iterative PDE coupling did not converge";
     }

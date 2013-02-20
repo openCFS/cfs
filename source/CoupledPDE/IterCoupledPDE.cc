@@ -36,18 +36,18 @@ namespace CoupledField
       pdename_ += PDEs[actPDE] -> GetName() + "+";
     pdename_ += PDEs[PDEs.GetSize()-1] -> GetName();
 
-    // fetch "nonLinear" node
-    PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
+    // fetch "convergence" node
+    PtrParamNode convNode = myParam_->Get("convergence", ParamNode::PASS );
 
     // get maximum number of iterations (optional)
     maxiter_ = 100;
-    if( nonLinNode )
-      nonLinNode->GetValue( "maxNumIters", maxiter_, ParamNode::PASS );
+    if( convNode )
+      convNode->GetValue( "maxNumIters", maxiter_, ParamNode::PASS );
 
     // query logging flag
     nonLinLogging_ = true;
-    if( nonLinNode )
-      nonLinNode->GetValue( "logging", nonLinLogging_, ParamNode::PASS );
+    if( convNode )
+      convNode->GetValue( "logging", nonLinLogging_, ParamNode::PASS );
 
   }
 
