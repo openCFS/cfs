@@ -33,15 +33,14 @@ namespace CoupledField
   DEFINE_LOG(assemble, "assemble")
 
   Assemble::Assemble( AlgebraicSys* algsys,
-                      BasePDE::AnalysisType analysis,
-                      UInt maxTimeDerivOrder ) : timer_(new Timer()) {
+                      BasePDE::AnalysisType analysis ) 
+  : timer_(new Timer()) {
 
     // init general params
     algsys_ = algsys;
     analysisType_ = analysis;
     isFirstTime_ = true;
     matrixUpdated_ = false;
-    maxTimeDerivOrder_ = maxTimeDerivOrder;
     
     linForms_ = new StdVector<LinearFormContext*>();
 
@@ -1060,13 +1059,8 @@ namespace CoupledField
         factor = omega;
         break;
       case MASS:
-        if( maxTimeDerivOrder_ == 2 ) {
-          derivOrder = 2;
-          factor = -omega*omega;
-        } else {
-          derivOrder = 1;
-          factor = omega;
-        }
+        derivOrder = 2;
+        factor = -omega*omega;
         break;
       default:
         EXCEPTION("No default conversion from double entries to matrix type"
@@ -1108,11 +1102,7 @@ namespace CoupledField
         factor = Complex(0.0, omega);
         break;
       case MASS:
-        if( maxTimeDerivOrder_ == 2 ) {
-          factor = Complex(-omega*omega, 0.0);
-        } else {
-          factor = Complex(0.0, omega);
-        }
+        factor = Complex(-omega*omega, 0.0);
         break;
       default:
         EXCEPTION("No default conversion from double entries to matrix type"

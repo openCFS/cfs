@@ -53,6 +53,9 @@ namespace CoupledField {
 
     //!  Output our content to info.xml 
     virtual void ToInfo(PtrParamNode in) const;
+    
+    //! Flag, if updated geometry is to be used
+    bool updatedGeo;
   };
 
   // -------------------------------------------------------------------------

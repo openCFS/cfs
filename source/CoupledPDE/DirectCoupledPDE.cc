@@ -206,14 +206,7 @@ namespace CoupledField {
     analysistype_ = domain->GetSingleDriver()->GetAnalysisType( );
 
     // Create new Assemble object
-    // NOTE: At the moment we can only couple mechanic, piezo and
-    // acoustic PDEs directly. All these PDEs have second order
-    // time derivatives. This is why we pass a magic '2' directly
-    // as maximum time derivative order to assemble.
-    // As soon as we have a more sophisticated way to cope with
-    // this problem (e.g. register each pde with FeFctIdType and
-    // maximum time derivative order), we should change this here!
-    assemble_ = new Assemble( algsys_, analysistype_, 2 );
+    assemble_ = new Assemble( algsys_, analysistype_ );
     
 
 //     // Initialize timestepping

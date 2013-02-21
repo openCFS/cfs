@@ -255,13 +255,16 @@ namespace CoupledField
 //    ToInfo(info->Get(ParamNode::HEADER)->Get("coupling"));
 
     // create solve step object
-    solveStep_ = new IterSolveStep( *this );
+    IterSolveStep * solveStep =new IterSolveStep( *this, myParam_ ); 
+    solveStep->Init();
+    solveStep_ = solveStep;
   }
 
   
   PtrCoefFct IterCoupledPDE::GetCouplingCoefFct( SolutionType type,
                                                  shared_ptr<EntityList>  list,
-                                                 const std::string& pdeName ) {
+                                                 const std::string& pdeName,
+                                                 bool& updateGeo ) {
     PtrCoefFct ret;
     
     // Initial implementation: Directly access CoefFct of PDE
@@ -269,6 +272,7 @@ namespace CoupledField
     for( UInt i = 0; i < numPDEs_; ++i ) {
       if( singlePDEs_[i]->GetName() == pdeName ) {
         ret = singlePDEs_[i]->GetCoefFct(type);
+        updateGeo = singlePDEs_[i]->updatedGeo_;
         if( ret ) {
           break;
         }

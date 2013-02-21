@@ -45,9 +45,10 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
   // =====================================================================
   pdename_          = "magnetic";
   pdematerialclass_ = ELECTROMAGNETIC;
-  maxTimeDerivOrder_ = 1;
+  
+  //! Always use updated Lagrangian formulation 
+  updatedGeo_        = true;
 
-  // check for use of mixed formulation, i.e. for transient / harmonic
 }
 
   MagneticPDE::~MagneticPDE()
@@ -126,14 +127,14 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
         if( dim_ == 2) {
           if( isaxi_ ) {
             // axisymmetric case
-            stiffInt = new BDBInt<>(new CurlOperatorAxi<Double>(), curCoef, 1.0);
+            stiffInt = new BDBInt<>(new CurlOperatorAxi<Double>(), curCoef, 1.0, updatedGeo_);
           } else {
             // plane 2D case
-            stiffInt = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef, 1.0);
+            stiffInt = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef, 1.0, updatedGeo_);
           }
         } else {
           // 3D case
-          stiffInt = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, 1.0);
+          stiffInt = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, 1.0, updatedGeo_);
         }
         stiffInt->SetName("CurlCurlIntegrator");    
         stiffInt->SetFeSpace( mySpace);
@@ -154,7 +155,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
         // ====================================================================
         if( dim_ == 3 ) {
           BaseBDBInt * divInt = 
-              new BDBInt<>(new DivOperator<FeH1,3,Double>(), curCoef, 1.0);
+              new BDBInt<>(new DivOperator<FeH1,3,Double>(), curCoef, 1.0, updatedGeo_);
           divInt->SetFeSpace( mySpace );
           divInt->SetName("DivDivIntegrator");
           BiLinFormContext * divIntDescr =  
@@ -178,17 +179,20 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
             materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL);
 //                                         lexical_cast<std::string>(conductivity));
         {
-          BiLinearForm *massInt = NULL;
+          BaseBDBInt *massInt = NULL;
           if( dim_ == 2 ) {
-            massInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), conducCoef,1.0);
+            massInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), conducCoef,1.0, updatedGeo_);
           } else {
-            massInt = new BBInt<>(new IdentityOperator<FeH1,3,3>(), conducCoef,1.0 );
+            massInt = new BBInt<>(new IdentityOperator<FeH1,3,3>(), conducCoef,1.0, updatedGeo_ );
           }
           massInt->SetName("MassIntegrator");
-          BiLinFormContext * massContext = new BiLinFormContext(massInt, MASS );
+          BiLinFormContext * massContext = new BiLinFormContext(massInt, DAMPING );
           massContext->SetEntities( actSDList, actSDList );
           massContext->SetFeFunctions( myFct, myFct );
           assemble_->AddBiLinearForm( massContext );
+          
+          // insert mass integrator to list of defined mass integrators
+          massInts_[actRegion] = massInt;
         }
         
         // ====================================================================
@@ -209,10 +213,10 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
           // ------------------------------
           {
             BiLinearForm * phiDivInt = 
-                new BBInt<>(new GradientOperator<FeH1,3,Double>(), conducCoef, 1.0);
+                new BBInt<>(new GradientOperator<FeH1,3,Double>(), conducCoef, 1.0, updatedGeo_);
             phiDivInt->SetName("MassIntegrator_PhiPhi");
             BiLinFormContext * massContext = 
-                new BiLinFormContext(phiDivInt, MASS );
+                new BiLinFormContext(phiDivInt, DAMPING);
             massContext->SetEntities( actSDList, actSDList );
             massContext->SetFeFunctions( potFct, potFct );
             assemble_->AddBiLinearForm( massContext );
@@ -224,10 +228,10 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
           {
             BiLinearForm * cplInt = 
                 new ABInt<>(new IdentityOperator<FeH1,3,3,Double>() ,
-                            new GradientOperator<FeH1,3,Double>(), conducCoef, 1.0);
+                            new GradientOperator<FeH1,3,Double>(), conducCoef, 1.0, updatedGeo_);
             cplInt->SetName("MassIntegrator_Coupling_Phi_A");
             BiLinFormContext * cplContext = 
-                new BiLinFormContext(cplInt, MASS );
+                new BiLinFormContext(cplInt, DAMPING );
             cplContext->SetCounterPart(true);
             cplContext->SetEntities( actSDList, actSDList );
             cplContext->SetFeFunctions( myFct, potFct );
@@ -276,11 +280,11 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
           phaseVec.Init(coilDef_[coil]->phase_);
           coef = CoefFunction::Generate(Global::COMPLEX, currDensity, phaseVec );
           coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
-          curInt = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex >(1.0, coef);
+          curInt = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex >(1.0, coef, updatedGeo_);
         } else {
           coef = CoefFunction::Generate(Global::REAL, currDensity);
           coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
-          curInt = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double >(1.0, coef);
+          curInt = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double >(1.0, coef, updatedGeo_);
         } // complex
       } else {
         // ===============
@@ -294,11 +298,11 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
           phaseVec.Init(coilDef_[coil]->phase_);
           coef = CoefFunction::Generate(Global::REAL, currDensity);
           //coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_;
-          curInt = new BUIntegrator<IdentityOperator<FeH1,2,1>, Complex >(1.0, coef);
+          curInt = new BUIntegrator<IdentityOperator<FeH1,2,1>, Complex >(1.0, coef, updatedGeo_);
         } else {
           coef = CoefFunction::Generate(Global::REAL, currDensity);
           //coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
-          curInt = new BUIntegrator<IdentityOperator<FeH1,2,1>, Double >(1.0, coef);
+          curInt = new BUIntegrator<IdentityOperator<FeH1,2,1>, Double >(1.0, coef, updatedGeo_);
 
         } // complex
       } // dimension
@@ -343,7 +347,10 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
   // TIME STEPPING SECTION
   // ======================================================
   void MagneticPDE::InitTimeStepping() {
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(TimeSchemeGLM::TRAPEZOIDAL, 0) );
+    // Use complete implicit scheme
+    Double gamma = 1.0;
+    GLMScheme * scheme = new Trapezoidal(gamma);
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0) );
     feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
 
   }
@@ -487,18 +494,42 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
   }
     
   void MagneticPDE::DefinePostProcResults() {
-    StdVector<std::string> vecComponents;
+    StdVector<std::string> vecComponents, aVecComponents;
       if( dim_ == 3 ) {
         vecComponents = "x", "y", "z";
+        aVecComponents = "x", "y", "z";
       }
       else if( isaxi_ ) {
         vecComponents = "r", "z";
+        aVecComponents = "phi";
       } 
       else {
         vecComponents = "x", "y";
+        aVecComponents = "z";
       }
       Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
       shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
+
+      // === MAGNETIC VECTOR POTENTIAL - 1ST DERIVATIVE ===
+      if( analysistype_ == TRANSIENT || analysistype_ == HARMONIC ) {
+        shared_ptr<ResultInfo> aDot(new ResultInfo);
+        aDot->resultType = MAG_POTENTIAL_DERIV1;
+        aDot->dofNames = aVecComponents;
+        aDot->unit = "V/m";
+        aDot->definedOn = ResultInfo::ELEMENT;
+        aDot->entryType = ResultInfo::VECTOR;
+        availResults_.insert( aDot );
+        DefineTimeDerivResult( MAG_POTENTIAL_DERIV1, 1, MAG_POTENTIAL );
+      }
+
+      // === MAGNETIC RHS ===
+      shared_ptr<ResultInfo> rhs(new ResultInfo);
+      rhs->resultType = MAG_RHS_LOAD;
+      rhs->dofNames = aVecComponents;
+      rhs->unit = "";
+      rhs->entryType = ResultInfo::VECTOR;
+      rhs->definedOn = ResultInfo::NODE;
+      DefineFieldResult( rhsFeFunctions_[MAG_POTENTIAL], rhs );
 
       // === MAGNETIC FLUX DENSITY ===
       shared_ptr<ResultInfo> flux(new ResultInfo);

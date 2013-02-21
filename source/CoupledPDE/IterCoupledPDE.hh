@@ -28,6 +28,27 @@ namespace CoupledField
 
   public:
 
+//    
+//    //class for storing the convergence criterions
+//    class CplQuantity {
+//    public:
+//      
+//      //! Constructor with accumulator class
+//      CplQuantity(SolutionType solType);
+//      virtual ~CplQuantity();
+//      
+//      void AddCoefFct( PtrCoefFct coef, shared_ptr<EntityList> list );
+//      
+//      
+//      
+//    protected:
+//
+//      SolutionType solType_;
+//      
+//      StdVector<PtrCoefFct> 
+//    };
+    
+    
     //! Constructor
     IterCoupledPDE(StdVector<StdPDE*> & PDEs,
                    PtrParamNode paramNode); 
@@ -56,7 +77,8 @@ namespace CoupledField
     //! stopping criterion when evaluating the CoefFunction.
     PtrCoefFct GetCouplingCoefFct( SolutionType type,
                                    shared_ptr<EntityList>  list,
-                                   const std::string& pdeName );
+                                   const std::string& pdeName,
+                                   bool& updatedGeo );
     
     //! Update PDE due to updated step in multistep solution strategy
     virtual void UpdateToSolStrategy();
@@ -78,15 +100,11 @@ namespace CoupledField
 
   protected:
 
-    /** Write coupling info. TODO -> check for overloading! */ 
+    //! Dump information to InfoNode 
     void ToInfo(PtrParamNode in);
 
-    //! calculates the norm of a vector
-    //Double CalcNorm(NormType normtype, SingleVector & val, SingleVector & oldval);
-
-    UInt miniter_;                        //!< minimum number of iterations per time step
-    UInt maxiter_;                        //!< maximum number of iterations per time step
-    StdVector<Double> norms_;              //!< norm of coupling values
+    //! Maximum number of iterations per time step
+    UInt maxiter_;                        
 
     //! pointer to SolveStep classes
     IterSolveStep * solveStep_;
@@ -97,13 +115,18 @@ namespace CoupledField
     //! Flag for nonlinear logging
     bool nonLinLogging_;
   
-    // general PDE parameters
-    BasePDE::AnalysisType analysistype_;         //!< type of analysis
-    StdVector<StdPDE *> PDEs_;         //!< list of belonging PDEs
+    //! Type of analysis
+    BasePDE::AnalysisType analysistype_;
+    
+    //! Pointer to pdes
+    StdVector<StdPDE *> PDEs_;
+    
+    //! Pointer to SinglePDEs
     StdVector<SinglePDE*> singlePDEs_;
-    UInt numPDEs_;                   //!< number of PDEs 
-  
-
+    
+    //! Number of PDEs
+    UInt numPDEs_; 
+    
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

@@ -60,11 +60,13 @@ namespace CoupledField{
 
      pdename_           = "acousticMixed";
      pdematerialclass_  = FLUID;
-     maxTimeDerivOrder_ = 1;
      nonLin_            = false;
      usePiola_          = false;
      penalized_         = true;
      doFluxTerm_        = true;
+     
+     //! Always use total Lagrangian formulation 
+     updatedGeo_        = false;
 
    }
 
@@ -136,7 +138,7 @@ namespace CoupledField{
       actMat = it->second;
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
-
+      
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
       actSDList->SetRegion( actRegion );
@@ -172,11 +174,11 @@ namespace CoupledField{
       if(usePiola_)
         stiffIntPV = new ABInt<DATA_TYPE>(new GradientOperator<FeH1,DIM,DATA_TYPE>(),
                                           new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>() , 
-                                          coeffKPV,1.0 );
+                                          coeffKPV,1.0, updatedGeo_ );
       else
         stiffIntPV = new ABInt<DATA_TYPE>(new  GradientOperator<FeH1,DIM,DATA_TYPE>() , 
                                           new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(),  
-                                          coeffKPV,1.0 );
+                                          coeffKPV,1.0, updatedGeo_ );
 
       stiffIntPV->SetName("MixedStiffIntPV");
       //
@@ -199,12 +201,12 @@ namespace CoupledField{
         stiffIntVP = 
             new ABInt<DATA_TYPE >(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>() , //
                                   new GradientOperator<FeH1,DIM,DATA_TYPE>(), //
-                                  coeffKVP,-1.0 );
+                                  coeffKVP,-1.0, updatedGeo_ );
       else
         stiffIntVP = 
             new ABInt<DATA_TYPE>(new  IdentityOperator<FeH1,DIM,DIM,DATA_TYPE> , //
                                  new GradientOperator<FeH1,DIM,DATA_TYPE>(),  //
-                                 coeffKVP,-1.0 );
+                                 coeffKVP,-1.0, updatedGeo_ );
 
       stiffIntVP->SetName("MixedStiffIntVP");
       BiLinFormContext *stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
@@ -224,7 +226,7 @@ namespace CoupledField{
       BiLinearForm *massIntPP = NULL;
 
       massIntPP = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,1,DATA_TYPE>() , 
-                                       coeffMPP, 1.0);
+                                       coeffMPP, 1.0, updatedGeo_);
 
       massIntPP->SetName("PressureTimeInt");
       //massIntPP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace() );
@@ -238,10 +240,10 @@ namespace CoupledField{
       BiLinearForm *massIntVV = NULL;
       if( usePiola_)
         massIntVV = new BBInt<DATA_TYPE>(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(), 
-                                         density, 1.0);
+                                         density, 1.0, updatedGeo_);
       else
         massIntVV = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(),
-                                         density, 1.0);
+                                         density, 1.0, updatedGeo_);
 
       massIntVV->SetName("VelocityTimeInt");
       //massIntVV->SetFeSpace( feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
@@ -269,8 +271,9 @@ namespace CoupledField{
         // Read coefficient flow coefficient function for this region and add it to flow functor
         PtrCoefFct regionFlow;
         std::set<UInt> definedDofs;
+        bool coefUpdateGeo;
         ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames, flowInfo->entryType, 
-                             isComplex_, regionFlow, definedDofs );
+                             isComplex_, regionFlow, definedDofs, coefUpdateGeo );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
 
         //now create the integrators
@@ -290,12 +293,12 @@ namespace CoupledField{
           convectiveVV = 
               new ABInt<DATA_TYPE>( new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(), 
                                     new ConvectiveOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(), 
-                                    convFactor, 1.0);
+                                    convFactor, 1.0, coefUpdateGeo);
         } else {
           convectiveVV = 
               new ABInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(), 
                                    new ConvectiveOperator<FeH1,DIM,DIM,DATA_TYPE>(), 
-                                   convFactor, 1.0);
+                                   convFactor, 1.0, coefUpdateGeo);
         }
         
         // Coefficient for mass integrator: 1.0 / compressibility
@@ -306,7 +309,7 @@ namespace CoupledField{
         convectivePP = 
             new ABInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,1,DATA_TYPE>(), 
                                  new ConvectiveOperator<FeH1,DIM,1,DATA_TYPE>(),
-                                 coeffPP, 1.0 );
+                                 coeffPP, 1.0 , coefUpdateGeo);
 
         convectiveVV->SetBCoefFunctionOpB(meanFlowCoef_);
         convectivePP->SetBCoefFunctionOpB(meanFlowCoef_);
@@ -344,16 +347,18 @@ namespace CoupledField{
           volRegion.insert(actRegion);
           if( usePiola_ ) {
             convectiveVOpp = new SurfaceBBInt<DATA_TYPE>(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),
-                                                         formFactor, -0.5,volRegion);
+                                                         formFactor, -0.5,volRegion, updatedGeo_);
             convectiveV    = new SurfaceBBInt<DATA_TYPE>(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),
-                                                         formFactor, 0.5, volRegion);
+                                                         formFactor, 0.5, volRegion, updatedGeo_);
             exteriorVV     = new SurfaceBBInt<DATA_TYPE>(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),
-                                                         formFactor, -0.5,volRegion);
+                                                         formFactor, -0.5,volRegion, updatedGeo_);
           } else {
             convectiveVOpp = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(),
-                                                  formFactor, -0.5 );
-            convectiveV    = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(), formFactor, 0.5);
-            exteriorVV     = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(), formFactor, -0.5);
+                                                  formFactor, -0.5, updatedGeo_ );
+            convectiveV    = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(), 
+                                                  formFactor, 0.5, updatedGeo_);
+            exteriorVV     = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(), 
+                                                  formFactor, -0.5, updatedGeo_);
           }
           convectiveV->SetName("penaltyMass");
           convectiveVOpp->SetName("penalityOpposite");
@@ -389,19 +394,19 @@ namespace CoupledField{
           if( usePiola_ ) {
             fluxTerm = new SurfaceABInt<DATA_TYPE>(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),//
                                                    new NormalFluxOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),//
-                                                   density, -0.5 ,volRegion);
+                                                   density, -0.5 ,volRegion, updatedGeo_);
 
             convectiveVVTrans = new ABInt<DATA_TYPE>(new  ConvectiveOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),//
                                                      new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),//
-                                                     density, -0.5);
+                                                     density, -0.5, updatedGeo_);
           } else {
             fluxTerm = new SurfaceABInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(),//
                                                    new NormalFluxOperator<FeH1,DIM,DIM,DATA_TYPE>(),//
-                                                   density, -0.5,volRegion);
+                                                   density, -0.5,volRegion, updatedGeo_);
 
             convectiveVVTrans = new ABInt<DATA_TYPE>(new  ConvectiveOperator<FeH1,DIM,DIM,DATA_TYPE>(), //
                                                      new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(), //
-                                                     density, -0.5);
+                                                     density, -0.5, updatedGeo_);
           }
 
           convectiveVVTrans->SetBCoefFunctionOpA(meanFlowCoef_);
@@ -460,12 +465,13 @@ namespace CoupledField{
     LinearForm * lin = NULL;
     StdVector<std::string> vDofNames = velocityFct->GetResultInfo()->dofNames;
 
-
+    bool coefUpdateGeo;
     LOG_DBG(acousticmixedpde) << "Reading loads for mass conservation equation";
-    ReadRhsExcitation( "massEquationLoad", pressureFct->GetResultInfo()->dofNames, ResultInfo::SCALAR, isComplex_, ent, coef );
+    ReadRhsExcitation( "massEquationLoad", pressureFct->GetResultInfo()->dofNames, 
+                       ResultInfo::SCALAR, isComplex_, ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
 
-      lin = new BUIntegrator<IdentityOperator<FeH1,DIM,1,DATA_TYPE>, DATA_TYPE >(1.0,coef[i]);
+      lin = new BUIntegrator<IdentityOperator<FeH1,DIM,1,DATA_TYPE>, DATA_TYPE >(1.0,coef[i],coefUpdateGeo);
 
       lin->SetName("massEquationInt");
       LinearFormContext *ctx = new LinearFormContext( lin );
@@ -475,12 +481,12 @@ namespace CoupledField{
     }
 
     LOG_DBG(acousticmixedpde) << "Reading loads for momentum conservation equation";
-    ReadRhsExcitation( "momentumEquationLoad", vDofNames, ResultInfo::VECTOR, isComplex_, ent, coef );
+    ReadRhsExcitation( "momentumEquationLoad", vDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       if(usePiola_){
-        lin = new BUIntegrator<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE >(1.0,coef[i]);
+        lin = new BUIntegrator<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE >(1.0,coef[i],coefUpdateGeo);
       }else{
-        lin = new BUIntegrator<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE >(1.0,coef[i]);
+        lin = new BUIntegrator<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE >(1.0,coef[i],coefUpdateGeo);
       }
 
       lin->SetName("momentumEquationInt");
@@ -531,14 +537,14 @@ namespace CoupledField{
 
         if( dim_ == 2 ) {
           if(isComplex_)
-            abcInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), coeffKPV,1.0 );
+            abcInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), coeffKPV,1.0, updatedGeo_ );
           else
-            abcInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>(), coeffKPV,1.0 );
+            abcInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>(), coeffKPV,1.0, updatedGeo_ );
         } else {
           if(isComplex_)
-            abcInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(), coeffKPV,1.0 );
+            abcInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(), coeffKPV,1.0, updatedGeo_ );
           else
-            abcInt = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>(), coeffKPV,1.0 );
+            abcInt = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>(), coeffKPV,1.0, updatedGeo_ );
         }
 
         abcInt->SetName("abcIntegrator");
@@ -645,8 +651,8 @@ namespace CoupledField{
    }
 
    void AcousticMixedPDE::InitTimeStepping(){
-     shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(TimeSchemeGLM::TRAPEZOIDAL, 0) );
-     shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(TimeSchemeGLM::TRAPEZOIDAL, 0) );
+     shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(GLMScheme::TRAPEZOIDAL, 0) );
+     shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(GLMScheme::TRAPEZOIDAL, 0) );
 
      feFunctions_[ACOU_PRESSURE]->SetTimeScheme(mySchemeP);
      feFunctions_[ACOU_VELOCITY]->SetTimeScheme(mySchemeV);

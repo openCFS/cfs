@@ -65,13 +65,15 @@ namespace CoupledField {
     // ======================================================================
     pdename_          = "fluidMechPerturbed";
     pdematerialclass_ = FLOW;
-    maxTimeDerivOrder_ = 1;
  
     nonLin_    = false;
     nonLinMaterial_ = false;
     isAlwaysStatic_ = false;
 
     needSolPrev_ = true;
+    
+    //! Always use total Lagrangian formulation 
+    updatedGeo_        = true;
  
     // Check the subtype of the problem
     paramNode->GetValue("subType", subType_);
@@ -301,10 +303,11 @@ namespace CoupledField {
         PtrParamNode flowNode = myParam_->Get("flowList")->GetByVal("flow","name",flowId.c_str());
         
         // Read coefficient flow coefficient function for this region
+        bool coefUpdateGeo = false;
         PtrCoefFct regionFlow;
         std::set<UInt> definedDofs;
         ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames, flowInfo->entryType, 
-                             false, regionFlow, definedDofs );
+                             false, regionFlow, definedDofs, coefUpdateGeo );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
         
 //        if(isComplex_){
@@ -320,10 +323,10 @@ namespace CoupledField {
         if( dim_ == 2 ) {
           convectiveVv = new ABInt<>(new IdentityOperator<FeH1,2,2>(),
                                      new ConvectiveOperator<FeH1,2,2>(),
-                                     density, 1.0);
+                                     density, 1.0, coefUpdateGeo);
         } else {
           convectiveVv = new ABInt<>(new IdentityOperator<FeH1,3,3>(),
-                                     new ConvectiveOperator<FeH1,3,3>(), density, 1.0);
+                                     new ConvectiveOperator<FeH1,3,3>(), density, 1.0, coefUpdateGeo);
         }
 
         convectiveVv->SetBCoefFunctionOpB(meanFlowCoef_);

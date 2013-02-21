@@ -68,6 +68,15 @@ namespace CoupledField {
       //see kaltenbacher, p.23, eq.(2.122)
       jacDet = sqrt(jac[0][0]*jac[0][0] + jac[1][0]*jac[1][0]);
     };
+    
+    // safety check for negative Jacobian determinant
+    if( jacDet <= 0.0 ) {
+      EXCEPTION( "Jacobian determinant of element " << ptEl->elemNum 
+                 << " with connectivity " << ptEl->connect.ToString() 
+                 << " in region '"
+                 << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId)
+                 << "' is negative!");
+    }
 
     // Check, if geometry is axi-symmetric. In this case scale the 
     // Jacobian determinant with 2*pi*r
@@ -1482,6 +1491,11 @@ void LagrangeElemShapeMap::SetElem( const Elem* ptElem, bool isUpdated ) {
   
   // get coordinates from grid
   ptGrid_->GetElemNodesCoord( coords_,ptElem->connect, isUpdated_ );
+//  std::cerr << "**** Coordinates for element " << ptElem->elemNum
+//      << " with connect " << ptElem->connect.ToString() 
+//      
+//      << "(" << (isUpdated ? "updated)" : "original)") << std::endl
+//      << coords_ << std::endl;
 
   // set reference element
 #ifndef NDEBUG

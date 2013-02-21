@@ -2,6 +2,7 @@
 
 #include "MatVec/BaseMatrix.hh"
 #include "PDE/StdPDE.hh"
+#include "PDE/SinglePDE.hh"
 #include "CoupledPDE/IterCoupledPDE.hh"
 #include "DataInOut/ResultCache.hh"
 
@@ -9,20 +10,54 @@ namespace CoupledField
 {
   //! Derived class for step-wise solving of iterative coupled StdPDEs
 
-  IterSolveStep::IterSolveStep(IterCoupledPDE &apde) 
+  IterSolveStep::IterSolveStep(IterCoupledPDE &apde, PtrParamNode node) 
     : BaseSolveStep(),
       rPDE_(apde)
   {
-    
+    param_ = node;
     startStep_ = 1;
-
   }
+  
+    
+   
 
   IterSolveStep::~IterSolveStep()
   {
   }
 
 
+  void IterSolveStep::Init() {
+
+    // Check if PDE providing geometrical updates is present at all 
+    UInt numSinglePDEs = rPDE_.singlePDEs_.GetSize();
+    for( UInt i = 0; i < numSinglePDEs; ++i ) {
+      SinglePDE * ptPde = rPDE_.singlePDEs_[i]; 
+      if( ptPde->GetName() == "mechanic" ) {
+        disp_ = dynamic_pointer_cast<FeFunction<Double> >
+        (ptPde->GetFeFunction(MECH_DISPLACEMENT));
+        break;
+      }
+    }
+    
+    if(!disp_)
+      return;
+    
+    Grid * ptGrid = disp_->GetGrid();
+    
+    // Loop over all regions to be updated
+    PtrParamNode geoNode = param_->Get("geometryUpdate", ParamNode::PASS);
+    if(!geoNode)
+      return;
+    ParamNodeList regions = geoNode->GetChildren();
+    for( UInt i = 0; i < regions.GetSize(); ++i ) {
+      std::string name = regions[i]->Get("name")->As<std::string>();
+      RegionIdType regionId = ptGrid->GetRegion().Parse(name);
+      updatedRegions_.insert(regionId);
+    }
+
+
+
+  }
   //----------------------- STATIC--------------------------------------------
 
   void IterSolveStep::SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams)
@@ -94,6 +129,9 @@ namespace CoupledField
 //        }
       } // end of for-loop
       
+      // Update the geometry
+      UpdateGeometry();
+      
       iter++;
       
       
@@ -107,10 +145,18 @@ namespace CoupledField
 
 
   //----------------------- TRANSIENT-----------------------------------------
+  
+  void IterSolveStep::InitTimeStepping() {
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      rPDE_.PDEs_[i]->GetSolveStep()->InitTimeStepping();
+    }
+  }
+  
   void IterSolveStep::PreStepTrans()
   {
     ResultCache::SetStepValue( actTime_ );
   }
+  
   
   
   void IterSolveStep::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams)
@@ -129,6 +175,13 @@ namespace CoupledField
     }
 
     while (iter < rPDE_.maxiter_ &&  (! normsReached)) {
+
+      
+      std::cerr << "==============================================\n"
+          << "==============================================\n"
+          << "  C O U P L E D   I T E R A T I O N  # " << iter << std::endl
+          << "==============================================\n"
+          << "==============================================\n";
       
       if (rPDE_.nonLinLogging_) {
         WARN("Adjust printing of coupled iterations to InfoNode");
@@ -139,8 +192,10 @@ namespace CoupledField
       }
 
 //      UInt counter = 0;
-      normsReached = true;
+      //normsReached = true;
 
+      UpdateGeometry();
+      
       for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
         
         
@@ -149,9 +204,12 @@ namespace CoupledField
 //                       (rPDE_.PDEs_[i]->GetName()).c_str());
 
        
-          
+        std::cerr << "==============================================\n"
+            << "  Solving PDE " << rPDE_.PDEs_[i]->GetName() << std::endl
+            << "==============================================\n";
         rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
+        rPDE_.PDEs_[i]->GetSolveStep()->SetCouplingIter(iter);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans();
 //        rPDE_.PDEs_[i]->CalcInputCoupling();
         rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(analysis_id, adjointParams);
@@ -187,6 +245,8 @@ namespace CoupledField
 //        }
       } // end of for-loop
 
+
+      
       iter++;
 //      if (rPDE_.nonLinLogging_)
 //        Info->PrintF(rPDE_.pdename_, "\n"); 
@@ -337,5 +397,57 @@ namespace CoupledField
     delete delta;
 
     return norm;
+  }
+  
+  void IterSolveStep::UpdateGeometry() {
+    // Check if displacement fefunction is set
+    if( !disp_)
+      return;
+    
+    Grid * ptGrid = disp_->GetGrid();
+    const UInt dim = ptGrid->GetDim();
+    // Loop over all regions of FeFunction
+    shared_ptr<EntityList> nodes;
+    std::set<RegionIdType> dispRegions = disp_->GetRegions();
+    std::set<RegionIdType>::const_iterator regionIt = updatedRegions_.begin();
+    
+    for( ; regionIt != updatedRegions_.end(); regionIt++ ) {
+      
+      std::string regionName = ptGrid->GetRegion().ToString(*regionIt);
+      std::cerr << "updating geometry on region '" << regionName << std::endl;
+      
+      // check if this region is contained in the displacement function as well
+      if( dispRegions.find(*regionIt) == dispRegions.end() ) {
+        WARN( "Can not perform geometry update on region"
+            << regionName << ", as there are no displacement defined on it!");
+      }
+      
+      nodes = ptGrid->GetEntityList(EntityList::NODE_LIST, regionName);
+      EntityIterator nodeIt = nodes->GetIterator();
+      
+      // Loop over all nodes
+      Vector<Double> offset(dim), totalOffset(nodes->GetSize() * dim );
+      StdVector<UInt> nodeNums(nodes->GetSize());
+      UInt pos = 0;
+      for( ; !nodeIt.IsEnd(); nodeIt++, pos++ ) {
+
+        nodeNums[pos] = nodeIt.GetNode();
+        // aquire nodal solution
+        disp_->GetEntitySolution(offset, nodeIt);
+        
+        UInt offsetPos = pos*dim;
+        for( UInt iDim = 0; iDim < dim; ++iDim ) {
+          totalOffset[offsetPos+iDim] = offset[iDim];
+        }
+
+      } 
+      // Pass total array
+      ptGrid->SetNodeOffset(nodeNums, totalOffset);
+    
+    
+      
+    }
+    
+    
   }
 } // end of namespace

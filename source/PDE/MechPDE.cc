@@ -45,12 +45,14 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
     pdename_          = "mechanic";
     pdematerialclass_ = MECHANIC;
-    maxTimeDerivOrder_ = 2;
 
     nonLin_        = false;
     nonLinMaterial_= false;
 
     needSolPrev_ = true;
+    
+    //! Always use total Lagrangian formulation 
+    updatedGeo_        = false;
 
     // ****************************
     // DETERMINE GEOMETRY
@@ -381,13 +383,24 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     StdVector<PtrCoefFct > coef;
     LinearForm * lin = NULL;
     StdVector<std::string> dispDofNames = myFct->GetResultInfo()->dofNames;
+
+    /* Flag, if coefficient function lives on updated geometry (updated 
+     * Lagrangian formulation). For analytically prescribed values
+     * (pressure, force, stress), this is in general not the case. 
+     * In the coupled case, the magnetic force density however could live
+     * on an updated geometry. In this case, the ReadRhsExcitation()
+     * method will set the coefUpdateGeo flag to true, so the RHS-
+     * integrator also has to use this value.
+     * 
+     */
+    bool coefUpdateGeo = false;
     
     // ========================
     //  FORCES (volume, nodal)
     // ========================
     LOG_DBG(mechpde) << "Reading forces";
     ReadRhsExcitation( "force", dispDofNames, ResultInfo::VECTOR, isComplex_,
-                       ent, coef );
+                       ent, coef, coefUpdateGeo );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       
@@ -437,31 +450,24 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     LOG_DBG(mechpde) << "Reading force densities";
     
     ReadRhsExcitation( "forceDensity", dispDofNames, ResultInfo::VECTOR, isComplex_, 
-                        ent, coef );
+                        ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
         EXCEPTION("Force density must be defined on elements")
       }
       
-      // determine dimension
-//      EntityIterator it = ent[i]->GetIterator();
-//      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
-//      if( elemDim != dim_-1 ) {
-//        EXCEPTION("Force density can only be defined on surface elements");
-//      }
-      
       if( dim_ == 2) {
         if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Complex>(Complex(1.0), coef[i]);
+          lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Double>(1.0, coef[i]);
+          lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Double>(1.0, coef[i], coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex>(Complex(1.0), coef[i]);
+          lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double>(1.0, coef[i]);
+          lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double>(1.0, coef[i], coefUpdateGeo);
         }
       }
       lin->SetName("ForceDensityInt");
@@ -479,7 +485,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     LOG_DBG(mechpde) << "Reading mechanical pressure";
     StdVector<std::string> empty;
     ReadRhsExcitation( "pressure", empty, ResultInfo::VECTOR, isComplex_, 
-                        ent, coef );
+                        ent, coef, coefUpdateGeo );
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
@@ -497,18 +503,22 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       if( dim_ == 2) {
         if(isComplex_) {
           lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,2>, 
-                                 Complex,true>(Complex(presFac), coef[i], volRegions);
+                                 Complex,true>(Complex(presFac), coef[i], 
+                                               volRegions, coefUpdateGeo);
         } else {
           lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,2>, 
-                                 Double,true>(presFac, coef[i], volRegions);
+                                 Double,true>(presFac, coef[i], volRegions, 
+                                              coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
           lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,3>, 
-                                 Complex, true>(Complex(presFac), coef[i], volRegions);
+                                 Complex, true>(Complex(presFac), coef[i], 
+                                                volRegions, coefUpdateGeo);
         } else {
           lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,3>, 
-                                 Double, true>(presFac, coef[i], volRegions);
+                                 Double, true>(presFac, coef[i], 
+                                               volRegions, coefUpdateGeo);
         }
       }
       lin->SetName("PressureInt");
@@ -526,7 +536,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     LOG_DBG(mechpde) << "Reading surface tractions";
       
       ReadRhsExcitation( "traction", dispDofNames, ResultInfo::VECTOR, isComplex_, 
-                          ent, coef );
+                          ent, coef, coefUpdateGeo );
       for( UInt i = 0; i < ent.GetSize(); ++i ) {
         // check type of entitylist
         if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -541,15 +551,19 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         
         if( dim_ == 2) {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Complex>(Complex(1.0), coef[i]);
+            lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Complex>(Complex(1.0), 
+                                                                        coef[i], coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Double>(1.0, coef[i]);
+            lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Double>(1.0, coef[i], 
+                                                                       coefUpdateGeo);
           }
         } else  {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex>(Complex(1.0), coef[i]);
+            lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex>(Complex(1.0), 
+                                                                        coef[i], coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double>(1.0, coef[i]);
+            lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double>(1.0, coef[i], 
+                                                                       coefUpdateGeo);
           }
         }
         lin->SetName("TractionIntegrator");
@@ -659,7 +673,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   // ======================================================
   void MechPDE::InitTimeStepping()
   {
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(TimeSchemeGLM::NEWMARK, 0) );
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
     feFunctions_[MECH_DISPLACEMENT]->SetTimeScheme(myScheme);
   }
 

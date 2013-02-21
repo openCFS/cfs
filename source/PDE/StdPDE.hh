@@ -160,9 +160,6 @@ namespace CoupledField {
     std::map<RegionIdType, StdVector<NonLinType> >& GetNonLinRegionTypes() 
     { return regionNonLinTypes_;};
 
-    UInt& GetIterCoupledCounter() 
-    { return iterCoupledCounter_;};
-
     //! Return material class
     MaterialClass GetMaterialClass() const { return pdematerialclass_; }
     //@}
@@ -221,6 +218,7 @@ namespace CoupledField {
     
     //! Holds the PDE-specific subType of the PDE (e.g. planeStrain for mech)
     std::string subType_;
+    
     //@}
 
     // -----------------------------------------------------------------------

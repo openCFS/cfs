@@ -8,6 +8,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Driver/TimeSchemes/BaseTimeScheme.hh"
 #include "Driver/Assemble.hh"
 #include "BaseFE.hh"
 #include "H1/H1Elems.hh"
@@ -449,7 +450,7 @@ DECLARE_LOG(fefunc)
 
   
   template<typename T> BiLinearForm* FeFunction<T>::
-  GenerateInterpolBilinForm( UInt spaceDim, UInt dofDim ) {
+  GenerateInterpolBilinForm( UInt spaceDim, UInt dofDim, bool updatedGeo  ) {
     BiLinearForm *massInt = NULL;
     FeSpace::SpaceType curType = feSpace_->GetSpaceType();
     PtrCoefFct unity;
@@ -466,33 +467,42 @@ DECLARE_LOG(fefunc)
           //  1D Entities
           // =============
           if(dofDim==1) {
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,1,1,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,1,1,T>(),
+                                   unity, 1.0, updatedGeo );
           } else if(dofDim==2) {
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,1,2,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,1,2,T>(), 
+                                   unity, 1.0, updatedGeo );
           }else if(dofDim==3){
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,1,3,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,1,3,T>(), 
+                                   unity, 1.0, updatedGeo );
           }
         } else if(spaceDim==2){
           // =============
           //  2D Entities
           // =============
           if(dofDim==1) {
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,2,1,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,2,1,T>(), 
+                                   unity, 1.0, updatedGeo );
           } else if(dofDim==2) {
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,2,2,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,2,2,T>(), 
+                                   unity, 1.0, updatedGeo );
           }else if(dofDim==3){
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,2,3,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,2,3,T>(), 
+                                   unity, 1.0, updatedGeo );
           }
         } else if(spaceDim==3){
           // =============
           //  3D Entities
           // =============
           if(dofDim==1) {
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,3,1,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,3,1,T>(), 
+                                   unity, 1.0, updatedGeo );
           } else if(dofDim==2) {
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,3,2,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,3,2,T>(), 
+                                   unity, 1.0, updatedGeo );
           }else if(dofDim==3){
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,3,3,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,3,3,T>(), 
+                                   unity, 1.0, updatedGeo );
           }
         }
         break;
@@ -506,7 +516,8 @@ DECLARE_LOG(fefunc)
   }
   
   template<typename T> LinearForm* FeFunction<T>::
-  GenerateInterpolLinForm( UInt spaceDim, UInt dofDim, PtrCoefFct coefFct ) {
+  GenerateInterpolLinForm( UInt spaceDim, UInt dofDim, PtrCoefFct coefFct, 
+                           bool updatedGeo ) {
     LinearForm * rhsInt = NULL;
     FeSpace::SpaceType curType = feSpace_->GetSpaceType();
     switch(curType){
@@ -517,33 +528,33 @@ DECLARE_LOG(fefunc)
           //  1D Entities
           // =============
           if(dofDim==1) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,1,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,1,T>,T>(1.0, coefFct, updatedGeo );
           } else if(dofDim==2) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,2,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,2,T>,T>(1.0, coefFct, updatedGeo );
           }else if(dofDim==3){
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,3,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,3,T>,T>(1.0, coefFct, updatedGeo );
           }
         } else if(spaceDim==2){
           // =============
           //  2D Entities
           // =============
           if(dofDim==1) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,1,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,1,T>,T>(1.0, coefFct, updatedGeo );
           } else if(dofDim==2) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,2,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,2,T>,T>(1.0, coefFct, updatedGeo );
           }else if(dofDim==3){
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,3,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,3,T>,T>(1.0, coefFct, updatedGeo );
           }
         } else if(spaceDim==3){
           // =============
           //  3D Entities
           // =============
           if(dofDim==1) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,3,1,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,3,1,T>,T>(1.0, coefFct, updatedGeo );
           } else if(dofDim==2) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,3,2,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,3,2,T>,T>(1.0, coefFct, updatedGeo );
           }else if(dofDim==3){
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,3,3,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,3,3,T>,T>(1.0, coefFct, updatedGeo );
           }
         }
         break;
@@ -566,7 +577,7 @@ DECLARE_LOG(fefunc)
     temp.Resize(eqns.GetSize());
     for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
       if( eqns[iDof] != 0 ) {
-        temp[iDof] = factor_ * vals[eqns[iDof]-1];
+        temp[iDof] = factor_ * vals[std::abs(eqns[iDof])-1];
       } else {
         temp[iDof] = 0.0;
       }
@@ -588,7 +599,7 @@ DECLARE_LOG(fefunc)
        feSpace_->GetEqns(eqns, it,iDof);
        for(UInt iEqn = 0;iEqn < eqns.GetSize() ; iEqn++){
          if( eqns[iEqn] > 0 ) {
-         temp[iDof][iEqn] = factor_ * vals[eqns[iEqn]-1];
+         temp[iDof][iEqn] = factor_ * vals[std::abs(eqns[iEqn])-1];
        } else {
          temp[iDof][iEqn] = 0.0;
        }
@@ -617,6 +628,7 @@ DECLARE_LOG(fefunc)
                                         shared_ptr<CoefFunction> coefFct,
                                         std::map <Integer, T>& vals,
                                         bool cache,
+                                        bool updatedGeo,
                                         const std::set<UInt>& comp ) {
 
     
@@ -714,7 +726,7 @@ DECLARE_LOG(fefunc)
         // generate new assemble class    
         BasePDE::AnalysisType aType = 
             isComplex ? BasePDE::HARMONIC : BasePDE::STATIC;
-        ctx->assemble = new Assemble( ctx->algSys, aType, 0 );
+        ctx->assemble = new Assemble( ctx->algSys, aType );
         
         // --------------------------------------------------------------------
         // generate (dimensional and space-dependent) interpolation (bi)linear
@@ -723,8 +735,8 @@ DECLARE_LOG(fefunc)
         const Elem* el = entityList->GetIterator().GetElem();
         UInt dim = Elem::shapes[el->type].dim;
         UInt dofDim = feSpace_->GetNumDofs();
-        BiLinearForm *massInt = GenerateInterpolBilinForm(dim, dofDim);
-        LinearForm * rhsInt = GenerateInterpolLinForm(dim, dofDim, coefFct);
+        BiLinearForm *massInt = GenerateInterpolBilinForm(dim, dofDim, updatedGeo );
+        LinearForm * rhsInt = GenerateInterpolLinForm(dim, dofDim, coefFct, updatedGeo);
 
         BiLinFormContext * massCtx = new BiLinFormContext( massInt, STIFFNESS);
         massInt->SetName("Interpolator");
@@ -861,7 +873,7 @@ DECLARE_LOG(fefunc)
         // Map coefficient function onto the actual FeSpace
         std::map<Integer, T> coefs;
         this->MapCoefFctToSpace( actBc.entities, actBc.value, coefs, 
-                                 true, actBc.dofs );
+                                 true, actBc.updatedGeo, actBc.dofs );
 
         // Loop over all entries and set them
         typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();

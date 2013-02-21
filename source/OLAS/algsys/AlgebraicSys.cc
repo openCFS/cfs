@@ -650,6 +650,12 @@ namespace CoupledField {
 
         delete copy;
 
+        if(els->HasByVal("stiffness", true) && sysMat_[STIFFNESS] != NULL)
+          sysMat_[STIFFNESS]->Export((base+"_stiffness.mtx").c_str() );
+
+        if(els->HasByVal("mass", true) && sysMat_[MASS] != NULL)
+          sysMat_[MASS]->Export((base+"_mass.mtx").c_str() );
+
         if(els->HasByVal("damping", true) && sysMat_[DAMPING] != NULL)
           sysMat_[DAMPING]->Export((base+"_damping.mtx").c_str() );
 
@@ -2299,6 +2305,7 @@ namespace CoupledField {
             << matrixTypes_.size() << " FE matrices in the game!");
       }
     }
+    
     for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
       if ( sysMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
         std::map<UInt, std::set<UInt> > dummyFreeSet;

@@ -55,13 +55,16 @@ namespace CoupledField {
     // =====================================================================
     pdename_          = "electrostatic";
     pdematerialclass_ = ELECTROSTATIC;
-    maxTimeDerivOrder_ = 0;
  
     nonLin_    = false;
     nonLinMaterial_ = false;
     isAlwaysStatic_ = true;
     isPiezoCoupled_ = false;
-
+    
+    //! Always use updated Lagrangian formulation 
+    updatedGeo_        = true;
+    
+    
     needSolPrev_ = true;
  
     // Check the subtype of the problem
@@ -124,7 +127,7 @@ namespace CoupledField {
 
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
-
+      
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
       actSDList->SetRegion( actRegion );
@@ -192,13 +195,17 @@ namespace CoupledField {
     // Double factor = 1.0;
     // if ( isPiezoCoupled_ )
     //   factor = -1.0;
+
+    
+    // Flag, if coefficient function lives on updated geoemtry
+    bool coefUpdateGeo = true;
     
     // =========================
     //  Charges (volume, nodal)
     // =========================
     LOG_DBG(elecpde) << "Reading charges";
     ReadRhsExcitation( "charge", dofNames, ResultInfo::VECTOR, 
-                       isComplex_, ent, coef );
+                       isComplex_, ent, coef,coefUpdateGeo );
 
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
@@ -244,9 +251,9 @@ namespace CoupledField {
                    CoefXprVecScalOp(coef[i], 
                    boost::lexical_cast<std::string>(volume), CoefXpr::OP_DIV) );
         if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i]);
+          lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i],coefUpdateGeo);
         } else  {
-          lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i]);
+          lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i],coefUpdateGeo);
         }
         lin->SetName("ChargeDensityInt");
         LinearFormContext *ctx = new LinearFormContext( lin );
@@ -262,16 +269,16 @@ namespace CoupledField {
     // ================
     LOG_DBG(elecpde) << "Reading charge densities";
     ReadRhsExcitation( "chargeDensity", dofNames, 
-                       ResultInfo::VECTOR, isComplex_, ent, coef );
+                       ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
         EXCEPTION("Charge density must be defined on elements")
       }
       if(isComplex_) {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i]);
+        lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
       } else  {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i]);
+        lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i], coefUpdateGeo);
       }
       lin->SetName("ChargeDensityInt");
       LinearFormContext *ctx = new LinearFormContext( lin );
@@ -292,7 +299,7 @@ namespace CoupledField {
     if(dim_ == 2 && isaxi_)
       vecDofNames = "r", "z";
     ReadRhsExcitation( "fluxDensity", vecDofNames, 
-                       ResultInfo::VECTOR, isComplex_, ent, coef );
+                       ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
@@ -308,18 +315,18 @@ namespace CoupledField {
         if( dim_ == 2) {
           if(isComplex_) {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>, 
-                Complex, true>(Complex(1.0), coef[i], volRegions);
+                Complex, true>(Complex(1.0), coef[i], volRegions, coefUpdateGeo);
           } else  {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>, 
-                Double, true>(1.0, coef[i], volRegions);
+                Double, true>(1.0, coef[i], volRegions, coefUpdateGeo);
           } 
         }else {
           if(isComplex_) {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-                Complex, true>(Complex(1.0), coef[i], volRegions);
+                Complex, true>(Complex(1.0), coef[i], volRegions, coefUpdateGeo);
           } else  {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-                Double, true>(1.0, coef[i], volRegions);
+                Double, true>(1.0, coef[i], volRegions, coefUpdateGeo);
           } 
         }
         lin->SetName("SurfaceFluxDensityInt");
@@ -356,7 +363,7 @@ namespace CoupledField {
         actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
                                    Global::REAL);
     }
-
+    
     // Note; in the piezoelectric case we have to multiply by -1
     Double factor = 1.0;
     if ( isPiezoCoupled_ )
@@ -365,19 +372,19 @@ namespace CoupledField {
     if ( isComplex ) {
       if( dim_ == 2 ) {
         integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,Complex>(), 
-                                             curCoef, factor );
+                                             curCoef, factor, updatedGeo_ );
       } else {
         integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,Complex>(), 
-                                             curCoef, factor );
+                                             curCoef, factor, updatedGeo_ );
       }
     }
     else {
       if( dim_ == 2 ) {
         integ = new BDBInt<>(new GradientOperator<FeH1,2> (), 
-            curCoef, factor );
+            curCoef, factor, updatedGeo_ );
       } else {
         integ = new BDBInt<>(new GradientOperator<FeH1,3>(),
-            curCoef, factor );
+            curCoef, factor, updatedGeo_ );
       }
     }
 

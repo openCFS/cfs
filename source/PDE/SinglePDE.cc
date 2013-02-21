@@ -24,6 +24,7 @@
 
 // header for Solvestep and assemble
 #include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Driver/TimeSchemes/BaseTimeScheme.hh"
 #include "Driver/Assemble.hh"
 #include "Driver/SingleDriver.hh"
 #include "Driver/TransientDriver.hh"
@@ -73,8 +74,8 @@ namespace CoupledField {
     StdPDE( aptgrid, paramNode ),
     isDirectCoupled_(false),
     isInitialized_(false),
-    maxTimeDerivOrder_(0),
-    iterCplPde_(NULL)
+    iterCplPde_(NULL),
+    updatedGeo_(false)
   {
     
     // get id for linear system
@@ -204,7 +205,7 @@ namespace CoupledField {
 
     // Create new assemble class with according analysistype
     if( isDirectCoupled_ == false && needsAlgsys_ == true) {
-      assemble_ = new Assemble( algsys_, analysistype_, maxTimeDerivOrder_ );
+      assemble_ = new Assemble( algsys_, analysistype_ );
     }
 
     //======================================================================
@@ -379,6 +380,10 @@ namespace CoupledField {
       for( it = timeDerivFeFunctions_.begin(); it != timeDerivFeFunctions_.end(); ++it ) {
         shared_ptr<BaseFeFunction> primFeFct = feFunctions_[timeDerivPrimaryResults_[it->first]];
         shared_ptr<BaseFeFunction> derivFeFct = it->second;
+        if( !primFeFct || !derivFeFct ) {
+          EXCEPTION( "The time derivative information for PDE '" << pdename_
+                    << "' is not set correctly!" );
+        }
         derivFeFct->Finalize();
         UInt timeDerivOrder = timeDerivOrder_[it->first];
         if( analysistype_ == HARMONIC ||  analysistype_ == EIGENFREQUENCY) {
@@ -445,6 +450,7 @@ namespace CoupledField {
   
   void SinglePDE::SetIterCoupledPDE( IterCoupledPDE* itCplPde ) {
     iterCplPde_ = itCplPde;
+    isIterCoupled_ = true;
   }
 
   
@@ -965,6 +971,9 @@ namespace CoupledField {
      for(; stiffIt != bdbInts_.end(); ++stiffIt ) {
        RegionIdType region = stiffIt->first;
        BaseBDBInt* bdb = stiffIt->second;
+       if( !bdb)
+         continue;
+       
        // 1) pass it to all coefficient functions related to stiffness
        std::set<shared_ptr<CoefFunctionFormBased> >::iterator stiffCoefIt;
        for( stiffCoefIt = stiffFormCoefs_.begin();
@@ -991,11 +1000,15 @@ namespace CoupledField {
       
       RegionIdType region = massIt->first;
       BaseBDBInt* mass = massIt->second;
+      
+      // check, that mass integrator is defined at all
+      if( !mass)
+        continue;
+          
       // 1) pass it to all coefficient functions related to mass
       std::set<shared_ptr<CoefFunctionFormBased> >::iterator massCoefIt;
       for( massCoefIt = massFormCoefs_.begin();
           massCoefIt != massFormCoefs_.end(); ++massCoefIt) {
-        std::cerr << "Adding region " << region << std::endl;
         (*massCoefIt)->AddIntegrator(mass, region);
       }
       // 2) pass it to all result functors related to mass
@@ -1392,8 +1405,9 @@ namespace CoupledField {
           // Read defined excitation
           std::set<UInt> definedDofs;
           PtrCoefFct coef;
+          bool coefUpdatedGeo = false;
           ReadUserFieldValues( actList, hdbcNodes[i], dofNames, ResultInfo::VECTOR,
-                               isComplex_, coef, definedDofs );
+                               isComplex_, coef, definedDofs,  coefUpdatedGeo );
           
           // ensure, that only the default coordinate system is used
           if( coef->GetCoordinateSystem() ) {
@@ -1456,8 +1470,9 @@ namespace CoupledField {
         // Read defined excitation
         std::set<UInt> definedDofs;
         PtrCoefFct coef;
+        bool updatedGeo;
         ReadUserFieldValues( actList, idbcNodes[i], dofNames, ResultInfo::VECTOR,
-                             isComplex_, coef, definedDofs );
+                             isComplex_, coef, definedDofs, updatedGeo );
         
         // ensure, that only the default coordinate system is used
         if( coef->GetCoordinateSystem() ) {
@@ -1471,6 +1486,7 @@ namespace CoupledField {
         actBc->result = actFeFunction->GetResultInfo();
         actBc->dofs = definedDofs;
         actBc->value = coef;
+        actBc->updatedGeo = updatedGeo;
 
         // add definition to feFunction
         actFeFunction->AddInhomDirichletBc(actBc);
@@ -1623,7 +1639,8 @@ namespace CoupledField {
                                      ResultInfo::EntryType type,
                                      bool isComplex,
                                      StdVector<shared_ptr<EntityList> >& entities, 
-                                     StdVector<PtrCoefFct >& coef ) {
+                                     StdVector<PtrCoefFct >& coef,
+                                     bool& updateGeo ) {
     
     // get grip of all elements of that type
     if( !myParam_->Has("bcsAndLoads") )
@@ -1662,7 +1679,7 @@ namespace CoupledField {
 
       std::set<UInt> definedDofs;
       ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
-                          definedDofs );
+                          definedDofs, updateGeo );
 
     }
   }
@@ -1673,7 +1690,8 @@ namespace CoupledField {
                                        ResultInfo::EntryType type,
                                        bool isComplex,
                                        PtrCoefFct & coef,
-                                       std::set<UInt>& definedDofs ){
+                                       std::set<UInt>& definedDofs,
+                                       bool& updateGeo){
 
     UInt numComp = compNames.GetSize();
     StdVector<std::string> vals(numComp), phases(numComp);
@@ -1693,6 +1711,9 @@ namespace CoupledField {
       } else {
         coef.reset(new CoefFunctionNodalGrid<Complex>(valueNode->Get("grid")));
       }
+      // here we assume no updated geometry
+      updateGeo = false;
+      
     } else if( valueNode->Has("coupling") ) {
       // ====================
       //  ITERATIVE COUPLING 
@@ -1711,7 +1732,8 @@ namespace CoupledField {
                    << pdeName << "', as no coupling object is defined.");
       }
       
-      coef = iterCplPde_->GetCouplingCoefFct(solType, list, pdeName);
+      coef = iterCplPde_->GetCouplingCoefFct(solType, list, pdeName, updateGeo);
+      
       
     }else{
       // ======================================
@@ -1843,6 +1865,11 @@ namespace CoupledField {
         //    - components:
 
       }
+      
+      // explicitly defined boundary conditions are assumed to comply with
+      // the formulation of the PDE, i.e. if the PDE has total Lagrangian 
+      // formulation, so will be all the BCs and source terms.
+      updateGeo = updatedGeo_;
     }
 
     // obtain coordinate system and set it at coefficient function
@@ -2196,8 +2223,6 @@ namespace CoupledField {
 //  }
 //
 //  void SinglePDE::ResetCoupling() {
-//
-//    iterCoupledCounter_ = 0;
 //
 //
 //  }

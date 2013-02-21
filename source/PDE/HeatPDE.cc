@@ -56,8 +56,10 @@ HeatPDE::HeatPDE(Grid * aptgrid, PtrParamNode paramNode )
 
   pdename_           = "heatConduction";
   pdematerialclass_  = THERMIC;
-  maxTimeDerivOrder_ = 1;
   nonLin_            = false;
+  
+  //! Always use updated Lagrangian formulation 
+  updatedGeo_        = true;
 }
 
 
@@ -234,9 +236,11 @@ void HeatPDE::DefineIntegrators() {
       // create stiffness integrator
       BaseBDBInt* stiffInt = NULL;
       if( dim_ == 2 ) {
-        stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), condNL,1.0 );
+        stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), condNL,
+                               1.0, updatedGeo_ );
       } else {
-        stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), condNL,1.0 );
+        stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), condNL,
+                               1.0, updatedGeo_ );
       }
       stiffInt->SetName("StiffnessIntegrator-NL");
 
@@ -251,7 +255,8 @@ void HeatPDE::DefineIntegrators() {
       // =================================
       //  Nonlinear RHS-integrator
       // =================================
-      LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0, feFunc );
+      LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0, 
+                                                          feFunc );
         rhsNlinForm->SetName("RHSNonLinFormHeatStiff");
         LinearFormContext * rhsNlinContext =
             new LinearFormContext( rhsNlinForm );
@@ -267,9 +272,9 @@ void HeatPDE::DefineIntegrators() {
 
       BaseBDBInt* stiffInt = NULL;
       if( dim_ == 2 ) {
-        stiffInt = new BDBInt<>(new GradientOperator<FeH1,2>(), curCoef,1.0 );
+        stiffInt = new BDBInt<>(new GradientOperator<FeH1,2>(), curCoef,1.0, updatedGeo_ );
       } else {
-        stiffInt = new BDBInt<>(new GradientOperator<FeH1,3>(), curCoef,1.0 );
+        stiffInt = new BDBInt<>(new GradientOperator<FeH1,3>(), curCoef,1.0, updatedGeo_ );
       }
       stiffInt->SetName("StiffnessIntegrator");
       
@@ -315,9 +320,11 @@ void HeatPDE::DefineIntegrators() {
       // create stiffness integrator
       BaseBDBInt* massIntNL = NULL;
       if( dim_ == 2 ) {
-        massIntNL = new BBInt<>(new IdentityOperator<FeH1,2>(), nlMassCoeff, 1.0 );
+        massIntNL = new BBInt<>(new IdentityOperator<FeH1,2>(), nlMassCoeff, 
+                                1.0, updatedGeo_ );
       } else {
-        massIntNL = new BBInt<>(new IdentityOperator<FeH1,3>(), nlMassCoeff, 1.0 );
+        massIntNL = new BBInt<>(new IdentityOperator<FeH1,3>(), nlMassCoeff, 
+                                1.0, updatedGeo_ );
       }
       massIntNL->SetName("MassIntegrator-NL");
 
@@ -343,9 +350,9 @@ void HeatPDE::DefineIntegrators() {
     else {
       BiLinearForm *massInt = NULL;
       if(dim_==2)
-        massInt = new BBInt<>(new IdentityOperator<FeH1,2,1,Double>(), massFactor,1.0 );
+        massInt = new BBInt<>(new IdentityOperator<FeH1,2,1,Double>(), massFactor,1.0, updatedGeo_ );
       else
-        massInt = new BBInt<>(new IdentityOperator<FeH1,3,1,Double>(), massFactor,1.0 );
+        massInt = new BBInt<>(new IdentityOperator<FeH1,3,1,Double>(), massFactor,1.0, updatedGeo_ );
 
       massInt->SetName("MassIntegrator");
       massInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace() );
@@ -626,21 +633,26 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 //      }
 //    } // for
 
+    bool coefUpdateGeo = true;
     // =====================
     //  HEAT SOURCE DENSITY
     // =====================
     LOG_DBG(heatcondpde) << "Reading heat source density";
+    
     ReadRhsExcitation( "heatSourceDensity", dofNames, 
-                       ResultInfo::VECTOR, isComplex_, ent, coef );
+                       ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
         EXCEPTION("Heat source density must be defined on elements")
       }
+      EntityIterator it = ent[i]->GetIterator();
+      it.Begin();
+      
       if(isComplex_) {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i]);
+        lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
       } else  {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i]);
+        lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i], coefUpdateGeo);
       }
       lin->SetName("HeatSourceDensityInt");
       LinearFormContext *ctx = new LinearFormContext( lin );
@@ -666,7 +678,7 @@ void HeatPDE::InitTimeStepping() {
   // Until now no effective mass formulation in the trapezoidal
   //  integration scheme is implemented!
   //TS_alg_ = new Trapezoidal( algsys_, olasNode_ );
-  shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(TimeSchemeGLM::TRAPEZOIDAL, 0) );
+  shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::TRAPEZOIDAL, 0) );
 
   feFunctions_[HEAT_TEMPERATURE]->SetTimeScheme(myScheme);
 

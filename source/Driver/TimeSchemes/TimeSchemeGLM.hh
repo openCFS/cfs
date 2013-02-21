@@ -23,17 +23,9 @@
 
 namespace CoupledField{
 
-//see below for desciption
+//see below for description
 class TimeSchemeGLM : public BaseTimeScheme{
   public:
-
-    /// Enumeration for each GLM scheme available
-    typedef enum{
-      TRAPEZOIDAL = 1,
-      NEWMARK = 2
-     // RK4 = 3,
-     // BDF2 = 4
-    } SchemeType;
 
 
     /*!
@@ -41,12 +33,23 @@ class TimeSchemeGLM : public BaseTimeScheme{
      *  \param[in] type The TimeScheme to be used. Newmark, Trapezoidal, etc.
      *  \param[in] solDerivOrder The time derivative order of the solution to the effective system
      */
-    TimeSchemeGLM(SchemeType type, UInt solDerivOrder=0);
+    TimeSchemeGLM(GLMScheme::SchemeType type, UInt solDerivOrder=0);
+    
+    
+    /*!
+     * Alternative constructor to directly pass a pre-constructed GLM-scheme
+     * \param[in] scheme Externally created time scheme. Ownership gets handed to this class.
+     * \param[in] solDerivOrder The time derivative order of the solution to the effective system
+     */
+    TimeSchemeGLM(GLMScheme* scheme, UInt solDerivOrder=0);
 
     virtual ~TimeSchemeGLM();
 
     //! \copydoc BaseTimeScheme::Init(SingleVector*,Double)
     virtual void Init(SingleVector* solVec,Double dt);
+    
+    //! \copydoc BaseTimeScheme::BeginStep(bool)
+    virtual void BeginStep(bool updatePredictor=true);
 
     //This function is pretty messy right now and we need to reconsider
     // mainly because of the many if clauses to realize a optional predictor scheme...
@@ -54,7 +57,7 @@ class TimeSchemeGLM : public BaseTimeScheme{
     virtual void ComputeStageRHS(UInt actStage, Integer derivId, SingleVector* rhsVec, Integer subIdx=-1);
 
     /// Update the GLM Vectors according to new solution
-    virtual void FinishStep();
+    virtual void FinishStep( );
 
     //! \copydoc BaseTimeScheme::SetSolutionTimeDerivOrder(UInt,Double)
     virtual void SetSolutionTimeDerivOrder(UInt order,Double timeStepSize){
@@ -91,13 +94,13 @@ class TimeSchemeGLM : public BaseTimeScheme{
     void InitGLMs();
 
     ///map of all available time schemes
-    std::map<SchemeType, GLMScheme*> availSchemes;
+    std::map<GLMScheme::SchemeType, GLMScheme*> availSchemes;
 
     /// pointer to time scheme
     GLMScheme* curScheme_;
 
     /// type of timescheme
-    SchemeType curType_;
+    GLMScheme::SchemeType curType_;
 
     //!This is the input vector of the GLM how its components get a meaning
     //!in combination with the GLM scheme used namely the parameters numOldSol_ numsolDerivs_ etc.

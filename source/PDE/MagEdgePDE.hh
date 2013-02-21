@@ -71,14 +71,6 @@ namespace CoupledField
     void InitTimeStepping();
 
     // =======================================================================
-    //  POSTPROCESSING
-    // =======================================================================
-
-    
-    //! Store all mass integrators for postprocessing
-    std::map<RegionIdType, BaseBDBInt*> massInts_;
-    
-    // =======================================================================
     //   COILS
     // =======================================================================
     
@@ -131,6 +123,14 @@ namespace CoupledField
     
     //! Coefficient function, containing the overall conductivity
     shared_ptr<CoefFunctionMulti> conduc_;
+    
+    //! Set containing all regions with regularized conductivity
+    
+    //! This set contains all regions, which have no physical conductivity,
+    //! but only a non-zero one due to regularization. This must be considered
+    //! when calculating eddy currents, which would be "unphysical" in these
+    //! regions.
+    std::set<RegionIdType> regularizedRegions_;
     
   private:
   };

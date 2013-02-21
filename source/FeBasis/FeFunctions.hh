@@ -14,7 +14,6 @@
 #include "MatVec/Vector.hh"
 
 #include "Utils/mathParser/mathParser.hh"
-#include "Driver/TimeSchemes/BaseTimeScheme.hh"
 
 namespace CoupledField {
 
@@ -29,7 +28,7 @@ namespace CoupledField {
   class LinearForm;
   class BiLinearForm;
   class SBM_Vector;
-  //class BaseTimeScheme;
+  class BaseTimeScheme;
 
 //!  Base class for a function approximated by Finite Elements 
 /*!
@@ -325,6 +324,8 @@ public:
   //!             coefficient values (value)
   //! \param cache Flag, if mapping should be cached (e.g. for boundary
   //!              conditions, depending on frequency, time)
+  //! \param updatedGeo Flag, if coefficient function lives on updated
+  //!                   geometry (updated Lagrangian formulation)
   //! \param comp Set containing the components, which should get mapped.
   //!             If empty, all components of the (vector-valued) function
   //!             get mapped
@@ -332,6 +333,7 @@ public:
                          shared_ptr<CoefFunction> coefFct,
                          std::map<Integer, T>& vals,
                          bool cache,
+                         bool updatedGeo,
                          const std::set<UInt>& comp = std::set<UInt>() );  
   
   //! Return vector containing the function coefficients
@@ -368,10 +370,12 @@ protected:
   BaseBOperator* GenerateInterpolationOperator(UInt dim, UInt dofDim);
 
   //! Generate interpolation bilinear form
-  BiLinearForm* GenerateInterpolBilinForm( UInt spaceDim, UInt dofDim );
+  BiLinearForm* GenerateInterpolBilinForm( UInt spaceDim, UInt dofDim,
+                                           bool updatedGeo );
   
   //! Generate interpolation linear form
-  LinearForm* GenerateInterpolLinForm( UInt spaceDim, UInt dofDim, PtrCoefFct );
+  LinearForm* GenerateInterpolLinForm( UInt spaceDim, UInt dofDim, PtrCoefFct,
+                                       bool updatedGeo );
   
   //! Update factor for time derivative (only complex case)
   void UpdateTimeDeriv();

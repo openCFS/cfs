@@ -50,8 +50,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     // =====================================================================
     pdename_          = "magneticEdge";
     pdematerialclass_ = ELECTROMAGNETIC;
-    maxTimeDerivOrder_ = 1;
-
+    
+    //! Always use updated Lagrangian formulation 
+    updatedGeo_        = true;
+      
     // check if we have a 3d setup
     bool is3d = param->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
     if ( !is3d )
@@ -152,7 +154,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
             actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, 
                                           feFunc, bOp );
         BaseBDBInt* stiff1 = NULL;
-        stiff1 = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, 1.0) ;
+        stiff1 = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, 1.0, updatedGeo_) ;
         stiff1->SetName("CurlCurlIntegrator-NL");
 
        BiLinFormContext * stiffContext =
@@ -179,7 +181,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
          
          //create stiffness integrator
          BiLinearForm* stiff2 = NULL;
-         stiff2 = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nuDeriv, 1.0) ;
+         stiff2 = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nuDeriv, 1.0, updatedGeo_) ;
          stiff2->SetName("CurlCurlIntegrator-NL-Newton");
 
          BiLinFormContext * stiffContext2 =
@@ -213,7 +215,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
             actMat->GetScalCoefFnc(MAG_RELUCTIVITY,Global::REAL );
         BaseBDBInt* curlcurl;
         //curlcurl = new BDBInt< CurlOperator<FeHCurl,3, Double> >(curCoef,1.0) ;
-        curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), curCoef,1.0) ;
+        curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), curCoef,1.0, updatedGeo_) ;
         curlcurl->SetName("CurlCurlIntegrator");
 
        BiLinFormContext * stiffContext =
@@ -259,6 +261,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         materials_[actRegion]->GetTensor( reluc, MAG_RELUCTIVITY, Global::REAL );
         conductivity =  regularizationFactor * reluc[0][0];
         scaleByEdgeSize = true;
+        
+        // add region to set of "regularized" regions
+        regularizedRegions_.insert(actRegion);
       }
 
       PtrCoefFct coeff =
@@ -281,14 +286,14 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         // edge size
         if( scaleByEdgeSize ) {
           massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<3,Double>(),
-                                        coeff,1.0);
+                                        coeff,1.0, updatedGeo_);
         } else {
           massInt = new BBIntMassEdge<>(new IdentityOperator<FeHCurl,3,1,Double>(),
-                                        coeff,1.0);
+                                        coeff,1.0, updatedGeo_);
         }
         massInt->SetName("MassIntegrator");
         massContext =
-            new BiLinFormContext(massInt, MASS );
+            new BiLinFormContext(massInt, DAMPING );
       }
       massContext->SetEntities( actSDList, actSDList );
       massContext->SetFeFunctions( feFunc, feFunc );
@@ -324,10 +329,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           coilCoefs_[actRegion] = coef;
           
           if( isComplex_ ) {
-            curInt = new BUIntegrator<IdentityOperator<FeHCurl,3,1,Complex>,Complex >(1.0, coef);
+            curInt = new BUIntegrator<IdentityOperator<FeHCurl,3,1,Complex>,Complex >(1.0, coef, updatedGeo_);
           }
           else {
-            curInt = new BUIntegrator<IdentityOperator<FeHCurl,3,1,Double>,Double >(1.0, coef);
+            curInt = new BUIntegrator<IdentityOperator<FeHCurl,3,1,Double>,Double >(1.0, coef, updatedGeo_);
           }
           curInt->SetName("CoilIntegrator");
           LinearFormContext * coilContext =
@@ -386,14 +391,14 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     StdVector<PtrCoefFct > coef;
     LinearForm * lin = NULL;
     StdVector<std::string> vecDofNames = myFct->GetResultInfo()->dofNames;
-       
+    bool coefUpdateGeo = true;
     // ==================
     //  FLUX DENSITY
     // ==================
     LOG_DBG(magEdgePde) << "Reading prescribed flux density";
 
     ReadRhsExcitation( "fluxDensity", vecDofNames, ResultInfo::VECTOR, isComplex_, 
-                       ent, coef );
+                       ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST ||
@@ -411,10 +416,14 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 //        lin = new BDUIntegrator<CurlOperator<FeHCurl,3, Double>, Double>(1.0, coef[i],
 //                                                                         reluc_ );
 //      }
+      EntityIterator it = ent[i]->GetIterator();
+      it.Begin();
       if(isComplex_) {
-             lin = new BUIntegrator<CurlOperator<FeHCurl,3, Double>, Complex>(Complex(1.0), factor);
+             lin = new BUIntegrator<CurlOperator<FeHCurl,3, Double>, Complex>(Complex(1.0), 
+                                                                              factor, coefUpdateGeo);
            } else {
-             lin = new BUIntegrator<CurlOperator<FeHCurl,3, Double>, Double>(1.0, factor);
+             lin = new BUIntegrator<CurlOperator<FeHCurl,3, Double>, Double>(1.0, factor, 
+                                                                             coefUpdateGeo);
            }
       lin->SetName("FluxIntegrator");
       LinearFormContext *ctx = new LinearFormContext( lin );
@@ -439,7 +448,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   // ======================================================
 
   void MagEdgePDE::InitTimeStepping() {
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(TimeSchemeGLM::TRAPEZOIDAL, 0) );
+    Double gamma = 1.0;
+    GLMScheme * scheme = new Trapezoidal(gamma);
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0) );
 
     feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
 
@@ -618,7 +629,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         jFunc.reset(new CoefFunctionFlux<Double>(aDotFct, eddy, -1.0));
       }
       DefineFieldResult( jFunc, eddy );
-      massFormCoefs_.insert(jFunc);
     }
 
     // === COIL CURRENT DENSITY ===
@@ -724,6 +734,21 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     // Initialized results involving coils
 
+    // === EDDY CURRENT DENSITY ===
+    shared_ptr<CoefFunctionFormBased> jEddyCoef =
+            dynamic_pointer_cast<CoefFunctionFormBased>(fieldCoefs_[MAG_EDDY_CURRENT_DENSITY]);
+    std::map<RegionIdType, BaseBDBInt*>::iterator massIt = massInts_.begin();
+    for( ; massIt != massInts_.end(); ++massIt ) {
+      RegionIdType region = massIt->first;
+      BaseBDBInt* massInt = massIt->second;
+      
+      // only assign region to jEddy, if it not a "regularized" region, i.e. 
+      // only regions with "physical" conductivity get assigned
+      if( regularizedRegions_.find(region) == regularizedRegions_.end()) {
+        jEddyCoef->AddIntegrator( massInt, region);
+      }
+    }
+    
     // === COIL CURRENT DENSITY ===
     shared_ptr<CoefFunctionMulti> ccdCoef =
         dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_COIL_CURRENT_DENSITY]);

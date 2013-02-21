@@ -50,10 +50,11 @@ namespace CoupledField{
 
     pdename_           = "acoustic";
     pdematerialclass_  = FLUID;
-    maxTimeDerivOrder_ = 2;
     nonLin_            = false;
-
-    isMechCoupled_ = false;
+    isMechCoupled_     = false;
+    
+    //! Always use total Lagrangian formulation 
+    updatedGeo_        = false;
 
     //check for pressure or potential formulation
     std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>();
@@ -197,18 +198,22 @@ namespace CoupledField{
       BaseBDBInt * stiffInt = NULL;
       if( dim_ == 2 ) {
         if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(), coeffPMLfactor, 1.0 );
+          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(), 
+                                        coeffPMLfactor, 1.0, updatedGeo_ );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
         }else{
-          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), factor, 1.0 );
+          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), factor, 
+                                       1.0, updatedGeo_ );
         }
       }
       else{
         if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),  coeffPMLfactor, 1.0 );
+          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(), 
+                                        coeffPMLfactor, 1.0, updatedGeo_ );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
         }else{
-          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), factor, 1.0 );
+          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), factor, 
+                                       1.0, updatedGeo_ );
         }
       }
       stiffInt->SetName("LaplaceIntegrator");
@@ -235,14 +240,18 @@ namespace CoupledField{
       
       if(dim_==2){
         if(harmonicPML)
-          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), coeffPMLMass, 1.0 );
+          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), 
+                                       coeffPMLMass, 1.0, updatedGeo_ );
         else
-          massInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 1.0 );
+          massInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 
+                                      1.0, updatedGeo_ );
       }else{
         if(harmonicPML)
-          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(), coeffPMLMass, 1.0 );
+          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(), coeffPMLMass, 
+                                       1.0, updatedGeo_ );
         else
-          massInt = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 1.0 );
+          massInt = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 
+                                      1.0, updatedGeo_ );
       }
 
       massInt->SetName("MassIntegrator");
@@ -277,8 +286,9 @@ namespace CoupledField{
         // Read coefficient flow coefficient function for this region and add it to flow functor
         PtrCoefFct regionFlow;
         std::set<UInt> definedDofs;
+        bool coefUpdateGeo;
         ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames, flowInfo->entryType, 
-                             isComplex_, regionFlow, definedDofs );
+                             isComplex_, regionFlow, definedDofs, coefUpdateGeo );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
 
         //now create the integrators
@@ -286,14 +296,14 @@ namespace CoupledField{
         BiLinearForm *convectiveDamp = NULL;
         if( dim_ == 2 ) {
           convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
-                                        new ConvectiveOperator<FeH1,2,1>(), coeffM, 2.0);
+                                        new ConvectiveOperator<FeH1,2,1>(), coeffM, 2.0, coefUpdateGeo);
           convectiveStiff = new ABInt<>(new ConvectivePierceOperator<FeH1,2,1>(),
-                                        new ConvectiveOperator<FeH1,2,1>(),coeffM, -1.0);
+                                        new ConvectiveOperator<FeH1,2,1>(),coeffM, -1.0, coefUpdateGeo);
         } else {
           convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),
-                                        new ConvectiveOperator<FeH1,3,1>(), coeffM, 2.0);
+                                        new ConvectiveOperator<FeH1,3,1>(), coeffM, 2.0, coefUpdateGeo);
           convectiveStiff = new ABInt<>(new ConvectivePierceOperator<FeH1,3,1>(),
-                                        new ConvectiveOperator<FeH1,3,1>(), coeffM, -1.0);
+                                        new ConvectiveOperator<FeH1,3,1>(), coeffM, -1.0, coefUpdateGeo);
         }
         convectiveDamp->SetBCoefFunctionOpB(meanFlowCoef_);
         convectiveDamp->SetName("convectiveDampPierce");
@@ -356,9 +366,9 @@ namespace CoupledField{
                                CoefXprBinOp(factor, c0, CoefXpr::OP_DIV ) );
         BiLinearForm * abcInt = NULL;
         if( dim_ == 2 ) {
-          abcInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), coeffDamp, 1.0 );
+          abcInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), coeffDamp, 1.0, updatedGeo_ );
         } else {
-          abcInt = new BBInt<>(new IdentityOperator<FeH1,3,1>(), coeffDamp, 1.0 );
+          abcInt = new BBInt<>(new IdentityOperator<FeH1,3,1>(), coeffDamp, 1.0, updatedGeo_ );
         }
 
         abcInt->SetName("abcIntegrator");
@@ -396,14 +406,15 @@ namespace CoupledField{
     // integrators by -densiy
     Double scalFactor = 1.0;
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
-    
+
+    bool coefUpdateGeo;
     // ===========================
     //  NORMAL VELOCITY (surface)
     // ===========================
     LOG_DBG(acousticpde) << "Reading normal velocity"; 
     
     ReadRhsExcitation( "normalVelocity", empty, ResultInfo::SCALAR, isComplex_,
-                          ent, coef );
+                          ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       
       // ensure that list contains only surface elements
@@ -426,18 +437,18 @@ namespace CoupledField{
         if( dim_ == 2) {
           if(isComplex_) {
             lin = new BUIntegrator<IdentityOperator<FeH1,2,1>,
-                Complex,true>(scalFactor, exValue, volRegions);
+                Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
           } else {
             lin = new BUIntegrator<IdentityOperator<FeH1,2,1>, 
-                Double,true>(scalFactor, exValue, volRegions);
+                Double,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
           }
         } else  {
           if(isComplex_) {
             lin = new BUIntegrator<IdentityOperator<FeH1,3,1>, 
-                Complex,true>(1.0, exValue, volRegions);
+                Complex,true>(1.0, exValue, volRegions, coefUpdateGeo);
           } else {
             lin = new BUIntegrator<IdentityOperator<FeH1,3,1>, 
-                Double,true>(1.0, exValue , volRegions);
+                Double,true>(1.0, exValue , volRegions, coefUpdateGeo);
           }
         }
       } else if( formulation_ == ACOU_PRESSURE && isComplex_) {
@@ -455,10 +466,10 @@ namespace CoupledField{
                                                       CoefXpr::OP_MULT) );
         if( dim_ == 2) {
           lin = new BUIntegrator<IdentityOperator<FeH1,2,1>,
-              Complex,true>(1.0, exValue, volRegions);
+              Complex,true>(1.0, exValue, volRegions, coefUpdateGeo);
         } else  {
           lin = new BUIntegrator<IdentityOperator<FeH1,3,1>, 
-              Complex,true>(1.0, exValue, volRegions);
+              Complex,true>(1.0, exValue, volRegions, coefUpdateGeo);
         }
 
       } else {
@@ -486,7 +497,7 @@ namespace CoupledField{
     if(dim_ == 2 && isaxi_)
       vecDofNames = "r", "z";
     ReadRhsExcitation( "velocity", vecDofNames, ResultInfo::VECTOR, isComplex_,
-                       ent, coef );
+                       ent, coef,coefUpdateGeo );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
 
@@ -510,18 +521,18 @@ namespace CoupledField{
         if( dim_ == 2) {
           if(isComplex_) {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>,
-                Complex,true>(scalFactor, exValue, volRegions);
+                Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
           } else {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>, 
-                Double,true>(scalFactor, exValue, volRegions);
+                Double,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
           }
         } else  {
           if(isComplex_) {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-                Complex,true>(scalFactor, exValue, volRegions);
+                Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
           } else {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-                Double,true>(scalFactor, exValue, volRegions);
+                Double,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
           }
         }
       } else if( formulation_ == ACOU_PRESSURE && isComplex_) {
@@ -539,10 +550,10 @@ namespace CoupledField{
                                                       CoefXpr::OP_MULT) );
         if( dim_ == 2) {
           lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>,
-              Complex,true>(scalFactor, exValue, volRegions);
+              Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
         } else  {
           lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-              Complex,true>(scalFactor, exValue, volRegions);
+              Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
         }
       } else {
         EXCEPTION( "Normal velocity can only be prescribed for potential "
@@ -561,7 +572,7 @@ namespace CoupledField{
     // ===========================
     // Only possible for harmonic potential formulation
     ReadRhsExcitation( "pressure", empty, ResultInfo::SCALAR, isComplex_,
-                       ent, coef );
+                       ent, coef, coefUpdateGeo );
     if( formulation_ == ACOU_POTENTIAL && isComplex_ ) { 
       for( UInt i = 0; i < ent.GetSize(); ++i ) {
 
@@ -594,6 +605,7 @@ namespace CoupledField{
          actBc->result = myFct->GetResultInfo();
          actBc->value = exValue;
          actBc->dofs.insert(0);
+         actBc->updatedGeo = coefUpdateGeo;
          myFct->AddInhomDirichletBc(actBc);
       } // loop entities
     } // if
@@ -956,7 +968,7 @@ namespace CoupledField{
 
   //! Init the time stepping
   void AcousticPDE::InitTimeStepping(){
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(TimeSchemeGLM::NEWMARK, 0) );
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
 
     feFunctions_[formulation_]->SetTimeScheme(myScheme);
 

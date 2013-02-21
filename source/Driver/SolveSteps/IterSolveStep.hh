@@ -5,6 +5,7 @@
 
 #include "PDE/BasePDE.hh"
 #include "MatVec/SingleVector.hh"
+#include "FeBasis/FeFunctions.hh"
 
 namespace CoupledField
 {
@@ -18,12 +19,14 @@ namespace CoupledField
   public:
 
     //! Constructor
-    IterSolveStep(IterCoupledPDE& apde);
+    IterSolveStep(IterCoupledPDE& apde, PtrParamNode );
 
     //! Destructor
     virtual ~IterSolveStep();
 
-
+    //! Initialize struct
+    void Init();
+    
     //----------------------- STATIC---------------------------------------
 
     //! routine for initilizations befor execution the SolveStep-method
@@ -38,6 +41,9 @@ namespace CoupledField
 
     //----------------------- TRANSIENT---------------------------------------
 
+    //! Initialize additional data-structures as needed for the glm
+    virtual void InitTimeStepping();
+    
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepTrans();
 
@@ -87,12 +93,26 @@ namespace CoupledField
     //! calculates the norm of a vector
     Double CalcNorm(NormType normtype, SingleVector & val, SingleVector & oldval); 
     
-
+    //! Update grid coordinates
+    void UpdateGeometry();
+    
     //! reference to PDE
     IterCoupledPDE &rPDE_;
 
     //! analysis type of all iteratively coupled PDEs is retrieved
     BasePDE::AnalysisType actAnalysisType_;
+    
+    //! Paramnode of <iterative>-element of the xml
+    PtrParamNode param_;
+    
+    //! FeFunction for nodal displacements
+    
+    //! Pointer to nodal displacements, used for grid update at 
+    //! the end of an iteration.
+    shared_ptr<FeFunction<Double> > disp_;
+    
+    //! Set containig updated regions
+    std::set<RegionIdType> updatedRegions_;
 
   };
 

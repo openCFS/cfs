@@ -41,6 +41,7 @@ namespace CoupledField
     // friend declaration
     friend class DirectCoupledPDE;
     friend class BasePairCoupling;
+    friend class IterCoupledPDE;
 
     
     typedef StdVector<shared_ptr<BaseResult> > ResultList;
@@ -152,13 +153,16 @@ namespace CoupledField
     //! \param[out] coef The generated coefficient function
     //! \param[out] definedDofs Set containing all defined dofs in case of a
     //!             vector-valued quantity.
+    //! \param[out] updateGeo Flag indicating, if coefficient function is defined
+    //!                  on an updated geometry (e.g. due to iterative coupling).
     void ReadUserFieldValues( shared_ptr<EntityList> list,
                               PtrParamNode valueNode,
                               const StdVector<std::string>& compNames,
                               ResultInfo::EntryType type,
                               bool isComplex,
                               PtrCoefFct & coef,
-                              std::set<UInt>& definedDofs );
+                              std::set<UInt>& definedDofs,
+                              bool& updateGeo);
 
   protected:
 
@@ -232,12 +236,15 @@ namespace CoupledField
     //!                  generated
     //! \param entities Vector of entityLists of the boundary condition
     //! \param coef Vector of coefficients function for the values
+    //! \param updateGeo Flag indicating, if coefficient function is defined
+    //!                  on an updated geometry (e.g. due to iterative coupling).
     void ReadRhsExcitation( const std::string& elemName, 
                             const StdVector<std::string>& compNames,
                             ResultInfo::EntryType type,
                             bool isComplex,
                             StdVector<shared_ptr<EntityList> >& entities, 
-                            StdVector<PtrCoefFct>& coef );
+                            StdVector<PtrCoefFct>& coef,
+                            bool& updateGeo );
 
 
 
@@ -384,11 +391,11 @@ namespace CoupledField
     //! flag indicating if Init() was already called
     bool isInitialized_;
 
-    //! maximum order of partial derivatives w.r.t. time
-    UInt maxTimeDerivOrder_;
-
     //! pointer to iterative coupled PDE
     IterCoupledPDE* iterCplPde_;
+    
+    //! Flag, if PDE used updated geometry (updated Lagrangian formulation)
+    bool updatedGeo_;
     
     //! PDEMemento
     shared_ptr<PDEMemento> memento_;

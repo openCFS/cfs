@@ -29,8 +29,7 @@ namespace CoupledField {
   public:
 
     //! Constructor
-    Assemble( AlgebraicSys* algsys, BasePDE::AnalysisType analysis, 
-              UInt maxTimeDerivOrder );
+    Assemble( AlgebraicSys* algsys, BasePDE::AnalysisType analysis ); 
 
     //! Destructor
     virtual ~Assemble();
@@ -224,9 +223,6 @@ namespace CoupledField {
     //! flag indicating if matrices have changed since
     //! last call of AssembleMatrices
     bool matrixUpdated_;
-
-    //! Maximum order of partial derivatives w.r.t. time
-    UInt maxTimeDerivOrder_;
 
     //! Handle for MathParser object
     MathParser::HandleType mHandle_;
