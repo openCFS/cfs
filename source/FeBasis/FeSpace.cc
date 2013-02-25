@@ -468,7 +468,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     // 2) order is given RELATIVE:
     //    distinguish if element is
     //    a) ISOTROPIC: get order p of element and set integration
-    //                  order to 2*(p+1) + relativeOrder
+    //                  order to 2*(p+1) + relativeOrder-1.
+    //                  This leads e.g. to integration order 3
+    //                  for p = 1 and order 5 for p = 2.
     //    b) ANISOTROPIC: get maximum order in each direction
     //                    and set integration oder to
     //                    2*( p_maxLicDir) + relativeOrder_locDir
@@ -487,8 +489,12 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       // method.
       LOG_DBG2(feSpace) << "\torder (relative): " << id.order.ToString();
       UInt p = fe->GetMaxOrder();
+      // Note: in case of H-curl elements, we have to add an order of 1
+      // as we use here also the polynomial order of 0 for lowest order Nedelec elements
+      if( type_ == FeSpace::HCURL )
+        p += 1;
       order = id.order;
-      order += 2*(p+1);
+      order += 2*(p+1)-1;
       LOG_DBG2(feSpace) << "\torder (final): " << order.ToString();
     }
   }
@@ -700,13 +706,16 @@ ApproxOrder::ApproxOrder(UInt dim ) {
                 if(gridToVirtualNodes_.find(vertexNum) == gridToVirtualNodes_.end()){
                   LOG_DBG3(feSpace) << "gridToVirtualNodes[" << vertexNum << "] = " << offset;
                   gridToVirtualNodes_[vertexNum].Push_back(offset);
+                } else {
+                  LOG_DBG3(feSpace) << "vertex " << vertexNum << " already mapped to virtualNode " << 
+                      gridToVirtualNodes_[vertexNum];
                 }
               }else{
                 LOG_DBG3(feSpace) << "gridToVirtualNodes[" << vertexNum << "] = " << offset;
                 gridToVirtualNodes_[vertexNum].Push_back(offset);
               }
             } // loop over vertices
-        }
+        } // mapping of vertex nodes
         }
         feFct->GetGrid()->MapEdges();
         feFct->GetGrid()->MapFaces();
