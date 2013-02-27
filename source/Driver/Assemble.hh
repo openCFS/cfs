@@ -229,6 +229,9 @@ namespace CoupledField {
 
     /** The object is within a ParamNode and deleted there! */
     boost::shared_ptr<Timer> timer_;
+    
+    //! Flag, if progress bar should be printed
+    bool printProgressBar_;
   };
 }
 #endif

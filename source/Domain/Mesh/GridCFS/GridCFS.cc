@@ -1864,6 +1864,9 @@ namespace CoupledField {
     UInt d = 2;
     UInt numNodes = Elem::shapes[type].numNodes;
 
+    // set isQuadratic information
+    isQuadratic_ |= (Elem::shapes[type].order == 2); 
+    
     numElemTypes_[type]++;
 
     switch(type)
@@ -2605,6 +2608,7 @@ namespace CoupledField {
       in_->Get("hom")->SetValue(rd.homogeneous);
       in_->Get("nodes")->SetValue(GetNumNodes(rd.id));
       in_->Get("elems")->SetValue(GetNumElems(rd.id));
+      in_->Get("isQuadratic")->SetValue(IsQuadratic());
     }
 
     list = in->Get("namedNodes");
@@ -3044,5 +3048,38 @@ namespace CoupledField {
       AddNamedNodes(nodeRegName, nodeList);
     }
   }
+  
+
+  void GridCFS::MapMidSideNodes() {
+
+
+    // Leave if grid consists just of linear order elements
+    if( !isQuadratic_)
+      return;
+
+    // Loop over all elements
+    UInt numElems = orderedElems_.GetSize();
+    for( UInt iEl = 0; iEl < numElems; ++iEl ) { 
+      const Elem * elem = orderedElems_[iEl];
+      const ElemShape & sh = Elem::shapes[elem->type];
+      
+      // Loop over all mid-side nodes of element
+      for( UInt iNode = sh.numVertices; iNode < sh.numNodes; ++iNode ) {
+        const UInt nodeNum = elem->connect[iNode];
+        // Obtain local coordinate from ElemShape and store it
+        const LocPoint & lp = LocPoint(sh.nodeCoords[iNode]);
+        std::pair<const Elem*, LocPoint> entry(elem, lp);
+        midNodeProjections_[nodeNum].Push_back(entry);
+      } // loop: nodes
+    } // loop: elements
+    
+    // In the end free any non-needed memory
+    boost::unordered_map<UInt, NodeElemMatch>::iterator it;
+    it = midNodeProjections_.begin();
+    for( ; it != midNodeProjections_.end(); ++it ) {
+      it->second.Trim();
+    }
+  }
+
 
 } // end namespace

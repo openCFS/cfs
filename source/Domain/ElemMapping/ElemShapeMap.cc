@@ -31,6 +31,7 @@ namespace CoupledField {
 // ===========================================================================
   LocPointMapped::LocPointMapped()
   : ptEl( NULL ),
+    weight(0.0),
     jacDet( 0.0 ),
     isSurface( false ),
     normalFactor( 0.0 )
@@ -39,10 +40,11 @@ namespace CoupledField {
 
   }
   
-  void LocPointMapped::Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm ) {
+  void LocPointMapped::Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,Double weight ) {
 
     this->shapeMap = esm;
     this->lp = lp;
+    this->weight = weight;
     this->ptEl = shapeMap->GetElem();
     this->isSurface = false;
 
@@ -88,7 +90,7 @@ namespace CoupledField {
   }
   
   void LocPointMapped::Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
-                            const std::set<RegionIdType>& myRegions) {
+                            const std::set<RegionIdType>& myRegions,Double weight) {
 
 
     // ------------------------------------------------------
@@ -96,7 +98,7 @@ namespace CoupledField {
     // ------------------------------------------------------
 
     // first, call "normal" set method, also valid for volume elements
-    this->Set(lp, esm);
+    this->Set(lp, esm, weight);
 
     // ------------------------------------------------------
     //  2) Perform surface-element specific tasks
@@ -160,7 +162,7 @@ namespace CoupledField {
     Vector<Double> locNormal;
     esmVol->GetLocalIntPoints4Surface(  ptEl->connect, lp, 
                                         lpVol,locNormal);
-    lpmVol->Set( lpVol, esmVol);
+    lpmVol->Set( lpVol, esmVol, weight);
 
     // calculate global normal pointing into current volume element
     normal = Transpose(lpmVol->jacInv) * locNormal;

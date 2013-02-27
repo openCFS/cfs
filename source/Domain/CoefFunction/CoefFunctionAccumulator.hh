@@ -30,12 +30,18 @@ public:
    //@{ \name Statistic methods
   void ResetSampling() {
     squaredSum_ = 0.0;
+//    sum_.Init();
   }
    
   //! Return norm of accessed values since last reset
   Double GetNorm() {
     return std::sqrt(squaredSum_);
   }
+  
+//  //! Get vector norm
+//  Double GetVecNorm() {
+//    return sum_.NormL2();
+//  }
   //@}
   
   
@@ -94,6 +100,9 @@ private:
   //! Squared total sum of accessed entries
   Double squaredSum_;
   
+//  //! Total vector sum
+//  Vector<Double> sum_;
+//  
   
 };
 

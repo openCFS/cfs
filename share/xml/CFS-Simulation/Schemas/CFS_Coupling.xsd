@@ -96,7 +96,7 @@
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="magForceLorentzDensity"/>
-              <xsd:enumeration value="mechForceLorentz"/>
+              <xsd:enumeration value="magForceLorentz"/>
               <xsd:enumeration value="mechDisplacement"/>
               <xsd:enumeration value="mechAcceleration"/>
             </xsd:restriction>

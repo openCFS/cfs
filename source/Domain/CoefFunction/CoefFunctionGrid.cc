@@ -136,7 +136,7 @@ void CoefFunctionGridBase<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefMat,
   shared_ptr<ElemShapeMap> esm = domain->GetGrid(gridId_)->GetElemShapeMap( sourceElem, true );
   LocPoint myLp = localCoord;
   LocPointMapped lpmS;
-  lpmS.Set(myLp,esm);
+  lpmS.Set(myLp,esm,lpm.weight);
 
   feFunct_->GetElemSolution( elemSol, sourceElem);
   BaseFE * ptFe = feFunct_->GetFeSpace()->GetFe(sourceElem->elemNum);
@@ -168,7 +168,7 @@ void CoefFunctionGridBase<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMat,
   shared_ptr<ElemShapeMap> esm = domain->GetGrid(gridId_)->GetElemShapeMap( sourceElem, true );
   LocPoint myLp = localCoord;
   LocPointMapped lpmS;
-  lpmS.Set(myLp,esm);
+  lpmS.Set(myLp,esm,lpm.weight);
   feFunct_->GetElemSolution( elemSol, sourceElem);
   BaseFE * ptFe = feFunct_->GetFeSpace()->GetFe(sourceElem->elemNum);
   myOperator_->ApplyOp(ptSol,lpmS,ptFe,elemSol);

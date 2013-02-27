@@ -49,7 +49,7 @@ EvalResult( shared_ptr<BaseResult> res ) {
       LocPointMapped lpm;
       shared_ptr<ElemShapeMap> esm = 
         this->ptGrid_->GetElemShapeMap( el, true );
-      lpm.Set( lp, esm );
+      lpm.Set( lp, esm, 0.0 );
       this->GetVector(tempField, lpm );
       // loop over dofs
       for(UInt iDim = 0; iDim < dim_; iDim++ ) {
@@ -92,7 +92,7 @@ EvalResult( shared_ptr<BaseResult> res ) {
         LocPointMapped lpm;
         shared_ptr<ElemShapeMap> esm = 
           this->ptGrid_->GetElemShapeMap( el, true );
-        lpm.Set( lp, esm );
+        lpm.Set( lp, esm, 0.0 );
         this->GetVector(tempField, lpm );
         // loop over dofs
         for(UInt iDim = 0; iDim < dim_; iDim++ ) {
@@ -216,7 +216,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
         LocPointMapped lpm;
         for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
           // Calculate for each integration point the LocPointMapped
-          lpm.Set( intPoints[i], esm );
+          lpm.Set( intPoints[i], esm, weights[i] );
           forms_[el->regionId]->CalcKernel(elemMatR, lpm );
           temp = elemMatR * elemSol;
           tempEnergy += (temp * elemSol) * 0.5 * lpm.jacDet * weights[i]; 
@@ -296,7 +296,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
         for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
           //std::cerr << "i = " << i << ", point = " << intPoints[i] << ", weight = " << weights[i] << std::endl;
           // Calculate for each integration point the LocPointMapped
-          lpm.Set( intPoints[i], esm );
+          lpm.Set( intPoints[i], esm, weights[i] );
           if( forms_[el->regionId]->IsComplex() )  {
             forms_[el->regionId]->CalcKernel(elemMatC, lpm );
             temp = elemMatC * elemSol;
@@ -389,7 +389,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
         for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
 
           // Calculate for each integration point the LocPointMapped
-          lpm.Set( intPoints[i], esm );
+          lpm.Set( intPoints[i], esm, weights[i] );
           coef_->GetScalar(tempVal, lpm );
           elemVal += tempVal * lpm.jacDet * weights[i];
         } // loop integration points
@@ -436,7 +436,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
         for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
 
           // Calculate for each integration point the LocPointMapped
-          lpm.Set( intPoints[i], esm );
+          lpm.Set( intPoints[i], esm, weights[i] );
           coef_->GetVector(tempVal, lpm );
           elemVal += tempVal * (lpm.jacDet * weights[i]);
         } // loop integration points

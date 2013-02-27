@@ -177,7 +177,7 @@ namespace CoupledField
 
   const Elem* Grid::GetElemAtGlobalCoord(const Vector<double>& globCoord,
                                          LocPoint& locCoord,
-                                         const std::set<RegionIdType> srcRegions ) {
+                                         const std::set<RegionIdType>& srcRegions ) {
     
     StdVector<Vector<Double> > globCoords(1);
     StdVector<LocPoint> lps;
@@ -195,7 +195,7 @@ namespace CoupledField
   void Grid::GetElemsAtGlobalCoords( const StdVector<Vector<double> >& globCoords,
                                      StdVector< LocPoint >& localCoords,
                                      StdVector< const Elem* > & elems,
-                                     const std::set<RegionIdType> srcRegions ) {
+                                     const std::set<RegionIdType>& srcRegions ) {
 
     // 1) first, determine element candidates for each point, determined by
     //    intersection of bounding-boxes. The algorithm used depends on the
@@ -212,7 +212,32 @@ namespace CoupledField
     MapGlobPointsToLoc( matches, elems, localCoords );
   }
   
-
+  const Elem* Grid::GetElemAtNode( UInt nodeNum,
+                                   LocPoint& locCoord,
+                                   const std::set<RegionIdType>& srcRegions ) {
+    const Elem* ret = NULL;
+    // check if nodes were already mapped
+    if( !midNodeProjections_.size() ) {
+      // Perform mapping of mid-side nodes
+      MapMidSideNodes();
+    }
+    boost::unordered_map<UInt, NodeElemMatch>::const_iterator it;
+    it = midNodeProjections_.find(nodeNum); 
+    if( it != midNodeProjections_.end() ) {
+      const NodeElemMatch& matches = it->second;
+      const UInt size = matches.GetSize();
+      for( UInt i = 0; i < size; ++i ) {
+        if( srcRegions.find(matches[i].first->regionId) != srcRegions.end() ) {
+          ret = (matches[i]).first;
+          locCoord = (matches[i]).second;
+          break;
+        }
+      }
+    }
+    return ret;
+  }
+  
+  
   UInt Grid::SetElementBarycenters(RegionIdType reg, bool updated)
   {
     WARN("Grid::SetElementBarycenters needs to be refactored")
@@ -2234,9 +2259,10 @@ namespace CoupledField
   }
   
   // =======================================================================
-    //  ELEMENT / POINT MAPPING
-    // =======================================================================
+  //  ELEMENT / POINT MAPPING
+  // =======================================================================
 
+  
   void Grid::MapGlobPointsToLoc( const StdVector<PointElemMatch>& matches,
                                  StdVector<const Elem*>& elems,
                                  StdVector<LocPoint>& lps ) {

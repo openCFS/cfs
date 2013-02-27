@@ -1143,7 +1143,7 @@ namespace CoupledField {
             continue;
           }
           esm = srcGrid->GetElemShapeMap( elems[i]);
-          lpm.Set( lps[i], esm );
+          lpm.Set( lps[i], esm, 0.0 );
           coef->GetScalar( temp[0], lpm);
           vals[pos++] = temp[0];
         } // loop over elements
@@ -1155,7 +1155,7 @@ namespace CoupledField {
             continue;
           }
           esm = srcGrid->GetElemShapeMap( elems[i]);
-          lpm.Set( lps[i], esm );
+          lpm.Set( lps[i], esm, 0.0 );
 
           // Calculate coefficient function and store the result into the vector
           coef->GetVector( temp, lpm);
@@ -1193,7 +1193,7 @@ namespace CoupledField {
           if( elems[i] == NULL)
             continue;
           esm = srcGrid->GetElemShapeMap( elems[i]);
-          lpm.Set( lps[i], esm );
+          lpm.Set( lps[i], esm, 0.0 );
           coef->GetScalar( temp[0], lpm);
           vals[pos++] = temp[0];
         } // loop over elements
@@ -1203,7 +1203,7 @@ namespace CoupledField {
           if( elems[i] == NULL)
             continue;
           esm = srcGrid->GetElemShapeMap( elems[i]);
-          lpm.Set( lps[i], esm );
+          lpm.Set( lps[i], esm, 0.0 );
 
           // Calculate coefficient function and store the result into the vector
           coef->GetVector( temp, lpm);

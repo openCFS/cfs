@@ -356,28 +356,23 @@ DECLARE_LOG(fefunc)
       if( eqnNums.GetSize() == 0){
         //ok so the space does not know about this particular entity
         //we try to determine its value via interpolation
-        Vector<Double> globCoord;
         Vector<T> elemSolution;
         Vector<T> dofSol;
+        UInt nodeNum = 0;
         if(it.GetType()== EntityList::NODE_LIST){
           //now we obtain the global coords of the
           //node assuming that everything is the same grid. if not, we are in trouble anyway
-          UInt curNodeNum = it.GetNode();
-          grid_->GetNodeCoordinate(globCoord,curNodeNum,true);
+          nodeNum = it.GetNode();
         }else if(it.GetType() == EntityList::ELEM_LIST ||
                  it.GetType() == EntityList::SURF_ELEM_LIST){
           //determine global coord of element midpoint
           EXCEPTION("Interpolation for extract result not implemented for the Element case");
         }
-        //Obtain intersecting element
-        //const Elem* myElem  = grid_->GetElemAtGlobalCoord(globCoord,locCoord);
-        
-        
         // try to find the correct element, being one belonging to the regionlist of
         // this fefunction
         LocPoint lp;
         const Elem* myElem = 
-            grid_->GetElemAtGlobalCoord(globCoord, lp, regions_ ); 
+            grid_->GetElemAtNode(nodeNum, lp, regions_ ); 
         if( !myElem ) {
           WARN("Some elements were skipped during the interpolation");
         }
@@ -385,7 +380,7 @@ DECLARE_LOG(fefunc)
         shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap( myElem, true );
 
         LocPointMapped lpm;
-        lpm.Set(lp,esm);
+        lpm.Set(lp,esm,0.0);
         
 
         this->GetElemSolution(elemSolution,myElem);

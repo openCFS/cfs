@@ -171,39 +171,6 @@ namespace CoupledField {
     }
   }
 
-  // NormType
-  template<>
-  void String2Enum<NormType>(const std::string &in, NormType &out) {
-
-    if (in == "no")
-      out = NO_NORM;
-    else if (in == "rel")
-      out = L2REL;
-    else if (in == "abs")
-      out = L2ABS;
-    else {
-      EXCEPTION( "'" << in << "' cannot be converted into item of "
-                 << "'NormType'!" );
-    }
-  }
-
-  template<>
-  void Enum2String<NormType>(const NormType &in, std::string &out) {
-
-    switch(in) {
-    case NO_NORM:
-      out = "no";
-      break;
-    case L2REL:
-      out = "rel";
-      break;
-    case L2ABS:
-      out = "abs";
-      break;
-    default:
-      EXCEPTION("No conversion found for your 'NormType'");
-    }
-  }
 
   // SolutionType
   std::string MapSolTypeToUnit(SolutionType solType)

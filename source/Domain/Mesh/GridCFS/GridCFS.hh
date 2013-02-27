@@ -479,7 +479,9 @@ namespace CoupledField
                                           StdVector<shared_ptr<NcSurfElem> > & exteriorSurfElems,
                                           bool conforming);
 
-
+    //! Trigger projection of mid-side nodes to element interior
+    virtual void MapMidSideNodes();
+        
     //! Prints information about the grid into the .info.xml file
     void ToInfo(PtrParamNode in);
     

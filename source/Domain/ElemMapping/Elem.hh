@@ -297,11 +297,14 @@ class ElemShape;
     //! Number of surface elements
     UInt numSurfElems;
     
+    //! Volume/Area/Length of element (3D/2D/1D)
+    Double volume;
+    
     //! Coordinate of element midpoint
     Vector<Double> midPointCoord;
 
     //! Coordinates of nodes (outer vector: number of nodes, inner: dim)
-    StdVector<StdVector<Double> > nodeCoords; 
+    StdVector<Vector<Double> > nodeCoords; 
 
     //! Contains for each edge the vertex node numbers
     StdVector<StdVector<UInt> > edgeVertices;

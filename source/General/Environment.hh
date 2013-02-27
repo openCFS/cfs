@@ -255,11 +255,6 @@ namespace CoupledField {
   //! SURFACE = Coupling region is specified as 1D/2D surface elements
   typedef enum {REGION, NODES, SURFACE} CouplingRegionType;
 
-  //! Enumeration for types of norms
-  //! L2ABS = absolute L2-norm
-  //! L2REL = relative L2 norm: (|val| - |oldval|) / |val|
-  typedef enum {NO_NORM, L2ABS, L2REL} NormType;
-
   //! Enumeration for directions
   //! direction of various fields
   //! "Rad" means readial, following two letters indicate the stress-plane

@@ -8,7 +8,10 @@ namespace CoupledField  {
 CoefFunctionAccumulator::CoefFunctionAccumulator(PtrCoefFct fct, 
                                                  bool integrate )
 : CoefFunction(), integrate_(integrate) {
+  squaredSum_ = 0.0;
   fct_ = fct;
+//  sum_.Resize(fct_->GetVecSize());
+  
 }
 
 CoefFunctionAccumulator::~CoefFunctionAccumulator(){
@@ -17,26 +20,43 @@ CoefFunctionAccumulator::~CoefFunctionAccumulator(){
 
 void CoefFunctionAccumulator::GetTensor(Matrix<Complex>& coefMat,
                                         const LocPointMapped& lpm ) {
-  
+  REFACTOR
 }
 
 void CoefFunctionAccumulator::GetVector(Vector<Complex>& coefVec,
                                         const LocPointMapped& lpm ){
-  
+  REFACTOR
 }
 
 void CoefFunctionAccumulator::GetScalar(Complex& coef,
                                         const LocPointMapped& lpm ){
-  
+REFACTOR  
 }
 
 void CoefFunctionAccumulator::GetTensor(Matrix<Double>& coefMat,
                                         const LocPointMapped& lpm ){
+  REFACTOR
   
 }
 void CoefFunctionAccumulator::GetVector(Vector<Double>& coefVec,
                                         const LocPointMapped& lpm ){
+  fct_->GetVector(coefVec, lpm);
+
+  for( UInt i = 0; i < coefVec.GetSize(); ++i ) {
+    if( integrate_ ) {
+      squaredSum_ += coefVec[i] * coefVec[i] * lpm.weight * lpm.jacDet;
+    
+    } else {
+      squaredSum_ += coefVec[i] * coefVec[i];
+    }
+  }
   
+  // code for vector norm
+  //  if( integrate_ ) {
+  //    sum_ += (coefVec * lpm.weight * lpm.jacDet);
+  //  } else {
+  //    sum_ += coefVec;
+  //  }
 }
 
 void CoefFunctionAccumulator::GetScalar(Double& coef,

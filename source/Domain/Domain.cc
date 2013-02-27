@@ -469,7 +469,16 @@ void Domain::CreatePDEs(UInt sequenceStep)
 
 void Domain::InitPDEs(UInt sequenceStep)
 {
-  // intialize single pde(s)
+  
+  
+  
+  // in case we have an iterative coupled PDE,
+  // we take its info pointer and use it
+  // as base for the coupled ones
+  PtrParamNode base;
+  if (ptIterCoupledPde_) {
+    base = ptIterCoupledPde_->GetInfoNode();
+  }
 
   // Initialize those PDEs which are not
   // directly coupled
@@ -480,7 +489,7 @@ void Domain::InitPDEs(UInt sequenceStep)
     it = isDirectCoupled_.find(ptSinglePde_[i]);
     if ((*it).second == false)
     {
-      ptSinglePde_[i]->Init(sequenceStep);
+      ptSinglePde_[i]->Init(sequenceStep,base);
     }
   }
 
@@ -492,13 +501,6 @@ void Domain::InitPDEs(UInt sequenceStep)
     std::cout << "++ Initializing direct coupling" << std::endl;
     ptDirectCoupledPde_[i]->Init(sequenceStep);
     ptDirectCoupledPde_[i]->DefineAlgSys();
-  }
-
-  // Initialize coupledPDE
-  if (ptIterCoupledPde_ != NULL)
-  {
-    std::cout << "++ Initializing iterative coupling" << std::endl;
-    ptIterCoupledPde_->InitCoupling();
   }
 
   // Initialize algebraic system of each SinglePDE

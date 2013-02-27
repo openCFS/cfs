@@ -98,7 +98,7 @@ namespace CoupledField
       neighbors.Reserve(1);
     }
 
-    StdVector< StdVector<Double> > localCoords;
+    StdVector< Vector<Double> > localCoords;
 
     //waring this may not be freed!!!! just for comptability with other element types...
     StdVector< shared_ptr<NcSurfElem> > neighbors;

@@ -122,7 +122,9 @@ namespace CoupledField {
     //! \param lp Local point to bet set
     //! \param esm ElemShapeMap, representing the mapping from reference to
     //!            physical domain    
-    void Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm);
+    //! \param weight Integration weight (should be set to 0.0 if not used 
+    //!               within an integration loop)
+    void Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm, Double weight);
     
     //! Set method for a local point of a surface element
     
@@ -136,12 +138,15 @@ namespace CoupledField {
     //!            physical domain    
     //! \param volRegions Set containing the regionIds of the neighboring
     //!                   volume regions.
+    //! \param weight Integration weight (should be set to 0.0 if not used 
+    //!               within an integration loop)
     //! 
     //! \note The search for the correct volume neighbor is just performed,
     //!       if a new element is set. If only the local point within one
     //!       element is set, the neighbor information is re-used. 
     void Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
-              const std::set<RegionIdType>& volRegions ); 
+              const std::set<RegionIdType>& volRegions,
+              Double weight ); 
     
     //! Set surface information
     
@@ -157,6 +162,9 @@ namespace CoupledField {
 
     //! Element local point
     LocPoint lp;
+    
+    //! Integration weight
+    Double weight;
 
     //! Jacobian matrix in local point @ref lp
     Matrix<Double> jac;

@@ -101,7 +101,8 @@ BUIntegrator(VEC_DATA_TYPE factor,
      
      // Pre-evaluate coefficient function in case of reduced accuracy
      if(! fullEvaluation_ ) {
-       lp.Set( Elem::shapes[ptElem->type].midPointCoord, esm );
+       const ElemShape sh = Elem::shapes[ptElem->type];
+       lp.Set( sh.midPointCoord, esm, sh.volume );
        if( rhsCoefs_->GetDimType() == CoefFunction::SCALAR ) {
          cVec.Resize(1);
          rhsCoefs_->GetScalar(cVec[0],lp);
@@ -115,9 +116,9 @@ BUIntegrator(VEC_DATA_TYPE factor,
 
        // Calculate for each integration point the LocPointMapped
        if (SURFACE) {
-         lp.Set( intPoints[i], esm, volRegions_ );
+         lp.Set( intPoints[i], esm, volRegions_, weights[i] );
        } else {
-         lp.Set( intPoints[i], esm );
+         lp.Set( intPoints[i], esm, weights[i] );
        }
 
        //calc factor

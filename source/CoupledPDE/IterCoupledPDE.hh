@@ -18,36 +18,17 @@ namespace CoupledField
   class SinglePDE;
   class ParamNode;
   class EntityList;
-
+  class CoefFunctionAccumulator;
+  
   //! This class iteratively solve a list of given SinglePDEs 
   class IterCoupledPDE : public BasePDE
   {
-
     // friend declaration
     friend class IterSolveStep;
 
   public:
 
-//    
-//    //class for storing the convergence criterions
-//    class CplQuantity {
-//    public:
-//      
-//      //! Constructor with accumulator class
-//      CplQuantity(SolutionType solType);
-//      virtual ~CplQuantity();
-//      
-//      void AddCoefFct( PtrCoefFct coef, shared_ptr<EntityList> list );
-//      
-//      
-//      
-//    protected:
-//
-//      SolutionType solType_;
-//      
-//      StdVector<PtrCoefFct> 
-//    };
-    
+
     
     //! Constructor
     IterCoupledPDE(StdVector<StdPDE*> & PDEs,
@@ -55,11 +36,13 @@ namespace CoupledField
 
     //! Destructor
     ~IterCoupledPDE();
+    
+    //! Retrieve info pointer
+    PtrParamNode GetInfoNode() {
+      return infoNode_;
+    }
 
-    //! calculates coupling interfaces
-    void InitCoupling();
-  
-    //! write general defines (BCs, loads, etc.) to info-file
+    //! Write general defines (BCs, loads, etc.) to info-file
     void WriteGeneralPDEdefines();
 
     Assemble * GetAssemble() {
@@ -103,18 +86,12 @@ namespace CoupledField
     //! Dump information to InfoNode 
     void ToInfo(PtrParamNode in);
 
-    //! Maximum number of iterations per time step
-    UInt maxiter_;                        
-
     //! pointer to SolveStep classes
     IterSolveStep * solveStep_;
 
     //! Parameter node for "iterative" coupling
     PtrParamNode myParam_;
 
-    //! Flag for nonlinear logging
-    bool nonLinLogging_;
-  
     //! Type of analysis
     BasePDE::AnalysisType analysistype_;
     
@@ -123,10 +100,15 @@ namespace CoupledField
     
     //! Pointer to SinglePDEs
     StdVector<SinglePDE*> singlePDEs_;
+
+    //! Map storing the coeffunction accumulators
+    std::map<SolutionType, shared_ptr<CoefFunctionAccumulator> > accu_;
     
     //! Number of PDEs
     UInt numPDEs_; 
     
+    //! Info node for logging 
+    PtrParamNode infoNode_; 
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

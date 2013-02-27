@@ -102,9 +102,9 @@ BDUIntegrator(VEC_DATA_TYPE factor,
 
        // Calculate for each integration point the LocPointMapped
        if (SURFACE) {
-         lp.Set( intPoints[i], esm, volRegions_ );
+         lp.Set( intPoints[i], esm, volRegions_, weights[i] );
        } else {
-         lp.Set( intPoints[i], esm );
+         lp.Set( intPoints[i], esm, weights[i] );
        }
 
        // obtain d matrix

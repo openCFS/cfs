@@ -439,15 +439,6 @@ namespace CoupledField {
   }
 
 
-  SubTensorType SinglePDE::GetSubTensorType() const
-  {
-    if(subType_ == "") return NO_TENSOR;
-
-    SubTensorType stt;
-    String2Enum(subType_, stt);
-    return stt;
-  }
-  
   void SinglePDE::SetIterCoupledPDE( IterCoupledPDE* itCplPde ) {
     iterCplPde_ = itCplPde;
     isIterCoupled_ = true;
@@ -1084,7 +1075,7 @@ namespace CoupledField {
         for ( UInt iElem = 0; iElem < fap.elems.GetSize(); ++iElem ) {
           shared_ptr<ElemShapeMap> esm = 
               ptGrid_->GetElemShapeMap( fap.elems[iElem] );
-          lpm.Set(fap.locPoints[iElem], esm);
+          lpm.Set(fap.locPoints[iElem], esm, 0.0);
           fct->GetVector(temp, lpm );
           
           for( UInt i = 0; i < numDofs; ++i ) {
@@ -1100,7 +1091,7 @@ namespace CoupledField {
         for ( UInt iElem = 0; iElem < fap.elems.GetSize(); ++iElem ) {
           shared_ptr<ElemShapeMap> esm = 
               ptGrid_->GetElemShapeMap( fap.elems[iElem] );
-          lpm.Set(fap.locPoints[iElem], esm);
+          lpm.Set(fap.locPoints[iElem], esm, 0.0);
           fct->GetVector(temp, lpm );
 
           for( UInt i = 0; i < numDofs; ++i ) {

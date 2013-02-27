@@ -151,7 +151,7 @@ namespace CoupledField{
     shared_ptr<ElemShapeMap> esm = domain->GetGrid(gridId_)->GetElemShapeMap( sourceElem, true );
 
     LocPointMapped lpmS;
-    lpmS.Set(lp,esm);
+    lpmS.Set(lp,esm,0.0);
 
     this->GetElemSolution( elemSol, sourceElem->elemNum);
     BaseFE * ptFe = esm->GetBaseFE();
@@ -201,7 +201,7 @@ namespace CoupledField{
 
     shared_ptr<ElemShapeMap> esm = domain->GetGrid(gridId_)->GetElemShapeMap( sourceElem, true );
     LocPointMapped lpmS;
-    lpmS.Set(lp,esm);
+    lpmS.Set(lp,esm,0.0);
     this->GetElemSolution( elemSol, sourceElem->elemNum);
     BaseFE * ptFe = esm->GetBaseFE();
     myOperator_->ApplyOp(ptSol,lpmS,ptFe,elemSol);

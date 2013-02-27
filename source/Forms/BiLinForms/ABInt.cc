@@ -74,7 +74,7 @@ namespace CoupledField{
      for( UInt i = 0; i < numIntPts; ++i  ) {
 
        // Calculate for each integration point the LocPointMapped
-       lp.Set( intPoints[i], esm );
+       lp.Set( intPoints[i], esm, weights[i] );
 
        // Calculate A-matrix (first differential operator)
        this->aOperator_->CalcOpMat( aMat_, lp, ptFeA );
@@ -171,8 +171,8 @@ namespace CoupledField{
      for( UInt i = 0; i < numIntPts; ++i ) {
 
        // Calculate for each integration point the LocPointMapped
-       lp1.Set( intPoints[i], esm1, volRegions_ );
-       lp2.Set( intPoints[i], esm2, volRegions_ );
+       lp1.Set( intPoints[i], esm1, volRegions_, weights[i] );
+       lp2.Set( intPoints[i], esm2, volRegions_, weights[i] );
 
        // Calculate A-matrix (first differential operator)
        this->aOperator_->CalcOpMat( this->aMat_, lp1, ptFeA );

@@ -300,7 +300,7 @@ namespace CoupledField {
                                              const Vector<Double>& point,
                                              const Elem* ptElem,
                                              UInt comp ) {
-    StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
+    StdVector<Vector<Double> >& coords = shape_.nodeCoords;
     deriv.Resize( 4, 2 );
     for( UInt i = 0; i < 4; i++ ) {
       deriv[i][0] = 0.25 * coords[i][0] * (1 + coords[i][1] * point[1] );
@@ -479,7 +479,7 @@ namespace CoupledField {
                                             const Elem* ptElem,
                                             UInt comp ) {
     deriv.Resize( 8, 3 );
-    StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
+    StdVector<Vector<Double> >& coords = shape_.nodeCoords;
     for( UInt i = 0; i < 8; i++ ) {
       deriv[i][0] = 0.125  * coords[i][0] 
                            * (1 + coords[i][1] * point[1] ) 
@@ -971,7 +971,7 @@ namespace CoupledField {
                                      const Vector<Double>& point,
                                      const Elem* ptElem,
                                      UInt comp ) {
-    StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
+    StdVector<Vector<Double> >& coords = shape_.nodeCoords;
     shape.Resize( 8 );
     // From Zienkiewicz, The Finite Element Method. Vol 1, page 122.
     
@@ -995,7 +995,7 @@ namespace CoupledField {
                                              const Vector<Double>& point,
                                              const Elem* ptElem,
                                              UInt comp ) {
-    StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
+    StdVector<Vector<Double> >& coords = shape_.nodeCoords;
     deriv.Resize( 8, 2 );
     
     // corner nodes
@@ -1137,7 +1137,7 @@ namespace CoupledField {
     eta  = point[1];
     zeta = point[2];
 
-    StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
+    StdVector<Vector<Double> >& coords = shape_.nodeCoords;
     
     //Corner coordinates:
     // Ni
@@ -1187,7 +1187,7 @@ namespace CoupledField {
     eta  = point[1];
     zeta = point[2];
 
-    StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
+    StdVector<Vector<Double> >& coords = shape_.nodeCoords;
     for (i=0;i<8; i++) {
       //Corner coordinates: Ni,x
       deriv[i][0] =  0.25 * xi * coords[i][0] * coords[i][0]

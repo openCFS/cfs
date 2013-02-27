@@ -261,6 +261,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 0;
       s.numFaces = 0;
       s.numSurfElems = 0;
+      s.volume = 0.0;
 
       Double midPoint[1] = {0.0};
       Double nodeCoords[] =
@@ -298,6 +299,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 1;
       s.numFaces = 0;
       s.numSurfElems = 2;
+      s.volume = 2.0;
       
       Double midPoint[1] = {0.0};
       Double nodeCoords[] = 
@@ -344,6 +346,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 1;
       s.numFaces = 0;
       s.numSurfElems = 2;
+      s.volume = 2.0;
 
       Double midPoint[1] = {0.0};
       Double nodeCoords[] =
@@ -393,6 +396,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     s.numEdges = 3;
     s.numFaces = 1;
     s.numSurfElems = 3;
+    s.volume = 0.5;
 
     Double midPoint[2] = {1.0/3.0, 1.0/3.0};
     Double nodeCoords[] = 
@@ -466,6 +470,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 3;
       s.numFaces = 1;
       s.numSurfElems = 3;
+      s.volume = 0.5;
 
       Double midPoint[2] = {1.0/3.0, 1.0/3.0};
       Double nodeCoords[] =
@@ -549,6 +554,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 4;
       s.numFaces = 1;
       s.numSurfElems = 4;
+      s.volume = 4.0;
       Double midPoint[2] = {0.0, 0.0};
       Double nodeCoords[] = 
       { 
@@ -625,6 +631,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        s.numEdges = 4;
        s.numFaces = 1;
        s.numSurfElems = 4;
+       s.volume = 4.0;
        Double midPoint[2] = {0.0, 0.0};
        Double nodeCoords[] = 
        { 
@@ -716,6 +723,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        s.numEdges = 4;
        s.numFaces = 1;
        s.numSurfElems = 4;
+       s.volume = 0.5;
        Double midPoint[2] = {0.0, 0.0};
        Double nodeCoords[] =
        {
@@ -820,6 +828,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 6;
       s.numFaces = 4;
       s.numSurfElems = 4;
+      s.volume = 1./6.0;
       Double midPoint[3] = {1.0/4.0, 1.0/4.0, 1.0/4.0};
       Double nodeCoords[] =
       { 0.0,  0.0,  0.0, // #1
@@ -920,6 +929,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 6;
       s.numFaces = 4;
       s.numSurfElems = 4;
+      s.volume = 1./6.0;
 
       Double midPoint[3] = {1.0/4.0, 1.0/4.0, 1.0/4.0};
       Double nodeCoords[] =
@@ -1037,6 +1047,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 12;
       s.numFaces = 6;
       s.numSurfElems = 6;
+      s.volume = 8.0;
       
       Double midPoint[3] = {0.0, 0.0, 0.0};
       Double nodeCoords[] = 
@@ -1160,6 +1171,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
           s.numEdges = 12;
           s.numFaces = 6;
           s.numSurfElems = 6;
+          s.volume = 8.0;
           
           Double midPoint[3] = {0.0, 0.0, 0.0};
           Double nodeCoords[] = 
@@ -1311,6 +1323,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
           s.numEdges = 12;
           s.numFaces = 6;
           s.numSurfElems = 6;
+          s.volume = 8.0;
           Double midPoint[3] = {0.0, 0.0, 0.0};
           Double nodeCoords[] =
           { -1.0, -1.0, -1.0, //  #1
@@ -1487,6 +1500,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 8;
       s.numFaces = 5;
       s.numSurfElems = 5;
+      s.volume = 4.0/3.0;
 
       Double midPoint[3] = {0.0, 0.0, 1./4};
       Double nodeCoords[] =
@@ -1596,6 +1610,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 8;
       s.numFaces = 5;
       s.numSurfElems = 5;
+      s.volume = 4.0/3.0;
       Double midPoint[3] = {0.0, 0.0, 1./4};
       Double nodeCoords[] =
       {  1.0,  1.0,  0.0, // #1
@@ -1735,6 +1750,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 8;
       s.numFaces = 5;
       s.numSurfElems = 5;
+      s.volume = 4.0/3.0;
       Double midPoint[3] = {0.0, 0.0, 1.0/4.0};
       Double nodeCoords[] =
       {  1.0,  1.0,  0.0, // #1
@@ -1866,6 +1882,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 9;
       s.numFaces = 5;
       s.numSurfElems = 5;
+      s.volume = 0.5;
       Double midPoint[3] = {1.0/3.0, 1.0/3.0, 0.0};
       Double nodeCoords[] = 
       { 0.0,  0.0, -1.0, // #1
@@ -1974,6 +1991,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 9;
       s.numFaces = 5;
       s.numSurfElems = 5;
+      s.volume = 0.5;
 
       Double midPoint[3] = {1.0/3.0, 1.0/3.0, 0.0};
       Double nodeCoords[] = 
@@ -2117,6 +2135,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 9;
       s.numFaces = 5;
       s.numSurfElems = 5;
+      s.volume = 0.5;
       Double midPoint[3] = {1.0/3.0, 1.0/3.0, 0.0};
       Double nodeCoords[] =
       { 0.0,  0.0, -1.0, //  #1

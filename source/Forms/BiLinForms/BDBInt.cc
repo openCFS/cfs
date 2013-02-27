@@ -87,7 +87,7 @@ namespace CoupledField{
     for( UInt i = 0; i < numIntPts; i++  ) {
 
       // Calculate for each integration point the LocPointMapped
-      lp.Set( intPoints[i], esm );
+      lp.Set( intPoints[i], esm, weights[i] );
 
       // Call the CalcBMat()-method
       bOperator_->CalcOpMat( bMat_, lp, ptFe);
