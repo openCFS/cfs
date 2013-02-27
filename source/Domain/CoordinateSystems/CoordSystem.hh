@@ -14,7 +14,6 @@ namespace CoupledField {
 
   // forward class declarations
   class ParamNode;
-  class ParamNode;
 
   //! Base class for describing a local coordinate system
   class CoordSystem {

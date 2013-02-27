@@ -311,7 +311,7 @@ namespace CoupledField
     //! Pointer to material handler
     MaterialHandler * ptMatHandler_;
 
-    //! Mapping between name and coordinate sysem pointer
+    //! Mapping between name and coordinate system pointer
     std::map<std::string, CoordSystem*> coordSys_;
 
     //! Mathematic parser object

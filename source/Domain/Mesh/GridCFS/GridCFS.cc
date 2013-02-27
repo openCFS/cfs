@@ -36,7 +36,7 @@ namespace CoupledField {
     numNcSurfElems_ = 0;
     edgesMapped_ = false;
     facesMapped_ = false;
-
+    maxNumElemNodes_ = 0;
 
   }
 
@@ -830,7 +830,7 @@ namespace CoupledField {
     CreateUserDefinedNodesElems();
     
     // Initialize non-conforming interfaces
-    InitNcInterfaces();
+    InitNcInterfacesFromXML();
     
     // In the end, trim all vectors, i.e. delete any non-used memory from its
     // capacity.
@@ -993,7 +993,7 @@ namespace CoupledField {
                                          StdVector<shared_ptr<NcSurfElem> > & exteriorSurfElems,
                                          bool conforming){
 
-    // TODO: perhaps we can do some resize commands to avoid the tynamic memory allocation...
+    // TODO: perhaps we can do some resize commands to avoid the dynamic memory allocation...
 
     if(conforming){
       std::map<Integer,StdVector<UInt> > EdgeToSurfElemMap;
@@ -1572,6 +1572,7 @@ namespace CoupledField {
       return surfElemNodes_[index].size();
 
     EXCEPTION("The region with id '" << reg_id << "' is unknown");
+    return 0;
   }
 
 
@@ -1757,6 +1758,7 @@ namespace CoupledField {
     default:
       EXCEPTION( "Can obtain nodes only for one region, named elements and "
                  << "named nodes" );
+      break;
     }
   }
 
@@ -2924,6 +2926,7 @@ namespace CoupledField {
       }
 
       volElems_[index].Clear();
+      volElemNodes_[index].clear();
     } else {
       // look in surface regions
       index = surfRegionIds_.Find(regionid);
@@ -2937,6 +2940,7 @@ namespace CoupledField {
         }
 
         surfElems_[index].Clear();
+        surfElemNodes_[index].clear();
       } else {
         EXCEPTION("GridCFS: The region with id '" << regionid
                   << "' was not found in the grid!");
@@ -2959,6 +2963,42 @@ namespace CoupledField {
     numElems_ = numElems;
   }
 
+  void GridCFS::DeleteNamedNodes(const std::string &name) {
+    
+    if (nameTypeMap_.find(name) == nameTypeMap_.end()) {
+      EXCEPTION("Node list '" << name << "' does not exist.");
+    }
+    
+    Integer idx = namedNodeNames_.Find(name);
+    if (idx != -1) {
+      std::set<UInt> sortedNodes;
+      
+      // put the nodes into a std::set to get an ordered list
+      sortedNodes.insert(namedNodes_[idx].Begin(), namedNodes_[idx].End());
+      
+      if (*sortedNodes.begin() == coords_.GetSize()-sortedNodes.size()+1) {
+        // is a block at the end of the vector, so just resize
+        numNodes_ = coords_.GetSize() - sortedNodes.size();
+        coords_.Resize(numNodes_);
+        deltCoords_.Resize(numNodes_);
+      } else {
+        // Please implement the general case if you need it. But beware!
+        // It's compliated, because you need to renumber all nodes and
+        // therefore change the connectivity as well!
+        EXCEPTION("Cannot delete named nodes '" << name
+                  <<"', because it is not a contiguous block at the end of "
+                  <<"all node numbers.")
+      }
+      
+      namedNodeNames_.Erase( (UInt) idx );
+      namedNodes_.Erase( (UInt) idx );
+      nameTypeMap_.erase(name);
+    }
+    else {
+      EXCEPTION("Cannot delete '" << name << "': not a node list");
+    }
+  }
+  
   void GridCFS::CorrectElementConnectivities() {
     Matrix<Double> jacobian;   
     std::set<const Elem*> corrElems, failedElems;
