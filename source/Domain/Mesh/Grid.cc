@@ -577,7 +577,7 @@ namespace CoupledField
                 << " interface '" << ncIf.name
                 << "'. Please check your mesh file.");
     }
-  }
+  }*/
 
 
   bool Grid::IsSurfacePlanar(const StdVector<SurfElem*>& ifaceElems)
@@ -707,7 +707,7 @@ namespace CoupledField
 
     return true;
   }
-
+/*
   bool Grid::IsNcInterfaceCoplanar(const std::string &ncIfaceName) {
     return IsNcInterfaceCoplanar(GetRegion().Parse(ncIfaceName));
   }

@@ -68,9 +68,11 @@ namespace CoupledField {
     if (rotNode) {
       rotNode->GetValue("coordSysId", coordSysId_, ParamNode::PASS);
       rotNode->GetValue("rpm", rpm_, ParamNode::PASS);
+      motionType_ = NCI_ROTATION;
     }
     else {
       rpm_ = 0.0;
+      motionType_ = NCI_NOT_MOVING;
     }
 
     if (rpm_ != 0.0) {
@@ -93,14 +95,12 @@ namespace CoupledField {
       coplanar_ = IsSurfacePlanar(ifaceElems);
     }
 
-    // check if this interface needs to be updated
-    needsUpdate_ = (rpm_ != 0.0);
-
     // create a surface region for the intersection elements
+    // TODO: Do we really need this?
     region_ = ptGrid_->AddSurfaceRegion(name_);
 
     // initialize nodeOffsets if there is a moving region
-    if (needsUpdate_) {
+    if (motionType_ != NCI_NOT_MOVING) {
       StdVector<UInt> nodeNums;
       Vector<Double> nullOffsets;
       ptGrid_->GetNodesByRegion(nodeNums, slaveVolRegion_);
@@ -109,7 +109,7 @@ namespace CoupledField {
     }
 
     // Calculate the intersection
-    UpdateNcIntersection(ncInterfaces_[i]);
+    UpdateIntersection();
 
   }
 
