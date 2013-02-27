@@ -226,7 +226,7 @@ namespace CoupledField {
 
     //! Overloading for operator=
 
-    //! This method is needed to intialize a StdVector like this
+    //! This method is needed to initialize a StdVector like this
     //! StdVector<Integer> A;<br>
     //! A = 1,2,5,10
     inline StdVectorListInitializer<TYPE> operator=(const TYPE x);

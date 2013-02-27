@@ -85,10 +85,10 @@ namespace CoupledField
    *   \date 02/2012
    *   \author ahueppe
    *
-   *   This struct is desigend for the need of DG and mortar Element methods.
-   *   One destinct feature of these schemes is that the surface elements are
+   *   This struct is designed for the need of DG and mortar Element methods.
+   *   One distinct feature of these schemes is that the surface elements are
    *   closely related to their volume elements thereby it is possible during creation
-   *   to store driectly local coordinates associated to volume elements.
+   *   to store directly local coordinates associated to volume elements.
    *   Furthermore we store a vector of neighbor elements which can be surfelems or
    *   NcSurfElems again.
    */
@@ -100,7 +100,7 @@ namespace CoupledField
 
     StdVector< StdVector<Double> > localCoords;
 
-    //waring this may not be freed!!!! just for comptability with other element types...
+    //warning this may not be freed!!!! just for compatibility with other element types...
     StdVector< shared_ptr<NcSurfElem> > neighbors;
   };
 

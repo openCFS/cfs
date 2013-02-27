@@ -162,7 +162,7 @@ namespace CoupledField {
     //! This methods registers the given variable name within the specified 
     //! parser and assigns it the given value. If the function is called for
     //! first time, memory is allocated,the variable name is registered in
-    //! the parser and the value ist set. All subsequent calls just update the
+    //! the parser and the value is set. All subsequent calls just update the
     //! variable value.
     //! \param handle MathParser handle for identifying specific parser
     //! \param varName Name of variable to be set

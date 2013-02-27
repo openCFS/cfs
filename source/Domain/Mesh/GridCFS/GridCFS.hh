@@ -363,7 +363,7 @@ namespace CoupledField
     //! Returns node numbers of a list of Elements
 
     //! This method returns the unique node numbers of
-    //! a list of given elements. Ther are no duplicate entries.
+    //! a list of given elements. There are no duplicate entries.
     //! \param nodeList (out) list of unique node numbers in elemList
     //! \param elemList (in) list of elements
     //! \param onlyLinNodes (in) if true, only the corner nodes are retrieved
@@ -380,12 +380,12 @@ namespace CoupledField
     bool HasNodalOffset();
     //@}
 
-    //! NC_SIMON: add node to the grid
+    //! add node to the grid
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
     //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
     virtual void AddNode( const Vector<Double> & coord, UInt & inode );
     
-    //! NC_SIMON: add multiple nodes to the grid
+    //! add multiple nodes to the grid
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
     //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
     //! \param coords (in) coordinates of points
@@ -393,7 +393,7 @@ namespace CoupledField
     virtual void AddNodes( const StdVector< Vector<Double> > & coords,
                            StdVector< UInt > & inodes);
 
-    //! NC_SIMON: Add surface elements
+    //! Add surface elements
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
     //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
     //! \param regionId (in) elements will be added to region with this id
@@ -403,7 +403,7 @@ namespace CoupledField
                                   const StdVector< SurfElem* > & surfelems,
                                   StdVector< UInt > & elemids);
 
-    //! NC_SIMON: Add volume elements 
+    //! Add volume elements 
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
     //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
     //! \param regionId (in) elements will be added to region with this id
@@ -413,10 +413,16 @@ namespace CoupledField
                                   const StdVector< Elem* > & volelems,
                                   StdVector< UInt > & elemids);
 
-    //! NC_SIMON: Remove all elements from the given region
+    //! Remove all elements from the given region
     //! \param regionid (in) id of the region
     virtual void ClearRegion( const RegionIdType regionid );
 
+    //! DIRTY HACK WARNING: Deletes the nodes in the list regardless of
+    //! whether they are still connected to elements or not!
+    //! Used with rotating nonconforming interfaces for deleting the
+    //! new nodes of intersection elements after each time step.
+    void DeleteNamedNodes( const std::string &name );
+    
   private:
 
     /** checks the domain in the xml file for a pattern region.
