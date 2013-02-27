@@ -786,8 +786,12 @@ namespace CoupledField
     //! Initialize non-conforming interfaces from XML files
     virtual void InitNcInterfaces();
     
+    //! Computes if a list of surface elements are all coplanar
+    bool IsSurfacePlanar(const StdVector<SurfElem*>& surfElems);
+
     //! map for storing ncInterfaces
     std::map< std::string, NcInterface* > ncInterfaces_;
+
 /*
     //! type of intersection calculation for ncInterfaces
     enum IntersectType { LINE_INTERSECT, RECT_INTERSECT, POLYGON_INTERSECT };
@@ -819,9 +823,6 @@ namespace CoupledField
       std::string coordSysId;
       bool coplanar;
     };
-
-    //! returns if a list of surface elements are all coplanar
-    bool IsSurfacePlanar(const StdVector<SurfElem*>& surfElems);
 
     //! updates the intersection mesh of a ncInterface
     void UpdateNcIntersection(const ncInterface& ncIf);

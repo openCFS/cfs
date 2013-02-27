@@ -26,26 +26,36 @@ namespace CoupledField {
     
     virtual ~NcInterface();
     
-    std::string& GetName() { return name_; }
+    enum NcMotionType {
+      NCI_NOT_MOVING,
+      NCI_LINEAR_MOTION,
+      NCI_ROTATION,
+    };
     
-    RegionIdType GetRegionId() { return region_; }
+    std::string& GetName() const { return name_; }
     
-    RegionIdType GetMasterSurfRegion() { return masterSurfRegion_; }
+    RegionIdType GetRegionId() const { return region_; }
     
-    RegionIdType GetSlaveSurfRegion() { return masterSurfRegion_; }
+    RegionIdType GetMasterSurfRegion() const { return masterSurfRegion_; }
+    
+    RegionIdType GetSlaveSurfRegion() const { return masterSurfRegion_; }
 
-    RegionIdType GetMasterVolRegion() { return masterVolRegion_; }
+    RegionIdType GetMasterVolRegion() const { return masterVolRegion_; }
     
-    RegionIdType GetSlaveVolRegion() { return masterVolRegion_; }
+    RegionIdType GetSlaveVolRegion() const { return masterVolRegion_; }
     
-    bool IsPlanar() { return coplanar_; }
+    bool IsPlanar() const { return coplanar_; }
     
-    bool IsMoving() { return needsUpdate_; }
+    NcMotionType GetMotionType() const { return motionType_; }
     
-    std::string& GetCoordSys() { return coordSysId_; }
+    std::string& GetCoordSys() const { return coordSysId_; }
+    
+    void MoveInterface();
 
   protected:
 
+    void UpdateIntersection();
+    
     enum NcIntersectAlgo {
       NCI_INTERSECT_LINE,
       NCI_INTERSECT_RECT,
@@ -60,7 +70,7 @@ namespace CoupledField {
     RegionIdType masterVolRegion_;
     RegionIdType slaveVolRegion_;
     bool coplanar_;
-    bool needsUpdate_;
+    NcMotionType motionType_;
     NcIntersectAlgo intersectAlgo_;
     Double tolAbs_;
     Double tolRel_;
