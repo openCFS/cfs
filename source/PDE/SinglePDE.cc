@@ -232,6 +232,13 @@ namespace CoupledField {
     DefinePrimaryResults();
     
     // =====================================================================
+    // read in material data
+    // =====================================================================
+    LOG_TRACE(singlepde) << pdename_ << ": Reading material information";
+    ReadMaterialData();
+
+    
+    // =====================================================================
     // read in damping information
     // =====================================================================
     LOG_TRACE(singlepde) << pdename_ << ": Reading damping information";
@@ -281,12 +288,7 @@ namespace CoupledField {
     // =====================================================================
     DefinePostProcResults();
     
-    // =====================================================================
-    // read in material data
-    // =====================================================================
-    LOG_TRACE(singlepde) << pdename_ << ": Reading material information";
-    ReadMaterialData();
-
+  
     // =====================================================================
     // read in boundary conditions
     // =====================================================================
@@ -370,33 +372,6 @@ namespace CoupledField {
         shared_ptr<BaseFeFunction> actFct = fncIt->second;
         actFct->GetTimeScheme()->Init(actFct->GetSingleVector(),dt);
         fncIt++;
-      }
-    }
-    if( analysistype_ != STATIC ) {
-      // Workaround for transient simulation:
-      // We have to pass directly the time-derivative vector of the time integration
-      // scheme to the feFunctions related to time derivative results
-      std::map<SolutionType, shared_ptr<BaseFeFunction> >::const_iterator it;
-      for( it = timeDerivFeFunctions_.begin(); it != timeDerivFeFunctions_.end(); ++it ) {
-        shared_ptr<BaseFeFunction> primFeFct = feFunctions_[timeDerivPrimaryResults_[it->first]];
-        shared_ptr<BaseFeFunction> derivFeFct = it->second;
-        if( !primFeFct || !derivFeFct ) {
-          EXCEPTION( "The time derivative information for PDE '" << pdename_
-                    << "' is not set correctly!" );
-        }
-        derivFeFct->Finalize();
-        UInt timeDerivOrder = timeDerivOrder_[it->first];
-        if( analysistype_ == HARMONIC ||  analysistype_ == EIGENFREQUENCY) {
-          FeFunction<Complex> & cDerivFct = 
-              dynamic_cast<FeFunction<Complex>& >(*derivFeFct);
-          shared_ptr<FeFunction<Complex> > cPrimFct = 
-              dynamic_pointer_cast<FeFunction<Complex> >(primFeFct);
-          cDerivFct.SetTimeDerivOrder( timeDerivOrder, cPrimFct );
-
-        } else {
-          primFeFct->GetTimeScheme()
-                                 ->SetTimeDerivVector(timeDerivOrder, derivFeFct->GetSingleVector() );
-        }
       }
     }
 
@@ -958,44 +933,48 @@ namespace CoupledField {
   
   void SinglePDE::FinalizePostProcResults() {
     {
-    std::map<RegionIdType, BaseBDBInt*>::iterator stiffIt = bdbInts_.begin();
-     for(; stiffIt != bdbInts_.end(); ++stiffIt ) {
-       RegionIdType region = stiffIt->first;
-       BaseBDBInt* bdb = stiffIt->second;
-       if( !bdb)
-         continue;
-       
-       // 1) pass it to all coefficient functions related to stiffness
-       std::set<shared_ptr<CoefFunctionFormBased> >::iterator stiffCoefIt;
-       for( stiffCoefIt = stiffFormCoefs_.begin();
-           stiffCoefIt != stiffFormCoefs_.end(); ++stiffCoefIt) {
-         (*stiffCoefIt)->AddIntegrator(bdb, region);
-       }
-       // 2) pass it to all result functors related to stiffness
-       std::set<shared_ptr<ResultFunctor> >::iterator stiffFuncIt;
-       for( stiffFuncIt = stiffFormFunctors_.begin();
-           stiffFuncIt != stiffFormFunctors_.end(); ++stiffFuncIt) {
-         (*stiffFuncIt)->AddIntegrator(bdb, region);
-       }
-       // 3) set region to to all surfCoefFcts
-       std::map<shared_ptr<CoefFunctionSurf>, PtrCoefFct >::iterator surfCoefIt;
-       for( surfCoefIt = surfCoefFcts_.begin(); 
-           surfCoefIt != surfCoefFcts_.end(); ++surfCoefIt ) {
-         surfCoefIt->first->AddVolumeCoef(region, surfCoefIt->second);
-       }
-     }
+      // 1) Associate all stiffness related coeffunctions and result functors
+      //    with the bilinearform
+      std::map<RegionIdType, BaseBDBInt*>::iterator stiffIt = bdbInts_.begin();
+      for(; stiffIt != bdbInts_.end(); ++stiffIt ) {
+        RegionIdType region = stiffIt->first;
+        BaseBDBInt* bdb = stiffIt->second;
+        if( !bdb)
+          continue;
+
+        // 1) pass it to all coefficient functions related to stiffness
+        std::set<shared_ptr<CoefFunctionFormBased> >::iterator stiffCoefIt;
+        for( stiffCoefIt = stiffFormCoefs_.begin();
+            stiffCoefIt != stiffFormCoefs_.end(); ++stiffCoefIt) {
+          (*stiffCoefIt)->AddIntegrator(bdb, region);
+        }
+        // 2) pass it to all result functors related to stiffness
+        std::set<shared_ptr<ResultFunctor> >::iterator stiffFuncIt;
+        for( stiffFuncIt = stiffFormFunctors_.begin();
+            stiffFuncIt != stiffFormFunctors_.end(); ++stiffFuncIt) {
+          (*stiffFuncIt)->AddIntegrator(bdb, region);
+        }
+        // 3) set region to to all surfCoefFcts
+        std::map<shared_ptr<CoefFunctionSurf>, PtrCoefFct >::iterator surfCoefIt;
+        for( surfCoefIt = surfCoefFcts_.begin(); 
+            surfCoefIt != surfCoefFcts_.end(); ++surfCoefIt ) {
+          surfCoefIt->first->AddVolumeCoef(region, surfCoefIt->second);
+        }
+      }
     }
-     
+
+    // 2) Associate all mass related coeffunctions and result functors
+    //    with the bilinearform
     std::map<RegionIdType, BaseBDBInt*>::iterator massIt = massInts_.begin();
     for( ; massIt != massInts_.end(); ++massIt ) {
-      
+
       RegionIdType region = massIt->first;
       BaseBDBInt* mass = massIt->second;
-      
+
       // check, that mass integrator is defined at all
       if( !mass)
         continue;
-          
+
       // 1) pass it to all coefficient functions related to mass
       std::set<shared_ptr<CoefFunctionFormBased> >::iterator massCoefIt;
       for( massCoefIt = massFormCoefs_.begin();
@@ -1009,7 +988,42 @@ namespace CoupledField {
         (*massFuncIt)->AddIntegrator(mass, region);
       }
     }
+    
+    // 3) Pass regions of primary FeFunction to all timer derivatives
+    if( analysistype_ != STATIC ) {
+      // Workaround for transient simulation:
+      // We have to pass directly the time-derivative vector of the time integration
+      // scheme to the feFunctions related to time derivative results
+      std::map<SolutionType, shared_ptr<BaseFeFunction> >::const_iterator it;
+      for( it = timeDerivFeFunctions_.begin(); it != timeDerivFeFunctions_.end(); ++it ) {
+        shared_ptr<BaseFeFunction> primFeFct = feFunctions_[timeDerivPrimaryResults_[it->first]];
+        shared_ptr<BaseFeFunction> derivFeFct = it->second;
+        if( !primFeFct || !derivFeFct ) {
+          EXCEPTION( "The time derivative information for PDE '" << pdename_
+                     << "' is not set correctly!" );
+        }
+        // Now loop over all regions of the primary FeFunction and pass the
+        // all regions of the primary one
+        StdVector< shared_ptr<EntityList> > support =  primFeFct->GetEntityList();
+        for( UInt i = 0; i < support.GetSize(); ++i ) {
+          derivFeFct->AddEntityList( support[i] );
+        }
+        
+        derivFeFct->Finalize();
+        UInt timeDerivOrder = timeDerivOrder_[it->first];
+        if( analysistype_ == HARMONIC ||  analysistype_ == EIGENFREQUENCY) {
+          FeFunction<Complex> & cDerivFct = 
+              dynamic_cast<FeFunction<Complex>& >(*derivFeFct);
+          shared_ptr<FeFunction<Complex> > cPrimFct = 
+              dynamic_pointer_cast<FeFunction<Complex> >(primFeFct);
+          cDerivFct.SetTimeDerivOrder( timeDerivOrder, cPrimFct );
 
+        } else {
+          primFeFct->GetTimeScheme()
+                                         ->SetTimeDerivVector(timeDerivOrder, derivFeFct->GetSingleVector() );
+        }
+      }
+    }
   }
       
 

@@ -202,7 +202,6 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     //obtain the fePolynomialList
     PtrParamNode polyNode = param->Get("fePolynomialList", ParamNode::PASS );
     if(!polyNode){
-      WARN("No Polynomial specified falling back to Defaults");
       polyType = LAGRANGE;
       LOG_DBG(feSpace) << "No explicit definition available, using default";
     }else{

@@ -6,6 +6,7 @@
 #include "PDE/StdPDE.hh"
 #include "PDE/SinglePDE.hh"
 #include "CoupledPDE/IterCoupledPDE.hh"
+#include "CoupledPDE/DirectCoupledPDE.hh"
 #include "DataInOut/ResultCache.hh"
 #include "Domain/CoefFunction/CoefFunctionAccumulator.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -74,6 +75,12 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     
    coefs_[list] = coefFct;
    oldNorm_ = 0.0;
+  }
+  
+  void ConvCriterionAccu::ResetValues() {
+    oldNorm_ = 0.0;
+    actNorm_ = 0.0;
+    
   }
   
   void ConvCriterionAccu::StartSampling() {
@@ -145,6 +152,12 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     updatedRegions_.insert(region);
   }
   
+  
+  void ConvCriterionDisplacement::ResetValues() {
+      oldNorm_ = 0.0;
+      actNorm_ = 0.0;
+      
+    }
   
   void ConvCriterionDisplacement::StartSampling() {
     // update grid to current values
@@ -351,6 +364,8 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   void IterSolveStep::Finalize() {
     LOG_TRACE(itersolvestep) << "Finalizing iterative coupled solve step";
     
+    
+    
     // 1) Check for updated geometry
     if( param_->Has("geometryUpdate") ) {
       ParamNodeList regionNodes = param_->Get("geometryUpdate")->GetChildren();
@@ -401,6 +416,61 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     
     // 2) Loop over all convergence criterions, which are not explicitly "set"
     // and try to get CoefFunction from a related PDE.
+    // ... to be implemented in a further step
+    
+    // 3) Resort the PDE order 
+    ResortPDEOrder();
+  }
+  
+  void IterSolveStep::ResortPDEOrder() {
+    LOG_TRACE(itersolvestep) << "Resorting PDE order";
+    
+    // Collect all uncoupled SinglePDes
+    std::set<SinglePDE*> uncoupledPdes;
+    uncoupledPdes.insert(rPDE_.singlePDEs_.Begin(), 
+                         rPDE_.singlePDEs_.End() );
+
+    // loop over all coupled SinglePDEs and remove involved
+    // SinglePDEs
+    for( UInt i = 0; i < rPDE_.coupledPDEs_.GetSize(); ++i ) {
+      StdVector<SinglePDE*> sPdes = rPDE_.coupledPDEs_[i]->GetSinglePDEs();
+      for( UInt j = 0; j < sPdes.GetSize(); ++j ) {
+        SinglePDE * singlePde = sPdes[j];
+        if( uncoupledPdes.find(singlePde) != uncoupledPdes.end() ) {
+          uncoupledPdes.erase(singlePde);
+        }
+      }
+    }
+    
+    // Now assemble the list of StdPDEs. Currently we pursue the 
+    // following strategy:
+    // 1) We start by all uncoupled Pdes
+    // 2) Add coupled Pdes in the end
+    rPDE_.numPDEs_ = uncoupledPdes.size() + rPDE_.coupledPDEs_.GetSize();
+    rPDE_.PDEs_.Reserve( rPDE_.numPDEs_ );
+    std::set<SinglePDE*>::iterator it = uncoupledPdes.begin();
+    // remember mechanic PDE if present
+    SinglePDE * mechPDE = NULL;
+    for( ; it != uncoupledPdes.end(); ++it ) {
+      if( (*it)->GetName() == "mechanic" ) {
+        mechPDE = *it;
+      } else {
+        rPDE_.PDEs_.Push_back( *it );
+      }
+    }
+    if( mechPDE )
+      rPDE_.PDEs_.Push_back(mechPDE);
+    
+    for( UInt i = 0; i < rPDE_.coupledPDEs_.GetSize(); ++i ) {
+      rPDE_.PDEs_.Push_back( rPDE_.coupledPDEs_[i] );
+    }
+    
+    // In the end print final ordering:
+    LOG_DBG(itersolvestep) << "Final ordering of PDEs:";
+    for( UInt i = 0; i < rPDE_.numPDEs_; ++i ) {
+      LOG_DBG(itersolvestep) << "\t" << i+1 << ": " 
+          <<  rPDE_.PDEs_[i]->GetName();
+    }
   }
   
   PtrCoefFct IterSolveStep::GetCouplingCoefFct( SolutionType type,
@@ -422,7 +492,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
      
      // Initial implementation: Directly access CoefFct of PDE
      // Later we use the interface, which keeps track of the norm of the coupling quantity
-     for( UInt i = 0; i < rPDE_.numPDEs_; ++i ) {
+     for( UInt i = 0; i < rPDE_.singlePDEs_.GetSize(); ++i ) {
        if( rPDE_.singlePDEs_[i]->GetName() == pdeName ) {
          coef = rPDE_.singlePDEs_[i]->GetCoefFct(type);
          updateGeo = rPDE_.singlePDEs_[i]->IsUpdatedGeo();
@@ -511,7 +581,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
       // -----------------------------------
       for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
 
-        LOG_DBG(itersolvestep) << "Pocessing PDE '" << 
+        LOG_DBG(itersolvestep) << "Processing PDE '" << 
             rPDE_.PDEs_[i]->GetName() << "'";
 
         rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
@@ -616,6 +686,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
 
       for( convIt = criterions_.begin(); 
           convIt != criterions_.end(); ++convIt ) {
+        convIt->second->ResetValues();
         std::string quantityName = SolutionTypeEnum.ToString(convIt->first);
         actNode->Get("quantity")->Get("name")->SetValue(quantityName);
       }
@@ -642,7 +713,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
       // -----------------------------------
       for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
 
-        LOG_DBG(itersolvestep) << "Pocessing PDE '" << 
+        LOG_DBG(itersolvestep) << "Processing PDE '" << 
             rPDE_.PDEs_[i]->GetName() << "'";
 
         rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
@@ -650,6 +721,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         rPDE_.PDEs_[i]->GetSolveStep()->SetCouplingIter(iter);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans();
         rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(analysis_id, adjointParams);
+        rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans();
       } // end of for-loop
 
 

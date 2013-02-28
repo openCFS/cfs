@@ -375,6 +375,10 @@ DECLARE_LOG(fefunc)
             grid_->GetElemAtNode(nodeNum, lp, regions_ ); 
         if( !myElem ) {
           WARN("Some elements were skipped during the interpolation");
+          for(UInt iDim = 0; iDim < numDofs; iDim++ ) {
+            actSol[pos++] = 0.0;
+          }
+          continue;
         }
 
         shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap( myElem, true );
@@ -388,7 +392,6 @@ DECLARE_LOG(fefunc)
         idOp_->ApplyOp(dofSol, lpm, ptFe, elemSolution );
         for(UInt iDim = 0; iDim < numDofs; iDim++ ) {
           actSol[pos++] = dofSol[iDim];
-
         }
       }else{
         Vector<T> & vals = *coeffs_;

@@ -433,15 +433,17 @@ namespace CoupledField
       std::stringstream progStream;
       boost::progress_display progress( size*forms.GetSize(), progStream );
 
+      if( printProgressBar_) {
+        std::cout << "  - Calculating BiLinearForms on '"
+            << firstEntities.GetName()
+            << " (" << size << " elements)'\n";
+      }
+      
       // Loop over all entities
       EntityIterator it1 = firstEntities.GetIterator();
       EntityIterator it2 = secondEntities.GetIterator();
       for( it1.Begin(); !it1.IsEnd(); it1++, it2++ ) {
-        if( printProgressBar_) {
-          std::cout << "  - Calculating BiLinearForms on '"
-              << firstEntities.GetName()
-              << " (" << size << " elements)'\n";
-        }
+
         LOG_DBG2(assemble) << "\telems are " << it1.GetElem()->elemNum 
             << " and " << it2.GetElem()->elemNum;
 

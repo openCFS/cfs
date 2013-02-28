@@ -19,6 +19,7 @@ namespace CoupledField
   class ParamNode;
   class EntityList;
   class CoefFunctionAccumulator;
+  class DirectCoupledPDE;
   
   //! This class iteratively solve a list of given SinglePDEs 
   class IterCoupledPDE : public BasePDE
@@ -31,8 +32,9 @@ namespace CoupledField
 
     
     //! Constructor
-    IterCoupledPDE(StdVector<StdPDE*> & PDEs,
-                   PtrParamNode paramNode); 
+    IterCoupledPDE( StdVector<SinglePDE*>& singlePDEs,
+                    StdVector<DirectCoupledPDE*>& cplPde,
+                    PtrParamNode paramNode ); 
 
     //! Destructor
     ~IterCoupledPDE();
@@ -100,6 +102,9 @@ namespace CoupledField
     
     //! Pointer to SinglePDEs
     StdVector<SinglePDE*> singlePDEs_;
+    
+    //! Pointer to IterativeCoupledPDEs
+    StdVector<DirectCoupledPDE*> coupledPDEs_;
 
     //! Map storing the coeffunction accumulators
     std::map<SolutionType, shared_ptr<CoefFunctionAccumulator> > accu_;

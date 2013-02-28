@@ -79,7 +79,6 @@ namespace CoupledField {
     end = acouMaterials.end();
     for( ; it != end; it++ ) {
       RegionIdType volRegId = it->first;
-
       acouRegions.insert(volRegId);
 
       // Get bulk density for acoustics
@@ -179,8 +178,6 @@ namespace CoupledField {
     
     // check for position of integrator
     SolutionType rowType = fnc1->GetResultInfo()->resultType;
-std::cerr << "coefFuncs has size" << coefFuncs.size() << std::endl;
-std::cerr << "first coefFunct is " << coefFuncs.begin()->second->ToString()<< std::endl;
     BiLinearForm * cplInt = NULL;
     if( dim_ == 2  ) {
       if(rowType == MECH_DISPLACEMENT) {

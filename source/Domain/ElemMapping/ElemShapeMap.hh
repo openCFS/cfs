@@ -193,9 +193,6 @@ namespace CoupledField {
     //! volume element (\see LocPointMapped::lpmVol).
     Vector<Double> normal;
     
-    //! Multiplicative factor for normal orientation (only internal use)
-    Double normalFactor;
-    
     //! Mapped local point of the correct neighboring volume element
     
     //! If the struct was initialized with a surface element and the set of
@@ -311,23 +308,15 @@ namespace CoupledField {
     virtual Double CalcVolume( ) = 0;
 
     //! Calculate normal of element
+    
+    //! This method calculate the normal vector of a surface element in the
+    //! given local point. The resulting vector will point OUT of the 
+    //! first volume neighbor of the surface element!
     //! \param normal output Normal vector in global coordinates
     //! \param lp input Element local point
-    //! \note The direction of the normal has undefined sign!
     virtual void CalcNormal( Vector<Double>& normal, 
                              const LocPoint& lp ) = 0;
     
-
-    //! Returns surface element normal with defined orientation
-
-    //! Calculates the surface normal pointing OUT OF the neighboring
-    //! volume element
-    //! \param n (out) normal vector
-    //! \param lp (input) Element local point
-    //! \param volElem (in) volume element
-    virtual void CalcNormalOutOfVol( Vector<Double> & normal,
-                                     const LocPoint& lp,
-                                     const Elem & volElem ) = 0;
 
     //! Calculates corresponding volume point of neighboring surfaces
 
@@ -513,11 +502,6 @@ namespace CoupledField {
     //! @copydoc ElemShapeMap::CalcNormal
     void CalcNormal( Vector<Double>& normal, 
                      const LocPoint& lp );
-    
-    //! @copydoc ElemShapeMap::CalcNormalOutOfVol
-    void CalcNormalOutOfVol( Vector<Double> & normal,
-                             const LocPoint& lp,
-                             const Elem & volElem );
     
     //! @copydoc ElemShapeMap::GetLocalIntPoints4Surface
     void GetLocalIntPoints4Surface( const StdVector<UInt> & surfConnect,

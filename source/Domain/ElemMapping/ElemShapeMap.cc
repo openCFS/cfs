@@ -33,9 +33,7 @@ namespace CoupledField {
   : ptEl( NULL ),
     weight(0.0),
     jacDet( 0.0 ),
-    isSurface( false ),
-    normalFactor( 0.0 )
-    
+    isSurface( false )
   {
 
   }
@@ -122,13 +120,11 @@ namespace CoupledField {
     shared_ptr<ElemShapeMap> esmVol;
     if( !isSameElem) {
       const Elem * ptVolElem = NULL;
-      normalFactor = Double(surfElem.normalSign) * -1.0;  
       
       // loop over volume element neighbors of the surface element and check,
       // if the regionId of the element is in the map "myRegions"
       boost::array<Elem*,2>::const_iterator it = surfElem.ptVolElems.begin();
       for( ; it != surfElem.ptVolElems.end(); it++ ) {
-        normalFactor *= -1.0;
         // check if element is set at all
         if( *it) {
           // check if regionId is in the "allowed" list
@@ -144,6 +140,7 @@ namespace CoupledField {
         EXCEPTION("Could not find a suitable volume neighbor for surface element #"
             << surfElem.elemNum << ". " );
       }
+      
       // create new local point for volume element 
       lpmVol.reset(new LocPointMapped());
       esmVol = 
@@ -153,10 +150,6 @@ namespace CoupledField {
       esmVol = lpmVol->shapeMap;
     } // elemIsSame
 
-    // calculate local point in volume element, corresponding to
-    // the surface element point
-    //perhaps here we can distinguish between the NC_SURF_ELEM case
-    //in which the local coordinates are already available
 
     LocPoint lpVol;
     Vector<Double> locNormal;
@@ -167,10 +160,6 @@ namespace CoupledField {
     // calculate global normal pointing into current volume element
     normal = Transpose(lpmVol->jacInv) * locNormal;
     normal /= normal.NormL2();
-
-    // multiply normal by normal sign, so it points out of the first
-    // volume element
-    normal *= normalFactor;
   }
 
 // ========================================================================
@@ -1158,16 +1147,21 @@ void LagrangeElemShapeMap::CalcNormal( Vector<Double>& normal,
               << ptGrid_->GetDim() << "-dimensional grid!");
   }
   
-  // get neighboring volume element
+  // Get neighboring volume element. 
+  // Here we always use the first neighbor, so the resulting
+  // normal will point OUT of the first volume neighor
   const SurfElem & surfEl = *ptSurfElem_;
   Elem * ptVolEl = surfEl.ptVolElems[0];
+  assert(ptVolEl);
   
   
   // Obtain shape map of neighboring volume element
   LagrangeElemShapeMap sm(ptGrid_);
   sm.SetElem(ptVolEl, isUpdated_);
   
-  // Map local point of surface to global point 
+  // Map local point of surface to global point and obtain
+  // the normal vector (pointing OUT of the volume element)
+  // in local coordinates (w.r.t to the volume element)
   Vector<Double> locNormal;
   LocPoint volPoint;
   sm.ptFe_->GetLocalIntPoints4Surface( ptElem_->connect, 
@@ -1191,86 +1185,90 @@ void LagrangeElemShapeMap::CalcNormal( Vector<Double>& normal,
   normal /= norm;
 }
 
-void  LagrangeElemShapeMap::
-CalcNormalOutOfVol( Vector<Double> & normal,
-                    const LocPoint& lp, 
-                    const Elem & volElem ) {
-
-  // Obtain shape map of neighboring volume element
-  LagrangeElemShapeMap sm(ptGrid_);
-  sm.SetElem(&volElem, isUpdated_);
-  
-  Matrix<Double> & volCoords = sm.coords_; 
-
-  // Calculate surface normal without defined sign
-  CalcNormal( normal, lp);
-  
-  UInt volCorners = sm.shape_.numVertices;
-
-  /* Idea:
-       - find a common surface / volume element node
-       - find additional node, which is not common (i.e. lies on the "volume side"
-       - calculate difference vector from  "additional" node to first common
-         one ( = pointing out of  the volume element)
-       - the scalar product of the normal and the difference vector determines
-         the normalSign
-   */
-
-  // find first common vertex index
-  Integer firstCommonIndex = -1;
-  for (UInt i=0; i<volCorners; i++)
-    if (volElem.connect[i] == ptElem_->connect[0]){
-      firstCommonIndex = i;
-      break;
-    }
-
-  // find additional node of the volume node, which is not contained in the
-  // surface element
-  std::set<UInt> volSet, surfSet, diffSet;
-  volSet = std::set<UInt>(sm.ptElem_->connect.Begin(), 
-                          sm.ptElem_->connect.End());
-  
-  surfSet = std::set<UInt>(ptElem_->connect.Begin(), 
-                           ptElem_->connect.End());
-  std::set_difference( volSet.begin(), volSet.end(),
-                       surfSet.begin(), surfSet.end(),
-                       std::inserter(diffSet,diffSet.begin()) );
-
-  Vector<double> diffVec( sm.shape_.dim );
-  Double scalarProd = 0.0;
-  std::set<UInt>::const_iterator it = diffSet.begin();
-  for( ; it != diffSet.end(); it++ ) {
-
-    UInt node = *it;
-
-    // search for volume 
-    UInt index = volElem.connect.Find(node);
-
-    // calculate difference vector (pointing out of the volume)
-    for( UInt iDim = 0; iDim < sm.shape_.dim; ++iDim ) {
-      diffVec[iDim] =  volCoords[iDim][firstCommonIndex]
-                     - volCoords[iDim][index];
-    }
-    // normalize difference vector to 1.0
-    diffVec /= diffVec.NormL2();
-
-    // calculate scalar product
-    scalarProd = diffVec * normal;
-
-    // check if scalar product is != 0 (otherwise we may have a degenerated
-    // element, where two nodes lie on the same location)
-    if( std::abs(scalarProd) < EPS ) {
-      // we have to find another node
-      continue;
-    } else {
-      if( scalarProd < 0.0 ) {
-        // original normal vector points into the volume -> reorient
-        normal *= -1.0;
-      }
-      break;
-    }
-  }
-}
+// The follogin method is not needed anymore. 
+//void  LagrangeElemShapeMap::
+//CalcNormalOutOfVol( Vector<Double> & normal,
+//                    const LocPoint& lp, 
+//                    const Elem & volElem ) {
+//
+//  // Obtain shape map of neighboring volume element
+//  LagrangeElemShapeMap sm(ptGrid_);
+//  sm.SetElem(&volElem, isUpdated_);
+//  
+//  Matrix<Double> & volCoords = sm.coords_; 
+//
+//  // Calculate surface normal without defined sign
+//  CalcNormal( normal, lp);
+//  
+//  std::cerr << "====== In CalcNormal out of Vol for surfElem " << ptElem_->elemNum << "======\n";  
+//  std::cerr << "unoriented normal: " << normal.ToString() << std::endl;
+//  UInt volCorners = sm.shape_.numVertices;
+//
+//  /* Idea:
+//       - find a common surface / volume element node
+//       - find additional node, which is not common (i.e. lies on the "volume side"
+//       - calculate difference vector from  "additional" node to first common
+//         one ( = pointing out of  the volume element)
+//       - the scalar product of the normal and the difference vector determines
+//         the normalSign
+//   */
+//
+//  // find first common vertex index
+//  Integer firstCommonIndex = -1;
+//  for (UInt i=0; i<volCorners; i++)
+//    if (volElem.connect[i] == ptElem_->connect[0]){
+//      firstCommonIndex = i;
+//      break;
+//    }
+//
+//  // find additional node of the volume node, which is not contained in the
+//  // surface element
+//  std::set<UInt> volSet, surfSet, diffSet;
+//  volSet = std::set<UInt>(sm.ptElem_->connect.Begin(), 
+//                          sm.ptElem_->connect.End());
+//  
+//  surfSet = std::set<UInt>(ptElem_->connect.Begin(), 
+//                           ptElem_->connect.End());
+//  std::set_difference( volSet.begin(), volSet.end(),
+//                       surfSet.begin(), surfSet.end(),
+//                       std::inserter(diffSet,diffSet.begin()) );
+//
+//  Vector<double> diffVec( sm.shape_.dim );
+//  Double scalarProd = 0.0;
+//  std::set<UInt>::const_iterator it = diffSet.begin();
+//  for( ; it != diffSet.end(); it++ ) {
+//
+//    UInt node = *it;
+//
+//    // search for volume 
+//    UInt index = volElem.connect.Find(node);
+//
+//    // calculate difference vector (pointing out of the volume)
+//    for( UInt iDim = 0; iDim < sm.shape_.dim; ++iDim ) {
+//      diffVec[iDim] =  volCoords[iDim][firstCommonIndex]
+//                     - volCoords[iDim][index];
+//    }
+//    // normalize difference vector to 1.0
+//    diffVec /= diffVec.NormL2();
+//
+//    // calculate scalar product
+//    scalarProd = diffVec * normal;
+//
+//    // check if scalar product is != 0 (otherwise we may have a degenerated
+//    // element, where two nodes lie on the same location)
+//    if( std::abs(scalarProd) < EPS ) {
+//      // we have to find another node
+//      continue;
+//    } else {
+//      if( scalarProd < 0.0 ) {
+//        // original normal vector points into the volume -> reorient
+//        normal *= -1.0;
+//      }
+//      break;
+//    }
+//  }
+//  std::cerr << "oriented normal: " << normal.ToString() << "\n\n";
+//}
 
 void LagrangeElemShapeMap::
 GetLocalIntPoints4Surface( const StdVector<UInt> & surfConnect,

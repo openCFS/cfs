@@ -252,7 +252,7 @@ namespace CoupledField{
       }
       else 
       {
-        WARN( "Reference elements for region " << region << " already defined!" );
+        //WARN( "Reference elements for region " << region << " already defined!" );
       }
 
     } else if (mType == POLYNOMIAL) {

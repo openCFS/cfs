@@ -276,7 +276,13 @@ namespace CoupledField {
       singlePDEs_[i]->solveStep_ = solveStep_;
     }
 
+    isIterCoupled_ = false;
+    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+      isIterCoupled_ |= singlePDEs_[i]->IsIterCoupled();
+    }
+    
   }
+  
 
 
   // **************************

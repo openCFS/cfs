@@ -869,7 +869,6 @@ namespace CoupledField {
     allelems.Reserve(memReserve);
     //UInt curNumelems = numElems_;
     Vector<Double> normalUndefSign, normalDefSign;
-    Double sign;
     for(UInt i =0;i<elemList.size();++i){
       Elem* curE = elemList[i];
       ElemShape curShape = Elem::shapes[curE->type];
@@ -919,18 +918,19 @@ namespace CoupledField {
 
         curSurf->ptVolElems[0] = curE;
 
-        shared_ptr<ElemShapeMap> es = GetElemShapeMap(curSurf.get(), false);
-        LocPoint lp = Elem::shapes[curSurf->type].midPointCoord;
-        es->CalcNormal( normalUndefSign, lp );
-        es->CalcNormalOutOfVol( normalDefSign, lp, *curSurf->ptVolElems[0] );
-
-        sign = normalUndefSign * normalDefSign;
-
-        if ( sign > 0.0 ) {
-          curSurf->normalSign = 1;
-        } else {
-          curSurf->normalSign = -1;
-        }
+        // Mapping of normal sign is not needed anymore
+//        shared_ptr<ElemShapeMap> es = GetElemShapeMap(curSurf.get(), false);
+//        LocPoint lp = Elem::shapes[curSurf->type].midPointCoord;
+//        es->CalcNormal( normalUndefSign, lp );
+//        es->CalcNormalOutOfVol( normalDefSign, lp, *curSurf->ptVolElems[0] );
+//
+//        sign = normalUndefSign * normalDefSign;
+//
+//        if ( sign > 0.0 ) {
+//          curSurf->normalSign = 1;
+//        } else {
+//          curSurf->normalSign = -1;
+//        }
 
         allelems.Push_back(curSurf);
 
@@ -1388,7 +1388,7 @@ namespace CoupledField {
         Vector<Double> midPoint = 
             Elem::shapes[it.GetElem()->type].midPointCoord;
         esm->CalcNormal( normal, midPoint );
-        normal *= (Double) ptElem->normalSign;
+        
         
         for(UInt iDim = 0; iDim < dim_; iDim++ ) {
           actVal[it.GetPos()*dim_ + iDim] = normal[iDim];
@@ -2545,48 +2545,57 @@ namespace CoupledField {
     } // loop over surface elements
 
 
-    // 4.) Iterate over all surface elements and calculate surface
-    //     flag by comparing the directed and the undirected surface
-    //     normal. If both differ, the surfaceNormalSign = -1, otherwise 1.
-    Vector<Double> normalUndefSign, normalDefSign;
-    Double sign;
-
-    for( surfElIt = surfElems.begin();
-         surfElIt != surfElems.end();
-         surfElIt++ ) {
-
-      myElem = surfElIt->second;
-
-      // check, if each surface element has at least one volume neighbour
-      if ( myElem->ptVolElems[0] == NULL ) {
-        //  EXCEPTION( "Pointer to first volume element is NULL for surface"
-        //                    << " element no. "
-        //                    << surfElems_[iRegion][iSurfElem]->elemNum << ".\n"
-        //                    << "Please check your mesh-file!" );
-        //         }
-        myElem->normalSign = 0;
-      } else {
-        
-        shared_ptr<ElemShapeMap> esm(new LagrangeElemShapeMap(this));
-        esm->SetElem(myElem );
-        LocPoint lp = Elem::shapes[myElem->type].midPointCoord;
-        esm->CalcNormal( normalUndefSign, lp );
-        esm->CalcNormalOutOfVol( normalDefSign, lp, *myElem->ptVolElems[0] );
-
-        // Check if all entries have the same sign by calculating
-        // a scalar product between both vectors.
-        // If it is positive, they point in the same direction,
-        // otherwise an angle of 180 lies in between.
-        
-        sign = normalUndefSign * normalDefSign;
-
-        if ( sign > 0.0 ) {
-          myElem->normalSign = 1;
-        } else {
-          myElem->normalSign = -1;
-        }
-      }
-    }
+    // The following code is not needed anymore, as the ElemShapeMap::CalcNormal
+    // ALWAYS calculates a normal pointing OUT of the first volume neighbor, which
+    // is excatly the functionality previoulsy implemented with the normalSign and
+    // the old, unoriented version of CalcNormal().
+//    // 4.) Iterate over all surface elements and calculate surface
+//    //     flag by comparing the directed and the undirected surface
+//    //     normal. If both differ, the surfaceNormalSign = -1, otherwise 1.
+//    Vector<Double> normalUndefSign, normalDefSign;
+//    Double sign;
+//
+//    for( surfElIt = surfElems.begin();
+//         surfElIt != surfElems.end();
+//         surfElIt++ ) {
+//
+//      myElem = surfElIt->second;
+//
+//      // check, if each surface element has at least one volume neighbour
+//      if ( myElem->ptVolElems[0] == NULL ) {
+//        //  EXCEPTION( "Pointer to first volume element is NULL for surface"
+//        //                    << " element no. "
+//        //                    << surfElems_[iRegion][iSurfElem]->elemNum << ".\n"
+//        //                    << "Please check your mesh-file!" );
+//        //         }
+//        myElem->normalSign = 0;
+//      } else {
+//        
+//        shared_ptr<ElemShapeMap> esm(new LagrangeElemShapeMap(this));
+//        esm->SetElem(myElem );
+//        LocPoint lp = Elem::shapes[myElem->type].midPointCoord;
+//        esm->CalcNormal( normalUndefSign, lp );
+//        esm->CalcNormalOutOfVol( normalDefSign, lp, *myElem->ptVolElems[0] );
+//
+//        // Check if all entries have the same sign by calculating
+//        // a scalar product between both vectors.
+//        // If it is positive, they point in the same direction,
+//        // otherwise an angle of 180 lies in between.
+//        
+//        sign = normalUndefSign * normalDefSign;
+//
+//        if ( sign > 0.0 ) {
+//          myElem->normalSign = 1;
+//        } else {
+//          myElem->normalSign = -1;
+//        }
+//        
+//        if(myElem->normalSign != 1 ) {
+//          EXCEPTION("SIGN IS DIFFERENT FROM 1!");
+//        }
+//
+//      }
+//    }
 
   }
 

@@ -599,8 +599,7 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep)
   std::string errMsg;
 
   // check if more than one PDEs are defined
-  if (numIterCoupledStdPde_ <= 1)
-  {
+  if (numIterCoupledStdPde_ <= 1) {
     ptIterCoupledPde_ = NULL;
     return;
   }
@@ -622,17 +621,10 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep)
     return;
   ParamNodeList iterCplNodes = iterNode->GetChildren();
 
-  // Now collect all SinglePDEs which are not coupling directly,
-  // as well as a direct coupled PDE and pass them to the IterCoupledPDE
-  WARN("Currently only single PDEs are passed for coupling");
-  StdVector<StdPDE*> stdPdes;
-  for( UInt i=0; i < ptSinglePde_.GetSize(); ++i ) {
-    stdPdes.Push_back(ptSinglePde_[i]);
-  }
-  
   // Create IterCoupledPDE and pass all StdPDEs to it
-  ptIterCoupledPde_ = new IterCoupledPDE( stdPdes, iterNode);
-  
+  ptIterCoupledPde_ = new IterCoupledPDE( ptSinglePde_,
+                                          ptDirectCoupledPde_,
+                                          iterNode );
   
   // Loop over all SinglePDEs and pass pointer to iterative coupled PDE
   for( UInt i = 0; i < ptSinglePde_.GetSize(); ++i ) {

@@ -336,13 +336,13 @@ namespace CoupledField{
         std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
         shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
         std::string volRegName = abcNodes[i]->Get("volumeRegion")->As<std::string>();
-        RegionIdType sRegId = ptGrid_->GetRegion().Parse(regionName);
+        //RegionIdType sRegId = ptGrid_->GetRegion().Parse(regionName);
 
         // --- Set the FE ansatz for the current region ---
         PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
         std::string polyId = curRegNode->Get("polyId")->As<std::string>();
         std::string integId = curRegNode->Get("integId")->As<std::string>();
-        feFunctions_[formulation_]->GetFeSpace()->SetRegionApproximation(sRegId, polyId,integId);
+        //feFunctions_[formulation_]->GetFeSpace()->SetRegionApproximation(sRegId, polyId,integId);
 
         RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
         // c0 = sqrt(bulk_modulus / density)

@@ -44,6 +44,9 @@ namespace CoupledField
     //! Destructor
     virtual ~ConvCriterion() {};
     
+    //! Reset values
+    virtual void ResetValues() = 0;
+    
     //! Initiate phase of convergence sampling
     virtual void StartSampling() = 0;
     
@@ -92,6 +95,9 @@ namespace CoupledField
     //! Add a coefficient function accumulator for a on a given list
     void AddCoefFct( shared_ptr<EntityList> list,
                      shared_ptr<CoefFunctionAccumulator> coefFct );
+    
+    //! \copydoc ConvCriterion::ResetValues
+    virtual void ResetValues();
     
     //! \copydoc ConvCriterion::StartSampling
     virtual void StartSampling();
@@ -142,6 +148,9 @@ namespace CoupledField
     
     //! Add a new region to 
     void AddRegion(RegionIdType region );
+    
+    //! \copydoc ConvCriterion::ResetValues
+    virtual void ResetValues();
     
     //! \copydoc ConvCriterion::StartSampling
     virtual void StartSampling();
@@ -267,6 +276,14 @@ namespace CoupledField
 
     //! Finalize structure
     void Finalize();
+    
+    //! Resort order of single and coupledPDEs
+    
+    //! This method arranges the SinglePDEs and CoupledPDE(s) in such a way,
+    //! that a meaningful solution process is possible. Currently this is
+    //! is mostly hard-coded, but in the future we could incorporate
+    //! information about coupling quantities and inter-PDE dependencies.
+    void ResortPDEOrder();
     
     //! reference to PDE
     IterCoupledPDE &rPDE_;

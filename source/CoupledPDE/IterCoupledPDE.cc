@@ -13,31 +13,31 @@
 namespace CoupledField
 {
 
-  IterCoupledPDE::IterCoupledPDE(StdVector<StdPDE*> & PDEs,
-                                 PtrParamNode paramNode) 
+  IterCoupledPDE::IterCoupledPDE( StdVector<SinglePDE*>& singlePdes,
+                                  StdVector<DirectCoupledPDE*>& cplPdes,
+                                  PtrParamNode paramNode ) 
   : BasePDE( paramNode ) {
 
-    PDEs_       = PDEs;
+    
     myParam_ = paramNode;
     infoNode_ = info->Get("PDE")->Get("iterCoupledPDE", ParamNode::APPEND);
 
-    // Loop over single PDEs
-    for( UInt i = 0; i < PDEs_.GetSize(); ++i ) {
-      singlePDEs_.Push_back(dynamic_cast<SinglePDE*>(PDEs_[i]));
-    }
+    // Initially we only store the single PDEs and the DirectCoupledPDEs.
+    singlePDEs_ = singlePdes;
+    coupledPDEs_ = cplPdes;
     
-    numPDEs_ = singlePDEs_.GetSize();
     solveStep_ = NULL;
 
     // Concatenate PDE name strings for output in info-file
     pdename_ = "CoupledPDE: ";
-    for (UInt actPDE=0; actPDE < PDEs.GetSize()-1; actPDE++)
-      pdename_ += PDEs[actPDE] -> GetName() + "+";
-    pdename_ += PDEs[PDEs.GetSize()-1] -> GetName();
+    for (UInt actPDE=0; actPDE < singlePdes.GetSize()-1; actPDE++)
+      pdename_ += singlePdes[actPDE] -> GetName() + "+";
+    pdename_ += singlePdes[singlePdes.GetSize()-1] -> GetName();
 
     
     // Create IterSolveStep instance
-    IterSolveStep * solveStep =new IterSolveStep( *this, myParam_, infoNode_ ); 
+    IterSolveStep * solveStep =
+        new IterSolveStep( *this, myParam_, infoNode_ ); 
     solveStep->Init();
     solveStep_ = solveStep;
   }
