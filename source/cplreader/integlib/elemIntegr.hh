@@ -167,6 +167,9 @@ namespace CoupledField
       }
     }
 
+    ~IntegrationMap(){
+    }
+
     ElemIntegr & operator[](UInt key){
       return integMap_[key];
     }

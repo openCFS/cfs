@@ -50,6 +50,7 @@ namespace CoupledField
     if(ptElem_)
       delete ptElem_->ptElem;
     delete ptElem_;
+
   }
 
   ElemIntegr & ElemIntegr::operator=( ElemIntegr &rhs){
@@ -83,6 +84,7 @@ namespace CoupledField
 
       linearLoad_ = new LinearFlowNoiseInt(ptElem_->ptElem);
     }
+    std::cout << "created" << std::endl;
     return *this;
   }
 

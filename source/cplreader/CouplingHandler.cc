@@ -1116,7 +1116,6 @@ namespace CoupledField
       computeLHV = false;
       computeAPEMomentum = false;
       computeAeroAcouSrc = false;
-      return;
     }
 
     // now we turn to pressure field
@@ -1142,7 +1141,8 @@ namespace CoupledField
 
     // ok now will double check if the mean fields are available
     bool meanVelFieldAvail = false;
-
+    bool velFieldAvail = false;
+    velFieldAvail = (velField.size()>0);
 
     meanVelFieldAvail = (meanVelocityField.size()>0);
 //    meanPresFieldAvail = (meanPressureField.size() > 0);
@@ -1283,10 +1283,14 @@ namespace CoupledField
 
 
     //now we loop over all elements serial or parallel
-
+    int tnum = 1;
 #ifdef _OPENMP
+#pragma omp parallel
+{
+    tnum = omp_get_num_threads();
+}
     IntegrationMap ptElemI(ptElemIntegr_);
-    std::cout << "...parallel loop over " << nElems << " elements..." ;
+    std::cout << "... " << tnum << " threads, parallel loop over " << nElems << " elements..." ;
 #else
     std::cout << "...serial loop over " << nElems << " elements..." ;
 #endif
@@ -1372,9 +1376,13 @@ namespace CoupledField
         for( UInt d=0; d<elemDim; d++)
         {
           coordMat[d][n] = nodalCoords_[topoIdx+d];
-          nodalVel[d][n] = velField[velIdx+d];
-          if(meanVelFieldAvail)
-            nodalMeanVel[d][n] = meanVelocityField[velIdx+d];
+
+          if(computeLHV || computeAPEMomentum || computeAeroAcouSrc)
+          {
+            nodalVel[d][n] = velField[velIdx+d];
+            if(meanVelFieldAvail)
+              nodalMeanVel[d][n] = meanVelocityField[velIdx+d];
+          }
         }
       }
       if(flowData.find(SMOOTH_DISPLACEMENT) != flowData.end())
