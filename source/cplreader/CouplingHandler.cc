@@ -1141,8 +1141,6 @@ namespace CoupledField
 
     // ok now will double check if the mean fields are available
     bool meanVelFieldAvail = false;
-    bool velFieldAvail = false;
-    velFieldAvail = (velField.size()>0);
 
     meanVelFieldAvail = (meanVelocityField.size()>0);
 //    meanPresFieldAvail = (meanPressureField.size() > 0);
@@ -1282,9 +1280,9 @@ namespace CoupledField
     std::fill(aeroAcouRhsField.begin(), aeroAcouRhsField.end(), 0);
 
 
+#ifdef _OPENMP
     //now we loop over all elements serial or parallel
     int tnum = 1;
-#ifdef _OPENMP
 #pragma omp parallel
 {
     tnum = omp_get_num_threads();

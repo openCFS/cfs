@@ -60,7 +60,7 @@ struct Elem;
     needsAlgsys_(true),
     isAlwaysStatic_(false),
     dim_(ptgrid_->GetDim()), 
-    isaxi_(param->Get("domain")->Get("geometryType")->As<std::string>() == "axi"),
+    isaxi_(domain->IsAxisymmetric()),
     isComplex_(false),    
     needSolPrev_(false),
     sol_(NULL),  

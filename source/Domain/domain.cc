@@ -106,10 +106,17 @@ void Domain::CreateGrid()
   if (probGeo == "3d")
   {
     dim_ = 3;
+    isAxi_ = false;
   }
-  else if (probGeo == "axi" || probGeo == "plane")
+  else if (probGeo == "axi")
   {
     dim_ = 2;
+    isAxi_ = true;
+  }
+  else if (probGeo == "plane")
+  {
+    dim_ = 2;
+    isAxi_ = false;
   }
   else
   {
