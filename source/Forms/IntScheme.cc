@@ -103,7 +103,7 @@ namespace CoupledField {
        ret.SetIsoOrder( std::max( order1.order_[0], order2.order_[0 ]));
      } else {
        StdVector<UInt> max(3);
-       
+       EXCEPTION("Not implemented");
        
 
      }

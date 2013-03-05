@@ -296,7 +296,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
         if( isComplex_ ) {
           StdVector<std::string> phaseVec(1);
           phaseVec.Init(coilDef_[coil]->phase_);
-          coef = CoefFunction::Generate(Global::REAL, currDensity);
+          coef = CoefFunction::Generate(Global::COMPLEX, currDensity, phaseVec );
           //coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_;
           curInt = new BUIntegrator<IdentityOperator<FeH1,2,1>, Complex >(1.0, coef, updatedGeo_);
         } else {
@@ -562,7 +562,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
         availResults_.insert( eddy );
 
         if( isMixed_) 
-          WARN("Check for eddy current results");
+          WARN("Adjust eddy currents for mixed case");
         if( isComplex_ ) {
           jFunc.reset(new CoefFunctionFlux<Complex>(aDotFct, eddy, -1.0));
         } else {
@@ -570,6 +570,43 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
         }
         DefineFieldResult( jFunc, eddy );
         massFormCoefs_.insert(jFunc);
+
+        // === EDDY POWER DENSITY ===
+        shared_ptr<ResultInfo> epd(new ResultInfo());
+        epd->resultType = MAG_EDDY_POWER_DENSIY;
+        epd->dofNames = "";
+        epd->unit = "W/m^3";
+        epd->definedOn = ResultInfo::ELEMENT;
+        epd->entryType = ResultInfo::SCALAR;
+        shared_ptr<CoefFunctionFormBased> epdFunctor;
+        if( isMixed_) 
+          WARN("Adjust eddy power density for mixed case");
+        if( isComplex_ ) { 
+          epdFunctor.reset( new CoefFunctionBdBKernel<Complex>(aDotFct, 1.0));
+        } else {
+          epdFunctor.reset( new CoefFunctionBdBKernel<Double>(aDotFct, 1.0));
+        }
+        DefineFieldResult( epdFunctor, epd );
+        massFormCoefs_.insert(epdFunctor);
+
+        // === EDDY POWER ===
+        shared_ptr<ResultInfo> ep(new ResultInfo());
+        ep->resultType = MAG_EDDY_POWER;
+        ep->dofNames = "";
+        ep->unit = "W";
+        ep->definedOn = ResultInfo::REGION;
+        ep->entryType = ResultInfo::SCALAR;
+        availResults_.insert( ep );
+        if( isMixed_) 
+          WARN("Adjust eddy power for mixed case");
+        shared_ptr<ResultFunctor> epFunctor;
+        if( isComplex_ ) {
+          epFunctor.reset(new EnergyResultFunctor<Complex>(aDotFct, ep, 1.0));
+        } else {
+          epFunctor.reset(new EnergyResultFunctor<Double>(aDotFct, ep, 1.0));
+        }
+        resultFunctors_[MAG_EDDY_POWER] = epFunctor;
+        massFormFunctors_.insert(epFunctor);
       }
 
       // === COIL CURRENT DENSITY ===
@@ -647,7 +684,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
     for( ; coilIt != coilCoefs_.end(); ++coilIt ) {
       ccdCoef->AddRegion( coilIt->first, coilIt->second);
     }
-
 
     // === TOTAL CURRENT DENSITY ===
     PtrCoefFct jEddy = GetCoefFct(MAG_EDDY_CURRENT_DENSITY);

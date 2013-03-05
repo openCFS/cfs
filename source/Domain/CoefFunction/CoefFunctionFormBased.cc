@@ -239,7 +239,7 @@ GetScalar( TYPE& coefScal,
     this->forms_[lpm.ptEl->regionId]->CalcKernel(kernel_, lpm);
     temp = kernel_ * elemSol_;
   }
-  coefScal = (temp * elemSol_) * factor_;
+  coefScal = (temp * Conj(elemSol_) ) * factor_;
   
 }
 template<class TYPE> std::string CoefFunctionBdBKernel<TYPE>::

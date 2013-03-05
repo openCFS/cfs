@@ -856,9 +856,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       kinEnergy->definedOn = ResultInfo::REGION;
       availResults_.insert ( kinEnergy );
       if( isComplex_ ) {
-        keFunc.reset(new EnergyResultFunctor<Complex>(vFct, kinEnergy));
+        keFunc.reset(new EnergyResultFunctor<Complex>(vFct, kinEnergy, 0.5));
       } else {
-        keFunc.reset(new EnergyResultFunctor<Double>(vFct, kinEnergy));
+        keFunc.reset(new EnergyResultFunctor<Double>(vFct, kinEnergy, 0.5));
       }
       resultFunctors_[MECH_KIN_ENERGY] = keFunc;
       massFormFunctors_.insert(keFunc);
@@ -920,9 +920,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     availResults_.insert( defEnergy );
     shared_ptr<ResultFunctor> deFunc;
     if( isComplex_ ) {
-      deFunc.reset(new EnergyResultFunctor<Complex>(feFct, defEnergy));
+      deFunc.reset(new EnergyResultFunctor<Complex>(feFct, defEnergy, 0.5));
     } else {
-      deFunc.reset(new EnergyResultFunctor<Double>(feFct, defEnergy));
+      deFunc.reset(new EnergyResultFunctor<Double>(feFct, defEnergy, 0.5));
     }
     resultFunctors_[MECH_DEFORM_ENERGY] = deFunc;
     stiffFormFunctors_.insert(deFunc);

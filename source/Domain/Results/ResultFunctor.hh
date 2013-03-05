@@ -164,8 +164,12 @@ template<class TYPE>
 class EnergyResultFunctor : public ResultFunctor {
 public:
   //! Constructor
+  //! \param feFct Pointer to FeFunction
+  //! \param inf ResultInfo of the final result
+  //! \param factor Multiplicative factor for the element matrix (mostly 0.5)
   EnergyResultFunctor(shared_ptr<BaseFeFunction> feFct,
-                      shared_ptr<ResultInfo> inf );
+                      shared_ptr<ResultInfo> inf,
+                      TYPE factor );
 
   //! Destructor
   virtual ~EnergyResultFunctor();
@@ -183,6 +187,9 @@ protected:
 
   //! Accuracy for integration
   IntegAccuracy accuracy_;
+
+  //! Additional factor
+  TYPE factor_;
   
   //! Solution of element
   Vector<TYPE> elemSol, temp;

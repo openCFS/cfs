@@ -1000,6 +1000,7 @@ namespace CoupledField
         transposedMat.data_[i][j] = data_[j] [i];
   }
 
+  
 
   template<class TYPE>
   void Matrix<TYPE>::DirectSolve( SingleVector & x1, const SingleVector & b1 ) const
@@ -1887,6 +1888,45 @@ namespace CoupledField
   //   }
   //   return amSymm;
   // }
+
+  template<class TYPE>
+  Matrix<TYPE> Conj( const Matrix<TYPE>& m) {
+    return m;
+  }
+
+  template<>
+  Matrix<Complex> Conj( const Matrix<Complex>& m) {
+    UInt numRows = m.GetNumRows();
+    UInt numCols = m.GetNumCols();
+    Matrix<Complex> ret(numRows, numCols);
+    for( UInt i = 0; i < numRows; i++ ) {
+      for (UInt j = 0; j < numCols; j++ ) {
+        ret[i][j] = std::conj(m[i][j]);
+      }
+    }
+    return ret;
+  }
+
+  template<class TYPE>
+  Matrix<TYPE> Herm( const Matrix<TYPE>& m ) {
+    return m;
+  }
+
+  template<>
+  Matrix<Complex> Herm( const Matrix<Complex>& m ) {
+    UInt numRows = m.GetNumRows();
+    UInt numCols = m.GetNumCols();
+    Matrix<Complex> herm(numCols, numRows);
+    for( UInt i = 0; i < numCols; i++ ) {
+      for (UInt j = 0; j < numRows; j++ ) {
+        herm[i][j] = std::conj(m[j][i]);
+      }
+    }
+    return herm;
+  }
+
+  template Matrix<Double> Conj( const Matrix<Double>& m);
+  template Matrix<Double> Herm( const Matrix<Double>& m);
 
 #ifdef __GNUC__
   template class Matrix<Double>;

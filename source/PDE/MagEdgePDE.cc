@@ -719,9 +719,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     availResults_.insert( energy );
     shared_ptr<ResultFunctor> energyFunc;
     if( isComplex_ ) {
-      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy));
+      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy, 0.5));
     } else {
-      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy));
+      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy, 0.5));
     }
     resultFunctors_[MAG_ENERGY] = energyFunc;
     stiffFormFunctors_.insert(energyFunc);

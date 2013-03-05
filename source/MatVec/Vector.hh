@@ -315,6 +315,16 @@ template<typename T> class ElemStoreSol;
       return this->assignFrom(rhs); 
     }
     
+    //! Inner product for general vector expression as second argument
+    template <class V> 
+    T operator*( const Xpr1<T,V>& rhs ) {
+      T ret = 0.0;
+      for( UInt i = 0; i < size_; ++i ) {
+        ret += data_[i] * rhs(i);
+      }
+      return ret;
+    }
+    
     //! Returns the number of entries
     inline unsigned int size() const { return size_; }
     
@@ -587,6 +597,11 @@ template<typename T> class ElemStoreSol;
   //  INLINE MEMBER DEFINITIONS FOR NON-TEMPLATE EXPRESSION CASE
   // ************************************************************
 #ifndef EXPR_TEMPLATES
+  
+  //! Explicit conjugate operation (general case)
+  template<typename T>
+  Vector<T> Conj(const Vector<T>& m);
+  
   template<typename T> template<typename T2>
   Vector<PROMOTE(T,T2)> Vector<T>::
   operator+(const Vector<T2> &x) const

@@ -823,7 +823,22 @@ namespace CoupledField {
      return out;
    }
 
+   template<typename T>
+   Vector<T> Conj(const Vector<T>& m) {
+     return m;
+   }
 
+   template<>
+   Vector<Complex> Conj<Complex>(const Vector<Complex>& m) {
+     const UInt size = m.GetSize();
+     Vector<Complex> ret(size);
+     for( UInt i = 0; i < size; ++i ) {
+       ret[i] = std::conj(m[i]);
+     }
+     return ret;
+   }
+   
+   
 // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class Vector<Double>;
@@ -834,6 +849,7 @@ namespace CoupledField {
   template std::ostream & operator<<<Complex> (std::ostream & , const Vector<Complex> & );
   template std::ostream & operator<<<unsigned int> (std::ostream & , const Vector<unsigned int> &);
   template std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &);
+  template Vector<Double> Conj<Double>(const Vector<Double>&);
 #endif
 
 

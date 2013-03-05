@@ -141,9 +141,11 @@ template class FieldCoefFunctor<Complex>;
 
 template<class TYPE> EnergyResultFunctor<TYPE>::
 EnergyResultFunctor(shared_ptr<BaseFeFunction> feFct,
-                    shared_ptr<ResultInfo> inf ) :
+                    shared_ptr<ResultInfo> inf,
+                    TYPE factor) :
                     ResultFunctor( inf) {
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
+  factor_ = factor;
   derivType_ = INTEGRATED;
   
   // default: use full integration order 
@@ -181,7 +183,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
     // loop over elements
     for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
       const Elem * el = elemIt.GetElem();
-      // energy density is 1/2 * elemSol^T * kernel * elemSol
+      // energy density is factor_ * elemSol^T * kernel * elemSol
       this->feFct_->GetElemSolution( elemSol, el);
       if( accuracy_ == FULL ) {
         // ==================
@@ -190,7 +192,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
         forms_[el->regionId]->CalcElementMatrix(elemMatR, 
                                                 elemIt, elemIt);
         temp = elemMatR * elemSol;
-        tempEnergy += (temp * elemSol) * 0.5;
+        tempEnergy += (temp * elemSol) * factor_;
         
       } else if ( accuracy_ == MIDPOINT ) {
         // =====================
@@ -219,7 +221,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
           lpm.Set( intPoints[i], esm, weights[i] );
           forms_[el->regionId]->CalcKernel(elemMatR, lpm );
           temp = elemMatR * elemSol;
-          tempEnergy += (temp * elemSol) * 0.5 * lpm.jacDet * weights[i]; 
+          tempEnergy += (temp * elemSol) * factor_ * lpm.jacDet * weights[i]; 
         } // loop integration points
         
       } else {
@@ -268,7 +270,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
                                                   elemIt, elemIt);
           temp = elemMatR * elemSol;
         }
-        tempEnergy += (temp * elemSol) * 0.5;
+        tempEnergy += (temp * Conj(elemSol) ) * factor_;
       }  else if( accuracy_ == MIDPOINT ) {
 
         // =====================
@@ -304,7 +306,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
             forms_[el->regionId]->CalcKernel(elemMatR, lpm );
             temp = elemMatR * elemSol;
           }
-          tempEnergy += (temp * elemSol) * 0.5 * lpm.jacDet * weights[i]; 
+          tempEnergy += (temp * Conj(elemSol) ) * factor_ * lpm.jacDet * weights[i]; 
         } // loop integration points
       } else {
         EXCEPTION("No valid integration method defined");

@@ -105,14 +105,17 @@ namespace CoupledField {
       // ============
       // -- primary results --
       MECH_DISPLACEMENT, MECH_ACCELERATION, MECH_VELOCITY,MECH_RHS_LOAD,
+      
       // --- flux / derived quantities --
       MECH_STRESS, MECH_STRAIN,MECH_STRUCT_INTENSTIY, 
       MECH_NORMAL_STRUCT_INTENSITY, VON_MISES_STRESS,
       VON_MISES_STRAIN, MECH_KIN_ENERGY_DENS, MECH_DEFORM_ENERGY_DENS,
       MECH_TOTAL_ENERGY_DENS,
+      
       // -- integrated quantities --
       MECH_KIN_ENERGY, MECH_DEFORM_ENERGY, MECH_TOTAL_ENERGY,
       MECH_POWER, MECH_DEF_SURF_VOLUME, MECH_WEIGHT, 
+      
       // -- coupling quantities --
       MECH_FORCE, 
       
@@ -144,13 +147,23 @@ namespace CoupledField {
       // ==========
       //  MAGNETIC 
       // ==========
-      MAG_POTENTIAL, MAG_POTENTIAL_DERIV1, MAG_SCALAR_POTENTIAL, 
+      // -- primary results --
+      MAG_POTENTIAL, MAG_POTENTIAL_DERIV1, MAG_SCALAR_POTENTIAL, MAG_RHS_LOAD,
+      
+      // --- flux / derived quantities --
       MAG_FLUX_DENSITY, MAG_HFIELD, MAG_EDDY_CURRENT_DENSITY,
-      MAG_COIL_CURRENT_DENSITY, MAG_TOTAL_CURRENT_DENSITY, 
-      MAG_POTENTIAL_DIV,
-      MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_FORCE_LORENTZ_DENSITY, MAG_ENERGY,
-      MAG_EDDY_POWER, MAG_RHS_LOAD, MAG_ELEM_PERMEABILITY,
-
+      MAG_TOTAL_CURRENT_DENSITY, MAG_POTENTIAL_DIV, MAG_FORCE_LORENTZ_DENSITY,
+      MAG_EDDY_POWER_DENSIY, MAG_ENERGY_DENSITY,
+      
+      // -- integrated quantities --
+      MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_ENERGY, MAG_EDDY_POWER,
+      
+      // -- coil quantities --
+      MAG_COIL_CURRENT_DENSITY,
+      
+      // -- material related results --
+      MAG_ELEM_PERMEABILITY,
+      
       // =================
       //  HEAT CONDUCTION
       // =================

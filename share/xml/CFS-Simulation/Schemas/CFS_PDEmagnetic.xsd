@@ -256,9 +256,17 @@
       <xsd:enumeration value="magTotalCurrentDensity"/>
       <xsd:enumeration value="magCoilCurrentDensity"/>
       <xsd:enumeration value="magForceLorentzDensity"/>
+      <xsd:enumeration value="magEddyPowerDensity"/>
+      <xsd:enumeration value="magEnergyDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
+
+  <!-- Definition of field variables (union of nodal and element results) -->
+  <xsd:simpleType name="DT_MagneticFieldResult">
+    <xsd:union memberTypes="DT_MagneticNodeResult DT_MagneticElemResult"/>
+  </xsd:simpleType>
+  
   <!-- Definition of region result types of magnetic PDE -->
   <xsd:simpleType name="DT_MagneticRegionResult">
     <xsd:restriction base="xsd:token">
@@ -295,6 +303,7 @@
           </xsd:complexType>
         </xsd:element>
 
+
         <!-- Region result definition -->
         <xsd:element name="regionResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
@@ -306,6 +315,16 @@
           </xsd:complexType>
         </xsd:element>
 
+        <!-- FieldResults -->
+        <xsd:element name="field" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_FieldResult">
+                <xsd:attribute name="type" type="DT_MagneticFieldResult"/>
+              </xsd:extension>
+            </xsd:complexContent>           
+          </xsd:complexType>
+        </xsd:element>
 
 
       </xsd:choice>

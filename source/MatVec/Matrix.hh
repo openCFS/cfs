@@ -759,6 +759,14 @@ namespace CoupledField
     }
     return trans;
   }
+  
+  //! Explicit conjugation of matrix
+   template<class TYPE>
+   Matrix<TYPE> Conj( const Matrix<TYPE>&m);
+  
+  //! Explicit Hermitian of matrix
+  template<class TYPE>
+  Matrix<TYPE> Herm( const Matrix<TYPE>&m);
 #endif
 
   // =======================================================================

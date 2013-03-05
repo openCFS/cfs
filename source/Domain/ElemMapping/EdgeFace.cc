@@ -58,7 +58,7 @@ int Face::triaBits[3][3] =
 // quadrilateral shaped faces. If this 
 // permutation is applied to the nodes of a quad-face, 
 // its orientation will match the global one.
-char quadPerm[24][4] = 
+const char quadPerm[24][4] = 
 { 
  { 2, 1, 0, 3 }, //  0
  { 3, 0, 1, 2 }, //  1
@@ -89,7 +89,7 @@ char quadPerm[24][4] =
 };
 
 //  permutation matrix for triangular faces
-char triaPerm[8][3] = 
+const char triaPerm[8][3] = 
 { 
   {  0,  2,  1 }, // 0
   {  1,  0,  2 }, // 1
@@ -106,7 +106,7 @@ void Face::GetSortedIndices( StdVector<UInt>& sorted,
                              UInt numVertices,
                              const std::bitset<5>& flags ) {
 
-  Integer num = flags.to_ulong();
+  const Integer num = flags.to_ulong();
   // indices contains the
   if( numVertices == 4 ) {
     sorted.Resize( 4 );
