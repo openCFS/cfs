@@ -89,8 +89,7 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
 }
 
 MortarInterface::~MortarInterface() {
-  //ptGrid_ = NULL;
-  BaseNcInterface::~BaseNcInterface();
+  ptGrid_ = NULL;
   coordSys_ = NULL;
   
   if ( mParser_ ) {

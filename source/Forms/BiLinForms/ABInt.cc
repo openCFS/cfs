@@ -134,7 +134,6 @@ namespace CoupledField{
      const Elem* ptElem1 = ent1.GetElem();
      const Elem* ptElem2 = ent2.GetElem();
 
-     Matrix<MAT_DATA_TYPE> aMat, bMat;
      MAT_DATA_TYPE fac = 0.0;
 
      // Obtain FE element from feSpace and integration scheme
@@ -206,7 +205,7 @@ namespace CoupledField{
                      EntityIterator& ent1,
                      EntityIterator& ent2 )
   {
-    if ( ent1 != ent2 ) {
+    if ( ent1.GetElem() != ent2.GetElem() ) {
       EXCEPTION("NcSurfABInt cannot work on two different entities");
     }
 
@@ -222,18 +221,17 @@ namespace CoupledField{
     const Elem* ptVolMaster = ptSurfMaster->ptVolElems[0];
     const Elem* ptVolSlave = ptSurfSlave->ptVolElems[0];
 
-    /*Matrix<MAT_DATA_TYPE> aMat, bMat;
-    MAT_DATA_TYPE fac = 0.0;*/
+    MAT_DATA_TYPE fac = 0.0;
 
     // Obtain FE element from feSpace and integration scheme
-    BaseFE* ptFeMaster = ptFeSpaceMaster_->GetFe(ptSurfMaster->elemNum);
-    BaseFE* ptFeSlave = ptFeSpaceSlave_->GetFe(ptSurfSlave->elemNum);
+    BaseFE* ptFeMaster = this->ptFeSpaceMaster_->GetFe(ptSurfMaster->elemNum);
+    BaseFE* ptFeSlave = this->ptFeSpaceSlave_->GetFe(ptSurfSlave->elemNum);
     IntegOrder orderMaster, orderSlave;
     IntScheme::IntegMethod methodMaster, methodSlave;
-    ptFeSpaceMaster_->GetIntegration( ptFeMaster, ptVolMaster->regionId,
-                                      methodMaster, orderMaster );
-    ptFeSpaceSlave_->GetIntegration( ptFeSlave, ptVolSlave->regionId,
-                                     methodSlave, orderSlave );
+    this->ptFeSpaceMaster_->GetIntegration( ptFeMaster, ptVolMaster->regionId,
+                                            methodMaster, orderMaster );
+    this->ptFeSpaceSlave_->GetIntegration( ptFeSlave, ptVolSlave->regionId,
+                                           methodSlave, orderSlave );
 
 
     const UInt nrFncsMaster = ptFeMaster->GetNumFncs();
@@ -276,8 +274,8 @@ namespace CoupledField{
 
       // Calculate for each integration point the LocPointMapped
       lpmNc.Set( intPoints[i], esmNc );
-      lpmMaster.Set( ipMaster, esmMaster, volRegions_ );
-      lpmSlave.Set( ipSlave, esmSlave, volRegions_ );
+      lpmMaster.Set( ipMaster, esmMaster, this->volRegions_ );
+      lpmSlave.Set( ipSlave, esmSlave, this->volRegions_ );
 
       // Calculate A-matrix (first differential operator)
       this->aOperator_->CalcOpMat( this->aMat_, lpmMaster, ptFeMaster );
@@ -287,8 +285,8 @@ namespace CoupledField{
 
       // Calculate scalar factor
       // TODO jens: is this correct?
-      if ( !regionCoefs_.empty() ) {
-        regionCoefs_[ptVolSlave->regionId]->GetScalar(fac, lpmSlave);
+      if ( !this->regionCoefs_.empty() ) {
+        this->regionCoefs_[ptVolSlave->regionId]->GetScalar(fac, lpmSlave);
       } else {
         this->coefScalar_->GetScalar(fac, lpmSlave);
       }
