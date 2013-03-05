@@ -11,21 +11,23 @@
 #include <string>
 
 #include "General/Environment.hh"
+#include "Domain/Mesh/Grid.hh"
 
 namespace CoupledField {
-
-// forward declarations
-class Grid;
 
 class BaseNcInterface {
 
   public:
 
-    BaseNcInterface(Grid* grid, std::string &name);
+    BaseNcInterface(Grid* grid) : ptGrid_(grid), region_(NO_REGION_ID) {};
 
-    virtual ~BaseNcInterface();
+    virtual ~BaseNcInterface() { ptGrid_ = NULL; };
 
-    std::string& GetName() const { return name_; }
+    const std::string& GetName() const { return name_; }
+    
+    void SetName(const std::string &name) {
+      region_ = ptGrid_->AddSurfaceRegion(name_);
+    }
     
     RegionIdType GetRegionId() const { return region_; }
 

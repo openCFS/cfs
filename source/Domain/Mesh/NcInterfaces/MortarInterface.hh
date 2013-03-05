@@ -16,6 +16,10 @@ namespace CoupledField {
 // forward declarations
 class CoordSystem;
 class MathParser;
+class MortarNcSurfElem;
+class SurfElem;
+template<class TYPE> class StdVector;
+template<class TYPE> class Vector;
 
 class MortarInterface : public BaseNcInterface {
     
@@ -37,7 +41,7 @@ class MortarInterface : public BaseNcInterface {
 
     bool NeedsUpdate() const { return isMoving_; }
     
-    std::string& GetCoordSys() const { return coordSysId_; }
+    const std::string& GetCoordSys() const { return coordSysId_; }
 
     void UpdateInterface();
     
@@ -59,7 +63,7 @@ class MortarInterface : public BaseNcInterface {
       NCI_INTERSECT_NONE,
       NCI_INTERSECT_LINE,
       NCI_INTERSECT_RECT,
-      NCI_INTERSECT_POLYGON,
+      NCI_INTERSECT_POLYGON
     };
 
     //! return codes of function CutLines
@@ -78,17 +82,17 @@ class MortarInterface : public BaseNcInterface {
 
     //! intersect two line elements
     bool IntersectLines( SurfElem *ifaceElem1, SurfElem *ifaceElem2,
-                         StdVector<NcSurfElem*> &elemList,
+                         StdVector<MortarNcSurfElem*> &elemList,
                          StdVector<UInt> &newNodes );
 
     //! intersect two axiparallel quads
     bool IntersectRects( SurfElem *ifaceElem1, SurfElem *ifaceElem2,
-                         StdVector<NcSurfElem*> &elemList,
+                         StdVector<MortarNcSurfElem*> &elemList,
                          StdVector<UInt> &newNodes );
 
     //! intersect two elements of arbitrary type
     bool IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
-                            StdVector<NcSurfElem*> &elemList,
+                            StdVector<MortarNcSurfElem*> &elemList,
                             StdVector<UInt> &newNodes );
 
 
@@ -142,7 +146,7 @@ class MortarInterface : public BaseNcInterface {
     //! \param p (in) polygon to be triangulized
     //! \param tri (out) list of triangles
     UInt TriangulatePoly( const StdVector< Vector<Double> > &p,
-                          StdVector<NcSurfElem*> &tri,
+                          StdVector<MortarNcSurfElem*> &tri,
                           StdVector<UInt> &newNodes );
 
     // =======================================================================
@@ -167,4 +171,5 @@ class MortarInterface : public BaseNcInterface {
 };
 
 } /* namespace CoupledField */
+
 #endif /* _MORTARINTERFACE_HH_ */

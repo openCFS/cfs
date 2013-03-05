@@ -104,5 +104,15 @@ namespace CoupledField
     StdVector< shared_ptr<NcSurfElem> > neighbors;
   };
 
+  /*! This struct was introduced to prevent interfering with the Discontinuous
+   *  Galerkin implementation. It shall be merged with NcSurfElem, once
+   *  non-matching grid are working again.
+   */
+  struct MortarNcSurfElem : public NcSurfElem {
+    MortarNcSurfElem() : NcSurfElem(), ptMaster(NULL), ptSlave(NULL) {}
+    
+    SurfElem *ptMaster;
+    SurfElem *ptSlave;
+  };
 } // end of namespace
 #endif
