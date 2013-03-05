@@ -15,9 +15,9 @@
 // 
 // =====================================================================================
 #include "ABInt.hh"
+#include "Domain/ElemMapping/SurfElem.hh"
 
 namespace CoupledField{
-
 
    template< class COEF_DATA_TYPE, class B_DATA_TYPE>
    ABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
@@ -90,7 +90,7 @@ namespace CoupledField{
 #ifdef USE_BLAS_VERSION
        aMat_.Mult_Blas(this->bMat_,elemMat,true,false,this->factor_*fac,1.0);
 #else
-       elemMat += Transpose(aMat_) * this->bMat * this->factor_;
+       elemMat += Transpose(aMat_) * this->bMat_ * this->factor_*fac;
 #endif
 
      }
@@ -193,20 +193,125 @@ namespace CoupledField{
        this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false,
                              this->factor_*fac, 1.0);
 #else
-       elemMat += Transpose(this->aMat_) * thisbMat_ * this->factor_;
+       elemMat += Transpose(this->aMat_) * this->bMat_ * this->factor_*fac;
 #endif
 
      }
 
    }
- // Explicit template instantiation
- template class ABInt<Double,Double>;
- template class ABInt<Double,Complex>;
- template class ABInt<Complex,Double>;
- template class ABInt<Complex,Complex>;
- template class SurfaceABInt<Double,Double>;
- template class SurfaceABInt<Double,Complex>;
- template class SurfaceABInt<Complex,Double>;
- template class SurfaceABInt<Complex,Complex>;
-  
-} // name
+   
+  template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void NcSurfABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+  CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                     EntityIterator& ent1,
+                     EntityIterator& ent2 )
+  {
+    if ( ent1 != ent2 ) {
+      EXCEPTION("NcSurfABInt cannot work on two different entities");
+    }
+
+    // Extract MortarNcSurfElem element
+    const MortarNcSurfElem *ptMortarElem =
+        dynamic_cast<const MortarNcSurfElem*>(ent1.GetNcSurfElem());
+    if ( !ptMortarElem ) {
+      EXCEPTION("NcSurfABInt can handle NcSurfElems only");
+    }
+    
+    const SurfElem *ptSurfMaster = ptMortarElem->ptMaster;
+    const SurfElem *ptSurfSlave = ptMortarElem->ptSlave;
+    const Elem* ptVolMaster = ptSurfMaster->ptVolElems[0];
+    const Elem* ptVolSlave = ptSurfSlave->ptVolElems[0];
+
+    /*Matrix<MAT_DATA_TYPE> aMat, bMat;
+    MAT_DATA_TYPE fac = 0.0;*/
+
+    // Obtain FE element from feSpace and integration scheme
+    BaseFE* ptFeMaster = ptFeSpaceMaster_->GetFe(ptSurfMaster->elemNum);
+    BaseFE* ptFeSlave = ptFeSpaceSlave_->GetFe(ptSurfSlave->elemNum);
+    IntegOrder orderMaster, orderSlave;
+    IntScheme::IntegMethod methodMaster, methodSlave;
+    ptFeSpaceMaster_->GetIntegration( ptFeMaster, ptVolMaster->regionId,
+                                      methodMaster, orderMaster );
+    ptFeSpaceSlave_->GetIntegration( ptFeSlave, ptVolSlave->regionId,
+                                     methodSlave, orderSlave );
+
+
+    const UInt nrFncsMaster = ptFeMaster->GetNumFncs();
+    const UInt nrFncsSlave = ptFeSlave->GetNumFncs();
+
+    // Get shape map from grid
+    shared_ptr<ElemShapeMap> esmNc =
+        domain->GetGrid()->GetElemShapeMap( ptMortarElem, this->coordUpdate_ );
+    shared_ptr<ElemShapeMap> esmMaster =
+        domain->GetGrid()->GetElemShapeMap( ptSurfMaster, this->coordUpdate_ );
+    shared_ptr<ElemShapeMap> esmSlave =
+        domain->GetGrid()->GetElemShapeMap( ptSurfSlave, this->coordUpdate_ );
+
+    // Get integration points
+    StdVector<LocPoint> intPoints;
+    StdVector<Double> weights;
+    this->intScheme_->GetIntPoints( Elem::GetShapeType(ptMortarElem->type), 
+        methodMaster, orderMaster, methodSlave, orderSlave,
+        intPoints, weights );
+
+    elemMat.Resize( nrFncsMaster * this->aOperator_->GetDimDof(),
+        nrFncsSlave * this->bOperator_->GetDimDof() );
+    elemMat.Init();
+
+#define USE_BLAS_VERSION
+    // Loop over all integration points
+    Vector<Double> globIntPoint;
+    LocPoint ipMaster, ipSlave;
+    LocPointMapped lpmNc, lpmMaster, lpmSlave;
+    
+    const UInt numIntPts = intPoints.GetSize();
+    for( UInt i = 0; i < numIntPts; ++i ) {
+      // Calculate global coordinates of integration point
+      esmNc->Local2Global(globIntPoint, intPoints[i]);
+      
+      // Calculate local coordinates of integration point in master/slave elem
+      // TODO jens: Add projection for curved interfaces
+      esmMaster->Global2Local(ipMaster.coord, globIntPoint);
+      esmSlave->Global2Local(ipSlave.coord, globIntPoint);
+
+      // Calculate for each integration point the LocPointMapped
+      lpmNc.Set( intPoints[i], esmNc );
+      lpmMaster.Set( ipMaster, esmMaster, volRegions_ );
+      lpmSlave.Set( ipSlave, esmSlave, volRegions_ );
+
+      // Calculate A-matrix (first differential operator)
+      this->aOperator_->CalcOpMat( this->aMat_, lpmMaster, ptFeMaster );
+
+      // Calculate B-matrix (second differential operator)
+      this->bOperator_->CalcOpMat( this->bMat_, lpmSlave, ptFeSlave );
+
+      // Calculate scalar factor
+      // TODO jens: is this correct?
+      if ( !regionCoefs_.empty() ) {
+        regionCoefs_[ptVolSlave->regionId]->GetScalar(fac, lpmSlave);
+      } else {
+        this->coefScalar_->GetScalar(fac, lpmSlave);
+      }
+
+      fac *= MAT_DATA_TYPE(lpmNc.jacDet * weights[i]);
+
+#ifdef USE_BLAS_VERSION
+      this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false,
+          this->factor_*fac, 1.0);
+#else
+      elemMat += Transpose(this->aMat_) * this->bMat_ * this->factor_*fac;
+#endif
+    }
+  }
+
+  // Explicit template instantiation
+  template class ABInt<Double,Double>;
+  template class ABInt<Double,Complex>;
+  template class ABInt<Complex,Double>;
+  template class ABInt<Complex,Complex>;
+  template class SurfaceABInt<Double,Double>;
+  template class SurfaceABInt<Double,Complex>;
+  template class SurfaceABInt<Complex,Double>;
+  template class SurfaceABInt<Complex,Complex>;
+
+} // namespace CoupledField

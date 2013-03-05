@@ -71,7 +71,7 @@ namespace CoupledField {
     //! Destructor
     ~SurfaceABInt() {}
 
-    //! Compute element matrix associated to BDB form
+    //! Compute element matrix associated to AB form
     void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                             EntityIterator& ent1,
                             EntityIterator& ent2 );
@@ -82,6 +82,33 @@ namespace CoupledField {
     //! Map containing all coefficient functions for volume regions for operator A
     std::map< RegionIdType, PtrCoefFct > regionCoefs_;    
   };
+
+  //! class for calculation of bilinear forms for non-conforming coupling
+  template<class COEF_DATA_TYPE=Double, class B_DATA_TYPE=Double>
+  class NcSurfABInt : public SurfaceABInt<COEF_DATA_TYPE,B_DATA_TYPE> {
+
+    public:
+      
+      //! Define data type for matrix entries, derived by type trait
+      typedef PROMOTE(B_DATA_TYPE, COEF_DATA_TYPE) MAT_DATA_TYPE;
+      
+      //! Constructor with pointer to CoefFunction for surface itself
+      NcSurfABInt( BaseBOperator * aOp, BaseBOperator * bOp,
+                   PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+                   const std::set<RegionIdType>& volRegions,
+                   bool coordUpdate = false)
+      : SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
+          ( aOp, bOp, scalCoef, factor, volRegions, coordUpdate) {};
+
+      //! Destructor
+      ~NcSurfABInt() {};
+
+      //! Compute element matrix associated to AB form
+      void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                              EntityIterator& ent1,
+                              EntityIterator& ent2 );
+};
+  
 }
 
 #endif
