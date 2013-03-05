@@ -1,7 +1,6 @@
 #include "Grid.hh"
 #include "NcInterfaces/BaseNcInterface.hh"
 #include "NcInterfaces/MortarInterface.hh"
-#include "NcInterfaces/PolygonIterators.hh"
 
 #include <cmath>
 #include <string>
@@ -395,7 +394,6 @@ namespace CoupledField
     } else {
       EXCEPTION("NcInterface width ID " << ncId << " is unknown.");
     }
-    return NULL;
   }
   
   Grid::NcInterfaceId Grid::AddNcInterface(shared_ptr<BaseNcInterface> ncIf) {
@@ -441,7 +439,7 @@ namespace CoupledField
         GetNodeCoordinate(pv2, (*it));
         v1 = pv2 - pv1;
         // Normalize v1.
-        norm1 = Normalize(v1);
+        norm1 = v1.Normalize();
         if(norm1 < eps)
           norm1 = 0.0;
       }
@@ -453,7 +451,7 @@ namespace CoupledField
         v2 = pv3 - pv1;
 
         // Normalize v2.
-        norm2 = Normalize(v2);
+        norm2 = v2.Normalize();
         if(norm2 < eps)
           norm2 = 0.0;
 
@@ -487,7 +485,7 @@ namespace CoupledField
         case 3:
           if(normal.NormL2() == 0)
           {
-            CrossProd(v1, v2, normal);
+            v1.CrossProduct(v2, normal);
 
             // We may not use a zero-normal vector to perform our
             // test for coplanarity.
@@ -498,10 +496,10 @@ namespace CoupledField
               normal[2] = 0.0;
               continue;
             }
-            Normalize(normal);
+            normal.Normalize();
             continue;
           }
-          CrossProd(v1, v2, n);
+          v1.CrossProduct(v2, n);
 
           // If the norm of n is smaller than eps we have multiplied
           // linearly dependant vectors -> a point in the plane
@@ -511,7 +509,7 @@ namespace CoupledField
             continue;
           }
 
-          Normalize(n);
+          n.Normalize();
 
           n.Inner(normal, innerProd);
 

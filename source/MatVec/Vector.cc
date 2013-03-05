@@ -241,9 +241,9 @@ namespace CoupledField {
   //   Compute Euclidean Norm
   // **************************
   template <typename T>
-  double Vector<T>::NormL2() const
+  Double Vector<T>::NormL2() const
   {				
-    double sum(0.0);
+    Double sum(0.0);
 
 #pragma omp parallel for reduction(+:sum)
     for(unsigned int i = 0; i < size_; ++i)
@@ -252,6 +252,32 @@ namespace CoupledField {
     return sqrt(sum);
   }
 
+  template<typename T>
+  Double Vector<T>::Normalize() {
+    EXCEPTION("Vector<TYPE>::Normalize() is only defined for TYPE=Float,Double,Complex");
+  }
+  
+  template<>
+  Double Vector<Float>::Normalize() {
+    Double norm = NormL2();
+    ScalarDiv(norm);
+    return norm;
+  }
+  
+  template<>
+  Double Vector<Double>::Normalize() {
+    Double norm = NormL2();
+    ScalarDiv(norm);
+    return norm;
+  }
+  
+  template<>
+  Double Vector<Complex>::Normalize() {
+    Double norm = NormL2();
+    ScalarDiv(norm);
+    return norm;
+  }
+  
   template<class TYPE> 
   Double Vector<TYPE>::NormMax() const 
   { 
@@ -692,7 +718,14 @@ namespace CoupledField {
     v[1] = data_[2] * b.data_[0] - data_[0] * b.data_[2];
     v[2] = data_[0] * b.data_[1] - data_[1] * b.data_[0];
   }
-   
+
+  template<typename T>
+  bool Vector<T>::Collinear( const Vector<T>& vec) {
+    Vector<T> a;
+    CrossProduct(vec, a);
+    return ( fabs(a.NormL2()) < 1e-12 );
+  }
+
   // ***********************************************************************
   //   Operator implementation for debug case without expression templates
   // ***********************************************************************  

@@ -6,7 +6,12 @@
  */
 
 #include "MortarInterface.hh"
+#include "PolygonIterators.hh"
+#include "Domain/Domain.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
+#include "Domain/CoordinateSystems/CoordSystem.hh"
+#include "Utils/StdVector.hh"
+#include "MatVec/Vector.hh"
 #include "Utils/mathParser/mathParser.hh"
 
 #include <sstream>
@@ -14,18 +19,16 @@
 namespace CoupledField {
 
 MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
-  ptGrid_(grid),
+  BaseNcInterface(grid),
   isCoplanar_(false),
   isMoving_(false),
   coordSysId_(""),
   coordSys_(NULL),
   mParser_(NULL),
-  mphOffset_({0,0,0}),
   tolAbs_(1e-12),
   tolRel_(1e-4)
 {
-  nciNode->GetValue("name", name_);
-  ptGrid_->AddSurfaceRegion(name_);
+  SetName(nciNode->Get("name")->As<std::string>());
 
   StdVector<SurfElem*> masterElems;
   StdVector<SurfElem*> slaveElems;
@@ -85,7 +88,8 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   }
 }
 
-MortarInterface::~MortarInterface() : ~BaseNcInterface() {
+MortarInterface::~MortarInterface() {
+  ptGrid_ = NULL;
   coordSys_ = NULL;
   
   if ( mParser_ ) {
@@ -158,7 +162,7 @@ void MortarInterface::UpdateInterface() {
   StdVector<SurfElem*> masterElems;
   StdVector<SurfElem*> slaveElems;
   StdVector<SurfElem*> ifaceElems;
-  StdVector<NcSurfElem*> ncElems;
+  StdVector<MortarNcSurfElem*> ncElems;
   StdVector<SurfElem*> ncElemsHelper;
   StdVector<UInt> masterNodes;
   StdVector<UInt> ncElemIds;
@@ -300,9 +304,10 @@ void MortarInterface::UpdateInterface() {
  **
  */
 
-bool MortarInterface::IntersectLines( SurfElem *ifaceElem1, SurfElem *ifaceElem2,
-                                  StdVector<NcSurfElem*> &elemList,
-                                  StdVector<UInt> &newNodes )
+bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
+                                      SurfElem *ifaceElem2,
+                                      StdVector<MortarNcSurfElem*> &elemList,
+                                      StdVector<UInt> &newNodes )
 {
   // c0, c1, d0 and d1 are the endpoints of the two line elements
   //
@@ -412,7 +417,7 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1, SurfElem *ifaceElem2
   if(t[1] <= 0.0)
     return false;
 
-  NcSurfElem* ncElem = new NcSurfElem;
+  MortarNcSurfElem* ncElem = new MortarNcSurfElem;
   ncElem->connect.Resize(2);
 
   relativeElemVol = t[1] - t[0];
@@ -521,9 +526,9 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1, SurfElem *ifaceElem2
 }
 
 bool MortarInterface::IntersectRects( SurfElem *ifaceElem1,
-                                            SurfElem *ifaceElem2,
-                                            StdVector<NcSurfElem*>& elemList,
-                                            StdVector<UInt> &newNodes )
+                                      SurfElem *ifaceElem2,
+                                      StdVector<MortarNcSurfElem*>& elemList,
+                                      StdVector<UInt> &newNodes )
 {
   Vector<Double> c0, c1, c2, d0, d1, d2;
   Vector<Double> diffS, diffX, diffY, diffX2;
@@ -693,7 +698,7 @@ bool MortarInterface::IntersectRects( SurfElem *ifaceElem1,
   if(t[3] <= 0.0)
     return false;
 
-  NcSurfElem* ncElem = new NcSurfElem;
+  MortarNcSurfElem* ncElem = new MortarNcSurfElem;
   ncElem->connect.Resize(4);
 
   diffX *= distX;
@@ -970,7 +975,7 @@ bool MortarInterface::IntersectRects( SurfElem *ifaceElem1,
 }
 
 bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
-                                        StdVector<NcSurfElem*> &elemList,
+                                        StdVector<MortarNcSurfElem*> &elemList,
                                         StdVector<UInt> &newNodes )
 {
   UInt i, p1Size, p2Size;
@@ -1026,8 +1031,8 @@ bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
 
     for (UInt i = start; i < elemList.GetSize(); ++i)
     {
-      elemList[i]->ptLagrangeParent = ifElem2;
-      elemList[i]->ptSurfParent = ifElem1;
+      elemList[i]->ptMaster = ifElem1;
+      elemList[i]->ptSlave = ifElem2;
     }
 
     return true;
@@ -1061,10 +1066,10 @@ MortarInterface::LineIntersectType MortarInterface::CutLines(const Vector<Double
   l1 = v1.NormL2();
   l2 = v2.NormL2();
 
-  if (CoLinear(v1, v2)) { // lines are parallel
+  if ( v1.Collinear(v2) ) { // lines are parallel
     // if line from a to d is also parallel then lines may intersect
     e = d - a;
-    if (CoLinear(v1, e)) {
+    if ( v1.Collinear(e) ) {
       Double l_ac, l_ad, l_bc, l_bd;
       // calculate distances between points
       temp = (c - a);
@@ -1251,8 +1256,8 @@ bool MortarInterface::CutPolys(StdVector< Vector<Double> > &p1,
     // compute surface normal of p2
     temp1 = p2[1]- p2[0];
     temp2 = p2[2] - p2[0];
-    CrossProd(temp1,temp2, n);
-    Normalize(n);
+    temp1.CrossProduct(temp2, n);
+    n.Normalize();
 
     // project each point of p1
     for (i = 0; i < p1.GetSize(); ++i) {
@@ -1294,11 +1299,11 @@ bool MortarInterface::CutPolys(StdVector< Vector<Double> > &p1,
   PolygonIterator pi1(p1, start_cur), pi2(p2);
   temp1 = p1[1] - p1[0];
   temp2 = p1[2] - p1[0];
-  CrossProd(temp1, temp2, c1);
+  temp1.CrossProduct(temp2, c1);
 
   temp1 = p2[1] - p2[0];
   temp2 = p2[2] - p2[0];
-  CrossProd(temp1, temp2, c2);
+  temp1.CrossProduct(temp2, c2);
   if (c1 * c2 < 0.0)
     pi2.Reverse();
 
@@ -1560,17 +1565,17 @@ Double MortarInterface::PolyCentroid(const StdVector< Vector<Double> > &p,
 }
 
 UInt MortarInterface::TriangulatePoly(const StdVector< Vector<Double> > &p,
-                           StdVector<NcSurfElem*> &tri,
+                           StdVector<MortarNcSurfElem*> &tri,
                            StdVector<UInt> &newNodes )
 {
   UInt nodeNo, firstNo = tri.GetSize();
-  NcSurfElem *ncElem;
+  MortarNcSurfElem *ncElem;
   UInt numPoints = p.GetSize();
   Vector<Double> temp1, temp2;
 
   switch (numPoints) {
     case 3:
-      ncElem = new NcSurfElem;
+      ncElem = new MortarNcSurfElem;
       ncElem->type = Elem::ET_TRIA3;
       ncElem->connect.Resize(3);
 
@@ -1587,7 +1592,7 @@ UInt MortarInterface::TriangulatePoly(const StdVector< Vector<Double> > &p,
       tri.Push_back(ncElem);
       break;
     case 4:
-      ncElem = new NcSurfElem;
+      ncElem = new MortarNcSurfElem;
       ncElem->type = Elem::ET_QUAD4;
       ncElem->connect.Resize(4);
 
@@ -1620,7 +1625,7 @@ UInt MortarInterface::TriangulatePoly(const StdVector< Vector<Double> > &p,
 
       for (i = 1; i < p.GetSize(); ++i)
       {
-        ncElem = new NcSurfElem;
+        ncElem = new MortarNcSurfElem;
         ncElem->type = Elem::ET_TRIA3;
         ncElem->connect.Resize(3);
 
@@ -1633,7 +1638,7 @@ UInt MortarInterface::TriangulatePoly(const StdVector< Vector<Double> > &p,
         tri.Push_back(ncElem);
       }
 
-      ncElem = new NcSurfElem;
+      ncElem = new MortarNcSurfElem;
       ncElem->type = Elem::ET_TRIA3;
       ncElem->connect.Resize(3);
 

@@ -249,7 +249,11 @@ template<typename T> class ElemStoreSol;
 
     //! Compute Euclidean norm of this vector object
     Double NormL2() const;
-    
+
+    //! Normalize vector, i.e. scale it to unit length w.r.t. L2 norm.
+    //! Returns the vectors L2 norm before normalization.
+    Double Normalize();
+
     /** Calculates the max-norm (of the real part) */ 
     Double NormMax() const; 
 
@@ -289,7 +293,10 @@ template<typename T> class ElemStoreSol;
 
     //! Calc cross product of two vectors v = this x b
     void CrossProduct( const Vector<T>& b, Vector<T>& v );
-     
+    
+    //! Is this vector collinear with another vector?
+    bool Collinear( const Vector<T>& vec);
+    
 //@}
 
 

@@ -50,9 +50,11 @@ namespace CoupledField
 
   class Grid {
       
-      friend class BaseNcInterface;
-
   public:
+
+    // friend class declaration
+    friend class BaseNcInterface;
+    friend class MortarInterface;
 
     // =======================================================================
     // CONSTRUCTION AND INTIIALIZATION
@@ -637,7 +639,7 @@ namespace CoupledField
 
   public:
 
-    typedef Integer NcInterfaceId;
+    typedef UInt NcInterfaceId;
     
     //! Returns an NcInterface object identified by its ID
     shared_ptr<BaseNcInterface> GetNcInterface(NcInterfaceId ncId) const;
