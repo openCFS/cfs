@@ -87,17 +87,7 @@ namespace CoupledField{
     // BaseMaterial * actSDMat = NULL;
 
     //type of geometry
-    std::string geometryType;
-    param->Get("domain")->GetValue("geometryType", geometryType );
-
-    // convert to tensor type
-    // SubTensorType tensorType = FULL;
-    if (geometryType == "plane") {
-      // tensorType = PLANE_STRAIN;
-    } else if (geometryType == "axi") {
-      // tensorType = AXI;
-      isaxi_ = true;
-    }
+    isaxi_ = ptGrid_->IsAxi();
 
     // Define integrators for "standard" materials
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -647,15 +637,14 @@ namespace CoupledField{
 
     //creates the mean flow
     StdVector<std::string> vecDofNames;
-    std::string geometryType;
-    param->Get("domain")->GetValue("geometryType", geometryType );
-
-    if( geometryType == "3d" ) {
+    if( ptGrid_->GetDim() == 3 ) {
       vecDofNames = "x", "y", "z";
-    } else if( geometryType == "plane" ) {
-      vecDofNames = "x", "y";
-    } else if( geometryType == "axi" ) {
-      vecDofNames = "r", "z";
+    } else {
+      if( ptGrid_->IsAxi() ) {
+        vecDofNames = "r", "z";
+      } else {
+        vecDofNames = "x", "y";
+      }
     }
 
     CreateMeanFlowFunction(vecDofNames);
@@ -706,15 +695,15 @@ namespace CoupledField{
     shared_ptr<BaseFeFunction> feFct = feFunctions_[formulation_];
     shared_ptr<ResultInfo> res1 = feFct->GetResultInfo();
     
-    std::string geometryType;
-    param->Get("domain")->GetValue("geometryType", geometryType );
     StdVector<std::string> vecDofNames;
-    if( geometryType == "3d" ) {
+    if( ptGrid_->GetDim() == 3 ) {
       vecDofNames = "x", "y", "z";
-    } else if( geometryType == "plane" ) {
-      vecDofNames = "x", "y";
-    } else if( geometryType == "axi" ) {
-      vecDofNames = "r", "z";
+    } else {
+      if( ptGrid_->IsAxi() ) {
+        vecDofNames = "r", "z";
+      } else {
+        vecDofNames = "x", "y";
+      }
     }
     
     // === PRESSURE / POTENTIAL - 1.DERIVATIVE ===

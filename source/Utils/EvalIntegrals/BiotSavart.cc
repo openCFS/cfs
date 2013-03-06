@@ -33,8 +33,7 @@ DEFINE_LOG(bisa, "biotSavart")
     eqnMap_ = map;
     
     dim_ = ptGrid_->GetDim();
-    isAxi_ = param->Get("domain")->
-        Get("geometryType")->As<std::string>() == "axi";
+    isAxi_ = ptGrid_->IsAxi();
     
     // Read number of coils
     ParamNodeList coils = myParam_->GetList("coil");

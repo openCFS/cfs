@@ -113,17 +113,7 @@ namespace CoupledField{
     // BaseMaterial * actSDMat = NULL;
 
     //type of geometry
-    std::string geometryType;
-    param->Get("domain")->GetValue("geometryType", geometryType );
-
-    // convert to tensor type
-    // SubTensorType tensorType = FULL;
-    if (geometryType == "plane") {
-      // tensorType = PLANE_STRAIN;
-    } else if (geometryType == "axi") {
-      // tensorType = AXI;
-      isaxi_ = true;
-    }
+    isaxi_ = ptGrid_->IsAxi();
 
     // Define integrators for "standard" materials
     std::map<RegionIdType, BaseMaterial*>::iterator it;
