@@ -60,8 +60,9 @@ namespace CoupledField {
     // if no param object is present, just leave
     if (!param) return;
 
-    Vector<Double> coord(dim_);
-    std::string coordSys;
+    Vector<Double> locCoord(dim_), globCoord(dim_);
+    Double compoValue;
+    std::string coordSysId, compoName;
     std::string name;
 
     for( UInt iType = 0; iType < 2; iType++ ) {
@@ -85,20 +86,53 @@ namespace CoupledField {
         for( UInt i=0; i < nodes.GetSize(); i++ ) {
 
           // fetch name of nodes to be selected
-          nodes[i]->GetValue("name", name );
+          nodes[i]->GetValue("name", name);
 
           // check if node is defined by point coord
           PtrParamNode coordNode = nodes[i]->Get("coord", ParamNode::PASS );
           if( coordNode ) {
+            UInt compoIndex;
+            locCoord.Init(0.0);
+            globCoord.Init(0.0);
+            
+            coordSysId = "default";
+            coordNode->GetValue("coordSysId", coordSysId, ParamNode::PASS);
+            const CoordSystem* cosy = domain->GetCoordSystem(coordSysId);
+            
+            ParamNodeList compoList = coordNode->GetChildren();
+            ParamNodeList::iterator compoIt = compoList.Begin(),
+                                    endIt = compoList.End();
+            
+            for ( ; compoIt != endIt; ++compoIt ) {
+              compoName = (*compoIt)->GetName();
+              if ( compoName == "coordSysId" ) continue;
+              
+              compoValue = (*compoIt)->MathParse<Double>();
+              if ( compoValue == 0.0) continue;
+              
+              if ( isAxi_ && (compoName == "x" || compoName == "y") ) {
+                EXCEPTION(listNode->GetName() << " '" << name
+                          << "': Coordinate components must be 'r', 'z' "
+                          << "in an axisymmetric simulation.");
+              }
+              if ( isAxi_ && compoName == "r" ) compoName = "x";
+              if ( isAxi_ && compoName == "z" ) compoName = "y";
+              
+              try {
+                compoIndex = cosy->GetVecComponent(compoName)-1;
+              } catch (Exception &ex) {
+                RETHROW_EXCEPTION(ex, "Unable to create "
+                                  << listNode->GetName()
+                                  << " '" << name << "'.");
+              }
+              
+              locCoord[compoIndex] = compoValue;
+            }
 
-            // ToDo: insert defintion for axisymmetric geometry
-            coord.Init();
-            coord[0] = coordNode->Get( "x" )->MathParse<Double>();
-            coord[1] = coordNode->Get( "y" )->MathParse<Double>();
-            if( dim_ == 3 )
-              coord[2] = coordNode->Get( "z" )->MathParse<Double>();
+            cosy->Local2GlobalCoord(globCoord, locCoord);
+            
             StdVector<UInt> entityNum(1);
-            entityNum[0] = FindEntityMinDistance( isNode, coord );
+            entityNum[0] = FindEntityMinDistance( isNode, globCoord );
 
             // add node / element
             if( isNode ) {

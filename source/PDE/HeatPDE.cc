@@ -179,17 +179,15 @@ void HeatPDE::DefineIntegrators() {
   RegionIdType actRegion;
   BaseMaterial * actSDMat = NULL;  
 
-  //type of geometry
-  std::string geometryType;
-  param->Get("domain")->GetValue("geometryType", geometryType );
-
   // convert to tensor type
   SubTensorType tensorType = FULL;
-  if (geometryType == "plane") {
-    tensorType = PLANE_STRAIN;
-  } else if (geometryType == "axi") {
-    tensorType = AXI;
-    isaxi_ = true;
+  if ( ptGrid_->GetDim() == 2 ) {
+    if ( ptGrid_->IsAxi() ) {
+      tensorType = AXI;
+      isaxi_ = true;
+    } else {
+      tensorType = PLANE_STRAIN;
+    }
   }
 
   // Define integrators for "standard" materials

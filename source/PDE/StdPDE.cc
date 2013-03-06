@@ -44,7 +44,7 @@ namespace CoupledField {
     needsAlgsys_(true),
     isAlwaysStatic_(false),
     dim_(ptGrid_->GetDim()), 
-    isaxi_(param->Get("domain")->Get("geometryType")->As<std::string>() == "axi"),
+    isaxi_(ptGrid_->IsAxi()),
     isComplex_(false),    
     needSolPrev_(false),
     isIncrFormulation_(false),
