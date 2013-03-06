@@ -159,7 +159,7 @@ namespace CoupledField {
             cosy->Local2GlobalCoord(globCoord, locCoord);
             
             StdVector<UInt> entityNum(1);
-            entityNum[0] = FindEntityMinDistance( isNode, locCoord );
+            entityNum[0] = FindEntityMinDistance( isNode, globCoord );
 
             // add node / element
             if( isNode ) {
