@@ -1725,11 +1725,11 @@ source/cplreader/FileReaders/FASTEST/FASTEST-FileRenamer.pl.in -text
 source/cplreader/FileReaders/FASTEST/FileReader_FASTEST.cc svneol=native#text/plain
 source/cplreader/FileReaders/FASTEST/FileReader_FASTEST.hh svneol=native#text/plain
 source/cplreader/FileReaders/FieldView/CMakeLists.txt -text
-source/cplreader/FileReaders/FieldView/FileReader_fvuns.cc -text
-source/cplreader/FileReaders/FieldView/FileReader_fvuns.hh -text
+source/cplreader/FileReaders/FieldView/FieldViewFile.cpp svneol=native#text/x-c%2B%2Bsrc
+source/cplreader/FileReaders/FieldView/FieldViewFile.h svneol=native#text/x-chdr
+source/cplreader/FileReaders/FieldView/FileReader_fvuns.cc svneol=native#text/x-c%2B%2Bsrc
+source/cplreader/FileReaders/FieldView/FileReader_fvuns.hh svneol=native#text/x-c%2B%2Bhdr
 source/cplreader/FileReaders/FieldView/fv_reader_tags.h -text
-source/cplreader/FileReaders/FieldView/readfvuns.cpp -text
-source/cplreader/FileReaders/FieldView/readfvuns.h -text
 source/cplreader/FileReaders/GENGRIDS/CMakeLists.txt svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/FileReader_GENGRIDS.cc svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/FileReader_GENGRIDS.hh svneol=native#text/plain

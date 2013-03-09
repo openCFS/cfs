@@ -38,6 +38,14 @@ namespace CoupledField
                             Vector<Double>& nodalLoadDensity,
                             Vector<Double>& divLHTensor,
                             Double density);
+  
+    void PerformIntegrationLighthillwithDivTij(const Matrix<Double> & coordMat,
+                            const Matrix<Double>& NodaldTijdxj,
+                            const Matrix<Double>& NodalVal,
+                            Vector<Double>& elemvec,
+                            Vector<Double>& nodalLoadDensity,
+                            Vector<Double>& divLHTensor,
+                            Double density);
 
     void PerformIntegrationAPEMass(const Matrix<Double> & coordMat,
                             const Matrix<Double>& NodalVal,

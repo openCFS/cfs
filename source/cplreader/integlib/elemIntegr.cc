@@ -190,6 +190,23 @@ namespace CoupledField
                                            ptElem_, density);
 
   }
+  
+    void ElemIntegr::PerformIntegrationLighthillwithDivTij(const Matrix<Double> & coordMat,
+                          const Matrix<Double>& NodaldTijdxj,
+                          const Matrix<Double>& NodalVal,
+                          Vector<Double>& elemvec,
+                          Vector<Double>& nodalLoadDensity,
+                          Vector<Double>& divLHTensor,
+                          Double density){
+    if(!ptElem_)
+      return;
+
+    //perform volume or surface (surfInt = true) integration
+      linearLoad_->CalcElemVec4QuadwithDivTij(coordMat,  NodaldTijdxj, elemvec,
+                                           nodalLoadDensity, divLHTensor,
+                                           ptElem_, density);
+
+   }
 
   void ElemIntegr::PerformIntegrationLHPressure(const Matrix<Double> & coordMat,
                                                 const Vector<Double>& NodalPres,

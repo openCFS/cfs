@@ -422,6 +422,14 @@ namespace CoupledField
                                  Vector<Double> & nodalLoadDensity,
                                  Vector<Double>& divLHTensor, 
                                  const Elem* elem, Double density);
+    
+    /// Calculation of vector of right hand side using nodal velocity values
+    void CalcElemVec4QuadwithDivTij(const Matrix<Double>& ptCoord, 
+                                 const Matrix<Double> & NodalDivTij,
+                                 Vector<Double> & Result, 
+                                 Vector<Double> & nodalLoadDensity,
+                                 Vector<Double>& divLHTensor, 
+                                 const Elem* elem, Double density);
 
     void CalcLighthillSurfaceTermVel(const Elem* volElem,
                                  const Elem* surfElem,

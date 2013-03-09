@@ -1059,9 +1059,6 @@ namespace CoupledField
 
     std::string regionName = ptFileReader_->GetRegionName(regionIdx);
 
-
-
-
     //OK, we have so many different source formulations lets determine what the user wants and
     //what is available
 
@@ -1077,11 +1074,15 @@ namespace CoupledField
       computeLHP = ( settings.GetInt("pressureRhsForWave") && computeLHV);
       computeLHV = !computeLHP;
       if(computeLHP){
-        std::cout << "Computing sources for wave equation with laplacian of pressure. Quantities like divLHTensor as well as densities on are not available!" << std::endl;
+        std::cout << "Computing sources for wave equation with laplacian of pressure. Quantities like divLHTensor as well as densities of are not available!" << std::endl;
        }
 
       if(computeLHV){
-        std::cout << "Computing sources for wave equation with Lighthill tensor." << std::endl;
+        if( !settings.GetInt("useDivLHT") ) {
+          std::cout << "Computing sources for wave equation with Lighthill tensor using velocity data." << std::endl;
+        } else {
+          std::cout << "Computing sources for wave equation with Lighthill tensor using divLHT data." << std::endl;
+        }
       }
     }
 
@@ -1097,26 +1098,49 @@ namespace CoupledField
                                 std::find(outputFields_.begin(),outputFields_.end(),"all") != outputFields_.end());
 
     //lets see what we have available
+    
     // first we check for the velocity field
     FlowDataPartStruct& velocityStruct = flowData[FLUIDMECH_VELOCITY];
     std::vector<Double>& velField = velocityStruct.data;
 
-
     FlowDataPartStruct& meanVelocityStruct = flowData[MEAN_FLUIDMECH_VELOCITY];
     std::vector<Double>& meanVelocityField = meanVelocityStruct.data;
+    
+    // then we check for the divergence of Lighthill tensor field
+    FlowDataPartStruct& divlhtStruct = flowData[ACOU_DIV_LH_TENSOR_NODAL];
+    std::vector<Double>& divlhtField = divlhtStruct.data;
 
-    if(!velocityStruct.isActive)
-    {
-      if(computeLHV || computeAPEMomentum || computeAeroAcouSrc){
-        std::cerr << "Will not calculate velocity based sources on " << regionName
-                  << " since velocity field is not active!" << std::endl;
+    if( !settings.GetInt("useDivLHT") ) {
+    
+      if(!velocityStruct.isActive)
+      {
+        if(computeLHV || computeAPEMomentum || computeAeroAcouSrc){
+          std::cerr << "Will not calculate velocity based sources on " << regionName
+                    << " since velocity field is not active!" << std::endl;
+        }
+        flowData.erase(FLUIDMECH_VELOCITY);
+        flowData.erase(MEAN_FLUIDMECH_VELOCITY);
+        computeLHV = false;
+        computeAPEMomentum = false;
+        computeAeroAcouSrc = false;
       }
-      flowData.erase(FLUIDMECH_VELOCITY);
-      flowData.erase(MEAN_FLUIDMECH_VELOCITY);
-      computeLHV = false;
-      computeAPEMomentum = false;
-      computeAeroAcouSrc = false;
+      
+    } else {
+    
+      if(!divlhtStruct.isActive)
+      {
+        if(computeLHV || computeAPEMomentum || computeAeroAcouSrc){
+          std::cerr << "Will not calculate divLHT based sources on " << regionName
+                    << " since divLHT field is not active!" << std::endl;
+        }
+        flowData.erase(ACOU_DIV_LH_TENSOR_NODAL);
+        computeLHV = false;
+        computeAPEMomentum = false;
+        computeAeroAcouSrc = false;
+      }
+      
     }
+
 
     // now we turn to pressure field
     bool presFieldAvailable = true;
@@ -1146,7 +1170,7 @@ namespace CoupledField
 //    meanPresFieldAvail = (meanPressureField.size() > 0);
 
     //Well thats it, now we should be sure to set the flags right to only compute things the user wants and the flow data
-    //features. The falgs will be checked if needed. we can go on...
+    //features. The flags will be checked if needed. we can go on...
 
 
     std::cout << "Calculating Aeroacoustic sources on " << regionName << " ";
@@ -1192,15 +1216,15 @@ namespace CoupledField
     std::fill(acouRhsDensityField.begin(), acouRhsDensityField.end(), 0.0);
 
     int nElems = ptFileReader_->GetNumElems(regionIdx);
-    
+
     FlowDataPartStruct& fdps4 = flowData[ACOU_DIV_LH_TENSOR];
     fdps4.isActive = true; // all partitions have results
     fdps4.definedOn = ResultInfo::ELEMENT; // elements
-    if(fdps4.dofNames.empty()) {
+    if (fdps4.dofNames.empty()) {
       fdps4.dofNames.push_back("x");
       fdps4.dofNames.push_back("y");
-      if(dim_ == 3)
-        fdps4.dofNames.push_back("z");        
+      if (dim_ == 3)
+        fdps4.dofNames.push_back("z");
     }
     fdps4.unit = MapSolTypeToUnit(ACOU_DIV_LH_TENSOR);
     fdps4.resultName = "acouDivLighthillTensor";
@@ -1210,6 +1234,8 @@ namespace CoupledField
 
     // Fill acouDivLighthillTensor field with zeros
     std::fill(acouDivLighthillTensor.begin(), acouDivLighthillTensor.end(), 0.0);
+
+
 
     // Init the structures for AcouMixedMassLoad
     FlowDataPartStruct& fdps5 = flowData[ACOUMIXED_MASS_LOAD];
@@ -1242,7 +1268,7 @@ namespace CoupledField
     fdps6.entryType = ResultInfo::VECTOR;
     std::vector<Double>& acouLambVec = fdps6.data;
 
-    // Fill acouDivLighthillTensor field with zeros
+    // Fill acouLambVector field with zeros
     std::fill(acouLambVec.begin(), acouLambVec.end(), 0);
 
     // PREPARE THE MOMENTUM RHS VECTOR i.e. based on Lamb Vector
@@ -1377,7 +1403,11 @@ namespace CoupledField
 
           if(computeLHV || computeAPEMomentum || computeAeroAcouSrc)
           {
-            nodalVel[d][n] = velField[velIdx+d];
+            if (!settings.GetInt("useDivLHT")) {
+              nodalVel[d][n] = velField[velIdx+d];
+            } else {
+              nodaldTijdxj[d][n] = divlhtField[velIdx+d];
+            }
             if(meanVelFieldAvail)
               nodalMeanVel[d][n] = meanVelocityField[velIdx+d];
           }
@@ -1416,20 +1446,31 @@ namespace CoupledField
                                                       elemVecLambRhs,
                                                       elemVecPres,
                                                       elemVecAeroAcou,
-                                                      density);
-        } else {
-          if(computeLHV){
-            ptElemI[elemType].PerformIntegrationLighthill(coordMat,
-                                                          nodaldTijdxj,
-                                                          nodalVel,
-                                                          elemVecLH,
-                                                          nodalLoadDensity,
-                                                          divLHTensor,
-                                                          density);
-          }else if(computeLHP){
-            ptElemI[elemType].PerformIntegrationLHPressure(coordMat,
-                                                             nodalPressure,
-                                                             elemVecLH,
+                    density);
+          } else {
+            if (computeLHV) {
+              if (!settings.GetInt("useDivLHT")) {
+
+                ptElemIntegr_[elemType]->PerformIntegrationLighthill(coordMat,
+                        nodaldTijdxj,
+                        nodalVel,
+                        elemVecLH,
+                        nodalLoadDensity,
+                        divLHTensor,
+                        density);
+              } else {
+                ptElemIntegr_[elemType]->PerformIntegrationLighthillwithDivTij(coordMat,
+                        nodaldTijdxj,
+                        nodalVel,
+                        elemVecLH,
+                        nodalLoadDensity,
+                        divLHTensor,
+                        density);
+              }
+            } else if (computeLHP) {
+              ptElemI[elemType].PerformIntegrationLHPressure(coordMat,
+                      nodalPressure,
+                      elemVecLH,
                                                              nodalLoadDensity);
           }
 
@@ -1476,15 +1517,29 @@ namespace CoupledField
                                                              elemVecPres,
                                                              elemVecAeroAcou,
                                                              density);
-        } else {
-          if(computeLHV){
-            ptElemIntegr_[elemType]->PerformIntegrationLighthill(coordMat,
-                                                                 nodaldTijdxj,
-                                                                 nodalVel,
-                                                                 elemVecLH,
-                                                                 nodalLoadDensity,
-                                                                 divLHTensor,
-                                                                 density);
+          } else {
+            if (computeLHV) {
+
+              if (!settings.GetInt("useDivLHT")) {
+
+                ptElemIntegr_[elemType]->PerformIntegrationLighthill(coordMat,
+                        nodaldTijdxj,
+                        nodalVel,
+                        elemVecLH,
+                        nodalLoadDensity,
+                        divLHTensor,
+                        density);
+              } else {
+                ptElemIntegr_[elemType]->PerformIntegrationLighthillwithDivTij(coordMat,
+                        nodaldTijdxj,
+                        nodalVel,
+                        elemVecLH,
+                        nodalLoadDensity,
+                        divLHTensor,
+                        density);
+              }
+            
+            
           }else if(computeLHP){
             ptElemIntegr_[elemType]->PerformIntegrationLHPressure(coordMat,
                                                              nodalPressure,

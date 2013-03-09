@@ -405,6 +405,10 @@ namespace CoupledField {
     case ACOU_DIV_LH_TENSOR:
       return "kg m^-2 s^-2";
       break;
+
+    case ACOU_DIV_LH_TENSOR_NODAL:
+      return "kg m^-2 s^-2";
+      break;
       
     case ACOU_LAMB_RHS:
       return "kg s^-1";
@@ -1356,6 +1360,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_RHS_LOAD, "acouRhsLoad");
     SolutionTypeEnum.Add(ACOU_RHS_LOAD_DENSITY, "acouRhsLoadDensity");
     SolutionTypeEnum.Add(ACOU_DIV_LH_TENSOR, "acouDivLighthillTensor");
+    SolutionTypeEnum.Add(ACOU_DIV_LH_TENSOR_NODAL, "acouDivLighthillTensorNodal");
     SolutionTypeEnum.Add(ACOU_LAMB_RHS, "acouLambRhs"); 
     SolutionTypeEnum.Add(ACOU_LAMB_VEC, "acouLambVec"); 
     SolutionTypeEnum.Add(ACOUMIXED_MASS_LOAD, "acouMixedMassLoad");

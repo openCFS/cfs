@@ -386,6 +386,14 @@ ADD_OPTION(pres
   "Specify column of pressure in FASTEST ASCII files."
   )
 
+ADD_OPTION(useDivLHT
+  bool
+  false
+  "Use divLHT data"
+  "If this parameter is set, cplreader will attempt to use div Lighthill-Tensor
+  data instead of velocity data."
+  )
+
 ADD_OPTION(reduceElementOrder
   bool
   false
