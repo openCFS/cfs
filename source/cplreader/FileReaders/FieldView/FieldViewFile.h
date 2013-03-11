@@ -53,13 +53,17 @@ private:
 
   // file data
 
+  // FVUNS format knows three different file types (see fv_reader_tags.h)
   int fileType_;
+  // number of grids in file (one partition per grid in cplreader)
   int numGrids_;
   float solutionTime_;
 
   // variable data
 
+  // number of vars for each node
   int numNodalVars_;
+  // number of vars for each boundary node
   int numBndryVars_;
   std::vector<std::string> nodalVarNames_;
   // size is numGrids_

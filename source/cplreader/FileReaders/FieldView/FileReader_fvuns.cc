@@ -41,7 +41,6 @@ namespace fs=boost::filesystem;
 
 //Manipulation End
 
-//#define VERBOSE 1
 int VERBOSE;
 #define TRACE 0
 #define DEBUG 0
@@ -479,7 +478,7 @@ void FileReader_fvuns::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
 
 void FileReader_fvuns::ReadTopology(std::vector<UInt> & TOPOLOGYDATA, std::vector<UInt> & elemTypes) {
 
-  // find out maximum number of nodes per elem
+  // find out maximum number of element nodes per region
   UInt *maxNumElemNodes = new UInt[numRegions_];
 
   for( UInt regionIdx = 0; regionIdx < numRegions_; regionIdx++ ) {
@@ -582,11 +581,11 @@ void FileReader_fvuns::ReadTopology(std::vector<UInt> & TOPOLOGYDATA, std::vecto
       int* elemNodes = fvunsFile_.getPriElems(regionIdx);
 
       TOPOLOGYDATA[(elemIdx * 8) + 0] = elemNodes[(i * 6) + 0] + nodeOffset;
-      TOPOLOGYDATA[(elemIdx * 8) + 1] = elemNodes[(i * 6) + 1] + nodeOffset;
-      TOPOLOGYDATA[(elemIdx * 8) + 2] = elemNodes[(i * 6) + 2] + nodeOffset;
-      TOPOLOGYDATA[(elemIdx * 8) + 3] = elemNodes[(i * 6) + 3] + nodeOffset;
-      TOPOLOGYDATA[(elemIdx * 8) + 4] = elemNodes[(i * 6) + 4] + nodeOffset;
-      TOPOLOGYDATA[(elemIdx * 8) + 5] = elemNodes[(i * 6) + 5] + nodeOffset;
+      TOPOLOGYDATA[(elemIdx * 8) + 1] = elemNodes[(i * 6) + 3] + nodeOffset;
+      TOPOLOGYDATA[(elemIdx * 8) + 2] = elemNodes[(i * 6) + 5] + nodeOffset;
+      TOPOLOGYDATA[(elemIdx * 8) + 3] = elemNodes[(i * 6) + 1] + nodeOffset;
+      TOPOLOGYDATA[(elemIdx * 8) + 4] = elemNodes[(i * 6) + 2] + nodeOffset;
+      TOPOLOGYDATA[(elemIdx * 8) + 5] = elemNodes[(i * 6) + 4] + nodeOffset;
       TOPOLOGYDATA[(elemIdx * 8) + 6] = 0;
       TOPOLOGYDATA[(elemIdx * 8) + 7] = 0;
 
@@ -600,7 +599,7 @@ void FileReader_fvuns::ReadTopology(std::vector<UInt> & TOPOLOGYDATA, std::vecto
     for( int i = 0; i < fvunsFile_.getNumHexElems(regionIdx); i++ ) {
 
       int* elemNodes = fvunsFile_.getHexElems(regionIdx);
-
+      /*
       TOPOLOGYDATA[(elemIdx * 8) + 0] = elemNodes[(i * 8) + 2] + nodeOffset;
       TOPOLOGYDATA[(elemIdx * 8) + 1] = elemNodes[(i * 8) + 6] + nodeOffset;
       TOPOLOGYDATA[(elemIdx * 8) + 2] = elemNodes[(i * 8) + 4] + nodeOffset;
@@ -609,7 +608,15 @@ void FileReader_fvuns::ReadTopology(std::vector<UInt> & TOPOLOGYDATA, std::vecto
       TOPOLOGYDATA[(elemIdx * 8) + 5] = elemNodes[(i * 8) + 7] + nodeOffset;
       TOPOLOGYDATA[(elemIdx * 8) + 6] = elemNodes[(i * 8) + 5] + nodeOffset;
       TOPOLOGYDATA[(elemIdx * 8) + 7] = elemNodes[(i * 8) + 1] + nodeOffset;
-
+      */
+      TOPOLOGYDATA[(elemIdx * 8) + 0] = elemNodes[(i * 8) + 0] + nodeOffset;
+      TOPOLOGYDATA[(elemIdx * 8) + 1] = elemNodes[(i * 8) + 1] + nodeOffset;
+      TOPOLOGYDATA[(elemIdx * 8) + 2] = elemNodes[(i * 8) + 3] + nodeOffset;
+      TOPOLOGYDATA[(elemIdx * 8) + 3] = elemNodes[(i * 8) + 2] + nodeOffset;
+      TOPOLOGYDATA[(elemIdx * 8) + 4] = elemNodes[(i * 8) + 4] + nodeOffset;
+      TOPOLOGYDATA[(elemIdx * 8) + 5] = elemNodes[(i * 8) + 5] + nodeOffset;
+      TOPOLOGYDATA[(elemIdx * 8) + 6] = elemNodes[(i * 8) + 7] + nodeOffset;
+      TOPOLOGYDATA[(elemIdx * 8) + 7] = elemNodes[(i * 8) + 6] + nodeOffset;
       elemTypes[elemIdx] = Elem::HEXA8;
 
       elemIdx++;

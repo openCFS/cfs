@@ -14,7 +14,7 @@
 
 #define TRACE 0
 #define DEBUG 0
-#define VERBOSE 1
+#define VERBOSE 0
 #define NODEVERBOSE 0
 #define ELEMENTVERBOSE 0
 #define VARVERBOSE 0

@@ -1068,7 +1068,7 @@ namespace CoupledField
                        std::find(outputFields_.begin(),outputFields_.end(),"acouRhsLoadDensity") != outputFields_.end() ||
                        std::find(outputFields_.begin(),outputFields_.end(),"all") != outputFields_.end());
 
-
+    bool useDivLHT = ( settings.GetInt("useDivLHT") );
     bool computeLHP = false;
     if(computeLHV){
       computeLHP = ( settings.GetInt("pressureRhsForWave") && computeLHV);
@@ -1078,7 +1078,7 @@ namespace CoupledField
        }
 
       if(computeLHV){
-        if( !settings.GetInt("useDivLHT") ) {
+        if(!useDivLHT) {
           std::cout << "Computing sources for wave equation with Lighthill tensor using velocity data." << std::endl;
         } else {
           std::cout << "Computing sources for wave equation with Lighthill tensor using divLHT data." << std::endl;
@@ -1110,7 +1110,7 @@ namespace CoupledField
     FlowDataPartStruct& divlhtStruct = flowData[ACOU_DIV_LH_TENSOR_NODAL];
     std::vector<Double>& divlhtField = divlhtStruct.data;
 
-    if( !settings.GetInt("useDivLHT") ) {
+    if(!useDivLHT) {
     
       if(!velocityStruct.isActive)
       {
@@ -1403,7 +1403,7 @@ namespace CoupledField
 
           if(computeLHV || computeAPEMomentum || computeAeroAcouSrc)
           {
-            if (!settings.GetInt("useDivLHT")) {
+            if (!useDivLHT) {
               nodalVel[d][n] = velField[velIdx+d];
             } else {
               nodaldTijdxj[d][n] = divlhtField[velIdx+d];
@@ -1449,9 +1449,9 @@ namespace CoupledField
                     density);
           } else {
             if (computeLHV) {
-              if (!settings.GetInt("useDivLHT")) {
+              if (!useDivLHT) {
 
-                ptElemIntegr_[elemType]->PerformIntegrationLighthill(coordMat,
+                ptElemI[elemType].PerformIntegrationLighthill(coordMat,
                         nodaldTijdxj,
                         nodalVel,
                         elemVecLH,
@@ -1459,7 +1459,7 @@ namespace CoupledField
                         divLHTensor,
                         density);
               } else {
-                ptElemIntegr_[elemType]->PerformIntegrationLighthillwithDivTij(coordMat,
+                ptElemI[elemType].PerformIntegrationLighthillwithDivTij(coordMat,
                         nodaldTijdxj,
                         nodalVel,
                         elemVecLH,
@@ -1520,7 +1520,7 @@ namespace CoupledField
           } else {
             if (computeLHV) {
 
-              if (!settings.GetInt("useDivLHT")) {
+              if (!useDivLHT) {
 
                 ptElemIntegr_[elemType]->PerformIntegrationLighthill(coordMat,
                         nodaldTijdxj,
