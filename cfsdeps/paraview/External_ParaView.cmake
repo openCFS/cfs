@@ -5,6 +5,23 @@ set(paraview_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/paraview")
 set(paraview_install  "${CMAKE_CURRENT_BINARY_DIR}/paraview")
 set(paraview_source  "${paraview_prefix}/src/paraview")
 
+# mv lib64/* lib
+# No rule to make target `/home/user/cfs_build/cfsdeps/paraview/src/paraview-superbuild-build/lib/libmpich.a', needed by `bin/libMapReduceMPI.so.pv3.14'.  Stop.
+# /home/user/cfs_build/cfsdeps/paraview/src/paraview-superbuild-build/lib/libhdf5_hl.so
+
+# user@linux-ulef:~/cfs_build_debug/cfsdeps/paraview/src/paraview-superbuild-build> mv lib64/
+# clog2print.jar           jumpshot.jar             libmpe_collchk.a         libmpichcxx.a            libsiloh5.la             pkgconfig/               slog2update205to206.jar
+# clog2TOdrawable.jar      jumpshot_launcher.jar    libmpe_f2cmpi.a          libmpichf90.a            libsiloh5.settings       python2.7/               traceprint.jar
+# clog2TOslog2.jar         libampe.a                libmpe_nompi.a           libmpl.a                 libsiloh5.so             slog2filter.jar          traceTOslog2.jar
+# clogprint.jar            libfmpich.a              libmpe_nompi_null.a      libmpl.la                libtmpe.a                slog2navigator.jar       
+# clogTOdrawable.jar       liblmpe.a                libmpe_null.a            libopa.a                 logconvertor.jar         slog2printrecur.jar      
+# clogTOslog2.jar          libmpe.a                 libmpich.a               libopa.la                mpe_prof.o               slog2printserial.jar     
+# user@linux-ulef:~/cfs_build_debug/cfsdeps/paraview/src/paraview-superbuild-build> mv lib64/* lib
+
+# GCC 4.7 intptr_t
+# /home/user/cfs_build_debug/cfsdeps/paraview/src/paraview/VTK/Rendering/vtkFreeTypeUtilities.cxx:343:46:
+# /home/user/cfs_build_debug/cfsdeps/paraview/src/paraview/VTK/Rendering/vtkFreeTypeTools.cxx:229
+
 #-------------------------------------------------------------------------------
 # Info on SuperBuild
 # http://paraview.org/Wiki/ParaView:Superbuild
