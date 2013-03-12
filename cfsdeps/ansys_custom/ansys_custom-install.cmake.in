@@ -1,8 +1,12 @@
 SET(ansys_custom_source "@ansys_custom_source@")
 SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
+SET(CFS_TARGET_ARCH "@CFS_TARGET_ARCH@")
 SET(LIB_SUFFIX "@LIB_SUFFIX@")
 SET(CMAKE_COMMAND "@CMAKE_COMMAND@")
+SET(MINGW "@MINGW@")
+SET(CMAKE_AR "@CMAKE_AR@")
 
 EXECUTE_PROCESS(
   COMMAND "${CMAKE_COMMAND}" -E copy_directory "lib" "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}"  
@@ -15,3 +19,29 @@ EXECUTE_PROCESS(
   WORKING_DIRECTORY "${ansys_custom_source}/ansys_custom"
   RESULT_VARIABLE rv
   )
+
+IF(MINGW)
+  STRING(REPLACE "ar" "dlltool" DLLTOOL "${CMAKE_AR}")
+
+  IF(CFS_TARGET_ARCH STREQUAL "X86_64")
+    SET(ANSYS_VERSIONS
+      v110
+      v120
+      v121
+      v130
+      v140
+    )
+    SET(ANSYS_ARCH "winx64")
+  ENDIF()
+
+  FOREACH(ANSYS_VER IN LISTS ANSYS_VERSIONS)
+    SET(DEFFILE_IN "${CFS_SOURCE_DIR}/cfsdeps/ansys_custom/mingw_binlib_${ANSYS_VER}_${ANSYS_ARCH}.def")
+    SET(LIBFILE_OUT "${ANSYS_VER}/${ANSYS_ARCH}/libmingw_binlib.dll.a")
+
+    EXECUTE_PROCESS(
+      COMMAND "${DLLTOOL}" -d "${DEFFILE_IN}" --dllname binlib.dll -l "${LIBFILE_OUT}"
+      WORKING_DIRECTORY "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+      RESULT_VARIABLE rv
+      )
+  ENDFOREACH()
+ENDIF(MINGW)

@@ -266,8 +266,12 @@ namespace CoupledField {
     
 
     //read material density
-    if(mech->Has("density"))
-      material->SetScalar(mech->Get("density")->As<Double>(), DENSITY, Global::REAL);
+    if(mech->Has("density")) {
+      PtrCoefFct densFct =
+          CoefFunction::Generate(Global::REAL, 
+                                 mech->Get("density")->As<std::string>() );
+      material->SetCoefFct( DENSITY, densFct );
+    }
 
     // quite a lot is elasitcity
     if(mech->Has("elasticity"))
@@ -536,12 +540,20 @@ namespace CoupledField {
   void XMLMaterialHandler::ReadAcoustic(BaseMaterial *material, PtrParamNode acou)
   {
     //read density
-    if(acou->Has("density"))
-      material->SetScalar(acou->Get("density")->As<Double>(), DENSITY, Global::REAL ); 
+    if(acou->Has("density")) {
+      PtrCoefFct densFct =
+          CoefFunction::Generate(Global::REAL, 
+                                 acou->Get("density")->As<std::string>() );
+      material->SetCoefFct( DENSITY, densFct );
+    }
       
     //read compression modulus
-    if(acou->Has("compressionModulus"))
-      material->SetScalar(acou->Get("compressionModulus")->As<Double>(), ACOU_BULK_MODULUS, Global::REAL );
+    if(acou->Has("compressionModulus")) { 
+      PtrCoefFct blkFct =
+                CoefFunction::Generate(Global::REAL, 
+                                       acou->Get("compressionModulus")->As<std::string>() );
+      material->SetCoefFct( ACOU_BULK_MODULUS, blkFct );
+    }
 
     // check for acousticDamping
     if(acou->Has("acousticDamping"))
@@ -945,8 +957,12 @@ namespace CoupledField {
   void XMLMaterialHandler::ReadThermic(BaseMaterial *material, PtrParamNode therm)
   {
     // read density
-    if(therm->Has("density"))
-      material->SetScalar(therm->Get("density")->As<Double>(), DENSITY, Global::REAL);
+    if(therm->Has("density")) {
+      PtrCoefFct densFct =
+          CoefFunction::Generate(Global::REAL, 
+                                 therm->Get("density")->As<std::string>() );
+      material->SetCoefFct( DENSITY, densFct );
+    }
 
     // read heat capacity
     if(therm->Has("heatCapacity")) {
@@ -1056,8 +1072,12 @@ namespace CoupledField {
   void XMLMaterialHandler::ReadFlow(BaseMaterial *material, PtrParamNode flow)
   {    
     // read density
-    if(flow->Has("density"))
-      material->SetScalar(flow->Get("density")->As<Double>(), DENSITY, Global::REAL);
+    if(flow->Has("density")) {
+      PtrCoefFct densFct =
+          CoefFunction::Generate(Global::REAL, 
+                                 flow->Get("density")->As<std::string>() );
+      material->SetCoefFct( DENSITY, densFct );
+    }
 
     // read dynamicViscosity 
     if( flow->Has("dynamicViscosity") &&
@@ -1065,12 +1085,20 @@ namespace CoupledField {
       EXCEPTION("Please specify either dynamic or kinematic viscosity but not both!");
     }
     
-    if(flow->Has("dynamicViscosity"))
-      material->SetScalar(flow->Get("dynamicViscosity")->As<Double>(), DYNAMIC_VISCOSITY, Global::REAL);
+    if(flow->Has("dynamicViscosity")) {
+      PtrCoefFct dynVisc =
+          CoefFunction::Generate(Global::REAL, 
+                                 flow->Get("dynamicViscosity")->As<std::string>() );
+      material->SetCoefFct( DYNAMIC_VISCOSITY, dynVisc );
+    }
 
     // read kinematicViscosity 
-    if(flow->Has("kinematicViscosity"))
-      material->SetScalar(flow->Get("kinematicViscosity")->As<Double>(), KINEMATIC_VISCOSITY, Global::REAL);
+    if(flow->Has("kinematicViscosity")) {
+      PtrCoefFct kinVisc =
+          CoefFunction::Generate(Global::REAL, 
+                                 flow->Get("kinematicViscosity")->As<std::string>() );
+      material->SetCoefFct( KINEMATIC_VISCOSITY, kinVisc );
+    }
   }
 
   //**********************************************************************

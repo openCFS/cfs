@@ -33,41 +33,61 @@ SET(ARCHIVES
 IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   IF(CFS_ARCH STREQUAL "X86_64")
     IF(CFS_SUBARCH STREQUAL "OPTERON")
-      SET(ARCHIVES
-	${ARCHIVES}
+      LIST(APPEND ARCHIVES
         "v100_linop64"
 	"v110_linop64"
 	)
     ELSEIF(CFS_SUBARCH STREQUAL "EM64T")
-      SET(ARCHIVES
-	${ARCHIVES}
+      LIST(APPEND ARCHIVES
         "v100_linem64t"
 	"v110_linem64t"
 	)
     ENDIF(CFS_SUBARCH STREQUAL "OPTERON")
 	  
-    SET(ARCHIVES
-      ${ARCHIVES}	
+    LIST(APPEND ARCHIVES
       "v120_linx64"
+      "v121_linem64t"
       "v130_linx64"
       "v140_linx64"
       )
   ENDIF(CFS_ARCH STREQUAL "X86_64")
 
   IF(CFS_ARCH STREQUAL "IA64")
-    SET(ARCHIVES
-      ${ARCHIVES}
+    LIST(APPEND ARCHIVES
       "110_linia64"
       )
   ENDIF(CFS_ARCH STREQUAL "IA64")
   
   IF(CFS_ARCH STREQUAL "I386")
-    SET(ARCHIVES
-      ${ARCHIVES}
+    LIST(APPEND ARCHIVES
       "v100_linia32"
       "v110_linia32"
+      "v121_linia32"
       )
   ENDIF(CFS_ARCH STREQUAL "I386")
 ENDIF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+
+IF(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  IF(CFS_ARCH STREQUAL "X86_64")
+    LIST(APPEND ARCHIVES
+      "v110_winx64"
+      "v120_winx64"
+      "v121_winx64"
+      "v130_winx64"
+      "v140_winx64"
+      )
+  ENDIF(CFS_ARCH STREQUAL "X86_64")
+
+  IF(CFS_ARCH STREQUAL "I386")
+    LIST(APPEND ARCHIVES
+      "v100_win32"
+      "v110_win32"
+      "v120_win32"
+      "v121_win32"
+      "v130_win32"
+      "v140_win32"
+      )
+  ENDIF(CFS_ARCH STREQUAL "I386")
+ENDIF(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 
 UNTAR_ARCHIVES("${ARCHIVES}")

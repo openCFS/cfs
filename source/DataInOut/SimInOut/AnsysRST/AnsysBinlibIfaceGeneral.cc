@@ -1584,11 +1584,22 @@ namespace CoupledField
   // from this DLL
   extern "C"
   {
-    void deleteObject(void* obj) {
+#ifdef _WIN32
+#define DLLAPI __declspec(dllexport)
+#else
+#define DLLAPI
+#endif
+    
+    void DLLAPI deleteObject(void* obj) {
       delete reinterpret_cast<DynamicObject*>(obj);
     }
 
-    void* loadObject(const char* name, int argc, void** argv) {
+    void* DLLAPI loadObject(const char* name, int argc, void** argv) {
+      // std::cout << "Trying to load object: " << name << std::endl;
+#ifdef _WIN32
+      SetEnvironmentEnums();
+#endif
+      
       if(std::strncmp(name,
                       "AnsysBinlibIfaceGeneral",
                       strlen(name) < 23 

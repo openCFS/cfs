@@ -21,16 +21,24 @@ cfsdeps/ansys_custom/ansys_custom_v120_win32.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v120_winx64.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v121_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v121_linem64t.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v121_linia32.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v121_linia64.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v121_win32.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v121_winx64.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v130_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v130_linx64.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v130_win32.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v130_winx64.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v140_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v140_linx64.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v140_win32.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v140_winx64.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_nacscmdargs_win32.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/binlib.def -text
+cfsdeps/ansys_custom/mingw_binlib_v110_winx64.def -text
+cfsdeps/ansys_custom/mingw_binlib_v120_winx64.def -text
+cfsdeps/ansys_custom/mingw_binlib_v121_winx64.def -text
+cfsdeps/ansys_custom/mingw_binlib_v130_winx64.def -text
+cfsdeps/ansys_custom/mingw_binlib_v140_winx64.def -text
 cfsdeps/arpack/CMakeLists.txt -text
 cfsdeps/arpack/External_ARPACK.cmake -text
 cfsdeps/arpack/RiceBSD.doc -text
@@ -53,11 +61,6 @@ cfsdeps/bzip2/bzip2-mingw.patch -text
 cfsdeps/bzip2/bzip2-shared-patch.cmake.in -text
 cfsdeps/bzip2/bzip2-static-patch.cmake.in -text
 cfsdeps/cfx_custom/External_CFX_Custom.cmake -text
-cfsdeps/cfx_custom/ansys_custom_v121_linia32.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/ansys_custom_v121_linia64.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/ansys_custom_v130_win32.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/ansys_custom_v140_linx64.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/ansys_custom_v140_win32.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v100_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v100_linux-amd64.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v100_linux.tar.bz2 -text svneol=unset#unset
@@ -952,6 +955,7 @@ source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceGeneral.hh svneol=native#text
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev100/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev110/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev120/CMakeLists.txt svneol=native#text/plain
+source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev121/CMakeLists.txt -text
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev130/CMakeLists.txt -text
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev140/CMakeLists.txt -text
 source/DataInOut/SimInOut/AnsysRST/CMakeLists.txt svneol=native#text/plain
@@ -1033,7 +1037,6 @@ source/DataInOut/SimInput.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimOutput.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimOutput.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/XMLMaterialHandler.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/XMLMaterialHandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/BCs.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/BCs.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/CMakeLists.txt svneol=native#text/plain

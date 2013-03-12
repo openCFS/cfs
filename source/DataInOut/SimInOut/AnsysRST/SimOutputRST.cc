@@ -64,21 +64,39 @@ namespace CoupledField {
     
     try 
     {
-      sysPathSep_ = fs::path("/").native();
+      sysPathSep_ = fs::path("/").string();
     } catch (std::exception &ex)
     {
       EXCEPTION(ex.what());
     }
 
+#ifndef _WIN32
     revisionDLLMap["10.0"] = "libCFSAnsysBinlibIfaceRev100.so";
     revisionDLLMap["11.0"] = "libCFSAnsysBinlibIfaceRev110.so";
     revisionDLLMap["12.0"] = "libCFSAnsysBinlibIfaceRev120.so";
+    revisionDLLMap["12.1"] = "libCFSAnsysBinlibIfaceRev121.so";
     revisionDLLMap["13.0"] = "libCFSAnsysBinlibIfaceRev130.so";
     revisionDLLMap["14.0"] = "libCFSAnsysBinlibIfaceRev140.so";
-    
+
     archMachIdMap["I386"] = "linia32";
     archMachIdMap["X86_64"] = "linop64";
-
+#else
+    revisionDLLMap["10.0"] = "libCFSAnsysBinlibIfaceRev100.dll";
+    revisionDLLMap["11.0"] = "libCFSAnsysBinlibIfaceRev110.dll";
+    revisionDLLMap["12.0"] = "libCFSAnsysBinlibIfaceRev120.dll";
+    revisionDLLMap["12.1"] = "libCFSAnsysBinlibIfaceRev121.dll";
+    revisionDLLMap["13.0"] = "libCFSAnsysBinlibIfaceRev130.dll";
+    revisionDLLMap["14.0"] = "libCFSAnsysBinlibIfaceRev140.dll";
+    
+    archMachIdMap["I386"] = "winia32";
+    archMachIdMap["X86_64"] = "winx64";
+#endif
+    
+    // The default revision for ANSYS is now set to 11.0. Note however, that
+    // not all features of the 11.0, 12.1 and even later revisions are supported.
+    // This is especially true for animation of harmonic results in ANSYS Classic.
+    // Moreover, revisions later than 11.0 may cause problems, when trying to load
+    // .rst files into Tecplot or EnSight.
     std::string ansysRev = "11.0";
     outputNode_->GetValue("ansysRevision", ansysRev, ParamNode::INSERT);
     sstr.clear(); sstr.str("");
@@ -114,10 +132,15 @@ namespace CoupledField {
     // First try to load the binlib interface DLL from the LD_LIBRARY_PATH
     sstr.clear(); sstr.str("");
     sstr << revisionDLLMap[requestedRev];
+    int dynLoadFlags = 0;
+#ifndef _WIN32
+    dynLoadFlags = RTLD_NOW;
+#endif
 
     // Load the dynamic library with the high-pass filter class
     dynLibrary_ = 
-      DynamicLoader::loadObjectFile(sstr.str().c_str(), RTLD_NOW);
+      DynamicLoader::loadObjectFile(sstr.str().c_str(), dynLoadFlags);
+      
     if(dynLibrary_ == NULL) {
 
       // Now try to load from builtin library path.
@@ -125,7 +148,7 @@ namespace CoupledField {
       sstr << CFS_ANSYS_LD_PATH << sysPathSep_ << revisionDLLMap[requestedRev];
 
       dynLibrary_ = 
-        DynamicLoader::loadObjectFile(sstr.str().c_str(), RTLD_NOW);
+        DynamicLoader::loadObjectFile(sstr.str().c_str(), dynLoadFlags);
       if(dynLibrary_ == NULL) {
         EXCEPTION("Couldn't load the dynamic library '" << sstr.str() 
                   << "'.\n"
