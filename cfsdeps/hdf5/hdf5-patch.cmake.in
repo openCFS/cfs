@@ -4,36 +4,54 @@ set(hdf5_prefix  "@hdf5_prefix@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_ARCH "@CFS_ARCH@")
 SET(MINGW "@MINGW@")
+SET(HDF5_CROSS_COMPILE "@HDF5_CROSS_COMPILE@")
 
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 IF(MINGW)
-  IF(CFS_ARCH STREQUAL "X86_64")
-    SET(patches
-      # When cross compiling the HDF5 build process may not generate
-      # intermediate binaries for platform introspection, since the
-      # can not run on the build host. We provide the introspection
-      # sources H5Tinit.c and H5lib_settings.c by hand. These sources
-      # have to be provided for each combination of host and target platform.
-      "hdf5-cross-compile.patch"
-    )
-
-    APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/hdf5")
-
-    EXECUTE_PROCESS(
-      COMMAND ${CMAKE_COMMAND} -E make_directory "${hdf5_prefix}/src/hdf5-static-build"
-    )
-
-    EXECUTE_PROCESS(
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/hdf5/H5Tinit.c" "${hdf5_prefix}/src/hdf5-static-build/H5Tinit.c"
-    )
-
-    EXECUTE_PROCESS(
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/hdf5/H5lib_settings.c" "${hdf5_prefix}/src/hdf5-static-build/H5lib_settings.c"
-    )
-
-
-  ELSE(CFS_ARCH STREQUAL "X86_64")
-    MESSAGE(FATAL_ERROR "HDF5 cross build is only working for X86_64!")
-  ENDIF(CFS_ARCH STREQUAL "X86_64")
+  IF(HDF5_CROSS_COMPILE)
+    IF(CFS_ARCH STREQUAL "X86_64")
+      SET(patches
+	# When cross compiling the HDF5 build process may not generate
+	# intermediate binaries for platform introspection, since the
+	# can not run on the build host. We provide the introspection
+	# sources H5Tinit.c and H5lib_settings.c by hand. These sources
+	# have to be provided for each combination of host and target platform.
+	"hdf5-cross-compile.patch"
+	)
+      
+      APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/hdf5")
+      
+      EXECUTE_PROCESS(
+	COMMAND ${CMAKE_COMMAND}
+	-E make_directory
+	"${hdf5_prefix}/src/hdf5-static-build"
+	)
+      
+      EXECUTE_PROCESS(
+	COMMAND ${CMAKE_COMMAND}
+	-E copy_if_different
+	"${CFS_SOURCE_DIR}/cfsdeps/hdf5/H5Tinit.c"
+	"${hdf5_prefix}/src/hdf5-static-build/H5Tinit.c"
+	)
+      
+      EXECUTE_PROCESS(
+	COMMAND ${CMAKE_COMMAND}
+	-E copy_if_different
+	"${CFS_SOURCE_DIR}/cfsdeps/hdf5/H5lib_settings.c"
+	"${hdf5_prefix}/src/hdf5-static-build/H5lib_settings.c"
+	)
+      
+      
+    ELSE(CFS_ARCH STREQUAL "X86_64")
+      MESSAGE(FATAL_ERROR "HDF5 cross build is only working for X86_64!")
+    ENDIF(CFS_ARCH STREQUAL "X86_64")
+  ELSE()
+      SET(patches
+	# The H5detect and H5_libsettings executables need to be linked against ws2_32.lib
+	"hdf5-mingw.patch"
+	)
+      
+      APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/hdf5")
+  ENDIF()
 ENDIF()

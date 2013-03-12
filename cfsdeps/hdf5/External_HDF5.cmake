@@ -5,6 +5,10 @@ set(hdf5_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/hdf5")
 set(hdf5_install  "${CMAKE_CURRENT_BINARY_DIR}")
 set(hdf5_source  "${hdf5_prefix}/src/hdf5")
 
+IF(NOT CFS_BUILD_OS STREQUAL CFS_TARGET_OS)
+  SET(HDF5_CROSS_COMPILE 1)
+ENDIF()
+
 #SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/hdf5/hdf5-patch.cmake.in")
 #SET(PFN "${hdf5_prefix}/hdf5-patch.cmake")
 #CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
@@ -59,14 +63,16 @@ ENDIF()
 #    )
 
 IF(MINGW)
-  LIST(APPEND CMAKE_ARGS
-    -DH5_HAVE_GETHOSTNAME:INTERNAL=0
-    )
-
-  IF(CFS_ARCH STREQUAL "X86_64")
+  IF(HDF5_CROSS_COMPILE)
     LIST(APPEND CMAKE_ARGS
-      -C ${CMAKE_CURRENT_SOURCE_DIR}/cfsdeps/hdf5/TryRunResults_MINGW64_CENTOS6.cmake
+      -DH5_HAVE_GETHOSTNAME:INTERNAL=0
       )
+    
+    IF(CFS_ARCH STREQUAL "X86_64")
+      LIST(APPEND CMAKE_ARGS
+	-C ${CMAKE_CURRENT_SOURCE_DIR}/cfsdeps/hdf5/TryRunResults_MINGW64_CENTOS6.cmake
+	)
+    ENDIF()
   ENDIF()
 
   LIST(APPEND CMAKE_ARGS

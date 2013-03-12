@@ -123,6 +123,7 @@ cfsdeps/hdf5/H5Tinit.c -text
 cfsdeps/hdf5/H5lib_settings.c -text
 cfsdeps/hdf5/TryRunResults_MINGW64_CENTOS6.cmake -text
 cfsdeps/hdf5/hdf5-cross-compile.patch -text
+cfsdeps/hdf5/hdf5-mingw.patch -text
 cfsdeps/hdf5/hdf5-patch.cmake.in -text
 cfsdeps/ilupack/CMakeLists.txt -text
 cfsdeps/ilupack/External_ILUPACK.cmake -text
