@@ -42,6 +42,7 @@ cfsdeps/arpack/arpack-ifort-cpu_time.patch -text
 cfsdeps/arpack/arpack-patch.cmake.in -text
 cfsdeps/arpack/instruction.arpack -text
 cfsdeps/arpack/readme.arpack -text
+cfsdeps/boost/4315.patch -text
 cfsdeps/boost/External_Boost.cmake -text
 cfsdeps/boost/boost-intel-signbit-intrinsic.patch -text
 cfsdeps/boost/boost-multi_array.patch -text
