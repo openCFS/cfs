@@ -92,7 +92,7 @@ IF(NOT MINGW)
 
   SET(CFS_OS "${OS}")
   SET(CFS_ARCH "${ARCH}")
-  SET(CFS_ARCH_STR "${CFS_DISTRO}_${ARCH}_${CFS_DISTRO_VER}")
+  SET(CFS_ARCH_STR "${CFS_DISTRO}_${CFS_DISTRO_VER}_${ARCH}")
   # Determine the subarchitecture of the platform.
   SET(CFS_SUBARCH "${SUBARCH}")
 

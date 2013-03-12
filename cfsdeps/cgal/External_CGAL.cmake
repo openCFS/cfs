@@ -115,8 +115,8 @@ SET(CGAL_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 IF(MINGW)
-  STRING(REPLACE ".a" ".dll.a" CGAL_BOOST_THREAD_LIB "${BOOST_THREAD-MT_LIB}")
-
+  STRING(REPLACE ".a" ".dll.a" CGAL_BOOST_THREAD_LIB "${BOOST_THREAD_LIB}")
+  
   SET(CGAL_LIBRARY
     "${LD}/libCGAL.a;${CGAL_BOOST_THREAD_LIB}"
     CACHE FILEPATH "CGAL library.")
