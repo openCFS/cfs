@@ -1,31 +1,36 @@
+SET(IDCOMP_TEMPL "${CFS_SOURCE_DIR}/share/scripts/identify_compiler.cmake.in")
+SET(COMPILER_ID_FILE "${CFS_BINARY_DIR}/CMakeFiles/out.cmake")
+SET(IDENTIFY_COMPILER_SRC "IdentifyCXXCompiler.cpp")
+
 #-------------------------------------------------------------------------------
 # Determine what equivalent GNU version the compiler has, to check if it is
 # compatible with the GNU C++ compiler on the system PATH.
 #-------------------------------------------------------------------------------
-SET(COMPILER_ID_FILE "${CFS_BINARY_DIR}/CMakeFiles/out.cmake")
-SET(IDCOMP_TEMPL "${CFS_SOURCE_DIR}/share/scripts/identify_compiler.cmake.in")
-
-SET(IDENTIFY_COMPILER_SRC "IdentifyCXXCompiler.cpp")
-SET(COMPILER "g++")
-
-SET(ID_GXX "${CFS_BINARY_DIR}/share/scripts/identify_gxx.cmake")
-CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_GXX}" @ONLY)
-
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_COMMAND}" -E make_directory "${CFS_BINARY_DIR}/tmp"
-  WORKING_DIRECTORY "${CFS_BINARY_DIR}"
-  RESULT_VARIABLE RETVAL
-  )
-
-EXECUTE_PROCESS(
-  COMMAND "${CMAKE_COMMAND}" -P "${ID_GXX}"
-  WORKING_DIRECTORY "${CFS_BINARY_DIR}/tmp"
-  RESULT_VARIABLE RETVAL
-  )
-
-INCLUDE("${COMPILER_ID_FILE}")
-
-SET(GNU_CXX_COMPILER_VER "${CXX_VERSION}")
+IF(UNIX OR MINGW)
+  #-----------------------------------------------------------------------------
+  # Let's first find out some infos about the system GNU compiler first.
+  #-----------------------------------------------------------------------------
+  SET(COMPILER "g++")
+  
+  SET(ID_GXX "${CFS_BINARY_DIR}/share/scripts/identify_gxx.cmake")
+  CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_GXX}" @ONLY)
+  
+  EXECUTE_PROCESS(
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CFS_BINARY_DIR}/tmp"
+    WORKING_DIRECTORY "${CFS_BINARY_DIR}"
+    RESULT_VARIABLE RETVAL
+    )
+  
+  EXECUTE_PROCESS(
+    COMMAND "${CMAKE_COMMAND}" -P "${ID_GXX}"
+    WORKING_DIRECTORY "${CFS_BINARY_DIR}/tmp"
+    RESULT_VARIABLE RETVAL
+    )
+  
+  INCLUDE("${COMPILER_ID_FILE}")
+  
+  SET(GNU_CXX_COMPILER_VER "${CXX_VERSION}")
+ENDIF(UNIX OR MINGW)
 
 
 
@@ -54,8 +59,9 @@ SET(CFS_CXX_COMPILER_VER "${CXX_VERSION}")
 SET(CFS_CXX_COMPILER_GNU_VER "${CXX_GCC_VERSION}")
 
 
-
-
+#-------------------------------------------------------------------------------
+# Now let's find out info about Fortran compiler.
+#-------------------------------------------------------------------------------
 SET(IDENTIFY_COMPILER_SRC "IdentifyFortranCompiler.F90")
 SET(ID_FORTRAN "${CFS_BINARY_DIR}/share/scripts/identify_fortran.cmake")
 CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_FORTRAN}" @ONLY)
@@ -170,12 +176,19 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
     SET(CFS_C_FLAGS "-frounding-math ${CFS_C_FLAGS}")
   ENDIF(NOT USE_CGAL)
 
-ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
+#-------------------------------------------------------------------------------
+# Check for Visual Studio C++ compiler
+#-------------------------------------------------------------------------------
+ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "MSVC")
+
+  MESSAGE(FATAL_ERROR "CFS_CXX_COMPILER_NAME ${CFS_CXX_COMPILER_NAME} Compiler")
+
+  MESSAGE(FATAL_ERROR "MSVC Compiler")
 
 #-------------------------------------------------------------------------------
 # Check for Intel C++ compiler
 #-------------------------------------------------------------------------------
-IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   #-----------------------------------------------------------------------------
   # Check for the case that Intel compiler is just GCC 4.2 compatible but the
   # system GCC is version 4.3. In this case Intel C++ fails to compile due
@@ -256,7 +269,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   #---------------------------------------------------------------------------
   SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D__builtin_isnan=::isnan -D__builtin_isinf=::isinf")
 
-ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+ENDIF()
 
 #-------------------------------------------------------------------------------
 # Check for Intel Fortran compiler
@@ -323,3 +336,4 @@ SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CFS_PROF_FLAGS} ${
 # MESSAGE("FORTRAN Compiler version ${CFS_FORTRAN_COMPILER_VER}")
 # MESSAGE("CMAKE BUILD TYPE: ${CMAKE_BUILD_TYPE}")
 # MESSAGE("CFS_ARCH_STR: ${CFS_ARCH_STR}")
+

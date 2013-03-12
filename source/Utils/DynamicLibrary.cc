@@ -53,13 +53,18 @@ __extension__
     FuncPtrType loadSym = (FuncPtrType) GetProcAddress(hmod_, "loadObject");
 #endif
 
+//    std::cout << "hmod_: " << hmod_ << std::endl;
+//    std::cout << "loadSym: " << loadSym << std::endl;
+    
     if(loadSym == 0) {
+//      std::cout << "GetLastError: " << GetLastError() << std::endl;
       return 0;
     }
 
     // Load a new instance of the requested class, and return it
     void* obj = 0;
     obj = loadSym(name, argc, argv);
+//    std::cout << "obj: " << obj << std::endl;
     return reinterpret_cast<DynamicObject*>(obj);    
   }
   

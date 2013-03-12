@@ -63,6 +63,13 @@ CMAKE_MINIMUM_REQUIRED(
 PROJECT(CFS C CXX Fortran)
 
 #-----------------------------------------------------------------------------
+# Make sure that output of started programs is in English, so that we can
+# grep for defined messages.
+#-----------------------------------------------------------------------------
+SET(ENV{LC_MESSAGES} "en_EN")
+SET(ENV{LANG} C)
+
+#-----------------------------------------------------------------------------
 # Include some utility macros (for building ext. libs, etc...) 
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/CFS_macros.cmake")

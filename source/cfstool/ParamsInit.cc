@@ -121,11 +121,11 @@ namespace CoupledField
         std::cout <<
           "'meshdiff' calculates the difference between two meshes." << std::endl;
         std::cout <<
-          "\tCall: cfstool --mode meshdiff reference_file compare_file outfile \n\ti.e. out = in_1 -in_2" << std::endl;
+          "\tCall: cfstool --mode meshdiff reference_file compare_file outfile \n\ti.e. out = in_1 - in_2" << std::endl;
         std::cout <<
           "'meshdiffnormed' calculates the difference between two meshes normed \n\tto the max value of the second mesh:" << std::endl;
         std::cout <<
-          "\tCall: cfstool --mode meshdiffnormed reference_file compare_file outfile \n\ti.e. out = (in_1 - in_2) / max(in_2 "
+          "\tCall: cfstool --mode meshdiffnormed reference_file compare_file outfile \n\ti.e. out = (in_1 - in_2) / max(in_2) "
           << std::endl;
         exit(0);
       }

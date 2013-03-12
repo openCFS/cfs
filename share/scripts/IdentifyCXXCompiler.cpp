@@ -55,6 +55,8 @@
 
 #elif defined(_MSC_VER)
 # define COMPILER_ID "MSVC"
+# define CXX_ID_TEXT MSVC
+# define CXX_VERSION_TEXT _MSC_VER
 
 #elif defined(__ADSPBLACKFIN__) || defined(__ADSPTS__) || defined(__ADSP21000__)
 /* Analog Devices C++ compiler for Blackfin, TigerSHARC and

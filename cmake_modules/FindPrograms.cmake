@@ -6,9 +6,9 @@
 FIND_PACKAGE(PythonInterp)
 FIND_PACKAGE(PythonLibs)
 
-IF(NOT PYTHONINTERP_FOUND)
+IF(BUILD_PARAVIEW AND NOT PYTHONINTERP_FOUND)
   MESSAGE(FATAL_ERROR "No Python interpreter was found! Please make sure a Python interpreter is on the PATH.")
-ENDIF(NOT PYTHONINTERP_FOUND)
+ENDIF(BUILD_PARAVIEW AND NOT PYTHONINTERP_FOUND)
 
 # This code has been taken from CMake 2.8.8 FindPythonInterp.cmake.
 # determine python version string
@@ -76,10 +76,8 @@ ENDIF(NOT DOXYGEN_EXECUTABLE)
 FIND_PACKAGE(LATEX)
 
 IF(NOT LATEX_COMPILER)
-  MESSAGE("Warning: LaTex could not be found! Note that you cannot build documentation!")
+  MESSAGE(WARNING "LaTex could not be found! Note that you cannot build documentation!")
 ENDIF(NOT LATEX_COMPILER)
 
-MARK_AS_ADVANCED(
-  SVN
-  SVNVERSION
-  )
+FIND_PROGRAM(PATCH_EXECUTABLE patch)
+MARK_AS_ADVANCED(PATCH_EXECUTABLE)

@@ -34,11 +34,17 @@ namespace CoupledField
   // from this DLL
   extern "C"
   {
-    void deleteObject(void* obj) {
+#ifdef _WIN32
+#define DLLAPI __declspec(dllexport)
+#else
+#define DLLAPI
+#endif
+    
+    void DLLAPI deleteObject(void* obj) {
       delete reinterpret_cast<DynamicObject*>(obj);
     }
 
-    void* loadObject(const char* name, int argc, void** argv) {
+    void* DLLAPI loadObject(const char* name, int argc, void** argv) {
       if(std::strncmp(name,
                       "DynamicLibTestClass",
                       strlen(name) < 19 
