@@ -30,7 +30,10 @@ namespace CoupledField {
   
   SimOutputRST::SimOutputRST( const std::string& fileName,
                               PtrParamNode outputNode )
-    : SimOutput( fileName, outputNode ) {
+    : SimOutput( fileName, outputNode ),
+      dynLibrary_(NULL),
+      binlibIface_(NULL)
+  {
 
     // Initialize variables
     formatName_ = "rst";
@@ -47,8 +50,11 @@ namespace CoupledField {
 
   SimOutputRST::~SimOutputRST() {
     // Get rid of the binlibIface_ object
-    binlibIface_->deleteSelf();
-    binlibIface_ = NULL;
+    if(binlibIface_) 
+    {
+      binlibIface_->deleteSelf();
+      binlibIface_ = NULL;
+    }
     
     // Close the dynamic library
     delete dynLibrary_;

@@ -724,20 +724,24 @@ namespace CoupledField {
     if(meshGroup_.getLocId() > 0){
       meshGroup_.close();
     }
+
     // check, if any group is open at all
     if( mainGroup_.getLocId() > 0 )
       mainGroup_.close();
 
     // check for open groups, datasets etc.
-    if (mainFile_.getObjCount( H5F_OBJ_DATASET |
-                               H5F_OBJ_GROUP |
-                               H5F_OBJ_DATATYPE | H5F_OBJ_ATTR) > 0 ) {
-      std::cerr << "There are still objects open in the hdf5 file "
-                << mainFile_.getFileName() << "\n\n";
-      H5IO::CheckOpenObjects(mainFile_, true);
-    }
+    if (mainFile_.getLocId() > 0 )
+    {
+      if (mainFile_.getObjCount( H5F_OBJ_DATASET |
+                                 H5F_OBJ_GROUP |
+                                 H5F_OBJ_DATATYPE | H5F_OBJ_ATTR) > 0 ) {
+        std::cerr << "There are still objects open in the hdf5 file "
+                  << mainFile_.getFileName() << "\n\n";
+        H5IO::CheckOpenObjects(mainFile_, true);
+      }
 
-    mainFile_.close();
+      mainFile_.close();
+    }
   }
 
   void SimOutputHDF5::WriteGrid() {

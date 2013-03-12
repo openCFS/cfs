@@ -22,7 +22,7 @@ EXECUTE_PROCESS(
 # Apply some patches.
 #=============================================================================
 SET(patches
-  "zlib-cmakelists.patch";
+  "zlib-cmakelists.patch"
 )
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/zlib")

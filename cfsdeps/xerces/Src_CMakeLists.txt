@@ -298,7 +298,7 @@ SET(XERCES-C_SRCS
 
 IF(UNIX)
   LIST(APPEND XERCES-C_SRCS 
-    xercesc/util/MsgLoaders/MsgCatalog/MsgCatalogLoader.cpp
+#    xercesc/util/MsgLoaders/MsgCatalog/MsgCatalogLoader.cpp
     xercesc/util/NetAccessors/Socket/SocketNetAccessor.cpp
     xercesc/util/NetAccessors/Socket/UnixHTTPURLInputStream.cpp
     xercesc/util/MutexManagers/PosixMutexMgr.cpp

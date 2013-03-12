@@ -8,8 +8,7 @@
 
 #include <string>
 
-// Include headers which define what types
-// of in/output files CFS++ should support
+// Include headers which define what types of in/output files CFS++ supports
 #include <def_use_mesh.hh>
 #include <def_use_gidpost.hh>
 #include <def_use_hdf5.hh>
@@ -42,11 +41,11 @@
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
 
-#include "DataInOut/SimInOut/RefElems/SimInputRefElems.hh"
-
 // XDMF writer
 #include "DataInOut/SimInOut/xdmf/SimOutputXDMF.hh"
 #endif
+
+#include "DataInOut/SimInOut/RefElems/SimInputRefElems.hh"
 
 #ifdef USE_GIDPOST
 #include "DataInOut/SimInOut/GiD/SimOutGiD.hh"

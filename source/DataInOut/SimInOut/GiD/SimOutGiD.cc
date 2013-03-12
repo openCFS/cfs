@@ -30,9 +30,9 @@ namespace CoupledField {
 
     SimOutputGiD::SimOutputGiD( const std::string& fileName,
                                 PtrParamNode outputNode )
-      : SimOutput( fileName, outputNode ) {
-
-
+  : SimOutput( fileName, outputNode ),
+    isInitialized_(false)
+  {
     // Initialize variables
     formatName_ = "gid";
     fileName_ = fileName;
@@ -77,10 +77,11 @@ namespace CoupledField {
 
 
   SimOutputGiD::~SimOutputGiD() {
-
-
-    // Close result file
-    GiD_ClosePostResultFile();
+    if(isInitialized_) 
+    {
+      // Close result file
+      GiD_ClosePostResultFile();
+    }
   }
 
 
@@ -1164,10 +1165,12 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
     // Open result file
     if ( isAscii_ == true) {
       postFileName = fileName_ + ".post.res";
-      GiD_OpenPostResultFile(  postFileName.c_str(), GiD_PostAscii );
+      isInitialized_ = !GiD_OpenPostResultFile( postFileName.c_str(),
+                                                GiD_PostAscii );
     } else {
       postFileName = fileName_ + ".post.bin";
-      GiD_OpenPostResultFile( postFileName.c_str(), GiD_PostBinary );
+      isInitialized_ = !GiD_OpenPostResultFile( postFileName.c_str(),
+                                                GiD_PostBinary );
     }
 
     // print grid

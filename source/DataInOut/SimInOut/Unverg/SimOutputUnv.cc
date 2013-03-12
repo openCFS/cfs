@@ -38,7 +38,9 @@ namespace CoupledField {
   SimOutputUnv::SimOutputUnv(  const std::string& filename,
                                PtrParamNode outputNode ) 
     : SimOutput ( filename, outputNode ),
-      capaOut_(false) {
+      output(NULL),
+      capaOut_(false) 
+  {
     std::string sysPathSep;
 
     std::string flavor;
