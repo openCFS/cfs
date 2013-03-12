@@ -71,7 +71,7 @@
 #include "DataInOut/SimInOut/Streaming/SimOutputStreaming.hh"
 #endif
 
-#include "DataInOut/XMLMaterialHandler.hh"
+#include "DataInOut/ParamHandling/XMLMaterialHandler.hh"
 
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"

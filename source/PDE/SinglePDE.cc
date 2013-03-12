@@ -19,7 +19,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 // header for Materialhandling
-#include "DataInOut/MaterialHandler.hh"
+#include "DataInOut/ParamHandling/MaterialHandler.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 
 // header for Solvestep and assemble

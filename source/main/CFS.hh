@@ -10,6 +10,7 @@ namespace CoupledField
   class ResultHandler;
   class Timer;
   class MaterialHandler;
+  class LogConfigurator;
 
   /** This is the base class of CFS.
    * It basically gives more structure for the original main() call. */
@@ -63,6 +64,9 @@ namespace CoupledField
     /** The object itself in kept in the fileHandler */
     MaterialHandler* materialHandler;
 
+    /** The log configurator object */
+    LogConfigurator* logConf_;
+    
     std::map<std::string, StdVector<shared_ptr<SimInput> > > gridInputs;
   };
 }

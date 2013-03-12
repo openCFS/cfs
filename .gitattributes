@@ -921,14 +921,16 @@ source/DataInOut/Logging/log.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/Logging/log.hpp svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/Logging/log_impl.hpp svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/Logging/log_manager.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/MaterialHandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/ParamHandling/InfoNode.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/InfoNode.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/ParamHandling/MaterialHandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/ParamNode.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/ParamNode.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/ParamTools.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/SkeletonConf.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/ParamHandling/XMLMaterialHandler.cc -text
+source/DataInOut/ParamHandling/XMLMaterialHandler.hh -text
 source/DataInOut/ParamHandling/XMLSkeletonConf.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/Xerces.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/Xerces.hh -text svneol=unset#text/x-c%2B%2Bhdr

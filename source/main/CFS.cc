@@ -13,7 +13,7 @@
 #include "main/CFS.hh"
 #include "Utils/Timer.hh"
 #include "DataInOut/DefineFiles/DefineInOutFiles.hh"
-#include "DataInOut/MaterialHandler.hh"
+#include "DataInOut/ParamHandling/MaterialHandler.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
@@ -72,6 +72,8 @@ CFS::CFS(int argc, const char **argv) :
   resultHandler = NULL;
   materialHandler = NULL;
 
+  logConf_ = new LogConfigurator();
+  
   // Set segfault to false
   Exception::segfault_ = false;
 
@@ -88,7 +90,7 @@ CFS::CFS(int argc, const char **argv) :
   progOpts->GetHeaderString( cout );
   
   // Initialize logging class (read parameters from file if desired)
-  logConf->ParseLogConfFile();
+  logConf_->ParseLogConfFile();
   
   // Get information about exception handling
   Exception::segfault_ = progOpts->GetForceSegFault();
@@ -147,7 +149,7 @@ CFS::~CFS()
   param.reset();
   info.reset();
 
-  delete logConf;
+  delete logConf_;
 }
 
 int CFS::Run()

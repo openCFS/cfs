@@ -20,7 +20,5 @@ ADD_LIBRARY(materials STATIC ${MATERIALS_SRCS})
 
 TARGET_LINK_LIBRARIES(materials
   utils
-  domain
-  mesh
   odesolver
 )

@@ -21,16 +21,5 @@ SET(FEBASIS_SRC
 ADD_LIBRARY(febasis STATIC ${FEBASIS_SRC})
 
 TARGET_LINK_LIBRARIES(febasis
-  paramh
-  logging
-  matvec
-  cfsgeneral
   elemmapping
-  domain
-  results
-  algsys-olas
-  pde
-  utils
-  integration
-  bilinforms
 )

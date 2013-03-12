@@ -5,8 +5,6 @@
 #include "Environment.hh"
 #include "Utils/tools.hh"
 #include "Domain/Domain.hh"
-#include "DataInOut/Logging/LogConfigurator.hh"
-
 
 // Since OLAS uses a separate namespace for
 // writing out data, two different declarations
@@ -18,11 +16,7 @@ namespace OutInfo{
 
 namespace CoupledField {
 
-
   // Define global objects 
-  LogConfigurator * logConf = new LogConfigurator();
-
-
   Domain * domain = NULL;
   // Initialisation of some global pointers
   //WriteInfo *Info = NULL;

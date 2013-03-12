@@ -7,7 +7,7 @@
 
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/SimOutput.hh"
-#include "DataInOut/MaterialHandler.hh"
+#include "DataInOut/ParamHandling/MaterialHandler.hh"
 
 namespace CoupledField
 { 

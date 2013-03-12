@@ -14,13 +14,11 @@ SET(DATAINOUT_SRCS
   ResultCache.cc
   ResultHandler.cc
   SimOutput.cc
-  XMLMaterialHandler.cc
 )
 
 ADD_LIBRARY(datainout STATIC ${DATAINOUT_SRCS})
 
 SET(TARGET_LL
-  materials
   simouttext
   simoutinfo
   )
@@ -43,5 +41,13 @@ IF(USE_XERCES)
     ${XERCES_LIBRARY}
     )
 ENDIF(USE_XERCES)
+
+IF(USE_LAPACK)
+  LIST(APPEND TARGET_LL
+    ${LAPACK_LIBRARY}
+    ${BLAS_LIBRARY}
+    )
+ENDIF(USE_LAPACK)
+
 
 TARGET_LINK_LIBRARIES(datainout ${TARGET_LL})
