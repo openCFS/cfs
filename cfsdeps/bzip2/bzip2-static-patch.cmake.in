@@ -5,14 +5,12 @@
 #=============================================================================
 # Set global variables.
 #=============================================================================
+SET(bzip2-static_source "@bzip2-static_source@")
+
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
-SET(CMAKE_C_COMPILER "@CMAKE_C_COMPILER@")
 SET(LIB_SUFFIX "@LIB_SUFFIX@")
 SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
-SET(CFLAGS "@CFLAGS@")
-SET(CMAKE_RANLIB "@CMAKE_RANLIB@")
-SET(MINGW "@MINGW@")
 
 #=============================================================================
 # Include macros from CFS++.
@@ -28,53 +26,8 @@ SET(patches
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/bzip2")
 
-#=============================================================================
-# Since the patches to the make file depend heavily on the build host, we
-# open this file and change it depending on the environment.
-#=============================================================================
-FILE(READ Makefile lines)
-
-foreach(line IN LISTS lines)
-#  MESSAGE("line: ${line}")
-  STRING(REPLACE "CC=gcc"
-    "CC=${CMAKE_C_COMPILER}" line
-    ${line})
-
-  STRING(REPLACE "CFLAGS="
-    "CFLAGS=${CFLAGS} " line
-    ${line})
-
-  STRING(REPLACE "RANLIB=ranlib"
-    "RANLIB=${CMAKE_RANLIB} " line
-    ${line})
-
-  STRING(REPLACE "PREFIX=/usr/local"
-    "PREFIX=${CFS_BINARY_DIR}" line
-    ${line})
-
-  STRING(REPLACE "$(PREFIX)/bin"
-    "$(PREFIX)/bin/${CFS_ARCH_STR}" line
-    ${line})
-
-  STRING(REPLACE "$(PREFIX)/lib"
-    "$(PREFIX)/${LIB_SUFFIX}/${CFS_ARCH_STR}" line
-    ${line})
-
-#  IF(MINGW)
-#    STRING(REPLACE "-o bzip2 bzip2.o"
-#      "-o bzip2.exe bzip2.o" line
-#      ${line})
-#
-#    STRING(REPLACE "-o bzip2recover bzip2recover.o"
-#      "-o bzip2recover.exe bzip2recover.o" line
-#      ${line})
-#  ENDIF(MINGW)
-
-
-  foreach(part IN LISTS line)
-    LIST(APPEND OUTPUT "${part}")
-  endforeach(part)
-endforeach(line)
-
-FILE(WRITE Makefile "${OUTPUT}")
-
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+  "${CFS_SOURCE_DIR}/cfsdeps/bzip2/CMakeLists.txt"
+  "${bzip2-static_source}/CMakeLists.txt"
+)

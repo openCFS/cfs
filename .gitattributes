@@ -56,6 +56,7 @@ cfsdeps/boost/External_Boost.cmake -text
 cfsdeps/boost/boost-intel-signbit-intrinsic.patch -text
 cfsdeps/boost/boost-multi_array.patch -text
 cfsdeps/boost/boost-patch.cmake.in -text
+cfsdeps/bzip2/CMakeLists.txt -text
 cfsdeps/bzip2/External_bzip2.cmake -text
 cfsdeps/bzip2/bzip2-mingw.patch -text
 cfsdeps/bzip2/bzip2-shared-patch.cmake.in -text

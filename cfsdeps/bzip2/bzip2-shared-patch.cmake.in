@@ -1,19 +1,16 @@
 # kate: indent-width 2; mixedindent on; indent-mode cstyle; line-numbers on;
-# kate: syntax cmake; replace-tabs off; background-color #D1EBFF;
+# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
 # kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
 
 #=============================================================================
 # Set global variables.
 #=============================================================================
+SET(bzip2-shared_source "@bzip2-shared_source@")
+
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
-SET(CMAKE_C_COMPILER "@CMAKE_C_COMPILER@")
-SET(CMAKE_SHARED_LIBRARY_SUFFIX "@CMAKE_SHARED_LIBRARY_SUFFIX@")
 SET(LIB_SUFFIX "@LIB_SUFFIX@")
-SET(CFS_DISTRO "@CFS_DISTRO@")
 SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
-SET(CFLAGS "@CFLAGS@")
-SET(MINGW "@MINGW@")
 
 #=============================================================================
 # Include macros from CFS++.
@@ -29,63 +26,8 @@ SET(patches
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/bzip2")
 
-#=============================================================================
-# Since the patches to the make file depend heavily on the build host, we
-# open this file and change it depending on the environment.
-#=============================================================================
-FILE(READ Makefile-libbz2_so lines)
-
-foreach(line IN LISTS lines)
-#  MESSAGE("line: ${line}")
-  STRING(REPLACE "CC=gcc"
-    "CC=${CMAKE_C_COMPILER}" line
-    ${line})
-
-  STRING(REPLACE "CFLAGS="
-    "CFLAGS=${CFLAGS} " line
-    ${line})
-
-  IF(CFS_DISTRO STREQUAL "MACOSX")
-    STRING(REPLACE "-shared -Wl,-soname -Wl,libbz2.so.1.0"
-      "-dynamiclib ${CFLAGS}" line
-      ${line})
-  ENDIF(CFS_DISTRO STREQUAL "MACOSX")
-
-  IF(MINGW)
-    STRING(REPLACE "-shared -Wl,-soname -Wl,libbz2.so.1.0 -o libbz2.so.1.0.6"
-      "-shared -o libbz2.dll -Wl,--out-implib,libbz2.dll.a" line
-#      -Wl,--major-image-version,1,--minor-image-version,2 -Wl,--whole-archive -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32" line
-      ${line})
-
-    STRING(REPLACE "-o bzip2-shared bzip2.c libbz2.so.1.0.6"
-      "-o bzip2-shared bzip2.c libbz2.dll.a"
-       line
-      ${line})
-    STRING(REPLACE
-      "	rm -f libbz2.so.1.0"
-      "	cp libbz2.dll.a ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
-	cp libbz2.dll ${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}"
-      line
-      ${line})
-  ENDIF()
-
-  STRING(REPLACE
-    "	rm -f libbz2.so.1.0"
-    "	rm -f libbz2.so.1.0
-	cp libbz2.so.1.0.6 ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
-	rm -f ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libbz2.so.1.0 ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libbz2.so
-	ln -s libbz2.so.1.0.6 ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libbz2.so
-	ln -s libbz2.so.1.0.6 ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libbz2.so.1.0"
-    line
-    ${line})    
-
-  STRING(REPLACE ".so"
-    "${CMAKE_SHARED_LIBRARY_SUFFIX}" line
-    ${line})
-
-  foreach(part IN LISTS line)
-    LIST(APPEND OUTPUT "${part}")
-  endforeach(part)
-endforeach(line)
-
-FILE(WRITE Makefile-libbz2_so "${OUTPUT}")
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+  "${CFS_SOURCE_DIR}/cfsdeps/bzip2/CMakeLists.txt"
+  "${bzip2-shared_source}/CMakeLists.txt"
+)
