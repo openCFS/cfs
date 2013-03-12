@@ -26,6 +26,7 @@ ELSE()
   SET(CFS_DISTRO_VER "${REV}")
 ENDIF()
 
+SET(CFS_OS "${OS}")
 SET(CFS_ARCH "${ARCH}")
 SET(CFS_ARCH_STR "${CFS_DISTRO}_${ARCH}_${CFS_DISTRO_VER}")
 # Determine the subarchitecture of the platform.

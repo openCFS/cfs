@@ -7,11 +7,6 @@ SET(CMAKE_STATIC_LIBRARY_PREFIX "@CMAKE_STATIC_LIBRARY_PREFIX@")
 SET(CMAKE_STATIC_LIBRARY_SUFFIX "@CMAKE_STATIC_LIBRARY_SUFFIX@")
 SET(CMAKE_MAKE_PROGRAM "@CMAKE_MAKE_PROGRAM@")
 
-SET(ENV{CC} "@CMAKE_C_COMPILER@")
-SET(ENV{CXX} "@CMAKE_CXX_COMPILER@")
-SET(ENV{CFLAGS} "@CFLAGS@")
-SET(ENV{CXXFLAGS} "@CFLAGS@")
-
 SET(INSTALL_CMD
   "${CMAKE_MAKE_PROGRAM}" "install"
 )
@@ -24,17 +19,20 @@ EXECUTE_PROCESS(
   RESULT_VARIABLE rv
   )
 
-# open(OUT, ">$STAGEDIR/qt4/bin/qt.conf");
-# print OUT "[Paths]\n";
-# print OUT "    Prefix = $QT_PREFIX_PATH\n";
-# print OUT ";    Documentation = doc\n";
-# print OUT ";    Headers = include\n";
-# print OUT ";    Libraries = lib\n";
-# print OUT ";    Binaries = bin\n";
-# print OUT ";    Plugins = plugins\n";
-# print OUT ";    Data";
-# print OUT ";    Translations = translations\n";
-# print OUT ";    Settings";
-# print OUT ";    Examples";
-# print OUT ";    Demos";
+# Write a qt.conf file, just in case...
+SET(QT_CONF
+"[Paths]
+    Prefix = ${CFS_BINARY_DIR}/qt4
+;    Documentation = doc
+;    Headers = include
+;    Libraries = lib
+;    Binaries = bin
+;    Plugins = plugins
+;    Data
+;    Translations = translations
+;    Settings
+;    Examples
+;    Demos")
 
+SET(FN "${CFS_BINARY_DIR}/qt4/bin/qt.conf")
+FILE(WRITE "${FN}" "${QT_CONF}")

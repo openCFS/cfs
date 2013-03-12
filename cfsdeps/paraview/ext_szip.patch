@@ -8,10 +8,3 @@
    URL ${SZIP_URL}/${SZIP_GZ}
    URL_MD5 ${SZIP_MD5}
    UPDATE_COMMAND ""
-@@ -31,4 +32,4 @@
- else()
-   set(SZIP_INCLUDE_DIR ${SZIP_install}/include)
-   set(SZIP_LIBRARY ${SZIP_install}/lib/libszip${_LINK_LIBRARY_SUFFIX})
--endif()
-\ No newline at end of file
-+endif()

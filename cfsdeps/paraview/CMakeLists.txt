@@ -3,6 +3,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 #-----------------------------------------------------------------------------
 
+set(ParaView_dependencies)
+
 # Important: change architecture *before* any enable_language() or project()
 # calls so that it's set properly to detect 64-bit-ness...
 #
@@ -71,6 +73,11 @@ if(QT_FOUND)
   #IF("${QT_VERSION_MAJOR}.${QT_VERSION_MINOR}.${QT_VERSION_PATCH}" VERSION_LESS "${minimum_required_qt_version}")
   #  message(FATAL_ERROR "error: Slicer requires Qt >= ${minimum_required_qt_version} -- you cannot use Qt ${QT_VERSION_MAJOR}.${QT_VERSION_MINOR}.${QT_VERSION_PATCH}.")
   #ENDIF()
+
+  IF(QT_QTDBUS_FOUND)
+    include(External_QtCurve)
+    list(APPEND ParaView_dependencies qtcurve)
+  ENDIF()
 else()
   #message(FATAL_ERROR "error: Qt4 was not found on your system. Please set QT_QMAKE_EXECUTABLE")
 endif()
@@ -96,7 +103,6 @@ set(pv_compiler_args
 
 set(pv_tpl_cxx_flags ${CMAKE_CXX_FLAGS})
 set(pv_tpl_c_flags ${CMAKE_C_FLAGS})
-
 
 #if(WIN32 OR APPLE)
   set(pv_cxx_flags ${CMAKE_CXX_FLAGS})
@@ -180,7 +186,6 @@ set(Cython_dependencies)
 set(h5py_dependencies)
 set(Manta_dependencies)
 set(OpenMPI_dependencies)
-set(ParaView_dependencies)
 
 set(PARAVIEW_FIXUP_BUNDLE_SEARCH_PATHS)
 set(PARAVIEW_EXTERNAL_PLUGIN_DIRS)
@@ -243,13 +248,15 @@ if(NOT APPLE)
     -DMPI_EXTRA_LIBRARY:FILEPATH=${MPI_EXTRA_LIBRARY}
     -DPARAVIEW_INSTALL_MPIEXEC:BOOL=ON)
 
-#  MESSAGE(FATAL_ERROR "PYTHON_VERSION ${PYTHON_VERSION}, CFS_PYTHON_VERSION_STRING ${CFS_PYTHON_VERSION_STRING}")
+  # MESSAGE(FATAL_ERROR "PYTHON_VERSION ${PYTHON_VERSION}, CFS_PYTHON_VERSION_STRING ${CFS_PYTHON_VERSION_STRING}")
   if(CFS_PYTHON_VERSION_STRING VERSION_LESS PYTHON_VERSION)
+    SET(NUMPY_PREFIX_ARGS "")
     include(External_Python)
     list(APPEND ParaView_depenencies Python)
 
     set(NUMPY_dependencies python)
   else()
+    SET(NUMPY_PREFIX_ARGS "--home=${CMAKE_CURRENT_BINARY_DIR}")
     SET(PYTHON_VERSION_STRING ${CFS_PYTHON_VERSION_STRING})
     SET(PYTHON_EXECUTABLE ${CFS_PYTHON_EXECUTABLE})
     SET(PYTHON_LIBRARY ${CFS_PYTHON_LIBRARY})
@@ -330,7 +337,9 @@ set(HDF5_ARGS
   -DHDF5_hdf5_LIBRARY:FILEPATH=${HDF5_LIBRARY}
   -DHDF5_hdf5_LIBRARY_RELEASE:FILEPATH=${HDF5_LIBRARY}
   -DHDF5_hdf5_hl_LIBRARY:FILEPATH=${HDF5_HL_LIBRARY}
-  -DHDF5_hdf5_hl_LIBRARY_RELEASE:FILEPATH=${HDF5_HL_LIBRARY})
+  -DHDF5_hdf5_hl_LIBRARY_RELEASE:FILEPATH=${HDF5_HL_LIBRARY}
+  -DHDF5_hdf5_cpp_LIBRARY:FILEPATH=${HDF5_CPP_LIBRARY}
+  -DHDF5_hdf5_cpp_LIBRARY_RELEASE:FILEPATH=${HDF5_CPP_LIBRARY})
 
 if(WIN32)
   list(APPEND PARAVIEW_FIXUP_BUNDLE_SEARCH_PATHS ${HDF5_install}/bin)
@@ -547,6 +556,16 @@ list(REMOVE_DUPLICATES PARAVIEW_FIXUP_BUNDLE_SEARCH_PATHS)
 # Configure and build ParaView
 #------------------------------------------------------------------------------
 
+SET(CFS_PV_ARGS -DCMAKE_INSTALL_PREFIX:PATH="${CFS_CMAKE_INSTALL_PREFIX}")
+
+if(${CFS_OS} STREQUAL "LINUX") 
+  list(APPEND CFS_PV_ARGS
+    -DCMAKE_EXE_LINKER_FLAGS:STRING=-Wl,--allow-shlib-undefined
+    -DCMAKE_MODULE_LINKER_FLAGS:STRING=-Wl,--allow-shlib-undefined
+    -DCMAKE_SHARED_LINKER_FLAGS:STRING=-Wl,--allow-shlib-undefined
+  )
+endif()
+
 ExternalProject_Add(ParaView
   DEPENDS ${ParaView_dependencies}
   DOWNLOAD_COMMAND ""
@@ -611,6 +630,8 @@ ExternalProject_Add(ParaView
     ${Nektar_ARGS}
     # Documentation
     ${DOC_ARGS}
+    # CFS++ specific args
+    ${CFS_PV_ARGS}
   INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ParaViewSuperBuild_SOURCE_DIR}/.plugins <BINARY_DIR>/bin/
   )
 

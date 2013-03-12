@@ -18,3 +18,14 @@
  #ifdef _WIN32
  #define WIN32_LEAN_AND_MEAN
  #include <windows.h>
+--- tests/CMakeLists.txt.orig	2012-11-12 14:05:20.895641802 +0100
++++ tests/CMakeLists.txt	2012-11-12 13:51:34.403641174 +0100
+@@ -2,7 +2,7 @@
+ SUBDIRS( perftest )
+ 
+ ADD_EXECUTABLE(atomic_counter atomic_counter.cc)
+-TARGET_LINK_LIBRARIES(atomic_counter ${MANTA_TARGET_LINK_LIBRARIES})
++TARGET_LINK_LIBRARIES(atomic_counter ${MANTA_TARGET_LINK_LIBRARIES} dl)
+ 
+ IF(BUILD_TESTING)
+   SET(AtomicIterations 100)
