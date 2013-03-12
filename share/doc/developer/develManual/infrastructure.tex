@@ -423,6 +423,7 @@ cmake CFS_SOURCE_DIR
 \end{verbatim}
                         
 \subsubsection{Building Windows Binaries on Linux Host}
+\label{sec:mingw_linux_crosscompile}
 
 The  first  step  is  again  the  installation of  the  MinGW  cross  compiler
 toolchains. Here, we describe the procedures for Ubuntu and CentOS.
@@ -475,7 +476,7 @@ $ cmake -DCMAKE_TOOLCHAIN_FILE=$PWD/mingw_cross_toolchain.cmake \
 
 \paragraph{RHEL/CentOS}
 
-On CentOS the MinGW package repository of Levente Farkas containing version 4.5.3 of the GNU toolchain has been used. The problem with this toolchain is, that some headers concerning intrinsic functions for SSE instructions have to be fixed (cf. http://sourceforge.net/tracker/?func=detail&atid=102435&aid=2962480&group_id=2435).
+On CentOS the MinGW package repository of Levente Farkas containing version 4.5.3 of the GNU toolchain has been used. The problem with this toolchain is, that some headers concerning intrinsic functions for SSE instructions have to be fixed\footnote{Intrinsic SSE functions bug: \url{http://sourceforge.net/tracker/?func=detail&atid=102435&aid=2962480&group_id=2435}}.
 Therefore, after installing the packages from the repository the following patch, which has been generated against a 4.6 toolchain, has to be applied.
 
 \begin{verbatim}

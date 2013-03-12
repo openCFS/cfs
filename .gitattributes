@@ -337,11 +337,16 @@ share/doc/auxilliaries/LaTeX/ltxcmds.sty -text
 share/doc/auxilliaries/LaTeX/minted.sty -text
 share/doc/auxilliaries/LaTeX/pdftexcmds.sty -text
 share/doc/auxilliaries/LaTeX/todonotes.sty svneol=native#text/plain
+share/doc/auxilliaries/Pics/Logo-E325.pdf -text svneol=unset#unset
+share/doc/auxilliaries/Pics/Logo-E325.svg -text
+share/doc/auxilliaries/Pics/TU_Signet.pdf -text svneol=unset#unset
+share/doc/auxilliaries/Pics/TU_Wien_Logo.pdf -text svneol=unset#unset
 share/doc/auxilliaries/Pics/am2_logo.pdf -text
 share/doc/auxilliaries/Pics/am2_logo.png -text
 share/doc/auxilliaries/Pics/cfs-logo.eps -text svneol=unset#application/postscript
 share/doc/auxilliaries/Pics/cfs-logo.pdf -text svneol=unset#application/pdf
 share/doc/auxilliaries/Pics/cfs-logo.png -text svneol=unset#image/png
+share/doc/auxilliaries/Pics/fau_logo.svg -text
 share/doc/auxilliaries/Pics/logo_am2.svg -text
 share/doc/auxilliaries/Pics/ls_am_klu.eps -text svneol=unset#application/postscript
 share/doc/auxilliaries/Pics/ls_am_klu.pdf -text svneol=unset#application/pdf
@@ -351,6 +356,8 @@ share/doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
 share/doc/auxilliaries/Pics/lse_logo.eps -text svneol=unset#application/postscript
 share/doc/auxilliaries/Pics/lse_logo.pdf -text svneol=unset#application/pdf
 share/doc/auxilliaries/Pics/lse_logo.svg -text
+share/doc/auxilliaries/Pics/titelseite_logos.pdf -text svneol=unset#unset
+share/doc/auxilliaries/Pics/titelseite_logos.svg -text
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
 share/doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
 share/doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
