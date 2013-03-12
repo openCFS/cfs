@@ -7,37 +7,42 @@
 #=============================================================================
 # Set global variables, configured from the external build.
 #=============================================================================
-set(cgal_source  "@cgal_source@")
-set(cgal_prefix  "@cgal_prefix@")
+set(xerces_source  "@xerces_source@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
-SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
 
 #=============================================================================
 # Include some convenient macros (e.g. for applying patches).
 #=============================================================================
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
+#=============================================================================
+# Copy some sources over to source directory.
+#=============================================================================
 EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND}
-  -E remove_directory
-  "${CFS_BINARY_DIR}/include/CGAL"
+  -E copy_if_different
+  "${CFS_SOURCE_DIR}/cfsdeps/xerces/Main_CMakeLists.txt"
+  "${xerces_source}/CMakeLists.txt"
 )
 
 EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND}
   -E copy_if_different
-  "${cgal_prefix}/CGAL_SetupBoost.cmake"
-  "${cgal_source}/cmake/modules/CGAL_SetupBoost.cmake"
+  "${CFS_SOURCE_DIR}/cfsdeps/xerces/config_cmake.h.in"
+  "${xerces_source}/config_cmake.h.in"
 )
 
-#=============================================================================
-# Apply some patches.
-#=============================================================================
-IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-  SET(patches
-    "cgal-intel-isfinite.patch";
-  )
-ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND}
+  -E copy_if_different
+  "${CFS_SOURCE_DIR}/cfsdeps/xerces/Src_CMakeLists.txt"
+  "${xerces_source}/src/CMakeLists.txt"
+)
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND}
+  -E copy_if_different
+  "${CFS_SOURCE_DIR}/cfsdeps/xerces/Xerces_autoconf_config_cmake.hpp.in"
+  "${xerces_source}/src/xercesc/util/Xerces_autoconf_config_cmake.hpp.in"
+)
 
-APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/cgal")
+# APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/xerces")

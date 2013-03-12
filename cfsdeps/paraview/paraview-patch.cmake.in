@@ -1,3 +1,4 @@
+# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
 # kate: indent-width 2; mixedindent on; indent-mode cstyle; line-numbers on;
 # kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
 # kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
