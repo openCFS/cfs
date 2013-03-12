@@ -1,37 +1,55 @@
 IF(MINGW)
-  SET(MKL_ROOT_DIR "/opt/pckg/mkl_win/10.0.5.025")
-  SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/em64t/lib")
-  SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
+
+  IF(MKL_VERSION VERSION_EQUAL 10.0)
+    SET(MKL_ROOT_DIR "/opt/pckg/mkl_win/10.0.5.025")
+    SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/em64t/lib")
+    SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
+    
+    SET(DEPS_SEQUENTIAL
+      ${MKL_LIB_DIR}/mkl_solver_lp64_sequential.lib
+      ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+      ${MKL_LIB_DIR}/mkl_intel_thread.lib
+      ${MKL_LIB_DIR}/mkl_core.lib
+      ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+      ${MKL_LIB_DIR}/mkl_sequential.lib
+      ${MKL_LIB_DIR}/libiomp5mt.lib
+      ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/amd64/runtmchk.lib
+      #    ${MKL_LIB_DIR}/libguide40.lib
+      #    /home/strieben/Documents/MKL/test/runtmchk.lib
+      )
+    
+    SET(MKL_BLAS_LIB
+      ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+      ${MKL_LIB_DIR}/mkl_intel_thread.lib
+      ${MKL_LIB_DIR}/mkl_core.lib
+      ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+      ${MKL_LIB_DIR}/libiomp5mt.lib
+      ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/amd64/runtmchk.lib
+      #    wrap-chkstk
+      #    ${MKL_LIB_DIR}/libguide40.lib
+      )
+    SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
+    
+    SET(MKL_PARDISO_LIB
+      ${MKL_LIB_DIR}/mkl_solver_lp64.lib
+      )
+  ENDIF()
   
-  SET(DEPS_SEQ
-    ${MKL_LIB_DIR}/mkl_solver_lp64_sequential.lib
-    ${MKL_LIB_DIR}/mkl_intel_lp64.lib
-    ${MKL_LIB_DIR}/mkl_intel_thread.lib
-    ${MKL_LIB_DIR}/mkl_core.lib
-    ${MKL_LIB_DIR}/mkl_intel_lp64.lib
-    ${MKL_LIB_DIR}/mkl_sequential.lib
-    ${MKL_LIB_DIR}/libiomp5mt.lib
-    ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/amd64/runtmchk.lib
-#    ${MKL_LIB_DIR}/libguide40.lib
-#    /home/strieben/Documents/MKL/test/runtmchk.lib
-    )
+  SET(MKL_ROOT_DIR "/opt/pckg/mkl_win/composer_xe_2013")
+  SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64")
+  SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
 
   SET(MKL_BLAS_LIB
     ${MKL_LIB_DIR}/mkl_intel_lp64.lib
     ${MKL_LIB_DIR}/mkl_intel_thread.lib
     ${MKL_LIB_DIR}/mkl_core.lib
     ${MKL_LIB_DIR}/mkl_intel_lp64.lib
-    ${MKL_LIB_DIR}/libiomp5mt.lib
-    ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/amd64/runtmchk.lib
-#    wrap-chkstk
-#    ${MKL_LIB_DIR}/libguide40.lib
+    ${MKL_ROOT_DIR}/compiler/lib/intel64/libiomp5md.lib
+    ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc100/amd64/runtmchk.lib
     )
-
   SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
 
-  SET(MKL_PARDISO_LIB
-    ${MKL_LIB_DIR}/mkl_solver_lp64.lib
-    )
+  SET(MKL_PARDISO_LIB "")
 
 ELSE(MINGW)
 

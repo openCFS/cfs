@@ -32,6 +32,10 @@
 
 #ifdef USE_MKL
 #include <mkl_service.h>
+#ifndef mkl_get_version
+#define MKL_Get_Version MKLGetVersion
+#define MKL_Free_Buffers MKL_FreeBuffers
+#endif
 #endif
 
 #ifdef USE_ACML
@@ -619,7 +623,7 @@ namespace CoupledField {
  #ifdef USE_MKL
     CFSMKLVersion ver;
 
-    MKLGetVersion(reinterpret_cast<MKLVersion*>(&ver));
+    MKL_Get_Version(reinterpret_cast<MKLVersion*>(&ver));
 
     out << "MKL_VERSION:           " << fg_blue
         << ver.MajorVersion << "."
@@ -634,7 +638,7 @@ namespace CoupledField {
         << ver.Build << fg_reset
         << endl;
 
-    MKL_FreeBuffers();
+    MKL_Free_Buffers();
 
     out << "MKL_NUM_THREADS:       "
         << fg_blue << (getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-")
