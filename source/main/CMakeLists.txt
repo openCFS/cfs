@@ -34,16 +34,22 @@ SET(TARGET_LL
   )
 
 IF(USE_XERCES)
-  SET(TARGET_LL
-    ${TARGET_LL}
+  LIST(APPEND TARGET_LL
     ${XERCES_LIBRARY}
   )
 ENDIF(USE_XERCES)
 
-  SET(TARGET_LL
-    ${TARGET_LL}
+IF(MINGW)
+  LIST(APPEND TARGET_LL
+    -lws2_32
+    -lwsock32
+    )
+ELSE()
+  LIST(APPEND TARGET_LL
     -lpthread
-  )
+    )
+ENDIF()
+
 
 # Target link libraries for CFS++ executable target.
 TARGET_LINK_LIBRARIES(cfsbin 
@@ -51,6 +57,13 @@ TARGET_LINK_LIBRARIES(cfsbin
   )
 
 
+#IF(MINGW)
+#  IF(CFS_BLAS_LAPACK STREQUAL MKL)
+#    SET_TARGET_PROPERTIES(cfsbin PROPERTIES
+#      LINK_FLAGS -Wl,--wrap,__chkstk
+#      LINKER_LANGUAGE CXX)
+#  ENDIF()
+#ENDIF()
 
 # Make sure CFS++ gets linked with system libgcc.so instead of ANSYS libgcc.so.
 IF(USE_ANSYSRST)

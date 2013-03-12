@@ -1289,7 +1289,7 @@ int main(int argc, char** argv)
   } catch(std::exception& ex) {
     if (info != NULL)
     {
-      info->Get(ParamNode::ERROR)->SetValue(ex.what());
+      info->Get(ParamNode::PN_ERROR)->SetValue(ex.what());
       info->ToFile(infoFileName);
     }
     std::cerr << "The following error occured during program execution:\n\n" << ex.what();

@@ -150,11 +150,19 @@ ENDMACRO(CFS_CHECK_CXX_SOURCE_RUNS)
 #-------------------------------------------------------------------------------
 MACRO (TODAY RESULT)
     IF (WIN32)
+      IF(MINGW)
+        EXECUTE_PROCESS(COMMAND "date" "+%d/%m/%Y" OUTPUT_VARIABLE OUT)
+#        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"
+#         ${RESULT} ${${RESULT}})
+        string(STRIP "${OUT}" OUT)
+        SET(${RESULT} ${OUT})
+      ELSE()
         EXECUTE_PROCESS(COMMAND "date" "/T" OUTPUT_VARIABLE OUT)
 #        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"
 #	  ${RESULT} ${${RESULT}})
         string(STRIP "${OUT}" OUT)
 	SET(${RESULT} ${OUT})
+      ENDIF()
     ELSEIF(UNIX)
         EXECUTE_PROCESS(COMMAND "date" "+%d/%m/%Y" OUTPUT_VARIABLE OUT)
 #        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"

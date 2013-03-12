@@ -338,7 +338,7 @@ namespace CoupledField{
       // UInt test = *spIt;
       //every reference element has the same order
       order.SetIsoOrder( refElems_[*spIt][Elem::ET_LINE2]->GetIsoOrder() );
-      SetRegionIntegration( *spIt,IntScheme::LOBATTO, order, ABSOLUTE,
+      SetRegionIntegration( *spIt,IntScheme::LOBATTO, order, INTEG_MODE_ABSOLUTE,
                             regionNode );
       // test = 0;
       spIt++;
@@ -373,7 +373,7 @@ namespace CoupledField{
   void FeSpaceH1Nodal::SetDefaultIntegration(PtrParamNode infoNode ){
     regionIntegration_[ALL_REGIONS].method = IntScheme::GAUSS;
     regionIntegration_[ALL_REGIONS].order.SetIsoOrder(0);
-    regionIntegration_[ALL_REGIONS].mode = RELATIVE;
+    regionIntegration_[ALL_REGIONS].mode = INTEG_MODE_RELATIVE;
   }
   
   void FeSpaceH1Nodal::MapNodalBCs(){

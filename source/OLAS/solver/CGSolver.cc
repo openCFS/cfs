@@ -234,7 +234,7 @@ namespace CoupledField {
     //   Generate solution report
     // ============================
     Double reduction = resNorm / scalFac_;
-    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(niter);
     out->Get("finalNorm")->SetValue(resNorm);
     if ( loop == false ) {
@@ -249,7 +249,7 @@ namespace CoupledField {
     accIters_ += niter;
     accReduction_ += reduction;
     
-    PtrParamNode stat = infoNode_->Get(ParamNode::SUMMARY)->Get("statistics");
+    PtrParamNode stat = infoNode_->Get(ParamNode::PN_SUMMARY)->Get("statistics");
     stat->Get("avgIterations")->SetValue(accIters_ / numCalls_);
     stat->Get("avgResReduction")->SetValue( accReduction_ / numCalls_);
   }

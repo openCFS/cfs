@@ -207,7 +207,7 @@ namespace CoupledField {
     assert(write_results == true);
     
     if(given_analysis_id == NULL)
-      analysis_id_ = driverNode->Get(ParamNode::PROCESS);
+      analysis_id_ = driverNode->Get(ParamNode::PN_PROCESS);
     else
       analysis_id_ = given_analysis_id;
 

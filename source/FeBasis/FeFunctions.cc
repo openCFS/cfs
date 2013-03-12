@@ -653,7 +653,7 @@ DECLARE_LOG(fefunc)
     }
     
     
-    if( coefFct->GetDependency() == CoefFunction::CONST ||
+    if( coefFct->GetDependency() == CoefFunction::CONSTANT ||
         coefFct->GetDependency() == CoefFunction::TIMEFREQ ) {
       // --------------------------
       //  SIMPLE MAPPING MECHANISM

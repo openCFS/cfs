@@ -33,6 +33,9 @@ SET(INST_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/xerces/xerces-install.cmake.in")
 SET(INST "${xerces_prefix}/xerces-install.cmake")
 CONFIGURE_FILE("${INST_TEMPL}" "${INST}" @ONLY) 
 
+# MINGW:
+# http://xrunhprof.wordpress.com/2011/08/19/cross-building-xalan-and-xerces-for-mingw-on-linux/
+
 #-------------------------------------------------------------------------------
 # The xerces external project
 #-------------------------------------------------------------------------------
@@ -88,13 +91,21 @@ SET(XERCES_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 # Determine paths of XERCES libraries.
 #-----------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(XERCES_LIBRARY
-  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX};-lpthread"
-  CACHE FILEPATH "XERCES library.")
+
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(XERCES_LIBRARY "${XERCES_LIBRARY};-framework CoreFoundation;-framework CoreServices")
-ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+  SET(XERCES_LIBRARY "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  LIST(APPEND XERCES_LIBRARY "-framework CoreFoundation")
+  LIST(APPEND XERCES_LIBRARY "-framework CoreServices")
+ELSEIF(MINGW)
+  SET(XERCES_LIBRARY
+    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX}"
+    CACHE FILEPATH "XERCES library.")
+ELSE()
+  SET(XERCES_LIBRARY
+    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX};-lpthread"
+    CACHE FILEPATH "XERCES library.")
+ENDIF()
 
 MARK_AS_ADVANCED(XERCES_LIBRARY)
 MARK_AS_ADVANCED(XERCES_INCLUDE_DIR)

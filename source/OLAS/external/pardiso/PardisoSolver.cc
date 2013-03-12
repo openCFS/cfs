@@ -25,6 +25,14 @@ namespace CoupledField {
   DEFINE_LOG(pardisoSolver, "olas.solvers.pardiso")
 
 #if PARDISO_API_VER == 3
+#if defined(__MINGW32__)
+  #define pardiso PARDISO
+  #define pardisoinit PARDISOINIT
+  #undef F77NAME
+  #define F77NAME(name) name
+  #undef FORTRAN_CALL
+  #define FORTRAN_CALL
+#endif
 extern "C" {
     void FORTRAN_CALL F77NAME(pardisoinit) (void *, int *, int *);
 
@@ -59,7 +67,7 @@ extern "C" {
   template<typename T>
   std::string PardisoSolver<T>::GetErrorString(int err_code) {
     switch (err_code) {
-      case NO_ERROR:
+      case PARDISO_NO_ERROR:
         return "No error.";
       case INPUT_INCONSISTENT:
         return "Input inconsistent.";
@@ -187,7 +195,7 @@ extern "C" {
                          &zeroDBL_, &errorFlag );
 #endif
 
-      if ( errorFlag != NO_ERROR) {
+      if ( errorFlag != PARDISO_NO_ERROR) {
         EXCEPTION( "Error occured during cleanup:\n"
                    << GetErrorString(errorFlag) )
       }
@@ -615,7 +623,7 @@ extern "C" {
 #endif
 
       // Check return status
-      if ( errorFlag != NO_ERROR ) {
+      if ( errorFlag != PARDISO_NO_ERROR ) {
         EXCEPTION( "Error occured during symbolic factorization:\n"
                    << GetErrorString(errorFlag));
       }
@@ -653,7 +661,7 @@ extern "C" {
 #endif
 
       // Check return status
-      if ( errorFlag != NO_ERROR ) {
+      if ( errorFlag != PARDISO_NO_ERROR ) {
         EXCEPTION( "Error occured during numerical factorization:\n"
                    << GetErrorString(errorFlag) );
       }
@@ -751,7 +759,7 @@ extern "C" {
       colPtr_[i] -= 1;
 
     // Check return status
-    if ( errorFlag != NO_ERROR ) {
+    if ( errorFlag != PARDISO_NO_ERROR ) {
       EXCEPTION( "Error occured during solution of linear system:\n"
                  << GetErrorString(errorFlag) );
     }
@@ -776,7 +784,7 @@ extern "C" {
 
     // Create Report (no sensible things to write for direct solvers yet)
     ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
+    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", at);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
   }

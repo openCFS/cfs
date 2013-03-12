@@ -301,6 +301,11 @@ void LagrangeElemShapeMap::Global2Local( Vector<Double>& locPoint,
 
     Elem::FEType curType = ptFe_->FeType();
     switch(curType){
+    case Elem::ET_LINE3:
+      WARN("Using Global2LocalLine2 for ET_LINE3!");
+    case Elem::ET_LINE2:
+      Global2LocalLine2(locPoint,globalPoint);
+      break;
     case Elem::ET_QUAD4:
       //Global2LocalGeneral(locPoint,globalPoint);
       Global2LocalQuad4(locPoint,globalPoint);
@@ -701,6 +706,59 @@ void LagrangeElemShapeMap::Global2LocalDuester(Vector<Double>& locPoint,
   }
 
 }
+
+  void LagrangeElemShapeMap::Global2LocalLine2(Vector<Double>& locPoint,
+                                               const Vector<Double>& globalPoint)
+  {
+    Vector<Double> c0, c1; // endpoint-coordinates
+    Vector<Double> xi_k(1); // local point at iteration k
+    Vector<Double> diffVecToPoint, diffVecWholeElem;
+    Double s;
+    Double lengthOfWholeElem, lengthToPoint, fac;
+    UInt globDim = globalPoint.GetSize();
+
+    // x-----------o-------------x
+    // c0          point         coordMat[i][1]
+    //
+    //  ------------------------>
+    //  diffVecWholeElem
+    //
+    //  ---------->
+    //  diffVecToPoint
+    //
+    //  lengthOfWholeElem = length(diffVecWholeElem)
+    //  lengthToPoint = length(diffVecToPoint)
+    //  fac = 1 / lengthOfWholeElem
+    //  s = lengthToPoint / lengthWholeElem
+
+    // Get coordinates of the endpoints
+    c0.Resize(globDim);
+    diffVecToPoint.Resize(globDim);
+    diffVecWholeElem.Resize(globDim);
+
+    xi_k[0] = shape_.nodeCoords[0][0];
+    Local2Global(c0, xi_k);
+
+    xi_k[0] = shape_.nodeCoords[1][0];
+    Local2Global(c1, xi_k);
+
+    diffVecWholeElem = c1 - c0;
+
+    lengthOfWholeElem = diffVecWholeElem.NormL2();
+    fac = 1.0 / lengthOfWholeElem;
+
+    for(UInt j = 0; j < globDim; j++)
+    {
+      diffVecToPoint[j] = globalPoint[j] - c0[j];
+    }
+
+    lengthToPoint = diffVecToPoint.NormL2();
+    diffVecToPoint.Inner(diffVecWholeElem, s);
+    s = fac * lengthToPoint;
+
+    locPoint[0] = shape_.nodeCoords[0][0] + 
+                  (shape_.nodeCoords[1][0] - shape_.nodeCoords[0][0]) * s;
+  }
 
 
 void LagrangeElemShapeMap::Global2LocalGeneral( Vector<Double>& locPoint,

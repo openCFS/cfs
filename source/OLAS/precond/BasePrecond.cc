@@ -40,7 +40,7 @@ namespace CoupledField {
     EnumTuple( BasePrecond::LU_SOLVER, "directLU" ),
     EnumTuple( BasePrecond::LDL_SOLVER, "directLDL"),
     EnumTuple( BasePrecond::LDL_SOLVER2, "directLDL2"),
-    EnumTuple( BasePrecond::PARDISO, "pardiso" ),
+    EnumTuple( BasePrecond::PARDISO_PRECOND, "pardiso" ),
     EnumTuple( BasePrecond::ILUPACK, "ilupack" ),
     EnumTuple( BasePrecond::CHOLMOD, "cholmod")
   };
@@ -57,9 +57,9 @@ namespace CoupledField {
     PtrParamNode base = 
         infoNode_ != NULL ? infoNode_ : info->Get("OLAS/legacyPrecond", ParamNode::APPEND);
     setupTimer_ = boost::shared_ptr<Timer>(new Timer());
-    base->Get(ParamNode::SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
+    base->Get(ParamNode::PN_SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
     precondTimer_ = boost::shared_ptr<Timer>(new Timer());
-    base->Get(ParamNode::SUMMARY)->Get("precond/timer")->SetValue( precondTimer_ );
+    base->Get(ParamNode::PN_SUMMARY)->Get("precond/timer")->SetValue( precondTimer_ );
   }
   
   void BasePrecond::GetPrecondSysMat( BaseMatrix& sysMat ) {

@@ -84,10 +84,6 @@ class BiLinearForm;
 
     //! results
     ResultInfoList results_;
-
-    //! Set containing the types of possible results
-    ResultSet availResults_;
-
   };
 
 

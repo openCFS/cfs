@@ -557,7 +557,7 @@ Enum<CoefFunction::CoefDimType> CoefFunction::CoefDimType_ = \
 // Definition of coefficient function dependency type
 static EnumTuple coefDependTuples[] = 
 {
- EnumTuple(CoefFunction::CONST,    "CONST"), 
+ EnumTuple(CoefFunction::CONSTANT, "CONSTANT"), 
  EnumTuple(CoefFunction::TIMEFREQ, "TIMEFREQ"),
  EnumTuple(CoefFunction::GENERAL,  "GENERAL"),
  EnumTuple(CoefFunction::SOLUTION, "SOLUTION")

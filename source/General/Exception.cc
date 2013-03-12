@@ -106,7 +106,7 @@ namespace CoupledField {
             // dependency of the exception class to the ParamNode class.
             // This in addition creates a dependency of the h5tool to the
             // libparamh ..
-            //            PtrParamNode out = info->Get(ParamNode::WARNING)->Get("warning", ParamNode::APPEND);
+            //            PtrParamNode out = info->Get(ParamNode::PN_WARNING)->Get("warning", ParamNode::APPEND);
            //            
            //            out->Get("lineNum")->SetValue(lineNum);
            //            out->Get("fileName")->SetValue(fileName);

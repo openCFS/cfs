@@ -26,7 +26,7 @@ namespace CoupledField {
     EnumTuple( BaseSolver::LU_SOLVER, "directLU" ),
     EnumTuple( BaseSolver::LDL_SOLVER, "directLDL"),
     EnumTuple( BaseSolver::LDL_SOLVER2, "directLDL2"),
-    EnumTuple( BaseSolver::PARDISO, "pardiso" ),
+    EnumTuple( BaseSolver::PARDISO_SOLVER, "pardiso" ),
     EnumTuple( BaseSolver::UMFPACK, "umfpack" ),
     EnumTuple( BaseSolver::ILUPACK, "ilupack" ),
     EnumTuple( BaseSolver::CHOLMOD, "cholmod")
@@ -198,9 +198,9 @@ namespace CoupledField {
     // not all solvers are switched to ParamNode yet
     PtrParamNode base = infoNode_ != NULL ? infoNode_ : info->Get("OLAS/legacySolver", ParamNode::APPEND);
     setupTimer_ = boost::shared_ptr<Timer>(new Timer());
-    base->Get(ParamNode::SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
+    base->Get(ParamNode::PN_SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
     solveTimer_ = boost::shared_ptr<Timer>(new Timer());
-    base->Get(ParamNode::SUMMARY)->Get("solve/timer")->SetValue( solveTimer_ );
+    base->Get(ParamNode::PN_SUMMARY)->Get("solve/timer")->SetValue( solveTimer_ );
   }
   
   void BaseSolver::SetPrecond( BasePrecond* precond ) {

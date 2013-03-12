@@ -21,12 +21,12 @@ namespace CoupledField
 {
 
 /** set the global names for fields */
-const string ParamNode::HEADER = "header";
-const string ParamNode::PROCESS = "process";
-const string ParamNode::SUMMARY = "summary";
+const string ParamNode::PN_HEADER = "header";
+const string ParamNode::PN_PROCESS = "process";
+const string ParamNode::PN_SUMMARY = "summary";
 
-const string ParamNode::WARNING = "warning";
-const string ParamNode::ERROR = "error";
+const string ParamNode::PN_WARNING = "warning";
+const string ParamNode::PN_ERROR = "error";
 
 /** This is our global pointer of the root ParamNode holding the XML file.
  *  Filed in cfs.cc. The corresponding
@@ -56,7 +56,7 @@ void ParamNode::SetValue(const boost::any& value)
   assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('>') == std::string::npos));
 
 
-  if(this->name_ == WARNING)
+  if(this->name_ == PN_WARNING)
     std::cerr  << std::endl << fg_red << "WARNING: " << boost::any_cast<std::string>(value_)<< fg_reset << std::endl;
 }
 void ParamNode::SetValue(const char* value)

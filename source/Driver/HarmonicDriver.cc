@@ -38,7 +38,7 @@ namespace CoupledField
     // replace our info node by a more detailed level
     driverNode = driverNode->Get("harmonic");
     driverNode->Get("sequenceStep")->SetValue(sequenceStep);
-    driverNode->Get(ParamNode::HEADER)->Get("unit")->SetValue("Hz");
+    driverNode->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("Hz");
 
     pn_ = param->GetByVal("sequenceStep", "index", boost::lexical_cast<std::string>(sequenceStep_))
          ->Get("analysis")->Get("harmonic");
@@ -69,7 +69,7 @@ namespace CoupledField
     if(!params && !list)
       EXCEPTION("'analysis/harmonic' contains neither 'numFreq/startFreq/stopFreq' nor 'frequencyList' concurrently");
 
-    PtrParamNode in = driverNode->Get(ParamNode::HEADER);
+    PtrParamNode in = driverNode->Get(ParamNode::PN_HEADER);
     in->Get("start")->SetValue(startFreq_);
     in->Get("end")->SetValue(stopFreq_);
     in->Get("numFreq")->SetValue(numFreq_);
@@ -92,7 +92,7 @@ namespace CoupledField
     if(freqs.GetSize() == 0)
       EXCEPTION("cannot have empty frequeny list");
 
-    driverNode->Get(ParamNode::HEADER)->Get("sampling")->SetValue("frequency list given");
+    driverNode->Get(ParamNode::PN_HEADER)->Get("sampling")->SetValue("frequency list given");
 
     for(int fi = 0; fi < (int) list.GetSize(); fi++)
     {
@@ -134,7 +134,7 @@ namespace CoupledField
     String2Enum( sampling, samplingType_ );
 
     // store only the sampling strategy
-    driverNode->Get(ParamNode::HEADER)->Get("sampling")->SetValue(sampling);
+    driverNode->Get(ParamNode::PN_HEADER)->Get("sampling")->SetValue(sampling);
 
     // ---------------------------------
     //  Perform some consistency checks
@@ -179,12 +179,12 @@ namespace CoupledField
     // Check for single frequency computation
     if(startFreq_ == stopFreq_ && numFreq_ > 1)
     {
-      driverNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("Re-setting numFreq to 1, since startFreq = stopFreq");
+      driverNode->Get(ParamNode::PN_HEADER)->Get(ParamNode::PN_WARNING)->SetValue("Re-setting numFreq to 1, since startFreq = stopFreq");
       numFreq_ = 1;
 
       if(samplingType_ != LINEAR_SAMPLING)
       {
-        driverNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("Re-setting sampling type to 'linear', since startFreq = stopFreq");
+        driverNode->Get(ParamNode::PN_HEADER)->Get(ParamNode::PN_WARNING)->SetValue("Re-setting sampling type to 'linear', since startFreq = stopFreq");
         samplingType_ = LINEAR_SAMPLING;
       }
     }
@@ -248,7 +248,7 @@ namespace CoupledField
       pt::ptime now = pt::second_clock::local_time();
       now += pt::seconds(static_cast<long int>(remainingTime));
       analysis_id_->Get("timePerStep")->SetValue( timePerStep );
-      PtrParamNode envNode = info->Get(ParamNode::HEADER)->Get("environment");
+      PtrParamNode envNode = info->Get(ParamNode::PN_HEADER)->Get("environment");
       envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
       envNode->Get("remainingTime")->SetValue(remainingTime);
     }
@@ -273,7 +273,7 @@ namespace CoupledField
 
     if(given_analysis_id == NULL)
     {
-      analysis_id_ = driverNode->Get(ParamNode::PROCESS)->Get("step", ParamNode::APPEND);
+      analysis_id_ = driverNode->Get(ParamNode::PN_PROCESS)->Get("step", ParamNode::APPEND);
       analysis_id_->Get("analysis_id")->SetValue(actFreqStep);
     }
     else

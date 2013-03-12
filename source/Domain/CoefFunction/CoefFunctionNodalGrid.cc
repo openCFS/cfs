@@ -161,7 +161,7 @@ namespace CoupledField{
     CoefMat *= this->GetFactor(lpmS);
 
   #else
-    EXCEPTION("This Executeable does not support interpolation and thus does not support the inclustion of external results");
+    EXCEPTION("This Executable does not support interpolation and thus does not support the inclustion of external results");
   #endif
   }
 
@@ -319,8 +319,8 @@ namespace CoupledField{
     solType_ = SolutionTypeEnum.Parse(solString );
     srcGrid_ = domain->GetGrid(gridId_);
     std::string factorString = "1.0";
-    configNode->GetValue("factor",factorString);
-    factorFnc_ = CoefFunction::Generate(Global::REAL,factorString,"");
+    configNode->GetValue("factor",factorString, ParamNode::PASS);
+    factorFnc_ = CoefFunction::Generate(Global::REAL,factorString);
 
     this->dependType_ = CoefFunction::GENERAL;
 

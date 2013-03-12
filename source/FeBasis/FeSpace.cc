@@ -295,7 +295,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
           ret.reset(new FeSpaceHCurlHi(aNode, infoNode, ptGrid));
         }
         break;
-      case CONST:
+      case CONSTANT:
       case HDIV:
       case L2:
         LOG_DBG(feSpace) << "Creating L2 space";
@@ -476,7 +476,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     method = id.method;
     LOG_DBG2(feSpace) << "\tmethod: " 
                       << IntScheme::IntegMethodEnum.ToString(method);
-    if( id.mode == ABSOLUTE ) {
+    if( id.mode == INTEG_MODE_ABSOLUTE ) {
       // ABSOLUTE order given
       order = id.order;
       LOG_DBG2(feSpace) << "\torder (absolute):" << order.ToString();
@@ -1007,7 +1007,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       EXCEPTION("got undefined integration. This will lead to errors! Input string: " << methodStr);
     }
     std::string modeStr = node->Get("mode")->As<std::string>();
-    mode = IntegOrderModeEnum.Parse(modeStr,ABSOLUTE);
+    mode = IntegOrderModeEnum.Parse(modeStr,INTEG_MODE_ABSOLUTE);
 
     //only isotropic order supported right now
     UInt isoOrder = node->Get("order")->As<UInt>();
@@ -1856,7 +1856,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   // Definition of finite element space types
    static EnumTuple spaceTypeTuples[] = {
      EnumTuple(FeSpace::UNDEF_SPACE, "Undef"), 
-     EnumTuple(FeSpace::CONST,       "Const"), 
+     EnumTuple(FeSpace::CONSTANT,    "Constant"), 
      EnumTuple(FeSpace::H1,          "H1"),
      EnumTuple(FeSpace::HCURL,       "HCurl"),
      EnumTuple(FeSpace::HDIV,        "HDiv"),
@@ -1881,8 +1881,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
    
     // Definition of integration oder mode types
     static EnumTuple integModeTuples[] = {
-      EnumTuple(FeSpace::ABSOLUTE, "absolute"),
-      EnumTuple(FeSpace::RELATIVE, "relative")
+      EnumTuple(FeSpace::INTEG_MODE_ABSOLUTE, "absolute"),
+      EnumTuple(FeSpace::INTEG_MODE_RELATIVE, "relative")
     };
     Enum<FeSpace::IntegOrderMode> FeSpace::IntegOrderModeEnum = \
        Enum<FeSpace::IntegOrderMode>("Types of FE Spaces",

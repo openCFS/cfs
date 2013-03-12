@@ -275,6 +275,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     ret[1] = 0.5 * ( 1.0 + x );
     
     T_VEC vals;
+    vals.Init();
     IntLegendreP2<T_SCAL,T_VEC>( vals, order, fac*x );
     UInt pos = 2;
     for( UInt j = 0; j < order-1; ++j ) {

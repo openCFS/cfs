@@ -277,7 +277,7 @@ template<typename T>
 void CoefFunctionPML<T>::CreateDampFunction(){
 
   switch(pmlType_){
-    case DampFunction::CONST:
+    case DampFunction::CONSTANT:
       dampFunction_.reset(new DampFunctionConst(1.0));
       break;
     case DampFunction::INVERSE_DIST:
@@ -366,7 +366,7 @@ void CoefFunctionPML<T>::GetThicknessAtPoint(Double& thickness, Double & positio
 
 // Definition of types of pml function
 static EnumTuple dampTypeTubles[] = {
-  EnumTuple(DampFunction::CONST,         "constant"),
+  EnumTuple(DampFunction::CONSTANT,      "constant"),
   EnumTuple(DampFunction::INVERSE_DIST,  "inverseDist"),
   EnumTuple(DampFunction::QUADRATIC,     "quadDist"),
   EnumTuple(DampFunction::SMOOTH,        "smoothDamp")

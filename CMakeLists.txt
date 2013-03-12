@@ -558,7 +558,9 @@ ENDIF(USE_ANSYSRST)
 
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/TextOutput)
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/InfoResultOutput)
-ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
+IF(NOT MINGW)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
+ENDIF(NOT MINGW)
 
 ADD_SUBDIRECTORY(source/Domain)
 ADD_SUBDIRECTORY(source/Domain/CoefFunction)

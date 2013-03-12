@@ -100,7 +100,7 @@ void FeNodal::EvaluateLagrangePolynomial( Vector<Double> & shape, Double coord, 
       P.Resize(N1,N1);
     
       for ( i = 0; i < N1; i += 1 ){
-        x[i]=cos(M_PI * i/order);
+        x[i]=cos(4*atan(1.0) * i/order);
       }
 
       // Compute P_N using the recursion relation

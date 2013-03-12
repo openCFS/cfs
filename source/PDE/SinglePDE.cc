@@ -130,7 +130,7 @@ namespace CoupledField {
     sequenceStep_ = sequenceStep;
 
     infoNode_ = base == NULL ? info->Get("PDE")->Get(pdename_) : base->Get(pdename_);
-    infoNode_->Get(ParamNode::HEADER)->Get("sequenceStep")->SetValue(sequenceStep);
+    infoNode_->Get(ParamNode::PN_HEADER)->Get("sequenceStep")->SetValue(sequenceStep);
 
     LOG_TRACE(singlepde) << pdename_ << ": Starting Initialization";
 
@@ -163,7 +163,7 @@ namespace CoupledField {
       myParam_->Get("regionList")->GetList("region");
 
     // output to info-file
-    PtrParamNode list = infoNode_->Get(ParamNode::HEADER);
+    PtrParamNode list = infoNode_->Get(ParamNode::PN_HEADER);
 
     // output and set regions_
     for( UInt i = 0; i < regionNodes.GetSize(); i++ )
@@ -251,7 +251,7 @@ namespace CoupledField {
     InitNonLin();
 
     // Todo: Move this part to the definition of damping
-    PtrParamNode in = infoNode_->Get(ParamNode::HEADER);
+    PtrParamNode in = infoNode_->Get(ParamNode::PN_HEADER);
     for(UInt i = 0; i < regions_.GetSize(); i++ )
     {
       PtrParamNode in_ = in->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(regions_[i]));
@@ -318,7 +318,7 @@ namespace CoupledField {
 
     // Print information about defined integrators
     if( needsAlgsys_ == true && !isDirectCoupled_ ) 
-      assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
+      assemble_->ToInfo(infoNode_->Get(ParamNode::PN_HEADER)->Get("integrators"));
 
     // =====================================================================
     //  map equations (FeSpaces) and finalize FeFunction (vector creation)
@@ -567,12 +567,12 @@ namespace CoupledField {
      
      
 //    // loads
-//    PtrParamNode base = infoNode_->Get(ParamNode::HEADER)->Get("loads");
+//    PtrParamNode base = infoNode_->Get(ParamNode::PN_HEADER)->Get("loads");
 
 //
 //
 //    // constraints
-//    base = infoNode_->Get(ParamNode::HEADER)->Get("constraints");
+//    base = infoNode_->Get(ParamNode::PN_HEADER)->Get("constraints");
 //    // periodic boundary conditions blow this up.
 //    if(constraints_.GetSize() <= 5 )
 //    {
@@ -3058,7 +3058,7 @@ namespace CoupledField {
     }
     
     // Echo information about PML to info file
-    PtrParamNode base = infoNode_->Get(ParamNode::HEADER)
+    PtrParamNode base = infoNode_->Get(ParamNode::PN_HEADER)
             ->Get("damping")->Get("pml");
     base->Get("coordSysId")->SetValue(coordSysId);
     PtrParamNode prop = base->Get("propRegion");

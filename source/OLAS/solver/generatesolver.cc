@@ -241,7 +241,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     break;
 #endif
 
-  case BaseSolver::PARDISO:
+  case BaseSolver::PARDISO_SOLVER:
 
 #ifdef USE_PARDISO
 
@@ -388,7 +388,7 @@ GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {
       ret.insert(BaseMatrix::LAPACK_GBMATRIX);
       break;
 
-    case BaseSolver::PARDISO:
+    case BaseSolver::PARDISO_SOLVER:
       ret.insert(BaseMatrix::SPARSE_SYM);
       ret.insert(BaseMatrix::SPARSE_NONSYM);
       break;
@@ -442,7 +442,7 @@ bool IsSolverSBMCapable(BaseSolver::SolverType st) {
       break;
     case BaseSolver::LAPACK_LU:
     case BaseSolver::LAPACK_LL:
-    case BaseSolver::PARDISO:  
+    case BaseSolver::PARDISO_SOLVER:  
     case BaseSolver::ILUPACK: 
     case BaseSolver::LU_SOLVER:
     case BaseSolver::CHOLMOD: 

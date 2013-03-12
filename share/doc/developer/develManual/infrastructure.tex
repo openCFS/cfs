@@ -391,6 +391,150 @@ source /home/shareAll/linux_bin/intel/fc(e for 64Bit!)/COMPILER_VERSION/bin/ifor
 \todo[inline]{Put                           info                          from
 \url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/CMake} here.}
 
+\subsubsection{Building 32-bit Binaries on 64-bit Linux Host}
+
+In order to build  32-bit executables on a 64-bit host one  has to install the
+corresponding    32-bit     development    packages    first     (cf.     {\tt
+bootstrap\_devel\_machine.sh}                      or                      the
+websites\footnote{\url{http://stackoverflow.com/questions/5383325/how-to-create-a-32-bit-shared-library-on-a-64-bit-platform-with-autotools}}\footnote{\url{https://sites.google.com/site/auledoom/programacion/cmakemultiarch/cmake-crosscompile-linux32-multiarch}}). It
+is  most convenient  to create  a  few dummy  shell scripts  for wrapping  the
+compilers for 32-bit mode. Afterwards one can open a {\tt linux32} environment
+and  append the path  to the  newly created  shell scripts  to the  {\tt PATH}
+variable. Then,  one can  follow the  standard way of  creating a  binary with
+CMake:
+
+\begin{verbatim}
+cd CFS_BINARY_DIR
+mkdir bin_i386
+cd bin_i386/
+printf '#!/bin/sh\n/usr/bin/gcc -m32 "$@"\n' > gcc && chmod 755 gcc
+printf '#!/bin/sh\n/usr/bin/g++ -m32 "$@"\n' > g++ && chmod 755 g++
+printf '#!/bin/sh\n/usr/bin/gfortran -m32 "$@"\n' > gfortran && chmod 755 gfortran
+cd ..
+linux32 bash
+# Test environment
+uname -a
+export PATH=$PWD/bin_i386:$PATH
+export CC=gcc                                                                 
+export CXX=g++
+export FC=gfortran
+
+cmake CFS_SOURCE_DIR
+\end{verbatim}
+                        
+\subsubsection{Building Windows Binaries on Linux Host}
+
+The  first  step  is  again  the  installation of  the  MinGW  cross  compiler
+toolchains. Here, we describe the procedures for Ubuntu and CentOS.
+
+\paragraph{Ubuntu 12.04 LTS}
+\begin{verbatim}
+root@ubuntu1204:~# apt-get install binutils-mingw-w64 gcc-mingw-w64 \
+                   g++-mingw-w64 gdb-mingw-w64-target gdb-mingw-w64 \
+                   gfortran-mingw-w64 mingw-w64 gcc-4.6-locales
+
+$ cat mingw_cross_toolchain.cmake 
+# http://www.cmake.org/Wiki/CMake_Cross_Compiling
+
+# the name of the target operating system
+SET(CMAKE_SYSTEM_NAME Windows)
+#include(CMakeForceCompiler)
+# SET(CMAKE_FIND_ROOT_PATH  /usr)
+
+#IF("${GNU_HOST}" STREQUAL "")
+#    SET(GNU_HOST i586-mingw32msvc)
+#ENDIF()
+# Prefix detection only works with compiler id "GNU"
+#CMAKE_FORCE_C_COMPILER(x86_64-w64-mingw32-gcc GNU)
+#CMAKE_FORCE_CXX_COMPILER(/usr/bin/x86_64-w64-mingw32-g++ GNU)
+
+# which compilers to use for C and C++
+SET(CMAKE_C_COMPILER /usr/bin/x86_64-w64-mingw32-gcc)
+SET(CMAKE_CXX_COMPILER /usr/bin/x86_64-w64-mingw32-g++)
+SET(CMAKE_Fortran_COMPILER /usr/bin/x86_64-w64-mingw32-gfortran)
+
+# CMake doesn't automatically look for prefixed 'windres', do it manually:
+SET(CMAKE_RC_COMPILER /usr/bin/x86_64-w64-mingw32-windres)
+
+SET(CMAKE_FIND_ROOT_PATH
+  /usr/x86_64-w64-mingw32
+  /usr/lib/gcc/x86_64-w64-mingw32
+)
+
+# adjust the default behaviour of the FIND_XXX() commands:
+# search headers and libraries in the target environment, search
+# programs in the host environment
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+# Start CFS++ configuration process
+$ cmake -DCMAKE_TOOLCHAIN_FILE=$PWD/mingw_cross_toolchain.cmake \
+        -DCFS_DEPS_CACHE_DIR:PATH=../../gitrepo/CACHE ../../gitrepo/CFS++
+\end{verbatim}
+
+\paragraph{RHEL/CentOS}
+
+\begin{verbatim}
+$ cat /etc/yum.repos.d/lfarkas.repo
+[lfarkas-mingw64]
+name=LFarkas Repository
+baseurl=http://www.lfarkas.org/linux/packages/centos/$releasever/mingw-w64/$basearch/
+#gpgkey=http://www.lfarkas.org/linux/packages/RPM-GPG-KEY
+enabled=1
+priority=3
+gpgcheck=0
+
+[lfarkas-mingw32]
+name=LFarkas Repository
+baseurl=http://www.lfarkas.org/linux/packages/centos/$releasever/mingw32/$basearch/
+#gpgkey=http://www.lfarkas.org/linux/packages/RPM-GPG-KEY
+enabled=1
+priority=3
+gpgcheck=0
+
+$ yum search mingw
+mingw64-headers-2.0-0.1.rc1.el6.noarch
+mingw64-cpp-4.5.3-2.el6.x86_64
+mingw64-gcc-c++-4.5.3-2.el6.x86_64
+mingw64-crt-2.0-0.1.rc1.el6.noarch
+mingw64-gcc-4.5.3-2.el6.x86_64
+mingw64-binutils-2.21.53.0.2-1.el6.x86_64
+mingw64-filesystem-82-2.el6.noarch
+mingw64-gcc-gfortran-4.5.3-2.el6.x86_64
+
+$ cat toolchain-mingw-win64-centos6.cmake
+# the name of the target operating system
+SET(CMAKE_SYSTEM_NAME Windows)
+
+# which compilers to use for C and C++
+SET(CMAKE_C_COMPILER /usr/bin/x86_64-w64-mingw32-gcc)
+SET(CMAKE_CXX_COMPILER /usr/bin/x86_64-w64-mingw32-g++)
+SET(CMAKE_Fortran_COMPILER /usr/bin/x86_64-w64-mingw32-gfortran)
+SET(CMAKE_RC_COMPILER /usr/bin/x86_64-w64-mingw32-windres)
+
+# here is the target environment located
+SET(CMAKE_FIND_ROOT_PATH /usr/x86_64-w64-mingw32 /home/alex/mingw-install )
+
+# adjust the default behaviour of the FIND_XXX() commands:
+# search headers and libraries in the target environment, search
+# programs in the host environment
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+# Start CFS++ configuration process
+$ cmake -DCMAKE_TOOLCHAIN_FILE=$PWD/mingw_cross_toolchain.cmake \
+        -DCFS_DEPS_CACHE_DIR:PATH=../../gitrepo/CACHE ../../gitrepo/CFS++
+\end{verbatim}
+
+
+
+
+\subsection{Preprocessor Definitions for various Platforms}
+
+\url{http://sourceforge.net/p/predef/wiki/Architectures/}
+
 \subsection{Specifics for Intel Compiler}
 
 The Intel 11.1 compiler needs the libstdc++.so.5, which is not available on all

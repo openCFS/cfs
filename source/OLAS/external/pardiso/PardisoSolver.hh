@@ -123,7 +123,7 @@ namespace CoupledField {
     //! is encoded as a value of the enumeration data type SolverType.
     //! \return PARDISO
     SolverType GetSolverType() {
-      return PARDISO;
+      return PARDISO_SOLVER;
     }
 
   private:
@@ -137,7 +137,7 @@ namespace CoupledField {
 
     //! enum of PARIDO's error codes
     typedef enum {
-      NO_ERROR = 0,
+      PARDISO_NO_ERROR = 0,
       INPUT_INCONSISTENT = -1,
       NOT_ENOUGH_MEMORY = -2,
       REORDERING_PROBLEM = -3,

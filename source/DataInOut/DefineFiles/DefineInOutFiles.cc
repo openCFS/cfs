@@ -67,7 +67,9 @@
 
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
 #include "DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.hh"
+#ifndef __MINGW32__
 #include "DataInOut/SimInOut/Streaming/SimOutputStreaming.hh"
+#endif
 
 #include "DataInOut/XMLMaterialHandler.hh"
 
@@ -462,10 +464,15 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
       out[actId] = shared_ptr<SimOutput> (new SimOutputInfo(actNode));
     }
 
+#ifndef __MINGW32__
     if (actFormat == "streaming")
     {
       out[actId] = shared_ptr<SimOutput> (new SimOutputStreaming(actNode));
     }
+#else
+      EXCEPTION( "No support for streaming output file format." );
+#endif
+
   } // loop over reader nodes
 }
 

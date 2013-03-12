@@ -57,7 +57,7 @@ namespace CoupledField {
 
     driverNode = driverNode->Get("transient");
     driverNode->Get("sequenceStep")->SetValue(sequenceStep);
-    driverNode->Get(ParamNode::HEADER)->Get("unit")->SetValue("s");
+    driverNode->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("s");
     
     // for the evaluation of deltaT, we make use of math Parser to
     // allow variable definitions of time step size
@@ -190,7 +190,7 @@ namespace CoupledField {
       {
         // do we really want to create a new entry? Might blast up the output
         ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-        analysis_id_ = driverNode->Get(ParamNode::PROCESS)->Get("step", at);
+        analysis_id_ = driverNode->Get(ParamNode::PN_PROCESS)->Get("step", at);
         analysis_id_->Get("analysis_id")->SetValue(actTimeStep_);
       }
       else
@@ -242,7 +242,7 @@ namespace CoupledField {
       pt::ptime now = pt::second_clock::local_time();
       now += pt::seconds(static_cast<long int>(remainingTime));
       analysis_id_->Get("timePerStep")->SetValue( timePerStep );
-      PtrParamNode envNode = info->Get(ParamNode::HEADER)->Get("environment");
+      PtrParamNode envNode = info->Get(ParamNode::PN_HEADER)->Get("environment");
       envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
       envNode->Get("remainingTime")->SetValue(remainingTime);
     }

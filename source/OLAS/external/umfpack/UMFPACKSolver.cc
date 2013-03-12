@@ -35,7 +35,7 @@ namespace CoupledField {
   template<typename T>
   std::string UMFPACKSolver<T>::GetErrorString(int err_code) {
     switch (err_code) {
-      case NO_ERROR:
+      case NO_UMFPACK_ERROR:
         return "No error.";
       case INPUT_INCONSISTENT:
         return "Input inconsistent.";
@@ -136,7 +136,7 @@ namespace CoupledField {
 
       int errorFlag = 0;
 
-      if ( errorFlag != NO_ERROR) {
+      if ( errorFlag != NO_UMFPACK_ERROR) {
         EXCEPTION( "Error occured during cleanup:\n"
                    << GetErrorString(errorFlag) )
       }
@@ -564,7 +564,7 @@ namespace CoupledField {
       colPtr_[i] -= 1;
 
     // Check return status
-    if ( errorFlag != NO_ERROR ) {
+    if ( errorFlag != NO_UMFPACK_ERROR ) {
       EXCEPTION( "Error occured during solution of linear system:\n"
                  << GetErrorString(errorFlag) );
     }
@@ -585,7 +585,7 @@ namespace CoupledField {
 
     // Create Report (no sensible things to write for direct solvers yet)
     ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
+    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", at);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
   }

@@ -868,7 +868,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
 
 void Domain::CreateCoordinateSystems()
 {
-  PtrParamNode in = info->Get(ParamNode::HEADER)->Get("domain");
+  PtrParamNode in = info->Get(ParamNode::PN_HEADER)->Get("domain");
   in = in->Get("coordinateSystems", ParamNode::APPEND);
   
   // first create the "global" standard cartesian

@@ -132,7 +132,7 @@ public:
 
   //! Enumeration type for element space
   //@{
-  typedef enum { UNDEF_SPACE, CONST, H1, HCURL, HDIV, L2 } SpaceType;
+  typedef enum { UNDEF_SPACE, CONSTANT, H1, HCURL, HDIV, L2 } SpaceType;
   static Enum<SpaceType> SpaceTypeEnum;
   //@}
 
@@ -164,7 +164,7 @@ public:
     //! their definition on vertices,edges,faces and interior
   typedef std::map< BaseFE::EntityType , EntityTypeNodes> ElemVirtualNodes;
 
-  typedef enum {ABSOLUTE,RELATIVE} IntegOrderMode;
+  typedef enum {INTEG_MODE_ABSOLUTE,INTEG_MODE_RELATIVE} IntegOrderMode;
   static Enum<IntegOrderMode> IntegOrderModeEnum;
 
   struct IntegDefinition{

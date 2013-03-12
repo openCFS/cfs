@@ -272,7 +272,7 @@ void FeSpaceL2Nodal::CheckConsistency(){
     IntegOrder order;
     //every reference element has the same order
     order.SetIsoOrder( refElems_[*spIt][Elem::ET_LINE2]->GetIsoOrder() );
-    SetRegionIntegration( *spIt,IntScheme::LOBATTO, order, ABSOLUTE,
+    SetRegionIntegration( *spIt,IntScheme::LOBATTO, order, INTEG_MODE_ABSOLUTE,
                           regionNode );
     spIt++;
   }
@@ -306,7 +306,7 @@ void FeSpaceL2Nodal::SetDefaultElements(PtrParamNode infoNode ){
 void FeSpaceL2Nodal::SetDefaultIntegration(PtrParamNode infoNode ){
   regionIntegration_[ALL_REGIONS].method = IntScheme::GAUSS;
   regionIntegration_[ALL_REGIONS].order.SetIsoOrder( 0 );
-  regionIntegration_[ALL_REGIONS].mode = RELATIVE;
+  regionIntegration_[ALL_REGIONS].mode = INTEG_MODE_RELATIVE;
 }
 
 }

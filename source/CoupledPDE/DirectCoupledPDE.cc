@@ -191,7 +191,7 @@ namespace CoupledField {
     sequenceStep_ = sequenceStep;
 
     infoNode_ = info->Get("PDE")->Get("directCoupledPDE", ParamNode::APPEND);
-    infoNode_->Get(ParamNode::HEADER)->Get("sequeceStep")->SetValue(sequenceStep);
+    infoNode_->Get(ParamNode::PN_HEADER)->Get("sequeceStep")->SetValue(sequenceStep);
 
     
     // Create algebraic system and pass it to SinglePDEs
@@ -258,7 +258,7 @@ namespace CoupledField {
     }
     
     // Print list of defined integrators of assembly object
-    assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
+    assemble_->ToInfo(infoNode_->Get(ParamNode::PN_HEADER)->Get("integrators"));
     
     // Collect all feFunctions defined in BasePairCouplings
     for (UInt i=0; i<couplings_.GetSize(); i++) {

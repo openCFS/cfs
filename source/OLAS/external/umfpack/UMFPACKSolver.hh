@@ -143,7 +143,7 @@ namespace CoupledField {
 
     //! enum of PARIDO's error codes
     typedef enum {
-      NO_ERROR = 0,
+      NO_UMFPACK_ERROR = 0,
       INPUT_INCONSISTENT = -1,
       NOT_ENOUGH_MEMORY = -2,
       REORDERING_PROBLEM = -3,

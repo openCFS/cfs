@@ -251,11 +251,11 @@ namespace CoupledField {
                  ITER_MATRIX_COUPLING} CouplingMethod;
 
   //! Enumeration for Input Coupling types \n
-  //! COORD = Coupling via coordinate displacement \n
+  //! COORD_DISPL = Coupling via coordinate displacement \n
   //! RHS   = Coupling via Right hand side \n
   //! ID_BC = Coupling via inhomogenous dirichlet bc \n
   //! MAT   = Coupling via material change \n
-  typedef enum {COORD, RHS, ID_BC, MAT, GRID_VEL} CouplingInputType;
+  typedef enum {COORD_DISPL, RHS, ID_BC, MAT, GRID_VEL} CouplingInputType;
 
   //! Enumeration for Output Coupling types\n
   //! ELEM = Coupling via element quantities\n

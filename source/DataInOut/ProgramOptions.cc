@@ -38,7 +38,9 @@
 #include <acml.h>
 #endif
 
-#include <bzlib.h>
+#ifndef WIN32
+//#include <bzlib.h>
+#endif
 #include <zlib.h>
 
 #include <H5public.h>
@@ -554,8 +556,10 @@ namespace CoupledField {
         << "CFS_DISTRO:            "
         << fg_blue << CFS_DISTRO << fg_reset << endl
 
+#ifndef __MINGW32__
         << "CFS_DISTRO_VER:        "
         << fg_blue << CFS_DISTRO_VER << fg_reset << endl
+#endif
 
         << "CFS_ARCH:              "
         << fg_blue << CFS_ARCH
@@ -829,8 +833,10 @@ namespace CoupledField {
       (BOOST_VERSION % 100) << fg_reset << endl;
     out << "CFS_ZLIB_VERSION:      "
         << fg_blue << zlibVersion() << fg_reset << endl;
-    out << "CFS_BZIP2_VERSION:     "
-        << fg_blue << BZ2_bzlibVersion() << fg_reset << endl;
+#ifndef WIN32
+//    out << "CFS_BZIP2_VERSION:     "
+//        << fg_blue << BZ2_bzlibVersion() << fg_reset << endl;
+#endif
     out << "CFS_MUPARSER_VERSION:  "
         << fg_blue << MUP_VERSION << " " MUP_VERSION_DATE << fg_reset << endl;
 

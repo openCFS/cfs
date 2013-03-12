@@ -488,6 +488,9 @@ namespace CoupledField {
     void Global2LocalDuester(Vector<Double>& locPoint,
                              const Vector<Double>& globalPoint);
 
+    //! Version for linear line elements
+    void Global2LocalLine2(Vector<Double>& locPoint,
+                           const Vector<Double>& globalPoint);
 
     //! General version
     void Global2LocalGeneral( Vector<Double>& locPoint,

@@ -38,14 +38,14 @@ namespace CoupledField {
     //! - MINRES
     //! - LAPACK_LU
     //! - LAPACK_LL
-    //! - PARDISO
+    //! - PARDISO_SOL
     //! - UMFPACK
     //! - ILUPACK
     //! - LU_SOLVER
     //! - LDL_SOLVER
     //! - LDL_SOLVER2
     typedef enum {NOSOLVER, RICHARDSON, CG, LANCZOS, QMR, GMRES,
-                  MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO,
+                  MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO_SOLVER,
                   UMFPACK,ILUPACK, LU_SOLVER, CHOLMOD, 
                   LDL_SOLVER, DIAGSOLVER } SolverType;    
     static Enum<SolverType> solverType;

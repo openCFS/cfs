@@ -1,0 +1,15 @@
+set(hdf5_source  "@hdf5_source@")
+set(hdf5_prefix  "@hdf5_prefix@")
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${hdf5_prefix}/src/hdf5-static-build"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/hdf5/H5Tinit.c" "${hdf5_prefix}/src/hdf5-static-build/H5Tinit.c"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/hdf5/H5lib_settings.c" "${hdf5_prefix}/src/hdf5-static-build/H5lib_settings.c"
+)

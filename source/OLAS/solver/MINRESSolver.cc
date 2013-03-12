@@ -383,7 +383,7 @@ namespace CoupledField {
     rho = q0_->NormL2();
 
     // Compose report
-    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("finalNorm")->SetValue(rho);
     out->Get("numIter")->SetValue((Integer)(k-1));
 

@@ -56,7 +56,7 @@ namespace CoupledField
     
 
     // the timer object is used in every AssembleMatrices() call
-    info->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble/timer")->SetValue(timer_);
+    info->Get("analysis")->Get(ParamNode::PN_SUMMARY)->Get("assemble/timer")->SetValue(timer_);
   }
 
   Assemble::~Assemble() {
@@ -499,7 +499,7 @@ namespace CoupledField
    //            // info.xml logging in detailed logging case for the first element only
    //            if(i == 0 && progOpts->DoDetailedInfo())
    //            {
-   //              PtrParamNode in = info->Get("PDE")->Get(actContext.GetFirstPde()->GetName())->Get(ParamNode::PROCESS)->Get("matrices");
+   //              PtrParamNode in = info->Get("PDE")->Get(actContext.GetFirstPde()->GetName())->Get(ParamNode::PN_PROCESS)->Get("matrices");
    //              in = in->Get("tensor", ParamNode::APPEND);
    //              in->Get("form")->SetValue(form->GetName());
    //              in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId));
@@ -704,7 +704,7 @@ namespace CoupledField
 //            // info.xml logging in detailed logging case for the first element only
 //            if(i == 0 && progOpts->DoDetailedInfo())
 //            {
-//              PtrParamNode in = info->Get("PDE")->Get(actContext.GetFirstPde()->GetName())->Get(ParamNode::PROCESS)->Get("matrices");
+//              PtrParamNode in = info->Get("PDE")->Get(actContext.GetFirstPde()->GetName())->Get(ParamNode::PN_PROCESS)->Get("matrices");
 //              in = in->Get("tensor", ParamNode::APPEND);
 //              in->Get("form")->SetValue(form->GetName());
 //              in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId));

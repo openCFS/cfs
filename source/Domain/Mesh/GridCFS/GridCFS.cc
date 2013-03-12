@@ -836,7 +836,7 @@ namespace CoupledField {
     orderedElems_.Trim();
 
     // print information to file - checks for exportGrid
-    if(info) { ToInfo(info->Get(ParamNode::HEADER)->Get("domain")); }
+    if(info) { ToInfo(info->Get(ParamNode::PN_HEADER)->Get("domain")); }
   }
   
   void GridCFS::GenerateDGSurfaceElemes(std::set<RegionIdType> regionList,

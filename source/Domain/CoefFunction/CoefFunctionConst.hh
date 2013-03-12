@@ -21,7 +21,7 @@ public:
   CoefFunctionConst() 
   : CoefFunctionAnalytic() {
     // this type of coefficient is always constant
-    dependType_ = CONST;
+    dependType_ = CONSTANT;
     isAnalytic_ = true;
     isComplex_ = std::tr1::is_same<T,Complex>::value;
   }

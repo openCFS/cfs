@@ -1,3 +1,40 @@
+IF(MINGW)
+  SET(MKL_ROOT_DIR "/opt/pckg/mkl_win/10.0.5.025")
+  SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/em64t/lib")
+  SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
+  
+  SET(DEPS_SEQ
+    ${MKL_LIB_DIR}/mkl_solver_lp64_sequential.lib
+    ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+    ${MKL_LIB_DIR}/mkl_intel_thread.lib
+    ${MKL_LIB_DIR}/mkl_core.lib
+    ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+    ${MKL_LIB_DIR}/mkl_sequential.lib
+    ${MKL_LIB_DIR}/libiomp5mt.lib
+    ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/amd64/runtmchk.lib
+#    ${MKL_LIB_DIR}/libguide40.lib
+#    /home/strieben/Documents/MKL/test/runtmchk.lib
+    )
+
+  SET(MKL_BLAS_LIB
+    ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+    ${MKL_LIB_DIR}/mkl_intel_thread.lib
+    ${MKL_LIB_DIR}/mkl_core.lib
+    ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+    ${MKL_LIB_DIR}/libiomp5mt.lib
+    ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/amd64/runtmchk.lib
+#    wrap-chkstk
+#    ${MKL_LIB_DIR}/libguide40.lib
+    )
+
+  SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
+
+  SET(MKL_PARDISO_LIB
+    ${MKL_LIB_DIR}/mkl_solver_lp64.lib
+    )
+
+ELSE(MINGW)
+
 #-------------------------------------------------------------------------------
 # The idea behind the algorithm implemented for finding MKL, is to let the
 # make files in the MKL example directories tell us which linker flags we need.
@@ -176,6 +213,7 @@ MARK_AS_ADVANCED(MKL_ROOT_DIR)
 
 # TODO: libguide und libiomp durch die von MKL ersetzen.
 # TODO: für libmkl_intel_lp64.a libmkl_gf_lp64.a für gnu einsetzen.
+ENDIF(MINGW)
 
 #-------------------------------------------------------------------------------
 # Set BLAS, LAPACK and PARDISO libraries depending on the MKL version.
@@ -187,3 +225,4 @@ IF(CFS_BLAS_LAPACK STREQUAL "MKL")
   ENDIF(MKL_MAJOR_VERSION LESS 10)  
 ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
 SET(PARDISO_LIBRARY "${MKL_PARDISO_LIB}")
+

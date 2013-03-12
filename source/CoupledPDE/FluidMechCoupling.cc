@@ -130,7 +130,7 @@ namespace CoupledField {
       velSpace->SetRegionApproximation(region, "velPolyId", "velIntegId");
       presSpace->SetRegionApproximation(region, "presPolyId", "presIntegId");
       dispSpace->SetRegionApproximation(region, "default", "default");
-      lagrangeMultSpace->SetRegionApproximation(region, "velPolyId", "velIntegId");
+      lagrangeMultSpace->SetRegionApproximation(region, "presPolyId", "velIntegId");
 
       // This integrator gets assembled into the damping (first time deriv.) matrix in the row of the LM
       DefineDampingIntegrators("FluidMechDampingLMVelCouplingInt",
@@ -348,7 +348,7 @@ namespace CoupledField {
    formulation_ = LAGRANGE_MULT;
 
    PtrParamNode spaceNode;
-   spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY));
+   spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE));
 
    crSpaces[formulation_] =
        FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);

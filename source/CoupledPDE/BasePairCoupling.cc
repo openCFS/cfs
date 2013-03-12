@@ -80,7 +80,7 @@ namespace CoupledField {
  
     isComplex_ = BasePDE::IsComplex();
 
-    PtrParamNode in = infoNode_->Get(ParamNode::HEADER); 
+    PtrParamNode in = infoNode_->Get(ParamNode::PN_HEADER); 
     in->Get("sequenceStep")->SetValue(sequenceStep); 
     in->Get("pde1")->SetValue(pde1_->GetName()); 
     in->Get("pde2")->SetValue(pde2_->GetName());
@@ -450,7 +450,7 @@ namespace CoupledField {
           continue;
 
         // print logging information
-        PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->GetByVal("region", "name", region)->Get("composite");
+        PtrParamNode in = infoNode_->Get(ParamNode::PN_HEADER)->GetByVal("region", "name", region)->Get("composite");
 
         // get composite node
         PtrParamNode compNode;

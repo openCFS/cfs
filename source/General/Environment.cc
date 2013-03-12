@@ -63,7 +63,7 @@ namespace CoupledField {
                                        CouplingInputType &out ) {
 
     if (in == "Coordinate-Displacement")
-      out = COORD;
+      out = COORD_DISPL;
     else if (in == "RHS")
       out = RHS;
     else if (in == "DirichletInhom")
@@ -84,7 +84,7 @@ namespace CoupledField {
 
     switch(in) {
 
-    case COORD:
+    case COORD_DISPL:
       out = "Coordinate-Displacement";
       break;
     case RHS:

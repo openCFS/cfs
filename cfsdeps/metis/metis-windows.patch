@@ -1,5 +1,5 @@
---- Lib\metis.h	Mon Nov 30 17:26:50 1998
-+++ f:\dev\metis-4.0\Lib\metis.h	Sat Jun 30 01:56:00 2007
+--- Lib/metis.h	Mon Nov 30 17:26:50 1998
++++ Lib/metis.h	Sat Jun 30 01:56:00 2007
 @@ -18,7 +18,7 @@
  #else
  #include <malloc.h>
@@ -9,8 +9,8 @@
  #include <string.h>
  #include <ctype.h>
  #include <math.h>
---- Lib\macros.h	Mon Nov 30 17:26:50 1998
-+++ f:\dev\metis-4.0\Lib\macros.h	Wed Jul 18 15:53:39 2007
+--- Lib/macros.h	Mon Nov 30 17:26:50 1998
++++ Lib/macros.h	Wed Jul 18 15:53:39 2007
 @@ -16,13 +16,13 @@
  /*************************************************************************
  * The following macro returns a random number in the specified range
@@ -30,8 +30,8 @@
  
  
  
---- Lib\util.c	Mon Nov 30 17:26:50 1998
-+++ f:\dev\metis-4.0\Lib\util.c	Wed Jul 18 15:51:48 2007
+--- Lib/util.c	Mon Nov 30 17:26:50 1998
++++ Lib/util.c	Wed Jul 18 15:51:48 2007
 @@ -493,14 +493,14 @@
  void InitRandom(int seed)
  {

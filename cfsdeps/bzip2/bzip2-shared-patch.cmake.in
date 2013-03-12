@@ -1,3 +1,10 @@
+# kate: indent-width 2; mixedindent on; indent-mode cstyle; line-numbers on;
+# kate: syntax cmake; replace-tabs off; background-color #D1EBFF;
+# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+
+#=============================================================================
+# Set global variables.
+#=============================================================================
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
 SET(CMAKE_C_COMPILER "@CMAKE_C_COMPILER@")
@@ -6,7 +13,26 @@ SET(LIB_SUFFIX "@LIB_SUFFIX@")
 SET(CFS_DISTRO "@CFS_DISTRO@")
 SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
 SET(CFLAGS "@CFLAGS@")
+SET(MINGW "@MINGW@")
 
+#=============================================================================
+# Include macros from CFS++.
+#=============================================================================
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+#=============================================================================
+# Apply the patches.
+#=============================================================================
+SET(patches
+  "bzip2-mingw.patch"
+)
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/bzip2")
+
+#=============================================================================
+# Since the patches to the make file depend heavily on the build host, we
+# open this file and change it depending on the environment.
+#=============================================================================
 FILE(READ Makefile-libbz2_so lines)
 
 foreach(line IN LISTS lines)
@@ -24,6 +50,24 @@ foreach(line IN LISTS lines)
       "-dynamiclib ${CFLAGS}" line
       ${line})
   ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+
+  IF(MINGW)
+    STRING(REPLACE "-shared -Wl,-soname -Wl,libbz2.so.1.0 -o libbz2.so.1.0.6"
+      "-shared -o libbz2.dll -Wl,--out-implib,libbz2.dll.a" line
+#      -Wl,--major-image-version,1,--minor-image-version,2 -Wl,--whole-archive -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32" line
+      ${line})
+
+    STRING(REPLACE "-o bzip2-shared bzip2.c libbz2.so.1.0.6"
+      "-o bzip2-shared bzip2.c libbz2.dll.a"
+       line
+      ${line})
+    STRING(REPLACE
+      "	rm -f libbz2.so.1.0"
+      "	cp libbz2.dll.a ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
+	cp libbz2.dll ${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}"
+      line
+      ${line})
+  ENDIF()
 
   STRING(REPLACE
     "	rm -f libbz2.so.1.0"

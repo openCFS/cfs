@@ -550,7 +550,7 @@ namespace CoupledField {
                                      esNode, sNode, pNode,
                                      myInfo_->Get("solve_eigen") );
       PtrParamNode in = myInfo_->
-          Get(ParamNode::PROCESS)->Get("conditionNumber", ParamNode::APPEND);
+          Get(ParamNode::PN_PROCESS)->Get("conditionNumber", ParamNode::APPEND);
       in->Get("analysis_id")->SetValue(analysis_id);
       try {
         evs->CalcConditionNumber( (*sysMat_[SYSTEM])(0,0), condNumber,
@@ -599,7 +599,7 @@ namespace CoupledField {
     }
 
     // Assume that everything will go well
-    PtrParamNode out = myInfo_->Get(ParamNode::PROCESS)->Get("solver");
+    PtrParamNode out = myInfo_->Get(ParamNode::PN_PROCESS)->Get("solver");
     out->Get("solutionIsOkay")->SetValue(true);
 
     // Now modifiy the right-hand side vector.
@@ -2752,7 +2752,7 @@ namespace CoupledField {
           st == BaseSolver::LU_SOLVER  || 
           st == BaseSolver::LAPACK_LU  ||
           st == BaseSolver::LAPACK_LL  ||
-          st == BaseSolver::PARDISO )
+          st == BaseSolver::PARDISO_SOLVER )
           && !(pt == BasePrecond::ID ||
               pt == BasePrecond::NOPRECOND) ) {
         EXCEPTION( "A direct solver only works with the Identity (ID) "
@@ -2789,7 +2789,7 @@ namespace CoupledField {
       }
       
       // b) pardiso needs no reordering
-      if( st == BaseSolver::PARDISO && 
+      if( st == BaseSolver::PARDISO_SOLVER && 
           ot != BaseOrdering::NOREORDERING &&
           canChangeReordering == true ) {
         ot = BaseOrdering::NOREORDERING;

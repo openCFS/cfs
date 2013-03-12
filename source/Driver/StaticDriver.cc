@@ -74,7 +74,7 @@ namespace CoupledField {
     {
       // do we really want to create a new entry? Might blast up the output
       ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-      analysis_id_ = driverNode->Get(ParamNode::PROCESS)->Get("step", at);
+      analysis_id_ = driverNode->Get(ParamNode::PN_PROCESS)->Get("step", at);
       analysis_id_->Get("analysis_id")->SetValue("0");
     }
     else

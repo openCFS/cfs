@@ -1,8 +1,13 @@
 IF(CFS_PARDISO STREQUAL MKL)
   SET(PARDISO_API_VER 3)
 
-  MESSAGE(STATUS
+  IF(MINGW)
+    MESSAGE(STATUS
+"Cross compiling on ${CFS_BUILD_OS} for ${CFS_TARGET_OS} using MKL. Setting Pardiso API version to ${PARDISO_API_VER}.")
+  ELSE()
+    MESSAGE(STATUS
 "Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION} detected. Setting Pardiso API version to ${PARDISO_API_VER}.")
+  ENDIF(MINGW)
 
 ELSE(CFS_PARDISO STREQUAL MKL)
 

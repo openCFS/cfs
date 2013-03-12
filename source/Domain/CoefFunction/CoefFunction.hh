@@ -83,7 +83,7 @@ public:
   
   //! Dependency of coefficient function
   typedef enum{ 
-    CONST,         /*!< No dependency on space or time */
+    CONSTANT,         /*!< No dependency on space or time */
     TIMEFREQ,      /*!< Only depending on time / frequency, not space */
     GENERAL,       /*!< General dependency (spatial and / or time / freq) */
     SOLUTION       /*!< Dependency on another FeFunction */
@@ -184,7 +184,7 @@ public:
   //! Constructor
   CoefFunction(){
     dimType_ = NO_DIM;
-    dependType_ = CONST;
+    dependType_ = CONSTANT;
     isAnalytic_ = false;
     isComplex_ = false;
     

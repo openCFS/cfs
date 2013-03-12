@@ -8,6 +8,7 @@
 
 #include <def_use_xerces.hh>
 #include <boost/version.hpp>
+#include <boost/asio/ip/host_name.hpp>
 
 #include "main/CFS.hh"
 #include "Utils/Timer.hh"
@@ -103,7 +104,7 @@ CFS::CFS(int argc, const char **argv) :
       //progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
   info->SetName("cfsInfo");
   info->Get("status")->SetValue("running"); // to be overwritten by "aborted" or "finished"
-  info->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(timer);
+  info->Get(ParamNode::PN_SUMMARY)->Get("timer")->SetValue(timer);
   timer->Start(); // ignore that this is not the real beginning
 
   // Print information about program start time and host
@@ -111,12 +112,14 @@ CFS::CFS(int argc, const char **argv) :
   using namespace boost::gregorian;
 
   // our calculation environment
-  PtrParamNode env = info->Get(ParamNode::HEADER)->Get("environment");
+  PtrParamNode env = info->Get(ParamNode::PN_HEADER)->Get("environment");
   start_time_ = to_simple_string( second_clock::local_time() );
   env->Get("started")->SetValue(start_time_);
-
-  char host[256];
-  hostname_ = gethostname( host, sizeof(host) ) > 0 ? host : "";
+  
+  hostname_ = boost::asio::ip::host_name();
+  
+//  char host[256];
+//  hostname_ = gethostname( host, sizeof(host) ) > 0 ? host : "";
 
   if(!hostname_.empty())
     env->Get("host")->SetValue(hostname_);
@@ -210,8 +213,8 @@ int CFS::Run()
       
     // write the info object
     info->Get("status")->SetValue("finished"); // overwrite 'running'
-    info->Get(ParamNode::SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false));
-    info->Get(ParamNode::SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true));
+    info->Get(ParamNode::PN_SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false));
+    info->Get(ParamNode::PN_SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true));
 
     return 0;
   }
@@ -235,7 +238,7 @@ int CFS::Run()
     // Print error cause to info file
     if(info != NULL)
     {
-      PtrParamNode errorNode = info->Get(ParamNode::ERROR);
+      PtrParamNode errorNode = info->Get(ParamNode::PN_ERROR);
       errorNode->SetValue(ex.what());
       info->Get("status")->SetValue("aborted");
       info->ToFile();
@@ -366,12 +369,12 @@ void CFS::SetupIO()
 
 
   // Log command line parameters
-  progOpts->ToInfo(info->Get(ParamNode::HEADER)->Get("progOpts"));
+  progOpts->ToInfo(info->Get(ParamNode::PN_HEADER)->Get("progOpts"));
   // log the optinal id/name/token/label from <cfsSimulation id="..">
-  info->Get(ParamNode::HEADER)->Get("id")->SetValue(param->Get("id"));
+  info->Get(ParamNode::PN_HEADER)->Get("id")->SetValue(param->Get("id"));
   // if requested five the problem file -> one can see the defaults then
   if(progOpts->DoDetailedInfo())
-    info->Get(ParamNode::HEADER)->Get("cfsSimulation")->SetValue(param);
+    info->Get(ParamNode::PN_HEADER)->Get("cfsSimulation")->SetValue(param);
   // Open file for status reports by OLAS
   fileHandler.OpenFile( OLAS_FILE );
 }

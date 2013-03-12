@@ -71,12 +71,12 @@ namespace CoupledField
   public:
     
     /** This string constant shall mark the logging part which contains "dynamic" data, e.g. current iteration */
-    const static std::string HEADER;
-    const static std::string PROCESS;
+    const static std::string PN_HEADER;
+    const static std::string PN_PROCESS;
     /** this string constann shall mark summary information, e.g. total number of iterations */
-    const static std::string SUMMARY;
-    const static std::string WARNING;
-    const static std::string ERROR;
+    const static std::string PN_SUMMARY;
+    const static std::string PN_WARNING;
+    const static std::string PN_ERROR;
     
     /** Define behavior for get() methods in case the element does not exist:
     * DEFAULT: Apply default action of current node (gets inherited)
