@@ -99,6 +99,8 @@ set(patches
     "ext_numpy.patch"
     "ext_vrpn.patch"
     "ext_silo.patch"
+    "ext_freetype.patch"
+    "ext_png.patch"
   )
 
 #=============================================================================

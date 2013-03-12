@@ -360,6 +360,11 @@ ENDIF(USE_ANSYSRST)
 #-----------------------------------------------------------------------------
 IF(BUILD_PARAVIEW)
   #---------------------------------------------------------------------------
+  # Setup a list of dependencies for ParaView.
+  #---------------------------------------------------------------------------
+  SET(CFS_PV_DEPENDENCIES "")
+
+  #---------------------------------------------------------------------------
   # ParaView requires latest CMake
   #---------------------------------------------------------------------------
   IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}"
@@ -371,10 +376,8 @@ IF(BUILD_PARAVIEW)
     INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cmake/External_CMake.cmake")
 
     SET(CFS_PV_CMAKE_COMMAND "${CFS_BINARY_DIR}/cmake/bin/cmake")
-    SET(CFS_PV_DEPENDS "cmake")
   ELSE()
     SET(CFS_PV_CMAKE_COMMAND "${CMAKE_COMMAND}")
-    SET(CFS_PV_DEPENDS "")
   ENDIF()
 
   #---------------------------------------------------------------------------
@@ -382,17 +385,16 @@ IF(BUILD_PARAVIEW)
   #---------------------------------------------------------------------------
   FIND_PACKAGE(Qt4 4.6.0)
   IF(NOT QT4_FOUND)
-#    MESSAGE(STATUS "Qt4 not found")
-
     set(QT4_URL "${LSE17_SOURCES_DIR}/qt4")
     set(QT4_GZ qt-everywhere-opensource-src-4.6.4.tar.gz)
     set(QT4_MD5 8ac880cc07a130c39607b65efd5e1421)
 
     INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/qt4/External_Qt4.cmake")
-#  ELSE()
-#    MESSAGE(STATUS "Qt4 found")
   ENDIF()
 
+  #---------------------------------------------------------------------------
+  # Finally add an external project for ParaView
+  #---------------------------------------------------------------------------
   set(PARAVIEW_URL "http://www.paraview.org/files/v3.14")
   set(PARAVIEW_GZ ParaView-3.14.1-Source.tar.gz)
   set(PARAVIEW_MD5 039c612777f5eb7bba5d37319f34c922)

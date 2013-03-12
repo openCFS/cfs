@@ -34,6 +34,8 @@ ExternalProject_Add(cmake
   INSTALL_COMMAND  ${CMAKE_COMMAND} -P ${INST}
   )
 
+LIST(APPEND CFS_PV_DEPENDENCIES cmake)
+
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------

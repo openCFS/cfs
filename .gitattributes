@@ -131,11 +131,13 @@ cfsdeps/paraview/boost_patch_step.cmake.in -text
 cfsdeps/paraview/ext_boost.patch -text
 cfsdeps/paraview/ext_cgns.patch -text
 cfsdeps/paraview/ext_ffmpeg.patch -text
+cfsdeps/paraview/ext_freetype.patch -text
 cfsdeps/paraview/ext_hdf5.patch -text
 cfsdeps/paraview/ext_lapack.patch -text
 cfsdeps/paraview/ext_manta.patch -text
 cfsdeps/paraview/ext_mpich2.patch -text
 cfsdeps/paraview/ext_numpy.patch -text
+cfsdeps/paraview/ext_png.patch -text
 cfsdeps/paraview/ext_python.patch -text
 cfsdeps/paraview/ext_silo.patch -text
 cfsdeps/paraview/ext_szip.patch -text

@@ -64,6 +64,7 @@ ExternalProject_Add_Step(qt4 custom_patch
 )
 
 SET(QT_QMAKE_EXECUTABLE "${CFS_BINARY_DIR}/qt4/bin/qmake")
+LIST(APPEND CFS_PV_DEPENDENCIES qt4)
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

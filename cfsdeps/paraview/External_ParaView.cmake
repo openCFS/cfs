@@ -6,6 +6,29 @@ set(paraview_install  "${CMAKE_CURRENT_BINARY_DIR}/paraview")
 set(paraview_source  "${paraview_prefix}/src/paraview")
 
 #-------------------------------------------------------------------------------
+# Info on SuperBuild
+# http://paraview.org/Wiki/ParaView:Superbuild
+#
+# Info on regular ParaView build
+# http://paraview.org/Wiki/ParaView:Build_And_Install
+#
+# Info on cross compiling
+# http://www.paraview.org/Wiki/Cross_compiling_ParaView3_and_VTK#Building_ParaView_for_a_new_target_platform
+# http://www.vtk.org/Wiki/CMake_Cross_Compiling#How_to_cross_compile_ParaView.2C_Python
+# http://www.vtk.org/Wiki/BuildingPythonWithCMake
+#
+# Info on extending ParaView
+# http://paraview.org/Wiki/ExtendingParaView
+# http://paraview.org/Wiki/Plugin_HowTo
+# http://paraview.org/Wiki/Extending_ParaView_at_Compile_Time
+#
+# Info on adding plugins
+# http://www.paraview.org/Wiki/ParaView/Plugin_HowTo
+# http://www.kitware.com/media/html/WritingAParaViewReaderPlug-in.html
+# http://openfoamwiki.net/index.php/Tip_Build_A_Paraview3_Plugin
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 # The paraview-download external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(paraview-download
@@ -40,7 +63,7 @@ set(PV_INSTALL_COMMAND ${CMAKE_COMMAND} -P ${paraview_prefix}/paraview-install-s
 
 # MESSAGE(FATAL_ERROR "CFS_PV_CMAKE_COMMAND ${CFS_PV_CMAKE_COMMAND}")
 ExternalProject_Add(paraview-superbuild
-  DEPENDS ${CFS_PV_DEPENDS} paraview-download
+  DEPENDS ${CFS_PV_DEPENDENCIES} paraview-download
   PREFIX ${paraview_prefix}
   DOWNLOAD_COMMAND ""
   CONFIGURE_COMMAND ${PV_CONFIGURE_COMMAND}

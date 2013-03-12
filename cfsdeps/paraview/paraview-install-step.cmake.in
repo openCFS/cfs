@@ -55,7 +55,7 @@ IF(EXISTS "${QTCURVE_DIR}/${QTCURVE_LIB}")
       ${CFS_PV_CMAKE_COMMAND}
       -E copy_if_different
       "${QTCURVE_DIR}/${QTCURVE_LIB}"
-      "${CFS_BINARY_DIR}/paraview/lib/${QTCURVE_LIB}"
+      "${CFS_BINARY_DIR}/paraview/lib/plugins/styles/${QTCURVE_LIB}"
     RESULT_VARIABLE rv
     )
 ENDIF()

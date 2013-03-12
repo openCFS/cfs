@@ -556,7 +556,7 @@ list(REMOVE_DUPLICATES PARAVIEW_FIXUP_BUNDLE_SEARCH_PATHS)
 # Configure and build ParaView
 #------------------------------------------------------------------------------
 
-SET(CFS_PV_ARGS -DCMAKE_INSTALL_PREFIX:PATH="${CFS_CMAKE_INSTALL_PREFIX}")
+SET(CFS_PV_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CFS_CMAKE_INSTALL_PREFIX})
 
 if(${CFS_OS} STREQUAL "LINUX") 
   list(APPEND CFS_PV_ARGS
