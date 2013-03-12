@@ -27,8 +27,8 @@ namespace CoupledField
 
     // create canonical path from native-representation of the
     // file and the schema path
-    fs::path filePath = fs::path( file );
-    fs::path schemaPath = fs::path( schema );
+    fs::path filePath = fs::system_complete( fs::path( file ) );
+    fs::path schemaPath = fs::system_complete( fs::path( schema ) );
 
     if(!fs::exists(filePath))
         EXCEPTION("xml file " << file << " doesn't exist");
@@ -68,7 +68,9 @@ namespace CoupledField
       parser_->setValidationSchemaFullChecking(true);
       std::string completeSchema;
       completeSchema = "http://www.cfs++.org ";
-      completeSchema += schema_;
+      std::string schemaString = schema_;
+      boost::replace_all( schemaString, " ", "%20");
+      completeSchema += schemaString;
       parser_->setExternalSchemaLocation(completeSchema.c_str());
     }
     else

@@ -6,57 +6,58 @@
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-# Set paths to xerces sources according to ExternalProject.cmake 
+# Set paths to Xerces-C sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
 set(xerces_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/xerces")
 set(xerces_source  "${xerces_prefix}/src/xerces")
 set(xerces_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
-#-------------------------------------------------------------------------------
-# Set names of configure file and template file.
-#-------------------------------------------------------------------------------
-SET(CONF_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/xerces/xerces-configure.cmake.in")
-SET(CONF "${xerces_prefix}/xerces-configure.cmake")
-CONFIGURE_FILE("${CONF_TEMPL}" "${CONF}" @ONLY) 
+SET(CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX:PATH=${xerces_install}
+  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
+  -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
+  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
+  -DBUILD_SHARED_LIBS:BOOL=OFF
+  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
+  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+  )
 
-#-------------------------------------------------------------------------------
-# Set names of build file and template file.
-#-------------------------------------------------------------------------------
-SET(BUILD_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/xerces/xerces-build.cmake.in")
-SET(BUILD "${xerces_prefix}/xerces-build.cmake")
-CONFIGURE_FILE("${BUILD_TEMPL}" "${BUILD}" @ONLY) 
+IF(CFS_DISTRO STREQUAL "MACOSX")
+  SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DCMAKE_C_FLAGS:FILEPATH=${CFLAGS}
+    -DCMAKE_CXX_FLAGS:FILEPATH=${CFLAGS}
+    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
+    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
+    )
+ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
-#-------------------------------------------------------------------------------
-# Set names of configure file and template file.
-#-------------------------------------------------------------------------------
-SET(INST_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/xerces/xerces-install.cmake.in")
-SET(INST "${xerces_prefix}/xerces-install.cmake")
-CONFIGURE_FILE("${INST_TEMPL}" "${INST}" @ONLY) 
-
-# MINGW:
-# http://xrunhprof.wordpress.com/2011/08/19/cross-building-xalan-and-xerces-for-mingw-on-linux/
+IF(CMAKE_TOOLCHAIN_FILE)
+  LIST(APPEND CMAKE_ARGS
+    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
+  )
+ENDIF()
 
 #-------------------------------------------------------------------------------
 # The xerces external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(xerces
   PREFIX "${xerces_prefix}"
-  SOURCE_DIR "${xerces_source}"
   DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/xerces
   URL ${XERCES_URL}/${XERCES_GZ}
   URL_MD5 ${XERCES_MD5}
-  BUILD_IN_SOURCE 1
-  CONFIGURE_COMMAND ${CMAKE_COMMAND} -P ${CONF}
-  BUILD_COMMAND  ${CMAKE_COMMAND} -P ${BUILD}
-  INSTALL_COMMAND  ${CMAKE_COMMAND} -P ${INST}
+  CMAKE_ARGS
+    ${CMAKE_ARGS}
 )
 
 #-------------------------------------------------------------------------------
 # Set names of patch file and template file.
 #-------------------------------------------------------------------------------
-#SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/xerces/xerces-patch.cmake.in")
-#SET(PFN "${xerces_prefix}/xerces-patch.cmake")
-#CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/xerces/xerces-patch.cmake.in")
+SET(PFN "${xerces_prefix}/xerces-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
 # We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
@@ -69,13 +70,14 @@ ExternalProject_Add(xerces
 # applied to  an already patched  source tree. This  is due to the  fact, that
 # ExternalProject_Add only extracts the source if the MD5 sum has has changed.
 #-------------------------------------------------------------------------------
-#ExternalProject_Add_Step(xerces custom_patch
-#   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-#   DEPENDEES download
-#   DEPENDERS configure
-#   DEPENDS "${PFN}"
-#   WORKING_DIRECTORY ${xerces_source}
-#)
+ExternalProject_Add_Step(xerces custom_patch
+   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+   DEPENDEES download
+   DEPENDERS configure
+   DEPENDS "${PFN}"
+   WORKING_DIRECTORY ${xerces_source}
+)
+
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
