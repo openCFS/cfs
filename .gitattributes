@@ -50,6 +50,11 @@ cfsdeps/bzip2/External_bzip2.cmake -text
 cfsdeps/bzip2/bzip2-shared-patch.cmake.in -text
 cfsdeps/bzip2/bzip2-static-patch.cmake.in -text
 cfsdeps/cfx_custom/External_CFX_Custom.cmake -text
+cfsdeps/cfx_custom/ansys_custom_v121_linia32.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/ansys_custom_v121_linia64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/ansys_custom_v130_win32.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/ansys_custom_v140_linx64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/ansys_custom_v140_win32.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v100_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v100_linux-amd64.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v100_linux.tar.bz2 -text svneol=unset#unset
@@ -61,10 +66,18 @@ cfsdeps/cfx_custom/cfx_custom_v120_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v120_linux-amd64.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v121_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v121_linux-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v121_linux-ia64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v121_linux.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v121_win-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v121_win-ia32.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v130_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v130_linux-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v130_win-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v130_win-ia32.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v140_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v140_linux-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v140_win-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v140_win-ia32.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfxio-build.cmake.in -text
 cfsdeps/cfx_custom/cfxio-install.cmake.in -text
 cfsdeps/cgal/CGAL-3.2.1-install_cgal-no_versions_in_compiler_config.h.patch -text
