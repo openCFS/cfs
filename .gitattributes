@@ -151,6 +151,12 @@ cfsdeps/python/python_install_step.cmake.in -text
 cfsdeps/python/python_make_step.cmake.in -text
 cfsdeps/python/python_patch_step.cmake.in -text
 cfsdeps/python/python_setup.py.in -text
+cfsdeps/qt4/External_Qt4.cmake -text
+cfsdeps/qt4/qt4-build-step.cmake.in -text
+cfsdeps/qt4/qt4-configure-step.cmake.in -text
+cfsdeps/qt4/qt4-install-step.cmake.in -text
+cfsdeps/qt4/qt4-nomore-questions.patch -text
+cfsdeps/qt4/qt4-patch.cmake.in -text
 cfsdeps/scpip/CMakeLists.txt -text
 cfsdeps/scpip/External_SCPIP.cmake -text
 cfsdeps/scpip/fulltext.pdf -text svneol=unset#unset

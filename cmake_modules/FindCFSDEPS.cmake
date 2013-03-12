@@ -377,6 +377,22 @@ IF(BUILD_PARAVIEW)
     SET(CFS_PV_DEPENDS "")
   ENDIF()
 
+  #---------------------------------------------------------------------------
+  # Qt - Let's check if a valid version of Qt is available
+  #---------------------------------------------------------------------------
+  FIND_PACKAGE(Qt4 4.6.0)
+  IF(NOT QT4_FOUND)
+#    MESSAGE(STATUS "Qt4 not found")
+
+    set(QT4_URL "${LSE17_SOURCES_DIR}/qt4")
+    set(QT4_GZ qt-everywhere-opensource-src-4.6.4.tar.gz)
+    set(QT4_MD5 8ac880cc07a130c39607b65efd5e1421)
+
+    INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/qt4/External_Qt4.cmake")
+#  ELSE()
+#    MESSAGE(STATUS "Qt4 found")
+  ENDIF()
+
   set(PARAVIEW_URL "http://www.paraview.org/files/v3.14")
   set(PARAVIEW_GZ ParaView-3.14.1-Source.tar.gz)
   set(PARAVIEW_MD5 039c612777f5eb7bba5d37319f34c922)

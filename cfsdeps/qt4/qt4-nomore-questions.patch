@@ -1,0 +1,20 @@
+--- configure.orig	2010-06-23 14:16:38.000000000 +0200
++++ configure	2010-06-23 14:17:29.000000000 +0200
+@@ -355,7 +355,7 @@
+         echo "Type 'c' if you want to use the Commercial Edition."
+         echo "Type 'o' if you want to use the Open Source Edition."
+         echo
+-        read commercial
++        commercial="o"
+         echo
+         if [ "$commercial" = "c" ]; then
+             COMMERCIAL_USER="yes"
+@@ -3969,7 +3969,7 @@
+             echo "Type 'no' to decline this license offer."
+             echo
+             echo $ECHO_N "Do you accept the terms of $affix license? $ECHO_C"
+-            read acceptance
++            acceptance="yes"
+         fi
+         echo
+         if [ "$acceptance" = "yes" ] || [ "$acceptance" = "y" ]; then

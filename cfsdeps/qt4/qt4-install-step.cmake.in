@@ -1,0 +1,40 @@
+SET(qt4_source "@qt4_source@")
+
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
+SET(LIB_SUFFIX "@LIB_SUFFIX@")
+SET(CMAKE_STATIC_LIBRARY_PREFIX "@CMAKE_STATIC_LIBRARY_PREFIX@")
+SET(CMAKE_STATIC_LIBRARY_SUFFIX "@CMAKE_STATIC_LIBRARY_SUFFIX@")
+SET(CMAKE_MAKE_PROGRAM "@CMAKE_MAKE_PROGRAM@")
+
+SET(ENV{CC} "@CMAKE_C_COMPILER@")
+SET(ENV{CXX} "@CMAKE_CXX_COMPILER@")
+SET(ENV{CFLAGS} "@CFLAGS@")
+SET(ENV{CXXFLAGS} "@CFLAGS@")
+
+SET(INSTALL_CMD
+  "${CMAKE_MAKE_PROGRAM}" "install"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${INSTALL_CMD}
+  WORKING_DIRECTORY "${qt4_source}"
+#  ERROR_FILE qt4-install.out
+#  OUTPUT_FILE qt4-install.out
+  RESULT_VARIABLE rv
+  )
+
+# open(OUT, ">$STAGEDIR/qt4/bin/qt.conf");
+# print OUT "[Paths]\n";
+# print OUT "    Prefix = $QT_PREFIX_PATH\n";
+# print OUT ";    Documentation = doc\n";
+# print OUT ";    Headers = include\n";
+# print OUT ";    Libraries = lib\n";
+# print OUT ";    Binaries = bin\n";
+# print OUT ";    Plugins = plugins\n";
+# print OUT ";    Data";
+# print OUT ";    Translations = translations\n";
+# print OUT ";    Settings";
+# print OUT ";    Examples";
+# print OUT ";    Demos";
+

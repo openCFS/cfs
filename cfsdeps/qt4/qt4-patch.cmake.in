@@ -1,0 +1,18 @@
+set(qt4_source  "@qt4_source@")
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/qt4/CMakeLists.txt" "${qt4_source}/SuperBuild/CMakeLists.txt"
+# )
+
+# EXECUTE_PROCESS(
+#   COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/qt4/libstdcpp3.patch" "${qt4_source}/SuperBuild/libstdcpp3.patch"
+# )
+
+set(patches
+    "qt4-nomore-questions.patch"
+  )
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/qt4")

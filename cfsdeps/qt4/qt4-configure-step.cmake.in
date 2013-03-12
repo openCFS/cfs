@@ -1,0 +1,30 @@
+SET(qt4_source "@qt4_source@")
+
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
+SET(LIB_SUFFIX "@LIB_SUFFIX@")
+SET(CMAKE_STATIC_LIBRARY_PREFIX "@CMAKE_STATIC_LIBRARY_PREFIX@")
+SET(CMAKE_STATIC_LIBRARY_SUFFIX "@CMAKE_STATIC_LIBRARY_SUFFIX@")
+
+SET(ENV{CC} "@CMAKE_C_COMPILER@")
+SET(ENV{CXX} "@CMAKE_CXX_COMPILER@")
+SET(ENV{CFLAGS} "@CFLAGS@")
+SET(ENV{CXXFLAGS} "@CFLAGS@")
+
+SET(CONFIGURE_CMD
+  "sh"
+  "./configure"
+  "-prefix" "${CFS_BINARY_DIR}/qt4"
+  "-release"
+  "-nomake" "examples"
+  "-nomake" "demos"
+  "-no-separate-debug-info"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${CONFIGURE_CMD}
+  WORKING_DIRECTORY "${qt4_source}"
+#  ERROR_FILE qt4-config.out
+#  OUTPUT_FILE qt4-config.out
+  RESULT_VARIABLE rv
+  )
