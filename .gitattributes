@@ -89,6 +89,7 @@ cfsdeps/cgal/CGAL-install_cgal-SUPPORT_REQUIRED.patch -text
 cfsdeps/cgal/CGAL.spec -text
 cfsdeps/cgal/CGAL_SetupBoost.cmake.in -text
 cfsdeps/cgal/External_CGAL.cmake -text
+cfsdeps/cgal/TryRunResults_GCC45_CENTOS6_WIN64.cmake -text
 cfsdeps/cgal/cgal-intel-isfinite.patch -text
 cfsdeps/cgal/cgal-patch.cmake.in -text
 cfsdeps/cgns/External_CGNS.cmake -text
@@ -114,6 +115,7 @@ cfsdeps/hdf5/External_HDF5.cmake -text
 cfsdeps/hdf5/H5Tinit.c -text
 cfsdeps/hdf5/H5lib_settings.c -text
 cfsdeps/hdf5/TryRunResults_MINGW64_CENTOS6.cmake -text
+cfsdeps/hdf5/hdf5-cross-compile.patch -text
 cfsdeps/hdf5/hdf5-patch.cmake.in -text
 cfsdeps/ilupack/CMakeLists.txt -text
 cfsdeps/ilupack/External_ILUPACK.cmake -text

@@ -1,5 +1,6 @@
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
+SET(MINGW "@MINGW@")
 
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
@@ -8,8 +9,7 @@ SET(patches
 )
 
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-  SET(patches
-    "${patches}"
+  LIST(APPEND patches
     # The following patch fixes a bug regarding a missing function
     # __builtin_signbit. This patch replaces the use of this internal
     # function by a plain if-statement. There is already a bug description at intel:
@@ -18,5 +18,14 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
     "boost-intel-signbit-intrinsic.patch"
     )
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+
+IF(MINGW)
+  LIST(APPEND patches
+    # gcc 4.4 Warning: inline ... declared as dllimport: attribute ignored
+    # https://svn.boost.org/trac/boost/ticket/4315
+    "4315.patch"
+    )
+ENDIF(MINGW)
+
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/boost")

@@ -112,7 +112,10 @@ ELSE(NOT MINGW)
 
   SET(CFS_BUILD_OS "${OS}")
   SET(CFS_BUILD_DISTRO "${DIST}")
+  SET(CFS_BUILD_ARCH "${ARCH}")
+
   SET(CFS_TARGET_OS "WINDOWS")
+  SET(CFS_TARGET_ARCH "${MINGW_TARGET_ARCH}")
 
 ENDIF(NOT MINGW)
 
@@ -132,7 +135,6 @@ IF(CFS_DISTRO STREQUAL "SUSE" OR
    CFS_DISTRO STREQUAL "SLE")
 
  IF(CFS_DISTRO_VER GREATER 9.3)
-   SET(CFS_PCKG_HINT ${CFS_PCKG_HINT} gfortran)
    SET(CFS_FORTRAN_LIBS ${CFS_FORTRAN_LIBS} ${GFORTRAN_LIBRARY})   
  ENDIF(CFS_DISTRO_VER GREATER 9.3)
  
@@ -143,7 +145,6 @@ ENDIF(CFS_DISTRO STREQUAL "SUSE" OR
 IF(CFS_DISTRO STREQUAL "DEBIAN")
   IF(CFS_DISTRO_VER GREATER 3)
     SET(CFS_FORTRAN_LIBS ${GFORTRAN_LIBRARY})
-    SET(CFS_PCKG_HINT ${CFS_PCKG_HINT} "gfortran, libgfortran1-dev")
   ELSE(CFS_DISTRO_VER GREATER 3)
     SET(CFS_FORTRAN_LIBS ${G2C_LIBRARY})
   ENDIF(CFS_DISTRO_VER GREATER 3)
@@ -156,7 +157,6 @@ IF(CFS_DISTRO STREQUAL "UBUNTU")
   # At the moment I just have Edgy Eft (6.10)!
   IF(CFS_DISTRO_VER GREATER 6)
     SET(CFS_FORTRAN_LIBS ${GFORTRAN_LIBRARY})
-    SET(CFS_PCKG_HINT ${CFS_PCKG_HINT} "libgfortran1-dev")
   ENDIF(CFS_DISTRO_VER GREATER 6)
 
 ENDIF(CFS_DISTRO STREQUAL "UBUNTU")
@@ -186,8 +186,27 @@ ENDIF(CFS_DISTRO STREQUAL "MANDRAKE" OR
    CFS_DISTRO STREQUAL "MANDRIVA")
 
 IF(MINGW)
+   SET(MINGW_DIST_WRONG FALSE)
    IF(NOT DIST STREQUAL "UBUNTU" AND NOT DIST STREQUAL "CENTOS")
-     MESSAGE(FATAL_ERROR "Cross compiling for Windows has been only tested on CentOS 6 and Ubuntu 12.04 LTS (cf. Developer's Manual)")
+     SET(MINGW_DIST_WRONG TRUE)
+   ELSE()
+     IF(DIST STREQUAL "UBUNTU" AND NOT REV STREQUAL "12.04")
+       SET(MINGW_DIST_WRONG TRUE)
+     ENDIF()
+     IF(DIST STREQUAL "CENTOS" AND NOT MATCHES "6\\.")
+       SET(MINGW_DIST_WRONG TRUE)
+     ENDIF()
+   ENDIF()
+
+   IF(MINGW_DIST_WRONG)
+       MESSAGE(FATAL_ERROR
+"
+Cross compiling for Windows 64-bit has been only tested on
+CentOS 6 and Ubuntu 12.04 LTS (cf. Developer's Manual).
+If you know what you are doing, disable this error and fix
+the build for your platform. But don't say, I did not warn you!
+"
+       )
    ENDIF()
 
    SET(CFS_FORTRAN_LIBS ${GFORTRAN_LIBRARY})
@@ -230,16 +249,6 @@ IF(CFS_DISTRO STREQUAL "MACOSX")
 
  
 ENDIF(CFS_DISTRO STREQUAL "MACOSX")
-
-# Macro which prints a list of libraries which are needed to compile CFS++
-MACRO(SUGGEST_INSTALL_PCKG)
-  MESSAGE("Either try installing the following packages to compile CFS++:")
-  FOREACH(PCKG ${CFS_PCKG_HINT})
-    MESSAGE(${PCKG})
-  ENDFOREACH(PCKG)
-  MESSAGE("or try to set the corresponding advanced variables.")
-ENDMACRO(SUGGEST_INSTALL_PCKG)
-
 
 IF(CFS_ARCH STREQUAL "I386")
   # Set path suffix for system libs

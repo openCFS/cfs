@@ -11,7 +11,7 @@
 #include <iostream>
 #include <iomanip>
 
-#ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
 #include <windows.h>
 #endif
 
@@ -20,7 +20,7 @@
 namespace CoupledField
 {
 
-#ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
   static const UInt bgMask( BACKGROUND_BLUE      |
                             BACKGROUND_GREEN     |
                             BACKGROUND_RED       |
@@ -69,14 +69,14 @@ namespace CoupledField
 
   static class ColoredConsole
   {
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
   private:
     HANDLE                      hCon;
     UInt                        cCharsWritten;
     CONSOLE_SCREEN_BUFFER_INFO  csbi;
     UInt                        dwConSize;
 	WORD                        wDefaultAttributes;
- #endif
+#endif
 
   public:
     static bool colorise;
@@ -84,7 +84,7 @@ namespace CoupledField
 
   public:
     ColoredConsole() {
-#ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
       hCon = GetStdHandle( STD_OUTPUT_HANDLE );
       GetConsoleScreenBufferInfo( hCon, &csbi );
 	  wDefaultAttributes = csbi.wAttributes;
@@ -94,7 +94,7 @@ namespace CoupledField
   private:
     void GetInfo()
     {
-   #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
       GetConsoleScreenBufferInfo( hCon, &csbi );
       dwConSize = csbi.dwSize.X * csbi.dwSize.Y;
    #endif
@@ -102,20 +102,20 @@ namespace CoupledField
   public:
     void Clear()
     {
-   #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
       COORD coordScreen = { 0, 0 };
 
       GetInfo();
       FillConsoleOutputCharacter( hCon, TEXT(' '),
                                   dwConSize,
                                   coordScreen,
-                                  &cCharsWritten );
+                                  (DWORD*) &cCharsWritten );
       GetInfo();
       FillConsoleOutputAttribute( hCon,
                                   csbi.wAttributes,
                                   dwConSize,
                                   coordScreen,
-                                  &cCharsWritten );
+                                  (DWORD*) &cCharsWritten );
       SetConsoleCursorPosition( hCon, coordScreen );
    #endif
     }
@@ -131,7 +131,7 @@ namespace CoupledField
       if(!colorise)
         return;
 
-   #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
       if(os == std::cout)
         hCon = GetStdHandle( STD_OUTPUT_HANDLE );
       else if(os == std::cerr)
@@ -168,7 +168,7 @@ namespace CoupledField
   inline std::ostream& fg_red( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( fgHiRed, bgMask, "", os );
  #else
     // light red    
@@ -181,7 +181,7 @@ namespace CoupledField
   inline std::ostream& fg_green( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( fgHiGreen, bgMask, "", os  );
  #else
     // light green    
@@ -195,7 +195,7 @@ namespace CoupledField
   inline std::ostream& fg_blue( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( fgHiBlue, bgMask, "", os  );
  #else
     // light blue   
@@ -209,7 +209,7 @@ namespace CoupledField
   inline std::ostream& fg_white( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( fgHiWhite, bgMask, "", os  );
  #else
     console.SetColor( 0, 0, "\033[37;1m", os);
@@ -221,7 +221,7 @@ namespace CoupledField
   inline std::ostream& fg_cyan( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( fgHiCyan, bgMask, "", os  );
  #else
     console.SetColor( 0, 0, "\033[36;1m", os);
@@ -233,7 +233,7 @@ namespace CoupledField
   inline std::ostream& fg_magenta( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( fgHiMagenta, bgMask, "", os );
  #else
     console.SetColor( 0, 0, "\033[35;1m", os);
@@ -245,7 +245,7 @@ namespace CoupledField
   inline std::ostream& fg_yellow( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( fgHiYellow, bgMask, "", os  );
  #else
     console.SetColor( 0, 0, "\033[33;1m", os);
@@ -257,7 +257,7 @@ namespace CoupledField
   inline std::ostream& fg_black( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( fgBlack, bgMask, "", os  );
  #else
     console.SetColor( 0, 0, "\033[0m", os);
@@ -269,7 +269,7 @@ namespace CoupledField
   inline std::ostream& fg_gray( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( fgGray, bgMask, "", os  );
  #else
     console.SetColor( 0, 0, "\033[30;1m", os);
@@ -281,7 +281,7 @@ namespace CoupledField
   inline std::ostream& bg_red( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( bgHiRed, fgMask, "", os  );
  #else
  #endif
@@ -292,7 +292,7 @@ namespace CoupledField
   inline std::ostream& bg_green( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( bgHiGreen, fgMask, "", os  );
  #else
  #endif
@@ -303,7 +303,7 @@ namespace CoupledField
   inline std::ostream& bg_blue( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( bgHiBlue, fgMask, "", os  );
  #else
  #endif
@@ -314,7 +314,7 @@ namespace CoupledField
   inline std::ostream& bg_white( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( bgHiWhite, fgMask, "", os  );
  #else
  #endif
@@ -325,7 +325,7 @@ namespace CoupledField
   inline std::ostream& bg_cyan( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( bgHiCyan, fgMask, "", os  );
  #else
  #endif
@@ -336,7 +336,7 @@ namespace CoupledField
   inline std::ostream& bg_magenta( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( bgHiMagenta, fgMask, "", os  );
  #else
  #endif
@@ -347,7 +347,7 @@ namespace CoupledField
   inline std::ostream& bg_yellow( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( bgHiYellow, fgMask, "", os  );
  #else
  #endif
@@ -358,7 +358,7 @@ namespace CoupledField
   inline std::ostream& bg_black( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( bgBlack, fgMask, "", os  );
  #else
  #endif
@@ -369,7 +369,7 @@ namespace CoupledField
   inline std::ostream& bg_gray( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( bgGray, fgMask, "", os  );
  #else
  #endif
@@ -380,7 +380,7 @@ namespace CoupledField
   inline std::ostream& fg_reset( std::ostream& os )
   {
     os.flush();
- #ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
     console.SetColor( fgbgReset, fgbgReset, "", os  );
  #else
     console.SetColor( 0, 0, "\033[0m", os);

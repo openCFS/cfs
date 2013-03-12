@@ -28,6 +28,14 @@ IF(CMAKE_TOOLCHAIN_FILE)
   )
 ENDIF()
 
+IF(MINGW)
+  IF(CFS_ARCH STREQUAL "X86_64")
+    LIST(APPEND CMAKE_ARGS
+      -C ${CMAKE_CURRENT_SOURCE_DIR}/cfsdeps/cgal/TryRunResults_GCC45_CENTOS6_WIN64.cmake
+      )
+  ENDIF()
+ENDIF(MINGW)
+
 #-------------------------------------------------------------------------------
 # The CGAL external project
 #-------------------------------------------------------------------------------
@@ -60,6 +68,7 @@ ExternalProject_Add(cgal
     -DMPFR_INCLUDE_DIR:PATH=${MPFR_INCLUDE_DIR}
     -DMPFR_LIBRARIES:FILEPATH=${MPFR_LIBRARY}
 )
+
 
 #-------------------------------------------------------------------------------
 # Set names of patch file and template file.
@@ -105,9 +114,17 @@ SET(CGAL_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 # Determine paths of CGAL libraries.
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(CGAL_LIBRARY
-  "${LD}/libCGAL.a"
-  CACHE FILEPATH "CGAL library.")
+IF(MINGW)
+  STRING(REPLACE ".a" ".dll.a" CGAL_BOOST_THREAD_LIB "${BOOST_THREAD-MT_LIB}")
+
+  SET(CGAL_LIBRARY
+    "${LD}/libCGAL.a;${CGAL_BOOST_THREAD_LIB}"
+    CACHE FILEPATH "CGAL library.")
+ELSE()
+  SET(CGAL_LIBRARY
+    "${LD}/libCGAL.a"
+    CACHE FILEPATH "CGAL library.")
+ENDIF()
 
 MARK_AS_ADVANCED(CGAL_INCLUDE_DIR)
 MARK_AS_ADVANCED(CGAL_LIBRARY)

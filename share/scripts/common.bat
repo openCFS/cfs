@@ -2,11 +2,11 @@
 
 set EXITCODE=0
 
-rem Get name of NACS/bin directory
-rem set NACS_BIN_DIR=%NACS_ROOT_DIR%bin\
+rem Get name of CFS/bin directory
+rem set CFS_BIN_DIR=%CFS_ROOT_DIR%bin\
 
 rem Check if we are in BINARY tree or in DIST tree.
-if EXIST "%NACS_ROOT_DIR%\source" (
+if EXIST "%CFS_ROOT_DIR%\source" (
 rem We are in BINARY tree
 rem    echo Script has been started from BINARY tree.
     set BINARY_TREE=1
@@ -17,12 +17,16 @@ rem    echo Script has been started from DIST tree.
 )
 
 rem Get architecture and distribution
-set WINVER_BAT="%NACS_ROOT_DIR%\share\scripts\winver.bat"
+set WINVER_BAT="%CFS_ROOT_DIR%\share\scripts\winver.bat"
 
 call %WINVER_BAT% -u >> nul 2>&1
 if %EXITCODE% NEQ 0 goto end
 
 set WINDOWS_ARCH_STR=%WINDOWS_PLATFORM%_%WINDOWS_ARCH%
+
+if NOT EXIST %CFS_BIN_DIR%\%WINDOWS_ARCH_STR% (
+  set WINDOWS_ARCH_STR=MINGW_%WINDOWS_ARCH%
+)
 
 rem Set lib path according to architecture
 if "_%WINDOWS_ARCH%_" == "_I386_" (
@@ -39,11 +43,11 @@ rem Set standard Windows (XP) system path
 set PATH=%SystemRoot%\System32;%SystemRoot%;%SystemRoot%\System32\Wbem
 
 rem Set (library) path for current architecture
-set PATH="%NACS_ROOT_DIR%\%LIB%\%WINDOWS_ARCH_STR%";%PATH%
+set PATH="%CFS_ROOT_DIR%\%LIB%\%WINDOWS_ARCH_STR%";%PATH%
 
-if defined NACS_SCRIPT_DEBUG (
-    echo NACS_ROOT_DIR: "%NACS_ROOT_DIR%"
-    echo NACS_BIN_DIR: "%NACS_BIN_DIR%"
+if defined CFS_SCRIPT_DEBUG (
+    echo CFS_ROOT_DIR: "%CFS_ROOT_DIR%"
+    echo CFS_BIN_DIR: "%CFS_BIN_DIR%"
     echo OS: Windows
     echo BINARY_TREE: %BINARY_TREE%
     echo WINDOWS_ARCH_STR: %WINDOWS_ARCH_STR%

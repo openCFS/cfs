@@ -469,8 +469,6 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
     {
       out[actId] = shared_ptr<SimOutput> (new SimOutputStreaming(actNode));
     }
-#else
-      EXCEPTION( "No support for streaming output file format." );
 #endif
 
   } // loop over reader nodes
