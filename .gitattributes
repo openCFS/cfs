@@ -213,8 +213,10 @@ cfsdeps/scpip/scpip-gfortran.patch -text
 cfsdeps/scpip/scpip-patch.cmake.in -text
 cfsdeps/scpip/scpip.tar.bz2 -text
 cfsdeps/suitesparse/External_SuiteSparse.cmake -text
+cfsdeps/suitesparse/SuiteSparse-METIS-CMake.patch -text
+cfsdeps/suitesparse/suitesparse-cmake-for-cfs.patch -text
+cfsdeps/suitesparse/suitesparse-cmake.patch -text
 cfsdeps/suitesparse/suitesparse-patch.cmake.in -text
-cfsdeps/suitesparse/suitesparse-ranlib.patch -text
 cfsdeps/xerces/External_Xerces-C.cmake -text
 cfsdeps/xerces/xerces-build.cmake.in -text
 cfsdeps/xerces/xerces-configure.cmake.in -text

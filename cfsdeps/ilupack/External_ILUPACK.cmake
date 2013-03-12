@@ -100,7 +100,7 @@ SET(ILUPACK_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 #-----------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 SET(ILUPACK_LIBRARY
-  "${LD}/libDilupack.a;${LD}/libZilupack.a;${LD}/libblaslike.a;${LD}/libsparspak.a;${LD}/libamd.a"
+  "${LD}/libDilupack.a;${LD}/libZilupack.a;${LD}/libblaslike.a;${LD}/libsparspak.a;${AMD_LIBRARY}"
   CACHE FILEPATH "ILUPACK library.")
 
 MARK_AS_ADVANCED(ILUPACK_LIBRARY)

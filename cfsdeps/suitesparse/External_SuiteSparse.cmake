@@ -35,6 +35,33 @@ set(suitesparse_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/suitesparse")
 set(suitesparse_source  "${suitesparse_prefix}/src/suitesparse")
 set(suitesparse_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
+SET(CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX:PATH=${suitesparse_install}
+  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
+  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
+  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
+  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+  -DCFS_INCLUDE_DIR:PATH=${CFS_BINARY_DIR}/include
+  )
+
+
+IF(CFS_DISTRO STREQUAL "MACOSX")
+  SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DCMAKE_C_FLAGS:FILEPATH=${CFLAGS}
+    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
+    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
+    )
+ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+
+IF(CMAKE_TOOLCHAIN_FILE)
+  LIST(APPEND CMAKE_ARGS
+    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
+  )
+ENDIF()
+
 #-------------------------------------------------------------------------------
 # The suitesparse external project
 #-------------------------------------------------------------------------------
@@ -45,11 +72,11 @@ ExternalProject_Add(suitesparse
   SOURCE_DIR "${suitesparse_source}"
   URL ${SUITESPARSE_URL}/${SUITESPARSE_GZ}
   URL_MD5 ${SUITESPARSE_MD5}
-  CONFIGURE_COMMAND ""
-  BUILD_IN_SOURCE 1
-  BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} library
-  INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} install
+  CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DBUILD_SHARED_LIBS:BOOL=OFF
 )
+
 
 #-------------------------------------------------------------------------------
 # Set names of patch file and template file.
@@ -91,14 +118,58 @@ SET(CHOLMOD_INCLUDE_DIR "${CFSDEPS_INCLUDE_DIR}")
 # Determine paths of CholMod libraries.
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(CHOLMOD_LIBRARY
-  "${LD}/libcholmod.a;${LD}/libamd.a;${LD}/libcolamd.a;${LD}/libcamd.a;${LD}/libccolamd.a"
-  CACHE FILEPATH "CholMod library.")
 
-SET(UMFPACK_LIBRARY
-  "${LD}/libumfpack.a;${CHOLMOD_LIBRARY}"
-  CACHE FILEPATH "UMFPACK library.")
+SET(AMD_LIBS
+  amd_dint
+  amd_dlong
+  amd)
 
-MARK_AS_ADVANCED(CHOLMOD_LIBRARY)
-MARK_AS_ADVANCED(UMFPACK_LIBRARY)
+SET(AMD_LIBRARY "")
 
+foreach(lib IN LISTS AMD_LIBS)
+  LIST(APPEND AMD_LIBRARY
+    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${lib}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+endforeach()
+
+SET(CHOLMOD_LIBS
+  cholmod_dlong
+  cholmod_dint
+  colamd_dint
+  colamd_dlong
+  colamd
+  camd_dint
+  camd_dlong
+  camd
+  ccolamd_dint
+  ccolamd_dlong
+  ccolamd
+  )
+
+SET(CHOLMOD_LIBRARY "")
+
+foreach(lib IN LISTS CHOLMOD_LIBS)
+  LIST(APPEND CHOLMOD_LIBRARY
+    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${lib}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+endforeach()
+
+LIST(APPEND CHOLMOD_LIBRARY
+  ${AMD_LIBRARY}
+  ${METIS_LIBRARY})
+
+SET(UMFPACK_LIBS
+  umfpack_dlong
+  umfpack_dint
+  umfpack_zlong
+  umfpack_zint
+  umfpack
+  )
+
+SET(UMFPACK_LIBRARY "")
+
+foreach(lib IN LISTS UMFPACK_LIBS)
+  LIST(APPEND UMFPACK_LIBRARY
+    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${lib}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+endforeach()
+
+LIST(APPEND UMFPACK_LIBRARY
+  ${CHOLMOD_LIBRARY})

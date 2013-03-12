@@ -1,53 +1,32 @@
-# - Find BLAS library.
-# This module finds if BLAS is installed and determines where the
-# library is. It also determines what the name of the library is.
-# This code sets the following variables:
-#  BLAS_LIBRARY        = path to BLAS library (blas)
-#  BLAS_FOUND          = bool which says if BLAS has been found
-
-SET (FORTRAN_POSSIBLE_LIB_PATHS
-  "$ENV{CFSDEPS_ROOT}/lib64"
-  "$ENV{CFSDEPS_ROOT}/lib64/gfortran64"
-  "$ENV{CFSDEPS_ROOT}/lib64/gfortran64_mp"
-  "$ENV{CFSDEPS_ROOT}/lib"
-  /opt/lse/lib64
-  /opt/lse/lib
-  /usr/lib64
-  /usr/lib
-  /usr/local/lib64
-  /usr/local/lib
-  /usr/lib64/atlas
-  /usr/lib/atlas
-)
-
-#-------------------------------------------------------------------------------
-# The g77 library for linking to C g2c should not be required any more in the
-# future. But we leave it here. Who knows...
-#-------------------------------------------------------------------------------
-FIND_LIBRARY(G2C_LIBRARY
-  NAMES g2c
-  PATHS ${FORTRAN_POSSIBLE_LIB_PATHS}
-  NO_DEFAULT_PATH
-  NO_CMAKE_ENVIRONMENT_PATH
-  NO_CMAKE_PATH
-  NO_SYSTEM_ENVIRONMENT_PATH
-  NO_CMAKE_SYSTEM_PATH 
-)
-
-IF(G2C_LIBRARY)
-  SET(G2C_FOUND 1)
-ENDIF(G2C_LIBRARY)
-
 IF(NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
   SET(GFORTRAN_EXECUTABLE "gfortran")
 ELSE(NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
   SET(GFORTRAN_EXECUTABLE "${CMAKE_Fortran_COMPILER}")
 ENDIF(NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
 
-EXEC_PROGRAM("${GFORTRAN_EXECUTABLE} -print-search-dirs | tail -1 | cut -d'=' -f 2 | sed -e 's/:/;/g'"
-  ARGS
+EXECUTE_PROCESS(
+  COMMAND "${GFORTRAN_EXECUTABLE}" -print-search-dirs
+  WORKING_DIRECTORY "${CFS_BINARY_DIR}"
   OUTPUT_VARIABLE GFORTRAN_SEARCH_DIRS
-  RETURN_VALUE RETVAL)
+  RESULT_VARIABLE RETVAL
+  )
+
+STRING(REPLACE ";" "#____#" GFORTRAN_SEARCH_DIRS "${GFORTRAN_SEARCH_DIRS}")
+STRING(REPLACE "\n" ";" SEARCH_DIRS "${GFORTRAN_SEARCH_DIRS}")
+foreach(line IN LISTS SEARCH_DIRS)
+  IF(line MATCHES "libraries")
+    STRING(REPLACE "=" ";" line "${line}")
+    LIST(GET line 1 line)
+    IF(NOT WIN32)
+      STRING(REPLACE ":" ";" GFORTRAN_SEARCH_DIRS "${line}")
+    ELSE()
+      STRING(REPLACE "#____#" ";" GFORTRAN_SEARCH_DIRS "${line}")
+    ENDIF()
+#    MESSAGE("GFORTRAN_SEARCH_DIRS ${GFORTRAN_SEARCH_DIRS}")
+  ENDIF()
+endforeach()
+
+
 
 IF(NOT RETVAL EQUAL 0)
   SET(GFORTRAN_SEARCH_DIRS "")
@@ -55,7 +34,7 @@ ENDIF(NOT RETVAL EQUAL 0)
 
 FIND_LIBRARY(GFORTRAN_LIBRARY
   NAMES gfortran
-  PATHS ${GFORTRAN_SEARCH_DIRS} ${FORTRAN_POSSIBLE_LIB_PATHS}
+  PATHS ${GFORTRAN_SEARCH_DIRS}
   NO_DEFAULT_PATH
   NO_CMAKE_ENVIRONMENT_PATH
   NO_CMAKE_PATH
