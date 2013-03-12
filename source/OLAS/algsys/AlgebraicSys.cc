@@ -628,46 +628,47 @@ namespace CoupledField {
       base = os.str();
     }
 
+    BaseMatrix::OutputFormat format = BaseMatrix::MATRIX_MARKET;
+    if( els->Has("format") ) {
+      std::string fmt = els->Get("format")->As<std::string>();
+      
+      format = BaseMatrix::outputFormat.Parse(fmt);
+    }
+    
     // check if we do not only want the solution
     if( els->Has("solution") &&  
         els->Get("solution")->As<std::string>() != "exclusive") {
-      // two formats. The harwell-boing format includes the rhs!
-      if(els->Get("format")->As<std::string>()  == "harwell-boeing") {
-        EXCEPTION( "Harwell-Boeing Format not implemented for SBM-case" );
+
+      sysMat_[SYSTEM]->Export(base.c_str(), format, NULL);
+
+      // HARD-CODED: Export also preconditioner
+      SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
+      if( onlyOneMatrixBlock_ ) {
+        precond_->GetPrecondSysMat((*copy)(0,0));
+      } else {
+        precond_->GetPrecondSysMat(*copy);
       }
-      else // classical (default) matrix-market
-      {
-        sysMat_[SYSTEM]->Export((base+".mtx").c_str() );
+      copy->Export((base+"_precond").c_str(), format, NULL);
 
-        // HARD-CODED: Export also preconditioner
-        SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
-        if( onlyOneMatrixBlock_ ) {
-          precond_->GetPrecondSysMat((*copy)(0,0));
-        } else {
-          precond_->GetPrecondSysMat(*copy);
-        }
-        copy->Export((base+"_precond.mtx").c_str());
+      delete copy;
 
-        delete copy;
+      if(els->HasByVal("mass", true) && sysMat_[MASS] != NULL)
+        sysMat_[MASS]->Export((base+"_mass").c_str(), format, NULL);
+      
+      if(els->HasByVal("damping", true) && sysMat_[DAMPING] != NULL)
+        sysMat_[DAMPING]->Export((base+"_damping").c_str(), format, NULL);
 
-        if(els->HasByVal("stiffness", true) && sysMat_[STIFFNESS] != NULL)
-          sysMat_[STIFFNESS]->Export((base+"_stiffness.mtx").c_str() );
+      if(els->HasByVal("stiffness", true) && sysMat_[STIFFNESS] != NULL)
+        sysMat_[STIFFNESS]->Export((base+"_stiffness").c_str(), format, NULL);
+      
+      if(els->HasByVal("auxiliary", true) && sysMat_[AUXILIARY] != NULL)
+        sysMat_[AUXILIARY]->Export((base+"_aux").c_str(), format, NULL);
 
-        if(els->HasByVal("mass", true) && sysMat_[MASS] != NULL)
-          sysMat_[MASS]->Export((base+"_mass.mtx").c_str() );
-
-        if(els->HasByVal("damping", true) && sysMat_[DAMPING] != NULL)
-          sysMat_[DAMPING]->Export((base+"_damping.mtx").c_str() );
-
-        if(els->HasByVal("auxiliary", true) && sysMat_[AUXILIARY] != NULL)
-          sysMat_[AUXILIARY]->Export((base+"_aux.mtx").c_str() );
-
-        // rhs is only in harwell-boing included
-        rhs_->Export((base+".vec").c_str() );
-      }
+      // rhs is only in harwell-boing included
+      rhs_->Export( (base+"_rhs").c_str(), format );
     }
     if(els && els->HasByVal("initialGuess", true))
-      sol_->Export((base+"_intial_guess.vec").c_str());
+      sol_->Export((base+"_intial_guess").c_str(), format);
 
     // -------------------------------------------
     //  Adjust RHS for due to static condensation
@@ -736,7 +737,7 @@ namespace CoupledField {
 
     // Export solution if desired
     if(els->Has("solution") && els->Get("solution")->As<std::string>() != "no")
-      sol_->Export((base+".sol.vec").c_str());
+      sol_->Export((base+"_sol").c_str(), format);
 
     // Now de-modify the right-hand side vector
     if ( setIDBC ) 
@@ -2788,8 +2789,13 @@ namespace CoupledField {
 #endif
       }
       
-      // b) pardiso needs no reordering
-      if( st == BaseSolver::PARDISO_SOLVER && 
+      // b) pardiso and most external solvers need no reordering or have their own
+      if( st == BaseSolver::PARDISO_SOLVER &&
+          st == BaseSolver::UMFPACK &&
+          st == BaseSolver::ILUPACK &&
+//          st == BaseSolver::LIS &&
+          st == BaseSolver::SUPERLU &&
+          st == BaseSolver::SPOOLES &&
           ot != BaseOrdering::NOREORDERING &&
           canChangeReordering == true ) {
         ot = BaseOrdering::NOREORDERING;

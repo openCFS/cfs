@@ -537,20 +537,142 @@ namespace CoupledField {
   //   Export vector
   // *****************
   template<typename T>
-  void Vector<T>::Export(const char *fname) const
+  void Vector<T>::Export(const char *fname, 
+                         BaseMatrix::OutputFormat format) const
   {
+    std::stringstream sstr;
+    BaseMatrix::EntryType eType = GetEntryType();
+    UInt nnz;
+
+    // Assemble file name depending on output format and entry type.
+    sstr << fname;
+    switch(format)
+    {
+    case BaseMatrix::MATRIX_MARKET: // MatrixMarket
+      sstr << ".mtx";
+      break;
+    case BaseMatrix::HARWELL_BOEING: // Harwell-Boeing
+      switch(eType) 
+      {
+      case BaseMatrix::DOUBLE:
+        sstr << ".rra";
+        break;
+      case BaseMatrix::COMPLEX:
+        sstr << ".cra";
+        break;
+      default:
+        break;
+      }
+      break;
+    }
+    
     // open output file and check for errors
-    FILE *fp = fopen( fname, "w" );
+    FILE *fp = fopen( sstr.str().c_str(), "wb" );
     if(fp == NULL)
       EXCEPTION( "Cannot open file '" << fname << "' for writing!" );
 
-    // Print dimension and entries
+    // Determine number of non-zero entries and non-zero rows.
+    StdVector<UInt> nzRows;
     for(unsigned int k = 0; k < size_; ++k)
     {
-      OpType<T>::ExportEntry(data_[k], 0, fp);
-      fprintf(fp, "\n");
+      if( ! IsZero<T>( data_[k] ) ) {
+        nzRows.Push_back(k);
+      }
     }
+    nnz = nzRows.GetSize();
 
+    // Set number of rows and columns
+    UInt nrows = size_;
+    UInt ncols = 1;
+    
+    switch(format)
+    {
+    case BaseMatrix::MATRIX_MARKET: // MatrixMarket
+    {
+      switch(eType) 
+      {
+      case BaseMatrix::DOUBLE:
+        fprintf( fp, "%%%%MatrixMarket matrix coordinate real general\n" );
+        break;
+      case BaseMatrix::COMPLEX:
+        fprintf( fp, "%%%%MatrixMarket matrix coordinate complex general\n" );
+        break;
+      default:
+        break;
+      }
+      
+      // Print comment
+      fprintf( fp, "%%\n%% Vector exported by CFS++\n%%\n" );
+      
+      // Information on number of rows, columns and entries
+      fprintf( fp, "%d\t%d\t%d\n", nrows, ncols, nnz );
+      for(unsigned int k = 0; k < nnz; ++k)
+      {
+        // store row and column index
+        fprintf( fp, "%6d\t%6d\t", nzRows[k] + 1, 1);
+        
+        // store non-zero entry
+        OpType<T>::ExportEntry( data_[nzRows[k]], 0, fp );
+        fprintf( fp, "\n" );
+      }
+    } 
+    break;
+    case BaseMatrix::HARWELL_BOEING: // Harwell-Boeing
+    {
+      std::string code;
+      std::string fmt;
+      
+      switch(eType)
+      {
+      case BaseMatrix::DOUBLE:
+        code = "RRA           ";
+        fmt  = "(1E24.16)           ";
+        break;
+      case BaseMatrix::COMPLEX:
+        code = "CRA           ";
+        fmt  = "(2E24.16)           ";
+        break;
+      default:
+        break;
+      }
+
+      UInt ptrcrd = 1;
+      UInt indcrd = nnz/8 + UInt(nnz % 8 != 0);
+      UInt valcrd = nnz;
+      UInt totcrd = 4 + ptrcrd + indcrd + valcrd;
+      //fprintf( fp, "No label                                                                No key  \n");
+      fprintf( fp, "Harwell-Boeing vector exported from CFS++                               No key  \n");
+      fprintf( fp, "% 14d% 14d% 14d% 14d% 14d\n", totcrd, ptrcrd, indcrd, valcrd, 0 );
+      fprintf( fp, "%s% 14d% 14d% 14d\n", code.c_str(), size_, 1, nnz );
+      fprintf( fp, "(8I10)          (8I10)          %s\n", fmt.c_str());
+      fprintf( fp, "% 10d% 10d\n", 1, (nnz+1) );
+      
+      UInt k;
+      for(k = 0; k < nnz; )
+      {
+        // store row index
+        fprintf( fp, "% 10d", (nzRows[k] + 1));
+        
+        k++;
+
+        if( (k % 8) == 0) {
+          fprintf( fp, "\n" );
+        }
+      }
+      
+      if( (k % 8) != 0) {
+        fprintf( fp, "\n" );
+      }
+
+      for(k = 0; k < nnz; k++)
+      {
+        OpType<T>::ExportEntry( data_[nzRows[k]], 0, fp );
+        fprintf( fp, "\n" );
+      }
+    }  
+    break;
+    }
+    
     // close output file
     if(fclose( fp ) == EOF)
     {

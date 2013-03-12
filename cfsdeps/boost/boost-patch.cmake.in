@@ -40,10 +40,10 @@ IF(MINGW)
   LIST(APPEND patches
     # gcc 4.4 Warning: inline ... declared as dllimport: attribute ignored
     # https://svn.boost.org/trac/boost/ticket/4315
-    "4315.patch"
+#    "4315.patch"
     # Threading is disabled for gcc 4.7 by default. This patch reenables it.
     # https://svn.boost.org/trac/boost/ticket/6165
-    "boost-1.48.0-gcc47-winthreads.patch"
+#    "boost-1.48.0-gcc47-winthreads.patch"
     )
 ENDIF(MINGW)
 

@@ -13,6 +13,18 @@
 #include "General/Environment.hh"
 #include "Domain/ElemMapping/Elem.hh"
 
+#include "def_config.hh"
+
+#if defined(__INTEL_COMPILER)
+#include "immintrin.h"
+#endif
+
+#if defined(__GNUC__) && not defined(__INTEL_COMPILER)
+#ifdef HAVE_BYTESWAP_H
+#include <byteswap.h>
+#endif
+#endif
+
 namespace CoupledField {
 
   // Solution for endian conversion in C++ from:
@@ -47,38 +59,82 @@ namespace CoupledField {
     
     in.value = value;
 
-#if defined(__GNUC__) 
+#if defined(__GNUC__) && not defined(__INTEL_COMPILER)
 #define GCC_VERSION (__GNUC__ * 10000 \
                      + __GNUC_MINOR__ * 100 \
                      + __GNUC_PATCHLEVEL__)
-#else
-#undef GCC_VERSION
+
+#ifdef HAVE_BYTESWAP_H
+    out = in;
+
+    switch(size)
+    {
+      case 2:
+        bswap_16(out.value);
+        break;
+      case 4:
+        bswap_32(out.value);
+        break;
+      case 8:
+        {
+          unsigned long long int* t = (unsigned long long int*)&out.value;
+          bswap_64(*t);
+        }
+        break;
+      default:
+        break;
+    }
+
+#else // HAVE_BYTESWAP_H
+
+    switch(size)
+    {
+/* Test for GCC > 4.1.0 */
+#if GCC_VERSION >= 40200
+      case 4:
+        out.value = __builtin_bswap32(in.value);
+        break;
+#endif
+      default:
+        for (unsigned int i = 0; i < size / 2; ++i)
+        {
+          out.bytes[i] = in.bytes[size - 1 - i];
+          out.bytes[size - 1 - i] = in.bytes[i];
+        }
+        break;
+    }
+
+#endif // HAVE_BYTESWAP_H    
+
+#elif defined(__INTEL_COMPILER)
+#if 0
+    std::cout << "_bswap 1: " << _bswap(1) << std::endl;
+    in.value = 1;
+    for (unsigned int i = 0; i < size / 2; ++i)
+    {
+      out.bytes[i] = in.bytes[size - 1 - i];
+      out.bytes[size - 1 - i] = in.bytes[i];
+    }
+    std::cout << "1: " << out.value << std::endl;
 #endif
 
-/* Test for GCC > 4.1.0 */
-#if GCC_VERSION >= 40200  && not defined(__INTEL_COMPILER)
-    if(size == 2)
+    // Intel compiler
+    switch(size)
     {
-      for (unsigned int i = 0; i < size / 2; ++i)
-      {
-        out.bytes[i] = in.bytes[size - 1 - i];
-        out.bytes[size - 1 - i] = in.bytes[i];
-      }
+      case 4:
+        *((int*)&out.value) = _bswap(*((int*)&in.value));
+        break;
+      case 8:
+        *((__int64*)&out.value) = _bswap64(*((__int64*)&in.value));
+        break;
+      default:
+        for (unsigned int i = 0; i < size / 2; ++i)
+        {
+          out.bytes[i] = in.bytes[size - 1 - i];
+          out.bytes[size - 1 - i] = in.bytes[i];
+        }
+        break;
     }
-    else if(size == 4)
-    {
-      out.value = __builtin_bswap32(in.value);
-    }
-    else if(size == 8)
-    {
-      //      out.value = __builtin_bswap64(in.value);
-      for (unsigned int i = 0; i < size / 2; ++i)
-      {
-        out.bytes[i] = in.bytes[size - 1 - i];
-        out.bytes[size - 1 - i] = in.bytes[i];
-      }
-    }
-    
 #else
     for (unsigned int i = 0; i < size / 2; ++i)
     {
@@ -86,6 +142,7 @@ namespace CoupledField {
       out.bytes[size - 1 - i] = in.bytes[i];
     }
 #endif
+
     return out.value;
   }
   

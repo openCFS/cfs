@@ -28,8 +28,8 @@ SET(CMAKE_ARGS
   -DHDF5_INSTALL_BIN_DIR:PATH=bin/${CFS_ARCH_STR}
   -DHDF5_INSTALL_LIB_DIR:PATH=${LIB_SUFFIX}/${CFS_ARCH_STR}
   # We do not want to see warning messages from external projects
-  -DCMAKE_C_FLAGS:STRING=${CFLAGS}
-  -DCMAKE_CXX_FLAGS:STRING=${CFLAGS}
+  -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}
+  -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
 )
 
@@ -45,7 +45,7 @@ ENDIF()
 # our plugin.
 #-------------------------------------------------------------------------------
 #ExternalProject_Add(hdf5-shared
-#  DEPENDS zlib-shared
+#  DEPENDS zlib
 #  PREFIX ${hdf5_prefix}
 #  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/hdf5
 #  SOURCE_DIR ${hdf5_source}
@@ -75,22 +75,17 @@ IF(MINGW)
     ENDIF()
   ENDIF()
 
-  LIST(APPEND CMAKE_ARGS
-    -DZLIB_LIBRARY:FILEPATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}zlib${CMAKE_STATIC_LIBRARY_SUFFIX}
-  )
-
-ELSE(MINGW)
-  LIST(APPEND CMAKE_ARGS
-    -DZLIB_LIBRARY:FILEPATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX}
-    )
 ENDIF(MINGW)
 
+LIST(APPEND CMAKE_ARGS
+  -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARY}
+  )
 
 #-------------------------------------------------------------------------------
 # The hdf5-static external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(hdf5-static
-  DEPENDS zlib-static
+  DEPENDS zlib
   PREFIX ${hdf5_prefix}
   DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/hdf5
   SOURCE_DIR ${hdf5_source}

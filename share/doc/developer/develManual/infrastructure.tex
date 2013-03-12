@@ -425,171 +425,68 @@ cmake CFS_SOURCE_DIR
 \subsubsection{Building Windows Binaries on Linux Host}
 \label{sec:mingw_linux_crosscompile}
 
-The  first  step  is  again  the  installation of  the  MinGW  cross  compiler
+It is possible to cross-compile CFS++ for Windows using the MinGW compiler toolchain on Linux.
+
+\colorbox{pink}{\parbox{\textwidth}{%
+  \vskip10pt
+  \leftskip10pt\rightskip10pt
+%  \begin{window}[0, l, \includegraphics[width=1cm]{dialog-warning}, {}]
+%    \leftskip10pt
+%    \lipsum[1]
+%    \rightskip10pt
+%  \end{window}
+  \begin{wrapfigure}{l}{0.1\textwidth}
+    \includegraphics[width=0.1\textwidth]{pics/dialog-warning}
+  \end{wrapfigure}
+  A drawback, which will become less important in the future, is that the generated binaries cannot be run on Windows XP. The {\tt msvcrt.dll} on Windows XP lacks the function {\tt \_chsize\_s}.
+  The function is however available on Windows 7 or Vista.
+  If you need binaries for Windows XP, you need to use the native MinGW, Intel or Microsoft toolchains on Windows.
+  \begin{center}
+    \includegraphics[width=0.7\textwidth]{pics/xp_mingw_error}
+  \end{center}
+%  \vskip10pt
+ }
+}
+
+\noindent The  first  step  is  again  the  installation of  the  MinGW  cross  compiler
 toolchains. Here, we describe the procedures for Ubuntu and CentOS.
 
 \paragraph{Ubuntu 12.04 LTS}
+
+The following packages need to be installed:
 \begin{verbatim}
 root@ubuntu1204:~# apt-get install binutils-mingw-w64 gcc-mingw-w64 \
                    g++-mingw-w64 gdb-mingw-w64-target gdb-mingw-w64 \
                    gfortran-mingw-w64 mingw-w64 gcc-4.6-locales
+\end{verbatim}%
+%
+Please note, that there seems to be no support for OpenMP available in the Ubuntu toolchain! 
 
-$ cat mingw_cross_toolchain.cmake 
-# http://www.cmake.org/Wiki/CMake_Cross_Compiling
-
-# the name of the target operating system
-SET(CMAKE_SYSTEM_NAME Windows)
-#include(CMakeForceCompiler)
-# SET(CMAKE_FIND_ROOT_PATH  /usr)
-
-#IF("${GNU_HOST}" STREQUAL "")
-#    SET(GNU_HOST i586-mingw32msvc)
-#ENDIF()
-# Prefix detection only works with compiler id "GNU"
-#CMAKE_FORCE_C_COMPILER(x86_64-w64-mingw32-gcc GNU)
-#CMAKE_FORCE_CXX_COMPILER(/usr/bin/x86_64-w64-mingw32-g++ GNU)
-
-# which compilers to use for C and C++
-SET(CMAKE_C_COMPILER /usr/bin/x86_64-w64-mingw32-gcc)
-SET(CMAKE_CXX_COMPILER /usr/bin/x86_64-w64-mingw32-g++)
-SET(CMAKE_Fortran_COMPILER /usr/bin/x86_64-w64-mingw32-gfortran)
-
-# CMake doesn't automatically look for prefixed 'windres', do it manually:
-SET(CMAKE_RC_COMPILER /usr/bin/x86_64-w64-mingw32-windres)
-
-SET(CMAKE_FIND_ROOT_PATH
-  /usr/x86_64-w64-mingw32
-  /usr/lib/gcc/x86_64-w64-mingw32
-)
-
-# adjust the default behaviour of the FIND_XXX() commands:
-# search headers and libraries in the target environment, search
-# programs in the host environment
-set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-
+\begin{verbatim}
 # Start CFS++ configuration process
-$ cmake -DCMAKE_TOOLCHAIN_FILE=$PWD/mingw_cross_toolchain.cmake \
-        -DCFS_DEPS_CACHE_DIR:PATH=../../gitrepo/CACHE ../../gitrepo/CFS++
+$ TCF=$CFS_SOURCE_DIR/share/scripts/mingw_cross_toolchain_ubuntu_1204.cmake
+$ cmake -DCMAKE_TOOLCHAIN_FILE=$TCF \
+        -DCFS_DEPS_CACHE_DIR:PATH=../../gitrepo/CACHE $CFS_SOURCE_DIR
 \end{verbatim}
 
 \paragraph{RHEL/CentOS}
 
-On CentOS the MinGW package repository of Levente Farkas containing version 4.5.3 of the GNU toolchain has been used. The problem with this toolchain is, that some headers concerning intrinsic functions for SSE instructions have to be fixed\footnote{Intrinsic SSE functions bug: \url{http://sourceforge.net/tracker/?func=detail&atid=102435&aid=2962480&group_id=2435}}.
-Therefore, after installing the packages from the repository the following patch, which has been generated against a 4.6 toolchain, has to be applied.
+On CentOS the MinGW package repository of Levente Farkas containing version 4.5.3
+of the GNU toolchain has been used. The file repository file
+{\tt /etc/yum.repos.d/lfarkas.repo} has been attached to this PDF 
+\attachfile[icon=PushPin,description={Yum repository file for Leventa Farkas'
+MinGW toolchain on CentOS 6.},mimetype=text/plain]{sources/mingw_lfarkas_repo.txt}.
+Please note, that either the 32-bit or the 64-bit toolchain may be installed but
+not both! The problem with this toolchain is, that some headers concerning intrinsic
+functions for SSE instructions have to be fixed\footnote{Intrinsic SSE functions bug:
+\url{http://sourceforge.net/tracker/?func=detail&atid=102435&aid=2962480&group_id=2435}}.
+Therefore, after installing the packages from the repository the following patch
+\attachfile[icon=PushPin,description={Patch for Levente Farkas' MinGW toolchain
+ on CentOS 6.},mimetype=text/plain]{sources/mingw_centos6_farkas_patch.txt},
+which has been generated against a 4.6 toolchain, has to be applied.
+The following packages have been installed:
 
 \begin{verbatim}
---- /usr/lib64/gcc/x86_64-w64-mingw32/4.5.3/include/xmmintrin.h.orig    2011-08-27 20:04:37.000000000 +0200
-+++ /usr/lib64/gcc/x86_64-w64-mingw32/4.5.3/include/xmmintrin.h 2012-11-27 11:03:53.467961829 +0100
-@@ -1,4 +1,4 @@
--/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
-+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-    Free Software Foundation, Inc.
-
-    This file is part of GCC.
-@@ -38,6 +38,10 @@
- /* Get _mm_malloc () and _mm_free ().  */
- #include <mm_malloc.h>
-
-+#ifdef __cplusplus
-+extern "C" {
-+#endif
-+
- /* The Intel API is flexible enough that we must allow aliasing with other
-    vector types, and their scalar components.  */
- typedef float __m128 __attribute__ ((__vector_size__ (16), __may_alias__));
-@@ -1242,6 +1246,10 @@
-   (row3) = __builtin_ia32_movhlps (__t3, __t2);                                \
- } while (0)
-
-+#ifdef __cplusplus
-+}
-+#endif
-+
- /* For backward source compatibility.  */
- #ifdef __SSE2__
- # include <emmintrin.h>
---- /usr/lib64/gcc/x86_64-w64-mingw32/4.5.3/include/emmintrin.h.orig    2011-08-27 20:04:37.000000000 +0200
-+++ /usr/lib64/gcc/x86_64-w64-mingw32/4.5.3/include/emmintrin.h 2012-11-27 11:01:13.411996446 +0100
-@@ -1,4 +1,4 @@
--/* Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
-+/* Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-    Free Software Foundation, Inc.
-
-    This file is part of GCC.
-@@ -35,6 +35,10 @@
- /* We need definitions from the SSE header files*/
- #include <xmmintrin.h>
-
-+#ifdef __cplusplus
-+extern "C" {
-+#endif
-+
- /* SSE2 */
- typedef double __v2df __attribute__ ((__vector_size__ (16)));
- typedef long long __v2di __attribute__ ((__vector_size__ (16)));
-@@ -1309,7 +1313,7 @@
- extern __inline int __attribute__((__gnu_inline__, __always_inline__, __artificial__))
- _mm_extract_epi16 (__m128i const __A, int const __N)
- {
--  return __builtin_ia32_vec_ext_v8hi ((__v8hi)__A, __N);
-+  return (unsigned short) __builtin_ia32_vec_ext_v8hi ((__v8hi)__A, __N);
- }
-
- extern __inline __m128i __attribute__((__gnu_inline__, __always_inline__, __artificial__))
-@@ -1319,7 +1323,7 @@
- }
- #else
- #define _mm_extract_epi16(A, N) \
--  ((int) __builtin_ia32_vec_ext_v8hi ((__v8hi)(__m128i)(A), (int)(N)))
-+  ((int) (unsigned short) __builtin_ia32_vec_ext_v8hi ((__v8hi)(__m128i)(A), (int)(N)))
- #define _mm_insert_epi16(A, D, N)                              \
-   ((__m128i) __builtin_ia32_vec_set_v8hi ((__v8hi)(__m128i)(A),        \
-                                          (int)(D), (int)(N)))
-@@ -1508,6 +1512,10 @@
-   return (__m128d) __A;
- }
-
-+#ifdef __cplusplus
-+}
-+#endif
-+
- #endif /* __SSE2__  */
-
- #endif /* _EMMINTRIN_H_INCLUDED */
---- /usr/x86_64-w64-mingw32/sys-root/mingw/include/unknwn.h.orig     2012-11-27 11:55:01.829984498 +0100
-+++ /usr/x86_64-w64-mingw32/sys-root/mingw/include/unknwn.h     2012-11-27 11:44:03.484976093 +0100
-@@ -67,7 +67,9 @@
-        virtual HRESULT WINAPI QueryInterface(REFIID riid,void **ppvObject) = 0;
-        virtual ULONG WINAPI AddRef(void) = 0;
-        virtual ULONG WINAPI Release(void) = 0;
-+#if USE___UUIDOF != 0
-        template<class Q> HRESULT WINAPI QueryInterface(Q **pp) { return QueryInterface(__uuidof(*pp),(void **)pp); }
-+#endif
-       END_INTERFACE
-     };
-   }
-\end{verbatim}
-
-\begin{verbatim}
-$ cat /etc/yum.repos.d/lfarkas.repo
-[lfarkas-mingw64]
-name=LFarkas Repository
-baseurl=http://www.lfarkas.org/linux/packages/centos/$releasever/mingw-w64/$basearch/
-#gpgkey=http://www.lfarkas.org/linux/packages/RPM-GPG-KEY
-enabled=1
-priority=3
-gpgcheck=0
-
-[lfarkas-mingw32]
-name=LFarkas Repository
-baseurl=http://www.lfarkas.org/linux/packages/centos/$releasever/mingw32/$basearch/
-#gpgkey=http://www.lfarkas.org/linux/packages/RPM-GPG-KEY
-enabled=1
-priority=3
-gpgcheck=0
-
 $ yum search mingw
 mingw64-headers-2.0-0.1.rc1.el6.noarch
 mingw64-cpp-4.5.3-2.el6.x86_64
@@ -599,30 +496,14 @@ mingw64-gcc-4.5.3-2.el6.x86_64
 mingw64-binutils-2.21.53.0.2-1.el6.x86_64
 mingw64-filesystem-82-2.el6.noarch
 mingw64-gcc-gfortran-4.5.3-2.el6.x86_64
+mingw64-libgomp.x86_64 0:4.6.1-0.1.20110804.el6
+\end{verbatim}
 
-$ cat toolchain-mingw-win64-centos6.cmake
-# the name of the target operating system
-SET(CMAKE_SYSTEM_NAME Windows)
-
-# which compilers to use for C and C++
-SET(CMAKE_C_COMPILER /usr/bin/x86_64-w64-mingw32-gcc)
-SET(CMAKE_CXX_COMPILER /usr/bin/x86_64-w64-mingw32-g++)
-SET(CMAKE_Fortran_COMPILER /usr/bin/x86_64-w64-mingw32-gfortran)
-SET(CMAKE_RC_COMPILER /usr/bin/x86_64-w64-mingw32-windres)
-
-# here is the target environment located
-SET(CMAKE_FIND_ROOT_PATH /usr/x86_64-w64-mingw32 /home/alex/mingw-install )
-
-# adjust the default behaviour of the FIND_XXX() commands:
-# search headers and libraries in the target environment, search
-# programs in the host environment
-set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-
+\begin{verbatim}
 # Start CFS++ configuration process
-$ cmake -DCMAKE_TOOLCHAIN_FILE=$PWD/mingw_cross_toolchain.cmake \
-        -DCFS_DEPS_CACHE_DIR:PATH=../../gitrepo/CACHE ../../gitrepo/CFS++
+$ TCF=$CFS_SOURCE_DIR/share/scripts/mingw_cross_toolchain_centos_6.cmake
+$ cmake -DCMAKE_TOOLCHAIN_FILE=$TCF \
+        -DCFS_DEPS_CACHE_DIR:PATH=../../gitrepo/CACHE $CFS_SOURCE_DIR
 \end{verbatim}
 
 
@@ -636,8 +517,8 @@ $ cmake -DCMAKE_TOOLCHAIN_FILE=$PWD/mingw_cross_toolchain.cmake \
 
 The Intel 11.1 compiler needs the libstdc++.so.5, which is not available on all
 platforms anymore. Especially on Ubuntu $>=$ 8.04 the corresponding library has
-to be installed by hand (cf.
-\url{http://software.intel.com/en-us/articles/using-intel-compilers-for-linux-with-ubuntu/}).
+to be installed by hand\footnote{Using Intel Compilers for Linux with Ubuntu: 
+\url{http://software.intel.com/en-us/articles/using-intel-compilers-for-linux-with-ubuntu/}}.
 
 Also be sure to use the correct GNU compiler in conjunction with the Intel
 compiler, since compatibility issues can arise (cf.
@@ -895,7 +776,7 @@ using  the {\tt  ExternalProject\_Add()} macro.   The macro  will just  add an
 additional target and  configure it during the configuration  phase, i.e. when
 you type in  'cmake .'  or 'ccmake  .'. It is important to  understand that no
 downloading of  sources, configuration or building of  external libraries will
-take place  during the configuration step  of CFS++ anymorexs.  Just targets are
+take place  during the configuration step  of CFS++ anymore.  Just targets are
 added   and  CMake  scripts   for  patching,   building  and   installing  the
 corresponding packages get configured.  These  scripts however are only run at
 build time, i.e. when you type in 'make'.
@@ -1050,7 +931,7 @@ CFSDEPSCACHE
 
 \subsubsection{Tips}
 \begin{itemize}
-\item To get started you should have at least CMake 2.8.4 and a working set of
+\item To get started you should have at least CMake 2.8.8 and a working set of
 gcc,  g++ and gfortran  on your  machine. The  required dependencies  get also
 installed, when using the {\tt bootstrap\_devel\_machine.sh} script.
 
@@ -1072,9 +953,6 @@ Since  there exists  no public  download  server for  the AMD  ACML the  files
 acml-4-2-0-*.tgz have to be  placed in CFS\_DEPS\_CACHE\_DIR/sources/acml for the
 build scripts to  find them. You need a user account  for AMD Developer Center
 to download these files.
-
-\subsubsection{amd}  Routines for reordering  sparse matrices.  It is  part of
-SuiteSparse (cf. Sec. \ref{sec:suitesparse})
 
 \subsubsection{ansys\_custom}  ANSYS Classic  I/O Library  for reading/writing
 .rst files.  These libraries are taken from the ANSYS binary distributions for
@@ -1174,9 +1052,10 @@ hdfview is a Java application for viewing and modifying HDF5 files.
 
 \subsubsection{ilupack} ILUPACK is a package for preconditioners and iterative
 solvers developed by Matthias Bollhöfer. He provided us with his sources which
-get built by  our build scripts.  At the moment  (8.4.2009) the integration in
-CFS++ is not working. Fabian Wein has to fix it. For latest infos consult Trac
-or ask Simon Triebenbacher or Fabian Wein.
+get built by  our build scripts.  At the moment  (11.3.2013) the integration in
+CFS++ is working. ILUPACK seems to have slight problems with optimized BLAS
+implementations. Therefore, it is advisable to use Netlib BLAS together with ILUPACK.
+For latest infos consult Trac or ask Simon Triebenbacher or Fabian Wein.
 
 \noindent Project Homepage: \url{http://www-public.tu-bs.de/~bolle/ilupack/}
 
@@ -1197,7 +1076,7 @@ allow  the  input and  output  of  a number  of  different  formats. The  most
 interesting   ones  for   a  CFS++   user  or   developer  are   the  Geomview
 (\url{http://www.geomview.org}) .off format which  can be produced by CGAL and
 the .stl format  for surface geometries. both formats can  be read by ParaView
-an Gmsh.
+and Gmsh.
 
 \noindent Project Homepage: \url{http://people.sc.fsu.edu/~jburkardt/f_src/ivread/ivread.html}
 
@@ -1362,13 +1241,6 @@ Library Needed by Botan, HDF5 and libxml2.
 \noindent Project Homepage: \url{http://www.zlib.net/}
 
 \subsection{Other Libraries CFS++ Depends Upon}
-\subsubsection{Python \& TCL}
-
-The  scripting  languages Python  and/or  TCL may  be  used  to call  external
-functions at  certain predefined  hook points  in CFS++. We  do not  build the
-libraries   from  source.   They  need   to   be  installed   on  the   system
-(cf. Sec. \ref{sec:list_of_ext_packages}).
-
 \subsubsection{MKL}
 
 The versions  9.x and 10.x are supported  by CFS++ at the  moment.  The search
@@ -1565,7 +1437,7 @@ ctest --help
 
 \subsection{Adding test cases to the testsuit}
 
-To   add   a  test   case   just   specify   another  SUBDIRS()   command   in
+To   add   a  test   case   just   specify   another  ADD_SUBDIRECTORY()   command   in
 \$\{TESTSUIT\_DIR\}/CMakeLists.txt and copy the CMakeLists.txt from one of the
 other subdirectories to the new subdirectory. Make sure that the filenames are
 written   in  the   same  way   like  their   containing   subdirectory  (e.g.

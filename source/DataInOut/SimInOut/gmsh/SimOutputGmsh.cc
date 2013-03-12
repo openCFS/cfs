@@ -360,21 +360,6 @@ namespace CoupledField {
   //   WriteNodes
   // **************
   void SimOutputGmsh::WriteNodes( std::ofstream * gridFile ) {
-    // Write header
-    (*output_) << "$MeshFormat" << std::endl;
-    (*output_) << "2.1 " << ( ascii_ ? 0 : 1 ) << " " << sizeof(double) << std::endl;
-
-    if(!ascii_)
-    {
-      UInt oneBinary = 1;
-      
-      oneBinary = uiSwap_.EndianSwapBytes(oneBinary);
-
-      (*output_).write((char*) &oneBinary, sizeof(oneBinary));
-      //      (*output_) << std::endl;
-    }
-    
-    (*output_) << "$EndMeshFormat" << std::endl;
 
     //get and write number of nodes on the level
     UInt numnodes = ptGrid_->GetNumNodes();
@@ -533,8 +518,7 @@ namespace CoupledField {
         // Retrieve type, region and connectivity
         ptGrid_->GetElemData(elemVec[j]->elemNum, feType, region, &elemRecord[1+numTags]);
         // Assign region index
-        elemRecord[1] = elemRecord[3] = numRegions_;
-        elemRecord[2] = elemVec[j]->elemNum;
+        elemRecord[1] = elemRecord[2] = elemRecord[3] = numRegions_;
         
         // Copy first part of element record to records vector for given type
         std::copy(elemRecord.begin(), elemRecord.begin() + 1 + numTags,
@@ -567,9 +551,9 @@ namespace CoupledField {
         Elem::FEType feType = Elem::ET_POINT;
 
         // Assign element number
-        elemRecord[0] = k;
+        elemRecord[0] = k++;
         elemRecord[1] = numRegions_;
-        elemRecord[2] = nodeNumbers[j];
+        elemRecord[2] = numRegions_;
         elemRecord[3] = numRegions_;
 
         // Copy first part of element record to records vector for given type
@@ -642,42 +626,102 @@ namespace CoupledField {
 
    void SimOutputGmsh::WriteRegions()
    {
-     (*output_) << "$PhysicalNames" << std::endl;
-    
-     UInt numRegions = ptGrid_->GetNumRegions();
-     (*output_) << numRegions_ << std::endl;
+     UInt numPhysicalNames = 0;
 
      StdVector<RegionIdType> volRegions;
      ptGrid_->GetVolRegionIds( volRegions );
      StdVector<RegionIdType> surfRegions;
      ptGrid_->GetSurfRegionIds( surfRegions );
      UInt dim = ptGrid_->GetDim();
+     StdVector<std::string> nodeNames;
+     ptGrid_->GetListNodeNames(nodeNames);
+     StdVector<std::string> elemNames;
+     ptGrid_->GetListElemNames(elemNames);
+
+     numPhysicalNames = volRegions.GetSize() + surfRegions.GetSize();
+
+     (*output_) << "$PhysicalNames" << std::endl;
+     (*output_) << ( numPhysicalNames + 
+                     nodeNames.GetSize() + elemNames.GetSize() ) << std::endl;
 
      for(UInt i=0; i<volRegions.GetSize(); i++) 
      {
-       (*output_) << dim << " " << (volRegions[i]+1) << " \"" << ptGrid_->GetRegion().ToString(volRegions[i]) << "\"" << std::endl;
+       std::string regionName = ptGrid_->GetRegion().ToString(volRegions[i]);
+
+       // Determine dimension of elements
+       StdVector<Elem*> elems;
+       ptGrid_->GetElems( elems, volRegions[i] );
+       dim = 1000; // nonsense dimension
+       for( UInt e = 0, m = elems.GetSize(); e < m; e++ ) {
+         UInt edim = Elem::shapes[elems[e]->type].dim;
+         
+         if(dim != 1000) 
+         {
+           if(edim != dim)
+             EXCEPTION("Physical entities must have same dimension.")
+         }
+         else
+         {
+           dim = edim;
+         }
+       }
+
+       (*output_) << dim << " " << (volRegions[i]+1) << " \"" << regionName << "\"" << std::endl;
      }
 
      for(UInt i=0; i<surfRegions.GetSize(); i++) 
      {
-       (*output_) << (dim-1) << " " << (surfRegions[i]+1) << " \"" << ptGrid_->GetRegion().ToString(surfRegions[i]) << "\"" << std::endl;
+       std::string regionName = ptGrid_->GetRegion().ToString(surfRegions[i]);
+
+       // Determine dimension of elements
+       StdVector<Elem*> elems;
+       ptGrid_->GetElems( elems, surfRegions[i] );
+       dim = 1000; // nonsense dimension
+       for( UInt e = 0, m = elems.GetSize(); e < m; e++ ) {
+         UInt edim = Elem::shapes[elems[e]->type].dim;
+         
+         if(dim != 1000) 
+         {
+           if(edim != dim)
+             EXCEPTION("Physical entities must have same dimension.")
+         }
+         else
+         {
+           dim = edim;
+         }
+       }
+
+       (*output_) << dim << " " << (surfRegions[i]+1) << " \"" << regionName << "\"" << std::endl;
      }
 
-     StdVector<std::string> elemNames;
-     ptGrid_->GetListElemNames(elemNames);
-
+     // Named elems
      for( UInt i = 0, n = elemNames.GetSize(); i < n; i++ ) {
-       (*output_) << dim << " " << (++numRegions) << " \"" << elemNames[i] << "\"" << std::endl;
+       // Determine dimension of elements
+       StdVector<Elem*> elems;
+       ptGrid_->GetElemsByName( elems, elemNames[i] );
+       dim = 1000; // nonsense dimension
+       for( UInt e = 0, m = elems.GetSize(); e < m; e++ ) {
+         UInt edim = Elem::shapes[elems[e]->type].dim;
+         
+         if(dim != 1000) 
+         {
+           if(edim != dim)
+             EXCEPTION("Physical entities must have same dimension.")
+         }
+         else
+         {
+           dim = edim;
+         }
+       }
+
+       (*output_) << dim << " " << (++numPhysicalNames) << " \"" << elemNames[i] << "\"" << std::endl;
      }
 
      // =============
      //  NODE GROUPS
      // =============
-     StdVector<std::string> nodeNames;
-     ptGrid_->GetListNodeNames(nodeNames);
-
      for( UInt i = 0, n = nodeNames.GetSize(); i < n; i++ ) {
-       (*output_) << 1 << " " << (++numRegions) << " \"" << nodeNames[i] << "\"" << std::endl;
+       (*output_) << 0 << " " << (++numPhysicalNames) << " \"" << nodeNames[i] << "\"" << std::endl;
      }
      
      (*output_) << "$EndPhysicalNames" << std::endl;
@@ -693,9 +737,25 @@ namespace CoupledField {
 
     output_ = OpenFile( gridFileName );
 
+    // Write header
+    (*output_) << "$MeshFormat" << std::endl;
+    (*output_) << "2.1 " << ( ascii_ ? 0 : 1 ) << " " << sizeof(double) << std::endl;
+
+    if(!ascii_)
+    {
+      UInt oneBinary = 1;
+      
+      oneBinary = uiSwap_.EndianSwapBytes(oneBinary);
+
+      (*output_).write((char*) &oneBinary, sizeof(oneBinary));
+      //      (*output_) << std::endl;
+    }
+    
+    (*output_) << "$EndMeshFormat" << std::endl;
+
+    WriteRegions();
     WriteNodes( output_ );
     WriteCells( output_ );
-    WriteRegions();
     
     if ( printGridOnly ){
       output_->close();

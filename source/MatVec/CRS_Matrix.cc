@@ -1,4 +1,4 @@
-// the following headers are required for Export()
+// the following headers are required for ExportMatrixMarket()
 #include <cstdio>
 #include <sstream>
 
@@ -26,10 +26,10 @@ namespace CoupledField {
     // it to a full matrix currently.
     bool isSymm = sparseMat.GetSymmStorageFlag();
     if ( isSymm == true ) {
-      WARN("Input matrix is stored in symmetric format!\n"
-		       << "We cannot expand this! Creating a matrix containing "
-		       << "only the upper triangle.\n Maybe you should use "
-		       << "an SCRS_Matrix?");
+      WARN("Input matrix is stored in symmetric format!\n" <<
+           "We cannot expand this! Creating a matrix containing " <<
+           "only the upper triangle.\n Maybe you should use " << 
+           "a SCRS_Matrix?");
     }
 
     // Set general matrix pattern and dimension info
@@ -533,8 +533,8 @@ namespace CoupledField {
   //   Export matrix to file
   // *************************
   template<typename T>
-  void CRS_Matrix<T>::Export( const char *fname,
-                              const char *comment ) const{
+  void CRS_Matrix<T>::ExportMatrixMarket( const char *fname,
+                                          const char *comment ) const{
 
 
     // Open output file and check for errors
@@ -563,7 +563,7 @@ namespace CoupledField {
       fprintf( fp, "%%\n%% %s\n%%\n", comment );
     }
     else {
-      fprintf( fp, "%%\n%% Matrix exported by OLAS\n%%\n" );
+      fprintf( fp, "%%\n%% Matrix exported by CFS++\n%%\n" );
     }
 
     // Information on number of rows, columns and entries

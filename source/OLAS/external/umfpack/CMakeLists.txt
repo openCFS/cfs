@@ -24,3 +24,6 @@ ADD_EXECUTABLE(umfpack_di_demo umfpack_di_demo.cc)
 #ENDIF()
 
 TARGET_LINK_LIBRARIES(umfpack_di_demo ${TARGET_LL})
+
+ADD_EXECUTABLE(umfpack_zi_demo umfpack_zi_demo.cc)
+TARGET_LINK_LIBRARIES(umfpack_zi_demo ${TARGET_LL})

@@ -9,7 +9,7 @@
 namespace CoupledField {
 
   // Forward class declaration
-  class Elem;
+  struct Elem;
 
 
   //! Defines a 1-dimensional grid entity, defined by two vertices

@@ -1,5 +1,10 @@
 @echo off
+
 rem Batch script based on http://malektips.com/xp_dos_0025.html
+rem For a complete list of Windows versions google for 'Operating System Version (Windows)'
+rem or for the 'GetVersionEx' Windows API function
+rem cf. http://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx
+
 set EXITCODE=0
 set ERRORLEVEL=
 
@@ -17,14 +22,27 @@ rem windows xp x64 identifies itself only by version
 ver | find.exe "Version 5.2" > nul
 if %ERRORLEVEL% EQU 0 goto :ver_xp
 
-rem windows vista x64 identifies itself only by version
+rem Windows Server 2008 version 6.0 or 6.1
+ver | find.exe "2008" > nul
+if %ERRORLEVEL% EQU 0 goto :ver_2008
+
+rem windows vista identifies itself only by version
 ver | find.exe "Version 6.0" > nul
-if %ERRORLEVEL% EQU 0 goto :ver_xp
+if %ERRORLEVEL% EQU 0 goto :ver_vista
 
 rem windows 7/windows server 2008 r2
 ver | find.exe "Version 6.1" > nul
-if %ERRORLEVEL% EQU 0 goto :ver_xp
+if %ERRORLEVEL% EQU 0 goto :ver_7
 
+rem Windows Server 2012 version 6.2
+ver | find.exe "2012" > nul
+if %ERRORLEVEL% EQU 0 goto :ver_2012
+
+rem windows 8/windows server 2012
+ver | find.exe "Version 6.2" > nul
+if %ERRORLEVEL% EQU 0 goto :ver_8
+
+rem Windows 2000 version 5.0
 ver | find.exe "2000" > nul
 if %ERRORLEVEL% EQU 0 goto :ver_2000
 
@@ -34,6 +52,31 @@ if %ERRORLEVEL% EQU 0 goto :ver_nt
 echo Machine undetermined.
 set EXITCODE=1
 goto :end
+
+:ver_8
+rem Run Windows 8-specific commands here.
+set WINDOWS_PLATFORM=WIN8
+goto :arch
+
+:ver_2012
+rem Run Windows Server 2012-specific commands here.
+set WINDOWS_PLATFORM=WIN2012
+goto :arch
+
+:ver_7
+rem Run Windows 7-specific commands here.
+set WINDOWS_PLATFORM=WIN7
+goto :arch
+
+:ver_vista
+rem Run Windows 7-specific commands here.
+set WINDOWS_PLATFORM=WINVISTA
+goto :arch
+
+:ver_2008
+rem Run Windows Server 2008-specific commands here.
+set WINDOWS_PLATFORM=WIN2008
+goto :arch
 
 :ver_2003
 rem Run Windows 2003-specific commands here.

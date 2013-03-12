@@ -13,7 +13,7 @@ namespace CoupledField
 {
 
   // forward definition
-class ElemShape;
+  struct ElemShape;
 
   //! Class for description of a volume finite element
 
@@ -230,7 +230,7 @@ class ElemShape;
     Elem & operator=(const Elem& t);
 
     // Fix problems due to negative Jacobian determinants
-    void CorrectConnectivity( );
+    void CorrectConnectivity( const Grid& grid );
     
     //! Obtain string representation
     std::string ToString() const;

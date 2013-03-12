@@ -60,8 +60,7 @@ cfsdeps/boost/boost-patch.cmake.in -text
 cfsdeps/bzip2/CMakeLists.txt -text
 cfsdeps/bzip2/External_bzip2.cmake -text
 cfsdeps/bzip2/bzip2-mingw.patch -text
-cfsdeps/bzip2/bzip2-shared-patch.cmake.in -text
-cfsdeps/bzip2/bzip2-static-patch.cmake.in -text
+cfsdeps/bzip2/bzip2-patch.cmake.in -text
 cfsdeps/cfx_custom/External_CFX_Custom.cmake -text
 cfsdeps/cfx_custom/cfx_custom_v100_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v100_linux-amd64.tar.bz2 -text svneol=unset#unset
@@ -124,20 +123,38 @@ cfsdeps/hdf5/H5lib_settings.c -text
 cfsdeps/hdf5/TryRunResults_MINGW64_CENTOS6.cmake -text
 cfsdeps/hdf5/hdf5-cross-compile.patch -text
 cfsdeps/hdf5/hdf5-mingw.patch -text
+cfsdeps/hdf5/hdf5-msvc-gettimeofday.patch -text
 cfsdeps/hdf5/hdf5-patch.cmake.in -text
 cfsdeps/ilupack/CMakeLists.txt -text
 cfsdeps/ilupack/External_ILUPACK.cmake -text
 cfsdeps/ilupack/README -text
+cfsdeps/ilupack/cc_etimes.c -text
+cfsdeps/ilupack/ilupack-amd-preprocess.patch -text
 cfsdeps/ilupack/ilupack-disable-saddle-point-stuff.patch -text
+cfsdeps/ilupack/ilupack-dmumps-open64.patch -text
 cfsdeps/ilupack/ilupack-globals.patch -text
 cfsdeps/ilupack/ilupack-header.patch -text
+cfsdeps/ilupack/ilupack-mainsym3.patch -text
 cfsdeps/ilupack/ilupack-nomore-malloc-header.patch -text
 cfsdeps/ilupack/ilupack-patch.cmake.in -text
 cfsdeps/ilupack/ilupack-sparspak-revrse.patch -text
+cfsdeps/ilupack/ilupack-use-lapack-driver.patch -text
 cfsdeps/ilupack/ilupack2.2.1_src.tgz -text
+cfsdeps/ilupack/ilupack_config.h.in -text
 cfsdeps/lapack/CMakeLists.txt -text
 cfsdeps/lapack/External_LAPACK.cmake -text
+cfsdeps/lapack/lapack-for-cfs.patch -text
 cfsdeps/lapack/lapack-patch.cmake.in -text
+cfsdeps/lis/CMakeLists.txt -text
+cfsdeps/lis/External_LIS.cmake -text
+cfsdeps/lis/cmake/CheckTypeSizes.cmake -text
+cfsdeps/lis/cmake/FindIncludeHeader.cmake -text
+cfsdeps/lis/include/Configure.h.in -text
+cfsdeps/lis/include/lis_config.h.in -text
+cfsdeps/lis/lis-configure.cmake.in -text
+cfsdeps/lis/lis-patch.cmake.in -text
+cfsdeps/lis/src/CMakeLists.txt -text
+cfsdeps/lis/test/CMakeLists.txt -text
 cfsdeps/metis/CMakeLists.txt -text
 cfsdeps/metis/External_METIS.cmake -text
 cfsdeps/metis/license.txt -text
@@ -216,9 +233,29 @@ cfsdeps/scpip/scpip-patch.cmake.in -text
 cfsdeps/scpip/scpip.tar.bz2 -text
 cfsdeps/suitesparse/External_SuiteSparse.cmake -text
 cfsdeps/suitesparse/SuiteSparse-METIS-CMake.patch -text
+cfsdeps/suitesparse/blas_lapack_gfortran.h -text
 cfsdeps/suitesparse/suitesparse-cmake-for-cfs.patch -text
 cfsdeps/suitesparse/suitesparse-cmake.patch -text
+cfsdeps/suitesparse/suitesparse-fortran-iface.patch -text
+cfsdeps/suitesparse/suitesparse-getrusage.patch -text
 cfsdeps/suitesparse/suitesparse-patch.cmake.in -text
+cfsdeps/superlu/CMake/ResolveCompilerPaths.cmake -text
+cfsdeps/superlu/CMakeLists.txt -text
+cfsdeps/superlu/External_SuperLU.cmake -text
+cfsdeps/superlu/example/CMakeLists.txt -text
+cfsdeps/superlu/example/pgetopt.c -text
+cfsdeps/superlu/example/pgetopt.h -text
+cfsdeps/superlu/example/xgetopt.c -text
+cfsdeps/superlu/example/xgetopt.h -text
+cfsdeps/superlu/src/CMakeLists.txt -text
+cfsdeps/superlu/superlu-matgen.patch -text
+cfsdeps/superlu/superlu-patch.cmake.in -text
+cfsdeps/superlu/testing/CMakeLists.txt -text
+cfsdeps/superlu/testing/ctest.cmake.in -text
+cfsdeps/superlu/testing/dtest.cmake.in -text
+cfsdeps/superlu/testing/matgen/CMakeLists.txt -text
+cfsdeps/superlu/testing/stest.cmake.in -text
+cfsdeps/superlu/testing/ztest.cmake.in -text
 cfsdeps/xerces/External_Xerces-C.cmake -text
 cfsdeps/xerces/Main_CMakeLists.txt -text
 cfsdeps/xerces/Src_CMakeLists.txt -text
@@ -230,7 +267,9 @@ cfsdeps/zlib/copyright.txt -text
 cfsdeps/zlib/zlib-cmakelists.patch -text
 cfsdeps/zlib/zlib-patch.cmake.in -text
 cmake_modules/CFS_macros.cmake -text
+cmake_modules/CheckFortranRuntime.cmake -text
 cmake_modules/CheckPardisoAPIVersion.cmake -text
+cmake_modules/ConfigureChecks.cmake -text
 cmake_modules/DetermineWorkingCopyInfos.cmake -text
 cmake_modules/FindACML.cmake -text
 cmake_modules/FindCFSDEPS.cmake -text
@@ -238,7 +277,6 @@ cmake_modules/FindCFXCust.cmake -text
 cmake_modules/FindCGNS.cmake -text
 cmake_modules/FindCMake.cmake -text
 cmake_modules/FindCfs-hdf5.cmake -text
-cmake_modules/FindFortranLibs.cmake -text
 cmake_modules/FindGotoBLAS.cmake -text
 cmake_modules/FindHDFView.cmake -text
 cmake_modules/FindIPOPT.cmake -text
@@ -294,8 +332,8 @@ ctest_scripts/nightly_test_sedici.sh -text
 ctest_scripts/nightly_test_ubuntu804.sh -text
 include/def_build_type_options.hh.in -text
 include/def_cfs_stats.hh.in -text
+include/def_config.hh.in -text
 include/def_expl_templ_inst.hh.in -text
-include/def_fortran_interface.hh.in -text
 include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
 include/def_use_blas.hh.in -text
@@ -311,6 +349,7 @@ include/def_use_ilupack.hh.in -text
 include/def_use_ipopt.hh.in -text
 include/def_use_knitro.hh.in -text
 include/def_use_lapack.hh.in -text
+include/def_use_lis.hh.in -text
 include/def_use_mesh.hh.in -text
 include/def_use_metis.hh.in -text
 include/def_use_openmp.hh.in -text
@@ -496,6 +535,10 @@ share/doc/developer/develManual/pics/cfspp_workshop.pdf -text svneol=unset#appli
 share/doc/developer/develManual/pics/cfspp_workshop.svg -text
 share/doc/developer/develManual/pics/cmake-gui.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/coupled-system.pdf -text
+share/doc/developer/develManual/pics/dialog-error.svg -text
+share/doc/developer/develManual/pics/dialog-information.svg -text
+share/doc/developer/develManual/pics/dialog-warning.png -text svneol=unset#unset
+share/doc/developer/develManual/pics/dialog-warning.svg -text
 share/doc/developer/develManual/pics/eclipse_bsd_style.png -text
 share/doc/developer/develManual/pics/eclipse_cpp_inc_paths.png -text
 share/doc/developer/develManual/pics/eclipse_editor_settings.png -text svneol=unset#image/png
@@ -550,6 +593,7 @@ share/doc/developer/develManual/pics/totalview_acou_define_int_callgraph.png -te
 share/doc/developer/develManual/pics/totalview_enable_replay_engine.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/understand_src_bin_dir.pdf -text
 share/doc/developer/develManual/pics/understand_src_bin_dir.svg -text
+share/doc/developer/develManual/pics/xp_mingw_error.png -text svneol=unset#unset
 share/doc/developer/develManual/piezo_coupling.tex -text
 share/doc/developer/develManual/sources/eclipse-code-style.xml -text
 share/doc/developer/develManual/sources/emacs_settings.sh svneol=native#text/plain
@@ -558,6 +602,8 @@ share/doc/developer/develManual/sources/hdf5_file_format.xml -text
 share/doc/developer/develManual/sources/kreuzinger.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/lmboot.sh -text
 share/doc/developer/develManual/sources/macports_installed_pckgs.txt svneol=native#text/plain
+share/doc/developer/develManual/sources/mingw_centos6_farkas_patch.txt -text
+share/doc/developer/develManual/sources/mingw_lfarkas_repo.txt -text
 share/doc/developer/develManual/sources/mpcci_reactivate_lse24_lic.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/nacs_win.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/nacs_win_build_howto.txt svneol=native#text/plain
@@ -798,8 +844,29 @@ share/matlab/create_densities/rect2d.m -text
 share/matlab/exec.m -text
 share/matlab/mminfo.m svneol=native#text/plain
 share/matlab/mmread.m svneol=native#text/plain
+share/matlab/mmwrite.m -text
 share/matlab/opt_design_change.m -text
 share/matlab/sbmread.m svneol=native#text/plain
+share/python/calcCond.py -text
+share/python/calcCondSBM.py -text
+share/python/cfs-testsuite-extractor.py -text
+share/python/cfs_grid.py -text
+share/python/cfs_utils.py -text
+share/python/change-svn-wc-format.py -text
+share/python/common.py -text
+share/python/continuation.py -text
+share/python/create_density.py -text
+share/python/extract_info_xml_results.py -text
+share/python/gid_screenshots.py -text
+share/python/nas-tool-gid-to-nas.py -text
+share/python/nas-tool-voidmesh.py -text
+share/python/optimization_tools.py -text
+share/python/pcolor.py -text
+share/python/pcolorSBM.py -text
+share/python/probe_ilupack_parameters.py -text
+share/python/spy.py -text
+share/python/test.py -text
+share/python/xmlreplace.py -text
 share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain
 share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
@@ -807,24 +874,16 @@ share/scripts/IdentifyFortranCompiler.F90 -text
 share/scripts/bootstrap_devel_machine.sh svneol=native#text/plain
 share/scripts/cfs -text
 share/scripts/cfs-debug -text
-share/scripts/cfs-testsuite-extractor.py -text
 share/scripts/cfs.bat -text
-share/scripts/cfs_grid.py -text
-share/scripts/cfs_utils.py -text
 share/scripts/cfstool -text
 share/scripts/cfstool.bat -text
-share/scripts/change-svn-wc-format.py -text
 share/scripts/checkbashisms -text
 share/scripts/common.bat -text
-share/scripts/common.py -text
 share/scripts/common.sh svneol=native#text/plain
 share/scripts/compile_mkl_test.sh.in -text
-share/scripts/continuation.py -text
-share/scripts/create_density.py -text
 share/scripts/distro.sh svneol=native#text/plain
-share/scripts/extract_info_xml_results.py -text
 share/scripts/generate-standalone-bootstrap-sh.cmake -text
-share/scripts/gid_screenshots.py -text
+share/scripts/getdate.bat -text
 share/scripts/h5tool -text
 share/scripts/h5tool.bat -text
 share/scripts/hdf5_aux.sh.in -text
@@ -834,14 +893,10 @@ share/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
 share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
 share/scripts/identify_compiler.cmake.in svneol=native#text/plain
 share/scripts/log.xml -text
-share/scripts/nas-tool-gid-to-nas.py -text
-share/scripts/nas-tool-voidmesh.py -text
-share/scripts/optimization_tools.py -text
-share/scripts/probe_ilupack_parameters.py -text
-share/scripts/test.py -text
+share/scripts/mingw_cross_toolchain_centos_6.cmake -text
+share/scripts/mingw_cross_toolchain_ubuntu_1204.cmake -text
 share/scripts/voidmesh.pl -text
 share/scripts/winver.bat -text
-share/scripts/xmlreplace.py -text
 share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Examples/mat.xml svneol=native#text/xml
 share/xml/CFS-Material/Examples/matElec.xml svneol=native#text/xml
@@ -1050,7 +1105,6 @@ source/DataInOut/SimInOut/xdmf/SimOutputXDMF.hh -text
 source/DataInOut/SimInput.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimOutput.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimOutput.hh svneol=native#text/x-c%2B%2Bhdr
-source/DataInOut/XMLMaterialHandler.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/BCs.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/BCs.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/CMakeLists.txt svneol=native#text/plain
@@ -1361,6 +1415,9 @@ source/OLAS/external/lapack/Lapack_LL.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/lapack/Lapack_LU.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/lapack/Lapack_LU.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/lapack/lapack.hh svneol=native#text/x-c%2B%2Bhdr
+source/OLAS/external/lis/CMakeLists.txt -text
+source/OLAS/external/lis/LISSolver.cc -text
+source/OLAS/external/lis/LISSolver.hh -text
 source/OLAS/external/pardiso/CMakeLists.txt svneol=native#text/plain
 source/OLAS/external/pardiso/PardisoDummy.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/pardiso/PardisoSolver.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1369,6 +1426,7 @@ source/OLAS/external/umfpack/CMakeLists.txt -text
 source/OLAS/external/umfpack/UMFPACKSolver.cc -text
 source/OLAS/external/umfpack/UMFPACKSolver.hh -text
 source/OLAS/external/umfpack/umfpack_di_demo.cc -text
+source/OLAS/external/umfpack/umfpack_zi_demo.cc -text
 source/OLAS/graph/BaseGraph.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/graph/BaseGraph.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/graph/BaseOrdering.cc svneol=native#text/x-c%2B%2Bsrc

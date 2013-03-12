@@ -161,7 +161,7 @@ MACRO (TODAY RESULT)
         string(STRIP "${OUT}" OUT)
         SET(${RESULT} ${OUT})
       ELSE()
-        EXECUTE_PROCESS(COMMAND "date" "/T" OUTPUT_VARIABLE OUT)
+        EXECUTE_PROCESS(COMMAND cmd /E:ON /C "${CFS_SOURCE_DIR}/share/scripts/getdate.bat"} OUTPUT_VARIABLE OUT)
 #        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"
 #	  ${RESULT} ${${RESULT}})
         string(STRIP "${OUT}" OUT)
@@ -202,7 +202,7 @@ MACRO (APPLY_PATCHES PATCHES INPUTDIR)
 #      RESULT_VARIABLE RES
 #      )
     EXECUTE_PROCESS(
-      COMMAND ${PATCH_EXECUTABLE} -p0 --binary -i "${INPUTDIR}/${patch}"
+      COMMAND patch -p0 --binary -i "${INPUTDIR}/${patch}"
 #      OUTPUT_QUIET
       RESULT_VARIABLE RES
       )

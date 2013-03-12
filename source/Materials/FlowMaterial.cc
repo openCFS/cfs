@@ -55,23 +55,29 @@ namespace CoupledField
       EXCEPTION("No fluid density is specified in the material file!");
     
 
+    if (IsSet(DYNAMIC_VISCOSITY) && IsSet(KINEMATIC_VISCOSITY)) {
+      EXCEPTION("Dynamic and kinematic fluid viscosities found in mat file!");
+    }
+    
     if (IsSet(DYNAMIC_VISCOSITY)) {
       dynamicViscosity = GetScalCoefFnc(DYNAMIC_VISCOSITY,Global::REAL);
       kinematicViscosity = 
           CoefFunction::Generate(Global::REAL,CoefXprBinOp(dynamicViscosity, density,
                                               CoefXpr::OP_DIV ) );
-      GenerateTensor( KINEMATIC_VISCOSITY, kinematicViscosity );
 
+      SetCoefFct( KINEMATIC_VISCOSITY, kinematicViscosity );
     }
     else if (IsSet(KINEMATIC_VISCOSITY)){
       kinematicViscosity = GetScalCoefFnc(KINEMATIC_VISCOSITY,Global::REAL);
       dynamicViscosity = 
           CoefFunction::Generate(Global::REAL,CoefXprBinOp(kinematicViscosity, density,
                                               CoefXpr::OP_MULT ) );
+                                              
+      SetCoefFct( DYNAMIC_VISCOSITY, dynamicViscosity );
     }
-    else
+    else {
       EXCEPTION("No fluid viscosity is specified in the material file!");
-
+    }
 
     // In the end, generate the tensors from the scalar values
     GenerateTensor( DYNAMIC_VISCOSITY, dynamicViscosity );

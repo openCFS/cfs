@@ -358,7 +358,7 @@ int ignore_me;
 
     for(it=gmv_mem_alloc_set.begin(), eit=gmv_mem_alloc_set.end(); it != eit; it++)
     {
-      LOG_DBG2(gmvread) << "Cleaning up: " << ((unsigned long)*it);
+      LOG_DBG2(gmvread) << "Cleaning up: " << ((size_t)*it);
       free(*it);
     }
     gmv_mem_alloc_set.clear();

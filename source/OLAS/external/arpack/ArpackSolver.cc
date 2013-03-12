@@ -201,7 +201,7 @@ namespace CoupledField {
       for (itNum=0; itNum<maxIterations_; itNum++) {
 
           // cast to char* or receive compiler warning
-          F77NAME(dsaupd)(&ido, type_, (Integer*) &size_, which_, (Integer*) &numFreq_, 
+          dsaupd(&ido, type_, (Integer*) &size_, which_, (Integer*) &numFreq_, 
                 &tolerance_, residual, (Integer*) &numArnoldiVec_, matrixV, 
                 (Integer*) &size_, iparams, ipntr,
                 workD, workL, &lenWorkL, &info);
@@ -289,7 +289,7 @@ namespace CoupledField {
       Double omgShift = pow(freqShift_*8.0*atan(1.0),2);
 
 			// cast to char* or receive compiler warning
-      F77NAME(dseupd)(&rvec, (char*) "A", select, d, eigenVectors_, (Integer*) &size_, 
+      dseupd(&rvec, (char*) "A", select, d, eigenVectors_, (Integer*) &size_, 
                       &omgShift, (char*) "G", (Integer*) &size_, which_, (Integer*) &numFreq_,
                       &tolerance_, residual, (Integer*) &numArnoldiVec_, matrixV, 
                       (Integer*) &size_, iparams, ipntr, workD, workL, &lenWorkL, &info);
@@ -348,7 +348,7 @@ namespace CoupledField {
       UInt itNum;
       for (itNum=1; itNum<=maxIterations_; itNum++) {
 
-        F77NAME(znaupd)(&ido, (char*) "G", (Integer*) &size_, which_,
+        znaupd(&ido, (char*) "G", (Integer*) &size_, which_,
                         (Integer*) &numFreq_, &tolerance_, residual,
                         (Integer*) &numArnoldiVec_, matrixV,
                         (Integer*) &size_, iparams, ipntr, workD, workL,
@@ -453,7 +453,7 @@ namespace CoupledField {
 
       Complex omgShift = (Complex) freqShift_*8.0*atan(1.0);
 
-      F77NAME(zneupd)(&rvec, (char*) "A", select, d, zEV,
+      zneupd(&rvec, (char*) "A", select, d, zEV,
                       (Integer*) &size_, &omgShift, zwv, (char*) "G",
                       (Integer*) &size_, which_, (Integer*) &numFreq_,
                       &tolerance_, residual, (Integer*) &numArnoldiVec_,
@@ -809,59 +809,59 @@ namespace CoupledField {
 
   void ArpackSolver::DebugOff( ) {
 
-      ::F77NAME(debug).logfil = 6;
-      ::F77NAME(debug).ndigit = 0;
-      ::F77NAME(debug).mgetv0 = 0;
-      ::F77NAME(debug).msaupd = 0;
-      ::F77NAME(debug).msaup2 = 0;
-      ::F77NAME(debug).msaitr = 0;
-      ::F77NAME(debug).mseigt = 0;
-      ::F77NAME(debug).msapps = 0;
-      ::F77NAME(debug).msgets = 0;
-      ::F77NAME(debug).mseupd = 0;
-      ::F77NAME(debug).mnaupd = 0;
-      ::F77NAME(debug).mnaup2 = 0;
-      ::F77NAME(debug).mnaitr = 0;
-      ::F77NAME(debug).mneigt = 0;
-      ::F77NAME(debug).mnapps = 0;
-      ::F77NAME(debug).mngets = 0;
-      ::F77NAME(debug).mneupd = 0;
-      ::F77NAME(debug).mcaupd = 0;
-      ::F77NAME(debug).mcaup2 = 0;
-      ::F77NAME(debug).mcaitr = 0;
-      ::F77NAME(debug).mceigt = 0;
-      ::F77NAME(debug).mcapps = 0;
-      ::F77NAME(debug).mcgets = 0;
-      ::F77NAME(debug).mceupd = 0;
+      ::debug.logfil = 6;
+      ::debug.ndigit = 0;
+      ::debug.mgetv0 = 0;
+      ::debug.msaupd = 0;
+      ::debug.msaup2 = 0;
+      ::debug.msaitr = 0;
+      ::debug.mseigt = 0;
+      ::debug.msapps = 0;
+      ::debug.msgets = 0;
+      ::debug.mseupd = 0;
+      ::debug.mnaupd = 0;
+      ::debug.mnaup2 = 0;
+      ::debug.mnaitr = 0;
+      ::debug.mneigt = 0;
+      ::debug.mnapps = 0;
+      ::debug.mngets = 0;
+      ::debug.mneupd = 0;
+      ::debug.mcaupd = 0;
+      ::debug.mcaup2 = 0;
+      ::debug.mcaitr = 0;
+      ::debug.mceigt = 0;
+      ::debug.mcapps = 0;
+      ::debug.mcgets = 0;
+      ::debug.mceupd = 0;
 
   }
 
   void ArpackSolver::DebugOn( ) {
 
-      ::F77NAME(debug).logfil = 6;
-      ::F77NAME(debug).ndigit = -3;
-      ::F77NAME(debug).mgetv0 = 1;
-      ::F77NAME(debug).msaupd = 2;
-      ::F77NAME(debug).msaup2 = 2;
-      ::F77NAME(debug).msaitr = 1;
-      ::F77NAME(debug).mseigt = 1;
-      ::F77NAME(debug).msapps = 1;
-      ::F77NAME(debug).msgets = 1;
-      ::F77NAME(debug).mseupd = 2;
-      ::F77NAME(debug).mnaupd = 2;
-      ::F77NAME(debug).mnaup2 = 2;
-      ::F77NAME(debug).mnaitr = 1;
-      ::F77NAME(debug).mneigt = 1;
-      ::F77NAME(debug).mnapps = 1;
-      ::F77NAME(debug).mngets = 1;
-      ::F77NAME(debug).mneupd = 1;
-      ::F77NAME(debug).mcaupd = 2;
-      ::F77NAME(debug).mcaup2 = 2;
-      ::F77NAME(debug).mcaitr = 1;
-      ::F77NAME(debug).mceigt = 1;
-      ::F77NAME(debug).mcapps = 1;
-      ::F77NAME(debug).mcgets = 1;
-      ::F77NAME(debug).mceupd = 2;
+      ::debug.logfil = 6;
+      ::debug.ndigit = -3;
+      ::debug.mgetv0 = 1;
+      ::debug.msaupd = 2;
+      ::debug.msaup2 = 2;
+      ::debug.msaitr = 1;
+      ::debug.mseigt = 1;
+      ::debug.msapps = 1;
+      ::debug.msgets = 1;
+      ::debug.mseupd = 2;
+      ::debug.mnaupd = 2;
+      ::debug.mnaup2 = 2;
+      ::debug.mnaitr = 1;
+      ::debug.mneigt = 1;
+      ::debug.mnapps = 1;
+      ::debug.mngets = 1;
+      ::debug.mneupd = 1;
+      ::debug.mcaupd = 2;
+      ::debug.mcaup2 = 2;
+      ::debug.mcaitr = 1;
+      ::debug.mceigt = 1;
+      ::debug.mcapps = 1;
+      ::debug.mcgets = 1;
+      ::debug.mceupd = 2;
 
   }
 

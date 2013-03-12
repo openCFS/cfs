@@ -1,23 +1,24 @@
-# - Find CFSDEPS installation 
-# This module finds if CFSDEPS is installed and determines where 
-# the include files and libraries are. It also determines what the name of
-# the library is. This code sets the following variables:
-#  
-#  CFSDEPS_FOUND     = system has CFSDEPS 
-#  CFSDEPS_LIBRARIES = path to the CFSDEPS libraries
-#  CFSDEPS_CXX_FLAGS  = Compiler flags for CFSDEPS 
-#  CFSDEPS_INCLUDE_DIR      = where to find "CFSDEPS.h"
-#  CFSDEPS_DEFINITIONS      = extra defines
+#=============================================================================
 #
-# AUTHOR
-# Simon Triebenbacher simon.triebenbacher@uni-klu.ac.at (02/2009)
+# Find locations of external binary libs (e.g. MKL) and build additional
+# external libs from source.
+# 
+# This module finds and builds libs that CFS++ depends upon and determines
+# where the include files and libraries are. 
+#  
+# AUTHORS
+# - Simon Triebenbacher simon.triebenbacher@uni-klu.ac.at (02/2009)
+# - Simon Triebenbacher simon.triebenbacher@tuwien.ac.at (01/2013)
+#
+#=============================================================================
 
 #-----------------------------------------------------------------------------
 # Include external project build capability of CMake 2.8
 #-----------------------------------------------------------------------------
 INCLUDE(ExternalProject)
 
-SET(LSE17_SOURCES_DIR "ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources")
+SET(LSE17_SOURCES_DIR "ftp://lse17.e-technik.uni-erlangen.de:40065")
+SET(LSE17_SOURCES_DIR "${LSE17_SOURCES_DIR}/cfsdeps/sources")
 
 #-----------------------------------------------------------------------------
 # Set common CFLAGS (and CXXFLAGS) common for all external projects.
@@ -27,16 +28,28 @@ SET(LSE17_SOURCES_DIR "ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sourc
 # We do not want to see warnings from external projects, since they would
 # show up on CDash.
 #-----------------------------------------------------------------------------
-SET(CFLAGS "-w")
- 
+IF(CMAKE_COMPILER_IS_GNUCXX)
+  SET(CFSDEPS_C_FLAGS "-w")
+  SET(CFSDEPS_CXX_FLAGS "-w")
+  SET(CFSDEPS_Fortran_FLAGS "-w")
+ELSEIF(MSVC)
+  STRING(REPLACE "/W3" "/w" CFSDEPS_C_FLAGS "${CMAKE_C_FLAGS_INIT}")
+  STRING(REPLACE "/W3" "/w" CFSDEPS_CXX_FLAGS "${CMAKE_CXX_FLAGS_INIT}")
+  STRING(REPLACE "/W3" "/w" CFSDEPS_Fortran_FLAGS "${CMAKE_Fortran_FLAGS_INIT}")
+ENDIF()
+
 #-----------------------------------------------------------------------------
 # On Mac OS X we want to build the external libs for the same SDK and 
 # architecture as CFS++.
 #-----------------------------------------------------------------------------
 IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(CFLAGS "${CFLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}")
-  SET(CFLAGS "${CFLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
-  SET(CFLAGS "${CFLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
+  SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}")
+  SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
+  SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
+
+  SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}")
+  SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
+  SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
 ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
 #-----------------------------------------------------------------------------
@@ -84,8 +97,8 @@ INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/muparser/External_muParser.cmake")
 # Build zlib library
 #-------------------------------------------------------------------------------
 SET(ZLIB_URL "${LSE17_SOURCES_DIR}/zlib")
-SET(ZLIB_GZ "zlib-1.2.6.tar.gz")
-SET(ZLIB_MD5 "618e944d7c7cd6521551e30b32322f4a")
+SET(ZLIB_GZ "zlib-1.2.7.tar.gz")
+SET(ZLIB_MD5 "60df6a37c56e7c1366cca812414f7b85")
 
 INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/zlib/External_zlib.cmake")
 
@@ -165,8 +178,8 @@ IF(USE_BLAS OR USE_LAPACK)
       USE_ILUPACK)
     
     SET(LAPACK_URL "${LSE17_SOURCES_DIR}/lapack")
-    SET(LAPACK_GZ "lapack-3.2.1.tgz")
-    SET(LAPACK_MD5 "a3202a4f9e2f15ffd05d15dab4ac7857")
+    SET(LAPACK_GZ "lapack-3.4.2.tgz")
+    SET(LAPACK_MD5 "61bf1a8a4469d4bdb7604f5897179478")
     
     INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/lapack/External_LAPACK.cmake")
     
@@ -254,7 +267,7 @@ IF(USE_BLAS OR USE_LAPACK)
   IF(USE_ILUPACK)
     SET(ILUPACK_PATH "${CFS_SOURCE_DIR}/cfsdeps/ilupack")
     SET(ILUPACK_GZ "ilupack2.2.1_src.tgz")
-    SET(ILUPACK_MD5 "83454bbbbb12bd4efca73df50d2e6d7d")
+    SET(ILUPACK_MD5 "7cb6ba2e854e13d243218d9e9478d13c")
     
     INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/ilupack/External_ILUPACK.cmake")
   ENDIF(USE_ILUPACK)
@@ -272,6 +285,28 @@ IF(USE_BLAS OR USE_LAPACK)
 #  MESSAGE("PARDISO_LIBRARY ${PARDISO_LIBRARY}")
   
 ENDIF(USE_BLAS OR USE_LAPACK)
+
+#-------------------------------------------------------------------------------
+# Find Library of Iterative Solvers
+#-------------------------------------------------------------------------------
+IF(USE_LIS)
+  SET(LIS_URL "${LSE17_SOURCES_DIR}/lis")
+  SET(LIS_GZ "lis-1.3.16.tar.gz")
+  SET(LIS_MD5 "7bbbcd2070cca367a98d17767c0ea408")
+  
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/lis/External_LIS.cmake")
+ENDIF(USE_LIS)
+
+#-------------------------------------------------------------------------------
+# Find SuperLU
+#-------------------------------------------------------------------------------
+IF(USE_SUPERLU)
+  SET(SUPERLU_URL "${LSE17_SOURCES_DIR}/superlu")
+  SET(SUPERLU_ZIP "superlu_4.1.zip")
+  SET(SUPERLU_MD5 "ec39cd404545f098095092f7ba5a5434")
+  
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/superlu/External_SuperLU.cmake")
+ENDIF(USE_SUPERLU)
 
 #-------------------------------------------------------------------------------
 # Find Boost
@@ -303,6 +338,16 @@ ENDIF(USE_XERCES)
 # Find CGAL
 #-----------------------------------------------------------------------------
 IF(USE_CGAL)
+  IF(WIN32)
+    IF(MINGW AND NOT CMAKE_CROSSCOMPILING OR MSVC)
+      SET(MSG "The build of gmp and mpfr is not supported on Windows!")
+      SET(MSG "${MSG} It is configure-based and therefore requires a shell")
+      SET(MSG "${MSG} interpreter like bash from MSYS.")
+      SET(MSG "${MSG} If you need CGAL, you need to cross compile from Linux.")
+      MESSAGE(FATAL_ERROR "${MSG}")
+    ENDIF()
+  ENDIF()
+
   SET(GMP_URL "${LSE17_SOURCES_DIR}/gmp")
   SET(GMP_BZ2 "gmp-4.2.4.tar.bz2")
   SET(GMP_MD5 "fc1e3b3a2a5038d4d74138d0b9cf8dbe")

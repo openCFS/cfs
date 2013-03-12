@@ -8,14 +8,17 @@
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_build_type_options.hh.in"
   "${CFS_BINARY_DIR}/include/def_build_type_options.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_fortran_interface.hh.in"
-  "${CFS_BINARY_DIR}/include/def_fortran_interface.hh")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_config.hh.in"
+  "${CFS_BINARY_DIR}/include/def_config.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_arpack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_arpack.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ilupack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_ilupack.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_lis.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_lis.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_suitesparse.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_suitesparse.hh")

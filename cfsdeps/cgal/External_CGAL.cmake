@@ -17,7 +17,7 @@ SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${cgal_install}
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-  -DCMAKE_CXX_FLAGS:STRING=${CFLAGS}
+  -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
 )
@@ -40,7 +40,7 @@ ENDIF(MINGW)
 # The CGAL external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cgal
-  DEPENDS boost zlib-static gmp mpfr
+  DEPENDS boost zlib gmp mpfr
   PREFIX "${cgal_prefix}"
   DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/cgal
   URL ${CGAL_URL}/${CGAL_GZ}

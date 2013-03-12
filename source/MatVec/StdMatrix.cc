@@ -14,6 +14,24 @@ using CoupledField::Exception;
 namespace CoupledField 
 {
 
+void StdMatrix::Export( const char *fname,
+                        OutputFormat format,
+                        const char *comment ) const {
+   std::string fn = fname;
+   switch(format) {
+     case MATRIX_MARKET: // MatrixMarket
+       fn += ".mtx";
+       ExportMatrixMarket(fn.c_str(), comment);
+       break;
+     case HARWELL_BOEING: // Harwell-Boeing
+       ExportHarwellBoeing(fn, NULL);
+       break;
+     default:
+       EXCEPTION("Matrix output format not supported!")
+       break;
+   }
+}
+  
 template<typename T>
 StdMatrix::HarwellBoeing<T>::HarwellBoeing(const StdMatrix* matrix)
 {
@@ -89,12 +107,13 @@ void StdMatrix::HarwellBoeing<T>::Fill(const T* values, const UInt* ints, UInt l
 }
 
 template<typename T>
-void StdMatrix::HarwellBoeing<T>::Export(const std::string& file, const BaseVector& rhs)
+void StdMatrix::HarwellBoeing<T>::Export(const std::string& file, BaseVector* rhs)
 {
    std::vector<std::string> cols;
    std::vector<std::string> rows;
    std::vector<std::string> mat_data;
-   std::vector<std::string> rhs_data;      
+   std::vector<std::string> rhs_data;
+   
     
    // we use the integer format (8I10):          1         9        16 ..
    // and the double format (4D20.13) : -1.9073486328125E-06 6.1364000000000E+09-3.8146972656250E-06
@@ -149,19 +168,33 @@ void StdMatrix::HarwellBoeing<T>::Export(const std::string& file, const BaseVect
 
            break;
         }
-      default: throw "uimplementd storage type in ExportHarwellBoeing()";
+      default: throw "Unimplemented storage type in ExportHarwellBoeing()";
    }
 
-   // rhs is common 
-   const Vector<T>& vector = dynamic_cast<const Vector<T>&>(rhs);
-   Fill(vector.GetPointer(),NULL,vector.GetSize(), rhs_data);
+   // rhs is common
+   if(!rhs) {
+     rhs_data.resize(0);
+   }
+   else {
+     const Vector<T>* vector = dynamic_cast<const Vector<T>*>(rhs);
+     Fill(vector->GetPointer(),NULL,vector->GetSize(), rhs_data);
+   }
+
+   // Generate file name
+   std::stringstream sstr;
+   sstr << file << ".";
+   for(UInt i=0; i<3; i++) {
+     sstr << (char)tolower(code[i]);
+   }
+
+   // Open file
+   std::ofstream out(sstr.str().c_str());
 
    // construct the 5 lines 80 columns header
-   std::ofstream out(file.c_str());
-
    // the first line is constat
    //   ->|0        1         2         3         4         5         6         7         |<-
-   out << "No label                                                                No key  " << std::endl;
+   // out << "No label                                                                No key  " << std::endl;
+   out << "Harwell-Boeing matrix exported from CFS++                               No key  " << std::endl;
 
    // second line: total lines excl. header + col lines + row lines + mat data lines + rhs lines
    out.width(14); 
@@ -189,21 +222,25 @@ void StdMatrix::HarwellBoeing<T>::Export(const std::string& file, const BaseVect
    // forth line is format of the data blocks, hardcoded
    out << "(8I10)          (8I10)          (4E20.13)           (4E20.13)" << std::endl;                   
    
-   // fith line is hard coded, we are not sparse (F), have only 1 rhs, and are assembled (0 is ignored) 
-   out << "F                          1             0" << std::endl;                                      
-  
+   if(rhs) {
+     // fifth line is hard coded, we are not sparse (F), have only 1 rhs, and are assembled (0 is ignored) 
+     out << "F                          1             0" << std::endl;                                      
+   }
+   
    // write the data blocks
    for(UInt i = 0; i < cols.size(); i++) out << cols[i];        
    for(UInt i = 0; i < rows.size(); i++) out << rows[i];
    for(UInt i = 0; i < mat_data.size(); i++) out << mat_data[i];
-   for(UInt i = 0; i < rhs_data.size(); i++) out << rhs_data[i];      
-  
+   if(rhs) {
+     for(UInt i = 0; i < rhs_data.size(); i++) out << rhs_data[i];      
+   }
+   
    // finish!
    out.flush();
    out.close();
 }
 
-void StdMatrix::ExportHarwellBoeing(const std::string& file, const BaseVector& rhs)
+void StdMatrix::ExportHarwellBoeing(const std::string& file, BaseVector* rhs) const
 {
     if(GetEntryType() == DOUBLE)  {
         HarwellBoeing<Double> hb(this);

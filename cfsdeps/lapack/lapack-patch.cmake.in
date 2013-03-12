@@ -17,20 +17,12 @@ SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 #=============================================================================
-# Adjust some setting in CMakeLists.txt.
+# Apply some patches.
 #=============================================================================
-FILE(READ "${CFS_SOURCE_DIR}/cfsdeps/lapack/CMakeLists.txt" lines)
+SET(patches
+  "lapack-for-cfs.patch";
+)
 
-foreach(line IN LISTS lines)
-  STRING(REGEX REPLACE "[sd]lazq[3-4].f"
-    "" line
-    ${line})
-
-  foreach(part IN LISTS line)
-    LIST(APPEND OUTPUT "${part}")
-  endforeach(part)
-endforeach(line)
-
-FILE(WRITE "${lapack_source}/CMakeLists.txt" "${OUTPUT}")
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/lapack")
 
 

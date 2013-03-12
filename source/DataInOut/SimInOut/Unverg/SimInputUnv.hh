@@ -152,9 +152,9 @@ namespace CoupledField
     // =========================================================================
     //@{ \name General Helper Functions
 
-    Elem::FEType UnvType2ElemType( const uint32_t elemType );
+    Elem::FEType UnvType2ElemType( const UInt elemType );
     
-    BasePDE::AnalysisType AnalysisCAPA2CFS(int capaType);
+    BasePDE::AnalysisType AnalysisCAPA2CFS(Integer capaType);
     
     SolutionType NodeResultCAPA2CFS(int capaType);
     int NodeResultCFS2CAPA(SolutionType cfsType);

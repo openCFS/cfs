@@ -58,7 +58,6 @@ SET(CFS_CXX_COMPILER_NAME ${CXX_ID})
 SET(CFS_CXX_COMPILER_VER "${CXX_VERSION}")
 SET(CFS_CXX_COMPILER_GNU_VER "${CXX_GCC_VERSION}")
 
-
 #-------------------------------------------------------------------------------
 # Now let's find out info about Fortran compiler.
 #-------------------------------------------------------------------------------
@@ -81,6 +80,31 @@ SET(CFS_FORTRAN_COMPILER_NAME ${FC_ID})
 SET(CFS_FORTRAN_COMPILER_VER "${FC_VERSION}")
 
 #-------------------------------------------------------------------------------
+# Check if compiler supports OpenMP
+#-------------------------------------------------------------------------------
+FIND_PACKAGE(OpenMP)
+
+IF(OPENMP_FOUND)
+
+  #-----------------------------------------------------------------------------
+  # The USE_OPENMP option triggers the usage of OpenMP versions of external
+  # libraries and the compilation of CFS++ with OpenMP compiler switches.
+  #-----------------------------------------------------------------------------
+  OPTION(USE_OPENMP
+    "Turn on support for OpenMP. Needs GCC >= 4.2 or Intel C++."
+    ${USE_OPENMP_DEFAULT})
+
+  #-----------------------------------------------------------------------------
+  # Check if compiler has OpenMP support. GCC >= 4.2 has.
+  #-----------------------------------------------------------------------------
+  IF(USE_OPENMP)
+    SET(CFS_C_FLAGS "${OpenMP_C_FLAGS}")
+    SET(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS}")
+  ENDIF(USE_OPENMP)
+
+ENDIF()
+
+#-------------------------------------------------------------------------------
 # Check if we are using the GNU C++ compiler
 #-------------------------------------------------------------------------------
 IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
@@ -88,36 +112,25 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
   # MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
 
   #-----------------------------------------------------------------------------
-  # Check if compiler has OpenMP support. GCC >= 4.2 has.
-  #-----------------------------------------------------------------------------
-  IF(USE_OPENMP)
-    IF(CFS_CXX_COMPILER_VER GREATER "4.1")
-      SET(CFS_C_FLAGS "-fopenmp")
-    ELSE(CFS_CXX_COMPILER_VER GREATER "4.1")
-      MESSAGE("You chose to use OpenMP but your current GCC does not support it!")
-    ENDIF(CFS_CXX_COMPILER_VER GREATER "4.1")
-  ENDIF(USE_OPENMP)
-
-  #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
   IF(DEBUG)
-    SET(CFS_C_FLAGS "-std=c++98 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
+    SET(CFS_C_FLAGS "-std=gnu99 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
     # -Wold-style-cast Warnings about old C style casts. Since external libraries
     # make extensive use of it, we switch it off. To filter out the warnings in our own
     # code a command line like the following might be used
     # fgrep 'warning: use of old-style cast' out.txt | grep CFS_SOURCE_DIR | sort -u > old-style-cast.txt
     # 
     # -frounding-math: is needed for CGAL library
-    SET(CFS_CXX_FLAGS "-ftemplate-depth-85 -frounding-math")
+    SET(CFS_CXX_FLAGS "-std=c++98 -Wall -ftemplate-depth-85 -frounding-math")
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
     SET(CHECK_MEM_ALLOC 1)
 
   ELSE(DEBUG)
 
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
-    SET(CFS_C_FLAGS "-std=c++98 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "-ftemplate-depth-85")
+    SET(CFS_C_FLAGS "-std=gnu99 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS "-std=c++98 -Wall -ftemplate-depth-85")
 
     IF(CFS_ARCH STREQUAL "I386")
       SET(CFS_OPT_FLAGS "-m32 -march=pentium4")
@@ -168,23 +181,51 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
   
   IF(NOT USE_OPENMP)
     SET(CFS_C_FLAGS "-Werror -Wcomment ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS "-Werror -Wcomment ${CFS_CXX_FLAGS}")
   ENDIF(NOT USE_OPENMP)
 
   IF(NOT USE_CGAL)
     SET(CFS_C_FLAGS "-pedantic ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS "-pedantic ${CFS_CXX_FLAGS}")
   ELSE(NOT USE_CGAL)
     SET(CFS_C_FLAGS "-frounding-math ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS "-frounding-math ${CFS_CXX_FLAGS}")
   ENDIF(NOT USE_CGAL)
-
 #-------------------------------------------------------------------------------
 # Check for Visual Studio C++ compiler
 #-------------------------------------------------------------------------------
-ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "MSVC")
+ELSEIF(MSVC)
 
-  MESSAGE(FATAL_ERROR "CFS_CXX_COMPILER_NAME ${CFS_CXX_COMPILER_NAME} Compiler")
+  include(CMakeDetermineVSServicePack)
+  DetermineVSServicePack( CFS_MSVC_SERVICE_PACK )
+  string(TOUPPER "${CFS_MSVC_SERVICE_PACK}" CFS_MSVC_SERVICE_PACK)
+  SET(CFS_MSVC_SERVICE_PACK "MS${CFS_MSVC_SERVICE_PACK}")
+  
+  if( CFS_MSVC_SERVICE_PACK )
+    message(STATUS "Detected: ${CFS_MSVC_SERVICE_PACK}")
+  endif()
 
-  MESSAGE(FATAL_ERROR "MSVC Compiler")
+  # Disable some warnings. For details google for 'MSDN C/C++ Build Errors'.
 
+  # For details google for 'MSDN Checked Iterators', '_SCL_SECURE_NO_WARNINGS'
+  # and 'MSDN Security Enhancements in the CRT', _CRT_SECURE_NO_WARNINGS
+  SET(CFS_CXX_FLAGS "/wd4996")
+
+  # 'identifier' : macro redefinition
+  # The macro identifier is defined twice. The compiler uses the second
+  # macro definition.
+  SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /wd4005")
+
+  # '%$S': virtual function overrides '%$pS', previous versions of the
+  # compiler did not override when parameters only differed by
+  # const/volatile qualifiers
+  SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /wd4373")
+ 
+
+
+#  MESSAGE(FATAL_ERROR "CFS_CXX_COMPILER_NAME ${CFS_CXX_COMPILER_NAME} Compiler")
+
+#  MESSAGE(FATAL_ERROR "MSVC Compiler")
 #-------------------------------------------------------------------------------
 # Check for Intel C++ compiler
 #-------------------------------------------------------------------------------
@@ -210,6 +251,7 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   #-----------------------------------------------------------------------------
   IF(USE_OPENMP)
     SET(CFS_C_FLAGS "-openmp")
+    SET(CFS_CXX_FLAGS "-openmp")
   ENDIF(USE_OPENMP)
 
   #-----------------------------------------------------------------------------
@@ -217,10 +259,12 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   #-----------------------------------------------------------------------------
   IF(DEBUG)
     SET(CFS_C_FLAGS "-g -ansi -w1 -Wcheck -Werror ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS "-g -ansi -w1 -Wcheck -Werror ${CFS_CXX_FLAGS}")
     SET(CHECK_MEM_ALLOC 1)
 
   ELSE(DEBUG)
     SET(CFS_C_FLAGS "-O3 -ansi -w0 -Werror ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS "-O3 -ansi -w0 -Werror ${CFS_CXX_FLAGS}")
     SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
 
     IF(CFS_CXX_COMPILER_VER MATCHES "10\\.")
@@ -244,9 +288,10 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   #    654: overloaded virtual function 
   #   1125: entity-kind "entity" is hidden by "entity" -- virtual function 
   #         override intended?
+  #   1170: invalid redeclaration of nested class
   #   2259: non-pointer conversion from "type" to "type" may lose significant bits
   #---------------------------------------------------------------------------
-  SET(CFS_SUPPRESSIONS "-wd191,279,654,1125,2259")
+  SET(CFS_SUPPRESSIONS "-wd191,279,654,1125,1170,2259")
   SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-pragmas")
   SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-comment")
 
@@ -296,16 +341,16 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 
   LINK_DIRECTORIES(${IFORT_LIB_PATH})
     
-  SET(CFS_FORTRAN_DYNRT_LIBS "ifcoremt;imf;dl")
-  IF(NOT CFS_ARCH STREQUAL "IA64")
-    SET(CFS_FORTRAN_DYNRT_LIBS 
-      "svml"
-      ${CFS_FORTRAN_DYNRT_LIBS})
-  ENDIF(NOT CFS_ARCH STREQUAL "IA64")
-  SET(CFS_FORTRAN_STATRT_LIBS
-    "ifcoremt_pic"
-    "irc"
-    )
+#  SET(CFS_FORTRAN_DYNRT_LIBS "ifcoremt;imf;dl")
+#  IF(NOT CFS_ARCH STREQUAL "IA64")
+#    SET(CFS_FORTRAN_DYNRT_LIBS 
+#      "svml"
+#      ${CFS_FORTRAN_DYNRT_LIBS})
+#  ENDIF(NOT CFS_ARCH STREQUAL "IA64")
+#  SET(CFS_FORTRAN_STATRT_LIBS
+#    "ifcoremt_pic"
+#    "irc"
+#    )
     
 ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 
@@ -325,10 +370,15 @@ ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "" OR
 # Set compiler/linker flags for all build types
 #-------------------------------------------------------------------------------
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CFS_C_FLAGS} ${CFS_PROF_FLAGS} ${CFS_OPT_FLAGS} ${CFS_SUPPRESSIONS}")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CFS_C_FLAGS} ${CFS_CXX_FLAGS} ${CFS_PROF_FLAGS} ${CFS_OPT_FLAGS} ${CFS_SUPPRESSIONS}")
+STRING(STRIP "${CMAKE_C_FLAGS}" CMAKE_C_FLAGS)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CFS_CXX_FLAGS} ${CFS_PROF_FLAGS} ${CFS_OPT_FLAGS} ${CFS_SUPPRESSIONS}")
+STRING(STRIP "${CMAKE_CXX_FLAGS}" CMAKE_CXX_FLAGS)
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CFS_PROF_FLAGS} ${CFS_LINKER_FLAGS}")
+STRING(STRIP "${CMAKE_EXE_LINKER_FLAGS}" CMAKE_EXE_LINKER_FLAGS)
 SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${CFS_PROF_FLAGS} ${CFS_LINKER_FLAGS}")
+STRING(STRIP "${CMAKE_MODULE_LINKER_FLAGS}" CMAKE_MODULE_LINKER_FLAGS)
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CFS_PROF_FLAGS} ${CFS_LINKER_FLAGS}")
+STRING(STRIP "${CMAKE_SHARED_LINKER_FLAGS}" CMAKE_SHARED_LINKER_FLAGS)
 
 # MESSAGE("C++ name: ${CFS_CXX_COMPILER_NAME}")
 # MESSAGE("C++ version: ${CFS_CXX_COMPILER_VER}")

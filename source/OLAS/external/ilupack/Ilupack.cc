@@ -270,23 +270,36 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
       break;
 
     case -1:  // too many iterations
-      ss << "Number of iteration steps exceeds its limit";
+      ss << "Maximum number of iteration steps has been exceeded.";
       break;
 
     case -2: 
-      ss << "Not enough work space provided";
+      ss << "Not enough work space provided.";
       break;
 
     case -3:  /* not enough work space */
-      ss << "Algorithm breaks down";
+      ss << "Algorithm breaks down.";
       break;
 
     default: 
-      ss << "Solver exited with error code " << ierr;
+      ss << "Solver exited with error code: " << ierr << ".";
   } 
 
-  // stop if necessary
-  if(ierr != 0) throw Exception(ss.str());
+  // why did the iterative solver stop?
+  switch (ierr) 
+  {
+    case  0:  // everything is fine
+      break;
+
+    case -1:  // too many iterations
+      WARN(ss.str());
+      break;
+
+    default: 
+      // stop if necessary
+      throw Exception(ss.str());
+  } 
+
 
   out->Get("iterations")->SetValue(param.ipar[26]);
   PtrParamNode timing = out->Get("timing");

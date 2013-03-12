@@ -819,7 +819,7 @@ namespace CoupledField {
 
     isInitialized_ = true;
 
-    // Fix problems due to negative Jacobian determinants
+    // Try to fix problems due to negative Jacobian determinants
     CorrectElementConnectivities();
     
     // make named nodes from lines
@@ -1531,7 +1531,7 @@ namespace CoupledField {
                  << "node number " << inode );
     }
 
-    if ( (dim_ == 2) && (rfPoint[2] != 0) ) {
+    if ( (dim_ == 2) && rfPoint.GetSize() > 2 && (rfPoint[2] != 0) ) {
       EXCEPTION( "GridCFS: Dimension of grid is 2D. "
                   << "But you wanted to set the 3D coordinate " << "("
                   << rfPoint[0] << ", " << rfPoint[1] << ", " << rfPoint[2]
@@ -2981,7 +2981,7 @@ namespace CoupledField {
       jacDet = esm->CalcJDet( jacobian, Elem::shapes[el->type].midPointCoord);
       if( jacDet < 0 ) {
         try {
-        el->CorrectConnectivity();
+        el->CorrectConnectivity(*this);
         // at this point, we can be sure that the element connectivity
         // was adjusted correctly
         corrElems.insert(el);

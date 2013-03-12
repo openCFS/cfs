@@ -221,6 +221,7 @@ elif [ ${OS} = "Darwin" ]; then
         DIST_FAMILY="MACOSX"
         FULL_REV=$MACOSVER
         MAJOR_REV=`echo $FULL_REV | sed -e 's/\.[0-9]$//' -e 's/Server //'`
+        REV=`echo $FULL_REV | sed -e 's/Server //' -e 's/ //g'`
 
         case "$MAJOR_REV" in
             "10.0") PSEUDONAME="Cheetah";;
@@ -234,7 +235,6 @@ elif [ ${OS} = "Darwin" ]; then
             "10.8") PSEUDONAME="Mountain Lion"; ARCH="X86_64";;
         esac
 
-        REV=$FULL_REV
         OSSTR="$OS $DIST $MAJOR_REV ($FULL_REV $PSEUDONAME ${MACH})"
     else
         DIST="DARWIN"

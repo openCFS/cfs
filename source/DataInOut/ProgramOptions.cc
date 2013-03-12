@@ -9,6 +9,7 @@
 #include <def_use_gidpost.hh>
 #include <def_use_ilupack.hh>
 #include <def_use_suitesparse.hh>
+#include <def_use_lis.hh>
 #include <def_use_metis.hh>
 #include <def_use_xerces.hh>
 #include <def_use_arpack.hh>
@@ -42,9 +43,7 @@
 #include <acml.h>
 #endif
 
-#ifndef WIN32
-//#include <bzlib.h>
-#endif
+#include <bzlib.h>
 #include <zlib.h>
 
 #include <H5public.h>
@@ -57,6 +56,10 @@
 #include <cholmod.h> 
 #include <umfpack.h> 
 #include <amd.h> 
+#endif
+
+#ifdef USE_LIS
+#include <lis.h> 
 #endif
 
 #ifdef USE_ARPACK
@@ -538,6 +541,9 @@ namespace CoupledField {
         << "CFS_BUILD_USER:        "
         << fg_blue << CFS_BUILD_USER << fg_reset << endl
 
+        << "CFS_BUILD_DISTRO:      "
+        << fg_blue << CFS_BUILD_DISTRO << fg_reset << endl
+
         << "CFS_WC_REVISION:       "
         << fg_blue << CFS_WC_REVISION << fg_reset << endl
 
@@ -705,12 +711,12 @@ namespace CoupledField {
         << UMFPACK_SUBSUB_VERSION << " (" << UMFPACK_DATE << ") "
         << fg_reset << endl;
  #else
-    out << "USE_SUITESPARSE:           "
+    out << "USE_SUITESPARSE:       "
         << fg_blue  << "NO" << fg_reset << endl;
  #endif
 
- #ifdef USE_PARDISO
     out << endl;
+ #ifdef USE_PARDISO
     out << "USE_PARDISO:           "
         << fg_blue << "YES" << fg_reset << endl;
     out << "PARDISO_IMPL:          "
@@ -718,6 +724,17 @@ namespace CoupledField {
  #else
     out << "USE_PARDISO:           "
            << fg_blue << "NO" << fg_reset << endl;
+ #endif
+
+ #ifdef USE_LIS
+    out << endl;
+    out << "USE_LIS:               "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "LIS_VERSION:           "
+        << fg_blue  << LIS_VERSION << fg_reset << endl;
+ #else
+    out << "USE_LIS:               "
+        << fg_blue  << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_METIS
@@ -764,21 +781,13 @@ namespace CoupledField {
         << fg_blue << "NO" << fg_reset << endl;
 #endif
 
-#ifdef USE_GMV_INPUT
-    out << "USE_GMV_INPUT:         "
+#ifdef USE_GMV
+    out << "USE_GMV:               "
         << fg_blue << "YES" << fg_reset << endl;
  #else
-    out << "USE_GMV_INPUT:         "
+    out << "USE_GMV:               "
         << fg_blue << "NO" << fg_reset << endl;
  #endif
-
- #ifdef USE_GMV_OUTPUT
-    out << "USE_GMV_OUTPUT:        "
-        << fg_blue << "YES" << fg_reset << endl;
- #else
-    out << "USE_GMV_OUTPUT:        "
-        << fg_blue << "NO" << fg_reset << endl;
-#endif
 
  #ifdef USE_HDF5
     out << "USE_HDF5:              "
@@ -830,7 +839,7 @@ namespace CoupledField {
     out << endl;
 
 #ifdef USE_CGAL
-    out << "USE_CGAL:     "
+    out << "USE_CGAL:              "
         << fg_blue << "YES" << fg_reset << endl;
     out << "CFS_CGAL_VERSION:      "
         << fg_blue << QUOTEME(CGAL_VERSION)
@@ -838,7 +847,7 @@ namespace CoupledField {
         << ", SVN rev. " << CGAL_SVN_REVISION << ")"
         << fg_reset << endl;
 #else
-    out << "USE_CGAL:     "
+    out << "USE_CGAL:              "
         << fg_blue << "NO" << fg_reset << endl;
 #endif
     
@@ -850,10 +859,8 @@ namespace CoupledField {
       (BOOST_VERSION % 100) << fg_reset << endl;
     out << "CFS_ZLIB_VERSION:      "
         << fg_blue << zlibVersion() << fg_reset << endl;
-#ifndef WIN32
-//    out << "CFS_BZIP2_VERSION:     "
-//        << fg_blue << BZ2_bzlibVersion() << fg_reset << endl;
-#endif
+    out << "CFS_BZIP2_VERSION:     "
+        << fg_blue << BZ2_bzlibVersion() << fg_reset << endl;
     out << "CFS_MUPARSER_VERSION:  "
         << fg_blue << MUP_VERSION << " " MUP_VERSION_DATE << fg_reset << endl;
 

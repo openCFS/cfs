@@ -131,6 +131,7 @@ namespace CoupledField {
       presSpace->SetRegionApproximation(region, "presPolyId", "presIntegId");
       dispSpace->SetRegionApproximation(region, "default", "default");
       lagrangeMultSpace->SetRegionApproximation(region, "presPolyId", "velIntegId");
+      // lagrangeMultSpace->SetRegionApproximation(region, "velPolyId", "velIntegId");
 
       // This integrator gets assembled into the damping (first time deriv.) matrix in the row of the LM
       DefineDampingIntegrators("FluidMechDampingLMVelCouplingInt",
@@ -274,7 +275,7 @@ namespace CoupledField {
                                       oneFuncs, -1.0, flowRegions);
         //          (densityFuncs, 1.0, flowRegions);
     } else if( subType_ == "planeStrain" ) {
-      stiffInt = new SurfaceABInt<>(new  IdentityOperator<FeH1,2,2>(),
+      stiffInt = new SurfaceABInt<>(new IdentityOperator<FeH1,2,2>(),
                                     new IdentityOperator<FeH1,2,2>(),
                                     oneFuncs, -1.0, flowRegions);
                  //        (densityFuncs, 1.0, flowRegions);
@@ -349,7 +350,8 @@ namespace CoupledField {
 
    PtrParamNode spaceNode;
    spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE));
-
+   // spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY));
+   
    crSpaces[formulation_] =
        FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
 

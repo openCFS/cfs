@@ -8,6 +8,8 @@
 # Set global variables, configured from the external build.
 #=============================================================================
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(WIN32 "@WIN32@")
+SET(MSVC "@MSVC@")
 
 #=============================================================================
 # Include some convenient macros (e.g. for applying patches).

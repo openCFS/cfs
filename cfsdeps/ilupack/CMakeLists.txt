@@ -2,10 +2,25 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
 
 PROJECT(ilupack C Fortran)
 
-IF(CFS_DISTRO STREQUAL "MACOSX")
+if(COMMAND cmake_policy)
+  cmake_policy(SET CMP0003 NEW)
+endif(COMMAND cmake_policy)
+
+set(INSTALL_BIN_DIR
+  "${CMAKE_INSTALL_PREFIX}/bin/${CFS_ARCH_STR}"
+  CACHE PATH "Installation directory for executables")
+set(INSTALL_LIB_DIR
+  "${CMAKE_INSTALL_PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+  CACHE PATH "Installation directory for libraries")
+set(INSTALL_INC_DIR
+  "${CMAKE_INSTALL_PREFIX}/include"
+  CACHE PATH "Installation directory for headers")
+
+
+IF(APPLE)
 #  ADD_DEFINITIONS("-D_DECLARE_ILUPACK_GLOBALS_")
   ADD_DEFINITIONS("-fno-common")
-ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+ENDIF(APPLE)
 
 # Decide which type of matching should be used
 SET(MATCHING_TYPE "MUMPS"
@@ -20,6 +35,18 @@ SET(FLOAT_TYPE "DOUBLE_REAL"
   CACHE STRING
   "Type of floating points numbers to use. May be one of SINGLE_REAL, DOUBLE_REAL, SINGLE_COMPLEX, DOUBLE_COMPLEX")
 
+#-----------------------------------------------------------------------------
+# Include all the necessary files for macros
+#-----------------------------------------------------------------------------
+INCLUDE (${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
+
+CHECK_INCLUDE_FILE ("sys/times.h"   HAVE_SYS_TIMES_H)
+CHECK_INCLUDE_FILE ("sys/time.h"    HAVE_SYS_TIME_H)
+
+CONFIGURE_FILE( 
+  "include/ilupack_config.h.in"
+  "${CMAKE_SOURCE_DIR}/include/ilupack_config.h"
+)
 
 # Set internal MATCHING variable according to MATCHING_TYPE
 IF(MATCHING_TYPE STREQUAL "MUMPS")
@@ -56,32 +83,41 @@ IF(FLOAT_TYPE STREQUAL "DOUBLE_REAL")
   SET(FLOAT "D")
 ENDIF(FLOAT_TYPE STREQUAL "DOUBLE_REAL")
 
+# We want to build ILUPACK with the LP64 model.
+# CFS is compiled with 32 integers (check via cfs --version) on all plattforms
+# otherwise check CFS_ARCH and set for "X86_64" "_LONG_INTEGER_" and for gfortran
+# SET(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-integer-8")
+SET(LONGINTEGER "_NOT_USING_LONG_INTEGER_")
+
+# switch for names alias of fortran routines
+# -D__UNDERSCORE__   use this, if a fortran routine say "daxpy" has to be
+#                    called from C using the name "daxpy_"
+# -D__CAPS__         use this, if a fortran routine say "daxpy" has to be
+#                    called from C using the name "DAXPY"
+# -D__2UNDERSCORES__ use this, if a fortran routine say "daxpy" has to be
+#                    called from C using the name "daxpy__"
+# You can combine __CAPS__ with either __UNDERSCORE__ or __2UNDERSCORES__
+# to obtain names like "DAXPY_" or "DAXPY__"
+# SOLARIS OS:      -D__UNDERSCORE__
+# Red Hat Linux:   -D__UNDERSCORE__
+# AIX:             none
+SET(FORTRANNAMES "__UNDERSCORE__")
+
 IF(WIN32)
+  IF(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+    SET(FORTRANNAMES "__CAPS__")
+  ENDIF()
+
+  if(MSVC)
+    set(CMAKE_DEBUG_POSTFIX "d")
+  endif()
 ELSE(WIN32)
-  # switch for names alias of fortran routines
-  # -D__UNDERSCORE__   use this, if a fortran routine say "daxpy" has to be
-  #                    called from C using the name "daxpy_"
-  # -D__CAPS__         use this, if a fortran routine say "daxpy" has to be
-  #                    called from C using the name "DAXPY"
-  # -D__2UNDERSCORES__ use this, if a fortran routine say "daxpy" has to be
-  #                    called from C using the name "daxpy__"
-  # You can combine __CAPS__ with either __UNDERSCORE__ or __2UNDERSCORES__
-  # to obtain names like "DAXPY_" or "DAXPY__"
-  # SOLARIS OS:      -D__UNDERSCORE__
-  # Red Hat Linux:   -D__UNDERSCORE__
-  # AIX:             none
-  SET(FORTRANNAMES "__UNDERSCORE__")
 
   # If compiler is gfortran add a flag that implicit variable declarations
   # produce an error
-  IF(CMAKE_Fortran_COMPILER MATCHES "gfortran")
+  IF(CMAKE_COMPILER_IS_GNUFortran)
     SET(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fimplicit-none")
-  ENDIF(CMAKE_Fortran_COMPILER MATCHES "gfortran")
-
-  # CFS is compiled with 32 integers (check via cfs --version) on all plattforms
-  # otherwise check CFS_ARCH and set for "X86_64" "_LONG_INTEGER_" and for gfortran
-  # SET(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-integer-8")
-  SET(LONGINTEGER "_NOT_USING_LONG_INTEGER_")
+  ENDIF()
 
 ENDIF(WIN32)
 
@@ -97,8 +133,8 @@ SET(BLASLIKE_SRCS
   #blaslike/sprivatesptrs.F
   blaslike/zdotc2.F
   blaslike/zdotu2.F
-  blaslike/zprivatehptrs.F
-  blaslike/zrot.F)
+  blaslike/zprivatehptrs.F)
+  #blaslike/zrot.F)
 
 SET_SOURCE_FILES_PROPERTIES(${BLASLIKE_SRCS}
   PROPERTIES COMPILE_FLAGS "-D${ARITHMETIC} -D${LONGINTEGER}")
@@ -107,16 +143,12 @@ INCLUDE_DIRECTORIES(include)
 
 SET(BLASLIKE_LIBNAME blaslike)
 
-IF(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-    SET(ILUPACK_LIBNAME ${BLASLIKE_LIBNAME}d)
-ENDIF(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-
 ADD_LIBRARY(${BLASLIKE_LIBNAME} STATIC ${BLASLIKE_SRCS})
 
 INSTALL(TARGETS ${BLASLIKE_LIBNAME}
-  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
+  ARCHIVE DESTINATION "${INSTALL_LIB_DIR}")
 
-# SPARPAK
+# SPARSPAK
 SET(SPARSPAK_SRCS 
   sparspak/rcm.F
   sparspak/rootls.F
@@ -137,14 +169,10 @@ SET_SOURCE_FILES_PROPERTIES(${SPARPAK_SRCS}
 
 SET(SPARSPAK_LIBNAME sparspak)
 
-IF(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-    SET(ILUPACK_LIBNAME ${SPARSPAK_LIBNAME}d)
-ENDIF(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-
 ADD_LIBRARY(${SPARSPAK_LIBNAME} STATIC ${SPARSPAK_SRCS})
 
 INSTALL(TARGETS ${SPARSPAK_LIBNAME}
-  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
+  ARCHIVE DESTINATION "${INSTALL_LIB_DIR}")
 
 
 SET(FORTRAN_SRCS 
@@ -277,6 +305,8 @@ SET_SOURCE_FILES_PROPERTIES(${TOOLS_SRCS}
 
 SET_SOURCE_FILES_PROPERTIES(tools/globals.c 
     PROPERTIES COMPILE_FLAGS "-DILUPACK_LIB_FLOATNESS=${FLOAT} -D${MATCHING} -D${FORTRANNAMES} -D${ARITHMETIC} -D${LONGINTEGER}")
+
+INCLUDE_DIRECTORIES(sparskit)
 
 SET(SPARSKIT_SRCS
   sparskit/gmres.F
@@ -536,7 +566,21 @@ SET(ORDERINGS_SRCS
   orderings/symperm_matching_rcm_FC.c
   orderings/symperm_matching_rcm_FCs.c
   orderings/symperm_matching_rcm_FCv.c
-  orderings/symperm_matching_rcm_FCvs.c)
+  orderings/symperm_matching_rcm_FCvs.c
+
+#  amd/amd_1.c
+#  amd/amd_2.c
+#  amd/amd_aat.c
+#  amd/amd_control.c
+#  amd/amd_defaults.c
+#  amd/amd_dump.c
+#  amd/amd_info.c
+#  amd/amd_order.c
+#  amd/amd_postorder.c
+#  amd/amd_post_tree.c
+  amd/ilupack_amd_preprocess.c
+#  amd/amd_valid.c
+)
 
 # Sources for saddle point problems which do not work at the moment
 #  orderings/symperm_matching_amd_sp.c
@@ -561,6 +605,8 @@ SET(ORDERINGS_SRCS
 
 SET_SOURCE_FILES_PROPERTIES(${ORDERINGS_SRCS}
   PROPERTIES COMPILE_FLAGS "-D${MATCHING} -D${FORTRANNAMES} -D${ARITHMETIC} -D${LONGINTEGER}")
+
+INCLUDE_DIRECTORIES(preconditioners)
 
 SET(PRECONDITIONERS_SRCS
   preconditioners/AMGdlsol.c
@@ -706,9 +752,9 @@ ENDIF(MATCHING_TYPE STREQUAL "MUMPS")
 # Set name for ilupack library
 SET(ILUPACK_LIBNAME "${FLOAT}ilupack")
 
-IF(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+IF(MSVC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     SET(ILUPACK_LIBNAME ${ILUPACK_LIBNAME}d)
-ENDIF(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+ENDIF(MSVC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
 
 # Build an overall list of ilupack sources
 SET(ILUPACK_SRCS
@@ -733,17 +779,18 @@ ADD_LIBRARY(${ILUPACK_LIBNAME} STATIC
 
 # Put ilupack sources into a lib directory when installing
 INSTALL(TARGETS ${ILUPACK_LIBNAME}
-  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
+  ARCHIVE DESTINATION "${INSTALL_LIB_DIR}")
 
 INSTALL(FILES
   "include/ilupack.h"
   "include/f2c.h"
   "include/long_integer.h"
   "include/namesilupack.h"
-  DESTINATION include)
+  DESTINATION "${INSTALL_INC_DIR}")
 
 IF(BUILD_SAMPLES)
-MESSAGE("Query ${PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+  # MESSAGE("Query ${PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+
   # The libraries AMD, BLAS, LAPACK and Metis are built
   # as standalone libraries independently of ilupack.
   # Therefore they are searched for in a given directory
@@ -784,64 +831,86 @@ MESSAGE("Query ${PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
   SET(MAINSPD_SRCS samples/mainspd.c)
   SET(MAINSYM_SRCS samples/mainsym.c)
   SET(MAINSYMS_SRCS samples/mainsyms.c)
+  SET(MAINGNL_SRCS samples/maingnl.c)
 #  SET(FMAINSYMS_SRCS samples/fmainsyms.F)
 #  SET(MAINILUC_SRCS samples/mainiluc.c)
-#  SET(MAINSYM3S_SRCS samples/mainsym3s.c)
+  SET(MAINSYM3S_SRCS samples/mainsym3s.c)
 
   SET_SOURCE_FILES_PROPERTIES(
     ${MAIN_SRCS}
     ${MAINSPD_SRCS}
     ${MAINSYM_SRCS}
     ${MAINSYMS_SRCS}
+    ${MAINGNL_SRCS}
  #   ${FMAINSYMS_SRCS}
  #   ${MAINILUC_SRCS}
- #   ${MAINSYM3S_SRCS}
+    ${MAINSYM3S_SRCS}
      PROPERTIES COMPILE_FLAGS "-D${MATCHING} -D${FORTRANNAMES} -D${ARITHMETIC} -D${LONGINTEGER}")
 
   SET(TARGET_LL
     ${ILUPACK_LIBNAME})
 
   IF(FLOAT STREQUAL "Z")
-    SET(TARGET_LL
-      ${TARGET_LL}
-      ${CMAKE_INSTALL_PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libDilupack.a
+    LIST(APPEND TARGET_LL
+      ${INSTALL_LIB_DIR}/libDilupack.a
       )
   ENDIF(FLOAT STREQUAL "Z")
 
   IF(FLOAT STREQUAL "C")
-    SET(TARGET_LL
-      ${TARGET_LL}
-      ${CMAKE_INSTALL_PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libSilupack.a
+    LIST(APPEND TARGET_LL
+      ${INSTALL_LIB_DIR}/libSilupack.a
       )
   ENDIF(FLOAT STREQUAL "C")
 
-  SET(TARGET_LL
-    ${TARGET_LL}
+  LIST(APPEND TARGET_LL
     ${BLASLIKE_LIBNAME}
     ${SPARSPAK_LIBNAME}
     ${AMD_LIB}
     ${LAPACK_LIB}
     ${BLAS_LIB}
     ${METIS_LIB}
-    m)
+  )
 
-  IF(CMAKE_Fortran_COMPILER MATCHES "gfortran")
-    SET(TARGET_LL
-      ${TARGET_LL}
-       gfortran)
-  ENDIF(CMAKE_Fortran_COMPILER MATCHES "gfortran")
+IF(CMAKE_COMPILER_IS_GNUC)
+  LIST(APPEND TARGET_LL m)
+ELSEIF(CMAKE_C_COMPILER_ID STREQUAL "Intel")
+  IF(UNIX)
+    LIST(APPEND TARGET_LL m)
+  ENDIF()
+ENDIF()
 
-  IF(CMAKE_Fortran_COMPILER MATCHES "ifort")
-    STRING(REGEX REPLACE "bin/ifort" "lib" IFORT_LIB_PATH "${CMAKE_Fortran_COMPILER}")
-    LINK_DIRECTORIES(${IFORT_LIB_PATH})
-    SET(TARGET_LL
-      ${TARGET_LL}
-      ifcoremt_pic
-      irc
-      imf
-      dl
-       pthread)
-  ENDIF(CMAKE_Fortran_COMPILER MATCHES "ifort")
+
+  # Make sure that C executables get linked against Fortran runtime libs.
+  # SET(CMAKE_Fortran_LINKER_PREFERENCE_PROPAGATES TRUE)
+
+  # Search explicitely for implicitely defined Fortran libs
+  foreach(lib IN LISTS CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES)
+    FIND_LIBRARY(${lib}_LIBRARY
+      NAMES ${lib}
+      PATHS ${CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES}
+      NO_DEFAULT_PATH
+      NO_CMAKE_ENVIRONMENT_PATH
+      NO_CMAKE_PATH
+      NO_SYSTEM_ENVIRONMENT_PATH
+      NO_CMAKE_SYSTEM_PATH 
+      )
+
+    LIST(APPEND TARGET_LL "${${lib}_LIBRARY}")
+  endforeach()
+
+  UNSET(CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES)
+
+#  IF(CMAKE_Fortran_COMPILER MATCHES "ifort")
+#    STRING(REGEX REPLACE "bin/ifort" "lib" IFORT_LIB_PATH "${CMAKE_Fortran_COMPILER}")
+#    LINK_DIRECTORIES(${IFORT_LIB_PATH})
+#    SET(TARGET_LL
+#      ${TARGET_LL}
+#      ifcoremt_pic
+#      irc
+#      imf
+#      dl
+#       pthread)
+#  ENDIF(CMAKE_Fortran_COMPILER MATCHES "ifort")
 
   ADD_EXECUTABLE("${FLOAT}main" ${MAIN_SRCS})
   TARGET_LINK_LIBRARIES("${FLOAT}main" ${TARGET_LL})
@@ -855,14 +924,17 @@ MESSAGE("Query ${PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
   ADD_EXECUTABLE("${FLOAT}mainsyms" ${MAINSYMS_SRCS})
   TARGET_LINK_LIBRARIES("${FLOAT}mainsyms" ${TARGET_LL})
 
+  ADD_EXECUTABLE("${FLOAT}maingnl" ${MAINGNL_SRCS})
+  TARGET_LINK_LIBRARIES("${FLOAT}maingnl" ${TARGET_LL})
+
  # ADD_EXECUTABLE("${FLOAT}fmainsyms" ${FMAINSYMS_SRCS})
  # TARGET_LINK_LIBRARIES("${FLOAT}fmainsyms" ${TARGET_LL})
 
-#  ADD_EXECUTABLE("${FLOAT}mainiluc" ${MAINILUC_SRCS})
-#  TARGET_LINK_LIBRARIES("${FLOAT}mainiluc" ${TARGET_LL})
+ # ADD_EXECUTABLE("${FLOAT}mainiluc" ${MAINILUC_SRCS})
+ # TARGET_LINK_LIBRARIES("${FLOAT}mainiluc" ${TARGET_LL})
 
-#  ADD_EXECUTABLE("${FLOAT}mainsym3s" ${MAINSYM3S_SRCS})
-#  TARGET_LINK_LIBRARIES("${FLOAT}mainsym3s" ${TARGET_LL})
+ ADD_EXECUTABLE("${FLOAT}mainsym3s" ${MAINSYM3S_SRCS})
+ TARGET_LINK_LIBRARIES("${FLOAT}mainsym3s" ${TARGET_LL})
 
 
   INSTALL(TARGETS
@@ -870,8 +942,10 @@ MESSAGE("Query ${PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
     ${FLOAT}mainspd
     ${FLOAT}mainsym
     ${FLOAT}mainsyms
+    ${FLOAT}maingnl
+#    ${FLOAT}fmainsyms
 #    ${FLOAT}mainiluc
-#    ${FLOAT}mainsym3s
-     RUNTIME DESTINATION "bin/${CFS_ARCH_STR}")
+    ${FLOAT}mainsym3s
+    RUNTIME DESTINATION "${INSTALL_BIN_DIR}")
 
 ENDIF(BUILD_SAMPLES)

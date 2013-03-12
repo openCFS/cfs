@@ -99,7 +99,7 @@ namespace CoupledField
     virtual UInt GetNumNodes() = 0;
  
     //! Get total number of elements in mesh
-    virtual UInt GetNumElems( const int32_t dim = -1 ) = 0;
+    virtual UInt GetNumElems( const Integer dim = -1 ) = 0;
 
     //! Get total number of regions
     virtual UInt GetNumRegions() = 0;

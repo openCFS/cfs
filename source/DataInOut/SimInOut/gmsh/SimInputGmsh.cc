@@ -406,8 +406,10 @@ namespace CoupledField {
       {
         UInt numPhysicalNames = 0;
         std::stringstream sstr;
-
-     
+        std::map<std::string, UInt> physNamesToDim;
+        std::map<std::string, UInt> physNamesToId;
+        std::map<std::string, UInt>::const_iterator it, end;
+        
         in >> numPhysicalNames;
 
         for(UInt i=0; i<=numPhysicalNames; i++)
@@ -433,7 +435,7 @@ namespace CoupledField {
             sstr >> physDim;
 
             dim_ = dim_ > physDim ? dim_ : physDim;
-
+            
 //             if(!sstr.good())
 //               continue;
           }
@@ -441,7 +443,7 @@ namespace CoupledField {
           sstr >> physId >> physName;
           //          if(!sstr.good())
           //            continue;
-
+          
           // remove " from physName
           boost::trim_if(physName, boost::is_any_of("\" \t"));
 
@@ -466,14 +468,45 @@ namespace CoupledField {
           
           if(readOnlySomeRegions_ && !readRegion)
             continue;
+
+          physNamesToDim[physName] = physDim;
+          physNamesToId[physName] = physId;
+        }
+
+        it = physNamesToDim.begin();
+        end = physNamesToDim.end();
+        
+        if(dim_ < 2) dim_ = 2;
+        
+        for( ; it != end; it++) {
+          std::string physName = it->first;
+          UInt physId = physNamesToId[it->first];
+          UInt physDim = it->second;
           
-          if(physDim > 0) {
-            physEntities2RegionNames_[physId] = physName;
-          } else {
-            physEntities2NamedNodes_[physId] = physName;
+          switch(physDim) {
+            case 0:
+              physEntities2NamedNodes_[physId] = physName;
+              break;
+            
+            case 1:
+              if(dim_ == 2) {
+                physEntities2RegionNames_[physId] = physName;
+              } else {
+                if(physName != "GmshNamedElems") 
+                {
+                  physEntities2RegionNames_[physId] = "GmshNamedElems";
+                  physEntities2NamedElems_[physId] = physName;
+                }
+              }
+              break;
+            
+            case 2:
+            case 3:
+              physEntities2RegionNames_[physId] = physName;
+              break;
           }
         }
-     
+        
         //        std::cout << "Ending $Elements Block" << std::endl;
         //        EXCEPTION("Done reading elements");
       }
@@ -595,8 +628,13 @@ namespace CoupledField {
     
     for( ; regIt != regEnd; regIt++) {
       RegionIdType actRegionId;
-      actRegionId = mi->AddRegion(regIt->second);
-
+      const Enum<RegionIdType> regEnum = mi->GetRegion();
+      RegionIdType def = NO_REGION_ID;
+      actRegionId = regEnum.Parse(regIt->second, def);
+      if(actRegionId == NO_REGION_ID) {
+        actRegionId = mi->AddRegion(regIt->second);
+      }
+      
       regionIdMap[regIt->first] = actRegionId;
 
       // Go over all elements
@@ -614,7 +652,7 @@ namespace CoupledField {
           LinearizeElem(&elementTypes_[i]);
 
         // Iterate over all nodes of element and build up map of nodes
-        // which must be transfered to the Grid.
+        // which must be transferred to the Grid.
 
         UInt numElemNodes = Elem::shapes[elementTypes_[i]].numNodes;
         //        std::cout << "numElemNodes " << numElemNodes << std::endl;
@@ -667,13 +705,15 @@ namespace CoupledField {
       numKnownElems++;
     }
 
-    std::map<UInt, StdVector<UInt> > namedNodes;
+    // Add elements to grid and check which ones are named elements
+    std::map<UInt, std::string >::const_iterator peIt, peEnd;
+    std::map<UInt, StdVector<UInt> > namedElems;
 
     UInt numElemsInGrid = mi->GetNumElems() + 1;
     mi->AddElems( numKnownElems );
     for( UInt i=0; i < numElements; i++ ) {
       Elem::FEType feType = elementTypes_[readElemIndices[i]];
-      if(feType == Elem::ET_UNDEF) {
+      if(feType == Elem::ET_UNDEF || feType == Elem::ET_POINT) {
         continue;
       }
 
@@ -684,20 +724,67 @@ namespace CoupledField {
         conn[j] = nodeNumMap2[conn[j]];
       }
 
+      UInt ePhysType = elementPhysicsTypes_[readElemIndices[i]];
+      
       mi->SetElemData( numElemsInGrid, feType,
-                       regionIdMap[elementPhysicsTypes_[readElemIndices[i]]],
+                       regionIdMap[ePhysType],
                        conn );
 
+      // Check for named elements and add them to a map
+      peIt = physEntities2NamedElems_.begin();
+      peEnd = physEntities2NamedElems_.end();
+      for( ; peIt != peEnd; peIt++ ) {
+        if(ePhysType != peIt->first) continue;
+        // std::cout << "Named Elems: " << peIt->first << " " << peIt->second << std::endl;
+   
+        namedElems[peIt->first].Push_back( numElemsInGrid );
+      }
+                       
       numElemsInGrid++;
     }
 
+    // Add named nodes to grid
+    std::map<UInt, StdVector<UInt> > namedNodes;
     std::map<UInt, StdVector<UInt> >::iterator nnIt, nnEnd;
+
+    peIt = physEntities2NamedNodes_.begin();
+    peEnd = physEntities2NamedNodes_.end();
+
+    for( ; peIt != peEnd; peIt++ ) {
+      // std::cout << "Named Nodes: " << peIt->first << " " << peIt->second << std::endl;
+      
+//      elementTypes_[idx] = feType;
+//      elementPhysicsTypes_[idx] = regPhys;
+      
+      for(UInt i=0, n=elementPhysicsTypes_.size(); i<n; i++) {
+        if(elementPhysicsTypes_[i] != peIt->first) continue;
+        
+        UInt* conn = &connectivity_[numNodesPerElem_*i];
+        // std::cout << "We have found element physics type: " << elementPhysicsTypes_[i] << std::endl;
+        // std::cout << "Node connectivity: " << conn[0] << std::endl;
+
+        if(nodeNumMap2.find(conn[0]) != nodeNumMap2.end()) {
+          // std::cout << "Node is " << conn[0] << " maps to " << nodeNumMap2[conn[0]] << std::endl;
+          namedNodes[peIt->first].Push_back(nodeNumMap2[conn[0]]);
+        }        
+      }
+    }
+    
     nnIt = namedNodes.begin();
     nnEnd = namedNodes.end();
-
     for( ; nnIt != nnEnd; nnIt++ ) {
       mi->AddNamedNodes(physEntities2NamedNodes_[nnIt->first], nnIt->second);
     }
+
+    // Add named elements to grid
+    std::map<UInt, StdVector<UInt> >::iterator neIt, neEnd;
+
+    neIt = namedElems.begin();
+    neEnd = namedElems.end();
+    for( ; neIt != neEnd; neIt++ ) {
+      mi->AddNamedElems(physEntities2NamedElems_[neIt->first], neIt->second);
+    }
+
   }
 
   void SimInputGmsh::TransformNodes(CoordSystem& coordSys, double scaleFac)

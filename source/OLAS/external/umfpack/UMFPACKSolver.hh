@@ -141,74 +141,45 @@ namespace CoupledField {
     //! Handle for numeric factorization data of UMFPACK
     void *Numeric ;
 
-    //! enum of PARIDO's error codes
-    typedef enum {
-      NO_UMFPACK_ERROR = 0,
-      INPUT_INCONSISTENT = -1,
-      NOT_ENOUGH_MEMORY = -2,
-      REORDERING_PROBLEM = -3,
-      ZERO_PIVOT = -4,
-      INTERNAL_ERROR = -5,
-      PREORDERING_FAILED = -6,
-      DIAGONAL_MATRIX = -7,
-      INT_OVERFLOW = -8,
-      NOT_ENOUGH_OOC_MEM = -9,
-      NO_LIC_FILE = -10,
-      LIC_EXPIRED = -11,
-      WRONG_USER_OR_HOSTNAME = -12,
-      MAX_KRYLOV_ITERATIONS = -100,
-      INSUFF_KRYLOV_CONVERGENCE = -101,
-      KRYLOV_ITERATION_ERROR = -102,
-      KRYLOV_BREAKDOWN = -103
-    } PardisoError;
-
-    //! Returns a string describing the given error code
-    std::string GetErrorString(int err_code);
-
     //@{
     //! Vectors containing the information about the CRS- or SCRS-matrix
 
     //! This pointer is used to hold the address of a part of the internal
     //! (S)CRS matrix structures. The related memory segment must not
     //! be altered of deleted. Therefore the pointer is const!
-    Integer *rowPtr_;
-    Integer *colPtr_;
-    const T *datPtr_;
+    Integer *Ap, *Ai;
+
+    //! This array contains the entries of the problem matrix of the linear
+    //! system that is to be solved. We implicitely assume that a Complex can
+    //! directly be cast into an array of two Doubles.
+    Double* Ax;
+
+    //! Index arrays for system matrix in compressed column storage (CSC)
+    //! format. Output from umfpack_*i_transpose of Ap, Ai.  
+    std::vector<Integer> Rp, Ri;
+
+    //! Data array for system matrix in compressed column storage (CSC)
+    //! format. Output from umfpack_*i_transpose of Ax.  
+    std::vector<Double> Rx;
+
     //@}
 
     //! Stored information about the storage type and entry type of the matrix
     BaseMatrix::StorageType stype;
     BaseMatrix::EntryType etype;
 
-    //! A working array for the Pardiso-Routines
+    //! Printing level of UMFPACK
+    Integer printingLevel_;
 
-    //! This is the internal memory address array used by Pardiso. It must
-    //! contain 64 entries, which are 4-byte void pointers on a 32-bit
-    //! architecture and 8-byte void pointers on a 64-bit architecture.
-    StdVector<void*> pt_;
+    //! Print statistics while solving.
+    bool printStats_;
 
-    //! Array for passing information to and from Pardiso
-
-    //! This integer array is used to communicate parameters to and from
-    //! Pardiso. Instead of Fortran-/one-based indexing we use C-/zero-
-    //! based element indexing.
-    StdVector<int> iparm_;
+    Double tol_;    
+    Double symtol_;
+    Double irstep_;
 
     //! The type of the matrix in a special encoding used by Pardiso
     int mType_;
-
-    //! This double array is used to communicate parameters to and from
-    //! Pardiso. It has been introduced in Pardiso 4.0. Instead of 
-    //! Fortran-/one-based indexing we use C-/zero-based element indexing.
-    StdVector<double> dparm_;
-    
-    //! Maximal number of factors with identical nonzero-structure Pardiso
-    //! should keep in memory at the same time.
-    int maxfct_;
-
-    //! The number of the matrix (out of the maxfct ones) that should be used
-    //! for the solution process
-    int mnum_;
 
     //! Dimension of the linear system
     int probDim_;
@@ -217,48 +188,31 @@ namespace CoupledField {
     //! at one pass
     int nrhs_;
 
-    //! Specifies verbosity of Pardiso itself
-
-    //! This attribute stores a number specifying the verbosity of the Pardiso
-    //! solver itself. For a value of 0 no output is generated, will setting
-    //! the message level to 1 results in statistical information being printed
-    //! to the standard output. The attribute's value is set in the Setup()
-    //! method corresponding to the PARDISO_stats parameter.
-    int msgLvl_;
-
     //! Array containing entries of problem matrix
-
-    //! This array contains the entries of the problem matrix of the linear
-    //! system that is to be solved. We imnplicitely assume that a Complex can
-    //! directly be cast into an array of two Doubles.
-    Double *theMatrix_;
 
     //! A flag specifying if Setup is being called for the first time
     bool firstCall_;
 
-    //! Array with identity reordering
-
-    //! This pointer is either NULL or points to a one-based array containing
-    //! an identity re-ordering. The latter is used to force Pardiso to use
-    //! the original matrix pattern, in the case that NOREORDERING is specified
-    //! by the user via the PARDISO_ordering parameter.
-    int *idPerm_;
-
-    //! Size of identity permutation array
-    int idPermSize_;
+    //! Do we solve a system with complex or double entries?
+    bool isComplex_;
 
     //! number of non zero entries
     UInt nnz_;
 
-      int n_row, n_col, status, *Ap, *Ai, *P, *Q, *Rp, *Ri;
-      double *Ax, *Rx ;
+    Integer status;
+
+    std::vector<double> Info;
+    std::vector<double> Control;
+    
+    Double strategy_;
+    Double ordering_;
     
   };
 
 }
 
 #ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "pardisosolver.cc"
+//#include "UMFPACKSolver.cc"
 #endif
 
 #endif

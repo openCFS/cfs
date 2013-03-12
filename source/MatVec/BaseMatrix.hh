@@ -72,6 +72,15 @@ namespace CoupledField {
        LAPACK_GBMATRIX, DIAG, VAR_BLOCK_ROW} StorageType;
     static Enum<StorageType> storageType;
 
+    //! Available output formats for matrices.
+
+    //! This enumeration data type lists the supported  output formats of a
+    //! sparse matrix. It can take one of the following values
+    //! - MATRIX_MARKET
+    //! - HARWELL_BOEING
+    typedef enum { MATRIX_MARKET = 1, HARWELL_BOEING = 2} OutputFormat;
+    static Enum<OutputFormat> outputFormat;
+    
     //! Default Constructor
     BaseMatrix(){
     }
@@ -111,13 +120,13 @@ namespace CoupledField {
 
     //! Export the matrix to a file in MatrixMarket format
 
-    //! The method will export the matrix to an ascii file according to the
-    //! MatrixMarket specifications. For details of the specification see
-    //! http://math.nist.gov/MatrixMarket
+    //! The method will export the matrix to an ascii file.
     //! \param fname name of output file
+    //! \param format matrix output format 1 = MatrixMarket, 2 = Harwell-Boeing (optional)
     //! \param comment string to be inserted into file header (optional)
-    virtual void Export( const char *fname, const char *comment = NULL )
-    const = 0;
+    virtual void Export( const char *fname,
+                         OutputFormat format = MATRIX_MARKET,
+                         const char *comment = NULL) const = 0;
 
 
     //! Add the multiple of a matrix to this matrix

@@ -262,8 +262,8 @@ namespace CoupledField {
   //   Export matrix to file
   // *************************
   template <class entryF, class entryC>
-  void LapackGBMatrix<entryF,entryC>::Export( const char *fname,
-                                              const char *comment ) const {
+  void LapackGBMatrix<entryF,entryC>::ExportMatrixMarket( const char *fname,
+                                                          const char *comment ) const {
 
 
     // open output file and check for errors
@@ -294,7 +294,7 @@ namespace CoupledField {
       fprintf( fp, "%%\n%% %s\n%%\n", comment );
     }
     else {
-      fprintf( fp, "%%\n%% Matrix exported by OLAS\n%%\n" );
+      fprintf( fp, "%%\n%% Matrix exported by CFS++\n%%\n" );
     }
 
     // -----------------

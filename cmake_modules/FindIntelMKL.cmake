@@ -1,4 +1,4 @@
-IF(MINGW)
+IF(MINGW OR MSVC)
 
   SET(MINGW_MKL_VERSION 10.0)
 
@@ -16,36 +16,45 @@ IF(MINGW)
       SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/ia32/lib")
 
       SET(MKL_BLAS_LIB
-	${MKL_LIB_DIR}/mkl_intel_c.lib
-	${MKL_LIB_DIR}/mkl_intel_thread.lib
-	${MKL_LIB_DIR}/mkl_core.lib
-	${MKL_LIB_DIR}/mkl_intel_c.lib
-	${MKL_LIB_DIR}/libiomp5md.lib
-	${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/ia32/runtmchk.lib
-	)
+        ${MKL_LIB_DIR}/mkl_intel_c.lib
+        ${MKL_LIB_DIR}/mkl_intel_thread.lib
+        ${MKL_LIB_DIR}/mkl_core.lib
+        ${MKL_LIB_DIR}/mkl_intel_c.lib
+        ${MKL_LIB_DIR}/libiomp5md.lib
+        )
+      IF(MINGW)
+        LIST(APPEND MKL_BLAS_LIB 
+          ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/ia32/runtmchk.lib
+        )
+      ENDIF()
+
       SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
       
       SET(MKL_PARDISO_LIB
-	${MKL_LIB_DIR}/mkl_solver.lib
-	)
+        ${MKL_LIB_DIR}/mkl_solver.lib
+        )
     ELSE(CFS_ARCH STREQUAL "I386")
       SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/em64t/lib")
 
       SET(MKL_BLAS_LIB
-	${MKL_LIB_DIR}/mkl_intel_lp64.lib
-	${MKL_LIB_DIR}/mkl_intel_thread.lib
-	${MKL_LIB_DIR}/mkl_core.lib
-	${MKL_LIB_DIR}/mkl_intel_lp64.lib
-	${MKL_LIB_DIR}/libiomp5mt.lib
-	${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/amd64/runtmchk.lib
-	#    wrap-chkstk
-	#    ${MKL_LIB_DIR}/libguide40.lib
-	)
+        ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+        ${MKL_LIB_DIR}/mkl_intel_thread.lib
+        ${MKL_LIB_DIR}/mkl_core.lib
+        ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+        ${MKL_LIB_DIR}/libiomp5mt.lib
+        #    wrap-chkstk
+        #    ${MKL_LIB_DIR}/libguide40.lib
+        )
+      IF(MINGW)
+        LIST(APPEND MKL_BLAS_LIB 
+          ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/amd64/runtmchk.lib
+        )
+      ENDIF()
       SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
       
       SET(MKL_PARDISO_LIB
-	${MKL_LIB_DIR}/mkl_solver_lp64.lib
-	)
+        ${MKL_LIB_DIR}/mkl_solver_lp64.lib
+        )
     ENDIF(CFS_ARCH STREQUAL "I386")
     
     SET(DEPS_SEQUENTIAL
@@ -78,7 +87,10 @@ IF(MINGW)
 
     SET(MKL_PARDISO_LIB "")
   ENDIF()
-ELSE(MINGW)
+
+  SET(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL." FORCE)
+
+ELSEIF(UNIX)
 
 #-------------------------------------------------------------------------------
 # The idea behind the algorithm implemented for finding MKL, is to let the
@@ -258,7 +270,7 @@ MARK_AS_ADVANCED(MKL_ROOT_DIR)
 
 # TODO: libguide und libiomp durch die von MKL ersetzen.
 # TODO: für libmkl_intel_lp64.a libmkl_gf_lp64.a für gnu einsetzen.
-ENDIF(MINGW)
+ENDIF() # MINGW OR MSVC
 
 #-------------------------------------------------------------------------------
 # Set BLAS, LAPACK and PARDISO libraries depending on the MKL version.

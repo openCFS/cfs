@@ -6,7 +6,7 @@
 #=============================================================================
 # Set global variables.
 #=============================================================================
-SET(bzip2-shared_source "@bzip2-shared_source@")
+SET(bzip2_source "@bzip2_source@")
 
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
@@ -30,5 +30,5 @@ APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/bzip2")
 EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
   "${CFS_SOURCE_DIR}/cfsdeps/bzip2/CMakeLists.txt"
-  "${bzip2-shared_source}/CMakeLists.txt"
+  "${bzip2_source}/CMakeLists.txt"
 )

@@ -100,7 +100,7 @@ rpm -q --whatprovides /usr/bin/g++
 \end{verbatim}
 
 \item[CentOS] Support has  been added for CentOS 5.x  and 6.x. Therefore, also
-RHEL 5 and 6 should work.
+other RHEL clones (e.g. Scientific Linux) should work.
 \end{description}%
 
 \subsubsection{Mac OS X}
@@ -142,12 +142,12 @@ here, where to obtain the tools and how to set up a build environment on Windows
 \item[GNU Compilers] There exist several distributions for the MinGW toolchain. The one we used for testing was the 
 \emph{TDM-GCC}\footnote{TDM-GCC toolchain: \url{http://tdm-gcc.tdragon.net}} toolchain. 
 In their download section one can either download, single packages or a bundle installer for either 32-bit or 64/32-bit development.
-We chose the tdm64-gcc bundle installer. This packages provides a standard Windows installer with all required packages
-for C, C++ and Fortran compilers. 
+We chose the tdm64-gcc bundle installer. This package provides a standard Windows installer with all required packages
+for C, C++ and Fortran compilers. Another toolchain is available at \url{http://www.equation.com}.
 
 \item[GNU Tools] We also need the usual GNU tools, like gmake, for building software. There are also two options available for obtaining these.
 There exists an older project \emph{GNU utilities for Win32}\footnote{GNU utilities for Win32: \url{http://unxutils.sourceforge.net}} or
-the \emph{GnuWin32}\footnote{GnuWin32 project: \url{http://gnuwin32.sourceforge.net}} project, which provides more up-to-date version of the utilities.
+the \emph{GnuWin32}\footnote{GnuWin32 project: \url{http://gnuwin32.sourceforge.net}} project, which provides more up-to-date versions of the utilities.
 After following their corresponding download and installation instructions, one should end up with the installed trees. One has to add the corresponding
 binary dirs ({\tt GNUWIN32\_INSTALL\_DIR/bin} for GnuWin32 or {\tt UNXUTILS\_INSTALL\_DIR/usr/local/wbin} for UnxUtils) to the system path
 
@@ -166,7 +166,7 @@ that the utilities can be found afterwards by our build system. The configuratio
 
 At the moment, we just support the absolute core components of CFSDEPS and CFS++ on Windows. Items like HDFView or ParaView are still to be ported. 
 
-There is also no support for the Microsoft Visual Studio compilers, since we require also a Fortran compiler. Since a Fortran compiler is not part 
+There is also only very limited support for the Microsoft Visual Studio compilers, since we require also a Fortran compiler. Since a Fortran compiler is not part 
 of the Microsoft tools, either the Intel Fortran compiler would be needed or the GNU Fortran compiler could be used.
  This would however, require some changes to our build project\footnote{Fortran for C/C++ developers made easier with CMake: 
 \url{http://www.kitware.com/blog/home/post/231}}. These changes may be worth the effort in the future, since Visual Studio Express is 
@@ -175,7 +175,7 @@ an excellent environment for debugging and is also available for free since the 
 
 \todo[inline] {
 Pre-installed   VBoxes  containg   all  required   packages  are   located  at
-(Klagenfurt)}
+(Vienna)}
 
 \noindent {\tt qnap:/share//AM\_Data/Software/NACS\_Windows\_Development\_VBOXes/[WINXP*\&nacs\_dev*\&local*]}.
 
@@ -366,8 +366,8 @@ must be renamed to \*.prefs.
 \label{sec:obtaining_prepostprocs}
 
 Since its  creation CFS++  has come to  support a  growing number of  pre- and
-postprocessors.  The two  most  important  being GiD  and  ANSYS Classic.  The
-modelling process with these two tools is documented in \cite{Simkovics2010}. 
+postprocessors.  The three  most  important  being GiD, Gmsh  and  ANSYS Classic.  The
+modelling process with these tools is documented in \cite{Simkovics2010}. 
 
 For the broader  picture of the software landscape around  CFS++ the reader is
 referred    to     the    Advanced    Pre-     and    Postprocessing    Manual

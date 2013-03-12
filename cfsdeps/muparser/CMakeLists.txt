@@ -14,7 +14,11 @@ SET(SRCS
   ./src/muParserTokenReader.cpp 
 )
 
-SET(CMAKE_CXX_FLAGS "-O2 -fno-common")
+IF(MSVC)
+  SET(CMAKE_CXX_FLAGS "/EHsc")
+ELSEIF(CMAKE_COMPILER_IS_GNUCXX)
+  SET(CMAKE_CXX_FLAGS "-fno-common")
+ENDIF()
 
 INCLUDE_DIRECTORIES("./include")
 

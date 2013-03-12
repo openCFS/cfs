@@ -78,7 +78,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
    }
  }
  
- void Elem::CorrectConnectivity()
+ void Elem::CorrectConnectivity( const Grid& grid )
  {
     UInt dummy;
 
@@ -112,7 +112,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     default:
       EXCEPTION("Connectivity for " << feType.ToString(type) << " element "
                 << elemNum << " in region "
-                << domain->GetGrid()->GetRegion().ToString(regionId)
+                << grid.GetRegion().ToString(regionId)
                 << " is not properly oriented!" );
       break;
     }

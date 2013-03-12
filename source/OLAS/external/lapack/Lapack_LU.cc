@@ -176,9 +176,9 @@ namespace CoupledField {
       double lp_amax;
 
       // First compute a possible scaling
-      F77NAME(dgbequ)( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
-		 matdata, &lp_ldab, row_scalings_, col_scalings_,
-		 &lp_rowcond, &lp_colcond, &lp_amax, &lp_info );
+      dgbequ( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
+              matdata, &lp_ldab, row_scalings_, col_scalings_,
+              &lp_rowcond, &lp_colcond, &lp_amax, &lp_info );
 
       // Process status flag
       if ( lp_info < 0 ) {
@@ -201,9 +201,9 @@ namespace CoupledField {
 
       // Scale matrix
       char lp_equed;
-      F77NAME(dlaqgb)( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
-		 matdata, &lp_ldab, row_scalings_, col_scalings_,
-		 &lp_rowcond, &lp_colcond, &lp_amax, &lp_equed );
+      dlaqgb( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
+              matdata, &lp_ldab, row_scalings_, col_scalings_,
+              &lp_rowcond, &lp_colcond, &lp_amax, &lp_equed );
 
       // Process result
       if ( lp_equed == 'N' ) {
@@ -269,8 +269,8 @@ namespace CoupledField {
 
     // Call factorisation routine
     lp_ldab = 2 * lp_wlower + lp_wupper + 1;
-    F77NAME(dgbtrf)( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper, facmatdata,
-	       &lp_ldab, pivots_, &lp_info );
+    dgbtrf( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper, facmatdata,
+            &lp_ldab, pivots_, &lp_info );
 
     // Process status flag
     if ( lp_info < 0 ) {
@@ -337,9 +337,9 @@ namespace CoupledField {
       double lp_amax;
 
       // First compute a possible scaling
-      F77NAME(zgbequ)( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
-		 matdata, &lp_ldab, row_scalings_, col_scalings_,
-		 &lp_rowcond, &lp_colcond, &lp_amax, &lp_info );
+      zgbequ( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
+              matdata, &lp_ldab, row_scalings_, col_scalings_,
+              &lp_rowcond, &lp_colcond, &lp_amax, &lp_info );
 
       // Process status flag
       if ( lp_info < 0 ) {
@@ -360,9 +360,9 @@ namespace CoupledField {
 
       // Scale matrix
       char lp_equed;
-      F77NAME(zlaqgb)( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
-		 matdata, &lp_ldab, row_scalings_, col_scalings_,
-		 &lp_rowcond, &lp_colcond, &lp_amax, &lp_equed );
+      zlaqgb( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
+              matdata, &lp_ldab, row_scalings_, col_scalings_,
+              &lp_rowcond, &lp_colcond, &lp_amax, &lp_equed );
 
       // Process result
       if ( lp_equed == 'N' ) {
@@ -428,8 +428,8 @@ namespace CoupledField {
 
     // Call factorisation routine
     lp_ldab = 2 * lp_wlower + lp_wupper + 1;
-    F77NAME(zgbtrf)( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper, facmatdata,
-	       &lp_ldab, pivots_, &lp_info );
+    zgbtrf( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper, facmatdata,
+            &lp_ldab, pivots_, &lp_info );
 
     // Process status flag
     if ( lp_info < 0 ) {
@@ -592,8 +592,8 @@ namespace CoupledField {
     }
 
     // Perform backward/forward substitution
-    F77NAME(dgbtrs)( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
-    	       facmatdata, &lp_ldabf, pivots_, lp_sol, &lp_ncols, &lp_info );
+    dgbtrs( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
+            facmatdata, &lp_ldabf, pivots_, lp_sol, &lp_ncols, &lp_info );
 
     // Process status flag
     if ( lp_info != 0 ) {
@@ -630,10 +630,10 @@ namespace CoupledField {
       }
 
       // Perform iterative refinement
-      F77NAME(dgbrfs)( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
-		 matdata, &lp_ldab, facmatdata, &lp_ldabf, pivots_, lp_rhs,
-		 &lp_ncols, lp_sol, &lp_ncols, &lp_ferr, &lp_berr,
-		 workspaceF77REAL8_, workspaceInt_, &lp_info );
+      dgbrfs( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
+              matdata, &lp_ldab, facmatdata, &lp_ldabf, pivots_, lp_rhs,
+              &lp_ncols, lp_sol, &lp_ncols, &lp_ferr, &lp_berr,
+              workspaceF77REAL8_, workspaceInt_, &lp_info );
 
       // Process results
       if ( lp_info != 0 ) {
@@ -768,8 +768,8 @@ namespace CoupledField {
     }
 
     // Perform backward/forward substitution
-    F77NAME(zgbtrs)( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
-    	       facmatdata, &lp_ldabf, pivots_, lp_sol, &lp_ncols, &lp_info );
+    zgbtrs( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
+            facmatdata, &lp_ldabf, pivots_, lp_sol, &lp_ncols, &lp_info );
 
     // Process status flag
     if ( lp_info != 0 ) {
@@ -806,10 +806,10 @@ namespace CoupledField {
       }
 
       // Perform iterative refinement
-      F77NAME(zgbrfs)( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
-		 matdata, &lp_ldab, facmatdata, &lp_ldabf, pivots_, lp_rhs,
-		 &lp_ncols, lp_sol, &lp_ncols, &lp_ferr, &lp_berr,
-		 workspaceF77COMPLEX16_, workspaceF77REAL8_, &lp_info );
+      zgbrfs( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
+              matdata, &lp_ldab, facmatdata, &lp_ldabf, pivots_, lp_rhs,
+              &lp_ncols, lp_sol, &lp_ncols, &lp_ferr, &lp_berr,
+              workspaceF77COMPLEX16_, workspaceF77REAL8_, &lp_info );
 
       // Process results
       if ( lp_info != 0 ) {

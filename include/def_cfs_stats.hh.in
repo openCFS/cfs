@@ -53,6 +53,9 @@
 // Hardware architecture for which CFS++ has been built
 #define CFS_ARCH "@CFS_ARCH@"
 
+// Platform that has been used to build CFS++.
+#define CFS_BUILD_DISTRO "@CFS_BUILD_DISTRO@"
+
 // Variables from the CMAKE build system
 #define CMAKE_BUILD_TYPE "@CMAKE_BUILD_TYPE@"
 

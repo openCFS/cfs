@@ -20,13 +20,13 @@ SET(CMAKE_ARGS
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
+  -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
 )
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
   SET(CMAKE_ARGS
     ${CMAKE_ARGS}
-    -DCMAKE_C_FLAGS:STRING=${CFLAGS}
     -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
     -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
     )
@@ -39,9 +39,9 @@ IF(CMAKE_TOOLCHAIN_FILE)
 ENDIF()
 
 #-------------------------------------------------------------------------------
-# The zlib-shared external project
+# The zlib external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add(zlib-shared
+ExternalProject_Add(zlib
   PREFIX ${zlib_prefix}
   DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/zlib
   SOURCE_DIR ${zlib_source}
@@ -49,8 +49,14 @@ ExternalProject_Add(zlib-shared
   URL_MD5 ${ZLIB_MD5}
   CMAKE_ARGS
      ${CMAKE_ARGS}
-    -DBUILD_SHARED_LIBS:BOOL=ON
     )
+
+#-------------------------------------------------------------------------------
+# Set names of patch file and template file.
+#-------------------------------------------------------------------------------
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/zlib/zlib-patch.cmake.in")
+SET(PFN "${zlib_prefix}/zlib-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
 # We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
@@ -63,40 +69,33 @@ ExternalProject_Add(zlib-shared
 # applied to  an already patched  source tree. This  is due to the  fact, that
 # ExternalProject_Add only extracts the source if the MD5 sum has has changed.
 #-------------------------------------------------------------------------------
-ExternalProject_Add_Step(zlib-shared custom_patch
+ExternalProject_Add_Step(zlib custom_patch
    COMMAND ${CMAKE_COMMAND} -P "${PFN}"
    DEPENDEES download
    DEPENDERS configure
    DEPENDS "${PFN}"
    WORKING_DIRECTORY ${zlib_source}
 )
-  
-#-------------------------------------------------------------------------------
-# The zlib-static external project
-#-------------------------------------------------------------------------------
-ExternalProject_Add(zlib-static
-  DEPENDS zlib-shared
-  PREFIX ${zlib_prefix}
-  DOWNLOAD_COMMAND ""
-  SOURCE_DIR ${zlib_source}  
-  CMAKE_ARGS
-     ${CMAKE_ARGS}
-    -DBUILD_SHARED_LIBS:BOOL=OFF
-    )
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
 SET(CFSDEPS
   ${CFSDEPS}
-  zlib-static
-  zlib-shared
+  zlib
 )
 
 IF(MINGW)
-  SET(ZLIB_LIB zlib)
+  SET(ZLIB_LIB zlibstatic)
 ELSE(MINGW)
-  SET(ZLIB_LIB z)
+  IF(UNIX)
+    SET(ZLIB_LIB z)
+  ELSE(UNIX)
+    SET(ZLIB_LIB zlibstatic)
+    IF(DEBUG)
+      SET(ZLIB_LIB "${ZLIB_LIB}d")
+    ENDIF()
+  ENDIF(UNIX)
 ENDIF(MINGW)
 
 SET(ZLIB_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${ZLIB_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX} CACHE FILEPATH "zlib library")

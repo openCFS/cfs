@@ -22,8 +22,8 @@ SET(GMP_INCLUDE_DIR "@GMP_INCLUDE_DIR@")
 #=============================================================================
 SET(ENV{CC} "@CMAKE_C_COMPILER@")
 # SET(ENV{CXX} "@CMAKE_CXX_COMPILER@")
-SET(ENV{CFLAGS} "@CFLAGS@")
-# SET(ENV{CXXFLAGS} "${CFLAGS}@")
+SET(ENV{CFLAGS} "@CFSDEPS_C_FLAGS@")
+# SET(ENV{CXXFLAGS} "${CFDEPS_CXX_FLAGS}@")
 
 SET(CONFIGURE_CMD
   "sh"

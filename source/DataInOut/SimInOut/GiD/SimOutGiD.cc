@@ -350,7 +350,7 @@ namespace CoupledField {
   void SimOutputGiD::
   WriteElement( Elem * ptEl, UInt numNodes) {
 
-    uint32_t elemNum;
+    UInt elemNum;
     Elem::FEType eType;
     // Integer region;
 

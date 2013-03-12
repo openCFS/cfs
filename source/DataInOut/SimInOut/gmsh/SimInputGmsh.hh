@@ -119,6 +119,7 @@ namespace CoupledField {
     UInt dim_;
     std::map<UInt, std::string> physEntities2RegionNames_;
     std::map<UInt, std::string> physEntities2NamedNodes_;
+    std::map<UInt, std::string> physEntities2NamedElems_;
     std::map<std::string, bool> linearizeRegions_;
     bool readOnlySomeRegions_;
     std::string coordSysId_;

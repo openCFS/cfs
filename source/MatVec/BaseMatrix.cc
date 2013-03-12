@@ -51,5 +51,16 @@ Enum<BaseMatrix::StorageType>("Matrix Storage Types",
     sizeof(storageTypeTuples) / sizeof(EnumTuple),
     storageTypeTuples); 
 
+// Definition of matrix storage type mappings
+static EnumTuple outputFormatTuples[] = 
+{
+ EnumTuple( BaseMatrix::MATRIX_MARKET, "matrix-market" ),
+ EnumTuple( BaseMatrix::HARWELL_BOEING, "harwell-boeing" ),
+};
+
+Enum<BaseMatrix::OutputFormat> BaseMatrix::outputFormat = \
+Enum<BaseMatrix::OutputFormat>("Matrix Output Formats",
+    sizeof(outputFormatTuples) / sizeof(EnumTuple),
+    outputFormatTuples); 
 
 }

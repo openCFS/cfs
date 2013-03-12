@@ -292,9 +292,29 @@ SET(XERCES-C_SRCS
   xercesc/xinclude/XIncludeLocation.cpp
   xercesc/xinclude/XIncludeUtils.cpp
   xercesc/util/NetAccessors/BinHTTPInputStreamCommon.cpp
-  xercesc/util/MsgLoaders/InMemory/InMemMsgLoader.cpp
-  stricmp.c
-  strnicmp.c)
+  xercesc/util/MsgLoaders/InMemory/InMemMsgLoader.cpp)
+
+# If string functions are not available from system,
+# replace them by the Xerces-C functions.
+IF(NOT HAVE_STRICMP)
+  LIST(APPEND XERCES-C_SRCS 
+    stricmp.c)
+ENDIF()
+
+IF(NOT HAVE_STRNICMP)
+  LIST(APPEND XERCES-C_SRCS 
+    strnicmp.c)
+ENDIF()
+
+IF(NOT HAVE_TOWLOWER)
+  LIST(APPEND XERCES-C_SRCS
+    towlower.c)
+ENDIF()
+
+IF(NOT HAVE_TOWUPPER)
+  LIST(APPEND XERCES-C_SRCS
+    towupper.c)
+ENDIF()
 
 IF(UNIX)
   LIST(APPEND XERCES-C_SRCS 
