@@ -1,0 +1,47 @@
+set(paraview_source  "@paraview_source@")
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_FORTRAN_COMPILER_NAME "@CFS_FORTRAN_COMPILER_NAME@")
+
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/paraview/CMakeLists.txt" "${paraview_source}/SuperBuild/CMakeLists.txt"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/paraview/boost_patch_step.cmake.in" "${paraview_source}/SuperBuild/boost_patch_step.cmake.in"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/paraview/libstdcpp3.patch" "${paraview_source}/SuperBuild/libstdcpp3.patch"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/paraview/manta.patch" "${paraview_source}/SuperBuild/mantaPatches/manta.patch"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/paraview/manta_patch_step.cmake.in" "${paraview_source}/SuperBuild/manta_patch_step.cmake.in"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/paraview/silo_configure_step.cmake.in" "${paraview_source}/SuperBuild/silo_configure_step.cmake.in"
+)
+
+set(patches
+    "ext_boost.patch"
+    "ext_zlib.patch"
+    "ext_szip.patch"
+    "ext_hdf5.patch"
+    "ext_cgns.patch"
+    "ext_ffmpeg.patch"
+    "ext_lapack.patch"
+    "ext_mpich2.patch"
+    "ext_manta.patch"
+    "ext_python.patch"
+    "ext_numpy.patch"
+    "ext_vrpn.patch"
+    "ext_silo.patch"
+  )
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/paraview")

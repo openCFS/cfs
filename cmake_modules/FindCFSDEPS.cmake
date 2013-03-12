@@ -359,18 +359,29 @@ ENDIF(USE_ANSYSRST)
 # Find ParaView postprocessor
 #-----------------------------------------------------------------------------
 IF(BUILD_PARAVIEW)
-  MESSAGE(FATAL_ERROR "ParaView has not been ported to CMake externals yet.")
-
   #---------------------------------------------------------------------------
   # ParaView requires latest CMake
   #---------------------------------------------------------------------------
-  set(CMAKE_URL "${LSE17_SOURCES_DIR}/cmake")
-  set(CMAKE_GZ cmake-2.8.8.tar.gz)
-  set(CMAKE_MD5 ba74b22c788a0c8547976b880cd02b17)
+  IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}"
+     VERSION_LESS "2.8.8")
+    set(CMAKE_URL "${LSE17_SOURCES_DIR}/cmake")
+    set(CMAKE_GZ cmake-2.8.8.tar.gz)
+    set(CMAKE_MD5 ba74b22c788a0c8547976b880cd02b17)
   
-  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cmake/External_CMake.cmake")
+    INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cmake/External_CMake.cmake")
 
-#  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindParaView.cmake")
+    SET(CFS_PV_CMAKE_COMMAND "${CFS_BINARY_DIR}/cmake/bin/cmake")
+    SET(CFS_PV_DEPENDS "cmake")
+  ELSE()
+    SET(CFS_PV_CMAKE_COMMAND "${CMAKE_COMMAND}")
+    SET(CFS_PV_DEPENDS "")
+  ENDIF()
+
+  set(PARAVIEW_URL "http://www.paraview.org/files/v3.14")
+  set(PARAVIEW_GZ ParaView-3.14.1-Source.tar.gz)
+  set(PARAVIEW_MD5 039c612777f5eb7bba5d37319f34c922)
+
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/paraview/External_ParaView.cmake")
 ENDIF(BUILD_PARAVIEW)
 
 

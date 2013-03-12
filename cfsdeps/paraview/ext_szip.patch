@@ -1,0 +1,17 @@
+--- SuperBuild/External_szip.cmake.orig	2012-11-11 19:59:50.000000000 +0100
++++ SuperBuild/External_szip.cmake	2012-11-11 20:00:43.000000000 +0100
+@@ -6,6 +6,7 @@
+ set(SZIP_binary "${CMAKE_CURRENT_BINARY_DIR}/SZIP-build")
+ 
+ ExternalProject_Add(szip
++  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/szip
+   URL ${SZIP_URL}/${SZIP_GZ}
+   URL_MD5 ${SZIP_MD5}
+   UPDATE_COMMAND ""
+@@ -31,4 +32,4 @@
+ else()
+   set(SZIP_INCLUDE_DIR ${SZIP_install}/include)
+   set(SZIP_LIBRARY ${SZIP_install}/lib/libszip${_LINK_LIBRARY_SUFFIX})
+-endif()
+\ No newline at end of file
++endif()

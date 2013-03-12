@@ -1,0 +1,10 @@
+--- SuperBuild/External_HDF5.cmake.orig	2012-11-11 01:01:29.069670951 +0100
++++ SuperBuild/External_HDF5.cmake	2012-11-11 01:02:31.415662594 +0100
+@@ -6,6 +6,7 @@
+ set(HDF5_binary "${CMAKE_CURRENT_BINARY_DIR}/HDF5-build")
+ 
+ ExternalProject_Add(HDF5
++  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/hdf5
+   URL ${HDF5_URL}/${HDF5_GZ}
+   URL_MD5 ${HDF5_MD5}
+   UPDATE_COMMAND ""
