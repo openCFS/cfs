@@ -383,11 +383,11 @@ IF(BUILD_PARAVIEW)
   #---------------------------------------------------------------------------
   # Qt - Let's check if a valid version of Qt is available
   #---------------------------------------------------------------------------
-  FIND_PACKAGE(Qt4 4.6.0)
+  FIND_PACKAGE(Qt4 4.8.0)
   IF(NOT QT4_FOUND)
     set(QT4_URL "${LSE17_SOURCES_DIR}/qt4")
-    set(QT4_GZ qt-everywhere-opensource-src-4.6.4.tar.gz)
-    set(QT4_MD5 8ac880cc07a130c39607b65efd5e1421)
+    set(QT4_GZ qt-everywhere-opensource-src-4.8.2.tar.gz)
+    set(QT4_MD5 3c1146ddf56247e16782f96910a8423b)
 
     INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/qt4/External_Qt4.cmake")
   ENDIF()
