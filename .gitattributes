@@ -1479,6 +1479,12 @@ source/Utils/AutoDiff.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/CMakeLists.txt svneol=native#text/plain
 source/Utils/Coil.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/Coil.hh svneol=native#text/x-c%2B%2Bhdr
+source/Utils/DynamicLibTest.cc -text
+source/Utils/DynamicLibTest.hh -text
+source/Utils/DynamicLibTestClass.cc -text
+source/Utils/DynamicLibTestClass.hh -text
+source/Utils/DynamicLibTestClassIface.cc -text
+source/Utils/DynamicLibTestClassIface.hh -text
 source/Utils/DynamicLibrary.cc svneol=native#text/plain
 source/Utils/DynamicLibrary.hh svneol=native#text/plain
 source/Utils/DynamicObject.hh svneol=native#text/plain
