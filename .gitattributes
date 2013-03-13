@@ -296,7 +296,6 @@ cmake_modules/platform_defaults.cmake -text
 cmake_modules/platform_defaults_altix.cmake -text
 cmake_modules/platform_defaults_lse.cmake -text
 cmake_modules/platform_defaults_mac.cmake -text
-cmake_modules/platform_defaults_rom.cmake -text
 cmake_modules/platform_defaults_sedici.cmake -text
 cmake_modules/platform_defaults_woody.cmake -text
 ctest_scripts/CTestConfig.cmake -text
@@ -305,8 +304,6 @@ ctest_scripts/ctest_eam_gcc_nightly_debug.cmake -text
 ctest_scripts/ctest_eam_gcc_nightly_release.cmake -text
 ctest_scripts/ctest_mac_gcc_experimental.cmake -text
 ctest_scripts/ctest_mac_icc_experimental.cmake -text
-ctest_scripts/ctest_rom_gcc_nightly.cmake -text
-ctest_scripts/ctest_rom_icc_nightly.cmake -text
 ctest_scripts/ctest_sedici_gcc_acml_nightly.cmake -text
 ctest_scripts/ctest_sedici_gcc_gotoblas_nightly.cmake -text
 ctest_scripts/ctest_sedici_gcc_ifort_nightly.cmake -text
