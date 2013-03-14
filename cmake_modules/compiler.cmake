@@ -314,6 +314,14 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   #---------------------------------------------------------------------------
   SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D__builtin_isnan=::isnan -D__builtin_isinf=::isinf")
 
+ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "OPEN64")
+  IF(NOT USE_CGAL)
+    SET(CFS_C_FLAGS "-pedantic ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS "-pedantic ${CFS_CXX_FLAGS}")
+  ELSE(NOT USE_CGAL)
+    SET(CFS_C_FLAGS "-mieee-fp -fp-accuracy=strict -DCGAL_DISABLE_ROUNDING_MATH_CHECK ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS "-mieee-fp -fp-accuracy=strict -DCGAL_DISABLE_ROUNDING_MATH_CHECK ${CFS_CXX_FLAGS}")
+  ENDIF()
 ENDIF()
 
 #-------------------------------------------------------------------------------
