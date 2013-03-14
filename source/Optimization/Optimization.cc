@@ -329,6 +329,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GLOBAL_SUM_MODULI, "globalSumModuli");
   Function::type.Add(Function::LAMINATES_VOL, "laminatesVolume");
   Function::type.Add(Function::GLOBAL_LAMINATES_VOL, "globalLaminatesVolume");
+  Function::type.Add(Function::ORTHOTROPIC_TENSOR_TRACE, "orthotropicTensorTrace");
+  Function::type.Add(Function::GLOBAL_ORTHOTROPIC_TENSOR_TRACE, "globalOrthotropicTensorTrace");
   Function::type.Add(Function::TENSOR_TRACE, "tensorTrace");
   Function::type.Add(Function::GLOBAL_TENSOR_TRACE, "globalTensorTrace");
   Function::type.Add(Function::TENSOR_NORM, "tensorNorm");
@@ -929,7 +931,7 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
   if(log.file) *log.file << endl;
 
   // this writes the most current solved forward problem via the driver to gid or whatever
-  bool store = currentIteration == 0 || commitStride == 1 || (commitStride > 0 && currentIteration % commitStride == 0);
+  bool store = currentIteration == 0 || currentIteration == 1 || commitStride == 1 || (commitStride > 0 && currentIteration % commitStride == 0);
   LOG_TRACE2(opt) << "CommitIteration " << currentIteration << " objective=" << objectives.GetHistoryValue() << " store=" << store;
   if(store)
   {

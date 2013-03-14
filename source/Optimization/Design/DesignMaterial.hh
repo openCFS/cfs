@@ -21,7 +21,7 @@ template <class TYPE> class StdVector;
   public:
     
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
-      DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR,
+      DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, ORTHOTROPIC, DENSITY_TIMES_ORTHOTROPIC, DENSITY_TIMES_2D_TENSOR,
       DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT } Type;
     
     /* posibilities for the isotropic plane in transversal isotropy
@@ -132,6 +132,9 @@ template <class TYPE> class StdVector;
     /* general anisotropic FMO tensor */
     inline void GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
 
+    /** Calculate the orthotropic material tensor */
+    inline void GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
+
     /** Calculate the Tensor for Density times Tensor */
     inline void GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
     
@@ -170,7 +173,6 @@ template <class TYPE> class StdVector;
     /** Calculate the mass trans-iso case */
     inline double GetTransIsoMaterialMass(DesignElement::Type direction);
     
-
     /** Get the trans-iso mass (tensor trace) out of the corresponding tensor entries */
     inline double GetTransIsoMass(double iD, double iG, double oD, double oG);
     

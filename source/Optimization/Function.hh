@@ -115,6 +115,8 @@ class Function
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
+      ORTHOTROPIC_TENSOR_TRACE,  /*!< tensor trace in the (DENSITY_TIMES_)ORTHOTROPIC parametrizations */
+      GLOBAL_ORTHOTROPIC_TENSOR_TRACE, /*!< global constraint on the tensor trace in (DENSITY_TIMES_)ORTHOTROPIC parametrizations */
       TENSOR_TRACE,              /*!< local constraint on the tensor trace for FMO, laminates, hom_rect. Elasticity or dielec */
       TENSOR_NORM,               /*!< local squared L2 norm of the tensor coefficients (sum of the squared coefficients). For piezo-coupling in piezo FMP */
       LAMINATES_VOL,             /*!< Volume constraint / cost function for laminates parametrization */
@@ -421,6 +423,9 @@ class Function
 
         /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
         double CalcSumModuli(int neigh_idx = -1, bool derivative = false) const;
+
+        /** tensor trace of the material tensor in (DENSITY_TIMES_)ORTHOTROPIC parametrizations */
+        double CalcOrthotropicTensorTrace(int neigh_idx, bool derivative) const;
 
         /** volume of material (strong phase for plane strain) in laminate homogenization formulas */
         double CalcLaminatesVolume(int neigh_idx = -1, bool derivative = false) const;

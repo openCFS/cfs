@@ -305,11 +305,14 @@
                 <!-- requires the attribute 'designTarget' to be set to a filename -->
                 <xsd:enumeration value="designTracking"/>
                 <!-- requires the sub-element filter -->
-                <xsd:enumeration value="projection"/>
-                <!--  requires parametrized material tensor (for now only PLANE_STRESS implemented) -->
+		            <xsd:enumeration value="projection"/>
+		            <!-- for (DENSITY_TIMES_)ORTHOTROPIC only -->
+		            <xsd:enumeration value="orthotropicTensorTrace"/>
+		            <xsd:enumeration value="globalOrthotropicTensorTrace"/>
+                <!--  requires parametrized material tensor (PLANE_STRESS, TRANSVERSAL_ORTHOTROPIC or similar) -->
                 <xsd:enumeration value="sumModuli"/>
                 <xsd:enumeration value="globalSumModuli"/>
-                <!--  requires parametrized material tensor (PLANE_STRESS), > 0 ensures positivity of the material tensor -->
+                <!--  requires parametrized material tensor (PLANE_STRESS, TRANSVERSAL_ORTHOTROPIC or similar), > 0 ensures positivity of the material tensor -->
                 <xsd:enumeration value="parametrized-plane-stress-pos-def"/>
                 <!--  For laminates only -->
                 <xsd:enumeration value="laminatesVolume"/>
@@ -911,7 +914,7 @@
               </xsd:complexType>
             </xsd:element>
             
-            <xsd:element name="result" minOccurs="0" maxOccurs="10">
+            <xsd:element name="result" minOccurs="0" maxOccurs="12">
               <xsd:complexType>
                 <!-- mandatory to give the type. The type is one of a list of types -->
                 <xsd:attribute name="id" use="required">
@@ -927,6 +930,8 @@
                       <xsd:enumeration value="optResult_8"/>
                       <xsd:enumeration value="optResult_9"/>
                       <xsd:enumeration value="optResult_10"/>
+                      <xsd:enumeration value="optResult_11"/>
+                      <xsd:enumeration value="optResult_12"/>
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
@@ -1081,6 +1086,8 @@
                         <xsd:simpleType>
                           <xsd:restriction base="xsd:token">
                             <xsd:enumeration value="fmo"/>
+                            <xsd:enumeration value="orthotropic"/>
+                            <xsd:enumeration value="density-times-orthotropic"/>
                             <xsd:enumeration value="isotropic"/>
                             <xsd:enumeration value="lame-isotropic"/>
                             <xsd:enumeration value="transversal-isotropic"/>
@@ -1343,6 +1350,7 @@
       <xsd:enumeration value="rotAngle"/>
       <xsd:enumeration value="stiff1"/>
       <xsd:enumeration value="stiff2"/>
+      <xsd:enumeration value="lowerEigenBound"/> <!-- This is used as lower Eigenvalue bound in "(density-times-)orthotropic" formulations -->
       <!-- multimaterial requies the material attribute -->
       <xsd:enumeration value="multimaterial"/>
     </xsd:restriction>
@@ -1381,6 +1389,7 @@
       <xsd:enumeration value="globalMole"/>
       <xsd:enumeration value="globalJump"/>
       <xsd:enumeration value="globalTensorTrace"/>
+      <xsd:enumeration value="globalOrthotropicTensorTrace"/>
       <xsd:enumeration value="globalLaminatesVolume"/>
       <xsd:enumeration value="stress"/>
       <!-- The stress density is divided by the element volume and corresponds to density=true in the stress results -->

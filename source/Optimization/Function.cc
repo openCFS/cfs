@@ -156,7 +156,7 @@ Function::Function(PtrParamNode pn)
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case SLACK:
-    linear_ = true;
+    linear_ = false;
     break;
   case TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
@@ -466,6 +466,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case BENSON_VANDERBEI_1:
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
+    case ORTHOTROPIC_TENSOR_TRACE:
+    case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
     case TENSOR_TRACE:
     case TENSOR_NORM:
     case GLOBAL_TENSOR_TRACE:
@@ -607,6 +609,7 @@ bool Function::IsLocal(Type t)
   case BUMP:
   case SUM_MODULI:
   case LAMINATES_VOL:
+  case ORTHOTROPIC_TENSOR_TRACE:
   case TENSOR_TRACE:
   case TENSOR_NORM:
   case PARAM_PS_POS_DEF:
@@ -651,6 +654,10 @@ bool Function::ForDensityFiltering() const
   case MULTIMATERIAL_SUM:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
+  case ORTHOTROPIC_TENSOR_TRACE:
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
+  case LAMINATES_VOL:
+  case GLOBAL_LAMINATES_VOL:
     // for the projection case we have a density filter manually on Function::projectionDesign only
     return false;
 
@@ -710,6 +717,8 @@ bool Function::ForSensitivityFiltering() const
   case BUMP:
   case DESIGN_TRACKING:
   case PROJECTION:
+  case ORTHOTROPIC_TENSOR_TRACE:
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case TENSOR_TRACE:
   case TENSOR_NORM:
   case GLOBAL_TENSOR_TRACE:
@@ -862,6 +871,8 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case BUMP:
   case STRESS:
   case STRESS_DENSITY:
+  case ORTHOTROPIC_TENSOR_TRACE:
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case TENSOR_TRACE:
   case TENSOR_NORM:
   case GLOBAL_TENSOR_TRACE:
@@ -969,6 +980,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   case GLOBAL_SUM_MODULI:
   case GLOBAL_LAMINATES_VOL:
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
     if(power_ != 1.0)
       info->Get("optimization/header")->Get(ParamNode::WARNING)->SetValue("function '" + fname + "' has local/power " + lexical_cast<string>(power_) + ", for sum one needs power=1");
@@ -1054,6 +1066,8 @@ Function::Local::Local(Function* func, DesignSpace* space)
   case TENSOR_TRACE:
   case TENSOR_NORM:
   case GLOBAL_TENSOR_TRACE:
+  case ORTHOTROPIC_TENSOR_TRACE:
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case LAMINATES_VOL:
@@ -1679,7 +1693,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
 
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
-    fv = CalcSumModuli();
+    fv = CalcSumModuli(-1, false);
     break;
 
   case LAMINATES_VOL:
@@ -1701,6 +1715,11 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
     fv = CalcBensonVanderbei(-1, local, false,  f->type_);
+    break;
+
+  case ORTHOTROPIC_TENSOR_TRACE:
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
+    fv = CalcOrthotropicTensorTrace(-1, false);
     break;
 
   case TENSOR_TRACE:
@@ -1739,6 +1758,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
   case STRESS_DENSITY:
   case GLOBAL_SUM_MODULI:
   case GLOBAL_LAMINATES_VOL:
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
   {
     // we normalize all values by the number of "constraints". Note that it is
@@ -1848,6 +1868,11 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
       gv = CalcBensonVanderbei(n, local, true, ft);
+      break;
+
+    case ORTHOTROPIC_TENSOR_TRACE:
+    case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
+      gv = CalcOrthotropicTensorTrace(n, true);
       break;
 
     case TENSOR_TRACE:
@@ -2246,6 +2271,59 @@ double Function::Local::Identifier::CalcSumModuli(int neigh_idx, bool derivative
   return E1+E3+2*G;
 }
 
+double Function::Local::Identifier::CalcOrthotropicTensorTrace(int neigh_idx, bool derivative) const
+{
+  double e11(0.0), e22(0.0), e33(0.0), e12(0.0), lowerEigBound(0.0);
+  for(int i=-1; i < (int) neighbor.GetSize(); ++i)
+  {
+    switch(GetElement(i)->GetType())
+    {
+    case DesignElement::TENSOR11:
+      e11 = GetElement(i)->GetDesign(DesignElement::SMART);
+      break;
+    case DesignElement::TENSOR22:
+      e22 = GetElement(i)->GetDesign(DesignElement::SMART);
+      break;
+    case DesignElement::TENSOR33:
+      e33 = GetElement(i)->GetDesign(DesignElement::SMART);
+      break;
+    case DesignElement::TENSOR12:
+      e12 = GetElement(i)->GetDesign(DesignElement::SMART);
+      break;
+    case DesignElement::LOWER_EIG_BOUND:
+      lowerEigBound = GetElement(i)->GetDesign(DesignElement::SMART);
+      break;
+    case DesignElement::DENSITY:
+    case DesignElement::ROTANGLE:
+      break;
+
+    default:
+      assert(false);
+      break;
+    }
+  }
+  if(derivative)
+  {
+    DesignElement::Type type = GetElement(neigh_idx)->GetType();
+    if (type == DesignElement::TENSOR11)
+      return 2.0*e11;
+    else if(type == DesignElement::TENSOR22)
+      return 2.0*e22;
+    else if(type == DesignElement::TENSOR33)
+      return 1.0;
+    else if(type == DesignElement::TENSOR12)
+      return 4.0*e12;
+    else if(type == DesignElement::LOWER_EIG_BOUND)
+    {
+      std::cout << "Warning: lowerEigBound is supposed to be a parameter only, not a design!";
+      return 3.0;
+    }
+    else return 0.0;
+  }
+  else
+    return 3.0*lowerEigBound+e11*e11+2.0*e12*e12+e22*e22+e33;
+}
+
 double Function::Local::Identifier::CalcLaminatesVolume(int neigh_idx, bool derivative) const
 {
   double scale(1.0), stiff1(0.0), stiff2(0.0);
@@ -2254,10 +2332,10 @@ double Function::Local::Identifier::CalcLaminatesVolume(int neigh_idx, bool deri
     switch(GetElement(i)->GetType())
     {
     case DesignElement::STIFF1:
-      stiff1 = GetElement(i)->GetDesign(DesignElement::SMART);
+      stiff1 = GetElement(i)->GetDesign(DesignElement::PLAIN);
       break;
     case DesignElement::STIFF2:
-      stiff2 = GetElement(i)->GetDesign(DesignElement::SMART);
+      stiff2 = GetElement(i)->GetDesign(DesignElement::PLAIN);
       break;
     default:
       break;
