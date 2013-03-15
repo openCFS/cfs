@@ -275,6 +275,7 @@ namespace CoupledField{
         ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames, flowInfo->entryType, 
                              isComplex_, regionFlow, definedDofs, coefUpdateGeo );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
+        regionFlow->AddEntityList(actSDList);
 
         //now create the integrators
         BiLinearForm *convectiveVV = NULL;

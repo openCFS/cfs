@@ -56,6 +56,7 @@ public:
     //! Map equations i.e. initialize object
     virtual void Finalize();
 
+
   protected:
     // ====================================================================
     // INTERNAL INITIALIZATION

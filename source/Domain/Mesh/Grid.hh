@@ -34,6 +34,7 @@ namespace CoupledField
   //! Forward class declaration
   class ResultHandler;
   class CoordSystem;
+  class BaseNcInterface;
 
   //! Class representing geometrical entities (elements, nodes, ...) of a
   //! FE simulation.
@@ -53,6 +54,11 @@ namespace CoupledField
   class Grid {
 
   public:
+
+    // friend class declaration
+    friend class BaseNcInterface;
+    friend class MortarInterface;
+
 
     // =======================================================================
     // CONSTRUCTION AND INTIIALIZATION
@@ -301,17 +307,17 @@ namespace CoupledField
      * @return id the new index within regionData */
     RegionIdType AddRegion(const std::string& regionName, bool regular = false);
 
-    //! NC_SIMON: Add a new Surface region to the grid
+    //!  Add a new Surface region to the grid
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
     //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED
     //! \param name (in) name of the new region
     //! \param regionid (out) id of the new region
-    RegionIdType AddSurfaceRegion(const std::string& name) {
+    RegionIdType AddSurfaceRegion(const std::string & name) {
       return AddRegion(name, SURFACE_REGION);
     }
 
 
-    //! NC_SIMON: Add a new volume region to the grid
+    //!  Add a new volume region to the grid
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
     //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED
     //! \param name (in) name of the new region
@@ -659,58 +665,40 @@ namespace CoupledField
 
 
     // =======================================================================
-    // NONCONFORMING GRID SECTION COMMENTED OUT DUE TO REFACTORING
+    // NONCONFORMING GRID SECTION
     // =======================================================================
     //@{ \name Methods for nonconforming grids
-/*
-    enum ISecType
-    {
-      LINE_LINE,
-      TRI_TRI,
-      TRI_QUAD,
-      QUAD_QUAD
-    };
+  public:
 
-    ISecType itype;
+    typedef UInt NcInterfaceId;
 
-    //! NC_SIMON: Main nonmatching grid intersection method
-    bool InitNonmatchingInterfaces();
+    //! Returns an NcInterface object identified by its ID
+    shared_ptr<BaseNcInterface> GetNcInterface(NcInterfaceId ncId) const;
 
-    //! NC_SIMON: check if NC interface is coplanar
-    bool IsNcInterfaceCoplanar(const std::string &ncIfaceName);
-    bool IsNcInterfaceCoplanar(RegionIdType regionId);
+    //! Adds a new NcInterface to the grid and returns its ID
+    NcInterfaceId AddNcInterface(shared_ptr<BaseNcInterface> ncIf);
 
-    //! NC_SIMON: intersect two line elements
-    bool SideOnSide (SurfElem *ifaceElem1, SurfElem *ifaceElem2,
-                     bool coplanar, bool coordUpdate,
-                     StdVector<NCElem*>& elemList);
+    //! Computes if a list of surface elements are all coplanar
+    bool IsSurfacePlanar(const StdVector<SurfElem*>& surfElems);
 
-    //! NC_SIMON: intersect two axiparallel quads
-    bool RectangleOnRectangle(SurfElem *ifaceElem1, SurfElem *ifaceElem2,
-                              bool coplanar, StdVector<NCElem*>& elemList);
+  protected:
 
-    //! intersect two elements of arbitrary type
-    bool PolygonOnPolygon(SurfElem *ifElem1, SurfElem *ifElem2,
-                          bool coplanar, bool coordUpdate,
-                          StdVector<NCElem*> &elemList,
-                          Double absTol = 1e-12, Double relTol = 1e-4);
+    //! Initialize non-conforming interfaces from XML files
+    virtual void InitNcInterfacesFromXML();
 
     //! NC_SIMON: add a node to the grid
     //! \param coord (in) coordinates of point
     //! \param inode (out) node number
-    virtual void AddNode( const Point & coord, UInt & inode)
-    { EXCEPTION( "Not implemented" ); }
-
     virtual void AddNode( const Vector<Double> & coord, UInt & inode )
     { EXCEPTION( "Not implemented" ); }
 
     //! NC_SIMON: add multiple nodes to the grid
     //! \param coords (in) coordinates of points
     //! \param inode (out) node numbers
-    virtual void AddNodes( const StdVector< Point > & coords,
+    virtual void AddNodes( const StdVector< Vector<Double> > & coords,
                            StdVector< UInt > & inodes)
     { EXCEPTION( "Not implemented" ); }
-*/
+
     //! NC_SIMON: Add surface elements
     //! \param regionId (in) elements will be added to region with this id
     //! \param surfelems (in) surface elements to be added
@@ -728,18 +716,29 @@ namespace CoupledField
                                   const StdVector< Elem* > & volelems,
                                   StdVector< UInt > & elemids)
     { EXCEPTION( "Not implemented" ); }
-/*
+
 
     //! NC_SIMON: Remove all elements from the given region
     //! \param regionid (in) id of the region
     virtual void ClearRegion( const RegionIdType regionid)
     { EXCEPTION( "Not implemented" ); }
 
+
+
+    //! Delete all nodes in a node list
+    virtual void DeleteNamedNodes( const std::string &name ) {
+      EXCEPTION("Not implemented here.");
+    }
+
+    //! map for storing ncInterfaces
+    StdVector< shared_ptr<BaseNcInterface> > ncInterfaces_;
+
     //@}
-*/
+
     // =======================================================================
     // Interation Scheme
     // =======================================================================
+  public:
     shared_ptr<IntScheme> GetIntegrationScheme(){
       return integScheme_;
     }
@@ -819,115 +818,7 @@ namespace CoupledField
     // =======================================================================
     shared_ptr<IntScheme> integScheme_;
     
-    // =======================================================================
-    // Non-matching grid interface calculation
-    // =======================================================================
 
-    //@{ \name Non-matching grid helper functions
-/*
-    //! type of intersection calculation for ncInterfaces
-    enum IntersectType { LINE_INTERSECT, RECT_INTERSECT, POLYGON_INTERSECT };
-
-    //! return codes of function CutLines
-    enum LineIntersectType {
-      INTERSECT_NONE,
-      INTERSECT_OUTSIDE,
-      INTERSECT_ON_LINE2,
-      INTERSECT_CROSS,
-      INTERSECT_IN_A,
-      INTERSECT_IN_B,
-      INTERSECT_IN_C,
-      INTERSECT_IN_D,
-      INTERSECT_A_EQ_C,
-      INTERSECT_A_AND_C
-    };
-
-    //! struct for keeping all information of an ncInterface
-    struct ncInterface {
-      std::string name;
-      RegionIdType region;
-      RegionIdType masterRegion;
-      RegionIdType slaveRegion;
-      IntersectType intersectAlgo;
-      Double tolAbs;
-      Double tolRel;
-      Double rotationAngle;
-      std::string coordSysId;
-      bool coplanar;
-    };
-
-    //! returns if a list of surface elements are all coplanar
-    bool IsSurfacePlanar(const StdVector<SurfElem*>& surfElems);
-
-    //! updates the intersection mesh of a ncInterface
-    void UpdateNcIntersection(const ncInterface& ncIf);
-
-    //! Calculates the intersection of two lines [a,b] and [c,d] and stores
-    //! the intersection point (if any) in e.
-    //! return codes:
-    //! INTERSECT_NONE: no intersection
-    //! INTERSECT_OUTSIDE: lines [a,inf) and [c,inf) intersect outside [c,d]
-    //! INTERSECT_ON_LINE2: lines [a,inf) and [c,d] intersect on [c,d]
-    //! INTERSECT_CROSS: lines (a,b) and (c,d) intersect in e
-    //! INTERSECT_IN_A: intersection in a
-    //! INTERSECT_IN_B: intersection in b
-    //! INTERSECT_IN_C: intersection in c
-    //! INTERSECT_IN_D: intersection in d
-    //! INTERSECT_A_EQ_C: a equals c
-    //! \param a (in) starting point of line 1
-    //! \param b (in) end point of line 1
-    //! \param c (in) starting point of line 2
-    //! \param d (in) end point of line 2
-    //! \param e (out) intersection point
-    LineIntersectType CutLines(const Vector<Double> &a,
-        const Vector<Double> &b, const Vector<Double> &c,
-        const Vector<Double> &d, Vector<Double> &e) const;
-
-    //! Calculates the intersection between two polygons
-    //! \param p1 (in) first polygon to be intersected
-    //! \param p2 (in) second polygon to be intersected
-    //! \param r (out) resulting polygon
-    bool CutPolys(StdVector< Vector<Double> > &p1,
-	    StdVector< Vector<Double> > &p2, const bool coPlanarIface,
-	    StdVector< Vector<Double> > &r) const;
-
-    //! Returns if a point lies inside a convex polygon. Optionally the
-    //! centroid of the polygon may be given in order to save computational
-    //! time.
-    //! \param p (in) coordinates of the point of interest
-    //! \param poly (in) polygon to be tested
-    //! \param c (in) pointer to the centroid of the polygon (may be NULL)
-    bool PointInsidePoly(const Vector<Double> &p,
-	    const StdVector< Vector<Double> > &poly,
-	    const Vector<Double> *const c) const;
-
-    //! Computes the centroid of a polygon and returns the radius of the
-    //! surrounding circle.
-    //! \param p (in) polygon for which the centroid is to be computed.
-    //! \param c (out) coordinates of the centroid
-    Double PolyCentroid(const StdVector< Vector<Double> > &p,
-	    Vector<Double> &c) const;
-
-    //! Computes a triangulation for a polygon.
-    //! \param p (in) polygon to be triangulized
-    //! \param tri (out) list of triangles
-    UInt TriangulatePoly(const StdVector< Vector<Double> > &p,
-	    StdVector<NCElem*> &tri);
-
-    //! vector of all ncInterfaces defined
-    StdVector<ncInterface> ncInterfaces_;
-
-    //! variable for tolerance of absolute values (used in polygonal
-    //! intersection algorithm)
-    double polysectAbsTol_;
-
-    //! variable for tolerance of relative values (used in polygonal
-    //! intersection algorithm)
-    double polysectRelTol_;
-
-    //@}
-  */
-    
     // this is interpolation stuff, but it must be defined,
     // even if you switch off interpolation
   public:

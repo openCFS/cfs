@@ -15,7 +15,7 @@
 #ifndef FESPACEL2_HH_
 #define FESPACEL2_HH_
 
-#include "FeBasis/FeSpace.hh"
+#include "FeBasis/FeSpaceNodal.hh"
 
 namespace CoupledField {
 
@@ -28,7 +28,7 @@ namespace CoupledField {
  *    the FeSpaceH1 as its basically the same
  *
  */
-class FeSpaceL2 : public FeSpace {
+class FeSpaceL2 : public FeSpaceNodal {
 public:
 
   //! Constructor

@@ -1122,10 +1122,14 @@ source/Domain/CoefFunction/CoefFunctionFormBased.cc svneol=native#text/x-c%2B%2B
 source/Domain/CoefFunction/CoefFunctionFormBased.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/CoefFunction/CoefFunctionGrid.cc -text
 source/Domain/CoefFunction/CoefFunctionGrid.hh -text
+source/Domain/CoefFunction/CoefFunctionGridNodal.cc -text
+source/Domain/CoefFunction/CoefFunctionGridNodal.hh -text
+source/Domain/CoefFunction/CoefFunctionGridNodalDefault.cc -text
+source/Domain/CoefFunction/CoefFunctionGridNodalDefault.hh -text
+source/Domain/CoefFunction/CoefFunctionGridNodalInterp.cc -text
+source/Domain/CoefFunction/CoefFunctionGridNodalInterp.hh -text
 source/Domain/CoefFunction/CoefFunctionMulti.cc -text
 source/Domain/CoefFunction/CoefFunctionMulti.hh -text
-source/Domain/CoefFunction/CoefFunctionNodalGrid.cc -text
-source/Domain/CoefFunction/CoefFunctionNodalGrid.hh -text
 source/Domain/CoefFunction/CoefFunctionPML.cc -text
 source/Domain/CoefFunction/CoefFunctionPML.hh -text
 source/Domain/CoefFunction/CoefFunctionSurf.cc -text
@@ -1164,7 +1168,10 @@ source/Domain/Mesh/Grid.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/Mesh/Grid.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/Mesh/GridCFS/GridCFS.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/Mesh/GridCFS/GridCFS.hh svneol=native#text/x-c%2B%2Bhdr
-source/Domain/Mesh/PolygonIterators.hh svneol=native#text/x-c%2B%2Bhdr
+source/Domain/Mesh/NcInterfaces/BaseNcInterface.hh -text
+source/Domain/Mesh/NcInterfaces/MortarInterface.cc -text
+source/Domain/Mesh/NcInterfaces/MortarInterface.hh -text
+source/Domain/Mesh/NcInterfaces/PolygonIterators.hh -text
 source/Domain/Results/BaseResults.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/Results/BaseResults.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/Results/CMakeLists.txt -text
@@ -1221,6 +1228,8 @@ source/FeBasis/FeSpace.cc svneol=native#text/x-c%2B%2Bsrc
 source/FeBasis/FeSpace.hh svneol=native#text/x-c%2B%2Bhdr
 source/FeBasis/FeSpaceHi.cc svneol=native#text/x-c%2B%2Bsrc
 source/FeBasis/FeSpaceHi.hh svneol=native#text/x-c%2B%2Bhdr
+source/FeBasis/FeSpaceNodal.cc -text
+source/FeBasis/FeSpaceNodal.hh -text
 source/FeBasis/H1/FeSpaceH1Hi.cc -text
 source/FeBasis/H1/FeSpaceH1Hi.hh -text
 source/FeBasis/H1/FeSpaceH1Nodal.cc -text
@@ -1283,6 +1292,7 @@ source/Forms/Operators/LaplOp.hh -text
 source/Forms/Operators/MultiIdOp.hh -text
 source/Forms/Operators/NormalFluxOperators.hh -text
 source/Forms/Operators/StrainOperator.hh -text
+source/Forms/Operators/SurfaceOperators.hh -text
 source/General/CMakeLists.txt svneol=native#text/plain
 source/General/Enum.hh -text
 source/General/Environment.cc svneol=native#text/x-c%2B%2Bsrc

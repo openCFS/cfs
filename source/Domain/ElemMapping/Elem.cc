@@ -371,6 +371,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       {
        Elem::ET_POINT,Elem::ET_POINT
       };
+
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
                    edgeVertices, edgeLocDirs, surfElems,
                    NULL, NULL, NULL, NULL );

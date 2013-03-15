@@ -92,6 +92,8 @@ namespace CoupledField {
   typedef StdVector<shared_ptr<HomDirichletBc> > HdBcList;
   typedef StdVector<shared_ptr<InhomDirichletBc> > IdBcList;
   typedef StdVector<shared_ptr<Constraint> > ConstraintList;
+  typedef StdVector<shared_ptr<CoefFunction> > LoadCoefList;
+  typedef StdVector<shared_ptr<CoefFunction> > ExternalDataCoefList;
 
 
 }

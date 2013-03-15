@@ -8,7 +8,9 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionConst.cc
   CoefFunctionExpression.cc
   CoefFunctionGrid.cc
-  CoefFunctionNodalGrid.cc
+  CoefFunctionGridNodal.cc
+  CoefFunctionGridNodalDefault.cc
+  CoefFunctionGridNodalInterp.cc
   CoefFunctionMulti.cc
   CoefFunctionTimeFreq.cc
   CoefFunctionSurf.cc

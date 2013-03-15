@@ -82,6 +82,40 @@ namespace CoupledField {
     //! Map containing all coefficient functions for volume regions for operator A
     std::map< RegionIdType, PtrCoefFct > regionCoefs_;    
   };
+
+  //! general class for calculation of AB-Forms
+ template<class COEF_DATA_TYPE=Double, class B_DATA_TYPE=Double>
+ class SurfaceNitscheABInt : public ABInt<COEF_DATA_TYPE,B_DATA_TYPE>{
+   public:
+
+     //! Define data type for matrix entries, derived by type trait
+     typedef PROMOTE(B_DATA_TYPE, COEF_DATA_TYPE) MAT_DATA_TYPE;
+
+     //! Constructor with pointer to CoefFunction for surface itself
+     SurfaceNitscheABInt( BaseBOperator * aOp, BaseBOperator * bOp,
+                   PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+                   BiLinearForm::CouplingDirection cplDir, bool coordUpdate = false);
+
+     //! Destructor
+     ~SurfaceNitscheABInt() {}
+
+     //! Compute element matrix associated to BDB form
+     void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                             EntityIterator& ent1,
+                             EntityIterator& ent2 );
+   protected:
+     //! Returns the two volume elements necessary to calculate the operators
+     void GetVolFromSurfElem(bool & uMaster1, bool & uMaster2);
+
+     //! Set containing all volume regions for surface integrators
+     BiLinearForm::CouplingDirection myDirection_;
+
+     //TODO: for future purpose it would be helpful to be able
+     //to add two and more volume regions to one master or slave side
+
+     //! Map containing all coefficient functions for volume regions for operator A
+     std::map< RegionIdType, PtrCoefFct > regionCoefs_;
+   };
 }
 
 #endif

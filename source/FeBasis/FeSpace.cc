@@ -127,6 +127,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     }
   }
 
+
 // ==========================================================================
 //   M A I N   F E S P A C E    C L A S S
 // ==========================================================================
@@ -166,6 +167,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   }
 
   FeSpace::~FeSpace(){
+
   }
 
   shared_ptr<FeSpace> FeSpace::CreateInstance( PtrParamNode aNode, 

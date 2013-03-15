@@ -267,8 +267,12 @@ namespace CoupledField {
             << "have not two nodes in common. Check your .mesh-file.");
     }
   }
-
   
+  void FeH1LagrangeTria::
+  ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C){
+
+  }
+
   // --- Quad 1st order ---
    
   FeH1LagrangeQuad1::FeH1LagrangeQuad1() : FeH1LagrangeQuad() {

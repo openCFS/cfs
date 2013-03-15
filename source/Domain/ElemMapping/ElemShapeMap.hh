@@ -154,6 +154,12 @@ namespace CoupledField {
     //! element, in case it was initialized with only the volume information;
     void SetSurfInfo( const std::set<RegionIdType>& volRegions );
 
+
+    //! Specialized version for NMG points
+    void SetMortar( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
+                                          Double weight, bool useMaster);
+
+
     //! Shape map for this element
     shared_ptr<ElemShapeMap> shapeMap;
 
@@ -317,6 +323,13 @@ namespace CoupledField {
     virtual void CalcNormal( Vector<Double>& normal, 
                              const LocPoint& lp ) = 0;
     
+    //!This method checks if a given local point is on the surface
+    //! of the element. If so, it returns true and calculates the
+    //! surface normal according to the point. If not, it returns
+    //! false
+    virtual bool CalcNormalOutOfVolume(Vector<Double> & normal,
+                                           const LocPoint & lp)=0;
+
 
     //! Calculates corresponding volume point of neighboring surfaces
 
@@ -414,6 +427,7 @@ namespace CoupledField {
     
     //! obtain pointer to geometric reference element
     virtual BaseFE* GetBaseFE()  = 0;
+
   protected:
 
     //! Type of shape mapping
@@ -488,6 +502,10 @@ namespace CoupledField {
     void Global2LocalDuester(Vector<Double>& locPoint,
                              const Vector<Double>& globalPoint);
 
+    //! For elements using barycentric coordinates right now limited to straight edges
+    void Global2LocalBarycentric( Vector<Double>& locPoint,
+                                     const Vector<Double>& globalPoint );
+
     //! Version for linear line elements
     void Global2LocalLine2(Vector<Double>& locPoint,
                            const Vector<Double>& globalPoint);
@@ -506,6 +524,10 @@ namespace CoupledField {
     void CalcNormal( Vector<Double>& normal, 
                      const LocPoint& lp );
     
+    //! @copydoc ElemShapeMap::CalcNormalOutOfVolume
+    bool CalcNormalOutOfVolume(Vector<Double> & normal,
+                               const LocPoint & lp);
+
     //! @copydoc ElemShapeMap::GetLocalIntPoints4Surface
     void GetLocalIntPoints4Surface( const StdVector<UInt> & surfConnect,
                                     const LocPoint & surfIntPoint,

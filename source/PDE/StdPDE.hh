@@ -34,6 +34,13 @@ namespace CoupledField {
     //! typedefs for result handling
     typedef std::set<shared_ptr<ResultInfo> > ResultSet;
 
+    //! Typedef for nonconforming stuff Nietsche or Mortar
+    typedef enum{
+      NONE,
+      MORTAR,
+      NITSCHE
+    }NcCouplingType;
+    static Enum<NcCouplingType> ncCouplingType_;
 
     //! Virtual destructor
     virtual ~StdPDE();
@@ -381,6 +388,15 @@ namespace CoupledField {
     
     //! Map storing the feFunctions of the RHS
     std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
+
+    //! vector containing regionIds of non-conforming interfaces
+    StdVector<RegionIdType> ncIFaces_;
+
+    //! map storing for each ncIface the nitsche NMGformulation factor
+    std::map<RegionIdType,Double> nitscheFactors_;
+
+    //! Type of non-matching formulation
+    std::map<RegionIdType,NcCouplingType> ncTypes_;
 
   }; // class StdPDE
 

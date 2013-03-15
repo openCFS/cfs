@@ -75,6 +75,26 @@ public:
   //! \copydoc CoefFunction::ToString
   virtual std::string ToString() const;
   
+
+  // COLLECTION ACCESS
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<Double >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<Vector<Double> >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                            StdVector<Matrix<Double> >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<Complex >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<Vector<Complex> >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                            StdVector<Matrix<Complex> >  & vals);
+
 private:
   
   //! Return coefficient function for a given region

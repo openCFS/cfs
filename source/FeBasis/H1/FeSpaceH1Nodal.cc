@@ -28,7 +28,7 @@ namespace CoupledField{
   FeSpaceH1Nodal::FeSpaceH1Nodal(PtrParamNode aNode,
                                  PtrParamNode infoNode,
                                  Grid* ptGrid )
-  : FeSpace(aNode, infoNode, ptGrid ) {
+  : FeSpaceNodal(aNode, infoNode, ptGrid ) {
     type_ = H1;
     isHierarchical_ = false;
     mapType_ = GRID;
@@ -55,14 +55,6 @@ namespace CoupledField{
     
     solStrat_ = solStrat;
     
-    // read order of function space
-    // read, if map type should be isotropic
-    //TODO: Specify default integration method
-    //       special case of spectral elements:
-    //       If we have Gauss-LOBATTO, we set it to the element order
-    //       (if the user did not specify something else).
-    //       If we do not have Gauss-Lobatto we set to Gauss and order to 2
-    //       (if the user did not specify something else).
     //read in polyLists and integLists for easier access later
     ReadIntegList();
     ReadPolyList();
@@ -260,10 +252,10 @@ namespace CoupledField{
       UInt isoOrder = order.GetIsoOrder();
       
       // Check if a polynomial order was already set and if they match
-      if( order_ != 0 && order_ != isoOrder ) {
-        EXCEPTION( "A Lagrangian-based space can only have one specific "
-            << "polynomial order" );
-      }
+      //if( order_ != 0 && order_ != isoOrder ) {
+      //  EXCEPTION( "A Lagrangian-based space can only have one specific "
+      //      << "polynomial order" );
+      //}
 
       mapType_ = POLYNOMIAL;
       infoNode->Get("order")->SetValue(isoOrder);

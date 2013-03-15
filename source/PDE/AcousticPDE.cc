@@ -18,6 +18,7 @@
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
 #include "Forms/Operators/ConvectivePierceOperator.hh"
+#include "Forms/Operators/SurfaceOperators.hh"
 
 #include "FeBasis/FeFunctions.hh"
 #include "Utils/StdVector.hh"
@@ -31,6 +32,7 @@
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
+#include "Domain/Mesh/NcInterfaces/BaseNcInterface.hh"
 
 #include <boost/lexical_cast.hpp>
 #include <cmath>
@@ -380,6 +382,122 @@ namespace CoupledField{
         assemble_->AddBiLinearForm( abcContext );
       }
     }
+    if( ncIFaces_.GetSize() > 0 ) {
+      RegionIdType actRegion;
+      std::string regionName;
+      shared_ptr<BaseNcInterface> curNC;
+      for(UInt i=0;i < ncIFaces_.GetSize();++i){
+        curNC = this->ptGrid_->GetNcInterface(i);
+        actRegion = ncIFaces_[i];
+        regionName = curNC->GetName();
+        //curList = this->ptGrid_->GetEntityList(EntityList::SURF_ELEM_LIST,regionName);
+
+        // create new entity list
+        shared_ptr<ElemList> actSDList( new SurfElemList(ptGrid_ ) );
+        actSDList->SetRegion( actRegion );
+
+        PtrCoefFct factor = CoefFunction::Generate(Global::REAL, "1.0");
+        //notation> assume the test function is called v
+        BaseBDBInt *penalty_u1_v1 = NULL;
+        BaseBDBInt *penalty_u1_v2 = NULL;
+        BaseBDBInt *penalty_u2_v1 = NULL;
+        BaseBDBInt *penalty_u2_v2 = NULL;
+        //now bilinear forms related to the normal derivatives
+        //du1 referes to the normal derivative directing from 1 to 2
+        BaseBDBInt *flux_du1_v1 = NULL;
+        BaseBDBInt *flux_du1_v2 = NULL;
+        BaseBDBInt *flux_u1_dv1 = NULL;
+        BaseBDBInt *flux_u2_dv1 = NULL;
+        BiLinearForm::CouplingDirection curcpl;
+
+        //we set here the penalty factor
+        Double beta = nitscheFactors_[actRegion];
+        if( dim_ == 2 ) {
+          if(analysistype_ == HARMONIC){
+            EXCEPTION("HARMONIC CASE NOT IMPLEMENTED FOR ACOUSTIC NMG");
+          }else{
+            curcpl = BiLinearForm::MASTER_MASTER;
+            penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
+                                                 new SurfaceIdentityOperator<FeH1,2,1>(),factor,beta,curcpl,false);
+
+            flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceNormalDerivOperator<FeH1,2,1>(),
+                new SurfaceIdentityOperator<FeH1,2,1>(),factor,-1.0,curcpl,false);
+
+            flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,1>(),
+                new SurfaceNormalDerivOperator<FeH1,2,1>(),factor,-1.0,curcpl,false);
+
+            curcpl = BiLinearForm::SLAVE_SLAVE;
+            penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
+                                                 new SurfaceIdentityOperator<FeH1,2,1>(),factor,beta,curcpl,false);
+
+            curcpl = BiLinearForm::MASTER_SLAVE;
+            penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
+                                                 new SurfaceIdentityOperator<FeH1,2,1>(),factor,beta*-1.0,curcpl,false);
+
+            flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>(new SurfaceNormalDerivOperator<FeH1,2,1>(),
+                new SurfaceIdentityOperator<FeH1,2,1>(),factor,1.0,curcpl,false);
+
+            curcpl = BiLinearForm::SLAVE_MASTER;
+            penalty_u2_v1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
+                                                 new SurfaceIdentityOperator<FeH1,2,1>(),factor,beta*-1.0,curcpl,false);
+
+            flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,1>(),
+                new SurfaceNormalDerivOperator<FeH1,2,1>(),factor,1.0,curcpl,false);
+
+          }
+        }else{
+          EXCEPTION("Only 2D NMGs are supported right now!");
+        }
+        penalty_u1_v1->SetName("penalty_u1_v1");
+        flux_du1_v1->SetName("flux_du1_v1");
+        flux_u1_dv1->SetName("flux_u1_dv1");
+        penalty_u2_v2->SetName("penalty_u2_v2");
+        penalty_u1_v2->SetName("penalty_u1_v2");
+        flux_du1_v2->SetName("flux_du1_v2");
+        penalty_u2_v1->SetName("penalty_u2_v1");
+        flux_u2_dv1->SetName("flux_u2_dv1");
+
+        curcpl = BiLinearForm::MASTER_MASTER;
+        SurfaceBiLinFormContext * penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1,STIFFNESS,curcpl);
+        SurfaceBiLinFormContext * flux_du1_v1_Context = new SurfaceBiLinFormContext(flux_du1_v1,STIFFNESS,curcpl);
+        SurfaceBiLinFormContext * flux_u1_dv1_Context = new SurfaceBiLinFormContext(flux_u1_dv1,STIFFNESS,curcpl);
+        curcpl = BiLinearForm::SLAVE_SLAVE;
+        SurfaceBiLinFormContext * penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2,STIFFNESS,curcpl);
+        curcpl = BiLinearForm::MASTER_SLAVE;
+        SurfaceBiLinFormContext * penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2,STIFFNESS,curcpl);
+        SurfaceBiLinFormContext * flux_du1_v2_Context = new SurfaceBiLinFormContext(flux_du1_v2,STIFFNESS,curcpl);
+        curcpl = BiLinearForm::SLAVE_MASTER;
+        SurfaceBiLinFormContext * penalty_u2_v1_Context = new SurfaceBiLinFormContext(penalty_u2_v1,STIFFNESS,curcpl);
+        SurfaceBiLinFormContext * flux_u2_dv1_Context = new SurfaceBiLinFormContext(flux_u2_dv1,STIFFNESS,curcpl);
+
+        penalty_u1_v1_Context->SetEntities(actSDList,actSDList);
+        flux_du1_v1_Context->SetEntities(actSDList,actSDList);
+        flux_u1_dv1_Context->SetEntities(actSDList,actSDList);
+        penalty_u2_v2_Context->SetEntities(actSDList,actSDList);
+        penalty_u1_v2_Context->SetEntities(actSDList,actSDList);
+        flux_du1_v2_Context->SetEntities(actSDList,actSDList);
+        penalty_u2_v1_Context->SetEntities(actSDList,actSDList);
+        flux_u2_dv1_Context->SetEntities(actSDList,actSDList);
+
+        penalty_u1_v1_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        flux_du1_v1_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        flux_u1_dv1_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        penalty_u2_v2_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        penalty_u1_v2_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        flux_du1_v2_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        penalty_u2_v1_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        flux_u2_dv1_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+
+        assemble_->AddBiLinearForm( penalty_u1_v1_Context );
+        assemble_->AddBiLinearForm( flux_du1_v1_Context );
+        assemble_->AddBiLinearForm( flux_u1_dv1_Context );
+        assemble_->AddBiLinearForm( penalty_u2_v2_Context );
+        assemble_->AddBiLinearForm( penalty_u1_v2_Context );
+        assemble_->AddBiLinearForm( flux_du1_v2_Context );
+        assemble_->AddBiLinearForm( penalty_u2_v1_Context );
+        assemble_->AddBiLinearForm( flux_u2_dv1_Context );
+      }
+    }
 
 
   }
@@ -610,6 +728,15 @@ namespace CoupledField{
       } // loop entities
     } // if
 
+    // =====================================
+    //  rhsValues for e.g. for aeroacoustics
+    // =====================================
+    ReadRhsExcitation( "rhsValues", empty, ResultInfo::SCALAR, isComplex_,
+                          ent, coef, coefUpdateGeo );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      coef[i]->AddEntityList(ent[i]);
+      this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i]);
+    }
 
   }
 
@@ -655,6 +782,8 @@ namespace CoupledField{
     rhs->unit = "?";
     rhs->definedOn = results_[0]->definedOn;
     rhs->entryType = ResultInfo::SCALAR;
+    DefineFieldResult( this->rhsFeFunctions_[formulation_], rhs );
+    results_.Push_back( rhs );
     availResults_.insert( rhs );
 
     //creates the mean flow
@@ -713,6 +842,86 @@ namespace CoupledField{
                                                                isComplex_));
     matCoefs_[PML_DAMP_FACTOR] = pmlFct;
     DefineFieldResult(pmlFct, pml);
+    //}
+
+
+    // ===================================
+    // Check for non-conforming interfaces
+    // ===================================
+    StdVector<std::string> ncIfaceNames, ncIfaceNamesForPDE;
+    StdVector<RegionIdType> ncIfaceIds;
+
+    LOG_DBG2(acousticpde) << "NonMatching: Checking if nonconforming "
+                          << "interfaces of PDE exist in domain.";
+
+    PtrParamNode acouPDENCIfaceListNode;
+    acouPDENCIfaceListNode = param->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
+    ->Get("pdeList/acoustic/ncInterfaceList", ParamNode::PASS);
+
+    if(!acouPDENCIfaceListNode)
+      return;
+
+    PtrParamNode domainNCIfaceListNode;
+    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
+
+    if(!domainNCIfaceListNode)
+    {
+      EXCEPTION("No nonmatching interfaces have been specified in domain!");
+    }
+
+    ParamNodeList pdeNCIfaceNodes;
+    pdeNCIfaceNodes = acouPDENCIfaceListNode->GetList("ncInterface");
+
+    for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
+      std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
+
+      PtrParamNode domainIfaceNode = domainNCIfaceListNode
+          ->GetByVal("ncInterface", "name", pdeIfaceName, ParamNode::PASS);
+      if(!domainIfaceNode)
+      {
+        LOG_DBG2(acousticpde) << "NonMatching: Nonconforming "
+        << "interface '" << ncIfaceNames[i]
+                                         << "' does not exist in domain.";
+
+        EXCEPTION( "ncInterface referenced from PDE not defined in domain!");
+      }
+
+      ncIfaceNamesForPDE.Push_back(pdeIfaceName);
+
+
+    }
+    ptGrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
+
+    for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
+      ncIFaces_.Push_back(ncIfaceIds[i]);
+      std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
+      std::string nmgFormStr =  pdeNCIfaceNodes[i]->Get("nmgFormulation",ParamNode::PASS)->As<std::string>();
+      ncTypes_[ncIfaceIds[i]] = ncCouplingType_.Parse(nmgFormStr);
+
+      if(ncTypes_[ncIfaceIds[i]]==NITSCHE){
+
+        nitscheFactors_[ncIfaceIds[i]] = pdeNCIfaceNodes[i]->Get("nitscheFactor",ParamNode::PASS)->As<Double>();
+
+        //write some info
+        PtrParamNode base = infoNode_->Get(ParamNode::PN_HEADER)->Get("NMG",ParamNode::INSERT)->Get("nitsche",ParamNode::INSERT);
+        PtrParamNode curNCI = base->Get(pdeIfaceName,ParamNode::INSERT);
+        curNCI->Get("penaltyValue",ParamNode::INSERT)->SetValue(nitscheFactors_[ncIfaceIds[i]]);
+      }else{
+        EXCEPTION("Only Nitsche NMG formulation is supported right now for acoustic PDE");
+      }
+    }
+
+
+    // In the case of the presence of non-conforming interfaces,
+    // a second resultdof object has to be created, which describes the
+    // Lagrange multiplier
+    //if( ncIFaces_.GetSize() > 0 ) {
+    //  LOG_DBG2(acousticpde) << "NonMatching: Defining new ResultDof Lagrange.";
+    //  shared_ptr<ResultInfo> lagr ( new ResultInfo );
+    //  lagr->resultType = LAGRANGE_MULT;
+    //  lagr->dofNames = "l";
+    //  lagr->definedOn = results_[0]->definedOn;
+    //  results_.Push_back( lagr );
     //}
   }
   

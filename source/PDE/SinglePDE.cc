@@ -52,7 +52,7 @@ using std::string;
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
-#include "Domain/CoefFunction/CoefFunctionNodalGrid.hh"
+#include "Domain/CoefFunction/CoefFunctionGrid.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 
@@ -1350,7 +1350,14 @@ namespace CoupledField {
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
       fncIt->second->ApplyBC();
+      fncIt->second->ApplyLoads();
       fncIt++;
+    }
+    //do the same for RHS
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator rFncIt= this->rhsFeFunctions_.begin();
+    while(rFncIt != this->rhsFeFunctions_.end()){
+      rFncIt->second->ApplyLoads();
+      rFncIt++;
     }
   }
 
@@ -1710,11 +1717,13 @@ namespace CoupledField {
       //  EXTERNAL GRID DATA 
       // ====================
       if(!isComplex) {
+        coef = CoefFunctionGrid::Generate(Global::REAL, infoNode_ , valueNode->Get("grid"));
         //this is hardcoded so far. should be changed or generated depending on the type
         //of grid (nodal or higher order)
-        coef.reset(new CoefFunctionNodalGrid<Double>(valueNode->Get("grid")));
+        //coef.reset(new CoefFunctionNodalGrid<Double>(valueNode->Get("grid")));
       } else {
-        coef.reset(new CoefFunctionNodalGrid<Complex>(valueNode->Get("grid")));
+        coef = CoefFunctionGrid::Generate(Global::COMPLEX, infoNode_ , valueNode->Get("grid"));
+        //coef.reset(new CoefFunctionNodalGrid<Complex>(valueNode->Get("grid")));
       }
       // here we assume no updated geometry
       updateGeo = false;
@@ -3152,7 +3161,7 @@ namespace CoupledField {
 
   void SinglePDE::DefineFeFunctions(){
       //This is the default creation of spaces
-      //idee: die PDE gibt zum attribute formulation die passenden space zurück
+      //idee: die PDE gibt zum attribute formulation die passenden space zur��ck
       //DOGMA: PRO UNBEKANNTE EINE FUNCTION UND EIN SPACE
       std::string formulation;
       myParam_->GetValue("feSpaceFormulation",formulation,ParamNode::EX);

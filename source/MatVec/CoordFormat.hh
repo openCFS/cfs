@@ -4,6 +4,7 @@
 #include <vector>
 #include <iterator>
 #include <algorithm>
+#include <cstdio>
 
 #include "General/defs.hh"
 #include "General/Exception.hh"
@@ -72,9 +73,157 @@ namespace CoupledField {
 
     }
 
+    //! Constructor which imports the matrix based on a matrix market format file
+    CoordFormat( std::string fname,
+                 Layout myLayout = NOLAYOUT ){
+
+      //ENTER_FCN( "ImportRealMM" );
+
+         char singleChar;
+         char myString[200];
+         UInt nrows;
+         UInt ncols;
+         UInt nentries;
+         UInt ridx;
+         UInt cidx;
+         double value;
+         symmStorage_ = false;
+
+         assemblyDone_ = false;
+         myLayout_     = myLayout;
+
+         // Open input file and check for errors
+
+         // Open input file and check for errors
+         FILE *fp = fopen( fname.c_str(), "r" );
+         if ( fp == NULL ) {
+           EXCEPTION( "Cannot open file '" << fname << "' for reading");
+         }
+
+         // *******************************************************
+         //   Read Matrix Market header and validate it is one of
+         //
+         //   %%MatrixMarket matrix coordinate real general
+         //   %%MatrixMarket matrix coordinate real symmetric
+         // *******************************************************
+         fscanf( fp, "%c", &singleChar );
+         if ( singleChar != '%' ) {
+           EXCEPTION(  "Input file '" << fname << "' seems faulty.\n" //
+              << " Problems reading its header!");
+         }
+         fscanf( fp, "%c", &singleChar );
+         if ( singleChar != '%' ) {
+           EXCEPTION( "Input file '" << fname << "' seems faulty.\n" //
+              << " Problems reading its header!");
+         }
+         fscanf( fp, "%s", myString );
+         if ( strcmp( myString, "MatrixMarket" ) != 0 ) {
+           EXCEPTION( "Input file '" << fname << "' seems faulty.\n"
+              << " Problems reading its header!");
+         }
+         fscanf( fp, "%s", myString );
+         if ( strcmp( myString, "matrix" ) != 0 ) {
+           EXCEPTION( "Input file '" << fname << "' seems faulty.\n"
+              << "Contains a '" << myString << "' and not a 'matrix'");
+         }
+         fscanf( fp, "%s", myString );
+         if ( strcmp( myString, "coordinate" ) != 0 ) {
+           EXCEPTION("Input file '" << fname << "' seems faulty.\n"
+              << "Format is '" << myString << "' and not 'coordinate'");
+         }
+         fscanf( fp, "%s", myString );
+         if ( strcmp( myString, "real" ) != 0 ) {
+           EXCEPTION("Input file '" << fname << "' seems faulty.\n"
+              << "Entries are of type '" << myString << "' and not 'real'");
+         }
+         fscanf( fp, "%s", myString );
+         if ( strcmp( myString, "general" ) == 0 ) {
+           symmStorage_ = false;
+         }
+         else if ( strcmp( myString, "symmetric") == 0 ) {
+           symmStorage_ = true;
+         }
+         else {
+           EXCEPTION("Input file '" << fname << "' seems faulty.\n" //
+              << "Format is '" << myString << "' and not 'general' " //
+              << "or 'symmetric'");
+         }
+
+         // Finish this line (by reading characters until the '\n' appears
+         char auxChar;
+         do {
+           fscanf( fp, "%c", &auxChar );
+         } while ( auxChar != '\n' );
+
+         // Read lines, until we have skipped comments
+         do {
+           fscanf( fp, "%c", &auxChar );
+           if ( auxChar == '%' ) {
+       do {
+         fscanf( fp, "%c", &auxChar );
+       } while ( auxChar != '\n' );
+           }
+           else {
+       ungetc( auxChar, fp );
+       break;
+           }
+         } while ( true );
+
+         // This line (hopefully) contains the number of rows, columns and non-zeros
+         fscanf( fp, "%u%u%u", &nrows, &ncols, &nentries );
+
+         // Minimal consistency test
+         if ( nentries > (nrows * ncols) ) {
+           EXCEPTION("Input file '" << fname << "' seems faulty!\n" //
+              << "#rows       = " << nrows << ",\n" //
+              << "#cols       = " << ncols << ", but\n" //
+              << "#numEntries = " << nentries);
+         }
+         else {
+           std::cout << " Input file '" << fname << "' contains a matrix with"
+            << "\n  + rows       = " << nrows
+            << "\n  + cols       = " << ncols
+            << "\n  + numEntries = " << nentries << std::endl;
+         }
+
+
+         UInt nnz = 0;
+         if ( symmStorage_ == true ) {
+           nnz = ( nentries - nrows ) * 2 + nrows;
+           std::cout << "  + format     = symmetric\n";
+         }
+         else {
+           nnz = nentries;
+           std::cout << "  + format     = general\n";
+         }
+         std::cout << "  + nnz        = " << nnz << std::endl;
+         this->nnz_ = nnz;
+         this->nrows_ = nrows;
+         this->ncols_ = ncols;
+         entries_.reserve( nnz_ );
+
+         // Read nonzero matrix entries and their indices
+         for ( unsigned int k = 0; k < nentries; k++ ) {
+           fscanf( fp, "%u%u%lf", &ridx, &cidx, &value );
+           this->AddEntry( ridx, cidx, value );
+         }
+
+         // The matrix is assembled now
+         this->FinaliseAssembly();
+
+         // *********************
+         //   Close output file
+         // *********************
+         if ( fclose( fp ) == EOF ) {
+           WARN( "Could not close file %s after reading!" << fname );
+         }
+    }
+
     //! Default destructor
     ~CoordFormat() {
     }
+
+
 
     //! Add a matrix entry
 
@@ -203,7 +352,7 @@ namespace CoupledField {
         EXCEPTION( "Attempt to access matrix entry, before assembly was "
                  << "finalised by a call to FinaliseAssembly!" );
       }
-      return entries_[i-1].rowIndex;
+      return entries_[i].rowIndex;
     }
 
     //! Read only access to column index vector
@@ -212,7 +361,7 @@ namespace CoupledField {
         EXCEPTION( "Attempt to access matrix entry, before assembly was "
                  << "finalised by a call to FinaliseAssembly!" );
       }
-      return entries_[i-1].colIndex;
+      return entries_[i].colIndex;
     }
 
     //! Read only access to matrix entry vector
@@ -221,7 +370,7 @@ namespace CoupledField {
         EXCEPTION( "Attempt to access matrix entry, before assembly was "
                  << "finalised by a call to FinaliseAssembly!" );
       }
-      return entries_[i-1].value;
+      return entries_[i].value;
     }
 
     //! Re-sort entries to conform to a special layout

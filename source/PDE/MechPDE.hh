@@ -69,9 +69,6 @@ namespace CoupledField
     // set solution information
     // ========================
 
-    //! vector containing regionIds of non-conforming interfaces
-    StdVector<RegionIdType> ncIFaces_;
-
   private:
 
     //! Initialize time stepping method

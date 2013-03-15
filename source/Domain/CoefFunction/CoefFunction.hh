@@ -31,6 +31,7 @@ namespace CoupledField{
 class CoordSystem;
 class CoefXpr;
 class CoefFunction;
+class FeSpace;
 
 //! This is the base class for describing coefficients
 
@@ -328,12 +329,16 @@ public:
     return isComplex_;
   }
 
-  virtual void AddEntities(shared_ptr<EntityList> ent){
+  virtual void AddEntityList(shared_ptr<EntityList> ent){
     if(!entities_.Contains(ent)){
       entities_.Push_back(ent);
     }else{
       WARN("entity list " << ent->GetName() << " already contained in CoefFunction")
     }
+  }
+
+  virtual StdVector<shared_ptr<EntityList> > GetEntityList(){
+    return entities_;
   }
 
   //! Dump coefficient function to string 
@@ -364,6 +369,57 @@ public:
                                   StdVector<std::string>& imagVar,
                                   const std::string& prefix,
                                   PtrCoefFct cf );
+
+  //@}
+
+  // ======================================================================
+  //  Some specialized methods for data from external grids
+  //  This bearks to some amount the class interface but is done to improve speed
+  // ======================================================================
+  //@{ \name External Data interfaces
+
+  //! Map Conservative to FeFunction Vector
+  virtual void MapConservative( shared_ptr<FeSpace> targetSpace,
+                                    Vector<Double>& feFncVec){
+    EXCEPTION("This coefficient function does not support Conservative Mapping");
+  }
+
+  //! Map Conservative to FeFunction Vector
+  virtual void MapConservative( shared_ptr<FeSpace> targetSpace,
+                                    Vector<Complex>& feFncVec){
+    EXCEPTION("This coefficient function does not support Conservative Mapping");
+  }
+
+  //! Determine if coefFunction has conservative mapping
+  virtual bool IsConservative(){
+    return false;
+  }
+
+
+  //! Give Values at global coordinate locations
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
+                                             StdVector< Vector<Double> >& values){
+    EXCEPTION("This coefficient function does not support evaluation at global coordinates");
+  }
+
+  //! Give Values at global coordinate locations
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
+                                             StdVector< Vector<Complex> >& values){
+    EXCEPTION("This coefficient function does not support evaluation at global coordinates");
+  }
+
+  //! Give Values at global coordinate locations
+  virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
+                                             StdVector< Double >& values){
+    EXCEPTION("This coefficient function does not support evaluation at global coordinates");
+  }
+
+  //! Give Values at global coordinate locations
+  virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
+                                             StdVector< Complex >& values){
+    EXCEPTION("This coefficient function does not support evaluation at global coordinates");
+  }
+
 
   //@}
 protected:

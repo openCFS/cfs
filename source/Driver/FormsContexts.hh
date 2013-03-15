@@ -5,6 +5,7 @@
 #include "General/Environment.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/mathParser/mathParser.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
 
 namespace CoupledField
 {
@@ -19,7 +20,7 @@ namespace CoupledField
   class FeSpace;
   class BaseFeFunction;
   class LinearForm;
-  class BiLinearForm;
+  //class BiLinearForm;
 
 
 
@@ -39,6 +40,8 @@ namespace CoupledField
   class BiLinFormContext  {
 
   public:
+
+
 
     //! Constructor
     //! \param biLinForm pointer to the bilinearform to be wrapped
@@ -213,6 +216,25 @@ namespace CoupledField
     //! Pointer to second FeFunction
     weak_ptr<BaseFeFunction> feFct2_;
 
+  };
+
+  class SurfaceBiLinFormContext : public BiLinFormContext {
+  public:
+
+
+    SurfaceBiLinFormContext( BiLinearForm* biLinForm, FEMatrixType destMat, BiLinearForm::CouplingDirection currentDirection);
+
+    //! Destructor
+    virtual ~SurfaceBiLinFormContext();
+
+    virtual void MapEqns( EntityIterator& it1,
+                              EntityIterator& it2,
+                              StdVector<Integer>& eqnVec1,
+                              StdVector<Integer>& eqnVec2,
+                              FeFctIdType& id1, FeFctIdType& id2 );
+
+  protected:
+    BiLinearForm::CouplingDirection currentDirection_;
   };
 
   // -------------------------------------------------------------------------

@@ -435,4 +435,159 @@ GetStrTensor( UInt& numRows, UInt& numCols,
   imag = coefMatImag_;
 }
 
+void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                                                       StdVector<Double >  & vals){
+  assert(this->dimType_ == CoefFunction::SCALAR);
+
+  vals.Resize(points.GetSize());
+  vals.Init();
+  for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){
+    this->mp_->SetCoordinates(mHandle_, *(this->coordSys_), points[curPoint]);
+    vals[curPoint] = this->mp_->Eval(mHandle_);
+  }
+}
+
+void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                      StdVector<Vector<Double> >  & vals){
+  Vector<Double> locVector;
+  if( this->dimType_ == SCALAR ) {
+    StdVector<Double> tmpVals;
+    this->GetVectorValuesAtCoords(points,tmpVals);
+    vals.Resize(tmpVals.GetSize(), Vector<Double>(1));
+    for(UInt i=0;i<tmpVals.GetSize();i++){
+      vals[i][0] = tmpVals[i];
+    }
+  }else{
+    vals.Resize(points.GetSize());
+    vals.Init();
+    for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){
+      this->mp_->SetCoordinates(mHandle_, *(this->coordSys_), points[curPoint]);
+      this->mp_->EvalVector(mHandle_, locVector );
+      this->coordSys_->Local2GlobalVector( vals[curPoint], locVector, points[curPoint] );
+    }
+  }
+
+}
+
+void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                       StdVector<Matrix<Double> >  & vals){
+
+  assert(this->dimType_ == CoefFunction::TENSOR);
+
+  Matrix<Double> locMatrix;
+  vals.Resize(points.GetSize(),Matrix<Double>(this->numRows_,this->numCols_));
+  vals.Init();
+  for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){
+    this->mp_->SetCoordinates(mHandle_, *(this->coordSys_), points[curPoint]);
+    this->mp_->EvalMatrix(mHandle_, locMatrix,
+                          this->numRows_, this->numCols_ );
+
+    if( coordSys_->GetName() != "default") {
+      // Obtain rotation matrix
+      Matrix<Double> rotMatrix;
+      coordSys_->GetFullGlobRotationMatrix( rotMatrix, points[curPoint] );
+
+      EXCEPTION("The rotation is not fully finished ':-(\n" <<
+                "Here we have to add a call to the method BaseMaterial::PerformRotation "
+                "This method should be moved to the base class of the CoefFunction"
+                "In addition the initial rotation of the material must be incorporated"
+                "somewehre in string-notation, as we are generally dealing with string"
+                "parameters."
+                "Thus we should treat the case, where rotation angles are multiples of "
+                "90 degree separately, where the entries are just interchanged");
+    } else {
+      vals[curPoint] = locMatrix;
+    }
+  }
+}
+
+
+void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                                                       StdVector<Complex >  & vals){
+  Double real, imag;
+  assert(this->dimType_ == CoefFunction::SCALAR);
+  // First, obtain global coordinates of current point and  register it at the mathParser
+  Vector<Double> pointCoord;;
+  vals.Resize(points.GetSize());
+  vals.Init();
+  for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){
+    this->mp_->SetCoordinates(mHandleReal_, *(this->coordSys_), points[curPoint]);
+    this->mp_->SetCoordinates(mHandleImag_, *(this->coordSys_), points[curPoint]);
+    real = this->mp_->Eval(mHandleReal_);
+    imag = this->mp_->Eval(mHandleImag_);
+    vals[curPoint] = Complex(real, imag);
+  }
+}
+
+void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                                                      StdVector<Vector<Complex> >  & vals){
+  assert(this->dimType_ == CoefFunction::VECTOR);
+  Vector<Double> temp;
+  Vector<Complex> locVector;
+
+  if( this->dimType_ == SCALAR ) {
+     StdVector<Complex> tmpVals;
+     this->GetVectorValuesAtCoords(points,tmpVals);
+     vals.Resize(tmpVals.GetSize(), Vector<Complex>(1));
+     for(UInt i=0;i<tmpVals.GetSize();i++){
+       vals[i][0] = tmpVals[i];
+     }
+   } else {
+     vals.Resize(points.GetSize());
+     vals.Init();
+     for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){
+       this->mp_->SetCoordinates(mHandleReal_, *(this->coordSys_), points[curPoint]);
+       this->mp_->SetCoordinates(mHandleImag_, *(this->coordSys_), points[curPoint]);
+       this->mp_->EvalVector(mHandleReal_, temp );
+       locVector.Resize(temp.GetSize());
+       locVector.SetPart(Global::REAL, temp);
+       this->mp_->EvalVector(mHandleImag_, temp );
+       locVector.SetPart(Global::IMAG, temp);
+
+       // Afterwards rotate the local vector back to global coordinates
+       this->coordSys_->Local2GlobalVector( vals[curPoint], locVector, points[curPoint] );
+     }
+   }
+}
+
+void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                                                       StdVector<Matrix<Complex> >  & vals){
+
+  assert(this->dimType_ == CoefFunction::TENSOR);
+  Matrix<Complex> locMatrix(this->numRows_, this->numCols_);
+  Matrix<Double> temp;
+
+  vals.Resize(points.GetSize(),Matrix<Complex>(this->numRows_,this->numCols_));
+  vals.Init();
+  for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){
+    this->mp_->SetCoordinates(mHandleReal_, *(this->coordSys_), points[curPoint]);
+    this->mp_->SetCoordinates(mHandleImag_, *(this->coordSys_), points[curPoint]);
+    this->mp_->EvalMatrix(mHandleReal_, temp,
+                          this->numRows_, this->numCols_ );
+    locMatrix.SetPart(Global::REAL, temp);
+    this->mp_->EvalMatrix(mHandleImag_, temp,
+                          this->numRows_, this->numCols_ );
+    locMatrix.SetPart(Global::IMAG, temp);
+
+
+    // Rotate material, if coordinate system is not the global one
+    if( coordSys_->GetName() != "default") {
+      // Obtain rotation matrix
+      Matrix<Double> rotMatrix;
+      coordSys_->GetFullGlobRotationMatrix( rotMatrix, points[curPoint] );
+
+      EXCEPTION("The rotation is not fully finished ':-(\n" <<
+                "Here we have to add a call to the method BaseMaterial::PerformRotation "
+                "This method should be moved to the base class of the CoefFunction"
+                "In addition the initial rotation of the material must be incorporated"
+                "somewehre in string-notation, as we are generally dealing with string"
+                "parameters."
+                "Thus we should treat the case, where rotation angles are multiples of "
+                "90 degree separately, where the entries are just interchanged");
+    } else {
+      vals[curPoint] = locMatrix;
+    }
+  }
+}
+
 }

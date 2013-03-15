@@ -168,6 +168,17 @@ public:
   virtual void GetStrTensor( UInt& numRows, UInt& numCols,
                              StdVector<std::string>& real, 
                              StdVector<std::string>& imag );
+
+
+  // COLLECTION ACCESS
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<T >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<Vector<T> >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                            StdVector<Matrix<T> >  & vals);
 protected:
   
   //! Constant coefficient tensor

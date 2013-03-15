@@ -310,3 +310,16 @@ namespace CoupledField {
   }
 
 } // end of namespace
+
+
+static EnumTuple ncTypeTuples[] =
+{
+ EnumTuple(StdPDE::NITSCHE, "Nitsche"),
+ EnumTuple(StdPDE::MORTAR, "Mortar"),
+ EnumTuple(StdPDE::NONE, "None")
+};
+
+Enum<StdPDE::NcCouplingType>StdPDE::ncCouplingType_ = \
+    Enum<StdPDE::NcCouplingType>("Type of non-conforming formulation used",
+                                  sizeof(ncTypeTuples) / sizeof(EnumTuple),
+                                  ncTypeTuples);

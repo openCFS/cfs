@@ -201,6 +201,10 @@ protected:
                                  const LocPoint & surfIntPoint,
                                  LocPoint & volIntPoint,
                                  Vector<Double>& locNormal );
+
+  //! @copydoc BaseFE::ComputeMonomialCoefficients
+  //! Overloaded method for lagrange Elements
+  virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C);
 };
 
 //! Lagrangian quadrilateral element

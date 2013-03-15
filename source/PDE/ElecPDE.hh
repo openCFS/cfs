@@ -141,8 +141,7 @@ namespace CoupledField
     //! flag for piezo-coupling
     bool isPiezoCoupled_;
 
-    //! vector containing regionIds of non-conforming interfaces
-    StdVector<RegionIdType> ncIFaces_;
+
 
   };
 

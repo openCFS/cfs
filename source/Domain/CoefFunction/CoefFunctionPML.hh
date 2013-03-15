@@ -162,7 +162,7 @@ public:
  }
  
 
-  void AddEntities(shared_ptr<EntityList>){
+  void AddEntityList(shared_ptr<EntityList>){
     EXCEPTION("Add Entities may not be called in PML CoefFunction. Specify the region in the constructor!");
   }
 

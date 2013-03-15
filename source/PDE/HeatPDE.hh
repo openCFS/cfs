@@ -99,9 +99,6 @@ namespace CoupledField {
     //! special neumann boundary conditions
     RobinBcList robinBcs_;
     
-    //! vector containing regionIds of non-conforming interfaces
-    StdVector<RegionIdType> ncIFaces_;
-    
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

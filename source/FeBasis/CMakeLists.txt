@@ -2,6 +2,7 @@ SET(FEBASIS_SRC
   BaseFE.cc
   FeSpace.cc
   FeSpaceHi.cc
+  FeSpaceNodal.cc
   FeFunctions.cc
   FeHi.cc
   FeNodal.cc

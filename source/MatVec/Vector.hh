@@ -256,7 +256,10 @@ template<typename T> class ElemStoreSol;
     /** Calculates the max-norm (of the real part) of the vector difference */
     Double NormMax(const SingleVector& other) const;
 
-    
+    //! Normalize vector, i.e. scale it to unit length w.r.t. L2 norm.
+    //! Returns the vectors L2 norm before normalization.
+    Double Normalize();
+
     /** Count the number of non-zero entries */
     Integer CountNonZero() const;
 
@@ -289,6 +292,10 @@ template<typename T> class ElemStoreSol;
 
     //! Calc cross product of two vectors v = this x b
     void CrossProduct( const Vector<T>& b, Vector<T>& v );
+
+    //! Is this vector collinear with another vector?
+    bool Collinear( const Vector<T>& vec);
+
      
 //@}
 

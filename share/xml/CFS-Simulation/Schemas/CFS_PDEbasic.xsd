@@ -52,31 +52,64 @@
   <!-- ******************************************************************** -->
   <!--   Definition of data from external fields                            -->
   <!-- ******************************************************************** -->
+
+  <!-- Depend Type of grid coeffunction -->
+  <xsd:simpleType name="DT_CoefGirdDependType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="GENERAL"/>
+      <xsd:enumeration value="TIMEFREQ"/>
+      <xsd:enumeration value="CONST"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Mode of interpolation -->
+  <xsd:simpleType name="DT_CoefGirdInterpolMode">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="standard"/>
+      <xsd:enumeration value="conservative"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
   <xsd:complexType name="DT_BaseGridData">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">        
-        <xsd:sequence>
-          <xsd:element name="input">
-            <xsd:complexType>
-              <xsd:attribute name="gridId" type="xsd:token" use="required"/>
-              <xsd:attribute name="inputId" type="xsd:token" use="required"/>
-              <xsd:attribute name="quantity" use="required"/>
-            </xsd:complexType>
+        <xsd:choice>
+          <xsd:element name="defaultGrid">             
+             <xsd:complexType>
+               <xsd:sequence>
+                 <xsd:element name="factor" maxOccurs="1" minOccurs="0" default="1" type="xsd:int"/>
+               </xsd:sequence>
+               <xsd:attribute name="quantity" use="required"/>
+               <xsd:attribute name="dependtype" type="DT_CoefGirdDependType" use="required" />
+             </xsd:complexType>
           </xsd:element>
-          <xsd:element name="factor" maxOccurs="1" minOccurs="0" default="1" type="xsd:token"/>
-          <xsd:element name="regionList">
+          <xsd:element name="externalGrid">
             <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+              <xsd:sequence> 
+                <xsd:element name="globalFactor" maxOccurs="1" minOccurs="0" default="1" type="xsd:token"/>
+                <xsd:element name="globalTolerance" maxOccurs="1" minOccurs="1" type="xsd:double"/>
+                <xsd:element name="localTolerance" maxOccurs="1" minOccurs="1" type="xsd:double"/>
+                <xsd:element name="regionList">
                   <xsd:complexType>
-                    <xsd:attribute name="srcRegionName" type="xsd:token" use="required"/>
-                    <xsd:attribute name="factor" type="xsd:token" default="1.0" use="optional"/>
+                    <xsd:sequence>
+                      <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                        <xsd:complexType>
+                          <xsd:attribute name="srcRegionName" type="xsd:token" use="required"/>
+                          <xsd:attribute name="regionFactor" type="xsd:token" default="1.0" use="optional"/>
+                        </xsd:complexType>
+                      </xsd:element>
+                    </xsd:sequence>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
+              <xsd:attribute name="gridId" type="xsd:token" use="required"/>
+              <xsd:attribute name="inputId" type="xsd:token" use="required"/>
+              <xsd:attribute name="quantity" use="required"/>
+              <xsd:attribute name="dependtype" type="DT_CoefGirdDependType" use="required" />
+              <xsd:attribute name="interpolation" type="DT_CoefGirdInterpolMode" use="optional" default="standard"/>            
             </xsd:complexType>
           </xsd:element>
-        </xsd:sequence>
+        </xsd:choice>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
@@ -167,6 +200,30 @@
       <xsd:extension base="DT_BcBasic">
         <xsd:attribute name="value" type="xsd:token"  use="required"/>
         <xsd:attribute name="phase" type="xsd:token"  default="0.0"/>
+        <!--xsd:choice>
+          <1) complete vector given>
+          <xsd:sequence>
+            <xsd:element name="values" type="DT_TokenList" minOccurs="1" maxOccurs="1"/>
+            <xsd:element name="phase" type="DT_TokenList" minOccurs="0" maxOccurs="1"/>
+          </xsd:sequence>
+
+          <2) single components given>
+          <xsd:sequence>
+            <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+              <xsd:complexType>
+                <xsd:attribute name="dof" type="xsd:token" use="required"/>
+                <xsd:attribute name="value" type="xsd:token" use="required"/>
+                <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+              </xsd:complexType>  
+            </xsd:element>
+          </xsd:sequence>
+          
+          <Read Data from external Grids>
+          <xsd:element name="grid" maxOccurs="1" type="DT_BaseGridData"/>
+            
+					<Obtain data from iterative coupling>
+					<xsd:element name="coupling" maxOccurs="1" type="DT_IterCplData"/>
+        </xsd:choice-->
       </xsd:extension>
     </xsd:complexContent> 
   </xsd:complexType>
@@ -260,6 +317,16 @@
   </xsd:simpleType>
   
 
+  <!-- ******************************************************************** -->
+  <!--   Definition of non-matching grid formulations -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_NMGFormulationBasic">
+    <xsd:restriction base="xsd:token">
+       <xsd:enumeration value="None"/>
+       <xsd:enumeration value="Nitsche"/>
+       <xsd:enumeration value="Mortar"/>
+    </xsd:restriction>
+  </xsd:simpleType>
   
   <!-- ******************************************************************** -->
   <!--   Definition of standard type for damping -->
