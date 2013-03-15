@@ -123,7 +123,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
     # 
     # -frounding-math: is needed for CGAL library
     SET(CFS_CXX_FLAGS "-std=c++98 -Wall -ftemplate-depth-85 -frounding-math")
-    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
+    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-attributes")
     SET(CHECK_MEM_ALLOC 1)
 
   ELSE(DEBUG)

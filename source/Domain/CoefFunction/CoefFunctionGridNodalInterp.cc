@@ -246,7 +246,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode
   this->gridId_ = configNode->Get("gridId")->As<std::string>();
   this->aSeqStep_ = domain->GetDriver()->GetActSequenceStep();
 
-  DetermineResult(this->inputId_,this->aSeqStep_);
+  this->DetermineResult(this->inputId_,this->aSeqStep_);
 
   std::string interpStr = configNode->Get("interpolation")->As<std::string>();
 

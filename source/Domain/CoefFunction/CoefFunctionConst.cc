@@ -31,8 +31,6 @@ bool CoefFunctionConst<T>::IsZero() const {
   }
   return flag;
 }
-template bool CoefFunctionConst<Double>::IsZero() const;
-template bool CoefFunctionConst<Complex>::IsZero() const;
 
 template<>
 PtrCoefFct CoefFunctionConst<Double>::GetComplexPart( Global::ComplexPart part ) {

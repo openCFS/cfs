@@ -18,6 +18,8 @@
 #include "CoefFunctionGridNodal.hh"
 #include <boost/random/random_device.hpp>
 #include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
+
 #include <boost/smart_ptr/enable_shared_from_this.hpp>
 #include <set>
 #include <map>

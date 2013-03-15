@@ -35,7 +35,7 @@ CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(PtrParamNo
   //TODO: Parametrize by XML
   this->aSeqStep_ = domain->GetDriver()->GetActSequenceStep();
 
-  DetermineResult(this->inputId_,this->aSeqStep_);
+  this->DetermineResult(this->inputId_,this->aSeqStep_);
 
 
   //====================================================
@@ -52,7 +52,7 @@ CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(PtrParamNo
     this->dimDof_ = this->resultInfo_->dofNames.GetSize();
     this->dimType_ = CoefFunction::TENSOR;
   }
-  CreateOperator(dimGrid,this->dimDof_);
+  this->CreateOperator(dimGrid,this->dimDof_);
 
   //check what kind of dependency is there...
   std::string dependString;
