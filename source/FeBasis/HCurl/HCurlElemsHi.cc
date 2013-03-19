@@ -279,6 +279,17 @@ UInt FeHCurlHi::GetMaxOrder() const {
   return maxOrder_;
 }
 
+void FeHCurlHi::GetAnisoOrder(StdVector<UInt>& order ) const {
+
+  if( isIsotropic_) {
+    order.Resize(Elem::shapes[feType_].dim);
+    order.Init(isoOrder_);
+  } else {
+    order = anisoOrder_;  
+  }
+}
+
+
 
 // ========================================================================
 //  FeHCurlHi explicit element definition 

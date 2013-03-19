@@ -66,6 +66,8 @@ DEFINE_LOG(feHi, "feHi")
      // polynomial order
      // -> this is performed later on
      
+     anisoOrder_ = order;
+     
      // resize edge and face arrays
      orderEdge_.Resize(elemShape_.numEdges);
      orderFace_.Resize(elemShape_.numFaces);

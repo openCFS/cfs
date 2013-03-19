@@ -20,7 +20,7 @@ LocPoint::LocPoint(const Vector<Double>& vec) {
 }
 
 std::ostream& operator <<(std::ostream& out, const LocPoint& lp) {
-  out << "number = " << lp.number << std::endl;
+  out << "number = " << lp.number << ", ";
   out << "vector: " << lp.coord.ToString();
   return out;
 }

@@ -45,9 +45,6 @@ public:
                                   EntityType fctEntityType,
                                   UInt entNumber);
 
-//  //! returns the number of functions for a single edge or face
-//  UInt GetNumFncsPerEntType( EntityType fctEntityType, UInt dof = 1);
-
   //! \copydoc BaseFE::GetIsoOrder
   virtual UInt GetIsoOrder() const {
     return order_;

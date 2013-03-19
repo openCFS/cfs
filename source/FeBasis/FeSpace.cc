@@ -477,25 +477,52 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     //                    2*( p_maxLicDir) + relativeOrder_locDir
     method = id.method;
     LOG_DBG2(feSpace) << "\tmethod: " 
-                      << IntScheme::IntegMethodEnum.ToString(method);
+        << IntScheme::IntegMethodEnum.ToString(method);
     if( id.mode == INTEG_MODE_ABSOLUTE ) {
-      // ABSOLUTE order given
+
+      // ==== ABSOLUTE order given ===
       order = id.order;
-      LOG_DBG2(feSpace) << "\torder (absolute):" << order.ToString();
+      LOG_DBG2(feSpace) << "\tuser order (absolute):" << order.ToString();
     } else {
-      // RELATIVE order given
-      
-      // Note: currently we just support isotropic integration.
-      // In the future, we could introduce a more sophisticated
-      // method.
-      LOG_DBG2(feSpace) << "\torder (relative): " << id.order.ToString();
-      UInt p = fe->GetMaxOrder();
+      // === RELATIVE order given ===
+
+      LOG_DBG2(feSpace) << "\tuser order (relative): " << id.order.ToString();
+      // Check: If method is GAUSS and orider is anisotropic,
+      //        we take the anisotropic version
+
+      IntegOrder p;
+      if( method == IntScheme::GAUSS &&
+          !fe->IsIsotropic() ) {
+        // --- anisotropic version ---
+        StdVector<UInt> anisoOrder;
+        fe->GetAnisoOrder(anisoOrder);
+        LOG_DBG2(feSpace) << "\tanisotropic element order:" << anisoOrder.ToString();
+        p.SetAnisoOrder(anisoOrder);
+      } else {
+        // --- isotropic version ---
+        LOG_DBG2(feSpace) << "\tisotropic element order:" << fe->GetMaxOrder();
+        p.SetIsoOrder(fe->GetMaxOrder());
+      }
       // Note: in case of H-curl elements, we have to add an order of 1
       // as we use here also the polynomial order of 0 for lowest order Nedelec elements
       if( type_ == FeSpace::HCURL )
         p += 1;
+      
+      // -------------------------
+      //  Final integration order
+      // -------------------------
+      // In Bilinearforms like the mass-matrix we have a product of two polynomials
+      // of order p, so the integration order must be at least 2*p. However, this holds
+      // true exactly only on the reference element. The Jacobian-mapping introduces
+      // and additional influence (e.g. for highly distorted elements). Thus we
+      // increase the order to 2*(p+1). In the end we decrease the order by -1
+      // to get efficient integration rules. mostly compatible with values in literature.
+      // This yields the following mapping
+      // p = 1 => IntOrder: 3 => Gauss 1D: 2 points
+      // p = 2 => IntOrder: 5 => Gauss 1D: 3 points
+      // ....
       order = id.order;
-      order += 2*(p+1)-1;
+      order += (p+1)*2 - 1; 
       LOG_DBG2(feSpace) << "\torder (final): " << order.ToString();
     }
   }
