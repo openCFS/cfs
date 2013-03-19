@@ -350,7 +350,8 @@ namespace CoupledField
     std::map<FEMatrixType, bool>::iterator it;
     for( it = matReassemble_.begin(); it != matReassemble_.end(); it++ ) {
       if( it->second == true ) {
-        LOG_DBG2(assemble) << "AssembleMatrices: init matrix " << it->first;
+        LOG_DBG2(assemble) << "AssembleMatrices: init matrix " 
+            << feMatrixType.ToString(it->first);
         algsys_->InitMatrix( matrixMap_[it->first] );
       }
     }
@@ -376,7 +377,13 @@ namespace CoupledField
       // If assemble was already called and the current destination
       // matrix must not be reassembled -> continue with next iterator
       if( matReassemble_[destMat] == false ) {
+        if( secDestMat!= NOTYPE ) {
+          if(  matReassemble_[secDestMat] == false ) {
+            continue;
+          }
+        } else  {
          continue;
+        }
       }
 
       // Update flag
@@ -991,6 +998,46 @@ namespace CoupledField
         if ( actContext.GetSecDestMat() != NOTYPE )
           matReassemble_[actContext.GetSecDestMat()] = true;
       }
+    }
+
+    // Now we know which matrices are nonlinear (e.g. due to nonlinear stiffnes integrator)
+    // However, due to the secondaryMatrix-mechanism it could happen, that initially only
+    // the STIFFNESS matrix is set to reassemble. Due to the secondary matrix factor of
+    // the linear stiffness itegrator, also the DAMPING matrix has to be re-assembled 
+    // (first additional loop). In a next loop, we determine, that also the MASS integrator
+    // has to be re-assembled, as his secondary-matrix is the DAMPING one, which also
+    // has to be re-assembled (second loop). So to be on the save side and resolve
+    // all dependencies (i.e. all matrices have to be re-assembled), we perform
+    // the check 3 time.
+    
+    for( UInt i = 0; i < 3; ++i ) {
+      for( it = biLinForms_->Begin(); it != biLinForms_->End(); it++ ) {
+        BiLinFormContext & actContext = **it;
+        bool oneIsNonLin = false;
+        
+        // check primary or secondary matrix is nonlinear
+        if( matReassemble_[actContext.GetDestMat()] == true ||
+            ( actContext.GetSecDestMat() != NOTYPE && 
+              matReassemble_[actContext.GetSecDestMat()] == true) ) {
+          oneIsNonLin = true;
+        }
+        if( oneIsNonLin ) {
+          matReassemble_[actContext.GetDestMat()] = true;
+          if( actContext.GetSecDestMat() != NOTYPE ) 
+            matReassemble_[actContext.GetSecDestMat()] = true;
+        }
+      } // loops over integrators
+    } // 3 loops
+
+    if( IS_LOG_ENABLED( assemble, dbg) ) {
+      // Finally print status of matrices
+      std::map<FEMatrixType, bool>::const_iterator it2 =  matReassemble_.begin();
+      LOG_DBG(assemble) <<  "Status for matrix re-assembly: ";
+      for( ; it2 != matReassemble_.end(); ++it2) {
+        LOG_DBG(assemble) <<  "\t" << feMatrixType.ToString(it2->first)
+              << ": " << (it2->second ? "true" : "false");
+      }
+
     }
   }
 
