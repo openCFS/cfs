@@ -110,6 +110,26 @@ class CoefFunctionGrid : public CoefFunction{
     //! \copydoc CoefFunction::GetTensorSize
     virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const;
 
+    //! Sets the variables for conservative or standard interpolation
+    virtual void SetConservative(bool value){
+      bool isReset = false;
+      std::string interpTyStr;
+      if(this->curInterpType_ != CoefFunctionGrid::NO_INTERPOLATION){
+        isReset = true;
+      }
+      if(value){
+        this->curInterpType_ = CoefFunctionGrid::CONSERVATIVE;
+      }else{
+        this->curInterpType_ = CoefFunctionGrid::STANDARD;
+      }
+      interpTyStr = CoefFunctionGrid::InterpType_.ToString(this->curInterpType_);
+      this->extDataInfo_->Get("interpolation")->Get("type")->SetValue(interpTyStr);
+      if(isReset){
+        this->extDataInfo_->Get("interpolation")->Get("setBy")->SetValue("CFS++, Overwritten");
+      }else{
+        this->extDataInfo_->Get("interpolation")->Get("setBy")->SetValue("CFS++");
+      }
+    }
   protected:
 
     ///Stores the current type of interpolation
@@ -154,6 +174,9 @@ class CoefFunctionGrid : public CoefFunction{
 
     //!Stores the conguration parameter node
     PtrParamNode myConfigNode_;
+
+    //! Pointer to info node of grid coefFunction
+    PtrParamNode extDataInfo_;
 
 };
 

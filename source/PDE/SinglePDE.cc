@@ -1725,6 +1725,26 @@ namespace CoupledField {
         coef = CoefFunctionGrid::Generate(Global::COMPLEX, infoNode_ , valueNode->Get("grid"));
         //coef.reset(new CoefFunctionNodalGrid<Complex>(valueNode->Get("grid")));
       }
+      //read in the defined dofs
+      std::string dofString = valueNode->Get("grid")->Get("dofs")->As<std::string>();
+      std::istringstream iss(dofString);
+      do{
+          string sub;
+          iss >> sub;
+          if(sub=="all"){
+            // add all dofs to the definedDofs
+            for( UInt i = 0; i < numComp; ++i ) {
+              definedDofs.insert(i);
+            }
+            break;
+          }else{
+            UInt index = compNames.Find(sub);
+            definedDofs.insert(index);
+          }
+
+      } while (iss);
+
+
       // here we assume no updated geometry
       updateGeo = false;
       

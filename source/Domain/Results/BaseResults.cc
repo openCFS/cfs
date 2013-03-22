@@ -10,6 +10,7 @@ namespace CoupledField {
 
 
   BaseResult::BaseResult() {
+
   }
 
   BaseResult::~BaseResult() {

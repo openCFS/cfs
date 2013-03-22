@@ -395,6 +395,12 @@ public:
     return false;
   }
 
+  //! Set if coefFunction has conservative mapping usually done by PDE
+  //! for Coeffunction grid, this overrides the user settings
+  virtual void SetConservative(bool value){
+    return;
+  }
+
 
   //! Give Values at global coordinate locations
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,

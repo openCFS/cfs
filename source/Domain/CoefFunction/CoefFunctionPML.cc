@@ -195,6 +195,7 @@ void CoefFunctionPML<T>::GetScalar(Double& val,
 
   //computes 1/(pml_x*pml_y*pml_z)
   //right now we ust return 1...
+  EXCEPTION("GETSCALAR IS INVALID")
   val = 1.0;
   return;
 
@@ -252,12 +253,12 @@ void CoefFunctionPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType>
   this->entities_[0]->GetGrid()->CalcBoundingBoxOfRegion(entities_[0]->GetRegion(),outerMinMaxComp_,coordSys_);
 
   // => Put the following information to the info xml
-//  std::cout << "computed boundingbox of pml region:" << std::endl;
-//  for(UInt i=0;i<dim_;++i){
-//    std::string vComp = coordSys_->GetDofName(i+1);
-//    std::cout << vComp << "_min: " << outerMinMaxComp_[i][0] << std::endl;
-//    std::cout << vComp << "_max: " << outerMinMaxComp_[i][1] << std::endl;
-//  }
+  //std::cout << "computed boundingbox of pml region:" << std::endl;
+  //for(UInt i=0;i<dim_;++i){
+  //  std::string vComp = coordSys_->GetDofName(i+1);
+  //  std::cout << vComp << "_min: " << outerMinMaxComp_[i][0] << std::endl;
+  //  std::cout << vComp << "_max: " << outerMinMaxComp_[i][1] << std::endl;
+  //}
 
   std::string typeOfPml;
   pmlDef->GetValue("type",typeOfPml);
@@ -333,12 +334,12 @@ void CoefFunctionPML<T>::GuessLayerData(StdVector<RegionIdType> pdeDomains){
     }
   }
   // Put the following definition to the info xml.
-//  std::cout << "computed boundingbox of propagation region:" << std::endl;
-//  for(UInt i=0;i<gridDim;++i){
-//    std::string vComp = coordSys_->GetDofName(i+1);
-//    std::cout << vComp << "_min: " << innerMinMaxComp_[i][0] << std::endl;
-//    std::cout << vComp << "_max: " << innerMinMaxComp_[i][1] << std::endl;
-//  }
+ // std::cout << "computed boundingbox of propagation region:" << std::endl;
+ // for(UInt i=0;i<gridDim;++i){
+ //   std::string vComp = coordSys_->GetDofName(i+1);
+ //   std::cout << vComp << "_min: " << innerMinMaxComp_[i][0] << std::endl;
+ //   std::cout << vComp << "_max: " << innerMinMaxComp_[i][1] << std::endl;
+ // }
 }
 
 template<typename T>

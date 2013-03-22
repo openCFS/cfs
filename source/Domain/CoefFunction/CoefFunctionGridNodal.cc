@@ -58,12 +58,13 @@ namespace CoupledField{
     std::string factorString;
     if(configNode->Has("factor")){
       configNode->GetValue("factor",factorString);
+
       if(isComplex_)
         factorFnc_ = CoefFunction::Generate(Global::COMPLEX,factorString);
       else
         factorFnc_ = CoefFunction::Generate(Global::REAL,factorString);
     }else{
-      WARN("No factor given for external Result setting it to 1");
+
       if(isComplex_)
         factorFnc_ = CoefFunction::Generate(Global::COMPLEX,"1.0");
       else
@@ -129,6 +130,7 @@ namespace CoupledField{
       StdVector<UInt> nList;
       RegionIdType curId = srcGrid_->GetRegion().Parse(*regIter);
       srcGrid_->GetNodesByRegion(nList,curId);
+
       for(UInt i=0; i<nList.GetSize(); i++){
         nodeIdxMap_[nList[i]] = pos++;
       }
@@ -172,12 +174,19 @@ namespace CoupledField{
     sol.Resize(numEqns_);
     sol.Init();
     for( UInt i = 0; regIter != srcRegions_.end(); ++i,++regIter) {
-      shared_ptr<BaseResult> Bres = domain->GetResultHandler()->GetResult( inputId_, aSeqStep_ , step , solType_, *regIter );
+      shared_ptr<BaseResult> Bres = domain->GetResultHandler()->GetResult( this->inputId_, this->aSeqStep_ , step , this->solType_, *regIter );
       shared_ptr<EntityList> regionList = Bres->GetEntityList();
       shared_ptr<EntityList> nodeList = srcGrid_->GetEntityList(EntityList::NODE_LIST, regionList->GetName());
       EntityIterator it= nodeList->GetIterator();
+      Vector<DATA_TYPE> resVec;
+      try{
+        Result<DATA_TYPE>* myResult = dynamic_cast<Result<DATA_TYPE>* >(Bres.get());
+        resVec =   myResult->GetVector();
+      }catch(...){
+        EXCEPTION("Cannot cast to desired vector type. Are you trying to load real data into a harmonic computation?");
+      }
 
-      Vector<DATA_TYPE> & resVec = dynamic_cast<Result<DATA_TYPE>&>(*Bres).GetVector();
+      //Vector<DATA_TYPE> curVec = resVec; // = dynamic_cast< Vector<DATA_TYPE>* >(Bres-);
       StdVector<UInt> eqns;
       UInt locPos = 0;
 
@@ -192,6 +201,7 @@ namespace CoupledField{
           eqns = eqnNumbers_[idx];
           for(UInt d = 0; d<eqns.GetSize();++d){
             sol[eqns[d]] = resVec[locPos++];
+            //curVec->GetEntry(locPos++,sol[eqns[d]]);
           }
         }
       }else{
@@ -212,7 +222,9 @@ namespace CoupledField{
           UInt idx = nodeIdxMap_[it.GetNode()];
           eqns = eqnNumbers_[idx];
           for(UInt d = 0; d<eqns.GetSize();++d){
-            sol[eqns[d]] = resVec[locPos++]*values[node];
+            sol[eqns[d]] = resVec[locPos++];
+
+            //curVec->GetEntry(locPos++,sol[eqns[d]]);
           }
         }
       }
@@ -230,7 +242,10 @@ namespace CoupledField{
         EXCEPTION("Temporal interpolation not supported right now")
       }else{
         //we just read the solution vector
-        this->ReadSolution(stepnumber,this->solVec_);
+        if(lastStepRead_ != stepnumber){
+          this->ReadSolution(stepnumber,this->solVec_);
+          lastStepRead_ = stepnumber;
+        }
       }
     }
   }
@@ -254,7 +269,7 @@ namespace CoupledField{
     curTStep_ = aTimeFreq;
     UInt step = 0;
   
-    std::cout << "timestep: " << curTStep_ << std::endl;
+    //std::cout << "timestep: " << curTStep_ << std::endl;
     //ok find makes no sense here, we need to iterate over it and
     // apply some tolerance..
     std::map<UInt,Double>::iterator stepIter = stepValueMap_.begin();
@@ -279,8 +294,8 @@ namespace CoupledField{
         }
       }
       interpolateT = true;
-      std::cout << "oldTime = " << oldTime << std::endl;
-      std::cout << "stepIter->second = " << stepIter->second << std::endl;
+      //std::cout << "oldTime = " << oldTime << std::endl;
+      //std::cout << "stepIter->second = " << stepIter->second << std::endl;
       Double dt = stepIter->second - oldTime;
       iFactor1 = (stepIter->second  - curTStep_)/dt;
       iFactor2 = (curTStep_  - oldTime)/dt;
@@ -298,7 +313,7 @@ namespace CoupledField{
       iFactor1 = 0.0;
       iFactor2 = 0.0;
     }
-    std::cout << "computed Step: " << step << std::endl;
+    //std::cout << "computed Step: " << step << std::endl;
     return step;
   }
 }

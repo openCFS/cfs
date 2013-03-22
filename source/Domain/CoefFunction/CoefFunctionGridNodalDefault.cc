@@ -14,12 +14,13 @@
 
 
 #include "CoefFunctionGridNodalDefault.hh"
+#include "FeBasis/FeSpace.hh"
 
 namespace CoupledField{
 
 
 template<typename DATA_TYPE>
-CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(PtrParamNode configNode)
+CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(PtrParamNode configNode,PtrParamNode curInfo)
                                         :CoefFunctionGridNodal<DATA_TYPE>(configNode){
 
   //====================================================
@@ -28,14 +29,33 @@ CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(PtrParamNo
   this->inputId_ = "default";
   this->gridId_ = "default";
   this->curInterpType_ = CoefFunctionGrid::NO_INTERPOLATION;
+  this->conservativeReady_ = false;
+  this->srcIsSurface_ = false;
 
 
-  //obtain the sequence step for result
-  //plz note we take here the same value as for the current simulation
-  //TODO: Parametrize by XML
-  this->aSeqStep_ = domain->GetDriver()->GetActSequenceStep();
 
+  this->extDataInfo_ = curInfo->Get("defaultGrid");
+  this->extDataInfo_->Get("interpolation")->Get("type")->SetValue("noInterpolation");
+
+  std::string factorString = this->factorFnc_->ToString();
+  this->extDataInfo_->Get("interpolation")->Get("factor",ParamNode::INSERT)->SetValue(factorString);
+
+  this->srcGrid_ = domain->GetGrid();
+
+  //lets determine the destination region and set it to our source regions
+  std::string destreg = configNode->GetParent()->GetParent()->Get("name")->As<std::string>();
+  //obtain entitylist from grid and add it
+  shared_ptr<EntityList> curList = this->srcGrid_->GetEntityList(EntityList::ELEM_LIST,destreg);
   this->DetermineResult(this->inputId_,this->aSeqStep_);
+  this->dimDof_ = this->resultInfo_->dofNames.GetSize();
+  // Determine which steps are available
+  domain->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
+  this->curStep_ = this->stepValueMap_.begin()->first;
+  this->curTStep_ = this->stepValueMap_.begin()->second;
+  //this->AddEntityList(curList);
+
+
+
 
 
   //====================================================
@@ -55,13 +75,13 @@ CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(PtrParamNo
   this->CreateOperator(dimGrid,this->dimDof_);
 
   //check what kind of dependency is there...
-  std::string dependString;
-  configNode->GetValue("dependtype",dependString);
-  this->dependType_ = CoefFunction::CoefDependType_.Parse(dependString);
- 
 
-  this->curStep_ = 1;
-  this->curTStep_ = 0;
+  //GridcoefFunctions are always general!
+  //std::string dependString;
+  //configNode->GetValue("dependtype",dependString);
+  //this->dependType_ = CoefFunction::CoefDependType_.Parse(dependString);
+  this->dependType_ = CoefFunction::GENERAL;
+
 }
 
 // ========================
@@ -86,7 +106,7 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefM
   //because even if we are coping here with surfaces, e.g. for boundary conditions,
   //the volume element connectivity should give also the boundary nodes and
   //we do not cover special, nonconforming cases here...
-  if(lpm.isSurface)
+  if(lpm.isSurface && !this->srcIsSurface_)
     sourceElem = lpm.lpmVol->ptEl;
   else
     sourceElem = lpm.ptEl;
@@ -97,13 +117,21 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefM
   else if (this->dimType_ == CoefFunction::VECTOR)
     CoefMat.Resize(this->dimDof_);
   
+  if(!sourceElem){
+    EXCEPTION("Could not determine source element.")
+  }
+
   this->GetElemSolution( elemSol, sourceElem->elemNum);
+  std::cout << elemSol << "\n\n";
+
   shared_ptr<ElemShapeMap> esm = this->srcGrid_->GetElemShapeMap( sourceElem, true );
   BaseFE * ptFe = esm->GetBaseFE();
   if(lpm.isSurface)
     this->myOperator_->ApplyOp(CoefMat,(*lpm.lpmVol),ptFe,elemSol);
   else
     this->myOperator_->ApplyOp(CoefMat,lpm,ptFe,elemSol);
+
+
 
 }
 
@@ -118,7 +146,7 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMat,
   //cover the case of nc_surfElems
   const Elem* sourceElem = NULL;
 
-  if(lpm.isSurface)
+  if(lpm.isSurface && !this->srcIsSurface_)
     sourceElem = lpm.lpmVol->ptEl;
   else
     sourceElem = lpm.ptEl;
@@ -143,7 +171,7 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::AddEntityList(shared_ptr<EntityLis
     //this function may not be called if eqnMapping has already
     //been performed because there will be exactly one srcRegion to one target 
     //region and both are identical
-    if(this->eqnMapComplete_)
+    if(this->eqnMapComplete_ && !this->entities_.Contains(ent))
       EXCEPTION("Call to AddEntities after eqnMapping has been performed. This should not happen!");
     
     //first we check if its a region list.
@@ -161,6 +189,11 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::AddEntityList(shared_ptr<EntityLis
     //the sourceRegion is equal to the destination
     this->srcRegions_.insert(ent->GetName());
 
+    if(ent->GetType() == EntityList::SURF_ELEM_LIST){
+      this->srcIsSurface_ = true;
+    }
+
+
     //====================================================
     // Create Data structures for easy solution access
     //====================================================                                          
@@ -169,6 +202,7 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::AddEntityList(shared_ptr<EntityLis
     this->MapEqns();
     //read in the first solution
     this->ReadSolution(this->stepValueMap_.begin()->first,this->solVec_);
+    this->extDataInfo_->Get("RegionList")->Get("SourceRegion")->Get("name")->SetValue(ent->GetName());
   }
 
 template<typename DATA_TYPE>
@@ -232,6 +266,74 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetTensorValuesAtPoints( const Std
   //  lpm.Set(lp,esm,1.0);
   //  this->GetTensor(vals[curPoint],lpm);
   //}
+}
+
+template<typename DATA_TYPE>
+void CoefFunctionGridNodalDefault<DATA_TYPE>::MapConservative( shared_ptr<FeSpace> targetSpace,
+                                                                 Vector<DATA_TYPE>& feFncVec){
+
+  //if the targetSpace is also using grid ordering, we just take the nodal values and map them to the
+  //target equations
+  //if the target space has arbitrary order, this does not really make sense, so we issue an exception
+  //the sources then need more some sort of  distribution than a clean mapping
+  //this is the old problem with conservative interpolation. what happens if the target grid is finer than the source grid?
+  std::set<std::string>::iterator regIter = this->srcRegions_.begin();
+  for( ; regIter != this->srcRegions_.end(); ++regIter) {
+    RegionIdType curId = this->srcGrid_->GetRegion().Parse(*regIter);
+    FeSpace::MappingType curtype = targetSpace->GetMapType(curId);
+    if(curtype!=FeSpace::GRID){
+      EXCEPTION("You are trying to map a nodal grid to a polynomial space. This is not supported!")
+    }
+  }
+
+  //First, update the solution vector
+  this->UpdateSolution();
+
+  //IDEA> create vector of pairs and associate each eqnNumber of feFncVec a index of own solvec
+  //a little more memory but very efficient updates
+  if(!this->conservativeReady_){
+    BuildNodeIdxAssoc(targetSpace);
+  }
+  for(UInt i=0;i<this->fctSolAssoc_.GetSize();++i){
+    const std::pair<UInt,UInt> & curP = this->fctSolAssoc_[i];
+    feFncVec[curP.first] += this->solVec_[curP.second];
+  }
+}
+
+template<typename DATA_TYPE>
+void CoefFunctionGridNodalDefault<DATA_TYPE>::BuildNodeIdxAssoc(shared_ptr<FeSpace> targetSpace){
+  //loop over the entitylist and obtain for each element the equation numbers
+  std::set<std::string>::iterator regIter = this->srcRegions_.begin();
+  for( ; regIter != this->srcRegions_.end(); ++regIter) {
+    shared_ptr<NodeList> actSDList( new NodeList(this->srcGrid_ ) );
+    RegionIdType curId = this->srcGrid_->GetRegion().Parse(*regIter);
+    actSDList->SetNodesOfRegion( curId );
+    EntityIterator ents = actSDList->GetIterator();
+    this->fctSolAssoc_.Reserve(this->fctSolAssoc_.GetSize()+actSDList->GetSize());
+    while(!ents.IsEnd()){
+      //obtain eqn and node number
+      std::pair<UInt,UInt> curP;
+      StdVector<Integer> eqns;
+      targetSpace->GetEqns(eqns,ents);
+      UInt curNode = ents.GetNode();
+      UInt solIdx = this->nodeIdxMap_[curNode];
+      //safety check
+      if(this->eqnNumbers_[solIdx].GetSize() != eqns.GetSize()){
+        WARN("Detected incompatibility during external data mapping...")
+        ents++;
+        continue;
+      }
+
+      for(UInt i=0; i<eqns.GetSize(); i++){
+        if(eqns[i] > 0){
+          curP.first = eqns[i]-1;
+          curP.second = this->eqnNumbers_[solIdx][i];
+          this->fctSolAssoc_.Push_back(curP);
+        }
+      }
+      ents++;
+    }
+  }
 }
 
 template<typename DATA_TYPE>

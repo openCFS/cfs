@@ -18,6 +18,7 @@
 
 #include "CoefFunctionGridNodal.hh"
 
+
 namespace CoupledField{
 
 /*! \class CoefFunctionGridNodalDefault
@@ -38,7 +39,7 @@ template<typename DATA_TYPE>
 class CoefFunctionGridNodalDefault : public CoefFunctionGridNodal<DATA_TYPE>{
 public:
   
-  CoefFunctionGridNodalDefault(PtrParamNode configNode);
+  CoefFunctionGridNodalDefault(PtrParamNode configNode,PtrParamNode curInfo);
 
   virtual ~CoefFunctionGridNodalDefault(){
   };
@@ -80,12 +81,31 @@ public:
   virtual void GetTensorValuesAtPoints( const StdVector<Vector<Double> >  & points,
                                             StdVector<Matrix<DATA_TYPE> >  & vals);
 
+  virtual void MapConservative( shared_ptr<FeSpace> targetSpace,
+                                    Vector<DATA_TYPE>& feFncVec);
+
+  //! Determine if coefFunction has conservative mapping
+    virtual bool IsConservative(){
+      return (this->curInterpType_==CoefFunctionGrid::CONSERVATIVE);
+    }
 protected:
 
 private:
   ///method searching for elements for given global points
   void GetElemsForPoints(const StdVector<Vector<Double> >  & points, StdVector< const Elem* > & elements, StdVector<LocPoint> & locals);
 
+  //! build associative array for conservative
+  void BuildNodeIdxAssoc(shared_ptr<FeSpace> targetSpace);
+
+  //! for conservative mapping, we store just the pair of own
+  //! solution vector to coeffunction vector
+  StdVector< std::pair<UInt,UInt> > fctSolAssoc_;
+
+  //!Flag indicating if Conservative is ready yet
+  bool conservativeReady_;
+
+  ///flag indicating if target region is surface
+  bool srcIsSurface_;
 };
    
 

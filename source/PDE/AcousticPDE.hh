@@ -64,6 +64,9 @@ namespace CoupledField{
     //! create feFunction for meanFluidMech velocity
     void CreateMeanFlowFunction(StdVector<std::string> dofNames);
 
+    //! create transient PML integrators
+    void DefineTransientPMLInts(shared_ptr<ElemList> eList,std::string id);
+
   private:
 
     //! stores if the Acoustic PDE is in potential or pressure form
@@ -78,6 +81,9 @@ namespace CoupledField{
     
     //! stores if the Acoustic PDE is coupled to mechanics
     bool isMechCoupled_;
+
+    //! flag for transient PML
+    bool isTimeDomPML_;
   };
 
 }

@@ -81,6 +81,7 @@
                </xsd:sequence>
                <xsd:attribute name="quantity" use="required"/>
                <xsd:attribute name="dependtype" type="DT_CoefGirdDependType" use="required" />
+               <xsd:attribute name="sequenceStep" type="xsd:integer" use="optional" default="1" />
              </xsd:complexType>
           </xsd:element>
           <xsd:element name="externalGrid">
@@ -107,9 +108,11 @@
               <xsd:attribute name="quantity" use="required"/>
               <xsd:attribute name="dependtype" type="DT_CoefGirdDependType" use="required" />
               <xsd:attribute name="interpolation" type="DT_CoefGirdInterpolMode" use="optional" default="standard"/>            
+               <xsd:attribute name="sequenceStep" type="xsd:integer" use="optional" default="1" />
             </xsd:complexType>
           </xsd:element>
         </xsd:choice>
+        <xsd:attribute name="dofs" type="xsd:token" use="optional" default="all"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>

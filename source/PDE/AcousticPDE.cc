@@ -11,6 +11,7 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/BiLinForms/ABInt.hh"
+#include "Forms/BiLinForms/ADBInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/BDUInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
@@ -19,6 +20,7 @@
 #include "Forms/Operators/ConvectiveOperator.hh"
 #include "Forms/Operators/ConvectivePierceOperator.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
+#include "Forms/Operators/DivOperator.hh"
 
 #include "FeBasis/FeFunctions.hh"
 #include "Utils/StdVector.hh"
@@ -28,6 +30,7 @@
 
 #include "Driver/Assemble.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
+#include "Domain/CoefFunction/CoefFunctionCompound.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
@@ -58,6 +61,8 @@ namespace CoupledField{
     //! Always use total Lagrangian formulation 
     updatedGeo_        = false;
 
+    isTimeDomPML_      = false;
+
     //check for pressure or potential formulation
     std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>();
     if(pdeFormulation == "default"){
@@ -81,6 +86,38 @@ namespace CoupledField{
     }else{
       EXCEPTION("The formulation " << formulation << "of acoustic PDE is not known!");
     }
+
+    // ===================================
+    // Check for transient PML
+    // ===================================
+    if(this->analysistype_ == TRANSIENT){
+      PtrParamNode transPMLNode;
+      StdVector<PtrParamNode> regNodes = myParam_->Get("regionList")->GetList("region");
+
+
+      for(UInt i=0;i<regNodes.GetSize();++i){
+        std::string damp = regNodes[i]->Get("dampingId")->As<std::string>();
+        if(damp!=""){
+          isTimeDomPML_ = true;
+          break;
+        }
+      }
+      //now define the additional uknowns
+      if(dim_==3 && isTimeDomPML_){
+        PtrParamNode scalarpml = infoNode->Get("TransientPMLScalarAuxVar");
+        crSpaces[ACOU_PMLAUXSCALAR] =
+            FeSpace::CreateInstance(myParam_,scalarpml,FeSpace::H1, ptGrid_);
+        crSpaces[ACOU_PMLAUXSCALAR]->Init(solStrat_);
+
+        PtrParamNode vectorPML = infoNode->Get("TransientPMLVectorAuxVar");
+        crSpaces[ACOU_PMLAUXVEC] =
+            FeSpace::CreateInstance(myParam_,vectorPML,FeSpace::H1, ptGrid_);
+        crSpaces[ACOU_PMLAUXVEC]->Init(solStrat_);
+      }else if (isTimeDomPML_){
+        EXCEPTION("PML only implemented for 3D case");
+      }
+    }
+
     return crSpaces;
   }
 
@@ -187,7 +224,10 @@ namespace CoupledField{
                                             CoefXprBinOp(coeffM,coeffPMLScal,CoefXpr::OP_MULT));
           harmonicPML = true;
         }else{
-          EXCEPTION("PML is only available in the frequency domain right now");
+          if(formulation_ != ACOU_PRESSURE){
+            WARN("Transient PML formulation only valid for acoustic pressure formulation. Results may be wrong!")
+          }
+          DefineTransientPMLInts(actSDList,dampId);
         }
       }else{
         harmonicPML = false;
@@ -324,6 +364,146 @@ namespace CoupledField{
         assemble_->AddBiLinearForm( convectiveContextStiff );
       }
     }
+  }
+  void AcousticPDE::DefineTransientPMLInts(shared_ptr<ElemList> eList, std::string id){
+
+    //define some material coeffunction as above...
+    PtrCoefFct factor = CoefFunction::Generate(Global::REAL, "1.0");
+    PtrCoefFct dens = materials_[eList->GetRegion()]->GetScalCoefFnc( DENSITY, Global::REAL );
+    PtrCoefFct blk = materials_[eList->GetRegion()]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+    // c0 = sqrt(bulk_modulus / density)
+    PtrCoefFct c0 =
+        CoefFunction::Generate( Global::REAL,
+                                CoefXprUnaryOp( CoefXprBinOp(blk, dens, CoefXpr::OP_DIV),
+                                CoefXpr::OP_SQRT) );
+    PtrCoefFct coeffc =
+        CoefFunction::Generate(Global::REAL,
+                               CoefXprBinOp( factor,
+                                             CoefXprBinOp(c0,c0,CoefXpr::OP_MULT),
+                                             CoefXpr::OP_DIV ) );
+
+
+    PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",id.c_str());
+    shared_ptr<CoefFunction> coeffPMLVec;
+    coeffPMLVec.reset(new CoefFunctionPML<Double>(pmlNode,c0,eList,regions_,true));
+
+    shared_ptr<CoefFunctionCompound<Double> > coefA(new CoefFunctionCompound<Double>());
+    shared_ptr<CoefFunctionCompound<Double> > coefB(new CoefFunctionCompound<Double>());
+    shared_ptr<CoefFunctionCompound<Double> > coefC(new CoefFunctionCompound<Double>());
+    shared_ptr<CoefFunctionCompound<Double> > coefAlpha(new CoefFunctionCompound<Double>());
+    shared_ptr<CoefFunctionCompound<Double> > coefBeta(new CoefFunctionCompound<Double>());
+    shared_ptr<CoefFunctionCompound<Double> > coefGamma(new CoefFunctionCompound<Double>());
+
+    std::map<std::string, PtrCoefFct> vars;
+    if(this->dim_==3){
+      shared_ptr<FeSpace> scalSpace = feFunctions_[ACOU_PMLAUXSCALAR]->GetFeSpace();
+      shared_ptr<FeSpace> vecSpace = feFunctions_[ACOU_PMLAUXVEC]->GetFeSpace();
+      // --- Set the FE ansatz for the current region ---
+      PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",eList->GetName().c_str());
+      std::string polyId = curRegNode->Get("polyId")->As<std::string>();
+      std::string integId = curRegNode->Get("integId")->As<std::string>();
+      scalSpace->SetRegionApproximation(eList->GetRegion(), polyId,integId);
+      vecSpace->SetRegionApproximation(eList->GetRegion(), polyId,integId);
+
+
+      std::map<std::string, PtrCoefFct> vars;
+      std::map<std::string, PtrCoefFct> var;
+      vars["a"]  = coeffPMLVec;
+      var["a"] = coeffPMLVec;
+      vars["b"] = coeffc;
+      StdVector<std::string> matAReal;
+      const std::string Amat[] =  { "a_0_R", "0" , "0" , "0" , "a_1_R" , "0" , "0" , "0" , "a_2_R" };
+      matAReal.Import(Amat,9);
+      StdVector<std::string> matBReal;
+      const std::string Bmat[] = { " (a_1_R * a_2_R) " , "0" , "0" , "0" , " (a_0_R * a_2_R) " , "0", "0", "0", " (a_0_R * a_1_R) "};
+      matBReal.Import(Bmat,9);
+      StdVector<std::string> matCReal;
+      const std::string Cmat[]= {"( a_0_R - a_1_R - a_2_R )", "0","0","0",  "( a_1_R - a_0_R - a_2_R)","0","0","0","( a_2_R - a_1_R - a_0_R)"};
+      matCReal.Import(Cmat,9);
+      std::string alpha = "((a_0_R + a_1_R + a_2_R ) * b_R)";
+      std::string beta = " (( (a_0_R*a_1_R) + (a_0_R * a_2_R) + (a_1_R * a_2_R) ) * b_R)";
+      std::string gamma = "((a_0_R*a_1_R*a_2_R) * b_R)";
+      coefA->SetTensor(matAReal,3,3,var);
+      coefB->SetTensor(matBReal,3,3,var);
+      coefC->SetTensor(matCReal,3,3,var);
+      coefAlpha->SetScalar(alpha,vars);
+      coefBeta->SetScalar(beta,vars);
+      coefGamma->SetScalar(gamma,vars);
+
+      ///now lets define some integrators
+      BaseBDBInt *     dampdPdt = new BBInt<>(new IdentityOperator<FeH1,3>(), coefAlpha, 1.0, updatedGeo_ );
+      BaseBDBInt *     dampP    = new BBInt<>(new IdentityOperator<FeH1,3>(), coefBeta, 1.0, updatedGeo_ );
+      BaseBDBInt *     dampNu   = new BBInt<>(new IdentityOperator<FeH1,3>(), coefGamma, 1.0, updatedGeo_ );
+      BaseBDBInt *     divU     = new ABInt<>(new GradientOperator<FeH1,3>(), new IdentityOperator<FeH1,3,3>(),factor,1.0,updatedGeo_);
+      BaseBDBInt *     dUdt     = new BBInt<>(new IdentityOperator<FeH1,3,3>(), factor, 1.0, updatedGeo_ );
+      BaseBDBInt *     AU       = new BDBInt<>(new IdentityOperator<FeH1,3,3>(), coefA, updatedGeo_ );
+      BaseBDBInt *     BgradP   = new ADBInt<>(new IdentityOperator<FeH1,3,3>(),new GradientOperator<FeH1,3>(),coefB,1.0,updatedGeo_);
+      BaseBDBInt *     CgradNu  = new ADBInt<>(new IdentityOperator<FeH1,3,3>(),new GradientOperator<FeH1,3>(),coefC,-1.0,updatedGeo_);
+      BaseBDBInt *     dNudt    = new BBInt<>(new IdentityOperator<FeH1,3>(), factor, 1.0, updatedGeo_ );
+      BaseBDBInt *     P        = new BBInt<>(new IdentityOperator<FeH1,3>(), factor, -1.0, updatedGeo_ );
+
+      dampdPdt->SetName("dampdPdt");
+      dampP->SetName("dampP");
+      dampNu->SetName("dampNu");
+      divU->SetName("divU");
+      dUdt->SetName("dUdt");
+      AU->SetName("AU");
+      BgradP->SetName("BgradP");
+      CgradNu->SetName("CgradNu");
+      dNudt->SetName("dNudt");
+      P->SetName("P");
+
+
+      BiLinFormContext * Context_dampdPdt   = new BiLinFormContext(dampdPdt, DAMPING );
+      BiLinFormContext * Context_dampP      = new BiLinFormContext(dampP, STIFFNESS );
+      BiLinFormContext * Context_dampNu     = new BiLinFormContext(dampNu, STIFFNESS );
+      BiLinFormContext * Context_divU       = new BiLinFormContext(divU, STIFFNESS );
+      BiLinFormContext * Context_dUdt       = new BiLinFormContext(dUdt, DAMPING );
+      BiLinFormContext * Context_AU         = new BiLinFormContext(AU, STIFFNESS );
+      BiLinFormContext * Context_BgradP     = new BiLinFormContext(BgradP , STIFFNESS );
+      BiLinFormContext * Context_CgradNu    = new BiLinFormContext(CgradNu, STIFFNESS );
+      BiLinFormContext * Context_dNudt      = new BiLinFormContext(dNudt, DAMPING );
+      BiLinFormContext * Context_P          = new BiLinFormContext(P, STIFFNESS );
+
+
+      Context_dampdPdt->SetEntities( eList, eList );
+      Context_dampdPdt->SetFeFunctions(feFunctions_[formulation_],feFunctions_[formulation_]);
+      Context_dampP->SetEntities( eList, eList );
+      Context_dampP->SetFeFunctions(feFunctions_[formulation_],feFunctions_[formulation_]);
+      Context_dampNu->SetEntities( eList, eList );
+      Context_dampNu->SetFeFunctions(feFunctions_[formulation_],feFunctions_[ACOU_PMLAUXSCALAR]);
+      Context_divU->SetEntities( eList, eList );
+      Context_divU->SetFeFunctions(feFunctions_[formulation_],feFunctions_[ACOU_PMLAUXVEC]);
+      Context_dUdt->SetEntities( eList, eList );
+      Context_dUdt->SetFeFunctions(feFunctions_[ACOU_PMLAUXVEC],feFunctions_[ACOU_PMLAUXVEC]);
+      Context_AU->SetEntities( eList, eList );
+      Context_AU->SetFeFunctions(feFunctions_[ACOU_PMLAUXVEC],feFunctions_[ACOU_PMLAUXVEC]);
+      Context_BgradP->SetEntities( eList, eList );
+      Context_BgradP->SetFeFunctions(feFunctions_[ACOU_PMLAUXVEC],feFunctions_[formulation_]);
+      Context_CgradNu->SetEntities( eList, eList );
+      Context_CgradNu->SetFeFunctions(feFunctions_[ACOU_PMLAUXVEC],feFunctions_[ACOU_PMLAUXSCALAR]);
+      Context_dNudt->SetEntities( eList, eList );
+      Context_dNudt->SetFeFunctions(feFunctions_[ACOU_PMLAUXSCALAR],feFunctions_[ACOU_PMLAUXSCALAR]);
+      Context_P->SetEntities( eList, eList );
+      Context_P->SetFeFunctions(feFunctions_[ACOU_PMLAUXSCALAR],feFunctions_[formulation_]);
+
+      assemble_->AddBiLinearForm( Context_dampdPdt );
+      assemble_->AddBiLinearForm( Context_dampP );
+      assemble_->AddBiLinearForm( Context_dampNu );
+      assemble_->AddBiLinearForm( Context_divU );
+      assemble_->AddBiLinearForm( Context_dUdt );
+      assemble_->AddBiLinearForm( Context_AU );
+      assemble_->AddBiLinearForm( Context_BgradP );
+      assemble_->AddBiLinearForm( Context_CgradNu );
+      assemble_->AddBiLinearForm( Context_dNudt );
+      assemble_->AddBiLinearForm( Context_P );
+
+      feFunctions_[ACOU_PMLAUXSCALAR]->AddEntityList( eList);
+      feFunctions_[ACOU_PMLAUXVEC]->AddEntityList( eList );
+    }else if(this->dim_==2){
+      EXCEPTION("2D case not implemented yet")
+    }
+
   }
 
   void AcousticPDE::DefineSurfaceIntegrators( ){
@@ -734,6 +914,7 @@ namespace CoupledField{
     ReadRhsExcitation( "rhsValues", empty, ResultInfo::SCALAR, isComplex_,
                           ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      coef[i]->SetConservative(true);
       coef[i]->AddEntityList(ent[i]);
       this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i]);
     }
@@ -844,6 +1025,30 @@ namespace CoupledField{
     DefineFieldResult(pmlFct, pml);
     //}
 
+    // === PML AUX Variables ===
+    if(this->isTimeDomPML_){
+      shared_ptr<ResultInfo> pmlScal ( new ResultInfo );
+      pmlScal->resultType = ACOU_PMLAUXSCALAR;
+      pmlScal->dofNames = "";
+      pmlScal->unit = "-";
+      pmlScal->definedOn = ResultInfo::NODE;
+      pmlScal->entryType = ResultInfo::SCALAR;
+      feFunctions_[ACOU_PMLAUXSCALAR]->SetResultInfo(pmlScal);
+      results_.Push_back( pmlScal );
+      pmlScal->SetFeFunction(feFunctions_[ACOU_PMLAUXSCALAR]);
+      DefineFieldResult( feFunctions_[ACOU_PMLAUXSCALAR], pmlScal );
+
+      shared_ptr<ResultInfo> pmlVec ( new ResultInfo );
+      pmlVec->resultType = ACOU_PMLAUXVEC;
+      pmlVec->dofNames = vecDofNames;
+      pmlVec->unit = "-";
+      pmlVec->definedOn = ResultInfo::NODE;
+      pmlVec->entryType = ResultInfo::VECTOR;
+      feFunctions_[ACOU_PMLAUXVEC]->SetResultInfo(pmlVec);
+      results_.Push_back( pmlVec );
+      pmlVec->SetFeFunction(feFunctions_[ACOU_PMLAUXVEC]);
+      DefineFieldResult( feFunctions_[ACOU_PMLAUXVEC], pmlVec );
+    }
 
     // ===================================
     // Check for non-conforming interfaces
@@ -858,56 +1063,57 @@ namespace CoupledField{
     acouPDENCIfaceListNode = param->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
     ->Get("pdeList/acoustic/ncInterfaceList", ParamNode::PASS);
 
-    if(!acouPDENCIfaceListNode)
-      return;
+    if(acouPDENCIfaceListNode){
 
-    PtrParamNode domainNCIfaceListNode;
-    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
 
-    if(!domainNCIfaceListNode)
-    {
-      EXCEPTION("No nonmatching interfaces have been specified in domain!");
-    }
+      PtrParamNode domainNCIfaceListNode;
+      domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
 
-    ParamNodeList pdeNCIfaceNodes;
-    pdeNCIfaceNodes = acouPDENCIfaceListNode->GetList("ncInterface");
-
-    for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
-      std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
-
-      PtrParamNode domainIfaceNode = domainNCIfaceListNode
-          ->GetByVal("ncInterface", "name", pdeIfaceName, ParamNode::PASS);
-      if(!domainIfaceNode)
+      if(!domainNCIfaceListNode)
       {
-        LOG_DBG2(acousticpde) << "NonMatching: Nonconforming "
-        << "interface '" << ncIfaceNames[i]
-                                         << "' does not exist in domain.";
-
-        EXCEPTION( "ncInterface referenced from PDE not defined in domain!");
+        EXCEPTION("No nonmatching interfaces have been specified in domain!");
       }
 
-      ncIfaceNamesForPDE.Push_back(pdeIfaceName);
+      ParamNodeList pdeNCIfaceNodes;
+      pdeNCIfaceNodes = acouPDENCIfaceListNode->GetList("ncInterface");
+
+      for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
+        std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
+
+        PtrParamNode domainIfaceNode = domainNCIfaceListNode
+            ->GetByVal("ncInterface", "name", pdeIfaceName, ParamNode::PASS);
+        if(!domainIfaceNode)
+        {
+          LOG_DBG2(acousticpde) << "NonMatching: Nonconforming "
+          << "interface '" << ncIfaceNames[i]
+                                           << "' does not exist in domain.";
+
+          EXCEPTION( "ncInterface referenced from PDE not defined in domain!");
+        }
+
+        ncIfaceNamesForPDE.Push_back(pdeIfaceName);
 
 
-    }
-    ptGrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
+      }
+      ptGrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
 
-    for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
-      ncIFaces_.Push_back(ncIfaceIds[i]);
-      std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
-      std::string nmgFormStr =  pdeNCIfaceNodes[i]->Get("nmgFormulation",ParamNode::PASS)->As<std::string>();
-      ncTypes_[ncIfaceIds[i]] = ncCouplingType_.Parse(nmgFormStr);
+      for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
+        ncIFaces_.Push_back(ncIfaceIds[i]);
+        std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
+        std::string nmgFormStr =  pdeNCIfaceNodes[i]->Get("nmgFormulation",ParamNode::PASS)->As<std::string>();
+        ncTypes_[ncIfaceIds[i]] = ncCouplingType_.Parse(nmgFormStr);
 
-      if(ncTypes_[ncIfaceIds[i]]==NITSCHE){
+        if(ncTypes_[ncIfaceIds[i]]==NITSCHE){
 
-        nitscheFactors_[ncIfaceIds[i]] = pdeNCIfaceNodes[i]->Get("nitscheFactor",ParamNode::PASS)->As<Double>();
+          nitscheFactors_[ncIfaceIds[i]] = pdeNCIfaceNodes[i]->Get("nitscheFactor",ParamNode::PASS)->As<Double>();
 
-        //write some info
-        PtrParamNode base = infoNode_->Get(ParamNode::PN_HEADER)->Get("NMG",ParamNode::INSERT)->Get("nitsche",ParamNode::INSERT);
-        PtrParamNode curNCI = base->Get(pdeIfaceName,ParamNode::INSERT);
-        curNCI->Get("penaltyValue",ParamNode::INSERT)->SetValue(nitscheFactors_[ncIfaceIds[i]]);
-      }else{
-        EXCEPTION("Only Nitsche NMG formulation is supported right now for acoustic PDE");
+          //write some info
+          PtrParamNode base = infoNode_->Get(ParamNode::PN_HEADER)->Get("NMG",ParamNode::INSERT)->Get("nitsche",ParamNode::INSERT);
+          PtrParamNode curNCI = base->Get(pdeIfaceName,ParamNode::INSERT);
+          curNCI->Get("penaltyValue",ParamNode::INSERT)->SetValue(nitscheFactors_[ncIfaceIds[i]]);
+        }else{
+          EXCEPTION("Only Nitsche NMG formulation is supported right now for acoustic PDE");
+        }
       }
     }
 
@@ -923,6 +1129,7 @@ namespace CoupledField{
     //  lagr->definedOn = results_[0]->definedOn;
     //  results_.Push_back( lagr );
     //}
+
   }
   
   void AcousticPDE::DefinePostProcResults(){
@@ -1180,6 +1387,14 @@ namespace CoupledField{
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
 
     feFunctions_[formulation_]->SetTimeScheme(myScheme);
+    if(this->isTimeDomPML_){
+      if(dim_==3){
+        shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+        shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+        feFunctions_[ACOU_PMLAUXSCALAR]->SetTimeScheme(scalScheme);
+        feFunctions_[ACOU_PMLAUXVEC]->SetTimeScheme(vecScheme);
+      }
+    }
 
   }
 }

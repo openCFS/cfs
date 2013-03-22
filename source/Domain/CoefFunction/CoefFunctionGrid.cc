@@ -100,16 +100,23 @@ PtrCoefFct CoefFunctionGrid::Generate( Global::ComplexPart format,
 
 
   PtrCoefFct ret;
+  PtrParamNode tmpNode  =  infoNode->Get("externalData");
   if(configNode->Has("defaultGrid")){
-    ret.reset(new CoefFunctionGridNodalDefault<Double>(configNode->Get("defaultGrid")));
+    if(format == Global::COMPLEX){
+      ret.reset(new CoefFunctionGridNodalDefault<Complex>(configNode->Get("defaultGrid"), tmpNode));
+    }else{
+      ret.reset(new CoefFunctionGridNodalDefault<Double>(configNode->Get("defaultGrid"), tmpNode));
+    }
   }else if(configNode->Has("externalGrid")){
-    ret.reset(new CoefFunctionGridNodalInterp<Double>(configNode->Get("externalGrid")));
+    if(format == Global::COMPLEX){
+      ret.reset(new CoefFunctionGridNodalInterp<Complex>(configNode->Get("externalGrid"), tmpNode));
+    }else{
+      ret.reset(new CoefFunctionGridNodalInterp<Double>(configNode->Get("externalGrid"), tmpNode));
+    }
   } else {
     EXCEPTION("CoefFunctionGrid generator called with invalid xml tag. This is a serious Bug please report!");
   }
-
   return ret;
-  
 }
 
 CoefFunctionGrid::CoefFunctionGrid(PtrParamNode configNode){
@@ -123,6 +130,16 @@ CoefFunctionGrid::CoefFunctionGrid(PtrParamNode configNode){
   curInterpType_ = NO_INTERPOLATION;
   curTStep_ = 0;
   myConfigNode_ = configNode;
+  //obtain the sequence step for result
+  //plz note we take here the same value as for the current simulation
+  //TODO: Parametrize by XML
+  //check if the usseqenceSteper specifies it
+  if(configNode->Get("sequenceStep")){
+    this->aSeqStep_  = configNode->Get("sequenceStep")->As<UInt>();
+  }else{
+    this->aSeqStep_ = domain->GetDriver()->GetActSequenceStep();
+    WARN("external data did not specify its sequence step. assuming current step...")
+  }
 }
 
 CoefFunctionGrid::~CoefFunctionGrid(){

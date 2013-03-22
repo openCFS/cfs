@@ -52,7 +52,7 @@ class CoefFunctionGridNodalInterp : public CoefFunctionGridNodal<DATA_TYPE>
                                    ,public boost::enable_shared_from_this<CoefFunctionGridNodalInterp<DATA_TYPE> >{
 public:
 
-  CoefFunctionGridNodalInterp(PtrParamNode configNode);
+  CoefFunctionGridNodalInterp(PtrParamNode configNode,PtrParamNode curInfo);
 
   virtual ~CoefFunctionGridNodalInterp(){
   };
@@ -107,6 +107,7 @@ public:
                                              StdVector< DATA_TYPE >& values);
 
   //@}
+
 
 private:
 

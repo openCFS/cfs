@@ -961,7 +961,7 @@ namespace CoupledField {
     
     // create new result object, fill it and return it
     shared_ptr<BaseResult> result;
-    if( analysis[sequenceStep] != BasePDE::HARMONIC ) {
+    if( analysis[sequenceStep] != BasePDE::HARMONIC && analysis[sequenceStep] != BasePDE::EIGENFREQUENCY ) {
       result = shared_ptr<BaseResult>(new Result<Double>() );
     } else {
       result = shared_ptr<BaseResult>(new Result<Complex>() );

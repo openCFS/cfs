@@ -179,7 +179,8 @@ namespace CoupledField
 
   const Elem* Grid::GetElemAtGlobalCoord(const Vector<double>& globCoord,
                                          LocPoint& locCoord,
-                                         const std::set<RegionIdType>& srcRegions ) {
+                                         const std::set<RegionIdType>& srcRegions,
+                                         bool printWarnings) {
     
     StdVector<Vector<Double> > globCoords(1);
     StdVector<LocPoint> lps;
@@ -187,7 +188,7 @@ namespace CoupledField
     globCoords[0] = globCoord;
     globCoords[0].Resize(GetDim());
     GetElemsAtGlobalCoords( globCoords, lps, elems, srcRegions);
-    if( elems.GetSize() == 0 ) {
+    if( elems.GetSize() == 0 && printWarnings ) {
       WARN( "Could not find element at global position " << globCoord.ToString() );
     }
     locCoord = lps[0];
@@ -197,7 +198,8 @@ namespace CoupledField
   void Grid::GetElemsAtGlobalCoords( const StdVector<Vector<double> >& globCoords,
                                      StdVector< LocPoint >& localCoords,
                                      StdVector< const Elem* > & elems,
-                                     const std::set<RegionIdType>& srcRegions ) {
+                                     const std::set<RegionIdType>& srcRegions,
+                                     bool printWarnings) {
 
     // 1) first, determine element candidates for each point, determined by
     //    intersection of bounding-boxes. The algorithm used depends on the
@@ -211,7 +213,7 @@ namespace CoupledField
     MapPointsToBoundingBoxes( matches, srcRegions );
     
     // 2) Afterwards loop over all candidates 
-    MapGlobPointsToLoc( matches, elems, localCoords );
+    MapGlobPointsToLoc( matches, elems, localCoords, printWarnings );
   }
   
   const Elem* Grid::GetElemAtNode( UInt nodeNum,
@@ -747,7 +749,8 @@ namespace CoupledField
   
   void Grid::MapGlobPointsToLoc( const StdVector<PointElemMatch>& matches,
                                  StdVector<const Elem*>& elems,
-                                 StdVector<LocPoint>& lps ) {
+                                 StdVector<LocPoint>& lps,
+                                 bool printWarnings) {
     
     
     UInt numMatches = matches.GetSize(); 
@@ -779,7 +782,7 @@ namespace CoupledField
       }
 
       // Check, how many elements have been found
-      if( candidateElem.GetSize() == 0 ) {
+      if( candidateElem.GetSize() == 0 && printWarnings) {
         WARN( "No element found for location " <<  matches[iM].globCoord.ToString() );
       } else {
         elems[iM] = candidateElem[0];

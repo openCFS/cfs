@@ -25,18 +25,24 @@
 #include "FeBasis/FeFunctions.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 #include "General/Enum.hh"
-
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include "Utils/Timer.hh"
 
 namespace CoupledField{
 
+// declare class specific logging stream
+DECLARE_LOG(coeffunctiongridnodalinterp)
+DEFINE_LOG(coeffunctiongridnodalinterp, "coeffunctiongridnodalinterp")
 
 template<typename DATA_TYPE>
-CoefFunctionGridNodalInterp<DATA_TYPE>::CoefFunctionGridNodalInterp(PtrParamNode configNode)
+CoefFunctionGridNodalInterp<DATA_TYPE>::CoefFunctionGridNodalInterp(PtrParamNode configNode, PtrParamNode curInfo)
                                         :CoefFunctionGridNodal<DATA_TYPE>(configNode){
   //right now hardcoded for conservative
 
   this->stdInterpReady_ = false;
   this->consInterpReady_ = false;
+  this->curInterpType_ = CoefFunctionGrid::NO_INTERPOLATION;
+  this->extDataInfo_ = curInfo->Get("externalGrid");
   ReadXMLNode(configNode);
 
   //obtain grid pointer and store its dimension
@@ -69,8 +75,15 @@ template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::GetTensor(Matrix<DATA_TYPE>& CoefMat,
                                                                const LocPointMapped& lpm ){
 
-  if(this->curInterpType_ == CoefFunctionGrid::CONSERVATIVE)
-    EXCEPTION("GetTensor invalid for conservative interpolation");
+  if(this->curInterpType_ == CoefFunctionGrid::CONSERVATIVE){
+    EXCEPTION("GetVector invalid for conservative interpolation");
+  }else if (this->curInterpType_ == CoefFunctionGrid::NO_INTERPOLATION){
+    WARN("Interpolation type was neither set by user nor internally. Setting to standard...");
+
+    std::string interpTyStr = CoefFunctionGrid::InterpType_.ToString(this->curInterpType_);
+    this->extDataInfo_->Get("interpolation")->Get("type")->SetValue(interpTyStr);
+    this->extDataInfo_->Get("interpolation")->Get("setBy")->SetValue("CFS++");
+  }
 
   EXCEPTION("Get Tensor is not implemented");
 }
@@ -78,9 +91,17 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetTensor(Matrix<DATA_TYPE>& CoefMa
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefMat,
                                                                const LocPointMapped& lpm ){
-  if(this->curInterpType_ == CoefFunctionGrid::CONSERVATIVE)
+  if(this->curInterpType_ == CoefFunctionGrid::CONSERVATIVE){
     EXCEPTION("GetVector invalid for conservative interpolation");
+  }else if (this->curInterpType_ == CoefFunctionGrid::NO_INTERPOLATION){
+    WARN("Interpolation type was neither set by user nor internally. Setting to default...");
+    std::string interpTyStr = CoefFunctionGrid::InterpType_.ToString(this->curInterpType_);
+    this->extDataInfo_->Get("interpolation")->Get("type")->SetValue(interpTyStr);
+    this->extDataInfo_->Get("interpolation")->Get("setBy")->SetValue("CFS++");
+  }
+
   assert(this->dimType_ != CoefFunction::TENSOR);
+
   //two possibilities 1. we have already the intepolation function, we use it.
   //2. no interpolation function there, we do the old stuff
   if(this->dimType_ == CoefFunction::SCALAR)
@@ -88,8 +109,25 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefMa
   else if (this->dimType_ == CoefFunction::VECTOR)
     CoefMat.Resize(this->dimDof_);
 
+  //if this is the first time we call the procedure, std interpolation is not ready
+  //so we prepare it
+  if(!this->stdInterpReady_){
+    std::cout << "Preparing for interpolation of external data...";
+    std::cout.flush();
+    //====================================================
+    // Create Data structures for easy solution access
+    //====================================================
+    //in this special class we start with the equation mapping right
+    //after the first call to get entities as this method should not be called twice!
+    this->MapEqns();
+    //read in the first solution
+    this->ReadSolution(this->stepValueMap_.begin()->first,this->solVec_);
+    this->PrepareForStdInterp(this->myConfigNode_);
+    std::cout << "Done" << std::endl;
+    std::cout.flush();
+  }
 
-  if(this->stdInterpReady_){
+
     //there is a special case when dealing with surface elements
     //we need to obtain a valid volume from them
     const Elem * curE = NULL;
@@ -108,43 +146,51 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefMa
     this->myOperator_->ApplyOp(CoefMat,curPt,ptFe,elemSol);
 
 
-  }else{
-    CoefMat.Init();
-    //const Elem* targetElem = lpm.ptEl;
-    Vector<Double> globCoord;
-    Vector<Double> localCoord;
-    Vector<DATA_TYPE> elemSol;
-    lpm.shapeMap->Local2Global(globCoord,lpm.lp);
-    LocPoint lp;
-    //build up set of source regions
-    std::set<std::string>::iterator regIter = this->srcRegions_.begin();
-    std::set<RegionIdType> scrRegIds;
-    for( ; regIter != this->srcRegions_.end(); ++regIter) {
-      RegionIdType curId = this->srcGrid_->GetRegion().Parse(*regIter);
-      scrRegIds.insert(curId);
-    }
-    const Elem* sourceElem = this->srcGrid_->GetElemAtGlobalCoord(globCoord,lp,scrRegIds);
+   //This was the obsolete approach of searching for each point in external grid
+    //the comment will be removed soon, when the new concept has been verified
 
-    if(!sourceElem){
-      WARN("Could not find element for coord " << globCoord);
-      return;
-    }
+    //CoefMat.Init();
+    ////const Elem* targetElem = lpm.ptEl;
+    //Vector<Double> globCoord;
+    //Vector<Double> localCoord;
+    //Vector<DATA_TYPE> elemSol;
+    //lpm.shapeMap->Local2Global(globCoord,lpm.lp);
+    //LocPoint lp;
+    ////build up set of source regions
+    //std::set<std::string>::iterator regIter = this->srcRegions_.begin();
+    //std::set<RegionIdType> scrRegIds;
+    //for( ; regIter != this->srcRegions_.end(); ++regIter) {
+    //  RegionIdType curId = this->srcGrid_->GetRegion().Parse(*regIter);
+    //  scrRegIds.insert(curId);
+    //}
+    //const Elem* sourceElem = this->srcGrid_->GetElemAtGlobalCoord(globCoord,lp,scrRegIds);
+    //
+    //if(!sourceElem){
+    //  WARN("Could not find element for coord " << globCoord);
+    //  return;
+    //}
+    //
+    //shared_ptr<ElemShapeMap> esm = this->srcGrid_->GetElemShapeMap( sourceElem, true );
+    //LocPointMapped lpmS;
+    //lpmS.Set(lp,esm,1.0);
+    //
+    //this->GetElemSolution( elemSol, sourceElem->elemNum);
+    //BaseFE * ptFe = esm->GetBaseFE();
+    //this->myOperator_->ApplyOp(CoefMat,lpmS,ptFe,elemSol);
 
-    shared_ptr<ElemShapeMap> esm = this->srcGrid_->GetElemShapeMap( sourceElem, true );
-    LocPointMapped lpmS;
-    lpmS.Set(lp,esm,1.0);
-
-    this->GetElemSolution( elemSol, sourceElem->elemNum);
-    BaseFE * ptFe = esm->GetBaseFE();
-    this->myOperator_->ApplyOp(CoefMat,lpmS,ptFe,elemSol);
-  }
 }
 
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMat,
                                                               const LocPointMapped& lpm ){
-  if(this->curInterpType_ == CoefFunctionGrid::CONSERVATIVE)
-    EXCEPTION("GetScalar invalid for conservative interpolation");
+  if(this->curInterpType_ == CoefFunctionGrid::CONSERVATIVE){
+    EXCEPTION("GetVector invalid for conservative interpolation");
+  }else if (this->curInterpType_ == CoefFunctionGrid::NO_INTERPOLATION){
+    WARN("Interpolation type was neither set by user nor internally. Setting to standard...");
+    std::string interpTyStr = CoefFunctionGrid::InterpType_.ToString(this->curInterpType_);
+    this->extDataInfo_->Get("interpolation")->Get("type")->SetValue(interpTyStr);
+    this->extDataInfo_->Get("interpolation")->Get("setBy")->SetValue("CFS++");
+  }
 
   assert(this->dimType_ == CoefFunction::SCALAR );
 
@@ -157,6 +203,10 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMat,
 
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::AddEntityList(shared_ptr<EntityList> ents){
+  if(this->destRegions_.size() > 1){
+    EXCEPTION("CoefFunctionGridNodalInterp::AddEntityList called twice. Currently this is forbidden!");
+  }
+
   if(ents->GetDefineType() == EntityList::REGION){
     this->destRegions_.insert( ents->GetRegion() );
     this->entities_.Push_back(ents);
@@ -164,24 +214,17 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::AddEntityList(shared_ptr<EntityList
     EXCEPTION("CoefFunction Grid can only be called with a region.")
   }
 
-  //====================================================
-  // Create Data structures for easy solution access
-  //====================================================
-  //in this special class we start with the equation mapping right
-  //after the first call to get entities as this method should not be called twice!
-  this->MapEqns();
-  //read in the first solution
-  this->ReadSolution(this->stepValueMap_.begin()->first,this->solVec_);
+  this->extDataInfo_->Get("DestinationRegionList")->Get("Region")->Get("name")->SetValue(ents->GetName());
 
-  if(this->curInterpType_ == CoefFunctionGrid::STANDARD){
-    this->PrepareForStdInterp(this->myConfigNode_);
-  }
+
 }
 
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
 
   //first obtain the node coordinates of the source regions
+
+
   StdVector<Vector<Double> > nodeGlobCoords;
   StdVector<LocPoint> localCoords;
   StdVector< const Elem* > foundElements;
@@ -212,7 +255,8 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
   destGrid->GetElemsAtGlobalCoords( nodeGlobCoords,
                                     localCoords,
                                     foundElements,
-                                    this->destRegions_);
+                                    this->destRegions_,
+                                    false);
 
   //we now create some debugging information
   UInt elemCounter = 0;
@@ -220,11 +264,14 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
     if(!foundElements[i]){
       elemCounter++;
     }else{
-      std::cout << "Node #" << allNodes[i] << " get associated to element #" << foundElements[i]->elemNum << std::endl;
-      std::cout << "Local Coordinate is: " << localCoords[i] << std::endl << std::endl;
+      LOG_DBG3(coeffunctiongridnodalinterp) << "Node #" << allNodes[i] << " get associated to element #" << foundElements[i]->elemNum << std::endl;
+      LOG_DBG3(coeffunctiongridnodalinterp)<< "Local Coordinate is: " << localCoords[i] << std::endl << std::endl;
     }
   }
-  std::cout << "There were " << elemCounter << " unmapped nodes. Perhaps you should think about tolerances!";
+  if(elemCounter>0)
+    WARN("There were " << elemCounter << " unmapped nodes. Perhaps you should think about tolerances!");
+
+  this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("numUnmappedNodes")->SetValue(elemCounter);
 
   //if the user wants to, we save the node->element association here
   //now we store the information in our map
@@ -248,25 +295,30 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode
 
   this->DetermineResult(this->inputId_,this->aSeqStep_);
 
-  std::string interpStr = configNode->Get("interpolation")->As<std::string>();
+  this->extDataInfo_->Get("interpolation")->Get("sourceGridID")->SetValue(this->gridId_);
+  this->extDataInfo_->Get("interpolation")->Get("sourceInputID")->SetValue(this->inputId_);
 
+  std::string interpStr = configNode->Get("interpolation")->As<std::string>();
   this->curInterpType_ = CoefFunctionGrid::InterpType_.Parse(interpStr);
+  this->extDataInfo_->Get("interpolation")->Get("type")->SetValue(interpStr);
+  this->extDataInfo_->Get("interpolation")->Get("setBy")->SetValue("XML");
 
   //obtain grid pointer
   this->srcGrid_ = domain->GetGrid(this->gridId_);
 
   //check what kind of dependency is there...
-  std::string dependString;
-  configNode->GetValue("dependtype",dependString);
-  this->dependType_ = CoefFunction::CoefDependType_.Parse(dependString);
+  //hardcode to general even we have static data. perhaps we cover this case...
+  this->dependType_ = CoefFunction::GENERAL;
+
+  //TODO: Cover the case of static external data. i.e. do not bind to time/freq parameter
 
   //determine source region list
   StdVector<PtrParamNode> regs = configNode->Get("regionList")->GetList("region");
   for(UInt i=0;i<regs.GetSize();++i){
-    this->srcRegions_.insert(regs[i]->Get("srcRegionName")->As<std::string>());
+    std::string srcRegName = regs[i]->Get("srcRegionName")->As<std::string>();
+    this->srcRegions_.insert(srcRegName);
+    this->extDataInfo_->Get("SourceRegionList")->Get("Region",ParamNode::INSERT)->Get("name")->SetValue(srcRegName);
   }
-
-
 
   this->curStep_ = 1;
   this->curTStep_ = 0;
@@ -277,6 +329,14 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
                                                                       Vector<DATA_TYPE>& feFncVec){
 
   if(!this->consInterpReady_){
+    std::cout << "Preparing for conservative interpolation of external data...";
+    std::cout.flush();
+    boost::shared_ptr<Timer> t(new Timer);
+    t->Start();
+    this->MapEqns();
+    //read in the first solution
+    this->ReadSolution(this->stepValueMap_.begin()->first,this->solVec_);
+
     //ok so we need to gather the formation
     this->MapElemNodesConservative();
     CoordFormat<DATA_TYPE>* myContainer;
@@ -302,8 +362,6 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     shared_ptr<ElemShapeMap> esm;
     Matrix<Double> opMat;
     StdVector<Integer> elemEqns;
-    std::cout << "creating coordinate sparse matrix ...";
-    std::cout.flush();
     eIt = this->elemNodeAssoc_.begin();
     LocPointMapped lpm;
     while(eIt != this->elemNodeAssoc_.end()){
@@ -328,19 +386,39 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
       }//for each source node
       eIt++;
     }//for each target element
-    std::cout << "done" << std::endl;std::cout.flush();
-    std::cout << "converting to CRS ...";std::cout.flush();
     myContainer->FinaliseAssembly();
     //TODO: delete unnecessary data structures
 
 
     //now we create a CRS_Matrix from it
     this->consInterpMat_.reset(new CRS_Matrix<DATA_TYPE>(*myContainer));
-    std::cout << "done" << std::endl;std::cout.flush();
     //delete coordinate matrix
     delete myContainer;
     //ready to go for conservative interpolation
     this->consInterpReady_ = true;
+    this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("matrix")->Get("Created")->SetValue("yes");
+    this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("matrix")->Get("nnz")->SetValue(nnz);
+    this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("matrix")->Get("numRow")->SetValue(numRows);
+    this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("matrix")->Get("numCol")->SetValue(numCols);
+    t->Stop();
+    std::stringstream elapsed;
+    const int walltime((int) t->GetWallTime());
+    if(walltime > 120) {
+      const int wallmin((int) (walltime / 60.0));
+      if(wallmin > 60){
+        elapsed << wallmin/60 << "h";
+      }else{
+        elapsed << wallmin << "min";
+      }
+    }else{
+      elapsed << walltime << "s";
+    }
+
+    this->extDataInfo_->Get("interpolation")->Get("conservative")->
+        Get("creationTime")->SetValue(elapsed.str());
+
+    std::cout << "Done" << std::endl;
+    std::cout.flush();
   }
   //perhaps we need to reread the solution vector from file
   if(this->GetDependency() != CoefFunction::CONSTANT){
@@ -379,7 +457,7 @@ template<class DATA_TYPE>
 
    //boost::random::random_device rng;
    boost::random::mt19937 gen;
-   boost::random::uniform_int_distribution<> index_dist(0, charset.size() - 1);
+   boost::random::uniform_int_distribution<unsigned int> index_dist(0, charset.size() - 1);
    for(int i = 0; i < 12; ++i) {
      result  << charset[index_dist(gen)];
    }
@@ -408,8 +486,7 @@ template<class DATA_TYPE>
    }
 
    //with this information we can now create a nice FeSpace
-   PtrParamNode interpolSpaceNode;
-   interpolSpaceNode = info->Get("FeSpaces")->Get("InterpolationSpace");
+   PtrParamNode interpolSpaceNode = this->extDataInfo_->Get("interpolation")->Get("standard")->Get("interpolationSpace");
    shared_ptr<FeSpace> interpolSpace;
    interpolSpace = FeSpace::CreateInstance(motherNode,interpolSpaceNode,FeSpace::H1,domain->GetGrid());
 
@@ -475,6 +552,9 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdV
   values.Resize(globCoord.GetSize(), Vector<DATA_TYPE>(this->dimDof_));
   for(UInt i=0;i<foundElements.GetSize();++i){
     const Elem* curE = foundElements[i];
+    if(!curE){
+      continue;
+    }
     this->GetElemSolution(eSol,curE->elemNum);
     esm = this->srcGrid_->GetElemShapeMap( curE, true );
     LocPoint lp = localCoords[i];

@@ -273,14 +273,16 @@ namespace CoupledField
     const Elem* GetElemAtGlobalCoord(const Vector<double>& globCoord,
                                      LocPoint& locCoord,
                                      const std::set<RegionIdType>& srcRegions
-                                     = std::set<RegionIdType> () );
+                                     = std::set<RegionIdType> (),
+                                     bool printWarnings = true );
     
     //! Return a list of elements and local coordinate for global coordinates
     void GetElemsAtGlobalCoords( const StdVector<Vector<double> >& globCoords,
                                 StdVector< LocPoint >& localCoords,
                                 StdVector< const Elem* > & elems,
                                 const std::set<RegionIdType>& srcRegions 
-                                = std::set<RegionIdType>());
+                                = std::set<RegionIdType>(),
+                                bool printWarnings = true);
     
     //! Return for a given node number the element and a local coordinate
     
@@ -867,7 +869,8 @@ namespace CoupledField
     //! the corresponding Elem-pointer in the elems array is NULL.
     void MapGlobPointsToLoc( const StdVector<PointElemMatch>& matches,
                              StdVector<const Elem*>& elems,
-                             StdVector<LocPoint>& lps );
+                             StdVector<LocPoint>& lps,
+                             bool printWarnings = true);
 
 #ifdef USE_CGAL
 

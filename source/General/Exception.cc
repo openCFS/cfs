@@ -83,7 +83,7 @@ namespace CoupledField {
             }
             break;
           case WARNING:
-            
+
             // execute callback method
             if( warnCallback_ )
               warnCallback_(*this);
