@@ -1,0 +1,167 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description for all things related to the type of analysis
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <!-- Data type for specifying type of analysis to be performed -->
+  <xsd:complexType name="DT_Analysis">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="type" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="static"/>
+              <xsd:enumeration value="harmonic"/>
+              <xsd:enumeration value="transient"/>
+              <xsd:enumeration value="eigenFrequency"/>
+              <xsd:enumeration value="paramIdent"/>
+              <xsd:enumeration value="bubbleDynamic"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of basic Analysis type -->
+  <!-- ******************************************************************* -->
+
+  <!-- This is an abstract basic type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="DT_AnalysisBasic" abstract="true"/>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of basic Analysis element -->
+  <!-- ******************************************************************* -->
+
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised analysis elements -->
+
+  <xsd:element name="AnalysisBasic" type="DT_AnalysisBasic" abstract="true"/> 
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of element Analysis Static -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="static" type="DT_AnalysisStatic"
+    substitutionGroup="AnalysisBasic"> 
+  </xsd:element>
+
+  <!-- Data type for static analysis -->
+  <xsd:complexType name="DT_AnalysisStatic">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+          <xsd:element name="writeRestartInc"
+            type="xsd:nonNegativeInteger" minOccurs="0" maxOccurs="1"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of element AnalysisTransient -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="transient" type="DT_AnalysisTransient"
+    substitutionGroup="AnalysisBasic"> 
+  </xsd:element>
+
+  <!-- Data type for transient section, i.e. parameters required for
+       performing a transient analysis -->
+  <xsd:complexType name="DT_AnalysisTransient">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+          <xsd:element name="numSteps" type="xsd:token"/>
+          <xsd:element name="deltaT" type="xsd:token"/>
+          <xsd:element name="timeDataFile" minOccurs="0"
+            maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:complexContent>
+                <xsd:restriction base="xsd:anyType">
+                  <xsd:attribute name="name" type="xsd:string" use="optional"
+                    default="none"/>
+                </xsd:restriction>
+              </xsd:complexContent>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="writeRestartInc"
+          type="xsd:token" minOccurs="0" maxOccurs="1"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of element AnalysisHarmonic -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="harmonic" type="DT_AnalysisHarmonic"
+    substitutionGroup="AnalysisBasic"/>
+
+  <!-- Data type for harmonic section, i.e. parameters required for
+       performing a harmonic analysis -->
+  <xsd:complexType name="DT_AnalysisHarmonic">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+          <xsd:element name="numFreq" type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="startFreq" type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="stopFreq" type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="sampling" minOccurs="0" maxOccurs="1" default="linear">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="linear"/>
+                <xsd:enumeration value="log"/>
+                <xsd:enumeration value="reverseLog"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+          <xsd:element name="frequencyList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="freq" maxOccurs="unbounded" minOccurs="1">
+                  <xsd:complexType>
+                    <xsd:attribute name="value" type="xsd:token" use="required"/>
+                    <xsd:attribute name="weight" type="xsd:token" default="1.0" use="optional"/> 
+                  </xsd:complexType>
+                </xsd:element>                
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType> 
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of element eigenFrequency -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="eigenFrequency" type="DT_AnalysisEigenFrequency"
+    substitutionGroup="AnalysisBasic"/>
+
+  <!-- Data type for performing an eigenfrequency analysis -->
+  <xsd:complexType name="DT_AnalysisEigenFrequency">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+          <xsd:element name="isQuadratic" type="DT_CFSBool"/>
+          <xsd:element name="numModes" type="xsd:token"/>
+          <xsd:element name="freqShift" type="DT_NonNegFloat"/>
+          <xsd:element name="writeModes" type="DT_CFSBool"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType> 
+
+</xsd:schema>

@@ -1,0 +1,149 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for material description of an magnetic material
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of material for magnetic PDEs -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_MatMagnetic">
+    <xsd:sequence>
+      <xsd:element name="electricConductivity" type="DT_NonNegFloat"/>
+      <xsd:element name="magneticPermeability" type="DT_MagnPermeability"/>
+      <xsd:element name="hystModel" type="DT_MagHystModel" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of magnetic permeability-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MagnPermeability">
+    <xsd:sequence>
+      <xsd:element name="linear" type="DT_LinMagnPermeability"/>
+      <xsd:element name="nonlinear" type="DT_NonLinMagnPermeability" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of linear magnetic permeability-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_LinMagnPermeability">
+    <xsd:choice>
+      <xsd:element name="tensor" type="DT_MagTensor"/>
+      <xsd:element name="isotropic" type="DT_NonNegFloat"/>
+      <xsd:element name="orthotropic" type="DT_MagOrthotropic"/>
+    </xsd:choice>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of general tensor linear magnetic permeability-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MagTensor">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="9"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="imag" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="9"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of real and imaginery part orthotropic mechanical elasticity  -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MagOrthotropic">
+    <xsd:sequence>
+      <xsd:element name="permeability_1" type="DT_NonNegFloat"/>
+      <xsd:element name="permeability_2" type="DT_NonNegFloat"/>
+      <xsd:element name="permeability_3" type="DT_NonNegFloat"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of non linear magnetic permeability-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_NonLinMagnPermeability">
+    <xsd:choice>
+      <xsd:element name="isotropic" type="DT_IsotrNonLinMagnPermeability"/>
+      <xsd:element name="anisotropic" type="DT_AnisotrNonLinMagnPermeability"/>
+    </xsd:choice>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of isotropic non linear magnetic permeability-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_IsotrNonLinMagnPermeability">
+    <xsd:sequence>
+      <xsd:element name="dependency" type="xsd:string"/>
+      <xsd:element name="approxType" type="xsd:string"/>
+      <xsd:element name="measAccuracy" type="DT_NonNegFloat"/>
+      <xsd:element name="maxApproxVal" type="DT_NonNegFloat"/>
+      <xsd:element name="dataName" type="xsd:string"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of non linear BH curves (ansiotropic)-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_AnisotrNonLinMagnPermeability">
+    <xsd:sequence>
+      <xsd:element name="data" type="DT_AnisotropicNonLinBHCurves" minOccurs="0" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <xsd:complexType name="DT_AnisotropicNonLinBHCurves">
+    <xsd:sequence>
+      <xsd:element name="angle"        type="DT_NonNegFloat"/>
+      <xsd:element name="dependency"   type="xsd:string"/>
+      <xsd:element name="approxType"   type="xsd:string"/>
+      <xsd:element name="measAccuracy" type="DT_NonNegFloat"/>
+      <xsd:element name="maxApproxVal" type="DT_NonNegFloat"/>
+      <xsd:element name="dataName"     type="xsd:string"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of hysterese model                                     -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MagHystModel">
+    <xsd:choice>
+      <xsd:element name="preisach" type="DT_MagPreisachHystModel"/>
+    </xsd:choice>
+  </xsd:complexType>
+  
+  <xsd:complexType name="DT_MagPreisachHystModel">
+    <xsd:sequence>
+      <xsd:element name="hSat" type="xsd:double"/>
+      <xsd:element name="bSat" type="xsd:double"/>
+      <xsd:element name="dim"  type="xsd:nonNegativeInteger"/>
+      <xsd:element name="weights">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="2000"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+  </xsd:complexType>
+
+</xsd:schema>

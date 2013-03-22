@@ -1,0 +1,29 @@
+// ===========================================================================
+//  MAIN PAGE
+// ===========================================================================
+//! \mainpage CFS++ Documentation
+//! Welcome to the <i> Coupled Field System in C++ </i>!
+//! 
+//! Here are some useful links to get a quick overview
+//! before you start to program:
+//!
+//! -# \link intro Introduction \endlink
+//! -# \link overview Class Overview and Concepts \endlink
+//! -# \link howto Programmer HowTo's \endlink
+//! -# \link codingRules Coding Rules \endlink
+
+// ===========================================================================
+//  INCLUDES
+// ===========================================================================
+//! \page intro Introduction
+//! To be written ...
+ 
+//! \page overview Class Overview and Concepts
+//! To be written ...
+
+//! \page howto Programmer HowTo's
+//! To be written ...
+ 
+//! \page codingRules
+//! \htmlinclude coding_rules.html
+

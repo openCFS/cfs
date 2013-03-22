@@ -1,0 +1,61 @@
+# kate: indent-width 2; mixedindent on; indent-mode cstyle; line-numbers on;
+# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
+# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+
+#=============================================================================
+# Set global variables.
+#=============================================================================
+SET(paraview_source "@paraview_source@")
+
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
+SET(CFS_ARCH "@CFS_ARCH@")
+SET(LIB_SUFFIX "@LIB_SUFFIX@")
+
+SET(CFS_PV_CMAKE_COMMAND "@CFS_PV_CMAKE_COMMAND@")
+SET(CMAKE_INSTALL_PREFIX "@paraview_install@")
+SET(CFS_PV_CMAKE_COMMAND "@CFS_PV_CMAKE_COMMAND@")
+SET(CMAKE_SHARED_LIBRARY_PREFIX "@CMAKE_SHARED_LIBRARY_PREFIX@")
+SET(CMAKE_SHARED_LIBRARY_SUFFIX "@CMAKE_SHARED_LIBRARY_SUFFIX@")
+SET(CMAKE_MAKE_PROGRAM "@CMAKE_MAKE_PROGRAM@")
+
+#-----------------------------------------------------------------------------
+# Call 'make install'
+#-----------------------------------------------------------------------------
+SET(INSTALL_CMD
+  "${CMAKE_MAKE_PROGRAM}" 
+  "install"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${INSTALL_CMD}
+  WORKING_DIRECTORY "${paraview_source}-superbuild-build/ParaView-build"
+#  ERROR_FILE paraview-install.out
+#  OUTPUT_FILE paraview-install.out
+  RESULT_VARIABLE rv
+  )
+
+#-----------------------------------------------------------------------------
+# Copy QtCurve lib to ParaView lib directory.
+#-----------------------------------------------------------------------------
+SET(QTCURVE_LIB "qtcurve${CMAKE_SHARED_LIBRARY_SUFFIX}")
+SET(QTCURVE_DIR "${paraview_source}-superbuild-build/qtcurve-build/style")
+
+IF(EXISTS "${QTCURVE_DIR}/${QTCURVE_LIB}")
+  EXECUTE_PROCESS(
+    COMMAND
+      ${CFS_PV_CMAKE_COMMAND}
+      -E make_directory plugins/styles
+    WORKING_DIRECTORY "${CFS_BINARY_DIR}/paraview/lib"
+    RESULT_VARIABLE rv
+    )
+
+  EXECUTE_PROCESS(
+    COMMAND
+      ${CFS_PV_CMAKE_COMMAND}
+      -E copy_if_different
+      "${QTCURVE_DIR}/${QTCURVE_LIB}"
+      "${CFS_BINARY_DIR}/paraview/lib/plugins/styles/${QTCURVE_LIB}"
+    RESULT_VARIABLE rv
+    )
+ENDIF()

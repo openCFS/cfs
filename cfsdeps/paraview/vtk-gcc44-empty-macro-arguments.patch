@@ -1,0 +1,14 @@
+--- VTK/Common/vtkSetGet.h.orig	2008-03-04 18:58:34.000000000 +0100
++++ VTK/Common/vtkSetGet.h	2009-05-20 14:43:05.000000000 +0200
+@@ -604,8 +604,10 @@
+   public: \
+   vtkTypeMacro(thisClass,superclass)
+ 
++/* gcc-4.4 warning: ''empty macro arguments are undefined in ISO C90 and ISO C++98'' */
++#define CFSDLLEXPORT
+ // Version of vtkTypeMacro that adds the CollectRevisions method.
+-#define vtkTypeRevisionMacro(thisClass,superclass) vtkExportedTypeRevisionMacro(thisClass,superclass,)
++#define vtkTypeRevisionMacro(thisClass,superclass) vtkExportedTypeRevisionMacro(thisClass,superclass,CFSDLLEXPORT)
+ 
+ // Macro to implement the standard CollectRevisions method.
+ #define vtkCxxRevisionMacro(thisClass, revision) \

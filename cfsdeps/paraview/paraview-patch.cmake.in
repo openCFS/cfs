@@ -1,0 +1,273 @@
+# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
+# kate: indent-width 2; mixedindent on; indent-mode cstyle; line-numbers on;
+# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
+# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+
+#=============================================================================
+# Set global variables, configured from the PV external build.
+#=============================================================================
+set(paraview_source  "@paraview_source@")
+
+SET(CFS_PV_CMAKE_COMMAND "@CFS_PV_CMAKE_COMMAND@")
+
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_DEPS_CACHE_DIR "@CFS_DEPS_CACHE_DIR@")
+
+#=============================================================================
+# Include some convenient macros (e.g. for applying patches).
+#=============================================================================
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+#=============================================================================
+# Copy some sources over to PV SuperBuild directory.
+#=============================================================================
+EXECUTE_PROCESS(
+  COMMAND
+  ${CFS_PV_CMAKE_COMMAND} 
+  -E copy_if_different
+  "${CFS_SOURCE_DIR}/cfsdeps/paraview/CMakeLists.txt"
+  "${paraview_source}/SuperBuild/CMakeLists.txt"
+)
+
+EXECUTE_PROCESS(
+  COMMAND
+  ${CFS_PV_CMAKE_COMMAND}
+  -E copy_if_different
+  "${CFS_SOURCE_DIR}/cfsdeps/paraview/boost_patch_step.cmake.in"
+  "${paraview_source}/SuperBuild/boost_patch_step.cmake.in"
+)
+
+EXECUTE_PROCESS(
+  COMMAND
+  ${CFS_PV_CMAKE_COMMAND}
+  -E copy_if_different
+  "${CFS_SOURCE_DIR}/cfsdeps/paraview/libstdcpp3.patch"
+  "${paraview_source}/SuperBuild/libstdcpp3.patch"
+)
+
+EXECUTE_PROCESS(
+  COMMAND
+  ${CFS_PV_CMAKE_COMMAND}
+  -E copy_if_different
+  "${CFS_SOURCE_DIR}/cfsdeps/paraview/manta.patch"
+  "${paraview_source}/SuperBuild/mantaPatches/manta.patch"
+)
+
+EXECUTE_PROCESS(
+  COMMAND
+  ${CFS_PV_CMAKE_COMMAND}
+  -E copy_if_different
+  "${CFS_SOURCE_DIR}/cfsdeps/paraview/manta_patch_step.cmake.in"
+  "${paraview_source}/SuperBuild/manta_patch_step.cmake.in"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${CFS_PV_CMAKE_COMMAND}
+  -E copy_if_different
+  "${CFS_SOURCE_DIR}/cfsdeps/paraview/silo_configure_step.cmake.in"
+  "${paraview_source}/SuperBuild/silo_configure_step.cmake.in"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${CFS_PV_CMAKE_COMMAND}
+  -E copy_if_different
+  "${CFS_SOURCE_DIR}/cfsdeps/paraview/External_QtCurve.cmake"
+  "${paraview_source}/SuperBuild/External_QtCurve.cmake"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${CFS_PV_CMAKE_COMMAND}
+  -E copy_if_different
+  "${CFS_SOURCE_DIR}/cfsdeps/paraview/paraview_common_environment.cmake.in"
+  "${paraview_source}/SuperBuild/paraview_common_environment.cmake.in"
+)
+
+#=============================================================================
+# Apply patches to external build scripts, so that the packages sources
+# will get downloaded to the CFS++ cache directory.
+#=============================================================================
+set(patches
+    "ext_boost.patch"
+    "ext_zlib.patch"
+    "ext_szip.patch"
+    "ext_hdf5.patch"
+    "ext_cgns.patch"
+    "ext_ffmpeg.patch"
+    "ext_lapack.patch"
+    "ext_mpich2.patch"
+    "ext_manta.patch"
+    "ext_python.patch"
+    "ext_numpy.patch"
+    "ext_vrpn.patch"
+    "ext_silo.patch"
+    "ext_freetype.patch"
+    "ext_png.patch"
+  )
+
+#=============================================================================
+# Apply more patches to PV source concerning build errors on some platforms.
+#=============================================================================
+#-----------------------------------------------------------------------------
+# gcc-4.4 warning:
+# ''empty macro arguments are undefined in ISO C90 and ISO C++98''
+# cf. http://www.virtualbox.org/changeset/19128
+#-----------------------------------------------------------------------------
+list(APPEND patches "vtk-gcc44-empty-macro-arguments.patch")
+
+list(APPEND patches "pv-xmdf2-string.patch")
+
+#-----------------------------------------------------------------------------
+# Fix compile problem on gcc-4.5, qt4 7.1
+# http://vtk.1045678.n5.nabble.com/Compilation-problem-td3975021.html
+#-----------------------------------------------------------------------------
+list(APPEND patches "vtk-sqldatabaseschema.patch")
+
+#-----------------------------------------------------------------------------
+# Fix problem where vtkCellDerivatives failed for vtkQuadraticQuad,
+# vtkBiQuadraticQuad and vtkQuadraticTriangle.
+# http://www.vtk.org/Bug/view.php?id=13455
+#-----------------------------------------------------------------------------
+list(APPEND patches "vtk-quadratic-quads-derivs.patch")
+
+#-----------------------------------------------------------------------------
+# Add some custom color maps to PV (GiD, Matlab, etc.).
+#-----------------------------------------------------------------------------
+list(APPEND patches "pv-colormaps.patch")
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/paraview")
+
+
+
+#=============================================================================
+# Integrate our own readers (HDF5 and .off) into PV source code.
+#=============================================================================
+
+#-----------------------------------------------------------------------------
+# Download source code for .off file format from Geomview. The .off file
+# format is used for describing polygonal surface meshes and is used for
+# geometry in-/output e.g. by CGAL, qhull or Xianming Jiaos grid projection
+# library. For more informations about this format go to:
+# http://www.geomview.org/docs/ -> OOGL*
+#-----------------------------------------------------------------------------
+FILE(DOWNLOAD
+  "http://www.cmake.org/Wiki/images/3/31/VtkOFFReader.zip" 
+  "${CFS_DEPS_CACHE_DIR}/sources/paraview/VtkOFFReader.zip"
+  EXPECTED_MD5 "64d241da6a7cb1c42e5479ecae62b2f1")
+
+EXECUTE_PROCESS(
+  COMMAND
+  ${CFS_PV_CMAKE_COMMAND}
+  -E make_directory
+  "${paraview_source}/OFFReader"
+)
+
+#-----------------------------------------------------------------------------
+# Unpack .off reader.
+#-----------------------------------------------------------------------------
+MESSAGE(STATUS "Unpacking .off reader...")
+EXECUTE_PROCESS(
+  COMMAND
+  ${CFS_PV_CMAKE_COMMAND}
+  -E tar xvfz
+  "${CFS_DEPS_CACHE_DIR}/sources/paraview/VtkOFFReader.zip"
+  WORKING_DIRECTORY "${paraview_source}/OFFReader"
+)
+
+EXECUTE_PROCESS(
+  COMMAND
+  ${CFS_PV_CMAKE_COMMAND}
+  -E copy_if_different
+  "${paraview_source}/OFFReader/vtkOFFReader.h"
+  "${paraview_source}/VTK/IO/vtkOFFReader.h"
+)
+
+EXECUTE_PROCESS(
+  COMMAND
+  ${CFS_PV_CMAKE_COMMAND}
+  -E copy_if_different
+  "${paraview_source}/OFFReader/vtkOFFReader.cxx"
+  "${paraview_source}/VTK/IO/vtkOFFReader.cxx"
+)
+
+#-----------------------------------------------------------------------------
+# Add .off reader to ServerManager readers.xml file.
+#-----------------------------------------------------------------------------
+SET(readers_xml_OFF_READER "
+   <ProxyGroup name=\"sources\">
+    <SourceProxy name=\"OFFReader\"
+                class=\"vtkOFFReader\"
+                label=\"Geomview .off reader\">
+     <Documentation
+       short_help=\"Read a Geomview .off file\"
+       long_help=\"Read a Geomview .off file containing surface geometry.
+                   Such files are produced e.g. by CGAL or qhull.\">
+     </Documentation>
+     <StringVectorProperty
+        name=\"FileName\"
+        animateable=\"0\"
+        command=\"SetFileName\"
+        number_of_elements=\"1\">
+        <FileListDomain name=\"files\"/>
+        <Documentation>
+          This property specifies the file name for the .off reader.
+        </Documentation>
+     </StringVectorProperty>
+     <Hints>
+       <ReaderFactory extensions=\"off\" file_description=\"Geomview files\"/>
+       <Property name=\"FileName\" show=\"1\"/>
+       <Property name=\"Refresh\" show=\"0\"/>
+     </Hints>
+   <!-- End OFFReader -->
+   </SourceProxy>
+  </ProxyGroup>
+</ServerManagerConfiguration>")
+
+SET(FN
+  "${paraview_source}/ParaViewCore/ServerImplementation/Resources/readers.xml")
+FILE(READ "${FN}" readers_xml)
+
+STRING(REPLACE "</ServerManagerConfiguration>"
+  "${readers_xml_OFF_READER}"
+  readers_xml
+  "${readers_xml}"
+  )
+
+FILE(WRITE "${FN}" "${readers_xml}")
+
+# MESSAGE(FATAL_ERROR "readers_xml ${readers_xml}")
+
+
+#-----------------------------------------------------------------------------
+# Make HDF5 reader available in ParaView GUI.
+#-----------------------------------------------------------------------------
+SET(FN "${paraview_source}/Applications/ParaView/ParaViewReaders.xml")
+FILE(READ "${FN}" pvreaders_xml)
+
+STRING(REPLACE "</ParaViewReaders>"
+  "  <Proxy group=\"sources\" name=\"OFFReader\"/>\n</ParaViewReaders>"
+  pvreaders_xml
+  "${pvreaders_xml}"
+  )
+
+FILE(WRITE "${FN}" "${pvreaders_xml}")
+
+# MESSAGE(FATAL_ERROR "pvreaders_xml ${pvreaders_xml}")
+
+# Apply the .off reader patch to support arbitrary flat polygons and
+# colors. The .off reader can now read most of CGAL's ASCII output.
+SET(OFF_PATCHES "pv-off-flatpoly-color.patch")
+APPLY_PATCHES("${OFF_PATCHES}" "${CFS_SOURCE_DIR}/cfsdeps/paraview")
+
+# Add our sources to VTK/IO/CMakeLists.txt
+SET(FN "${paraview_source}/VTK/IO/CMakeLists.txt")
+FILE(READ "${FN}" vtkiocmakelists)
+
+STRING(REPLACE "vtkOpenFOAMReader.cxx"
+  "vtkOpenFOAMReader.cxx\nvtkOFFReader.cxx"
+  vtkiocmakelists
+  "${vtkiocmakelists}"
+  )
+
+FILE(WRITE "${FN}" "${vtkiocmakelists}")
+
+# MESSAGE(FATAL_ERROR "vtkiocmakelists ${vtkiocmakelists}")

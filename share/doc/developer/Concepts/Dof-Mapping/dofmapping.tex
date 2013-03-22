@@ -1,0 +1,204 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{lsepaper}
+\usepackage{amsmath}
+\usepackage[utf8]{inputenc}
+\usepackage[german]{babel}
+\usepackage{wrapfig}
+\usepackage{subfigure}          %% mehrere Bilder in eine figure-Umgebung
+\usepackage{german}
+\usepackage{color}
+%%%%%%%%%%%%%%%%%% Test if LaTeX or pdfLaTeX %%%%%%%%%%%%%%%%%%%%
+\newif\ifpdf                    
+\ifx\pdfoutput\undefined
+\pdffalse                       %% we are not running PDFLaTeX
+\else
+\pdfoutput=1                    %% we are running PDFLaTeX
+\pdftrue
+\fi
+
+%%%%%%%%%%%%%%%%%%%% End pdfLaTeX Test %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%% Trennungsliste (fuer Woerter die nicht oder falsch getrennt werden):
+\hyphenation{ro-tat-ions-sym-met-rische}
+
+
+% include own commands
+\include{mycommands}
+\newcommand{\fn}{{\footnotesize}}
+\newcommand{\add}[1]{{\bf{\color{red}{#1}}}}
+
+%%%%%%%%%%%%%%%%%% subfigure settings %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newskip\subfigcapskip \subfigcapskip = 0.5cm
+\newskip\subfigbottomskip \subfigbottomskip = 0.5cm
+
+
+%%%%%%%%%%%%%%%%%% Hier geht's los %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{document}
+
+%% Front page
+\LSETITLE{Neues Gleichungsvergabekonzept in CFS++}
+         {Andreas Hauck}
+         {cfs-devel}
+\pagestyle{headings}
+\pagenumbering{arabic}
+
+
+\section{Bisherige Gleichungsnummernvergabe}
+Das bisherige Konzept der Gleichungsnummernvergabe beruht darauf, dass
+sich alle Einträge, die in das globale Gleichungssystem mit eingehen,
+aus Knotenunbekannten und Knotenansatzfunktionen zusammensetzen
+lassen. Die Zuordnung von Knoten- nach Gleichungsnummern geschieht in
+der Klasse \verb#NodeEQN#. Folglich gibt es (mit Varianten) nur die
+zwei Befehle
+\begin{verbatim}
+ void Node2EQN(const UInt nodeNr, const UInt dof,
+               Integer & eqnNr,UInt & eqnDof) const;
+ void Node2EQN(const StdVector<UInt> &nodeNr,
+               StdVector<Integer> &eqnNr) const;
+\end{verbatim}
+um Knoten auf Gleichungsnummern zu mappen. 
+
+\noindent
+Aufgrund dieser
+Einschränkung folgende Berechnungen und Kopplungen derzeit nicht oder
+nur schwer umsetzbar:
+\begin{itemize}
+\item Aufstellen einer PDE mit mehreren Knotenergebnissen
+  (z.B. Non-matching grid mit akust. Potential und Lagrange-Muliepliern)
+\item Kopplung einer knotenbaiserten PDE mit geometrieunabhängigen
+  Gleichungen (z.B. Kopplung ElecPDE/MagPDE + Netzwerkgleichung)
+\item Kopplung von Knoten- und Element-Unbekannte
+  (z.B. Piezo-Composite Materialien)
+\item PDE mit Edge/Surface-Unbekannten (z.B. Magnetik in 3D)
+\item Verwendung von Elementen beliebiger (höherer) Ordnung unter
+  Verwendung verschiedener Ansatzfunktionen
+\end{itemize}
+
+\noindent
+Ziel des neuen Klassenkonzepts muss daher eine weitergehende
+Abstraktion der Einträge in den SystemMatrizen und ihres Ursprungs bieten.
+
+\clearpage
+\section{Allgemeines Konzept}
+In Abbildung \ref{fig:ablauf} sind ist der allgemeine Weg des Mappings
+von einer (physikalischen) größe bis zum entsprechenden Eintrag in der
+Matrix (definiert durch die Gleichungsnummer) gezeigt.
+\begin{figure}[htb]
+  \centering
+  \includegraphics [width=17cm]{pics/ablauf.png}
+  \caption{Ablauf des Mappings}
+  \label{fig:ablauf}
+\end{figure}
+
+\noindent
+Dabei gibt es folgende Stufen:
+\begin{itemize}
+\item {\bf Quantity/Dof}\newline 
+  Am Beginn steht immer eine (meist physikalische)
+  Größe, wie z.B. das elektr. Potential, die mech. Verschiebung oder
+  der akust. Druck. Es können jedoch auch nicht-physikalische Größen
+  und Unbekannte auftreten, wie z.B. die Lagrange-Multiplizierer. Jede
+\item {\bf Defined On} \newline
+  Jede der o.g. Größen ist entweder auf
+  Knoten/Kanten/Oberflächen, dem Element selbst, einer Liste von
+  Knoten (z.B. Springs) oder als freie Unbekannte (z.B. Maschenstrom
+  usw.) definiert.
+\item {\bf Interpolation/Approximation} \newline 
+  Abhängig von den Entities, auf
+  denen eine Größe definiert ist, kann sie verschiedenartig
+  approximiert werden:
+  \begin{itemize}
+  \item Knoten/Kanten/Oberflächen: Für diese geomtrischen Elemente
+    exisitieren verschiedene Ansatzfunktionen, z.B. Lagrange oder
+    Legendre. Für diese gibt es u.U. auch verschiedene
+    Interpolationsordnungen (linear, quadratisch, höherer Ordnung)
+  \item Element/Rgion/NodeList/Free: Da diese Elemente nicht an
+    Interpolationsfunktionen gebunden sind lassen sie sich nur als
+    konstante Größen approximieren.
+  \end{itemize}
+\item {\bf Entity Type} \newline
+  Abhängig davon, worauf die Größe definiert ist (s. Defined On), muss
+  über verschiedene Entities iteriert werden, um die Elementmatrizen
+  aufzustellen. Für Knoten / Kanten / Oberflächen / Element-Unbekannte muss
+  (wie bisher) über die Elemente einerr Region iteriert werden. Für
+  Regionen-Unbekannte muss über eine Liste von Regionen, für
+  Unbekannte einer Knotenliste muss über diese und für unabhängige
+  Unbekannte muss über vorher vergebene Nummern iteriert
+  werden. Wichtig ist, dass sich jeder EntitType aufzählen lässt,
+  sich also über ihn iterieren lässt.
+\item {\bf EQN number} \newline
+  Um am Ende die Einträge, die eine Größe definieren, in die Matrix
+  eintragen zu können, ist eine Kombination aus Gleichungsnummern
+  notwendig, um Zeile-Spalen-Kombinationen für die Matrixeinträge
+  bestimmen zu können.
+\end{itemize}
+
+\noindent
+Das bisherige Konzept und seine Implementierung lassen bis jetzt nur
+ein Mapping von Knotenunbekannten mit Lagrange-Funktionen
+1./2. Ordnung zu. Das neue Konzept sollte jedoch alle
+o.g. Kombinationen zulassen.
+\section{Neue Klassenstruktur}
+In Abbildung \ref{fig:gesamt} ist die neue Klassenstruktur
+zusammenhängend zu sehen.
+\begin{figure}[htb]
+  \centering
+  \includegraphics [width=17cm]{pics/gesamt.png}
+  \caption{Neue Klassenstruktur}
+  \label{fig:gesamt}
+\end{figure}
+
+Im Folgenden werden die neuen Klassen und ihre Rolle näher
+vorgestellt.
+\subsection{Klasse ResultDof}
+Diese Klasse erweitert den Enum-Type \verb#SolutionType# so, dass auch
+die Information über die Art der Approximation und nähere Angaben über
+die DOFs enthalten sind.
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics [width=5cm]{pics/resultdof.png}
+  \caption{ResultDof Klasse}
+  \label{fig:class-resultdof}
+\end{figure}
+
+Die Variable \verb#result_# kodiert die Größe, die approximiert wird
+unt \verb#dofs_# die Anzahl der Freiheitsgrade. Die Namen dieser sind
+in \verb#dofNames_# gespeichert. 
+
+\noindent
+Die Variable \verb#definedOn_# gibt an, worauf die Größe definiert
+ist (NODE, EDGE, SURFACE, ELEMENT, REGION, NODELIST, FREE). 
+Zusätzlich wird in der Variable
+\verb#approxType# gespeichert, wie die Größe approximiert /
+interpoliert wird.
+
+\noindent
+Objekte dieser Klasse werden in der Klasse \verb#SinglePDE# angelegt
+(z.B. in \verb#DefineIntegrators#) und werden den
+\verb#BaseForm#-Integratoren mitgegeben, so dass sie die
+Interpolationsordnung wissen. Außerdem können Objekte dieses Typs für
+die neue StoreSolution-Klasse verwendet werden, da sie direkt die
+Größe, die dofs und deren Namen verwaltet. Das Objekt ließe sich
+evtl. noch um Flags für komplex/reell usw. erweitern.
+
+
+
+\begin{itemize}
+\item ResultDof
+
+\item Approx
+\item BaseForm
+\item IntDescriptor
+\item EntityList
+\item EntityIterator
+\end{itemize}
+
+
+\section{Beispiele}
+
+\section{Fragen / Verbesserungen}
+\end{document}

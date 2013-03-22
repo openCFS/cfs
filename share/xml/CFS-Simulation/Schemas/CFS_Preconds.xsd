@@ -1,0 +1,422 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description for Preconditioner parameters
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic Preconditioner data type -->
+  <!-- ******************************************************************** -->
+
+  <!-- This is an abstract basic type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="DT_PrecondBasic" abstract="true">
+    <xsd:attribute name="id" type="xsd:token" default="default"/>
+    
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic Preconditioner element -->
+  <!-- ******************************************************************** -->
+
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised Preconditioner elements -->
+  <xsd:element name="PrecondBasic" type="DT_PrecondBasic" abstract="true"/>
+
+  <!-- Data type for specifying value in the interval [-1,1] -->
+  <xsd:simpleType name="DT_PrecondSPAIInterval">
+    <xsd:restriction base="xsd:float">
+      <xsd:minInclusive value="-1"/>
+      <xsd:maxInclusive value="1"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                      OLAS_ID preconditioner                    == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+  
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for OLAS_ID Preconditioner (Dummy Definition) -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="ID" type="DT_PrecondID"
+    substitutionGroup="PrecondBasic"/>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for OLAS_ID Preconditioner                 -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondID">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                   OLAS_JACOBI preconditioners                  == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+  
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for OLAS_JACOBI Preconditioners                -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="Jacobi" type="DT_PrecondJac"
+    substitutionGroup="PrecondBasic"/>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for OLAS_JACOBI Preconditioner             -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondJac">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for OLAS_BLOCK_JACOBI Preconditioners          -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="BlockJacobi" type="DT_PrecondJacBlock"
+    substitutionGroup="PrecondBasic"/>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for OLAS_BLOCK_JACOBI Preconditioner       -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondJacBlock">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                       OLAS_MG preconditioner                   == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for OLAS_MG Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="MG" type="DT_PrecondMG"
+    substitutionGroup="PrecondBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for OLAS_MG Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondMG">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="maxCoarseDepend" type="xsd:positiveInteger"
+            minOccurs="0"/>
+          <xsd:element name="minSystemSize" type="xsd:positiveInteger"
+            minOccurs="0"/>
+          <xsd:element name="numPreSmooth" type="xsd:nonNegativeInteger"
+            minOccurs="0"/>
+          <xsd:element name="numPostSmooth" type="xsd:nonNegativeInteger"
+            minOccurs="0"/>
+          <xsd:element name="cycleParam" type="xsd:positiveInteger"
+            minOccurs="0"/>
+          <xsd:element name="alpha" type="DT_FloatUnitInterval" minOccurs="0"/>
+          <xsd:element name="strongDiagRatio" type="DT_FloatUnitInterval"
+            minOccurs="0"/>
+          <xsd:element name="forceFineRatio" type="DT_PosFloat"
+            minOccurs="0"/>
+          <xsd:element name="directSolver" minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="noSolver"/>
+                <xsd:enumeration value="lapackLU"/>
+                <xsd:enumeration value="directLDL"/>
+                <xsd:enumeration value="pardiso"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                       OLAS_ILU preconditioner                  == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for OLAS_ILU Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="ILUK" type="DT_PrecondILUK"
+    substitutionGroup="PrecondBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for OLAS_ILUK Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondILUK">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="level"       type="xsd:nonNegativeInteger"
+            minOccurs="0"/>
+          <xsd:element name="saveFacFile" type="xsd:token"  minOccurs="0"/>
+          <xsd:element name="logging"     type="DT_CFSBool" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for OLAS_ILU0 Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="ILU0" type="DT_PrecondILU0"
+  substitutionGroup="PrecondBasic"/>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for OLAS_ILU0 Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondILU0">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="saveFacFile" type="xsd:token"  minOccurs="0"/>
+          <xsd:element name="logging"     type="DT_CFSBool" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                      OLAS_ILDL preconditioners                 == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of elements for OLAS_IC Preconditioners -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="IC0" type="DT_PrecondIC0"
+    substitutionGroup="PrecondBasic"/>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data types for OLAS_IC0 Preconditioners -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondIC0">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!-- Definition of elements for OLAS_ILDL Preconditioners -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="ILDL0" type="DT_PrecondILDL0"
+    substitutionGroup="PrecondBasic"/>
+  <xsd:element name="ILDLK" type="DT_PrecondILDLK"
+    substitutionGroup="PrecondBasic"/>
+  <xsd:element name="ILDLTP" type="DT_PrecondILDLTP"
+    substitutionGroup="PrecondBasic"/>
+  <xsd:element name="ILDLCN" type="DT_PrecondILDLCN"
+    substitutionGroup="PrecondBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data types for OLAS_ILDL Preconditioners -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondILDL0">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="saveFacFile"     type="xsd:token"  minOccurs="0"/>
+          <xsd:element name="savePatternOnly" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="logging"                           minOccurs="0">
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_PrecondILDLK">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="level"           type="xsd:nonNegativeInteger"
+                                                                minOccurs="0"/>
+          <xsd:element name="saveFacFile"     type="xsd:token"  minOccurs="0"/>
+          <xsd:element name="savePatternOnly" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="logging"         type="DT_CFSBool" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_PrecondILDLTP">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="threshold"       type="DT_FloatUnitInterval"
+                                                                minOccurs="0"/>
+          <xsd:element name="fillVal"         type="xsd:nonNegativeInteger"
+                                                                minOccurs="0"/>
+          <xsd:element name="saveFacFile"     type="xsd:token"  minOccurs="0"/>
+          <xsd:element name="savePatternOnly" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="logging"                           minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:integer">
+                <xsd:enumeration value="0"/>
+                <xsd:enumeration value="1"/>
+                <xsd:enumeration value="2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_PrecondILDLCN">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="threshold"       type="xsd:float"  minOccurs="0"/>
+          <xsd:element name="saveFacFile"     type="xsd:token"  minOccurs="0"/>
+          <xsd:element name="savePatternOnly" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="logging"                           minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:integer">
+                <xsd:enumeration value="0"/>
+                <xsd:enumeration value="1"/>
+                <xsd:enumeration value="2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                   OLAS_SBM_DIAG preconditioner                 == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+  
+  
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for OLAS_SBM_DIAG Preconditioner               -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="SBMDiag" type="DT_PrecondSBMDiag"
+    substitutionGroup="PrecondBasic"/>
+  
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for OLAS_SBM_DIAG Preconditioner           -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondSBMDiag">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="precond" minOccurs="1" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="block" type="xsd:positiveInteger"/>
+              <xsd:attribute name="id" type="xsd:token" default="default"/>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==               USE SOLVERS AS PRECONDITIONERS                   == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+  
+  <!-- ******************************************************************** -->
+  <!--  Definition of OLAS_PCG Solver as Preconditioner                     -->
+  <!-- ******************************************************************** -->
+ <!-- <xsd:element name="cg" type="DT_SolverOLASPCG"
+    substitutionGroup="PrecondBasic"/>-->
+  
+  <!-- ******************************************************************** -->
+  <!--  Definition of LAPACK_LU Solver as Preconditioner                    -->
+  <!-- ******************************************************************** -->
+ <!-- <xsd:element name="lapackLU" type="DT_SolverLAPACKLU"
+    substitutionGroup="PrecondBasic"/>
+  -->
+  <!-- ******************************************************************** -->
+  <!--  Definition of LAPACK_LL Solver as Preconditioner                    -->
+  <!-- ******************************************************************** -->
+<!--  <xsd:element name="lapackLL" type="DT_SolverLAPACKLL"
+    substitutionGroup="PrecondBasic"/>-->
+  
+  <!-- ******************************************************************** -->
+  <!--  Definition of OLAS_PARDISO Solver as Preconditioner                 -->
+  <!-- ******************************************************************** -->
+ <!-- <xsd:element name="pardiso" type="DT_SolverPARDISO"
+    substitutionGroup="PrecondBasic"/>-->
+  <!-- PARDISO -->
+  
+  <!-- ******************************************************************** -->
+  <!--  Definition of OLAS_DIRECT_LU Solver as Preconditioner               -->
+  <!-- ******************************************************************** -->
+ <!-- <xsd:element name="directLU" type="DT_SolverDIRECT_LU"
+    substitutionGroup="PrecondBasic"/>-->
+  
+  <!-- ******************************************************************** -->
+  <!--  Definition of OLAS_DIRECT_LDL Solver as Preconditioner              -->
+  <!-- ******************************************************************** -->
+ <!-- <xsd:element name="directLDL" type="DT_SolverDIRECT_LDL"
+    substitutionGroup="PrecondBasic"/>-->
+  
+  <!-- ******************************************************************** -->
+  <!--  Definition of OLAS_GMRES Solver as Preconditioner                   -->
+  <!-- ******************************************************************** -->
+ <!-- <xsd:element name="gmres" type="DT_SolverOLASGMRES"
+    substitutionGroup="PrecondBasic"/>-->
+  
+  <!--  Definition of OLAS_ILUPACK Solver as Preconditioner                 -->
+  <!-- ******************************************************************** -->
+ <!-- <xsd:element name="ilupack" type="DT_Ilupack"
+    substitutionGroup="PrecondBasic"/>-->
+  
+  <!-- ******************************************************************** -->
+  <!--  Definition of OLAS_Cholmod Solver as Preconditioner                 -->
+  <!-- ******************************************************************** -->
+ <!-- <xsd:element name="cholmod" type="DT_CholMod" 
+    substitutionGroup="PrecondBasic"/>-->
+  
+  <!-- ******************************************************************** -->
+  <!--  Definition of OLAS_PCG Solver as Preconditioner                     -->
+  <!-- ******************************************************************** -->
+  <!--<xsd:element name="minres" type="DT_SolverOLASMINRES"
+    substitutionGroup="PrecondBasic"/>-->
+  
+  
+
+</xsd:schema>

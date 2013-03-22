@@ -1,0 +1,33 @@
+#!/bin/sh
+
+H5TOOL=/home/local/lse/strieben/CFS_BUILD/TRUNK_RELEASE_ACML_GCC/bin/h5tool
+
+H5IN=simoutput_hdf5/PyramidalFront_for_interpolation.h5
+H5OUT=pyra.h5
+#i=3
+
+for ((i=1; $i<717; i++)); do
+
+h5dump --noindex -b LE --output=out.bin --dataset=/Results/Mesh/MultiStep_1/Step_$i/acouRhsLoad/fluid/Nodes/Real $H5IN >/dev/null
+
+echo "PATH /Results/Mesh/MultiStep_1/Step_$((i+717))/acouRhsLoad/fluid/Nodes/Real" > out.cfg
+echo "INPUT-CLASS FP" >> out.cfg
+echo "INPUT-SIZE 64" >> out.cfg
+# echo "INPUT-BYTE-ORDER LE" >> out.cfg
+echo "RANK 1" >> out.cfg
+echo "DIMENSION-SIZES 7488" >> out.cfg
+echo "OUTPUT-CLASS FP" >> out.cfg
+echo "OUTPUT-SIZE 64" >> out.cfg
+echo "OUTPUT-BYTE-ORDER LE" >> out.cfg
+echo "OUTPUT-ARCHITECTURE IEEE" >> out.cfg
+echo "CHUNKED-DIMENSION-SIZES 1000" >> out.cfg
+echo "COMPRESSION-TYPE GZIP" >> out.cfg
+echo "COMPRESSION-PARAM 9" >> out.cfg
+
+h5import out.bin -c out.cfg -o $H5OUT
+
+STEPVAL=`echo "$((i+717))*0.0001" | bc`
+echo $STEPVAL
+printf "attribute\ncreate\n$H5OUT\n/Results/Mesh/MultiStep_1/Step_$((i+717))\ndouble\nStepValue\noverwrite\n$STEPVAL\n" | $H5TOOL > /dev/null
+done
+# $H5TOOL

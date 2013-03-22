@@ -1,0 +1,352 @@
+--- AMD/Lib/CMakeLists.txt	2012-12-17 12:33:36.159259937 +0100
++++ AMD/Lib/CMakeLists.txt	2012-12-17 15:14:56.706103964 +0100
+@@ -1,18 +1,21 @@
+ include_directories(../Include ${PROJECT_SOURCE_DIR}/UFconfig)
+ 
+-set(libamd_sources
++set(amd_sources
+     ../Include/amd.h ../Include/amd_internal.h
+     ../Source/amd_aat.c ../Source/amd_1.c ../Source/amd_2.c
+     ../Source/amd_dump.c ../Source/amd_postorder.c ../Source/amd_post_tree.c
+     ../Source/amd_defaults.c ../Source/amd_order.c ../Source/amd_control.c
+     ../Source/amd_info.c ../Source/amd_valid.c ../Source/amd_preprocess.c)
+ 
+-add_library(libamd_dint STATIC EXCLUDE_FROM_ALL ${libamd_sources})
+-set_target_properties(libamd_dint PROPERTIES COMPILE_DEFINITIONS "DINT")
++add_library(amd_dint STATIC ${amd_sources})
++set_target_properties(amd_dint PROPERTIES COMPILE_DEFINITIONS "DINT")
+ 
+-add_library(libamd_dlong STATIC EXCLUDE_FROM_ALL ${libamd_sources})
+-set_target_properties(libamd_dlong PROPERTIES COMPILE_DEFINITIONS "DLONG")
++add_library(amd_dlong STATIC ${amd_sources})
++set_target_properties(amd_dlong PROPERTIES COMPILE_DEFINITIONS "DLONG")
+ 
+-add_library(libamd STATIC EXCLUDE_FROM_ALL
++add_library(amd STATIC
+     ../Include/amd.h ../Include/amd_internal.h ../Source/amd_global.c)
+-target_link_libraries(libamd libamd_dint libamd_dlong libufconfig)
++target_link_libraries(amd amd_dint amd_dlong ufconfig)
++
++INSTALL(TARGETS amd amd_dlong amd_dint
++  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
+\ Kein Zeilenumbruch am Dateiende.
+--- CAMD/Lib/CMakeLists.txt	2012-12-17 12:33:36.159259937 +0100
++++ CAMD/Lib/CMakeLists.txt	2012-12-17 15:15:11.000104074 +0100
+@@ -1,18 +1,21 @@
+ include_directories(../Include ${PROJECT_SOURCE_DIR}/UFconfig)
+ 
+-set(libcamd_sources
++set(camd_sources
+     ../Include/camd.h ../Include/camd_internal.h
+     ../Source/camd_aat.c ../Source/camd_1.c ../Source/camd_2.c
+     ../Source/camd_dump.c ../Source/camd_postorder.c ../Source/camd_defaults.c
+     ../Source/camd_order.c ../Source/camd_control.c ../Source/camd_info.c
+     ../Source/camd_valid.c ../Source/camd_preprocess.c)
+ 
+-add_library(libcamd_dint STATIC EXCLUDE_FROM_ALL ${libcamd_sources})
+-set_target_properties(libcamd_dint PROPERTIES COMPILE_DEFINITIONS "DINT")
++add_library(camd_dint STATIC ${camd_sources})
++set_target_properties(camd_dint PROPERTIES COMPILE_DEFINITIONS "DINT")
+ 
+-add_library(libcamd_dlong STATIC EXCLUDE_FROM_ALL ${libcamd_sources})
+-set_target_properties(libcamd_dlong PROPERTIES COMPILE_DEFINITIONS "DLONG")
++add_library(camd_dlong STATIC ${camd_sources})
++set_target_properties(camd_dlong PROPERTIES COMPILE_DEFINITIONS "DLONG")
+ 
+-add_library(libcamd STATIC EXCLUDE_FROM_ALL
++add_library(camd STATIC
+     ../Include/camd.h ../Include/camd_internal.h ../Source/camd_global.c)
+-target_link_libraries(libcamd libcamd_dint libcamd_dlong libufconfig)
++target_link_libraries(camd camd_dint camd_dlong ufconfig)
++
++INSTALL(TARGETS camd camd_dlong camd_dint
++  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
+\ Kein Zeilenumbruch am Dateiende.
+--- CCOLAMD/Lib/CMakeLists.txt	2012-12-17 12:33:36.160259933 +0100
++++ CCOLAMD/Lib/CMakeLists.txt	2012-12-17 15:16:19.313103919 +0100
+@@ -1,14 +1,17 @@
+ include_directories(../Include ${PROJECT_SOURCE_DIR}/UFconfig)
+ 
+-set(libccolamd_sources
++set(ccolamd_sources
+     ../Include/ccolamd.h ../Source/ccolamd.c)
+ 
+-add_library(libccolamd_dint STATIC EXCLUDE_FROM_ALL ${libccolamd_sources})
+-set_target_properties(libccolamd_dint PROPERTIES COMPILE_DEFINITIONS "DINT")
++add_library(ccolamd_dint STATIC ${ccolamd_sources})
++set_target_properties(ccolamd_dint PROPERTIES COMPILE_DEFINITIONS "DINT")
+ 
+-add_library(libccolamd_dlong STATIC EXCLUDE_FROM_ALL ${libccolamd_sources})
+-set_target_properties(libccolamd_dlong PROPERTIES COMPILE_DEFINITIONS "DLONG")
++add_library(ccolamd_dlong STATIC ${ccolamd_sources})
++set_target_properties(ccolamd_dlong PROPERTIES COMPILE_DEFINITIONS "DLONG")
+ 
+-add_library(libccolamd STATIC EXCLUDE_FROM_ALL
++add_library(ccolamd STATIC
+     ../Include/ccolamd.h ../Source/ccolamd_global.c)
+-target_link_libraries(libccolamd libccolamd_dint libccolamd_dlong libufconfig)
++target_link_libraries(ccolamd ccolamd_dint ccolamd_dlong ufconfig)
++
++INSTALL(TARGETS ccolamd ccolamd_dlong ccolamd_dint
++  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
+--- CHOLMOD/Lib/CMakeLists.txt	2012-12-17 12:33:36.160259933 +0100
++++ CHOLMOD/Lib/CMakeLists.txt	2012-12-17 15:17:07.084135209 +0100
+@@ -4,9 +4,9 @@
+     ${PROJECT_SOURCE_DIR}/CAMD/Include
+     ${PROJECT_SOURCE_DIR}/COLAMD/Include
+     ${PROJECT_SOURCE_DIR}/CCOLAMD/Include
+-    ${PROJECT_SOURCE_DIR}/metis-4.0/Lib)
++    ${CFS_INCLUDE_DIR}) # For Metis headers
+ 
+-set(libcholmod_headers
++set(cholmod_headers
+     ../Include/cholmod.h
+     ../Include/cholmod_blas.h
+     ../Include/cholmod_check.h
+@@ -21,7 +21,7 @@
+     ../Include/cholmod_supernodal.h
+     ../Include/cholmod_template.h)
+ 
+-set(libcholmod_core_sources
++set(cholmod_core_sources
+     ../Core/cholmod_aat.c
+     ../Core/cholmod_add.c
+     ../Core/cholmod_band.c
+@@ -37,12 +37,12 @@
+     ../Core/cholmod_transpose.c
+     ../Core/cholmod_triplet.c)
+ 
+-set(libcholmod_check_sources
++set(cholmod_check_sources
+     ../Check/cholmod_check.c
+     ../Check/cholmod_read.c
+     ../Check/cholmod_write.c)
+ 
+-set(libcholmod_cholesky_sources
++set(cholmod_cholesky_sources
+     ../Cholesky/cholmod_amd.c
+     ../Cholesky/cholmod_analyze.c
+     ../Cholesky/cholmod_colamd.c
+@@ -56,7 +56,7 @@
+     ../Cholesky/cholmod_solve.c
+     ../Cholesky/cholmod_spsolve.c)
+ 
+-set(libcholmod_matrixops_sources
++set(cholmod_matrixops_sources
+     ../MatrixOps/cholmod_drop.c
+     ../MatrixOps/cholmod_horzcat.c
+     ../MatrixOps/cholmod_norm.c
+@@ -67,24 +67,24 @@
+     ../MatrixOps/cholmod_vertcat.c
+     ../MatrixOps/cholmod_symmetry.c)
+ 
+-set(libcholmod_partition_sources
++set(cholmod_partition_sources
+     ../Partition/cholmod_ccolamd.c
+     ../Partition/cholmod_csymamd.c
+     ../Partition/cholmod_metis.c
+     ../Partition/cholmod_nesdis.c
+     ../Partition/cholmod_camd.c)
+ 
+-set(libcholmod_modify_sources
++set(cholmod_modify_sources
+     ../Modify/cholmod_rowadd.c
+     ../Modify/cholmod_rowdel.c
+     ../Modify/cholmod_updown.c)
+ 
+-set(libcholmod_supernodal_sources
+-    ../SuperNodal/cholmod_super_numeric.c
+-    ../SuperNodal/cholmod_super_solve.c
+-    ../SuperNodal/cholmod_super_symbolic.c)
++set(cholmod_supernodal_sources
++    ../Supernodal/cholmod_super_numeric.c
++    ../Supernodal/cholmod_super_solve.c
++    ../Supernodal/cholmod_super_symbolic.c)
+ 
+-set(libcholmod_templates
++set(cholmod_templates
+     ../Core/t_cholmod_change_factor.c
+     ../Core/t_cholmod_dense.c
+     ../Core/t_cholmod_transpose.c
+@@ -99,26 +99,29 @@
+     ../SuperNodal/t_cholmod_super_numeric.c
+     ../SuperNodal/t_cholmod_super_solve.c)
+ 
+-set(libcholmod_sources
+-    ${libcholmod_headers}
+-    ${libcholmod_core_sources}
+-    ${libcholmod_check_sources}
+-    ${libcholmod_cholesky_sources}
+-    ${libcholmod_matrixops_sources}
+-    ${libcholmod_partition_sources}
+-    ${libcholmod_modify_sources}
+-    ${libcholmod_supernodal_sources})
+-
+-add_library(libcholmod_dint STATIC EXCLUDE_FROM_ALL ${libcholmod_sources})
+-set_target_properties(libcholmod_dint PROPERTIES COMPILE_DEFINITIONS "DINT")
+-add_dependencies(libcholmod_dint ${libcholmod_templates})
+-
+-add_library(libcholmod_dlong STATIC EXCLUDE_FROM_ALL ${libcholmod_sources})
+-set_target_properties(libcholmod_dlong PROPERTIES COMPILE_DEFINITIONS "DLONG")
+-add_dependencies(libcholmod_dlong ${libcholmod_templates})
+-
+-add_library(libcholmod STATIC EXCLUDE_FROM_ALL
+-    ${libcholmod_headers} dummy.c)
+-target_link_libraries(libcholmod
+-    libcholmod_dint libcholmod_dlong
+-    libamd libcamd libcolamd libccolamd libufconfig libmetis ${MKL_LIBRARIES})
++set(cholmod_sources
++    ${cholmod_headers}
++    ${cholmod_core_sources}
++    ${cholmod_check_sources}
++    ${cholmod_cholesky_sources}
++    ${cholmod_matrixops_sources}
++    ${cholmod_partition_sources}
++    ${cholmod_modify_sources}
++    ${cholmod_supernodal_sources})
++
++add_library(cholmod_dint STATIC ${cholmod_sources})
++set_target_properties(cholmod_dint PROPERTIES COMPILE_DEFINITIONS "DINT")
++add_dependencies(cholmod_dint ${cholmod_templates})
++
++add_library(cholmod_dlong STATIC ${cholmod_sources})
++set_target_properties(cholmod_dlong PROPERTIES COMPILE_DEFINITIONS "DLONG")
++add_dependencies(cholmod_dlong ${cholmod_templates})
++
++INSTALL(TARGETS cholmod_dlong cholmod_dint
++  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
++
++#add_library(cholmod STATIC EXCLUDE_FROM_ALL
++#    ${cholmod_headers} dummy.c)
++#target_link_libraries(cholmod
++#    cholmod_dint cholmod_dlong
++#    amd camd colamd ccolamd ufconfig libmetis ${MKL_LIBRARIES})
+--- COLAMD/Lib/CMakeLists.txt	2012-12-17 12:33:36.160259933 +0100
++++ COLAMD/Lib/CMakeLists.txt	2012-12-17 15:17:37.456103995 +0100
+@@ -1,14 +1,17 @@
+ include_directories(../Include ${PROJECT_SOURCE_DIR}/UFconfig)
+ 
+-set(libcolamd_sources
++set(colamd_sources
+     ../Include/colamd.h ../Source/colamd.c)
+ 
+-add_library(libcolamd_dint STATIC EXCLUDE_FROM_ALL ${libcolamd_sources})
+-set_target_properties(libcolamd_dint PROPERTIES COMPILE_DEFINITIONS "DINT")
++add_library(colamd_dint STATIC ${colamd_sources})
++set_target_properties(colamd_dint PROPERTIES COMPILE_DEFINITIONS "DINT")
+ 
+-add_library(libcolamd_dlong STATIC EXCLUDE_FROM_ALL ${libcolamd_sources})
+-set_target_properties(libcolamd_dlong PROPERTIES COMPILE_DEFINITIONS "DLONG")
++add_library(colamd_dlong STATIC ${colamd_sources})
++set_target_properties(colamd_dlong PROPERTIES COMPILE_DEFINITIONS "DLONG")
+ 
+-add_library(libcolamd STATIC EXCLUDE_FROM_ALL
++add_library(colamd STATIC
+     ../Include/colamd.h ../Source/colamd_global.c)
+-target_link_libraries(libcolamd libcolamd_dint libcolamd_dlong libufconfig)
++target_link_libraries(colamd colamd_dint colamd_dlong ufconfig)
++
++INSTALL(TARGETS colamd colamd_dlong colamd_dint
++  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
+--- UMFPACK/Lib/CMakeLists.txt	2012-12-17 12:33:36.182111610 +0100
++++ UMFPACK/Lib/CMakeLists.txt	2012-12-17 15:24:46.883103816 +0100
+@@ -6,7 +6,7 @@
+     ${PROJECT_SOURCE_DIR}/CCOLAMD/Include
+     ${PROJECT_SOURCE_DIR}/CHOLMOD/Include)
+ 
+-set(libumfpack_headers
++set(umfpack_headers
+     ../Include/umfpack.h
+     ../Include/umfpack_symbolic.h
+     ../Include/umfpack_numeric.h
+@@ -41,7 +41,7 @@
+     ../Include/umfpack_tictoc.h
+     ../Include/umfpack_global.h)
+ 
+-set(libumfpack_sources
++set(umfpack_sources
+     ../Source/umf_analyze.c
+     ../Source/umf_apply_order.c
+     ../Source/umf_assemble.c
+@@ -127,27 +127,31 @@
+     umf_uhsolve.c
+     umfpack_wslove.c)
+ 
+-set(libumfpack_sources
+-    ${libumfpack_headers}
+-    ${libumfpack_sources})
++set(umfpack_sources
++    ${umfpack_headers}
++    ${umfpack_sources})
+ 
+-add_library(libumfpack_dint STATIC EXCLUDE_FROM_ALL ${libumfpack_sources})
+-set_target_properties(libumfpack_dint PROPERTIES COMPILE_DEFINITIONS "DINT")
++add_library(umfpack_dint STATIC ${umfpack_sources})
++set_target_properties(umfpack_dint PROPERTIES COMPILE_DEFINITIONS "DINT")
+ 
+-add_library(libumfpack_dlong STATIC EXCLUDE_FROM_ALL ${libumfpack_sources})
+-set_target_properties(libumfpack_dlong PROPERTIES COMPILE_DEFINITIONS "DLONG")
++add_library(umfpack_dlong STATIC ${umfpack_sources})
++set_target_properties(umfpack_dlong PROPERTIES COMPILE_DEFINITIONS "DLONG")
+ 
+-add_library(libumfpack_zint STATIC EXCLUDE_FROM_ALL ${libumfpack_sources})
+-set_target_properties(libumfpack_zint PROPERTIES COMPILE_DEFINITIONS "ZINT")
++add_library(umfpack_zint STATIC ${umfpack_sources})
++set_target_properties(umfpack_zint PROPERTIES COMPILE_DEFINITIONS "ZINT")
+ 
+-add_library(libumfpack_zlong STATIC EXCLUDE_FROM_ALL ${libumfpack_sources})
+-set_target_properties(libumfpack_zlong PROPERTIES COMPILE_DEFINITIONS "ZLONG")
++add_library(umfpack_zlong STATIC ${umfpack_sources})
++set_target_properties(umfpack_zlong PROPERTIES COMPILE_DEFINITIONS "ZLONG")
+ 
+-add_library(libumfpack STATIC EXCLUDE_FROM_ALL
+-    ${libumfpack_headers}
++add_library(umfpack STATIC
++    ${umfpack_headers}
+     ../Source/umfpack_global.c
+     ../Source/umfpack_timer.c
+     ../Source/umfpack_tictoc.c)
+-target_link_libraries(libumfpack
+-    libumfpack_dint libumfpack_dlong libumfpack_zint libumfpack_zlong
+-    libufconfig libamd libcamd libcolamd libccolamd libcholmod ${MKL_LIBRARIES})
++target_link_libraries(umfpack
++    umfpack_dint umfpack_dlong umfpack_zint umfpack_zlong
++    ufconfig amd camd colamd ccolamd cholmod)
++
++INSTALL(TARGETS umfpack umfpack_dlong umfpack_dint umfpack_zlong umfpack_zint
++  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
++
+--- CMakeLists.txt	2012-12-17 12:33:36.160259933 +0100
++++ CMakeLists.txt	2012-12-17 14:31:14.294103946 +0100
+@@ -1,23 +1,19 @@
+ cmake_minimum_required(VERSION 2.8)
+-project(SuiteSparse-3.6.1)
+-
+-link_directories("C:/Intel/ComposerXE-2011/mkl/lib/intel64")
+-set(MKL_LIBRARIES mkl_rt.lib)
++project(SuiteSparse-3.7.0 C)
+ 
+ add_subdirectory(UFconfig)
+ add_subdirectory(AMD)
+ add_subdirectory(CAMD)
+ add_subdirectory(COLAMD)
+ add_subdirectory(CCOLAMD)
+-add_subdirectory(metis-4.0)
+ add_subdirectory(CHOLMOD)
+ add_subdirectory(UMFPACK)
+ 
+-add_library(libsuitesparse SHARED dummy.c libsuitesparse.def)
+-target_link_libraries(libsuitesparse
+-    libufconfig libamd libcamd libcolamd libccolamd libcholmod libumfpack)
++# add_library(libsuitesparse SHARED libsuitesparse.def)
++# target_link_libraries(libsuitesparse
++#    libufconfig libamd libcamd libcolamd libccolamd libcholmod libumfpack)
+ 
+-install(TARGETS libsuitesparse
+-    RUNTIME DESTINATION bin
+-    LIBRARY DESTINATION lib
+-    ARCHIVE DESTINATION lib)
++# install(TARGETS libsuitesparse
++#    RUNTIME DESTINATION bin
++#    LIBRARY DESTINATION lib
++#    ARCHIVE DESTINATION lib)

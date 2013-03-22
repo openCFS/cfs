@@ -1,0 +1,377 @@
+%
+% =============================================================================
+%
+\chapter{Coupled Fields}
+%
+% =============================================================================
+%
+\section{General}
+The \xel{pdeList} element can be followed by a \xel{couplingList} element,
+which can be used to supply information on the coupling between different
+PDEs. Within this block we distinguish between iterative coupling
+(\xel{iterative}) and direct coupling (\xel{direct}).
+%
+% =============================================================================
+%
+\section{Iterative Coupling}
+ For iterative coupling,
+the method can be \xatv{RHS} (for right hand side coupling) and \xatv{Matrix}
+for
+a matrix coupling algorithm.
+Then, for each involved pair of coupling PDEs, we have
+to specify for each PDE the coupling parameters. 
+The coupling is specified by the coupling input \xat{quantity}, the
+interface \xat{type} - which can be \xatv{node}(Coupling),
+\xatv{surface}(Coupling) or \xatv{region}(Coupling) -  and the \xat{name}
+of
+the interface, which has to correspond with the according interface
+\xat{type}. At the end, we have to define
+the stopping criteria and the maximum number of iterations
+within the section \xel{nonlLinear}. Therefore, the general structure 
+looks as follows
+
+
+\begin{xmllisting}
+<couplingList>
+  <iterative>
+    <Pde1Pde2 method="RHS">
+      <Pde1>
+        <coupling quantity="..." type="..." name="..."/>
+      </Pde1>
+      <Pde2>
+        <coupling quantity="..." type="..." name="..."/>
+        <coupling quantity="..." type="..." name="..."/>
+      </Pde2>
+    </Pde1Pd2>
+
+    <Pde3Pde4 method="Matrix">
+      <Pde3>
+        <coupling quantity="..." type="..." name="..."/>
+        <coupling quantity="..." type="..." name="..."/>
+      </Pde3>
+      <Pde4>
+        <coupling quantity="..." type="..." name="..."/>
+      </Pde4>
+    </Pde4Pde4>
+
+    <nonLinear logging="no">
+      <stopCrit value="1e-3" quantity="..." l2Norm="..."/>
+      <stopCrit value="1e-2" quantity="..." l2Norm="..."/>
+      <stopCrit value="1e-5" quantity="..." l2Norm="..."/>
+      <maxNumIters> 20 </maxNumIters>
+    </nonLinear>
+  </iterative>
+</couplingList>
+\end{xmllisting}
+
+\noindent
+For the stopping criteria, we have currently the following names:
+
+\begin{xmllisting}
+    <stopCrit value="1e-3" quantity="mechDisplacement" l2Norm="rel"/>
+    <stopCrit value="1e-3" quantity="smoothDisplacement" l2Norm="rel"/>
+    <stopCrit value="1e-3" quantity="elecForceVWP" l2Norm="rel"/>
+    <stopCrit value="1e-3" quantity="magForceLorentz" l2Norm="rel"/>
+    <stopCrit value="1e-2" quantity="mechForce" l2Norm="rel"/>
+    <stopCrit value="1e-2" quantity="acouForce" l2Norm="rel"/>
+
+\end{xmllisting}
+Instead of using a relative accuracy $\epsilon^{rel}$, i.e. $\|u_{k+1}-u_k\|_2 <
+\epsilon^{rel} \|u_{k+1}\|_2$ you can as well
+truncate the iterations by choosing an absolute accuracy $\epsilon^{abs}$, i.e.
+$\|u_{k+1}-u_k\|_2 < \epsilon^{abs}$ setting {\sf
+l2Norm="abs"}. Note that the specification of the stopping criterias
+is optional: The coupling is considered as converged if either
+{\xel{maxNumIters} } iterations have been performed or if {\bf all} stopping
+criterias were met.
+
+\newpage
+\subsection{Specifications within the single fields}
+Currently we have definitions for electrostatics, mechanics, magnetics and
+acoustics.
+
+\begin{table}[htb]
+\begin{center}
+\caption{Electrostatics}
+\bigskip
+\begin{tabular}{ll}
+\toprule
+input coupling & type \\
+\midrule
+nodeCoupling / regionCoupling & mechDisplacement \\
+nodeCoupling / regionCoupling & smoothDisplacement \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}[htb]
+\begin{center}
+\caption{Mechanics}
+\bigskip
+\begin{tabular}{ll}
+\toprule
+input coupling    & type \\
+\midrule
+nodeCoupling / regionCoupling     & elecForceVWP \\
+nodeCoupling / regionCoupling    & magForceVWP \\
+regionCoupling    & magForceLorentz \\
+interfaceCoupling & acouForce \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}[htb]
+\begin{center}
+\caption{Magnetics}
+\bigskip
+\begin{tabular}{ll}
+\toprule
+input coupling    & type \\
+\midrule
+nodeCoupling / regionCoupling & mechDisplacement \\
+nodeCoupling / regionCoupling & smoothDisplacement \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}[htb]
+\begin{center}
+\caption{Acoustics}
+\bigskip
+\begin{tabular}{ll}
+\toprule
+input coupling    & type \\
+\midrule
+interfaceCoupling      & mechForce \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+\newpage
+\subsection{ElecMech}
+The two involved fields are the electrostatic and the mechanical field.
+Often we need a additional PDE for the smoothing of the mesh (moving/deforming 
+body problem).
+
+\bigskip
+\noindent
+{\it Example:}
+
+\begin{xmllisting}
+<couplingList>
+  <iterative>
+    <elecMech method="RHS">
+      <electrostatic>
+        <coupling quantity="smoothDisplacement" type="region" name="air1"/>
+        <coupling quantity="smoothDisplacement" type="region" name="air2"/>
+      </electrostatic>
+      <mechanic>
+        <coupling quantity="elecForceVWP" type="node" name="electrode1"/>
+      </mechanic>
+      <smooth>
+        <coupling quantity="mechDisplacement" type="node" name="electrode1"/>
+      </smooth>
+    </elecMech>
+    <nonLinear logging="no">
+      <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
+      <stopCrit value="1e-3" quantity="elecForceVWP" l2Norm="abs"/>
+      <maxNumIters> 20 </maxNumIters>
+    </nonLinear>
+  </iterative>>
+</couplingList>
+\end{xmllisting}
+
+\subsection{MagMech}
+The two involved fields are the magnetic and the mechanical field.
+Often we need a additional PDE for the smoothing of the mesh (moving/deforming 
+body problem).
+
+\bigskip
+\noindent
+{\it Example:}
+
+\begin{xmllisting}
+<couplingList>
+  <iterative>
+    <magMech method="RHS">
+      <magnetic>
+        <coupling quantity="smoothDisplacement" type="region" name="air1"/>
+        <coupling quantity="smoothDisplacement" type="region" name="air2"/>
+      </magnetic>
+      <mechanic>
+        <coupling quantity="magForceLorentz" type="region" name="plate"/>
+      </mechanic>
+      <smooth>
+        <coupling quantity="mechDisplacement" type="node" name="surf1"/>
+      </smooth>
+      <nonLinear logging="no">
+        <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
+        <stopCrit value="1e-3" quantity="magForceLorentz" l2Norm="abs"/>
+      <maxNumIters> 20 </maxNumIters>
+    </nonLinear>
+  </iterative>
+</couplingList>
+\end{xmllisting}
+
+
+\subsection{AcouMech}
+The two involved fields are the Acoustics and the mechanical field.
+
+\bigskip
+\noindent
+{\it Example:}
+
+\begin{xmllisting}
+<couplingList>
+  <iterative>
+    <acouMech method="RHS">
+      <acoustic>
+        <coupling quantity="mechForce" type="interface" name="surf1"/>
+      </acoustic>
+      <mechanic>
+        <coupling quantity="acouForce" type="interface" name="surf1"/>
+      </mechanic>
+    </acouMech>
+    <nonLinear logging="no">
+      <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
+      <maxNumIters> 20 </maxNumIters>
+    </nonLinear>
+  </AcouMech>
+</couplingList>
+\end{xmllisting}
+%
+% =============================================================================
+%
+\section{Direct Coupling}
+Here we differ between an indirect and a direct coupling. Currently we have
+just implemented the iterative coupling. Note that the coupling
+between these two field can only be done via \xml{interface} coupling,
+as the element normals are needed for calculating the coupling forces.
+
+\bigskip
+\noindent
+{\it Example:}
+
+\begin{xmllisting}
+<couplingList>
+  <direct>
+    <coupledpde>
+      <regionList>
+        <region name="..."/>
+      </regionList>
+      <storeResults>
+        <elemResult>
+          <elemList>
+            <elems name="..."/>
+          </elemList>
+        </elemResult>
+        <surfElemResult>
+          <surfElemList>
+            <surfElems name="..."/>
+          </surfElemList>
+        </surfElemResult>
+      </storeResults>
+      <materialDataType type="..."/>
+      <nonLinear>
+        <lineSearch/>
+        <incStopCrit> ... </incStopCrit>
+        <resStopCrit> ... </resStopCrit>
+        <maxNumIters> ... </maxNumIters>
+      </nonLinear>
+    </coupledpde>
+  </direct>
+</couplingList>
+\end{xmllisting}
+
+\subsection{PiezoDirect}
+The two involved fields are the Electrostatic and the mechanical field.
+
+\bigskip
+\noindent
+{\it Example:}
+
+\begin{xmllisting}
+<couplingList>
+  <direct>
+    <piezoDirect>
+      <regionList>
+        <region name="..."/>
+        <region name="..."/>
+      </regionList>
+      <storeResults>
+        <elemResult type="mechStress">
+          <allRegions/>
+        </elemResult>
+      </storeResults>
+    </piezoDirect>
+  </direct>
+</couplingList>
+\end{xmllisting}
+
+\subsection{AcouMechDirect}
+The two involved fields are the Acoustics and Mechanical Field.
+
+\bigskip
+\noindent
+{\it Example:}
+
+\begin{xmllisting}
+<couplingList>
+  <direct>
+    <acouMechDirect>
+      <surfRegionList>
+        <surfRegion name="..."/>
+      </surfRegionList>
+      <ncInterfaceList>
+        <ncInterface name="..."/>
+        <ncInterface name="..."/>
+      </ncInterfaceList>
+    </acouMechDirect>
+  </direct>
+</couplingList>
+\end{xmllisting}
+
+\subsection{ThermoElectricDirect}
+The two involved fields are the heatConduction and Electrostatic Field.
+
+\bigskip
+\noindent
+{\it Example:}
+
+\begin{xmllisting}
+<couplingList>
+  <direct>
+    <thermoElectricDirect>
+      <regionList>
+        <region name="..."/>
+      </regionList>
+    </thermoElectricDirect>
+  </direct>
+</couplingList>
+\end{xmllisting}
+
+\subsection{ThermoMechDirect}
+The two involved fields are the heatConduction and Mechanical Field.
+
+\bigskip
+\noindent
+{\it Example:}
+
+\begin{xmllisting}
+<couplingList>
+  <direct>
+    <thermoMechDirect>
+      <regionList>
+        <region name="..."/>
+      </regionList>
+    </thermoMechDirect>
+  </direct>
+</couplingList>
+\end{xmllisting}
+%
+% =============================================================================
+%

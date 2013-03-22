@@ -1,0 +1,52 @@
+# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
+# kate: indent-width 2; encoding utf-8; auto-brackets on;
+# kate: mixedindent on; indent-mode cstyle; line-numbers on;
+# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
+# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+
+#=============================================================================
+# Set global variables, configured from the external build.
+#=============================================================================
+SET(gmp_source "@gmp_source@")
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
+SET(CFS_ARCH "@CFS_ARCH@")
+SET(LIB_SUFFIX "@LIB_SUFFIX@")
+SET(MINGW "@MINGW@")
+
+if(CFS_ARCH STREQUAL "I386")
+  SET(ABI "32")
+else(CFS_ARCH STREQUAL "I386")
+  SET(ABI "64")
+endif(CFS_ARCH STREQUAL "I386")
+
+SET(ENV{CC} "@CMAKE_C_COMPILER@")
+SET(ENV{CXX} "@CMAKE_CXX_COMPILER@")
+SET(ENV{CFLAGS} "@CFSDEPS_C_FLAGS@")
+SET(ENV{CXXFLAGS} "@CFSDEPS_CXX_FLAGS@")
+
+SET(CONFIGURE_CMD
+  "sh"
+  "./configure"
+  "--prefix=${CFS_BINARY_DIR}"
+  "--bindir=${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}"
+  "--libdir=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+  "--includedir=${CFS_BINARY_DIR}/include"
+  "--enable-shared=no"
+  "--enable-cxx"
+  "ABI=${ABI}"
+)
+
+IF(MINGW)
+  LIST(APPEND CONFIGURE_CMD
+    "--host=x86_64-w64-mingw32"
+    )
+ENDIF()
+
+EXECUTE_PROCESS(
+  COMMAND ${CONFIGURE_CMD}
+  WORKING_DIRECTORY "${gmp_source}"
+  ERROR_FILE gmp-config.out
+  OUTPUT_FILE gmp-config.out
+  RESULT_VARIABLE rv
+  )

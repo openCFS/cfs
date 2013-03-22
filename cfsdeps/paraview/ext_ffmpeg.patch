@@ -1,0 +1,11 @@
+--- SuperBuild/External_FFMPEG.cmake.orig	2012-11-11 05:35:10.978784383 +0100
++++ SuperBuild/External_FFMPEG.cmake	2012-11-11 05:36:40.266780592 +0100
+@@ -9,7 +9,7 @@
+     @ONLY)
+ 
+ ExternalProject_Add(FFMPEG
+-  DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR}
++  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/paraview
+   SOURCE_DIR ${ffmpeg_source}
+   INSTALL_DIR ${ffmpeg_install}
+   URL ${FFMPEG_URL}/${FFMPEG_GZ}

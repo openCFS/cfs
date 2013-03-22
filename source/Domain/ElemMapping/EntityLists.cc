@@ -1,0 +1,459 @@
+#include <boost/lexical_cast.hpp>
+
+#include "EntityLists.hh"
+#include "Domain/Mesh/Grid.hh"
+
+
+
+namespace CoupledField {
+
+  Enum<EntityList::ListType>   EntityList::listType;
+
+  EntityList::EntityList( Grid* grid ) {
+    grid_ = grid;
+    type_ = NO_LIST;
+    defineType_ = NO_TYPE;
+    size_ = 0;
+  }
+
+  EntityList::~EntityList() {
+  }
+
+  void EntityList::SetEnums()
+  {
+    EntityList::listType.SetName("EntityList::ListType");
+    EntityList::listType.Add(EntityList::ELEM_LIST, "elemList");
+    EntityList::listType.Add(EntityList::SURF_ELEM_LIST, "surfElemList", false);
+    EntityList::listType.Add(EntityList::SURF_ELEM_LIST, "surfRegion", false);
+    EntityList::listType.Add(EntityList::NC_ELEM_LIST, "ncElemList");
+    EntityList::listType.Add(EntityList::NODE_LIST, "nodeList");
+    EntityList::listType.Add(EntityList::NAME_LIST, "nameList" );
+    EntityList::listType.Add(EntityList::REGION_LIST, "regionList", false);
+    EntityList::listType.Add(EntityList::REGION_LIST, "region", false);
+    EntityList::listType.Add(EntityList::NUMBER_LIST, "numberList");
+  }
+
+
+  // --- Elem List ---
+  ElemList::ElemList( Grid* grid ) 
+    : EntityList( grid ) {
+
+    type_ = ELEM_LIST;
+    region_ = NO_REGION_ID;
+  }
+  
+  ElemList::ElemList(  const Elem* elem, Grid* grid ) 
+      : EntityList( grid ) {
+
+      type_ = ELEM_LIST;
+      region_ = NO_REGION_ID;
+      defineType_ = NO_TYPE;
+      region_ = NO_REGION_ID;
+      list_.Push_back( elem->elemNum );
+  }
+  
+  
+  ElemList::~ElemList() {
+  }
+
+  std::string ElemList::GetName() const {
+    
+    if( defineType_ == NO_TYPE ) {
+      return std::string("*anoymous list*");
+    } else {
+      return name_;
+    }
+  }
+
+  void ElemList::SetNamedElems( const std::string& name ) {
+    defineType_ = NAMED_ELEMS;
+    name_ = name;
+    StdVector<Elem*> elems;
+    grid_->GetElemsByName( elems, name );
+    for ( UInt i = 0; i<elems.GetSize(); i++ ) {
+      list_.Push_back( elems[i]->elemNum);
+    }
+    size_ = list_.GetSize();
+    name_ = name;
+  }
+      
+
+  void ElemList::SetRegion( RegionIdType region ) {
+    
+    defineType_ = REGION;
+    region_ = region;
+    StdVector<Elem*> elems;
+    grid_->GetElems( elems, region );
+    for ( UInt i = 0; i<elems.GetSize(); i++ ) {
+      list_.Push_back( elems[i]->elemNum);
+    }
+    size_ = list_.GetSize();
+    name_ = grid_->GetRegion().ToString( region );
+  }
+
+  void ElemList::SetElement( const Elem* elem) {
+
+    defineType_ = NO_TYPE;
+    region_ = NO_REGION_ID;
+    list_.Clear();
+    list_.Push_back( elem->elemNum );
+  }
+  
+  RegionIdType ElemList::GetRegion() const {
+    return region_;
+  }
+
+  const Elem * ElemList::GetElem( UInt nr ) const {
+    return grid_->GetElem( list_[nr] );
+  }
+
+  EntityIterator ElemList::GetIterator() const{
+    EntityIterator it;
+    it.type_ = ELEM_LIST;
+    it.elemList_ = this;
+    it.pos_ = 0;
+    it.size_ = list_.GetSize();
+    return it;
+  }
+ 
+
+
+  // --- SurfElem List ---
+  SurfElemList::SurfElemList( Grid* grid )
+    : ElemList( grid ) {
+
+    type_ = SURF_ELEM_LIST;
+    region_ = NO_REGION_ID;
+  }
+
+  void SurfElemList::SetNamedElems( const std::string& name ) {
+    defineType_ = NAMED_ELEMS;
+    name_ = name;
+    StdVector<Elem*> elems;
+    grid_->GetElemsByName( elems, name );
+    SurfElem * actElem = NULL;
+    for ( UInt i = 0; i<elems.GetSize(); i++ ) {
+      actElem = dynamic_cast<SurfElem*>(elems[i]);
+      if( actElem == NULL ) {
+        EXCEPTION( "Element #" << elems[i]->elemNum 
+                   << " in element list '" << name 
+                   << "' is no surface element!" );
+      }
+      surfElemList_.Push_back( actElem );
+      list_.Push_back( actElem->elemNum);
+    }
+    size_ = list_.GetSize();
+    name_ = name;
+  }
+
+  void SurfElemList::SetRegion( RegionIdType  region ) { 
+
+    defineType_ = REGION;
+    region_ = region;
+    StdVector<SurfElem*> elems;
+    grid_->GetSurfElems( elems, region );
+    for ( UInt i = 0; i<elems.GetSize(); i++ ) {
+      surfElemList_.Push_back( elems[i]);
+      list_.Push_back(elems[i]->elemNum);
+    }
+    size_ = list_.GetSize();
+    name_ = grid_->GetRegion().ToString( region );
+  }
+
+
+  const SurfElem* SurfElemList::GetSurfElem( UInt nr ) const{
+    return surfElemList_[nr];
+  }
+
+  EntityIterator SurfElemList::GetIterator() const {
+    EntityIterator it;
+    it.type_ = SURF_ELEM_LIST;
+    it.surfElemList_ = this;
+    it.pos_ = 0;
+    it.size_ = list_.GetSize();
+    return it;
+  }
+ 
+  // --- Node List ---
+  NodeList::NodeList( Grid* grid ) 
+    : EntityList( grid) {
+    type_ = NODE_LIST;
+  }
+
+  std::string NodeList::GetName() const {
+    if( name_ == std::string() ) {
+      std::stringstream out;
+      for (UInt i = 0; i < list_.GetSize()-1; i++ ) {
+        out << list_[i] << ", ";
+      }
+      if ( list_.GetSize() > 0 ) {
+        out << list_.Last();
+      }
+      return out.str();
+    } else {
+      return name_;
+    }
+  }
+  
+  void NodeList::SetNamedNodes( const std::string & name) {
+    defineType_ = NAMED_NODES;
+    name_ = name;
+    grid_->GetNodesByName( list_, name );
+    size_ = list_.GetSize();
+  }
+
+  void NodeList::SetNodesOfRegion( RegionIdType regionId ) {
+    defineType_ = REGION;
+    name_ = grid_->GetRegion().ToString( regionId );
+    grid_->GetNodesByRegion( list_, regionId );
+    size_ = list_.GetSize();
+  }
+  
+  void NodeList::SetNodes( const StdVector<UInt>& nodeList ) {
+    defineType_ = NO_TYPE;
+    name_ = "";
+    list_ = nodeList;
+    size_ = list_.GetSize();
+
+  }
+
+
+  EntityIterator NodeList::GetIterator() const {
+    EntityIterator it;
+    it.type_ = NODE_LIST;
+    it.nodeList_ = this;
+    it.pos_ = 0;
+    it.size_ = list_.GetSize();
+    return it;
+  }
+
+  // --- Region List ---
+  RegionList::RegionList( Grid* grid )
+    : EntityList( grid ) {
+    type_ = REGION_LIST;
+  }
+
+  std::string RegionList::GetName() const {
+//    std::string ret = "regionList( ";
+//    for( UInt i=0; i < list_.GetSize()-1; i++ ) { 
+//      ret += grid_->GetRegion().ToString( list_[i] ) + ", ";
+//    }
+//    if( list_.GetSize() > 0 ) {
+//      ret+= grid_->GetRegion().ToString( list_.Last() );
+//    }
+//    return ret + ")";
+    
+    return grid_->GetRegion().ToString( list_.Last() );
+  }
+
+  void RegionList::SetRegion( RegionIdType region ) {
+    defineType_ = REGION;
+    list_.Resize(1);
+    list_[0] = region;
+    size_ = 1;
+  }
+
+  void RegionList::SetRegions( const StdVector<RegionIdType>& regions ) {
+    defineType_ = REGION;
+    list_ = regions;
+    size_ = list_.GetSize();
+  }
+
+  
+  EntityIterator RegionList::GetIterator() const {
+    EntityIterator it;
+    it.type_ = REGION_LIST;
+    it.regionList_ = this;
+    it.pos_ = 0;
+    it.size_ = list_.GetSize();
+    return it;
+  }
+  
+  // --- Name List ---
+   NameList::NameList( Grid* grid )
+   : EntityList( grid ) {
+     type_ = NAME_LIST;
+     size_ = 0;
+   }
+
+   std::string NameList::GetName() const {
+     if( list_.GetSize() == 0  ) {
+       return "";
+     } else {
+       return list_[0];
+     }
+   }
+
+   void NameList::SetName( const std::string& name ) {
+     list_.Clear();
+     list_.Resize( 1 );
+     list_[0] = name;
+     size_ = 1;
+   }
+   void NameList::SetNames( const StdVector<std::string>& names ) {
+     list_ = names;
+     size_ = list_.GetSize();
+   }
+
+   EntityIterator NameList::GetIterator() const {
+     EntityIterator it;
+     it.type_ = NAME_LIST;
+     it.nameList_ = this;
+     it.pos_ = 0;
+     it.size_ = list_.GetSize();
+     return it;
+   }
+  
+  
+
+  // --- Number List ---
+  NumberList::NumberList( Grid* grid )
+    : EntityList( grid ) {
+    type_ = NUMBER_LIST;
+  }
+
+  std::string NumberList::GetName() const {
+    return std::string( "" );
+  }
+
+  EntityIterator NumberList::GetIterator() const {
+    EntityIterator it;
+    EXCEPTION( "Not implemented yet");
+    return it;
+  }
+
+  // --- NC Element List ---
+  //! Constructor
+  NcElemList::NcElemList( Grid * grid, std::string name)
+    : EntityList(grid){
+    this->type_ = NC_ELEM_LIST;
+    name_ = name;
+  }
+
+  //! returns the name of the list
+  std::string NcElemList::GetName() const{
+    return name_;
+  }
+
+  //! returns const reference to NcElem
+  const NcSurfElem * NcElemList::GetNcSurfElem( UInt nr ) const{
+    return ncElems_[nr].get();
+  }
+
+  //! Adds an element using a shared pointer which is better suited here
+  void NcElemList::SetElement( const shared_ptr<NcSurfElem> elem ){
+    ncElems_.Push_back(elem);
+    size_++;
+  }
+
+  //! Get iterator
+  EntityIterator NcElemList::GetIterator() const{
+    EntityIterator it;
+    it.type_ = NC_ELEM_LIST;
+    it.ncElemList_ = this;
+    it.pos_ = 0;
+    it.size_ = ncElems_.GetSize();
+    return it;
+  }
+
+  // =================================================
+  // E N T I T Y   I T E R A T O R
+  // =================================================
+  
+  EntityIterator::EntityIterator() {
+
+  }
+  
+
+  void EntityIterator::Begin() {
+    pos_ = 0;
+  }
+
+  bool EntityIterator::IsEnd() const {
+    return (pos_ == size_);
+  }
+  
+  EntityIterator& EntityIterator::operator++(int) {
+    pos_++;
+    return *this;
+  }
+  
+  const Elem* EntityIterator::GetElem() const{
+    switch(type_)
+    {
+    case EntityList::ELEM_LIST:
+      return elemList_->GetElem( pos_ );
+      
+    case EntityList::SURF_ELEM_LIST:
+      return surfElemList_->GetSurfElem( pos_ );
+      
+    case EntityList::NC_ELEM_LIST:
+       return ncElemList_->GetNcSurfElem( pos_ );
+
+    default:
+      EXCEPTION("type " << type_ << " not implemented");
+      break;
+    }
+    return NULL;
+  }
+  
+  const SurfElem* EntityIterator::GetSurfElem() const {
+    switch(type_)
+    {
+    case EntityList::SURF_ELEM_LIST:
+      return surfElemList_->surfElemList_[ pos_ ];
+      break;
+    case EntityList::NC_ELEM_LIST:
+      return ncElemList_->GetNcSurfElem( pos_ );
+      break;
+    default:
+      EXCEPTION("type " << type_ << " not implemented for GetSurfElem");
+      break;
+    }
+
+  }
+  
+  RegionIdType EntityIterator::GetRegion() const {
+    return regionList_->list_[ pos_ ];
+  }
+  
+  std::string  EntityIterator::GetName() const {
+     return nameList_->list_[ pos_ ];
+   }
+  
+  UInt EntityIterator::GetNode() const {
+    return nodeList_->list_[ pos_ ];
+  }
+  
+  UInt EntityIterator::GetUnknown() const {
+    EXCEPTION( "Not Implemented" );
+    return 0;
+  }
+  
+  std::string EntityIterator::GetIdString() const {
+    
+    std::string id = "";
+    switch( type_ ) {
+    case EntityList::ELEM_LIST:
+    case EntityList::SURF_ELEM_LIST:
+    case EntityList::NC_ELEM_LIST:
+      id = lexical_cast<std::string>(GetElem()->elemNum);
+      break;
+    case EntityList::NODE_LIST:
+      id = lexical_cast<std::string>(GetNode());
+      break;
+    case EntityList::NAME_LIST:
+      id = nameList_->GetName();
+      break;
+    case EntityList::REGION_LIST:
+      id = regionList_->grid_->GetRegion().ToString( GetRegion() );
+      break;
+    default:
+      EXCEPTION( "Not implemented" );
+    }
+      
+     return id; 
+  }
+
+
+} // end of namespace

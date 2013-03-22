@@ -1,0 +1,576 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for description of direct coupling of PDEs
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of basic direct coupling data type -->
+  <!-- ******************************************************************* -->
+
+  <!-- This is an abstract basic type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="DT_BasicDirectCoupling" abstract="true"/>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of basic direct coupling element -->
+  <!-- ******************************************************************* -->
+
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised PDECoupling elements -->
+  <xsd:element name="PDEBasicDirectCoupling" type="DT_BasicDirectCoupling"
+    abstract="true"/>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of direct coupling section -->
+  <!-- ******************************************************************* -->
+
+  <xsd:element name="direct" substitutionGroup="PDEBasicCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicCoupling">
+          <xsd:sequence>
+            <xsd:element ref="PDEBasicDirectCoupling" minOccurs="0"
+              maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element>
+
+
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of pairwise direct PDE couplings -->
+  <!-- ******************************************************************* -->
+
+  <!--added in progresss .................................................................................-->
+  <!-- Thermo-mechanic coupling -->
+  <xsd:element name="thermoMechDirect" substitutionGroup="PDEBasicDirectCoupling">
+	  <xsd:complexType>
+		  <xsd:complexContent>
+			  <xsd:extension base="DT_BasicDirectCoupling">
+				  <xsd:sequence>
+					  
+					  <!-- (volume) region list -->
+					  <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+						  <xsd:complexType>
+							  <xsd:sequence>
+								  <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+									  <xsd:complexType>
+										  <xsd:attribute name="nonLinId" type="xsd:token" 
+														 use="optional" default=""/>
+										  <xsd:attribute name="name" type="xsd:token" use="required"/>
+									  </xsd:complexType>
+								  </xsd:element>            
+							  </xsd:sequence>
+						  </xsd:complexType>
+					  </xsd:element>
+					  
+					  <!-- List defining nonlinear types -->
+					  <!--<xsd:element name="nonLinList" minOccurs="0" maxOccurs="0">
+						  <xsd:complexType>
+							  <xsd:choice maxOccurs="unbounded">
+								  <xsd:element name="geometric" type="DT_PiezoDirectNonLinGeo"/>
+								  <xsd:element name="hysteresis" type="DT_PiezoDirectNonLinHyst"/>
+								  <xsd:element name="material" type="DT_PiezoDirectNonLinMat"/>
+							  </xsd:choice>
+						  </xsd:complexType>
+					  </xsd:element>-->
+					  
+					  <!-- Desired solution values (optional) -->
+					  <!--<xsd:element name="storeResults" type="DT_PiezoDirectStoreResults"
+								   minOccurs="0" maxOccurs="1"/>
+					  <!- Type of materialDataType (real / complex) (optional) ->
+					  <xsd:element name="materialDataType" type="DT_MatData"
+								   minOccurs="0" maxOccurs="1"/>-->
+				  </xsd:sequence>
+			  </xsd:extension>
+		  </xsd:complexContent>
+	  </xsd:complexType>
+  </xsd:element> 
+  
+  <!-- Thermo-Electric coupling -->
+  <xsd:element name="thermoElectricDirect" substitutionGroup="PDEBasicDirectCoupling">
+	  <xsd:complexType>
+		  <xsd:complexContent>
+			  <xsd:extension base="DT_BasicDirectCoupling">
+				  <xsd:sequence>
+					  
+					  <!-- (volume) region list -->
+					  <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+						  <xsd:complexType>
+							  <xsd:sequence>
+								  <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+									  <xsd:complexType>
+										  <xsd:attribute name="nonLinId" type="xsd:token" 
+														 use="optional" default=""/>
+										  <xsd:attribute name="name" type="xsd:token" use="required"/>
+									  </xsd:complexType>
+								  </xsd:element>            
+							  </xsd:sequence>
+						  </xsd:complexType>
+					  </xsd:element>
+					  
+					  <!-- List defining nonlinear types -->
+					  <!--<xsd:element name="nonLinList" minOccurs="0" maxOccurs="0">
+						  <xsd:complexType>
+							  <xsd:choice maxOccurs="unbounded">
+								  <xsd:element name="geometric" type="DT_PiezoDirectNonLinGeo"/>
+								  <xsd:element name="hysteresis" type="DT_PiezoDirectNonLinHyst"/>
+								  <xsd:element name="material" type="DT_PiezoDirectNonLinMat"/>
+							  </xsd:choice>
+						  </xsd:complexType>
+					  </xsd:element>-->
+					  
+					  <!-- Desired solution values (optional) -->
+					  <!--<xsd:element name="storeResults" type="DT_PiezoDirectStoreResults"
+									   minOccurs="0" maxOccurs="1"/>
+					  <!- Type of materialDataType (real / complex) (optional) ->
+					  <xsd:element name="materialDataType" type="DT_MatData"
+								   minOccurs="0" maxOccurs="1"/> -->
+				  </xsd:sequence>
+			  </xsd:extension>
+		  </xsd:complexContent>
+	  </xsd:complexType>
+  </xsd:element>
+  
+  <!-- ...................................................................................................-->
+  
+  <!-- Piezo (Elec-Mech) coupling -->
+  <xsd:element name="piezoDirect" substitutionGroup="PDEBasicDirectCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicDirectCoupling">
+          <xsd:sequence>
+
+            <!-- (volume) region list -->
+            <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="nonLinId" type="xsd:token" 
+                        use="optional" default=""/>
+                      <xsd:attribute name="name" type="xsd:token" use="required"/>
+                      <xsd:attribute name="complexMaterial" type="DT_CFSBool" use="optional" default="no"/>
+                    </xsd:complexType>
+                  </xsd:element>            
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+
+            <!-- List defining nonlinear types -->
+            <xsd:element name="nonLinList" minOccurs="0" maxOccurs="0">
+              <xsd:complexType>
+                <xsd:choice maxOccurs="unbounded">
+                  <xsd:element name="geometric" type="DT_PiezoDirectNonLinGeo"/>
+                  <xsd:element name="hysteresis" type="DT_PiezoDirectNonLinHyst"/>
+                  <xsd:element name="material" type="DT_PiezoDirectNonLinMat"/>
+                  <xsd:element name="piezoMicroHF" type="DT_PiezoDirectNonLinHyst"/> 
+                </xsd:choice>
+              </xsd:complexType>
+            </xsd:element>
+            
+            <!-- Desired solution values (optional) -->
+            <xsd:element name="storeResults" type="DT_PiezoDirectStoreResults"
+              minOccurs="0" maxOccurs="1"/>          
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
+  
+  <!-- ======================================= -->
+  <!--  Magnetostrictive (Mag-Meech) coupling  -->
+  <!-- ======================================= -->
+  <xsd:element name="magnetoStrictionDirect" substitutionGroup="PDEBasicDirectCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicDirectCoupling">
+          <xsd:sequence>
+            
+            <!-- (volume) region list -->
+            <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="nonLinId" type="xsd:token" 
+                        use="optional" default=""/>
+                      <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    </xsd:complexType>
+                  </xsd:element>            
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            
+            <!-- List defining nonlinear types -->
+            <!--<xsd:element name="nonLinList" minOccurs="0" maxOccurs="0">
+              <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+              <xsd:element name="geometric" type="DT_PiezoDirectNonLinGeo"/>
+              <xsd:element name="hysteresis" type="DT_PiezoDirectNonLinHyst"/>
+              <xsd:element name="material" type="DT_PiezoDirectNonLinMat"/>
+              </xsd:choice>
+              </xsd:complexType>
+              </xsd:element>-->
+            
+            <!-- Desired solution values (optional) -->
+            <!-- have to create the MagmechDriectStoreResults later on -->
+            <xsd:element name="storeResults" type="DT_MagStrictStoreResults"
+              minOccurs="0" maxOccurs="1"/>
+            <!-- Type of materialDataType (real / complex) (optional) -->
+            <xsd:element name="materialDataType" type="DT_MatData"
+              minOccurs="0" maxOccurs="1"/>          
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of geometric nonlienarity -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of geometric nonlinearity type -->
+  <xsd:complexType name="DT_PiezoDirectNonLinGeo">
+    <xsd:complexContent>
+      <xsd:extension base="DT_NonLinBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of hysteresis nonlienarity -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of hysteresis nonlinearity type -->
+  <xsd:complexType name="DT_PiezoDirectNonLinHyst">
+    <xsd:complexContent>
+      <xsd:extension base="DT_NonLinBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of material nonlienarity -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of material nonlinearity type -->
+  <xsd:complexType name="DT_PiezoDirectNonLinMat">
+    <xsd:complexContent>
+      <xsd:extension base="DT_NonLinBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   ACOUSTIC-MECHANIC COUPLING -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="acouMechDirect"
+    substitutionGroup="PDEBasicDirectCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicDirectCoupling">
+          <xsd:sequence>
+            
+            <!-- (surface) region list -->
+            <xsd:element name="surfRegionList" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="surfRegion" minOccurs="0" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+	    
+	    <!-- NC interface list -->
+	    <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
+	      <xsd:complexType>
+		<xsd:sequence>
+		  <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+		    <xsd:complexType>
+		      <xsd:attribute name="name" type="xsd:token" use="required" />
+          <xsd:attribute name="nmgFormulation" type="DT_NMGFormulationBasic" use="optional" default="Nitsche"/>
+          <xsd:attribute name="nitscheFactor" type="xsd:token" use="optional" default="50"/>
+		    </xsd:complexType>
+		  </xsd:element>
+		</xsd:sequence>
+	      </xsd:complexType>
+	    </xsd:element>
+	    
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
+
+  <!-- ******************************************************************* -->
+  <!--   FLUID-MECHANIC COUPLING -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="fluidMechDirect"
+    substitutionGroup="PDEBasicDirectCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicDirectCoupling">
+          <xsd:sequence>
+            
+            <!-- (surface) region list -->
+            <xsd:element name="surfRegionList" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="surfRegion" minOccurs="1" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="name" type="xsd:token" use="required"/>
+                      <xsd:attribute name="polyId"  type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="integId"
+                      type="xsd:string" use="optional" default="default"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            
+            <!-- NC interface list -->
+            <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="name" type="xsd:token" use="required" />
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+
+            <!-- Desired solution values (optional) -->
+            <xsd:element name="storeResults" type="DT_FluidMechDirectStoreResults"
+              minOccurs="0" maxOccurs="1"/>          
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
+  <!-- ******************************************************************* -->
+  <!--   Definition of Post Processing Results -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of nodal result types of piezoelectric coupling -->
+  <xsd:simpleType name="DT_PiezoElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="mechStrain"/>
+      <xsd:enumeration value="mechStrainIrr"/>
+      <xsd:enumeration value="mechStress"/>
+      <xsd:enumeration value="vonMisesStress"/>
+      <xsd:enumeration value="elecPolarization"/> 
+      <xsd:enumeration value="elecFluxDensity"/> 
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Definition of surface element result types of piezoelectric coupling -->
+  <xsd:simpleType name="DT_PiezoSurfElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="elecChargeDensity"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- Definition of surface region result types of piezoelectric coupling -->
+  <xsd:simpleType name="DT_PiezoSurfRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="elecCharge"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- Piezo - Case -->
+  <!-- Global type for specifying the desired  output quantities -->
+  <xsd:complexType name="DT_PiezoDirectStoreResults">
+    <xsd:sequence>
+      <xsd:choice maxOccurs="unbounded">
+
+        <!-- Element result definition -->
+        <xsd:element name="elemResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_ElemResult">
+                <xsd:attribute name="type" type="DT_PiezoElemResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- Surface element result definition -->
+        <xsd:element name="surfElemResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfElemResult">
+                <xsd:attribute name="type" type="DT_PiezoSurfElemResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Surface region result definition -->
+        <xsd:element name="surfRegionResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfRegionResult">
+                <xsd:attribute name="type" type="DT_PiezoSurfRegionResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- Definition of surface element result types of fluid-mech coupling -->
+  <xsd:simpleType name="DT_FluidMechDirectNodeResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="LagrangeMultiplier"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+
+  <!-- FluidMech - Case -->
+  <!-- Global type for specifying the desired  output quantities -->
+  <xsd:complexType name="DT_FluidMechDirectStoreResults">
+    <xsd:sequence>
+      <xsd:choice maxOccurs="unbounded">
+        
+        <!-- Surface element result definition -->
+        <xsd:element name="nodeResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_NodeResult">
+                <xsd:attribute name="type" type="DT_FluidMechDirectNodeResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  
+  <!-- Magnetostritive - Case -->
+  <!-- Definition of nodal result types of mag-mech coupling -->
+  <xsd:simpleType name="DT_MagStrictElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="mechStress"/>
+      <xsd:enumeration value="magFluxDensity"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- Global type for specifying the desired  output quantities -->
+  <xsd:complexType name="DT_MagStrictStoreResults">
+    <xsd:sequence>
+      <!-- Element result definition -->
+      <xsd:element name="elemResult" minOccurs="0"
+        maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:complexContent>
+            <xsd:extension base="DT_ElemResult">
+              <xsd:attribute name="type" type="DT_MagStrictElemResult"/>
+            </xsd:extension>
+          </xsd:complexContent>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+
+  <!-- This is almost a copy & paste of DT_MechElastTensor from the material schema stuff >
+  <xsd:complexType name="DT_MechElastTensor">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="36"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="imag" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="36"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+    <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="optional"/>
+    <xsd:attribute name="factor" type="xsd:float" use="optional" default="1.0"/>
+  </xsd:complexType -->
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of electric permittivity in tensor form                -->
+  <!-- ******************************************************************* -->
+  <!-- This is almost a copy & paste of DT_ElecPermTensor from the electric schema stuff -->
+  <xsd:complexType name="DT_ElecPermTensor">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="9"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="imag" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="9"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of piezo coupling tensor                               -->
+  <!-- ******************************************************************* -->
+  <!-- This is almost a copy & paste of DT_PiezoCouplTensor from the piezo schema stuff -->
+  <xsd:complexType name="DT_PiezoCouplTensor">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="18"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="imag" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="18"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+    <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+
+</xsd:schema>

@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<logging>
+  
+  <!-- =================================================================== -->
+  <!--  SAMPLE XML-FILE FOR CONFIGURING THE LOG-FILES OF CFS++             -->
+  <!-- =================================================================== -->
+  
+  <!--
+  This file is used to determine for a CFS binary at runtime the active 
+  logging streams and log-levels. Logging streams are defined within
+  CFS-classes like normal C++ streams and identified via strings.
+  At runtime, the logging level and the output destination can be determined.
+  
+  The structure of this file is as follows: 
+  
+  The root element is named <logging>.
+    
+  It follows a list of <stream>-elements, where the name-attribute
+  must match the logging stream name as defined in the source file. 
+  One can also use the wildcard "*" to capture all streams.
+  For each stream, we can define the log-level, which can be one of the
+  following ones:
+  
+      trace
+      trace2
+      dbg
+      dbg2
+      dbg3
+      all
+  
+   The sub-elements of each <stream>-entry define the so-called "appenders",
+   i.e. for each stream we can have several appenders. Currently the following
+   appender types are available:
+   
+     <cout>:            The output gets directly written to the terminal.
+     <file name="...">  The output gets appended to an ASCII file with
+                        the given name.
+  -->
+  
+  
+  <!-- Stream 'pde' has level 'trace' and gets written to the console -->
+  <stream name="pde" level="trace">
+    <cout/>
+  </stream>
+  
+  <!-- Stream 'pde' has level 'dbg3' and gets written to the console,
+       as well as to the file 'algSys.txt' -->
+  <stream name="algSys" level="dbg3">
+    <file name="algSys.txt"/>
+    <cout/>
+  </stream>
+</logging>

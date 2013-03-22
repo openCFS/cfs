@@ -1,0 +1,51 @@
+SET(SOLVER_SRCS
+    BaseSolver.cc
+    BaseEigenSolver.cc
+    generateEigensolver.cc    
+    generatesolver.cc
+    )
+
+IF(EXPLICIT_TEMPLATE_INSTANTIATION)
+SET(SOLVER_SRCS
+    ${SOLVER_SRCS}
+    CGSolver.cc
+    DiagSolver.cc
+    GMRESSolver.cc
+    LDLSolver.cc
+    LUSolver.cc
+    MINRESSolver.cc
+    RichardsonSolver.cc
+    )
+ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
+
+ADD_LIBRARY(solver-olas STATIC ${SOLVER_SRCS})
+
+
+SET(TARGET_LL
+  utils-olas
+)
+
+IF(USE_PARDISO)
+  SET(TARGET_LL ${TARGET_LL} pardiso-olas)
+ENDIF(USE_PARDISO)
+
+IF(USE_SUITESPARSE)
+  SET(TARGET_LL ${TARGET_LL} umfpack-olas)
+  INCLUDE_DIRECTORIES(${CHOLMOD_INCLUDE_DIR})
+  SET(TARGET_LL ${TARGET_LL} cholmod-olas)
+ENDIF(USE_SUITESPARSE)
+
+IF(USE_ILUPACK)
+  SET(TARGET_LL ${TARGET_LL} ilupack-olas)
+ENDIF(USE_ILUPACK)
+
+IF(USE_LIS)
+  SET(TARGET_LL ${TARGET_LL} lis-olas)
+ENDIF(USE_LIS)
+
+IF(USE_ARPACK)
+  SET(TARGET_LL ${TARGET_LL} arpack-olas)
+ENDIF(USE_ARPACK)
+
+
+TARGET_LINK_LIBRARIES(solver-olas ${TARGET_LL})

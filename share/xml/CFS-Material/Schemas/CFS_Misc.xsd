@@ -1,0 +1,104 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description for all things that did not fit elsewhere
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of various missing simple data types -->
+  <!-- ******************************************************************* -->
+
+  <!-- Data type for positive floating point numbers -->
+  <xsd:simpleType name="DT_PosFloat">
+    <xsd:restriction base="xsd:float">
+      <xsd:minExclusive value="0"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- Data type for non-negative floating point numbers -->
+  <xsd:simpleType name="DT_NonNegFloat">
+    <xsd:restriction base="xsd:float">
+      <xsd:minInclusive value="0"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- Data type for floating point numbers in [0,1] -->
+  <xsd:simpleType name="DT_FloatUnitInterval">
+    <xsd:restriction base="xsd:float">
+      <xsd:minInclusive value="0"/>
+      <xsd:maxInclusive value="1"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Data type for floating point numbers in [0,0.5] -->
+  <xsd:simpleType name="DT_FloatPoissonInterval">
+    <xsd:restriction base="xsd:float">
+      <xsd:minInclusive value="0"/>
+      <xsd:maxInclusive value="0.5"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- Data type for specifying an angle in degrees (DEG) -->
+  <xsd:simpleType name="DT_DegAngle">
+    <xsd:restriction base="xsd:float">
+      <xsd:minInclusive value="0"/>
+      <xsd:maxInclusive value="360"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- Data type for setting flags -->
+  <xsd:simpleType name="DT_CFSBool">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="yes"/>
+      <xsd:enumeration value="no"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Data type for setting a array of doubles -->
+  <xsd:simpleType name="DT_DoubleList">
+    <xsd:list itemType="xsd:double"/>
+  </xsd:simpleType> 
+  
+  <!-- Data type for setting a array of tokens -->
+  <xsd:simpleType name="DT_TokenList">
+    <xsd:list itemType="xsd:token"/>
+  </xsd:simpleType> 
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of rayleigh damping for mechanics and acoustics        -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_RayleighDamping">
+    <xsd:sequence>
+      <xsd:choice>
+        <xsd:sequence>
+          <xsd:element name="alpha" type="xsd:token"/>
+          <xsd:element name="beta" type="xsd:token"/>
+        </xsd:sequence>
+        <xsd:element name="lossTangensDelta" type="xsd:token"/>
+      </xsd:choice>
+      <xsd:element name="measuredFreq" type="DT_NonNegFloat"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- Data type for specifying flow direction (directly) -->
+  <xsd:simpleType name="DT_Direction">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="1"/>
+      <xsd:enumeration value="2"/>
+      <xsd:enumeration value="3"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+</xsd:schema>
+

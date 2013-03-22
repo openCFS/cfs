@@ -1,0 +1,186 @@
+#!/bin/sh
+
+ErrorCheck () {  if [ ! $? -eq 0 ]; then echo "An error occurred!"; exit 1; fi }
+
+WORKDIR=$1
+H5FILE=$WORKDIR/$2
+H5IMPORT=@CFSDEPS_ROOT_DIR@/bin/h5import
+H5CFSHELPER=@CFS_BINARY_DIR@/bin/h5tool
+INPUTTYPE=$3
+DELTEMP=$4
+
+export LD_LIBRARY_PATH=@CFSDEPS_ROOT_DIR@/lib:@CFSDEPS_ROOT_DIR@/lib64
+
+
+BASEPATH=`dirname $0`
+if [ -e $BASEPATH/import_cfsdeps.sh ]
+then
+    . $BASEPATH/import_cfsdeps.sh $BASEPATH
+fi
+
+if [ ! -d $WORKDIR ]
+then
+    echo "$WORKDIR is no directory!"
+    exit 1
+fi
+
+if [ ! -e $H5IMPORT ]
+then
+    H5IMPORT=$CFSDEPS_ROOT/bin/h5import
+
+    export LD_LIBRARY_PATH=$CFSDEPS_ROOT/lib:$CFSDEPS_ROOT/lib64
+
+    if [ ! -e $H5IMPORT ]
+    then
+	echo "Could not find h5import executable!"
+	exit 1
+    fi
+fi
+
+if [ ! -e $H5CFSHELPER ]
+then
+    H5CFSHELPER=$BASEPATH/h5tool
+
+    if [ ! -e $H5CFSHELPER ]
+    then
+	echo "Could not find h5tool executable!"
+	exit 1
+    fi
+fi
+
+# echo "h5tool: $H5CFSHELPER" 
+# echo "h5import: $H5IMPORT" 
+
+# echo "Input type: $INPUTTYPE"
+# rm -f $H5FILE;
+
+echo "Writing additional datasets..."
+
+CMDSTR="group\ncreate\n$H5FILE\n/\nFileInfo\nignore\n"
+printf $CMDSTR | $H5CFSHELPER > /dev/null; ErrorCheck
+
+CMDSTR="dataset\ncreate\n$H5FILE\n/FileInfo\nstring\nVersion\nfail\n0.9\n"
+printf $CMDSTR | $H5CFSHELPER > /dev/null; ErrorCheck
+
+CMDSTR="dataset\ncreate\n$H5FILE\n/FileInfo\nstring\nCreator\nfail\n"
+printf $CMDSTR > $WORKDIR/tmp.dat; ErrorCheck
+echo -n "cplreader on $HOSTNAME" >> $WORKDIR/tmp.dat
+echo " converting from $INPUTTYPE" >> $WORKDIR/tmp.dat
+cat $WORKDIR/tmp.dat | $H5CFSHELPER > /dev/null; ErrorCheck
+
+CMDSTR="dataset\ncreate\n$H5FILE\n/FileInfo\nstring\nDate\nfail\n"
+printf $CMDSTR > $WORKDIR/tmp.dat; ErrorCheck
+date +"%Y-%b-%d %H:%M:%S" >> $WORKDIR/tmp.dat
+cat $WORKDIR/tmp.dat | $H5CFSHELPER > /dev/null; ErrorCheck
+
+CMDSTR="attribute\ncreate\n$H5FILE\n/Results/Mesh/MultiStep_1\nuint\nLastStepNum\nfail\n`tail -1 $WORKDIR/StepNumbers.dat`\n"
+printf $CMDSTR | $H5CFSHELPER > /dev/null; ErrorCheck
+
+CMDSTR="attribute\ncreate\n$H5FILE\n/Results/Mesh/MultiStep_1\ndouble\nLastStepValue\nfail\n`tail -1 $WORKDIR/StepValues.dat`\n"
+printf $CMDSTR | $H5CFSHELPER > /dev/null; ErrorCheck
+
+CFGFILE=$WORKDIR/Content.cfg
+echo "PATH /FileInfo/Content" > $CFGFILE
+echo "INPUT-CLASS TEXTUIN" >> $CFGFILE
+echo "INPUT-SIZE 32" >> $CFGFILE
+echo "RANK 1" >> $CFGFILE
+echo "DIMENSION-SIZES 2" >> $CFGFILE
+echo "OUTPUT-CLASS UIN" >> $CFGFILE
+echo "OUTPUT-SIZE 32" >> $CFGFILE
+echo "OUTPUT-ARCHITECTURE STD" >> $CFGFILE
+echo "OUTPUT-BYTE-ORDER LE" >> $CFGFILE
+printf "1\n2\n" > $WORKDIR/Content.dat
+
+$H5IMPORT $WORKDIR/Content.dat -c $CFGFILE -o $H5FILE
+ErrorCheck
+
+AVAIL_RESULTS=""
+
+CMDSTR="dataset\nexists\n$H5FILE\n/Results/Mesh/MultiStep_1/ResultDescription/acouRhsLoad\nDefinedOn\n"
+printf $CMDSTR | $H5CFSHELPER > /dev/null
+if [ $? -eq 0 ]
+then
+    AVAIL_RESULTS="acouRhsLoad $AVAIL_RESULTS"
+fi
+
+CMDSTR="dataset\nexists\n$H5FILE\n/Results/Mesh/MultiStep_1/ResultDescription/fluidMechVelocity\nDefinedOn\n"
+printf $CMDSTR | $H5CFSHELPER > /dev/null
+if [ $? -eq 0 ]
+then
+    AVAIL_RESULTS="fluidMechVelocity $AVAIL_RESULTS"
+fi
+
+CMDSTR="dataset\nexists\n$H5FILE\n/Results/Mesh/MultiStep_1/ResultDescription/fluidMechPressure\nDefinedOn\n"
+printf $CMDSTR | $H5CFSHELPER > /dev/null
+if [ $? -eq 0 ]
+then
+    AVAIL_RESULTS="fluidMechPressure $AVAIL_RESULTS"
+fi
+
+CMDSTR="dataset\nexists\n$H5FILE\n/Results/Mesh/MultiStep_1/ResultDescription/fluidMechDensity\nDefinedOn\n"
+printf $CMDSTR | $H5CFSHELPER > /dev/null
+if [ $? -eq 0 ]
+then
+    AVAIL_RESULTS="fluidMechDensity $AVAIL_RESULTS"
+fi
+
+# AVAIL_RESULTS="acouRhsLoad fluidMechVelocity fluidMechPressure"
+
+for RESULT in $AVAIL_RESULTS; do
+    echo "Writing step numbers for result $RESULT..."
+
+    CFGFILE=$WORKDIR/StepNumbers.cfg
+    echo "PATH /Results/Mesh/MultiStep_1/ResultDescription/$RESULT/StepNumbers" > $CFGFILE
+    echo "INPUT-CLASS TEXTUIN" >> $CFGFILE
+    echo "INPUT-SIZE 32" >> $CFGFILE
+    echo "RANK 1" >> $CFGFILE
+    echo "DIMENSION-SIZES `wc -l $WORKDIR/StepNumbers.dat | cut -d' ' -f1`" >> $CFGFILE
+    echo "OUTPUT-CLASS UIN" >> $CFGFILE
+    echo "OUTPUT-SIZE 32" >> $CFGFILE
+    echo "OUTPUT-ARCHITECTURE STD" >> $CFGFILE
+    echo "OUTPUT-BYTE-ORDER LE" >> $CFGFILE
+    $H5IMPORT $WORKDIR/StepNumbers.dat -c $CFGFILE -o $H5FILE
+    ErrorCheck
+
+    echo "Writing step values for result $RESULT..."
+
+    CFGFILE=$WORKDIR/StepValues.cfg
+    echo "PATH /Results/Mesh/MultiStep_1/ResultDescription/$RESULT/StepValues" > $CFGFILE
+    echo "INPUT-CLASS TEXTFP" >> $CFGFILE
+    echo "INPUT-SIZE 64" >> $CFGFILE
+    echo "RANK 1" >> $CFGFILE
+    echo "DIMENSION-SIZES `wc -l $WORKDIR/StepValues.dat | cut -d' ' -f1`" >> $CFGFILE
+    echo "OUTPUT-CLASS FP" >> $CFGFILE
+    echo "OUTPUT-SIZE 64" >> $CFGFILE
+    echo "OUTPUT-ARCHITECTURE IEEE" >> $CFGFILE
+    echo "OUTPUT-BYTE-ORDER LE" >> $CFGFILE
+    $H5IMPORT $WORKDIR/StepValues.dat -c $CFGFILE -o $H5FILE
+    ErrorCheck
+
+done
+
+if [ "$INPUTTYPE" = "CFX" ]; then
+    echo "Writing CFX COMMANDS..."
+
+    CMDSTR="group\ncreate\n$H5FILE\n/\nUserData\nignore"
+    printf $CMDSTR | $H5CFSHELPER > /dev/null; ErrorCheck
+
+    printf "dataset\ncreate\n$H5FILE\n/UserData\nstring\nCFX_COMMANDS\nfail\n" > $WORKDIR/CFXCMDS.dat
+    cat $WORKDIR/UserData_CFX_COMMANDS.dat >> $WORKDIR/CFXCMDS.dat
+    cat $WORKDIR/CFXCMDS.dat | $H5CFSHELPER > /dev/null; ErrorCheck
+fi
+
+if [ $DELTEMP -eq 1 ]; then
+    rm -f $WORKDIR/Connectivity.*
+    rm -f $WORKDIR/Content.*
+    rm -f $WORKDIR/Coordinates.*
+    rm -f $WORKDIR/Region*
+    rm -f $WORKDIR/region_nodes.dat
+    rm -f $WORKDIR/Result.*
+    rm -f $WORKDIR/Step
+    rm -f $WORKDIR/Step*
+    rm -f $WORKDIR/tmp.*
+    rm -f $WORKDIR/Types.*
+    rm -f $WORKDIR/UserData_*
+    rm -f $WORKDIR/CFXCMDS.dat
+fi

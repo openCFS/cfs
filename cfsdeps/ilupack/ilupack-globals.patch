@@ -1,0 +1,28 @@
+--- tools/globals.c	2008-09-30 12:01:15.000000000 +0200
++++ tools/globals.c	2009-02-18 22:30:42.000000000 +0100
+@@ -1,6 +1,21 @@
+-#define _DECLARE_ILUPACK_GLOBALS_
+ #include <ilupack.h>
+ 
+-void ilupack_dummy_000()
+-{
+-}
++double ILUPACK_secnds[ILUPACK_secnds_length];
++size_t ILUPACK_mem[ILUPACK_mem_length];
++
++#ifdef _DOUBLE_REAL_
++  void Dilupack_dummy_000(){}
++#endif
++
++#ifdef _DOUBLE_COMPLEX_
++  void Zilupack_dummy_000(){}
++#endif
++
++#ifdef _SINGLE_REAL_
++  void Silupack_dummy_000(){}
++#endif
++
++#ifdef _DOUBLE_COMPLEX_
++  void Cilupack_dummy_000(){}
++#endif
++

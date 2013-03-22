@@ -1,0 +1,322 @@
+#!/bin/sh
+
+# This script is run by the following entry in /etc/crontab on sedici
+#
+# 0     2 * * *   strieben /home/users/strieben/Documents/dev/nightly_test_sedici.sh > /home/users/strieben/Documents/dev/nightly_test_sedici.log 2>&1
+
+echo "`basename $0` started on `date`"
+echo "-----------------------------------------------------------------------------"
+echo
+
+# Set path to home directory of strieben, just to make sure...
+export HOME=/home/users/strieben
+
+# Set path to strieben's development directory
+DEVDIR="$HOME/Documents/dev"
+
+# Set path to directory for nightly builds
+TESTDIR="$DEVDIR/NIGHTLY"
+
+# The generated release executables should end up here.
+# Directory is writeable by strieben.
+DESTDIR=/opt/pckg/cfs_nightly
+
+# Extend system path by /opt/pckg/bin
+export PATH=/opt/pckg/bin:$PATH
+
+# Path where Pardiso (Schenk) license file may be found
+# export PARDISO_LIC_PATH="$HOME/Documents/dev/pardiso/keys/sedici"
+
+# Determine day of week since we only want to do a full rebuild on sunday (7)
+DAYOFWEEK=$(date +%u)
+echo "DAYOFWEEK $DAYOFWEEK"
+
+# Create nightly build directory
+mkdir -p $TESTDIR
+cd $TESTDIR
+
+function GetWorkingCopyRev {
+    WCDIR=$1
+    
+    # Get previous revision for CFSDEPS
+    WC_REV=$(svn st --xml --verbose $WCDIR | xsltproc $TESTDIR/CFSDEPS_NIGHTLY/utils/xslt/cfsdepsrev.xslt -)
+    if [ ! "$?" = 0 ]; then WC_REV="-1"; fi
+
+    change-svn-wc-format.py $WCDIR "1.5" --force # --verbose
+}
+
+function PerformTest {
+    TESTNAME=$1;
+
+    cd $TESTDIR/CFS_TRUNK_NIGHTLY
+
+    # Let's build ParaView every Wednesday
+    if [ "$DAYOFWEEK" = "3" -a "$TESTNAME" = "sedici_gcc_schenk_nightly" ]; then
+        cat ctest_scripts/ctest_$TESTNAME.cmake | sed $ADDITIONAL_SED_ARG > ctest_scripts/ctest_script.cmake
+    else
+        cat ctest_scripts/ctest_$TESTNAME.cmake > ctest_scripts/ctest_script.cmake
+    fi
+
+    rm -rf $TESTDIR/CFS_BUILD_NIGHTLY
+
+    echo "Testing cfs_build_$TESTNAME.tgz..."
+    ctest -V -S ctest_scripts/ctest_script.cmake
+
+    cd $TESTDIR
+    echo "Packaging cfs_build_$TESTNAME.tgz..."
+    tar czf cfs_build_$TESTNAME.tgz CFS_BUILD_NIGHTLY
+
+    # Let's copy the ParaView binaries to /opt/pckg
+    if [ "$DAYOFWEEK" = "3" -a -d "$TESTDIR/CFS_BUILD_NIGHTLY/paraview" ]; then
+        rm -rf /opt/pckg/paraview-weekly/*
+        cp -a $TESTDIR/CFS_BUILD_NIGHTLY/paraview/* /opt/pckg/paraview-weekly
+    fi
+    
+    rm -rf CFS_BUILD_NIGHTLY
+}
+
+function SubmitErrorToCDash {
+    BUILDSCRIPT=$(basename "$0");
+    SITE=$HOSTNAME;
+    BUILDNAME="ATTENTION: $BUILDSCRIPT";
+    NOTENAME=$1;
+    NOTE="$2";
+    ERROR="$3";
+    LOGLINE="$4";
+    NOTETEMPFILE="$(mktemp).xml"
+    BUILDFILE="$NOTETEMPFILE"
+    BUILDSTAMP="$(date '+%Y%m%d-%H%M')-Nightly"
+    
+    echo $SITE
+    echo $BUILDNAME
+    echo $NOTENAME
+    echo $NOTE
+    echo $NOTETEMPFILE
+    
+    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > $BUILDFILE
+    echo "<Site BuildName=\"$BUILDNAME\"" >> $BUILDFILE
+    echo "      BuildStamp=\"$BUILDSTAMP\"" >> $BUILDFILE
+    echo "      Name=\"$SITE\"" >> $BUILDFILE
+    echo "      Generator=\"$BUILDSCRIPT\"    OSName=\"Linux\"" >> $BUILDFILE
+    echo "      Hostname=\"$SITE\">" >> $BUILDFILE
+#    echo "        OSRelease=\"2.6.31.12-0.1-default\"" >> $BUILDFILE
+#    echo "        OSVersion=\"#1 SMP 2010-01-27 08:20:11 +0100\"" >> $BUILDFILE
+#    echo "        OSPlatform=\"x86_64\"" >> $BUILDFILE
+#    echo "        Is64Bits=\"1\"" >> $BUILDFILE
+#    echo "        VendorString=\"AuthenticAMD\"" >> $BUILDFILE
+#    echo "        VendorID=\"Advanced Micro Devices\"" >> $BUILDFILE
+#    echo "        FamilyID=\"16\"" >> $BUILDFILE
+#    echo "        ModelID=\"4\"" >> $BUILDFILE
+#    echo "        ProcessorCacheSize=\"512\"" >> $BUILDFILE
+#    echo "        NumberOfLogicalCPU=\"16\"" >> $BUILDFILE
+#    echo "        NumberOfPhysicalCPU=\"16\"" >> $BUILDFILE
+#    echo "        TotalVirtualMemory=\"2047\"" >> $BUILDFILE
+#    echo "        TotalPhysicalMemory=\"32239\"" >> $BUILDFILE
+#    echo "        LogicalProcessorsPerPhysical=\"1\"" >> $BUILDFILE
+#    echo "        ProcessorClockFrequency=\"2511.53\">" >> $BUILDFILE
+    echo "  <Build>" >> $BUILDFILE
+#    echo "    <StartDateTime>Mar 29 02:23 CEST</StartDateTime>" >> $BUILDFILE
+#    echo "    <StartBuildTime>1269822221</StartBuildTime>" >> $BUILDFILE
+    echo "    <StartDateTime>" >> $BUILDFILE
+    date '+%b %d %R %Z' >> $BUILDFILE
+    echo "    </StartDateTime>" >> $BUILDFILE
+#    echo "    <StartBuildTime>" >> $BUILDFILE
+#    date '+%N' >> $BUILDFILE
+#    echo "    </StartBuildTime>" >> $BUILDFILE
+
+    echo "    <BuildCommand>$BUILDSCRIPT</BuildCommand>" >> $BUILDFILE
+    echo "    <Error>" >> $BUILDFILE
+    echo "      <BuildLogLine>$LOGLINE</BuildLogLine>" >> $BUILDFILE
+    echo "      <Text>" >> $BUILDFILE
+    echo "      $ERROR" >> $BUILDFILE
+    echo "      </Text>" >> $BUILDFILE
+    echo "      <Precontext/>" >> $BUILDFILE
+    echo "      <Postcontext/>" >> $BUILDFILE
+    echo "      <RepeatCount>0</RepeatCount>" >> $BUILDFILE
+    echo "    </Error>" >> $BUILDFILE
+    echo "    <Log Encoding=\"base64\" Compression=\"/bin/gzip\"/>" >> $BUILDFILE
+#    echo "    <EndDateTime>Mar 29 02:52 CEST</EndDateTime>" >> $BUILDFILE
+#    echo "    <EndBuildTime>1269823955</EndBuildTime>" >> $BUILDFILE
+    echo "    <EndDateTime>" >> $BUILDFILE
+    date '+%b %d %R %Z' >> $BUILDFILE
+    echo "    </EndDateTime>" >> $BUILDFILE
+    echo "    <ElapsedMinutes>0</ElapsedMinutes>" >> $BUILDFILE
+    echo "  </Build>" >> $BUILDFILE
+    echo "</Site>" >> $BUILDFILE
+
+    curl -T "{$BUILDFILE}" http://lse17.e-technik.uni-erlangen.de:2000/cdash/submit.php?project=CFS
+
+    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > $NOTETEMPFILE
+    echo "<?xml-stylesheet type=\"text/xsl\" href=\"Dart/Source/Server/XSL/Build.xsl <file:///Dart/Source/Server/XSL/Build.xsl> \"?>" >> $NOTETEMPFILE
+    echo "<Site BuildName=\"$BUILDNAME\" BuildStamp=\"$BUILDSTAMP\" Name=\"$SITE\" Generator=\"$BUILDSCRIPT\">" >> $NOTETEMPFILE
+    echo "  <Notes>" >> $NOTETEMPFILE
+    echo "    <Note Name=\"$NOTENAME\">" >> $NOTETEMPFILE
+    echo -n "      <DateTime>" >> $NOTETEMPFILE
+    date '+%b %d %R %Z' >> $NOTETEMPFILE
+    echo "</DateTime>" >> $NOTETEMPFILE
+    echo "      <Text>" >> $NOTETEMPFILE
+
+    echo "$NOTE" >> $NOTETEMPFILE
+    echo "      </Text>" >> $NOTETEMPFILE
+    echo "    </Note>" >> $NOTETEMPFILE
+
+    echo "  </Notes>" >> $NOTETEMPFILE
+    echo "</Site>" >> $NOTETEMPFILE
+
+    # Submit machine specific version of Notes.xml to dash board
+    curl -T "{$NOTETEMPFILE}" http://lse17.e-technik.uni-erlangen.de:2000/cdash/submit.php?project=CFS
+    
+    rm -f $NOTETEMPFILE
+    
+    exit 1;
+}
+
+cd $TESTDIR
+
+# Remove previous CFSDEPSCACHE directory and make sure that ACML sources
+# get copied to the newly created one.
+if [ "$DAYOFWEEK" = "1" ]; then
+    echo "Packaging last week's CFS_TRUNK_NIGHTLY..."
+    tar czf $TESTDIR/last_weeks_cfs_trunk_nightly.tgz CFS_TRUNK_NIGHTLY
+    rm -rf $TESTDIR/CFS_TRUNK_NIGHTLY
+    echo "Packaging last week's CFSDEPS_NIGHTLY..."
+    tar czf $TESTDIR/last_weeks_cfsdeps_nightly.tgz CFSDEPS_NIGHTLY
+    rm -rf $TESTDIR/CFSDEPS_NIGHTLY
+    echo "Packaging last week's CFS_TESTSUITE_NIGHTLY..."
+    tar czf $TESTDIR/last_weeks_cfs_testsuite_nightly.tgz CFS_TESTSUITE_NIGHTLY
+    rm -rf $TESTDIR/CFS_TESTSUITE_NIGHTLY
+    rm -rf $TESTDIR/CFSDEPSCACHE
+    mkdir -p $TESTDIR/CFSDEPSCACHE/sources/acml
+    cp /opt/pckg/CFSDEPSCACHE/sources/acml/*.tgz $TESTDIR/CFSDEPSCACHE/sources/acml
+
+    rm -rf $TESTDIR/cfs_build_*.tgz
+fi
+
+# Source password for test user
+. $HOME/.testuserpw
+
+# Write SVN auth file to make sure all upcoming svn commands will work properly.
+SVNFILE="$HOME/.subversion/auth/svn.simple/f4c5d049eb353aa17027f06e57e71d0e"
+echo "K 8" > $SVNFILE
+echo "passtype" >> $SVNFILE
+echo "V 6" >> $SVNFILE
+echo "simple" >> $SVNFILE
+echo "K 8" >> $SVNFILE
+echo "password" >> $SVNFILE
+echo "V 8" >> $SVNFILE
+echo "$CFS_TESTUSER_PW" >> $SVNFILE
+echo "K 15" >> $SVNFILE
+echo "svn:realmstring" >> $SVNFILE
+echo "V 68" >> $SVNFILE
+echo "<https://lse17.e-technik.uni-erlangen.de:2001> Subversion repository" >> $SVNFILE
+echo "K 8" >> $SVNFILE
+echo "username" >> $SVNFILE
+echo "V 12" >> $SVNFILE
+echo "testuser-klu" >> $SVNFILE
+echo "END" >> $SVNFILE
+
+# Copy current version of update scripts from server to update directory
+mkdir -p $TESTDIR/update
+cd $TESTDIR/update
+rm -f *
+FILES="ctest_update.cmake ctest_update_cfs_klu.cmake ctest_update_cfsdeps_klu.cmake ctest_update_testsuite_klu.cmake CTestConfig.cmake"
+for FILE in $FILES; do
+  wget --http-user=testuser-klu --http-password=$CFS_TESTUSER_PW \
+       --no-check-certificate \
+       https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/trunk/ctest_scripts/$FILE
+done
+
+# Checkout or update CFSDEPS
+cd $TESTDIR/update
+GetWorkingCopyRev $TESTDIR/CFSDEPS_NIGHTLY
+CFSDEPS_PREV_REV=$WC_REV;
+# Due to the fact, that CTest generates non-zero return values
+# even if no error occured we do not check for that condition (cf. 
+# http://public.kitware.com/Bug/bug_view_page.php?bug_id=8277&history=1).
+# Instead we delete all working copies on Sunday (DAYOFWEEK=7) to
+# make sure we get a fresh start from time to time.
+ctest -V -S ctest_update_cfsdeps_klu.cmake
+#|| \
+#  SubmitErrorToCDash "ctest_update_cfsdeps_klu.cmake" "Update of CFSDEPS_NIGHTLY failed." "ctest_update_cfsdeps_klu.cmake: Update of CFSDEPS failed."
+GetWorkingCopyRev $TESTDIR/CFSDEPS_NIGHTLY
+CFSDEPS_CURRENT_REV=$WC_REV;
+
+# Checkout or update CFS++
+cd $TESTDIR/update
+GetWorkingCopyRev $TESTDIR/CFS_TRUNK_NIGHTLY
+CFS_PREV_REV=$WC_REV;
+ctest -V -S ctest_update_cfs_klu.cmake
+GetWorkingCopyRev $TESTDIR/CFS_TRUNK_NIGHTLY
+CFS_CURRENT_REV=$WC_REV;
+
+# Checkout or update test suite
+cd $TESTDIR/update
+GetWorkingCopyRev $TESTDIR/CFS_TESTSUITE_NIGHTLY
+TESTSUITE_PREV_REV=$WC_REV;
+ctest -V -S ctest_update_testsuite_klu.cmake
+GetWorkingCopyRev $TESTDIR/CFS_TESTSUITE_NIGHTLY
+TESTSUITE_CURRENT_REV=$WC_REV;
+
+# Remove cache directory if CFSDEPS have changed
+if [ ! "$CFSDEPS_CURRENT_REV" = "$CFSDEPS_PREV_REV" ]; then
+    rm -rf $TESTDIR/CFSDEPSCACHE
+    mkdir -p $TESTDIR/CFSDEPSCACHE/sources/acml
+    cp /opt/pckg/CFSDEPSCACHE/sources/acml/*.tgz $TESTDIR/CFSDEPSCACHE/sources/acml
+fi
+
+cd $TESTDIR
+
+# Copy sources of SCPIP to CFSDEPS_NIGHTLY/scpip
+# cp $DEVDIR/scpip.tar.bz2 CFSDEPS_NIGHTLY/scpip
+
+# Copy sources of GotoBLAS to CFSDEPSCACHE/source/gotoblas
+mkdir -p CFSDEPSCACHE/sources/gotoblas
+cp $DEVDIR/LOCAL_LIBS/GotoBLAS-1.26.tar.gz CFSDEPSCACHE/sources/gotoblas
+
+# Copy PARDISO libs to CFSDEPSCACHE/source/pardiso
+#mkdir -p CFSDEPSCACHE/sources/pardiso
+#cp $DEVDIR/LOCAL_LIBS/libpardiso_* CFSDEPSCACHE/sources/pardiso
+#cp $DEVDIR/LOCAL_LIBS/license.pdf CFSDEPSCACHE/sources/pardiso
+
+# Determine distribution string
+DISTRO=$($TESTDIR/CFS_TRUNK_NIGHTLY/share/scripts/distro.sh -u)
+
+# Source Intel scripts to get environment variables
+source /opt/intel/Compiler/11.0/081/bin/iccvars.sh intel64
+source /opt/intel/Compiler/11.0/081/bin/ifortvars.sh intel64
+
+# Change into CFS++ source directory and execute CTest for ICC.
+PerformTest "sedici_icc_nightly"
+
+cd $TESTDIR
+tar xzf cfs_build_sedici_icc_nightly.tgz
+
+# Copy the nightly Intel binaries for sedici to /opt/pckg
+CFSBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfsbin"
+CFSTOOLBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfstoolbin"
+    echo "Copying Intel binaries to /opt/pckg/cfs_nightly..."
+    ICC_SEDICI_DIR=$DESTDIR/trunk_icc_sedici
+    rm -rf $ICC_SEDICI_DIR 
+    mkdir $ICC_SEDICI_DIR
+    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/bin $ICC_SEDICI_DIR
+    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/lib64 $ICC_SEDICI_DIR
+    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/share $ICC_SEDICI_DIR
+    cp -a $TESTDIR/CFS_TRUNK_NIGHTLY/share/matlab $ICC_SEDICI_DIR/share
+
+    echo "Submitting GCC binaries to lse17..."
+    curl -u testuser-klu:$CFS_TESTUSER_PW -k -T cfs_build_sedici_icc_nightly.tgz https://lse17.e-technik.uni-erlangen.de:2001/files/nightly-builds/
+fi
+rm -rf CFS_BUILD_NIGHTLY
+
+# Change into CFS++ source directory and execute CTest for Schenk Pardiso
+# using NETLIB, GOTOBLAS and ACML.
+PerformTest "sedici_gcc_schenk_nightly"
+PerformTest "sedici_gcc_acml_nightly"
+PerformTest "sedici_gcc_gotoblas_nightly"
+PerformTest "sedici_gcc_ifort_nightly"
+PerformTest "sedici_icc_gfortran_nightly"
+
+
+echo "-----------------------------------------------------------------------------"
+echo "`basename $0` finished on `date`"
+echo
