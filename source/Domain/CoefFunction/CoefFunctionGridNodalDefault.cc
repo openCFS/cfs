@@ -122,7 +122,6 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefM
   }
 
   this->GetElemSolution( elemSol, sourceElem->elemNum);
-  std::cout << elemSol << "\n\n";
 
   shared_ptr<ElemShapeMap> esm = this->srcGrid_->GetElemShapeMap( sourceElem, true );
   BaseFE * ptFe = esm->GetBaseFE();

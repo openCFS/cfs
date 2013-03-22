@@ -1428,6 +1428,7 @@ namespace CoupledField {
                         << "the default Cartesian system" );
             }
           }
+          coef->AddEntityList(actList);
           actBc->entities = actList;
           actBc->result = actFeFunction->GetResultInfo();
           actBc->dofs = definedDofs;
@@ -1494,6 +1495,7 @@ namespace CoupledField {
           }
         }
 
+        coef->AddEntityList(actList);
         actBc->entities = actList;
         actBc->result = actFeFunction->GetResultInfo();
         actBc->dofs = definedDofs;
@@ -1912,6 +1914,7 @@ namespace CoupledField {
     if( coordSysId != "default" ) {
       coef->SetCoordinateSystem( domain->GetCoordSystem(coordSysId) );
     }
+
     // return 
   }
 
