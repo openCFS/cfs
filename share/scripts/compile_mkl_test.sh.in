@@ -53,12 +53,17 @@ for MKLROOT in $MKL_ROOT_DIRS; do
     #include<stdlib.h>
     #include<math.h>
     #include <mkl_service.h>
+    #ifndef mkl_get_version
+    #define MKL_Get_Version MKLGetVersion
+    #define MKL_Free_Buffers MKL_FreeBuffers
+    #endif
 
     MKL_INT main() {
             MKLVersion ver;
             MKL_Get_Version(&ver);
             printf(\"\nSET(MKL_MAJOR_VERSION %d)\n\", ver.MajorVersion);
             printf(\"\nSET(MKL_MINOR_VERSION %d)\n\n\", ver.MinorVersion);
+            MKL_Free_Buffers();
 
             exit(0);
     }" > $SRC || ExitFail
