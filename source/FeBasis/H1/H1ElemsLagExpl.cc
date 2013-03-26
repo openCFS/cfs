@@ -1,5 +1,8 @@
 #include "H1ElemsLagExpl.hh"
 
+#include "Utils/AutoDiff.hh"
+
+
 namespace CoupledField {
 
   // ========================================================================
@@ -861,7 +864,7 @@ namespace CoupledField {
   // --- Line 2nd order ---
   
   FeH1LagrangeLine2::FeH1LagrangeLine2() : FeH1LagrangeLine() {
-    feType_ = Elem::ET_LINE3;;
+    feType_ = Elem::ET_LINE3;
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 3;
     order_ = 2; 
@@ -1487,7 +1490,7 @@ namespace CoupledField {
                                      const Vector<Double>& point,
                                      const Elem* ptElem,
                                      UInt comp ) {
-     
+#if 0     
      shape.Resize( 15 );
 
      shape[0] =  0.5 * point[2] * (1 - point[2]) * (1 - point[0] - point[1])
@@ -1511,8 +1514,145 @@ namespace CoupledField {
      shape[12] = (1 - point[0] - point[1]) * (1 - point[2] * point[2]);
      shape[13] = point[0] * (1 - point[2] * point[2]);
      shape[14] = point[1] * (1 - point[2] * point[2]);
+
+#endif
+      Double x = point[0];
+      Double y = point[1];
+      Double z = point[2];
+
+      _CalcShFnc(x, y, z,  ptElem, shape);    
+
    }
+
+    template<typename T_SCAL, typename T_VEC>
+    void FeH1LagrangeWedge2::_CalcShFnc( const T_SCAL x,  const T_SCAL y, const T_SCAL z, 
+                                          const Elem * elem,
+                                          T_VEC& ret ) {
+
+      ret.Resize(actNumFncs_);
+      
+      T_SCAL lambda[6] = { 1.0 - x - y, 2.0 * x + 2.0 * y - 1.0, 1.0 - 2.0 * x, 
+                            1.0 - 2.0 * y, x,  y };
+      T_SCAL mu[6]     = { 0.5 * (1.0-z), 0.5 * (1.0-z), 0.5 * (1.0-z),
+                           0.5 * (1.0+z), 0.5 * (1.0+z), 0.5 * (1.0+z) };  
+      
+      // corners
+      // shape[0] =  0.5 * coordsZ * (1 - coordsZ) * (1 - coordsX - coordsY)
+      //                 * (2 * coordsX + 2*coordsY -1);
+      // shape[1] =  0.5 * coordsZ * (1 - coordsZ) *  coordsX * (1 - 2 * coordsX);
+      // shape[2] =  0.5 * coordsZ * (1 - coordsZ) *  coordsY * (1 - 2 * coordsY);
+
+      // shape[3] = -0.5 * coordsZ * (1 + coordsZ) * (1 - coordsX - coordsY)
+      //                 * (2*coordsX + 2 * coordsY -1);
+      // shape[4] = -0.5*coordsZ * (1 + coordsZ) * coordsX * (1 - 2 * coordsX);
+      // shape[5] = -0.5*coordsZ * (1 + coordsZ) * coordsY * (1 - 2 * coordsY);
+
+      ret[0] = lambda[0]*lambda[1];
+      ret[0] = ret[0] * z;
+      ret[0] = ret[0] * mu[0];
+
+      ret[1] = x*lambda[2];
+      ret[1] = ret[1] * z;
+      ret[1] = ret[1] * mu[1];
+
+      ret[2] = y * lambda[3];
+      ret[2] = ret[2] * z;
+      ret[2] = ret[2] * mu[2];
+
+      ret[3] = lambda[0]*lambda[1];
+      ret[3] = ret[3] * z;
+      ret[3] = ret[3] * mu[3];
+      ret[3] = ret[3] * -1.0;
+
+      ret[4] = x * lambda[2];
+      ret[4] = ret[4] * z;
+      ret[4] = ret[4] * mu[4];
+      ret[4] = ret[4] * -1.0;
+
+      ret[5] = y * lambda[3];
+      ret[5] = ret[5] * z;
+      ret[5] = ret[5] * mu[5];
+      ret[5] = ret[5] * -1.0;
+
+      // midsides of quadratic triangles
+      // shape[6] = -2 * coordsZ * (1 - coordsZ) * coordsX * (1 - coordsX - coordsY);
+      // shape[7] = -2 * coordsZ * (1 - coordsZ) * coordsX * coordsY;
+      // shape[8] = -2 * coordsZ * (1 - coordsZ) * coordsY * (1 - coordsX - coordsY);
+
+      // shape[9]  = 2 * coordsZ * (1 + coordsZ) * coordsX * (1 - coordsX - coordsY);
+      // shape[10] = 2 * coordsZ * (1 + coordsZ) * coordsX * coordsY;
+      // shape[11] = 2 * coordsZ * (1 + coordsZ) * coordsY * (1 - coordsX - coordsY);
+
+      ret[6] = -4.0 * x;
+      ret[6] = ret[6] * lambda[0];
+      ret[6] = ret[6] * z;
+      ret[6] = ret[6] * mu[0];
+
+      ret[7] = -4.0 * x;
+      ret[7] = ret[7] * y;
+      ret[7] = ret[7] * z;
+      ret[7] = ret[7] * mu[0];
+
+      ret[8] = -4.0 * y;
+      ret[8] = ret[8] * lambda[0];
+      ret[8] = ret[8] * z;
+      ret[8] = ret[8] * mu[0];
+
+      ret[9] = 4.0 * x;
+      ret[9] = ret[9] * lambda[0];
+      ret[9] = ret[9] * z;
+      ret[9] = ret[9] * mu[3];
+
+      ret[10] = 4.0 * x;
+      ret[10] = ret[10] * y;
+      ret[10] = ret[10] * z;
+      ret[10] = ret[10] * mu[3];
+
+      ret[11] = 4.0 * y;
+      ret[11] = ret[11] * lambda[0];
+      ret[11] = ret[11] * z;
+      ret[11] = ret[11] * mu[3];
+
+      // midsides of edges between the two triangles
+      // shape[12] = (1 - coordsX - coordsY) * (1 - coordsZ * coordsZ);
+      // shape[13] = coordsX * (1 - coordsZ * coordsZ);
+      // shape[14] = coordsY * (1 - coordsZ * coordsZ);
+
+      ret[12] = lambda[0];
+      ret[12] = ret[12] * mu[0];
+      ret[12] = ret[12] * mu[3];
+      ret[12] = ret[12] * 4.0;
+
+      ret[13] = x;
+      ret[13] = ret[13] * mu[0];
+      ret[13] = ret[13] * mu[3];
+      ret[13] = ret[13] * 4.0;
+
+      ret[14] = y;
+      ret[14] = ret[14] * mu[0];
+      ret[14] = ret[14] * mu[3];
+      ret[14] = ret[14] * 4.0;
+
+  }
+
+    void FeH1LagrangeWedge2::CalcLocDerivShFnc( Matrix<Double> & deriv,
+                                                const Vector<Double>& point,
+                                                const Elem* ptElem,
+                                                UInt comp )
+    {
+      AutoDiff<Double,3> x(point[0],0), y(point[1],1),z(point[2],2);
+      StdVector<AutoDiff<Double,3> > dShape;
+      _CalcShFnc(x,y,z,ptElem,dShape);
+      UInt size = dShape.GetSize();
+      deriv.Resize(size, 3);
+      for( UInt i = 0; i < size; ++i ) {
+        for(UInt j = 0; j < 3; ++j ) {
+          deriv[i][j] = dShape[i].DVal(j);
+        }
+      }
+    }
    
+#if 0
    void FeH1LagrangeWedge2::CalcLocDerivShFnc( Matrix<Double> & deriv, 
                                              const Vector<Double>& point,
                                              const Elem* ptElem,
@@ -1584,7 +1724,9 @@ namespace CoupledField {
 
    }
 
-   // --- Wedge 2nd order ---
+#endif
+
+   // --- Complete wedge 2nd order ---
     FeH1LagrangeWedge18::FeH1LagrangeWedge18() : FeH1LagrangeWedge() {
       feType_ = Elem::ET_WEDGE18;
       shape_ = Elem::shapes[feType_];
@@ -1599,131 +1741,177 @@ namespace CoupledField {
     void FeH1LagrangeWedge18::CalcShFnc( Vector<Double>& shape,
                                          const Vector<Double>& point,
                                          const Elem* ptElem,
-                                         UInt comp ) {
-      static bool issueWarning = true;
-      if(issueWarning) {
-        WARN("CalcShFnc for ET_WEDGE18 implemented but not tested!");
-        issueWarning = false;
-      }
-
-      shape.Resize( actNumFncs_ );
+                                         UInt comp )
+    {
       Double x = point[0];
       Double y = point[1];
       Double z = point[2];
 
+      _CalcShFnc(x, y, z,  ptElem, shape);    
+    }
+
+    template<typename T_SCAL, typename T_VEC>
+    void FeH1LagrangeWedge18::_CalcShFnc( const T_SCAL x,  const T_SCAL y, const T_SCAL z, 
+                                          const Elem * elem,
+                                          T_VEC& ret ) {
+
+      ret.Resize(actNumFncs_);
+      
+      T_SCAL lambda[6] = { 1.0 - x - y, x,  y, 
+                           1.0 - x - y, x,  y };
+      T_SCAL mu[6]     = { 0.5 * (1.0-z), 0.5 * (1.0-z), 0.5 * (1.0-z),
+                           0.5 * (1.0+z), 0.5 * (1.0+z), 0.5 * (1.0+z) };  
+      
       // corners
-      shape[0] =-0.25 * (x + y) * (x + y + 1) * z * (1 - z);
-      shape[1] =-0.25 *  x      * (x + 1)     * z * (1 - z);
-      shape[2] =-0.25 *      y  * (1 + y)     * z * (1 - z);
-      shape[3] = 0.25 * (x + y) * (x + y + 1) * z * (1 + z);
-      shape[4] = 0.25 *  x      * (x + 1)     * z * (1 + z);
-      shape[5] = 0.25 *      y  * (1 + y)     * z * (1 + z);
+      // shape[0] = -0.5* t * (2*t - 1)* coordsZ * (1 - coordsZ);
+      // shape[1] = -0.5* coordsX * (2*coordsX - 1)* coordsZ * (1 - coordsZ);
+      // shape[2] = -0.5* coordsY * (2*coordsY - 1)* coordsZ * (1 - coordsZ);
+      
+      // shape[3] = 0.5* t * (2*t - 1)* coordsZ * (1 + coordsZ);
+      // shape[4] = 0.5* coordsX * (2*coordsX - 1)* coordsZ * (1 + coordsZ);
+      // shape[5] = 0.5* coordsY * (2*coordsY - 1)* coordsZ * (1 + coordsZ);
+
+      ret[0] = 2.0 * lambda[0];
+      ret[0] = ret[0] - 1.0;
+      ret[0] = ret[0] * lambda[0];
+      ret[0] = ret[0] * z;
+      ret[0] = ret[0] * mu[0];
+      ret[0] = ret[0] * -1.0;
+
+      ret[1] = 2.0 * lambda[1];
+      ret[1] = ret[1] - 1.0;
+      ret[1] = ret[1] * lambda[1];
+      ret[1] = ret[1] * z;
+      ret[1] = ret[1] * mu[1];
+      ret[1] = ret[1] * -1.0;
+
+      ret[2] = 2.0 * lambda[2];
+      ret[2] = ret[2] - 1.0;
+      ret[2] = ret[2] * lambda[2];
+      ret[2] = ret[2] * z;
+      ret[2] = ret[2] * mu[2];
+      ret[2] = ret[2] * -1.0;
+
+      ret[3] = 2.0 * lambda[3];
+      ret[3] = ret[3] - 1.0;
+      ret[3] = ret[3] * lambda[3];
+      ret[3] = ret[3] * z;
+      ret[3] = ret[3] * mu[3];
+
+      ret[4] = 2.0 * lambda[4];
+      ret[4] = ret[4] - 1.0;
+      ret[4] = ret[4] * lambda[4];
+      ret[4] = ret[4] * z;
+      ret[4] = ret[4] * mu[4];
+
+      ret[5] = 2.0 * lambda[5];
+      ret[5] = ret[5] - 1.0;
+      ret[5] = ret[5] * lambda[5];
+      ret[5] = ret[5] * z;
+      ret[5] = ret[5] * mu[5];
 
       // midsides of quadratic triangles
-      shape[6] =  (x + 1)*(x + y) *  0.5 * z * (1 - z);
-      shape[7] = -(x + 1)*(y + 1) *  0.5 * z * (1 - z);
-      shape[8] =  (y + 1)*(x + y) *  0.5 * z * (1 - z);
-      shape[9] = -(x + 1)*(x + y) *  0.5 * z * (1 + z);
-      shape[10]=  (x + 1)*(y + 1) *  0.5 * z * (1 + z);
-      shape[11]= -(y + 1)*(x + y) *  0.5 * z * (1 + z);
+      // shape[6] = -2*coordsX*t*coordsZ*(1-coordsZ);
+      // shape[7] = -2*coordsX*coordsY*coordsZ*(1-coordsZ);
+      // shape[8] = -2*coordsY*t*coordsZ*(1-coordsZ);
+
+      // shape[9] = 2*coordsX*t*coordsZ*(1+coordsZ);
+      // shape[10] = 2*coordsX*coordsY*coordsZ*(1+coordsZ);
+      // shape[11] = 2*coordsY*t*coordsZ*(1+coordsZ);
+
+      ret[6] = -4.0 * lambda[1];
+      ret[6] = ret[6] * lambda[0];
+      ret[6] = ret[6] * z;
+      ret[6] = ret[6] * mu[0];
+
+      ret[7] = -4.0 * lambda[1];
+      ret[7] = ret[7] * lambda[2];
+      ret[7] = ret[7] * z;
+      ret[7] = ret[7] * mu[0];
+
+      ret[8] = -4.0 * lambda[2];
+      ret[8] = ret[8] * lambda[0];
+      ret[8] = ret[8] * z;
+      ret[8] = ret[8] * mu[0];
+
+      ret[9] = 4.0 * lambda[1];
+      ret[9] = ret[9] * lambda[0];
+      ret[9] = ret[9] * z;
+      ret[9] = ret[9] * mu[3];
+
+      ret[10] = 4.0 * lambda[1];
+      ret[10] = ret[10] * lambda[2];
+      ret[10] = ret[10] * z;
+      ret[10] = ret[10] * mu[3];
+
+      ret[11] = 4.0 * lambda[2];
+      ret[11] = ret[11] * lambda[0];
+      ret[11] = ret[11] * z;
+      ret[11] = ret[11] * mu[3];
 
       // midsides of edges between the two triangles
-      shape[12] = 0.5 * (x + y) * (x + y + 1) * (1 + z)*(1 - z);
-      shape[13] = 0.5 *  x      * (x + 1)     * (1 + z)*(1 - z);
-      shape[14] = 0.5 *      y  * (1 + y)     * (1 + z)*(1 - z);
+      // shape[12] = t*(2*t-1)*(1+coordsZ)*(1-coordsZ);
+      // shape[13] = coordsX*(2*coordsX-1)*(1+coordsZ)*(1-coordsZ);
+      // shape[14] = coordsY*(2*coordsY-1)*(1+coordsZ)*(1-coordsZ);
+
+      ret[12] = 2.0 * lambda[0];
+      ret[12] = ret[12] - 1.0;
+      ret[12] = ret[12] * lambda[0];
+      ret[12] = ret[12] * mu[0];
+      ret[12] = ret[12] * mu[3];
+      ret[12] = ret[12] * 4.0;
+
+      ret[13] = 2.0 * lambda[1];
+      ret[13] = ret[13] - 1.0;
+      ret[13] = ret[13] * lambda[1];
+      ret[13] = ret[13] * mu[0];
+      ret[13] = ret[13] * mu[3];
+      ret[13] = ret[13] * 4.0;
+
+      ret[14] = 2.0 * lambda[2];
+      ret[14] = ret[14] - 1.0;
+      ret[14] = ret[14] * lambda[2];
+      ret[14] = ret[14] * mu[0];
+      ret[14] = ret[14] * mu[3];
+      ret[14] = ret[14] * 4.0;
 
       //Centerpoints of the biquadratic quads
-      shape[15] = -(x + 1)*(x + y) * (1 + z)*(1 - z);
-      shape[16] =  (x + 1)*(y + 1) * (1 + z)*(1 - z);
-      shape[17] = -(y + 1)*(x + y) * (1 + z)*(1 - z);
-    }
+      // shape[15] = 4*coordsX*t*(1+coordsZ)*(1-coordsZ)
+      // shape[16] = 4*coordsX*coordsY*(1+coordsZ)*(1-coordsZ)
+      // shape[17] = 4*coordsY*t*(1+coordsZ)*(1-coordsZ)
+
+      ret[15] = lambda[1] * lambda[0];
+      ret[15] = ret[15] * mu[0];
+      ret[15] = ret[15] * mu[3];
+      ret[15] = ret[15] * 16.0;
+
+      ret[16] = lambda[1] * lambda[2];
+      ret[16] = ret[16] * mu[0];
+      ret[16] = ret[16] * mu[3];
+      ret[16] = ret[16] * 16.0;
+
+      ret[17] = lambda[2] * lambda[0];
+      ret[17] = ret[17] * mu[0];
+      ret[17] = ret[17] * mu[3];
+      ret[17] = ret[17] * 16.0;
+
+  }
 
     void FeH1LagrangeWedge18::CalcLocDerivShFnc( Matrix<Double> & deriv,
                                                  const Vector<Double>& point,
                                                  const Elem* ptElem,
-                                                 UInt comp ) {
-      static bool issueWarning = true;
-      if(issueWarning) {
-        WARN("CalcLocDerivShFnc for ET_WEDGE18 implemented but not tested!");
-        issueWarning = false;
+                                                 UInt comp )
+    {
+      AutoDiff<Double,3> x(point[0],0), y(point[1],1),z(point[2],2);
+      StdVector<AutoDiff<Double,3> > dShape;
+      _CalcShFnc(x,y,z,ptElem,dShape);
+      UInt size = dShape.GetSize();
+      deriv.Resize(size, 3);
+      for( UInt i = 0; i < size; ++i ) {
+        for(UInt j = 0; j < 3; ++j ) {
+          deriv[i][j] = dShape[i].DVal(j);
+        }
       }
-      deriv.Resize(actNumFncs_,3);
-      deriv.Init();
-      Double x = point[0];
-      Double y = point[1];
-      Double z = point[2];
-
-      //Derivatives in x-direction
-      // corners
-      deriv[0][0] = -0.25 * (2 * x + 2 * y + 1) * z * (1 - z);
-      deriv[1][0] = -0.25 * (2 * x + 1)         * z * (1 - z);
-      deriv[2][0] =  0;
-      deriv[3][0] =  0.25 * (2 * x + 2 * y + 1) * z * (1 + z);
-      deriv[4][0] =  0.25 * (2 * x + 1)         * z * (1 + z);
-      deriv[5][0] =  0;
-      // midsides of quadratic triangles
-      deriv[6][0] =  (2 * x + y + 1) *  0.5 * z * (1 - z);
-      deriv[7][0] = -(y + 1)         *  0.5 * z * (1 - z);
-      deriv[8][0] =  (y + 1)         *  0.5 * z * (1 - z);
-      deriv[9][0] = -(2 * x + y + 1) *  0.5 * z * (1 + z);
-      deriv[10][0] = (y + 1)         *  0.5 * z * (1 + z) ;
-      deriv[11][0] =-(y + 1)         *  0.5 * z * (1 + z) ;
-      // midsides of edges between the two triangles
-      deriv[12][0] = 0.5 * (2 * x + 2 * y + 1) * (1 + z)*(1 - z);
-      deriv[13][0] = 0.5 * (2 * x + 1)         * (1 + z)*(1 - z);
-      deriv[14][0] = 0;
-      //Centerpoints of the biquadratic quads
-      deriv[15][0] = -(2 * x + y + 1) * (1 + z)*(1 - z);
-      deriv[16][0] =  (y + 1)         * (1 + z)*(1 - z);
-      deriv[17][0] = -(y + 1)         * (1 + z)*(1 - z);
-
-      //Derivatives in y-direction
-      // corners
-      deriv[0][1] = -0.25 * (2 * y + 2 * x + 1)   * z * (1 - z);
-      deriv[1][1] =  0;
-      deriv[2][1] = -0.25 * (2 * y + 1)           * z * (1 - z);
-      deriv[3][1] =  0.25 * (2 * y + 2 * x + 1)   * z * (1 + z);
-      deriv[4][1] =  0;
-      deriv[5][1] =  0.25 * (2 * y + 1)           * z * (1 + z);
-      // midsides of quadratic triangles
-      deriv[6][1] =  (x + 1)         *  0.5 * z * (1 - z);
-      deriv[7][1] = -(x + 1)         *  0.5 * z * (1 - z);
-      deriv[8][1] =  (2 * y + x + 1) *  0.5 * z * (1 - z);
-      deriv[9][1] = -(x + 1)         *  0.5 * z * (1 + z);
-      deriv[10][1] =  (x + 1)         *  0.5 * z * (1 + z);
-      deriv[11][1] = -(2 * y + x + 1) *  0.5 * z * (1 + z);
-      // midsides of edges between the two triangles
-      deriv[12][1] = 0.5 * (2 * y + 2 * x + 1) * (1 + z)*(1 - z);
-      deriv[13][1] = 0;
-      deriv[14][1] = 0.5 * (2 * y + 1)         * (1 + z)*(1 - z);
-      //Centerpoints of the biquadratic quads
-      deriv[15][1] = -(x + 1)         * (1 + z)*(1 - z);
-      deriv[16][1] =  (x + 1)         * (1 + z)*(1 - z);
-      deriv[17][1] = -(2 * y + x + 1) * (1 + z)*(1 - z);
-
-      //Derivatives in z-direction
-      // corners
-      deriv[0][2] = -0.25 * (x + y) * (x + y + 1) * (1 - 2 * z);
-      deriv[1][2] = -0.25 *  x      * (x + 1)     * (1 - 2 * z);
-      deriv[2][2] = -0.25 *      y  * (1 + y)     * (1 - 2 * z);
-      deriv[3][2] =  0.25 * (x + y) * (x + y + 1) * (1 + 2 * z);
-      deriv[4][2] =  0.25 *  x      * (x + 1)     * (1 + 2 * z);
-      deriv[5][2] =  0.25 *      y  * (1 + y)     * (1 + 2 * z);
-      // midsides of quadratic triangles
-      deriv[6][2] =  (x + 1)*(x + y) *  0.5 * (1 - 2 * z);
-      deriv[7][2] = -(x + 1)*(y + 1) *  0.5 * (1 - 2 * z);
-      deriv[8][2] =  (y + 1)*(x + y) *  0.5 * (1 - 2 * z);
-      deriv[9][2] = -(x + 1)*(x + y) *  0.5 * (1 + 2 * z);
-      deriv[10][2] =  (x + 1)*(y + 1) *  0.5 * (1 + 2 * z);
-      deriv[11][2] = -(y + 1)*(x + y) *  0.5 * (1 + 2 * z);
-      // midsides of edges between the two triangles
-      deriv[12][2] = 0.5 * (x + y) * (x + y + 1) * (-2 * z);
-      deriv[13][2] = 0.5 *  x      * (x + 1)     * (-2 * z);
-      deriv[14][2] = 0.5 *      y  * (1 + y)     * (-2 * z);
-      //Centerpoints of the biquadratic quads
-      deriv[15][2] = -(x + 1)*(x + y) * (-2 * z);
-      deriv[16][2] =  (x + 1)*(y + 1) * (-2 * z);
-      deriv[17][2] = -(y + 1)*(x + y) * (-2 * z);
     }
 
    // --- Tetra 1st order ---
