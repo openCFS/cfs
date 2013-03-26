@@ -412,7 +412,7 @@ namespace CoupledField
    }
 
    shared_ptr<BaseNcInterface> Grid::GetNcInterface(NcInterfaceId ncId) const {
-     if ( ncId >= 0 && ncId < ncInterfaces_.GetSize() ) {
+     if ( ncId < ncInterfaces_.GetSize() ) {
        return ncInterfaces_[ncId];
      } else {
        EXCEPTION("NcInterface width ID " << ncId << " is unknown.");
