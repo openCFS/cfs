@@ -97,112 +97,111 @@ namespace CoupledField
   }
 
 
-  void Wedge2FE :: CalcShapeFnc(Vector<Double> & Shape,
+  void Wedge2FE :: CalcShapeFnc(Vector<Double> & shape, 
                                 const Vector<Double> & LCoord,
                                 const Elem*, UInt dof,
                                 AnsatzFct::FctEntityType fctEntityType )
   {
 
-    Shape.Resize(NumNodes_);
+    const Double xi = LCoord[0];
+    const Double eta = LCoord[1];
+    const Double zeta = LCoord[2];
 
-    Shape[0] =  0.5*LCoord[2] * (1 - LCoord[2]) * (1 - LCoord[0] - LCoord[1])
-      * (2 * LCoord[0] + 2*LCoord[1] -1);
-    Shape[1] =  0.5*LCoord[2] * (1 - LCoord[2]) *  LCoord[0] * (1 - 2*LCoord[0]);
-    Shape[2] =  0.5*LCoord[2] * (1 - LCoord[2]) *  LCoord[1] * (1 - 2*LCoord[1]);
-
-    Shape[3] =- 0.5*LCoord[2] * (1 + LCoord[2]) * (1 - LCoord[0] - LCoord[1])
-      * (2*LCoord[0] + 2*LCoord[1] -1);
-    Shape[4] = -0.5*LCoord[2] * (1 + LCoord[2]) * LCoord[0] * (1 - 2*LCoord[0]);
-    Shape[5] = -0.5*LCoord[2] * (1 + LCoord[2]) * LCoord[1] * (1 - 2*LCoord[1]);
-
-    Shape[6] = -2*LCoord[2] * (1 - LCoord[2]) * LCoord[0] * (1 - LCoord[0] - LCoord[1]);
-    Shape[7] = -2*LCoord[2] * (1 - LCoord[2]) * LCoord[0] * LCoord[1];
-    Shape[8] = -2*LCoord[2] * (1 - LCoord[2]) * LCoord[1] * (1 - LCoord[0] - LCoord[1]);
-
-    Shape[9]  = 2*LCoord[2] * (1 + LCoord[2]) * LCoord[0] * (1 - LCoord[0] - LCoord[1]);
-    Shape[10] = 2*LCoord[2] * (1 + LCoord[2]) * LCoord[0] * LCoord[1];
-    Shape[11] = 2*LCoord[2] * (1 + LCoord[2]) * LCoord[1] * (1 - LCoord[0] - LCoord[1]);
-
-    Shape[12] = (1 - LCoord[0] - LCoord[1]) * (1 - LCoord[2] * LCoord[2]);
-    Shape[13] = LCoord[0] * (1 - LCoord[2] * LCoord[2]);
-    Shape[14] = LCoord[1] * (1 - LCoord[2] * LCoord[2]);
+    shape.Resize( 15 );
+    shape[0] = (-0.5*xi - 0.5*eta + 0.5)*(zeta*zeta + (zeta - 1)*(2*xi + 2*eta - 1) - 1);
+    shape[1] = xi*(-1.0*xi*zeta + 1.0*xi + 0.5*zeta*zeta + 0.5*zeta - 1.0);
+    shape[2] = eta*(-1.0*eta*zeta + 1.0*eta + 0.5*zeta*zeta + 0.5*zeta - 1.0);
+    shape[3] = (xi + eta - 1)*(-0.5*zeta*zeta + 0.5*(zeta + 1)*(2*xi + 2*eta - 1) + 0.5);
+    shape[4] = xi*(1.0*xi*zeta + 1.0*xi + 0.5*zeta*zeta - 0.5*zeta - 1.0);
+    shape[5] = eta*(1.0*eta*zeta + 1.0*eta + 0.5*zeta*zeta - 0.5*zeta - 1.0);
+    shape[6] = 2*xi*(zeta - 1)*(xi + eta - 1);
+    shape[7] = 2*xi*eta*(-zeta + 1);
+    shape[8] = 2*eta*(zeta - 1)*(xi + eta - 1);
+    shape[9] = -2*xi*(zeta + 1)*(xi + eta - 1);
+    shape[10] = 2*xi*eta*(zeta + 1);
+    shape[11] = -2*eta*(zeta + 1)*(xi + eta - 1);
+    shape[12] = (zeta*zeta - 1)*(xi + eta - 1);
+    shape[13] = xi*(-zeta*zeta + 1);
+    shape[14] = eta*(-zeta*zeta + 1);
   }
 
 
-  void Wedge2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
+  void Wedge2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & deriv, 
                                           const Vector<Double> & LCoord,
                                           const Elem*, UInt dof,
                                           AnsatzFct::FctEntityType fctEntityType )
   {
 
-    LDeriv.Resize(NumNodes_,Dim_);
+    const Double xi = LCoord[0];
+    const Double eta = LCoord[1];
+    const Double zeta = LCoord[2];
 
-    LDeriv.Init();
+    deriv.Resize(NumNodes_,Dim_);
+    deriv.Init();
 
-    LDeriv[0][0] = +0.5*LCoord[2] * (1 - LCoord[2]) * (3 - 4*LCoord[0] - 4*LCoord[1]);
-    LDeriv[0][1] = +0.5*LCoord[2] * (1 - LCoord[2]) * (3 - 4*LCoord[0] - 4*LCoord[1]);
-    LDeriv[0][2] = +0.5 * (1 - 2*LCoord[2]) * (1 - LCoord[0] - LCoord[1])
-      * (2*LCoord[0] + 2*LCoord[1] -1 );
+    // symbolically solved using sympy
 
-    LDeriv[1][0] =  0.5*LCoord[2] * (1 - LCoord[2]) * (1 - 4*LCoord[0]);
-    LDeriv[1][1] =  0.0;
-    LDeriv[1][2] =  0.5 * (1 - 2*LCoord[2]) * LCoord[0] * (1 - 2*LCoord[0]);
+    deriv[0][0] = -2.0*xi*zeta + 2.0*xi - 2.0*eta*zeta + 2.0*eta - 0.5*zeta*zeta + 1.5*zeta - 1.0;
+    deriv[0][1] = -2.0*xi*zeta + 2.0*xi - 2.0*eta*zeta + 2.0*eta - 0.5*zeta*zeta + 1.5*zeta - 1.0;
+    deriv[0][2] = (xi + eta - 1)*(-1.0*xi - 1.0*eta - 1.0*zeta + 0.5);
 
-    LDeriv[2][0] =  0.0;
-    LDeriv[2][1] =  0.5*LCoord[2] * (1 - LCoord[2]) * (1 - 4*LCoord[1]);
-    LDeriv[2][2] =  0.5 * (1 - 2*LCoord[2]) * LCoord[1] * (1 - 2*LCoord[1]);
+    deriv[1][0] = -2.0*xi*zeta + 2.0*xi + 0.5*zeta*zeta + 0.5*zeta - 1.0;
+    deriv[1][1] = 0;
+    deriv[1][2] = xi*(-1.0*xi + 1.0*zeta + 0.5);
 
-    LDeriv[3][0] = -0.5*LCoord[2] * (1 + LCoord[2]) * (3 - 4*LCoord[0] - 4*LCoord[1]);
-    LDeriv[3][1] = -0.5*LCoord[2] * (1 + LCoord[2]) * (3 - 4*LCoord[0] - 4*LCoord[1]);
-    LDeriv[3][2] = -0.5 * (1 + 2*LCoord[2]) * (1 - LCoord[0] - LCoord[1])
-      * (2*LCoord[0] + 2*LCoord[1] -1 );
+    deriv[2][0] = 0;
+    deriv[2][1] = -2.0*eta*zeta + 2.0*eta + 0.5*zeta*zeta + 0.5*zeta - 1.0;
+    deriv[2][2] = eta*(-1.0*eta + 1.0*zeta + 0.5);
 
-    LDeriv[4][0] = -0.5*LCoord[2] * (1 + LCoord[2]) * (1 - 4*LCoord[0]);
-    LDeriv[4][1] =  0.0;
-    LDeriv[4][2] = -0.5 * (1 + 2*LCoord[2]) * LCoord[0] * (1 - 2*LCoord[0]);
+    deriv[3][0] = 2.0*xi*zeta + 2.0*xi + 2.0*eta*zeta + 2.0*eta - 0.5*zeta*zeta - 1.5*zeta - 1.0;
+    deriv[3][1] = 2.0*xi*zeta + 2.0*xi + 2.0*eta*zeta + 2.0*eta - 0.5*zeta*zeta - 1.5*zeta - 1.0;
+    deriv[3][2] = (xi + eta - 1)*(1.0*xi + 1.0*eta - 1.0*zeta - 0.5);
 
-    LDeriv[5][0] =  0.0;
-    LDeriv[5][1] = -0.5*LCoord[2] * (1 + LCoord[2]) * (1 - 4*LCoord[1]);
-    LDeriv[5][2] = -0.5 * (1 + 2*LCoord[2]) * LCoord[1] * (1 - 2*LCoord[1]);
+    deriv[4][0] = 2.0*xi*zeta + 2.0*xi + 0.5*zeta*zeta - 0.5*zeta - 1.0;
+    deriv[4][1] = 0;
+    deriv[4][2] = xi*(1.0*xi + 1.0*zeta - 0.5);
 
-    LDeriv[6][0] =  -2*LCoord[2] * (1 - LCoord[2]) * (1 - 2*LCoord[0] - LCoord[1]);
-    LDeriv[6][1] =   2*LCoord[2] * (1 - LCoord[2]) * LCoord[0];
-    LDeriv[6][2] =  -2*(1 - 2*LCoord[2]) * LCoord[0] * (1 - LCoord[0] - LCoord[1]);
+    deriv[5][0] = 0;
+    deriv[5][1] = 2.0*eta*zeta + 2.0*eta + 0.5*zeta*zeta - 0.5*zeta - 1.0;
+    deriv[5][2] = eta*(1.0*eta + 1.0*zeta - 0.5);
 
-    LDeriv[7][0] =  -2*LCoord[2] * (1 - LCoord[2]) * LCoord[1];
-    LDeriv[7][1] =  -2*LCoord[2] * (1 - LCoord[2]) * LCoord[0];
-    LDeriv[7][2] =  -2*(1 - 2*LCoord[2]) * LCoord[0] * LCoord[1];
+    deriv[6][0] = 4*xi*zeta - 4*xi + 2*eta*zeta - 2*eta - 2*zeta + 2;
+    deriv[6][1] = 2*xi*(zeta - 1);
+    deriv[6][2] = 2*xi*(xi + eta - 1);
 
-    LDeriv[8][0] =   2*LCoord[2] * (1 - LCoord[2]) * LCoord[1];
-    LDeriv[8][1] =  -2*LCoord[2] * (1 - LCoord[2]) * (1 - LCoord[0] - 2*LCoord[1]);
-    LDeriv[8][2] =  -2*(1 - 2*LCoord[2]) * LCoord[1] * (1 - LCoord[0] - LCoord[1]);
+    deriv[7][0] = 2*eta*(-zeta + 1);
+    deriv[7][1] = 2*xi*(-zeta + 1);
+    deriv[7][2] = -2*xi*eta;
 
-    LDeriv[9][0] =   2*LCoord[2] * (1 + LCoord[2]) * (1 - 2*LCoord[0] - LCoord[1]);
-    LDeriv[9][1] =  -2*LCoord[2] * (1 + LCoord[2]) * LCoord[0];
-    LDeriv[9][2] =   2*(1 + 2*LCoord[2]) * LCoord[0] * (1 - LCoord[0] - LCoord[1]);
+    deriv[8][0] = 2*eta*(zeta - 1);
+    deriv[8][1] = 2*xi*zeta - 2*xi + 4*eta*zeta - 4*eta - 2*zeta + 2;
+    deriv[8][2] = 2*eta*(xi + eta - 1);
 
-    LDeriv[10][0] =  2*LCoord[2] * (1 + LCoord[2]) * LCoord[1];
-    LDeriv[10][1] =  2*LCoord[2] * (1 + LCoord[2]) * LCoord[0];
-    LDeriv[10][2] =  2*(1 + 2*LCoord[2]) * LCoord[0] * LCoord[1];
+    deriv[9][0] = -4*xi*zeta - 4*xi - 2*eta*zeta - 2*eta + 2*zeta + 2;
+    deriv[9][1] = 2*xi*(-zeta - 1);
+    deriv[9][2] = 2*xi*(-xi - eta + 1);
 
-    LDeriv[11][0] =  -2*LCoord[2] * (1 + LCoord[2]) * LCoord[1];
-    LDeriv[11][1] =   2*LCoord[2] * (1 + LCoord[2]) * (1 - LCoord[0] - 2*LCoord[1]);
-    LDeriv[11][2] =   2*(1 + 2*LCoord[2]) * LCoord[1] * (1 - LCoord[0] - LCoord[1]);
+    deriv[10][0] = 2*eta*(zeta + 1);
+    deriv[10][1] = 2*xi*(zeta + 1);
+    deriv[10][2] = 2*xi*eta;
 
-    LDeriv[12][0] =  -(1 - LCoord[2] * LCoord[2]);
-    LDeriv[12][1] =  -(1 - LCoord[2] * LCoord[2]);
-    LDeriv[12][2] =  -2*LCoord[2] * (1 - LCoord[0] - LCoord[1]);
+    deriv[11][0] = 2*eta*(-zeta - 1);
+    deriv[11][1] = -2*xi*zeta - 2*xi - 4*eta*zeta - 4*eta + 2*zeta + 2;
+    deriv[11][2] = 2*eta*(-xi - eta + 1);
 
-    LDeriv[13][0] =  (1 - LCoord[2] * LCoord[2]);
-    LDeriv[13][1] =  0;
-    LDeriv[13][2] =  -2*LCoord[2] * LCoord[0];
+    deriv[12][0] = zeta*zeta - 1;
+    deriv[12][1] = zeta*zeta - 1;
+    deriv[12][2] = 2*zeta*(xi + eta - 1);
 
-    LDeriv[14][0] =  0;
-    LDeriv[14][1] =  (1 - LCoord[2] * LCoord[2]);
-    LDeriv[14][2] = -2*LCoord[2] * LCoord[1];
+    deriv[13][0] = -zeta*zeta + 1;  
+    deriv[13][1] = 0;
+    deriv[13][2] = -2*xi*zeta;
+
+    deriv[14][0] = 0;
+    deriv[14][1] = -zeta*zeta + 1;
+    deriv[14][2] = -2*eta*zeta;
 
   }
-
 
 
 
