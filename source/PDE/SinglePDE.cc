@@ -207,7 +207,19 @@ namespace CoupledField {
     if( isDirectCoupled_ == false && needsAlgsys_ == true) {
       assemble_ = new Assemble( algsys_, analysistype_ );
     }
-
+    
+    // =====================================================================
+    // read in material data
+    // =====================================================================
+    LOG_TRACE(singlepde) << pdename_ << ": Reading material information";
+    ReadMaterialData();
+    
+    // =====================================================================
+    // read in damping information
+    // =====================================================================
+    LOG_TRACE(singlepde) << pdename_ << ": Reading damping information";
+    ReadDampingInformation( );
+    
     //======================================================================
     // trigger the creation of functionDescriptors
     //======================================================================
@@ -231,19 +243,7 @@ namespace CoupledField {
     // =====================================================================
     DefinePrimaryResults();
     
-    // =====================================================================
-    // read in material data
-    // =====================================================================
-    LOG_TRACE(singlepde) << pdename_ << ": Reading material information";
-    ReadMaterialData();
-
     
-    // =====================================================================
-    // read in damping information
-    // =====================================================================
-    LOG_TRACE(singlepde) << pdename_ << ": Reading damping information";
-    ReadDampingInformation( );
-
     // =====================================================================
     // read in NonLinearities
     // =====================================================================

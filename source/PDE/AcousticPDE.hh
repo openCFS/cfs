@@ -58,6 +58,9 @@ namespace CoupledField{
     //! Define available postprocessing results
     void DefinePostProcResults();
 
+    //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
+    void ReadDampingInformation();
+    
     //! Init the time stepping
     void InitTimeStepping();
 
@@ -72,6 +75,9 @@ namespace CoupledField{
     //! stores if the Acoustic PDE is in potential or pressure form
     SolutionType formulation_;
 
+    //! Stores Rayleigh damping definition for each region
+    std::map<RegionIdType, RaylDampingData > regionRaylDamping_;
+    
     //! Coefficient function for the flow field
 
     //! This coefficient function describes the flow field. As this 
