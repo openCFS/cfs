@@ -410,25 +410,9 @@ IF(BUILD_PARAVIEW)
   SET(CFS_PV_DEPENDENCIES "")
 
   #---------------------------------------------------------------------------
-  # ParaView requires latest CMake
-  #---------------------------------------------------------------------------
-  IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}"
-     VERSION_LESS "2.8.8")
-    set(CMAKE_URL "${LSE17_SOURCES_DIR}/cmake")
-    set(CMAKE_GZ cmake-2.8.8.tar.gz)
-    set(CMAKE_MD5 ba74b22c788a0c8547976b880cd02b17)
-  
-    INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cmake/External_CMake.cmake")
-
-    SET(CFS_PV_CMAKE_COMMAND "${CFS_BINARY_DIR}/cmake/bin/cmake")
-  ELSE()
-    SET(CFS_PV_CMAKE_COMMAND "${CMAKE_COMMAND}")
-  ENDIF()
-
-  #---------------------------------------------------------------------------
   # Qt - Let's check if a valid version of Qt is available
   #---------------------------------------------------------------------------
-  FIND_PACKAGE(Qt4 4.8.0)
+  FIND_PACKAGE(Qt4 4.8.2)
   IF(NOT QT4_FOUND)
     set(QT4_URL "${LSE17_SOURCES_DIR}/qt4")
     set(QT4_GZ qt-everywhere-opensource-src-4.8.2.tar.gz)
@@ -438,11 +422,18 @@ IF(BUILD_PARAVIEW)
   ENDIF()
 
   #---------------------------------------------------------------------------
-  # Finally add an external project for ParaView
+  # Build QtCurve style.
   #---------------------------------------------------------------------------
-  set(PARAVIEW_URL "http://www.paraview.org/files/v3.14")
-  set(PARAVIEW_GZ ParaView-3.14.1-Source.tar.gz)
-  set(PARAVIEW_MD5 039c612777f5eb7bba5d37319f34c922)
+  IF(UNIX)
+    INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/qt4/External_QtCurve.cmake")
+  ENDIF()
+
+  #---------------------------------------------------------------------------
+  # Finally add an external project for ParaViewSuperbuild
+  #---------------------------------------------------------------------------
+  set(PARAVIEW_SB_URL "${LSE17_SOURCES_DIR}/paraview")
+  set(PARAVIEW_SB_GZ pvsuperbuild-3.98.1.tgz)
+  set(PARAVIEW_SB_MD5 c5471eebe633fe3410a24e543836ec81)
 
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/paraview/External_ParaView.cmake")
 ENDIF(BUILD_PARAVIEW)

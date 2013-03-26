@@ -1,26 +1,9 @@
 #-------------------------------------------------------------------------------
 # Set prefix path and path to paraview sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
-set(paraview_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/paraview")
-set(paraview_install  "${CMAKE_CURRENT_BINARY_DIR}/paraview")
-set(paraview_source  "${paraview_prefix}/src/paraview")
-
-# mv lib64/* lib
-# No rule to make target `/home/user/cfs_build/cfsdeps/paraview/src/paraview-superbuild-build/lib/libmpich.a', needed by `bin/libMapReduceMPI.so.pv3.14'.  Stop.
-# /home/user/cfs_build/cfsdeps/paraview/src/paraview-superbuild-build/lib/libhdf5_hl.so
-
-# user@linux-ulef:~/cfs_build_debug/cfsdeps/paraview/src/paraview-superbuild-build> mv lib64/
-# clog2print.jar           jumpshot.jar             libmpe_collchk.a         libmpichcxx.a            libsiloh5.la             pkgconfig/               slog2update205to206.jar
-# clog2TOdrawable.jar      jumpshot_launcher.jar    libmpe_f2cmpi.a          libmpichf90.a            libsiloh5.settings       python2.7/               traceprint.jar
-# clog2TOslog2.jar         libampe.a                libmpe_nompi.a           libmpl.a                 libsiloh5.so             slog2filter.jar          traceTOslog2.jar
-# clogprint.jar            libfmpich.a              libmpe_nompi_null.a      libmpl.la                libtmpe.a                slog2navigator.jar       
-# clogTOdrawable.jar       liblmpe.a                libmpe_null.a            libopa.a                 logconvertor.jar         slog2printrecur.jar      
-# clogTOslog2.jar          libmpe.a                 libmpich.a               libopa.la                mpe_prof.o               slog2printserial.jar     
-# user@linux-ulef:~/cfs_build_debug/cfsdeps/paraview/src/paraview-superbuild-build> mv lib64/* lib
-
-# GCC 4.7 intptr_t
-# /home/user/cfs_build_debug/cfsdeps/paraview/src/paraview/VTK/Rendering/vtkFreeTypeUtilities.cxx:343:46:
-# /home/user/cfs_build_debug/cfsdeps/paraview/src/paraview/VTK/Rendering/vtkFreeTypeTools.cxx:229
+set(paraview_sb_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/paraview_superbuild")
+set(paraview_sb_install  "${CMAKE_CURRENT_BINARY_DIR}/paraview")
+set(paraview_sb_source  "${paraview_prefix}/src/paraview_superbuild")
 
 #-------------------------------------------------------------------------------
 # Info on SuperBuild
@@ -45,76 +28,65 @@ set(paraview_source  "${paraview_prefix}/src/paraview")
 # http://openfoamwiki.net/index.php/Tip_Build_A_Paraview3_Plugin
 #-------------------------------------------------------------------------------
 
+SET(CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX:PATH=${paraview_sb_install}
+  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
+  -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}
+  -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
+  -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
+  -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
+  -DCMAKE_Fortran_FLAGS:STRING=${CFSDEPS_Fortran_FLAGS}
+  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
+  -DCFS_DEPS_CACHE_DIR:PATH=${CFS_DEPS_CACHE_DIR}
+  -DCFS_SOURCE_DIR:PATH=${CFS_SOURCE_DIR}
+  -DENABLE_boost:BOOL=ON
+  -DENABLE_ffmpeg:BOOL=ON
+  -DENABLE_fontconfig:BOOL=ON
+  -DENABLE_freetype:BOOL=ON
+  -DENABLE_hdf5:BOOL=ON
+  -DENABLE_libxml2:BOOL=ON
+  -DENABLE_paraview:BOOL=ON
+  -DENABLE_png:BOOL=ON
+  -DENABLE_szip:BOOL=ON
+  -DENABLE_zlib:BOOL=ON
+  -DENABLE_qt:BOOL=ON
+  -DUSE_SYSTEM_qt=ON
+  -DQT_QMAKE_EXECUTABLE:FILEPATH=${QT_QMAKE_EXECUTABLE}
+  -DENABLE_python:BOOL=ON
+  -DUSE_SYSTEM_python=ON
+  )
+
+IF(CFS_DISTRO STREQUAL "MACOSX")
+  SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DCMAKE_CXX_FLAGS:FILEPATH=${CFLAGS}
+    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
+    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
+    -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.6
+    )
+ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+
+IF(CMAKE_TOOLCHAIN_FILE)
+  LIST(APPEND CMAKE_ARGS
+    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
+  )
+ENDIF()
+
 #-------------------------------------------------------------------------------
 # The paraview-download external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add(paraview-download
-  PREFIX ${paraview_prefix}
+ExternalProject_Add(paraview-superbuild
+  DEPENDS ${CFS_PV_DEPENDENCIES}
+  PREFIX ${paraview_sb_prefix}
   DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/paraview
   SOURCE_DIR ${paraview_source}
-  URL ${PARAVIEW_URL}/${PARAVIEW_GZ}
-  URL_MD5 ${PARAVIEW_MD5}
-  CMAKE_COMMAND ""
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ""
+  URL ${PARAVIEW_SB_URL}/${PARAVIEW_SB_GZ}
+  URL_MD5 ${PARAVIEW_SB_MD5}
+  CMAKE_ARGS
+    ${CMAKE_ARGS}
   )
-
-configure_file("${CFS_SOURCE_DIR}/cfsdeps/paraview/paraview-configure-step.cmake.in"
-  "${paraview_prefix}/paraview-configure-step.cmake"
-  @ONLY)
-
-set(PV_CONFIGURE_COMMAND ${CMAKE_COMMAND} -P ${paraview_prefix}/paraview-configure-step.cmake)
-
-configure_file("${CFS_SOURCE_DIR}/cfsdeps/paraview/paraview-build-step.cmake.in"
-  "${paraview_prefix}/paraview-build-step.cmake"
-  @ONLY)
-
-set(PV_BUILD_COMMAND ${CMAKE_COMMAND} -P ${paraview_prefix}/paraview-build-step.cmake)
-
-configure_file("${CFS_SOURCE_DIR}/cfsdeps/paraview/paraview-install-step.cmake.in"
-  "${paraview_prefix}/paraview-install-step.cmake"
-  @ONLY)
-
-set(PV_INSTALL_COMMAND ${CMAKE_COMMAND} -P ${paraview_prefix}/paraview-install-step.cmake)
-
-# MESSAGE(FATAL_ERROR "CFS_PV_CMAKE_COMMAND ${CFS_PV_CMAKE_COMMAND}")
-ExternalProject_Add(paraview-superbuild
-  DEPENDS ${CFS_PV_DEPENDENCIES} paraview-download
-  PREFIX ${paraview_prefix}
-  DOWNLOAD_COMMAND ""
-  CONFIGURE_COMMAND ${PV_CONFIGURE_COMMAND}
-  BUILD_COMMAND ${PV_BUILD_COMMAND}
-  INSTALL_COMMAND ""
-  )
-
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/paraview/paraview-patch.cmake.in")
-SET(PFN "${paraview_prefix}/paraview-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-#-------------------------------------------------------------------------------
-# We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
-# want to apply the patch script  during configuration time but also if it has
-# changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
-# script. This can be achieved by  adding an additional build step between the
-# download and configure steps.
-#
-# NOTE: The  patch script should  be designed  in such a  way, that it  can be
-# applied to  an already patched  source tree. This  is due to the  fact, that
-# ExternalProject_Add only extracts the source if the MD5 sum has has changed.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(paraview-superbuild custom_patch
-   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-   DEPENDEES download
-   DEPENDERS configure
-   DEPENDS "${PFN}"
-   WORKING_DIRECTORY ${paraview_source}
-)
-
-# ln -s libhdf5_debug.so.1.8.8 libhdf5.so
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
