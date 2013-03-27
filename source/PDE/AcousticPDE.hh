@@ -68,6 +68,7 @@ namespace CoupledField{
     void CreateMeanFlowFunction(StdVector<std::string> dofNames);
 
     //! create transient PML integrators
+    template<UInt DIM>
     void DefineTransientPMLInts(shared_ptr<ElemList> eList,std::string id);
 
   private:
@@ -90,6 +91,9 @@ namespace CoupledField{
 
     //! flag for transient PML
     bool isTimeDomPML_;
+
+    //! flag indicating if we have almost PML (better stability in 3D)
+    bool isAPML_;
   };
 
 }
