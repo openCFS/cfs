@@ -398,9 +398,9 @@ void LagrangeElemShapeMap::Global2LocalBarycentric(Vector<Double>& locPoint,
 
     baryMat.Invert(baryMatInv);
 
-    b[0] = globalPoint[0] - coords_[3][0];
-    b[1] = globalPoint[1] - coords_[3][1];
-    b[2] = globalPoint[2] - coords_[3][2];
+    b[0] = globalPoint[0] - coords_[0][3];
+    b[1] = globalPoint[1] - coords_[1][3];
+    b[2] = globalPoint[2] - coords_[2][3];
 
     lamb = baryMatInv * b;
     Double lamb4 = 1 - lamb[0] - lamb[1] - lamb[2];
@@ -1229,7 +1229,7 @@ void LagrangeElemShapeMap::Global2LocalGeneral(Vector<Double>& locPoint,
 
   if (xi_k.GetSize() == 0) {
     WARN("Global2Local lost its memory, Resetting the point to 99");
-    xi_k.Resize(2);
+    xi_k.Resize(locDim);
     xi_k.Init(99);
   }
 
