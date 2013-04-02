@@ -58,6 +58,9 @@ namespace CoupledField{
     //! Define available postprocessing results
     void DefinePostProcResults();
 
+    //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
+    void ReadDampingInformation();
+    
     //! Init the time stepping
     void InitTimeStepping();
 
@@ -65,6 +68,7 @@ namespace CoupledField{
     void CreateMeanFlowFunction(StdVector<std::string> dofNames);
 
     //! create transient PML integrators
+    template<UInt DIM>
     void DefineTransientPMLInts(shared_ptr<ElemList> eList,std::string id);
 
   private:
@@ -72,6 +76,9 @@ namespace CoupledField{
     //! stores if the Acoustic PDE is in potential or pressure form
     SolutionType formulation_;
 
+    //! Stores Rayleigh damping definition for each region
+    std::map<RegionIdType, RaylDampingData > regionRaylDamping_;
+    
     //! Coefficient function for the flow field
 
     //! This coefficient function describes the flow field. As this 
@@ -84,6 +91,9 @@ namespace CoupledField{
 
     //! flag for transient PML
     bool isTimeDomPML_;
+
+    //! flag indicating if we have almost PML (better stability in 3D)
+    bool isAPML_;
   };
 
 }

@@ -6,6 +6,7 @@ SET(CMAKE_C_COMPILER /usr/bin/x86_64-w64-mingw32-gcc)
 SET(CMAKE_CXX_COMPILER /usr/bin/x86_64-w64-mingw32-g++)
 SET(CMAKE_Fortran_COMPILER /usr/bin/x86_64-w64-mingw32-gfortran)
 SET(CMAKE_RC_COMPILER /usr/bin/x86_64-w64-mingw32-windres)
+SET(CMAKE_RANLIB /usr/bin/x86_64-w64-mingw32-ranlib)
 
 # here is the target environment located
 SET(CMAKE_FIND_ROOT_PATH /usr/x86_64-w64-mingw32 )

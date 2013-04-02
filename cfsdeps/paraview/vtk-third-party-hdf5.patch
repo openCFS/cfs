@@ -1,0 +1,37 @@
+--- VTK/ThirdParty/hdf5/CMakeLists.txt	2013-02-07 16:43:55.000000000 +0100
++++ VTK/ThirdParty/hdf5/CMakeLists.txt	2013-03-18 11:31:25.059999895 +0100
+@@ -1,12 +1,15 @@
+ vtk_module_third_party(HDF5
+-  LIBRARIES vtkhdf5_hl vtkhdf5
++  LIBRARIES vtkhdf5_hl_cpp vtkhdf5_cpp vtkhdf5_hl vtkhdf5
+   INCLUDE_DIRS
+     ${CMAKE_CURRENT_BINARY_DIR}/vtkhdf5
+     ${CMAKE_CURRENT_SOURCE_DIR}/vtkhdf5/hl/src
++    ${CMAKE_CURRENT_SOURCE_DIR}/vtkhdf5/c++/src
++    ${CMAKE_CURRENT_SOURCE_DIR}/vtkhdf5/hl/c++/src
+     ${CMAKE_CURRENT_SOURCE_DIR}/vtkhdf5/src
+   NO_ADD_SUBDIRECTORY
+   COMPONENTS C
+   OPTIONAL_COMPONENTS HL
++  OPTIONAL_COMPONENTS CXX
+   )
+ if(VTK_USE_SYSTEM_HDF5)
+   return()
+@@ -26,7 +29,7 @@
+ 
+ # Configure HDF5 privately so its options do not appear to the user.
+ set(HDF5_ALLOW_EXTERNAL_SUPPORT OFF CACHE INTERNAL "Allow External Library Building")
+-set(HDF5_BUILD_CPP_LIB OFF CACHE INTERNAL "Build HDF5 C++ Library")
++set(HDF5_BUILD_CPP_LIB ON CACHE INTERNAL "Build HDF5 C++ Library")
+ set(HDF5_BUILD_HL_LIB ON CACHE INTERNAL "Build HIGH Level HDF5 Library")
+ set(HDF5_DISABLE_COMPILER_WARNINGS ON CACHE INTERNAL "Disable HDF5 warnings")
+ set(HDF5_ENABLE_CODESTACK OFF CACHE INTERNAL "Enable the function stack tracing (for developer debugging).")
+@@ -70,6 +73,8 @@
+ foreach(lib
+     vtkhdf5
+     vtkhdf5_hl
++    vtkhdf5_cpp
++    vtkhdf5_hl_cpp
+     )
+   vtk_target(${lib} NO_INSTALL)
+ endforeach()

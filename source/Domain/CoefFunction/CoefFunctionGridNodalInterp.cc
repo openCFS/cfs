@@ -230,22 +230,29 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
   StdVector< const Elem* > foundElements;
 
   Grid* destGrid = domain->GetGrid();
-  //loop over all source regions and add the notes to the vector
-  StdVector<UInt> curNodes;
+
+
   StdVector<UInt> allNodes;
   std::set<std::string>::iterator regIt = this->srcRegions_.begin();
-  while(regIt != this->srcRegions_.end()){
-    RegionIdType aReg = this->srcGrid_->GetRegion().Parse(*regIt);
-    this->srcGrid_->GetNodesByRegion(curNodes,aReg);
-    allNodes.Reserve(allNodes.GetSize()+curNodes.GetSize());
-    for(UInt i=0;i<curNodes.GetSize();i++){
-      if(allNodes.Find(curNodes[i])==-1)
-        allNodes.Push_back(curNodes[i]);
-    }
-    regIt++;
+  bool multipleRegions = (this->srcRegions_.size()>1);
+  if(!multipleRegions){
+     RegionIdType aReg = this->srcGrid_->GetRegion().Parse(*regIt);
+     this->srcGrid_->GetNodesByRegion(allNodes,aReg);
+  }else{
+     StdVector<UInt> curNodes;
+     while(regIt != this->srcRegions_.end()){
+       RegionIdType aReg = this->srcGrid_->GetRegion().Parse(*regIt);
+       this->srcGrid_->GetNodesByRegion(curNodes,aReg);
+       allNodes.Reserve(allNodes.GetSize()+curNodes.GetSize());
+       for(UInt i=0;i<curNodes.GetSize();i++){
+         if(allNodes.Find(curNodes[i])==-1)
+           allNodes.Push_back(curNodes[i]);
+       }
+       regIt++;
+     }
   }
-
-  nodeGlobCoords.Resize(allNodes.GetSize(),Vector<Double>(2));
+  UInt dim = this->srcGrid_->GetDim();
+  nodeGlobCoords.Resize(allNodes.GetSize(),Vector<Double>(dim));
   Vector<Double> aCoord;
   for(UInt i=0;i<allNodes.GetSize();++i){
     this->srcGrid_->GetNodeCoordinate(aCoord,allNodes[i]);

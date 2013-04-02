@@ -179,7 +179,6 @@ cfsdeps/muparser/muparser-pow-intel.patch -text
 cfsdeps/muparser/muparser-strfun45.patch -text
 cfsdeps/paraview/CMakeLists.txt -text
 cfsdeps/paraview/External_ParaView.cmake -text
-cfsdeps/paraview/External_QtCurve.cmake -text
 cfsdeps/paraview/boost_patch_step.cmake.in -text
 cfsdeps/paraview/ext_boost.patch -text
 cfsdeps/paraview/ext_cgns.patch -text
@@ -204,13 +203,16 @@ cfsdeps/paraview/paraview-configure-step.cmake.in -text
 cfsdeps/paraview/paraview-install-step.cmake.in -text
 cfsdeps/paraview/paraview-patch.cmake.in -text
 cfsdeps/paraview/paraview_common_environment.cmake.in -text
+cfsdeps/paraview/pv-cfs-off-reader.patch -text
 cfsdeps/paraview/pv-colormaps.patch -text
+cfsdeps/paraview/pv-gmvreader.patch -text
 cfsdeps/paraview/pv-off-flatpoly-color.patch -text
 cfsdeps/paraview/pv-xmdf2-string.patch -text
 cfsdeps/paraview/silo_configure_step.cmake.in -text
 cfsdeps/paraview/vtk-gcc44-empty-macro-arguments.patch -text
 cfsdeps/paraview/vtk-quadratic-quads-derivs.patch -text
 cfsdeps/paraview/vtk-sqldatabaseschema.patch -text
+cfsdeps/paraview/vtk-third-party-hdf5.patch -text
 cfsdeps/python/External_Python.cmake -text
 cfsdeps/python/python_configure_step.cmake.in -text
 cfsdeps/python/python_install_step.cmake.in -text
@@ -218,6 +220,7 @@ cfsdeps/python/python_make_step.cmake.in -text
 cfsdeps/python/python_patch_step.cmake.in -text
 cfsdeps/python/python_setup.py.in -text
 cfsdeps/qt4/External_Qt4.cmake -text
+cfsdeps/qt4/External_QtCurve.cmake -text
 cfsdeps/qt4/qt4-build-step.cmake.in -text
 cfsdeps/qt4/qt4-configure-step.cmake.in -text
 cfsdeps/qt4/qt4-install-step.cmake.in -text

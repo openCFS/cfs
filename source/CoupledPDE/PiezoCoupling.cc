@@ -16,6 +16,10 @@
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 
+//transient simulations
+#include "Driver/TimeSchemes/TimeSchemeGLM.hh"
+#include "Driver/TransientDriver.hh"
+
 // include fespaces
 #include "FeBasis/H1/H1Elems.hh"
 
@@ -338,5 +342,23 @@ namespace CoupledField {
 
   }
   
+  void PiezoCoupling::InitTimeStepping(){
+
+    if ( analysisType_ == BasePDE::TRANSIENT ) {
+      Double dt;
+      dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
+                ->GetDeltaT();
+
+      //in this case we additionally need to define
+      //a timestepping for the elecPDE
+      shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
+
+      shared_ptr<BaseTimeScheme> elecScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+
+      elecFct->SetTimeScheme(elecScheme);
+      elecFct->GetTimeScheme()->Init(elecFct->GetSingleVector(),dt);
+    }
+  }
+
 }
 
