@@ -64,6 +64,12 @@ ExternalProject_Add_Step(qt4 custom_patch
 )
 
 SET(QT_QMAKE_EXECUTABLE "${CFS_BINARY_DIR}/qt4/bin/qmake")
+IF(WIN32 AND NOT MINGW)
+  SET($ENV{PATH} "${CFS_BINARY_DIR}/qt4/bin;$ENV{PATH}")
+ELSE()
+  SET($ENV{PATH} "${CFS_BINARY_DIR}/qt4/bin:$ENV{PATH}")
+ENDIF()
+
 LIST(APPEND CFS_PV_DEPENDENCIES qt4)
 
 #-------------------------------------------------------------------------------

@@ -128,7 +128,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
 
   ELSE(DEBUG)
 
-    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
+    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-attributes")
     SET(CFS_C_FLAGS "-std=gnu99 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-std=c++98 -Wall -ftemplate-depth-85")
 

@@ -818,6 +818,12 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+
+  //! Templatized version of calculation for shape function
+  template<typename T_SCAL, typename T_VEC>
+  void _CalcShFnc( const T_SCAL x, const T_SCAL y, const T_SCAL z,
+                   const Elem * elem,
+                   T_VEC& ret );
 };
 //! Lagrangian tetrahedron element of 2nd order (ET_TET10)
 class FeH1LagrangeTet2 : public FeH1LagrangeTet {

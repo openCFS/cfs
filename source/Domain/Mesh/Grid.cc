@@ -412,7 +412,7 @@ namespace CoupledField
    }
 
    shared_ptr<BaseNcInterface> Grid::GetNcInterface(NcInterfaceId ncId) const {
-     if ( ncId >= 0 && ncId < ncInterfaces_.GetSize() ) {
+     if ( ncId < ncInterfaces_.GetSize() ) {
        return ncInterfaces_[ncId];
      } else {
        EXCEPTION("NcInterface width ID " << ncId << " is unknown.");
@@ -782,8 +782,9 @@ namespace CoupledField
       }
 
       // Check, how many elements have been found
-      if( candidateElem.GetSize() == 0 && printWarnings) {
-        WARN( "No element found for location " <<  matches[iM].globCoord.ToString() );
+      if( candidateElem.GetSize() == 0) {
+        if(printWarnings)
+          WARN( "No element found for location " <<  matches[iM].globCoord.ToString() );
       } else {
         elems[iM] = candidateElem[0];
         lps[iM] = candidateLp[0];
