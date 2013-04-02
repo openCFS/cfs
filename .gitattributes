@@ -866,6 +866,8 @@ share/python/pcolorSBM.py -text
 share/python/probe_ilupack_parameters.py -text
 share/python/spy.py -text
 share/python/test.py -text
+share/python/wedge15.py -text
+share/python/wedge18.py -text
 share/python/xmlreplace.py -text
 share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain
