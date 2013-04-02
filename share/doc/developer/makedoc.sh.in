@@ -113,7 +113,7 @@ case "$MODE" in
 	clean
         ;;
     *)
-        echo "No proper mode specified"
+        echo "Usage: `basename $0` [ build | rebuild | clean ]"
 	exit 1
         ;;
 esac

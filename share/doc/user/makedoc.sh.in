@@ -110,6 +110,8 @@ function build {
     echo " Documentation has been generated in:"
     echo ""
     echo " @CMAKE_CURRENT_SOURCE_DIR@/"
+    echo " |-- advPrePostManual"
+    echo " |   \`-- advPrePostManual.pdf"
     echo " |-- matFile"
     echo " |   \`-- matRef.pdf"
     echo " |-- scripting"
@@ -187,7 +189,7 @@ case "$MODE" in
 	clean
         ;;
     *)
-        echo "No proper mode specified"
+        echo "Usage: `basename $0` [ build | build-html | rebuild | clean ]"
 	exit 1
         ;;
 esac
