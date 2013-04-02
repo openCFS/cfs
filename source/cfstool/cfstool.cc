@@ -27,7 +27,12 @@ namespace fs = boost::filesystem;
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/SimOutput.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
+
+#include "FeBasis/H1/FeSpaceH1Nodal.hh"
+#include "Forms/Operators/GradientOperator.hh"
 
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
@@ -70,7 +75,6 @@ namespace fs = boost::filesystem;
 #endif
 
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 
 using namespace CoupledField;
 
@@ -78,8 +82,49 @@ namespace CFSTool {
 
   void setFreeCoord(std::string coordSysId="default",
       std::string node_name="averageDomain");
+
   inline void setParamNode(PtrParamNode paramNode, std::string name, std::string value,
       ParamNodeList* children = NULL);
+
+  // Here we define our hard-coded node and element limits for testsuite
+  // tests. These limits come into effect, if the reference file of a
+  // Diff() operation has the extension '.h5ref' or if the --checkLimits
+  // command line option is set to true.
+  const UInt SOFT_NODE_LIMIT = 800;
+  const UInt HARD_NODE_LIMIT = 1000;
+  const UInt SOFT_ELEM_LIMIT = 1000;
+  const UInt HARD_ELEM_LIMIT = 6000;
+  
+  // Here we print out the hard-coded node and element limit in response
+  // to the --printLimits command line option.
+  void PrintLimits(const std::string& type) 
+  {
+    bool typeCMake = (type == "cmake");
+
+    std::cout << std::endl;
+    
+    if(typeCMake) { std::cout << "SET("; }
+    std::cout << "SOFT_NODE_LIMIT " << SOFT_NODE_LIMIT;
+    if(typeCMake) { std::cout << ")"; }
+    std::cout << std::endl;
+
+    if(typeCMake) { std::cout << "SET("; }
+    std::cout << "HARD_NODE_LIMIT " << HARD_NODE_LIMIT;
+    if(typeCMake) { std::cout << ")"; }
+    std::cout << std::endl;
+
+    if(typeCMake) { std::cout << "SET("; }
+    std::cout << "SOFT_ELEM_LIMIT " << SOFT_ELEM_LIMIT;
+    if(typeCMake) { std::cout << ")"; }
+    std::cout << std::endl;
+
+    if(typeCMake) { std::cout << "SET("; }
+    std::cout << "HARD_ELEM_LIMIT " << HARD_ELEM_LIMIT;
+    if(typeCMake) { std::cout << ")"; }
+    std::cout << std::endl;
+
+    std::cout << std::endl;
+  }
 
   shared_ptr<SimInput> GetInputReader(const std::string& fileName)
   {
@@ -385,129 +430,223 @@ namespace CFSTool {
     return std::atan2(c.imag() ,c.real() );
   }
 
-  Double Diff( const std::string& inFile1,
-               const std::string& inFile2,
+  bool CheckReaderCapabilities(const std::string& readerDescription,
+                               shared_ptr<SimInput>& reader,
+                               std::string& result) 
+  {
+    std::stringstream sstr;
+    bool ret = false;
+    std::string fileName = reader->GetFileName();
+    
+    ret = std::find( reader->GetCapabilities().begin(),
+                      reader->GetCapabilities().end(),
+                      SimInput::MESH_RESULTS )
+      != reader->GetCapabilities().end();
+
+    sstr << "Reader for " << readerDescription << " with input file '"
+         << fileName << "' " <<
+      (ret ? "can provide results." :  "CANNOT provide results!");
+
+    result = sstr.str();
+
+    return ret;
+  }
+
+  Double Diff( const std::string& inFile_ref,
+               const std::string& inFile_fut,
                const std::string& outFile,
                bool normedtomax,
                bool isHistory,
                std::string& maxDiffResultName) {
 
        // obtain input reader for inFiles
-       shared_ptr<SimInput> input1 = GetInputReader( inFile1 );
-       shared_ptr<SimInput> input2 = GetInputReader( inFile2 );
+       StdVector< shared_ptr<SimInput> > inputs(2);
+       inputs[0] = GetInputReader( inFile_ref );
+       inputs[1] = GetInputReader( inFile_fut );
 
        // check capabilities of input class
-       bool printGridOnly = false;
-       if( std::find( input1->GetCapabilities().begin(),
-                      input1->GetCapabilities().end(),
-                      SimInput::MESH_RESULTS )
-           == input1->GetCapabilities().end() ) {
-         std::cerr << "input files are only capable of handling meshes, not results!\n";
+       StdVector<bool> readerCaps(2);
+       StdVector<std::string> readerDescriptions(2);
+       readerDescriptions[0] = "reference results";
+       readerDescriptions[1] = "file under test";
+       StdVector<std::string> readerCapsResults(2);
+       for(UInt i=0; i<inputs.GetSize(); i++) 
+       {
+         readerCaps[i] = CheckReaderCapabilities(readerDescriptions[i],
+                                                 inputs[i],
+                                                 readerCapsResults[i]);
+       }
+       
+       if( !readerCaps[0] || !readerCaps[1] ) {
+         std::cerr << "Some input files are only capable of handling meshes, not results!\n\n";
+
+         for(UInt i=0; i<inputs.GetSize(); i++) 
+         {
+           std::cerr << readerCapsResults[i] << std::endl;
+         }
+
          exit(EXIT_FAILURE);
        }
 
-       // read in mesh of input1
-       input1->InitModule();
-       UInt dim = input1->GetDim();
-       Grid * ptGrid1 = new GridCFS(dim);
-       input1->ReadMesh(ptGrid1);
-       ptGrid1->FinishInit();
+       // obtain input reader for inFiles
+       shared_ptr<SimInput>& input_ref = inputs[0];
+       shared_ptr<SimInput>& input_fut = inputs[1];
 
-       // read in mesh of input2
-       input2->InitModule();
-       Grid * ptGrid2 = new GridCFS(dim);
-       input2->ReadMesh(ptGrid2);
-       ptGrid2->FinishInit();
+       // read in mesh of reference file
+       input_ref->InitModule();
+       UInt dim = input_ref->GetDim();
+       Grid * ptGrid_ref = new GridCFS(dim);
+       input_ref->ReadMesh(ptGrid_ref);
+       ptGrid_ref->FinishInit();
+
+       // Obtain settings for node and element limit check
+       bool checkLimits = false;
+       if (param->Has("checkLimits"))
+       {
+         checkLimits = param->Get("checkLimits")->As<bool>();         
+       }
+       else
+       {
+         if(inFile_ref.find( ".h5ref") != std::string::npos) 
+         {
+           checkLimits = true;
+         }         
+       }
+
+       // Do the actual limits check
+       if(checkLimits) 
+       {
+         UInt numNodes = ptGrid_ref->GetNumNodes();
+         UInt numElems = ptGrid_ref->GetNumElems();
+         std::string msg =
+           "\nIn the interests of fast test execution and the ability to postprocess\n" \
+           "using certain postprocessors with limitations (e.g. GiD without a license),\n" \
+           "please keep the node and element count below the limits.\n";
+
+         if(numNodes > SOFT_NODE_LIMIT) 
+         {
+           WARN("Number of nodes " << numNodes << 
+                " exceeds soft limit " << SOFT_NODE_LIMIT << ".");
+         }
+
+         if(numElems > SOFT_ELEM_LIMIT) 
+         {
+           WARN("Number of elements " << numElems << 
+                " exceeds soft limit " << SOFT_ELEM_LIMIT << ".");
+         }
+
+         if(numNodes > HARD_NODE_LIMIT) 
+         {
+           delete ptGrid_ref;
+           EXCEPTION("Number of nodes " << numNodes << 
+                     " exceeds hard limit " << HARD_NODE_LIMIT << "." <<
+                     msg);
+         }
+
+         if(numElems > HARD_ELEM_LIMIT) 
+         {
+           delete ptGrid_ref;
+           EXCEPTION("Number of elements " << numElems << 
+                     " exceeds hard limit " << HARD_ELEM_LIMIT << "." << 
+                     msg);
+         }
+         
+       }
+
+       // read in mesh of file under test
+       input_fut->InitModule();
+       Grid * ptGrid_fut = new GridCFS(dim);
+       input_fut->ReadMesh(ptGrid_fut);
+       ptGrid_fut->FinishInit();
 
        // obtain output writer
+       bool printGridOnly = false;
        shared_ptr<SimOutput> output;
        if( outFile != "" ) {
          output = GetOutputWriter( outFile );
-         output->Init( ptGrid1, printGridOnly);
+         output->Init( ptGrid_fut, printGridOnly);
        }
 
        // obtain number of Sequence Steps and get analysis types
        std::map<UInt, BasePDE::AnalysisType> types;
        std::map<UInt, UInt> numSteps;
-       input1->GetNumMultiSequenceSteps( types, numSteps, isHistory );
+       input_fut->GetNumMultiSequenceSteps( types, numSteps, isHistory );
 
-       std::cout << "\nFound " << types.size() << " sequence step(s) in '" << inFile1 << "'\n";
-       std::map<UInt, BasePDE::AnalysisType> types2;
-       std::map<UInt, UInt> numSteps2;
-       input2->GetNumMultiSequenceSteps( types2, numSteps2, isHistory );
-       std::cout << "\nFound " << types2.size() << " sequence step(s) in '" << inFile2 << "'\n";
+       std::cout << "\nFound " << types.size() << " sequence step(s) in '" << inFile_fut << "'\n";
+       std::map<UInt, BasePDE::AnalysisType> types_ref;
+       std::map<UInt, UInt> numSteps_ref;
+       input_ref->GetNumMultiSequenceSteps( types_ref, numSteps_ref, isHistory );
+       std::cout << "\nFound " << types_ref.size() << " sequence step(s) in '" << inFile_ref << "'\n";
        
-       if(types.size() != types2.size()){
-         std::cout << "'" << inFile1 << "' and '" << inFile2
+       if(types.size() != types_ref.size()){
+         std::cout << "Reference file '" << inFile_ref << "' and file under test '" << inFile_fut
             << "' have different number of sequence steps!\n";
          exit(EXIT_FAILURE);
        }
        
        
-       
-
        // iterate over all Sequence Steps
        Double maxDiff = 0.0;
        std::map<UInt,UInt>::iterator it;
-       for( it = numSteps.begin(); it != numSteps.end(); it++ ) {
+       for( it = numSteps_ref.begin(); it != numSteps_ref.end(); it++ ) {
 
          UInt actMsStep = it->first;
          std::cout << " Diffing sequence step " << actMsStep << std::endl
                    << "-------------------------\n\n";
 
          // get resulttypes
-         StdVector<shared_ptr<ResultInfo> > infos, infos2;
-         input1->GetResultTypes( actMsStep, infos, isHistory );
-         input2->GetResultTypes( actMsStep, infos2, isHistory );
+         StdVector<shared_ptr<ResultInfo> > infos, infos_ref;
+         input_ref->GetResultTypes( actMsStep, infos_ref, isHistory );
+         input_fut->GetResultTypes( actMsStep, infos, isHistory );
 
-         StdVector<shared_ptr<BaseResult> > inResults1, inResults2, outResults;
+         StdVector<shared_ptr<BaseResult> > inResults_fut, inResults_ref, outResults;
          // stepnumbers, for which at least one result is defined
-         std::map<UInt, Double> stepVals, stepVals2;
+         std::map<UInt, Double> stepVals, stepVals_ref;
          // contains the stepnumbers/-values in which the particular result is
          // defined in
          std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
-         std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps2;
+         std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps_ref;
 
          if( infos.GetSize() > 0 ){
            std::cout << "Performing diff on the following results:\n";
          }
-         // iterate over all result types of input1
-         for( UInt iRes = 0; iRes < infos.GetSize(); iRes++) {
+         // iterate over all result types of input_ref
+         for( UInt iRes = 0; iRes < infos_ref.GetSize(); iRes++) {
 
-           std::cout << "\t" << infos[iRes]->resultName << "\n";
+           std::cout << "\t" << infos_ref[iRes]->resultName << "\n";
 
            // get stepvalues of reference file
+           shared_ptr<ResultInfo> actRes_ref = infos_ref[iRes];
+           input_ref->GetStepValues( actMsStep, actRes_ref,
+                                     resultSteps_ref[actRes_ref], isHistory);
+           stepVals_ref.insert( resultSteps_ref[actRes_ref].begin(),
+                                resultSteps_ref[actRes_ref].end() );
+
+           // get stepvalues of file under test
            shared_ptr<ResultInfo> actRes = infos[iRes];
-           shared_ptr<ResultInfo> actRes2 = infos2[iRes];
-           input1->GetStepValues( actMsStep, actRes,
+           input_fut->GetStepValues( actMsStep, actRes,
                                   resultSteps[actRes], isHistory);
            stepVals.insert( resultSteps[actRes].begin(),
                             resultSteps[actRes].end() );
-
-           // get stepvalues of second file
-           input2->GetStepValues( actMsStep, actRes2,
-                                  resultSteps2[actRes2], isHistory);
-           stepVals2.insert( resultSteps2[actRes2].begin(),
-                             resultSteps2[actRes2].end() );
            
            // Loop over all step values in both sets and compare them. Thus we can see
            // differences e.g. in eigenfrequency analysis
-           std::map<UInt, Double>::const_iterator svIt1, svIt2;
-           svIt1 = stepVals.begin();
-           svIt2 = stepVals2.begin();
-           for( ; svIt1 != stepVals.end(); ++svIt1, ++svIt2 ) {
-             if( svIt1->first != svIt2->first ) {
+           std::map<UInt, Double>::const_iterator svIt_fut, svIt_ref;
+           svIt_fut = stepVals.begin();
+           svIt_ref = stepVals_ref.begin();
+           for( ; svIt_ref != stepVals_ref.end(); ++svIt_ref, ++svIt_fut ) {
+             if( svIt_fut->first != svIt_ref->first ) {
                EXCEPTION( "Encountered different result steps for result " << 
                           infos[iRes]->resultName );
              } else {
                
-               Double val1 = svIt1->second;
-               Double val2 = svIt2->second;
-               Double relDiff = std::abs(std::abs(val1-val2))/std::abs(val1);
+               Double val_fut = svIt_fut->second;
+               Double val_ref = svIt_ref->second;
+               Double relDiff = std::abs(std::abs(val_fut-val_ref))/std::abs(val_fut);
                if ( relDiff > 1e-4 ) {
-                 EXCEPTION("Time / Frequency values of step " << svIt1->first << " differ by " 
+                 EXCEPTION("Time / Frequency values of step " << svIt_ref->first << " differ by " 
                            << relDiff*100.0 << " %:\n"
-                           << "\treference value: " << val1 <<" s / Hz\n\tcompared value:  " << val2 
+                           << "\treference value: " << val_ref <<" s / Hz\n\tcompared value:  " << val_fut
                            << " s / Hz" << std::endl );
                }
              }
@@ -516,32 +655,32 @@ namespace CFSTool {
 
            // iterate over all regions
            StdVector<shared_ptr<EntityList> > regions;
-           input1->GetResultEntities( actMsStep, infos[iRes],
-                                      regions, isHistory );
+           input_ref->GetResultEntities( actMsStep, infos_ref[iRes],
+                                         regions, isHistory );
            for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
              // generate new result object and add it to output writer
-             shared_ptr<BaseResult > inResult1, inResult2, outResult;
+             shared_ptr<BaseResult > inResult_fut, inResult_ref, outResult;
              if( types[actMsStep] == BasePDE::TRANSIENT ||
                  types[actMsStep] == BasePDE::STATIC ) {
-               inResult1 = shared_ptr<BaseResult>( new Result<Double>() );
-               inResult2 = shared_ptr<BaseResult>( new Result<Double>() );
+               inResult_fut = shared_ptr<BaseResult>( new Result<Double>() );
+               inResult_ref = shared_ptr<BaseResult>( new Result<Double>() );
                outResult = shared_ptr<BaseResult>( new Result<Double>() );
              } else {
-               inResult1 = shared_ptr<BaseResult>( new Result<Complex>() );
-               inResult2 = shared_ptr<BaseResult>( new Result<Complex>() );
+               inResult_fut = shared_ptr<BaseResult>( new Result<Complex>() );
+               inResult_ref = shared_ptr<BaseResult>( new Result<Complex>() );
                outResult = shared_ptr<BaseResult>( new Result<Complex>() );
              }
-             inResult1->SetEntityList( regions[iRegion] );
-             inResult2->SetEntityList( regions[iRegion] );
+             inResult_fut->SetEntityList( regions[iRegion] );
+             inResult_ref->SetEntityList( regions[iRegion] );
              outResult->SetEntityList( regions[iRegion] );
 
-             inResult1->SetResultInfo( infos[iRes] );
+             inResult_fut->SetResultInfo( infos[iRes] );
 
-             inResult2->SetResultInfo( infos[iRes] );
+             inResult_ref->SetResultInfo( infos_ref[iRes] );
              outResult->SetResultInfo( infos[iRes] );
 
-             inResults1.Push_back( inResult1 );
-             inResults2.Push_back( inResult2 );
+             inResults_fut.Push_back( inResult_fut );
+             inResults_ref.Push_back( inResult_ref );
              outResults.Push_back( outResult );
              if( output) {
                // Hardcoded: set output format to AMPL_PHASE
@@ -556,56 +695,56 @@ namespace CFSTool {
            }
          }
 
-         Vector<Double> maxResVec2;
-         maxResVec2.Resize( inResults2.GetSize() );
+         Vector<Double> maxResVec_ref;
+         maxResVec_ref.Resize( inResults_ref.GetSize() );
 
          // For transient simulation find maximum amplitude over all timesteps
          if( types[actMsStep] == BasePDE::STATIC ||
              types[actMsStep] == BasePDE::TRANSIENT ) {
 
            // iterate over all results
-           for( UInt iRes = 0; iRes < inResults2.GetSize(); iRes++) {
+           for( UInt iRes = 0; iRes < inResults_ref.GetSize(); iRes++) {
              
-             if(numSteps[actMsStep] != numSteps2[actMsStep]){
-               std::cout << "'" << inFile1 << "' has " << numSteps[actMsStep] << " and '" << inFile2
-                  << "' has " << numSteps2[actMsStep] << " time steps!\n";
+             if(numSteps[actMsStep] != numSteps_ref[actMsStep]){
+               std::cout << "Reference file '" << inFile_ref << "' has " << numSteps_ref[actMsStep] << " and '" << inFile_fut
+                  << "' has " << numSteps[actMsStep] << " time steps!\n";
                exit(EXIT_FAILURE);
              }
 
-             maxResVec2[iRes] = 0.0;
+             maxResVec_ref[iRes] = 0.0;
              // iterate over all time steps
-             for( UInt iStep = 0; iStep < numSteps[actMsStep]; iStep++ ) {
+             for( UInt iStep = 0; iStep < numSteps_ref[actMsStep]; iStep++ ) {
 
                UInt actStepNum = iStep+1;
                // check if current result is defined within this step
-               if( resultSteps[inResults2[iRes]->GetResultInfo()].find(actStepNum)
-                   == resultSteps[inResults2[iRes]->GetResultInfo()].end() ) {
+               if( resultSteps[inResults_ref[iRes]->GetResultInfo()].find(actStepNum)
+                   == resultSteps[inResults_ref[iRes]->GetResultInfo()].end() ) {
                  continue;
                }
 
-               input2->GetResult( actMsStep, actStepNum, inResults2[iRes], isHistory );
-               Vector<Double> & inVec2 =
-                 dynamic_cast<Result<Double>& >(*inResults2[iRes]).GetVector();
+               input_ref->GetResult( actMsStep, actStepNum, inResults_ref[iRes], isHistory );
+               Vector<Double> & inVec_ref =
+                 dynamic_cast<Result<Double>& >(*inResults_ref[iRes]).GetVector();
 
-               for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
-                 if( std::abs(inVec2[i]) > maxResVec2[iRes] )
-                     maxResVec2[iRes] = std::abs(inVec2[i]);
+               for( UInt i = 0; i<inVec_ref.GetSize(); i++ ) {
+                 if( std::abs(inVec_ref[i]) > maxResVec_ref[iRes] )
+                     maxResVec_ref[iRes] = std::abs(inVec_ref[i]);
                }
              }
-             std::cout << "For result '" << inResults2[iRes]->GetResultInfo()->resultName
-                       << "' maximum amplitude is: " << maxResVec2[iRes] << "\n";
+             std::cout << "For result '" << inResults_ref[iRes]->GetResultInfo()->resultName
+                       << "' maximum amplitude is: " << maxResVec_ref[iRes] << "\n";
            }
          }
 
 
          // notify writer
          if( output) {
-           output->BeginMultiSequenceStep( actMsStep, types[actMsStep],
-                                           numSteps[actMsStep] );
+           output->BeginMultiSequenceStep( actMsStep, types_ref[actMsStep],
+                                           numSteps_ref[actMsStep] );
          }
 
          // iterate over all time/frequency steps
-         for( UInt iStep = 0; iStep < numSteps[actMsStep]; iStep++ ) {
+         for( UInt iStep = 0; iStep < numSteps_ref[actMsStep]; iStep++ ) {
 
            // check, if current step contains any results
            if( stepVals.find( iStep+1) == stepVals.end() )
@@ -622,92 +761,92 @@ namespace CFSTool {
            std::cout << "\t=============================================\n";
 
            // iterate over all results
-           for( UInt iRes = 0; iRes < inResults1.GetSize(); iRes++) {
+           for( UInt iRes = 0; iRes < inResults_fut.GetSize(); iRes++) {
              // check if current result is defined within this step
-             if( resultSteps[inResults1[iRes]->GetResultInfo()].find(actStepNum)
-                 == resultSteps[inResults1[iRes]->GetResultInfo()].end() ) {
+             if( resultSteps[inResults_fut[iRes]->GetResultInfo()].find(actStepNum)
+                 == resultSteps[inResults_fut[iRes]->GetResultInfo()].end() ) {
                continue;
              }
 
              // obtain both result objects for current step
-             input1->GetResult( actMsStep, actStepNum, inResults1[iRes], isHistory );
-             input2->GetResult( actMsStep, actStepNum, inResults2[iRes], isHistory );
+             input_fut->GetResult( actMsStep, actStepNum, inResults_fut[iRes], isHistory );
+             input_ref->GetResult( actMsStep, actStepNum, inResults_ref[iRes], isHistory );
 
              std::cout << "\n\t-- Comparing result " <<
-                  inResults1[iRes]->GetResultInfo()->resultName << " on " 
-                  << inResults1[iRes]->GetEntityList()->GetName() << " --\n";
+                  inResults_fut[iRes]->GetResultInfo()->resultName << " on " 
+                  << inResults_fut[iRes]->GetEntityList()->GetName() << " --\n";
              
              // get number of dofs of result
-             UInt numDofs = inResults1[iRes]->GetResultInfo()->dofNames.GetSize();
+             UInt numDofs = inResults_fut[iRes]->GetResultInfo()->dofNames.GetSize();
 
              // cast result objects, get vector and calculate difference vector
              if( types[actMsStep] == BasePDE::STATIC || 
                  types[actMsStep] == BasePDE::TRANSIENT ) {
-               Vector<Double> & inVec1 =
-                 dynamic_cast<Result<Double>& >(*inResults1[iRes]).GetVector();
-               Vector<Double> & inVec2 =
-                  dynamic_cast<Result<Double>& >(*inResults2[iRes]).GetVector();
+               Vector<Double> & inVec_fut =
+                 dynamic_cast<Result<Double>& >(*inResults_fut[iRes]).GetVector();
+               Vector<Double> & inVec_ref =
+                  dynamic_cast<Result<Double>& >(*inResults_ref[iRes]).GetVector();
                Vector<Double> & outVec =
                  dynamic_cast<Result<Double>& >(*outResults[iRes]).GetVector();
-               outVec.Resize( inVec1.GetSize() );
+               outVec.Resize( inVec_fut.GetSize() );
 
-               // find maximum amplitude of inResult2
-               for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
-                 if( std::abs(inVec2[i]) > maxResVec2[iRes])
-                   maxResVec2[iRes] = std::abs(inVec2[i]);
+               // find maximum amplitude of inResult_ref
+               for( UInt i = 0; i<inVec_ref.GetSize(); i++ ) {
+                 if( std::abs(inVec_ref[i]) > maxResVec_ref[iRes])
+                   maxResVec_ref[iRes] = std::abs(inVec_ref[i]);
                }
 
                // calculate difference entrywise
-               outVec = inVec1 - inVec2;
+               outVec = inVec_fut - inVec_ref;
                if (normedtomax == true) {
-                 outVec /= maxResVec2[iRes];
+                 outVec /= maxResVec_ref[iRes];
                }
 
                // find maximum entry in difference vector
                for( UInt i = 0; i < outVec.GetSize(); i++ ) {
                  if( std::abs(outVec[i]) > maxDiff) {
                    maxDiff = std::abs(outVec[i]) ;
-                   maxDiffResultName = inResults1[iRes]->GetResultInfo()->resultName;
+                   maxDiffResultName = inResults_fut[iRes]->GetResultInfo()->resultName;
                  }
                }
 
              } else if( types[actMsStep] == BasePDE::EIGENFREQUENCY ) {
                // in the eigenfrequency case we only compare the absolute value,
                // as the sign is not defined uniquely
-               Vector<Complex> & inVec1 =
-                 dynamic_cast<Result<Complex>& >(*inResults1[iRes]).GetVector();
-               Vector<Complex> & inVec2 =
-                 dynamic_cast<Result<Complex>& >(*inResults2[iRes]).GetVector();
+               Vector<Complex> & inVec_fut =
+                 dynamic_cast<Result<Complex>& >(*inResults_fut[iRes]).GetVector();
+               Vector<Complex> & inVec_ref =
+                 dynamic_cast<Result<Complex>& >(*inResults_ref[iRes]).GetVector();
                Vector<Complex> & outVec =
                  dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
-               outVec.Resize( inVec1.GetSize() );
+               outVec.Resize( inVec_fut.GetSize() );
 
-               // find maximum amplitude of inResult2 in every frequency step
-               Double maxRes2 = 0.0;
-               for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
-                 if( std::abs(inVec2[i]) > maxRes2)
-                   maxRes2 = std::abs(inVec2[i]);
+               // find maximum amplitude of inResult_ref in every frequency step
+               Double maxRes_ref = 0.0;
+               for( UInt i = 0; i<inVec_ref.GetSize(); i++ ) {
+                 if( std::abs(inVec_ref[i]) > maxRes_ref)
+                   maxRes_ref = std::abs(inVec_ref[i]);
                }
                
                Double aDiff, pDiff;
                // iterate over all dofs
                for (UInt dof = 0; dof<numDofs ; dof++) {
                  // iterate over number of entities
-                 for( UInt i = 0; i<UInt(inVec2.GetSize()/numDofs); i++ ) {
+                 for( UInt i = 0, nEntities=UInt(inVec_ref.GetSize()/numDofs); i<nEntities; i++ ) {
 
                    // index to access entity 'i' of dof 'dof'
                    UInt actIndex = i * numDofs + dof;
 
                    // amplitude difference
                    if (normedtomax == true)
-                     aDiff = std::abs(( std::abs(inVec1[actIndex]) - std::abs(inVec2[actIndex]) )/maxRes2);
+                     aDiff = std::abs(( std::abs(inVec_fut[actIndex]) - std::abs(inVec_ref[actIndex]) )/maxRes_ref);
                    else 
-                     aDiff = std::abs(std::abs(inVec1[actIndex]) - std::abs(inVec2[actIndex]));
+                     aDiff = std::abs(std::abs(inVec_fut[actIndex]) - std::abs(inVec_ref[actIndex]));
 
                    
                    // phase difference in multiples of pi (just used for
                    // grid diffs
-                   pDiff = RadPhase(inVec1[actIndex]) - RadPhase(inVec2[actIndex]);
+                   pDiff = RadPhase(inVec_fut[actIndex]) - RadPhase(inVec_ref[actIndex]);
 
                    // correct 2*pi-offset if phase angles have different signs
                    if ( (std::abs(pDiff)>PI) && (pDiff<0) )
@@ -728,19 +867,19 @@ namespace CFSTool {
                std::cout << "\n\tMaximum overall rel. difference = " << maxDiff << "\n\n";
              
              }  else if( types[actMsStep] == BasePDE::HARMONIC ) { 
-               Vector<Complex> & inVec1 =
-                   dynamic_cast<Result<Complex>& >(*inResults1[iRes]).GetVector();
-               Vector<Complex> & inVec2 =
-                   dynamic_cast<Result<Complex>& >(*inResults2[iRes]).GetVector();
+               Vector<Complex> & inVec_fut =
+                   dynamic_cast<Result<Complex>& >(*inResults_fut[iRes]).GetVector();
+               Vector<Complex> & inVec_ref =
+                   dynamic_cast<Result<Complex>& >(*inResults_ref[iRes]).GetVector();
                Vector<Complex> & outVec =
                    dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
-               outVec.Resize( inVec1.GetSize() );
+               outVec.Resize( inVec_fut.GetSize() );
 
-               // find maximum amplitude of inResult2 in every frequency step
-               Double maxRes2 = 0.0;
-               for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
-                 if( std::abs(inVec2[i]) > maxRes2)
-                   maxRes2 = std::abs(inVec2[i]);
+               // find maximum amplitude of inResult_ref in every frequency step
+               Double maxRes_ref = 0.0;
+               for( UInt i = 0; i<inVec_ref.GetSize(); i++ ) {
+                 if( std::abs(inVec_ref[i]) > maxRes_ref)
+                   maxRes_ref = std::abs(inVec_ref[i]);
                }
                
                Double aDiff, pDiff, aMax=0.0, aMin=0.0, pMax=0.0, pMin=0.0;
@@ -749,19 +888,19 @@ namespace CFSTool {
                // iterate over all dofs
                for (UInt dof = 0; dof<numDofs ; dof++) {
                  // iterate over number of entities
-                 for( UInt i = 0; i<UInt(inVec2.GetSize()/numDofs); i++ ) {
+                 for( UInt i = 0, nEntities=UInt(inVec_ref.GetSize()/numDofs); i<nEntities; i++ ) {
 
                    // index to access entity 'i' of dof 'dof'
                    UInt actIndex = i * numDofs + dof;
 
                    // amplitude difference
                    if (normedtomax == true)
-                     aDiff = ( std::abs(inVec1[actIndex]) - std::abs(inVec2[actIndex]) )/maxRes2;
+                     aDiff = ( std::abs(inVec_fut[actIndex]) - std::abs(inVec_ref[actIndex]) )/maxRes_ref;
                    else
-                     aDiff = std::abs(inVec1[actIndex]) - std::abs(inVec2[actIndex]);
+                     aDiff = std::abs(inVec_fut[actIndex]) - std::abs(inVec_ref[actIndex]);
 
                    // phase difference in multiples of pi
-                   pDiff = RadPhase(inVec1[actIndex]) - RadPhase(inVec2[actIndex]);
+                   pDiff = RadPhase(inVec_fut[actIndex]) - RadPhase(inVec_ref[actIndex]);
 
                    // correct 2*pi-offset if phase angles have different signs
                    if ( (std::abs(pDiff)>PI) && (pDiff<0) )
@@ -783,8 +922,8 @@ namespace CFSTool {
                      aMin = aDiff;
 
                    // maximum difference in real and imaginary part
-                   rDiff = std::abs( inVec1[actIndex].real() - inVec2[actIndex].real() )/maxRes2;
-                   iDiff = std::abs( inVec1[actIndex].imag() - inVec2[actIndex].imag() )/maxRes2;
+                   rDiff = std::abs( inVec_fut[actIndex].real() - inVec_ref[actIndex].real() )/maxRes_ref;
+                   iDiff = std::abs( inVec_fut[actIndex].imag() - inVec_ref[actIndex].imag() )/maxRes_ref;
                    if ( rDiff > rMax )
                      rMax = rDiff;
                    if ( iDiff > iMax)
@@ -824,13 +963,686 @@ namespace CFSTool {
          output->Finalize();
          std::cout << "\nOutput successfully written to " << outFile << std::endl;
        }
-       delete ptGrid1;
-       delete ptGrid2;
+       delete ptGrid_fut;
+       delete ptGrid_ref;
 
        return maxDiff;
 
   } //Diff
 
+  void WVT( const std::string& lateral_mode_file,
+            const std::string& coriolis_mode_file,
+            const std::string& mean_flow_file,
+            const std::string& outFile ) {
+
+       bool printGridOnly = false;
+
+       // obtain input reader for inFiles
+       StdVector< shared_ptr<SimInput> > inputs(3);
+       inputs[0] = GetInputReader( lateral_mode_file );
+       inputs[1] = GetInputReader( coriolis_mode_file );
+       inputs[2] = GetInputReader( mean_flow_file );
+
+       // check capabilities of input class
+       StdVector<bool> readerCaps(3);
+       StdVector<std::string> readerDescriptions(3);
+       readerDescriptions[0] = "lateral mode";
+       readerDescriptions[1] = "coriolis mode";
+       readerDescriptions[2] = "mean flow";
+       StdVector<std::string> readerCapsResults(3);
+       for(UInt i=0; i<inputs.GetSize(); i++) 
+       {
+         readerCaps[i] = CheckReaderCapabilities(readerDescriptions[i],
+                                                 inputs[i],
+                                                 readerCapsResults[i]);
+       }
+       
+       if( !readerCaps[0] || !readerCaps[1] || !readerCaps[2] ) {
+         std::cerr << "Some input files are only capable of handling meshes, not results!\n\n";
+
+         for(UInt i=0; i<inputs.GetSize(); i++) 
+         {
+           std::cerr << readerCapsResults[i] << std::endl;
+         }
+
+         exit(EXIT_FAILURE);
+       }
+
+       // read in mesh of input1
+       inputs[0]->InitModule();
+       UInt dim = inputs[0]->GetDim();
+       Grid * ptGrid1 = new GridCFS(dim);
+       inputs[0]->ReadMesh(ptGrid1);
+       ptGrid1->FinishInit();
+
+       // read XML and material file from lateral mode file
+       SimInputHDF5* hdf5Reader = dynamic_cast<SimInputHDF5*>(inputs[0].get());
+       std::string xmlFile, matFile;
+       hdf5Reader->ReadStringFromUserData("ParameterFile", xmlFile);
+       hdf5Reader->ReadStringFromUserData("MaterialFile", matFile);
+
+       // std::cout << "##############" << xmlFile << std::endl
+       //    << "##############" << matFile << std::endl;
+       PtrParamNode pNode;
+
+       {
+         CoupledField::Xerces xerces;
+         xerces.SetString(xmlFile);
+         pNode = xerces.CreateParamNodeInstance();
+       }       
+
+       ParamNodeList list;
+       
+       PtrParamNode multiSeqStep1 = pNode->GetByVal("sequenceStep", "index", 1);
+
+       // list = multiSeqStep1->GetChildren();
+       // for(UInt i=0; i<list.GetSize(); i++) {
+       //  std::cout << "############## " << list[i]->GetName() << std::endl;
+       // }
+
+       // PtrParamNode multiSeqStep2 = pNode->GetByVal("sequenceStep", "index", 2);
+
+       bool dirCoupled = false;
+       
+       bool ms1HasMech = multiSeqStep1->Get("pdeList")->Has("mechanic");
+       bool ms1HasFlow = multiSeqStep1->Get("pdeList")->Has("fluidMech");
+
+       PtrParamNode mechNode, fluidNode;
+       
+       if( ms1HasMech && ms1HasFlow && multiSeqStep1->Has("couplingList"))
+       {
+         // For directly coupled WVT, mechanic and fluid analyses need to be
+         // in the first MS step. There needs to be also a coupling section.
+         // Normally you do not need to apply WVT to directly coupled system
+         // since the phase difference between the sensors can be readily
+         // obtained by comparing the phases of the mech. displacements.
+         // But we want to cross-check our directly and iteratively coupled
+         // results.
+
+         PtrParamNode cplNode = multiSeqStep1->Get("couplingList");
+         
+         if( cplNode->Get("direct")->Has("fluidMechDirect") ) 
+         {  
+           dirCoupled = true;
+           std::cout << "We have a <couplingList> tag." << std::endl;
+
+           mechNode = multiSeqStep1->Get("pdeList")->Get("mechanic");
+           fluidNode = multiSeqStep1->Get("pdeList")->Get("fluidMech");         
+         }
+         else
+         {
+           EXCEPTION("There exist mechanic and fluidMech PDEs in the " <<
+                     "first multi-sequence step,\nbut no coupling node." <<
+                     "This case is not yet handled by WVT.");
+         }
+       }
+       else
+       {
+         // For iteratively coupled WVT, we want to have the mechanic analyis
+         // in the first MS step and the fluid analysis in the second MS step 
+         // in the future. Since this is not implemented at the moment, we
+         // require fluid in the first MS and get the mechanic velocities at
+         // sensor positions in lateral mode from somewhere else.
+
+         if(ms1HasMech) 
+         {
+           EXCEPTION("There exists a mechanic PDE in the first " << 
+                     "multi-sequencestep.\n" <<
+                     "This case is not yet handled by WVT.");
+         }
+
+         if(ms1HasFlow) 
+         {
+           fluidNode = multiSeqStep1->Get("pdeList")->Get("fluidMech");         
+         }
+       }
+       
+       std::cout << dirCoupled << std::endl;
+       
+
+       // list = fluidNode->GetChildren();
+       // for(UInt i=0; i<list.GetSize(); i++) {
+       //   std::cout << "############## " << list[i]->GetName() << std::endl;
+       // }
+
+       std::map<std::string, std::string> regionMatMap;
+       std::map<std::string, std::string>::const_iterator regMatIt, regMatEnd;
+
+       list = fluidNode->Get("regionList")->GetChildren();
+       ParamNodeList domainRegionList = pNode->Get("domain")->Get("regionList")->GetChildren();
+
+       for(UInt i=0; i<list.GetSize(); i++) {
+         std::string regionName = list[i]->Get("name")->As<std::string>();
+         
+         std::cout << "############## " << list[i]->GetName() << std::endl;
+         std::cout << "-------------> " << regionName << std::endl;
+         for(UInt j=0; j<domainRegionList.GetSize(); j++) {
+           std::string domRegionName = domainRegionList[j]->Get("name")->As<std::string>();
+
+           if(regionName == domRegionName) 
+           {
+             std::string domMatName = domainRegionList[j]->Get("material")->As<std::string>();
+             // std::cout << "=============> " << domMatName << std::endl;
+             regionMatMap[regionName] = domMatName;
+           }
+         }
+       }
+
+       {
+         CoupledField::Xerces matFileParser;
+         matFileParser.SetString(matFile);
+         pNode = matFileParser.CreateParamNodeInstance();
+       }
+       
+       std::map<std::string, Double> regionDensityMap;
+
+       regMatIt = regionMatMap.begin();
+       regMatEnd = regionMatMap.end();
+       for( ; regMatIt != regMatEnd; regMatIt++ ){
+         std::string matName = regMatIt->second;
+         PtrParamNode mNode = pNode->GetByVal("material",
+                                              "name",
+                                              matName);
+
+         Double density = mNode->Get("flow")->Get("density")->As<Double>();
+         std::cout << "density " << density << std::endl;         
+         regionDensityMap[matName] = density;
+       }
+
+       // read in mesh of input2
+       inputs[1]->InitModule();
+       Grid * ptGrid2 = new GridCFS(dim);
+       inputs[1]->ReadMesh(ptGrid2);
+       ptGrid2->FinishInit();
+
+       // read in mesh of input3
+       inputs[2]->InitModule();
+       Grid * ptGrid3 = new GridCFS(dim);
+       inputs[2]->ReadMesh(ptGrid3);
+       ptGrid3->FinishInit();
+
+       // obtain output writer
+       shared_ptr<SimOutput> output;
+       if( outFile != "" ) {
+         output = GetOutputWriter( outFile );
+         output->Init( ptGrid1, printGridOnly);
+       }
+
+       // obtain number of Sequence Steps and get analysis types
+       std::map<UInt, BasePDE::AnalysisType> types;
+       std::map<UInt, UInt> numSteps;
+       inputs[0]->GetNumMultiSequenceSteps( types, numSteps, false );
+
+       std::cout << "\nFound " << types.size() << " sequence step(s) in '" << lateral_mode_file << "'\n";
+       std::map<UInt, BasePDE::AnalysisType> types2;
+       std::map<UInt, UInt> numSteps2;
+       inputs[1]->GetNumMultiSequenceSteps( types2, numSteps2, false );
+       std::cout << "\nFound " << types2.size() << " sequence step(s) in '" << coriolis_mode_file << "'\n";
+       
+       if(types.size() != types2.size()){
+         std::cout << "'" << lateral_mode_file << "' and '" << coriolis_mode_file
+            << "' have different number of sequence steps!\n";
+         exit(EXIT_FAILURE);
+       }
+
+       if(types.size() != 1) {
+         std::cout << "WVT input files should have only one sequence step!\n";
+         exit(EXIT_FAILURE);
+       }
+
+       std::cout << "types.size() " << types.size() << " types2.size() " << types2.size() << "\n";
+       std::cout << "types[1] " << types[1] << " types2[1] " << types2[1] << "\n";
+       
+       if(  types[1] != BasePDE::HARMONIC ||
+           types2[1] != BasePDE::HARMONIC ) {
+         std::cout << "WVT is only available for harmonic analyses at the moment!\n";
+         exit(EXIT_FAILURE);
+       }
+
+       UInt actMsStep = 1;
+       std::cout << " Computing WVT for sequence step " << actMsStep << std::endl
+                 << "-------------------------------------\n\n";
+       
+       // get resulttypes
+       StdVector<shared_ptr<ResultInfo> > infos, infos2, infos3, infos_mean_flow;
+       inputs[0]->GetResultTypes( actMsStep, infos, false );
+       inputs[1]->GetResultTypes( actMsStep, infos2, false );
+       inputs[2]->GetResultTypes( actMsStep, infos3, false );
+       
+       StdVector<shared_ptr<BaseResult> > inResults1, inResults2, inResults_mean_flow, outResults, outResults2, outResults3;
+       // stepnumbers, for which at least one result is defined
+       std::map<UInt, Double> stepVals, stepVals2, stepVals_mean_flow;
+       // contains the stepnumbers/-values in which the particular result is
+       // defined in
+       std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
+       std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps2;
+       std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps_mean_flow;
+       
+       // First determine number of results in current multi sequence step in mean flow file
+       // since it can be different than in the lateral and coriolis mode files.
+       
+       for( UInt iRes = 0; iRes < infos3.GetSize(); iRes++) {
+         shared_ptr<ResultInfo> actRes3 = infos3[iRes];
+         
+         if(actRes3->resultType != FLUIDMECH_VELOCITY) 
+         {
+           continue;
+         }
+         
+         // get stepvalues of mean flow file
+         inputs[2]->GetStepValues( actMsStep, actRes3,
+                                resultSteps_mean_flow[actRes3], false);
+         stepVals_mean_flow.insert( resultSteps_mean_flow[actRes3].begin(),
+                                    resultSteps_mean_flow[actRes3].end() );
+         infos_mean_flow.Push_back(actRes3);
+       }
+       
+       
+       if( infos.GetSize() > 0 ){
+         std::cout << "Computing WVT from the following results:\n";
+       }
+       
+       // iterate over all result types of input1
+       for( UInt iRes = 0; iRes < infos.GetSize(); iRes++) {
+         
+         if(infos[iRes]->resultName != "fluidMechVelocity")
+           continue;
+         
+         std::cout << "\t" << infos[iRes]->resultName << "\n";
+         
+         // get stepvalues of reference file
+         shared_ptr<ResultInfo> actRes = infos[iRes];
+         shared_ptr<ResultInfo> actRes2 = infos2[iRes];
+         inputs[0]->GetStepValues( actMsStep, actRes,
+                                resultSteps[actRes], false);
+         stepVals.insert( resultSteps[actRes].begin(),
+                          resultSteps[actRes].end() );
+         
+         // get stepvalues of second file
+         inputs[1]->GetStepValues( actMsStep, actRes2,
+                                resultSteps2[actRes2], false);
+         stepVals2.insert( resultSteps2[actRes2].begin(),
+                           resultSteps2[actRes2].end() );
+         
+         // Loop over all step values in both sets and compare them. Thus we can see
+         // differences e.g. in eigenfrequency analysis
+         std::map<UInt, Double>::const_iterator svIt1, svIt2;
+         svIt1 = stepVals.begin();
+         svIt2 = stepVals2.begin();
+         for( ; svIt1 != stepVals.end(); ++svIt1, ++svIt2 ) {
+           if( svIt1->first != svIt2->first ) {
+             EXCEPTION( "Encountered different result steps for result " << 
+                        infos[iRes]->resultName );
+           } else {
+             
+             Double val1 = svIt1->second;
+             Double val2 = svIt2->second;
+             Double relDiff = std::abs(std::abs(val1-val2))/std::abs(val1);
+             if ( relDiff > 1e-4 ) {
+               EXCEPTION("Time / Frequency values of step " << svIt1->first << " differ by " 
+                         << relDiff*100.0 << " %:\n"
+                         << "\treference value: " << val1 <<" Hz\n\tcompared value:  " << val2 
+                         << " Hz" << std::endl );
+             }
+           }
+         }
+         
+         
+         // iterate over all regions
+         StdVector<shared_ptr<EntityList> > regions;
+         inputs[0]->GetResultEntities( actMsStep, infos[iRes],
+                                    regions, false );
+         for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
+           // generate new result object and add it to output writer
+           shared_ptr<BaseResult > inResult1, inResult2, inResult3, outResult, outResult2, outResult3;
+           
+           if(infos[iRes]->resultType != FLUIDMECH_VELOCITY) 
+           {
+             continue;
+           }
+           
+           
+           inResult1 = shared_ptr<BaseResult>( new Result<Complex>() );
+           inResult2 = shared_ptr<BaseResult>( new Result<Complex>() );
+           inResult3 = shared_ptr<BaseResult>( new Result<Double>() );
+           outResult = shared_ptr<BaseResult>( new Result<Complex>() );
+           outResult2 = shared_ptr<BaseResult>( new Result<Complex>() );
+           outResult3 = shared_ptr<BaseResult>( new Result<Complex>() );
+           
+           inResult1->SetEntityList( regions[iRegion] );
+           inResult2->SetEntityList( regions[iRegion] );
+           inResult3->SetEntityList( regions[iRegion] );
+           
+           // Since derivatives need to be taken the output entities need to be elements
+           Enum<RegionIdType> regionEnum = ptGrid1->GetRegion();
+           RegionIdType regionId = regionEnum.Parse(regions[iRegion]->GetName());
+           
+           ElemList* outElemEntities = new ElemList(ptGrid1);
+           outElemEntities->SetRegion(regionId);
+           shared_ptr<EntityList> outElems(outElemEntities);             
+           outResult->SetEntityList( outElems );
+           outResult2->SetEntityList( outElems );
+           outResult3->SetEntityList( outElems );
+           
+           inResult1->SetResultInfo( infos[iRes] );
+           inResult2->SetResultInfo( infos[iRes] );
+           inResult3->SetResultInfo( infos_mean_flow[0] );
+           
+           shared_ptr<ResultInfo> outInfo(new ResultInfo());
+           outInfo->resultType = FLUIDMECH_WEIGHT_VECTOR;
+           outInfo->resultName = SolutionTypeEnum.ToString(outInfo->resultType);
+           outInfo->dofNames = infos[iRes]->dofNames;
+           outInfo->unit = MapSolTypeToUnit(outInfo->resultType);
+           outInfo->entryType = ResultInfo::VECTOR;
+           outInfo->definedOn = ResultInfo::ELEMENT;
+           
+           outResult->SetResultInfo( outInfo );
+
+           shared_ptr<ResultInfo> outInfo2(new ResultInfo());
+           outInfo2->resultType = MEAN_FLUIDMECH_VELOCITY;
+           outInfo2->resultName = SolutionTypeEnum.ToString(outInfo2->resultType);
+           outInfo2->dofNames = infos[iRes]->dofNames;
+           outInfo2->unit = MapSolTypeToUnit(outInfo2->resultType);
+           outInfo2->entryType = ResultInfo::VECTOR;
+           outInfo2->definedOn = ResultInfo::ELEMENT;
+
+           outResult2->SetResultInfo( outInfo2 );
+
+           shared_ptr<ResultInfo> outInfo3(new ResultInfo());
+           outInfo3->resultType = FLUIDMECH_WEIGHT_DENSITY;
+           outInfo3->resultName = SolutionTypeEnum.ToString(outInfo3->resultType);
+           outInfo3->dofNames = "";
+           outInfo3->unit = MapSolTypeToUnit(outInfo3->resultType);
+           outInfo3->entryType = ResultInfo::SCALAR;
+           outInfo3->definedOn = ResultInfo::ELEMENT;
+
+           outResult3->SetResultInfo( outInfo3 );
+           
+           inResults1.Push_back( inResult1 );
+           inResults2.Push_back( inResult2 );
+           inResults_mean_flow.Push_back( inResult3 );
+           outResults.Push_back( outResult );
+           outResults2.Push_back( outResult2 );
+           outResults3.Push_back( outResult3 );
+           if( output) {
+             // Hardcoded: set output format to AMPL_PHASE
+             //outResult->GetResultInfo()->complexFormat = AMPLITUDE_PHASE;
+             outResult->GetResultInfo()->complexFormat = REAL_IMAG;
+             
+             // CAUTION: begin, inc, end are hardcoded and noch checked for each result
+             output->RegisterResult( outResult, 1, 1,
+                                     resultSteps[actRes].size(),
+                                     false );
+
+             // Hardcoded: set output format to AMPL_PHASE
+             //outResult->GetResultInfo()->complexFormat = AMPLITUDE_PHASE;
+             outResult2->GetResultInfo()->complexFormat = REAL_IMAG;
+             
+             // CAUTION: begin, inc, end are hardcoded and noch checked for each result
+             output->RegisterResult( outResult2, 1, 1,
+                                     resultSteps[actRes].size(),
+                                     false );
+
+             // Hardcoded: set output format to AMPL_PHASE
+             //outResult->GetResultInfo()->complexFormat = AMPLITUDE_PHASE;
+             outResult3->GetResultInfo()->complexFormat = REAL_IMAG;
+             
+             // CAUTION: begin, inc, end are hardcoded and noch checked for each result
+             output->RegisterResult( outResult3, 1, 1,
+                                     resultSteps[actRes].size(),
+                                     false );
+           }
+         }
+       }
+       
+       // notify writer
+       if( output) {
+         output->BeginMultiSequenceStep( actMsStep, types[actMsStep],
+                                         numSteps[actMsStep] );
+       }
+       
+       // iterate over all frequency steps
+       for( UInt iStep = 0; iStep < numSteps[actMsStep]; iStep++ ) {
+         
+         // check, if current step contains any results
+         if( stepVals.find( iStep+1 ) == stepVals.end() )
+           continue;
+         UInt actStepNum = iStep+1;
+         Double actStepVal = stepVals[iStep+1];
+         
+         if( output) {
+           output->BeginStep( actStepNum, actStepVal );
+         }
+         std::cout << "\n\t=============================================\n";
+         std::cout << "\t  Treating step " << actStepNum << ", " << actStepVal
+                   << " Hz\n";
+         std::cout << "\t=============================================\n";
+         
+         // iterate over all results
+         for( UInt iRes = 0; iRes < inResults1.GetSize(); iRes++) {
+           
+           if(inResults1[iRes]->GetResultInfo()->resultName != "fluidMechVelocity")
+             continue;
+           
+           // check if current result is defined within this step
+           if( resultSteps[inResults1[iRes]->GetResultInfo()].find(actStepNum)
+               == resultSteps[inResults1[iRes]->GetResultInfo()].end() ) {
+             continue;
+           }
+           
+           // obtain both result objects for current step
+           inputs[0]->GetResult( actMsStep, actStepNum, inResults1[iRes], false );
+           inputs[1]->GetResult( actMsStep, actStepNum, inResults2[iRes], false );
+           inputs[2]->GetResult( actMsStep, actStepNum, inResults_mean_flow[iRes], false );
+           
+           std::cout << "\n\t-- Comparing result " <<
+             inResults1[iRes]->GetResultInfo()->resultName << " on " 
+                     << inResults1[iRes]->GetEntityList()->GetName() << " --\n";
+           
+           std::set<std::string> regionNames;
+           regionNames.insert(inResults1[iRes]->GetEntityList()->GetName());
+           
+           // get number of dofs of result
+           //             UInt numDofs = inResults1[iRes]->GetResultInfo()->dofNames.GetSize();
+           
+           if( types[actMsStep] == BasePDE::HARMONIC ) { 
+          #if 0
+             Vector<Complex> & inVec1 =
+               dynamic_cast<Result<Complex>& >(*inResults1[iRes]).GetVector();
+             Vector<Complex> & inVec2 =
+               dynamic_cast<Result<Complex>& >(*inResults2[iRes]).GetVector();
+          #endif
+             
+             Vector<Complex> & outVec =
+               dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
+             Vector<Complex> & outVec2 =
+               dynamic_cast<Result<Complex>& >(*outResults2[iRes]).GetVector();
+             Vector<Complex> & outVec3 =
+               dynamic_cast<Result<Complex>& >(*outResults3[iRes]).GetVector();
+             UInt numElems = outResults[iRes]->GetEntityList()->GetSize();
+             UInt numDofs = outResults[iRes]->GetResultInfo()->dofNames.GetSize();
+             UInt dim = ptGrid1->GetDim();
+
+             outVec.Resize( numElems * numDofs );
+             outVec2.Resize( numElems * numDofs );
+             outVec3.Resize( numElems );
+             
+             shared_ptr<BaseFeFunction> u1FeFunc = inputs[0]->GetFeFunction<Complex>( actMsStep,
+                                                                             actStepNum,
+                                                                             inResults1[iRes]->GetResultInfo()->resultType,
+                                                                             regionNames);
+             shared_ptr<BaseFeFunction> u2FeFunc = inputs[1]->GetFeFunction<Complex>( actMsStep,
+                                                                             actStepNum,
+                                                                             inResults2[iRes]->GetResultInfo()->resultType,
+                                                                             regionNames);
+
+             shared_ptr<BaseFeFunction> VFeFunc = inputs[2]->GetFeFunction<Double>( actMsStep,
+                                                                              actStepNum,
+                                                                              inResults_mean_flow[iRes]->GetResultInfo()->resultType,
+                                                                              regionNames );
+
+
+             GradientOperator<FeH1,3> gradOp;
+             
+             EntityIterator eIt = outResults[iRes]->GetEntityList()->GetIterator();
+             
+             Complex u_p_prime = Complex(0.0, 0.0);
+             Double rho_0 = regionDensityMap[inResults1[iRes]->GetEntityList()->GetName()];
+
+             for(UInt elIdx=0 ; !eIt.IsEnd(); eIt++, elIdx++ ) 
+             {
+               if(inResults1[iRes]->GetEntityList()->GetName() == "pipe_inner") continue;
+               
+               const Elem* el1 = eIt.GetElem();
+               const Elem* el2 = ptGrid2->GetElem(el1->elemNum);
+               const Elem* el3 = ptGrid3->GetElem(el1->elemNum);
+               
+               // Obtain FE element from feSpace and integration scheme
+               IntegOrder order;
+               IntScheme::IntegMethod method;
+               BaseFE* ptFe1 = u1FeFunc->GetFeSpace()->GetFe( eIt, method, order );
+               BaseFE* ptFe2 = u2FeFunc->GetFeSpace()->GetFe( el2->elemNum );
+               // BaseFE* ptFe3 = VFeFunc->GetFeSpace()->GetFe( el3->elemNum );
+               LocPoint lp = Elem::shapes[el1->type].midPointCoord;
+               LocPointMapped lpm1, lpm2, lpm3;
+               shared_ptr<ElemShapeMap> esm1 = ptGrid1->GetElemShapeMap( el1, true );
+               shared_ptr<ElemShapeMap> esm2 = ptGrid2->GetElemShapeMap( el2, true );
+               shared_ptr<ElemShapeMap> esm3 = ptGrid3->GetElemShapeMap( el3, true );
+               lpm1.Set( lp, esm1, 0.0 );
+               lpm2.Set( lp, esm2, 0.0 );
+               lpm3.Set( lp, esm3, 0.0 );
+               
+               Matrix<Double> bMat1, bMat2;
+               Vector<Complex> eSol1, eSol2;
+               StdVector< Vector<Complex> > eSol1Comp(numDofs), eSol2Comp(numDofs);
+               Vector<Complex> eSol2_x, eSol2_y, esol2_z;
+               Vector<Complex> u1, u2;
+               Vector<Double> V;
+               Vector<Complex> W;
+               gradOp.CalcOpMat( bMat1, lpm1, ptFe1 );
+               gradOp.CalcOpMat( bMat2, lpm2, ptFe2 );
+               
+               
+               u1FeFunc->GetVector( u1, lpm1 );
+               u2FeFunc->GetVector( u2, lpm2 );
+               VFeFunc->GetVector( V, lpm3 );
+
+               dynamic_cast<FeFunction<Complex>*>(u1FeFunc.get())->GetElemSolution( eSol1, el1 );
+               dynamic_cast<FeFunction<Complex>*>(u2FeFunc.get())->GetElemSolution( eSol2, el2 );
+
+               StdVector< Vector<Complex> > u1Derivs(numDofs), u2Derivs(numDofs);
+
+               for(UInt dof=0; dof < numDofs; dof++) 
+               {
+                 UInt eN=eSol1.GetSize()/numDofs;
+                 
+                 eSol1Comp[dof].Resize(eN);
+                 eSol2Comp[dof].Resize(eN);
+
+                 for(UInt eI=0; eI < eN; eI++) 
+                 {
+                   eSol1Comp[dof][eI] = eSol1[eI*numDofs+dof];
+                   eSol2Comp[dof][eI] = eSol2[eI*numDofs+dof];
+                 }
+
+                 gradOp.ApplyOp( u1Derivs[dof], lpm1, ptFe1, eSol1Comp[dof] );
+                 gradOp.ApplyOp( u2Derivs[dof], lpm2, ptFe2, eSol2Comp[dof] );
+               }
+
+#if 0
+               Matrix<Complex> u1Derivs(3,3);
+               Matrix<Complex> u2Derivs(3,3);
+               u1Derivs.Init();
+               u2Derivs.Init();
+
+               UInt numFncs = ptFe1->GetNumFncs();
+               
+               for( UInt dof=0; dof < numDofs; dof++ ) 
+               {
+                 for( UInt f=0; f < numFncs; f++ ) 
+                 {
+                   u1Derivs[dof][0] += eSol1[f*numDofs+0]*bMat1[dof][f*numDofs+0];
+                   u1Derivs[dof][1] += eSol1[f*numDofs+1]*bMat1[dof][f*numDofs+1];
+                   u1Derivs[dof][2] += eSol1[f*numDofs+2]*bMat1[dof][f*numDofs+2];
+                   
+                   u2Derivs[dof][0] += eSol2[f*numDofs+0]*bMat2[dof][f*numDofs+0];
+                   u2Derivs[dof][1] += eSol2[f*numDofs+1]*bMat2[dof][f*numDofs+1];
+                   u2Derivs[dof][2] += eSol2[f*numDofs+2]*bMat2[dof][f*numDofs+2];
+                 }                   
+               }
+#endif               
+               
+               std::cout << "elemNum " << el1->elemNum << std::endl;
+               W.Resize(u1.GetSize());
+               W.Init();
+               
+               for( UInt i=0; i < numDofs; i++ )
+               {
+                 for( UInt j=0; j < dim; j++ )
+                 {
+#if 0
+                   W[i] += -rho_0 * (u2[j] * u1Derivs[i][j] - u1[j] * u2Derivs[j][i]);
+#endif               
+
+                   W[i] += -rho_0 * (u2[j] * u1Derivs[j][i] - u1[j] * u2Derivs[i][j]);
+                 }
+               }
+               
+               outVec[elIdx*numDofs+0] = W[0];
+               outVec[elIdx*numDofs+1] = W[1];
+               outVec[elIdx*numDofs+2] = W[2];
+
+#if 0               
+               outVec[elIdx*numDofs+0] = u1Derivs[2][0];
+               outVec[elIdx*numDofs+1] = u1Derivs[2][1];
+               outVec[elIdx*numDofs+2] = u1Derivs[2][2];
+#endif
+
+               outVec2[elIdx*numDofs+0] = V[0];
+               outVec2[elIdx*numDofs+1] = V[1];
+               outVec2[elIdx*numDofs+2] = V[2];
+
+               outVec3[elIdx] = W[0]*V[0] + W[1]*V[1] + W[2]*V[2];
+
+               // Get integration points
+               shared_ptr<IntScheme> intScheme = u1FeFunc->GetFeSpace()->GetIntScheme();
+               
+               StdVector<LocPoint> intPoints;
+               StdVector<Double> weights;
+               intScheme->GetIntPoints( Elem::GetShapeType(el1->type), method, 0,
+                                         intPoints, weights );
+
+               u_p_prime += outVec3[elIdx] * lpm1.jacDet * weights[0];
+               
+               
+             }
+
+             std::cout << "\nu_p_prime " << u_p_prime << std::endl;
+         
+           } // switch: Analysitype
+           // add result to output file
+           if (output )
+             output->AddResult( outResults[iRes] );
+             output->AddResult( outResults2[iRes] );
+             output->AddResult( outResults3[iRes] );
+           
+         } // loop over results
+         
+         if( output )
+           output->FinishStep();
+       }
+       if( output )
+         output->FinishMultiSequenceStep();
+       
+       if( output ) {
+         output->Finalize();
+         std::cout << "\nOutput successfully written to " << outFile << std::endl;
+       }
+       delete ptGrid1;
+       delete ptGrid2;
+       
+  } //WVT
+  
   /**
    * calcAverage calclulates the average of a physical field at each timestep. It
    * stores the results in outFile
@@ -1162,19 +1974,9 @@ int main(int argc, char** argv)
   // todo: do better once! - Fabian
   CFSTool::InitEnums(); 
   ElemShape::Initialize();
-  
-  std::cout << std::endl
-            << "============================================================"
-            << "===========" << std::endl;
-  std::cout << " CFSTOOL - File Conversions/Comparisons for CFS++" << std::endl << std::endl
-            << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
-            << " (rev " << CFS_WC_REVISION << ")" << std::endl
-            << " compiled " << __DATE__
-            << " as " << CMAKE_BUILD_TYPE << std::endl;
-  std::cout << "============================================================"
-            << "==========="
-            << std::endl << std::endl;
 
+  domain = NULL;
+  
   std::string maxDiffResultName; // that's chaos man!
   std::string infoFileName;
   try
@@ -1191,76 +1993,101 @@ int main(int argc, char** argv)
       Exception::segfault_ = false;
     }
 
+    // Print out hard-coded node and element limits and exit.
+    if (param->Has("printLimits"))
+    {
+      CFSTool::PrintLimits(param->Get("printLimits")->As<std::string>());
+      return 0;
+    }
+
+    std::cout << std::endl
+              << "============================================================"
+              << "===========" << std::endl;
+    std::cout << " CFSTOOL - File Conversions/Comparisons for CFS++" << std::endl << std::endl
+              << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
+              << " (rev " << CFS_WC_REVISION << ")" << std::endl
+              << " compiled " << __DATE__
+              << " as " << CMAKE_BUILD_TYPE << std::endl;
+    std::cout << "============================================================"
+              << "==========="
+              << std::endl << std::endl;
+
     std::string param_mode = param->Get("mode")->As<std::string>();
 
     // get filenames from parameter
-    std::string inputFile = param->Get("inputFile")->As<std::string>();
-    std::string compareFile = param->Get("compareFile")->As<std::string>();
-    std::string outputFile = param->Get("outputFile")->As<std::string>();
+    std::string file1 = param->Get("file1")->As<std::string>();
+    std::string file2 = param->Get("file2")->As<std::string>();
+    std::string file3 = param->Get("file3")->As<std::string>();
+    std::string file4 = param->Get("file4")->As<std::string>();
 
     // Initialize vector with output fields
     UInt num_files = 0;
-    if (inputFile != "")
+    if (file1 != "")
     {
       ++num_files;
-      if (compareFile != "")
+      if (file2 != "")
       {
         ++num_files;
-        if (outputFile != "")
+        if (file3 != "")
         {
           ++num_files;
+          if (file4 != "")
+          {
+            ++num_files;
+          }
         }
       }
     }
-    if (inputFile != "")
+
+    if (file1 != "")
     {
       // This is necessary to run, but I do not know what it is for
       info = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT));
-      infoFileName = param_mode + "_" + inputFile + ".info.xml";
+      infoFileName = param_mode + "_" + file1 + ".info.xml";
       info->SetName("cfsInfo"); 
     }
 
     if (param_mode == "calcAverage")
     {
-      if (outputFile != "")
+      if (file3 != "")
       {
         EXCEPTION( "Two many arguments, please only provide two files. (in- and output file)" );
       }
-      outputFile = compareFile;
+      file3 = file2;
       if (num_files != 2)
       {
         EXCEPTION( "Please provide a reference file and output File" );
       }
-      CFSTool::calcAverage(inputFile, outputFile);
+      CFSTool::calcAverage(file1, file3);
     } else if (param_mode == "convert") {
-      if (outputFile != "")
+      if (file3 != "")
       {
         EXCEPTION( "Two many arguments, please only provide two files. (in- and output file)" );
       }
-      outputFile = compareFile;
+      file3 = file2;
       if (num_files != 2)
       {
-        EXCEPTION( "Please provide <infFile> and <outFile>" );
+        EXCEPTION( "Please provide 'input_file' and 'output_file'" );
       }
-      CFSTool::Convert( inputFile, outputFile );
+      CFSTool::Convert( file1, file3 );
     } else if (param_mode == "scalardiff") {
       Double tolerance = param->Get("eps")->As<Double>();
       if (num_files != 2)
       {
-        EXCEPTION( "Please provide <inFile1> and <inFile2>" );
+        EXCEPTION( "Please provide 'reference_file' and 'file_under_test'" );
       }
       Double maxDiffMesh = 0.0, maxDiffHist = 0.0;
       std::cout << "Checking for mesh results:\n"
-        << "==========================";
-      maxDiffMesh = CFSTool::Diff( inputFile, compareFile, "", \
+        << "==========================\n";
+      maxDiffMesh = CFSTool::Diff( file1, file2, "", \
                                   true, false, maxDiffResultName);
       std::cout << "Checking for history results:\n"
-        << "=============================";
-      maxDiffHist = CFSTool::Diff( inputFile, compareFile, "", \
+        << "=============================\n";
+      maxDiffHist = CFSTool::Diff( file1, file2, "", \
                                   true, true, maxDiffResultName );
       Double maxDiff = std::max( maxDiffMesh, maxDiffHist );
       if( maxDiff > tolerance ) {
-        std::cout << "'" << inputFile << "' and '" << compareFile
+        std::cout << "'" << file1 << "' and '" << file2
           << "' have maximum difference " << maxDiff
           << " at '" << maxDiffResultName << "'\n";
         exit(EXIT_FAILURE);
@@ -1271,28 +2098,38 @@ int main(int argc, char** argv)
     } else if (param_mode == "meshdiff") {
       if (num_files != 3)
       {
-        EXCEPTION( "Please provide <inFile1>, <inFile2> and <outFile>" );
+        EXCEPTION( "Please provide 'reference_file', 'file_under_test' and 'out_file'" );
       }
-      CFSTool::Diff( inputFile, compareFile, outputFile, \
+      CFSTool::Diff( file1, file2, file3, \
                      false, false, maxDiffResultName);
     } else if (param_mode == "meshdiffnormed") {
       if (num_files != 3)
       {
-        EXCEPTION( "Please provide <inFile1>, <inFile2> and <outFile>" );
+        EXCEPTION( "Please provide 'reference_file', 'file_under_test' and 'out_file'" );
       }
-      CFSTool::Diff( inputFile, compareFile, outputFile, \
+      CFSTool::Diff( file1, file2, file3, \
                      true, false, maxDiffResultName);
+    } else if (param_mode == "wvt") {
+      if (num_files != 4)
+      {
+        EXCEPTION( "Please provide 'lateral_mode_file', 'coriolis_mode_file',\n 'mean_velocity_file' and 'out_file'" );
+      }
+
+      CFSTool::WVT( file1, file2, file3, file4 );
+
     } else {
-      EXCEPTION( "No such mode: " << param_mode <<". See help for available modes" );
+      EXCEPTION( "No such mode: " << param_mode <<". See help for available modes." );
       return EXIT_FAILURE;
     }
   } catch(std::exception& ex) {
+    std::cerr << "The following error occured during program execution:\n\n" << ex.what();
+
     if (info != NULL)
     {
       info->Get(ParamNode::PN_ERROR)->SetValue(ex.what());
       info->ToFile(infoFileName);
     }
-    std::cerr << "The following error occured during program execution:\n\n" << ex.what();
+
     return -1;
   }
   info->ToFile(infoFileName);

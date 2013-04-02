@@ -20,7 +20,15 @@ DECLARE_LOG(fefunc)
   BaseFeFunction::BaseFeFunction(){
     
     fctId_ = NO_FCT_ID;
-    mHandle_ = domain->GetMathParser()->GetNewHandle();
+    if(domain) 
+    {
+      mHandle_ = domain->GetMathParser()->GetNewHandle();
+    }
+    else
+    {
+      mHandle_ = 0;
+    }
+    
     algsys_ = NULL;
     
     // initialize members of coefficient function
@@ -178,16 +186,19 @@ DECLARE_LOG(fefunc)
     timeDerivOrder_ = 0;
     idOp_ = NULL;
     isComplex_ = std::tr1::is_same<T,Complex>::value;
-    MathParser * mp = domain->GetMathParser();
+    if(domain)  
+    {
+      MathParser * mp = domain->GetMathParser();
     
-    // Add expression for calculating the time derivative in the
-    // harmonic case
-    if( IsComplex( )) {
-      mp->SetExpr(mHandle_, "2*pi*f");
-      mp->AddExpChangeCallBack(
+      // Add expression for calculating the time derivative in the
+      // harmonic case
+      if( IsComplex( )) {
+        mp->SetExpr(mHandle_, "2*pi*f");
+        mp->AddExpChangeCallBack(
           boost::bind(&FeFunction<T>::UpdateTimeDeriv, this ),
           mHandle_ );
-    }
+      }
+    }    
   }
   
   
@@ -240,10 +251,13 @@ DECLARE_LOG(fefunc)
   
   template<>
     void FeFunction<Complex>::UpdateTimeDeriv() {
-    MathParser * mp = domain->GetMathParser();
+    if(domain) 
+    {
+      MathParser * mp = domain->GetMathParser();
     
-    Double omega = mp->Eval( mHandle_ );
-    switch( timeDerivOrder_ ) {
+      Double omega = mp->Eval( mHandle_ );
+
+      switch( timeDerivOrder_ ) {
       case 0:
         factor_ = Complex(1.0,0);
         break;
@@ -253,7 +267,8 @@ DECLARE_LOG(fefunc)
       case 2:
         factor_ = Complex(-(omega*omega),0);
         break;
-    }
+      }
+    }    
   }
   
   template<typename T>

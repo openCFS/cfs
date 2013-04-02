@@ -127,6 +127,10 @@ namespace CoupledField {
                       UInt stepNum,
                       shared_ptr<BaseResult> result,
                       bool isHistory = false );
+
+    //! Read one the strings in the user data group.
+    void ReadStringFromUserData(const std::string& dSetName,
+                                std::string& str);
     //@}
 
   protected:

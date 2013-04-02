@@ -1104,6 +1104,7 @@ source/DataInOut/SimInOut/internalMesh/InternalMesh.hh -text
 source/DataInOut/SimInOut/xdmf/CMakeLists.txt -text
 source/DataInOut/SimInOut/xdmf/SimOutputXDMF.cc -text
 source/DataInOut/SimInOut/xdmf/SimOutputXDMF.hh -text
+source/DataInOut/SimInput.cc -text
 source/DataInOut/SimInput.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimOutput.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimOutput.hh svneol=native#text/x-c%2B%2Bhdr

@@ -123,12 +123,10 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
     # 
     # -frounding-math: is needed for CGAL library
     SET(CFS_CXX_FLAGS "-std=c++98 -Wall -ftemplate-depth-85 -frounding-math")
-    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-attributes")
     SET(CHECK_MEM_ALLOC 1)
 
   ELSE(DEBUG)
 
-    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-attributes")
     SET(CFS_C_FLAGS "-std=gnu99 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-std=c++98 -Wall -ftemplate-depth-85")
 
@@ -166,9 +164,24 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
           CFS_BLAS_LAPACK STREQUAL "ACML" AND
           CFS_ARCH STREQUAL "X86_64")
 
-
   ENDIF(DEBUG)
   
+  #-----------------------------------------------------------------------------
+  # Disable some annoying warnings.
+  #-----------------------------------------------------------------------------
+  SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
+  SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-attributes")
+
+  IF(APPLE)
+    #---------------------------------------------------------------------------
+    # The C++ linker creates compact exception stack unwinding data since
+    # MacOS X 10.6. This can cause page long linker warnings, which cannot be
+    # deactivated. So we disable it here alltogether (cf. man unwinddump).
+    #---------------------------------------------------------------------------
+    SET(CFS_LINKER_FLAGS "-Wl,-no_compact_unwind")
+  ENDIF()
+
+
   IF(PROFILING)
     SET(CFS_PROF_FLAGS "-pg")
   ENDIF(PROFILING)

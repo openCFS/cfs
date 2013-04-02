@@ -1305,4 +1305,20 @@ namespace CoupledField {
     }
   }
 
+  void SimInputHDF5::ReadStringFromUserData(const std::string& dSetName,
+                                            std::string& str) {
+    H5::Group userDataGroup;
+
+    // If it does not exist, create Group for Data.
+    try {
+      userDataGroup = mainRoot_.openGroup("UserData");
+    } H5_CATCH( "Can open 'UserData' group." );
+
+    StdVector<std::string> userData;
+    H5IO::ReadArray( userDataGroup, dSetName, userData );
+    str = userData[0];
+
+    userDataGroup.close();
+  }
+
 }

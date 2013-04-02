@@ -13,6 +13,7 @@ SET(DATAINOUT_SRCS
   ProgramOptions.cc
   ResultCache.cc
   ResultHandler.cc
+  SimInput.cc
   SimOutput.cc
 )
 

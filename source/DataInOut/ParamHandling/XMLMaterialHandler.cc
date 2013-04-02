@@ -33,7 +33,8 @@ namespace CoupledField {
     schema += "/CFS-Material/CFS_Material.xsd";
   
     // Initialize our xerces dom parser to handle the  xml file
-    Xerces* xerces = new Xerces(fileName, schema);
+    Xerces* xerces = new Xerces(schema);
+    xerces->SetFile(fileName);
 
     parser_ = xerces->CreateParamNodeInstance();
 

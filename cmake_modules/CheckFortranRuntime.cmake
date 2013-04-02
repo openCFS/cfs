@@ -267,6 +267,7 @@ FortranCInterface_HEADER("${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh
   zpbtrf
   dpbtrs
   zpbtrs
+  ilaver
   # ARPACK
   dsaupd
   dseupd

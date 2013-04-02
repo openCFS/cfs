@@ -101,6 +101,8 @@ ExternalProject_Add(hdf5-static
     -DHDF5_ENABLE_Z_LIB_SUPPORT:BOOL=ON
     -DZLIB_INCLUDE_DIR:PATH=${hdf5_install}/include
     -DHDF5_BUILD_TOOLS:BOOL=ON
+    # On Mac OS X we can get problems with the system strdup function.
+    -DH5_HAVE_STRDUP:BOOL=OFF
     )
 
 #-------------------------------------------------------------------------------
