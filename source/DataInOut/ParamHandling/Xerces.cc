@@ -311,9 +311,16 @@ namespace CoupledField
     } catch (XMLException& ex) 
     {
       XMLString::release(&value);
+
+      value = XMLString::transcode(ex.getType());
+      std::string exType = value;
+      XMLString::release(&value);
+
+      value = XMLString::transcode(ex.getMessage());
+      std::string exMsg = value;
+      XMLString::release(&value);
       
-      WARN("Xerces " << XMLString::transcode(ex.getType()) << ": " 
-           << XMLString::transcode(ex.getMessage())
+      WARN("Xerces " << exType << ": " << exMsg
            << std::endl << std::endl
            << "These problems usually occur if characters are present in the XML"
            << std::endl
