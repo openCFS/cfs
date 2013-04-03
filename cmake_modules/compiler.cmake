@@ -111,6 +111,12 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
 
   # MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
 
+  IF(USE_LIBFBI)
+    SET(CFS_CXX_FLAGS "-std=c++0x")
+  ELSE()
+    SET(CFS_CXX_FLAGS "-std=c++98")
+  ENDIF()
+
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
@@ -122,13 +128,13 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
     # fgrep 'warning: use of old-style cast' out.txt | grep CFS_SOURCE_DIR | sort -u > old-style-cast.txt
     # 
     # -frounding-math: is needed for CGAL library
-    SET(CFS_CXX_FLAGS "-std=c++98 -Wall -ftemplate-depth-85 -frounding-math")
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-85 -frounding-math")
     SET(CHECK_MEM_ALLOC 1)
 
   ELSE(DEBUG)
 
     SET(CFS_C_FLAGS "-std=gnu99 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "-std=c++98 -Wall -ftemplate-depth-85")
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-85")
 
     IF(CFS_ARCH STREQUAL "I386")
       SET(CFS_OPT_FLAGS "-m32 -march=pentium4")

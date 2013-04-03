@@ -365,6 +365,27 @@ IF(USE_CGAL)
 ENDIF(USE_CGAL)
 
 #-----------------------------------------------------------------------------
+# Find fast box intersection library.
+#-----------------------------------------------------------------------------
+IF(USE_LIBFBI)
+  IF(WIN32)
+    IF(NOT MINGW)
+      SET(MSG "Only the latest versions of MSVC support the features needed")
+      SET(MSG "${MSG} needed to build libfbi. Maybe your version works or")
+      SET(MSG "${MSG} not. We just bail out here, to make sure nothing stupid")
+      SET(MSG "${MSG} happens.")
+      MESSAGE(FATAL_ERROR "${MSG}")
+    ENDIF()
+  ENDIF()
+
+  SET(LIBFBI_URL "${LSE17_SOURCES_DIR}/spacepart")
+  SET(LIBFBI_GZ "libfbi-1.1.1-Source-notestdata.tar.gz")
+  SET(LIBFBI_MD5 "b35c408a3e20704044bbf7412d715498")
+ENDIF(USE_LIBFBI)
+
+INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/spacepart/External_spacepart.cmake")
+
+#-----------------------------------------------------------------------------
 # Find IPOPT
 #-----------------------------------------------------------------------------
 IF(USE_IPOPT)

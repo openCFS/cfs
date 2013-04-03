@@ -1,0 +1,44 @@
+--- CMakeLists.txt	2011-04-17 16:57:45.000000000 +0200
++++ CMakeLists.txt	2013-04-03 11:42:34.818996261 +0200
+@@ -49,9 +49,10 @@
+ 
+ IF (ENABLE_BENCHMARK OR ENABLE_EXAMPLES)
+     # require boost
+-    SET(Boost_USE_STATIC_LIBS OFF)
++    set(Boost_USE_STATIC_LIBS ON)
++    set(Boost_USE_STATIC ON)
+     SET(Boost_USE_MULTITHREAD OFF)
+-    FIND_PACKAGE(Boost COMPONENTS program_options system REQUIRED)
++    FIND_PACKAGE(Boost 1.52.0 COMPONENTS program_options system REQUIRED)
+     INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
+     LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
+ ENDIF (ENABLE_BENCHMARK OR ENABLE_EXAMPLES)
+--- examples/CMakeLists.txt	2011-04-17 16:57:45.000000000 +0200
++++ examples/CMakeLists.txt	2013-04-03 11:51:05.574995607 +0200
+@@ -23,22 +23,18 @@
+ ADD_EXECUTABLE(soccer-example soccer-example.cpp)
+ 
+ TARGET_LINK_LIBRARIES(example-ms2-ms1-matching
+-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+-    ${Boost_SYSTEM_LIBRARY}
++    ${Boost_LIBRARIES}
+ )
+ 
+ TARGET_LINK_LIBRARIES(example-xic-construction
+-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+-    ${Boost_SYSTEM_LIBRARY}
++    ${Boost_LIBRARIES}
+ )
+ 
+ TARGET_LINK_LIBRARIES(kdtree-xic-construction
+-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+-    ${Boost_SYSTEM_LIBRARY}
++    ${Boost_LIBRARIES}
+ )
+ 
+ TARGET_LINK_LIBRARIES(example-isotope-patterns
+-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+-    ${Boost_SYSTEM_LIBRARY}
++    ${Boost_LIBRARIES}
+ )
+ 

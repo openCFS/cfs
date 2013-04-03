@@ -234,6 +234,9 @@ cfsdeps/scpip/scpip-dum2.patch -text
 cfsdeps/scpip/scpip-gfortran.patch -text
 cfsdeps/scpip/scpip-patch.cmake.in -text
 cfsdeps/scpip/scpip.tar.bz2 -text
+cfsdeps/spacepart/External_spacepart.cmake -text
+cfsdeps/spacepart/libfbi-build-examples.patch -text
+cfsdeps/spacepart/libfbi-patch.cmake.in -text
 cfsdeps/suitesparse/External_SuiteSparse.cmake -text
 cfsdeps/suitesparse/SuiteSparse-METIS-CMake.patch -text
 cfsdeps/suitesparse/blas_lapack_gfortran.h -text
@@ -349,6 +352,7 @@ include/def_use_ilupack.hh.in -text
 include/def_use_ipopt.hh.in -text
 include/def_use_knitro.hh.in -text
 include/def_use_lapack.hh.in -text
+include/def_use_libfbi.hh.in -text
 include/def_use_lis.hh.in -text
 include/def_use_mesh.hh.in -text
 include/def_use_metis.hh.in -text

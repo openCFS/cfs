@@ -572,11 +572,7 @@ namespace CoupledField {
 //              int setIdx2 = datainfo_.Nsetinfo[i][(stepNum-1)/2+1].idx;
               capaIf_.GetNodeData(nodeNumber, setIdx, data1, data2);
               for ( iDof=0; iDof<numDofs; ++iDof ) {
-                if((stepNum%2) == 0) {
-                  resVec[j*numDofs+iDof].real() = data2[iDof];
-                } else {
-                  resVec[j*numDofs+iDof].real() = data2[iDof];
-                }
+                resVec[j*numDofs+iDof] = Complex(data2[iDof], 0);
               }
               eit++;
             }

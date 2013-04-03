@@ -255,19 +255,24 @@ void ElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated) {
 // ========================================================================
 
 LagrangeElemShapeMap::LagrangeMapSingleton::LagrangeMapSingleton() {
-  feMap_ = boost::assign::list_of<std::pair<Elem::FEType, FeH1LagrangeExpl*> >(
-      Elem::ET_LINE2, new FeH1LagrangeLine1())(Elem::ET_LINE3,
-      new FeH1LagrangeLine2())(Elem::ET_TRIA3, new FeH1LagrangeTria1())(
-      Elem::ET_TRIA6, new FeH1LagrangeTria2())(Elem::ET_QUAD4,
-      new FeH1LagrangeQuad1())(Elem::ET_QUAD8, new FeH1LagrangeQuad2())(
-      Elem::ET_QUAD9, new FeH1LagrangeQuad9())(Elem::ET_TET4,
-      new FeH1LagrangeTet1())(Elem::ET_TET10, new FeH1LagrangeTet2())(
-      Elem::ET_HEXA8, new FeH1LagrangeHex1())(Elem::ET_HEXA20,
-      new FeH1LagrangeHex2())(Elem::ET_HEXA27, new FeH1LagrangeHex27())(
-      Elem::ET_WEDGE6, new FeH1LagrangeWedge1())(Elem::ET_WEDGE15,
-      new FeH1LagrangeWedge2())(Elem::ET_WEDGE18, new FeH1LagrangeWedge18())(
-      Elem::ET_PYRA5, new FeH1LagrangePyra1())(Elem::ET_PYRA13,
-      new FeH1LagrangePyra2())(Elem::ET_PYRA14, new FeH1LagrangePyra14());
+  feMap_[Elem::ET_LINE2]   = new FeH1LagrangeLine1();
+  feMap_[Elem::ET_LINE3]   = new FeH1LagrangeLine2();
+  feMap_[Elem::ET_TRIA3]   = new FeH1LagrangeTria1();
+  feMap_[Elem::ET_TRIA6]   = new FeH1LagrangeTria2();
+  feMap_[Elem::ET_QUAD4]   = new FeH1LagrangeQuad1();
+  feMap_[Elem::ET_QUAD8]   = new FeH1LagrangeQuad2();
+  feMap_[Elem::ET_QUAD9]   = new FeH1LagrangeQuad9();
+  feMap_[Elem::ET_TET4]    = new FeH1LagrangeTet1();
+  feMap_[Elem::ET_TET10]   = new FeH1LagrangeTet2();
+  feMap_[Elem::ET_HEXA8]   = new FeH1LagrangeHex1();
+  feMap_[Elem::ET_HEXA20]  = new FeH1LagrangeHex2();
+  feMap_[Elem::ET_HEXA27]  = new FeH1LagrangeHex27();
+  feMap_[Elem::ET_WEDGE6]  = new FeH1LagrangeWedge1();
+  feMap_[Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
+  feMap_[Elem::ET_WEDGE18] = new FeH1LagrangeWedge18();
+  feMap_[Elem::ET_PYRA5]   = new FeH1LagrangePyra1();
+  feMap_[Elem::ET_PYRA13]  = new FeH1LagrangePyra2();
+  feMap_[Elem::ET_PYRA14]  = new FeH1LagrangePyra14();
 }
 
 LagrangeElemShapeMap::LagrangeMapSingleton::~LagrangeMapSingleton() {

@@ -255,8 +255,7 @@ void LISSolver::Solve( const BaseMatrix &sysmat,
       myEnt.real() = x_->value[i*2];
       myEnt.imag() = x_->value[i*2+1];
 #endif
-      myEnt.real() = x_->value[i];
-      myEnt.imag() = x_->value[i+n];
+      myEnt = Complex(x_->value[i], x_->value[i+n]);
       
       sol.SetEntry(i,myEnt);
     }
