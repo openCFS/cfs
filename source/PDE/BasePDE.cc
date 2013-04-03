@@ -11,10 +11,17 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
-  BasePDE::BasePDE( PtrParamNode paramNode ) :
+  BasePDE::BasePDE( PtrParamNode paramNode,
+                    PtrParamNode infoNode,
+                    shared_ptr<SimState> simState,
+                    Domain * ptDomain) :
     sequenceStep_(0),
     myParam_(paramNode),
-    pdename_()
+    myInfo_(infoNode),
+    pdename_(),
+    simState_(simState),
+    domain_(ptDomain),
+    mp_(ptDomain->GetMathParser())
   {
   }
 
@@ -26,7 +33,7 @@ namespace CoupledField {
 
   bool BasePDE::IsComplex() 
   {
-    return domain->GetDriver()->IsComplex();
+    return domain_->GetDriver()->IsComplex();
   }
   
   void BasePDE::SetEnums()

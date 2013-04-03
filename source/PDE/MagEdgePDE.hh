@@ -20,7 +20,9 @@ namespace CoupledField
   public:
 
     //! Constructor
-    MagEdgePDE( Grid * aptgrid, PtrParamNode paramNode );
+    MagEdgePDE( Grid * aptgrid, PtrParamNode paramNode,
+                PtrParamNode infoNode,
+                shared_ptr<SimState> simState, Domain* domain );
 
     //! Default Destructor
 

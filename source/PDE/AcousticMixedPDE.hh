@@ -29,7 +29,9 @@ class AcousticMixedPDE : public SinglePDE{
     /*!
       \param aGrid pointer to grid
     */
-    AcousticMixedPDE( Grid* aGrid, PtrParamNode paramNode );
+    AcousticMixedPDE( Grid* aGrid, PtrParamNode paramNode, 
+                      PtrParamNode infoNode,
+                      shared_ptr<SimState> simState, Domain* domain );
 
     virtual ~AcousticMixedPDE(){};
 

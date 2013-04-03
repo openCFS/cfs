@@ -25,7 +25,7 @@ ADD_EXECUTABLE(cfsbin ${CFS_SRCS})
 SET(TARGET_LL
   cfsgeneral
   utils
-  definefiles
+  datainout
   paramh
   utils
   domain

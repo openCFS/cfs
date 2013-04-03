@@ -109,7 +109,8 @@ public:
   //! \param realVal Real-part of the CoefFunction
   //! \param imagVal Imag-part of the CoefFunction (optional)
   static PtrCoefFct 
-  Generate( Global::ComplexPart type, 
+  Generate( MathParser * mp,
+            Global::ComplexPart type, 
             const std::string& realVal, 
             const std::string& imagVal = "0" );
 
@@ -126,14 +127,16 @@ public:
   //! \param realVal Real-part vector of the CoefFunction
   //! \param imagVal Imag-part vector of the CoefFunction (optional)
   static PtrCoefFct 
-  Generate( Global::ComplexPart type, 
+  Generate( MathParser * mp,
+            Global::ComplexPart type, 
             const StdVector<std::string>& realVal, 
             const StdVector<std::string>& imagVal = StdVector<std::string>() );
 
 
   //! Generate vector-valued coefficient function from scalar CoefFunctions
   static PtrCoefFct 
-  Generate( Global::ComplexPart type, 
+  Generate( MathParser * mp,
+            Global::ComplexPart type, 
             const StdVector<PtrCoefFct>& realVal, 
             const StdVector<PtrCoefFct>& imagVal = StdVector<PtrCoefFct>() );
 
@@ -153,14 +156,16 @@ public:
   //! \param realVal Real-part tensor of the CoefFunction
   //! \param imagVal Imag-part tensor of the CoefFunction (optional)
   static PtrCoefFct 
-  Generate( Global::ComplexPart type,
+  Generate( MathParser * mp,
+            Global::ComplexPart type,
             UInt numRows, UInt numCols,
             const StdVector<std::string>& realVal,
             const StdVector<std::string>& imagVal = StdVector<std::string>() );
   
   //! Generate tensor-valued coefficient function from scalar CoefFunctions
   static PtrCoefFct 
-  Generate( Global::ComplexPart type,
+  Generate( MathParser * mp,
+            Global::ComplexPart type,
             UInt numRows, UInt numCols,
             const StdVector<PtrCoefFct>& realVal,
             const StdVector<PtrCoefFct>& imagVal = StdVector<PtrCoefFct>() );
@@ -173,7 +178,8 @@ public:
   //! efficient coefficient representation, i.e. if the expression evaluates
   //! to a constant, a CoefFunctionConst/Analytical/TimeFreq is generated.
   //! In all other cases, a compound coefficient function is generated. 
-  static PtrCoefFct Generate( Global::ComplexPart type,
+  static PtrCoefFct Generate( MathParser * mp, 
+                              Global::ComplexPart type,
                               const CoefXpr&  xpr );
   //@}
 

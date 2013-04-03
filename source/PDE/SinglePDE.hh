@@ -10,8 +10,6 @@
 #include "Domain/Results/ResultInfo.hh"
 #include "Domain/BCs.hh"
 #include "Domain/Results/BaseResults.hh"
-#include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
-#include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 
 namespace CoupledField
 {
@@ -22,7 +20,6 @@ namespace CoupledField
   class BaseForm;
   class BiLinearForm;
   class BaseBDBInt;
-  class PDEMemento;
   class ResultFunctor;
   class BaseFieldFunctor;
   class LinearFormContext;
@@ -92,43 +89,6 @@ namespace CoupledField
      * Note, that only the current state is (over) written! */
     void WriteGeneralPDEdefines();
 
-    //! get the encapsulated state of the PDE
-  
-    //! returns the current state of the PDE (solution, derivative,
-    //! coupling-objects) in an encapsulated object. This is needed to
-    //! enable full MultiSequence simulation, where from one step to 
-    //! another the solution, the derivative and perhaps coupling 
-    //! values like geometry update have to be passed. 
-    //! The PDEMemento object encapsulates this information. 
-    //! Later on the information can be given back to the PDE
-    //! with the method SetMemento();
-    //! \param memento (output) Object where the current state gets saved
-    void GetMemento(shared_ptr<PDEMemento>& memento);
-  
-    //! set the encapsulated state of the PDE
-  
-    //! set the current state of this PDE (solution, derivative,
-    //! coupling-objects) from an encapsulated object. This is needed to
-    //! enable full MultiSequence simulation, where from one step to 
-    //! another the solution, the derivative and perhaps coupling 
-    //! values like geometry update have to be passed. 
-    //! The PDEMemento object encapsulates this information. 
-    //! With this method the previous stored information can be set
-    //! to the current PDE.
-    //! \param memento (input) Previously saved state of the PDE
-    //! \param useAsDirichlet (input) Usage type of values (start-value / 
-             //!                      dirichlet value )
-    void SetMemento( shared_ptr<PDEMemento>&  memento, 
-                     bool useAsDirichlet );
-                   
-
-    //! write the PDE state (pdememento) to a restart file "simname_pdename.restart"
-    void WriteRestart( );
-
-    //! read the PDE state (pdememento)from a restart file: "simname_pdename.restart"
-    void ReadRestart(UInt &startStep );
-
-    //! Map containing the result types and the results
     ResultMap& GetResults() { return resultLists_; }
     
     /**<p>This is part of ReadStoreResults(). If candiate is defined in the xml file
@@ -171,7 +131,9 @@ namespace CoupledField
     /*!
       \param aptgrid pointer to grid
     */
-    SinglePDE( Grid *aptgrid, PtrParamNode );
+    SinglePDE( Grid *aptgrid, PtrParamNode, PtrParamNode infoNode,
+               shared_ptr<SimState> simState,
+               Domain* domain);
 
     //! private copy constructor
     SinglePDE & operator= (const StdPDE & myPDE) {
@@ -302,9 +264,6 @@ namespace CoupledField
     void WriteResultsInFile( const UInt kstep, 
                              const Double actTimeFreq );
     
-    //! incorporate information of memento object, if set
-    virtual void IncorporateMemento();
-
     //! Initialize NonLinearities
     virtual void InitNonLin();
 
@@ -398,12 +357,6 @@ namespace CoupledField
     //! Flag, if PDE used updated geometry (updated Lagrangian formulation)
     bool updatedGeo_;
     
-    //! PDEMemento
-    shared_ptr<PDEMemento> memento_;
-
-    //! usage type of memento
-    bool mementoAsDirichlet_;
-
     //! Map for storing the primary BDB integrators of the problem
     
     //! This map stores the primary BDB integrators, which can be used for 

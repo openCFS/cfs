@@ -39,7 +39,7 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
                                        public boost::enable_shared_from_this<CoefFunctionExpression<Double> >{
   
   public:
-    CoefFunctionExpression();
+    CoefFunctionExpression(MathParser * mp);
 
     virtual ~CoefFunctionExpression();
 
@@ -133,7 +133,7 @@ class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic,
                                         public boost::enable_shared_from_this<CoefFunctionExpression<Complex> >{
   
   public:
-    CoefFunctionExpression();
+    CoefFunctionExpression(MathParser * mp);
 
     virtual ~CoefFunctionExpression();
 

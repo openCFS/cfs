@@ -72,9 +72,8 @@ namespace CoupledField {
     
     // Obtain new handle
     HandleType newHandle = GLOB_HANDLER;
-   
     if( activeHandles_.size() > 0 ) {
-      std::set<HandleType>::iterator it = activeHandles_.end();
+      std ::set<HandleType>::iterator it = activeHandles_.end();
       newHandle = *(--it);
     }
 
@@ -122,6 +121,7 @@ namespace CoupledField {
 
     // Remove handle from set
     activeHandles_.erase( handle );
+
   }
 
   void MathParser::SetValue( HandleType handler,

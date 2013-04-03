@@ -32,8 +32,11 @@ namespace CoupledField {
   //   Constructor
   // ***************
   FluidMechCoupling::FluidMechCoupling( SinglePDE *pde1, SinglePDE *pde2,
-                                PtrParamNode paramNode  )
-    : BasePairCoupling( pde1, pde2, paramNode )
+                                PtrParamNode paramNode, 
+                                PtrParamNode infoNode,
+                                shared_ptr<SimState> simState,
+                                Domain* domain)
+    : BasePairCoupling( pde1, pde2, paramNode, infoNode, simState, domain )
   {
     couplingName_ = "FluidMechDirect";
     materialClass_ = FLOW;
@@ -65,6 +68,7 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> dispFct = mechPDE->GetFeFunction(MECH_DISPLACEMENT);
 //    std::map<RegionIdType, BaseMaterial*> mechMaterials;
 //    mechMaterials = mechPDE->getPDEMaterialData();
+    MathParser * mp = domain_->GetMathParser();
 
     PerturbedFlowPDE* flowPDE = dynamic_cast<PerturbedFlowPDE*>(pde2_);
     shared_ptr<BaseFeFunction> velFct = flowPDE->GetFeFunction(FLUIDMECH_VELOCITY);
@@ -102,7 +106,7 @@ namespace CoupledField {
       PtrCoefFct density = flowMat->GetScalCoefFnc( DENSITY, Global::REAL );
       PtrCoefFct viscosity = flowMat->GetScalCoefFnc( DYNAMIC_VISCOSITY, Global::REAL );
       
-      oneFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
+      oneFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL,
                                                    lexical_cast<std::string>(1.0));
 
       WARN("fluid density: " << density->ToString() << " dynamic viscosity " << viscosity->ToString());
@@ -313,7 +317,7 @@ namespace CoupledField {
     StdVector<std::string> velDofNames;
 
     std::string geometryType;
-    param->Get("domain")->GetValue("geometryType", geometryType );
+    domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", geometryType );
 
     if( geometryType == "3d" ) {
       velDofNames = "x", "y", "z";

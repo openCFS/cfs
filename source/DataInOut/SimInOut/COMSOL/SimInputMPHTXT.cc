@@ -565,8 +565,9 @@ namespace CoupledField {
   
   
   
-  SimInputMPHTXT::SimInputMPHTXT(std::string fileName, PtrParamNode inputNode) :
-    SimInput(fileName, inputNode)
+  SimInputMPHTXT::SimInputMPHTXT(std::string fileName, PtrParamNode inputNode,
+                                 PtrParamNode infoNode ) :
+    SimInput(fileName, inputNode, infoNode)
   {
     capabilities_.insert( SimInput::MESH);
   }

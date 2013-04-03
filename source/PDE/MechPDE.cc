@@ -40,8 +40,9 @@ namespace CoupledField {
 DECLARE_LOG(mechpde)
 DEFINE_LOG(mechpde, "mechpde")
 
-MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
-    :SinglePDE( aptgrid, paramNode ) {
+MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
+                 shared_ptr<SimState> simState, Domain* domain )
+    :SinglePDE( aptgrid, paramNode, infoNode, simState, domain ) {
 
     pdename_          = "mechanic";
     pdematerialclass_ = MECHANIC;
@@ -62,7 +63,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     myParam_->GetValue("subType", subType_ );
 
     std::string probGeo;
-    param->Get("domain")->GetValue("geometryType", probGeo );
+    domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", probGeo );
 
     // Set number of degrees of freedom and
     // ensure that subtype fits to problem geometry
@@ -93,6 +94,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
                  <<  pdename_ <<  "' does not fit to problem  geometry '"
                  << probGeo << "'"; );
     }
+    
+    std::cerr << "subType is " << subType_ << std::endl; 
     
     // Sanity check: 3D can only be computed if 3D elements are present
     if( subType_ == "3d" && ptGrid_->GetNumElemOfDim(3) == 0 ) {
@@ -195,7 +198,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
                                  actRayl.adjustDamping, isHarmonic );
         regionRaylDamping_[actRegionId] = actRayl;
 
-        PtrParamNode in = infoNode_->Get(ParamNode::PN_HEADER)->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
+        PtrParamNode in = infoNode_->Get(ParamNode::PN_HEADER)
+            ->GetByVal("region", "name", ptGrid_->GetRegion().ToString(actRegionId));
         in->Get("alpha_M")->SetValue(actRayl.alpha);
         in->Get("alpha_K")->SetValue(actRayl.beta);
       }
@@ -421,7 +425,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         // number of nodes
         if( numNodes > 1 ) {
           Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;  
-          coef[i] = CoefFunction::Generate(part, CoefXprVecScalOp(coef[i], 
+          coef[i] = CoefFunction::Generate(mp_, part, 
+                                           CoefXprVecScalOp(mp_, coef[i], 
                     boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );
         }
         
@@ -775,6 +780,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     shared_ptr<ResultInfo> stress(new ResultInfo);
     stress->resultType = MECH_STRESS;
     stress->dofNames = stressComponents;
+    std::cerr << "stress Components: " << stressComponents.ToString() << std::endl;
     stress->unit =  "N/m^2";
     stress->entryType = ResultInfo::TENSOR;
     stress->definedOn = ResultInfo::ELEMENT;
@@ -823,12 +829,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       PtrCoefFct velFnc = this->GetCoefFct( MECH_VELOCITY );
       // define temporary function, without the -1 sign
       PtrCoefFct intensTmp = 
-          CoefFunction::Generate(part,
-                                 CoefXprBinOp( sigmaFunc, velFnc,
+          CoefFunction::Generate(mp_, part,
+                                 CoefXprBinOp( mp_,  sigmaFunc, velFnc,
                                                CoefXpr::OP_MULT_VOIGT_TENSOR_VEC_CONJ ) );
       intensFct = 
-          CoefFunction::Generate(part,
-                                 CoefXprBinOp( "-1.0", intensTmp , CoefXpr::OP_MULT ));
+          CoefFunction::Generate(mp_, part,
+                                 CoefXprBinOp(mp_,  "-1.0", intensTmp , CoefXpr::OP_MULT ));
       DefineFieldResult( intensFct, intens );
 
 
@@ -939,8 +945,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     if (analysistype_ == STATIC ) {
       tedFunc = dedFunc;
     } else {
-      tedFunc = CoefFunction::Generate(part, 
-                                       CoefXprBinOp( dedFunc, kedFunc, CoefXpr::OP_ADD) );
+      tedFunc = CoefFunction::Generate(mp_, part, 
+                                       CoefXprBinOp( mp_, dedFunc, kedFunc, CoefXpr::OP_ADD) );
     }
     DefineFieldResult(tedFunc, totEnergyDens ); 
 

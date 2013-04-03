@@ -32,7 +32,6 @@ SET(TARGET_LL ${TARGET_LL}
   mathparser
   coupledpde
   febasis
-  definefiles
   simouttext
   simoutinfo
 )

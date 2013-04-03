@@ -25,7 +25,9 @@ namespace CoupledField
       \param grid pointer to grid
       \param paramNode pointer to the corresponding parameter node
     */
-    PerturbedFlowPDE( Grid* grid, PtrParamNode paramNode );
+    PerturbedFlowPDE( Grid* grid, PtrParamNode paramNode,
+                      PtrParamNode infoNode,
+                      shared_ptr<SimState> simState, Domain* domain );
 
     //! Destructor
     virtual ~PerturbedFlowPDE(){};

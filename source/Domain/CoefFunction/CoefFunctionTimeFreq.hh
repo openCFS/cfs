@@ -34,7 +34,7 @@ class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
   public:
   
   //! Constructor
-  CoefFunctionTimeFreq();
+  CoefFunctionTimeFreq(MathParser * mp);
 
   //! Destructor
   virtual ~CoefFunctionTimeFreq();
@@ -210,7 +210,7 @@ class CoefFunctionTimeFreq<Complex> : public CoefFunctionAnalytic,
 public:
   
   //! Constructor
-  CoefFunctionTimeFreq();
+  CoefFunctionTimeFreq(MathParser * mp);
 
   //! Destructor
   virtual ~CoefFunctionTimeFreq();

@@ -29,8 +29,9 @@ namespace CoupledField {
   DEFINE_LOG(simOutputGiD, "SimOutputGiD")
 
     SimOutputGiD::SimOutputGiD( const std::string& fileName,
-                                PtrParamNode outputNode )
-  : SimOutput( fileName, outputNode ),
+                                PtrParamNode outputNode,
+                                PtrParamNode infoNode)
+  : SimOutput( fileName, outputNode, infoNode ),
     isInitialized_(false)
   {
     // Initialize variables

@@ -77,8 +77,8 @@ namespace CoupledField
     //! Constructor
 
     //! Standard Constructor
-    //! \param aptFileType pointer to FileType for reading initial grid
-    Grid();
+    //! \param param Pointer to <domain> parameter node
+    Grid(PtrParamNode param, PtrParamNode infoNode );
 
     //! Destructor
     virtual ~Grid();
@@ -747,7 +747,7 @@ namespace CoupledField
     //@}
 
     // =======================================================================
-    // Interation Scheme
+    // Integration Scheme
     // =======================================================================
   public:
     shared_ptr<IntScheme> GetIntegrationScheme(){
@@ -792,6 +792,12 @@ namespace CoupledField
     
     //! Flag for initialization status
     bool isInitialized_;
+    
+    //! ParamNode of xml file
+    PtrParamNode param_;
+    
+    //! Info node
+    PtrParamNode info_;
 
     /** This is redundant to regionData but convenient for mapping regionId to region_name.
      * Note the the region_id is determined by AddRegion() and not an enum! */

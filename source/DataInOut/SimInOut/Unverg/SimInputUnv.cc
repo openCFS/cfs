@@ -20,8 +20,9 @@ namespace CoupledField {
   // declare logging stream
   DEFINE_LOG(simInputUNV, "SimInputUnv")
 
-  SimInputUnv::SimInputUnv( std::string fileName, PtrParamNode inputNode ) 
-    : SimInput(fileName, inputNode) {
+  SimInputUnv::SimInputUnv( std::string fileName, PtrParamNode inputNode,
+                            PtrParamNode infoNode) 
+    : SimInput(fileName, inputNode, infoNode ) {
     capabilities_.insert( SimInput::MESH);
     capabilities_.insert( SimInput::MESH_RESULTS);
 

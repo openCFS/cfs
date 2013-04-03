@@ -6,7 +6,7 @@
 namespace CoupledField 
 {
 
-  void ParamsInit(int argc, char* argv[]);
+  void ParamsInit(int argc, char* argv[], PtrParamNode param);
     
 }
 

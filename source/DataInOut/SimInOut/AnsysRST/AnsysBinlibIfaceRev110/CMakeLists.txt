@@ -59,7 +59,6 @@ IF(MINGW)
 #  datainout
 #  cfsgeneral
 #  utils
-#  definefiles
 #  paramh
 #  utils
 #  domain

@@ -553,7 +553,6 @@ ENDIF(USE_LIS)
 
 ADD_SUBDIRECTORY(source/CoupledPDE)
 ADD_SUBDIRECTORY(source/DataInOut)
-ADD_SUBDIRECTORY(source/DataInOut/DefineFiles)
 ADD_SUBDIRECTORY(source/DataInOut/Logging)
 ADD_SUBDIRECTORY(source/DataInOut/ParamHandling)
 

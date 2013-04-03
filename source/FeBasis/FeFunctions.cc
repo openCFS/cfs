@@ -16,30 +16,26 @@
 namespace CoupledField {
 DECLARE_LOG(fefunc)
  DEFINE_LOG(fefunc, "feFunction")
- 
-  BaseFeFunction::BaseFeFunction(){
-    
-    fctId_ = NO_FCT_ID;
-    if(domain) 
-    {
-      mHandle_ = domain->GetMathParser()->GetNewHandle();
-    }
-    else
-    {
-      mHandle_ = 0;
-    }
-    
-    algsys_ = NULL;
-    
-    // initialize members of coefficient function
-    dependType_ = CoefFunction::GENERAL;
-    isAnalytic_ = false;
-    dimType_ = NO_DIM;
+
+ BaseFeFunction::BaseFeFunction(MathParser* mp){
+
+  fctId_ = NO_FCT_ID;
+  if(mp) {
+    mp_ = mp;
+    mHandle_ = mp_->GetNewHandle();
+  } else  {
+    mp_ = NULL;
+  }
+  algsys_ = NULL;
+
+  // initialize members of coefficient function
+  dependType_ = CoefFunction::GENERAL;
+  isAnalytic_ = false;
+  dimType_ = NO_DIM;
 
   }
-  
+
   BaseFeFunction::~BaseFeFunction(){
-    
   }
   
   
@@ -180,21 +176,20 @@ DECLARE_LOG(fefunc)
   // ========================================================================
 
   template<typename T>
-  FeFunction<T>::FeFunction(){
+  FeFunction<T>::FeFunction(MathParser* mp) :
+     BaseFeFunction(mp)
+  {
     coeffs_ = NULL;
     factor_ = 1.0;
     timeDerivOrder_ = 0;
     idOp_ = NULL;
     isComplex_ = std::tr1::is_same<T,Complex>::value;
-    if(domain)  
-    {
-      MathParser * mp = domain->GetMathParser();
     
-      // Add expression for calculating the time derivative in the
-      // harmonic case
-      if( IsComplex( )) {
-        mp->SetExpr(mHandle_, "2*pi*f");
-        mp->AddExpChangeCallBack(
+    if( mp_ ) {
+    // harmonic case
+    if( IsComplex( )) {
+      this->mp_->SetExpr(mHandle_, "2*pi*f");
+      this->mp_->AddExpChangeCallBack(
           boost::bind(&FeFunction<T>::UpdateTimeDeriv, this ),
           mHandle_ );
       }
@@ -206,8 +201,9 @@ DECLARE_LOG(fefunc)
   template<typename T>
   FeFunction<T>::~FeFunction(){
     if( domain) {
-      MathParser * mp = domain->GetMathParser();
-      mp->ReleaseHandle( mHandle_ );
+      if (mp_) {
+        mp_->ReleaseHandle( mHandle_ );
+      }
     }
     if( idOp_ )
       delete idOp_;
@@ -250,14 +246,11 @@ DECLARE_LOG(fefunc)
   
   
   template<>
-    void FeFunction<Complex>::UpdateTimeDeriv() {
-    if(domain) 
-    {
-      MathParser * mp = domain->GetMathParser();
-    
-      Double omega = mp->Eval( mHandle_ );
-
-      switch( timeDerivOrder_ ) {
+  void FeFunction<Complex>::UpdateTimeDeriv() {
+    if( !mp_ ) 
+      return;
+    Double omega = this->mp_->Eval( mHandle_ );
+    switch( timeDerivOrder_ ) {
       case 0:
         factor_ = Complex(1.0,0);
         break;
@@ -267,10 +260,9 @@ DECLARE_LOG(fefunc)
       case 2:
         factor_ = Complex(-(omega*omega),0);
         break;
-      }
-    }    
+    }
   }
-  
+
   template<typename T>
   void FeFunction<T>::Finalize(){
     
@@ -448,9 +440,9 @@ DECLARE_LOG(fefunc)
     FeSpace::SpaceType curType = feSpace_->GetSpaceType();
     PtrCoefFct unity;
     if ( std::tr1::is_same<T,Complex>::value ) { 
-      unity = CoefFunction::Generate(Global::COMPLEX, "1.0");
+      unity = CoefFunction::Generate(mp_, Global::COMPLEX, "1.0");
     } else {
-      unity = CoefFunction::Generate(Global::REAL, "1.0");
+      unity = CoefFunction::Generate(mp_, Global::REAL, "1.0");
     }
     switch(curType){
       case FeSpace::H1:

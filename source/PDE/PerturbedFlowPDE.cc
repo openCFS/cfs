@@ -58,8 +58,11 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  PerturbedFlowPDE::PerturbedFlowPDE( Grid* grid, PtrParamNode paramNode )
-    :SinglePDE( grid, paramNode ) {
+  PerturbedFlowPDE::PerturbedFlowPDE( Grid* grid, PtrParamNode paramNode,
+                                      PtrParamNode infoNode,
+                                      shared_ptr<SimState> simState, 
+                                      Domain* domain )
+    :SinglePDE( grid, paramNode, infoNode,simState, domain ) {
 
 
     // ======================================================================
@@ -201,7 +204,7 @@ namespace CoupledField {
 
       // Create set of flow regions and map of density functions for surface integrators.
       flowRegions.insert(actRegion);
-      oneFuncs[actRegion] = CoefFunction::Generate(Global::REAL,
+      oneFuncs[actRegion] = CoefFunction::Generate(mp_, Global::REAL,
                                                        lexical_cast<std::string>(1.0));
 
 #ifdef SIMONS_TEST
@@ -239,7 +242,7 @@ namespace CoupledField {
       //  VERSION 2: K_VP Integrator (upper off-diagonal integrator)
       // --------------------------------------------------------------------
       PtrCoefFct coeffKVP
-                = CoefFunction::Generate(Global::REAL, "1.0");
+                = CoefFunction::Generate(mp_,Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
       if( dim_ == 2 ) {
         stiffIntVP = new ABInt< IdentityOperator<FeH1,2,2> , GradientOperator<FeH1,2> >(coeffKVP, 1.0 / density );
@@ -261,7 +264,7 @@ namespace CoupledField {
       //  (upper off-diagonal integrators - partially integrated, volume)
       // --------------------------------------------------------------------
       PtrCoefFct coeffKVP
-                = CoefFunction::Generate(Global::REAL, "1.0");
+                = CoefFunction::Generate(mp_,Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
       if( dim_ == 2 ) {
         stiffIntVP = new ABInt<>(new DivOperator<FeH1,2>(), new MultiIdOp<FeH1,2>(), coeffKVP, -1.0 );
@@ -284,7 +287,7 @@ namespace CoupledField {
       //  VERSION 2: K_Laplace Integrator
       // --------------------------------------------------------------------
 //      PtrCoefFct coeffKvv
-//                = CoefFunction::Generate(Global::REAL,
+//                = CoefFunction::Generate(mp_,Global::REAL,
 //                                         lexical_cast<std::string>(viscosity));
       BiLinearForm * stiffIntLaplace = NULL;
       if( dim_ == 2 ) {
@@ -303,7 +306,7 @@ namespace CoupledField {
 #ifdef SIMONS_TEST
 
 //      PtrCoefFct coeffMVV
-//                = CoefFunction::Generate(Global::REAL,
+//                = CoefFunction::Generate(mp_, Global::REAL,
 //                                         lexical_cast<std::string>(density));
 
       //======================================================================
@@ -359,7 +362,7 @@ namespace CoupledField {
       // damping integrators
       // ====================================================================
 //      PtrCoefFct coeffDvv
-//                = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(density));
+//                = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(density));
 
       BiLinearForm *dampIntvv = NULL;
       if( dim_ == 2 ) {
@@ -435,7 +438,7 @@ namespace CoupledField {
     StdVector<std::string> velDofNames;
 
     std::string geometryType;
-    param->Get("domain")->GetValue("geometryType", geometryType );
+    domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", geometryType );
 
     if( geometryType == "3d" ) {
       velDofNames = "x", "y", "z";
@@ -530,7 +533,7 @@ namespace CoupledField {
       }
 
         PtrCoefFct coeffKVP
-                  = CoefFunction::Generate(Global::REAL, "1.0");
+                  = CoefFunction::Generate(mp_, Global::REAL, "1.0");
         BaseBDBInt * stiffIntVP = NULL;
         if( dim_ == 2 ) {
           stiffIntVP = new ABInt<>(new IdentityOperator<FeH1,2,2>(), 

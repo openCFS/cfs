@@ -22,6 +22,7 @@
 #include <boost/filesystem/convenience.hpp>
 namespace fs = boost::filesystem;
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "ParamsInit.hh"
 #include "General/Environment.hh"
 #include "DataInOut/ProgramOptions.hh"
@@ -76,9 +77,16 @@ namespace fs = boost::filesystem;
 
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
 
+
 using namespace CoupledField;
 
+//! Global parameter node and info node instance
+PtrParamNode param, info;
+
 namespace CFSTool {
+
+  
+
 
   void setFreeCoord(std::string coordSysId="default",
       std::string node_name="averageDomain");
@@ -137,35 +145,35 @@ namespace CFSTool {
 
     if( fileName.find( ".mesh") != std::string::npos ) {
 #ifdef USE_MESH
-      reader = shared_ptr<SimInput>(new SimInputMESH( fileName, PtrParamNode() ) );
+      reader = shared_ptr<SimInput>(new SimInputMESH( fileName, PtrParamNode(), info ) );
 #else
       EXCEPTION( "No support for MESH input file format." );
 #endif
     } else if( fileName.find( ".h5") != std::string::npos ) {
 #ifdef USE_HDF5
-      reader = shared_ptr<SimInput>(new SimInputHDF5(fileName, param));
+      reader = shared_ptr<SimInput>(new SimInputHDF5(fileName, param, info));
 #else
       EXCEPTION( "No support for HDF5 input file format." );
 #endif
     } else if( fileName.find( ".refelem") != std::string::npos ) {
-      reader = shared_ptr<SimInput>(new SimInputRefElems(fileName, param));
+      reader = shared_ptr<SimInput>(new SimInputRefElems(fileName, param, info));
     } else if( fileName.find( ".msh") != std::string::npos ) {
 #ifdef USE_GMSH
       PtrParamNode gmshNode(new ParamNode (ParamNode::EX, ParamNode::ELEMENT));
-      reader = shared_ptr<SimInput>(new SimInputGmsh(fileName, gmshNode) );
+      reader = shared_ptr<SimInput>(new SimInputGmsh(fileName, gmshNode, info) );
 #else  
       EXCEPTION( "No support for Gmsh input file format." );
 #endif
     } else if( fileName.find( ".mphtxt") != std::string::npos ) {
 #ifdef USE_COMSOL
       PtrParamNode comsolNode(new ParamNode (ParamNode::EX, ParamNode::ELEMENT));
-      reader = shared_ptr<SimInput>(new SimInputMPHTXT(fileName, comsolNode) );
+      reader = shared_ptr<SimInput>(new SimInputMPHTXT(fileName, comsolNode, info) );
 #else  
       EXCEPTION( "No support for Comsol .mphtxt input file format." );
 #endif
     } else if( fileName.find( ".gmv") != std::string::npos ) {
 #ifdef USE_GMV
-      reader = shared_ptr<SimInput>(new SimInputGMV(fileName, param));
+      reader = shared_ptr<SimInput>(new SimInputGMV(fileName, param, info));
 #else
       EXCEPTION( "No support for GMV input file format." );
 #endif
@@ -173,7 +181,7 @@ namespace CFSTool {
         fileName.find( ".unverg") != std::string::npos ||
         fileName.find( ".unvref") != std::string::npos ) {
 #ifdef USE_UNV
-      reader = shared_ptr<SimInput>(new SimInputUnv( fileName, param ));
+      reader = shared_ptr<SimInput>(new SimInputUnv( fileName, param, info ));
 #else
       EXCEPTION( "No support for UNV input file format." );
 #endif
@@ -202,7 +210,7 @@ namespace CFSTool {
         binary->SetValue( "false");
       }
       gidNode->AddChildNode( binary);
-      writer = shared_ptr<SimOutput>( new SimOutputGiD( baseName, gidNode ) );
+      writer = shared_ptr<SimOutput>( new SimOutputGiD( baseName, gidNode, info ) );
 #else
       EXCEPTION( "No support for GiD output file format." );
 #endif
@@ -219,7 +227,7 @@ namespace CFSTool {
       fixedGrid->SetValue( "yes" );
       gmvNode->AddChildNode( binary);
       gmvNode->AddChildNode( fixedGrid );
-      writer = shared_ptr<SimOutput>( new SimOutputGMV( baseName, gmvNode ) );
+      writer = shared_ptr<SimOutput>( new SimOutputGMV( baseName, gmvNode, info ) );
 #else
       EXCEPTION( "No support for GMV output file format." );
 #endif
@@ -235,7 +243,7 @@ namespace CFSTool {
       bigEndian->SetValue( "big" );
       gmshNode->AddChildNode(binary);
       gmshNode->AddChildNode(bigEndian);
-      writer = shared_ptr<SimOutput>( new SimOutputGmsh( baseName, gmshNode ) );
+      writer = shared_ptr<SimOutput>( new SimOutputGmsh( baseName, gmshNode, info ) );
 #else 
       EXCEPTION( "No support for GMsh output file format." );
 #endif
@@ -247,7 +255,7 @@ namespace CFSTool {
       eFiles->SetName("externalFiles");
       eFiles->SetValue( "false" );
       h5Node->AddChildNode(eFiles);
-      writer =  shared_ptr<SimOutput>( new SimOutputHDF5( baseName, h5Node ) );
+      writer =  shared_ptr<SimOutput>( new SimOutputHDF5( baseName, h5Node, info ) );
 #else
       EXCEPTION( "No support for HDF5 output file format." );
 #endif
@@ -259,7 +267,7 @@ namespace CFSTool {
       eFiles->SetName("externalFiles");
       eFiles->SetValue( "false" );
       h5Node->AddChildNode(eFiles);
-      writer =  shared_ptr<SimOutput>( new SimOutputXDMF( baseName, h5Node ) );
+      writer =  shared_ptr<SimOutput>( new SimOutputXDMF( baseName, h5Node, info ) );
 #else
       EXCEPTION( "No support for HDF5 output file format. Cannot write XDMF files." );
 #endif
@@ -282,7 +290,7 @@ namespace CFSTool {
         flavor->SetValue( "CAPA" );
         unvNode->AddChildNode(flavor);
       }
-      writer =  shared_ptr<SimOutput>( new SimOutputUnv( baseName, unvNode ) );
+      writer =  shared_ptr<SimOutput>( new SimOutputUnv( baseName, unvNode, info ) );
 #else
       EXCEPTION( "No support for IDEAS universal output file format." );
 #endif
@@ -301,7 +309,7 @@ namespace CFSTool {
     // read in mesh
     input->InitModule();
     UInt dim = input->GetDim();
-    Grid * ptGrid = new GridCFS(dim);
+    Grid * ptGrid = new GridCFS(dim, param, info);
     input->ReadMesh(ptGrid);
     ptGrid->FinishInit();
 
@@ -459,514 +467,515 @@ namespace CFSTool {
                bool isHistory,
                std::string& maxDiffResultName) {
 
-       // obtain input reader for inFiles
-       StdVector< shared_ptr<SimInput> > inputs(2);
-       inputs[0] = GetInputReader( inFile_ref );
-       inputs[1] = GetInputReader( inFile_fut );
+    // obtain input reader for inFiles
+    StdVector< shared_ptr<SimInput> > inputs(2);
+    inputs[0] = GetInputReader( inFile_ref );
+    inputs[1] = GetInputReader( inFile_fut );
 
-       // check capabilities of input class
-       StdVector<bool> readerCaps(2);
-       StdVector<std::string> readerDescriptions(2);
-       readerDescriptions[0] = "reference results";
-       readerDescriptions[1] = "file under test";
-       StdVector<std::string> readerCapsResults(2);
-       for(UInt i=0; i<inputs.GetSize(); i++) 
-       {
-         readerCaps[i] = CheckReaderCapabilities(readerDescriptions[i],
-                                                 inputs[i],
-                                                 readerCapsResults[i]);
-       }
-       
-       if( !readerCaps[0] || !readerCaps[1] ) {
-         std::cerr << "Some input files are only capable of handling meshes, not results!\n\n";
+    // check capabilities of input class
+    StdVector<bool> readerCaps(2);
+    StdVector<std::string> readerDescriptions(2);
+    readerDescriptions[0] = "reference results";
+    readerDescriptions[1] = "file under test";
+    StdVector<std::string> readerCapsResults(2);
+    for(UInt i=0; i<inputs.GetSize(); i++) 
+    {
+      readerCaps[i] = CheckReaderCapabilities(readerDescriptions[i],
+                                              inputs[i],
+                                              readerCapsResults[i]);
+    }
 
-         for(UInt i=0; i<inputs.GetSize(); i++) 
-         {
-           std::cerr << readerCapsResults[i] << std::endl;
-         }
+    if( !readerCaps[0] || !readerCaps[1] ) {
+      std::cerr << "Some input files are only capable of handling meshes, not results!\n\n";
 
-         exit(EXIT_FAILURE);
-       }
+      for(UInt i=0; i<inputs.GetSize(); i++) 
+      {
+        std::cerr << readerCapsResults[i] << std::endl;
+      }
 
-       // obtain input reader for inFiles
-       shared_ptr<SimInput>& input_ref = inputs[0];
-       shared_ptr<SimInput>& input_fut = inputs[1];
+      exit(EXIT_FAILURE);
+    }
 
-       // read in mesh of reference file
-       input_ref->InitModule();
-       UInt dim = input_ref->GetDim();
-       Grid * ptGrid_ref = new GridCFS(dim);
-       input_ref->ReadMesh(ptGrid_ref);
-       ptGrid_ref->FinishInit();
+    // obtain input reader for inFiles
+    shared_ptr<SimInput>& input_ref = inputs[0];
+    shared_ptr<SimInput>& input_fut = inputs[1];
 
-       // Obtain settings for node and element limit check
-       bool checkLimits = false;
-       if (param->Has("checkLimits"))
-       {
-         checkLimits = param->Get("checkLimits")->As<bool>();         
-       }
-       else
-       {
-         if(inFile_ref.find( ".h5ref") != std::string::npos) 
-         {
-           checkLimits = true;
-         }         
-       }
+    // read in mesh of reference file
+    input_ref->InitModule();
+    UInt dim = input_ref->GetDim();
+    Grid * ptGrid_ref = new GridCFS(dim, param, info);
+    input_ref->ReadMesh(ptGrid_ref);
+    ptGrid_ref->FinishInit();
 
-       // Do the actual limits check
-       if(checkLimits) 
-       {
-         UInt numNodes = ptGrid_ref->GetNumNodes();
-         UInt numElems = ptGrid_ref->GetNumElems();
-         std::string msg =
-           "\nIn the interests of fast test execution and the ability to postprocess\n" \
-           "using certain postprocessors with limitations (e.g. GiD without a license),\n" \
-           "please keep the node and element count below the limits.\n";
+    // Obtain settings for node and element limit check
+    bool checkLimits = false;
+    if (param->Has("checkLimits"))
+    {
+      checkLimits = param->Get("checkLimits")->As<bool>();         
+    }
+    else
+    {
+      if(inFile_ref.find( ".h5ref") != std::string::npos) 
+      {
+        checkLimits = true;
+      }         
+    }
 
-         if(numNodes > SOFT_NODE_LIMIT) 
-         {
-           WARN("Number of nodes " << numNodes << 
-                " exceeds soft limit " << SOFT_NODE_LIMIT << ".");
-         }
+    // Do the actual limits check
+    if(checkLimits) 
+    {
+      UInt numNodes = ptGrid_ref->GetNumNodes();
+      UInt numElems = ptGrid_ref->GetNumElems();
+      std::string msg =
+          "\nIn the interests of fast test execution and the ability to postprocess\n" \
+          "using certain postprocessors with limitations (e.g. GiD without a license),\n" \
+          "please keep the node and element count below the limits.\n";
 
-         if(numElems > SOFT_ELEM_LIMIT) 
-         {
-           WARN("Number of elements " << numElems << 
-                " exceeds soft limit " << SOFT_ELEM_LIMIT << ".");
-         }
+      if(numNodes > SOFT_NODE_LIMIT) 
+      {
+        WARN("Number of nodes " << numNodes << 
+             " exceeds soft limit " << SOFT_NODE_LIMIT << ".");
+      }
 
-         if(numNodes > HARD_NODE_LIMIT) 
-         {
-           delete ptGrid_ref;
-           EXCEPTION("Number of nodes " << numNodes << 
-                     " exceeds hard limit " << HARD_NODE_LIMIT << "." <<
-                     msg);
-         }
+      if(numElems > SOFT_ELEM_LIMIT) 
+      {
+        WARN("Number of elements " << numElems << 
+             " exceeds soft limit " << SOFT_ELEM_LIMIT << ".");
+      }
 
-         if(numElems > HARD_ELEM_LIMIT) 
-         {
-           delete ptGrid_ref;
-           EXCEPTION("Number of elements " << numElems << 
-                     " exceeds hard limit " << HARD_ELEM_LIMIT << "." << 
-                     msg);
-         }
-         
-       }
+      if(numNodes > HARD_NODE_LIMIT) 
+      {
+        delete ptGrid_ref;
+        EXCEPTION("Number of nodes " << numNodes << 
+                  " exceeds hard limit " << HARD_NODE_LIMIT << "." <<
+                  msg);
+      }
 
-       // read in mesh of file under test
-       input_fut->InitModule();
-       Grid * ptGrid_fut = new GridCFS(dim);
-       input_fut->ReadMesh(ptGrid_fut);
-       ptGrid_fut->FinishInit();
+      if(numElems > HARD_ELEM_LIMIT) 
+      {
+        delete ptGrid_ref;
+        EXCEPTION("Number of elements " << numElems << 
+                  " exceeds hard limit " << HARD_ELEM_LIMIT << "." << 
+                  msg);
+      }
 
-       // obtain output writer
-       bool printGridOnly = false;
-       shared_ptr<SimOutput> output;
-       if( outFile != "" ) {
-         output = GetOutputWriter( outFile );
-         output->Init( ptGrid_fut, printGridOnly);
-       }
+    }
 
-       // obtain number of Sequence Steps and get analysis types
-       std::map<UInt, BasePDE::AnalysisType> types;
-       std::map<UInt, UInt> numSteps;
-       input_fut->GetNumMultiSequenceSteps( types, numSteps, isHistory );
 
-       std::cout << "\nFound " << types.size() << " sequence step(s) in '" << inFile_fut << "'\n";
-       std::map<UInt, BasePDE::AnalysisType> types_ref;
-       std::map<UInt, UInt> numSteps_ref;
-       input_ref->GetNumMultiSequenceSteps( types_ref, numSteps_ref, isHistory );
-       std::cout << "\nFound " << types_ref.size() << " sequence step(s) in '" << inFile_ref << "'\n";
-       
-       if(types.size() != types_ref.size()){
-         std::cout << "Reference file '" << inFile_ref << "' and file under test '" << inFile_fut
-            << "' have different number of sequence steps!\n";
-         exit(EXIT_FAILURE);
-       }
-       
-       
-       // iterate over all Sequence Steps
-       Double maxDiff = 0.0;
-       std::map<UInt,UInt>::iterator it;
-       for( it = numSteps_ref.begin(); it != numSteps_ref.end(); it++ ) {
+    // read in mesh of file under test
+    input_fut->InitModule();
+    Grid * ptGrid_fut = new GridCFS(dim, param, info);
+    input_fut->ReadMesh(ptGrid_fut);
+    ptGrid_fut->FinishInit();
 
-         UInt actMsStep = it->first;
-         std::cout << " Diffing sequence step " << actMsStep << std::endl
-                   << "-------------------------\n\n";
+    // obtain output writer
+    bool printGridOnly = false;
+    shared_ptr<SimOutput> output;
+    if( outFile != "" ) {
+      output = GetOutputWriter( outFile );
+      output->Init( ptGrid_fut, printGridOnly);
+    }
 
-         // get resulttypes
-         StdVector<shared_ptr<ResultInfo> > infos, infos_ref;
-         input_ref->GetResultTypes( actMsStep, infos_ref, isHistory );
-         input_fut->GetResultTypes( actMsStep, infos, isHistory );
+    // obtain number of Sequence Steps and get analysis types
+    std::map<UInt, BasePDE::AnalysisType> types;
+    std::map<UInt, UInt> numSteps;
+    input_fut->GetNumMultiSequenceSteps( types, numSteps, isHistory );
 
-         StdVector<shared_ptr<BaseResult> > inResults_fut, inResults_ref, outResults;
-         // stepnumbers, for which at least one result is defined
-         std::map<UInt, Double> stepVals, stepVals_ref;
-         // contains the stepnumbers/-values in which the particular result is
-         // defined in
-         std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
-         std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps_ref;
+    std::cout << "\nFound " << types.size() << " sequence step(s) in '" << inFile_fut << "'\n";
+    std::map<UInt, BasePDE::AnalysisType> types_ref;
+    std::map<UInt, UInt> numSteps_ref;
+    input_ref->GetNumMultiSequenceSteps( types_ref, numSteps_ref, isHistory );
+    std::cout << "\nFound " << types_ref.size() << " sequence step(s) in '" << inFile_ref << "'\n";
 
-         if( infos.GetSize() > 0 ){
-           std::cout << "Performing diff on the following results:\n";
-         }
-         // iterate over all result types of input_ref
-         for( UInt iRes = 0; iRes < infos_ref.GetSize(); iRes++) {
+    if(types.size() != types_ref.size()){
+      std::cout << "Reference file '" << inFile_ref << "' and file under test '" << inFile_fut
+          << "' have different number of sequence steps!\n";
+      exit(EXIT_FAILURE);
+    }
 
-           std::cout << "\t" << infos_ref[iRes]->resultName << "\n";
 
-           // get stepvalues of reference file
-           shared_ptr<ResultInfo> actRes_ref = infos_ref[iRes];
-           input_ref->GetStepValues( actMsStep, actRes_ref,
-                                     resultSteps_ref[actRes_ref], isHistory);
-           stepVals_ref.insert( resultSteps_ref[actRes_ref].begin(),
-                                resultSteps_ref[actRes_ref].end() );
+    // iterate over all Sequence Steps
+    Double maxDiff = 0.0;
+    std::map<UInt,UInt>::iterator it;
+    for( it = numSteps_ref.begin(); it != numSteps_ref.end(); it++ ) {
 
-           // get stepvalues of file under test
-           shared_ptr<ResultInfo> actRes = infos[iRes];
-           input_fut->GetStepValues( actMsStep, actRes,
+      UInt actMsStep = it->first;
+      std::cout << " Diffing sequence step " << actMsStep << std::endl
+          << "-------------------------\n\n";
+
+      // get resulttypes
+      StdVector<shared_ptr<ResultInfo> > infos, infos_ref;
+      input_ref->GetResultTypes( actMsStep, infos_ref, isHistory );
+      input_fut->GetResultTypes( actMsStep, infos, isHistory );
+
+      StdVector<shared_ptr<BaseResult> > inResults_fut, inResults_ref, outResults;
+      // stepnumbers, for which at least one result is defined
+      std::map<UInt, Double> stepVals, stepVals_ref;
+      // contains the stepnumbers/-values in which the particular result is
+      // defined in
+      std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
+      std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps_ref;
+
+      if( infos.GetSize() > 0 ){
+        std::cout << "Performing diff on the following results:\n";
+      }
+      // iterate over all result types of input_ref
+      for( UInt iRes = 0; iRes < infos_ref.GetSize(); iRes++) {
+
+        std::cout << "\t" << infos_ref[iRes]->resultName << "\n";
+
+        // get stepvalues of reference file
+        shared_ptr<ResultInfo> actRes_ref = infos_ref[iRes];
+        input_ref->GetStepValues( actMsStep, actRes_ref,
+                                  resultSteps_ref[actRes_ref], isHistory);
+        stepVals_ref.insert( resultSteps_ref[actRes_ref].begin(),
+                             resultSteps_ref[actRes_ref].end() );
+
+        // get stepvalues of file under test
+        shared_ptr<ResultInfo> actRes = infos[iRes];
+        input_fut->GetStepValues( actMsStep, actRes,
                                   resultSteps[actRes], isHistory);
-           stepVals.insert( resultSteps[actRes].begin(),
-                            resultSteps[actRes].end() );
-           
-           // Loop over all step values in both sets and compare them. Thus we can see
-           // differences e.g. in eigenfrequency analysis
-           std::map<UInt, Double>::const_iterator svIt_fut, svIt_ref;
-           svIt_fut = stepVals.begin();
-           svIt_ref = stepVals_ref.begin();
-           for( ; svIt_ref != stepVals_ref.end(); ++svIt_ref, ++svIt_fut ) {
-             if( svIt_fut->first != svIt_ref->first ) {
-               EXCEPTION( "Encountered different result steps for result " << 
-                          infos[iRes]->resultName );
-             } else {
-               
-               Double val_fut = svIt_fut->second;
-               Double val_ref = svIt_ref->second;
-               Double relDiff = std::abs(std::abs(val_fut-val_ref))/std::abs(val_fut);
-               if ( relDiff > 1e-4 ) {
-                 EXCEPTION("Time / Frequency values of step " << svIt_ref->first << " differ by " 
-                           << relDiff*100.0 << " %:\n"
-                           << "\treference value: " << val_ref <<" s / Hz\n\tcompared value:  " << val_fut
-                           << " s / Hz" << std::endl );
-               }
-             }
-           }
-           
+        stepVals.insert( resultSteps[actRes].begin(),
+                         resultSteps[actRes].end() );
 
-           // iterate over all regions
-           StdVector<shared_ptr<EntityList> > regions;
-           input_ref->GetResultEntities( actMsStep, infos_ref[iRes],
-                                         regions, isHistory );
-           for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
-             // generate new result object and add it to output writer
-             shared_ptr<BaseResult > inResult_fut, inResult_ref, outResult;
-             if( types[actMsStep] == BasePDE::TRANSIENT ||
-                 types[actMsStep] == BasePDE::STATIC ) {
-               inResult_fut = shared_ptr<BaseResult>( new Result<Double>() );
-               inResult_ref = shared_ptr<BaseResult>( new Result<Double>() );
-               outResult = shared_ptr<BaseResult>( new Result<Double>() );
-             } else {
-               inResult_fut = shared_ptr<BaseResult>( new Result<Complex>() );
-               inResult_ref = shared_ptr<BaseResult>( new Result<Complex>() );
-               outResult = shared_ptr<BaseResult>( new Result<Complex>() );
-             }
-             inResult_fut->SetEntityList( regions[iRegion] );
-             inResult_ref->SetEntityList( regions[iRegion] );
-             outResult->SetEntityList( regions[iRegion] );
+        // Loop over all step values in both sets and compare them. Thus we can see
+        // differences e.g. in eigenfrequency analysis
+        std::map<UInt, Double>::const_iterator svIt_fut, svIt_ref;
+        svIt_fut = stepVals.begin();
+        svIt_ref = stepVals_ref.begin();
+        for( ; svIt_ref != stepVals_ref.end(); ++svIt_ref, ++svIt_fut ) {
+          if( svIt_fut->first != svIt_ref->first ) {
+            EXCEPTION( "Encountered different result steps for result " << 
+                       infos[iRes]->resultName );
+          } else {
 
-             inResult_fut->SetResultInfo( infos[iRes] );
-
-             inResult_ref->SetResultInfo( infos_ref[iRes] );
-             outResult->SetResultInfo( infos[iRes] );
-
-             inResults_fut.Push_back( inResult_fut );
-             inResults_ref.Push_back( inResult_ref );
-             outResults.Push_back( outResult );
-             if( output) {
-               // Hardcoded: set output format to AMPL_PHASE
-               //outResult->GetResultInfo()->complexFormat = AMPLITUDE_PHASE;
-               outResult->GetResultInfo()->complexFormat = REAL_IMAG;
-
-               // CAUTION: begin, inc, end are hardcoded and noch checked for each result
-               output->RegisterResult( outResult, 1, 1,
-                                       resultSteps[actRes].size(),
-                                       isHistory );
-             }
-           }
-         }
-
-         Vector<Double> maxResVec_ref;
-         maxResVec_ref.Resize( inResults_ref.GetSize() );
-
-         // For transient simulation find maximum amplitude over all timesteps
-         if( types[actMsStep] == BasePDE::STATIC ||
-             types[actMsStep] == BasePDE::TRANSIENT ) {
-
-           // iterate over all results
-           for( UInt iRes = 0; iRes < inResults_ref.GetSize(); iRes++) {
-             
-             if(numSteps[actMsStep] != numSteps_ref[actMsStep]){
-               std::cout << "Reference file '" << inFile_ref << "' has " << numSteps_ref[actMsStep] << " and '" << inFile_fut
-                  << "' has " << numSteps[actMsStep] << " time steps!\n";
-               exit(EXIT_FAILURE);
-             }
-
-             maxResVec_ref[iRes] = 0.0;
-             // iterate over all time steps
-             for( UInt iStep = 0; iStep < numSteps_ref[actMsStep]; iStep++ ) {
-
-               UInt actStepNum = iStep+1;
-               // check if current result is defined within this step
-               if( resultSteps[inResults_ref[iRes]->GetResultInfo()].find(actStepNum)
-                   == resultSteps[inResults_ref[iRes]->GetResultInfo()].end() ) {
-                 continue;
-               }
-
-               input_ref->GetResult( actMsStep, actStepNum, inResults_ref[iRes], isHistory );
-               Vector<Double> & inVec_ref =
-                 dynamic_cast<Result<Double>& >(*inResults_ref[iRes]).GetVector();
-
-               for( UInt i = 0; i<inVec_ref.GetSize(); i++ ) {
-                 if( std::abs(inVec_ref[i]) > maxResVec_ref[iRes] )
-                     maxResVec_ref[iRes] = std::abs(inVec_ref[i]);
-               }
-             }
-             std::cout << "For result '" << inResults_ref[iRes]->GetResultInfo()->resultName
-                       << "' maximum amplitude is: " << maxResVec_ref[iRes] << "\n";
-           }
-         }
+            Double val_fut = svIt_fut->second;
+            Double val_ref = svIt_ref->second;
+            Double relDiff = std::abs(std::abs(val_fut-val_ref))/std::abs(val_fut);
+            if ( relDiff > 1e-4 ) {
+              EXCEPTION("Time / Frequency values of step " << svIt_ref->first << " differ by " 
+                        << relDiff*100.0 << " %:\n"
+                        << "\treference value: " << val_ref <<" s / Hz\n\tcompared value:  " << val_fut
+                        << " s / Hz" << std::endl );
+            }
+          }
+        }
 
 
-         // notify writer
-         if( output) {
-           output->BeginMultiSequenceStep( actMsStep, types_ref[actMsStep],
-                                           numSteps_ref[actMsStep] );
-         }
+        // iterate over all regions
+        StdVector<shared_ptr<EntityList> > regions;
+        input_ref->GetResultEntities( actMsStep, infos_ref[iRes],
+                                      regions, isHistory );
+        for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
+          // generate new result object and add it to output writer
+          shared_ptr<BaseResult > inResult_fut, inResult_ref, outResult;
+          if( types[actMsStep] == BasePDE::TRANSIENT ||
+              types[actMsStep] == BasePDE::STATIC ) {
+            inResult_fut = shared_ptr<BaseResult>( new Result<Double>() );
+            inResult_ref = shared_ptr<BaseResult>( new Result<Double>() );
+            outResult = shared_ptr<BaseResult>( new Result<Double>() );
+          } else {
+            inResult_fut = shared_ptr<BaseResult>( new Result<Complex>() );
+            inResult_ref = shared_ptr<BaseResult>( new Result<Complex>() );
+            outResult = shared_ptr<BaseResult>( new Result<Complex>() );
+          }
+          inResult_fut->SetEntityList( regions[iRegion] );
+          inResult_ref->SetEntityList( regions[iRegion] );
+          outResult->SetEntityList( regions[iRegion] );
 
-         // iterate over all time/frequency steps
-         for( UInt iStep = 0; iStep < numSteps_ref[actMsStep]; iStep++ ) {
+          inResult_fut->SetResultInfo( infos[iRes] );
 
-           // check, if current step contains any results
-           if( stepVals.find( iStep+1) == stepVals.end() )
-             continue;
-           UInt actStepNum = iStep+1;
-           Double actStepVal = stepVals[iStep+1];
+          inResult_ref->SetResultInfo( infos_ref[iRes] );
+          outResult->SetResultInfo( infos[iRes] );
 
-           if( output) {
-             output->BeginStep( actStepNum, actStepVal );
-           }
-           std::cout << "\n\t=============================================\n";
-           std::cout << "\t  Treating step " << actStepNum << ", " << actStepVal
-               << "s / Hz\n";
-           std::cout << "\t=============================================\n";
+          inResults_fut.Push_back( inResult_fut );
+          inResults_ref.Push_back( inResult_ref );
+          outResults.Push_back( outResult );
+          if( output) {
+            // Hardcoded: set output format to AMPL_PHASE
+            //outResult->GetResultInfo()->complexFormat = AMPLITUDE_PHASE;
+            outResult->GetResultInfo()->complexFormat = REAL_IMAG;
 
-           // iterate over all results
-           for( UInt iRes = 0; iRes < inResults_fut.GetSize(); iRes++) {
-             // check if current result is defined within this step
-             if( resultSteps[inResults_fut[iRes]->GetResultInfo()].find(actStepNum)
-                 == resultSteps[inResults_fut[iRes]->GetResultInfo()].end() ) {
-               continue;
-             }
+            // CAUTION: begin, inc, end are hardcoded and noch checked for each result
+            output->RegisterResult( outResult, 1, 1,
+                                    resultSteps[actRes].size(),
+                                    isHistory );
+          }
+        }
+      }
 
-             // obtain both result objects for current step
-             input_fut->GetResult( actMsStep, actStepNum, inResults_fut[iRes], isHistory );
-             input_ref->GetResult( actMsStep, actStepNum, inResults_ref[iRes], isHistory );
+      Vector<Double> maxResVec_ref;
+      maxResVec_ref.Resize( inResults_ref.GetSize() );
 
-             std::cout << "\n\t-- Comparing result " <<
-                  inResults_fut[iRes]->GetResultInfo()->resultName << " on " 
-                  << inResults_fut[iRes]->GetEntityList()->GetName() << " --\n";
-             
-             // get number of dofs of result
-             UInt numDofs = inResults_fut[iRes]->GetResultInfo()->dofNames.GetSize();
+      // For transient simulation find maximum amplitude over all timesteps
+      if( types[actMsStep] == BasePDE::STATIC ||
+          types[actMsStep] == BasePDE::TRANSIENT ) {
 
-             // cast result objects, get vector and calculate difference vector
-             if( types[actMsStep] == BasePDE::STATIC || 
-                 types[actMsStep] == BasePDE::TRANSIENT ) {
-               Vector<Double> & inVec_fut =
-                 dynamic_cast<Result<Double>& >(*inResults_fut[iRes]).GetVector();
-               Vector<Double> & inVec_ref =
-                  dynamic_cast<Result<Double>& >(*inResults_ref[iRes]).GetVector();
-               Vector<Double> & outVec =
-                 dynamic_cast<Result<Double>& >(*outResults[iRes]).GetVector();
-               outVec.Resize( inVec_fut.GetSize() );
+        // iterate over all results
+        for( UInt iRes = 0; iRes < inResults_ref.GetSize(); iRes++) {
 
-               // find maximum amplitude of inResult_ref
-               for( UInt i = 0; i<inVec_ref.GetSize(); i++ ) {
-                 if( std::abs(inVec_ref[i]) > maxResVec_ref[iRes])
-                   maxResVec_ref[iRes] = std::abs(inVec_ref[i]);
-               }
+          if(numSteps[actMsStep] != numSteps_ref[actMsStep]){
+            std::cout << "Reference file '" << inFile_ref << "' has " << numSteps_ref[actMsStep] << " and '" << inFile_fut
+                << "' has " << numSteps[actMsStep] << " time steps!\n";
+            exit(EXIT_FAILURE);
+          }
 
-               // calculate difference entrywise
-               outVec = inVec_fut - inVec_ref;
-               if (normedtomax == true) {
-                 outVec /= maxResVec_ref[iRes];
-               }
+          maxResVec_ref[iRes] = 0.0;
+          // iterate over all time steps
+          for( UInt iStep = 0; iStep < numSteps_ref[actMsStep]; iStep++ ) {
 
-               // find maximum entry in difference vector
-               for( UInt i = 0; i < outVec.GetSize(); i++ ) {
-                 if( std::abs(outVec[i]) > maxDiff) {
-                   maxDiff = std::abs(outVec[i]) ;
-                   maxDiffResultName = inResults_fut[iRes]->GetResultInfo()->resultName;
-                 }
-               }
+            UInt actStepNum = iStep+1;
+            // check if current result is defined within this step
+            if( resultSteps[inResults_ref[iRes]->GetResultInfo()].find(actStepNum)
+                == resultSteps[inResults_ref[iRes]->GetResultInfo()].end() ) {
+              continue;
+            }
 
-             } else if( types[actMsStep] == BasePDE::EIGENFREQUENCY ) {
-               // in the eigenfrequency case we only compare the absolute value,
-               // as the sign is not defined uniquely
-               Vector<Complex> & inVec_fut =
-                 dynamic_cast<Result<Complex>& >(*inResults_fut[iRes]).GetVector();
-               Vector<Complex> & inVec_ref =
-                 dynamic_cast<Result<Complex>& >(*inResults_ref[iRes]).GetVector();
-               Vector<Complex> & outVec =
-                 dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
-               outVec.Resize( inVec_fut.GetSize() );
+            input_ref->GetResult( actMsStep, actStepNum, inResults_ref[iRes], isHistory );
+            Vector<Double> & inVec_ref =
+                dynamic_cast<Result<Double>& >(*inResults_ref[iRes]).GetVector();
 
-               // find maximum amplitude of inResult_ref in every frequency step
-               Double maxRes_ref = 0.0;
-               for( UInt i = 0; i<inVec_ref.GetSize(); i++ ) {
-                 if( std::abs(inVec_ref[i]) > maxRes_ref)
-                   maxRes_ref = std::abs(inVec_ref[i]);
-               }
-               
-               Double aDiff, pDiff;
-               // iterate over all dofs
-               for (UInt dof = 0; dof<numDofs ; dof++) {
-                 // iterate over number of entities
-                 for( UInt i = 0, nEntities=UInt(inVec_ref.GetSize()/numDofs); i<nEntities; i++ ) {
+            for( UInt i = 0; i<inVec_ref.GetSize(); i++ ) {
+              if( std::abs(inVec_ref[i]) > maxResVec_ref[iRes] )
+                maxResVec_ref[iRes] = std::abs(inVec_ref[i]);
+            }
+          }
+          std::cout << "For result '" << inResults_ref[iRes]->GetResultInfo()->resultName
+              << "' maximum amplitude is: " << maxResVec_ref[iRes] << "\n";
+        }
+      }
 
-                   // index to access entity 'i' of dof 'dof'
-                   UInt actIndex = i * numDofs + dof;
 
-                   // amplitude difference
-                   if (normedtomax == true)
-                     aDiff = std::abs(( std::abs(inVec_fut[actIndex]) - std::abs(inVec_ref[actIndex]) )/maxRes_ref);
-                   else 
-                     aDiff = std::abs(std::abs(inVec_fut[actIndex]) - std::abs(inVec_ref[actIndex]));
+      // notify writer
+      if( output) {
+        output->BeginMultiSequenceStep( actMsStep, types_ref[actMsStep],
+                                        numSteps_ref[actMsStep] );
+      }
 
-                   
-                   // phase difference in multiples of pi (just used for
-                   // grid diffs
-                   pDiff = RadPhase(inVec_fut[actIndex]) - RadPhase(inVec_ref[actIndex]);
+      // iterate over all time/frequency steps
+      for( UInt iStep = 0; iStep < numSteps_ref[actMsStep]; iStep++ ) {
 
-                   // correct 2*pi-offset if phase angles have different signs
-                   if ( (std::abs(pDiff)>PI) && (pDiff<0) )
-                     pDiff+= 2*PI;
-                   if ( (std::abs(pDiff)>PI) && (pDiff>0) )
-                     pDiff-= 2*PI;
+        // check, if current step contains any results
+        if( stepVals.find( iStep+1) == stepVals.end() )
+          continue;
+        UInt actStepNum = iStep+1;
+        Double actStepVal = stepVals[iStep+1];
 
-                   // Dirty hack! Write differences in real_imag format.
-                   outVec[actIndex] = Complex( aDiff, pDiff*180/PI );
-                   
-                   // return maximum of amplitude difference
-                   if  (aDiff > maxDiff)
-                     maxDiff = aDiff;
-                 }
+        if( output) {
+          output->BeginStep( actStepNum, actStepVal );
+        }
+        std::cout << "\n\t=============================================\n";
+        std::cout << "\t  Treating step " << actStepNum << ", " << actStepVal
+            << "s / Hz\n";
+        std::cout << "\t=============================================\n";
 
-                 
-               } // loop dof
-               std::cout << "\n\tMaximum overall rel. difference = " << maxDiff << "\n\n";
-             
-             }  else if( types[actMsStep] == BasePDE::HARMONIC ) { 
-               Vector<Complex> & inVec_fut =
-                   dynamic_cast<Result<Complex>& >(*inResults_fut[iRes]).GetVector();
-               Vector<Complex> & inVec_ref =
-                   dynamic_cast<Result<Complex>& >(*inResults_ref[iRes]).GetVector();
-               Vector<Complex> & outVec =
-                   dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
-               outVec.Resize( inVec_fut.GetSize() );
+        // iterate over all results
+        for( UInt iRes = 0; iRes < inResults_fut.GetSize(); iRes++) {
+          // check if current result is defined within this step
+          if( resultSteps[inResults_fut[iRes]->GetResultInfo()].find(actStepNum)
+              == resultSteps[inResults_fut[iRes]->GetResultInfo()].end() ) {
+            continue;
+          }
 
-               // find maximum amplitude of inResult_ref in every frequency step
-               Double maxRes_ref = 0.0;
-               for( UInt i = 0; i<inVec_ref.GetSize(); i++ ) {
-                 if( std::abs(inVec_ref[i]) > maxRes_ref)
-                   maxRes_ref = std::abs(inVec_ref[i]);
-               }
-               
-               Double aDiff, pDiff, aMax=0.0, aMin=0.0, pMax=0.0, pMin=0.0;
-               Double rDiff, iDiff, rMax=0.0, iMax=0.0;
+          // obtain both result objects for current step
+          input_fut->GetResult( actMsStep, actStepNum, inResults_fut[iRes], isHistory );
+          input_ref->GetResult( actMsStep, actStepNum, inResults_ref[iRes], isHistory );
 
-               // iterate over all dofs
-               for (UInt dof = 0; dof<numDofs ; dof++) {
-                 // iterate over number of entities
-                 for( UInt i = 0, nEntities=UInt(inVec_ref.GetSize()/numDofs); i<nEntities; i++ ) {
+          std::cout << "\n\t-- Comparing result " <<
+              inResults_fut[iRes]->GetResultInfo()->resultName << " on " 
+              << inResults_fut[iRes]->GetEntityList()->GetName() << " --\n";
 
-                   // index to access entity 'i' of dof 'dof'
-                   UInt actIndex = i * numDofs + dof;
+          // get number of dofs of result
+          UInt numDofs = inResults_fut[iRes]->GetResultInfo()->dofNames.GetSize();
 
-                   // amplitude difference
-                   if (normedtomax == true)
-                     aDiff = ( std::abs(inVec_fut[actIndex]) - std::abs(inVec_ref[actIndex]) )/maxRes_ref;
-                   else
-                     aDiff = std::abs(inVec_fut[actIndex]) - std::abs(inVec_ref[actIndex]);
+          // cast result objects, get vector and calculate difference vector
+          if( types[actMsStep] == BasePDE::STATIC || 
+              types[actMsStep] == BasePDE::TRANSIENT ) {
+            Vector<Double> & inVec_fut =
+                dynamic_cast<Result<Double>& >(*inResults_fut[iRes]).GetVector();
+            Vector<Double> & inVec_ref =
+                dynamic_cast<Result<Double>& >(*inResults_ref[iRes]).GetVector();
+            Vector<Double> & outVec =
+                dynamic_cast<Result<Double>& >(*outResults[iRes]).GetVector();
+            outVec.Resize( inVec_fut.GetSize() );
 
-                   // phase difference in multiples of pi
-                   pDiff = RadPhase(inVec_fut[actIndex]) - RadPhase(inVec_ref[actIndex]);
+            // find maximum amplitude of inResult_ref
+            for( UInt i = 0; i<inVec_ref.GetSize(); i++ ) {
+              if( std::abs(inVec_ref[i]) > maxResVec_ref[iRes])
+                maxResVec_ref[iRes] = std::abs(inVec_ref[i]);
+            }
 
-                   // correct 2*pi-offset if phase angles have different signs
-                   if ( (std::abs(pDiff)>PI) && (pDiff<0) )
-                     pDiff+= 2*PI;
-                   if ( (std::abs(pDiff)>PI) && (pDiff>0) )
-                     pDiff-= 2*PI;
+            // calculate difference entrywise
+            outVec = inVec_fut - inVec_ref;
+            if (normedtomax == true) {
+              outVec /= maxResVec_ref[iRes];
+            }
 
-                   // Dirty hack! Write differences in real_imag format.
-                   outVec[actIndex] = Complex( aDiff, pDiff*180/PI );
+            // find maximum entry in difference vector
+            for( UInt i = 0; i < outVec.GetSize(); i++ ) {
+              if( std::abs(outVec[i]) > maxDiff) {
+                maxDiff = std::abs(outVec[i]) ;
+                maxDiffResultName = inResults_fut[iRes]->GetResultInfo()->resultName;
+              }
+            }
 
-                   // maximum and minimum values
-                   if( pDiff > pMax )
-                     pMax = pDiff;
-                   if( pDiff < pMin )
-                     pMin = pDiff;
-                   if( aDiff > aMax )
-                     aMax = aDiff;
-                   if( aDiff < aMin )
-                     aMin = aDiff;
+          } else if( types[actMsStep] == BasePDE::EIGENFREQUENCY ) {
+            // in the eigenfrequency case we only compare the absolute value,
+            // as the sign is not defined uniquely
+            Vector<Complex> & inVec_fut =
+                dynamic_cast<Result<Complex>& >(*inResults_fut[iRes]).GetVector();
+            Vector<Complex> & inVec_ref =
+                dynamic_cast<Result<Complex>& >(*inResults_ref[iRes]).GetVector();
+            Vector<Complex> & outVec =
+                dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
+            outVec.Resize( inVec_fut.GetSize() );
 
-                   // maximum difference in real and imaginary part
-                   rDiff = std::abs( inVec_fut[actIndex].real() - inVec_ref[actIndex].real() )/maxRes_ref;
-                   iDiff = std::abs( inVec_fut[actIndex].imag() - inVec_ref[actIndex].imag() )/maxRes_ref;
-                   if ( rDiff > rMax )
-                     rMax = rDiff;
-                   if ( iDiff > iMax)
-                     iMax = iDiff;
-                 }
-                 if( normedtomax == true)
-                   std::cout << "\n\tMaximum rel. + amplitude difference:  " << aMax*100 << " %\n"
-                   << "\tMaximum rel. - amplitude difference: " << aMin*100 << " %\n";
-                 else
-                   std::cout << "\n\tMaximum + amplitude difference:  " << aMax <<  "\n"
-                   << "\tMaximum - amplitude difference: " << aMin <<  "\n";
+            // find maximum amplitude of inResult_ref in every frequency step
+            Double maxRes_ref = 0.0;
+            for( UInt i = 0; i<inVec_ref.GetSize(); i++ ) {
+              if( std::abs(inVec_ref[i]) > maxRes_ref)
+                maxRes_ref = std::abs(inVec_ref[i]);
+            }
 
-                 std::cout << "\tMaximum + phase difference:      " << pMax*180/PI <<  " deg\n"
-                     << "\tMaximum - phase difference:     " << pMin*180/PI <<  " deg\n";
+            Double aDiff, pDiff;
+            // iterate over all dofs
+            for (UInt dof = 0; dof<numDofs ; dof++) {
+              // iterate over number of entities
+              for( UInt i = 0, nEntities=UInt(inVec_ref.GetSize()/numDofs); i<nEntities; i++ ) {
 
-                 // return maxDiff for differences in real and imaginary part
-                 if ( (rMax > iMax) && (rMax > maxDiff) )
-                   maxDiff = rMax;
-                 else if ( (iMax > rMax) && (iMax > maxDiff) )
-                   maxDiff = iMax;
-               } // loop dof
-               std::cout << "\n\tMaximum overall rel. difference = " << maxDiff << "\n\n";
+                // index to access entity 'i' of dof 'dof'
+                UInt actIndex = i * numDofs + dof;
 
-             } // switch: Analysitype
-             // add result to output file
-             if (output )
-               output->AddResult( outResults[iRes] );
-           } // loop over results
-           if( output )
-             output->FinishStep();
-         }
-         if( output )
-           output->FinishMultiSequenceStep();
+                // amplitude difference
+                if (normedtomax == true)
+                  aDiff = std::abs(( std::abs(inVec_fut[actIndex]) - std::abs(inVec_ref[actIndex]) )/maxRes_ref);
+                else 
+                  aDiff = std::abs(std::abs(inVec_fut[actIndex]) - std::abs(inVec_ref[actIndex]));
 
-       }
-       if( output ) {
-         output->Finalize();
-         std::cout << "\nOutput successfully written to " << outFile << std::endl;
-       }
-       delete ptGrid_fut;
-       delete ptGrid_ref;
 
-       return maxDiff;
+                // phase difference in multiples of pi (just used for
+                // grid diffs
+                pDiff = RadPhase(inVec_fut[actIndex]) - RadPhase(inVec_ref[actIndex]);
+
+                // correct 2*pi-offset if phase angles have different signs
+                if ( (std::abs(pDiff)>PI) && (pDiff<0) )
+                  pDiff+= 2*PI;
+                if ( (std::abs(pDiff)>PI) && (pDiff>0) )
+                  pDiff-= 2*PI;
+
+                // Dirty hack! Write differences in real_imag format.
+                outVec[actIndex] = Complex( aDiff, pDiff*180/PI );
+
+                // return maximum of amplitude difference
+                if  (aDiff > maxDiff)
+                  maxDiff = aDiff;
+              }
+
+
+            } // loop dof
+            std::cout << "\n\tMaximum overall rel. difference = " << maxDiff << "\n\n";
+
+          }  else if( types[actMsStep] == BasePDE::HARMONIC ) { 
+            Vector<Complex> & inVec_fut =
+                dynamic_cast<Result<Complex>& >(*inResults_fut[iRes]).GetVector();
+            Vector<Complex> & inVec_ref =
+                dynamic_cast<Result<Complex>& >(*inResults_ref[iRes]).GetVector();
+            Vector<Complex> & outVec =
+                dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
+            outVec.Resize( inVec_fut.GetSize() );
+
+            // find maximum amplitude of inResult_ref in every frequency step
+            Double maxRes_ref = 0.0;
+            for( UInt i = 0; i<inVec_ref.GetSize(); i++ ) {
+              if( std::abs(inVec_ref[i]) > maxRes_ref)
+                maxRes_ref = std::abs(inVec_ref[i]);
+            }
+
+            Double aDiff, pDiff, aMax=0.0, aMin=0.0, pMax=0.0, pMin=0.0;
+            Double rDiff, iDiff, rMax=0.0, iMax=0.0;
+
+            // iterate over all dofs
+            for (UInt dof = 0; dof<numDofs ; dof++) {
+              // iterate over number of entities
+              for( UInt i = 0, nEntities=UInt(inVec_ref.GetSize()/numDofs); i<nEntities; i++ ) {
+
+                // index to access entity 'i' of dof 'dof'
+                UInt actIndex = i * numDofs + dof;
+
+                // amplitude difference
+                if (normedtomax == true)
+                  aDiff = ( std::abs(inVec_fut[actIndex]) - std::abs(inVec_ref[actIndex]) )/maxRes_ref;
+                else
+                  aDiff = std::abs(inVec_fut[actIndex]) - std::abs(inVec_ref[actIndex]);
+
+                // phase difference in multiples of pi
+                pDiff = RadPhase(inVec_fut[actIndex]) - RadPhase(inVec_ref[actIndex]);
+
+                // correct 2*pi-offset if phase angles have different signs
+                if ( (std::abs(pDiff)>PI) && (pDiff<0) )
+                  pDiff+= 2*PI;
+                if ( (std::abs(pDiff)>PI) && (pDiff>0) )
+                  pDiff-= 2*PI;
+
+                // Dirty hack! Write differences in real_imag format.
+                outVec[actIndex] = Complex( aDiff, pDiff*180/PI );
+
+                // maximum and minimum values
+                if( pDiff > pMax )
+                  pMax = pDiff;
+                if( pDiff < pMin )
+                  pMin = pDiff;
+                if( aDiff > aMax )
+                  aMax = aDiff;
+                if( aDiff < aMin )
+                  aMin = aDiff;
+
+                // maximum difference in real and imaginary part
+                rDiff = std::abs( inVec_fut[actIndex].real() - inVec_ref[actIndex].real() )/maxRes_ref;
+                iDiff = std::abs( inVec_fut[actIndex].imag() - inVec_ref[actIndex].imag() )/maxRes_ref;
+                if ( rDiff > rMax )
+                  rMax = rDiff;
+                if ( iDiff > iMax)
+                  iMax = iDiff;
+              }
+              if( normedtomax == true)
+                std::cout << "\n\tMaximum rel. + amplitude difference:  " << aMax*100 << " %\n"
+                << "\tMaximum rel. - amplitude difference: " << aMin*100 << " %\n";
+              else
+                std::cout << "\n\tMaximum + amplitude difference:  " << aMax <<  "\n"
+                << "\tMaximum - amplitude difference: " << aMin <<  "\n";
+
+              std::cout << "\tMaximum + phase difference:      " << pMax*180/PI <<  " deg\n"
+                  << "\tMaximum - phase difference:     " << pMin*180/PI <<  " deg\n";
+
+              // return maxDiff for differences in real and imaginary part
+              if ( (rMax > iMax) && (rMax > maxDiff) )
+                maxDiff = rMax;
+              else if ( (iMax > rMax) && (iMax > maxDiff) )
+                maxDiff = iMax;
+            } // loop dof
+            std::cout << "\n\tMaximum overall rel. difference = " << maxDiff << "\n\n";
+
+          } // switch: Analysitype
+          // add result to output file
+          if (output )
+            output->AddResult( outResults[iRes] );
+        } // loop over results
+        if( output )
+          output->FinishStep();
+      }
+      if( output )
+        output->FinishMultiSequenceStep();
+
+    }
+    if( output ) {
+      output->Finalize();
+      std::cout << "\nOutput successfully written to " << outFile << std::endl;
+    }
+    delete ptGrid_fut;
+    delete ptGrid_ref;
+
+    return maxDiff;
 
   } //Diff
 
@@ -1011,7 +1020,7 @@ namespace CFSTool {
        // read in mesh of input1
        inputs[0]->InitModule();
        UInt dim = inputs[0]->GetDim();
-       Grid * ptGrid1 = new GridCFS(dim);
+       Grid * ptGrid1 = new GridCFS(dim, param, info);
        inputs[0]->ReadMesh(ptGrid1);
        ptGrid1->FinishInit();
 
@@ -1151,13 +1160,13 @@ namespace CFSTool {
 
        // read in mesh of input2
        inputs[1]->InitModule();
-       Grid * ptGrid2 = new GridCFS(dim);
+       Grid * ptGrid2 = new GridCFS(dim, param, info);
        inputs[1]->ReadMesh(ptGrid2);
        ptGrid2->FinishInit();
 
        // read in mesh of input3
        inputs[2]->InitModule();
-       Grid * ptGrid3 = new GridCFS(dim);
+       Grid * ptGrid3 = new GridCFS(dim, param, info);
        inputs[2]->ReadMesh(ptGrid3);
        ptGrid3->FinishInit();
 
@@ -1682,7 +1691,7 @@ namespace CFSTool {
     // read in mesh of input
     input->InitModule();
     UInt dim = input->GetDim();
-    Grid * ptGrid = new GridCFS(dim);
+    Grid * ptGrid = new GridCFS(dim, param, info);
     input->ReadMesh(ptGrid);
     ptGrid->FinishInit();
 
@@ -1896,7 +1905,6 @@ namespace CFSTool {
     childVec.Push_back(PtrParamNode(new ParamNode())); // inc
 
     // create a tree (Paramnode):
-    // domain->nodeList->nodes->(name, list (coordSysId, freeCoord->(comp, start, stop, inc)))
     // create leafes (comp, start, stop, inc)
     setParamNode(childVec[0], "comp",  freeCoord[0]);
     setParamNode(childVec[1], "start", freeCoord[1]);
@@ -1983,7 +1991,7 @@ int main(int argc, char** argv)
   {
     param = PtrParamNode(new ParamNode( ParamNode::PASS, ParamNode::ELEMENT));
 
-    ParamsInit(argc, argv);
+    ParamsInit(argc, argv, param);
 
     // Switch this flag tc true for debugging
     if (param->Get("forceSegFault")->As<bool>())

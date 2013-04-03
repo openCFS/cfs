@@ -31,9 +31,12 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  DirectCoupledPDE::DirectCoupledPDE( Grid *aptgrid, PtrParamNode paramNode )
+  DirectCoupledPDE::DirectCoupledPDE( Grid *aptgrid, PtrParamNode paramNode,
+                                      PtrParamNode infoNode,
+                                      shared_ptr<SimState> simState,
+                                      Domain* domain)
 
-    : StdPDE( aptgrid, paramNode ) {
+    : StdPDE( aptgrid, paramNode, infoNode, simState, domain ) {
   }
 
 
@@ -92,7 +95,7 @@ namespace CoupledField {
     }
     
     olasNode_ = singlePDEs_[0]->olasNode_;
-    olasInfo_ = info->Get("OLAS")->Get(pdename_);
+    olasInfo_ = myInfo_->Get("OLAS")->Get(pdename_);
     
   }
 
@@ -190,7 +193,7 @@ namespace CoupledField {
   {
     sequenceStep_ = sequenceStep;
 
-    infoNode_ = info->Get("PDE")->Get("directCoupledPDE", ParamNode::APPEND);
+    infoNode_ = myInfo_->Get("PDE")->Get("directCoupledPDE", ParamNode::APPEND);
     infoNode_->Get(ParamNode::PN_HEADER)->Get("sequeceStep")->SetValue(sequenceStep);
 
     
@@ -203,10 +206,10 @@ namespace CoupledField {
     //  Detection of analysis type
     // ----------------------------
 
-    analysistype_ = domain->GetSingleDriver()->GetAnalysisType( );
+    analysistype_ = domain_->GetSingleDriver()->GetAnalysisType( );
 
     // Create new Assemble object
-    assemble_ = new Assemble( algsys_, analysistype_ );
+    assemble_ = new Assemble( algsys_, analysistype_, myInfo_->GetRoot() );
     
 
 //     // Initialize timestepping
@@ -244,7 +247,7 @@ namespace CoupledField {
       couplings_[i]->SetAlgSys( algsys_ );
       couplings_[i]->solStrat_ = solStrat_;
       couplings_[i]->SetAssemble( assemble_ );
-      couplings_[i]->Init( sequenceStep_, infoNode_ );
+      couplings_[i]->Init( sequenceStep_ );
     }
 
     // Finalize initialization of SinglePDEs (i.e. FeSpaces, FeFunctions, Time stepping etc.)
@@ -332,37 +335,6 @@ namespace CoupledField {
   // ======================================================
 
 
-  void DirectCoupledPDE::WriteRestart( )
-  {
-
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-      singlePDEs_[i]->WriteRestart( );
-    }
-  }
-
-  void DirectCoupledPDE::ReadRestart( UInt &startStep )
-  {
-
-    StdVector<UInt> startSteps( singlePDEs_.GetSize() );
-
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-      singlePDEs_[i]->ReadRestart(startSteps[i]);
-    }
-
-    for( UInt i = 1; i < startSteps.GetSize(); i++ ) {
-      if( startSteps[i] != startSteps[0] ) {
-        std::stringstream errMsg;
-        errMsg <<  "Error during read in of restart files:\n"
-               << "Restart step numbers differ for the different PDEs!\n";
-        for( UInt j = 0; j< singlePDEs_.GetSize(); j++ ) {
-          errMsg << singlePDEs_[i]->GetName() << "\t"
-                 << startSteps[i] << "\n";
-        }
-        EXCEPTION( errMsg.str().c_str() );
-      }
-
-    }
-  }
 
 
   void DirectCoupledPDE::WriteResultsInFile(const UInt kstep,

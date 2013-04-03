@@ -15,12 +15,13 @@ using std::string;
 using std::cout;
 using std::endl;
 
-InternalMesh::InternalMesh(std::string fileName, PtrParamNode inputNode) :
-            SimInput(fileName, inputNode),
+InternalMesh::InternalMesh(std::string fileName, PtrParamNode inputNode,
+                           PtrParamNode infoNode) :
+            SimInput(fileName, inputNode, infoNode),
             dim_(0),
             maxNumElems_(0),
             maxNumNodes_(0),
-            info_(info->Get("header")->Get("domain")->Get("internal"))
+            info_(infoNode->Get("header")->Get("domain")->Get("internal"))
 {
   
   // initialize minimal / maximal point
@@ -34,7 +35,8 @@ InternalMesh::InternalMesh(std::string fileName, PtrParamNode inputNode) :
   capabilities_.insert(SimInput::MESH);
 
   // create temporary xerces file parser
-  boost::shared_ptr<Xerces> xerces(new Xerces(fileName_));
+  boost::shared_ptr<Xerces> xerces(new Xerces());
+  xerces->SetFile(fileName_);
   // parse the file and create corresponding paramnode
   xml_ = xerces->CreateParamNodeInstance();
 

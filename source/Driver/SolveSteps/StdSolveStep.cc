@@ -94,8 +94,8 @@ namespace CoupledField {
     
     //logFile_.open("nonlin.txt");
 
-    mHandle_ = domain->GetMathParser()->GetNewHandle();
-    mParser_ = domain->GetMathParser();
+    mHandle_ = PDE_.GetDomain()->GetMathParser()->GetNewHandle();
+    mParser_ = PDE_.GetDomain()->GetMathParser();
     mParser_->SetExpr(mHandle_,"step");
   }
 
@@ -190,7 +190,7 @@ namespace CoupledField {
 
       // create new timer object and put it to related info element
       shared_ptr<Timer> timer(new Timer());
-      PtrParamNode iter = info->Get("PDE")->Get(pdename_)->Get("nonlinearConvergence");
+      PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
       iter->GetByVal("solStep","value",iLevel+1,ParamNode::INSERT)
           ->Get("timer")->SetValue(timer);
       timer->Start();
@@ -210,7 +210,8 @@ namespace CoupledField {
 
       //perform the load-steps
       Double loadFactor = 1.0;
-      info->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
+      PDE_.GetInfoNode()->Get("PDE")->Get(pdename_)->
+          Get("load_factor")->SetValue(loadFactor);
 
       // setup right hand side
       Double RhsLinL2Norm = SetLinRHS(loadFactor);
@@ -420,8 +421,7 @@ namespace CoupledField {
       
       assemble_->AssembleMatrices();
       if(assemble_->IsMatrixUpdated()){
-        
-        
+
         // set system matrix to zero initially, as ConstructEffectiveMatrix only
         // sums up the contributions
         algsys_->InitMatrix(SYSTEM);
@@ -1440,7 +1440,8 @@ namespace CoupledField {
                                               const Double residualErr, 
                                               const Double incrementalErr, double etaLineSearch)
   {
-    PtrParamNode iter = info->Get("PDE")->Get(pdeName)->Get("nonlinearConvergence");
+    
+    PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
     iter = iter->GetByVal("solStep","value",solStep,ParamNode::INSERT)
         ->Get("iteration",ParamNode::APPEND);
     iter->Get("nr")->SetValue(iterationCounter);

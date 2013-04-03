@@ -23,8 +23,9 @@ namespace fs = boost::filesystem;
 
 namespace CoupledField {
 
-  SimOutputXDMF::SimOutputXDMF(std::string fileName, PtrParamNode inputNode) :
-    SimOutput(fileName, inputNode),
+  SimOutputXDMF::SimOutputXDMF(std::string fileName, PtrParamNode inputNode,
+                               PtrParamNode infoNode ) :
+    SimOutput(fileName, inputNode, infoNode),
     simOutHDF5_(NULL)
   {
 
@@ -571,7 +572,7 @@ namespace CoupledField {
 //     std::ostringstream dumpStr;
 
 //     fileNames.push_back(progOpts->GetParamFileStr());
-//     fileNames.push_back(param->Get("fileFormats")
+//     fileNames.push_back(myParam_->GetRoot()->Get("fileFormats")
 //                         ->Get("materialData")
 //                         ->Get("file")->As<std::string>());
 

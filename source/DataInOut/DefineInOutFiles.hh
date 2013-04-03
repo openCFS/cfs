@@ -12,8 +12,6 @@
 namespace CoupledField
 { 
 
-    class MeshIOModule;
-
   //! Define trace, debug, info files
 
   //! In this class we define auxiliary files, such as the <em>trace</em>-file
@@ -26,6 +24,9 @@ namespace CoupledField
   {
 
   public:
+    
+    //! Types of external auxilliary files
+    typedef enum { OLAS_FILE} AuxFileType;
 
     //! constructor
     DefineInOutFiles();
@@ -37,17 +38,21 @@ namespace CoupledField
     void OpenFile( AuxFileType fileType );
 
     //! create input readers 
-    void CreateSimInputFiles( std::map<std::string, shared_ptr<SimInput> >& inFiles,
+    void CreateSimInputFiles( PtrParamNode paramNode, 
+                              PtrParamNode infoNode,
+                              std::map<std::string, shared_ptr<SimInput> >& inFiles,
                               std::map<std::string, 
                               StdVector<shared_ptr<SimInput> > >& gridInputs );
 
     //! Create pointer to output classes and read the corresponding gridIds
-    void CreateSimOutputFiles( std::map<std::string,  
+    void CreateSimOutputFiles( PtrParamNode paramNode,
+                               PtrParamNode infoNode,
+                               std::map<std::string,  
                                shared_ptr<SimOutput> >&  out,
                                std::map<std::string, std::string>& gridIds );
 
     //! create pointer to Materialfile Handler
-    MaterialHandler* CreateMaterialHandler();
+    MaterialHandler* CreateMaterialHandler( PtrParamNode rootNode );
 
   private:
 

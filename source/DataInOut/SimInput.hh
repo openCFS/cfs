@@ -66,11 +66,13 @@ namespace CoupledField
   
 
     //! Constructor with name of mesh-file
-    SimInput(std::string fileName, PtrParamNode inputNode ) :
-      fileName_(fileName),
-      mi_(NULL),
-      myParam_(inputNode)
-    {};
+      SimInput(std::string fileName, PtrParamNode inputNode, PtrParamNode infoNode ) :
+          fileName_(fileName),
+          mi_(NULL),
+          myParam_(inputNode),
+          myInfo_(infoNode)
+      {};
+
 
     //! Destructor
     virtual ~SimInput() {};
@@ -222,6 +224,9 @@ namespace CoupledField
     
     //! Parameter node for current output class
     PtrParamNode myParam_;
+    
+    //! Info node for current output class
+    PtrParamNode myInfo_;
 
     UInt dim_;
     std::vector<UInt> numElemsOfDim_;

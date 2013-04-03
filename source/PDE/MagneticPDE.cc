@@ -37,8 +37,10 @@ namespace CoupledField {
 DECLARE_LOG(magpde)
 DEFINE_LOG(magpde, "magpde")
 
-MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
-    :SinglePDE( aptgrid, paramNode ) {
+MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
+                         PtrParamNode infoNode,
+                         shared_ptr<SimState> simState, Domain* domain)
+    :SinglePDE( aptgrid, paramNode, infoNode, simState, domain ) {
 
   // =====================================================================
   // set solution information
@@ -278,11 +280,11 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
         if( isComplex_ ) {
           StdVector<std::string> phaseVec(3);
           phaseVec.Init(coilDef_[coil]->phase_);
-          coef = CoefFunction::Generate(Global::COMPLEX, currDensity, phaseVec );
+          coef = CoefFunction::Generate(mp_, Global::COMPLEX, currDensity, phaseVec );
           coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
           curInt = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex >(1.0, coef, updatedGeo_);
         } else {
-          coef = CoefFunction::Generate(Global::REAL, currDensity);
+          coef = CoefFunction::Generate(mp_, Global::REAL, currDensity);
           coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
           curInt = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double >(1.0, coef, updatedGeo_);
         } // complex
@@ -296,11 +298,11 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
         if( isComplex_ ) {
           StdVector<std::string> phaseVec(1);
           phaseVec.Init(coilDef_[coil]->phase_);
-          coef = CoefFunction::Generate(Global::COMPLEX, currDensity, phaseVec );
+          coef = CoefFunction::Generate(mp_, Global::COMPLEX, currDensity, phaseVec );
           //coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_;
           curInt = new BUIntegrator<IdentityOperator<FeH1,2,1>, Complex >(1.0, coef, updatedGeo_);
         } else {
-          coef = CoefFunction::Generate(Global::REAL, currDensity);
+          coef = CoefFunction::Generate(mp_, Global::REAL, currDensity);
           //coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
           curInt = new BUIntegrator<IdentityOperator<FeH1,2,1>, Double >(1.0, coef, updatedGeo_);
 
@@ -647,8 +649,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
       
       // switch type of cross-product depending on dimensionality
       CoefXpr::OpType op = isaxi_ ? CoefXpr::OP_CROSS_AXI : CoefXpr::OP_CROSS;
-      PtrCoefFct lfdFunc = CoefFunction::Generate( part, 
-                                                   CoefXprBinOp( tcdCoef, bFunc, op) );
+      PtrCoefFct lfdFunc = CoefFunction::Generate( mp_, part, 
+                                                   CoefXprBinOp(mp_,  tcdCoef, bFunc, op) );
       DefineFieldResult( lfdFunc, lfd);
 
       // === LORENTZ FORCE (TOTAL) ===

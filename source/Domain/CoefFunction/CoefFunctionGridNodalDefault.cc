@@ -20,8 +20,9 @@ namespace CoupledField{
 
 
 template<typename DATA_TYPE>
-CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(PtrParamNode configNode,PtrParamNode curInfo)
-                                        :CoefFunctionGridNodal<DATA_TYPE>(configNode){
+CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(Domain* ptDomain,
+                                                                      PtrParamNode configNode,PtrParamNode curInfo)
+                                        :CoefFunctionGridNodal<DATA_TYPE>(ptDomain, configNode){
 
   //====================================================
   // Determine information about source grid and result
@@ -40,7 +41,7 @@ CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(PtrParamNo
   std::string factorString = this->factorFnc_->ToString();
   this->extDataInfo_->Get("interpolation")->Get("factor",ParamNode::INSERT)->SetValue(factorString);
 
-  this->srcGrid_ = domain->GetGrid();
+  this->srcGrid_ = this->domain_->GetGrid();
 
   //lets determine the destination region and set it to our source regions
   std::string destreg = configNode->GetParent()->GetParent()->Get("name")->As<std::string>();
@@ -49,7 +50,7 @@ CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(PtrParamNo
   this->DetermineResult(this->inputId_,this->aSeqStep_);
   this->dimDof_ = this->resultInfo_->dofNames.GetSize();
   // Determine which steps are available
-  domain->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
+  this->domain_->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
   this->curStep_ = this->stepValueMap_.begin()->first;
   this->curTStep_ = this->stepValueMap_.begin()->second;
   //this->AddEntityList(curList);

@@ -16,7 +16,9 @@ namespace CoupledField
   // ***********************
   //   Default Constructor
   // ***********************
-  ElectroStaticMaterial::ElectroStaticMaterial() : BaseMaterial() {
+  ElectroStaticMaterial::ElectroStaticMaterial(MathParser* mp,
+                                               CoordSystem * defaultCoosy) 
+  : BaseMaterial(mp, defaultCoosy) {
 
     materialDatabaseName_ = "Electrostatic";
 

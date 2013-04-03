@@ -306,25 +306,13 @@ namespace CoupledField {
   typedef enum { NO_SAMPLING_TYPE, LINEAR_SAMPLING, LOG_SAMPLING,
                  REVERSE_LOG_SAMPLING } FreqSamplingType;
 
-
-  //--------------------- Stuff for handling different IO files -------------
-
-  typedef enum { OLAS_FILE} AuxFileType;
-
-
   //------------------------ Files for debug and information ---------
-
   // NOTE: OLAS uses the namespace 'OutInfo' for writing out data into the
-   // different filestreams such as (*cla) etc. Therefore they are
-   // explicitely imported into namespace CoupledField at this point
-   using OutInfo::cla;
-  
-  // Forward declaration of class
-  class WriteInfo;
+  // different filestreams such as (*cla) etc. Therefore they are
+  // explicitely imported into namespace CoupledField at this point
+  using OutInfo::cla;
 
-  //! Global pointer to class performing logging to info file
-  //extern WriteInfo *Info;
-  
+
   //! conversion from strings to enum types
   template <class TYPE>
   void String2Enum(const std::string &in, TYPE &out);

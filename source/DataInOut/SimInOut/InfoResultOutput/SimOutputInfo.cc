@@ -6,14 +6,15 @@
 using namespace CoupledField;
 using std::string;
 
-SimOutputInfo::SimOutputInfo(PtrParamNode outputNode ) : SimOutput("", outputNode )
+SimOutputInfo::SimOutputInfo(PtrParamNode outputNode, PtrParamNode infoNode ) : 
+    SimOutput("", outputNode, infoNode )
 {
   formatName_ = "info";
   capabilities_.insert(HISTORY);
   dirName_ = ".";
   
   
-  info_root = info->Get("calculation")->Get(ParamNode::PN_PROCESS);
+  info_root = myInfo_->Get("calculation")->Get(ParamNode::PN_PROCESS);
 }
 
 SimOutputInfo::~SimOutputInfo() 

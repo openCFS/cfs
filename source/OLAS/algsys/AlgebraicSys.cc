@@ -577,7 +577,7 @@ namespace CoupledField {
     }
     // ======================================================================
 
-    info->ToFile(); // write current info state
+    myInfo_->GetRoot()->ToFile(); // write current info state
 
     // start timer of solver
     solver_->GetSolveTimer()->Start();

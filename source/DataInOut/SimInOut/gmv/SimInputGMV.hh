@@ -45,7 +45,9 @@ namespace CoupledField {
     static std::vector< std::string > mPossibleAttribs;
 
   public:
-      SimInputGMV(std::string fileName, PtrParamNode inputNode);
+      SimInputGMV(std::string fileName, PtrParamNode inputNode, 
+                  PtrParamNode infoNode );
+      
     virtual ~SimInputGMV();
 
     virtual void InitModule();

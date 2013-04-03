@@ -25,7 +25,9 @@ namespace CoupledField
 
     /** Constructor. here we read integration parameters
      * @param aGrid pointer to grid */
-    MechPDE( Grid *aGrid, PtrParamNode paramNode );
+    MechPDE( Grid *aGrid, PtrParamNode paramNode,
+             PtrParamNode infoNode,
+             shared_ptr<SimState> simState, Domain* domain );
 
     //!  Deconstructor
     virtual ~MechPDE();

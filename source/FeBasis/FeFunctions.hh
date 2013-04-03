@@ -29,6 +29,8 @@ namespace CoupledField {
   class BiLinearForm;
   class SBM_Vector;
   class BaseTimeScheme;
+  class SimState;
+  class MathParser;
 
 //!  Base class for a function approximated by Finite Elements 
 /*!
@@ -52,15 +54,20 @@ class BaseFeFunction : public CoefFunction,
                        public boost::enable_shared_from_this<BaseFeFunction> {
 public:
   
+  //! Make simulation state class friend 
+  friend class SimState;
 
   //! Constructor
-  BaseFeFunction();
+  BaseFeFunction(MathParser* mp);
   
   //! Destructor
   virtual ~BaseFeFunction();
   
   //! Finalize initialization
   virtual void Finalize() = 0;
+  
+  //! Query for complex-valued results
+  virtual bool IsComplex() const = 0;
   
   // ========================================================================
   //  Function Meta Information
@@ -260,7 +267,10 @@ protected:
   MathParser::HandleType mHandle_;
 
   //! pointer to algebraic system
-  AlgebraicSys* algsys_;      
+  AlgebraicSys* algsys_;
+  
+  //! Pointer to MathParser
+  MathParser * mp_;
 
   //! pointer to timestepping scheme
   shared_ptr<BaseTimeScheme> timeScheme_;
@@ -276,7 +286,11 @@ protected:
 template<typename T>
 class FeFunction : public BaseFeFunction {
 public:
-  FeFunction();
+  
+  //! Make simulation state class friend 
+  friend class SimState;
+  
+  FeFunction(MathParser* mp);
 
   virtual ~FeFunction();
 
@@ -286,6 +300,11 @@ public:
   //! \see BaseFeFunction::Finalize()
   void Finalize();
   
+  
+  virtual bool IsComplex() const {
+    return std::tr1::is_same<T,Complex>::value;
+    
+  }
   //! \copydoc BaseFeFunction::SetResultInfo 
   void SetResultInfo( shared_ptr<ResultInfo> info );
   

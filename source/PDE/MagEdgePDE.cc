@@ -42,8 +42,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   // **************
   //  Constructor
   // **************
-  MagEdgePDE::MagEdgePDE( Grid * aptgrid, PtrParamNode paramNode )
-    :SinglePDE( aptgrid, paramNode ) {
+  MagEdgePDE::MagEdgePDE( Grid * aptgrid, PtrParamNode paramNode,
+                          PtrParamNode infoNode,
+                          shared_ptr<SimState> simState, Domain* domain )
+    :SinglePDE( aptgrid, paramNode, infoNode, simState, domain ) {
 
     // =====================================================================
     // set solution information
@@ -55,7 +57,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     updatedGeo_        = true;
       
     // check if we have a 3d setup
-    bool is3d = param->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
+    bool is3d = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
     if ( !is3d )
       EXCEPTION("MagEdgePDE is just implemented for 3D setups!");
     
@@ -267,7 +269,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       }
 
       PtrCoefFct coeff =
-          CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(conductivity));
+          CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
       // add also material to global, distributed reluctivity coefficient function
       conduc_->AddRegion(actRegion, coeff);
       BaseBDBInt *massInt;
@@ -322,7 +324,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           imag[1] = AmplPhaseToImag(currDensity[1], coilDef_[coil]->phase_ );
           imag[2] = AmplPhaseToImag(currDensity[2], coilDef_[coil]->phase_ );
           
-          PtrCoefFct coef(CoefFunction::Generate(part, currDensity, imag));
+          PtrCoefFct coef(CoefFunction::Generate(mp_, part, currDensity, imag));
           coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
           
           // remember coefficient for later use
@@ -406,8 +408,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         EXCEPTION("Prescribed magnetic flux density can only be defined im volume")
       }
       
-      PtrCoefFct factor = CoefFunction::Generate(Global::REAL,
-                                                 CoefXprBinOp(reluc_, coef[i] , CoefXpr::OP_MULT ) );
+      PtrCoefFct factor = CoefFunction::Generate(mp_, Global::REAL,
+                                                 CoefXprBinOp(mp_, reluc_, coef[i] , CoefXpr::OP_MULT ) );
       
 //      if(isComplex_) {
 //        lin = new BDUIntegrator<CurlOperator<FeHCurl,3, Double>, Complex>(Complex(1.0), coef[i],
@@ -671,8 +673,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     availResults_.insert( lfd );
 
     // assemble coefficient function F_L = J X B
-    PtrCoefFct lfdFunc = CoefFunction::Generate( part, 
-                                                 CoefXprBinOp( tcdCoef, bFunc, CoefXpr::OP_CROSS ) );
+    PtrCoefFct lfdFunc = CoefFunction::Generate( mp_, part, 
+                                                 CoefXprBinOp(mp_,  tcdCoef, bFunc, CoefXpr::OP_CROSS ) );
     DefineFieldResult( lfdFunc, lfd);
 
     // === LORENTZ FORCE (TOTAL) ===
@@ -704,8 +706,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     // assemble coefficient function mu = 1 / nu
     Double oneOverMu0 = 1.0 / (4*PI*1e-7);
-    PtrCoefFct muFunc = CoefFunction::Generate( part, 
-                                                CoefXprBinOp( lexical_cast<std::string>(oneOverMu0), reluc_, CoefXpr::OP_DIV ) );
+    PtrCoefFct muFunc = CoefFunction::Generate( mp_, part, 
+                                                CoefXprBinOp( mp_, lexical_cast<std::string>(oneOverMu0), reluc_, CoefXpr::OP_DIV ) );
     DefineFieldResult( muFunc, perm);
 
 

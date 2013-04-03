@@ -18,8 +18,9 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  MultiSequenceDriver::MultiSequenceDriver( ) 
-    : BaseDriver() {
+  MultiSequenceDriver::MultiSequenceDriver( shared_ptr<SimState> state,
+                                            Domain* domain) 
+    : BaseDriver(state, domain) {
 
     analysis_ = BasePDE::MULTI_SEQUENCE;
     
@@ -55,7 +56,7 @@ namespace CoupledField {
     
 
     // get nodes for all sequencesteps
-    ParamNodeList seqNodes = param->GetList("sequenceStep");
+    ParamNodeList seqNodes = domain_->GetParamRoot()->GetList("sequenceStep");
 
 
     // 1.) Fill vector with step indices and ensure that all occur
@@ -91,7 +92,7 @@ namespace CoupledField {
       
       // get current step node
       PtrParamNode actStepNode = 
-        param->GetByVal("sequenceStep", std::string("index"), iStep+1);
+          domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), iStep+1);
 
       // get current usage type 
       std::string usageString;

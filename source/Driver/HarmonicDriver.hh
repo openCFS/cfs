@@ -21,7 +21,9 @@ public:
   //! Constructor
   //! \param sequenceStep current step in multisequence simulation
   //! \param isPartOfSequence true, if driver is part of  multiSequence
-  HarmonicDriver(UInt sequenceStep, bool isPartOfSequence = false);
+  HarmonicDriver(UInt sequenceStep, bool isPartOfSequence,
+                 shared_ptr<SimState> state,
+                 Domain* domain);
 
   //! Detructor
   virtual ~HarmonicDriver();

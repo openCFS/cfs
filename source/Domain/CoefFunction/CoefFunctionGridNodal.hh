@@ -38,7 +38,7 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
   public:
 
     ///Constructor with the configuration xml node reading the type of interpolation
-    CoefFunctionGridNodal(PtrParamNode configNode);
+    CoefFunctionGridNodal(Domain* ptDomain, PtrParamNode configNode);
 
     ///Destructor freeing al used data strutures
     virtual ~CoefFunctionGridNodal();

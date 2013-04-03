@@ -15,11 +15,17 @@ namespace CoupledField {
   public:
 
     //! Constructor
-    XMLMaterialHandler( const std::string & fileName );
+    XMLMaterialHandler( );
 
     //! Destructor
     ~XMLMaterialHandler();
-
+    
+    //! Load from a given file
+    void LoadFromFile( const std::string& fileName );
+    
+    //! Load from a given string
+    void LoadFromString( const std::string& str );
+    
     //! Loads the specified material
 
     //! This method loads the given material from the material file and

@@ -15,8 +15,9 @@ namespace fs = boost::filesystem;
 namespace CoupledField {
 
   SimOutputText::SimOutputText( const std::string& fileName,
-                                PtrParamNode outputNode )
-    : SimOutput( fileName, outputNode ){
+                                PtrParamNode outputNode,
+                                PtrParamNode infoNode)
+    : SimOutput( fileName, outputNode, infoNode ){
 
     // initialize variables
     formatName_ = "text";

@@ -23,9 +23,8 @@ namespace CoupledField {
   DECLARE_LOG(resHandler)
   DEFINE_LOG(resHandler, "resultHandler")
     
-  ResultHandler::ResultHandler( OpMode opMode) {
-    
-    opMode_ = opMode;
+  ResultHandler::ResultHandler( PtrParamNode paramNode) {
+    param_ = paramNode;
     sequenceStep_ = 1;
     actStep_ = 0;
     finalResultExists_ = false;
@@ -415,10 +414,22 @@ namespace CoupledField {
       return;
     }
 
+    // Hack: As there might be times for a sequence step with index 0
+    // (e.g. grid results etc.) we look for a suitable sequence step for
+    // a step 1 in case 
+    
     // fetch current postProcNode
-    PtrParamNode postProcNode = 
-      param->GetByVal("sequenceStep", std::string("index"), actContext.sequenceStep)
-      ->Get( "postProcList")->GetByVal( "postProc", "id", postProcName );
+    UInt seqStep = 1;
+    if( sequenceStep_ > 1 ) {
+      seqStep = sequenceStep_;
+    }
+    PtrParamNode postProcNode, ppListNode;
+    PtrParamNode seqNode = param_->GetByVal("sequenceStep", "index", seqStep);
+    if( seqNode )
+      ppListNode = seqNode->Get("postProcList");
+      
+    if( ppListNode )
+      postProcNode = ppListNode->GetByVal("postProc", "id", postProcName);
     
     if( !postProcNode ) {
       EXCEPTION( "A Postprocessing section for '" << postProcName
@@ -781,7 +792,8 @@ namespace CoupledField {
       if( neededCap == SimOutput::HISTORY ) {
         std::string simName = progOpts->GetSimName();
         shared_ptr<SimOutput> textOut 
-          = shared_ptr<SimOutput>(new SimOutputText( simName, PtrParamNode() ) );
+          = shared_ptr<SimOutput>(new SimOutputText( simName, PtrParamNode(), 
+                                                     PtrParamNode() ) );
         textOut->Init(  domain->GetGrid(), false );
         outFiles_["histDefault"] = textOut;
         outGridIds_["histDefault"] = "default";
@@ -919,8 +931,8 @@ namespace CoupledField {
                                 UInt sequenceStep,
                                 UInt stepValue,
                                 SolutionType solType,
-                                std::set<std::string> & regionNames ) {
-
+                                std::set<std::string> & regionNames,
+                                PtrParamNode rootNode) {
     return inFiles_[readerId]->GetFeFunction<TYPE>(sequenceStep,
                                                    stepValue,
                                                    solType,
@@ -1087,14 +1099,16 @@ namespace CoupledField {
                                         UInt sequenceStep,
                                         UInt stepValue,
                                         SolutionType solType,
-                                        std::set<std::string> & regionNames );
+                                        std::set<std::string> & regionNames,
+                                        PtrParamNode rootNode );
   template
   shared_ptr<FeFunction<Complex> >
   ResultHandler::GetFeFunction<Complex>( const std::string& readerId,
                                          UInt sequenceStep,
                                          UInt stepValue,
                                          SolutionType solType,
-                                         std::set<std::string> & regionNames );
+                                         std::set<std::string> & regionNames,
+                                         PtrParamNode rootNode );
 
 #endif
 }

@@ -28,10 +28,12 @@ namespace CoupledField
   DECLARE_LOG(grid)
   DEFINE_LOG(grid, "grid")
 
-  Grid::Grid()
+  Grid::Grid(PtrParamNode param, PtrParamNode infoNode)
   {
     isInitialized_ = false; // set by FinishInit()
     isAxi_ = false;
+    param_ = param;
+    info_ = infoNode;
     
     region_.SetName("Grid::region");
     region_.Add(ALL_REGIONS, "all");
@@ -393,10 +395,10 @@ namespace CoupledField
 
    void Grid::InitNcInterfacesFromXML() {
      // if no param object is present, just leave
-     if (!param) return;
+     if (!param_) return;
 
      // check if there is a ncInterfaceList, if not just leave
-     PtrParamNode nciListNode = param->Get("domain")
+     PtrParamNode nciListNode = param_->Get("domain")
               ->Get("ncInterfaceList", ParamNode::PASS);
      if (!nciListNode) return;
 

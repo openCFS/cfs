@@ -21,7 +21,8 @@ namespace CoupledField {
   public:
 
     //! Default constructor
-    FlowMaterial();
+    FlowMaterial(MathParser* mp,
+                 CoordSystem * defaultCoosy);
 
     //! Destructor
     ~FlowMaterial();

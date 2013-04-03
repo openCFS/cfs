@@ -19,17 +19,19 @@ namespace CoupledField
   class Assemble;
   class ParamNode;
   class BaseFeFunction;
-
+  class SimState;
+  class Domain;
+  class MathParser;
 
   //! Base class for partial differential equations
-
   class BasePDE
   {
 
   public:
     
     //! Constructor
-    BasePDE( PtrParamNode paramNode );
+    BasePDE( PtrParamNode paramNode, PtrParamNode infoNode, 
+             shared_ptr<SimState> simState, Domain* domain );
     
     //! Destructor
     virtual ~BasePDE();
@@ -42,15 +44,14 @@ namespace CoupledField
 
     //! Return pointer to the SolveStep object
     virtual BaseSolveStep * GetSolveStep() = 0;
+    
+    //! Return pointer to domain
+    Domain * GetDomain()  {
+      return domain_;
+    }
 
     //! Update PDE due to updated step in multistep solution strategy
     virtual void UpdateToSolStrategy() = 0;
-
-    //! write the PDE state (pdememento) to a restart file "simname_pdename.restart"
-    virtual void WriteRestart( ) = 0;
-
-    //! read the PDE state (pdememento)from a restart file: "simname_pdename.restart"
-    virtual void ReadRestart(UInt &startStep ) = 0;
 
     // ======================================================
     // POSTPROC SECTION
@@ -82,7 +83,7 @@ namespace CoupledField
                   MULTI_SEQUENCE } AnalysisType;
     
     /** Helper method which determines if an AnalyisType is complex. */
-    static bool IsComplex();
+    bool IsComplex();
                   
     /** This enum is for the string/enum conversion of AnalysisType.
      * Don't be confused with the actual analysis type in  analysis_.
@@ -122,10 +123,22 @@ namespace CoupledField
 
     //! ParamNode of current pde
     PtrParamNode myParam_;
+    
+    //! Info ParameerNode of current pde
+    PtrParamNode myInfo_;
     //@}
 
-    //! name of the PDE
+    //! Name of the PDE
     std::string pdename_;
+    
+    //! Pointer for saving the internal simulation state
+    shared_ptr<SimState> simState_;
+    
+    //! Pointer to domain
+    Domain * domain_;
+    
+    //! Pointer to MathParser
+    MathParser * mp_;
     
   };
 

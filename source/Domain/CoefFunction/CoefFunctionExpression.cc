@@ -7,9 +7,9 @@ namespace CoupledField{
 // ===========================================================================
 //  REAL VALUED COEFFICIENT FUNCTION
 // ===========================================================================
-CoefFunctionExpression<Double>::CoefFunctionExpression() :
+CoefFunctionExpression<Double>::CoefFunctionExpression(MathParser * mp) :
         CoefFunctionAnalytic(),
-        mp_(domain->GetMathParser()),
+        mp_(mp),
         mHandle_(mp_->GetNewHandle(true))
         {
   
@@ -22,12 +22,14 @@ CoefFunctionExpression<Double>::CoefFunctionExpression() :
   
   isComplex_ = false;
   
-  // always store default coordinate system
+  // do not use rotated coordsys initially
   this->coordSys_ = domain->GetCoordSystem();
 }   
 
 CoefFunctionExpression<Double>::~CoefFunctionExpression(){
-  domain->GetMathParser()->ReleaseHandle(mHandle_);
+  if( domain ) {
+    mp_->ReleaseHandle(mHandle_);
+  }
 }
 
 PtrCoefFct CoefFunctionExpression<Double>::GetComplexPart( Global::ComplexPart part ) {
@@ -195,9 +197,9 @@ GetStrTensor( UInt& numRows, UInt& numCols,
 // ===========================================================================
 //  COMPLEX VALUED COEFFICIENT FUNCTION
 // ===========================================================================
-CoefFunctionExpression<Complex>::CoefFunctionExpression() :
+CoefFunctionExpression<Complex>::CoefFunctionExpression(MathParser * mp) :
         CoefFunctionAnalytic(),
-        mp_(domain->GetMathParser()),
+        mp_(mp),
         mHandleReal_(mp_->GetNewHandle(true)),
         mHandleImag_(mp_->GetNewHandle(true)){
   
@@ -215,8 +217,10 @@ CoefFunctionExpression<Complex>::CoefFunctionExpression() :
 }   
 
 CoefFunctionExpression<Complex>::~CoefFunctionExpression(){
-  domain->GetMathParser()->ReleaseHandle(mHandleReal_);
-  domain->GetMathParser()->ReleaseHandle(mHandleImag_);
+  if( domain ) {
+    mp_->ReleaseHandle(mHandleReal_);
+    mp_->ReleaseHandle(mHandleImag_);
+  }
 }
 
 PtrCoefFct CoefFunctionExpression<Complex>::GetComplexPart( Global::ComplexPart part ) {
@@ -224,7 +228,7 @@ PtrCoefFct CoefFunctionExpression<Complex>::GetComplexPart( Global::ComplexPart 
   if( part  == Global::COMPLEX ) {
     ret = shared_from_this();
   } else if ( part == Global::REAL || part == Global::IMAG ) {
-    shared_ptr<CoefFunctionExpression<Double> > real(new CoefFunctionExpression<Double>());
+    shared_ptr<CoefFunctionExpression<Double> > real(new CoefFunctionExpression<Double>(mp_));
     switch(dimType_) {
       case SCALAR:
         if( part == Global::REAL )

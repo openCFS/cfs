@@ -24,7 +24,9 @@ namespace CoupledField
   // ***********************
   //   Default Constructor
   // ***********************
-  FlowMaterial::FlowMaterial() : BaseMaterial() {
+  FlowMaterial::FlowMaterial(MathParser* mp,
+                             CoordSystem * defaultCoosy) 
+: BaseMaterial(mp, defaultCoosy) {
 
 
     materialDatabaseName_ = "FluidFlow";
@@ -62,7 +64,7 @@ namespace CoupledField
     if (IsSet(DYNAMIC_VISCOSITY)) {
       dynamicViscosity = GetScalCoefFnc(DYNAMIC_VISCOSITY,Global::REAL);
       kinematicViscosity = 
-          CoefFunction::Generate(Global::REAL,CoefXprBinOp(dynamicViscosity, density,
+          CoefFunction::Generate(mp_, Global::REAL,CoefXprBinOp(mp_, dynamicViscosity, density,
                                               CoefXpr::OP_DIV ) );
 
       SetCoefFct( KINEMATIC_VISCOSITY, kinematicViscosity );
@@ -70,7 +72,7 @@ namespace CoupledField
     else if (IsSet(KINEMATIC_VISCOSITY)){
       kinematicViscosity = GetScalCoefFnc(KINEMATIC_VISCOSITY,Global::REAL);
       dynamicViscosity = 
-          CoefFunction::Generate(Global::REAL,CoefXprBinOp(kinematicViscosity, density,
+          CoefFunction::Generate(mp_, Global::REAL,CoefXprBinOp(mp_, kinematicViscosity, density,
                                               CoefXpr::OP_MULT ) );
                                               
       SetCoefFct( DYNAMIC_VISCOSITY, dynamicViscosity );
@@ -88,10 +90,10 @@ namespace CoupledField
    
     PtrCoefFct tens;
     
-    PtrCoefFct z = CoefFunction::Generate(Global::REAL,"0");
+    PtrCoefFct z = CoefFunction::Generate(mp_, Global::REAL,"0");
     PtrCoefFct twice = 
-        CoefFunction::Generate(Global::REAL, 
-                               CoefXprBinOp("2.0", scalar, CoefXpr::OP_MULT ));
+        CoefFunction::Generate(mp_, Global::REAL, 
+                               CoefXprBinOp(mp_, "2.0", scalar, CoefXpr::OP_MULT ));
     
     StdVector<PtrCoefFct> vals(36);
     vals.Init(z);
@@ -101,7 +103,7 @@ namespace CoupledField
     vals[3+3*6] = scalar;
     vals[4+4*6] = scalar;
     vals[5+5*6] = scalar;
-    tens = CoefFunction::Generate(Global::REAL, 6, 6, vals );
+    tens = CoefFunction::Generate(mp_, Global::REAL, 6, 6, vals );
     SetCoefFct(matType, tens);
     
     PtrCoefFct check = tensorCoef_[matType];

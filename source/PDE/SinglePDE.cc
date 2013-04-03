@@ -15,6 +15,9 @@
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 
+// header for saving / retrieving the simulation state
+#include "DataInOut/SimState.hh"
+
 // header for logging
 #include "DataInOut/Logging/LogConfigurator.hh"
 
@@ -30,9 +33,6 @@
 #include "Driver/TransientDriver.hh"
 #include "Driver/HarmonicDriver.hh"
 
-// header for memento/restart handling
-#include "MatVec/vectorSerialization.hh"
-
 // header for resultHandling
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ResultCache.hh"
@@ -41,7 +41,6 @@
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "CoupledPDE/BasePairCoupling.hh"
 #include "CoupledPDE/IterCoupledPDE.hh"
-//#include "Forms/linearForm.hh"
 
 //feSpaces
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
@@ -70,8 +69,10 @@ namespace CoupledField {
   DECLARE_LOG(singlepde)
   DEFINE_LOG(singlepde, "singlePde")
 
-  SinglePDE::SinglePDE( Grid *aptgrid, PtrParamNode paramNode ) :
-    StdPDE( aptgrid, paramNode ),
+  SinglePDE::SinglePDE( Grid *aptgrid, PtrParamNode paramNode,
+                        PtrParamNode infoNode,
+                        shared_ptr<SimState> simState, Domain* domain) :
+    StdPDE( aptgrid, paramNode, infoNode, simState, domain ),
     isDirectCoupled_(false),
     isInitialized_(false),
     iterCplPde_(NULL),
@@ -129,7 +130,7 @@ namespace CoupledField {
 
     sequenceStep_ = sequenceStep;
 
-    infoNode_ = base == NULL ? info->Get("PDE")->Get(pdename_) : base->Get(pdename_);
+    infoNode_ = base == NULL ? myInfo_->Get("PDE")->Get(pdename_) : base->Get(pdename_);
     infoNode_->Get(ParamNode::PN_HEADER)->Get("sequenceStep")->SetValue(sequenceStep);
 
     LOG_TRACE(singlepde) << pdename_ << ": Starting Initialization";
@@ -139,7 +140,7 @@ namespace CoupledField {
     // Get type of analysis
     // =====================================================================
     LOG_TRACE(singlepde) << pdename_ << ": Obtaining analysis type";
-    analysistype_ = domain->GetSingleDriver()->GetAnalysisType();
+    analysistype_ = domain_->GetSingleDriver()->GetAnalysisType();
 
     // NOTE: The concept of isAlwaysStatic bites with Direct Coupling
     //       and must be re-designed
@@ -193,7 +194,7 @@ namespace CoupledField {
     // direct coupled
     if( needsAlgsys_ == true ) {
       if ( isDirectCoupled_ == false) {
-        olasInfo_ = info->Get("OLAS")->Get(pdename_);
+        olasInfo_ = myInfo_->Get("OLAS")->Get(pdename_);
         algsys_ = new AlgebraicSys(olasNode_, olasInfo_, isComplex_);
         solStrat_ = algsys_->GetSolStrategy();
       }
@@ -205,7 +206,7 @@ namespace CoupledField {
 
     // Create new assemble class with according analysistype
     if( isDirectCoupled_ == false && needsAlgsys_ == true) {
-      assemble_ = new Assemble( algsys_, analysistype_ );
+      assemble_ = new Assemble( algsys_, analysistype_, myInfo_->GetRoot() );
     }
     
     // =====================================================================
@@ -254,7 +255,7 @@ namespace CoupledField {
     PtrParamNode in = infoNode_->Get(ParamNode::PN_HEADER);
     for(UInt i = 0; i < regions_.GetSize(); i++ )
     {
-      PtrParamNode in_ = in->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(regions_[i]));
+      PtrParamNode in_ = in->GetByVal("region", "name", ptGrid_->GetRegion().ToString(regions_[i]));
 
       // Not needed at the moment. Commented out due to gcc 4.6.
 #if 0
@@ -292,14 +293,6 @@ namespace CoupledField {
     // =====================================================================
     // read in boundary conditions
     // =====================================================================
-
-    // Incorporate values of memento here, if the values are used
-    // as "dirichlet"-values from a previous simulation run
-    // (e.g. obtained from a previous static run)
-    if( memento_ != NULL
-        && mementoAsDirichlet_ == true ) {
-      IncorporateMemento();
-    }
 
     LOG_TRACE(singlepde) << pdename_ << ": Reading boundary conditions";
     ReadBCs();
@@ -344,6 +337,10 @@ namespace CoupledField {
 
       // finalize feFunctions
       actFct->Finalize();
+      
+      // register FeFunctions with SimState class
+      simState_->RegisterFeFct( actFct );
+      
 
       // Pass feFctId of primary result also to RHS result
       rhsFeFunctions_[fncIt->first]->SetFctId(actFct->GetFctId());
@@ -355,7 +352,7 @@ namespace CoupledField {
 
     if ( analysistype_ == TRANSIENT ) {
       Double dt;
-      dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
+      dt = dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())
                 ->GetDeltaT();
       //WARN("Note: The initialization of the timestepping class is currently wrong: "
       //    "The 2nd argument must be the complete SBM-vector of the algebraic system in "
@@ -394,8 +391,12 @@ namespace CoupledField {
     LOG_TRACE(singlepde) << pdename_ << ": Reading store results";
 
     FinalizePostProcResults();
-    ReadStoreResults();
-    ReadFieldResults();
+    
+    // Read result only if a free simulation is performed
+    if( !simState_->HasInput()) {
+      ReadStoreResults();
+      ReadFieldResults();
+    }
 
     //! Define step solution driver
     if ( isDirectCoupled_ == false ) {
@@ -629,7 +630,7 @@ namespace CoupledField {
     shared_ptr<EntityList> actList;
 
     EntityList::ListType entityType;
-    ResultHandler * resHandler = domain->GetResultHandler();
+    ResultHandler * resHandler = domain_->GetResultHandler();
 
     // initialize map for relating EntityUnknownType and name of xml-element
     using std::make_pair;
@@ -989,7 +990,7 @@ namespace CoupledField {
       }
     }
     
-    // 3) Pass regions of primary FeFunction to all timer derivatives
+    // 3) Pass regions of primary FeFunction to all time derivatives
     if( analysistype_ != STATIC ) {
       // Workaround for transient simulation:
       // We have to pass directly the time-derivative vector of the time integration
@@ -1010,6 +1011,7 @@ namespace CoupledField {
         }
         
         derivFeFct->Finalize();
+        derivFeFct->SetPDE(this);
         UInt timeDerivOrder = timeDerivOrder_[it->first];
         if( analysistype_ == HARMONIC ||  analysistype_ == EIGENFREQUENCY) {
           FeFunction<Complex> & cDerivFct = 
@@ -1021,6 +1023,7 @@ namespace CoupledField {
         } else {
           primFeFct->GetTimeScheme()
                                          ->SetTimeDerivVector(timeDerivOrder, derivFeFct->GetSingleVector() );
+          simState_->RegisterFeFct( derivFeFct );
         }
       }
     }
@@ -1278,7 +1281,7 @@ namespace CoupledField {
       for( UInt iComp = 0; iComp < listNodes.GetSize(); iComp++ ) {
         PtrParamNode actCompNode = listNodes[iComp];
         actCompNode->GetValue("comp", comp);
-        compIndex = domain->GetCoordSystem("default")->GetVecComponent(comp)-1;
+        compIndex = domain_->GetCoordSystem("default")->GetVecComponent(comp)-1;
         start[compIndex]=  actCompNode->Get("start")->MathParse<Double>();
         stop[compIndex]=  actCompNode->Get("stop")->MathParse<Double>();
         inc[compIndex] = actCompNode->Get("inc")->MathParse<Double>();
@@ -1719,12 +1722,12 @@ namespace CoupledField {
       //  EXTERNAL GRID DATA 
       // ====================
       if(!isComplex) {
-        coef = CoefFunctionGrid::Generate(Global::REAL, infoNode_ , valueNode->Get("grid"));
+        coef = CoefFunctionGrid::Generate(domain_, Global::REAL, infoNode_ , valueNode->Get("grid"));
         //this is hardcoded so far. should be changed or generated depending on the type
         //of grid (nodal or higher order)
         //coef.reset(new CoefFunctionNodalGrid<Double>(valueNode->Get("grid")));
       } else {
-        coef = CoefFunctionGrid::Generate(Global::COMPLEX, infoNode_ , valueNode->Get("grid"));
+        coef = CoefFunctionGrid::Generate(domain_, Global::COMPLEX, infoNode_ , valueNode->Get("grid"));
         //coef.reset(new CoefFunctionNodalGrid<Complex>(valueNode->Get("grid")));
       }
       //read in the defined dofs
@@ -1794,10 +1797,10 @@ namespace CoupledField {
         if( type == ResultInfo::SCALAR) {
           // -- SCALAR case --
           if(!isComplex ) {
-            coef = CoefFunction::Generate(Global::REAL, real);
+            coef = CoefFunction::Generate(mp_, Global::REAL, real);
           } else {
             std::string imag = AmplPhaseToImag(val, phase );
-            coef = CoefFunction::Generate(Global::COMPLEX, real, imag);
+            coef = CoefFunction::Generate(mp_, Global::COMPLEX, real, imag);
           }
         }else {
           // -- VECTOR case --
@@ -1808,9 +1811,9 @@ namespace CoupledField {
           if(!isComplex) {
             StdVector<std::string> valV;
             valV = val;
-            coef = CoefFunction::Generate(Global::REAL, valV );
+            coef = CoefFunction::Generate(mp_, Global::REAL, valV );
           } else {
-            coef = CoefFunction::Generate(Global::COMPLEX,
+            coef = CoefFunction::Generate(mp_, Global::COMPLEX,
                                              realV, imagV );
           }
         }
@@ -1887,9 +1890,9 @@ namespace CoupledField {
         StdVector<std::string> real, imag;
         AmplPhaseToRealImag(vals, phases, real, imag);
         if(!isComplex) {
-          coef = CoefFunction::Generate(Global::REAL, vals );
+          coef = CoefFunction::Generate(mp_, Global::REAL, vals );
         } else {
-          coef = CoefFunction::Generate(Global::COMPLEX, real, imag );
+          coef = CoefFunction::Generate(mp_, Global::COMPLEX, real, imag );
         }
 
       } else if (type == ResultInfo::TENSOR ) {
@@ -1912,7 +1915,7 @@ namespace CoupledField {
     std::string coordSysId = "default";
     valueNode->GetValue("coordSysId", coordSysId, ParamNode::PASS);
     if( coordSysId != "default" ) {
-      coef->SetCoordinateSystem( domain->GetCoordSystem(coordSysId) );
+      coef->SetCoordinateSystem( domain_->GetCoordSystem(coordSysId) );
     }
 
     // return 
@@ -1924,7 +1927,7 @@ namespace CoupledField {
     // get list of parameter nodes for region definitions
     ParamNodeList regionNodes;
 
-    PtrParamNode regionListNode = param->
+    PtrParamNode regionListNode = domain_->GetParamRoot()->
       Get("domain")->Get("regionList", ParamNode::PASS );
     if( regionListNode)
       regionNodes = regionListNode->GetList("region");
@@ -1932,7 +1935,7 @@ namespace CoupledField {
     numRegions = regionNodes.GetSize();
 
     // obtain pointer to materialHandler
-    MaterialHandler* matLoader = domain->GetMaterialHandler();
+    MaterialHandler* matLoader = domain_->GetMaterialHandler();
 
 
     // -------------------
@@ -1967,13 +1970,13 @@ namespace CoupledField {
         // log the just read material. LoadMaterial() so to say initializes the ToInfo()
         PtrParamNode in = infoNode_->GetByVal("material", "name", material);
         // additional regions are automatically appended
-        in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
+        in->Get("regionList")->GetByVal("region", "name", ptGrid_->GetRegion().ToString(actRegionId));
         materials_[actRegionId]->ToInfo(in);
 
         // Check for local coordinate system
         if( !refCoordSys.empty() ) {
           CoordSystem * actCoosy =
-            domain->GetCoordSystem( refCoordSys);
+            domain_->GetCoordSystem( refCoordSys);
           materials_[actRegionId]->SetCoordSys( actCoosy );
         }
 
@@ -2039,12 +2042,13 @@ namespace CoupledField {
         if( regions_.Find( actRegionId) < 0 )
           continue;
 
-        PtrParamNode in = infoNode_->GetByVal("composite", "region", domain->GetGrid()->GetRegion().ToString(actRegionId));
+        PtrParamNode in = infoNode_->GetByVal("composite", "region", 
+                                              ptGrid_->GetRegion().ToString(actRegionId));
 
         // get composite node
         PtrParamNode compNode;
         try {
-          compNode = param->Get("domain")->GetByVal("composite", "name", composite);
+          compNode = domain_->GetParamRoot()->Get("domain")->GetByVal("composite", "name", composite);
         } catch( Exception& ex ) {
           RETHROW_EXCEPTION(ex, "No composite material defined with name '" << composite << "'");
         }
@@ -2280,690 +2284,7 @@ namespace CoupledField {
   }
 
 
-  void SinglePDE::WriteRestart()
-  {
-    EXCEPTION( "Restart-Functionality should be adapted to new"
-                "FeSpace / FeFunction structure");
-    // prepare output file
-//    shared_ptr<SimOutput> restartOutFile;
-//    Grid* grid = domain->GetGrid();
-//    const std::string simName = progOpts->GetSimName();
-//    std::string restartFileName = simName+"_"+pdename_+".restart";
-//    PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
-//    PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
-//    eFiles->SetName("externalFiles");
-//    eFiles->SetValue( "false" );
-//    h5Node->AddChildNode(eFiles);
-//    restartOutFile = shared_ptr<SimOutput>(new SimOutputHDF5(restartFileName, h5Node));
-//    restartOutFile->Init(grid, true);
-//
-//    // time stepping variables
-//    const Double& dt = TS_alg_->GetTimeStep();
-//    Double timeTmp;
-//    UInt lastTimeStep = domain->GetSingleDriver()->GetActStep(pdename_);
-//    if (isComplex_)
-//    {
-//      EXCEPTION("restart file for harmonic results not implemented");
-//    }
-//
-//    shared_ptr<EntityList> entList;
-//    ResultMap::iterator it = resultLists_.begin();
-//
-//    // time stepping vectors in which the results will be stored to write out
-//    SBM_Vector solutionTmp;
-//    std::map<TIMEStepType, StdVector<shared_ptr<BaseResult> > > outResults;
-//    std::map<DERIVType, StdVector<shared_ptr<BaseResult> > > outResults_deriv;
-//    std::map<TIMEStepType, SBM_Vector > TsMap = TS_alg_->GetTimeStepMap();
-//    /* the number of time steps needed for the algorithm
-//     * INFO: TIMESTEP_0 is the new time step */
-//    UInt numTimeSteps = TsMap.size();
-//    if (TS_alg_->is_SolTimeStep_set(TIMESTEP_0))
-//      --numTimeSteps;
-//    if (numTimeSteps > lastTimeStep)
-//    {
-//      EXCEPTION("not enough time steps done to create a feasible restart");
-//    }
-//
-//    // collect all necessary data
-//    for (; it != resultLists_.end(); it++)
-//    {
-//      ResultList& actList = it->second;
-//      // iterate over all solutions for each result type
-//      for (UInt i = 0; i < actList.GetSize(); ++i)
-//      {
-//        shared_ptr<ResultInfo> actResultInfo = actList[i]->GetResultInfo();
-//        if (TS_alg_->isDeriv(actResultInfo->resultType))
-//        {
-//          // do not get result if it is a derivative of another result
-//          // derivative will be written later
-//          continue;
-//        }
-//        entList = actList[i]->GetEntityList();
-//
-//        shared_ptr<BaseResult> outResult;
-//        outResult = shared_ptr<BaseResult>(new Result<Double>());
-//        outResult->SetResultInfo( actResultInfo );
-//        outResult->SetEntityList( entList );
-//        solutionTmp = TS_alg_->GetOld(TIMESTEP_1);
-//        ExtractResult<Double>(outResult, solutionTmp);
-//        if (outResults.find(TIMESTEP_1) == outResults.end())
-//        {
-//          StdVector<shared_ptr<BaseResult> > tmp;
-//          outResults[TIMESTEP_1] = tmp;
-//        }
-//        outResults[TIMESTEP_1].Push_back(outResult);
-//        restartOutFile->RegisterResult( outResult, \
-//            lastTimeStep - numTimeSteps +1, 1, lastTimeStep, false );
-//
-//        /* go over all time step except TIMESTEP_1*/
-//        std::map<TIMEStepType, SBM_Vector >::iterator itTs = TsMap.begin();
-//        for (; itTs != TsMap.end(); ++itTs)
-//        {
-//          TIMEStepType timeStepType = itTs->first;
-//          if (timeStepType == TIMESTEP_0 || timeStepType == TIMESTEP_1)
-//          {
-//            continue;
-//          }
-//          shared_ptr<BaseResult> outResult;
-//          outResult = shared_ptr<BaseResult>(new Result<Double>());
-//          outResult->SetResultInfo( actResultInfo );
-//          outResult->SetEntityList( entList );
-//
-//          solutionTmp = TS_alg_->GetOld(timeStepType);
-//          ExtractResult<Double>(outResult, solutionTmp);
-//          if (outResults.find(timeStepType) == outResults.end())
-//          {
-//            StdVector<shared_ptr<BaseResult> > tmp;
-//            outResults[timeStepType] = tmp;
-//          }
-//          outResults[timeStepType].Push_back(outResult);
-//        }
-//
-//        /* go over all derivatives */
-//        std::map<DERIVType, Vector<Double> >& DerivMap = TS_alg_->GetDeriveMap();
-//        std::map<DERIVType, Vector<Double> >::iterator itDeriv = DerivMap.begin();
-//        for (; itDeriv != DerivMap.end(); ++itDeriv)
-//        {
-//          DERIVType derivType = itDeriv->first;
-//          shared_ptr<BaseResult> outResult_solDeriv;
-//          outResult_solDeriv = shared_ptr<BaseResult>(new Result<Double>());
-//          shared_ptr<ResultInfo> actResultInfo_deriv(new ResultInfo);
-//          *actResultInfo_deriv = *actResultInfo;
-//
-//          outResult_solDeriv->SetResultInfo( actResultInfo_deriv );
-//          outResult_solDeriv->SetEntityList( entList );
-//          solutionTmp = TS_alg_->GetDeriv(derivType);
-//          ExtractResult<Double>(outResult_solDeriv, solutionTmp);
-//
-//          const SolutionType& tmpSolType = \
-//            TS_alg_->mapDerivToSolutionType(actResultInfo_deriv->resultType, derivType);
-//          actResultInfo_deriv->resultType = tmpSolType;
-//          actResultInfo_deriv->resultName = SolutionTypeEnum.ToString(tmpSolType);
-//
-//          outResult_solDeriv->SetResultInfo( actResultInfo_deriv );
-//          if (outResults_deriv.find(derivType) == outResults_deriv.end())
-//          {
-//            StdVector<shared_ptr<BaseResult> > tmp;
-//            outResults_deriv[derivType] = tmp;
-//          }
-//          outResults_deriv[derivType].Push_back(outResult_solDeriv);
-//          restartOutFile->RegisterResult( outResult_solDeriv, \
-//              lastTimeStep - numTimeSteps +1, 1, lastTimeStep, false );
-//        }
-//      }
-//    }
-//
-//    // start the real storring of the files
-//    restartOutFile->BeginMultiSequenceStep(1, analysistype_, lastTimeStep);
-//    UInt timeStepTypeAsInt = numTimeSteps;
-//    for (UInt i = lastTimeStep - timeStepTypeAsInt +1; i <= lastTimeStep; ++i)
-//    {
-//      timeTmp = solveStep_->GetActTime() -  (timeStepTypeAsInt -1) * dt;
-//      restartOutFile->BeginStep(lastTimeStep - timeStepTypeAsInt +1, timeTmp);
-//      writeOutTimeStep(restartOutFile, outResults[(TIMEStepType)timeStepTypeAsInt]);
-//      if (timeStepTypeAsInt == TIMESTEP_1)
-//      {
-//        std::map<DERIVType, StdVector<shared_ptr<BaseResult> > >::iterator itDerivRes = \
-//          outResults_deriv.begin();
-//        for (; itDerivRes != outResults_deriv.end(); ++itDerivRes)
-//        {
-//          writeOutTimeStep(restartOutFile, itDerivRes->second);
-//        }
-//      }
-//      restartOutFile->FinishStep();
-//      timeStepTypeAsInt -= 1;
-//    }
-//
-//    restartOutFile->FinishMultiSequenceStep();
-//    restartOutFile->Finalize();
-  }
-
-  void SinglePDE::ReadRestart(UInt &startStep)
-  {
-    EXCEPTION( "Restart-Functionality should be adapted to new"
-                "FeSpace / FeFunction structure");
-//    /* initialisation for data reading */
-//    std::string simName = progOpts->GetSimName();
-//    std::string restartFileName = "results_hdf5/"+simName+"_"+pdename_+".restart.h5";
-//    PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
-//    PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
-//    eFiles->SetName("externalFiles");
-//    eFiles->SetValue( "false" );
-//    h5Node->AddChildNode(eFiles);
-//    shared_ptr<SimInput> input(new SimInputHDF5(restartFileName, h5Node));
-//    // read in mesh of input
-//    input->InitModule();
-//    UInt dim = input->GetDim();
-//    Grid* ptGrid = new GridCFS(dim);
-//    input->ReadMesh(ptGrid);
-//    // FinishInit() does not work if we have named nodes which are added by
-//    // coords. This is a not so dirty work around
-//    *ptGrid = *ptGrid_;
-//    /* ptGrid->FinishInit(); */
-//
-//    std::map<UInt, BasePDE::AnalysisType> types;
-//    std::map<UInt, UInt> numMultiSteps;
-//    const bool isHistory = false;
-//    input->GetNumMultiSequenceSteps( types, numMultiSteps, isHistory );
-//    const UInt lastMultiStep = numMultiSteps.size();
-//    if (lastMultiStep != 1)
-//    {
-//      EXCEPTION("Restart can not handle multiple multistep!")
-//    }
-//    const UInt lastTimeStep = numMultiSteps[lastMultiStep];
-//    startStep = lastTimeStep;
-//    std::map<TIMEStepType, Vector<Double> > TsMap = TS_alg_->GetTimeStepMap();
-//    // collect all necessary data
-//    Vector<Double> tmpVec;
-//
-//    StdVector<shared_ptr<BaseResult> > inResults;
-//
-//    ResultMap::iterator it = resultLists_.begin();
-//    shared_ptr<EntityList> entList;
-//    std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
-//    for (; it != resultLists_.end(); it++)
-//    {
-//      ResultList & actList = it->second;
-//      // iterate over all solutions for each result type
-//      for (UInt i = 0; i < actList.GetSize(); ++i)
-//      {
-//        shared_ptr<ResultInfo> actResultInfo = actList[i]->GetResultInfo();
-//        if (TS_alg_->isDeriv(actResultInfo->resultType))
-//        {
-//          // do not get result if it is a derivative of another result
-//          // derivative will be fetched later
-//          continue;
-//        }
-//        input->GetStepValues( lastMultiStep, actResultInfo,
-//            resultSteps[actResultInfo], false);
-//
-//        // iterate over all regions
-//        StdVector<shared_ptr<EntityList> > regions;
-//        input->GetResultEntities(lastMultiStep, actResultInfo, regions, isHistory);
-//        for (UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++)
-//        {
-//          // generate new result object and add it to output writer
-//          shared_ptr<BaseResult > inResult;
-//          if (types[1] != BasePDE::HARMONIC)
-//          {
-//            inResult  = shared_ptr<BaseResult>( new Result<Double>() );
-//          } else {
-//            EXCEPTION("restarting over harmonic results ist not implemented");
-//          }
-//          inResult->SetEntityList( regions[iRegion] );
-//          inResult->SetResultInfo( actResultInfo );
-//
-//          /* read in all time steps */
-//          std::map<TIMEStepType, Vector<Double> >::iterator itTs = TsMap.begin();
-//          for (; itTs != TsMap.end(); ++itTs)
-//          {
-//            TIMEStepType timeStepType = itTs->first;
-//            if (timeStepType == TIMESTEP_0)
-//            {
-//              continue;
-//            }
-//            input->GetResult(lastMultiStep, lastTimeStep - timeStepType +1, \
-//                inResult, isHistory);
-//            tmpVec = TS_alg_->GetOld(timeStepType);
-//            InsertResult<Double>(tmpVec, inResult);
-//            if (timeStepType == TIMESTEP_1)
-//            {
-//              sol_->SetAlgSysVector(tmpVec);
-//              algsys_->InitSol(tmpVec);
-//            }
-//            TS_alg_->SetOld(tmpVec, timeStepType);
-//          }
-//
-//          /* read in all derivatives steps */
-//          std::map<DERIVType, Vector<Double> >& DerivMap = TS_alg_->GetDeriveMap();
-//          std::map<DERIVType, Vector<Double> >::iterator itDeriv = DerivMap.begin();
-//          for (; itDeriv != DerivMap.end(); ++itDeriv)
-//          {
-//            DERIVType derivType = itDeriv->first;
-//            shared_ptr<ResultInfo> actResultInfo_deriv(new ResultInfo);
-//            *actResultInfo_deriv = *actList[i]->GetResultInfo();
-//            SolutionType tmpSolType = \
-//              TS_alg_->mapDerivToSolutionType(actResultInfo_deriv->resultType, derivType);
-//
-//            actResultInfo_deriv->resultType = tmpSolType;
-//            actResultInfo_deriv->resultName = SolutionTypeEnum.ToString(tmpSolType);
-//
-//            inResult->SetResultInfo( actResultInfo_deriv );
-//            input->GetResult(lastMultiStep, lastTimeStep, inResult, isHistory);
-//
-//            /* revert the changes from actResultInfo_deriv */
-//            inResult->SetResultInfo( actResultInfo);
-//            tmpVec = TS_alg_->GetDeriv(derivType);
-//            InsertResult<Double>(tmpVec, inResult);
-//            TS_alg_->SetDeriv(tmpVec, derivType);
-//          }
-//        }
-//      }
-//    }
-//    if (isIterCoupled_)
-//    {
-//      CalcOutputCoupling();
-//      CalcInputCoupling();
-//    }
-  }
-
-  void SinglePDE::GetMemento( shared_ptr<PDEMemento>& memento) {
-
-    EXCEPTION("SinglePDE::GetMemento() not wroking yet");
-//    // create new memento
-//    shared_ptr<PDEMemento> myMemento (new PDEMemento() );
-//
-//    // first get memento of coupling object
-//    if (isIterCoupled_) {
-//      ptCoupling_->GetMemento(myMemento->couplingMemento_);
-//      myMemento->isIterCoupled_ = true;
-//    }
-//
-//    // then write own data to PDEMemento
-//    myMemento->analysisType_ = analysistype_;
-//    myMemento->gridFileName_ = progOpts->GetMeshFileStr();
-//    myMemento->stepNum_ = domain->GetSingleDriver()->GetActStep(pdename_);
-//
-//    if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
-//
-//      // --- Real values --
-//      Vector<Double> & solReal =
-//        dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).GetAlgSysVector();
-//      UInt numDofs = results_[0]->dofNames.GetSize();
-//      StdVector<Integer> eqns;
-//      for( UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++ ){
-//
-//        // create new entity list
-//        shared_ptr<NodeList> actSDList( new NodeList(ptGrid_ ) );
-//        actSDList->SetNodesOfRegion( regions_[iRegion] );
-//
-//        // create new vector
-//        Vector<Double> * values = new Vector<Double>;
-//        Vector<Double> deriv1, deriv2, tn_1;
-//
-//        values->Resize( actSDList->GetSize() * numDofs );
-//        values->Init();
-//        if (analysistype_ == TRANSIENT ) {
-//          deriv1.Resize( actSDList->GetSize() * numDofs );
-//          deriv2.Resize( actSDList->GetSize() * numDofs );
-//            tn_1.Resize( actSDList->GetSize() * numDofs );
-//        }
-//
-//        EntityIterator it = actSDList->GetIterator();
-//        UInt pos = 0;
-//        for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
-//          eqnMap_->GetEqns( eqns, *results_[0], it );
-//          for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-//            if ( eqns[iDof] != 0 ) {
-//              (*values)[numDofs*pos+iDof] = solReal[abs(eqns[iDof])-1];
-//              if( analysistype_ == TRANSIENT ) {
-//                deriv1[numDofs*pos+iDof] =
-//                  TS_alg_->GetDeriv(FIRST_DERIV)[(abs(eqns[iDof])-1)];
-//                deriv2[numDofs*pos+iDof] =
-//                    TS_alg_->GetDeriv(SECOND_DERIV)[(abs(eqns[iDof]-1))];
-//                  tn_1[numDofs*pos+iDof] =
-//                    TS_alg_->GetOld(TIMESTEP_1)[(abs(eqns[iDof]-1))];
-//              }
-//            } else {
-//              (*values)[numDofs*pos+iDof] = 0.0;
-//              if ( analysistype_ == TRANSIENT ) {
-//                deriv1[numDofs*pos+iDof] = 0.0;
-//                deriv2[numDofs*pos+iDof] = 0.0;
-//                  tn_1[numDofs*pos+iDof] = 0.0;
-//              }
-//            }
-//          }
-//        }
-//
-//        // pass vector to memento object
-//        std::string regionName = ptGrid_->GetRegion().ToString( regions_[iRegion] );
-//        myMemento->solution_[regionName] = values;
-//        if ( analysistype_ == TRANSIENT ) {
-//          myMemento->solDeriv1_[regionName] = deriv1;
-//          myMemento->solDeriv2_[regionName] = deriv2;
-//          myMemento->sol_tn_1_[regionName] = tn_1;
-//        }
-//      }
-//    } else {
-//
-//      // --- Complex values --
-//
-//      // store current frequency
-//      myMemento->freq_ = dynamic_cast<HarmonicDriver*>(domain->GetSingleDriver())
-//        ->GetActFreq();
-//
-//      Vector<Complex> & solComp =
-//        dynamic_cast<NodeStoreSol<Complex>&>(*(sol_)).GetAlgSysVector();
-//      UInt numDofs = results_[0]->dofNames.GetSize();
-//      StdVector<Integer> eqns;
-//      for( UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++ ){
-//
-//        // create new entity list
-//        shared_ptr<NodeList> actSDList( new NodeList(ptGrid_ ) );
-//        actSDList->SetNodesOfRegion( regions_[iRegion] );
-//
-//        // create new vector
-//        Vector<Complex> * values = new Vector<Complex>;
-//        values->Resize( actSDList->GetSize() * numDofs );
-//        values->Init();
-//        EntityIterator it = actSDList->GetIterator();
-//        UInt pos = 0;
-//        for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
-//          eqnMap_->GetEqns( eqns, *results_[0], it );
-//          for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-//            if ( eqns[iDof] != 0 ) {
-//              (*values)[numDofs*pos+iDof] = solComp[abs(eqns[iDof])-1];
-//            } else {
-//              (*values)[numDofs*pos+iDof] = 0.0;
-//            }
-//          }
-//        }
-//
-//        // pass vector to memento object
-//        std::string regionName = ptGrid_->GetRegion().ToString( regions_[iRegion] );
-//        myMemento->solution_[regionName] = values;
-//      }
-//    }
-//
-//    // now memento is initialized
-//    myMemento->isSet_ = true;
-//
-//    // pass back memento
-//    memento = myMemento;
-  }
-
-
-  void SinglePDE::SetMemento( shared_ptr<PDEMemento>& memento,
-                              bool mementoAsDirichlet ) {
-    EXCEPTION("SinglePDE::SetMemento not working yet");
-//
-//    if( isInitialized_ == true ) {
-//      EXCEPTION( "SetMemento may only be called, if the method "
-//                 << "SinglePDE::Init() was not called yet!" );
-//    }
-//
-//    memento_ = memento;
-//    mementoAsDirichlet_ = mementoAsDirichlet;
-  }
-
-  void SinglePDE::IncorporateMemento( ) {
-    EXCEPTION("SinglePDE::IncorporateMemento not working yet");
-//    // if there is no memento present -> leave
-//    if( !memento_ ) {
-//      return;
-//    }
-//
-//   // if there is no information in the memento just leave
-//    if ( memento_->isSet_ == false ) {
-//      return;
-//    }
-//
-//    // check that memento is bases on the same grid file
-//    if( memento_->gridFileName_ != progOpts->GetMeshFileStr() ) {
-//      EXCEPTION( "Error in reading in memento: Memento is based on grid '"
-//                 << memento_->gridFileName_
-//                 << ", whereas the current simulation is based on grid '"
-//                 << progOpts->GetMeshFileStr() );
-//    }
-//
-//    UInt numDofs = results_[0]->dofNames.GetSize();
-//    if ( analysistype_ == STATIC 
-//        || analysistype_ == TRANSIENT
-//        || analysistype_ == EIGENFREQUENCY ) {
-//
-//      // convert solution to transient StoreSolution type
-//      Vector<Double> & solVec =
-//        (dynamic_cast<NodeStoreSol<Double> &>(*sol_)).GetAlgSysVector();
-//
-//
-//      Vector<Double> solDeriv1, solDeriv2, solTn_1;
-//      
-//     // we need derivatives only if we have transient analysis
-//      if( analysistype_ == TRANSIENT ) {
-//        if( TS_alg_->GetDeriv(FIRST_DERIV).GetSize() != 0 ) {
-//          solDeriv1 = TS_alg_->GetDeriv(FIRST_DERIV);
-//        } else {
-//          solDeriv1.Resize( solVec.GetSize() );
-//          solDeriv1.Init();
-//        }
-//
-//        if( TS_alg_->GetDeriv(SECOND_DERIV).GetSize() != 0 ) {
-//          solDeriv2 = TS_alg_->GetDeriv(SECOND_DERIV);
-//        } else {
-//          solDeriv2.Resize( solVec.GetSize() );
-//          solDeriv2.Init();
-//        }
-//
-//        if( TS_alg_->is_SolTimeStep_set(TIMESTEP_1) ) {
-//          solTn_1 = TS_alg_->GetOld(TIMESTEP_1);
-//        } else {
-//          solTn_1.Resize( solVec.GetSize() );
-//          solTn_1.Init();
-//        }
-//      }
-//
-//      
-//      if ( memento_->analysisType_ == HARMONIC ) {
-//
-//        // -> perform complex-to-real adjustment
-//
-//        // frequency of memento
-//        Double freq = memento_->freq_;
-//
-//        // Iterate over all regions
-//        for( UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++ ) {
-//
-//          // Check for related region in memento object
-//          std::string name = ptGrid_->GetRegion().ToString( regions_[iRegion] );
-//          if( memento_->solution_.find( name) != memento_->solution_.end() ) {
-//
-//            // get grip of vector and derivatives of memento
-//            Vector<Complex> const & sol =
-//              dynamic_cast<const Vector<Complex>& >(*(memento_->solution_[name]) );
-//
-//            // create entitylist
-//            shared_ptr<NodeList> nodes (new NodeList(ptGrid_));
-//            nodes->SetNodesOfRegion( regions_[iRegion] );
-//
-//            // iterate over all entries
-//            EntityIterator it = nodes->GetIterator();
-//            StdVector<Integer> eqns;
-//            UInt pos = 0;
-//            for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
-//              eqnMap_->GetEqns( eqns, *results_[0], it );
-//              for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-//                UInt actPos = numDofs*pos+iDof;
-//                if ( eqns[iDof] != 0
-//                     && (unsigned int) (std::abs(eqns[iDof])-1) < solVec.GetSize() ) {
-//                  solVec[eqns[iDof]-1] = sol[actPos].real();
-//                  if ( analysistype_ == TRANSIENT ) {
-//                    solDeriv1[eqns[iDof]-1] = -2*PI*freq* sol[actPos].imag();
-//                    solDeriv2[eqns[iDof]-1] =
-//                      -4*PI*PI*freq*freq*sol[actPos].real();
-//                  }
-//                }
-//              }
-//            }
-//          }
-//        }
-//
-//        // pass derivatives to timestepping algorithm
-//        if( analysistype_ == TRANSIENT ) {
-//          TS_alg_->SetDeriv( solDeriv1, FIRST_DERIV );
-//          TS_alg_->SetDeriv( solDeriv2, SECOND_DERIV );
-//        }
-//
-//      } else {
-//
-//        // check if derivatives are also needed
-//        bool needDeriv = ( analysistype_ == TRANSIENT ) &&
-//          (memento_->analysisType_ == TRANSIENT);
-//
-//        // Iterate over all regions
-//        for( UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++ ) {
-//
-//          // Check for related region in memento object
-//          std::string name = ptGrid_->GetRegion().ToString( regions_[iRegion] );
-//          if( memento_->solution_.find( name) != memento_->solution_.end() ) {
-//
-//            // get grip of vector and derivatives of memento
-//            Vector<Double> const & sol =
-//              dynamic_cast<const Vector<Double>& >(*(memento_->solution_[name]) );
-//            Vector<Double> const & deriv1 = memento_->solDeriv1_[name];
-//            Vector<Double> const & deriv2 = memento_->solDeriv2_[name];
-//            Vector<Double> const & tn_1 = memento_->sol_tn_1_[name];
-//
-//            // create entitylist
-//            shared_ptr<NodeList> nodes (new NodeList(ptGrid_));
-//            nodes->SetNodesOfRegion( regions_[iRegion] );
-//
-//            // iterate over all entries
-//            EntityIterator it = nodes->GetIterator();
-//            StdVector<Integer> eqns;
-//            UInt pos = 0;
-//            for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
-//              eqnMap_->GetEqns( eqns, *results_[0], it );
-//              for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-//                if ( eqns[iDof] != 0
-//                     && (unsigned int) (std::abs(eqns[iDof])-1) < solVec.GetSize() ) {
-//                  solVec[eqns[iDof]-1] = sol[numDofs*pos+iDof];
-//                  if ( needDeriv ) {
-//                    solDeriv1[eqns[iDof]-1] = deriv1[numDofs*pos+iDof];
-//                    solDeriv2[eqns[iDof]-1] = deriv2[numDofs*pos+iDof];
-//                      solTn_1[eqns[iDof]-1] = tn_1[numDofs*pos+iDof];
-//                  }
-//                }
-//              }
-//            }
-//          }
-//        }
-//
-//        // pass derivatives to timestepping algorithm
-//        if( needDeriv ) {
-//          TS_alg_->SetDeriv( solDeriv1, FIRST_DERIV );
-//          TS_alg_->SetDeriv( solDeriv2, SECOND_DERIV );
-//          TS_alg_->SetOld( solTn_1, TIMESTEP_1 );
-//        }
-//      }
-//    } else if ( analysistype_ == HARMONIC ) {
-//
-////      // check value-usage type
-////      if( mementoAsDirichlet_ != true) {
-////        
-////        // nothing to do
-////        //EXCEPTION( "For an harmonic simulation only the usage "
-////        //           << "of a memento as Drichlet values makes sense!" );
-////        return;
-////      }
-//      
-//      if (!mementoAsDirichlet_) {
-//        if ( memento_->analysisType_ == STATIC ) {
-//          // convert solution to transient StoreSolution type
-//          Vector<Complex> & solVec = 
-//              (dynamic_cast<NodeStoreSol<Complex> &>(*sol_)).GetAlgSysVector();
-//
-//          // Iterate over all regions
-//          for( UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++ ) {
-//
-//            // Check for related region in memento object
-//            std::string name = ptGrid_->GetRegion().ToString( regions_[iRegion] );
-//            if( memento_->solution_.find( name) != memento_->solution_.end() ) {
-//
-//              // get grip of vector and derivatives of memento
-//              Vector<Double> const & sol = 
-//                  dynamic_cast<const Vector<Double>& >(*(memento_->solution_[name]) );
-//              // create entitylist
-//           shared_ptr<NodeList> nodes (new NodeList(ptGrid_));
-//           nodes->SetNodesOfRegion( regions_[iRegion] );
-//
-//           // iterate over all entries
-//           EntityIterator it = nodes->GetIterator();
-//           StdVector<Integer> eqns;
-//           UInt pos = 0;
-//              for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
-//                eqnMap_->GetEqns( eqns, *results_[0], it );
-//                for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-//                  if ( eqns[iDof] != 0
-//                      && (unsigned int) (std::abs(eqns[iDof])-1) < solVec.GetSize() ) {
-//                    solVec[eqns[iDof]-1] = Complex(sol[numDofs*pos+iDof],0);
-//                  } // if
-//                } // loop over dofs
-//              } // loop over nodes
-//            } // if region found
-//          } // loop over regions
-//        } // if static
-//      }
-//      if( mementoAsDirichlet_ == true) {
-//        // iterate over all regions of pde
-//        for( UInt i = 0; i < regions_.GetSize(); i++ ) {
-//
-//          std::string regionName = ptGrid_->GetRegion().ToString( regions_[i] );
-//
-//          // try to find related region in memento object
-//          if( memento_->solution_.find( regionName ) !=
-//              memento_->solution_.end() ) {
-//
-//            Vector<Complex> const & regionSol =
-//                dynamic_cast<Vector<Complex>&>(*memento_->solution_[regionName]);
-//
-//            // create entitylist
-//            shared_ptr<NodeList> nodes (new NodeList(ptGrid_));
-//            nodes->SetNodesOfRegion( regions_[i] );
-//
-//            // iterate over all entries
-//            EntityIterator it = nodes->GetIterator();
-//            UInt pos = 0;
-//            for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
-//
-//              for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-//                Complex val = regionSol[pos * numDofs + iDof];
-//
-//                // create idbc-condition and append to class container
-//                shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
-//                shared_ptr<NodeList> actList (new NodeList(ptGrid_) );
-//                StdVector<UInt> nodeList(1);
-//                nodeList[0] = it.GetNode();
-//                actList->SetNodes(nodeList);
-//
-//                actBc->entities = actList;
-//                actBc->result = results_[0];
-//                actBc->eqnMap = eqnMap_;
-//                actBc->dof = iDof+1;
-//                actBc->value = lexical_cast<std::string>(std::abs( val ) );
-//                actBc->phase = lexical_cast<std::string>(std::atan2( val.imag(), 
-//                                                                     val.real())
-//                *180/PI );
-//
-//                // append idbc at end of list
-//                idBcs_.Push_back( actBc );
-//              }
-//            }
-//          }  
-//        } // loop over regions
-//      }// memento as Dirichlet
-//    } // HARMONIC Analysis
-
-  }
+ 
 
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
@@ -2976,7 +2297,7 @@ namespace CoupledField {
                                   std::string& coordSysId )  {
 
     // fetch coordinate system object
-    CoordSystem * coordSys = domain->GetCoordSystem(coordSysId);
+    CoordSystem * coordSys = domain_->GetCoordSystem(coordSysId);
     
     // only determine inner region, if not specified by hand using the
     // <propRegion> sub-element
@@ -3151,9 +2472,9 @@ namespace CoupledField {
     // create new fe function
     shared_ptr<BaseFeFunction> derivFeFct;
     if( isComplex_) {
-      derivFeFct.reset(new FeFunction<Complex>());
+      derivFeFct.reset(new FeFunction<Complex>(domain_->GetMathParser()));
     }  else {
-      derivFeFct.reset(new FeFunction<Double>());
+      derivFeFct.reset(new FeFunction<Double>(domain_->GetMathParser()));
     }
     // copy information (entitylists, grid, space, fctId)
     StdVector< shared_ptr<EntityList> > entList = primFeFct->GetEntityList();
@@ -3203,11 +2524,11 @@ namespace CoupledField {
         }
 
         if( isComplex_ ) {
-          feFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Complex>());
-          rhsFeFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Complex>());
+          feFunctions_[spIt->first].reset(new FeFunction<Complex>(domain_->GetMathParser()));
+          rhsFeFunctions_[spIt->first].reset(new FeFunction<Complex>(domain_->GetMathParser()));
         }else{
-          feFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Double>());
-          rhsFeFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Double>());
+          feFunctions_[spIt->first].reset(new FeFunction<Double>(domain_->GetMathParser()));
+          rhsFeFunctions_[spIt->first].reset(new FeFunction<Double>(domain_->GetMathParser()));
          
           // Note: in the transient case, we also need fefunctions for the time derivatives
           // ... todo: add initialization

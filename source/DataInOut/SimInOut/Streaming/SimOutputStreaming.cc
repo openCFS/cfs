@@ -9,8 +9,9 @@ using boost::asio::ip::tcp;
 using namespace CoupledField;
 using std::string;
 
-SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode) :
-  SimOutput("", outputNode),
+SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode,
+                                       PtrParamNode infoNode) :
+  SimOutput("", outputNode, infoNode ),
   silent_(false)
 {
   formatName_ = "streaming";
@@ -23,7 +24,7 @@ SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode) :
   if(outputNode->Has("silent"))
     silent_ = outputNode->Get("silent")->As<bool>();
 
-  info_root = info->Get("streaming")->Get(ParamNode::PN_PROCESS); // TODO!
+  info_root = myInfo_->Get("streaming")->Get(ParamNode::PN_PROCESS); // TODO!
 }
 
 SimOutputStreaming::~SimOutputStreaming()

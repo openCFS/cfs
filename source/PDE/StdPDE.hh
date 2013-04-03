@@ -107,6 +107,9 @@ namespace CoupledField {
     
     //! Return pointer to paramNode of current pde
     PtrParamNode GetParamNode() { return myParam_; }
+    
+    //! Return pointer to infoNode of curent pde
+    PtrParamNode GetInfoNode() { return myInfo_; }
 
     //! Init the time stepping
     virtual void InitTimeStepping()
@@ -177,7 +180,8 @@ namespace CoupledField {
     /*!
       \param aptgrid pointer to grid
     */
-    StdPDE(Grid *aptgrid, PtrParamNode paramNode );
+    StdPDE(Grid *aptgrid, PtrParamNode paramNode, PtrParamNode infoNode, 
+           shared_ptr<SimState> simState,  Domain* domain);
   
     //! private copy constructor
     StdPDE & operator= (const StdPDE & myPDE) {

@@ -18,7 +18,9 @@ class SingleVector;
     //! \param sequenceStep current step in multisequence simulation
     //! \param isPartOfSequence true, if driver is part of  multiSequence
     EigenFrequencyDriver(  UInt sequenceStep,
-                           bool isPartOfSequence = false );
+                           bool isPartOfSequence,
+                           shared_ptr<SimState> state,
+                           Domain* domain );
     
     //! Destructor 
     ~EigenFrequencyDriver();

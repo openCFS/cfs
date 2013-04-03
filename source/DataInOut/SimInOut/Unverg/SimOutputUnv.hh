@@ -22,7 +22,8 @@ namespace CoupledField
   public:
     
     //! Constructor
-    SimOutputUnv( const std::string& fileName, PtrParamNode outputNode );
+    SimOutputUnv( const std::string& fileName, PtrParamNode outputNode,
+                  PtrParamNode infoNode);
     
     //! Destructor
     virtual ~SimOutputUnv();

@@ -96,11 +96,11 @@ namespace CoupledField
     //For higher order results and such we need some additional functionality in
     // the fe space here....
     shared_ptr<FeSpace> nodalSpace = 
-        FeSpace::CreateInstance(param,info->Get("ResultHandler"),FeSpace::H1, ptGrid);
+        FeSpace::CreateInstance(myParam_,myInfo_->Get("ResultHandler"),FeSpace::H1, ptGrid);
     nodalSpace->SetDefaultRegionApproximation();
 
     //create FeFunction
-    shared_ptr<FeFunction<TYPE> > myFunc(new FeFunction<TYPE>());
+    shared_ptr<FeFunction<TYPE> > myFunc(new FeFunction<TYPE>(NULL));
     
     myFunc->SetGrid(ptGrid);
     // Take care of cyclic dependency between FeFunction and FeSpace

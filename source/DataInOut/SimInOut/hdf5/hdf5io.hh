@@ -17,7 +17,7 @@
 
 namespace CoupledField {
 
-  //! Helper class for providing conveniecne access to hdf5 data files
+  //! Helper class for providing convenience access to hdf5 data files
   class H5IO {
 
   public:

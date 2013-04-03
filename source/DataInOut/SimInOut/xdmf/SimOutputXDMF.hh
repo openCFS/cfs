@@ -27,7 +27,8 @@ namespace CoupledField {
     //@{ \name Constructor / Initialization
     
     //! Constructor with name of mesh-file
-    SimOutputXDMF(std::string fileName, PtrParamNode inputNode);
+    SimOutputXDMF(std::string fileName, PtrParamNode inputNode, 
+                  PtrParamNode infoNode);
     
     //! Destructor
     virtual ~SimOutputXDMF();

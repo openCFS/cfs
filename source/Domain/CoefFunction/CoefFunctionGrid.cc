@@ -94,7 +94,8 @@
 namespace CoupledField{
     
   
-PtrCoefFct CoefFunctionGrid::Generate( Global::ComplexPart format, 
+PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
+                                       Global::ComplexPart format, 
                                        PtrParamNode infoNode, 
                                        PtrParamNode configNode){
 
@@ -103,15 +104,15 @@ PtrCoefFct CoefFunctionGrid::Generate( Global::ComplexPart format,
   PtrParamNode tmpNode  =  infoNode->Get("externalData");
   if(configNode->Has("defaultGrid")){
     if(format == Global::COMPLEX){
-      ret.reset(new CoefFunctionGridNodalDefault<Complex>(configNode->Get("defaultGrid"), tmpNode));
+      ret.reset(new CoefFunctionGridNodalDefault<Complex>(ptDomain, configNode->Get("defaultGrid"), tmpNode));
     }else{
-      ret.reset(new CoefFunctionGridNodalDefault<Double>(configNode->Get("defaultGrid"), tmpNode));
+      ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain, configNode->Get("defaultGrid"), tmpNode));
     }
   }else if(configNode->Has("externalGrid")){
     if(format == Global::COMPLEX){
-      ret.reset(new CoefFunctionGridNodalInterp<Complex>(configNode->Get("externalGrid"), tmpNode));
+      ret.reset(new CoefFunctionGridNodalInterp<Complex>(ptDomain, configNode->Get("externalGrid"), tmpNode));
     }else{
-      ret.reset(new CoefFunctionGridNodalInterp<Double>(configNode->Get("externalGrid"), tmpNode));
+      ret.reset(new CoefFunctionGridNodalInterp<Double>(ptDomain, configNode->Get("externalGrid"), tmpNode));
     }
   } else {
     EXCEPTION("CoefFunctionGrid generator called with invalid xml tag. This is a serious Bug please report!");
@@ -119,11 +120,12 @@ PtrCoefFct CoefFunctionGrid::Generate( Global::ComplexPart format,
   return ret;
 }
 
-CoefFunctionGrid::CoefFunctionGrid(PtrParamNode configNode){
+CoefFunctionGrid::CoefFunctionGrid(Domain* ptDomain, PtrParamNode configNode){
   dimDof_ = 0;
   inputId_ = "";
   gridId_ = "";
   srcGrid_ = NULL;
+  domain_ = ptDomain;
   solType_ = NO_SOLUTION_TYPE;
   curStep_ = 0;
   aSeqStep_ = 0;
@@ -137,7 +139,7 @@ CoefFunctionGrid::CoefFunctionGrid(PtrParamNode configNode){
   if(configNode->Get("sequenceStep")){
     this->aSeqStep_  = configNode->Get("sequenceStep")->As<UInt>();
   }else{
-    this->aSeqStep_ = domain->GetDriver()->GetActSequenceStep();
+    this->aSeqStep_ = domain_->GetDriver()->GetActSequenceStep();
     WARN("external data did not specify its sequence step. assuming current step...")
   }
 }
@@ -173,7 +175,7 @@ void CoefFunctionGrid::GetVector(Vector<Double>& CoefMat,
 //  if(dimType_ == SCALAR)
 //    CoefMat.Resize(1);
 //  else if (dimType_ == VECTOR)
-//    CoefMat.Resize(domain->GetGrid(gridId_)->GetDim());
+//    CoefMat.Resize(domain_->GetGrid(gridId_)->GetDim());
 //
 //  CoefMat.Init();
 //  //const Elem* targetElem = lpm.ptEl;
@@ -183,7 +185,7 @@ void CoefFunctionGrid::GetVector(Vector<Double>& CoefMat,
 //
 //  lpm.shapeMap->Local2Global(globCoord,lpm.lp);
 //  LocPoint lp;
-//  const Elem* sourceElem = domain->GetGrid(gridId_)->
+//  const Elem* sourceElem = domain_->GetGrid(gridId_)->
 //      GetElemAtGlobalCoord(globCoord,lp,srcRegions_);
 //
 //  if(!sourceElem){
@@ -218,13 +220,13 @@ void CoefFunctionGrid::GetScalar(Complex& CoefMat,
 //  lpm.shapeMap->Local2Global(globCoord,lpm.lp);
 //  StdVector< Vector<Double> > locCoords;
 //  LocPoint lp;
-//  const Elem* sourceElem = domain->
+//  const Elem* sourceElem = domain_->
 //      GetGrid(gridId_)->GetElemAtGlobalCoord(globCoord,lp,srcRegions_);
 //  if(!sourceElem){
 //    return;
 //  }
 //
-//  shared_ptr<ElemShapeMap> esm = domain->GetGrid(gridId_)->GetElemShapeMap( sourceElem, true );
+//  shared_ptr<ElemShapeMap> esm = domain_->GetGrid(gridId_)->GetElemShapeMap( sourceElem, true );
 //  LocPoint myLp = localCoord;
 //  LocPointMapped lpmS;
 //  lpmS.Set(myLp,esm,lpm.weight);
@@ -257,7 +259,7 @@ void CoefFunctionGrid::GetTensorSize( UInt& numRows, UInt& numCols ) const {
 void CoefFunctionGrid::DetermineResult(std::string inputID,UInt seqStep){
   //obtain availResults and search for the requested one
   StdVector<shared_ptr<ResultInfo> > results;
-  domain->GetResultHandler()->GetResultTypes(inputID,seqStep,results,false);
+  domain_->GetResultHandler()->GetResultTypes(inputID,seqStep,results,false);
   //now we search for the appropriate result
   for(UInt i = 0;i<results.GetSize();i++){
 	  if( results[i]->resultType == solType_ ) {
