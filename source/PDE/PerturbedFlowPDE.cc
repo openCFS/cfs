@@ -48,8 +48,6 @@
 #include "Domain/Results/ResultFunctor.hh"
 //#include "Domain/Results/ExternalFieldFunctors.hh"
 
-#define SIMONS_TEST 1
-
 namespace CoupledField {
 
   DECLARE_LOG(fluidmechpertpde)
@@ -143,11 +141,9 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> velFct = feFunctions_[FLUIDMECH_VELOCITY];
     shared_ptr<FeSpace> velSpace = velFct->GetFeSpace();
 
-#ifdef SIMONS_TEST
     // Get FESpace and FeFunction of fluid pressure
     shared_ptr<BaseFeFunction> presFct = feFunctions_[FLUIDMECH_PRESSURE];
     shared_ptr<FeSpace> presSpace = presFct->GetFeSpace();
-#endif // SIMONS_TEST
 
     // Create coefficient functions for all fluid densities
     std::map< RegionIdType, PtrCoefFct > oneFuncs;
@@ -177,9 +173,7 @@ namespace CoupledField {
       actSDList->SetRegion( actRegion );
 
       velFct->AddEntityList( actSDList );
-#ifdef SIMONS_TEST
       presFct->AddEntityList( actSDList );
-#endif
 
       // --------------------------
       //  Set region approximation
@@ -192,9 +186,7 @@ namespace CoupledField {
 
       // We hardcode the Taylor-Hood spaces for the moment
       velSpace->SetRegionApproximation(actRegion, "velPolyId", "velIntegId");
-#ifdef SIMONS_TEST
       presSpace->SetRegionApproximation(actRegion, "presPolyId", "presIntegId");
-#endif
 
       PtrCoefFct density = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
       PtrCoefFct viscosity = materials_[actRegion]->GetScalCoefFnc( DYNAMIC_VISCOSITY, Global::REAL );
@@ -207,8 +199,6 @@ namespace CoupledField {
       oneFuncs[actRegion] = CoefFunction::Generate(mp_, Global::REAL,
                                                        lexical_cast<std::string>(1.0));
 
-#ifdef SIMONS_TEST
-                                                       
       // ====================================================================
       // stiffness integrators
       // ====================================================================
@@ -281,7 +271,6 @@ namespace CoupledField {
       assemble_->AddBiLinearForm( stiffContVP );
 
 
-#endif // SIMONS_TEST
 
       // --------------------------------------------------------------------
       //  VERSION 2: K_Laplace Integrator
@@ -303,7 +292,6 @@ namespace CoupledField {
       stiffContLaplace->SetFeFunctions( velFct, velFct );
       assemble_->AddBiLinearForm( stiffContLaplace );
 
-#ifdef SIMONS_TEST
 
 //      PtrCoefFct coeffMVV
 //                = CoefFunction::Generate(mp_, Global::REAL,
@@ -378,11 +366,8 @@ namespace CoupledField {
       dampContextvv->SetEntities( actSDList, actSDList );
       dampContextvv->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],feFunctions_[FLUIDMECH_VELOCITY]);
       assemble_->AddBiLinearForm( dampContextvv );
-
-#endif // SIMONS_TEST
     }
 
-#ifdef SIMONS_TEST
     StdVector<RegionIdType>::iterator surfIt, surfEnd;
     surfIt = presSurfaces_.Begin();
     surfEnd = presSurfaces_.End();
@@ -419,8 +404,6 @@ namespace CoupledField {
       //stiffContVP->SetCounterPart(true);
       assemble_->AddBiLinearForm( stiffContVP );
     }
-#endif // SIMONS_TEST
-    
   }
   
   void PerturbedFlowPDE::DefineSolveStep() {
@@ -448,7 +431,6 @@ namespace CoupledField {
       velDofNames = "r", "z";
     }
 
-#ifdef SIMONS_TEST
     // === Primary result according to definition ===
     // PRESSURE
     shared_ptr<ResultInfo> pressure( new ResultInfo);
@@ -464,7 +446,6 @@ namespace CoupledField {
 
     pressure->SetFeFunction(feFunctions_[FLUIDMECH_PRESSURE]);
     DefineFieldResult( feFunctions_[FLUIDMECH_PRESSURE], pressure);
-#endif // SIMONS_TEST
 
     // VELOCITY
     shared_ptr<ResultInfo> velocity( new ResultInfo);
@@ -487,22 +468,17 @@ namespace CoupledField {
     // -----------------------------------
     //  Define xml-names of Dirichlet BCs
     // -----------------------------------
-#ifdef SIMONS_TEST   
     idbcSolNameMap_[FLUIDMECH_PRESSURE] = "pressure";
-#endif // SIMONS_TEST    
     idbcSolNameMap_[FLUIDMECH_VELOCITY] = "velocity";
-
-#ifdef SIMONS_TEST
+  
     hdbcSolNameMap_[FLUIDMECH_PRESSURE] = "noPressure";
-#endif    
     hdbcSolNameMap_[FLUIDMECH_VELOCITY] = "noSlip";
   }
   
   
   void PerturbedFlowPDE::DefinePostProcResults() {
-#ifdef SIMONS_TEST
+
     shared_ptr<BaseFeFunction> feFct = feFunctions_[FLUIDMECH_PRESSURE];
-#endif
 
       StdVector<std::string> stressComponents;
       if( subType_ == "3d" ) {
@@ -622,13 +598,12 @@ namespace CoupledField {
         FeSpace::CreateInstance(myParam_,spaceNode,FeSpace::H1, ptGrid_);
       crSpaces[FLUIDMECH_VELOCITY]->Init(solStrat_);
 
-#ifdef SIMONS_TEST
       spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE));
 
       crSpaces[FLUIDMECH_PRESSURE] =
         FeSpace::CreateInstance(myParam_,spaceNode,FeSpace::H1, ptGrid_);
       crSpaces[FLUIDMECH_PRESSURE]->Init(solStrat_);
-#endif // SIMONS_TEST
+
     }else{
       EXCEPTION("The formulation " << formulation << "of fluid perturbed PDE is not known!");
     }
