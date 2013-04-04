@@ -50,10 +50,11 @@ void TestReload() {
   
   std::string h5Name = "RingHarm2d.h5";
   PtrParamNode node(new ParamNode());
-  shared_ptr<SimInputHDF5> in (new SimInputHDF5(h5Name, node, infoNode));
+  boost::shared_ptr<SimInputHDF5> in;
+  in.reset(new SimInputHDF5(h5Name, node, infoNode));
   
   // create SimState (for input)
-  shared_ptr<SimState> state(new SimState(true));
+  boost::shared_ptr<SimState> state(new SimState(true));
   state->SetInputHdf5Reader(in);
   Domain * newDomain = state->GetDomain(1);
   
@@ -78,7 +79,7 @@ void TestReload() {
   }
   
   const Elem * ptEl = ptGrid->GetElem(14);
-  shared_ptr<ElemShapeMap> esm = ptGrid->GetElemShapeMap( ptEl);
+  boost::shared_ptr<ElemShapeMap> esm = ptGrid->GetElemShapeMap( ptEl);
 
   LocPointMapped lpm;
   LocPoint lp = Elem::shapes[ptEl->type].midPointCoord;
