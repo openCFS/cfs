@@ -21,11 +21,6 @@
 #include <CGAL/Polygon_2_algorithms.h>
 #endif
 
-#ifdef USE_LIBFBI
-#include "fbi/tuplegenerator.h" //TraitsGenerator
-#include "fbi/fbi.h" //SetA::intersect
-#endif
-
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
 #include "Domain/ElemMapping/EdgeFace.hh"

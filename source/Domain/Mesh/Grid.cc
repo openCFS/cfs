@@ -8,6 +8,12 @@
 #include <limits>
 #include <boost/scoped_array.hpp>
 
+#ifdef USE_LIBFBI
+#include <fbi/tuplegenerator.h> //TraitsGenerator
+#include <fbi/fbi.h> //SetA::intersect
+#include <fbi/tuple.h>
+#endif
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -1323,7 +1329,7 @@ namespace CoupledField {
   struct ElemBoxGenerator
   {
     template <size_t N>
-    typename std::tuple_element<N,
+    typename fbi::tuple_element<N,
                                 typename fbi::Traits<Elem*>::key_type>::type
     get(const Elem*) const;
     Grid* ptGrid_;
@@ -1419,7 +1425,7 @@ namespace CoupledField {
   struct PointBoxGenerator
   {
     template <size_t N>
-    typename std::tuple_element<N,
+    typename fbi::tuple_element<N,
                                 typename fbi::Traits< Vector<Double>* >::key_type>::type
     get(const Vector<Double>*) const;
     UInt dim_;
@@ -1476,20 +1482,26 @@ namespace CoupledField {
       points.push_back(point);
     } // loop over points
     
+    ElemBoxGenerator ebg(this, globToler, GetDim());
+    PointBoxGenerator pbg(GetDim());
+
     // For 2D:
     //  auto adjList = fbi::SetA<Elem*, 0, 1>::SetB<Vector<Double>*, 0, 1>::intersect(
     //    elems, ElemBoxGenerator(this, globToler, GetDim()), points, PointBoxGenerator(GetDim()));
     
-    auto adjList = fbi::SetA<Elem*, 0, 1, 2>::SetB<Vector<Double>*, 0, 1, 2>::intersect(
-      elems, ElemBoxGenerator(this, globToler, GetDim()), points, PointBoxGenerator(GetDim()));
+    fbi::SetA<Elem*, 0, 1, 2>::ResultType adjList;
+    adjList = fbi::SetA<Elem*, 0, 1, 2>::SetB<Vector<Double>*, 0, 1, 2>::intersect(
+      elems, ebg, points, pbg);
+    
+    typedef fbi::SetA<Elem*, 0, 1, 2>::IntType LabelType;
     
     for(UInt i=elems.size(), n=adjList.size(), ptIdx = 0;
         i < n;
         i++, ptIdx++ ) {
       
-      auto queryResultIndexes = adjList[i];
-      auto it = queryResultIndexes.begin();
-      auto end = queryResultIndexes.end();
+      std::vector<LabelType> queryResultIndexes = adjList[i];
+      std::vector<LabelType>::iterator it = queryResultIndexes.begin();
+      std::vector<LabelType>::iterator end = queryResultIndexes.end();
       
       // std::cout << "Size of queryResultIndexes for node: " << queryResultIndexes.size() << std::endl;
       for( ; it != end; it++) 
@@ -1506,7 +1518,7 @@ namespace CoupledField {
         }
         
       }    
-    }    
+    }
   }
   
 #else // USE_CGAL

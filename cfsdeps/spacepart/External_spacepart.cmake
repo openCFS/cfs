@@ -45,7 +45,7 @@ ENDIF()
 
 IF(USE_LIBFBI)
   #-----------------------------------------------------------------------------
-  # The CGAL external project
+  # The fast box intersection library external project
   #-----------------------------------------------------------------------------
   ExternalProject_Add(libfbi
     DEPENDS boost
@@ -60,32 +60,7 @@ IF(USE_LIBFBI)
     -DENABLE_BENCHMARK:BOOL=OFF
     -DENABLE_EXAMPLES:BOOL=ON
     -DENABLE_TESTING:BOOL=ON
-    )
-
-  #-----------------------------------------------------------------------------
-  # Set names of patch file and template file.
-  #-----------------------------------------------------------------------------
-  SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/spacepart/libfbi-patch.cmake.in")
-  SET(PFN "${spacepart_prefix}/libfbi-patch.cmake")
-  CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-  
-  #-----------------------------------------------------------------------------
-  # We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
-  # want to apply the patch script  during configuration time but also if it has
-  # changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
-  # script. This can be achieved by  adding an additional build step between the
-  # download and configure steps.
-  #
-  # NOTE: The  patch script should  be designed  in such a  way, that it  can be
-  # applied to  an already patched  source tree. This  is due to the  fact, that
-  # ExternalProject_Add only extracts the source if the MD5 sum has has changed.
-  #-----------------------------------------------------------------------------
-  ExternalProject_Add_Step(libfbi custom_patch
-    COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    DEPENDEES download
-    DEPENDERS configure
-    DEPENDS "${PFN}"
-    WORKING_DIRECTORY ${libfbi_source}
+    -DENABLE_MULTITHREADING:BOOL=ON
     )
 
 ENDIF(USE_LIBFBI)
