@@ -380,7 +380,7 @@ IF(USE_LIBFBI)
 
   SET(LIBFBI_URL "${LSE17_SOURCES_DIR}/spacepart")
   SET(LIBFBI_GZ "libfbi_for_cfs_gitrev_ee570e5e.tgz")
-  SET(LIBFBI_MD5 "d5332ef3a35b05166cbee86b421334d2")
+  SET(LIBFBI_MD5 "9484f3573450b20cadc262365eb74b7a")
 ENDIF(USE_LIBFBI)
 
 INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/spacepart/External_spacepart.cmake")
