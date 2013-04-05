@@ -15,6 +15,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
 
@@ -1312,7 +1313,7 @@ namespace CoupledField {
   }
   
   void SimOutputHDF5::DB_WriteXmlFiles( fs::path simFile, fs::path matFile ) {
-    std::ifstream fin;
+    fs::ifstream fin;
     std::ostringstream dumpStr;
     H5::Group extFiles;
     try {
@@ -1330,7 +1331,7 @@ namespace CoupledField {
 
     for(UInt i=0; i<filePaths.GetSize(); i++)
     {
-      fin.open( filePaths[i].c_str(), std::ios::binary );
+      fin.open( filePaths[i], std::ios::binary );
 
       if(fin.fail())
         EXCEPTION("Cannot open file '" << filePaths[i]
