@@ -10,8 +10,10 @@ ENDIF(USE_IPOPT)
 
 # List of source codes for current target.
 SET(CFSTOOL_SRCS
-  cfstool.cc
   ParamsInit.cc
+  HelperFuncs.cc
+  WVT.cc
+  cfstool.cc
 )
 
 # Main CFS++ Tool executable target.

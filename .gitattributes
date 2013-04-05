@@ -1607,8 +1607,12 @@ source/Utils/mathfunctions.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/tools.cc -text
 source/Utils/tools.hh -text
 source/cfstool/CMakeLists.txt svneol=native#text/plain
+source/cfstool/HelperFuncs.cc -text
+source/cfstool/HelperFuncs.hh -text
 source/cfstool/ParamsInit.cc -text
 source/cfstool/ParamsInit.hh -text
+source/cfstool/WVT.cc -text
+source/cfstool/WVT.hh -text
 source/cfstool/cfstool.cc svneol=native#text/plain
 source/main/CFS.cc svneol=native#text/x-c%2B%2Bsrc
 source/main/CFS.hh -text
