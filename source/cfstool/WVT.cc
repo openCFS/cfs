@@ -4,10 +4,7 @@
 
 #include <def_use_hdf5.hh>
 
-#include "General/Environment.hh"
-#include "DataInOut/SimInput.hh"
 #include "DataInOut/SimOutput.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "FeBasis/BaseFE.hh"
 #include "FeBasis/FeSpace.hh"
@@ -27,18 +24,23 @@ using namespace CoupledField;
 
 namespace CFSTool {
 
-  void WVT( const std::string& lateral_mode_file,
+  WVT::WVT( const std::string& lateral_mode_file,
             const std::string& coriolis_mode_file,
             const std::string& mean_flow_file,
-            const std::string& outFile ) {
+            const std::string& outFile,
+            const PtrParamNode& param,
+            const PtrParamNode& info) :
+    param_(param),
+    info_(info),
+    writeOutputFile_(outFile != ""),
+    inputs_(3)
+  {
 
        bool printGridOnly = false;
 
-       // obtain input reader for inFiles
-       StdVector< shared_ptr<SimInput> > inputs(3);
-       //       inputs[0] = GetInputReader( lateral_mode_file );
-       //   inputs[1] = GetInputReader( coriolis_mode_file );
-       // inputs[2] = GetInputReader( mean_flow_file );
+       inputs_[0] = GetInputReader( lateral_mode_file, param_, info_ );
+       inputs_[1] = GetInputReader( coriolis_mode_file, param_, info_ );
+       inputs_[2] = GetInputReader( mean_flow_file, param_, info_ );
 
        // check capabilities of input class
        StdVector<bool> readerCaps(3);
@@ -47,17 +49,17 @@ namespace CFSTool {
        readerDescriptions[1] = "coriolis mode";
        readerDescriptions[2] = "mean flow";
        StdVector<std::string> readerCapsResults(3);
-       for(UInt i=0; i<inputs.GetSize(); i++) 
+       for(UInt i=0; i<inputs_.GetSize(); i++) 
        {
          readerCaps[i] = CheckReaderCapabilities(readerDescriptions[i],
-                                                 inputs[i],
+                                                 inputs_[i],
                                                  readerCapsResults[i]);
        }
        
        if( !readerCaps[0] || !readerCaps[1] || !readerCaps[2] ) {
          std::cerr << "Some input files are only capable of handling meshes, not results!\n\n";
 
-         for(UInt i=0; i<inputs.GetSize(); i++) 
+         for(UInt i=0; i<inputs_.GetSize(); i++) 
          {
            std::cerr << readerCapsResults[i] << std::endl;
          }
@@ -66,27 +68,15 @@ namespace CFSTool {
        }
 
        // read in mesh of input1
-       inputs[0]->InitModule();
-       //       UInt dim = inputs[0]->GetDim();
-       Grid * ptGrid1 = NULL; // = new GridCFS(dim, param, info);
-       inputs[0]->ReadMesh(ptGrid1);
+       inputs_[0]->InitModule();
+       UInt dim = inputs_[0]->GetDim();
+       Grid * ptGrid1 = new GridCFS(dim, param_, info_);
+       inputs_[0]->ReadMesh(ptGrid1);
        ptGrid1->FinishInit();
-
-       // read XML and material file from lateral mode file
-       SimInputHDF5* hdf5Reader = dynamic_cast<SimInputHDF5*>(inputs[0].get());
-       std::string xmlFile, matFile;
-       hdf5Reader->ReadStringFromUserData("ParameterFile", xmlFile);
-       hdf5Reader->ReadStringFromUserData("MaterialFile", matFile);
 
        // std::cout << "##############" << xmlFile << std::endl
        //    << "##############" << matFile << std::endl;
-       PtrParamNode pNode;
-
-       {
-         CoupledField::Xerces xerces;
-         xerces.SetString(xmlFile);
-         pNode = xerces.CreateParamNodeInstance();
-       }       
+       PtrParamNode pNode = GetParamNodeFromHDF5(inputs_[0], "ParameterFile");
 
        ParamNodeList list;
        
@@ -185,12 +175,8 @@ namespace CFSTool {
          }
        }
 
-       {
-         CoupledField::Xerces matFileParser;
-         matFileParser.SetString(matFile);
-         pNode = matFileParser.CreateParamNodeInstance();
-       }
-       
+       pNode = GetParamNodeFromHDF5(inputs_[0], "MaterialFile");
+
        std::map<std::string, Double> regionDensityMap;
 
        regMatIt = regionMatMap.begin();
@@ -207,38 +193,37 @@ namespace CFSTool {
        }
 
        // read in mesh of input2
-       inputs[1]->InitModule();
-       Grid * ptGrid2 = NULL;  // = new GridCFS(dim, param, info);
-       inputs[1]->ReadMesh(ptGrid2);
+       inputs_[1]->InitModule();
+       Grid * ptGrid2 = new GridCFS(dim, param_, info_);
+       inputs_[1]->ReadMesh(ptGrid2);
        ptGrid2->FinishInit();
 
        // read in mesh of input3
-       inputs[2]->InitModule();
-       Grid * ptGrid3 = NULL;
-       // = new GridCFS(dim, param, info);
-       inputs[2]->ReadMesh(ptGrid3);
+       inputs_[2]->InitModule();
+       Grid * ptGrid3 = new GridCFS(dim, param_, info_);
+       inputs_[2]->ReadMesh(ptGrid3);
        ptGrid3->FinishInit();
 
        // obtain output writer
        shared_ptr<SimOutput> output;
        if( outFile != "" ) {
-         //         output = GetOutputWriter( outFile );
+         output = GetOutputWriter( outFile, param_, info_ );
          output->Init( ptGrid1, printGridOnly);
        }
 
        // obtain number of Sequence Steps and get analysis types
        std::map<UInt, BasePDE::AnalysisType> types;
        std::map<UInt, UInt> numSteps;
-       inputs[0]->GetNumMultiSequenceSteps( types, numSteps, false );
+       inputs_[0]->GetNumMultiSequenceSteps( types, numSteps, false );
 
-       std::cout << "\nFound " << types.size() << " sequence step(s) in '" << lateral_mode_file << "'\n";
+       std::cout << "\nFound " << types.size() << " sequence step(s) in '" << inputs_[0]->GetFileName() << "'\n";
        std::map<UInt, BasePDE::AnalysisType> types2;
        std::map<UInt, UInt> numSteps2;
-       inputs[1]->GetNumMultiSequenceSteps( types2, numSteps2, false );
-       std::cout << "\nFound " << types2.size() << " sequence step(s) in '" << coriolis_mode_file << "'\n";
+       inputs_[1]->GetNumMultiSequenceSteps( types2, numSteps2, false );
+       std::cout << "\nFound " << types2.size() << " sequence step(s) in '" << inputs_[1]->GetFileName() << "'\n";
        
        if(types.size() != types2.size()){
-         std::cout << "'" << lateral_mode_file << "' and '" << coriolis_mode_file
+         std::cout << "'" << inputs_[0]->GetFileName() << "' and '" << inputs_[1]->GetFileName()
             << "' have different number of sequence steps!\n";
          exit(EXIT_FAILURE);
        }
@@ -263,9 +248,9 @@ namespace CFSTool {
        
        // get resulttypes
        StdVector<shared_ptr<ResultInfo> > infos, infos2, infos3, infos_mean_flow;
-       inputs[0]->GetResultTypes( actMsStep, infos, false );
-       inputs[1]->GetResultTypes( actMsStep, infos2, false );
-       inputs[2]->GetResultTypes( actMsStep, infos3, false );
+       inputs_[0]->GetResultTypes( actMsStep, infos, false );
+       inputs_[1]->GetResultTypes( actMsStep, infos2, false );
+       inputs_[2]->GetResultTypes( actMsStep, infos3, false );
        
        StdVector<shared_ptr<BaseResult> > inResults1, inResults2, inResults_mean_flow, outResults, outResults2, outResults3;
        // stepnumbers, for which at least one result is defined
@@ -288,7 +273,7 @@ namespace CFSTool {
          }
          
          // get stepvalues of mean flow file
-         inputs[2]->GetStepValues( actMsStep, actRes3,
+         inputs_[2]->GetStepValues( actMsStep, actRes3,
                                 resultSteps_mean_flow[actRes3], false);
          stepVals_mean_flow.insert( resultSteps_mean_flow[actRes3].begin(),
                                     resultSteps_mean_flow[actRes3].end() );
@@ -311,13 +296,13 @@ namespace CFSTool {
          // get stepvalues of reference file
          shared_ptr<ResultInfo> actRes = infos[iRes];
          shared_ptr<ResultInfo> actRes2 = infos2[iRes];
-         inputs[0]->GetStepValues( actMsStep, actRes,
+         inputs_[0]->GetStepValues( actMsStep, actRes,
                                 resultSteps[actRes], false);
          stepVals.insert( resultSteps[actRes].begin(),
                           resultSteps[actRes].end() );
          
          // get stepvalues of second file
-         inputs[1]->GetStepValues( actMsStep, actRes2,
+         inputs_[1]->GetStepValues( actMsStep, actRes2,
                                 resultSteps2[actRes2], false);
          stepVals2.insert( resultSteps2[actRes2].begin(),
                            resultSteps2[actRes2].end() );
@@ -348,7 +333,7 @@ namespace CFSTool {
          
          // iterate over all regions
          StdVector<shared_ptr<EntityList> > regions;
-         inputs[0]->GetResultEntities( actMsStep, infos[iRes],
+         inputs_[0]->GetResultEntities( actMsStep, infos[iRes],
                                     regions, false );
          for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
            // generate new result object and add it to output writer
@@ -489,9 +474,9 @@ namespace CFSTool {
            }
            
            // obtain both result objects for current step
-           inputs[0]->GetResult( actMsStep, actStepNum, inResults1[iRes], false );
-           inputs[1]->GetResult( actMsStep, actStepNum, inResults2[iRes], false );
-           inputs[2]->GetResult( actMsStep, actStepNum, inResults_mean_flow[iRes], false );
+           inputs_[0]->GetResult( actMsStep, actStepNum, inResults1[iRes], false );
+           inputs_[1]->GetResult( actMsStep, actStepNum, inResults2[iRes], false );
+           inputs_[2]->GetResult( actMsStep, actStepNum, inResults_mean_flow[iRes], false );
            
            std::cout << "\n\t-- Comparing result " <<
              inResults1[iRes]->GetResultInfo()->resultName << " on " 
@@ -525,16 +510,16 @@ namespace CFSTool {
              outVec2.Resize( numElems * numDofs );
              outVec3.Resize( numElems );
              
-             shared_ptr<BaseFeFunction> u1FeFunc = inputs[0]->GetFeFunction<Complex>( actMsStep,
+             shared_ptr<BaseFeFunction> u1FeFunc = inputs_[0]->GetFeFunction<Complex>( actMsStep,
                                                                              actStepNum,
                                                                              inResults1[iRes]->GetResultInfo()->resultType,
                                                                              regionNames);
-             shared_ptr<BaseFeFunction> u2FeFunc = inputs[1]->GetFeFunction<Complex>( actMsStep,
+             shared_ptr<BaseFeFunction> u2FeFunc = inputs_[1]->GetFeFunction<Complex>( actMsStep,
                                                                              actStepNum,
                                                                              inResults2[iRes]->GetResultInfo()->resultType,
                                                                              regionNames);
 
-             shared_ptr<BaseFeFunction> VFeFunc = inputs[2]->GetFeFunction<Double>( actMsStep,
+             shared_ptr<BaseFeFunction> VFeFunc = inputs_[2]->GetFeFunction<Double>( actMsStep,
                                                                               actStepNum,
                                                                               inResults_mean_flow[iRes]->GetResultInfo()->resultType,
                                                                               regionNames );

@@ -21,6 +21,7 @@ namespace fs = boost::filesystem;
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/SimOutput.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
 
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
@@ -70,9 +71,6 @@ namespace fs = boost::filesystem;
 #include "WVT.hh"
 
 namespace CFSTool {
-
-  void setFreeCoord(std::string coordSysId="default",
-      std::string node_name="averageDomain");
 
   inline void setParamNode(PtrParamNode paramNode, std::string name, std::string value,
       ParamNodeList* children = NULL);
@@ -279,6 +277,48 @@ namespace CFSTool {
     return writer;
   }
 
+  PtrParamNode GetParamNodeFromHDF5( shared_ptr<SimInput>& inputHDF5,
+                                     const std::string& xmlFile ) {
+
+    // read XML and material file from lateral mode file
+    SimInputHDF5* hdf5Reader = dynamic_cast<SimInputHDF5*>(inputHDF5.get());
+    std::string xml;
+    
+    try { 
+      hdf5Reader->DB_Init();
+
+      if(xmlFile == "ParameterFile") 
+      {
+        hdf5Reader->DB_GetParamFileContent( xml );
+      }
+      else 
+      {
+        if(xmlFile == "ParameterFile") 
+        {
+          hdf5Reader->DB_GetParamFileContent( xml );
+        }
+        else 
+        {
+          hdf5Reader->DB_Close();
+          EXCEPTION("XML file " << xmlFile << " not found in HDF5 database group.");
+        }
+      }
+      hdf5Reader->DB_Close();
+    } catch (Exception& ex) 
+    {
+      hdf5Reader->ReadStringFromUserData(xmlFile, xml);
+    }
+
+    PtrParamNode pNode;
+    
+    CoupledField::Xerces xerces;
+    xerces.SetString(xml);
+    pNode = xerces.CreateParamNodeInstance();
+
+    return pNode;
+  }
+
+
   double RadPhase( const Complex& c ) {
     return std::atan2(c.imag() ,c.real() );
   }
@@ -314,9 +354,9 @@ namespace CFSTool {
     EntityList::SetEnums();
   }
 
-  void SetFreeCoord(std::string coordSysId,
-                    std::string node_name,
-                    const PtrParamNode& param)
+  void SetFreeCoord(const PtrParamNode& param,
+                    std::string coordSysId,
+                    std::string node_name)
   {
 
     std::vector<std::string> freeCoord;

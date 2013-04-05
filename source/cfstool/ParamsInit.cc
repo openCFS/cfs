@@ -35,6 +35,7 @@ namespace CoupledField
     std::string param_forceSegFault = "false";
     std::string param_limits = "false";
     std::string param_printLimits = "";
+    std::string param_wvtArgs = "";
 
     // copy command line into vector
     std::vector<std::string> args;
@@ -80,6 +81,9 @@ namespace CoupledField
         ("printLimits", \
             po::value<std::string>(&param_printLimits)->implicit_value("default"),
             "Print the hard-coded node and element limits. The value 'cmake' may be specified as optional argument.")
+        ("wvtArgs", \
+            po::value<std::string>(&param_wvtArgs)->default_value(""),
+            "Comma-separated arguments for WVT: rho_0=1000,s1_name=s_1,s2_name=s_2.")
         ;
       po::options_description cmdInvisible("Files needed");
 
@@ -159,7 +163,7 @@ namespace CoupledField
           "\tstored in three different files:" << std::endl;
         std::cout <<
           "\tCall: cfstool --mode wvt lateral_mode_file coriolis_mode_file \\\n"
-          "\t              mean_velocity_file output_file\n"
+          "\t              mean_velocity_file [output_file]\n"
           << std::endl;
         exit(0);
       }
@@ -211,5 +215,8 @@ namespace CoupledField
     leafs.Push_back(PtrParamNode(new ParamNode()));
     leafs[leafs.GetSize()-1]->SetName("forceSegFault");
     leafs[leafs.GetSize()-1]->SetValue(param_forceSegFault);
+    leafs.Push_back(PtrParamNode(new ParamNode()));
+    leafs[leafs.GetSize()-1]->SetName("wvtArgs");
+    leafs[leafs.GetSize()-1]->SetValue(param_wvtArgs);
   }
 }

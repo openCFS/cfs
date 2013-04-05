@@ -7,13 +7,35 @@
 
 #include <string>
 
+#include "General/Environment.hh"
+#include "DataInOut/SimInput.hh"
+
 namespace CFSTool
 {
 
-  void WVT( const std::string& lateral_mode_file,
-            const std::string& coriolis_mode_file,
-            const std::string& mean_flow_file,
-            const std::string& outFile );
+  class WVT 
+  {
+  public:
+
+    WVT( const std::string& lateral_mode_file,
+         const std::string& coriolis_mode_file,
+         const std::string& mean_flow_file,
+         const std::string& outFile,
+         const PtrParamNode& param,
+         const PtrParamNode& info);
+
+    ~WVT() {};
+
+  private:
+
+    const PtrParamNode& param_;
+    const PtrParamNode& info_;
+
+    bool writeOutputFile_;
+    
+    StdVector< shared_ptr<SimInput> > inputs_;
+
+  };
 
 }
 

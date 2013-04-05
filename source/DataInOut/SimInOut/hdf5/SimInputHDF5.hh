@@ -162,6 +162,10 @@ namespace CoupledField {
     //! Return list with time / frequency values and step for a given result
     void DB_GetStepValues( UInt sequenceStep,
                            std::map<UInt, Double>& steps );
+
+    //! Close database group
+    void DB_Close();
+
     //@}
 
   protected:

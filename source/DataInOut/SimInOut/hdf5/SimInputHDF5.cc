@@ -1439,6 +1439,12 @@ namespace CoupledField {
 
   }
 
+  void SimInputHDF5::DB_Close() {
+    try { 
+      dbRoot_.close();
+    }  H5_CATCH( "Could not close database section" );
+
+  }
   
 
 

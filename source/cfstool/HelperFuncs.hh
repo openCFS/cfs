@@ -31,6 +31,9 @@ namespace CFSTool
                                          const PtrParamNode& param,
                                          const PtrParamNode& info );
 
+  PtrParamNode GetParamNodeFromHDF5( shared_ptr<SimInput>& inputHDF5,
+                                     const std::string& xmlFile );
+
   double RadPhase( const Complex& c );
 
   bool CheckReaderCapabilities(const std::string& readerDescription,
@@ -41,9 +44,9 @@ namespace CFSTool
    * todo: do better once - Fabian */
   void InitEnums();
 
-  void SetFreeCoord(std::string coordSysId,
-                    std::string node_name,
-                    const PtrParamNode& param);
+  void SetFreeCoord(const PtrParamNode& param,
+                    std::string coordSysId="default",
+                    std::string node_name="averageDomain");
   
 
 }
