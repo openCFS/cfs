@@ -292,7 +292,35 @@ namespace CoupledField
     //! Pointer to FeFunction
     weak_ptr<BaseFeFunction> feFct_;
 
-  };
+  }; // class LinearFormContext
+  
+  //! Specialized context for non-conforming interfaces (NcSurfABInt)
+  class NcBiLinFormContext : public BiLinFormContext {
+    
+  public:
+    
+    //! Constructor
+    //! \param biLinForm pointer to the bilinearform to be wrapped
+    //! \param destMat destination Matrix (STIFFNESS, MASS, ...) of the
+    //!                bilinearform
+    NcBiLinFormContext(BiLinearForm *biLinForm, FEMatrixType destMat)
+        : BiLinFormContext( biLinForm, destMat ) {};
+
+    //! Destructor
+    virtual ~NcBiLinFormContext();
+
+    // ======================================================
+    //  MAPPING METHODS
+    // ======================================================
+
+    //! Map equations for bilinear form for combination of two given entities
+    virtual void MapEqns( EntityIterator& it1,
+                          EntityIterator& it2,
+                          StdVector<Integer>& eqnVec1,
+                          StdVector<Integer>& eqnVec2,
+                          FeFctIdType& id1, FeFctIdType& id2 );
+
+  }; // class NcBiLinFormContext
 
 } // end of namespace
 

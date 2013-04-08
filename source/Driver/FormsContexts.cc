@@ -31,11 +31,8 @@ namespace CoupledField {
     setCounterPart_ = false;
     negateEntries_ = false;
     
-
-    //ptPde1_ = NULL;
-    //ptPde2_ = NULL;
-
-    //dampingLayer_ = NULL;
+    ptPde1_ = NULL;
+    ptPde2_ = NULL;
   }
 
   BiLinFormContext::~BiLinFormContext() {
@@ -49,8 +46,6 @@ namespace CoupledField {
       integrator_ = NULL;
     }
     
-//    delete dampingLayer_;
-//    dampingLayer_ = NULL;
   }
   
   void BiLinFormContext::MapEqns( EntityIterator& it1, 
@@ -140,7 +135,7 @@ namespace CoupledField {
 
     integrator_ = linearForm;
 
-    //ptPde_ = NULL;
+    ptPde_ = NULL;
 
   }
 
@@ -206,4 +201,48 @@ namespace CoupledField {
     return os.str(); 
   }
   
-}
+  /***************************************************************************
+   * NcBiLinFormContext
+   **************************************************************************/
+  
+  NcBiLinFormContext::~NcBiLinFormContext() {
+    
+    // release math parser handle
+    mathParser_->ReleaseHandle(secMatFacHandle_);
+    
+    // delete bilinearform
+    if( integrator_ != NULL ) {
+      delete integrator_;
+      integrator_ = NULL;
+    }
+    
+  }
+
+  void NcBiLinFormContext::MapEqns( EntityIterator &it1, EntityIterator &it2,
+                                    StdVector<Integer> &eqnVec1,
+                                    StdVector<Integer> &eqnVec2,
+                                    FeFctIdType &id1, FeFctIdType &id2)
+  {
+    const NcSurfElem *ncElem1 = it1.GetNcSurfElem();
+    const NcSurfElem *ncElem2 = it2.GetNcSurfElem();
+    
+    if ( ncElem1 != ncElem2 ) {
+      EXCEPTION("NcBiLinFormContext requires identical EntityIterators.");
+    }
+    
+    const MortarNcSurfElem *mortarElem = dynamic_cast<const MortarNcSurfElem*>(ncElem1);
+    if ( ! mortarElem ) {
+      EXCEPTION("NcBiLinFormContext only works with MortarNcSurfElems at the moment.");
+    }
+    
+    const Elem *volElem1 = mortarElem->ptMaster->ptVolElems[0];
+    const Elem *volElem2 = mortarElem->ptSlave->ptVolElems[0];
+    
+    this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1, volElem1);
+    this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec2, volElem2);
+    
+    id1 = this->feFct1_.lock()->GetFctId();
+    id1 = this->feFct2_.lock()->GetFctId();
+  }
+  
+} // namespace CoupledField
