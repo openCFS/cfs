@@ -19,6 +19,7 @@
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
+#include "Domain/CoefFunction/CoefFunctionStabParams.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
 #include "Driver/Assemble.hh"
@@ -28,6 +29,7 @@
 #include "Materials/Models/Preisach.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 #include "FeBasis/FeFunctions.hh"
+#include "Domain/ElemMapping/ElemShapeMap.hh"
 
 // new integrator concept
 #include "Forms/BiLinForms/ABInt.hh"
@@ -106,6 +108,12 @@ namespace CoupledField {
 
       presSurfaces_.Push_back( actRegionId );
     }
+
+    //check for stabilization!!
+    stabilized_ = false;
+    stabilized_ = myParam_->Get("stabilization")->As<bool>();
+    if ( stabilized_ )
+    	std::cerr << "\n DO STABILIZED FORMULATION!!\n" << std::endl;
 
   }
   
@@ -192,7 +200,6 @@ namespace CoupledField {
       PtrCoefFct viscosity = materials_[actRegion]->GetScalCoefFnc( DYNAMIC_VISCOSITY, Global::REAL );
 
       WARN("fluid density: " << density->ToString() << "\n" << " dynamic viscosity: " << viscosity->ToString());
-      
 
       // Create set of flow regions and map of density functions for surface integrators.
       flowRegions.insert(actRegion);
@@ -209,7 +216,7 @@ namespace CoupledField {
 
 //      PtrCoefFct coeffKPV
 //                = CoefFunction::Generate(Global::REAL, "1.0");
-                
+
       BiLinearForm * stiffIntPV = NULL;
       if( dim_ == 2 ) {
         stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,2>(), 
@@ -249,6 +256,7 @@ namespace CoupledField {
       assemble_->AddBiLinearForm( stiffContVP );
 #endif
 
+
       // --------------------------------------------------------------------
       //  VERSION 2: K_VP Integrator
       //  (upper off-diagonal integrators - partially integrated, volume)
@@ -269,8 +277,6 @@ namespace CoupledField {
       stiffContVP->SetFeFunctions( velFct, presFct );
       //stiffContVP->SetCounterPart(true);
       assemble_->AddBiLinearForm( stiffContVP );
-
-
 
       // --------------------------------------------------------------------
       //  VERSION 2: K_Laplace Integrator
@@ -366,6 +372,51 @@ namespace CoupledField {
       dampContextvv->SetEntities( actSDList, actSDList );
       dampContextvv->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],feFunctions_[FLUIDMECH_VELOCITY]);
       assemble_->AddBiLinearForm( dampContextvv );
+
+      //======================================================================
+      // DO STABILIZATION
+      //======================================================================
+
+      if ( stabilized_) {
+    	  //stabilization of pressure
+    	  // --------------------------------------------------------------------
+    	  //  VERSION 2: K_VP Integrator (upper off-diagonal integrator)
+    	  // --------------------------------------------------------------------
+    	  PtrCoefFct coeffKPPstab;
+    	  coeffKPPstab.reset(new CoefFunctionStabParams(density, viscosity));
+    	  BiLinearForm * stiffIntPPstab = NULL;
+    	  if( dim_ == 2 ) {
+    		  stiffIntPPstab = new BBInt<>(new GradientOperator<FeH1,2>(), coeffKPPstab,1.0);
+    	  } else {
+    		  stiffIntPPstab = new BBInt<>(new GradientOperator<FeH1,3>(), coeffKPPstab,1.0);
+    	  }
+    	  stiffIntPPstab->SetName("PerturbedStiffIntPPstab");
+    	  BiLinFormContext *stiffContPPstab = new BiLinFormContext(stiffIntPPstab, STIFFNESS );
+
+    	  stiffContPPstab->SetEntities( actSDList, actSDList );
+    	  stiffContPPstab->SetFeFunctions( presFct, presFct );
+    	  assemble_->AddBiLinearForm( stiffContPPstab );
+
+//      //stabilization of pressure-velocity
+//      Double densityVal;
+//      LocPointMapped map;
+//      density->GetScalar(densityVal, map);
+//      BiLinearForm *dampIntpvStab = NULL;
+//      if( dim_ == 2 ) {
+//        dampIntpvStab = new ABInt<>(new GradientOperator<FeH1,2>(),
+//                new IdentityOperator<FeH1,2,2>(), coeffKPPstab, densityVal);
+//      } else {
+//          dampIntpvStab = new ABInt<>(new GradientOperator<FeH1,3>(),
+//                    new IdentityOperator<FeH1,3,3>(), coeffKPPstab, densityVal);
+//      }
+//      dampIntpvStab->SetName("PerturbedDampIntStab");
+//      BiLinFormContext *dampContextpvStab =  new BiLinFormContext(dampIntpvStab, DAMPING );
+//
+//      dampContextpvStab->SetEntities( actSDList, actSDList );
+//      dampContextpvStab->SetFeFunctions( presFct, velFct);
+//      assemble_->AddBiLinearForm( dampContextpvStab );
+      }
+
     }
 
     StdVector<RegionIdType>::iterator surfIt, surfEnd;

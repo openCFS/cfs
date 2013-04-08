@@ -101,6 +101,8 @@ namespace CoupledField
     //! Surface regions on which pressure surface integral has to be defined
     StdVector<RegionIdType> presSurfaces_;
 
+    //! type of stabilization
+    bool stabilized_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
