@@ -2295,11 +2295,13 @@ namespace CoupledField {
           }
         }
         if ( neighborRegionId != NO_REGION_ID ) {
-          if ( neighborRegionId == actSurfElem->ptVolElem1->regionId ) {
+          if ( (actSurfElem->ptVolElem1 != NULL) &&
+               (neighborRegionId == actSurfElem->ptVolElem1->regionId) ) {
             ptVolElem = actSurfElem->ptVolElem1;
             normSign = 1.0;
           }
-          else if ( neighborRegionId == actSurfElem->ptVolElem2->regionId ) {
+          else if ( (actSurfElem->ptVolElem2 != NULL) && 
+                    (neighborRegionId == actSurfElem->ptVolElem2->regionId) ){
             ptVolElem = actSurfElem->ptVolElem2;
             normSign = -1.0;
           }
