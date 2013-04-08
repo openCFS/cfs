@@ -413,6 +413,14 @@ namespace CoupledField {
 
   }
   
+  const NcSurfElem* EntityIterator::GetNcSurfElem() const {
+    if ( type_ == EntityList::NC_ELEM_LIST ) {
+      return ncElemList_->GetNcSurfElem( pos_ );
+    } else {
+      EXCEPTION("Type " << type_ << " not implemented for GetNcSurfElem");
+    }
+  }
+  
   RegionIdType EntityIterator::GetRegion() const {
     return regionList_->list_[ pos_ ];
   }
