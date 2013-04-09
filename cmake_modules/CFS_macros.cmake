@@ -36,6 +36,10 @@ function (colormsg)
     SET(DISABLE_COLOR 1)
   endif()
 
+  IF(MINGW OR WIN32 OR CYGWIN)
+    SET(DISABLE_COLOR 1)
+  endif()
+
   set(str "")
   set(coloron FALSE)
   foreach(arg ${ARGV})
@@ -150,11 +154,19 @@ ENDMACRO(CFS_CHECK_CXX_SOURCE_RUNS)
 #-------------------------------------------------------------------------------
 MACRO (TODAY RESULT)
     IF (WIN32)
-        EXECUTE_PROCESS(COMMAND "date" "/T" OUTPUT_VARIABLE OUT)
+      IF(MINGW)
+        EXECUTE_PROCESS(COMMAND "date" "+%d/%m/%Y" OUTPUT_VARIABLE OUT)
+#        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"
+#         ${RESULT} ${${RESULT}})
+        string(STRIP "${OUT}" OUT)
+        SET(${RESULT} ${OUT})
+      ELSE()
+        EXECUTE_PROCESS(COMMAND cmd /E:ON /C "${CFS_SOURCE_DIR}/share/scripts/getdate.bat"} OUTPUT_VARIABLE OUT)
 #        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"
 #	  ${RESULT} ${${RESULT}})
         string(STRIP "${OUT}" OUT)
 	SET(${RESULT} ${OUT})
+      ENDIF()
     ELSEIF(UNIX)
         EXECUTE_PROCESS(COMMAND "date" "+%d/%m/%Y" OUTPUT_VARIABLE OUT)
 #        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"
@@ -184,8 +196,19 @@ ENDMACRO (CHANGE_NEWLINE_STYLE)
 MACRO (APPLY_PATCHES PATCHES INPUTDIR)
   foreach(patch ${PATCHES})
     MESSAGE(STATUS "Applying patch ${patch}")
+#    EXECUTE_PROCESS(
+#      COMMAND pwd
+#      OUTPUT_QUIET
+#      RESULT_VARIABLE RES
+#      )
     EXECUTE_PROCESS(
-      COMMAND patch -p0 -i "${INPUTDIR}/${patch}" OUTPUT_QUIET
+      COMMAND patch -p0 --binary -i "${INPUTDIR}/${patch}"
+#      OUTPUT_QUIET
+      RESULT_VARIABLE RES
       )
+
+    IF(NOT RES EQUAL 0)
+      MESSAGE("A problem occurred while trying to apply patch '${patch}'.")
+    ENDIF()
   endforeach(patch)
 ENDMACRO (APPLY_PATCHES)

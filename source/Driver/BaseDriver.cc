@@ -16,12 +16,14 @@
 
 using namespace CoupledField;
 
-BaseDriver::BaseDriver( )
+BaseDriver::BaseDriver( shared_ptr<SimState> simState, Domain* myDom )
 {
   actSequenceStep_ = 1;
-  nummeshes_=0;
-  handler_ = domain->GetResultHandler();
-  driverNode = info->Get("analysis"); // analysis step set in singleDriver
+  domain_ = myDom;
+  handler_ = domain_->GetResultHandler();
+  simState_ = simState;
+
+  driverNode = domain_->GetInfoRoot()->Get("analysis"); // analysis step set in singleDriver
 }
 
 BaseDriver::~BaseDriver()
@@ -34,27 +36,12 @@ UInt BaseDriver::GetActSequenceStep() {
   return actSequenceStep_;
 }
 
-// for computation with adaptivity
-bool BaseDriver::printMeshesOrNot() {
-
-
-  EXCEPTION( "Currently not working, need change to XML-Standard" );
-  bool meshesInfo=false;
-
-  return meshesInfo;
-}
-
-void BaseDriver::PrintSeqMeshes()
-{
-  WARN( "Not implemented anymore" );
-}
-
 PtrParamNode BaseDriver::CreateAnalysisId(const std::string& child_name, int child_id, 
                                        const std::string& child_2_name, int child_2_id)
 {
   // do we really want to create a new entry? Might blast up the output
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode child = driverNode->Get(ParamNode::PROCESS)->Get("step", at);
+  PtrParamNode child = driverNode->Get(ParamNode::PN_PROCESS)->Get("step", at);
   child->Get("analysis_id")->SetValue(ConcatAnalysisId(child, child_name, child_id, child_2_name, child_2_id));
   return child;
 }
@@ -64,7 +51,7 @@ PtrParamNode BaseDriver::CreateAnalysisIdChild(PtrParamNode base, const std::str
 {
   // create a child
   PtrParamNode child = base->Get(child_name);
-  std::string val = domain->GetDriver()->ConcatAnalysisId(base, child_name, child_id, child_2_name, child_2_id);
+  std::string val = domain_->GetDriver()->ConcatAnalysisId(base, child_name, child_id, child_2_name, child_2_id);
   child->Get("analysis_id")->SetValue(val);
   return child;
 }
@@ -96,7 +83,7 @@ std::string BaseDriver::ConcatAnalysisId(PtrParamNode analysis_id, const std::st
 }
 
 // static stuff
-BaseDriver* BaseDriver::CreateInstance()
+BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom )
 {
 
   BaseDriver   *ptdriver = NULL;
@@ -104,7 +91,7 @@ BaseDriver* BaseDriver::CreateInstance()
 
   // Get number of occurences of step-variable
   BasePDE::AnalysisType type;
-  UInt numSteps = param->Count( "sequenceStep" );
+  UInt numSteps = myDom->GetParamRoot()->Count( "sequenceStep" );
 
   // a) if count is bigger than one -> create multiSequence
   if( numSteps == 1 ) {
@@ -115,18 +102,18 @@ BaseDriver* BaseDriver::CreateInstance()
     std::string one = "1";
 
     analysisString =
-      param->GetByVal(name, idx, one)->Get("analysis")->GetChild()->GetName();
+        myDom->GetParamRoot()->GetByVal(name, idx, one)->Get("analysis")->GetChild()->GetName();
     type = BasePDE::analysisType.Parse(analysisString);
 
     // Generate driver
     switch( type ) {
     case BasePDE::STATIC:
 
-      ptdriver = new StaticDriver( seqStep );
+      ptdriver = new StaticDriver( seqStep, false, state, myDom );
       break;
 
     case BasePDE::TRANSIENT:
-      ptdriver = new TransientDriver( seqStep );
+      ptdriver = new TransientDriver( seqStep, false, state, myDom );
       break;
 
     case BasePDE::HARMONIC:
@@ -136,11 +123,11 @@ BaseDriver* BaseDriver::CreateInstance()
 //        ptdriver = new piezoParamIdent(0, 0.0 );
       }
       else
-        ptdriver = new HarmonicDriver( seqStep );
+        ptdriver = new HarmonicDriver( seqStep, false, state, myDom  );
       break;
 
     case BasePDE::EIGENFREQUENCY:
-      ptdriver = new EigenFrequencyDriver( seqStep);
+      ptdriver = new EigenFrequencyDriver( seqStep, false, state, myDom );
       break;
 
     default:
@@ -149,7 +136,7 @@ BaseDriver* BaseDriver::CreateInstance()
 
     // b) create multiSequence driver
   } else if( numSteps > 1 ) {
-    ptdriver = new MultiSequenceDriver( );
+    ptdriver = new MultiSequenceDriver(state, myDom );
   } else {
     EXCEPTION( "At least one sequenceStep has to be provided" );
   }

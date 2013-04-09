@@ -31,8 +31,6 @@ bool CoefFunctionConst<T>::IsZero() const {
   }
   return flag;
 }
-template bool CoefFunctionConst<Double>::IsZero() const;
-template bool CoefFunctionConst<Complex>::IsZero() const;
 
 template<>
 PtrCoefFct CoefFunctionConst<Double>::GetComplexPart( Global::ComplexPart part ) {
@@ -149,4 +147,77 @@ void CoefFunctionConst<Complex>::GetStrTensor( UInt& numRows, UInt& numCols,
   }
 }
 
+template<typename T>
+void CoefFunctionConst<T>:: GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                           StdVector<T >  & vals){
+  assert(this->dimType_ == SCALAR);
+  vals.Resize(points.GetSize());
+  vals.Init();
+  for(UInt i=0; i< vals.GetSize() ; ++i){
+    vals[i] =  coefScalar_;
+  }
+
 }
+
+template<typename T>
+void CoefFunctionConst<T>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                           StdVector<Vector<T> >  & vals){
+  assert(this->dimType_ == VECTOR ||
+         this->dimType_ == SCALAR );
+
+  // in case of scalars, just set one entry in the vector
+  if( this->dimType_ == SCALAR ) {
+    vals.Resize(points.GetSize(),Vector<T>(1));
+    vals.Init();
+    for(UInt i=0; i< vals.GetSize() ; ++i){
+      vals[i][0] =  coefScalar_;
+    }
+  } else {
+    vals.Resize(points.GetSize(),Vector<T>(coefVec_.GetSize()));
+    vals.Init();
+    // if no coordinate system is set, just
+    // use internal vector
+    if( !coordSys_ ) {
+      for(UInt i=0; i< vals.GetSize() ; ++i){
+        vals[i] =  coefVec_;
+      }
+    } else {
+      Vector<Double> pointCoord;
+      for(UInt i=0; i< vals.GetSize() ; ++i){
+        this->coordSys_->Local2GlobalVector( vals[i], coefVec_, points[i] );
+      }
+    }
+  }
+}
+
+template<typename T>
+void CoefFunctionConst<T>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                          StdVector<Matrix<T> >  & vals){
+  assert(this->dimType_ == TENSOR);
+  // if no coordinate system is set, just
+  // use internal vector
+  vals.Resize(points.GetSize(),Matrix<T>(constCoefMat_.GetNumRows(),constCoefMat_.GetNumCols()));
+  vals.Init();
+  if( !coordSys_ ) {
+    for(UInt i=0; i< vals.GetSize() ; ++i){
+      vals[i] =  constCoefMat_;
+    }
+  } else {
+    EXCEPTION(
+        "The rotation is not fully finished ':-(\n" <<
+        "Here we have to add a call to the method BaseMaterial::PerformRotation "
+        "This method should be moved to the base class of the CoefFunction"
+        "In addition the initial rotation of the material must be incorporated"
+        "somewhere in string-notation, as we are generally dealing with string"
+        "parameters."
+        "Thus we should treat the case, where rotation angles are multiples of "
+        "90 degree separately, where the entries are just interchanged");
+  }
+}
+
+}
+
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class CoefFunctionConst<Double>;
+  template class CoefFunctionConst<Complex>;
+#endif

@@ -151,12 +151,14 @@ AddIntegrator( BaseBDBInt* form,
   
   // check for compatibility of dimension
   PtrCoefFct coef = form->GetCoef();
-  UInt nRows, nCols;
-  coef->GetTensorSize(nRows, nCols);
-  UInt dMatSize = TRANS ? nCols : nRows;
-  if( dMatSize != res_->dofNames.GetSize() ) {
-    EXCEPTION( "All B-operators must have the same vector size");
-  } 
+  if( coef->GetDimType() == CoefFunction::TENSOR ) {
+    UInt nRows, nCols;
+    coef->GetTensorSize(nRows, nCols);
+    UInt dMatSize = TRANS ? nCols : nRows;
+    if( dMatSize != res_->dofNames.GetSize() ) {
+      EXCEPTION( "All B-operators must have the same vector size");
+    } 
+  }
   forms_[region] = form;
 
 }
@@ -167,6 +169,11 @@ GetVector(Vector<TYPE>& coefVec,
   
   this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
   BaseBDBInt* bdb = this->forms_[lpm.ptEl->regionId];
+  if( !bdb) {
+    coefVec.Resize(res_->dofNames.GetSize());
+    coefVec.Init();
+    return;
+  }
   
   // switch depending on if 
   if( TRANS ) {
@@ -232,7 +239,7 @@ GetScalar( TYPE& coefScal,
     this->forms_[lpm.ptEl->regionId]->CalcKernel(kernel_, lpm);
     temp = kernel_ * elemSol_;
   }
-  coefScal = (temp * elemSol_) * factor_;
+  coefScal = (temp * Conj(elemSol_) ) * factor_;
   
 }
 template<class TYPE> std::string CoefFunctionBdBKernel<TYPE>::

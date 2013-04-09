@@ -8,7 +8,7 @@
 #include "Driver/HarmonicDriver.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/Assemble.hh"
-
+#include "DataInOut/SimState.hh"
 #include "Utils/Timer.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -29,8 +29,10 @@ namespace CoupledField
   // ***************
   //   Constructor
   // ***************
-  HarmonicDriver::HarmonicDriver( UInt sequenceStep, bool isPartOfSequence )
-    : SingleDriver( sequenceStep, isPartOfSequence ), timer_(new Timer())
+  HarmonicDriver::HarmonicDriver( UInt sequenceStep, bool isPartOfSequence,
+                                  shared_ptr<SimState> state, Domain* domain )
+    : SingleDriver( sequenceStep, isPartOfSequence, state, domain ), 
+      timer_(new Timer())
   {
     // Set correct analysistype
     analysis_ = BasePDE::HARMONIC;
@@ -38,9 +40,9 @@ namespace CoupledField
     // replace our info node by a more detailed level
     driverNode = driverNode->Get("harmonic");
     driverNode->Get("sequenceStep")->SetValue(sequenceStep);
-    driverNode->Get(ParamNode::HEADER)->Get("unit")->SetValue("Hz");
+    driverNode->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("Hz");
 
-    pn_ = param->GetByVal("sequenceStep", "index", boost::lexical_cast<std::string>(sequenceStep_))
+    pn_ = domain_->GetParamRoot()->GetByVal("sequenceStep", "index", boost::lexical_cast<std::string>(sequenceStep_))
          ->Get("analysis")->Get("harmonic");
 
     startFreq_ = 0.0;
@@ -50,7 +52,7 @@ namespace CoupledField
     actFreq_ = 0.0;
     
     // register frequency variable at math parser
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
   }
 
   HarmonicDriver::~HarmonicDriver()
@@ -69,7 +71,7 @@ namespace CoupledField
     if(!params && !list)
       EXCEPTION("'analysis/harmonic' contains neither 'numFreq/startFreq/stopFreq' nor 'frequencyList' concurrently");
 
-    PtrParamNode in = driverNode->Get(ParamNode::HEADER);
+    PtrParamNode in = driverNode->Get(ParamNode::PN_HEADER);
     in->Get("start")->SetValue(startFreq_);
     in->Get("end")->SetValue(stopFreq_);
     in->Get("numFreq")->SetValue(numFreq_);
@@ -78,7 +80,6 @@ namespace CoupledField
     // relies on the result handler to know already about the current
     // sequencestep. However, in case of optimization, the sequence step
     // gets initialized in Optimization::SolveProblem()
-    handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
     InitializePDEs();
   }
 
@@ -92,7 +93,7 @@ namespace CoupledField
     if(freqs.GetSize() == 0)
       EXCEPTION("cannot have empty frequeny list");
 
-    driverNode->Get(ParamNode::HEADER)->Get("sampling")->SetValue("frequency list given");
+    driverNode->Get(ParamNode::PN_HEADER)->Get("sampling")->SetValue("frequency list given");
 
     for(int fi = 0; fi < (int) list.GetSize(); fi++)
     {
@@ -134,7 +135,7 @@ namespace CoupledField
     String2Enum( sampling, samplingType_ );
 
     // store only the sampling strategy
-    driverNode->Get(ParamNode::HEADER)->Get("sampling")->SetValue(sampling);
+    driverNode->Get(ParamNode::PN_HEADER)->Get("sampling")->SetValue(sampling);
 
     // ---------------------------------
     //  Perform some consistency checks
@@ -179,12 +180,12 @@ namespace CoupledField
     // Check for single frequency computation
     if(startFreq_ == stopFreq_ && numFreq_ > 1)
     {
-      driverNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("Re-setting numFreq to 1, since startFreq = stopFreq");
+      driverNode->Get(ParamNode::PN_HEADER)->Get(ParamNode::PN_WARNING)->SetValue("Re-setting numFreq to 1, since startFreq = stopFreq");
       numFreq_ = 1;
 
       if(samplingType_ != LINEAR_SAMPLING)
       {
-        driverNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("Re-setting sampling type to 'linear', since startFreq = stopFreq");
+        driverNode->Get(ParamNode::PN_HEADER)->Get(ParamNode::PN_WARNING)->SetValue("Re-setting sampling type to 'linear', since startFreq = stopFreq");
         samplingType_ = LINEAR_SAMPLING;
       }
     }
@@ -219,7 +220,8 @@ namespace CoupledField
       // info stuff
       ptPDE_->WriteGeneralPDEdefines();
     }
-
+    handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
+    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
 
     // Perform one simulation for each desired frequency
     for ( actFreqStep_ = 1; actFreqStep_ <= numFreq_; actFreqStep_++ )
@@ -240,6 +242,7 @@ namespace CoupledField
         ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
         handler_->FinishStep( );
       }
+      simState_->WriteStep( actFreqStep_, actFreq_ );
       
       // perform runtime estimation
       Double totalTime = timer_->GetWallTime();
@@ -248,7 +251,7 @@ namespace CoupledField
       pt::ptime now = pt::second_clock::local_time();
       now += pt::seconds(static_cast<long int>(remainingTime));
       analysis_id_->Get("timePerStep")->SetValue( timePerStep );
-      PtrParamNode envNode = info->Get(ParamNode::HEADER)->Get("environment");
+      PtrParamNode envNode = driverNode->GetRoot()->Get(ParamNode::PN_HEADER)->Get("environment");
       envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
       envNode->Get("remainingTime")->SetValue(remainingTime);
     }
@@ -258,6 +261,7 @@ namespace CoupledField
       // notify resultHandler about finishing of current sequence step
       if(!isPartOfSequence_) handler_->Finalize();
     }
+    simState_->FinishMultiSequenceStep();
   }
 
   Double HarmonicDriver::ComputeFrequencyStep(UInt actFreqStep, PtrParamNode given_analysis_id)
@@ -273,7 +277,7 @@ namespace CoupledField
 
     if(given_analysis_id == NULL)
     {
-      analysis_id_ = driverNode->Get(ParamNode::PROCESS)->Get("step", ParamNode::APPEND);
+      analysis_id_ = driverNode->Get(ParamNode::PN_PROCESS)->Get("step", ParamNode::APPEND);
       analysis_id_->Get("analysis_id")->SetValue(actFreqStep);
     }
     else
@@ -285,8 +289,8 @@ namespace CoupledField
     analysis_id_->Get("value")->SetValue(actFreq_);
 
     // Set curent frequency value in the mathParser
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", actFreqStep_ );
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", actFreqStep_ );
 
     // Perform steps for the solution
     ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
@@ -307,6 +311,7 @@ namespace CoupledField
     handler_->BeginStep(stepNum, step_val);
     ptPDE_->WriteResultsInFile(stepNum, step_val);
     handler_->FinishStep( );
+
   }
 
 

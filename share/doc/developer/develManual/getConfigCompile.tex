@@ -100,7 +100,7 @@ rpm -q --whatprovides /usr/bin/g++
 \end{verbatim}
 
 \item[CentOS] Support has  been added for CentOS 5.x  and 6.x. Therefore, also
-RHEL 5 and 6 should work.
+other RHEL clones (e.g. Scientific Linux) should work.
 \end{description}%
 
 \subsubsection{Mac OS X}
@@ -127,22 +127,55 @@ tested on Snow  Leopard (10.6) but should also work on  Leopard (10.5) and the
 
 \subsection{Windows (XP, Vista, 7)}
 
-At the  moment we  only support the  following sub-projects on  Windows: NACS,
-[CFS | NACS]DEPS.
+We support building of CFS++ for Windows in two different flavors:
 
-\begin{itemize}
-\item Visual Studio (Express) \url{http://www.microsoft.com/express/}
-\item Platform SDK \url{http://en.wikipedia.org/wiki/Microsoft_Windows_SDK}
-\item Subversion \url{http://tortoisesvn.tigris.org/}
-\item UnxUtils - \url{http://unxutils.sourceforge.net/}
-\item CMake - \url{http://www.cmake.org}
-\item Perl \url{http://www.activestate.com/activeperl}
-\item Python \url{http://www.activestate.com/activepython}
-\item etc.
-\end{itemize} 
+\begin{description}
+\item[Cross-compiling from Linux] At the moment we support two MinGW toolchains on CentOS 6 (gcc 4.5.3)
+and Ubuntu 12.04 (gcc 4.6.3, cf. Sec. \ref{sec:mingw_linux_crosscompile}).
+\item [Compiling on Windows] by making use of the MinGW toolchain (gcc 4.7.1) and some additional GNU utilities. 
+\end{description}%
+%
+Unlike on UNIX systems, there is no automated setup script for these tools. Therefore, we just describe
+here, where to obtain the tools and how to set up a build environment on Windows.
 
+\begin{description}
+\item[GNU Compilers] There exist several distributions for the MinGW toolchain. The one we used for testing was the 
+\emph{TDM-GCC}\footnote{TDM-GCC toolchain: \url{http://tdm-gcc.tdragon.net}} toolchain. 
+In their download section one can either download, single packages or a bundle installer for either 32-bit or 64/32-bit development.
+We chose the tdm64-gcc bundle installer. This package provides a standard Windows installer with all required packages
+for C, C++ and Fortran compilers. Another toolchain is available at \url{http://www.equation.com}.
+
+\item[GNU Tools] We also need the usual GNU tools, like gmake, for building software. There are also two options available for obtaining these.
+There exists an older project \emph{GNU utilities for Win32}\footnote{GNU utilities for Win32: \url{http://unxutils.sourceforge.net}} or
+the \emph{GnuWin32}\footnote{GnuWin32 project: \url{http://gnuwin32.sourceforge.net}} project, which provides more up-to-date versions of the utilities.
+After following their corresponding download and installation instructions, one should end up with the installed trees. One has to add the corresponding
+binary dirs ({\tt GNUWIN32\_INSTALL\_DIR/bin} for GnuWin32 or {\tt UNXUTILS\_INSTALL\_DIR/usr/local/wbin} for UnxUtils) to the system path
+
+\item[CMake] for Windows can be obtained from download section of the official homepage\footnote{CMake  download page: \url{http://www.cmake.org/cmake/resources/software.html}}.
+
+\item[Subversion] The best-known Subversion distribution on Windows seems to be TortoiseSVN\footnote{Subversion for Windows: \url{http://tortoisesvn.tigris.org}}. A Java-based platform independent alternative which also provides command line tools is SVNKit\footnote{SVNKit: \url{http://svnkit.com}}.
+
+\item[Git] If the CFS++ working copy is Git-based, then one should get Git for Windows\footnote{Git for Windows: \url{http://msysgit.github.com}}. There seems to be also a TortoiseGit project\footnote{TortoiseGit project: \url{http://code.google.com/p/tortoisegit}}.
+
+\item[Intel MKL] If the optimized solvers from MKL need to be used, a Windows distribution (e.g. as provided by the latest Intel Compiler installations) is required. Unlike on UNIX-based systems, no advanced system for automatic detection of the required
+link parameters has been implemented so far. The corresponding settings can be found and hand-tuned in {\tt cmake\_modules/FindIntelMKL.cmake}, however. The only version of MKL known to work on Win64 with MinGW at the moment is 10.0.5.025.
+\end{description}%
+%
+The binary directories of the aforementioned distributions need to be added to the system PATH, so 
+that the utilities can be found afterwards by our build system. The configuration of CFS++ on Windows is then pretty similar as compared to UNIX. The only difference is, that one should specify the additional parameter {\tt -G 'MinGW Makefiles'} on the command line of CMake, since Microsoft NMake files or Visual Studio projects would be generated otherwise.
+
+At the moment, we just support the absolute core components of CFSDEPS and CFS++ on Windows. Items like HDFView or ParaView are still to be ported. 
+
+There is also only very limited support for the Microsoft Visual Studio compilers, since we require also a Fortran compiler. Since a Fortran compiler is not part 
+of the Microsoft tools, either the Intel Fortran compiler would be needed or the GNU Fortran compiler could be used.
+ This would however, require some changes to our build project\footnote{Fortran for C/C++ developers made easier with CMake: 
+\url{http://www.kitware.com/blog/home/post/231}}. These changes may be worth the effort in the future, since Visual Studio Express is 
+an excellent environment for debugging and is also available for free since the 2008 release.
+
+
+\todo[inline] {
 Pre-installed   VBoxes  containg   all  required   packages  are   located  at
-(Klagenfurt)
+(Vienna)}
 
 \noindent {\tt qnap:/share//AM\_Data/Software/NACS\_Windows\_Development\_VBOXes/[WINXP*\&nacs\_dev*\&local*]}.
 
@@ -333,8 +366,8 @@ must be renamed to \*.prefs.
 \label{sec:obtaining_prepostprocs}
 
 Since its  creation CFS++  has come to  support a  growing number of  pre- and
-postprocessors.  The two  most  important  being GiD  and  ANSYS Classic.  The
-modelling process with these two tools is documented in \cite{Simkovics2010}. 
+postprocessors.  The three  most  important  being GiD, Gmsh  and  ANSYS Classic.  The
+modelling process with these tools is documented in \cite{Simkovics2010}. 
 
 For the broader  picture of the software landscape around  CFS++ the reader is
 referred    to     the    Advanced    Pre-     and    Postprocessing    Manual

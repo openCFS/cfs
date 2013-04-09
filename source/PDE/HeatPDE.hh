@@ -28,7 +28,9 @@ namespace CoupledField {
     /*!
       \param aGrid pointer to grid
     */
-    HeatPDE( Grid* aGrid, PtrParamNode paramNode );
+    HeatPDE( Grid* aGrid, PtrParamNode paramNode,
+             PtrParamNode infoNode,
+             shared_ptr<SimState> simState, Domain* domain  );
 
     //! Destructor
     virtual ~HeatPDE(){};
@@ -58,19 +60,6 @@ namespace CoupledField {
 
     //! Initialize all the nodes by this value
     void SetInitialCondition();
-
-    // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-
-    //! Initalize PDE coupling
-    void InitCoupling(PDECoupling * Coupling) {;};
-
-    //! Calculate coupling terms
-    void CalcOutputCoupling() {;};
-
-    //! Returns if PDE can compute the quantity
-    bool HasOutput(SolutionType output) { return false;};
 
   protected:
 	  
@@ -111,9 +100,6 @@ namespace CoupledField {
 
     //! special neumann boundary conditions
     RobinBcList robinBcs_;
-    
-    //! vector containing regionIds of non-conforming interfaces
-    StdVector<RegionIdType> ncIFaces_;
     
   };
 

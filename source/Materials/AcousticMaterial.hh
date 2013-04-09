@@ -21,7 +21,8 @@ namespace CoupledField {
   public:
 
     //! Default constructor
-    AcousticMaterial();
+    AcousticMaterial(MathParser* mp,
+                     CoordSystem * defaultCoosy);
 
     //! Destructor
     ~AcousticMaterial();

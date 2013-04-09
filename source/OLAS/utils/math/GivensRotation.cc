@@ -57,7 +57,7 @@ namespace CoupledField {
         double myC = c;
         double myS = s;
         double myR = r;
-        F77NAME(dlartg)( &myF, &myG, &myC, &myS, &myR );
+        dlartg( &myF, &myG, &myC, &myS, &myR );
       }
 
       // something else
@@ -111,7 +111,7 @@ namespace CoupledField {
         double     myC = c;
         std::complex<double> myS = s;
         std::complex<double> myR = r;
-        F77NAME(zlartg)( &myF, &myG, &myC, &myS, &myR );
+        zlartg( &myF, &myG, &myC, &myS, &myR );
         f = myF;
         g = myG;
         c = myC;

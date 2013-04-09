@@ -22,7 +22,8 @@ namespace CoupledField {
     //@{ \name Constructor / Initialization
     
     //! Constructor with name of mesh-file
-    SimInputHDF5(std::string fileName, PtrParamNode inputNode);
+    SimInputHDF5(std::string fileName, PtrParamNode inputNode,
+                 PtrParamNode infoNode );
     
     //! Destructor
     virtual ~SimInputHDF5();
@@ -109,24 +110,62 @@ namespace CoupledField {
     void GetResultTypes( UInt sequenceStep, 
                          StdVector<shared_ptr<ResultInfo> >& infos,
                          bool isHistory = false );
-    
+
     //! Return list with time / frequency values and step for a given result
     virtual void GetStepValues( UInt sequenceStep,
-                                    shared_ptr<ResultInfo> info,
-                                    std::map<UInt, Double>& steps,
-                                    bool isHistory = false );
-    
+                                shared_ptr<ResultInfo> info,
+                                std::map<UInt, Double>& steps,
+                                bool isHistory = false );
+
     //! Return entitylist the result is defined on
     void GetResultEntities( UInt sequenceStep,
-                               shared_ptr<ResultInfo> info,
-                               StdVector<shared_ptr<EntityList> >& list,
-                               bool isHistory = false );
+                            shared_ptr<ResultInfo> info,
+                            StdVector<shared_ptr<EntityList> >& list,
+                            bool isHistory = false );
 
     //! Fill pre-initialized results object with values of specified step
     void GetResult( UInt sequenceStep,
-                      UInt stepNum,
-                      shared_ptr<BaseResult> result,
-                      bool isHistory = false );
+                    UInt stepNum,
+                    shared_ptr<BaseResult> result,
+                    bool isHistory = false );
+
+    //! Read one the strings in the user data group.
+    void ReadStringFromUserData(const std::string& dSetName,
+                                std::string& str);
+    //@}
+
+
+    // =======================================================================
+    //  DATABASE SECTION
+    // =======================================================================
+    //@{ \name Database Handling
+
+    //! Query, if hdf5 file has database
+    void DB_Init();
+    
+    //! Obtain content of XML file
+    void DB_GetParamFileContent( std::string& params );
+    
+    //! Obtain content of material file
+    void DB_GetMatFileContent( std::string& params );
+    
+    //! Get coefficients for given vector
+    void DB_GetFeFctCoefs( UInt sequenceStep, UInt stepNum,
+                        const std::string& pdeName,
+                        const std::string& funcName,
+                        SingleVector * coefs ); 
+
+    //! Return multisequence steps and their analysistypes
+    void DB_GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
+                                      std::map<UInt, UInt>& numSteps );
+       
+    //! Return list with time / frequency values and step for a given result
+    void DB_GetStepValues( UInt sequenceStep,
+                           std::map<UInt, Double>& steps );
+
+    //! Close database group
+    void DB_Close();
+
     //@}
 
   protected:
@@ -175,6 +214,9 @@ namespace CoupledField {
 
     //! Root group of main file
     H5::Group mainRoot_;
+    
+    //! Root for database
+    H5::Group dbRoot_;
     //@}
 
     // =======================================================================
@@ -182,7 +224,7 @@ namespace CoupledField {
     // =======================================================================
     //@{ \name Attributes
     
-    //! Flag inicating if mesh meta data is already read in
+    //! Flag indicating if mesh meta data is already read in
     bool statsRead_;
     
     //! Flag indicating use of external files for mesh results

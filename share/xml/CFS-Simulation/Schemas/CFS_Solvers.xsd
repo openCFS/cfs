@@ -373,8 +373,17 @@
   <!-- Definition of element for UMFPACK Solver -->
   <!-- ******************************************************************* -->
   <xsd:element name="umfpack" type="DT_SolverUMFPACK"
-    substitutionGroup="SolverBasic"/>
-  
+    substitutionGroup="SolverBasic">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        UMFPACK by Timothy A. Davis is a set of routines for solving 
+        unsymmetric sparse linear systems, Ax = b, using the Unsymmetric
+        MultiFrontal method and direct sparse LU factorization.
+        
+        http://www.cise.ufl.edu/research/sparse/umfpack
+      </xsd:documentation>
+    </xsd:annotation>
+  </xsd:element>  
   
   <!-- ******************************************************************* -->
   <!--   Definition of data type for UMFPACK Solver -->
@@ -383,21 +392,63 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence minOccurs="0" maxOccurs="1">
-          <xsd:element name="posDef"    type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="hermitean" type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="symStruct" type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="ordering"  type="DT_UMFPACKOrdering" minOccurs="0"/>
-          
-          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0" default="no">
+          <xsd:element name="strategy"  type="DT_UMFPACKStrategy" minOccurs="0" default="auto">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
-                If logging is set to yes, then the solution process will log the convergence history
-                (absolute and relative residual norm) to the log stream.
+                This is the most important control parameter.  It determines what kind of 
+                ordering and pivoting strategy that UMFPACK should use.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="ordering"  type="DT_UMFPACKOrdering" minOccurs="0" default="amd">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Set the ordering type as documented for umfpack_*_defaults.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="tol" type="xsd:double" minOccurs="0" default="0.1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                partial pivoting tolerance Control[UMFPACK_PIVOT_TOLERANCE]
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="symtol" type="xsd:double" minOccurs="0" default="0.001">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                partial pivoting tolerance for diagonal entries Control[UMFPACK_SYM_PIVOT_TOLERANCE]
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="irstep" type="xsd:unsignedInt" minOccurs="0" default="2">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                max iter. refinement steps Control[UMFPACK_IRSTEP]
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="printinglevel" type="xsd:unsignedInt" minOccurs="0" default="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Control [UMFPACK_PRL]:  printing level.
+                
+                0 or less: no output, even when an error occurs;
+                1: error messages only;
+                2 or more: print status, whether or not an error occurred;
+                4 or more: also print the UMFPACK Copyright;
+                6 or more: also print the UMFPACK License;
+                Default: 1
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
 
-          <xsd:element name="stats"     type="DT_CFSBool" minOccurs="0">
+          <xsd:element name="stats" type="DT_CFSBool" minOccurs="0" default="no">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Let UMFPACK print statistics while it is solving the problem.
@@ -412,13 +463,22 @@
   
   <xsd:simpleType name="DT_UMFPACKOrdering">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="noReordering"/>
+      <xsd:enumeration value="none"/>
+      <xsd:enumeration value="best"/>
+      <xsd:enumeration value="cholmod"/>
       <xsd:enumeration value="amd"/>
       <xsd:enumeration value="metis"/>
     </xsd:restriction>
   </xsd:simpleType>
 
-
+  <xsd:simpleType name="DT_UMFPACKStrategy">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="auto"/>
+      <xsd:enumeration value="unsymmetric"/>
+      <xsd:enumeration value="symmetric"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
   
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
@@ -538,7 +598,16 @@
   <!-- Definition of element for ILUPACK Solver                            -->
   <!-- ******************************************************************* -->
   <xsd:element name="ilupack" type="DT_Ilupack"
-    substitutionGroup="SolverBasic"/>
+    substitutionGroup="SolverBasic">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        ILUPACK by Matthias Bollhoefer is package of multilevel incomplete
+        LU preconditioners and iterative solvers.
+        
+        http://www.ilupack.tu-bs.de
+      </xsd:documentation>
+    </xsd:annotation>
+  </xsd:element>
   
   <!-- <ilupack>
     <permutation type="inital"  matrix="sym" ordering="mmd" matchin="mwm" />
@@ -724,6 +793,210 @@
     </xsd:complexContent>
   </xsd:complexType>  
   
+  
+  <!-- =================================================================== -->
+  <!-- ==                                                               == -->
+  <!-- ==                        LIS ITERATIVE Solver                   == -->
+  <!-- ==                                                               == -->
+  <!-- =================================================================== -->
+
+  <!-- ******************************************************************* -->
+  <!-- Definition of element for LIS ITERATIVE Solver -->
+  <!-- ******************************************************************* -->
+  <!--xsd:element name="lis" type="DT_LISSpec"
+    substitutionGroup="SolverBasic"/-->
+  <!-- ******************************************************************* -->
+  <!-- Definition of element for OLAS_MINRES Solver -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="lis" type="DT_LISSpec"
+    substitutionGroup="SolverBasic">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Lis, a Library of Iterative Solvers for linear systems, is a parallel
+        numerical library for solving the linear equations Ax = b
+        and the standard eigenvalue problems Ax = λx with real sparse matrices
+        using iterative methods.
+        
+        http://www.ssisc.org/
+      </xsd:documentation>
+    </xsd:annotation>
+  </xsd:element>
+  
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for OLAS_GMRES Solver -->
+  <!-- ******************************************************************* -->
+  <!--xsd:complexType name="DT_SolverOLASLIS">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0"/>
+          <xsd:element name="tol" type="DT_PosFloat" minOccurs="0"/>
+          <xsd:element name="maxIter" type="xsd:positiveInteger"
+            minOccurs="0"/>
+          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType-->
+  
+  <xsd:complexType name="DT_LISSpec">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="precond" type="DT_PreCondLIS" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="solver" type="DT_SolverLIS" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="maxIter" type="xsd:int" default="1000" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="tolerance" type="xsd:double" default="1e-10" maxOccurs="1" minOccurs="0"/>
+          <xsd:element name="logging" type="xsd:boolean" default="false" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+ 
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for LIS ITERATIVE Solver -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_SolverLIS">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:choice>
+          <xsd:element name="CG"  type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="BiCG"   type="xsd:token"   minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="CGS"/>
+          <xsd:element name="BiCGSTAB"/>
+          <xsd:element name="BiCGSTABL">
+            <xsd:complexType>
+              <xsd:attribute name="degree" type="xsd:int" default="2"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="CPBiCG"/>
+          <xsd:element name="TFQMR"/>
+          <xsd:element name="Orthomin">
+            <xsd:complexType>
+              <xsd:attribute name="restart" type="xsd:int" default="40"></xsd:attribute>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="GMRES">
+            <xsd:complexType>
+              <xsd:attribute name="restart" type="xsd:int" default="40"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="Jacobi"/>
+          <xsd:element name="GaussSeidel"/>
+          <xsd:element name="SOR">
+            <xsd:complexType>
+              <xsd:attribute name="omega" default="1.9" type="xsd:double"></xsd:attribute>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="BiCGSave"/>
+          <xsd:element name="CR"/>
+          <xsd:element name="BiCR"/>
+          <xsd:element name="CRS"/>
+          <xsd:element name="BiCRSTAB"/>
+          <xsd:element name="GPBiCR"/>
+          <xsd:element name="minres"/>
+          <xsd:element name="BiCRSAFE"/>
+          <xsd:element name="FGMRES">
+            <xsd:complexType>
+              <xsd:attribute name="restart" type="xsd:int" default="40" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="IDRs">
+            <xsd:complexType>
+              <xsd:attribute name="irestart" type="xsd:int" default="2"/>
+            </xsd:complexType>
+          </xsd:element>
+
+
+        </xsd:choice>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <xsd:complexType name="DT_PreCondLIS">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:choice>
+          <xsd:element name="none"/>
+          <xsd:element name="jacobi"/>
+          <xsd:element name="iluk">
+            <xsd:complexType>
+              <xsd:attribute name="fill" type="xsd:double" default="0" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="ssor">
+            <xsd:complexType>
+              <xsd:attribute name="omega" type="xsd:double" default="1.0" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <!--xsd:element name="hybrid">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="solver" minOccurs="0" maxOccurs="1" default="SOR">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <xsd:enumeration value="CG"/>
+                      <xsd:enumeration value="BiCG"/>
+                      <xsd:enumeration value="CGS"/>
+                      <xsd:enumeration value="BiCGSTAB"/>
+                      <xsd:enumeration value="BiCGSTABL"/>
+                      <xsd:enumeration value="CPBiCG"/>
+                      <xsd:enumeration value="TFQMR"/>
+                      <xsd:enumeration value="Orthomin"/>
+                      <xsd:enumeration value="GMRES"/>
+                      <xsd:enumeration value="Jacobi"/>
+                      <xsd:enumeration value="GaussSeidel"/>
+                      <xsd:enumeration value="SOR"/>
+                      <xsd:enumeration value="BiCGSave"/>
+                      <xsd:enumeration value="CR"/>
+                      <xsd:enumeration value="BiCR"/>
+                      <xsd:enumeration value="BiCRSTAB"/>
+                      <xsd:enumeration value="GPBiCR"/>
+                      <xsd:enumeration value="FGMRES"/>
+                      <xsd:enumeration value="IDRs"/>
+                      <xsd:enumeration value="minres"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element-->
+          <xsd:element name="is">
+            <xsd:complexType>
+              <xsd:attribute name="alpha" type="xsd:double" use="optional" default="1.0"/>
+              <xsd:attribute name="m" type="xsd:int" use="optional" default="3"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="sainv">
+            <xsd:complexType>
+              <xsd:attribute name="drop" type="xsd:double" default="0.5" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="saamg">
+            <xsd:complexType>
+              <xsd:attribute name="unsym" type="xsd:boolean" use="optional" default="false"/>
+              <xsd:attribute name="theta" type="xsd:double" use="optional" default="0.05"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="iluc">
+            <xsd:complexType>
+              <xsd:attribute name="drop" type="xsd:double" default="0.05"/>
+              <xsd:attribute name="fillInRate" type="xsd:double" default="5.0"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="ilut">
+            <xsd:complexType>
+              <xsd:attribute name="drop" type="xsd:double" default="0.05"/>
+              <xsd:attribute name="fillInRate" type="xsd:double" default="5.0"/>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
   
   <!-- =================================================================== -->
   <!-- ==                                                               == -->

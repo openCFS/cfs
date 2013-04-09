@@ -2,6 +2,7 @@ SET(FEBASIS_SRC
   BaseFE.cc
   FeSpace.cc
   FeSpaceHi.cc
+  FeSpaceNodal.cc
   FeFunctions.cc
   FeHi.cc
   FeNodal.cc
@@ -21,16 +22,5 @@ SET(FEBASIS_SRC
 ADD_LIBRARY(febasis STATIC ${FEBASIS_SRC})
 
 TARGET_LINK_LIBRARIES(febasis
-  paramh
-  logging
-  matvec
-  cfsgeneral
   elemmapping
-  domain
-  results
-  algsys-olas
-  pde
-  utils
-  integration
-  bilinforms
 )

@@ -11,14 +11,23 @@ ADD_EXECUTABLE(ResWrHeadTestCC120
   ../ResWrHeadTest.cc
   ../ResWrTest.F
   ../ResWr.F)
-TARGET_LINK_LIBRARIES(ResWrHeadTestCC120
+
+SET(TARGET_LL
   ${ANSYS_V120_LIBBIN}
   ${CFS_FORTRAN_DYNRT_LIBS}
-  -ldl
   ${BOOST_FILESYSTEM_LIB}
-  ${BOOST_SYSTEM_LIB}
-  -lpthread
+  ${BOOST_SYSTEM_LIB}  
   )
+
+IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  LIST(APPEND TARGET_LL
+    -ldl
+    -lpthread
+    )
+ENDIF()
+
+TARGET_LINK_LIBRARIES(ResWrHeadTestCC120 ${TARGET_LL})
+
 SET_TARGET_PROPERTIES(ResWrHeadTestCC120 PROPERTIES LINKER_LANGUAGE CXX 
                                                     LINK_FLAGS -Wl,--allow-shlib-undefined)
 
@@ -34,9 +43,23 @@ ADD_LIBRARY(CFSAnsysBinlibIfaceRev120 SHARED
   ../ResWrTest.F
   ../ResWr.F)
 
-TARGET_LINK_LIBRARIES(CFSAnsysBinlibIfaceRev120
+SET(TARGET_LL
+  CFSAnsysBinlibIface
   ${ANSYS_V120_LIBBIN}
   ${CFS_FORTRAN_DYNRT_LIBS}
+)
+
+IF(MINGW)
+  LIST(APPEND TARGET_LL
+   logging
+   matvec
+   febasis
+   cfsgeneral
+  )
+ENDIF()
+
+TARGET_LINK_LIBRARIES(CFSAnsysBinlibIfaceRev120
+  ${TARGET_LL}
   )
 
 SET_TARGET_PROPERTIES(CFSAnsysBinlibIfaceRev120 PROPERTIES LINKER_LANGUAGE CXX

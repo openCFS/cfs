@@ -28,7 +28,9 @@ namespace CoupledField {
     /*!
       \param aptgrid pointer to grid
     */
-    DirectCoupledPDE( Grid *aptgrid, PtrParamNode paramNode ); 
+    DirectCoupledPDE( Grid *aptgrid, PtrParamNode paramNode,
+                      PtrParamNode infoNode,
+                      shared_ptr<SimState> simState, Domain* domain ); 
     
     //! Destructor
     virtual ~DirectCoupledPDE();
@@ -71,12 +73,6 @@ namespace CoupledField {
     //@{
     //! \name Methods performing post-processing
   
-    //! write a restart file "simname_pdename.restart"
-    void WriteRestart( );
-
-    //! read a restart file "simname_pdename.restart"
-    void ReadRestart(UInt &startStep );
-
     //! perform cleanup and do last computations
     void Finalize();
 
@@ -87,23 +83,6 @@ namespace CoupledField {
     //@}
 
 
-    // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-  
-    //! initalize PDE coupling (only done once)
-    void InitCoupling(PDECoupling * Coupling);
-
-    //! reset coupling counters and data (done after each timestep)
-    void ResetCoupling();
-  
-    //! Fill in input coupling terms
-    void CalcInputCoupling();
-  
-  
-    //! calculate coupling terms
-    void CalcOutputCoupling();
-    
     //! Set initial conditions
     void SetInitialCondition();
 

@@ -19,9 +19,9 @@
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
+#include "Domain/CoefFunction/CoefFunctionStabParams.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
-#include "CoupledPDE/PDECoupling.hh"
 #include "Driver/Assemble.hh"
 #include "Utils/ApproxData.hh"
 #include "Utils/SmoothSpline.hh"
@@ -29,6 +29,7 @@
 #include "Materials/Models/Preisach.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 #include "FeBasis/FeFunctions.hh"
+#include "Domain/ElemMapping/ElemShapeMap.hh"
 
 // new integrator concept
 #include "Forms/BiLinForms/ABInt.hh"
@@ -57,8 +58,11 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  PerturbedFlowPDE::PerturbedFlowPDE( Grid* grid, PtrParamNode paramNode )
-    :SinglePDE( grid, paramNode ) {
+  PerturbedFlowPDE::PerturbedFlowPDE( Grid* grid, PtrParamNode paramNode,
+                                      PtrParamNode infoNode,
+                                      shared_ptr<SimState> simState, 
+                                      Domain* domain )
+    :SinglePDE( grid, paramNode, infoNode,simState, domain ) {
 
 
     // ======================================================================
@@ -66,13 +70,15 @@ namespace CoupledField {
     // ======================================================================
     pdename_          = "fluidMechPerturbed";
     pdematerialclass_ = FLOW;
-    maxTimeDerivOrder_ = 1;
  
     nonLin_    = false;
     nonLinMaterial_ = false;
     isAlwaysStatic_ = false;
 
     needSolPrev_ = true;
+    
+    //! Always use total Lagrangian formulation 
+    updatedGeo_        = true;
  
     // Check the subtype of the problem
     paramNode->GetValue("subType", subType_);
@@ -102,6 +108,12 @@ namespace CoupledField {
 
       presSurfaces_.Push_back( actRegionId );
     }
+
+    //check for stabilization!!
+    stabilized_ = false;
+    stabilized_ = myParam_->Get("stabilization")->As<bool>();
+    if ( stabilized_ )
+    	std::cerr << "\n DO STABILIZED FORMULATION!!\n" << std::endl;
 
   }
   
@@ -179,6 +191,7 @@ namespace CoupledField {
       std::string polyId = curRegNode->Get("polyId")->As<std::string>();
       std::string integId = curRegNode->Get("integId")->As<std::string>();
 #endif
+
       // We hardcode the Taylor-Hood spaces for the moment
       velSpace->SetRegionApproximation(actRegion, "velPolyId", "velIntegId");
       presSpace->SetRegionApproximation(actRegion, "presPolyId", "presIntegId");
@@ -186,13 +199,11 @@ namespace CoupledField {
       PtrCoefFct density = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
       PtrCoefFct viscosity = materials_[actRegion]->GetScalCoefFnc( DYNAMIC_VISCOSITY, Global::REAL );
 
-
       WARN("fluid density: " << density->ToString() << "\n" << " dynamic viscosity: " << viscosity->ToString());
-      
 
       // Create set of flow regions and map of density functions for surface integrators.
       flowRegions.insert(actRegion);
-      oneFuncs[actRegion] = CoefFunction::Generate(Global::REAL,
+      oneFuncs[actRegion] = CoefFunction::Generate(mp_, Global::REAL,
                                                        lexical_cast<std::string>(1.0));
 
       // ====================================================================
@@ -205,13 +216,14 @@ namespace CoupledField {
 
 //      PtrCoefFct coeffKPV
 //                = CoefFunction::Generate(Global::REAL, "1.0");
-                
+
       BiLinearForm * stiffIntPV = NULL;
       if( dim_ == 2 ) {
         stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,2>(), 
                                   new DivOperator<FeH1,2>(), density, 1.0 );
       } else {
-        stiffIntPV = new ABInt<>(new MultiIdOp<FeH1,3>() , new DivOperator<FeH1,3>(), density, 1.0 );
+        stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,3>(),
+                                  new DivOperator<FeH1,3>(), density, 1.0 );
       }
       stiffIntPV->SetName("PerturbedStiffIntPV");
       //stiffIntPV->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
@@ -227,7 +239,7 @@ namespace CoupledField {
       //  VERSION 2: K_VP Integrator (upper off-diagonal integrator)
       // --------------------------------------------------------------------
       PtrCoefFct coeffKVP
-                = CoefFunction::Generate(Global::REAL, "1.0");
+                = CoefFunction::Generate(mp_,Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
       if( dim_ == 2 ) {
         stiffIntVP = new ABInt< IdentityOperator<FeH1,2,2> , GradientOperator<FeH1,2> >(coeffKVP, 1.0 / density );
@@ -244,15 +256,16 @@ namespace CoupledField {
       assemble_->AddBiLinearForm( stiffContVP );
 #endif
 
+
       // --------------------------------------------------------------------
       //  VERSION 2: K_VP Integrator
       //  (upper off-diagonal integrators - partially integrated, volume)
       // --------------------------------------------------------------------
       PtrCoefFct coeffKVP
-                = CoefFunction::Generate(Global::REAL, "1.0");
+                = CoefFunction::Generate(mp_,Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
       if( dim_ == 2 ) {
-        stiffIntVP = new ABInt<>(new  DivOperator<FeH1,2>(), new MultiIdOp<FeH1,2>(), coeffKVP, -1.0 );
+        stiffIntVP = new ABInt<>(new DivOperator<FeH1,2>(), new MultiIdOp<FeH1,2>(), coeffKVP, -1.0 );
       } else {
         stiffIntVP = new ABInt<>(new DivOperator<FeH1,3>() , new MultiIdOp<FeH1,3>(), coeffKVP, -1.0 );
       }
@@ -269,7 +282,7 @@ namespace CoupledField {
       //  VERSION 2: K_Laplace Integrator
       // --------------------------------------------------------------------
 //      PtrCoefFct coeffKvv
-//                = CoefFunction::Generate(Global::REAL,
+//                = CoefFunction::Generate(mp_,Global::REAL,
 //                                         lexical_cast<std::string>(viscosity));
       BiLinearForm * stiffIntLaplace = NULL;
       if( dim_ == 2 ) {
@@ -287,7 +300,7 @@ namespace CoupledField {
 
 
 //      PtrCoefFct coeffMVV
-//                = CoefFunction::Generate(Global::REAL,
+//                = CoefFunction::Generate(mp_, Global::REAL,
 //                                         lexical_cast<std::string>(density));
 
       //======================================================================
@@ -302,10 +315,11 @@ namespace CoupledField {
         PtrParamNode flowNode = myParam_->Get("flowList")->GetByVal("flow","name",flowId.c_str());
         
         // Read coefficient flow coefficient function for this region
+        bool coefUpdateGeo = false;
         PtrCoefFct regionFlow;
         std::set<UInt> definedDofs;
-        ReadUserFieldValues( regionName, flowNode, flowInfo->dofNames, flowInfo->entryType, 
-                             false, regionFlow, definedDofs );
+        ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames, flowInfo->entryType, 
+                             false, regionFlow, definedDofs, coefUpdateGeo );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
         
 //        if(isComplex_){
@@ -321,10 +335,10 @@ namespace CoupledField {
         if( dim_ == 2 ) {
           convectiveVv = new ABInt<>(new IdentityOperator<FeH1,2,2>(),
                                      new ConvectiveOperator<FeH1,2,2>(),
-                                     density, 1.0);
+                                     density, 1.0, coefUpdateGeo);
         } else {
           convectiveVv = new ABInt<>(new IdentityOperator<FeH1,3,3>(),
-                                     new ConvectiveOperator<FeH1,3,3>(), density, 1.0);
+                                     new ConvectiveOperator<FeH1,3,3>(), density, 1.0, coefUpdateGeo);
         }
 
         convectiveVv->SetBCoefFunctionOpB(meanFlowCoef_);
@@ -342,7 +356,7 @@ namespace CoupledField {
       // damping integrators
       // ====================================================================
 //      PtrCoefFct coeffDvv
-//                = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(density));
+//                = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(density));
 
       BiLinearForm *dampIntvv = NULL;
       if( dim_ == 2 ) {
@@ -358,6 +372,51 @@ namespace CoupledField {
       dampContextvv->SetEntities( actSDList, actSDList );
       dampContextvv->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],feFunctions_[FLUIDMECH_VELOCITY]);
       assemble_->AddBiLinearForm( dampContextvv );
+
+      //======================================================================
+      // DO STABILIZATION
+      //======================================================================
+
+      if ( stabilized_) {
+    	  //stabilization of pressure
+    	  // --------------------------------------------------------------------
+    	  //  VERSION 2: K_VP Integrator (upper off-diagonal integrator)
+    	  // --------------------------------------------------------------------
+    	  PtrCoefFct coeffKPPstab;
+    	  coeffKPPstab.reset(new CoefFunctionStabParams(density, viscosity));
+    	  BiLinearForm * stiffIntPPstab = NULL;
+    	  if( dim_ == 2 ) {
+    		  stiffIntPPstab = new BBInt<>(new GradientOperator<FeH1,2>(), coeffKPPstab,1.0);
+    	  } else {
+    		  stiffIntPPstab = new BBInt<>(new GradientOperator<FeH1,3>(), coeffKPPstab,1.0);
+    	  }
+    	  stiffIntPPstab->SetName("PerturbedStiffIntPPstab");
+    	  BiLinFormContext *stiffContPPstab = new BiLinFormContext(stiffIntPPstab, STIFFNESS );
+
+    	  stiffContPPstab->SetEntities( actSDList, actSDList );
+    	  stiffContPPstab->SetFeFunctions( presFct, presFct );
+    	  assemble_->AddBiLinearForm( stiffContPPstab );
+
+//      //stabilization of pressure-velocity
+//      Double densityVal;
+//      LocPointMapped map;
+//      density->GetScalar(densityVal, map);
+//      BiLinearForm *dampIntpvStab = NULL;
+//      if( dim_ == 2 ) {
+//        dampIntpvStab = new ABInt<>(new GradientOperator<FeH1,2>(),
+//                new IdentityOperator<FeH1,2,2>(), coeffKPPstab, densityVal);
+//      } else {
+//          dampIntpvStab = new ABInt<>(new GradientOperator<FeH1,3>(),
+//                    new IdentityOperator<FeH1,3,3>(), coeffKPPstab, densityVal);
+//      }
+//      dampIntpvStab->SetName("PerturbedDampIntStab");
+//      BiLinFormContext *dampContextpvStab =  new BiLinFormContext(dampIntpvStab, DAMPING );
+//
+//      dampContextpvStab->SetEntities( actSDList, actSDList );
+//      dampContextpvStab->SetFeFunctions( presFct, velFct);
+//      assemble_->AddBiLinearForm( dampContextpvStab );
+      }
+
     }
 
     StdVector<RegionIdType>::iterator surfIt, surfEnd;
@@ -406,44 +465,6 @@ namespace CoupledField {
   {
   }
   
-   
-  // ========================================================================
-  // COUPLING SECTION
-  // ========================================================================
-
-  void PerturbedFlowPDE::InitCoupling(PDECoupling * Coupling)
-  {
-    REFACTOR;
-  }
-  
-
-
-  void PerturbedFlowPDE::CalcOutputCoupling()
-  {
-    REFACTOR;
-  }
-
-
-  bool PerturbedFlowPDE::HasOutput(SolutionType output)
-  {
-    switch (output)
-      {
-      case FLUIDMECH_VELOCITY:
-        return true;
-        break;
-      case FLUIDMECH_PRESSURE:
-        return true;
-        break;
-      case MEAN_FLUIDMECH_VELOCITY:
-        return true;
-        break;
-      default:
-        return false;
-        break;
-      }
-    return false;
-  }
-
   void PerturbedFlowPDE::DefinePrimaryResults() {
     shared_ptr<BaseFeFunction> feFct = feFunctions_[FLUIDMECH_VELOCITY];
 
@@ -508,85 +529,93 @@ namespace CoupledField {
 
     shared_ptr<BaseFeFunction> feFct = feFunctions_[FLUIDMECH_PRESSURE];
 
-    StdVector<std::string> stressComponents;
-    if( subType_ == "3d" ) {
-      stressComponents = "xx", "yy", "zz", "yz", "xz", "xy";
-    } else if( subType_ == "plane" ) {
-      stressComponents = "xx", "yy", "xy";
-    } else if( subType_ == "axi" ) {
-      stressComponents = "rr", "zz", "rz", "phiphi";
-    }
-    StdVector<std::string > dispDofNames;
-    dispDofNames = feFunctions_[FLUIDMECH_VELOCITY]->GetResultInfo()->dofNames;
-    shared_ptr<BaseFeFunction> velFeFct = feFunctions_[FLUIDMECH_VELOCITY];
-
-#if 0
-    // === PRESSURE GRADIENT (just for debugging purposes) ===
-    shared_ptr<ResultInfo> ef ( new ResultInfo );
-    ef->resultType = FLUIDMECH_PRES_GRADIENT;
-    ef->SetVectorDOFs(dim_, isaxi_);
-    ef->unit = MapSolTypeToUnit(FLUIDMECH_PRES_GRADIENT);
-    ef->definedOn = ResultInfo::ELEMENT;
-    ef->entryType = ResultInfo::VECTOR;
-    availResults_.insert( ef );
-    shared_ptr<CoefFunctionFormBased> eFunc;
-    if( isComplex_ ) {
-      eFunc.reset(new CoefFunctionBOp<Complex>(feFct, ef, -1.0));
-    } else {
-      eFunc.reset(new CoefFunctionBOp<Double>(feFct, ef, -1.0));
-    }
-
-      PtrCoefFct coeffKVP
-                = CoefFunction::Generate(Global::REAL, "1.0");
-      BaseBDBInt * stiffIntVP = NULL;
-      if( dim_ == 2 ) {
-        stiffIntVP = new ABInt<>(new IdentityOperator<FeH1,2,2>(), 
-                                 new GradientOperator<FeH1,2>(), coeffKVP, 1.0 );
-      } else {
-        stiffIntVP = new ABInt<>(new IdentityOperator<FeH1,3,3>(), 
-                                 new GradientOperator<FeH1,3>(), coeffKVP, 1.0 );
+      StdVector<std::string> stressComponents;
+      if( subType_ == "3d" ) {
+        stressComponents = "xx", "yy", "zz", "yz", "xz", "xy";
+      } else if( subType_ == "plane" ) {
+        stressComponents = "xx", "yy", "xy";
+      } else if( subType_ == "axi" ) {
+        stressComponents = "rr", "zz", "rz", "phiphi";
       }
-      
-    DefineFieldResult( eFunc, ef );
-#endif
+      StdVector<std::string > dispDofNames;
+      dispDofNames = feFunctions_[FLUIDMECH_VELOCITY]->GetResultInfo()->dofNames;
+      shared_ptr<BaseFeFunction> velFeFct = feFunctions_[FLUIDMECH_VELOCITY];
 
-    // === FLUID-MECHANIC STRESS ===
-    shared_ptr<ResultInfo> stress(new ResultInfo);
-    stress->resultType = FLUIDMECH_STRESS;
-    stress->dofNames = stressComponents;
-    stress->unit = MapSolTypeToUnit(FLUIDMECH_STRESS);
-    stress->entryType = ResultInfo::TENSOR;
-    stress->definedOn = ResultInfo::ELEMENT;
-    availResults_.insert( stress );
-    shared_ptr<CoefFunctionFormBased> sigmaFunc;
-    if( isComplex_ ) {
-      sigmaFunc.reset(new CoefFunctionFlux<Complex>(velFeFct, stress));
-    } else {
-      sigmaFunc.reset(new CoefFunctionFlux<Double>(velFeFct, stress));
-    }
-    DefineFieldResult( sigmaFunc, stress );
-    
-    // === FLUID-MECHANIC STRAINRATE ===
-    shared_ptr<ResultInfo> strain(new ResultInfo);
-    strain->resultType = FLUIDMECH_STRAINRATE;
-    strain->dofNames = stressComponents;
-    strain->unit =  MapSolTypeToUnit(FLUIDMECH_STRAINRATE);;
-    strain->entryType = ResultInfo::TENSOR;
-    strain->definedOn = ResultInfo::ELEMENT;
-    availResults_.insert( strain );
-    shared_ptr<CoefFunctionFormBased> strainFunc;
-    if( isComplex_ ) {
-      strainFunc.reset(new CoefFunctionBOp<Complex>(velFeFct, strain));
-    } else {
-      strainFunc.reset(new CoefFunctionBOp<Double>(velFeFct, strain));
-    }
-    DefineFieldResult( strainFunc, strain );
+  #if 0
+      // === PRESSURE GRADIENT (just for debugging purposes) ===
+      shared_ptr<ResultInfo> ef ( new ResultInfo );
+      ef->resultType = FLUIDMECH_PRES_GRADIENT;
+      ef->SetVectorDOFs(dim_, isaxi_);
+      ef->unit = MapSolTypeToUnit(FLUIDMECH_PRES_GRADIENT);
+      ef->definedOn = ResultInfo::ELEMENT;
+      ef->entryType = ResultInfo::VECTOR;
+      availResults_.insert( ef );
+      shared_ptr<CoefFunctionFormBased> eFunc;
+      if( isComplex_ ) {
+        eFunc.reset(new CoefFunctionBOp<Complex>(feFct, ef, -1.0));
+      } else {
+        eFunc.reset(new CoefFunctionBOp<Double>(feFct, ef, -1.0));
+      }
 
+        PtrCoefFct coeffKVP
+                  = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+        BaseBDBInt * stiffIntVP = NULL;
+        if( dim_ == 2 ) {
+          stiffIntVP = new ABInt<>(new IdentityOperator<FeH1,2,2>(), 
+                                   new GradientOperator<FeH1,2>(), coeffKVP, 1.0 );
+        } else {
+          stiffIntVP = new ABInt<>(new IdentityOperator<FeH1,3,3>(), 
+                                   new GradientOperator<FeH1,3>(), coeffKVP, 1.0 );
+        }
+        
+      DefineFieldResult( eFunc, ef );
+  #endif
+
+      // === FLUID-MECHANIC STRESS ===
+      shared_ptr<ResultInfo> stress(new ResultInfo);
+      stress->resultType = FLUIDMECH_STRESS;
+      stress->dofNames = stressComponents;
+      stress->unit = MapSolTypeToUnit(FLUIDMECH_STRESS);
+      stress->entryType = ResultInfo::TENSOR;
+      stress->definedOn = ResultInfo::ELEMENT;
+      availResults_.insert( stress );
+      shared_ptr<CoefFunctionFormBased> sigmaFunc;
+      if( isComplex_ ) {
+        sigmaFunc.reset(new CoefFunctionFlux<Complex>(velFeFct, stress));
+      } else {
+        sigmaFunc.reset(new CoefFunctionFlux<Double>(velFeFct, stress));
+      }
+      DefineFieldResult( sigmaFunc, stress );
       
+      // === FLUID-MECHANIC STRAINRATE ===
+      shared_ptr<ResultInfo> strain(new ResultInfo);
+      strain->resultType = FLUIDMECH_STRAINRATE;
+      strain->dofNames = stressComponents;
+      strain->unit =  MapSolTypeToUnit(FLUIDMECH_STRAINRATE);;
+      strain->entryType = ResultInfo::TENSOR;
+      strain->definedOn = ResultInfo::ELEMENT;
+      availResults_.insert( strain );
+      shared_ptr<CoefFunctionFormBased> strainFunc;
+      if( isComplex_ ) {
+        strainFunc.reset(new CoefFunctionBOp<Complex>(velFeFct, strain));
+      } else {
+        strainFunc.reset(new CoefFunctionBOp<Double>(velFeFct, strain));
+      }
+      DefineFieldResult( strainFunc, strain );
+
+  }
+  
+  void PerturbedFlowPDE::FinalizePostProcResults() {
+
+    shared_ptr<CoefFunctionFormBased> sigmaFunc = 
+        dynamic_pointer_cast<CoefFunctionFormBased>(fieldCoefs_[FLUIDMECH_STRESS]);
+    shared_ptr<CoefFunctionFormBased> strainFunc = 
+        dynamic_pointer_cast<CoefFunctionFormBased>(fieldCoefs_[FLUIDMECH_STRAINRATE]);
+
     // ============================
     // Initialize result functors:
     // ============================
-    
+
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {      
@@ -643,7 +672,7 @@ namespace CoupledField {
     results_.Push_back( flowvelocity );
     availResults_.insert( flowvelocity );
     
-    meanFlowCoef_.reset(new CoefFunctionMulti());
+    meanFlowCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
     DefineFieldResult( meanFlowCoef_, flowvelocity );
   }
 

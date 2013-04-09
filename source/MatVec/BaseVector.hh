@@ -55,7 +55,9 @@ namespace CoupledField {
     //! The first row contains the dimension \f$n\f$, while the remaining
     //! rows contain the vector's entries, so row (k+1) contains entry
     //! \f$a_k\f$.
-    virtual void Export( const char *fname ) const = 0;
+    virtual void Export( const char *fname,
+                         BaseMatrix::OutputFormat format = 
+                           BaseMatrix::MATRIX_MARKET ) const = 0;
 
     //! Add vec to this vector
     virtual void Add(const BaseVector& vec) = 0;

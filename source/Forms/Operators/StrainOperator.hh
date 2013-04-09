@@ -36,7 +36,9 @@ namespace CoupledField{
     //@}
 
     //! Constructor
-    StrainOperator2D(){
+    //! \param useIcModes Use incompatible modes shape functions
+    StrainOperator2D( bool useICModes = false )
+    :  useICModes_(useICModes) {
       this->name_ = "StrainOperator2D";
     }
 
@@ -90,6 +92,9 @@ namespace CoupledField{
     //@}
     
   protected:
+    
+    //! Flag, if incompatible modes are used
+    const bool useICModes_;
 
   };
 
@@ -97,16 +102,24 @@ namespace CoupledField{
   void StrainOperator2D<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
                                             const LocPointMapped& lp, 
                                             BaseFE* ptFe ){
-    const UInt numFncs = ptFe->GetNumFncs();
-    // Set correct size of matrix B and initialize with zeros
-    bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
-    bMat.Init();
-
     // Get derivatives of local shape functions with respect to global
     // coords (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
     FE *fe = (static_cast<FE*>(ptFe));
-    fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    if( useICModes_ ) {
+      fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+
+    } else {
+      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    }
+    
+    const UInt numFncs = xiDx.GetNumRows();
+    
+    // Set correct size of matrix B and initialize with zeros
+    bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
+    bMat.Init();
+
+    
     UInt iFunc = 0;
     UInt pos = 0;
     for( ; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
@@ -127,16 +140,22 @@ namespace CoupledField{
   void StrainOperator2D<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
                                                       const LocPointMapped& lp, 
                                                       BaseFE* ptFe ){
-    const UInt numFncs = ptFe->GetNumFncs();
-    // Set correct size of matrix B and initialise with zeros
-    bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT );
-    bMat.Init();
-
     // Get derivatives of local shape functions with respect to global
     // coords (format: spaceDim x nrNodes )
     Matrix<Double> xiDx;
     FE *fe = (static_cast<FE*>(ptFe));
-    fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    // query const variable, should be pretty much optimized away
+    if( useICModes_ ) {
+      fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    } else {
+      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    }
+
+    const UInt numFncs = xiDx.GetNumRows();
+    // Set correct size of matrix B and initialise with zeros
+    bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT );
+    bMat.Init();
+
     UInt iFunc = 0;
     UInt pos = 0;
     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
@@ -182,7 +201,9 @@ namespace CoupledField{
     //@}
 
     //! Constructor
-    StrainOperatorAxi(){
+    //! \param useIcModes Use incompatible modes shape functions
+    StrainOperatorAxi( bool useICModes = false )
+    :  useICModes_(useICModes) {
       this->name_ = "StrainOperatorAxi";
     }
 
@@ -236,27 +257,38 @@ namespace CoupledField{
        //@}
   protected:
 
+    //! Flag, if incompatible modes are used
+    const bool useICModes_;
+
   };
 
   template<class FE, class TYPE>
   void StrainOperatorAxi<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
                                             const LocPointMapped& lpm, 
                                             BaseFE* ptFe ){
-    const UInt numFncs = ptFe->GetNumFncs();
-    
-    // Set correct size of matrix B and initialize with zeros
-    bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
-    bMat.Init();
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
     FE *fe = (static_cast<FE*>(ptFe));
-    fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
+    if( useICModes_ ) {
+      fe->GetGlobDerivShFncICModes( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
+    } else {
+      fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
+    }
+    const UInt numFncs = xiDx.GetNumRows();
     
+    // Set correct size of matrix B and initialize with zeros
+    bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
+    bMat.Init();
+        
     // Calculate phi-phi component
     Vector<Double> shape;
-    fe->GetShFnc( shape, lpm.lp, lpm.shapeMap->GetElem() );
+    if( useICModes_ ) {
+      fe->GetShFncICModes( shape, lpm.lp, lpm.shapeMap->GetElem() );
+    } else {
+      fe->GetShFnc( shape, lpm.lp, lpm.shapeMap->GetElem() );
+    }
     Vector<Double> globPoint;
     lpm.shapeMap->Local2Global(globPoint, lpm.lp);
     const Double oneOverR = 1.0 /  globPoint[0];
@@ -288,20 +320,29 @@ namespace CoupledField{
   void StrainOperatorAxi<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
                                                       const LocPointMapped& lpm, 
                                                       BaseFE* ptFe ){
-    const UInt numFncs = ptFe->GetNumFncs();
-    // Set correct size of matrix B and initialize with zeros
-    bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT );
-    bMat.Init();
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: spaceDim x nrNodes )
     Matrix<Double> xiDx;
     FE *fe = (static_cast<FE*>(ptFe));
-    fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
+    if( useICModes_ ) {
+      fe->GetGlobDerivShFncICModes( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
+    } else {
+      fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
+    }
+    
+    const UInt numFncs = xiDx.GetNumRows();
+    // Set correct size of matrix B and initialise with zeros
+    bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT );
+    bMat.Init();
 
     // Calculate phi-phi component
     Vector<Double> shape;
-    fe->GetShFnc( shape, lpm.lp, lpm.shapeMap->GetElem() );
+    if( useICModes_ ) {
+      fe->GetShFncICModes( shape, lpm.lp, lpm.shapeMap->GetElem() );
+    } else {
+      fe->GetShFnc( shape, lpm.lp, lpm.shapeMap->GetElem() );
+    }
     Vector<Double> globPoint;
     lpm.shapeMap->Local2Global(globPoint, lpm.lp);
     const Double oneOverR = 1.0 /  globPoint[0];
@@ -356,7 +397,9 @@ namespace CoupledField{
      //@}
 
      //! Constructor
-     StrainOperator3D(){
+     //! \param useIcModes Use incompatible modes shape functions
+     StrainOperator3D( bool useICModes = false)
+     :  useICModes_(useICModes) {
        this->name_ = "StrainOperator3D";
      }
 
@@ -411,22 +454,30 @@ namespace CoupledField{
      
    protected:
 
+     //! Flag, if incompatible modes are used
+     const bool useICModes_;
+
    };
 
    template<class FE, class TYPE>
    void StrainOperator3D<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
                                              const LocPointMapped& lp, 
                                              BaseFE* ptFe ){
-     const UInt numFncs = ptFe->GetNumFncs();
-     // Set correct size of matrix B and initialize with zeros
-     bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
-     bMat.Init();
-
      // Get derivatives of local shape functions with respect to global
      // coords (format: nrNodes x spaceDim)
      Matrix<Double> xiDx;
      FE *fe = (static_cast<FE*>(ptFe));
-     fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+     if( useICModes_ ) {
+       fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+     } else {
+       fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+     }
+     
+     const UInt numFncs = xiDx.GetNumRows();
+     // Set correct size of matrix B and initialize with zeros
+     bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
+     bMat.Init();
+         
      UInt iFunc = 0;
      UInt pos = 0;
      for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
@@ -461,16 +512,21 @@ namespace CoupledField{
    void StrainOperator3D<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
                                                        const LocPointMapped& lp, 
                                                        BaseFE* ptFe ){
-     UInt numFncs = ptFe->GetNumFncs();
-     // Set correct size of matrix B and initialize with zeros
-     bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT );
-     bMat.Init();
-
      // Get derivatives of local shape functions with respect to global
      // coords (format: spaceDim x nrNodes )
      Matrix<Double> xiDx;
      FE *fe = (static_cast<FE*>(ptFe));
-     fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+     if( useICModes_ ) {
+       fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+     } else {
+       fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+     }
+     
+     const UInt numFncs = xiDx.GetNumRows();
+     // Set correct size of matrix B and initialise with zeros
+     bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT );
+     bMat.Init();
+
      UInt iFunc = 0;
      UInt pos = 0;
      for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {

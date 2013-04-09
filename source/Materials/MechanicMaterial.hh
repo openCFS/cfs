@@ -19,7 +19,8 @@ namespace CoupledField {
   public:
 
     //! Default constructor
-    MechanicMaterial();
+    MechanicMaterial(MathParser* mp,
+                     CoordSystem * defaultCoosy);
 
     //! Destructor
     virtual ~MechanicMaterial();

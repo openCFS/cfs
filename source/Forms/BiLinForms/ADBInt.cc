@@ -52,7 +52,7 @@ namespace CoupledField{
 
     // Get shape map from grid
     shared_ptr<ElemShapeMap> esm = 
-        domain->GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+        ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
     // Get integration points
     StdVector<LocPoint> intPoints;
@@ -72,7 +72,7 @@ namespace CoupledField{
     for( UInt i = 0; i < numIntPts; ++i) {
 
       // Calculate for each integration point the LocPointMapped
-      lp.Set( intPoints[i], esm );
+      lp.Set( intPoints[i], esm, weights[i] );
 
       // Calculate the A-matrix
       aOperator_->CalcOpMat( aMat_, lp, ptFeA);

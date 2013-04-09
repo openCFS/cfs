@@ -1,17 +1,24 @@
 #include "CoefFunctionMulti.hh"
+#include "CoefFunctionConst.hh"
 
 namespace CoupledField  {
 
 
-CoefFunctionMulti::CoefFunctionMulti( bool zeroEmptyRegions ) {
+CoefFunctionMulti::CoefFunctionMulti( CoefDimType dimType,
+                                      UInt dim1, UInt dim2,
+                                      bool isComplex,
+                                      bool zeroEmptyRegions ) {
 
   // set global data
-  dimType_ = CoefFunction::NO_DIM;
+  dimType_ = dimType;
   dependType_ = CoefFunction::GENERAL;
   
-  // a ditributed coefficient function can never be analytic
+  // a distributed coefficient function can never be analytic
   isAnalytic_ = false;
-  isComplex_ = false;
+  
+  isComplex_ = isComplex;
+  rowSize_ = dim1;
+  colSize_ = dim2;
   
   zeroEmptyRegions_ = zeroEmptyRegions;
 }
@@ -24,36 +31,64 @@ CoefFunctionMulti::~CoefFunctionMulti() {
 void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
   // check, if this is the first entry
   if( regionCoefs_.size() == 0 ) {
-    dimType_ = coef->GetDimType();
-    isComplex_ = coef->IsComplex();
     
-    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
-    
+    shared_ptr<CoefFunctionConst<Complex> > cFct(new CoefFunctionConst<Complex>());
+    shared_ptr<CoefFunctionConst<Double> > rFct(new CoefFunctionConst<Double>());
     // generate empty coefficient functions
     if( dimType_ == CoefFunction::SCALAR) {
-      zeroCeof_ = CoefFunction::Generate(part, "0.0","0.0");
+      cFct->SetScalar(0.0);
+      rFct->SetScalar(0.0);
     } else if( dimType_ == CoefFunction::VECTOR ) {
-      StdVector<std::string> zeroVec(coef->GetVecSize());
-      zeroVec.Init("0.0");
-      zeroCeof_ = CoefFunction::Generate(part, zeroVec, zeroVec);
+      Vector<Complex> cZvec(coef->GetVecSize());
+      Vector<Double> rZvec(coef->GetVecSize());
+      cZvec.Init(0.0);
+      rZvec.Init(0.0);
+      cFct->SetVector(cZvec);
+      rFct->SetVector(rZvec);
     } else if( dimType_ == CoefFunction::TENSOR ) {
       UInt numRows, numCols;
       coef->GetTensorSize( numRows, numCols);
-      StdVector<std::string> zeroVec(numRows*numCols);
-      zeroVec.Init("0.0");
-      zeroCeof_ = CoefFunction::Generate(part, numRows, numCols, 
-                                         zeroVec, zeroVec);
+      Matrix<Complex> cTens(numRows,numCols);
+      Matrix<Double> rTens(numRows,numCols);
+      cTens.Init();
+      rTens.Init();
+      cFct->SetTensor(cTens);
+      rFct->SetTensor(rTens);
     } else  {
       EXCEPTION( "Unknown dimension type" );
     }
     
+    if(isComplex_) {
+      zeroCoef_ = cFct;
+    } else { 
+      zeroCoef_ = rFct;
+    }
+      
   } else {
     PtrCoefFct first = regionCoefs_.begin()->second;
-    if( coef->GetDimType() != first->GetDimType() ) {
+    if( coef->GetDimType() != dimType_ ) {
       EXCEPTION( "The dimensionality of the coefficient functions "
           << "is not the same");
     }
-    if( isComplex_ != first->IsComplex() ) {
+    
+    // check size of tensor
+    UInt nRows, nCols;
+    switch (coef->GetDimType() ) {
+      case VECTOR:
+        if(coef->GetVecSize() != rowSize_ ) {
+          EXCEPTION( "Vector size inconsistent" );
+        }
+      break;
+      case TENSOR:
+        coef->GetTensorSize(nRows, nCols);
+        if( nRows != rowSize_ || nCols != colSize_) {
+          EXCEPTION( "Tensor size inconsistent" );
+        }
+        break;
+      default:
+        break;
+    }
+    if( isComplex_ != coef->IsComplex() ) {
       EXCEPTION( "All coefficient functions must have the same complexType");
     }
   }
@@ -109,13 +144,15 @@ void CoefFunctionMulti::GetScalar(Double& coef,
 }
 
 UInt CoefFunctionMulti::GetVecSize() const {
-  assert(regionCoefs_.size());
-  return regionCoefs_.begin()->second->GetVecSize();
+  assert(dimType_ == CoefFunction::VECTOR);
+  return rowSize_;
 }
 
 void CoefFunctionMulti::GetTensorSize( UInt& numRows, UInt& numCols ) const {
-  assert(regionCoefs_.size());
-  return regionCoefs_.begin()->second->GetTensorSize(numRows, numCols);
+  assert(dimType_ == CoefFunction::TENSOR);
+  numRows = rowSize_;
+  numCols = colSize_;
+
 }
 
 std::string CoefFunctionMulti::ToString() const {
@@ -126,6 +163,37 @@ std::string CoefFunctionMulti::ToString() const {
     ret << "regionId " << it->first << ", value:" << it->second->ToString() << std::endl;
   }
   return ret.str();
+}
+
+void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                           StdVector<Double >  & vals){
+  EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
+
+}
+
+void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                           StdVector<Vector<Double> >  & vals){
+  EXCEPTION("CoefFunctionMulti::GetScalarValuesAtPoints: not implemented")
+}
+
+void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                          StdVector<Matrix<Double> >  & vals){
+  EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
+}
+
+void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                           StdVector<Complex >  & vals){
+  EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
+}
+
+void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                           StdVector<Vector<Complex> >  & vals){
+  EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
+}
+
+void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                          StdVector<Matrix<Complex> >  & vals){
+  EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
 }
 
 

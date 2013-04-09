@@ -40,6 +40,13 @@ class BaseTimeScheme{
      */
     virtual void Init(SingleVector* fncCoef,Double dt)=0;
 
+    /*! Begin a new step
+     * 
+     * \param[in] updatePredictor  Flag, if predictor values get re-calculated. In case of
+     *                             nonlinear solution, this has to be set to false
+     */
+    virtual void BeginStep(bool updatePredictor = true)=0;
+
     /*!
      *   Computes the effective RHS based on the GLM vector and preceeding stage solutions
      *   \param[in] actStage The current stage number (used to determine row in GLM tableau)

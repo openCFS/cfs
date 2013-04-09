@@ -556,7 +556,7 @@ namespace CoupledField {
   // *****************
   //   Export vector
   // *****************
-  void SBM_Vector::Export( const char *fname ) const {
+  void SBM_Vector::Export( const char *fname, BaseMatrix::OutputFormat format ) const {
 
 
     std::stringstream fileName;
@@ -566,12 +566,12 @@ namespace CoupledField {
 
       // construct file name
       fileName.str( "" );
-      fileName << fname << '_' << j << ".vec";
+      fileName << fname << '_' << j;
       outFile = fileName.str();
 
       // export sub-vector
       if ( subVec_[j] != NULL ) {
-        subVec_[j]->Export( outFile.c_str() );
+        subVec_[j]->Export( outFile.c_str(), format );
       }
     }
   }

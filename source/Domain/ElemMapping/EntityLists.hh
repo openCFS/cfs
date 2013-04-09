@@ -366,6 +366,12 @@ namespace CoupledField {
     //! True, if iterator is at end of list
     bool IsEnd() const;
     
+    
+    //! Get pointer to grid
+    Grid* GetGrid() {
+      return ptGrid_;
+    }
+    
     //! Increment iterator
     EntityIterator& operator++(int);
     
@@ -413,6 +419,7 @@ namespace CoupledField {
     
   protected:
     EntityList::ListType type_;
+    Grid* ptGrid_;
     const ElemList* elemList_;
     const SurfElemList* surfElemList_;
     const NodeList* nodeList_;

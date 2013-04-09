@@ -18,7 +18,8 @@ namespace CoupledField
   public:
 
     //! Constructor
-    SimOutputGiD( const std::string& fileName, PtrParamNode outputNode );
+    SimOutputGiD( const std::string& fileName, PtrParamNode outputNode,
+                  PtrParamNode infoNode );
   
     //! Destructor
     virtual ~SimOutputGiD();

@@ -13,28 +13,95 @@ SET(DATAINOUT_SRCS
   ProgramOptions.cc
   ResultCache.cc
   ResultHandler.cc
+  SimState.cc
+  SimInput.cc
   SimOutput.cc
-  XMLMaterialHandler.cc
+  DefineInOutFiles.cc
 )
 
 ADD_LIBRARY(datainout STATIC ${DATAINOUT_SRCS})
 
 SET(TARGET_LL
-  materials
   simouttext
   simoutinfo
-  simoutstreaming
+  )
+
+IF(NOT MINGW)
+  LIST(APPEND TARGET_LL
+    simoutstreaming
+    )
+ENDIF(NOT MINGW)
+
+LIST(APPEND TARGET_LL
   ${BOOST_PROGRAM_OPTIONS_LIB}
   ${BOOST_FILESYSTEM_LIB}
   ${BOOST_SYSTEM_LIB}
   ${BZIP2_LIBRARY}
-)
+  )
 
 IF(USE_XERCES)
-  SET(TARGET_LL
-    ${TARGET_LL}
+  LIST(APPEND TARGET_LL
     ${XERCES_LIBRARY}
     )
 ENDIF(USE_XERCES)
 
-TARGET_LINK_LIBRARIES(datainout ${TARGET_LL})
+IF(USE_LAPACK)
+  LIST(APPEND TARGET_LL
+    ${LAPACK_LIBRARY}
+    ${BLAS_LIBRARY}
+    ${CFS_FORTRAN_LIBS}
+    )
+ENDIF(USE_LAPACK)
+
+
+
+
+
+# ================
+
+IF(USE_HDF5)
+  INCLUDE_DIRECTORIES(${HDF5_INCLUDE_DIR})
+ENDIF(USE_HDF5)
+
+IF(USE_MESH)
+  LIST(APPEND TARGET_LL siminmesh)
+  LIST(APPEND TARGET_LL internalmesh)
+ENDIF(USE_MESH)
+
+IF(USE_GMV)
+  LIST(APPEND TARGET_LL siminoutgmv)
+ENDIF(USE_GMV)
+
+IF(USE_GMSH)
+  LIST(APPEND TARGET_LL siminoutgmsh)
+ENDIF(USE_GMSH)
+
+IF(USE_GIDPOST)
+  LIST(APPEND TARGET_LL simoutgid)
+ENDIF(USE_GIDPOST)
+
+IF(USE_UNV)
+  LIST(APPEND TARGET_LL simoutunv)
+ENDIF(USE_UNV)
+
+IF(USE_HDF5)
+  LIST(APPEND TARGET_LL siminouthdf5)
+  LIST(APPEND TARGET_LL simoutxdmf)
+ENDIF(USE_HDF5)
+
+IF(USE_ANSYSRST)
+  LIST(APPEND TARGET_LL simoutansysrst)
+ENDIF(USE_ANSYSRST)
+
+IF(USE_COMSOL)
+  LIST(APPEND TARGET_LL siminmphtxt)
+ENDIF(USE_COMSOL)
+
+LIST(APPEND TARGET_LL siminrefelems)
+
+LIST(APPEND TARGET_LL simoutinfo)
+
+LIST(APPEND TARGET_LL datainout)
+
+  
+  TARGET_LINK_LIBRARIES(datainout ${TARGET_LL})

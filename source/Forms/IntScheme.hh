@@ -11,8 +11,6 @@
 #include <boost/functional/hash.hpp>
 #include <boost/array.hpp>
 #include <boost/unordered_map.hpp>
-// needed for defining a hash function for integration orders
-
 
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/ElemShapeMap.hh"
@@ -29,6 +27,8 @@ namespace CoupledField {
   //! an integer value or anisotropic, allowing a different order
   //! in each element-local direction (xi, eta, zeta).
   class IntegOrder {
+    
+    friend bool operator< (const IntegOrder&, const IntegOrder&);
     
   public:
     
@@ -61,6 +61,15 @@ namespace CoupledField {
     //! Adds a second IntegOrder struct to itself
     IntegOrder& operator+=( const IntegOrder& other );
     
+    //! Multiplication of integration order by scalar factor
+    IntegOrder operator*(const UInt mult) const;
+    
+    //! Add scalar, isotropic offset to integration order 
+    IntegOrder operator+(const UInt add) const;
+    
+    //! Subtract scalar, isotropic offset to integration order 
+    IntegOrder operator-(const UInt add) const;
+
     // ----------------------------------------------------------------------
     //  Query Methods
     // ----------------------------------------------------------------------
@@ -74,8 +83,11 @@ namespace CoupledField {
     //! Return isotropic order. Returns 0 if not set
     UInt GetIsoOrder() const;
     
-    //! Return anisotropic order. Returns empty vector if not set.
+    //! Return anisotropic order.
     void GetAnisoOrder( StdVector<UInt>& order ) const;
+    
+    //! Return maximum integration order
+    UInt GetMaxOrder() const;
     
     //! Convert to string representation
     std::string ToString() const;
@@ -112,7 +124,10 @@ namespace CoupledField {
     bool isSet_;
     
   };
-
+  
+  
+  //! external operator for comparing two IntegOrders
+  bool operator<( const IntegOrder& a, const IntegOrder& b );
 
   //! Class defining Numerical Integration
 
@@ -124,18 +139,15 @@ namespace CoupledField {
   public:
 
     /** enumeration with integration types - to be renamed into IntegrationType
-    * UNDEFINED: only interal use / not define
-    * GAUSS: Classic Gauss-Legendre integration points (quad, hex: tensor product of 1D points)
-    * GAUSS_CART: As GAUSS, only with anisotropic weightning in 3 directions. 
-    *             The order is encoded in xxyyzz form x1 =0-9, x2 = 1x-9x, x3 = 1xx-9xx
-    * GAUSS_ECO: are the "efficient" gaussian quadrature weights
+    * UNDEFINED: only internal use / not define
+    * GAUSS: Classic Gauss-Legendre integration points (quad, hex: tensor product of 1D points),
+    *        which also supports anisotropic integration order.
+    * GAUSS_ECO: are the "efficient" Gaussian quadrature weights
     *            (->Solin, Segeth, Dolezel, Higher-Order Finite Element Methods)
     * LOBATTO: Gauss-Lobatto integration points (used for spectral method)
-    * CHEBYSHEV: special line intgration methods (->Solin, Segeth, Dolezel, 
-    *            Higher-Order Finite Element Methods)
-    * SPECIAL: Special points (mainly used for HEX27 element)*/
-    typedef enum { UNDEFINED, GAUSS, GAUSS_CART, GAUSS_ECO, 
-                   LOBATTO, CHEBYSHEV, SPECIAL } IntegMethod;
+    *            Higher-Order Finite Element Methods */
+    typedef enum { UNDEFINED, GAUSS,  GAUSS_ECO, 
+                   LOBATTO, CHEBYSHEV  } IntegMethod;
     static Enum<IntegMethod> IntegMethodEnum;
     
     typedef std::map<Elem::ShapeType,StdVector<LocPoint> > IntegrationPoints;
@@ -147,10 +159,6 @@ namespace CoupledField {
     //! Destructor
     ~IntScheme();
   
-    //! Set method and order
-    //! \param order Integration order (-1 defaults to 2) 
-    void SetOrder( std::string method, Integer order);
-
     //! Get integration points / weights
     void GetIntPoints( Elem::ShapeType elemType,
                        IntegMethod method,
@@ -158,7 +166,7 @@ namespace CoupledField {
                        StdVector<LocPoint>& intPts, 
                        StdVector<Double>& weights );
     
-    //! Get integration points / weights
+    //! Get integration points / weights for combinations of two orders
     void GetIntPoints( Elem::ShapeType elemType,
                        IntegMethod method1,
                        const IntegOrder& order1,
@@ -167,75 +175,118 @@ namespace CoupledField {
                        StdVector<LocPoint>& intPts, 
                        StdVector<Double>& weights );  
 
-    //! Returns all definied integration points in a single vector
+    //! Returns all defined integration points in a single vector
     void GetAllIntegrationPoints(StdVector< LocPoint >& points, Elem::ShapeType type); 
 
-    //! Returns definied integration points in a single vector for a given order
+    //! Returns defined integration points in a single vector for a given order
     void GetIntegrationPoints(std::map<Integer, LocPoint >& points, Elem::ShapeType type,
                               IntegMethod method, const IntegOrder& order );
 
+    //! Print list of available integration points
+    std::string PrintList( bool detailed ) const;
+    
 private:
-    //! Adds the Gauss Lobatto/Legendre  Points up to the given order to the Integration maps
-    void FillIntegPoints(UInt order);
+
+    //! Define specific integration set and save it to internal map (optional)
+    void DefineIntPoints( Elem::ShapeType shapeType,
+                          IntegMethod method, const IntegOrder& order,
+                          StdVector<LocPoint>& points, 
+                          StdVector<Double>& weights,
+                          bool saveInternal = true);
+
+    // ======================================================================
+    //  Element Shape Specific Integration Points
+    // ======================================================================
+    //@{ \name Element Shape Specific Integration Rule Methods
+    
+    //! Define integration points / weights for line elements
+    void DefineLinePoints( IntegMethod method, const IntegOrder& order,
+                           StdVector<LocPoint>& points, 
+                           StdVector<Double>& weights );
+
+    //! Define integration points / weights for triangular elements
+    void DefineTriaPoints( IntegMethod method, const IntegOrder& order,
+                           StdVector<LocPoint>& points, 
+                           StdVector<Double>& weights );
+
+    //! Define integration points / weights for quadrilateral elements
+    void DefineQuadPoints( IntegMethod method, const IntegOrder& order,
+                           StdVector<LocPoint>& points, 
+                           StdVector<Double>& weights );
+    
+    //! Define integration points / weights for tetrahedral elements
+    void DefineTetPoints( IntegMethod method, const IntegOrder& order,
+                           StdVector<LocPoint>& points, 
+                           StdVector<Double>& weights );
+    
+    //! Define integration points / weights for hexahderal elements
+    void DefineHexPoints( IntegMethod method, const IntegOrder& order,
+                           StdVector<LocPoint>& points, 
+                           StdVector<Double>& weights );
+    
+    //! Define integration points / weights for pyramidal elements
+    void DefinePyraPoints( IntegMethod method, const IntegOrder& order,
+                            StdVector<LocPoint>& points, 
+                            StdVector<Double>& weights );
+    
+    //! Define integration points / weights for wedge / prism elements
+    void DefineWedgePoints( IntegMethod method, const IntegOrder& order,
+                           StdVector<LocPoint>& points, 
+                           StdVector<Double>& weights );
+    
+
+    //@}
+
+    // ======================================================================
+    //  Auxilliary Methods
+    // ======================================================================  
+    //! Calculate integration points for triangles with Duffy transformation
+    void CalcIntTria( IntegMethod, UInt order,StdVector<LocPoint>& points,
+                      StdVector<Double>& weights );
+
+    //! Fill initial set of integration points up to a given order.
+    void FillInitialIntegPoints(UInt order);
+
+    //! Convert array representation of LocPoints/Weight-array to vectors
+
+    //! This method converts the raw double-array representation of 
+    //! integration weights and numbers to a vector representation of 
+    //! LocPoints and weights.
+    //! \param dim Spatial dimension of the element
+    //! \param shape Shape of element
+    //! \param data Actually [][2] for 1D (coord + weight) and [][3] 
+    //!             for 2D and  [][4] for 3D
+    //! \param points Integration points
+    //! \param weights Integration weights
+
+    void Convert( Elem::ShapeType shape, UInt nPoints, Double *data,
+                  StdVector<LocPoint>& points, StdVector<Double>& weights);
 
     //! Calculate the Gauss-Lobatto points an weights for the given order
     void CalcGaussLobattoPointsWeights( UInt order,StdVector<Double>& points, 
                                         StdVector<Double>& weights );
-    
-    //! Calculate the Gauss-Lobatto points an weights for the given order
+
+    //! Calculate the Gauss-Legendre points an weights for the given order
     void CalcGaussLegendrePointsWeights( UInt order, StdVector<Double>& points, 
                                          StdVector<Double>& weights );
 
-    //! Generate set of integration points / weight for gien element, method and order 
-    
-    //! Add single integration point set
-    
-    //! This method allows to define by hand integrations points for a 
-    //! given element.
-    //! \param method Integration method  
-    //! \param shape Shape of element
-    //! \param order Integration order
-    //! \param numPoints Number of points
-    //! \param data Actually [][2] for 1D (coord + weight) and [][3] 
-    //!             for 2D and  [][4] for 3D
-    void AddIntegrationSet( IntegMethod method, Elem::ShapeType shape, 
-                            UInt order, UInt numPoints, Double* data );
-    
-    //! Define integrations points / weights for triangular elements
-    void DefineTriaPoints();
-    
-    //! Calculate integration points for triangles with Duffy transformation
-    void CalcIntTria( IntegMethod, UInt order,StdVector<LocPoint>& points,
-                      StdVector<Double>& weights, bool numberPoints );
-    
-   //! Define integration points for wedge
-   void DefineWedgePoints();
-
-   //! Define integration points for tetrahedron
-   void DefineTetPoints();
-
-   //! Define integration points for pyramid
-   void DefinePyraPoints();
-
-    //! typdef for map of integration points
+    //! typedef for map of integration points
     typedef boost::unordered_map< IntegOrder, IntegrationPoints, IntegOrder::Hash > IntPointMap;
-    
-   //! typedef for map of integration weights
+
+    //! typedef for map of integration weights
     typedef boost::unordered_map< IntegOrder, IntegrationWeights, IntegOrder::Hash > IntWeightMap;
-    
+
     //! Map with integration points for each element type According to the Template Parameter Integration Scheme
     std::map<IntegMethod, IntPointMap > intPoints_;
-    
+
     //! Map with integration weights for each element type
     std::map<IntegMethod, IntWeightMap > intWeights_;
 
-    //! stores the overall number of integration points definied in this class
+    //! stores the overall number of integration points defined in this class
     //! for each element type, zero based
     std::map<Elem::ShapeType,UInt> numIntPts_;
-      
-};
 
-
+  };
 
 } // namespace CoupledField
 

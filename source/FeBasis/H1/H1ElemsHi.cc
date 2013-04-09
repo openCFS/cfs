@@ -178,6 +178,18 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
   UInt FeH1Hi::GetMaxOrder() const {
     return maxOrder_;
   }
+
+  void FeH1Hi::GetAnisoOrder(StdVector<UInt>& order ) const {
+
+    if( isIsotropic_) {
+      order.Resize(Elem::shapes[feType_].dim);
+      order.Init(isoOrder_);
+    } else {
+      order = anisoOrder_;  
+    }
+  }
+  
+  
   
 //  void FeH1Hi::EvalPolynom( Double& value, Double& deriv,
 //                            const UInt order, const Double* coeff,
@@ -275,6 +287,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     ret[1] = 0.5 * ( 1.0 + x );
     
     T_VEC vals;
+    vals.Init();
     IntLegendreP2<T_SCAL,T_VEC>( vals, order, fac*x );
     UInt pos = 2;
     for( UInt j = 0; j < order-1; ++j ) {

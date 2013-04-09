@@ -384,8 +384,8 @@ namespace CoupledField {
     //! For details of the specification see http://math.nist.gov/MatrixMarket
     //! \param fname name of output file
     //! \param comment string to be inserted into file header
-    void Export( const char *fname, const char *comment = NULL ) const {
-      EXCEPTION("Diag_Matrix do not support  Export");
+    void ExportMatrixMarket( const char *fname, const char *comment = NULL ) const {
+      EXCEPTION("Diag_Matrix does not support ExportMatrixMarket().");
     }
 
     //@}

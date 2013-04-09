@@ -105,13 +105,17 @@ namespace CoupledField {
       // ============
       // -- primary results --
       MECH_DISPLACEMENT, MECH_ACCELERATION, MECH_VELOCITY,MECH_RHS_LOAD,
+      
       // --- flux / derived quantities --
-      MECH_STRESS, MECH_STRAIN,MECH_STRUCT_INTENSTIY, VON_MISES_STRESS, 
+      MECH_STRESS, MECH_STRAIN,MECH_STRUCT_INTENSTIY, 
+      MECH_NORMAL_STRUCT_INTENSITY, VON_MISES_STRESS,
       VON_MISES_STRAIN, MECH_KIN_ENERGY_DENS, MECH_DEFORM_ENERGY_DENS,
       MECH_TOTAL_ENERGY_DENS,
+      
       // -- integrated quantities --
       MECH_KIN_ENERGY, MECH_DEFORM_ENERGY, MECH_TOTAL_ENERGY,
       MECH_POWER, MECH_DEF_SURF_VOLUME, MECH_WEIGHT, 
+      
       // -- coupling quantities --
       MECH_FORCE, 
       
@@ -133,9 +137,9 @@ namespace CoupledField {
       // ==========
       ACOU_POTENTIAL, ACOU_PRESSURE, ACOU_PRESSURE_DERIV_1,
       ACOU_PRESSURE_DERIV_2,ACOU_VELOCITY, ACOU_NORMAL_VELOCITY,ACOU_ACCELERATION, ACOU_FORCE, 
-      ACOU_PSEUDO_DENSITY, ACOU_POWERDENSITY, ACOU_POWER, ACOU_INTENSITY, ACOU_ENERGY,
+      ACOU_PSEUDO_DENSITY, ACOU_POWERDENSITY, ACOU_POWER, ACOU_INTENSITY, ACOU_NORMAL_INTENSITY,
       ACOU_POTENTIAL_DERIV_1, ACOU_POTENTIAL_DERIV_2, ACOU_RHS_LOAD, ACOU_RHS_LOAD_DENSITY,
-      ACOU_RHSVAL, ACOUSURF_RHSVAL,
+      ACOU_RHSVAL, ACOUSURF_RHSVAL, ACOU_ENERGY,
       ACOU_SURFINTENSITY, ACOU_DIV_LH_TENSOR,
       ACOU_PMLAUXVEC, ACOU_PMLAUXSCALAR,
       ACOU_ELEM_SPEED_OF_SOUND,
@@ -143,13 +147,23 @@ namespace CoupledField {
       // ==========
       //  MAGNETIC 
       // ==========
-      MAG_POTENTIAL, MAG_POTENTIAL_DERIV1, MAG_SCALAR_POTENTIAL, 
+      // -- primary results --
+      MAG_POTENTIAL, MAG_POTENTIAL_DERIV1, MAG_SCALAR_POTENTIAL, MAG_RHS_LOAD,
+      
+      // --- flux / derived quantities --
       MAG_FLUX_DENSITY, MAG_HFIELD, MAG_EDDY_CURRENT_DENSITY,
-      MAG_COIL_CURRENT_DENSITY, MAG_TOTAL_CURRENT_DENSITY, 
-      MAG_POTENTIAL_DIV,
-      MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_FORCE_LORENTZ_DENSITY, MAG_ENERGY,
-      MAG_EDDY_POWER, MAG_RHS_LOAD, MAG_ELEM_PERMEABILITY,
-
+      MAG_TOTAL_CURRENT_DENSITY, MAG_POTENTIAL_DIV, MAG_FORCE_LORENTZ_DENSITY,
+      MAG_EDDY_POWER_DENSIY, MAG_ENERGY_DENSITY,
+      
+      // -- integrated quantities --
+      MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_ENERGY, MAG_EDDY_POWER,
+      
+      // -- coil quantities --
+      MAG_COIL_CURRENT_DENSITY,
+      
+      // -- material related results --
+      MAG_ELEM_PERMEABILITY,
+      
       // =================
       //  HEAT CONDUCTION
       // =================
@@ -164,7 +178,8 @@ namespace CoupledField {
       FLUIDMECH_VELOCITY_DERIV_2, FLUIDMECH_PRESSURE_DERIV_2,
       FLUIDMECH_DENSITY, FLUIDMECH_FORCE, FLUIDMECH_TKE, 
       FLUIDMECH_STRESS, FLUIDMECH_STRAINRATE, FLUIDMECH_ENERGY, FLUIDMECH_STABILPARAM,
-      
+      FLUIDMECH_WEIGHT_VECTOR, FLUIDMECH_WEIGHT_DENSITY,
+
       // ======
       //  MISC
       // ======
@@ -237,11 +252,11 @@ namespace CoupledField {
                  ITER_MATRIX_COUPLING} CouplingMethod;
 
   //! Enumeration for Input Coupling types \n
-  //! COORD = Coupling via coordinate displacement \n
+  //! COORD_DISPL = Coupling via coordinate displacement \n
   //! RHS   = Coupling via Right hand side \n
   //! ID_BC = Coupling via inhomogenous dirichlet bc \n
   //! MAT   = Coupling via material change \n
-  typedef enum {COORD, RHS, ID_BC, MAT, GRID_VEL} CouplingInputType;
+  typedef enum {COORD_DISPL, RHS, ID_BC, MAT, GRID_VEL} CouplingInputType;
 
   //! Enumeration for Output Coupling types\n
   //! ELEM = Coupling via element quantities\n
@@ -253,11 +268,6 @@ namespace CoupledField {
   //! NODES = Coupling region is specified as nodes in .conf file\n
   //! SURFACE = Coupling region is specified as 1D/2D surface elements
   typedef enum {REGION, NODES, SURFACE} CouplingRegionType;
-
-  //! Enumeration for types of norms
-  //! L2ABS = absolute L2-norm
-  //! L2REL = relative L2 norm: (|val| - |oldval|) / |val|
-  typedef enum {NO_NORM, L2ABS, L2REL} NormType;
 
   //! Enumeration for directions
   //! direction of various fields
@@ -296,25 +306,13 @@ namespace CoupledField {
   typedef enum { NO_SAMPLING_TYPE, LINEAR_SAMPLING, LOG_SAMPLING,
                  REVERSE_LOG_SAMPLING } FreqSamplingType;
 
-
-  //--------------------- Stuff for handling different IO files -------------
-
-  typedef enum { OLAS_FILE} AuxFileType;
-
-
   //------------------------ Files for debug and information ---------
-
   // NOTE: OLAS uses the namespace 'OutInfo' for writing out data into the
-   // different filestreams such as (*cla) etc. Therefore they are
-   // explicitely imported into namespace CoupledField at this point
-   using OutInfo::cla;
-  
-  // Forward declaration of class
-  class WriteInfo;
+  // different filestreams such as (*cla) etc. Therefore they are
+  // explicitely imported into namespace CoupledField at this point
+  using OutInfo::cla;
 
-  //! Global pointer to class performing logging to info file
-  //extern WriteInfo *Info;
-  
+
   //! conversion from strings to enum types
   template <class TYPE>
   void String2Enum(const std::string &in, TYPE &out);

@@ -1,7 +1,11 @@
 #ifndef DYNAMICLIBRARY_H
 #define DYNAMICLIBRARY_H
 
+#ifndef _WIN32
 #include <dlfcn.h>
+#else
+#include <windows.h>
+#endif
 
 namespace CoupledField
 {
@@ -14,18 +18,30 @@ namespace CoupledField
   class DynamicLibrary
   {
   protected:
+#ifndef _WIN32
     // The handle to the shared library that was opened
-    void* _objFile;
+    void* objFile_;
+#else
+    HMODULE hmod_;
+#endif
+
     // Since an instance of DynamicLibrary manages lifetime of an open 
     // library, it is important to make sure that the object isn't 
     // copied.
     DynamicLibrary(const DynamicLibrary&) {}
     DynamicLibrary& operator=(const DynamicLibrary&) { return *this; }
     
+#ifndef _WIN32
     // Creates a new library, with the object file handle that is passed 
     // in. Protected so that only the DynamicLoader can create an 
     // instance (since it is declared friend.
     DynamicLibrary(void* objFile);
+#else
+    // Creates a new library, with the object file handle that is passed 
+    // in. Protected so that only the DynamicLoader can create an 
+    // instance (since it is declared friend.
+    DynamicLibrary(HMODULE hmod);
+#endif
   public:
     // Destructor, closes the open shared library
     ~DynamicLibrary(void);

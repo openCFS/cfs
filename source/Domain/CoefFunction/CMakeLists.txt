@@ -1,17 +1,21 @@
 SET(COEFFUNCTION_SRCS
   CoefXpr.cc
   CoefFunction.cc
+  CoefFunctionAccumulator.cc
   CoefFunctionApprox.cc
   CoefFunctionFormBased.cc
   CoefFunctionCompound.cc
   CoefFunctionConst.cc
   CoefFunctionExpression.cc
   CoefFunctionGrid.cc
-  CoefFunctionNodalGrid.cc
+  CoefFunctionGridNodal.cc
+  CoefFunctionGridNodalDefault.cc
+  CoefFunctionGridNodalInterp.cc
   CoefFunctionMulti.cc
   CoefFunctionTimeFreq.cc
   CoefFunctionSurf.cc
   CoefFunctionPML.cc
+  CoefFunctionStabParams.cc
 )
 #
 ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})

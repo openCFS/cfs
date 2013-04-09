@@ -72,6 +72,11 @@ namespace CoupledField
     //! Return FE-Type
     virtual Elem::FEType FeType() {return feType_;}
     
+    //! Flag, if element has isotropic polynomial order
+    virtual bool IsIsotropic() {
+      return true; 
+    }
+    
     //! Get total number of dofs for particular dof
     virtual UInt GetNumFncs( ) {return actNumFncs_;}
     
@@ -122,6 +127,13 @@ namespace CoupledField
     virtual UInt GetMaxOrder() const {
       EXCEPTION("Not implemented");
       return 0;
+    }
+    
+    //! Return the maximum polynomial order in each local direction of the element
+    virtual void GetAnisoOrder(StdVector<UInt>& order ) const {
+      // provide default implementation for isotropic elements
+      order.Resize( Elem::shapes[feType_].dim);
+      order.Init( GetIsoOrder() );
     }
 
     //! Compute the coefficient and exponent matrix for an alternate desciption 

@@ -1,10 +1,27 @@
+# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
+# kate: indent-width 2; encoding utf-8; auto-brackets on;
+# kate: mixedindent on; indent-mode cstyle; line-numbers on;
+# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
+# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+
+#=============================================================================
+# Set global variables, configured from the external build.
+#=============================================================================
 set(gmp_source  "@gmp_source@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
 SET(CFS_DISTRO "@CFS_DISTRO@")
+SET(CFS_ARCH "@CFS_ARCH@")
+SET(MINGW "@MINGW@")
 
+#=============================================================================
+# Include some convenient macros (e.g. for applying patches).
+#=============================================================================
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
+#=============================================================================
+# Apply some patches.
+#=============================================================================
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC" AND
    NOT CFS_DISTRO STREQUAL "MACOSX")
  SET(patches
@@ -16,5 +33,14 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC" AND
    )
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC" AND
   NOT CFS_DISTRO STREQUAL "MACOSX")
+
+IF(MINGW)
+  IF(CFS_ARCH STREQUAL "X86_64")
+    LIST(APPEND patches
+      "gmp-mingw64.patch"
+      )
+  ENDIF()
+ENDIF(MINGW)
+
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/gmp")

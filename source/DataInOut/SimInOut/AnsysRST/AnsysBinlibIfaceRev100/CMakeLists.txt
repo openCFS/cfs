@@ -8,14 +8,23 @@ INCLUDE_DIRECTORIES(${ANSYS_V100_INCLUDE_DIR})
 #  )
 
 ADD_EXECUTABLE(ResWrHeadTestCC100 ../ResWrHeadTest.cc ../ResWrTest.F ../ResWr.F)
-TARGET_LINK_LIBRARIES(ResWrHeadTestCC100
+
+SET(TARGET_LL
   ${ANSYS_V100_LIBBIN}
   ${CFS_FORTRAN_DYNRT_LIBS}
-  -ldl
   ${BOOST_FILESYSTEM_LIB}
   ${BOOST_SYSTEM_LIB}
-  -lpthread
   )
+
+IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  LIST(APPEND TARGET_LL
+    -ldl
+    -lpthread
+    )
+ENDIF()
+
+TARGET_LINK_LIBRARIES(ResWrHeadTestCC100 ${TARGET_LL})
+
 SET_TARGET_PROPERTIES(ResWrHeadTestCC100 PROPERTIES LINKER_LANGUAGE CXX 
                                                     LINK_FLAGS -Wl,--allow-shlib-undefined)
 

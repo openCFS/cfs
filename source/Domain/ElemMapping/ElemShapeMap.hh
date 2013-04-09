@@ -122,7 +122,9 @@ namespace CoupledField {
     //! \param lp Local point to bet set
     //! \param esm ElemShapeMap, representing the mapping from reference to
     //!            physical domain    
-    void Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm);
+    //! \param weight Integration weight (should be set to 0.0 if not used 
+    //!               within an integration loop)
+    void Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm, Double weight);
     
     //! Set method for a local point of a surface element
     
@@ -136,18 +138,27 @@ namespace CoupledField {
     //!            physical domain    
     //! \param volRegions Set containing the regionIds of the neighboring
     //!                   volume regions.
+    //! \param weight Integration weight (should be set to 0.0 if not used 
+    //!               within an integration loop)
     //! 
     //! \note The search for the correct volume neighbor is just performed,
     //!       if a new element is set. If only the local point within one
     //!       element is set, the neighbor information is re-used. 
     void Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
-              const std::set<RegionIdType>& volRegions ); 
+              const std::set<RegionIdType>& volRegions,
+              Double weight ); 
     
     //! Set surface information
     
     //! This method allows to set information specific to a surface
     //! element, in case it was initialized with only the volume information;
     void SetSurfInfo( const std::set<RegionIdType>& volRegions );
+
+
+    //! Specialized version for NMG points
+    void SetMortar( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
+                                          Double weight, bool useMaster);
+
 
     //! Shape map for this element
     shared_ptr<ElemShapeMap> shapeMap;
@@ -157,6 +168,9 @@ namespace CoupledField {
 
     //! Element local point
     LocPoint lp;
+    
+    //! Integration weight
+    Double weight;
 
     //! Jacobian matrix in local point @ref lp
     Matrix<Double> jac;
@@ -184,9 +198,6 @@ namespace CoupledField {
     //! contains the surface normal, which points out of the "correct" neighbouring
     //! volume element (\see LocPointMapped::lpmVol).
     Vector<Double> normal;
-    
-    //! Multiplicative factor for normal orientation (only internal use)
-    Double normalFactor;
     
     //! Mapped local point of the correct neighboring volume element
     
@@ -303,23 +314,22 @@ namespace CoupledField {
     virtual Double CalcVolume( ) = 0;
 
     //! Calculate normal of element
+    
+    //! This method calculate the normal vector of a surface element in the
+    //! given local point. The resulting vector will point OUT of the 
+    //! first volume neighbor of the surface element!
     //! \param normal output Normal vector in global coordinates
     //! \param lp input Element local point
-    //! \note The direction of the normal has undefined sign!
     virtual void CalcNormal( Vector<Double>& normal, 
                              const LocPoint& lp ) = 0;
     
+    //!This method checks if a given local point is on the surface
+    //! of the element. If so, it returns true and calculates the
+    //! surface normal according to the point. If not, it returns
+    //! false
+    virtual bool CalcNormalOutOfVolume(Vector<Double> & normal,
+                                           const LocPoint & lp)=0;
 
-    //! Returns surface element normal with defined orientation
-
-    //! Calculates the surface normal pointing OUT OF the neighboring
-    //! volume element
-    //! \param n (out) normal vector
-    //! \param lp (input) Element local point
-    //! \param volElem (in) volume element
-    virtual void CalcNormalOutOfVol( Vector<Double> & normal,
-                                     const LocPoint& lp,
-                                     const Elem & volElem ) = 0;
 
     //! Calculates corresponding volume point of neighboring surfaces
 
@@ -417,6 +427,7 @@ namespace CoupledField {
     
     //! obtain pointer to geometric reference element
     virtual BaseFE* GetBaseFE()  = 0;
+
   protected:
 
     //! Type of shape mapping
@@ -491,6 +502,13 @@ namespace CoupledField {
     void Global2LocalDuester(Vector<Double>& locPoint,
                              const Vector<Double>& globalPoint);
 
+    //! For elements using barycentric coordinates right now limited to straight edges
+    void Global2LocalBarycentric( Vector<Double>& locPoint,
+                                     const Vector<Double>& globalPoint );
+
+    //! Version for linear line elements
+    void Global2LocalLine2(Vector<Double>& locPoint,
+                           const Vector<Double>& globalPoint);
 
     //! General version
     void Global2LocalGeneral( Vector<Double>& locPoint,
@@ -506,11 +524,10 @@ namespace CoupledField {
     void CalcNormal( Vector<Double>& normal, 
                      const LocPoint& lp );
     
-    //! @copydoc ElemShapeMap::CalcNormalOutOfVol
-    void CalcNormalOutOfVol( Vector<Double> & normal,
-                             const LocPoint& lp,
-                             const Elem & volElem );
-    
+    //! @copydoc ElemShapeMap::CalcNormalOutOfVolume
+    bool CalcNormalOutOfVolume(Vector<Double> & normal,
+                               const LocPoint & lp);
+
     //! @copydoc ElemShapeMap::GetLocalIntPoints4Surface
     void GetLocalIntPoints4Surface( const StdVector<UInt> & surfConnect,
                                     const LocPoint & surfIntPoint,

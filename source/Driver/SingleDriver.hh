@@ -16,7 +16,8 @@ namespace CoupledField {
     //! Constructor
     //! \param sequenceStep current step in multisequence simulation
     //! \param isPartOfSequence true, if driver is part of  multiSequence
-    SingleDriver( UInt sequenceStep, bool isPartOfSequence );
+    SingleDriver( UInt sequenceStep, bool isPartOfSequence,
+                  shared_ptr<SimState> state, Domain* domain );
     
     //! Default destructor
     virtual ~SingleDriver();

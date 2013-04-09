@@ -12,7 +12,7 @@
 #include "TransientDriver.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Utils/Timer.hh"
-
+#include "DataInOut/SimState.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "PDE/StdPDE.hh"
@@ -35,8 +35,10 @@ namespace CoupledField {
   //   Constructor
   // ===============
   TransientDriver::TransientDriver( UInt sequenceStep,
-                                    bool isPartOfSequence) 
-    : SingleDriver( sequenceStep, isPartOfSequence ), timer_(new Timer())
+                                    bool isPartOfSequence,
+                                    shared_ptr<SimState> state, Domain* domain ) 
+    : SingleDriver( sequenceStep, isPartOfSequence, state, domain ), 
+      timer_(new Timer())
     {
     
     LOG_TRACE(trans_driver) << "TransientDriver():  "
@@ -52,12 +54,12 @@ namespace CoupledField {
 
     // get parameter node
     PtrParamNode myNode = 
-      param->GetByVal("sequenceStep", std::string("index"), sequenceStep)
+      domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), sequenceStep)
       ->Get("analysis")->Get("transient");
 
     driverNode = driverNode->Get("transient");
     driverNode->Get("sequenceStep")->SetValue(sequenceStep);
-    driverNode->Get(ParamNode::HEADER)->Get("unit")->SetValue("s");
+    driverNode->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("s");
     
     // for the evaluation of deltaT, we make use of math Parser to
     // allow variable definitions of time step size
@@ -76,11 +78,11 @@ namespace CoupledField {
       fs::remove("./HALTCFS");
     
     // in the end, directly register the global transient variables
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                        "t", 0 );
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                        "dt", 0.0 );    
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                        "step", 1 );
   }
 
@@ -101,13 +103,13 @@ namespace CoupledField {
   void TransientDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams) 
   {
     // notify resultHandler about beginning of new sequence step 
-    ResultHandler * resHandler = domain->GetResultHandler();
+    ResultHandler * resHandler = domain_->GetResultHandler();
 
     int direction = adjointParams ? -1 : 1; // for adjoint the time is backwards
     UInt startStep = restartStep_ + 1;
     UInt endStep = restartStep_ + numstep_;
     Double  steptime  = firstdt_ * (adjointParams ? endStep : startStep);
-    UInt nextRestart  = restartStep_ + restartIncr_ * direction;
+    //UInt nextRestart  = restartStep_ + restartIncr_ * direction;
     Double  dt = firstdt_;
     bool haltFlag=false;
     
@@ -120,6 +122,7 @@ namespace CoupledField {
     if(write_results){
       resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, numstep_ );
     }
+    simState_->BeginMultiSequenceStep(sequenceStep_, analysis_, numstep_ );
   
     ptPDE_->WriteGeneralPDEdefines();
 
@@ -135,16 +138,20 @@ namespace CoupledField {
     //ptPDE_->WriteResultsInFile(stepOffset_, timeOffset_);
     //resHandler->FinishStep( );
     
-    timer_->Start();
-
     // Outer loop over all timesteps
     
     UInt count = 0;
     for (actTimeStep_ = adjointParams ? endStep : startStep; 
          actTimeStep_ <= endStep && actTimeStep_ >= startStep; 
          actTimeStep_ += direction, count++) {
-      
+
       LOG_DBG(trans_driver) << "loop over timestep " << actTimeStep_;
+      
+      // start timer only in 2nd loop, as in the 1st step normall the
+      // factorization is incorporated,
+      if( actTimeStep_ == 2) {
+        timer_->Start();
+      }
       // check for a HALTCFS File
       // if there exist a file with name HALTCFS in the executing directory
       // than CFS++ will end after the current time step
@@ -157,11 +164,11 @@ namespace CoupledField {
       }
       
       // Set curent value of timestep and time step size in the mathParser
-      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "t", steptime );
-      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "dt", dt );    
-      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "step", actTimeStep_ );    
 
       // Determine when to write logging information on terminal
@@ -190,7 +197,7 @@ namespace CoupledField {
       {
         // do we really want to create a new entry? Might blast up the output
         ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-        analysis_id_ = driverNode->Get(ParamNode::PROCESS)->Get("step", at);
+        analysis_id_ = driverNode->Get(ParamNode::PN_PROCESS)->Get("step", at);
         analysis_id_->Get("analysis_id")->SetValue(actTimeStep_);
       }
       else
@@ -214,37 +221,31 @@ namespace CoupledField {
         ptPDE_->WriteResultsInFile(actTimeStep_, steptime );
         resHandler->FinishStep( );
       }
+      simState_->WriteStep( actTimeStep_, steptime );
 
-      // writing current PDE-state into the restart-file
-      if (restartIncr_ >= 1){
-        if (  actTimeStep_ == nextRestart  ) { 
-          std::cout << std::endl << "Write a restart file after step " 
-                    << actTimeStep_ <<" *********** " << std::endl;      
-          
-          ptPDE_->WriteRestart( );
-          nextRestart+=restartIncr_ * direction;
-        }
-      }
       if (haltFlag) {
         std::cout << std::endl << "Write a restart file after interuppting a simulation "
                   << "run with a HALTCFS-file at step:  " 
                   << actTimeStep_ <<" *********** " << std::endl;      
 
-        ptPDE_->WriteRestart( );
+//        ptPDE_->WriteRestart( );
       }    
 
       steptime+=dt*direction;
-      
-      // perform runtime estimation
-      Double totalTime = timer_->GetWallTime();
-      Double timePerStep = totalTime / (Double) count;
-      Double remainingTime = (endStep - actTimeStep_) * timePerStep;
-      pt::ptime now = pt::second_clock::local_time();
-      now += pt::seconds(static_cast<long int>(remainingTime));
-      analysis_id_->Get("timePerStep")->SetValue( timePerStep );
-      PtrParamNode envNode = info->Get(ParamNode::HEADER)->Get("environment");
-      envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
-      envNode->Get("remainingTime")->SetValue(remainingTime);
+
+      // perform runtime estimation (after 1st step)
+      if( actTimeStep_ > 1 ) {
+        Double totalTime = timer_->GetWallTime();
+        Double timePerStep = totalTime / (Double) count;
+        Double remainingTime = (endStep - actTimeStep_) * timePerStep;
+        pt::ptime now = pt::second_clock::local_time();
+        now += pt::seconds(static_cast<long int>(remainingTime));
+        analysis_id_->Get("timePerStep")->SetValue( timePerStep );
+        PtrParamNode envNode = driverNode->GetRoot()->
+            Get(ParamNode::PN_HEADER)->Get("environment");
+        envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
+        envNode->Get("remainingTime")->SetValue(remainingTime);
+      }
     }
 
 
@@ -252,13 +253,14 @@ namespace CoupledField {
     if(!isPartOfSequence_ && write_results) {
       resHandler->FinishMultiSequenceStep();
     }
+    simState_->FinishMultiSequenceStep();
     
   }
   
   void TransientDriver::ReadRestart() {
     
     if ( progOpts->GetRestart() ){
-      ptPDE_->ReadRestart( restartStep_ );
+      //ptPDE_->ReadRestart( restartStep_ );
       //startStep = restartStep_ + 1;
       //stepsave=startStep;
       //numstep_+=lastStepToRestartFrom;

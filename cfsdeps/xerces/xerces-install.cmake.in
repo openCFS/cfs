@@ -1,7 +1,0 @@
-SET(xerces_source "@xerces_source@")
-
-EXECUTE_PROCESS(
-  COMMAND "@CMAKE_MAKE_PROGRAM@" install
-  WORKING_DIRECTORY "@xerces_source@/src"
-  RESULT_VARIABLE rv
-  )

@@ -164,7 +164,7 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat, PtrParamNode analysis_id)
 {
   // do we really want to create a new entry? Might blast up the output
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("setup", at);
+  PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("setup", at);
   if(analysis_id != NULL) // TODO only very quick and dirty fix for eigenfrequency analsys
     out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   // determine the matrix type. Symmetric/nonsymmetric, positive definite, ...
@@ -243,7 +243,7 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
     const BaseVector &base_rhs,  BaseVector &base_sol, PtrParamNode analysis_id)
 {
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
+  PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", at);
   if(analysis_id != NULL) // TODO only very quick and dirty fix for eigenfrequency analsys
     out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
 
@@ -270,23 +270,36 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
       break;
 
     case -1:  // too many iterations
-      ss << "Number of iteration steps exceeds its limit";
+      ss << "Maximum number of iteration steps has been exceeded.";
       break;
 
     case -2: 
-      ss << "Not enough work space provided";
+      ss << "Not enough work space provided.";
       break;
 
     case -3:  /* not enough work space */
-      ss << "Algorithm breaks down";
+      ss << "Algorithm breaks down.";
       break;
 
     default: 
-      ss << "Solver exited with error code " << ierr;
+      ss << "Solver exited with error code: " << ierr << ".";
   } 
 
-  // stop if necessary
-  if(ierr != 0) throw Exception(ss.str());
+  // why did the iterative solver stop?
+  switch (ierr) 
+  {
+    case  0:  // everything is fine
+      break;
+
+    case -1:  // too many iterations
+      WARN(ss.str());
+      break;
+
+    default: 
+      // stop if necessary
+      throw Exception(ss.str());
+  } 
+
 
   out->Get("iterations")->SetValue(param.ipar[26]);
   PtrParamNode timing = out->Get("timing");
@@ -307,7 +320,7 @@ void Ilupack<T>::InitParameters()
   IlupackAMGInit();
   
   // dump the parameter block and overwrite
-  PtrParamNode out = infoNode_->Get(ParamNode::HEADER)->Get("parameters");
+  PtrParamNode out = infoNode_->Get(ParamNode::PN_HEADER)->Get("parameters");
 
   CheckParameter(out, reinterpret_cast<bool*>(&param.matching), "matching");
   CheckParameter(out, &param.ordering, "ordering");

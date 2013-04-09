@@ -77,6 +77,8 @@ namespace CoupledField {
     //! Overloaded method for lagrange Elements
     virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C);
 
+
+
   protected:
 
     //! @copydoc FeNodal::SetFunctionsAtIp
@@ -98,9 +100,7 @@ namespace CoupledField {
                                     const Elem* ptElem,
                                     UInt comp = 1 ) = 0;
     
-    virtual void GetLocalDOFCoordinates(Matrix<Double> & coordMat){
-      Exception("GetLocalDOFCoordinates: Not implemented here...");
-    }
+
 
     //! Polynomial order of the finite element
     UInt order_;

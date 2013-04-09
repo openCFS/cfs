@@ -17,7 +17,6 @@
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
-#include "CoupledPDE/PDECoupling.hh"
 #include "Driver/Assemble.hh"
 #include "Utils/ApproxData.hh"
 #include "Utils/SmoothSpline.hh"
@@ -47,8 +46,10 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  ElecPDE::ElecPDE( Grid* aptgrid, PtrParamNode paramNode )
-    :SinglePDE( aptgrid, paramNode ) {
+  ElecPDE::ElecPDE( Grid* aptgrid, PtrParamNode paramNode,
+                    PtrParamNode infoNode,
+                    shared_ptr<SimState> simState, Domain* domain )
+    :SinglePDE( aptgrid, paramNode, infoNode, simState, domain ) {
 
 
     // =====================================================================
@@ -56,13 +57,16 @@ namespace CoupledField {
     // =====================================================================
     pdename_          = "electrostatic";
     pdematerialclass_ = ELECTROSTATIC;
-    maxTimeDerivOrder_ = 0;
  
     nonLin_    = false;
     nonLinMaterial_ = false;
     isAlwaysStatic_ = true;
     isPiezoCoupled_ = false;
-
+    
+    //! Always use updated Lagrangian formulation 
+    updatedGeo_        = true;
+    
+    
     needSolPrev_ = true;
  
     // Check the subtype of the problem
@@ -125,7 +129,7 @@ namespace CoupledField {
 
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
-
+      
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
       actSDList->SetRegion( actRegion );
@@ -193,13 +197,17 @@ namespace CoupledField {
     // Double factor = 1.0;
     // if ( isPiezoCoupled_ )
     //   factor = -1.0;
+
+    
+    // Flag, if coefficient function lives on updated geoemtry
+    bool coefUpdateGeo = true;
     
     // =========================
     //  Charges (volume, nodal)
     // =========================
     LOG_DBG(elecpde) << "Reading charges";
     ReadRhsExcitation( "charge", dofNames, ResultInfo::VECTOR, 
-                       isComplex_, ent, coef );
+                       isComplex_, ent, coef,coefUpdateGeo );
 
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
@@ -241,13 +249,13 @@ namespace CoupledField {
         // "Divide" the total charge by the volume / surface of the current entity list
         Double volume = ptGrid_->CalcVolumeOfEntityList( ent[i], false );
         Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;  
-        coef[i] = CoefFunction::Generate(part, 
-                   CoefXprVecScalOp(coef[i], 
+        coef[i] = CoefFunction::Generate(mp_, part, 
+                   CoefXprVecScalOp(mp_, coef[i], 
                    boost::lexical_cast<std::string>(volume), CoefXpr::OP_DIV) );
         if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i]);
+          lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i],coefUpdateGeo);
         } else  {
-          lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i]);
+          lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i],coefUpdateGeo);
         }
         lin->SetName("ChargeDensityInt");
         LinearFormContext *ctx = new LinearFormContext( lin );
@@ -263,16 +271,16 @@ namespace CoupledField {
     // ================
     LOG_DBG(elecpde) << "Reading charge densities";
     ReadRhsExcitation( "chargeDensity", dofNames, 
-                       ResultInfo::VECTOR, isComplex_, ent, coef );
+                       ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
         EXCEPTION("Charge density must be defined on elements")
       }
       if(isComplex_) {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i]);
+        lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
       } else  {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i]);
+        lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i], coefUpdateGeo);
       }
       lin->SetName("ChargeDensityInt");
       LinearFormContext *ctx = new LinearFormContext( lin );
@@ -293,7 +301,7 @@ namespace CoupledField {
     if(dim_ == 2 && isaxi_)
       vecDofNames = "r", "z";
     ReadRhsExcitation( "fluxDensity", vecDofNames, 
-                       ResultInfo::VECTOR, isComplex_, ent, coef );
+                       ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
@@ -309,18 +317,18 @@ namespace CoupledField {
         if( dim_ == 2) {
           if(isComplex_) {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>, 
-                Complex, true>(Complex(1.0), coef[i], volRegions);
+                Complex, true>(Complex(1.0), coef[i], volRegions, coefUpdateGeo);
           } else  {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>, 
-                Double, true>(1.0, coef[i], volRegions);
+                Double, true>(1.0, coef[i], volRegions, coefUpdateGeo);
           } 
         }else {
           if(isComplex_) {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-                Complex, true>(Complex(1.0), coef[i], volRegions);
+                Complex, true>(Complex(1.0), coef[i], volRegions, coefUpdateGeo);
           } else  {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-                Double, true>(1.0, coef[i], volRegions);
+                Double, true>(1.0, coef[i], volRegions, coefUpdateGeo);
           } 
         }
         lin->SetName("SurfaceFluxDensityInt");
@@ -357,7 +365,7 @@ namespace CoupledField {
         actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
                                    Global::REAL);
     }
-
+    
     // Note; in the piezoelectric case we have to multiply by -1
     Double factor = 1.0;
     if ( isPiezoCoupled_ )
@@ -366,19 +374,19 @@ namespace CoupledField {
     if ( isComplex ) {
       if( dim_ == 2 ) {
         integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,Complex>(), 
-                                             curCoef, factor );
+                                             curCoef, factor, updatedGeo_ );
       } else {
         integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,Complex>(), 
-                                             curCoef, factor );
+                                             curCoef, factor, updatedGeo_ );
       }
     }
     else {
       if( dim_ == 2 ) {
         integ = new BDBInt<>(new GradientOperator<FeH1,2> (), 
-            curCoef, factor );
+            curCoef, factor, updatedGeo_ );
       } else {
         integ = new BDBInt<>(new GradientOperator<FeH1,3>(),
-            curCoef, factor );
+            curCoef, factor, updatedGeo_ );
       }
     }
 
@@ -432,44 +440,6 @@ namespace CoupledField {
     // as soon as the surface B-operators are defined
   }
 
-
-  // ======================================================
-  // COUPLING SECTION
-  // ======================================================
-
-  void ElecPDE::InitCoupling(PDECoupling * Coupling)
-  {
-  REFACTOR;
-  }
-  
-
-
-  void ElecPDE::CalcOutputCoupling()
-  {
-    REFACTOR;
-  }
-
-
-  bool ElecPDE::HasOutput(SolutionType output)
-  {
-  
-    switch (output)
-      {
-      case ELEC_FORCE_VWP:
-        return true;
-        break;
-      case ELEC_POTENTIAL:
-        return true;
-        break;
-      case ELEC_FIELD_INTENSITY:
-        return true;
-        break;
-      default:
-        return false;
-        break;
-      }
-    return false;
-  }
 
 
   void ElecPDE::SetPiezoCoupling()
@@ -550,14 +520,14 @@ namespace CoupledField {
                       << "interfaces of PDE exist in domain.";
 
     PtrParamNode elecPDENCIfaceListNode;
-    elecPDENCIfaceListNode = param->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
+    elecPDENCIfaceListNode = domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
     ->Get("pdeList/electrostatic/ncInterfaceList", ParamNode::PASS);
     
     if(!elecPDENCIfaceListNode)
       return;
 
     PtrParamNode domainNCIfaceListNode;
-    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
+    domainNCIfaceListNode = domain_->GetParamRoot()->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
 
     if(!domainNCIfaceListNode)
     {
@@ -621,6 +591,7 @@ namespace CoupledField {
       eFunc.reset(new CoefFunctionBOp<Double>(feFct, ef, -1.0));
     }
     DefineFieldResult( eFunc, ef );
+    stiffFormCoefs_.insert(eFunc);
     
     // === ELECTRIC FLUX DENSITY ===
     shared_ptr<ResultInfo> flux ( new ResultInfo );
@@ -636,6 +607,7 @@ namespace CoupledField {
       fluxFunc.reset(new CoefFunctionFlux<Double>(feFct, flux));
     }
     DefineFieldResult( fluxFunc, flux );
+    stiffFormCoefs_.insert(fluxFunc);
 
     // === ELECTRIC SURFACE CHARGE DENSITY ===
     shared_ptr<ResultInfo> chargeD(new ResultInfo);
@@ -647,6 +619,7 @@ namespace CoupledField {
     availResults_.insert( chargeD );
     // the coefficient function is defined later
     shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true));
+    surfCoefFcts_[sChargeDens] = fluxFunc;
     
     // === TOTAL ELECTRIC CHARGE ===
     shared_ptr<ResultInfo> charge(new ResultInfo);
@@ -678,6 +651,7 @@ namespace CoupledField {
       edFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 0.5));
     }
     DefineFieldResult( edFunc, ed );
+    stiffFormCoefs_.insert(edFunc);
     
     // Electric energy
     shared_ptr<ResultInfo> energy( new ResultInfo );
@@ -689,27 +663,13 @@ namespace CoupledField {
     availResults_.insert( energy );
     shared_ptr<ResultFunctor> energyFunc;
     if( isComplex_ ) {
-      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy));
+      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy,0.5));
     } else {
-      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy));
+      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy,0.5));
     }
     resultFunctors_[ELEC_ENERGY] = energyFunc;
+    stiffFormFunctors_.insert(energyFunc);
     
-    // ============================
-    // Initialize result functors:
-    // ============================
-    // 1) Loop over all BDB-integrators
-    std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
-    for( ; it != bdbInts_.end(); ++it ) {
-      RegionIdType region = it->first;
-      BaseBDBInt* bdb = it->second;
-      // 2) pass integrators to functors
-      eFunc->AddIntegrator(bdb, region);
-      fluxFunc->AddIntegrator(bdb, region);
-      energyFunc->AddIntegrator(bdb, region);
-      edFunc->AddIntegrator(bdb, region);
-      sChargeDens->SetVolumeCoef(region, fluxFunc);
-    }
   }
 
   

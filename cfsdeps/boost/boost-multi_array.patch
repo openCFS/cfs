@@ -1,5 +1,5 @@
---- boost/multi_array/base.hpp.orig	2013-02-13 07:29:48.181569002 +0100
-+++ boost/multi_array/base.hpp	2013-02-13 07:31:01.313146001 +0100
+--- boost/multi_array/base.hpp.orig	2013-02-19 14:35:23.206842847 +0100
++++ boost/multi_array/base.hpp	2013-02-19 14:37:17.804698822 +0100
 @@ -497,18 +497,22 @@
                       (start == index_bases[n] && extents[n] == 0)));
  

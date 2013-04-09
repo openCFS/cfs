@@ -24,7 +24,8 @@ namespace CoupledField {
   DECLARE_LOG(gridcfs)
   DEFINE_LOG(gridcfs, "grid.cfs")
 
-  GridCFS::GridCFS(UInt dim) : Grid( ) {
+  GridCFS::GridCFS(UInt dim, PtrParamNode param, PtrParamNode info) 
+  : Grid( param, info ) {
     isQuadratic_ = false;
     dim_ = dim;
     assert(dim > 0);
@@ -58,7 +59,7 @@ namespace CoupledField {
   void GridCFS::CreateUserDefinedNodesElems() {
 
     // if no param object is present, just leave
-    if (!param) return;
+    if (!param_) return;
 
     Vector<Double> locCoord(dim_), globCoord(dim_);
     Double compoValue;
@@ -72,11 +73,11 @@ namespace CoupledField {
 
       if( iType == 0 ) {
         // iterate over nodes
-        listNode = param->Get("domain")->Get("nodeList", ParamNode::PASS);
+        listNode = param_->Get("domain")->Get("nodeList", ParamNode::PASS);
         isNode = true;
       } else {
         // iterate over nodes
-        listNode = param->Get("domain")->Get("elemList", ParamNode::PASS);
+        listNode = param_->Get("domain")->Get("elemList", ParamNode::PASS);
         isNode = false;
       }
 
@@ -631,9 +632,9 @@ namespace CoupledField {
     std::string file = "";
 
     // be sensitive to the cfstool case
-    if(!param || !param->Has("domain/regionList")) return NO_REGION_ID;
+    if(!param_ || !param_->Has("domain/regionList")) return NO_REGION_ID;
 
-    ParamNodeList list = param->Get("domain/regionList")->GetList("region");
+    ParamNodeList list = param_->Get("domain/regionList")->GetList("region");
     for(UInt i = 0; i < list.GetSize(); i++)
     {
       if(list[i]->Has("pattern"))
@@ -648,7 +649,8 @@ namespace CoupledField {
     if(name == "") return NO_REGION_ID;
 
     // read the pattern file
-    Xerces* xerces = new Xerces(file);
+    Xerces* xerces = new Xerces();
+    xerces->SetFile(file);
     PtrParamNode xml = xerces->CreateParamNodeInstance();
     delete xerces;
 
@@ -853,7 +855,7 @@ namespace CoupledField {
 
     isInitialized_ = true;
 
-    // Fix problems due to negative Jacobian determinants
+    // Try to fix problems due to negative Jacobian determinants
     CorrectElementConnectivities();
     
     // make named nodes from lines
@@ -873,7 +875,9 @@ namespace CoupledField {
     orderedElems_.Trim();
 
     // print information to file - checks for exportGrid
-    if(info) { ToInfo(info->Get(ParamNode::HEADER)->Get("domain")); }
+    if(info_ ) {
+       ToInfo(info_->Get(ParamNode::PN_HEADER)->Get("domain")); 
+    }
   }
   
   void GridCFS::GenerateDGSurfaceElemes(std::set<RegionIdType> regionList,
@@ -906,7 +910,6 @@ namespace CoupledField {
     allelems.Reserve(memReserve);
     //UInt curNumelems = numElems_;
     Vector<Double> normalUndefSign, normalDefSign;
-    Double sign;
     for(UInt i =0;i<elemList.size();++i){
       Elem* curE = elemList[i];
       ElemShape curShape = Elem::shapes[curE->type];
@@ -921,34 +924,61 @@ namespace CoupledField {
         curSurf->type = subelems[aSub];
         curSurf->regionId = curE->regionId;
         if(curShape.dim == 3){
-          WARN("3D never testet with surface elements!!!!");
-          UInt faceNum = curE->faces[aSub];
-          Face curFace = faces_[faceNum-1];
-          assert(curFace.neighbors.GetSize());
-          Elem * volElem = curFace.neighbors[0];
-          //first we copy the edge nodes
-          volElem->GetFaceNodes(faceNum, curSurf->connect );
+
+          Face curFace = faces_[curE->faces[aSub]-1];
+          //for the connect array we have to extract the connectivity
+          // right from the volume element as the normalized node array has no longer the expected
+          // ordering vertexNodes-edgeNodes-FaceNodes
+
+          //obtain the faceNodeArray
+          StdVector<UInt> fNodes = curShape.faceNodes[aSub];
+          UInt numNodes = curShape.faceNodes[aSub].GetSize();
+          curSurf->connect.Resize(numNodes);
+          //now we loop over the face nodes and assigne the corresponding nodes from the volume element
+          for(UInt i=0;i<curShape.faceNodes[aSub].GetSize();++i){
+        	  curSurf->connect[i] = curE->connect[fNodes[i]-1];
+          }
           curSurf->faces.Push_back(curE->faces[aSub]);
           curSurf->faceFlags.Push_back(curE->faceFlags[aSub]);
-          StdVector<UInt> subElemLocalNode;
-          for(UInt i=0;i<curShape.faceVertices[aSub].GetSize();++i){
-            subElemLocalNode.Push_back(curShape.faceVertices[aSub][i]);
-          }
-          for(UInt i=0;i<curShape.edgeVertices.GetSize();++i){
-            //each edge has 2 edge vertices so we check
-            if(subElemLocalNode.Contains(curShape.edgeVertices[i][0]) &&
-                subElemLocalNode.Contains(curShape.edgeVertices[i][1]) ){
-              curSurf->edges.Push_back(curE->edges[i]);
-            }
+          //ok we know hat the face vertex array contains the edges of the face
+          // in order to obtain the correct ordering of edges we loop over
+          //the array and search for each pair of face vertices the correct
+          // edge e.g. {1,2} {2,3} {3,4} {4,1}
+          UInt numFVertices = curShape.faceVertices[aSub].GetSize();
+          for(UInt i=0;i<=numFVertices;++i){
+        	  UInt idx1 = (i%numFVertices);
+        	  UInt idx2 = ((i+1)%numFVertices);
+        	  UInt node1 = curShape.faceVertices[aSub][idx1];
+        	  UInt node2 = curShape.faceVertices[aSub][idx2];
+        	  for(UInt i=0;i<curShape.edgeVertices.GetSize();++i){
+        		  if(curShape.edgeVertices[i].Contains(node1) &&
+                     curShape.edgeVertices[i].Contains(node2)){
+        			  curSurf->edges.Push_back(curE->edges[i]);
+        		  }
+        	  }
           }
         }else if(curShape.dim==2){
           Edge curEdge = edges_[abs(curE->edges[aSub])-1];
           curSurf->edges.Push_back(abs(curE->edges[aSub]));
+
+          //first the corner nodes
           for( UInt i = 0; i < 2; i++ ) {
-            EXCEPTION("Here we have to perform an indirect copy");
-            
-            //curSurf->connect.Push_back(curEdge.nodes[i]);
+            curSurf->connect.Push_back(curE->connect[curShape.edgeNodes[aSub][i]-1]);
             curSurf->localCoords.Push_back(curShape.nodeCoords[curShape.edgeVertices[aSub][i]-1]);
+          }
+          //now we check for more nodes on the edge
+          //and assume the the corners were the first two entries in the edgeNodes array
+          UInt numNodes = curShape.edgeNodes[aSub].GetSize();
+          if(curE->edges[aSub]>0){
+            for( UInt i = 2; i < numNodes; i++ ) {
+              curSurf->connect.Push_back(curE->connect[curShape.edgeNodes[aSub][i]-1]);
+              curSurf->localCoords.Push_back(curShape.nodeCoords[curShape.edgeNodes[aSub][i]-1]);
+            }
+          }else{
+            for( UInt i = 0; i < (numNodes-2); i++ ) {
+              curSurf->connect.Push_back(curE->connect[curShape.edgeNodes[aSub][numNodes-i-1]-1]);
+              curSurf->localCoords.Push_back(curShape.nodeCoords[curShape.edgeNodes[aSub][numNodes-i-1]-1]);
+            }
           }
         }else{
           EXCEPTION("surfelem creation for one dimensional shapes not implemented");
@@ -956,18 +986,19 @@ namespace CoupledField {
 
         curSurf->ptVolElems[0] = curE;
 
-        shared_ptr<ElemShapeMap> es = GetElemShapeMap(curSurf.get(), false);
-        LocPoint lp = Elem::shapes[curSurf->type].midPointCoord;
-        es->CalcNormal( normalUndefSign, lp );
-        es->CalcNormalOutOfVol( normalDefSign, lp, *curSurf->ptVolElems[0] );
-
-        sign = normalUndefSign * normalDefSign;
-
-        if ( sign > 0.0 ) {
-          curSurf->normalSign = 1;
-        } else {
-          curSurf->normalSign = -1;
-        }
+        // Mapping of normal sign is not needed anymore
+//        shared_ptr<ElemShapeMap> es = GetElemShapeMap(curSurf.get(), false);
+//        LocPoint lp = Elem::shapes[curSurf->type].midPointCoord;
+//        es->CalcNormal( normalUndefSign, lp );
+//        es->CalcNormalOutOfVol( normalDefSign, lp, *curSurf->ptVolElems[0] );
+//
+//        sign = normalUndefSign * normalDefSign;
+//
+//        if ( sign > 0.0 ) {
+//          curSurf->normalSign = 1;
+//        } else {
+//          curSurf->normalSign = -1;
+//        }
 
         allelems.Push_back(curSurf);
 
@@ -1425,7 +1456,7 @@ namespace CoupledField {
         Vector<Double> midPoint = 
             Elem::shapes[it.GetElem()->type].midPointCoord;
         esm->CalcNormal( normal, midPoint );
-        normal *= (Double) ptElem->normalSign;
+        
         
         for(UInt iDim = 0; iDim < dim_; iDim++ ) {
           actVal[it.GetPos()*dim_ + iDim] = normal[iDim];
@@ -1568,7 +1599,7 @@ namespace CoupledField {
                  << "node number " << inode );
     }
 
-    if ( (dim_ == 2) && (rfPoint[2] != 0) ) {
+    if ( (dim_ == 2) && rfPoint.GetSize() > 2 && (rfPoint[2] != 0) ) {
       EXCEPTION( "GridCFS: Dimension of grid is 2D. "
                   << "But you wanted to set the 3D coordinate " << "("
                   << rfPoint[0] << ", " << rfPoint[1] << ", " << rfPoint[2]
@@ -1903,6 +1934,9 @@ namespace CoupledField {
     UInt d = 2;
     UInt numNodes = Elem::shapes[type].numNodes;
 
+    // set isQuadratic information
+    isQuadratic_ |= (Elem::shapes[type].order == 2); 
+    
     numElemTypes_[type]++;
 
     switch(type)
@@ -2581,48 +2615,57 @@ namespace CoupledField {
     } // loop over surface elements
 
 
-    // 4.) Iterate over all surface elements and calculate surface
-    //     flag by comparing the directed and the undirected surface
-    //     normal. If both differ, the surfaceNormalSign = -1, otherwise 1.
-    Vector<Double> normalUndefSign, normalDefSign;
-    Double sign;
-
-    for( surfElIt = surfElems.begin();
-         surfElIt != surfElems.end();
-         surfElIt++ ) {
-
-      myElem = surfElIt->second;
-
-      // check, if each surface element has at least one volume neighbour
-      if ( myElem->ptVolElems[0] == NULL ) {
-        //  EXCEPTION( "Pointer to first volume element is NULL for surface"
-        //                    << " element no. "
-        //                    << surfElems_[iRegion][iSurfElem]->elemNum << ".\n"
-        //                    << "Please check your mesh-file!" );
-        //         }
-        myElem->normalSign = 0;
-      } else {
-        
-        shared_ptr<ElemShapeMap> esm(new LagrangeElemShapeMap(this));
-        esm->SetElem(myElem );
-        LocPoint lp = Elem::shapes[myElem->type].midPointCoord;
-        esm->CalcNormal( normalUndefSign, lp );
-        esm->CalcNormalOutOfVol( normalDefSign, lp, *myElem->ptVolElems[0] );
-
-        // Check if all entries have the same sign by calculating
-        // a scalar product between both vectors.
-        // If it is positive, they point in the same direction,
-        // otherwise an angle of 180 lies in between.
-        
-        sign = normalUndefSign * normalDefSign;
-
-        if ( sign > 0.0 ) {
-          myElem->normalSign = 1;
-        } else {
-          myElem->normalSign = -1;
-        }
-      }
-    }
+    // The following code is not needed anymore, as the ElemShapeMap::CalcNormal
+    // ALWAYS calculates a normal pointing OUT of the first volume neighbor, which
+    // is excatly the functionality previoulsy implemented with the normalSign and
+    // the old, unoriented version of CalcNormal().
+//    // 4.) Iterate over all surface elements and calculate surface
+//    //     flag by comparing the directed and the undirected surface
+//    //     normal. If both differ, the surfaceNormalSign = -1, otherwise 1.
+//    Vector<Double> normalUndefSign, normalDefSign;
+//    Double sign;
+//
+//    for( surfElIt = surfElems.begin();
+//         surfElIt != surfElems.end();
+//         surfElIt++ ) {
+//
+//      myElem = surfElIt->second;
+//
+//      // check, if each surface element has at least one volume neighbour
+//      if ( myElem->ptVolElems[0] == NULL ) {
+//        //  EXCEPTION( "Pointer to first volume element is NULL for surface"
+//        //                    << " element no. "
+//        //                    << surfElems_[iRegion][iSurfElem]->elemNum << ".\n"
+//        //                    << "Please check your mesh-file!" );
+//        //         }
+//        myElem->normalSign = 0;
+//      } else {
+//        
+//        shared_ptr<ElemShapeMap> esm(new LagrangeElemShapeMap(this));
+//        esm->SetElem(myElem );
+//        LocPoint lp = Elem::shapes[myElem->type].midPointCoord;
+//        esm->CalcNormal( normalUndefSign, lp );
+//        esm->CalcNormalOutOfVol( normalDefSign, lp, *myElem->ptVolElems[0] );
+//
+//        // Check if all entries have the same sign by calculating
+//        // a scalar product between both vectors.
+//        // If it is positive, they point in the same direction,
+//        // otherwise an angle of 180 lies in between.
+//        
+//        sign = normalUndefSign * normalDefSign;
+//
+//        if ( sign > 0.0 ) {
+//          myElem->normalSign = 1;
+//        } else {
+//          myElem->normalSign = -1;
+//        }
+//        
+//        if(myElem->normalSign != 1 ) {
+//          EXCEPTION("SIGN IS DIFFERENT FROM 1!");
+//        }
+//
+//      }
+//    }
 
   }
 
@@ -2644,6 +2687,7 @@ namespace CoupledField {
       in_->Get("hom")->SetValue(rd.homogeneous);
       in_->Get("nodes")->SetValue(GetNumNodes(rd.id));
       in_->Get("elems")->SetValue(GetNumElems(rd.id));
+      in_->Get("isQuadratic")->SetValue(IsQuadratic());
     }
 
     list = in->Get("namedNodes");
@@ -2898,6 +2942,7 @@ namespace CoupledField {
       numNodes = surfelems[i]->connect.GetSize();
       surfElemNodes_[regionIdx].insert(ptConn,
                                        ptConn+numNodes);
+
     }
   }
 
@@ -3045,7 +3090,7 @@ namespace CoupledField {
       jacDet = esm->CalcJDet( jacobian, Elem::shapes[el->type].midPointCoord);
       if( jacDet < 0 ) {
         try {
-        el->CorrectConnectivity();
+        el->CorrectConnectivity(*this);
         // at this point, we can be sure that the element connectivity
         // was adjusted correctly
         corrElems.insert(el);
@@ -3085,9 +3130,9 @@ namespace CoupledField {
 
   void GridCFS::makeNameNodesFromLines()
   {
-    if(!param || !param->Has("domain/surfRegionList")) return;
+    if(!param_ || !param_->Has("domain/surfRegionList")) return;
 
-    ParamNodeList list = param->Get("domain/surfRegionList")->GetList("surfRegion");
+    ParamNodeList list = param_->Get("domain/surfRegionList")->GetList("surfRegion");
     std::map<std::string, std::string> excludeSurf;
     StdVector<UInt> nodeList;
     StdVector<UInt> nodeListTmp1, nodeListTmp2;
@@ -3121,5 +3166,38 @@ namespace CoupledField {
       AddNamedNodes(nodeRegName, nodeList);
     }
   }
+  
+
+  void GridCFS::MapMidSideNodes() {
+
+
+    // Leave if grid consists just of linear order elements
+    if( !isQuadratic_)
+      return;
+
+    // Loop over all elements
+    UInt numElems = orderedElems_.GetSize();
+    for( UInt iEl = 0; iEl < numElems; ++iEl ) { 
+      const Elem * elem = orderedElems_[iEl];
+      const ElemShape & sh = Elem::shapes[elem->type];
+      
+      // Loop over all mid-side nodes of element
+      for( UInt iNode = sh.numVertices; iNode < sh.numNodes; ++iNode ) {
+        const UInt nodeNum = elem->connect[iNode];
+        // Obtain local coordinate from ElemShape and store it
+        const LocPoint & lp = LocPoint(sh.nodeCoords[iNode]);
+        std::pair<const Elem*, LocPoint> entry(elem, lp);
+        midNodeProjections_[nodeNum].Push_back(entry);
+      } // loop: nodes
+    } // loop: elements
+    
+    // In the end free any non-needed memory
+    boost::unordered_map<UInt, NodeElemMatch>::iterator it;
+    it = midNodeProjections_.begin();
+    for( ; it != midNodeProjections_.end(); ++it ) {
+      it->second.Trim();
+    }
+  }
+
 
 } // end namespace

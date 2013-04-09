@@ -140,6 +140,11 @@ namespace CoupledField{
   void LaplOperator<FE,D,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
                                                           const LocPointMapped& lp, 
                                                           BaseFE* ptFe ){
+    Matrix<Double> dummyMat;
+    CalcOpMat(dummyMat, lp, ptFe);
+    
+    dummyMat.Transpose(bMat);
+#if 0    
     const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialise with zeros
     bMat.Resize( numFncs * DIM_SPACE, DIM_SPACE * DIM_SPACE );
@@ -162,6 +167,7 @@ namespace CoupledField{
         }        
       }      
     }
+#endif
   }
 }
 #endif

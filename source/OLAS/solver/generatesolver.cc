@@ -2,6 +2,7 @@
 #include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_suitesparse.hh>
+#include <def_use_lis.hh>
 
 #include "OLAS/algsys/SolStrategy.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -27,6 +28,10 @@
 #ifdef USE_SUITESPARSE
 #include "OLAS/external/cholmod/CholMod.hh"
 #include "OLAS/external/umfpack/UMFPACKSolver.hh"
+#endif
+
+#ifdef USE_LIS
+#include "OLAS/external/lis/LISSolver.hh"
 #endif
 
 // include source code for templated solvers
@@ -241,7 +246,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     break;
 #endif
 
-  case BaseSolver::PARDISO:
+  case BaseSolver::PARDISO_SOLVER:
 
 #ifdef USE_PARDISO
 
@@ -335,6 +340,28 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 #endif
   break;
   
+  case BaseSolver::LIS:
+
+#ifdef USE_LIS
+  {
+    // Check suitability of matrix
+    if (mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX)
+      EXCEPTION("LIS only works with (S)CRS_Matrix class!");
+
+    const StdMatrix &stdmat = dynamic_cast<const StdMatrix &>(mat);
+    if(stdmat.GetStorageType() != BaseMatrix::SPARSE_NONSYM
+        && stdmat.GetStorageType() != BaseMatrix::SPARSE_SYM  )
+      EXCEPTION("LIS only works with (S)CRS_Matrix class!");
+
+    retSolver = new LISSolver(solverNode, olasInfo, eType);
+    LOG_DBG(genSolver) << " GenerateSolver: Generated LIS solver";
+
+  }
+#else
+  EXCEPTION("Compile with USE_LIS to enable interface to LIS.");
+#endif
+  break;
+
   case BaseSolver::CHOLMOD:
 #ifdef USE_SUITESPARSE
   {
@@ -388,7 +415,7 @@ GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {
       ret.insert(BaseMatrix::LAPACK_GBMATRIX);
       break;
 
-    case BaseSolver::PARDISO:
+    case BaseSolver::PARDISO_SOLVER:
       ret.insert(BaseMatrix::SPARSE_SYM);
       ret.insert(BaseMatrix::SPARSE_NONSYM);
       break;
@@ -407,6 +434,11 @@ GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {
 
     case BaseSolver::CHOLMOD:
       ret.insert(BaseMatrix::SPARSE_SYM);
+      break;
+
+    case BaseSolver::LIS:
+      ret.insert(BaseMatrix::SPARSE_SYM);
+      ret.insert(BaseMatrix::SPARSE_NONSYM);
       break;
 
     case BaseSolver::LDL_SOLVER:
@@ -442,7 +474,7 @@ bool IsSolverSBMCapable(BaseSolver::SolverType st) {
       break;
     case BaseSolver::LAPACK_LU:
     case BaseSolver::LAPACK_LL:
-    case BaseSolver::PARDISO:  
+    case BaseSolver::PARDISO_SOLVER:  
     case BaseSolver::ILUPACK: 
     case BaseSolver::LU_SOLVER:
     case BaseSolver::CHOLMOD: 

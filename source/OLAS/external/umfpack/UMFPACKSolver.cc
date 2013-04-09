@@ -31,55 +31,6 @@ namespace CoupledField {
     EXCEPTION( "Default constructor of UMFPACKSolver is forbidden!" );
   }
 
-
-  template<typename T>
-  std::string UMFPACKSolver<T>::GetErrorString(int err_code) {
-    switch (err_code) {
-      case NO_ERROR:
-        return "No error.";
-      case INPUT_INCONSISTENT:
-        return "Input inconsistent.";
-      case NOT_ENOUGH_MEMORY:
-        return "Not enough memory. Try to switch to out-of-core mode if using MKL.";
-      case REORDERING_PROBLEM:
-        return "Reordering problem.";
-      case ZERO_PIVOT:
-        return "Zero pivot, numerical factorization or iterative refinement problem.";
-      case PREORDERING_FAILED:
-        return "Preordering failed.";
-      case DIAGONAL_MATRIX:
-        return "Diagonal matrix problem.";
-      case INT_OVERFLOW:
-        return "32-bit integer overflow problem.";
-      case NOT_ENOUGH_OOC_MEM:
-        return "Not enough memory for out-of-core. Try increasing MKL_PARDISO_OOC_MAX_CORE_SIZE in ./pardiso_ooc.cfg.";
-      case NO_LIC_FILE:
-        {
-          std::string msg;
-          msg = "No license file pardiso.lic found.\n";
-          msg += "Please get the file at http://www.pardiso-project.org\n";
-          msg += "and set the environment variable PARDISO_LIC_PATH to\n";
-          msg += "the directory containing pardiso.lic.\n";
-          return msg;
-        }
-      case LIC_EXPIRED:
-        return "License is expired.";
-      case WRONG_USER_OR_HOSTNAME:
-        return "Wrong username or hostname.";
-      case MAX_KRYLOV_ITERATIONS:
-        return "Reached maximum number of Krylov-subspace iterations in iterative solver.";
-      case INSUFF_KRYLOV_CONVERGENCE:
-        return "No sufficient convergence in Krylov-subspace iteration within 25 iterations.";
-      case KRYLOV_ITERATION_ERROR:
-        return "Error in Krylov-subspace iteration.";
-      case KRYLOV_BREAKDOWN:
-        return "Break-Down in Krylov-subspace iteration.";
-      
-      default:
-        return "Unclassified (internal) error.";
-    }
-  }
-
   // ***************
   //   Constructor
   // ***************
@@ -94,27 +45,51 @@ namespace CoupledField {
 
     // Initialise attributes
     firstCall_ = true;
-    msgLvl_ = 0;
 
-    // Resize data arrays for Pardiso
-    pt_.Resize(64); pt_.Init(NULL);
-    iparm_.Resize(64); iparm_.Init(0);
-    dparm_.Resize(64); dparm_.Init(0.0);
+    // Resize data arrays for UMFPACK
+    Info.resize(UMFPACK_INFO);
+    Control.resize(UMFPACK_CONTROL);
 
-    // Set default solver type to direct sparse solver
-    std::string solverType = "direct";
-    xml_->GetValue("type", solverType, ParamNode::INSERT);
-      
-    // For production runs, we need no identity reordering
-    idPerm_     = NULL;
-    idPermSize_ = 0;
+    // Set printing level for Control[UMFPACK_PRL]
+    printingLevel_ = 1;
+    xml_->GetValue("printinglevel", printingLevel_, ParamNode::INSERT);
+    if(printingLevel_ < 0 || printingLevel_ > 6)
+      printingLevel_ = 1;
+
+    // Set printing of solver statistics
+    printStats_ = false;
+    xml_->GetValue("stats", printStats_, ParamNode::INSERT);
+
+    // Set kind of ordering and pivoting strategy
+    std::string strat = "auto";
+    xml_->GetValue("strategy", strat, ParamNode::INSERT);
+    if(strat == "auto")        { strategy_ = UMFPACK_STRATEGY_AUTO; }
+    if(strat == "symmetric")   { strategy_ = UMFPACK_STRATEGY_SYMMETRIC; }
+    if(strat == "unsymmetric") { strategy_ = UMFPACK_STRATEGY_UNSYMMETRIC; }
+    
+    std::string order = "amd";
+    xml_->GetValue("ordering", order, ParamNode::INSERT);
+    if(order == "cholmod") { ordering_ = UMFPACK_ORDERING_CHOLMOD; }
+    if(order == "amd")     { ordering_ = UMFPACK_ORDERING_AMD; }
+    if(order == "none")    { ordering_ = UMFPACK_ORDERING_NONE; }
+    if(order == "metis")   { ordering_ = UMFPACK_ORDERING_METIS; }
+    if(order == "best")    { ordering_ = UMFPACK_ORDERING_BEST; }
+
+    tol_=0.1;    
+    xml_->GetValue("tol", tol_, ParamNode::INSERT);
+
+    symtol_=0.001;
+    xml_->GetValue("symtol", symtol_, ParamNode::INSERT);
+
+    irstep_=2;
+    xml_->GetValue("irstep", irstep_, ParamNode::INSERT);
 
     // These pointers are used to hold the addresses of the internal
     // (S)CRS matrix structures. The related memory segments must not
     // be altered of deleted. Therefore the pointers are const!
-    rowPtr_ = NULL;
-    colPtr_ = NULL;
-    datPtr_ = NULL;
+    Ap = NULL;
+    Ai = NULL;
+    Ax = NULL;
   }
 
 
@@ -124,27 +99,16 @@ namespace CoupledField {
   template<typename T>
   UMFPACKSolver<T>::~UMFPACKSolver() {
 
-    umfpack_di_free_symbolic( &Symbolic );
-    umfpack_di_free_numeric( &Numeric );
-
-    free(Rp);
-    free(Ri);
-    free(Rx);
-    
-    // PARDISO - Last Phase: Cleaning up the parameters
-    if ( firstCall_ == false ) {
-
-      int errorFlag = 0;
-
-      if ( errorFlag != NO_ERROR) {
-        EXCEPTION( "Error occured during cleanup:\n"
-                   << GetErrorString(errorFlag) )
-      }
+    if(isComplex_) 
+    {
+      umfpack_zi_free_symbolic( &Symbolic );
+      umfpack_zi_free_numeric( &Numeric );
     }
-
-    // Delete identity re-ordering (if exists)
-    delete [] ( idPerm_ );  idPerm_  = NULL;
-    idPermSize_ = 0;
+    else
+    {  
+      umfpack_di_free_symbolic( &Symbolic );
+      umfpack_di_free_numeric( &Numeric );
+    }
   }
 
 
@@ -203,266 +167,248 @@ namespace CoupledField {
     // =====================================
     const StdMatrix& stdMat = dynamic_cast<const StdMatrix&>(sysMat);
 
-      etype = stdMat.GetEntryType();
-      if ( (etype != BaseMatrix::DOUBLE) && (etype != BaseMatrix::COMPLEX) ) {
-        EXCEPTION( "Pardiso: Expected DOUBLE or COMPLEX entries, but got '"
+    etype = stdMat.GetEntryType();
+    if ( (etype != BaseMatrix::DOUBLE) && (etype != BaseMatrix::COMPLEX) ) {
+      EXCEPTION( "UMFPACK: Expected DOUBLE or COMPLEX entries, but got '"
                  << BaseMatrix::entryType.ToString(etype) << "'" );
-      }
+    }
 
-      stype = stdMat.GetStorageType();
-      if ( (stype != BaseMatrix::SPARSE_SYM) &&
-          (stype != BaseMatrix::SPARSE_NONSYM) ) {
-        EXCEPTION( "Pardiso: Expected a sparseSym or sparseNonSym matrix, "
+    isComplex_ = ( etype == BaseMatrix::COMPLEX);
+    
+    stype = stdMat.GetStorageType();
+    if ( (stype != BaseMatrix::SPARSE_SYM) &&
+         (stype != BaseMatrix::SPARSE_NONSYM) ) {
+      EXCEPTION( "UMFPACK: Expected a sparseSym or sparseNonSym matrix, "
                  << "but got a '" << BaseMatrix::storageType.ToString( stype ) << "' matrix" );
-      }
+    }
 
-      // Determine problem size
-      probDim_ = stdMat.GetNumRows();
+    // Determine problem size
+    probDim_ = stdMat.GetNumRows();
 
     // ==================================================
     //  Get pointers to arrays containing information on
     //  (S)CRS matrix from the problem matrix object
     // ==================================================
+    void *hatred;
+    
     if ( stype == BaseMatrix::SPARSE_NONSYM ) {
       const CRS_Matrix<T>& crsMat = dynamic_cast<const CRS_Matrix<T>&>(sysMat);
-      rowPtr_ = (Integer*)(crsMat.GetRowPointer());
-      colPtr_ = (Integer*)(crsMat.GetColPointer());
-      datPtr_ = crsMat.GetDataPointer();
+      Ap = (Integer*)(crsMat.GetRowPointer());
+      Ai = (Integer*)(crsMat.GetColPointer());
+      hatred = (void *) crsMat.GetDataPointer();
       nnz_    = crsMat.GetNnz();
     }
     else {
       const SCRS_Matrix<T>& scrsMat = dynamic_cast<const SCRS_Matrix<T>&>(sysMat);
-      rowPtr_ = (Integer*)(scrsMat.GetRowPointer());
-      colPtr_ = (Integer*)(scrsMat.GetColPointer());
-      datPtr_ = scrsMat.GetDataPointer();
+      Ap = (Integer*)(scrsMat.GetRowPointer());
+      Ai = (Integer*)(scrsMat.GetColPointer());
+      hatred = (void *) scrsMat.GetDataPointer();
       nnz_    = scrsMat.GetNumEntries();
     }
 
     // Do C-style casting to fix problem with over-loading vs. extern C
-    void *hatred = (void *) datPtr_;
-    theMatrix_ = (Double *) hatred;
+    // void *hatred = (void *) datPtr_;
+    Ax = (Double *) hatred;
 
-
-    // ====================================
-    //  Set default parameters for Pardiso
-    // ====================================
-
-    // Some flags for determining the type of the matrix
-    bool symPard, defPard, herPard, strPard;
-
-    if ( stype == BaseMatrix::SPARSE_SYM ) {
-      symPard = true;
-    }
-    else {
-      symPard = false;
-    }
-
-    mType_ = 0;
-
-    defPard = false;
-    xml_->GetValue("posDef", defPard, ParamNode::INSERT);
-
-    herPard = false;
-    xml_->GetValue("hermitean", herPard, ParamNode::INSERT);
-
-    strPard = false;
-    xml_->GetValue("symStruct", strPard, ParamNode::INSERT);
-
-    if ( (etype == BaseMatrix::DOUBLE ) && (!symPard) && ( strPard) ) mType_ =  1;
-    if ( (etype == BaseMatrix::DOUBLE ) && ( symPard) && ( defPard) ) mType_ =  2;
-    if ( (etype == BaseMatrix::DOUBLE ) && ( symPard) && (!defPard) ) mType_ = -2;
-    if ( (etype == BaseMatrix::COMPLEX) && (!symPard) && ( strPard) ) mType_ =  3;
-    if ( (etype == BaseMatrix::COMPLEX) && ( herPard) && ( defPard) ) mType_ =  4;
-    if ( (etype == BaseMatrix::COMPLEX) && ( herPard) && (!defPard) ) mType_ = -4;
-    if ( (etype == BaseMatrix::COMPLEX) && ( symPard) ) mType_ = 6;
-    if ( (etype == BaseMatrix::DOUBLE ) && (!symPard) && (!strPard) ) mType_ = 11;
-    if ( (etype == BaseMatrix::COMPLEX) && (!symPard) && (!strPard) && (!herPard)) {
-      mType_ = 13;
-    }
-    if ( mType_ == 0 ) {
-      EXCEPTION( "UMFPACKSolver: There appears to be an inconsistency in "
-               << "the input parameters. I cannot determine correct matrix "
-               << "properties for pardiso" );
-    }
-    else {
-      LOG_TRACE(umfpackSolver) << " Classified matrix as mType = " << mType_;
-    }
-
-    // We do not need to call pardisoinit, if the matrix pattern
-    // has not changed
-    if ( facSymbolic ) {
-      LOG_TRACE(umfpackSolver) << " Calling pardisoinit";
-
-#if 0
-
-#if PARDISO_API_VER == 4
-      Integer error = 0;
-      F77NAME(pardisoinit) ( &pt_[0],  &mType_, &mSolver_, &iparm_[0], &dparm_[0], &error);
-
-      if (error != 0) 
-        EXCEPTION(GetErrorString(error));
-#endif
-
-#if PARDISO_API_VER == 3
-      F77NAME(pardisoinit) ( &pt_[0], &mType_, &iparm_[0] );
-#endif
-
-#endif
-
-    }
-
-
-    // =======================================
-    //  Alter default parameters to our taste
-    // =======================================
-
-    // Avoid that Pardiso over-writes our settings
-    iparm_[0] = 1;
-
-    // Specify number of OpenMP threads. OLAS currently has no consistent
-    // concept for shared memory parallelism, so we specify one thread here.
-    //#if defined (_OPENMP)
-    //iparm_[2] = omp_get_num_threads();
-    //#else
-    //iparm_[2] = 1;
-    //#endif
-
-    // Determine the re-ordering strategy: We can either fo nested dissection
-    // or minimum degree re-ordering or no re-ordering at all (i.e. we use
-    // the initial ordering of the linear system, which might already have been
-    // re-ordered via the graph)
-    BaseOrdering::ReorderingType ordering = BaseOrdering::NESTED_DISSECTION;
-    std::string orderStr = "nestedDissection";
-    xml_->GetValue("ordering", orderStr, ParamNode::INSERT);
-    ordering = BaseOrdering::reorderingType.Parse( orderStr );
-
-    switch ( ordering ) {
-
-    case BaseOrdering::NESTED_DISSECTION:
-      iparm_[1] = 2;
-      iparm_[4] = 0;
-      break;
-
-    case BaseOrdering::MINIMUM_DEGREE:
-      iparm_[1] = 0;
-      iparm_[4] = 0;
-      break;
-
-    case BaseOrdering::NOREORDERING:
-      // In this case iparm_[1] is irrelevant, we generate an identity
-      // permutation and use this one, by setting iparm_[4] and skip the
-      // symbolic factorisation
-      iparm_[1] = 0;
-      iparm_[4] = 1;
-      if ( idPermSize_ < probDim_ ) {
-        delete [] ( idPerm_ );  idPerm_  = NULL;
-        NEWARRAY( idPerm_, int, probDim_ );
-        for ( int i = 0; i < probDim_; i++ ) {
-          // (i+1), since fortran needs indices starting with 1!!
-          idPerm_[i] = i+1;
-        }
-      }
-      break;
-
-    default:
-      std::string tmp;
-      tmp = BaseOrdering::reorderingType.ToString( ordering );
-
-      EXCEPTION( "Re-ordering of type '" << tmp
-               << "' is not available with the UMFPACKSolver" );
-    }
-
-      if ( facSymbolic == true ) {
-        if ( ordering != BaseOrdering::NOREORDERING ) {
-          std::string tmp;
-      tmp = BaseOrdering::reorderingType.ToString( ordering );
-
-          LOG_TRACE(umfpackSolver) << " Analyse phase will determine a '"
-                                   << tmp << "' re-ordering";
-        }
-        else {
-          LOG_TRACE(umfpackSolver) << " Factorisation uses original matrix ordering";
-        }
-      }
-    
     // Do we need to determine MFLOPs for the LU factorisation
     bool stats = false;
-      xml_->GetValue("stats", stats, ParamNode::INSERT);
+    xml_->GetValue("stats", stats, ParamNode::INSERT);
     
-    if(stats)
-      iparm_[18] = -1;
-    else
-      iparm_[18] = 0;
-  
-    // Setting pivoting strategy for indefinit problems
-    iparm_[20] = 1;
-
-    // In case we have no positive definite system (especially piezo)
-    // we perform additional scaling to enhance the condition for very
-    // small off-diagonal entries (iparm_[11]). In addition we enable
-    // the method of 'symmetric weighted matchings' (iparam_[13]).
-    // For further information, refer to the pardiso user manual.
-    if( !defPard ) {
-      iparm_[10] = 1;
-      iparm_[12] = 1;
-    }
-
-    // Pardiso keeps one factorisation in memory (and that is used for
-    // the solution phase)
-    maxfct_ = 1;
-    mnum_ = 1;
-
     // We simultaneously treat a single right hand side
     nrhs_ = 1;
-
-    // Set the message level (for printing statistics)
-    msgLvl_ = 0;
-    if ( stats ) {
-      msgLvl_ = 1;
-    }
-
 
     // ========================
     //  Symbolic Factorisation
     // ========================
-    if ( facSymbolic == true ) {
+    if ( facSymbolic ) {
 
       // log report
       LOG_TRACE(umfpackSolver) << " Performing analyse phase (symbolic factorisation)"
                                << " ... ";
+      Rp.resize(probDim_+1);
+      Ri.resize(nnz_);
 
-      n_row = probDim_;
-      n_col = probDim_;
-      Ap = rowPtr_;
-      Ai = colPtr_;
-      Ax = theMatrix_;
-      P = NULL;
-      Q = NULL;
-      Rp = (int *) malloc ((probDim_+1) * sizeof (int)) ;
-      Ri = (int *) malloc (nnz_ * sizeof (int)) ;
-      Rx = (double *) malloc (nnz_ * sizeof (double)) ;
+      // First set defaults for UMFPACK and generate CSC representation of input matrix
+      if(isComplex_) 
+      {      
+        Rx.resize(2 * nnz_);
 
-      double Control [UMFPACK_CONTROL];
+        /* get the default control parameters */
+        umfpack_zi_defaults (&Control[0]) ;
+        
+        /* change the default print level for this demo */
+        /* (otherwise, nothing will print) */
+        Control[UMFPACK_PRL] = printingLevel_ ;
 
-      /* get the default control parameters */
-      umfpack_di_defaults (Control) ;
+        status = umfpack_zi_transpose (probDim_, probDim_,
+                                       Ap, Ai, Ax, NULL,
+                                       (int *) NULL, (int *) NULL,
+                                       &Rp[0], &Ri[0], &Rx[0], NULL, 0) ;
+        if (status < 0)
+        {
+          umfpack_zi_report_status (&Control[0], status) ;
+          EXCEPTION("umfpack_zi_transpose failed") ;
+        }
+        
+#if 0
+        int n = 5;
+        int job = 1;
+        int ipos = 1;
+        int Ap[]={0,2,5,9,10,12};
+        int Ai[]={0,1,0, 2,4,1,2,3, 4,2,1,4};
+        double Ax[] = {2., 3., 3., -1., 4., 4., -3., 1., 2., 2., 6., 1., 
+                       3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3.} ;
+        double Az[] = {1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.} ;
+        double b[] = {8., 45., -3., 3., 19.} ;      
 
-      /* change the default print level for this demo */
-      /* (otherwise, nothing will print) */
-      Control [UMFPACK_PRL] = 6 ;      
+        //status = umfpack_zi_transpose (n, n, Ap, Ai, Ax, NULL, (int *) NULL, (int *) NULL, Rp, Ri, Rx, Rz, 0) ;
 
-//    printf ("\nMatrix A: ") ;
-//    (void) umfpack_di_report_matrix (probDim_, probDim_, rowPtr_, colPtr_, theMatrix_, 1, NULL) ;
+        for(int i=0; i<=n; i++) Ap[i]++;
+        for(int i=0; i<12; i++) Ai[i]++;
+        
+        csrcsc_double_(&n, &job, &ipos,
+                       Ax, Ai, Ap,
+                       Rx, Ri, Rp);
+        csrcsc_double_(&n, &job, &ipos,
+                       Az, Ai, Ap,
+                       Rz, Ri, Rp);
+
+        for(int i=0; i<=n; i++) Rp[i]--;
+        for(int i=0; i<12; i++) Ri[i]--;
+        umfpack_zi_report_matrix (n, n, Rp, Ri, Rx, Rz, 1, &Control[0]) ;
+#endif
+      }
+      else
+      {
+        Rx.resize(nnz_);
+
+        /* get the default control parameters */
+        umfpack_di_defaults (&Control[0]) ;
+        
+        /* change the default print level for this demo */
+        /* (otherwise, nothing will print) */
+        Control[UMFPACK_PRL] = printingLevel_ ;      
+        
+        //    printf ("\nMatrix A: ") ;
+        //    (void) umfpack_di_report_matrix (probDim_, probDim_, rowPtr_, colPtr_, theMatrix_, 1, NULL) ;
+        
+        status = umfpack_di_transpose (probDim_, probDim_,
+                                       Ap, Ai, Ax,
+                                       (int *) NULL, (int *) NULL,
+                                       &Rp[0], &Ri[0], &Rx[0]) ;
+        if (status < 0)
+        {
+          umfpack_di_report_status (&Control[0], status) ;
+          EXCEPTION("umfpack_di_transpose failed") ;
+        }
+      }
+
+      // Determine the pivoting and re-ordering strategy
+      if(strategy_ != UMFPACK_STRATEGY_AUTO)
+      {
+        Control [UMFPACK_STRATEGY] = strategy_;        
+      }
       
-      status = umfpack_di_transpose (probDim_, probDim_, Ap, Ai, Ax, P, Q, Rp, Ri, Rx) ;
+      // Determine the re-ordering strategy
+      if(strategy_ != UMFPACK_ORDERING_AMD)
+      {
+        Control [UMFPACK_ORDERING] = ordering_;        
+      }
 
-//    printf ("\nTranspose of A: ") ;
-//    (void) umfpack_di_report_matrix (probDim_, probDim_, Rp, Ri, Rx, 1, Control) ;
-    
-      umfpack_di_symbolic (n_col, n_row, Rp, Ri, Rx, &Symbolic, 0, 0) ;
+      Control[UMFPACK_PIVOT_TOLERANCE] = tol_;
+      Control[UMFPACK_SYM_PIVOT_TOLERANCE] = symtol_;
+      Control[UMFPACK_IRSTEP] = irstep_;
+      
+      // Finally compute symbolic factorization
+      if(isComplex_) 
+      {      
+        umfpack_zi_symbolic (probDim_, probDim_,
+                             &Rp[0], &Ri[0], &Rx[0], NULL,
+                             &Symbolic, &Control[0], &Info[0]) ;
+        if (status < 0)
+        {
+          umfpack_zi_report_info (&Control[0], &Info[0]) ;
+          umfpack_zi_report_status (&Control[0], status) ;
+          EXCEPTION("umfpack_zi_symbolic failed") ;
+        }
 
+        if(printStats_) 
+        { 
+          std::cout << "========================================"
+                    << "========================================" << std::endl;
+          std::cout << "                            "
+                    << "Symbolic Factorization " << std::endl;
+          std::cout << "========================================"
+                    << "========================================" << std::endl << std::endl;
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          std::cout << " UMFPACK Control Block: " << std::endl;
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          umfpack_zi_report_control(&Control[0]);
+          std::cout << std::endl;         
+
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          std::cout << " UMFPACK Info Block: " << std::endl;
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          umfpack_zi_report_info (&Control[0], &Info[0]);
+          std::cout << std::endl;         
+
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          std::cout << " UMFPACK Symbolic Factorization Report: " << std::endl;
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          status = umfpack_zi_report_symbolic (Symbolic, &Control[0]) ;
+        }
+      }
+      else 
+      {    
+        umfpack_di_symbolic (probDim_, probDim_,
+                             &Rp[0], &Ri[0], &Rx[0],
+                             &Symbolic, &Control[0], &Info[0]) ;
+        if (status < 0)
+        {
+          umfpack_di_report_info (&Control[0], &Info[0]) ;
+          umfpack_di_report_status (&Control[0], status) ;
+          EXCEPTION("umfpack_di_symbolic failed") ;
+        }
+
+        if(printStats_) 
+        {          
+          std::cout << "========================================"
+                    << "========================================" << std::endl;
+          std::cout << "                            "
+                    << "Symbolic Factorization " << std::endl;
+          std::cout << "========================================"
+                    << "========================================" << std::endl << std::endl;
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          std::cout << " UMFPACK Control Block: " << std::endl;
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          umfpack_di_report_control(&Control[0]);
+          std::cout << std::endl;         
+
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          std::cout << " UMFPACK Info Block: " << std::endl;
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          umfpack_di_report_info (&Control[0], &Info[0]);
+          std::cout << std::endl;         
+
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          std::cout << " UMFPACK Symbolic Factorization Report: " << std::endl;
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          status = umfpack_di_report_symbolic (Symbolic, &Control[0]) ;
+        }
+      }
     }
-
 
     // =========================
     //  Numerical Factorisation
@@ -473,9 +419,78 @@ namespace CoupledField {
       LOG_TRACE(umfpackSolver) << " Performing factorise phase (numerical "
                                << "factorisation) ... ";
 
+      if(isComplex_) 
+      {      
+        // only factorise (numerical)
+        status = umfpack_zi_numeric (&Rp[0], &Ri[0], &Rx[0], NULL,
+                                     Symbolic, &Numeric, &Control[0], &Info[0]);
+        if (status < 0)
+        {
+          EXCEPTION ("umfpack_zi_numeric failed") ;
+        }
+        // printf ("\nNumeric factorization of C: ") ;
+        // (void) umfpack_zi_report_numeric (Numeric, &Control[0]) ;
 
-      // only factorise (numerical)
-      umfpack_di_numeric (Rp, Ri, Rx, Symbolic, &Numeric, 0, 0);
+        if(printStats_) 
+        {          
+          std::cout << "========================================"
+                    << "========================================" << std::endl;
+          std::cout << "                            "
+                    << "Numeric Factorization " << std::endl;
+          std::cout << "========================================"
+                    << "========================================" << std::endl << std::endl;
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          std::cout << " UMFPACK Info Block: " << std::endl;
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          umfpack_zi_report_info (&Control[0], &Info[0]);
+          std::cout << std::endl;         
+
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          std::cout << " UMFPACK Numeric Factorization Report: " << std::endl;
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          status = umfpack_zi_report_numeric (Numeric, &Control[0]) ;
+        }
+      }
+      else 
+      {      
+        status = umfpack_di_numeric (&Rp[0], &Ri[0], &Rx[0],
+                                     Symbolic, &Numeric, &Control[0], &Info[0]);
+        if (status < 0)
+        {
+          EXCEPTION ("umfpack_di_numeric failed") ;
+        }
+        // printf ("\nNumeric factorization of C: ") ;
+        // (void) umfpack_di_report_numeric (Numeric, &Control[0]) ;
+
+        if(printStats_) 
+        {          
+          std::cout << "========================================"
+                    << "========================================" << std::endl;
+          std::cout << "                            "
+                    << "Numeric Factorization " << std::endl;
+          std::cout << "========================================"
+                    << "========================================" << std::endl << std::endl;
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          std::cout << " UMFPACK Info Block: " << std::endl;
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          umfpack_di_report_info (&Control[0], &Info[0]);
+          std::cout << std::endl;         
+
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          std::cout << " UMFPACK Numeric Factorization Report: " << std::endl;
+          std::cout << "----------------------------------------"
+                    << "----------------------------------------" << std::endl;         
+          status = umfpack_di_report_numeric (Numeric, &Control[0]) ;
+        }
+      }
+
     }
 
     // Now we were called once, and a factorisation is available
@@ -490,15 +505,16 @@ namespace CoupledField {
   // *************************
   template<typename T>
   void UMFPACKSolver<T>::Solve( const BaseMatrix &sysmat,
-                                const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
+                                const BaseVector &rhs, BaseVector &sol,
+                                PtrParamNode analysis_step ) {
 
     LOG_TRACE(umfpackSolver) << " -----------------------------------------"
                              << "-------------------------------------";
     LOG_TRACE(umfpackSolver) << " Solving linear system ...";
-
+    
     if ( firstCall_ == true ) {
-      EXCEPTION( "The matrix has not yet been factorised by Pardiso! "
-               << "Call Setup() first" );
+      EXCEPTION( "The matrix has not yet been factorised by UMFPACK! "
+                 << "Call Setup() first" );
     }
 
 
@@ -525,67 +541,39 @@ namespace CoupledField {
     theSol = (Double *) hatred;
 
 
-    umfpack_di_solve (UMFPACK_A, Rp, Ri, Rx, theSol, theRHS, Numeric, 0, 0) ;
+    if(isComplex_) 
+    {      
+      status = umfpack_zi_solve (UMFPACK_A, &Rp[0], &Ri[0], &Rx[0], NULL,
+                                 theSol, NULL,
+                                 theRHS, NULL,
+                                 Numeric, &Control[0], &Info[0]) ;
+      if (status < 0)
+      {
+	umfpack_zi_report_status (&Control[0], status) ;
+	EXCEPTION ("umfpack_zi_solve failed") ;
+      }
+    }    
+    else
+    {      
+      status = umfpack_di_solve (UMFPACK_A, &Rp[0], &Ri[0], &Rx[0],
+                                 theSol,
+                                 theRHS,
+                                 Numeric, &Control[0], &Info[0]) ;
+      if (status < 0)
+      {
+	umfpack_di_report_status (&Control[0], status) ;
+	EXCEPTION ("umfpack_di_solve failed") ;
+      }
 
-#if 0
-    // PARDISO - Third Phase : Solution of the system
-    int errorFlag = 0;
-    int phase = 33;
-
-    // we have to icrement the entries of the col- and row-position arrays
-    // by one, so that the first col and first row start with index 1 (and
-    // not with zero) to be consistent with fortran
-    // at the end of the method we will undo it!!
-
-    for (UInt i=0; i<static_cast<UInt>(probDim_+1); i++ )
-      rowPtr_[i] += 1;
-    for (UInt i=0; i< nnz_; i++ )
-       colPtr_[i] += 1;
-
-#if PARDISO_API_VER == 4
-    F77NAME(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                      &probDim_, theMatrix_, rowPtr_, colPtr_,
-                      idPerm_, &nrhs_, &iparm_[0], &msgLvl_, theRHS,
-                      theSol, &errorFlag, &dparm_[0] );
-#endif
-
-#if PARDISO_API_VER == 3
-    F77NAME(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                      &probDim_, theMatrix_, rowPtr_, colPtr_,
-                      idPerm_, &nrhs_, &iparm_[0], &msgLvl_, theRHS,
-                      theSol, &errorFlag );
-#endif
-
-    // now we undo our increment, since on our side the first col and row
-    // has an value of zero!!
-    for (UInt i=0; i <  static_cast<UInt>(probDim_+1); i++ )
-      rowPtr_[i] -= 1;
-    for (UInt i=0; i< nnz_; i++ )
-      colPtr_[i] -= 1;
-
-    // Check return status
-    if ( errorFlag != NO_ERROR ) {
-      EXCEPTION( "Error occured during solution of linear system:\n"
-                 << GetErrorString(errorFlag) );
     }
-    else {
-      LOG_TRACE(umfpackSolver) << "done";
-    }
-
-#endif
-
-
+      
     // Finish log report
-      LOG_TRACE(umfpackSolver) << " number of iterative refinement steps: " << iparm_[6];
-      LOG_TRACE(umfpackSolver) << " number of perturbed pivots: " << iparm_[13];
-      LOG_TRACE(umfpackSolver) << " number of positive eigenvalues: " << iparm_[21];
-      LOG_TRACE(umfpackSolver) << " number of negative eigenvalues: " << iparm_[22];
     LOG_TRACE(umfpackSolver) << " -------------------------------------------------------"
                              << "-----------------------";
-
+    
     // Create Report (no sensible things to write for direct solvers yet)
     ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
+    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", at);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
   }

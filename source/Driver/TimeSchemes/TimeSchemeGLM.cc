@@ -20,7 +20,7 @@ namespace CoupledField{
    DEFINE_LOG(timeschemeglm, "timescheme.glm")
 
 
-  TimeSchemeGLM::TimeSchemeGLM(SchemeType type, UInt solDerivOrder) :
+  TimeSchemeGLM::TimeSchemeGLM(GLMScheme::SchemeType type, UInt solDerivOrder) :
          avoidUpdateIdx_(-1) {
 
     InitGLMs();
@@ -31,6 +31,18 @@ namespace CoupledField{
     curScheme_->solDerivOrder_ = solDerivOrder;
     solOrder_ = solDerivOrder;
   }
+  
+  TimeSchemeGLM::TimeSchemeGLM(GLMScheme* scheme, UInt solDerivOrder) :
+           avoidUpdateIdx_(-1) {
+
+      InitGLMs();
+
+      curScheme_ = scheme;
+      curType_ = scheme->GetType();
+
+      curScheme_->solDerivOrder_ = solDerivOrder;
+      solOrder_ = solDerivOrder;
+    }
 
   TimeSchemeGLM::~TimeSchemeGLM(){
     for(UInt i=1;i<curScheme_->sizeGLMVec_;i++){
@@ -46,7 +58,7 @@ namespace CoupledField{
     }
     stageVector_.Clear();
 
-    std::map<SchemeType, GLMScheme*>::iterator it = availSchemes.begin();
+    std::map<GLMScheme::SchemeType, GLMScheme*>::iterator it = availSchemes.begin();
     while(it != availSchemes.end()){
       delete it->second;
       it->second = NULL;
@@ -118,6 +130,18 @@ namespace CoupledField{
       }
     }
   }
+  
+  void TimeSchemeGLM::BeginStep( bool updatePredictor ) {
+    //update for old solutions
+    if(curScheme_->usePredictors_){
+      if( updatePredictor ) {
+        for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+          predictors_[i]->Init();
+          predictorCalculated_[i] = false;
+        }
+      }
+    }
+  }
 
   void TimeSchemeGLM::ComputeStageRHS(UInt actStage, Integer derivId,
                                       SingleVector* rhsVec, Integer subIdx){
@@ -167,24 +191,20 @@ namespace CoupledField{
     if(curScheme_->usePredictors_){
       for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
         if((Integer)i != avoidUpdateIdx_){
-           glmVector_[i]->Init();
-           SingleVector * curPVec = predictors_[i];
-           glmVector_[i]->Add(-1.0,*curPVec);
-           curPVec = NULL;
+          glmVector_[i]->Init();
+          SingleVector * curPVec = predictors_[i];
+          glmVector_[i]->Add(-1.0,*curPVec);
+          curPVec = NULL;
 
-           for(UInt actS = 0; actS < curScheme_->numStages_; actS++){
-             SingleVector * curSVec = stageVector_[actS];
+          for(UInt actS = 0; actS < curScheme_->numStages_; actS++){
+            SingleVector * curSVec = stageVector_[actS];
 
-             UInt row = curScheme_->numStages_ * (curScheme_->maxDerivOrder_+1);
-             Double coef = curScheme_->schemeCoefs_[row+i][actS];
-             glmVector_[i]->Add(coef,*curSVec);
-             curSVec = NULL;
-           }
+            UInt row = curScheme_->numStages_ * (curScheme_->maxDerivOrder_+1);
+            Double coef = curScheme_->schemeCoefs_[row+i][actS];
+            glmVector_[i]->Add(coef,*curSVec);
+            curSVec = NULL;
+          }
         }
-      }
-      for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
-        predictors_[i]->Init();
-        predictorCalculated_[i] = false;
       }
     }else{
       Exception("The general case is not implemented yet");
@@ -281,9 +301,9 @@ namespace CoupledField{
 
   void TimeSchemeGLM::InitGLMs(){
     //initialize GLMs
-    availSchemes[TRAPEZOIDAL] = new Trapezoidal(0.513);
+    availSchemes[GLMScheme::TRAPEZOIDAL] = new Trapezoidal(0.513);
 
-    availSchemes[NEWMARK] = new Newmark(0.5,0.25);
+    availSchemes[GLMScheme::NEWMARK] = new Newmark(0.5,0.25);
   }
 
 }

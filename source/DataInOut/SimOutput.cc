@@ -11,9 +11,11 @@ namespace CoupledField {
     
   
     SimOutput::SimOutput( const std::string& fileName, 
-                          PtrParamNode outputNode ) {
+                          PtrParamNode outputNode,
+                          PtrParamNode infoNode ) {
     fileName_ = fileName;
     myParam_ = outputNode;
+    myInfo_ = infoNode;
     actStep_ = 0;
     actStepVal_ = 0.0;
     actMSStep_ = 0;

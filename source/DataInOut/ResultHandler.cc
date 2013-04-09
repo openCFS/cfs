@@ -23,9 +23,8 @@ namespace CoupledField {
   DECLARE_LOG(resHandler)
   DEFINE_LOG(resHandler, "resultHandler")
     
-    ResultHandler::ResultHandler( OpMode opMode) {
-    
-    opMode_ = opMode;
+  ResultHandler::ResultHandler( PtrParamNode paramNode) {
+    param_ = paramNode;
     sequenceStep_ = 1;
     actStep_ = 0;
     finalResultExists_ = false;
@@ -415,10 +414,22 @@ namespace CoupledField {
       return;
     }
 
+    // Hack: As there might be times for a sequence step with index 0
+    // (e.g. grid results etc.) we look for a suitable sequence step for
+    // a step 1 in case 
+    
     // fetch current postProcNode
-    PtrParamNode postProcNode = 
-      param->GetByVal("sequenceStep", std::string("index"), actContext.sequenceStep)
-      ->Get( "postProcList")->GetByVal( "postProc", "id", postProcName );
+    UInt seqStep = 1;
+    if( sequenceStep_ > 1 ) {
+      seqStep = sequenceStep_;
+    }
+    PtrParamNode postProcNode, ppListNode;
+    PtrParamNode seqNode = param_->GetByVal("sequenceStep", "index", seqStep);
+    if( seqNode )
+      ppListNode = seqNode->Get("postProcList");
+      
+    if( ppListNode )
+      postProcNode = ppListNode->GetByVal("postProc", "id", postProcName);
     
     if( !postProcNode ) {
       EXCEPTION( "A Postprocessing section for '" << postProcName
@@ -781,7 +792,8 @@ namespace CoupledField {
       if( neededCap == SimOutput::HISTORY ) {
         std::string simName = progOpts->GetSimName();
         shared_ptr<SimOutput> textOut 
-          = shared_ptr<SimOutput>(new SimOutputText( simName, PtrParamNode() ) );
+          = shared_ptr<SimOutput>(new SimOutputText( simName, PtrParamNode(), 
+                                                     PtrParamNode() ) );
         textOut->Init(  domain->GetGrid(), false );
         outFiles_["histDefault"] = textOut;
         outGridIds_["histDefault"] = "default";
@@ -903,73 +915,12 @@ namespace CoupledField {
              SolutionType solType,
              const std::string& regionName ) {
 
-    // check, if input reader exists
-    if( inFiles_.find(readerId) == inFiles_.end() ) {
-      EXCEPTION( "Input reader with id '" << readerId 
-                 << "' is not registered yet" );
-    }
-    
-    // aquire input reader
-    shared_ptr<SimInput> actInput = GetInputReader( readerId );
-    
-    // get all defined result types
-    StdVector<shared_ptr<ResultInfo> > infos;
-    GetResultTypes( readerId, sequenceStep, infos );
-    
-    // find correct one; if multiple are present -> Exception
-    bool found = false;
-    shared_ptr<ResultInfo> actInfo;
-    for( UInt i = 0; i < infos.GetSize(); i++ ) {
-      if( infos[i]->resultType == solType ) {
-        // check, if result was already found
-        if(found) { 
-          EXCEPTION( "A result of type '" << SolutionTypeEnum.ToString(solType) << "' was already "
-                      << "found in input reader '" << readerId
-                      << "' in sequence Step " << sequenceStep );
-        }
-        actInfo = infos[i];
-      }
-    }
-    
-    // check if any result at all was found
-    if( !actInfo ) {
-     EXCEPTION( "Result was not found in input reader '"
-                 << readerId << "'" );
-    }
-    
-    // get all regions for given resulinfo object
-    StdVector<shared_ptr<EntityList> > entList;
-    GetResultEntities( readerId, sequenceStep, actInfo, entList);
-    
-    // find correct one; if none is found -> Exception
-    shared_ptr<EntityList> actList;
-    for( UInt i = 0; i < entList.GetSize(); i++ ) {
-      if( entList[i]->GetName() == regionName )
-        actList = entList[i];
-    }
-    
-    // check if any region at all was  found
-    if( !actList) {
-      EXCEPTION( "No entitylist found for result '"
-                << solType << "' on region '" << regionName << "'" ); 
-      }
-      
-    // determine analysistype of current multi sequence step
-    std::map<UInt, BasePDE::AnalysisType> analysis;
-    std::map<UInt, UInt> numSteps;
-    GetNumMultiSequenceSteps( readerId, analysis, numSteps, false );
-    
-    // create new result object, fill it and return it
     shared_ptr<BaseResult> result;
-    if( analysis[sequenceStep] != BasePDE::HARMONIC ) {
-      result = shared_ptr<BaseResult>(new Result<Double>() );
-    } else {
-      result = shared_ptr<BaseResult>(new Result<Complex>() );
-    }
-    result->SetResultInfo( actInfo );
-    result->SetEntityList( actList );
-    GetResult( readerId, sequenceStep, stepValue, result);
-    
+
+    result = inFiles_[readerId]->GetResult(sequenceStep,
+                                           stepValue,
+                                           solType,
+                                           regionName );
     return result;
   }
   
@@ -980,93 +931,12 @@ namespace CoupledField {
                                 UInt sequenceStep,
                                 UInt stepValue,
                                 SolutionType solType,
-                                std::set<std::string> & regionNames ) {
-    
-    //EXCEPTION("ResultHandler::GetStoreSol: Not Adapted Yet");
-
-
-    // get grid
-	shared_ptr<BaseResult> Bres =   GetResult( readerId, sequenceStep,stepValue, solType, *regionNames.begin() );
-	Grid * ptGrid = dynamic_cast<Result<TYPE>&>(*Bres).GetEntityList()->GetGrid();
-
-    shared_ptr<ResultInfo> actInfo = dynamic_cast<Result<TYPE>&>(*Bres).GetResultInfo();
-    
-    // Create FeSpace (Only Nodal Right now)
-    //For higher order results and such we need some additional functionality in
-    // the fe space here....
-    shared_ptr<FeSpace> nodalSpace = 
-        FeSpace::CreateInstance(param,info->Get("ResultHandler"),FeSpace::H1, ptGrid);
-    nodalSpace->SetDefaultRegionApproximation();
-
-    //create FeFunction
-    shared_ptr<FeFunction<TYPE> > myFunc(new FeFunction<TYPE>());
-    
-    myFunc->SetGrid(ptGrid);
-    myFunc->SetResultInfo(actInfo);
-    myFunc->SetFeSpace(nodalSpace);
-
-    actInfo->SetFeFunction(myFunc);
-    nodalSpace->AddFeFunction(myFunc);
-    // iterate over all regionNames
-    StdVector<shared_ptr<BaseResult > > results;
-    results.Resize( regionNames.size() );
-    std::set<std::string>::iterator regIter = regionNames.begin();
-    UInt pos = 0;
-    for( ; regIter != regionNames.end(); ++regIter) {
-
-      // obtain result object
-      results[pos++] = GetResult(readerId, sequenceStep, stepValue, solType, *regIter );
-
-      // pass it ot eqnMap
-      shared_ptr<EntityList> entList = ptGrid->GetEntityList(EntityList::ELEM_LIST,*regIter);
-
-      myFunc->AddEntityList( entList );
-    }
-    
-    // finalize feSpace
-    myFunc->SetFctId(PSEUDO_FCT_ID);
-
-    nodalSpace->Finalize();
-    myFunc->Finalize();
-
-    //if(progOpts->DoListMapping())
-    //  eqnMap->ToInfo(info->Get(ParamNode::HEADER)->Get("mappings", ParamNode::APPEND));
-
-    //now we map the result vector to the coefficient vector
-    
-    // iterate over all regions
-    //Double max = 0.0;
-    regIter = regionNames.begin();
-    for( UInt i = 0; regIter != regionNames.end(); ++i,++regIter) {
-
-      // get result and entitylist
-      shared_ptr<EntityList> regionList = results[i]->GetEntityList();
-
-      // get related nodelist
-      shared_ptr<EntityList> nodeList
-      = ptGrid->GetEntityList(EntityList::NODE_LIST,
-                              regionList->GetName());
-
-      EntityIterator it= nodeList->GetIterator();
-      Vector<TYPE> & resVec = dynamic_cast<Result<TYPE>&>(*results[i]).GetVector();
-      //get grip of singlevector
-      SingleVector* coefVec = myFunc->GetSingleVector();
-
-      UInt pos = 0;
-      StdVector<Integer> eqns;
-      for( it.Begin(); !it.IsEnd(); it++ ) {
-
-        // fetch equations
-        nodalSpace->GetEqns( eqns, it );
-
-        // iterate over all equations
-        for( UInt iEqn = 0; iEqn < eqns.GetSize(); iEqn++ ) {
-          if(eqns[iEqn] > 0)
-            coefVec->SetEntry(eqns[iEqn]-1,resVec[pos++]);
-        } 
-      }
-    }
-    return myFunc;
+                                std::set<std::string> & regionNames,
+                                PtrParamNode rootNode) {
+    return inFiles_[readerId]->GetFeFunction<TYPE>(sequenceStep,
+                                                   stepValue,
+                                                   solType,
+                                                   regionNames );
   }
   
   
@@ -1143,7 +1013,7 @@ namespace CoupledField {
             continue;
           }
           esm = srcGrid->GetElemShapeMap( elems[i]);
-          lpm.Set( lps[i], esm );
+          lpm.Set( lps[i], esm, 0.0 );
           coef->GetScalar( temp[0], lpm);
           vals[pos++] = temp[0];
         } // loop over elements
@@ -1155,7 +1025,7 @@ namespace CoupledField {
             continue;
           }
           esm = srcGrid->GetElemShapeMap( elems[i]);
-          lpm.Set( lps[i], esm );
+          lpm.Set( lps[i], esm, 0.0 );
 
           // Calculate coefficient function and store the result into the vector
           coef->GetVector( temp, lpm);
@@ -1193,7 +1063,7 @@ namespace CoupledField {
           if( elems[i] == NULL)
             continue;
           esm = srcGrid->GetElemShapeMap( elems[i]);
-          lpm.Set( lps[i], esm );
+          lpm.Set( lps[i], esm, 0.0 );
           coef->GetScalar( temp[0], lpm);
           vals[pos++] = temp[0];
         } // loop over elements
@@ -1203,7 +1073,7 @@ namespace CoupledField {
           if( elems[i] == NULL)
             continue;
           esm = srcGrid->GetElemShapeMap( elems[i]);
-          lpm.Set( lps[i], esm );
+          lpm.Set( lps[i], esm, 0.0 );
 
           // Calculate coefficient function and store the result into the vector
           coef->GetVector( temp, lpm);
@@ -1229,14 +1099,16 @@ namespace CoupledField {
                                         UInt sequenceStep,
                                         UInt stepValue,
                                         SolutionType solType,
-                                        std::set<std::string> & regionNames );
+                                        std::set<std::string> & regionNames,
+                                        PtrParamNode rootNode );
   template
   shared_ptr<FeFunction<Complex> >
   ResultHandler::GetFeFunction<Complex>( const std::string& readerId,
                                          UInt sequenceStep,
                                          UInt stepValue,
                                          SolutionType solType,
-                                         std::set<std::string> & regionNames );
+                                         std::set<std::string> & regionNames,
+                                         PtrParamNode rootNode );
 
 #endif
 }

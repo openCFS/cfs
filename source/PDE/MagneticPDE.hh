@@ -26,7 +26,9 @@ namespace CoupledField
   public:
 
     //! Constructor
-    MagneticPDE( Grid *aGrid, PtrParamNode paramNode );
+    MagneticPDE( Grid *aGrid, PtrParamNode paramNode,
+                 PtrParamNode infoNode,
+                 shared_ptr<SimState> simState, Domain* domain );
 
     //!  Destructor
     virtual ~MagneticPDE();
@@ -52,20 +54,6 @@ namespace CoupledField
     //! Read special results definition
     void ReadSpecialResults();
 
-    // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-
-    //! initalize PDE coupling
-    void InitCoupling(PDECoupling * Coupling);
-
-    //! calculate coupling terms
-    void CalcOutputCoupling();
-
-    //! returns if PDE can compute the quantity
-    bool HasOutput(SolutionType output);
-
-    
     //! \copydoc SinglePDE::CreateFeSpaces
     virtual std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string&  formulation,
@@ -90,6 +78,9 @@ namespace CoupledField
     //! Parameters of the individual coils;
     StdVector<shared_ptr<Coil> > coilDef_;
 
+    //! Coefficients holding the current density for each coil
+    std::map<RegionIdType, PtrCoefFct> coilCoefs_;
+    
     //@}
 
     // =======================================================================
@@ -136,6 +127,9 @@ namespace CoupledField
     
     //! Define available postprocessing results
     void DefinePostProcResults();
+    
+    //! \copydoc SinglePDE::FinalizePostProcResults
+    void FinalizePostProcResults();
 
   };
 

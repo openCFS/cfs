@@ -23,7 +23,7 @@ namespace CoupledField{
 class DampFunction{
 
 public:
-  typedef enum{ NO_TYPE, CONST, INVERSE_DIST, QUADRATIC, SMOOTH } DampingType;
+  typedef enum{ NO_TYPE, CONSTANT, INVERSE_DIST, QUADRATIC, SMOOTH } DampingType;
   static Enum<DampingType> DampingTypeEnum;
 
   DampFunction(){
@@ -53,7 +53,7 @@ class DampFunctionConst : public DampFunction{
 public:
   DampFunctionConst(Double SpeedOfSound) : DampFunction(){
     constFactor = -1.0 * SpeedOfSound * log(ReflectionCoefficient)/2.0;
-    functionType = CONST;
+    functionType = CONSTANT;
   }
 
   Double ComputeFactor(Double pos, Double thickness){
@@ -105,7 +105,7 @@ public:
 
   Double ComputeFactor(Double pos, Double thickness){
     Double value = constFactor/thickness;
-    value *= ( (pos / thickness) - ((sin(2*M_PI*pos / thickness)/(2*M_PI)) ) );
+    value *= ( (pos / thickness) - ((sin(8*atan(1.0)*pos / thickness)/(8*atan(1.0))) ) );
     return value*DampFactor;
   }
 
@@ -162,7 +162,7 @@ public:
  }
  
 
-  void AddEntities(shared_ptr<EntityList>){
+  void AddEntityList(shared_ptr<EntityList>){
     EXCEPTION("Add Entities may not be called in PML CoefFunction. Specify the region in the constructor!");
   }
 
@@ -181,7 +181,7 @@ protected:
     //
     //! Call-back method for re-calculation
     void UpdateOmega(){
-      omega_ = this->mp_->Eval(mHandle_) * 2 * M_PI;
+      omega_ = this->mp_->Eval(mHandle_) * 8 * atan(1.0);
     }
 
 private:

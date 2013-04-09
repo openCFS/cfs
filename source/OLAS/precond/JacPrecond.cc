@@ -183,13 +183,13 @@ namespace CoupledField {
       int info;
 
       // calculate LU-factorization of block
-      F77NAME(dgetrf)(&n,&n,inv[0],&n,ipiv,&info);
+      dgetrf(&n,&n,inv[0],&n,ipiv,&info);
       if( info != 0 ) {
         EXCEPTION("Error during LU-factorization of block #" << i
                   << ". Error value is " << info );
       }
       // invert matrix using previous LU factorization
-      F77NAME(dgetri)(&n,inv[0],&n,ipiv,work,&lwork,&info);
+      dgetri(&n,inv[0],&n,ipiv,work,&lwork,&info);
       if( info != 0 ) {
         EXCEPTION("Error during inversion of block #" << i
                   << ". Error value is " << info );
@@ -232,8 +232,8 @@ namespace CoupledField {
       // perform matrix-vector multiplication of given block
       const Matrix<Double> & inv = factors_[i];
       Integer size = inv.GetNumRows();
-      F77NAME(dgemv)( &trans, &size, &size, &alpha, inv[0], &size, 
-          &rhs[rStart], &inc, &beta, &sol[rStart], &inc);
+      dgemv( &trans, &size, &size, &alpha, inv[0], &size, 
+             &rhs[rStart], &inc, &beta, &sol[rStart], &inc);
 
       // sum up current offset
       rStart += size;

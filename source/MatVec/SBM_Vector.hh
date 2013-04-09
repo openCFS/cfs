@@ -150,7 +150,7 @@ namespace CoupledField {
     //! \f$v_k\f$.
     //! \note The filenames are determined as fname_<em>i</em>.vec where
     //!       <em>i</em> is replaced by the sub-vector's index.
-    void Export( const char *fname ) const;
+    void Export( const char *fname, BaseMatrix::OutputFormat format ) const;
 
     //@{
     //! Same as the BLAS functions of the same name

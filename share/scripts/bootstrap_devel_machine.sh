@@ -37,7 +37,8 @@ SetupDebian() {
         python-pygments doxygen tcl-dev python-dev git-svn \
         cmake-curses-gui cmake-qt-gui gmsh default-jre openjdk-6-jdk \
         patch diff diffutils zip libxt-dev libxp6 tk-dev xsltproc \
-        libgl1-mesa-dev libglu1-mesa-dev libxmuu-dev libncurses5-dev"
+        libgl1-mesa-dev libglu1-mesa-dev libxmuu-dev libncurses5-dev \
+        util-linux gcc-multilib"
 
     for pckg in $PCKGS; do
         apt-get install -y -f $pckg
@@ -59,7 +60,8 @@ SetupSuse() {
         python-pygments doxygen tcl-devel python-devel git-svn \
         java-1_6_0-openjdk-devel cmake-gui xorg-x11-libXt-devel \
         diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel \
-        ncurses-devel perl"
+        ncurses-devel perl util-linux glibc-devel-32bit \
+        gcc-32bit gcc-c++-32bit gcc-fortran-32bit"
     
     # We need to add the SDK DVDs as repos in case of SLE
     if [ "$DIST" = "SLE" ]; then 
@@ -196,7 +198,8 @@ SetupRHEL() {
                 automake autoconf cmake gcc-gfortran ncurses-devel \
                 java-1.6.0-openjdk-devel tk-devel python-pygments doxygen \
                 tcl-devel python-devel git-svn patch diffutils zip \
-                libXt-devel libXp mesa-libGLU-devel libXmu-devel make || ExitFail
+                libXt-devel libXp mesa-libGLU-devel libXmu-devel make \
+                glibc-devel.i386 glibc-devel.i686 util-linux-ng util-linux || ExitFail
            
     if [ "$ARCH" = "X86_64" ]; then
 	LIB="lib64"

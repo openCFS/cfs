@@ -31,7 +31,7 @@ namespace CoupledField
     //! Constructor 
 
     //! Standard Constructor 
-    GridCFS(UInt dim);
+    GridCFS(UInt dim, PtrParamNode param, PtrParamNode infoNode );
   
     //! Destructor
     virtual ~GridCFS();
@@ -423,11 +423,14 @@ namespace CoupledField
     //! new nodes of intersection elements after each time step.
     void DeleteNamedNodes( const std::string &name );
     
+
   private:
 
     /** checks the domain in the xml file for a pattern region.
-     * @param replace resized to elements+1 by element number. True if the pattern region has an entry there. Untouched if no pattern region
-     * @return in case of an pattern region it is added to regionData and the id is returned, otherwise NO_REGION_ID */
+     * @param replace resized to elements+1 by element number. True if the
+     * pattern region has an entry there. Untouched if no pattern region
+     * @return in case of an pattern region it is added to regionData and the
+     * id is returned, otherwise NO_REGION_ID */
     RegionIdType CheckPatternRegion(StdVector<bool>& replace);
 
     /** Helper for FinishInit(). Determines if there are only regular elements.
@@ -485,7 +488,9 @@ namespace CoupledField
                                           StdVector<shared_ptr<NcSurfElem> > & exteriorSurfElems,
                                           bool conforming);
 
-
+    //! Trigger projection of mid-side nodes to element interior
+    virtual void MapMidSideNodes();
+        
     //! Prints information about the grid into the .info.xml file
     void ToInfo(PtrParamNode in);
     

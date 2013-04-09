@@ -1,10 +1,17 @@
 #include <cmath>
+#include <vector>
 
 #include "IntScheme.hh"
+
+// header for logging
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 namespace CoupledField {
 
 
+// declare logging stream
+DECLARE_LOG(intscheme)
+DEFINE_LOG(intscheme, "intScheme")
 
    IntegOrder::IntegOrder() {
      order_.fill(0);
@@ -20,6 +27,7 @@ namespace CoupledField {
    
    IntegOrder::IntegOrder( const StdVector<UInt>& order ) {
      assert( order.GetSize() <= 3 );
+     order_.fill(0);
      for( UInt i = 0; i < order.GetSize(); ++i ) {
        order_[i] = order[i];
      }
@@ -35,9 +43,11 @@ namespace CoupledField {
 
    void IntegOrder::SetAnisoOrder( const StdVector<UInt>& order ) {
      assert( order.GetSize() <= 3 );
+     order_.fill(0);
      for( UInt i = 0; i < order.GetSize(); ++i ) {
        order_[i] = order[i];
      }
+     isIsotropic_ = false;
      isSet_ = true;
    }
 
@@ -52,8 +62,40 @@ namespace CoupledField {
      for( UInt i = 0; i < 3; ++i ) {
        order_[i] += other.order_[i];
      }
+     isIsotropic_ &= other.isIsotropic_;
      return *this;
    }
+   
+   IntegOrder IntegOrder::operator*(const UInt mult) const {
+     IntegOrder ret;
+     for( UInt i = 0; i < 3; ++i ) {
+       ret.order_[i] += this->order_[i] * mult;
+     }
+     ret.isIsotropic_ = this->isIsotropic_;
+     ret.isSet_ = true;
+     return ret;
+   }
+   
+   IntegOrder IntegOrder::operator+(const UInt add) const{
+     IntegOrder ret;
+     for( UInt i = 0; i < 3; ++i ) {
+       ret.order_[i] += this->order_[i] + add;
+     }
+     ret.isIsotropic_ = this->isIsotropic_;
+     ret.isSet_ = true;
+     return ret;
+   }
+   
+   IntegOrder IntegOrder::operator-(const UInt add) const{
+     IntegOrder ret;
+     for( UInt i = 0; i < 3; ++i ) {
+       ret.order_[i] += this->order_[i] - add;
+     }
+     ret.isIsotropic_ = this->isIsotropic_;
+     ret.isSet_ = true;
+     return ret;
+   }
+   
    
    bool IntegOrder::IsSet() const {
      return isSet_;
@@ -77,9 +119,18 @@ namespace CoupledField {
        order[1] = order_[1];
        order[2] = order_[2];
      } else {
-       order.Clear();
+       // initialize vector with isotropic value 
+       order.Resize(3);
+       order.Init(order_[0]);
      }
-     
+   }
+   
+   UInt IntegOrder::GetMaxOrder() const {
+     if( isIsotropic_) {
+       return order_[0];
+     } else {
+       return *(std::max(&order_[0], &order_[2]));
+     }
    }
    
    std::string IntegOrder::ToString() const {
@@ -88,8 +139,8 @@ namespace CoupledField {
        ret += lexical_cast<std::string>(order_[0]);
        ret += " (isotropic)";
      } else {
-       ret += lexical_cast<std::string>(order_[0]);
-       ret += lexical_cast<std::string>(order_[1]);
+       ret += lexical_cast<std::string>(order_[0]) + ", ";
+       ret += lexical_cast<std::string>(order_[1]) + ", ";;
        ret += lexical_cast<std::string>(order_[2]);
        ret += " (anisotropic)";
      }
@@ -103,9 +154,10 @@ namespace CoupledField {
        ret.SetIsoOrder( std::max( order1.order_[0], order2.order_[0 ]));
      } else {
        StdVector<UInt> max(3);
-       
-       
-
+       for( UInt i = 0; i < 3; ++i ) {
+         max[i] = std::max( order1.order_[i], order2.order_[i]);
+       }
+       ret.SetAnisoOrder( max );
      }
      
      return ret;
@@ -120,210 +172,199 @@ namespace CoupledField {
      return isSame;
    }
 
-
-
-
-
-
+   bool operator<( const IntegOrder& a, const IntegOrder& b ) {
+     if( a.order_[0] == b.order_[0] ) {
+       if( a.order_[1] == b.order_[1] ) {
+         return a.order_[2] < b.order_[2];
+       } else {
+         return a.order_[1] < b.order_[1];
+       }
+     } else {
+       return a.order_[0] < b.order_[0];
+     }
+   }
+   
 
 IntScheme::IntScheme() {
 
-  // Fill integration points up to order 30
-  FillIntegPoints(20);
+  // Fill integration points up to order 10
+  FillInitialIntegPoints(10);
+}
+
+void IntScheme::DefineIntPoints( Elem::ShapeType shapeType,
+                                 IntegMethod method, 
+                                 const IntegOrder& order,
+                                 StdVector<LocPoint>& points, 
+                                 StdVector<Double>& weights,
+                                 bool saveInternal ) {
+  // switch depending on shape type
+  switch( shapeType ) {
+    case Elem::ST_LINE:
+      DefineLinePoints(method, order, points, weights);
+      break;
+    case Elem::ST_TRIA:  
+      DefineTriaPoints(method, order, points, weights);
+      break;
+    case Elem::ST_QUAD:  
+      DefineQuadPoints(method, order, points, weights);
+      break;
+    case Elem::ST_TET:   
+      DefineTetPoints(method, order, points, weights);
+      break;
+    case Elem::ST_HEXA:  
+      DefineHexPoints(method, order, points, weights);
+      break;
+    case Elem::ST_PYRA:
+      DefinePyraPoints(method, order, points, weights);
+      break;
+    case Elem::ST_WEDGE:
+      DefineWedgePoints(method, order, points, weights);
+      break;
+    default:
+      EXCEPTION( "Shape type " << Elem::shapeType.ToString(shapeType)
+                 << "not known" );
+  }
+
+  // store points in internal map if requested
+  if( saveInternal ) {
+    // loop over all integration points and give them unique number
+    const UInt nPoints = points.GetSize();
+    for( UInt i = 0; i < nPoints; ++i ) {
+      points[i].number = numIntPts_[shapeType]++;
+      intPoints_[method][order][shapeType] = points; 
+      intWeights_[method][order][shapeType] = weights;
+    }
+  }
+  
+  LOG_DBG3(intscheme) << "Newly defining integration points for:";
+  LOG_DBG3(intscheme) << "\tshape: " << Elem::shapeType.ToString(shapeType);
+  LOG_DBG3(intscheme) << "\tmethod: " << IntegMethodEnum.ToString(method);
+  LOG_DBG3(intscheme) << "\torder: " << order.ToString(); 
+  LOG_DBG3(intscheme) << "\t# points: " << points.GetSize();
 }
 
 //================================================================
 //Fill Gauss Lobatto Points and weights
 //================================================================
-void IntScheme::FillIntegPoints(UInt order){
-  StdVector<LocPoint> points;
-  StdVector<Double> weights;
-  StdVector<Double> intPoints1D;
-  StdVector<Double> weights1D;
+void IntScheme::FillInitialIntegPoints(UInt maxOrder){
 
-  // -----------------------------
-  // GAUSS - Lobatto Points
-  // -----------------------------
-
-  //loop over every all orders
-  for(UInt ord = 1; ord <= order ; ord++){
-    CalcGaussLobattoPointsWeights(ord,intPoints1D,weights1D);
-
-    points.Resize(ord+1);
-    weights.Resize(ord+1);
-    //fill the lines
-    for( UInt i = 0; i < ord+1; i++ ) {
-      LocPoint lp;
-      lp.coord.Resize(1);
-      lp.coord[0] = intPoints1D[i];
-      lp.number = numIntPts_[Elem::ST_LINE]++;
-      points[i] = lp;
-      weights[i] =  weights1D[i];
+  // Define line integrations points
+  IntegMethod  methods1D[3] = {GAUSS, GAUSS_ECO, LOBATTO };
+  for( UInt iMethod = 0; iMethod < 3; ++iMethod ) {
+    IntegMethod method = methods1D[iMethod];
+    for( UInt isoOrder = 1; isoOrder <= maxOrder; ++isoOrder) {
+      IntegOrder order;
+      order.SetIsoOrder( isoOrder );
+      DefineIntPoints( Elem::ST_LINE, method, order, 
+                       intPoints_[method][order][Elem::ST_LINE],
+                       intWeights_[method][order][Elem::ST_LINE], true );
     }
-    intPoints_[LOBATTO][ord][Elem::ST_LINE] = points;
-    intWeights_[LOBATTO][ord][Elem::ST_LINE] = weights;
-
-    //fill rects
-    UInt numPts = (ord+1)*(ord+1);
-    points.Resize(numPts);
-    weights.Resize(numPts);
-
-    for (UInt i = 0; i < ord+1; i ++ ){
-      for (UInt j = 0; j < ord+1; j ++ ){
-        LocPoint lp;
-        lp.coord.Resize(2);
-        lp.coord[0] = intPoints1D[i];
-        lp.coord[1] = intPoints1D[j];
-        lp.number = numIntPts_[Elem::ST_QUAD]++;
-        points[(i*(ord+1) + j)] = lp;
-        weights[(i*(ord+1) + j)] =  weights1D[i]*weights1D[j];
-      }
-    }
-    intPoints_[LOBATTO][ord][Elem::ST_QUAD] = points;
-    intWeights_[LOBATTO][ord][Elem::ST_QUAD] = weights;
-
-    //fill hexas 
-    numPts = (ord+1)*(ord+1)*(ord+1);
-    points.Resize(numPts);
-    weights.Resize(numPts);
-
-    for (UInt i = 0; i < ord+1; i ++ ){
-      for (UInt j = 0; j < ord+1; j ++ ){
-        for (UInt k = 0; k < ord+1; k ++ ){
-          LocPoint lp;
-          lp.coord.Resize(3);
-          lp.coord[0] = intPoints1D[i];
-          lp.coord[1] = intPoints1D[j];
-          lp.coord[2] = intPoints1D[k];
-          lp.number = numIntPts_[Elem::ST_HEXA]++;
-          points[(i*((ord+1)*(ord+1)) + j*(ord+1) + k)] = lp;
-          weights[(i*((ord+1)*(ord+1)) + j*(ord+1) + k)] =  weights1D[i]*weights1D[j]*weights1D[k];
-        }
-      }
-    }
-    intPoints_[LOBATTO][ord][Elem::ST_HEXA] = points;
-    intWeights_[LOBATTO][ord][Elem::ST_HEXA] = weights;
   }
 
-  // -----------------------------
-  // GAUSS - Legendre Points
-  // -----------------------------
+  // Define tria integration points
+  IntegMethod methodsTria[2] = {GAUSS, GAUSS_ECO };
+  for( UInt iMethod = 0; iMethod < 2; ++iMethod ) {
+    IntegMethod method = methodsTria[iMethod];
 
-
-  // A) TENSOR-PRODUCT RULE
-
-  // loop over every all orders
-  UInt num1DPoints = 0;
-  //  std::cerr << "==============================================\n";
-  //  std::cerr << " CALCULATING GAUSS-LEGENDRE INTEGRATION RULES\n";
-  //  std::cerr << "==============================================\n\n";
-  for(UInt ord = 1; ord <= order ; ord++){
-    //    std::cerr << "=> ORDER: " << ord << std::endl;
-    CalcGaussLegendrePointsWeights(ord,intPoints1D,weights1D);
-    num1DPoints = intPoints1D.GetSize();
-
-    points.Resize(num1DPoints);
-    weights.Resize(num1DPoints);
-
-    //fill the lines
-    for( UInt i = 0; i < num1DPoints; i++ ) {
-      LocPoint lp;
-      lp.coord.Resize(1);
-      lp.coord[0] = intPoints1D[i];
-      lp.number = numIntPts_[Elem::ST_LINE]++;
-      points[i] = lp;
-      weights[i] =  weights1D[i];
+    for( UInt isoOrder = 1; isoOrder <= maxOrder; ++isoOrder) {
+      IntegOrder order;
+      order.SetIsoOrder( isoOrder );
+      DefineIntPoints( Elem::ST_TRIA, method, order, 
+                       intPoints_[method][order][Elem::ST_TRIA],
+                       intWeights_[method][order][Elem::ST_TRIA], true );
     }
-    intPoints_[GAUSS][ord][Elem::ST_LINE] = points;
-    intWeights_[GAUSS][ord][Elem::ST_LINE] = weights;
-
-    //fill rects
-    UInt numPts = (num1DPoints)*(num1DPoints);
-    points.Resize(numPts);
-    weights.Resize(numPts);
-
-    //      std::cerr << "\t QUAD-points\n";
-    for (UInt i = 0; i < num1DPoints; i ++ ){
-      for (UInt j = 0; j < num1DPoints; j ++ ){
-        LocPoint lp;
-        lp.coord.Resize(2);
-        lp.coord[0] = intPoints1D[i];
-        lp.coord[1] = intPoints1D[j];
-        lp.number = numIntPts_[Elem::ST_QUAD]++;
-        //          std::cerr << "\t\tpoint number " << lp.number << ": " << lp.coord.ToString() << std::endl;
-        points[(i*num1DPoints + j)] = lp;
-        weights[(i*num1DPoints + j)] =  weights1D[i]*weights1D[j];
-      }
-    }
-    //      std::cerr << "\n";
-    intPoints_[GAUSS][ord][Elem::ST_QUAD] = points;
-    intWeights_[GAUSS][ord][Elem::ST_QUAD] = weights;
-
-    //fill hexas
-    numPts = (num1DPoints)*(num1DPoints)*(num1DPoints);
-    points.Resize(numPts);
-    weights.Resize(numPts);
-
-    for (UInt i = 0; i < num1DPoints; i ++ ){
-      for (UInt j = 0; j < num1DPoints; j ++ ){
-        for (UInt k = 0; k < num1DPoints; k ++ ){
-          LocPoint lp;
-          lp.coord.Resize(3);
-          lp.coord[0] = intPoints1D[i];
-          lp.coord[1] = intPoints1D[j];
-          lp.coord[2] = intPoints1D[k];
-          lp.number = numIntPts_[Elem::ST_HEXA]++;
-          points[(i*(num1DPoints*num1DPoints) + j*num1DPoints + k)] = lp;
-          weights[(i*(num1DPoints*num1DPoints) + j*num1DPoints + k)] =
-              weights1D[i]*weights1D[j]*weights1D[k];
-        }
-      }
-    }
-    intPoints_[GAUSS][ord][Elem::ST_HEXA] = points;
-    intWeights_[GAUSS][ord][Elem::ST_HEXA] = weights;
   }
 
-  // B) OTHER ELEMENT SHAPES (TRIA, TET, WEDGE, PYRA)
-  DefineTriaPoints();
-  DefineWedgePoints();
-  DefineTetPoints();
-  DefinePyraPoints();
+  // Define quad integration points
+  IntegMethod methodsQuad[3] = {GAUSS, GAUSS_ECO, LOBATTO };
+  for( UInt iMethod = 0; iMethod < 3; ++iMethod ) {
+    IntegMethod method = methodsQuad[iMethod];
+    for( UInt isoOrder = 1; isoOrder <= maxOrder; ++isoOrder) {
+      IntegOrder order;
+      order.SetIsoOrder( isoOrder );
+      DefineIntPoints( Elem::ST_QUAD, method, order, 
+                       intPoints_[method][order][Elem::ST_QUAD],
+                       intWeights_[method][order][Elem::ST_QUAD], true );
+    }
+  }
+
+  // Define Tet integration points (only defined up to order 6)
+  IntegMethod methodsTet[2] = {GAUSS, GAUSS_ECO};
+  for( UInt iMethod = 0; iMethod < 2; ++iMethod ) {
+    IntegMethod method = methodsTet[iMethod];
+    for( UInt isoOrder = 1; isoOrder <= 6; ++isoOrder) {
+      IntegOrder order;
+      order.SetIsoOrder( isoOrder );
+      DefineIntPoints( Elem::ST_TET, method, order, 
+                       intPoints_[method][order][Elem::ST_TET],
+                       intWeights_[method][order][Elem::ST_TET], true );
+    }
+  }
+
+  // Define Hex integration points
+  IntegMethod methodsHex[3] = {GAUSS, GAUSS_ECO, LOBATTO };
+  for( UInt iMethod = 0; iMethod < 3; ++iMethod ) {
+    IntegMethod method = methodsHex[iMethod];
+    for( UInt isoOrder = 1; isoOrder <= maxOrder; ++isoOrder) {
+      IntegOrder order;
+      order.SetIsoOrder( isoOrder );
+      DefineIntPoints( Elem::ST_HEXA, method, order, 
+                       intPoints_[method][order][Elem::ST_HEXA],
+                       intWeights_[method][order][Elem::ST_HEXA], true );
+    }
+  }
+
+  // Define Pyra integration points
+  IntegMethod methodsPyra[2] = {GAUSS, GAUSS_ECO};
+  for( UInt iMethod = 0; iMethod < 2; ++iMethod ) {
+    IntegMethod method = methodsPyra[iMethod];
+    for( UInt isoOrder = 1; isoOrder <= 6; ++isoOrder) {
+      IntegOrder order;
+      order.SetIsoOrder( isoOrder );
+      DefineIntPoints( Elem::ST_PYRA, method, order, 
+                       intPoints_[method][order][Elem::ST_PYRA],
+                       intWeights_[method][order][Elem::ST_PYRA], true );
+    }
+  }
+
+  // Define Wedge integration points
+  // Define Hex integration points
+  IntegMethod methodsWedge[2] = {GAUSS, GAUSS_ECO};
+  for( UInt iMethod = 0; iMethod < 2; ++iMethod ) {
+    IntegMethod method = methodsWedge[iMethod];
+    for( UInt isoOrder = 1; isoOrder <= maxOrder; ++isoOrder) {
+      IntegOrder order;
+      order.SetIsoOrder( isoOrder );
+      DefineIntPoints( Elem::ST_WEDGE, method, order, 
+                       intPoints_[method][order][Elem::ST_WEDGE],
+                       intWeights_[method][order][Elem::ST_WEDGE], true );
+    }
+  }
 }
 
 IntScheme::~IntScheme() {
 }
 
-void IntScheme::AddIntegrationSet( IntegMethod method, Elem::ShapeType shape, 
-                                   UInt order, UInt numPoints, Double* data ) {
+void IntScheme::Convert( Elem::ShapeType shape, UInt nPoints, 
+                         Double *data, StdVector<LocPoint>& points,
+                         StdVector<Double>& weights ) {
 
-  // check, if integration points are already defined for combination
-  // (method, shape, order)
-  if( intPoints_[method][order][shape].GetSize() != 0 ) {
-    WARN("Integration rule of type ' " <<
-         IntegMethodEnum.ToString(method) << "' for element '"
-         << Elem::shapeType.ToString(shape) << "' of order "
-         << order << " was already defined!");
-  }
-
-  StdVector<LocPoint> points( numPoints );
-  StdVector<Double> weights( numPoints );
+  points.Resize( nPoints );
+  weights.Resize( nPoints );
 
   // get dimension of element
   UInt dim = Elem::GetShape(shape).dim;
-  for( UInt i = 0; i < numPoints; ++i ) {
+  for( UInt i = 0; i < nPoints; ++i ) {
     LocPoint lp;
     lp.coord.Resize(dim);
     for( UInt j= 0 ; j < dim; ++j ) {
       lp.coord[j] = data[i*(dim+1) + j];
     }
-    lp.number = numIntPts_[shape]++;
+    // always increase internal counter for shape specific number of points
     points[i] = lp;
     weights[i] = data[i*(dim+1) + dim];
   }
-  intPoints_[method][order][shape] = points;
-  intWeights_[method][order][shape] = weights;
 }
-
 
 
 void IntScheme::GetIntPoints( Elem::ShapeType elemType,
@@ -331,24 +372,30 @@ void IntScheme::GetIntPoints( Elem::ShapeType elemType,
                               const IntegOrder& order,
                               StdVector<LocPoint>& intPts, 
                               StdVector<Double>& weights) {
+  // Logging info
+  LOG_DBG3(intscheme) << "Requesting integration points for:";
+  LOG_DBG3(intscheme) << "\tType: " << Elem::shapeType.ToString(elemType);
+  LOG_DBG3(intscheme) << "\tMethod: " << IntegMethodEnum.ToString( method );
+  LOG_DBG3(intscheme) << "\tOrder: " << order.ToString();
+  
+  // check if methods exists at all, otherwise create new ones
   if( intPoints_.find(method) == intPoints_.end() ) {
-    EXCEPTION( "No integration points defined for  '"
-        << IntegMethodEnum.ToString(method) 
-        << "' integration!");
+    DefineIntPoints( elemType, method, order, intPts, weights );
   }
+  
+  // check if order exists for this method , otherwise create new ones
   if( intPoints_[method].find(order) == intPoints_[method].end() ) {
-    EXCEPTION( "No integration points defined for  order '"
-        << order.ToString() 
-        << "' !");
+    DefineIntPoints( elemType, method, order, intPts, weights );
   }
+  
+  // check if element for method/order exists, otherwise create new ones
   if( intPoints_[method][order].find(elemType) == 
       intPoints_[method][order].end() ) {
-    EXCEPTION( "No integration points defined for element of type '"
-        << Elem::shapeType.ToString( elemType ) 
-        << "' and order " << order.ToString() << "!");
+    DefineIntPoints( elemType, method, order, intPts, weights );
   }
   intPts = intPoints_[method][order][elemType]; 
   weights = intWeights_[method][order][elemType];
+  LOG_DBG3(intscheme) << "=> #Points: " << intPts.GetSize();
 }
 
 void IntScheme::GetIntPoints( Elem::ShapeType elemType,
@@ -368,6 +415,1765 @@ void IntScheme::GetIntPoints( Elem::ShapeType elemType,
 }
 
 
+std::string IntScheme::PrintList( bool detailed ) const {
+  std::stringstream ret;
+  std::map<IntegMethod, IntPointMap >::const_iterator pointIt;
+  std::map<IntegMethod, IntWeightMap > ::const_iterator weightIt;
+  
+  // loop over all methods
+  for( pointIt = intPoints_.begin(); 
+       pointIt != intPoints_.end(); ++pointIt ) {
+
+    const IntegMethod & method = pointIt->first;
+    const IntPointMap & pointMap = pointIt->second; 
+    ret << "===================================\n"
+        << " M E T H O D : " << IntegMethodEnum.ToString(method) << "\n"
+        << "===================================\n\n";
+    
+    // auxiliary map for storing the order per shape type
+    typedef 
+    std::map<Elem::ShapeType, 
+    std::map<IntegOrder, StdVector<LocPoint> > >
+    ShapeOrderPointMap;
+
+    ShapeOrderPointMap myMap;
+    
+    // --------------------------
+    //  PHASE 1: Collect entries
+    // --------------------------
+
+    // loop over all orders
+    IntPointMap::const_iterator ipmIt = pointMap.begin();
+    for( ; ipmIt != pointMap.end(); ++ipmIt ) {
+      const IntegOrder & order = ipmIt->first;
+      const IntegrationPoints & pts = ipmIt->second;
+
+      // loop over all shapes
+      IntegrationPoints::const_iterator ipIt = pts.begin();
+      for( ; ipIt != pts.end(); ++ipIt ) {
+        const Elem::ShapeType & shape = ipIt->first;
+        const StdVector<LocPoint> & pointVec = ipIt->second;
+        // insert into own map
+        myMap[shape][order] = pointVec;
+      } // loop: shapes
+    } // loop: orders
+    
+    // ------------------------
+    // PHASE 2 : Print entries
+    // ------------------------
+    ShapeOrderPointMap::const_iterator myMapIt = myMap.begin();
+
+    // Loop over shapes
+    for( ; myMapIt != myMap.end(); ++myMapIt ) {
+      // loop over order
+      const Elem::ShapeType & shape = myMapIt->first;
+      const std::map<IntegOrder, StdVector<LocPoint> > 
+      & orderPts = myMapIt->second;
+
+      ret << "---------------\n";
+      ret << "Shape: " << Elem::shapeType.ToString(shape) << "\n"
+          << "---------------\n";
+
+      std::map<IntegOrder, StdVector<LocPoint> >::const_iterator orderIt;
+      orderIt = orderPts.begin();
+      for( ; orderIt != orderPts.end(); ++orderIt ) {
+        const IntegOrder & order = orderIt->first;
+        const StdVector<LocPoint> & pointVec = orderIt->second;
+        ret << "\tOrder: " << order.ToString() 
+                << ", Number points:" << pointVec.GetSize() << std::endl;
+
+        // only print points if detailed == true
+        if( detailed ) {
+          UInt nPoints = pointVec.GetSize();
+          for( UInt i = 0; i < nPoints; ++i ) {
+            ret << "\t\t" << pointVec[i] << "\n";
+          }
+          ret << "\n";
+        }
+      } // loop: orders
+    } // loop: shapes
+  } // loop: metods
+
+  return ret.str();
+}
+// ======================================================================
+//  Element Shape Specific Integration Points
+// ======================================================================
+
+void IntScheme::DefineLinePoints( IntegMethod method, const IntegOrder& order,
+                                  StdVector<LocPoint>& points, 
+                                  StdVector<Double>& weights ) {
+  StdVector<Double> points1D;
+  
+  if ( method == LOBATTO ) {
+    // ------------------------
+    //  GAUSS - Lobatto Points
+    // ------------------------
+    CalcGaussLobattoPointsWeights(order.GetMaxOrder(), points1D, weights );
+    
+    UInt nPoints = points1D.GetSize();
+    points.Resize(nPoints);
+    for( UInt i = 0; i < nPoints; ++i ) {
+      Vector<Double> point1D(1);
+      point1D[0] = points1D[i];
+      points[i] = point1D; 
+    }
+  } else if (method == GAUSS  || method == GAUSS_ECO  ) {
+    // -------------------------
+    //  GAUSS - Legendre Points
+    // -------------------------
+    CalcGaussLegendrePointsWeights(order.GetMaxOrder(), points1D, weights );
+    UInt nPoints = points1D.GetSize();
+    points.Resize(nPoints);
+    for( UInt i = 0; i < nPoints; ++i ) {
+      Vector<Double> point1D(1);
+      point1D[0] = points1D[i];
+      points[i] = point1D; 
+    }
+  } else {
+    EXCEPTION( "Integration points of method " << IntegMethodEnum.ToString(method)
+               << " not defined for 1D line elements" );
+  }
+    
+}
+
+
+void IntScheme::DefineTriaPoints( IntegMethod method, const IntegOrder& order,
+                                  StdVector<LocPoint>& points, 
+                                  StdVector<Double>& weights ) {
+
+  // Note: currently we only have one set of integration points,
+  // namely the Gauss method. In case the economical variant is
+  // requested, we return the standard method, until we might have
+  // the version of Segeth / Dolezel.
+  if (method == GAUSS  || method == GAUSS_ECO) {
+    // -------------------------
+    //  GAUSS - Legendre Points
+    // -------------------------
+     
+    // Note: currently we do not care about non-isotropic integration order,
+    // so we only take the maximum.
+    UInt isoOrder = order.GetMaxOrder();
+    
+    switch(isoOrder) {
+      case 1:
+        // Values take from the old SetIntPoints() - order 1
+        static Double c1[][3] = 
+        {
+         { 1.0/3.0,  1.0/3.0,  0.500000000000000 }
+        };
+        Convert(Elem::ST_TRIA, 1, (Double*)c1, points, weights);
+        break;
+        
+      case 2:
+        // Values take from the old SetIntPoints() - order 2
+        static Double c2[][3] = 
+        {
+         { 0.166666666666667,  0.166666666666667,  0.166666666666667 },
+         { 0.666666666666667,  0.166666666666667,  0.166666666666667 },
+         { 0.166666666666667,  0.666666666666667,  0.166666666666667 }
+        };
+        Convert(Elem::ST_TRIA, 3, (Double*)c2, points, weights);
+        break;
+        
+      case 3:
+        // Values take from the old SetIntPoints() - order 3
+        // In the original code the weights were given twice with different values!
+        // -> they have to sum up to 0.5
+        static Double a3[][3] =
+        {
+         {0.333333333333333,  0.333333333333333,  -0.28125 },
+         {0.2,  0.2,  0.260416666666667 },
+         {0.2,  0.6,  0.260416666666667 },
+         {0.6,  0.2,  0.260416666666667 },
+        };
+        Convert(Elem::ST_TRIA, 4, (Double*)a3, points, weights);
+        break;
+        
+      case 4:
+        // Values take from the old SetIntPoints() - order 4
+        // original comment: but the paper has other coordinates!? - Fabian
+        // http://www3.interscience.wiley.com/cgi-bin/abstract/110545966/ABSTRACT?CRETRY=1&SRETRY=0
+        // D. A. Dunavant: High Degree Efficient Symmetrical ...
+        // Int. J. Numer. Methods in Eng.  Vol 21  S. 1129-1148   1985
+        // (c) Kaskade
+        static Double c4[][3] =
+        {
+         {0.445948490915965,  0.445948490915965,  0.111690794839005 },
+         {0.445948490915965,  0.10810301816807,  0.111690794839005 },
+         {0.10810301816807,  0.445948490915965,  0.111690794839005 },
+         {0.091576213509771,  0.091576213509771,  0.054975871827661 },
+         {0.091576213509771,  0.816847572980459,  0.054975871827661 },
+         {0.816847572980459,  0.091576213509771,  0.054975871827661 },
+        };
+        Convert(Elem::ST_TRIA, 6, (Double*)c4, points, weights);
+        break;
+        
+      case 5:
+        // Values take from the old SetIntPoints() - order 5
+        // original comment: but the paper has other coordinates!? - Fabian
+        // http://www3.interscience.wiley.com/cgi-bin/abstract/110545966/ABSTRACT?CRETRY=1&SRETRY=0
+        // D. A. Dunavant: High Degree Efficient Symmetrical ...
+        // Int. J. Numer. Methods in Eng.  Vol 21  S. 1129-1148   1985
+        // (c) Kaskade
+        static Double c5[][3] =
+        {
+         {0.333333333333333,  0.333333333333333,  0.1125 },
+         {0.470142064105115,  0.470142064105115,  0.066197076394253 },
+         {0.470142064105115,  0.05971587178977,  0.066197076394253 },
+         {0.05971587178977,  0.470142064105115,  0.066197076394253 },
+         {0.101286507323456,  0.101286507323456,  0.0629695902724135 },
+         {0.101286507323456,  0.797426985353087,  0.0629695902724135 },
+         {0.797426985353087,  0.101286507323456,  0.0629695902724135 },
+        };
+        Convert(Elem::ST_TRIA, 7, (Double*)c5, points, weights);
+        break;
+        
+      case 6:
+        static Double c6[][3] =
+        {
+         {0.24928674517091,  0.24928674517091,  0.0583931378631895 },
+         {0.24928674517091,  0.501426509658179,  0.0583931378631895 },
+         {0.501426509658179,  0.24928674517091,  0.0583931378631895 },
+         {0.063089014491502,  0.063089014491502,  0.0254224531851035 },
+         {0.063089014491502,  0.873821971016996,  0.0254224531851035 },
+         {0.873821971016996,  0.063089014491502,  0.0254224531851035 },
+         {0.310352451033784,  0.636502499121399,  0.041425537809187 },
+         {0.636502499121399,  0.053145049844817,  0.041425537809187 },
+         {0.053145049844817,  0.310352451033784,  0.041425537809187 },
+         {0.310352451033784,  0.053145049844817,  0.041425537809187 },
+         {0.636502499121399,  0.310352451033784,  0.041425537809187 },
+         {0.053145049844817,  0.636502499121399,  0.041425537809187 },
+        };
+        Convert(Elem::ST_TRIA, 12, (Double*)c6, points, weights);
+        break;
+        
+      default:
+        // Generate remaining integration points  using Duffy transformation
+        CalcIntTria( GAUSS, isoOrder, points, weights);
+        break;
+    }
+ 
+    } else {
+      EXCEPTION( "Integration points of method " << IntegMethodEnum.ToString(method)
+                 << " not defined for 2D triangular elements" );
+    }
+  }
+
+void IntScheme::DefineQuadPoints( IntegMethod method, const IntegOrder& order,
+                       StdVector<LocPoint>& points, 
+                       StdVector<Double>& weights ) {
+
+   
+  if ( method == LOBATTO ) {
+    // ------------------------
+    //  GAUSS - Lobatto Points
+    // ------------------------
+    // Note: Lobatto points are not anisotropic, so only the maximum
+    // polynomial order is considered for the (isotropic) integration rule
+    StdVector<Double> points1D;
+    StdVector<Double> weights1D;
+    CalcGaussLobattoPointsWeights(order.GetMaxOrder(), points1D, weights1D );
+
+    UInt nPoints1D = points1D.GetSize();
+    UInt nPoints2D = nPoints1D * nPoints1D;
+    points.Resize( nPoints2D );
+    weights.Resize( nPoints2D );
+    UInt pos = 0;
+    for (UInt i = 0; i < nPoints1D; i++ ){
+      for (UInt j = 0; j < nPoints1D; j++ ){
+        LocPoint & lp = points[pos];
+        lp.coord.Resize(2);
+        lp.coord[0] = points1D[i];
+        lp.coord[1] = points1D[j];
+        weights[pos] =  weights1D[i]*weights1D[j];
+        pos++;
+      }
+    }
+  } else if (method == GAUSS ) {
+    // -------------------------
+    //  GAUSS - Legendre Points 
+    // -------------------------
+    StdVector<Double> points1D_x, points1D_y;
+    StdVector<Double> weights1D_x, weights1D_y;
+    StdVector<UInt> anisoOrder;
+    order.GetAnisoOrder( anisoOrder );
+    CalcGaussLegendrePointsWeights(anisoOrder[0], points1D_x, weights1D_x );
+    CalcGaussLegendrePointsWeights(anisoOrder[1], points1D_y, weights1D_y );
+
+    UInt nPoints_x = points1D_x.GetSize();
+    UInt nPoints_y = points1D_y.GetSize();
+    UInt nPoints2D = nPoints_x * nPoints_y;
+    points.Resize( nPoints2D );
+    weights.Resize( nPoints2D );
+
+    UInt pos = 0;
+    for (UInt i = 0; i < nPoints_x; i++ ){
+      for (UInt j = 0; j < nPoints_y; j++ ){
+        LocPoint & lp = points[pos];
+        lp.coord.Resize(2);
+        lp.coord[0] = points1D_x[i];
+        lp.coord[1] = points1D_y[j];
+        weights[pos] =  weights1D_x[i] * weights1D_y[j];
+        pos++;
+      }
+    }
+  } else if (method == GAUSS_ECO ) {
+    // -----------------------------
+    //  GAUSS_ECO - Legendre Points 
+    // -----------------------------
+    // Note: currently we do not care about non-isotropic integration order,
+    // so we only take the maximum.
+    UInt isoOrder = order.GetMaxOrder();
+    
+    switch(isoOrder) {
+      
+      case 1:
+        // Gauss  quadrature  points  and  weights  on  the  reference  quadrilateral  order  p=0  1
+        static Double a1[][3] = 
+        { 
+         { 0.000000000000000,  0.000000000000000,  4.000000000000000 }
+        };
+        Convert(Elem::ST_QUAD, 1, (Double*)a1, points, weights);
+        break;
+        
+      case 2:
+      case 3:
+        // Gauss  quadrature  points  and  weights  on  the  reference  quadrilateral  order  p=2  3
+        static Double a3[][3] = 
+        { 
+         { 0.577350269189626,   0.577350269189626,  1.000000000000000},
+         { 0.577350269189626,  -0.577350269189626,  1.000000000000000},
+         {-0.577350269189626,   0.577350269189626,  1.000000000000000},
+         {-0.577350269189626,  -0.577350269189626,  1.000000000000000}
+        };
+        Convert(Elem::ST_QUAD, 4, (Double*)a3, points, weights);
+        break;
+       
+      case 4:
+      case 5:
+        // Gauss  quadrature  points  and  weights  on  the  reference  quadrilateral  order  p=4  5
+        static Double a5[][3] = 
+        { 
+         { 0.683130051063973,   0.000000000000000,  0.816326530612245},
+         {-0.683130051063973,   0.000000000000000,  0.816326530612245},
+         { 0.000000000000000,   0.683130051063973,  0.816326530612245},
+         { 0.000000000000000,  -0.683130051063973,  0.816326530612245},
+         { 0.881917103688197,   0.881917103688197,  0.183673469387755},
+         { 0.881917103688197,  -0.881917103688197,  0.183673469387755},
+         {-0.881917103688197,   0.881917103688197,  0.183673469387755},
+         {-0.881917103688197,  -0.881917103688197,  0.183673469387755}
+        };
+        Convert(Elem::ST_QUAD, 8, (Double*)a5, points, weights);
+        break;
+        
+      case 6:
+      case 7:
+        // Gauss  quadrature  points  and  weights  on  the  reference  quadrilateral  order  p=6  7
+        static Double a7[][3] = 
+        { 
+          { 0.925820099772551,   0.000000000000000,  0.241975308641975},
+          {-0.925820099772551,   0.000000000000000,  0.241975308641975},
+          { 0.000000000000000,   0.925820099772551,  0.241975308641975},
+          { 0.000000000000000,  -0.925820099772551,  0.241975308641975},
+          { 0.805979782918599,   0.805979782918599,  0.237431774690630},
+          { 0.805979782918599,  -0.805979782918599,  0.237431774690630},
+          {-0.805979782918599,   0.805979782918599,  0.237431774690630},
+          {-0.805979782918599,  -0.805979782918599,  0.237431774690630},
+          { 0.380554433208316,   0.380554433208316,  0.520592916667394},
+          { 0.380554433208316,  -0.380554433208316,  0.520592916667394},
+          {-0.380554433208316,   0.380554433208316,  0.520592916667394},
+          {-0.380554433208316,  -0.380554433208316,  0.520592916667394}
+        };
+        Convert(Elem::ST_QUAD, 12, (Double*)a7, points, weights);
+        break;
+        
+      case 8:
+      case 9:
+        // Gauss  quadrature  points  and  weights  on  the  reference  quadrilateral  order  p=8  9
+        static Double a9[][3] = 
+        { 
+         { 1.121225763866564,  0.000000000000000,  0.018475842507491},
+         {-1.121225763866564,  0.000000000000000,  0.018475842507491},
+         { 0.000000000000000,  1.121225763866564,  0.018475842507491},
+         { 0.000000000000000, -1.121225763866564,  0.018475842507491},
+         { 0.451773049920657,  0.000000000000000,  0.390052939160735},
+         {-0.451773049920657,  0.000000000000000,  0.390052939160735},
+         { 0.000000000000000,  0.451773049920657,  0.390052939160735},
+         { 0.000000000000000, -0.451773049920657,  0.390052939160735},
+         { 0.891849420851512,  0.891849420851512,  0.083095178026482},
+         { 0.891849420851512, -0.891849420851512,  0.083095178026482},
+         {-0.891849420851512,  0.891849420851512,  0.083095178026482},
+         {-0.891849420851512, -0.891849420851512,  0.083095178026482},
+         { 0.824396370749276,  0.411623426336542,  0.254188020152646},
+         { 0.824396370749276, -0.411623426336542,  0.254188020152646},
+         {-0.824396370749276,  0.411623426336542,  0.254188020152646},
+         {-0.824396370749276, -0.411623426336542,  0.254188020152646},
+         { 0.411623426336542,  0.824396370749276,  0.254188020152646},
+         { 0.411623426336542, -0.824396370749276,  0.254188020152646},
+         {-0.411623426336542,  0.824396370749276,  0.254188020152646},
+         {-0.411623426336542, -0.824396370749276,  0.254188020152646}
+        };
+        Convert(Elem::ST_QUAD, 20, (Double*)a9, points, weights);
+        break;
+        
+      case 10:
+      case 11:
+        static Double a11[][3] = 
+        { 
+          { 0.000000000000000,  0.000000000000000,  0.365379525585903},
+          { 1.044402915409813,  0.000000000000000,  0.027756165564204},
+          {-1.044402915409813,  0.000000000000000,  0.027756165564204},
+          { 0.000000000000000,  1.044402915409813,  0.027756165564204},
+          { 0.000000000000000, -1.044402915409813,  0.027756165564204},
+          { 0.769799068396649,  0.000000000000000,  0.244272057751754},
+          {-0.769799068396649,  0.000000000000000,  0.244272057751754},
+          { 0.000000000000000,  0.769799068396649,  0.244272057751754},
+          { 0.000000000000000, -0.769799068396649,  0.244272057751754},
+          { 0.935787012440540,  0.935787012440540,  0.034265103851229},
+          { 0.935787012440540, -0.935787012440540,  0.034265103851229},
+          {-0.935787012440540,  0.935787012440540,  0.034265103851229},
+          {-0.935787012440540, -0.935787012440540,  0.034265103851229},
+          { 0.413491953449114,  0.413491953449114,  0.308993036133713},
+          { 0.413491953449114, -0.413491953449114,  0.308993036133713},
+          {-0.413491953449114,  0.413491953449114,  0.308993036133713},
+          {-0.413491953449114, -0.413491953449114,  0.308993036133713},
+          { 0.883025508525690,  0.575653595840465,  0.146684377651312},
+          { 0.883025508525690, -0.575653595840465,  0.146684377651312},
+          {-0.883025508525690,  0.575653595840465,  0.146684377651312},
+          {-0.883025508525690, -0.575653595840465,  0.146684377651312},
+          { 0.575653595840465,  0.883025508525690,  0.146684377651312},
+          { 0.575653595840465, -0.883025508525690,  0.146684377651312},
+          {-0.575653595840465,  0.883025508525690,  0.146684377651312},
+          {-0.575653595840465, -0.883025508525690,  0.146684377651312}
+        };  
+        Convert(Elem::ST_QUAD, 25, (Double*)a11, points, weights);
+        break;
+        
+      case 12:
+      case 13:
+        // Gauss  quadrature  points  and  weights  on  the  reference  quadrilateral  order  p=12  13
+        static Double a13[][3] = 
+        { 
+         { 1.086056158573971,  0.000000000000000,  0.005656169693764},
+         {-1.086056158573971,  0.000000000000000,  0.005656169693764},
+         { 0.000000000000000,  1.086056158573971,  0.005656169693764},
+         { 0.000000000000000, -1.086056158573971,  0.005656169693764},
+         { 0.658208197042585,  0.000000000000000,  0.192443967470396},
+         {-0.658208197042585,  0.000000000000000,  0.192443967470396},
+         { 0.000000000000000,  0.658208197042585,  0.192443967470396},
+         { 0.000000000000000, -0.658208197042585,  0.192443967470396},
+         { 1.001300602991729,  1.001300602991729,  0.005166832979773},
+         { 1.001300602991729, -1.001300602991729,  0.005166832979773},
+         {-1.001300602991729,  1.001300602991729,  0.005166832979773},
+         {-1.001300602991729, -1.001300602991729,  0.005166832979773},
+         { 0.584636168775946,  0.584636168775946,  0.200302559622138},
+         { 0.584636168775946, -0.584636168775946,  0.200302559622138},
+         {-0.584636168775946,  0.584636168775946,  0.200302559622138},
+         {-0.584636168775946, -0.584636168775946,  0.200302559622138},
+         { 0.246795612720261,  0.246795612720261,  0.228125175912536},
+         { 0.246795612720261, -0.246795612720261,  0.228125175912536},
+         {-0.246795612720261,  0.246795612720261,  0.228125175912536},
+         {-0.246795612720261, -0.246795612720261,  0.228125175912536},
+         { 0.900258815287201,  0.304720678579870,  0.117496926974491},
+         { 0.900258815287201, -0.304720678579870,  0.117496926974491},
+         {-0.900258815287201,  0.304720678579870,  0.117496926974491},
+         {-0.900258815287201, -0.304720678579870,  0.117496926974491},
+         { 0.304720678579870,  0.900258815287201,  0.117496926974491},
+         { 0.304720678579870, -0.900258815287201,  0.117496926974491},
+         {-0.304720678579870,  0.900258815287201,  0.117496926974491},
+         {-0.304720678579870, -0.900258815287201,  0.117496926974491},
+         { 0.929866705560780,  0.745052720131169,  0.066655770186205},
+         { 0.929866705560780, -0.745052720131169,  0.066655770186205},
+         {-0.929866705560780,  0.745052720131169,  0.066655770186205},
+         {-0.929866705560780, -0.745052720131169,  0.066655770186205},
+         { 0.745052720131169,  0.929866705560780,  0.066655770186205},
+         { 0.745052720131169, -0.929866705560780,  0.066655770186205},
+         {-0.745052720131169,  0.929866705560780,  0.066655770186205},
+         {-0.745052720131169, -0.929866705560780,  0.066655770186205},
+        };   
+        Convert(Elem::ST_QUAD, 36, (Double*)a13, points, weights);
+        break;
+      
+      case 14:
+      case 15:
+        // Gauss  quadrature  points  and  weights  on  the  reference  quadrilateral  order  p=14  15
+        static Double a15[][3] =
+        { 
+         { 0.000000000000000,  0.000000000000000, -0.001768979827207},
+         { 1.027314357719367,  0.000000000000000,  0.012816726617512},
+         {-1.027314357719367,  0.000000000000000,  0.012816726617512},
+         { 0.000000000000000,  1.027314357719367,  0.012816726617512},
+         { 0.000000000000000, -1.027314357719367,  0.012816726617512},
+         { 0.856766776147643,  0.000000000000000,  0.119897873101347},
+         {-0.856766776147643,  0.000000000000000,  0.119897873101347},
+         { 0.000000000000000,  0.856766776147643,  0.119897873101347},
+         { 0.000000000000000, -0.856766776147643,  0.119897873101347},
+         { 0.327332998189723,  0.000000000000000,  0.210885452208801},
+         {-0.327332998189723,  0.000000000000000,  0.210885452208801},
+         { 0.000000000000000,  0.327332998189723,  0.210885452208801},
+         { 0.000000000000000, -0.327332998189723,  0.210885452208801},
+         { 0.967223740028505,  0.967223740028505,  0.006392720128215},
+         { 0.967223740028505, -0.967223740028505,  0.006392720128215},
+         {-0.967223740028505,  0.967223740028505,  0.006392720128215},
+         {-0.967223740028505, -0.967223740028505,  0.006392720128215},
+         { 0.732168901749711,  0.732168901749711,  0.104415680788580},
+         { 0.732168901749711, -0.732168901749711,  0.104415680788580},
+         {-0.732168901749711,  0.732168901749711,  0.104415680788580},
+         {-0.732168901749711, -0.732168901749711,  0.104415680788580},
+         { 0.621974427996805,  0.321696694921009,  0.168053047203816},
+         { 0.621974427996805, -0.321696694921009,  0.168053047203816},
+         {-0.621974427996805,  0.321696694921009,  0.168053047203816},
+         {-0.621974427996805, -0.321696694921009,  0.168053047203816},
+         { 0.321696694921009,  0.621974427996805,  0.168053047203816},
+         { 0.321696694921009, -0.621974427996805,  0.168053047203816},
+         {-0.321696694921009,  0.621974427996805,  0.168053047203816},
+         {-0.321696694921009, -0.621974427996805,  0.168053047203816},
+         { 0.928618480068352,  0.455124178121179,  0.076169694452294},
+         { 0.928618480068352, -0.455124178121179,  0.076169694452294},
+         {-0.928618480068352,  0.455124178121179,  0.076169694452294},
+         {-0.928618480068352, -0.455124178121179,  0.076169694452294},
+         { 0.455124178121179,  0.928618480068352,  0.076169694452294},
+         { 0.455124178121179, -0.928618480068352,  0.076169694452294},
+         {-0.455124178121179,  0.928618480068352,  0.076169694452294},
+         {-0.455124178121179, -0.928618480068352,  0.076169694452294},
+         { 0.960457474887516,  0.809863684081217,  0.028794154400064},
+         { 0.960457474887516, -0.809863684081217,  0.028794154400064},
+         {-0.960457474887516,  0.809863684081217,  0.028794154400064},
+         {-0.960457474887516, -0.809863684081217,  0.028794154400064},
+         { 0.809863684081217,  0.960457474887516,  0.028794154400064},
+         { 0.809863684081217, -0.960457474887516,  0.028794154400064},
+         {-0.809863684081217,  0.960457474887516,  0.028794154400064},
+         {-0.809863684081217, -0.960457474887516,  0.028794154400064},
+        };  
+        Convert(Elem::ST_QUAD, 45, (Double*)a15, points, weights);
+        break;
+        
+      default:
+        EXCEPTION( "Integration points of method " << IntegMethodEnum.ToString(method)
+                   << " only defined up to order 15 for quad elements" );
+        break;
+    }
+   } else {
+     EXCEPTION( "Integration points of method " << IntegMethodEnum.ToString(method)
+                << " not defined for 2D quad elements" );
+   }
+}
+
+void IntScheme::DefineTetPoints( IntegMethod method, const IntegOrder& order,
+                                 StdVector<LocPoint>& points, 
+                                 StdVector<Double>& weights ) {
+  if (method == GAUSS   ) {
+    // -------------------------
+    //  GAUSS - Legendre Points
+    // -------------------------
+
+    // Note: currently we do not care about non-isotropic integration order,
+    // so we only take the maximum.
+    UInt isoOrder = order.GetMaxOrder();
+
+    switch(isoOrder) {
+      case 1:
+        // The original values from the old SetIntPoints
+        // Thomas Hughes "The finite element method", p. 174
+        static Double c1[][4] = 
+        {
+         { 1./4,  1./4,  1./4,  1./6 }
+        };
+        Convert(Elem::ST_TET, 1, (Double*)c1, points, weights);
+        break;
+
+      case 2:
+        // Thomas Hughes "The finite element method", p. 174
+        static Double c2[][4] =
+        {
+         { 0.5854102,  0.1381966,  0.1381966,  .25/6 },
+         { 0.1381966,  0.5854102,  0.1381966,  .25/6 },
+         { 0.1381966,  0.1381966,  0.5854102,  .25/6 },
+         { 0.1381966,  0.1381966,  0.1381966,  .25/6 }
+        };
+        Convert(Elem::ST_TET, 4, (Double*)c2, points, weights);
+        break;
+      
+      case 3:
+        // Thomas Hughes "The finite element method", p. 174
+        static Double c3[][4] = 
+        {
+         { 0.25,  0.25,  0.25,  -0.8/6 },
+         { 0.5,  1./6,  1./6,  0.45/6 },
+         { 1./6,  0.5,  1./6,  0.45/6 },
+         { 1./6,  1./6,  0.5,  0.45/6 },  // in SetIntPoints() the 2. row was doubled here!
+         { 1./6,  1./6, 1./6,  0.45/6 },
+        };
+        Convert(Elem::ST_TET, 5, (Double*)c3, points, weights);
+        break;
+        
+      case 4:
+        // From: §17.7. *Gauss Integration Rules For Tetrahedra in
+        // The Quadratic Tetrahedron
+        // http://www.colorado.edu/engineering/CAS/courses.d/AFEM.d/AFEM.Ch17.d/AFEM.Ch17.pdf
+        static Double c4[][4] = 
+        {
+         {0.0927352503109,0.0927352503109,0.0927352503109,0.0122488405194},
+         {0.721794249067,0.0927352503109,0.0927352503109,0.0122488405194},
+         {0.0927352503109,0.721794249067,0.0927352503109,0.0122488405194},
+         {0.0927352503109,0.0927352503109,0.721794249067,0.0122488405194},
+         {0.310885919263,0.310885919263,0.310885919263,0.0187813209530},
+         {0.0673422422101,0.310885919263,0.310885919263,0.0187813209530},
+         {0.310885919263,0.0673422422101,0.310885919263,0.0187813209530},
+         {0.310885919263,0.310885919263,0.0673422422101,0.0187813209530},
+         {0.0455037041256,0.454496295874,0.454496295874,0.00709100346285},
+         {0.454496295874,0.0455037041256,0.454496295874,0.00709100346285},
+         {0.454496295874,0.454496295874,0.0455037041256,0.00709100346285},
+         {0.0455037041256,0.0455037041256,0.454496295874,0.00709100346285},
+         {0.0455037041256,0.454496295874,0.0455037041256,0.00709100346285},
+         {0.454496295874,0.0455037041256,0.0455037041256,0.00709100346285}
+        };
+        Convert(Elem::ST_TET, 14, (Double*)c4, points, weights);
+        break;
+        
+      case 5:
+        static Double c5[][4] = 
+        {
+         {0.0919710780527,0.0919710780527,0.0919710780527,0.0119895139632},
+         {0.724086765842,0.0919710780527,0.0919710780527,0.0119895139632},
+         {0.0919710780527,0.724086765842,0.0919710780527,0.0119895139632},
+         {0.0919710780527,0.0919710780527,0.724086765842,0.0119895139632},
+         {0.319793627830,0.319793627830,0.319793627830,0.0115113678710},
+         {0.0406191165111,0.319793627830,0.319793627830,0.0115113678710},
+         {0.319793627830,0.0406191165111,0.319793627830,0.0115113678710},
+         {0.319793627830,0.319793627830,0.0406191165111,0.0115113678710},
+         {0.443649167310,0.0563508326896,0.0563508326896,0.00881834215168},
+         {0.0563508326896,0.443649167310,0.0563508326896,0.00881834215168},
+         {0.0563508326896,0.0563508326896,0.443649167310,0.00881834215168},
+         {0.443649167310,0.443649167310,0.0563508326896,0.00881834215168},
+         {0.443649167310,0.0563508326896,0.443649167310,0.00881834215168},
+         {0.0563508326896,0.443649167310,0.443649167310,0.00881834215168},
+         {0.250000000000,0.250000000000,0.250000000000,0.0197530864198},
+        };
+        Convert(Elem::ST_TET, 15, (Double*)c5, points, weights);
+        break;
+        
+      case 6:
+        static Double c6[][4] = 
+        {
+         {0.214602871259,0.214602871259,0.214602871259,0.00665379170969},
+         {0.356191386223,0.214602871259,0.214602871259,0.00665379170969},
+         {0.214602871259,0.356191386223,0.214602871259,0.00665379170969},
+         {0.214602871259,0.214602871259,0.356191386223,0.00665379170969},
+         {0.0406739585346,0.0406739585346,0.0406739585346,0.00167953517589},
+         {0.877978124396,0.0406739585346,0.0406739585346,0.00167953517589},
+         {0.0406739585346,0.877978124396,0.0406739585346,0.00167953517589},
+         {0.0406739585346,0.0406739585346,0.877978124396,0.00167953517589},
+         {0.322337890142,0.322337890142,0.322337890142,0.00922619692394},
+         {0.0329863295732,0.322337890142,0.322337890142,0.00922619692394},
+         {0.322337890142,0.0329863295732,0.322337890142,0.00922619692394},
+         {0.322337890142,0.322337890142,0.0329863295732,0.00922619692394},
+         {0.269672331458,0.0636610018750,0.0636610018750,0.00803571428571},
+         {0.0636610018750,0.269672331458,0.0636610018750,0.00803571428571},
+         {0.0636610018750,0.0636610018750,0.269672331458,0.00803571428571},
+         {0.603005664792,0.269672331458,0.0636610018750,0.00803571428571},
+         {0.603005664792,0.0636610018750,0.269672331458,0.00803571428571},
+         {0.0636610018750,0.603005664792,0.269672331458,0.00803571428571},
+         {0.603005664792,0.0636610018750,0.0636610018750,0.00803571428571},
+         {0.0636610018750,0.603005664792,0.0636610018750,0.00803571428571},
+         {0.0636610018750,0.0636610018750,0.603005664792,0.00803571428571},
+         {0.269672331458,0.603005664792,0.0636610018750,0.00803571428571},
+         {0.269672331458,0.0636610018750,0.603005664792,0.00803571428571},
+         {0.0636610018750,0.269672331458,0.603005664792,0.00803571428571},
+        };
+        Convert(Elem::ST_TET, 24, (Double*)c6, points, weights);
+        break;
+
+      default:
+        EXCEPTION( "Integration points of method " << IntegMethodEnum.ToString(method)
+                      << " only defined up to order 6 for tet elements" );
+        break;
+    } // switch
+  } else if (method == GAUSS_ECO   ) {
+    // -------------------------
+    //  GAUSS - Legendre Points
+    // -------------------------
+
+    // Note: currently we do not care about non-isotropic integration order,
+    // so we only take the maximum.
+    UInt isoOrder = order.GetMaxOrder();
+
+    // The ECONOMICAL implementation with the values from Solin, Segeth, Dolezel, High-Order Finite Element Methods
+    // directly take from the CD    
+    switch(isoOrder) {
+
+      case 1:
+        static Double a1[][4] = 
+        { 
+         {0.25,  0.25,  0.25,  0.166666666666667 }
+        };
+        Convert(Elem::ST_TET, 1, (Double*)a1, points, weights);
+        break;
+
+      case 2:
+        // Gauss  quadrature  constants  for  the  reference  tetrahedron  order  p=2
+        static Double a2[][4] = 
+        { 
+         {0.13819660112501,  0.13819660112501,  0.13819660112501,  0.0416666666666666 },
+         {0.585410196624969, 0.13819660112501,  0.13819660112501,  0.0416666666666666 },
+         {0.13819660112501,  0.585410196624969, 0.13819660112501,  0.0416666666666666 },
+         {0.13819660112501,  0.13819660112501,  0.585410196624969, 0.0416666666666666 }
+        };   
+        Convert(Elem::ST_TET, 4, (Double*)a2, points, weights);
+        break;
+
+      case 3:
+        // Gauss  quadrature  constants  for  the  reference  tetrahedron  order  p=3
+        static Double a3[][4] = 
+        { 
+         {0.25,  0.25,  0.25,  -0.133333333333333 },
+         {0.166666666666667,  0.166666666666667,  0.166666666666667,  0.075 },
+         {0.166666666666667,  0.166666666666667,  0.5,  0.075 },
+         {0.166666666666667,  0.5,  0.166666666666667,  0.075 },
+         {0.5,  0.166666666666667,  0.166666666666667,  0.075 }
+        };
+        Convert(Elem::ST_TET, 5, (Double*)a3, points, weights);
+        break;
+
+      case 4:
+        // Gauss  quadrature  constants  for  the  reference  tetrahedron  order  p=4
+        static Double a4[][4] = 
+        {      
+         {0.25,  0.25,  0.25,  -0.0131555555555555 },
+         {0.0714285714285715,  0.0714285714285715,  0.0714285714285715,  0.00762222222222225 },
+         {0.0714285714285715,  0.0714285714285715,  0.785714285714285,  0.00762222222222225 },
+         {0.0714285714285715,  0.785714285714285,  0.0714285714285715,  0.00762222222222225 },
+         {0.785714285714285,  0.0714285714285715,  0.0714285714285715,  0.00762222222222225 },
+         {0.399403576166799,  0.399403576166799,  0.100596423833201,  0.0248888888888889 },
+         {0.399403576166799,  0.100596423833201,  0.399403576166799,  0.0248888888888889 },
+         {0.100596423833201,  0.399403576166799,  0.399403576166799,  0.0248888888888889 },
+         {0.399403576166799,  0.100596423833201,  0.100596423833201,  0.0248888888888889 },
+         {0.100596423833201,  0.399403576166799,  0.100596423833201,  0.0248888888888889 },
+         {0.100596423833201,  0.100596423833201,  0.399403576166799,  0.0248888888888889 }
+        };
+        Convert(Elem::ST_TET, 11, (Double*)a4, points, weights);
+        break;
+
+      case 5:
+        // Gauss  quadrature  constants  for  the  reference  tetrahedron  order  p=5
+        static Double a5[][4] = 
+        { 
+         {0.092735250310891,  0.092735250310891,  0.092735250310891,  0.0122488405193936 },
+         {0.721794249067326,  0.092735250310891,  0.092735250310891,  0.0122488405193936 },
+         {0.092735250310891,  0.721794249067326,  0.092735250310891,  0.0122488405193936 },
+         {0.092735250310891,  0.092735250310891,  0.721794249067326,  0.0122488405193936 },
+         {0.310885919263301,  0.310885919263301,  0.310885919263301,  0.0187813209530026 },
+         {0.067342242210098,  0.310885919263301,  0.310885919263301,  0.0187813209530026 },
+         {0.310885919263301,  0.067342242210098,  0.310885919263301,  0.0187813209530026 },
+         {0.310885919263301,  0.310885919263301,  0.067342242210098,  0.0187813209530026 },
+         {0.45449629587435,  0.45449629587435,  0.0455037041256495,  0.00709100346284687 },
+         {0.45449629587435,  0.0455037041256495,  0.45449629587435,  0.00709100346284687 },
+         {0.0455037041256495,  0.45449629587435,  0.45449629587435,  0.00709100346284687 },
+         {0.45449629587435,  0.0455037041256495,  0.0455037041256495,  0.00709100346284687 },
+         {0.0455037041256495,  0.45449629587435,  0.0455037041256495,  0.00709100346284687 },
+         {0.0455037041256495,  0.0455037041256495,  0.45449629587435,  0.00709100346284687 }
+        };
+        Convert(Elem::ST_TET, 14, (Double*)a5, points, weights);
+        break;
+
+      case 6:
+        // Gauss  quadrature  constants  for  the  reference  tetrahedron  order  p=6
+        static Double a6[][4] = 
+        { 
+         {0.214602871259152,  0.214602871259152,  0.214602871259152,  0.00665379170969463 },
+         {0.356191386222544,  0.214602871259152,  0.214602871259152,  0.00665379170969463 },
+         {0.214602871259152,  0.356191386222544,  0.214602871259152,  0.00665379170969463 },
+         {0.214602871259152,  0.214602871259152,  0.356191386222544,  0.00665379170969463 },
+         {0.0406739585346115,  0.0406739585346115,  0.0406739585346115,  0.00167953517588675 },
+         {0.877978124396166,  0.0406739585346115,  0.0406739585346115,  0.00167953517588675 },
+         {0.0406739585346115,  0.877978124396166,  0.0406739585346115,  0.00167953517588675 },
+         {0.0406739585346115,  0.0406739585346115,  0.877978124396166,  0.00167953517588675 },
+         {0.322337890142276,  0.322337890142276,  0.322337890142276,  0.0092261969239425 },
+         {0.0329863295731735,  0.322337890142276,  0.322337890142276,  0.0092261969239425 },
+         {0.322337890142276,  0.0329863295731735,  0.322337890142276,  0.0092261969239425 },
+         {0.322337890142276,  0.322337890142276,  0.0329863295731735,  0.0092261969239425 },
+         {0.0636610018750175,  0.0636610018750175,  0.269672331458316,  0.00803571428571425 },
+         {0.0636610018750175,  0.269672331458316,  0.0636610018750175,  0.00803571428571425 },
+         {0.0636610018750175,  0.0636610018750175,  0.603005664791649,  0.00803571428571425 },
+         {0.0636610018750175,  0.603005664791649,  0.0636610018750175,  0.00803571428571425 },
+         {0.0636610018750175,  0.269672331458316,  0.603005664791649,  0.00803571428571425 },
+         {0.0636610018750175,  0.603005664791649,  0.269672331458316,  0.00803571428571425 },
+         {0.269672331458316,  0.0636610018750175,  0.0636610018750175,  0.00803571428571425 },
+         {0.269672331458316,  0.0636610018750175,  0.603005664791649,  0.00803571428571425 },
+         {0.269672331458316,  0.603005664791649,  0.0636610018750175,  0.00803571428571425 },
+         {0.603005664791649,  0.0636610018750175,  0.269672331458316,  0.00803571428571425 },
+         {0.603005664791649,  0.0636610018750175,  0.0636610018750175,  0.00803571428571425 },
+         {0.603005664791649,  0.269672331458316,  0.0636610018750175,  0.00803571428571425 }
+        };
+        Convert(Elem::ST_TET, 24, (Double*)a6, points, weights);
+        break;
+
+      case 7:
+        // Gauss  quadrature  constants  for  the  reference  tetrahedron  order  p=7
+        static Double a7[][4] = 
+        { 
+         {0.5,  0.5,  0,  0.00097001763668425 },
+         {0.5,  0,  0.5,  0.00097001763668425 },
+         {0,  0.5,  0.5,  0.00097001763668425 },
+         {0,  0,  0.5,  0.00097001763668425 },
+         {0,  0.5,  0,  0.00097001763668425 },
+         {0.5,  0,  0,  0.00097001763668425 },
+         {0.25,  0.25,  0.25,  0.0182642234661089 },
+         {0.078213192330318,  0.078213192330318,  0.078213192330318,  0.0105999415244136 },
+         {0.078213192330318,  0.078213192330318,  0.765360423009046,  0.0105999415244136 },
+         {0.078213192330318,  0.765360423009046,  0.078213192330318,  0.0105999415244136 },
+         {0.765360423009046,  0.078213192330318,  0.078213192330318,  0.0105999415244136 },
+         {0.121843216663905,  0.121843216663905,  0.121843216663905,  -0.0625177401143319 },
+         {0.121843216663905,  0.121843216663905,  0.634470350008284,  -0.0625177401143319 },
+         {0.121843216663905,  0.634470350008284,  0.121843216663905,  -0.0625177401143319 },
+         {0.634470350008284,  0.121843216663905,  0.121843216663905,  -0.0625177401143319 },
+         {0.332539164446421,  0.332539164446421,  0.332539164446421,  0.0048914252630735 },
+         {0.332539164446421,  0.332539164446421,  0.00238250666073803,  0.0048914252630735 },
+         {0.332539164446421,  0.00238250666073803,  0.332539164446421,  0.0048914252630735 },
+         {0.00238250666073803,  0.332539164446421,  0.332539164446421,  0.0048914252630735 },
+         {0.1,  0.1,  0.2,  0.0275573192239859 },
+         {0.1,  0.2,  0.1,  0.0275573192239859 },
+         {0.1,  0.1,  0.6,  0.0275573192239859 },
+         {0.1,  0.6,  0.1,  0.0275573192239859 },
+         {0.1,  0.2,  0.6,  0.0275573192239859 },
+         {0.1,  0.6,  0.2,  0.0275573192239859 },
+         {0.2,  0.1,  0.1,  0.0275573192239859 },
+         {0.2,  0.1,  0.6,  0.0275573192239859 },
+         {0.2,  0.6,  0.1,  0.0275573192239859 },
+         {0.6,  0.1,  0.2,  0.0275573192239859 },
+         {0.6,  0.1,  0.1,  0.0275573192239859 },
+         {0.6,  0.2,  0.1,  0.0275573192239859 }    
+        };
+        Convert(Elem::ST_TET, 31, (Double*)a7, points, weights);
+        break;
+
+      case 8:
+        // Gauss  quadrature  constants  for  the  reference  tetrahedron  order  p=7
+        static Double a8[][4] = 
+        { 
+         {0.25,  0.25,  0.25,  -0.0205001886586399 },
+         {0.206829931610673,  0.206829931610673,  0.206829931610673,  0.0142503058228669 },
+         {0.206829931610673,  0.206829931610673,  0.379510205167981,  0.0142503058228669 },
+         {0.206829931610673,  0.379510205167981,  0.206829931610673,  0.0142503058228669 },
+         {0.379510205167981,  0.206829931610673,  0.206829931610673,  0.0142503058228669 },
+         {0.0821035883105465,  0.0821035883105465,  0.0821035883105465,  0.00196703331313388 },
+         {0.0821035883105465,  0.0821035883105465,  0.75368923506836,  0.00196703331313388 },
+         {0.0821035883105465,  0.75368923506836,  0.0821035883105465,  0.00196703331313388 },
+         {0.75368923506836,  0.0821035883105465,  0.0821035883105465,  0.00196703331313388 },
+         {0.00578195050519797,  0.00578195050519797,  0.00578195050519797,  0.000169834109092875 },
+         {0.00578195050519797,  0.00578195050519797,  0.982654148484406,  0.000169834109092875 },
+         {0.00578195050519797,  0.982654148484406,  0.00578195050519797,  0.000169834109092875 },
+         {0.982654148484406,  0.00578195050519797,  0.00578195050519797,  0.000169834109092875 },
+         {0.050532740018894,  0.050532740018894,  0.449467259981106,  0.00457968382446725 },
+         {0.050532740018894,  0.449467259981106,  0.050532740018894,  0.00457968382446725 },
+         {0.449467259981106,  0.050532740018894,  0.050532740018894,  0.00457968382446725 },
+         {0.050532740018894,  0.449467259981106,  0.449467259981106,  0.00457968382446725 },
+         {0.449467259981106,  0.050532740018894,  0.449467259981106,  0.00457968382446725 },
+         {0.449467259981106,  0.449467259981106,  0.050532740018894,  0.00457968382446725 },
+         {0.229066536116811,  0.229066536116811,  0.035639582788534,  0.00570448580868188 },
+         {0.229066536116811,  0.035639582788534,  0.229066536116811,  0.00570448580868188 },
+         {0.229066536116811,  0.229066536116811,  0.506227344977843,  0.00570448580868188 },
+         {0.229066536116811,  0.506227344977843,  0.229066536116811,  0.00570448580868188 },
+         {0.229066536116811,  0.035639582788534,  0.506227344977843,  0.00570448580868188 },
+         {0.229066536116811,  0.506227344977843,  0.035639582788534,  0.00570448580868188 },
+         {0.035639582788534,  0.229066536116811,  0.229066536116811,  0.00570448580868188 },
+         {0.035639582788534,  0.229066536116811,  0.506227344977843,  0.00570448580868188 },
+         {0.035639582788534,  0.506227344977843,  0.229066536116811,  0.00570448580868188 },
+         {0.506227344977843,  0.229066536116811,  0.035639582788534,  0.00570448580868188 },
+         {0.506227344977843,  0.229066536116811,  0.229066536116811,  0.00570448580868188 },
+         {0.506227344977843,  0.035639582788534,  0.229066536116811,  0.00570448580868188 },
+         {0.0366077495531975,  0.0366077495531975,  0.190486041934633,  0.00214051914116212 },
+         {0.0366077495531975,  0.190486041934633,  0.0366077495531975,  0.00214051914116212 },
+         {0.0366077495531975,  0.0366077495531975,  0.736298458958972,  0.00214051914116212 },
+         {0.0366077495531975,  0.736298458958972,  0.0366077495531975,  0.00214051914116212 },
+         {0.0366077495531975,  0.190486041934633,  0.736298458958972,  0.00214051914116212 },
+         {0.0366077495531975,  0.736298458958972,  0.190486041934633,  0.00214051914116212 },
+         {0.190486041934633,  0.0366077495531975,  0.0366077495531975,  0.00214051914116212 },
+         {0.190486041934633,  0.0366077495531975,  0.736298458958972,  0.00214051914116212 },
+         {0.190486041934633,  0.736298458958972,  0.0366077495531975,  0.00214051914116212 },
+         {0.736298458958972,  0.0366077495531975,  0.190486041934633,  0.00214051914116212 },
+         {0.736298458958972,  0.0366077495531975,  0.0366077495531975,  0.00214051914116212 },
+         {0.736298458958972,  0.190486041934633,  0.0366077495531975,  0.00214051914116212 }
+        };
+        Convert(Elem::ST_TET, 43, (Double*)a8, points, weights);
+        break;
+
+      default:
+        EXCEPTION( "Integration points of method " << IntegMethodEnum.ToString(method)
+                   << " only defined up to order 6 for 3D tet elements" );
+        break;
+    } // switch
+  } else {
+    EXCEPTION( "Integration points of method " << IntegMethodEnum.ToString(method)
+               << " not defined for 3D tet elements" );
+  }
+
+  //    Evaluated using the following Mathematica code:
+  //
+  //    TetrGaussRuleInfo[{rule_, numer_}, point_] :=
+  //      Module[{jk6 = {{1, 2}, {1, 3}, {1, 4}, {2, 3}, {2, 4}, {3, 4}},
+  //        jk12 = {{1, 2}, {1, 3}, {1, 4}, {2, 3}, {2, 4}, {3, 4}, {2,
+  //           1}, {3, 1}, {4, 1}, {3, 2}, {4, 2}, {4, 3}}, i = point, j, k,
+  //        g1, g2, g3, g4, h1, w1, w2, w3, eps = 10.^(-16),
+  //        info = {{Null, Null, Null, Null}, 0}},
+  //       If[rule == 1, info = {{1/4, 1/4, 1/4, 1/4}, 1}];
+  //       If[rule == 4, g1 = (5 - Sqrt[5])/20; h1 = (5 + 3*Sqrt[5])/20;
+  //        info = {{g1, g1, g1, g1}, 1/4}; info[[1, i]] = h1];
+  //       If[rule == 8, j = i - 4;
+  //        g1 = (55 - 3*Sqrt[17] + Sqrt[1022 - 134*Sqrt[17]])/196;
+  //        g2 = (55 - 3*Sqrt[17] - Sqrt[1022 - 134*Sqrt[17]])/196;
+  //        w1 = 1/8 + Sqrt[(1715161837 - 406006699*Sqrt[17])/23101]/3120;
+  //        w2 = 1/8 - Sqrt[(1715161837 - 406006699*Sqrt[17])/23101]/3120;
+  //        If[j <= 0, info = {{g1, g1, g1, g1}, w1}; info[[1, i]] = 1 - 3*g1];
+  //        If[j > 0, info = {{g2, g2, g2, g2}, w2}; info[[1, j]] = 1 - 3*g2]];
+  //       If[rule == -8, j = i - 4;
+  //        If[j <= 0, info = {{0, 0, 0, 0}, 1/40}; info[[1, i]] = 1];
+  //        If[j > 0, info = {{1, 1, 1, 1}/3, 9/40}; info[[1, j]] = 0]];
+  //       If[rule == 14,(*g1,g2+roots of P (g)=0,P=9+96*g-1712*g^2-30464*
+  //        g^3-127232*g^4+86016*g^5+1060864*g^6*)
+  //        g1 = 0.09273525031089122640232391373703060;
+  //        g2 = 0.31088591926330060979734573376345783;
+  //        g3 = 0.45449629587435035050811947372066056;
+  //        If[! numer, {g1, g2, g3} = Rationalize[{g1, g2, g3}, eps]];
+  //        w1 = (-1 + 6*g2*(2 + g2*(-7 + 8*g2)) + 14*g3 -
+  //            60*g2*(3 + 4*g2*(-3 + 4*g2))*g3 +
+  //            4*(-7 + 30*g2*(3 + 4*g2*(-3 + 4*g2)))*
+  //             g3^2)/(120*(g1 - g2)*(g2*(-3 + 8*g2) + 6*g3 +
+  //              8*g2*(-3 + 4*g2)*g3 - 4*(3 + 4*g2*(-3 + 4*g2))*g3^2 +
+  //              8*g1^2*(1 + 12*g2*(-1 + 2*g2) + 4*g3 - 8*g3^2) +
+  //              g1*(-3 - 96*g2^2 + 24*g3*(-1 + 2*g3) +
+  //                 g2*(44 + 32*(1 - 2*g3)*g3))));
+  //        w2 = (-1 - 20*(1 + 12*g1*(2*g1 - 1))*w1 +
+  //            20*g3*(2*g3 - 1)*(4*w1 - 1))/(20*(1 + 12*g2*(2*g2 - 1) +
+  //              4*g3 - 8*g3^2));
+  //        If[i < 5, info = {{g1, g1, g1, g1}, w1};
+  //         info[[1, i]] = 1 - 3*g1];
+  //        If[i > 4 && i < 9, info = {{g2, g2, g2, g2}, w2};
+  //         info[[1, i - 4]] = 1 - 3*g2];
+  //        If[i > 8, info = {{g3, g3, g3, g3}, 1/6 - 2*(w1 + w2)/3};
+  //         {j, k} = jk6[[i - 8]]; info[[1, j]] = info[[1, k]] = 1/2 - g3]];
+  //       If[rule == -14,
+  //        g1 = (243 - 51*Sqrt[11] + 2*Sqrt[16486 - 9723*Sqrt[11]/2])/356;
+  //        g2 = (243 - 51*Sqrt[11] - 2*Sqrt[16486 - 9723*Sqrt[11]/2])/356;
+  //        w1 = 31/280 + Sqrt[(13686301 - 3809646*Sqrt[11])/5965]/600;
+  //        w2 = 31/280 - Sqrt[(13686301 - 3809646*Sqrt[11])/5965]/600;
+  //        If[i < 5, info = {{g1, g1, g1, g1}, w1};
+  //         info[[1, i]] = 1 - 3*g1];
+  //        If[i > 4 && i < 9, info = {{g2, g2, g2, g2}, w2};
+  //         info[[1, i - 4]] = 1 - 3*g2];
+  //        If[i > 8 && i < 15, info = {{0, 0, 0, 0}, 2/105};
+  //         {j, k} = jk6[[i - 8]]; info[[1, j]] = info[[1, k]] = 1/2]];
+  //       If[rule == 15, g1 = (7 - Sqrt[15])/34; g2 = 7/17 - g1;
+  //        g3 = (10 - 2*Sqrt[15])/40;
+  //        w1 = (2665 + 14*Sqrt[15])/37800; w2 = (2665 - 14*Sqrt[15])/37800;
+  //        If[i < 5, info = {{g1, g1, g1, g1}, w1};
+  //         info[[1, i]] = 1 - 3*g1];
+  //        If[i > 4 && i < 9, info = {{g2, g2, g2, g2}, w2};
+  //         info[[1, i - 4]] = 1 - 3*g2];
+  //        If[i > 8 && i < 15, info = {{g3, g3, g3, g3}, 10/189};
+  //         {j, k} = jk6[[i - 8]]; info[[1, j]] = info[[1, k]] = 1/2 - g3];
+  //        If[i == 15, info = {{1/4, 1/4, 1/4, 1/4}, 16/135}]];
+  //
+  //       If[rule == -15, g1 = (13 - Sqrt[91])/52;
+  //        If[i < 5, info = {{1, 1, 1, 1}/3, 81/2240}; info[[1, i]] = 0];
+  //        If[i > 4 && i < 9, info = {{1, 1, 1, 1}/11, 161051/2304960};
+  //         info[[1, i - 4]] = 8/11];
+  //        If[i > 8 && i < 15, info = {{g1, g1, g1, g1}, 338/5145};
+  //         {j, k} = jk6[[i - 8]]; info[[1, j]] = info[[1, k]] = 1/2 - g1];
+  //        If[i == 15, info = {{1/4, 1/4, 1/4, 1/4}, 6544/36015}]];
+  //
+  //       If[rule == 24, g1 = 0.214602871259152029288839219386284991;
+  //        g2 = 0.040673958534611353115579448956410059;
+  //        g3 = 0.322337890142275510343994470762492125;
+  //        If[! numer, {g1, g2, g3} = Rationalize[{g1, g2, g3}, eps]];
+  //        w1 = (85 + 2*g2*(-319 + 9*Sqrt[5] + 624*g2) - 638*g3 -
+  //            24*g2*(-229 + 472*g2)*g3 +
+  //            96*(13 + 118*g2*(-1 + 2*g2))*g3^2 +
+  //            9*Sqrt[5]*(-1 + 2*g3))/(13440*(g1 - g2)*(g1 - g3)*(3 - 8*g2 +
+  //              8*g1*(-1 + 2*g2) - 8*g3 + 16*(g1 + g2)*g3));
+  //        w2 = -(85 + 2*g1*(-319 + 9*Sqrt[5] + 624*g1) - 638*g3 -
+  //             24*g1*(-229 + 472*g1)*g3 +
+  //             96*(13 + 118*g1*(-1 + 2*g1))*g3^2 +
+  //             9*Sqrt[5]*(-1 + 2*g3))/(13440*(g1 - g2)*(g2 - g3)*(3 -
+  //              8*g2 + 8*g1*(-1 + 2*g2) - 8*g3 + 16*(g1 + g2)*g3));
+  //        w3 = (85 + 2*g1*(-319 + 9*Sqrt[5] + 624*g1) - 638*g2 -
+  //            24*g1*(-229 + 472*g1)*g2 +
+  //            96*(13 + 118*g1*(-1 + 2*g1))*g2^2 +
+  //            9*Sqrt[5]*(-1 + 2*g2))/(13440*(g1 - g3)*(g2 - g3)*(3 - 8*g2 +
+  //              8*g1*(-1 + 2*g2) - 8*g3 + 16*(g1 + g2)*g3));
+  //        g4 = (3 - Sqrt[5])/12; h4 = (5 + Sqrt[5])/12;
+  //        p4 = (1 + Sqrt[5])/12;
+  //        If[i < 5, info = {{g1, g1, g1, g1}, w1};
+  //         info[[1, i]] = 1 - 3*g1];
+  //        If[i > 4 && i < 9, info = {{g2, g2, g2, g2}, w2};
+  //         info[[1, i - 4]] = 1 - 3*g2];
+  //        If[i > 8 && i < 13, info = {{g3, g3, g3, g3}, w3};
+  //         info[[1, i - 8]] = 1 - 3*g3];
+  //        If[i > 12, info = {{g4, g4, g4, g4}, 27/560};
+  //         {j, k} = jk12[[i - 12]]; info[[1, j]] = h4; info[[1, k]] = p4]];
+  //
+  //       If[numer, Return[N[info]], Return[Simplify[info]]];
+  //
+  //       ];
+  //    Do[out = TetrGaussRuleInfo[{15, False}, i];
+  //     Print[{N[out[[1]].{0, 1, 0, 0}, 12], N[out[[1]].{0, 0, 1, 0}, 12],
+  //       N[out[[1]].{0, 0, 0, 1}, 12], N[out[[2]]/6, 12]}], {i, 15}]
+}
+
+void IntScheme::DefineHexPoints( IntegMethod method, const IntegOrder& order,
+                                 StdVector<LocPoint>& points, 
+                                 StdVector<Double>& weights ) {
+  if ( method == LOBATTO ) {
+    // ------------------------
+    //  GAUSS - Lobatto Points
+    // ------------------------
+    // Note: Lobatto points are not anisotropic, so only the maximum
+    // polynomial order is considered for the (isotropic) integration rule
+    StdVector<Double> points1D;
+    StdVector<Double> weights1D;
+    CalcGaussLobattoPointsWeights(order.GetMaxOrder(), points1D, weights1D );
+
+    UInt nPoints1D = points1D.GetSize();
+    UInt nPoints3D = nPoints1D * nPoints1D * nPoints1D;
+    points.Resize( nPoints3D );
+    weights.Resize( nPoints3D );
+    UInt pos = 0;
+    for (UInt i = 0; i < nPoints1D; i++ ){
+      for (UInt j = 0; j < nPoints1D; j++ ){
+        for (UInt k = 0; k < nPoints1D; k++ ){
+          LocPoint & lp = points[pos];
+          lp.coord.Resize(3);
+          lp.coord[0] = points1D[i];
+          lp.coord[1] = points1D[j];
+          lp.coord[2] = points1D[k];
+          weights[pos] =  weights1D[i] * weights1D[j] * weights1D[k];
+          pos++;
+        }
+      }
+    }
+  } else if (method == GAUSS ) {
+    // -------------------------
+    //  GAUSS - Legendre Points 
+    // -------------------------
+    StdVector<Double> points1D_x, points1D_y, points1D_z;
+    StdVector<Double> weights1D_x, weights1D_y, weights1D_z;
+    StdVector<UInt> anisoOrder;
+    order.GetAnisoOrder( anisoOrder );
+    CalcGaussLegendrePointsWeights(anisoOrder[0], points1D_x, weights1D_x );
+    CalcGaussLegendrePointsWeights(anisoOrder[1], points1D_y, weights1D_y );
+    CalcGaussLegendrePointsWeights(anisoOrder[2], points1D_z, weights1D_z );
+
+    UInt nPoints_x = points1D_x.GetSize();
+    UInt nPoints_y = points1D_y.GetSize();
+    UInt nPoints_z = points1D_z.GetSize();
+    UInt nPoints2D = nPoints_x * nPoints_y * nPoints_z;
+    points.Resize( nPoints2D );
+    weights.Resize( nPoints2D );
+
+    UInt pos = 0;
+    for (UInt i = 0; i < nPoints_x; i++ ){
+      for (UInt j = 0; j < nPoints_y; j++ ){
+        for (UInt k = 0; k < nPoints_z; k++ ){
+          LocPoint & lp = points[pos];
+          lp.coord.Resize(3);
+          lp.coord[0] = points1D_x[i];
+          lp.coord[1] = points1D_y[j];
+          lp.coord[2] = points1D_z[k];
+          weights[pos] =  weights1D_x[i] * weights1D_y[j] * weights1D_z[k];
+          pos++;
+        }
+      }
+    }
+  } else if (method == GAUSS_ECO ) {
+    // -----------------------------
+    //  GAUSS_ECO - Legendre Points 
+    // -----------------------------
+    // Note: currently we do not care about non-isotropic integration order,
+    // so we only take the maximum.
+    UInt isoOrder = order.GetMaxOrder();
+
+    // The ECONOMICAL implementation with the values from Solin, Segeth, Dolezel, High-Order Finite Element Methods
+    // directly take from the CD    
+    
+    switch(isoOrder) {
+      case 1:
+        static Double a1[][4] = 
+        { 
+         { 0.000000000000000,  0.000000000000000,  0.000000000000000,  8.000000000000000 }
+        };
+        Convert(Elem::ST_HEXA, 1, (Double*)a1, points, weights);
+        break;
+
+      case 2:
+      case 3:
+//        // Gauss  quadrature  points  and  weights  on  the  reference  cube  order  p=2  3
+//        static Double a3[][4] = 
+//        { 
+//         { 1.000000000000000,  0.000000000000000,  0.000000000000000,  1.333333333333333},
+//         {-1.000000000000000,  0.000000000000000,  0.000000000000000,  1.333333333333333},
+//         { 0.000000000000000,  1.000000000000000,  0.000000000000000,  1.333333333333333},
+//         { 0.000000000000000, -1.000000000000000,  0.000000000000000,  1.333333333333333},
+//         { 0.000000000000000,  0.000000000000000,  1.000000000000000,  1.333333333333333},
+//         { 0.000000000000000,  0.000000000000000, -1.000000000000000,  1.333333333333333}
+//        };
+//        Convert(Elem::ST_HEXA, 6, (Double*)a3, points, weights);
+//        break;
+        
+        // Note: The "true" econmomical integration points from above provide unstable 
+        //       so we utilize the "standard", GAUSS integration points of order 3, 
+        //       having 8 instead of 6 points.
+        DefineHexPoints( GAUSS, order, points, weights );
+        break;
+
+      case 4:
+      case 5:
+        // Gauss  quadrature  points  and  weights  on  the  reference  cube  order  p=4  5
+        static Double a5[][4] = 
+        { 
+         { 0.795822425754221,  0.000000000000000,  0.000000000000000,  0.886426592797784},
+         {-0.795822425754221,  0.000000000000000,  0.000000000000000,  0.886426592797784},
+         { 0.000000000000000,  0.795822425754221,  0.000000000000000,  0.886426592797784},
+         { 0.000000000000000, -0.795822425754221,  0.000000000000000,  0.886426592797784},
+         { 0.000000000000000,  0.000000000000000, -0.795822425754221,  0.886426592797784},
+         { 0.758786910639328,  0.758786910639328, -0.758786910639328,  0.335180055401662},
+         { 0.758786910639328, -0.758786910639328, -0.758786910639328,  0.335180055401662},
+         {-0.758786910639328,  0.758786910639328, -0.758786910639328,  0.335180055401662},
+         {-0.758786910639328, -0.758786910639328, -0.758786910639328,  0.335180055401662},
+         { 0.000000000000000,  0.000000000000000,  0.795822425754221,  0.886426592797784},
+         { 0.758786910639328,  0.758786910639328,  0.758786910639328,  0.335180055401662},
+         { 0.758786910639328, -0.758786910639328,  0.758786910639328,  0.335180055401662},
+         {-0.758786910639328,  0.758786910639328,  0.758786910639328,  0.335180055401662},
+         {-0.758786910639328, -0.758786910639328,  0.758786910639328,  0.335180055401662}
+        };
+        Convert(Elem::ST_HEXA, 14, (Double*)a5, points, weights);
+        break;
+
+      case 6:
+      case 7:
+        // Gauss  quadrature  points  and  weights  on  the  reference  cube  order  p=6  7
+          static Double a7[][4] = 
+          { 
+           { 0.000000000000000,  0.000000000000000,  0.000000000000000,  0.788073482744211},
+           { 0.848418011472252,  0.000000000000000,  0.000000000000000,  0.499369002307720},
+           {-0.848418011472252,  0.000000000000000,  0.000000000000000,  0.499369002307720},
+           { 0.000000000000000,  0.848418011472252,  0.000000000000000,  0.499369002307720},
+           { 0.000000000000000, -0.848418011472252,  0.000000000000000,  0.499369002307720},
+           { 0.000000000000000,  0.000000000000000,  0.848418011472252,  0.499369002307720},
+           { 0.000000000000000,  0.000000000000000, -0.848418011472252,  0.499369002307720},
+           { 0.652816472101691,  0.652816472101691,  0.652816472101691,  0.478508449425127},
+           { 0.652816472101691, -0.652816472101691,  0.652816472101691,  0.478508449425127},
+           { 0.652816472101691,  0.652816472101691, -0.652816472101691,  0.478508449425127},
+           { 0.652816472101691, -0.652816472101691, -0.652816472101691,  0.478508449425127},
+           {-0.652816472101691,  0.652816472101691,  0.652816472101691,  0.478508449425127},
+           {-0.652816472101691, -0.652816472101691,  0.652816472101691,  0.478508449425127},
+           {-0.652816472101691,  0.652816472101691, -0.652816472101691,  0.478508449425127},
+           {-0.652816472101691, -0.652816472101691, -0.652816472101691,  0.478508449425127},
+           { 0.000000000000000,  1.106412898626718,  1.106412898626718,  0.032303742334037},
+           { 0.000000000000000, -1.106412898626718,  1.106412898626718,  0.032303742334037},
+           { 0.000000000000000,  1.106412898626718, -1.106412898626718,  0.032303742334037},
+           { 0.000000000000000, -1.106412898626718, -1.106412898626718,  0.032303742334037},
+           { 1.106412898626718,  0.000000000000000,  1.106412898626718,  0.032303742334037},
+           {-1.106412898626718,  0.000000000000000,  1.106412898626718,  0.032303742334037},
+           { 1.106412898626718,  0.000000000000000, -1.106412898626718,  0.032303742334037},
+           {-1.106412898626718,  0.000000000000000, -1.106412898626718,  0.032303742334037},
+           { 1.106412898626718,  1.106412898626718,  0.000000000000000,  0.032303742334037},
+           {-1.106412898626718,  1.106412898626718,  0.000000000000000,  0.032303742334037},
+           { 1.106412898626718, -1.106412898626718,  0.000000000000000,  0.032303742334037},
+           {-1.106412898626718, -1.106412898626718,  0.000000000000000,  0.032303742334037}
+          };
+        Convert(Elem::ST_HEXA, 27, (Double*)a7, points, weights);
+        break;
+
+      case 8:
+      case 9:
+        // Gauss  quadrature  points  and  weights  on  the  reference  cube  order  p=8  9
+          static Double a9[][4] = 
+          { 
+            { 0.000000000000000,  0.000000000000000,  0.000000000000000,  0.588405321380412},
+            { 1.064082230328777,  0.000000000000000,  0.000000000000000, -0.152097068487023},
+            {-1.064082230328777,  0.000000000000000,  0.000000000000000, -0.152097068487023},
+            { 0.000000000000000,  1.064082230328777,  0.000000000000000, -0.152097068487023},
+            { 0.000000000000000, -1.064082230328777,  0.000000000000000, -0.152097068487023},
+            { 0.000000000000000,  0.000000000000000,  1.064082230328777, -0.152097068487023},
+            { 0.000000000000000,  0.000000000000000, -1.064082230328777, -0.152097068487023},
+            { 0.905830033000216,  0.000000000000000,  0.000000000000000,  0.369012523996709},
+            {-0.905830033000216,  0.000000000000000,  0.000000000000000,  0.369012523996709},
+            { 0.000000000000000,  0.905830033000216,  0.000000000000000,  0.369012523996709},
+            { 0.000000000000000, -0.905830033000216,  0.000000000000000,  0.369012523996709},
+            { 0.000000000000000,  0.000000000000000,  0.905830033000216,  0.369012523996709},
+            { 0.000000000000000,  0.000000000000000, -0.905830033000216,  0.369012523996709},
+            { 0.817286490798906,  0.817286490798906,  0.817286490798906,  0.104007450974435},
+            { 0.817286490798906, -0.817286490798906,  0.817286490798906,  0.104007450974435},
+            { 0.817286490798906,  0.817286490798906, -0.817286490798906,  0.104007450974435},
+            { 0.817286490798906, -0.817286490798906, -0.817286490798906,  0.104007450974435},
+            {-0.817286490798906,  0.817286490798906,  0.817286490798906,  0.104007450974435},
+            {-0.817286490798906, -0.817286490798906,  0.817286490798906,  0.104007450974435},
+            {-0.817286490798906,  0.817286490798906, -0.817286490798906,  0.104007450974435},
+            {-0.817286490798906, -0.817286490798906, -0.817286490798906,  0.104007450974435},
+            { 0.501292956337400,  0.501292956337400,  0.501292956337400,  0.380660357224238},
+            { 0.501292956337400, -0.501292956337400,  0.501292956337400,  0.380660357224238},
+            { 0.501292956337400,  0.501292956337400, -0.501292956337400,  0.380660357224238},
+            { 0.501292956337400, -0.501292956337400, -0.501292956337400,  0.380660357224238},
+            {-0.501292956337400,  0.501292956337400,  0.501292956337400,  0.380660357224238},
+            {-0.501292956337400, -0.501292956337400,  0.501292956337400,  0.380660357224238},
+            {-0.501292956337400,  0.501292956337400, -0.501292956337400,  0.380660357224238},
+            {-0.501292956337400, -0.501292956337400, -0.501292956337400,  0.380660357224238},
+            { 1.017168937265364,  0.650007853956632,  0.000000000000000,  0.0930316449988371},
+            { 1.017168937265364, -0.650007853956632,  0.000000000000000,  0.0930316449988371},
+            { 0.650007853956632,  1.017168937265364,  0.000000000000000,  0.0930316449988371},
+            {-0.650007853956632,  1.017168937265364,  0.000000000000000,  0.0930316449988371},
+            {-1.017168937265364,  0.650007853956632,  0.000000000000000,  0.0930316449988371},
+            {-1.017168937265364, -0.650007853956632,  0.000000000000000,  0.0930316449988371},
+            { 0.650007853956632, -1.017168937265364,  0.000000000000000,  0.0930316449988371},
+            {-0.650007853956632, -1.017168937265364,  0.000000000000000,  0.0930316449988371},
+            { 0.000000000000000,  0.650007853956632,  1.017168937265364,  0.0930316449988371},
+            { 0.000000000000000, -0.650007853956632,  1.017168937265364,  0.0930316449988371},
+            { 0.000000000000000,  1.017168937265364,  0.650007853956632,  0.0930316449988371},
+            { 0.000000000000000,  1.017168937265364, -0.650007853956632,  0.0930316449988371},
+            { 0.000000000000000,  0.650007853956632, -1.017168937265364,  0.0930316449988371},
+            { 0.000000000000000, -0.650007853956632, -1.017168937265364,  0.0930316449988371},
+            { 0.000000000000000, -1.017168937265364,  0.650007853956632,  0.0930316449988371},
+            { 0.000000000000000, -1.017168937265364, -0.650007853956632,  0.0930316449988371},
+            { 1.017168937265364,  0.000000000000000,  0.650007853956632,  0.0930316449988371},
+            { 1.017168937265364,  0.000000000000000, -0.650007853956632,  0.0930316449988371},
+            { 0.650007853956632,  0.000000000000000,  1.017168937265364,  0.0930316449988371},
+            {-0.650007853956632,  0.000000000000000,  1.017168937265364,  0.0930316449988371},
+            {-1.017168937265364,  0.000000000000000,  0.650007853956632,  0.0930316449988371},
+            {-1.017168937265364,  0.000000000000000, -0.650007853956632,  0.0930316449988371},
+            { 0.650007853956632,  0.000000000000000, -1.017168937265364,  0.0930316449988371},
+            {-0.650007853956632,  0.000000000000000, -1.017168937265364,  0.0930316449988371}
+          };
+        Convert(Elem::ST_HEXA, 53, (Double*)a9, points, weights);
+        break;
+
+      case 10:
+      case 11:
+        // Gauss  quadrature  points  and  weights  on  the  reference  cube  order  p=10 11
+           static Double a11[][4] = 
+           { 
+             { 0.000000000000000,  0.000000000000000,  0.000000000000000, -0.729841346362385},
+             { 1.044892251909493,  0.000000000000000,  0.000000000000000, -0.295542895787525},
+             {-1.044892251909493,  0.000000000000000,  0.000000000000000, -0.295542895787525},
+             { 0.000000000000000,  1.044892251909493,  0.000000000000000, -0.295542895787525},
+             { 0.000000000000000, -1.044892251909493,  0.000000000000000, -0.295542895787525},
+             { 0.000000000000000,  0.000000000000000,  1.044892251909493, -0.295542895787525},
+             { 0.000000000000000,  0.000000000000000, -1.044892251909493, -0.295542895787525},
+             { 1.128826539781045,  0.000000000000000,  0.000000000000000,  0.075281719493673},
+             {-1.128826539781045,  0.000000000000000,  0.000000000000000,  0.075281719493673},
+             { 0.000000000000000,  1.128826539781045,  0.000000000000000,  0.075281719493673},
+             { 0.000000000000000, -1.128826539781045,  0.000000000000000,  0.075281719493673},
+             { 0.000000000000000,  0.000000000000000,  1.128826539781045,  0.075281719493673},
+             { 0.000000000000000,  0.000000000000000, -1.128826539781045,  0.075281719493673},
+             { 0.965386862750349,  0.000000000000000,  0.000000000000000,  0.288865143683389},
+             {-0.965386862750349,  0.000000000000000,  0.000000000000000,  0.288865143683389},
+             { 0.000000000000000,  0.965386862750349,  0.000000000000000,  0.288865143683389},
+             { 0.000000000000000, -0.965386862750349,  0.000000000000000,  0.288865143683389},
+             { 0.000000000000000,  0.000000000000000,  0.965386862750349,  0.288865143683389},
+             { 0.000000000000000,  0.000000000000000, -0.965386862750349,  0.288865143683389},
+             { 0.398089853865140,  0.000000000000000,  0.000000000000000,  0.393648801431496},
+             {-0.398089853865140,  0.000000000000000,  0.000000000000000,  0.393648801431496},
+             { 0.000000000000000,  0.398089853865140,  0.000000000000000,  0.393648801431496},
+             { 0.000000000000000, -0.398089853865140,  0.000000000000000,  0.393648801431496},
+             { 0.000000000000000,  0.000000000000000,  0.398089853865140,  0.393648801431496},
+             { 0.000000000000000,  0.000000000000000, -0.398089853865140,  0.393648801431496},
+             { 0.888733872960214,  0.888733872960214,  0.888733872960214,  0.014156042088181},
+             { 0.888733872960214, -0.888733872960214,  0.888733872960214,  0.014156042088181},
+             { 0.888733872960214,  0.888733872960214, -0.888733872960214,  0.014156042088181},
+             { 0.888733872960214, -0.888733872960214, -0.888733872960214,  0.014156042088181},
+             {-0.888733872960214,  0.888733872960214,  0.888733872960214,  0.014156042088181},
+             {-0.888733872960214, -0.888733872960214,  0.888733872960214,  0.014156042088181},
+             {-0.888733872960214,  0.888733872960214, -0.888733872960214,  0.014156042088181},
+             {-0.888733872960214, -0.888733872960214, -0.888733872960214,  0.014156042088181},
+             { 0.554161513623834,  0.554161513623834,  0.554161513623834,  0.232318705969944},
+             { 0.554161513623834, -0.554161513623834,  0.554161513623834,  0.232318705969944},
+             { 0.554161513623834,  0.554161513623834, -0.554161513623834,  0.232318705969944},
+             { 0.554161513623834, -0.554161513623834, -0.554161513623834,  0.232318705969944},
+             {-0.554161513623834,  0.554161513623834,  0.554161513623834,  0.232318705969944},
+             {-0.554161513623834, -0.554161513623834,  0.554161513623834,  0.232318705969944},
+             {-0.554161513623834,  0.554161513623834, -0.554161513623834,  0.232318705969944},
+             {-0.554161513623834, -0.554161513623834, -0.554161513623834,  0.232318705969944},
+             { 0.920049645350334,  0.544394886959702,  0.000000000000000,  0.118935816985260},
+             { 0.920049645350334, -0.544394886959702,  0.000000000000000,  0.118935816985260},
+             { 0.544394886959702,  0.920049645350334,  0.000000000000000,  0.118935816985260},
+             {-0.544394886959702,  0.920049645350334,  0.000000000000000,  0.118935816985260},
+             {-0.920049645350334,  0.544394886959702,  0.000000000000000,  0.118935816985260},
+             {-0.920049645350334, -0.544394886959702,  0.000000000000000,  0.118935816985260},
+             { 0.544394886959702, -0.920049645350334,  0.000000000000000,  0.118935816985260},
+             {-0.544394886959702, -0.920049645350334,  0.000000000000000,  0.118935816985260},
+             { 0.000000000000000,  0.544394886959702,  0.920049645350334,  0.118935816985260},
+             { 0.000000000000000, -0.544394886959702,  0.920049645350334,  0.118935816985260},
+             { 0.000000000000000,  0.920049645350334,  0.544394886959702,  0.118935816985260},
+             { 0.000000000000000,  0.920049645350334, -0.544394886959702,  0.118935816985260},
+             { 0.000000000000000,  0.544394886959702, -0.920049645350334,  0.118935816985260},
+             { 0.000000000000000, -0.544394886959702, -0.920049645350334,  0.118935816985260},
+             { 0.000000000000000, -0.920049645350334,  0.544394886959702,  0.118935816985260},
+             { 0.000000000000000, -0.920049645350334, -0.544394886959702,  0.118935816985260},
+             { 0.920049645350334,  0.000000000000000,  0.544394886959702,  0.118935816985260},
+             { 0.920049645350334,  0.000000000000000, -0.544394886959702,  0.118935816985260},
+             { 0.544394886959702,  0.000000000000000,  0.920049645350334,  0.118935816985260},
+             {-0.544394886959702,  0.000000000000000,  0.920049645350334,  0.118935816985260},
+             {-0.920049645350334,  0.000000000000000,  0.544394886959702,  0.118935816985260},
+             {-0.920049645350334,  0.000000000000000, -0.544394886959702,  0.118935816985260},
+             { 0.544394886959702,  0.000000000000000, -0.920049645350334,  0.118935816985260},
+             {-0.544394886959702,  0.000000000000000, -0.920049645350334,  0.118935816985260},
+             { 0.904534033733291,  0.904534033733291,  0.496742636335202,  0.047086130965273},
+             { 0.904534033733291, -0.904534033733291,  0.496742636335202,  0.047086130965273},
+             { 0.904534033733291,  0.904534033733291, -0.496742636335202,  0.047086130965273},
+             { 0.904534033733291, -0.904534033733291, -0.496742636335202,  0.047086130965273},
+             {-0.904534033733291,  0.904534033733291,  0.496742636335202,  0.047086130965273},
+             {-0.904534033733291, -0.904534033733291,  0.496742636335202,  0.047086130965273},
+             {-0.904534033733291,  0.904534033733291, -0.496742636335202,  0.047086130965273},
+             {-0.904534033733291, -0.904534033733291, -0.496742636335202,  0.047086130965273},
+             { 0.904534033733291,  0.496742636335202,  0.904534033733291,  0.047086130965273},
+             { 0.904534033733291,  0.496742636335202, -0.904534033733291,  0.047086130965273},
+             { 0.904534033733291, -0.496742636335202,  0.904534033733291,  0.047086130965273},
+             { 0.904534033733291, -0.496742636335202, -0.904534033733291,  0.047086130965273},
+             {-0.904534033733291,  0.496742636335202,  0.904534033733291,  0.047086130965273},
+             {-0.904534033733291,  0.496742636335202, -0.904534033733291,  0.047086130965273},
+             {-0.904534033733291, -0.496742636335202,  0.904534033733291,  0.047086130965273},
+             {-0.904534033733291, -0.496742636335202, -0.904534033733291,  0.047086130965273},
+             { 0.496742636335202,  0.904534033733291,  0.904534033733291,  0.047086130965273},
+             { 0.496742636335202,  0.904534033733291, -0.904534033733291,  0.047086130965273},
+             {-0.496742636335202,  0.904534033733291,  0.904534033733291,  0.047086130965273},
+             {-0.496742636335202,  0.904534033733291, -0.904534033733291,  0.047086130965273},
+             { 0.496742636335202, -0.904534033733291,  0.904534033733291,  0.047086130965273},
+             { 0.496742636335202, -0.904534033733291, -0.904534033733291,  0.047086130965273},
+             {-0.496742636335202, -0.904534033733291,  0.904534033733291,  0.047086130965273},
+             {-0.496742636335202, -0.904534033733291, -0.904534033733291,  0.047086130965273},
+           };
+        Convert(Elem::ST_HEXA, 89, (Double*)a11, points, weights);
+        break;
+
+      default:
+        EXCEPTION( "Integration points of method " << IntegMethodEnum.ToString(method)
+                   << " only defined up to order 11 for 3D hex elements" );
+        break;
+    } // switch
+  } else {
+    EXCEPTION( "Integration points of method " << IntegMethodEnum.ToString(method)
+               << " not defined for 3D hex elements" );
+  }
+}
+
+void IntScheme::DefineWedgePoints( IntegMethod method, const IntegOrder& order,
+                                   StdVector<LocPoint>& points, 
+                                   StdVector<Double>& weights ) {
+  // Note: currently we only have one set of integration points,
+  // namely the Gauss method. In case the economical variant is
+  // requested, we return the standard method, until we might have
+  // the version of Segeth / Dolezel.
+  if (method == GAUSS  || method == GAUSS_ECO ) {
+    // -----------------------------
+    // GAUSS - Legendre Points
+    // -----------------------------
+
+    // Note: currently we do not care about non-isotropic integration order,
+    // so we only take the maximum.
+    UInt isoOrder = order.GetMaxOrder();
+
+    switch(isoOrder) {
+      case 1:
+        static Double a1[][4] =
+        {
+         {0.333333333333333,  0.333333333333333,  0,  1.0 },
+        };
+        Convert(Elem::ST_WEDGE, 1, (Double*)a1, points, weights);
+        break;
+
+      case 2:
+        // This values come from the originial WedgeFE::SetIntPoints() Implementation and are NOT from
+        // the Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! No guarantee!! (Fabian)
+        static Double a2[][4] =
+        {
+         { 0.166666666666667,  0.166666666666667,  -0.57735026919, 0.166666666666667 },
+         { 0.666666666666667,  0.166666666666667,  -0.57735026919, 0.166666666666667 },
+         { 0.166666666666667,  0.666666666666667,  -0.57735026919, 0.166666666666667 },
+         { 0.166666666666667,  0.166666666666667,  0.57735026919, 0.166666666666667 },
+         { 0.666666666666667,  0.166666666666667,  0.57735026919, 0.166666666666667 },
+         { 0.166666666666667,  0.666666666666667,  0.57735026919, 0.166666666666667 },
+        };
+        Convert(Elem::ST_WEDGE, 6, (Double*)a2, points, weights);
+        break;
+
+      case 3:
+        // Cartesian product rule applied on ECONOMICAL values as given by
+        // Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! p.250
+        static Double a3[][4] =
+        {
+         {0.333333333333333,  0.333333333333333,  -0.577350269189626,  -0.28125 },
+         {0.2,  0.2,  -0.577350269189626,  0.260416666666667 },
+         {0.2,  0.6,  -0.577350269189626,  0.260416666666667 },
+         {0.6,  0.2,  -0.577350269189626,  0.260416666666667 },
+         {0.333333333333333,  0.333333333333333,  0.577350269189626,  -0.28125 },
+         {0.2,  0.2,  0.577350269189626,  0.260416666666667 },
+         {0.2,  0.6,  0.577350269189626,  0.260416666666667 },
+         {0.6,  0.2,  0.577350269189626,  0.260416666666667 },
+        };
+        Convert(Elem::ST_WEDGE, 8, (Double*)a3, points, weights);
+        break;
+
+      case 4:
+        // Cartesian product rule applied on ECONOMICAL values as given by
+        // Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! p.250
+        static Double a4[][4] =
+        {
+         {0.445948490915965,  0.445948490915965,  -0.774596669241483,  0.062050441577225 },
+         {0.445948490915965,  0.10810301816807,  -0.774596669241483,  0.062050441577225 },
+         {0.10810301816807,  0.445948490915965,  -0.774596669241483,  0.062050441577225 },
+         {0.091576213509771,  0.091576213509771,  -0.774596669241483,  0.0305421510153672 },
+         {0.091576213509771,  0.816847572980459,  -0.774596669241483,  0.0305421510153672 },
+         {0.816847572980459,  0.091576213509771,  -0.774596669241483,  0.0305421510153672 },
+         {0.445948490915965,  0.445948490915965,  0,  0.09928070652356 },
+         {0.445948490915965,  0.10810301816807,  0,  0.09928070652356 },
+         {0.10810301816807,  0.445948490915965,  0,  0.09928070652356 },
+         {0.091576213509771,  0.091576213509771,  0,  0.0488674416245876 },
+         {0.091576213509771,  0.816847572980459,  0,  0.0488674416245876 },
+         {0.816847572980459,  0.091576213509771,  0,  0.0488674416245876 },
+         {0.445948490915965,  0.445948490915965,  0.774596669241483,  0.062050441577225 },
+         {0.445948490915965,  0.10810301816807,  0.774596669241483,  0.062050441577225 },
+         {0.10810301816807,  0.445948490915965,  0.774596669241483,  0.062050441577225 },
+         {0.091576213509771,  0.091576213509771,  0.774596669241483,  0.0305421510153672 },
+         {0.091576213509771,  0.816847572980459,  0.774596669241483,  0.0305421510153672 },
+         {0.816847572980459,  0.091576213509771,  0.774596669241483,  0.0305421510153672 },
+        };
+        Convert(Elem::ST_WEDGE, 18, (Double*)a4, points, weights);
+        break;
+
+
+      case 5:
+        // Cartesian product rule applied on ECONOMICAL values as given by
+        // Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! p.250
+        static Double a5[][4] =
+        {
+         {0.333333333333333,  0.333333333333333,  -0.774596669241483,  0.0625 },
+         {0.470142064105115,  0.470142064105115,  -0.774596669241483,  0.0367761535523628 },
+         {0.470142064105115,  0.05971587178977,  -0.774596669241483,  0.0367761535523628 },
+         {0.05971587178977,  0.470142064105115,  -0.774596669241483,  0.0367761535523628 },
+         {0.101286507323456,  0.101286507323456,  -0.774596669241483,  0.0349831057068964 },
+         {0.101286507323456,  0.797426985353087,  -0.774596669241483,  0.0349831057068964 },
+         {0.797426985353087,  0.101286507323456,  -0.774596669241483,  0.0349831057068964 },
+         {0.333333333333333,  0.333333333333333,  0,  0.1 },
+         {0.470142064105115,  0.470142064105115,  0,  0.0588418456837804 },
+         {0.470142064105115,  0.05971587178977,  0,  0.0588418456837804 },
+         {0.05971587178977,  0.470142064105115,  0,  0.0588418456837804 },
+         {0.101286507323456,  0.101286507323456,  0,  0.0559729691310342 },
+         {0.101286507323456,  0.797426985353087,  0,  0.0559729691310342 },
+         {0.797426985353087,  0.101286507323456,  0,  0.0559729691310342 },
+         {0.333333333333333,  0.333333333333333,  0.774596669241483,  0.0625 },
+         {0.470142064105115,  0.470142064105115,  0.774596669241483,  0.0367761535523628 },
+         {0.470142064105115,  0.05971587178977,  0.774596669241483,  0.0367761535523628 },
+         {0.05971587178977,  0.470142064105115,  0.774596669241483,  0.0367761535523628 },
+         {0.101286507323456,  0.101286507323456,  0.774596669241483,  0.0349831057068964 },
+         {0.101286507323456,  0.797426985353087,  0.774596669241483,  0.0349831057068964 },
+         {0.797426985353087,  0.101286507323456,  0.774596669241483,  0.0349831057068964 },
+        };
+        Convert(Elem::ST_WEDGE, 21, (Double*)a5, points, weights);
+        break;
+
+      case 6:
+        // Cartesian product rule applied on ECONOMICAL values as given by
+        // Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! p.250
+        static Double a6[][4] =
+        {
+         {0.24928674517091,  0.24928674517091,  -0.861136311594053,  0.0203123359284898 },
+         {0.24928674517091,  0.501426509658179,  -0.861136311594053,  0.0203123359284898 },
+         {0.501426509658179,  0.24928674517091,  -0.861136311594053,  0.0203123359284898 },
+         {0.063089014491502,  0.063089014491502,  -0.861136311594053,  0.00884332351571835 },
+         {0.063089014491502,  0.873821971016996,  -0.861136311594053,  0.00884332351571835 },
+         {0.873821971016996,  0.063089014491502,  -0.861136311594053,  0.00884332351571835 },
+         {0.310352451033784,  0.636502499121399,  -0.861136311594053,  0.0144100740393505 },
+         {0.636502499121399,  0.053145049844817,  -0.861136311594053,  0.0144100740393505 },
+         {0.053145049844817,  0.310352451033784,  -0.861136311594053,  0.0144100740393505 },
+         {0.310352451033784,  0.053145049844817,  -0.861136311594053,  0.0144100740393505 },
+         {0.636502499121399,  0.310352451033784,  -0.861136311594053,  0.0144100740393505 },
+         {0.053145049844817,  0.636502499121399,  -0.861136311594053,  0.0144100740393505 },
+         {0.24928674517091,  0.24928674517091,  -0.339981043584856,  0.0380808019346997 },
+         {0.24928674517091,  0.501426509658179,  -0.339981043584856,  0.0380808019346997 },
+         {0.501426509658179,  0.24928674517091,  -0.339981043584856,  0.0380808019346997 },
+         {0.063089014491502,  0.063089014491502,  -0.339981043584856,  0.0165791296693851 },
+         {0.063089014491502,  0.873821971016996,  -0.339981043584856,  0.0165791296693851 },
+         {0.873821971016996,  0.063089014491502,  -0.339981043584856,  0.0165791296693851 },
+         {0.310352451033784,  0.636502499121399,  -0.339981043584856,  0.0270154637698365 },
+         {0.636502499121399,  0.053145049844817,  -0.339981043584856,  0.0270154637698365 },
+         {0.053145049844817,  0.310352451033784,  -0.339981043584856,  0.0270154637698365 },
+         {0.310352451033784,  0.053145049844817,  -0.339981043584856,  0.0270154637698365 },
+         {0.636502499121399,  0.310352451033784,  -0.339981043584856,  0.0270154637698365 },
+         {0.053145049844817,  0.636502499121399,  -0.339981043584856,  0.0270154637698365 },
+         {0.24928674517091,  0.24928674517091,  0.339981043584856,  0.0380808019346997 },
+         {0.24928674517091,  0.501426509658179,  0.339981043584856,  0.0380808019346997 },
+         {0.501426509658179,  0.24928674517091,  0.339981043584856,  0.0380808019346997 },
+         {0.063089014491502,  0.063089014491502,  0.339981043584856,  0.0165791296693851 },
+         {0.063089014491502,  0.873821971016996,  0.339981043584856,  0.0165791296693851 },
+         {0.873821971016996,  0.063089014491502,  0.339981043584856,  0.0165791296693851 },
+         {0.310352451033784,  0.636502499121399,  0.339981043584856,  0.0270154637698365 },
+         {0.636502499121399,  0.053145049844817,  0.339981043584856,  0.0270154637698365 },
+         {0.053145049844817,  0.310352451033784,  0.339981043584856,  0.0270154637698365 },
+         {0.310352451033784,  0.053145049844817,  0.339981043584856,  0.0270154637698365 },
+         {0.636502499121399,  0.310352451033784,  0.339981043584856,  0.0270154637698365 },
+         {0.053145049844817,  0.636502499121399,  0.339981043584856,  0.0270154637698365 },
+         {0.24928674517091,  0.24928674517091,  0.861136311594053,  0.0203123359284898 },
+         {0.24928674517091,  0.501426509658179,  0.861136311594053,  0.0203123359284898 },
+         {0.501426509658179,  0.24928674517091,  0.861136311594053,  0.0203123359284898 },
+         {0.063089014491502,  0.063089014491502,  0.861136311594053,  0.00884332351571835 },
+         {0.063089014491502,  0.873821971016996,  0.861136311594053,  0.00884332351571835 },
+         {0.873821971016996,  0.063089014491502,  0.861136311594053,  0.00884332351571835 },
+         {0.310352451033784,  0.636502499121399,  0.861136311594053,  0.0144100740393505 },
+         {0.636502499121399,  0.053145049844817,  0.861136311594053,  0.0144100740393505 },
+         {0.053145049844817,  0.310352451033784,  0.861136311594053,  0.0144100740393505 },
+         {0.310352451033784,  0.053145049844817,  0.861136311594053,  0.0144100740393505 },
+         {0.636502499121399,  0.310352451033784,  0.861136311594053,  0.0144100740393505 },
+         {0.053145049844817,  0.636502499121399,  0.861136311594053,  0.0144100740393505 },
+        };
+        Convert(Elem::ST_WEDGE, 48, (Double*)a6, points, weights);
+        break;
+
+      default:
+        // Generate remaining integration points using Duffy transformation
+
+        StdVector<Double> triaWeights, lineWeights, linePoints;
+        StdVector<LocPoint> triaPoints;
+
+        // line points
+        CalcGaussLegendrePointsWeights( isoOrder, linePoints, lineWeights );
+
+        // triangular points
+        CalcIntTria( GAUSS, isoOrder, triaPoints, triaWeights);
+
+        UInt numPts = linePoints.GetSize() * triaPoints.GetSize();
+        points.Resize( numPts );
+        weights.Resize( numPts );
+        UInt pos = 0;
+        for( UInt i = 0; i < linePoints.GetSize(); ++i ) {
+          for( UInt j = 0; j < triaPoints.GetSize(); ++j ) {
+            LocPoint lp;
+            lp.coord.Resize(3);
+            lp.coord[0] = triaPoints[j].coord[0];
+            lp.coord[1] = triaPoints[j].coord[1];
+            lp.coord[2] = linePoints[i];
+            points[pos] = lp;
+            weights[pos] = lineWeights[i] * triaWeights[j];
+            pos++;
+          } // triangular points
+        } // line along zeta
+    } // switch
+
+  } else {
+    EXCEPTION( "Integration points of method " << IntegMethodEnum.ToString(method)
+               << " not defined for 3D wedge elements" );
+  }
+}
+
+void IntScheme::DefinePyraPoints( IntegMethod method, const IntegOrder& order,
+                                  StdVector<LocPoint>& points, 
+                                  StdVector<Double>& weights ) {
+  // Note: currently we only have one set of integration points,
+  // namely the Gauss method. In case the economical variant is
+  // requested, we return the standard method, until we might have
+  // the version of Segeth / Dolezel.
+  if (method == GAUSS  || method == GAUSS_ECO ) {
+    // -----------------------------
+    // GAUSS - Legendre Points
+    // -----------------------------
+
+    // Note: currently we do not care about non-isotropic integration order,
+    // so we only take the maximum.
+    UInt isoOrder = order.GetMaxOrder();
+
+    // some helper variables
+    std::map<UInt, std::vector<Double> > x, b, u_gauss, w;
+    std::vector<Double> pyraPoints;
+    UInt ord = 0;
+    UInt orderCube = 0;
+    switch( isoOrder ) {
+
+      case 1:
+        static Double c2[][4] = 
+        {
+         {0.0,  0.0,  0.25,  4.0/3.0},
+        };
+        Convert(Elem::ST_PYRA, 1, (Double*)c2, points, weights);
+        break;
+
+      case 2:
+      {
+        Double z1 = (35 - 2 * sqrt(35)) / 140;
+        Double z0 = (25 - (84 * z1) ) / 16;
+        Double fac1 = sqrt(5.0 / 21.0);
+        Double w = 7.0 / 25.0;
+        static Double c3[][4] = 
+        {
+         {  0.0,    0.0,  z0,  16.0/75.0},
+         {-fac1,  -fac1,  z1,  w},
+         { fac1,  -fac1,  z1,  w},
+         { fac1,   fac1,  z1,  w},
+         {-fac1,   fac1,  z1,  w}
+        };
+        Convert(Elem::ST_PYRA, 5, (Double*)c3, points, weights);
+      }
+      break;
+      case 3:
+      {
+        Double fac1 = sqrt(4.0 / 27.0);
+        Double z0 = 1.0 / 6.0;
+        Double z1 = 1.0 / 4.0;
+
+        Double w = 9.0 / 20.0;
+        static Double c4[][4] = 
+        {
+         {  0.0,    0.0,  0.5,  3.0/5.0},
+         {-fac1,  -fac1,  z0,  w},
+         { fac1,  -fac1,  z0,  w},
+         { fac1,   fac1,  z0,  w},
+         {-fac1,   fac1,  z0,  w},
+         {  0.0,    0.0,  z1,  -16.0/15.0},
+        };
+
+        Convert(Elem::ST_PYRA, 6, (Double*)c4, points, weights);
+      }
+      break;
+
+      case 4:
+      case 5:
+      case 6:
+        
+        // hard-coded change: if integration order
+        // 6 is requested for an element, we simply
+        // use 5 internally
+        if (isoOrder == 6 )
+          isoOrder = 5;
+        
+        // order 4 and 5 are given in one loop
+        //std::map<UInt, std::vector<Double> > x, b, u_gauss, w;
+        ord = 2;
+        x[ord].resize(ord);
+        x[ord][0] = 0.455848155988775;
+        x[ord][1] = 0.877485177344559;
+
+        b[ord].resize(ord);
+        b[ord][0] = 0.100785882079825;
+        b[ord][1] = 0.232547451253508;
+
+        u_gauss[ord].resize(ord);
+        u_gauss[ord][0] = -sqrt(1.0/3.0);
+        u_gauss[ord][1] = -u_gauss[ord][0];
+
+        w[ord].resize(ord);
+        w[ord][0] = 1.0;
+        w[ord][1] = 1.0;
+
+        ord = 3;
+        x[ord].resize(ord);
+        x[ord][0] = 0.294997790111502;
+        x[ord][1] = 0.652996233961648;
+        x[ord][2] = 0.927005975926850;
+
+        b[ord].resize(ord);
+        b[ord][0] = 0.029950703008581;
+        b[ord][1] = 0.146246269259866;
+        b[ord][2] = 0.157136361064887;
+
+        u_gauss[ord].resize(ord);
+        u_gauss[ord][0] = -sqrt(3.0/5.0);
+        u_gauss[ord][1] =  0.0;
+        u_gauss[ord][2] = -u_gauss[ord][0];
+
+        w[ord].resize(ord);
+        w[ord][0] = 5.0 / 9.0;
+        w[ord][1] = 8.0 / 9.0;
+        w[ord][2] = 5.0 / 9.0;
+
+        ord = 4;
+        x[ord].resize(ord);
+        x[ord][0] = 0.204148582103227;
+        x[ord][1] = 0.482952704895632;
+        x[ord][2] = 0.761399262448138;
+        x[ord][3] = 0.951499450553003;
+
+        b[ord].resize(ord);
+        b[ord][0] = 0.010352240749918;
+        b[ord][1] = 0.068633887172923;
+        b[ord][2] = 0.143458789799214;
+        b[ord][3] = 0.110888415611278;
+
+        u_gauss[ord].resize(ord);
+        u_gauss[ord][0] = -0.861136311594053;
+        u_gauss[ord][1] = -0.339981043584856;
+        u_gauss[ord][2] = -u_gauss[ord][1];
+        u_gauss[ord][3] = -u_gauss[ord][0];
+
+        w[ord].resize(ord);
+        w[ord][0] = 0.347854845137454;
+        w[ord][1] = 0.652145154862546;
+        w[ord][2] = w[ord][1];
+        w[ord][3] = w[ord][0];
+
+        ord = 5;
+        x[ord].resize(ord);
+        x[ord][0] = 0.148945787052984;
+        x[ord][1] = 0.365666527369113;
+        x[ord][2] = 0.610113612934481;
+        x[ord][3] = 0.826519679228305;
+        x[ord][4] = 0.965421060081785;
+
+        b[ord].resize(ord);
+        b[ord][0] = 0.004113825203099;
+        b[ord][1] = 0.032055600722962;
+        b[ord][2] = 0.089200161221590;
+        b[ord][3] = 0.126198961899911;
+        b[ord][4] = 0.081764784285771;
+
+        u_gauss[ord].resize(ord);
+        u_gauss[ord][0] = -0.906179845938664;
+        u_gauss[ord][1] = -0.538469310105683;
+        u_gauss[ord][2] = 0.0;
+        u_gauss[ord][3] = -u_gauss[ord][1];
+        u_gauss[ord][4] = -u_gauss[ord][0];
+
+        w[ord].resize(ord);
+        w[ord][0] = 0.236926885056189;
+        w[ord][1] = 0.478628670499366;
+        w[ord][2] = 0.568888888888889;
+        w[ord][3] = w[ord][1];
+        w[ord][4] = w[ord][0];
+        
+        // We already have order 3 points from above so let's start at order 4.
+        orderCube = isoOrder*isoOrder*isoOrder;
+        pyraPoints.resize(orderCube * 4);
+
+        // std::cout << "Int points for order " << order << ":" << std::endl << std::endl;
+        for(UInt uz=0; uz < isoOrder; uz++) {
+          UInt idx_z = uz*isoOrder*isoOrder*4;
+          for(UInt gpy=0; gpy < isoOrder; gpy++) {
+            UInt idx_y = idx_z + gpy*isoOrder*4;
+            for(UInt gpx=0; gpx < isoOrder; gpx++) {
+              UInt idx_x = idx_y + gpx * 4;
+
+              pyraPoints[idx_x+0] = u_gauss[isoOrder][gpx] * x[isoOrder][uz];
+              pyraPoints[idx_x+1] = u_gauss[isoOrder][gpy] * x[isoOrder][uz];
+              pyraPoints[idx_x+2] = 1 - x[isoOrder][uz];
+              pyraPoints[idx_x+3] = w[isoOrder][gpx] * w[isoOrder][gpy] * b[isoOrder][uz];
+
+              // std::cout << pyraPoints[order][idx_x+0] <<", "<< pyraPoints[order][idx_x+1] <<", "<< pyraPoints[order][idx_x+2] <<", "<< pyraPoints[order][idx_x+3] <<", " << std::endl;
+            }
+          }
+        }
+        Convert(Elem::ST_PYRA, orderCube, (Double*) &pyraPoints[0], points, weights);
+        break;
+
+      default:
+        EXCEPTION( "Integration points of method " << IntegMethodEnum.ToString(method)
+                   << " only defined up to order 5 for 3D pyra elements" );
+        break;
+    } // switch
+  } else {
+    EXCEPTION( "Integration points of method " << IntegMethodEnum.ToString(method)
+               << " not defined for 3D pyra elements" );
+  } 
+}
+
+
+// ======================================================================
 void IntScheme::CalcGaussLobattoPointsWeights(UInt order,StdVector<Double>& points, StdVector<Double>& weights){
   // Computes the Legendre-Gauss-Lobatto nodes by the LGL Vandermonde
   // matrix. The LGL nodes are the zeros of (1-x^2)*P'_N(x).
@@ -385,7 +2191,7 @@ void IntScheme::CalcGaussLobattoPointsWeights(UInt order,StdVector<Double>& poin
   P.Resize(N1,N1);
 
   for ( i = 0; i < N1; i += 1 ){
-    x[i]=cos(M_PI * i/order);
+    x[i]=cos(4*atan(1.0) * i/order);
   }
   // Compute P_N using the recursion relation
   // Compute its first and second derivatives and
@@ -433,104 +2239,8 @@ void IntScheme::CalcGaussLobattoPointsWeights(UInt order,StdVector<Double>& poin
 }
 
 
-void IntScheme::DefineTriaPoints() {
-
-  // Values take from the old SetIntPoints() - order 1
-  static Double c1[][3] =
-  {
-   { 1.0/3.0,  1.0/3.0,  0.500000000000000 }
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_TRIA, 1, 1 , (Double*)c1);
-
-  // Values take from the old SetIntPoints() - order 2
-  static Double c2[][3] =
-  {
-   { 0.166666666666667,  0.166666666666667,  0.166666666666667 },
-   { 0.666666666666667,  0.166666666666667,  0.166666666666667 },
-   { 0.166666666666667,  0.666666666666667,  0.166666666666667 }
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_TRIA, 2, 3 , (Double*) c2);
-
-  // Values take from the old SetIntPoints() - order 3
-  // In the original code the weights were given twice with different values!
-  // -> they have to sum up to 0.5
-  static Double a3[][3] =
-  {
-   {0.333333333333333,  0.333333333333333,  -0.28125 },
-   {0.2,  0.2,  0.260416666666667 },
-   {0.2,  0.6,  0.260416666666667 },
-   {0.6,  0.2,  0.260416666666667 },
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_TRIA, 3, 4 , (Double*) a3);
-
-  // Values take from the old SetIntPoints() - order 4
-  // original comment: but the paper has other coordinates!? - Fabian
-  // http://www3.interscience.wiley.com/cgi-bin/abstract/110545966/ABSTRACT?CRETRY=1&SRETRY=0
-  // D. A. Dunavant: High Degree Efficient Symmetrical ...
-  // Int. J. Numer. Methods in Eng.  Vol 21  S. 1129-1148   1985
-  // (c) Kaskade
-
-  static Double c4[][3] =
-  {
-   {0.445948490915965,  0.445948490915965,  0.111690794839005 },
-   {0.445948490915965,  0.10810301816807,  0.111690794839005 },
-   {0.10810301816807,  0.445948490915965,  0.111690794839005 },
-   {0.091576213509771,  0.091576213509771,  0.054975871827661 },
-   {0.091576213509771,  0.816847572980459,  0.054975871827661 },
-   {0.816847572980459,  0.091576213509771,  0.054975871827661 },
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_TRIA, 4, 6 , (Double*) c4);
-
-  // Values take from the old SetIntPoints() - order 5
-  // original comment: but the paper has other coordinates!? - Fabian
-  // http://www3.interscience.wiley.com/cgi-bin/abstract/110545966/ABSTRACT?CRETRY=1&SRETRY=0
-  // D. A. Dunavant: High Degree Efficient Symmetrical ...
-  // Int. J. Numer. Methods in Eng.  Vol 21  S. 1129-1148   1985
-  // (c) Kaskade
-  static Double c5[][3] =
-  {
-   {0.333333333333333,  0.333333333333333,  0.1125 },
-   {0.470142064105115,  0.470142064105115,  0.066197076394253 },
-   {0.470142064105115,  0.05971587178977,  0.066197076394253 },
-   {0.05971587178977,  0.470142064105115,  0.066197076394253 },
-   {0.101286507323456,  0.101286507323456,  0.0629695902724135 },
-   {0.101286507323456,  0.797426985353087,  0.0629695902724135 },
-   {0.797426985353087,  0.101286507323456,  0.0629695902724135 },
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_TRIA, 5, 7 , (Double*) c5);
-
-  static Double c6[][3] =
-  {
-   {0.24928674517091,  0.24928674517091,  0.0583931378631895 },
-   {0.24928674517091,  0.501426509658179,  0.0583931378631895 },
-   {0.501426509658179,  0.24928674517091,  0.0583931378631895 },
-   {0.063089014491502,  0.063089014491502,  0.0254224531851035 },
-   {0.063089014491502,  0.873821971016996,  0.0254224531851035 },
-   {0.873821971016996,  0.063089014491502,  0.0254224531851035 },
-   {0.310352451033784,  0.636502499121399,  0.041425537809187 },
-   {0.636502499121399,  0.053145049844817,  0.041425537809187 },
-   {0.053145049844817,  0.310352451033784,  0.041425537809187 },
-   {0.310352451033784,  0.053145049844817,  0.041425537809187 },
-   {0.636502499121399,  0.310352451033784,  0.041425537809187 },
-   {0.053145049844817,  0.636502499121399,  0.041425537809187 },
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_TRIA, 6, 12 , (Double*) c6);
-
-  // Generate remaining integration points up to maximum order 20
-  // using Duffy transformation
-
-  for( UInt iOrder = 7; iOrder <= 30; ++iOrder ) {
-    StdVector<Double> weights;
-    StdVector<LocPoint> points;
-    CalcIntTria( GAUSS, iOrder, points, weights, true);
-    intPoints_[GAUSS][iOrder][Elem::ST_TRIA] = points;
-    intWeights_[GAUSS][iOrder][Elem::ST_TRIA] = weights;
-  }
-
-}
-
 void IntScheme::CalcIntTria( IntegMethod, UInt order,StdVector<LocPoint>& points,
-                             StdVector<Double>& weights, bool numberPoints ) {
+                             StdVector<Double>& weights ) {
   StdVector<Double> xPoints, xWeights;
   StdVector<Double> yPoints, yWeights;
   // Obtain Gauss Rule in x-direction
@@ -551,9 +2261,6 @@ void IntScheme::CalcIntTria( IntegMethod, UInt order,StdVector<LocPoint>& points
       lp.coord.Resize(2);
       lp.coord[0] = 0.25 * (1.0 + xPoints[iX]) * ( 1.0 - yPoints[iY]);
       lp.coord[1] = 0.5 *  (1.0 + yPoints[iY] );
-      if(numberPoints ) {
-        lp.number = numIntPts_[Elem::ST_TRIA]++;
-      }
       points[pos] = lp;
       weights[pos] = 1.0/8.0 * xWeights[iX] * yWeights[iY] * ( 1.0 - yPoints[iY]);
       pos++;
@@ -561,586 +2268,6 @@ void IntScheme::CalcIntTria( IntegMethod, UInt order,StdVector<LocPoint>& points
   }
 }
 
-void IntScheme::DefineWedgePoints(){
-  // Cartesian product rule applied on ECONOMICAL values as given by
-  // Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! p.250
-  static Double a1[][4] =
-  {
-   {0.333333333333333,  0.333333333333333,  0,  0.5 },
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_WEDGE, 1, 1 , (Double*) a1);
-
-  // This values come from the originial WedgeFE::SetIntPoints() Implementation and are NOT from
-  // the Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! No guarantee!! (Fabian)
-  static Double a2[][4] =
-  {
-   { 0.166666666666667,  0.166666666666667,  -0.57735026919, 0.166666666666667 },
-   { 0.666666666666667,  0.166666666666667,  -0.57735026919, 0.166666666666667 },
-   { 0.166666666666667,  0.666666666666667,  -0.57735026919, 0.166666666666667 },
-   { 0.166666666666667,  0.166666666666667,  0.57735026919, 0.166666666666667 },
-   { 0.666666666666667,  0.166666666666667,  0.57735026919, 0.166666666666667 },
-   { 0.166666666666667,  0.666666666666667,  0.57735026919, 0.166666666666667 },
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_WEDGE, 2, 6 , (Double*) a2);
-
-  // Cartesian product rule applied on ECONOMICAL values as given by
-  // Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! p.250
-  static Double a3[][4] =
-  {
-   {0.333333333333333,  0.333333333333333,  -0.577350269189626,  -0.28125 },
-   {0.2,  0.2,  -0.577350269189626,  0.260416666666667 },
-   {0.2,  0.6,  -0.577350269189626,  0.260416666666667 },
-   {0.6,  0.2,  -0.577350269189626,  0.260416666666667 },
-   {0.333333333333333,  0.333333333333333,  0.577350269189626,  -0.28125 },
-   {0.2,  0.2,  0.577350269189626,  0.260416666666667 },
-   {0.2,  0.6,  0.577350269189626,  0.260416666666667 },
-   {0.6,  0.2,  0.577350269189626,  0.260416666666667 },
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_WEDGE, 3, 8 , (Double*) a3);
-
-  // Cartesian product rule applied on ECONOMICAL values as given by
-  // Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! p.250
-  static Double a4[][4] =
-  {
-   {0.445948490915965,  0.445948490915965,  -0.774596669241483,  0.062050441577225 },
-   {0.445948490915965,  0.10810301816807,  -0.774596669241483,  0.062050441577225 },
-   {0.10810301816807,  0.445948490915965,  -0.774596669241483,  0.062050441577225 },
-   {0.091576213509771,  0.091576213509771,  -0.774596669241483,  0.0305421510153672 },
-   {0.091576213509771,  0.816847572980459,  -0.774596669241483,  0.0305421510153672 },
-   {0.816847572980459,  0.091576213509771,  -0.774596669241483,  0.0305421510153672 },
-   {0.445948490915965,  0.445948490915965,  0,  0.09928070652356 },
-   {0.445948490915965,  0.10810301816807,  0,  0.09928070652356 },
-   {0.10810301816807,  0.445948490915965,  0,  0.09928070652356 },
-   {0.091576213509771,  0.091576213509771,  0,  0.0488674416245876 },
-   {0.091576213509771,  0.816847572980459,  0,  0.0488674416245876 },
-   {0.816847572980459,  0.091576213509771,  0,  0.0488674416245876 },
-   {0.445948490915965,  0.445948490915965,  0.774596669241483,  0.062050441577225 },
-   {0.445948490915965,  0.10810301816807,  0.774596669241483,  0.062050441577225 },
-   {0.10810301816807,  0.445948490915965,  0.774596669241483,  0.062050441577225 },
-   {0.091576213509771,  0.091576213509771,  0.774596669241483,  0.0305421510153672 },
-   {0.091576213509771,  0.816847572980459,  0.774596669241483,  0.0305421510153672 },
-   {0.816847572980459,  0.091576213509771,  0.774596669241483,  0.0305421510153672 },
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_WEDGE, 4, 18 , (Double*) a4);
-
-  // Cartesian product rule applied on ECONOMICAL values as given by
-  // Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! p.250
-  static Double a5[][4] =
-  {
-   {0.333333333333333,  0.333333333333333,  -0.774596669241483,  0.0625 },
-   {0.470142064105115,  0.470142064105115,  -0.774596669241483,  0.0367761535523628 },
-   {0.470142064105115,  0.05971587178977,  -0.774596669241483,  0.0367761535523628 },
-   {0.05971587178977,  0.470142064105115,  -0.774596669241483,  0.0367761535523628 },
-   {0.101286507323456,  0.101286507323456,  -0.774596669241483,  0.0349831057068964 },
-   {0.101286507323456,  0.797426985353087,  -0.774596669241483,  0.0349831057068964 },
-   {0.797426985353087,  0.101286507323456,  -0.774596669241483,  0.0349831057068964 },
-   {0.333333333333333,  0.333333333333333,  0,  0.1 },
-   {0.470142064105115,  0.470142064105115,  0,  0.0588418456837804 },
-   {0.470142064105115,  0.05971587178977,  0,  0.0588418456837804 },
-   {0.05971587178977,  0.470142064105115,  0,  0.0588418456837804 },
-   {0.101286507323456,  0.101286507323456,  0,  0.0559729691310342 },
-   {0.101286507323456,  0.797426985353087,  0,  0.0559729691310342 },
-   {0.797426985353087,  0.101286507323456,  0,  0.0559729691310342 },
-   {0.333333333333333,  0.333333333333333,  0.774596669241483,  0.0625 },
-   {0.470142064105115,  0.470142064105115,  0.774596669241483,  0.0367761535523628 },
-   {0.470142064105115,  0.05971587178977,  0.774596669241483,  0.0367761535523628 },
-   {0.05971587178977,  0.470142064105115,  0.774596669241483,  0.0367761535523628 },
-   {0.101286507323456,  0.101286507323456,  0.774596669241483,  0.0349831057068964 },
-   {0.101286507323456,  0.797426985353087,  0.774596669241483,  0.0349831057068964 },
-   {0.797426985353087,  0.101286507323456,  0.774596669241483,  0.0349831057068964 },
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_WEDGE, 5, 21 , (Double*) a5);
-
-  // Cartesian product rule applied on ECONOMICAL values as given by
-  // Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! p.250
-  static Double a6[][4] =
-  {
-   {0.24928674517091,  0.24928674517091,  -0.861136311594053,  0.0203123359284898 },
-   {0.24928674517091,  0.501426509658179,  -0.861136311594053,  0.0203123359284898 },
-   {0.501426509658179,  0.24928674517091,  -0.861136311594053,  0.0203123359284898 },
-   {0.063089014491502,  0.063089014491502,  -0.861136311594053,  0.00884332351571835 },
-   {0.063089014491502,  0.873821971016996,  -0.861136311594053,  0.00884332351571835 },
-   {0.873821971016996,  0.063089014491502,  -0.861136311594053,  0.00884332351571835 },
-   {0.310352451033784,  0.636502499121399,  -0.861136311594053,  0.0144100740393505 },
-   {0.636502499121399,  0.053145049844817,  -0.861136311594053,  0.0144100740393505 },
-   {0.053145049844817,  0.310352451033784,  -0.861136311594053,  0.0144100740393505 },
-   {0.310352451033784,  0.053145049844817,  -0.861136311594053,  0.0144100740393505 },
-   {0.636502499121399,  0.310352451033784,  -0.861136311594053,  0.0144100740393505 },
-   {0.053145049844817,  0.636502499121399,  -0.861136311594053,  0.0144100740393505 },
-   {0.24928674517091,  0.24928674517091,  -0.339981043584856,  0.0380808019346997 },
-   {0.24928674517091,  0.501426509658179,  -0.339981043584856,  0.0380808019346997 },
-   {0.501426509658179,  0.24928674517091,  -0.339981043584856,  0.0380808019346997 },
-   {0.063089014491502,  0.063089014491502,  -0.339981043584856,  0.0165791296693851 },
-   {0.063089014491502,  0.873821971016996,  -0.339981043584856,  0.0165791296693851 },
-   {0.873821971016996,  0.063089014491502,  -0.339981043584856,  0.0165791296693851 },
-   {0.310352451033784,  0.636502499121399,  -0.339981043584856,  0.0270154637698365 },
-   {0.636502499121399,  0.053145049844817,  -0.339981043584856,  0.0270154637698365 },
-   {0.053145049844817,  0.310352451033784,  -0.339981043584856,  0.0270154637698365 },
-   {0.310352451033784,  0.053145049844817,  -0.339981043584856,  0.0270154637698365 },
-   {0.636502499121399,  0.310352451033784,  -0.339981043584856,  0.0270154637698365 },
-   {0.053145049844817,  0.636502499121399,  -0.339981043584856,  0.0270154637698365 },
-   {0.24928674517091,  0.24928674517091,  0.339981043584856,  0.0380808019346997 },
-   {0.24928674517091,  0.501426509658179,  0.339981043584856,  0.0380808019346997 },
-   {0.501426509658179,  0.24928674517091,  0.339981043584856,  0.0380808019346997 },
-   {0.063089014491502,  0.063089014491502,  0.339981043584856,  0.0165791296693851 },
-   {0.063089014491502,  0.873821971016996,  0.339981043584856,  0.0165791296693851 },
-   {0.873821971016996,  0.063089014491502,  0.339981043584856,  0.0165791296693851 },
-   {0.310352451033784,  0.636502499121399,  0.339981043584856,  0.0270154637698365 },
-   {0.636502499121399,  0.053145049844817,  0.339981043584856,  0.0270154637698365 },
-   {0.053145049844817,  0.310352451033784,  0.339981043584856,  0.0270154637698365 },
-   {0.310352451033784,  0.053145049844817,  0.339981043584856,  0.0270154637698365 },
-   {0.636502499121399,  0.310352451033784,  0.339981043584856,  0.0270154637698365 },
-   {0.053145049844817,  0.636502499121399,  0.339981043584856,  0.0270154637698365 },
-   {0.24928674517091,  0.24928674517091,  0.861136311594053,  0.0203123359284898 },
-   {0.24928674517091,  0.501426509658179,  0.861136311594053,  0.0203123359284898 },
-   {0.501426509658179,  0.24928674517091,  0.861136311594053,  0.0203123359284898 },
-   {0.063089014491502,  0.063089014491502,  0.861136311594053,  0.00884332351571835 },
-   {0.063089014491502,  0.873821971016996,  0.861136311594053,  0.00884332351571835 },
-   {0.873821971016996,  0.063089014491502,  0.861136311594053,  0.00884332351571835 },
-   {0.310352451033784,  0.636502499121399,  0.861136311594053,  0.0144100740393505 },
-   {0.636502499121399,  0.053145049844817,  0.861136311594053,  0.0144100740393505 },
-   {0.053145049844817,  0.310352451033784,  0.861136311594053,  0.0144100740393505 },
-   {0.310352451033784,  0.053145049844817,  0.861136311594053,  0.0144100740393505 },
-   {0.636502499121399,  0.310352451033784,  0.861136311594053,  0.0144100740393505 },
-   {0.053145049844817,  0.636502499121399,  0.861136311594053,  0.0144100740393505 },
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_WEDGE, 6, 48 , (Double*) a6);
-
-
-  // Generate remaining integration points up to maximum order 20
-  // using Duffy transformation
-
-  for( UInt iOrder = 7; iOrder <= 30; ++iOrder ) {
-    StdVector<Double> triaWeights, lineWeights, weights, linePoints;
-    StdVector<LocPoint> triaPoints, points;
-
-    // line points
-    CalcGaussLegendrePointsWeights( iOrder, linePoints, lineWeights );
-
-    // triangular points
-    CalcIntTria( GAUSS, iOrder, triaPoints, triaWeights, false);
-
-    UInt numPts = linePoints.GetSize() * triaPoints.GetSize();
-    points.Resize( numPts );
-    weights.Resize( numPts );
-    UInt pos = 0;
-    for( UInt i = 0; i < linePoints.GetSize(); ++i ) {
-      for( UInt j = 0; j < triaPoints.GetSize(); ++j ) {
-        LocPoint lp;
-        lp.coord.Resize(3);
-        lp.coord[0] = triaPoints[j].coord[0];
-        lp.coord[1] = triaPoints[j].coord[1];
-        lp.coord[2] = linePoints[i];
-        lp.number = numIntPts_[Elem::ST_WEDGE]++;
-        points[pos] = lp;
-        weights[pos] = lineWeights[i] * triaWeights[j];
-        pos++;
-      } // triangular points
-    } // line along zeta
-
-    intPoints_[GAUSS][iOrder][Elem::ST_WEDGE] = points;
-    intWeights_[GAUSS][iOrder][Elem::ST_WEDGE] = weights;
-    //      std::cerr << "\nWedge integration of order " << iOrder << "\n========================\n";
-    //      std::cerr << "\tpoints: " << points << std::endl;
-    //      std::cerr << "\tweights: " << weights << std::endl;
-  } // order
-
-}
-
-void IntScheme::DefineTetPoints(){
-  // The original values from the old SetIntPoints
-  // The division by 6 of the weights is included!
-  // Division through 6 is necessary to use the correct quadrature rule for tets
-  // this is necessary, because in traditional IntWeights tables, they sum up to 1
-  // and no volume is regarded! (see Hughes, p. 174)
-  //
-  // Thomas Hughes "The finite element method", p. 174
-  static Double c1[][4] = {
-    { 1./4,  1./4,  1./4,  1./6 }
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_TET, 1, 1, (Double*) c1);
-
-  // Thomas Hughes "The finite element method", p. 174
-  static Double c2[][4] = {
-    { 0.5854102,  0.1381966,  0.1381966,  .25/6 },
-    { 0.1381966,  0.5854102,  0.1381966,  .25/6 },
-    { 0.1381966,  0.1381966,  0.5854102,  .25/6 },
-    { 0.1381966,  0.1381966,  0.1381966,  .25/6 }
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_TET, 2, 4, (Double*) c2);
-
-  // Thomas Hughes "The finite element method", p. 174
-  static Double c3[][4] = {
-    { 0.25,  0.25,  0.25,  -0.8/6 },
-    { 0.5,  1./6,  1./6,  0.45/6 },
-    { 1./6,  0.5,  1./6,  0.45/6 },
-    { 1./6,  1./6,  0.5,  0.45/6 },  // in SetIntPoints() the 2. row was doubled here!
-    { 1./6,  1./6, 1./6,  0.45/6 },
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_TET, 3, 5, (Double*) c3);
-
-  // From: §17.7. *Gauss Integration Rules For Tetrahedra in
-  // The Quadratic Tetrahedron
-  // http://www.colorado.edu/engineering/CAS/courses.d/AFEM.d/AFEM.Ch17.d/AFEM.Ch17.pdf
-  static Double c4[][4] = {
-    {0.0927352503109,0.0927352503109,0.0927352503109,0.0122488405194},
-    {0.721794249067,0.0927352503109,0.0927352503109,0.0122488405194},
-    {0.0927352503109,0.721794249067,0.0927352503109,0.0122488405194},
-    {0.0927352503109,0.0927352503109,0.721794249067,0.0122488405194},
-    {0.310885919263,0.310885919263,0.310885919263,0.0187813209530},
-    {0.0673422422101,0.310885919263,0.310885919263,0.0187813209530},
-    {0.310885919263,0.0673422422101,0.310885919263,0.0187813209530},
-    {0.310885919263,0.310885919263,0.0673422422101,0.0187813209530},
-    {0.0455037041256,0.454496295874,0.454496295874,0.00709100346285},
-    {0.454496295874,0.0455037041256,0.454496295874,0.00709100346285},
-    {0.454496295874,0.454496295874,0.0455037041256,0.00709100346285},
-    {0.0455037041256,0.0455037041256,0.454496295874,0.00709100346285},
-    {0.0455037041256,0.454496295874,0.0455037041256,0.00709100346285},
-    {0.454496295874,0.0455037041256,0.0455037041256,0.00709100346285}
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_TET, 4, 14, (Double*) c4);
-
-  static Double c5[][4] = {
-    {0.0919710780527,0.0919710780527,0.0919710780527,0.0119895139632},
-    {0.724086765842,0.0919710780527,0.0919710780527,0.0119895139632},
-    {0.0919710780527,0.724086765842,0.0919710780527,0.0119895139632},
-    {0.0919710780527,0.0919710780527,0.724086765842,0.0119895139632},
-    {0.319793627830,0.319793627830,0.319793627830,0.0115113678710},
-    {0.0406191165111,0.319793627830,0.319793627830,0.0115113678710},
-    {0.319793627830,0.0406191165111,0.319793627830,0.0115113678710},
-    {0.319793627830,0.319793627830,0.0406191165111,0.0115113678710},
-    {0.443649167310,0.0563508326896,0.0563508326896,0.00881834215168},
-    {0.0563508326896,0.443649167310,0.0563508326896,0.00881834215168},
-    {0.0563508326896,0.0563508326896,0.443649167310,0.00881834215168},
-    {0.443649167310,0.443649167310,0.0563508326896,0.00881834215168},
-    {0.443649167310,0.0563508326896,0.443649167310,0.00881834215168},
-    {0.0563508326896,0.443649167310,0.443649167310,0.00881834215168},
-    {0.250000000000,0.250000000000,0.250000000000,0.0197530864198},
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_TET, 5, 15, (Double*) c5);
-
-  static Double c6[][4] = {
-    {0.214602871259,0.214602871259,0.214602871259,0.00665379170969},
-    {0.356191386223,0.214602871259,0.214602871259,0.00665379170969},
-    {0.214602871259,0.356191386223,0.214602871259,0.00665379170969},
-    {0.214602871259,0.214602871259,0.356191386223,0.00665379170969},
-    {0.0406739585346,0.0406739585346,0.0406739585346,0.00167953517589},
-    {0.877978124396,0.0406739585346,0.0406739585346,0.00167953517589},
-    {0.0406739585346,0.877978124396,0.0406739585346,0.00167953517589},
-    {0.0406739585346,0.0406739585346,0.877978124396,0.00167953517589},
-    {0.322337890142,0.322337890142,0.322337890142,0.00922619692394},
-    {0.0329863295732,0.322337890142,0.322337890142,0.00922619692394},
-    {0.322337890142,0.0329863295732,0.322337890142,0.00922619692394},
-    {0.322337890142,0.322337890142,0.0329863295732,0.00922619692394},
-    {0.269672331458,0.0636610018750,0.0636610018750,0.00803571428571},
-    {0.0636610018750,0.269672331458,0.0636610018750,0.00803571428571},
-    {0.0636610018750,0.0636610018750,0.269672331458,0.00803571428571},
-    {0.603005664792,0.269672331458,0.0636610018750,0.00803571428571},
-    {0.603005664792,0.0636610018750,0.269672331458,0.00803571428571},
-    {0.0636610018750,0.603005664792,0.269672331458,0.00803571428571},
-    {0.603005664792,0.0636610018750,0.0636610018750,0.00803571428571},
-    {0.0636610018750,0.603005664792,0.0636610018750,0.00803571428571},
-    {0.0636610018750,0.0636610018750,0.603005664792,0.00803571428571},
-    {0.269672331458,0.603005664792,0.0636610018750,0.00803571428571},
-    {0.269672331458,0.0636610018750,0.603005664792,0.00803571428571},
-    {0.0636610018750,0.269672331458,0.603005664792,0.00803571428571},
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_TET, 6, 24, (Double*) c6);
-
-  //    Evaluated using the following Mathematica code:
-  //
-  //	  TetrGaussRuleInfo[{rule_, numer_}, point_] :=
-  //	    Module[{jk6 = {{1, 2}, {1, 3}, {1, 4}, {2, 3}, {2, 4}, {3, 4}},
-  //	      jk12 = {{1, 2}, {1, 3}, {1, 4}, {2, 3}, {2, 4}, {3, 4}, {2,
-  //	         1}, {3, 1}, {4, 1}, {3, 2}, {4, 2}, {4, 3}}, i = point, j, k,
-  //	      g1, g2, g3, g4, h1, w1, w2, w3, eps = 10.^(-16),
-  //	      info = {{Null, Null, Null, Null}, 0}},
-  //	     If[rule == 1, info = {{1/4, 1/4, 1/4, 1/4}, 1}];
-  //	     If[rule == 4, g1 = (5 - Sqrt[5])/20; h1 = (5 + 3*Sqrt[5])/20;
-  //	      info = {{g1, g1, g1, g1}, 1/4}; info[[1, i]] = h1];
-  //	     If[rule == 8, j = i - 4;
-  //	      g1 = (55 - 3*Sqrt[17] + Sqrt[1022 - 134*Sqrt[17]])/196;
-  //	      g2 = (55 - 3*Sqrt[17] - Sqrt[1022 - 134*Sqrt[17]])/196;
-  //	      w1 = 1/8 + Sqrt[(1715161837 - 406006699*Sqrt[17])/23101]/3120;
-  //	      w2 = 1/8 - Sqrt[(1715161837 - 406006699*Sqrt[17])/23101]/3120;
-  //	      If[j <= 0, info = {{g1, g1, g1, g1}, w1}; info[[1, i]] = 1 - 3*g1];
-  //	      If[j > 0, info = {{g2, g2, g2, g2}, w2}; info[[1, j]] = 1 - 3*g2]];
-  //	     If[rule == -8, j = i - 4;
-  //	      If[j <= 0, info = {{0, 0, 0, 0}, 1/40}; info[[1, i]] = 1];
-  //	      If[j > 0, info = {{1, 1, 1, 1}/3, 9/40}; info[[1, j]] = 0]];
-  //	     If[rule == 14,(*g1,g2+roots of P (g)=0,P=9+96*g-1712*g^2-30464*
-  //	      g^3-127232*g^4+86016*g^5+1060864*g^6*)
-  //	      g1 = 0.09273525031089122640232391373703060;
-  //	      g2 = 0.31088591926330060979734573376345783;
-  //	      g3 = 0.45449629587435035050811947372066056;
-  //	      If[! numer, {g1, g2, g3} = Rationalize[{g1, g2, g3}, eps]];
-  //	      w1 = (-1 + 6*g2*(2 + g2*(-7 + 8*g2)) + 14*g3 -
-  //	          60*g2*(3 + 4*g2*(-3 + 4*g2))*g3 +
-  //	          4*(-7 + 30*g2*(3 + 4*g2*(-3 + 4*g2)))*
-  //	           g3^2)/(120*(g1 - g2)*(g2*(-3 + 8*g2) + 6*g3 +
-  //	            8*g2*(-3 + 4*g2)*g3 - 4*(3 + 4*g2*(-3 + 4*g2))*g3^2 +
-  //	            8*g1^2*(1 + 12*g2*(-1 + 2*g2) + 4*g3 - 8*g3^2) +
-  //	            g1*(-3 - 96*g2^2 + 24*g3*(-1 + 2*g3) +
-  //	               g2*(44 + 32*(1 - 2*g3)*g3))));
-  //	      w2 = (-1 - 20*(1 + 12*g1*(2*g1 - 1))*w1 +
-  //	          20*g3*(2*g3 - 1)*(4*w1 - 1))/(20*(1 + 12*g2*(2*g2 - 1) +
-  //	            4*g3 - 8*g3^2));
-  //	      If[i < 5, info = {{g1, g1, g1, g1}, w1};
-  //	       info[[1, i]] = 1 - 3*g1];
-  //	      If[i > 4 && i < 9, info = {{g2, g2, g2, g2}, w2};
-  //	       info[[1, i - 4]] = 1 - 3*g2];
-  //	      If[i > 8, info = {{g3, g3, g3, g3}, 1/6 - 2*(w1 + w2)/3};
-  //	       {j, k} = jk6[[i - 8]]; info[[1, j]] = info[[1, k]] = 1/2 - g3]];
-  //	     If[rule == -14,
-  //	      g1 = (243 - 51*Sqrt[11] + 2*Sqrt[16486 - 9723*Sqrt[11]/2])/356;
-  //	      g2 = (243 - 51*Sqrt[11] - 2*Sqrt[16486 - 9723*Sqrt[11]/2])/356;
-  //	      w1 = 31/280 + Sqrt[(13686301 - 3809646*Sqrt[11])/5965]/600;
-  //	      w2 = 31/280 - Sqrt[(13686301 - 3809646*Sqrt[11])/5965]/600;
-  //	      If[i < 5, info = {{g1, g1, g1, g1}, w1};
-  //	       info[[1, i]] = 1 - 3*g1];
-  //	      If[i > 4 && i < 9, info = {{g2, g2, g2, g2}, w2};
-  //	       info[[1, i - 4]] = 1 - 3*g2];
-  //	      If[i > 8 && i < 15, info = {{0, 0, 0, 0}, 2/105};
-  //	       {j, k} = jk6[[i - 8]]; info[[1, j]] = info[[1, k]] = 1/2]];
-  //	     If[rule == 15, g1 = (7 - Sqrt[15])/34; g2 = 7/17 - g1;
-  //	      g3 = (10 - 2*Sqrt[15])/40;
-  //	      w1 = (2665 + 14*Sqrt[15])/37800; w2 = (2665 - 14*Sqrt[15])/37800;
-  //	      If[i < 5, info = {{g1, g1, g1, g1}, w1};
-  //	       info[[1, i]] = 1 - 3*g1];
-  //	      If[i > 4 && i < 9, info = {{g2, g2, g2, g2}, w2};
-  //	       info[[1, i - 4]] = 1 - 3*g2];
-  //	      If[i > 8 && i < 15, info = {{g3, g3, g3, g3}, 10/189};
-  //	       {j, k} = jk6[[i - 8]]; info[[1, j]] = info[[1, k]] = 1/2 - g3];
-  //	      If[i == 15, info = {{1/4, 1/4, 1/4, 1/4}, 16/135}]];
-  //
-  //	     If[rule == -15, g1 = (13 - Sqrt[91])/52;
-  //	      If[i < 5, info = {{1, 1, 1, 1}/3, 81/2240}; info[[1, i]] = 0];
-  //	      If[i > 4 && i < 9, info = {{1, 1, 1, 1}/11, 161051/2304960};
-  //	       info[[1, i - 4]] = 8/11];
-  //	      If[i > 8 && i < 15, info = {{g1, g1, g1, g1}, 338/5145};
-  //	       {j, k} = jk6[[i - 8]]; info[[1, j]] = info[[1, k]] = 1/2 - g1];
-  //	      If[i == 15, info = {{1/4, 1/4, 1/4, 1/4}, 6544/36015}]];
-  //
-  //	     If[rule == 24, g1 = 0.214602871259152029288839219386284991;
-  //	      g2 = 0.040673958534611353115579448956410059;
-  //	      g3 = 0.322337890142275510343994470762492125;
-  //	      If[! numer, {g1, g2, g3} = Rationalize[{g1, g2, g3}, eps]];
-  //	      w1 = (85 + 2*g2*(-319 + 9*Sqrt[5] + 624*g2) - 638*g3 -
-  //	          24*g2*(-229 + 472*g2)*g3 +
-  //	          96*(13 + 118*g2*(-1 + 2*g2))*g3^2 +
-  //	          9*Sqrt[5]*(-1 + 2*g3))/(13440*(g1 - g2)*(g1 - g3)*(3 - 8*g2 +
-  //	            8*g1*(-1 + 2*g2) - 8*g3 + 16*(g1 + g2)*g3));
-  //	      w2 = -(85 + 2*g1*(-319 + 9*Sqrt[5] + 624*g1) - 638*g3 -
-  //	           24*g1*(-229 + 472*g1)*g3 +
-  //	           96*(13 + 118*g1*(-1 + 2*g1))*g3^2 +
-  //	           9*Sqrt[5]*(-1 + 2*g3))/(13440*(g1 - g2)*(g2 - g3)*(3 -
-  //	            8*g2 + 8*g1*(-1 + 2*g2) - 8*g3 + 16*(g1 + g2)*g3));
-  //	      w3 = (85 + 2*g1*(-319 + 9*Sqrt[5] + 624*g1) - 638*g2 -
-  //	          24*g1*(-229 + 472*g1)*g2 +
-  //	          96*(13 + 118*g1*(-1 + 2*g1))*g2^2 +
-  //	          9*Sqrt[5]*(-1 + 2*g2))/(13440*(g1 - g3)*(g2 - g3)*(3 - 8*g2 +
-  //	            8*g1*(-1 + 2*g2) - 8*g3 + 16*(g1 + g2)*g3));
-  //	      g4 = (3 - Sqrt[5])/12; h4 = (5 + Sqrt[5])/12;
-  //	      p4 = (1 + Sqrt[5])/12;
-  //	      If[i < 5, info = {{g1, g1, g1, g1}, w1};
-  //	       info[[1, i]] = 1 - 3*g1];
-  //	      If[i > 4 && i < 9, info = {{g2, g2, g2, g2}, w2};
-  //	       info[[1, i - 4]] = 1 - 3*g2];
-  //	      If[i > 8 && i < 13, info = {{g3, g3, g3, g3}, w3};
-  //	       info[[1, i - 8]] = 1 - 3*g3];
-  //	      If[i > 12, info = {{g4, g4, g4, g4}, 27/560};
-  //	       {j, k} = jk12[[i - 12]]; info[[1, j]] = h4; info[[1, k]] = p4]];
-  //
-  //	     If[numer, Return[N[info]], Return[Simplify[info]]];
-  //
-  //	     ];
-  //	  Do[out = TetrGaussRuleInfo[{15, False}, i];
-  //	   Print[{N[out[[1]].{0, 1, 0, 0}, 12], N[out[[1]].{0, 0, 1, 0}, 12],
-  //	     N[out[[1]].{0, 0, 0, 1}, 12], N[out[[2]]/6, 12]}], {i, 15}]
-}
-
-void IntScheme::DefinePyraPoints(){
-
-  // Numerical Integration over Pyramids
-  // Chuan Miao Chen, Michal K·r¶³·zek, Liping Liu
-  // http://www.bcamath.org/documentos_public/archivos/actividades_cientificas/TalkBCAMMinisymposiumonComputationalMathematics20110201MK.pdf
-
-  static Double c2[][4] = {
-                           {0.0,  0.0,  0.25,  4.0/3.0},
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_PYRA, 1, 1, (Double*) c2);
-
-  Double z1 = (35 - 2 * sqrt(35)) / 140;
-  Double z0 = (25 - (84 * z1) ) / 16;
-  Double fac1 = sqrt(5.0 / 21.0);
-  Double w = 7.0 / 25.0;
-  static Double c3[][4] = {
-                           {  0.0,    0.0,  z0,  16.0/75.0},
-                           {-fac1,  -fac1,  z1,  w},
-                           { fac1,  -fac1,  z1,  w},
-                           { fac1,   fac1,  z1,  w},
-                           {-fac1,   fac1,  z1,  w}
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_PYRA, 2, 5, (Double*) c3);
-
-  fac1 = sqrt(4.0 / 27.0);
-  z0 = 1.0 / 6.0;
-  z1 = 1.0 / 4.0;
-
-  w = 9.0 / 20.0;
-  static Double c4[][4] = {
-                           {  0.0,    0.0,  0.5,  3.0/5.0},
-                           {-fac1,  -fac1,  z0,  w},
-                           { fac1,  -fac1,  z0,  w},
-                           { fac1,   fac1,  z0,  w},
-                           {-fac1,   fac1,  z0,  w},
-                           {  0.0,    0.0,  z1,  -16.0/15.0},
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_PYRA, 3, 6, (Double*) c4);
-
-  //"Pyramidal Elements"
-  // F. Zgainski, J.L. Coulomb, Y. Marechal. IEEE Transactions on Magnetics,
-  // Vol. 32, No. 3, May 1996
-#if 0
-  // Old 2nd order points from trunk
-  static Double c3[][4] = {
-    {-0.263184055569884, -0.263184055569884, 0.544151844011225, 0.100785882079825},
-    { 0.263184055569884, -0.263184055569884, 0.544151844011225, 0.100785882079825},
-    {-0.263184055569884,  0.263184055569884, 0.544151844011225, 0.100785882079825},
-    { 0.263184055569884,  0.263184055569884, 0.544151844011225, 0.100785882079825},
-    {-0.506616303350116, -0.506616303350116, 0.122514822655441, 0.232547451253508},
-    { 0.506616303350116, -0.506616303350116, 0.122514822655441, 0.232547451253508},
-    {-0.506616303350116,  0.506616303350116, 0.122514822655441, 0.232547451253508},
-    { 0.506616303350116,  0.506616303350116, 0.122514822655441, 0.232547451253508},
-  };
-  AddIntegrationSet(GAUSS, Elem::ST_PYRA, 2, 8, (Double*) c3);
-#endif
-  std::map<UInt, std::vector<Double> > x, b, u_gauss, weights;
-  UInt order = 2;
-  x[order].resize(order);
-  x[order][0] = 0.455848155988775;
-  x[order][1] = 0.877485177344559;
-
-  b[order].resize(order);
-  b[order][0] = 0.100785882079825;
-  b[order][1] = 0.232547451253508;
-
-  u_gauss[order].resize(order);
-  u_gauss[order][0] = -sqrt(1.0/3.0);
-  u_gauss[order][1] = -u_gauss[order][0];
-
-  weights[order].resize(order);
-  weights[order][0] = 1.0;
-  weights[order][1] = 1.0;
-
-  order = 3;
-  x[order].resize(order);
-  x[order][0] = 0.294997790111502;
-  x[order][1] = 0.652996233961648;
-  x[order][2] = 0.927005975926850;
-
-  b[order].resize(order);
-  b[order][0] = 0.029950703008581;
-  b[order][1] = 0.146246269259866;
-  b[order][2] = 0.157136361064887;
-
-  u_gauss[order].resize(order);
-  u_gauss[order][0] = -sqrt(3.0/5.0);
-  u_gauss[order][1] =  0.0;
-  u_gauss[order][2] = -u_gauss[order][0];
-
-  weights[order].resize(order);
-  weights[order][0] = 5.0 / 9.0;
-  weights[order][1] = 8.0 / 9.0;
-  weights[order][2] = 5.0 / 9.0;
-
-  order = 4;
-  x[order].resize(order);
-  x[order][0] = 0.204148582103227;
-  x[order][1] = 0.482952704895632;
-  x[order][2] = 0.761399262448138;
-  x[order][3] = 0.951499450553003;
-
-  b[order].resize(order);
-  b[order][0] = 0.010352240749918;
-  b[order][1] = 0.068633887172923;
-  b[order][2] = 0.143458789799214;
-  b[order][3] = 0.110888415611278;
-
-  u_gauss[order].resize(order);
-  u_gauss[order][0] = -0.861136311594053;
-  u_gauss[order][1] = -0.339981043584856;
-  u_gauss[order][2] = -u_gauss[order][1];
-  u_gauss[order][3] = -u_gauss[order][0];
-
-  weights[order].resize(order);
-  weights[order][0] = 0.347854845137454;
-  weights[order][1] = 0.652145154862546;
-  weights[order][2] = weights[order][1];
-  weights[order][3] = weights[order][0];
-
-  order = 5;
-  x[order].resize(order);
-  x[order][0] = 0.148945787052984;
-  x[order][1] = 0.365666527369113;
-  x[order][2] = 0.610113612934481;
-  x[order][3] = 0.826519679228305;
-  x[order][4] = 0.965421060081785;
-
-  b[order].resize(order);
-  b[order][0] = 0.004113825203099;
-  b[order][1] = 0.032055600722962;
-  b[order][2] = 0.089200161221590;
-  b[order][3] = 0.126198961899911;
-  b[order][4] = 0.081764784285771;
-
-  u_gauss[order].resize(order);
-  u_gauss[order][0] = -0.906179845938664;
-  u_gauss[order][1] = -0.538469310105683;
-  u_gauss[order][2] = 0.0;
-  u_gauss[order][3] = -u_gauss[order][1];
-  u_gauss[order][4] = -u_gauss[order][0];
-
-  weights[order].resize(order);
-  weights[order][0] = 0.236926885056189;
-  weights[order][1] = 0.478628670499366;
-  weights[order][2] = 0.568888888888889;
-  weights[order][3] = weights[order][1];
-  weights[order][4] = weights[order][0];
-
-  static std::map<UInt, std::vector<Double> > pyraPoints;
-
-  // We already have order 3 points from above so let's start at order 4.
-  for(order=4; order <=5; order++) {
-    UInt orderCube = order*order*order;
-    pyraPoints[order].resize(orderCube * 4);
-
-    // std::cout << "Int points for order " << order << ":" << std::endl << std::endl;
-    for(UInt uz=0; uz < order; uz++) {
-      UInt idx_z = uz*order*order*4;
-      for(UInt gpy=0; gpy < order; gpy++) {
-        UInt idx_y = idx_z + gpy*order*4;
-        for(UInt gpx=0; gpx < order; gpx++) {
-          UInt idx_x = idx_y + gpx * 4;
-
-          pyraPoints[order][idx_x+0] = u_gauss[order][gpx] * x[order][uz];
-          pyraPoints[order][idx_x+1] = u_gauss[order][gpy] * x[order][uz];
-          pyraPoints[order][idx_x+2] = 1 - x[order][uz];
-          pyraPoints[order][idx_x+3] = weights[order][gpx] * weights[order][gpy] * b[order][uz];
-
-          // std::cout << pyraPoints[order][idx_x+0] <<", "<< pyraPoints[order][idx_x+1] <<", "<< pyraPoints[order][idx_x+2] <<", "<< pyraPoints[order][idx_x+3] <<", " << std::endl;
-        }
-      }
-    }
-
-    AddIntegrationSet(GAUSS, Elem::ST_PYRA, order, orderCube, (Double*) &pyraPoints[order][0]);
-    if(order == 5) {
-      // I did not find 6th order points, so just let's use the 5th order ones
-      WARN("Abusing 5th order pyramid integration points for 6th order.");
-      AddIntegrationSet(GAUSS, Elem::ST_PYRA, 6, orderCube, (Double*) &pyraPoints[order][0]);
-    }
-  }
-}
 
 void IntScheme::GetAllIntegrationPoints(StdVector< LocPoint >& points,
                                         Elem::ShapeType type){
@@ -1892,11 +3019,9 @@ void gauss_legendre_tbl(int n, double* x, double* w, double eps)
 static EnumTuple integMethodTypeTuples[] = {
   EnumTuple(IntScheme::UNDEFINED, "Undefined"),
   EnumTuple(IntScheme::GAUSS, "Gauss"),
-  EnumTuple(IntScheme::GAUSS_CART, "GaussCart"),
   EnumTuple(IntScheme::GAUSS_ECO, "GaussEco"),
   EnumTuple(IntScheme::LOBATTO, "Lobatto"),
   EnumTuple(IntScheme::CHEBYSHEV, "Chebyshev" ),
-  EnumTuple(IntScheme::SPECIAL, "Special")
 };
 Enum<IntScheme::IntegMethod>
 IntScheme::IntegMethodEnum =

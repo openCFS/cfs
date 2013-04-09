@@ -328,7 +328,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
       // ============================
       //   Pardiso Preconditioner
       // ============================
-    case BasePrecond::PARDISO:
+    case BasePrecond::PARDISO_PRECOND:
 #ifdef USE_PARDISO
       // Check suitability of matrix
       if ( mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
@@ -558,6 +558,13 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
     std::set<BaseMatrix::StorageType> ret;
     switch(pt) {
       
+      case BasePrecond::ID:
+        ret.insert(BaseMatrix::SPARSE_SYM);
+        ret.insert(BaseMatrix::SPARSE_NONSYM);
+        ret.insert(BaseMatrix::DIAG);
+        ret.insert(BaseMatrix::VAR_BLOCK_ROW);
+        break;
+        
       case BasePrecond::MG:
         ret.insert(BaseMatrix::SPARSE_SYM);
         break;
@@ -599,7 +606,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
         break;
             
         // Solver Based preconditioners
-      case BasePrecond::PARDISO :
+      case BasePrecond::PARDISO_PRECOND :
         ret.insert(BaseMatrix::SPARSE_SYM);
         ret.insert(BaseMatrix::SPARSE_NONSYM);
         break;

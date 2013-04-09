@@ -1,0 +1,4 @@
+EXECUTE_PROCESS(
+  COMMAND patch -p0 -i "@ParaViewSuperBuild_CMAKE_SOURCE_DIR@/libstdcpp3.patch"
+  WORKING_DIRECTORY "@boost_source@"
+  )

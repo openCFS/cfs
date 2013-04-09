@@ -1,0 +1,21 @@
+--- CMakeLists.txt.orig	2013-01-20 20:39:26.000000000 +0100
++++ CMakeLists.txt	2013-01-20 20:39:43.000000000 +0100
+@@ -1,6 +1,18 @@
+ cmake_minimum_required(VERSION 2.8)
+ project(SuiteSparse-3.7.0 Fortran C)
+ 
++#-----------------------------------------------------------------------------
++# Include all the necessary files for macros
++#-----------------------------------------------------------------------------
++INCLUDE (${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
++
++CHECK_INCLUDE_FILE ("sys/resource.h"   HAVE_SYS_RESOURCE_H)
++CHECK_INCLUDE_FILE ("sys/time.h"    HAVE_SYS_TIME_H)
++
++IF(HAVE_SYS_TIME_H AND HAVE_SYS_RESOURCE_H)
++  ADD_DEFINITIONS(-DNPOSIX=1 -DGETRUSAGE=1)
++ENDIF()
++
+ IF(NOT CMAKE_CROSSCOMPILING AND NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "OPEN64")
+   # Create a header file blas_lapack.h with the correct mangling
+   # for the Fortran routines called in my C programs.

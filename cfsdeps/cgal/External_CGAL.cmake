@@ -12,22 +12,48 @@ ELSE(CMAKE_BUILD_TYPE STREQUAL "debug")
   SET(CMAKE_BUILD_TYPE "Release")
 ENDIF(CMAKE_BUILD_TYPE STREQUAL "debug")
 
+# Make sure that static Boost libs are used under Windows.
+SET(CGAL_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -DBOOST_THREAD_USE_LIB")
+
+IF(CFS_CXX_COMPILER_NAME STREQUAL "OPEN64")
+  SET(CGAL_CXX_FLAGS "${CGAL_CXX_FLAGS} -mieee-fp -fp-accuracy=strict -DCGAL_DISABLE_ROUNDING_MATH_CHECK")
+ENDIF()
+
+SET(CMAKE_ARGS
+  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_INSTALL_PREFIX:PATH=${cgal_install}
+  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
+  -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
+  -DCMAKE_CXX_FLAGS:STRING=${CGAL_CXX_FLAGS}
+  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
+)
+
+IF(CMAKE_TOOLCHAIN_FILE)
+  LIST(APPEND CMAKE_ARGS
+    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
+  )
+ENDIF()
+
+IF(MINGW)
+  IF(CFS_ARCH STREQUAL "X86_64")
+    LIST(APPEND CMAKE_ARGS
+      -C ${CMAKE_CURRENT_SOURCE_DIR}/cfsdeps/cgal/TryRunResults_GCC45_CENTOS6_WIN64.cmake
+      )
+  ENDIF()
+ENDIF(MINGW)
+
 #-------------------------------------------------------------------------------
 # The CGAL external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cgal
-  DEPENDS boost zlib-static gmp mpfr
+  DEPENDS boost zlib gmp mpfr
   PREFIX "${cgal_prefix}"
   DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/cgal
   URL ${CGAL_URL}/${CGAL_GZ}
   URL_MD5 ${CGAL_MD5}
   CMAKE_ARGS
-    -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-    -DCMAKE_INSTALL_PREFIX:PATH=${cgal_install}
-    -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-    -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-    -DCMAKE_CXX_FLAGS:STRING=${CFLAGS}
-    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+    ${CMAKE_ARGS}
     -DCGAL_INSTALL_BIN_DIR:PATH=bin/${CFS_ARCH_STR}
     -DCGAL_INSTALL_CMAKE_DIR:PATH=${LIB_SUFFIX}/${CFS_ARCH_STR}/CGAL
     -DCGAL_INSTALL_LIB_DIR:PATH=${LIB_SUFFIX}/${CFS_ARCH_STR}
@@ -49,6 +75,7 @@ ExternalProject_Add(cgal
     -DMPFR_INCLUDE_DIR:PATH=${MPFR_INCLUDE_DIR}
     -DMPFR_LIBRARIES:FILEPATH=${MPFR_LIBRARY}
 )
+
 
 #-------------------------------------------------------------------------------
 # Set names of patch file and template file.

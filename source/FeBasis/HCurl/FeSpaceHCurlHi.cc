@@ -245,7 +245,7 @@ namespace CoupledField{
   void FeSpaceHCurlHi::SetDefaultIntegration(PtrParamNode infoNode ){
     regionIntegration_[ALL_REGIONS].method = IntScheme::GAUSS;
     regionIntegration_[ALL_REGIONS].order.SetIsoOrder( 0 );
-    regionIntegration_[ALL_REGIONS].mode = RELATIVE;
+    regionIntegration_[ALL_REGIONS].mode = INTEG_MODE_RELATIVE;
   }
 
   //! Map equations i.e. intialize object

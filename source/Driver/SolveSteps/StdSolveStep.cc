@@ -35,6 +35,7 @@ namespace CoupledField {
     solStrat_     = algsys_->GetSolStrategy();
 
     results_      = PDE_.GetResultInfos();
+    couplingIter_ = 0;
 
     // copy FE functions of PDE
     feFunctions_ = PDE_.GetFeFunctions();
@@ -93,8 +94,8 @@ namespace CoupledField {
     
     //logFile_.open("nonlin.txt");
 
-    mHandle_ = domain->GetMathParser()->GetNewHandle();
-    mParser_ = domain->GetMathParser();
+    mHandle_ = PDE_.GetDomain()->GetMathParser()->GetNewHandle();
+    mParser_ = PDE_.GetDomain()->GetMathParser();
     mParser_->SetExpr(mHandle_,"step");
   }
 
@@ -121,11 +122,6 @@ namespace CoupledField {
 
   void StdSolveStep::PostStepStatic() {
 
-    // increment coupling counter
-    if ( PDE_.IsIterCoupled() ) {
-      UInt& counter = PDE_.GetIterCoupledCounter();
-      counter++;
-    }
   }
 
 
@@ -192,13 +188,9 @@ namespace CoupledField {
     UInt numLevels = solStrat_->GetNumSolSteps();
     for( UInt iLevel = 0; iLevel < numLevels; ++iLevel ) {
 
-      std::cerr << "=========================================================\n";
-      std::cerr << " Multistep Level:    " << iLevel+1 << std::endl;
-      std::cerr << "=========================================================\n";
-
       // create new timer object and put it to related info element
       shared_ptr<Timer> timer(new Timer());
-      PtrParamNode iter = info->Get("PDE")->Get(pdename_)->Get("nonlinearConvergence");
+      PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
       iter->GetByVal("solStep","value",iLevel+1,ParamNode::INSERT)
           ->Get("timer")->SetValue(timer);
       timer->Start();
@@ -218,7 +210,8 @@ namespace CoupledField {
 
       //perform the load-steps
       Double loadFactor = 1.0;
-      info->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
+      PDE_.GetInfoNode()->Get("PDE")->Get(pdename_)->
+          Get("load_factor")->SetValue(loadFactor);
 
       // setup right hand side
       Double RhsLinL2Norm = SetLinRHS(loadFactor);
@@ -399,7 +392,12 @@ namespace CoupledField {
     std::map<FEMatrixType,Integer>::iterator matIt;
 
     bool effectiveMatrixUpdated = false;
-
+    
+    bool updatePredictor = ( PDE_.IsIterCoupled() == false || couplingIter_ == 0 ); 
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+      fncIt->second->GetTimeScheme()->BeginStep(updatePredictor);
+    }
+    
     for(UInt i=0;i<numStages;i++){
       effectiveMatrixUpdated = false;
       rhsVec_.Init();
@@ -423,6 +421,10 @@ namespace CoupledField {
       
       assemble_->AssembleMatrices();
       if(assemble_->IsMatrixUpdated()){
+
+        // set system matrix to zero initially, as ConstructEffectiveMatrix only
+        // sums up the contributions
+        algsys_->InitMatrix(SYSTEM);
         matrix_factor_.clear();
         for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
           FeFctIdType fctId = fncIt->second->GetFctId();
@@ -437,10 +439,12 @@ namespace CoupledField {
       for(matIt = matrices.begin();matIt != matrices.end();matIt++){
         if(matIt->second < 0)
           continue;
-        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt ){
-          FeFctIdType fctId = fncIt->second->GetFctId();
-          fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(fctId));
-        }
+        
+      
+          for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt ){
+            FeFctIdType fctId = fncIt->second->GetFctId();
+            fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(fctId));
+          }
         algsys_->UpdateRHS(matIt->first,stageRHS_,effectiveMatrixUpdated);
       }
 
@@ -459,8 +463,9 @@ namespace CoupledField {
     }
 
     //update stage
+    
     for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end(); ++fncIt){
-      fncIt->second->GetTimeScheme()->FinishStep();
+      fncIt->second->GetTimeScheme()->FinishStep(  );
     }
 
   }
@@ -484,6 +489,11 @@ namespace CoupledField {
     std::map<FEMatrixType,Integer>::iterator matIt;
 
     UInt pos = 0;
+    
+    bool updatePredictor = ( PDE_.IsIterCoupled() == false || couplingIter_ == 0 ); 
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+      fncIt->second->GetTimeScheme()->BeginStep(updatePredictor);
+    }
 
     for(UInt i=0;i<numStages;i++){
       //do initialization 
@@ -529,6 +539,10 @@ namespace CoupledField {
         // do matrices
         assemble_->AssembleMatrices();
         matrix_factor_.clear();
+        
+        // set system matrix to zero initially, as ConstructEffectiveMatrix only
+        // sums up the contributions
+        algsys_->InitMatrix(SYSTEM);
         for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
           FeFctIdType fctId = fncIt->second->GetFctId();
           fncIt->second->GetTimeScheme()
@@ -1426,7 +1440,8 @@ namespace CoupledField {
                                               const Double residualErr, 
                                               const Double incrementalErr, double etaLineSearch)
   {
-    PtrParamNode iter = info->Get("PDE")->Get(pdeName)->Get("nonlinearConvergence");
+    
+    PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
     iter = iter->GetByVal("solStep","value",solStep,ParamNode::INSERT)
         ->Get("iteration",ParamNode::APPEND);
     iter->Get("nr")->SetValue(iterationCounter);

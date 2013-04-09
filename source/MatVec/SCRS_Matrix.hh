@@ -522,7 +522,7 @@ namespace CoupledField {
     //! For details of the specification see http://math.nist.gov/MatrixMarket
     //! \param fname name of output file
     //! \param comment string to be inserted into file header
-    void Export( const char *fname, const char *comment = NULL ) const;
+    void ExportMatrixMarket( const char *fname, const char *comment = NULL ) const;
 
     //! Copy the matrix into full-storage format 
 

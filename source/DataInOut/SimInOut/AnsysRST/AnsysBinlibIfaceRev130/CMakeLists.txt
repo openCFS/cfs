@@ -11,14 +11,23 @@ ADD_EXECUTABLE(ResWrHeadTestCC130
   ../ResWrHeadTest.cc
   ../ResWrTest.F
   ../ResWr.F)
-TARGET_LINK_LIBRARIES(ResWrHeadTestCC130
+
+SET(TARGET_LL
   ${ANSYS_V130_LIBBIN}
   ${CFS_FORTRAN_DYNRT_LIBS}
-  -ldl
   ${BOOST_FILESYSTEM_LIB}
-  ${BOOST_SYSTEM_LIB}
-  -lpthread
+  ${BOOST_SYSTEM_LIB}  
   )
+
+IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  LIST(APPEND TARGET_LL
+    -ldl
+    -lpthread
+    )
+ENDIF()
+
+TARGET_LINK_LIBRARIES(ResWrHeadTestCC130 ${TARGET_LL})
+
 SET_TARGET_PROPERTIES(ResWrHeadTestCC130 PROPERTIES LINKER_LANGUAGE CXX 
                                                     LINK_FLAGS -Wl,--allow-shlib-undefined)
 
@@ -31,14 +40,8 @@ SET_TARGET_PROPERTIES(ResWrHeadTestCC130 PROPERTIES LINKER_LANGUAGE CXX
 ADD_EXECUTABLE(ResRdDemo130
   ../ResRdDemo.F
   ../ResRd.F)
-TARGET_LINK_LIBRARIES(ResRdDemo130
-  ${ANSYS_V130_LIBBIN}
-  ${CFS_FORTRAN_DYNRT_LIBS}
-  -ldl
-  ${BOOST_FILESYSTEM_LIB}
-  ${BOOST_SYSTEM_LIB}
-  -lpthread
-  )
+TARGET_LINK_LIBRARIES(ResRdDemo130 ${TARGET_LL})
+
 SET_TARGET_PROPERTIES(ResRdDemo130 PROPERTIES LINKER_LANGUAGE Fortran 
                                               LINK_FLAGS -Wl,--allow-shlib-undefined)
 
@@ -48,9 +51,23 @@ ADD_LIBRARY(CFSAnsysBinlibIfaceRev130 SHARED
   ../ResWrTest.F
   ../ResWr.F)
 
-TARGET_LINK_LIBRARIES(CFSAnsysBinlibIfaceRev130
+SET(TARGET_LL
+  CFSAnsysBinlibIface
   ${ANSYS_V130_LIBBIN}
   ${CFS_FORTRAN_DYNRT_LIBS}
+)
+
+IF(MINGW)
+  LIST(APPEND TARGET_LL
+   logging
+   matvec
+   febasis
+   cfsgeneral
+  )
+ENDIF()
+
+TARGET_LINK_LIBRARIES(CFSAnsysBinlibIfaceRev130
+  ${TARGET_LL}
   )
 
 SET_TARGET_PROPERTIES(CFSAnsysBinlibIfaceRev130 PROPERTIES LINKER_LANGUAGE CXX

@@ -11,6 +11,7 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/BiLinForms/ABInt.hh"
+#include "Forms/BiLinForms/ADBInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/BDUInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
@@ -18,6 +19,8 @@
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
 #include "Forms/Operators/ConvectivePierceOperator.hh"
+#include "Forms/Operators/SurfaceOperators.hh"
+#include "Forms/Operators/DivOperator.hh"
 
 #include "FeBasis/FeFunctions.hh"
 #include "Utils/StdVector.hh"
@@ -27,10 +30,12 @@
 
 #include "Driver/Assemble.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
+#include "Domain/CoefFunction/CoefFunctionCompound.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
+#include "Domain/Mesh/NcInterfaces/BaseNcInterface.hh"
 
 #include <boost/lexical_cast.hpp>
 #include <cmath>
@@ -45,15 +50,22 @@ namespace CoupledField{
    DEFINE_LOG(acousticpde, "pde.acoustic")
 
 
-  AcousticPDE::AcousticPDE( Grid* aGrid, PtrParamNode paramNode )
-              : SinglePDE( aGrid, paramNode ){
+  AcousticPDE::AcousticPDE( Grid* aGrid, PtrParamNode paramNode,
+                            PtrParamNode infoNode,
+                            shared_ptr<SimState> simState, Domain* domain)
+              : SinglePDE( aGrid, paramNode, infoNode, simState, domain ){
 
     pdename_           = "acoustic";
     pdematerialclass_  = FLUID;
-    maxTimeDerivOrder_ = 2;
     nonLin_            = false;
+    isMechCoupled_     = false;
+    
+    //! Always use total Lagrangian formulation 
+    updatedGeo_        = false;
 
-    isMechCoupled_ = false;
+    isTimeDomPML_      = false;
+
+    isAPML_ = false;
 
     //check for pressure or potential formulation
     std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>();
@@ -78,7 +90,137 @@ namespace CoupledField{
     }else{
       EXCEPTION("The formulation " << formulation << "of acoustic PDE is not known!");
     }
+
+    // ===================================
+    // Check for transient PML
+    // ===================================
+    if(this->analysistype_ == TRANSIENT && isTimeDomPML_){
+      //now define the additional uknowns
+
+      if(dim_==3 && !this->isAPML_){
+        PtrParamNode scalarpml = infoNode->Get("TransientPMLScalarAuxVar");
+        crSpaces[ACOU_PMLAUXSCALAR] =
+            FeSpace::CreateInstance(myParam_,scalarpml,FeSpace::H1, ptGrid_);
+        crSpaces[ACOU_PMLAUXSCALAR]->Init(solStrat_);
+      }
+
+      PtrParamNode vectorPML = infoNode->Get("TransientPMLVectorAuxVar");
+      crSpaces[ACOU_PMLAUXVEC] =
+          FeSpace::CreateInstance(myParam_,vectorPML,FeSpace::H1, ptGrid_);
+      crSpaces[ACOU_PMLAUXVEC]->Init(solStrat_);
+
+    }
     return crSpaces;
+  }
+  
+  
+  void AcousticPDE::ReadDampingInformation() {
+    std::map<std::string, DampingType> idDampType;
+    std::map<std::string, shared_ptr<RaylDampingData> > idRaylData;
+
+    // try to get dampingList
+    PtrParamNode dampListNode = myParam_->Get( "dampingList", ParamNode::PASS );
+    if( dampListNode ) {
+
+      // get specific damping nodes
+      ParamNodeList dampNodes = dampListNode->GetChildren();
+
+      for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
+
+        std::string dampString = dampNodes[i]->GetName();
+        std::string actId = dampNodes[i]->Get("id")->As<std::string>();
+
+        // determine type of damping
+        DampingType actType;
+        String2Enum( dampString, actType );
+
+        if( actType == RAYLEIGH ) {
+          // set data for Rayleigh damping
+          shared_ptr<RaylDampingData> actRaylDamp(new RaylDampingData());
+          actRaylDamp->alpha = "0.0";
+          actRaylDamp->beta = "0.0";
+          actRaylDamp->adjustDamping = true;
+          actRaylDamp->ratioDeltaF = 0.01;
+          actRaylDamp->freq = 0.0;
+          dampNodes[i]->GetValue( "freq", actRaylDamp->freq, ParamNode::PASS);
+          dampNodes[i]->GetValue( "ratioDeltaF", actRaylDamp->ratioDeltaF,
+                                  ParamNode::PASS );
+          dampNodes[i]->GetValue( "adjustDamping",actRaylDamp->adjustDamping,  
+                                  ParamNode::PASS);
+          idRaylData[actId] = actRaylDamp;        
+        }
+
+        // store damping type string
+        idDampType[actId] = actType;
+
+      }
+    }
+
+    // Run over all region and set entry in "regionNonLinId"
+    ParamNodeList regionNodes =
+        myParam_->Get("regionList")->GetChildren();
+
+    RegionIdType actRegionId;
+    std::string actRegionName, actDampingId;
+
+    //       if( regionNodes.GetSize() > 0 ) {
+    //         Info->PrintF( pdename_, "Damping in following region(s)\n" );
+    //       }
+
+    for (UInt k = 0; k < regionNodes.GetSize(); k++) {
+      regionNodes[k]->GetValue( "name", actRegionName );
+      regionNodes[k]->GetValue( "dampingId", actDampingId );
+      if( actDampingId == "" )
+        continue;
+
+      actRegionId = ptGrid_->GetRegion().Parse( actRegionName );
+
+      // Check actDampingId was already registerd
+      if( idDampType.count( actDampingId ) == 0 ) {
+        EXCEPTION( "Damping with id '" << actDampingId
+                   << "' was not defined in 'dampingList'" );
+      }
+
+      dampingList_[actRegionId] = idDampType[actDampingId];
+      if ( dampingList_[actRegionId] == RAYLEIGH ){
+        RaylDampingData actRayl = *(idRaylData[actDampingId]);
+        Double dampFreq;
+
+        if( actRayl.freq == 0.0 ) {
+          materials_[actRegionId]->GetScalar(dampFreq,RAYLEIGH_FREQUENCY,Global::REAL);
+        } else { 
+          dampFreq = actRayl.freq;
+        }
+        // Compute Rayleigh damping parameters
+        materials_[actRegionId]->
+        ComputeRayleighDamping( actRayl.alpha, actRayl.beta,
+                                dampFreq, actRayl.ratioDeltaF, 
+                                actRayl.adjustDamping, isComplex_ );
+        regionRaylDamping_[actRegionId] = actRayl;
+      } else if(dampingList_[actRegionId] == PML &&
+          analysistype_ == BasePDE::TRANSIENT ) {
+        isTimeDomPML_ = true;
+      }
+      
+
+      //         // Log to info file
+      //         std::string dampString;
+      //         Enum2String( dampingList_[actRegionId], dampString );
+      //
+      //         if( dampingList_[actRegionId] == FRACTIONAL_GL ) {
+      //           dampString += "( Gruenwald-Letnikov algorithm )";
+      //         }
+      //         if( dampingList_[actRegionId] == FRACTIONAL_BLANK ) {
+      //           dampString += "( Blanks algorithm )";
+      //         }
+      //         if( dampingList_[actRegionId] == FRACTIONAL_GL_INT ||
+      //             dampingList_[actRegionId] == FRACTIONAL_BLANK_INT ) {
+      //           dampString += "(linear interpol. of single past values)";
+      //         }
+      //         Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(),
+      //                       dampString.c_str() );
+    }
+    //       Info->PrintF( pdename_, "\n" );  
   }
 
   void AcousticPDE::DefineIntegrators(){
@@ -122,8 +264,8 @@ namespace CoupledField{
       
       // c0 = sqrt(bulk_modulus / density)
       PtrCoefFct c0 = 
-          CoefFunction::Generate( Global::REAL,
-                                  CoefXprUnaryOp( CoefXprBinOp(blk, dens, CoefXpr::OP_DIV),
+          CoefFunction::Generate( mp_,  Global::REAL,
+                                  CoefXprUnaryOp( mp_, CoefXprBinOp(mp_, blk, dens, CoefXpr::OP_DIV),
                                   CoefXpr::OP_SQRT) );
       
       // store coefficient functions
@@ -138,17 +280,17 @@ namespace CoupledField{
         // to multiply all matrices by -1!
         std::string stringFac = (analysistype_ != EIGENFREQUENCY) ? "-1.0" : "1.0";
 
-        factor = CoefFunction::Generate(Global::REAL,
-                                        CoefXprBinOp(dens, stringFac, CoefXpr::OP_MULT ) );
+        factor = CoefFunction::Generate( mp_, Global::REAL,
+                                        CoefXprBinOp(mp_, dens, stringFac, CoefXpr::OP_MULT ) );
       } else {
-        factor = CoefFunction::Generate(Global::REAL, "1.0");
+        factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
       }
           
       // build coefficient for mass matrix as (factor / (c0*c0))
       PtrCoefFct coeffM =
-          CoefFunction::Generate(Global::REAL,
-                                 CoefXprBinOp( factor,
-                                               CoefXprBinOp(c0,c0,CoefXpr::OP_MULT),
+          CoefFunction::Generate( mp_, Global::REAL,
+                                 CoefXprBinOp( mp_,factor,
+                                               CoefXprBinOp(mp_, c0,c0,CoefXpr::OP_MULT),
                                                CoefXpr::OP_DIV ) );
 
       // ====================================================================
@@ -158,27 +300,34 @@ namespace CoupledField{
       //just coeffunctions for the transformation of jacobians
       shared_ptr<CoefFunction> coeffPMLfactor;
       shared_ptr<CoefFunction> coeffPMLMass;
-      std::string dampId;
-      curRegNode->GetValue("dampingId",dampId);
 
-      if(dampId != ""){
+
+      if( dampingList_[actRegion] == PML ) {
+        std::string dampId;
+        curRegNode->GetValue("dampingId",dampId);
         if(analysistype_ == HARMONIC){
           PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",dampId.c_str());
           coeffPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode,c0,actSDList,regions_,true));
           coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,c0,actSDList,regions_,false));
           // store pml factor
           matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLVec);
-          coeffPMLfactor = CoefFunction::Generate(Global::COMPLEX,
-                                            CoefXprBinOp(factor,coeffPMLScal,CoefXpr::OP_MULT));
-          coeffPMLMass = CoefFunction::Generate(Global::COMPLEX,
-                                            CoefXprBinOp(coeffM,coeffPMLScal,CoefXpr::OP_MULT));
+          coeffPMLfactor = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                            CoefXprBinOp(mp_, factor,coeffPMLScal,CoefXpr::OP_MULT));
+          coeffPMLMass = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                            CoefXprBinOp(mp_,coeffM,coeffPMLScal,CoefXpr::OP_MULT));
           harmonicPML = true;
         }else{
-          EXCEPTION("PML is only available in the frequency domain right now");
+          if(formulation_ != ACOU_PRESSURE){
+            WARN("Transient PML formulation only valid for acoustic pressure formulation. Results may be wrong!")
+          }
+          if(dim_==2)
+            DefineTransientPMLInts<2>(actSDList,dampId);
+          else
+            DefineTransientPMLInts<3>(actSDList,dampId);
         }
       }else{
         harmonicPML = false;
-      }
+      } // damping == PML
 
 
       // ====================================================================
@@ -187,24 +336,35 @@ namespace CoupledField{
       BaseBDBInt * stiffInt = NULL;
       if( dim_ == 2 ) {
         if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(), coeffPMLfactor, 1.0 );
+          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(), 
+                                        coeffPMLfactor, 1.0, updatedGeo_ );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
         }else{
-          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), factor, 1.0 );
+          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), factor, 
+                                       1.0, updatedGeo_ );
         }
       }
       else{
         if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),  coeffPMLfactor, 1.0 );
+          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(), 
+                                        coeffPMLfactor, 1.0, updatedGeo_ );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
         }else{
-          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), factor, 1.0 );
+          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), factor, 
+                                       1.0, updatedGeo_ );
         }
       }
+      
       stiffInt->SetName("LaplaceIntegrator");
 
       BiLinFormContext * stiffIntDescr =
         new BiLinFormContext(stiffInt, STIFFNESS );
+
+      //check for damping
+      if ( dampingList_[actRegion] == RAYLEIGH ) {
+        RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
+        stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta );
+      }
 
       feFunctions_[formulation_]->AddEntityList( actSDList );
 
@@ -225,14 +385,18 @@ namespace CoupledField{
       
       if(dim_==2){
         if(harmonicPML)
-          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), coeffPMLMass, 1.0 );
+          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), 
+                                       coeffPMLMass, 1.0, updatedGeo_ );
         else
-          massInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 1.0 );
+          massInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 
+                                      1.0, updatedGeo_ );
       }else{
         if(harmonicPML)
-          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(), coeffPMLMass, 1.0 );
+          massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(), coeffPMLMass, 
+                                       1.0, updatedGeo_ );
         else
-          massInt = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 1.0 );
+          massInt = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 
+                                      1.0, updatedGeo_ );
       }
 
       massInt->SetName("MassIntegrator");
@@ -240,6 +404,12 @@ namespace CoupledField{
 
       BiLinFormContext *massContext =  new BiLinFormContext(massInt, MASS );
 
+      // Check for damping (mass part)
+      if ( dampingList_[actRegion] == RAYLEIGH ) {
+        RaylDampingData & actDamp = regionRaylDamping_[actRegion];
+        massContext->SetSecDestMat( DAMPING, actDamp.alpha );
+      }
+           
       massContext->SetEntities( actSDList, actSDList );
       massContext->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
       assemble_->AddBiLinearForm( massContext );
@@ -252,7 +422,7 @@ namespace CoupledField{
       // ====================================================================
       std::string flowId = curRegNode->Get("flowId")->As<std::string>();
       if(flowId != "") {
-        if(dampId != ""){
+        if( dampingList_[actRegion] == PML ) {
           EXCEPTION("PML not available for flow domains!");
         }
         if ( formulation_ != ACOU_POTENTIAL )
@@ -267,8 +437,9 @@ namespace CoupledField{
         // Read coefficient flow coefficient function for this region and add it to flow functor
         PtrCoefFct regionFlow;
         std::set<UInt> definedDofs;
-        ReadUserFieldValues( regionName, flowNode, flowInfo->dofNames, flowInfo->entryType, 
-                             isComplex_, regionFlow, definedDofs );
+        bool coefUpdateGeo;
+        ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames, flowInfo->entryType, 
+                             isComplex_, regionFlow, definedDofs, coefUpdateGeo );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
 
         //now create the integrators
@@ -276,14 +447,14 @@ namespace CoupledField{
         BiLinearForm *convectiveDamp = NULL;
         if( dim_ == 2 ) {
           convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
-                                        new ConvectiveOperator<FeH1,2,1>(), coeffM, 2.0);
+                                        new ConvectiveOperator<FeH1,2,1>(), coeffM, 2.0, coefUpdateGeo);
           convectiveStiff = new ABInt<>(new ConvectivePierceOperator<FeH1,2,1>(),
-                                        new ConvectiveOperator<FeH1,2,1>(),coeffM, -1.0);
+                                        new ConvectiveOperator<FeH1,2,1>(),coeffM, -1.0, coefUpdateGeo);
         } else {
           convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),
-                                        new ConvectiveOperator<FeH1,3,1>(), coeffM, 2.0);
+                                        new ConvectiveOperator<FeH1,3,1>(), coeffM, 2.0, coefUpdateGeo);
           convectiveStiff = new ABInt<>(new ConvectivePierceOperator<FeH1,3,1>(),
-                                        new ConvectiveOperator<FeH1,3,1>(), coeffM, -1.0);
+                                        new ConvectiveOperator<FeH1,3,1>(), coeffM, -1.0, coefUpdateGeo);
         }
         convectiveDamp->SetBCoefFunctionOpB(meanFlowCoef_);
         convectiveDamp->SetName("convectiveDampPierce");
@@ -304,6 +475,171 @@ namespace CoupledField{
     }
   }
 
+  template<UInt DIM>
+  void AcousticPDE::DefineTransientPMLInts(shared_ptr<ElemList> eList, std::string id){
+
+    //define some material coeffunction as above...
+    PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+    PtrCoefFct dens = materials_[eList->GetRegion()]->GetScalCoefFnc( DENSITY, Global::REAL );
+    PtrCoefFct blk = materials_[eList->GetRegion()]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+    // c0 = sqrt(bulk_modulus / density)
+    PtrCoefFct c0 =
+        CoefFunction::Generate( mp_,  Global::REAL,
+                                CoefXprUnaryOp( mp_, CoefXprBinOp(mp_, blk, dens, CoefXpr::OP_DIV),
+                                CoefXpr::OP_SQRT) );
+    PtrCoefFct coeffc =
+        CoefFunction::Generate( mp_, Global::REAL,
+                               CoefXprBinOp( mp_, factor,
+                                             CoefXprBinOp(mp_, c0,c0,CoefXpr::OP_MULT),
+                                             CoefXpr::OP_DIV ) );
+
+
+    PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",id.c_str());
+    shared_ptr<CoefFunction> coeffPMLVec;
+    coeffPMLVec.reset(new CoefFunctionPML<Double>(pmlNode,c0,eList,regions_,true));
+
+    shared_ptr<CoefFunctionCompound<Double> > coefA(new CoefFunctionCompound<Double>(mp_));
+    shared_ptr<CoefFunctionCompound<Double> > coefB(new CoefFunctionCompound<Double>(mp_));
+    shared_ptr<CoefFunctionCompound<Double> > coefAlpha(new CoefFunctionCompound<Double>(mp_));
+    shared_ptr<CoefFunctionCompound<Double> > coefBeta(new CoefFunctionCompound<Double>(mp_));
+
+
+    // --- Set the FE ansatz for the current region ---
+    PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",eList->GetName().c_str());
+    std::string polyId = curRegNode->Get("polyId")->As<std::string>();
+    std::string integId = curRegNode->Get("integId")->As<std::string>();
+
+    shared_ptr<FeSpace> vecSpace = feFunctions_[ACOU_PMLAUXVEC]->GetFeSpace();
+    vecSpace->SetRegionApproximation(eList->GetRegion(), polyId,integId);
+
+
+    // ===> DEFINE PML DAMPINGFUNCTIONS
+    std::map<std::string, PtrCoefFct> vars;
+    std::map<std::string, PtrCoefFct> var;
+    vars["a"]  = coeffPMLVec;
+    var["a"] = coeffPMLVec;
+    vars["b"] = coeffc;
+
+    StdVector<std::string> matAReal;
+    StdVector<std::string> matBReal;
+    std::string alpha;
+    std::string beta;
+
+    if(DIM == 3 ){
+      const std::string Amat[] =  { "a_0_R", "0.0" , "0.0" , "0.0" , "a_1_R" , "0.0" , "0.0" , "0.0" , "a_2_R" };
+      const std::string Bmat[] = {"( a_0_R - a_1_R - a_2_R )", "0.0","0.0","0.0",  "( a_1_R - a_0_R - a_2_R)","0.0","0.0","0.0","( a_2_R - a_1_R - a_0_R)"};
+      alpha = "( (a_0_R + a_1_R + a_2_R ) * b_R )";
+      beta = " ( ( (a_0_R * a_1_R) + (a_0_R * a_2_R) + (a_1_R * a_2_R) ) * b_R )";
+      matAReal.Import(Amat,9);
+      matBReal.Import(Bmat,9);
+    }else{
+      const std::string Amat[] =  { "a_0_R", "0.0" , "0.0" , "a_1_R" };
+      const std::string Bmat[] = {"( a_0_R - a_1_R)", "0.0" , "0.0",  "( a_1_R - a_0_R )"};
+      alpha = "( (a_0_R + a_1_R ) * b_R )";
+      beta = " ( (a_0_R * a_1_R ) * b_R )";
+      matAReal.Import(Amat,4);
+      matBReal.Import(Bmat,4);
+    }
+
+    coefA->SetTensor(matAReal,DIM,DIM,var);
+    coefB->SetTensor(matBReal,DIM,DIM,var);
+    coefAlpha->SetScalar(alpha,vars);
+    coefBeta->SetScalar(beta,vars);
+
+    ///now lets define some integrators
+    BaseBDBInt *     dampdPdt = new BBInt<>(new IdentityOperator<FeH1,DIM>(), coefAlpha, 1.0, updatedGeo_ );
+    BaseBDBInt *     dampP    = new BBInt<>(new IdentityOperator<FeH1,DIM>(), coefBeta, 1.0, updatedGeo_ );
+    BaseBDBInt *     divU     = new ABInt<>(new GradientOperator<FeH1,DIM>(), new IdentityOperator<FeH1,DIM,DIM>(),factor,1.0,updatedGeo_);
+    BaseBDBInt *     dUdt     = new BBInt<>(new IdentityOperator<FeH1,DIM,DIM>(), factor, 1.0, updatedGeo_ );
+    BaseBDBInt *     AU       = new BDBInt<>(new IdentityOperator<FeH1,DIM,DIM>(), coefA,1.0, updatedGeo_ );
+    BaseBDBInt *     BgradP   = new ADBInt<>(new IdentityOperator<FeH1,DIM,DIM>(),new GradientOperator<FeH1,DIM>(),coefB,1.0,updatedGeo_);
+
+    dampdPdt->SetName("dampdPdt");
+    dampP->SetName("dampP");
+    divU->SetName("divU");
+    dUdt->SetName("dUdt");
+    AU->SetName("AU");
+    BgradP->SetName("BgradP");
+
+    BiLinFormContext * Context_dampdPdt   = new BiLinFormContext(dampdPdt, DAMPING );
+    BiLinFormContext * Context_dampP      = new BiLinFormContext(dampP, STIFFNESS );
+    BiLinFormContext * Context_divU       = new BiLinFormContext(divU, STIFFNESS );
+    BiLinFormContext * Context_dUdt       = new BiLinFormContext(dUdt, DAMPING );
+    BiLinFormContext * Context_AU         = new BiLinFormContext(AU, STIFFNESS );
+    BiLinFormContext * Context_BgradP     = new BiLinFormContext(BgradP , STIFFNESS );
+
+    Context_dampdPdt->SetEntities( eList, eList );
+    Context_dampdPdt->SetFeFunctions(feFunctions_[formulation_],feFunctions_[formulation_]);
+    Context_dampP->SetEntities( eList, eList );
+    Context_dampP->SetFeFunctions(feFunctions_[formulation_],feFunctions_[formulation_]);
+
+    Context_divU->SetEntities( eList, eList );
+    Context_divU->SetFeFunctions(feFunctions_[formulation_],feFunctions_[ACOU_PMLAUXVEC]);
+    Context_dUdt->SetEntities( eList, eList );
+    Context_dUdt->SetFeFunctions(feFunctions_[ACOU_PMLAUXVEC],feFunctions_[ACOU_PMLAUXVEC]);
+    Context_AU->SetEntities( eList, eList );
+    Context_AU->SetFeFunctions(feFunctions_[ACOU_PMLAUXVEC],feFunctions_[ACOU_PMLAUXVEC]);
+    Context_BgradP->SetEntities( eList, eList );
+    Context_BgradP->SetFeFunctions(feFunctions_[ACOU_PMLAUXVEC],feFunctions_[formulation_]);
+
+
+    assemble_->AddBiLinearForm( Context_dampdPdt );
+    assemble_->AddBiLinearForm( Context_dampP );
+    assemble_->AddBiLinearForm( Context_divU );
+    assemble_->AddBiLinearForm( Context_dUdt );
+    assemble_->AddBiLinearForm( Context_AU );
+    assemble_->AddBiLinearForm( Context_BgradP );
+
+    feFunctions_[ACOU_PMLAUXVEC]->AddEntityList( eList );
+
+    if(!this->isAPML_ && DIM == 3){
+      shared_ptr<FeSpace> scalSpace = feFunctions_[ACOU_PMLAUXSCALAR]->GetFeSpace();
+      scalSpace->SetRegionApproximation(eList->GetRegion(), polyId,integId);
+      feFunctions_[ACOU_PMLAUXSCALAR]->AddEntityList( eList);
+
+      shared_ptr<CoefFunctionCompound<Double> > coefGamma(new CoefFunctionCompound<Double>(mp_));
+      shared_ptr<CoefFunctionCompound<Double> > coefC(new CoefFunctionCompound<Double>(mp_));
+
+      StdVector<std::string> matCReal;
+      const std::string Cmat[]=  { " (a_1_R * a_2_R) " , "0.0" , "0.0" , "0.0" , " (a_0_R * a_2_R) " , "0.0", "0.0", "0.0", " (a_0_R * a_1_R) "};
+      matCReal.Import(Cmat,9);
+      std::string gamma = "( (a_0_R * a_1_R * a_2_R) * b_R )";
+      coefC->SetTensor(matCReal,3,3,var);
+      coefGamma->SetScalar(gamma,vars);
+
+
+      BaseBDBInt *     dampNu   = new BBInt<>(new IdentityOperator<FeH1,DIM>(), coefGamma, 1.0, updatedGeo_ );
+
+      BaseBDBInt *     CgradNu  = new ADBInt<>(new IdentityOperator<FeH1,DIM,DIM>(),new GradientOperator<FeH1,DIM>(),coefC,-1.0,updatedGeo_);
+      BaseBDBInt *     dNudt    = new BBInt<>(new IdentityOperator<FeH1,DIM>(), factor, 1.0, updatedGeo_ );
+      BaseBDBInt *     P        = new BBInt<>(new IdentityOperator<FeH1,DIM>(), factor, -1.0, updatedGeo_ );
+
+      dampNu->SetName("dampNu");
+      CgradNu->SetName("CgradNu");
+      dNudt->SetName("dNudt");
+      P->SetName("P");
+
+      BiLinFormContext * Context_dampNu     = new BiLinFormContext(dampNu, STIFFNESS );
+      BiLinFormContext * Context_CgradNu    = new BiLinFormContext(CgradNu, STIFFNESS );
+      BiLinFormContext * Context_dNudt      = new BiLinFormContext(dNudt, DAMPING );
+      BiLinFormContext * Context_P          = new BiLinFormContext(P, STIFFNESS );
+
+      Context_dampNu->SetEntities( eList, eList );
+      Context_dampNu->SetFeFunctions(feFunctions_[formulation_],feFunctions_[ACOU_PMLAUXSCALAR]);
+      Context_CgradNu->SetEntities( eList, eList );
+      Context_CgradNu->SetFeFunctions(feFunctions_[ACOU_PMLAUXVEC],feFunctions_[ACOU_PMLAUXSCALAR]);
+      Context_dNudt->SetEntities( eList, eList );
+      Context_dNudt->SetFeFunctions(feFunctions_[ACOU_PMLAUXSCALAR],feFunctions_[ACOU_PMLAUXSCALAR]);
+      Context_P->SetEntities( eList, eList );
+      Context_P->SetFeFunctions(feFunctions_[ACOU_PMLAUXSCALAR],feFunctions_[formulation_]);
+
+      assemble_->AddBiLinearForm( Context_dampNu );
+      assemble_->AddBiLinearForm( Context_CgradNu );
+      assemble_->AddBiLinearForm( Context_dNudt );
+      assemble_->AddBiLinearForm( Context_P );
+    }
+  }
+
   void AcousticPDE::DefineSurfaceIntegrators( ){
     //========================================================================================
     // ABC boundaries
@@ -316,21 +652,21 @@ namespace CoupledField{
         std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
         shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
         std::string volRegName = abcNodes[i]->Get("volumeRegion")->As<std::string>();
-        RegionIdType sRegId = ptGrid_->GetRegion().Parse(regionName);
+        //RegionIdType sRegId = ptGrid_->GetRegion().Parse(regionName);
 
         // --- Set the FE ansatz for the current region ---
         PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
         std::string polyId = curRegNode->Get("polyId")->As<std::string>();
         std::string integId = curRegNode->Get("integId")->As<std::string>();
-        feFunctions_[formulation_]->GetFeSpace()->SetRegionApproximation(sRegId, polyId,integId);
+        //feFunctions_[formulation_]->GetFeSpace()->SetRegionApproximation(sRegId, polyId,integId);
 
         RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
         // c0 = sqrt(bulk_modulus / density)
         PtrCoefFct dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
         PtrCoefFct blk = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
         PtrCoefFct c0 = 
-            CoefFunction::Generate( Global::REAL,
-                                    CoefXprUnaryOp( CoefXprBinOp(blk, dens, 
+            CoefFunction::Generate( mp_,  Global::REAL,
+                                    CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens, 
                                                                  CoefXpr::OP_DIV),
                                                     CoefXpr::OP_SQRT) );
         // In the case of acou-mech coupling we have to multiply the
@@ -342,13 +678,13 @@ namespace CoupledField{
         
         // factor for damping matrix: factor / c0
         PtrCoefFct coeffDamp = 
-        CoefFunction::Generate(Global::REAL,
-                               CoefXprBinOp(factor, c0, CoefXpr::OP_DIV ) );
+        CoefFunction::Generate( mp_, Global::REAL,
+                               CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_DIV ) );
         BiLinearForm * abcInt = NULL;
         if( dim_ == 2 ) {
-          abcInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), coeffDamp, 1.0 );
+          abcInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), coeffDamp, 1.0, updatedGeo_ );
         } else {
-          abcInt = new BBInt<>(new IdentityOperator<FeH1,3,1>(), coeffDamp, 1.0 );
+          abcInt = new BBInt<>(new IdentityOperator<FeH1,3,1>(), coeffDamp, 1.0, updatedGeo_ );
         }
 
         abcInt->SetName("abcIntegrator");
@@ -358,6 +694,122 @@ namespace CoupledField{
         abcContext->SetFeFunctions( feFunctions_[formulation_] , feFunctions_[formulation_]);
         feFunctions_[formulation_]->AddEntityList( actSDList );
         assemble_->AddBiLinearForm( abcContext );
+      }
+    }
+    if( ncIFaces_.GetSize() > 0 ) {
+      RegionIdType actRegion;
+      std::string regionName;
+      shared_ptr<BaseNcInterface> curNC;
+      for(UInt i=0;i < ncIFaces_.GetSize();++i){
+        curNC = this->ptGrid_->GetNcInterface(i);
+        actRegion = ncIFaces_[i];
+        regionName = curNC->GetName();
+        //curList = this->ptGrid_->GetEntityList(EntityList::SURF_ELEM_LIST,regionName);
+
+        // create new entity list
+        shared_ptr<ElemList> actSDList( new SurfElemList(ptGrid_ ) );
+        actSDList->SetRegion( actRegion );
+
+        PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+        //notation> assume the test function is called v
+        BaseBDBInt *penalty_u1_v1 = NULL;
+        BaseBDBInt *penalty_u1_v2 = NULL;
+        BaseBDBInt *penalty_u2_v1 = NULL;
+        BaseBDBInt *penalty_u2_v2 = NULL;
+        //now bilinear forms related to the normal derivatives
+        //du1 referes to the normal derivative directing from 1 to 2
+        BaseBDBInt *flux_du1_v1 = NULL;
+        BaseBDBInt *flux_du1_v2 = NULL;
+        BaseBDBInt *flux_u1_dv1 = NULL;
+        BaseBDBInt *flux_u2_dv1 = NULL;
+        BiLinearForm::CouplingDirection curcpl;
+
+        //we set here the penalty factor
+        Double beta = nitscheFactors_[actRegion];
+        if( dim_ == 2 ) {
+          if(analysistype_ == HARMONIC){
+            EXCEPTION("HARMONIC CASE NOT IMPLEMENTED FOR ACOUSTIC NMG");
+          }else{
+            curcpl = BiLinearForm::MASTER_MASTER;
+            penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
+                                                 new SurfaceIdentityOperator<FeH1,2,1>(),factor,beta,curcpl,false);
+
+            flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceNormalDerivOperator<FeH1,2,1>(),
+                new SurfaceIdentityOperator<FeH1,2,1>(),factor,-1.0,curcpl,false);
+
+            flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,1>(),
+                new SurfaceNormalDerivOperator<FeH1,2,1>(),factor,-1.0,curcpl,false);
+
+            curcpl = BiLinearForm::SLAVE_SLAVE;
+            penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
+                                                 new SurfaceIdentityOperator<FeH1,2,1>(),factor,beta,curcpl,false);
+
+            curcpl = BiLinearForm::MASTER_SLAVE;
+            penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
+                                                 new SurfaceIdentityOperator<FeH1,2,1>(),factor,beta*-1.0,curcpl,false);
+
+            flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>(new SurfaceNormalDerivOperator<FeH1,2,1>(),
+                new SurfaceIdentityOperator<FeH1,2,1>(),factor,1.0,curcpl,false);
+
+            curcpl = BiLinearForm::SLAVE_MASTER;
+            penalty_u2_v1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
+                                                 new SurfaceIdentityOperator<FeH1,2,1>(),factor,beta*-1.0,curcpl,false);
+
+            flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,1>(),
+                new SurfaceNormalDerivOperator<FeH1,2,1>(),factor,1.0,curcpl,false);
+
+          }
+        }else{
+          EXCEPTION("Only 2D NMGs are supported right now!");
+        }
+        penalty_u1_v1->SetName("penalty_u1_v1");
+        flux_du1_v1->SetName("flux_du1_v1");
+        flux_u1_dv1->SetName("flux_u1_dv1");
+        penalty_u2_v2->SetName("penalty_u2_v2");
+        penalty_u1_v2->SetName("penalty_u1_v2");
+        flux_du1_v2->SetName("flux_du1_v2");
+        penalty_u2_v1->SetName("penalty_u2_v1");
+        flux_u2_dv1->SetName("flux_u2_dv1");
+
+        curcpl = BiLinearForm::MASTER_MASTER;
+        SurfaceBiLinFormContext * penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1,STIFFNESS,curcpl);
+        SurfaceBiLinFormContext * flux_du1_v1_Context = new SurfaceBiLinFormContext(flux_du1_v1,STIFFNESS,curcpl);
+        SurfaceBiLinFormContext * flux_u1_dv1_Context = new SurfaceBiLinFormContext(flux_u1_dv1,STIFFNESS,curcpl);
+        curcpl = BiLinearForm::SLAVE_SLAVE;
+        SurfaceBiLinFormContext * penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2,STIFFNESS,curcpl);
+        curcpl = BiLinearForm::MASTER_SLAVE;
+        SurfaceBiLinFormContext * penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2,STIFFNESS,curcpl);
+        SurfaceBiLinFormContext * flux_du1_v2_Context = new SurfaceBiLinFormContext(flux_du1_v2,STIFFNESS,curcpl);
+        curcpl = BiLinearForm::SLAVE_MASTER;
+        SurfaceBiLinFormContext * penalty_u2_v1_Context = new SurfaceBiLinFormContext(penalty_u2_v1,STIFFNESS,curcpl);
+        SurfaceBiLinFormContext * flux_u2_dv1_Context = new SurfaceBiLinFormContext(flux_u2_dv1,STIFFNESS,curcpl);
+
+        penalty_u1_v1_Context->SetEntities(actSDList,actSDList);
+        flux_du1_v1_Context->SetEntities(actSDList,actSDList);
+        flux_u1_dv1_Context->SetEntities(actSDList,actSDList);
+        penalty_u2_v2_Context->SetEntities(actSDList,actSDList);
+        penalty_u1_v2_Context->SetEntities(actSDList,actSDList);
+        flux_du1_v2_Context->SetEntities(actSDList,actSDList);
+        penalty_u2_v1_Context->SetEntities(actSDList,actSDList);
+        flux_u2_dv1_Context->SetEntities(actSDList,actSDList);
+
+        penalty_u1_v1_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        flux_du1_v1_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        flux_u1_dv1_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        penalty_u2_v2_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        penalty_u1_v2_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        flux_du1_v2_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        penalty_u2_v1_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        flux_u2_dv1_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+
+        assemble_->AddBiLinearForm( penalty_u1_v1_Context );
+        assemble_->AddBiLinearForm( flux_du1_v1_Context );
+        assemble_->AddBiLinearForm( flux_u1_dv1_Context );
+        assemble_->AddBiLinearForm( penalty_u2_v2_Context );
+        assemble_->AddBiLinearForm( penalty_u1_v2_Context );
+        assemble_->AddBiLinearForm( flux_du1_v2_Context );
+        assemble_->AddBiLinearForm( penalty_u2_v1_Context );
+        assemble_->AddBiLinearForm( flux_u2_dv1_Context );
       }
     }
 
@@ -386,14 +838,15 @@ namespace CoupledField{
     // integrators by -densiy
     Double scalFactor = 1.0;
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
-    
+
+    bool coefUpdateGeo;
     // ===========================
     //  NORMAL VELOCITY (surface)
     // ===========================
     LOG_DBG(acousticpde) << "Reading normal velocity"; 
     
     ReadRhsExcitation( "normalVelocity", empty, ResultInfo::SCALAR, isComplex_,
-                          ent, coef );
+                          ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       
       // ensure that list contains only surface elements
@@ -406,8 +859,8 @@ namespace CoupledField{
       if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
         scalFactor = -1.0;
         exValue = 
-            CoefFunction::Generate(part,
-                                   CoefXprBinOp(coef[i],surfDens, CoefXpr::OP_MULT) );
+            CoefFunction::Generate( mp_, part,
+                                   CoefXprBinOp(mp_, coef[i],surfDens, CoefXpr::OP_MULT) );
       } else {
         exValue = coef[i];
       }
@@ -416,18 +869,18 @@ namespace CoupledField{
         if( dim_ == 2) {
           if(isComplex_) {
             lin = new BUIntegrator<IdentityOperator<FeH1,2,1>,
-                Complex,true>(scalFactor, exValue, volRegions);
+                Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
           } else {
             lin = new BUIntegrator<IdentityOperator<FeH1,2,1>, 
-                Double,true>(scalFactor, exValue, volRegions);
+                Double,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
           }
         } else  {
           if(isComplex_) {
             lin = new BUIntegrator<IdentityOperator<FeH1,3,1>, 
-                Complex,true>(1.0, exValue, volRegions);
+                Complex,true>(1.0, exValue, volRegions, coefUpdateGeo);
           } else {
             lin = new BUIntegrator<IdentityOperator<FeH1,3,1>, 
-                Double,true>(1.0, exValue , volRegions);
+                Double,true>(1.0, exValue , volRegions, coefUpdateGeo);
           }
         }
       } else if( formulation_ == ACOU_PRESSURE && isComplex_) {
@@ -435,20 +888,20 @@ namespace CoupledField{
         // in this case the pressure can be related to the 
         // normal velocity as 
         // p_n = - j*Omega*v_n*rho
-        PtrCoefFct tmp = CoefFunction::Generate(part,"0.0",
+        PtrCoefFct tmp = CoefFunction::Generate( mp_, part,"0.0",
                                                 "-2*pi*f");
         PtrCoefFct tmp2 = 
-            CoefFunction::Generate(part, 
-                                   CoefXprBinOp(tmp, exValue, CoefXpr::OP_MULT) );
-        exValue = CoefFunction::Generate(part, 
-                                         CoefXprBinOp(tmp2,surfDens, 
+            CoefFunction::Generate( mp_, part, 
+                                   CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
+        exValue = CoefFunction::Generate( mp_, part, 
+                                         CoefXprBinOp(mp_, tmp2,surfDens, 
                                                       CoefXpr::OP_MULT) );
         if( dim_ == 2) {
           lin = new BUIntegrator<IdentityOperator<FeH1,2,1>,
-              Complex,true>(1.0, exValue, volRegions);
+              Complex,true>(1.0, exValue, volRegions, coefUpdateGeo);
         } else  {
           lin = new BUIntegrator<IdentityOperator<FeH1,3,1>, 
-              Complex,true>(1.0, exValue, volRegions);
+              Complex,true>(1.0, exValue, volRegions, coefUpdateGeo);
         }
 
       } else {
@@ -476,7 +929,7 @@ namespace CoupledField{
     if(dim_ == 2 && isaxi_)
       vecDofNames = "r", "z";
     ReadRhsExcitation( "velocity", vecDofNames, ResultInfo::VECTOR, isComplex_,
-                       ent, coef );
+                       ent, coef,coefUpdateGeo );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
 
@@ -491,8 +944,8 @@ namespace CoupledField{
       if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
         scalFactor = -1.0;
         exValue = 
-            CoefFunction::Generate(part,
-                                   CoefXprBinOp(coef[i],surfDens, CoefXpr::OP_MULT) );
+            CoefFunction::Generate( mp_, part,
+                                   CoefXprBinOp(mp_, coef[i],surfDens, CoefXpr::OP_MULT) );
       } else {
         exValue = coef[i];
       }
@@ -500,18 +953,18 @@ namespace CoupledField{
         if( dim_ == 2) {
           if(isComplex_) {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>,
-                Complex,true>(scalFactor, exValue, volRegions);
+                Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
           } else {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>, 
-                Double,true>(scalFactor, exValue, volRegions);
+                Double,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
           }
         } else  {
           if(isComplex_) {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-                Complex,true>(scalFactor, exValue, volRegions);
+                Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
           } else {
             lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-                Double,true>(scalFactor, exValue, volRegions);
+                Double,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
           }
         }
       } else if( formulation_ == ACOU_PRESSURE && isComplex_) {
@@ -519,20 +972,20 @@ namespace CoupledField{
         // in this case the pressure can be related to the 
         // normal velocity as 
         // p_n = - j*Omega*v_n*rho
-        PtrCoefFct tmp = CoefFunction::Generate(part,"0.0",
+        PtrCoefFct tmp = CoefFunction::Generate( mp_, part,"0.0",
                                                 "-2*pi*f");
         PtrCoefFct tmp2 = 
-            CoefFunction::Generate(part, 
-                                   CoefXprBinOp(tmp, exValue, CoefXpr::OP_MULT) );
-        exValue = CoefFunction::Generate(part, 
-                                         CoefXprBinOp(surfDens, tmp2, 
+            CoefFunction::Generate( mp_, part, 
+                                   CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
+        exValue = CoefFunction::Generate( mp_, part, 
+                                         CoefXprBinOp(mp_, surfDens, tmp2, 
                                                       CoefXpr::OP_MULT) );
         if( dim_ == 2) {
           lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>,
-              Complex,true>(scalFactor, exValue, volRegions);
+              Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
         } else  {
           lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-              Complex,true>(scalFactor, exValue, volRegions);
+              Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
         }
       } else {
         EXCEPTION( "Normal velocity can only be prescribed for potential "
@@ -551,7 +1004,7 @@ namespace CoupledField{
     // ===========================
     // Only possible for harmonic potential formulation
     ReadRhsExcitation( "pressure", empty, ResultInfo::SCALAR, isComplex_,
-                       ent, coef );
+                       ent, coef, coefUpdateGeo );
     if( formulation_ == ACOU_POTENTIAL && isComplex_ ) { 
       for( UInt i = 0; i < ent.GetSize(); ++i ) {
 
@@ -565,29 +1018,40 @@ namespace CoupledField{
         if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
           scalFactor = -1.0;
           exValue = 
-              CoefFunction::Generate(part,
-                                     CoefXprBinOp(coef[i],surfDens, CoefXpr::OP_MULT) );
+              CoefFunction::Generate( mp_, part,
+                                     CoefXprBinOp(mp_, coef[i],surfDens, CoefXpr::OP_MULT) );
         } else {
           exValue = coef[i];
         }
         // psi_n = j * 1 / (omega*rho) * p
         PtrCoefFct tmp = 
-             CoefFunction::Generate(Global::COMPLEX, "0","1/(2*pi*f)");
+             CoefFunction::Generate( mp_, Global::COMPLEX, "0","1/(2*pi*f)");
          PtrCoefFct tmp2 = 
-             CoefFunction::Generate(Global::COMPLEX,
-                                    CoefXprBinOp(tmp, surfDens, CoefXpr::OP_DIV ) );
-         exValue = CoefFunction::Generate(part, 
-                                          CoefXprBinOp(exValue, tmp2, 
+             CoefFunction::Generate( mp_, Global::COMPLEX,
+                                    CoefXprBinOp(mp_, tmp, surfDens, CoefXpr::OP_DIV ) );
+         exValue = CoefFunction::Generate( mp_, part, 
+                                          CoefXprBinOp(mp_, exValue, tmp2, 
                                                        CoefXpr::OP_MULT) );
          shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
          actBc->entities = ent[i];
          actBc->result = myFct->GetResultInfo();
          actBc->value = exValue;
          actBc->dofs.insert(0);
+         actBc->updatedGeo = coefUpdateGeo;
          myFct->AddInhomDirichletBc(actBc);
       } // loop entities
     } // if
 
+    // =====================================
+    //  rhsValues for e.g. for aeroacoustics
+    // =====================================
+    ReadRhsExcitation( "rhsValues", empty, ResultInfo::SCALAR, isComplex_,
+                          ent, coef, coefUpdateGeo );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      coef[i]->SetConservative(true);
+      coef[i]->AddEntityList(ent[i]);
+      this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i]);
+    }
 
   }
 
@@ -633,6 +1097,8 @@ namespace CoupledField{
     rhs->unit = "?";
     rhs->definedOn = results_[0]->definedOn;
     rhs->entryType = ResultInfo::SCALAR;
+    DefineFieldResult( this->rhsFeFunctions_[formulation_], rhs );
+    results_.Push_back( rhs );
     availResults_.insert( rhs );
 
     //creates the mean flow
@@ -660,7 +1126,8 @@ namespace CoupledField{
     density->unit = "kg/m^3";
     density->definedOn = ResultInfo::ELEMENT;
     density->entryType = ResultInfo::SCALAR;
-    shared_ptr<CoefFunctionMulti> densFct(new CoefFunctionMulti());
+    shared_ptr<CoefFunctionMulti> densFct(new CoefFunctionMulti(CoefFunction::SCALAR,1,1,
+                                                                false));
     matCoefs_[ELEM_DENSITY] = densFct;
     DefineFieldResult(densFct, density);
     
@@ -671,7 +1138,8 @@ namespace CoupledField{
     sos->unit = "m/s";
     sos->definedOn = ResultInfo::ELEMENT;
     sos->entryType = ResultInfo::SCALAR;
-    shared_ptr<CoefFunctionMulti> sosFct(new CoefFunctionMulti());
+    shared_ptr<CoefFunctionMulti> sosFct(new CoefFunctionMulti(CoefFunction::SCALAR,1,1,
+                                                               false));
     matCoefs_[ACOU_ELEM_SPEED_OF_SOUND] = sosFct;
     DefineFieldResult(sosFct, sos);
     
@@ -684,13 +1152,123 @@ namespace CoupledField{
     pml->unit = "";
     pml->definedOn = ResultInfo::ELEMENT;
     pml->entryType = ResultInfo::VECTOR;
-    shared_ptr<CoefFunctionMulti> pmlFct(new CoefFunctionMulti());
+    shared_ptr<CoefFunctionMulti> pmlFct(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, 
+                                                               isComplex_));
     matCoefs_[PML_DAMP_FACTOR] = pmlFct;
     DefineFieldResult(pmlFct, pml);
     //}
+
+    // === PML AUX Variables ===
+    if(this->isTimeDomPML_){
+      if(!this->isAPML_ && dim_ == 3){
+        shared_ptr<ResultInfo> pmlScal ( new ResultInfo );
+        pmlScal->resultType = ACOU_PMLAUXSCALAR;
+        pmlScal->dofNames = "";
+        pmlScal->unit = "-";
+        pmlScal->definedOn = ResultInfo::NODE;
+        pmlScal->entryType = ResultInfo::SCALAR;
+        feFunctions_[ACOU_PMLAUXSCALAR]->SetResultInfo(pmlScal);
+        results_.Push_back( pmlScal );
+        pmlScal->SetFeFunction(feFunctions_[ACOU_PMLAUXSCALAR]);
+        DefineFieldResult( feFunctions_[ACOU_PMLAUXSCALAR], pmlScal );
+      }
+
+      shared_ptr<ResultInfo> pmlVec ( new ResultInfo );
+      pmlVec->resultType = ACOU_PMLAUXVEC;
+      pmlVec->dofNames = vecDofNames;
+      pmlVec->unit = "-";
+      pmlVec->definedOn = ResultInfo::NODE;
+      pmlVec->entryType = ResultInfo::VECTOR;
+      feFunctions_[ACOU_PMLAUXVEC]->SetResultInfo(pmlVec);
+      results_.Push_back( pmlVec );
+      pmlVec->SetFeFunction(feFunctions_[ACOU_PMLAUXVEC]);
+      DefineFieldResult( feFunctions_[ACOU_PMLAUXVEC], pmlVec );
+    }
+
+    // ===================================
+    // Check for non-conforming interfaces
+    // ===================================
+    StdVector<std::string> ncIfaceNames, ncIfaceNamesForPDE;
+    StdVector<RegionIdType> ncIfaceIds;
+
+    LOG_DBG2(acousticpde) << "NonMatching: Checking if nonconforming "
+                          << "interfaces of PDE exist in domain.";
+
+    PtrParamNode acouPDENCIfaceListNode;
+    acouPDENCIfaceListNode = domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
+    ->Get("pdeList/acoustic/ncInterfaceList", ParamNode::PASS);
+
+    if(acouPDENCIfaceListNode){
+
+
+      PtrParamNode domainNCIfaceListNode;
+      domainNCIfaceListNode = domain_->GetParamRoot()->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
+
+      if(!domainNCIfaceListNode)
+      {
+        EXCEPTION("No nonmatching interfaces have been specified in domain!");
+      }
+
+      ParamNodeList pdeNCIfaceNodes;
+      pdeNCIfaceNodes = acouPDENCIfaceListNode->GetList("ncInterface");
+
+      for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
+        std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
+
+        PtrParamNode domainIfaceNode = domainNCIfaceListNode
+            ->GetByVal("ncInterface", "name", pdeIfaceName, ParamNode::PASS);
+        if(!domainIfaceNode)
+        {
+          LOG_DBG2(acousticpde) << "NonMatching: Nonconforming "
+          << "interface '" << ncIfaceNames[i]
+                                           << "' does not exist in domain.";
+
+          EXCEPTION( "ncInterface referenced from PDE not defined in domain!");
+        }
+
+        ncIfaceNamesForPDE.Push_back(pdeIfaceName);
+
+
+      }
+      ptGrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
+
+      for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
+        ncIFaces_.Push_back(ncIfaceIds[i]);
+        std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
+        std::string nmgFormStr =  pdeNCIfaceNodes[i]->Get("nmgFormulation",ParamNode::PASS)->As<std::string>();
+        ncTypes_[ncIfaceIds[i]] = ncCouplingType_.Parse(nmgFormStr);
+
+        if(ncTypes_[ncIfaceIds[i]]==NITSCHE){
+
+          nitscheFactors_[ncIfaceIds[i]] = pdeNCIfaceNodes[i]->Get("nitscheFactor",ParamNode::PASS)->As<Double>();
+
+          //write some info
+          PtrParamNode base = infoNode_->Get(ParamNode::PN_HEADER)->Get("NMG",ParamNode::INSERT)->Get("nitsche",ParamNode::INSERT);
+          PtrParamNode curNCI = base->Get(pdeIfaceName,ParamNode::INSERT);
+          curNCI->Get("penaltyValue",ParamNode::INSERT)->SetValue(nitscheFactors_[ncIfaceIds[i]]);
+        }else{
+          EXCEPTION("Only Nitsche NMG formulation is supported right now for acoustic PDE");
+        }
+      }
+    }
+
+
+    // In the case of the presence of non-conforming interfaces,
+    // a second resultdof object has to be created, which describes the
+    // Lagrange multiplier
+    //if( ncIFaces_.GetSize() > 0 ) {
+    //  LOG_DBG2(acousticpde) << "NonMatching: Defining new ResultDof Lagrange.";
+    //  shared_ptr<ResultInfo> lagr ( new ResultInfo );
+    //  lagr->resultType = LAGRANGE_MULT;
+    //  lagr->dofNames = "l";
+    //  lagr->definedOn = results_[0]->definedOn;
+    //  results_.Push_back( lagr );
+    //}
+
   }
   
   void AcousticPDE::DefinePostProcResults(){
+    
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     shared_ptr<BaseFeFunction> feFct = feFunctions_[formulation_];
     shared_ptr<ResultInfo> res1 = feFct->GetResultInfo();
@@ -752,15 +1330,15 @@ namespace CoupledField{
       PtrCoefFct potD1Fct= this->GetCoefFct( ACOU_POTENTIAL_DERIV_1 );
       PtrCoefFct densFct = this->GetCoefFct( ELEM_DENSITY);
       presFct = 
-          CoefFunction::Generate(part,
-                                 CoefXprBinOp(potD1Fct, densFct, CoefXpr::OP_MULT ) );
+          CoefFunction::Generate( mp_, part,
+                                 CoefXprBinOp(mp_, potD1Fct, densFct, CoefXpr::OP_MULT ) );
       DefineFieldResult(presFct, pres); 
     } else{
       presFct = this->GetCoefFct(ACOU_PRESSURE);
     }
     
     
-    shared_ptr<ResultInfo> vel, velNormal, intensity, power, pres;
+    shared_ptr<ResultInfo> vel, velNormal, intensity, intensNormal, power, pres;
     PtrCoefFct intensFct, velFct;
     shared_ptr<CoefFunctionSurf> sNormIntens, velFctNormal;
     shared_ptr<CoefFunctionFormBased>  presGradFct, velFctPot;
@@ -802,6 +1380,14 @@ namespace CoupledField{
       intensity->entryType = ResultInfo::VECTOR;
       intensity->definedOn = ResultInfo::ELEMENT;
       
+      // === ACOU_NORMAL_INTENSITY ===
+      intensNormal.reset(new ResultInfo);
+      intensNormal->resultType = ACOU_NORMAL_INTENSITY;
+      intensNormal->dofNames = "";
+      intensNormal->unit = "W/m^2";
+      intensNormal->entryType = ResultInfo::SCALAR;
+      intensNormal->definedOn = ResultInfo::ELEMENT;
+      
       // === ACOU_POWER ===
       power.reset(new ResultInfo);
       power->resultType = ACOU_POWER;
@@ -823,25 +1409,29 @@ namespace CoupledField{
         velFctPot.reset(new CoefFunctionBOp<Double>(feFct, vel, -1.0));
       }
       velFct = velFctPot;
+      stiffFormCoefs_.insert(velFctPot);
       DefineFieldResult( velFct, vel );
       
       // === ACOU_NORMAL_VELOCITY ===
       velFctNormal.reset(new CoefFunctionSurf(true));
       DefineFieldResult(velFctNormal, velNormal);
+      surfCoefFcts_[velFctNormal] = velFctPot;
       
       // === ACOU_INTENSITY ===
       // Intensity I = p * conj(v)
       intensFct = 
-          CoefFunction::Generate(part,
-                                 CoefXprBinOp(presFct, velFct, CoefXpr::OP_MULT_CONJ ) );
+          CoefFunction::Generate( mp_, part,
+                                 CoefXprBinOp(mp_, presFct, velFct, CoefXpr::OP_MULT_CONJ ) );
       DefineFieldResult(intensFct, intensity);
+      
+      // === ACOU_NORMAL_INTENSITY ===
+      sNormIntens.reset(new CoefFunctionSurf(true));
+      DefineFieldResult( sNormIntens, intensNormal );
+      surfCoefFcts_[sNormIntens] = intensFct;
       
       // === ACOU_POWER ===
       // Power p = \int_Gamma I *n dGamma
-      // a) first, define surface normal intensity
-      sNormIntens.reset(new CoefFunctionSurf(true));
-      
-      // b) then, integrate values
+      // Integrate normal intensity
       if( isComplex_ ) {
         powerFct.reset(new ResultFunctorIntegrate<Complex>(sNormIntens, 
                                                             feFct, power ) );
@@ -867,67 +1457,46 @@ namespace CoupledField{
       } else {
         presGradFct.reset(new CoefFunctionBOp<Double>(feFct, vel, 1.0));
       }
+      stiffFormCoefs_.insert(presGradFct);
       
       // b) multiply by factor
       PtrCoefFct densFct = this->GetCoefFct( ELEM_DENSITY);
       PtrCoefFct factor = 
-          CoefFunction::Generate(Global::COMPLEX, "0","1/(2*pi*f)");
+          CoefFunction::Generate( mp_, Global::COMPLEX, "0","1/(2*pi*f)");
       PtrCoefFct factor2 = 
-          CoefFunction::Generate(Global::COMPLEX,
-                                 CoefXprBinOp(factor, densFct, CoefXpr::OP_DIV ) );
+          CoefFunction::Generate( mp_, Global::COMPLEX,
+                                 CoefXprBinOp(mp_,factor, densFct, CoefXpr::OP_DIV ) );
       velFct = 
-          CoefFunction::Generate( part,
-                                  CoefXprBinOp( factor2, presGradFct, CoefXpr::OP_MULT ) );
+          CoefFunction::Generate( mp_,  part,
+                                  CoefXprBinOp( mp_, factor2, presGradFct, CoefXpr::OP_MULT ) );
       DefineFieldResult( velFct, vel );
 
       // === ACOU_NORMAL_VELOCITY ===
       velFctNormal.reset(new CoefFunctionSurf(true));
       DefineFieldResult(velFctNormal, velNormal);
+      surfCoefFcts_[velFctNormal] = velFct;
       
       // === ACOU_INTENSITY ===
       // Intensity I = p * v
       intensFct = 
-          CoefFunction::Generate(part,
-                                 CoefXprBinOp(presFct, velFct, CoefXpr::OP_MULT_CONJ ) );
+          CoefFunction::Generate( mp_, part,
+                                 CoefXprBinOp(mp_, presFct, velFct, CoefXpr::OP_MULT_CONJ ) );
       DefineFieldResult(intensFct, intensity);
 
+      // === ACOU_NORMAL_INTENSITY ===
+      sNormIntens.reset(new CoefFunctionSurf(true));
+      DefineFieldResult( sNormIntens, intensNormal );
+      surfCoefFcts_[sNormIntens] = intensFct;
+      
       // === ACOU_POWER ===
       // Power p = \int_Gamma I *n dGamma
-      // a) first, define surface normal intensity
-      sNormIntens.reset(new CoefFunctionSurf(true));
-
-      // b) then, integrate values
+      //  Integrate normal intensity
       powerFct.reset(new ResultFunctorIntegrate<Complex>(sNormIntens, 
                                                          feFct, power ) );
       resultFunctors_[ACOU_POWER] = powerFct;
       availResults_.insert(power);
     }
     
-    // ============================
-    // Initialize result functors:
-    // ============================
-    // collect the flux volume flux coefficient function for each region
-    std::map<RegionIdType, PtrCoefFct> intensCoefs, velCoefs;
-
-    // 1) Loop over all BDB-integrators
-    std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
-    for( ; it != bdbInts_.end(); ++it ) {
-      RegionIdType region = it->first;
-      BaseBDBInt* bdb = it->second;
-      if( velFctPot)
-        velFctPot->AddIntegrator(bdb, region);
-      if( presGradFct)
-        presGradFct->AddIntegrator(bdb, region);
-      intensCoefs[region] = intensFct;
-      velCoefs[region] = velFct;
-    }
-    
-    if( intensFct) {
-      sNormIntens->SetVolumeCoefs(intensCoefs);
-    }
-    if( velFct) {
-      velFctNormal->SetVolumeCoefs(velCoefs);
-    }
   }
 
    void AcousticPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){
@@ -940,7 +1509,7 @@ namespace CoupledField{
      flowvelocity->definedOn = ResultInfo::NODE;
      flowvelocity->entryType = ResultInfo::VECTOR;
      
-     meanFlowCoef_.reset(new CoefFunctionMulti());
+     meanFlowCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
      DefineFieldResult( meanFlowCoef_, flowvelocity );
 
      results_.Push_back( flowvelocity );
@@ -950,9 +1519,26 @@ namespace CoupledField{
 
   //! Init the time stepping
   void AcousticPDE::InitTimeStepping(){
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(TimeSchemeGLM::NEWMARK, 0) );
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
 
     feFunctions_[formulation_]->SetTimeScheme(myScheme);
+    if(this->isTimeDomPML_){
+      shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+      feFunctions_[ACOU_PMLAUXVEC]->SetTimeScheme(vecScheme);
+
+      if(!this->isAPML_ && dim_ == 3){
+        shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+        feFunctions_[ACOU_PMLAUXSCALAR]->SetTimeScheme(scalScheme);
+      }
+
+    }
 
   }
+
+
 }
+
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template void AcousticPDE::DefineTransientPMLInts<2>(shared_ptr<ElemList>, std::string);
+  template void AcousticPDE::DefineTransientPMLInts<3>(shared_ptr<ElemList>, std::string);
+#endif

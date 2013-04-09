@@ -22,7 +22,9 @@ public:
   //! \param zeroEmptyRegions If true, the class returns a zero-CoefFunction
   //!                         for regions without assigned CoefFunction.
   //!                         Otherwise an exception is thrown.
-  CoefFunctionMulti(bool zeroEmptyRegions = true);
+  CoefFunctionMulti(CoefDimType dimType, 
+                    UInt dim1, UInt dim2,
+                    bool isComplex, bool zeroEmptyRegions = true);
   
   //! Destructor 
   virtual ~CoefFunctionMulti();
@@ -73,6 +75,26 @@ public:
   //! \copydoc CoefFunction::ToString
   virtual std::string ToString() const;
   
+
+  // COLLECTION ACCESS
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<Double >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<Vector<Double> >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                            StdVector<Matrix<Double> >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<Complex >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<Vector<Complex> >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                            StdVector<Matrix<Complex> >  & vals);
+
 private:
   
   //! Return coefficient function for a given region
@@ -82,7 +104,7 @@ private:
     if(it == regionCoefs_.end()){
       if ( !zeroEmptyRegions_ )
         EXCEPTION("Region " << region << " is not contained in functor");
-      return zeroCeof_;
+      return zeroCoef_;
     }
     return it->second;
   }
@@ -91,10 +113,17 @@ private:
   std::map<RegionIdType,PtrCoefFct > regionCoefs_;
   
   //! "Zero" coefficient function, returned for empty regions
-  PtrCoefFct zeroCeof_;  
+  PtrCoefFct zeroCoef_;  
   
   //! Flag, if zero coefficient function is return for non-set regions
   bool zeroEmptyRegions_;
+  
+  //! Size for vector and row-count for tensors
+  UInt rowSize_;
+  
+  //! Size for columns for tensors
+  UInt colSize_;
+  
 };
 
 } // end of namespace

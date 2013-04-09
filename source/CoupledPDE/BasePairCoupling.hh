@@ -29,6 +29,7 @@ namespace CoupledField
   class BaseBDBInt;
   class BaseFieldFunctor;
   class ResultFunctor;
+  class SimState;
 
   //! Base class for pairwise direct coupling of two pdes
   
@@ -57,7 +58,7 @@ namespace CoupledField
     virtual ~BasePairCoupling();
 
     //! Initialization method
-    virtual void Init( UInt sequenceStep, PtrParamNode info );
+    virtual void Init( UInt sequenceStep);
     
     //! 2nd part of initialization
     virtual void FinalizeInit();
@@ -131,7 +132,9 @@ namespace CoupledField
 
     //! Constructor
     BasePairCoupling( SinglePDE *pde1, SinglePDE *pde2,
-                      PtrParamNode paramNode );
+                      PtrParamNode paramNode, PtrParamNode infoNode,
+                      shared_ptr<SimState> simState,
+                      Domain* domain);
 
     //! Definition of the (bi)linear forms
     virtual void DefineIntegrators() = 0;
@@ -266,6 +269,9 @@ namespace CoupledField
 
     //! Name of coupling
     std::string couplingName_;
+    
+    //! Pointer for saving the internal simulation state
+    shared_ptr<SimState> simState_;
 
     //! Set with matrix types
     std::set<FEMatrixType> matrixTypes_;
@@ -282,6 +288,9 @@ namespace CoupledField
     //! Pointer to grid object
     Grid * ptGrid_;
 
+    //! Pointer to domain object
+    Domain* domain_;
+    
     //! Pointer to algebraic system
     AlgebraicSys * algsys_;
 

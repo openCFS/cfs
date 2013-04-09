@@ -1,10 +1,7 @@
 SET(COUPLED_PDE_SRCS
   BasePairCoupling.cc
-  CoupledPDEDef.cc
-  CouplingMemento.cc
   DirectCoupledPDE.cc
   IterCoupledPDE.cc
-  PDECoupling.cc
   PiezoCoupling.cc
   AcouMechCoupling.cc
   FluidMechCoupling.cc

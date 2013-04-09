@@ -1,3 +1,97 @@
+IF(MINGW OR MSVC)
+
+  SET(MINGW_MKL_VERSION 10.0)
+
+  IF(MINGW_MKL_VERSION VERSION_EQUAL 10.0)
+
+    IF(NOT CFS_BUILD_OS STREQUAL CFS_TARGET_OS)
+      SET(MKL_ROOT_DIR "/opt/pckg/mkl_win/10.0.5.025")
+    ELSE()
+      SET(MKL_ROOT_DIR "e:/dev/intel/MKL/10.0.5.025")
+    ENDIF()
+
+    SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
+
+    IF(CFS_ARCH STREQUAL "I386")
+      SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/ia32/lib")
+
+      SET(MKL_BLAS_LIB
+        ${MKL_LIB_DIR}/mkl_intel_c.lib
+        ${MKL_LIB_DIR}/mkl_intel_thread.lib
+        ${MKL_LIB_DIR}/mkl_core.lib
+        ${MKL_LIB_DIR}/mkl_intel_c.lib
+        ${MKL_LIB_DIR}/libiomp5md.lib
+        )
+      IF(MINGW)
+        LIST(APPEND MKL_BLAS_LIB 
+          ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/ia32/runtmchk.lib
+        )
+      ENDIF()
+
+      SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
+      
+      SET(MKL_PARDISO_LIB
+        ${MKL_LIB_DIR}/mkl_solver.lib
+        )
+    ELSE(CFS_ARCH STREQUAL "I386")
+      SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/em64t/lib")
+
+      SET(MKL_BLAS_LIB
+        ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+        ${MKL_LIB_DIR}/mkl_intel_thread.lib
+        ${MKL_LIB_DIR}/mkl_core.lib
+        ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+        ${MKL_LIB_DIR}/libiomp5mt.lib
+        #    wrap-chkstk
+        #    ${MKL_LIB_DIR}/libguide40.lib
+        )
+      IF(MINGW)
+        LIST(APPEND MKL_BLAS_LIB 
+          ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/amd64/runtmchk.lib
+        )
+      ENDIF()
+      SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
+      
+      SET(MKL_PARDISO_LIB
+        ${MKL_LIB_DIR}/mkl_solver_lp64.lib
+        )
+    ENDIF(CFS_ARCH STREQUAL "I386")
+    
+    SET(DEPS_SEQUENTIAL
+      ${MKL_LIB_DIR}/mkl_solver_lp64_sequential.lib
+      ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+      ${MKL_LIB_DIR}/mkl_intel_thread.lib
+      ${MKL_LIB_DIR}/mkl_core.lib
+      ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+      ${MKL_LIB_DIR}/mkl_sequential.lib
+      ${MKL_LIB_DIR}/libiomp5mt.lib
+      ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/amd64/runtmchk.lib
+      #    ${MKL_LIB_DIR}/libguide40.lib
+      #    /home/strieben/Documents/MKL/test/runtmchk.lib
+      )
+
+  ELSE()  
+    SET(MKL_ROOT_DIR "/opt/pckg/mkl_win/composer_xe_2013")
+    SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64")
+    SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
+
+    SET(MKL_BLAS_LIB
+      ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+      ${MKL_LIB_DIR}/mkl_intel_thread.lib
+      ${MKL_LIB_DIR}/mkl_core.lib
+      ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+      ${MKL_ROOT_DIR}/compiler/lib/intel64/libiomp5md.lib
+      ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc100/amd64/runtmchk.lib
+      )
+    SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
+
+    SET(MKL_PARDISO_LIB "")
+  ENDIF()
+
+  SET(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL." FORCE)
+
+ELSEIF(UNIX)
+
 #-------------------------------------------------------------------------------
 # The idea behind the algorithm implemented for finding MKL, is to let the
 # make files in the MKL example directories tell us which linker flags we need.
@@ -26,18 +120,15 @@ SET (MKL_POSSIBLE_PATHS
   ${MKL_ROOT_DIR_DEFAULT}
   # Path set by ifortvars.sh resp. iccvars.sh
   $ENV{MKLROOT}
-  # Paths at LSE and local paths
+  # Local paths
   /opt/intel/composerxe-2011.4.191
   /opt/intel/Compiler/11.1/069/mkl
   /opt/intel/Compiler/11.0/059/Frameworks/mkl
   /opt/intel/Compiler/11.0/081/mkl
   /opt/intel/Compiler/11.0/074/mkl
   /opt/intel/mkl/10.0.5.025
-  /home/shareAll/linux_bin/intel/Compiler/11.0/081/mkl
-  /home/shareAll/linux_bin/intel/mkl/10.0.5.025
   /opt/intel/mkl/9.1.023
   /opt/intel/mkl/9.1.021
-  /home/shareAll/linux_bin/intel/mkl/9.1.021
   # Paths on Woody
   /apps/intel/ComposerXE/mkl
   /apps/intel/ComposerXE/composerxe-2011.4.191/mkl
@@ -176,6 +267,7 @@ MARK_AS_ADVANCED(MKL_ROOT_DIR)
 
 # TODO: libguide und libiomp durch die von MKL ersetzen.
 # TODO: für libmkl_intel_lp64.a libmkl_gf_lp64.a für gnu einsetzen.
+ENDIF() # MINGW OR MSVC
 
 #-------------------------------------------------------------------------------
 # Set BLAS, LAPACK and PARDISO libraries depending on the MKL version.
@@ -187,3 +279,4 @@ IF(CFS_BLAS_LAPACK STREQUAL "MKL")
   ENDIF(MKL_MAJOR_VERSION LESS 10)  
 ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
 SET(PARDISO_LIBRARY "${MKL_PARDISO_LIB}")
+

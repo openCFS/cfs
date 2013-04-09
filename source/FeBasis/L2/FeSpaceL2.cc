@@ -18,7 +18,7 @@
 namespace CoupledField{
 
   FeSpaceL2::FeSpaceL2(PtrParamNode aNode, PtrParamNode infoNode, Grid* ptGrid)
-   : FeSpace(aNode, infoNode, ptGrid ) {
+   : FeSpaceNodal(aNode, infoNode, ptGrid ) {
     type_ = L2;
     isContinuous_ = false;
   }

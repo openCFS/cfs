@@ -1,0 +1,10 @@
+--- SuperBuild/External_png.cmake.orig	2012-11-13 19:12:47.111568917 +0100
++++ SuperBuild/External_png.cmake	2012-11-13 19:13:21.512516874 +0100
+@@ -5,6 +5,7 @@
+ set(png_install "${CMAKE_CURRENT_BINARY_DIR}")
+ 
+ ExternalProject_Add(png
++  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/paraview
+   URL ${PNG_URL}/${PNG_GZ}
+   URL_MD5 ${PNG_MD5}
+   UPDATE_COMMAND ""

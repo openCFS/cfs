@@ -152,6 +152,11 @@ namespace CoupledField
       numTimeStep_ = numTimeStep;
     };
     
+    //! Set value for coupling counter
+    void SetCouplingIter( UInt count ) {
+      couplingIter_ = count;
+    }
+    
   protected:
 
     //! Constructor
@@ -173,7 +178,9 @@ namespace CoupledField
 
     //! number of time steps
     UInt numTimeStep_;
-    //!
+    
+    //! Counter for iterative coupling
+    UInt couplingIter_;
   };
 
 

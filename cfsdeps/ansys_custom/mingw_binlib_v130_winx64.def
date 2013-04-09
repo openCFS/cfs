@@ -1,0 +1,82 @@
+; pexports lib64/MINGW_X86_64/v110/winx64/binlib.dll -o | tr [A-Z] [a-z] | sed 's/\([a-z0-9]\) /\1_/'
+; /usr/bin/x86_64-w64-mingw32-dlltool -d binlib.def --dllname binlib.dll -l libmingw_binlib.dll.a
+; pexports DLL_file | sed "s/^_\([[:alnum:]_]\+\)@[[:digit:]]\+/\1/" > DEF_file
+; dumpbin /EXPORTS binlib.dll
+; http://www.codeproject.com/Articles/2752/How-to-create-lib-file-when-you-only-have-dll-and
+; http://www.willus.com/mingw/yongweiwu_stdcall.html
+LIBRARY binlib.dll
+EXPORTS
+aclose_                 	@1 NONAME
+adelet_                 	@2 NONAME
+anamez_                 	@3 NONAME
+ansext_                 	@4 NONAME
+ansfat_                 	@5 NONAME
+ans_pack_               	@6 NONAME
+ans_unpack_             	@7 NONAME
+aopen_                  	@8 NONAME
+aposit_                 	@9 NONAME
+aread_                  	@10 NONAME
+asyn_close_             	@11 NONAME
+asyn_complete_          	@12 NONAME
+asyn_open_              	@13 NONAME
+asyn_read_              	@14 NONAME
+asyn_status_            	@15 NONAME
+asyn_write_             	@16 NONAME
+aunlink_                	@17 NONAME
+awrite_                 	@18 NONAME
+awritec_                	@19 NONAME
+binbaseget_             	@20 NONAME
+binbaseput_             	@21 NONAME
+binbaseputshort_        	@22 NONAME
+binclo_                 	@23 NONAME
+binget_                 	@24 NONAME
+binhed_                 	@25 NONAME
+binhed8_                	@26 NONAME
+binin_                  	@27 NONAME
+bininf_                 	@28 NONAME
+binini_                 	@29 NONAME
+biniqr_                 	@30 NONAME
+biniqr8_                	@31 NONAME
+binlc_                  	@32 NONAME
+binout_                 	@33 NONAME
+binput_                 	@34 NONAME
+binrd_                  	@35 NONAME
+binrd8_                 	@36 NONAME
+binset_                 	@37 NONAME
+binsplit_               	@38 NONAME
+binsw_                  	@39 NONAME
+binsyn_                 	@40 NONAME
+bintfo_                 	@41 NONAME
+bintqr_                 	@42 NONAME
+binwrt_                 	@43 NONAME
+binwrt8_                	@44 NONAME
+exinc4_                 	@45 NONAME
+exindp_                 	@46 NONAME
+exinit_                 	@47 NONAME
+field_                  	@48 NONAME
+imove_                  	@49 NONAME
+inexc4_                 	@50 NONAME
+inexdp_                 	@51 NONAME
+inexit_                 	@52 NONAME
+izero_                  	@53 NONAME
+largeintget_            	@54 NONAME
+largeintgetv_           	@55 NONAME
+largeintput_            	@56 NONAME
+largeintputv_           	@57 NONAME
+lenstr_                 	@58 NONAME
+modinfo_                	@59 NONAME
+modinqr_                	@60 NONAME
+sapcb1_                 	@61 NONAME
+sdott_                  	@62 NONAME
+sysclo_                 	@63 NONAME
+sysgetprocno_           	@64 NONAME
+sysioi_                 	@65 NONAME
+sysiqr_                 	@66 NONAME
+sysopn_                 	@67 NONAME
+sysrrd_                 	@68 NONAME
+sysrwr_                 	@69 NONAME
+systim_                 	@70 NONAME
+sysyr_                  	@71 NONAME
+syuser_                 	@72 NONAME
+upcase_                 	@73 NONAME
+ansjmp_                 	@74 NONAME

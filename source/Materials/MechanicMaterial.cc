@@ -27,7 +27,9 @@ namespace CoupledField
   // ***********************
   //   Default Constructor
   // ***********************
-  MechanicMaterial::MechanicMaterial() : BaseMaterial() {
+  MechanicMaterial::MechanicMaterial(MathParser* mp,
+                                     CoordSystem * defaultCoosy) 
+: BaseMaterial(mp, defaultCoosy) {
 
     materialDatabaseName_ = "Mechanics";
     mHandle_ = mp_->GetNewHandle(true);
@@ -399,10 +401,10 @@ namespace CoupledField
     PtrCoefFct mFunct;
     if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
       
-      CoefXprMechSubTensor subTensorXpr( tensorCoef_[matType] );
+      CoefXprMechSubTensor subTensorXpr(mp_,  tensorCoef_[matType] );
       
       subTensorXpr.SetSubTensorType( tensorType, transposed );
-      mFunct = CoefFunction::Generate( Global::COMPLEX, subTensorXpr );
+      mFunct = CoefFunction::Generate( mp_, Global::COMPLEX, subTensorXpr );
     } else {
       EXCEPTION( "Material tensor not found" );
     }

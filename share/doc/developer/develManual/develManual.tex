@@ -1,4 +1,4 @@
-\documentclass[12pt]{report}
+\documentclass[fontsize=12pt,paper=a4]{scrreprt}
 %
 \usepackage{ifpdf}
 
@@ -14,6 +14,9 @@
 \usepackage{booktabs}
 \newcommand{\otoprule}{\midrule[\heavyrulewidth]}
 \newcolumntype{x}[1]{>{\centering\arraybackslash\hspace{0pt}}m{#1}}
+
+\usepackage{wrapfig}
+\usepackage[usenames,dvipsnames]{xcolor}
 
 \usepackage{rotating}
 \usepackage{tikz}
@@ -76,7 +79,7 @@
 % =============================================================================
 %
 %
-\LSETITLE{CFS++ -- Developer's Manual}{Simon Triebenbacher and Manfred Kaltenbacher\vspace{2mm}}{Developer's Guide}
+\LSETITLE{CFS++ -- Developer's Manual}{~}{~}
 %
 %
 \tableofcontents

@@ -5,6 +5,10 @@ set(hdf5_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/hdf5")
 set(hdf5_install  "${CMAKE_CURRENT_BINARY_DIR}")
 set(hdf5_source  "${hdf5_prefix}/src/hdf5")
 
+IF(NOT CFS_BUILD_OS STREQUAL CFS_TARGET_OS)
+  SET(HDF5_CROSS_COMPILE 1)
+ENDIF()
+
 #SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/hdf5/hdf5-patch.cmake.in")
 #SET(PFN "${hdf5_prefix}/hdf5-patch.cmake")
 #CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
@@ -24,9 +28,16 @@ SET(CMAKE_ARGS
   -DHDF5_INSTALL_BIN_DIR:PATH=bin/${CFS_ARCH_STR}
   -DHDF5_INSTALL_LIB_DIR:PATH=${LIB_SUFFIX}/${CFS_ARCH_STR}
   # We do not want to see warning messages from external projects
-  -DCMAKE_C_FLAGS:STRING=${CFLAGS}
-  -DCMAKE_CXX_FLAGS:STRING=${CFLAGS}
+  -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}
+  -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
+  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
 )
+
+IF(CMAKE_TOOLCHAIN_FILE)
+  LIST(APPEND CMAKE_ARGS
+    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
+  )
+ENDIF()
 
 #-------------------------------------------------------------------------------
 # The hdf5-static external project
@@ -34,7 +45,7 @@ SET(CMAKE_ARGS
 # our plugin.
 #-------------------------------------------------------------------------------
 #ExternalProject_Add(hdf5-shared
-#  DEPENDS zlib-shared
+#  DEPENDS zlib
 #  PREFIX ${hdf5_prefix}
 #  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/hdf5
 #  SOURCE_DIR ${hdf5_source}
@@ -51,27 +62,75 @@ SET(CMAKE_ARGS
 #    -DZLIB_LIBRARY:FILEPATH=${hdf5_install}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_SHARED_LIBRARY_PREFIX}z${CMAKE_SHARED_LIBRARY_SUFFIX}
 #    )
 
+IF(MINGW)
+  IF(HDF5_CROSS_COMPILE)
+    LIST(APPEND CMAKE_ARGS
+      -DH5_HAVE_GETHOSTNAME:INTERNAL=0
+      )
+    
+    IF(CFS_ARCH STREQUAL "X86_64")
+      LIST(APPEND CMAKE_ARGS
+	-C ${CMAKE_CURRENT_SOURCE_DIR}/cfsdeps/hdf5/TryRunResults_MINGW64_CENTOS6.cmake
+	)
+    ENDIF()
+  ENDIF()
+
+ENDIF(MINGW)
+
+LIST(APPEND CMAKE_ARGS
+  -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARY}
+  )
+
 #-------------------------------------------------------------------------------
 # The hdf5-static external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(hdf5-static
-  DEPENDS zlib-static
+  DEPENDS zlib
   PREFIX ${hdf5_prefix}
   DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/hdf5
   SOURCE_DIR ${hdf5_source}
   URL ${HDF5_URL}/${HDF5_GZ}
   URL_MD5 ${HDF5_MD5}
+  LIST_SEPARATOR ^
   CMAKE_ARGS
-     ${CMAKE_ARGS}
+    ${CMAKE_ARGS}
     -DBUILD_SHARED_LIBS:BOOL=OFF
     -DHDF5_BUILD_CPP_LIB:BOOL=ON
     -DHDF5_BUILD_HL_LIB:BOOL=ON
     -DHDF5_BUILD_FORTRAN:BOOL=OFF
     -DHDF5_ENABLE_Z_LIB_SUPPORT:BOOL=ON
     -DZLIB_INCLUDE_DIR:PATH=${hdf5_install}/include
-    -DZLIB_LIBRARY:FILEPATH=${hdf5_install}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX}
     -DHDF5_BUILD_TOOLS:BOOL=ON
+    # On Mac OS X we can get problems with the system strdup function.
+    -DH5_HAVE_STRDUP:BOOL=OFF
     )
+
+#-------------------------------------------------------------------------------
+# Set names of patch file and template file.
+#-------------------------------------------------------------------------------
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/hdf5/hdf5-patch.cmake.in")
+SET(PFN "${hdf5_prefix}/hdf5-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
+#-------------------------------------------------------------------------------
+# We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
+# want to apply the patch script  during configuration time but also if it has
+# changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
+# script. This can be achieved by  adding an additional build step between the
+# download and configure steps.
+#
+# NOTE: The  patch script should  be designed  in such a  way, that it  can be
+# applied to  an already patched  source tree. This  is due to the  fact, that
+# ExternalProject_Add only extracts the source if the MD5 sum has has changed.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(hdf5-static custom_patch
+   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+   DEPENDEES download
+   DEPENDERS configure
+   DEPENDS "${PFN}"
+   WORKING_DIRECTORY ${hdf5_source}
+)
+
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
@@ -85,10 +144,32 @@ SET(CFSDEPS
 # Determine paths of HDF5 libraries.
 #-------------------------------------------------------------------------------
 IF(WIN32)
-  SET(HDF5_LIBRARY_RELEASE ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR}/hdf5dll.lib)
-  SET(HDF5_CPP_LIBRARY_RELEASE ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR}/hdf5_cppdll.lib)
-  SET(HDF5_LIBRARY_DEBUG ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR}/hdf5ddll.lib)
-  SET(HDF5_CPP_LIBRARY_DEBUG ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR}/hdf5_cppddll.lib)
+  IF(MINGW)
+    SET(HDF5_LIBRARY_DEBUG
+      "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}hdf5_debug${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    SET(HDF5_LIBRARY_RELEASE
+      "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}hdf5${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
+    SET(HDF5_CPP_LIBRARY_DEBUG
+      "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}hdf5_cpp_debug${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    SET(HDF5_CPP_LIBRARY_RELEASE
+      "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}hdf5_cpp${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
+    SET(HDF5_LT_LIBRARY_DEBUG
+      "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}hdf5_hl_debug${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    SET(HDF5_LT_LIBRARY_RELEASE
+      "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}hdf5_hl${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
+    SET(HDF5_LT_CPP_LIBRARY_DEBUG
+      "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}hdf5_hl_cpp_debug${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    SET(HDF5_LT_CPP_LIBRARY_RELEASE
+      "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}hdf5_hl_cpp${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  ELSE()
+    SET(HDF5_LIBRARY_RELEASE ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR}/hdf5dll.lib)
+    SET(HDF5_CPP_LIBRARY_RELEASE ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR}/hdf5_cppdll.lib)
+    SET(HDF5_LIBRARY_DEBUG ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR}/hdf5ddll.lib)
+    SET(HDF5_CPP_LIBRARY_DEBUG ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR}/hdf5_cppddll.lib)
+  ENDIF()
 ELSE(WIN32)
   SET(HDF5_LIBRARY_DEBUG
     "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}hdf5_debug${CMAKE_STATIC_LIBRARY_SUFFIX}")

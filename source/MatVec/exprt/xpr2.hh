@@ -56,6 +56,29 @@ public:
 
 };
 
+template <class P, class A, class F>
+class Xpr2FuncHermitian {
+  A a;
+public:
+  inline Xpr2FuncHermitian(const A& a_) : a(a_) {}
+  inline P operator()(unsigned int i, unsigned int j) const { return F::apply( a(j,i) ); }
+  inline unsigned int rows() const {return a.cols();}
+  inline unsigned int cols() const {return a.rows();}
+
+};
+
+// Specialication for complex case
+template <class A, class F>
+class Xpr2FuncHermitian<Complex, A, F> {
+  A a;
+public:
+  inline Xpr2FuncHermitian(const A& a_) : a(a_) {}
+  inline Complex operator()(unsigned int i, unsigned int j) const { return F::apply( std::conj(a(j,i)) ); }
+  inline unsigned int rows() const {return a.cols();}
+  inline unsigned int cols() const {return a.rows();}
+
+};
+
 template <class P, class A, class B, class Op>
 class Xpr2BinOp {
   A a;
@@ -299,6 +322,7 @@ static inline f(const Dim2<P,A>& a) \
 }
 //XXX(ident, Identity)
 XXX(operator- , UnaryMinus)
+XXX(Conj , Conjugate)
 //XXX(exp, Exp)
 #undef XXX
 
@@ -327,6 +351,20 @@ static inline f(const Xpr2<P,Dim2<P,A> >& a) \
 XXX(Transpose, Identity)
 //XXX(exp, Exp)
 #undef XXX
+
+// Explicit Hermitian of Dim2 (NO TYPE PROMOTION)
+#define XXX(f,ap) \
+template <class P, class A> \
+Xpr2<P, Xpr2FuncHermitian<P, ConstRef2<P,Dim2<P,A> >, ap<P  > > > \
+static inline f(const Dim2<P,A>& a) \
+{\
+   typedef Xpr2FuncHermitian<P, ConstRef2<P,Dim2<P,A> >, ap<P  > > ExprT;\
+   return Xpr2<P,ExprT>(ExprT(ConstRef2<P,Dim2<P,A> >(a))); \
+}
+XXX(Herm, Identity)
+//XXX(exp, Exp)
+#undef XXX
+
 
 // Functions of Xpr2 (NO TYPE PROMOTION)
 #define XXX(f,ap) \
@@ -454,7 +492,6 @@ static inline op (const Xpr2<P,A>& a, const Dim1<P2,B>& b) {                    
 }
 XXX(operator*)
 #undef XXX
-
 
 
 // // Multiplication with Dim2 and Dim1

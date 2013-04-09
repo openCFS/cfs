@@ -3,7 +3,7 @@
 #-----------------------------------------------------------------------------
 SET(REQ_MAJOR_VER 2)
 SET(REQ_MINOR_VER 8)
-SET(REQ_PATCH_VER 4)
+SET(REQ_PATCH_VER 8)
 
 #-----------------------------------------------------------------------------
 # Give some hints to the user, if CMake is too old.
@@ -19,7 +19,7 @@ MESSAGE(
 ! But do not worry. There are a number of ways to remedy this situation:       !
 ================================================================================
 
-1. Download and run the latest bootstrapper script for CFS++
+1. On Unix download and run the latest bootstrapper script for CFS++
 
     $ LSE17FTP='ftp://lse17.e-technik.uni-erlangen.de:40065'
     $ wget $LSE17FTP/scripts/bootstrap_devel_machine.sh
@@ -29,15 +29,15 @@ MESSAGE(
    This will not only install CMake but also all other packages
    required to build CFS++.
 
-2. Run the bootstrapper script from the CFS++ source directory
+2. Run the bootstrapper script from the CFS++ source directory (Unix)
 
     $ cd CFS_SOURCE_DIR
     $ sudo bash
     $ bash share/scripts/bootstrap_devel_machine.sh
 
 3. Download just the CMake binaries for your platform from Kitware at
-   http://cmake.org/cmake/resources/software.html
-   You may have to install additional packages by hand!
+   http://cmake.org/cmake/resources/software.html (works on Windows/Linux/Mac)
+   You may have to install additional packages by hand! (cf. Developer's Manual)
 
 ================================================================================
 ")
@@ -63,6 +63,13 @@ CMAKE_MINIMUM_REQUIRED(
 PROJECT(CFS C CXX Fortran)
 
 #-----------------------------------------------------------------------------
+# Make sure that output of started programs is in English, so that we can
+# grep for defined messages.
+#-----------------------------------------------------------------------------
+SET(ENV{LC_MESSAGES} "en_EN")
+SET(ENV{LANG} C)
+
+#-----------------------------------------------------------------------------
 # Include some utility macros (for building ext. libs, etc...) 
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/CFS_macros.cmake")
@@ -70,7 +77,7 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 #-----------------------------------------------------------------------------
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
-SET(CFS_VERSION_YEAR "12")
+SET(CFS_VERSION_YEAR "13")
 SET(CFS_VERSION_MONTH "02")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
@@ -78,9 +85,7 @@ SET(CFS_VERSION
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Branchy Burbank")
-# c.f. http://web.mit.edu/invent/iow/burbank.html,
-# http://en.wikipedia.org/wiki/Russet_Burbank_potato
+SET(CFS_NAME "Cocky Coriolis")
 
 colormsg(HIBLUE "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
 
@@ -92,15 +97,35 @@ SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}"
   CACHE INTERNAL "CFS_BUILD_HOST")
 
 #-----------------------------------------------------------------------------
-# Set user who builds CFS++, in order to track back who built a 
-# given binary.
+# Set user who builds CFS++, in order to track back who built a given binary.
 #-----------------------------------------------------------------------------
-EXECUTE_PROCESS(
-  COMMAND id -u -nr 
-  WORKING_DIRECTORY "."
-  OUTPUT_VARIABLE CFS_BUILD_USER
-  )
-STRING(STRIP "${CFS_BUILD_USER}" CFS_BUILD_USER)
+IF(WIN32 AND NOT CMAKE_CROSSCOMPILING)
+  SET(REG_KEY "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows")
+  SET(REG_KEY "${REG_KEY}\\CurrentVersion\\Explorer")
+  EXECUTE_PROCESS(
+    COMMAND reg query "${REG_KEY}" /v "Logon User Name"
+    WORKING_DIRECTORY "."
+    OUTPUT_VARIABLE OUTPUT
+    )
+
+  STRING(REPLACE "\n" ";" OUTPUT "${OUTPUT}")
+
+  FOREACH(line IN LISTS OUTPUT)
+    IF(line MATCHES "Logon User Name")
+      STRING(REPLACE "Logon User Name" "" line "${line}")
+      STRING(REPLACE "REG_SZ" "" line "${line}")
+      STRING(STRIP "${line}" CFS_BUILD_USER)
+    ENDIF()
+  ENDFOREACH()
+
+ELSEIF(UNIX OR MINGW)
+  EXECUTE_PROCESS(
+    COMMAND id -u -nr 
+    WORKING_DIRECTORY "."
+    OUTPUT_VARIABLE CFS_BUILD_USER
+    )
+  STRING(STRIP "${CFS_BUILD_USER}" CFS_BUILD_USER)
+ENDIF()
 
 SET(CMAKE_MODULE_PATH ${CFS_SOURCE_DIR}/cmake_modules)
 
@@ -169,6 +194,8 @@ OPTION(USE_PARDISO "Use Pardiso" ${USE_PARDISO_DEFAULT})
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library." ${USE_ARPACK_DEFAULT})
 OPTION(USE_ILUPACK "Use Preconditioners from ILUPACK." ${USE_ILUPACK_DEFAULT})
 OPTION(USE_SUITESPARSE "Use CholMod and UMFPACK solvers from SuiteSparse." ${USE_SUITESPARSE_DEFAULT})
+OPTION(USE_LIS "Use (L)ibrary of (I)terative (S)olvers." ${USE_LIS_DEFAULT})
+OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs." ${USE_SUPERLU_DEFAULT})
 
 IF(USE_PARDISO OR
    USE_ARPACK OR
@@ -250,16 +277,22 @@ OPTION(USE_KNITRO "Use the external KNITRO optimizer." FALSE)
 # Use cgal toggles the inclusion of the CGAL library.
 #-----------------------------------------------------------------------------
 OPTION(USE_CGAL
-  "Activate fast element mapping using CGAL libray."
+  "Activate fast element mapping using CGAL library."
   ${USE_CGAL_DEFAULT})
 
 #-----------------------------------------------------------------------------
-# The USE_OPENMP option triggers the usage of OpenMP versions of external
-# libraries and the compilation of CFS++ with OpenMP compiler switches.
+# Use libfbi toggles the inclusion of the Fast Box Intersection library.
+# Please note, that either CGAL or libfbi can be used at a time, but not both!
 #-----------------------------------------------------------------------------
-OPTION(USE_OPENMP
-  "Turn on support for OpenMP. Needs GCC >= 4.2 or Intel C++."
-  ${USE_OPENMP_DEFAULT})
+OPTION(USE_LIBFBI
+  "Use fast box intersection library."
+  ${USE_LIBFBI_DEFAULT})
+
+IF(USE_CGAL AND USE_LIBFBI)
+  MESSAGE(FATAL_ERROR
+    "Either USE_CGAL or USE_LIBFBI can be actived, but not both!")
+ENDIF()
+
 OPTION(DEBUG "Build debug version of the code." ${DEBUG_DEFAULT})
 OPTION(PROFILING "Turn on compiler profiling (DEBUG/RELEASE)." ${PROFILING_DEFAULT})
 OPTION(COVERAGE "Turn on code coverage output." ${COVERAGE_DEFAULT})
@@ -376,12 +409,17 @@ INCLUDE("cmake_modules/compiler.cmake")
 #-----------------------------------------------------------------------------
 # Determine if some Fortran system libs are installed (blas, lapack, g2c...)
 #-----------------------------------------------------------------------------
-INCLUDE("cmake_modules/FindFortranLibs.cmake")
+INCLUDE("cmake_modules/CheckFortranRuntime.cmake")
 
 #-----------------------------------------------------------------------------
 # Determine on what UNIX/Linux/Windows distribution we are building on
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/distro.cmake")
+
+#-----------------------------------------------------------------------------
+# Perform some configure checks
+#-----------------------------------------------------------------------------
+INCLUDE("cmake_modules/ConfigureChecks.cmake")
 
 #-----------------------------------------------------------------------------
 # Configure Dart testing support.  This should be done before any
@@ -509,9 +547,12 @@ IF(USE_SUITESPARSE)
   ADD_SUBDIRECTORY(source/OLAS/external/cholmod)
 ENDIF(USE_SUITESPARSE)
 
+IF(USE_LIS)
+  ADD_SUBDIRECTORY(source/OLAS/external/lis)
+ENDIF(USE_LIS)
+
 ADD_SUBDIRECTORY(source/CoupledPDE)
 ADD_SUBDIRECTORY(source/DataInOut)
-ADD_SUBDIRECTORY(source/DataInOut/DefineFiles)
 ADD_SUBDIRECTORY(source/DataInOut/Logging)
 ADD_SUBDIRECTORY(source/DataInOut/ParamHandling)
 
@@ -558,7 +599,9 @@ ENDIF(USE_ANSYSRST)
 
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/TextOutput)
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/InfoResultOutput)
-ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
+IF(NOT MINGW)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
+ENDIF(NOT MINGW)
 
 ADD_SUBDIRECTORY(source/Domain)
 ADD_SUBDIRECTORY(source/Domain/CoefFunction)

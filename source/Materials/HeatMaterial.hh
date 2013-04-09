@@ -19,7 +19,8 @@ namespace CoupledField {
   public:
 
     //! Default constructor
-    HeatMaterial();
+    HeatMaterial(MathParser* mp,
+                 CoordSystem * defaultCoosy);
 
     //! Destructor
     ~HeatMaterial();

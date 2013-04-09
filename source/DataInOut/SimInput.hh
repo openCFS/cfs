@@ -24,7 +24,7 @@ namespace CoupledField
   class ParamNode;
   class BaseResult;
 
-  //! Abstract base class for hanling exceptions and errors
+  //! Abstract base class for handling exceptions and errors
   class ErrorHandler {
 
   public:
@@ -66,11 +66,13 @@ namespace CoupledField
   
 
     //! Constructor with name of mesh-file
-      SimInput(std::string fileName, PtrParamNode inputNode ) :
+      SimInput(std::string fileName, PtrParamNode inputNode, PtrParamNode infoNode ) :
           fileName_(fileName),
           mi_(NULL),
-          myParam_(inputNode)
+          myParam_(inputNode),
+          myInfo_(infoNode)
       {};
+
 
     //! Destructor
     virtual ~SimInput() {};
@@ -99,7 +101,7 @@ namespace CoupledField
     virtual UInt GetNumNodes() = 0;
  
     //! Get total number of elements in mesh
-    virtual UInt GetNumElems( const int32_t dim = -1 ) = 0;
+    virtual UInt GetNumElems( const Integer dim = -1 ) = 0;
 
     //! Get total number of regions
     virtual UInt GetNumRegions() = 0;
@@ -188,13 +190,27 @@ namespace CoupledField
     
     //! Fill pre-initialized results object with values of specified step
     virtual void GetResult( UInt sequenceStep,
-                               UInt stepValue,
-                               shared_ptr<BaseResult> result,
-                               bool isHistory = false ) {
+                            UInt stepValue,
+                            shared_ptr<BaseResult> result,
+                            bool isHistory = false ) {
       EXCEPTION( "Not implemented in base class" );
     } 
     //@}
 
+    shared_ptr<BaseResult> 
+    GetResult( UInt sequenceStep,
+               UInt stepValue,
+               SolutionType solType,
+               const std::string& regionName );
+    
+    template<typename TYPE>
+    shared_ptr<FeFunction<TYPE> >
+    GetFeFunction( UInt sequenceStep,
+                   UInt stepValue,
+                   SolutionType solType,
+                   std::set<std::string> & regionNames );
+    
+    
   protected:
 
     //! Name of input file
@@ -208,6 +224,9 @@ namespace CoupledField
     
     //! Parameter node for current output class
     PtrParamNode myParam_;
+    
+    //! Info node for current output class
+    PtrParamNode myInfo_;
 
     UInt dim_;
     std::vector<UInt> numElemsOfDim_;

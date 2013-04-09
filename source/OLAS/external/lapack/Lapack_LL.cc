@@ -241,7 +241,7 @@ namespace CoupledField {
     lp_ldab = sysMatBW_ + 1;
 
     // Now call the LAPACK routine to compute Cholesky factorisation
-    F77NAME(dpbtrf)( &lp_uplo, &lp_n, &lp_kd, facMat_ + 1, &lp_ldab, &lp_info );
+    dpbtrf( &lp_uplo, &lp_n, &lp_kd, facMat_ + 1, &lp_ldab, &lp_info );
 
     // Process return status of LAPACK (i.e. if it is compiled to return
     // on error)
@@ -403,7 +403,7 @@ namespace CoupledField {
     lp_ldab = facMatEntries_ + 1;
 
     // Now call the LAPACK routine to compute Cholesky factorisation
-    F77NAME(zpbtrf)( &lp_uplo, &lp_n, &lp_kd, facMat_ + 1, &lp_ldab, &lp_info );
+    zpbtrf( &lp_uplo, &lp_n, &lp_kd, facMat_ + 1, &lp_ldab, &lp_info );
 
     // Process return status of LAPACK (i.e. if it is compiled to return
     // on error)
@@ -526,8 +526,8 @@ namespace CoupledField {
       }
 
       // Call LAPACK's solution routine
-      F77NAME(dpbtrs)( &lp_uplo, &lp_n, &lp_kd, &lp_nrhs, facMat_ + 1, &lp_ldab,
-                 lapackRHS_ + 1, &lp_ldb, &lp_info );
+      dpbtrs( &lp_uplo, &lp_n, &lp_kd, &lp_nrhs, facMat_ + 1, &lp_ldab,
+              lapackRHS_ + 1, &lp_ldb, &lp_info );
 
       // Check return status
       if ( lp_info < 0 ) {
@@ -581,8 +581,8 @@ namespace CoupledField {
       }
 
       // Call LAPACK's solution routine
-      F77NAME(zpbtrs)( &lp_uplo, &lp_n, &lp_kd, &lp_nrhs, facMat_ + 1, &lp_ldab,
-                 lapackRHS_ + 1, &lp_ldb, &lp_info );
+      zpbtrs( &lp_uplo, &lp_n, &lp_kd, &lp_nrhs, facMat_ + 1, &lp_ldab,
+              lapackRHS_ + 1, &lp_ldb, &lp_info );
 
       // Check return status
       if ( lp_info < 0 ) {

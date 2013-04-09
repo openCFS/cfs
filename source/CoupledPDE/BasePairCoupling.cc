@@ -3,7 +3,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh" 
 #include "PDE/SinglePDE.hh"
 #include "Domain/Domain.hh"
-#include "DataInOut/MaterialHandler.hh"
+#include "DataInOut/ParamHandling/MaterialHandler.hh"
 #include "Domain/Results/ResultFunctor.hh"
 //#include "Materials/PiezoMaterial.hh"
 #include "Driver/Assemble.hh"
@@ -11,6 +11,7 @@
 
 // header for Drivers
 #include "Driver/TransientDriver.hh"
+#include "Driver/TimeSchemes/BaseTimeScheme.hh"
 
 namespace CoupledField {
 
@@ -19,7 +20,10 @@ namespace CoupledField {
   //   Constructor
   // ***************
   BasePairCoupling::BasePairCoupling(SinglePDE *pde1, SinglePDE *pde2,
-                                     PtrParamNode paramNode)    
+                                     PtrParamNode paramNode ,
+                                     PtrParamNode infoNode,
+                                     shared_ptr<SimState> simState,
+                                     Domain* domain)    
   {
 
     
@@ -29,17 +33,20 @@ namespace CoupledField {
     ptGrid_         = NULL;
     algsys_         = NULL;
     nonLin_         = false;
+    simState_       = simState;
 
     pde1_   = pde1;
     pde2_   = pde2;
     myParam_ = paramNode;
-    ptGrid_ = domain->GetGrid();
+    domain_ = domain;
+    ptGrid_ = domain_->GetGrid();
     dim_    = ptGrid_->GetDim(); 
 
     isaxi_ = false;
     isComplex_ = false;
     
     
+    infoNode_ = infoNode->Get(couplingName_, ParamNode::APPEND);
   }
 
 
@@ -64,9 +71,8 @@ namespace CoupledField {
   // ********
   //   Init
   // ********
-  void BasePairCoupling::Init( UInt sequenceStep, PtrParamNode info ) {
+  void BasePairCoupling::Init( UInt sequenceStep ) {
     
-    infoNode_ = info->Get(couplingName_, ParamNode::APPEND);
     
     
     results1_ = pde1_->GetResultInfos();
@@ -77,9 +83,9 @@ namespace CoupledField {
     // Determine analysistype and use of complex values
     analysisType_ = pde1_->GetAnalysisType();
  
-    isComplex_ = BasePDE::IsComplex();
+    isComplex_ = domain_->GetDriver()->IsComplex();
 
-    PtrParamNode in = infoNode_->Get(ParamNode::HEADER); 
+    PtrParamNode in = infoNode_->Get(ParamNode::PN_HEADER); 
     in->Get("sequenceStep")->SetValue(sequenceStep); 
     in->Get("pde1")->SetValue(pde1_->GetName()); 
     in->Get("pde2")->SetValue(pde2_->GetName());
@@ -248,7 +254,7 @@ namespace CoupledField {
 
     if ( analysisType_ == BasePDE::TRANSIENT ) {
       Double dt;
-      dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
+      dt = dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())
              ->GetDeltaT();
       //WARN("Note: The initialization of the timestepping class is currently wrong: "
       //    "The 2nd argument must be the complete SBM-vector of the algebraic system in "
@@ -297,12 +303,12 @@ namespace CoupledField {
       }
       
       if(isComplex_){
-        feFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Complex>());
-        rhsFeFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Complex>());
+        feFunctions_[spIt->first].reset(new FeFunction<Complex>(domain_->GetMathParser()));
+        rhsFeFunctions_[spIt->first].reset(new FeFunction<Complex>(domain_->GetMathParser()));
       }
       else{
-        feFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Double>());
-        rhsFeFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Double>());
+        feFunctions_[spIt->first].reset(new FeFunction<Double>(domain_->GetMathParser()));
+        rhsFeFunctions_[spIt->first].reset(new FeFunction<Double>(domain_->GetMathParser()));
         
         // Note: in the transient case, we also need fefunctions for the time derivatives
         // ... todo: add initialization
@@ -328,14 +334,14 @@ namespace CoupledField {
     // get list of parameter nodes for region definitions
     ParamNodeList regionNodes;
 
-    PtrParamNode regionListNode = param->
+    PtrParamNode regionListNode = domain_->GetParamRoot()->
       Get("domain")->Get("regionList", ParamNode::PASS );
     if( regionListNode)
       regionNodes = regionListNode->GetList("region");
 
     // obtain pointer to materialHandler
     MaterialHandler * matLoader = NULL;
-    matLoader = domain->GetMaterialHandler();
+    matLoader = domain_->GetMaterialHandler();
 
     
     // -------------------
@@ -369,14 +375,14 @@ namespace CoupledField {
         // log the just read material. LoadMaterial() so to say initializes the ToInfo()
         PtrParamNode in = infoNode_->GetByVal("material", "name", material);
         // additional regions are automatically appended
-        in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
+        in->Get("regionList")->GetByVal("region", "name", domain_->GetGrid()->GetRegion().ToString(actRegionId));
         materials_[actRegionId]->ToInfo(in);
 
         
         // Check for local coordinate system
         if( refCoordSys != "" ) {
           CoordSystem * actCoosy = 
-            domain->GetCoordSystem( refCoordSys);
+            domain_->GetCoordSystem( refCoordSys);
           materials_[actRegionId]->SetCoordSys( actCoosy );
         }
         
@@ -443,12 +449,12 @@ namespace CoupledField {
           continue;
 
         // print logging information
-        PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->GetByVal("region", "name", region)->Get("composite");
+        PtrParamNode in = infoNode_->Get(ParamNode::PN_HEADER)->GetByVal("region", "name", region)->Get("composite");
 
         // get composite node
         PtrParamNode compNode;
         try {
-          compNode = param->Get("domain")->GetByVal("composite", "name", composite );
+          compNode = domain_->GetParamRoot()->Get("domain")->GetByVal("composite", "name", composite );
         } catch( Exception& ex ) {
           RETHROW_EXCEPTION( ex, "No composite material defined with name '" << composite << "'" );
         }
@@ -519,7 +525,7 @@ namespace CoupledField {
     ResultSet::iterator it;
     // initializing entityType to NODE_LIST or receive compiler warning 
     EntityList::ListType entityType = EntityList::NODE_LIST;
-    ResultHandler * resHandler = domain->GetResultHandler();
+    ResultHandler * resHandler = domain_->GetResultHandler();
     
     // initialize map for relating EntityUnknownType and name of xml-element
     std::map<ResultInfo::EntityUnknownType, std::string> elemNames;

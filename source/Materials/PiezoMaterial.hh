@@ -25,7 +25,8 @@ template <class TYPE> class Matrix;
   public:
 
     //! Default constructor
-    PiezoMaterial();
+    PiezoMaterial(MathParser* mp,
+                  CoordSystem * defaultCoosy);
 
     //! Destructor
     ~PiezoMaterial();

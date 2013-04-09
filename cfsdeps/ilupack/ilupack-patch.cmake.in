@@ -1,7 +1,20 @@
+# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
+# kate: indent-width 2; encoding utf-8; auto-brackets on;
+# kate: mixedindent on; indent-mode cstyle; line-numbers on;
+# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
+# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+
+#=============================================================================
+# Set global variables, configured from the external build.
+#=============================================================================
 set(ilupack_source  "@ilupack_source@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_FORTRAN_COMPILER_NAME "@CFS_FORTRAN_COMPILER_NAME@")
 SET(CFS_DISTRO "@CFS_DISTRO@")
 
+#=============================================================================
+# Include some convenient macros (e.g. for applying patches).
+#=============================================================================
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 EXECUTE_PROCESS(
@@ -10,6 +23,21 @@ EXECUTE_PROCESS(
   "${ilupack_source}/CMakeLists.txt"
 )
 
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+  "${CFS_SOURCE_DIR}/cfsdeps/ilupack/ilupack_config.h.in"
+  "${ilupack_source}/include/ilupack_config.h.in"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+  "${CFS_SOURCE_DIR}/cfsdeps/ilupack/cc_etimes.c"
+  "${ilupack_source}/tools/cc_etimes.c"
+)
+
+#=============================================================================
+# Apply some patches.
+#=============================================================================
 SET(patches
   "ilupack-nomore-malloc-header.patch"
   "ilupack-sparspak-revrse.patch"
@@ -17,10 +45,26 @@ SET(patches
   )
 
 if(CFS_DISTRO STREQUAL "MACOSX") 
-  SET(patches
-    ${patches}
+  LIST(APPEND patches
     "ilupack-globals.patch"
     )
 endif(CFS_DISTRO STREQUAL "MACOSX") 
+
+LIST(APPEND patches
+  # Use the standard amd_preprocess routine from Suitesparse and just provide
+  # a wrapper ilupack_amd_preprocess inside ILUPACK
+  "ilupack-amd-preprocess.patch"
+  
+  # Do not define USE_LAPACK_DRIVER in ilupack.h but rather from CMake.
+  "ilupack-use-lapack-driver.patch"
+
+  "ilupack-mainsym3.patch"
+  )
+
+IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "OPEN64")
+  LIST(APPEND patches
+    "ilupack-dmumps-open64.patch"
+  )
+ENDIF()
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/ilupack")

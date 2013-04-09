@@ -1,0 +1,10 @@
+--- SuperBuild/External_VRPN.cmake.orig	2012-11-11 11:40:36.977598608 +0100
++++ SuperBuild/External_VRPN.cmake	2012-11-11 11:41:28.894597063 +0100
+@@ -5,6 +5,7 @@
+ set(VRPN_install "${CMAKE_CURRENT_BINARY_DIR}")
+ 
+ ExternalProject_Add(VRPN
++  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/paraview
+   SOURCE_DIR ${VRPN_source}
+   BINARY_DIR ${VRPN_binary}
+   INSTALL_DIR ${VRPN_install}

@@ -111,7 +111,24 @@ namespace CoupledField {
   template <>
   inline double Real<std::complex<double> >(std::complex<double> a) { return a.real(); }
 
+  template <typename T>
+  inline double Imag(T a) { return ((std::complex<double>) a).imag(); }
+
+  template <>
+  inline double Imag<double>(double a) { return 0; }
+
+  template <>
+  inline double Imag<std::complex<double> >(std::complex<double> a) { return a.imag(); }
   
+  template <typename T>
+  inline bool IsZero(T a) { return a == 0; }
+
+  template <>
+  inline bool IsZero<double>(double a) { return a == 0.0; }
+
+  template <>
+  inline bool IsZero<std::complex<double> >(std::complex<double> a) { return a.real() == 0.0 && a.imag() == 0.0; }
+
   template <typename T>
   inline void PrintSingleEntry( T val, FILE *fp ) {
     EXCEPTION("PrintSingleEntry not implemented for this data type ");
@@ -120,13 +137,13 @@ namespace CoupledField {
   //! Print a single double value to a file
   template<>
   inline void PrintSingleEntry<Double>( Double val, FILE *fp ) {
-    fprintf( fp, "% 22.16e", val );
+    fprintf( fp, " % 22.16E", val );
   }
   
   //! Print a single complex value to a file
   template<>
   inline void PrintSingleEntry<Complex>( Complex val, FILE *fp ) {
-    fprintf( fp, "% 22.16e\t% 22.16e", (val.real()), (val.imag()) );
+    fprintf( fp, " % 22.16E % 22.16E", (val.real()), (val.imag()) );
   }
 
   //! Dummy implementation of multiplication of a real value and complex

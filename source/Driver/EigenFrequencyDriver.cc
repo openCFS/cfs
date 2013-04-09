@@ -8,6 +8,7 @@
 #include "Domain/Domain.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/SimState.hh"
 #include "DataInOut/ResultHandler.hh"
 
 #include "PDE/StdPDE.hh"
@@ -18,8 +19,10 @@ namespace CoupledField {
   //   Constructor
   // ***************
   EigenFrequencyDriver::EigenFrequencyDriver(UInt sequenceStep,
-                                             bool isPartOfSequence) 
-    : SingleDriver( sequenceStep, isPartOfSequence ) {
+                                             bool isPartOfSequence,
+                                             shared_ptr<SimState> state,
+                                             Domain* domain ) 
+    : SingleDriver( sequenceStep, isPartOfSequence, state, domain ) {
 
     // set correct analysistype
     analysis_ = BasePDE::EIGENFREQUENCY;
@@ -37,7 +40,7 @@ namespace CoupledField {
     
     // get parameter node
     PtrParamNode myNode = 
-      param->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
+        domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
         ->Get("analysis")->Get("eigenFrequency");
 
     // read required parameters from parameter node
@@ -82,6 +85,8 @@ namespace CoupledField {
     resHandler->BeginMultiSequenceStep( sequenceStep_,
                                         analysis_,
                                         numConverged );
+    
+    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_, numConverged );
 
     // Print out eigenfrequencies
     std::cout << std::endl << std::endl;
@@ -111,8 +116,8 @@ namespace CoupledField {
 
       for ( UInt i = 0 ; i < numConverged; i++ ) {
         // Set current frequency value in the mathParser
-        domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", abs(eigenFreqs[i]) );
-        domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", i+1 );
+        domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", abs(eigenFreqs[i]) );
+        domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", i+1 );
         
         ptPDE_->GetSolveStep()->SetActStep(i);
         ptPDE_->GetSolveStep()->SetActFreq(std::abs(eigenFreqs[i]));
@@ -120,6 +125,7 @@ namespace CoupledField {
         resHandler->BeginStep( i+1, std::abs(eigenFreqs[i]) );
         ptPDE_->WriteResultsInFile(i+1, std::abs(eigenFreqs[i]) );
         resHandler->FinishStep( );
+        simState_->WriteStep( i+1, std::abs(eigenFreqs[i]) );
       }
     }
                                                  }
@@ -149,6 +155,7 @@ namespace CoupledField {
     resHandler->BeginMultiSequenceStep( sequenceStep_,
                                         analysis_,
                                         numConverged );
+    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_, numConverged );
 
     // Print out eigenfrequencies
     std::cout << std::endl << std::endl;
@@ -186,8 +193,8 @@ namespace CoupledField {
         Double actFreq = eigenFreqs[i].imag()/(8.0*atan(1.0));
         
         // Set current frequency value in the mathParser
-        domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq );
-        domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", i+1 );
+        domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq );
+        domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", i+1 );
         
         ptPDE_->GetSolveStep()->SetActStep(i);
         ptPDE_->GetSolveStep()->SetActFreq(actFreq);
@@ -207,11 +214,11 @@ namespace CoupledField {
     assert(write_results == true);
     
     if(given_analysis_id == NULL)
-      analysis_id_ = driverNode->Get(ParamNode::PROCESS);
+      analysis_id_ = driverNode->Get(ParamNode::PN_PROCESS);
     else
       analysis_id_ = given_analysis_id;
 
-    ResultHandler* resHandler = domain->GetResultHandler();
+    ResultHandler* resHandler = domain_->GetResultHandler();
 
     // ------------------------------
     // Phase 1: calculate eigenvalues( generalized problem)
@@ -247,6 +254,7 @@ namespace CoupledField {
       resHandler->FinishMultiSequenceStep();
       resHandler->Finalize();
     }
+    simState_->FinishMultiSequenceStep();
   }
 
   
