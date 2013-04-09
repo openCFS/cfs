@@ -734,7 +734,7 @@ namespace CoupledField
       ldb = trans_b ? k : m;
       ldc = m;
       
-      F77NAME(dgemm)(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
+      dgemm(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
 #else
     EXCEPTION("Compile with USE_BLAS = yes ");
 #endif
@@ -821,7 +821,7 @@ namespace CoupledField
       ldb = trans_b ? k : m;
       ldc = m;
 
-      F77NAME(zgemm)(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
+      zgemm(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
 #else
     EXCEPTION("Compile with USE_BLAS = yes ");
 #endif
@@ -1000,6 +1000,7 @@ namespace CoupledField
         transposedMat.data_[i][j] = data_[j] [i];
   }
 
+  
 
   template<class TYPE>
   void Matrix<TYPE>::DirectSolve( SingleVector & x1, const SingleVector & b1 ) const
@@ -1126,8 +1127,8 @@ namespace CoupledField
       
     case ZGESV:
       // solves systems with general system matrix
-      F77NAME(zgesv)(&lp_dim , &lp_nrRHS, lp_sysVecf77, &lp_lda, 
-             lp_interchanges, lp_rhsVecf77, &lp_ldb, &lp_info);
+      zgesv(&lp_dim , &lp_nrRHS, lp_sysVecf77, &lp_lda, 
+            lp_interchanges, lp_rhsVecf77, &lp_ldb, &lp_info);
 
       if ( lp_info != 0 ) {
         EXCEPTION( "ZGESV reports invalid input parameter" );
@@ -1137,9 +1138,9 @@ namespace CoupledField
       
       lp_lwork=192;
       // solves systems with symmetric system matrix
-      F77NAME(zsysv)(&lp_matType, &lp_dim , &lp_nrRHS, lp_sysVecf77, 
-             &lp_lda, lp_interchanges, lp_rhsVecf77, &lp_ldb,
-             lp_workf77, &lp_lwork, &lp_info);
+      zsysv(&lp_matType, &lp_dim , &lp_nrRHS, lp_sysVecf77, 
+            &lp_lda, lp_interchanges, lp_rhsVecf77, &lp_ldb,
+            lp_workf77, &lp_lwork, &lp_info);
 
       if ( lp_info != 0 ) {
         EXCEPTION( "ZSYSV reports invalid input parameter" );
@@ -1148,9 +1149,9 @@ namespace CoupledField
     case ZHESV:
       lp_lwork=192;
       // solves systems with hermitian system matrix
-      F77NAME(zhesv)(&lp_matType, &lp_dim , &lp_nrRHS, lp_sysVecf77,
-             &lp_lda, lp_interchanges,lp_rhsVecf77, &lp_ldb, 
-             lp_workf77, &lp_lwork, &lp_info);
+      zhesv(&lp_matType, &lp_dim , &lp_nrRHS, lp_sysVecf77,
+            &lp_lda, lp_interchanges,lp_rhsVecf77, &lp_ldb, 
+            lp_workf77, &lp_lwork, &lp_info);
 
       if ( lp_info != 0 ) {
         EXCEPTION( "ZHESV reports invalid input parameter" );
@@ -1238,8 +1239,8 @@ namespace CoupledField
       lp_rworkf77[count] = lp_rwork[count];
     }
     
-    F77NAME(zheev)( &lp_jobz, &lp_uplo, &lp_N, lp_af77, &lp_lda, lp_wf77, 
-            lp_workf77, &lp_lworkf77, lp_rworkf77 ,&lp_infof77); 
+    zheev( &lp_jobz, &lp_uplo, &lp_N, lp_af77, &lp_lda, lp_wf77, 
+           lp_workf77, &lp_lworkf77, lp_rworkf77 ,&lp_infof77); 
     
     // reconvert f772C++
     for (UInt count=0; count < lp_work.GetSize();count++)
@@ -1397,13 +1398,13 @@ namespace CoupledField
     int info;
 
     // calculate LU-factorization of block
-    F77NAME(dgetrf)(&n,&n,data_[0],&n,ipiv,&info);
+    dgetrf(&n,&n,data_[0],&n,ipiv,&info);
     if( info != 0 ) {
       EXCEPTION("Error during LU-factorization of matrix. "
                 << "Error value is " << info );
     }
     // invert matrix using previous LU factorization
-    F77NAME(dgetri)(&n,data_[0],&n,ipiv,work,&lwork,&info);
+    dgetri(&n,data_[0],&n,ipiv,work,&lwork,&info);
     if( info != 0 ) {
       EXCEPTION("Error during inversion of matrix. "
                 << "Error value is " << info );
@@ -1830,7 +1831,7 @@ namespace CoupledField
   bool Matrix<TYPE>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if(isnan(data_[0][k])) return true;
+      if(std::isnan(data_[0][k])) return true;
 
     return false;
   }
@@ -1840,8 +1841,8 @@ namespace CoupledField
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if(isnan(data_[0][k].real())) return true;
-      if(isnan(data_[0][k].imag())) return true;
+      if(std::isnan(data_[0][k].real())) return true;
+      if(std::isnan(data_[0][k].imag())) return true;
     }
     return false;
   }
@@ -1851,7 +1852,7 @@ namespace CoupledField
   bool Matrix<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if(isinf(data_[0][k])) return true;
+      if(std::isinf(data_[0][k])) return true;
 
     return false;
   }
@@ -1861,8 +1862,8 @@ namespace CoupledField
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if(isinf(data_[0][k].real())) return true;
-      if(isinf(data_[0][k].imag())) return true;
+      if(std::isinf(data_[0][k].real())) return true;
+      if(std::isinf(data_[0][k].imag())) return true;
     }
     return false;
   }
@@ -1887,6 +1888,45 @@ namespace CoupledField
   //   }
   //   return amSymm;
   // }
+
+  template<class TYPE>
+  Matrix<TYPE> Conj( const Matrix<TYPE>& m) {
+    return m;
+  }
+
+  template<>
+  Matrix<Complex> Conj( const Matrix<Complex>& m) {
+    UInt numRows = m.GetNumRows();
+    UInt numCols = m.GetNumCols();
+    Matrix<Complex> ret(numRows, numCols);
+    for( UInt i = 0; i < numRows; i++ ) {
+      for (UInt j = 0; j < numCols; j++ ) {
+        ret[i][j] = std::conj(m[i][j]);
+      }
+    }
+    return ret;
+  }
+
+  template<class TYPE>
+  Matrix<TYPE> Herm( const Matrix<TYPE>& m ) {
+    return m;
+  }
+
+  template<>
+  Matrix<Complex> Herm( const Matrix<Complex>& m ) {
+    UInt numRows = m.GetNumRows();
+    UInt numCols = m.GetNumCols();
+    Matrix<Complex> herm(numCols, numRows);
+    for( UInt i = 0; i < numCols; i++ ) {
+      for (UInt j = 0; j < numRows; j++ ) {
+        herm[i][j] = std::conj(m[j][i]);
+      }
+    }
+    return herm;
+  }
+
+  template Matrix<Double> Conj( const Matrix<Double>& m);
+  template Matrix<Double> Herm( const Matrix<Double>& m);
 
 #ifdef __GNUC__
   template class Matrix<Double>;

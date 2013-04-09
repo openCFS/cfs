@@ -25,7 +25,9 @@ namespace CoupledField
       \param grid pointer to grid
       \param paramNode pointer to the corresponding parameter node
     */
-    PerturbedFlowPDE( Grid* grid, PtrParamNode paramNode );
+    PerturbedFlowPDE( Grid* grid, PtrParamNode paramNode,
+                      PtrParamNode infoNode,
+                      shared_ptr<SimState> simState, Domain* domain );
 
     //! Destructor
     virtual ~PerturbedFlowPDE(){};
@@ -50,24 +52,9 @@ namespace CoupledField
     //! Read special boundary conditions
     void ReadSpecialBCs();
 
-    // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-
-    //! Initalize PDE coupling
-    void InitCoupling(PDECoupling * Coupling);
-
-    //! Calculate coupling terms
-    void CalcOutputCoupling();
-
-    //! Returns if PDE can compute the quantity
-    bool HasOutput(SolutionType output);
-  
     //! Calculate field variables at arbitrary points
     void CalcField( SolutionType solType, StdVector<const Elem*>& elems,
                     StdVector<LocPoint>& points, SingleVector& values );
-
-
 
   protected:
 
@@ -84,6 +71,9 @@ namespace CoupledField
     //! Define available postprocessing results
     void DefinePostProcResults();
 
+    //! \copydoc SinglePDE::FinalizePostProcResults
+    void FinalizePostProcResults();
+     
     //! \copydoc SinglePDE::CreateFeSpaces
     virtual std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string&  formulation,
@@ -111,6 +101,8 @@ namespace CoupledField
     //! Surface regions on which pressure surface integral has to be defined
     StdVector<RegionIdType> presSurfaces_;
 
+    //! type of stabilization
+    bool stabilized_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

@@ -1,10 +1,17 @@
 #ifndef FILE_SCFE_GRID_2001
 #define FILE_SCFE_GRID_2001
 
-#include <list>
+#include <def_use_cgal.hh>
+#include <def_use_libfbi.hh>
+
 #include <set>
 #include <boost/array.hpp>
-#include <def_use_cgal.hh>
+#include <boost/unordered_map.hpp>
+
+
+#if defined(USE_CGAL) && defined(USE_LIBFBI)
+#error "Either USE_CGAL or USE_LIBFBI can be actived, but not both!"
+#endif
 
 #ifdef USE_CGAL
 #include <CGAL/box_intersection_d.h>
@@ -56,6 +63,7 @@ namespace CoupledField
     friend class BaseNcInterface;
     friend class MortarInterface;
 
+
     // =======================================================================
     // CONSTRUCTION AND INTIIALIZATION
     // =======================================================================
@@ -64,8 +72,8 @@ namespace CoupledField
     //! Constructor
 
     //! Standard Constructor
-    //! \param aptFileType pointer to FileType for reading initial grid
-    Grid();
+    //! \param param Pointer to <domain> parameter node
+    Grid(PtrParamNode param, PtrParamNode infoNode );
 
     //! Destructor
     virtual ~Grid();
@@ -253,18 +261,48 @@ namespace CoupledField
                                      const StdVector<Elem*> & elemList,
 				     bool onlyLinNodes = false ) = 0;
 
-    //! Return element at global position
+    //! Return element at global position and the locally projected coordinate
+    
+    //! This method returns a FE element, in which the global coordinate
+    //! is located, and the related local coordinate. If a list
+    //! of regionIds is passed, only elements within these regions are
+    //! considered in the search.   
+    //! \param globCoord (in) Global coordinate for which the element is requested
+    //! \param locCoord (out) Local projection of the global coordinate in the
+    //!                      reference element coordinate system.
+    //! \param srcRegion (in) (Optional) List or regions, which are considered
+    //!                       for the element search. If the set is empty,
+    //!                       all (volume) regions are considered. 
+    //! \return Element at global coordinate position.
     const Elem* GetElemAtGlobalCoord(const Vector<double>& globCoord,
                                      LocPoint& locCoord,
-                                     const std::set<RegionIdType> srcRegions
-                                     = std::set<RegionIdType> () );
+                                     const std::set<RegionIdType>& srcRegions
+                                     = std::set<RegionIdType> (),
+                                     bool printWarnings = true );
     
-    //! Map a list of global coordinates to pair 
+    //! Return a list of elements and local coordinate for global coordinates
     void GetElemsAtGlobalCoords( const StdVector<Vector<double> >& globCoords,
                                 StdVector< LocPoint >& localCoords,
                                 StdVector< const Elem* > & elems,
-                                const std::set<RegionIdType> srcRegions 
-                                = std::set<RegionIdType>());
+                                const std::set<RegionIdType>& srcRegions 
+                                = std::set<RegionIdType>(),
+                                bool printWarnings = true);
+    
+    //! Return for a given node number the element and a local coordinate
+    
+    //! This method is similar to \ref GetElemAtGlobalCoord, but it takes
+    //! a node number rather than a global coordinate. Thus, it will definitely
+    //! find an element and the corresponding local coordinate. 
+    //! This method is especially useful for retrieving the coordinates of 
+    //! mid-side nodes in a higher order FE-simulation, where only the
+    //! vertex nodes have natural degree of freedom
+    
+    //! \note Upon the first call, the internal data structure gets built up,
+    //! so that succeeding calls will perform faster.
+    const Elem* GetElemAtNode( UInt nodeNum,
+                               LocPoint& locCoord,
+                               const std::set<RegionIdType>& srcRegions
+                               = std::set<RegionIdType> () );
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++++ REGION INFORMATION +++++++++++++++++++++++++
@@ -280,7 +318,7 @@ namespace CoupledField
     //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED
     //! \param name (in) name of the new region
     //! \param regionid (out) id of the new region
-    RegionIdType AddSurfaceRegion(const std::string& name) {
+    RegionIdType AddSurfaceRegion(const std::string & name) {
       return AddRegion(name, SURFACE_REGION);
     }
 
@@ -748,6 +786,12 @@ namespace CoupledField
     
     //! Flag for initialization status
     bool isInitialized_;
+    
+    //! ParamNode of xml file
+    PtrParamNode param_;
+    
+    //! Info node
+    PtrParamNode info_;
 
     /** This is redundant to regionData but convenient for mapping regionId to region_name.
      * Note the the region_id is determined by AddRegion() and not an enum! */
@@ -785,7 +829,7 @@ namespace CoupledField
     // =======================================================================
     shared_ptr<IntScheme> integScheme_;
     
-    
+
     // this is interpolation stuff, but it must be defined,
     // even if you switch off interpolation
   public:
@@ -805,6 +849,15 @@ namespace CoupledField
     //  ELEMENT / POINT MAPPING
     // =======================================================================
 
+    //@{
+    //! Store for mid-side nodes the elements and the local coordinates
+    typedef StdVector<std::pair<const Elem*, LocPoint> > NodeElemMatch; 
+    boost::unordered_map<UInt, NodeElemMatch> midNodeProjections_;
+    //@}
+    
+    //! Trigger projection of mid-side nodes to element interior
+    virtual void MapMidSideNodes() = 0;
+    
     //! Structure for mapping global coordinates to a list of
     //! potentially interesting elements
     struct PointElemMatch {
@@ -825,7 +878,8 @@ namespace CoupledField
     //! the corresponding Elem-pointer in the elems array is NULL.
     void MapGlobPointsToLoc( const StdVector<PointElemMatch>& matches,
                              StdVector<const Elem*>& elems,
-                             StdVector<LocPoint>& lps );
+                             StdVector<LocPoint>& lps,
+                             bool printWarnings = true);
 
 #ifdef USE_CGAL
 
@@ -855,8 +909,13 @@ namespace CoupledField
     //! create a box from a given element
     HandleBox CreateBoxFromElement(const Elem* elem,Double globToler);
     
-#else // USE_CGAL
+#elif USE_LIBFBI // USE_CGAL
 
+    void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
+                                   const std::set<RegionIdType> srcRegions 
+                                   = std::set<RegionIdType>());
+
+#else
     //! Return list of potential elements containing global points (slow version)
 
     //! This method returns for every global coordinate a list

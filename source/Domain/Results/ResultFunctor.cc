@@ -48,8 +48,8 @@ EvalResult( shared_ptr<BaseResult> res ) {
       LocPoint lp = Elem::shapes[el->type].midPointCoord;
       LocPointMapped lpm;
       shared_ptr<ElemShapeMap> esm = 
-        this->ptGrid_->GetElemShapeMap( el, true );
-      lpm.Set( lp, esm );
+        it.GetGrid()->GetElemShapeMap( el, true );
+      lpm.Set( lp, esm, 0.0 );
       this->GetVector(tempField, lpm );
       // loop over dofs
       for(UInt iDim = 0; iDim < dim_; iDim++ ) {
@@ -70,12 +70,12 @@ EvalResult( shared_ptr<BaseResult> res ) {
       for ( it.Begin(); !it.IsEnd(); it++ ) {
         UInt node = it.GetNode();
 
-        ptGrid_->GetNodeCoordinate(coord, node, true );
+        it.GetGrid()->GetNodeCoordinate(coord, node, true );
         
         globCoords.Push_back(coord);
       }
       
-      ptGrid_->GetElemsAtGlobalCoords(globCoords, localCoords, elems);
+      it.GetGrid()->GetElemsAtGlobalCoords(globCoords, localCoords, elems);
 
       UInt numElems = elems.GetSize();
 
@@ -91,8 +91,8 @@ EvalResult( shared_ptr<BaseResult> res ) {
         LocPoint& lp = localCoords[i];
         LocPointMapped lpm;
         shared_ptr<ElemShapeMap> esm = 
-          this->ptGrid_->GetElemShapeMap( el, true );
-        lpm.Set( lp, esm );
+          it.GetGrid()->GetElemShapeMap( el, true );
+        lpm.Set( lp, esm, 0.0 );
         this->GetVector(tempField, lpm );
         // loop over dofs
         for(UInt iDim = 0; iDim < dim_; iDim++ ) {
@@ -114,6 +114,7 @@ EvalResult( shared_ptr<BaseResult> res ) {
 template<class TYPE> void FieldCoefFunctor<TYPE>::
 GetVector(Vector<TYPE>& vec, 
           const LocPointMapped& lpm) {
+
   switch( coef_->GetDimType()) {
     case CoefFunction::VECTOR:
       coef_->GetVector( vec, lpm );
@@ -140,9 +141,11 @@ template class FieldCoefFunctor<Complex>;
 
 template<class TYPE> EnergyResultFunctor<TYPE>::
 EnergyResultFunctor(shared_ptr<BaseFeFunction> feFct,
-                    shared_ptr<ResultInfo> inf ) :
+                    shared_ptr<ResultInfo> inf,
+                    TYPE factor) :
                     ResultFunctor( inf) {
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
+  factor_ = factor;
   derivType_ = INTEGRATED;
   
   // default: use full integration order 
@@ -173,14 +176,14 @@ EvalResult(shared_ptr<BaseResult> res ) {
   // Loop over regions
   for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
     shared_ptr<EntityList> actSDList = 
-        ptGrid_->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
+        nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
     EntityIterator elemIt = actSDList->GetIterator();
 
     Double tempEnergy = 0.0;
     // loop over elements
     for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
       const Elem * el = elemIt.GetElem();
-      // energy density is 1/2 * elemSol^T * kernel * elemSol
+      // energy density is factor_ * elemSol^T * kernel * elemSol
       this->feFct_->GetElemSolution( elemSol, el);
       if( accuracy_ == FULL ) {
         // ==================
@@ -189,7 +192,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
         forms_[el->regionId]->CalcElementMatrix(elemMatR, 
                                                 elemIt, elemIt);
         temp = elemMatR * elemSol;
-        tempEnergy += (temp * elemSol) * 0.5;
+        tempEnergy += (temp * elemSol) * factor_;
         
       } else if ( accuracy_ == MIDPOINT ) {
         // =====================
@@ -204,7 +207,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
         shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
         // Get shape map from grid
         shared_ptr<ElemShapeMap> esm = 
-            domain->GetGrid()->GetElemShapeMap( el, true );
+            elemIt.GetGrid()->GetElemShapeMap( el, true );
 
         // Get integration points
         StdVector<LocPoint> intPoints;
@@ -215,10 +218,10 @@ EvalResult(shared_ptr<BaseResult> res ) {
         LocPointMapped lpm;
         for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
           // Calculate for each integration point the LocPointMapped
-          lpm.Set( intPoints[i], esm );
+          lpm.Set( intPoints[i], esm, weights[i] );
           forms_[el->regionId]->CalcKernel(elemMatR, lpm );
           temp = elemMatR * elemSol;
-          tempEnergy += (temp * elemSol) * 0.5 * lpm.jacDet * weights[i]; 
+          tempEnergy += (temp * elemSol) * factor_ * lpm.jacDet * weights[i]; 
         } // loop integration points
         
       } else {
@@ -239,7 +242,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
   // Loop over regions
   for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
     shared_ptr<EntityList> actSDList = 
-        ptGrid_->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
+        nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
     EntityIterator elemIt = actSDList->GetIterator();
 
     Complex tempEnergy = 0.0;
@@ -267,7 +270,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
                                                   elemIt, elemIt);
           temp = elemMatR * elemSol;
         }
-        tempEnergy += (temp * elemSol) * 0.5;
+        tempEnergy += (temp * Conj(elemSol) ) * factor_;
       }  else if( accuracy_ == MIDPOINT ) {
 
         // =====================
@@ -283,7 +286,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
         shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
         // Get shape map from grid
         shared_ptr<ElemShapeMap> esm = 
-            domain->GetGrid()->GetElemShapeMap( el, true );
+            elemIt.GetGrid()->GetElemShapeMap( el, true );
 
         // Get integration points
         StdVector<LocPoint> intPoints;
@@ -295,7 +298,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
         for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
           //std::cerr << "i = " << i << ", point = " << intPoints[i] << ", weight = " << weights[i] << std::endl;
           // Calculate for each integration point the LocPointMapped
-          lpm.Set( intPoints[i], esm );
+          lpm.Set( intPoints[i], esm, weights[i] );
           if( forms_[el->regionId]->IsComplex() )  {
             forms_[el->regionId]->CalcKernel(elemMatC, lpm );
             temp = elemMatC * elemSol;
@@ -303,7 +306,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
             forms_[el->regionId]->CalcKernel(elemMatR, lpm );
             temp = elemMatR * elemSol;
           }
-          tempEnergy += (temp * elemSol) * 0.5 * lpm.jacDet * weights[i]; 
+          tempEnergy += (temp * Conj(elemSol) ) * factor_ * lpm.jacDet * weights[i]; 
         } // loop integration points
       } else {
         EXCEPTION("No valid integration method defined");
@@ -358,7 +361,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
     // Loop over names (= regions / surface regions / named elements)
     for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
       shared_ptr<EntityList> actSDList = 
-          ptGrid_->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
+          nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
       EntityIterator elemIt = actSDList->GetIterator();
 
       TYPE tempVal = 0.0;
@@ -374,7 +377,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
         feSpace->GetFe( elemIt, method, order );
         // Get shape map from grid
         shared_ptr<ElemShapeMap> esm = 
-            domain->GetGrid()->GetElemShapeMap( el, true );
+            elemIt.GetGrid()->GetElemShapeMap( el, true );
 
         // Get integration points
         StdVector<LocPoint> intPoints;
@@ -388,7 +391,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
         for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
 
           // Calculate for each integration point the LocPointMapped
-          lpm.Set( intPoints[i], esm );
+          lpm.Set( intPoints[i], esm, weights[i] );
           coef_->GetScalar(tempVal, lpm );
           elemVal += tempVal * lpm.jacDet * weights[i];
         } // loop integration points
@@ -404,7 +407,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
     UInt pos = 0;
     for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
       shared_ptr<EntityList> actSDList = 
-          ptGrid_->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
+          nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
       EntityIterator elemIt = actSDList->GetIterator();
 
       Vector<TYPE> tempVal;
@@ -420,7 +423,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
         feSpace->GetFe( elemIt, method, order );
         // Get shape map from grid
         shared_ptr<ElemShapeMap> esm = 
-            domain->GetGrid()->GetElemShapeMap( el, true );
+            elemIt.GetGrid()->GetElemShapeMap( el, true );
 
         // Get integration points
         StdVector<LocPoint> intPoints;
@@ -435,7 +438,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
         for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
 
           // Calculate for each integration point the LocPointMapped
-          lpm.Set( intPoints[i], esm );
+          lpm.Set( intPoints[i], esm, weights[i] );
           coef_->GetVector(tempVal, lpm );
           elemVal += tempVal * (lpm.jacDet * weights[i]);
         } // loop integration points

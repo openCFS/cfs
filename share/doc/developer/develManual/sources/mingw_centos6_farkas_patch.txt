@@ -1,0 +1,90 @@
+--- /usr/lib64/gcc/x86_64-w64-mingw32/4.5.3/include/xmmintrin.h.orig    2011-08-27 20:04:37.000000000 +0200
++++ /usr/lib64/gcc/x86_64-w64-mingw32/4.5.3/include/xmmintrin.h 2012-11-27 11:03:53.467961829 +0100
+@@ -1,4 +1,4 @@
+-/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
++/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+    Free Software Foundation, Inc.
+
+    This file is part of GCC.
+@@ -38,6 +38,10 @@
+ /* Get _mm_malloc () and _mm_free ().  */
+ #include <mm_malloc.h>
+
++#ifdef __cplusplus
++extern "C" {
++#endif
++
+ /* The Intel API is flexible enough that we must allow aliasing with other
+    vector types, and their scalar components.  */
+ typedef float __m128 __attribute__ ((__vector_size__ (16), __may_alias__));
+@@ -1242,6 +1246,10 @@
+   (row3) = __builtin_ia32_movhlps (__t3, __t2);                                \
+ } while (0)
+
++#ifdef __cplusplus
++}
++#endif
++
+ /* For backward source compatibility.  */
+ #ifdef __SSE2__
+ # include <emmintrin.h>
+--- /usr/lib64/gcc/x86_64-w64-mingw32/4.5.3/include/emmintrin.h.orig    2011-08-27 20:04:37.000000000 +0200
++++ /usr/lib64/gcc/x86_64-w64-mingw32/4.5.3/include/emmintrin.h 2012-11-27 11:01:13.411996446 +0100
+@@ -1,4 +1,4 @@
+-/* Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
++/* Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+    Free Software Foundation, Inc.
+
+    This file is part of GCC.
+@@ -35,6 +35,10 @@
+ /* We need definitions from the SSE header files*/
+ #include <xmmintrin.h>
+
++#ifdef __cplusplus
++extern "C" {
++#endif
++
+ /* SSE2 */
+ typedef double __v2df __attribute__ ((__vector_size__ (16)));
+ typedef long long __v2di __attribute__ ((__vector_size__ (16)));
+@@ -1309,7 +1313,7 @@
+ extern __inline int __attribute__((__gnu_inline__, __always_inline__, __artificial__))
+ _mm_extract_epi16 (__m128i const __A, int const __N)
+ {
+-  return __builtin_ia32_vec_ext_v8hi ((__v8hi)__A, __N);
++  return (unsigned short) __builtin_ia32_vec_ext_v8hi ((__v8hi)__A, __N);
+ }
+
+ extern __inline __m128i __attribute__((__gnu_inline__, __always_inline__, __artificial__))
+@@ -1319,7 +1323,7 @@
+ }
+ #else
+ #define _mm_extract_epi16(A, N) \
+-  ((int) __builtin_ia32_vec_ext_v8hi ((__v8hi)(__m128i)(A), (int)(N)))
++  ((int) (unsigned short) __builtin_ia32_vec_ext_v8hi ((__v8hi)(__m128i)(A), (int)(N)))
+ #define _mm_insert_epi16(A, D, N)                              \
+   ((__m128i) __builtin_ia32_vec_set_v8hi ((__v8hi)(__m128i)(A),        \
+                                          (int)(D), (int)(N)))
+@@ -1508,6 +1512,10 @@
+   return (__m128d) __A;
+ }
+
++#ifdef __cplusplus
++}
++#endif
++
+ #endif /* __SSE2__  */
+
+ #endif /* _EMMINTRIN_H_INCLUDED */
+--- /usr/x86_64-w64-mingw32/sys-root/mingw/include/unknwn.h.orig     2012-11-27 11:55:01.829984498 +0100
++++ /usr/x86_64-w64-mingw32/sys-root/mingw/include/unknwn.h     2012-11-27 11:44:03.484976093 +0100
+@@ -67,7 +67,9 @@
+        virtual HRESULT WINAPI QueryInterface(REFIID riid,void **ppvObject) = 0;
+        virtual ULONG WINAPI AddRef(void) = 0;
+        virtual ULONG WINAPI Release(void) = 0;
++#if USE___UUIDOF != 0
+        template<class Q> HRESULT WINAPI QueryInterface(Q **pp) { return QueryInterface(__uuidof(*pp),(void **)pp); }
++#endif
+       END_INTERFACE
+     };
+   }

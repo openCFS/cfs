@@ -1,0 +1,20 @@
+--- SuperBuild/External_zlib.cmake.orig	2012-11-11 00:45:14.823723198 +0100
++++ SuperBuild/External_zlib.cmake	2012-11-11 00:46:26.876719617 +0100
+@@ -9,7 +9,7 @@
+ if(WIN32)
+ 
+   ExternalProject_Add(zlib
+-    DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR}
++    DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/zlib
+     SOURCE_DIR ${zlib_source}
+     BINARY_DIR ${zlib_build}
+     INSTALL_DIR ${zlib_install}
+@@ -47,6 +47,6 @@
+   set(zlib_CONFIGURE_COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/zlib_configure_step.cmake)
+ 
+   ExternalProject_Add(zlib
+-    DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR}
++    DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/zlib
+     SOURCE_DIR ${zlib_source}
+     INSTALL_DIR ${zlib_install}
+     URL ${ZLIB_URL}/${ZLIB_GZ}

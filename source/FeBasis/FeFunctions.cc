@@ -4,42 +4,38 @@
 #include <boost/tr1/type_traits.hpp>
 
 #include "PDE/SinglePDE.hh"
-#include "OLAS/algsys/AlgebraicSys.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
-#include "Driver/SolveSteps/StdSolveStep.hh"
-#include "Driver/Assemble.hh"
 #include "BaseFE.hh"
 #include "H1/H1Elems.hh"
 #include "HCurl/HCurlElems.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/LinForms/BUInt.hh"
+#include "Driver/TimeSchemes/BaseTimeScheme.hh"
 
 namespace CoupledField {
 DECLARE_LOG(fefunc)
  DEFINE_LOG(fefunc, "feFunction")
- 
-  BaseFeFunction::BaseFeFunction(){
-    
-    fctId_ = NO_FCT_ID;
-    mHandle_ = domain->GetMathParser()->GetNewHandle();
-    algsys_ = NULL;
-    
-    // initialize members of coefficient function
-    dependType_ = CoefFunction::GENERAL;
-    isAnalytic_ = false;
-    dimType_ = NO_DIM;
+
+ BaseFeFunction::BaseFeFunction(MathParser* mp){
+
+  fctId_ = NO_FCT_ID;
+  if(mp) {
+    mp_ = mp;
+    mHandle_ = mp_->GetNewHandle();
+  } else  {
+    mp_ = NULL;
+  }
+  algsys_ = NULL;
+
+  // initialize members of coefficient function
+  dependType_ = CoefFunction::GENERAL;
+  isAnalytic_ = false;
+  dimType_ = NO_DIM;
 
   }
-  
+
   BaseFeFunction::~BaseFeFunction(){
-    
-    // delete all mapping contexts
-    std::map<std::string, MapContext*>::iterator it = entityCtx_.begin(); 
-    for( ; it != entityCtx_.end(); ++it ) {
-      delete it->second;
-    }
-    entityCtx_.clear();
   }
   
   
@@ -141,6 +137,16 @@ DECLARE_LOG(fefunc)
     entities_.Push_back(bc->entities);
   }
 
+  void BaseFeFunction::AddLoadCoefFunction( shared_ptr<CoefFunction> load ){
+    this->loadCoefs_.Push_back(load);
+    //entities for this case should already be definied....
+    //entities_.Push_back(bc->entities);
+  }
+
+  void BaseFeFunction::AddExternalDataSource( shared_ptr<CoefFunction> coef ){
+    this->externalDataCoefs_.Push_back(coef);
+  }
+
   void BaseFeFunction::AddConstraint( shared_ptr<Constraint> bc ){
     constraints_.Push_back(bc);
     entities_.Push_back(bc->masterEntities);
@@ -148,8 +154,7 @@ DECLARE_LOG(fefunc)
   }
   
   UInt BaseFeFunction::GetVecSize() const {
-    assert( result_ );
-    assert( dimType_ == CoefFunction::VECTOR );
+    assert( result_ ); assert( dimType_ == CoefFunction::VECTOR );
     return result_->dofNames.GetSize();
   }
   
@@ -165,48 +170,30 @@ DECLARE_LOG(fefunc)
   }
   
   
-  // -----------------------------------
-  BaseFeFunction::MapContext::MapContext() {
-    algSys = NULL;
-    assemble = NULL;
-    sol = NULL;
-  }
-  
-  BaseFeFunction::MapContext::~MapContext() {
-    delete algSys;
-    algSys = NULL;
-    
-    delete assemble;
-    assemble = NULL;
-    
-    delete sol;
-    sol = NULL;
-    
-    entityEqns.Clear();
-    
-  }
   
   // ========================================================================
   //  T E M P L A T I Z E D    V E R S I O N 
   // ========================================================================
 
   template<typename T>
-  FeFunction<T>::FeFunction(){
+  FeFunction<T>::FeFunction(MathParser* mp) :
+     BaseFeFunction(mp)
+  {
     coeffs_ = NULL;
     factor_ = 1.0;
     timeDerivOrder_ = 0;
     idOp_ = NULL;
     isComplex_ = std::tr1::is_same<T,Complex>::value;
-    MathParser * mp = domain->GetMathParser();
     
-    // Add expression for calculating the time derivative in the
+    if( mp_ ) {
     // harmonic case
     if( IsComplex( )) {
-      mp->SetExpr(mHandle_, "2*pi*f");
-      mp->AddExpChangeCallBack(
+      this->mp_->SetExpr(mHandle_, "2*pi*f");
+      this->mp_->AddExpChangeCallBack(
           boost::bind(&FeFunction<T>::UpdateTimeDeriv, this ),
           mHandle_ );
-    }
+      }
+    }    
   }
   
   
@@ -214,8 +201,9 @@ DECLARE_LOG(fefunc)
   template<typename T>
   FeFunction<T>::~FeFunction(){
     if( domain) {
-      MathParser * mp = domain->GetMathParser();
-      mp->ReleaseHandle( mHandle_ );
+      if (mp_) {
+        mp_->ReleaseHandle( mHandle_ );
+      }
     }
     if( idOp_ )
       delete idOp_;
@@ -258,10 +246,10 @@ DECLARE_LOG(fefunc)
   
   
   template<>
-    void FeFunction<Complex>::UpdateTimeDeriv() {
-    MathParser * mp = domain->GetMathParser();
-    
-    Double omega = mp->Eval( mHandle_ );
+  void FeFunction<Complex>::UpdateTimeDeriv() {
+    if( !mp_ ) 
+      return;
+    Double omega = this->mp_->Eval( mHandle_ );
     switch( timeDerivOrder_ ) {
       case 0:
         factor_ = Complex(1.0,0);
@@ -274,7 +262,7 @@ DECLARE_LOG(fefunc)
         break;
     }
   }
-  
+
   template<typename T>
   void FeFunction<T>::Finalize(){
     
@@ -355,36 +343,35 @@ DECLARE_LOG(fefunc)
       if( eqnNums.GetSize() == 0){
         //ok so the space does not know about this particular entity
         //we try to determine its value via interpolation
-        Vector<Double> globCoord;
         Vector<T> elemSolution;
         Vector<T> dofSol;
+        UInt nodeNum = 0;
         if(it.GetType()== EntityList::NODE_LIST){
           //now we obtain the global coords of the
           //node assuming that everything is the same grid. if not, we are in trouble anyway
-          UInt curNodeNum = it.GetNode();
-          grid_->GetNodeCoordinate(globCoord,curNodeNum,true);
+          nodeNum = it.GetNode();
         }else if(it.GetType() == EntityList::ELEM_LIST ||
                  it.GetType() == EntityList::SURF_ELEM_LIST){
           //determine global coord of element midpoint
           EXCEPTION("Interpolation for extract result not implemented for the Element case");
         }
-        //Obtain intersecting element
-        //const Elem* myElem  = grid_->GetElemAtGlobalCoord(globCoord,locCoord);
-        
-        
         // try to find the correct element, being one belonging to the regionlist of
         // this fefunction
         LocPoint lp;
         const Elem* myElem = 
-            grid_->GetElemAtGlobalCoord(globCoord, lp, regions_ ); 
+            grid_->GetElemAtNode(nodeNum, lp, regions_ ); 
         if( !myElem ) {
           WARN("Some elements were skipped during the interpolation");
+          for(UInt iDim = 0; iDim < numDofs; iDim++ ) {
+            actSol[pos++] = 0.0;
+          }
+          continue;
         }
 
         shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap( myElem, true );
 
         LocPointMapped lpm;
-        lpm.Set(lp,esm);
+        lpm.Set(lp,esm,0.0);
         
 
         this->GetElemSolution(elemSolution,myElem);
@@ -392,7 +379,6 @@ DECLARE_LOG(fefunc)
         idOp_->ApplyOp(dofSol, lpm, ptFe, elemSolution );
         for(UInt iDim = 0; iDim < numDofs; iDim++ ) {
           actSol[pos++] = dofSol[iDim];
-
         }
       }else{
         Vector<T> & vals = *coeffs_;
@@ -449,14 +435,14 @@ DECLARE_LOG(fefunc)
 
   
   template<typename T> BiLinearForm* FeFunction<T>::
-  GenerateInterpolBilinForm( UInt spaceDim, UInt dofDim ) {
+  GenerateInterpolBilinForm( UInt spaceDim, UInt dofDim, bool updatedGeo  ) {
     BiLinearForm *massInt = NULL;
     FeSpace::SpaceType curType = feSpace_->GetSpaceType();
     PtrCoefFct unity;
     if ( std::tr1::is_same<T,Complex>::value ) { 
-      unity = CoefFunction::Generate(Global::COMPLEX, "1.0");
+      unity = CoefFunction::Generate(mp_, Global::COMPLEX, "1.0");
     } else {
-      unity = CoefFunction::Generate(Global::REAL, "1.0");
+      unity = CoefFunction::Generate(mp_, Global::REAL, "1.0");
     }
     switch(curType){
       case FeSpace::H1:
@@ -466,33 +452,42 @@ DECLARE_LOG(fefunc)
           //  1D Entities
           // =============
           if(dofDim==1) {
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,1,1,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,1,1,T>(),
+                                   unity, 1.0, updatedGeo );
           } else if(dofDim==2) {
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,1,2,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,1,2,T>(), 
+                                   unity, 1.0, updatedGeo );
           }else if(dofDim==3){
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,1,3,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,1,3,T>(), 
+                                   unity, 1.0, updatedGeo );
           }
         } else if(spaceDim==2){
           // =============
           //  2D Entities
           // =============
           if(dofDim==1) {
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,2,1,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,2,1,T>(), 
+                                   unity, 1.0, updatedGeo );
           } else if(dofDim==2) {
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,2,2,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,2,2,T>(), 
+                                   unity, 1.0, updatedGeo );
           }else if(dofDim==3){
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,2,3,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,2,3,T>(), 
+                                   unity, 1.0, updatedGeo );
           }
         } else if(spaceDim==3){
           // =============
           //  3D Entities
           // =============
           if(dofDim==1) {
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,3,1,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,3,1,T>(), 
+                                   unity, 1.0, updatedGeo );
           } else if(dofDim==2) {
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,3,2,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,3,2,T>(), 
+                                   unity, 1.0, updatedGeo );
           }else if(dofDim==3){
-            massInt = new BBInt<T>(new IdentityOperator<FeH1,3,3,T>(), unity, 1.0);
+            massInt = new BBInt<T>(new IdentityOperator<FeH1,3,3,T>(), 
+                                   unity, 1.0, updatedGeo );
           }
         }
         break;
@@ -506,7 +501,8 @@ DECLARE_LOG(fefunc)
   }
   
   template<typename T> LinearForm* FeFunction<T>::
-  GenerateInterpolLinForm( UInt spaceDim, UInt dofDim, PtrCoefFct coefFct ) {
+  GenerateInterpolLinForm( UInt spaceDim, UInt dofDim, PtrCoefFct coefFct, 
+                           bool updatedGeo ) {
     LinearForm * rhsInt = NULL;
     FeSpace::SpaceType curType = feSpace_->GetSpaceType();
     switch(curType){
@@ -517,33 +513,33 @@ DECLARE_LOG(fefunc)
           //  1D Entities
           // =============
           if(dofDim==1) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,1,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,1,T>,T>(1.0, coefFct, updatedGeo );
           } else if(dofDim==2) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,2,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,2,T>,T>(1.0, coefFct, updatedGeo );
           }else if(dofDim==3){
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,3,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,3,T>,T>(1.0, coefFct, updatedGeo );
           }
         } else if(spaceDim==2){
           // =============
           //  2D Entities
           // =============
           if(dofDim==1) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,1,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,1,T>,T>(1.0, coefFct, updatedGeo );
           } else if(dofDim==2) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,2,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,2,T>,T>(1.0, coefFct, updatedGeo );
           }else if(dofDim==3){
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,3,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,3,T>,T>(1.0, coefFct, updatedGeo );
           }
         } else if(spaceDim==3){
           // =============
           //  3D Entities
           // =============
           if(dofDim==1) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,3,1,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,3,1,T>,T>(1.0, coefFct, updatedGeo );
           } else if(dofDim==2) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,3,2,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,3,2,T>,T>(1.0, coefFct, updatedGeo );
           }else if(dofDim==3){
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,3,3,T>,T>(1.0, coefFct);
+            rhsInt = new BUIntegrator<IdentityOperator<FeH1,3,3,T>,T>(1.0, coefFct, updatedGeo );
           }
         }
         break;
@@ -566,7 +562,7 @@ DECLARE_LOG(fefunc)
     temp.Resize(eqns.GetSize());
     for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
       if( eqns[iDof] != 0 ) {
-        temp[iDof] = factor_ * vals[eqns[iDof]-1];
+        temp[iDof] = factor_ * vals[std::abs(eqns[iDof])-1];
       } else {
         temp[iDof] = 0.0;
       }
@@ -588,7 +584,7 @@ DECLARE_LOG(fefunc)
        feSpace_->GetEqns(eqns, it,iDof);
        for(UInt iEqn = 0;iEqn < eqns.GetSize() ; iEqn++){
          if( eqns[iEqn] > 0 ) {
-         temp[iDof][iEqn] = factor_ * vals[eqns[iEqn]-1];
+         temp[iDof][iEqn] = factor_ * vals[std::abs(eqns[iEqn])-1];
        } else {
          temp[iDof][iEqn] = 0.0;
        }
@@ -612,234 +608,6 @@ DECLARE_LOG(fefunc)
     }
   }
   
-  template<typename T>
-  void FeFunction<T>::MapCoefFctToSpace(shared_ptr<EntityList> entityList, 
-                                        shared_ptr<CoefFunction> coefFct,
-                                        std::map <Integer, T>& vals,
-                                        bool cache,
-                                        const std::set<UInt>& comp ) {
-
-    
-    // Perform some checks at first:
-    // a) if coefficient function is constant -> perform "easy mapping", without
-    //    any caching. Here we simply take the constant value and 
-    // b) if coefficient function has a general (spatial) dependency,
-    //    we create solve FE problem on the subset of the FeSpace, as defined
-    //    by the boundary condition, i.e. a mass-bilinearform is created and an
-    //    according RHS integrator. The auxilliary data needed can be cached for
-    //    repeated access / changing values (e.g. time / frequency dependend boundary+
-    //    conditions.
-    
-    if (IS_LOG_ENABLED(fefunc, trace)) {
-      StdVector<UInt> compVec;
-      std::set<UInt>::const_iterator it = comp.begin();
-      for (; it != comp.end(); ++it ) {
-        compVec.Push_back(*it);
-      }
-      LOG_TRACE(fefunc) << "Mapping coeffct " << coefFct->ToString() 
-                          << " on " << entityList->GetName() << " for dofs "
-                          << compVec.ToString() << " for FeFunction "
-                          << SolutionTypeEnum.ToString(result_->resultType);
-    }
-    
-    
-    if( coefFct->GetDependency() == CoefFunction::CONST ||
-        coefFct->GetDependency() == CoefFunction::TIMEFREQ ) {
-      // --------------------------
-      //  SIMPLE MAPPING MECHANISM
-      // --------------------------
-      LocPointMapped lpm;
-      StdVector<Integer> eqns, vEqns;
-      Vector<T> dummyVec;
-      if( coefFct->GetDimType() == CoefFunction::SCALAR ) {
-        dummyVec.Resize(1);
-        coefFct->GetScalar(dummyVec[0], lpm);
-      } else {
-        coefFct->GetVector( dummyVec, lpm);
-      }
-              
-      // loop over all dofs
-      std::set<UInt>::const_iterator it = comp.begin();
-      for( ; it != comp.end(); ++it) {
-      
-        T val = dummyVec[*it];
-        feSpace_->GetEntityListEqns( eqns, entityList, *it );
-        UInt numEqns = eqns.GetSize();
-        
-        // switch depending on space type:
-        if( !feSpace_->IsHierarchical() ) {
-          // --- non-hierachical case ---
-          for( UInt i = 0; i < numEqns; ++i ) {
-            vals[eqns[i]] = val; 
-          }
-        } else {
-          // -- hierachical case ---
-          for( UInt i = 0; i < numEqns; ++i ) {
-            vals[eqns[i]] = 0.0; 
-          }
-          
-          // get nodal vertex nodes
-          feSpace_->GetEntityListEqns(vEqns, entityList, *it, BaseFE::VERTEX );
-          UInt numVEqns = vEqns.GetSize();
-          for( UInt i = 0; i < numVEqns; ++i ) {
-            vals[vEqns[i]] = val; 
-          }
-        }
-        
-      } // loop: dofs
-    } else 
-    {
-      // ---------------------------
-      //  GENERAL MAPPING MECHANISM
-      // ---------------------------
-      std::string name = entityList->GetName();
-      MapContext* ctx = NULL; 
-      
-      // check, if caching is activated and if entry can be found in cache
-      if( cache == true 
-          && entityCtx_.find(name) != entityCtx_.end() ) {
-        ctx = entityCtx_[name];
-      } else { 
-        // generate new context
-        ctx = new MapContext();
-        
-        bool isComplex = std::tr1::is_same<T,Complex>::value;
-        
-        // generate new algebraic system
-        ctx->olasNode.reset(new ParamNode());
-        ctx->olasNode->SetName(std::string("IDBC-") + name);
-        ctx->infoNode.reset(new ParamNode(ParamNode::INSERT));
-        ctx->algSys = new AlgebraicSys( ctx->olasNode, ctx->infoNode, isComplex );
-        
-        // generate new assemble class    
-        BasePDE::AnalysisType aType = 
-            isComplex ? BasePDE::HARMONIC : BasePDE::STATIC;
-        ctx->assemble = new Assemble( ctx->algSys, aType, 0 );
-        
-        // --------------------------------------------------------------------
-        // generate (dimensional and space-dependent) interpolation (bi)linear
-        // forms for the auxiliary problem
-        // --------------------------------------------------------------------
-        const Elem* el = entityList->GetIterator().GetElem();
-        UInt dim = Elem::shapes[el->type].dim;
-        UInt dofDim = feSpace_->GetNumDofs();
-        BiLinearForm *massInt = GenerateInterpolBilinForm(dim, dofDim);
-        LinearForm * rhsInt = GenerateInterpolLinForm(dim, dofDim, coefFct);
-
-        BiLinFormContext * massCtx = new BiLinFormContext( massInt, STIFFNESS);
-        massInt->SetName("Interpolator");
-        massCtx->SetEntities( entityList,entityList );
-        massCtx->SetFeFunctions(shared_from_this(), shared_from_this());
-        ctx->assemble->AddBiLinearForm(massCtx);
-
-        LinearFormContext * rhsCtx = new LinearFormContext( rhsInt );
-        rhsInt->SetName("RhsInterpolator");
-        rhsCtx->SetEntities( entityList );
-        rhsCtx->SetFeFunction(shared_from_this());
-        ctx->assemble->AddLinearForm(rhsCtx);
-
-        // generate a mapping global eqnNr -> entityList local one for all dofs
-        std::map<Integer,Integer> eqnMap;
-        std::set<Integer> registeredEqns;
-        
-        // loop over all dofs
-        if( comp.size() == 0 ) {
-          // scalar problem
-          feSpace_->GetEntityListEqns( ctx->entityEqns, entityList );
-        } else {
-          StdVector<Integer> tmp;
-          std::set<UInt>::const_iterator it = comp.begin();
-          for( ; it != comp.end(); it++ ) {
-            feSpace_->GetEntityListEqns( tmp, entityList, *it );
-            for( UInt k = 0; k < tmp.GetSize(); ++k ) {
-              ctx->entityEqns.Push_back( tmp[k] ) ;
-            }
-          }
-        }
-        // fill map and pass it to assemble class
-        UInt numEqns = ctx->entityEqns.GetSize();
-        for( UInt i = 0; i < numEqns; ++i ) {
-          eqnMap[ctx->entityEqns[i]] = i+1;
-          registeredEqns.insert(i+1);
-        }
-        
-        // ------------------------
-        //  setup algebraic system
-        // ------------------------
-        // 1) setup matrix graph
-        std::map<FeFctIdType, FeFctIdType> feFctIdMap;
-        ctx->algSys->GraphSetupInit( 1,  false );
-        FeFctIdType newFctId = ctx->algSys->ObtainFctId("interpolation");
-        ctx->algSys->RegisterFct(newFctId, eqnMap.size(), eqnMap.size() );
-        feFctIdMap[newFctId] = fctId_;
-        ctx->assemble->SetEqnCustomMap(eqnMap, feFctIdMap);
-        
-        // define matrix graph and SBM blocks
-        AlgebraicSys::SBMBlockDef sbmBlock;
-        sbmBlock[newFctId] = registeredEqns;
-        ctx->algSys->DefineSBMMatrixBlock( sbmBlock, false );
-        ctx->algSys->FinishRegistration();
-        ctx->assemble->SetupMatrixGraph(newFctId, newFctId);
-        ctx->algSys->GraphSetupDone();
-        ctx->algSys->CreateLinSys();
-        ctx->algSys->InitMatrix();
-        
-        // create solver and preconditioner
-        ctx->algSys->CreateSolver();
-        ctx->algSys->CreatePrecond();
-
-        // now reset AlgebraicSystem 
-        ctx->algSys->InitRHS();
-        ctx->algSys->InitSol();
-        
-        // assemble mapping matrix
-        ctx->assemble->AssembleMatrices();
-
-        // setup the preconditioner and solver
-        ctx->algSys->SetupPrecond(ctx->infoNode);
-        ctx->algSys->SetupSolver(ctx->infoNode);
-        
-        // initialize solution SBM vector
-        ctx->sol = new SBM_Vector();
-        ctx->sol->Resize(1);
-        Vector<T> * tmp = new Vector<T>(eqnMap.size());
-        ctx->sol->SetSubVector(tmp,0);
-        ctx->sol->SetOwnership(true);
-        
-        
-        // Store the context in the map
-        if( cache ) {
-          entityCtx_[name] = ctx;
-        }
-      } // end of first time setup of matrix
-
-      // update the RHS due to the new coefficient vector
-      ctx->algSys->InitRHS();
-      ctx->assemble->AssembleLinRHS(NULL);
-
-      
-      // solve system and aquire solution
-      ctx->algSys->Solve(ctx->infoNode);
-      ctx->algSys->GetSolutionVal(*(ctx->sol));
-      
-      Vector <T> & sol = dynamic_cast<Vector<T> &>(*(ctx->sol->GetPointer(0)));
-      
-      // store result values to vals-map
-      UInt numEqns = ctx->entityEqns.GetSize();
-      
-      for( UInt i = 0; i < numEqns; ++i ) {
-        if( ctx->entityEqns[i] != 0 ) {
-          vals[ctx->entityEqns[i]] = sol[i];
-        }
-      }
-      
-      // Print out information about the solution of the system
-      // ctx->infoNode->ToXML(std::cerr);
-
-    } // end of general mapping section
-  }
-
- 
 
   template<typename T>
   void FeFunction<T>::ApplyBC(){
@@ -860,8 +628,8 @@ DECLARE_LOG(fefunc)
         
         // Map coefficient function onto the actual FeSpace
         std::map<Integer, T> coefs;
-        this->MapCoefFctToSpace( actBc.entities, actBc.value, coefs, 
-                                 true, actBc.dofs );
+        feSpace_->MapCoefFctToSpace( actBc.entities, actBc.value, coefs, 
+                                     true, actBc.dofs );
 
         // Loop over all entries and set them
         typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
@@ -922,6 +690,73 @@ DECLARE_LOG(fefunc)
     } // loop over idbcs
   }
   
+  template<typename T>
+  void FeFunction<T>::ApplyLoads(){
+    //loop over all loads
+    for ( UInt i = 0; i < loadCoefs_.GetSize(); i++ ) {
+      if(loadCoefs_[i]->IsConservative()){
+        loadCoefs_[i]->MapConservative(this->feSpace_,*this->coeffs_);
+      }else{
+        //ok here we pass again the work to the space
+        shared_ptr<CoefFunction> curFnc = loadCoefs_[i];
+        if(curFnc->GetEntityList().GetSize() > 1){
+          EXCEPTION("There are currently more than one entity lists defined within the function. This implementation can not yet cope with that.")
+        }
+        shared_ptr<EntityList> curEnt = curFnc->GetEntityList()[0];
+        // check, if entity list is defined on elements or nodes
+        if( curEnt->GetType() == EntityList::ELEM_LIST ||
+            curEnt->GetType() == EntityList::SURF_ELEM_LIST ) {
+          // Map coefficient function onto the actual FeSpace
+          std::map<Integer, T> coefs;
+          feSpace_->MapCoefFctToSpace( curEnt, curFnc, coefs,
+                                       false );
+          Vector<T> & myVals = *this->coeffs_;
+          typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
+          for( ; coefIt != coefs.end(); ++coefIt ) {
+            Integer eqnNr = coefIt->first;
+            T val = coefIt->second;
+            myVals[eqnNr-1] += val;
+          }
+        }
+      }
+    }
+  }
+
+  template<typename T>
+  void FeFunction<T>::ApplyExternalData(){
+    //loop over all loads
+    for ( UInt i = 0; i < externalDataCoefs_.GetSize(); i++ ) {
+      shared_ptr<CoefFunction> curFnc = externalDataCoefs_[i];
+      if(curFnc->GetEntityList().GetSize() > 1){
+        EXCEPTION("There are currently more than one entity lists defined within the function. This implementation can not yet cope with that.")
+      }
+      shared_ptr<EntityList> curEnt = curFnc->GetEntityList()[0];
+      // check, if entity list is defined on elements or nodes
+      if( curEnt->GetType() == EntityList::ELEM_LIST ||
+          curEnt->GetType() == EntityList::SURF_ELEM_LIST ) {
+        // Map coefficient function onto the actual FeSpace
+        std::map<Integer, T> coefs;
+        feSpace_->MapCoefFctToSpace( curEnt, curFnc, coefs,
+                                     false );
+        Vector<T> & myVals = *this->coeffs_;
+        typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
+        for( ; coefIt != coefs.end(); ++coefIt ) {
+          Integer eqnNr = coefIt->first;
+          T val = coefIt->second;
+          myVals[eqnNr-1] = val;
+        }
+
+      }else{
+        if( curFnc->GetDependency() == CoefFunction::GENERAL ||
+            curFnc->GetDependency() == CoefFunction::SOLUTION) {
+          EXCEPTION("Boundary condition, which are not defined on elements "
+              << "are not allowed to be spatially dependent!");
+        }
+        EXCEPTION("Node lists are not yet supported");
+      }
+    }
+  }
+
   template<typename T>
   void FeFunction<T>::GetVector(Vector<T>& vec, 
                                 const LocPointMapped& lpm ){

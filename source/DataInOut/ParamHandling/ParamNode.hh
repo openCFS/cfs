@@ -19,10 +19,6 @@ namespace CoupledField
   typedef boost::shared_ptr<ParamNode> PtrParamNode;
   typedef StdVector<boost::shared_ptr<ParamNode> > ParamNodeList;
   
-  /** global parameter instance */
-  extern PtrParamNode param;
-  extern PtrParamNode info;
-  
   /** This class realizes the following concept of param handling, mainly the representation
    * of the XML file.
    * <ul>
@@ -71,12 +67,12 @@ namespace CoupledField
   public:
     
     /** This string constant shall mark the logging part which contains "dynamic" data, e.g. current iteration */
-    const static std::string HEADER;
-    const static std::string PROCESS;
+    const static std::string PN_HEADER;
+    const static std::string PN_PROCESS;
     /** this string constann shall mark summary information, e.g. total number of iterations */
-    const static std::string SUMMARY;
-    const static std::string WARNING;
-    const static std::string ERROR;
+    const static std::string PN_SUMMARY;
+    const static std::string PN_WARNING;
+    const static std::string PN_ERROR;
     
     /** Define behavior for get() methods in case the element does not exist:
     * DEFAULT: Apply default action of current node (gets inherited)
@@ -161,7 +157,10 @@ namespace CoupledField
     ParamNodeList& GetChildren() { return children_;}
     
     /** Returns father element. If this element is the root node, NULL is returned */
-    ParamNode*  GetParent() { return parent_;}
+    PtrParamNode  GetParent() { return parent_;}
+    
+    /** Returns the root node. */
+    PtrParamNode GetRoot();
            
     /** Returns the only child of an element which might be an attribute or simple xml element or in
     * other words a leaf node - and without any sorting a complex ParamNode which has children by itself. 
@@ -389,7 +388,7 @@ namespace CoupledField
     ParamNodeList children_;
     
     /** pointer to father node */
-    ParamNode *parent_;
+    PtrParamNode parent_;
     
     /** default action for non-existing nodes */
     ActionType defaultAction_;

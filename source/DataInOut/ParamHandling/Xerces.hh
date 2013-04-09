@@ -8,6 +8,7 @@
 #include <xercesc/util/XercesDefs.hpp>
 #include <xercesc/dom/DOM.hpp>
 #include <xercesc/parsers/XercesDOMParser.hpp>
+#include <xercesc/framework/MemBufInputSource.hpp>
 #include <xercesc/sax/ErrorHandler.hpp>
 #include <xercesc/sax/SAXParseException.hpp>
 
@@ -27,24 +28,33 @@ namespace CoupledField {
   {
 
     public:
-      /** This sets the internal variables but dos not parse the file yet.
+      /** This sets the internal variables but does not parse the file yet.
        * @param schema if given a validation is done. */
-      Xerces(const std::string& file, const std::string& schema = "");
+      Xerces(const std::string& schema = "");
 
       /** Shuts down all xerces stuff */ 
       ~Xerces();
+      
+      /** Set file for parsing **/
+      void SetFile( const std::string& file );
+      
+      /** Set memory string for parsing **/
+      void SetString( const std::string& text );
       
       /** creates a param node instance filled with the xml content from the constuctor.
        * Easy to modify for using an arbitrary DOMNode* data source
        * @return the caller has to delete the tree by itself, there is no reference within the Xerces class.  */ 
       PtrParamNode CreateParamNodeInstance();
-
+      
     private:
       /** This actually parses the file and sets root_ and the other variables */
       void Parse();
 
       /** recursive implementation of Fill */
       void Fill(xercesc::DOMNode* node, PtrParamNode out);
+
+      /** Transcode Xerces UNICODE string to current locale or fallback to ASCII*/
+      static std::string Transcode(const XMLCh* input);
 
       /** The result of the constructor */    
       xercesc::DOMNode* root_;
@@ -54,6 +64,9 @@ namespace CoupledField {
 
       /** The filename we are based on */
       std::string file_;
+      
+      /** The memory string to be parsed */
+      xercesc::MemBufInputSource * buf_;
       
       /** The schema filename is empty if not given */
       std::string schema_; 

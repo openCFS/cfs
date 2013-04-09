@@ -16,6 +16,10 @@
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 
+//transient simulations
+#include "Driver/TimeSchemes/TimeSchemeGLM.hh"
+#include "Driver/TransientDriver.hh"
+
 // include fespaces
 #include "FeBasis/H1/H1Elems.hh"
 
@@ -35,8 +39,11 @@ namespace CoupledField {
   //   Constructor
   // ***************
   PiezoCoupling::PiezoCoupling( SinglePDE *pde1, SinglePDE *pde2,
-                                PtrParamNode paramNode  )
-    : BasePairCoupling( pde1, pde2, paramNode )
+                                PtrParamNode paramNode,
+                                PtrParamNode infoNode,
+                                shared_ptr<SimState> simState,
+                                Domain* domain)
+    : BasePairCoupling( pde1, pde2, paramNode, infoNode, simState, domain )
   {
     couplingName_ = "piezoDirect";
     materialClass_ = PIEZO;
@@ -120,6 +127,7 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> dispFct = pde1_->GetFeFunction(MECH_DISPLACEMENT);
     shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+    MathParser * mp = domain_->GetMathParser();
     
     StdVector<std::string> stressComponents;
     if( subType_ == "3d" ) {
@@ -158,8 +166,8 @@ namespace CoupledField {
       cplFunc.reset(new CoefFunctionFlux<Double,true>(dispFct, flux, cplFactor));
     }
     // Build compound coefficient function for flux density
-    PtrCoefFct coefFlux = CoefFunction::Generate(part,
-                         CoefXprBinOp(coefElecD, cplFunc,
+    PtrCoefFct coefFlux = CoefFunction::Generate(mp,part,
+                         CoefXprBinOp(mp,coefElecD, cplFunc,
                                       CoefXpr::OP_ADD) );
     DefineFieldResult( coefFlux, flux );
 
@@ -189,8 +197,8 @@ namespace CoupledField {
     } else {
       stressCplFunc.reset(new CoefFunctionFlux<Double>(elecFct, stress, stressCplFactor));
     }
-    PtrCoefFct coefStress = CoefFunction::Generate(part,
-                            CoefXprBinOp(coefMechSigma, stressCplFunc, 
+    PtrCoefFct coefStress = CoefFunction::Generate(mp,part,
+                            CoefXprBinOp(mp,coefMechSigma, stressCplFunc, 
                                          CoefXpr::OP_SUB ) ); 
     DefineFieldResult(coefStress, stress);
 
@@ -237,7 +245,7 @@ namespace CoupledField {
       // 2) pass integrators to functors
       cplFunc->AddIntegrator(bdb, region);
       stressCplFunc->AddIntegrator(bdb, region);
-      sChargeDens->SetVolumeCoef(region, coefFlux);
+      sChargeDens->AddVolumeCoef(region, coefFlux);
     }
   }
   
@@ -338,5 +346,23 @@ namespace CoupledField {
 
   }
   
+  void PiezoCoupling::InitTimeStepping(){
+
+    if ( analysisType_ == BasePDE::TRANSIENT ) {
+      Double dt;
+      dt = dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())
+                ->GetDeltaT();
+
+      //in this case we additionally need to define
+      //a timestepping for the elecPDE
+      shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
+
+      shared_ptr<BaseTimeScheme> elecScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+
+      elecFct->SetTimeScheme(elecScheme);
+      elecFct->GetTimeScheme()->Init(elecFct->GetSingleVector(),dt);
+    }
+  }
+
 }
 

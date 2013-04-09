@@ -38,13 +38,15 @@ public:
   //! Constructor for volume integration
   BUIntegrator(VEC_DATA_TYPE factor,
                shared_ptr<CoefFunction > rhsCoef,
-               bool coordUpdate = false );
+               bool coordUpdate = false,
+               bool fullEvaluation = true);
 
   //! Constructor for surface integration
   BUIntegrator(VEC_DATA_TYPE factor,
                shared_ptr<CoefFunction > rhsCoef,
                const std::set<RegionIdType>& volRegions,
-               bool coordUpdate = false );
+               bool coordUpdate = false,
+               bool fullEvaluation = true);
 
   virtual ~BUIntegrator(){
 
@@ -69,10 +71,22 @@ public:
   }
 
 protected:
+  
+  
+  //! Differential operator
   B_OP operator_;
 
+  //! Additional factor for integrator
   VEC_DATA_TYPE factor_;
 
+  //! Flag if full accuracy should be used for coefficient evaluation
+  
+  //! This flag denotes, if the coefficient function "u" should be evaluated
+  //! at every integration point (true) or if only midpoint evaluation
+  //! should be performed (false)
+  const bool fullEvaluation_;
+  
+  //! Coefficient function "u"
   PtrCoefFct rhsCoefs_;
 
   //! set containing all volume regions for surface integrators
@@ -80,6 +94,8 @@ protected:
 
   //! dimension of b-operator
   UInt Bdim_;
+  
+  
 
 
 };

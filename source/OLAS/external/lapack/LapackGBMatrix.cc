@@ -196,8 +196,7 @@ namespace CoupledField {
   template <>
   void LapackGBMatrix<std::complex<double>,std::complex<double> >::Init() {
     for ( UInt i = 1; i <= length_; i++ ) {
-      data_[i].real() = 0.0;
-      data_[i].imag() = 0.0;
+      data_[i] = Complex(0.0, 0.0);
     }
   }
 
@@ -262,8 +261,8 @@ namespace CoupledField {
   //   Export matrix to file
   // *************************
   template <class entryF, class entryC>
-  void LapackGBMatrix<entryF,entryC>::Export( const char *fname,
-                                              const char *comment ) const {
+  void LapackGBMatrix<entryF,entryC>::ExportMatrixMarket( const char *fname,
+                                                          const char *comment ) const {
 
 
     // open output file and check for errors
@@ -294,7 +293,7 @@ namespace CoupledField {
       fprintf( fp, "%%\n%% %s\n%%\n", comment );
     }
     else {
-      fprintf( fp, "%%\n%% Matrix exported by OLAS\n%%\n" );
+      fprintf( fp, "%%\n%% Matrix exported by CFS++\n%%\n" );
     }
 
     // -----------------
@@ -492,8 +491,7 @@ namespace CoupledField {
 
       // Perform the scaled addition
       for ( UInt i = 1; i <= length_; i++ ) {
-        data_[i].real() += factor * lpmat.data_[i].real();
-        data_[i].imag() += factor * lpmat.data_[i].imag();
+        data_[i] += factor * lpmat.data_[i];
       }
   }
 

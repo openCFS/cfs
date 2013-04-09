@@ -55,6 +55,8 @@
                 <xsd:element maxOccurs="unbounded" minOccurs="1" name="ncInterface">
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="nmgFormulation" type="DT_NMGFormulationBasic" use="optional" default="Nitsche"/>
+                    <xsd:attribute name="nitscheFactor" type="xsd:token" use="optional" default="50"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -245,8 +247,6 @@
       <xsd:enumeration value="magPotential"/>
       <xsd:enumeration value="magRhsLoad"/>
       <xsd:enumeration value="elecPotential"/>
-      <xsd:enumeration value="magForceLorentz"/>
-      <xsd:enumeration value="magForceVWP"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -254,17 +254,27 @@
   <xsd:simpleType name="DT_MagneticElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magFluxDensity"/>
-      <xsd:enumeration value="magHfield"/>
-      <xsd:enumeration value="magEddyCurrent"/>
-      <xsd:enumeration value="magElemPermeability"/> 
+      <xsd:enumeration value="magEddyCurrentDensity"/>
+      <xsd:enumeration value="magTotalCurrentDensity"/>
+      <xsd:enumeration value="magCoilCurrentDensity"/>
+      <xsd:enumeration value="magForceLorentzDensity"/>
+      <xsd:enumeration value="magEddyPowerDensity"/>
+      <xsd:enumeration value="magEnergyDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
+
+  <!-- Definition of field variables (union of nodal and element results) -->
+  <xsd:simpleType name="DT_MagneticFieldResult">
+    <xsd:union memberTypes="DT_MagneticNodeResult DT_MagneticElemResult"/>
+  </xsd:simpleType>
+  
   <!-- Definition of region result types of magnetic PDE -->
   <xsd:simpleType name="DT_MagneticRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magEnergy"/>
       <xsd:enumeration value="magEddyPower"/>
+      <xsd:enumeration value="magForceLorentz"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -295,6 +305,7 @@
           </xsd:complexType>
         </xsd:element>
 
+
         <!-- Region result definition -->
         <xsd:element name="regionResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
@@ -306,6 +317,16 @@
           </xsd:complexType>
         </xsd:element>
 
+        <!-- FieldResults -->
+        <xsd:element name="field" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_FieldResult">
+                <xsd:attribute name="type" type="DT_MagneticFieldResult"/>
+              </xsd:extension>
+            </xsd:complexContent>           
+          </xsd:complexType>
+        </xsd:element>
 
 
       </xsd:choice>

@@ -54,12 +54,20 @@ public:
                                     const Elem* ptElem,
                                     EntityType fctEntityType,
                                     UInt entNumber);
+  //! \copydoc BaseFE::IsIsotropic 
+  virtual bool IsIsotropic() {
+    return isIsotropic_;
+  }
+  
   //! \copydoc BaseFE::GetIsoOrder
   virtual UInt GetIsoOrder() const;
 
   //! \copydoc BaseFE::GetMaxOrder
   virtual UInt GetMaxOrder() const;
-
+  
+  //! \copydoc BaseFE::GetAnsiOrder
+  virtual void GetAnisoOrder(StdVector<UInt>& order ) const;
+  
 protected:
   
   //! Calculate number of unknowns

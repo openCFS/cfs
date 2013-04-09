@@ -31,6 +31,15 @@ namespace CoupledField
 
   class BiLinearForm{
     public:
+
+    //for NMG integrators
+    typedef enum{
+      MASTER_MASTER,
+      SLAVE_SLAVE,
+      MASTER_SLAVE,
+      SLAVE_MASTER
+    }CouplingDirection;
+
       BiLinearForm( bool coordUpdate = false ){
         coordUpdate_ = coordUpdate;
       }

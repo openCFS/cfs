@@ -1,0 +1,26 @@
+--- src\CMakeLists.txt.orig	2012-12-23 16:57:50.342635000 +0100
++++ src\CMakeLists.txt	2012-12-23 16:58:41.264510000 +0100
+@@ -566,9 +566,9 @@
+ # specific type checks inside
+ #-----------------------------------------------------------------------------
+ ADD_EXECUTABLE (H5detect ${HDF5_SRC_DIR}/H5detect.c)
+-IF (MSVC)
++IF (MSVC OR MINGW OR CYGWIN)
+   TARGET_LINK_LIBRARIES (H5detect "ws2_32.lib")
+-ENDIF (MSVC)
++ENDIF (MSVC OR MINGW OR CYGWIN)
+ 
+ SET (CMD $<TARGET_FILE:H5detect>)
+ ADD_CUSTOM_COMMAND (
+@@ -579,9 +579,9 @@
+ )
+ 
+ ADD_EXECUTABLE (H5make_libsettings ${HDF5_SRC_DIR}/H5make_libsettings.c)
+-IF (MSVC)
++IF (MSVC OR MINGW OR CYGWIN)
+   TARGET_LINK_LIBRARIES (H5make_libsettings "ws2_32.lib")
+-ENDIF (MSVC)
++ENDIF (MSVC OR MINGW OR CYGWIN)
+ 
+ SET (CMD $<TARGET_FILE:H5make_libsettings>)
+ ADD_CUSTOM_COMMAND (

@@ -16,31 +16,37 @@ namespace CoupledField
   class IterSolveStep;
   class StdPDE;
   class SinglePDE;
-  class PDECoupling;
   class ParamNode;
-
+  class EntityList;
+  class CoefFunctionAccumulator;
+  class DirectCoupledPDE;
+  
   //! This class iteratively solve a list of given SinglePDEs 
   class IterCoupledPDE : public BasePDE
   {
-
     // friend declaration
     friend class IterSolveStep;
 
   public:
 
+
+    
     //! Constructor
-    IterCoupledPDE(StdVector<StdPDE*> & PDEs,
-                   StdVector<SinglePDE*> & sinlgePDEs,
-                   StdVector<PDECoupling*> & Couplings,
-                   PtrParamNode paramNode); 
+    IterCoupledPDE( StdVector<SinglePDE*>& singlePDEs,
+                    StdVector<DirectCoupledPDE*>& cplPde,
+                    PtrParamNode paramNode,
+                    PtrParamNode infoNode,
+                    shared_ptr<SimState> simState, Domain* domain ); 
 
     //! Destructor
     ~IterCoupledPDE();
+    
+    //! Retrieve info pointer
+    PtrParamNode GetInfoNode() {
+      return infoNode_;
+    }
 
-    //! calculates coupling interfaces
-    void InitCoupling();
-  
-    //! write general defines (BCs, loads, etc.) to info-file
+    //! Write general defines (BCs, loads, etc.) to info-file
     void WriteGeneralPDEdefines();
 
     Assemble * GetAssemble() {
@@ -50,16 +56,20 @@ namespace CoupledField
     //! Return pointer to the SolveStep object
     BaseSolveStep * GetSolveStep();
 
+    //! Obtain coupling quantity
+    
+    //! This method returns a given coefficient function
+    //! from a contained SinglePDE. Internally, it creates an additional
+    //! surrounding struct to calculate some norm for determining an
+    //! stopping criterion when evaluating the CoefFunction.
+    PtrCoefFct GetCouplingCoefFct( SolutionType type,
+                                   shared_ptr<EntityList>  list,
+                                   const std::string& pdeName,
+                                   bool& updatedGeo );
+    
     //! Update PDE due to updated step in multistep solution strategy
     virtual void UpdateToSolStrategy();
     
-    //! write a restart file "simname_pdename.restart"
-    void WriteRestart( );
-
-
-    //! read a restart file "simname_pdename.restart"
-    void ReadRestart(UInt &startStep );
-
     //! write results in file
     void WriteResultsInFile(const UInt kstep = 0,
                             const Double asteptime = 0.0 );
@@ -70,15 +80,8 @@ namespace CoupledField
 
   protected:
 
-    /** Write coupling info. TODO -> check for overloading! */ 
+    //! Dump information to InfoNode 
     void ToInfo(PtrParamNode in);
-
-    //! calculates the norm of a vector
-    //Double CalcNorm(NormType normtype, SingleVector & val, SingleVector & oldval);
-
-    UInt miniter_;                        //!< minimum number of iterations per time step
-    UInt maxiter_;                        //!< maximum number of iterations per time step
-    StdVector<Double> norms_;              //!< norm of coupling values
 
     //! pointer to SolveStep classes
     IterSolveStep * solveStep_;
@@ -86,17 +89,26 @@ namespace CoupledField
     //! Parameter node for "iterative" coupling
     PtrParamNode myParam_;
 
-    //! Flag for nonlinear logging
-    bool nonLinLogging_;
-  
-    // general PDE parameters
-    BasePDE::AnalysisType analysistype_;         //!< type of analysis
-    StdVector<StdPDE *> PDEs_;         //!< list of belonging PDEs
+    //! Type of analysis
+    BasePDE::AnalysisType analysistype_;
+    
+    //! Pointer to pdes
+    StdVector<StdPDE *> PDEs_;
+    
+    //! Pointer to SinglePDEs
     StdVector<SinglePDE*> singlePDEs_;
-    StdVector<PDECoupling*> Couplings_; //!< vector of coupling objects
-    UInt NumPDEs_;                   //!< number of PDEs 
-  
+    
+    //! Pointer to IterativeCoupledPDEs
+    StdVector<DirectCoupledPDE*> coupledPDEs_;
 
+    //! Map storing the coeffunction accumulators
+    std::map<SolutionType, shared_ptr<CoefFunctionAccumulator> > accu_;
+    
+    //! Number of PDEs
+    UInt numPDEs_; 
+    
+    //! Info node for logging 
+    PtrParamNode infoNode_; 
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

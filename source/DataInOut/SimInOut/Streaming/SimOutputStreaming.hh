@@ -19,7 +19,8 @@ namespace CoupledField
   {
   public:
 
-    SimOutputStreaming(PtrParamNode outputNode);
+    SimOutputStreaming(PtrParamNode outputNode,
+                       PtrParamNode infoNode);
 
     ~SimOutputStreaming();
 

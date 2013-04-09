@@ -25,7 +25,7 @@ ADD_EXECUTABLE(cfsbin ${CFS_SRCS})
 SET(TARGET_LL
   cfsgeneral
   utils
-  definefiles
+  datainout
   paramh
   utils
   domain
@@ -34,16 +34,22 @@ SET(TARGET_LL
   )
 
 IF(USE_XERCES)
-  SET(TARGET_LL
-    ${TARGET_LL}
+  LIST(APPEND TARGET_LL
     ${XERCES_LIBRARY}
   )
 ENDIF(USE_XERCES)
 
-  SET(TARGET_LL
-    ${TARGET_LL}
+IF(MINGW)
+  LIST(APPEND TARGET_LL
+    -lws2_32
+    -lwsock32
+    )
+ELSE()
+  LIST(APPEND TARGET_LL
     -lpthread
-  )
+    )
+ENDIF()
+
 
 # Target link libraries for CFS++ executable target.
 TARGET_LINK_LIBRARIES(cfsbin 
@@ -51,11 +57,28 @@ TARGET_LINK_LIBRARIES(cfsbin
   )
 
 
+#IF(MINGW)
+#  IF(CFS_BLAS_LAPACK STREQUAL MKL)
+#    SET_TARGET_PROPERTIES(cfsbin PROPERTIES
+#      LINK_FLAGS -Wl,--wrap,__chkstk
+#      LINKER_LANGUAGE CXX)
+#  ENDIF()
+#ENDIF()
+
+SET(CFS_LINK_FLAGS "")
 
 # Make sure CFS++ gets linked with system libgcc.so instead of ANSYS libgcc.so.
-IF(USE_ANSYSRST)
-  SET_TARGET_PROPERTIES(cfsbin PROPERTIES LINK_FLAGS -Wl,-rpath,/${LIB_SUFFIX})
-ENDIF(USE_ANSYSRST)
+IF(UNIX AND USE_ANSYSRST)
+  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -Wl,-rpath,/${LIB_SUFFIX}")
+ENDIF(UNIX AND USE_ANSYSRST)
+
+# Even if we did not compile CFS++ itself with OpenMP enabled, we may have
+# compiled external libraries like LIS with OpenMP support.
+IF(OPENMP_FOUND)
+  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${OpenMP_CXX_FLAGS}")
+ENDIF()
+
+SET_TARGET_PROPERTIES(cfsbin PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
 
 # Install the CFS++ executable target to ${CMAKE_INSTALL_PREFIX}/bin
 #INSTALL_TARGETS(/bin cfs)

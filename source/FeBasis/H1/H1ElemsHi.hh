@@ -46,11 +46,19 @@ namespace CoupledField {
                                       EntityType fctEntityType,
                                       UInt entNumber);
 
+    //! \copydoc BaseFE::IsIsotropic 
+    virtual bool IsIsotropic() {
+      return isIsotropic_;
+    }
+    
     //! \copydoc BaseFE::GetIsoOrder
     virtual UInt GetIsoOrder() const;
     
     //! \copydoc BaseFE::GetMaxOrder
     virtual UInt GetMaxOrder() const;
+    
+    //! \copydoc BaseFE::GetAnisoOrder
+    virtual void GetAnisoOrder(StdVector<UInt>& order ) const;
 
   protected:
     

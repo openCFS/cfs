@@ -46,7 +46,7 @@ typedef std::multimap<int, std::string> EnumMap;
    * 
    * void Foo::foo() {
    *    filter_ = filter.Parse("radius");
-   *    filter_ = filter.Parse("param->Get("radius"));
+   *    filter_ = filter.Parse("paramNode->Get("radius"));
    *    bool ok = filter.isValid("none");
    *    bool ko = filter.isValid((Radius) 5);
    *    EXCEPTION("not handled: " << filter.ToString());

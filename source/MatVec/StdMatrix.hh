@@ -122,10 +122,30 @@ namespace CoupledField {
       return NO_PATTERN_ID;
     }
 
+    //! Export the matrix to a file in MatrixMarket or Harwell-Boeing format
+
+    //! The method will export the matrix to an ascii file according to the
+    //! MatrixMarket or Harwell-Boeing specifications. This method will
+    //! redirect the calls to the corresponding implementations in the sub
+    //! classes.
+    //! For details of the specification see http://math.nist.gov/MatrixMarket
+    //! and http://people.sc.fsu.edu/~jburkardt/data/hb/hb.html
+    //! \param fname base name of output file
+    //! \param format matrix output format 1 = MatrixMarket, 2 = Harwell-Boeing (optional)
+    //! \param comment string to be inserted into file header (optional)
+    virtual void Export( const char *fname,
+                         OutputFormat format,
+                         const char *comment) const;
+
+    //! The method will export the matrix to an ascii file according to the
+    //! MatrixMarket and is only implemented in sub classes of StdMatrix.
+    virtual void ExportMatrixMarket( const char *fname,
+                                     const char *comment) const = 0;
+
     /** Exports in Harwell-Boeing format. This format is used for the
      * ILUPACK frontend. A benefit is the included RHS, inital guesses, ...
      * are not implemented here. */  
-    void ExportHarwellBoeing(const std::string& file, const BaseVector& rhs); 
+    void ExportHarwellBoeing(const std::string& file, BaseVector* rhs) const; 
 
     //@}
 
@@ -517,7 +537,7 @@ DECL_SPARSE_MATRIX_FCN(Complex);
         public:
         HarwellBoeing(const StdMatrix* matrix);
         
-        void Export(const std::string& file, const BaseVector& rhs);
+        void Export(const std::string& file, BaseVector* rhs);
         
         private:
         void Fill(const T* values, const UInt* ints, UInt length, std::vector<std::string>& out);

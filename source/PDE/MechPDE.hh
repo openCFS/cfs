@@ -25,7 +25,9 @@ namespace CoupledField
 
     /** Constructor. here we read integration parameters
      * @param aGrid pointer to grid */
-    MechPDE( Grid *aGrid, PtrParamNode paramNode );
+    MechPDE( Grid *aGrid, PtrParamNode paramNode,
+             PtrParamNode infoNode,
+             shared_ptr<SimState> simState, Domain* domain );
 
     //!  Deconstructor
     virtual ~MechPDE();
@@ -51,19 +53,6 @@ namespace CoupledField
     //! Read special results definition
     void ReadSpecialResults();
 
-    // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-
-    //! initalize PDE coupling
-    void InitCoupling(PDECoupling * Coupling);
-
-    //! calculate coupling terms
-    void CalcOutputCoupling();
-
-    //! returns if PDE can compute the quantity
-    bool HasOutput(SolutionType output);
-
     //! \copydoc SinglePDE::CreateFeSpaces
     virtual std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string&  formulation,
@@ -74,13 +63,13 @@ namespace CoupledField
     BaseBDBInt * GetStiffIntegrator( BaseMaterial* actSDMat,
                                      RegionIdType regionId,
                                      bool isComplex );
+    
+    //! Return strain operator 
+    BaseBOperator * GetStrainOperator( bool isComplex, bool icModes );
 
     // ========================
     // set solution information
     // ========================
-
-    //! vector containing regionIds of non-conforming interfaces
-    StdVector<RegionIdType> ncIFaces_;
 
   private:
 

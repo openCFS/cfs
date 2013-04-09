@@ -31,9 +31,12 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  DirectCoupledPDE::DirectCoupledPDE( Grid *aptgrid, PtrParamNode paramNode )
+  DirectCoupledPDE::DirectCoupledPDE( Grid *aptgrid, PtrParamNode paramNode,
+                                      PtrParamNode infoNode,
+                                      shared_ptr<SimState> simState,
+                                      Domain* domain)
 
-    : StdPDE( aptgrid, paramNode ) {
+    : StdPDE( aptgrid, paramNode, infoNode, simState, domain ) {
   }
 
 
@@ -92,7 +95,7 @@ namespace CoupledField {
     }
     
     olasNode_ = singlePDEs_[0]->olasNode_;
-    olasInfo_ = info->Get("OLAS")->Get(pdename_);
+    olasInfo_ = myInfo_->Get("OLAS")->Get(pdename_);
     
   }
 
@@ -190,8 +193,8 @@ namespace CoupledField {
   {
     sequenceStep_ = sequenceStep;
 
-    infoNode_ = info->Get("PDE")->Get("directCoupledPDE", ParamNode::APPEND);
-    infoNode_->Get(ParamNode::HEADER)->Get("sequeceStep")->SetValue(sequenceStep);
+    infoNode_ = myInfo_->Get("PDE")->Get("directCoupledPDE", ParamNode::APPEND);
+    infoNode_->Get(ParamNode::PN_HEADER)->Get("sequeceStep")->SetValue(sequenceStep);
 
     
     // Create algebraic system and pass it to SinglePDEs
@@ -203,17 +206,10 @@ namespace CoupledField {
     //  Detection of analysis type
     // ----------------------------
 
-    analysistype_ = domain->GetSingleDriver()->GetAnalysisType( );
+    analysistype_ = domain_->GetSingleDriver()->GetAnalysisType( );
 
     // Create new Assemble object
-    // NOTE: At the moment we can only couple mechanic, piezo and
-    // acoustic PDEs directly. All these PDEs have second order
-    // time derivatives. This is why we pass a magic '2' directly
-    // as maximum time derivative order to assemble.
-    // As soon as we have a more sophisticated way to cope with
-    // this problem (e.g. register each pde with FeFctIdType and
-    // maximum time derivative order), we should change this here!
-    assemble_ = new Assemble( algsys_, analysistype_, 2 );
+    assemble_ = new Assemble( algsys_, analysistype_, myInfo_->GetRoot() );
     
 
 //     // Initialize timestepping
@@ -251,7 +247,7 @@ namespace CoupledField {
       couplings_[i]->SetAlgSys( algsys_ );
       couplings_[i]->solStrat_ = solStrat_;
       couplings_[i]->SetAssemble( assemble_ );
-      couplings_[i]->Init( sequenceStep_, infoNode_ );
+      couplings_[i]->Init( sequenceStep_ );
     }
 
     // Finalize initialization of SinglePDEs (i.e. FeSpaces, FeFunctions, Time stepping etc.)
@@ -265,7 +261,7 @@ namespace CoupledField {
     }
     
     // Print list of defined integrators of assembly object
-    assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
+    assemble_->ToInfo(infoNode_->Get(ParamNode::PN_HEADER)->Get("integrators"));
     
     // Collect all feFunctions defined in BasePairCouplings
     for (UInt i=0; i<couplings_.GetSize(); i++) {
@@ -283,7 +279,13 @@ namespace CoupledField {
       singlePDEs_[i]->solveStep_ = solveStep_;
     }
 
+    isIterCoupled_ = false;
+    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+      isIterCoupled_ |= singlePDEs_[i]->IsIterCoupled();
+    }
+    
   }
+  
 
 
   // **************************
@@ -333,37 +335,6 @@ namespace CoupledField {
   // ======================================================
 
 
-  void DirectCoupledPDE::WriteRestart( )
-  {
-
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-      singlePDEs_[i]->WriteRestart( );
-    }
-  }
-
-  void DirectCoupledPDE::ReadRestart( UInt &startStep )
-  {
-
-    StdVector<UInt> startSteps( singlePDEs_.GetSize() );
-
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-      singlePDEs_[i]->ReadRestart(startSteps[i]);
-    }
-
-    for( UInt i = 1; i < startSteps.GetSize(); i++ ) {
-      if( startSteps[i] != startSteps[0] ) {
-        std::stringstream errMsg;
-        errMsg <<  "Error during read in of restart files:\n"
-               << "Restart step numbers differ for the different PDEs!\n";
-        for( UInt j = 0; j< singlePDEs_.GetSize(); j++ ) {
-          errMsg << singlePDEs_[i]->GetName() << "\t"
-                 << startSteps[i] << "\n";
-        }
-        EXCEPTION( errMsg.str().c_str() );
-      }
-
-    }
-  }
 
 
   void DirectCoupledPDE::WriteResultsInFile(const UInt kstep,
@@ -377,44 +348,6 @@ namespace CoupledField {
     }
 
   }
-
-
-  // ======================================================
-  // COUPLING SECTION
-  // ======================================================
-
-  void DirectCoupledPDE::InitCoupling(PDECoupling * Coupling)
-  {
-    isIterCoupled_ = true;
-  }
-  void DirectCoupledPDE::ResetCoupling()
-  {
-
-    iterCoupledCounter_ = 0;
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++)
-      {
-        singlePDEs_[i]->ResetCoupling();
-      }
-  }
-
-  void DirectCoupledPDE::CalcInputCoupling()
-  {
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++)
-      {
-        singlePDEs_[i]->CalcInputCoupling();
-      }
-  }
-
-  void DirectCoupledPDE::CalcOutputCoupling()
-  {
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++)
-      {
-        singlePDEs_[i]->CalcOutputCoupling();
-      }
-  }
-
-
-
 
   void DirectCoupledPDE::DefineSolveStep() {
     solveStep_ = new StdSolveStep(*this);

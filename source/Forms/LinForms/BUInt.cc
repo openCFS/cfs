@@ -24,8 +24,10 @@ template< class B_OP, class VEC_DATA_TYPE, bool SURFACE >
 BUIntegrator<B_OP,VEC_DATA_TYPE,SURFACE>::
 BUIntegrator(VEC_DATA_TYPE factor,
              shared_ptr<CoefFunction > rhsCoef, 
-             bool coordUpdate )
-             :LinearForm( coordUpdate ){
+             bool coordUpdate,
+             bool fullEvaluation )
+             : LinearForm( coordUpdate ),
+               fullEvaluation_(fullEvaluation) {
   factor_ = factor;
   this->name_ = "RhsBUIntegrator";
 
@@ -45,8 +47,11 @@ BUIntegrator<B_OP,VEC_DATA_TYPE,SURFACE>::
 BUIntegrator(VEC_DATA_TYPE factor,
              shared_ptr<CoefFunction > rhsCoef,
              const std::set<RegionIdType>& volRegions,
-             bool coordUpdate )
-             :LinearForm( coordUpdate ){
+             bool coordUpdate,
+             bool fullEvaluation )
+             : LinearForm( coordUpdate ), 
+               fullEvaluation_(fullEvaluation) 
+               {
   factor_ = factor;
   this->name_ = "RhsBUIntegrator";
 
@@ -84,24 +89,36 @@ BUIntegrator(VEC_DATA_TYPE factor,
 
      // Get shape map from grid
      shared_ptr<ElemShapeMap> esm = 
-         domain->GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+         ent.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
      // Get integration points
      intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order, 
                                intPoints, weights );
 
+     LocPointMapped lp;
      elemVec.Resize( nrFncs * Bdim_);
      elemVec.Init();
+     
+     // Pre-evaluate coefficient function in case of reduced accuracy
+     if(! fullEvaluation_ ) {
+       const ElemShape sh = Elem::shapes[ptElem->type];
+       lp.Set( sh.midPointCoord, esm, sh.volume );
+       if( rhsCoefs_->GetDimType() == CoefFunction::SCALAR ) {
+         cVec.Resize(1);
+         rhsCoefs_->GetScalar(cVec[0],lp);
+       } else {
+         rhsCoefs_->GetVector(cVec,lp);
+       }
+     }
 
      // Loop over all integration points
-     LocPointMapped lp;
      for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
 
        // Calculate for each integration point the LocPointMapped
        if (SURFACE) {
-         lp.Set( intPoints[i], esm, volRegions_ );
+         lp.Set( intPoints[i], esm, volRegions_, weights[i] );
        } else {
-         lp.Set( intPoints[i], esm );
+         lp.Set( intPoints[i], esm, weights[i] );
        }
 
        //calc factor
@@ -110,11 +127,15 @@ BUIntegrator(VEC_DATA_TYPE factor,
        // Call the CalcBMat()-method
        operator_.CalcOpMatTransposed( bMat, lp, ptFe);
 
-       if( rhsCoefs_->GetDimType() == CoefFunction::SCALAR ) {
-         cVec.Resize(1);
-         rhsCoefs_->GetScalar(cVec[0],lp);
-       } else {
-         rhsCoefs_->GetVector(cVec,lp);
+       // Evaluate coefficient function in integration point
+       // ( in case of full order)
+       if( fullEvaluation_ ) {
+         if( rhsCoefs_->GetDimType() == CoefFunction::SCALAR ) {
+           cVec.Resize(1);
+           rhsCoefs_->GetScalar(cVec[0],lp);
+         } else {
+           rhsCoefs_->GetVector(cVec,lp);
+         }
        }
        elemVec += bMat * cVec * fac;
      }

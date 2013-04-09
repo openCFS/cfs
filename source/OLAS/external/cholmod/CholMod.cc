@@ -93,7 +93,7 @@ void CholMod<T>::Setup(BaseMatrix &sysMat, PtrParamNode analysis_id)
 {
   // do we really want to create a new entry? Might blast up the output
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("setup", at);
+  PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("setup", at);
   out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   
   LOG_TRACE2(cholmod) <<  "Setup: matrix -> " << sysMat.ToString();
@@ -140,7 +140,7 @@ void CholMod<T>::Solve(const BaseMatrix &base_mat,
 
 {
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
+  PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", at);
   out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   
   // the preconditioner sets the matrix
@@ -186,7 +186,7 @@ void CholMod<T>::InitParameters()
   CholModDefaultParams();
   
   // dump the parameter block and overwrite
-  PtrParamNode out = infoNode_->Get(ParamNode::HEADER)->Get("parameters");
+  PtrParamNode out = infoNode_->Get(ParamNode::PN_HEADER)->Get("parameters");
   
   CheckParameter(out, &common_.nmethods, "factorization/nmethods");
   CheckParameter(out, &common_.postorder, "factorization/postorder");

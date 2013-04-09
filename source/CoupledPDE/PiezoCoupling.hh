@@ -34,12 +34,22 @@ class BiLinearForm;
     //! \param pde1 pointer to first coupling PDE
     //! \param pde2 pointer to second coupling PDE
     //! \param paramNode pointer to "couplinglist/direct/piezoDirect" element
-    PiezoCoupling( SinglePDE *pde1, SinglePDE *pde2, PtrParamNode paramNode );
+    PiezoCoupling( SinglePDE *pde1, SinglePDE *pde2, PtrParamNode paramNode,
+                   PtrParamNode infoNode,
+                   shared_ptr<SimState> simState, Domain* domain );
 
     //! Destructor
     virtual ~PiezoCoupling();
 
   protected:
+    // In this special case we need to reset the time stepping schemes
+    // defined by the single PDEs to ensure consistency (This is the case for almost every coupledPDE)
+    // therefore it is also crucial, that this method is called after(!) the single
+    // PDEs defined their schemes. We check for that and issue an error if its true.
+    // In future, it would be more appropriate to call the InitTimeStepping from the driver rather than from the
+    // SinglePDEs such there is exaclty one place to initialize timestepping and a clean overload can be ensured...
+    //! specify the time stepping
+    virtual void InitTimeStepping();
 
     //! Definition of the (bi)linear forms
     void DefineIntegrators();

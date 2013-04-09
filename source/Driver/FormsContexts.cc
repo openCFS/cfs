@@ -92,7 +92,8 @@ namespace CoupledField {
     // - bilinearform is solution dependent (true non-linearity)
     // - bilinearform has updated Lagrangian formulation and 
     //   there are coordinate updated present in the grid class
-    Grid * grid = domain->GetGrid();
+    
+    Grid * grid = ent1_->GetGrid();
     if( integrator_->IsSolDependent() 
         || (integrator_->IsCoordUpdate()  
             && grid->HasNodalOffset() ) ) {
@@ -128,6 +129,71 @@ namespace CoupledField {
     return os.str();
   }  
   
+
+
+  SurfaceBiLinFormContext::SurfaceBiLinFormContext( BiLinearForm* biLinForm, FEMatrixType destMat, BiLinearForm::CouplingDirection currentDirection  )
+                             : BiLinFormContext(biLinForm,destMat){
+
+    this->currentDirection_ = currentDirection;
+  }
+
+  //! Destructor
+  SurfaceBiLinFormContext::~SurfaceBiLinFormContext(){
+
+  }
+
+
+  void SurfaceBiLinFormContext::MapEqns( EntityIterator& it1,
+                            EntityIterator& it2,
+                            StdVector<Integer>& eqnVec1,
+                            StdVector<Integer>& eqnVec2,
+                            FeFctIdType& id1, FeFctIdType& id2 ){
+    //this is more or less a switch case statement which terms to consider and where to aquire the
+    //equation numbers
+    const SurfElem* sElem1 = it1.GetSurfElem();
+    const SurfElem* sElem2 = it2.GetSurfElem();
+    //just to be sure, this context requires it1 and it2 to be identical
+    if(sElem1->elemNum != sElem2->elemNum){
+      EXCEPTION("SurfaceBiLinFormContext requires identical iterators")
+    }
+    //now lets try to downcast to MortarNcSurfElem
+    const MortarNcSurfElem * mSe1 = dynamic_cast<const MortarNcSurfElem*>(sElem1);
+
+    if(mSe1->ptMaster->ptVolElems[1] != NULL){
+      EXCEPTION("Master surface element has not exactly one neighbor... can this be true??")
+    }
+    if(mSe1->ptSlave->ptVolElems[1] != NULL){
+      EXCEPTION("Master surface element has not exactly one neighbor... can this be true??")
+    }
+    Elem* volEMaster = mSe1->ptMaster->ptVolElems[0];
+    Elem* volESlave  = mSe1->ptSlave->ptVolElems[0];
+
+    switch(currentDirection_){
+    case BiLinearForm::MASTER_MASTER:
+      this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volEMaster);
+      eqnVec2 = eqnVec1;
+      break;
+    case BiLinearForm::SLAVE_SLAVE:
+      this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);
+      eqnVec2 = eqnVec1;
+      break;
+    case BiLinearForm::MASTER_SLAVE:
+      this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volEMaster);
+      this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,volESlave);
+      break;
+    case BiLinearForm::SLAVE_MASTER:
+      this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);
+      this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,volEMaster);
+      break;
+    default:
+      EXCEPTION("Undefined coupling direction");
+    }
+    // Get PDE IDs
+    id1 = feFct1_.lock()->GetFctId();
+    id2 = feFct2_.lock()->GetFctId();
+  }
+
+
 
 // -------------------------------------------------------------------------
 

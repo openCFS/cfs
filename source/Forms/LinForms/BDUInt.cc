@@ -87,7 +87,7 @@ BDUIntegrator(VEC_DATA_TYPE factor,
 
      // Get shape map from grid
      shared_ptr<ElemShapeMap> esm = 
-         domain->GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+         ent.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
      // Get integration points
      intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order, 
@@ -102,9 +102,9 @@ BDUIntegrator(VEC_DATA_TYPE factor,
 
        // Calculate for each integration point the LocPointMapped
        if (SURFACE) {
-         lp.Set( intPoints[i], esm, volRegions_ );
+         lp.Set( intPoints[i], esm, volRegions_, weights[i] );
        } else {
-         lp.Set( intPoints[i], esm );
+         lp.Set( intPoints[i], esm, weights[i] );
        }
 
        // obtain d matrix

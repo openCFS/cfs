@@ -19,7 +19,8 @@ namespace CoupledField {
     //! \param sequenceStep current step in multisequence simulation
     //! \param isPartOfSequence true, if driver is part of  multiSequence
     TransientDriver( UInt sequenceStep,
-                     bool isPartOfSequence = false );
+                     bool isPartOfSequence,
+                     shared_ptr<SimState> state, Domain* domain );
   
     //! Default destructor
     virtual ~TransientDriver();
@@ -55,7 +56,7 @@ namespace CoupledField {
     //! offset for first time (due to multiSequence)
     Double timeOffset_;
 
-    //! Number of timesteps~
+    //! Number of timesteps
     UInt numstep_;
 
     //! current time step

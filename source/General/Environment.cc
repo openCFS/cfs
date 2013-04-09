@@ -5,8 +5,6 @@
 #include "Environment.hh"
 #include "Utils/tools.hh"
 #include "Domain/Domain.hh"
-#include "DataInOut/Logging/LogConfigurator.hh"
-
 
 // Since OLAS uses a separate namespace for
 // writing out data, two different declarations
@@ -18,11 +16,7 @@ namespace OutInfo{
 
 namespace CoupledField {
 
-
   // Define global objects 
-  LogConfigurator * logConf = new LogConfigurator();
-
-
   Domain * domain = NULL;
   // Initialisation of some global pointers
   //WriteInfo *Info = NULL;
@@ -63,7 +57,7 @@ namespace CoupledField {
                                        CouplingInputType &out ) {
 
     if (in == "Coordinate-Displacement")
-      out = COORD;
+      out = COORD_DISPL;
     else if (in == "RHS")
       out = RHS;
     else if (in == "DirichletInhom")
@@ -84,7 +78,7 @@ namespace CoupledField {
 
     switch(in) {
 
-    case COORD:
+    case COORD_DISPL:
       out = "Coordinate-Displacement";
       break;
     case RHS:
@@ -171,39 +165,6 @@ namespace CoupledField {
     }
   }
 
-  // NormType
-  template<>
-  void String2Enum<NormType>(const std::string &in, NormType &out) {
-
-    if (in == "no")
-      out = NO_NORM;
-    else if (in == "rel")
-      out = L2REL;
-    else if (in == "abs")
-      out = L2ABS;
-    else {
-      EXCEPTION( "'" << in << "' cannot be converted into item of "
-                 << "'NormType'!" );
-    }
-  }
-
-  template<>
-  void Enum2String<NormType>(const NormType &in, std::string &out) {
-
-    switch(in) {
-    case NO_NORM:
-      out = "no";
-      break;
-    case L2REL:
-      out = "rel";
-      break;
-    case L2ABS:
-      out = "abs";
-      break;
-    default:
-      EXCEPTION("No conversion found for your 'NormType'");
-    }
-  }
 
   // SolutionType
   std::string MapSolTypeToUnit(SolutionType solType)
@@ -216,6 +177,10 @@ namespace CoupledField {
         break;
 
       case ACOU_INTENSITY:
+        return "W/m^2";
+        break;
+        
+      case ACOU_NORMAL_INTENSITY:
         return "W/m^2";
         break;
 
@@ -345,6 +310,14 @@ namespace CoupledField {
 
       case FLUIDMECH_STRAINRATE:
         return "1/s";
+        break;
+
+      case FLUIDMECH_WEIGHT_VECTOR:
+        return "kg m^-2 s^-2";
+        break;
+
+      case FLUIDMECH_WEIGHT_DENSITY:
+        return "kg m^-2 s^-2 m s^-1";
         break;
 
       case HEAT_TEMPERATURE:
@@ -1134,6 +1107,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_STRESS, "mechStress");
     SolutionTypeEnum.Add(MECH_STRAIN, "mechStrain");
     SolutionTypeEnum.Add(MECH_STRUCT_INTENSTIY, "mechStructIntensity");
+    SolutionTypeEnum.Add(MECH_NORMAL_STRUCT_INTENSITY, "mechNormalStructIntensity");
     SolutionTypeEnum.Add(VON_MISES_STRESS, "vonMisesStress");
     SolutionTypeEnum.Add(VON_MISES_STRAIN, "vonMisesStrain");
     SolutionTypeEnum.Add(MECH_KIN_ENERGY_DENS, "mechKinEnergyDensity");
@@ -1183,6 +1157,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_POWERDENSITY, "acouPowerDensity");
     SolutionTypeEnum.Add(ACOU_POWER, "acouPower");
     SolutionTypeEnum.Add(ACOU_INTENSITY, "acouIntensity");
+    SolutionTypeEnum.Add(ACOU_NORMAL_INTENSITY, "acouNormalIntensity");
     SolutionTypeEnum.Add(ACOU_SURFINTENSITY, "acouSurfIntensity");
     SolutionTypeEnum.Add(ACOU_ENERGY, "acouEnergy");
     SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");
@@ -1193,18 +1168,24 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DERIV1, "magPotentialD1");
     SolutionTypeEnum.Add(MAG_SCALAR_POTENTIAL, "magScalarPotential");
+    SolutionTypeEnum.Add(MAG_RHS_LOAD, "magRhsLoad");
+    
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");
-    SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_HFIELD, "magHfield");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT_DENSITY, "magEddyCurrentDensity");
-    SolutionTypeEnum.Add(MAG_COIL_CURRENT_DENSITY, "magCoilCurrentDensity");
     SolutionTypeEnum.Add(MAG_TOTAL_CURRENT_DENSITY, "magTotalCurrentDensity");
-    SolutionTypeEnum.Add(MAG_FORCE_VWP, "magForceVWP");
+    SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY, "magForceLorentzDensity");
+    SolutionTypeEnum.Add(MAG_EDDY_POWER_DENSIY, "magEddyPowerDensity");
+    SolutionTypeEnum.Add(MAG_ENERGY_DENSITY, "magEnergyDensity");
+    
+    SolutionTypeEnum.Add(MAG_FORCE_VWP, "magForceVWP");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ, "magForceLorentz");
     SolutionTypeEnum.Add(MAG_ENERGY, "magEnergy");
     SolutionTypeEnum.Add(MAG_EDDY_POWER, "magEddyPower");
-    SolutionTypeEnum.Add(MAG_RHS_LOAD, "magRhsLoad");
+
+    SolutionTypeEnum.Add(MAG_COIL_CURRENT_DENSITY, "magCoilCurrentDensity");
+    
     SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
     //heat conduction
     SolutionTypeEnum.Add(HEAT_TEMPERATURE, "heatTemperature");
@@ -1224,6 +1205,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");
     SolutionTypeEnum.Add(FLUIDMECH_STRESS, "fluidMechStress");
     SolutionTypeEnum.Add(FLUIDMECH_STRAINRATE, "fluidMechStrainRate");
+    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_VECTOR, "fluidMechWeightVector");
+    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_DENSITY, "fluidMechWeightDensity");
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
     // optimization
     SolutionTypeEnum.Add(HOMOGENIZED_TENSOR, "homogenizedTensor");

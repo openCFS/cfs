@@ -45,6 +45,18 @@ public:
   virtual void SetFunctionsAtIp( const std::map<Integer, LocPoint >& 
                                  iPoints) = 0;
 
+
+  //! Get Coordinates of local degrees of freedom
+  virtual void GetLocalDOFCoordinates(Matrix<Double> & coordMat){
+    Exception("GetLocalDOFCoordinates: Not implemented here...");
+  }
+
+  //! @copydoc BaseFE::ComputeMonomialCoefficients
+  //! Overloaded method for lagrange Elements
+  virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C){
+    Exception("ComputeMonomialCoefficients: Not implemented here...");
+  }
+
 protected:
   
   //! Calculate the location of unknowns for a line up to given order

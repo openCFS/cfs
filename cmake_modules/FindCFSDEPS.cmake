@@ -1,23 +1,24 @@
-# - Find CFSDEPS installation 
-# This module finds if CFSDEPS is installed and determines where 
-# the include files and libraries are. It also determines what the name of
-# the library is. This code sets the following variables:
-#  
-#  CFSDEPS_FOUND     = system has CFSDEPS 
-#  CFSDEPS_LIBRARIES = path to the CFSDEPS libraries
-#  CFSDEPS_CXX_FLAGS  = Compiler flags for CFSDEPS 
-#  CFSDEPS_INCLUDE_DIR      = where to find "CFSDEPS.h"
-#  CFSDEPS_DEFINITIONS      = extra defines
+#=============================================================================
 #
-# AUTHOR
-# Simon Triebenbacher simon.triebenbacher@uni-klu.ac.at (02/2009)
+# Find locations of external binary libs (e.g. MKL) and build additional
+# external libs from source.
+# 
+# This module finds and builds libs that CFS++ depends upon and determines
+# where the include files and libraries are. 
+#  
+# AUTHORS
+# - Simon Triebenbacher simon.triebenbacher@uni-klu.ac.at (02/2009)
+# - Simon Triebenbacher simon.triebenbacher@tuwien.ac.at (01/2013)
+#
+#=============================================================================
 
 #-----------------------------------------------------------------------------
 # Include external project build capability of CMake 2.8
 #-----------------------------------------------------------------------------
 INCLUDE(ExternalProject)
 
-SET(LSE17_SOURCES_DIR "ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources")
+SET(LSE17_SOURCES_DIR "ftp://lse17.e-technik.uni-erlangen.de:40065")
+SET(LSE17_SOURCES_DIR "${LSE17_SOURCES_DIR}/cfsdeps/sources")
 
 #-----------------------------------------------------------------------------
 # Set common CFLAGS (and CXXFLAGS) common for all external projects.
@@ -27,16 +28,28 @@ SET(LSE17_SOURCES_DIR "ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sourc
 # We do not want to see warnings from external projects, since they would
 # show up on CDash.
 #-----------------------------------------------------------------------------
-SET(CFLAGS "-w")
- 
+IF(CMAKE_COMPILER_IS_GNUCXX)
+  SET(CFSDEPS_C_FLAGS "-w")
+  SET(CFSDEPS_CXX_FLAGS "-w")
+  SET(CFSDEPS_Fortran_FLAGS "-w")
+ELSEIF(MSVC)
+  STRING(REPLACE "/W3" "/w" CFSDEPS_C_FLAGS "${CMAKE_C_FLAGS_INIT}")
+  STRING(REPLACE "/W3" "/w" CFSDEPS_CXX_FLAGS "${CMAKE_CXX_FLAGS_INIT}")
+  STRING(REPLACE "/W3" "/w" CFSDEPS_Fortran_FLAGS "${CMAKE_Fortran_FLAGS_INIT}")
+ENDIF()
+
 #-----------------------------------------------------------------------------
 # On Mac OS X we want to build the external libs for the same SDK and 
 # architecture as CFS++.
 #-----------------------------------------------------------------------------
 IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(CFLAGS "${CFLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}")
-  SET(CFLAGS "${CFLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
-  SET(CFLAGS "${CFLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
+  SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}")
+  SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
+  SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
+
+  SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}")
+  SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
+  SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
 ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
 #-----------------------------------------------------------------------------
@@ -84,8 +97,8 @@ INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/muparser/External_muParser.cmake")
 # Build zlib library
 #-------------------------------------------------------------------------------
 SET(ZLIB_URL "${LSE17_SOURCES_DIR}/zlib")
-SET(ZLIB_GZ "zlib-1.2.6.tar.gz")
-SET(ZLIB_MD5 "618e944d7c7cd6521551e30b32322f4a")
+SET(ZLIB_GZ "zlib-1.2.7.tar.gz")
+SET(ZLIB_MD5 "60df6a37c56e7c1366cca812414f7b85")
 
 INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/zlib/External_zlib.cmake")
 
@@ -165,8 +178,8 @@ IF(USE_BLAS OR USE_LAPACK)
       USE_ILUPACK)
     
     SET(LAPACK_URL "${LSE17_SOURCES_DIR}/lapack")
-    SET(LAPACK_GZ "lapack-3.2.1.tgz")
-    SET(LAPACK_MD5 "a3202a4f9e2f15ffd05d15dab4ac7857")
+    SET(LAPACK_GZ "lapack-3.4.2.tgz")
+    SET(LAPACK_MD5 "61bf1a8a4469d4bdb7604f5897179478")
     
     INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/lapack/External_LAPACK.cmake")
     
@@ -254,7 +267,7 @@ IF(USE_BLAS OR USE_LAPACK)
   IF(USE_ILUPACK)
     SET(ILUPACK_PATH "${CFS_SOURCE_DIR}/cfsdeps/ilupack")
     SET(ILUPACK_GZ "ilupack2.2.1_src.tgz")
-    SET(ILUPACK_MD5 "83454bbbbb12bd4efca73df50d2e6d7d")
+    SET(ILUPACK_MD5 "7cb6ba2e854e13d243218d9e9478d13c")
     
     INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/ilupack/External_ILUPACK.cmake")
   ENDIF(USE_ILUPACK)
@@ -272,6 +285,28 @@ IF(USE_BLAS OR USE_LAPACK)
 #  MESSAGE("PARDISO_LIBRARY ${PARDISO_LIBRARY}")
   
 ENDIF(USE_BLAS OR USE_LAPACK)
+
+#-------------------------------------------------------------------------------
+# Find Library of Iterative Solvers
+#-------------------------------------------------------------------------------
+IF(USE_LIS)
+  SET(LIS_URL "${LSE17_SOURCES_DIR}/lis")
+  SET(LIS_GZ "lis-1.3.16.tar.gz")
+  SET(LIS_MD5 "7bbbcd2070cca367a98d17767c0ea408")
+  
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/lis/External_LIS.cmake")
+ENDIF(USE_LIS)
+
+#-------------------------------------------------------------------------------
+# Find SuperLU
+#-------------------------------------------------------------------------------
+IF(USE_SUPERLU)
+  SET(SUPERLU_URL "${LSE17_SOURCES_DIR}/superlu")
+  SET(SUPERLU_ZIP "superlu_4.1.zip")
+  SET(SUPERLU_MD5 "ec39cd404545f098095092f7ba5a5434")
+  
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/superlu/External_SuperLU.cmake")
+ENDIF(USE_SUPERLU)
 
 #-------------------------------------------------------------------------------
 # Find Boost
@@ -303,6 +338,16 @@ ENDIF(USE_XERCES)
 # Find CGAL
 #-----------------------------------------------------------------------------
 IF(USE_CGAL)
+  IF(WIN32)
+    IF(MINGW AND NOT CMAKE_CROSSCOMPILING OR MSVC)
+      SET(MSG "The build of gmp and mpfr is not supported on Windows!")
+      SET(MSG "${MSG} It is configure-based and therefore requires a shell")
+      SET(MSG "${MSG} interpreter like bash from MSYS.")
+      SET(MSG "${MSG} If you need CGAL, you need to cross compile from Linux.")
+      MESSAGE(FATAL_ERROR "${MSG}")
+    ENDIF()
+  ENDIF()
+
   SET(GMP_URL "${LSE17_SOURCES_DIR}/gmp")
   SET(GMP_BZ2 "gmp-4.2.4.tar.bz2")
   SET(GMP_MD5 "fc1e3b3a2a5038d4d74138d0b9cf8dbe")
@@ -318,6 +363,27 @@ IF(USE_CGAL)
   SET(CGAL_MD5 "797697130ff9231627521c0a38f16d2f")
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cgal/External_CGAL.cmake")
 ENDIF(USE_CGAL)
+
+#-----------------------------------------------------------------------------
+# Find fast box intersection library.
+#-----------------------------------------------------------------------------
+IF(USE_LIBFBI)
+  IF(WIN32)
+    IF(NOT MINGW)
+      SET(MSG "Only the latest versions of MSVC support the features needed")
+      SET(MSG "${MSG} needed to build libfbi. Maybe your version works or")
+      SET(MSG "${MSG} not. We just bail out here, to make sure nothing stupid")
+      SET(MSG "${MSG} happens.")
+      MESSAGE(FATAL_ERROR "${MSG}")
+    ENDIF()
+  ENDIF()
+
+  SET(LIBFBI_URL "${LSE17_SOURCES_DIR}/spacepart")
+  SET(LIBFBI_GZ "libfbi_for_cfs_gitrev_ee570e5e.tgz")
+  SET(LIBFBI_MD5 "9484f3573450b20cadc262365eb74b7a")
+ENDIF(USE_LIBFBI)
+
+INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/spacepart/External_spacepart.cmake")
 
 #-----------------------------------------------------------------------------
 # Find IPOPT
@@ -359,18 +425,38 @@ ENDIF(USE_ANSYSRST)
 # Find ParaView postprocessor
 #-----------------------------------------------------------------------------
 IF(BUILD_PARAVIEW)
-  MESSAGE(FATAL_ERROR "ParaView has not been ported to CMake externals yet.")
+  #---------------------------------------------------------------------------
+  # Setup a list of dependencies for ParaView.
+  #---------------------------------------------------------------------------
+  SET(CFS_PV_DEPENDENCIES "")
 
   #---------------------------------------------------------------------------
-  # ParaView requires latest CMake
+  # Qt - Let's check if a valid version of Qt is available
   #---------------------------------------------------------------------------
-  set(CMAKE_URL "${LSE17_SOURCES_DIR}/cmake")
-  set(CMAKE_GZ cmake-2.8.8.tar.gz)
-  set(CMAKE_MD5 ba74b22c788a0c8547976b880cd02b17)
-  
-  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cmake/External_CMake.cmake")
+  FIND_PACKAGE(Qt4 4.8.2)
+  IF(NOT QT4_FOUND)
+    set(QT4_URL "${LSE17_SOURCES_DIR}/qt4")
+    set(QT4_GZ qt-everywhere-opensource-src-4.8.2.tar.gz)
+    set(QT4_MD5 3c1146ddf56247e16782f96910a8423b)
 
-#  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindParaView.cmake")
+    INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/qt4/External_Qt4.cmake")
+  ENDIF()
+
+  #---------------------------------------------------------------------------
+  # Build QtCurve style.
+  #---------------------------------------------------------------------------
+  IF(UNIX)
+    INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/qt4/External_QtCurve.cmake")
+  ENDIF()
+
+  #---------------------------------------------------------------------------
+  # Finally add an external project for ParaViewSuperbuild
+  #---------------------------------------------------------------------------
+  set(PARAVIEW_SB_URL "${LSE17_SOURCES_DIR}/paraview")
+  set(PARAVIEW_SB_GZ pvsuperbuild-3.98.1.tgz)
+  set(PARAVIEW_SB_MD5 c5471eebe633fe3410a24e543836ec81)
+
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/paraview/External_ParaView.cmake")
 ENDIF(BUILD_PARAVIEW)
 
 

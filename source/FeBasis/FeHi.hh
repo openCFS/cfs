@@ -129,6 +129,9 @@ protected:
 
   //! Isotropic order. 0 if anisotropic
   UInt isoOrder_;
+  
+  //! Directional-dependent anisotropic order (w.r.t. to local directions)
+  StdVector<UInt> anisoOrder_;
 
   //! Maximum polynomial degree of element
   UInt maxOrder_;

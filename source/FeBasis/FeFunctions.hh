@@ -14,7 +14,6 @@
 #include "MatVec/Vector.hh"
 
 #include "Utils/mathParser/mathParser.hh"
-#include "Driver/TimeSchemes/BaseTimeScheme.hh"
 
 namespace CoupledField {
 
@@ -29,7 +28,9 @@ namespace CoupledField {
   class LinearForm;
   class BiLinearForm;
   class SBM_Vector;
-  //class BaseTimeScheme;
+  class BaseTimeScheme;
+  class SimState;
+  class MathParser;
 
 //!  Base class for a function approximated by Finite Elements 
 /*!
@@ -53,15 +54,20 @@ class BaseFeFunction : public CoefFunction,
                        public boost::enable_shared_from_this<BaseFeFunction> {
 public:
   
+  //! Make simulation state class friend 
+  friend class SimState;
 
   //! Constructor
-  BaseFeFunction();
+  BaseFeFunction(MathParser* mp);
   
   //! Destructor
   virtual ~BaseFeFunction();
   
   //! Finalize initialization
   virtual void Finalize() = 0;
+  
+  //! Query for complex-valued results
+  virtual bool IsComplex() const = 0;
   
   // ========================================================================
   //  Function Meta Information
@@ -81,10 +87,10 @@ public:
   shared_ptr<FeSpace> GetFeSpace();
   
   //! Add EntityList
-  void AddEntityList( shared_ptr<EntityList> list );
+  virtual void AddEntityList( shared_ptr<EntityList> list );
   
   //! Get EntityList
-  StdVector< shared_ptr<EntityList> > GetEntityList();
+  virtual StdVector< shared_ptr<EntityList> > GetEntityList();
   
   //! Get regions the FeFunction is defined on
   const std::set<RegionIdType>& GetRegions() const;
@@ -134,6 +140,13 @@ public:
   //! Add constraint boundary condition
   void AddConstraint( shared_ptr<Constraint> bc );
 
+  //! Add a Coefficient function to fill the FeFunction
+  void AddLoadCoefFunction( shared_ptr<CoefFunction> coef );
+
+  //! Add an external data function to fill the FE function
+  void AddExternalDataSource( shared_ptr<CoefFunction> coef );
+
+
   //! Get Homogenious Boundary Conditions
   const HdBcList GetHomDirichletBCs(){
     return hdBcs_;
@@ -149,6 +162,15 @@ public:
     return constraints_;
   }
 
+  //! Get Load CoefFunctions
+  const LoadCoefList GetLoadCoefFunctions(){
+    return loadCoefs_;
+  }
+
+  //! Get external Data CoefFunctions
+  const ExternalDataCoefList GetExternalDataSource(){
+    return externalDataCoefs_;
+  }
   //@}
   
   // ========================================================================
@@ -188,8 +210,22 @@ public:
   
   //! Compute the BC values and hand them over to the Algebraic System
    virtual void ApplyBC() = 0;
+
+   //! Incorporate load conditions, the characteristic here is that the values will be
+   //! added, not set as in ApplyBCs
+   virtual void ApplyLoads() = 0;
   //@}
   
+  //! generates an interpolation operator by determining the space used
+  virtual BaseBOperator* GenerateInterpolationOperator(UInt dim, UInt dofDim)=0;
+
+  //! Generate interpolation bilinear form
+  virtual BiLinearForm* GenerateInterpolBilinForm( UInt spaceDim, UInt dofDim ,
+                                           bool updatedGeo )=0;
+  
+  //! Generate interpolation linear form
+  virtual LinearForm* GenerateInterpolLinForm( UInt spaceDim, UInt dofDim, PtrCoefFct ,
+                                           bool updatedGeo )=0;
 
 protected:
 
@@ -198,9 +234,6 @@ protected:
   
   //! Pointer to finite element function space
   shared_ptr<FeSpace> feSpace_;
-  
-  //! Entitylists (elements, nodes, etc.) the function is defined on
-  StdVector<shared_ptr<EntityList> > entities_;
   
   //! Set with all regions the function is defined on
   std::set<RegionIdType> regions_;
@@ -214,6 +247,12 @@ protected:
   //! Constraints
   ConstraintList constraints_;
   
+  //! LoadCoefFunctions
+  LoadCoefList loadCoefs_;
+
+  //! coefFunction providing external Data
+  ExternalDataCoefList externalDataCoefs_;
+
   //! The ResultInfo for the Function
   shared_ptr<ResultInfo> result_;
 
@@ -228,45 +267,13 @@ protected:
   MathParser::HandleType mHandle_;
 
   //! pointer to algebraic system
-  AlgebraicSys* algsys_;      
+  AlgebraicSys* algsys_;
+  
+  //! Pointer to MathParser
+  MathParser * mp_;
 
   //! pointer to timestepping scheme
   shared_ptr<BaseTimeScheme> timeScheme_;
-  
-  //! Helper struct for caching the result of a function mapping
-  
-  //! This struct is used to store the auxiliary data related to the
-  //! the mapping of a general coefficient function to this feFunction /
-  //! its associated function space.
-  struct MapContext {
-    
-    //! Constructor
-    MapContext();
-    
-    //! Destructor
-    virtual ~MapContext();
-    
-    //! Parameter node algebraic system
-    PtrParamNode olasNode;
-    
-    //! Infonode for algebraic system
-    PtrParamNode infoNode;
-    
-    //! Pointer to algebraic system
-    AlgebraicSys* algSys;
-    
-    //! Pointer to assemble class
-    Assemble* assemble;
-    
-    //! Equation numbers of entity to be mapped
-    StdVector<Integer> entityEqns;
-    
-    //! Vector containing the solution
-    SBM_Vector * sol;
-  };
-  
-  //! Associate entity name with mapping context
-  std::map<std::string, MapContext*> entityCtx_;
   
 };
 
@@ -276,11 +283,14 @@ protected:
 ///////////////////////////////////////////////////////////////////
 
 //! Templatized FeFunction (real/complex)
-//TODO: Concept for Applying higher order Boundary conditions 
 template<typename T>
 class FeFunction : public BaseFeFunction {
 public:
-  FeFunction();
+  
+  //! Make simulation state class friend 
+  friend class SimState;
+  
+  FeFunction(MathParser* mp);
 
   virtual ~FeFunction();
 
@@ -290,6 +300,11 @@ public:
   //! \see BaseFeFunction::Finalize()
   void Finalize();
   
+  
+  virtual bool IsComplex() const {
+    return std::tr1::is_same<T,Complex>::value;
+    
+  }
   //! \copydoc BaseFeFunction::SetResultInfo 
   void SetResultInfo( shared_ptr<ResultInfo> info );
   
@@ -314,25 +329,6 @@ public:
   void GetElemSolution( Vector<T>& elemSol,
                         const Elem* elem );
   
-  //! Map a general coefficient function onto the current finite element space
-  
-  //! This method can be used to map a general coefficient function
-  //! to the current finite element space. It returns a map, containing the 
-  //! equations numbers and the corresponding coefficients.
-  //! \param entityList Entitylist on which the function is defined
-  //! \param coefFct Coefficient function to be mapped 
-  //! \param vals Map containing the equations numbers (key) and the
-  //!             coefficient values (value)
-  //! \param cache Flag, if mapping should be cached (e.g. for boundary
-  //!              conditions, depending on frequency, time)
-  //! \param comp Set containing the components, which should get mapped.
-  //!             If empty, all components of the (vector-valued) function
-  //!             get mapped
-  void MapCoefFctToSpace(shared_ptr<EntityList> entityList, 
-                         shared_ptr<CoefFunction> coefFct,
-                         std::map<Integer, T>& vals,
-                         bool cache,
-                         const std::set<UInt>& comp = std::set<UInt>() );  
   
   //! Return vector containing the function coefficients
   SingleVector* GetSingleVector() {return coeffs_;}
@@ -346,6 +342,13 @@ public:
   //! Incorporate boundary conditions
   virtual void ApplyBC();
   
+  //! Incorporate load conditions, the characteristic here is that the values will be
+  //! added, not set as in ApplyBCs
+  virtual void ApplyLoads();
+
+  //! Set the feFunction to values obtained by external data sources
+  virtual void ApplyExternalData();
+
   // ========================================================================
    //  Coefficient Function Interface
    // ========================================================================
@@ -361,18 +364,19 @@ public:
    
    //@}
   
-  
-protected:
-
   //! generates an interpolation operator by determining the space used
   BaseBOperator* GenerateInterpolationOperator(UInt dim, UInt dofDim);
 
   //! Generate interpolation bilinear form
-  BiLinearForm* GenerateInterpolBilinForm( UInt spaceDim, UInt dofDim );
+  BiLinearForm* GenerateInterpolBilinForm( UInt spaceDim, UInt dofDim,
+                                           bool updatedGeo );
   
   //! Generate interpolation linear form
-  LinearForm* GenerateInterpolLinForm( UInt spaceDim, UInt dofDim, PtrCoefFct );
+  LinearForm* GenerateInterpolLinForm( UInt spaceDim, UInt dofDim, PtrCoefFct,
+                                       bool updatedGeo );
   
+protected:
+
   //! Update factor for time derivative (only complex case)
   void UpdateTimeDeriv();
   

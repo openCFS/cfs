@@ -21,7 +21,7 @@ public:
   CoefFunctionConst() 
   : CoefFunctionAnalytic() {
     // this type of coefficient is always constant
-    dependType_ = CONST;
+    dependType_ = CONSTANT;
     isAnalytic_ = true;
     isComplex_ = std::tr1::is_same<T,Complex>::value;
   }
@@ -168,6 +168,17 @@ public:
   virtual void GetStrTensor( UInt& numRows, UInt& numCols,
                              StdVector<std::string>& real, 
                              StdVector<std::string>& imag );
+
+
+  // COLLECTION ACCESS
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<T >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<Vector<T> >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                            StdVector<Matrix<T> >  & vals);
 protected:
   
   //! Constant coefficient tensor

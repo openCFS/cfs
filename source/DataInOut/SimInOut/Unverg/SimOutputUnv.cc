@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <cstdlib>
 #include <cmath>
 #include <complex>
 #include <exception>
@@ -36,9 +37,12 @@ namespace CoupledField {
   //   Constructor
   // ***************
   SimOutputUnv::SimOutputUnv(  const std::string& filename,
-                               PtrParamNode outputNode ) 
-    : SimOutput ( filename, outputNode ),
-      capaOut_(false) {
+                               PtrParamNode outputNode,
+                               PtrParamNode infoNode) 
+    : SimOutput ( filename, outputNode, infoNode ),
+      output(NULL),
+      capaOut_(false) 
+  {
     std::string sysPathSep;
 
     std::string flavor;
@@ -118,6 +122,10 @@ namespace CoupledField {
     (*output) << std::setw(6) << -1 << std::endl << std::setw(6)
               << 151 << std::endl ;
 
+#if _MSC_VER >= 1400
+#define snprintf _snprintf
+#endif
+
     // Model name
     snprintf(buf, 81, "%s", fileName_.c_str());
     (*output) << buf << std::endl;
@@ -127,7 +135,7 @@ namespace CoupledField {
     (*output) << buf << std::endl;
 
     // DB Application
-    (*output) << "CFS++ (Univ. of Klagenfurt and Univ. of Erlangen-Nuremberg)" << std::endl;
+    (*output) << "CFS++ (TU Wien and Univ. of Erlangen-Nuremberg)" << std::endl;
 
     std::stringstream sstr;
     dt::time_facet *facet = new dt::time_facet(" %d-%b-%y  %H:%M:%S");

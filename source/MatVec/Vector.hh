@@ -250,17 +250,16 @@ template<typename T> class ElemStoreSol;
     //! Compute Euclidean norm of this vector object
     Double NormL2() const;
 
-    //! Normalize vector, i.e. scale it to unit length w.r.t. L2 norm.
-    //! Returns the vectors L2 norm before normalization.
-    Double Normalize();
-
     /** Calculates the max-norm (of the real part) */ 
     Double NormMax() const; 
 
     /** Calculates the max-norm (of the real part) of the vector difference */
     Double NormMax(const SingleVector& other) const;
 
-    
+    //! Normalize vector, i.e. scale it to unit length w.r.t. L2 norm.
+    //! Returns the vectors L2 norm before normalization.
+    Double Normalize();
+
     /** Count the number of non-zero entries */
     Integer CountNonZero() const;
 
@@ -320,6 +319,16 @@ template<typename T> class ElemStoreSol;
     //! Vector assignment operator
     Vector<T>&  operator=( const Vector<T>& rhs ) { 
       return this->assignFrom(rhs); 
+    }
+    
+    //! Inner product for general vector expression as second argument
+    template <class V> 
+    T operator*( const Xpr1<T,V>& rhs ) {
+      T ret = 0.0;
+      for( UInt i = 0; i < size_; ++i ) {
+        ret += data_[i] * rhs(i);
+      }
+      return ret;
     }
     
     //! Returns the number of entries
@@ -413,7 +422,7 @@ template<typename T> class ElemStoreSol;
     //! The first row contains the dimension \f$n\f$, while the remaining
     //! rows contain the vector's entries, so row (k+1) contains entry
     //! \f$a_k\f$.
-    virtual void Export( const char *fname ) const;
+    virtual void Export( const char *fname, BaseMatrix::OutputFormat format ) const;
 
     //@}
 
@@ -594,6 +603,11 @@ template<typename T> class ElemStoreSol;
   //  INLINE MEMBER DEFINITIONS FOR NON-TEMPLATE EXPRESSION CASE
   // ************************************************************
 #ifndef EXPR_TEMPLATES
+  
+  //! Explicit conjugate operation (general case)
+  template<typename T>
+  Vector<T> Conj(const Vector<T>& m);
+  
   template<typename T> template<typename T2>
   Vector<PROMOTE(T,T2)> Vector<T>::
   operator+(const Vector<T2> &x) const

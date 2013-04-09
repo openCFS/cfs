@@ -135,6 +135,12 @@ namespace CoupledField{
     void MultiIdOp<FE,D,D_DOF,TYPE>::
   CalcOpMatTransposed(Matrix<Double> & bMat,
                       const LocPointMapped& lp, BaseFE* ptFe){
+
+    Matrix<Double> dummyMat;
+    CalcOpMat(dummyMat, lp, ptFe);
+    
+    dummyMat.Transpose(bMat);
+#if 0    
     const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialize with zeros
     bMat.Resize( DIM_SPACE, numFncs * DIM_DOF );
@@ -149,7 +155,7 @@ namespace CoupledField{
         bMat[sh][d] = s[sh];
       }
     }
-
+#endif
   }
 
 } // end of namespace

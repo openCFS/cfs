@@ -13,7 +13,7 @@ namespace fs = boost::filesystem;
 #include "DataInOut/ProgramOptions.hh"
 
 #include "def_use_pardiso.hh"
-#include <def_fortran_interface.hh>
+#include <def_cfs_fortran_interface.hh>
 
 #include "PardisoSolver.hh"
 
@@ -25,25 +25,34 @@ namespace CoupledField {
   DEFINE_LOG(pardisoSolver, "olas.solvers.pardiso")
 
 #if PARDISO_API_VER == 3
-extern "C" {
-    void FORTRAN_CALL F77NAME(pardisoinit) (void *, int *, int *);
+#ifdef __MINGW32__
+  // When building on Windows using the GNU toolchain, a different Fortran
+  // name mangling, than the one from MKL is used.
+  #undef pardiso
+  #define pardiso PARDISO
+  #undef pardisoinit
+  #define pardisoinit PARDISOINIT
+#endif
 
-    void FORTRAN_CALL F77NAME(pardiso) (void *, int *, int *, int *, int *, int *,
-                            const Double *, const int *, const int *, int *,
-                            int *, int *, int *, const Double *,
-                            Double *, int *);
+extern "C" {
+    void pardisoinit (void *, int *, int *);
+
+    void pardiso (void *, int *, int *, int *, int *, int *,
+                  const Double *, const int *, const int *, int *,
+                  int *, int *, int *, const Double *,
+                  Double *, int *);
 }
 #endif
 
 #if PARDISO_API_VER == 4
 extern "C" {
-  void FORTRAN_CALL F77NAME(pardisoinit) (void *pt, int *mtype, int *solver,
+  void pardisoinit (void *pt, int *mtype, int *solver,
                               int *iparm, Double *dparm, int *error);
 
-  void FORTRAN_CALL F77NAME(pardiso) (void *pt, int *maxfct, int *mnum, int *mtype,
-                           int *phase, int *n, const Double *a, const int *ia, const int *ja,
-                           int *perm, int *nrhs, int *iparm, int *msglvl,
-                           const Double *b, Double *x, int *error, double *dparm );
+  void pardiso (void *pt, int *maxfct, int *mnum, int *mtype,
+                int *phase, int *n, const Double *a, const int *ia, const int *ja,
+                int *perm, int *nrhs, int *iparm, int *msglvl,
+                const Double *b, Double *x, int *error, double *dparm );
 }
 #endif
 
@@ -59,7 +68,7 @@ extern "C" {
   template<typename T>
   std::string PardisoSolver<T>::GetErrorString(int err_code) {
     switch (err_code) {
-      case NO_ERROR:
+      case PARDISO_NO_ERROR:
         return "No error.";
       case INPUT_INCONSISTENT:
         return "Input inconsistent.";
@@ -174,20 +183,20 @@ extern "C" {
       int phase = -1;
 
 #if PARDISO_API_VER == 4
-      F77NAME(pardiso) ( &pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                         &probDim_, theMatrix_, rowPtr_, colPtr_,
-                         idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
-                         &zeroDBL_, &errorFlag, &dparm_[0] );
+      pardiso ( &pt_[0], &maxfct_, &mnum_, &mType_, &phase,
+                &probDim_, theMatrix_, rowPtr_, colPtr_,
+                idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
+                &zeroDBL_, &errorFlag, &dparm_[0] );
 #endif
 
 #if PARDISO_API_VER == 3
-      F77NAME(pardiso) ( &pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                         &probDim_, theMatrix_, rowPtr_, colPtr_,
-                         idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
-                         &zeroDBL_, &errorFlag );
+      pardiso ( &pt_[0], &maxfct_, &mnum_, &mType_, &phase,
+                &probDim_, theMatrix_, rowPtr_, colPtr_,
+                idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
+                &zeroDBL_, &errorFlag );
 #endif
 
-      if ( errorFlag != NO_ERROR) {
+      if ( errorFlag != PARDISO_NO_ERROR) {
         EXCEPTION( "Error occured during cleanup:\n"
                    << GetErrorString(errorFlag) )
       }
@@ -415,14 +424,14 @@ extern "C" {
 
 #if PARDISO_API_VER == 4
       Integer error = 0;
-      F77NAME(pardisoinit) ( &pt_[0],  &mType_, &mSolver_, &iparm_[0], &dparm_[0], &error);
+      pardisoinit ( &pt_[0],  &mType_, &mSolver_, &iparm_[0], &dparm_[0], &error);
 
       if (error != 0) 
         EXCEPTION(GetErrorString(error));
 #endif
 
 #if PARDISO_API_VER == 3
-      F77NAME(pardisoinit) ( &pt_[0], &mType_, &iparm_[0] );
+      pardisoinit ( &pt_[0], &mType_, &iparm_[0] );
 #endif
 
     }
@@ -601,21 +610,21 @@ extern "C" {
 
       // let pardiso go for it
 #if PARDISO_API_VER == 4
-      F77NAME(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                        &probDim_, theMatrix_, rowPtr_, colPtr_,
-                        idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
-                        &zeroDBL_, &errorFlag, &dparm_[0] );
+      pardiso (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
+               &probDim_, theMatrix_, rowPtr_, colPtr_,
+               idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
+               &zeroDBL_, &errorFlag, &dparm_[0] );
 #endif
 
 #if PARDISO_API_VER == 3
-      F77NAME(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                        &probDim_, theMatrix_, rowPtr_, colPtr_,
-                        idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
-                        &zeroDBL_, &errorFlag );
+      pardiso (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
+               &probDim_, theMatrix_, rowPtr_, colPtr_,
+               idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
+               &zeroDBL_, &errorFlag );
 #endif
 
       // Check return status
-      if ( errorFlag != NO_ERROR ) {
+      if ( errorFlag != PARDISO_NO_ERROR ) {
         EXCEPTION( "Error occured during symbolic factorization:\n"
                    << GetErrorString(errorFlag));
       }
@@ -639,21 +648,21 @@ extern "C" {
 
       // let pardiso go for it
 #if PARDISO_API_VER == 4
-      F77NAME(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                        &probDim_, theMatrix_, rowPtr_, colPtr_,
-                        idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
-                        &zeroDBL_, &errorFlag, &dparm_[0] );
+      pardiso (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
+               &probDim_, theMatrix_, rowPtr_, colPtr_,
+               idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
+               &zeroDBL_, &errorFlag, &dparm_[0] );
 #endif
 
 #if PARDISO_API_VER == 3
-      F77NAME(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                        &probDim_, theMatrix_, rowPtr_, colPtr_,
-                        idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
-                        &zeroDBL_, &errorFlag );
+      pardiso (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
+               &probDim_, theMatrix_, rowPtr_, colPtr_,
+               idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
+               &zeroDBL_, &errorFlag );
 #endif
 
       // Check return status
-      if ( errorFlag != NO_ERROR ) {
+      if ( errorFlag != PARDISO_NO_ERROR ) {
         EXCEPTION( "Error occured during numerical factorization:\n"
                    << GetErrorString(errorFlag) );
       }
@@ -730,17 +739,17 @@ extern "C" {
        colPtr_[i] += 1;
 
 #if PARDISO_API_VER == 4
-    F77NAME(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                      &probDim_, theMatrix_, rowPtr_, colPtr_,
-                      idPerm_, &nrhs_, &iparm_[0], &msgLvl_, theRHS,
-                      theSol, &errorFlag, &dparm_[0] );
+    pardiso (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
+             &probDim_, theMatrix_, rowPtr_, colPtr_,
+             idPerm_, &nrhs_, &iparm_[0], &msgLvl_, theRHS,
+             theSol, &errorFlag, &dparm_[0] );
 #endif
 
 #if PARDISO_API_VER == 3
-    F77NAME(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
-                      &probDim_, theMatrix_, rowPtr_, colPtr_,
-                      idPerm_, &nrhs_, &iparm_[0], &msgLvl_, theRHS,
-                      theSol, &errorFlag );
+    pardiso (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
+             &probDim_, theMatrix_, rowPtr_, colPtr_,
+             idPerm_, &nrhs_, &iparm_[0], &msgLvl_, theRHS,
+             theSol, &errorFlag );
 #endif
 
     // now we undo our increment, since on our side the first col and row
@@ -751,7 +760,7 @@ extern "C" {
       colPtr_[i] -= 1;
 
     // Check return status
-    if ( errorFlag != NO_ERROR ) {
+    if ( errorFlag != PARDISO_NO_ERROR ) {
       EXCEPTION( "Error occured during solution of linear system:\n"
                  << GetErrorString(errorFlag) );
     }
@@ -776,7 +785,7 @@ extern "C" {
 
     // Create Report (no sensible things to write for direct solvers yet)
     ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
+    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", at);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
   }

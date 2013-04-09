@@ -26,7 +26,8 @@ namespace CoupledField {
     //@{ \name Constructor / Initialization
     
     //! Constructor with name of mesh-file
-    SimInputMPHTXT(std::string fileName, PtrParamNode inputNode);
+    SimInputMPHTXT(std::string fileName, PtrParamNode inputNode, 
+                   PtrParamNode infoNode);
     
     //! Destructor
     virtual ~SimInputMPHTXT();

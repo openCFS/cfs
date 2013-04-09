@@ -11,7 +11,8 @@ namespace CoupledField {
   public:
 
     //! Default constructor
-    ElectroMagneticMaterial();
+    ElectroMagneticMaterial(MathParser* mp,
+                            CoordSystem * defaultCoosy);
 
     //! Destructor
     ~ElectroMagneticMaterial();

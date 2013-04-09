@@ -8,7 +8,7 @@ namespace CoupledField {
 //  REAL VALUED COEFFICIENT FUNCTION
 // ===========================================================================
 
-CoefFunctionCompound<Double>::CoefFunctionCompound() {
+CoefFunctionCompound<Double>::CoefFunctionCompound(MathParser * mp) {
   dependType_ = GENERAL;
   isAnalytic_ = false;
   isComplex_ = false;
@@ -16,7 +16,7 @@ CoefFunctionCompound<Double>::CoefFunctionCompound() {
   numCols_ = 0;
   parser_ = NULL;
 
-  parser_ = domain->GetMathParser();
+  parser_ = mp;
   handle_ = parser_->GetNewHandle( true );
   
   // always store default coordinate system
@@ -261,7 +261,7 @@ UpdateXpr( const LocPointMapped& lpm ) {
 //  Complex VALUED COEFFICIENT FUNCTION
 // ===========================================================================
 
-CoefFunctionCompound<Complex>::CoefFunctionCompound() {
+CoefFunctionCompound<Complex>::CoefFunctionCompound(MathParser * mp) {
   dependType_ = GENERAL;
   isAnalytic_ = false;
   isComplex_ = true;
@@ -270,7 +270,7 @@ CoefFunctionCompound<Complex>::CoefFunctionCompound() {
   numCols_ = 0;
   parser_ = NULL;
 
-  parser_ = domain->GetMathParser();
+  parser_ = mp;
   handleReal_ = parser_->GetNewHandle( true );
   handleImag_ = parser_->GetNewHandle( true );
   

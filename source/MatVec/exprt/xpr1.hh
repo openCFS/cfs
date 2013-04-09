@@ -54,6 +54,21 @@ public:
 };
 
 template <class P>
+class Conjugate {
+public:
+  static inline P apply(const P& a) { return a; }
+  static inline unsigned int size()  {return 1;}
+};
+
+template <>
+class Conjugate<Complex> {
+public:
+  static inline Complex apply(const Complex& a) { return std::conj(a); }
+  static inline unsigned int size()  {return 1;}
+};
+
+
+template <class P>
 class Exp {
 public:
   static inline P apply(const P& a) { return P( exp(a) ); }
@@ -266,6 +281,7 @@ static inline f(const Dim1<P,A>& a) \
 }
 XXX(ident, Identity)
 XXX(operator- , UnaryMinus)
+XXX(Conj , Conjugate)
 XXX(exp, Exp)
 #undef XXX
 
@@ -280,6 +296,7 @@ static inline f(const Xpr1<P,A>& a) \
    return Xpr1<P,ExprT>(ExprT(a)); \
 }
 XXX(operator- , UnaryMinus)
+XXX(Conj , Conjugate)
 XXX(exp, Exp)
 #undef XXX
 

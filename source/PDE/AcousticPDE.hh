@@ -21,7 +21,9 @@ namespace CoupledField{
     /*!
       \param aGrid pointer to grid
     */
-    AcousticPDE( Grid* aGrid, PtrParamNode paramNode );
+    AcousticPDE( Grid* aGrid, PtrParamNode paramNode,
+                 PtrParamNode infoNode,
+                 shared_ptr<SimState> simState, Domain* domain );
 
     virtual ~AcousticPDE(){};
 
@@ -41,22 +43,6 @@ namespace CoupledField{
 
     //! define the SoltionStep-Driver
     void DefineSolveStep();
-    // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-
-    //! Initalize PDE coupling
-    void InitCoupling(PDECoupling * Coupling) {
-      EXCEPTION("Coupling not supported for acousticPDE.");
-    };
-
-    //! Calculate coupling terms
-    void CalcOutputCoupling() {
-      EXCEPTION("Coupling not supported for acousticPDE.");
-    };
-
-    //! Returns if PDE can compute the quantity
-    bool HasOutput(SolutionType output) { return false;};
 
     //! Return acoustic formulation. Can either be pressure or potential.
     SolutionType GetFormulation() const { return formulation_; }
@@ -74,17 +60,27 @@ namespace CoupledField{
     //! Define available postprocessing results
     void DefinePostProcResults();
 
+    //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
+    void ReadDampingInformation();
+    
     //! Init the time stepping
     void InitTimeStepping();
 
     //! create feFunction for meanFluidMech velocity
     void CreateMeanFlowFunction(StdVector<std::string> dofNames);
 
+    //! create transient PML integrators
+    template<UInt DIM>
+    void DefineTransientPMLInts(shared_ptr<ElemList> eList,std::string id);
+
   private:
 
     //! stores if the Acoustic PDE is in potential or pressure form
     SolutionType formulation_;
 
+    //! Stores Rayleigh damping definition for each region
+    std::map<RegionIdType, RaylDampingData > regionRaylDamping_;
+    
     //! Coefficient function for the flow field
 
     //! This coefficient function describes the flow field. As this 
@@ -94,6 +90,12 @@ namespace CoupledField{
     
     //! stores if the Acoustic PDE is coupled to mechanics
     bool isMechCoupled_;
+
+    //! flag for transient PML
+    bool isTimeDomPML_;
+
+    //! flag indicating if we have almost PML (better stability in 3D)
+    bool isAPML_;
   };
 
 }

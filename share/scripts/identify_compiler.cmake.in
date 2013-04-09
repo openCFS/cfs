@@ -1,3 +1,9 @@
+# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
+# kate: indent-width 2; encoding utf-8; auto-brackets on;
+# kate: mixedindent on; indent-mode cstyle; line-numbers on;
+# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
+# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+
 SET(CMAKE_C_COMPILER "@CMAKE_C_COMPILER@")
 SET(CMAKE_CXX_COMPILER "@CMAKE_CXX_COMPILER@")
 SET(CMAKE_Fortran_COMPILER "@CMAKE_Fortran_COMPILER@")
@@ -24,7 +30,18 @@ ENDIF(NOT COMPILER)
 # MESSAGE("SOURCE ${SOURCE}")
 
 EXECUTE_PROCESS(
-  COMMAND "${COMPILER}" -E "${CFS_SOURCE_DIR}/share/scripts/${SOURCE}"
+  COMMAND "${CMAKE_COMMAND}"
+    -E copy_if_different
+    "${CFS_SOURCE_DIR}/share/scripts/${SOURCE}"
+    "${CFS_BINARY_DIR}/tmp/${SOURCE}"
+  WORKING_DIRECTORY "${CFS_BINARY_DIR}/tmp"
+  OUTPUT_VARIABLE COMPILER_OUTPUT
+  ERROR_VARIABLE COMPILER_ERROR
+  RESULT_VARIABLE rv
+  )
+
+EXECUTE_PROCESS(
+  COMMAND "${COMPILER}" -E "${SOURCE}"
   WORKING_DIRECTORY "${CFS_BINARY_DIR}/tmp"
   OUTPUT_VARIABLE COMPILER_OUTPUT
   ERROR_VARIABLE COMPILER_ERROR
@@ -176,6 +193,9 @@ IF(CC_ID)
     STRING(REPLACE " "
       "" CC_VERSION
       ${CC_VERSION})
+    STRING(REGEX REPLACE "\\.$"
+      "" CC_VERSION
+      ${CC_VERSION})
   ELSEIF(CC_ID STREQUAL "ICC")
 
     STRING(REPLACE " "
@@ -191,6 +211,12 @@ IF(CC_ID)
     MATH(EXPR ICC_MINOR_VERSION "(${ICCVER} % 100) / 10")
 
     SET(CC_VERSION "${ICC_MAJOR_VERSION}.${ICC_MINOR_VERSION} ${ICCDATE}")
+  ELSEIF(CC_ID STREQUAL "MSVC")
+
+    MESSAGE("CC_ID: ${CC_ID}")
+    STRING(REGEX REPLACE "([0-9][0-9])$" ".\\1" CC_VERSION "${CC_VERSION}")
+    MESSAGE("CC_VERSION: ${CC_VERSION}")
+
   ELSE()
     MESSAGE(FATAL_ERROR "C compiler '${COMPILER}' not supported!")
   ENDIF()
@@ -217,6 +243,9 @@ IF(CXX_ID)
     STRING(REPLACE " "
       "" CXX_VERSION
       ${CXX_VERSION})
+    STRING(REGEX REPLACE "\\.$"
+      "" CXX_VERSION
+      ${CXX_VERSION})
   ELSEIF(CXX_ID STREQUAL "ICC")
 
     STRING(REPLACE " "
@@ -232,6 +261,12 @@ IF(CXX_ID)
     MATH(EXPR ICC_MINOR_VERSION "(${ICCVER} % 100) / 10")
 
     SET(CXX_VERSION "${ICC_MAJOR_VERSION}.${ICC_MINOR_VERSION} ${ICCDATE}")
+  ELSEIF(CXX_ID STREQUAL "MSVC")
+
+    # MESSAGE("CXX_ID: ${CXX_ID}")
+    STRING(REGEX REPLACE "([0-9][0-9])$" ".\\1" CXX_VERSION "${CXX_VERSION}")
+    # MESSAGE("CXX_VERSION: ${CXX_VERSION}")
+
   ELSE()
     MESSAGE(FATAL_ERROR "C compiler '${COMPILER}' not supported!")
   ENDIF()
@@ -252,6 +287,9 @@ IF(FC_ID)
   IF(FC_ID STREQUAL "GNU" OR
       FC_ID STREQUAL "OPEN64")
     STRING(REPLACE " "
+      "" FC_VERSION
+      ${FC_VERSION})
+    STRING(REGEX REPLACE "\\.$"
       "" FC_VERSION
       ${FC_VERSION})
   ELSEIF(FC_ID STREQUAL "IFORT")
@@ -313,4 +351,7 @@ IF(FC_ID)
   FILE(APPEND "${COMPILER_ID_FILE}" "SET(FC_ID \"${FC_ID}\")\n")
   FILE(APPEND "${COMPILER_ID_FILE}" "SET(FC_VERSION \"${FC_VERSION}\")\n")
 
+  IF(FC_ID STREQUAL "OPEN64")
+    FILE(APPEND "${COMPILER_ID_FILE}" "SET(CMAKE_Fortran_COMPILER_ID \"PathScale\")")
+  ENDIF()
 ENDIF(FC_ID)

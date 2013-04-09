@@ -18,7 +18,8 @@ namespace CoupledField {
   public:
 
     //! Default constructor
-    ElectroStaticMaterial();
+    ElectroStaticMaterial(MathParser* mp,
+                          CoordSystem * defaultCoosy);
 
     //! Destructor
     ~ElectroStaticMaterial();

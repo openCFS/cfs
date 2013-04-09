@@ -32,8 +32,10 @@ namespace CoupledField {
   //   Constructor
   // ***************
   AcouMechCoupling::AcouMechCoupling( SinglePDE *pde1, SinglePDE *pde2,
-                                PtrParamNode paramNode  )
-    : BasePairCoupling( pde1, pde2, paramNode )
+                                PtrParamNode paramNode, 
+                                PtrParamNode infoNode,
+                                shared_ptr<SimState> simState, Domain* domain)
+    : BasePairCoupling( pde1, pde2, paramNode, infoNode, simState, domain )
   {
     couplingName_ = "acouMechDirect";
     materialClass_ = FLUID;
@@ -63,6 +65,7 @@ namespace CoupledField {
     // get hold of both feFunctions
     MechPDE* mechPDE = dynamic_cast<MechPDE*>(pde1_);
     AcousticPDE* acouPDE = dynamic_cast<AcousticPDE*>(pde2_);
+    MathParser * mp = domain_->GetMathParser();
     
     shared_ptr<BaseFeFunction> dispFct = mechPDE->GetFeFunction(MECH_DISPLACEMENT);
     SolutionType acouFormulation = acouPDE->GetFormulation();
@@ -79,13 +82,12 @@ namespace CoupledField {
     end = acouMaterials.end();
     for( ; it != end; it++ ) {
       RegionIdType volRegId = it->first;
-
       acouRegions.insert(volRegId);
 
       // Get bulk density for acoustics
       BaseMaterial * acouMat = acouMaterials[volRegId];
       coefFuncs[volRegId] = acouMat->GetScalCoefFnc(DENSITY,Global::REAL);
-      oneCoefFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
+      oneCoefFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL,
                                                    lexical_cast<std::string>(1.0));
     }
 
@@ -179,8 +181,6 @@ namespace CoupledField {
     
     // check for position of integrator
     SolutionType rowType = fnc1->GetResultInfo()->resultType;
-std::cerr << "coefFuncs has size" << coefFuncs.size() << std::endl;
-std::cerr << "first coefFunct is " << coefFuncs.begin()->second->ToString()<< std::endl;
     BiLinearForm * cplInt = NULL;
     if( dim_ == 2  ) {
       if(rowType == MECH_DISPLACEMENT) {

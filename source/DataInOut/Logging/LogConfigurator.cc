@@ -60,10 +60,11 @@ namespace CoupledField {
     if( confFile == "") return;
     
     // If file is defined, create new Xerces instance and parse file
-    Xerces xml(confFile);
+    Xerces xmlParser;
+    xmlParser.SetFile(confFile);
     
     // Obtain ParamNode
-    PtrParamNode root = xml.CreateParamNodeInstance();
+    PtrParamNode root = xmlParser.CreateParamNodeInstance();
     
     // Get list of classes
     

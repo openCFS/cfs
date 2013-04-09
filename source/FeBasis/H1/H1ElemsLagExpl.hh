@@ -45,9 +45,6 @@ public:
                                   EntityType fctEntityType,
                                   UInt entNumber);
 
-//  //! returns the number of functions for a single edge or face
-//  UInt GetNumFncsPerEntType( EntityType fctEntityType, UInt dof = 1);
-
   //! \copydoc BaseFE::GetIsoOrder
   virtual UInt GetIsoOrder() const {
     return order_;
@@ -76,6 +73,10 @@ public:
   //! the integration points of a surface. Therefore it calculates
   //! on which side of the volume element the surface element lies
   //! and creates the according volume point.
+  //! 
+  //! \note The resulting normal vector will always point OUT of the
+  //!       first volume neighbor of the surface element 
+  //!       (SurfElem.ptVolElems[0]).
   /*!
        \param surfConnect (input) Node numbers of surface element
        \param volConnect (input) Node numbers of volume element
@@ -83,7 +84,7 @@ public:
        onto the volume element
        \param volIntPoint (output) Corresponding volume integration point
        \param locNormal (output) Normal direction of surface element in local 
-       coordinates of the volume element
+       coordinates of the volume element, pointint OUT of the first volume element
    */
   virtual void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
                                          const StdVector<UInt> & volConnect,
@@ -197,6 +198,10 @@ protected:
                                  const LocPoint & surfIntPoint,
                                  LocPoint & volIntPoint,
                                  Vector<Double>& locNormal );
+
+  //! @copydoc BaseFE::ComputeMonomialCoefficients
+  //! Overloaded method for lagrange Elements
+  virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C);
 };
 
 //! Lagrangian quadrilateral element
@@ -466,6 +471,22 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+  
+
+  //! @copydoc FeH1::GetNumICModes
+  virtual UInt GetNumICModes() { return 2;}
+    
+  //! @copydoc FeH1::CalcShFncICModes
+  void CalcShFncICModes( Vector<Double>& shape,
+                         const Vector<Double>& point,
+                         const Elem* ptElem,
+                         UInt comp = 1 );
+
+  //! @copydoc FeH1::CalcLocDerivShFncICModes
+  void CalcLocDerivShFncICModes( Matrix<Double> & deriv, 
+                                 const Vector<Double>& point,
+                                 const Elem* ptElem,
+                                 UInt comp = 1 );
 };
 
 //! Lagrangian hexahedral element of 1st order (ET_HEXA8)
@@ -492,6 +513,21 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+  
+  //! @copydoc FeH1::GetNumICModes
+  virtual UInt GetNumICModes() { return 3;}
+  
+  //! @copydoc FeH1::CalcShFncICModes
+  void CalcShFncICModes( Vector<Double>& shape,
+                         const Vector<Double>& point,
+                         const Elem* ptElem,
+                         UInt comp = 1 );
+
+  //! @copydoc FeH1::CalcLocDerivShFncICModes
+  void CalcLocDerivShFncICModes( Matrix<Double> & deriv, 
+                                 const Vector<Double>& point,
+                                 const Elem* ptElem,
+                                 UInt comp = 1 );
 };
 
 
@@ -782,6 +818,7 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+
 };
 //! Lagrangian tetrahedron element of 2nd order (ET_TET10)
 class FeH1LagrangeTet2 : public FeH1LagrangeTet {

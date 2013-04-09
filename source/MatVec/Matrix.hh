@@ -87,8 +87,7 @@ namespace CoupledField
 
     inline void InitValue( const TYPE val = TYPE() )
     {
-      for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-        data_[0][k] = val;
+      std::fill(&data_[0][0],&data_[0][size_row_*size_col_], val);
     }
     
     //! Change the size of the matrix
@@ -760,6 +759,14 @@ namespace CoupledField
     }
     return trans;
   }
+  
+  //! Explicit conjugation of matrix
+   template<class TYPE>
+   Matrix<TYPE> Conj( const Matrix<TYPE>&m);
+  
+  //! Explicit Hermitian of matrix
+  template<class TYPE>
+  Matrix<TYPE> Herm( const Matrix<TYPE>&m);
 #endif
 
   // =======================================================================

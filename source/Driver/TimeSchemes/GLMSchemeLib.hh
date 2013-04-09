@@ -33,6 +33,16 @@ namespace CoupledField{
  */
 class GLMScheme{
   public:
+  
+  /// Enumeration for each GLM scheme available
+  typedef enum{
+    TRAPEZOIDAL = 1,
+    NEWMARK = 2
+    // RK4 = 3,
+    // BDF2 = 4
+  } SchemeType;
+
+  
     GLMScheme();
 
     virtual ~GLMScheme();
@@ -67,6 +77,9 @@ class GLMScheme{
     virtual Double TransformBC(const StdVector< SingleVector* > & glm, Double value,
                                   UInt valDerivOrder, Integer eqnNumber);
 
+    //! Get type of scheme
+    virtual SchemeType GetType() = 0;
+    
     //++++++++++++++++++++++++++++++++++++++++++++++++++
     //Define Scheme Formulation
     //++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -79,6 +92,7 @@ class GLMScheme{
 
     ///Define number of stages
     UInt numStages_;
+    
 
     /*!
      Store the matrix of coefficients defining the scheme for a given solution order
@@ -161,6 +175,11 @@ class Trapezoidal : public GLMScheme{
     //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
     virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
 
+    //! \copydoc GLMSchem::GetType
+    virtual SchemeType GetType() {
+      return TRAPEZOIDAL;
+    }
+    
   private:
     /*!
      * parameter for switching between implicit and explicit scheme
@@ -222,6 +241,11 @@ class Newmark : public GLMScheme{
 
     Newmark(Double gamma,Double beta);
 
+    //! \copydoc GLMSchem::GetType
+    virtual SchemeType GetType() {
+      return NEWMARK;
+    }
+    
     //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
     virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
 

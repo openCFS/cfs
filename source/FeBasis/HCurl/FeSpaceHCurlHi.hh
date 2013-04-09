@@ -48,7 +48,6 @@ public:
   //! Treat thin regions specially
   virtual void TreatThinElements(Double maxAspectRatio );
 
-
 protected:
 
   // ====================================================================

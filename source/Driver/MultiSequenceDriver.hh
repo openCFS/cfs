@@ -25,7 +25,7 @@ namespace CoupledField
   public:
   
     //! constructor
-    MultiSequenceDriver();
+    MultiSequenceDriver(shared_ptr<SimState> state, Domain* domain );
 
     //! destructir
     virtual ~MultiSequenceDriver();

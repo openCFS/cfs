@@ -25,15 +25,12 @@ namespace CoupledField {
 
   public:
 
-    //! Typedef for operation mode of resultHandler
-    //! EMBEDDED: Denotes that the results are generated during a
-    //!           simulation run of CFS++
-    //! STANDALONE: All results are available at once by reading in
-    //!             from a file
-    typedef enum {EMBEDDED, STANDALONE} OpMode;
-
     //! Constructor
-    ResultHandler( OpMode mode );
+    
+    //! General constructor for ResultHandler instance
+    //! \param postProcNode Pointer to paramnode for <postProcList> (is allowed
+    //!                     to be empty)
+    ResultHandler( PtrParamNode rootNode );
 
     //! Desctructor
     virtual ~ResultHandler();
@@ -163,7 +160,8 @@ namespace CoupledField {
                                                  UInt sequenceStep,
                                                  UInt stepValue,  
                                                  SolutionType solType,
-                                                 std::set<std::string> & regionNames );
+                                                 std::set<std::string> & regionNames,
+                                                 PtrParamNode rootNode );
     
     /** This dumps the content of the result handler for debugging */
     void Dump(); 
@@ -240,9 +238,9 @@ namespace CoupledField {
                          Grid* destGrid,
                          shared_ptr<BaseResult>& mappedResult );
     
-    //! Operation mode of resultHandler
-    OpMode opMode_;
-    
+    //! Pointer to root parameter element
+    PtrParamNode param_;
+        
     //! Set of ResultContexts
     std::set<shared_ptr<ResultContext> > contexts_;
 

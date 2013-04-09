@@ -13,7 +13,7 @@ namespace CoupledField
 {
 
   // forward definition
-class ElemShape;
+  struct ElemShape;
 
   //! Class for description of a volume finite element
 
@@ -230,7 +230,7 @@ class ElemShape;
     Elem & operator=(const Elem& t);
 
     // Fix problems due to negative Jacobian determinants
-    void CorrectConnectivity( );
+    void CorrectConnectivity( const Grid& grid );
     
     //! Obtain string representation
     std::string ToString() const;
@@ -297,11 +297,14 @@ class ElemShape;
     //! Number of surface elements
     UInt numSurfElems;
     
+    //! Volume/Area/Length of element (3D/2D/1D)
+    Double volume;
+    
     //! Coordinate of element midpoint
     Vector<Double> midPointCoord;
 
     //! Coordinates of nodes (outer vector: number of nodes, inner: dim)
-    StdVector<StdVector<Double> > nodeCoords; 
+    StdVector<Vector<Double> > nodeCoords; 
 
     //! Contains for each edge the vertex node numbers
     StdVector<StdVector<UInt> > edgeVertices;

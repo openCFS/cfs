@@ -391,12 +391,134 @@ source /home/shareAll/linux_bin/intel/fc(e for 64Bit!)/COMPILER_VERSION/bin/ifor
 \todo[inline]{Put                           info                          from
 \url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/CMake} here.}
 
+\subsubsection{Building 32-bit Binaries on 64-bit Linux Host}
+
+In order to build  32-bit executables on a 64-bit host one  has to install the
+corresponding    32-bit     development    packages    first     (cf.     {\tt
+bootstrap\_devel\_machine.sh}                      or                      the
+websites\footnote{\url{http://stackoverflow.com/questions/5383325/how-to-create-a-32-bit-shared-library-on-a-64-bit-platform-with-autotools}}\footnote{\url{https://sites.google.com/site/auledoom/programacion/cmakemultiarch/cmake-crosscompile-linux32-multiarch}}). It
+is  most convenient  to create  a  few dummy  shell scripts  for wrapping  the
+compilers for 32-bit mode. Afterwards one can open a {\tt linux32} environment
+and  append the path  to the  newly created  shell scripts  to the  {\tt PATH}
+variable. Then,  one can  follow the  standard way of  creating a  binary with
+CMake:
+
+\begin{verbatim}
+cd CFS_BINARY_DIR
+mkdir bin_i386
+cd bin_i386/
+printf '#!/bin/sh\n/usr/bin/gcc -m32 "$@"\n' > gcc && chmod 755 gcc
+printf '#!/bin/sh\n/usr/bin/g++ -m32 "$@"\n' > g++ && chmod 755 g++
+printf '#!/bin/sh\n/usr/bin/gfortran -m32 "$@"\n' > gfortran && chmod 755 gfortran
+cd ..
+linux32 bash
+# Test environment
+uname -a
+export PATH=$PWD/bin_i386:$PATH
+export CC=gcc                                                                 
+export CXX=g++
+export FC=gfortran
+
+cmake CFS_SOURCE_DIR
+\end{verbatim}
+                        
+\subsubsection{Building Windows Binaries on Linux Host}
+\label{sec:mingw_linux_crosscompile}
+
+It is possible to cross-compile CFS++ for Windows using the MinGW compiler toolchain on Linux.
+
+\colorbox{CarnationPink}{\parbox{\textwidth}{%
+  \vskip10pt
+  \leftskip10pt\rightskip10pt
+%  \begin{window}[0, l, \includegraphics[width=1cm]{dialog-warning}, {}]
+%    \leftskip10pt
+%    \lipsum[1]
+%    \rightskip10pt
+%  \end{window}
+  \begin{wrapfigure}{l}{0.1\textwidth}
+    \includegraphics[width=0.1\textwidth]{pics/dialog-warning}
+  \end{wrapfigure}
+  A drawback, which will become less important in the future, is that the generated binaries cannot be run on Windows XP. The {\tt msvcrt.dll} on Windows XP lacks the function {\tt \_chsize\_s}.
+  The function is however available on Windows 7 or Vista.
+  If you need binaries for Windows XP, you need to use the native MinGW, Intel or Microsoft toolchains on Windows.
+  \begin{center}
+    \includegraphics[width=0.7\textwidth]{pics/xp_mingw_error}
+  \end{center}
+%  \vskip10pt
+ }
+}
+
+\noindent The  first  step  is  again  the  installation of  the  MinGW  cross  compiler
+toolchains. Here, we describe the procedures for Ubuntu and CentOS.
+
+\paragraph{Ubuntu 12.04 LTS}
+
+The following packages need to be installed:
+\begin{verbatim}
+root@ubuntu1204:~# apt-get install binutils-mingw-w64 gcc-mingw-w64 \
+                   g++-mingw-w64 gdb-mingw-w64-target gdb-mingw-w64 \
+                   gfortran-mingw-w64 mingw-w64 gcc-4.6-locales
+\end{verbatim}%
+%
+Please note, that there seems to be no support for OpenMP available in the Ubuntu toolchain! 
+
+\begin{verbatim}
+# Start CFS++ configuration process
+$ TCF=$CFS_SOURCE_DIR/share/scripts/mingw_cross_toolchain_ubuntu_1204.cmake
+$ cmake -DCMAKE_TOOLCHAIN_FILE=$TCF \
+        -DCFS_DEPS_CACHE_DIR:PATH=../../gitrepo/CACHE $CFS_SOURCE_DIR
+\end{verbatim}
+
+\paragraph{RHEL/CentOS}
+
+On CentOS the MinGW package repository of Levente Farkas containing version 4.5.3
+of the GNU toolchain has been used. The file repository file
+{\tt /etc/yum.repos.d/lfarkas.repo} has been attached to this PDF 
+\attachfile[icon=PushPin,description={Yum repository file for Leventa Farkas'
+MinGW toolchain on CentOS 6.},mimetype=text/plain]{sources/mingw_lfarkas_repo.txt}.
+Please note, that either the 32-bit or the 64-bit toolchain may be installed but
+not both! The problem with this toolchain is, that some headers concerning intrinsic
+functions for SSE instructions have to be fixed\footnote{Intrinsic SSE functions bug:
+\url{http://sourceforge.net/tracker/?func=detail&atid=102435&aid=2962480&group_id=2435}}.
+Therefore, after installing the packages from the repository the following patch
+\attachfile[icon=PushPin,description={Patch for Levente Farkas' MinGW toolchain
+ on CentOS 6.},mimetype=text/plain]{sources/mingw_centos6_farkas_patch.txt},
+which has been generated against a 4.6 toolchain, has to be applied.
+The following packages have been installed:
+
+\begin{verbatim}
+$ yum search mingw
+mingw64-headers-2.0-0.1.rc1.el6.noarch
+mingw64-cpp-4.5.3-2.el6.x86_64
+mingw64-gcc-c++-4.5.3-2.el6.x86_64
+mingw64-crt-2.0-0.1.rc1.el6.noarch
+mingw64-gcc-4.5.3-2.el6.x86_64
+mingw64-binutils-2.21.53.0.2-1.el6.x86_64
+mingw64-filesystem-82-2.el6.noarch
+mingw64-gcc-gfortran-4.5.3-2.el6.x86_64
+mingw64-libgomp.x86_64 0:4.6.1-0.1.20110804.el6
+\end{verbatim}
+
+\begin{verbatim}
+# Start CFS++ configuration process
+$ TCF=$CFS_SOURCE_DIR/share/scripts/mingw_cross_toolchain_centos_6.cmake
+$ cmake -DCMAKE_TOOLCHAIN_FILE=$TCF \
+        -DCFS_DEPS_CACHE_DIR:PATH=../../gitrepo/CACHE $CFS_SOURCE_DIR
+\end{verbatim}
+
+
+
+
+\subsection{Preprocessor Definitions for various Platforms}
+
+\url{http://sourceforge.net/p/predef/wiki/Architectures/}
+
 \subsection{Specifics for Intel Compiler}
 
 The Intel 11.1 compiler needs the libstdc++.so.5, which is not available on all
 platforms anymore. Especially on Ubuntu $>=$ 8.04 the corresponding library has
-to be installed by hand (cf.
-\url{http://software.intel.com/en-us/articles/using-intel-compilers-for-linux-with-ubuntu/}).
+to be installed by hand\footnote{Using Intel Compilers for Linux with Ubuntu: 
+\url{http://software.intel.com/en-us/articles/using-intel-compilers-for-linux-with-ubuntu/}}.
 
 Also be sure to use the correct GNU compiler in conjunction with the Intel
 compiler, since compatibility issues can arise (cf.
@@ -654,7 +776,7 @@ using  the {\tt  ExternalProject\_Add()} macro.   The macro  will just  add an
 additional target and  configure it during the configuration  phase, i.e. when
 you type in  'cmake .'  or 'ccmake  .'. It is important to  understand that no
 downloading of  sources, configuration or building of  external libraries will
-take place  during the configuration step  of CFS++ anymorexs.  Just targets are
+take place  during the configuration step  of CFS++ anymore.  Just targets are
 added   and  CMake  scripts   for  patching,   building  and   installing  the
 corresponding packages get configured.  These  scripts however are only run at
 build time, i.e. when you type in 'make'.
@@ -809,7 +931,7 @@ CFSDEPSCACHE
 
 \subsubsection{Tips}
 \begin{itemize}
-\item To get started you should have at least CMake 2.8.4 and a working set of
+\item To get started you should have at least CMake 2.8.8 and a working set of
 gcc,  g++ and gfortran  on your  machine. The  required dependencies  get also
 installed, when using the {\tt bootstrap\_devel\_machine.sh} script.
 
@@ -831,9 +953,6 @@ Since  there exists  no public  download  server for  the AMD  ACML the  files
 acml-4-2-0-*.tgz have to be  placed in CFS\_DEPS\_CACHE\_DIR/sources/acml for the
 build scripts to  find them. You need a user account  for AMD Developer Center
 to download these files.
-
-\subsubsection{amd}  Routines for reordering  sparse matrices.  It is  part of
-SuiteSparse (cf. Sec. \ref{sec:suitesparse})
 
 \subsubsection{ansys\_custom}  ANSYS Classic  I/O Library  for reading/writing
 .rst files.  These libraries are taken from the ANSYS binary distributions for
@@ -933,9 +1052,10 @@ hdfview is a Java application for viewing and modifying HDF5 files.
 
 \subsubsection{ilupack} ILUPACK is a package for preconditioners and iterative
 solvers developed by Matthias Bollhöfer. He provided us with his sources which
-get built by  our build scripts.  At the moment  (8.4.2009) the integration in
-CFS++ is not working. Fabian Wein has to fix it. For latest infos consult Trac
-or ask Simon Triebenbacher or Fabian Wein.
+get built by  our build scripts.  At the moment  (11.3.2013) the integration in
+CFS++ is working. ILUPACK seems to have slight problems with optimized BLAS
+implementations. Therefore, it is advisable to use Netlib BLAS together with ILUPACK.
+For latest infos consult Trac or ask Simon Triebenbacher or Fabian Wein.
 
 \noindent Project Homepage: \url{http://www-public.tu-bs.de/~bolle/ilupack/}
 
@@ -956,7 +1076,7 @@ allow  the  input and  output  of  a number  of  different  formats. The  most
 interesting   ones  for   a  CFS++   user  or   developer  are   the  Geomview
 (\url{http://www.geomview.org}) .off format which  can be produced by CGAL and
 the .stl format  for surface geometries. both formats can  be read by ParaView
-an Gmsh.
+and Gmsh.
 
 \noindent Project Homepage: \url{http://people.sc.fsu.edu/~jburkardt/f_src/ivread/ivread.html}
 
@@ -1121,13 +1241,6 @@ Library Needed by Botan, HDF5 and libxml2.
 \noindent Project Homepage: \url{http://www.zlib.net/}
 
 \subsection{Other Libraries CFS++ Depends Upon}
-\subsubsection{Python \& TCL}
-
-The  scripting  languages Python  and/or  TCL may  be  used  to call  external
-functions at  certain predefined  hook points  in CFS++. We  do not  build the
-libraries   from  source.   They  need   to   be  installed   on  the   system
-(cf. Sec. \ref{sec:list_of_ext_packages}).
-
 \subsubsection{MKL}
 
 The versions  9.x and 10.x are supported  by CFS++ at the  moment.  The search
@@ -1324,7 +1437,7 @@ ctest --help
 
 \subsection{Adding test cases to the testsuit}
 
-To   add   a  test   case   just   specify   another  SUBDIRS()   command   in
+To   add   a  test   case   just   specify   another  ADD\_SUBDIRECTORY()   command   in
 \$\{TESTSUIT\_DIR\}/CMakeLists.txt and copy the CMakeLists.txt from one of the
 other subdirectories to the new subdirectory. Make sure that the filenames are
 written   in  the   same  way   like  their   containing   subdirectory  (e.g.

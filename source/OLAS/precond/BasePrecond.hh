@@ -43,7 +43,7 @@ namespace CoupledField {
 
       // === Solvers used as Preconditioners ==
       DIRECT, RICHARDSON, CG, LANCZOS, QMR, GMRES,
-      MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO,  
+      MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO_PRECOND,  
       ILUPACK, LU_SOLVER, CHOLMOD, 
       LDL_SOLVER, LDL_SOLVER2, DIAGSOLVER} 
     PrecondType;

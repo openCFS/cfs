@@ -600,7 +600,9 @@ namespace CoupledField {
   // **********
   //   Export
   // **********
-  void SBM_Matrix::Export( const char *fname, const char *comment ) const {
+  void SBM_Matrix::Export( const char *fname,
+                           BaseMatrix::OutputFormat format,
+                           const char *comment ) const {
 
 
     std::stringstream fileName;
@@ -611,12 +613,12 @@ namespace CoupledField {
 
         // construct file name
         fileName.str( "" );
-        fileName << fname << '_' << i << '_' << j << ".mtx";
+        fileName << fname << '_' << i << '_' << j;
         outFile = fileName.str();
 
         // export sub-matrix
         if ( subMat_[ComputeIndex(i,j)] != NULL ) {
-          subMat_[ComputeIndex(i,j)]->Export( outFile.c_str(), comment );
+          subMat_[ComputeIndex(i,j)]->Export( outFile.c_str(), format, comment );
         }
       }
     }

@@ -1,23 +1,60 @@
---- zlib-1.2.6/CMakeLists.txt	2012-01-17 03:51:23.000000000 +0100
-+++ CMakeLists.txt	2012-05-08 16:16:45.000000000 +0200
-@@ -74,6 +74,7 @@
-                ${CMAKE_CURRENT_BINARY_DIR}/zconf.h @ONLY)
- include_directories(${CMAKE_CURRENT_BINARY_DIR})
+--- CMakeLists.txt.orig	2013-01-08 20:32:09.563967749 +0100
++++ CMakeLists.txt	2013-01-08 21:05:36.563850528 +0100
+@@ -5,8 +5,8 @@
  
-+include_directories(${zlib_SOURCE_DIR})
+ set(VERSION "1.2.7")
  
- #============================================================================
- # zlib
-@@ -165,9 +166,9 @@
+-set(INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin" CACHE PATH "Installation directory for executables")
+-set(INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib" CACHE PATH "Installation directory for libraries")
++set(INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin/${CFS_ARCH_STR}" CACHE PATH "Installation directory for executables")
++set(INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${LIB_SUFFIX}/${CFS_ARCH_STR}" CACHE PATH "Installation directory for libraries")
+ set(INSTALL_INC_DIR "${CMAKE_INSTALL_PREFIX}/include" CACHE PATH "Installation directory for headers")
+ set(INSTALL_MAN_DIR "${CMAKE_INSTALL_PREFIX}/share/man" CACHE PATH "Installation directory for manual pages")
+ set(INSTALL_PKGCONFIG_DIR "${CMAKE_INSTALL_PREFIX}/share/pkgconfig" CACHE PATH "Installation directory for pkgconfig (.pc) files")
+@@ -137,13 +137,21 @@
+         SET(CMAKE_RC_COMPILER windres.exe)
+     endif()
+ 
++    SET(ARCH_TARGET "pe-i386")
++    IF(CFS_ARCH STREQUAL "X86_64")
++      SET(ARCH_TARGET "pe-x86-64")
++    ENDIF(CFS_ARCH STREQUAL "X86_64")
++    
+     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/zlib1rc.obj
+                        COMMAND ${CMAKE_RC_COMPILER}
+                             -D GCC_WINDRES
+-                            -I ${CMAKE_CURRENT_SOURCE_DIR}
+-                            -I ${CMAKE_CURRENT_BINARY_DIR}
+-                            -o ${CMAKE_CURRENT_BINARY_DIR}/zlib1rc.obj
+-                            -i ${CMAKE_CURRENT_SOURCE_DIR}/win32/zlib1.rc)
++                            --target=${ARCH_TARGET}
++                            -I ../zlib
++                            -I .
++                            -o zlib1rc.obj
++                            -i ../zlib/win32/zlib1.rc
++                            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
++			    )
+     set(ZLIB_SRCS ${ZLIB_SRCS} ${CMAKE_CURRENT_BINARY_DIR}/zlib1rc.obj)
+ endif(MINGW)
+ 
+@@ -170,6 +178,7 @@
+ elseif(BUILD_SHARED_LIBS AND WIN32)
+     # Creates zlib1.dll when building shared library version
+     set_target_properties(zlib PROPERTIES SUFFIX "1.dll")
++    set_target_properties(zlib PROPERTIES IMPORT_SUFFIX "1.lib")
+ endif()
  
  if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL )
-     install(TARGETS zlib
--        RUNTIME DESTINATION bin
--        ARCHIVE DESTINATION lib
--        LIBRARY DESTINATION lib )
-+        RUNTIME DESTINATION bin/${CFS_ARCH_STR}
-+        ARCHIVE DESTINATION ${LIB_SUFFIX}/${CFS_ARCH_STR}
-+        LIBRARY DESTINATION ${LIB_SUFFIX}/${CFS_ARCH_STR} )
- endif()
- if(NOT SKIP_INSTALL_HEADERS AND NOT SKIP_INSTALL_ALL )
-     install(FILES ${ZLIB_PUBLIC_HDRS} DESTINATION include)
+--- CMakeLists.txt.orig	2013-01-12 14:18:41.000000000 +0100
++++ CMakeLists.txt	2013-01-12 14:19:26.000000000 +0100
+@@ -174,7 +174,9 @@
+ if(UNIX)
+     # On unix-like platforms the library is almost always called libz
+    set_target_properties(zlib zlibstatic PROPERTIES OUTPUT_NAME z)
+-   set_target_properties(zlib PROPERTIES LINK_FLAGS "-Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/zlib.map")
++   IF(NOT APPLE)
++     set_target_properties(zlib PROPERTIES LINK_FLAGS "-Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/zlib.map")
++   ENDIF()
+ elseif(BUILD_SHARED_LIBS AND WIN32)
+     # Creates zlib1.dll when building shared library version
+     set_target_properties(zlib PROPERTIES SUFFIX "1.dll")

@@ -34,7 +34,7 @@ class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
   public:
   
   //! Constructor
-  CoefFunctionTimeFreq();
+  CoefFunctionTimeFreq(MathParser * mp);
 
   //! Destructor
   virtual ~CoefFunctionTimeFreq();
@@ -136,6 +136,15 @@ class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
                              StdVector<std::string>& real, 
                              StdVector<std::string>& imag );
 
+  // COLLECTION ACCESS
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<Double >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<Vector<Double> >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                            StdVector<Matrix<Double> >  & vals);
   
   protected:
 
@@ -201,7 +210,7 @@ class CoefFunctionTimeFreq<Complex> : public CoefFunctionAnalytic,
 public:
   
   //! Constructor
-  CoefFunctionTimeFreq();
+  CoefFunctionTimeFreq(MathParser * mp);
 
   //! Destructor
   virtual ~CoefFunctionTimeFreq();
@@ -306,6 +315,16 @@ public:
   virtual void GetStrTensor( UInt& numRows, UInt& numCols,
                              StdVector<std::string>& real, 
                              StdVector<std::string>& imag );
+
+  // COLLECTION ACCESS
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<Complex >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                             StdVector<Vector<Complex> >  & vals);
+
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                            StdVector<Matrix<Complex> >  & vals);
 
 protected:
 

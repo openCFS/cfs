@@ -1,0 +1,10 @@
+--- Utilities/Xdmf2/libsrc/XdmfObject.h.orig	2010-06-23 13:05:56.000000000 +0200
++++ Utilities/Xdmf2/libsrc/XdmfObject.h	2010-06-23 13:01:31.000000000 +0200
+@@ -82,6 +82,7 @@
+ # ifdef UNIX
+ #  include "sys/file.h"
+ #  include "strings.h"
++#  include "string.h"
+ #  define STRCASECMP strcasecmp
+ #  define STRNCASECMP strncasecmp
+ #  define STRCMP strcmp

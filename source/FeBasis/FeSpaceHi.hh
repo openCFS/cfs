@@ -6,22 +6,90 @@
 
 #include "FeSpace.hh"
 
+
 namespace CoupledField {
+
+
+
 
 // forward class declarations
 class FeHi;
 
 //! Class for hierarchical finite elements
 class FeSpaceHi : public FeSpace {
+
+
 public:
+
+  // ========================================================================
+  //  Helper struct for caching the result of a mapping of coefs to space
+  // ========================================================================
+  //! Helper struct for caching the result of a function mapping
+  
+  //! This struct is used to store the auxiliary data related to the
+  //! the mapping of a general coefficient function to this feFunction /
+  //! its associated function space.
+  struct MapContext {
+    
+    //! Constructor
+    MapContext();
+    
+    //! Destructor
+    virtual ~MapContext();
+    
+    //! Parameter node algebraic system
+    PtrParamNode olasNode;
+    
+    //! Infonode for algebraic system
+    PtrParamNode infoNode;
+    
+    //! Pointer to algebraic system
+    AlgebraicSys* algSys;
+    
+    //! Pointer to assemble class
+    Assemble* assemble;
+    
+    //! Equation numbers of entity to be mapped
+    StdVector<Integer> entityEqns;
+    
+    //! Vector containing the solution
+    SBM_Vector * sol;
+  };
+
   //! Constructor
   FeSpaceHi (PtrParamNode paramNode, PtrParamNode infoNode, Grid* ptGrid );
 
+
   //! Destructor
   virtual ~FeSpaceHi();
+
+  //! \copydoc FeSpace::MapCoefFctToSpace
+  void MapCoefFctToSpace(shared_ptr<EntityList> entityList,
+                                shared_ptr<CoefFunction> coefFct,
+                                std::map<Integer, Double>& vals,
+                                bool cache,
+                                const std::set<UInt>& comp = std::set<UInt>() ){
+    MapCoefFctToSpacePriv<Double>(entityList,coefFct,vals,cache,comp);
+  }
+
+  //! \copydoc FeSpace::MapCoefFctToSpace
+  void MapCoefFctToSpace(shared_ptr<EntityList> entityList,
+                                shared_ptr<CoefFunction> coefFct,
+                                std::map<Integer, Complex>& vals,
+                                bool cache,
+                                const std::set<UInt>& comp = std::set<UInt>() ){
+    MapCoefFctToSpacePriv<Complex>(entityList,coefFct,vals,cache,comp);
+  }
   
 protected:
   
+  template<typename T>
+  void MapCoefFctToSpacePriv(shared_ptr<EntityList> entityList,
+                                shared_ptr<CoefFunction> coefFct,
+                                std::map<Integer, T>& vals,
+                                bool cache,
+                                const std::set<UInt>& comp = std::set<UInt>() );
+
   //! Get unmodified higher order finite element
   virtual FeHi* GetFeHi( RegionIdType region, Elem::FEType type ) = 0;
   
@@ -66,7 +134,11 @@ protected:
   
   //! Map containing the order of adjusted faces (key: face number)
   boost::unordered_map<UInt, boost::array<UInt,2> > orderFaces_;
+  
+  //! Associate entity name with mapping context
+  std::map<std::string, MapContext*> entityCtx_;
 };
+
 
 } // end of namespace
 #endif

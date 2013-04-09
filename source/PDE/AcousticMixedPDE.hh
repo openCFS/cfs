@@ -29,7 +29,9 @@ class AcousticMixedPDE : public SinglePDE{
     /*!
       \param aGrid pointer to grid
     */
-    AcousticMixedPDE( Grid* aGrid, PtrParamNode paramNode );
+    AcousticMixedPDE( Grid* aGrid, PtrParamNode paramNode, 
+                      PtrParamNode infoNode,
+                      shared_ptr<SimState> simState, Domain* domain );
 
     virtual ~AcousticMixedPDE(){};
 
@@ -52,23 +54,6 @@ class AcousticMixedPDE : public SinglePDE{
 
     //! Initialize all the nodes by this value
     void SetInitialCondition();
-
-    // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-
-    //! Initalize PDE coupling
-    void InitCoupling(PDECoupling * Coupling) {
-      EXCEPTION("Coupling not supported for acousticPDE.");
-    };
-
-    //! Calculate coupling terms
-    void CalcOutputCoupling() {
-      EXCEPTION("Coupling not supported for acousticPDE.");
-    };
-
-    //! Returns if PDE can compute the quantity
-    bool HasOutput(SolutionType output) { return false;};
 
     //! define all (bilinearform) integrators needed for this pdewith template
     //! for the space dimension

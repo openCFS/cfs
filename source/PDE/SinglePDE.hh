@@ -10,25 +10,24 @@
 #include "Domain/Results/ResultInfo.hh"
 #include "Domain/BCs.hh"
 #include "Domain/Results/BaseResults.hh"
-#include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
-#include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 
 namespace CoupledField
 {
   // forward class declaration
   class SpaceErrorEstimator;
-  class BasePairCoupling;
   class DirectCoupledPDE;
   class Assemble;
   class BaseForm;
   class BiLinearForm;
   class BaseBDBInt;
-  class PDEMemento;
   class ResultFunctor;
   class BaseFieldFunctor;
   class LinearFormContext;
   class CoefFunction;
+  class CoefFunctionSurf;
   class CoefFunctionMulti;
+  class CoefFunctionFormBased;
+  class IterCoupledPDE;
   
   //! Base class for all kinds of single field problems.
 
@@ -37,8 +36,9 @@ namespace CoupledField
   public:
 
     // friend declaration
-    friend class BasePairCoupling;
     friend class DirectCoupledPDE;
+    friend class BasePairCoupling;
+    friend class IterCoupledPDE;
 
     
     typedef StdVector<shared_ptr<BaseResult> > ResultList;
@@ -59,34 +59,23 @@ namespace CoupledField
   
   
     // ======================================================
-    // COUPLING SECTION
-    // ======================================================
-  
-    //! Initalize PDE coupling (only done once)
-    virtual void InitCoupling(PDECoupling * Coupling) = 0;
-
-    //! Reset coupling counters and data (done after each timestep)
-    virtual void ResetCoupling();
-
-    //! Fill in input coupling terms
-    virtual void CalcInputCoupling();
-  
-  
-    //! Calculate coupling terms
-    virtual void CalcOutputCoupling() = 0;
-
-  
-    // ======================================================
     // GET /SET  METHODS
     // ======================================================
 
-    /** return sub type. The string is stored internally any we need to convert. :(
-     * @return if StdPDE::subType_ is not set we return NO_TENSOR  */
-    SubTensorType GetSubTensorType() const;
-
+    //! Return if PDE is formulated in updated Lagrangian coordinates
+    bool IsUpdatedGeo() {
+      return updatedGeo_;
+    }
+    
     //! Set Direct coupling information
     virtual void SetDirectCoupling();
 
+    //! Set iterative coupled PDE 
+    
+    //! Set the iterative coupled PDE this SinglePDE belongs to. This is
+    //! needed in order to retrieve coupling quantities.
+    void SetIterCoupledPDE( IterCoupledPDE* iterCplPde );
+    
     //! set boundary condition
     void SetBCs();
 
@@ -100,43 +89,6 @@ namespace CoupledField
      * Note, that only the current state is (over) written! */
     void WriteGeneralPDEdefines();
 
-    //! get the encapsulated state of the PDE
-  
-    //! returns the current state of the PDE (solution, derivative,
-    //! coupling-objects) in an encapsulated object. This is needed to
-    //! enable full MultiSequence simulation, where from one step to 
-    //! another the solution, the derivative and perhaps coupling 
-    //! values like geometry update have to be passed. 
-    //! The PDEMemento object encapsulates this information. 
-    //! Later on the information can be given back to the PDE
-    //! with the method SetMemento();
-    //! \param memento (output) Object where the current state gets saved
-    void GetMemento(shared_ptr<PDEMemento>& memento);
-  
-    //! set the encapsulated state of the PDE
-  
-    //! set the current state of this PDE (solution, derivative,
-    //! coupling-objects) from an encapsulated object. This is needed to
-    //! enable full MultiSequence simulation, where from one step to 
-    //! another the solution, the derivative and perhaps coupling 
-    //! values like geometry update have to be passed. 
-    //! The PDEMemento object encapsulates this information. 
-    //! With this method the previous stored information can be set
-    //! to the current PDE.
-    //! \param memento (input) Previously saved state of the PDE
-    //! \param useAsDirichlet (input) Usage type of values (start-value / 
-             //!                      dirichlet value )
-    void SetMemento( shared_ptr<PDEMemento>&  memento, 
-                     bool useAsDirichlet );
-                   
-
-    //! write the PDE state (pdememento) to a restart file "simname_pdename.restart"
-    void WriteRestart( );
-
-    //! read the PDE state (pdememento)from a restart file: "simname_pdename.restart"
-    void ReadRestart(UInt &startStep );
-
-    //! Map containing the result types and the results
     ResultMap& GetResults() { return resultLists_; }
     
     /**<p>This is part of ReadStoreResults(). If candiate is defined in the xml file
@@ -154,7 +106,7 @@ namespace CoupledField
     //! Read general external field information from given xml node
     //! The node has to contain either a values tag, a number of comp tags or
     //! a grid node
-    //! \param[in] name The name of the entityList the Field should be applied to
+    //! \param[in] name EentityList the Field should be applied to
     //! \param[in] valueNode The xml node of the user parameters
     //! \param[in] compNames Names of the components (vector, tensor)
     //! \param[in] type Type of CoefFunction to be read in (scalar, vector, tensor)
@@ -162,13 +114,16 @@ namespace CoupledField
     //! \param[out] coef The generated coefficient function
     //! \param[out] definedDofs Set containing all defined dofs in case of a
     //!             vector-valued quantity.
-    void ReadUserFieldValues( const std::string name,
+    //! \param[out] updateGeo Flag indicating, if coefficient function is defined
+    //!                  on an updated geometry (e.g. due to iterative coupling).
+    void ReadUserFieldValues( shared_ptr<EntityList> list,
                               PtrParamNode valueNode,
                               const StdVector<std::string>& compNames,
                               ResultInfo::EntryType type,
                               bool isComplex,
                               PtrCoefFct & coef,
-                              std::set<UInt>& definedDofs );
+                              std::set<UInt>& definedDofs,
+                              bool& updateGeo);
 
   protected:
 
@@ -176,7 +131,9 @@ namespace CoupledField
     /*!
       \param aptgrid pointer to grid
     */
-    SinglePDE( Grid *aptgrid, PtrParamNode );
+    SinglePDE( Grid *aptgrid, PtrParamNode, PtrParamNode infoNode,
+               shared_ptr<SimState> simState,
+               Domain* domain);
 
     //! private copy constructor
     SinglePDE & operator= (const StdPDE & myPDE) {
@@ -199,9 +156,20 @@ namespace CoupledField
     //! Define post-processing results
     
     //! This method defines the post-processing results, which are computed
-    //! mostly using the bilienarform of the main problem.
-    //! Thus, this method gets called after the integrators are defined
+    //! mostly using the bilinearform of the main problem.
+    //! \note This method gets called very early in the initialization 
+    //! process, so that other PDEs can access already CoefFunctions using
+    //! the GetCoefFct() method. The finalization is performed in the 
+    //! method FinalizePostProcResults()
     virtual void DefinePostProcResults() {};
+    
+    
+    //! Finalize post-processing results
+     
+    //! This method finalizes the setup of postprocessing results, e.g. 
+    //! assigning bdb-forms to the calculation routines etc. This method 
+    //! gets called at a very late stage.
+    virtual void FinalizePostProcResults();
 
     //! Obtain information on desired output quantities from parameter file
     //! This method is used to query the parameter handling object for the
@@ -231,12 +199,15 @@ namespace CoupledField
     //!                  generated
     //! \param entities Vector of entityLists of the boundary condition
     //! \param coef Vector of coefficients function for the values
+    //! \param updateGeo Flag indicating, if coefficient function is defined
+    //!                  on an updated geometry (e.g. due to iterative coupling).
     void ReadRhsExcitation( const std::string& elemName, 
                             const StdVector<std::string>& compNames,
                             ResultInfo::EntryType type,
                             bool isComplex,
                             StdVector<shared_ptr<EntityList> >& entities, 
-                            StdVector<PtrCoefFct>& coef );
+                            StdVector<PtrCoefFct>& coef,
+                            bool& updateGeo );
 
 
 
@@ -293,9 +264,6 @@ namespace CoupledField
     void WriteResultsInFile( const UInt kstep, 
                              const Double actTimeFreq );
     
-    //! incorporate information of memento object, if set
-    virtual void IncorporateMemento();
-
     //! Initialize NonLinearities
     virtual void InitNonLin();
 
@@ -383,18 +351,12 @@ namespace CoupledField
     //! flag indicating if Init() was already called
     bool isInitialized_;
 
-    //! maximum order of partial derivatives w.r.t. time
-    UInt maxTimeDerivOrder_;
-
-    //! PDEMemento
-    shared_ptr<PDEMemento> memento_;
-
-    //! usage type of memento
-    bool mementoAsDirichlet_;
-
-    //! Handle for MathParser object
-    MathParser::HandleType mHandle_;
-
+    //! pointer to iterative coupled PDE
+    IterCoupledPDE* iterCplPde_;
+    
+    //! Flag, if PDE used updated geometry (updated Lagrangian formulation)
+    bool updatedGeo_;
+    
     //! Map for storing the primary BDB integrators of the problem
     
     //! This map stores the primary BDB integrators, which can be used for 
@@ -408,6 +370,19 @@ namespace CoupledField
     //! calculating spatial derivatives, fluxes and energy.
     std::map<RegionIdType, BaseBDBInt*> massInts_;
 
+    
+    // -----------------------------------------------------------------------
+    //  Result Handling
+    // -----------------------------------------------------------------------
+    //@{ \name Data for Result Handling
+    
+    //! Store field coefficient functions
+
+    //! This map contains all coefficient functions, which calculate a "field"
+    //! result, i.e. a spatially varying result (in contrast to an integrated 
+    //! result like e.g. energy) 
+    std::map<SolutionType, PtrCoefFct > fieldCoefs_;
+    
     //! Map for storing "material" parameters as coefficient functions
     
     //! This map holds the coefficient functions for the different material
@@ -415,12 +390,43 @@ namespace CoupledField
     //! we store them in a CoefFunctionMulti object
     std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs_;
     
-    
     //! Map storing functors for calculating general results
+    
+    //! This map stores the result functors for non-spatially varying results,
+    //! e.g. energy, total force etc.
     std::map<SolutionType, shared_ptr<ResultFunctor> > resultFunctors_;
     
-    //! Store field coefficient functions
-    std::map<SolutionType, PtrCoefFct > fieldCoefs_;
+    //! Store bilinarform-based coefficient function for stiffness integrator
+    
+    //! In this set we store all coefficient functions, which compute by the
+    //! help of the primary stiffness matrix (e.g. flux values, energy values).
+    //! In the method SinglePde::FinalizePostProcResults() every CoefFunction in
+    //! this map gets related to the stiffness integrator on each region.
+    std::set<shared_ptr<CoefFunctionFormBased> > stiffFormCoefs_;
+    
+    //! Store bilinarform-based coefficient function for mass integrator
+    
+    //! In this set we store all coefficient functions, which compute by the
+    //! help of the mass matrix (e.g. kinetic energy, eddy current density).
+    //! In the method SinglePde::FinalizePostProcResults() every CoefFunction in
+    //! this map gets related to the mass integrator on each region.
+    std::set<shared_ptr<CoefFunctionFormBased> > massFormCoefs_;
+    
+    //! Store result functors related to stiffness integrator
+    std::set<shared_ptr<ResultFunctor> > stiffFormFunctors_;
+
+    //! Store bilinarform-based coefficient function for mass integrator
+    std::set<shared_ptr<ResultFunctor> > massFormFunctors_;
+    
+    //! Store volume coefficient functions for surface CoefFunctions
+    
+    //! This map stores fore every coefficient function on a surface (e.g. surface
+    //! charge density, normal velocity) the related volume CoefFunction,
+    //! which has to be set for each region the surface is neighboring to.
+    //! This is performed in the method  SinglePde::FinalizePostProcResults().
+    std::map<shared_ptr<CoefFunctionSurf>, PtrCoefFct > surfCoefFcts_;
+
+    //@}
     
   private:
   };

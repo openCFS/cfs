@@ -13,28 +13,37 @@
 #include <Domain/Mesh/Grid.hh>
 #include <Domain/Results/ResultInfo.hh>
 #include <DataInOut/SimOutput.hh>
+#include <boost/filesystem/path.hpp>
 
-#include "H5Cpp.h"
+namespace fs = boost::filesystem;
+#include "cpp/H5Cpp.h"
 
 namespace CoupledField {
+
+  //! Forward class declaration
+  class SimState;
 
   //! define CFS-HDF5 file format version
 #define CFS_HDF5_FORMAT_MAJOR 0
 #define CFS_HDF5_FORMAT_MINOR 9
 
-
   //! HDF5 output writer class
   class SimOutputHDF5: virtual public SimOutput {
 
+    // declare SimState class as friend, as it
+    // needs direct write access to the underlying H5 file
+    friend class SimState;
+    
   public:
 
     // =======================================================================
-    // CONSTRUCTION AND INTIIALIZATION
+    //  CONSTRUCTION AND INTIIALIZATION
     // =======================================================================
     //@{ \name Constructor / Initialization
     
     //! Constructor with name of mesh-file
-    SimOutputHDF5(std::string fileName, PtrParamNode inputNode);
+    SimOutputHDF5(std::string fileName, PtrParamNode inputNode,
+                  PtrParamNode infoNode);
     
     //! Destructor
     virtual ~SimOutputHDF5();
@@ -44,6 +53,10 @@ namespace CoupledField {
                        bool printGridOnly );
     //@}
 
+    // =======================================================================
+    //  RESULTS RELATED SECTION
+    // =======================================================================
+    //@{ \name Result Handling
 
     //! Begin multisequence step
     virtual void BeginMultiSequenceStep( UInt step,
@@ -76,7 +89,37 @@ namespace CoupledField {
 
     //! Write grid
     virtual void WriteGrid();
-  
+    //@}
+    
+    // =======================================================================
+    //  DATABASE SECTION
+    // =======================================================================
+    //@{ \name Database Handling
+
+    //! Initialize database
+    void DB_Init();
+
+    //! Write parameter and xml file
+    void DB_WriteXmlFiles( fs::path simFile, fs::path matFile );
+
+    //! Begin new multisequence step for database section
+    void DB_BeginMultiSequenceStep( UInt step,
+                                    BasePDE::AnalysisType type,
+                                    UInt numSteps  );
+
+    //! Begin single analysis step
+    void DB_BeginStep( UInt stepNum, Double stepVal );
+
+    //! Write coefficients of coefficient function
+    void DB_WriteFeFunction( const std::string& pdeCplName,
+                             const std::string& fctName,
+                             SingleVector* coefs );
+
+    //! End multisequence step for database section
+    void DB_FinishMultiSequenceStep( );
+
+    //@}
+    
   private:
 
     // =======================================================================
@@ -129,6 +172,12 @@ namespace CoupledField {
                        Vector<Double>& resultVals,
                        const UInt numDOFs,
                        const bool isImag );
+    
+    //! Get lock during low-level file operation
+    void LockFile();
+    
+    //! Release lock after performing file operation and flush file
+    void UnlockFile();
 
     // =======================================================================
     //  HDF5 DATA MEMBERS
@@ -171,6 +220,12 @@ namespace CoupledField {
     
     //! Group for current analysis step for history results
     H5::Group currHistStepGroup_;
+    
+    //! Group for internal database
+    H5::Group dbGroup_;
+    
+    //! Group for database entries of current sequence step
+    H5::Group currMsDbGroup_;
     //@}
 
     // =======================================================================
@@ -182,6 +237,7 @@ namespace CoupledField {
     //! Set with used capabilities, i.e. types of content written to file
     std::set<Capability> usedCapabilities_;
     
+    
     //! Flag indicating if grid is already written
     bool gridWritten_;
 
@@ -190,6 +246,12 @@ namespace CoupledField {
 
     //! Flag indicating if only grid is to be printed
     bool printGridOnly_;
+    
+    //! Flag, if database capability is used
+    bool useDataBase_;
+    
+    //! Flag, if mesh / history results capability is used
+    bool useResults_;
     
     //! Current multisequence number
     UInt currMS_;
@@ -250,6 +312,17 @@ namespace CoupledField {
     std::string currFileName_;
     
     //@}
+    
+    // =======================================================================
+    //  DATABASE SECTION
+    // =======================================================================
+    
+    //! Current analysis step
+    UInt currStepDb_;
+
+    //! Current analysis step value (time / frequency);
+    Double currStepValueDb_;
+
     
   };
 }

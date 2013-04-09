@@ -26,7 +26,7 @@ namespace CoupledField
     //@{ \name Constructor / Initialization
     
     //! Constructor with name of mesh-file
-    InternalMesh(string fileName, PtrParamNode inputNode);
+    InternalMesh(string fileName, PtrParamNode inputNode, PtrParamNode infoNode);
     
     //! Destructor
     virtual ~InternalMesh() {}

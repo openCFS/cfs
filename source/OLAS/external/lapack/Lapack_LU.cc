@@ -176,9 +176,9 @@ namespace CoupledField {
       double lp_amax;
 
       // First compute a possible scaling
-      F77NAME(dgbequ)( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
-		 matdata, &lp_ldab, row_scalings_, col_scalings_,
-		 &lp_rowcond, &lp_colcond, &lp_amax, &lp_info );
+      dgbequ( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
+              matdata, &lp_ldab, row_scalings_, col_scalings_,
+              &lp_rowcond, &lp_colcond, &lp_amax, &lp_info );
 
       // Process status flag
       if ( lp_info < 0 ) {
@@ -201,9 +201,9 @@ namespace CoupledField {
 
       // Scale matrix
       char lp_equed;
-      F77NAME(dlaqgb)( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
-		 matdata, &lp_ldab, row_scalings_, col_scalings_,
-		 &lp_rowcond, &lp_colcond, &lp_amax, &lp_equed );
+      dlaqgb( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
+              matdata, &lp_ldab, row_scalings_, col_scalings_,
+              &lp_rowcond, &lp_colcond, &lp_amax, &lp_equed );
 
       // Process result
       if ( lp_equed == 'N' ) {
@@ -269,8 +269,8 @@ namespace CoupledField {
 
     // Call factorisation routine
     lp_ldab = 2 * lp_wlower + lp_wupper + 1;
-    F77NAME(dgbtrf)( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper, facmatdata,
-	       &lp_ldab, pivots_, &lp_info );
+    dgbtrf( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper, facmatdata,
+            &lp_ldab, pivots_, &lp_info );
 
     // Process status flag
     if ( lp_info < 0 ) {
@@ -337,9 +337,9 @@ namespace CoupledField {
       double lp_amax;
 
       // First compute a possible scaling
-      F77NAME(zgbequ)( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
-		 matdata, &lp_ldab, row_scalings_, col_scalings_,
-		 &lp_rowcond, &lp_colcond, &lp_amax, &lp_info );
+      zgbequ( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
+              matdata, &lp_ldab, row_scalings_, col_scalings_,
+              &lp_rowcond, &lp_colcond, &lp_amax, &lp_info );
 
       // Process status flag
       if ( lp_info < 0 ) {
@@ -360,9 +360,9 @@ namespace CoupledField {
 
       // Scale matrix
       char lp_equed;
-      F77NAME(zlaqgb)( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
-		 matdata, &lp_ldab, row_scalings_, col_scalings_,
-		 &lp_rowcond, &lp_colcond, &lp_amax, &lp_equed );
+      zlaqgb( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
+              matdata, &lp_ldab, row_scalings_, col_scalings_,
+              &lp_rowcond, &lp_colcond, &lp_amax, &lp_equed );
 
       // Process result
       if ( lp_equed == 'N' ) {
@@ -428,8 +428,8 @@ namespace CoupledField {
 
     // Call factorisation routine
     lp_ldab = 2 * lp_wlower + lp_wupper + 1;
-    F77NAME(zgbtrf)( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper, facmatdata,
-	       &lp_ldab, pivots_, &lp_info );
+    zgbtrf( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper, facmatdata,
+            &lp_ldab, pivots_, &lp_info );
 
     // Process status flag
     if ( lp_info < 0 ) {
@@ -592,8 +592,8 @@ namespace CoupledField {
     }
 
     // Perform backward/forward substitution
-    F77NAME(dgbtrs)( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
-    	       facmatdata, &lp_ldabf, pivots_, lp_sol, &lp_ncols, &lp_info );
+    dgbtrs( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
+            facmatdata, &lp_ldabf, pivots_, lp_sol, &lp_ncols, &lp_info );
 
     // Process status flag
     if ( lp_info != 0 ) {
@@ -630,10 +630,10 @@ namespace CoupledField {
       }
 
       // Perform iterative refinement
-      F77NAME(dgbrfs)( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
-		 matdata, &lp_ldab, facmatdata, &lp_ldabf, pivots_, lp_rhs,
-		 &lp_ncols, lp_sol, &lp_ncols, &lp_ferr, &lp_berr,
-		 workspaceF77REAL8_, workspaceInt_, &lp_info );
+      dgbrfs( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
+              matdata, &lp_ldab, facmatdata, &lp_ldabf, pivots_, lp_rhs,
+              &lp_ncols, lp_sol, &lp_ncols, &lp_ferr, &lp_berr,
+              workspaceF77REAL8_, workspaceInt_, &lp_info );
 
       // Process results
       if ( lp_info != 0 ) {
@@ -670,7 +670,7 @@ namespace CoupledField {
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
 
-    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
 
@@ -754,9 +754,8 @@ namespace CoupledField {
     // right hand side and solve the system diag(R) * A * x = diag(R) * y.
     if ( scalingType_ == 'R' || scalingType_ == 'B' ) {
       for ( Integer i = 0; i < lp_ncols; i++ ) {
-	std::cerr << "R(" << i << ") = " << row_scalings_[i] << std::endl;
-	lp_sol[i].real() = row_scalings_[i] * lp_rhs[i].real();
-	lp_sol[i].imag() = row_scalings_[i] * lp_rhs[i].imag();
+        std::cerr << "R(" << i << ") = " << row_scalings_[i] << std::endl;
+        lp_sol[i] = row_scalings_[i] * lp_rhs[i];
       }
     }
 
@@ -768,8 +767,8 @@ namespace CoupledField {
     }
 
     // Perform backward/forward substitution
-    F77NAME(zgbtrs)( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
-    	       facmatdata, &lp_ldabf, pivots_, lp_sol, &lp_ncols, &lp_info );
+    zgbtrs( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
+            facmatdata, &lp_ldabf, pivots_, lp_sol, &lp_ncols, &lp_info );
 
     // Process status flag
     if ( lp_info != 0 ) {
@@ -806,10 +805,10 @@ namespace CoupledField {
       }
 
       // Perform iterative refinement
-      F77NAME(zgbrfs)( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
-		 matdata, &lp_ldab, facmatdata, &lp_ldabf, pivots_, lp_rhs,
-		 &lp_ncols, lp_sol, &lp_ncols, &lp_ferr, &lp_berr,
-		 workspaceF77COMPLEX16_, workspaceF77REAL8_, &lp_info );
+      zgbrfs( &lp_trans, &lp_ncols, &lp_wlower, &lp_wupper, &lp_one,
+              matdata, &lp_ldab, facmatdata, &lp_ldabf, pivots_, lp_rhs,
+              &lp_ncols, lp_sol, &lp_ncols, &lp_ferr, &lp_berr,
+              workspaceF77COMPLEX16_, workspaceF77REAL8_, &lp_info );
 
       // Process results
       if ( lp_info != 0 ) {
@@ -841,8 +840,11 @@ namespace CoupledField {
     // by the identity x = diag(C) * z.
     if ( scalingType_ == 'C' || scalingType_ == 'B' ) {
       for ( Integer i = 0; i < lp_ncols; i++ ) {
+#if 0
 	lp_sol[i].real() *= col_scalings_[i];
 	lp_sol[i].imag() *= col_scalings_[i];
+#endif
+        lp_sol[i] *= col_scalings_[i];
       }
     }
 
@@ -854,7 +856,7 @@ namespace CoupledField {
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
     /* FIXME this pollutes the xml file and needs to be updated to provide more information
-    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
     */

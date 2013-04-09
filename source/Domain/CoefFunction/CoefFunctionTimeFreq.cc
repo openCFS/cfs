@@ -10,14 +10,14 @@ namespace CoupledField{
 // ===========================================================================
 
 CoefFunctionTimeFreq<Double>::
-CoefFunctionTimeFreq() : CoefFunctionAnalytic() {
+CoefFunctionTimeFreq(MathParser * mp) : CoefFunctionAnalytic() {
   
   dependType_ = TIMEFREQ;
   isAnalytic_ = true;
   isComplex_ = false;
   
   // obtain handle from internal variable coefficient function
-  mp_ = domain->GetMathParser();
+  mp_ = mp;
   mHandle_ = mp_->GetNewHandle(true);
   
   // register callback mechanism if expression changes
@@ -139,6 +139,7 @@ std::string  CoefFunctionTimeFreq<Double>::ToString() const {
       break;
     default:
       EXCEPTION("Missing case");
+      return "";
   }
 }
 
@@ -189,14 +190,14 @@ Recalculate() {
 //  COMPLEX VALUED COEFFICIENT FUNCTION
 // ===========================================================================
 CoefFunctionTimeFreq<Complex>::
-CoefFunctionTimeFreq() : CoefFunctionAnalytic() {
+CoefFunctionTimeFreq(MathParser * mp) : CoefFunctionAnalytic() {
   
   dependType_ = TIMEFREQ;
   isAnalytic_ = true;
   isComplex_ = true;
   
   // obtain handle from internal variable coefficient function
-  mp_ = domain->GetMathParser();
+  mp_ = mp;
   mHandleReal_ = mp_->GetNewHandle(true);
   mHandleImag_ = mp_->GetNewHandle(true);
   
@@ -224,7 +225,7 @@ PtrCoefFct CoefFunctionTimeFreq<Complex>::GetComplexPart( Global::ComplexPart pa
   if( part  == Global::COMPLEX ) {
     ret = shared_from_this();
   } else if ( part == Global::REAL || part == Global::IMAG ) {
-    shared_ptr<CoefFunctionTimeFreq<Double> > real(new CoefFunctionTimeFreq<Double>());
+    shared_ptr<CoefFunctionTimeFreq<Double> > real(new CoefFunctionTimeFreq<Double>(mp_));
     switch(dimType_) {
       case SCALAR:
         if( part == Global::REAL )
@@ -453,5 +454,138 @@ Recalculate() {
   } else {
     EXCEPTION("Not handled case")
   }
+}
+
+// COLLECTION ACCESS
+void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                   StdVector<Double >  & vals){
+  assert(this->dimType_ == SCALAR);
+  vals.Resize(points.GetSize());
+  vals.Init();
+  for(UInt i=0; i< vals.GetSize() ; ++i){
+    vals[i] =  constCoefScalar_;
+  }
+}
+
+void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                   StdVector<Vector<Double> >  & vals){
+  assert(this->dimType_ == VECTOR ||
+         this->dimType_ == SCALAR );
+
+  // in case of scalars, just set one entry in the vector
+  if( this->dimType_ == SCALAR ) {
+    vals.Resize(points.GetSize(),Vector<Double>(1));
+    vals.Init();
+    for(UInt i=0; i< vals.GetSize() ; ++i){
+      vals[i][0] =  constCoefScalar_;
+    }
+  } else {
+    vals.Resize(points.GetSize(),Vector<Double>(coefVec_.GetSize()));
+    vals.Init();
+    // if no coordinate system is set, just
+    // use internal vector
+    if( !coordSys_ ) {
+      for(UInt i=0; i< vals.GetSize() ; ++i){
+        vals[i] =  constCoefVec_;
+      }
+    } else {
+      Vector<Double> pointCoord;
+      for(UInt i=0; i< vals.GetSize() ; ++i){
+        this->coordSys_->Local2GlobalVector( vals[i], constCoefVec_, points[i] );
+      }
+    }
+  }
+
+}
+
+void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                  StdVector<Matrix<Double> >  & vals){
+  assert(this->dimType_ == TENSOR);
+  // if no coordinate system is set, just
+  // use internal vector
+  vals.Resize(points.GetSize(),Matrix<Double>(constCoefMat_.GetNumRows(),constCoefMat_.GetNumCols()));
+  vals.Init();
+  if( !coordSys_ ) {
+    for(UInt i=0; i< vals.GetSize() ; ++i){
+      vals[i] =  constCoefMat_;
+    }
+  } else {
+    EXCEPTION(
+        "The rotation is not fully finished ':-(\n" <<
+        "Here we have to add a call to the method BaseMaterial::PerformRotation "
+        "This method should be moved to the base class of the CoefFunction"
+        "In addition the initial rotation of the material must be incorporated"
+        "somewhere in string-notation, as we are generally dealing with string"
+        "parameters."
+        "Thus we should treat the case, where rotation angles are multiples of "
+        "90 degree separately, where the entries are just interchanged");
+  }
+
+}
+
+void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                   StdVector<Complex >  & vals){
+  assert(this->dimType_ == SCALAR);
+  vals.Resize(points.GetSize());
+  vals.Init();
+  for(UInt i=0; i< vals.GetSize() ; ++i){
+    vals[i] =  constCoefScalar_;
+  }
+}
+
+void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                   StdVector<Vector<Complex> >  & vals){
+  assert(this->dimType_ == VECTOR ||
+         this->dimType_ == SCALAR );
+
+  // in case of scalars, just set one entry in the vector
+  if( this->dimType_ == SCALAR ) {
+    vals.Resize(points.GetSize(),Vector<Complex>(1));
+    vals.Init();
+    for(UInt i=0; i< vals.GetSize() ; ++i){
+      vals[i][0] =  constCoefScalar_;
+    }
+  } else {
+    vals.Resize(points.GetSize(),Vector<Complex>(constCoefVec_.GetSize()));
+    vals.Init();
+    // if no coordinate system is set, just
+    // use internal vector
+    if( !coordSys_ ) {
+      for(UInt i=0; i< vals.GetSize() ; ++i){
+        vals[i] =  constCoefVec_;
+      }
+    } else {
+      Vector<Double> pointCoord;
+      for(UInt i=0; i< vals.GetSize() ; ++i){
+        this->coordSys_->Local2GlobalVector( vals[i], constCoefVec_, points[i] );
+      }
+    }
+  }
+}
+
+void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                          StdVector<Matrix<Complex> >  & vals){
+  assert(this->dimType_ == TENSOR);
+  // if no coordinate system is set, just
+  // use internal vector
+  vals.Resize(points.GetSize(),Matrix<Complex>(constCoefMat_.GetNumRows(),constCoefMat_.GetNumCols()));
+  vals.Init();
+  if( !coordSys_ ) {
+    for(UInt i=0; i< vals.GetSize() ; ++i){
+      vals[i] =  constCoefMat_;
+    }
+  } else {
+    EXCEPTION(
+        "The rotation is not fully finished ':-(\n" <<
+        "Here we have to add a call to the method BaseMaterial::PerformRotation "
+        "This method should be moved to the base class of the CoefFunction"
+        "In addition the initial rotation of the material must be incorporated"
+        "somewhere in string-notation, as we are generally dealing with string"
+        "parameters."
+        "Thus we should treat the case, where rotation angles are multiples of "
+        "90 degree separately, where the entries are just interchanged");
+  }
+
+
 }
 } // namespace

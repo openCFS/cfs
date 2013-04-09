@@ -78,7 +78,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
    }
  }
  
- void Elem::CorrectConnectivity()
+ void Elem::CorrectConnectivity( const Grid& grid )
  {
     UInt dummy;
 
@@ -112,7 +112,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     default:
       EXCEPTION("Connectivity for " << feType.ToString(type) << " element "
                 << elemNum << " in region "
-                << domain->GetGrid()->GetRegion().ToString(regionId)
+                << grid.GetRegion().ToString(regionId)
                 << " is not properly oriented!" );
       break;
     }
@@ -234,21 +234,21 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
 //          }
 //        }
 //      }
-    }
+  }
 
 
   ElemShape::ElemShape():
-        dim(0),
-        order(0),
-        numVertices(0),
-        numNodes(0),
-        numEdges(0),
-        numFaces(0) {
+                dim(0),
+                order(0),
+                numVertices(0),
+                numNodes(0),
+                numEdges(0),
+                numFaces(0) {
     // nothing to do here
   }
 
-    void ElemShape::Initialize() {
-      
+  void ElemShape::Initialize() {
+
     // ************************************************************************
     //  POINT
     // ************************************************************************
@@ -261,6 +261,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 0;
       s.numFaces = 0;
       s.numSurfElems = 0;
+      s.volume = 0.0;
 
       Double midPoint[1] = {0.0};
       Double nodeCoords[] =
@@ -298,6 +299,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 1;
       s.numFaces = 0;
       s.numSurfElems = 2;
+      s.volume = 2.0;
       
       Double midPoint[1] = {0.0};
       Double nodeCoords[] = 
@@ -344,6 +346,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 1;
       s.numFaces = 0;
       s.numSurfElems = 2;
+      s.volume = 2.0;
 
       Double midPoint[1] = {0.0};
       Double nodeCoords[] =
@@ -368,6 +371,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       {
        Elem::ET_POINT,Elem::ET_POINT
       };
+
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
                    edgeVertices, edgeLocDirs, surfElems,
                    NULL, NULL, NULL, NULL );
@@ -393,6 +397,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     s.numEdges = 3;
     s.numFaces = 1;
     s.numSurfElems = 3;
+    s.volume = 0.5;
 
     Double midPoint[2] = {1.0/3.0, 1.0/3.0};
     Double nodeCoords[] = 
@@ -466,6 +471,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 3;
       s.numFaces = 1;
       s.numSurfElems = 3;
+      s.volume = 0.5;
 
       Double midPoint[2] = {1.0/3.0, 1.0/3.0};
       Double nodeCoords[] =
@@ -549,6 +555,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 4;
       s.numFaces = 1;
       s.numSurfElems = 4;
+      s.volume = 4.0;
       Double midPoint[2] = {0.0, 0.0};
       Double nodeCoords[] = 
       { 
@@ -625,6 +632,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        s.numEdges = 4;
        s.numFaces = 1;
        s.numSurfElems = 4;
+       s.volume = 4.0;
        Double midPoint[2] = {0.0, 0.0};
        Double nodeCoords[] = 
        { 
@@ -716,6 +724,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        s.numEdges = 4;
        s.numFaces = 1;
        s.numSurfElems = 4;
+       s.volume = 4.0;
        Double midPoint[2] = {0.0, 0.0};
        Double nodeCoords[] =
        {
@@ -820,6 +829,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 6;
       s.numFaces = 4;
       s.numSurfElems = 4;
+      s.volume = 1./6.0;
       Double midPoint[3] = {1.0/4.0, 1.0/4.0, 1.0/4.0};
       Double nodeCoords[] =
       { 0.0,  0.0,  0.0, // #1
@@ -920,6 +930,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 6;
       s.numFaces = 4;
       s.numSurfElems = 4;
+      s.volume = 1./6.0;
 
       Double midPoint[3] = {1.0/4.0, 1.0/4.0, 1.0/4.0};
       Double nodeCoords[] =
@@ -1037,6 +1048,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 12;
       s.numFaces = 6;
       s.numSurfElems = 6;
+      s.volume = 8.0;
       
       Double midPoint[3] = {0.0, 0.0, 0.0};
       Double nodeCoords[] = 
@@ -1138,325 +1150,327 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     // HEXA20
     // ************************************************************************
     // ************************************************************************
-        {
-          
-          //          8+----*----- +7
-          //          /|   15    /|           zeta
-          //      16 * |      14* |           ^ eta
-          //        /20*  13   /  * 19        |/
-          //      5+---|-*----+6  |           0-> xi 
-          //       |   |   11 |   |
-          //       |  4+----*-|---+ 3
-          //     17*  /       *18/            REFERENCE VOLUME ELEMENT
-          //       | *12      | * 10
-          //       |/         |/
-          //      1+----*-----+ 2
-          //            9
-          ElemShape s;
-          s.dim = 3;
-          s.order = 2;
-          s.numVertices = 8;
-          s.numNodes = 20;
-          s.numEdges = 12;
-          s.numFaces = 6;
-          s.numSurfElems = 6;
-          
-          Double midPoint[3] = {0.0, 0.0, 0.0};
-          Double nodeCoords[] = 
-          { -1.0, -1.0, -1.0, //  #1
-             1.0, -1.0, -1.0, //  #2
-             1.0,  1.0, -1.0, //  #3
-            -1.0,  1.0, -1.0, //  #4
-            -1.0, -1.0,  1.0, //  #5
-             1.0, -1.0,  1.0, //  #6
-             1.0,  1.0,  1.0, //  #7
-            -1.0,  1.0,  1.0, //  #8
-             0.0, -1.0, -1.0, //  #9
-             1.0,  0.0, -1.0, // #10
-             0.0,  1.0, -1.0, // #11
-            -1.0,  0.0, -1.0, // #12
-             0.0, -1.0,  1.0, // #13
-             1.0,  0.0,  1.0, // #14
-             0.0,  1.0,  1.0, // #15
-            -1.0,  0.0,  1.0, // #16
-            -1.0, -1.0,  0.0, // #17
-             1.0, -1.0,  0.0, // #18
-             1.0,  1.0,  0.0, // #19
-            -1.0,  1.0,  0.0  // #20
-             
-          };
-          UInt edgeVertices[] = 
-          { 1, 2, // #1
-            2, 3, // #2
-            4, 3, // #3
-            1, 4, // #4
-            1, 5, // #5
-            2, 6, // #6
-            3, 7, // #7
-            4, 8, // #8
-            5, 6, // #9
-            6, 7, // #10
-            8, 7, // #11
-            5, 8  // #12
-          };
-          UInt numEdgeNodes[] = 
-          {
-           3, // #1
-           3, // #2
-           3, // #3
-           3, // #4
-           3, // #5
-           3, // #6
-           3, // #7
-           3, // #8
-           3, // #9
-           3, // #10
-           3, // #11
-           3  // #12
-          };
-          UInt edgeNodes[] =
-          { 
-            1, 2,  9, // #1
-            2, 3, 10, // #2
-            4, 3, 11, // #3
-            1, 4, 12, // #4
-            1, 5, 17, // #5
-            2, 6, 18, // #6
-            3, 7, 19, // #7
-            4, 8, 20, // #8
-            5, 6, 13, // #9
-            6, 7, 14, // #10
-            8, 7, 15, // #11
-            5, 8, 16  // #12
-          };
-          Integer edgeLocDirs[] =
-          {
-           0, // #1
-           1, // #2
-           0, // #3
-           1, // #4
-           2, // #5
-           2, // #6
-           2, // #7
-           2, // #8
-           0, // #9
-           1, // #10
-           0, // #11
-           1  // #12
-          };
-          UInt numFaceVertices[] = 
-          {
-           4, // #1
-           4, // #2
-           4, // #3
-           4, // #4
-           4, // #5
-           4  // #6
-          };
-          UInt faceVertices[] = 
-          {
-           1, 2, 3, 4, // #1
-           1, 2, 6, 5, // #2
-           2, 3, 7, 6, // #3
-           4, 3, 7, 8, // #4
-           1, 4, 8, 5, // #5
-           5, 6, 7, 8  // #6
-          };
-          UInt numFaceNodes[] = 
-          {
-           8, // #1
-           8, // #2
-           8, // #3
-           8, // #4
-           8, // #5
-           8  // #6
-          };
-          UInt faceNodes[] = 
-          {
-           1, 2, 3, 4,  9, 10, 11, 12, // #1
-           1, 2, 6, 5,  9, 18, 13, 17, // #2
-           2, 3, 7, 6, 10, 19, 14, 18, // #3
-           4, 3, 7, 8, 11, 19, 15, 20, // #4
-           1, 4, 8, 5, 12, 20, 16, 17, // #5
-           5, 6, 7, 8, 13, 14, 15, 16  // #6
-          };
-          Integer faceLocDirs[][2] =
-          {
-           {0, 1}, // #1
-           {0, 2}, // #2
-           {1, 2}, // #3
-           {0, 2}, // #4
-           {1, 2}, // #5
-           {0 ,1}  // #6
-          };
-          Elem::FEType surfElems[] =
-          {
-           Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8
-          };
-          SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                        edgeNodes, edgeLocDirs, surfElems,
-                        numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                        faceLocDirs );
-          Elem::shapes[Elem::ET_HEXA20] = s;
-        }
+    {
+
+      //          8+----*----- +7
+      //          /|   15    /|           zeta
+      //      16 * |      14* |           ^ eta
+      //        /20*  13   /  * 19        |/
+      //      5+---|-*----+6  |           0-> xi 
+      //       |   |   11 |   |
+      //       |  4+----*-|---+ 3
+      //     17*  /       *18/            REFERENCE VOLUME ELEMENT
+      //       | *12      | * 10
+      //       |/         |/
+      //      1+----*-----+ 2
+      //            9
+      ElemShape s;
+      s.dim = 3;
+      s.order = 2;
+      s.numVertices = 8;
+      s.numNodes = 20;
+      s.numEdges = 12;
+      s.numFaces = 6;
+      s.numSurfElems = 6;
+      s.volume = 8.0;
+
+      Double midPoint[3] = {0.0, 0.0, 0.0};
+      Double nodeCoords[] = 
+      { -1.0, -1.0, -1.0, //  #1
+        1.0, -1.0, -1.0, //  #2
+        1.0,  1.0, -1.0, //  #3
+        -1.0,  1.0, -1.0, //  #4
+        -1.0, -1.0,  1.0, //  #5
+        1.0, -1.0,  1.0, //  #6
+        1.0,  1.0,  1.0, //  #7
+        -1.0,  1.0,  1.0, //  #8
+        0.0, -1.0, -1.0, //  #9
+        1.0,  0.0, -1.0, // #10
+        0.0,  1.0, -1.0, // #11
+        -1.0,  0.0, -1.0, // #12
+        0.0, -1.0,  1.0, // #13
+        1.0,  0.0,  1.0, // #14
+        0.0,  1.0,  1.0, // #15
+        -1.0,  0.0,  1.0, // #16
+        -1.0, -1.0,  0.0, // #17
+        1.0, -1.0,  0.0, // #18
+        1.0,  1.0,  0.0, // #19
+        -1.0,  1.0,  0.0  // #20
+
+      };
+      UInt edgeVertices[] = 
+      { 1, 2, // #1
+        2, 3, // #2
+        4, 3, // #3
+        1, 4, // #4
+        1, 5, // #5
+        2, 6, // #6
+        3, 7, // #7
+        4, 8, // #8
+        5, 6, // #9
+        6, 7, // #10
+        8, 7, // #11
+        5, 8  // #12
+      };
+      UInt numEdgeNodes[] = 
+      {
+       3, // #1
+       3, // #2
+       3, // #3
+       3, // #4
+       3, // #5
+       3, // #6
+       3, // #7
+       3, // #8
+       3, // #9
+       3, // #10
+       3, // #11
+       3  // #12
+      };
+      UInt edgeNodes[] =
+      { 
+       1, 2,  9, // #1
+       2, 3, 10, // #2
+       4, 3, 11, // #3
+       1, 4, 12, // #4
+       1, 5, 17, // #5
+       2, 6, 18, // #6
+       3, 7, 19, // #7
+       4, 8, 20, // #8
+       5, 6, 13, // #9
+       6, 7, 14, // #10
+       8, 7, 15, // #11
+       5, 8, 16  // #12
+      };
+      Integer edgeLocDirs[] =
+      {
+       0, // #1
+       1, // #2
+       0, // #3
+       1, // #4
+       2, // #5
+       2, // #6
+       2, // #7
+       2, // #8
+       0, // #9
+       1, // #10
+       0, // #11
+       1  // #12
+      };
+      UInt numFaceVertices[] = 
+      {
+       4, // #1
+       4, // #2
+       4, // #3
+       4, // #4
+       4, // #5
+       4  // #6
+      };
+      UInt faceVertices[] = 
+      {
+       1, 2, 3, 4, // #1
+       1, 2, 6, 5, // #2
+       2, 3, 7, 6, // #3
+       4, 3, 7, 8, // #4
+       1, 4, 8, 5, // #5
+       5, 6, 7, 8  // #6
+      };
+      UInt numFaceNodes[] = 
+      {
+       8, // #1
+       8, // #2
+       8, // #3
+       8, // #4
+       8, // #5
+       8  // #6
+      };
+      UInt faceNodes[] = 
+      {
+       1, 2, 3, 4,  9, 10, 11, 12, // #1
+       1, 2, 6, 5,  9, 18, 13, 17, // #2
+       2, 3, 7, 6, 10, 19, 14, 18, // #3
+       4, 3, 7, 8, 11, 19, 15, 20, // #4
+       1, 4, 8, 5, 12, 20, 16, 17, // #5
+       5, 6, 7, 8, 13, 14, 15, 16  // #6
+      };
+      Integer faceLocDirs[][2] =
+      {
+       {0, 1}, // #1
+       {0, 2}, // #2
+       {1, 2}, // #3
+       {0, 2}, // #4
+       {1, 2}, // #5
+       {0 ,1}  // #6
+      };
+      Elem::FEType surfElems[] =
+      {
+       Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8
+      };
+      SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
+                   edgeNodes, edgeLocDirs, surfElems,
+                   numFaceVertices, faceVertices, numFaceNodes, faceNodes,
+                   faceLocDirs );
+      Elem::shapes[Elem::ET_HEXA20] = s;
+    }
     // ************************************************************************
     // HEXA27
     // ************************************************************************
-        {
-          ElemShape s;
-          s.dim = 3;
-          s.order = 2;
-          s.numVertices = 8;
-          s.numNodes = 27;
-          s.numEdges = 12;
-          s.numFaces = 6;
-          s.numSurfElems = 6;
-          Double midPoint[3] = {0.0, 0.0, 0.0};
-          Double nodeCoords[] =
-          { -1.0, -1.0, -1.0, //  #1
-             1.0, -1.0, -1.0, //  #2
-             1.0,  1.0, -1.0, //  #3
-            -1.0,  1.0, -1.0, //  #4
-            -1.0, -1.0,  1.0, //  #5
-             1.0, -1.0,  1.0, //  #6
-             1.0,  1.0,  1.0, //  #7
-            -1.0,  1.0,  1.0, //  #8
-             0.0, -1.0, -1.0, //  #9
-             1.0,  0.0, -1.0, // #10
-             0.0,  1.0, -1.0, // #11
-            -1.0,  0.0, -1.0, // #12
-             0.0, -1.0,  1.0, // #13
-             1.0,  0.0,  1.0, // #14
-             0.0,  1.0,  1.0, // #15
-            -1.0,  0.0,  1.0, // #16
-            -1.0, -1.0,  0.0, // #17
-             1.0, -1.0,  0.0, // #18
-             1.0,  1.0,  0.0, // #19
-            -1.0,  1.0,  0.0, // #20
+    {
+      ElemShape s;
+      s.dim = 3;
+      s.order = 2;
+      s.numVertices = 8;
+      s.numNodes = 27;
+      s.numEdges = 12;
+      s.numFaces = 6;
+      s.numSurfElems = 6;
+      s.volume = 8.0;
+      Double midPoint[3] = {0.0, 0.0, 0.0};
+      Double nodeCoords[] =
+      { -1.0, -1.0, -1.0, //  #1
+        1.0, -1.0, -1.0, //  #2
+        1.0,  1.0, -1.0, //  #3
+        -1.0,  1.0, -1.0, //  #4
+        -1.0, -1.0,  1.0, //  #5
+        1.0, -1.0,  1.0, //  #6
+        1.0,  1.0,  1.0, //  #7
+        -1.0,  1.0,  1.0, //  #8
+        0.0, -1.0, -1.0, //  #9
+        1.0,  0.0, -1.0, // #10
+        0.0,  1.0, -1.0, // #11
+        -1.0,  0.0, -1.0, // #12
+        0.0, -1.0,  1.0, // #13
+        1.0,  0.0,  1.0, // #14
+        0.0,  1.0,  1.0, // #15
+        -1.0,  0.0,  1.0, // #16
+        -1.0, -1.0,  0.0, // #17
+        1.0, -1.0,  0.0, // #18
+        1.0,  1.0,  0.0, // #19
+        -1.0,  1.0,  0.0, // #20
 
-             0.0, -1.0,  0.0, // #21
-             1.0,  0.0,  0.0, // #22
-             0.0,  1.0,  0.0, // #23
-            -1.0,  0.0,  0.0, // #24
+        0.0, -1.0,  0.0, // #21
+        1.0,  0.0,  0.0, // #22
+        0.0,  1.0,  0.0, // #23
+        -1.0,  0.0,  0.0, // #24
 
-             0.0,  0.0, -1.0, // #25
-             0.0,  0.0,  0.0, // #26
-             0.0,  0.0,  1.0, // #27
-          };
-          UInt edgeVertices[] =
-          { 1, 2, // #1
-            2, 3, // #2
-            4, 3, // #3
-            1, 4, // #4
-            1, 5, // #5
-            2, 6, // #6
-            3, 7, // #7
-            4, 8, // #8
-            5, 6, // #9
-            6, 7, // #10
-            8, 7, // #11
-            5, 8  // #12
-          };
-          UInt numEdgeNodes[] =
-          {
-           3, // #1
-           3, // #2
-           3, // #3
-           3, // #4
-           3, // #5
-           3, // #6
-           3, // #7
-           3, // #8
-           3, // #9
-           3, // #10
-           3, // #11
-           3  // #12
-          };
-          UInt edgeNodes[] =
-          {
-            1, 2,  9, // #1
-            2, 3, 10, // #2
-            4, 3, 11, // #3
-            1, 4, 12, // #4
-            1, 5, 17, // #5
-            2, 6, 18, // #6
-            3, 7, 19, // #7
-            4, 8, 20, // #8
-            5, 6, 13, // #9
-            6, 7, 14, // #10
-            8, 7, 15, // #11
-            5, 8, 16  // #12
-          };
-          Integer edgeLocDirs[] =
-          {
-           0, // #1
-           1, // #2
-           0, // #3
-           1, // #4
-           2, // #5
-           2, // #6
-           2, // #7
-           2, // #8
-           0, // #9
-           1, // #10
-           0, // #11
-           1  // #12
-          };
-          UInt numFaceVertices[] =
-          {
-           4, // #1
-           4, // #2
-           4, // #3
-           4, // #4
-           4, // #5
-           4  // #6
-          };
-          UInt faceVertices[] =
-          {
-           1, 2, 3, 4, // #1
-           1, 2, 6, 5, // #2
-           2, 3, 7, 6, // #3
-           4, 3, 7, 8, // #4
-           1, 4, 8, 5, // #5
-           5, 6, 7, 8  // #6
-          };
-          UInt numFaceNodes[] =
-          {
-           9, // #1
-           9, // #2
-           9, // #3
-           9, // #4
-           9, // #5
-           9  // #6
-          };
-          UInt faceNodes[] =
-          {
-           1, 2, 3, 4,  9, 10, 11, 12, 25, // #1
-           1, 2, 6, 5,  9, 18, 13, 17, 21, // #2
-           2, 3, 7, 6, 10, 19, 14, 18, 22, // #3
-           4, 3, 7, 8, 11, 19, 15, 20, 23, // #4
-           1, 4, 8, 5, 12, 20, 16, 17, 24, // #5
-           5, 6, 7, 8, 13, 14, 15, 16, 26  // #6
-          };
-          Integer faceLocDirs[][2] =
-          {
-           {0, 1}, // #1
-           {0, 2}, // #2
-           {1, 2}, // #3
-           {0, 2}, // #4
-           {1, 2}, // #5
-           {0 ,1}  // #6
-          };
-          Elem::FEType surfElems[] =
-          {
-           Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9
-          };
-          SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                        edgeNodes, edgeLocDirs, surfElems,
-                        numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                        faceLocDirs );
-          Elem::shapes[Elem::ET_HEXA27] = s;
-        }
+        0.0,  0.0, -1.0, // #25
+        0.0,  0.0,  0.0, // #26
+        0.0,  0.0,  1.0, // #27
+      };
+      UInt edgeVertices[] =
+      { 1, 2, // #1
+        2, 3, // #2
+        4, 3, // #3
+        1, 4, // #4
+        1, 5, // #5
+        2, 6, // #6
+        3, 7, // #7
+        4, 8, // #8
+        5, 6, // #9
+        6, 7, // #10
+        8, 7, // #11
+        5, 8  // #12
+      };
+      UInt numEdgeNodes[] =
+      {
+       3, // #1
+       3, // #2
+       3, // #3
+       3, // #4
+       3, // #5
+       3, // #6
+       3, // #7
+       3, // #8
+       3, // #9
+       3, // #10
+       3, // #11
+       3  // #12
+      };
+      UInt edgeNodes[] =
+      {
+       1, 2,  9, // #1
+       2, 3, 10, // #2
+       4, 3, 11, // #3
+       1, 4, 12, // #4
+       1, 5, 17, // #5
+       2, 6, 18, // #6
+       3, 7, 19, // #7
+       4, 8, 20, // #8
+       5, 6, 13, // #9
+       6, 7, 14, // #10
+       8, 7, 15, // #11
+       5, 8, 16  // #12
+      };
+      Integer edgeLocDirs[] =
+      {
+       0, // #1
+       1, // #2
+       0, // #3
+       1, // #4
+       2, // #5
+       2, // #6
+       2, // #7
+       2, // #8
+       0, // #9
+       1, // #10
+       0, // #11
+       1  // #12
+      };
+      UInt numFaceVertices[] =
+      {
+       4, // #1
+       4, // #2
+       4, // #3
+       4, // #4
+       4, // #5
+       4  // #6
+      };
+      UInt faceVertices[] =
+      {
+       1, 2, 3, 4, // #1
+       1, 2, 6, 5, // #2
+       2, 3, 7, 6, // #3
+       4, 3, 7, 8, // #4
+       1, 4, 8, 5, // #5
+       5, 6, 7, 8  // #6
+      };
+      UInt numFaceNodes[] =
+      {
+       9, // #1
+       9, // #2
+       9, // #3
+       9, // #4
+       9, // #5
+       9  // #6
+      };
+      UInt faceNodes[] =
+      {
+       1, 2, 3, 4,  9, 10, 11, 12, 25, // #1
+       1, 2, 6, 5,  9, 18, 13, 17, 21, // #2
+       2, 3, 7, 6, 10, 19, 14, 18, 22, // #3
+       4, 3, 7, 8, 11, 19, 15, 20, 23, // #4
+       1, 4, 8, 5, 12, 20, 16, 17, 24, // #5
+       5, 6, 7, 8, 13, 14, 15, 16, 26  // #6
+      };
+      Integer faceLocDirs[][2] =
+      {
+       {0, 1}, // #1
+       {0, 2}, // #2
+       {1, 2}, // #3
+       {0, 2}, // #4
+       {1, 2}, // #5
+       {0 ,1}  // #6
+      };
+      Elem::FEType surfElems[] =
+      {
+       Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9
+      };
+      SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
+                   edgeNodes, edgeLocDirs, surfElems,
+                   numFaceVertices, faceVertices, numFaceNodes, faceNodes,
+                   faceLocDirs );
+      Elem::shapes[Elem::ET_HEXA27] = s;
+    }
     // ************************************************************************
     // PYRA5
     // ************************************************************************
@@ -1487,6 +1501,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 8;
       s.numFaces = 5;
       s.numSurfElems = 5;
+      s.volume = 4.0/3.0;
 
       Double midPoint[3] = {0.0, 0.0, 1./4};
       Double nodeCoords[] =
@@ -1596,6 +1611,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 8;
       s.numFaces = 5;
       s.numSurfElems = 5;
+      s.volume = 4.0/3.0;
       Double midPoint[3] = {0.0, 0.0, 1./4};
       Double nodeCoords[] =
       {  1.0,  1.0,  0.0, // #1
@@ -1735,6 +1751,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 8;
       s.numFaces = 5;
       s.numSurfElems = 5;
+      s.volume = 4.0/3.0;
       Double midPoint[3] = {0.0, 0.0, 1.0/4.0};
       Double nodeCoords[] =
       {  1.0,  1.0,  0.0, // #1
@@ -1866,6 +1883,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 9;
       s.numFaces = 5;
       s.numSurfElems = 5;
+      s.volume = 1.0;
       Double midPoint[3] = {1.0/3.0, 1.0/3.0, 0.0};
       Double nodeCoords[] = 
       { 0.0,  0.0, -1.0, // #1
@@ -1974,6 +1992,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 9;
       s.numFaces = 5;
       s.numSurfElems = 5;
+      s.volume = 1.0;
 
       Double midPoint[3] = {1.0/3.0, 1.0/3.0, 0.0};
       Double nodeCoords[] = 
@@ -2117,6 +2136,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 9;
       s.numFaces = 5;
       s.numSurfElems = 5;
+      s.volume = 1.0;
       Double midPoint[3] = {1.0/3.0, 1.0/3.0, 0.0};
       Double nodeCoords[] =
       { 0.0,  0.0, -1.0, //  #1
@@ -2234,7 +2254,6 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
                    faceLocDirs );
       Elem::shapes[Elem::ET_WEDGE18] = s;
     }
-
     } 
     
       

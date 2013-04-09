@@ -26,14 +26,14 @@
 #ifndef FILE_CFS_FESPACE_H1_NODAL_HH
 #define FILE_CFS_FESPACE_H1_NODAL_HH
 
-#include "FeBasis/FeSpace.hh"
+#include "FeBasis/FeSpaceNodal.hh"
 #include "H1ElemsLagExpl.hh"
 #include "H1ElemsLagVar.hh"
 
 
 namespace CoupledField {
 
-class FeSpaceH1Nodal : public FeSpace{
+class FeSpaceH1Nodal : public FeSpaceNodal{
 
   public:
 
@@ -62,6 +62,7 @@ class FeSpaceH1Nodal : public FeSpace{
       
     //! Map equations i.e. initialize object
     virtual void Finalize();
+
 
   protected:
     // ====================================================================

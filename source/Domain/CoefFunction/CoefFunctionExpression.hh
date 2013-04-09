@@ -39,7 +39,7 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
                                        public boost::enable_shared_from_this<CoefFunctionExpression<Double> >{
   
   public:
-    CoefFunctionExpression();
+    CoefFunctionExpression(MathParser * mp);
 
     virtual ~CoefFunctionExpression();
 
@@ -87,6 +87,18 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
     virtual void GetStrTensor( UInt& numRows, UInt& numCols,
                                StdVector<std::string>& real, 
                                StdVector<std::string>& imag );
+
+    // COLLECTION ACCESS
+    virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                               StdVector< Double >  & vals);
+
+    virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                               StdVector<Vector< Double> >  & vals);
+
+    virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                              StdVector<Matrix< Double> >  & vals);
+
+
   protected:
     
     //! Coefficients for tensor
@@ -121,7 +133,7 @@ class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic,
                                         public boost::enable_shared_from_this<CoefFunctionExpression<Complex> >{
   
   public:
-    CoefFunctionExpression();
+    CoefFunctionExpression(MathParser * mp);
 
     virtual ~CoefFunctionExpression();
 
@@ -175,6 +187,16 @@ class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic,
                                StdVector<std::string>& real, 
                                StdVector<std::string>& imag );
 
+
+    // COLLECTION ACCESS
+    virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                               StdVector< Complex >  & vals);
+
+    virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                               StdVector<Vector< Complex> >  & vals);
+
+    virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                              StdVector<Matrix< Complex> >  & vals);
 
   protected:
     

@@ -75,6 +75,9 @@ public:
   //! Print to string
   std::string ToString() const;
 
+
+
+
 private:
 
   //! Spatial dimension
@@ -98,6 +101,8 @@ private:
   //! Type of polynomial (tensor vs. trunk space) 
   BaseFE::PolyCompleteType completeType_;
 };
+
+  
 
 
  // ========================================================================
@@ -132,7 +137,7 @@ public:
 
   //! Enumeration type for element space
   //@{
-  typedef enum { UNDEF_SPACE, CONST, H1, HCURL, HDIV, L2 } SpaceType;
+  typedef enum { UNDEF_SPACE, CONSTANT, H1, HCURL, HDIV, L2 } SpaceType;
   static Enum<SpaceType> SpaceTypeEnum;
   //@}
 
@@ -164,7 +169,7 @@ public:
     //! their definition on vertices,edges,faces and interior
   typedef std::map< BaseFE::EntityType , EntityTypeNodes> ElemVirtualNodes;
 
-  typedef enum {ABSOLUTE,RELATIVE} IntegOrderMode;
+  typedef enum {INTEG_MODE_ABSOLUTE,INTEG_MODE_RELATIVE} IntegOrderMode;
   static Enum<IntegOrderMode> IntegOrderModeEnum;
 
   struct IntegDefinition{
@@ -453,6 +458,32 @@ public:
     lagrangeSurfSpace_ = true;
   }
 
+
+  //! Map a general coefficient function onto the current finite element space
+  
+  //! This method can be used to map a general coefficient function
+  //! to the current finite element space. It returns a map, containing the 
+  //! equations numbers and the corresponding coefficients.
+  //! \param entityList Entitylist on which the function is defined
+  //! \param coefFct Coefficient function to be mapped 
+  //! \param vals Map containing the equations numbers (key) and the
+  //!             coefficient values (value)
+  //! \param cache Flag, if mapping should be cached (e.g. for boundary
+  //!              conditions, depending on frequency, time)
+  //! \param comp Set containing the components, which should get mapped.
+  //!             If empty, all components of the (vector-valued) function
+  //!             get mapped
+  virtual void MapCoefFctToSpace(shared_ptr<EntityList> entityList, 
+                                 shared_ptr<CoefFunction> coefFct,
+                                 std::map<Integer, Double>& vals,
+                                 bool cache,
+                                 const std::set<UInt>& comp = std::set<UInt>() )=0;
+
+  virtual void MapCoefFctToSpace(shared_ptr<EntityList> entityList, 
+                                 shared_ptr<CoefFunction> coefFct,
+                                 std::map<Integer, Complex>& vals,
+                                 bool cache,
+                                 const std::set<UInt>& comp = std::set<UInt>() )=0;
 protected:
   
   bool lagrangeSurfSpace_;  

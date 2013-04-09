@@ -127,6 +127,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     }
   }
 
+
 // ==========================================================================
 //   M A I N   F E S P A C E    C L A S S
 // ==========================================================================
@@ -166,6 +167,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   }
 
   FeSpace::~FeSpace(){
+
   }
 
   shared_ptr<FeSpace> FeSpace::CreateInstance( PtrParamNode aNode, 
@@ -200,9 +202,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     //= PolyTypeEnum.Parse(polyStr);
     PolyType polyType = UNDEF_POLY;
     //obtain the fePolynomialList
-    PtrParamNode polyNode = param->Get("fePolynomialList", ParamNode::PASS );
+    PtrParamNode polyNode = aNode->GetRoot()->Get("fePolynomialList", ParamNode::PASS );
     if(!polyNode){
-      WARN("No Polynomial specified falling back to Defaults");
       polyType = LAGRANGE;
       LOG_DBG(feSpace) << "No explicit definition available, using default";
     }else{
@@ -296,7 +297,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
           ret.reset(new FeSpaceHCurlHi(aNode, infoNode, ptGrid));
         }
         break;
-      case CONST:
+      case CONSTANT:
       case HDIV:
       case L2:
         LOG_DBG(feSpace) << "Creating L2 space";
@@ -468,27 +469,60 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     // 2) order is given RELATIVE:
     //    distinguish if element is
     //    a) ISOTROPIC: get order p of element and set integration
-    //                  order to 2*(p+1) + relativeOrder
+    //                  order to 2*(p+1) + relativeOrder-1.
+    //                  This leads e.g. to integration order 3
+    //                  for p = 1 and order 5 for p = 2.
     //    b) ANISOTROPIC: get maximum order in each direction
     //                    and set integration oder to
     //                    2*( p_maxLicDir) + relativeOrder_locDir
     method = id.method;
     LOG_DBG2(feSpace) << "\tmethod: " 
-                      << IntScheme::IntegMethodEnum.ToString(method);
-    if( id.mode == ABSOLUTE ) {
-      // ABSOLUTE order given
+        << IntScheme::IntegMethodEnum.ToString(method);
+    if( id.mode == INTEG_MODE_ABSOLUTE ) {
+
+      // ==== ABSOLUTE order given ===
       order = id.order;
-      LOG_DBG2(feSpace) << "\torder (absolute):" << order.ToString();
+      LOG_DBG2(feSpace) << "\tuser order (absolute):" << order.ToString();
     } else {
-      // RELATIVE order given
+      // === RELATIVE order given ===
+
+      LOG_DBG2(feSpace) << "\tuser order (relative): " << id.order.ToString();
+      // Check: If method is GAUSS and orider is anisotropic,
+      //        we take the anisotropic version
+
+      IntegOrder p;
+      if( method == IntScheme::GAUSS &&
+          !fe->IsIsotropic() ) {
+        // --- anisotropic version ---
+        StdVector<UInt> anisoOrder;
+        fe->GetAnisoOrder(anisoOrder);
+        LOG_DBG2(feSpace) << "\tanisotropic element order:" << anisoOrder.ToString();
+        p.SetAnisoOrder(anisoOrder);
+      } else {
+        // --- isotropic version ---
+        LOG_DBG2(feSpace) << "\tisotropic element order:" << fe->GetMaxOrder();
+        p.SetIsoOrder(fe->GetMaxOrder());
+      }
+      // Note: in case of H-curl elements, we have to add an order of 1
+      // as we use here also the polynomial order of 0 for lowest order Nedelec elements
+      if( type_ == FeSpace::HCURL )
+        p += 1;
       
-      // Note: currently we just support isotropic integration.
-      // In the future, we could introduce a more sophisticated
-      // method.
-      LOG_DBG2(feSpace) << "\torder (relative): " << id.order.ToString();
-      UInt p = fe->GetMaxOrder();
+      // -------------------------
+      //  Final integration order
+      // -------------------------
+      // In Bilinearforms like the mass-matrix we have a product of two polynomials
+      // of order p, so the integration order must be at least 2*p. However, this holds
+      // true exactly only on the reference element. The Jacobian-mapping introduces
+      // and additional influence (e.g. for highly distorted elements). Thus we
+      // increase the order to 2*(p+1). In the end we decrease the order by -1
+      // to get efficient integration rules. mostly compatible with values in literature.
+      // This yields the following mapping
+      // p = 1 => IntOrder: 3 => Gauss 1D: 2 points
+      // p = 2 => IntOrder: 5 => Gauss 1D: 3 points
+      // ....
       order = id.order;
-      order += 2*(p+1);
+      order += (p+1)*2 - 1; 
       LOG_DBG2(feSpace) << "\torder (final): " << order.ToString();
     }
   }
@@ -700,13 +734,16 @@ ApproxOrder::ApproxOrder(UInt dim ) {
                 if(gridToVirtualNodes_.find(vertexNum) == gridToVirtualNodes_.end()){
                   LOG_DBG3(feSpace) << "gridToVirtualNodes[" << vertexNum << "] = " << offset;
                   gridToVirtualNodes_[vertexNum].Push_back(offset);
+                } else {
+                  LOG_DBG3(feSpace) << "vertex " << vertexNum << " already mapped to virtualNode " << 
+                      gridToVirtualNodes_[vertexNum];
                 }
               }else{
                 LOG_DBG3(feSpace) << "gridToVirtualNodes[" << vertexNum << "] = " << offset;
                 gridToVirtualNodes_[vertexNum].Push_back(offset);
               }
             } // loop over vertices
-        }
+        } // mapping of vertex nodes
         }
         feFct->GetGrid()->MapEdges();
         feFct->GetGrid()->MapFaces();
@@ -999,7 +1036,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       EXCEPTION("got undefined integration. This will lead to errors! Input string: " << methodStr);
     }
     std::string modeStr = node->Get("mode")->As<std::string>();
-    mode = IntegOrderModeEnum.Parse(modeStr,ABSOLUTE);
+    mode = IntegOrderModeEnum.Parse(modeStr,INTEG_MODE_ABSOLUTE);
 
     //only isotropic order supported right now
     UInt isoOrder = node->Get("order")->As<UInt>();
@@ -1053,7 +1090,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
   void FeSpace::ReadIntegList(){
     //obtain the fePolynomialList
-    PtrParamNode integNode = param->Get("integrationSchemeList", ParamNode::PASS );
+    PtrParamNode integNode = myParam_->GetRoot()->Get("integrationSchemeList", ParamNode::PASS );
     if(integNode){
       ParamNodeList iList = integNode->GetList("scheme");
       for(UInt aInt = 0; aInt < iList.GetSize();aInt++){
@@ -1068,7 +1105,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   }
 
   void FeSpace::ReadPolyList(){
-        PtrParamNode polyNode = param->Get("fePolynomialList", ParamNode::PASS );
+        PtrParamNode polyNode = myParam_->GetRoot()->Get("fePolynomialList", ParamNode::PASS );
         if(polyNode){
           std::string polyName = PolyTypeEnum.ToString(polyType_);
           ParamNodeList pList = polyNode->GetList(polyName);
@@ -1848,7 +1885,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   // Definition of finite element space types
    static EnumTuple spaceTypeTuples[] = {
      EnumTuple(FeSpace::UNDEF_SPACE, "Undef"), 
-     EnumTuple(FeSpace::CONST,       "Const"), 
+     EnumTuple(FeSpace::CONSTANT,    "Constant"), 
      EnumTuple(FeSpace::H1,          "H1"),
      EnumTuple(FeSpace::HCURL,       "HCurl"),
      EnumTuple(FeSpace::HDIV,        "HDiv"),
@@ -1873,8 +1910,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
    
     // Definition of integration oder mode types
     static EnumTuple integModeTuples[] = {
-      EnumTuple(FeSpace::ABSOLUTE, "absolute"),
-      EnumTuple(FeSpace::RELATIVE, "relative")
+      EnumTuple(FeSpace::INTEG_MODE_ABSOLUTE, "absolute"),
+      EnumTuple(FeSpace::INTEG_MODE_RELATIVE, "relative")
     };
     Enum<FeSpace::IntegOrderMode> FeSpace::IntegOrderModeEnum = \
        Enum<FeSpace::IntegOrderMode>("Types of FE Spaces",

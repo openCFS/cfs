@@ -31,6 +31,7 @@ namespace CoupledField{
 class CoordSystem;
 class CoefXpr;
 class CoefFunction;
+class FeSpace;
 
 //! This is the base class for describing coefficients
 
@@ -83,7 +84,7 @@ public:
   
   //! Dependency of coefficient function
   typedef enum{ 
-    CONST,         /*!< No dependency on space or time */
+    CONSTANT,         /*!< No dependency on space or time */
     TIMEFREQ,      /*!< Only depending on time / frequency, not space */
     GENERAL,       /*!< General dependency (spatial and / or time / freq) */
     SOLUTION       /*!< Dependency on another FeFunction */
@@ -108,7 +109,8 @@ public:
   //! \param realVal Real-part of the CoefFunction
   //! \param imagVal Imag-part of the CoefFunction (optional)
   static PtrCoefFct 
-  Generate( Global::ComplexPart type, 
+  Generate( MathParser * mp,
+            Global::ComplexPart type, 
             const std::string& realVal, 
             const std::string& imagVal = "0" );
 
@@ -125,14 +127,16 @@ public:
   //! \param realVal Real-part vector of the CoefFunction
   //! \param imagVal Imag-part vector of the CoefFunction (optional)
   static PtrCoefFct 
-  Generate( Global::ComplexPart type, 
+  Generate( MathParser * mp,
+            Global::ComplexPart type, 
             const StdVector<std::string>& realVal, 
             const StdVector<std::string>& imagVal = StdVector<std::string>() );
 
 
   //! Generate vector-valued coefficient function from scalar CoefFunctions
   static PtrCoefFct 
-  Generate( Global::ComplexPart type, 
+  Generate( MathParser * mp,
+            Global::ComplexPart type, 
             const StdVector<PtrCoefFct>& realVal, 
             const StdVector<PtrCoefFct>& imagVal = StdVector<PtrCoefFct>() );
 
@@ -152,14 +156,16 @@ public:
   //! \param realVal Real-part tensor of the CoefFunction
   //! \param imagVal Imag-part tensor of the CoefFunction (optional)
   static PtrCoefFct 
-  Generate( Global::ComplexPart type,
+  Generate( MathParser * mp,
+            Global::ComplexPart type,
             UInt numRows, UInt numCols,
             const StdVector<std::string>& realVal,
             const StdVector<std::string>& imagVal = StdVector<std::string>() );
   
   //! Generate tensor-valued coefficient function from scalar CoefFunctions
   static PtrCoefFct 
-  Generate( Global::ComplexPart type,
+  Generate( MathParser * mp,
+            Global::ComplexPart type,
             UInt numRows, UInt numCols,
             const StdVector<PtrCoefFct>& realVal,
             const StdVector<PtrCoefFct>& imagVal = StdVector<PtrCoefFct>() );
@@ -172,7 +178,8 @@ public:
   //! efficient coefficient representation, i.e. if the expression evaluates
   //! to a constant, a CoefFunctionConst/Analytical/TimeFreq is generated.
   //! In all other cases, a compound coefficient function is generated. 
-  static PtrCoefFct Generate( Global::ComplexPart type,
+  static PtrCoefFct Generate( MathParser * mp, 
+                              Global::ComplexPart type,
                               const CoefXpr&  xpr );
   //@}
 
@@ -184,7 +191,7 @@ public:
   //! Constructor
   CoefFunction(){
     dimType_ = NO_DIM;
-    dependType_ = CONST;
+    dependType_ = CONSTANT;
     isAnalytic_ = false;
     isComplex_ = false;
     
@@ -328,12 +335,16 @@ public:
     return isComplex_;
   }
 
-  virtual void AddEntities(shared_ptr<EntityList> ent){
+  virtual void AddEntityList(shared_ptr<EntityList> ent){
     if(!entities_.Contains(ent)){
       entities_.Push_back(ent);
     }else{
       WARN("entity list " << ent->GetName() << " already contained in CoefFunction")
     }
+  }
+
+  virtual StdVector<shared_ptr<EntityList> > GetEntityList(){
+    return entities_;
   }
 
   //! Dump coefficient function to string 
@@ -364,6 +375,63 @@ public:
                                   StdVector<std::string>& imagVar,
                                   const std::string& prefix,
                                   PtrCoefFct cf );
+
+  //@}
+
+  // ======================================================================
+  //  Some specialized methods for data from external grids
+  //  This bearks to some amount the class interface but is done to improve speed
+  // ======================================================================
+  //@{ \name External Data interfaces
+
+  //! Map Conservative to FeFunction Vector
+  virtual void MapConservative( shared_ptr<FeSpace> targetSpace,
+                                    Vector<Double>& feFncVec){
+    EXCEPTION("This coefficient function does not support Conservative Mapping");
+  }
+
+  //! Map Conservative to FeFunction Vector
+  virtual void MapConservative( shared_ptr<FeSpace> targetSpace,
+                                    Vector<Complex>& feFncVec){
+    EXCEPTION("This coefficient function does not support Conservative Mapping");
+  }
+
+  //! Determine if coefFunction has conservative mapping
+  virtual bool IsConservative(){
+    return false;
+  }
+
+  //! Set if coefFunction has conservative mapping usually done by PDE
+  //! for Coeffunction grid, this overrides the user settings
+  virtual void SetConservative(bool value){
+    return;
+  }
+
+
+  //! Give Values at global coordinate locations
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
+                                             StdVector< Vector<Double> >& values){
+    EXCEPTION("This coefficient function does not support evaluation at global coordinates");
+  }
+
+  //! Give Values at global coordinate locations
+  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
+                                             StdVector< Vector<Complex> >& values){
+    EXCEPTION("This coefficient function does not support evaluation at global coordinates");
+  }
+
+  //! Give Values at global coordinate locations
+  virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
+                                             StdVector< Double >& values){
+    EXCEPTION("This coefficient function does not support evaluation at global coordinates");
+  }
+
+  //! Give Values at global coordinate locations
+  virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
+                                             StdVector< Complex >& values){
+    EXCEPTION("This coefficient function does not support evaluation at global coordinates");
+  }
+
 
   //@}
 protected:

@@ -230,9 +230,12 @@ namespace CoupledField{
     // Generate reference elements for second order geometric element types
     refElems_[region][Elem::ET_LINE3]  = new FeH1HiLine();
     refElems_[region][Elem::ET_QUAD8]  = new FeH1HiQuad();
+    refElems_[region][Elem::ET_QUAD9]  = new FeH1HiQuad();
     refElems_[region][Elem::ET_TRIA6]  = new FeH1HiTria();
     refElems_[region][Elem::ET_HEXA20]  = new FeH1HiHex();
+    refElems_[region][Elem::ET_HEXA27]  = new FeH1HiHex();
     refElems_[region][Elem::ET_WEDGE15] = new FeH1HiWedge();
+    refElems_[region][Elem::ET_WEDGE18] = new FeH1HiWedge();
     
     SetRegionOrder( region, order );
     
@@ -260,7 +263,7 @@ namespace CoupledField{
   void FeSpaceH1Hi::SetDefaultIntegration( PtrParamNode infoNode ){
     regionIntegration_[ALL_REGIONS].method = IntScheme::GAUSS;
     regionIntegration_[ALL_REGIONS].order.SetIsoOrder( 0 );
-    regionIntegration_[ALL_REGIONS].mode = RELATIVE;
+    regionIntegration_[ALL_REGIONS].mode = INTEG_MODE_RELATIVE;
   }
 
   FeHi* FeSpaceH1Hi::GetFeHi( RegionIdType region, Elem::FEType type ) {

@@ -1,6 +1,3 @@
-# Make sure the compiler can find include files
-INCLUDE_DIRECTORIES(${CFSDEPS_INCLUDE_DIR})
-
 SET(SOLVER_SRCS
     BaseSolver.cc
     BaseEigenSolver.cc
@@ -42,6 +39,9 @@ IF(USE_ILUPACK)
   SET(TARGET_LL ${TARGET_LL} ilupack-olas)
 ENDIF(USE_ILUPACK)
 
+IF(USE_LIS)
+  SET(TARGET_LL ${TARGET_LL} lis-olas)
+ENDIF(USE_LIS)
 
 IF(USE_ARPACK)
   SET(TARGET_LL ${TARGET_LL} arpack-olas)

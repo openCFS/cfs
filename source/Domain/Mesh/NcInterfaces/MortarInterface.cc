@@ -264,6 +264,7 @@ void MortarInterface::UpdateInterface() {
   UInt numElems = ncElems.GetSize();
   
   if( numElems > 0 ) {
+
     ncElemsHelper.Resize(numElems);
 
     for ( UInt i=0; i<numElems; ++i ) {
@@ -274,6 +275,20 @@ void MortarInterface::UpdateInterface() {
 
     if ( newNodes.GetSize() > 0 ) {
       ptGrid_->AddNamedNodes(newNodesName, newNodes);
+    }
+
+
+    for ( UInt i=0; i<numElems; ++i ) {
+      std::map<std::string, UInt>::iterator it = ptGrid_->entityDim_.find(name_);
+
+      if( it != ptGrid_->entityDim_.end() ) {
+        if( it->second != Elem::shapes[ncElems[i]->type].dim ) {
+          EXCEPTION( "Region '" << name_
+                     << "' contains elements of different dimensions!");
+        }
+      } else {
+        ptGrid_->entityDim_[name_] = Elem::shapes[ncElems[i]->type].dim;
+      }
     }
   }
   else {
@@ -326,6 +341,7 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
   s.Resize(2);
   t.Resize(2);
   connect2.Resize(2);
+
 
   // Get coordinates of the endpoints
   nodenum_c0 = ifaceElem1->connect[0];
@@ -504,23 +520,24 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
       ncElem->connect[1] = connect2[1];
     }
   }
-  REFACTOR;
-//    if(relativeElemVol < 1e-3) {
-//      WARN("Rejecting ncElem due to a relative volume of " << relativeElemVol
-//           << std::endl
-//           << "  for intersection of elements " << ifaceElem1->elemNum
-//           << " (" << region_.ToString(ifaceElem1->regionId) << ") "
-//           << "and " << ifaceElem2->elemNum
-//           << " (" << region_.ToString(ifaceElem2->regionId) << ") ");
-//      delete ncElem;
-//      return false;
-//    }
-//
-//    ncElem->ptElem = ptL1;
-//    ncElem->ptLagrangeParent = ifaceElem2;
-//    ncElem->ptSurfParent = ifaceElem1;
-//
-//    elemList.Push_back(ncElem);
+
+  if(relativeElemVol < 1e-3) {
+    WARN("Rejecting ncElem due to a relative volume of " << relativeElemVol
+         << std::endl
+         << "  for intersection of elements " << ifaceElem1->elemNum
+        // << " (" << region_.ToString(ifaceElem1->regionId) << ") "
+         << "and " << ifaceElem2->elemNum);
+        // << " (" << this->region_.ToString(ifaceElem2->regionId) << ") ");
+    delete ncElem;
+    return false;
+  }
+
+  ncElem->ptMaster = ifaceElem2;
+  ncElem->ptSlave = ifaceElem1;
+  ncElem->type = Elem::ET_LINE2;
+
+
+  elemList.Push_back(ncElem);
 
   return true;
 }

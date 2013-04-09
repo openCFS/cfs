@@ -27,10 +27,21 @@ namespace CoupledField {
                      StdVector<shared_ptr<BaseResult> > > ResultMapType;
 
     //! Define capabilities of writing out certain information
-    typedef enum {NONE, MESH, MESH_RESULTS, HISTORY, USERDATA} Capability;
+    typedef enum {
+      NONE,          /*!< No specific output data*/
+      MESH,          /*!< Mesh information present*/
+      MESH_RESULTS,  /*!< Results defined spatial entities (nodes, elements)*/
+      HISTORY,       /*!< Non spatially resolved results (energy, power etc.)
+                          or just specified for some few nodes, elements*/
+      USERDATA,      /*!< Information about user (environment, build status for
+                          program etc.)*/  
+      DATABASE       /*!< Detailed internal data, for re-creating FeFunctions
+                          and the internal state of PDEs */
+    } Capability;
 
     //! Constructor
-    SimOutput( const std::string& fileName, PtrParamNode outputNode );
+    SimOutput( const std::string& fileName, PtrParamNode outputNode,
+               PtrParamNode infoNode);
 
     //! Destructor
     virtual ~SimOutput();
@@ -108,6 +119,9 @@ namespace CoupledField {
     
     //! Parameter node for current output class
     PtrParamNode myParam_;
+    
+    //! Parameter node for current output class
+    PtrParamNode myInfo_;
 
     //! Current multisequence step in analysis
     UInt actMSStep_;

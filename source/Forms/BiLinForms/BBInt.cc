@@ -59,7 +59,7 @@ namespace CoupledField{
 
      // Get shape map from grid
      shared_ptr<ElemShapeMap> esm = 
-         domain->GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+         ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
      // Get integration points
      StdVector<LocPoint> intPoints;
@@ -77,7 +77,7 @@ namespace CoupledField{
      for( UInt i = 0; i < numIntPts; ++i ) {
 
        // Calculate for each integration point the LocPointMapped
-       lp.Set( intPoints[i], esm );
+       lp.Set( intPoints[i], esm, weights[i] );
 
        // Call the CalcBMat()-method
        this->bOperator_->CalcOpMat( bMat, lp, ptFe);
@@ -261,7 +261,7 @@ namespace CoupledField{
 
      // Get shape map from grid
      shared_ptr<ElemShapeMap> esm = 
-         domain->GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+         ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
      // Get integration points
      StdVector<LocPoint> intPoints;
@@ -278,7 +278,7 @@ namespace CoupledField{
      for( UInt i = 0; i < numIntPts; ++i  ) {
 
        // Calculate for each integration point the LocPointMapped
-       lp.Set( intPoints[i], esm );
+       lp.Set( intPoints[i], esm, weights[i] );
 
        // Call the CalcBMat()-method
        this->bOperator_->CalcOpMat( this->bMat_, lp, ptFe);
@@ -318,9 +318,9 @@ namespace CoupledField{
 
      // Get shape map from grid
      shared_ptr<ElemShapeMap> esm1 =
-         domain->GetGrid()->GetElemShapeMap( ptElem1, this->coordUpdate_ );
+         ent1.GetGrid()->GetElemShapeMap( ptElem1, this->coordUpdate_ );
      shared_ptr<ElemShapeMap> esm2 =
-         domain->GetGrid()->GetElemShapeMap( ptElem2, this->coordUpdate_ );
+         ent2.GetGrid()->GetElemShapeMap( ptElem2, this->coordUpdate_ );
 
      // Get integration points
      StdVector<LocPoint> intPoints;
@@ -339,8 +339,8 @@ namespace CoupledField{
      for( UInt i = 0; i < numIntPts; ++i  ) {
 
        // Calculate for each integration point the LocPointMapped
-       lp1.Set( intPoints[i], esm1, volRegions_ );
-       lp2.Set( intPoints[i], esm2, volRegions_ );
+       lp1.Set( intPoints[i], esm1, volRegions_, weights[i] );
+       lp2.Set( intPoints[i], esm2, volRegions_, weights[i] );
 
        // Call the CalcBMat()-method
        this->bOperator_->CalcOpMatTransposed( bMatT_, lp1, ptFe1);

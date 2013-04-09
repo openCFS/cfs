@@ -529,10 +529,10 @@ namespace CoupledField {
     //! For details of the specification see http://math.nist.gov/MatrixMarket
     //! \param fname name of output file
     //! \param comment string to be inserted into file header
-    void Export( const char *fname, const char *comment = NULL ) const;
+    void ExportMatrixMarket( const char *fname, const char *comment = NULL ) const;
 
     //! Transform layout enumeration value to string format
-    static std::string Enum2String( CRS_Matrix<T>::subFormat myEnum ) {
+    static std::string Enum2String( typename CRS_Matrix<T>::subFormat myEnum ) {
       std::string out;
       if ( myEnum == LEX ) {
         out = "LEX";

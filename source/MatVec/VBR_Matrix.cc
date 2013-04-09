@@ -430,8 +430,8 @@ namespace CoupledField {
 
           // perform mat-vec multiplication on dense sub-block
 #ifdef USE_BLAS_VERSION
-          F77NAME(dgemv)( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
-                          &mvec[cStart], &inc, &beta, &rvec[rStart], &inc);
+          dgemv( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
+                 &mvec[cStart], &inc, &beta, &rvec[rStart], &inc);
           ind+=cbs*rbs;
 #else
           for( int i = rStart; i < rStart+rbs; ++i ) {
@@ -483,8 +483,8 @@ namespace CoupledField {
         
         // perform mat-vec multiplication on dense sub-block
 #ifdef USE_BLAS_VERSION
-        F77NAME(dgemv)( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
-                        &mvec[cStart], &inc, &beta, &rvec[rStart], &inc);
+        dgemv( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
+               &mvec[cStart], &inc, &beta, &rvec[rStart], &inc);
         ind+=cbs*rbs;
 #else
         for( int i = rStart; i < rStart+rbs; ++i ) {
@@ -541,8 +541,8 @@ namespace CoupledField {
         
         // perform mat-vec multiplication on dense sub-block
 #ifdef USE_BLAS_VERSION
-        F77NAME(dgemv)( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
-                        &x[cStart], &inc, &beta, &r[rStart], &inc);
+        dgemv( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
+               &x[cStart], &inc, &beta, &r[rStart], &inc);
         ind+=cbs*rbs;
 #else
         for( int i = rStart; i < rStart+rbs; ++i ) {
@@ -600,8 +600,8 @@ namespace CoupledField {
 
         //perform mat-vec multiplication on dense sub-block
 #ifdef USE_BLAS_VERSION
-        F77NAME(dgemv)( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
-                        &mvec[rStart], &inc, &beta, &rvec[cStart], &inc);
+        dgemv( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
+               &mvec[rStart], &inc, &beta, &rvec[cStart], &inc);
         ind+=cbs*rbs;
 #else
         for( int i = rStart; i < rStart+rbs; ++i ) {
@@ -654,8 +654,8 @@ namespace CoupledField {
 
        //perform mat-vec multiplication on dense sub-block
 #ifdef USE_BLAS_VERSION
-       F77NAME(dgemv)( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
-                       &mvec[rStart], &inc, &beta, &rvec[cStart], &inc);
+       dgemv( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
+              &mvec[rStart], &inc, &beta, &rvec[cStart], &inc);
        ind+=cbs*rbs;
 #else
         for( int i = rStart; i < rStart+rbs; ++i ) {
@@ -683,8 +683,8 @@ namespace CoupledField {
   }
 
   template<typename T>
-  void VBR_Matrix<T>::Export( const char *fname,
-                              const char *comment ) const{
+  void VBR_Matrix<T>::ExportMatrixMarket( const char *fname,
+                                          const char *comment ) const{
     // Open output file and check for errors
     FILE *fp = fopen( fname, "w" );
     if ( fp == NULL ) {
@@ -711,7 +711,7 @@ namespace CoupledField {
       fprintf( fp, "%%\n%% %s\n%%\n", comment );
     }
     else {
-      fprintf( fp, "%%\n%% Matrix exported by OLAS\n%%\n" );
+      fprintf( fp, "%%\n%% Matrix exported by CFS++\n%%\n" );
     }
 
     // Information on number of rows, columns and entries
@@ -1300,8 +1300,8 @@ template<typename T>
      double *WORK = new double[LWORK];
      int INFO;
 
-     F77NAME(dgetrf)(&N,&N,fac,&N,IPIV,&INFO);
-     F77NAME(dgetri)(&N,fac,&N,IPIV,WORK,&LWORK,&INFO);
+     dgetrf(&N,&N,fac,&N,IPIV,&INFO);
+     dgetri(&N,fac,&N,IPIV,WORK,&LWORK,&INFO);
 
      delete IPIV;
      delete WORK;

@@ -9,6 +9,7 @@
 #include <def_use_gidpost.hh>
 #include <def_use_ilupack.hh>
 #include <def_use_suitesparse.hh>
+#include <def_use_lis.hh>
 #include <def_use_metis.hh>
 #include <def_use_xerces.hh>
 #include <def_use_arpack.hh>
@@ -17,6 +18,8 @@
 #include <def_use_lapack.hh>
 #include <def_use_cgal.hh>
 #include <def_xmlschema.hh>
+
+#include <def_cfs_fortran_interface.hh>
 
 #include "ProgramOptions.hh"
 #include "ColoredConsole.hh"
@@ -32,12 +35,15 @@
 
 #ifdef USE_MKL
 #include <mkl_service.h>
+#ifndef mkl_get_version
+#define MKL_Get_Version MKLGetVersion
+#define MKL_Free_Buffers MKL_FreeBuffers
+#endif
 #endif
 
 #ifdef USE_ACML
 #include <acml.h>
 #endif
-
 #include <bzlib.h>
 #include <zlib.h>
 
@@ -51,6 +57,10 @@
 #include <cholmod.h> 
 #include <umfpack.h> 
 #include <amd.h> 
+#endif
+
+#ifdef USE_LIS
+#include <lis.h> 
 #endif
 
 #ifdef USE_ARPACK
@@ -85,7 +95,7 @@ using std::cout;
 
 
 // Lapack version function interface
-extern "C" void ilaver_(int*, int*, int*);
+extern "C" void ilaver(int*, int*, int*);
 
 // CFX IO library version interface
 extern "C" const char* io_get_version();
@@ -376,6 +386,19 @@ namespace CoupledField {
     // If the user specified a path on the command line use it instead.
     if( varMap_.count( "schemaRoot" ) ) {
       schema = varMap_[ "schemaRoot" ].as<string>();
+#if defined(WIN32) || defined(__MINGW32__)
+      // watch out for leading and closing " in schema string
+      int ip1=0,ip2=schema.size()-1;
+      if (schema[ip1] == '\"')
+        ip1++;
+
+      if (schema[ip2] == '\"')
+        ip2--;
+
+      std::string winSchema = std::string(schema,ip1,ip2);
+      schema = winSchema;
+//      std::cout << "winSchema = " << schema << std::endl;
+#endif      
     } else {
       schema = XMLSCHEMA;
     }
@@ -519,6 +542,9 @@ namespace CoupledField {
         << "CFS_BUILD_USER:        "
         << fg_blue << CFS_BUILD_USER << fg_reset << endl
 
+        << "CFS_BUILD_DISTRO:      "
+        << fg_blue << CFS_BUILD_DISTRO << fg_reset << endl
+
         << "CFS_WC_REVISION:       "
         << fg_blue << CFS_WC_REVISION << fg_reset << endl
 
@@ -554,8 +580,10 @@ namespace CoupledField {
         << "CFS_DISTRO:            "
         << fg_blue << CFS_DISTRO << fg_reset << endl
 
+#ifndef __MINGW32__
         << "CFS_DISTRO_VER:        "
         << fg_blue << CFS_DISTRO_VER << fg_reset << endl
+#endif
 
         << "CFS_ARCH:              "
         << fg_blue << CFS_ARCH
@@ -602,7 +630,7 @@ namespace CoupledField {
  #ifdef USE_MKL
     CFSMKLVersion ver;
 
-    MKLGetVersion(reinterpret_cast<MKLVersion*>(&ver));
+    MKL_Get_Version(reinterpret_cast<MKLVersion*>(&ver));
 
     out << "MKL_VERSION:           " << fg_blue
         << ver.MajorVersion << "."
@@ -617,7 +645,7 @@ namespace CoupledField {
         << ver.Build << fg_reset
         << endl;
 
-    MKL_FreeBuffers();
+    MKL_Free_Buffers();
 
     out << "MKL_NUM_THREADS:       "
         << fg_blue << (getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-")
@@ -645,7 +673,7 @@ namespace CoupledField {
     out << "USE_LAPACK:            "
         << fg_blue << "YES" << fg_reset << endl;
     Integer major, minor, rev;
-    ilaver_(&major, &minor, &rev);
+    ilaver(&major, &minor, &rev);
     out << "LAPACK_VERSION:        "
         << fg_blue << major << "." << minor << "." << rev
         << fg_reset << endl;
@@ -684,12 +712,12 @@ namespace CoupledField {
         << UMFPACK_SUBSUB_VERSION << " (" << UMFPACK_DATE << ") "
         << fg_reset << endl;
  #else
-    out << "USE_SUITESPARSE:           "
+    out << "USE_SUITESPARSE:       "
         << fg_blue  << "NO" << fg_reset << endl;
  #endif
 
- #ifdef USE_PARDISO
     out << endl;
+ #ifdef USE_PARDISO
     out << "USE_PARDISO:           "
         << fg_blue << "YES" << fg_reset << endl;
     out << "PARDISO_IMPL:          "
@@ -697,6 +725,17 @@ namespace CoupledField {
  #else
     out << "USE_PARDISO:           "
            << fg_blue << "NO" << fg_reset << endl;
+ #endif
+
+ #ifdef USE_LIS
+    out << endl;
+    out << "USE_LIS:               "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "LIS_VERSION:           "
+        << fg_blue  << LIS_VERSION << fg_reset << endl;
+ #else
+    out << "USE_LIS:               "
+        << fg_blue  << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_METIS
@@ -743,21 +782,13 @@ namespace CoupledField {
         << fg_blue << "NO" << fg_reset << endl;
 #endif
 
-#ifdef USE_GMV_INPUT
-    out << "USE_GMV_INPUT:         "
+#ifdef USE_GMV
+    out << "USE_GMV:               "
         << fg_blue << "YES" << fg_reset << endl;
  #else
-    out << "USE_GMV_INPUT:         "
+    out << "USE_GMV:               "
         << fg_blue << "NO" << fg_reset << endl;
  #endif
-
- #ifdef USE_GMV_OUTPUT
-    out << "USE_GMV_OUTPUT:        "
-        << fg_blue << "YES" << fg_reset << endl;
- #else
-    out << "USE_GMV_OUTPUT:        "
-        << fg_blue << "NO" << fg_reset << endl;
-#endif
 
  #ifdef USE_HDF5
     out << "USE_HDF5:              "
@@ -809,7 +840,7 @@ namespace CoupledField {
     out << endl;
 
 #ifdef USE_CGAL
-    out << "USE_CGAL:     "
+    out << "USE_CGAL:              "
         << fg_blue << "YES" << fg_reset << endl;
     out << "CFS_CGAL_VERSION:      "
         << fg_blue << QUOTEME(CGAL_VERSION)
@@ -817,7 +848,7 @@ namespace CoupledField {
         << ", SVN rev. " << CGAL_SVN_REVISION << ")"
         << fg_reset << endl;
 #else
-    out << "USE_CGAL:     "
+    out << "USE_CGAL:              "
         << fg_blue << "NO" << fg_reset << endl;
 #endif
     

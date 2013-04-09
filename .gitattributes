@@ -21,15 +21,24 @@ cfsdeps/ansys_custom/ansys_custom_v120_win32.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v120_winx64.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v121_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v121_linem64t.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v121_linia32.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v121_linia64.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v121_win32.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v121_winx64.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v130_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v130_linx64.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v130_win32.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v130_winx64.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v140_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v140_linx64.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v140_win32.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_custom_v140_winx64.tar.bz2 -text svneol=unset#unset
 cfsdeps/ansys_custom/ansys_nacscmdargs_win32.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/mingw_binlib_v110_winx64.def -text
+cfsdeps/ansys_custom/mingw_binlib_v120_winx64.def -text
+cfsdeps/ansys_custom/mingw_binlib_v121_winx64.def -text
+cfsdeps/ansys_custom/mingw_binlib_v130_winx64.def -text
+cfsdeps/ansys_custom/mingw_binlib_v140_winx64.def -text
 cfsdeps/arpack/CMakeLists.txt -text
 cfsdeps/arpack/External_ARPACK.cmake -text
 cfsdeps/arpack/RiceBSD.doc -text
@@ -42,13 +51,16 @@ cfsdeps/arpack/arpack-ifort-cpu_time.patch -text
 cfsdeps/arpack/arpack-patch.cmake.in -text
 cfsdeps/arpack/instruction.arpack -text
 cfsdeps/arpack/readme.arpack -text
+cfsdeps/boost/4315.patch -text
 cfsdeps/boost/External_Boost.cmake -text
+cfsdeps/boost/boost-1.48.0-gcc47-winthreads.patch -text
 cfsdeps/boost/boost-intel-signbit-intrinsic.patch -text
 cfsdeps/boost/boost-multi_array.patch -text
 cfsdeps/boost/boost-patch.cmake.in -text
+cfsdeps/bzip2/CMakeLists.txt -text
 cfsdeps/bzip2/External_bzip2.cmake -text
-cfsdeps/bzip2/bzip2-shared-patch.cmake.in -text
-cfsdeps/bzip2/bzip2-static-patch.cmake.in -text
+cfsdeps/bzip2/bzip2-mingw.patch -text
+cfsdeps/bzip2/bzip2-patch.cmake.in -text
 cfsdeps/cfx_custom/External_CFX_Custom.cmake -text
 cfsdeps/cfx_custom/cfx_custom_v100_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v100_linux-amd64.tar.bz2 -text svneol=unset#unset
@@ -61,10 +73,18 @@ cfsdeps/cfx_custom/cfx_custom_v120_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v120_linux-amd64.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v121_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v121_linux-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v121_linux-ia64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v121_linux.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v121_win-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v121_win-ia32.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v130_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v130_linux-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v130_win-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v130_win-ia32.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v140_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v140_linux-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v140_win-amd64.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v140_win-ia32.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfxio-build.cmake.in -text
 cfsdeps/cfx_custom/cfxio-install.cmake.in -text
 cfsdeps/cgal/CGAL-3.2.1-install_cgal-no_versions_in_compiler_config.h.patch -text
@@ -75,6 +95,7 @@ cfsdeps/cgal/CGAL-install_cgal-SUPPORT_REQUIRED.patch -text
 cfsdeps/cgal/CGAL.spec -text
 cfsdeps/cgal/CGAL_SetupBoost.cmake.in -text
 cfsdeps/cgal/External_CGAL.cmake -text
+cfsdeps/cgal/TryRunResults_GCC45_CENTOS6_WIN64.cmake -text
 cfsdeps/cgal/cgal-intel-isfinite.patch -text
 cfsdeps/cgal/cgal-patch.cmake.in -text
 cfsdeps/cgns/External_CGNS.cmake -text
@@ -94,27 +115,59 @@ cfsdeps/gidpost/gidpost-sprintf-format.patch -text
 cfsdeps/gmp/External_gmp.cmake -text
 cfsdeps/gmp/gmp-configure.cmake.in -text
 cfsdeps/gmp/gmp-intel-atomic.patch -text
+cfsdeps/gmp/gmp-mingw64.patch -text
 cfsdeps/gmp/gmp-patch.cmake.in -text
 cfsdeps/hdf5/External_HDF5.cmake -text
+cfsdeps/hdf5/H5Tinit.c -text
+cfsdeps/hdf5/H5lib_settings.c -text
+cfsdeps/hdf5/TryRunResults_MINGW64_CENTOS6.cmake -text
+cfsdeps/hdf5/hdf5-cross-compile.patch -text
+cfsdeps/hdf5/hdf5-mingw.patch -text
+cfsdeps/hdf5/hdf5-msvc-gettimeofday.patch -text
+cfsdeps/hdf5/hdf5-patch.cmake.in -text
 cfsdeps/ilupack/CMakeLists.txt -text
 cfsdeps/ilupack/External_ILUPACK.cmake -text
 cfsdeps/ilupack/README -text
+cfsdeps/ilupack/cc_etimes.c -text
+cfsdeps/ilupack/ilupack-amd-preprocess.patch -text
 cfsdeps/ilupack/ilupack-disable-saddle-point-stuff.patch -text
+cfsdeps/ilupack/ilupack-dmumps-open64.patch -text
 cfsdeps/ilupack/ilupack-globals.patch -text
 cfsdeps/ilupack/ilupack-header.patch -text
+cfsdeps/ilupack/ilupack-mainsym3.patch -text
 cfsdeps/ilupack/ilupack-nomore-malloc-header.patch -text
 cfsdeps/ilupack/ilupack-patch.cmake.in -text
 cfsdeps/ilupack/ilupack-sparspak-revrse.patch -text
+cfsdeps/ilupack/ilupack-use-lapack-driver.patch -text
 cfsdeps/ilupack/ilupack2.2.1_src.tgz -text
+cfsdeps/ilupack/ilupack_config.h.in -text
 cfsdeps/lapack/CMakeLists.txt -text
 cfsdeps/lapack/External_LAPACK.cmake -text
+cfsdeps/lapack/lapack-for-cfs.patch -text
 cfsdeps/lapack/lapack-patch.cmake.in -text
+cfsdeps/lis/CMakeLists.txt -text
+cfsdeps/lis/External_LIS.cmake -text
+cfsdeps/lis/cmake/CheckTypeSizes.cmake -text
+cfsdeps/lis/cmake/FindIncludeHeader.cmake -text
+cfsdeps/lis/include/Configure.h.in -text
+cfsdeps/lis/include/lis_config.h.in -text
+cfsdeps/lis/lis-configure.cmake.in -text
+cfsdeps/lis/lis-patch.cmake.in -text
+cfsdeps/lis/src/CMakeLists.txt -text
+cfsdeps/lis/test/CMakeLists.txt -text
 cfsdeps/metis/CMakeLists.txt -text
 cfsdeps/metis/External_METIS.cmake -text
 cfsdeps/metis/license.txt -text
 cfsdeps/metis/metis-gcc44.patch -text
 cfsdeps/metis/metis-patch.cmake.in -text
 cfsdeps/metis/metis-windows.patch -text
+cfsdeps/mkl/CMakeLists.txt -text
+cfsdeps/mkl/msvc100/amd64/runtmchk.lib -text svneol=unset#unset
+cfsdeps/mkl/msvc100/ia32/runtmchk.lib -text svneol=unset#unset
+cfsdeps/mkl/msvc90/amd64/runtmchk.lib -text svneol=unset#unset
+cfsdeps/mkl/msvc90/ia32/runtmchk.lib -text svneol=unset#unset
+cfsdeps/mkl/msvc90/ia64/runtmchk.lib -text svneol=unset#unset
+cfsdeps/mkl/wrap_chkstk.cc -text
 cfsdeps/mpfr/External_mpfr.cmake -text
 cfsdeps/mpfr/mpfr-configure.cmake.in -text
 cfsdeps/muparser/CMakeLists.txt -text
@@ -124,12 +177,55 @@ cfsdeps/muparser/muparser-intel-atomic.patch -text
 cfsdeps/muparser/muparser-patch.cmake.in -text
 cfsdeps/muparser/muparser-pow-intel.patch -text
 cfsdeps/muparser/muparser-strfun45.patch -text
+cfsdeps/paraview/CMakeLists.txt -text
+cfsdeps/paraview/External_ParaView.cmake -text
+cfsdeps/paraview/boost_patch_step.cmake.in -text
+cfsdeps/paraview/ext_boost.patch -text
+cfsdeps/paraview/ext_cgns.patch -text
+cfsdeps/paraview/ext_ffmpeg.patch -text
+cfsdeps/paraview/ext_freetype.patch -text
+cfsdeps/paraview/ext_hdf5.patch -text
+cfsdeps/paraview/ext_lapack.patch -text
+cfsdeps/paraview/ext_manta.patch -text
+cfsdeps/paraview/ext_mpich2.patch -text
+cfsdeps/paraview/ext_numpy.patch -text
+cfsdeps/paraview/ext_png.patch -text
+cfsdeps/paraview/ext_python.patch -text
+cfsdeps/paraview/ext_silo.patch -text
+cfsdeps/paraview/ext_szip.patch -text
+cfsdeps/paraview/ext_vrpn.patch -text
+cfsdeps/paraview/ext_zlib.patch -text
+cfsdeps/paraview/libstdcpp3.patch -text
+cfsdeps/paraview/manta.patch -text
+cfsdeps/paraview/manta_patch_step.cmake.in -text
+cfsdeps/paraview/paraview-build-step.cmake.in -text
+cfsdeps/paraview/paraview-configure-step.cmake.in -text
+cfsdeps/paraview/paraview-install-step.cmake.in -text
+cfsdeps/paraview/paraview-patch.cmake.in -text
+cfsdeps/paraview/paraview_common_environment.cmake.in -text
+cfsdeps/paraview/pv-cfs-off-reader.patch -text
+cfsdeps/paraview/pv-colormaps.patch -text
+cfsdeps/paraview/pv-gmvreader.patch -text
+cfsdeps/paraview/pv-off-flatpoly-color.patch -text
+cfsdeps/paraview/pv-xmdf2-string.patch -text
+cfsdeps/paraview/silo_configure_step.cmake.in -text
+cfsdeps/paraview/vtk-gcc44-empty-macro-arguments.patch -text
+cfsdeps/paraview/vtk-quadratic-quads-derivs.patch -text
+cfsdeps/paraview/vtk-sqldatabaseschema.patch -text
+cfsdeps/paraview/vtk-third-party-hdf5.patch -text
 cfsdeps/python/External_Python.cmake -text
 cfsdeps/python/python_configure_step.cmake.in -text
 cfsdeps/python/python_install_step.cmake.in -text
 cfsdeps/python/python_make_step.cmake.in -text
 cfsdeps/python/python_patch_step.cmake.in -text
 cfsdeps/python/python_setup.py.in -text
+cfsdeps/qt4/External_Qt4.cmake -text
+cfsdeps/qt4/External_QtCurve.cmake -text
+cfsdeps/qt4/qt4-build-step.cmake.in -text
+cfsdeps/qt4/qt4-configure-step.cmake.in -text
+cfsdeps/qt4/qt4-install-step.cmake.in -text
+cfsdeps/qt4/qt4-nomore-questions.patch -text
+cfsdeps/qt4/qt4-patch.cmake.in -text
 cfsdeps/scpip/CMakeLists.txt -text
 cfsdeps/scpip/External_SCPIP.cmake -text
 cfsdeps/scpip/fulltext.pdf -text svneol=unset#unset
@@ -138,19 +234,46 @@ cfsdeps/scpip/scpip-dum2.patch -text
 cfsdeps/scpip/scpip-gfortran.patch -text
 cfsdeps/scpip/scpip-patch.cmake.in -text
 cfsdeps/scpip/scpip.tar.bz2 -text
+cfsdeps/spacepart/External_spacepart.cmake -text
 cfsdeps/suitesparse/External_SuiteSparse.cmake -text
+cfsdeps/suitesparse/SuiteSparse-METIS-CMake.patch -text
+cfsdeps/suitesparse/blas_lapack_gfortran.h -text
+cfsdeps/suitesparse/suitesparse-cmake-for-cfs.patch -text
+cfsdeps/suitesparse/suitesparse-cmake.patch -text
+cfsdeps/suitesparse/suitesparse-fortran-iface.patch -text
+cfsdeps/suitesparse/suitesparse-getrusage.patch -text
 cfsdeps/suitesparse/suitesparse-patch.cmake.in -text
-cfsdeps/suitesparse/suitesparse-ranlib.patch -text
+cfsdeps/superlu/CMake/ResolveCompilerPaths.cmake -text
+cfsdeps/superlu/CMakeLists.txt -text
+cfsdeps/superlu/External_SuperLU.cmake -text
+cfsdeps/superlu/example/CMakeLists.txt -text
+cfsdeps/superlu/example/pgetopt.c -text
+cfsdeps/superlu/example/pgetopt.h -text
+cfsdeps/superlu/example/xgetopt.c -text
+cfsdeps/superlu/example/xgetopt.h -text
+cfsdeps/superlu/src/CMakeLists.txt -text
+cfsdeps/superlu/superlu-matgen.patch -text
+cfsdeps/superlu/superlu-patch.cmake.in -text
+cfsdeps/superlu/testing/CMakeLists.txt -text
+cfsdeps/superlu/testing/ctest.cmake.in -text
+cfsdeps/superlu/testing/dtest.cmake.in -text
+cfsdeps/superlu/testing/matgen/CMakeLists.txt -text
+cfsdeps/superlu/testing/stest.cmake.in -text
+cfsdeps/superlu/testing/ztest.cmake.in -text
 cfsdeps/xerces/External_Xerces-C.cmake -text
-cfsdeps/xerces/xerces-build.cmake.in -text
-cfsdeps/xerces/xerces-configure.cmake.in -text
-cfsdeps/xerces/xerces-install.cmake.in -text
+cfsdeps/xerces/Main_CMakeLists.txt -text
+cfsdeps/xerces/Src_CMakeLists.txt -text
+cfsdeps/xerces/Xerces_autoconf_config_cmake.hpp.in -text
+cfsdeps/xerces/config_cmake.h.in -text
+cfsdeps/xerces/xerces-patch.cmake.in -text
 cfsdeps/zlib/External_zlib.cmake -text
 cfsdeps/zlib/copyright.txt -text
 cfsdeps/zlib/zlib-cmakelists.patch -text
 cfsdeps/zlib/zlib-patch.cmake.in -text
 cmake_modules/CFS_macros.cmake -text
+cmake_modules/CheckFortranRuntime.cmake -text
 cmake_modules/CheckPardisoAPIVersion.cmake -text
+cmake_modules/ConfigureChecks.cmake -text
 cmake_modules/DetermineWorkingCopyInfos.cmake -text
 cmake_modules/FindACML.cmake -text
 cmake_modules/FindCFSDEPS.cmake -text
@@ -158,7 +281,6 @@ cmake_modules/FindCFXCust.cmake -text
 cmake_modules/FindCGNS.cmake -text
 cmake_modules/FindCMake.cmake -text
 cmake_modules/FindCfs-hdf5.cmake -text
-cmake_modules/FindFortranLibs.cmake -text
 cmake_modules/FindGotoBLAS.cmake -text
 cmake_modules/FindHDFView.cmake -text
 cmake_modules/FindIPOPT.cmake -text
@@ -178,7 +300,6 @@ cmake_modules/platform_defaults.cmake -text
 cmake_modules/platform_defaults_altix.cmake -text
 cmake_modules/platform_defaults_lse.cmake -text
 cmake_modules/platform_defaults_mac.cmake -text
-cmake_modules/platform_defaults_rom.cmake -text
 cmake_modules/platform_defaults_sedici.cmake -text
 cmake_modules/platform_defaults_woody.cmake -text
 ctest_scripts/CTestConfig.cmake -text
@@ -187,8 +308,6 @@ ctest_scripts/ctest_eam_gcc_nightly_debug.cmake -text
 ctest_scripts/ctest_eam_gcc_nightly_release.cmake -text
 ctest_scripts/ctest_mac_gcc_experimental.cmake -text
 ctest_scripts/ctest_mac_icc_experimental.cmake -text
-ctest_scripts/ctest_rom_gcc_nightly.cmake -text
-ctest_scripts/ctest_rom_icc_nightly.cmake -text
 ctest_scripts/ctest_sedici_gcc_acml_nightly.cmake -text
 ctest_scripts/ctest_sedici_gcc_gotoblas_nightly.cmake -text
 ctest_scripts/ctest_sedici_gcc_ifort_nightly.cmake -text
@@ -214,8 +333,8 @@ ctest_scripts/nightly_test_sedici.sh -text
 ctest_scripts/nightly_test_ubuntu804.sh -text
 include/def_build_type_options.hh.in -text
 include/def_cfs_stats.hh.in -text
+include/def_config.hh.in -text
 include/def_expl_templ_inst.hh.in -text
-include/def_fortran_interface.hh.in -text
 include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
 include/def_use_blas.hh.in -text
@@ -231,6 +350,8 @@ include/def_use_ilupack.hh.in -text
 include/def_use_ipopt.hh.in -text
 include/def_use_knitro.hh.in -text
 include/def_use_lapack.hh.in -text
+include/def_use_libfbi.hh.in -text
+include/def_use_lis.hh.in -text
 include/def_use_mesh.hh.in -text
 include/def_use_metis.hh.in -text
 include/def_use_openmp.hh.in -text
@@ -258,11 +379,16 @@ share/doc/auxilliaries/LaTeX/ltxcmds.sty -text
 share/doc/auxilliaries/LaTeX/minted.sty -text
 share/doc/auxilliaries/LaTeX/pdftexcmds.sty -text
 share/doc/auxilliaries/LaTeX/todonotes.sty svneol=native#text/plain
+share/doc/auxilliaries/Pics/Logo-E325.pdf -text svneol=unset#unset
+share/doc/auxilliaries/Pics/Logo-E325.svg -text
+share/doc/auxilliaries/Pics/TU_Signet.pdf -text svneol=unset#unset
+share/doc/auxilliaries/Pics/TU_Wien_Logo.pdf -text svneol=unset#unset
 share/doc/auxilliaries/Pics/am2_logo.pdf -text
 share/doc/auxilliaries/Pics/am2_logo.png -text
 share/doc/auxilliaries/Pics/cfs-logo.eps -text svneol=unset#application/postscript
 share/doc/auxilliaries/Pics/cfs-logo.pdf -text svneol=unset#application/pdf
 share/doc/auxilliaries/Pics/cfs-logo.png -text svneol=unset#image/png
+share/doc/auxilliaries/Pics/fau_logo.svg -text
 share/doc/auxilliaries/Pics/logo_am2.svg -text
 share/doc/auxilliaries/Pics/ls_am_klu.eps -text svneol=unset#application/postscript
 share/doc/auxilliaries/Pics/ls_am_klu.pdf -text svneol=unset#application/pdf
@@ -272,6 +398,8 @@ share/doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
 share/doc/auxilliaries/Pics/lse_logo.eps -text svneol=unset#application/postscript
 share/doc/auxilliaries/Pics/lse_logo.pdf -text svneol=unset#application/pdf
 share/doc/auxilliaries/Pics/lse_logo.svg -text
+share/doc/auxilliaries/Pics/titelseite_logos.pdf -text svneol=unset#unset
+share/doc/auxilliaries/Pics/titelseite_logos.svg -text
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
 share/doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
 share/doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
@@ -409,6 +537,10 @@ share/doc/developer/develManual/pics/cfspp_workshop.pdf -text svneol=unset#appli
 share/doc/developer/develManual/pics/cfspp_workshop.svg -text
 share/doc/developer/develManual/pics/cmake-gui.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/coupled-system.pdf -text
+share/doc/developer/develManual/pics/dialog-error.svg -text
+share/doc/developer/develManual/pics/dialog-information.svg -text
+share/doc/developer/develManual/pics/dialog-warning.png -text svneol=unset#unset
+share/doc/developer/develManual/pics/dialog-warning.svg -text
 share/doc/developer/develManual/pics/eclipse_bsd_style.png -text
 share/doc/developer/develManual/pics/eclipse_cpp_inc_paths.png -text
 share/doc/developer/develManual/pics/eclipse_editor_settings.png -text svneol=unset#image/png
@@ -463,6 +595,7 @@ share/doc/developer/develManual/pics/totalview_acou_define_int_callgraph.png -te
 share/doc/developer/develManual/pics/totalview_enable_replay_engine.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/understand_src_bin_dir.pdf -text
 share/doc/developer/develManual/pics/understand_src_bin_dir.svg -text
+share/doc/developer/develManual/pics/xp_mingw_error.png -text svneol=unset#unset
 share/doc/developer/develManual/piezo_coupling.tex -text
 share/doc/developer/develManual/sources/eclipse-code-style.xml -text
 share/doc/developer/develManual/sources/emacs_settings.sh svneol=native#text/plain
@@ -471,6 +604,8 @@ share/doc/developer/develManual/sources/hdf5_file_format.xml -text
 share/doc/developer/develManual/sources/kreuzinger.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/lmboot.sh -text
 share/doc/developer/develManual/sources/macports_installed_pckgs.txt svneol=native#text/plain
+share/doc/developer/develManual/sources/mingw_centos6_farkas_patch.txt -text
+share/doc/developer/develManual/sources/mingw_lfarkas_repo.txt -text
 share/doc/developer/develManual/sources/mpcci_reactivate_lse24_lic.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/nacs_win.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/nacs_win_build_howto.txt svneol=native#text/plain
@@ -711,8 +846,31 @@ share/matlab/create_densities/rect2d.m -text
 share/matlab/exec.m -text
 share/matlab/mminfo.m svneol=native#text/plain
 share/matlab/mmread.m svneol=native#text/plain
+share/matlab/mmwrite.m -text
 share/matlab/opt_design_change.m -text
 share/matlab/sbmread.m svneol=native#text/plain
+share/python/calcCond.py -text
+share/python/calcCondSBM.py -text
+share/python/cfs-testsuite-extractor.py -text
+share/python/cfs_grid.py -text
+share/python/cfs_utils.py -text
+share/python/change-svn-wc-format.py -text
+share/python/common.py -text
+share/python/continuation.py -text
+share/python/create_density.py -text
+share/python/extract_info_xml_results.py -text
+share/python/gid_screenshots.py -text
+share/python/nas-tool-gid-to-nas.py -text
+share/python/nas-tool-voidmesh.py -text
+share/python/optimization_tools.py -text
+share/python/pcolor.py -text
+share/python/pcolorSBM.py -text
+share/python/probe_ilupack_parameters.py -text
+share/python/spy.py -text
+share/python/test.py -text
+share/python/wedge15.py -text
+share/python/wedge18.py -text
+share/python/xmlreplace.py -text
 share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain
 share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
@@ -720,22 +878,18 @@ share/scripts/IdentifyFortranCompiler.F90 -text
 share/scripts/bootstrap_devel_machine.sh svneol=native#text/plain
 share/scripts/cfs -text
 share/scripts/cfs-debug -text
-share/scripts/cfs-testsuite-extractor.py -text
-share/scripts/cfs_grid.py -text
-share/scripts/cfs_utils.py -text
+share/scripts/cfs.bat -text
 share/scripts/cfstool -text
-share/scripts/change-svn-wc-format.py -text
+share/scripts/cfstool.bat -text
 share/scripts/checkbashisms -text
-share/scripts/common.py -text
+share/scripts/common.bat -text
 share/scripts/common.sh svneol=native#text/plain
 share/scripts/compile_mkl_test.sh.in -text
-share/scripts/continuation.py -text
-share/scripts/create_density.py -text
 share/scripts/distro.sh svneol=native#text/plain
-share/scripts/extract_info_xml_results.py -text
 share/scripts/generate-standalone-bootstrap-sh.cmake -text
-share/scripts/gid_screenshots.py -text
+share/scripts/getdate.bat -text
 share/scripts/h5tool -text
+share/scripts/h5tool.bat -text
 share/scripts/hdf5_aux.sh.in -text
 share/scripts/hdf5_concat.sh.in -text
 share/scripts/hdf5_concat2.sh.in -text
@@ -743,13 +897,10 @@ share/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
 share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
 share/scripts/identify_compiler.cmake.in svneol=native#text/plain
 share/scripts/log.xml -text
-share/scripts/nas-tool-gid-to-nas.py -text
-share/scripts/nas-tool-voidmesh.py -text
-share/scripts/optimization_tools.py -text
-share/scripts/probe_ilupack_parameters.py -text
-share/scripts/test.py -text
+share/scripts/mingw_cross_toolchain_centos_6.cmake -text
+share/scripts/mingw_cross_toolchain_ubuntu_1204.cmake -text
 share/scripts/voidmesh.pl -text
-share/scripts/xmlreplace.py -text
+share/scripts/winver.bat -text
 share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Examples/mat.xml svneol=native#text/xml
 share/xml/CFS-Material/Examples/matElec.xml svneol=native#text/xml
@@ -806,27 +957,20 @@ source/CoupledPDE/AcouMechCoupling.hh -text
 source/CoupledPDE/BasePairCoupling.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/BasePairCoupling.hh svneol=native#text/x-c%2B%2Bhdr
 source/CoupledPDE/CMakeLists.txt svneol=native#text/plain
-source/CoupledPDE/CoupledPDEDef.cc svneol=native#text/x-c%2B%2Bsrc
-source/CoupledPDE/CoupledPDEDef.hh svneol=native#text/x-c%2B%2Bhdr
-source/CoupledPDE/CouplingMemento.cc svneol=native#text/x-c%2B%2Bsrc
-source/CoupledPDE/CouplingMemento.hh svneol=native#text/x-c%2B%2Bhdr
 source/CoupledPDE/DirectCoupledPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/DirectCoupledPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/CoupledPDE/FluidMechCoupling.cc -text
 source/CoupledPDE/FluidMechCoupling.hh -text
 source/CoupledPDE/IterCoupledPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/IterCoupledPDE.hh svneol=native#text/x-c%2B%2Bhdr
-source/CoupledPDE/PDECoupling.cc svneol=native#text/x-c%2B%2Bsrc
-source/CoupledPDE/PDECoupling.hh svneol=native#text/x-c%2B%2Bhdr
 source/CoupledPDE/PiezoCoupling.cc -text
 source/CoupledPDE/PiezoCoupling.hh -text
 source/CoupledPDE/coupledPDE.conf svneol=native#text/plain
 source/DataInOut/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/ColoredConsole.cc svneol=native#text/plain
 source/DataInOut/ColoredConsole.hh svneol=native#text/plain
-source/DataInOut/DefineFiles/CMakeLists.txt svneol=native#text/plain
-source/DataInOut/DefineFiles/DefineInOutFiles.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/DefineFiles/DefineInOutFiles.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/DefineInOutFiles.cc svneol=native#text/x-c%2B%2Bsrc
+source/DataInOut/DefineInOutFiles.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/Logging/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/Logging/LogConfigurator.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/Logging/LogConfigurator.hh svneol=native#text/x-c%2B%2Bhdr
@@ -852,14 +996,16 @@ source/DataInOut/Logging/log.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/Logging/log.hpp svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/Logging/log_impl.hpp svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/Logging/log_manager.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/MaterialHandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/ParamHandling/InfoNode.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/InfoNode.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/ParamHandling/MaterialHandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/ParamNode.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/ParamNode.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/ParamTools.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/SkeletonConf.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/ParamHandling/XMLMaterialHandler.cc -text
+source/DataInOut/ParamHandling/XMLMaterialHandler.hh -text
 source/DataInOut/ParamHandling/XMLSkeletonConf.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/Xerces.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/Xerces.hh -text svneol=unset#text/x-c%2B%2Bhdr
@@ -881,6 +1027,7 @@ source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceGeneral.hh svneol=native#text
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev100/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev110/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev120/CMakeLists.txt svneol=native#text/plain
+source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev121/CMakeLists.txt -text
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev130/CMakeLists.txt -text
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev140/CMakeLists.txt -text
 source/DataInOut/SimInOut/AnsysRST/CMakeLists.txt svneol=native#text/plain
@@ -958,17 +1105,20 @@ source/DataInOut/SimInOut/internalMesh/InternalMesh.hh -text
 source/DataInOut/SimInOut/xdmf/CMakeLists.txt -text
 source/DataInOut/SimInOut/xdmf/SimOutputXDMF.cc -text
 source/DataInOut/SimInOut/xdmf/SimOutputXDMF.hh -text
+source/DataInOut/SimInput.cc -text
 source/DataInOut/SimInput.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimOutput.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimOutput.hh svneol=native#text/x-c%2B%2Bhdr
-source/DataInOut/XMLMaterialHandler.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/XMLMaterialHandler.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/SimState.cc svneol=native#text/x-c%2B%2Bsrc
+source/DataInOut/SimState.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/BCs.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/BCs.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/CMakeLists.txt svneol=native#text/plain
 source/Domain/CoefFunction/CMakeLists.txt -text
 source/Domain/CoefFunction/CoefFunction.cc -text
 source/Domain/CoefFunction/CoefFunction.hh -text
+source/Domain/CoefFunction/CoefFunctionAccumulator.cc svneol=native#text/x-c%2B%2Bsrc
+source/Domain/CoefFunction/CoefFunctionAccumulator.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/CoefFunction/CoefFunctionApprox.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/CoefFunction/CoefFunctionApprox.hh -text
 source/Domain/CoefFunction/CoefFunctionCompound.cc -text
@@ -981,12 +1131,18 @@ source/Domain/CoefFunction/CoefFunctionFormBased.cc svneol=native#text/x-c%2B%2B
 source/Domain/CoefFunction/CoefFunctionFormBased.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/CoefFunction/CoefFunctionGrid.cc -text
 source/Domain/CoefFunction/CoefFunctionGrid.hh -text
+source/Domain/CoefFunction/CoefFunctionGridNodal.cc -text
+source/Domain/CoefFunction/CoefFunctionGridNodal.hh -text
+source/Domain/CoefFunction/CoefFunctionGridNodalDefault.cc -text
+source/Domain/CoefFunction/CoefFunctionGridNodalDefault.hh -text
+source/Domain/CoefFunction/CoefFunctionGridNodalInterp.cc -text
+source/Domain/CoefFunction/CoefFunctionGridNodalInterp.hh -text
 source/Domain/CoefFunction/CoefFunctionMulti.cc -text
 source/Domain/CoefFunction/CoefFunctionMulti.hh -text
-source/Domain/CoefFunction/CoefFunctionNodalGrid.cc -text
-source/Domain/CoefFunction/CoefFunctionNodalGrid.hh -text
 source/Domain/CoefFunction/CoefFunctionPML.cc -text
 source/Domain/CoefFunction/CoefFunctionPML.hh -text
+source/Domain/CoefFunction/CoefFunctionStabParams.cc -text
+source/Domain/CoefFunction/CoefFunctionStabParams.hh -text
 source/Domain/CoefFunction/CoefFunctionSurf.cc -text
 source/Domain/CoefFunction/CoefFunctionSurf.hh -text
 source/Domain/CoefFunction/CoefFunctionTimeFreq.cc -text
@@ -1083,6 +1239,8 @@ source/FeBasis/FeSpace.cc svneol=native#text/x-c%2B%2Bsrc
 source/FeBasis/FeSpace.hh svneol=native#text/x-c%2B%2Bhdr
 source/FeBasis/FeSpaceHi.cc svneol=native#text/x-c%2B%2Bsrc
 source/FeBasis/FeSpaceHi.hh svneol=native#text/x-c%2B%2Bhdr
+source/FeBasis/FeSpaceNodal.cc -text
+source/FeBasis/FeSpaceNodal.hh -text
 source/FeBasis/H1/FeSpaceH1Hi.cc -text
 source/FeBasis/H1/FeSpaceH1Hi.hh -text
 source/FeBasis/H1/FeSpaceH1Nodal.cc -text
@@ -1116,6 +1274,8 @@ source/Forms/BiLinForms/BDBInt.cc -text
 source/Forms/BiLinForms/BDBInt.hh -text
 source/Forms/BiLinForms/BiLinearForm.hh -text
 source/Forms/BiLinForms/CMakeLists.txt -text
+source/Forms/BiLinForms/ICModesInt.cc -text
+source/Forms/BiLinForms/ICModesInt.hh -text
 source/Forms/CMakeLists.txt svneol=native#text/plain
 source/Forms/IntScheme.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/IntScheme.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1143,6 +1303,7 @@ source/Forms/Operators/LaplOp.hh -text
 source/Forms/Operators/MultiIdOp.hh -text
 source/Forms/Operators/NormalFluxOperators.hh -text
 source/Forms/Operators/StrainOperator.hh -text
+source/Forms/Operators/SurfaceOperators.hh -text
 source/General/CMakeLists.txt svneol=native#text/plain
 source/General/Enum.hh -text
 source/General/Environment.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1272,6 +1433,9 @@ source/OLAS/external/lapack/Lapack_LL.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/lapack/Lapack_LU.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/lapack/Lapack_LU.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/lapack/lapack.hh svneol=native#text/x-c%2B%2Bhdr
+source/OLAS/external/lis/CMakeLists.txt -text
+source/OLAS/external/lis/LISSolver.cc -text
+source/OLAS/external/lis/LISSolver.hh -text
 source/OLAS/external/pardiso/CMakeLists.txt svneol=native#text/plain
 source/OLAS/external/pardiso/PardisoDummy.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/pardiso/PardisoSolver.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1280,6 +1444,7 @@ source/OLAS/external/umfpack/CMakeLists.txt -text
 source/OLAS/external/umfpack/UMFPACKSolver.cc -text
 source/OLAS/external/umfpack/UMFPACKSolver.hh -text
 source/OLAS/external/umfpack/umfpack_di_demo.cc -text
+source/OLAS/external/umfpack/umfpack_zi_demo.cc -text
 source/OLAS/graph/BaseGraph.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/graph/BaseGraph.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/graph/BaseOrdering.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1410,6 +1575,12 @@ source/Utils/AutoDiff.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/CMakeLists.txt svneol=native#text/plain
 source/Utils/Coil.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/Coil.hh svneol=native#text/x-c%2B%2Bhdr
+source/Utils/DynamicLibTest.cc -text
+source/Utils/DynamicLibTest.hh -text
+source/Utils/DynamicLibTestClass.cc -text
+source/Utils/DynamicLibTestClass.hh -text
+source/Utils/DynamicLibTestClassIface.cc -text
+source/Utils/DynamicLibTestClassIface.hh -text
 source/Utils/DynamicLibrary.cc svneol=native#text/plain
 source/Utils/DynamicLibrary.hh svneol=native#text/plain
 source/Utils/DynamicObject.hh svneol=native#text/plain
@@ -1438,8 +1609,12 @@ source/Utils/mathfunctions.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/tools.cc -text
 source/Utils/tools.hh -text
 source/cfstool/CMakeLists.txt svneol=native#text/plain
+source/cfstool/HelperFuncs.cc -text
+source/cfstool/HelperFuncs.hh -text
 source/cfstool/ParamsInit.cc -text
 source/cfstool/ParamsInit.hh -text
+source/cfstool/WVT.cc -text
+source/cfstool/WVT.hh -text
 source/cfstool/cfstool.cc svneol=native#text/plain
 source/main/CFS.cc svneol=native#text/x-c%2B%2Bsrc
 source/main/CFS.hh -text

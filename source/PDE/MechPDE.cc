@@ -19,6 +19,7 @@
 // new integrator concept
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
+#include "Forms/BiLinForms/ICModesInt.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/Operators/IdentityOperator.hh"
@@ -33,24 +34,26 @@
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
-#include "CoupledPDE/PDECoupling.hh"
 
 namespace CoupledField {
 
 DECLARE_LOG(mechpde)
 DEFINE_LOG(mechpde, "mechpde")
 
-MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
-    :SinglePDE( aptgrid, paramNode ) {
+MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
+                 shared_ptr<SimState> simState, Domain* domain )
+    :SinglePDE( aptgrid, paramNode, infoNode, simState, domain ) {
 
     pdename_          = "mechanic";
     pdematerialclass_ = MECHANIC;
-    maxTimeDerivOrder_ = 2;
 
     nonLin_        = false;
     nonLinMaterial_= false;
 
     needSolPrev_ = true;
+    
+    //! Always use total Lagrangian formulation 
+    updatedGeo_        = false;
 
     // ****************************
     // DETERMINE GEOMETRY
@@ -60,7 +63,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     myParam_->GetValue("subType", subType_ );
 
     std::string probGeo;
-    param->Get("domain")->GetValue("geometryType", probGeo );
+    domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", probGeo );
 
     // Set number of degrees of freedom and
     // ensure that subtype fits to problem geometry
@@ -91,6 +94,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
                  <<  pdename_ <<  "' does not fit to problem  geometry '"
                  << probGeo << "'"; );
     }
+    
+    std::cerr << "subType is " << subType_ << std::endl; 
     
     // Sanity check: 3D can only be computed if 3D elements are present
     if( subType_ == "3d" && ptGrid_->GetNumElemOfDim(3) == 0 ) {
@@ -193,7 +198,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
                                  actRayl.adjustDamping, isHarmonic );
         regionRaylDamping_[actRegionId] = actRayl;
 
-        PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
+        PtrParamNode in = infoNode_->Get(ParamNode::PN_HEADER)
+            ->GetByVal("region", "name", ptGrid_->GetRegion().ToString(actRegionId));
         in->Get("alpha_M")->SetValue(actRayl.alpha);
         in->Get("alpha_K")->SetValue(actRayl.beta);
       }
@@ -210,7 +216,52 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
   void MechPDE::ReadSoftening() {
 
-    REFACTOR;
+    // Check if softeningList node is present
+    std::string type, id;
+    std::map<std::string, std::string> idSoftTypeMap;
+    PtrParamNode softListNode = myParam_->Get("softeningList", ParamNode::PASS );
+    PtrParamNode softInfo;
+    if( softListNode ) {
+
+      // Get child elements and read data
+      ParamNodeList softNodes = softListNode->GetChildren();
+      for( UInt i = 0; i < softNodes.GetSize(); i++ ) {
+        type = softNodes[i]->GetName();
+        softNodes[i]->GetValue( "id", id );
+        idSoftTypeMap[id] = type;
+      }
+
+      if( softNodes.GetSize() ) {
+        softInfo = infoNode_->Get("softeningList");
+      }
+    }
+
+    // Now iterate over all regions and check for softening type
+    ParamNodeList regionNodes =
+        myParam_->Get("regionList")->GetList("region");
+    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+
+      // get region Name
+      std::string regionName = regionNodes[i]->Get("name")->As<std::string>();
+      RegionIdType regionId = ptGrid_->GetRegion().Parse( regionName );
+      
+      // get softeningId of current region
+      id = "";
+      regionNodes[i]->GetValue( "softeningId", id, ParamNode::PASS );
+      if (id == "") continue;
+
+      // try to find related softening definition
+      if( idSoftTypeMap.find( id) == idSoftTypeMap.end() ) {
+        EXCEPTION( "Softening with id '" << id << "' for region '"
+                   << regionName << "' could not be found in "
+                   << "softeningList " );
+      }
+      // assign correct softening type to current region and map to log
+      regionSoftening_[regionId] = idSoftTypeMap[id];
+      PtrParamNode regionNode = softInfo->Get("region",ParamNode::APPEND);
+      regionNode->Get("name")->SetValue(regionName);
+      regionNode->Get("type")->SetValue(idSoftTypeMap[id]);
+    }
   }
 
   void MechPDE::InitNonLin()
@@ -223,6 +274,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
   void MechPDE::DefineIntegrators() {
 
+    // =======================================
+    //  Get information about softening types
+    // =======================================
+    ReadSoftening();
+    
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
 
@@ -331,13 +387,24 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     StdVector<PtrCoefFct > coef;
     LinearForm * lin = NULL;
     StdVector<std::string> dispDofNames = myFct->GetResultInfo()->dofNames;
+
+    /* Flag, if coefficient function lives on updated geometry (updated 
+     * Lagrangian formulation). For analytically prescribed values
+     * (pressure, force, stress), this is in general not the case. 
+     * In the coupled case, the magnetic force density however could live
+     * on an updated geometry. In this case, the ReadRhsExcitation()
+     * method will set the coefUpdateGeo flag to true, so the RHS-
+     * integrator also has to use this value.
+     * 
+     */
+    bool coefUpdateGeo = false;
     
     // ========================
     //  FORCES (volume, nodal)
     // ========================
     LOG_DBG(mechpde) << "Reading forces";
     ReadRhsExcitation( "force", dispDofNames, ResultInfo::VECTOR, isComplex_,
-                       ent, coef );
+                       ent, coef, coefUpdateGeo );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       
@@ -358,7 +425,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         // number of nodes
         if( numNodes > 1 ) {
           Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;  
-          coef[i] = CoefFunction::Generate(part, CoefXprVecScalOp(coef[i], 
+          coef[i] = CoefFunction::Generate(mp_, part, 
+                                           CoefXprVecScalOp(mp_, coef[i], 
                     boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );
         }
         
@@ -387,31 +455,24 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     LOG_DBG(mechpde) << "Reading force densities";
     
     ReadRhsExcitation( "forceDensity", dispDofNames, ResultInfo::VECTOR, isComplex_, 
-                        ent, coef );
+                        ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
         EXCEPTION("Force density must be defined on elements")
       }
       
-      // determine dimension
-      EntityIterator it = ent[i]->GetIterator();
-      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
-      if( elemDim != dim_-1 ) {
-        EXCEPTION("Force density can only be defined on surface elements");
-      }
-      
       if( dim_ == 2) {
         if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Complex>(Complex(1.0), coef[i]);
+          lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Double>(1.0, coef[i]);
+          lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Double>(1.0, coef[i], coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex>(Complex(1.0), coef[i]);
+          lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double>(1.0, coef[i]);
+          lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double>(1.0, coef[i], coefUpdateGeo);
         }
       }
       lin->SetName("ForceDensityInt");
@@ -429,7 +490,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     LOG_DBG(mechpde) << "Reading mechanical pressure";
     StdVector<std::string> empty;
     ReadRhsExcitation( "pressure", empty, ResultInfo::VECTOR, isComplex_, 
-                        ent, coef );
+                        ent, coef, coefUpdateGeo );
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
@@ -438,21 +499,31 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         EXCEPTION("Mechanical pressure must be defined on elements")
       }
             
+      // Factor for the pressure:
+      // The pressure is by definition in the opposite direction as the 
+      // normal stress, i.e. a positive pressure means a compressive stress
+      // (<0). Thus we have to take the minus sign into account
+      const Double presFac = -1.0;
+      
       if( dim_ == 2) {
         if(isComplex_) {
           lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,2>, 
-                                 Complex,true>(Complex(1.0), coef[i], volRegions);
+                                 Complex,true>(Complex(presFac), coef[i], 
+                                               volRegions, coefUpdateGeo);
         } else {
           lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,2>, 
-                                 Double,true>(1.0, coef[i], volRegions);
+                                 Double,true>(presFac, coef[i], volRegions, 
+                                              coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
           lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,3>, 
-                                 Complex, true>(Complex(1.0), coef[i], volRegions);
+                                 Complex, true>(Complex(presFac), coef[i], 
+                                                volRegions, coefUpdateGeo);
         } else {
           lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,3>, 
-                                 Double, true>(1.0, coef[i], volRegions);
+                                 Double, true>(presFac, coef[i], 
+                                               volRegions, coefUpdateGeo);
         }
       }
       lin->SetName("PressureInt");
@@ -470,7 +541,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     LOG_DBG(mechpde) << "Reading surface tractions";
       
       ReadRhsExcitation( "traction", dispDofNames, ResultInfo::VECTOR, isComplex_, 
-                          ent, coef );
+                          ent, coef, coefUpdateGeo );
       for( UInt i = 0; i < ent.GetSize(); ++i ) {
         // check type of entitylist
         if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -485,15 +556,19 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         
         if( dim_ == 2) {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Complex>(Complex(1.0), coef[i]);
+            lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Complex>(Complex(1.0), 
+                                                                        coef[i], coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Double>(1.0, coef[i]);
+            lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Double>(1.0, coef[i], 
+                                                                       coefUpdateGeo);
           }
         } else  {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex>(Complex(1.0), coef[i]);
+            lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex>(Complex(1.0), 
+                                                                        coef[i], coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double>(1.0, coef[i]);
+            lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double>(1.0, coef[i], 
+                                                                       coefUpdateGeo);
           }
         }
         lin->SetName("TractionIntegrator");
@@ -534,102 +609,76 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     // ----------------------------------------
     //  Determine correct stiffness integrator 
     // ----------------------------------------
+    
     BaseBDBInt * integ = NULL;
-    if( isComplex ) {
-      if( subType_ == "axi" ) {
-        integ = new BDBInt<Complex>(new StrainOperatorAxi<FeH1,Complex>(), curCoef, 1.0);
-      } else if( subType_ == "planeStrain" ) {
-        integ = new BDBInt<Complex>(new StrainOperator2D<FeH1,Complex>(), curCoef, 1.0);
-      } else if( subType_ == "planeStress" ) {
-        integ = new BDBInt<Complex>(new StrainOperator2D<FeH1,Complex>(), curCoef, 1.0);
-      } else if( subType_ == "3d") {
-        integ = new BDBInt<Complex>(new StrainOperator3D<FeH1,Complex>(), curCoef, 1.0);
-      } else {
-        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
-      }
-    }
-    else {
-      if( subType_ == "axi" ) {
-        integ = new BDBInt<>(new StrainOperatorAxi<FeH1>(), curCoef, 1.0);
-      } else if( subType_ == "planeStrain" ) {
-        integ = new BDBInt<>(new StrainOperator2D<FeH1>(), curCoef, 1.0);
-      } else if( subType_ == "planeStress" ) {
-        integ = new BDBInt<>(new StrainOperator2D<FeH1>(), curCoef, 1.0);
-      } else if( subType_ == "3d") {
-        integ = new BDBInt<>(new StrainOperator3D<FeH1>(), curCoef, 1.0);
-      } else {
-        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
-      }
+    BaseBOperator * bOp = GetStrainOperator( isComplex, false );
+    
+    if( regionSoftening_[regionId] == "icModesTW") {
+      // ===================
+      //  ICModes Softening 
+      // ===================
+      BaseBOperator * gOp = GetStrainOperator( isComplex, true );
+      if (isComplex ) 
+        integ = new ICModesInt<Complex>(bOp, gOp, curCoef, 1.0);
+      else
+        integ = new ICModesInt<Double>(bOp, gOp, curCoef, 1.0);
+      
+    } else {
+      // ====================
+      //  Standard Stiffness 
+      // ====================
+      if (isComplex ) 
+        integ = new BDBInt<Complex>(bOp, curCoef, 1.0);
+      else
+        integ = new BDBInt<Double>(bOp, curCoef, 1.0);
     }
 
     return integ;
   }
 
+  
+  BaseBOperator * MechPDE::GetStrainOperator( bool isComplex, bool icModes ){
+    BaseBOperator * bOp = NULL;
+    if( isComplex ) {
+      if( subType_ == "axi" ) {
+        bOp = new StrainOperatorAxi<FeH1,Complex>(icModes);
+      } else if( subType_ == "planeStrain" ) {
+        bOp = new StrainOperator2D<FeH1,Complex>(icModes);
+      } else if( subType_ == "planeStress" ) {
+        bOp = new StrainOperator2D<FeH1,Complex>(icModes);
+      } else if( subType_ == "3d") {
+        bOp = new StrainOperator3D<FeH1,Complex>(icModes);
+      } else {
+        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+      }
+    } else {
+      if( subType_ == "axi" ) {
+        bOp = new StrainOperatorAxi<FeH1,Double>(icModes);
+      } else if( subType_ == "planeStrain" ) {
+        bOp = new StrainOperator2D<FeH1,Double>(icModes);
+      } else if( subType_ == "planeStress" ) {
+        bOp = new StrainOperator2D<FeH1,Double>(icModes);
+      } else if( subType_ == "3d") {
+        bOp = new StrainOperator3D<FeH1,Double>(icModes);
+      } else {
+        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+      }
+    }
+    return bOp;
+  }
+  
   void MechPDE::DefineSolveStep()
   {
 		  solveStep_ = new StdSolveStep(*this);
   }
 
 
-
-  // ======================================================
-  // COUPLING SECTION
-  // ======================================================
-
-
-  void MechPDE::InitCoupling(PDECoupling * Coupling)
-  {
-
-    isIterCoupled_ = true;
-    ptCoupling_   = Coupling;
-
-    for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
-      {
-        if (ptCoupling_->GetOutputQuantity(i) == MECH_DISPLACEMENT)
-          {
-            // Intialize the memory of the coupling values
-            ptCoupling_->CreateCouplingVector(i,isComplex_);
-          }
-
-        if (ptCoupling_->GetOutputQuantity(i) == MECH_VELOCITY)
-          {
-            // Intialize the memory of the coupling values
-            ptCoupling_->CreateCouplingVector(i,isComplex_);
-          }
-
-        if (ptCoupling_->GetOutputQuantity(i) == MECH_FORCE)
-          {
-            // Intialize the memory of the coupling values
-            ptCoupling_->CreateCouplingVector(i,isComplex_);
-
-            //now since we need a incremental formulation, initialize some necessary vectors
-            isIncrFormulation_ = true;
-          }
-      }
-
-  }
-
-
-  void MechPDE::CalcOutputCoupling()
-  {
-    REFACTOR;
-  }
-
-  bool MechPDE::HasOutput(SolutionType output)
-  {
-
-    if (output == MECH_DISPLACEMENT || output == MECH_VELOCITY || output == MECH_FORCE)
-      return true;
-
-    return false;
-  }
-
   // ======================================================
   // TIME STEPPING SECTION
   // ======================================================
   void MechPDE::InitTimeStepping()
   {
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(TimeSchemeGLM::NEWMARK, 0) );
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
     feFunctions_[MECH_DISPLACEMENT]->SetTimeScheme(myScheme);
   }
 
@@ -680,7 +729,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   }
     
   void MechPDE::DefinePostProcResults() {
-
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     StdVector<std::string> stressComponents;
     if( subType_ == "3d" ) {
@@ -707,7 +755,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       availResults_.insert( vel );
       DefineTimeDerivResult( MECH_VELOCITY, 1, MECH_DISPLACEMENT );
       vFct = timeDerivFeFunctions_[MECH_VELOCITY];
-      
+
       // === MECHANIC ACCELERATION ===
       shared_ptr<ResultInfo> acc(new ResultInfo);
       acc->resultType = MECH_ACCELERATION;
@@ -727,11 +775,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     rhs->entryType = ResultInfo::VECTOR;
     rhs->definedOn = ResultInfo::NODE;
     DefineFieldResult( rhsFeFunctions_[MECH_DISPLACEMENT], rhs );
-    
+
     // === MECHANIC STRESS ===
     shared_ptr<ResultInfo> stress(new ResultInfo);
     stress->resultType = MECH_STRESS;
     stress->dofNames = stressComponents;
+    std::cerr << "stress Components: " << stressComponents.ToString() << std::endl;
     stress->unit =  "N/m^2";
     stress->entryType = ResultInfo::TENSOR;
     stress->definedOn = ResultInfo::ELEMENT;
@@ -742,7 +791,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       sigmaFunc.reset(new CoefFunctionFlux<Double>(feFct, stress));
     }
     DefineFieldResult( sigmaFunc, stress );
-    
+    stiffFormCoefs_.insert(sigmaFunc);
+
     // === MECHANIC STRAIN ===
     shared_ptr<ResultInfo> strain(new ResultInfo);
     strain->resultType = MECH_STRAIN;
@@ -757,8 +807,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       strainFunc.reset(new CoefFunctionBOp<Double>(feFct, strain));
     }
     DefineFieldResult( strainFunc, strain );
+    stiffFormCoefs_.insert(strainFunc);
 
-    
+
     PtrCoefFct intensFct;
     shared_ptr<CoefFunctionFormBased> kedFunc;
     shared_ptr<ResultFunctor> keFunc;
@@ -778,15 +829,15 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       PtrCoefFct velFnc = this->GetCoefFct( MECH_VELOCITY );
       // define temporary function, without the -1 sign
       PtrCoefFct intensTmp = 
-          CoefFunction::Generate(part,
-                                 CoefXprBinOp( sigmaFunc, velFnc,
+          CoefFunction::Generate(mp_, part,
+                                 CoefXprBinOp( mp_,  sigmaFunc, velFnc,
                                                CoefXpr::OP_MULT_VOIGT_TENSOR_VEC_CONJ ) );
       intensFct = 
-          CoefFunction::Generate(part,
-                                 CoefXprBinOp( "-1.0", intensTmp , CoefXpr::OP_MULT ));
+          CoefFunction::Generate(mp_, part,
+                                 CoefXprBinOp(mp_,  "-1.0", intensTmp , CoefXpr::OP_MULT ));
       DefineFieldResult( intensFct, intens );
-      
-      
+
+
       // === MECHANIC KINETIC ENERGY DENSITY ===
       shared_ptr<ResultInfo> kinEnergyDens(new ResultInfo);
       kinEnergyDens->resultType = MECH_KIN_ENERGY_DENS;
@@ -800,7 +851,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         kedFunc.reset(new CoefFunctionBdBKernel<Double>(vFct, 0.5));
       }
       DefineFieldResult( kedFunc, kinEnergyDens );
-      
+      massFormCoefs_.insert(kedFunc);
+
       // === MECHANIC KINETIC ENERGY ===
       shared_ptr<ResultInfo> kinEnergy(new ResultInfo);
       kinEnergy->resultType = MECH_KIN_ENERGY;
@@ -810,12 +862,23 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       kinEnergy->definedOn = ResultInfo::REGION;
       availResults_.insert ( kinEnergy );
       if( isComplex_ ) {
-        keFunc.reset(new EnergyResultFunctor<Complex>(vFct, kinEnergy));
+        keFunc.reset(new EnergyResultFunctor<Complex>(vFct, kinEnergy, 0.5));
       } else {
-        keFunc.reset(new EnergyResultFunctor<Double>(vFct, kinEnergy));
+        keFunc.reset(new EnergyResultFunctor<Double>(vFct, kinEnergy, 0.5));
       }
-      
       resultFunctors_[MECH_KIN_ENERGY] = keFunc;
+      massFormFunctors_.insert(keFunc);
+
+      // === MECHANIC NORMAL STRUCTURAL INTENSTIY ===
+      shared_ptr<ResultInfo> intensNormal(new ResultInfo);
+      intensNormal->resultType = MECH_NORMAL_STRUCT_INTENSITY;
+      intensNormal->dofNames = "" ;
+      intensNormal->unit =  "N/ms";
+      intensNormal->entryType = ResultInfo::SCALAR;
+      intensNormal->definedOn = ResultInfo::SURF_ELEM;
+      sNormStructIntens.reset(new CoefFunctionSurf(true));
+      DefineFieldResult( sNormStructIntens, intensNormal );
+      surfCoefFcts_[sNormStructIntens] = intensFct;
       
       // === MECHANIC POWER ===
       shared_ptr<ResultInfo> power(new ResultInfo);
@@ -825,7 +888,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       power->entryType = ResultInfo::SCALAR;
       power->definedOn = ResultInfo::SURF_REGION;
       availResults_.insert( power );
-      sNormStructIntens.reset(new CoefFunctionSurf(true));
       // then, integrate values
       if( isComplex_ ) {
         powerFunc.reset(new ResultFunctorIntegrate<Complex>(sNormStructIntens, 
@@ -852,6 +914,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       dedFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 0.5));
     }
     DefineFieldResult( dedFunc, defEnergyDens );
+    stiffFormCoefs_.insert(dedFunc);
 
     // === MECHANIC DEFORMATION ENERGY ===
     shared_ptr<ResultInfo> defEnergy(new ResultInfo);
@@ -863,11 +926,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     availResults_.insert( defEnergy );
     shared_ptr<ResultFunctor> deFunc;
     if( isComplex_ ) {
-      deFunc.reset(new EnergyResultFunctor<Complex>(feFct, defEnergy));
+      deFunc.reset(new EnergyResultFunctor<Complex>(feFct, defEnergy, 0.5));
     } else {
-      deFunc.reset(new EnergyResultFunctor<Double>(feFct, defEnergy));
+      deFunc.reset(new EnergyResultFunctor<Double>(feFct, defEnergy, 0.5));
     }
     resultFunctors_[MECH_DEFORM_ENERGY] = deFunc;
+    stiffFormFunctors_.insert(deFunc);
 
     // === MECHANIC TOTAL ENERGY DENSITY ===
     shared_ptr<ResultInfo> totEnergyDens(new ResultInfo);
@@ -881,8 +945,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     if (analysistype_ == STATIC ) {
       tedFunc = dedFunc;
     } else {
-      tedFunc = CoefFunction::Generate(part, 
-                                       CoefXprBinOp( dedFunc, kedFunc, CoefXpr::OP_ADD) );
+      tedFunc = CoefFunction::Generate(mp_, part, 
+                                       CoefXprBinOp( mp_, dedFunc, kedFunc, CoefXpr::OP_ADD) );
     }
     DefineFieldResult(tedFunc, totEnergyDens ); 
 
@@ -904,39 +968,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
 
     // === MECHANIC DISPLACED SURFACE VOLUME ===
-     // ... to be implemented
-    
-    // ============================
-    // Initialize result functors:
-    // ============================
-     
-    // 1) Loop over all BDB-integrators
-    std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
-    for( ; it != bdbInts_.end(); ++it ) {
-      RegionIdType region = it->first;
-      BaseBDBInt* bdb = it->second;
-
-      sigmaFunc->AddIntegrator(bdb, region);
-      strainFunc->AddIntegrator(bdb, region);
-      dedFunc->AddIntegrator(bdb, region);
-      deFunc->AddIntegrator(bdb, region);
-      if( analysistype_ != STATIC ) {
-        sNormStructIntens->SetVolumeCoef( region, intensFct );
-      }
-    }
-    
-    // 2) Loop over all mass integrators
-    if( analysistype_ != STATIC ) {
-      it = massInts_.begin();
-      for( ; it != massInts_.end(); ++it ) {
-        RegionIdType region = it->first;
-        BaseBDBInt* massInt = it->second;
-        kedFunc->AddIntegrator(massInt, region);
-        keFunc->AddIntegrator(massInt, region);
-      }
-    }
+    // ... to be implemented
   }
-  
   
   std::map<SolutionType, shared_ptr<FeSpace> >
    MechPDE::CreateFeSpaces(const std::string& formulation, PtrParamNode infoNode) {

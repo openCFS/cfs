@@ -35,8 +35,9 @@ namespace CoupledField {
   //   Constructor
   //*****************
   SimOutputGMV::SimOutputGMV( const std::string fileName,
-                              PtrParamNode outputNode ) :
-    SimOutput( fileName, outputNode )
+                              PtrParamNode outputNode,
+                              PtrParamNode infoNode) :
+    SimOutput( fileName, outputNode, infoNode )
   {
 
 
