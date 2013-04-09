@@ -1232,7 +1232,8 @@ namespace CoupledField {
     ParamNodeList fieldNodes;
     fieldNodes = myParam_->Get("storeResults")->GetList("field");
     std::string solTypeString;
-    
+    static std::map< SolutionType, bool> warningPrinted;
+
     fields_.Resize(fieldNodes.GetSize());
     // loop over all parts
     for( UInt iPart = 0; iPart <fieldNodes.GetSize(); ++iPart ) {
@@ -1256,7 +1257,7 @@ namespace CoupledField {
       solTypeString = actNode->Get("type")->As<std::string>();
       
       SolutionType solType = SolutionTypeEnum.Parse(solTypeString);
-      
+
       // find related result resultinfo
       ResultSet::const_iterator it = availResults_.begin();
       for( ; it != availResults_.end(); ++it ) {
@@ -1298,48 +1299,78 @@ namespace CoupledField {
         actField.field = new Vector<Double>();
       }
       
-      Vector<Double> globPoint(3);
+      std::set<RegionIdType> regions(regions_.Begin(), regions_.End());
+
+      StdVector< Vector<Double> > globPoints( numSamples[0] *
+                                              numSamples[1] *
+                                              numSamples[2] );
+      UInt pIdx = 0;
+      
       for( UInt xSample = 0; xSample < numSamples[0]; xSample++ ) {
         Double actX = start[0] + xSample * inc[0];
         for( UInt ySample = 0; ySample < numSamples[1]; ySample++ ) {
           Double actY = start[1] + ySample * inc[1];
           for( UInt zSample = 0; zSample < numSamples[2]; zSample++ ) {
             Double actZ = start[2] + zSample * inc[2];
+
+            Vector<Double>& globPoint = globPoints[pIdx++];
+            globPoint.Resize(dim_);
+
             globPoint[0] = actX;
             globPoint[1] = actY;
             if( dim_ > 2) {
               globPoint[2] = actZ;
             } 
-            else {
-             globPoint[2] = 0.0;
-            }
-             LocPoint locPoint;
-             const Elem * ptElem = NULL;
-             // now, map global point to localpoint
-             ptElem = ptGrid_->GetElemAtGlobalCoord( globPoint, locPoint );
-             
-             if( !ptElem ) {
-               std::string warnStr = "Could not find element at position " 
-                   + globPoint.ToString(); 
-               WARN( warnStr.c_str());
-             } else {
-//               std::cerr << "locPoint for globPoint " << globPoint.ToString() 
-//                                    << " is " << locPoint.ToString() 
-//                                    << " in Elem " << ptElem->elemNum << std::endl;
-               
-               // check again mapping by performing loc->glob mapping
-               shared_ptr<ElemShapeMap>  esm = ptGrid_->GetElemShapeMap(ptElem);
-               //esm->Local2Global(globPoint, locPoint);
-//               std::cerr << "\tAdditional check loc->glob delivers global point " 
-//                   << globPoint.ToString() << std::endl << std::endl;
-               
-               actField.elems.Push_back(ptElem);
-               actField.locPoints.Push_back(locPoint);
-             }
-            
           } // z
         } // y
       } // x
+      StdVector< LocPoint > locPoints;
+      StdVector< const Elem* > elems;
+
+      // now, map global points to local points restricted to regions of this PDE.
+      ptGrid_->GetElemsAtGlobalCoords( globPoints,
+                                       locPoints,
+                                       elems,
+                                       regions,
+                                       false );
+
+      for(UInt i=0, n=globPoints.GetSize(); i<n; i++) {
+        const Elem* ptElem = elems[i];
+        
+        if( !ptElem ) {
+          bool wP = !warningPrinted[actField.resultInfo->resultType];
+          if( wP ) {
+            std::stringstream sstr;
+            sstr << "Could not find element at position " 
+                 << globPoints[i].ToString()
+                 << " for evaluation of field values for "
+                 << solTypeString << ".";
+            WARN( sstr.str() );
+            warningPrinted[actField.resultInfo->resultType] = true;
+          }
+        } else {
+          //               std::cerr << "locPoint for globPoint " << globPoint.ToString() 
+          //                                    << " is " << locPoint.ToString() 
+          //                                    << " in Elem " << ptElem->elemNum << std::endl;
+               
+               // check again mapping by performing loc->glob mapping
+          shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(ptElem);
+          //esm->Local2Global(globPoint, locPoint);
+          //               std::cerr << "\tAdditional check loc->glob delivers global point " 
+          //                   << globPoint.ToString() << std::endl << std::endl;
+          
+          actField.elems.Push_back(ptElem);
+          actField.locPoints.Push_back(locPoints[i]);
+        }
+      }
+
+      if(warningPrinted[actField.resultInfo->resultType]) {
+        std::stringstream sstr;
+        sstr << "Could not find " << (globPoints.GetSize()-actField.locPoints.GetSize())
+             << " locations for evaluation of field values for "
+             << solTypeString << ".";
+        WARN( sstr.str() );
+      }
     } // loop over <field> entries
   }
 
