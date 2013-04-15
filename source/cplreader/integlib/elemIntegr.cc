@@ -260,6 +260,20 @@ namespace CoupledField
 
   }
 
+  void ElemIntegr::PerformIntegrationMechRhs(const Matrix<Double> & coordMat,
+                          const Matrix<Double>& NodalForce,
+                          Vector<Double>& elemvec){
+
+    if(!ptElem_)
+      return;
+
+    //perform integration for lamb vector
+    linearLoad_->CalcElemVecSurfForce(coordMat,
+        NodalForce,
+        elemvec,ptElem_);
+
+  }
+
   void ElemIntegr::PerformIntegrationAeroAcouSrc(const Matrix<Double> & coordMat,
                           const Matrix<Double>& NodalVal,
                           const Matrix<Double>& nodalMeanVel,

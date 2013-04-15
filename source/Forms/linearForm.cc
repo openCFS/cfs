@@ -1412,6 +1412,46 @@ DEFINE_LOG(linForm, "linForm")
         elVel[dim][actNode] = FlowData[dim+1][connecth[actNode]-1]; 
   }
 
+  void LinearFlowNoiseInt::CalcElemVecSurfForce(const Matrix<Double> & coordMat,
+                        const Matrix<Double>& NodalForce,
+                        Vector<Double>& elemvec,
+                        const Elem* elem){
+    //basically this is a standard mass integrator
+    //one special thing though, we get a surface element but deal with
+    //volume dimensional data so we obtain a standard mass matrix
+    // and blow it up to the volume dimension
+    const Integer numIntPoints = ptelem->GetNumIntPoints();
+    const Integer numNodes = ptelem->GetNumNodes();
+    const UInt dimVol = coordMat.GetNumRows();
+    Vector<Double> intWeights = ptelem->GetIntWeights();
+
+    Vector<Double> Sf, forceAtIp;
+    forceAtIp.Resize(dimVol);
+    elemvec.Resize(dimVol*numNodes);
+    elemvec.Init();
+
+    // Loop over all integration points
+    for(Integer actInt=1; actInt <= numIntPoints; actInt++)
+    {
+      ptelem->GetShFncAtIp(Sf, actInt, elem);
+      Double jacdet = ptelem->CalcJacobianDetAtIp(actInt,coordMat,elem);
+      forceAtIp.Init();
+      for(UInt i = 0; i < (UInt)numNodes ; ++i ){
+        for(UInt d= 0; d < dimVol ; ++d){
+          forceAtIp[d] += Sf[i] * NodalForce[d][i];
+        }
+      }
+
+      for(UInt i = 0; i < (UInt)numNodes ; ++i ){
+        for(UInt d= 0; d < dimVol ; ++d){
+          elemvec[i*dimVol+d] += forceAtIp[d] * Sf[i] * jacdet * intWeights[actInt -1];
+        }
+      }
+
+    }
+
+  }
+
   void LinearFlowNoiseInt::CalcElemVec4QuadwithVelCentre(const Matrix<Double>& ptCoord,
                                                          const Matrix<Double> & NodalVel,
                                                          Vector<Double> & Result,

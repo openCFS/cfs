@@ -533,6 +533,17 @@ namespace CoupledField
             continue;
           }
 
+          //check for surface tasks
+          if(calcSrc &&  regionDims_[actRegion] == dim_-1){
+            if ( flowData[actRegion].find(FLUIDMECH_FORCE)
+                        != flowData[actRegion].end() )
+             {
+                flowData[actRegion][FLUIDMECH_FORCE].isActive = true;
+             }else{
+               flowData[actRegion][FLUIDMECH_FORCE].isActive = false;
+             }
+            CalculateMechSurfaceForce(actRegion,flowData[actRegion]);
+          }
 
           if(calcSrc && regionDims_[actRegion] == dim_)
           {
@@ -1656,6 +1667,111 @@ namespace CoupledField
 }//end of parallel region
 
     std::cout << "done." << std::endl;
+  }
+
+  //! This method calculates a surface mechanical force for FSI one-way coupling
+  void CouplingHandler::CalculateMechSurfaceForce(const UInt surfRegionIdx,
+      FlowDataType& flowData){
+
+    //we go as follows:
+    /* 1. Check if FLUIDMECH_FORCE is available in the flowData struct
+     * 2. Check if we really hava a surface region
+     * 3. loop over all surface elements and compute a mass integrator on the surface elements
+     * 4. add the result to the result struct
+     */
+    std::string regionName = ptFileReader_->GetRegionName(surfRegionIdx);
+    UInt nElems = ptFileReader_->GetNumElems(surfRegionIdx);
+    FlowDataPartStruct& forceStruct = flowData[FLUIDMECH_FORCE];
+    std::vector<Double>& forceField = forceStruct.data;
+
+    bool computeForce = ( std::find(outputFields_.begin(),outputFields_.end(),"mechRhsLoad") != outputFields_.end() ||
+                                std::find(outputFields_.begin(),outputFields_.end(),"all") != outputFields_.end());
+
+
+    if(computeForce && !forceStruct.isActive){
+      EXCEPTION("the force field is not available. Going to abort");
+    }
+
+    if(!forceStruct.isActive){
+      return;
+    }
+
+    // Init Mechanic rhs load structures
+    FlowDataPartStruct& fdps2 = flowData[MECH_RHS_LOAD];
+    fdps2.isActive = true; // all partitions have results
+    fdps2.definedOn = ResultInfo::NODE; // nodes
+    if (fdps2.dofNames.empty()) {
+      fdps2.dofNames.push_back("x");
+      fdps2.dofNames.push_back("y");
+      if (dim_ == 3)
+        fdps2.dofNames.push_back("z");
+    }
+    fdps2.unit = MapSolTypeToUnit(MECH_RHS_LOAD);
+    fdps2.resultName = "mechRhsLoad";
+    fdps2.data.resize(numRegionNodes_[surfRegionIdx] * dim_);
+    fdps2.entryType = ResultInfo::VECTOR;
+    std::vector<Double>& mechRhsField = fdps2.data;
+    std::fill(mechRhsField.begin(), mechRhsField.end(), 0.0);
+
+
+    UInt forceIdx,topoIdx,idx;
+    Matrix<Double> coordMat;
+    //nodal values for force
+    Matrix<Double> nodalForce;
+    Vector<Double> elemVecForce;
+    Elem::FEType elemType;
+    UInt numElemNodes;
+    //UInt elemDim;
+    UInt elemIdx;
+    UInt maxNENodes = ptFileReader_->GetMaxNumElemNodes();
+    UInt nodeNum;
+
+    std::cout << "Calculating mechanical surface sources on " << regionName << " ";
+    std::cout << "...serial loop over " << nElems << " elements..." ;
+    std::cout.flush();
+
+    for(UInt i=0; i<nElems; i++)
+    {
+      elemIdx = regionElems_[surfRegionIdx][i] - 1;
+      elemType = (Elem::FEType) elemTypes_[elemIdx];
+      numElemNodes = Elem::GetNumElemNodes(elemType);
+      //elemDim = Elem::GetElemDim(elemType);
+
+      coordMat.Resize(dim_, numElemNodes);
+      nodalForce.Resize(dim_, numElemNodes);
+      for( UInt n=0; n<numElemNodes; n++)
+      {
+        nodeNum = topology_[elemIdx * maxNENodes + n];
+        topoIdx = (nodeNum - 1) * 3;
+        forceIdx = regionNodeIndices_[surfRegionIdx][nodeNum] * dim_;
+        for( UInt d=0; d<dim_; d++)
+        {
+          coordMat[d][n] = nodalCoords_[topoIdx+d];
+          nodalForce[d][n] = forceField[forceIdx+d];
+
+        }
+      }
+      try{
+      ptElemIntegr_[elemType]->PerformIntegrationMechRhs(coordMat,
+          nodalForce,
+          elemVecForce);
+      }catch(CoupledField::Exception &ex){
+        std::cerr << "WARN: An Exception occurred during mechanical source term "
+                          << "computation:\nElement " << elemIdx+1 << std::endl;
+
+       std::cerr << ex.what()<< std::endl;
+      }
+      for( UInt n=0; n<numElemNodes; n++)
+      {
+        nodeNum = topology_[elemIdx * maxNENodes + n];
+        idx = regionNodeIndices_[surfRegionIdx][nodeNum];
+        for(UInt d =0;d<dim_;++d){
+          mechRhsField[idx*dim_ + d] += elemVecForce[n*dim_+d];
+        }
+      }
+    }
+    std::cout << "done!" << std::endl;
+
   }
 
   void CouplingHandler::CalculateSurfaceIntegral(const int surfRegionIdx,

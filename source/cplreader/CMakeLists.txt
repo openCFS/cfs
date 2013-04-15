@@ -98,6 +98,7 @@ SET(TARGET_LL ${TARGET_LL}
   cplreader_docu
   cplreader_hdf5
   lapack-olas
+  materials
   ${BOOST_FILESYSTEM_LIB}
   ${CFS_FORTRAN_DYNRT_LIBS}
 )

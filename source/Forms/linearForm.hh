@@ -405,6 +405,11 @@ namespace CoupledField
                                  Vector<Double> & Result,
                                  const Elem* elem);
 
+    void CalcElemVecSurfForce(const Matrix<Double> & coordMat,
+                          const Matrix<Double>& NodalForce,
+                          Vector<Double>& elemvec,
+                          const Elem* elem);
+
     /// Calculation of vector of right hand side using nodal velocity values at
     /// the centre of an element
     void CalcElemVec4QuadwithVelCentre(const Matrix<Double>& ptCoord, 
