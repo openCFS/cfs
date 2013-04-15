@@ -2162,9 +2162,42 @@ namespace CoupledField {
     
     LOG_DBG(algSys) << "Setting node RHS of " << eqnNr << " for fct " 
                     << fctId << " to " << val;
-    
-    REFACTOR;
+    UInt block,idx;
+    this->MapFctIdEqnToIndex(fctId,eqnNr,block,idx);
+    rhs_->GetPointer(block)->AddToEntry(idx-1,val);
   }
+
+  template<typename T>
+  void AlgebraicSys::SetFncRHS(  const Vector<T>& fncRHS, FeFctIdType fctId ) {
+
+    LOG_DBG(algSys) << "Setting Function RHS for fctId ("<< fctId << ")";
+
+    // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
+    StdVector<UInt> blockNums, indices;
+    MapCompleteFctIdToIndex( fctId, blockNums, indices);
+
+    // Now, dismantle equations
+     UInt numRows = blockNums.GetSize();
+
+     // Loop over all rows
+     for( UInt iRow = 0; iRow < numRows; ++iRow ) {
+
+       // get hold of block numbers and indices
+       const UInt & rowBlock = blockNums[iRow];
+       const UInt & rowNum = indices[iRow];
+
+       // get limits of free indices
+       const UInt & lastFreeRowIndex = blockInfo_[rowBlock]->numLastFreeIndex;
+
+       // get vector
+       //SingleVector &vec = (*rhs_)(rowBlock);
+
+       if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
+         rhs_->GetPointer(rowBlock)->AddToEntry(rowNum-1, fncRHS[iRow]);
+       } // loop over rows
+     } // loop over blocks
+  }
+
 
 
   void AlgebraicSys::UpdateRHS(FEMatrixType matrixType, 
@@ -3043,6 +3076,9 @@ namespace CoupledField {
   template void AlgebraicSys::SetNodeRHS(Double, FeFctIdType, Integer );
   template void AlgebraicSys::SetNodeRHS(Complex, FeFctIdType, Integer );
   
+  template void AlgebraicSys::SetFncRHS(  const Vector<Double>& fncRHS, FeFctIdType fctId );
+  template void AlgebraicSys::SetFncRHS(  const Vector<Complex>& fncRHS, FeFctIdType fctId );
+
   template void AlgebraicSys::
   AddToDiagMatrixEntry( FEMatrixType, const FeFctIdType, Integer, Double );
   template void AlgebraicSys::

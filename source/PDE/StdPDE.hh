@@ -102,6 +102,9 @@ namespace CoupledField {
       return isaxi_;
     }
     
+    //! Set special RHS values
+    virtual void SetRhsValues();
+
     //! Pass boundary conditions to the algebraic system 
     virtual void SetBCs() = 0;
     

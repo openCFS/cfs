@@ -247,11 +247,12 @@ namespace CoupledField {
     fncIt= feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
       fncIt->second->SetSystem(algsys_);
-
       // Print equation information
       //fncIt->second->GetFeSpace()->PrintEqnMap();
       fncIt++;
     }
+
+
     //exit(0);
     // Trigger writing of info file
     myInfo_->GetRoot()->ToFile("", true );
@@ -314,6 +315,20 @@ namespace CoupledField {
     }
     return feFct;
 
+  }
+
+
+  // **********
+  // SetRhsLoads
+  // **********
+  void StdPDE::SetRhsValues() {
+
+    //do the same for RHS
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator rFncIt= this->rhsFeFunctions_.begin();
+    while(rFncIt != this->rhsFeFunctions_.end()){
+      rFncIt->second->ApplyLoads();
+      rFncIt++;
+    }
   }
 
 } // end of namespace

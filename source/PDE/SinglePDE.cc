@@ -344,6 +344,7 @@ namespace CoupledField {
 
       // Pass feFctId of primary result also to RHS result
       rhsFeFunctions_[fncIt->first]->SetFctId(actFct->GetFctId());
+      rhsFeFunctions_[fncIt->first]->SetSystem(this->algsys_);
       rhsFeFunctions_[fncIt->first]->Finalize();
       fncIt++;
     }
@@ -1387,13 +1388,8 @@ namespace CoupledField {
       fncIt->second->ApplyLoads();
       fncIt++;
     }
-    //do the same for RHS
-    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator rFncIt= this->rhsFeFunctions_.begin();
-    while(rFncIt != this->rhsFeFunctions_.end()){
-      rFncIt->second->ApplyLoads();
-      rFncIt++;
-    }
   }
+
 
   void SinglePDE::ReadBCs() {
 

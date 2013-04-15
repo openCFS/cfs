@@ -439,7 +439,7 @@ GetStrTensor( UInt& numRows, UInt& numCols,
   imag = coefMatImag_;
 }
 
-void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+void CoefFunctionExpression<Double>::GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                                        StdVector<Double >  & vals){
   assert(this->dimType_ == CoefFunction::SCALAR);
 
@@ -456,7 +456,7 @@ void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Ve
   Vector<Double> locVector;
   if( this->dimType_ == SCALAR ) {
     StdVector<Double> tmpVals;
-    this->GetVectorValuesAtCoords(points,tmpVals);
+    this->GetScalarValuesAtCoords(points,tmpVals);
     vals.Resize(tmpVals.GetSize(), Vector<Double>(1));
     for(UInt i=0;i<tmpVals.GetSize();i++){
       vals[i][0] = tmpVals[i];
@@ -473,7 +473,7 @@ void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Ve
 
 }
 
-void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+void CoefFunctionExpression<Double>::GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                        StdVector<Matrix<Double> >  & vals){
 
   assert(this->dimType_ == CoefFunction::TENSOR);

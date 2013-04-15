@@ -75,7 +75,7 @@ namespace CoupledField
     //! Set the iterative coupled PDE this SinglePDE belongs to. This is
     //! needed in order to retrieve coupling quantities.
     void SetIterCoupledPDE( IterCoupledPDE* iterCplPde );
-    
+
     //! set boundary condition
     void SetBCs();
 

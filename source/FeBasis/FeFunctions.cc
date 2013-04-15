@@ -695,7 +695,13 @@ DECLARE_LOG(fefunc)
     //loop over all loads
     for ( UInt i = 0; i < loadCoefs_.GetSize(); i++ ) {
       if(loadCoefs_[i]->IsConservative()){
-        loadCoefs_[i]->MapConservative(this->feSpace_,*this->coeffs_);
+        //this is a little circumfencial allocaing and releasing memory
+        //in each step. perhaps it would be better to mak a class variable or do it
+        //differently somehow
+        Vector<T> loadVec(this->coeffs_->GetSize());
+        loadVec.Init();
+        loadCoefs_[i]->MapConservative(this->feSpace_,loadVec);
+        this->algsys_->SetFncRHS(loadVec,this->fctId_);
       }else{
         //ok here we pass again the work to the space
         shared_ptr<CoefFunction> curFnc = loadCoefs_[i];
@@ -710,12 +716,10 @@ DECLARE_LOG(fefunc)
           std::map<Integer, T> coefs;
           feSpace_->MapCoefFctToSpace( curEnt, curFnc, coefs,
                                        false );
-          Vector<T> & myVals = *this->coeffs_;
+
           typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
           for( ; coefIt != coefs.end(); ++coefIt ) {
-            Integer eqnNr = coefIt->first;
-            T val = coefIt->second;
-            myVals[eqnNr-1] += val;
+            this->algsys_->SetNodeRHS(coefIt->second,this->fctId_,(Integer)coefIt->first);
           }
         }
       }

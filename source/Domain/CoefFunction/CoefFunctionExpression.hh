@@ -89,13 +89,13 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
                                StdVector<std::string>& imag );
 
     // COLLECTION ACCESS
-    virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+    virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                StdVector< Double >  & vals);
 
     virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                StdVector<Vector< Double> >  & vals);
 
-    virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+    virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                               StdVector<Matrix< Double> >  & vals);
 
 

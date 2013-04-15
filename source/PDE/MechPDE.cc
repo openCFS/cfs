@@ -578,8 +578,21 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         assemble_->AddLinearForm(ctx);
         myFct->AddEntityList(ent[i]);
       } // for
-    
-    
+
+      // ==================
+      //  SURFACE TRACTION
+      // ==================
+      LOG_DBG(mechpde) << "Reading direct right hand side values";
+
+      ReadRhsExcitation( "rhsValues", dispDofNames, ResultInfo::VECTOR, isComplex_,
+                          ent, coef, coefUpdateGeo );
+
+      for( UInt i = 0; i < ent.GetSize(); ++i ) {
+        //for non-linear simulations we might need a conservative interpolation in each timestep...
+        coef[i]->SetConservative(true);
+        coef[i]->AddEntityList(ent[i]);
+        this->rhsFeFunctions_[MECH_DISPLACEMENT]->AddLoadCoefFunction(coef[i]);
+      }
   }
 
   BaseBDBInt *

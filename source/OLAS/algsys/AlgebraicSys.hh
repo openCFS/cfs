@@ -568,6 +568,10 @@ namespace CoupledField {
     void SetNodeRHS(T val, FeFctIdType fctId,
                     Integer eqnNr);
 
+    //! Adds an feFunction to the right hand side
+    template<typename T>
+    void SetFncRHS( const Vector<T>& fncRHS, FeFctIdType fctId);
+
     //! Performs a matrix-vector multiplication and adds the vector to the rhs
 
     //! This method multiplies a specified global matrix (STIFFNES, MASS,
