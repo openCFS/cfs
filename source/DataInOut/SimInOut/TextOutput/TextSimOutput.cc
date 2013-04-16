@@ -16,8 +16,9 @@ namespace CoupledField {
 
   SimOutputText::SimOutputText( const std::string& fileName,
                                 PtrParamNode outputNode,
-                                PtrParamNode infoNode)
-    : SimOutput( fileName, outputNode, infoNode ){
+                                PtrParamNode infoNode,
+                                bool isRestart )
+    : SimOutput( fileName, outputNode, infoNode, isRestart ){
 
     // initialize variables
     formatName_ = "text";

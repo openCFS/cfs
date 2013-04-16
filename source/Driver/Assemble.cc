@@ -801,12 +801,12 @@ namespace CoupledField
   }
 
   
-  void Assemble::AssembleLinRHS(AdjointParameters* adjointParams)
+  void Assemble::AssembleLinRHS()
   {
     AssembleRHSLinForms(false );
   }
 
-  void Assemble::AssembleNonLinRHS(AdjointParameters* adjointParams) {
+  void Assemble::AssembleNonLinRHS() {
     AssembleRHSLinForms(true );
   }
 

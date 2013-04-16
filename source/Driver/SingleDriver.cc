@@ -35,8 +35,6 @@ namespace CoupledField{
       ptPDE_ = domain_->GetBasePDE();
 
       domain_->InitPDEs( 1 );
-      // Trigger reading of restart file
-      ReadRestart();
 
       std::cout << "++ Starting to solve problem" << std::endl;
     }

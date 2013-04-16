@@ -146,7 +146,7 @@ namespace CoupledField {
     public:
 
       SimOutputParsed(std::string fileName, PtrParamNode inputNode,
-                      PtrParamNode infoNode);
+                      PtrParamNode infoNode, bool isRestart );
       virtual ~SimOutputParsed();
 
       virtual void Init(Grid* ptGrid, bool printGridOnly );

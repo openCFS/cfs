@@ -86,7 +86,7 @@ namespace CoupledField {
                                         analysis_,
                                         numConverged );
     
-    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_, numConverged );
+    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
 
     // Print out eigenfrequencies
     std::cout << std::endl << std::endl;
@@ -155,7 +155,7 @@ namespace CoupledField {
     resHandler->BeginMultiSequenceStep( sequenceStep_,
                                         analysis_,
                                         numConverged );
-    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_, numConverged );
+    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
 
     // Print out eigenfrequencies
     std::cout << std::endl << std::endl;
@@ -209,7 +209,7 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void EigenFrequencyDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams) {
+  void EigenFrequencyDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id) {
     // options not implemented
     assert(write_results == true);
     

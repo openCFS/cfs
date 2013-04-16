@@ -88,9 +88,56 @@ void TestReload() {
   stress->GetVector(vec, lpm);
   std::cerr << "stress is " << vec.ToString() << std::endl;
   
+  // obtain number of multisequence steps and
+  // time steps therein
+  std::map<UInt, BasePDE::AnalysisType>  analysis;
+  
+  in->DB_GetNumMultiSequenceSteps( analysis );
+  
+  std::map<UInt, BasePDE::AnalysisType> ::const_iterator msIt = analysis.begin();
+  for( ; msIt != analysis.end(); ++msIt) {
+    UInt step = msIt->first;
+    std::cerr << "MS Step " << step << " with analysis type "
+        << BasePDE::analysisType.ToString(analysis[step])
+        << "\n";
+    
+    std::map<std::string, std::set<std::string> > coefFcts;
+    std::map<std::string, std::set<std::string> >::const_iterator pdeIt;
+    in->DB_GetAvailPdeCoefFcts( step, coefFcts );
+    
+    // Loop over all available PDEs
+    for(pdeIt = coefFcts.begin(); pdeIt != coefFcts.end(); ++pdeIt ) {
+    
+      const std::string & pdeName = pdeIt->first;
+      const std::set<std::string> & coefs = pdeIt->second;
+      std::set<std::string>::const_iterator coefIt = coefs.begin();
+      
+      std::cerr << "contains PDE " << pdeName << std::endl;
+      // Loop over all available CoefFcts
+      for( ; coefIt != coefs.end(); ++coefIt ) {
+        const std::string & coefName = *coefIt; 
+        std::cerr << "\tCoefFct: " << coefName << std::endl;
+        
+        
+        // Obtain number of time / freq steps
+        std::map<UInt, Double> stepValues;
+        in->DB_GetStepValues( step, pdeName, coefName, stepValues );
+        std::map<UInt,Double>::const_iterator stepIt = stepValues.begin();
+        for( ; stepIt != stepValues.end(); ++stepIt ) {
+          std::cerr << "\t\t" << stepIt->first << " : " 
+              << stepIt->second << std::endl;  
+        }
+        
+      }
+      
+    } // loop: pdes
+    
+    
+    
+  } // loop: multisteps
+  // Obtain available PDE and result types for each multiSequence step
   
 }
-
 
 
 int main(int argc, const char **argv)
@@ -194,17 +241,19 @@ CFS::~CFS()
   infoNode->ToFile(std::string(), true);
 
 
+  delete resultHandler;
+  resultHandler = NULL;
+  
   // Delete objects
   //delete param;
+  
+  
   delete domain;
   domain = NULL;
   
   // might write ersatz material file if <export save="finally"/> in optimization
   delete progOpts;
   progOpts = NULL;
-  
-  delete resultHandler;
-  resultHandler = NULL;
   
   simState.reset();
 
@@ -247,8 +296,8 @@ int CFS::Run()
     // ============================
     // PERFORM TEST
     // ============================
-    //TestReload();
-    //exit(EXIT_SUCCESS);
+//    TestReload();
+//    exit(EXIT_SUCCESS);
     
     if(progOpts->GetPrintGrid())
       PrintGrid();

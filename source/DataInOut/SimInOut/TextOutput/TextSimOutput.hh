@@ -24,7 +24,7 @@ namespace CoupledField {
 
     //! Constructor
     SimOutputText( const std::string& fileName, PtrParamNode outputNode,
-                   PtrParamNode infoNode );
+                   PtrParamNode infoNode, bool isRestart  );
 
     //! Destructor
     ~SimOutputText();

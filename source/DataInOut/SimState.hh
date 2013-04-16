@@ -72,7 +72,7 @@ namespace CoupledField {
     void RegisterFeFct( shared_ptr<BaseFeFunction> feFct);
     
     //! Begin new multisequence step
-    void BeginMultiSequenceStep( UInt step, BasePDE::AnalysisType type, UInt numSteps );
+    void BeginMultiSequenceStep( UInt step, BasePDE::AnalysisType type);
 
     //! Begin single analysis step
     void WriteStep( UInt stepNum, Double stepVal );
@@ -90,6 +90,15 @@ namespace CoupledField {
 
     //! Set pointer to input hdf5 reader
     void SetInputHdf5Reader( shared_ptr<SimInputHDF5> inFile );
+    
+    //! Generate input reader from output
+    
+    //! This method generates an input reader from an already set
+    //! input reader.
+    void SetInputReaderToSameInput();
+    
+    //! Return last step number of input file
+    UInt GetLastStepNum();
  
     //! Update internally to given time / frequency step
     void UpdateToStep( UInt stepNum );

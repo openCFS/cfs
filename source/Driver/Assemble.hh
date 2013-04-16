@@ -70,10 +70,10 @@ namespace CoupledField {
     void AssembleMatrices();
 
     //! Trigger assembly of all linear right hand side terms
-    void AssembleLinRHS(AdjointParameters* adjointParams = NULL);
+    void AssembleLinRHS();
 
     //! Trigger assenbly of all non-linear right hand side terms
-    void AssembleNonLinRHS(AdjointParameters* adjointParams = NULL);
+    void AssembleNonLinRHS();
 
     // ======================================================
     //  MISCELLANEOUS METHODS

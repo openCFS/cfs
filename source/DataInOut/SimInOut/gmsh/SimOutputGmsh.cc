@@ -33,8 +33,8 @@ namespace CoupledField {
   //*****************
   SimOutputGmsh::SimOutputGmsh( const std::string fileName,
                                 PtrParamNode outputNode,
-                                PtrParamNode infoNode) :
-  SimOutput( fileName, outputNode, infoNode ),
+                                PtrParamNode infoNode, bool isRestart ) :
+  SimOutput( fileName, outputNode, infoNode, isRestart ),
     output_(NULL),
     printGridOnly_(false),
     ascii_(true),

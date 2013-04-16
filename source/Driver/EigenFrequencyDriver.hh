@@ -32,7 +32,7 @@ class SingleVector;
 
     //! This method constitutes the actual driving method which controls the
     //! solution process for the problem.
-    void SolveProblem(bool write_results = true, PtrParamNode given_analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL);
+    void SolveProblem(bool write_results = true, PtrParamNode given_analysis_id = PtrParamNode());
     
     //! Return current time / frequency step of simulation
     UInt GetActStep( const std::string& pdename ) { return 1;}

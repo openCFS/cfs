@@ -38,7 +38,7 @@ namespace CoupledField {
   }
 
 
-  void MultiSequenceDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams) {
+  void MultiSequenceDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id) {
     REFACTOR;
   }
 

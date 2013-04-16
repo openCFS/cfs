@@ -30,8 +30,9 @@ namespace CoupledField {
 
     SimOutputGiD::SimOutputGiD( const std::string& fileName,
                                 PtrParamNode outputNode,
-                                PtrParamNode infoNode)
-  : SimOutput( fileName, outputNode, infoNode ),
+                                PtrParamNode infoNode, 
+                                bool isRestart )
+  : SimOutput( fileName, outputNode, infoNode, isRestart ),
     isInitialized_(false)
   {
     // Initialize variables

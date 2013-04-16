@@ -10,8 +10,9 @@ using namespace CoupledField;
 using std::string;
 
 SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode,
-                                       PtrParamNode infoNode) :
-  SimOutput("", outputNode, infoNode ),
+                                       PtrParamNode infoNode, 
+                                       bool isRestart ) :
+  SimOutput("", outputNode, infoNode, isRestart ),
   silent_(false)
 {
   formatName_ = "streaming";

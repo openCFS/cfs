@@ -29,7 +29,7 @@ namespace CoupledField {
     void Init();
 
     //! main method, where time-stepping is implemented. it is for transient and static problem
-    void SolveProblem(bool write_results = true, PtrParamNode given_analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL);
+    void SolveProblem(bool write_results = true, PtrParamNode given_analysis_id = PtrParamNode());
 
     //! Return time increment
     Double GetDeltaT() { return firstdt_;}
@@ -44,6 +44,9 @@ namespace CoupledField {
 
     /** Helper method which determines if an AnalyisType is complex. */
     virtual bool IsComplex() { return false; };
+    
+    //! Static method being called in the case of a Ctr-C signal
+    static void SignalHandler( int sig);
 
   protected:
 
@@ -69,16 +72,22 @@ namespace CoupledField {
     //  Restart related data
     // =======================================================================
 
-    //! Number of steps before a restart file is stored
-    UInt restartIncr_;
-
+    //! Flag, if restart file is to be written
+    bool writeRestart_;
+    
     //! Time step to proceed from when performing restarted simulation
     UInt restartStep_;
+    
+    //! Static flag to HALT the simulation
+    static bool abortSimulation;
     
     // =======================================================================
     //  Timing estimation
     // =======================================================================
 
+    //! Estimated time per step
+    static Double timePerStep_;
+    
     //! Timer for estimating remaining runtime 
     boost::shared_ptr<Timer> timer_;
 

@@ -21,7 +21,7 @@ namespace CoupledField {
   {
   public:
     SimOutputGmsh(std::string fileName, PtrParamNode inputNode,
-                  PtrParamNode infoNode);
+                  PtrParamNode infoNode, bool isRestart );
     virtual ~SimOutputGmsh();
 
     //! Initialize class

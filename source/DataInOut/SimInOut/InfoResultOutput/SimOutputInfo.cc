@@ -6,8 +6,9 @@
 using namespace CoupledField;
 using std::string;
 
-SimOutputInfo::SimOutputInfo(PtrParamNode outputNode, PtrParamNode infoNode ) : 
-    SimOutput("", outputNode, infoNode )
+SimOutputInfo::SimOutputInfo(PtrParamNode outputNode, PtrParamNode infoNode,
+                             bool isRestart ) : 
+    SimOutput("", outputNode, infoNode, isRestart )
 {
   formatName_ = "info";
   capabilities_.insert(HISTORY);

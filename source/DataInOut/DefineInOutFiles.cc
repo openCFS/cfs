@@ -283,6 +283,9 @@ CreateSimOutputFiles(PtrParamNode rootNode,
   out.clear();
 
   std::string simName = progOpts->GetSimName();
+  
+  // check for restart
+  bool restart = progOpts->GetRestart();
 
   // get list of output formats
   PtrParamNode outNode = rootNode->Get("fileFormats")->Get("output", ParamNode::PASS);
@@ -359,7 +362,8 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     if (actFormat == "unv")
     {
 #ifdef USE_UNV
-      out[actId] = shared_ptr<SimOutput> (new SimOutputUnv(simName, actNode, infoNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputUnv(simName, actNode, 
+                                                           infoNode, restart));
 #else
       EXCEPTION( "No support for UNV output file format." );
 #endif
@@ -368,7 +372,8 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     if (actFormat == "gid")
     {
 #ifdef USE_GIDPOST
-      out[actId] = shared_ptr<SimOutput> (new SimOutputGiD(simName, actNode, infoNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputGiD(simName, actNode, 
+                                                           infoNode, restart));
       continue;
 #else
       EXCEPTION( "No support for GiD output file format." );
@@ -378,7 +383,8 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     if (actFormat == "gmsh")
     {
 #ifdef USE_GMSH
-      out[actId] = shared_ptr<SimOutput> (new SimOutputGmsh(simName, actNode, infoNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputGmsh(simName, actNode, 
+                                                            infoNode, restart));
       continue;
 #else
       EXCEPTION( "No support for Gmsh output file format." );
@@ -389,7 +395,8 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     if (actFormat == "gmshParsed")
     {
 #ifdef USE_GMSH
-      out[actId] = shared_ptr<SimOutput> (new SimOutputParsed(simName, actNode, infoNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputParsed(simName, actNode, 
+                                                              infoNode, restart));
       continue;
 #else
       EXCEPTION( "No support for Gmsh parsed output file format." );
@@ -399,7 +406,8 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     if (actFormat == "gmv")
     {
 #ifdef USE_GMV
-      out[actId] = shared_ptr<SimOutput> (new SimOutputGMV(simName, actNode, infoNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputGMV(simName, actNode, 
+                                                           infoNode, restart));
 #else
       EXCEPTION( "No support for GMV output file format." );
 #endif
@@ -410,7 +418,7 @@ CreateSimOutputFiles(PtrParamNode rootNode,
 #ifdef USE_HDF5
       if(!hdf5Writer) 
       {        
-        hdf5Writer.reset(new SimOutputHDF5(simName, actNode, infoNode));
+        hdf5Writer.reset(new SimOutputHDF5(simName, actNode, infoNode, restart));
         out[actId] = hdf5Writer;
 
         std::cout << "++ Creating HDF5 writer '" << actId << "'" << std::endl;
@@ -425,7 +433,7 @@ CreateSimOutputFiles(PtrParamNode rootNode,
 #ifdef USE_HDF5
       if(!hdf5Writer) 
       {        
-        hdf5Writer.reset(new SimOutputHDF5(simName, actNode, infoNode));
+        hdf5Writer.reset(new SimOutputHDF5(simName, actNode, infoNode, restart));
 
         if(hdf5Id == "")
           hdf5Id = actId + "_hdf5";
@@ -435,7 +443,8 @@ CreateSimOutputFiles(PtrParamNode rootNode,
         std::cout << "++ Creating HDF5/XDMF writer '" << hdf5Id << "'" << std::endl;
       }
       
-      SimOutputXDMF* simOutXDMF = new SimOutputXDMF(simName, actNode, infoNode);
+      SimOutputXDMF* simOutXDMF = new SimOutputXDMF(simName, actNode, 
+                                                    infoNode, restart);
       if(simOutXDMF) 
       {
         out[actId] = shared_ptr<SimOutput> (simOutXDMF);
@@ -460,18 +469,19 @@ CreateSimOutputFiles(PtrParamNode rootNode,
 
     if (actFormat == "text" || actFormat == "csv")
     {
-      out[actId] = shared_ptr<SimOutput> (new SimOutputText(simName, actNode, infoNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputText(simName, actNode, 
+                                                            infoNode, restart));
     }
     
     if (actFormat == "info")
     {
-      out[actId] = shared_ptr<SimOutput> (new SimOutputInfo(actNode, infoNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputInfo(actNode, infoNode, restart));
     }
 
 #ifndef __MINGW32__
     if (actFormat == "streaming")
     {
-      out[actId] = shared_ptr<SimOutput> (new SimOutputStreaming(actNode, infoNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputStreaming(actNode, infoNode, restart));
     }
 #endif
 

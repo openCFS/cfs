@@ -94,6 +94,28 @@ class MaterialHandler;
     return domain_;
   }
   
+  void SimState::SetInputReaderToSameInput() {
+    // assure, that an output reader is present
+    assert( outFile_ );
+    
+    // get file name of output writer
+    fs::path h5FileName = outFile_->GetFileName();
+    
+    // Create dummy info node
+    PtrParamNode infoNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
+    
+    // generate input reader for same file
+    PtrParamNode node(new ParamNode());
+    boost::shared_ptr<SimInputHDF5> in;
+    inFile_.reset(new SimInputHDF5(h5FileName.string(), node, infoNode));
+
+    // Initialize module
+    inFile_->InitModule();
+    inFile_->DB_Init();
+
+    
+  }
+  
   void SimState::UpdateToStep( UInt stepNum ) {
 
     std::set<shared_ptr<BaseFeFunction> >::iterator it = feFcts_.begin();
@@ -115,16 +137,51 @@ class MaterialHandler;
     } else {
       // create new writer with the name of the simulation
       std::string name = progOpts->GetSimName();
+      
+      // check for restart
+      bool restart = progOpts->GetRestart();
+      
       PtrParamNode infoNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
       PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
       PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       eFiles->SetName("externalFiles");
       eFiles->SetValue( "false" );
       h5Node->AddChildNode(eFiles);
-      outFile_.reset(new SimOutputHDF5( name, h5Node, infoNode ));
+      outFile_.reset(new SimOutputHDF5( name, h5Node, infoNode, restart ));
       
       ownWriter_ = true;
     }
+    
+  }
+  
+  
+  UInt SimState::GetLastStepNum() {
+    // assert
+   UInt lastStepNum = 0;
+   
+   std::map<std::string, std::set<std::string> > coefFcts;
+   std::map<std::string, std::set<std::string> >::const_iterator pdeIt;
+   inFile_->DB_GetAvailPdeCoefFcts( sequenceStep_, coefFcts );
+   
+   // Loop over all available PDEs
+   for(pdeIt = coefFcts.begin(); pdeIt != coefFcts.end(); ++pdeIt ) {
+   
+     const std::string & pdeName = pdeIt->first;
+     const std::set<std::string> & coefs = pdeIt->second;
+     std::set<std::string>::const_iterator coefIt = coefs.begin();
+     
+     // Loop over all available CoefFcts
+     for( ; coefIt != coefs.end(); ++coefIt ) {
+       const std::string & coefName = *coefIt; 
+       std::map<UInt, Double> stepValues;
+       inFile_->DB_GetStepValues( sequenceStep_, pdeName, coefName, stepValues );
+       
+       // get maximum
+       lastStepNum = std::max(lastStepNum, stepValues.rbegin()->first);
+     }
+     
+   } // loop: pdes
+   return lastStepNum;
     
   }
 
@@ -135,27 +192,26 @@ class MaterialHandler;
   }
 
 
-  void SimState::BeginMultiSequenceStep( UInt step, BasePDE::AnalysisType type, 
-                                         UInt numSteps ) {
+  void SimState::BeginMultiSequenceStep( UInt step, BasePDE::AnalysisType type ) {
     // Ensure initialized object
     Init();
     
     sequenceStep_ = step;
-    outFile_->DB_BeginMultiSequenceStep(step, type, numSteps);
+    outFile_->DB_BeginMultiSequenceStep(step, type);
 
   }
 
   void SimState::WriteStep( UInt stepNum, Double stepVal ) {
 
-    // Write all coeffient function of the current step to the HDF5 file
-//    outFile_->DB_BeginStep(stepNum, stepVal);
-//    std::set<shared_ptr<BaseFeFunction> >::iterator it = feFcts_.begin();
-//    for( ; it != feFcts_.end(); ++it ) {
-//      std::string pdeName = (*it)->GetPDE()->GetName();
-//      std::string feName = 
-//          SolutionTypeEnum.ToString((*it)->GetResultInfo()->resultType);
-//      outFile_->DB_WriteFeFunction( pdeName, feName, (*it)->GetSingleVector() );
-//    }
+    // Write all coefficient function of the current step to the HDF5 file
+    outFile_->DB_BeginStep(stepNum, stepVal);
+    std::set<shared_ptr<BaseFeFunction> >::iterator it = feFcts_.begin();
+    for( ; it != feFcts_.end(); ++it ) {
+      std::string pdeName = (*it)->GetPDE()->GetName();
+      std::string feName = 
+          SolutionTypeEnum.ToString((*it)->GetResultInfo()->resultType);
+      outFile_->DB_WriteFeFunction( pdeName, feName, (*it)->GetSingleVector() );
+    }
   }
 
   void SimState::FinishMultiSequenceStep( ) {

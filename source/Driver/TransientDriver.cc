@@ -5,6 +5,8 @@
 #include <list>
 #include <math.h>
 
+// signal handling for post-poning Ctr-C
+#include <signal.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -31,6 +33,11 @@ namespace CoupledField {
   DECLARE_LOG(trans_driver)
   DEFINE_LOG(trans_driver, "transient_driver")
 
+  
+  // Define flag for halting the simulation
+  bool TransientDriver::abortSimulation = false;
+  Double TransientDriver::timePerStep_ = 0.0;
+  
   // ===============
   //   Constructor
   // ===============
@@ -49,7 +56,6 @@ namespace CoupledField {
 
     actTimeStep_ = 0;
     firstdt_ = 0.0;
-    restartIncr_ = 0;
     restartStep_ = 0;
 
     // get parameter node
@@ -68,10 +74,11 @@ namespace CoupledField {
     // Get time stepping information from parameter object
     numstep_ = myNode->Get( "numSteps")->MathParse<UInt>();
     
-    // Get save increment for restart file (optional)
-    PtrParamNode restartNode = myNode->Get("writeRestartInc", ParamNode::PASS); 
+    // Check for presence of restart flag
+    writeRestart_ = true;
+    PtrParamNode restartNode = myNode->Get("writeRestart", ParamNode::PASS);
     if (restartNode)
-      restartIncr_ = restartNode->MathParse<UInt>();
+      writeRestart_ = restartNode->As<bool>();
   
     // remove HALTCFS File at the beginning
     if(fs::exists("./HALTCFS")) 
@@ -84,13 +91,24 @@ namespace CoupledField {
                                        "dt", 0.0 );    
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                        "step", 1 );
+    
+    // register signal handler
+    if( signal( SIGINT, TransientDriver::SignalHandler) == SIG_ERR ) {
+      EXCEPTION( "Could not register Signal Handler");
+    }
   }
 
   // ==============
   //   Destructor
   // ==============
   TransientDriver::~TransientDriver()
-  { }
+  { 
+    // unregister signal handler and use default action
+    // register signal handler
+    if( signal( SIGINT, SIG_DFL) == SIG_ERR ) {
+      EXCEPTION( "Could not assign default signal action");
+    }
+  }
 
   // ==================
   //   Initialization
@@ -100,67 +118,58 @@ namespace CoupledField {
     InitializePDEs();
   }
     
-  void TransientDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams) 
+  void TransientDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id) 
   {
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain_->GetResultHandler();
 
-    int direction = adjointParams ? -1 : 1; // for adjoint the time is backwards
-    UInt startStep = restartStep_ + 1;
-    UInt endStep = restartStep_ + numstep_;
-    Double  steptime  = firstdt_ * (adjointParams ? endStep : startStep);
-    //UInt nextRestart  = restartStep_ + restartIncr_ * direction;
-    Double  dt = firstdt_;
-    bool haltFlag=false;
+    simState_->BeginMultiSequenceStep(sequenceStep_, analysis_);
     
+    // Check for restart
+    ReadRestart();
+    
+    // correct numstep due to restart
+    numstep_ = numstep_ - restartStep_;
+    
+  
+    
+    UInt startStep = restartStep_ + 1;
+    UInt endStep = numstep_ + restartStep_;
+    Double  steptime  = firstdt_ * startStep;
+    Double  dt = firstdt_;
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;
-    if(direction < 0){
-      percentCounter = (double)numstep_ - timeStepPercent;
-    }
   
-    if(write_results){
-      resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, numstep_ );
-    }
-    simState_->BeginMultiSequenceStep(sequenceStep_, analysis_, numstep_ );
-  
+ 
+   
     ptPDE_->WriteGeneralPDEdefines();
-
     ptPDE_->GetSolveStep()->SetStartStep( startStep );
-    
     ptPDE_->GetSolveStep()->SetNumTimeSteps(restartStep_+numstep_);
     
     //just initialize some variables
     ptPDE_->GetSolveStep()->InitTimeStepping();
-
-    //// to save the initial state
-    //resHandler->BeginStep( 0, 0 );
-    //ptPDE_->WriteResultsInFile(stepOffset_, timeOffset_);
-    //resHandler->FinishStep( );
+    
+    // Ensure, that at least one step has to be computed, otherwise leave
+    if( numstep_ == 0 ) {
+     return;
+    }
+    
+    if(write_results){
+       resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, numstep_+restartStep_ );
+     }
     
     // Outer loop over all timesteps
-    
     UInt count = 0;
-    for (actTimeStep_ = adjointParams ? endStep : startStep; 
-         actTimeStep_ <= endStep && actTimeStep_ >= startStep; 
-         actTimeStep_ += direction, count++) {
+    for (actTimeStep_ = startStep; 
+         actTimeStep_ <= endStep; 
+         actTimeStep_ += 1, count++) {
 
       LOG_DBG(trans_driver) << "loop over timestep " << actTimeStep_;
       
       // start timer only in 2nd loop, as in the 1st step normall the
       // factorization is incorporated,
-      if( actTimeStep_ == 2) {
+      if( actTimeStep_ == startStep+1) {
         timer_->Start();
-      }
-      // check for a HALTCFS File
-      // if there exist a file with name HALTCFS in the executing directory
-      // than CFS++ will end after the current time step
-      std::ifstream readHALTCFS("HALTCFS", std::ios_base::in );
-      if (readHALTCFS) {
-        readHALTCFS.close();
-        haltFlag = true;
-        numstep_=actTimeStep_;
-        ptPDE_->GetSolveStep()->SetNumTimeSteps(numstep_);
       }
       
       // Set curent value of timestep and time step size in the mathParser
@@ -177,9 +186,9 @@ namespace CoupledField {
         log = true;
       if(numstep_ > 50 && numstep_ <= 500 && ! (actTimeStep_ % 10)) // every tenth step, not all but the tenth
         log = true;
-      if(numstep_ > 500 && ( (direction > 0 &&  (double) actTimeStep_ >= percentCounter) || (direction < 0 && (double) actTimeStep_ <= percentCounter) ) ){
+      if(numstep_ > 500 && (  (double) actTimeStep_ >= percentCounter)   ){
         log = true;
-        percentCounter += timeStepPercent * direction;
+        percentCounter += timeStepPercent;
       }
 
       if(log)
@@ -212,7 +221,7 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SetActTime(steptime);
       ptPDE_->GetSolveStep()->SetActStep(actTimeStep_);
       ptPDE_->GetSolveStep()->PreStepTrans();
-      ptPDE_->GetSolveStep()->SolveStepTrans(analysis_id_, adjointParams);
+      ptPDE_->GetSolveStep()->SolveStepTrans(analysis_id_);
       ptPDE_->GetSolveStep()->PostStepTrans();
 
       if(write_results){
@@ -221,55 +230,101 @@ namespace CoupledField {
         ptPDE_->WriteResultsInFile(actTimeStep_, steptime );
         resHandler->FinishStep( );
       }
-      simState_->WriteStep( actTimeStep_, steptime );
+      
+      // write out re-start only in the last step
+      if( actTimeStep_ == endStep || TransientDriver::abortSimulation ) {
+        if( writeRestart_)
+         simState_->WriteStep( actTimeStep_, steptime );
+      }
+        
 
-      if (haltFlag) {
-        std::cout << std::endl << "Write a restart file after interuppting a simulation "
-                  << "run with a HALTCFS-file at step:  " 
-                  << actTimeStep_ <<" *********** " << std::endl;      
+      
+      // leave loop, if simulation should be aborted
+      if ( TransientDriver::abortSimulation ) {
+        break;
+      }
 
-//        ptPDE_->WriteRestart( );
-      }    
-
-      steptime+=dt*direction;
+      steptime+=dt;
 
       // perform runtime estimation (after 1st step)
       if( actTimeStep_ > 1 ) {
         Double totalTime = timer_->GetWallTime();
-        Double timePerStep = totalTime / (Double) count;
-        Double remainingTime = (endStep - actTimeStep_) * timePerStep;
+        timePerStep_ = totalTime / (Double) count;
+        Double remainingTime = (endStep - actTimeStep_) * timePerStep_;
         pt::ptime now = pt::second_clock::local_time();
         now += pt::seconds(static_cast<long int>(remainingTime));
-        analysis_id_->Get("timePerStep")->SetValue( timePerStep );
+        analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
         PtrParamNode envNode = driverNode->GetRoot()->
             Get(ParamNode::PN_HEADER)->Get("environment");
         envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
         envNode->Get("remainingTime")->SetValue(remainingTime);
       }
+      
     }
-
 
     // notify resultHandler about finishing of current sequence step
     if(!isPartOfSequence_ && write_results) {
       resHandler->FinishMultiSequenceStep();
+      // notify resultHandler about finishing of current sequence step
+      if(!isPartOfSequence_) resHandler->Finalize();
     }
     simState_->FinishMultiSequenceStep();
     
   }
-  
+
   void TransientDriver::ReadRestart() {
-    
+
     if ( progOpts->GetRestart() ){
-      //ptPDE_->ReadRestart( restartStep_ );
-      //startStep = restartStep_ + 1;
-      //stepsave=startStep;
-      //numstep_+=lastStepToRestartFrom;
-      //steptime=(startStep)*dt;
-      //restartStep  = startStep + restartIncr_ - 1;
-      std::cout << std::endl << "Reading a restart file from step " 
-                << restartStep_ <<" ********** " << std::endl;      
+
+      // Ensure simState is present
+      assert( simState_ );
+
+      // Create input reader from current output reader 
+      simState_->SetInputReaderToSameInput();
+
+      // Obtain last step
+      UInt lastStep = simState_->GetLastStepNum();
+      restartStep_ = lastStep;
+      
+      // if lastStep is 0, no restart possibility
+      if( lastStep == 0 ) {
+        EXCEPTION( "Can not perform restarted simulation, as HDF5 file "
+            << "contains no restart information.");
+      }
+
+      // Store restart step
+      simState_->UpdateToStep(lastStep);
+
+      if( lastStep == numstep_) {
+
+        std::cerr << "\n\n";
+        std::cerr << "*******************************************************\n";
+        std::cerr << " No restart necessary, as the desired number of \n";
+        std::cerr << " time steps are already computed. \n";
+        std::cerr << "*******************************************************\n\n";
+        return;
+      } else{
+
+        std::cerr << "\n\n";
+        std::cerr << "*******************************************************\n";
+        std::cerr << " Continuing simulation from step " << restartStep_  << std::endl;
+        std::cerr << "*******************************************************\n";
+      }
     }
-    
+
+  }
+  
+  void TransientDriver::SignalHandler( int sig ) {
+
+    if( !TransientDriver::abortSimulation) {
+      TransientDriver::abortSimulation = true;
+      std::cerr << "\n\n";
+      std::cerr << "*******************************************************\n";
+      std::cerr << " Simulation will be halted after the current time step \n\n";
+      std::cerr << " Estimated remaining time: " << timePerStep_ << " s" << std::endl;
+      std::cerr << "********************************************************\n\n";
+
+    }
   }
 
 } // end of namespace

@@ -20,7 +20,7 @@ namespace CoupledField
 
     //! Constructor
     SimOutputGMV(const std::string fileName, PtrParamNode outputNode,
-                 PtrParamNode infoNode );
+                 PtrParamNode infoNode, bool isRestart );
   
     //! Deconstructor
     virtual ~SimOutputGMV();

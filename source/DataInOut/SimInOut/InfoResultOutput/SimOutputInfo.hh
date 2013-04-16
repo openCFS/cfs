@@ -15,7 +15,8 @@ namespace CoupledField
   {
   public:
 
-    SimOutputInfo( PtrParamNode outputNode, PtrParamNode infoNode );
+    SimOutputInfo( PtrParamNode outputNode, PtrParamNode infoNode, 
+                   bool isRestart  );
 
     ~SimOutputInfo();
 

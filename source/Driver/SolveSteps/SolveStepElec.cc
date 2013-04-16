@@ -44,11 +44,11 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepElec::SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
+  void SolveStepElec::SolveStepStatic(PtrParamNode analysis_id) {
     if ( isHyst_ ) 
       StepStaticNonLinEpsDiff(analysis_id);
     else 
-      StepStaticLin(analysis_id, adjointParams);
+      StepStaticLin(analysis_id);
   }
 
 

@@ -210,7 +210,7 @@ namespace CoupledField
   // ****************
   //   SolveProblem
   // ****************
-  void HarmonicDriver::SolveProblem(bool write_results, PtrParamNode analysis_id, AdjointParameters* adjointParams)
+  void HarmonicDriver::SolveProblem(bool write_results, PtrParamNode analysis_id)
   {
     // in harmonics one cannot extraxt the result writing to StoreResults() as
     // we have multiple frequencies. (exceptions is optimization)
@@ -221,7 +221,7 @@ namespace CoupledField
       ptPDE_->WriteGeneralPDEdefines();
     }
     handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
-    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
+    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
 
     // Perform one simulation for each desired frequency
     for ( actFreqStep_ = 1; actFreqStep_ <= numFreq_; actFreqStep_++ )

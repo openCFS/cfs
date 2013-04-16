@@ -791,9 +791,11 @@ namespace CoupledField {
       
       if( neededCap == SimOutput::HISTORY ) {
         std::string simName = progOpts->GetSimName();
+        // check for restart
+        bool restart = progOpts->GetRestart();
         shared_ptr<SimOutput> textOut 
           = shared_ptr<SimOutput>(new SimOutputText( simName, PtrParamNode(), 
-                                                     PtrParamNode() ) );
+                                                     PtrParamNode(), restart ) );
         textOut->Init(  domain->GetGrid(), false );
         outFiles_["histDefault"] = textOut;
         outGridIds_["histDefault"] = "default";

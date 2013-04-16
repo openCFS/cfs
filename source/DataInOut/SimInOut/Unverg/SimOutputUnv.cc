@@ -38,8 +38,9 @@ namespace CoupledField {
   // ***************
   SimOutputUnv::SimOutputUnv(  const std::string& filename,
                                PtrParamNode outputNode,
-                               PtrParamNode infoNode) 
-    : SimOutput ( filename, outputNode, infoNode ),
+                               PtrParamNode infoNode, 
+                               bool isRestart ) 
+    : SimOutput ( filename, outputNode, infoNode, isRestart ),
       output(NULL),
       capaOut_(false) 
   {

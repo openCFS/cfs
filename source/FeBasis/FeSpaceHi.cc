@@ -666,7 +666,7 @@ void FeSpaceHi::MapCoefFctToSpacePriv(shared_ptr<EntityList> entityList,
 
     // update the RHS due to the new coefficient vector
     ctx->algSys->InitRHS();
-    ctx->assemble->AssembleLinRHS(NULL);
+    ctx->assemble->AssembleLinRHS();
 
 
     // solve system and aquire solution

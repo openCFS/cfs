@@ -95,8 +95,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
                  << probGeo << "'"; );
     }
     
-    std::cerr << "subType is " << subType_ << std::endl; 
-    
     // Sanity check: 3D can only be computed if 3D elements are present
     if( subType_ == "3d" && ptGrid_->GetNumElemOfDim(3) == 0 ) {
       EXCEPTION("Can not calculate 3D mechanics without 3D elements in the grid!");
@@ -793,7 +791,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     shared_ptr<ResultInfo> stress(new ResultInfo);
     stress->resultType = MECH_STRESS;
     stress->dofNames = stressComponents;
-    std::cerr << "stress Components: " << stressComponents.ToString() << std::endl;
     stress->unit =  "N/m^2";
     stress->entryType = ResultInfo::TENSOR;
     stress->definedOn = ResultInfo::ELEMENT;

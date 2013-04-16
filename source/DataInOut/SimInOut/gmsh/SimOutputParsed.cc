@@ -60,8 +60,8 @@ namespace CoupledField{
 
   SimOutputParsed::SimOutputParsed(std::string fileName,
                                  PtrParamNode outputNode,
-                                 PtrParamNode infoNode) :
-                SimOutput( fileName, outputNode, infoNode )
+                                 PtrParamNode infoNode, bool isRestart ) :
+                SimOutput( fileName, outputNode, infoNode, isRestart )
   {
 
     formatName_ = "gmshParsed";

@@ -173,6 +173,9 @@ namespace CFSTool {
     // determine suffix for fileName
     shared_ptr<SimOutput> writer;
     std::string baseName;
+    
+    // we do not have restart functionality in the cfstool
+    bool restart = false;
 
     if( fileName.find( ".post") != std::string::npos ) {
 #ifdef USE_GIDPOST
@@ -186,7 +189,8 @@ namespace CFSTool {
         binary->SetValue( "false");
       }
       gidNode->AddChildNode( binary);
-      writer = shared_ptr<SimOutput>( new SimOutputGiD( baseName, gidNode, info ) );
+      writer = shared_ptr<SimOutput>( new SimOutputGiD( baseName, gidNode, 
+                                                        info, restart ) );
 #else
       EXCEPTION( "No support for GiD output file format." );
 #endif
@@ -203,7 +207,8 @@ namespace CFSTool {
       fixedGrid->SetValue( "yes" );
       gmvNode->AddChildNode( binary);
       gmvNode->AddChildNode( fixedGrid );
-      writer = shared_ptr<SimOutput>( new SimOutputGMV( baseName, gmvNode, info ) );
+      writer = shared_ptr<SimOutput>( new SimOutputGMV( baseName, gmvNode, 
+                                                        info, restart ) );
 #else
       EXCEPTION( "No support for GMV output file format." );
 #endif
@@ -219,7 +224,8 @@ namespace CFSTool {
       bigEndian->SetValue( "big" );
       gmshNode->AddChildNode(binary);
       gmshNode->AddChildNode(bigEndian);
-      writer = shared_ptr<SimOutput>( new SimOutputGmsh( baseName, gmshNode, info ) );
+      writer = shared_ptr<SimOutput>( new SimOutputGmsh( baseName, gmshNode, 
+                                                         info, restart ) );
 #else 
       EXCEPTION( "No support for GMsh output file format." );
 #endif
@@ -231,7 +237,8 @@ namespace CFSTool {
       eFiles->SetName("externalFiles");
       eFiles->SetValue( "false" );
       h5Node->AddChildNode(eFiles);
-      writer =  shared_ptr<SimOutput>( new SimOutputHDF5( baseName, h5Node, info ) );
+      writer =  shared_ptr<SimOutput>( new SimOutputHDF5( baseName, h5Node, 
+                                                          info, restart ) );
 #else
       EXCEPTION( "No support for HDF5 output file format." );
 #endif
@@ -243,7 +250,8 @@ namespace CFSTool {
       eFiles->SetName("externalFiles");
       eFiles->SetValue( "false" );
       h5Node->AddChildNode(eFiles);
-      writer =  shared_ptr<SimOutput>( new SimOutputXDMF( baseName, h5Node, info ) );
+      writer =  shared_ptr<SimOutput>( new SimOutputXDMF( baseName, h5Node, 
+                                                          info, restart ) );
 #else
       EXCEPTION( "No support for HDF5 output file format. Cannot write XDMF files." );
 #endif
@@ -266,7 +274,8 @@ namespace CFSTool {
         flavor->SetValue( "CAPA" );
         unvNode->AddChildNode(flavor);
       }
-      writer =  shared_ptr<SimOutput>( new SimOutputUnv( baseName, unvNode, info ) );
+      writer =  shared_ptr<SimOutput>( new SimOutputUnv( baseName, unvNode, 
+                                                         info, restart ) );
 #else
       EXCEPTION( "No support for IDEAS universal output file format." );
 #endif

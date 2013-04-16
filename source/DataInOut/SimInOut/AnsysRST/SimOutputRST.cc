@@ -30,8 +30,9 @@ namespace CoupledField {
   
   SimOutputRST::SimOutputRST( const std::string& fileName,
                               PtrParamNode outputNode,
-                              PtrParamNode infoNode)
-    : SimOutput( fileName, outputNode, infoNode ),
+                              PtrParamNode infoNode,
+                              bool isRestart )
+    : SimOutput( fileName, outputNode, infoNode, isRestart ),
       dynLibrary_(NULL),
       binlibIface_(NULL)
   {

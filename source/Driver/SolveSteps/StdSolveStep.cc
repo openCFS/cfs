@@ -125,24 +125,24 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
+  void StdSolveStep::SolveStepStatic(PtrParamNode analysis_id) {
 
     if (nonLin_) {
       StepStaticNonLin(analysis_id);
     }
     else {
-      StepStaticLin(analysis_id, adjointParams);
+      StepStaticLin(analysis_id);
     }
   }
 
 
-  void StdSolveStep::StepStaticLin(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
+  void StdSolveStep::StepStaticLin(PtrParamNode analysis_id) {
 
     assemble_->AssembleMatrices();
 
     // The RHS-sources and boundary conditions
     // have to be reassembled each time
-    assemble_->AssembleLinRHS(adjointParams);
+    assemble_->AssembleLinRHS();
     //Set special RHS Values
     PDE_.SetRhsValues();
 
@@ -364,7 +364,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
+  void StdSolveStep::SolveStepTrans(PtrParamNode analysis_id) {
 
 
     // do a nonlinear material time step
@@ -380,12 +380,12 @@ namespace CoupledField {
     }
     // do a linear time step
     else {
-      StepTransLin(analysis_id, adjointParams);
+      StepTransLin(analysis_id);
     }
   }
 
 
-  void StdSolveStep::StepTransLin(PtrParamNode analysis_id, AdjointParameters* adjointParams) 
+  void StdSolveStep::StepTransLin(PtrParamNode analysis_id) 
   {
     //TODO: add consistency check here
     //basically loop over all functions and check if the solution order is the same...
@@ -421,7 +421,7 @@ namespace CoupledField {
       algsys_->InitRHS();
 
       //account for RHS
-      assemble_->AssembleLinRHS(adjointParams);
+      assemble_->AssembleLinRHS();
       //Set special RHS Values
       PDE_.SetRhsValues();
 

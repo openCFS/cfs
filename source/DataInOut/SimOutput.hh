@@ -41,7 +41,7 @@ namespace CoupledField {
 
     //! Constructor
     SimOutput( const std::string& fileName, PtrParamNode outputNode,
-               PtrParamNode infoNode);
+               PtrParamNode infoNode, bool isRestart );
 
     //! Destructor
     virtual ~SimOutput();
@@ -113,6 +113,9 @@ namespace CoupledField {
 
     //! Capabilities of output class
     std::set<Capability> capabilities_;
+    
+    //! Flag if result file is for a restarted simulation
+    bool isRestart_;
 
     //! Grid class
     Grid* ptGrid_;

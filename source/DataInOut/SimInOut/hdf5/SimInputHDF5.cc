@@ -36,8 +36,6 @@ namespace CoupledField {
       SimInput(fileName, inputNode, infoNode )
   {
     
-    std::cerr << "fileName is " << fileName << std::endl;
-    std::cerr << "this is " << this << std::endl;
     capabilities_.insert( SimInput::MESH);
     capabilities_.insert( SimInput::MESH_RESULTS);
 
@@ -222,7 +220,6 @@ namespace CoupledField {
       for( ; it != end; ) {
         if(readEntities_.find(*it) == readEntities_.end()) {
           erase = it; it++;
-//          std::cout << "Erasing nonexistant entity " << (*erase) << std::endl;
           linearizeEntities_.erase(erase);
         }
         it++;
@@ -238,7 +235,6 @@ namespace CoupledField {
       findIt = std::find(nodeNames_.Begin(), nodeNames_.End(), *it);
       if( findIt != nodeNames_.End()) {
         erase = it; it++;
-//        std::cout << "Erasing nodal entity " << (*erase) << std::endl;
         linearizeEntities_.erase(erase);
       }
       it++;
@@ -1380,17 +1376,19 @@ namespace CoupledField {
     std::string msStepStr = lexical_cast<std::string>(sequenceStep);
     try{
       mGroup= msGroup.openGroup(msStepStr);
-    }H5_CATCH( "Could notopen database group for physic " << pdeName );
+    } H5_CATCH( "Could not open database group for sequenceStep " 
+        << sequenceStep );
 
     // open group for physics
     try{
       physGroup = mGroup.openGroup(pdeName);
-    }H5_CATCH( "Could notopen database group for physic " << pdeName );
+    } H5_CATCH( "Could not open database group for physic " << pdeName );
 
     //  open group for FeFunction
     try{
       fctGroup = physGroup.openGroup(fctName);
-    } H5_CATCH( "Could not create database group for physic " << pdeName );
+    } H5_CATCH( "Could not open database group for result " 
+                << fctName );
 
     // open group for current step
     std::string stepStr = lexical_cast<std::string>(stepNum);
@@ -1417,7 +1415,6 @@ namespace CoupledField {
       for( UInt i = 0; i < realVals.GetSize(); ++i ) {
         cVec[i] = Complex(realVals[i], imagVals[i] );
       }
-      std::cerr << "coefVector is " << cVec.ToString() << std::endl;
     }
 
     stepGroup.close();
@@ -1428,14 +1425,133 @@ namespace CoupledField {
   }
 
   void SimInputHDF5::
-  DB_GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
-                               std::map<UInt, UInt>& numSteps ){
+  DB_GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis ){
 
+    // Initialize DB
+    DB_Init();
+    
+    // Open "MultiStep" section 
+    H5::Group msGroup;
+    // open multistep group
+    try {
+      msGroup = dbRoot_.openGroup("MultiSteps");
+    } H5_CATCH( "Could not open multistep group")
+    
+    // Iterate over all children
+    hsize_t numChildren = msGroup.getNumObjs();
+    for( UInt i = 0; i < numChildren; ++i ) {
+      UInt actMsStep = lexical_cast<UInt>(H5IO::GetObjNameByIdx( msGroup, i ));
+      
+      // open group and read analysyis type
+      H5::Group actMsGroup;
+      try {
+        actMsGroup = msGroup.openGroup(lexical_cast<std::string>(actMsStep));
+      } H5_CATCH( "Could not open multistep group with number " << actMsStep);
+
+      // obtain type of analysis
+      std::string analysisString;
+      H5IO::ReadAttribute( actMsGroup, "AnalysisType", analysisString );
+      analysis[actMsStep] = BasePDE::analysisType.Parse(analysisString); 
+
+      actMsGroup.close();
+    } // loop: multisequence steps
+    
+    msGroup.close();
+  }
+  
+  void SimInputHDF5::
+  DB_GetAvailPdeCoefFcts( UInt msStep, 
+                          std::map<std::string, 
+                          std::set<std::string> >& coefFcts ) {
+    H5::Group msGroup, mGroup, physGroup, fctGroup;
+    // open multistep group
+    try {
+      msGroup = dbRoot_.openGroup("MultiSteps");
+    } H5_CATCH( "Could not open multistep group");
+
+    // open current ms step
+    std::string msStepStr = lexical_cast<std::string>(msStep);
+    try{
+      mGroup= msGroup.openGroup(msStepStr);
+    } H5_CATCH( "Could not open database group for sequenceStep " 
+        << msStep )
+
+    // Loop over all physic types
+    hsize_t numPhysic = mGroup.getNumObjs();
+    for( UInt iPhysic = 0; iPhysic < numPhysic; ++iPhysic ) {
+      H5::Group pGroup;
+      std::string physic;
+      physic = H5IO::GetObjNameByIdx( mGroup, iPhysic );
+      try{
+        pGroup= mGroup.openGroup(physic);
+      } H5_CATCH( "Could not open phsysic database group " << physic);
+
+      // Loop over all coefficient types
+      hsize_t numCoefs = pGroup.getNumObjs();
+      for( UInt iCoef = 0; iCoef < numCoefs; ++iCoef ) {
+        std::string coef;
+        coef= H5IO::GetObjNameByIdx( pGroup, iCoef );
+        coefFcts[physic].insert(coef);
+      } // loop: coefs
+      
+      pGroup.close();
+    } // loop: physic types
+    mGroup.close();
+    msGroup.close();
   }
 
   void SimInputHDF5::
   DB_GetStepValues( UInt sequenceStep,
-                    std::map<UInt, Double>& steps ) {
+                    const std::string& pdeName,
+                    const std::string& fctName,
+                    std::map<UInt, Double>& stepValues ) {
+
+    H5::Group msGroup, mGroup, physGroup, fctGroup, stepGroup;
+    // open multistep group
+    try {
+      msGroup = dbRoot_.openGroup("MultiSteps");
+    } H5_CATCH( "Could not open multistep group");
+
+    // open current ms step
+    std::string msStepStr = lexical_cast<std::string>(sequenceStep);
+    try{
+      mGroup= msGroup.openGroup(msStepStr);
+    } H5_CATCH( "Could not open database group for sequenceStep " 
+        << sequenceStep );
+
+    // open group for physics
+    try{
+      physGroup = mGroup.openGroup(pdeName);
+    } H5_CATCH( "Could not open database group for physic " << pdeName );
+
+    //  open group for FeFunction
+    try{
+      fctGroup = physGroup.openGroup(fctName);
+    } H5_CATCH( "Could not open database group for result " 
+        << fctName );
+
+    // Loop over all time steps
+    hsize_t numSteps = fctGroup.getNumObjs();
+    for( UInt iStep = 0; iStep < numSteps; ++iStep ) {
+      H5::Group stepGroup;
+      UInt stepNum = 
+          lexical_cast<UInt>(H5IO::GetObjNameByIdx( fctGroup, iStep ));
+      try{
+        stepGroup = fctGroup.openGroup(lexical_cast<std::string>(stepNum));
+      } H5_CATCH( "Could not read step " << stepNum << " for result " 
+                  << fctName << " in database"); 
+
+      // get time step value
+      Double stepVal;
+      H5IO::ReadAttribute( stepGroup, "StepValue", stepVal );
+      stepValues[stepNum] = stepVal;
+      stepGroup.close();
+    } //loop: steps
+
+    fctGroup.close();
+    physGroup.close();
+    mGroup.close();
+    msGroup.close();
 
   }
 
@@ -1445,7 +1561,7 @@ namespace CoupledField {
     }  H5_CATCH( "Could not close database section" );
 
   }
-  
+
 
 
 }

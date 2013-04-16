@@ -20,7 +20,7 @@ namespace CoupledField
   public:
 
     SimOutputStreaming(PtrParamNode outputNode,
-                       PtrParamNode infoNode);
+                       PtrParamNode infoNode, bool isRestart );
 
     ~SimOutputStreaming();
 

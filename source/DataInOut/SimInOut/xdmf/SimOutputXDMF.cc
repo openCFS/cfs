@@ -24,8 +24,8 @@ namespace fs = boost::filesystem;
 namespace CoupledField {
 
   SimOutputXDMF::SimOutputXDMF(std::string fileName, PtrParamNode inputNode,
-                               PtrParamNode infoNode ) :
-    SimOutput(fileName, inputNode, infoNode),
+                               PtrParamNode infoNode, bool isRestart ) :
+    SimOutput(fileName, inputNode, infoNode, isRestart ),
     simOutHDF5_(NULL)
   {
 

@@ -62,7 +62,7 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams)
+  void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id)
   {
 
     // Initialize first multisequence step, as the method "CheckStoreResults" 
@@ -70,7 +70,7 @@ namespace CoupledField {
     // sequencestep. However, in case of optimization, the sequence step
     // gets initialized in Optimization::SolveProblem()
     handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
-    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
+    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
 
     
     // in the optimization case the step is given, otherwise it is created
@@ -92,7 +92,7 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->SetActTime(0.0);
     ptPDE_->GetSolveStep()->SetActStep(1);
     ptPDE_->GetSolveStep()->PreStepStatic();
-    ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_, adjointParams);
+    ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_);
     ptPDE_->GetSolveStep()->PostStepStatic();
 
     // in optimization we write the results via StoreResults() because
