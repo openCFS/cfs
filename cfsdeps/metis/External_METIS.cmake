@@ -1,4 +1,12 @@
 #-------------------------------------------------------------------------------
+# METIS - Serial Graph Partitioning and Fill-reducing Matrix Ordering
+# Needed by Ilupack
+#
+# Project Homepage
+# http://glaros.dtc.umn.edu/gkhome/views/metis
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 # Set paths to metis sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
 set(metis_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/metis")
@@ -31,18 +39,6 @@ IF(CMAKE_TOOLCHAIN_FILE)
 ENDIF()
 
 #-------------------------------------------------------------------------------
-# The metis external project
-#-------------------------------------------------------------------------------
-ExternalProject_Add(metis
-  PREFIX "${metis_prefix}"
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/metis
-  URL ${METIS_URL}/${METIS_GZ}
-  URL_MD5 ${METIS_MD5}
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-)
-
-#-------------------------------------------------------------------------------
 # Set names of patch file and template file.
 #-------------------------------------------------------------------------------
 SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/metis/metis-patch.cmake.in")
@@ -50,22 +46,16 @@ SET(PFN "${metis_prefix}/metis-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
-# We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
-# want to apply the patch script  during configuration time but also if it has
-# changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
-# script. This can be achieved by  adding an additional build step between the
-# download and configure steps.
-#
-# NOTE: The  patch script should  be designed  in such a  way, that it  can be
-# applied to  an already patched  source tree. This  is due to the  fact, that
-# ExternalProject_Add only extracts the source if the MD5 sum has has changed.
+# The metis external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add_Step(metis custom_patch
-   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-   DEPENDEES download
-   DEPENDERS configure
-   DEPENDS "${PFN}"
-   WORKING_DIRECTORY ${metis_source}
+ExternalProject_Add(metis
+  PREFIX "${metis_prefix}"
+  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/metis
+  URL ${METIS_URL}/${METIS_GZ}
+  URL_MD5 ${METIS_MD5}
+  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+  CMAKE_ARGS
+    ${CMAKE_ARGS}
 )
 
 #-------------------------------------------------------------------------------

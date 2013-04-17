@@ -41,7 +41,7 @@ SetupDebian() {
         util-linux gcc-multilib"
 
     for pckg in $PCKGS; do
-        apt-get install -y -f $pckg
+        apt-get install -y --force-yes -f $pckg
     done
     rm -f /usr/lib/libXext.so /usr/lib/libXmu.so
     ln -s /usr/lib/libXext.so.6.4.0 /usr/lib/libXext.so || ExitFail
@@ -134,10 +134,13 @@ SetupSuse() {
 }
 
 SetupFedora() {
+    # /usr/bin/audit from package audit conflicts with binutils.
+    yum remove audit
+
     yum install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
         perl graphviz texlive-latex tetex-tex4ht \
         python-pygments doxygen tcl-devel python-devel git-svn \
-        cmake-gui java-1.6.0-openjdk-devel tk-devel \
+        cmake-gui java-1.6.0-openjdk-devel java-1.7.0-openjdk-devel tk-devel \
         patch diffutils zip libXt-devel libXp ncurses-devel || ExitFail
 }
 
@@ -317,11 +320,15 @@ SetupCMake() {
     CMAKE_MINOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f2)
     CMAKE_PATCH_LEVEL=$(echo $CMAKE_VERSION | cut -d'.' -f3)
 
-    if [ $CMAKE_MAJOR_VERSION -ge 2 ] && [ $CMAKE_MINOR_VERSION -ge 8 ] && [ $CMAKE_PATCH_LEVEL -ge 4 ]; then
+    if [ $CMAKE_MAJOR_VERSION -ge 2 ] && [ $CMAKE_MINOR_VERSION -ge 8 ] && [ $CMAKE_PATCH_LEVEL -ge 8 ]; then
         return 1
     fi
 
-    PCKG_BASE_NAME="cmake-2.8.9";
+    CMAKE_MAJOR_VERSION=2
+    CMAKE_MINOR_VERSION=8
+    CMAKE_PATCH_LEVEL=10.2
+
+    PCKG_BASE_NAME="cmake-$CMAKE_MAJOR_VERSION.$CMAKE_MINOR_VERSION.$CMAKE_PATCH_LEVEL";
     MYTMPDIR="$TMPDIR/$(basename $0).$$"
     echo "$MYTMPDIR"
 
@@ -333,7 +340,7 @@ SetupCMake() {
     mirrors="http://www.cmake.org/files/v$CMAKE_MAJOR_VERSION.$CMAKE_MINOR_VERSION/$PCKG_BASE_NAME.tar.gz
              ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/cmake/$PCKG_BASE_NAME.tar.gz"
 
-    MD5SUM="801f4c87f8b604f727df5bf1f05a59e7"
+    MD5SUM="097278785da7182ec0aea8769d06860c"
 
     # Download source
     for mirror in $mirrors; do
@@ -401,6 +408,7 @@ case "$DIST" in
      DEBIAN) SetupDebian ;;
      UBUNTU) SetupDebian ;;
      LINUXMINT) SetupDebian ;;
+     LMDE) SetupDebian ;;
      FEDORA) SetupFedora ;;
      RHEL) SetupRHEL ;;
      CENTOS) SetupRHEL ;;

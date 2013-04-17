@@ -161,8 +161,8 @@ ENDIF(USE_METIS)
 #-------------------------------------------------------------------------------
 IF(USE_GIDPOST)
   SET(GIDPOST_URL "${LSE17_SOURCES_DIR}/gidpost")
-  SET(GIDPOST_ZIP "gidpost1.71.zip")
-  SET(GIDPOST_MD5 "df8c3ed913cb8abafa36a47591438538")
+  SET(GIDPOST_ZIP "gidpost-2.1-for-cfs.zip")
+  SET(GIDPOST_MD5 "720b31e311295f3f30a81593b4f3654e")
 
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/gidpost/External_GiDpost.cmake")
 ENDIF(USE_GIDPOST)

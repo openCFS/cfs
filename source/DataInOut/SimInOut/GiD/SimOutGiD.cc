@@ -346,223 +346,76 @@ namespace CoupledField {
 
     UInt elemNum;
     Elem::FEType eType;
-    // Integer region;
 
     eType = ptEl->type;
-    // region = ptEl->regionId+1;
     elemNum = ptEl->elemNum;
-    StdVector<UInt> const & connectDummy = ptEl->connect;
-    StdVector<UInt> connect;
-    connect.Resize(numNodes+1);
+    StdVector<UInt> const & elConn = ptEl->connect;
+    std::vector<UInt> reorderIdx;
 
-
+    // We 
     switch(eType)
     {
     default:
-      std::copy(connectDummy.GetPointer(),
-                connectDummy.GetPointer()+numNodes,
-                connect.GetPointer());
-      //      memcpy(&connect[0],
-      //             (const void*) &connectDummy[0],
-      //             connectDummy.GetSize()*sizeof(UInt));
+      reorderIdx.resize(numNodes);
+      for(UInt i=0; i<numNodes; i++) reorderIdx[i] = i;
       break;
 
     case Elem::ET_TRIA3:
-      connect[0]= connectDummy[0];
-      connect[1]= connectDummy[1];
-      connect[2]= connectDummy[2];
-      connect[3]= connectDummy[2];
-      break;
-
     case Elem::ET_TRIA6:
-      connect[0] = connectDummy[0];
-      connect[1] = connectDummy[1];
-      connect[2] = connectDummy[2];
-      connect[3] = connectDummy[2];
-      connect[4] = connectDummy[3];
-      connect[5] = connectDummy[4];
-      connect[6] = connectDummy[5];
-      connect[7] = connectDummy[5];
+      reorderIdx += 0,1,2,2;
+      if(eType != Elem::ET_TRIA3) {
+        reorderIdx += 3,4,5,5;
+      }
       break;
 
     case Elem::ET_TET4:
-      connect[0] = connectDummy[0];
-      connect[1] = connectDummy[1];
-      connect[2] = connectDummy[2];
-      connect[3] = connectDummy[2];
-      connect[4] = connectDummy[3];
-      connect[5] = connectDummy[3];
-      connect[6] = connectDummy[3];
-      connect[7] = connectDummy[3];
-      break;
-
     case Elem::ET_TET10:
-      connect[0] = connectDummy[0];
-      connect[1] = connectDummy[1];
-      connect[2] = connectDummy[2];
-      connect[3] = connectDummy[2];
-      connect[4] = connectDummy[3];
-      connect[5] = connectDummy[3];
-      connect[6] = connectDummy[3];
-      connect[7] = connectDummy[3];
-      connect[8] = connectDummy[4];
-      connect[9] = connectDummy[5];
-      connect[10]= connectDummy[6];
-      connect[11]= connectDummy[6];
-      connect[12]= connectDummy[7];
-      connect[13]= connectDummy[8];
-      connect[14]= connectDummy[9];
-      connect[15]= connectDummy[9];
-      connect[16]= connectDummy[3];
-      connect[17]= connectDummy[3];
-      connect[18]= connectDummy[3];
-      connect[19]= connectDummy[3];
+      reorderIdx += 0,1,2,2,3,3,3,3;
+      if(eType != Elem::ET_TET4) {
+        reorderIdx += 4,5,6,6,7,8,9,9,3,3,3,3;
+      }
       break;
 
     case Elem::ET_HEXA8:
-      connect[0] = connectDummy[4];
-      connect[1] = connectDummy[5];
-      connect[2] = connectDummy[6];
-      connect[3] = connectDummy[7];
-      connect[4] = connectDummy[0];
-      connect[5] = connectDummy[1];
-      connect[6] = connectDummy[2];
-      connect[7] = connectDummy[3];
+      reorderIdx += 4,5,6,7,0,1,2,3;
       break;
 
       // NOTE: The numberings of hexehadras in gid differs for
       // the quadratic case!
     case Elem::ET_HEXA20:
-      connect[0]  = connectDummy[0];
-      connect[1]  = connectDummy[1];
-      connect[2]  = connectDummy[2];
-      connect[3]  = connectDummy[3];
-      connect[4]  = connectDummy[4];
-      connect[5]  = connectDummy[5];
-      connect[6]  = connectDummy[6];
-      connect[7]  = connectDummy[7];
-      connect[8]  = connectDummy[8];
-      connect[9]  = connectDummy[9];
-      connect[10] = connectDummy[10];
-      connect[11] = connectDummy[11];
-      connect[12] = connectDummy[16];
-      connect[13] = connectDummy[17];
-      connect[14] = connectDummy[18];
-      connect[15] = connectDummy[19];
-      connect[16] = connectDummy[12];
-      connect[17] = connectDummy[13];
-      connect[18] = connectDummy[14];
-      connect[19] = connectDummy[15];
-      break;
-
     case Elem::ET_HEXA27:
-      connect[0]  = connectDummy[0];
-      connect[1]  = connectDummy[1];
-      connect[2]  = connectDummy[2];
-      connect[3]  = connectDummy[3];
-      connect[4]  = connectDummy[4];
-      connect[5]  = connectDummy[5];
-      connect[6]  = connectDummy[6];
-      connect[7]  = connectDummy[7];
-      connect[8]  = connectDummy[8];
-      connect[9]  = connectDummy[9];
-      connect[10] = connectDummy[10];
-      connect[11] = connectDummy[11];
-      connect[12] = connectDummy[16];
-      connect[13] = connectDummy[17];
-      connect[14] = connectDummy[18];
-      connect[15] = connectDummy[19];
-      connect[16] = connectDummy[12];
-      connect[17] = connectDummy[13];
-      connect[18] = connectDummy[14];
-      connect[19] = connectDummy[15];
-
-      connect[20]  = connectDummy[24];
-      connect[21]  = connectDummy[20];
-      connect[22]  = connectDummy[21];
-      connect[23]  = connectDummy[22];
-      connect[24]  = connectDummy[23];
-      connect[25]  = connectDummy[25];
-      connect[26]  = connectDummy[26];
+      reorderIdx += 0,1,2,3,4,5,6,7,8,9,10,11,16,17,18,19,12,13,14,15;
+      if(eType == Elem::ET_HEXA27) {
+        reorderIdx += 24,20,21,22,23,25,26;
+      }
       break;
-
+      
     case Elem::ET_PYRA5:
-      connect[0] = connectDummy[0];
-      connect[1] = connectDummy[1];
-      connect[2] = connectDummy[2];
-      connect[3] = connectDummy[3];
-      connect[4] = connectDummy[4];
-      connect[5] = connectDummy[4];
-      connect[6] = connectDummy[4];
-      connect[7] = connectDummy[4];
-      break;
-
     case Elem::ET_PYRA13:
     case Elem::ET_PYRA14:
-      connect[0]= connectDummy[0];
-      connect[1]= connectDummy[1];
-      connect[2]= connectDummy[2];
-      connect[3]= connectDummy[3];
-
-      connect[4]= connectDummy[4];
-      connect[5]= connectDummy[4];
-      connect[6]= connectDummy[4];
-      connect[7]= connectDummy[4];
-
-      connect[8]= connectDummy[5];
-      connect[9]= connectDummy[6];
-      connect[10]= connectDummy[7];
-      connect[11]= connectDummy[8];
-      connect[12]= connectDummy[9];
-      connect[13]= connectDummy[10];
-      connect[14]= connectDummy[11];
-      connect[15]= connectDummy[12];
-
-      connect[16]= connectDummy[4];
-      connect[17]= connectDummy[4];
-      connect[18]= connectDummy[4];
-      connect[19]= connectDummy[4];
+      reorderIdx += 0,1,2,3,4,4,4,4;
+      if(eType != Elem::ET_PYRA5) {
+        reorderIdx += 5,6,7,8,9,10,11,12,4,4,4,4;
+      }
       break;
-
 
     case Elem::ET_WEDGE6:
-      connect[0]= connectDummy[0];
-      connect[1]= connectDummy[1];
-      connect[2]= connectDummy[2];
-      connect[3]= connectDummy[2];
-      connect[4]= connectDummy[3];
-      connect[5]= connectDummy[4];
-      connect[6]= connectDummy[5];
-      connect[7]= connectDummy[5];
-      break;
-
     case Elem::ET_WEDGE15:
     case Elem::ET_WEDGE18:
-      connect[0] = connectDummy[0];
-      connect[1] = connectDummy[1];
-      connect[2] = connectDummy[2];
-      connect[3] = connectDummy[2];
-      connect[4] = connectDummy[3];
-      connect[5] = connectDummy[4];
-      connect[6] = connectDummy[5];
-      connect[7] = connectDummy[5];
-      connect[8] = connectDummy[6];
-      connect[9] = connectDummy[7];
-      connect[10]= connectDummy[8];
-      connect[11]= connectDummy[8];
-      connect[12]= connectDummy[12];
-      connect[13]= connectDummy[13];
-      connect[14]= connectDummy[14];
-      connect[15]= connectDummy[14];
-      connect[16]= connectDummy[9];
-      connect[17]= connectDummy[10];
-      connect[18]= connectDummy[11];
-      connect[19]= connectDummy[11];
+      reorderIdx += 0,1,2,2,3,4,5,5;
+      if(eType != Elem::ET_WEDGE6) {
+        reorderIdx += 6,7,8,8,12,13,14,14,9,10,11,11;
+      }
       break;
     }
 
+    std::vector<int> connect(numNodes+1);
+    for(UInt i=0; i<numNodes; i++) {
+      connect[i] = elConn[reorderIdx[i]];
+    }
+
     connect[numNodes] = actMeshId_;
-    GiD_WriteElementMat( elemNum, (int*)connect.GetPointer() );
+    GiD_WriteElementMat( elemNum, &connect[0] );
   }
 
 

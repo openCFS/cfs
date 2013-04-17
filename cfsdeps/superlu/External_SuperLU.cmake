@@ -53,19 +53,6 @@ IF(CMAKE_TOOLCHAIN_FILE)
 ENDIF()
 
 #-------------------------------------------------------------------------------
-# The superlu external project
-#-------------------------------------------------------------------------------
-ExternalProject_Add(superlu
-  PREFIX "${superlu_prefix}"
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/superlu
-  URL ${SUPERLU_URL}/${SUPERLU_ZIP}
-  URL_MD5 ${SUPERLU_MD5}
-  LIST_SEPARATOR "^"
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-)
-
-#-------------------------------------------------------------------------------
 # Set names of patch file and template file.
 #-------------------------------------------------------------------------------
 SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/superlu/superlu-patch.cmake.in")
@@ -73,24 +60,18 @@ SET(PFN "${superlu_prefix}/superlu-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
-# We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
-# want to apply the patch script  during configuration time but also if it has
-# changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
-# script. This can be achieved by  adding an additional build step between the
-# download and configure steps.
-#
-# NOTE: The  patch script should  be designed  in such a  way, that it  can be
-# applied to  an already patched  source tree. This  is due to the  fact, that
-# ExternalProject_Add only extracts the source if the MD5 sum has has changed.
+# The superlu external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add_Step(superlu custom_patch
-   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-   DEPENDEES download
-   DEPENDERS configure
-   DEPENDS "${PFN}"
-   WORKING_DIRECTORY ${superlu_source}
+ExternalProject_Add(superlu
+  PREFIX "${superlu_prefix}"
+  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/superlu
+  URL ${SUPERLU_URL}/${SUPERLU_ZIP}
+  URL_MD5 ${SUPERLU_MD5}
+  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+  LIST_SEPARATOR "^"
+  CMAKE_ARGS
+    ${CMAKE_ARGS}
 )
-
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

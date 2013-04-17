@@ -1,4 +1,12 @@
 #-------------------------------------------------------------------------------
+# CMake, the cross-platform, open-source build system.
+# Needed by HDF5 and ParaView.
+#
+# Project Homepage
+# http://www.cmake.org/
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 # Set paths to cmake sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
 set(cmake_prefix "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/cmake")

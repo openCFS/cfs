@@ -108,11 +108,9 @@ cfsdeps/cgns/cgnsview-ccmio.patch -text
 cfsdeps/cmake/External_CMake.cmake -text
 cfsdeps/cmake/cmake-configure.cmake.in -text
 cfsdeps/cmake/cmake-install.cmake.in -text
-cfsdeps/gidpost/CMakeLists.txt -text
 cfsdeps/gidpost/External_GiDpost.cmake -text
 cfsdeps/gidpost/gidpost-file-append.patch -text
 cfsdeps/gidpost/gidpost-patch.cmake.in -text
-cfsdeps/gidpost/gidpost-sprintf-format.patch -text
 cfsdeps/gmp/External_gmp.cmake -text
 cfsdeps/gmp/gmp-configure.cmake.in -text
 cfsdeps/gmp/gmp-intel-atomic.patch -text

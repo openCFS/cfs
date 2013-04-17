@@ -21,6 +21,13 @@ SET(CONF "${gmp_prefix}/gmp-configure.cmake")
 CONFIGURE_FILE("${CONF_TEMPL}" "${CONF}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set names of patch file and template file.
+#-------------------------------------------------------------------------------
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/gmp/gmp-patch.cmake.in")
+SET(PFN "${gmp_prefix}/gmp-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
+#-------------------------------------------------------------------------------
 # The gmp external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(gmp
@@ -29,36 +36,11 @@ ExternalProject_Add(gmp
   DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/gmp
   URL ${GMP_URL}/${GMP_BZ2}
   URL_MD5 ${GMP_MD5}
+  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   BUILD_IN_SOURCE 1
   CONFIGURE_COMMAND ${CMAKE_COMMAND} -P ${CONF}
   BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} -f Makefile
   INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} -f Makefile install
-)
-
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/gmp/gmp-patch.cmake.in")
-SET(PFN "${gmp_prefix}/gmp-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-#-------------------------------------------------------------------------------
-# We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
-# want to apply the patch script  during configuration time but also if it has
-# changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
-# script. This can be achieved by  adding an additional build step between the
-# download and configure steps.
-#
-# NOTE: The  patch script should  be designed  in such a  way, that it  can be
-# applied to  an already patched  source tree. This  is due to the  fact, that
-# ExternalProject_Add only extracts the source if the MD5 sum has has changed.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(gmp custom_patch
-   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-   DEPENDEES download
-   DEPENDERS configure
-   DEPENDS "${PFN}"
-   WORKING_DIRECTORY ${gmp_source}
 )
 
 #-------------------------------------------------------------------------------
