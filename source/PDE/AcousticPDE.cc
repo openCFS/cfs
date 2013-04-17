@@ -346,7 +346,7 @@ namespace CoupledField{
       BaseBDBInt * stiffInt = NULL;
       if( dim_ == 2 ) {
         if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(), 
+          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(),
                                         coeffPMLfactor, 1.0, updatedGeo_ );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
         }else{
@@ -356,11 +356,11 @@ namespace CoupledField{
       }
       else{
         if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(), 
+          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),
                                         coeffPMLfactor, 1.0, updatedGeo_ );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
         }else{
-          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), factor, 
+          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), factor,
                                        1.0, updatedGeo_ );
         }
       }

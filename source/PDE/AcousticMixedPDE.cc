@@ -179,7 +179,7 @@ namespace CoupledField{
                                           new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>() , 
                                           coeffKPV,1.0, updatedGeo_ );
       else
-        stiffIntPV = new ABInt<DATA_TYPE>(new  GradientOperator<FeH1,DIM,DATA_TYPE>() , 
+        stiffIntPV = new ABInt<DATA_TYPE>(new  GradientOperator<FeH1,DIM,DATA_TYPE>() ,
                                           new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(),  
                                           coeffKPV,1.0, updatedGeo_ );
 
