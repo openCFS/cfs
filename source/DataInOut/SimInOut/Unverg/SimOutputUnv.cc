@@ -15,12 +15,11 @@
 #include <string>
 #include <utility>
 
-#include "boost/date_time/posix_time/posix_time.hpp"
-#include "boost/date_time/posix_time/posix_time_io.hpp"
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
 
 namespace dt = boost::posix_time;
 
-#include <fstream>
 #include "SimOutputUnv.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
@@ -1046,7 +1045,7 @@ namespace CoupledField {
     std::string name = fileName_ + "." + formatName_;
     fs::path filePath = dirName_ / name;
     output = NULL;
-    output = new std::ofstream(filePath.c_str());
+    output = new fs::ofstream(filePath);
     if(!output)
       EXCEPTION("Unv file ' " << name << "' could not be openend!" );
 

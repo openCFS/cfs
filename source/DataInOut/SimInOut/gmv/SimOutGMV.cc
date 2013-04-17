@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include <iomanip>
-#include <fstream>
 #include <string>
 #include <stdio.h>
 #include <complex>
@@ -919,15 +918,15 @@ namespace CoupledField {
   std::ofstream * SimOutputGMV::OpenFile( const std::string& name ) {
 
 
-    std::ofstream * outFile = NULL;
+    fs::ofstream * outFile = NULL;
     fs::path totalName = dirName_ / name;
     
     
     if (ascii_) {
-      outFile = new std::ofstream(totalName.c_str());
+      outFile = new fs::ofstream(totalName);
     }
     else {
-      outFile = new std::ofstream(totalName.c_str(), std::ofstream::binary);
+      outFile = new fs::ofstream(totalName, std::ofstream::binary);
     }
     if ( !outFile ) {
       EXCEPTION("Could not open file " << totalName

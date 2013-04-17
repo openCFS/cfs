@@ -4,6 +4,9 @@
 
 #include <complex>
 
+#include <boost/assign/list_of.hpp>
+#include <boost/assign/std/vector.hpp>
+using namespace boost::assign;
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Environment.hh"
 #include "Utils/StdVector.hh"

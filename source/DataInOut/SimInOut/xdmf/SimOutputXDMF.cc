@@ -1,10 +1,11 @@
-#include <fstream>
 #include <sstream>
 #include <iostream>
 #include <string>
 #include <algorithm>
 
-#include "boost/date_time/posix_time/posix_time.hpp"
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/filesystem/fstream.hpp>
+
 #include <def_cfs_stats.hh>
 
 #include "DataInOut/ProgramOptions.hh"
@@ -632,7 +633,7 @@ namespace CoupledField {
     std::string gridName = fileName_+std::string("_grid.xmf");
     fs::path gridFN = dirName_ / gridName;
     //std::string gridFN = dirName_ + "/" + fileName_ + 
-    std::ofstream gridFile;
+    fs::ofstream gridFile;
 
     // ensure that grid gets only written once
     if(!gridWritten_)
@@ -642,7 +643,7 @@ namespace CoupledField {
 
     WriteDTD();
 
-    gridFile.open(gridFN.c_str());
+    gridFile.open(gridFN);
     gridFile << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl;
     gridFile << "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>" << std::endl << std::endl;
     gridFile << "<Xdmf>" << std::endl;
@@ -1166,7 +1167,7 @@ namespace CoupledField {
   void SimOutputXDMF::WriteDTD() 
   {
     fs::path dtdFN = dirName_ / "Xdmf.dtd";
-    std::ofstream dtdFile(dtdFN.c_str());
+    fs::ofstream dtdFile(dtdFN);
     
     dtdFile << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl;
     dtdFile << "<!--Root element of dataset-->" << std::endl;

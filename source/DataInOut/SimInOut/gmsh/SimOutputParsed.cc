@@ -47,8 +47,6 @@
 
 #include "Domain/Mesh/Grid.hh"
 
-
-#include <fstream>
 #include <sstream>
 #include <cmath>
 
@@ -87,7 +85,7 @@ namespace CoupledField{
 
   SimOutputParsed::~SimOutputParsed(){
     //delete input file streams
-    std::map<SolutionType, std::fstream*>::iterator inIt = infiles_.begin();
+    std::map<SolutionType, fs::fstream*>::iterator inIt = infiles_.begin();
     while(inIt != infiles_.end()){
       inIt->second->close();
       delete inIt->second;
@@ -97,7 +95,7 @@ namespace CoupledField{
     infiles_.clear();
 
     //delete output file streams
-    std::map<SolutionType, std::fstream*>::iterator outIt = outfiles_.begin();
+    std::map<SolutionType, fs::fstream*>::iterator outIt = outfiles_.begin();
     while(outIt != outfiles_.end()){
       outIt->second->close();
       delete outIt->second;
@@ -205,8 +203,8 @@ namespace CoupledField{
       PrepareResultFile(sol);
       firstStep_ = false;
     }
-    std::fstream* outFile =  outfiles_[sol->GetResultInfo()->resultType];
-    std::fstream* inFile =  infiles_[sol->GetResultInfo()->resultType];
+    fs::fstream* outFile =  outfiles_[sol->GetResultInfo()->resultType];
+    fs::fstream* inFile =  infiles_[sol->GetResultInfo()->resultType];
     if(!outFile){
       WARN("cannot obtain file pointer");
       return;
@@ -316,11 +314,11 @@ namespace CoupledField{
       // Generate basename for output file
       fs::path filePath = dirName_ / name;
       
-      outfiles_[solIt->first]  = new std::fstream();
-      infiles_[solIt->first]  = new std::fstream();
+      outfiles_[solIt->first]  = new fs::fstream();
+      infiles_[solIt->first]  = new fs::fstream();
 
-      std::fstream* outFile =  outfiles_[solIt->first];
-      std::fstream* inFile =  infiles_[solIt->first];
+      fs::fstream* outFile =  outfiles_[solIt->first];
+      fs::fstream* inFile =  infiles_[solIt->first];
 
       outFile->open(filePath.c_str(),std::ios::trunc | std::ios::out);
       inFile->open(filePath.c_str(),std::ios::in);
@@ -405,7 +403,7 @@ namespace CoupledField{
   void SimOutputParsed::WriteDummyResults(const Elem* elem,
                                                ElemInterpolation& eInterpol,
                                                shared_ptr<BaseFeFunction> feFnc,
-                                               std::fstream* out){
+                                               fs::fstream* out){
      StdVector<Integer> eqns;
      feFnc->GetFeSpace()->GetElemEqns(eqns,elem);
      std::stringstream oStream;
@@ -474,8 +472,8 @@ namespace CoupledField{
     interp = "INTERPOLATION_SCHEME{" + cStream.str() + "}{\n" + expStream.str() + "};";
   }
 
-  void SimOutputParsed::PutVarsToResultFile(std::fstream* outfile, std::fstream* infile,
-                                                 std::string vars,long& destination){
+  void SimOutputParsed::PutVarsToResultFile(fs::fstream* outfile, fs::fstream* infile,
+                                            std::string vars,long& destination){
     //this is based on the code found at
     //http://www.codeproject.com/KB/cs/InsertTextInCSharp.aspx
 

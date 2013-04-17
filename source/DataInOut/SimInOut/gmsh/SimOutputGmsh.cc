@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include <iomanip>
-#include <fstream>
 #include <string>
 #include <complex>
 #include <ctime>
@@ -779,17 +778,17 @@ namespace CoupledField {
   // ***********
   std::ofstream * SimOutputGmsh::OpenFile( const std::string& name ) {
     std::string totalName;
-    std::ofstream * outFile = NULL;
+    fs::ofstream * outFile = NULL;
 
     // Generate basename for output file
     
     fs::path filePath = dirName_ / name;
     
     if (ascii_) {
-      outFile = new std::ofstream(filePath.c_str());
+      outFile = new fs::ofstream(filePath);
     }
     else {
-      outFile = new std::ofstream(filePath.c_str(), std::ofstream::binary);
+      outFile = new fs::ofstream(filePath, std::ofstream::binary);
     }
     if ( !outFile ) {
       EXCEPTION("Could not open file " << totalName
