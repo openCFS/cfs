@@ -309,11 +309,13 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     LOG_TRACE(itersolvestep) << "Initializing iterative coupling";
     
     // fetch "convergence" node
-    PtrParamNode convParamNode = param_->Get("convergence", ParamNode::PASS );
+    PtrParamNode convParamNode; 
+    if( param_ )
+      convParamNode = param_->Get("convergence", ParamNode::PASS );
     convNode_ = info_->Get("convergence");
 
     // get maximum number of iterations (optional)
-    maxiter_ = 100;
+    maxiter_ = 1;
     if( convParamNode )
       convParamNode->GetValue( "maxNumIters", maxiter_, ParamNode::PASS );
     convNode_->Get("maxNumIters")->SetValue(maxiter_);
@@ -331,7 +333,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     convNode_->Get("stopOnDivergence")->SetValue(stopOnDivergence_);
 
     // 1) Check for general convergence criterions
-    if( convParamNode->Has("quantity") ) {
+    if( convParamNode && convParamNode->Has("quantity") ) {
       LOG_TRACE(itersolvestep) << "Checking convergence criterions";
       ParamNodeList q = convParamNode->GetList("quantity");
       for( UInt i = 0; i < q.GetSize(); ++i ) {

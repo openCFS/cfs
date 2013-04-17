@@ -634,15 +634,13 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep)
   // ================================
 
   // check for presence of "couplingList" and "iterative" element
+  PtrParamNode iterNode;
   PtrParamNode couplingNode =
       param_->GetByVal("sequenceStep", std::string("index"), sequenceStep) 
-        ->Get("couplingList", ParamNode::PASS);
-  if (!couplingNode)
-    return;
-  PtrParamNode iterNode = couplingNode->Get("iterative", ParamNode::PASS);
-  if (!iterNode)
-    return;
-  ParamNodeList iterCplNodes = iterNode->GetChildren();
+      ->Get("couplingList", ParamNode::PASS);
+  if ( couplingNode) {
+    iterNode = couplingNode->Get("iterative", ParamNode::PASS);
+  }
 
   // Create IterCoupledPDE and pass all StdPDEs to it
   ptIterCoupledPde_ = new IterCoupledPDE( ptSinglePde_,
@@ -974,12 +972,6 @@ void Domain::ResetPDEs()
   }
   ptIterCoupledPde_ = NULL;
 
-  //  // delete all couplings
-  //     for (UInt iCoupl=0; iCoupl<couplings_.GetSize(); iCoupl++) {
-  //       delete couplings_[iCoupl];
-  //     }
-  //     couplings_.Clear();
-
   // Also reset all state variables
   isDirectCoupled_.clear();
   numSinglePde_ = 0;
@@ -987,78 +979,6 @@ void Domain::ResetPDEs()
   numIterCoupledStdPde_ = 0;
 }
 
-//bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result)
-//{
-//  // is the stuff active at all? and don't we use ParamMat
-//  if (ersatzMaterial == NULL || HasErsatzMaterialTensor())
-//    return false;
-//
-//  // we cannot check for the region here, if form is a linear form (e.g.
-//  // pressure) but the design variable comes from elements one dimension higher.
-//  int idx = ersatzMaterial->Find(elem, false);
-//  if (idx == -1)
-//    return false;
-//
-//  // The design space does the magic stuff.
-//  // In the SIMP case we get density of element power param
-//  // all identified by the form and in piezo coupling case it
-//  // might even be the product of the transfer functions of
-//  // density and polarization
-//  result = ersatzMaterial->GetErsatzMaterialFactor(idx, form);
-//  return true;
-//}
-
-//bool Domain::GetErsatzMaterialPamping(const Elem* elem, const BaseForm* form, Matrix<double>& elemMat)
-//{
-//  if(ersatzMaterial == NULL) return false;
-//
-//  if(ersatzMaterial->GetPampingValue() == 0.0) return false;
-//
-//  assert(!HasErsatzMaterialTensor()); // shall not be mixed with matrix optimization
-//
-//  // only for mass-damping! extend if you want to experiment
-//  if(form->GetName() != "MassInt")
-//    return false;
-//
-//  return ersatzMaterial->GetErsatzMaterialPamping(elem, elemMat);
-//}
-
-//BaseMaterial* Domain::GetErsatzBiMaterial(const Elem* elem, const MaterialClass mc)
-//{
-//  if(ersatzMaterial == NULL) return NULL;
-//
-//  DesignSpace::DesignRegion* dr = ersatzMaterial->GetRegion(elem->regionId, false); // silent
-//
-//  if(dr != NULL && dr->HasBiMaterial())
-//    return dr->GetBiMaterial(mc);
-//
-//  return NULL; // nothing found
-//}
-
-//DesignSpace* Domain::GetErsatzMaterial(bool throw_excpetion)
-//{
-//  if (ersatzMaterial == NULL && throw_excpetion)
-//    EXCEPTION("No ersatz material defined either via 'loadErsatzMaterial'"
-//        << " or an appropriate optimization");
-//
-//  return ersatzMaterial;
-//}
-//
-//bool Domain::HasErsatzMaterialTensor()
-//{
-//  return ersatzMaterial == NULL ? false
-//      : ersatzMaterial->HasErsatzMaterialTensor();
-//}
-//
-//bool Domain::HasErsatzMaterialMass()
-//{
-//  return ersatzMaterial == NULL ? false
-//      : ersatzMaterial->HasErsatzMaterialMass();
-//}
-//
-//bool Domain::HasErsatzMaterialDamping(){
-//  return(ersatzMaterial != NULL && ersatzMaterial->HasErsatzMaterialDamping());
-//}
 
 // *************
 //   PrintGrid
