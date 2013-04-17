@@ -10,10 +10,6 @@
 #include <complex>
 #include <ctime>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/exception.hpp>
-namespace fs = boost::filesystem;
-
 #include <def_cfs_stats.hh>
 
 #include <DataInOut/SimInput.hh>
@@ -52,7 +48,11 @@ namespace CoupledField {
     stepNumOffset_ = 0;
     stepValOffset_ = 0.0;
     dirName_ = "results_" + formatName_;
-    outputNode->GetValue("directory", dirName_, ParamNode::PASS );
+    
+    std::string dirString = "results_" + formatName_; 
+    outputNode->GetValue("directory", dirString, ParamNode::PASS );
+    dirName_ = dirString; 
+    
     fileName_ = fileName;
 
     try 
@@ -919,14 +919,9 @@ namespace CoupledField {
   std::ofstream * SimOutputGMV::OpenFile( const std::string& name ) {
 
 
-    std::string totalName;
     std::ofstream * outFile = NULL;
-
-    // Generate basename for output file
-    totalName.append( dirName_ );
-    std::string pathsep = fs::path("/").string();
-    totalName.append( pathsep );
-    totalName.append( name );
+    fs::path totalName = dirName_ / name;
+    
     
     if (ascii_) {
       outFile = new std::ofstream(totalName.c_str());

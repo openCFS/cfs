@@ -10,6 +10,15 @@ SimOutputInfo::SimOutputInfo(PtrParamNode outputNode, PtrParamNode infoNode,
                              bool isRestart ) : 
     SimOutput("", outputNode, infoNode, isRestart )
 {
+  
+  // The restart case is currently not implemented, i.e. resuls from a 
+  // partial simulation get overwritten.
+  if( isRestart_ ) {
+    WARN( "The INFO-Writer is currently not adapted to write restarted "
+          "results correctly, thus the results of the previous run get"
+          " overwritten." );
+  }
+  
   formatName_ = "info";
   capabilities_.insert(HISTORY);
   dirName_ = ".";

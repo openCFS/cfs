@@ -15,6 +15,14 @@ SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode,
   SimOutput("", outputNode, infoNode, isRestart ),
   silent_(false)
 {
+  // The restart case is currently not implemented, i.e. resuls from a 
+  // partial simulation get overwritten.
+  if( isRestart_ ) {
+    WARN( "The Streaming-Writer is currently not adapted to write restarted "
+        "results correctly, thus the results of the previous run get"
+        " overwritten." );
+  }
+  
   formatName_ = "streaming";
   capabilities_.insert(MESH_RESULTS);
 

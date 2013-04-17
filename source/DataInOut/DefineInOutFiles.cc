@@ -461,7 +461,7 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     {
 #ifdef USE_ANSYSRST
       out[actId] =
-      shared_ptr<SimOutput>( new SimOutputRST( simName, actNode ) );
+      shared_ptr<SimOutput>( new SimOutputRST( simName, actNode, infoNode, restart ) );
 #else
       EXCEPTION( "No support for ANSYS RST output file format." );
 #endif

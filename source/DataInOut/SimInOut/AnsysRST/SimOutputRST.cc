@@ -5,9 +5,6 @@
 #include <fstream>
 #include <iomanip>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/exception.hpp>
-namespace fs = boost::filesystem;
 
 #include <boost/algorithm/string/trim.hpp>
 
@@ -37,11 +34,15 @@ namespace CoupledField {
       binlibIface_(NULL)
   {
 
-    // Initialize variables
+    
     formatName_ = "rst";
+    
+    std::string dirString = "results_" + formatName_; 
+    outputNode->GetValue("directory", dirString, ParamNode::PASS );
+    dirName_ = dirString; 
+ 
     fileName_ = fileName;
-    dirName_ = "results_" + formatName_;
-    outputNode->GetValue("directory", dirName_, ParamNode::INSERT );
+    
     outputNode_ = outputNode;
 
     capabilities_.insert( MESH );
@@ -193,12 +194,13 @@ namespace CoupledField {
     // If just the grid is written the file will end with
     // "_grid.rst". If we are in multistep N the file will end
     // with "_msN.rst".
-    fnstream << dirName_ << sysPathSep_ << fileName_;
+    fnstream << dirName_.string() << sysPathSep_ << fileName_;
     fnstream << "_grid";
-    fnstream << ".rst";
     
     filename = fnstream.str();
+    filename += ".rst";
 
+    
     RemoveFile(filename, "Error while removing previous .rst file." );
 
     GetAnsysRuntimeInfos();
@@ -215,7 +217,7 @@ namespace CoupledField {
     }
     
     binlibIface_->SetFNAndOutputNode( fileName_, formatName_,
-                                      dirName_, sysPathSep_,
+                                      dirName_.string(), sysPathSep_,
                                       outputNode_ );
 
     binlibIface_->SetResultFileName( filename );
@@ -240,13 +242,40 @@ namespace CoupledField {
     // If just the grid is written the file will end with
     // "_grid.rst". If we are in multistep N the file will end
     // with "_msN.rst".
-    fnstream << dirName_ << sysPathSep_ << fileName_;
-    fnstream << "_ms" << msStep_;
-    fnstream << ".rst";
-    
+    fnstream << dirName_.string() << sysPathSep_ << fileName_;
     filename = fnstream.str();
+    
+    if( isRestart_) {
+      // Check: In case of a restart, we create a new file with
+      // new suffix "restart-#no" where #no gets replaced by the
+      // current number of already available restart files
+      UInt index = 1;
+      bool fileNotExists = false;
+      std::string tmpName;
+      while(!fileNotExists) {
+        std::string suffix =  "_ms"+lexical_cast<std::string>(msStep_) +
+                              "-restart-"+lexical_cast<std::string>(index)+".rst";
+        tmpName = filename + suffix;
+        std::cerr << "check if file " << tmpName << " exists\n";
+        if( !fs::exists( tmpName ) ) {
+          fileNotExists = true;
+          break;
+        }
+        index++;
+      }
+      filename = tmpName;
 
-    RemoveFile(filename, "Error while removing previous .rst file.");
+      // Inform user about limited capability
+      WARN( "As the ANSYS writer can not add new results to an old rst file "
+          << " in a restarted simulation, all newly created results will be "
+          << "written to the file '" << filename << "'");
+    } else {
+      filename += "_ms"+lexical_cast<std::string>(msStep_) + ".rst";
+    }
+
+    if( !isRestart_) {
+      RemoveFile(filename, "Error while removing previous .rst file.");
+    }
     
     binlibIface_->SetResultFileName( filename );
 
@@ -299,7 +328,7 @@ namespace CoupledField {
 
     sstr.clear();
     sstr.str("");
-    sstr << dirName_ << sysPathSep_ << fileName_;
+    sstr << dirName_.string() << sysPathSep_ << fileName_;
     sstr << "_test";
     sstr << ".rst";
     TestFN = sstr.str();
@@ -359,12 +388,14 @@ namespace CoupledField {
     
     sstr.clear();
     sstr.str("");
-    sstr << dirName_ << sysPathSep_ << fileName_;
+    sstr << dirName_.string() << sysPathSep_ << fileName_;
     if(printGridOnly) {
         sstr << "_grid";
     } else {
         sstr << "_ms" << msStep_;
     }
+    
+    
     rstFileName = sstr.str() + ".rst";
     compFileName = sstr.str() + ".cm";
 

@@ -50,11 +50,7 @@
 
 #include <fstream>
 #include <sstream>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/exception.hpp>
 #include <cmath>
-
-namespace fs = boost::filesystem;
 
 namespace CoupledField{
 
@@ -64,6 +60,14 @@ namespace CoupledField{
                 SimOutput( fileName, outputNode, infoNode, isRestart )
   {
 
+    // The restart case is currently not implemented, i.e. resuls from a 
+    // partial simulation get overwritten.
+    if( isRestart_ ) {
+      WARN( "The GMSH-Parsed-Writer is currently not adapted to write restarted "
+            "results correctly, thus the results of the previous run get"
+            " overwritten." );
+    }
+    
     formatName_ = "gmshParsed";
 
     capabilities_.insert( MESH );
@@ -308,30 +312,26 @@ namespace CoupledField{
       std::string solName = SolutionTypeEnum.ToString(solIt->first);
 
       std::string name = fileName_ + "_" + solName + ".pos";
-      std::string totalName;
 
       // Generate basename for output file
-      totalName.append( dirName_ );
-      std::string pathsep = fs::path("/").string();
-      totalName.append( pathsep );
-      totalName.append( name );
-
+      fs::path filePath = dirName_ / name;
+      
       outfiles_[solIt->first]  = new std::fstream();
       infiles_[solIt->first]  = new std::fstream();
 
       std::fstream* outFile =  outfiles_[solIt->first];
       std::fstream* inFile =  infiles_[solIt->first];
 
-      outFile->open(totalName.c_str(),std::ios::trunc | std::ios::out);
-      inFile->open(totalName.c_str(),std::ios::in);
+      outFile->open(filePath.c_str(),std::ios::trunc | std::ios::out);
+      inFile->open(filePath.c_str(),std::ios::in);
 
       if ( !outFile && outFile->is_open() ) {
-        EXCEPTION("Could not open file " << totalName
+        EXCEPTION("Could not open file " << filePath
                   << " for writing parsed Gmsh output");
       }
 
       if ( !inFile && inFile->is_open() ) {
-        EXCEPTION("Could not open file " << totalName
+        EXCEPTION("Could not open file " << filePath
                   << " for reading parsed Gmsh output");
       }
       //write a newline at the beginning of the file, just in case...

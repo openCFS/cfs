@@ -7,6 +7,11 @@
 
 #include <set>
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+namespace fs = boost::filesystem;
+
 #include "Domain/Results/BaseResults.hh"
 #include "Domain/Results/ResultInfo.hh"
 #include "PDE/BasePDE.hh"
@@ -109,7 +114,7 @@ namespace CoupledField {
     std::string fileName_;
 
     //! Name of output directory
-    std::string dirName_;
+    fs::path dirName_;
 
     //! Capabilities of output class
     std::set<Capability> capabilities_;

@@ -8,12 +8,8 @@
 #include <string>
 #include <algorithm>
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <def_cfs_stats.hh>
 
@@ -24,8 +20,6 @@
 #include "Domain/ElemMapping/Elem.hh"
 #include "FeBasis/BaseFE.hh"
 #include "hdf5io.hh"
-
-namespace fs = boost::filesystem;
 
 namespace CoupledField {
 
@@ -44,8 +38,11 @@ namespace CoupledField {
 
     fileName_ = fileName;
     formatName_ = "hdf5";
-    dirName_ = "results_" + formatName_;
-    inputNode->GetValue("directory", dirName_, ParamNode::PASS );
+    
+    std::string dirString = "results_" + formatName_; 
+    inputNode->GetValue("directory", dirString, ParamNode::PASS );
+    dirName_ = dirString; 
+    
     useDataBase_ = false;
     
     capabilities_.insert( MESH );
@@ -662,20 +659,15 @@ namespace CoupledField {
   void SimOutputHDF5::InitModule() {
     if( currFileName_ != "")
       return;
-    std::string pathsep;
-    std::string fileName;
-    std::ostringstream strBuffer;
 
     // concatenate output file name
     try {
       fs::create_directory( dirName_ );
-      pathsep = fs::path("/").string();
     } catch (std::exception &ex) {
       EXCEPTION(ex.what());
     }
-
-    strBuffer << dirName_ << pathsep << fileName_ << ".h5";
-    currFileName_ = strBuffer.str();
+    std::string fName = fileName_ + ".h5";
+    currFileName_ = fs::path(dirName_ / fName).string();
     
     // In case of re-start, we simply append information
     bool truncate = !isRestart_;
@@ -1220,7 +1212,8 @@ namespace CoupledField {
             << currStep_ << ".h5";
       fn = fName.str();
       fName.str("");
-      fName << dirName_ << pathsep << fn;
+      fName << dirName_.string() << pathsep << fn;
+         
       currStepFile_ = H5::H5File(fName.str(), H5F_ACC_TRUNC);
 
       // Write reference to external file to main file

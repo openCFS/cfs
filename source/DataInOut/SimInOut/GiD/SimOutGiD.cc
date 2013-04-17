@@ -4,10 +4,6 @@
 
 #include <complex>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/exception.hpp>
-namespace fs = boost::filesystem;
-
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Environment.hh"
 #include "Utils/StdVector.hh"
@@ -38,9 +34,10 @@ namespace CoupledField {
     // Initialize variables
     formatName_ = "gid";
     fileName_ = fileName;
-    dirName_ = "results_" + formatName_;
-    outputNode->GetValue("directory", dirName_, ParamNode::PASS );
-
+    std::string dirString = "results_" + formatName_; 
+    outputNode->GetValue("directory", dirString, ParamNode::PASS );
+    dirName_ = dirString; 
+        
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
 
@@ -62,19 +59,14 @@ namespace CoupledField {
       groupEigenFreqs_= myParam_->Get("groupEigenFreqs")->As<bool>();
     }
 
-    std::string pathsep;
-    std::ostringstream strBuffer;
-
     // concatenate output file name
     try {
       fs::create_directory( dirName_ );
-      pathsep = fs::path("/").string();
     } catch (std::exception &ex) {
       EXCEPTION(ex.what());
     }
-
-    strBuffer << dirName_ << pathsep << fileName_;
-    fileName_ = strBuffer.str();
+    // store complete name including directory into fileName_
+    fileName_ = fs::path(dirName_ / fileName_ ).string();
   }
 
 

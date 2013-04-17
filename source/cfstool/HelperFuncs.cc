@@ -259,7 +259,7 @@ namespace CFSTool {
 #ifdef USE_ANSYSRST
       baseName = std::string(fileName, 0, fileName.find(".rst"));
       PtrParamNode rstNode (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
-      writer =  shared_ptr<SimOutput>( new SimOutputRST( baseName, rstNode ) );
+      writer =  shared_ptr<SimOutput>( new SimOutputRST( baseName, rstNode, info, restart ) );
 #else
       EXCEPTION( "No support for ANSYS .rst output file format." );
 #endif
