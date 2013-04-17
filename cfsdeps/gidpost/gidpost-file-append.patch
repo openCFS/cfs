@@ -1,0 +1,148 @@
+--- source/gidpost.h.orig	2013-04-17 10:44:02.442668729 +0200
++++ source/gidpost.h	2013-04-17 10:44:02.441668729 +0200
+@@ -301,7 +301,7 @@
+  */
+ 
+ GIDPOST_API
+-int GiD_OpenPostResultFile( GP_CONST char * FileName, GiD_PostMode Mode );
++int GiD_OpenPostResultFile( GP_CONST char * FileName, GiD_PostMode Mode, bool append);
+ 
+ /*
+  *  Close the current post result file
+--- source/gidpost.cpp.orig	2013-04-17 10:44:02.441668729 +0200
++++ source/gidpost.cpp	2013-04-17 10:44:02.440668729 +0200
+@@ -267,7 +267,7 @@
+     return 2;
+   GetMeshFile();
+   /* now outputMesh points to MeshFile */
+-  if (MeshFile->Open(FileName)) {
++  if (MeshFile->Open(FileName,false)) {
+     /* Open failed */
+     return 4;
+   }
+@@ -648,7 +648,7 @@
+  *  Open a new post result file
+  */
+ 
+-int GiD_OpenPostResultFile(GP_CONST char * FileName, GiD_PostMode Mode )
++int GiD_OpenPostResultFile(GP_CONST char * FileName, GiD_PostMode Mode, bool append )
+ {
+   assert(ResultFile==NULL);
+   level_res = POST_UNDEFINED;
+@@ -661,14 +661,16 @@
+   if ( !(ResultFile = NewFile(Mode)) )
+     /* not enough memory */
+     return 2;
+-  if (ResultFile->Open(FileName)) {
++  if (ResultFile->Open(FileName, append)) {
+     /* could not open file */
+     return 4;
+   }
+-  if (ResultFile->WritePostHeader()) {
+-    /* WritePostHeader failed */
+-    GiD_ClosePostResultFile();
+-    return 5;
++  if(!append) {
++    if (ResultFile->WritePostHeader()) {
++      /* WritePostHeader failed */
++      GiD_ClosePostResultFile();
++      return 5;
++    }
+   }
+   level_res = POST_S0;
+   if (!MeshFile)
+--- source/gidpostInt.h.orig	2013-04-17 10:44:02.442668729 +0200
++++ source/gidpostInt.h	2013-04-17 10:44:02.442668729 +0200
+@@ -27,7 +27,7 @@
+   static int fail;
+   CPostFile();
+   virtual ~CPostFile();
+-  virtual int Open( GP_CONST char * name ) = 0;
++  virtual int Open( GP_CONST char * name, bool append ) = 0;
+   virtual int Close() = 0;
+   virtual int Flush() = 0;
+   virtual int IsBinary() = 0;
+@@ -71,7 +71,7 @@
+ public:
+   CPostAscii();
+   virtual ~CPostAscii();
+-  virtual int Open( GP_CONST char * name );
++  virtual int Open( GP_CONST char * name, bool append );
+   virtual int Close();
+   virtual int Flush();
+   virtual int IsBinary();
+@@ -91,7 +91,7 @@
+ public:
+   CPostAsciiZ();
+   virtual ~CPostAsciiZ();
+-  virtual int Open( GP_CONST char * name );
++  virtual int Open( GP_CONST char * name, bool append  );
+   virtual int Close();
+   virtual int Flush();
+   virtual int IsBinary();
+@@ -111,7 +111,7 @@
+ public:
+   CPostBinary();
+   virtual ~CPostBinary();
+-  virtual int Open( GP_CONST char * name );
++  virtual int Open( GP_CONST char * name, bool append  );
+   virtual int Close();
+   virtual int Flush();
+   virtual int IsBinary();
+--- source/gidpostInt.cpp.orig	2013-04-17 10:44:02.442668729 +0200
++++ source/gidpostInt.cpp	2013-04-17 10:44:02.442668729 +0200
+@@ -95,10 +95,14 @@
+   Close();
+ }
+ 
+-int CPostAscii::Open( GP_CONST char * name )
++int CPostAscii::Open( GP_CONST char * name, bool append )
+ {
+   Close();
+-  m_file = fopen(name, "w");
++  if( append ) {
++    m_file = fopen(name, "a");
++  } else {
++    m_file = fopen(name, "w");
++  }
+   return m_file == NULL;
+ }
+ 
+@@ -210,10 +214,14 @@
+   Close();
+ }
+ 
+-int CPostAsciiZ::Open( GP_CONST char * name )
++int CPostAsciiZ::Open( GP_CONST char * name , bool append )
+ {
+   Close();
+-  m_file = gzopen(name, "w1");  
++  if( append) {
++    m_file = gzopen(name, "a1");
++  } else {
++    m_file = gzopen(name, "w1");
++  }
+   return m_file == NULL;
+ }
+ 
+@@ -320,12 +328,17 @@
+   Close();
+ }
+ 
+-int CPostBinary::Open( GP_CONST char * name )
++int CPostBinary::Open( GP_CONST char * name , bool append )
+ {
+   Close();
+-  m_file = gzopen(name, "wb1");
+-  /* escribir el numero magico */
++  if( append) {
++    m_file = gzopen(name, "ab1");
++  } else {
++    m_file = gzopen(name, "wb1");
++    /* escribir el numero magico */
+   gzwrite(m_file, &ByteOrderCheck, sizeof(ByteOrderCheck));
++  }
++  
+   return m_file == NULL;
+ }
+ 

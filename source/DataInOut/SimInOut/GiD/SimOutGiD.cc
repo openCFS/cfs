@@ -91,8 +91,8 @@ namespace CoupledField {
 
     LOG_TRACE(simOutputGiD) << "Writing mesh";
 
-    // Leave, if grid was already written
-    if(gridWritten_) 
+    // Leave, if grid was already written or restarted simulation
+    if(gridWritten_ || isRestart_) 
       return;
     
     // open mesh file (only needed in ASCII case
@@ -1164,15 +1164,16 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
 
     std::string postFileName;
     
+    
     // Open result file
     if ( isAscii_ == true) {
       postFileName = fileName_ + ".post.res";
       isInitialized_ = !GiD_OpenPostResultFile( postFileName.c_str(),
-                                                GiD_PostAscii );
+                                                GiD_PostAscii, isRestart_ );
     } else {
       postFileName = fileName_ + ".post.bin";
       isInitialized_ = !GiD_OpenPostResultFile( postFileName.c_str(),
-                                                GiD_PostBinary );
+                                                GiD_PostBinary, isRestart_ );
     }
 
     // print grid

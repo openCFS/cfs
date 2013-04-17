@@ -27,14 +27,19 @@ EXECUTE_PROCESS(
 )
 
 SET(files
-  "source/gidpost.cpp")
+  "source/gidpost.cpp"
+  "source/gidpost.h"
+  "source/gidpostInt.h"
+  "source/gidpostInt.cpp"
+  )
 
-CHANGE_NEWLINE_STYLE(${files} ${gidpost_source}/dummy.txt UNIX)
+CHANGE_NEWLINE_STYLE("${files}" ${gidpost_source}/dummy.txt UNIX)
 
 #=============================================================================
 # Apply some patches.
 #=============================================================================
 SET(patches
+  "gidpost-file-append.patch"
   "gidpost-sprintf-format.patch"
 )
 
