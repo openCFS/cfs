@@ -54,6 +54,7 @@ namespace CoupledField {
     analysis_ = BasePDE::TRANSIENT;
 
     actTimeStep_ = 0;
+    initialTime_ = 0.0;
     firstdt_ = 0.0;
     restartStep_ = 0;
     endStep_ = 0;
@@ -75,6 +76,10 @@ namespace CoupledField {
     // Get time stepping information from parameter object
     numstep_ = myNode->Get( "numSteps")->MathParse<UInt>();
     
+    // query if accumulated time should be used as initial time
+    std::string initTimeString = myNode->Get("initialTime")->As<std::string>();
+    useAccumulatedTime_ = initTimeString == "accumulated" ? true : false;
+    
     // Check for presence of restart flag
     writeRestart_ = true;
     PtrParamNode restartNode = myNode->Get("writeRestart", ParamNode::PASS);
@@ -84,6 +89,8 @@ namespace CoupledField {
     // in the end, directly register the global transient variables
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                        "t", 0 );
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                        "t0", 0 );
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                        "dt", 0.0 );    
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
@@ -100,6 +107,17 @@ namespace CoupledField {
     }
   }
 
+  void TransientDriver::SetAccumulatedTime(Double accTime ) {
+    if( !useAccumulatedTime_ ) 
+      return;
+    actTimeStep_ = accTime;
+    initialTime_ = accTime;
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                        "t", actTimeStep_  );
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                        "t0", initialTime_ );
+    
+  }
   // ==============
   //   Destructor
   // ==============
@@ -141,7 +159,7 @@ namespace CoupledField {
     
     UInt startStep = restartStep_ + 1;
     endStep_ = numstep_ + restartStep_;
-    actTime_  = firstdt_ * startStep;
+    actTime_  = firstdt_ * startStep + initialTime_;
     Double  dt = firstdt_;
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;

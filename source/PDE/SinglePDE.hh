@@ -253,6 +253,9 @@ namespace CoupledField
     //! read material data
     virtual void ReadMaterialData();
 
+    //! Read initial conditions / values 
+    void ReadInitialConditions();
+    
     //! read from config-file info about BCs
     void ReadBCs();
 

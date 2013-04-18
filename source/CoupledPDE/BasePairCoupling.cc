@@ -5,9 +5,12 @@
 #include "Domain/Domain.hh"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
 #include "Domain/Results/ResultFunctor.hh"
-//#include "Materials/PiezoMaterial.hh"
+
 #include "Driver/Assemble.hh"
 #include "DataInOut/ResultHandler.hh"
+
+// header for saving / retrieving the simulation state
+#include "DataInOut/SimState.hh"
 
 // header for Drivers
 #include "Driver/TransientDriver.hh"
@@ -246,6 +249,9 @@ namespace CoupledField {
 
       // finalize feFunctions
       actFct->Finalize();
+      
+      // register FeFunctions with SimState class
+      simState_->RegisterFeFct( actFct );
 
       // Pass feFctId of primary result also to RHS result
       rhsFeFunctions_[fncIt->first]->SetFctId(actFct->GetFctId());

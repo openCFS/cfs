@@ -379,12 +379,7 @@ namespace CoupledField {
     // =======================================================================
     //DefineTimeDerivFeFunctions();
 
-    //    // =====================================================================
-    //    // Set the initial conditions
-    //    // =====================================================================
-    //    if ( analysistype_ == TRANSIENT){
-    //    	SetInitialCondition();
-    //    }
+
 
     // =====================================================================
     // define which solution types have to be saved
@@ -410,6 +405,11 @@ namespace CoupledField {
       }
     }
 
+    // =====================================================================
+    // Set the initial conditions
+    // =====================================================================
+    ReadInitialConditions();
+    
     // Finally set the initialization flag to true
     isInitialized_ = true;
     LOG_TRACE(singlepde) << pdename_ << ": Finished initializaton";
@@ -1390,6 +1390,72 @@ namespace CoupledField {
     }
   }
 
+  
+  void SinglePDE::ReadInitialConditions() {
+    
+    LOG_TRACE(singlepde) << pdename_ << ": Reading initial conditions";
+    PtrParamNode icNode = myParam_->Get("initialValues", ParamNode::PASS );
+    if( !icNode )
+      return;
+    
+    
+    /*  Initial implementation, not functionally yet
+     * 
+     * 
+    // ===========================
+    //  1) Initial State
+    // ===========================
+    PtrParamNode isNode = icNode->Get("initialState", ParamNode::PASS );
+    if( isNode ) {
+      LOG_TRACE(singlepde) << pdename_ << ": Reading initial state";
+      
+      PtrParamNode srcNode = isNode->GetChild();
+      if( srcNode->GetName() == "sequenceStep" ) {
+        // Attention:
+        // Here we know that we have a multiSequence analysis!
+        
+        UInt sequenceStep = srcNode->Get("index")->As<UInt>();
+        Integer stepNum = srcNode->Get("step")->As<Integer>();
+
+        // make own simState also capable of reading results
+        simState_->SetInputReaderToSameInput();
+        
+        // Obtain own domain
+        Domain * oldDom = simState_->GetDomain(0);
+        
+        // set correct sequence step
+        oldDom->InitPDEs( sequenceStep );
+        
+        // try to get last step number
+        if( stepNum == -1 ) {
+          stepNum = simState_->GetLastStepNum();
+        }
+        
+        // update to last step number
+        simState_->UpdateToStep(stepNum);
+        
+        
+        
+        
+        
+        
+      } else if( srcNode->GetName() == "externalFiele" ) {
+        
+        EXCEPTION( "No implemented yet")
+            
+      } else {
+        EXCEPTION( "Unknown type of source for initial state.")
+      }
+      
+    } // if initialState
+    
+    // ===========================
+    //  2) Initial condition
+    // ===========================
+    
+    // ... to be implemented ..
+*/
+  }
 
   void SinglePDE::ReadBCs() {
 

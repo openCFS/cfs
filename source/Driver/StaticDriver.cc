@@ -40,6 +40,8 @@ namespace CoupledField {
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "t", 0.0 );
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "t0", 0.0 );
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "dt", 0.0 );    
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "step", 0 );  

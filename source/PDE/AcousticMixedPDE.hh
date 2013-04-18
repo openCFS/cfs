@@ -52,9 +52,6 @@ class AcousticMixedPDE : public SinglePDE{
     //! define the SoltionStep-Driver
     void DefineSolveStep();
 
-    //! Initialize all the nodes by this value
-    void SetInitialCondition();
-
     //! define all (bilinearform) integrators needed for this pdewith template
     //! for the space dimension
     template<class DATA_TYPE, UInt DIM>

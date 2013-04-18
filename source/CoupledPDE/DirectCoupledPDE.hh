@@ -83,10 +83,6 @@ namespace CoupledField {
 
     //@}
 
-
-    //! Set initial conditions
-    void SetInitialCondition();
-
   private:
 
     //! define the SolutionStep-Driver

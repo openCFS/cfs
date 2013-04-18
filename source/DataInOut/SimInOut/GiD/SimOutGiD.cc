@@ -48,7 +48,6 @@ namespace CoupledField {
     actMeshId_ = 1;
     lastStepVal_ = -1.0;
     lastStepRepeated_ = 0;
-    stepValueOffset_ = 0;
     isAscii_ = true;
     groupEigenFreqs_ = true;
     printGridOnly_ = false;
@@ -61,6 +60,9 @@ namespace CoupledField {
     if( myParam_->Has("groupEigenFreqs") ) {
       groupEigenFreqs_= myParam_->Get("groupEigenFreqs")->As<bool>();
     }
+    
+    //! Determine if sequenceSteps sould be merged
+    mergeSequenceSteps_= myParam_->Get("mergeSequenceSteps")->As<bool>();
 
     // concatenate output file name
     try {
@@ -451,13 +453,6 @@ namespace CoupledField {
     
     actStep_ = stepNum;
     actStepVal_ = stepVal;
-    
-    
-    // add  offset to step value to account for multisequence steps
-    if( actAnalysis_ == BasePDE::TRANSIENT ||
-        actAnalysis_ == BasePDE::STATIC  ) {
-     actStepVal_ += stepValueOffset_;
-    }
 
     // Check, if current step value is the same as the previous step value.
     // This can happen e.g. in an eigenfrequency analysis, where there maybe
@@ -533,10 +528,6 @@ namespace CoupledField {
 
   void SimOutputGiD::
   FinishMultiSequenceStep( ) {
-    if( actAnalysis_ == BasePDE::TRANSIENT ||
-        actAnalysis_ == BasePDE::STATIC ) {
-      stepValueOffset_ = actStepVal_;
-    }
   }
 
 
@@ -550,7 +541,8 @@ namespace CoupledField {
 
     // assemble name for analysis step
     std::string analysisName = "transient";
-    analysisName += "_" + lexical_cast<std::string>( actMSStep_ );
+    if( !mergeSequenceSteps_)
+      analysisName += "_" + lexical_cast<std::string>( actMSStep_ );
 
 
     // get number of entities
@@ -675,7 +667,8 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
 
     // assemble name for analysis step
     std::string analysisName = "harmonic";
-    analysisName += "_" + lexical_cast<std::string>( actMSStep_ );
+    if( !mergeSequenceSteps_)
+      analysisName += "_" + lexical_cast<std::string>( actMSStep_ );
 
    // get number of entities
     UInt numEnt = 0;

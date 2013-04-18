@@ -22,8 +22,6 @@
               <xsd:enumeration value="harmonic"/>
               <xsd:enumeration value="transient"/>
               <xsd:enumeration value="eigenFrequency"/>
-              <xsd:enumeration value="paramIdent"/>
-              <xsd:enumeration value="bubbleDynamic"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -82,11 +80,19 @@
   <xsd:complexType name="DT_AnalysisTransient">
     <xsd:complexContent>
       <xsd:extension base="DT_AnalysisBasic">
-        <xsd:sequence>
+      	<xsd:sequence>
           <xsd:element name="numSteps" type="xsd:token"/>
           <xsd:element name="deltaT" type="xsd:token"/>
           <xsd:element name="writeRestart" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
+        <xsd:attribute name="initialTime" default="accumulated">
+   	      <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="accumulated"/>
+              <xsd:enumeration value="zero"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

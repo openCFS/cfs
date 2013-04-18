@@ -68,7 +68,6 @@ namespace CoupledField {
     fileName_ =  filename;
     
     stepNumOffset_ = 0;
-    stepValOffset_ = 0.0;
     
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
@@ -1064,7 +1063,7 @@ namespace CoupledField {
   void SimOutputUnv::BeginStep( UInt stepNum, Double stepVal ) {
     
     actStep_ = stepNum + stepNumOffset_;
-    actStepVal_ = stepVal + stepValOffset_;
+    actStepVal_ = stepVal;
     resultMap_.clear();
   }
 
@@ -1209,7 +1208,6 @@ namespace CoupledField {
 
     // set offset for step value and number to last values
     stepNumOffset_ = actStep_;
-    stepValOffset_ = actStepVal_;
   }
   
   

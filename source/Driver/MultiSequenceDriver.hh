@@ -50,6 +50,10 @@ namespace CoupledField
     virtual bool IsComplex() { return actDriver_->IsComplex(); };
 
   private:
+    
+    //! Print out information about multisequence steps
+    void WriteMultiSequenceStep(const UInt sequenceStep, 
+                                const BasePDE::AnalysisType analysis);
 
     //! number of sequence steps
     UInt numSteps_;
@@ -57,20 +61,14 @@ namespace CoupledField
     //! current sequence step
     UInt curSequenceStep_;
 
-    //! current time/frequency step
-    UInt actStep_;
-  
-    //! current time
-    Double actTime_;
+    //! accumulated time
+    Double accumulatedTime_;
 
     //! current singleDriver object
     SingleDriver * actDriver_;
   
     //! stores for each step the participating pdes as name
     StdVector<StdVector<std::string> > pdesPerStep_;
-
-    //! stores for each step the usage of the values for each pde
-    StdVector<bool >  usageDirichletPerStep_;
 
     //! stores for each step the analisystype of each pde
     StdVector<BasePDE::AnalysisType > analysisPerStep_;

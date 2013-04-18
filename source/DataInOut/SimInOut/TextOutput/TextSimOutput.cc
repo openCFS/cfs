@@ -30,7 +30,6 @@ namespace CoupledField {
     fileName_ = fileName;
     coordSys_ = NULL;
     stepNumOffset_ = 0;
-    stepValOffset_ = 0.0;
     globalNumbering_ = true;
     // initialize delimiter string
     delim_ = "  ";
@@ -133,7 +132,6 @@ namespace CoupledField {
     if( actAnalysis_ == BasePDE::TRANSIENT ||
         actAnalysis_ == BasePDE::STATIC  ) { 
       actStep_ += stepNumOffset_;
-      actStepVal_ += stepValOffset_;
     }
 
     resultMap_.clear();
@@ -164,7 +162,6 @@ namespace CoupledField {
     if( actAnalysis_ == BasePDE::TRANSIENT ||
          actAnalysis_ == BasePDE::STATIC ) {
       stepNumOffset_ = actStep_; 
-      stepValOffset_ = actStepVal_;
      }
    }
 

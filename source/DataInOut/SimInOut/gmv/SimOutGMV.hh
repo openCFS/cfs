@@ -82,9 +82,6 @@ namespace CoupledField
     //!  Offset for step number in case of multisequence analysis
     Integer stepNumOffset_;
         
-    //! Offset for step value in case of multisequence analysis
-    Double stepValOffset_;
-    
     //! size of character string to be written out
     UInt charOutSize_;
 

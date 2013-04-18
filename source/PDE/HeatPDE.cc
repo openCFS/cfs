@@ -66,48 +66,6 @@ HeatPDE::HeatPDE(Grid * aptgrid, PtrParamNode paramNode,
 
 
 
-void HeatPDE::SetInitialCondition() {
-
-  REFACTOR;
-
-//   try {
-//     // fetch paramnodes for initial condition (if not present, leave)
-//     if ( !myParam_->Has("InitialCondition") ) {
-//       return;
-//     }
-//     myParam_->GetValue("InitialCondition", InitialCondition_);
-
-//     //std::cerr << "\n Initial Temperature : " << InitialCondition_ << std::endl;
-
-
-//     if (!isDirectCoupled_ ) {
-//       if (isComplex_ ) {
-//         Vector<Complex> & solComplex = dynamic_cast<Vector<Complex>& >(*solVec_); 
-//         solComplex.Init(Complex(InitialCondition_, 0.0) );
-//       } else {
-//         Vector<Double> & solReal = dynamic_cast<Vector<Double>& >(*solVec_);
-//         solReal.Init( InitialCondition_);
-//       }
-//       sol_->SetAlgSysDataPointer(solVec_->GetSize(),
-//           dynamic_cast<Vector<Double>&>(*solVec_).GetPointer() );
-
-//       // to test -----------------------------------------------------------
-//       //Vector< Double > h;
-//       //h.Init();
-//       //sol_->GetGlobalSolVector(HEAT_TEMPERATURE, h);
-//       //std::cout << "\n Initial solution vector = " << h.Serialize() << std::endl;
-//       // to test -----------------------------------------------------------
-//     }
-
-//     isSetInitialCondition_ = true;
-
-//   } catch(Exception & ex ) {
-//     InitialCondition_=0.0;
-//     //std::cerr << "\n Initial Temperature : " << InitialCondition_ << std::endl;
-//   }
-}
-
-
 void HeatPDE::ReadSpecialBCs() {
 
   // First, delete all of the Neumann boundary conditions object

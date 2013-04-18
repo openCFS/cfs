@@ -35,7 +35,6 @@ namespace CoupledField {
     ascii_(true),
     bigEndian_(false),
     stepNumOffset_(0),
-    stepValOffset_(0.0),
     numRegions_(0)
   {    
     
@@ -173,7 +172,6 @@ namespace CoupledField {
     if( currAnalysis_ == BasePDE::TRANSIENT ||
         currAnalysis_ == BasePDE::STATIC  ) { 
       actStep_ += stepNumOffset_;
-      actStepVal_ += stepValOffset_;
     }
 
   }
@@ -347,7 +345,6 @@ namespace CoupledField {
     if( currAnalysis_ == BasePDE::TRANSIENT ||
           currAnalysis_ == BasePDE::STATIC ) {
       stepNumOffset_ = actStep_;
-      stepValOffset_ = actStepVal_;
     }
 
   }

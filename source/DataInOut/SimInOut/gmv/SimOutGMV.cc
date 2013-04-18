@@ -45,7 +45,6 @@ namespace CoupledField {
     std::ostringstream strBuffer;
 
     stepNumOffset_ = 0;
-    stepValOffset_ = 0.0;
     dirName_ = "results_" + formatName_;
     
     std::string dirString = "results_" + formatName_; 
@@ -140,7 +139,6 @@ namespace CoupledField {
     if( currAnalysis_ == BasePDE::TRANSIENT ||
         currAnalysis_ == BasePDE::STATIC  ) { 
       actStep_ += stepNumOffset_;
-      actStepVal_ += stepValOffset_;
     }
 
   }
@@ -253,7 +251,6 @@ namespace CoupledField {
     if( currAnalysis_ == BasePDE::TRANSIENT ||
           currAnalysis_ == BasePDE::STATIC ) {
       stepNumOffset_ = actStep_;
-      stepValOffset_ = actStepVal_;
     }
 
   }

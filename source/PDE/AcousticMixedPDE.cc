@@ -566,10 +566,6 @@ namespace CoupledField{
       solveStep_ = new StdSolveStep(*this);
     }
 
-    void AcousticMixedPDE::SetInitialCondition(){
-
-    }
-
     //!  Define available postprocessing results
     void AcousticMixedPDE::DefinePrimaryResults(){
 

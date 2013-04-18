@@ -42,7 +42,7 @@ class MaterialHandler;
     inFile_ = reader;
   }
 
-  Domain * SimState::GetDomain(UInt level) {
+  Domain * SimState::GetDomain(UInt sequenceStep) {
 
     // Ensure, that hdf5 input class is present
     assert(inFile_);
@@ -216,6 +216,10 @@ class MaterialHandler;
 
   void SimState::FinishMultiSequenceStep( ) {
     outFile_->FinishMultiSequenceStep();
+    
+    // delete all registered feFunctions
+    feFcts_.clear();
+    
   }
 
   void SimState::RegisterFeFct( shared_ptr<BaseFeFunction> feFct) {
@@ -231,6 +235,8 @@ class MaterialHandler;
     outFile_->DB_Init();
 
     outFile_->DB_WriteXmlFiles( paramFile_, matFile_ );
+    
+    isInitialized_ = true;
   }
 
 } // namespace

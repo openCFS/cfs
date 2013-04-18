@@ -1338,6 +1338,7 @@ namespace CoupledField {
   void SimOutputHDF5::DB_BeginMultiSequenceStep( UInt step,
                                                  BasePDE::AnalysisType type ) {
     currMS_ = step;
+    currAnalysisType_ = type;
     std::string stepStr = lexical_cast<std::string>(step);
     H5::Group msGroup = dbGroup_.openGroup("MultiSteps");
     try {  

@@ -11,7 +11,15 @@ namespace CoupledField {
   //! forward class declarations
   class Timer;
 
-  //! driver for transient problems.it is derived from BaseDriver;
+  //! Class for transient simulations
+  
+  //! This class implements a time dependent problem with a fixed time step
+  //! size "dt" and a fixed number of time steps.
+  //! It defines the following muParser variables:
+  //!   - t    : Current time (in s), always starting at t0
+  //!   - dt   : Time step increment (in s)
+  //!   - step : Current time step number (always starting at 1)
+  //!   - t0   : Initial time (either 0 or accumulated time)
   class TransientDriver : virtual public SingleDriver {
 
   public:
@@ -41,8 +49,14 @@ namespace CoupledField {
     UInt GetActStep( const std::string& pdename ) {
       return actTimeStep_;
     }
+    
+    //! Get total duration of current simulation (in s)
+    Double GetDuration() { return firstdt_ * endStep_; }
+    
+    //! Set accumulated time (may be used as initial time value)
+    void SetAccumulatedTime( Double time );
 
-    /** Helper method which determines if an AnalyisType is complex. */
+    //! Helper method which determines if an AnalyisType is complex.
     virtual bool IsComplex() { return false; };
     
     //! Static method being called in the case of a Ctr-C signal
@@ -52,6 +66,9 @@ namespace CoupledField {
 
     //! Read restart information
     void ReadRestart();
+    
+    //! Flag, if initial time starts at 0 or is accumulated 
+    bool useAccumulatedTime_;
 
     //! offset for first timestep (due to multiSequence )
     UInt stepOffset_;
@@ -65,7 +82,10 @@ namespace CoupledField {
     //! Number of timesteps
     UInt numstep_;
 
-    //! current time step
+    //! Initial time value used for "t0"
+    Double initialTime_;
+    
+    //! current time step (always starting at initialTime)
     UInt actTimeStep_;
     
     //! Last time step (not necessarily the same as numstep_)
