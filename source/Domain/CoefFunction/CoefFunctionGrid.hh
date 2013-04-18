@@ -171,7 +171,7 @@ class CoefFunctionGrid : public CoefFunction{
     UInt curStep_;
 
     //! stores the current step value of external result
-    UInt curTStep_;
+    Double curTStep_;
 
     //! stores the current mutlisequence step for external result
     UInt aSeqStep_;
