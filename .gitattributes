@@ -111,6 +111,7 @@ cfsdeps/cmake/cmake-configure.cmake.in -text
 cfsdeps/cmake/cmake-install.cmake.in -text
 cfsdeps/gidpost/External_GiDpost.cmake -text
 cfsdeps/gidpost/gidpost-file-append.patch -text
+cfsdeps/gidpost/gidpost-install.patch -text
 cfsdeps/gidpost/gidpost-patch.cmake.in -text
 cfsdeps/gmp/External_gmp.cmake -text
 cfsdeps/gmp/gmp-configure.cmake.in -text
