@@ -33,10 +33,9 @@ namespace CoupledField {
   DECLARE_LOG(trans_driver)
   DEFINE_LOG(trans_driver, "transient_driver")
 
-  
-  // Define flag for halting the simulation
-  bool TransientDriver::abortSimulation = false;
-  Double TransientDriver::timePerStep_ = 0.0;
+  // Define pointer to transient driver instance, needed for the signal handler
+  // to communicate with
+  TransientDriver * instance = NULL;
   
   // ===============
   //   Constructor
@@ -57,6 +56,8 @@ namespace CoupledField {
     actTimeStep_ = 0;
     firstdt_ = 0.0;
     restartStep_ = 0;
+    endStep_ = 0;
+    abortSimulation_ = false;
 
     // get parameter node
     PtrParamNode myNode = 
@@ -80,10 +81,6 @@ namespace CoupledField {
     if (restartNode)
       writeRestart_ = restartNode->As<bool>();
   
-    // remove HALTCFS File at the beginning
-    if(fs::exists("./HALTCFS")) 
-      fs::remove("./HALTCFS");
-    
     // in the end, directly register the global transient variables
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                        "t", 0 );
@@ -95,6 +92,11 @@ namespace CoupledField {
     // register signal handler
     if( signal( SIGINT, TransientDriver::SignalHandler) == SIG_ERR ) {
       EXCEPTION( "Could not register Signal Handler");
+    }
+    
+    // store pointer to global instance variable, if not yet set
+    if( !instance ) {
+      instance = this;
     }
   }
 
@@ -108,6 +110,10 @@ namespace CoupledField {
     if( signal( SIGINT, SIG_DFL) == SIG_ERR ) {
       EXCEPTION( "Could not assign default signal action");
     }
+    
+    // set global pointer to zero
+    instance = NULL;
+    
   }
 
   // ==================
@@ -134,8 +140,8 @@ namespace CoupledField {
   
     
     UInt startStep = restartStep_ + 1;
-    UInt endStep = numstep_ + restartStep_;
-    Double  steptime  = firstdt_ * startStep;
+    endStep_ = numstep_ + restartStep_;
+    actTime_  = firstdt_ * startStep;
     Double  dt = firstdt_;
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;
@@ -161,20 +167,20 @@ namespace CoupledField {
     // Outer loop over all timesteps
     UInt count = 0;
     for (actTimeStep_ = startStep; 
-         actTimeStep_ <= endStep; 
+         actTimeStep_ <= endStep_; 
          actTimeStep_ += 1, count++) {
 
       LOG_DBG(trans_driver) << "loop over timestep " << actTimeStep_;
       
-      // start timer only in 2nd loop, as in the 1st step normall the
+      // start timer only in 2nd loop, as in the 1st step normally the
       // factorization is incorporated,
       if( actTimeStep_ == startStep+1) {
         timer_->Start();
       }
       
-      // Set curent value of timestep and time step size in the mathParser
+      // Set current value of timestep and time step size in the mathParser
       domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "t", steptime );
+                                         "t", actTime_ );
       domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "dt", dt );    
       domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
@@ -194,7 +200,8 @@ namespace CoupledField {
       if(log)
       {
         if(progOpts->IsQuiet())
-          cout << ptPDE_->GetName() << ": Time step " << actTimeStep_ << " time " << steptime << endl;
+          cout << ptPDE_->GetName() << ": Time step " << actTimeStep_ 
+               << " time " << actTime_ << endl;
         else
           // write std::out info
           cout << endl << ptPDE_->GetName() << ": Time step "
@@ -215,10 +222,10 @@ namespace CoupledField {
         analysis_id_ = CreateAnalysisIdChild(given_analysis_id, given_analysis_id->Get("analysis_id")->As<std::string>(), actTimeStep_, "step", actTimeStep_);
       }
       analysis_id_->Get("step")->SetValue(actTimeStep_);
-      analysis_id_->Get("value")->SetValue(steptime);
+      analysis_id_->Get("value")->SetValue(actTime_);
       
       // Perform actions
-      ptPDE_->GetSolveStep()->SetActTime(steptime);
+      ptPDE_->GetSolveStep()->SetActTime(actTime_);
       ptPDE_->GetSolveStep()->SetActStep(actTimeStep_);
       ptPDE_->GetSolveStep()->PreStepTrans();
       ptPDE_->GetSolveStep()->SolveStepTrans(analysis_id_);
@@ -226,33 +233,33 @@ namespace CoupledField {
 
       if(write_results){
         // writing results in output-file(s)
-        resHandler->BeginStep( actTimeStep_, steptime );
-        ptPDE_->WriteResultsInFile(actTimeStep_, steptime );
+        resHandler->BeginStep( actTimeStep_, actTime_ );
+        ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ );
         resHandler->FinishStep( );
       }
       
       // write out re-start only in the last step
-      if( actTimeStep_ == endStep || TransientDriver::abortSimulation ) {
+      if( actTimeStep_ == endStep_ || abortSimulation_ ) {
         if( writeRestart_)
-         simState_->WriteStep( actTimeStep_, steptime );
+         simState_->WriteStep( actTimeStep_, actTime_ );
       }
         
-
-      
       // leave loop, if simulation should be aborted
-      if ( TransientDriver::abortSimulation ) {
+      if ( abortSimulation_ ) {
         break;
       }
 
-      steptime+=dt;
+      // increase current time step
+      actTime_+=dt;
 
       // perform runtime estimation (after 1st step)
       if( actTimeStep_ > 1 ) {
         Double totalTime = timer_->GetWallTime();
         timePerStep_ = totalTime / (Double) count;
-        Double remainingTime = (endStep - actTimeStep_) * timePerStep_;
+        Double remainingTime = (endStep_ - actTimeStep_) * timePerStep_;
         pt::ptime now = pt::second_clock::local_time();
         now += pt::seconds(static_cast<long int>(remainingTime));
+        
         analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
         PtrParamNode envNode = driverNode->GetRoot()->
             Get(ParamNode::PN_HEADER)->Get("environment");
@@ -316,13 +323,23 @@ namespace CoupledField {
   
   void TransientDriver::SignalHandler( int sig ) {
 
-    if( !TransientDriver::abortSimulation) {
-      TransientDriver::abortSimulation = true;
+    if( !instance->abortSimulation_) {
+      
+      // in addition check, if the current step is the last step, so we
+      // do not have to print out any message
+      if( instance->actTimeStep_ == instance->endStep_ )
+        return;
+      
+      instance->abortSimulation_ = true;
+      
       std::cerr << "\n\n";
       std::cerr << "*******************************************************\n";
-      std::cerr << " Simulation will be halted after the current time step \n\n";
-      std::cerr << " Estimated remaining time: " << timePerStep_ << " s" << std::endl;
-      std::cerr << "********************************************************\n\n";
+      std::cerr << " Simulation will be halted after the current time \n";
+      std::cerr << " step " << instance->actTimeStep_ << " / " << instance->actTime_
+                << " s.\n\n";
+      std::cerr << " Estimated time before end of simulation run: " << 
+          int(instance->timePerStep_) << " s" << std::endl;
+      std::cerr << "*******************************************************\n\n";
 
     }
   }

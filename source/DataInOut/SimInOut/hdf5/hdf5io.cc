@@ -1591,6 +1591,45 @@ hsize_t H5IO::maxChunkSize_= 100;
     return ret;
   }
 
+  bool H5IO::GroupExists( H5::CommonFG &loc,
+                    const std::string& name ) {
+   bool ret = false;
+   try {
+     H5::Group tmp = loc.openGroup(name);
+     ret = true;
+     tmp.close();
+   } catch(H5::Exception) {
+     // nothing to do
+   }
+   return ret;
+  }
+  
+  bool H5IO::DatasetExists( H5::CommonFG &loc,
+                            const std::string& name ){
+    bool ret = false;
+     try {
+       H5::DataSet tmp = loc.openDataSet(name);
+       ret = true;
+       tmp.close();
+     } catch(H5::Exception) {
+       // nothing to do
+     }
+     return ret;
+  }
+
+  bool H5IO::AttrExists( H5::H5Object& obj,
+                         const std::string& name ) {
+    bool ret = false;
+     try {
+       H5::Attribute tmp = obj.openAttribute(name);
+       ret = true;
+       tmp.close();
+     } catch(H5::Exception) {
+       // nothing to do
+     }
+     return ret;
+  }
+
   
   
   void H5IO::SetMaxChunkSize( UInt chunkSize ) {

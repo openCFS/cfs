@@ -59,11 +59,17 @@ namespace CoupledField {
     //! offset for first time (due to multiSequence)
     Double timeOffset_;
 
+    //! Current simulation time (in s)
+    Double actTime_;
+    
     //! Number of timesteps
     UInt numstep_;
 
     //! current time step
     UInt actTimeStep_;
+    
+    //! Last time step (not necessarily the same as numstep_)
+    UInt endStep_; 
 
     //! Delta t: increment of the time between two steps
     Double firstdt_;
@@ -79,14 +85,14 @@ namespace CoupledField {
     UInt restartStep_;
     
     //! Static flag to HALT the simulation
-    static bool abortSimulation;
+    bool abortSimulation_;
     
     // =======================================================================
     //  Timing estimation
     // =======================================================================
 
     //! Estimated time per step
-    static Double timePerStep_;
+    Double timePerStep_;
     
     //! Timer for estimating remaining runtime 
     boost::shared_ptr<Timer> timer_;

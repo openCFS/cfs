@@ -208,17 +208,30 @@ namespace CoupledField {
 
     //! Obtain grid result group for specified multisequence step
     static H5::Group GetMultiStepGroup( H5::H5File& file,
-                                            UInt msStep,
-                                            bool isHistory );
+                                        UInt msStep,
+                                        bool isHistory );
 
     //! Obtain grid result group for specified step in a given multistep
     static H5::Group GetStepGroup( H5::H5File& file,
                                    UInt msStep, UInt
                                    stepNum );
-    
+
     //! Open group and create it if not yet present
     static H5::Group OpenCreateGroup(H5::CommonFG &curGroup,
                                      const std::string& name );
+
+    //! Check if group exists
+    static bool GroupExists( H5::CommonFG &loc,
+                             const std::string& name );
+
+    //! Check if dataset exists
+    static bool DatasetExists( H5::CommonFG &loc,
+                               const std::string& name );
+
+    //! Check if attribute exists
+    static bool AttrExists( H5::H5Object& obj,
+                            const std::string& name );
+
 
     // =======================================================================
     //  CONVERSION METHODS

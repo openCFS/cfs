@@ -1154,24 +1154,29 @@ namespace CoupledField {
         } else {
           H5::Group actGroup = resGroup.openGroup(resultName );
           
-          if( isHistory ) {
-            // Obtain already written stepValue and stepNumbers and
-            // store them in the meshResultStepNums_, meshResultStepVal_
-            StdVector<UInt> & oldStepNums = histResultStepNums_[resultName];
-            H5IO::ReadArray( actGroup, "StepNumbers", oldStepNums);
+          // Obtain already written stepValue and stepNumbers and
+          // store them in the meshResultStepNums_, meshResultStepVal_.
+          // These array may not be created yet.
+          if( H5IO::DatasetExists(actGroup, "StepNumbers") &&
+              H5IO::DatasetExists(actGroup, "StepValues") ) {
+            if( isHistory ) {
 
-            StdVector<Double> & oldStepVals= histResultStepVal_[resultName];
-            H5IO::ReadArray( actGroup, "StepValues", oldStepVals);
-          } else {
-            // Obtain already written stepValue and stepNumbers and
-            // store them in the meshResultStepNums_, meshResultStepVal_
-            StdVector<UInt> & oldStepNums = meshResultStepNums_[resultName];
-            H5IO::ReadArray( actGroup, "StepNumbers", oldStepNums);
+              StdVector<UInt> & oldStepNums = histResultStepNums_[resultName];
+              H5IO::ReadArray( actGroup, "StepNumbers", oldStepNums);
 
-            
-            StdVector<Double> & oldStepVals= meshResultStepVal_[resultName];
-            H5IO::ReadArray( actGroup, "StepValues", oldStepVals);
+              StdVector<Double> & oldStepVals= histResultStepVal_[resultName];
+              H5IO::ReadArray( actGroup, "StepValues", oldStepVals);
+            } else {
+              // Obtain already written stepValue and stepNumbers and
+              // store them in the meshResultStepNums_, meshResultStepVal_
+              StdVector<UInt> & oldStepNums = meshResultStepNums_[resultName];
+              H5IO::ReadArray( actGroup, "StepNumbers", oldStepNums);
 
+
+              StdVector<Double> & oldStepVals= meshResultStepVal_[resultName];
+              H5IO::ReadArray( actGroup, "StepValues", oldStepVals);
+
+            }
           }
           actGroup.close();
         }
