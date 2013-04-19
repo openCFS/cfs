@@ -177,17 +177,31 @@ SetupRHEL() {
     rpm --import RPM-GPG-KEY-EPEL-${RHEL_REL}
 
     ARCH=$(uname -m | sed 's/i[0-9]86/i386/') || ExitFail
-    BASE=http://apt.sw.be/redhat/el${RHEL_REL}/en
+    BASE=http://pkgs.repoforge.org/rpmforge-release
     case "${RHEL_REL}" in
-	5) RPM=$ARCH/rpmforge/RPMS/rpmforge-release-0.3.6-1.el5.rf.$ARCH.rpm
+	5) RPM=rpmforge-release-0.5.3-1.el5.rf.$ARCH.rpm
 	    ;;
-	6) RPM=$ARCH/rpmforge/RPMS/rpmforge-release-0.5.2-2.el6.rf.$ARCH.rpm
+	6) RPM=rpmforge-release-0.5.3-1.el6.rf.$ARCH.rpm
 	    ;;
 	*)
             echo "RHEL release ${RHEL_REL} is not supported!"
             ;;
     esac
-    rpm -Uhv --force $BASE/$RPM || ExitFail
+    wget $BASE/$RPM || ExitFail
+    rpm -Uhv --force $RPM || ExitFail
+
+    # http://public-yum.oracle.com/
+    if [ "$DIST" = "ORACLE" ]; then
+      case "${RHEL_REL}" in
+	5) wget http://public-yum.oracle.com/public-yum-el${RHEL_REL}.repo
+	    ;;
+	6) wget http://public-yum.oracle.com/public-yum-ol${RHEL_REL}.repo
+	    ;;
+	*)
+            echo "RHEL release ${RHEL_REL} is not supported!"
+            ;;
+      esac
+    fi
 
     yum makecache || ExitFail
 
@@ -196,7 +210,11 @@ SetupRHEL() {
     wget http://www.svnkit.com/org.tmatesoft.svn_1.3.5.standalone.zip && \
     unzip org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
 
-    yum --enablerepo=centosplus install fuse-sshfs subversion gcc gcc-c++ \
+    if [ "$DIST" = "CENTOS" ]; then
+	ENABLE_REPO="--enablerepo=centosplus"
+    fi
+
+    yum $ENABLE_REPO install fuse-sshfs subversion gcc gcc-c++ \
                 perl graphviz.$(uname -m) tetex-latex tetex-tex4ht \
                 automake autoconf cmake gcc-gfortran ncurses-devel \
                 java-1.6.0-openjdk-devel tk-devel python-pygments doxygen \
@@ -413,6 +431,7 @@ case "$DIST" in
      RHEL) SetupRHEL ;;
      CENTOS) SetupRHEL ;;
      SCIENTIFIC) SetupRHEL ;;
+     ORACLE) SetupRHEL ;;
      NETBSD) SetupNetBSD ;;
      *)
         echo "Your distribution $DIST is currently not supported by this script."
