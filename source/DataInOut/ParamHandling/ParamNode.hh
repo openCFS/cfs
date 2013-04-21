@@ -19,10 +19,6 @@ namespace CoupledField
   typedef boost::shared_ptr<ParamNode> PtrParamNode;
   typedef StdVector<boost::shared_ptr<ParamNode> > ParamNodeList;
   
-  /** global parameter instance */
-  extern PtrParamNode param;
-  extern PtrParamNode info;
-  
   /** This class realizes the following concept of param handling, mainly the representation
    * of the XML file.
    * <ul>
@@ -161,7 +157,10 @@ namespace CoupledField
     ParamNodeList& GetChildren() { return children_;}
     
     /** Returns father element. If this element is the root node, NULL is returned */
-    ParamNode*  GetParent() { return parent_;}
+    PtrParamNode  GetParent() { return parent_;}
+    
+    /** Returns the root node. */
+    PtrParamNode GetRoot();
            
     /** Returns the only child of an element which might be an attribute or simple xml element or in
     * other words a leaf node - and without any sorting a complex ParamNode which has children by itself. 
@@ -389,7 +388,7 @@ namespace CoupledField
     ParamNodeList children_;
     
     /** pointer to father node */
-    ParamNode *parent_;
+    PtrParamNode parent_;
     
     /** default action for non-existing nodes */
     ActionType defaultAction_;

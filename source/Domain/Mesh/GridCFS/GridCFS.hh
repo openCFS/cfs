@@ -31,7 +31,7 @@ namespace CoupledField
     //! Constructor 
 
     //! Standard Constructor 
-    GridCFS(UInt dim);
+    GridCFS(UInt dim, PtrParamNode param, PtrParamNode infoNode );
   
     //! Destructor
     virtual ~GridCFS();

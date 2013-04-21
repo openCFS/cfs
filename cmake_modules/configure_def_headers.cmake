@@ -66,6 +66,14 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_knitro.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_cgal.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_cgal.hh")
 
+IF(USE_LIBFBI)
+  SET(USE_LIBFBI 1)
+ELSE()
+  SET(USE_LIBFBI 0)
+ENDIF()
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_libfbi.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_libfbi.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_xerces.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_xerces.hh")
 

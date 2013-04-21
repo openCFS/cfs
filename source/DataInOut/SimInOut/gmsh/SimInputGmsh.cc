@@ -31,8 +31,9 @@
 
 namespace CoupledField {
     
-  SimInputGmsh::SimInputGmsh(std::string fileName, PtrParamNode inputNode) :
-    SimInput(fileName, inputNode),
+  SimInputGmsh::SimInputGmsh(std::string fileName, PtrParamNode inputNode,
+                             PtrParamNode infoNode) :
+    SimInput(fileName, inputNode, infoNode),
     numNodesPerElem_(27),
     dim_(0),
     coordSysId_("default"),

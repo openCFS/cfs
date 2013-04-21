@@ -202,7 +202,7 @@ namespace CoupledField {
       if ( saveFileL_ != "none" ) {
 
         // TODO better use the magPDE infoNode_
-        info->Get("PDE/coil/inductivity/file")->SetValue(saveFileL_);
+        //info->Get("PDE/coil/inductivity/file")->SetValue(saveFileL_);
 
         fileL_ = new std::ofstream( saveFileL_.c_str() );
 
@@ -217,7 +217,7 @@ namespace CoupledField {
       if ( saveFileU_ != "none" ) {
 
         // TODO better use the magPDE infoNode_
-        info->Get("PDE/coil/currents_voltages/file")->SetValue(saveFileU_);
+        //info->Get("PDE/coil/currents_voltages/file")->SetValue(saveFileU_);
 
         fileU_ = new std::ofstream( saveFileU_.c_str() );
 

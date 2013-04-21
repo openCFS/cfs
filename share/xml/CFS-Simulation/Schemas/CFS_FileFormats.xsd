@@ -504,6 +504,7 @@
     <xsd:attribute name="id" type="xsd:token" default="gid"/>
     <xsd:attribute name="directory" type="xsd:string" default="results_gid"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
+    <xsd:attribute name="mergeSequenceSteps" type="DT_CFSBool" default="yes"/>
   </xsd:complexType>
   
   <!-- ******************************************************************** -->

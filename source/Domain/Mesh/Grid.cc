@@ -8,6 +8,12 @@
 #include <limits>
 #include <boost/scoped_array.hpp>
 
+#ifdef USE_LIBFBI
+#include <fbi/tuplegenerator.h> //TraitsGenerator
+#include <fbi/fbi.h> //SetA::intersect
+#include <fbi/tuple.h>
+#endif
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -28,10 +34,12 @@ namespace CoupledField
   DECLARE_LOG(grid)
   DEFINE_LOG(grid, "grid")
 
-  Grid::Grid()
+  Grid::Grid(PtrParamNode param, PtrParamNode infoNode)
   {
     isInitialized_ = false; // set by FinishInit()
     isAxi_ = false;
+    param_ = param;
+    info_ = infoNode;
     
     region_.SetName("Grid::region");
     region_.Add(ALL_REGIONS, "all");
@@ -41,8 +49,6 @@ namespace CoupledField
     // in addition, add always the NO_REGION to the enum
     region_.Add( NO_REGION_ID, "_NO_REGION_");
   }
-
-
 
   Grid::~Grid()
   {
@@ -395,10 +401,10 @@ namespace CoupledField
 
    void Grid::InitNcInterfacesFromXML() {
      // if no param object is present, just leave
-     if (!param) return;
+     if (!param_) return;
 
      // check if there is a ncInterfaceList, if not just leave
-     PtrParamNode nciListNode = param->Get("domain")
+     PtrParamNode nciListNode = param_->Get("domain")
               ->Get("ncInterfaceList", ParamNode::PASS);
      if (!nciListNode) return;
 
@@ -1305,6 +1311,216 @@ namespace CoupledField
 //#endif
 //    }
 
+#elif USE_LIBFBI // USE_CGAL
+
+} // end namespace CoupledField
+
+
+namespace fbi {
+  template<>
+  struct Traits<CoupledField::Elem*> : mpl::TraitsGenerator<double, double, double> {};
+  
+  template<>
+  struct Traits< CoupledField::Vector<Double>* > : mpl::TraitsGenerator<double, double, double> {};
+} // end namespace fbi
+
+namespace CoupledField {
+
+  struct ElemBoxGenerator
+  {
+    template <size_t N>
+    typename fbi::tuple_element<N,
+                                typename fbi::Traits<Elem*>::key_type>::type
+    get(const Elem*) const;
+    Grid* ptGrid_;
+    double globTol_;
+    UInt dim_;
+    ElemBoxGenerator(Grid* ptGrid, double globTol, UInt dim)
+      : ptGrid_(ptGrid), globTol_(globTol), dim_(dim) {}
+  };
+  
+  template <>
+  std::pair<double, double>
+  ElemBoxGenerator::get<0>(const Elem* elem) const
+  {
+    Vector<Double> p(dim_);
+    Double xmin,xmax;
+
+    ptGrid_->GetNodeCoordinate(p, elem->connect[0]);
+
+    xmin = xmax = p[0];
+
+    for(UInt j = 1, n=elem->connect.GetSize(); j < n; j++)
+    {
+      ptGrid_->GetNodeCoordinate(p, elem->connect[j]);
+      xmin = (p[0] < xmin) ? p[0] : xmin;
+      xmax = (p[0] > xmax) ? p[0] : xmax;
+    }
+    shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(elem);
+    Vector<Double> dia;
+    esm->CalcDiameter(dia);
+    xmin -= globTol_*dia[0];
+    xmax += globTol_*dia[0];
+
+    return std::make_pair(xmin, xmax);
+  }
+  
+  template <>
+  std::pair<double, double>
+  ElemBoxGenerator::get<1>(const Elem* elem) const
+  {
+    Vector<Double> p(dim_);
+    Double ymin,ymax;
+    ptGrid_->GetNodeCoordinate(p, elem->connect[0]);
+
+    ymin = ymax = p[1];
+
+    for(UInt j = 1, n=elem->connect.GetSize(); j < n; j++)
+    {
+      ptGrid_->GetNodeCoordinate(p, elem->connect[j]);
+      ymin = (p[1] < ymin) ? p[1] : ymin;
+      ymax = (p[1] > ymax) ? p[1] : ymax;
+    }
+    shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(elem);
+    Vector<Double> dia;
+    esm->CalcDiameter(dia);
+    ymin -= globTol_*dia[1];
+    ymax += globTol_*dia[1];
+
+    return std::make_pair(ymin, ymax);
+  }
+
+  template <>
+  std::pair<double, double>
+  ElemBoxGenerator::get<2>(const Elem* elem) const
+  {
+    if(dim_ == 3) 
+    {
+      Vector<Double> p(3);
+      Double zmin,zmax;
+      ptGrid_->GetNodeCoordinate(p, elem->connect[0]);
+      
+      zmin = zmax = p[2];
+      
+      for(UInt j = 1, n=elem->connect.GetSize(); j < n; j++)
+      {
+        ptGrid_->GetNodeCoordinate(p, elem->connect[j]);
+        zmin = (p[2] < zmin) ? p[2] : zmin;
+        zmax = (p[2] > zmax) ? p[2] : zmax;
+      }
+      shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(elem);
+      Vector<Double> dia;
+      esm->CalcDiameter(dia);
+      zmin -= globTol_*dia[2];
+      zmax += globTol_*dia[2];
+      
+      return std::make_pair(zmin, zmax);
+    }
+    else 
+    {
+      return std::make_pair(-1, 1);
+    }
+  }
+
+  struct PointBoxGenerator
+  {
+    template <size_t N>
+    typename fbi::tuple_element<N,
+                                typename fbi::Traits< Vector<Double>* >::key_type>::type
+    get(const Vector<Double>*) const;
+    UInt dim_;
+    PointBoxGenerator(UInt dim)
+      : dim_(dim) {}
+  };
+  
+  template <>
+  std::pair<double, double>
+  PointBoxGenerator::get<0>(const Vector<Double>* p) const
+  {
+    return std::make_pair((*p)[0], (*p)[0]);
+  }
+  
+  template <>
+  std::pair<double, double>
+  PointBoxGenerator::get<1>(const Vector<Double>* p) const
+  {
+    return std::make_pair((*p)[1], (*p)[1]);
+  }
+
+  template <>
+  std::pair<double, double>
+  PointBoxGenerator::get<2>(const Vector<Double>* p) const
+  {
+    if(dim_ == 3) 
+    {
+      return std::make_pair((*p)[2], (*p)[2]);
+    }
+    else 
+    {
+      return std::make_pair(0, 0);
+    }    
+  }
+
+  void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
+                                       const std::set<RegionIdType> srcRegions ) {
+
+    std::vector< Elem* > elems;
+    std::vector< Vector<Double>* > points;
+    
+    Double globToler = 1e-3;
+    
+    StdVector<Elem*> volElems;
+    GetVolElems(volElems, ALL_REGIONS);
+    std::copy(volElems.Begin(), volElems.End(), std::back_inserter(elems));
+    
+    
+    UInt numPts = matches.GetSize();
+    // Loop over all matches
+    for( UInt iPt = 0; iPt < numPts; ++iPt ) {
+      Vector<Double>* point = &matches[iPt].globCoord;
+      
+      points.push_back(point);
+    } // loop over points
+    
+    ElemBoxGenerator ebg(this, globToler, GetDim());
+    PointBoxGenerator pbg(GetDim());
+
+    // For 2D:
+    //  auto adjList = fbi::SetA<Elem*, 0, 1>::SetB<Vector<Double>*, 0, 1>::intersect(
+    //    elems, ElemBoxGenerator(this, globToler, GetDim()), points, PointBoxGenerator(GetDim()));
+    
+    fbi::SetA<Elem*, 0, 1, 2>::ResultType adjList;
+    adjList = fbi::SetA<Elem*, 0, 1, 2>::SetB<Vector<Double>*, 0, 1, 2>::intersect(
+      elems, ebg, points, pbg);
+    
+    typedef fbi::SetA<Elem*, 0, 1, 2>::IntType LabelType;
+    
+    for(UInt i=elems.size(), n=adjList.size(), ptIdx = 0;
+        i < n;
+        i++, ptIdx++ ) {
+      
+      std::vector<LabelType> queryResultIndexes = adjList[i];
+      std::vector<LabelType>::iterator it = queryResultIndexes.begin();
+      std::vector<LabelType>::iterator end = queryResultIndexes.end();
+      
+      // std::cout << "Size of queryResultIndexes for node: " << queryResultIndexes.size() << std::endl;
+      for( ; it != end; it++) 
+      {
+        const Elem* ptEl = elems[(*it)];
+        // std::cout << "Elem: " << ptEl->elemNum << std::endl;
+        
+        if( srcRegions.size() ) { 
+          if( srcRegions.find(ptEl->regionId) != srcRegions.end() ) {
+            matches[ptIdx].matches.insert(ptEl);
+          }
+        } else {
+          matches[ptIdx].matches.insert(ptEl);
+        }
+        
+      }    
+    }
+  }
+  
 #else // USE_CGAL
   
   // This is a very basic implementation for axis-parallel box intersection. It is just used

@@ -21,7 +21,9 @@ namespace CoupledField{
     /*!
       \param aGrid pointer to grid
     */
-    AcousticPDE( Grid* aGrid, PtrParamNode paramNode );
+    AcousticPDE( Grid* aGrid, PtrParamNode paramNode,
+                 PtrParamNode infoNode,
+                 shared_ptr<SimState> simState, Domain* domain );
 
     virtual ~AcousticPDE(){};
 

@@ -39,7 +39,8 @@ template<typename DATA_TYPE>
 class CoefFunctionGridNodalDefault : public CoefFunctionGridNodal<DATA_TYPE>{
 public:
   
-  CoefFunctionGridNodalDefault(PtrParamNode configNode,PtrParamNode curInfo);
+  CoefFunctionGridNodalDefault(Domain* ptDomain,
+                               PtrParamNode configNode,PtrParamNode curInfo);
 
   virtual ~CoefFunctionGridNodalDefault(){
   };

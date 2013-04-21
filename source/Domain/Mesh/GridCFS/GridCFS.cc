@@ -24,7 +24,8 @@ namespace CoupledField {
   DECLARE_LOG(gridcfs)
   DEFINE_LOG(gridcfs, "grid.cfs")
 
-  GridCFS::GridCFS(UInt dim) : Grid( ) {
+  GridCFS::GridCFS(UInt dim, PtrParamNode param, PtrParamNode info) 
+  : Grid( param, info ) {
     isQuadratic_ = false;
     dim_ = dim;
     assert(dim > 0);
@@ -36,7 +37,6 @@ namespace CoupledField {
     numNcSurfElems_ = 0;
     edgesMapped_ = false;
     facesMapped_ = false;
-
 
   }
 
@@ -58,7 +58,7 @@ namespace CoupledField {
   void GridCFS::CreateUserDefinedNodesElems() {
 
     // if no param object is present, just leave
-    if (!param) return;
+    if (!param_) return;
 
     Vector<Double> coord(dim_);
     std::string coordSys;
@@ -71,11 +71,11 @@ namespace CoupledField {
 
       if( iType == 0 ) {
         // iterate over nodes
-        listNode = param->Get("domain")->Get("nodeList", ParamNode::PASS);
+        listNode = param_->Get("domain")->Get("nodeList", ParamNode::PASS);
         isNode = true;
       } else {
         // iterate over nodes
-        listNode = param->Get("domain")->Get("elemList", ParamNode::PASS);
+        listNode = param_->Get("domain")->Get("elemList", ParamNode::PASS);
         isNode = false;
       }
 
@@ -597,9 +597,9 @@ namespace CoupledField {
     std::string file = "";
 
     // be sensitive to the cfstool case
-    if(!param || !param->Has("domain/regionList")) return NO_REGION_ID;
+    if(!param_ || !param_->Has("domain/regionList")) return NO_REGION_ID;
 
-    ParamNodeList list = param->Get("domain/regionList")->GetList("region");
+    ParamNodeList list = param_->Get("domain/regionList")->GetList("region");
     for(UInt i = 0; i < list.GetSize(); i++)
     {
       if(list[i]->Has("pattern"))
@@ -614,7 +614,8 @@ namespace CoupledField {
     if(name == "") return NO_REGION_ID;
 
     // read the pattern file
-    Xerces* xerces = new Xerces(file);
+    Xerces* xerces = new Xerces();
+    xerces->SetFile(file);
     PtrParamNode xml = xerces->CreateParamNodeInstance();
     delete xerces;
 
@@ -839,7 +840,9 @@ namespace CoupledField {
     orderedElems_.Trim();
 
     // print information to file - checks for exportGrid
-    if(info) { ToInfo(info->Get(ParamNode::PN_HEADER)->Get("domain")); }
+    if(info_ ) {
+       ToInfo(info_->Get(ParamNode::PN_HEADER)->Get("domain")); 
+    }
   }
   
   void GridCFS::GenerateDGSurfaceElemes(std::set<RegionIdType> regionList,
@@ -3055,9 +3058,9 @@ namespace CoupledField {
 
   void GridCFS::makeNameNodesFromLines()
   {
-    if(!param || !param->Has("domain/surfRegionList")) return;
+    if(!param_ || !param_->Has("domain/surfRegionList")) return;
 
-    ParamNodeList list = param->Get("domain/surfRegionList")->GetList("surfRegion");
+    ParamNodeList list = param_->Get("domain/surfRegionList")->GetList("surfRegion");
     std::map<std::string, std::string> excludeSurf;
     StdVector<UInt> nodeList;
     StdVector<UInt> nodeListTmp1, nodeListTmp2;

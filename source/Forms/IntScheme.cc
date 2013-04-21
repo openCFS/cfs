@@ -1507,17 +1507,23 @@ void IntScheme::DefineHexPoints( IntegMethod method, const IntegOrder& order,
 
       case 2:
       case 3:
-        // Gauss  quadrature  points  and  weights  on  the  reference  cube  order  p=2  3
-        static Double a3[][4] = 
-        { 
-         { 1.000000000000000,  0.000000000000000,  0.000000000000000,  1.333333333333333},
-         {-1.000000000000000,  0.000000000000000,  0.000000000000000,  1.333333333333333},
-         { 0.000000000000000,  1.000000000000000,  0.000000000000000,  1.333333333333333},
-         { 0.000000000000000, -1.000000000000000,  0.000000000000000,  1.333333333333333},
-         { 0.000000000000000,  0.000000000000000,  1.000000000000000,  1.333333333333333},
-         { 0.000000000000000,  0.000000000000000, -1.000000000000000,  1.333333333333333}
-        };
-        Convert(Elem::ST_HEXA, 6, (Double*)a3, points, weights);
+//        // Gauss  quadrature  points  and  weights  on  the  reference  cube  order  p=2  3
+//        static Double a3[][4] = 
+//        { 
+//         { 1.000000000000000,  0.000000000000000,  0.000000000000000,  1.333333333333333},
+//         {-1.000000000000000,  0.000000000000000,  0.000000000000000,  1.333333333333333},
+//         { 0.000000000000000,  1.000000000000000,  0.000000000000000,  1.333333333333333},
+//         { 0.000000000000000, -1.000000000000000,  0.000000000000000,  1.333333333333333},
+//         { 0.000000000000000,  0.000000000000000,  1.000000000000000,  1.333333333333333},
+//         { 0.000000000000000,  0.000000000000000, -1.000000000000000,  1.333333333333333}
+//        };
+//        Convert(Elem::ST_HEXA, 6, (Double*)a3, points, weights);
+//        break;
+        
+        // Note: The "true" econmomical integration points from above provide unstable 
+        //       so we utilize the "standard", GAUSS integration points of order 3, 
+        //       having 8 instead of 6 points.
+        DefineHexPoints( GAUSS, order, points, weights );
         break;
 
       case 4:

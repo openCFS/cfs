@@ -29,7 +29,8 @@ namespace CoupledField {
   public:
 
     //! Constructor
-    Assemble( AlgebraicSys* algsys, BasePDE::AnalysisType analysis ); 
+    Assemble( AlgebraicSys* algsys, BasePDE::AnalysisType analysis,
+              PtrParamNode infoNode); 
 
     //! Destructor
     virtual ~Assemble();
@@ -69,10 +70,10 @@ namespace CoupledField {
     void AssembleMatrices();
 
     //! Trigger assembly of all linear right hand side terms
-    void AssembleLinRHS(AdjointParameters* adjointParams = NULL);
+    void AssembleLinRHS();
 
     //! Trigger assenbly of all non-linear right hand side terms
-    void AssembleNonLinRHS(AdjointParameters* adjointParams = NULL);
+    void AssembleNonLinRHS();
 
     // ======================================================
     //  MISCELLANEOUS METHODS
@@ -220,12 +221,12 @@ namespace CoupledField {
     //  MISCELLANEOUS DATA
     // ======================================================
     
+    //! Info node for output of list of (bi)linearforms
+    PtrParamNode info_;
+    
     //! flag indicating if matrices have changed since
     //! last call of AssembleMatrices
     bool matrixUpdated_;
-
-    //! Handle for MathParser object
-    MathParser::HandleType mHandle_;
 
     /** The object is within a ParamNode and deleted there! */
     boost::shared_ptr<Timer> timer_;

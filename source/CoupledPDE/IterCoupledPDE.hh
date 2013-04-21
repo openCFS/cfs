@@ -34,7 +34,9 @@ namespace CoupledField
     //! Constructor
     IterCoupledPDE( StdVector<SinglePDE*>& singlePDEs,
                     StdVector<DirectCoupledPDE*>& cplPde,
-                    PtrParamNode paramNode ); 
+                    PtrParamNode paramNode,
+                    PtrParamNode infoNode,
+                    shared_ptr<SimState> simState, Domain* domain ); 
 
     //! Destructor
     ~IterCoupledPDE();
@@ -68,13 +70,6 @@ namespace CoupledField
     //! Update PDE due to updated step in multistep solution strategy
     virtual void UpdateToSolStrategy();
     
-    //! write a restart file "simname_pdename.restart"
-    void WriteRestart( );
-
-
-    //! read a restart file "simname_pdename.restart"
-    void ReadRestart(UInt &startStep );
-
     //! write results in file
     void WriteResultsInFile(const UInt kstep = 0,
                             const Double asteptime = 0.0 );

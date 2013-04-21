@@ -82,7 +82,12 @@ namespace CoupledField {
     
 
     //! Default constructor
-    BaseMaterial();
+    
+    //! Default constructor
+    //! \param mp Pointer to MathParser
+    //! \param defaultCoosy Pointer to default coordinate system
+    BaseMaterial( MathParser* mp,
+                  CoordSystem * defaultCoosy);
 
     //! Destructor
     virtual ~BaseMaterial();

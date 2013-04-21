@@ -120,6 +120,7 @@
                 <xsd:element name="pressure"      type="DT_BcInhomScalar"/>
                 <xsd:element name="force"         type="DT_BcInhomVector"/>
                 <xsd:element name="forceDensity"  type="DT_BcInhomVector"/>
+                <xsd:element name="rhsValues"     type="DT_BcInhomVector"/>
                 
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="constraint"     type="DT_MechCS" />

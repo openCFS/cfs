@@ -56,6 +56,7 @@ cfsdeps/boost/External_Boost.cmake -text
 cfsdeps/boost/boost-1.48.0-gcc47-winthreads.patch -text
 cfsdeps/boost/boost-intel-signbit-intrinsic.patch -text
 cfsdeps/boost/boost-multi_array.patch -text
+cfsdeps/boost/boost-newline.patch -text
 cfsdeps/boost/boost-patch.cmake.in -text
 cfsdeps/bzip2/CMakeLists.txt -text
 cfsdeps/bzip2/External_bzip2.cmake -text
@@ -108,10 +109,11 @@ cfsdeps/cgns/cgnsview-ccmio.patch -text
 cfsdeps/cmake/External_CMake.cmake -text
 cfsdeps/cmake/cmake-configure.cmake.in -text
 cfsdeps/cmake/cmake-install.cmake.in -text
-cfsdeps/gidpost/CMakeLists.txt -text
 cfsdeps/gidpost/External_GiDpost.cmake -text
+cfsdeps/gidpost/gidpost-file-append.patch -text
+cfsdeps/gidpost/gidpost-fortran.patch -text
+cfsdeps/gidpost/gidpost-install.patch -text
 cfsdeps/gidpost/gidpost-patch.cmake.in -text
-cfsdeps/gidpost/gidpost-sprintf-format.patch -text
 cfsdeps/gmp/External_gmp.cmake -text
 cfsdeps/gmp/gmp-configure.cmake.in -text
 cfsdeps/gmp/gmp-intel-atomic.patch -text
@@ -234,6 +236,7 @@ cfsdeps/scpip/scpip-dum2.patch -text
 cfsdeps/scpip/scpip-gfortran.patch -text
 cfsdeps/scpip/scpip-patch.cmake.in -text
 cfsdeps/scpip/scpip.tar.bz2 -text
+cfsdeps/spacepart/External_spacepart.cmake -text
 cfsdeps/suitesparse/External_SuiteSparse.cmake -text
 cfsdeps/suitesparse/SuiteSparse-METIS-CMake.patch -text
 cfsdeps/suitesparse/blas_lapack_gfortran.h -text
@@ -349,6 +352,7 @@ include/def_use_ilupack.hh.in -text
 include/def_use_ipopt.hh.in -text
 include/def_use_knitro.hh.in -text
 include/def_use_lapack.hh.in -text
+include/def_use_libfbi.hh.in -text
 include/def_use_lis.hh.in -text
 include/def_use_mesh.hh.in -text
 include/def_use_metis.hh.in -text
@@ -866,6 +870,8 @@ share/python/pcolorSBM.py -text
 share/python/probe_ilupack_parameters.py -text
 share/python/spy.py -text
 share/python/test.py -text
+share/python/wedge15.py -text
+share/python/wedge18.py -text
 share/python/xmlreplace.py -text
 share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain
@@ -965,9 +971,8 @@ source/CoupledPDE/coupledPDE.conf svneol=native#text/plain
 source/DataInOut/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/ColoredConsole.cc svneol=native#text/plain
 source/DataInOut/ColoredConsole.hh svneol=native#text/plain
-source/DataInOut/DefineFiles/CMakeLists.txt svneol=native#text/plain
-source/DataInOut/DefineFiles/DefineInOutFiles.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/DefineFiles/DefineInOutFiles.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/DefineInOutFiles.cc svneol=native#text/x-c%2B%2Bsrc
+source/DataInOut/DefineInOutFiles.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/Logging/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/Logging/LogConfigurator.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/Logging/LogConfigurator.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1102,9 +1107,12 @@ source/DataInOut/SimInOut/internalMesh/InternalMesh.hh -text
 source/DataInOut/SimInOut/xdmf/CMakeLists.txt -text
 source/DataInOut/SimInOut/xdmf/SimOutputXDMF.cc -text
 source/DataInOut/SimInOut/xdmf/SimOutputXDMF.hh -text
+source/DataInOut/SimInput.cc -text
 source/DataInOut/SimInput.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimOutput.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimOutput.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/SimState.cc svneol=native#text/x-c%2B%2Bsrc
+source/DataInOut/SimState.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/BCs.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/BCs.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/CMakeLists.txt svneol=native#text/plain
@@ -1135,6 +1143,8 @@ source/Domain/CoefFunction/CoefFunctionMulti.cc -text
 source/Domain/CoefFunction/CoefFunctionMulti.hh -text
 source/Domain/CoefFunction/CoefFunctionPML.cc -text
 source/Domain/CoefFunction/CoefFunctionPML.hh -text
+source/Domain/CoefFunction/CoefFunctionStabParams.cc -text
+source/Domain/CoefFunction/CoefFunctionStabParams.hh -text
 source/Domain/CoefFunction/CoefFunctionSurf.cc -text
 source/Domain/CoefFunction/CoefFunctionSurf.hh -text
 source/Domain/CoefFunction/CoefFunctionTimeFreq.cc -text
@@ -1601,8 +1611,12 @@ source/Utils/mathfunctions.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/tools.cc -text
 source/Utils/tools.hh -text
 source/cfstool/CMakeLists.txt svneol=native#text/plain
+source/cfstool/HelperFuncs.cc -text
+source/cfstool/HelperFuncs.hh -text
 source/cfstool/ParamsInit.cc -text
 source/cfstool/ParamsInit.hh -text
+source/cfstool/WVT.cc -text
+source/cfstool/WVT.hh -text
 source/cfstool/cfstool.cc svneol=native#text/plain
 source/main/CFS.cc svneol=native#text/x-c%2B%2Bsrc
 source/main/CFS.hh -text

@@ -48,7 +48,8 @@ namespace CoupledField
   // ***********************
   //   Default Constructor
   // ***********************
-  BaseMaterial::BaseMaterial() {
+  BaseMaterial::BaseMaterial(MathParser* mp,
+                             CoordSystem * defaultCoosy ) {
 
 
     materialDatabaseName_ = "";
@@ -64,10 +65,10 @@ namespace CoupledField
     piezoMicroModel_   = NULL;
     isPiezoMicroModel_ = false;
     
-    mp_ = domain->GetMathParser();
+    mp_ = mp;
     
     // obtain standard coordinate system
-    coosy_ = domain->GetCoordSystem("default");
+    coosy_ = defaultCoosy;
   }
 
    BaseMaterial::~BaseMaterial() {
@@ -551,9 +552,9 @@ namespace CoupledField
     // perform rotation of 3 x 3 matrix
     if ( rowSize == 3 && colSize == 3) {
       // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
-      CoefXprBinOp tmp( origCoef, cRT, CoefXpr::OP_MULT );
-      CoefXprBinOp final( cR, tmp, CoefXpr::OP_MULT );
-      rotatedCoef = CoefFunction::Generate( part, final );
+      CoefXprBinOp tmp( mp_, origCoef, cRT, CoefXpr::OP_MULT );
+      CoefXprBinOp final( mp_, cR, tmp, CoefXpr::OP_MULT );
+      rotatedCoef = CoefFunction::Generate( mp_, part, final );
     }
     else {
       // we also need Q;
@@ -624,19 +625,19 @@ namespace CoupledField
       cQT->SetTensor( QT );
 
       if ( rowSize == 3 && colSize == 6 ) {
-        CoefXprBinOp tmp( origCoef, cQT, CoefXpr::OP_MULT );
+        CoefXprBinOp tmp( mp_, origCoef, cQT, CoefXpr::OP_MULT );
         UInt nRows, nCols;
         StdVector<std::string>t1, t2;
         tmp.GetTensorXpr(nRows, nCols, t1, t2 );
-        CoefXprBinOp final( cR, tmp, CoefXpr::OP_MULT );
+        CoefXprBinOp final( mp_, cR, tmp, CoefXpr::OP_MULT );
         final.GetTensorXpr(nRows, nCols, t1, t2 );
-        rotatedCoef = CoefFunction::Generate( part, final );
+        rotatedCoef = CoefFunction::Generate(mp_,  part, final );
       }
       else if (rowSize == 6 && colSize == 6 ) {
-        CoefXprBinOp tmp( origCoef, cQT, CoefXpr::OP_MULT );
-        PtrCoefFct tmp2 = CoefFunction::Generate( part, tmp );
-        CoefXprBinOp final( cQ, tmp, CoefXpr::OP_MULT );
-        rotatedCoef = CoefFunction::Generate( part, final );
+        CoefXprBinOp tmp( mp_, origCoef, cQT, CoefXpr::OP_MULT );
+        PtrCoefFct tmp2 = CoefFunction::Generate(mp_,  part, tmp );
+        CoefXprBinOp final( mp_, cQ, tmp, CoefXpr::OP_MULT );
+        rotatedCoef = CoefFunction::Generate(mp_, part, final );
       
       }
       //  else {
@@ -973,10 +974,10 @@ namespace CoupledField
 
      PtrCoefFct mFunct;
      if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
-       CoefXprSubTensor subTensorXpr( tensorCoef_[matType] );
+       CoefXprSubTensor subTensorXpr(mp_,  tensorCoef_[matType] );
 
        subTensorXpr.SetSubTensorType( tensorType, transposed );
-       mFunct = CoefFunction::Generate( Global::COMPLEX, subTensorXpr );
+       mFunct = CoefFunction::Generate( mp_, Global::COMPLEX, subTensorXpr );
      } else {
        EXCEPTION( "Material tensor not found" );
      }

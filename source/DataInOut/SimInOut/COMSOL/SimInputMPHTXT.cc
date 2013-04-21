@@ -214,6 +214,19 @@ namespace CoupledField {
      #endif
       }
       
+      if(strstr(line,"# class")) {
+        std::string class_line = line;
+
+        if(class_line.find( "Mesh") == std::string::npos) {
+          EXCEPTION("Cannot handle .mphtxt classes other than 'Mesh'.\n"
+                    << "Offending class line --> " << class_line);
+        }
+          
+     #ifndef NDEBUG
+        if(debug) printf("class line=%s\n", class_line.c_str());
+     #endif
+      }
+
       else if(strstr(line,"# number of mesh points")) {
         cp = line;
         noknots = next_int(&cp);
@@ -565,8 +578,9 @@ namespace CoupledField {
   
   
   
-  SimInputMPHTXT::SimInputMPHTXT(std::string fileName, PtrParamNode inputNode) :
-    SimInput(fileName, inputNode)
+  SimInputMPHTXT::SimInputMPHTXT(std::string fileName, PtrParamNode inputNode,
+                                 PtrParamNode infoNode ) :
+    SimInput(fileName, inputNode, infoNode)
   {
     capabilities_.insert( SimInput::MESH);
   }

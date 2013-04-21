@@ -16,22 +16,26 @@
 namespace CoupledField {
 DECLARE_LOG(fefunc)
  DEFINE_LOG(fefunc, "feFunction")
- 
-  BaseFeFunction::BaseFeFunction(){
-    
-    fctId_ = NO_FCT_ID;
-    mHandle_ = domain->GetMathParser()->GetNewHandle();
-    algsys_ = NULL;
-    
-    // initialize members of coefficient function
-    dependType_ = CoefFunction::GENERAL;
-    isAnalytic_ = false;
-    dimType_ = NO_DIM;
+
+ BaseFeFunction::BaseFeFunction(MathParser* mp){
+
+  fctId_ = NO_FCT_ID;
+  if(mp) {
+    mp_ = mp;
+    mHandle_ = mp_->GetNewHandle();
+  } else  {
+    mp_ = NULL;
+  }
+  algsys_ = NULL;
+
+  // initialize members of coefficient function
+  dependType_ = CoefFunction::GENERAL;
+  isAnalytic_ = false;
+  dimType_ = NO_DIM;
 
   }
-  
+
   BaseFeFunction::~BaseFeFunction(){
-    
   }
   
   
@@ -172,22 +176,24 @@ DECLARE_LOG(fefunc)
   // ========================================================================
 
   template<typename T>
-  FeFunction<T>::FeFunction(){
+  FeFunction<T>::FeFunction(MathParser* mp) :
+     BaseFeFunction(mp)
+  {
     coeffs_ = NULL;
     factor_ = 1.0;
     timeDerivOrder_ = 0;
     idOp_ = NULL;
     isComplex_ = std::tr1::is_same<T,Complex>::value;
-    MathParser * mp = domain->GetMathParser();
     
-    // Add expression for calculating the time derivative in the
+    if( mp_ ) {
     // harmonic case
     if( IsComplex( )) {
-      mp->SetExpr(mHandle_, "2*pi*f");
-      mp->AddExpChangeCallBack(
+      this->mp_->SetExpr(mHandle_, "2*pi*f");
+      this->mp_->AddExpChangeCallBack(
           boost::bind(&FeFunction<T>::UpdateTimeDeriv, this ),
           mHandle_ );
-    }
+      }
+    }    
   }
   
   
@@ -195,8 +201,9 @@ DECLARE_LOG(fefunc)
   template<typename T>
   FeFunction<T>::~FeFunction(){
     if( domain) {
-      MathParser * mp = domain->GetMathParser();
-      mp->ReleaseHandle( mHandle_ );
+      if (mp_) {
+        mp_->ReleaseHandle( mHandle_ );
+      }
     }
     if( idOp_ )
       delete idOp_;
@@ -239,10 +246,10 @@ DECLARE_LOG(fefunc)
   
   
   template<>
-    void FeFunction<Complex>::UpdateTimeDeriv() {
-    MathParser * mp = domain->GetMathParser();
-    
-    Double omega = mp->Eval( mHandle_ );
+  void FeFunction<Complex>::UpdateTimeDeriv() {
+    if( !mp_ ) 
+      return;
+    Double omega = this->mp_->Eval( mHandle_ );
     switch( timeDerivOrder_ ) {
       case 0:
         factor_ = Complex(1.0,0);
@@ -255,7 +262,7 @@ DECLARE_LOG(fefunc)
         break;
     }
   }
-  
+
   template<typename T>
   void FeFunction<T>::Finalize(){
     
@@ -433,9 +440,9 @@ DECLARE_LOG(fefunc)
     FeSpace::SpaceType curType = feSpace_->GetSpaceType();
     PtrCoefFct unity;
     if ( std::tr1::is_same<T,Complex>::value ) { 
-      unity = CoefFunction::Generate(Global::COMPLEX, "1.0");
+      unity = CoefFunction::Generate(mp_, Global::COMPLEX, "1.0");
     } else {
-      unity = CoefFunction::Generate(Global::REAL, "1.0");
+      unity = CoefFunction::Generate(mp_, Global::REAL, "1.0");
     }
     switch(curType){
       case FeSpace::H1:
@@ -688,7 +695,13 @@ DECLARE_LOG(fefunc)
     //loop over all loads
     for ( UInt i = 0; i < loadCoefs_.GetSize(); i++ ) {
       if(loadCoefs_[i]->IsConservative()){
-        loadCoefs_[i]->MapConservative(this->feSpace_,*this->coeffs_);
+        //this is a little circumfencial allocaing and releasing memory
+        //in each step. perhaps it would be better to mak a class variable or do it
+        //differently somehow
+        Vector<T> loadVec(this->coeffs_->GetSize());
+        loadVec.Init();
+        loadCoefs_[i]->MapConservative(this->feSpace_,loadVec);
+        this->algsys_->SetFncRHS(loadVec,this->fctId_);
       }else{
         //ok here we pass again the work to the space
         shared_ptr<CoefFunction> curFnc = loadCoefs_[i];
@@ -703,12 +716,10 @@ DECLARE_LOG(fefunc)
           std::map<Integer, T> coefs;
           feSpace_->MapCoefFctToSpace( curEnt, curFnc, coefs,
                                        false );
-          Vector<T> & myVals = *this->coeffs_;
+
           typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
           for( ; coefIt != coefs.end(); ++coefIt ) {
-            Integer eqnNr = coefIt->first;
-            T val = coefIt->second;
-            myVals[eqnNr-1] += val;
+            this->algsys_->SetNodeRHS(coefIt->second,this->fctId_,(Integer)coefIt->first);
           }
         }
       }

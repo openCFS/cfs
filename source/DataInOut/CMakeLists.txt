@@ -13,7 +13,10 @@ SET(DATAINOUT_SRCS
   ProgramOptions.cc
   ResultCache.cc
   ResultHandler.cc
+  SimState.cc
+  SimInput.cc
   SimOutput.cc
+  DefineInOutFiles.cc
 )
 
 ADD_LIBRARY(datainout STATIC ${DATAINOUT_SRCS})
@@ -51,4 +54,54 @@ IF(USE_LAPACK)
 ENDIF(USE_LAPACK)
 
 
-TARGET_LINK_LIBRARIES(datainout ${TARGET_LL})
+
+
+
+# ================
+
+IF(USE_HDF5)
+  INCLUDE_DIRECTORIES(${HDF5_INCLUDE_DIR})
+ENDIF(USE_HDF5)
+
+IF(USE_MESH)
+  LIST(APPEND TARGET_LL siminmesh)
+  LIST(APPEND TARGET_LL internalmesh)
+ENDIF(USE_MESH)
+
+IF(USE_GMV)
+  LIST(APPEND TARGET_LL siminoutgmv)
+ENDIF(USE_GMV)
+
+IF(USE_GMSH)
+  LIST(APPEND TARGET_LL siminoutgmsh)
+ENDIF(USE_GMSH)
+
+IF(USE_GIDPOST)
+  LIST(APPEND TARGET_LL simoutgid)
+ENDIF(USE_GIDPOST)
+
+IF(USE_UNV)
+  LIST(APPEND TARGET_LL simoutunv)
+ENDIF(USE_UNV)
+
+IF(USE_HDF5)
+  LIST(APPEND TARGET_LL siminouthdf5)
+  LIST(APPEND TARGET_LL simoutxdmf)
+ENDIF(USE_HDF5)
+
+IF(USE_ANSYSRST)
+  LIST(APPEND TARGET_LL simoutansysrst)
+ENDIF(USE_ANSYSRST)
+
+IF(USE_COMSOL)
+  LIST(APPEND TARGET_LL siminmphtxt)
+ENDIF(USE_COMSOL)
+
+LIST(APPEND TARGET_LL siminrefelems)
+
+LIST(APPEND TARGET_LL simoutinfo)
+
+LIST(APPEND TARGET_LL datainout)
+
+  
+  TARGET_LINK_LIBRARIES(datainout ${TARGET_LL})

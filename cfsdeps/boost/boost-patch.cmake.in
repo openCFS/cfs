@@ -21,6 +21,7 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 #=============================================================================
 SET(patches
   "boost-multi_array.patch"
+  "boost-newline.patch"
 )
 
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")

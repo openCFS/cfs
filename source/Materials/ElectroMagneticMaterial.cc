@@ -21,7 +21,9 @@ namespace CoupledField
   // ***********************
   //   Default Constructor
   // ***********************
-  ElectroMagneticMaterial::ElectroMagneticMaterial() : BaseMaterial() {
+  ElectroMagneticMaterial::ElectroMagneticMaterial(MathParser* mp,
+                                                   CoordSystem * defaultCoosy)
+  : BaseMaterial(mp, defaultCoosy) {
 
     materialDatabaseName_ = "Electromagnetics";
 

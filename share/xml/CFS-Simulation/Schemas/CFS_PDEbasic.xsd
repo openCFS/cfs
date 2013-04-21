@@ -54,7 +54,7 @@
   <!-- ******************************************************************** -->
 
   <!-- Depend Type of grid coeffunction -->
-  <xsd:simpleType name="DT_CoefGirdDependType">
+  <xsd:simpleType name="DT_CoefGridDependType">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="GENERAL"/>
       <xsd:enumeration value="TIMEFREQ"/>
@@ -63,7 +63,7 @@
   </xsd:simpleType>
 
   <!-- Mode of interpolation -->
-  <xsd:simpleType name="DT_CoefGirdInterpolMode">
+  <xsd:simpleType name="DT_CoefGridInterpolMode">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="standard"/>
       <xsd:enumeration value="conservative"/>
@@ -80,7 +80,7 @@
                  <xsd:element name="factor" maxOccurs="1" minOccurs="0" default="1" type="xsd:int"/>
                </xsd:sequence>
                <xsd:attribute name="quantity" use="required"/>
-               <xsd:attribute name="dependtype" type="DT_CoefGirdDependType" use="required" />
+               <xsd:attribute name="dependtype" type="DT_CoefGridDependType" use="required" />
                <xsd:attribute name="sequenceStep" type="xsd:integer" use="optional" default="1" />
              </xsd:complexType>
           </xsd:element>
@@ -106,8 +106,8 @@
               <xsd:attribute name="gridId" type="xsd:token" use="required"/>
               <xsd:attribute name="inputId" type="xsd:token" use="required"/>
               <xsd:attribute name="quantity" use="required"/>
-              <xsd:attribute name="dependtype" type="DT_CoefGirdDependType" use="required" />
-              <xsd:attribute name="interpolation" type="DT_CoefGirdInterpolMode" use="optional" default="standard"/>            
+              <xsd:attribute name="dependtype" type="DT_CoefGridDependType" use="required" />
+              <xsd:attribute name="interpolation" type="DT_CoefGridInterpolMode" use="optional" default="standard"/>            
                <xsd:attribute name="sequenceStep" type="xsd:integer" use="optional" default="1" />
             </xsd:complexType>
           </xsd:element>
@@ -290,6 +290,29 @@
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent> 
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of initial state -->
+  <!-- ******************************************************************** -->
+
+  <!-- Base element type for specifying the initial state of a PDE, i.e.
+       its intial value for the primary quantity and its time derivatives -->
+  <xsd:complexType name="DT_InitialState">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+       <xsd:choice>
+         <!-- 1) Same simulation, different multisequence step -->
+         <xsd:element name="sequenceStep">
+           <xsd:complexType>
+             <xsd:attribute name="index" type="xsd:positiveInteger" use="required"/>
+             <xsd:attribute name="step" type="xsd:integer" use="optional" default="-1"/>
+           </xsd:complexType>  
+         </xsd:element>
+       </xsd:choice>
+      </xsd:restriction>
+    </xsd:complexContent>
   </xsd:complexType>
 
 

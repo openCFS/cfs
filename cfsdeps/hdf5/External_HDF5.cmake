@@ -82,6 +82,13 @@ LIST(APPEND CMAKE_ARGS
   )
 
 #-------------------------------------------------------------------------------
+# Set names of patch file and template file.
+#-------------------------------------------------------------------------------
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/hdf5/hdf5-patch.cmake.in")
+SET(PFN "${hdf5_prefix}/hdf5-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
+#-------------------------------------------------------------------------------
 # The hdf5-static external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(hdf5-static
@@ -91,6 +98,7 @@ ExternalProject_Add(hdf5-static
   SOURCE_DIR ${hdf5_source}
   URL ${HDF5_URL}/${HDF5_GZ}
   URL_MD5 ${HDF5_MD5}
+  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   LIST_SEPARATOR ^
   CMAKE_ARGS
     ${CMAKE_ARGS}
@@ -101,34 +109,9 @@ ExternalProject_Add(hdf5-static
     -DHDF5_ENABLE_Z_LIB_SUPPORT:BOOL=ON
     -DZLIB_INCLUDE_DIR:PATH=${hdf5_install}/include
     -DHDF5_BUILD_TOOLS:BOOL=ON
+    # On Mac OS X we can get problems with the system strdup function.
+    -DH5_HAVE_STRDUP:BOOL=OFF
     )
-
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/hdf5/hdf5-patch.cmake.in")
-SET(PFN "${hdf5_prefix}/hdf5-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-#-------------------------------------------------------------------------------
-# We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
-# want to apply the patch script  during configuration time but also if it has
-# changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
-# script. This can be achieved by  adding an additional build step between the
-# download and configure steps.
-#
-# NOTE: The  patch script should  be designed  in such a  way, that it  can be
-# applied to  an already patched  source tree. This  is due to the  fact, that
-# ExternalProject_Add only extracts the source if the MD5 sum has has changed.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(hdf5-static custom_patch
-   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-   DEPENDEES download
-   DEPENDERS configure
-   DEPENDS "${PFN}"
-   WORKING_DIRECTORY ${hdf5_source}
-)
-
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

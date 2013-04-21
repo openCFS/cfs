@@ -16,7 +16,7 @@ namespace CoupledField
   class BaseBDBInt;
   class ResultFunctor;
   
-  //! Class for electrostatic equation (no adaptivity)
+  //! Class for electrostatic PDE
   class ElecPDE : public SinglePDE {
 
   public:
@@ -45,7 +45,9 @@ namespace CoupledField
       \param grid pointer to grid
       \param paramNode pointer to the corresponding parameter node
     */
-    ElecPDE( Grid* grid, PtrParamNode paramNode );
+    ElecPDE( Grid* grid, PtrParamNode paramNode,
+             PtrParamNode infoNode,
+             shared_ptr<SimState> simState, Domain* domain );
 
     //! Destructor
     virtual ~ElecPDE(){};

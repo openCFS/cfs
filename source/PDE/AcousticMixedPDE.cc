@@ -55,8 +55,11 @@ namespace CoupledField{
   DECLARE_LOG(acousticmixedpde)
    DEFINE_LOG(acousticmixedpde, "pde.acousticmixed")
 
-   AcousticMixedPDE::AcousticMixedPDE( Grid* aGrid, PtrParamNode paramNode )
-               : SinglePDE( aGrid, paramNode ){
+   AcousticMixedPDE::AcousticMixedPDE( Grid* aGrid, PtrParamNode paramNode,
+                                       PtrParamNode infoNode,
+                                       shared_ptr<SimState> simState, 
+                                       Domain* domain)
+               : SinglePDE( aGrid, paramNode, infoNode, simState, domain ){
 
      pdename_           = "acousticMixed";
      pdematerialclass_  = FLUID;
@@ -116,7 +119,7 @@ namespace CoupledField{
 
     //type of geometry
     std::string geometryType;
-    param->Get("domain")->GetValue("geometryType", geometryType );
+    domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", geometryType );
 
     // convert to tensor type
     // SubTensorType tensorType = FULL;
@@ -168,7 +171,7 @@ namespace CoupledField{
       //  VERSION 1: K_PV Integrator (upper off-diagonal integrator)
       // --------------------------------------------------------------------
 
-      PtrCoefFct coeffKPV = CoefFunction::Generate(Global::REAL, "1.0");
+      PtrCoefFct coeffKPV = CoefFunction::Generate(mp_, Global::REAL, "1.0");
       BiLinearForm * stiffIntPV = NULL;
 
       if(usePiola_)
@@ -176,7 +179,7 @@ namespace CoupledField{
                                           new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>() , 
                                           coeffKPV,1.0, updatedGeo_ );
       else
-        stiffIntPV = new ABInt<DATA_TYPE>(new  GradientOperator<FeH1,DIM,DATA_TYPE>() , 
+        stiffIntPV = new ABInt<DATA_TYPE>(new  GradientOperator<FeH1,DIM,DATA_TYPE>() ,
                                           new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(),  
                                           coeffKPV,1.0, updatedGeo_ );
 
@@ -194,7 +197,7 @@ namespace CoupledField{
       // --------------------------------------------------------------------
       //  VERSION 2: K_VP = K_PV^T Integrator (lower off-diagonal integrator)
       // --------------------------------------------------------------------
-      PtrCoefFct coeffKVP = CoefFunction::Generate(Global::REAL, "1.0");
+      PtrCoefFct coeffKVP = CoefFunction::Generate(mp_, Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
 
       if(usePiola_)
@@ -220,8 +223,8 @@ namespace CoupledField{
       // ====================================================================
       // coefficent for mass integrator: 1.0 / compressibility
       PtrCoefFct coeffMPP
-          = CoefFunction::Generate(Global::REAL, 
-                                   CoefXprBinOp("1.0", compressibility, CoefXpr::OP_DIV) );
+          = CoefFunction::Generate(mp_, Global::REAL, 
+                                   CoefXprBinOp(mp_, "1.0", compressibility, CoefXpr::OP_DIV) );
 
       BiLinearForm *massIntPP = NULL;
 
@@ -284,8 +287,8 @@ namespace CoupledField{
         
         if(doFluxTerm_) {
           convFactor = 
-              CoefFunction::Generate(Global::REAL, 
-                                     CoefXprBinOp("0.5", density, CoefXpr::OP_MULT ) );
+              CoefFunction::Generate(mp_, Global::REAL, 
+                                     CoefXprBinOp(mp_, "0.5", density, CoefXpr::OP_MULT ) );
         } else {
           convFactor = density;
         }
@@ -304,8 +307,8 @@ namespace CoupledField{
         
         // Coefficient for mass integrator: 1.0 / compressibility
         PtrCoefFct coeffPP
-        = CoefFunction::Generate(Global::REAL, 
-                                 CoefXprBinOp("1.0", compressibility, CoefXpr::OP_DIV) );
+        = CoefFunction::Generate(mp_, Global::REAL, 
+                                 CoefXprBinOp(mp_, "1.0", compressibility, CoefXpr::OP_DIV) );
         
         convectivePP = 
             new ABInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,1,DATA_TYPE>(), 
@@ -338,8 +341,8 @@ namespace CoupledField{
           
           // formFactor = density * penaltyFactor
           PtrCoefFct formFactor = 
-              CoefFunction::Generate(Global::REAL,
-                                     CoefXprBinOp(lexical_cast<std::string>(penaltyFactor),
+              CoefFunction::Generate(mp_, Global::REAL,
+                                     CoefXprBinOp(mp_, lexical_cast<std::string>(penaltyFactor),
                                                   density, CoefXpr::OP_MULT ) );
           BiLinearForm *convectiveVOpp = NULL;
           BiLinearForm *convectiveV = NULL;
@@ -524,14 +527,14 @@ namespace CoupledField{
         
         // c0 = sqrt(bulk_modulus / density)
         PtrCoefFct c0 = 
-            CoefFunction::Generate( Global::REAL,
-                                    CoefXprUnaryOp( CoefXprBinOp(compressibility, density, CoefXpr::OP_DIV),
+            CoefFunction::Generate(mp_,  Global::REAL,
+                                    CoefXprUnaryOp( mp_, CoefXprBinOp(mp_, compressibility, density, CoefXpr::OP_DIV),
                                     CoefXpr::OP_SQRT) );
 
         PtrCoefFct coeffKPV
-        = CoefFunction::Generate(Global::REAL,
-                                 CoefXprBinOp("1.0", 
-                                              CoefXprBinOp(density, c0, CoefXpr::OP_MULT ),
+        = CoefFunction::Generate(mp_, Global::REAL,
+                                 CoefXprBinOp(mp_, "1.0", 
+                                              CoefXprBinOp(mp_, density, c0, CoefXpr::OP_MULT ),
                                               CoefXpr::OP_DIV) ) ;
               
         BiLinearForm * abcInt = NULL;
@@ -563,10 +566,6 @@ namespace CoupledField{
       solveStep_ = new StdSolveStep(*this);
     }
 
-    void AcousticMixedPDE::SetInitialCondition(){
-
-    }
-
     //!  Define available postprocessing results
     void AcousticMixedPDE::DefinePrimaryResults(){
 
@@ -574,7 +573,7 @@ namespace CoupledField{
       StdVector<std::string> velDofNames;
 
       std::string geometryType;
-      param->Get("domain")->GetValue("geometryType", geometryType );
+      domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", geometryType );
 
       if( geometryType == "3d" ) {
         velDofNames = "x", "y", "z";

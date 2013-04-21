@@ -94,13 +94,13 @@ namespace CoupledField {
   //! Convert (ampl,phase) => real (strings)
   std::string AmplPhaseToReal( const std::string& val, 
                                const std::string& phase ) {
-    return "(" + val + " * cos( " + phase + " / 180 * pi ) )";
+    return "( (" + val + ") * cos( " + phase + " / 180 * pi ) )";
   }
 
   //! Convert (ampl,phase) => imag (strings)
   std::string AmplPhaseToImag( const std::string& val, 
                                const std::string& phase ) {
-    return "(" + val + " * sin( " + phase + " / 180 * pi ) )";
+    return "( (" + val + ") * sin( " + phase + " / 180 * pi ) )";
   }
 
   // ------ vector versions -----

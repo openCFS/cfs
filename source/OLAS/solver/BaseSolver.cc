@@ -196,8 +196,11 @@ namespace CoupledField {
   
   void BaseSolver::PostInit()
   {
+    // Assert that info Node is set
+    assert( infoNode_ );
+    
     // not all solvers are switched to ParamNode yet
-    PtrParamNode base = infoNode_ != NULL ? infoNode_ : info->Get("OLAS/legacySolver", ParamNode::APPEND);
+    PtrParamNode base = infoNode_;
     setupTimer_ = boost::shared_ptr<Timer>(new Timer());
     base->Get(ParamNode::PN_SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
     solveTimer_ = boost::shared_ptr<Timer>(new Timer());

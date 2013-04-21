@@ -36,8 +36,9 @@ namespace CoupledField{
 //};
 
   template<class DATA_TYPE>
-  CoefFunctionGridNodal<DATA_TYPE>::CoefFunctionGridNodal(PtrParamNode configNode)
-                                   :CoefFunctionGrid(configNode){
+  CoefFunctionGridNodal<DATA_TYPE>::CoefFunctionGridNodal(Domain* ptDomain,
+                                                          PtrParamNode configNode)
+                                   :CoefFunctionGrid(ptDomain, configNode){
     eqnMapComplete_ = false;
 
     std::string solString = configNode->Get("quantity")->As<std::string>();
@@ -45,7 +46,7 @@ namespace CoupledField{
     isComplex_ =  std::tr1::is_same<DATA_TYPE,Complex>::value;
     this->numEqns_ = 0;
     // obtain handle from internal variable coefficient function
-    mp_ = domain->GetMathParser();
+    mp_ = domain_->GetMathParser();
     mHandleStep_ = mp_->GetNewHandle(true);
 
     std::string var;
@@ -60,15 +61,15 @@ namespace CoupledField{
       configNode->GetValue("factor",factorString);
 
       if(isComplex_)
-        factorFnc_ = CoefFunction::Generate(Global::COMPLEX,factorString);
+        factorFnc_ = CoefFunction::Generate(mp_,Global::COMPLEX,factorString);
       else
-        factorFnc_ = CoefFunction::Generate(Global::REAL,factorString);
+        factorFnc_ = CoefFunction::Generate(mp_, Global::REAL,factorString);
     }else{
 
       if(isComplex_)
-        factorFnc_ = CoefFunction::Generate(Global::COMPLEX,"1.0");
+        factorFnc_ = CoefFunction::Generate(mp_,Global::COMPLEX,"1.0");
       else
-        factorFnc_ = CoefFunction::Generate(Global::REAL,"1.0");
+        factorFnc_ = CoefFunction::Generate(mp_,Global::REAL,"1.0");
     }
 
 
@@ -122,7 +123,7 @@ namespace CoupledField{
     //Be careful we determine the current sequence step according to the 
     //current simulation run. This could fail in a multisequence analysis!!!
     //the user should give an argument where to find the results!
-    shared_ptr<BaseResult> Bres = domain->GetResultHandler()->GetResult( inputId_, aSeqStep_ ,stepValueMap_.begin()->first, solType_, *srcRegions_.begin() );
+    shared_ptr<BaseResult> Bres = domain_->GetResultHandler()->GetResult( inputId_, aSeqStep_ ,stepValueMap_.begin()->first, solType_, *srcRegions_.begin() );
 
     std::set<std::string>::iterator regIter = srcRegions_.begin();
     UInt pos = 0;
@@ -174,7 +175,7 @@ namespace CoupledField{
     sol.Resize(numEqns_);
     sol.Init();
     for( UInt i = 0; regIter != srcRegions_.end(); ++i,++regIter) {
-      shared_ptr<BaseResult> Bres = domain->GetResultHandler()->GetResult( this->inputId_, this->aSeqStep_ , step , this->solType_, *regIter );
+      shared_ptr<BaseResult> Bres = domain_->GetResultHandler()->GetResult( this->inputId_, this->aSeqStep_ , step , this->solType_, *regIter );
       shared_ptr<EntityList> regionList = Bres->GetEntityList();
       shared_ptr<EntityList> nodeList = srcGrid_->GetEntityList(EntityList::NODE_LIST, regionList->GetName());
       EntityIterator it= nodeList->GetIterator();

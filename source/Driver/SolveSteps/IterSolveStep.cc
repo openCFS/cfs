@@ -309,11 +309,13 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     LOG_TRACE(itersolvestep) << "Initializing iterative coupling";
     
     // fetch "convergence" node
-    PtrParamNode convParamNode = param_->Get("convergence", ParamNode::PASS );
+    PtrParamNode convParamNode; 
+    if( param_ )
+      convParamNode = param_->Get("convergence", ParamNode::PASS );
     convNode_ = info_->Get("convergence");
 
     // get maximum number of iterations (optional)
-    maxiter_ = 100;
+    maxiter_ = 1;
     if( convParamNode )
       convParamNode->GetValue( "maxNumIters", maxiter_, ParamNode::PASS );
     convNode_->Get("maxNumIters")->SetValue(maxiter_);
@@ -331,7 +333,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     convNode_->Get("stopOnDivergence")->SetValue(stopOnDivergence_);
 
     // 1) Check for general convergence criterions
-    if( convParamNode->Has("quantity") ) {
+    if( convParamNode && convParamNode->Has("quantity") ) {
       LOG_TRACE(itersolvestep) << "Checking convergence criterions";
       ParamNodeList q = convParamNode->GetList("quantity");
       for( UInt i = 0; i < q.GetSize(); ++i ) {
@@ -539,7 +541,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   //  STATIC COUPLED ITERATION
   // ========================================================================
 
-  void IterSolveStep::SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
+  void IterSolveStep::SolveStepStatic(PtrParamNode analysis_id) {
     LOG_TRACE(itersolvestep) << "----------------------";
     LOG_TRACE(itersolvestep) << " Solving static step  ";
     LOG_TRACE(itersolvestep) << "----------------------\n";
@@ -587,7 +589,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic();
-        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(analysis_id, adjointParams);
+        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(analysis_id);
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
       } // end of for-loop
 
@@ -668,7 +670,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   
   
   
-  void IterSolveStep::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
+  void IterSolveStep::SolveStepTrans(PtrParamNode analysis_id) {
 
     LOG_TRACE(itersolvestep) << "--------------------------------------"; 
     LOG_TRACE(itersolvestep) <<" Solving transient step " << actStep_ 
@@ -720,7 +722,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
         rPDE_.PDEs_[i]->GetSolveStep()->SetCouplingIter(iter);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans();
-        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(analysis_id, adjointParams);
+        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(analysis_id);
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans();
       } // end of for-loop
 

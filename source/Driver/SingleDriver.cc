@@ -8,8 +8,9 @@ namespace CoupledField{
 
 
   SingleDriver::SingleDriver( UInt sequenceStep,
-                              bool isPartOfSequence )
-    : BaseDriver()
+                              bool isPartOfSequence,
+                              shared_ptr<SimState> state, Domain* domain  )
+    : BaseDriver(state, domain)
       
   {
   
@@ -30,12 +31,10 @@ namespace CoupledField{
     if( ! isPartOfSequence_ ) {
       
       // Initialize pdes 
-      domain->CreatePDEs( 1 );
-      ptPDE_ = domain->GetBasePDE();
+      domain_->CreatePDEs( 1 );
+      ptPDE_ = domain_->GetBasePDE();
 
-      domain->InitPDEs( 1 );
-      // Trigger reading of restart file
-      ReadRestart();
+      domain_->InitPDEs( 1 );
 
       std::cout << "++ Starting to solve problem" << std::endl;
     }

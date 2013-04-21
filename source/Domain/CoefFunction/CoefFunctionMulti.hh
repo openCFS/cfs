@@ -104,7 +104,7 @@ private:
     if(it == regionCoefs_.end()){
       if ( !zeroEmptyRegions_ )
         EXCEPTION("Region " << region << " is not contained in functor");
-      return zeroCeof_;
+      return zeroCoef_;
     }
     return it->second;
   }
@@ -113,7 +113,7 @@ private:
   std::map<RegionIdType,PtrCoefFct > regionCoefs_;
   
   //! "Zero" coefficient function, returned for empty regions
-  PtrCoefFct zeroCeof_;  
+  PtrCoefFct zeroCoef_;  
   
   //! Flag, if zero coefficient function is return for non-set regions
   bool zeroEmptyRegions_;

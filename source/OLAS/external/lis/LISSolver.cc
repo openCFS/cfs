@@ -255,8 +255,7 @@ void LISSolver::Solve( const BaseMatrix &sysmat,
       myEnt.real() = x_->value[i*2];
       myEnt.imag() = x_->value[i*2+1];
 #endif
-      myEnt.real() = x_->value[i];
-      myEnt.imag() = x_->value[i+n];
+      myEnt = Complex(x_->value[i], x_->value[i+n]);
       
       sol.SetEntry(i,myEnt);
     }
@@ -479,7 +478,7 @@ void LISSolver::createPrecondString(PtrParamNode precondNode, std::string& outpu
         solstream << " -ilu_fill "<< fill;
         break;
       case SSOR:;
-        restart = 1.0;
+        restart = 1;
         sol[1]->GetValue("restart",restart,ParamNode::PASS);
         solstream << " -ssor_w "<< restart;
         break;

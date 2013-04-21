@@ -13,7 +13,8 @@ namespace CoupledField {
     //! \param sequenceStep current step in multisequence simulation
     //! \param true, if driver is part of  multiSequence
     StaticDriver( UInt sequenceStep,
-                  bool isPartOfSequence = false );
+                  bool isPartOfSequence,
+                  shared_ptr<SimState> state, Domain* domain);
 
     //! Destructor 
     ~StaticDriver();
@@ -25,7 +26,7 @@ namespace CoupledField {
     void Init();
 
     /** @see BaseDriver::SolveProblem(double) */  
-    void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL);
+    void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode());
         
     /** @see BaseDriver::StoreResults(double) */  
     void StoreResults(UInt stepNum, double step_val);

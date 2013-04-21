@@ -560,10 +560,12 @@ void FeSpaceHi::MapCoefFctToSpacePriv(shared_ptr<EntityList> entityList,
       ctx->infoNode.reset(new ParamNode(ParamNode::INSERT));
       ctx->algSys = new AlgebraicSys( ctx->olasNode, ctx->infoNode, isComplex );
 
-      // generate new assemble class
+      // generate new assemble class with dummy info points
+      PtrParamNode infoNode = 
+          PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
       BasePDE::AnalysisType aType =
           isComplex ? BasePDE::HARMONIC : BasePDE::STATIC;
-      ctx->assemble = new Assemble( ctx->algSys, aType );
+      ctx->assemble = new Assemble( ctx->algSys, aType, infoNode );
 
       // --------------------------------------------------------------------
       // generate (dimensional and space-dependent) interpolation (bi)linear
@@ -664,7 +666,7 @@ void FeSpaceHi::MapCoefFctToSpacePriv(shared_ptr<EntityList> entityList,
 
     // update the RHS due to the new coefficient vector
     ctx->algSys->InitRHS();
-    ctx->assemble->AssembleLinRHS(NULL);
+    ctx->assemble->AssembleLinRHS();
 
 
     // solve system and aquire solution

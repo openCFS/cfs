@@ -10,14 +10,14 @@ namespace CoupledField{
 // ===========================================================================
 
 CoefFunctionTimeFreq<Double>::
-CoefFunctionTimeFreq() : CoefFunctionAnalytic() {
+CoefFunctionTimeFreq(MathParser * mp) : CoefFunctionAnalytic() {
   
   dependType_ = TIMEFREQ;
   isAnalytic_ = true;
   isComplex_ = false;
   
   // obtain handle from internal variable coefficient function
-  mp_ = domain->GetMathParser();
+  mp_ = mp;
   mHandle_ = mp_->GetNewHandle(true);
   
   // register callback mechanism if expression changes
@@ -139,6 +139,7 @@ std::string  CoefFunctionTimeFreq<Double>::ToString() const {
       break;
     default:
       EXCEPTION("Missing case");
+      return "";
   }
 }
 
@@ -189,14 +190,14 @@ Recalculate() {
 //  COMPLEX VALUED COEFFICIENT FUNCTION
 // ===========================================================================
 CoefFunctionTimeFreq<Complex>::
-CoefFunctionTimeFreq() : CoefFunctionAnalytic() {
+CoefFunctionTimeFreq(MathParser * mp) : CoefFunctionAnalytic() {
   
   dependType_ = TIMEFREQ;
   isAnalytic_ = true;
   isComplex_ = true;
   
   // obtain handle from internal variable coefficient function
-  mp_ = domain->GetMathParser();
+  mp_ = mp;
   mHandleReal_ = mp_->GetNewHandle(true);
   mHandleImag_ = mp_->GetNewHandle(true);
   
@@ -224,7 +225,7 @@ PtrCoefFct CoefFunctionTimeFreq<Complex>::GetComplexPart( Global::ComplexPart pa
   if( part  == Global::COMPLEX ) {
     ret = shared_from_this();
   } else if ( part == Global::REAL || part == Global::IMAG ) {
-    shared_ptr<CoefFunctionTimeFreq<Double> > real(new CoefFunctionTimeFreq<Double>());
+    shared_ptr<CoefFunctionTimeFreq<Double> > real(new CoefFunctionTimeFreq<Double>(mp_));
     switch(dimType_) {
       case SCALAR:
         if( part == Global::REAL )

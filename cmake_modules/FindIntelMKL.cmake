@@ -127,7 +127,7 @@ SET (MKL_POSSIBLE_PATHS
   /opt/intel/Compiler/11.0/081/mkl
   /opt/intel/Compiler/11.0/074/mkl
   /opt/intel/mkl/10.0.5.025
-  /home/shareAll/linux_bin/intel/Compiler/11.0/081/mkl
+  /home/shareAll/linux_bin/intel/compiler/11.0/081/mkl
   /home/shareAll/linux_bin/intel/mkl/10.0.5.025
   /opt/intel/mkl/9.1.023
   /opt/intel/mkl/9.1.021

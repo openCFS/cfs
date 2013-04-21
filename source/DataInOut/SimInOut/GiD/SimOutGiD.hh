@@ -18,7 +18,8 @@ namespace CoupledField
   public:
 
     //! Constructor
-    SimOutputGiD( const std::string& fileName, PtrParamNode outputNode );
+    SimOutputGiD( const std::string& fileName, PtrParamNode outputNode,
+                  PtrParamNode infoNode, bool isRestart  );
   
     //! Destructor
     virtual ~SimOutputGiD();
@@ -112,14 +113,14 @@ namespace CoupledField
     //! Type of analysis in current multisequence step
     BasePDE::AnalysisType actAnalysis_;
     
-    //! Offset for step numbers for multisequence analysis
-    Double stepValueOffset_;
-
     //! Flag for binary file format
     bool isAscii_;
     
     //! Flag for grouping eigenfrequencies
     bool groupEigenFreqs_;
+    
+    //! Flag for merging sequenceSteps
+    bool mergeSequenceSteps_;
 
     //! Check if class is initialized
     bool isInitialized_;

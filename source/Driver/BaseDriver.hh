@@ -13,7 +13,6 @@ namespace CoupledField
   class WriteResults;
   class ResultHandler;
   class InfoNode;
-  class AdjointParameters;
 
   //! Base class for driving classes where we implemented time-stepping
   class BaseDriver
@@ -21,8 +20,7 @@ namespace CoupledField
   public:
 
     //! Constructor
-    BaseDriver();
-
+    BaseDriver(shared_ptr<SimState> simState, Domain* domain );
 
     //! Destructor
     virtual ~BaseDriver();
@@ -40,7 +38,7 @@ namespace CoupledField
      * @param write_results if false nothing is written to the output files
      * @param analysis_id if given is *set* as current and used.
      * @see StoreResults(double) */
-    virtual void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL) = 0;
+    virtual void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode()) = 0;
     
     /** Only of interest for optimization, where one might not want to generate
      * output (gid, hdf5, gmv, ...) for every forward solution. 
@@ -77,7 +75,7 @@ namespace CoupledField
      * @param child_name e.g. "nonLin", "adjoint" ...
      * @param child_id will be added after child_name. is optional (-1)
      * @return the child element */
-    static PtrParamNode CreateAnalysisIdChild(PtrParamNode base, const std::string& child_name, int child_id = -1,
+    PtrParamNode CreateAnalysisIdChild(PtrParamNode base, const std::string& child_name, int child_id = -1,
         const std::string& child_2_name = "", int child_2_id = -1);
 
     /** Adds a new analysis id for this driver.
@@ -89,7 +87,7 @@ namespace CoupledField
     /** This is an factory pattern implementation. The result is the
      * proper driver based on the analysis type and adaptiviy setting.
      * set this object in the domain and take care for deletion! */
-    static BaseDriver* CreateInstance();  
+    static BaseDriver* CreateInstance(shared_ptr<SimState> state, Domain* domain );  
   
     /** We need to differentiate the SingleDrivers from the MultiSequenceDriver */
     typedef enum { SINGLE_DRIVER, MULTI_SEQUENCE_DRIVER } DriverClass;
@@ -113,13 +111,9 @@ namespace CoupledField
     
     /** our report node */ 
     PtrParamNode driverNode; 
-
     
-    //! --------------------- stuff for computation with adaptivity
-    //! for printing a sequence of files in dir meshes in gmv-format
-
-    //! counter of meshes for printing meshes
-    UInt nummeshes_;  
+    //! Pointer to simulation domain
+    Domain * domain_;
 
     //! current analysis step in a multiSequence analysis
     UInt actSequenceStep_;
@@ -127,12 +121,8 @@ namespace CoupledField
     /** a shortcut to domain->GetResultHandler() */
     ResultHandler* handler_;
     
-    //! print mesh in special file. this method is used in adaptive procedure for space.
-    void PrintSeqMeshes();
-
-    /** auxiliary function for computation with adaptivity: open files for
-     *  printing sequence of refined meshes with error map */ 
-    bool printMeshesOrNot();
+    //! Simulation state file
+    shared_ptr<SimState> simState_;
     
   private:
     /** helper function. Items are separated via ':' to be replaces when using as filename! */

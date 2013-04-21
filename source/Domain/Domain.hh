@@ -48,8 +48,9 @@ namespace CoupledField
       \param aptFileType (input) input file (mesh-data)
     */
     Domain( std::map<std::string, StdVector<shared_ptr<SimInput> > >& gridInputs,
-            ResultHandler * handler,
-            MaterialHandler * ptMat );
+            ResultHandler * handler, MaterialHandler * ptMat,
+            shared_ptr<SimState> simState, PtrParamNode xmlNode,
+            PtrParamNode infoNode);
     
     //! Destructor
     virtual ~Domain();
@@ -57,8 +58,18 @@ namespace CoupledField
     //! Trigger output of the grid
     void PrintGrid( );
     
-    /** dumps intersting information for the developer */
+    //! Dumps interesting information for the developer
     void Dump();
+    
+    //! Return parameter root node of current domain
+    PtrParamNode GetParamRoot() {
+      return param_;
+    }
+    
+    //! Return info root node of current domain
+    PtrParamNode GetInfoRoot() {
+      return info_;
+    }
     
     // ======================================================
     // INIT AND UPDATE ROUTINES
@@ -134,6 +145,9 @@ namespace CoupledField
     //! Get pointer to material handler
     MaterialHandler * GetMaterialHandler() {return ptMatHandler_; }
 
+    //! Get pointer to simulation state object
+    shared_ptr<SimState> GetSimState() {return simState_; }
+    
     //! Get pointer to grid object
     Grid * GetGrid( const std::string& id = "default" );
 
@@ -202,6 +216,12 @@ namespace CoupledField
     //@{
     //! \name Data about (coupled) PDEs
 
+    //! ParamNode of xml file
+    PtrParamNode param_;
+    
+    //! Info node
+    PtrParamNode info_;
+    
     //! Number of Single PDEs
     UInt numSinglePde_;
 
@@ -251,6 +271,9 @@ namespace CoupledField
 
     //! Pointer to material handler
     MaterialHandler * ptMatHandler_;
+    
+    //! Pointer to simulation state object
+    shared_ptr<SimState> simState_;
 
     //! Mapping between name and coordinate sysem pointer
     std::map<std::string, CoordSystem*> coordSys_;

@@ -10,6 +10,7 @@
 #include "PDE/StdPDE.hh"
 #include "Domain/Domain.hh"
 #include "DataInOut/ResultHandler.hh"
+#include "DataInOut/SimState.hh"
 
 namespace CoupledField {
 
@@ -17,15 +18,16 @@ namespace CoupledField {
   //   Constructor
   // ***************
   StaticDriver::StaticDriver( UInt sequenceStep,
-                              bool isPartOfSequence ) 
-    : SingleDriver( sequenceStep, isPartOfSequence ) {
+                              bool isPartOfSequence,
+                              shared_ptr<SimState> state, Domain* domain ) 
+    : SingleDriver( sequenceStep, isPartOfSequence, state, domain ) {
 
     analysis_ = BasePDE::STATIC;
     restartIncr_= 0;
 
     // get parameter node
     PtrParamNode myNode = 
-      param->GetByVal("sequenceStep", std::string("index"), sequenceStep)
+        domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), sequenceStep)
       ->Get("analysis")->Get("static");
     
     // Get save increment for restart file (optional)
@@ -35,21 +37,18 @@ namespace CoupledField {
     driverNode->Get("sequenceStep")->SetValue(sequenceStep);
     
     // Set current value of time step and time step size in the mathParser
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "t", 0.0 );
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "t0", 0.0 );
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "dt", 0.0 );    
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "step", 0 );  
   }
 
   void StaticDriver::Init() {
 
-    // Initialize first multisequence step, as the method "CheckStoreResults" 
-    // relies on the result handler to know already about the current
-    // sequencestep. However, in case of optimization, the sequence step
-    // gets initialized in Optimization::SolveProblem()
-    handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
 
     InitializePDEs();
   }
@@ -65,9 +64,17 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams)
+  void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id)
   {
 
+    // Initialize first multisequence step, as the method "CheckStoreResults" 
+    // relies on the result handler to know already about the current
+    // sequencestep. However, in case of optimization, the sequence step
+    // gets initialized in Optimization::SolveProblem()
+    handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
+    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
+
+    
     // in the optimization case the step is given, otherwise it is created
     // store such that special steps can add non-lin stuff and optimization adjoints
     if(given_analysis_id == NULL)
@@ -87,7 +94,7 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->SetActTime(0.0);
     ptPDE_->GetSolveStep()->SetActStep(1);
     ptPDE_->GetSolveStep()->PreStepStatic();
-    ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_, adjointParams);
+    ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_);
     ptPDE_->GetSolveStep()->PostStepStatic();
 
     // in optimization we write the results via StoreResults() because
@@ -100,11 +107,7 @@ namespace CoupledField {
       if(!isPartOfSequence_)
         handler_->Finalize(); // to be called only once in a HDF5 lifetime!
     }
-    // writing current PDE-state into the restart-file
-    if (restartIncr_ >= 1){
-      std::cout << std::endl << " *** Write a restart file *** " << std::endl;      
-      ptPDE_->WriteRestart( );
-    }
+    simState_->FinishMultiSequenceStep();
   }
 
   void StaticDriver::StoreResults(UInt stepNum, double step_val)
@@ -115,6 +118,7 @@ namespace CoupledField {
     ptPDE_->WriteResultsInFile(stepNum, step_val);
     ptPDE_->WriteGeneralPDEdefines();
     handler_->FinishStep();
+    simState_->WriteStep(stepNum, step_val );
   }
 
 } // end of namespace

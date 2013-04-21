@@ -22,7 +22,8 @@ namespace CoupledField
   public:
     
     //! Constructor
-    SimOutputUnv( const std::string& fileName, PtrParamNode outputNode );
+    SimOutputUnv( const std::string& fileName, PtrParamNode outputNode,
+                  PtrParamNode infoNode, bool isRestart );
     
     //! Destructor
     virtual ~SimOutputUnv();
@@ -62,9 +63,6 @@ namespace CoupledField
     //! Offset for step number in case of multisequence analysis
     Integer stepNumOffset_;
             
-    //! Offset for step value in case of multisequence analysis
-    Double stepValOffset_;
-
     //! Output for CAPA .unverg if true, otherwise output standard I-DEAS .unv files.
     bool capaOut_;
 

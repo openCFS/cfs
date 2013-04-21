@@ -19,6 +19,7 @@
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
+#include "Domain/CoefFunction/CoefFunctionStabParams.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
 #include "Driver/Assemble.hh"
@@ -28,6 +29,7 @@
 #include "Materials/Models/Preisach.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 #include "FeBasis/FeFunctions.hh"
+#include "Domain/ElemMapping/ElemShapeMap.hh"
 
 // new integrator concept
 #include "Forms/BiLinForms/ABInt.hh"
@@ -48,8 +50,6 @@
 #include "Domain/Results/ResultFunctor.hh"
 //#include "Domain/Results/ExternalFieldFunctors.hh"
 
-#define SIMONS_TEST 1
-
 namespace CoupledField {
 
   DECLARE_LOG(fluidmechpertpde)
@@ -58,8 +58,11 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  PerturbedFlowPDE::PerturbedFlowPDE( Grid* grid, PtrParamNode paramNode )
-    :SinglePDE( grid, paramNode ) {
+  PerturbedFlowPDE::PerturbedFlowPDE( Grid* grid, PtrParamNode paramNode,
+                                      PtrParamNode infoNode,
+                                      shared_ptr<SimState> simState, 
+                                      Domain* domain )
+    :SinglePDE( grid, paramNode, infoNode,simState, domain ) {
 
 
     // ======================================================================
@@ -106,6 +109,12 @@ namespace CoupledField {
       presSurfaces_.Push_back( actRegionId );
     }
 
+    //check for stabilization!!
+    stabilized_ = false;
+    stabilized_ = myParam_->Get("stabilization")->As<bool>();
+    if ( stabilized_ )
+    	std::cerr << "\n DO STABILIZED FORMULATION!!\n" << std::endl;
+
   }
   
   void PerturbedFlowPDE::InitNonLin() {
@@ -140,11 +149,9 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> velFct = feFunctions_[FLUIDMECH_VELOCITY];
     shared_ptr<FeSpace> velSpace = velFct->GetFeSpace();
 
-#ifdef SIMONS_TEST
     // Get FESpace and FeFunction of fluid pressure
     shared_ptr<BaseFeFunction> presFct = feFunctions_[FLUIDMECH_PRESSURE];
     shared_ptr<FeSpace> presSpace = presFct->GetFeSpace();
-#endif // SIMONS_TEST
 
     // Create coefficient functions for all fluid densities
     std::map< RegionIdType, PtrCoefFct > oneFuncs;
@@ -174,9 +181,7 @@ namespace CoupledField {
       actSDList->SetRegion( actRegion );
 
       velFct->AddEntityList( actSDList );
-#ifdef SIMONS_TEST
       presFct->AddEntityList( actSDList );
-#endif
 
       // --------------------------
       //  Set region approximation
@@ -189,23 +194,18 @@ namespace CoupledField {
 
       // We hardcode the Taylor-Hood spaces for the moment
       velSpace->SetRegionApproximation(actRegion, "velPolyId", "velIntegId");
-#ifdef SIMONS_TEST
       presSpace->SetRegionApproximation(actRegion, "presPolyId", "presIntegId");
-#endif
 
       PtrCoefFct density = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
       PtrCoefFct viscosity = materials_[actRegion]->GetScalCoefFnc( DYNAMIC_VISCOSITY, Global::REAL );
 
       WARN("fluid density: " << density->ToString() << "\n" << " dynamic viscosity: " << viscosity->ToString());
-      
 
       // Create set of flow regions and map of density functions for surface integrators.
       flowRegions.insert(actRegion);
-      oneFuncs[actRegion] = CoefFunction::Generate(Global::REAL,
+      oneFuncs[actRegion] = CoefFunction::Generate(mp_, Global::REAL,
                                                        lexical_cast<std::string>(1.0));
 
-#ifdef SIMONS_TEST
-                                                       
       // ====================================================================
       // stiffness integrators
       // ====================================================================
@@ -216,7 +216,7 @@ namespace CoupledField {
 
 //      PtrCoefFct coeffKPV
 //                = CoefFunction::Generate(Global::REAL, "1.0");
-                
+
       BiLinearForm * stiffIntPV = NULL;
       if( dim_ == 2 ) {
         stiffIntPV = new ABInt<>( new MultiIdOp<FeH1,2>(), 
@@ -239,7 +239,7 @@ namespace CoupledField {
       //  VERSION 2: K_VP Integrator (upper off-diagonal integrator)
       // --------------------------------------------------------------------
       PtrCoefFct coeffKVP
-                = CoefFunction::Generate(Global::REAL, "1.0");
+                = CoefFunction::Generate(mp_,Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
       if( dim_ == 2 ) {
         stiffIntVP = new ABInt< IdentityOperator<FeH1,2,2> , GradientOperator<FeH1,2> >(coeffKVP, 1.0 / density );
@@ -256,12 +256,13 @@ namespace CoupledField {
       assemble_->AddBiLinearForm( stiffContVP );
 #endif
 
+
       // --------------------------------------------------------------------
       //  VERSION 2: K_VP Integrator
       //  (upper off-diagonal integrators - partially integrated, volume)
       // --------------------------------------------------------------------
       PtrCoefFct coeffKVP
-                = CoefFunction::Generate(Global::REAL, "1.0");
+                = CoefFunction::Generate(mp_,Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
       if( dim_ == 2 ) {
         stiffIntVP = new ABInt<>(new DivOperator<FeH1,2>(), new MultiIdOp<FeH1,2>(), coeffKVP, -1.0 );
@@ -277,14 +278,11 @@ namespace CoupledField {
       //stiffContVP->SetCounterPart(true);
       assemble_->AddBiLinearForm( stiffContVP );
 
-
-#endif // SIMONS_TEST
-
       // --------------------------------------------------------------------
       //  VERSION 2: K_Laplace Integrator
       // --------------------------------------------------------------------
 //      PtrCoefFct coeffKvv
-//                = CoefFunction::Generate(Global::REAL,
+//                = CoefFunction::Generate(mp_,Global::REAL,
 //                                         lexical_cast<std::string>(viscosity));
       BiLinearForm * stiffIntLaplace = NULL;
       if( dim_ == 2 ) {
@@ -300,10 +298,9 @@ namespace CoupledField {
       stiffContLaplace->SetFeFunctions( velFct, velFct );
       assemble_->AddBiLinearForm( stiffContLaplace );
 
-#ifdef SIMONS_TEST
 
 //      PtrCoefFct coeffMVV
-//                = CoefFunction::Generate(Global::REAL,
+//                = CoefFunction::Generate(mp_, Global::REAL,
 //                                         lexical_cast<std::string>(density));
 
       //======================================================================
@@ -353,13 +350,130 @@ namespace CoupledField {
         convectiveContextVv->SetEntities( actSDList, actSDList );
         convectiveContextVv->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],feFunctions_[FLUIDMECH_VELOCITY]);
         assemble_->AddBiLinearForm( convectiveContextVv );
-      }
+
+        //======================================================================
+        // DO STABILIZATION due to convection
+        //======================================================================
+
+        if ( stabilized_) {
+        	Double densityVal;
+        	LocPointMapped map;
+        	density->GetScalar(densityVal, map);
+        	BaseBOperator* bOpGrad;
+            if( dim_ == 2 ) {
+            	bOpGrad = new GradientOperator<FeH1,2, Double>();
+            }
+            else {
+               	bOpGrad = new GradientOperator<FeH1,3, Double>();
+            }
+            PtrCoefFct coeffConvecStab;
+           	coeffConvecStab.reset(new CoefFunctionStabParams(density, viscosity, meanFlowCoef_,
+           													bOpGrad, presFct, "SUPG") );
+
+           	//stabilization: velocity mass matrix
+           	BiLinearForm *convecMassVVstab = NULL;
+            if( dim_ == 2 ) {
+              convecMassVVstab = new ABInt<>(new ConvectiveOperator<FeH1,2,2>(),
+            		  	  	  	  	  	  	new IdentityOperator<FeH1,2,2>(),
+                                         	coeffConvecStab, densityVal, coefUpdateGeo);
+            } else {
+              convecMassVVstab = new ABInt<>(new ConvectiveOperator<FeH1,3,3>(),
+                                         	 new IdentityOperator<FeH1,3,3>(),
+                                         	 coeffConvecStab, densityVal, coefUpdateGeo);
+            }
+            convecMassVVstab->SetBCoefFunctionOpA(meanFlowCoef_);
+            convecMassVVstab->SetName("PerturbedDampIntVVConvectiveStab");
+
+            BiLinFormContext *dampContextVVStab =  new BiLinFormContext(convecMassVVstab, DAMPING );
+            dampContextVVStab->SetEntities( actSDList, actSDList );
+            dampContextVVStab->SetFeFunctions( velFct, velFct);
+            assemble_->AddBiLinearForm( dampContextVVStab );
+
+        	//stabilization: velocity stiffness matrix
+            BiLinearForm *convecStiffVVstab = NULL;
+            if( dim_ == 2 ) {
+              convecStiffVVstab = new BBInt<>(new ConvectiveOperator<FeH1,2,2>(),
+            		  	  	  	  	  	  	  coeffConvecStab, densityVal, coefUpdateGeo);
+            } else {
+              convecStiffVVstab = new BBInt<>(new ConvectiveOperator<FeH1,3,3>(),
+                                         	 coeffConvecStab, densityVal, coefUpdateGeo);
+            }
+            convecStiffVVstab->SetBCoefFunctionOpB(meanFlowCoef_);
+            convecStiffVVstab->SetName("PerturbedStiffIntVVConvectiveStab");
+
+            BiLinFormContext *stiffContextVVStab =  new BiLinFormContext(convecStiffVVstab, STIFFNESS );
+            stiffContextVVStab->SetEntities( actSDList, actSDList );
+            stiffContextVVStab->SetFeFunctions( velFct, velFct);
+            assemble_->AddBiLinearForm( stiffContextVVStab );
+
+           	//stabilization: pressure stiffness matrix, in velocity equation
+            BiLinearForm *convecStiffVPstab = NULL;
+            if( dim_ == 2 ) {
+            	convecStiffVPstab = new ABInt<>(new ConvectiveOperator<FeH1,2,2>(),
+            									new GradientOperator<FeH1,2>(),
+            									coeffConvecStab, 1.0, coefUpdateGeo);
+            } else {
+            	convecStiffVPstab = new ABInt<>(new ConvectiveOperator<FeH1,3,3>(),
+            									new GradientOperator<FeH1,3>(),
+            									coeffConvecStab, 1.0, coefUpdateGeo);
+            }
+            convecStiffVPstab->SetBCoefFunctionOpA(meanFlowCoef_);
+            convecStiffVPstab->SetName("PerturbedStiffIntVPConvectiveStab");
+
+            BiLinFormContext *stiffContextVPStab =  new BiLinFormContext(convecStiffVPstab, STIFFNESS );
+            stiffContextVPStab->SetEntities( actSDList, actSDList );
+            stiffContextVPStab->SetFeFunctions( velFct, presFct);
+            assemble_->AddBiLinearForm( stiffContextVPStab );
+
+           	//pressure stabilization: velocity stiffness matrix, in pressure equation
+            PtrCoefFct coeffPressStab;
+            coeffPressStab.reset(new CoefFunctionStabParams(density, viscosity, meanFlowCoef_,
+            													bOpGrad, presFct, "PSPG") );
+
+            BiLinearForm *convecStiffPVstab = NULL;
+            if( dim_ == 2 ) {
+            	convecStiffPVstab = new ABInt<>(new GradientOperator<FeH1,2>(),
+            									new ConvectiveOperator<FeH1,2,2>(),
+            									coeffPressStab, densityVal, coefUpdateGeo);
+            } else {
+            	convecStiffPVstab = new ABInt<>(new GradientOperator<FeH1,3>(),
+            									new ConvectiveOperator<FeH1,3,3>(),
+            									coeffPressStab, densityVal, coefUpdateGeo);
+            }
+            convecStiffPVstab->SetBCoefFunctionOpB(meanFlowCoef_);
+            convecStiffPVstab->SetName("PerturbedStiffIntPVConvectiveStab");
+
+            BiLinFormContext *stiffContextPVStab =  new BiLinFormContext(convecStiffPVstab, STIFFNESS );
+            stiffContextPVStab->SetEntities( actSDList, actSDList );
+            stiffContextPVStab->SetFeFunctions( presFct, velFct );
+            assemble_->AddBiLinearForm( stiffContextPVStab );
+
+          	//stabilization: Least Squares InCompressibility
+           	PtrCoefFct coeffLsicStab;
+           	coeffLsicStab.reset(new CoefFunctionStabParams(density, viscosity, meanFlowCoef_,
+           													bOpGrad, presFct,"LSIC") );
+            BiLinearForm *LsicStiffVVstab = NULL;
+            if( dim_ == 2 ) {
+              LsicStiffVVstab = new BBInt<>(new DivOperator<FeH1,2>(),
+            		  	  	  	  	  	  	coeffConvecStab, densityVal, coefUpdateGeo);
+            } else {
+              LsicStiffVVstab = new BBInt<>(new DivOperator<FeH1,3>(),
+                                         	coeffConvecStab, densityVal, coefUpdateGeo);
+            }
+            LsicStiffVVstab->SetName("PerturbedLSICStiffIntVVStab");
+
+            BiLinFormContext *stiffContextLsicStab =  new BiLinFormContext(LsicStiffVVstab, STIFFNESS );
+            stiffContextLsicStab->SetEntities( actSDList, actSDList );
+            stiffContextLsicStab->SetFeFunctions( velFct, velFct);
+            assemble_->AddBiLinearForm( stiffContextLsicStab );
+        }
+      } // is flow
 
       // ====================================================================
       // damping integrators
       // ====================================================================
 //      PtrCoefFct coeffDvv
-//                = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(density));
+//                = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(density));
 
       BiLinearForm *dampIntvv = NULL;
       if( dim_ == 2 ) {
@@ -376,10 +490,48 @@ namespace CoupledField {
       dampContextvv->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],feFunctions_[FLUIDMECH_VELOCITY]);
       assemble_->AddBiLinearForm( dampContextvv );
 
-#endif // SIMONS_TEST
+      //======================================================================
+      // DO STABILIZATION due to pressure
+      //======================================================================
+      if ( stabilized_) {
+    	  //stabilization of pressure
+    	  PtrCoefFct coeffKPPstab;
+    	  coeffKPPstab.reset(new CoefFunctionStabParams(density, viscosity,"PSPG"));
+    	  BiLinearForm * stiffIntPPstab = NULL;
+    	  if( dim_ == 2 ) {
+    		  stiffIntPPstab = new BBInt<>(new GradientOperator<FeH1,2>(), coeffKPPstab,1.0);
+    	  } else {
+    		  stiffIntPPstab = new BBInt<>(new GradientOperator<FeH1,3>(), coeffKPPstab,1.0);
+    	  }
+    	  stiffIntPPstab->SetName("PerturbedStiffIntPPstab");
+    	  BiLinFormContext *stiffContPPstab = new BiLinFormContext(stiffIntPPstab, STIFFNESS );
+
+    	  stiffContPPstab->SetEntities( actSDList, actSDList );
+    	  stiffContPPstab->SetFeFunctions( presFct, presFct );
+    	  assemble_->AddBiLinearForm( stiffContPPstab );
+
+    	  //stabilization of pressure
+    	  Double densityVal;
+    	  LocPointMapped map;
+    	  density->GetScalar(densityVal, map);
+    	  BiLinearForm *dampIntpvStab = NULL;
+    	  if( dim_ == 2 ) {
+    		  dampIntpvStab = new ABInt<>(new GradientOperator<FeH1,2>(),
+    				  new IdentityOperator<FeH1,2,2>(), coeffKPPstab, densityVal);
+    	  } else {
+    		  dampIntpvStab = new ABInt<>(new GradientOperator<FeH1,3>(),
+    				  new IdentityOperator<FeH1,3,3>(), coeffKPPstab, densityVal);
+    	  }
+    	  dampIntpvStab->SetName("PerturbedDampIntStab");
+    	  BiLinFormContext *dampContextpvStab =  new BiLinFormContext(dampIntpvStab, DAMPING );
+
+    	  dampContextpvStab->SetEntities( actSDList, actSDList );
+    	  dampContextpvStab->SetFeFunctions( presFct, velFct);
+    	  assemble_->AddBiLinearForm( dampContextpvStab );
+      }
+
     }
 
-#ifdef SIMONS_TEST
     StdVector<RegionIdType>::iterator surfIt, surfEnd;
     surfIt = presSurfaces_.Begin();
     surfEnd = presSurfaces_.End();
@@ -416,8 +568,6 @@ namespace CoupledField {
       //stiffContVP->SetCounterPart(true);
       assemble_->AddBiLinearForm( stiffContVP );
     }
-#endif // SIMONS_TEST
-    
   }
   
   void PerturbedFlowPDE::DefineSolveStep() {
@@ -435,7 +585,7 @@ namespace CoupledField {
     StdVector<std::string> velDofNames;
 
     std::string geometryType;
-    param->Get("domain")->GetValue("geometryType", geometryType );
+    domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", geometryType );
 
     if( geometryType == "3d" ) {
       velDofNames = "x", "y", "z";
@@ -445,7 +595,6 @@ namespace CoupledField {
       velDofNames = "r", "z";
     }
 
-#ifdef SIMONS_TEST
     // === Primary result according to definition ===
     // PRESSURE
     shared_ptr<ResultInfo> pressure( new ResultInfo);
@@ -461,7 +610,6 @@ namespace CoupledField {
 
     pressure->SetFeFunction(feFunctions_[FLUIDMECH_PRESSURE]);
     DefineFieldResult( feFunctions_[FLUIDMECH_PRESSURE], pressure);
-#endif // SIMONS_TEST
 
     // VELOCITY
     shared_ptr<ResultInfo> velocity( new ResultInfo);
@@ -484,22 +632,17 @@ namespace CoupledField {
     // -----------------------------------
     //  Define xml-names of Dirichlet BCs
     // -----------------------------------
-#ifdef SIMONS_TEST   
     idbcSolNameMap_[FLUIDMECH_PRESSURE] = "pressure";
-#endif // SIMONS_TEST    
     idbcSolNameMap_[FLUIDMECH_VELOCITY] = "velocity";
-
-#ifdef SIMONS_TEST
+  
     hdbcSolNameMap_[FLUIDMECH_PRESSURE] = "noPressure";
-#endif    
     hdbcSolNameMap_[FLUIDMECH_VELOCITY] = "noSlip";
   }
   
   
   void PerturbedFlowPDE::DefinePostProcResults() {
-#ifdef SIMONS_TEST
+
     shared_ptr<BaseFeFunction> feFct = feFunctions_[FLUIDMECH_PRESSURE];
-#endif
 
       StdVector<std::string> stressComponents;
       if( subType_ == "3d" ) {
@@ -530,7 +673,7 @@ namespace CoupledField {
       }
 
         PtrCoefFct coeffKVP
-                  = CoefFunction::Generate(Global::REAL, "1.0");
+                  = CoefFunction::Generate(mp_, Global::REAL, "1.0");
         BaseBDBInt * stiffIntVP = NULL;
         if( dim_ == 2 ) {
           stiffIntVP = new ABInt<>(new IdentityOperator<FeH1,2,2>(), 
@@ -619,13 +762,12 @@ namespace CoupledField {
         FeSpace::CreateInstance(myParam_,spaceNode,FeSpace::H1, ptGrid_);
       crSpaces[FLUIDMECH_VELOCITY]->Init(solStrat_);
 
-#ifdef SIMONS_TEST
       spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE));
 
       crSpaces[FLUIDMECH_PRESSURE] =
         FeSpace::CreateInstance(myParam_,spaceNode,FeSpace::H1, ptGrid_);
       crSpaces[FLUIDMECH_PRESSURE]->Init(solStrat_);
-#endif // SIMONS_TEST
+
     }else{
       EXCEPTION("The formulation " << formulation << "of fluid perturbed PDE is not known!");
     }

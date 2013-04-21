@@ -87,7 +87,7 @@ BDUIntegrator(VEC_DATA_TYPE factor,
 
      // Get shape map from grid
      shared_ptr<ElemShapeMap> esm = 
-         domain->GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+         ent.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
      // Get integration points
      intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order, 

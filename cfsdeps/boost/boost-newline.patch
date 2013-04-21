@@ -1,0 +1,10 @@
+--- boost/fusion/tuple/detail/preprocessed/tuple.hpp.orig	2013-04-18 10:36:44.657110886 +0200
++++ boost/fusion/tuple/detail/preprocessed/tuple.hpp	2013-04-18 10:37:04.255112127 +0200
+@@ -18,4 +18,5 @@
+ #include <boost/fusion/tuple/detail/preprocessed/tuple50.hpp>
+ #else
+ #error "FUSION_MAX_VECTOR_SIZE out of bounds for preprocessed headers"
+-#endif
+\ Kein Zeilenumbruch am Dateiende.
++#endif
++

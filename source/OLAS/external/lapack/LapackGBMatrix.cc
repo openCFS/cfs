@@ -196,8 +196,7 @@ namespace CoupledField {
   template <>
   void LapackGBMatrix<std::complex<double>,std::complex<double> >::Init() {
     for ( UInt i = 1; i <= length_; i++ ) {
-      data_[i].real() = 0.0;
-      data_[i].imag() = 0.0;
+      data_[i] = Complex(0.0, 0.0);
     }
   }
 
@@ -492,8 +491,7 @@ namespace CoupledField {
 
       // Perform the scaled addition
       for ( UInt i = 1; i <= length_; i++ ) {
-        data_[i].real() += factor * lpmat.data_[i].real();
-        data_[i].imag() += factor * lpmat.data_[i].imag();
+        data_[i] += factor * lpmat.data_[i];
       }
   }
 

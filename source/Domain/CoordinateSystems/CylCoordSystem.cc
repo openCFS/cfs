@@ -243,14 +243,17 @@ namespace CoupledField{
     rotationMat_[2][1] = (std::abs(z[1]) < EPS ) ? 0.0 : (z[1]);
     rotationMat_[2][2] = (std::abs(z[2]) < EPS ) ? 0.0 : (z[2]);
 
+    // Perform on check on rotation matrix
+    CheckRotationMat( rotationMat_ );
+    
     // 3) Calculate transposed inverse rotation matrix, which defines 
     //    mapping from  local to global cartesian coordinate system
     Matrix<Double> tempInvers;
     rotationMat_.Invert(invRotationMat_);
 
     
-    CalcKardanAngles( rotationAng_, rotationMat_ );
-    CalcKardanAngles( invRotationAng_, invRotationMat_ );
+//    CalcKardanAngles( rotationAng_, rotationMat_ );
+//    CalcKardanAngles( invRotationAng_, invRotationMat_ );
   }
 
 
@@ -319,10 +322,10 @@ namespace CoupledField{
     zNode->Get("y")->SetValue(zAxis_[1]);
     zNode->Get("z")->SetValue(zAxis_[2]);
     
-    PtrParamNode rotNode = in->Get("rotationAngles");
-    rotNode->Get("alpha")->SetValue(Rad2Grad(rotationAng_[0]));
-    rotNode->Get("beta")->SetValue(Rad2Grad(rotationAng_[1]));
-    rotNode->Get("gamma")->SetValue(Rad2Grad(rotationAng_[2]));
+//    PtrParamNode rotNode = in->Get("rotationAngles");
+//    rotNode->Get("alpha")->SetValue(Rad2Grad(rotationAng_[0]));
+//    rotNode->Get("beta")->SetValue(Rad2Grad(rotationAng_[1]));
+//    rotNode->Get("gamma")->SetValue(Rad2Grad(rotationAng_[2]));
 
   }
 

@@ -110,6 +110,7 @@ namespace CoupledField {
   EntityIterator ElemList::GetIterator() const{
     EntityIterator it;
     it.type_ = ELEM_LIST;
+    it.ptGrid_ = this->grid_;
     it.elemList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
@@ -168,6 +169,7 @@ namespace CoupledField {
   EntityIterator SurfElemList::GetIterator() const {
     EntityIterator it;
     it.type_ = SURF_ELEM_LIST;
+    it.ptGrid_ = this->grid_;
     it.surfElemList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
@@ -221,6 +223,7 @@ namespace CoupledField {
   EntityIterator NodeList::GetIterator() const {
     EntityIterator it;
     it.type_ = NODE_LIST;
+    it.ptGrid_ = this->grid_;
     it.nodeList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
@@ -263,6 +266,7 @@ namespace CoupledField {
   EntityIterator RegionList::GetIterator() const {
     EntityIterator it;
     it.type_ = REGION_LIST;
+    it.ptGrid_ = this->grid_;
     it.regionList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
@@ -298,6 +302,7 @@ namespace CoupledField {
    EntityIterator NameList::GetIterator() const {
      EntityIterator it;
      it.type_ = NAME_LIST;
+     it.ptGrid_ = this->grid_;
      it.nameList_ = this;
      it.pos_ = 0;
      it.size_ = list_.GetSize();
@@ -361,7 +366,7 @@ namespace CoupledField {
   // =================================================
   
   EntityIterator::EntityIterator() {
-
+    ptGrid_ = NULL;
   }
   
 

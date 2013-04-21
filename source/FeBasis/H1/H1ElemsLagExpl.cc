@@ -1496,7 +1496,7 @@ namespace CoupledField {
      // From:
      // Zienkiewicz, The Finite Element Method.-  Vol 1, 5th ed., page 182
      
-     // symbolically rewritten using sympy
+     // symbolically rewritten using sympy (cf. share/python/wedge15.py).
      const Double & xi = point[0];
      const Double & eta = point[1];
      const Double & zeta = point[2];
@@ -1529,7 +1529,7 @@ namespace CoupledField {
       const Double & zeta = point[2];
       deriv.Resize(15,3);
       deriv.Init();
-      // symbolically solved using sympy
+      // symbolically solved using sympy (cf. share/python/wedge15.py).
       
       deriv[0][0] = -2.0*xi*zeta + 2.0*xi - 2.0*eta*zeta + 2.0*eta - 0.5*zeta*zeta + 1.5*zeta - 1.0;
       deriv[0][1] = -2.0*xi*zeta + 2.0*xi - 2.0*eta*zeta + 2.0*eta - 0.5*zeta*zeta + 1.5*zeta - 1.0;
@@ -1612,175 +1612,149 @@ namespace CoupledField {
                                          const Elem* ptElem,
                                          UInt comp )
     {
-      Double x = point[0];
-      Double y = point[1];
-      Double z = point[2];
+      const Double& xi   = point[0];
+      const Double& eta  = point[1];
+      const Double& zeta = point[2];
 
-      _CalcShFnc(x, y, z,  ptElem, shape);    
-    }
-
-    template<typename T_SCAL, typename T_VEC>
-    void FeH1LagrangeWedge18::_CalcShFnc( const T_SCAL x,  const T_SCAL y, const T_SCAL z, 
-                                          const Elem * elem,
-                                          T_VEC& ret ) {
-
-      ret.Resize(actNumFncs_);
+      shape.Resize(18);
       
-      T_SCAL lambda[6] = { 1.0 - x - y, x,  y, 
-                           1.0 - x - y, x,  y };
-      T_SCAL mu[6]     = { 0.5 * (1.0-z), 0.5 * (1.0-z), 0.5 * (1.0-z),
-                           0.5 * (1.0+z), 0.5 * (1.0+z), 0.5 * (1.0+z) };  
-      
-      // corners
+      // These are the standard tensor product basis function obtained
+      // from the TRIA6 element  in the xi-eta plane and the LINE3
+      // element in zeta-direction. The shape functions have been verified
+      // by visualizing them using a calculator filter in ParaView.
+      // After that, they have been symbolically rewritten using sympy.
+      // (cf. share/python/wedge18.py)
+
+      // Corners
       // shape[0] = -0.5* t * (2*t - 1)* coordsZ * (1 - coordsZ);
       // shape[1] = -0.5* coordsX * (2*coordsX - 1)* coordsZ * (1 - coordsZ);
-      // shape[2] = -0.5* coordsY * (2*coordsY - 1)* coordsZ * (1 - coordsZ);
-      
+      // shape[2] = -0.5* coordsY * (2*coordsY - 1)* coordsZ * (1 - coordsZ);      
       // shape[3] = 0.5* t * (2*t - 1)* coordsZ * (1 + coordsZ);
       // shape[4] = 0.5* coordsX * (2*coordsX - 1)* coordsZ * (1 + coordsZ);
       // shape[5] = 0.5* coordsY * (2*coordsY - 1)* coordsZ * (1 + coordsZ);
+      shape[0] = 0.5*zeta*(zeta - 1)*(xi + eta - 1)*(2*xi + 2*eta - 1);
+      shape[1] = 0.5*xi*zeta*(2*xi - 1)*(zeta - 1);
+      shape[2] = 0.5*eta*zeta*(2*eta - 1)*(zeta - 1);
+      shape[3] = 0.5*zeta*(zeta + 1)*(xi + eta - 1)*(2*xi + 2*eta - 1);
+      shape[4] = 0.5*xi*zeta*(2*xi - 1)*(zeta + 1);
+      shape[5] = 0.5*eta*zeta*(2*eta - 1)*(zeta + 1);
 
-      ret[0] = 2.0 * lambda[0];
-      ret[0] = ret[0] - 1.0;
-      ret[0] = ret[0] * lambda[0];
-      ret[0] = ret[0] * z;
-      ret[0] = ret[0] * mu[0];
-      ret[0] = ret[0] * -1.0;
-
-      ret[1] = 2.0 * lambda[1];
-      ret[1] = ret[1] - 1.0;
-      ret[1] = ret[1] * lambda[1];
-      ret[1] = ret[1] * z;
-      ret[1] = ret[1] * mu[1];
-      ret[1] = ret[1] * -1.0;
-
-      ret[2] = 2.0 * lambda[2];
-      ret[2] = ret[2] - 1.0;
-      ret[2] = ret[2] * lambda[2];
-      ret[2] = ret[2] * z;
-      ret[2] = ret[2] * mu[2];
-      ret[2] = ret[2] * -1.0;
-
-      ret[3] = 2.0 * lambda[3];
-      ret[3] = ret[3] - 1.0;
-      ret[3] = ret[3] * lambda[3];
-      ret[3] = ret[3] * z;
-      ret[3] = ret[3] * mu[3];
-
-      ret[4] = 2.0 * lambda[4];
-      ret[4] = ret[4] - 1.0;
-      ret[4] = ret[4] * lambda[4];
-      ret[4] = ret[4] * z;
-      ret[4] = ret[4] * mu[4];
-
-      ret[5] = 2.0 * lambda[5];
-      ret[5] = ret[5] - 1.0;
-      ret[5] = ret[5] * lambda[5];
-      ret[5] = ret[5] * z;
-      ret[5] = ret[5] * mu[5];
-
-      // midsides of quadratic triangles
+      // Mid-sides of quadratic triangles
       // shape[6] = -2*coordsX*t*coordsZ*(1-coordsZ);
       // shape[7] = -2*coordsX*coordsY*coordsZ*(1-coordsZ);
       // shape[8] = -2*coordsY*t*coordsZ*(1-coordsZ);
-
       // shape[9] = 2*coordsX*t*coordsZ*(1+coordsZ);
       // shape[10] = 2*coordsX*coordsY*coordsZ*(1+coordsZ);
       // shape[11] = 2*coordsY*t*coordsZ*(1+coordsZ);
+      shape[6] = -2*xi*zeta*(zeta - 1)*(xi + eta - 1);
+      shape[7] = 2*xi*eta*zeta*(zeta - 1);
+      shape[8] = -2*eta*zeta*(zeta - 1)*(xi + eta - 1);
+      shape[9] = -2*xi*zeta*(zeta + 1)*(xi + eta - 1);
+      shape[10] = 2*xi*eta*zeta*(zeta + 1);
+      shape[11] = -2*eta*zeta*(zeta + 1)*(xi + eta - 1);
 
-      ret[6] = -4.0 * lambda[1];
-      ret[6] = ret[6] * lambda[0];
-      ret[6] = ret[6] * z;
-      ret[6] = ret[6] * mu[0];
-
-      ret[7] = -4.0 * lambda[1];
-      ret[7] = ret[7] * lambda[2];
-      ret[7] = ret[7] * z;
-      ret[7] = ret[7] * mu[0];
-
-      ret[8] = -4.0 * lambda[2];
-      ret[8] = ret[8] * lambda[0];
-      ret[8] = ret[8] * z;
-      ret[8] = ret[8] * mu[0];
-
-      ret[9] = 4.0 * lambda[1];
-      ret[9] = ret[9] * lambda[0];
-      ret[9] = ret[9] * z;
-      ret[9] = ret[9] * mu[3];
-
-      ret[10] = 4.0 * lambda[1];
-      ret[10] = ret[10] * lambda[2];
-      ret[10] = ret[10] * z;
-      ret[10] = ret[10] * mu[3];
-
-      ret[11] = 4.0 * lambda[2];
-      ret[11] = ret[11] * lambda[0];
-      ret[11] = ret[11] * z;
-      ret[11] = ret[11] * mu[3];
-
-      // midsides of edges between the two triangles
+      // Mid-sides of edges between the two triangles
       // shape[12] = t*(2*t-1)*(1+coordsZ)*(1-coordsZ);
       // shape[13] = coordsX*(2*coordsX-1)*(1+coordsZ)*(1-coordsZ);
       // shape[14] = coordsY*(2*coordsY-1)*(1+coordsZ)*(1-coordsZ);
+      shape[12] = -(zeta - 1)*(zeta + 1)*(xi + eta - 1)*(2*xi + 2*eta - 1);
+      shape[13] = -xi*(2*xi - 1)*(zeta - 1)*(zeta + 1);
+      shape[14] = -eta*(2*eta - 1)*(zeta - 1)*(zeta + 1);
 
-      ret[12] = 2.0 * lambda[0];
-      ret[12] = ret[12] - 1.0;
-      ret[12] = ret[12] * lambda[0];
-      ret[12] = ret[12] * mu[0];
-      ret[12] = ret[12] * mu[3];
-      ret[12] = ret[12] * 4.0;
-
-      ret[13] = 2.0 * lambda[1];
-      ret[13] = ret[13] - 1.0;
-      ret[13] = ret[13] * lambda[1];
-      ret[13] = ret[13] * mu[0];
-      ret[13] = ret[13] * mu[3];
-      ret[13] = ret[13] * 4.0;
-
-      ret[14] = 2.0 * lambda[2];
-      ret[14] = ret[14] - 1.0;
-      ret[14] = ret[14] * lambda[2];
-      ret[14] = ret[14] * mu[0];
-      ret[14] = ret[14] * mu[3];
-      ret[14] = ret[14] * 4.0;
-
-      //Centerpoints of the biquadratic quads
+      // Centerpoints of the biquadratic quads
       // shape[15] = 4*coordsX*t*(1+coordsZ)*(1-coordsZ)
       // shape[16] = 4*coordsX*coordsY*(1+coordsZ)*(1-coordsZ)
       // shape[17] = 4*coordsY*t*(1+coordsZ)*(1-coordsZ)
-
-      ret[15] = lambda[1] * lambda[0];
-      ret[15] = ret[15] * mu[0];
-      ret[15] = ret[15] * mu[3];
-      ret[15] = ret[15] * 16.0;
-
-      ret[16] = lambda[1] * lambda[2];
-      ret[16] = ret[16] * mu[0];
-      ret[16] = ret[16] * mu[3];
-      ret[16] = ret[16] * 16.0;
-
-      ret[17] = lambda[2] * lambda[0];
-      ret[17] = ret[17] * mu[0];
-      ret[17] = ret[17] * mu[3];
-      ret[17] = ret[17] * 16.0;
-
-  }
+      shape[15] = 4*xi*(zeta - 1)*(zeta + 1)*(xi + eta - 1);
+      shape[16] = 4*xi*eta*(-zeta*zeta + 1);
+      shape[17] = 4*eta*(zeta - 1)*(zeta + 1)*(xi + eta - 1);
+    }
 
     void FeH1LagrangeWedge18::CalcLocDerivShFnc( Matrix<Double> & deriv,
                                                  const Vector<Double>& point,
                                                  const Elem* ptElem,
                                                  UInt comp )
     {
-      AutoDiff<Double,3> x(point[0],0), y(point[1],1),z(point[2],2);
-      StdVector<AutoDiff<Double,3> > dShape;
-      _CalcShFnc(x,y,z,ptElem,dShape);
-      UInt size = dShape.GetSize();
-      deriv.Resize(size, 3);
-      for( UInt i = 0; i < size; ++i ) {
-        for(UInt j = 0; j < 3; ++j ) {
-          deriv[i][j] = dShape[i].DVal(j);
-        }
-      }
+      const Double& xi   = point[0];
+      const Double& eta  = point[1];
+      const Double& zeta = point[2];
+
+      deriv.Resize(18, 3);
+
+      // symbolically solved using sympy (cf. share/python/wedge18.py).
+
+      deriv[0][0] = zeta*(2.0*xi*zeta - 2.0*xi + 2.0*eta*zeta - 2.0*eta - 1.5*zeta + 1.5);
+      deriv[0][1] = zeta*(2.0*xi*zeta - 2.0*xi + 2.0*eta*zeta - 2.0*eta - 1.5*zeta + 1.5);
+      deriv[0][2] = 0.5*(2*zeta - 1)*(xi + eta - 1)*(2*xi + 2*eta - 1);
+      
+      deriv[1][0] = zeta*(2.0*xi*zeta - 2.0*xi - 0.5*zeta + 0.5);
+      deriv[1][1] = 0;
+      deriv[1][2] = xi*(2.0*xi*zeta - 1.0*xi - 1.0*zeta + 0.5);
+      
+      deriv[2][0] = 0;
+      deriv[2][1] = zeta*(2.0*eta*zeta - 2.0*eta - 0.5*zeta + 0.5);
+      deriv[2][2] = eta*(2.0*eta*zeta - 1.0*eta - 1.0*zeta + 0.5);
+      
+      deriv[3][0] = zeta*(2.0*xi*zeta + 2.0*xi + 2.0*eta*zeta + 2.0*eta - 1.5*zeta - 1.5);
+      deriv[3][1] = zeta*(2.0*xi*zeta + 2.0*xi + 2.0*eta*zeta + 2.0*eta - 1.5*zeta - 1.5);
+      deriv[3][2] = 0.5*(2*zeta + 1)*(xi + eta - 1)*(2*xi + 2*eta - 1);
+      
+      deriv[4][0] = zeta*(2.0*xi*zeta + 2.0*xi - 0.5*zeta - 0.5);
+      deriv[4][1] = 0;
+      deriv[4][2] = xi*(2.0*xi*zeta + 1.0*xi - 1.0*zeta - 0.5);
+      
+      deriv[5][0] = 0;
+      deriv[5][1] = zeta*(2.0*eta*zeta + 2.0*eta - 0.5*zeta - 0.5);
+      deriv[5][2] = eta*(2.0*eta*zeta + 1.0*eta - 1.0*zeta - 0.5);
+      
+      deriv[6][0] = 2*zeta*(-2*xi*zeta + 2*xi - eta*zeta + eta + zeta - 1);
+      deriv[6][1] = 2*xi*zeta*(-zeta + 1);
+      deriv[6][2] = 2*xi*(-2*xi*zeta + xi - 2*eta*zeta + eta + 2*zeta - 1);
+      
+      deriv[7][0] = 2*eta*zeta*(zeta - 1);
+      deriv[7][1] = 2*xi*zeta*(zeta - 1);
+      deriv[7][2] = 2*xi*eta*(2*zeta - 1);
+      
+      deriv[8][0] = 2*eta*zeta*(-zeta + 1);
+      deriv[8][1] = 2*zeta*(-xi*zeta + xi - 2*eta*zeta + 2*eta + zeta - 1);
+      deriv[8][2] = 2*eta*(-2*xi*zeta + xi - 2*eta*zeta + eta + 2*zeta - 1);
+      
+      deriv[9][0] = 2*zeta*(-2*xi*zeta - 2*xi - eta*zeta - eta + zeta + 1);
+      deriv[9][1] = 2*xi*zeta*(-zeta - 1);
+      deriv[9][2] = 2*xi*(-2*xi*zeta - xi - 2*eta*zeta - eta + 2*zeta + 1);
+      
+      deriv[10][0] = 2*eta*zeta*(zeta + 1);
+      deriv[10][1] = 2*xi*zeta*(zeta + 1);
+      deriv[10][2] = 2*xi*eta*(2*zeta + 1);
+      
+      deriv[11][0] = 2*eta*zeta*(-zeta - 1);
+      deriv[11][1] = 2*zeta*(-xi*zeta - xi - 2*eta*zeta - 2*eta + zeta + 1);
+      deriv[11][2] = 2*eta*(-2*xi*zeta - xi - 2*eta*zeta - eta + 2*zeta + 1);
+      
+      deriv[12][0] = -4*xi*zeta*zeta + 4*xi - 4*eta*zeta*zeta + 4*eta + 3*zeta*zeta - 3;
+      deriv[12][1] = -4*xi*zeta*zeta + 4*xi - 4*eta*zeta*zeta + 4*eta + 3*zeta*zeta - 3;
+      deriv[12][2] = 2*zeta*(-2*xi*xi - 4*xi*eta + 3*xi - 2*eta*eta + 3*eta - 1);
+      
+      deriv[13][0] = -4*xi*zeta*zeta + 4*xi + zeta*zeta - 1;
+      deriv[13][1] = 0;
+      deriv[13][2] = 2*xi*zeta*(-2*xi + 1);
+
+      deriv[14][0] = 0;
+      deriv[14][1] = -4*eta*zeta*zeta + 4*eta + zeta*zeta - 1;
+      deriv[14][2] = 2*eta*zeta*(-2*eta + 1);
+      
+      deriv[15][0] = 8*xi*zeta*zeta - 8*xi + 4*eta*zeta*zeta - 4*eta - 4*zeta*zeta + 4;
+      deriv[15][1] = 4*xi*(zeta*zeta - 1);
+      deriv[15][2] = 8*xi*zeta*(xi + eta - 1);
+      
+      deriv[16][0] = 4*eta*(-zeta*zeta + 1);
+      deriv[16][1] = 4*xi*(-zeta*zeta + 1);
+      deriv[16][2] = -8*xi*eta*zeta;
+      
+      deriv[17][0] = 4*eta*(zeta*zeta - 1);
+      deriv[17][1] = 4*xi*zeta*zeta - 4*xi + 8*eta*zeta*zeta - 8*eta - 4*zeta*zeta + 4;
+      deriv[17][2] = 8*eta*zeta*(xi + eta - 1);
+      
     }
 
    // --- Tetra 1st order ---

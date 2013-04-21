@@ -52,7 +52,7 @@ namespace CoupledField{
 
     // Get shape map from grid
     shared_ptr<ElemShapeMap> esm = 
-        domain->GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+        ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
     // Get integration points
     StdVector<LocPoint> intPoints;

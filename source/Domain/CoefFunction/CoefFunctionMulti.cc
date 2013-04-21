@@ -1,4 +1,5 @@
 #include "CoefFunctionMulti.hh"
+#include "CoefFunctionConst.hh"
 
 namespace CoupledField  {
 
@@ -31,26 +32,38 @@ void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
   // check, if this is the first entry
   if( regionCoefs_.size() == 0 ) {
     
-    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
-    
+    shared_ptr<CoefFunctionConst<Complex> > cFct(new CoefFunctionConst<Complex>());
+    shared_ptr<CoefFunctionConst<Double> > rFct(new CoefFunctionConst<Double>());
     // generate empty coefficient functions
     if( dimType_ == CoefFunction::SCALAR) {
-      zeroCeof_ = CoefFunction::Generate(part, "0.0","0.0");
+      cFct->SetScalar(0.0);
+      rFct->SetScalar(0.0);
     } else if( dimType_ == CoefFunction::VECTOR ) {
-      StdVector<std::string> zeroVec(coef->GetVecSize());
-      zeroVec.Init("0.0");
-      zeroCeof_ = CoefFunction::Generate(part, zeroVec, zeroVec);
+      Vector<Complex> cZvec(coef->GetVecSize());
+      Vector<Double> rZvec(coef->GetVecSize());
+      cZvec.Init(0.0);
+      rZvec.Init(0.0);
+      cFct->SetVector(cZvec);
+      rFct->SetVector(rZvec);
     } else if( dimType_ == CoefFunction::TENSOR ) {
       UInt numRows, numCols;
       coef->GetTensorSize( numRows, numCols);
-      StdVector<std::string> zeroVec(numRows*numCols);
-      zeroVec.Init("0.0");
-      zeroCeof_ = CoefFunction::Generate(part, numRows, numCols, 
-                                         zeroVec, zeroVec);
+      Matrix<Complex> cTens(numRows,numCols);
+      Matrix<Double> rTens(numRows,numCols);
+      cTens.Init();
+      rTens.Init();
+      cFct->SetTensor(cTens);
+      rFct->SetTensor(rTens);
     } else  {
       EXCEPTION( "Unknown dimension type" );
     }
     
+    if(isComplex_) {
+      zeroCoef_ = cFct;
+    } else { 
+      zeroCoef_ = rFct;
+    }
+      
   } else {
     PtrCoefFct first = regionCoefs_.begin()->second;
     if( coef->GetDimType() != dimType_ ) {

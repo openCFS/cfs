@@ -9,7 +9,7 @@
 namespace CoupledField {
 
   IdPrecondStd::IdPrecondStd(PtrParamNode xml, PtrParamNode olasInfo ) {
-    olasInfo->Get("idPrecond");
+    this->infoNode_ = olasInfo->Get("idPrecond");
   }
   
   void IdPrecondStd::Apply( const BaseMatrix &sysmat, const BaseVector &rhs,

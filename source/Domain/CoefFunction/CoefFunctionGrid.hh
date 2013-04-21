@@ -58,13 +58,14 @@ class CoefFunctionGrid : public CoefFunction{
      * based on the parameter configuration supplied by the user
      */
     static PtrCoefFct
-    Generate( Global::ComplexPart format,
+    Generate( Domain* ptDomain,
+              Global::ComplexPart format,
               PtrParamNode infoNode,
               PtrParamNode configNode);
 
     ///Constructor which sets every field to default values
     /// carefully check for each field in an overloaded class
-    CoefFunctionGrid(PtrParamNode configNode);
+    CoefFunctionGrid(Domain* ptDomain, PtrParamNode configNode);
 
     ///Destructor
     virtual ~CoefFunctionGrid();
@@ -147,6 +148,9 @@ class CoefFunctionGrid : public CoefFunction{
 
     //! pointer to src grid
     Grid* srcGrid_;
+    
+    //! Pointer to domain
+    Domain* domain_;
 
     //! list of regions on given grid the coefficients are defined on
     std::set<std::string> srcRegions_;
@@ -167,7 +171,7 @@ class CoefFunctionGrid : public CoefFunction{
     UInt curStep_;
 
     //! stores the current step value of external result
-    UInt curTStep_;
+    Double curTStep_;
 
     //! stores the current mutlisequence step for external result
     UInt aSeqStep_;
