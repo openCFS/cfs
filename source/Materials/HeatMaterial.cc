@@ -20,7 +20,9 @@ namespace CoupledField
 // ***********************
 //   Default Constructor
 // ***********************
-HeatMaterial::HeatMaterial() : BaseMaterial() {
+HeatMaterial::HeatMaterial(MathParser* mp,
+                           CoordSystem * defaultCoosy) 
+: BaseMaterial(mp, defaultCoosy) {
 
   materialDatabaseName_ = "Heat";
 

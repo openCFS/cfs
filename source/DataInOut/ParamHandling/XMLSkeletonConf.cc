@@ -149,30 +149,6 @@ namespace CoupledField {
     std::string cfsDefaults = progOpts->GetSchemaPathStr();
     cfsDefaults += "/CFS-Simulation/Defaults/CFS++Defaults.xml";
 
-    // Generate dummy parameter node
-    // Note: This parameter node is queried by the finite elements themselves
-    // for getting the integration parameters.
-    // This should be changed in the future
-    param = PtrParamNode(new ParamNode());
-    
-    //ptQ1   = new Quad1FE();
-//    ptQ2   = new Quad2FE();
-//    ptTet1 = new Tetra1FE();
-//    ptTet2 = new Tetra2FE();
-    //ptL1   = new Line1FE();
-//    ptL2   = new Line2FE();
-//    ptTr1  = new Triangle1FE();
-//    ptTr2  = new Triangle2FE();
-    //ptHexa1 = new Hexa1FE();
-//    ptHexa2 = new Hexa2FE();
-//    ptPyra1 = new Pyra1FE();
-//    ptPyra2 = new Pyra2FE();
-//    ptWedge1 = new Wedge1FE();
-//    ptWedge2 = new Wedge2FE();
-
-    // now we can delete conf-object already
-    param.reset();
-    
     // Reopen skeleton-conf file
     std::string xmlFile = progOpts->GetSimName() + ".xml";
     out_->clear();

@@ -238,6 +238,9 @@ namespace CoupledField{
     rotationMat_[1][0] = (std::abs(y[0]) < EPS ) ? 0.0 : (y[0]);
     rotationMat_[1][1] = (std::abs(y[1]) < EPS ) ? 0.0 : (y[1]);
 
+    // Perform on check on rotation matrix
+    CheckRotationMat( rotationMat_ );
+    
     // 3) Calculate transposed inverse rotation matrix, which defines 
     //    mapping from  local to global cartesian coordinate system
     rotationMat_.Invert(invRotationMat_);

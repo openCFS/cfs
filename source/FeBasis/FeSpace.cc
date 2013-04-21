@@ -202,7 +202,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     //= PolyTypeEnum.Parse(polyStr);
     PolyType polyType = UNDEF_POLY;
     //obtain the fePolynomialList
-    PtrParamNode polyNode = param->Get("fePolynomialList", ParamNode::PASS );
+    PtrParamNode polyNode = aNode->GetRoot()->Get("fePolynomialList", ParamNode::PASS );
     if(!polyNode){
       polyType = LAGRANGE;
       LOG_DBG(feSpace) << "No explicit definition available, using default";
@@ -1090,7 +1090,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
   void FeSpace::ReadIntegList(){
     //obtain the fePolynomialList
-    PtrParamNode integNode = param->Get("integrationSchemeList", ParamNode::PASS );
+    PtrParamNode integNode = myParam_->GetRoot()->Get("integrationSchemeList", ParamNode::PASS );
     if(integNode){
       ParamNodeList iList = integNode->GetList("scheme");
       for(UInt aInt = 0; aInt < iList.GetSize();aInt++){
@@ -1105,7 +1105,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   }
 
   void FeSpace::ReadPolyList(){
-        PtrParamNode polyNode = param->Get("fePolynomialList", ParamNode::PASS );
+        PtrParamNode polyNode = myParam_->GetRoot()->Get("fePolynomialList", ParamNode::PASS );
         if(polyNode){
           std::string polyName = PolyTypeEnum.ToString(polyType_);
           ParamNodeList pList = polyNode->GetList(polyName);

@@ -7,6 +7,12 @@
 
 #include <set>
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/fstream.hpp>
+namespace fs = boost::filesystem;
+
 #include "Domain/Results/BaseResults.hh"
 #include "Domain/Results/ResultInfo.hh"
 #include "PDE/BasePDE.hh"
@@ -27,10 +33,21 @@ namespace CoupledField {
                      StdVector<shared_ptr<BaseResult> > > ResultMapType;
 
     //! Define capabilities of writing out certain information
-    typedef enum {NONE, MESH, MESH_RESULTS, HISTORY, USERDATA} Capability;
+    typedef enum {
+      NONE,          /*!< No specific output data*/
+      MESH,          /*!< Mesh information present*/
+      MESH_RESULTS,  /*!< Results defined spatial entities (nodes, elements)*/
+      HISTORY,       /*!< Non spatially resolved results (energy, power etc.)
+                          or just specified for some few nodes, elements*/
+      USERDATA,      /*!< Information about user (environment, build status for
+                          program etc.)*/  
+      DATABASE       /*!< Detailed internal data, for re-creating FeFunctions
+                          and the internal state of PDEs */
+    } Capability;
 
     //! Constructor
-    SimOutput( const std::string& fileName, PtrParamNode outputNode );
+    SimOutput( const std::string& fileName, PtrParamNode outputNode,
+               PtrParamNode infoNode, bool isRestart );
 
     //! Destructor
     virtual ~SimOutput();
@@ -98,16 +115,22 @@ namespace CoupledField {
     std::string fileName_;
 
     //! Name of output directory
-    std::string dirName_;
+    fs::path dirName_;
 
     //! Capabilities of output class
     std::set<Capability> capabilities_;
+    
+    //! Flag if result file is for a restarted simulation
+    bool isRestart_;
 
     //! Grid class
     Grid* ptGrid_;
     
     //! Parameter node for current output class
     PtrParamNode myParam_;
+    
+    //! Parameter node for current output class
+    PtrParamNode myInfo_;
 
     //! Current multisequence step in analysis
     UInt actMSStep_;

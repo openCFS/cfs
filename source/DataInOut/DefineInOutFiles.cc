@@ -108,7 +108,9 @@ namespace CoupledField
 // ==============================
 //   Generate mesh file pointer
 // ==============================
-void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
+void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
+                                           PtrParamNode infoNode,
+                                           std::map<std::string, shared_ptr<
     SimInput> >& inFiles, std::map<std::string,
     StdVector<shared_ptr<SimInput> > >& gridInputs)
 {
@@ -124,7 +126,7 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
 
   std::string informat = "mesh";
   StdVector<PtrParamNode> inputOptionNodes;
-  PtrParamNode inputNode = param->Get("fileFormats") ->Get("input",ParamNode::INSERT);
+  PtrParamNode inputNode = rootNode->Get("fileFormats") ->Get("input",ParamNode::INSERT);
   inputOptionNodes = inputNode->GetChildren();
 
   // if no reader is defined explictly, create implicit one
@@ -139,7 +141,8 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
     meshNode->GetValue("id", actId, ParamNode::INSERT);
     meshNode->GetValue("gridId", actGridId, ParamNode::INSERT);
     
-    inFiles[actId] = shared_ptr<SimInput> (new SimInputMESH(meshFile, PtrParamNode() ));
+    inFiles[actId] = shared_ptr<SimInput> (new SimInputMESH(meshFile, PtrParamNode(), 
+                                                            infoNode ));
     gridInputs[actGridId].Push_back(inFiles[actId]);
     return;
   }
@@ -178,7 +181,7 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
       if (meshFile.empty())
         meshFile = simName + ".mesh";
       inFiles[actId] = shared_ptr<SimInput> (
-          new SimInputMESH(meshFile, actNode));
+          new SimInputMESH(meshFile, actNode, infoNode));
 #else
       EXCEPTION( "No support for MESH input file format." );
 #endif // USE_MESH
@@ -189,7 +192,7 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
       if (meshFile.empty())
         meshFile = simName + ".h5";
       inFiles[actId] = shared_ptr<SimInput> (
-          new SimInputHDF5(meshFile, actNode));
+          new SimInputHDF5(meshFile, actNode, infoNode));
 #else
       EXCEPTION( "No support for HDF5 input file format." );
 #endif // USE_HDF5
@@ -200,7 +203,7 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
       if(meshFile.empty())
       meshFile = simName + ".gmv";
       inFiles[actId] = shared_ptr<SimInput>(new SimInputGMV(meshFile,
-              actNode));
+              actNode, infoNode));
 #else
       EXCEPTION( "No support for GMV input file format." );
 #endif // USE_GMV
@@ -210,7 +213,7 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
       if(meshFile.empty())
       meshFile = simName + ".refelem";
       inFiles[actId] = shared_ptr<SimInput>(new SimInputRefElems(meshFile,
-              actNode));
+              actNode, infoNode));
     }
     else if (informat == "gmsh")
     {
@@ -218,7 +221,7 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
       if (meshFile == "")
         meshFile = simName + ".msh";
       inFiles[actId] = shared_ptr<SimInput> (
-          new SimInputGmsh(meshFile, actNode));
+          new SimInputGmsh(meshFile, actNode, infoNode));
 #else
       EXCEPTION( "No support for GMSH input file format." );
 #endif // USE_GMSH
@@ -229,7 +232,7 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
       if (meshFile == "")
         meshFile = simName + ".mphtxt";
       inFiles[actId] = shared_ptr<SimInput> (
-          new SimInputMPHTXT(meshFile, actNode));
+          new SimInputMPHTXT(meshFile, actNode, infoNode));
 #else
       EXCEPTION( "No support for Comsol .mphtxt input file format." );
 #endif // USE_COMSOL
@@ -240,7 +243,7 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
       if (meshFile.empty())
         meshFile = simName + ".unv";
       inFiles[actId]
-          = shared_ptr<SimInput> (new SimInputUnv(meshFile, actNode));
+          = shared_ptr<SimInput> (new SimInputUnv(meshFile, actNode, infoNode));
 #else
       EXCEPTION( "No support for UNV input file format." );
 #endif // USE_UNV
@@ -251,7 +254,7 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
       if (meshFile.empty())
         meshFile = simName + ".mesh";
       inFiles[actId] = 
-          shared_ptr<SimInput> (new InternalMesh(meshFile, actNode));
+          shared_ptr<SimInput> (new InternalMesh(meshFile, actNode, infoNode));
 #else
       EXCEPTION( "No support for internalMesh input file format." );
 #endif // USE_MESH
@@ -270,7 +273,9 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
 //   Generate output file pointer
 // ================================
 void DefineInOutFiles::
-CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
+CreateSimOutputFiles(PtrParamNode rootNode,
+                     PtrParamNode infoNode,
+                     std::map<std::string, shared_ptr<SimOutput> >& out,
                      std::map<std::string, std::string> & gridIds )
 {
 
@@ -278,9 +283,12 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
   out.clear();
 
   std::string simName = progOpts->GetSimName();
+  
+  // check for restart
+  bool restart = progOpts->GetRestart();
 
   // get list of output formats
-  PtrParamNode outNode = param->Get("fileFormats")->Get("output", ParamNode::PASS);
+  PtrParamNode outNode = rootNode->Get("fileFormats")->Get("output", ParamNode::PASS);
 
   if (!outNode)
   {
@@ -354,7 +362,8 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
     if (actFormat == "unv")
     {
 #ifdef USE_UNV
-      out[actId] = shared_ptr<SimOutput> (new SimOutputUnv(simName, actNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputUnv(simName, actNode, 
+                                                           infoNode, restart));
 #else
       EXCEPTION( "No support for UNV output file format." );
 #endif
@@ -363,7 +372,8 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
     if (actFormat == "gid")
     {
 #ifdef USE_GIDPOST
-      out[actId] = shared_ptr<SimOutput> (new SimOutputGiD(simName, actNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputGiD(simName, actNode, 
+                                                           infoNode, restart));
       continue;
 #else
       EXCEPTION( "No support for GiD output file format." );
@@ -373,7 +383,8 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
     if (actFormat == "gmsh")
     {
 #ifdef USE_GMSH
-      out[actId] = shared_ptr<SimOutput> (new SimOutputGmsh(simName, actNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputGmsh(simName, actNode, 
+                                                            infoNode, restart));
       continue;
 #else
       EXCEPTION( "No support for Gmsh output file format." );
@@ -384,7 +395,8 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
     if (actFormat == "gmshParsed")
     {
 #ifdef USE_GMSH
-      out[actId] = shared_ptr<SimOutput> (new SimOutputParsed(simName, actNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputParsed(simName, actNode, 
+                                                              infoNode, restart));
       continue;
 #else
       EXCEPTION( "No support for Gmsh parsed output file format." );
@@ -394,7 +406,8 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
     if (actFormat == "gmv")
     {
 #ifdef USE_GMV
-      out[actId] = shared_ptr<SimOutput> (new SimOutputGMV(simName, actNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputGMV(simName, actNode, 
+                                                           infoNode, restart));
 #else
       EXCEPTION( "No support for GMV output file format." );
 #endif
@@ -405,7 +418,7 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
 #ifdef USE_HDF5
       if(!hdf5Writer) 
       {        
-        hdf5Writer.reset(new SimOutputHDF5(simName, actNode));
+        hdf5Writer.reset(new SimOutputHDF5(simName, actNode, infoNode, restart));
         out[actId] = hdf5Writer;
 
         std::cout << "++ Creating HDF5 writer '" << actId << "'" << std::endl;
@@ -420,7 +433,7 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
 #ifdef USE_HDF5
       if(!hdf5Writer) 
       {        
-        hdf5Writer.reset(new SimOutputHDF5(simName, actNode));
+        hdf5Writer.reset(new SimOutputHDF5(simName, actNode, infoNode, restart));
 
         if(hdf5Id == "")
           hdf5Id = actId + "_hdf5";
@@ -430,7 +443,8 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
         std::cout << "++ Creating HDF5/XDMF writer '" << hdf5Id << "'" << std::endl;
       }
       
-      SimOutputXDMF* simOutXDMF = new SimOutputXDMF(simName, actNode);
+      SimOutputXDMF* simOutXDMF = new SimOutputXDMF(simName, actNode, 
+                                                    infoNode, restart);
       if(simOutXDMF) 
       {
         out[actId] = shared_ptr<SimOutput> (simOutXDMF);
@@ -447,7 +461,7 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
     {
 #ifdef USE_ANSYSRST
       out[actId] =
-      shared_ptr<SimOutput>( new SimOutputRST( simName, actNode ) );
+      shared_ptr<SimOutput>( new SimOutputRST( simName, actNode, infoNode, restart ) );
 #else
       EXCEPTION( "No support for ANSYS RST output file format." );
 #endif
@@ -455,18 +469,19 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
 
     if (actFormat == "text" || actFormat == "csv")
     {
-      out[actId] = shared_ptr<SimOutput> (new SimOutputText(simName, actNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputText(simName, actNode, 
+                                                            infoNode, restart));
     }
     
     if (actFormat == "info")
     {
-      out[actId] = shared_ptr<SimOutput> (new SimOutputInfo(actNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputInfo(actNode, infoNode, restart));
     }
 
 #ifndef __MINGW32__
     if (actFormat == "streaming")
     {
-      out[actId] = shared_ptr<SimOutput> (new SimOutputStreaming(actNode));
+      out[actId] = shared_ptr<SimOutput> (new SimOutputStreaming(actNode, infoNode, restart));
     }
 #endif
 
@@ -477,7 +492,7 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
 //   Generate material file handler
 // ==================================
 MaterialHandler *
-DefineInOutFiles::CreateMaterialHandler()
+DefineInOutFiles::CreateMaterialHandler(PtrParamNode rootNode )
 {
 
   std::string fileName = "mat.dat";
@@ -485,7 +500,7 @@ DefineInOutFiles::CreateMaterialHandler()
 
   // Determine filename and format
   PtrParamNode matNode = 
-      param->Get("fileFormats")->Get("materialData", ParamNode::PASS);
+      rootNode->Get("fileFormats")->Get("materialData", ParamNode::PASS);
   if (matNode)
   {
     matNode->GetValue("file", fileName);
@@ -500,7 +515,9 @@ DefineInOutFiles::CreateMaterialHandler()
   }
   else if (format == "xml")
   {
-    ptMaterialHandler_ = new XMLMaterialHandler(fileName);
+    XMLMaterialHandler * xmlHandler = new XMLMaterialHandler();
+    xmlHandler->LoadFromFile(fileName);
+    ptMaterialHandler_ = xmlHandler;
   }
   else
   {

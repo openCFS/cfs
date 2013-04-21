@@ -5,14 +5,16 @@
 
 
 #include <iomanip>
-
+#include <fstream>
 #include <def_use_xerces.hh>
 #include <boost/version.hpp>
 #include <boost/asio/ip/host_name.hpp>
 
 #include "main/CFS.hh"
 #include "Utils/Timer.hh"
-#include "DataInOut/DefineFiles/DefineInOutFiles.hh"
+#include "DataInOut/DefineInOutFiles.hh"
+#include "DataInOut/SimState.hh"
+#include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "Domain/Domain.hh"
@@ -33,8 +35,109 @@
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
 #endif
 
+
+#include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
+#include "PDE/SinglePDE.hh"
+
 using namespace CoupledField;
 using namespace std;
+
+
+// Create global info node
+PtrParamNode infoNode;
+
+void TestReload() {
+  
+  std::string h5Name = "RingHarm2d.h5";
+  PtrParamNode node(new ParamNode());
+  boost::shared_ptr<SimInputHDF5> in;
+  in.reset(new SimInputHDF5(h5Name, node, infoNode));
+  
+  // create SimState (for input)
+  boost::shared_ptr<SimState> state(new SimState(true));
+  state->SetInputHdf5Reader(in);
+  Domain * newDomain = state->GetDomain(1);
+  
+  // next step: set input to step 1
+
+  // Obtain grid
+  Grid * ptGrid = newDomain->GetGrid();
+  ptGrid->Dump();
+  
+  // Obtain mechanic PDE
+  SinglePDE * mechPDE = newDomain->GetSinglePDE("mechanic");
+  std::cerr << "name of pde is " << mechPDE->GetName() << std::endl;
+  
+  // Set specific step
+  state->UpdateToStep(1);
+  
+  
+  // Obtain stress at given element;
+  PtrCoefFct stress = mechPDE->GetCoefFct( MECH_STRESS );
+  if (! stress)  {
+    EXCEPTION("Stress CoefFunction not defined");
+  }
+  
+  const Elem * ptEl = ptGrid->GetElem(14);
+  boost::shared_ptr<ElemShapeMap> esm = ptGrid->GetElemShapeMap( ptEl);
+
+  LocPointMapped lpm;
+  LocPoint lp = Elem::shapes[ptEl->type].midPointCoord;
+  lpm.Set(lp, esm, 0.0);
+  Vector<Complex> vec;
+  stress->GetVector(vec, lpm);
+  std::cerr << "stress is " << vec.ToString() << std::endl;
+  
+  // obtain number of multisequence steps and
+  // time steps therein
+  std::map<UInt, BasePDE::AnalysisType>  analysis;
+  
+  in->DB_GetNumMultiSequenceSteps( analysis );
+  
+  std::map<UInt, BasePDE::AnalysisType> ::const_iterator msIt = analysis.begin();
+  for( ; msIt != analysis.end(); ++msIt) {
+    UInt step = msIt->first;
+    std::cerr << "MS Step " << step << " with analysis type "
+        << BasePDE::analysisType.ToString(analysis[step])
+        << "\n";
+    
+    std::map<std::string, std::set<std::string> > coefFcts;
+    std::map<std::string, std::set<std::string> >::const_iterator pdeIt;
+    in->DB_GetAvailPdeCoefFcts( step, coefFcts );
+    
+    // Loop over all available PDEs
+    for(pdeIt = coefFcts.begin(); pdeIt != coefFcts.end(); ++pdeIt ) {
+    
+      const std::string & pdeName = pdeIt->first;
+      const std::set<std::string> & coefs = pdeIt->second;
+      std::set<std::string>::const_iterator coefIt = coefs.begin();
+      
+      std::cerr << "contains PDE " << pdeName << std::endl;
+      // Loop over all available CoefFcts
+      for( ; coefIt != coefs.end(); ++coefIt ) {
+        const std::string & coefName = *coefIt; 
+        std::cerr << "\tCoefFct: " << coefName << std::endl;
+        
+        
+        // Obtain number of time / freq steps
+        std::map<UInt, Double> stepValues;
+        in->DB_GetStepValues( step, pdeName, coefName, stepValues );
+        std::map<UInt,Double>::const_iterator stepIt = stepValues.begin();
+        for( ; stepIt != stepValues.end(); ++stepIt ) {
+          std::cerr << "\t\t" << stepIt->first << " : " 
+              << stepIt->second << std::endl;  
+        }
+        
+      }
+      
+    } // loop: pdes
+    
+    
+    
+  } // loop: multisteps
+  // Obtain available PDE and result types for each multiSequence step
+  
+}
 
 
 int main(int argc, const char **argv)
@@ -58,7 +161,7 @@ void PrintWarning(CoupledField::Exception& ex ) {
             << lineNum  << ")\n\n";
   
   // Print warning also to info xml
-  PtrParamNode warn = info->Get("warning",ParamNode::INSERT);
+  PtrParamNode warn = infoNode->Get("warning",ParamNode::INSERT);
   warn->Get("lineNum")->SetValue(lineNum);
   warn->Get("fileName")->SetValue(fileName);
   warn->Get("message")->SetValue(msg);
@@ -95,26 +198,26 @@ CFS::CFS(int argc, const char **argv) :
   // Get information about exception handling
   Exception::segfault_ = progOpts->GetForceSegFault();
   
-  // Register callback function with exception class for warning
-  Exception::SetCallbackWarn(&PrintWarning);
-
   // Set global Enums, the rest is set by the classes
   SetGlobalEnums();
 
   // the new xml logging derived from the ParamNode
-  info = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
+  infoNode = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
       //progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
-  info->SetName("cfsInfo");
-  info->Get("status")->SetValue("running"); // to be overwritten by "aborted" or "finished"
-  info->Get(ParamNode::PN_SUMMARY)->Get("timer")->SetValue(timer);
+  infoNode->SetName("cfsInfo");
+  infoNode->Get("status")->SetValue("running"); // to be overwritten by "aborted" or "finished"
+  infoNode->Get(ParamNode::PN_SUMMARY)->Get("timer")->SetValue(timer);
   timer->Start(); // ignore that this is not the real beginning
 
+  // Register callback function with exception class for warning
+  Exception::SetCallbackWarn(&PrintWarning);
+  
   // Print information about program start time and host
   using namespace boost::posix_time;
   using namespace boost::gregorian;
 
   // our calculation environment
-  PtrParamNode env = info->Get(ParamNode::PN_HEADER)->Get("environment");
+  PtrParamNode env = infoNode->Get(ParamNode::PN_HEADER)->Get("environment");
   start_time_ = to_simple_string( second_clock::local_time() );
   env->Get("started")->SetValue(start_time_);
   
@@ -126,7 +229,7 @@ CFS::CFS(int argc, const char **argv) :
   if(!hostname_.empty())
     env->Get("host")->SetValue(hostname_);
   
-  info->ToFile("", true);
+  infoNode->ToFile("", true);
 
 }
 
@@ -135,21 +238,32 @@ CFS::~CFS()
 {
 
   // flush last information.
-  info->ToFile(std::string(), true);
-  
+  infoNode->ToFile(std::string(), true);
 
+
+  delete resultHandler;
+  resultHandler = NULL;
+  
   // Delete objects
   //delete param;
-  delete domain; // might write ersatz material file if <export save="finally"/> in optimization
+  
+  
+  delete domain;
+  domain = NULL;
+  
+  // might write ersatz material file if <export save="finally"/> in optimization
   delete progOpts;
-  delete resultHandler;
+  progOpts = NULL;
+  
+  simState.reset();
 
   // delete some global objects because valgrind complains otherwise
   // does not really matter anyway...
-  param.reset();
-  info.reset();
+  paramNode_.reset();
+  infoNode.reset();
 
   delete logConf_;
+  logConf_ = NULL;
 }
 
 int CFS::Run()
@@ -171,12 +285,20 @@ int CFS::Run()
 
 
     ReadXMLFile();
-    SetupIO();
+    SetupIO(paramNode_);
 
-    domain = new Domain( gridInputs, resultHandler, materialHandler );
+    domain = new Domain( gridInputs, resultHandler, materialHandler, 
+                         simState, paramNode_, infoNode );
     // Create grid
     domain->CreateGrid();
 
+    
+    // ============================
+    // PERFORM TEST
+    // ============================
+//    TestReload();
+//    exit(EXIT_SUCCESS);
+    
     if(progOpts->GetPrintGrid())
       PrintGrid();
     else
@@ -214,9 +336,9 @@ int CFS::Run()
     cout << endl << endl;
       
     // write the info object
-    info->Get("status")->SetValue("finished"); // overwrite 'running'
-    info->Get(ParamNode::PN_SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false));
-    info->Get(ParamNode::PN_SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true));
+    infoNode->Get("status")->SetValue("finished"); // overwrite 'running'
+    infoNode->Get(ParamNode::PN_SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false));
+    infoNode->Get(ParamNode::PN_SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true));
 
     return 0;
   }
@@ -238,12 +360,12 @@ int CFS::Run()
     }
 
     // Print error cause to info file
-    if(info != NULL)
+    if(infoNode != NULL)
     {
-      PtrParamNode errorNode = info->Get(ParamNode::PN_ERROR);
+      PtrParamNode errorNode = infoNode->Get(ParamNode::PN_ERROR);
       errorNode->SetValue(ex.what());
-      info->Get("status")->SetValue("aborted");
-      info->ToFile();
+      infoNode->Get("status")->SetValue("aborted");
+      infoNode->ToFile();
     }
 
     return 1;
@@ -295,7 +417,7 @@ void CFS::WriteXMLSkeleton()
   string simName = progOpts->GetSimName();
   if(meshFile == "")
     meshFile = simName + ".mesh";
-  SimInput * ptInputfile = new SimInputMESH(meshFile, PtrParamNode());
+  SimInput * ptInputfile = new SimInputMESH(meshFile, PtrParamNode(), infoNode);
   ptInputfile->InitModule();
   // class writing log-information
   SkeletonConf *ptskel = new SkeletonConf(ptInputfile);
@@ -317,67 +439,78 @@ void CFS::ReadXMLFile()
   EXCEPTION( "I am sorry to say, but CFS only can be compiled with XERCES-support");
 #endif
 
-  // this is the new param staff which replaces the old params - delete this comment finally
+  // this is the new param stuff which replaces the old params - delete this comment finally
   string schema = progOpts->GetSchemaPathStr();
   schema += "/CFS-Simulation/CFS.xsd";
 
   // Initialize our xerces dom parser to handle the cfs xml file
-  Xerces* xerces = new Xerces(xmlFile, schema);
+  Xerces* xerces = new Xerces(schema);
+  xerces->SetFile(xmlFile);
 
   // set the global ParamNode tree pointer
-  param = xerces->CreateParamNodeInstance();
+  paramNode_ = xerces->CreateParamNodeInstance();
   // save us in the info stuff, with defaults but no comments
   // release the xerces ressources, param is not affected
   delete xerces;
 }
 
-void CFS::SetupIO()
+void CFS::SetupIO(PtrParamNode rootNode )
 {
-  // read type of mesh-libraray
-//  string libmesh = "mesh";
+  
+  // Create structure for handling the simulation outputstate
+  simState.reset(new SimState(false));
+  
+  // read meshes
   map<string, shared_ptr<SimInput> > inFiles;
-
-//  PtrParamNode meshNode = param->Get("input", false );
-//  if( meshNode )
-//    meshNode->Get("meshLibrary", libmesh, false);
-
-//  if ( libmesh != "structGrid" ) {
-    // Generate mesh reader
-  fileHandler.CreateSimInputFiles( inFiles, gridInputs );
-//  }
-
+  fileHandler.CreateSimInputFiles( rootNode, infoNode, inFiles, gridInputs );
+  
   // generate material handler
-  materialHandler = fileHandler.CreateMaterialHandler();
+  materialHandler = fileHandler.CreateMaterialHandler(rootNode );
 
   // Create simulation output writer
   map<string, shared_ptr<SimOutput> > outFiles;
   map<string, string> outGridIds;
-  fileHandler.CreateSimOutputFiles( outFiles, outGridIds );
+  fileHandler.CreateSimOutputFiles( rootNode, infoNode, outFiles, outGridIds );
 
-  // Create resulthandler and pass the output files
-  resultHandler = new ResultHandler( ResultHandler::EMBEDDED );
+  // Create result handler and pass the output files
+  resultHandler = new ResultHandler( paramNode_ );
   map<string, shared_ptr<SimOutput> >::iterator outputIt;
   map<string, shared_ptr<SimInput> >::iterator inputIt;
   outputIt = outFiles.begin();
   inputIt = inFiles.begin();
+  
+  // check for hdf5Reader
+  shared_ptr<SimOutputHDF5> hdf5Writer;
+  
   for( ; outputIt != outFiles.end(); outputIt++ ) {
     resultHandler->AddOutputDest( outputIt->second, 
                                   outputIt->first,
                                   outGridIds[outputIt->first] );
+    // check if writer has hdf5 format
+    if( typeid(*outputIt->second) == typeid(SimOutputHDF5) ) {
+      hdf5Writer = dynamic_pointer_cast<SimOutputHDF5>(outputIt->second);
+    }
   }
   for( ; inputIt != inFiles.end(); inputIt++ ) {
     resultHandler->AddInputReader( inputIt->second, inputIt->first );
   }
 
-
+  // Pass hdf5 writer to simState class
+  simState->SetOutputHdf5Writer(hdf5Writer);
+  simState->SetMatParamFile( progOpts->GetParamFileStr(),
+                             materialHandler->GetFileName() );
+  
   // Log command line parameters
-  progOpts->ToInfo(info->Get(ParamNode::PN_HEADER)->Get("progOpts"));
+  progOpts->ToInfo(infoNode->Get(ParamNode::PN_HEADER)->Get("progOpts"));
+  
   // log the optinal id/name/token/label from <cfsSimulation id="..">
-  info->Get(ParamNode::PN_HEADER)->Get("id")->SetValue(param->Get("id"));
-  // if requested five the problem file -> one can see the defaults then
+  infoNode->Get(ParamNode::PN_HEADER)->Get("id")->SetValue(paramNode_->Get("id"));
+  
+  // if requested give the problem file -> one can see the defaults then
   if(progOpts->DoDetailedInfo())
-    info->Get(ParamNode::PN_HEADER)->Get("cfsSimulation")->SetValue(param);
+    infoNode->Get(ParamNode::PN_HEADER)->Get("cfsSimulation")->SetValue(paramNode_);
+  
   // Open file for status reports by OLAS
-  fileHandler.OpenFile( OLAS_FILE );
+  fileHandler.OpenFile( DefineInOutFiles::OLAS_FILE );
 }
 

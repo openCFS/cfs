@@ -29,7 +29,9 @@ class AcousticMixedPDE : public SinglePDE{
     /*!
       \param aGrid pointer to grid
     */
-    AcousticMixedPDE( Grid* aGrid, PtrParamNode paramNode );
+    AcousticMixedPDE( Grid* aGrid, PtrParamNode paramNode, 
+                      PtrParamNode infoNode,
+                      shared_ptr<SimState> simState, Domain* domain );
 
     virtual ~AcousticMixedPDE(){};
 
@@ -49,9 +51,6 @@ class AcousticMixedPDE : public SinglePDE{
 
     //! define the SoltionStep-Driver
     void DefineSolveStep();
-
-    //! Initialize all the nodes by this value
-    void SetInitialCondition();
 
     //! define all (bilinearform) integrators needed for this pdewith template
     //! for the space dimension

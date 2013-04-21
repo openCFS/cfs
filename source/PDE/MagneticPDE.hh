@@ -26,7 +26,9 @@ namespace CoupledField
   public:
 
     //! Constructor
-    MagneticPDE( Grid *aGrid, PtrParamNode paramNode );
+    MagneticPDE( Grid *aGrid, PtrParamNode paramNode,
+                 PtrParamNode infoNode,
+                 shared_ptr<SimState> simState, Domain* domain );
 
     //!  Destructor
     virtual ~MagneticPDE();

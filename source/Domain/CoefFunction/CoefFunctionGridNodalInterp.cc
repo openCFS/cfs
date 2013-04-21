@@ -35,8 +35,10 @@ DECLARE_LOG(coeffunctiongridnodalinterp)
 DEFINE_LOG(coeffunctiongridnodalinterp, "coeffunctiongridnodalinterp")
 
 template<typename DATA_TYPE>
-CoefFunctionGridNodalInterp<DATA_TYPE>::CoefFunctionGridNodalInterp(PtrParamNode configNode, PtrParamNode curInfo)
-                                        :CoefFunctionGridNodal<DATA_TYPE>(configNode){
+CoefFunctionGridNodalInterp<DATA_TYPE>::
+CoefFunctionGridNodalInterp(Domain* ptDomain,
+                            PtrParamNode configNode, PtrParamNode curInfo)
+                            :CoefFunctionGridNodal<DATA_TYPE>(ptDomain, configNode){
   //right now hardcoded for conservative
 
   this->stdInterpReady_ = false;
@@ -46,10 +48,10 @@ CoefFunctionGridNodalInterp<DATA_TYPE>::CoefFunctionGridNodalInterp(PtrParamNode
   ReadXMLNode(configNode);
 
   //obtain grid pointer and store its dimension
-  this->srcGrid_ = domain->GetGrid(this->gridId_);
+  this->srcGrid_ = this->domain_->GetGrid(this->gridId_);
 
   // Determine which steps are available
-  domain->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
+  this->domain_->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
 
   //====================================================
   // Create CoefFunction info
@@ -64,7 +66,7 @@ CoefFunctionGridNodalInterp<DATA_TYPE>::CoefFunctionGridNodalInterp(PtrParamNode
     this->dimDof_ = this->resultInfo_->dofNames.GetSize();
     this->dimType_ = CoefFunction::TENSOR;
   }
-  UInt gDim = domain->GetGrid()->GetDim();
+  UInt gDim = this->domain_->GetGrid()->GetDim();
   UInt dDim = this->resultInfo_->dofNames.GetSize();
   this->CreateOperator(gDim,dDim);
 }
@@ -229,7 +231,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
   StdVector<LocPoint> localCoords;
   StdVector< const Elem* > foundElements;
 
-  Grid* destGrid = domain->GetGrid();
+  Grid* destGrid = this->domain_->GetGrid();
 
 
   StdVector<UInt> allNodes;
@@ -298,7 +300,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode
 
   this->inputId_ = configNode->Get("inputId")->As<std::string>();
   this->gridId_ = configNode->Get("gridId")->As<std::string>();
-  this->aSeqStep_ = domain->GetDriver()->GetActSequenceStep();
+  this->aSeqStep_ = this->domain_->GetDriver()->GetActSequenceStep();
 
   this->DetermineResult(this->inputId_,this->aSeqStep_);
 
@@ -311,7 +313,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode
   this->extDataInfo_->Get("interpolation")->Get("setBy")->SetValue("XML");
 
   //obtain grid pointer
-  this->srcGrid_ = domain->GetGrid(this->gridId_);
+  this->srcGrid_ = this->domain_->GetGrid(this->gridId_);
 
   //check what kind of dependency is there...
   //hardcode to general even we have static data. perhaps we cover this case...
@@ -352,14 +354,20 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     //create the matrix
     UInt dDim = this->resultInfo_->dofNames.GetSize();
     //determine the number of rows in the CRS matrix
+    StdVector<Integer> elemEqns;
     UInt nnz=0;
-    UInt numRows= targetSpace->GetNumEquations();
+    UInt numRows= targetSpace->GetNumFreeEquations();
     UInt numCols = this->solVec_.GetSize();
     std::map<UInt,std::vector<UInt> >::iterator eIt = this->elemNodeAssoc_.begin();
     while(eIt != this->elemNodeAssoc_.end()){
-      const Elem* curE = domain->GetGrid()->GetElem(eIt->first);
-      BaseFE * fe = targetSpace->GetFe(curE->elemNum);
-      nnz += fe->GetNumFncs()*eIt->second.size()*dDim;
+      const Elem* curE = this->domain_->GetGrid()->GetElem(eIt->first);
+      targetSpace->GetElemEqns(elemEqns,curE);
+      for(UInt i=0;i<elemEqns.GetSize();++i){
+        if(elemEqns[i]>0){
+          nnz += eIt->second.size();
+        }
+      }
+      //nnz += fe->GetNumFncs()*eIt->second.size()*dDim;
       eIt++;
     }
 
@@ -368,14 +376,13 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 
     shared_ptr<ElemShapeMap> esm;
     Matrix<Double> opMat;
-    StdVector<Integer> elemEqns;
     eIt = this->elemNodeAssoc_.begin();
     LocPointMapped lpm;
     while(eIt != this->elemNodeAssoc_.end()){
       const Elem* curE = NULL;
-      curE = domain->GetGrid()->GetElem(eIt->first);
+      curE = this->domain_->GetGrid()->GetElem(eIt->first);
       targetSpace->GetElemEqns(elemEqns,curE);
-      esm = domain->GetGrid()->GetElemShapeMap( curE, true );
+      esm = this->domain_->GetGrid()->GetElemShapeMap( curE, true );
       //now we add for each source node the corresponding entries
       for(UInt aNode=0; aNode < eIt->second.size(); aNode++){
         UInt curNodeNum = eIt->second[aNode];
@@ -386,8 +393,10 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
         for(UInt j=0;j<fe->GetNumFncs();j++){
           UInt idx = this->nodeIdxMap_[curNodeNum];
           for(UInt d =0;d<dDim;++d){
-            UInt curSrcEq =  this->eqnNumbers_[idx][d];
-            myContainer->AddEntry(elemEqns[j*dDim]-1,curSrcEq,opMat[j*dDim+d][d]);
+            if(elemEqns[j*dDim+d]>0){
+              UInt curSrcEq =  this->eqnNumbers_[idx][d];
+              myContainer->AddEntry(elemEqns[j*dDim+d]-1,curSrcEq,opMat[j*dDim+d][d]);
+            }
           }
         }//add to coordMatrix
       }//for each source node
@@ -399,6 +408,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 
     //now we create a CRS_Matrix from it
     this->consInterpMat_.reset(new CRS_Matrix<DATA_TYPE>(*myContainer));
+
     //delete coordinate matrix
     delete myContainer;
     //ready to go for conservative interpolation
@@ -474,13 +484,15 @@ template<class DATA_TYPE>
 
    //now we obtain the paramnode pointer for the xml and add our new nodes
    //in future versions we will read those parameters from xml node
-   PtrParamNode polyMotherNode = param->Get("fePolynomialList", ParamNode::INSERT );
+   PtrParamNode polyMotherNode = this->myConfigNode_->GetRoot()->
+       Get("fePolynomialList", ParamNode::INSERT );
    polyNode_ = polyMotherNode->GetByVal("Lagrange","id",polyId, ParamNode::INSERT);
    polyNode_->Get("useGridOrder", ParamNode::INSERT)->SetValue("true");
    polyNode_->Get("spectral", ParamNode::INSERT)->SetValue("true");
    polyNode_->Get("isoOrder", ParamNode::INSERT)->SetValue("1");
 
-   PtrParamNode integMotherNode = param->Get("integrationSchemeList", ParamNode::INSERT );
+   PtrParamNode integMotherNode = this->myConfigNode_->GetRoot()->
+       Get("integrationSchemeList", ParamNode::INSERT );
    integNode_ = integMotherNode->GetByVal("scheme","id",integId,ParamNode::INSERT);
    integNode_->Get("method", ParamNode::INSERT)->SetValue("Lobatto");
    integNode_->Get("order", ParamNode::INSERT)->SetValue("1");
@@ -495,15 +507,15 @@ template<class DATA_TYPE>
    //with this information we can now create a nice FeSpace
    PtrParamNode interpolSpaceNode = this->extDataInfo_->Get("interpolation")->Get("standard")->Get("interpolationSpace");
    shared_ptr<FeSpace> interpolSpace;
-   interpolSpace = FeSpace::CreateInstance(motherNode,interpolSpaceNode,FeSpace::H1,domain->GetGrid());
+   interpolSpace = FeSpace::CreateInstance(motherNode,interpolSpaceNode,FeSpace::H1,this->domain_->GetGrid());
 
 
    shared_ptr<SolStrategy> solStrat(new SolStrategyStd(motherNode));
 
    interpolSpace->Init(solStrat);
-   this->interpolFunction_.reset(new FeFunction<DATA_TYPE>());
+   this->interpolFunction_.reset(new FeFunction<DATA_TYPE>(this->domain_->GetMathParser()));
    this->interpolFunction_->SetFeSpace(interpolSpace);
-   this->interpolFunction_->SetGrid(domain->GetGrid());
+   this->interpolFunction_->SetGrid(this->domain_->GetGrid());
    interpolSpace->AddFeFunction(interpolFunction_);
    this->interpolFunction_->SetResultInfo(this->resultInfo_);
 

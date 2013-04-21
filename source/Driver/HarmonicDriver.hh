@@ -21,7 +21,9 @@ public:
   //! Constructor
   //! \param sequenceStep current step in multisequence simulation
   //! \param isPartOfSequence true, if driver is part of  multiSequence
-  HarmonicDriver(UInt sequenceStep, bool isPartOfSequence = false);
+  HarmonicDriver(UInt sequenceStep, bool isPartOfSequence,
+                 shared_ptr<SimState> state,
+                 Domain* domain);
 
   //! Detructor
   virtual ~HarmonicDriver();
@@ -54,7 +56,7 @@ public:
   void Init();
 
   //! Main method, where harmonic analysis is implemented.
-  void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL);
+  void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode());
 
   /** This allows optimization to handle the individual frequency steps, e.g. to compute
    * objective values. Internally this is is a service function for SolveProblem()

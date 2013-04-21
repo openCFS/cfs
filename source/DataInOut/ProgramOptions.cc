@@ -19,6 +19,8 @@
 #include <def_use_cgal.hh>
 #include <def_xmlschema.hh>
 
+#include <def_cfs_fortran_interface.hh>
+
 #include "ProgramOptions.hh"
 #include "ColoredConsole.hh"
 
@@ -42,7 +44,6 @@
 #ifdef USE_ACML
 #include <acml.h>
 #endif
-
 #include <bzlib.h>
 #include <zlib.h>
 
@@ -74,6 +75,10 @@
 #include <xercesc/util/XercesVersion.hpp>
 #endif
 
+#ifdef USE_GIDPOST
+#include <gidpost.h>
+#endif
+
 #include <boost/version.hpp>
 
 #include <muParserBase.h>
@@ -94,7 +99,7 @@ using std::cout;
 
 
 // Lapack version function interface
-extern "C" void ilaver_(int*, int*, int*);
+extern "C" void ilaver(int*, int*, int*);
 
 // CFX IO library version interface
 extern "C" const char* io_get_version();
@@ -672,7 +677,7 @@ namespace CoupledField {
     out << "USE_LAPACK:            "
         << fg_blue << "YES" << fg_reset << endl;
     Integer major, minor, rev;
-    ilaver_(&major, &minor, &rev);
+    ilaver(&major, &minor, &rev);
     out << "LAPACK_VERSION:        "
         << fg_blue << major << "." << minor << "." << rev
         << fg_reset << endl;
@@ -766,8 +771,8 @@ namespace CoupledField {
 #ifdef USE_GIDPOST
     out << "USE_GIDPOST:           "
         << fg_blue << "YES" << fg_reset << endl;
-    out << "CFS_GIDPOST_VERSION:   "
-        << fg_blue << CFS_GIDPOST_VERSION << fg_reset << endl;
+    out << "GIDPOST_VERSION:       "
+        << fg_blue << GIDPOST_VERSION << fg_reset << endl;
  #else
     out << "USE_GIDPOST:           "
         << fg_blue << "NO" << fg_reset << endl;

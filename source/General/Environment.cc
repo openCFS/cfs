@@ -312,6 +312,14 @@ namespace CoupledField {
         return "1/s";
         break;
 
+      case FLUIDMECH_WEIGHT_VECTOR:
+        return "kg m^-2 s^-2";
+        break;
+
+      case FLUIDMECH_WEIGHT_DENSITY:
+        return "kg m^-2 s^-2 m s^-1";
+        break;
+
       case HEAT_TEMPERATURE:
         return "K";
         break;
@@ -1197,6 +1205,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");
     SolutionTypeEnum.Add(FLUIDMECH_STRESS, "fluidMechStress");
     SolutionTypeEnum.Add(FLUIDMECH_STRAINRATE, "fluidMechStrainRate");
+    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_VECTOR, "fluidMechWeightVector");
+    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_DENSITY, "fluidMechWeightDensity");
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
     // optimization
     SolutionTypeEnum.Add(HOMOGENIZED_TENSOR, "homogenizedTensor");

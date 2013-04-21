@@ -25,24 +25,45 @@
 
 namespace CoupledField {
 
-  XMLMaterialHandler::XMLMaterialHandler( const std::string & fileName )
-    : MaterialHandler( fileName) {
-
-    // Create a ParamNode and parse the material file
-    std::string schema = progOpts->GetSchemaPathStr();
-    schema += "/CFS-Material/CFS_Material.xsd";
-  
-    // Initialize our xerces dom parser to handle the  xml file
-    Xerces* xerces = new Xerces(fileName, schema);
-
-    parser_ = xerces->CreateParamNodeInstance();
-
-    // release the xerces ressources, the parser_ is not affected
-    delete xerces;
+  XMLMaterialHandler::XMLMaterialHandler()
+    : MaterialHandler() {
   }
   
   XMLMaterialHandler::~XMLMaterialHandler()
   {
+  }
+  
+  void XMLMaterialHandler::LoadFromFile( const std::string& fileName ) {
+    
+    this->fileName_ = fileName;
+    
+    // Create a ParamNode and parse the material file
+    std::string schema = progOpts->GetSchemaPathStr();
+    schema += "/CFS-Material/CFS_Material.xsd";
+
+    // Initialize our xerces dom parser to handle the  xml file
+    Xerces* xerces = new Xerces( schema);
+    xerces->SetFile(fileName);
+
+    parser_ = xerces->CreateParamNodeInstance();
+
+    // release the xerces ressources, the parser_ is not affected
+    delete xerces; 
+  }
+
+  void XMLMaterialHandler::LoadFromString( const std::string& str ) {
+    // Create a ParamNode and parse the material file
+    std::string schema = progOpts->GetSchemaPathStr();
+    schema += "/CFS-Material/CFS_Material.xsd";
+
+    // Initialize our xerces dom parser to handle the  xml file
+    Xerces* xerces = new Xerces(schema);
+    xerces->SetString(str);
+
+    parser_ = xerces->CreateParamNodeInstance();
+
+    // release the xerces ressources, the parser_ is not affected
+    delete xerces; 
   }
   
   BaseMaterial * XMLMaterialHandler::
@@ -67,34 +88,35 @@ namespace CoupledField {
     }
     // the the requested material class: <mechanical>
     pn = pn->Get(strMatClass);  
-   
+    MathParser * mp = domain_->GetMathParser();
+    CoordSystem * cs = domain_->GetCoordSystem();
     try {
     if ( matClass == PIEZO ) {
-      material = new PiezoMaterial();
+      material = new PiezoMaterial(mp, cs);
       ReadPiezo( material, pn);
     }
     else if ( matClass == MECHANIC ) {
-      material = new MechanicMaterial();
+      material = new MechanicMaterial(mp, cs);
       ReadMechanic( material, pn );
     }    
     else if ( matClass == FLUID ) {\
-      material = new AcousticMaterial();
+      material = new AcousticMaterial(mp, cs);
       ReadAcoustic( material, pn );
     }
     else if ( matClass == ELECTROMAGNETIC ) {
-      material = new ElectroMagneticMaterial();
+      material = new ElectroMagneticMaterial(mp, cs);
       ReadMagnetic( material, pn );
     }
     else if ( matClass == ELECTROSTATIC ) {
-      material = new ElectroStaticMaterial();
+      material = new ElectroStaticMaterial(mp, cs);
       ReadElectrostatic( material, pn );
     }
     else if ( matClass == THERMIC ) {
-      material = new HeatMaterial();
+      material = new HeatMaterial(mp, cs);
       ReadThermic( material, pn );
     }
     else if ( matClass == FLOW ) {
-      material = new FlowMaterial();
+      material = new FlowMaterial(mp, cs);
       ReadFlow( material, pn );
     }
     else if ( matClass == PYROELECTRIC ) {
@@ -150,7 +172,7 @@ namespace CoupledField {
       {
         ParamTools::AsStringTensor( pct->Get("imag"), 18, imagVals );
       }
-      pctCoef = CoefFunction::Generate( Global::COMPLEX, 3, 6,
+      pctCoef = CoefFunction::Generate( mp_, Global::COMPLEX, 3, 6,
                                       realVals, imagVals );
       material->SetCoefFct( PIEZO_TENSOR, pctCoef);
     } 
@@ -268,7 +290,7 @@ namespace CoupledField {
     //read material density
     if(mech->Has("density")) {
       PtrCoefFct densFct =
-          CoefFunction::Generate(Global::REAL, 
+          CoefFunction::Generate(mp_, Global::REAL, 
                                  mech->Get("density")->As<std::string>() );
       material->SetCoefFct( DENSITY, densFct );
     }
@@ -294,7 +316,7 @@ namespace CoupledField {
           ParamTools::AsStringTensor( tens->Get("imag"), 36, imagVals );
           //flagElastTensorImag = true;
         }
-        elastCoef = CoefFunction::Generate( Global::COMPLEX, 6, 6,
+        elastCoef = CoefFunction::Generate(mp_,  Global::COMPLEX, 6, 6,
                                         realVals, imagVals );
         material->SetCoefFct( MECH_STIFFNESS_TENSOR, elastCoef);
         material->SetSymmetryType(MECH_STIFFNESS_TENSOR,BaseMaterial::GENERAL);
@@ -542,7 +564,7 @@ namespace CoupledField {
     //read density
     if(acou->Has("density")) {
       PtrCoefFct densFct =
-          CoefFunction::Generate(Global::REAL, 
+          CoefFunction::Generate(mp_, Global::REAL, 
                                  acou->Get("density")->As<std::string>() );
       material->SetCoefFct( DENSITY, densFct );
     }
@@ -550,7 +572,7 @@ namespace CoupledField {
     //read compression modulus
     if(acou->Has("compressionModulus")) { 
       PtrCoefFct blkFct =
-                CoefFunction::Generate(Global::REAL, 
+                CoefFunction::Generate(mp_, Global::REAL, 
                                        acou->Get("compressionModulus")->As<std::string>() );
       material->SetCoefFct( ACOU_BULK_MODULUS, blkFct );
     }
@@ -637,7 +659,7 @@ namespace CoupledField {
           PtrParamNode tensor =  p->GetByVal("tensor","dim1","3")->Get("imag");
           ParamTools::AsStringTensor( tensor, 9, imagVals );
         }
-        epsCoef = CoefFunction::Generate( Global::COMPLEX, 3, 3,
+        epsCoef = CoefFunction::Generate( mp_, Global::COMPLEX, 3, 3,
                                           realVals, imagVals );
         material->SetCoefFct( ELEC_PERMITTIVITY, epsCoef);
       } // end of <tensor dim1="3">
@@ -959,7 +981,7 @@ namespace CoupledField {
     // read density
     if(therm->Has("density")) {
       PtrCoefFct densFct =
-          CoefFunction::Generate(Global::REAL, 
+          CoefFunction::Generate(mp_, Global::REAL, 
                                  therm->Get("density")->As<std::string>() );
       material->SetCoefFct( DENSITY, densFct );
     }
@@ -1074,7 +1096,7 @@ namespace CoupledField {
     // read density
     if(flow->Has("density")) {
       PtrCoefFct densFct =
-          CoefFunction::Generate(Global::REAL, 
+          CoefFunction::Generate(mp_, Global::REAL, 
                                  flow->Get("density")->As<std::string>() );
       material->SetCoefFct( DENSITY, densFct );
     }
@@ -1087,7 +1109,7 @@ namespace CoupledField {
     
     if(flow->Has("dynamicViscosity")) {
       PtrCoefFct dynVisc =
-          CoefFunction::Generate(Global::REAL, 
+          CoefFunction::Generate(mp_, Global::REAL, 
                                  flow->Get("dynamicViscosity")->As<std::string>() );
       material->SetCoefFct( DYNAMIC_VISCOSITY, dynVisc );
     }
@@ -1095,7 +1117,7 @@ namespace CoupledField {
     // read kinematicViscosity 
     if(flow->Has("kinematicViscosity")) {
       PtrCoefFct kinVisc =
-          CoefFunction::Generate(Global::REAL, 
+          CoefFunction::Generate(mp_, Global::REAL, 
                                  flow->Get("kinematicViscosity")->As<std::string>() );
       material->SetCoefFct( KINEMATIC_VISCOSITY, kinVisc );
     }

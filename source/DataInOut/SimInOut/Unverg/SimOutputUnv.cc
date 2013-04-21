@@ -15,16 +15,11 @@
 #include <string>
 #include <utility>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/exception.hpp>
-namespace fs = boost::filesystem;
-
-#include "boost/date_time/posix_time/posix_time.hpp"
-#include "boost/date_time/posix_time/posix_time_io.hpp"
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
 
 namespace dt = boost::posix_time;
 
-#include <fstream>
 #include "SimOutputUnv.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
@@ -37,13 +32,23 @@ namespace CoupledField {
   //   Constructor
   // ***************
   SimOutputUnv::SimOutputUnv(  const std::string& filename,
-                               PtrParamNode outputNode ) 
-    : SimOutput ( filename, outputNode ),
+                               PtrParamNode outputNode,
+                               PtrParamNode infoNode, 
+                               bool isRestart ) 
+    : SimOutput ( filename, outputNode, infoNode, isRestart ),
       output(NULL),
       capaOut_(false) 
   {
-    std::string sysPathSep;
 
+    // The restart case is currently not implemented, i.e. resuls from a 
+    // partial simulation get overwritten.
+    if( isRestart_ ) {
+      WARN( "The UNV-Writer is currently not adapted to write restarted "
+            "results correctly, thus the results of the previous run get"
+            " overwritten." );
+    }
+    
+    
     std::string flavor;
     outputNode->GetValue("flavor", flavor, ParamNode::PASS );
     if(flavor == "CAPA") {
@@ -56,20 +61,13 @@ namespace CoupledField {
       formatName_ = "unv";
     }
     
-    dirName_ = "results_" + formatName_;
-    outputNode->GetValue("directory", dirName_, ParamNode::PASS );
-    try 
-    {
-      sysPathSep = fs::path("/").string();
-    } catch (std::exception &ex)
-    {
-      EXCEPTION(ex.what());
-    }
+    std::string dirString = "results_" + formatName_; 
+    outputNode->GetValue("directory", dirString, ParamNode::PASS );
+    dirName_ = dirString; 
 
-    fileName_ = dirName_ + sysPathSep + filename;
+    fileName_ =  filename;
     
     stepNumOffset_ = 0;
-    stepValOffset_ = 0.0;
     
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
@@ -1044,8 +1042,9 @@ namespace CoupledField {
     }
 
     std::string name = fileName_ + "." + formatName_;
+    fs::path filePath = dirName_ / name;
     output = NULL;
-    output = new std::ofstream(name.c_str());
+    output = new fs::ofstream(filePath);
     if(!output)
       EXCEPTION("Unv file ' " << name << "' could not be openend!" );
 
@@ -1064,7 +1063,7 @@ namespace CoupledField {
   void SimOutputUnv::BeginStep( UInt stepNum, Double stepVal ) {
     
     actStep_ = stepNum + stepNumOffset_;
-    actStepVal_ = stepVal + stepValOffset_;
+    actStepVal_ = stepVal;
     resultMap_.clear();
   }
 
@@ -1209,7 +1208,6 @@ namespace CoupledField {
 
     // set offset for step value and number to last values
     stepNumOffset_ = actStep_;
-    stepValOffset_ = actStepVal_;
   }
   
   

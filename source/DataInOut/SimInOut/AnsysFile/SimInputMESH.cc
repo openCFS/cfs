@@ -14,8 +14,9 @@
 namespace CoupledField {
 
 
-    SimInputMESH::SimInputMESH(std::string fileName, PtrParamNode inputNode) :
-        SimInput(fileName, inputNode)
+    SimInputMESH::SimInputMESH(std::string fileName, PtrParamNode inputNode,
+                               PtrParamNode infoNode) :
+        SimInput(fileName, inputNode, infoNode )
   {
     capabilities_.insert( SimInput::MESH);
   }

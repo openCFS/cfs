@@ -10,11 +10,11 @@ namespace CoupledField{
 
 //! Generate scalar-valued coefficient function
 PtrCoefFct 
-CoefFunction::Generate( Global::ComplexPart format, 
+CoefFunction::Generate( MathParser * mp,
+                        Global::ComplexPart format, 
                         const std::string& realVal, 
                         const std::string& imagVal  ) {
 
-  MathParser* mp = domain->GetMathParser();
   MathParser::HandleType handle = mp->GetNewHandle(true);
 
   PtrCoefFct ret;
@@ -26,13 +26,13 @@ CoefFunction::Generate( Global::ComplexPart format,
     if( depSpace ) {
       // --- a) general case: expression 
       shared_ptr<CoefFunctionExpression<Double> > c 
-      (new CoefFunctionExpression<Double>());
+      (new CoefFunctionExpression<Double>(mp));
       c->SetScalar(realVal);
       ret = c;
     } else if (depTime) {
       // --- b) time / freq dependency 
       shared_ptr<CoefFunctionTimeFreq<Double> > c 
-      (new CoefFunctionTimeFreq<Double>());
+      (new CoefFunctionTimeFreq<Double>(mp));
       c->SetScalar(realVal);
       ret = c;
     } else { 
@@ -52,13 +52,13 @@ CoefFunction::Generate( Global::ComplexPart format,
     if( depSpace ) {
       // --- a) variable ---
       shared_ptr<CoefFunctionExpression<Complex> > c 
-      (new CoefFunctionExpression<Complex>());
+      (new CoefFunctionExpression<Complex>(mp));
       c->SetScalar(realVal,imagVal);
       ret = c;
     } else if( depTime ) {
       // --- b) time / freq dependency 
       shared_ptr<CoefFunctionTimeFreq<Complex> > c 
-      (new CoefFunctionTimeFreq<Complex>());
+      (new CoefFunctionTimeFreq<Complex>(mp));
       c->SetScalar(realVal,imagVal);
       ret = c;
     } else {
@@ -80,11 +80,11 @@ CoefFunction::Generate( Global::ComplexPart format,
 
 //! Generate vector-valued coefficient function from string
 PtrCoefFct 
-CoefFunction::Generate( Global::ComplexPart format, 
+CoefFunction::Generate( MathParser * mp,
+                        Global::ComplexPart format, 
                         const StdVector<std::string>& realVal, 
                         const StdVector<std::string>& imagVal ) {
   
-  MathParser* mp = domain->GetMathParser();
   MathParser::HandleType handle = mp->GetNewHandle(true);
 
   PtrCoefFct ret;
@@ -103,13 +103,13 @@ CoefFunction::Generate( Global::ComplexPart format,
     if( depSpace ) {
       // --- a) general case: expression 
       shared_ptr<CoefFunctionExpression<Double> > c 
-      (new CoefFunctionExpression<Double>());
+      (new CoefFunctionExpression<Double>(mp));
       c->SetVector(realVal);
       ret = c;
     } else if (depTime) {
       // --- b) time / freq dependency 
       shared_ptr<CoefFunctionTimeFreq<Double> > c 
-      (new CoefFunctionTimeFreq<Double>());
+      (new CoefFunctionTimeFreq<Double>(mp));
       c->SetVector(realVal);
       ret = c;
     } else {
@@ -136,13 +136,13 @@ CoefFunction::Generate( Global::ComplexPart format,
     if( depSpace ) {
       // --- a) general case: expression
       shared_ptr<CoefFunctionExpression<Complex> > c 
-      (new CoefFunctionExpression<Complex>());
+      (new CoefFunctionExpression<Complex>(mp));
       c->SetVector(realVal,imagVal);
       ret = c;
     } else if (depTime) {
       // --- b) time / freq dependency
       shared_ptr<CoefFunctionTimeFreq<Complex> > c 
-      (new CoefFunctionTimeFreq<Complex>());
+      (new CoefFunctionTimeFreq<Complex>(mp));
       c->SetVector(realVal,imagVal);
       ret = c;
     } else {
@@ -169,7 +169,8 @@ CoefFunction::Generate( Global::ComplexPart format,
 
 //! Generate vector-valued coefficient function from CoefFunctions
 PtrCoefFct 
-CoefFunction::Generate( Global::ComplexPart format, 
+CoefFunction::Generate( MathParser * mp, 
+                        Global::ComplexPart format, 
                         const StdVector<PtrCoefFct>& realVal, 
                         const StdVector<PtrCoefFct>& imagVal ) {
   
@@ -209,7 +210,7 @@ CoefFunction::Generate( Global::ComplexPart format,
       tmp = dynamic_pointer_cast<CoefFunctionAnalytic>(realVal[i]);
       tmp->GetStrScalar(iStrVals[i], empty);
     }
-    ret = Generate(format, rStrVals, iStrVals);
+    ret = Generate(mp, format, rStrVals, iStrVals);
   } else {
     EXCEPTION( "Vector-valued expression can only be composed of "
         << "analytical expressions currently!" );
@@ -221,11 +222,11 @@ CoefFunction::Generate( Global::ComplexPart format,
 
 //! Generate tensor-valued coefficient function from strings
 PtrCoefFct 
-CoefFunction::Generate( Global::ComplexPart format,
+CoefFunction::Generate( MathParser * mp,
+                        Global::ComplexPart format,
                         UInt numRows, UInt numCols,
                         const StdVector<std::string>& realVal,
                         const StdVector<std::string>& imagVal ) {
-  MathParser* mp = domain->GetMathParser();
    MathParser::HandleType handle = mp->GetNewHandle(true);
 
    PtrCoefFct ret;
@@ -243,13 +244,13 @@ CoefFunction::Generate( Global::ComplexPart format,
      if( depSpace ) {
        // --- a) general case: expression 
        shared_ptr<CoefFunctionExpression<Double> > c 
-       (new CoefFunctionExpression<Double>());
+       (new CoefFunctionExpression<Double>(mp));
        c->SetTensor(realVal, numRows, numCols );
        ret = c;
      } else if (depTime) {
        // --- b) time / freq dependency
        shared_ptr<CoefFunctionTimeFreq<Double> > c 
-       (new CoefFunctionTimeFreq<Double>());
+       (new CoefFunctionTimeFreq<Double>(mp));
        c->SetTensor(realVal, numRows, numCols );
        ret = c;
      } else {
@@ -275,13 +276,13 @@ CoefFunction::Generate( Global::ComplexPart format,
      if( depSpace ) {
        // --- a) general case: expression
        shared_ptr<CoefFunctionExpression<Complex> > c 
-       (new CoefFunctionExpression<Complex>());
+       (new CoefFunctionExpression<Complex>(mp));
        c->SetTensor(realVal, imagVal, numRows, numCols );
        ret = c;
      } else if (depTime) {
        // --- b) time / freq dependency
        shared_ptr<CoefFunctionTimeFreq<Complex> > c 
-       (new CoefFunctionTimeFreq<Complex>());
+       (new CoefFunctionTimeFreq<Complex>(mp));
        c->SetTensor(realVal, imagVal, numRows, numCols );
        ret = c;
      } else {
@@ -311,7 +312,8 @@ CoefFunction::Generate( Global::ComplexPart format,
 
 //! Generate tensor-valued coefficient function from CoefFunctions
 PtrCoefFct 
-CoefFunction::Generate( Global::ComplexPart format,
+CoefFunction::Generate( MathParser * mp,
+                        Global::ComplexPart format,
                         UInt numRows, UInt numCols,
                         const StdVector<PtrCoefFct>& realVal,
                         const StdVector<PtrCoefFct>& imagVal ) {
@@ -351,7 +353,7 @@ CoefFunction::Generate( Global::ComplexPart format,
        tmp = dynamic_pointer_cast<CoefFunctionAnalytic>(realVal[i]);
        tmp->GetStrScalar(iStrVals[i], empty);
      }
-     ret = Generate(format, numRows, numCols, rStrVals, iStrVals);
+     ret = Generate(mp, format, numRows, numCols, rStrVals, iStrVals);
    } else {
      EXCEPTION( "Vector-valued expression can only be composed of "
          << "analytical expressions currently!" );
@@ -361,7 +363,8 @@ CoefFunction::Generate( Global::ComplexPart format,
   
 }
 
-PtrCoefFct CoefFunction::Generate( Global::ComplexPart type,
+PtrCoefFct CoefFunction::Generate( MathParser * mp,
+                                   Global::ComplexPart type,
                                    const CoefXpr& xpr ) {
   
   PtrCoefFct ret;
@@ -374,16 +377,16 @@ PtrCoefFct CoefFunction::Generate( Global::ComplexPart type,
     if( xpr.GetDimType() == CoefFunction::SCALAR ) {
       std::string real, imag;
       xpr.GetScalarXpr( real, imag );
-      ret = Generate( part, real, imag );
+      ret = Generate( mp, part, real, imag );
     } else if (xpr.GetDimType() == CoefFunction::VECTOR ) {
       StdVector<std::string> real, imag;
       xpr.GetVectorXpr( real, imag );
-      ret = Generate( part, real, imag );
+      ret = Generate( mp, part, real, imag );
     } else if (xpr.GetDimType() == CoefFunction::TENSOR ) {
       StdVector<std::string> real, imag;
       UInt numRows, numCols;
       xpr.GetTensorXpr( numRows, numCols, real, imag );
-      ret = Generate( part, numRows, numCols, real, imag );
+      ret = Generate( mp, part, numRows, numCols, real, imag );
     } else {
         EXCEPTION( "Unknown dimtype of coefficient function" );
     }
@@ -397,7 +400,7 @@ PtrCoefFct CoefFunction::Generate( Global::ComplexPart type,
     xpr.GetArgs( vars );
     if( part == Global::REAL) {
       // ===== REAL-VALUED PART ====
-      shared_ptr<CoefFunctionCompound<Double> > cf (new CoefFunctionCompound<Double>());
+      shared_ptr<CoefFunctionCompound<Double> > cf (new CoefFunctionCompound<Double>(mp));
       if( xpr.GetDimType() == CoefFunction::SCALAR ) {
         std::string real, imag;
         xpr.GetScalarXpr( real, imag );
@@ -419,7 +422,7 @@ PtrCoefFct CoefFunction::Generate( Global::ComplexPart type,
       ret = cf;
     } else {
       // ===== COMPLEX VALUED PART ====
-      shared_ptr<CoefFunctionCompound<Complex> > cf (new CoefFunctionCompound<Complex>());
+      shared_ptr<CoefFunctionCompound<Complex> > cf (new CoefFunctionCompound<Complex>(mp));
       if( xpr.GetDimType() == CoefFunction::SCALAR ) {
         std::string real, imag;
         xpr.GetScalarXpr( real, imag );
@@ -627,6 +630,8 @@ void CoefCompoundTest() {
     
     bValsReal = "8", "6.0", "3.5";
     bValsImag = "4.0", "0.0", "1.0";
+    Domain  * myDom = domain;
+    
     
     PtrCoefFct a = 
         CoefFunction::Generate(Global::COMPLEX, aValsReal, aValsImag );
@@ -642,9 +647,9 @@ void CoefCompoundTest() {
 
     // generate dummy local point mapped for first element to see the 
     // toolchain working
-    const Elem * ptEl = domain->GetGrid()->GetElem( 1 );
+    const Elem * ptEl = myDom->GetGrid()->GetElem( 1 );
     shared_ptr<ElemShapeMap> esm = 
-        domain->GetGrid()->GetElemShapeMap( ptEl, false );
+        myDom->GetGrid()->GetElemShapeMap( ptEl, false );
     LocPoint lp;
     Vector<Double> midPoint(3);
     midPoint.Init();
@@ -688,9 +693,9 @@ void CoefCompoundTest() {
      std::cerr << "result is " << res->ToString() << std::endl;
      // generate dummy local point mapped for first element to see the 
      // toolchain working
-     const Elem * ptEl = domain->GetGrid()->GetElem( 1 );
+     const Elem * ptEl = myDom->GetGrid()->GetElem( 1 );
      shared_ptr<ElemShapeMap> esm = 
-         domain->GetGrid()->GetElemShapeMap( ptEl, false );
+         myDom->GetGrid()->GetElemShapeMap( ptEl, false );
      LocPoint lp;
      Vector<Double> midPoint(3);
      midPoint.Init();
@@ -710,7 +715,7 @@ void CoefCompoundTest() {
 //  //   MATHPARSER EXTERNAL VARIABLE TEST
 //  // ========================================================================
 //  {
-//    MathParser * mp = domain->GetMathParser();
+//    MathParser * mp = myDom->GetMathParser();
 //    MathParser::HandleType h = mp->GetNewHandle();
 //    
 //    Double var = 42.0;
@@ -743,9 +748,9 @@ void CoefCompoundTest() {
 //    PtrCoefFct res = CoefFunction::Generate( Global::COMPLEX, xpr );
 //    std::cerr << "res is " << res->ToString();
 //    
-//    const Elem * ptEl = domain->GetGrid()->GetElem( 1 );
+//    const Elem * ptEl = myDom->GetGrid()->GetElem( 1 );
 //    shared_ptr<ElemShapeMap> esm = 
-//            domain->GetGrid()->GetElemShapeMap( ptEl, false );
+//            myDom->GetGrid()->GetElemShapeMap( ptEl, false );
 //
 //    // generate dummy local point mapped for first element to see the 
 //    // toolchain working

@@ -20,7 +20,9 @@ namespace CoupledField
   // ***********************
   //   Default Constructor
   // ***********************
-  PiezoMaterial::PiezoMaterial() : BaseMaterial() {
+  PiezoMaterial::PiezoMaterial(MathParser* mp,
+                               CoordSystem * defaultCoosy) 
+: BaseMaterial(mp, defaultCoosy) {
 
 
     //set the allowed material parameters

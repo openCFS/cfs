@@ -16,26 +16,48 @@ SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
 #=============================================================================
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
-#=============================================================================
-# Copy CMakeLists.txt to source dir.
-#=============================================================================
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND}
-  -E copy_if_different
-  "${CFS_SOURCE_DIR}/cfsdeps/gidpost/CMakeLists.txt"
-  "${gidpost_source}/CMakeLists.txt"
-)
-
 SET(files
-  "source/gidpost.cpp")
+  "source/CMakeLists.txt"
+  "source/gidpost.c"
+  "source/gidpostforAPI.c"
+  "source/gidpostfor.c"
+  "source/gidpostfor.h"
+  "source/gidpost.h"
+  "source/gidpostHash.c"
+  "source/gidpostHash.h"
+  "source/gidpostHDF5.c"
+  "source/gidpostHDF5.h"
+  "source/gidpostInt.c"
+  "source/gidpostInt.h"
+  "source/hashtab.c"
+  "source/hashtab.h"
+  "source/hdf5c.c"
+  "source/hdf5c.h"
+  "source/lookupa.c"
+  "source/lookupa.h"
+  "source/Makefile"
+  "source/recycle.c"
+  "source/recycle.h"
+  "source/standard.h"
+  "examples/testpost.c"
+  "examples/testpost_fd.c"
+  )
 
-CHANGE_NEWLINE_STYLE(${files} ${gidpost_source}/dummy.txt UNIX)
+CHANGE_NEWLINE_STYLE("${files}" ${gidpost_source}/dummy.txt UNIX)
 
 #=============================================================================
 # Apply some patches.
 #=============================================================================
 SET(patches
-  "gidpost-sprintf-format.patch"
-)
+  # Add append parameter to GiD_OpenPostResultFile for restart capability.
+  "gidpost-file-append.patch"
+
+  # Make sure GiDpost gets installed to the correct location.
+  "gidpost-install.patch"
+
+  # Make sure GiDpost can find all CFS++ Fortran libs for linking its
+  # Fortran example.
+  "gidpost-fortran.patch"
+  )
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/gidpost")

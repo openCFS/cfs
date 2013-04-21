@@ -15,12 +15,15 @@ namespace CoupledField
 
   IterCoupledPDE::IterCoupledPDE( StdVector<SinglePDE*>& singlePdes,
                                   StdVector<DirectCoupledPDE*>& cplPdes,
-                                  PtrParamNode paramNode ) 
-  : BasePDE( paramNode ) {
+                                  PtrParamNode paramNode,
+                                  PtrParamNode infoNode,
+                                  shared_ptr<SimState> simState,
+                                  Domain* domain) 
+  : BasePDE( paramNode, infoNode, simState, domain ) {
 
     
     myParam_ = paramNode;
-    infoNode_ = info->Get("PDE")->Get("iterCoupledPDE", ParamNode::APPEND);
+    infoNode_ = infoNode->Get("PDE")->Get("iterCoupledPDE", ParamNode::APPEND);
 
     // Initially we only store the single PDEs and the DirectCoupledPDEs.
     singlePDEs_ = singlePdes;
@@ -57,19 +60,6 @@ namespace CoupledField
     // directly pass the query to the IterSolveStep instance
     return solveStep_->GetCouplingCoefFct( type, list, pdeName, updateGeo );
     
-  }
-
-  void IterCoupledPDE::WriteRestart() {
-
-    for (UInt actPDE=0; actPDE < PDEs_.GetSize(); actPDE++)
-      PDEs_[actPDE]->WriteRestart( );
-  }
-
-
-  void IterCoupledPDE::ReadRestart(UInt &startStep)  {
-
-    for (UInt actPDE=0; actPDE < PDEs_.GetSize(); actPDE++)
-      PDEs_[actPDE]->ReadRestart(startStep);
   }
 
 

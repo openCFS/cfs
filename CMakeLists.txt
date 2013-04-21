@@ -118,7 +118,7 @@ IF(WIN32 AND NOT CMAKE_CROSSCOMPILING)
     ENDIF()
   ENDFOREACH()
 
-ELSEIF(UNIX)
+ELSEIF(UNIX OR MINGW)
   EXECUTE_PROCESS(
     COMMAND id -u -nr 
     WORKING_DIRECTORY "."
@@ -277,8 +277,21 @@ OPTION(USE_KNITRO "Use the external KNITRO optimizer." FALSE)
 # Use cgal toggles the inclusion of the CGAL library.
 #-----------------------------------------------------------------------------
 OPTION(USE_CGAL
-  "Activate fast element mapping using CGAL libray."
+  "Activate fast element mapping using CGAL library."
   ${USE_CGAL_DEFAULT})
+
+#-----------------------------------------------------------------------------
+# Use libfbi toggles the inclusion of the Fast Box Intersection library.
+# Please note, that either CGAL or libfbi can be used at a time, but not both!
+#-----------------------------------------------------------------------------
+OPTION(USE_LIBFBI
+  "Use fast box intersection library."
+  ${USE_LIBFBI_DEFAULT})
+
+IF(USE_CGAL AND USE_LIBFBI)
+  MESSAGE(FATAL_ERROR
+    "Either USE_CGAL or USE_LIBFBI can be actived, but not both!")
+ENDIF()
 
 OPTION(DEBUG "Build debug version of the code." ${DEBUG_DEFAULT})
 OPTION(PROFILING "Turn on compiler profiling (DEBUG/RELEASE)." ${PROFILING_DEFAULT})
@@ -540,7 +553,6 @@ ENDIF(USE_LIS)
 
 ADD_SUBDIRECTORY(source/CoupledPDE)
 ADD_SUBDIRECTORY(source/DataInOut)
-ADD_SUBDIRECTORY(source/DataInOut/DefineFiles)
 ADD_SUBDIRECTORY(source/DataInOut/Logging)
 ADD_SUBDIRECTORY(source/DataInOut/ParamHandling)
 

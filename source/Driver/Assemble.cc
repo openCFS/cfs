@@ -35,7 +35,8 @@ namespace CoupledField
 
   
   Assemble::Assemble( AlgebraicSys* algsys,
-                      BasePDE::AnalysisType analysis ) 
+                      BasePDE::AnalysisType analysis,
+                      PtrParamNode infoNode) 
   : timer_(new Timer()) {
 
     // init general params
@@ -44,6 +45,7 @@ namespace CoupledField
     isFirstTime_ = true;
     matrixUpdated_ = false;
     printProgressBar_ = false;
+    info_ = infoNode;
     
     linForms_ = new StdVector<LinearFormContext*>();
 
@@ -51,12 +53,8 @@ namespace CoupledField
     // specific ones
     CreateMatrixMap();
 
-    // Obtain a new mathParser handler
-    mHandle_ = domain->GetMathParser()->GetNewHandle();
-    
-
     // the timer object is used in every AssembleMatrices() call
-    info->Get("analysis")->Get(ParamNode::PN_SUMMARY)->Get("assemble/timer")->SetValue(timer_);
+    info_->Get("analysis")->Get(ParamNode::PN_SUMMARY)->Get("assemble/timer")->SetValue(timer_);
   }
 
   Assemble::~Assemble() {
@@ -147,7 +145,7 @@ namespace CoupledField
   {
      REFACTOR;
      // the EntityList has the region name as name but not the id
-     std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
+     std::string region = pde->GetGrid()->GetRegion().ToString(regionId);
 
      LinearForm* result = NULL;
 
@@ -439,6 +437,36 @@ namespace CoupledField
             << " (" << size << " elements)'\n";
       }
       
+      
+      // First loop over all intgrators to check, if any of them
+      // gets re-assembled
+      // Loop over all bilinearforms
+      bool anyReassemble = false;
+      for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
+
+        BiLinFormContext & actContext = *forms[iForm];
+
+        // get matrix destinations
+        FEMatrixType destMat = actContext.GetDestMat();
+        FEMatrixType secDestMat = actContext.GetSecDestMat();
+
+        // If assemble was already called and the current destination
+        // matrix must not be reassembled -> continue with next iterator
+        if( matReassemble_[destMat] == false ) {
+          if( matReassemble_[secDestMat] != NOTYPE ) {
+            if(  matReassemble_[secDestMat] == false ) {
+              continue;
+            }
+          } else  {
+            continue;
+          }
+        }
+        anyReassemble = true;
+      }
+      if( !anyReassemble ) {
+        continue;
+      }
+      
       // Loop over all entities
       EntityIterator it1 = firstEntities.GetIterator();
       EntityIterator it2 = secondEntities.GetIterator();
@@ -458,8 +486,6 @@ namespace CoupledField
           FEMatrixType destMat = actContext.GetDestMat();
           FEMatrixType secDestMat = actContext.GetSecDestMat();
 
-          // get secondary matrix factor string 
-          Double secMatFac = actContext.EvalSecMatFac();
 
           // If assemble was already called and the current destination
           // matrix must not be reassembled -> continue with next iterator
@@ -502,57 +528,23 @@ namespace CoupledField
               }
                }
 
-   //            // info.xml logging in detailed logging case for the first element only
-   //            if(i == 0 && progOpts->DoDetailedInfo())
-   //            {
-   //              PtrParamNode in = info->Get("PDE")->Get(actContext.GetFirstPde()->GetName())->Get(ParamNode::PN_PROCESS)->Get("matrices");
-   //              in = in->Get("tensor", ParamNode::APPEND);
-   //              in->Get("form")->SetValue(form->GetName());
-   //              in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId));
-   //              in->Get("element")->SetValue(it1.GetElem()->elemNum);
-   //              // it makes sense to add the analysis id here
-   //              if(form->IsComplex())
-   //                in->Get("matrix")->SetValue(elemMatrixC);
-   //              else
-   //              {
-   //                in->Get("matrix")->SetValue(elemMatrix);
-   //              }
-   //            }
-
-   //            LOG_DBG3(assemble) << "CalcElemMatrix " << i << " -> " << (form->IsComplex() ? elemMatrixC.ToString(0) : elemMatrix.ToString(0));
-   //            LOG_DBG2(assemble) << "CalcElemMatrix " << i << " -> " << (form->IsComplex() ? elemMatrixC.ToString(1) : elemMatrix.ToString(1));
-
                // Map equation numbers
                actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
                // Perform remapping
                ReMapEquations(eqnVec1, fctId1);
                ReMapEquations(eqnVec2, fctId2);
 
-
-   //            assert((form->IsComplex() && 
-   //                    eqnVec1.GetSize() == elemMatrixC.GetNumRows() && 
-   //                    eqnVec2.GetSize() == elemMatrixC.GetNumCols()) || !form->IsComplex());
-   //            assert((!form->IsComplex() && 
-   //                    eqnVec1.GetSize() == elemMatrix.GetNumRows() && 
-   //                    eqnVec2.GetSize() == elemMatrix.GetNumCols()) || form->IsComplex());
-
                // Pass element matrix to algebraic system (primary matrix)
-
                if ( form->IsComplex() )
                  InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
                else
                  InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2);
 
-               // if optimization provides Damping Parameters, we use them, and ignore everything else
-               //double secMatFacOpt = 0.0;
-               //          if(domain->HasErsatzMaterialDamping() && 
-               //              domain->GetErsatzMaterial()->GetErsatzMaterialDampingParameterForIntegrator(it1.GetElem(), form, secMatFacOpt)){
-               //            elemMatrix *= secMatFacOpt; // only in non-complex case, complex is not known in ParamMat
-               //            InsertMatrix(DAMPING, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
-               //          }else 
                if (secDestMat != NOTYPE ) { // Check for secondary matrix type
                  Double dampFactor = 1.0;
-
+                 // get secondary matrix factor string 
+                 Double secMatFac = actContext.EvalSecMatFac();
+                 
                  // damping with "exotic" complex material
                  if ( form->IsComplex() ) {
                    // complex damping
@@ -809,12 +801,12 @@ namespace CoupledField
   }
 
   
-  void Assemble::AssembleLinRHS(AdjointParameters* adjointParams)
+  void Assemble::AssembleLinRHS()
   {
     AssembleRHSLinForms(false );
   }
 
-  void Assemble::AssembleNonLinRHS(AdjointParameters* adjointParams) {
+  void Assemble::AssembleNonLinRHS() {
     AssembleRHSLinForms(true );
   }
 

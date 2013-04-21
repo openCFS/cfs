@@ -4,14 +4,9 @@
 
 #include <iostream>
 #include <iomanip>
-#include <fstream>
 #include <string>
 #include <complex>
 #include <ctime>
-
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/exception.hpp>
-namespace fs = boost::filesystem;
 
 #include <def_cfs_stats.hh>
 
@@ -32,16 +27,25 @@ namespace CoupledField {
   //   Constructor
   //*****************
   SimOutputGmsh::SimOutputGmsh( const std::string fileName,
-                                PtrParamNode outputNode ) :
-  SimOutput( fileName, outputNode ),
+                                PtrParamNode outputNode,
+                                PtrParamNode infoNode, bool isRestart ) :
+  SimOutput( fileName, outputNode, infoNode, isRestart ),
     output_(NULL),
     printGridOnly_(false),
     ascii_(true),
     bigEndian_(false),
     stepNumOffset_(0),
-    stepValOffset_(0.0),
     numRegions_(0)
   {    
+    
+    // The restart case is currently not implemented, i.e. resuls from a 
+    // partial simulation get overwritten.
+    if( isRestart_ ) {
+      WARN( "The GMSH-Writer is currently not adapted to write restarted "
+          "results correctly, thus the results of the previous run get"
+          " overwritten." );
+    }
+    
     // Initialize variables
     formatName_ = "gmsh";
     capabilities_.insert( MESH );
@@ -49,8 +53,10 @@ namespace CoupledField {
 
     std::ostringstream strBuffer;
 
-    dirName_ = "results_" + formatName_;
-    outputNode->GetValue("directory", dirName_, ParamNode::PASS );
+    std::string dirString = "results_" + formatName_; 
+    outputNode->GetValue("directory", dirString, ParamNode::PASS );
+    dirName_ = dirString;  
+    
     fileName_ = fileName;
 
     try 
@@ -166,7 +172,6 @@ namespace CoupledField {
     if( currAnalysis_ == BasePDE::TRANSIENT ||
         currAnalysis_ == BasePDE::STATIC  ) { 
       actStep_ += stepNumOffset_;
-      actStepVal_ += stepValOffset_;
     }
 
   }
@@ -340,7 +345,6 @@ namespace CoupledField {
     if( currAnalysis_ == BasePDE::TRANSIENT ||
           currAnalysis_ == BasePDE::STATIC ) {
       stepNumOffset_ = actStep_;
-      stepValOffset_ = actStepVal_;
     }
 
   }
@@ -771,19 +775,17 @@ namespace CoupledField {
   // ***********
   std::ofstream * SimOutputGmsh::OpenFile( const std::string& name ) {
     std::string totalName;
-    std::ofstream * outFile = NULL;
+    fs::ofstream * outFile = NULL;
 
     // Generate basename for output file
-    totalName.append( dirName_ );
-    std::string pathsep = fs::path("/").string();
-    totalName.append( pathsep );
-    totalName.append( name );
+    
+    fs::path filePath = dirName_ / name;
     
     if (ascii_) {
-      outFile = new std::ofstream(totalName.c_str());
+      outFile = new fs::ofstream(filePath);
     }
     else {
-      outFile = new std::ofstream(totalName.c_str(), std::ofstream::binary);
+      outFile = new fs::ofstream(filePath, std::ofstream::binary);
     }
     if ( !outFile ) {
       EXCEPTION("Could not open file " << totalName

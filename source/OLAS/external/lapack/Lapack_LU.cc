@@ -754,9 +754,8 @@ namespace CoupledField {
     // right hand side and solve the system diag(R) * A * x = diag(R) * y.
     if ( scalingType_ == 'R' || scalingType_ == 'B' ) {
       for ( Integer i = 0; i < lp_ncols; i++ ) {
-	std::cerr << "R(" << i << ") = " << row_scalings_[i] << std::endl;
-	lp_sol[i].real() = row_scalings_[i] * lp_rhs[i].real();
-	lp_sol[i].imag() = row_scalings_[i] * lp_rhs[i].imag();
+        std::cerr << "R(" << i << ") = " << row_scalings_[i] << std::endl;
+        lp_sol[i] = row_scalings_[i] * lp_rhs[i];
       }
     }
 
@@ -841,8 +840,11 @@ namespace CoupledField {
     // by the identity x = diag(C) * z.
     if ( scalingType_ == 'C' || scalingType_ == 'B' ) {
       for ( Integer i = 0; i < lp_ncols; i++ ) {
+#if 0
 	lp_sol[i].real() *= col_scalings_[i];
 	lp_sol[i].imag() *= col_scalings_[i];
+#endif
+        lp_sol[i] *= col_scalings_[i];
       }
     }
 

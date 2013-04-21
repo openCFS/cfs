@@ -1,7 +1,3 @@
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/exception.hpp>
-namespace fs = boost::filesystem;
-
 #include "TextSimOutput.hh"
 #include <fstream>
 
@@ -15,8 +11,10 @@ namespace fs = boost::filesystem;
 namespace CoupledField {
 
   SimOutputText::SimOutputText( const std::string& fileName,
-                                PtrParamNode outputNode )
-    : SimOutput( fileName, outputNode ){
+                                PtrParamNode outputNode,
+                                PtrParamNode infoNode,
+                                bool isRestart )
+    : SimOutput( fileName, outputNode, infoNode, isRestart ){
 
     // initialize variables
     formatName_ = "text";
@@ -32,7 +30,6 @@ namespace CoupledField {
     fileName_ = fileName;
     coordSys_ = NULL;
     stepNumOffset_ = 0;
-    stepValOffset_ = 0.0;
     globalNumbering_ = true;
     // initialize delimiter string
     delim_ = "  ";
@@ -135,7 +132,6 @@ namespace CoupledField {
     if( actAnalysis_ == BasePDE::TRANSIENT ||
         actAnalysis_ == BasePDE::STATIC  ) { 
       actStep_ += stepNumOffset_;
-      actStepVal_ += stepValOffset_;
     }
 
     resultMap_.clear();
@@ -166,7 +162,6 @@ namespace CoupledField {
     if( actAnalysis_ == BasePDE::TRANSIENT ||
          actAnalysis_ == BasePDE::STATIC ) {
       stepNumOffset_ = actStep_; 
-      stepValOffset_ = actStepVal_;
      }
    }
 
@@ -442,22 +437,22 @@ namespace CoupledField {
   }
 
 
-  
+
   void SimOutputText::CreateFiles( shared_ptr<BaseResult> res,
                                    UInt step,
                                    Double stepVal ) {
-    
+
     std::string namePrefix="history/" + fileName_ + "-";
     std::string totalName;
-    
+
     // determine type of entity the result is defined on
     ResultInfo & actInfo = *(res->GetResultInfo());
     namePrefix += actInfo.resultName;
-    
+
     std::string entityString, entTypeString;
     ResultInfo::Enum2String( actInfo.definedOn, entTypeString );
-    
-    
+
+
     // =========================
     //  ENTITY - CollectionType
     // =========================
@@ -465,7 +460,7 @@ namespace CoupledField {
 
       // create new vector with ofstreams
       StdVector<std::ofstream*> outFiles;
-    
+
       shared_ptr<EntityList> list = res->GetEntityList();
       outFiles.Resize( list->GetSize() );
       EntityIterator it = list->GetIterator();
@@ -492,45 +487,45 @@ namespace CoupledField {
           default:
             entityString = idString;
         }
-        
+
         //entityString = it.GetIdString();
         //entityString = lexical_cast<std::string>(entityNum);
-//        
-//        if(list->GetType() == EntityList::NODE_LIST){
-//          //ok so it seems we have history nodes.
-//          //lets add the name of the nodelist to the filename
-//          entityString += "-" + list->GetName();
-//        }
-//        switch( actInfo.definedOn ) {
-//          
-//        case ResultInfo::NODE:
-//          entityString = lexical_cast<std::string>(it.GetNode() );
-//          break;
-//        case ResultInfo::PFEM:
-//          entityString = lexical_cast<std::string>(it.GetNode() );
-//          entTypeString="node";
-//          break;
-//        case ResultInfo::ELEMENT:
-//          entityString = lexical_cast<std::string>(it.GetElem()->elemNum );
-//          break;
-//        case ResultInfo::SURF_ELEM:
-//          entityString = lexical_cast<std::string>(it.GetSurfElem()->elemNum );
-//          break;
-//        case ResultInfo::REGION:
-//          entityString = ptGrid_->RegionIdToName( it.GetRegion() );
-//          break;
-//        case ResultInfo::SURF_REGION:
-//          entityString = ptGrid_->RegionIdToName( it.GetRegion() );
-//          break;
-//        default:
-//          EXCEPTION( "Not implemented!" );
-//        }
+        //        
+        //        if(list->GetType() == EntityList::NODE_LIST){
+        //          //ok so it seems we have history nodes.
+        //          //lets add the name of the nodelist to the filename
+        //          entityString += "-" + list->GetName();
+        //        }
+        //        switch( actInfo.definedOn ) {
+        //          
+        //        case ResultInfo::NODE:
+        //          entityString = lexical_cast<std::string>(it.GetNode() );
+        //          break;
+        //        case ResultInfo::PFEM:
+        //          entityString = lexical_cast<std::string>(it.GetNode() );
+        //          entTypeString="node";
+        //          break;
+        //        case ResultInfo::ELEMENT:
+        //          entityString = lexical_cast<std::string>(it.GetElem()->elemNum );
+        //          break;
+        //        case ResultInfo::SURF_ELEM:
+        //          entityString = lexical_cast<std::string>(it.GetSurfElem()->elemNum );
+        //          break;
+        //        case ResultInfo::REGION:
+        //          entityString = ptGrid_->RegionIdToName( it.GetRegion() );
+        //          break;
+        //        case ResultInfo::SURF_REGION:
+        //          entityString = ptGrid_->RegionIdToName( it.GetRegion() );
+        //          break;
+        //        default:
+        //          EXCEPTION( "Not implemented!" );
+        //        }
 
         // Concatenate 'simName-resultName-NODE/ELEM-#.hist'
         totalName = namePrefix + "-";
         totalName += entTypeString;
         totalName += "-";
-    
+
         if(csv_) {
           totalName += entityString + ".csv";
         }
@@ -538,57 +533,64 @@ namespace CoupledField {
           totalName += entityString + ".hist";
         }
 
-      
-        if( usedFileNames_.find( totalName ) != usedFileNames_.end() ) {
-          outFiles[it.GetPos()] = new std::ofstream( totalName.c_str(), 
+
+        if( !isRestart_) {
+          if( usedFileNames_.find( totalName ) != usedFileNames_.end() ) {
+            outFiles[it.GetPos()] = new std::ofstream( totalName.c_str(), 
+                                                       std::ios::out | 
+                                                       std::ios::app );
+          } else {
+            outFiles[it.GetPos()] = new std::ofstream( totalName.c_str() );
+            usedFileNames_.insert( totalName );
+          }
+
+          // write header to file
+          std::ofstream & actFile = *outFiles[it.GetPos()];
+
+          if(!csv_) {
+            actFile << cmChar_ << " Result: '" << actInfo.resultName 
+                << "' on " << entTypeString << "(s) '" 
+                << list->GetName() << "'";
+
+            // now we have to switch the naming scheme
+            switch (list->GetType() ) {
+              case EntityList::NODE_LIST:
+              case EntityList::ELEM_LIST:
+              case EntityList::SURF_ELEM_LIST:
+                actFile << " number #" << it.GetIdString();
+                break;
+              default:
+                break;
+            }
+            actFile << "\n" << cmChar_;
+
+            if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
+              actFile << " t (s)  ";        
+            } else {
+              actFile << " f (Hz)  ";
+            }
+            actFile << ResultDofString( res) << "\n" << cmChar_ 
+                << " ---------------------------------------------------------------------------\n";
+          } else {
+            if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
+              actFile << "Time_(s)" << delim_;
+            } else {
+              actFile << "Frequency_(Hz)" << delim_;
+            }
+
+            actFile << ResultDofStringCSV(res,
+                                          it.GetIdString(),
+                                          entTypeString,
+                                          list->GetName()) << std::endl;
+          }        
+        } else {
+          // === RESTART case ===
+          outFiles[it.GetPos()] = new std::ofstream( totalName.c_str(),
                                                      std::ios::out | 
                                                      std::ios::app );
-        } else {
-          outFiles[it.GetPos()] = new std::ofstream( totalName.c_str() );
           usedFileNames_.insert( totalName );
-        }
-
-        // write header to file
-        std::ofstream & actFile = *outFiles[it.GetPos()];
-
-        if(!csv_) {
-          actFile << cmChar_ << " Result: '" << actInfo.resultName 
-                  << "' on " << entTypeString << "(s) '" 
-                  << list->GetName() << "'";
-
-          // now we have to switch the naming scheme
-          switch (list->GetType() ) {
-            case EntityList::NODE_LIST:
-            case EntityList::ELEM_LIST:
-            case EntityList::SURF_ELEM_LIST:
-              actFile << " number #" << it.GetIdString();
-              break;
-            default:
-              break;
-          }
-          actFile << "\n" << cmChar_;
-        
-          if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
-            actFile << " t (s)  ";        
-          } else {
-            actFile << " f (Hz)  ";
-          }
-          actFile << ResultDofString( res) << "\n" << cmChar_ 
-                  << " ---------------------------------------------------------------------------\n";
-        } else {
-          if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
-            actFile << "Time_(s)" << delim_;
-          } else {
-            actFile << "Frequency_(Hz)" << delim_;
-          }
-          
-          actFile << ResultDofStringCSV(res,
-                                        it.GetIdString(),
-                                        entTypeString,
-                                        list->GetName()) << std::endl;
-        }        
-
-      }      
+        } // if restart
+      } // loop: entities
       // CHECK, if creation of file succeeded
       outFiles_[res] = outFiles;
 
@@ -617,7 +619,6 @@ namespace CoupledField {
       else {
         totalName += ".hist";
       }
-      
 
       // open stream
       outFile = new std::ofstream( totalName.c_str() );
@@ -691,50 +692,51 @@ namespace CoupledField {
         totalName += ".hist";
 
         // open stream
-        outFile = new std::ofstream( totalName.c_str() );
-      
-        // write header to file
-        *outFile << cmChar_ << " Result: '" << actInfo.resultName 
-                 << "' on " << entTypeString << "(s) '" 
-                 << list->GetName() << "' with\n"
-                 << cmChar_ << "   line 1: " << entTypeString 
-                 << " number, line 2-3/2-4: " << entTypeString
-                 << " coordinates\n" << cmChar_ 
-                 << "   1st column is placeholder for equal no. of columns in all rows!\n";
-      
-        // write node/element number and coordinates
-        StdVector<StdVector<std::string> > entityMatrix;
-        StdVector<std::string> entityVector;
-      
-        EntityIterator it = list->GetIterator();
-        for( it.Begin(); !it.IsEnd(); it++ ) {
+        if( !isRestart_ ) {
+          outFile = new std::ofstream( totalName.c_str() );
 
-          // pointer to function, which retrieves node/element number and coordinates
-          StdVector<std::string> (SimOutputText::*pt2Func)(EntityIterator&) const;
-          switch (actInfo.definedOn) {
-          case ResultInfo::NODE:
-            pt2Func = &SimOutputText::GetNodeInfo;
-            break;
-          case ResultInfo::ELEMENT:
-            pt2Func = &SimOutputText::GetElemInfo;
-            break;
-          case ResultInfo::SURF_ELEM:
-            pt2Func = &SimOutputText::GetElemInfo;
-            break;
-          default:
-            EXCEPTION( "Case not implemented" );
+          // write header to file
+          *outFile << cmChar_ << " Result: '" << actInfo.resultName 
+              << "' on " << entTypeString << "(s) '" 
+              << list->GetName() << "' with\n"
+              << cmChar_ << "   line 1: " << entTypeString 
+              << " number, line 2-3/2-4: " << entTypeString
+              << " coordinates\n" << cmChar_ 
+              << "   1st column is placeholder for equal no. of columns in all rows!\n";
+
+          // write node/element number and coordinates
+          StdVector<StdVector<std::string> > entityMatrix;
+          StdVector<std::string> entityVector;
+
+          EntityIterator it = list->GetIterator();
+          for( it.Begin(); !it.IsEnd(); it++ ) {
+
+            // pointer to function, which retrieves node/element number and coordinates
+            StdVector<std::string> (SimOutputText::*pt2Func)(EntityIterator&) const;
+            switch (actInfo.definedOn) {
+              case ResultInfo::NODE:
+                pt2Func = &SimOutputText::GetNodeInfo;
+                break;
+              case ResultInfo::ELEMENT:
+                pt2Func = &SimOutputText::GetElemInfo;
+                break;
+              case ResultInfo::SURF_ELEM:
+                pt2Func = &SimOutputText::GetElemInfo;
+                break;
+              default:
+                EXCEPTION( "Case not implemented" );
+            }
+            // node/element number and coordinates 
+            entityVector = (this->*pt2Func)(it);
+            entityMatrix.Push_back(entityVector);
           }
-          // node/element number and coordinates 
-          entityVector = (this->*pt2Func)(it);
-          entityMatrix.Push_back(entityVector);
-        }
-        for( UInt iDim=0; iDim<entityVector.GetSize(); iDim++) {
-          *outFile << " 0 ";
-          for( UInt numEnt=0; numEnt<entityMatrix.GetSize(); numEnt++) {
-            *outFile << delim_ << entityMatrix[numEnt][iDim];
+          for( UInt iDim=0; iDim<entityVector.GetSize(); iDim++) {
+            *outFile << " 0 ";
+            for( UInt numEnt=0; numEnt<entityMatrix.GetSize(); numEnt++) {
+              *outFile << delim_ << entityMatrix[numEnt][iDim];
+            }
+            *outFile << "\n";
           }
-          *outFile << "\n";
-        }
       
         // write dof result string
         if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
@@ -745,6 +747,12 @@ namespace CoupledField {
         *outFile << ResultDofString( res) << "\n" << cmChar_ 
                 << " ---------------------------------------------------------------------------\n";
 
+        } else {
+          outFile = new std::ofstream( totalName.c_str(),
+                                       std::ios::out | 
+                                       std::ios::app  );
+        }
+        
         // Push back file to outFiles_
         outFiles_[res].Resize(1);
         outFiles_[res][0] = outFile;

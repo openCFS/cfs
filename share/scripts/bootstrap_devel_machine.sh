@@ -41,7 +41,7 @@ SetupDebian() {
         util-linux gcc-multilib"
 
     for pckg in $PCKGS; do
-        apt-get install -y -f $pckg
+        apt-get install -y --force-yes -f $pckg
     done
     rm -f /usr/lib/libXext.so /usr/lib/libXmu.so
     ln -s /usr/lib/libXext.so.6.4.0 /usr/lib/libXext.so || ExitFail
@@ -134,10 +134,13 @@ SetupSuse() {
 }
 
 SetupFedora() {
+    # /usr/bin/audit from package audit conflicts with binutils.
+    yum remove audit
+
     yum install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
         perl graphviz texlive-latex tetex-tex4ht \
         python-pygments doxygen tcl-devel python-devel git-svn \
-        cmake-gui java-1.6.0-openjdk-devel tk-devel \
+        cmake-gui java-1.6.0-openjdk-devel java-1.7.0-openjdk-devel tk-devel \
         patch diffutils zip libXt-devel libXp ncurses-devel || ExitFail
 }
 
@@ -174,17 +177,31 @@ SetupRHEL() {
     rpm --import RPM-GPG-KEY-EPEL-${RHEL_REL}
 
     ARCH=$(uname -m | sed 's/i[0-9]86/i386/') || ExitFail
-    BASE=http://apt.sw.be/redhat/el${RHEL_REL}/en
+    BASE=http://pkgs.repoforge.org/rpmforge-release
     case "${RHEL_REL}" in
-	5) RPM=$ARCH/rpmforge/RPMS/rpmforge-release-0.3.6-1.el5.rf.$ARCH.rpm
+	5) RPM=rpmforge-release-0.5.3-1.el5.rf.$ARCH.rpm
 	    ;;
-	6) RPM=$ARCH/rpmforge/RPMS/rpmforge-release-0.5.2-2.el6.rf.$ARCH.rpm
+	6) RPM=rpmforge-release-0.5.3-1.el6.rf.$ARCH.rpm
 	    ;;
 	*)
             echo "RHEL release ${RHEL_REL} is not supported!"
             ;;
     esac
-    rpm -Uhv --force $BASE/$RPM || ExitFail
+    wget $BASE/$RPM || ExitFail
+    rpm -Uhv --force $RPM || ExitFail
+
+    # http://public-yum.oracle.com/
+    if [ "$DIST" = "ORACLE" ]; then
+      case "${RHEL_REL}" in
+	5) wget http://public-yum.oracle.com/public-yum-el${RHEL_REL}.repo
+	    ;;
+	6) wget http://public-yum.oracle.com/public-yum-ol${RHEL_REL}.repo
+	    ;;
+	*)
+            echo "RHEL release ${RHEL_REL} is not supported!"
+            ;;
+      esac
+    fi
 
     yum makecache || ExitFail
 
@@ -193,7 +210,11 @@ SetupRHEL() {
     wget http://www.svnkit.com/org.tmatesoft.svn_1.3.5.standalone.zip && \
     unzip org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
 
-    yum --enablerepo=centosplus install fuse-sshfs subversion gcc gcc-c++ \
+    if [ "$DIST" = "CENTOS" ]; then
+	ENABLE_REPO="--enablerepo=centosplus"
+    fi
+
+    yum $ENABLE_REPO install fuse-sshfs subversion gcc gcc-c++ \
                 perl graphviz.$(uname -m) tetex-latex tetex-tex4ht \
                 automake autoconf cmake gcc-gfortran ncurses-devel \
                 java-1.6.0-openjdk-devel tk-devel python-pygments doxygen \
@@ -317,11 +338,15 @@ SetupCMake() {
     CMAKE_MINOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f2)
     CMAKE_PATCH_LEVEL=$(echo $CMAKE_VERSION | cut -d'.' -f3)
 
-    if [ $CMAKE_MAJOR_VERSION -ge 2 ] && [ $CMAKE_MINOR_VERSION -ge 8 ] && [ $CMAKE_PATCH_LEVEL -ge 4 ]; then
+    if [ $CMAKE_MAJOR_VERSION -ge 2 ] && [ $CMAKE_MINOR_VERSION -ge 8 ] && [ $CMAKE_PATCH_LEVEL -ge 8 ]; then
         return 1
     fi
 
-    PCKG_BASE_NAME="cmake-2.8.9";
+    CMAKE_MAJOR_VERSION=2
+    CMAKE_MINOR_VERSION=8
+    CMAKE_PATCH_LEVEL=10.2
+
+    PCKG_BASE_NAME="cmake-$CMAKE_MAJOR_VERSION.$CMAKE_MINOR_VERSION.$CMAKE_PATCH_LEVEL";
     MYTMPDIR="$TMPDIR/$(basename $0).$$"
     echo "$MYTMPDIR"
 
@@ -333,7 +358,7 @@ SetupCMake() {
     mirrors="http://www.cmake.org/files/v$CMAKE_MAJOR_VERSION.$CMAKE_MINOR_VERSION/$PCKG_BASE_NAME.tar.gz
              ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/cmake/$PCKG_BASE_NAME.tar.gz"
 
-    MD5SUM="801f4c87f8b604f727df5bf1f05a59e7"
+    MD5SUM="097278785da7182ec0aea8769d06860c"
 
     # Download source
     for mirror in $mirrors; do
@@ -401,10 +426,12 @@ case "$DIST" in
      DEBIAN) SetupDebian ;;
      UBUNTU) SetupDebian ;;
      LINUXMINT) SetupDebian ;;
+     LMDE) SetupDebian ;;
      FEDORA) SetupFedora ;;
      RHEL) SetupRHEL ;;
      CENTOS) SetupRHEL ;;
      SCIENTIFIC) SetupRHEL ;;
+     ORACLE) SetupRHEL ;;
      NETBSD) SetupNetBSD ;;
      *)
         echo "Your distribution $DIST is currently not supported by this script."

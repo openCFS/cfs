@@ -49,10 +49,10 @@ namespace CoupledField
     virtual void PreStepStatic();
  
     /** base method for solving one static step */
-    virtual void SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
+    virtual void SolveStepStatic(PtrParamNode analysis_id);
 
     /** @see SolveStepStatic() */ 
-    virtual void StepStaticLin(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
+    virtual void StepStaticLin(PtrParamNode analysis_id);
 
     //! solves for one nonlinear static step: incremental formulation 
     virtual void StepStaticNonLin(PtrParamNode analysis_id);
@@ -73,10 +73,10 @@ namespace CoupledField
     //virtual void PredictorStep(){;};
 
     //! base method for solving one transient step 
-    virtual void SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
+    virtual void SolveStepTrans(PtrParamNode analysis_id);
 
     //! solves for one linear transient step
-    virtual void StepTransLin(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
+    virtual void StepTransLin(PtrParamNode analysis_id);
 
     //! solves for one nonlinear transient step: incremental formulation 
     virtual void StepTransNonLin(PtrParamNode analysis_id);

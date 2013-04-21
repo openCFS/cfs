@@ -28,8 +28,6 @@ public:
   ResultFunctor ( shared_ptr<ResultInfo> info ) {
     derivType_ = NOT_DEFINED;
     resultInfo_ = info;
-    //ptGrid_ = feFct->GetGrid();
-    ptGrid_ = domain->GetGrid();
     dim_ = info->dofNames.GetSize();
   }
   
@@ -70,9 +68,6 @@ protected:
   //! Information about quantity to be calculated
   shared_ptr<ResultInfo> resultInfo_;
   
-  //! Pointer to grid
-  Grid * ptGrid_;
-
   //! Dimension of the result to be calculated
   UInt dim_;
   

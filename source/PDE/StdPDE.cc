@@ -11,6 +11,7 @@
 
 #include "Domain/Domain.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
+#include "DataInOut/SimState.hh"
 
 // headers for Paramhandling
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -28,8 +29,9 @@ namespace CoupledField {
   DECLARE_LOG(stdPde)
   DEFINE_LOG(stdPde, "stdPde")
 
-  StdPDE::StdPDE(Grid *aptgrid, PtrParamNode paramNode ) :
-    BasePDE(paramNode),
+  StdPDE::StdPDE(Grid *aptgrid, PtrParamNode paramNode, PtrParamNode infoNode,
+                 shared_ptr<SimState> simState, Domain* domain ) :
+    BasePDE(paramNode, infoNode, simState, domain),
     ptGrid_(aptgrid),
     subType_(),
     numCouplingBcs_(0),
@@ -42,7 +44,7 @@ namespace CoupledField {
     needsAlgsys_(true),
     isAlwaysStatic_(false),
     dim_(ptGrid_->GetDim()), 
-    isaxi_(param->Get("domain")->Get("geometryType")->As<std::string>() == "axi"),
+    isaxi_(domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "axi"),
     isComplex_(false),    
     needSolPrev_(false),
     isIncrFormulation_(false),
@@ -97,8 +99,13 @@ namespace CoupledField {
   {
     LOG_TRACE(stdPde) << pdename_ << ": Defining Algsys";
    
+    // Immediately leave if external simState is provided
+    if (simState_->HasInput())
+      return;
+    
+    
     // Trigger writing of info file
-    info->ToFile("", true );
+    myInfo_->GetRoot()->ToFile("", true );
     
     // First check if the PDE needs an algebraic system at all
     if( needsAlgsys_ == false ) {
@@ -209,7 +216,7 @@ namespace CoupledField {
 
 
     // Trigger writing of info file
-    info->ToFile("", true );
+    myInfo_->GetRoot()->ToFile("", true );
 
     // -----------------------------------
     //  3) Setup Sparsity Patterns
@@ -240,14 +247,15 @@ namespace CoupledField {
     fncIt= feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
       fncIt->second->SetSystem(algsys_);
-
       // Print equation information
       //fncIt->second->GetFeSpace()->PrintEqnMap();
       fncIt++;
     }
+
+
     //exit(0);
     // Trigger writing of info file
-    info->ToFile("", true );
+    myInfo_->GetRoot()->ToFile("", true );
 
   }
 
@@ -307,6 +315,20 @@ namespace CoupledField {
     }
     return feFct;
 
+  }
+
+
+  // **********
+  // SetRhsLoads
+  // **********
+  void StdPDE::SetRhsValues() {
+
+    //do the same for RHS
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator rFncIt= this->rhsFeFunctions_.begin();
+    while(rFncIt != this->rhsFeFunctions_.end()){
+      rFncIt->second->ApplyLoads();
+      rFncIt++;
+    }
   }
 
 } // end of namespace

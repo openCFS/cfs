@@ -74,7 +74,7 @@ class CoefFunctionCompound<Double> : public CoefFunction {
 public:
 
   //! Constructor
-  CoefFunctionCompound();
+  CoefFunctionCompound(MathParser * mp);
 
   //! Destructor
   virtual ~CoefFunctionCompound();
@@ -159,7 +159,7 @@ class CoefFunctionCompound<Complex> : public CoefFunction {
 public:
 
   //! Constructor
-  CoefFunctionCompound();
+  CoefFunctionCompound(MathParser * mp);
 
   //! Destructor
   virtual ~CoefFunctionCompound();

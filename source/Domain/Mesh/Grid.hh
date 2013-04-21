@@ -2,12 +2,16 @@
 #define FILE_SCFE_GRID_2001
 
 #include <def_use_cgal.hh>
+#include <def_use_libfbi.hh>
 
 #include <set>
 #include <boost/array.hpp>
 #include <boost/unordered_map.hpp>
 
 
+#if defined(USE_CGAL) && defined(USE_LIBFBI)
+#error "Either USE_CGAL or USE_LIBFBI can be actived, but not both!"
+#endif
 
 #ifdef USE_CGAL
 #include <CGAL/box_intersection_d.h>
@@ -68,8 +72,8 @@ namespace CoupledField
     //! Constructor
 
     //! Standard Constructor
-    //! \param aptFileType pointer to FileType for reading initial grid
-    Grid();
+    //! \param param Pointer to <domain> parameter node
+    Grid(PtrParamNode param, PtrParamNode infoNode );
 
     //! Destructor
     virtual ~Grid();
@@ -738,7 +742,7 @@ namespace CoupledField
     //@}
 
     // =======================================================================
-    // Interation Scheme
+    // Integration Scheme
     // =======================================================================
   public:
     shared_ptr<IntScheme> GetIntegrationScheme(){
@@ -783,6 +787,12 @@ namespace CoupledField
     
     //! Flag for initialization status
     bool isInitialized_;
+    
+    //! ParamNode of xml file
+    PtrParamNode param_;
+    
+    //! Info node
+    PtrParamNode info_;
 
     /** This is redundant to regionData but convenient for mapping regionId to region_name.
      * Note the the region_id is determined by AddRegion() and not an enum! */
@@ -900,8 +910,13 @@ namespace CoupledField
     //! create a box from a given element
     HandleBox CreateBoxFromElement(const Elem* elem,Double globToler);
     
-#else // USE_CGAL
+#elif USE_LIBFBI // USE_CGAL
 
+    void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
+                                   const std::set<RegionIdType> srcRegions 
+                                   = std::set<RegionIdType>());
+
+#else
     //! Return list of potential elements containing global points (slow version)
 
     //! This method returns for every global coordinate a list

@@ -51,8 +51,10 @@ namespace CoupledField {
 // ======================================================
 // SET SOLUTION INFORMATION
 // ======================================================
-HeatPDE::HeatPDE(Grid * aptgrid, PtrParamNode paramNode )
-:SinglePDE( aptgrid, paramNode ) {
+HeatPDE::HeatPDE(Grid * aptgrid, PtrParamNode paramNode,
+                 PtrParamNode infoNode,
+                 shared_ptr<SimState> simState, Domain* domain)
+:SinglePDE( aptgrid, paramNode, infoNode, simState, domain ) {
 
   pdename_           = "heatConduction";
   pdematerialclass_  = THERMIC;
@@ -62,48 +64,6 @@ HeatPDE::HeatPDE(Grid * aptgrid, PtrParamNode paramNode )
   updatedGeo_        = true;
 }
 
-
-
-void HeatPDE::SetInitialCondition() {
-
-  REFACTOR;
-
-//   try {
-//     // fetch paramnodes for initial condition (if not present, leave)
-//     if ( !myParam_->Has("InitialCondition") ) {
-//       return;
-//     }
-//     myParam_->GetValue("InitialCondition", InitialCondition_);
-
-//     //std::cerr << "\n Initial Temperature : " << InitialCondition_ << std::endl;
-
-
-//     if (!isDirectCoupled_ ) {
-//       if (isComplex_ ) {
-//         Vector<Complex> & solComplex = dynamic_cast<Vector<Complex>& >(*solVec_); 
-//         solComplex.Init(Complex(InitialCondition_, 0.0) );
-//       } else {
-//         Vector<Double> & solReal = dynamic_cast<Vector<Double>& >(*solVec_);
-//         solReal.Init( InitialCondition_);
-//       }
-//       sol_->SetAlgSysDataPointer(solVec_->GetSize(),
-//           dynamic_cast<Vector<Double>&>(*solVec_).GetPointer() );
-
-//       // to test -----------------------------------------------------------
-//       //Vector< Double > h;
-//       //h.Init();
-//       //sol_->GetGlobalSolVector(HEAT_TEMPERATURE, h);
-//       //std::cout << "\n Initial solution vector = " << h.Serialize() << std::endl;
-//       // to test -----------------------------------------------------------
-//     }
-
-//     isSetInitialCondition_ = true;
-
-//   } catch(Exception & ex ) {
-//     InitialCondition_=0.0;
-//     //std::cerr << "\n Initial Temperature : " << InitialCondition_ << std::endl;
-//   }
-}
 
 
 void HeatPDE::ReadSpecialBCs() {
@@ -181,7 +141,7 @@ void HeatPDE::DefineIntegrators() {
 
   //type of geometry
   std::string geometryType;
-  param->Get("domain")->GetValue("geometryType", geometryType );
+  domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", geometryType );
 
   // convert to tensor type
   SubTensorType tensorType = FULL;
@@ -299,8 +259,8 @@ void HeatPDE::DefineIntegrators() {
     PtrCoefFct heatCapacity = 
         actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
     PtrCoefFct massFactor =
-        CoefFunction::Generate(Global::REAL,
-                               CoefXprBinOp( density, heatCapacity, 
+        CoefFunction::Generate(mp_, Global::REAL,
+                               CoefXprBinOp( mp_, density, heatCapacity, 
                                              CoefXpr::OP_MULT ) );
     
 
@@ -314,8 +274,8 @@ void HeatPDE::DefineIntegrators() {
                                           feFunc, bOp);
 
       PtrCoefFct nlMassCoeff = 
-          CoefFunction::Generate(Global::REAL,
-                                 CoefXprBinOp( capNL, density, CoefXpr::OP_MULT ) );
+          CoefFunction::Generate(mp_, Global::REAL,
+                                 CoefXprBinOp(mp_,  capNL, density, CoefXpr::OP_MULT ) );
 
       // create stiffness integrator
       BaseBDBInt* massIntNL = NULL;
@@ -468,7 +428,7 @@ void HeatPDE::DefineIntegrators() {
 //       std::string ncIfaceName = ptGrid_->GetRegion().ToString(ncIFaces_[i]);
 
 //       PtrParamNode ncIfaceListNode;
-//       ncIfaceListNode = param->Get("domain")->Get("ncInterfaceList");
+//       ncIfaceListNode = domain_->GetParamRoot()->Get("domain")->Get("ncInterfaceList");
 
 //       slaveSide = ncIfaceListNode->
 //           GetByVal("ncInterface", "name",
@@ -729,14 +689,14 @@ void HeatPDE::DefinePrimaryResults() {
                       << "interfaces of PDE exist in domain.";
 
     PtrParamNode heatcondpdeNCIfaceListNode;
-    heatcondpdeNCIfaceListNode = param->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
+    heatcondpdeNCIfaceListNode = domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
     ->Get("pdeList/heatConduction/ncInterfaceList", ParamNode::PASS);
     
     if(!heatcondpdeNCIfaceListNode)
       return;
 
     PtrParamNode domainNCIfaceListNode;
-    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
+    domainNCIfaceListNode = domain_->GetParamRoot()->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
 
     if(!domainNCIfaceListNode)
     {

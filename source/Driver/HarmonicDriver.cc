@@ -8,7 +8,7 @@
 #include "Driver/HarmonicDriver.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/Assemble.hh"
-
+#include "DataInOut/SimState.hh"
 #include "Utils/Timer.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -29,8 +29,10 @@ namespace CoupledField
   // ***************
   //   Constructor
   // ***************
-  HarmonicDriver::HarmonicDriver( UInt sequenceStep, bool isPartOfSequence )
-    : SingleDriver( sequenceStep, isPartOfSequence ), timer_(new Timer())
+  HarmonicDriver::HarmonicDriver( UInt sequenceStep, bool isPartOfSequence,
+                                  shared_ptr<SimState> state, Domain* domain )
+    : SingleDriver( sequenceStep, isPartOfSequence, state, domain ), 
+      timer_(new Timer())
   {
     // Set correct analysistype
     analysis_ = BasePDE::HARMONIC;
@@ -40,7 +42,7 @@ namespace CoupledField
     driverNode->Get("sequenceStep")->SetValue(sequenceStep);
     driverNode->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("Hz");
 
-    pn_ = param->GetByVal("sequenceStep", "index", boost::lexical_cast<std::string>(sequenceStep_))
+    pn_ = domain_->GetParamRoot()->GetByVal("sequenceStep", "index", boost::lexical_cast<std::string>(sequenceStep_))
          ->Get("analysis")->Get("harmonic");
 
     startFreq_ = 0.0;
@@ -50,7 +52,7 @@ namespace CoupledField
     actFreq_ = 0.0;
     
     // register frequency variable at math parser
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
   }
 
   HarmonicDriver::~HarmonicDriver()
@@ -78,7 +80,6 @@ namespace CoupledField
     // relies on the result handler to know already about the current
     // sequencestep. However, in case of optimization, the sequence step
     // gets initialized in Optimization::SolveProblem()
-    handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
     InitializePDEs();
   }
 
@@ -209,7 +210,7 @@ namespace CoupledField
   // ****************
   //   SolveProblem
   // ****************
-  void HarmonicDriver::SolveProblem(bool write_results, PtrParamNode analysis_id, AdjointParameters* adjointParams)
+  void HarmonicDriver::SolveProblem(bool write_results, PtrParamNode analysis_id)
   {
     // in harmonics one cannot extraxt the result writing to StoreResults() as
     // we have multiple frequencies. (exceptions is optimization)
@@ -219,7 +220,8 @@ namespace CoupledField
       // info stuff
       ptPDE_->WriteGeneralPDEdefines();
     }
-
+    handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
+    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
 
     // Perform one simulation for each desired frequency
     for ( actFreqStep_ = 1; actFreqStep_ <= numFreq_; actFreqStep_++ )
@@ -240,6 +242,7 @@ namespace CoupledField
         ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
         handler_->FinishStep( );
       }
+      simState_->WriteStep( actFreqStep_, actFreq_ );
       
       // perform runtime estimation
       Double totalTime = timer_->GetWallTime();
@@ -248,7 +251,7 @@ namespace CoupledField
       pt::ptime now = pt::second_clock::local_time();
       now += pt::seconds(static_cast<long int>(remainingTime));
       analysis_id_->Get("timePerStep")->SetValue( timePerStep );
-      PtrParamNode envNode = info->Get(ParamNode::PN_HEADER)->Get("environment");
+      PtrParamNode envNode = driverNode->GetRoot()->Get(ParamNode::PN_HEADER)->Get("environment");
       envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
       envNode->Get("remainingTime")->SetValue(remainingTime);
     }
@@ -258,6 +261,7 @@ namespace CoupledField
       // notify resultHandler about finishing of current sequence step
       if(!isPartOfSequence_) handler_->Finalize();
     }
+    simState_->FinishMultiSequenceStep();
   }
 
   Double HarmonicDriver::ComputeFrequencyStep(UInt actFreqStep, PtrParamNode given_analysis_id)
@@ -285,8 +289,8 @@ namespace CoupledField
     analysis_id_->Get("value")->SetValue(actFreq_);
 
     // Set curent frequency value in the mathParser
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", actFreqStep_ );
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", actFreqStep_ );
 
     // Perform steps for the solution
     ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
@@ -307,6 +311,7 @@ namespace CoupledField
     handler_->BeginStep(stepNum, step_val);
     ptPDE_->WriteResultsInFile(stepNum, step_val);
     handler_->FinishStep( );
+
   }
 
 

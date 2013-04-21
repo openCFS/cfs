@@ -52,6 +52,7 @@ namespace CoupledField {
       entriesPerRow[k] = 0;
     }
     for ( UInt i = 0; i < this->nnz_; i++ ) {
+      //check if we have some special equation numbers...
       entriesPerRow[sparseMat.ridx(i)]++;
     }
 

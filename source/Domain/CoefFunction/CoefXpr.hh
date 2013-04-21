@@ -54,11 +54,12 @@ namespace CoupledField {
 class CoefXpr {
 public:
   
-  //! Constructor
-    CoefXpr() {
+    //! Constructor
+    CoefXpr(MathParser * mp) {
       isAnalytical_ = false;
       isComplex_ = false;
       dimType_ = CoefFunction::NO_DIM;
+      mp_ = mp;
     }
     
     //! Destructor
@@ -86,6 +87,11 @@ public:
     //! Query, if expression is complex-valued
     bool IsComplex() const {
       return isComplex_;
+    }
+    
+    //! Get MathParser instance
+    MathParser * GetMathParser() {
+      return mp_;
     }
   
   // --------------------------------------------------------------------------
@@ -243,6 +249,9 @@ protected:
   //! Flag, if expression is complex-valued
   bool isComplex_;
   
+  //! Pointer to MathParser
+  MathParser * mp_;
+  
 private:
   
   //! Internal counter for used generated variable names
@@ -264,15 +273,18 @@ class CoefXprUnaryOp : public CoefXpr {
 public:
   
   //! Constructor
-  CoefXprUnaryOp( PtrCoefFct a,
+  CoefXprUnaryOp( MathParser * mp,
+                  PtrCoefFct a,
                   CoefXpr::OpType op );
 
   //! Constructor for string representation of coefficient function
-  CoefXprUnaryOp( const std::string& a,
+  CoefXprUnaryOp( MathParser * mp,
+                  const std::string& a,
                   CoefXpr::OpType op );
 
   //! Constructor for string and coefficient function
-  CoefXprUnaryOp( const CoefXpr& a,
+  CoefXprUnaryOp( MathParser * mp,
+                  const CoefXpr& a,
                   CoefXpr::OpType op );
 
   //! Get scalar expression
@@ -332,27 +344,32 @@ protected:
 class CoefXprBinOp : public CoefXpr {
 public:
   //! Constructor
-  CoefXprBinOp( PtrCoefFct a, 
+  CoefXprBinOp( MathParser * mp,
+                PtrCoefFct a, 
                 PtrCoefFct b,
                 CoefXpr::OpType op );
   
   //! Constructor for coefficient and xpr
-  CoefXprBinOp( PtrCoefFct a, 
+  CoefXprBinOp( MathParser * mp,
+                PtrCoefFct a, 
                 const CoefXpr& b,
                 CoefXpr::OpType op );
 
   //! Constructor for coefficient function, string
-  CoefXprBinOp( PtrCoefFct a, 
+  CoefXprBinOp( MathParser * mp,
+                PtrCoefFct a, 
                 const std::string& b,
                 CoefXpr::OpType op );
 
   //! Constructor for string and coefficient function
-  CoefXprBinOp( const std::string& a, 
+  CoefXprBinOp( MathParser * mp,
+                const std::string& a, 
                 PtrCoefFct b, 
                 CoefXpr::OpType op );
   
   //! Constructor for string and coefficient function
-  CoefXprBinOp( const std::string& a, 
+  CoefXprBinOp( MathParser * mp,
+                const std::string& a, 
                 const CoefXpr& b, 
                 CoefXpr::OpType op );
   
@@ -413,17 +430,20 @@ protected:
 class CoefXprVecScalOp : public CoefXpr {
 public:
   //! Constructor
-  CoefXprVecScalOp( PtrCoefFct a, 
+  CoefXprVecScalOp( MathParser * mp,
+                    PtrCoefFct a, 
                     PtrCoefFct b,
                     CoefXpr::OpType op );
 
   //! Constructor for coefficient function, string
-  CoefXprVecScalOp( PtrCoefFct a, 
+  CoefXprVecScalOp( MathParser * mp,
+                    PtrCoefFct a, 
                     const std::string& b,
                     CoefXpr::OpType op );
 
   //! Constructor for string and coefficient function
-  CoefXprVecScalOp( PtrCoefFct a, 
+  CoefXprVecScalOp( MathParser * mp,
+                    PtrCoefFct a, 
                     const CoefXpr& b, 
                     CoefXpr::OpType op );
   
@@ -484,17 +504,20 @@ protected:
 class CoefXprTensScalOp : public CoefXpr {
 public:
   //! Constructor
-  CoefXprTensScalOp( PtrCoefFct a, 
+  CoefXprTensScalOp( MathParser * mp,
+                     PtrCoefFct a, 
                      PtrCoefFct b,
                      CoefXpr::OpType op );
 
   //! Constructor for coefficient function, string
-  CoefXprTensScalOp( PtrCoefFct a, 
+  CoefXprTensScalOp( MathParser * mp,
+                     PtrCoefFct a, 
                      const std::string& b,
                      CoefXpr::OpType op );
 
   //! Constructor for string and coefficient function
-  CoefXprTensScalOp( PtrCoefFct a, 
+  CoefXprTensScalOp( MathParser * mp,
+                     PtrCoefFct a, 
                      const CoefXpr& b, 
                      CoefXpr::OpType op );
 
@@ -554,10 +577,12 @@ class CoefXprMechSubTensor : public CoefXpr {
 public:
   
   //! Constructor
-  CoefXprMechSubTensor( PtrCoefFct a );
+  CoefXprMechSubTensor( MathParser * mp,
+                        PtrCoefFct a );
 
   //! Constructor for given coefficient function
-  CoefXprMechSubTensor( const CoefXpr& a) ;
+  CoefXprMechSubTensor( MathParser * mp,
+                        const CoefXpr& a) ;
   
   //! Set given subType and if tensor should be transposed
   void SetSubTensorType(SubTensorType subType, bool transposed );
@@ -602,10 +627,12 @@ class CoefXprSubTensor : public CoefXpr {
 public:
   
   //! Constructor
-  CoefXprSubTensor( PtrCoefFct a );
+  CoefXprSubTensor( MathParser * mp,
+                    PtrCoefFct a );
 
   //! Constructor for given coefficient function
-  CoefXprSubTensor( const CoefXpr& a) ;
+  CoefXprSubTensor( MathParser * mp,
+                    const CoefXpr& a) ;
   
   //! Set given subType and if tensor should be transposed
   void SetSubTensorType(SubTensorType subType, bool transposed );

@@ -364,9 +364,6 @@ namespace CoupledField
     // Offset for step number in case of multisequence analysis
     Integer stepNumOffset_;
     
-    // Offset for step value in case of multisequence analysis
-    Double stepValOffset_;
-
     // Number of time/frequency steps per multistep.
     Integer numSteps_;
 

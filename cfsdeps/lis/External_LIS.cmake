@@ -48,6 +48,13 @@ IF(OPENMP_FOUND)
 ENDIF()
 
 #-------------------------------------------------------------------------------
+# Set names of patch file and template file.
+#-------------------------------------------------------------------------------
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/lis/lis-patch.cmake.in")
+SET(PFN "${lis_prefix}/lis-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
+#-------------------------------------------------------------------------------
 # The lis external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(lis
@@ -56,37 +63,12 @@ ExternalProject_Add(lis
   DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/lis
   URL ${LIS_URL}/${LIS_GZ}
   URL_MD5 ${LIS_MD5}
+  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   CMAKE_ARGS
     ${CMAKE_ARGS}
-    -DLIS_BUILD_TEST:BOOL=ON
+#    -DLIS_BUILD_TEST:BOOL=ON
     -DLIS_ENABLE_FORTRAN:BOOL=ON
     -DLIS_ENABLE_SAAMG:BOOL=ON
-)
-
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/lis/lis-patch.cmake.in")
-SET(PFN "${lis_prefix}/lis-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-#-------------------------------------------------------------------------------
-# We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
-# want to apply the patch script  during configuration time but also if it has
-# changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
-# script. This can be achieved by  adding an additional build step between the
-# download and configure steps.
-#
-# NOTE: The  patch script should  be designed  in such a  way, that it  can be
-# applied to  an already patched  source tree. This  is due to the  fact, that
-# ExternalProject_Add only extracts the source if the MD5 sum has has changed.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(lis custom_patch
-   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-   DEPENDEES download
-   DEPENDERS configure
-   DEPENDS "${PFN}"
-   WORKING_DIRECTORY ${lis_source}
 )
 
 #-------------------------------------------------------------------------------

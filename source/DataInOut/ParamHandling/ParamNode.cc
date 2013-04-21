@@ -35,8 +35,14 @@ PtrParamNode param;
 PtrParamNode info;
 
 ParamNode::ParamNode(ActionType defaultAction, NodeType type) :
-  precision_(5), name_("DD"), type_(type), defaultAction_(defaultAction),
-  lastresultidx_(-1), write_timer_(), write_counter_(0), reject_counter_(0)
+  precision_(5), 
+  name_("DD"), 
+  type_(type),
+  defaultAction_(defaultAction),
+  lastresultidx_(-1), 
+  write_timer_(), 
+  write_counter_(0), 
+  reject_counter_(0)
 { }
 
 ParamNode::~ParamNode()
@@ -101,14 +107,14 @@ void ParamNode::SetComment(const std::string& comment)
   PtrParamNode newChild(new ParamNode(defaultAction_, COMMENT));
   newChild->SetName("comment");
   newChild->SetValue(comment);
-  newChild->parent_ = this;
+  newChild->parent_ = shared_from_this();
   newChild->defaultAction_ = defaultAction_;
   children_.Push_back(newChild);
 }
 
 void ParamNode::AddChildNode(PtrParamNode child)
 {
-  child->parent_ = this;
+  child->parent_ = shared_from_this();
   if (child->defaultAction_ == DEFAULT)
   {
     child->defaultAction_ = defaultAction_;
@@ -121,7 +127,7 @@ PtrParamNode ParamNode::SetNewChild(const std::string& name, unsigned int index)
 
   PtrParamNode node(new ParamNode());
   node->SetName(name);
-  node->parent_ = this;
+  node->parent_ = shared_from_this();
   node->defaultAction_ = defaultAction_;
   children_[index] = node;
   return node;
@@ -229,7 +235,7 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
       newChild->SetName(myName);
       // ATTENTION: Do NOT set an empty string as value to this node, as
       // std::string("").empty() != boost::any(st::string("")).empty()
-      newChild->parent_ = this;
+      newChild->parent_ = shared_from_this();
       newChild->defaultAction_ = defaultAction_;
       children_.Push_back(newChild);
       result = newChild;
@@ -238,6 +244,14 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
   }
 
   return result;
+}
+
+PtrParamNode ParamNode::GetRoot() {
+  if( parent_ ) {
+    return parent_->GetRoot();
+  } else {
+    return shared_from_this();
+  }
 }
 
 template<typename TYPE>

@@ -34,7 +34,9 @@ class BiLinearForm;
     //! \param pde1 pointer to first coupling PDE
     //! \param pde2 pointer to second coupling PDE
     //! \param paramNode pointer to "couplinglist/direct/piezoDirect" element
-    PiezoCoupling( SinglePDE *pde1, SinglePDE *pde2, PtrParamNode paramNode );
+    PiezoCoupling( SinglePDE *pde1, SinglePDE *pde2, PtrParamNode paramNode,
+                   PtrParamNode infoNode,
+                   shared_ptr<SimState> simState, Domain* domain );
 
     //! Destructor
     virtual ~PiezoCoupling();

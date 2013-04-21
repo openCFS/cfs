@@ -39,7 +39,7 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
                                        public boost::enable_shared_from_this<CoefFunctionExpression<Double> >{
   
   public:
-    CoefFunctionExpression();
+    CoefFunctionExpression(MathParser * mp);
 
     virtual ~CoefFunctionExpression();
 
@@ -89,13 +89,13 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
                                StdVector<std::string>& imag );
 
     // COLLECTION ACCESS
-    virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+    virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                StdVector< Double >  & vals);
 
     virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                StdVector<Vector< Double> >  & vals);
 
-    virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+    virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                               StdVector<Matrix< Double> >  & vals);
 
 
@@ -133,7 +133,7 @@ class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic,
                                         public boost::enable_shared_from_this<CoefFunctionExpression<Complex> >{
   
   public:
-    CoefFunctionExpression();
+    CoefFunctionExpression(MathParser * mp);
 
     virtual ~CoefFunctionExpression();
 

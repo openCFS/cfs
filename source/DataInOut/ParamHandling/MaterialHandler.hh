@@ -8,7 +8,7 @@
 
 #include "General/Environment.hh"
 #include "Materials/BaseMaterial.hh"
-
+#include "Domain/Domain.hh"
 #define bufLength 200
 
 namespace CoupledField
@@ -22,11 +22,23 @@ namespace CoupledField
     //! Constructor
     MaterialHandler( const std::string & fileName ) {
       fileName_ = fileName;
+      domain_ = NULL;
+      mp_ = NULL;
     }
-    
     
     //! Destructor
     virtual ~MaterialHandler() {};
+    
+    //! Set domain
+    void SetDomain(Domain* domain ) {
+      this->domain_ = domain;
+      this->mp_ = domain_->GetMathParser();
+    }
+    
+    //! Retrieve name of material file
+    std::string GetFileName() const {
+      return fileName_;
+    }
     
     //! Loads the specified material
     
@@ -45,6 +57,12 @@ namespace CoupledField
 
     //! Filename of material file
     std::string fileName_;
+    
+    //! Pointer to domain
+    Domain* domain_;
+    
+    //! Pointer to MathParser
+    MathParser* mp_;
 
   };
 

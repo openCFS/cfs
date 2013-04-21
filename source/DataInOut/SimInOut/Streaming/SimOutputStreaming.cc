@@ -9,10 +9,20 @@ using boost::asio::ip::tcp;
 using namespace CoupledField;
 using std::string;
 
-SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode) :
-  SimOutput("", outputNode),
+SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode,
+                                       PtrParamNode infoNode, 
+                                       bool isRestart ) :
+  SimOutput("", outputNode, infoNode, isRestart ),
   silent_(false)
 {
+  // The restart case is currently not implemented, i.e. resuls from a 
+  // partial simulation get overwritten.
+  if( isRestart_ ) {
+    WARN( "The Streaming-Writer is currently not adapted to write restarted "
+        "results correctly, thus the results of the previous run get"
+        " overwritten." );
+  }
+  
   formatName_ = "streaming";
   capabilities_.insert(MESH_RESULTS);
 
@@ -23,7 +33,7 @@ SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode) :
   if(outputNode->Has("silent"))
     silent_ = outputNode->Get("silent")->As<bool>();
 
-  info_root = info->Get("streaming")->Get(ParamNode::PN_PROCESS); // TODO!
+  info_root = myInfo_->Get("streaming")->Get(ParamNode::PN_PROCESS); // TODO!
 }
 
 SimOutputStreaming::~SimOutputStreaming()

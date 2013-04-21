@@ -54,8 +54,10 @@ namespace CoupledField {
 
   
   void BasePrecond::PostInit() {
-    PtrParamNode base = 
-        infoNode_ != NULL ? infoNode_ : info->Get("OLAS/legacyPrecond", ParamNode::APPEND);
+    // assert, that info node is present
+    assert(infoNode_);
+    
+    PtrParamNode base = infoNode_; 
     setupTimer_ = boost::shared_ptr<Timer>(new Timer());
     base->Get(ParamNode::PN_SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
     precondTimer_ = boost::shared_ptr<Timer>(new Timer());

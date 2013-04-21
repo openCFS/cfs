@@ -67,6 +67,13 @@ IF(CMAKE_TOOLCHAIN_FILE)
 ENDIF()
 
 #-------------------------------------------------------------------------------
+# Set names of patch file and template file.
+#-------------------------------------------------------------------------------
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/suitesparse/suitesparse-patch.cmake.in")
+SET(PFN "${suitesparse_prefix}/suitesparse-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
+#-------------------------------------------------------------------------------
 # The suitesparse external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(suitesparse
@@ -76,36 +83,10 @@ ExternalProject_Add(suitesparse
   SOURCE_DIR "${suitesparse_source}"
   URL ${SUITESPARSE_URL}/${SUITESPARSE_GZ}
   URL_MD5 ${SUITESPARSE_MD5}
+  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   CMAKE_ARGS
     ${CMAKE_ARGS}
     -DBUILD_SHARED_LIBS:BOOL=OFF
-)
-
-
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/suitesparse/suitesparse-patch.cmake.in")
-SET(PFN "${suitesparse_prefix}/suitesparse-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-#-------------------------------------------------------------------------------
-# We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
-# want to apply the patch script  during configuration time but also if it has
-# changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
-# script. This can be achieved by  adding an additional build step between the
-# download and configure steps.
-#
-# NOTE: The  patch script should  be designed  in such a  way, that it  can be
-# applied to  an already patched  source tree. This  is due to the  fact, that
-# ExternalProject_Add only extracts the source if the MD5 sum has has changed.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(suitesparse custom_patch
-   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-   DEPENDEES download
-   DEPENDERS configure
-   DEPENDS "${PFN}"
-   WORKING_DIRECTORY ${suitesparse_source}
 )
 
 #-------------------------------------------------------------------------------

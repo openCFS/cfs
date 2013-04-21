@@ -1,4 +1,11 @@
 #-------------------------------------------------------------------------------
+# Computational Geometry Algorithms Library
+#
+# Project Homepage
+# http://www.cgal.org/
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 # Set paths to cgal sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
 set(cgal_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/cgal")
@@ -44,14 +51,26 @@ IF(MINGW)
 ENDIF(MINGW)
 
 #-------------------------------------------------------------------------------
+# Set names of patch file and template file.
+#-------------------------------------------------------------------------------
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/cgal/cgal-patch.cmake.in")
+SET(PFN "${cgal_prefix}/cgal-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
+SET(BOOST_SETUP_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/cgal/CGAL_SetupBoost.cmake.in")
+SET(BOOST_SETUP "${cgal_prefix}/CGAL_SetupBoost.cmake")
+CONFIGURE_FILE("${BOOST_SETUP_TEMPL}" "${BOOST_SETUP}" @ONLY) 
+
+#-------------------------------------------------------------------------------
 # The CGAL external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cgal
   DEPENDS boost zlib gmp mpfr
   PREFIX "${cgal_prefix}"
   DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/cgal
-  URL ${CGAL_URL}/${CGAL_GZ}
+  URL ${CGAL_URL}/${CGAL_BZ2}
   URL_MD5 ${CGAL_MD5}
+  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   CMAKE_ARGS
     ${CMAKE_ARGS}
     -DCGAL_INSTALL_BIN_DIR:PATH=bin/${CFS_ARCH_STR}
@@ -67,45 +86,18 @@ ExternalProject_Add(cgal
     -DWITH_CGAL_Qt4:BOOL=OFF
     -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
     -DZLIB_LIBRARY:PATH=${ZLIB_LIBRARY}
-    -DGMPXX_INCLUDE_DIR:PATH=${GMP_INCLUDE_DIR}
-    -DGMPXX_LIBRARIES:FILEPATH=${GMPXX_LIBRARY}
     -DGMP_INCLUDE_DIR:PATH=${GMP_INCLUDE_DIR}
     -DGMP_LIBRARIES:FILEPATH=${GMP_LIBRARY}
     -DGMP_LIBRARIES_DIR:PATH=${cgal_install}/${LIB_SUFFIX}/${CFS_ARCH_STR}
+    -DWITH_GMP:BOOL=ON
+    -DGMPXX_INCLUDE_DIR:PATH=${GMP_INCLUDE_DIR}
+    -DGMPXX_LIBRARIES:FILEPATH=${GMPXX_LIBRARY}
+    -DWITH_GMPXX:BOOL=ON
     -DMPFR_INCLUDE_DIR:PATH=${MPFR_INCLUDE_DIR}
     -DMPFR_LIBRARIES:FILEPATH=${MPFR_LIBRARY}
+    -DWITH_MPFR:BOOL=ON
 )
 
-
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/cgal/cgal-patch.cmake.in")
-SET(PFN "${cgal_prefix}/cgal-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-SET(BOOST_SETUP_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/cgal/CGAL_SetupBoost.cmake.in")
-SET(BOOST_SETUP "${cgal_prefix}/CGAL_SetupBoost.cmake")
-CONFIGURE_FILE("${BOOST_SETUP_TEMPL}" "${BOOST_SETUP}" @ONLY) 
-
-#-------------------------------------------------------------------------------
-# We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
-# want to apply the patch script  during configuration time but also if it has
-# changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
-# script. This can be achieved by  adding an additional build step between the
-# download and configure steps.
-#
-# NOTE: The  patch script should  be designed  in such a  way, that it  can be
-# applied to  an already patched  source tree. This  is due to the  fact, that
-# ExternalProject_Add only extracts the source if the MD5 sum has has changed.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(cgal custom_patch
-   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-   DEPENDEES download
-   DEPENDERS configure
-   DEPENDS "${PFN}"
-   WORKING_DIRECTORY ${cgal_source}
-)
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

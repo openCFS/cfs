@@ -3,7 +3,7 @@
 
 #include "Utils/StdVector.hh"
 #include "DataInOut/SimInput.hh"
-#include "DataInOut/DefineFiles/DefineInOutFiles.hh"
+#include "DataInOut/DefineInOutFiles.hh"
 
 namespace CoupledField
 {
@@ -11,6 +11,7 @@ namespace CoupledField
   class Timer;
   class MaterialHandler;
   class LogConfigurator;
+  class SimState;
 
   /** This is the base class of CFS.
    * It basically gives more structure for the original main() call. */
@@ -25,7 +26,7 @@ namespace CoupledField
      * @return the return value for main*/
     int Run();
 
-    /** Initialized global Enum<> objectes.
+    /** Initialized global Enum<> objects.
      * To be called also from cfstool.cc */
     static void SetGlobalEnums();
 
@@ -40,7 +41,7 @@ namespace CoupledField
     void ReadXMLFile();
 
     /** Setup I/O without info.xml and problem.xml */
-    void SetupIO();
+    void SetupIO(PtrParamNode rootNode );
 
     /** Write the grid to result but do not calculate */
     void PrintGrid();
@@ -48,13 +49,21 @@ namespace CoupledField
     /** Solve the simulation/ optimition problem */
     void SolveProblem();
 
+    //! Object for file I/O creation
     DefineInOutFiles fileHandler;
 
+    //! Global result handler
     ResultHandler* resultHandler;
+    
+    //! Object for saving the simulation state
+    shared_ptr<SimState> simState;
 
+    //! Root node of parameter xml file
+    PtrParamNode paramNode_;
+    
     /** Timer for the whole CFS runtime */
     boost::shared_ptr<Timer> timer;
-
+    
     /** this is our hostname. Empty if it cannot be determined */
     std::string hostname_;
 

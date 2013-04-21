@@ -4,10 +4,9 @@
 
 #include <complex>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/exception.hpp>
-namespace fs = boost::filesystem;
-
+#include <boost/assign/list_of.hpp>
+#include <boost/assign/std/vector.hpp>
+using namespace boost::assign;
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Environment.hh"
 #include "Utils/StdVector.hh"
@@ -29,16 +28,19 @@ namespace CoupledField {
   DEFINE_LOG(simOutputGiD, "SimOutputGiD")
 
     SimOutputGiD::SimOutputGiD( const std::string& fileName,
-                                PtrParamNode outputNode )
-  : SimOutput( fileName, outputNode ),
+                                PtrParamNode outputNode,
+                                PtrParamNode infoNode, 
+                                bool isRestart )
+  : SimOutput( fileName, outputNode, infoNode, isRestart ),
     isInitialized_(false)
   {
     // Initialize variables
     formatName_ = "gid";
     fileName_ = fileName;
-    dirName_ = "results_" + formatName_;
-    outputNode->GetValue("directory", dirName_, ParamNode::PASS );
-
+    std::string dirString = "results_" + formatName_; 
+    outputNode->GetValue("directory", dirString, ParamNode::PASS );
+    dirName_ = dirString; 
+        
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
 
@@ -46,7 +48,6 @@ namespace CoupledField {
     actMeshId_ = 1;
     lastStepVal_ = -1.0;
     lastStepRepeated_ = 0;
-    stepValueOffset_ = 0;
     isAscii_ = true;
     groupEigenFreqs_ = true;
     printGridOnly_ = false;
@@ -59,20 +60,18 @@ namespace CoupledField {
     if( myParam_->Has("groupEigenFreqs") ) {
       groupEigenFreqs_= myParam_->Get("groupEigenFreqs")->As<bool>();
     }
-
-    std::string pathsep;
-    std::ostringstream strBuffer;
+    
+    //! Determine if sequenceSteps sould be merged
+    mergeSequenceSteps_= myParam_->Get("mergeSequenceSteps")->As<bool>();
 
     // concatenate output file name
     try {
       fs::create_directory( dirName_ );
-      pathsep = fs::path("/").string();
     } catch (std::exception &ex) {
       EXCEPTION(ex.what());
     }
-
-    strBuffer << dirName_ << pathsep << fileName_;
-    fileName_ = strBuffer.str();
+    // store complete name including directory into fileName_
+    fileName_ = fs::path(dirName_ / fileName_ ).string();
   }
 
 
@@ -89,8 +88,8 @@ namespace CoupledField {
 
     LOG_TRACE(simOutputGiD) << "Writing mesh";
 
-    // Leave, if grid was already written
-    if(gridWritten_) 
+    // Leave, if grid was already written or restarted simulation
+    if(gridWritten_ || isRestart_) 
       return;
     
     // open mesh file (only needed in ASCII case
@@ -352,223 +351,76 @@ namespace CoupledField {
 
     UInt elemNum;
     Elem::FEType eType;
-    // Integer region;
 
     eType = ptEl->type;
-    // region = ptEl->regionId+1;
     elemNum = ptEl->elemNum;
-    StdVector<UInt> const & connectDummy = ptEl->connect;
-    StdVector<UInt> connect;
-    connect.Resize(numNodes+1);
+    StdVector<UInt> const & elConn = ptEl->connect;
+    std::vector<UInt> reorderIdx;
 
-
+    // We 
     switch(eType)
     {
     default:
-      std::copy(connectDummy.GetPointer(),
-                connectDummy.GetPointer()+numNodes,
-                connect.GetPointer());
-      //      memcpy(&connect[0],
-      //             (const void*) &connectDummy[0],
-      //             connectDummy.GetSize()*sizeof(UInt));
+      reorderIdx.resize(numNodes);
+      for(UInt i=0; i<numNodes; i++) reorderIdx[i] = i;
       break;
 
     case Elem::ET_TRIA3:
-      connect[0]= connectDummy[0];
-      connect[1]= connectDummy[1];
-      connect[2]= connectDummy[2];
-      connect[3]= connectDummy[2];
-      break;
-
     case Elem::ET_TRIA6:
-      connect[0] = connectDummy[0];
-      connect[1] = connectDummy[1];
-      connect[2] = connectDummy[2];
-      connect[3] = connectDummy[2];
-      connect[4] = connectDummy[3];
-      connect[5] = connectDummy[4];
-      connect[6] = connectDummy[5];
-      connect[7] = connectDummy[5];
+      reorderIdx += 0,1,2,2;
+      if(eType != Elem::ET_TRIA3) {
+        reorderIdx += 3,4,5,5;
+      }
       break;
 
     case Elem::ET_TET4:
-      connect[0] = connectDummy[0];
-      connect[1] = connectDummy[1];
-      connect[2] = connectDummy[2];
-      connect[3] = connectDummy[2];
-      connect[4] = connectDummy[3];
-      connect[5] = connectDummy[3];
-      connect[6] = connectDummy[3];
-      connect[7] = connectDummy[3];
-      break;
-
     case Elem::ET_TET10:
-      connect[0] = connectDummy[0];
-      connect[1] = connectDummy[1];
-      connect[2] = connectDummy[2];
-      connect[3] = connectDummy[2];
-      connect[4] = connectDummy[3];
-      connect[5] = connectDummy[3];
-      connect[6] = connectDummy[3];
-      connect[7] = connectDummy[3];
-      connect[8] = connectDummy[4];
-      connect[9] = connectDummy[5];
-      connect[10]= connectDummy[6];
-      connect[11]= connectDummy[6];
-      connect[12]= connectDummy[7];
-      connect[13]= connectDummy[8];
-      connect[14]= connectDummy[9];
-      connect[15]= connectDummy[9];
-      connect[16]= connectDummy[3];
-      connect[17]= connectDummy[3];
-      connect[18]= connectDummy[3];
-      connect[19]= connectDummy[3];
+      reorderIdx += 0,1,2,2,3,3,3,3;
+      if(eType != Elem::ET_TET4) {
+        reorderIdx += 4,5,6,6,7,8,9,9,3,3,3,3;
+      }
       break;
 
     case Elem::ET_HEXA8:
-      connect[0] = connectDummy[4];
-      connect[1] = connectDummy[5];
-      connect[2] = connectDummy[6];
-      connect[3] = connectDummy[7];
-      connect[4] = connectDummy[0];
-      connect[5] = connectDummy[1];
-      connect[6] = connectDummy[2];
-      connect[7] = connectDummy[3];
+      reorderIdx += 4,5,6,7,0,1,2,3;
       break;
 
       // NOTE: The numberings of hexehadras in gid differs for
       // the quadratic case!
     case Elem::ET_HEXA20:
-      connect[0]  = connectDummy[0];
-      connect[1]  = connectDummy[1];
-      connect[2]  = connectDummy[2];
-      connect[3]  = connectDummy[3];
-      connect[4]  = connectDummy[4];
-      connect[5]  = connectDummy[5];
-      connect[6]  = connectDummy[6];
-      connect[7]  = connectDummy[7];
-      connect[8]  = connectDummy[8];
-      connect[9]  = connectDummy[9];
-      connect[10] = connectDummy[10];
-      connect[11] = connectDummy[11];
-      connect[12] = connectDummy[16];
-      connect[13] = connectDummy[17];
-      connect[14] = connectDummy[18];
-      connect[15] = connectDummy[19];
-      connect[16] = connectDummy[12];
-      connect[17] = connectDummy[13];
-      connect[18] = connectDummy[14];
-      connect[19] = connectDummy[15];
-      break;
-
     case Elem::ET_HEXA27:
-      connect[0]  = connectDummy[0];
-      connect[1]  = connectDummy[1];
-      connect[2]  = connectDummy[2];
-      connect[3]  = connectDummy[3];
-      connect[4]  = connectDummy[4];
-      connect[5]  = connectDummy[5];
-      connect[6]  = connectDummy[6];
-      connect[7]  = connectDummy[7];
-      connect[8]  = connectDummy[8];
-      connect[9]  = connectDummy[9];
-      connect[10] = connectDummy[10];
-      connect[11] = connectDummy[11];
-      connect[12] = connectDummy[16];
-      connect[13] = connectDummy[17];
-      connect[14] = connectDummy[18];
-      connect[15] = connectDummy[19];
-      connect[16] = connectDummy[12];
-      connect[17] = connectDummy[13];
-      connect[18] = connectDummy[14];
-      connect[19] = connectDummy[15];
-
-      connect[20]  = connectDummy[24];
-      connect[21]  = connectDummy[20];
-      connect[22]  = connectDummy[21];
-      connect[23]  = connectDummy[22];
-      connect[24]  = connectDummy[23];
-      connect[25]  = connectDummy[25];
-      connect[26]  = connectDummy[26];
+      reorderIdx += 0,1,2,3,4,5,6,7,8,9,10,11,16,17,18,19,12,13,14,15;
+      if(eType == Elem::ET_HEXA27) {
+        reorderIdx += 24,20,21,22,23,25,26;
+      }
       break;
-
+      
     case Elem::ET_PYRA5:
-      connect[0] = connectDummy[0];
-      connect[1] = connectDummy[1];
-      connect[2] = connectDummy[2];
-      connect[3] = connectDummy[3];
-      connect[4] = connectDummy[4];
-      connect[5] = connectDummy[4];
-      connect[6] = connectDummy[4];
-      connect[7] = connectDummy[4];
-      break;
-
     case Elem::ET_PYRA13:
     case Elem::ET_PYRA14:
-      connect[0]= connectDummy[0];
-      connect[1]= connectDummy[1];
-      connect[2]= connectDummy[2];
-      connect[3]= connectDummy[3];
-
-      connect[4]= connectDummy[4];
-      connect[5]= connectDummy[4];
-      connect[6]= connectDummy[4];
-      connect[7]= connectDummy[4];
-
-      connect[8]= connectDummy[5];
-      connect[9]= connectDummy[6];
-      connect[10]= connectDummy[7];
-      connect[11]= connectDummy[8];
-      connect[12]= connectDummy[9];
-      connect[13]= connectDummy[10];
-      connect[14]= connectDummy[11];
-      connect[15]= connectDummy[12];
-
-      connect[16]= connectDummy[4];
-      connect[17]= connectDummy[4];
-      connect[18]= connectDummy[4];
-      connect[19]= connectDummy[4];
+      reorderIdx += 0,1,2,3,4,4,4,4;
+      if(eType != Elem::ET_PYRA5) {
+        reorderIdx += 5,6,7,8,9,10,11,12,4,4,4,4;
+      }
       break;
-
 
     case Elem::ET_WEDGE6:
-      connect[0]= connectDummy[0];
-      connect[1]= connectDummy[1];
-      connect[2]= connectDummy[2];
-      connect[3]= connectDummy[2];
-      connect[4]= connectDummy[3];
-      connect[5]= connectDummy[4];
-      connect[6]= connectDummy[5];
-      connect[7]= connectDummy[5];
-      break;
-
     case Elem::ET_WEDGE15:
     case Elem::ET_WEDGE18:
-      connect[0] = connectDummy[0];
-      connect[1] = connectDummy[1];
-      connect[2] = connectDummy[2];
-      connect[3] = connectDummy[2];
-      connect[4] = connectDummy[3];
-      connect[5] = connectDummy[4];
-      connect[6] = connectDummy[5];
-      connect[7] = connectDummy[5];
-      connect[8] = connectDummy[6];
-      connect[9] = connectDummy[7];
-      connect[10]= connectDummy[8];
-      connect[11]= connectDummy[8];
-      connect[12]= connectDummy[12];
-      connect[13]= connectDummy[13];
-      connect[14]= connectDummy[14];
-      connect[15]= connectDummy[14];
-      connect[16]= connectDummy[9];
-      connect[17]= connectDummy[10];
-      connect[18]= connectDummy[11];
-      connect[19]= connectDummy[11];
+      reorderIdx += 0,1,2,2,3,4,5,5;
+      if(eType != Elem::ET_WEDGE6) {
+        reorderIdx += 6,7,8,8,12,13,14,14,9,10,11,11;
+      }
       break;
     }
 
+    std::vector<int> connect(numNodes+1);
+    for(UInt i=0; i<numNodes; i++) {
+      connect[i] = elConn[reorderIdx[i]];
+    }
+
     connect[numNodes] = actMeshId_;
-    GiD_WriteElementMat( elemNum, (int*)connect.GetPointer() );
+    GiD_WriteElementMat( elemNum, &connect[0] );
   }
 
 
@@ -601,13 +453,6 @@ namespace CoupledField {
     
     actStep_ = stepNum;
     actStepVal_ = stepVal;
-    
-    
-    // add  offset to step value to account for multisequence steps
-    if( actAnalysis_ == BasePDE::TRANSIENT ||
-        actAnalysis_ == BasePDE::STATIC  ) {
-     actStepVal_ += stepValueOffset_;
-    }
 
     // Check, if current step value is the same as the previous step value.
     // This can happen e.g. in an eigenfrequency analysis, where there maybe
@@ -683,10 +528,6 @@ namespace CoupledField {
 
   void SimOutputGiD::
   FinishMultiSequenceStep( ) {
-    if( actAnalysis_ == BasePDE::TRANSIENT ||
-        actAnalysis_ == BasePDE::STATIC ) {
-      stepValueOffset_ = actStepVal_;
-    }
   }
 
 
@@ -700,7 +541,8 @@ namespace CoupledField {
 
     // assemble name for analysis step
     std::string analysisName = "transient";
-    analysisName += "_" + lexical_cast<std::string>( actMSStep_ );
+    if( !mergeSequenceSteps_)
+      analysisName += "_" + lexical_cast<std::string>( actMSStep_ );
 
 
     // get number of entities
@@ -825,7 +667,8 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
 
     // assemble name for analysis step
     std::string analysisName = "harmonic";
-    analysisName += "_" + lexical_cast<std::string>( actMSStep_ );
+    if( !mergeSequenceSteps_)
+      analysisName += "_" + lexical_cast<std::string>( actMSStep_ );
 
    // get number of entities
     UInt numEnt = 0;
@@ -1162,15 +1005,16 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
 
     std::string postFileName;
     
+    
     // Open result file
     if ( isAscii_ == true) {
       postFileName = fileName_ + ".post.res";
       isInitialized_ = !GiD_OpenPostResultFile( postFileName.c_str(),
-                                                GiD_PostAscii );
+                                                GiD_PostAscii, isRestart_ );
     } else {
       postFileName = fileName_ + ".post.bin";
       isInitialized_ = !GiD_OpenPostResultFile( postFileName.c_str(),
-                                                GiD_PostBinary );
+                                                GiD_PostBinary, isRestart_ );
     }
 
     // print grid

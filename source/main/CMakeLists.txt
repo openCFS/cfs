@@ -25,7 +25,7 @@ ADD_EXECUTABLE(cfsbin ${CFS_SRCS})
 SET(TARGET_LL
   cfsgeneral
   utils
-  definefiles
+  datainout
   paramh
   utils
   domain
@@ -38,6 +38,12 @@ IF(USE_XERCES)
     ${XERCES_LIBRARY}
   )
 ENDIF(USE_XERCES)
+
+IF(USE_LIBFBI)
+  LIST(APPEND TARGET_LL
+    ${BOOST_THREAD_LIB}
+  )
+ENDIF(USE_LIBFBI)
 
 IF(MINGW)
   LIST(APPEND TARGET_LL

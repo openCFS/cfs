@@ -97,7 +97,8 @@ namespace CoupledField {
     // - bilinearform is solution dependent (true non-linearity)
     // - bilinearform has updated Lagrangian formulation and 
     //   there are coordinate updated present in the grid class
-    Grid * grid = domain->GetGrid();
+    
+    Grid * grid = ent1_->GetGrid();
     if( integrator_->IsSolDependent() 
         || (integrator_->IsCoordUpdate()  
             && grid->HasNodalOffset() ) ) {

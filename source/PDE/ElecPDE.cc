@@ -46,8 +46,10 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  ElecPDE::ElecPDE( Grid* aptgrid, PtrParamNode paramNode )
-    :SinglePDE( aptgrid, paramNode ) {
+  ElecPDE::ElecPDE( Grid* aptgrid, PtrParamNode paramNode,
+                    PtrParamNode infoNode,
+                    shared_ptr<SimState> simState, Domain* domain )
+    :SinglePDE( aptgrid, paramNode, infoNode, simState, domain ) {
 
 
     // =====================================================================
@@ -247,8 +249,8 @@ namespace CoupledField {
         // "Divide" the total charge by the volume / surface of the current entity list
         Double volume = ptGrid_->CalcVolumeOfEntityList( ent[i], false );
         Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;  
-        coef[i] = CoefFunction::Generate(part, 
-                   CoefXprVecScalOp(coef[i], 
+        coef[i] = CoefFunction::Generate(mp_, part, 
+                   CoefXprVecScalOp(mp_, coef[i], 
                    boost::lexical_cast<std::string>(volume), CoefXpr::OP_DIV) );
         if(isComplex_) {
           lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i],coefUpdateGeo);
@@ -371,10 +373,10 @@ namespace CoupledField {
     
     if ( isComplex ) {
       if( dim_ == 2 ) {
-        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,Complex>(), 
+        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,Complex>(),
                                              curCoef, factor, updatedGeo_ );
       } else {
-        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,Complex>(), 
+        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,Complex>(),
                                              curCoef, factor, updatedGeo_ );
       }
     }
@@ -518,14 +520,14 @@ namespace CoupledField {
                       << "interfaces of PDE exist in domain.";
 
     PtrParamNode elecPDENCIfaceListNode;
-    elecPDENCIfaceListNode = param->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
+    elecPDENCIfaceListNode = domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
     ->Get("pdeList/electrostatic/ncInterfaceList", ParamNode::PASS);
     
     if(!elecPDENCIfaceListNode)
       return;
 
     PtrParamNode domainNCIfaceListNode;
-    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
+    domainNCIfaceListNode = domain_->GetParamRoot()->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
 
     if(!domainNCIfaceListNode)
     {

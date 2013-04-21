@@ -21,7 +21,9 @@ namespace CoupledField
   // ***********************
   //   Default Constructor
   // ***********************
-  AcousticMaterial::AcousticMaterial() : BaseMaterial() {
+  AcousticMaterial::AcousticMaterial(MathParser* mp,
+                                     CoordSystem * defaultCoosy) 
+  : BaseMaterial(mp, defaultCoosy) {
 
     materialDatabaseName_ = "Acoustic";
 

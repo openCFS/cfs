@@ -161,8 +161,8 @@ ENDIF(USE_METIS)
 #-------------------------------------------------------------------------------
 IF(USE_GIDPOST)
   SET(GIDPOST_URL "${LSE17_SOURCES_DIR}/gidpost")
-  SET(GIDPOST_ZIP "gidpost1.71.zip")
-  SET(GIDPOST_MD5 "df8c3ed913cb8abafa36a47591438538")
+  SET(GIDPOST_ZIP "gidpost-2.1-for-cfs.zip")
+  SET(GIDPOST_MD5 "720b31e311295f3f30a81593b4f3654e")
 
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/gidpost/External_GiDpost.cmake")
 ENDIF(USE_GIDPOST)
@@ -359,10 +359,31 @@ IF(USE_CGAL)
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/mpfr/External_mpfr.cmake")
 
   SET(CGAL_URL "${LSE17_SOURCES_DIR}/cgal")
-  SET(CGAL_GZ "CGAL-3.9.tar.gz")
-  SET(CGAL_MD5 "797697130ff9231627521c0a38f16d2f")
+  SET(CGAL_BZ2 "CGAL-4.2.tar.bz2")
+  SET(CGAL_MD5 "df8e33389a8d9f15eb7eb17200c17002")
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cgal/External_CGAL.cmake")
 ENDIF(USE_CGAL)
+
+#-----------------------------------------------------------------------------
+# Find fast box intersection library.
+#-----------------------------------------------------------------------------
+IF(USE_LIBFBI)
+  IF(WIN32)
+    IF(NOT MINGW)
+      SET(MSG "Only the latest versions of MSVC support the features needed")
+      SET(MSG "${MSG} needed to build libfbi. Maybe your version works or")
+      SET(MSG "${MSG} not. We just bail out here, to make sure nothing stupid")
+      SET(MSG "${MSG} happens.")
+      MESSAGE(FATAL_ERROR "${MSG}")
+    ENDIF()
+  ENDIF()
+
+  SET(LIBFBI_URL "${LSE17_SOURCES_DIR}/spacepart")
+  SET(LIBFBI_GZ "libfbi_for_cfs_gitrev_ee570e5e.tgz")
+  SET(LIBFBI_MD5 "9484f3573450b20cadc262365eb74b7a")
+ENDIF(USE_LIBFBI)
+
+INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/spacepart/External_spacepart.cmake")
 
 #-----------------------------------------------------------------------------
 # Find IPOPT

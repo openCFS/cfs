@@ -21,7 +21,8 @@ namespace CoupledField
   public:
 
     //! Constructor
-    SimOutputRST( const std::string& fileName, PtrParamNode outputNode );
+    SimOutputRST( const std::string& fileName, PtrParamNode outputNode,
+                  PtrParamNode infoNode, bool isRestart );
   
     //! Destructor
     virtual ~SimOutputRST();

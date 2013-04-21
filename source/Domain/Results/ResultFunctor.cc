@@ -48,7 +48,7 @@ EvalResult( shared_ptr<BaseResult> res ) {
       LocPoint lp = Elem::shapes[el->type].midPointCoord;
       LocPointMapped lpm;
       shared_ptr<ElemShapeMap> esm = 
-        this->ptGrid_->GetElemShapeMap( el, true );
+        it.GetGrid()->GetElemShapeMap( el, true );
       lpm.Set( lp, esm, 0.0 );
       this->GetVector(tempField, lpm );
       // loop over dofs
@@ -70,12 +70,12 @@ EvalResult( shared_ptr<BaseResult> res ) {
       for ( it.Begin(); !it.IsEnd(); it++ ) {
         UInt node = it.GetNode();
 
-        ptGrid_->GetNodeCoordinate(coord, node, true );
+        it.GetGrid()->GetNodeCoordinate(coord, node, true );
         
         globCoords.Push_back(coord);
       }
       
-      ptGrid_->GetElemsAtGlobalCoords(globCoords, localCoords, elems);
+      it.GetGrid()->GetElemsAtGlobalCoords(globCoords, localCoords, elems);
 
       UInt numElems = elems.GetSize();
 
@@ -91,7 +91,7 @@ EvalResult( shared_ptr<BaseResult> res ) {
         LocPoint& lp = localCoords[i];
         LocPointMapped lpm;
         shared_ptr<ElemShapeMap> esm = 
-          this->ptGrid_->GetElemShapeMap( el, true );
+          it.GetGrid()->GetElemShapeMap( el, true );
         lpm.Set( lp, esm, 0.0 );
         this->GetVector(tempField, lpm );
         // loop over dofs
@@ -176,7 +176,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
   // Loop over regions
   for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
     shared_ptr<EntityList> actSDList = 
-        ptGrid_->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
+        nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
     EntityIterator elemIt = actSDList->GetIterator();
 
     Double tempEnergy = 0.0;
@@ -207,7 +207,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
         shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
         // Get shape map from grid
         shared_ptr<ElemShapeMap> esm = 
-            domain->GetGrid()->GetElemShapeMap( el, true );
+            elemIt.GetGrid()->GetElemShapeMap( el, true );
 
         // Get integration points
         StdVector<LocPoint> intPoints;
@@ -242,7 +242,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
   // Loop over regions
   for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
     shared_ptr<EntityList> actSDList = 
-        ptGrid_->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
+        nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
     EntityIterator elemIt = actSDList->GetIterator();
 
     Complex tempEnergy = 0.0;
@@ -286,7 +286,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
         shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
         // Get shape map from grid
         shared_ptr<ElemShapeMap> esm = 
-            domain->GetGrid()->GetElemShapeMap( el, true );
+            elemIt.GetGrid()->GetElemShapeMap( el, true );
 
         // Get integration points
         StdVector<LocPoint> intPoints;
@@ -361,7 +361,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
     // Loop over names (= regions / surface regions / named elements)
     for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
       shared_ptr<EntityList> actSDList = 
-          ptGrid_->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
+          nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
       EntityIterator elemIt = actSDList->GetIterator();
 
       TYPE tempVal = 0.0;
@@ -377,7 +377,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
         feSpace->GetFe( elemIt, method, order );
         // Get shape map from grid
         shared_ptr<ElemShapeMap> esm = 
-            domain->GetGrid()->GetElemShapeMap( el, true );
+            elemIt.GetGrid()->GetElemShapeMap( el, true );
 
         // Get integration points
         StdVector<LocPoint> intPoints;
@@ -407,7 +407,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
     UInt pos = 0;
     for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
       shared_ptr<EntityList> actSDList = 
-          ptGrid_->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
+          nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
       EntityIterator elemIt = actSDList->GetIterator();
 
       Vector<TYPE> tempVal;
@@ -423,7 +423,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
         feSpace->GetFe( elemIt, method, order );
         // Get shape map from grid
         shared_ptr<ElemShapeMap> esm = 
-            domain->GetGrid()->GetElemShapeMap( el, true );
+            elemIt.GetGrid()->GetElemShapeMap( el, true );
 
         // Get integration points
         StdVector<LocPoint> intPoints;

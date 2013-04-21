@@ -39,8 +39,11 @@ namespace CoupledField {
   //   Constructor
   // ***************
   PiezoCoupling::PiezoCoupling( SinglePDE *pde1, SinglePDE *pde2,
-                                PtrParamNode paramNode  )
-    : BasePairCoupling( pde1, pde2, paramNode )
+                                PtrParamNode paramNode,
+                                PtrParamNode infoNode,
+                                shared_ptr<SimState> simState,
+                                Domain* domain)
+    : BasePairCoupling( pde1, pde2, paramNode, infoNode, simState, domain )
   {
     couplingName_ = "piezoDirect";
     materialClass_ = PIEZO;
@@ -124,6 +127,7 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> dispFct = pde1_->GetFeFunction(MECH_DISPLACEMENT);
     shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+    MathParser * mp = domain_->GetMathParser();
     
     StdVector<std::string> stressComponents;
     if( subType_ == "3d" ) {
@@ -162,8 +166,8 @@ namespace CoupledField {
       cplFunc.reset(new CoefFunctionFlux<Double,true>(dispFct, flux, cplFactor));
     }
     // Build compound coefficient function for flux density
-    PtrCoefFct coefFlux = CoefFunction::Generate(part,
-                         CoefXprBinOp(coefElecD, cplFunc,
+    PtrCoefFct coefFlux = CoefFunction::Generate(mp,part,
+                         CoefXprBinOp(mp,coefElecD, cplFunc,
                                       CoefXpr::OP_ADD) );
     DefineFieldResult( coefFlux, flux );
 
@@ -193,8 +197,8 @@ namespace CoupledField {
     } else {
       stressCplFunc.reset(new CoefFunctionFlux<Double>(elecFct, stress, stressCplFactor));
     }
-    PtrCoefFct coefStress = CoefFunction::Generate(part,
-                            CoefXprBinOp(coefMechSigma, stressCplFunc, 
+    PtrCoefFct coefStress = CoefFunction::Generate(mp,part,
+                            CoefXprBinOp(mp,coefMechSigma, stressCplFunc, 
                                          CoefXpr::OP_SUB ) ); 
     DefineFieldResult(coefStress, stress);
 
@@ -298,7 +302,7 @@ namespace CoupledField {
     if ( isComplex ) {
       if( subType_ == "axi" ) {
         integ = new ADBInt<Complex>(new StrainOperatorAxi<FeH1,Complex>(),
-                                    new GradientOperator<FeH1,2,Complex>(), 
+                                    new GradientOperator<FeH1,2,Complex>(),
                                     curCoef, 1.0, true );
       } else if( subType_ == "planeStrain" ) {
         integ = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
@@ -346,7 +350,7 @@ namespace CoupledField {
 
     if ( analysisType_ == BasePDE::TRANSIENT ) {
       Double dt;
-      dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
+      dt = dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())
                 ->GetDeltaT();
 
       //in this case we additionally need to define

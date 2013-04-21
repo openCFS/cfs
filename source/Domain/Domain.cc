@@ -62,7 +62,9 @@ namespace CoupledField
 
 Domain::Domain(
     std::map<std::string, StdVector<shared_ptr<SimInput> > >& gridInputs,
-    ResultHandler * handler, MaterialHandler * ptMat)
+    ResultHandler * handler, MaterialHandler * ptMat, 
+    shared_ptr<SimState> simState,
+    PtrParamNode rootNode, PtrParamNode infoNode )
 {
   // initialize data
   numSinglePde_ = 0;
@@ -71,11 +73,16 @@ Domain::Domain(
 
   // assign pointers
   gridInputs_ = gridInputs;
-  ptMatHandler_ = ptMat;
+  simState_ = simState;
   resultHandler_ = handler;
   ptIterCoupledPde_ = NULL;
   ptSingleDriver_ = NULL;
   multiSequenceDriver_ = NULL;
+  param_ = rootNode;
+  info_ = infoNode;
+  
+  ptMatHandler_ = ptMat;
+  ptMatHandler_->SetDomain( this );
   
   // register variables defined in "variableList" element
   RegisterVariables();
@@ -88,7 +95,7 @@ void Domain::CreateGrid()
   std::string libmesh = "cfsGrid";
 
   std::string probGeo;
-  param->Get("domain")->GetValue("geometryType", probGeo);
+  param_->Get("domain")->GetValue("geometryType", probGeo);
   if (probGeo == "3d")
   {
     dim_ = 3;
@@ -133,10 +140,10 @@ void Domain::CreateGrid()
     if (libmesh == "cfsGrid")
     {
       if (gridId == "default")
-        actGrid = new GridCFS(dim_);
+        actGrid = new GridCFS(dim_, param_, info_);
       else
       {
-        actGrid = new GridCFS(inputs[0]->GetDim());
+        actGrid = new GridCFS( inputs[0]->GetDim(), param_, info_);
       }
     }
     else
@@ -211,11 +218,15 @@ void Domain::CreateGrid()
   if (!progOpts->GetPrintGrid() == true)
   {
     // Initialize resultHandler
-    resultHandler_->Init( gridMap_, false);
+    if( resultHandler_ ) {
+      resultHandler_->Init( gridMap_, false);
+    }
     
     // print grid information to result file if requested
-    if(param->Get("domain")->Get("printGridInfo")->As<bool>() ) {
-      gridMap_["default"]->CreateGridInformation(resultHandler_, coordSys_);
+    if(param_->Get("domain")->Get("printGridInfo")->As<bool>() ) {
+      if( resultHandler_ ) {
+        gridMap_["default"]->CreateGridInformation(resultHandler_, coordSys_);
+      }
     }
     
   }
@@ -231,15 +242,15 @@ void Domain::PostInit()
 
   // we do not have to delete driver as it is due to SetDriver() deleted
   // either via ptSingleDriver_ or multiSequenceDriver_ in the destructor
-  BaseDriver* driver = BaseDriver::CreateInstance();
+  BaseDriver* driver = BaseDriver::CreateInstance( simState_, this );
   SetDriver(driver); // see above!
-  //Info->FinishProgress();
+  //info_->FinishProgress();
 
   // initialize the driver
   driver->Init();
 
   // check if we have to do optimization
-  if (param->Has("optimization"))
+  if (param_->Has("optimization"))
   {
     EXCEPTION("Optimization will not work at all");
     //SetOptimization(Optimization::CreateInstance());
@@ -380,6 +391,7 @@ void Domain::SolveProblem()
       else {
         EXCEPTION( "Domain:GetPDE: PDE with name '" << pdeName
                    << "' was not found/created!." );
+        return NULL;
       }
     }
   }
@@ -401,6 +413,7 @@ SinglePDE * Domain::GetSinglePDE(const std::string pdeName,
   if (throw_exception)
   {
     EXCEPTION("PDE with name '" << pdeName << "' not found");
+    return NULL;
   }
   else
     return NULL;
@@ -528,53 +541,63 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
 
   ParamNodeList pdeNodes;
   pdeNodes
-      = param->GetByVal("sequenceStep", std::string("index"), sequenceStep) 
+      = param_->GetByVal("sequenceStep", std::string("index"), sequenceStep) 
       ->Get("pdeList")->GetChildren();
 
   ptSinglePde_.Resize(pdeNodes.GetSize());
   ptSinglePde_.Init();
   numSinglePde_ = pdeNodes.GetSize();
 
+  
   for (UInt i = 0; i < pdeNodes.GetSize(); i++)
   {
 
     std::string actPdeName = pdeNodes[i]->GetName();
     PtrParamNode actPdeNode = pdeNodes[i];
+    PtrParamNode infoNode = info_;
     std::cout << "++ Creating PDE '" + actPdeName + "'" << std::endl;
 
     if (actPdeName == "electrostatic")
-      ptSinglePde_[i] = new ElecPDE(defaultGrid, actPdeNode);
+      ptSinglePde_[i] = new ElecPDE(defaultGrid, actPdeNode, infoNode,
+                                    simState_, this );
 
     else if (actPdeName == "mechanic")
-      ptSinglePde_[i] = new MechPDE(defaultGrid, actPdeNode);
+      ptSinglePde_[i] = new MechPDE(defaultGrid, actPdeNode, infoNode,
+                                    simState_, this );
 
     else if (actPdeName == "acoustic") {
-        ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode);
+        ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode, infoNode,
+                                          simState_, this );
     }
     else if (actPdeName == "acousticMixed")
-        ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode);
+        ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode,
+                                               simState_, this );
 //
 //    else if (actPdeName == "smooth")
 //      ptSinglePde_[i] = new SmoothPDE(defaultGrid, actPdeNode);
 //
    else if (actPdeName == "magnetic")
-      ptSinglePde_[i] = new MagneticPDE(defaultGrid, actPdeNode);
+      ptSinglePde_[i] = new MagneticPDE(defaultGrid, actPdeNode, infoNode,
+                                        simState_, this );
 
     else if (actPdeName == "magneticEdge")
-      ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode);
+      ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode,
+                                       simState_, this );
     
 //    else if (actPdeName == "magneticScalar")
 //          ptSinglePde_[i] = new MagScalarPDE(defaultGrid, actPdeNode);
 //
 //
     else if (actPdeName == "heatConduction")
-      ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode);
+      ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode, infoNode,
+                                    simState_, this );
 
     else if (actPdeName == "fluidMech") {
       std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
 
       if (formulation == "perturbed") {
-        ptSinglePde_[i] = new PerturbedFlowPDE(defaultGrid, actPdeNode);
+        ptSinglePde_[i] = new PerturbedFlowPDE(defaultGrid, actPdeNode, infoNode,
+                                               simState_, this );
       }
     }
     else
@@ -611,79 +634,24 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep)
   // ================================
 
   // check for presence of "couplingList" and "iterative" element
+  PtrParamNode iterNode;
   PtrParamNode couplingNode =
-      param->GetByVal("sequenceStep", std::string("index"), sequenceStep) 
-        ->Get("couplingList", ParamNode::PASS);
-  if (!couplingNode)
-    return;
-  PtrParamNode iterNode = couplingNode->Get("iterative", ParamNode::PASS);
-  if (!iterNode)
-    return;
-  ParamNodeList iterCplNodes = iterNode->GetChildren();
+      param_->GetByVal("sequenceStep", std::string("index"), sequenceStep) 
+      ->Get("couplingList", ParamNode::PASS);
+  if ( couplingNode) {
+    iterNode = couplingNode->Get("iterative", ParamNode::PASS);
+  }
 
   // Create IterCoupledPDE and pass all StdPDEs to it
   ptIterCoupledPde_ = new IterCoupledPDE( ptSinglePde_,
                                           ptDirectCoupledPde_,
-                                          iterNode );
+                                          iterNode, info_, simState_, this  );
   
   // Loop over all SinglePDEs and pass pointer to iterative coupled PDE
   for( UInt i = 0; i < ptSinglePde_.GetSize(); ++i ) {
     ptSinglePde_[i]->SetIterCoupledPDE( ptIterCoupledPde_ );
   }
   
-//  // iterate over all pairwise iterative couplings
-//  StdVector<StdPDE*> iterCoupledPDEs;
-//  for (UInt i = 0; i < iterCplNodes.GetSize(); i++)
-//  {
-//
-//    // HACK: Since the child nodes of the "iterative" node
-//    // do no only contain the two pdes, but also
-//    // the nonLinear node, we have to catch the latter case,
-//    // as we are only interested in the names of the pdes here
-//    if (iterCplNodes[i]->GetName() == "nonLinear")
-//      continue;
-//
-//    // fetch names of related pdes
-//    ParamNodeList pdeNodes = iterCplNodes[i]->GetChildren();
-//
-//    for (UInt iPde = 0; iPde < pdeNodes.GetSize(); iPde++)
-//    {
-//      std::string name = pdeNodes[iPde]->GetName();
-//      if (name != "method")
-//      {
-//        SinglePDE * pde = GetSinglePDE(name);
-//        if (iterCoupledPDEs.Find(pde) < 0)
-//        {
-//          iterCoupledPDEs.Push_back(pde);
-//        }
-//      }
-//    } // pde
-//  } // couplings
-//
-//
-//  // Delete all of the singlePDEs, which are DirectCoupled and
-//  // replace them by the direct-coupled ones. This is necessary,
-//  // since the iterCoupledPDE has to solve StdPDEs, whereas the
-//  // pairwise iterative couplings are defined only for
-//  // SinglePDEs
-//
-//  Integer index = 0;
-//  for (UInt i = 0; i < ptSinglePde_.GetSize(); i++)
-//  {
-//    if (isDirectCoupled_[ptSinglePde_[i]] == true)
-//    {
-//      index = iterCoupledPDEs.Find(ptSinglePde_[i]);
-//
-//      if (index != -1)
-//      {
-//        iterCoupledPDEs[index] = ptDirectCoupledPde_[0];
-//      }
-//    }
-//  }
-//
-//  // create new iterative coupeld PDE
-//  ptIterCoupledPde_ = new IterCoupledPDE( iterSinglePDEs, iterNode);
-
 }
 
 // ***************************
@@ -702,7 +670,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
 
   // get "couplingList" node (must exist)
   PtrParamNode couplingNode =
-      param->GetByVal("sequenceStep", std::string("index"), sequenceStep)
+      param_->GetByVal("sequenceStep", std::string("index"), sequenceStep)
         ->Get("couplingList");
   PtrParamNode directNode = couplingNode->Get("direct", ParamNode::PASS);
   if (!directNode)
@@ -740,7 +708,8 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
       // entries have to be multiplied by -1
       dynamic_cast<ElecPDE*> (pde2)->SetPiezoCoupling();
 
-      coupling = new PiezoCoupling(pde1, pde2, pairNodes[i]);
+      coupling = new PiezoCoupling(pde1, pde2, pairNodes[i], info_,
+                                   simState_, this );
 
     }
 //    // *** magnetostriction Coupling *** 
@@ -767,7 +736,8 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
       // entries have to be multiplied by -1
       dynamic_cast<AcousticPDE*> (pde2)->SetMechanicCoupling();
 
-      coupling = new AcouMechCoupling(pde1, pde2, pairNodes[i]);
+      coupling = new AcouMechCoupling(pde1, pde2, pairNodes[i], info_,
+                                      simState_, this );
     }
     // *** FLUID-MECH Coupling ***
     else if (couplingName == "fluidMechDirect")
@@ -780,7 +750,8 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
       // entries have to be multiplied by -1
 //      dynamic_cast<PerturbedFlowPDE*> (pde2)->SetMechanicCoupling();
 
-      coupling = new FluidMechCoupling(pde1, pde2, pairNodes[i]);
+      coupling = new FluidMechCoupling(pde1, pde2, pairNodes[i], info_,
+                                       simState_, this );
     }
 //
 //    // ------------------------------------------------------------------------
@@ -844,7 +815,9 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
     singlePdes.Push_back(GetSinglePDE(*itSet));
   }
 
-  ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(gridMap_["default"], PtrParamNode()));
+  ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(gridMap_["default"], 
+                                                     PtrParamNode(), info_,simState_,
+                                                     this ));
   ptDirectCoupledPde_[0]->SetSinglePDEs(singlePdes);
   ptDirectCoupledPde_[0]->SetCouplings(DirectCouplingPairs);
 
@@ -868,7 +841,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
 
 void Domain::CreateCoordinateSystems()
 {
-  PtrParamNode in = info->Get(ParamNode::PN_HEADER)->Get("domain");
+  PtrParamNode in = info_->Get(ParamNode::PN_HEADER)->Get("domain");
   in = in->Get("coordinateSystems", ParamNode::APPEND);
   
   // first create the "global" standard cartesian
@@ -877,7 +850,7 @@ void Domain::CreateCoordinateSystems()
   coordSys_[defaultname] = new DefaultCoordSystem(gridMap_["default"] );
 
   // get nodes with coordinate systems
-  PtrParamNode coosyNode = param->Get("domain")->Get("coordSysList", ParamNode::PASS);
+  PtrParamNode coosyNode = param_->Get("domain")->Get("coordSysList", ParamNode::PASS);
   if (!coosyNode)
     return;
 
@@ -924,7 +897,7 @@ void Domain::CreateCoordinateSystems()
 
 void Domain::RegisterVariables() 
 {
-  PtrParamNode varListNode = param->Get("domain")
+  PtrParamNode varListNode = param_->Get("domain")
       ->Get("variableList", ParamNode::PASS);
   if( varListNode ) {
    ParamNodeList & varNodes = varListNode->GetChildren();
@@ -999,12 +972,6 @@ void Domain::ResetPDEs()
   }
   ptIterCoupledPde_ = NULL;
 
-  //  // delete all couplings
-  //     for (UInt iCoupl=0; iCoupl<couplings_.GetSize(); iCoupl++) {
-  //       delete couplings_[iCoupl];
-  //     }
-  //     couplings_.Clear();
-
   // Also reset all state variables
   isDirectCoupled_.clear();
   numSinglePde_ = 0;
@@ -1012,78 +979,6 @@ void Domain::ResetPDEs()
   numIterCoupledStdPde_ = 0;
 }
 
-//bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result)
-//{
-//  // is the stuff active at all? and don't we use ParamMat
-//  if (ersatzMaterial == NULL || HasErsatzMaterialTensor())
-//    return false;
-//
-//  // we cannot check for the region here, if form is a linear form (e.g.
-//  // pressure) but the design variable comes from elements one dimension higher.
-//  int idx = ersatzMaterial->Find(elem, false);
-//  if (idx == -1)
-//    return false;
-//
-//  // The design space does the magic stuff.
-//  // In the SIMP case we get density of element power param
-//  // all identified by the form and in piezo coupling case it
-//  // might even be the product of the transfer functions of
-//  // density and polarization
-//  result = ersatzMaterial->GetErsatzMaterialFactor(idx, form);
-//  return true;
-//}
-
-//bool Domain::GetErsatzMaterialPamping(const Elem* elem, const BaseForm* form, Matrix<double>& elemMat)
-//{
-//  if(ersatzMaterial == NULL) return false;
-//
-//  if(ersatzMaterial->GetPampingValue() == 0.0) return false;
-//
-//  assert(!HasErsatzMaterialTensor()); // shall not be mixed with matrix optimization
-//
-//  // only for mass-damping! extend if you want to experiment
-//  if(form->GetName() != "MassInt")
-//    return false;
-//
-//  return ersatzMaterial->GetErsatzMaterialPamping(elem, elemMat);
-//}
-
-//BaseMaterial* Domain::GetErsatzBiMaterial(const Elem* elem, const MaterialClass mc)
-//{
-//  if(ersatzMaterial == NULL) return NULL;
-//
-//  DesignSpace::DesignRegion* dr = ersatzMaterial->GetRegion(elem->regionId, false); // silent
-//
-//  if(dr != NULL && dr->HasBiMaterial())
-//    return dr->GetBiMaterial(mc);
-//
-//  return NULL; // nothing found
-//}
-
-//DesignSpace* Domain::GetErsatzMaterial(bool throw_excpetion)
-//{
-//  if (ersatzMaterial == NULL && throw_excpetion)
-//    EXCEPTION("No ersatz material defined either via 'loadErsatzMaterial'"
-//        << " or an appropriate optimization");
-//
-//  return ersatzMaterial;
-//}
-//
-//bool Domain::HasErsatzMaterialTensor()
-//{
-//  return ersatzMaterial == NULL ? false
-//      : ersatzMaterial->HasErsatzMaterialTensor();
-//}
-//
-//bool Domain::HasErsatzMaterialMass()
-//{
-//  return ersatzMaterial == NULL ? false
-//      : ersatzMaterial->HasErsatzMaterialMass();
-//}
-//
-//bool Domain::HasErsatzMaterialDamping(){
-//  return(ersatzMaterial != NULL && ersatzMaterial->HasErsatzMaterialDamping());
-//}
 
 // *************
 //   PrintGrid
