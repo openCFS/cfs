@@ -70,12 +70,6 @@ namespace CoupledField {
     //! Flag, if initial time starts at 0 or is accumulated 
     bool useAccumulatedTime_;
 
-    //! offset for first timestep (due to multiSequence )
-    UInt stepOffset_;
-
-    //! offset for first time (due to multiSequence)
-    Double timeOffset_;
-
     //! Current simulation time (in s)
     Double actTime_;
     

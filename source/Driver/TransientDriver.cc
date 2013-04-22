@@ -53,6 +53,7 @@ namespace CoupledField {
     // Set analysistype
     analysis_ = BasePDE::TRANSIENT;
 
+    actTime_ = 0.0;
     actTimeStep_ = 0;
     initialTime_ = 0.0;
     firstdt_ = 0.0;
@@ -110,8 +111,9 @@ namespace CoupledField {
   void TransientDriver::SetAccumulatedTime(Double accTime ) {
     if( !useAccumulatedTime_ ) 
       return;
-    actTimeStep_ = accTime;
+
     initialTime_ = accTime;
+    actTime_ = accTime;
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                         "t", actTimeStep_  );
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
