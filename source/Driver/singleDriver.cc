@@ -8,6 +8,7 @@
 #include "Domain/domain.hh"
 #include "Driver/basedriver.hh"
 #include "General/environment.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "singleDriver.hh"
 
 namespace CoupledField{
@@ -18,18 +19,19 @@ namespace CoupledField{
     : BaseDriver()
       
   {
-  
-
     sequenceStep_ = sequenceStep;
     isPartOfSequence_ = isPartOfSequence;
     ptPDE_ = NULL;
-  }
-  
-  SingleDriver::~SingleDriver()
-  {
-  
-  }
+    
+    // Set current value of time step and time step size in the mathParser
+    mathParser_ = domain->GetMathParser(); 
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", 0.0 );
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt", 0.0 );    
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", 0 );        
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "f", 0.0 );
 
+  }
+  
   void SingleDriver::InitializePDEs() {
    
        // read in pde data 

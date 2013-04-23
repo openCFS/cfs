@@ -35,6 +35,13 @@ public:
   virtual void SetNonLinMethod(NonLinMethodType atype);
 
 private:
+
+  //computes the reluctivity or derivative of it in case
+  //! of anisotropic case
+  void ComputeAnisotropicReluctivityOrDeriv( Double& val,
+                                             Vector<double>& vecB,
+                                             bool isReluctivity );
+
   Vector<Double> magPot_;    //!< magnetic vector potential at nodes
   NonLinMethodType nonLinType_;  //!< type of nonlinear algorithm
 
@@ -43,6 +50,9 @@ private:
 
   //! contains the current derivatives oforthotropic reluctivities
   Vector<Double> currDerivReluctivityVec_;  
+
+  //! knows, if anisotropic / isotropic BH curves
+  bool isAnisotropic_ ;
 };
 
 } // end of namespace

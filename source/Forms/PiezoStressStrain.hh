@@ -25,7 +25,7 @@ template <class TYPE>
 class PiezoStressStrain : public MechStressStrain<TYPE>
 {
 public:
-  /** @param coupleMat the PiecoCoupling material, not the mech material */
+  /** @param coupleMat the PiezoCoupling material, not the mech material */
   PiezoStressStrain(BaseMaterial* coupleMat, SubTensorType type, BasePairCoupling* bpc);
 
   virtual ~PiezoStressStrain();

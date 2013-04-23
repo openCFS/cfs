@@ -679,6 +679,16 @@ bool DesignSpace::GetTensor(Matrix<double>& t, DesignElement::Type type, SubTens
   return false;
 }
 
+bool DesignSpace::GetModRedGTensor(Matrix<double>& T, const Elem* elem)
+{
+  if(CollectMaterialParametersForElement(elem)) {
+    designMaterial->GetModRedGTensor(T);
+    return true;
+  }
+  else
+    return false;
+}
+
 bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation){
   // collect all parameters
   if(CollectMaterialParametersForElement(elem)){

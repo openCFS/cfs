@@ -13,6 +13,7 @@
 #include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
 #include "Utils/StdVector.hh"
+#include "Utils/result.hh"
 #include "baseForm.hh"
 
 namespace CoupledField {
@@ -20,6 +21,7 @@ class ApproxData;
 class BaseFE;
 class BaseMaterial;
 class CurlCurlNode3DInt;
+class CurlCurlEdgeInt;
 class EntityIterator;
 class linGradBDBInt;
 struct Elem;
@@ -42,6 +44,8 @@ namespace CoupledField
   class LinearForm : public BaseForm
   {
   public:
+
+    typedef std::map<UInt, UInt > UintMap;
 
     ///
     LinearForm( BaseMaterial* matData = NULL );
@@ -153,6 +157,33 @@ namespace CoupledField
     CurlCurlNode3DInt *curlOp_;
   };
 
+
+  //! Class for permanent magnets in Edge formulation class MagPermEdgeInt : public LinearForm {
+  class MagPermEdgeInt : public LinearForm {
+
+   public:
+     //! Constructor
+    MagPermEdgeInt( Vector<Double> vecVal, Double rel,
+                    bool isaxi, bool coordUpdate = 0 );
+
+     //! Destructor
+     virtual ~MagPermEdgeInt();
+     
+    //! Calculation of vector of right hand side 
+    void CalcElemVector( Vector<Double> & result,
+                         EntityIterator& ent );
+
+   private:
+
+    //! magnetization
+    Vector<Double> perm_;
+
+    //!reluctivity
+    Double reluctivity_;
+
+     //! Bilinearform for curl calculation
+     CurlCurlEdgeInt* op_;
+   };
 
   // =============================================================================
   // nonlinear magnetics
@@ -366,6 +397,14 @@ namespace CoupledField
                           const  Matrix<Double> & NodaldTijdxj,
                           Vector<Double> & Result);
 
+    /// Calculation of vector of right hand side for aeroacouSource PDE in fespace branch
+    /// i.e. for extraction of fluidmech pressure
+    void CalcElemVec4AeroAcouSrc(const Matrix<Double>& ptCoord,
+                                 const Matrix<Double> & NodalVel,
+                                 const Matrix<Double> & NodalMeanVel,
+                                 Vector<Double> & Result,
+                                 const Elem* elem);
+
     /// Calculation of vector of right hand side using nodal velocity values at
     /// the centre of an element
     void CalcElemVec4QuadwithVelCentre(const Matrix<Double>& ptCoord, 
@@ -394,6 +433,7 @@ namespace CoupledField
                                  Vector<Double> & Result,
                                  Vector<Double> & ResultLHTens);
 
+
     void CalcLighthillSurfaceTermVelCenter(const Elem* VolElem,
                                      const Elem* surfElem,
                                      const Matrix<Double>& ptVolCoord,
@@ -416,6 +456,37 @@ namespace CoupledField
   /// Calculation of vector of right hand side using nodal pressure values
   void CalcElemVec4QuadwithPress(const Matrix<Double>& ptCoord, const Matrix<Double> & NodalPress,
                                  Vector<Double> & Result, const Elem* elem);
+
+  /// Calculation of vector of right hand side for wave equation using laplacian pressure values
+  void CalcElemVecLHwithPress(const Matrix<Double>& ptCoord, const Vector<Double> & NodalPress,
+                              Vector<Double> & Result, Vector<Double>& nodalLoadDensity,const Elem* elem);
+
+  /// Calculation of vector of right hand side using nodal mean pressure values
+  /// Computes the integration of the total differential
+  void CalcElemVec4QuadwithPress(const Matrix<Double>& ptCoord,
+                                 const Vector<Double> & NodalPress,
+                                 const Vector<Double> & NodalPresTDeriv,
+                                 const Matrix<Double> & NodalMeanVelocity,
+                                 Vector<Double> & Result, const Elem* elem,
+                                 Double density);
+
+  ///Calcualte aeroacoustic source term based on lamb vector
+  void CalcElemVecWithLamb(const Matrix<Double>& ptCoord,
+                           const Matrix<Double> & NodalVelocity,
+                           const Matrix<Double> & NodalMeanVelocity,
+                           Vector<Double> & Result, Vector<Double> & elemLambvec,
+                           const Elem* elem,
+                           Double density);
+
+  void CalcLambSurfaceTermVel(const Elem* volElem,
+                              const Elem* surfElem,
+                              const Matrix<Double>& ptVolCoord,
+                              const Matrix<Double>& ptSurfCoord,
+                              const Matrix<Double> & volumeVel,
+                              const Matrix<Double> & volumeMeanVel,
+                              Vector<Double> & surfNormal,
+                              Double density,
+                              Vector<Double> & Result);
 
 
   //================= Combustion Noise ========================================================
@@ -451,6 +522,39 @@ namespace CoupledField
   private:
 
   };
+
+
+
+  // =============================================================================
+  // acoustic source term in CAA: flow pressure
+  // =============================================================================
+  
+  /// compute acoustic power source in heat conduction PDE
+  class linFlowPressureRHSInt : public LinearForm
+  {
+  public:
+    ///
+    linFlowPressureRHSInt( bool isaxi, 
+                        const std::string& readerId, 
+                        const std::string& regionName );
+  
+    ///
+    virtual ~linFlowPressureRHSInt();
+    
+    //! calculate RHS source vector
+    void CalcElemVector( Vector<Double>& rhsvec, EntityIterator& ent);
+      
+
+  private:
+    
+    std::string readerId_;
+    StdVector<std::string> regionNames_;
+    UInt actStep_, lastStep_;
+    UInt sequenceStep_;
+    shared_ptr<NodeStoreSol<Double> > resPress_;
+    
+};
+
 
 
   // =============================================================================
@@ -930,6 +1034,59 @@ namespace CoupledField
       LinMagStrictInt* magStrictForm_;
 
     };
+
+
+
+    //! add mechanical strain as forces on RHS 
+    //! due to magnetostrictive effect  
+    class  AddMagStrictStrainRHSInt : public LinearForm
+    {
+    public:
+      //! constructor
+      AddMagStrictStrainRHSInt(BaseMaterial* matData,
+                               const std::string& readerId,
+                               const std::string& regionName,
+                               UintMap elemGlobalLocal,
+                               SubTensorType type);
+      
+      //! destructor
+      virtual ~AddMagStrictStrainRHSInt();
+      
+      //! overwrites the virtual base function 
+      void CalcElemVector(Vector<double> & result, EntityIterator& ent);
+
+    protected:
+      //! returns nr. of degrees of freedom
+      virtual UInt getNrDofs() { return 3; }
+
+      //! computes irreversible strain
+      void computeStrainIrr(Vector<double>& vecB );
+
+      //! material data
+      BaseMaterial* matData_;
+
+      //! map for global to local element number
+      UintMap globalToLocalElemeNr_;
+
+      //! strain vector
+      Vector<Double> strainIrr_;
+
+      //! tensor type (plane_strain, full)
+      SubTensorType subTensorType_;
+      
+      //! linElastInt pointer
+      linElastInt *bilinearStiff_;
+
+      //result of magnetic computation
+      shared_ptr<BaseResult> result_;
+      std::string readerId_;
+      StdVector<std::string> regionNames_;
+      UInt actStep_, lastStep_;
+      UInt sequenceStep_;
+      shared_ptr<NodeStoreSol<Double> > res_R_;
+      UInt offsetElemLevel_;
+};
+    
 
 } // end of namespace
 

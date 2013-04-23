@@ -958,6 +958,7 @@ namespace CoupledField
 
 
     std::vector<HandleBox> elemBoxes_;
+    std::string ciDestRegion_;
 
   // callback function object writing results to an output iterator
   template <class OutputIterator, class Grid>
@@ -994,23 +995,16 @@ namespace CoupledField
       for(UInt i=0; i<numElemNodes; i++)
       {
         grid.GetNodeCoordinate(point, connect[i], true);
-        // coordMat auffÃ¼llen!
+        // coordMat auffüllen!
         for(UInt j=0; j<dim; j++)
         {
           coordMat[j][i] = point[j];
-
-          //          std::cout << "Corner " << (i+1) << " Coord "
-          //                    << (j+1) << " " << point[j] << std::endl;
         }
       }
 
       for(UInt j=0; j<dim; j++)
       {
         globCoordMat[j][0] = b.min_coord(j);
-
-        //        std::cout << "Glob Coord " << (j+1)
-        //                  << " Coord " << b.min_coord(j) << std::endl;
-
       }
 
       grid.GetElem(elemNum)->ptElem->Global2LocalCoords(localCoords, globCoordMat, coordMat);
@@ -1022,9 +1016,6 @@ namespace CoupledField
 
       for(UInt j=0; j<localDim; j++)
       {
-        //        std::cout << "Local Coord " << (j+1)
-        //                  << " Coord " << localCoords[j][0] << std::endl;
-
         locCoords[j] = localCoords[j][0];
       }
 
@@ -1105,7 +1096,7 @@ namespace CoupledField
             Double z,
             Double zEpsilon,
             std::vector< std::map<UInt, Double> >& consInterpWeights,
-            StdVector<UInt> &unmapped_nodes);
+            std::set<UInt> &unmapped_nodes);
 
 #endif // USE_INTERPOLATION
 

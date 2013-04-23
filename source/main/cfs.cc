@@ -282,33 +282,15 @@ int CFS::Run()
       cout << endl;
     }
 
-   /*Xerces xerces("test.xml");//home/ehrlacher/code/mod_red/share/xml/CFS-Simulation/CFS.xsd");
-    PtrParamNode xml = xerces.CreateParamNodeInstance();
-    xml->Dump();
-
-   Xerces xerces2("inv_tensor.xml", "/home/ehrlacher/code/mod_red/share/xml/CFS-Simulation/CFS.xsd");
-    PtrParamNode xml2 = xerces2.CreateParamNodeInstance();
-    std::cout << "now dump own error\n";
-    xml2->Dump();
-    std::cout << "Hans\n";*/
-
-   /* PtrParamNode elast = xml->Get("elasticity");
-    elast->Dump();
-    // PtrParamNode tensor = elast->Get("tensor", "dim1", "6");
-    PtrParamNode tensor = elast->Get("tensor");
-    std::cout << "tr: " << tensor->Get("real")->As<std::string>() << std::endl;
-
-    Matrix<double> mat(6,6);
-    ParamTools::AsTensor<double>(tensor->Get("real"), 6, 6, mat);
-
-    std::cout << "m=" << mat.ToString() << std::endl;*/
-
     ReadXMLFile();
     SetupIO();
 
     domain = new Domain( gridInputs, resultHandler, materialHandler );
     // Create grid
     domain->CreateGrid();
+
+    if ( progOpts->DoApproxNLmatData() )
+      std::cout << "DO APPROX" << std::endl;
 
     if(progOpts->GetPrintGrid())
       PrintGrid();

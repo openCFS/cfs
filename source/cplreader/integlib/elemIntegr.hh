@@ -31,13 +31,37 @@ namespace CoupledField
 
     Elem* CreatePt2Elems( UInt type);
   
-    void PerformIntegration(const Matrix<Double> & coordMat,
+    void PerformIntegrationLighthill(const Matrix<Double> & coordMat,
                             const Matrix<Double>& NodaldTijdxj,
                             const Matrix<Double>& NodalVal,
                             Vector<Double>& elemvec,
                             Vector<Double>& nodalLoadDensity,
                             Vector<Double>& divLHTensor,
                             Double density);
+
+    void PerformIntegrationAPEMass(const Matrix<Double> & coordMat,
+                            const Matrix<Double>& NodalVal,
+                            const Vector<Double>& NodalPres,
+                            const Vector<Double>& nodalPressureTDeriv,
+                            Vector<Double>& elemVecPres,
+                            Double density);
+
+    void PerformIntegrationLHPressure(const Matrix<Double> & coordMat,
+                                      const Vector<Double>& NodalPres,
+                                      Vector<Double>& elemVecPres,
+                                      Vector<Double>& nodalLoadDensity);
+
+    void PerformIntegrationAPEMomentum(const Matrix<Double> & coordMat,
+                            const Matrix<Double>& NodalVal,
+                            const Matrix<Double>& nodalMeanVel,
+                            Vector<Double>& elemVecLamb,
+                            Vector<Double>& elemVecLambRhs,
+                            Double density);
+
+    void PerformIntegrationAeroAcouSrc(const Matrix<Double> & coordMat,
+                            const Matrix<Double>& NodalVal,
+                            const Matrix<Double>& nodalMeanVel,
+                            Vector<Double>& elemVecAeroAcou);
     
     void PerformSurfaceIntegration(const UInt volElemType,
                             const Matrix<Double>& ptVolCoord,
@@ -73,10 +97,18 @@ namespace CoupledField
      * @param surfInt true in case of surface integral computation
      */
     void PerformIntegrationCentre(const Matrix<Double> & coordMat,
-                                  const Matrix<Double>& NodalVel,
-                                  Vector<Double>& resVec,
+                                  const Matrix<Double>& NodalVal,
+                                  const Vector<Double>& NodalPres,
+                                  const Matrix<Double>& nodalMeanVel,
+                                  const Vector<Double>& nodalMeanPressure,
+                                  const Vector<Double>& nodalPressureTDeriv,
+                                  Vector<Double>& elemvec,
                                   Vector<Double>& nodalLoadDensity,
                                   Vector<Double>& divLHTensor,
+                                  Vector<Double>& elemVecLamb,
+                                  Vector<Double>& elemVecLambRhs,
+                                  Vector<Double>& elemVecPres,
+                                  Vector<Double>& elemVecAeroAcou,
                                   Double density);
 
     void ComputeFromCombustionTij(const Matrix<Double> & coordMat,

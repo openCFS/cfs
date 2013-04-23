@@ -52,7 +52,10 @@ template <class TYPE> class StdVector;
 
     /** Calculate the derivative tensor from the given material parameters */
     void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
-    
+
+    /** helper for GetModRedTensor() but also stand alone to output G Matrix from model reduction as special result */
+    void GetModRedGTensor(Matrix<double>& G);
+
     void GetPiezoCouplingTensor(Matrix<double>& t, DesignElement::Type direction);
 
     /** returns the tensor with negative design variables such the design vector is still pos. definite */
@@ -148,8 +151,6 @@ template <class TYPE> class StdVector;
 
     /**Computes the homogenized tensor from the reduced-order model obtaind for the homogenization formula */
     inline void GetModRedTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
-
-    inline void GetModRedGTensor(Matrix<double>& G);
 
     /** initialize the tensor with zeros */
     inline void ZeroTensor(Matrix<double>& t, SubTensorType subTensor);

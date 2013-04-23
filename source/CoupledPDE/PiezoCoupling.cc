@@ -155,6 +155,17 @@ namespace CoupledField {
       break;
 
     case MECH_STRESS:
+      if ( nonLinPiezoMicroHF_ ) 
+        CalcStressStrain<Double>( result );
+      else {
+        if ( isComplex_ ) {
+          CalcStressStrain<Complex>( result );
+        } else {
+          CalcStressStrain<Double>( result );
+        }
+      }
+      break;
+
     case MECH_STRAIN:
       if ( isComplex_ ) {
         CalcStressStrain<Complex>( result );
@@ -280,11 +291,6 @@ namespace CoupledField {
       Vector<TYPE> & actVal = actRes.GetVector();
       actVal.Resize( actRes.GetEntityList()->GetSize() * stressDim );
 
-      // Fetch material: As we assume, that all elements belong to
-      // one and the same region, we simply take the subdomain of the first
-      // element
-      it.Begin();
-
       //transform the type
       SubTensorType type;
       String2Enum(subType_,type);
@@ -347,12 +353,11 @@ namespace CoupledField {
 
         //total stress
         elemStressStrain -= TempDField;
+      
+        for(UInt iDof = 0; iDof < stressDim; iDof++ ) {
+          actVal[it.GetPos()*stressDim + iDof] = elemStressStrain[iDof];
+        }
       }
-
-      for(UInt iDof = 0; iDof < stressDim; iDof++ ) {
-        actVal[it.GetPos()*stressDim + iDof] = elemStressStrain[iDof];
-      }
-
       // Delete integrator again (Stressabbau ;-)
       delete mechStressOp;
       delete FieldOp2;
@@ -423,7 +428,6 @@ namespace CoupledField {
      TYPE charge = 0.0;
      Elem * ptVolElem;
      BaseFE * ptSurfElemFE, * ptVolElemFE;
-     SurfElem * ptSurfElem = NULL;
 
      StdVector<Elem*> elemssd;
      StdVector<SurfElem*> surfElems;
@@ -487,10 +491,10 @@ namespace CoupledField {
          // Find correct material for volume element
        regionIndex = subdoms_.Find( ptVolElem->regionId );
        if ( regionIndex == -1 ) {
-         EXCEPTION( "PiezoPDE:CalcCharges The region with Name "
+         EXCEPTION( "PiezoPDE::CalcCharges: The region with name '"
                     << ptGrid_->GetRegion().ToString(ptVolElem->regionId)
-                    << " of surface element Nr. " << ptSurfElem->elemNum
-                    << "is not contained in my set of regions!." );
+                    << "' of surface element no. " << it.GetSurfElem()->elemNum
+                    << " is not contained in my set of regions!." );
        }
 
        BaseMaterial* matPiezo  = materials_[ptVolElem->regionId];

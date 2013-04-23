@@ -14,7 +14,6 @@
 #include "Driver/singleDriver.hh"
 #include "General/environment.hh"
 #include "PDE/basePDE.hh"
-#include "Utils/mathParser/mathParser.hh"
 #include "staticdriver.hh"
 
 namespace CoupledField {
@@ -68,14 +67,6 @@ class AdjointParameters;
   // *****************
   void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams)
   {
-    // Set current value of time step and time step size in the mathParser
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "t", 0.0 );
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "dt", 0.0 );    
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "step", 0 );        
-
     // in the optimization case the step is given, otherwise it is created
     // store such that special steps can add non-lin stuff and optimization adjoints
     if(given_analysis_id == NULL)
@@ -91,23 +82,29 @@ class AdjointParameters;
       assert(analysis_id_->Has("analysis_id"));
     }
     
-    // 'TimeStepping' is here the optimization iteration
-    ptPDE_->GetSolveStep()->SetActTime(0.0);
-    ptPDE_->GetSolveStep()->SetActStep(1);
-    ptPDE_->GetSolveStep()->PreStepStatic();
-    ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_, adjointParams);
-    ptPDE_->GetSolveStep()->PostStepStatic();
+    //check, if we are just interested in getting the data for the approximation 
+    //of nonlinear curves
+    if ( !progOpts->DoApproxNLmatData() ) {
+    
+      // 'TimeStepping' is here the optimization iteration
+      ptPDE_->GetSolveStep()->SetActTime(0.0);
+      ptPDE_->GetSolveStep()->SetActStep(1);
+      ptPDE_->GetSolveStep()->PreStepStatic();
+      ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_, adjointParams);
+      ptPDE_->GetSolveStep()->PostStepStatic();
+      
+    }
 
     // in optimization we write the results via StoreResults() because
     // we don't write every forward step. 
     if(write_results)
-    {
-      StoreResults(1,0.0);
-      handler_->FinishMultiSequenceStep();
-
-      if(!isPartOfSequence_)
-        handler_->Finalize(); // to be called only once in a HDF5 lifetime!
-    }
+      {
+        StoreResults(1,0.0);
+        handler_->FinishMultiSequenceStep();
+        
+        if(!isPartOfSequence_)
+          handler_->Finalize(); // to be called only once in a HDF5 lifetime!
+      }
     // writing current PDE-state into the restart-file
     if (restartIncr_ >= 1){
       std::cout << std::endl << " *** Write a restart file *** " << std::endl;      

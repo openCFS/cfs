@@ -36,10 +36,11 @@ class AdjointParameters;
 
     analysis_ = BasePDE::MULTI_SEQUENCE;
     
+    curSequenceStep_ = 0;
     numSteps_ = 0;
     actStep_ = 0;
-    actTime_ = 0;
-    actDriver_ = 0;
+    actTime_ = 0.0;
+    actDriver_ = NULL;
   }
 
 
@@ -47,6 +48,10 @@ class AdjointParameters;
   //   Default destructor
   // **********************
   MultiSequenceDriver::~MultiSequenceDriver() {
+    if (actDriver_) {
+      delete actDriver_;
+      actDriver_ = NULL;
+    }
   }
 
 
@@ -155,6 +160,7 @@ class AdjointParameters;
 
       // delete analysistypes
       delete actDriver_;
+      actDriver_ = NULL;
     } // iStep
 
     // trigger finalization

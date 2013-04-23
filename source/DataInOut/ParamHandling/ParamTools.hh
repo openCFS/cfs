@@ -62,7 +62,7 @@ namespace CoupledField
       
       if (strVec.GetSize() != dim1*dim2) 
       {
-         EXCEPTION("Wrong size of matrix '" << node->GetName() << "'. It contains of " 
+         EXCEPTION("Wrong size of matrix '" << node->GetName() << "'. It contains "
                    << strVec.GetSize() << " entries and should be " << dim1 
                    << " x " << dim2);
       }

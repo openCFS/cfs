@@ -31,6 +31,10 @@ namespace CoupledField {
     //! perform checks
     void PerformChecksOnInputData();
 
+    //! set the analytic expressions
+    virtual void SetAnalyticExpressions( std::string fncStr, 
+                                         std::string fncDerivStr ) {;};
+
     //! performs the approximation
     virtual void CalcApproximation( bool start=true ) = 0;
 

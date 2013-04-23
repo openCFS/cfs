@@ -525,6 +525,10 @@ protected:
   bool bitensor_;
 
 private:
+
+  /** Checks if the G-Matrix from model reduction shall be written as special result - and does it in case */
+  void OutputModRedGTensor(Function* f);
+
   /** This is a helper for the calculation of the homogenized tensor or the derivative of it.
    * This is the inner of the sum for the homogenized tensor or the derivative formulation
    * in Bendsoe/Sigmund - Topology Optimization page 124

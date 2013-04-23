@@ -36,7 +36,7 @@ PROJECT(CFS C CXX Fortran)
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "12")
-SET(CFS_VERSION_MONTH "05")
+SET(CFS_VERSION_MONTH "09")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
@@ -53,10 +53,15 @@ SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}"
   CACHE INTERNAL "CFS_BUILD_HOST")
 
 #-----------------------------------------------------------------------------
-# Set user who builds CFS++
+# Set user who builds CFS++, in order to track back who built a 
+# given binary.
 #-----------------------------------------------------------------------------
-SET(CFS_BUILD_USER "$ENV{USER}"
-    CACHE INTERNAL "CFS_BUILD_USER")
+EXECUTE_PROCESS(
+  COMMAND id -u -nr 
+  WORKING_DIRECTORY "."
+  OUTPUT_VARIABLE CFS_BUILD_USER
+  )
+STRING(STRIP "${CFS_BUILD_USER}" CFS_BUILD_USER)
 
 #-----------------------------------------------------------------------------
 # Set default values according to environment or platform
@@ -209,8 +214,12 @@ OPTION(PROFILING "Turn on compiler profiling (DEBUG/RELEASE)." ${PROFILING_DEFAU
 OPTION(COVERAGE "Turn on code coverage output." ${COVERAGE_DEFAULT})
 
 OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)." ${CFSTOOL_DEFAULT})
+
 OPTION(CPLREADER "Build cplreader for fluid/acoustic coupling."
   ${CPLREADER_DEFAULT})
+  
+
+  
 
 #-----------------------------------------------------------------------------
 # Do we want to use explicit or implicit template instantiation
@@ -273,6 +282,13 @@ OPTION(BUILD_HDFVIEW
   "Build the HDF 4/5 file viewer?"
    ${BUILD_HDFVIEW_DEFAULT})
 
+# Shall FFTW be used by CFSTOOL, this has to be done here, as FindCFSDeps has to be run after this line
+# also it has to be after testsuite check, as the testsuite might enable cfstool (if disabled otherwise)
+IF(CFSTOOL)
+  #check if cfstool is on for fftw
+  OPTION(CFSTOOL_FFTW "Build support for the FFTW library to perform FFTs and IFFTs of hdf5 files" ${CFSTOOL_FFTW})
+  MARK_AS_ADVANCED(CFSTOOL_FFTW)
+ENDIF(CFSTOOL)
 
 
 #-----------------------------------------------------------------------------

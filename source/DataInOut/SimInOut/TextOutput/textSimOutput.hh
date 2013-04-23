@@ -61,9 +61,6 @@ class Grid;
     //! End single analysis step
     void FinishStep( );
     
-    //! Finish multisequence step
-    void FinishMultiSequenceStep( );
-
   private:
 
     //! Create new output stream
@@ -128,14 +125,11 @@ class Grid;
     //! Coordinate system
     CoordSystem * coordSys_;
 
+    //! Current multi-sequence step
+    UInt currMS_;
+    
     //! Type of analysis in current multisequence step
     BasePDE::AnalysisType actAnalysis_;
-    
-    //! Offset for step number in case of multisequence analysis
-    Integer stepNumOffset_;
-        
-    //! Offset for step value in case of multisequence analysis
-    Double stepValOffset_;
     
     //! Flag, if node / element numbers in file names should be numbered
     //! based on global node / element number or consecutively

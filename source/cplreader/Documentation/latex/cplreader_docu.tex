@@ -1050,17 +1050,17 @@ All entities 'name' may also be symbolic links.
     file.   Since the  .res file  also  contains the  mesh, one  may create  a
     symbolic link name.def to name.res, if a .def file is missing.
 
-    It has been  found however that .res files produced  with CFX version 12.x
-    can      cause     problems      with      cplreader     (Trac      ticket
-    \url{https://lse17.e-technik.uni-erlangen.de:2001/trac/ticket/165}).     If
-    this is the case  one can get rid of the problem  by only reading the mesh
-    from the  .def file. The .res file  should be deleted or  renamed for this
-    purpose. The list of .trn files is obtained by cplreader by inspecting the
-    contents  of  'name' subdirectory  instead  of  reading the  corresponding
-    dataset from  the .res file in  this case.  Please note  that the COMMANDS
-    dataset  will  not  be  available  in   the  HDF5  file,  if  no  .res  is
-    present. Therefore the information about time step size has to be obtained
-    in a different manner.
+    It has been found however that .res files produced  with CFX version 12 and
+    13 can cause problems with cplreader. One can solve these problems by
+    providing the last time step number computed by CFX to cplreader using the
+    \texttt{--cfxLastStep} option (see below). If this does not work as well,
+    one can get rid of the problem by only reading the mesh from the .def file.
+    The .res file should be deleted or renamed for this purpose. The list of
+    .trn files is obtained by cplreader by inspecting the contents of 'name'
+    subdirectory instead of reading the corresponding dataset from the .res file
+    in this case. Please note that the COMMANDS dataset will not be available in
+    the HDF5 file, if no .res is present. Therefore the information about time
+    step size has to be obtained in a different manner.
 
   \item[.trn]  The .trn  files  contain the  actual  field data  for the  time
     steps. The  cplreader tries to read  as much information  as possible from
@@ -1075,12 +1075,24 @@ All entities 'name' may also be symbolic links.
 \subsubsection{Special Options}
 
 \begin{description}
-  \item[{\tt --type}] The type of input files have to be set to 'CFX'.
+  \item[\texttt{--type}] The type of input files have to be set to 'CFX'.
 
-  \item[{\tt --deffile}]  You can specify  different '.def' file than  the one
+  \item[\texttt{--deffile}]  You can specify  different '.def' file than  the one
     given by 'name.def'.
+  
+  \item[\texttt{--cfxUseStnFrame}] When moving meshes are used in CFX, the
+    velocity is usually computed in the moving frame (i.e. velocity relative to
+    the moving mesh). Set this option to '1' if you need the velocity in the
+    stationary frame (i.e. absolute velocity).
 
-  \item[{\tt --trntol}] Percentage the file size of transient files may differ
+  \item[\texttt{--cfxLastStep}] Specifies the number of the last time step
+    \underline{computed} by the CFX simulation run. This number is not
+    necessarily the same as the last step that was written out. This option must
+    be given for data produced by CFX 12 and later. For data produced by CFX 11
+    and earlier this option can be omitted, because it is determined
+    automatically.
+
+  \item[\texttt{--trntol}] Percentage the file size of transient files may differ
     from the average file size of  all transient files. If a transient file is
     smaller than average size * (1  - trntol) the corresponding time step will
     be overwritten by the previous one.  This option has been introduced to be

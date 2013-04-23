@@ -15,6 +15,7 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamTools.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
 #include "MatVec/matrix.hh"
 
 DECLARE_LOG(dm)
@@ -85,10 +86,14 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
 
   if(type_ == MODEL_REDUCTION)
   {
-    PtrParamNode hr = pn->Get("modRed");
+    std::string file = pn->Get("modRed/file")->As<std::string>();
+    Xerces xerces(file);
+    PtrParamNode root = xerces.CreateParamNodeInstance();
+    PtrParamNode hr = root->Get("modRed");
     dimension_ = hr->Get("dimension")->As<int>();
     PtrParamNode mean = hr->Get("meantensor");
     PtrParamNode tensor = mean->Get("tensor");
+    tensor->Dump();
     Matrix<double> mat(3,1);
     ParamTools::AsTensor<double>(tensor->Get("real"),3, 1, mat);
     mean_tensor_ = mat;

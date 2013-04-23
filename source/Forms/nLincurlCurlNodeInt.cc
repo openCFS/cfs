@@ -54,6 +54,7 @@ namespace CoupledField
     ExtractElemInfo( ent1 );  
     ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
+    const UInt spaceDim = ptelem->GetDim();  
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
@@ -74,11 +75,12 @@ namespace CoupledField
     Vector<Double> ShpFncAtIp;
     Vector<Double> CoordAtIP;
     Vector<Double> drAtIp;
-
+    Double aux1, *ptr1, *ptr2;
     Double reluctivity, derivReluctivity = 0.0;
 
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(numFncs); elemMat.Init();
+    partElemMat.Resize(numFncs); 
 
     // get pointer to nonlinear BH curve approximation
     nlinFnc_ = ptMaterial->GetNonlinFnc(MAG_PERMEABILITY);
@@ -104,14 +106,20 @@ namespace CoupledField
         partElemMat = xiDx * xiDxTransp;
 
         //compute value for nonlinear reluctivity
-        Vector<Double> B(2);
-        UInt dim = 2;
-        for( UInt i=0; i<dim; i++ )
+        Vector<Double> B(spaceDim);
+        for( UInt i=0; i<spaceDim; i++ )
           for( UInt j=0; j<numFncs; j++ )
             B[i] += xiDx[j][i] * magPot_[j];
-
-
+        
         Double Babs = B.NormL2();
+        if (Babs ==0) 
+          reluctivity = startmatVal_;
+        else {
+          reluctivity = nlinFnc_->EvaluateFuncNu(Babs);
+        }
+
+        partElemMat *= reluctivity * intWeights[actIntPt-1] * jacDet;
+        elemMat += partElemMat;
 
         if ( isHysteresis_ ) {
           EXCEPTION("Magnetics with hysteresis currently not supported");
@@ -129,41 +137,40 @@ namespace CoupledField
 //           UInt nrEl = ent1.GetElem()->elemNum;
 //           reluctivity = ComputeDiffReluctivity( nrEl, B );
 //           //std::cout << "Bfield:\n" << B << "\n nu=" << reluctivity << std::endl;
-        }
-        else {
-          //nonlinear BH curve
-          if (Babs ==0) 
-            reluctivity = startmatVal_;
-          else {
-            reluctivity = nlinFnc_->EvaluateFuncNu(Babs);
-          }
-        }
 
-        //        std::cout << "b=" << Babs << "  nu=" << reluctivity << std::endl;
-        partElemMat *= reluctivity;
-        
-        if ( !isHysteresis_ && nonLinType_ == NEWTON) {
+        }
+        else if ( nonLinType_ == NEWTON) { //nonlinear BH curve 
+          //compute tangential matrix
           if (Babs ==0) 
             derivReluctivity = 0;
           else {          
             //Newton method
-            Vector<Double> eB(2); eB = B * (1/Babs);
+            Vector<Double> eB(spaceDim); eB = B * (1/Babs);
             derivReluctivity =  nlinFnc_->EvaluatePrimeNu(Babs);
 
-            //            std::cout << "Newton, B=" << Babs << "   nuprime=" << derivReluctivity << std::endl;
-            for (UInt p=0;  p<numFncs; p++)
-              for (UInt q=0; q<numFncs; q++) {               
-                partElemMat[p][q] +=  derivReluctivity * 
-                  (eB[0]*eB[0]*xiDx[p][1]*xiDx[q][1] +
-                   eB[1]*eB[1]*xiDx[p][0]*xiDx[q][0] -
-                   eB[0]*eB[1]*xiDx[p][1]*xiDx[q][0] -
-                   eB[1]*eB[0]*xiDx[p][0]*xiDx[q][1] );
+            Double fac =jacDet * intWeights[actIntPt-1] * derivReluctivity * Babs; 
+
+            Matrix<Double> dMat;
+            dMat.DyadicMult( eB, eB );
+            dMat *= fac;
+            
+            Matrix<Double> dbMat;
+            dbMat = dMat * xiDxTransp;
+            partElemMat.Init();
+            for ( UInt k = 0; k < xiDxTransp.GetNumRows(); k++ ) {
+              ptr1 = xiDxTransp[k];
+              ptr2 = dbMat[k];
+              for ( UInt i = 0; i < xiDxTransp.GetNumCols(); i++ ) {
+                aux1 = ptr1[i];
+                for ( UInt j = 0; j < dbMat.GetNumCols(); j++ ) {
+                  partElemMat[i][j] += aux1 * ptr2[j];
+                }
               }
+            }
+            //add tangential matrix to element matrix
+            elemMat += partElemMat;
           }
         }
-
-        partElemMat *= intWeights[actIntPt-1] * jacDet;
-        elemMat += partElemMat;
       }
   }
 

@@ -825,6 +825,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
       case Function::COMPLIANCE:
       result = CalcCompliance(excite, c, g, derivative);
+      OutputModRedGTensor(f); // just in case we do model reduction
       break;
 
       case Objective::TRACKING:
@@ -1402,6 +1403,37 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       LOG_DBG2(em) << "CTV de=" << de->elem->elemNum << " val=" << val << " vol=" << vol << " -> " << vol*val;
     }
     return derivative ? -1.0 : sum;
+  }
+
+
+  void ErsatzMaterial::OutputModRedGTensor(Function* f)
+  {
+    int res_idx_11 = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::TRANSFO_MATRIX, DesignElement::TRANSFO_MATRIX11);
+    int res_idx_12 = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::TRANSFO_MATRIX, DesignElement::TRANSFO_MATRIX12);
+    int res_idx_21 = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::TRANSFO_MATRIX, DesignElement::TRANSFO_MATRIX21);
+    int res_idx_22 = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::TRANSFO_MATRIX, DesignElement::TRANSFO_MATRIX22);
+
+    if(res_idx_11 == -1 && res_idx_12 == -1 && res_idx_21 && res_idx_22 == -1)
+      return;
+
+    Matrix<double> G;
+    // GetTensor(E, local->func_->GetDesignType(), PLANE_STRAIN, element->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type does'nt matter)
+
+    for (unsigned int i = 0, n = f->elements.GetSize();i < n;i++)
+    {
+      DesignElement* de = f->elements[i];
+      // PLANE_STRAIN and VOIGT and NO_DERIVATIVE are dummies
+      design->GetModRedGTensor(G, de->elem);
+
+      if(res_idx_11 != -1)
+        de->specialResult[res_idx_11] = G(0,0);
+      if(res_idx_12 != -1)
+        de->specialResult[res_idx_12] = G(0,1);
+      if(res_idx_21 != -1)
+        de->specialResult[res_idx_21] = G(1,0);
+      if(res_idx_22 != -1)
+        de->specialResult[res_idx_22] = G(1,1);
+    }
   }
 
   double ErsatzMaterial::CalcDesignTracking(Condition* g, bool derivative)

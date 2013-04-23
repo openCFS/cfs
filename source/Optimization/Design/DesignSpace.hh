@@ -119,6 +119,9 @@ namespace CoupledField
       * @see GetErsatzMaterialTensor() */
      bool GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation = DesignMaterial::VOIGT);
 
+     /** small helper to return the G-Matrix from model reduction to output as special result */
+     bool GetModRedGTensor(Matrix<double>& T, const Elem* elem);
+
      /** Calculates the corresponding ErsatzMaterialTensor for the given element
       * @param t holds the resulting MaterialTensor
       * @param subTensor classifies the kind of Tensor needed
