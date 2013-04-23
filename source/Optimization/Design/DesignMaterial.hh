@@ -2,6 +2,7 @@
 #define DESIGNMATERIAL_HH_
 
 #include <map>
+#include <complex>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DesignElement.hh"
@@ -22,7 +23,7 @@ template <class TYPE> class StdVector;
     
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
       DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR,
-      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT } Type;
+      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT, MODEL_REDUCTION } Type;
     
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -145,6 +146,11 @@ template <class TYPE> class StdVector;
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
     inline void GetHomRectTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
 
+    /**Computes the homogenized tensor from the reduced-order model obtaind for the homogenization formula */
+    inline void GetModRedTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
+
+    inline void GetModRedGTensor(Matrix<double>& G);
+
     /** initialize the tensor with zeros */
     inline void ZeroTensor(Matrix<double>& t, SubTensorType subTensor);
     
@@ -180,9 +186,37 @@ template <class TYPE> class StdVector;
     /** fills the row in hom_rect_samples_ */
     void FillHomRectSamples(PtrParamNode homRect, unsigned int idx, const std::string& a, const std::string& b);
 
+
+    /** fills the matrices in mod_red_matrices_ **/
+    void FillModRedMatrices(PtrParamNode matnode, const StdVector<std::string>& tensor_comp, const int& tensor_int);
+
+    /** fills the vectors in mod_red_vectors_ **/
+    void FillModRedVectors(PtrParamNode vecnode, const StdVector<std::string>& tensor_comp, const int& tensor_int);
+
+    //Solves the corrector problems using the reduced basis
+    void GetModRedCorrector(StdVector<Matrix<double> >& corrector_, const Matrix<double>& G);
+
+    //Returns the homogenized elasticity tensor associated to the matrix G
+    void GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const StdVector<Matrix<double> >& corrector_, Notation notation);
+
+    //Returns the derivative of the homogenized elasticity tensor associated with a matrix G and its derivative Gderiv
+    void GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const Matrix<double>& Gderiv, const StdVector<Matrix<double> >& corrector_, Notation notation);
+
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
      * 9 rows and 6 columns for with TENSOR11 being the first */
     Matrix<double> hom_rect_samples_;
+
+    //** Contains the matrices and vectors with the reduced basis information for the model reduction case
+    int dimension_;
+
+    //The matrices and vectors of teh reduced model shoul be given in Voigt notation
+    StdVector<Matrix<double> > mod_red_matrices_;
+
+    StdVector<Matrix<double> > mod_red_vectors_;
+
+    //Mean_tensor_ = [E11, E12, E33];
+    Matrix<double> mean_tensor_;
+
 
   };
 

@@ -2650,6 +2650,8 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
 
     bool ok = local->space->GetTensor(E, local->func_->GetDesignType(), PLANE_STRAIN, element->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type does'nt matter)
 
+    LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " d=" << derivative << " not=" << (notation == DesignMaterial::VOIGT ? "voigt" : "hill-mandel");
+
     assert(ok);
     assert((local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && E.GetNumRows() == 2) || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE && E.GetNumRows() == 3));
 

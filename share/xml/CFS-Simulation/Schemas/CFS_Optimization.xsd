@@ -11,6 +11,31 @@
     </xsd:documentation>
   </xsd:annotation>
   
+    <!-- ******************************************************************* -->
+  <!--   Definition of a reduced basis matrix                     -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_RBMatrix">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="1000"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="imag" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="1000"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+    <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+  
+  
   <!-- ******************************************************************** -->
   <!--   Definition of an optimization problem at all                       -->
   <!-- ******************************************************************** -->
@@ -1076,6 +1101,319 @@
                             </xsd:attribute>
                           </xsd:complexType>
                         </xsd:element>
+                        <!-- End of data for HomRect -->
+                        <!-- Data for modRed -->
+                        <xsd:element name="modRed" minOccurs="0" maxOccurs="1">
+                          <xsd:complexType>
+                          <xsd:sequence>
+                             <xsd:element name="meantensor"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                               <xsd:element name="vecux11"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                               <xsd:element name="vecvx11"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="vecuy11"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="vecvy11"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="vecux12"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                               <xsd:element name="vecvx12"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="vecuy12"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="vecvy12"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                               <xsd:element name="vecux33"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                               <xsd:element name="vecvx33"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="vecuy33"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="vecvy33"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuxux11"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuxvx11"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matvxvx11"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuyuy11"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuyvy11"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matvyvy11"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                               <xsd:element name="matuxuy11"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuxvy11"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuyvx11"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matvxvy11"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuxux12"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuxvx12"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matvxvx12"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuyuy12"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuyvy12"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matvyvy12"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                               <xsd:element name="matuxuy12"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuxvy12"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuyvx12"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matvxvy12"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                               <xsd:element name="matuxux33"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuxvx33"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matvxvx33"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuyuy33"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuyvy33"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matvyvy33"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                               <xsd:element name="matuxuy33"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuxvy33"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matuyvx33"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="matvxvy33"  minOccurs="1" maxOccurs="1">
+                               <xsd:complexType>
+                                 <xsd:sequence>
+                                  <xsd:element name="tensor" type="DT_RBMatrix" minOccurs="1" maxOccurs="1"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                            </xsd:sequence>
+                            <!-- documents in with notation the tensor data is given. Internal storrage is Hill-Mandel -->
+                            <xsd:attribute name="dimension" type="xsd:nonNegativeInteger" use="required">
+                            </xsd:attribute>
+                          </xsd:complexType>
+                        </xsd:element>
+                       <!-- End of data for modRed --> 
                       </xsd:sequence>                
                       <xsd:attribute name="type" use="required">
                         <xsd:simpleType>
@@ -1094,6 +1432,8 @@
                             <xsd:enumeration value="laminates"/>
                             <!-- samples for homogenizes a-b rectangulars for interpolation. Requies homRect element -->
                             <xsd:enumeration value="hom-rect"/>
+                            <!--  model reduction  -->
+                            <xsd:enumeration value="model-reduction"/>
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
@@ -1341,8 +1681,12 @@
       <xsd:enumeration value="piezo_22"/>
       <xsd:enumeration value="piezo_23"/>
       <xsd:enumeration value="rotAngle"/>
+      <!-- Model reduction design variables -->
+      <xsd:enumeration value="rotAngle2"/>
       <xsd:enumeration value="stiff1"/>
       <xsd:enumeration value="stiff2"/>
+      <xsd:enumeration value="scaling1"/>
+      <xsd:enumeration value="scaling2"/>
       <!-- multimaterial requies the material attribute -->
       <xsd:enumeration value="multimaterial"/>
     </xsd:restriction>

@@ -14,6 +14,8 @@
 #include "Elements/2D/quad9fe.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamTools.hh"
+#include "MatVec/matrix.hh"
 
 DECLARE_LOG(dm)
 DEFINE_LOG(dm, "designMaterial")
@@ -80,6 +82,39 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     FillHomRectSamples(hr, 7, "0.0", "0.25");
     FillHomRectSamples(hr, 8, "0.25", "0.25");
   }
+
+  if(type_ == MODEL_REDUCTION)
+  {
+    PtrParamNode hr = pn->Get("modRed");
+    dimension_ = hr->Get("dimension")->As<int>();
+    PtrParamNode mean = hr->Get("meantensor");
+    PtrParamNode tensor = mean->Get("tensor");
+    Matrix<double> mat(3,1);
+    ParamTools::AsTensor<double>(tensor->Get("real"),3, 1, mat);
+    mean_tensor_ = mat;
+
+    StdVector<Matrix<double> > matrices(30);
+    StdVector<Matrix<double> > vectors(12);
+    mod_red_matrices_ = matrices;
+    mod_red_vectors_ = vectors;
+//    PtrParamNode matnode = hr->Get("matrices");
+//    PtrParamNode vecnode = hr->Get("vectors");
+
+    StdVector<std::string> tensor_comp(3);// =["11", "12", "33"];
+    tensor_comp[0]="11";
+    tensor_comp[1]="12";
+    tensor_comp[2]="33";
+
+    for (int tensor_int =0; tensor_int <3; tensor_int ++)
+    {
+
+        FillModRedMatrices(hr, tensor_comp, tensor_int);
+        FillModRedVectors(hr, tensor_comp,tensor_int);
+    }
+     std::cout << "matrices" << std::endl;
+     std::cout << "vectors"<< std::endl;
+  }
+
 }
 
 void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx, const string& a, const string& b)
@@ -94,6 +129,88 @@ void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx, 
   hom_rect_samples_[idx][DesignElement::TENSOR33 - DesignElement::TENSOR11] = data->Get("e33")->As<double>() * (notation == VOIGT ? 2.0 : 1.0);
   hom_rect_samples_[idx][DesignElement::TENSOR13 - DesignElement::TENSOR11] = 0.0;
   hom_rect_samples_[idx][DesignElement::TENSOR23 - DesignElement::TENSOR11] = 0.0;
+}
+
+void DesignMaterial::FillModRedMatrices(PtrParamNode matnode, const StdVector<std::string>& tensor_comp, const int& tensor_int)
+{
+      PtrParamNode mat1 = matnode->Get("matuxux" + tensor_comp[tensor_int]);
+      PtrParamNode tensor = mat1->Get("tensor");
+      Matrix<double> mat(dimension_,dimension_);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+      mod_red_matrices_[10*tensor_int +0] = mat;
+
+      PtrParamNode mat2= matnode->Get("matuxvx" + tensor_comp[tensor_int] );
+      tensor = mat2->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+       mod_red_matrices_[10*tensor_int + 1] = mat;
+
+      PtrParamNode mat3= matnode->Get("matvxvx" + tensor_comp[tensor_int]);
+      tensor = mat3->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+      mod_red_matrices_[10*tensor_int + 2] = mat;
+
+
+      PtrParamNode mat4 = matnode->Get("matuxuy" + tensor_comp[tensor_int]);
+      tensor = mat4->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+      mod_red_matrices_[ 10*tensor_int +3] = mat;
+
+      PtrParamNode mat5 = matnode->Get("matuxvy" + tensor_comp[tensor_int]);
+      tensor = mat5->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+       mod_red_matrices_[10*tensor_int + 4] = mat;
+
+       PtrParamNode mat6 = matnode->Get("matuyvx" + tensor_comp[tensor_int]);
+       tensor = mat6->Get("tensor");
+       ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+       mod_red_matrices_[ 10*tensor_int + 5] = mat;
+
+      PtrParamNode mat7 = matnode->Get("matvxvy" + tensor_comp[tensor_int]);
+      tensor = mat7->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+      mod_red_matrices_[10*tensor_int + 6] = mat;
+
+
+      PtrParamNode mat8 = matnode->Get("matuyuy" + tensor_comp[tensor_int]);
+      tensor = mat8->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+       mod_red_matrices_[10*tensor_int + 7] = mat;
+
+       PtrParamNode mat9 = matnode->Get("matuyvy" + tensor_comp[tensor_int]);
+       tensor = mat9->Get("tensor");
+       ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+       mod_red_matrices_[10*tensor_int + 8] = mat;
+
+      PtrParamNode mat10 = matnode->Get("matvyvy" + tensor_comp[tensor_int]);
+      tensor = mat10->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+      mod_red_matrices_[10*tensor_int + 9] = mat;
+
+}
+
+void DesignMaterial::FillModRedVectors(PtrParamNode vecnode, const StdVector<std::string>& tensor_comp, const int& tensor_int)
+{
+      PtrParamNode vecux = vecnode->Get("vecux" + tensor_comp[tensor_int] );
+      PtrParamNode tensor = vecux->Get("tensor");
+      Matrix<double> mat(dimension_,1);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, 1, mat);
+      mod_red_vectors_[4*tensor_int +0] = mat;
+
+      PtrParamNode vecuy = vecnode->Get("vecuy" + tensor_comp[tensor_int]);
+      tensor = vecuy->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, 1, mat);
+      mod_red_vectors_[4*tensor_int +1] = mat;
+
+      PtrParamNode vecvx = vecnode->Get("vecvx" + tensor_comp[tensor_int]);
+      tensor = vecvx->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, 1, mat);
+      mod_red_vectors_[ 4*tensor_int +2] = mat;
+
+      PtrParamNode vecvy = vecnode->Get("vecvy" + tensor_comp[tensor_int]);
+      tensor = vecvy->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, 1, mat);
+      mod_red_vectors_[ 4*tensor_int +3] = mat;
+
 }
 
 unsigned int DesignMaterial::RequiredParameters(OptimizationMaterial::System material)
@@ -124,6 +241,8 @@ unsigned int DesignMaterial::RequiredParameters(OptimizationMaterial::System mat
   case DENSITY_TIMES_2D_TENSOR:
   case DENSITY_TIMES_ROTATED_2D_TENSOR:
     return r+7;
+  case MODEL_REDUCTION:
+	  return r+4;
   }
 
   assert(false);
@@ -206,6 +325,11 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
     return(design.Find(DesignElement::STIFF1) >= 0
         && design.Find(DesignElement::STIFF2) >= 0
         && design.Find(DesignElement::ROTANGLE) >= 0);
+  case MODEL_REDUCTION:
+    return(design.Find(DesignElement::ROTANGLE) >= 0
+        && design.Find(DesignElement::ROTANGLE2) >= 0
+        && design.Find(DesignElement::SCALING1) >= 0
+        && design.Find(DesignElement::SCALING2) >= 0);
   }
   assert(false);
   return false;
@@ -823,6 +947,533 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, DesignElement::Type dir
 */
 }
 
+void DesignMaterial::GetModRedCorrector(StdVector<Matrix<double> >& corrector_, const Matrix<double>& G)
+{
+   corrector_ = StdVector<Matrix<double> >(3);
+  //std::cout << "corrector"<< std::endl;
+    double G11 = G[1-1][1-1];
+    double G12 = G[1-1][2-1];
+    double G21 = G[2-1][1-1];
+    double G22 = G[2-1][2-1];
+
+   //std::cout << "G11=" << G11 << " G12=" << G12 << " G21=" << G21 << " G22=" << G22;
+
+  Matrix<double> mat(dimension_, dimension_);
+  //mat = G11*G11*matuxux11 + G11*G12*(matuxuy11 + matuxuy11t) + G12*G12*matuyuy11
+  //    + G21*G21*matvxvx11 + G21*G22*(matvxvy11 + matvxvy11t) + G22*G22*matvyvy11
+  //    + G11*G21*(matuxvx12 + matuxvx12t) + G12*G21*(matuyvx12 + matuyvx12t) + G11*G22*(matuxvy12 + matuxvy12t) + G12*G22*(matuyvy12 + matuyvy12t)
+  //    +0.25*(G11*G11*matvxvx33 + G11*G12*(matvxvy33 + matvxvy33t) + G12*G12*matvyvy33)
+  //    +0.25*(G21*G21*matuxux33 + G21*G22*(matuxuy33 + matuxuy33t) + G22*G22*matuyuy33)
+  //    +0.25*( G11*G21*(matuxvx33 + matuxvx33t) + G12*G21*(matuxvy33 + matuxvy33t) + G11*G22*(matuyvx33 + matuyvx33t) + G12*G22*(matuyvy33 + matuyvy33t))
+
+  mat = mod_red_matrices_[10*0 + 0]*G11*G11
+      +(mod_red_matrices_[10*0 + 3] + Transpose(mod_red_matrices_[10*0 + 3]))*(G11*G12)
+      + mod_red_matrices_[10*0 + 7]*G12*G12
+
+      + mod_red_matrices_[10*0 + 2]*G21*G21
+      +(mod_red_matrices_[10*0 + 6]+ Transpose(mod_red_matrices_[10*0 + 6]))*G21*G22
+      + mod_red_matrices_[10*0 + 9]*G22*G22
+
+
+      + (mod_red_matrices_[10*1 + 1] + Transpose(mod_red_matrices_[10*1 + 1]))*G11*G21
+      + (mod_red_matrices_[10*1 + 5] + Transpose(mod_red_matrices_[10*1 + 5]))*G12*G21
+      + (mod_red_matrices_[10*1 + 4] + Transpose(mod_red_matrices_[10*1 + 4]))*G11*G22
+      + (mod_red_matrices_[10*1 + 8] + Transpose(mod_red_matrices_[10*1 + 8]))*G12*G22
+
+
+
+      + mod_red_matrices_[10*2 + 0]*G21*G21
+      +(mod_red_matrices_[10*2 + 3] + Transpose(mod_red_matrices_[10*2 + 3]))*G21*G22
+      + mod_red_matrices_[10*2 + 7]*G22*G22
+
+      + mod_red_matrices_[10*2 + 2]*G11*G11
+      +(mod_red_matrices_[10*2 + 6]+ Transpose(mod_red_matrices_[10*2 + 6]))*G11*G12
+      + mod_red_matrices_[10*2 + 9]*G12*G12
+
+      + (mod_red_matrices_[10*2 + 1] + Transpose(mod_red_matrices_[10*2 + 1]))*G11*G21
+      + (mod_red_matrices_[10*2 + 5] + Transpose(mod_red_matrices_[10*2 + 5]))*G11*G22
+      + (mod_red_matrices_[10*2 + 4] + Transpose(mod_red_matrices_[10*2 + 4]))*G12*G21
+      + (mod_red_matrices_[10*2 + 8] + Transpose(mod_red_matrices_[10*2 + 8]))*G12*G22;
+
+  for (int corrector_int =0; corrector_int<3; corrector_int++)
+  {
+
+    Matrix<double> vec(dimension_,1);
+
+        if (corrector_int == 0)
+        {
+          //vec = G11*vecux11 + G12vecuy11 + G21*vecvx12 + G22*vecvy12
+          vec = -(mod_red_vectors_[4*0 +0]*G11 + mod_red_vectors_[4*0 +1]*G12
+              +mod_red_vectors_[4*1 +2]*G21 + mod_red_vectors_[4*1 +3]*G22);
+        }
+        else if (corrector_int == 1)
+        {
+          //vec = G21*vecvx11 + G22*vecvy11 + G11*vecux12 + G12*vecuy12
+          vec = -(mod_red_vectors_[4*0 +2]*G21 + mod_red_vectors_[4*0 +3]*G22
+               +mod_red_vectors_[4*1 +0]*G11 + mod_red_vectors_[4*1 +1]*G12);
+        }
+        else if (corrector_int == 2)
+        {
+          //vec=0.5*(G21*vecux33 + G22*vecuy33 + G11*vecvx33 + G12*vecvy33)
+          vec = -(mod_red_vectors_[ 4*2 +0]*G21 + mod_red_vectors_[4*2 +1]*G22
+                +mod_red_vectors_[4*2 +2]*G11 + mod_red_vectors_[4*2 +3]*G12);
+        }
+
+        //lapackSysMatType lmst = ZHESV;
+        lapackSysMatType lmst =ZSYSV;
+        Matrix<Complex> matcomp(dimension_, dimension_);
+
+        Matrix<Complex> veccomp(dimension_,1);
+
+        matcomp.SetPart(Global::REAL,mat);
+        veccomp.SetPart(Global::REAL,vec);
+
+        matcomp.solveWithLapack(veccomp,lmst);
+        corrector_[corrector_int] = veccomp.GetPart(Global::REAL);
+  }
+}
+
+void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const StdVector<Matrix<double> >& corrector_, Notation notation)
+{
+
+  E.Resize(3,3);
+  E.Init();
+
+ // std::cout << "GetModRedTensorHom" << std::endl;
+  double G11 = G[1-1][1-1];
+  double G12 = G[1-1][2-1];
+  double G21 = G[2-1][1-1];
+  double G22 = G[2-1][2-1];
+
+  Matrix<double> mat(dimension_, dimension_);
+
+  mat = mod_red_matrices_[10*0 + 0]*G11*G11
+      +(mod_red_matrices_[10*0 + 3] + Transpose(mod_red_matrices_[10*0 + 3]))*(G11*G12)
+      + mod_red_matrices_[10*0 + 7]*G12*G12
+
+      + mod_red_matrices_[10*0 + 2]*G21*G21
+      +(mod_red_matrices_[10*0 + 6]+ Transpose(mod_red_matrices_[10*0 + 6]))*G21*G22
+      + mod_red_matrices_[10*0 + 9]*G22*G22
+
+
+      + (mod_red_matrices_[10*1 + 1] + Transpose(mod_red_matrices_[10*1 + 1]))*G11*G21
+      + (mod_red_matrices_[10*1 + 5] + Transpose(mod_red_matrices_[10*1 + 5]))*G12*G21
+      + (mod_red_matrices_[10*1 + 4] + Transpose(mod_red_matrices_[10*1 + 4]))*G11*G22
+      + (mod_red_matrices_[10*1 + 8] + Transpose(mod_red_matrices_[10*1 + 8]))*G12*G22
+
+
+
+      + mod_red_matrices_[10*2 + 0]*G21*G21
+      +(mod_red_matrices_[10*2 + 3] + Transpose(mod_red_matrices_[10*2 + 3]))*G21*G22
+      + mod_red_matrices_[10*2 + 7]*G22*G22
+
+      + mod_red_matrices_[10*2 + 2]*G11*G11
+      +(mod_red_matrices_[10*2 + 6]+ Transpose(mod_red_matrices_[10*2 + 6]))*G11*G12
+      + mod_red_matrices_[10*2 + 9]*G12*G12
+
+      + (mod_red_matrices_[10*2 + 1] + Transpose(mod_red_matrices_[10*2 + 1]))*G11*G21
+      + (mod_red_matrices_[10*2 + 5] + Transpose(mod_red_matrices_[10*2 + 5]))*G11*G22
+      + (mod_red_matrices_[10*2 + 4] + Transpose(mod_red_matrices_[10*2 + 4]))*G12*G21
+      + (mod_red_matrices_[10*2 + 8] + Transpose(mod_red_matrices_[10*2 + 8]))*G12*G22;
+
+  Matrix<double> mat0(dimension_,1);
+  Matrix<double> mat1(dimension_,1);
+  Matrix<double> mat2(dimension_,1);
+
+  mat.Mult(corrector_[0], mat0);
+  mat.Mult(corrector_[1], mat1);
+  mat.Mult(corrector_[2], mat2);
+
+   //E11 = E11mean + E11*dxg(u1) + E12*dyg(v1)
+   E[1-1][1-1] = mean_tensor_[1-1][0]
+
+                + G11*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+0])
+                + G12*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+1])
+                + G21*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+2])
+                + G22*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+3])
+
+                + G11*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+0])
+                + G12*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+1])
+                + G21*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+2])
+                + G22*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+3])
+
+                +corrector_[0].FrobeniusProduct(mat0);
+
+  // E12 = E12mean - E11*dxg(u2) - E12*dyg(v2)
+   E[1-1][2-1] = mean_tensor_[2-1][0]
+
+                + G11*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+0])
+                + G12*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+1])
+                + G21*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+2])
+                + G22*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+3])
+
+                + G11*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+0])
+                + G12*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+1])
+                + G21*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+2])
+                + G22*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+3])
+
+                +corrector_[1].FrobeniusProduct(mat0);
+
+   E[2-1][1-1] =  E[1-1][2-1] ;
+
+
+  //E13 = - E11*dxg(u3) - E12*dyg(v3)
+   E[1-1][3-1] = 0
+
+             + G11*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+0])
+             + G12*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+1])
+             + G21*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+2])
+             + G22*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+3])
+
+             + G21*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+0])
+             + G22*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+1])
+             + G11*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+2])
+             + G12*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+3])
+
+             +corrector_[2].FrobeniusProduct(mat0);
+
+   E[3-1][1-1] = E[1-1][3-1];
+
+  //E22 = E11mean - E12*dxg(u2) - E11*dyg(v2)
+   E[2-1][2-1] = mean_tensor_[1-1][0]
+
+                + G11*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+0])
+                + G12*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+1])
+                + G21*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+2])
+                + G22*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+3])
+
+                + G11*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+0])
+                + G12*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+1])
+                + G21*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+2])
+                + G22*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+3])
+
+                +corrector_[1].FrobeniusProduct(mat1);
+
+
+  //E23 = - E12*dxg(u3) - E11*dyg(v3)
+   E[2-1][3-1] = 0
+
+               + G11*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+0])
+               + G12*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+1])
+               + G21*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+2])
+               + G22*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+3])
+
+               + G21*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+0])
+               + G22*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+1])
+               + G11*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+2])
+               + G12*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+3])
+
+               +corrector_[2].FrobeniusProduct(mat1);
+
+   E[3-1][2-1] = E[2-1][3-1];
+
+  //E33 = E33mean - E33*0.5*(dyg(u3) + dxg(v3))
+   E[3-1][3-1] = mean_tensor_[3-1][0]
+
+                + G21*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+0])
+                + G22*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+1])
+                + G11*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+2])
+                + G12*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+3])
+
+                + G21*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+0])
+                + G22*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+1])
+                + G11*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+2])
+                + G12*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+3])
+
+               +corrector_[2].FrobeniusProduct(mat2);
+
+   E[1-1][3-1] = sqrt(2)*E[1-1][3-1];
+   E[3-1][1-1] = E[1-1][3-1];
+   E[2-1][3-1] = sqrt(2)*E[2-1][3-1];
+   E[3-1][2-1] = E[2-1][3-1];
+   E[3-1][3-1] = 2*E[3-1][3-1];
+
+   if(notation != HILL_MANDEL)
+   {
+     E[1-1][3-1] = 1.0/sqrt(2)*E[1-1][3-1];
+     E[3-1][1-1] = E[1-1][3-1];
+     E[2-1][3-1] = 1.0/sqrt(2)*E[2-1][3-1];
+     E[3-1][2-1] = E[2-1][3-1];
+     E[3-1][3-1] = 0.5*E[3-1][3-1];
+   }
+}
+
+void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const Matrix<double>& Gderiv, const StdVector<Matrix<double> >& corrector_, Notation notation)
+{
+
+  E.Resize(3,3);
+  E.Init();
+
+  double G11 = G[1-1][1-1];
+  double G12 = G[1-1][2-1];
+  double G21 = G[2-1][1-1];
+  double G22 = G[2-1][2-1];
+
+  double G11d = Gderiv[1-1][1-1];
+  double G12d = Gderiv[1-1][2-1];
+  double G21d = Gderiv[2-1][1-1];
+  double G22d = Gderiv[2-1][2-1];
+
+  Matrix<double> matd(dimension_, dimension_);
+   //mat = G11*G11*matuxux11 + G11*G12*(matuxuy11 + matuxuy11t) + G12*G12*matuyuy11
+   //    + G21*G21*matvxvx11 + G21*G22*(matvxvy11 + matvxvy11t) + G22*G22*matvyvy11
+   //    + G11*G21*(matuxvx12 + matuxvx12t) + G12*G21*(matuyvx12 + matuyvx12t) + G11*G22*(matuxvy12 + matuxvy12t) + G12*G22*(matuyvy12 + matuyvy12t)
+   //    +0.25*(G11*G11*matvxvx33 + G11*G12*(matvxvy33 + matvxvy33t) + G12*G12*matvyvy33)
+   //    +0.25*(G21*G21*matuxux33 + G21*G22*(matuxuy33 + matuxuy33t) + G22*G22*matuyuy33)
+   //    +0.25*( G11*G21*(matuxvx33 + matuxvx33t) + G12*G21*(matuxvy33 + matuxvy33t) + G11*G22*(matuyvx33 + matuyvx33t) + G12*G22*(matuyvy33 + matuyvy33t))
+
+  matd = mod_red_matrices_[10*0 + 0]*(G11d*G11 + G11*G11d)
+        +(mod_red_matrices_[10*0 + 3] + Transpose(mod_red_matrices_[10*0 + 3]))*(G11d*G12 + G11*G12d)
+        + mod_red_matrices_[10*0 + 7]*(G12d*G12 + G12*G12d)
+
+        + mod_red_matrices_[10*0 + 2]*(G21d*G21 + G21*G21d)
+        +(mod_red_matrices_[10*0 + 6]+ Transpose(mod_red_matrices_[10*0 + 6]))*(G21d*G22 + G21*G22d)
+        + mod_red_matrices_[10*0 + 9]*(G22d*G22 + G22*G22d)
+
+
+        + (mod_red_matrices_[10*1 + 1] + Transpose(mod_red_matrices_[10*1 + 1]))*(G11d*G21 + G11*G21d)
+        + (mod_red_matrices_[10*1 + 5] + Transpose(mod_red_matrices_[10*1 + 5]))*(G12d*G21 + G12*G21d)
+        + (mod_red_matrices_[10*1 + 4] + Transpose(mod_red_matrices_[10*1 + 4]))*(G11d*G22 + G11*G22d)
+        + (mod_red_matrices_[10*1 + 8] + Transpose(mod_red_matrices_[10*1 + 8]))*(G12d*G22 + G12*G22d)
+
+
+
+        + mod_red_matrices_[10*2 + 0]*(G21d*G21 + G21*G21d)
+        +(mod_red_matrices_[10*2 + 3] + Transpose(mod_red_matrices_[10*2 + 3]))*(G21d*G22 + G21*G22d)
+        + mod_red_matrices_[10*2 + 7]*(G22d*G22 + G22*G22d)
+
+        + mod_red_matrices_[10*2 + 2]*(G11d*G11 + G11*G11d)
+        +(mod_red_matrices_[10*2 + 6]+ Transpose(mod_red_matrices_[10*2 + 6]))*(G11d*G12 + G11*G12d)
+        + mod_red_matrices_[10*2 + 9]*(G12d*G12 + G12*G12d)
+
+        + (mod_red_matrices_[10*2 + 1] + Transpose(mod_red_matrices_[10*2 + 1]))*(G11d*G21 + G11*G21d)
+        + (mod_red_matrices_[10*2 + 5] + Transpose(mod_red_matrices_[10*2 + 5]))*(G11d*G22 + G11*G22d)
+        + (mod_red_matrices_[10*2 + 4] + Transpose(mod_red_matrices_[10*2 + 4]))*(G12d*G21 + G12*G21d)
+        + (mod_red_matrices_[10*2 + 8] + Transpose(mod_red_matrices_[10*2 + 8]))*(G12d*G22 + G12*G22d);
+
+   Matrix<double> mat0(dimension_,1);
+   Matrix<double> mat1(dimension_,1);
+   Matrix<double> mat2(dimension_,1);
+
+   matd.Mult(corrector_[0], mat0);
+   matd.Mult(corrector_[1], mat1);
+   matd.Mult(corrector_[2], mat2);
+
+
+  //E11 =- E11*dxgd(u1) - E12*dygd(v1) - E11*dxgd(u1) - E12*dygd(v1) + corr0'*mat*corr0;
+  E[1-1][1-1] = 0
+
+                + G11d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+0])
+                + G12d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+1])
+                + G21d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+2])
+                + G22d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+3])
+
+                + G11d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+0])
+                + G12d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+1])
+                + G21d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+2])
+                + G22d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+3])
+
+                +corrector_[0].FrobeniusProduct(mat0);
+
+ // E12 = - E11*dxgd(u2) - E12*dygd(v2) - E12*dxgd(u1) - E22*dygd(v1) + corr1'*mat*corr0;
+  E[1-1][2-1] =  0
+
+                 + G11d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+0])
+                 + G12d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+1])
+                 + G21d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+2])
+                 + G22d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+3])
+
+                 + G11d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+0])
+                 + G12d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+1])
+                 + G21d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+2])
+                 + G22d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+3])
+
+                 +corrector_[1].FrobeniusProduct(mat0);
+
+  E[2-1][1-1] =  E[1-1][2-1] ;
+
+
+ //E13 = - E11*dxgd(u3) - E12*dygd(v3) - E33*0.5*(dygd(u1)+dxgd(v1)) + corr2'*mat*corr0;
+  E[1-1][3-1] =  0
+
+                 + G11d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+0])
+                 + G12d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+1])
+                 + G21d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+2])
+                 + G22d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+3])
+
+                 + G21d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+0])
+                 + G22d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+1])
+                 + G11d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+2])
+                 + G12d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+3])
+
+                 +corrector_[2].FrobeniusProduct(mat0);
+
+
+  E[3-1][1-1] = E[1-1][3-1];
+
+ //E22 = - E12*dxgd(u2) - E11*dygd(v2)- E12*dxgd(u2) - E11*dygd(v2) + corr1'*mat*corr1;
+  E[2-1][2-1] =  0
+
+                 + G11d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+0])
+                 + G12d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+1])
+                 + G21d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+2])
+                 + G22d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+3])
+
+                 + G11d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+0])
+                 + G12d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+1])
+                 + G21d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+2])
+                 + G22d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+3])
+
+                 +corrector_[1].FrobeniusProduct(mat1);
+
+ //E23 = - E12*dxgd(u3) - E11*dygd(v3) - E33*05*(dygd(u2) + dxgd(v2)) + corr1'*mat*corr2
+  E[2-1][3-1] =  0
+
+               + G11d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+0])
+               + G12d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+1])
+               + G21d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+2])
+               + G22d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+3])
+
+               + G21d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+0])
+               + G22d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+1])
+               + G11d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+2])
+               + G12d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+3])
+
+               +corrector_[2].FrobeniusProduct(mat1);
+
+
+  E[3-1][2-1] = E[2-1][3-1];
+
+ //E33 = - E33*0.5*(dygd(u3) + dxgd(v3))- E33*0.5*(dygd(u3) + dxgd(v3)) + corr2'*mat*corr2;
+  E[3-1][3-1] = 0
+
+              + G21d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+0])
+              + G22d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+1])
+              + G11d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+2])
+              + G12d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+3])
+
+              + G21d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+0])
+              + G22d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+1])
+              + G11d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+2])
+              + G12d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+3])
+
+              +corrector_[2].FrobeniusProduct(mat2);
+
+                E[1-1][3-1] = sqrt(2)*E[1-1][3-1];
+                E[3-1][1-1] = E[1-1][3-1];
+                E[2-1][3-1] = sqrt(2)*E[2-1][3-1];
+                E[3-1][2-1] = E[2-1][3-1];
+                E[3-1][3-1] = 2*E[3-1][3-1];
+
+          if (notation != HILL_MANDEL)
+          {
+              E[1-1][3-1] = 1.0/sqrt(2)*E[1-1][3-1];
+              E[3-1][1-1] = E[1-1][3-1];
+              E[2-1][3-1] = 1.0/sqrt(2)*E[2-1][3-1];
+              E[3-1][2-1] = E[2-1][3-1];
+              E[3-1][3-1] = 0.5*E[3-1][3-1];
+          }
+
+
+
+}
+
+void DesignMaterial::GetModRedGTensor(Matrix<double>& G)
+{
+
+  G.Resize(2,2);
+  G.Init();
+
+  //Quad9FE fe;
+  // std::cout << "GetModRedTensor" << std::endl;
+  double theta = params_[DesignElement::ROTANGLE];
+  double phi = params_[DesignElement::ROTANGLE2];
+  double l1 = params_[DesignElement::SCALING1];
+  double l2 = params_[DesignElement::SCALING2];
+
+  G(0,0) = l1*cos(theta)*cos(phi) -l2*sin(theta)*sin(phi); //matrix element G11
+  G(0,1) = l1*cos(theta)*sin(phi) +l2*sin(theta)*cos(phi); //matrix element G12
+  G(1,0) = -l1*sin(theta)*cos(phi) -l2*cos(theta)*sin(phi); //matrix element G21
+  G(1,1) = -l1*sin(theta)*sin(phi) + l2*cos(theta)*cos(phi); //matrix element G22*/
+}
+
+void DesignMaterial::GetModRedTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
+{
+
+  E.Resize(3,3);
+  E.Init();
+
+  double theta = params_[DesignElement::ROTANGLE];
+  double phi = params_[DesignElement::ROTANGLE2];
+  double l1 = params_[DesignElement::SCALING1];
+  double l2 = params_[DesignElement::SCALING2];
+
+  Matrix<double> G(2,2);
+  GetModRedGTensor(G);
+
+  StdVector<Matrix<double> > corrector_(3);
+  //The corrector calculation is always done with Voigt notation
+  GetModRedCorrector(corrector_, G);
+
+   switch(direction)
+   {
+   case DesignElement::NO_DERIVATIVE:
+   {
+     GetModRedHomTensor(E, G,corrector_, notation);
+
+     break;
+   }
+   case DesignElement::ROTANGLE:
+   {
+      Matrix<double> Gtheta(2,2);
+       Gtheta(0,0) = -l1*sin(theta)*cos(phi) -l2*cos(theta)*sin(phi); //matrix element G11
+       Gtheta(0,1) = -l1*sin(theta)*sin(phi) +l2*cos(theta)*cos(phi); //matrix element G12
+       Gtheta(1,0) = -l1*cos(theta)*cos(phi) +l2*sin(theta)*sin(phi); //matrix element G21
+       Gtheta(1,1) = -l1*cos(theta)*sin(phi) - l2*sin(theta)*cos(phi); //matrix element G22*/
+
+       GetModRedHomTensor(E, G, Gtheta, corrector_, notation);
+     break;
+   }
+   case DesignElement::ROTANGLE2:
+   {
+     Matrix<double> Gphi(2,2);
+      Gphi(0,0) = -l1*cos(theta)*sin(phi) - l2*sin(theta)*cos(phi); //matrix element G11
+      Gphi(0,1) = l1*cos(theta)*cos(phi) - l2*sin(theta)*sin(phi); //matrix element G12
+      Gphi(1,0) = l1*sin(theta)*sin(phi) - l2*cos(theta)*cos(phi); //matrix element G21
+      Gphi(1,1) = -l1*sin(theta)*cos(phi) - l2*cos(theta)*sin(phi); //matrix element G22*/
+
+      GetModRedHomTensor(E, G, Gphi, corrector_, notation);
+     break;
+   }
+   case DesignElement::SCALING1:
+   {
+     Matrix<double> Gl1(2,2);
+     Gl1(0,0) = cos(theta)*cos(phi); //matrix element G11
+     Gl1(0,1) = cos(theta)*sin(phi); //matrix element G12
+     Gl1(1,0) = -sin(theta)*cos(phi); //matrix element G21
+     Gl1(1,1) = -sin(theta)*sin(phi); //matrix element G22*/
+
+     GetModRedHomTensor(E, G, Gl1, corrector_, notation);
+     break;
+   }
+   case DesignElement::SCALING2:
+   {
+     Matrix<double> Gl2(2,2);
+     Gl2(0,0) =-sin(theta)*sin(phi);
+     Gl2(0,1) =sin(theta)*cos(phi);
+     Gl2(1,0) =-cos(theta)*sin(phi);
+     Gl2(1,1) = cos(theta)*cos(phi);
+
+     GetModRedHomTensor(E, G, Gl2, corrector_, notation);
+     break;
+   }
+   default:
+     ZeroTensor(E, PLANE);
+   }
+
+
+}
+
 void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const
 {
   E.Resize(3,3);
@@ -1140,7 +1791,7 @@ double DesignMaterial::GetIsoMass(double D, double G){
 
 void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
 {
-  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != HOM_RECT));
+  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != HOM_RECT && type_ != MODEL_REDUCTION));
   switch(type_){
   case FMO:
     GetAnisotropicTensor(t, direction, notation);
@@ -1168,6 +1819,9 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
     break;
   case HOM_RECT:
     GetHomRectTensor(t, direction, notation);
+    break;
+  case MODEL_REDUCTION:
+    GetModRedTensor(t, direction, notation);
     break;
   default: // case default
     throw Exception("DesignMaterial Type not implemented yet");
@@ -1339,6 +1993,8 @@ void DesignMaterial::SetEnums()
   type.Add(DENSITY_TIMES_ROTATED_2D_TENSOR, "density-times-rotated-2dtensor");
   type.Add(LAMINATES, "laminates");
   type.Add(HOM_RECT, "hom-rect");
+  type.Add(MODEL_REDUCTION, "model-reduction");
+
 
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");
@@ -1348,5 +2004,8 @@ void DesignMaterial::SetEnums()
   notation.SetName("DesignMaterial::Notation");
   notation.Add(VOIGT, "voigt");
   notation.Add(HILL_MANDEL, "hill_mandel");
+
 }
+
+
 

@@ -144,7 +144,8 @@ public:
     PENALIZED_STRESS, /* stess with own transfer function */
     DESIGN_TRACKING, /* (rho-rho^*)^2 but without 1/N */
     PROJECTION, /* local value from projection || nu(rho_i) - H_eta_beta(rho_i) ||^2 */
-    LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
+    LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN,
+    TRANSFO_MATRIX } ValueSpecifier;
 
     /** The type of this design element, influences the Get*Bound() methods.
      * By definition the design elements are stored in the ordering of the type!!
@@ -153,7 +154,7 @@ public:
                    POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12, SLACK,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
-                   ROTANGLE, STIFF1, STIFF2, MULTIMATERIAL, ALL_DESIGNS} Type;
+                   ROTANGLE, ROTANGLE2, SCALING1, SCALING2, STIFF1, STIFF2, MULTIMATERIAL, ALL_DESIGNS} Type;
 
   BaseDesignElement(Type type = NO_TYPE);
   virtual ~BaseDesignElement() {};
@@ -294,7 +295,8 @@ public:
       TYCHONOFF, GREYNESS, REALVOLUME,
       GLOBAL_SLOPE, GLOBAL_CHECKERBOARD, STRESS,
       /*!< only for the projection function. This is the element wise fake filter part */
-      PROJECTION_FILTER } Detail;
+      PROJECTION_FILTER,
+      TRANSFO_MATRIX11, TRANSFO_MATRIX12,TRANSFO_MATRIX21,TRANSFO_MATRIX22 } Detail;
 
     /** Gets the design element
      * @param access if plain the rho value if SMART and filtering is enabled the filtered value */

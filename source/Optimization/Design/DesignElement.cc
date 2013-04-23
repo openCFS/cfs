@@ -69,6 +69,11 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     // Tensor trace for param mat
     case STIFF1:
     case STIFF2:
+    //for mod_red
+    case SCALING1:
+    case SCALING2:
+    case ROTANGLE:
+    case ROTANGLE2:
     // Batian's stuff
     // FIXMI!!
     case POISSON:
@@ -399,7 +404,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == MAX_JUMP
       || rd.value == PENALIZED_STRESS
       || rd.value == DESIGN_TRACKING
-      || rd.value == PROJECTION)
+      || rd.value == PROJECTION
+      || rd.value == TRANSFO_MATRIX)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -500,6 +506,7 @@ double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
   case MAX_OSCILLATION:
   case MAX_JUMP:
   case PENALIZED_STRESS:
+  case TRANSFO_MATRIX:
     assert(false); // should be covered before by special result index
 
   case TOPGRAD_VALUE:
@@ -666,6 +673,9 @@ void DesignElement::SetEnums()
   type.Add(PIEZO_22, "piezo_22");
   type.Add(PIEZO_23, "piezo_23");
   type.Add(ROTANGLE, "rotAngle");
+  type.Add(ROTANGLE2, "rotAngle2");
+  type.Add(SCALING1, "scaling1");
+  type.Add(SCALING2, "scaling2");
   type.Add(STIFF1, "stiff1");
   type.Add(STIFF2, "stiff2");
   type.Add(SLACK, "slack");
@@ -689,6 +699,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");
   valueSpecifier.Add(PROJECTION, "projection");
+  valueSpecifier.Add(TRANSFO_MATRIX, "transfoMatrix");
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
   valueSpecifier.Add(LEVEL_SET_VALUE, "levelSetValue");
   valueSpecifier.Add(LEVEL_SET_STATE, "levelSetState");
