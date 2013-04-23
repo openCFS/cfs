@@ -55,7 +55,9 @@ namespace CoupledField
     static void AsTensor(PtrParamNode node, unsigned int dim1, unsigned int dim2, Matrix<TYPE>& ret)
     {
       StdVector<std::string> strVec;
-      SplitStringList(node->As<std::string>(), strVec, ' ' );
+
+      // do not use cfs-implemented SplitStringList() as it cannot handle newline separated SAX parsed data
+      SplitStringListWhitespace(node->As<std::string>(), strVec);
 
       ret.Resize( dim1, dim2 );
       ret.Init();

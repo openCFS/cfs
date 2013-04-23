@@ -93,7 +93,6 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     dimension_ = hr->Get("dimension")->As<int>();
     PtrParamNode mean = hr->Get("meantensor");
     PtrParamNode tensor = mean->Get("tensor");
-    tensor->Dump();
     Matrix<double> mat(3,1);
     ParamTools::AsTensor<double>(tensor->Get("real"),3, 1, mat);
     mean_tensor_ = mat;
