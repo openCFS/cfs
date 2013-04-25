@@ -16,14 +16,16 @@
 
 using namespace CoupledField;
 
-BaseDriver::BaseDriver( shared_ptr<SimState> simState, Domain* myDom )
+BaseDriver::BaseDriver( shared_ptr<SimState> simState, Domain* myDom,
+                        PtrParamNode paramNode, PtrParamNode infoNode)
 {
   actSequenceStep_ = 1;
   domain_ = myDom;
   handler_ = domain_->GetResultHandler();
   simState_ = simState;
 
-  driverNode = domain_->GetInfoRoot()->Get("analysis"); // analysis step set in singleDriver
+  param_ = paramNode;
+  info_ = infoNode;
 }
 
 BaseDriver::~BaseDriver()
@@ -36,12 +38,13 @@ UInt BaseDriver::GetActSequenceStep() {
   return actSequenceStep_;
 }
 
+
 PtrParamNode BaseDriver::CreateAnalysisId(const std::string& child_name, int child_id, 
                                        const std::string& child_2_name, int child_2_id)
 {
   // do we really want to create a new entry? Might blast up the output
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode child = driverNode->Get(ParamNode::PN_PROCESS)->Get("step", at);
+  PtrParamNode child = info_->Get(ParamNode::PN_PROCESS)->Get("step", at);
   child->Get("analysis_id")->SetValue(ConcatAnalysisId(child, child_name, child_id, child_2_name, child_2_id));
   return child;
 }
@@ -83,15 +86,16 @@ std::string BaseDriver::ConcatAnalysisId(PtrParamNode analysis_id, const std::st
 }
 
 // static stuff
-BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom )
+BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom,
+                                       PtrParamNode paramNode, PtrParamNode infoNode)
 {
 
-  BaseDriver   *ptdriver = NULL;
+  BaseDriver *ptdriver = NULL;
   StdVector<std::string>  analysisTypes;
 
   // Get number of occurences of step-variable
   BasePDE::AnalysisType type;
-  UInt numSteps = myDom->GetParamRoot()->Count( "sequenceStep" );
+  UInt numSteps = paramNode->Count( "sequenceStep" );
 
   // a) if count is bigger than one -> create multiSequence
   if( numSteps == 1 ) {
@@ -101,42 +105,43 @@ BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom
     std::string idx = "index";
     std::string one = "1";
 
+    PtrParamNode seqNode = paramNode->Get("sequenceStep")->Get("analysis");
+    PtrParamNode info = infoNode->Get("sequenceStep",ParamNode::APPEND);
+    infoNode->Get("index")->SetValue(1);
     analysisString =
         myDom->GetParamRoot()->GetByVal(name, idx, one)->Get("analysis")->GetChild()->GetName();
     type = BasePDE::analysisType.Parse(analysisString);
 
     // Generate driver
     switch( type ) {
-    case BasePDE::STATIC:
+      case BasePDE::STATIC:
 
-      ptdriver = new StaticDriver( seqStep, false, state, myDom );
-      break;
+        ptdriver = new StaticDriver( seqStep, false, state, myDom, 
+                                     seqNode, info );
+        break;
 
-    case BasePDE::TRANSIENT:
-      ptdriver = new TransientDriver( seqStep, false, state, myDom );
-      break;
+      case BasePDE::TRANSIENT:
+        ptdriver = new TransientDriver( seqStep, false, state, myDom, 
+                                        seqNode, info );
+        break;
 
-    case BasePDE::HARMONIC:
-      // calls Driver for parameter identification, using harmonic analysis
-      if ( analysisString == "paramIdent" ) {
-        REFACTOR;
-//        ptdriver = new piezoParamIdent(0, 0.0 );
-      }
-      else
-        ptdriver = new HarmonicDriver( seqStep, false, state, myDom  );
-      break;
+      case BasePDE::HARMONIC:
+        ptdriver = new HarmonicDriver( seqStep, false, state, myDom, 
+                                       seqNode, info  );
+        break;
 
-    case BasePDE::EIGENFREQUENCY:
-      ptdriver = new EigenFrequencyDriver( seqStep, false, state, myDom );
-      break;
+      case BasePDE::EIGENFREQUENCY:
+        ptdriver = new EigenFrequencyDriver( seqStep, false, state, myDom, 
+                                             seqNode, info );
+        break;
 
-    default:
-      EXCEPTION( "Could not create driver" );
+      default:
+        EXCEPTION( "Could not create driver" );
     }
 
     // b) create multiSequence driver
   } else if( numSteps > 1 ) {
-    ptdriver = new MultiSequenceDriver(state, myDom );
+    ptdriver = new MultiSequenceDriver(state, myDom, paramNode, infoNode);
   } else {
     EXCEPTION( "At least one sequenceStep has to be provided" );
   }

@@ -20,9 +20,13 @@
 #include "Domain/Domain.hh"
 #include "DataInOut/DefineInOutFiles.hh"
 #include "DataInOut/ResultHandler.hh"
-
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 namespace CoupledField {
+
+// declare class specific logging stream
+DECLARE_LOG(simState)
+DEFINE_LOG(simState, "simState")
 
 class MaterialHandler;
 
@@ -32,32 +36,48 @@ class MaterialHandler;
     hasInput_ = useAsInput;
     sequenceStep_ = 0;
     domain_ = NULL;
+    
   }
   
   SimState::~SimState() {
+    
+    // close in file
+    inFile_.reset();
+    outFile_.reset();
+    feFcts_.clear();
+    
     
   }
   
   void SimState::SetInputHdf5Reader(shared_ptr<SimInputHDF5> reader )  {
     inFile_ = reader;
+    LOG_DBG(simState) << "Set input reader with file '" 
+                      << reader->GetFileName() << "'";
+        
   }
 
-  Domain * SimState::GetDomain(UInt sequenceStep) {
+  Domain * SimState::GetDomain(UInt sequenceStep, const GridMap& map ) {
 
+    LOG_TRACE(simState) << "GetDomain for sequenceStep " << sequenceStep;
+    if( map.size() > 0 ) {
+      LOG_TRACE(simState) << "\t=> Grid map was provided";
+    }
     // Ensure, that hdf5 input class is present
     assert(inFile_);
 
     inFile_->InitModule();
     inFile_->DB_Init();
 
+    
     // Get content of param and material file
     std::string paramContent, matContent;
     inFile_->DB_GetParamFileContent( paramContent );
-    std::cerr << "parameter content is " << paramContent << std::endl;
     inFile_->DB_GetMatFileContent( matContent );
-    std::cerr << "Material content is " << matContent<< std::endl;
+    LOG_DBG3(simState) << "Content of Parameter file:\n" << paramContent;
+    LOG_DBG3(simState) << "Content of Material file:\n" << matContent;
 
     // Generate Xerces parameter reader
+    LOG_TRACE(simState) << "Generating parameter node from xml file";
     std::string schema = progOpts->GetSchemaPathStr();
     schema += "/CFS-Simulation/CFS.xsd";
 
@@ -67,30 +87,47 @@ class MaterialHandler;
     delete reader;
 
     // Generate material reader
-    DefineInOutFiles fileHandler;
+    
     XMLMaterialHandler * matHandler = new XMLMaterialHandler();
     matHandler->LoadFromString( matContent );
 
     // Create dummy info node
-    PtrParamNode infoNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
+    PtrParamNode infoNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT,
+                                        false));
 
-    // Load grids
+    // Load grids only if not provided 
     std::map<std::string, shared_ptr<SimInput> > inFiles;
     std::map<std::string, StdVector<shared_ptr<SimInput> > > gridInputs;
-    fileHandler.CreateSimInputFiles( rootNode, infoNode, inFiles, gridInputs );
+    
+    // If no external grid map is provided, we have to generate the
+    // input readers
+    if( map.size() == 0 ) {
+      DefineInOutFiles fileHandler;
+      fileHandler.CreateSimInputFiles( rootNode, infoNode, inFiles, gridInputs );
+    }
 
     std::map<std::string, StdVector<shared_ptr<SimInput> > >::const_iterator it;
     it = gridInputs.begin();
 
     ResultHandler * resHandler = NULL;
     // Create new domain
+    LOG_TRACE(simState) << "Generating domain";
     domain_ = new Domain( gridInputs, resHandler, matHandler, shared_from_this(),
-                          rootNode, infoNode );
-    std::cerr << "NEW DOMAIN : " << domain_ << std::endl;
+                          rootNode, infoNode, false );
+    LOG_DBG(simState) << "\t=> Generated new Domain (address: " << domain << ")";
+    // Provide external grid map if non-empty
+    if( map.size() > 0 ) {
+      domain_->SetGridMap(map);
+    }
+    
+    LOG_TRACE(simState) << "Generating grid";
     domain_->CreateGrid();
 
-    // create driver for domain
-    domain_->PostInit();
+    // create driver for domain and set it to given sequenceStep
+    LOG_TRACE(simState) << "Initializing drivers and PDEs";
+    domain_->PostInit(sequenceStep-1);
+    
+    LOG_TRACE(simState) << "Finished GetDomain for sequenceStep " << sequenceStep;
     return domain_;
   }
   
@@ -116,32 +153,43 @@ class MaterialHandler;
     
   }
   
-  void SimState::UpdateToStep( UInt stepNum ) {
-
+  void SimState::UpdateToStep( UInt sequenceStep, UInt stepNum ) {
+    LOG_TRACE(simState) << "Updating input to sequence step "
+        << sequenceStep << " with step number " << stepNum;
+    
     std::set<shared_ptr<BaseFeFunction> >::iterator it = feFcts_.begin();
     for( ; it != feFcts_.end(); ++it ) {
       // get pdeName
       std::string pdeName = (*it)->GetPDE()->GetName();
       std::string feName = 
           SolutionTypeEnum.ToString((*it)->GetResultInfo()->resultType);
-      inFile_->DB_GetFeFctCoefs(1, stepNum, pdeName, feName,
+      inFile_->DB_GetFeFctCoefs(sequenceStep, stepNum, pdeName, feName,
                                 (*it)->GetSingleVector() );
     }
 
   }
   
   void SimState::SetOutputHdf5Writer( shared_ptr<SimOutputHDF5> writer ) {
+    LOG_TRACE(simState) << "Setting HDF5 writer";
+    
     if( writer ) {
+    
+      LOG_TRACE(simState) << "\t=> External writer with name '" 
+          << writer->GetFileName() << "' was provided.";
       outFile_ = writer;
       ownWriter_ = false;
+    
     } else {
       // create new writer with the name of the simulation
       std::string name = progOpts->GetSimName();
+      LOG_TRACE(simState) << "\t=> Creating own writer with base name '" 
+                << name << "'.";
       
       // check for restart
       bool restart = progOpts->GetRestart();
       
-      PtrParamNode infoNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
+      PtrParamNode infoNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT,
+                                          false));
       PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
       PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       eFiles->SetName("externalFiles");
@@ -155,13 +203,25 @@ class MaterialHandler;
   }
   
   
-  UInt SimState::GetLastStepNum() {
+  UInt SimState::GetLastMsStepNum() {
+    
+    UInt lastMsStep = 0;
+    std::map<UInt, BasePDE::AnalysisType>  analysis;
+    inFile_->DB_GetNumMultiSequenceSteps( analysis );
+    std::map<UInt, BasePDE::AnalysisType> ::const_iterator msIt = analysis.begin();
+    for( ; msIt != analysis.end(); ++msIt) {
+      lastMsStep = std::max(lastMsStep, msIt->first);
+    }
+    return lastMsStep;
+  }
+  
+  UInt SimState::GetLastStepNum(UInt sequenceStep ) {
     // assert
    UInt lastStepNum = 0;
    
    std::map<std::string, std::set<std::string> > coefFcts;
    std::map<std::string, std::set<std::string> >::const_iterator pdeIt;
-   inFile_->DB_GetAvailPdeCoefFcts( sequenceStep_, coefFcts );
+   inFile_->DB_GetAvailPdeCoefFcts( sequenceStep, coefFcts );
    
    // Loop over all available PDEs
    for(pdeIt = coefFcts.begin(); pdeIt != coefFcts.end(); ++pdeIt ) {
@@ -174,7 +234,7 @@ class MaterialHandler;
      for( ; coefIt != coefs.end(); ++coefIt ) {
        const std::string & coefName = *coefIt; 
        std::map<UInt, Double> stepValues;
-       inFile_->DB_GetStepValues( sequenceStep_, pdeName, coefName, stepValues );
+       inFile_->DB_GetStepValues( sequenceStep, pdeName, coefName, stepValues );
        
        // get maximum
        lastStepNum = std::max(lastStepNum, stepValues.rbegin()->first);
@@ -193,6 +253,8 @@ class MaterialHandler;
 
 
   void SimState::BeginMultiSequenceStep( UInt step, BasePDE::AnalysisType type ) {
+    LOG_TRACE(simState) << "Begin new MS step " << step  << " of type "
+        << BasePDE::analysisType.ToString( type );
     // Ensure initialized object
     Init();
     
@@ -202,6 +264,8 @@ class MaterialHandler;
   }
 
   void SimState::WriteStep( UInt stepNum, Double stepVal ) {
+    LOG_TRACE(simState) << "Writing step " << stepNum << " with value "
+        << stepVal << " s / Hz";
 
     // Write all coefficient function of the current step to the HDF5 file
     outFile_->DB_BeginStep(stepNum, stepVal);
@@ -210,6 +274,8 @@ class MaterialHandler;
       std::string pdeName = (*it)->GetPDE()->GetName();
       std::string feName = 
           SolutionTypeEnum.ToString((*it)->GetResultInfo()->resultType);
+      LOG_DBG(simState) << "\tWriting feFunction " << feName 
+                        << " of PDE " << pdeName;
       outFile_->DB_WriteFeFunction( pdeName, feName, (*it)->GetSingleVector() );
     }
   }
@@ -231,12 +297,18 @@ class MaterialHandler;
     if( isInitialized_) 
       return;
 
+    LOG_TRACE(simState) << "Initializing simState for the first time";
     // Initialize external hdf5 file
     outFile_->DB_Init();
 
     outFile_->DB_WriteXmlFiles( paramFile_, matFile_ );
     
     isInitialized_ = true;
+    LOG_TRACE(simState) << "Finished initialization";
+  }
+
+  void SimState::Finalize() {
+    feFcts_.clear();
   }
 
 } // namespace

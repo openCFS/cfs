@@ -151,6 +151,14 @@ namespace CoupledField {
       }
     }
     
+    bool FeH1LagrangeVar::operator==( const FeH1LagrangeVar& comp) const {
+      bool ret = true;
+      ret &= this->feType_ == comp.feType_;
+      ret &= this->order_ == comp.order_;
+      return ret;
+    }
+
+    
     void FeH1LagrangeVar::SetFunctionsAtIp(const StdVector<LocPoint>& iPoints){
 
       //! Precompute shape functions only, if we are allowed to, i.e.

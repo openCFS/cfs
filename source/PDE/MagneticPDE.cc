@@ -16,6 +16,7 @@
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/LinForms/BUInt.hh"
+#include "Forms/LinForms/BDUInt.hh"
 #include "Forms/Operators/CurlOperator.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
@@ -50,6 +51,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
   
   //! Always use updated Lagrangian formulation 
   updatedGeo_        = true;
+  
+  reluc_.reset(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, isComplex_));
 
 }
 
@@ -151,6 +154,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
         // for calculation of postprocessing results
         bdbInts_[actRegion] = stiffInt;
         
+        // add also material to global, distributed reluctivity coefficient function
+        reluc_->AddRegion(actRegion, curCoef);
         
         // ====================================================================
         //  3D CASE (additional stiffness integrator)
@@ -251,6 +256,9 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
     shared_ptr<FeSpace> mySpace = feFct->GetFeSpace();    
     
+    // ==================
+    //  COIL INTEGRATORS
+    // ==================
     // Loop over all coils
     for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
 
@@ -319,6 +327,73 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       assemble_->AddLinearForm( coilContext );
 
     }
+    
+    // ==================
+    //  FLUX DENSITY
+    // ==================
+    LOG_DBG(magpde) << "Reading prescribed flux density";
+    StdVector<std::string> vecComponents;
+    if( dim_ == 3 ) {
+      vecComponents = "x", "y", "z";
+    }
+    else if( isaxi_ ) {
+      vecComponents = "r", "z";
+    } 
+    else {
+      vecComponents = "x", "y";
+    }
+    
+    LinearForm * lin = NULL;
+    StdVector<shared_ptr<EntityList> > ent;
+    StdVector<PtrCoefFct > coef;
+    bool coefUpdateGeo = true;
+    ReadRhsExcitation( "fluxDensity", vecComponents, ResultInfo::VECTOR, isComplex_, 
+                       ent, coef, coefUpdateGeo );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST ||
+          ent[i]->GetType() == EntityList::SURF_ELEM_LIST ) {
+        EXCEPTION("Prescribed magnetic flux density can only be defined im volume")
+      }
+
+      
+
+      if(isComplex_) {
+        if( dim_ == 2) {
+          if( isaxi_ ) {
+            // axisymmetric case
+            lin = new BDUIntegrator<CurlOperatorAxi<Double>, Complex>(Complex(1.0), 
+                                                                     coef[i], reluc_, coefUpdateGeo);
+          } else {
+            lin = new BDUIntegrator<CurlOperator<FeH1,2,Double>,Complex>(Complex(1.0), 
+                                                                        coef[i], reluc_,coefUpdateGeo);
+          }
+        } else {
+          // 3D case
+          lin = new BDUIntegrator<CurlOperator<FeH1,3,Double>,Complex>(Complex(1.0), 
+                                                                      coef[i], reluc_,coefUpdateGeo);
+        }
+      } else {
+        if( dim_ == 2) {
+          if( isaxi_ ) {
+            // axisymmetric case
+            lin = new BDUIntegrator<CurlOperatorAxi<Double>, Double>(1.0,  coef[i], reluc_,coefUpdateGeo);
+          } else {
+            lin = new BDUIntegrator<CurlOperator<FeH1,2,Double>,Double>(1.0, coef[i], reluc_,coefUpdateGeo);
+          }
+        } else {
+          // 3D case
+          lin = new BDUIntegrator<CurlOperator<FeH1,3,Double>,Double>(1.0, coef[i], reluc_,coefUpdateGeo);
+        }  
+      }
+      
+      lin->SetName("FluxIntegrator");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(feFct);
+      assemble_->AddLinearForm(ctx);
+      feFct->AddEntityList(ent[i]);
+    } // for
   }
   
   void MagneticPDE::ReadSpecialBCs() {
@@ -328,11 +403,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     //   Get information about coils and open files for measurement coils
     // --------------------------------------------------------------------
     ReadCoils();
-
-    // -----------------------------
-    // Check for permanent magnets
-    // -----------------------------
-    ReadMagnets();
   }
 
 
@@ -390,53 +460,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     }
   }
 
-  // ********************************************************
-  //   Query parameter object for information about magnets
-  // ********************************************************
-  void MagneticPDE::ReadMagnets() {
-
-    // Check if the element "magnets" is present at all.
-    // Otherwise leave
-    PtrParamNode magnetNode = myParam_->Get( "magnets", ParamNode::PASS );
-    if ( !magnetNode )
-      return;
-
-    // Get single magnet nodes
-    ParamNodeList magnetNodes = magnetNode->GetChildren();
-
-    // trigger definition of magnets
-    if( magnetNodes.GetSize() > 0 ) {
-      WARN("Adjust printing of permanent magnet definition to InfoNode");
-//      Info->PrintF( pdename_,
-//              "Found permanent magnets in the following regions:\n" );
-
-      Double tmpDir;
-      for( UInt i = 0; i < magnetNodes.GetSize(); i++ ) {
-
-        // get region name of actual magnet
-        std::string regionName = magnetNodes[i]->Get("name")->As<std::string>();
-        RegionIdType regionId = ptGrid_->GetRegion().Parse( regionName );
-
-        magnetsDomain_.Push_back( regionId );
-
-        // read orientation
-        magnetNodes[i]->GetValue( "orientX", tmpDir );
-        magnetsOriX_.Push_back( tmpDir );
-
-        magnetNodes[i]->GetValue( "orientY", tmpDir );
-        magnetsOriY_.Push_back( tmpDir );
-
-        magnetNodes[i]->GetValue( "orientZ", tmpDir );
-        magnetsOriZ_.Push_back( tmpDir );
-
-        // report name to logfile
-        //Info->PrintF( pdename_, " %s\n", regionName.c_str());
-      }
-    }
-  }
-
-
- 
   void MagneticPDE::DefinePrimaryResults()
   {
     StdVector<std::string> vecComponents;

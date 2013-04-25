@@ -172,13 +172,12 @@ public:
 
   // COLLECTION ACCESS
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                             StdVector<T >  & vals);
+                                        StdVector<T >  & vals, Grid* ptGrid);
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                             StdVector<Vector<T> >  & vals);
+                                        StdVector<Vector<T> >  & vals,
+                                        Grid* ptGrid );
 
-  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                            StdVector<Matrix<T> >  & vals);
 protected:
   
   //! Constant coefficient tensor

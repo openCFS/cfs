@@ -42,8 +42,9 @@ namespace CoupledField {
   // ===============
   TransientDriver::TransientDriver( UInt sequenceStep,
                                     bool isPartOfSequence,
-                                    shared_ptr<SimState> state, Domain* domain ) 
-    : SingleDriver( sequenceStep, isPartOfSequence, state, domain ), 
+                                    shared_ptr<SimState> state, Domain* domain,
+                                    PtrParamNode paramNode, PtrParamNode infoNode) 
+    : SingleDriver( sequenceStep, isPartOfSequence, state, domain, paramNode, infoNode ), 
       timer_(new Timer())
     {
     
@@ -62,13 +63,10 @@ namespace CoupledField {
     abortSimulation_ = false;
 
     // get parameter node
-    PtrParamNode myNode = 
-      domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), sequenceStep)
-      ->Get("analysis")->Get("transient");
+    PtrParamNode myNode = param_->Get("transient");
 
-    driverNode = driverNode->Get("transient");
-    driverNode->Get("sequenceStep")->SetValue(sequenceStep);
-    driverNode->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("s");
+    info_ = info_->Get("transient");
+    info_->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("s");
     
     // for the evaluation of deltaT, we make use of math Parser to
     // allow variable definitions of time step size
@@ -81,10 +79,13 @@ namespace CoupledField {
     std::string initTimeString = myNode->Get("initialTime")->As<std::string>();
     useAccumulatedTime_ = initTimeString == "accumulated" ? true : false;
     
-    // Check for presence of restart flag
+    // Check for presence of restart flag.
+    // Note; in case of a multisequence analysis we always have to 
+    //       write a "restart", as it will be the basis for the
+    //       next multisequence step
     writeRestart_ = true;
     PtrParamNode restartNode = myNode->Get("writeRestart", ParamNode::PASS);
-    if (restartNode)
+    if (restartNode && !isPartOfSequence)
       writeRestart_ = restartNode->As<bool>();
   
     // in the end, directly register the global transient variables
@@ -144,7 +145,7 @@ namespace CoupledField {
     InitializePDEs();
   }
     
-  void TransientDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id) 
+  void TransientDriver::SolveProblem(bool write_results) 
   {
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain_->GetResultHandler();
@@ -229,18 +230,11 @@ namespace CoupledField {
       }
       
 
-      if(given_analysis_id == NULL)
-      {
-        // do we really want to create a new entry? Might blast up the output
-        ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-        analysis_id_ = driverNode->Get(ParamNode::PN_PROCESS)->Get("step", at);
-        analysis_id_->Get("analysis_id")->SetValue(actTimeStep_);
-      }
-      else
-      {
-        assert(given_analysis_id->Has("analysis_id"));
-        analysis_id_ = CreateAnalysisIdChild(given_analysis_id, given_analysis_id->Get("analysis_id")->As<std::string>(), actTimeStep_, "step", actTimeStep_);
-      }
+      // do we really want to create a new entry? Might blast up the output
+      ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+      analysis_id_ = info_->Get(ParamNode::PN_PROCESS)->Get("step", at);
+      analysis_id_->Get("analysis_id")->SetValue(actTimeStep_);
+        
       analysis_id_->Get("step")->SetValue(actTimeStep_);
       analysis_id_->Get("value")->SetValue(actTime_);
       
@@ -281,7 +275,7 @@ namespace CoupledField {
         now += pt::seconds(static_cast<long int>(remainingTime));
         
         analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
-        PtrParamNode envNode = driverNode->GetRoot()->
+        PtrParamNode envNode = info_->GetRoot()->
             Get(ParamNode::PN_HEADER)->Get("environment");
         envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
         envNode->Get("remainingTime")->SetValue(remainingTime);
@@ -310,7 +304,7 @@ namespace CoupledField {
       simState_->SetInputReaderToSameInput();
 
       // Obtain last step
-      UInt lastStep = simState_->GetLastStepNum();
+      UInt lastStep = simState_->GetLastStepNum(sequenceStep_);
       restartStep_ = lastStep;
       
       // if lastStep is 0, no restart possibility
@@ -320,7 +314,7 @@ namespace CoupledField {
       }
 
       // Store restart step
-      simState_->UpdateToStep(lastStep);
+      simState_->UpdateToStep(sequenceStep_, lastStep);
 
       if( lastStep == numstep_) {
 

@@ -1902,6 +1902,11 @@ hsize_t H5IO::maxChunkSize_= 100;
 
       for(UInt i=0; i<numObjs; i++)
       {
+        
+        char name[64];
+        H5Iget_name( ids[i], name, 64);
+        std::cerr << "object name: " << name << std::endl;
+        
         H5::DataSet ds;
         H5::Group group;
         H5::DataType dt;

@@ -71,6 +71,18 @@
             </xsd:complexType>
           </xsd:element>
 
+        <!-- Initial conditions (optional) -->
+          <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                            
+              <!-- Initial state of previous sequence step / external file -->
+              <xsd:element name="initialState" type="DT_InitialState" minOccurs="0" maxOccurs="1"/>
+              
+ 		      </xsd:choice>
+ 		    </xsd:complexType>
+		  </xsd:element>
+
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -90,16 +102,6 @@
             <xsd:complexType>
               <xsd:sequence>
                 <xsd:element ref="BasicCoil" minOccurs="1"
-                  maxOccurs="unbounded"/>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element>
-
-          <!-- Section for specifying permanent magnets (optional) -->
-          <xsd:element name="magnets" minOccurs="0">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="magnet" type="DT_Magnet" minOccurs="1"
                   maxOccurs="unbounded"/>
               </xsd:sequence>
             </xsd:complexType>

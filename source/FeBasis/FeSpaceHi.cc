@@ -461,7 +461,7 @@ void FeSpaceHi::FixHigherOrderAnisoDofs() {
 }
 
 template<typename T>
-void FeSpaceHi::MapCoefFctToSpacePriv(shared_ptr<EntityList> entityList,
+void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityLists,
                                           shared_ptr<CoefFunction> coefFct,
                                           std::map <Integer, T>& vals,
                                           bool cache,
@@ -479,24 +479,32 @@ void FeSpaceHi::MapCoefFctToSpacePriv(shared_ptr<EntityList> entityList,
   //    conditions.
   shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
 
+  // assemble complete name
+  std::string entityNames;
+  for( UInt i = 0; i < entityLists.GetSize()-1; ++i ) {
+    entityNames += entityLists[i]->GetName() + ", ";
+  }
+  entityNames += entityLists.Last()->GetName();
+  
   if (IS_LOG_ENABLED(feSpaceHi, trace)) {
     StdVector<UInt> compVec;
     std::set<UInt>::const_iterator it = comp.begin();
     for (; it != comp.end(); ++it ) {
       compVec.Push_back(*it);
     }
+    
     LOG_TRACE(feSpaceHi) << "Mapping coeffct " << coefFct->ToString()
-                        << " on " << entityList->GetName() << " for dofs "
-                        << compVec.ToString() << " for FeFunction "
-                        << SolutionTypeEnum.ToString(feFct->GetResultInfo()->resultType);
+                            << " on " << entityNames << " for dofs "
+                            << compVec.ToString() << " for FeFunction "
+                            << SolutionTypeEnum.ToString(feFct->GetResultInfo()->resultType);
   }
-
 
   if( coefFct->GetDependency() == CoefFunction::CONSTANT ||
       coefFct->GetDependency() == CoefFunction::TIMEFREQ ) {
     // --------------------------
     //  SIMPLE MAPPING MECHANISM
     // --------------------------
+    LOG_DBG(feSpaceHi) << "=> Applying simple mapping algorithm for constant values";
     LocPointMapped lpm;
     StdVector<Integer> eqns, vEqns;
     Vector<T> dummyVec;
@@ -507,41 +515,48 @@ void FeSpaceHi::MapCoefFctToSpacePriv(shared_ptr<EntityList> entityList,
       coefFct->GetVector( dummyVec, lpm);
     }
 
-    // loop over all dofs
-    std::set<UInt>::const_iterator it = comp.begin();
-    for( ; it != comp.end(); ++it) {
+    // loop over all lists 
+    for( UInt i = 0; i < entityLists.GetSize(); ++i ) {
+      shared_ptr<EntityList> actList = entityLists[i];
 
-      T val = dummyVec[*it];
-      this->GetEntityListEqns( eqns, entityList, *it );
-      UInt numEqns = eqns.GetSize();
+      // loop over all dofs
+      std::set<UInt>::const_iterator it = comp.begin();
+      for( ; it != comp.end(); ++it) {
 
-      // switch depending on space type:
-      if( !this->IsHierarchical() ) {
-        // --- non-hierachical case ---
-        for( UInt i = 0; i < numEqns; ++i ) {
-          vals[eqns[i]] = val;
-        }
-      } else {
-        // -- hierachical case ---
-        for( UInt i = 0; i < numEqns; ++i ) {
-          vals[eqns[i]] = 0.0;
-        }
+        T val = dummyVec[*it];
+        this->GetEntityListEqns( eqns, actList, *it );
+        UInt numEqns = eqns.GetSize();
 
-        // get nodal vertex nodes
-        this->GetEntityListEqns(vEqns, entityList, *it, BaseFE::VERTEX );
-        UInt numVEqns = vEqns.GetSize();
-        for( UInt i = 0; i < numVEqns; ++i ) {
-          vals[vEqns[i]] = val;
-        }
-      }
+        // switch depending on space type:
+        if( !this->IsHierarchical() ) {
+          // --- non-hierachical case ---
+          for( UInt i = 0; i < numEqns; ++i ) {
+            vals[eqns[i]] = val;
+          }
+        } else {
+          // -- hierachical case ---
+          for( UInt i = 0; i < numEqns; ++i ) {
+            vals[eqns[i]] = 0.0;
+          }
 
+          // get nodal vertex nodes
+          this->GetEntityListEqns(vEqns, actList, *it, BaseFE::VERTEX );
+          UInt numVEqns = vEqns.GetSize();
+          for( UInt i = 0; i < numVEqns; ++i ) {
+            vals[vEqns[i]] = val;
+          }
+        } // loop: dofs
+      } // loop: lists
     } // loop: dofs
   } else
   {
     // ---------------------------
     //  GENERAL MAPPING MECHANISM
     // ---------------------------
-    std::string name = entityList->GetName();
+    LOG_DBG(feSpaceHi) << "=> Applying general mapping algorithm for general values";
+    std::map<Integer,Integer> eqnMap;
+    std::set<Integer> registeredEqns;
+    std::string name = entityNames;
     MapContext* ctx = NULL;
 
     // check, if caching is activated and if entry can be found in cache
@@ -571,49 +586,54 @@ void FeSpaceHi::MapCoefFctToSpacePriv(shared_ptr<EntityList> entityList,
       // generate (dimensional and space-dependent) interpolation (bi)linear
       // forms for the auxiliary problem
       // --------------------------------------------------------------------
-      const Elem* el = entityList->GetIterator().GetElem();
-      UInt dim = Elem::shapes[el->type].dim;
-      UInt dofDim = this->GetNumDofs();
-      BiLinearForm *massInt = feFct->GenerateInterpolBilinForm(dim, dofDim, true);
-      LinearForm * rhsInt = feFct->GenerateInterpolLinForm(dim, dofDim, coefFct, true);
+      for( UInt i = 0; i < entityLists.GetSize(); ++i ) {
+        shared_ptr<EntityList> actList = entityLists[i];
+        // Only proceed, if list type is elem list or surf elem list
+        if( ! ( actList->GetType() == EntityList::ELEM_LIST ||
+            actList->GetType() == EntityList::SURF_ELEM_LIST ) ) {
+          continue; 
+        }
 
-      BiLinFormContext * massCtx = new BiLinFormContext( massInt, STIFFNESS);
-      massInt->SetName("Interpolator");
-      massCtx->SetEntities( entityList,entityList );
-      massCtx->SetFeFunctions(feFct, feFct);
-      ctx->assemble->AddBiLinearForm(massCtx);
+        const Elem* el = actList->GetIterator().GetElem();
+        UInt dim = Elem::shapes[el->type].dim;
+        UInt dofDim = this->GetNumDofs();
+        BiLinearForm *massInt = feFct->GenerateInterpolBilinForm(dim, dofDim, true);
+        LinearForm * rhsInt = feFct->GenerateInterpolLinForm(dim, dofDim, coefFct, true);
 
-      LinearFormContext * rhsCtx = new LinearFormContext( rhsInt );
-      rhsInt->SetName("RhsInterpolator");
-      rhsCtx->SetEntities( entityList );
-      rhsCtx->SetFeFunction(feFct);
-      ctx->assemble->AddLinearForm(rhsCtx);
+        BiLinFormContext * massCtx = new BiLinFormContext( massInt, STIFFNESS);
+        massInt->SetName("Interpolator");
+        massCtx->SetEntities( actList, actList );
+        massCtx->SetFeFunctions(feFct, feFct);
+        ctx->assemble->AddBiLinearForm(massCtx);
 
-      // generate a mapping global eqnNr -> entityList local one for all dofs
-      std::map<Integer,Integer> eqnMap;
-      std::set<Integer> registeredEqns;
+        LinearFormContext * rhsCtx = new LinearFormContext( rhsInt );
+        rhsInt->SetName("RhsInterpolator");
+        rhsCtx->SetEntities( actList );
+        rhsCtx->SetFeFunction(feFct);
+        ctx->assemble->AddLinearForm(rhsCtx);
 
-      // loop over all dofs
-      if( comp.size() == 0 ) {
-        // scalar problem
-        this->GetEntityListEqns( ctx->entityEqns, entityList );
-      } else {
-        StdVector<Integer> tmp;
-        std::set<UInt>::const_iterator it = comp.begin();
-        for( ; it != comp.end(); it++ ) {
-          this->GetEntityListEqns( tmp, entityList, *it );
-          for( UInt k = 0; k < tmp.GetSize(); ++k ) {
-            ctx->entityEqns.Push_back( tmp[k] ) ;
+        // generate a mapping global eqnNr -> entityList local one for all dofs
+        // loop over all dofs
+        if( comp.size() == 0 ) {
+          // scalar problem
+          this->GetEntityListEqns( ctx->entityEqns, actList );
+        } else {
+          StdVector<Integer> tmp;
+          std::set<UInt>::const_iterator it = comp.begin();
+          for( ; it != comp.end(); it++ ) {
+            this->GetEntityListEqns( tmp, actList, *it );
+            for( UInt k = 0; k < tmp.GetSize(); ++k ) {
+              ctx->entityEqns.Push_back( tmp[k] ) ;
+            }
           }
         }
-      }
-      // fill map and pass it to assemble class
-      UInt numEqns = ctx->entityEqns.GetSize();
-      for( UInt i = 0; i < numEqns; ++i ) {
-        eqnMap[ctx->entityEqns[i]] = i+1;
-        registeredEqns.insert(i+1);
-      }
-
+        // fill map and pass it to assemble class
+        UInt numEqns = ctx->entityEqns.GetSize();
+        for( UInt i = 0; i < numEqns; ++i ) {
+          eqnMap[ctx->entityEqns[i]] = i+1;
+          registeredEqns.insert(i+1);
+        }
+      } // loop: entityLists
       // ------------------------
       //  setup algebraic system
       // ------------------------
@@ -694,6 +714,12 @@ void FeSpaceHi::MapCoefFctToSpacePriv(shared_ptr<EntityList> entityList,
 } // end of namespace
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template void FeSpaceHi::MapCoefFctToSpacePriv<Double>( shared_ptr<EntityList> ,shared_ptr<CoefFunction>, std::map <Integer, Double>&,bool,const std::set<UInt>&);
-  template void FeSpaceHi::MapCoefFctToSpacePriv<Complex>(shared_ptr<EntityList> ,shared_ptr<CoefFunction>, std::map <Integer, Complex>&,bool,const std::set<UInt>&);
+  template void FeSpaceHi::
+  MapCoefFctToSpacePriv<Double>( StdVector<shared_ptr<EntityList> > ,
+                                 shared_ptr<CoefFunction>, std::map <Integer, Double>&,
+                                 bool,const std::set<UInt>&);
+  template void FeSpaceHi::
+  MapCoefFctToSpacePriv<Complex>( StdVector<shared_ptr<EntityList> > ,
+                                 shared_ptr<CoefFunction>, std::map <Integer, Complex>&,
+                                 bool,const std::set<UInt>&);
 #endif

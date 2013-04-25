@@ -46,11 +46,13 @@ namespace CoupledField
     //! Constructor. call PostInit() afterwards!
     /*!
       \param aptFileType (input) input file (mesh-data)
+      \param allowOutput If true, not output is logged to stdout
     */
     Domain( std::map<std::string, StdVector<shared_ptr<SimInput> > >& gridInputs,
             ResultHandler * handler, MaterialHandler * ptMat,
             shared_ptr<SimState> simState, PtrParamNode xmlNode,
-            PtrParamNode infoNode);
+            PtrParamNode infoNode,
+            bool allowOutput = true);
     
     //! Destructor
     virtual ~Domain();
@@ -83,7 +85,8 @@ namespace CoupledField
 
     //! Create PDE objects
     //! \param sequenceStep step index in MultiSequenceSimulation
-    void CreatePDEs( UInt sequenceStep );
+    //! \param infoNode infoNode for adding information
+    void CreatePDEs( UInt sequenceStep, PtrParamNode infoNode );
     
     //! Initialize all PDEs which are previously created
     //! \param sequenceStep step index in MultiSequenceSimulation
@@ -91,6 +94,13 @@ namespace CoupledField
 
     //! Delete pointer to PDEs and create them new
     void ResetPDEs();
+    
+    //! Set the grids and their IDs from external
+    
+    //! This methods allows on the pas a map of pre-created
+    //! grids. This is useful in a multisequence analysis, where
+    //! both sequence steps share the same grid map.  
+    void SetGridMap( const std::map<std::string, Grid* >& gridMap );
 
     //@}
 
@@ -135,6 +145,11 @@ namespace CoupledField
     else 
       return NULL;
     }
+    
+    //! Get map for all registered grids and their reader
+    std::map<std::string, Grid* >  GetGridMap() {
+      return gridMap_;
+    }
 
     //! Get pointer to input-file
       //    FileType * GetInFile(){ return InFile_;}
@@ -156,12 +171,12 @@ namespace CoupledField
                                   = std::string("default") );
 
     //! Return Math Parser object for evaluating math expressions
-    MathParser * GetMathParser() { return &mathParser_; }
+    MathParser * GetMathParser() { return mathParser_; }
 
     /** The post init does more advancec stuff like reading the ersatz material.
      * For this purpose the constructor needs to be finished. 
      * @excpetion checks for error, thefore this is a void method */
-    void PostInit();
+    void PostInit( UInt sequenceStep = 0 );
 
     /** solves the problem, either the "driver" or the optimization problem.
      * Suerly you have to call PostInit() first!*/
@@ -187,19 +202,22 @@ namespace CoupledField
     
     //! Create the SinglePDE objects
     //! \param sequenceStep step index in MultiSequenceSimulation
-    void CreateSinglePDEs( UInt sequenceStep );
+    //! \param infoNode infoNode for adding information
+    void CreateSinglePDEs( UInt sequenceStep, PtrParamNode infoNode );
   
     //! Initialize direct coupled pde(s)
 
     //! Initialize direct coupled pde(s)
     //! \param sequenceStep step index in MultiSequenceSimulation
-    void CreateDirectCoupledPDEs( UInt sequenceStep );
+    //! \param infoNode infoNode for adding information
+    void CreateDirectCoupledPDEs( UInt sequenceStep, PtrParamNode infoNode );
 
     //! Initialize iterative coupled pde
 
     //! Initialize iterative coupled pde
     //! \param sequenceStep step index in MultiSequenceSimulation
-    void CreateIterCoupledPDE( UInt sequenceStep );
+    //! \param infoNode infoNode for adding information
+    void CreateIterCoupledPDE( UInt sequenceStep, PtrParamNode infoNode );
 
 
     //! Initialize local coordinate systems as read in from the parameter file
@@ -279,10 +297,16 @@ namespace CoupledField
     std::map<std::string, CoordSystem*> coordSys_;
 
     //! Mathematic parser object
-    MathParser mathParser_;
+    MathParser * mathParser_;
 
     //! dimension of the problem
     UInt dim_;
+    
+    //! flag if domain uses pre-initialized grid map
+    bool useExternalGridMap_;
+    
+    //! flag if logging output should be enabled
+    bool output_;
   };
 
 }

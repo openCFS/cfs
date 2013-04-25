@@ -302,9 +302,9 @@
   <xsd:complexType name="DT_InitialState">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
-       <xsd:choice>
+       <xsd:choice minOccurs="0">
          <!-- 1) Same simulation, different multisequence step -->
-         <xsd:element name="sequenceStep">
+         <xsd:element name="sequenceStep" minOccurs="0">
            <xsd:complexType>
              <xsd:attribute name="index" type="xsd:positiveInteger" use="required"/>
              <xsd:attribute name="step" type="xsd:integer" use="optional" default="-1"/>

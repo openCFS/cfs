@@ -464,7 +464,7 @@ public:
   //! This method can be used to map a general coefficient function
   //! to the current finite element space. It returns a map, containing the 
   //! equations numbers and the corresponding coefficients.
-  //! \param entityList Entitylist on which the function is defined
+  //! \param support Entitylists on which the function is defined
   //! \param coefFct Coefficient function to be mapped 
   //! \param vals Map containing the equations numbers (key) and the
   //!             coefficient values (value)
@@ -473,17 +473,28 @@ public:
   //! \param comp Set containing the components, which should get mapped.
   //!             If empty, all components of the (vector-valued) function
   //!             get mapped
-  virtual void MapCoefFctToSpace(shared_ptr<EntityList> entityList, 
+  virtual void MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support, 
                                  shared_ptr<CoefFunction> coefFct,
                                  std::map<Integer, Double>& vals,
                                  bool cache,
                                  const std::set<UInt>& comp = std::set<UInt>() )=0;
 
-  virtual void MapCoefFctToSpace(shared_ptr<EntityList> entityList, 
+  virtual void MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support, 
                                  shared_ptr<CoefFunction> coefFct,
                                  std::map<Integer, Complex>& vals,
                                  bool cache,
                                  const std::set<UInt>& comp = std::set<UInt>() )=0;
+  
+  //! Check if entity approximation is the same in other space
+  
+  //! This method checks, if the approximation  of an entity list
+  //! (e.g. elements of a region) have the same approximation in this space
+  //! compared to another one.
+  //! In this case the coefficients in the related FeFunction correspond
+  //! and can be copied.
+  virtual bool IsSameEntityApproximation( shared_ptr<EntityList> list,
+                                          shared_ptr<FeSpace> space ) = 0;
+
 protected:
   
   bool lagrangeSurfSpace_;  
@@ -585,9 +596,7 @@ protected:
                                     const IntegOrder& order,
                                     IntegOrderMode mode,
                                     PtrParamNode infoNode );
-
-
-
+  
   // ====================================================================
   // INTERNAL INITIALIZATION
   // ====================================================================
@@ -684,8 +693,6 @@ protected:
   // =========================================================
   // MISCELLANEOUS
   // =========================================================
-  
-  
   
   
 };

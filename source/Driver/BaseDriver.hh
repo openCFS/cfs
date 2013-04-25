@@ -20,7 +20,8 @@ namespace CoupledField
   public:
 
     //! Constructor
-    BaseDriver(shared_ptr<SimState> simState, Domain* domain );
+    BaseDriver(shared_ptr<SimState> simState, Domain* domain,
+               PtrParamNode paramNode, PtrParamNode infoNode );
 
     //! Destructor
     virtual ~BaseDriver();
@@ -38,7 +39,7 @@ namespace CoupledField
      * @param write_results if false nothing is written to the output files
      * @param analysis_id if given is *set* as current and used.
      * @see StoreResults(double) */
-    virtual void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode()) = 0;
+    virtual void SolveProblem(bool write_results = true) = 0;
     
     /** Only of interest for optimization, where one might not want to generate
      * output (gid, hdf5, gmv, ...) for every forward solution. 
@@ -87,7 +88,8 @@ namespace CoupledField
     /** This is an factory pattern implementation. The result is the
      * proper driver based on the analysis type and adaptiviy setting.
      * set this object in the domain and take care for deletion! */
-    static BaseDriver* CreateInstance(shared_ptr<SimState> state, Domain* domain );  
+    static BaseDriver* CreateInstance(shared_ptr<SimState> state, Domain* domain,
+                                      PtrParamNode paramNode, PtrParamNode infoNode);  
   
     /** We need to differentiate the SingleDrivers from the MultiSequenceDriver */
     typedef enum { SINGLE_DRIVER, MULTI_SEQUENCE_DRIVER } DriverClass;
@@ -106,11 +108,14 @@ namespace CoupledField
     //! type of analysis
     BasePDE::AnalysisType analysis_;
 
-    /** @see GetAnalysisId() */
-    PtrParamNode analysis_id_;
+    //! Pointer to parameter node
+    PtrParamNode param_ ;
     
-    /** our report node */ 
-    PtrParamNode driverNode; 
+    //! Pointer to information node (general information)
+    PtrParamNode info_;
+    
+    //! Pointer to step-specific info node
+    PtrParamNode analysis_id_;
     
     //! Pointer to simulation domain
     Domain * domain_;

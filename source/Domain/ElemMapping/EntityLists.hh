@@ -20,6 +20,9 @@ namespace CoupledField {
   class Coil;
 
 
+  // -----------------------
+  //  Base Class EntityList
+  // -----------------------
   //! Base class for providing lists of geometric entities
   class EntityList {
 
@@ -83,6 +86,20 @@ namespace CoupledField {
     //! Conversion from string to DefineType
     static void String2Enum( const std::string& in, DefineType& out );
 
+
+    // =======================================================================
+    //  UTITLY METHODS
+    // =======================================================================
+    
+    //! Get intersection of two sets of EntityLists
+    static void Intersect(const StdVector<shared_ptr<EntityList> >& set1,
+                          const StdVector<shared_ptr<EntityList> >& set2,
+                          StdVector<shared_ptr<EntityList> >& intersect );
+    
+    //! Get union of two sets of tEntityLists
+    static void Union(const StdVector<shared_ptr<EntityList> >& set1,
+                      const StdVector<shared_ptr<EntityList> >& set2,
+                      StdVector<shared_ptr<EntityList> >& intersect );
   protected:
     
     //! ListType of entities
@@ -98,6 +115,10 @@ namespace CoupledField {
     UInt size_;
 
   };
+  
+  // --------------
+  //  Element List
+  // --------------
 
   //! List for standard elements
   class ElemList : public EntityList {
@@ -142,6 +163,9 @@ namespace CoupledField {
     std::string name_;
   };
   
+  // ----------------------
+  //  Surface Element List
+  // ----------------------
   
   //! List for surface elements
   class SurfElemList : public ElemList {
@@ -169,7 +193,10 @@ namespace CoupledField {
   private:
     StdVector<SurfElem*> surfElemList_;
   };
-
+  
+  // -----------
+  //  Node List
+  // -----------
   //! List for nodes
   class NodeList : public EntityList {
 
@@ -206,7 +233,9 @@ namespace CoupledField {
     std::string name_;
   };
 
-  
+  // -------------
+  //  Region List
+  // -------------
   //! List for regions
   class RegionList : public EntityList {
 
@@ -237,6 +266,10 @@ namespace CoupledField {
     StdVector<RegionIdType> list_;
   };
 
+  
+  // -----------
+  //  Coil List
+  // -----------
   //! List for magnetic coils
   class CoilList : public EntityList {
   public:
@@ -260,6 +293,9 @@ namespace CoupledField {
 
   };
 
+  // -------------
+  //  Number List
+  // -------------
   //! List for non-geometric entities
   class NumberList : public EntityList {
   public:
@@ -279,10 +315,13 @@ namespace CoupledField {
     StdVector<UInt> list_;
 
   };
-
+  
+  // ------------------------------
+  //  Non Conforming Elements List
+  // ------------------------------
   //! Class for storing NC elems
   //! IMPORTANT: in difference to the other entitylists,
-  //!   this list stroes directly the pointers to the elements
+  //!   this list stores directly the pointers to the elements
   class NcElemList : public EntityList{
   public:
 
@@ -290,7 +329,7 @@ namespace CoupledField {
     NcElemList( Grid * grid,std::string name);
 
     virtual ~NcElemList(){
-
+      
     }
 
     //! returns the name of the list
@@ -311,7 +350,9 @@ namespace CoupledField {
     std::string name_;
   };
   
-  
+  // -------------
+  //  Name List
+  // -------------
   //! List for names (regions or element/node groups)
   class NameList : public EntityList {
 
@@ -338,7 +379,9 @@ namespace CoupledField {
     StdVector<std::string> list_;
   };
 
-  
+  // -----------------
+  //  Entity Iterator
+  // -----------------
 
   //! Iterator class for all kinds of iterable entities
   class EntityIterator {
@@ -431,7 +474,7 @@ namespace CoupledField {
     UInt pos_;
     UInt size_;
   };
-
+  
 }
 
 #endif

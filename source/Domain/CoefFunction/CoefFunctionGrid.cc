@@ -97,10 +97,11 @@ namespace CoupledField{
 PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
                                        Global::ComplexPart format, 
                                        PtrParamNode infoNode, 
-                                       PtrParamNode configNode){
+                                       PtrParamNode configNode,
+                                       shared_ptr<EntityList> list){
 
 
-  PtrCoefFct ret;
+  shared_ptr<CoefFunctionGrid> ret;
   PtrParamNode tmpNode  =  infoNode->Get("externalData");
   if(configNode->Has("defaultGrid")){
     if(format == Global::COMPLEX){
@@ -117,6 +118,7 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
   } else {
     EXCEPTION("CoefFunctionGrid generator called with invalid xml tag. This is a serious Bug please report!");
   }
+  ret->AddEntityList( list);
   return ret;
 }
 

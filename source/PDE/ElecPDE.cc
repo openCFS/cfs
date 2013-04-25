@@ -67,8 +67,6 @@ namespace CoupledField {
     updatedGeo_        = true;
     
     
-    needSolPrev_ = true;
- 
     // Check the subtype of the problem
     paramNode->GetValue("subType", subType_);
   }

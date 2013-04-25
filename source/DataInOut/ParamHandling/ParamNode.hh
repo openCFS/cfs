@@ -101,9 +101,11 @@ namespace CoupledField
     
     /** The default constructor
      * @param type Type of the node (defaults to UNDEF)
+     * @param allowFileOutput If false, no file will be written in ToFile()
      * @return
      */
-    ParamNode( ActionType defaultAction = EX, NodeType type = UNDEF );
+    ParamNode( ActionType defaultAction = EX, NodeType type = UNDEF,
+               bool allowFileOutput = true);
 
     /** Recursively delete the child nodes */
     virtual ~ParamNode();
@@ -395,7 +397,10 @@ namespace CoupledField
     
     /** cache variable for last Get() result */
     int lastresultidx_;
-   
+    
+    /** Flag if file output is allowed */
+    bool fileOutput_;
+    
   private:
     /** write_timer restricts the number of times the info.xml file is written
      *  if not enough time has passed, the file is not written

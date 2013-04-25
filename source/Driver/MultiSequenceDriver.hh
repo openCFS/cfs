@@ -25,17 +25,21 @@ namespace CoupledField
   public:
   
     //! constructor
-    MultiSequenceDriver(shared_ptr<SimState> state, Domain* domain );
+    MultiSequenceDriver(shared_ptr<SimState> state, Domain* domain,
+                        PtrParamNode paramNode, PtrParamNode infoNode );
 
     //! destructir
     virtual ~MultiSequenceDriver();
 
     //! Initialization method
     void Init();
+    
+    //! Change the current sequenceStep
+    void SetSequenceStep(UInt sequenceStep);
   
     //! main method, where time-stepping is implemented. 
     //! it is for transient and static problem
-    void SolveProblem(bool write_results = true, PtrParamNode given_analysis_id = PtrParamNode());
+    void SolveProblem(bool write_results = true);
 
     //! Return current time / frequency step of simulation
     UInt GetActStep( const std::string& pdename );
@@ -54,11 +58,14 @@ namespace CoupledField
     //! Print out information about multisequence steps
     void WriteMultiSequenceStep(const UInt sequenceStep, 
                                 const BasePDE::AnalysisType analysis);
+    
+    //! Set state to given step
+    void SetupStep(UInt sequenceStep);
 
     //! number of sequence steps
     UInt numSteps_;
 
-    //! current sequence step
+    //! current sequence step (0-based)
     UInt curSequenceStep_;
 
     //! accumulated time

@@ -1878,6 +1878,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     assert(feFct);
     return feFct->GetResultInfo()->dofNames.GetSize();
   }
+  
+
   // ************************************************************************
   // ENUM INITIALIZATION
   // ************************************************************************

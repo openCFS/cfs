@@ -77,7 +77,8 @@ namespace CoupledField {
     //! Overloaded method for lagrange Elements
     virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C);
 
-
+    //! Compare two element for equality (= same shape and approximation);
+    bool operator==( const FeH1LagrangeVar& comp) const;
 
   protected:
 

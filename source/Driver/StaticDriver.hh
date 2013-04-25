@@ -14,7 +14,8 @@ namespace CoupledField {
     //! \param true, if driver is part of  multiSequence
     StaticDriver( UInt sequenceStep,
                   bool isPartOfSequence,
-                  shared_ptr<SimState> state, Domain* domain);
+                  shared_ptr<SimState> state, Domain* domain,
+                  PtrParamNode paramNode, PtrParamNode infoNode );
 
     //! Destructor 
     ~StaticDriver();
@@ -26,7 +27,7 @@ namespace CoupledField {
     void Init();
 
     /** @see BaseDriver::SolveProblem(double) */  
-    void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode());
+    void SolveProblem(bool write_results = true);
         
     /** @see BaseDriver::StoreResults(double) */  
     void StoreResults(UInt stepNum, double step_val);
@@ -35,9 +36,6 @@ namespace CoupledField {
     virtual bool IsComplex() { return false; };
 
   protected:
-    //! Number of steps before a restart file is stored
-    UInt restartIncr_;
-
   };
 
 }

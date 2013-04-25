@@ -36,6 +36,10 @@ class FeSpaceH1Hi : public FeSpaceHi {
 
     //! Map equations i.e. initialize object
     virtual void Finalize();
+    
+    //! \copydoc FeSpace::IsSameEntityApproximation
+    virtual bool IsSameEntityApproximation( shared_ptr<EntityList> list,
+                                            shared_ptr<FeSpace> space );
 
   protected:
     

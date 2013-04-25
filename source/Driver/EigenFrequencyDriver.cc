@@ -21,8 +21,10 @@ namespace CoupledField {
   EigenFrequencyDriver::EigenFrequencyDriver(UInt sequenceStep,
                                              bool isPartOfSequence,
                                              shared_ptr<SimState> state,
-                                             Domain* domain ) 
-    : SingleDriver( sequenceStep, isPartOfSequence, state, domain ) {
+                                             Domain* domain,
+                                             PtrParamNode paramNode, PtrParamNode infoNode ) 
+    : SingleDriver( sequenceStep, isPartOfSequence, state, domain,
+                    paramNode, infoNode) {
 
     // set correct analysistype
     analysis_ = BasePDE::EIGENFREQUENCY;
@@ -32,16 +34,14 @@ namespace CoupledField {
     writeModes_ = true;
     isQuadratic_ = false;
     // replace with a concrete element
-    driverNode = driverNode->Get("eigenFrequency");
+    info_ = info_->Get("eigenFrequency");
   }
 
 
   void EigenFrequencyDriver::Init() {
     
     // get parameter node
-    PtrParamNode myNode = 
-        domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
-        ->Get("analysis")->Get("eigenFrequency");
+    PtrParamNode myNode = param_->Get("eigenFrequency");
 
     // read required parameters from parameter node
     myNode->GetValue( "numModes", numFreq_ );
@@ -103,7 +103,7 @@ namespace CoupledField {
       std::cout << std::setw(20) << errBounds[i] <<  "\n";
 
       // also log via info node
-      PtrParamNode result = driverNode->Get("result",ParamNode::APPEND);
+      PtrParamNode result = info_->Get("result",ParamNode::APPEND);
       result->Get("frequency")->SetValue(eigenFreqs[i]);
       result->Get("errorbound")->SetValue(errBounds[i]);
     }
@@ -178,7 +178,7 @@ namespace CoupledField {
       std::cout << std::setw(20) << errBounds[i] <<  "\n";
 
       // also log via info node
-      PtrParamNode result = driverNode->Get("result",ParamNode::APPEND);
+      PtrParamNode result = info_->Get("result",ParamNode::APPEND);
       result->Get("frequency")->SetValue(freq);
       result->Get("damping")->SetValue(damp);
       result->Get("errorbound")->SetValue(errBounds[i]);
@@ -209,14 +209,11 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void EigenFrequencyDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id) {
+  void EigenFrequencyDriver::SolveProblem(bool write_results) {
     // options not implemented
     assert(write_results == true);
     
-    if(given_analysis_id == NULL)
-      analysis_id_ = driverNode->Get(ParamNode::PN_PROCESS);
-    else
-      analysis_id_ = given_analysis_id;
+    analysis_id_ = info_->Get(ParamNode::PN_PROCESS);
 
     ResultHandler* resHandler = domain_->GetResultHandler();
 

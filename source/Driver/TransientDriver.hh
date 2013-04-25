@@ -28,7 +28,8 @@ namespace CoupledField {
     //! \param isPartOfSequence true, if driver is part of  multiSequence
     TransientDriver( UInt sequenceStep,
                      bool isPartOfSequence,
-                     shared_ptr<SimState> state, Domain* domain );
+                     shared_ptr<SimState> state, Domain* domain,
+                     PtrParamNode paramNode, PtrParamNode infoNode );
   
     //! Default destructor
     virtual ~TransientDriver();
@@ -37,7 +38,7 @@ namespace CoupledField {
     void Init();
 
     //! main method, where time-stepping is implemented. it is for transient and static problem
-    void SolveProblem(bool write_results = true, PtrParamNode given_analysis_id = PtrParamNode());
+    void SolveProblem(bool write_results = true );
 
     //! Return time increment
     Double GetDeltaT() { return firstdt_;}

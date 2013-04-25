@@ -458,7 +458,8 @@ Recalculate() {
 
 // COLLECTION ACCESS
 void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                   StdVector<Double >  & vals){
+                                                            StdVector<Double >  & vals,
+                                                            Grid* ptGrid ){
   assert(this->dimType_ == SCALAR);
   vals.Resize(points.GetSize());
   vals.Init();
@@ -468,7 +469,8 @@ void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vect
 }
 
 void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                   StdVector<Vector<Double> >  & vals){
+                                                            StdVector<Vector<Double> >  & vals,
+                                                            Grid* ptGrid ){
   assert(this->dimType_ == VECTOR ||
          this->dimType_ == SCALAR );
 
@@ -498,8 +500,9 @@ void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vect
 
 }
 
-void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                  StdVector<Matrix<Double> >  & vals){
+void CoefFunctionTimeFreq<Double>::GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                                            StdVector<Matrix<Double> >  & vals,
+                                                            Grid* ptGrid ){
   assert(this->dimType_ == TENSOR);
   // if no coordinate system is set, just
   // use internal vector
@@ -524,7 +527,8 @@ void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vect
 }
 
 void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                   StdVector<Complex >  & vals){
+                                                             StdVector<Complex >  & vals,
+                                                             Grid* ptGrid ){
   assert(this->dimType_ == SCALAR);
   vals.Resize(points.GetSize());
   vals.Init();
@@ -534,7 +538,8 @@ void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vec
 }
 
 void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                   StdVector<Vector<Complex> >  & vals){
+                                                             StdVector<Vector<Complex> >  & vals,
+                                                             Grid* ptGrid ){
   assert(this->dimType_ == VECTOR ||
          this->dimType_ == SCALAR );
 
@@ -563,8 +568,9 @@ void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vec
   }
 }
 
-void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                          StdVector<Matrix<Complex> >  & vals){
+void CoefFunctionTimeFreq<Complex>::GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                                             StdVector<Matrix<Complex> >  & vals,
+                                                             Grid* ptGrid ){
   assert(this->dimType_ == TENSOR);
   // if no coordinate system is set, just
   // use internal vector

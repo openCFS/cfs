@@ -19,22 +19,13 @@ namespace CoupledField {
   // ***************
   StaticDriver::StaticDriver( UInt sequenceStep,
                               bool isPartOfSequence,
-                              shared_ptr<SimState> state, Domain* domain ) 
-    : SingleDriver( sequenceStep, isPartOfSequence, state, domain ) {
+                              shared_ptr<SimState> state, Domain* domain,
+                              PtrParamNode paramNode, PtrParamNode infoNode ) 
+    : SingleDriver( sequenceStep, isPartOfSequence, state, domain,
+                    paramNode, infoNode ) {
 
     analysis_ = BasePDE::STATIC;
-    restartIncr_= 0;
-
-    // get parameter node
-    PtrParamNode myNode = 
-        domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), sequenceStep)
-      ->Get("analysis")->Get("static");
-    
-    // Get save increment for restart file (optional)
-    myNode->GetValue( "writeRestartInc", restartIncr_, ParamNode::PASS );
-
-    driverNode = driverNode->Get("static");
-    driverNode->Get("sequenceStep")->SetValue(sequenceStep);
+    info_ = info_->Get("static");
     
     // Set current value of time step and time step size in the mathParser
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
@@ -64,7 +55,7 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id)
+  void StaticDriver::SolveProblem(bool write_results)
   {
 
     // Initialize first multisequence step, as the method "CheckStoreResults" 
@@ -74,21 +65,10 @@ namespace CoupledField {
     handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
     simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
 
-    
-    // in the optimization case the step is given, otherwise it is created
-    // store such that special steps can add non-lin stuff and optimization adjoints
-    if(given_analysis_id == NULL)
-    {
-      // do we really want to create a new entry? Might blast up the output
-      ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-      analysis_id_ = driverNode->Get(ParamNode::PN_PROCESS)->Get("step", at);
-      analysis_id_->Get("analysis_id")->SetValue("0");
-    }
-    else
-    {
-      analysis_id_ = given_analysis_id;
-      assert(analysis_id_->Has("analysis_id"));
-    }
+    // do we really want to create a new entry? Might blast up the output
+    ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+    analysis_id_ = info_->Get(ParamNode::PN_PROCESS)->Get("step", at);
+    analysis_id_->Get("analysis_id")->SetValue("0");
     
     // 'TimeStepping' is here the optimization iteration
     ptPDE_->GetSolveStep()->SetActTime(0.0);

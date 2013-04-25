@@ -856,7 +856,39 @@ namespace CoupledField{
     }
     SetRegionElements(ALL_REGIONS,POLYNOMIAL,order, infoNode );
   }
-  
+
+  bool FeSpaceHCurlHi::IsSameEntityApproximation( shared_ptr<EntityList> list,
+                                                  shared_ptr<FeSpace> space ) {
+    if( this->GetSpaceType()  != space->GetSpaceType()  ) {
+      return false;
+    }
+    if( this->IsHierarchical() != space->IsHierarchical()) {
+      return false;
+    }
+
+    // Cast other space to same type
+    shared_ptr<FeSpaceHCurlHi> otherSpace = dynamic_pointer_cast<FeSpaceHCurlHi>(space);
+
+    EntityList::ListType actListType = list->GetType();
+    if ( ! (actListType == EntityList::ELEM_LIST) &&
+        ! (actListType == EntityList::SURF_ELEM_LIST) &&
+        ! (actListType == EntityList::NC_ELEM_LIST))  {
+      return true;
+    }
+
+    // Loop over all elements
+    EntityIterator it = list->GetIterator();
+    for( it.Begin(); !it.IsEnd(); it++) {
+      FeHCurlHi * myElem = static_cast<FeHCurlHi*>(this->GetFe(it));
+      FeHCurlHi * otherElem = static_cast<FeHCurlHi*>(otherSpace->GetFe(it));
+      if( !( *myElem == *otherElem) ) {
+        return false;
+      } else {
+      }
+    }
+    return true;
+  }
+
   UInt FeSpaceHCurlHi::GetNumDofs() const {
     // As we have already vectorial basis functions, every
     // virtual "node" is basically just a scalar, so we

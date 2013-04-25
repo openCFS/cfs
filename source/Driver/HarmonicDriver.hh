@@ -23,7 +23,7 @@ public:
   //! \param isPartOfSequence true, if driver is part of  multiSequence
   HarmonicDriver(UInt sequenceStep, bool isPartOfSequence,
                  shared_ptr<SimState> state,
-                 Domain* domain);
+                 Domain* domain, PtrParamNode paramNode, PtrParamNode infoNode );
 
   //! Detructor
   virtual ~HarmonicDriver();
@@ -56,12 +56,12 @@ public:
   void Init();
 
   //! Main method, where harmonic analysis is implemented.
-  void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode());
+  void SolveProblem(bool write_results = true);
 
   /** This allows optimization to handle the individual frequency steps, e.g. to compute
    * objective values. Internally this is is a service function for SolveProblem()
    * @param actFreqStep sets the actFreq_ attribute, to start with 1 and not to exceed numFreq_ */
-   Double ComputeFrequencyStep(UInt actFreqStep, PtrParamNode analysis_id);
+   Double ComputeFrequencyStep(UInt actFreqStep);
 
    /** This StoreResults meant for Optimization only */
   void StoreResults(UInt stepNum,
@@ -121,9 +121,6 @@ protected:
 
   //! A attribute storing the type of algorithm used for frequency sampling
   FreqSamplingType samplingType_;
-
-  /** This is the pointer to our analysis description */
-  PtrParamNode pn_;
   
   // =======================================================================
   //  Timing estimation

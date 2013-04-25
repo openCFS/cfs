@@ -34,12 +34,14 @@ const string ParamNode::PN_ERROR = "error";
 PtrParamNode param;
 PtrParamNode info;
 
-ParamNode::ParamNode(ActionType defaultAction, NodeType type) :
+ParamNode::ParamNode(ActionType defaultAction, NodeType type,
+                     bool allowFileOutput  ) :
   precision_(5), 
   name_("DD"), 
   type_(type),
   defaultAction_(defaultAction),
-  lastresultidx_(-1), 
+  lastresultidx_(-1),
+  fileOutput_(allowFileOutput),
   write_timer_(), 
   write_counter_(0), 
   reject_counter_(0)
@@ -894,6 +896,10 @@ void ParamNode::ToXML(std::ostream& os, int depth)
 
 void ParamNode::ToFile(const std::string& filename, bool force)
 { 
+  // If ParamNode is silent, never write anything
+  if( ! fileOutput_)
+    return;
+  
   // determine correct filename (if not given)
   std::string myFileName;
   if (!filename.empty())

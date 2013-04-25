@@ -50,8 +50,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     nonLin_        = false;
     nonLinMaterial_= false;
 
-    needSolPrev_ = true;
-    
     //! Always use total Lagrangian formulation 
     updatedGeo_        = false;
 
@@ -266,7 +264,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
   {
 
     nonLin_ = false;
-    REFACTOR;
   }
 
 
@@ -588,8 +585,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       for( UInt i = 0; i < ent.GetSize(); ++i ) {
         //for non-linear simulations we might need a conservative interpolation in each timestep...
         coef[i]->SetConservative(true);
-        coef[i]->AddEntityList(ent[i]);
-        this->rhsFeFunctions_[MECH_DISPLACEMENT]->AddLoadCoefFunction(coef[i]);
+        this->rhsFeFunctions_[MECH_DISPLACEMENT]->AddLoadCoefFunction(coef[i], ent[i]);
       }
   }
 

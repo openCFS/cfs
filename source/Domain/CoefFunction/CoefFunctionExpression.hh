@@ -90,20 +90,24 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
 
     // COLLECTION ACCESS
     virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                               StdVector< Double >  & vals);
+                                          StdVector< Double >  & vals,
+                                          Grid* ptGrid );
 
     virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                               StdVector<Vector< Double> >  & vals);
-
+                                          StdVector<Vector< Double> >  & vals, 
+                                          Grid* ptGrid);
+    
     virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                              StdVector<Matrix< Double> >  & vals);
+                                          StdVector<Matrix<Double> >  & vals,
+                                          Grid* ptGrid);
+
 
 
   protected:
-    
+
     //! Coefficients for tensor
     StdVector<std::string > coefMat_;
-    
+
     //! Number of rows of tensor
     UInt numRows_;
     
@@ -190,13 +194,17 @@ class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic,
 
     // COLLECTION ACCESS
     virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                               StdVector< Complex >  & vals);
+                                          StdVector< Complex >  & vals, 
+                                          Grid* ptGrid);
 
     virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                               StdVector<Vector< Complex> >  & vals);
+                                          StdVector<Vector< Complex> >  & vals, 
+                                          Grid* ptGrid);
+    
+    virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                          StdVector<Matrix<Complex> >  & vals,
+                                          Grid* ptGrid);
 
-    virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                              StdVector<Matrix< Complex> >  & vals);
 
   protected:
     

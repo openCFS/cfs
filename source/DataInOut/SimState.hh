@@ -49,13 +49,13 @@ namespace CoupledField {
     SimState(bool useAsInput );
 
     //! Destructor
-    ~SimState();
+    virtual ~SimState();
 
     //! Query, if SimState provides input data
     bool HasInput() {
       return hasInput_;
     }
-
+    
     // =======================================
     //  OUTPUT - FUNCTIONALITY 
     // =======================================
@@ -64,6 +64,10 @@ namespace CoupledField {
     //! If not set, a new writer is created internally
     void SetOutputHdf5Writer( shared_ptr<SimOutputHDF5> outFile );
 
+    shared_ptr<SimOutputHDF5> GetOutputWriter() {
+      return outFile_;
+    }
+    
     //! Pass parameter and material file names
     void SetMatParamFile( const fs::path& paramFile, 
                           const fs::path& matFile ); 
@@ -84,9 +88,11 @@ namespace CoupledField {
     // =======================================
     //  INPUT - FUNCTIONALITY 
     // =======================================
-
+    typedef std::map<std::string, Grid* > GridMap;
+    
     //! Retrieve a domain object from a previously set HDF5 file
-    Domain* GetDomain(UInt sequenceStep);
+    Domain* GetDomain(UInt sequenceStep,
+                      const GridMap& map = GridMap() );
 
     //! Set pointer to input hdf5 reader
     void SetInputHdf5Reader( shared_ptr<SimInputHDF5> inFile );
@@ -97,13 +103,20 @@ namespace CoupledField {
     //! input reader.
     void SetInputReaderToSameInput();
     
+    
+    //! Return number of available sequence steps in file
+    UInt GetLastMsStepNum();
+    
     //! Return last step number of input file
-    UInt GetLastStepNum();
+    UInt GetLastStepNum(UInt sequenceStep );
  
     //! Update internally to given time / frequency step
-    void UpdateToStep( UInt stepNum );
+    void UpdateToStep( UInt sequenceStep, UInt stepNum );
 
    
+    //! Finalize state (delete registered fefunctions etc.)
+    void Finalize();
+    
   protected:
     
     //! Initialize simulation state object

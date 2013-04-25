@@ -33,6 +33,11 @@ namespace CoupledField {
 
     //! Trigger reading of the mesh
     virtual void ReadMesh(Grid *mi);
+    
+    //! Return file name including path
+    std::string GetFileName() {
+      return fileName_;
+    }
     //@}
   
     // =======================================================================

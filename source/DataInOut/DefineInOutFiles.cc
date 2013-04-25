@@ -94,8 +94,11 @@ namespace CoupledField
   {
     
     // Delete pointer to OLAS report file
-    delete cla;
-    cla = NULL;
+    if( openFiles_.find(OLAS_FILE)  != openFiles_.end()) {
+      delete cla;
+      cla = NULL;
+      openFiles_.erase(OLAS_FILE);
+    }
     
     delete simInput_;
     simInput_ = NULL;
@@ -552,6 +555,7 @@ void DefineInOutFiles::OpenFile(AuxFileType fileType)
           << "writing status reports of OLAS, the linear algebra "
           << "sub-system!" );
     }
+    openFiles_.insert( OLAS_FILE );
     break;
 
   }

@@ -17,7 +17,8 @@ namespace CoupledField {
     //! \param sequenceStep current step in multisequence simulation
     //! \param isPartOfSequence true, if driver is part of  multiSequence
     SingleDriver( UInt sequenceStep, bool isPartOfSequence,
-                  shared_ptr<SimState> state, Domain* domain );
+                  shared_ptr<SimState> state, Domain* domain,
+                  PtrParamNode paramNode, PtrParamNode infoNode );
     
     //! Default destructor
     virtual ~SingleDriver();
@@ -30,9 +31,6 @@ namespace CoupledField {
 
   protected:
   
-    //! Trigger reading of restart
-    virtual void ReadRestart( ) {};
-    
     //! Initialize PDEs
     void InitializePDEs();
 

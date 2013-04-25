@@ -19,14 +19,17 @@ namespace CoupledField {
   //   Constructor
   // ***************
   MultiSequenceDriver::MultiSequenceDriver( shared_ptr<SimState> state,
-                                            Domain* domain) 
-    : BaseDriver(state, domain) {
+                                            Domain* domain,
+                                            PtrParamNode paramNode, PtrParamNode infoNode
+                                            ) 
+    : BaseDriver(state, domain, paramNode, infoNode) {
 
     analysis_ = BasePDE::MULTI_SEQUENCE;
     
+    curSequenceStep_ = 0;
     numSteps_ = 0;
     accumulatedTime_ = 0.0;
-    actDriver_ = 0;
+    actDriver_ = NULL;
   }
 
 
@@ -34,75 +37,40 @@ namespace CoupledField {
   //   Default destructor
   // **********************
   MultiSequenceDriver::~MultiSequenceDriver() {
+    
+    // It can happen, that the driver was not delete (e.g. is SolveProblem
+    // was not called)
+    if( actDriver_ ) {
+      delete actDriver_;
+      actDriver_ = NULL;
+    }
   }
 
 
-  void MultiSequenceDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id) {
+  void MultiSequenceDriver::SolveProblem(bool write_results) {
     // options not implemented
     assert(write_results == true);
 
 
-    // vector containing pointer to current set of PDEs
-    StdVector<SinglePDE *> ptPDEs;
-
     std::cout << "++ Starting to solve problem" << std::endl;
 
     // get resultHandler
-    ResultHandler * resHandler = domain->GetResultHandler();
+    ResultHandler * resHandler = domain_->GetResultHandler();
 
     // outer loop over all single sequences
-    for (UInt iStep = 0; iStep < numSteps_; iStep++ ) {
+    for (UInt iStep = curSequenceStep_; iStep < numSteps_; iStep++ ) {
 
+      // log info about new step to info-class
+      WriteMultiSequenceStep(iStep+1, analysisPerStep_[iStep]);
+      
+      // Setup step (create driver, create PDEs etc.)
+      SetupStep( iStep );
+      
       // remember current sequence step
       curSequenceStep_ = iStep;
       
-      // log info about new step to info-class
-      WriteMultiSequenceStep(iStep+1, analysisPerStep_[iStep]);
-
-      // Since per time step only one type of 
-      // analysis is allowed, we simple access
-      // the first entry fo analysisPerStep_
-      if (analysisPerStep_[iStep] == BasePDE::STATIC) {
-        actDriver_ = new StaticDriver( iStep+1, true, 
-                                       simState_, domain_ );
-      }
-      else if (analysisPerStep_[iStep] == BasePDE::TRANSIENT) {      
-        TransientDriver * tD = new TransientDriver( iStep+1,true, 
-                                                   simState_, domain_  );
-        // pass accumulated time
-        tD->SetAccumulatedTime( accumulatedTime_ );
-        actDriver_ = tD;
-      }
-      else if (analysisPerStep_[iStep] == BasePDE::HARMONIC) {
-        actDriver_ = new HarmonicDriver( iStep+1, true, 
-                                         simState_, domain_  );
-      }
-      else if( analysisPerStep_[iStep] == BasePDE::EIGENFREQUENCY ) {
-        actDriver_ = new EigenFrequencyDriver( iStep+1, true, 
-                                               simState_, domain_  );
-      }
-
-      // Initialize all PDEs
-      domain->CreatePDEs( iStep+1 );
-
-      domain->SetDriver( actDriver_ );
-      actDriver_->SetPDE(domain->GetBasePDE());
-
-      // Give the according pdes to the driver
-      ptPDEs.Clear();
-      ptPDEs.Resize(pdesPerStep_[iStep].GetSize());
-      for (UInt iPde=0; iPde < pdesPerStep_[iStep].GetSize(); iPde++)
-        ptPDEs[iPde]=domain->GetSinglePDE( pdesPerStep_[iStep][iPde] );
-
-      // Initialize driver objects
-      actDriver_->Init();
-
-
-      //! Initialize Pdes, after having set the memento object
-      domain->InitPDEs( iStep+1 );
-
       // Solve Problem
-      actDriver_->SolveProblem(write_results, given_analysis_id);
+      actDriver_->SolveProblem(write_results);
 
       // finish sequence step with resulthandler
       resHandler->FinishMultiSequenceStep();
@@ -110,7 +78,7 @@ namespace CoupledField {
       // Get solution for next step and delete all PDEs
       if (iStep < numSteps_-1) {
         // delete PDEs
-        domain->ResetPDEs();
+        domain_->ResetPDEs();
       }
 
       // add up accumulated time
@@ -125,7 +93,7 @@ namespace CoupledField {
     } // iStep
 
     // trigger finalization
-    domain->GetResultHandler()->Finalize();
+    domain_->GetResultHandler()->Finalize();
   }
 
 
@@ -200,6 +168,74 @@ namespace CoupledField {
 
     // 4.) Perform final consistency checks
     // Not much to do here yet ...
+    
+  }
+  
+  void MultiSequenceDriver::SetSequenceStep(UInt sequenceStep ) {
+    if( sequenceStep >= numSteps_-1) {
+      EXCEPTION( "Can not update to mulstistep " << sequenceStep+1 
+                 << " as only " << numSteps_ << " are defined" );
+    }
+    SetupStep(sequenceStep);
+    curSequenceStep_ = sequenceStep;
+    
+  }
+  
+  void MultiSequenceDriver::SetupStep(UInt sequenceStep) {
+    
+    // Only setup step once
+    if( curSequenceStep_ == sequenceStep && 
+        actDriver_ !=  NULL) {
+      return;
+    }
+    
+    if( actDriver_ ) {
+      delete actDriver_;
+      actDriver_ = NULL;
+    }
+    
+    
+    // obtain paramNode and infoNode
+    PtrParamNode seqNode = param_->GetByVal("sequenceStep","index",sequenceStep+1)->Get("analysis");
+    PtrParamNode info = info_->Get("sequenceStep",ParamNode::APPEND);
+    info->Get("index")->SetValue(sequenceStep+1);
+    
+    
+    // Since per time step only one type of 
+    // analysis is allowed, we simple access
+    // the first entry fo analysisPerStep_
+    if (analysisPerStep_[sequenceStep] == BasePDE::STATIC) {
+      actDriver_ = new StaticDriver( sequenceStep+1, true, 
+                                     simState_, domain_, seqNode, info );
+    }
+    else if (analysisPerStep_[sequenceStep] == BasePDE::TRANSIENT) {      
+      TransientDriver * tD = new TransientDriver( sequenceStep+1,true, 
+                                                 simState_, domain_, seqNode, info  );
+      // pass accumulated time
+      tD->SetAccumulatedTime( accumulatedTime_ );
+      actDriver_ = tD;
+    }
+    else if (analysisPerStep_[sequenceStep] == BasePDE::HARMONIC) {
+      actDriver_ = new HarmonicDriver( sequenceStep+1, true, 
+                                       simState_, domain_, seqNode, info  );
+    }
+    else if( analysisPerStep_[sequenceStep] == BasePDE::EIGENFREQUENCY ) {
+      actDriver_ = new EigenFrequencyDriver( sequenceStep+1, true, 
+                                             simState_, domain_, seqNode, info  );
+    }
+
+    // Initialize all PDEs
+    domain_->CreatePDEs( sequenceStep+1, info );
+
+    domain_->SetDriver( actDriver_ );
+    actDriver_->SetPDE(domain_->GetBasePDE());
+
+    // Initialize driver objects
+    actDriver_->Init();
+
+    //! Initialize Pdes, after having set the memento object
+    domain_->InitPDEs( sequenceStep+1);
+
   }
   
   void MultiSequenceDriver::WriteMultiSequenceStep(const UInt sequenceStep, 

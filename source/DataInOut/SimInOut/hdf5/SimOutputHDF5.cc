@@ -713,16 +713,16 @@ namespace CoupledField {
     }
 
     // check, if any group is open at all
-    if( mainGroup_.getLocId() > 0 )
-      mainGroup_.close();
-
-    // check, if any group is open at all
     if( dbGroup_.getLocId() > 0 )
       dbGroup_.close();
     
     // check, if any group is open at all
     if( currMsDbGroup_.getLocId() > 0 )
       currMsDbGroup_.close();
+    
+    // check, if any group is open at all
+    if( mainGroup_.getLocId() > 0 )
+      mainGroup_.close();
 
     // check for open groups, datasets etc.
     if (mainFile_.getLocId() > 0 )

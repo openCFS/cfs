@@ -35,7 +35,6 @@ namespace CoupledField {
                              PtrParamNode infoNode ) :
       SimInput(fileName, inputNode, infoNode )
   {
-    
     capabilities_.insert( SimInput::MESH);
     capabilities_.insert( SimInput::MESH_RESULTS);
 
@@ -100,6 +99,14 @@ namespace CoupledField {
   }
 
   SimInputHDF5::~SimInputHDF5() {
+    
+    // check, if any group is open at all
+    if( dbRoot_.getLocId() > 0 )
+      dbRoot_.close();
+
+    if( mainRoot_.getLocId() > 0 )
+      mainRoot_.close();
+
     if( mainFile_.getLocId() <= 0 )
       return;
 

@@ -44,13 +44,33 @@ namespace CoupledField
     typedef StdVector<shared_ptr<BaseResult> > ResultList;
     typedef std::map<shared_ptr<ResultInfo> , ResultList > ResultMap;
 
-    //! Initialize PDEs 
+    //! Initialize PDEs (1st stage)
+    
+    //! In this phase of initialization, the following things are performed:
+    //! - definition of regions, materials, damping
+    //! - creation of Assemble class
+    //! - definition of primary fefunctions, fespaces and time stepping
+    //! - definition of post-processing results
     //! @param base pointer to InfoNode of this PDE */
-    virtual void Init( UInt sequenceStep, PtrParamNode base = PtrParamNode() ); 
+    virtual void Init_Stage1( UInt sequenceStep, PtrParamNode base = PtrParamNode() ); 
+    
+    //! Initialize PDEs (2st stage)
+    
+    //! The second phase of initialization depends on all other SinglePDEs to
+    //! have finished stage1. Within stage 2, the following things are performed
+    //! - definition of boundary conditions
+    //! - definition of integrators
+    //! - definition of loads and RHS integrators 
+    virtual void Init_Stage2();
 
-    //! Finalize initialization of PDEs. Either called in SinglePDE::Init() if
-    //! directCoupled_ == false, otherwise called from DirectCoupledPDE::Init()
-    void FinalizeInit( );
+    //! Initialize PDEs (3rd stage)
+    
+    //! In the third phase of initialization, the following tasks are performed:
+    //! - Finalization of spaces and registration at OLAS
+    //! - Initialization of time schemes
+    //! - Finalization of postprocessing results
+    //! - Incorporation of initial conditions
+    void Init_Stage3( );
 
     // ---------------------- ***** --------------------------------
 
@@ -309,18 +329,6 @@ namespace CoupledField
     // DATA SECTION
     // ======================================================
 
-    // reads in the PML data
-    void ReadDataPML( std::string& typePML, Matrix<Double>& inner, 
-		                  Double& dampPML, 
-		                  std::string& coordSysId,
-		                  PtrParamNode actNode);
-
-    //! computes the PML layer dimensions
-    void GetPMLLayerData( Matrix<Double>& inner, 
-                          Matrix<Double>& outer,
-			                    RegionIdType regionId,
-			                    std::string& coordSysId );
-  
     // -----------------------------------------------------------------------
     // Storing information
     // -----------------------------------------------------------------------

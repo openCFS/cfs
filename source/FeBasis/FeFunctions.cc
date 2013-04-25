@@ -17,6 +17,10 @@ namespace CoupledField {
 DECLARE_LOG(fefunc)
  DEFINE_LOG(fefunc, "feFunction")
 
+ 
+// Helper macro to generate prefix for logging output
+#define PREFIX  SolutionTypeEnum.ToString(result_->resultType) << ": "
+ 
  BaseFeFunction::BaseFeFunction(MathParser* mp){
 
   fctId_ = NO_FCT_ID;
@@ -137,16 +141,38 @@ DECLARE_LOG(fefunc)
     entities_.Push_back(bc->entities);
   }
 
-  void BaseFeFunction::AddLoadCoefFunction( shared_ptr<CoefFunction> load ){
-    this->loadCoefs_.Push_back(load);
+  void BaseFeFunction::AddLoadCoefFunction( shared_ptr<CoefFunction> load,
+                                            const StdVector<shared_ptr<EntityList> >& lists){
+    this->loadCoefs_[load] = lists;
+
     //entities for this case should already be definied....
     //entities_.Push_back(bc->entities);
   }
 
-  void BaseFeFunction::AddExternalDataSource( shared_ptr<CoefFunction> coef ){
-    this->externalDataCoefs_.Push_back(coef);
+  void BaseFeFunction::AddLoadCoefFunction( shared_ptr<CoefFunction> coef,
+                                            shared_ptr<EntityList >& list) {
+    this->loadCoefs_[coef].Push_back(list);
+
   }
 
+  void BaseFeFunction::AddExternalDataSource( shared_ptr<CoefFunction> coef,
+                                              const StdVector<shared_ptr<EntityList> >& lists){
+    std::cerr << "size of lists is " << lists.GetSize() << std::endl;
+    for( UInt i = 0; i < lists.GetSize(); ++i ) {
+      std::cerr << "\tregion: " << lists[i]->GetName() << std::endl;
+    }
+    this->externalDataCoefs_[coef] = lists;
+  }
+
+  void BaseFeFunction::AddExternalDataSource( shared_ptr<CoefFunction> coef,
+                                              shared_ptr<EntityList >& list){
+    this->externalDataCoefs_[coef].Push_back(list);
+  }
+  
+  void BaseFeFunction::RemoveExternalDataSource() {
+    this->externalDataCoefs_.clear();
+  }
+ 
   void BaseFeFunction::AddConstraint( shared_ptr<Constraint> bc ){
     constraints_.Push_back(bc);
     entities_.Push_back(bc->masterEntities);
@@ -267,7 +293,7 @@ DECLARE_LOG(fefunc)
   void FeFunction<T>::Finalize(){
     
     // assert that functionId was set
-    static bool warn = true;
+    static bool warn = false;
     if(warn) 
     {
       WARN("Add some more consistency checks here");
@@ -628,7 +654,9 @@ DECLARE_LOG(fefunc)
         
         // Map coefficient function onto the actual FeSpace
         std::map<Integer, T> coefs;
-        feSpace_->MapCoefFctToSpace( actBc.entities, actBc.value, coefs, 
+        StdVector<shared_ptr<EntityList> > list(1);
+        list[0] = actBc.entities;
+        feSpace_->MapCoefFctToSpace( list, actBc.value, coefs, 
                                      true, actBc.dofs );
 
         // Loop over all entries and set them
@@ -693,72 +721,132 @@ DECLARE_LOG(fefunc)
   template<typename T>
   void FeFunction<T>::ApplyLoads(){
     //loop over all loads
-    for ( UInt i = 0; i < loadCoefs_.GetSize(); i++ ) {
-      if(loadCoefs_[i]->IsConservative()){
+    LoadCoefList::iterator it = loadCoefs_.begin();
+    // Loop over all coeffunctions
+    for ( ; it != loadCoefs_.end(); ++it  ) {
+      PtrCoefFct ptCoef = it->first;
+      StdVector<shared_ptr<EntityList> > & lists = it->second;
+      if(ptCoef->IsConservative()){
         //this is a little circumfencial allocaing and releasing memory
         //in each step. perhaps it would be better to mak a class variable or do it
         //differently somehow
         Vector<T> loadVec(this->coeffs_->GetSize());
         loadVec.Init();
-        loadCoefs_[i]->MapConservative(this->feSpace_,loadVec);
+        ptCoef->MapConservative(this->feSpace_,loadVec);
         this->algsys_->SetFncRHS(loadVec,this->fctId_);
       }else{
         //ok here we pass again the work to the space
-        shared_ptr<CoefFunction> curFnc = loadCoefs_[i];
-        if(curFnc->GetEntityList().GetSize() > 1){
-          EXCEPTION("There are currently more than one entity lists defined within the function. This implementation can not yet cope with that.")
-        }
-        shared_ptr<EntityList> curEnt = curFnc->GetEntityList()[0];
-        // check, if entity list is defined on elements or nodes
-        if( curEnt->GetType() == EntityList::ELEM_LIST ||
-            curEnt->GetType() == EntityList::SURF_ELEM_LIST ) {
+//        // check, if entity list is defined on elements or nodes
+//        if( curEnt->GetType() == EntityList::ELEM_LIST ||
+//            curEnt->GetType() == EntityList::SURF_ELEM_LIST ) {
           // Map coefficient function onto the actual FeSpace
           std::map<Integer, T> coefs;
-          feSpace_->MapCoefFctToSpace( curEnt, curFnc, coefs,
-                                       false );
+          feSpace_->MapCoefFctToSpace( lists, ptCoef, coefs, false );
 
           typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
           for( ; coefIt != coefs.end(); ++coefIt ) {
             this->algsys_->SetNodeRHS(coefIt->second,this->fctId_,(Integer)coefIt->first);
-          }
+//          }
         }
       }
-    }
+    } // loop: coefs
   }
 
   template<typename T>
   void FeFunction<T>::ApplyExternalData(){
-    //loop over all loads
-    for ( UInt i = 0; i < externalDataCoefs_.GetSize(); i++ ) {
-      shared_ptr<CoefFunction> curFnc = externalDataCoefs_[i];
-      if(curFnc->GetEntityList().GetSize() > 1){
-        EXCEPTION("There are currently more than one entity lists defined within the function. This implementation can not yet cope with that.")
-      }
-      shared_ptr<EntityList> curEnt = curFnc->GetEntityList()[0];
-      // check, if entity list is defined on elements or nodes
-      if( curEnt->GetType() == EntityList::ELEM_LIST ||
-          curEnt->GetType() == EntityList::SURF_ELEM_LIST ) {
-        // Map coefficient function onto the actual FeSpace
-        std::map<Integer, T> coefs;
-        feSpace_->MapCoefFctToSpace( curEnt, curFnc, coefs,
-                                     false );
-        Vector<T> & myVals = *this->coeffs_;
-        typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
-        for( ; coefIt != coefs.end(); ++coefIt ) {
-          Integer eqnNr = coefIt->first;
-          T val = coefIt->second;
-          myVals[eqnNr-1] = val;
-        }
 
-      }else{
-        if( curFnc->GetDependency() == CoefFunction::GENERAL ||
-            curFnc->GetDependency() == CoefFunction::SOLUTION) {
-          EXCEPTION("Boundary condition, which are not defined on elements "
-              << "are not allowed to be spatially dependent!");
-        }
-        EXCEPTION("Node lists are not yet supported");
+    LoadCoefList::iterator it = externalDataCoefs_.begin();
+    // Loop over all loads
+    for ( ; it != externalDataCoefs_.end(); ++it  ) {
+      PtrCoefFct curFnc = it->first;
+      StdVector<shared_ptr<EntityList> > & lists = it->second;
+
+      // Map coefficient function onto the actual FeSpace
+      std::map<Integer, T> coefs;
+      feSpace_->MapCoefFctToSpace( lists, curFnc, coefs, false );
+      Vector<T> & myVals = *this->coeffs_;
+      typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
+      for( ; coefIt != coefs.end(); ++coefIt ) {
+        Integer eqnNr = coefIt->first;
+        T val = coefIt->second;
+        myVals[eqnNr-1] = val;
       }
     }
+  }
+  
+  template<typename T>
+  void FeFunction<T>::InitFromFeFunction( shared_ptr<BaseFeFunction> feFct ) {
+   
+    LOG_DBG(fefunc) << PREFIX << "Initialize from other FeFunction";
+    
+    // Get related spaces
+    shared_ptr<FeSpace> otherSpace = feFct->GetFeSpace();
+    bool sameApprox = true;
+    
+    
+    // Get common entity lists
+    FeFunction<T> & otherFct =  
+          dynamic_cast<FeFunction<T>& >(*feFct);
+    StdVector<shared_ptr<EntityList> > intersect;
+    EntityList::Intersect( this->entities_, otherFct.entities_, intersect );
+
+    // Loop over all entities
+    LOG_DBG3(fefunc) << PREFIX << "Entities to be transferred: ";
+    for( UInt iList = 0; iList < intersect.GetSize(); ++iList ) {
+    // Check if all entities have the same approximation
+      bool isSame = this->feSpace_
+          ->IsSameEntityApproximation( intersect[iList],otherSpace);
+      LOG_DBG3(fefunc) << PREFIX << "\t" << intersect[iList]->GetName()
+          << " (same approximation: " 
+          << (isSame ? "true" : "false") << ")";
+      sameApprox &= isSame;
+    }
+    
+    if( !sameApprox ) {
+      LOG_DBG(fefunc)<< "=> Applying General Mapping Algorithm <= ";
+      // -----------------
+      //  General Mapping
+      // -----------------
+      // Map coefficient function onto the actual FeSpace using the general mechanism
+      std::map<Integer, T> coefs;
+      feSpace_->MapCoefFctToSpace( intersect, feFct, coefs, false );
+      Vector<T> & myVals = *this->coeffs_;
+      typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
+      for( ; coefIt != coefs.end(); ++coefIt ) {
+        Integer eqnNr = coefIt->first;
+        T val = coefIt->second;
+        myVals[eqnNr-1] = val;
+      }
+
+    } else {
+      // ---------------
+      //  Copy entries
+      // ---------------
+      LOG_DBG(fefunc)<< "=> Applying Copy Based Algorithm <= ";
+      Vector<T> & myVec = *(this->coeffs_);
+      myVec.Init();
+      
+      for( UInt iList = 0; iList < intersect.GetSize(); ++iList ) {
+        shared_ptr<EntityList> actList = intersect[iList];
+        
+        EntityIterator it = actList->GetIterator();
+        StdVector<Integer> eqns;
+        // loop over all elements
+        for( it.Begin(); !it.IsEnd(); it++ ) {
+          Vector<T> elemSol;
+          otherFct.GetEntitySolution( elemSol, it);
+          feSpace_->GetEqns( eqns, it);
+          UInt numEqns = eqns.GetSize();
+          // Loop over all equations
+          for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
+            if( eqns[iEqn] > 0 ) {
+              myVec[eqns[iEqn]-1] = elemSol[iEqn];
+            }
+          } // loop: eqns
+        } // loop: elements
+      } // loop: lists
+    }
+    LOG_DBG(fefunc) << PREFIX << "Finished initialization from other FeFunction";
   }
 
   template<typename T>
@@ -784,6 +872,7 @@ DECLARE_LOG(fefunc)
     idOp_->ApplyOp(temp, lpm, ptFe, elemSol );
     scal = temp[0];
   }
+  
   
   // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION

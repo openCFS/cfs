@@ -47,6 +47,10 @@ public:
   
   //! Treat thin regions specially
   virtual void TreatThinElements(Double maxAspectRatio );
+  
+  //! \copydoc FeSpace::IsSameEntityApproximation
+  virtual bool IsSameEntityApproximation( shared_ptr<EntityList> list,
+                                          shared_ptr<FeSpace> space );
 
 protected:
 

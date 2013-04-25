@@ -111,7 +111,7 @@
               <xsd:choice maxOccurs="unbounded">
                             
               <!-- Initial state of previous sequence step / external file -->
-              <xsd:element name="initialState" type="DT_InitialState" maxOccurs="1"/>
+              <xsd:element name="initialState" type="DT_InitialState" minOccurs="0" maxOccurs="1"/>
               
  		      </xsd:choice>
  		    </xsd:complexType>

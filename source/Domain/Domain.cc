@@ -64,13 +64,19 @@ Domain::Domain(
     std::map<std::string, StdVector<shared_ptr<SimInput> > >& gridInputs,
     ResultHandler * handler, MaterialHandler * ptMat, 
     shared_ptr<SimState> simState,
-    PtrParamNode rootNode, PtrParamNode infoNode )
+    PtrParamNode rootNode, PtrParamNode infoNode,
+    bool output)
 {
   // initialize data
   numSinglePde_ = 0;
   numDirectCoupledPde_ = 0;
   numIterCoupledStdPde_ = 0;
+  useExternalGridMap_ = false;
+  output_ = output;
 
+  // Create new MathParser
+  mathParser_ = new MathParser();
+  
   // assign pointers
   gridInputs_ = gridInputs;
   simState_ = simState;
@@ -83,6 +89,8 @@ Domain::Domain(
   
   ptMatHandler_ = ptMat;
   ptMatHandler_->SetDomain( this );
+  
+  
   
   // register variables defined in "variableList" element
   RegisterVariables();
@@ -109,100 +117,122 @@ void Domain::CreateGrid()
     EXCEPTION( "Wrong Dimension parameter in xml-File" );
   }
 
-  std::map<std::string, StdVector<shared_ptr<SimInput> > >::const_iterator
-      gridIt;
+  
+  // Check, if there is already a pre-defined set of grids
+  if (gridMap_.size() > 0 && useExternalGridMap_) {
+    // -------------------
+    //  External Grid Map
+    // -------------------
+    // grids are already present, only coordinate systems are missing
+    CreateCoordinateSystems();
+    
+  } else {
 
-  // iterate over all grid ids
-  for (gridIt = gridInputs_.begin(); gridIt != gridInputs_.end(); ++gridIt)
-  {
+    // -------------------
+    //  Own Grid Map
+    // -------------------
 
-    std::cout << "++ Reading mesh ... " << std::flush; // endl after check for regularity
+    // Create grids using input readers.
+    std::map<std::string, StdVector<shared_ptr<SimInput> > >::const_iterator
+    gridIt;
 
-    std::string gridId = gridIt->first;
-    if ((gridId != "default") && (gridInputs_.size() == 1))
+
+    // iterate over all grid ids
+    for (gridIt = gridInputs_.begin(); gridIt != gridInputs_.end(); ++gridIt)
     {
-      WARN("Grid '" << gridId << "' was renamed to 'default', as "
-          << "it is the only one.");
-      gridId = "default";
-    }
 
-    StdVector<shared_ptr<SimInput> > const & inputs = gridIt->second;
+      if( output_) 
+        std::cout << "++ Reading mesh ... " << std::flush; // endl after check for regularity
 
-    // iterate over all inputs for the current grid and init reader
-    for (UInt iFile = 0; iFile < inputs.GetSize(); iFile++)
-    {
-      shared_ptr<SimInput> actInFile = inputs[iFile];
-      actInFile->InitModule();
-    }
+      std::string gridId = gridIt->first;
+      if ((gridId != "default") && (gridInputs_.size() == 1))
+      {
+        WARN("Grid '" << gridId << "' was renamed to 'default', as "
+             << "it is the only one.");
+        gridId = "default";
+      }
 
-    // create new grid
-    Grid * actGrid = NULL;
-    if (libmesh == "cfsGrid")
-    {
-      if (gridId == "default")
-        actGrid = new GridCFS(dim_, param_, info_);
+      StdVector<shared_ptr<SimInput> > const & inputs = gridIt->second;
+
+      // iterate over all inputs for the current grid and init reader
+      for (UInt iFile = 0; iFile < inputs.GetSize(); iFile++)
+      {
+        shared_ptr<SimInput> actInFile = inputs[iFile];
+        actInFile->InitModule();
+      }
+
+      // create new grid
+      Grid * actGrid = NULL;
+      if (libmesh == "cfsGrid")
+      {
+        if (gridId == "default")
+          actGrid = new GridCFS(dim_, param_, info_);
+        else
+        {
+          actGrid = new GridCFS( inputs[0]->GetDim(), param_, info_);
+        }
+      }
       else
       {
-        actGrid = new GridCFS( inputs[0]->GetDim(), param_, info_);
+        EXCEPTION( "Type of mesh_library should be one of "
+            << "'cfsgrid' or 'adaptgrid', but is '" << libmesh << "'" );
       }
-    }
-    else
-    {
-      EXCEPTION( "Type of mesh_library should be one of "
-          << "'cfsgrid' or 'adaptgrid', but is '" << libmesh << "'" );
-    }
 
-    // set flag about axisymmetry
-    if( probGeo == "axi" ) {
-      actGrid->SetAxi( true );
-    } else {
-      actGrid->SetAxi( false );
-    }
+      // set flag about axisymmetry
+      if( probGeo == "axi" ) {
+        actGrid->SetAxi( true );
+      } else {
+        actGrid->SetAxi( false );
+      }
 
-    // add grid to internal map
-    gridMap_[gridId] = actGrid;
+      // add grid to internal map
+      gridMap_[gridId] = actGrid;
 
-    // Read in coordinate systems
-    // This has to be done, before the grid gets finalized,
-    // as some methods in the grid rely on the existence of coordinate
-    // systems
-    if (gridId == "default")
-      CreateCoordinateSystems();
+      // Read in coordinate systems
+      // This has to be done, before the grid gets finalized,
+      // as some methods in the grid rely on the existence of coordinate
+      // systems
+      if (gridId == "default")
+        CreateCoordinateSystems();
 
-    // iterate over all inputs for the current grid and read mesh
-    for (UInt iFile = 0; iFile < inputs.GetSize(); iFile++)
-    {
-      shared_ptr<SimInput> actInFile = inputs[iFile];
-      actInFile->ReadMesh(actGrid);
-      boost::filesystem::path p(actInFile->GetFileName());
-      // BOOST PROBLEM!!!
-      // if p.leaf() makes problem, p.filename() would maybe work.
-      // p.filename() does not compile for me!!
-      // What should work:
-      // boost::filesystem::base(p) << "." << boost::filesystem::extension(p)
-      std::cout << "'" << p.leaf() << "' ";
-    }
+      // iterate over all inputs for the current grid and read mesh
+      for (UInt iFile = 0; iFile < inputs.GetSize(); iFile++)
+      {
+        shared_ptr<SimInput> actInFile = inputs[iFile];
+        actInFile->ReadMesh(actGrid);
+        boost::filesystem::path p(actInFile->GetFileName());
+        // BOOST PROBLEM!!!
+        // if p.leaf() makes problem, p.filename() would maybe work.
+        // p.filename() does not compile for me!!
+        // What should work:
+        // boost::filesystem::base(p) << "." << boost::filesystem::extension(p)
+        if( output_) 
+          std::cout << "'" << p.leaf() << "' ";
+      }
 
-    actGrid->FinishInit();
-
-    // check the grid on regularity
-    bool regular = false;
-    bool non_regular = false;
-    for (UInt r = 0; r < actGrid->regionData.GetSize(); r++)
-    {
-      if (actGrid->regionData[r].regular)
-        regular = true;
-      else
-        non_regular = true;
-    }
-    // finish output for grid reading
-    std::cout << "-> ";
-    if (regular && non_regular)
-      std::cout << "partially ";
-    if (!regular && non_regular)
-      std::cout << "not ";
-    std::cout << "regular" << std::endl; // also regular && !non_regular
-  }
+      actGrid->FinishInit();
+      
+      // check the grid on regularity
+      bool regular = false;
+      bool non_regular = false;
+      for (UInt r = 0; r < actGrid->regionData.GetSize(); r++)
+      {
+        if (actGrid->regionData[r].regular)
+          regular = true;
+        else
+          non_regular = true;
+      }
+      // finish output for grid reading
+      if( output_) {
+        std::cout << "-> ";
+        if (regular && non_regular)
+          std::cout << "partially ";
+        if (!regular && non_regular)
+          std::cout << "not ";
+        std::cout << "regular" << std::endl; // also regular && !non_regular
+      }
+    } // loop: input readers
+  } // if: use of external grids
 
   // make sure that there is a grid with ID "default"
   if (gridMap_.find("default") == gridMap_.end())
@@ -212,8 +242,8 @@ void Domain::CreateGrid()
 
   // Call the nonmatching grid intersection calculation
   //gridMap_["default"]->InitNonmatchingInterfaces();
-  
-  
+
+
 
   if (!progOpts->GetPrintGrid() == true)
   {
@@ -221,19 +251,19 @@ void Domain::CreateGrid()
     if( resultHandler_ ) {
       resultHandler_->Init( gridMap_, false);
     }
-    
+
     // print grid information to result file if requested
     if(param_->Get("domain")->Get("printGridInfo")->As<bool>() ) {
       if( resultHandler_ ) {
         gridMap_["default"]->CreateGridInformation(resultHandler_, coordSys_);
       }
     }
-    
+
   }
 
 }
 
-void Domain::PostInit()
+void Domain::PostInit(UInt sequenceStep)
 {
   
   // set up the driver first
@@ -242,12 +272,15 @@ void Domain::PostInit()
 
   // we do not have to delete driver as it is due to SetDriver() deleted
   // either via ptSingleDriver_ or multiSequenceDriver_ in the destructor
-  BaseDriver* driver = BaseDriver::CreateInstance( simState_, this );
+  BaseDriver* driver = BaseDriver::CreateInstance( simState_, this, param_, info_ );
   SetDriver(driver); // see above!
   //info_->FinishProgress();
 
   // initialize the driver
   driver->Init();
+  
+  if( multiSequenceDriver_ )
+    multiSequenceDriver_->SetSequenceStep(sequenceStep);
 
   // check if we have to do optimization
   if (param_->Has("optimization"))
@@ -273,12 +306,14 @@ void Domain::PostInit()
 Domain::~Domain()
 {
 
-  // delete all grid
-  std::map<std::string, Grid*>::iterator gridIt;
-  for (gridIt = gridMap_.begin(); gridIt != gridMap_.end(); gridIt++)
-  {
-    delete gridIt->second;
-    gridIt->second = NULL;
+  // delete all grids only, if no external grid were used
+  if( !useExternalGridMap_) {
+    std::map<std::string, Grid*>::iterator gridIt;
+    for (gridIt = gridMap_.begin(); gridIt != gridMap_.end(); gridIt++)
+    {
+      delete gridIt->second;
+      gridIt->second = NULL;
+    }
   }
 
   delete ptIterCoupledPde_;
@@ -321,6 +356,11 @@ Domain::~Domain()
   {
     delete ptSingleDriver_;
     ptSingleDriver_ = NULL;
+  }
+  
+  if(mathParser_) {
+    delete mathParser_;
+    mathParser_ = NULL;
   }
 
 }
@@ -467,17 +507,16 @@ CoordSystem * Domain::GetCoordSystem(const std::string & name)
 // **************************
 //   Initialization of PDEs
 // **************************
-void Domain::CreatePDEs(UInt sequenceStep)
+void Domain::CreatePDEs(UInt sequenceStep, PtrParamNode infoNode)
 {
-
   // create single pde(s)
-  CreateSinglePDEs(sequenceStep);
+  CreateSinglePDEs(sequenceStep, infoNode);
 
   // create direct coupled pde(s)
-  CreateDirectCoupledPDEs(sequenceStep);
+  CreateDirectCoupledPDEs(sequenceStep, infoNode);
 
   // Create iterative coupled pde
-  CreateIterCoupledPDE(sequenceStep);
+  CreateIterCoupledPDE(sequenceStep, infoNode);
 }
 
 void Domain::InitPDEs(UInt sequenceStep)
@@ -493,16 +532,28 @@ void Domain::InitPDEs(UInt sequenceStep)
     base = ptIterCoupledPde_->GetInfoNode();
   }
 
-  // Initialize those PDEs which are not
-  // directly coupled
+  // Initialize those PDEs which are not directly coupled
   std::map<SinglePDE*, bool>::iterator it;
 
-  for (UInt i = 0; i < numSinglePde_; i++)
-  {
-    it = isDirectCoupled_.find(ptSinglePde_[i]);
-    if ((*it).second == false)
-    {
-      ptSinglePde_[i]->Init(sequenceStep,base);
+  for( UInt iStage = 0; iStage < 3; ++iStage ) {
+    for (UInt i = 0; i < numSinglePde_; i++) {
+      it = isDirectCoupled_.find(ptSinglePde_[i]);
+      if ((*it).second == false) {
+        switch(iStage) {
+          case 0:
+            ptSinglePde_[i]->Init_Stage1(sequenceStep,base);
+            break;
+          case 1:
+            ptSinglePde_[i]->Init_Stage2();
+            break;
+          case 2:
+            ptSinglePde_[i]->Init_Stage3();
+            break;
+          default:
+            EXCEPTION( "Only 3 stages of initialization known");
+            break;
+        }
+      }
     }
   }
 
@@ -511,7 +562,8 @@ void Domain::InitPDEs(UInt sequenceStep)
   // those single PDEs which are directly coupled
   for (UInt i = 0; i < numDirectCoupledPde_; i++)
   {
-    std::cout << "++ Initializing direct coupling" << std::endl;
+    if( output_) 
+      std::cout << "++ Initializing direct coupling" << std::endl;
     ptDirectCoupledPde_[i]->Init(sequenceStep);
     ptDirectCoupledPde_[i]->DefineAlgSys();
   }
@@ -533,7 +585,7 @@ void Domain::InitPDEs(UInt sequenceStep)
 // **************************
 //   Creation of PDEs
 // **************************
-void Domain::CreateSinglePDEs(UInt sequenceStep)
+void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
 {
 
   // default grid
@@ -554,8 +606,8 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
 
     std::string actPdeName = pdeNodes[i]->GetName();
     PtrParamNode actPdeNode = pdeNodes[i];
-    PtrParamNode infoNode = info_;
-    std::cout << "++ Creating PDE '" + actPdeName + "'" << std::endl;
+    if( output_) 
+      std::cout << "++ Creating PDE '" + actPdeName + "'" << std::endl;
 
     if (actPdeName == "electrostatic")
       ptSinglePde_[i] = new ElecPDE(defaultGrid, actPdeNode, infoNode,
@@ -608,6 +660,11 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
     // by default, not single pde is directly coupled
     isDirectCoupled_[ptSinglePde_[i]] = false;
 
+    
+    // Ensure, that at least one PDE is present
+    if( numSinglePde_ == 0 ) {
+      WARN( "No PDEs were created. Please check your parameter file.")
+    }
     // Initialize current PDE
     // -> This step has now moved to method InitPDEs
     //ptSinglePde_[i]->Init();
@@ -616,7 +673,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
 } // end of InitPDE()
 
 
-void Domain::CreateIterCoupledPDE(UInt sequenceStep)
+void Domain::CreateIterCoupledPDE(UInt sequenceStep, PtrParamNode infoNode)
 {
 
   std::string errMsg;
@@ -627,7 +684,8 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep)
     return;
   }
 
-  std::cout << "++ Creating coupling" << std::endl;
+  if( output_) 
+    std::cout << "++ Creating coupling" << std::endl;
 
   // ================================
   //   Check for iterative coupling
@@ -645,7 +703,7 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep)
   // Create IterCoupledPDE and pass all StdPDEs to it
   ptIterCoupledPde_ = new IterCoupledPDE( ptSinglePde_,
                                           ptDirectCoupledPde_,
-                                          iterNode, info_, simState_, this  );
+                                          iterNode, infoNode, simState_, this  );
   
   // Loop over all SinglePDEs and pass pointer to iterative coupled PDE
   for( UInt i = 0; i < ptSinglePde_.GetSize(); ++i ) {
@@ -657,7 +715,7 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep)
 // ***************************
 //   CreateDirectCoupledPDEs
 // ***************************
-void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
+void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
 {
 
   numIterCoupledStdPde_ = numSinglePde_;
@@ -904,7 +962,7 @@ void Domain::RegisterVariables()
    ParamNodeList::iterator it = varNodes.Begin();
    std::string varName, valString;
    MathParser::HandleType handle;
-   handle = mathParser_.GetNewHandle();
+   handle = mathParser_->GetNewHandle();
    Double value = 0.0;
    for(; it != varNodes.End(); it++ ) {
      (*it)->GetValue("name", varName);
@@ -917,11 +975,11 @@ void Domain::RegisterVariables()
                  << "' is reserved, its value will be set automatically. "
                  << "Please choose a different name.");
      }
-     mathParser_.SetExpr(handle, valString);
-     value = mathParser_.Eval(handle);
-     mathParser_.SetValue(MathParser::GLOB_HANDLER, varName, value);
+     mathParser_->SetExpr(handle, valString);
+     value = mathParser_->Eval(handle);
+     mathParser_->SetValue(MathParser::GLOB_HANDLER, varName, value);
    }
-   mathParser_.ReleaseHandle(handle);
+   mathParser_->ReleaseHandle(handle);
   }
 }
 // *************
@@ -977,6 +1035,14 @@ void Domain::ResetPDEs()
   numSinglePde_ = 0;
   numDirectCoupledPde_ = 0;
   numIterCoupledStdPde_ = 0;
+}
+
+// *************
+//   SetGridMap
+// *************
+void Domain::SetGridMap( const std::map<std::string, Grid* >& gridMap ) {
+  gridMap_ = gridMap;
+  useExternalGridMap_ = true;
 }
 
 
