@@ -2656,6 +2656,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         pressPhase.Push_back( phase );
       }
     }
+
     void MechPDE::CalcHomogenizedTensor(shared_ptr<BaseResult> base_result)
     {
       // TODO: Either the calculation moves here ore the data interchange
@@ -2672,6 +2673,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         for(unsigned int c = 0; c < tcols; ++c)
           vals[r * trows + c] = tensor[r][c];
     }
+
     template <class TYPE>
     void MechPDE::CalcEnergy( shared_ptr<BaseResult> vals )
     {
