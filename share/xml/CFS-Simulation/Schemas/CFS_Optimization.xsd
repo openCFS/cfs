@@ -973,6 +973,8 @@
                       <xsd:enumeration value="penalizedStress"/>
                       <!-- This is (rho - rho^*)^2 (rho is physical) withount the 1/N -->
                       <xsd:enumeration value="designTracking"/>
+                     <!-- This is the gradient matrix -->
+                      <xsd:enumeration value="transfoMatrix"/>
                       <!-- the local value of the projection function -->
                       <xsd:enumeration value="projection"/>
                       <!-- has details! -->
@@ -1427,6 +1429,7 @@
       <xsd:enumeration value="multiObjective"/>
       <!-- allows constraints to be bounded by slack -->
       <xsd:enumeration value="slack"/>
+
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -1620,6 +1623,12 @@
       <xsd:enumeration value="globalMole"/>
       <xsd:enumeration value="globalJump"/>
       <xsd:enumeration value="stress"/>
+      
+            <!-- Value of the G matrix -->
+      <xsd:enumeration value="transfoMatrix11"/>
+      <xsd:enumeration value="transfoMatrix12"/>
+      <xsd:enumeration value="transfoMatrix21"/>
+      <xsd:enumeration value="transfoMatrix22"/>
     </xsd:restriction>
   </xsd:simpleType>
 

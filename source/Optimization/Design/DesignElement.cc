@@ -741,6 +741,10 @@ void DesignElement::SetEnums()
   detail.Add(GLOBAL_CHECKERBOARD, "globalCheckerboard");
   detail.Add(STRESS, "stress");
   detail.Add(PROJECTION_FILTER, "projectionFilter");
+  detail.Add(TRANSFO_MATRIX11, "transfoMatrix11");
+  detail.Add(TRANSFO_MATRIX12, "transfoMatrix12");
+  detail.Add(TRANSFO_MATRIX21, "transfoMatrix21");
+  detail.Add(TRANSFO_MATRIX22, "transfoMatrix22");
 
 }
 

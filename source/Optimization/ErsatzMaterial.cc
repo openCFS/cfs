@@ -824,8 +824,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       break;
 
       case Function::COMPLIANCE:
-      result = CalcCompliance(excite, c, g, derivative);
       OutputModRedGTensor(f); // just in case we do model reduction
+      result = CalcCompliance(excite, c, g, derivative);
       break;
 
       case Objective::TRACKING:
@@ -1408,10 +1408,10 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   void ErsatzMaterial::OutputModRedGTensor(Function* f)
   {
-    int res_idx_11 = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::TRANSFO_MATRIX, DesignElement::TRANSFO_MATRIX11);
-    int res_idx_12 = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::TRANSFO_MATRIX, DesignElement::TRANSFO_MATRIX12);
-    int res_idx_21 = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::TRANSFO_MATRIX, DesignElement::TRANSFO_MATRIX21);
-    int res_idx_22 = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::TRANSFO_MATRIX, DesignElement::TRANSFO_MATRIX22);
+    int res_idx_11 = design->GetSpecialResultIndex(DesignElement::SCALING1, DesignElement::TRANSFO_MATRIX, DesignElement::TRANSFO_MATRIX11);
+    int res_idx_12 = design->GetSpecialResultIndex(DesignElement::SCALING1, DesignElement::TRANSFO_MATRIX, DesignElement::TRANSFO_MATRIX12);
+    int res_idx_21 = design->GetSpecialResultIndex(DesignElement::SCALING1, DesignElement::TRANSFO_MATRIX, DesignElement::TRANSFO_MATRIX21);
+    int res_idx_22 = design->GetSpecialResultIndex(DesignElement::SCALING1, DesignElement::TRANSFO_MATRIX, DesignElement::TRANSFO_MATRIX22);
 
     if(res_idx_11 == -1 && res_idx_12 == -1 && res_idx_21 && res_idx_22 == -1)
       return;
