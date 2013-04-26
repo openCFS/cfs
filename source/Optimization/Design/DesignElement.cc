@@ -74,6 +74,10 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case SCALING2:
     case ROTANGLE:
     case ROTANGLE2:
+    case G11:
+    case G12:
+    case G21:
+    case G22:
     // Batian's stuff
     // FIXMI!!
     case POISSON:
@@ -141,6 +145,21 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case PIEZO_21:
     case PIEZO_22:
     case PIEZO_23:
+      return true;
+    default:
+      return false;
+    }
+    break;
+  }
+
+  case G_ALL:
+  {
+    switch(test)
+    {
+    case G11:
+    case G12:
+    case G21:
+    case G22:
       return true;
     default:
       return false;
@@ -641,6 +660,7 @@ void DesignElement::SetEnums()
   type.Add(ELAST_ALL, "elast_all");
   type.Add(DIELEC_TRACE, "dielec_trace");
   type.Add(DIELEC_ALL, "dielec_all");
+  type.Add(G_ALL, "G_all");
   type.Add(PIEZO_ALL, "piezo_all");
   type.Add(DEFAULT, "default");
   type.Add(DENSITY, "density");
@@ -676,6 +696,10 @@ void DesignElement::SetEnums()
   type.Add(ROTANGLE2, "rotAngle2");
   type.Add(SCALING1, "scaling1");
   type.Add(SCALING2, "scaling2");
+  type.Add(G11, "G11");
+  type.Add(G12, "G12");
+  type.Add(G21, "G21");
+  type.Add(G22, "G22");
   type.Add(STIFF1, "stiff1");
   type.Add(STIFF2, "stiff2");
   type.Add(SLACK, "slack");

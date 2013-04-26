@@ -84,7 +84,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     FillHomRectSamples(hr, 8, "0.25", "0.25");
   }
 
-  if(type_ == MODEL_REDUCTION)
+  if((type_ == MODEL_REDUCTION) | (type_ == MODEL_REDUCTION2))
   {
     std::string file = pn->Get("modRed/file")->As<std::string>();
     Xerces xerces(file);
@@ -246,6 +246,7 @@ unsigned int DesignMaterial::RequiredParameters(OptimizationMaterial::System mat
   case DENSITY_TIMES_ROTATED_2D_TENSOR:
     return r+7;
   case MODEL_REDUCTION:
+  case MODEL_REDUCTION2:
 	  return r+4;
   }
 
@@ -334,6 +335,11 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
         && design.Find(DesignElement::ROTANGLE2) >= 0
         && design.Find(DesignElement::SCALING1) >= 0
         && design.Find(DesignElement::SCALING2) >= 0);
+  case MODEL_REDUCTION2:
+      return(design.Find(DesignElement::G11) >= 0
+          && design.Find(DesignElement::G12) >= 0
+          && design.Find(DesignElement::G21) >= 0
+          && design.Find(DesignElement::G22) >= 0);
   }
   assert(false);
   return false;
@@ -1088,6 +1094,19 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
   mat.Mult(corrector_[1], mat1);
   mat.Mult(corrector_[2], mat2);
 
+ /* Matrix<double> vec0(dimension_,1);
+  Matrix<double> vec1(dimension_,1);
+  Matrix<double> vec2(dimension_,1);
+
+  vec0 = mod_red_vectors_[4*0 +0]*G11 + mod_red_vectors_[4*0 +1]*G12
+      +mod_red_vectors_[4*1 +2]*G21 + mod_red_vectors_[4*1 +3]*G22;
+
+  vec1 = mod_red_vectors_[4*0 +2]*G21 + mod_red_vectors_[4*0 +3]*G22
+      +mod_red_vectors_[4*1 +0]*G11 + mod_red_vectors_[4*1 +1]*G12;
+
+  vec2 = mod_red_vectors_[ 4*2 +0]*G21 + mod_red_vectors_[4*2 +1]*G22
+      +mod_red_vectors_[4*2 +2]*G11 + mod_red_vectors_[4*2 +3]*G12;*/
+
    //E11 = E11mean + E11*dxg(u1) + E12*dyg(v1)
    E[1-1][1-1] = mean_tensor_[1-1][0]
 
@@ -1102,6 +1121,8 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
                 + G22*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+3])
 
                 +corrector_[0].FrobeniusProduct(mat0);
+
+
 
   // E12 = E12mean - E11*dxg(u2) - E12*dyg(v2)
    E[1-1][2-1] = mean_tensor_[2-1][0]
@@ -1205,6 +1226,7 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
 void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const Matrix<double>& Gderiv, const StdVector<Matrix<double> >& corrector_, Notation notation)
 {
 
+   //Should be done with Hill-Mandel notation
   E.Resize(3,3);
   E.Init();
 
@@ -1382,23 +1404,140 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
 
 }
 
-void DesignMaterial::GetModRedGTensor(Matrix<double>& G)
+void DesignMaterial::GetModRedGTensor(Matrix<double>& G, DesignElement::Type direction)
 {
 
   G.Resize(2,2);
   G.Init();
 
+  assert((type_== MODEL_REDUCTION) | (type_==MODEL_REDUCTION2));
+
+  if(type_ == MODEL_REDUCTION)
+  {
   //Quad9FE fe;
   // std::cout << "GetModRedTensor" << std::endl;
+
   double theta = params_[DesignElement::ROTANGLE];
   double phi = params_[DesignElement::ROTANGLE2];
   double l1 = params_[DesignElement::SCALING1];
   double l2 = params_[DesignElement::SCALING2];
 
-  G(0,0) = l1*cos(theta)*cos(phi) -l2*sin(theta)*sin(phi); //matrix element G11
-  G(0,1) = l1*cos(theta)*sin(phi) +l2*sin(theta)*cos(phi); //matrix element G12
-  G(1,0) = -l1*sin(theta)*cos(phi) -l2*cos(theta)*sin(phi); //matrix element G21
-  G(1,1) = -l1*sin(theta)*sin(phi) + l2*cos(theta)*cos(phi); //matrix element G22*/
+  switch(direction)
+  {
+     case DesignElement::NO_DERIVATIVE:
+     {
+        G(0,0) = l1*cos(theta)*cos(phi) -l2*sin(theta)*sin(phi); //matrix element G11
+        G(0,1) = l1*cos(theta)*sin(phi) +l2*sin(theta)*cos(phi); //matrix element G12
+        G(1,0) = -l1*sin(theta)*cos(phi) -l2*cos(theta)*sin(phi); //matrix element G21
+        G(1,1) = -l1*sin(theta)*sin(phi) + l2*cos(theta)*cos(phi); //matrix element G22
+
+       break;
+     }
+     case DesignElement::ROTANGLE:
+     {
+         G(0,0) = -l1*sin(theta)*cos(phi) -l2*cos(theta)*sin(phi); //matrix element G11
+         G(0,1) = -l1*sin(theta)*sin(phi) +l2*cos(theta)*cos(phi); //matrix element G12
+         G(1,0) = -l1*cos(theta)*cos(phi) +l2*sin(theta)*sin(phi); //matrix element G21
+         G(1,1) = -l1*cos(theta)*sin(phi) - l2*sin(theta)*cos(phi); //matrix element G22
+       break;
+     }
+     case DesignElement::ROTANGLE2:
+     {
+        G(0,0) = -l1*cos(theta)*sin(phi) - l2*sin(theta)*cos(phi); //matrix element G11
+        G(0,1) = l1*cos(theta)*cos(phi) - l2*sin(theta)*sin(phi); //matrix element G12
+        G(1,0) = l1*sin(theta)*sin(phi) - l2*cos(theta)*cos(phi); //matrix element G21
+        G(1,1) = -l1*sin(theta)*cos(phi) - l2*cos(theta)*sin(phi); //matrix element G22
+       break;
+     }
+     case DesignElement::SCALING1:
+     {
+
+       G(0,0) = cos(theta)*cos(phi); //matrix element G11
+       G(0,1) = cos(theta)*sin(phi); //matrix element G12
+       G(1,0) = -sin(theta)*cos(phi); //matrix element G21
+       G(1,1) = -sin(theta)*sin(phi); //matrix element G22
+
+       break;
+     }
+     case DesignElement::SCALING2:
+     {
+       G(0,0) =-sin(theta)*sin(phi);
+       G(0,1) =sin(theta)*cos(phi);
+       G(1,0) =-cos(theta)*sin(phi);
+       G(1,1) = cos(theta)*cos(phi);
+       break;
+     }
+     default: //Zero matrix
+       G(0,0) =0.0;
+       G(0,1) =0.0;
+       G(1,0) =0.0;
+       G(1,1) =0.0;
+
+     }
+
+  }
+  else if (type_ == MODEL_REDUCTION2)
+  {
+     double G11 = params_[DesignElement::G11];
+     double G12 = params_[DesignElement::G12];
+     double G21 = params_[DesignElement::G21];
+     double G22 = params_[DesignElement::G22];
+
+     switch(direction)
+       {
+          case DesignElement::NO_DERIVATIVE:
+          {
+             G(0,0) = G11; //matrix element G11
+             G(0,1) = G12; //matrix element G12
+             G(1,0) = G21; //matrix element G21
+             G(1,1) = G22; //matrix element G22
+
+            break;
+          }
+          case DesignElement::G11:
+          {
+              G(0,0) = 1.0; //matrix element G11
+              G(0,1) = 0.0; //matrix element G12
+              G(1,0) = 0.0; //matrix element G21
+              G(1,1) = 0.0; //matrix element G22
+            break;
+          }
+          case DesignElement::G12:
+          {
+             G(0,0) = 0.0; //matrix element G11
+             G(0,1) = 1.0; //matrix element G12
+             G(1,0) = 0.0; //matrix element G21
+             G(1,1) = 0.0; //matrix element G22
+            break;
+          }
+          case DesignElement::G21:
+          {
+
+            G(0,0) = 0.0; //matrix element G11
+            G(0,1) = 0.0; //matrix element G12
+            G(1,0) = 1.0; //matrix element G21
+            G(1,1) = 0.0; //matrix element G22
+
+            break;
+          }
+          case DesignElement::G22:
+          {
+            G(0,0) =0.0;
+            G(0,1) =0.0;
+            G(1,0) =0.0;
+            G(1,1) =1.0;
+            break;
+          }
+          default: //Identity matrix
+            G(0,0) =0.0;
+            G(0,1) =0.0;
+            G(1,0) =0.0;
+            G(1,1) =0.0;
+
+          }
+  }
+
+
 }
 
 void DesignMaterial::GetModRedTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
@@ -1407,73 +1546,23 @@ void DesignMaterial::GetModRedTensor(Matrix<double>& E, DesignElement::Type dire
   E.Resize(3,3);
   E.Init();
 
-  double theta = params_[DesignElement::ROTANGLE];
-  double phi = params_[DesignElement::ROTANGLE2];
-  double l1 = params_[DesignElement::SCALING1];
-  double l2 = params_[DesignElement::SCALING2];
-
   Matrix<double> G(2,2);
-  GetModRedGTensor(G);
+  GetModRedGTensor(G,DesignElement::NO_DERIVATIVE);
 
   StdVector<Matrix<double> > corrector_(3);
   //The corrector calculation is always done with Voigt notation
   GetModRedCorrector(corrector_, G);
 
-   switch(direction)
-   {
-   case DesignElement::NO_DERIVATIVE:
-   {
-     GetModRedHomTensor(E, G,corrector_, notation);
-
-     break;
-   }
-   case DesignElement::ROTANGLE:
-   {
-      Matrix<double> Gtheta(2,2);
-       Gtheta(0,0) = -l1*sin(theta)*cos(phi) -l2*cos(theta)*sin(phi); //matrix element G11
-       Gtheta(0,1) = -l1*sin(theta)*sin(phi) +l2*cos(theta)*cos(phi); //matrix element G12
-       Gtheta(1,0) = -l1*cos(theta)*cos(phi) +l2*sin(theta)*sin(phi); //matrix element G21
-       Gtheta(1,1) = -l1*cos(theta)*sin(phi) - l2*sin(theta)*cos(phi); //matrix element G22*/
-
-       GetModRedHomTensor(E, G, Gtheta, corrector_, notation);
-     break;
-   }
-   case DesignElement::ROTANGLE2:
-   {
-     Matrix<double> Gphi(2,2);
-      Gphi(0,0) = -l1*cos(theta)*sin(phi) - l2*sin(theta)*cos(phi); //matrix element G11
-      Gphi(0,1) = l1*cos(theta)*cos(phi) - l2*sin(theta)*sin(phi); //matrix element G12
-      Gphi(1,0) = l1*sin(theta)*sin(phi) - l2*cos(theta)*cos(phi); //matrix element G21
-      Gphi(1,1) = -l1*sin(theta)*cos(phi) - l2*cos(theta)*sin(phi); //matrix element G22*/
-
-      GetModRedHomTensor(E, G, Gphi, corrector_, notation);
-     break;
-   }
-   case DesignElement::SCALING1:
-   {
-     Matrix<double> Gl1(2,2);
-     Gl1(0,0) = cos(theta)*cos(phi); //matrix element G11
-     Gl1(0,1) = cos(theta)*sin(phi); //matrix element G12
-     Gl1(1,0) = -sin(theta)*cos(phi); //matrix element G21
-     Gl1(1,1) = -sin(theta)*sin(phi); //matrix element G22*/
-
-     GetModRedHomTensor(E, G, Gl1, corrector_, notation);
-     break;
-   }
-   case DesignElement::SCALING2:
-   {
-     Matrix<double> Gl2(2,2);
-     Gl2(0,0) =-sin(theta)*sin(phi);
-     Gl2(0,1) =sin(theta)*cos(phi);
-     Gl2(1,0) =-cos(theta)*sin(phi);
-     Gl2(1,1) = cos(theta)*cos(phi);
-
-     GetModRedHomTensor(E, G, Gl2, corrector_, notation);
-     break;
-   }
-   default:
-     ZeroTensor(E, PLANE);
-   }
+  if (direction == DesignElement::NO_DERIVATIVE)
+  {
+    GetModRedHomTensor(E, G,corrector_, notation);
+  }
+  else
+  {
+    Matrix<double> Gderiv(2,2);
+    GetModRedGTensor(Gderiv,direction);
+    GetModRedHomTensor(E, G, Gderiv, corrector_, notation);
+  }
 
 
 }
@@ -1795,7 +1884,7 @@ double DesignMaterial::GetIsoMass(double D, double G){
 
 void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
 {
-  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != HOM_RECT && type_ != MODEL_REDUCTION));
+  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != HOM_RECT && type_ != MODEL_REDUCTION && type_ != MODEL_REDUCTION2));
   switch(type_){
   case FMO:
     GetAnisotropicTensor(t, direction, notation);
@@ -1825,6 +1914,7 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
     GetHomRectTensor(t, direction, notation);
     break;
   case MODEL_REDUCTION:
+  case MODEL_REDUCTION2:
     GetModRedTensor(t, direction, notation);
     break;
   default: // case default
@@ -1998,6 +2088,7 @@ void DesignMaterial::SetEnums()
   type.Add(LAMINATES, "laminates");
   type.Add(HOM_RECT, "hom-rect");
   type.Add(MODEL_REDUCTION, "model-reduction");
+  type.Add(MODEL_REDUCTION2, "model-reduction2");
 
 
   transIsoType.SetName("DesignMaterial::TransIsoType");

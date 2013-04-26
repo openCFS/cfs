@@ -143,6 +143,12 @@ Function::Function(PtrParamNode pn)
 
     break;
 
+  case DETERMINANT_MATRIX:
+    if(design_ != DesignElement::DEFAULT && design_ != DesignElement::G_ALL)
+          throw Exception("function '" + type.ToString(type_) + "' has invalid design type " + DesignElement::type.ToString(design_));
+        break;
+    break;
+
   default:
     break;
   }
@@ -463,6 +469,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case POS_DEF_DET_MINOR_1:
     case POS_DEF_DET_MINOR_2:
     case POS_DEF_DET_MINOR_3:
+    case DETERMINANT_MATRIX:
     case BENSON_VANDERBEI_1:
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
@@ -616,6 +623,7 @@ bool Function::IsLocal(Type t)
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case DETERMINANT_MATRIX:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
     return true;
@@ -722,6 +730,7 @@ bool Function::ForSensitivityFiltering() const
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case DETERMINANT_MATRIX:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
@@ -769,6 +778,8 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
     nd = 2;
   if(design_ == DesignElement::PIEZO_ALL)
     nd = 6;
+  if(design_ == DesignElement::G_ALL)
+    nd = 4; // TODO why no 3?
   //assert((int) space->design.GetSize() >= nd);
 
   elements.Reserve(nd * (region == ALL_REGIONS ? space->GetNumberOfElements() : grid->GetNumElems(region)));
@@ -874,6 +885,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case DETERMINANT_MATRIX:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
@@ -1063,6 +1075,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case DETERMINANT_MATRIX:
   case MULTIMATERIAL_SUM:
     if(locality_ != MULT_DESIGNS_ELEMENT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
@@ -1433,6 +1446,19 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
     des_idx.Push_back(space->FindDesign(DesignElement::PIEZO_23));
     break;
 
+  case DETERMINANT_MATRIX:
+    assert(space->design.GetSize() >= 4);
+    if(f->GetDesignType() != DesignElement::G_ALL)
+          throw Exception("'tensor_norm' only defined for 'G_ALL' design");
+       if(space->design[0].design != DesignElement::G11)
+         throw Exception("'Expect first design to be 'G11'");
+    //assert(space->design.GetSize() >= 4);
+    //des_idx.Push_back(space->FindDesign(DesignElement::G11));
+    des_idx.Push_back(space->FindDesign(DesignElement::G12));
+    des_idx.Push_back(space->FindDesign(DesignElement::G21));
+    des_idx.Push_back(space->FindDesign(DesignElement::G22));
+  break;
+
   case POS_DEF_DET_MINOR_1:
   case BENSON_VANDERBEI_1:
     assert(space->design.GetSize() >= 6);
@@ -1701,6 +1727,11 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     fv = CalcBensonVanderbei(-1, local, false,  f->type_);
     break;
 
+  case DETERMINANT_MATRIX:
+    fv = CalcDetGTensor(-1, local, false);
+  break;
+
+
   case TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
     fv = CalcTensorTrace(-1, local, false);
@@ -1847,6 +1878,15 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     case BENSON_VANDERBEI_3:
       gv = CalcBensonVanderbei(n, local, true, ft);
       break;
+
+    case DETERMINANT_MATRIX:
+      gv = CalcDetGTensor(n, local, true);
+    break;
+
+    /*case ROTATIONAL_MATRIX1:
+    case ROTATIONAL_MATRIX2:
+      gv = CalcRotational(n,local,true,ft);
+      break;*/
 
     case TENSOR_TRACE:
     case GLOBAL_TENSOR_TRACE:
@@ -2329,6 +2369,58 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     return E3-E1*nu31*nu31;
   }
 }
+
+/* Condition: det(G-vId) >= eps*/
+double Function::Local::Identifier::CalcDetGTensor(int neigh_idx, const Local* local, bool derivative) const
+{
+  const Condition* g = dynamic_cast<const Condition*>(local->func_);
+
+  double v = g->GetParameter();
+  double eps = 1.0 * g->GetBoundValue();
+
+  Matrix<double> G(2,2);
+
+  bool ok = local->space->GetModRedGTensor(G, element->elem);
+  assert(ok);
+
+  //element->GetDesignSpace()->designMaterial->GetModRedGTensor(G, DesignElement::NO_DERIVATIVE);
+
+  double ret = 0;
+
+  if (!derivative)
+  {
+    ret =(G(0,0)-v)*(G(1,1)-v) - G(0,1)*G(1,0) -eps;
+  }
+  else
+  {
+    switch(GetElement(neigh_idx)->GetType())
+       {
+
+       case DesignElement::G11:
+         ret = G(1,1)-v;
+         break;
+       case DesignElement::G12:
+         ret = -G(1,0);
+         break;
+       case DesignElement::G21:
+         ret = -G(0,1);
+         break;
+       case DesignElement::G22:
+         ret = G(0,0)-v;
+         break;
+       default: assert(false);
+       break;
+       }
+     }
+     assert(ret != 12345678.0);
+     LOG_DBG3(func) << "Local::Local e_num=" << element->elem->elemNum << ", det=" << ret;
+     return ret;
+
+}
+
+
+
+
 
   double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const
   {

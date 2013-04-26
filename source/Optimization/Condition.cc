@@ -99,6 +99,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
     case BENSON_VANDERBEI_1:
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
+    case DETERMINANT_MATRIX:
       if(!pn->Has("parameter"))
         throw Exception("parameter (very small value) mandatory for '" + type.ToString(type_) + "'");
       break;
@@ -704,6 +705,7 @@ bool Condition::IsFeasibilityConstraint() const
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case DETERMINANT_MATRIX:
   case DESIGN_BOUND:
     return true;
   default:

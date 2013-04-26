@@ -23,7 +23,7 @@ template <class TYPE> class StdVector;
     
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
       DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR,
-      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT, MODEL_REDUCTION } Type;
+      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT, MODEL_REDUCTION, MODEL_REDUCTION2 } Type;
     
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -54,7 +54,7 @@ template <class TYPE> class StdVector;
     void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
 
     /** helper for GetModRedTensor() but also stand alone to output G Matrix from model reduction as special result */
-    void GetModRedGTensor(Matrix<double>& G);
+    void GetModRedGTensor(Matrix<double>& G, DesignElement::Type direction);
 
     void GetPiezoCouplingTensor(Matrix<double>& t, DesignElement::Type direction);
 

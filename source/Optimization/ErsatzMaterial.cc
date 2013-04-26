@@ -181,7 +181,7 @@ ErsatzMaterial::ErsatzMaterial() :
 
     if((   dt == DesignElement::TENSOR_TRACE || dt == DesignElement::ELAST_ALL
         || dt == DesignElement::DIELEC_TRACE || dt == DesignElement::DIELEC_ALL
-        || dt == DesignElement::PIEZO_ALL || dt == DesignElement::ALL_DESIGNS)
+        || dt == DesignElement::PIEZO_ALL || dt == DesignElement::G_ALL|| dt == DesignElement::ALL_DESIGNS)
        && (method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT))
       continue;
 
@@ -883,6 +883,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::BENSON_VANDERBEI_1:
       case Function::BENSON_VANDERBEI_2:
       case Function::BENSON_VANDERBEI_3:
+      case Function::DETERMINANT_MATRIX:
       case Function::DESIGN_BOUND:
       case Function::MULTIMATERIAL_SUM:
       assert(c == NULL);
@@ -1423,7 +1424,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     for (unsigned int i = 0, n = design->data.GetSize();i < n;i++)
     {
       DesignElement& de = design->data[i];
-      // PLANE_STRAIN and VOIGT and NO_DERIVATIVE are dummies
+      // PLANE_STRAIN and VOIGT are dummies
       design->GetModRedGTensor(G, de.elem);
 
       if(res_idx_11 != -1) {

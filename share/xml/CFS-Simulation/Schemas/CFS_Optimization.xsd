@@ -352,6 +352,8 @@
                 <xsd:enumeration value="bensonVanderbeiMinor1"/>
                 <xsd:enumeration value="bensonVanderbeiMinor2"/>
                 <xsd:enumeration value="bensonVanderbeiMinor3"/>
+                <!--  In case of model reduction, ensures that the determinant of the matrix is positive -->
+                <xsd:enumeration value="determinantMatrix"/>
                 <!-- this allows to formulate design bounds as functions. Set box constraints then to +- inf -->
                 <xsd:enumeration value="designBound"/>
                 <!-- local sum of all multimaterial designs -->
@@ -1131,6 +1133,7 @@
                             <xsd:enumeration value="hom-rect"/>
                             <!--  model reduction  -->
                             <xsd:enumeration value="model-reduction"/>
+                            <xsd:enumeration value="model-reduction2"/>
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
@@ -1349,6 +1352,7 @@
       <xsd:enumeration value="dielec_all"/>
       <!-- all piezoc coupling tensor coefficients for piezo FMO -->
       <xsd:enumeration value="piezo_all"/>
+      <xsd:enumeration value="G_all"/>
       <!-- Constraint is defined per element and uses all designs on that element -->
       <xsd:enumeration value="allDesigns"/> 
       <xsd:enumeration value="emodul"/>
@@ -1384,6 +1388,10 @@
       <xsd:enumeration value="stiff2"/>
       <xsd:enumeration value="scaling1"/>
       <xsd:enumeration value="scaling2"/>
+      <xsd:enumeration value="G11"/>
+      <xsd:enumeration value="G12"/>
+      <xsd:enumeration value="G21"/>
+      <xsd:enumeration value="G22"/>
       <!-- multimaterial requies the material attribute -->
       <xsd:enumeration value="multimaterial"/>
     </xsd:restriction>

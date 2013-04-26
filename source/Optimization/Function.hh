@@ -129,8 +129,11 @@ class Function
       BENSON_VANDERBEI_3,        /*!< 3st minor constraint for numerical problemantic FMO pos def constraint */
       DESIGN_BOUND,              /*!< local design bound */
       MULTIMATERIAL_SUM,         /*!< local sum of multimaterial designs */
-      SLACK                      /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function
-                                      but triggers AuxDesign instead of DesignSpace. */
+      SLACK,                      /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function*/
+     DETERMINANT_MATRIX            /*!<               but triggers AuxDesign instead of DesignSpace. */
+      //ROTATIONAL_MATRIX1,
+      //ROTATIONAL_MATRIX2, /* This is to ensure in model reduction that the TRANSFO_MATRIX is indeed a gradient Matrix, returns the rot of the first and secind coordinate */
+
     } Type; // in ConditionContainer::VirtualView::Refresh() we assume a maximal value for the type. Check!!
 
     /** to convert string/enum for this type */
@@ -443,6 +446,12 @@ class Function
 
         /** local FMO positive definiteness of (E-val*I) >= param via Benson Vanderbei constraints */
         double CalcBensonVanderbei(int neigh_idx, const Local* local, bool derivative, Type type) const;
+
+        /** local determinant of G: det G >=param. This is very nonlinear, there might be a need for positive definiteness To Do*/
+        double CalcDetGTensor(int neigh_idx, const Local* local, bool derivative) const;
+
+        /* @param type the type we want to evaluate. Might be different from local->func->type_ in Approximation::TransformMultiplyer() */
+        //double CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const;
 
         /** CalcStress() and the gradient are actually done in EM/SIMP */
 
