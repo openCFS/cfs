@@ -17,6 +17,7 @@
 
 #include "CoefFunction.hh"
 #include <boost/tr1/type_traits.hpp>
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField{
 

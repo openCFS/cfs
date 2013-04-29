@@ -125,30 +125,39 @@ class MaterialHandler;
 
     // create driver for domain and set it to given sequenceStep
     LOG_TRACE(simState) << "Initializing drivers and PDEs";
-    domain_->PostInit(sequenceStep-1);
+    domain_->PostInit(sequenceStep);
     
     LOG_TRACE(simState) << "Finished GetDomain for sequenceStep " << sequenceStep;
     return domain_;
   }
   
-  void SimState::SetInputReaderToSameInput() {
+  bool SimState::SetInputReaderToSameOutput() {
     // assure, that an output reader is present
     assert( outFile_ );
-    
-    // get file name of output writer
-    fs::path h5FileName = outFile_->GetFileName();
-    
-    // Create dummy info node
-    PtrParamNode infoNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
-    
-    // generate input reader for same file
-    PtrParamNode node(new ParamNode());
-    boost::shared_ptr<SimInputHDF5> in;
-    inFile_.reset(new SimInputHDF5(h5FileName.string(), node, infoNode));
 
-    // Initialize module
-    inFile_->InitModule();
-    inFile_->DB_Init();
+    // if input reader is already set to outpu writer, just leave
+    if(inFile_)
+      return true;
+    try {
+      // get file name of output writer
+      fs::path h5FileName = outFile_->GetFileName();
+
+      // Create dummy info node
+      PtrParamNode infoNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
+
+      // generate input reader for same file
+      PtrParamNode node(new ParamNode());
+      boost::shared_ptr<SimInputHDF5> in;
+      inFile_.reset(new SimInputHDF5(h5FileName.string(), node, infoNode));
+
+      // Initialize module
+      inFile_->InitModule();
+      inFile_->DB_Init();
+      return true;
+    } catch( Exception& e ) {
+      return false;
+    }
+    return false;
 
     
   }
@@ -202,12 +211,32 @@ class MaterialHandler;
     
   }
   
+  void SimState::GetSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
+                                   std::map<UInt, Double>& accTime,
+                                   std::map<UInt, bool>& isFinished ) {
+    inFile_->DB_GetNumMultiSequenceSteps( analysis, accTime, isFinished );
+  }
+  
+  bool SimState::IsCompleted( UInt sequenceStep ) {
+    std::map<UInt, BasePDE::AnalysisType>  analysis;
+    std::map<UInt, Double> accTime;
+    std::map<UInt, bool>  isFinished;
+    inFile_->DB_GetNumMultiSequenceSteps( analysis, accTime, isFinished );
+
+    if( isFinished.find(sequenceStep) == isFinished.end() ) {
+      EXCEPTION( "Sequence step " << sequenceStep << " is not contained in "
+          << "simulation file '" << inFile_->GetFileName() << "'.");
+    }
+    return isFinished[sequenceStep];
+  }
   
   UInt SimState::GetLastMsStepNum() {
     
     UInt lastMsStep = 0;
     std::map<UInt, BasePDE::AnalysisType>  analysis;
-    inFile_->DB_GetNumMultiSequenceSteps( analysis );
+    std::map<UInt, Double> accTime;
+    std::map<UInt, bool>  isFinished;
+    inFile_->DB_GetNumMultiSequenceSteps( analysis, accTime, isFinished );
     std::map<UInt, BasePDE::AnalysisType> ::const_iterator msIt = analysis.begin();
     for( ; msIt != analysis.end(); ++msIt) {
       lastMsStep = std::max(lastMsStep, msIt->first);
@@ -215,10 +244,10 @@ class MaterialHandler;
     return lastMsStep;
   }
   
-  UInt SimState::GetLastStepNum(UInt sequenceStep ) {
-    // assert
-   UInt lastStepNum = 0;
-   
+  void SimState::GetLastStepNum(UInt sequenceStep, UInt& lastStepNum,
+                                Double& lastStepVal ) {
+   lastStepNum = 0;
+   lastStepVal = 0.0;
    std::map<std::string, std::set<std::string> > coefFcts;
    std::map<std::string, std::set<std::string> >::const_iterator pdeIt;
    inFile_->DB_GetAvailPdeCoefFcts( sequenceStep, coefFcts );
@@ -238,10 +267,10 @@ class MaterialHandler;
        
        // get maximum
        lastStepNum = std::max(lastStepNum, stepValues.rbegin()->first);
+       lastStepVal = std::max(lastStepVal, stepValues.rbegin()->second);
      }
      
    } // loop: pdes
-   return lastStepNum;
     
   }
 
@@ -280,8 +309,8 @@ class MaterialHandler;
     }
   }
 
-  void SimState::FinishMultiSequenceStep( ) {
-    outFile_->FinishMultiSequenceStep();
+  void SimState::FinishMultiSequenceStep( bool completed, Double accTime) {
+    outFile_->DB_FinishMultiSequenceStep( completed, accTime );
     
     // delete all registered feFunctions
     feFcts_.clear();

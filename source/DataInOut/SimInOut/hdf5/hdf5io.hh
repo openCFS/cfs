@@ -221,15 +221,15 @@ namespace CoupledField {
                                      const std::string& name );
 
     //! Check if group exists
-    static bool GroupExists( H5::CommonFG &loc,
+    static bool GroupExists( const H5::CommonFG &loc,
                              const std::string& name );
 
     //! Check if dataset exists
-    static bool DatasetExists( H5::CommonFG &loc,
+    static bool DatasetExists( const H5::CommonFG &loc,
                                const std::string& name );
 
     //! Check if attribute exists
-    static bool AttrExists( H5::H5Object& obj,
+    static bool AttrExists( const H5::H5Object& obj,
                             const std::string& name );
 
 
@@ -262,8 +262,12 @@ namespace CoupledField {
     //  MISCELANEOUS METHODS
     // =======================================================================
 
-    //! Set chunksize to be used for Array data
+    //! Set minimum chunksize in case of extensible dataset
+    static void SetMinChunkSize( UInt chunkSize );
+
+    //! Set maximum chunksize to be used for Array data
     static void SetMaxChunkSize( UInt chunkSize );
+    
 
     //! Check for open objects in the hdf5 file and close them
     static void CheckOpenObjects(H5::H5File& file, bool verbose);
@@ -271,8 +275,12 @@ namespace CoupledField {
   private:
 
     // =======================================================================
-    //  MAXIMUM CHUNKSIZE
+    //  CHUNKSIZE BOUNDARIES
     // =======================================================================
+    //! Minimum chunk size (only used for extensible data arrays)
+    static hsize_t minChunkSize_;
+    
+    //! Maximum chunk size
     static hsize_t maxChunkSize_;
 
     // =======================================================================

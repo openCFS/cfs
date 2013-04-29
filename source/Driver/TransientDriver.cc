@@ -5,10 +5,9 @@
 #include <list>
 #include <math.h>
 
-// signal handling for post-poning Ctr-C
+// signal handling for catching Ctr-C
 #include <signal.h>
 
-#include <boost/filesystem.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "TransientDriver.hh"
@@ -25,7 +24,6 @@
 
 using std::cout;
 using std::endl;
-namespace fs = boost::filesystem;
 namespace pt = boost::posix_time;
 
 namespace CoupledField {
@@ -60,7 +58,7 @@ namespace CoupledField {
     firstdt_ = 0.0;
     restartStep_ = 0;
     endStep_ = 0;
-    abortSimulation_ = false;
+    isRestarted_ = false;
 
     // get parameter node
     PtrParamNode myNode = param_->Get("transient");
@@ -98,14 +96,16 @@ namespace CoupledField {
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                        "step", 1 );
     
-    // register signal handler
-    if( signal( SIGINT, TransientDriver::SignalHandler) == SIG_ERR ) {
-      EXCEPTION( "Could not register Signal Handler");
-    }
-    
-    // store pointer to global instance variable, if not yet set
-    if( !instance ) {
-      instance = this;
+    // register signal handler only, if it is a child driver
+    if( !simState_->HasInput() ) {
+      if( signal( SIGINT, TransientDriver::SignalHandler) == SIG_ERR ) {
+        EXCEPTION( "Could not register Signal Handler");
+      }
+
+      // store pointer to global instance variable, if not yet set
+      if( !instance ) {
+        instance = this;
+      }
     }
   }
 
@@ -126,22 +126,24 @@ namespace CoupledField {
   // ==============
   TransientDriver::~TransientDriver()
   { 
-    // unregister signal handler and use default action
-    // register signal handler
-    if( signal( SIGINT, SIG_DFL) == SIG_ERR ) {
-      EXCEPTION( "Could not assign default signal action");
+    if( !simState_->HasInput() ) {
+      // unregister signal handler and use default action
+      // register signal handler
+      if( signal( SIGINT, SIG_DFL) == SIG_ERR ) {
+        EXCEPTION( "Could not assign default signal action");
+      }
+      
+      // set global pointer to zero
+      instance = NULL;
     }
-    
-    // set global pointer to zero
-    instance = NULL;
-    
   }
 
   // ==================
   //   Initialization
   // ==================
-  void TransientDriver::Init() 
+  void TransientDriver::Init( bool restart) 
   {
+    isRestarted_ = restart;
     InitializePDEs();
   }
     
@@ -150,7 +152,8 @@ namespace CoupledField {
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain_->GetResultHandler();
 
-    simState_->BeginMultiSequenceStep(sequenceStep_, analysis_);
+    if(writeRestart_)
+      simState_->BeginMultiSequenceStep(sequenceStep_, analysis_);
     
     // Check for restart
     ReadRestart();
@@ -288,48 +291,56 @@ namespace CoupledField {
       resHandler->FinishMultiSequenceStep();
       // notify resultHandler about finishing of current sequence step
       if(!isPartOfSequence_) resHandler->Finalize();
+      if(writeRestart_)
+        simState_->FinishMultiSequenceStep( !abortSimulation_ );
     }
-    simState_->FinishMultiSequenceStep();
+    
     
   }
 
   void TransientDriver::ReadRestart() {
 
-    if ( progOpts->GetRestart() ){
+    if ( isRestarted_ ) {
 
       // Ensure simState is present
       assert( simState_ );
 
-      // Create input reader from current output reader 
-      simState_->SetInputReaderToSameInput();
-
+      // Create input reader from current output reader
+      bool hasInput = simState_->SetInputReaderToSameOutput();
+      if( !hasInput)  {
+        EXCEPTION( "Can not perform restarted simulation, as HDF5 file "
+            << "contains no restart information.");
+      }
+      
       // Obtain last step
-      UInt lastStep = simState_->GetLastStepNum(sequenceStep_);
-      restartStep_ = lastStep;
+      UInt lastStepNum;
+      Double lastStepVal;
+      simState_->GetLastStepNum(sequenceStep_, lastStepNum, lastStepVal );
+      restartStep_ = lastStepNum;
       
       // if lastStep is 0, no restart possibility
-      if( lastStep == 0 ) {
+      if( lastStepNum == 0 ) {
         EXCEPTION( "Can not perform restarted simulation, as HDF5 file "
             << "contains no restart information.");
       }
 
       // Store restart step
-      simState_->UpdateToStep(sequenceStep_, lastStep);
+      simState_->UpdateToStep(sequenceStep_, lastStepNum);
 
-      if( lastStep == numstep_) {
+      if( simState_->IsCompleted( sequenceStep_ ) ) {
 
-        std::cerr << "\n\n";
-        std::cerr << "*******************************************************\n";
-        std::cerr << " No restart necessary, as the desired number of \n";
-        std::cerr << " time steps are already computed. \n";
-        std::cerr << "*******************************************************\n\n";
+        std::cout << "\n\n";
+        std::cout << "*******************************************************\n";
+        std::cout << " No restart necessary, as the desired number of \n";
+        std::cout << " time steps are already computed. \n";
+        std::cout << "*******************************************************\n\n";
         return;
       } else{
 
-        std::cerr << "\n\n";
-        std::cerr << "*******************************************************\n";
-        std::cerr << " Continuing simulation from step " << restartStep_  << std::endl;
-        std::cerr << "*******************************************************\n";
+        std::cout << "\n\n";
+        std::cout << "*******************************************************\n";
+        std::cout << " Continuing simulation from step " << restartStep_  << std::endl;
+        std::cout << "*******************************************************\n";
       }
     }
 
@@ -346,14 +357,14 @@ namespace CoupledField {
       
       instance->abortSimulation_ = true;
       
-      std::cerr << "\n\n";
-      std::cerr << "*******************************************************\n";
-      std::cerr << " Simulation will be halted after the current time \n";
-      std::cerr << " step " << instance->actTimeStep_ << " / " << instance->actTime_
+      std::cout << "\n\n";
+      std::cout << "*******************************************************\n";
+      std::cout << " Simulation will be halted after the current time \n";
+      std::cout << " step " << instance->actTimeStep_ << " / " << instance->actTime_
                 << " s.\n\n";
-      std::cerr << " Estimated time before end of simulation run: " << 
+      std::cout << " Estimated time before end of simulation run: " << 
           int(instance->timePerStep_) << " s" << std::endl;
-      std::cerr << "*******************************************************\n\n";
+      std::cout << "*******************************************************\n\n";
 
     }
   }

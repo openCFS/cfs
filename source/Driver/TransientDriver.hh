@@ -35,7 +35,7 @@ namespace CoupledField {
     virtual ~TransientDriver();
 
     //! Initialization method
-    void Init();
+    void Init( bool restart);
 
     //! main method, where time-stepping is implemented. it is for transient and static problem
     void SolveProblem(bool write_results = true );
@@ -93,14 +93,14 @@ namespace CoupledField {
     //  Restart related data
     // =======================================================================
 
+    //! Flag, if analysis is restarted
+    bool isRestarted_;
+    
     //! Flag, if restart file is to be written
     bool writeRestart_;
     
     //! Time step to proceed from when performing restarted simulation
-    UInt restartStep_;
-    
-    //! Static flag to HALT the simulation
-    bool abortSimulation_;
+    UInt restartStep_;    
     
     // =======================================================================
     //  Timing estimation

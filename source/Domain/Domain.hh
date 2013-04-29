@@ -2,12 +2,9 @@
 #define DOMAIN_HH
 
 #include <map>
-
 #include "Utils/StdVector.hh"
-#include "Utils/mathParser/mathParser.hh"
-
-#include "Driver/BaseDriver.hh"
-
+#include "General/Environment.hh"  
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
 {
@@ -30,8 +27,11 @@ namespace CoupledField
   class SimInput;
   class ResultHandler;
   class ParamNode;
+  class SimState;
+  class BaseDriver;
+  class MathParser;
   struct Elem;
-
+  
 
   //! This class defines the computational domain.
 
@@ -46,13 +46,14 @@ namespace CoupledField
     //! Constructor. call PostInit() afterwards!
     /*!
       \param aptFileType (input) input file (mesh-data)
-      \param allowOutput If true, not output is logged to stdout
+      \param isParentDomain If true, this object is considered the primary
+                            domain, which will log output to the console.
     */
     Domain( std::map<std::string, StdVector<shared_ptr<SimInput> > >& gridInputs,
             ResultHandler * handler, MaterialHandler * ptMat,
             shared_ptr<SimState> simState, PtrParamNode xmlNode,
             PtrParamNode infoNode,
-            bool allowOutput = true);
+            bool isParentDomain = true);
     
     //! Destructor
     virtual ~Domain();
@@ -176,7 +177,7 @@ namespace CoupledField
     /** The post init does more advancec stuff like reading the ersatz material.
      * For this purpose the constructor needs to be finished. 
      * @excpetion checks for error, thefore this is a void method */
-    void PostInit( UInt sequenceStep = 0 );
+    void PostInit( UInt sequenceStep = 1 );
 
     /** solves the problem, either the "driver" or the optimization problem.
      * Suerly you have to call PostInit() first!*/
@@ -305,8 +306,8 @@ namespace CoupledField
     //! flag if domain uses pre-initialized grid map
     bool useExternalGridMap_;
     
-    //! flag if logging output should be enabled
-    bool output_;
+    //! flag if object is main domain and output can be logged to console
+    bool isParentDomain_;
   };
 
 }

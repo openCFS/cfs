@@ -24,7 +24,7 @@ namespace CoupledField {
     UInt GetActStep( const std::string& pdename ) { return 1;}
 
     //! Initialization method
-    void Init();
+    void Init(bool restart);
 
     /** @see BaseDriver::SolveProblem(double) */  
     void SolveProblem(bool write_results = true);

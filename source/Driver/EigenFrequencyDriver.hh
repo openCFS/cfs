@@ -27,7 +27,7 @@ class SingleVector;
     ~EigenFrequencyDriver();
 
     //! Initialization method
-    void Init();
+    void Init(bool restart);
   
     //! Main method solution method
 

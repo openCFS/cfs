@@ -133,6 +133,7 @@
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
+          <xsd:element name="writeRestart" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>

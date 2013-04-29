@@ -20,14 +20,17 @@ namespace CoupledField
   public:
 
     //! Constructor
-    BaseDriver(shared_ptr<SimState> simState, Domain* domain,
+    BaseDriver(shared_ptr<SimState> simState, Domain* domain, 
                PtrParamNode paramNode, PtrParamNode infoNode );
 
     //! Destructor
     virtual ~BaseDriver();
 
     //! Initialization method
-    virtual void Init() = 0;
+    
+    //! Initialize driver
+    //! \param restart If true, the driver performss restart
+    virtual void Init(bool restart) = 0;
 
     /** This solved the analysis problem and involved generation the global
      * system and solving. 
@@ -121,13 +124,16 @@ namespace CoupledField
     Domain * domain_;
 
     //! current analysis step in a multiSequence analysis
-    UInt actSequenceStep_;
+    UInt sequenceStep_;
  
     /** a shortcut to domain->GetResultHandler() */
     ResultHandler* handler_;
     
     //! Simulation state file
     shared_ptr<SimState> simState_;
+    
+    //! Static flag to HALT the simulation
+    static bool abortSimulation_;
     
   private:
     /** helper function. Items are separated via ':' to be replaces when using as filename! */

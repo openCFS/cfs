@@ -53,7 +53,7 @@ public:
   }
 
   //! Initialization method
-  void Init();
+  void Init(bool restart);
 
   //! Main method, where harmonic analysis is implemented.
   void SolveProblem(bool write_results = true);
@@ -85,6 +85,10 @@ public:
   /** Helper method which determines if an AnalyisType is complex. */
   virtual bool IsComplex() { return true; };
 
+  //! Static method being called in the case of a Ctr-C signal
+  static void SignalHandler( int sig);
+
+  
 protected:
 
 
@@ -104,6 +108,9 @@ protected:
   //!                  an integral value from [1:numFreq_]
   Double ComputeNextFrequency(UInt freqIndex) const;
 
+  //! Frequency step to proceed from when performing restarted simulation
+  UInt restartStep_; 
+  
   //! Current frequency value
   Double actFreq_;
 
@@ -112,6 +119,9 @@ protected:
 
   //! Last frequency for which a simulation is performed
   Double stopFreq_;
+  
+  //! Last frequency step
+  UInt stopFreqStep_;
 
   //! Number of frequencies for which a simulation is performed
   UInt numFreq_;
@@ -123,9 +133,25 @@ protected:
   FreqSamplingType samplingType_;
   
   // =======================================================================
+  //  Restart related data
+  // =======================================================================
+  
+  //! Read restart information
+  void ReadRestart();
+  
+  //! Flag, if analysis is restarted
+  bool isRestarted_;
+  
+  //! Flag, if restart file is to be written
+  bool writeRestart_;
+  
+  // =======================================================================
   //  Timing estimation
   // =======================================================================
 
+  //! Estimated time per step
+  Double timePerStep_;
+  
   //! Timer for estimating remaining runtime 
   boost::shared_ptr<Timer> timer_;
 

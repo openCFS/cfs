@@ -5,6 +5,10 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
+
+// signal handling for catching Ctr-C
+#include <signal.h>
+
 #include "Driver/HarmonicDriver.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/Assemble.hh"
@@ -23,6 +27,12 @@
 using std::cout;
 using std::endl;
 namespace pt = boost::posix_time;
+
+
+// Define pointer to transient driver instance, needed for the signal handler
+// to communicate with
+HarmonicDriver * instance = NULL;
+
 
 namespace CoupledField
 {
@@ -50,21 +60,55 @@ namespace CoupledField
     numFreq_ = 0;
     actFreqStep_ = 0;
     actFreq_ = 0.0;
+    restartStep_ = 0;
+    
+    isRestarted_ = false;
+    
+    // Check for presence of restart flag.
+    writeRestart_ = true;
+    PtrParamNode restartNode = param_->Get("writeRestart", ParamNode::PASS);
+    if (restartNode)
+      writeRestart_ = restartNode->As<bool>();
     
     // register frequency variable at math parser
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
+    
+    // register signal handler only, if it is a child driver
+    if( !simState_->HasInput() ) {
+      if( signal( SIGINT, HarmonicDriver::SignalHandler) == SIG_ERR ) {
+        EXCEPTION( "Could not register Signal Handler");
+      }
+
+      // store pointer to global instance variable, if not yet set
+      if( !instance ) {
+        instance = this;
+      }
+    }
   }
 
   HarmonicDriver::~HarmonicDriver()
-  {  }
+  { 
+    if( !simState_->HasInput() ) {
+      // unregister signal handler and use default action
+      // register signal handler
+      if( signal( SIGINT, SIG_DFL) == SIG_ERR ) {
+        EXCEPTION( "Could not assign default signal action");
+      }
+
+      // set global pointer to zero
+      instance = NULL;
+    }
+  }
 
 
-  void HarmonicDriver::Init()
+  void HarmonicDriver::Init(bool restart)
   {
+    isRestarted_ = restart;
+    
     // We do not know yet if frequencies are given with start, stop, ... or as list
     bool params = ReadParametrizedFrequencies();
     bool list   = ReadFrequencyList();
-
+    
     if(params && list)
       EXCEPTION("'analysis/harmonic' contains 'numFreq/startFreq/stopFreq' and 'frequencyList' concurrently");
 
@@ -115,6 +159,7 @@ namespace CoupledField
         if(freqs[o].freq == f.freq)
           EXCEPTION("Multiple occurence of in frequencyList: f=" << f.freq << " at position " << (o+1) << " and " << (fi+1));
     }
+    stopFreqStep_ = numFreq_;
     return true;
   }
 
@@ -200,6 +245,7 @@ namespace CoupledField
       freqs[i-1].freq = ComputeNextFrequency(i);
       freqs[i-1].weight = 1.0;
     }
+    stopFreqStep_ = numFreq_;
 
     return true; // valid values
   }
@@ -215,17 +261,24 @@ namespace CoupledField
     // in harmonics one cannot extraxt the result writing to StoreResults() as
     // we have multiple frequencies. (exceptions is optimization)
 
-    // be 'silent' and don't do output only for optimization
     if(write_results) {
       // info stuff
       ptPDE_->WriteGeneralPDEdefines();
     }
     handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
-    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
-
+    
+    if(writeRestart_)
+          simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
+    
+    // Read restart information
+    ReadRestart();
+    numFreq_ = numFreq_ - restartStep_;
+    stopFreqStep_ = numFreq_ + restartStep_;
+    
     // Perform one simulation for each desired frequency
-    for ( actFreqStep_ = 1; actFreqStep_ <= numFreq_; actFreqStep_++ )
+    for ( actFreqStep_ = restartStep_+1; actFreqStep_ <= numFreq_+restartStep_; actFreqStep_++ )
     {
+      
       // Determine next frequency value
       ComputeFrequencyStep(actFreqStep_);
 
@@ -242,32 +295,40 @@ namespace CoupledField
         ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
         handler_->FinishStep( );
       }
-      simState_->WriteStep( actFreqStep_, actFreq_ );
       
+      // write out re-start only in the last step
+      if(  abortSimulation_ ) {
+        if( writeRestart_)
+         simState_->WriteStep( actFreqStep_, actFreq_);
+        break;
+      }
+        
       // perform runtime estimation
       Double totalTime = timer_->GetWallTime();
-      Double timePerStep = totalTime / (Double) actFreqStep_;
-      Double remainingTime = (numFreq_ - actFreqStep_) * timePerStep;
+      timePerStep_ = totalTime / (Double) actFreqStep_;
+      Double remainingTime = (numFreq_ - actFreqStep_) * timePerStep_;
       pt::ptime now = pt::second_clock::local_time();
       now += pt::seconds(static_cast<long int>(remainingTime));
-      analysis_id_->Get("timePerStep")->SetValue( timePerStep );
+      analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
       PtrParamNode envNode = info_->GetRoot()->Get(ParamNode::PN_HEADER)->Get("environment");
       envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
       envNode->Get("remainingTime")->SetValue(remainingTime);
-    }
+    } // loop: frequencies
 
     if(write_results) {
       handler_->FinishMultiSequenceStep();
+      if(writeRestart_)
+        simState_->FinishMultiSequenceStep( !abortSimulation_ );
+      
       // notify resultHandler about finishing of current sequence step
       if(!isPartOfSequence_) handler_->Finalize();
     }
-    simState_->FinishMultiSequenceStep();
   }
 
   Double HarmonicDriver::ComputeFrequencyStep(UInt actFreqStep)
   {
     assert(actFreqStep >= 1);
-    assert(actFreqStep <= numFreq_);
+    assert(actFreqStep <= numFreq_+restartStep_);
 
     actFreqStep_ = actFreqStep;
 
@@ -307,6 +368,50 @@ namespace CoupledField
   }
 
 
+  void HarmonicDriver::ReadRestart() {
+
+    if ( isRestarted_ ) {
+
+      // Ensure simState is present
+      assert( simState_ );
+
+      // Create input reader from current output reader
+      bool hasInput = simState_->SetInputReaderToSameOutput();
+      if( !hasInput)  {
+        EXCEPTION( "Can not perform restarted simulation, as HDF5 file "
+            << "contains no restart information.");
+      }
+
+      if( simState_->IsCompleted( sequenceStep_ )) {
+        std::cout << "\n\n";
+        std::cout << "*******************************************************\n";
+        std::cout << " No restart necessary, as the desired number of \n";
+        std::cout << " frequency steps are already computed. \n";
+        std::cout << "*******************************************************\n\n";
+        restartStep_ = stopFreqStep_ +1; 
+        return;
+
+      } else{
+
+        // Obtain last step
+        UInt lastStepNum;
+        Double lastStepVal;
+        simState_->GetLastStepNum(sequenceStep_, lastStepNum, lastStepVal );
+        restartStep_ = lastStepNum;
+
+        // if lastStep is 0, no restart possibility
+        if( lastStepNum == 0 ) {
+          EXCEPTION( "Can not perform restarted simulation, as HDF5 file "
+              << "contains no restart information.");
+        }
+        std::cout << "\n\n";
+        std::cout << "*******************************************************\n";
+        std::cout << " Continuing simulation from step " << restartStep_  << std::endl;
+        std::cout << "*******************************************************\n";
+      }
+    }
+
+  }
 
   // ************************
   //   ComputeNextFrequency
@@ -360,4 +465,27 @@ namespace CoupledField
     return retFreq;
   }
 
+  
+  void HarmonicDriver::SignalHandler( int sig ) {
+
+    if( !instance->abortSimulation_) {
+      
+      // in addition check, if the current step is the last step, so we
+      // do not have to print out any message
+      if( instance->actFreqStep_ == instance->stopFreq_ )
+        return;
+      
+      instance->abortSimulation_ = true;
+      
+      std::cout << "\n\n";
+      std::cout << "*******************************************************\n";
+      std::cout << " Simulation will be halted after the current time \n";
+      std::cout << " step " << instance->actFreqStep_ << " / " << instance->actFreq_
+                << " Hz.\n\n";
+      std::cout << " Estimated time before end of simulation run: " << 
+          int(instance->timePerStep_) << " s" << std::endl;
+      std::cout << "*******************************************************\n\n";
+
+    }
+  }
 }

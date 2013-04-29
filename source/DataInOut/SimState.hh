@@ -82,7 +82,8 @@ namespace CoupledField {
     void WriteStep( UInt stepNum, Double stepVal );
     
     //! Finish multisequence step
-    void FinishMultiSequenceStep( );
+    void FinishMultiSequenceStep( bool completed, 
+                                  Double accumulatedTime = 0.0 );
     
     
     // =======================================
@@ -101,18 +102,26 @@ namespace CoupledField {
     
     //! This method generates an input reader from an already set
     //! input reader.
-    void SetInputReaderToSameInput();
+    bool SetInputReaderToSameOutput();
     
+    //! Return list of sequence steps 
+    void GetSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
+                           std::map<UInt, Double>& accTime,
+                           std::map<UInt, bool>& isFinished );
+    
+    //! Return true, if the given sequence step is already completed
+    //! in the input file
+    bool IsCompleted( UInt sequenceStep );
     
     //! Return number of available sequence steps in file
     UInt GetLastMsStepNum();
     
     //! Return last step number of input file
-    UInt GetLastStepNum(UInt sequenceStep );
+    void GetLastStepNum(UInt sequenceStep, UInt& lastStepNum,
+                        Double& lastStepVal );
  
     //! Update internally to given time / frequency step
     void UpdateToStep( UInt sequenceStep, UInt stepNum );
-
    
     //! Finalize state (delete registered fefunctions etc.)
     void Finalize();

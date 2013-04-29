@@ -79,7 +79,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "FeBasis/FeSpace.hh"
 #include "DataInOut/ResultHandler.hh"
-
+#include "Driver/BaseDriver.hh"
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/tr1/type_traits.hpp>

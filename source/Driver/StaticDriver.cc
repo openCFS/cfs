@@ -38,7 +38,7 @@ namespace CoupledField {
                                          "step", 0 );  
   }
 
-  void StaticDriver::Init() {
+  void StaticDriver::Init(bool restart) {
 
 
     InitializePDEs();
@@ -83,11 +83,12 @@ namespace CoupledField {
     {
       StoreResults(1,0.0);
       handler_->FinishMultiSequenceStep();
-
+      simState_->FinishMultiSequenceStep(true);
+      
       if(!isPartOfSequence_)
         handler_->Finalize(); // to be called only once in a HDF5 lifetime!
     }
-    simState_->FinishMultiSequenceStep();
+
   }
 
   void StaticDriver::StoreResults(UInt stepNum, double step_val)

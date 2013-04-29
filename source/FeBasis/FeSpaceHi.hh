@@ -9,11 +9,9 @@
 
 namespace CoupledField {
 
-
-
-
 // forward class declarations
 class FeHi;
+class Assemble;
 
 //! Class for hierarchical finite elements
 class FeSpaceHi : public FeSpace {

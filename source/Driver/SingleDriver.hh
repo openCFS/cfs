@@ -40,9 +40,6 @@ namespace CoupledField {
     //! true, if driver is part of a multiSequence, false if first run or single run 
     bool isPartOfSequence_;
 
-    //! current sequences step in multiSequence simulation
-    UInt sequenceStep_;
-    
   };
 
 }

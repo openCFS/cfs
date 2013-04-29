@@ -25,6 +25,7 @@
 #include "FeBasis/FeFunctions.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 #include "General/Enum.hh"
+#include "Driver/BaseDriver.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Utils/Timer.hh"
 

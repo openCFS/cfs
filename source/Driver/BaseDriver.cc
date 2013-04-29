@@ -16,10 +16,13 @@
 
 using namespace CoupledField;
 
+// initialize static HALT flag
+bool BaseDriver::abortSimulation_ = false;
+
 BaseDriver::BaseDriver( shared_ptr<SimState> simState, Domain* myDom,
                         PtrParamNode paramNode, PtrParamNode infoNode)
 {
-  actSequenceStep_ = 1;
+  sequenceStep_ = 0;
   domain_ = myDom;
   handler_ = domain_->GetResultHandler();
   simState_ = simState;
@@ -35,7 +38,7 @@ BaseDriver::~BaseDriver()
 
 
 UInt BaseDriver::GetActSequenceStep() {
-  return actSequenceStep_;
+  return sequenceStep_;
 }
 
 
@@ -145,6 +148,7 @@ BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom
   } else {
     EXCEPTION( "At least one sequenceStep has to be provided" );
   }
+  
   // Pass driver to domain object
   return ptdriver;
 }

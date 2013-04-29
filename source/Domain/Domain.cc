@@ -19,6 +19,7 @@
 #include "Domain/CoordinateSystems/TrivialCartesianCoordSystem.hh"
 #include "Domain/CoordinateSystems/DefaultCoordSystem.hh"
 #include "Domain/Results/BaseResults.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
@@ -72,7 +73,7 @@ Domain::Domain(
   numDirectCoupledPde_ = 0;
   numIterCoupledStdPde_ = 0;
   useExternalGridMap_ = false;
-  output_ = output;
+  isParentDomain_ = output;
 
   // Create new MathParser
   mathParser_ = new MathParser();
@@ -141,7 +142,7 @@ void Domain::CreateGrid()
     for (gridIt = gridInputs_.begin(); gridIt != gridInputs_.end(); ++gridIt)
     {
 
-      if( output_) 
+      if( isParentDomain_) 
         std::cout << "++ Reading mesh ... " << std::flush; // endl after check for regularity
 
       std::string gridId = gridIt->first;
@@ -206,7 +207,7 @@ void Domain::CreateGrid()
         // p.filename() does not compile for me!!
         // What should work:
         // boost::filesystem::base(p) << "." << boost::filesystem::extension(p)
-        if( output_) 
+        if( isParentDomain_) 
           std::cout << "'" << p.leaf() << "' ";
       }
 
@@ -223,7 +224,7 @@ void Domain::CreateGrid()
           non_regular = true;
       }
       // finish output for grid reading
-      if( output_) {
+      if( isParentDomain_) {
         std::cout << "-> ";
         if (regular && non_regular)
           std::cout << "partially ";
@@ -277,27 +278,12 @@ void Domain::PostInit(UInt sequenceStep)
   //info_->FinishProgress();
 
   // initialize the driver
-  driver->Init();
+  // Note: In case this is not the parent / main domain, we do not read a 
+  // restart file.
+  driver->Init( isParentDomain_ ? progOpts->GetRestart() : false );
   
-  if( multiSequenceDriver_ )
+  if( multiSequenceDriver_ && !isParentDomain_ )
     multiSequenceDriver_->SetSequenceStep(sequenceStep);
-
-  // check if we have to do optimization
-  if (param_->Has("optimization"))
-  {
-    EXCEPTION("Optimization will not work at all");
-    //SetOptimization(Optimization::CreateInstance());
-  }
-  else
-  {
-//    SetOptimization(NULL);
-//    // check if we simulate with ersatz material - after driver and only if not used with optimization
-//    // if used with optimization loadErsatzMaterial specifies the starting point for optimization
-//    // and is loaded from Optimization::PostInit because scaling (and EvalObjectiveGradient) is already done before we reach here
-//    if(DensityFile::NeedLoadErsatzMaterial())
-//      ersatzMaterial = DensityFile::ReadErsatzMaterial();
-  }
-  
 }
 
 // **************
@@ -562,7 +548,7 @@ void Domain::InitPDEs(UInt sequenceStep)
   // those single PDEs which are directly coupled
   for (UInt i = 0; i < numDirectCoupledPde_; i++)
   {
-    if( output_) 
+    if( isParentDomain_) 
       std::cout << "++ Initializing direct coupling" << std::endl;
     ptDirectCoupledPde_[i]->Init(sequenceStep);
     ptDirectCoupledPde_[i]->DefineAlgSys();
@@ -606,7 +592,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
 
     std::string actPdeName = pdeNodes[i]->GetName();
     PtrParamNode actPdeNode = pdeNodes[i];
-    if( output_) 
+    if( isParentDomain_) 
       std::cout << "++ Creating PDE '" + actPdeName + "'" << std::endl;
 
     if (actPdeName == "electrostatic")
@@ -684,7 +670,7 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep, PtrParamNode infoNode)
     return;
   }
 
-  if( output_) 
+  if( isParentDomain_) 
     std::cout << "++ Creating coupling" << std::endl;
 
   // ================================

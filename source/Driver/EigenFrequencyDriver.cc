@@ -38,7 +38,7 @@ namespace CoupledField {
   }
 
 
-  void EigenFrequencyDriver::Init() {
+  void EigenFrequencyDriver::Init(bool restart) {
     
     // get parameter node
     PtrParamNode myNode = param_->Get("eigenFrequency");
@@ -249,9 +249,9 @@ namespace CoupledField {
     // notify resultHandler about finishing of current sequence step
     if( !isPartOfSequence_ ) {
       resHandler->FinishMultiSequenceStep();
+      simState_->FinishMultiSequenceStep(true);
       resHandler->Finalize();
     }
-    simState_->FinishMultiSequenceStep();
   }
 
   

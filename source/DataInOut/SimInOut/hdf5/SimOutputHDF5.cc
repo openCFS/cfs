@@ -38,6 +38,7 @@ namespace CoupledField {
 
     fileName_ = fileName;
     formatName_ = "hdf5";
+    isInitialized_ = false;
     
     std::string dirString = "results_" + formatName_; 
     inputNode->GetValue("directory", dirString, ParamNode::PASS );
@@ -63,7 +64,7 @@ namespace CoupledField {
     UInt maxChunkSize = 100;
     myParam_->GetValue("compressionLevel", compressionLevel, ParamNode::PASS );
     if( compressionLevel > 9) {
-      EXCEPTION( "Value for compressionLevel must be betwen 1 and 9" );
+      EXCEPTION( "Value for compressionLevel must be between 1 and 9" );
     }
     myParam_->GetValue("maxChunkSize", maxChunkSize, ParamNode::PASS );
     dPropList_ = H5::DSetCreatPropList::DEFAULT;
@@ -74,8 +75,10 @@ namespace CoupledField {
     // Change defaults according to XML file
     myParam_->GetValue("externalFiles", externalFiles_, ParamNode::PASS);
 
-    // Do not print HDF5 exceptions by default
     H5::Exception::dontPrint();
+    
+    std::string fName = fileName_ + ".h5";
+    currFileName_ = fs::path(dirName_ / fName).string();
   }
 
 
@@ -162,6 +165,8 @@ namespace CoupledField {
 
         // add analysistype and number of steps to group
         H5IO::WriteAttribute( currMSMeshGroup_, "AnalysisType", analysisType );
+        H5IO::WriteAttribute( currMSMeshGroup_, "LastStepNum", (UInt) 0 );
+        H5IO::WriteAttribute( currMSMeshGroup_, "LastStepValue", (Double) 0.0);
 
         // add a group for the result description datasets.
         resultDescGroup = H5IO::OpenCreateGroup(currMSMeshGroup_, "ResultDescription");
@@ -181,7 +186,9 @@ namespace CoupledField {
 
         // add analysistype and number of steps to group
         H5IO::WriteAttribute( currMSHistGroup_, "AnalysisType", analysisType );
-
+        H5IO::WriteAttribute( currMSHistGroup_, "LastStepNum", (UInt) 0  );
+        H5IO::WriteAttribute( currMSHistGroup_, "LastStepValue", (Double) 0.0 );
+        
         // add a group for the result description datasets.
         resultDescGroup = H5IO::OpenCreateGroup(currMSHistGroup_,"ResultDescription");
 
@@ -657,7 +664,7 @@ namespace CoupledField {
   }
 
   void SimOutputHDF5::InitModule() {
-    if( currFileName_ != "")
+    if( isInitialized_)
       return;
 
     // concatenate output file name
@@ -666,12 +673,11 @@ namespace CoupledField {
     } catch (std::exception &ex) {
       EXCEPTION(ex.what());
     }
-    std::string fName = fileName_ + ".h5";
-    currFileName_ = fs::path(dirName_ / fName).string();
     
     // In case of re-start, we simply append information
     bool truncate = !isRestart_;
     OpenFile(truncate);
+    isInitialized_ = true;
   }
   
   void SimOutputHDF5::OpenFile(bool truncate){
@@ -1136,8 +1142,12 @@ namespace CoupledField {
            H5IO::WriteCompound( currAttrDescGroup_, resNames[0], resInfo );
         */
 
-        // === Second version: Separate datasets for each entry
-        if( !isRestart_) {
+        // Check, if the group for the group for the result has to be created.
+        // which is either the case if the simulation is not restarted or
+        // if the simulation is restarted, but the restarted sequenceStep
+        // is not the current one.
+        if( !isRestart_ ||
+            (isRestart_ && !H5IO::GroupExists(resGroup, resultName) ) ) {
           H5::Group actGroup = resGroup.createGroup(resultName );
 
           H5IO::Write1DArray( actGroup, "DefinedOn", 1, &definedOn, dPropList_ );
@@ -1148,7 +1158,13 @@ namespace CoupledField {
                               &(resInfo->dofNames[0]), dPropList_ );
           H5IO::Write1DArray( actGroup, "EntryType", 1, &entryType, dPropList_ );
           H5IO::Write1DArray( actGroup, "Unit", 1, &unit, dPropList_ );
-
+          // In order to write a valid entry, we also set the initial stepNumber/
+          // stepValues array
+          UInt dummyStepNum;;
+          H5IO::Extend1DArray(actGroup, "StepNumbers", 0, &dummyStepNum, dPropList_ );
+          Double dummyStepVal;
+          H5IO::Extend1DArray(actGroup, "StepValues", 0, &dummyStepVal, dPropList_ );
+          
           actGroup.close();
           
         } else {
@@ -1182,7 +1198,7 @@ namespace CoupledField {
         }
       } H5_CATCH( "Could not write result description for result '"
                   << resultName << "'" );
-    } //loop: registered mesh results
+    } //loop: registered mesh / history results
   }
 
   void SimOutputHDF5::WriteResults( H5::Group& resultGroup,
@@ -1352,6 +1368,11 @@ namespace CoupledField {
     // set attributes for number of steps and analysis types
     std::string analysisType = BasePDE::analysisType.ToString(type);
     H5IO::WriteAttribute( currMsDbGroup_, "AnalysisType", analysisType );
+    H5IO::WriteAttribute( currMsDbGroup_, "AccTime", 0.0 );
+    //! Only write attribute, if it not exists yet
+    if( !H5IO::AttrExists( currMsDbGroup_, "Completed" ) ) {
+      H5IO::WriteAttribute( currMsDbGroup_, "Completed", false );
+    }
   }
 
   void SimOutputHDF5::DB_BeginStep( UInt stepNum, Double stepVal ) {
@@ -1415,7 +1436,11 @@ namespace CoupledField {
     physGroup.close();
   }
   
-  void SimOutputHDF5::DB_FinishMultiSequenceStep( ) {
+  void SimOutputHDF5::DB_FinishMultiSequenceStep( bool completed, 
+                                                  Double accTime ) {
+    H5IO::WriteAttribute( currMsDbGroup_, "Completed", completed );
+    H5IO::WriteAttribute( currMsDbGroup_, "AccTime", accTime );
+    
   }
    
   

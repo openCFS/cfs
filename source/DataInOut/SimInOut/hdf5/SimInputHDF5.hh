@@ -161,7 +161,9 @@ namespace CoupledField {
                         SingleVector * coefs ); 
 
     //! Return multisequence steps and their analysistypes
-    void DB_GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis );
+    void DB_GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
+                                      std::map<UInt, Double>& accTime,
+                                      std::map<UInt, bool>& isFinished );
                                     
     //! Return PDE and CoefFunctions in given multisequence step
     void DB_GetAvailPdeCoefFcts( UInt msStep, 

@@ -1443,7 +1443,10 @@ namespace CoupledField {
 
           // try to get last step number
           if( stepNum == -1 ) {
-            stepNum = inState->GetLastStepNum(sequenceStep);
+            Double stepVal = 0.0;
+            UInt lastStepNum = 0;
+            inState->GetLastStepNum(sequenceStep, lastStepNum, stepVal);
+            stepNum = lastStepNum;
           }
           LOG_DBG(singlepde) << pdename_ 
               << ": Step number to be read in: " << stepNum;

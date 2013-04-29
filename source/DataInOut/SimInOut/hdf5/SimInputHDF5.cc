@@ -1432,7 +1432,9 @@ namespace CoupledField {
   }
 
   void SimInputHDF5::
-  DB_GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis ){
+  DB_GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
+                               std::map<UInt, Double>& accTime,
+                               std::map<UInt, bool>& isFinished ){
 
     // Initialize DB
     DB_Init();
@@ -1459,7 +1461,9 @@ namespace CoupledField {
       std::string analysisString;
       H5IO::ReadAttribute( actMsGroup, "AnalysisType", analysisString );
       analysis[actMsStep] = BasePDE::analysisType.Parse(analysisString); 
-
+      H5IO::ReadAttribute( actMsGroup, "Completed", isFinished[actMsStep] );
+      H5IO::ReadAttribute( actMsGroup, "AccTime", accTime[actMsStep] );
+      
       actMsGroup.close();
     } // loop: multisequence steps
     
