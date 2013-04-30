@@ -34,21 +34,23 @@ namespace CoupledField {
     writeModes_ = true;
     isQuadratic_ = false;
     // replace with a concrete element
+    param_ = param_->Get("eigenFrequency");
     info_ = info_->Get("eigenFrequency");
   }
 
 
   void EigenFrequencyDriver::Init(bool restart) {
     
-    // get parameter node
-    PtrParamNode myNode = param_->Get("eigenFrequency");
-
     // read required parameters from parameter node
-    myNode->GetValue( "numModes", numFreq_ );
-    myNode->GetValue( "freqShift", freqShift_ );
-    myNode->GetValue( "writeModes", writeModes_, ParamNode::PASS );
-    myNode->GetValue( "isQuadratic", isQuadratic_, ParamNode::PASS );
-
+    param_->GetValue( "numModes", numFreq_ );
+    param_->GetValue( "freqShift", freqShift_ );
+    param_->GetValue( "writeModes", writeModes_, ParamNode::PASS );
+    param_->GetValue( "isQuadratic", isQuadratic_, ParamNode::PASS );
+    
+    // read flag if all results should get written to database file section
+    // to allow e.g. for general postprocessing or result extraction    
+    param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
+    
     InitializePDEs();
   }
 
@@ -85,8 +87,8 @@ namespace CoupledField {
     resHandler->BeginMultiSequenceStep( sequenceStep_,
                                         analysis_,
                                         numConverged );
-    
-    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
+    if( writeAllSteps_ )
+      simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
 
     // Print out eigenfrequencies
     std::cout << std::endl << std::endl;
@@ -125,15 +127,16 @@ namespace CoupledField {
         resHandler->BeginStep( i+1, std::abs(eigenFreqs[i]) );
         ptPDE_->WriteResultsInFile(i+1, std::abs(eigenFreqs[i]) );
         resHandler->FinishStep( );
-        simState_->WriteStep( i+1, std::abs(eigenFreqs[i]) );
+        if( writeAllSteps_ )
+          simState_->WriteStep( i+1, std::abs(eigenFreqs[i]) );
       }
     }
                                                  }
 
   template <>
-  void EigenFrequencyDriver::PrintResult<Complex>(SingleVector* freq_ptr, Vector<Double> errBounds, 
-                                                  ResultHandler* resHandler, UInt numConverged)
-                                                  {
+  void EigenFrequencyDriver::
+  PrintResult<Complex>(SingleVector* freq_ptr, Vector<Double> errBounds, 
+                       ResultHandler* resHandler, UInt numConverged) {
     Vector<Complex>& eigenFreqs = dynamic_cast<Vector<Complex>&>(*freq_ptr);
 
     // If no frequency at all converged, just leave
@@ -155,7 +158,8 @@ namespace CoupledField {
     resHandler->BeginMultiSequenceStep( sequenceStep_,
                                         analysis_,
                                         numConverged );
-    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
+    if( writeAllSteps_ )
+      simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
 
     // Print out eigenfrequencies
     std::cout << std::endl << std::endl;
@@ -202,16 +206,17 @@ namespace CoupledField {
         resHandler->BeginStep( i+1, actFreq );
         ptPDE_->WriteResultsInFile(i+1, actFreq );
         resHandler->FinishStep( );
+        if( writeAllSteps_ )
+          simState_->WriteStep( i+1, std::abs(eigenFreqs[i]) );
       }
     }
-                                                  }
+  }
   
   // *****************
   //   Solve problem
   // *****************
-  void EigenFrequencyDriver::SolveProblem(bool write_results) {
+  void EigenFrequencyDriver::SolveProblem() {
     // options not implemented
-    assert(write_results == true);
     
     analysis_id_ = info_->Get(ParamNode::PN_PROCESS);
 
@@ -247,11 +252,12 @@ namespace CoupledField {
     }
     
     // notify resultHandler about finishing of current sequence step
+    resHandler->FinishMultiSequenceStep();
     if( !isPartOfSequence_ ) {
-      resHandler->FinishMultiSequenceStep();
-      simState_->FinishMultiSequenceStep(true);
       resHandler->Finalize();
     }
+    if( writeAllSteps_ )
+      simState_->FinishMultiSequenceStep(true);
   }
 
   

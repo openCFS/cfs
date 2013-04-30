@@ -56,7 +56,7 @@ public:
   void Init(bool restart);
 
   //! Main method, where harmonic analysis is implemented.
-  void SolveProblem(bool write_results = true);
+  void SolveProblem();
 
   /** This allows optimization to handle the individual frequency steps, e.g. to compute
    * objective values. Internally this is is a service function for SolveProblem()

@@ -1924,6 +1924,67 @@ namespace CoupledField {
       // here we assume no updated geometry
       updateGeo = false;
       
+    } else if( valueNode->Has("externalSimulation") ) {
+      // =====================
+      //  EXTERNAL SIMULATION 
+      // =====================
+      PtrParamNode esNode = valueNode->Get("externalSimulation");
+      PtrParamNode qNode = esNode->Get("quantity");
+      PtrParamNode tfm = esNode->Get("timeFreqMapping");
+      
+      // obtain fileId and SequenceStep
+      std::string fileId = esNode->Get("inputId")->As<std::string>();
+      UInt sequenceStep = esNode->Get("sequenceStep")->As<UInt>();
+      std::string quantityName = qNode->Get("name")->As<std::string>();
+      std::string pdeName = qNode->Get("pdeName")->As<std::string>();
+      
+      SolutionType solType = SolutionTypeEnum.Parse(quantityName);
+      
+      Domain * inDomain = NULL;
+
+      // create SimState (for input)
+      boost::shared_ptr<SimState> inState(new SimState(true));
+
+      //              LOG_DBG(singlepde) << pdename_ 
+      //                  << ": Use initial condition from sequenceStep " << sequenceStep;
+
+      shared_ptr<SimInput> reader = domain_->GetResultHandler()->GetInputReader(fileId);
+      shared_ptr<SimInputHDF5> in;
+      try {
+        in = dynamic_pointer_cast<SimInputHDF5>(reader);
+      } catch (...) {
+        EXCEPTION( "Reader with id'" << fileId << "' has not HDF5 format." );
+      }
+      inState->SetInputHdf5Reader(in);
+
+      // Get grid map of own domain, as the grids can be re-used
+      SimState::GridMap gridMap = domain_->GetGridMap();
+
+      // Obtain temporary Domain object, from which the initial state is read 
+      // in. As this generates inferior logging output, we make a visual
+      // break.
+      LOG_DBG(singlepde) << pdename_ 
+          << ": Obtaining Domain from simState object";
+      LOG_DBG(singlepde) << pdename_ << ": =================================="; 
+      LOG_DBG(singlepde) << pdename_ << ":  BEGIN OUTPUT OF TEMPORARY DOMAIN ";
+      LOG_DBG(singlepde) << pdename_ << ": ==================================";            
+
+      inDomain = inState->GetDomain(sequenceStep, gridMap);
+
+      LOG_DBG(singlepde) << pdename_ << ": ==================================="; 
+      LOG_DBG(singlepde) << pdename_ << ":  END OF OUTPUT OF TEMPORARY DOMAIN ";
+      LOG_DBG(singlepde) << pdename_ << ": ===================================";
+
+      // Obtain same PDE from new domain
+      SinglePDE * inPDE = inDomain->GetSinglePDE(pdeName);
+      
+      // Set interpolation
+      SimState::InterpolType interpol = SimState::NEAREST_NEIGHBOR;
+      simState_->SetInterpolation( interpol, mp_, analysistype_ , 0.0 );
+      
+      // Return coefficient function
+      coef = inPDE->GetCoefFct(solType);
+      
     } else if( valueNode->Has("coupling") ) {
       // ====================
       //  ITERATIVE COUPLING 

@@ -5,6 +5,7 @@
 #include "SimState.hh"
 
 #include <map>
+#include <boost/bind.hpp>
 
 // include hdf5 cpp file
 #include "cpp/H5Cpp.h"
@@ -178,6 +179,28 @@ class MaterialHandler;
 
   }
   
+  void SimState:: SetInterpolation( InterpolType type, MathParser * parser,
+                                    BasePDE::AnalysisType analysis,
+                                    Double offset ) {
+    
+    // store type of interpolation
+    
+    
+    // store parser and register callback function for step / freq update
+    parentParser_ = parser;
+    parentHandle_ = parentParser_->GetNewHandle();
+    // register call-back function for update
+    if(analysis == BasePDE::TRANSIENT ||
+        analysis == BasePDE::STATIC ) { 
+      parentParser_->SetExpr(parentHandle_, "t");
+    } else {
+      parentParser_->SetExpr(parentHandle_, "f");
+    }
+    conn_ = parentParser_->AddExpChangeCallBack(
+        boost::bind(&SimState::UpdateTimeFreqStep, this ),
+        parentHandle_ );
+  }
+  
   void SimState::SetOutputHdf5Writer( shared_ptr<SimOutputHDF5> writer ) {
     LOG_TRACE(simState) << "Setting HDF5 writer";
     
@@ -321,6 +344,10 @@ class MaterialHandler;
     feFcts_.insert( feFct );
   }
 
+  void SimState::Finalize() {
+      feFcts_.clear();
+    }
+  
   void SimState::Init() {
     // Leave if already initialized
     if( isInitialized_) 
@@ -336,8 +363,23 @@ class MaterialHandler;
     LOG_TRACE(simState) << "Finished initialization";
   }
 
-  void SimState::Finalize() {
-    feFcts_.clear();
+  void SimState::UpdateTimeFreqStep() {
+    Double actVal = parentParser_->Eval( parentHandle_ ); 
+    
+    std::cerr << "Time / Freq step changed to" << actVal;
+
+    // get current time / freq step
+    
+    
+    // determine "step" in the child driver
+    
+    // update the coefficient vectors
+    
+    // update driver to time / freq step (initially 
+    // we can also just set the value of the related mathParser
+    // to the specified value and circumvent the driver itself)
   }
+  
+  
 
 } // namespace

@@ -8,9 +8,11 @@
 #include <map>
 #include <boost/filesystem/path.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <boost/signals.hpp>
 
 #include "General/Environment.hh"
 #include "PDE/BasePDE.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace fs = boost::filesystem;
 
@@ -44,6 +46,11 @@ namespace CoupledField {
   class SimState  : public boost::enable_shared_from_this<SimState> {
   
   public:
+    
+    //! Define available interpolation methods
+    typedef enum { NO_INTERPOLATION = 0, 
+                   NEAREST_NEIGHBOR = 1, 
+                   LINEAR} InterpolType;
 
     //! Constructor
     SimState(bool useAsInput );
@@ -120,6 +127,11 @@ namespace CoupledField {
     void GetLastStepNum(UInt sequenceStep, UInt& lastStepNum,
                         Double& lastStepVal );
  
+    //! Set interpolation strategy
+    void SetInterpolation( InterpolType type, MathParser * parser,
+                           BasePDE::AnalysisType analysis,
+                           Double offset );
+    
     //! Update internally to given time / frequency step
     void UpdateToStep( UInt sequenceStep, UInt stepNum );
    
@@ -130,6 +142,9 @@ namespace CoupledField {
     
     //! Initialize simulation state object
     void Init();
+    
+    //! Callback method in case of interpolation of time 
+    void UpdateTimeFreqStep();
     
     //! Pointer to HDF5 output class
     shared_ptr<SimOutputHDF5> outFile_;
@@ -160,6 +175,19 @@ namespace CoupledField {
     
     //! Set of registered FeFunctions
     std::set<shared_ptr<BaseFeFunction> >feFcts_;
+    
+    // ===========================================
+    //  Interpolation Related Data
+    // ===========================================
+    //! Connection to math parser instance 
+    boost::signals::connection conn_;
+    
+    //! Math parser for parent domain
+    MathParser * parentParser_;
+    
+    //! Math parser handle for parser of parent domain
+    MathParser::HandleType parentHandle_;
+    
   };
 
 }

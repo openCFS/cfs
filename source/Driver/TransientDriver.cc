@@ -61,20 +61,20 @@ namespace CoupledField {
     isRestarted_ = false;
 
     // get parameter node
-    PtrParamNode myNode = param_->Get("transient");
+    param_ = param_->Get("transient");
 
     info_ = info_->Get("transient");
     info_->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("s");
     
     // for the evaluation of deltaT, we make use of math Parser to
     // allow variable definitions of time step size
-    firstdt_ = myNode->Get( "deltaT")->MathParse<Double>();
+    firstdt_ = param_->Get( "deltaT")->MathParse<Double>();
     
     // Get time stepping information from parameter object
-    numstep_ = myNode->Get( "numSteps")->MathParse<UInt>();
+    numstep_ = param_->Get( "numSteps")->MathParse<UInt>();
     
     // query if accumulated time should be used as initial time
-    std::string initTimeString = myNode->Get("initialTime")->As<std::string>();
+    std::string initTimeString = param_->Get("initialTime")->As<std::string>();
     useAccumulatedTime_ = initTimeString == "accumulated" ? true : false;
     
     // Check for presence of restart flag.
@@ -82,10 +82,14 @@ namespace CoupledField {
     //       write a "restart", as it will be the basis for the
     //       next multisequence step
     writeRestart_ = true;
-    PtrParamNode restartNode = myNode->Get("writeRestart", ParamNode::PASS);
+    PtrParamNode restartNode = param_->Get("writeRestart", ParamNode::PASS);
     if (restartNode && !isPartOfSequence)
       writeRestart_ = restartNode->As<bool>();
   
+    // read flag if all results should get written to database file section
+    // to allow e.g. for general postprocessing or result extraction
+    param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
+    
     // in the end, directly register the global transient variables
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                        "t", 0 );
@@ -110,6 +114,8 @@ namespace CoupledField {
   }
 
   void TransientDriver::SetAccumulatedTime(Double accTime ) {
+    accTime_ = accTime;
+    
     if( !useAccumulatedTime_ ) 
       return;
 
@@ -147,12 +153,12 @@ namespace CoupledField {
     InitializePDEs();
   }
     
-  void TransientDriver::SolveProblem(bool write_results) 
+  void TransientDriver::SolveProblem() 
   {
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain_->GetResultHandler();
 
-    if(writeRestart_)
+    if(writeRestart_ || writeAllSteps_ || isPartOfSequence_ )
       simState_->BeginMultiSequenceStep(sequenceStep_, analysis_);
     
     // Check for restart
@@ -160,8 +166,6 @@ namespace CoupledField {
     
     // correct numstep due to restart
     numstep_ = numstep_ - restartStep_;
-    
-  
     
     UInt startStep = restartStep_ + 1;
     endStep_ = numstep_ + restartStep_;
@@ -184,9 +188,7 @@ namespace CoupledField {
      return;
     }
     
-    if(write_results){
        resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, numstep_+restartStep_ );
-     }
     
     // Outer loop over all timesteps
     UInt count = 0;
@@ -248,16 +250,14 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SolveStepTrans(analysis_id_);
       ptPDE_->GetSolveStep()->PostStepTrans();
 
-      if(write_results){
-        // writing results in output-file(s)
-        resHandler->BeginStep( actTimeStep_, actTime_ );
-        ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ );
-        resHandler->FinishStep( );
-      }
+      // writing results in output-file(s)
+      resHandler->BeginStep( actTimeStep_, actTime_ );
+      ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ );
+      resHandler->FinishStep( );
       
       // write out re-start only in the last step
-      if( actTimeStep_ == endStep_ || abortSimulation_ ) {
-        if( writeRestart_)
+      if( actTimeStep_ == endStep_ || abortSimulation_  || writeAllSteps_ ) {
+        if( writeRestart_ || writeAllSteps_ || isPartOfSequence_)
          simState_->WriteStep( actTimeStep_, actTime_ );
       }
         
@@ -287,15 +287,16 @@ namespace CoupledField {
     }
 
     // notify resultHandler about finishing of current sequence step
-    if(!isPartOfSequence_ && write_results) {
-      resHandler->FinishMultiSequenceStep();
-      // notify resultHandler about finishing of current sequence step
-      if(!isPartOfSequence_) resHandler->Finalize();
-      if(writeRestart_)
-        simState_->FinishMultiSequenceStep( !abortSimulation_ );
+    resHandler->FinishMultiSequenceStep();
+    if(!isPartOfSequence_) {
+      resHandler->Finalize();
     }
     
-    
+    if(writeRestart_ || writeAllSteps_ || isPartOfSequence_ ) {
+      simState_->FinishMultiSequenceStep( !abortSimulation_, 
+                                          accTime_+GetDuration());
+    }
+
   }
 
   void TransientDriver::ReadRestart() {
@@ -324,7 +325,7 @@ namespace CoupledField {
             << "contains no restart information.");
       }
 
-      // Store restart step
+      // Restore coefficients from last restart step
       simState_->UpdateToStep(sequenceStep_, lastStepNum);
 
       if( simState_->IsCompleted( sequenceStep_ ) ) {

@@ -38,7 +38,7 @@ namespace CoupledField {
     void Init( bool restart);
 
     //! main method, where time-stepping is implemented. it is for transient and static problem
-    void SolveProblem(bool write_results = true );
+    void SolveProblem();
 
     //! Return time increment
     Double GetDeltaT() { return firstdt_;}
@@ -73,6 +73,9 @@ namespace CoupledField {
 
     //! Current simulation time (in s)
     Double actTime_;
+    
+    //! Accumulated time so far (including time of all previous MS steps)
+    Double accTime_;
     
     //! Number of timesteps
     UInt numstep_;

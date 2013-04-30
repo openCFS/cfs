@@ -19,6 +19,7 @@ namespace CoupledField{
     sequenceStep_ = sequenceStep;
     isPartOfSequence_ = isPartOfSequence;
     ptPDE_ = NULL;
+    writeAllSteps_ = false;
   }
   
   SingleDriver::~SingleDriver()

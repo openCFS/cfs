@@ -25,7 +25,12 @@ namespace CoupledField {
                     paramNode, infoNode ) {
 
     analysis_ = BasePDE::STATIC;
+    param_ = param_->Get("static");
     info_ = info_->Get("static");
+   
+    // read flag if all results should get written to database file section
+    // to allow e.g. for general postprocessing or result extraction
+    param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
     
     // Set current value of time step and time step size in the mathParser
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
@@ -55,7 +60,7 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void StaticDriver::SolveProblem(bool write_results)
+  void StaticDriver::SolveProblem()
   {
 
     // Initialize first multisequence step, as the method "CheckStoreResults" 
@@ -63,7 +68,12 @@ namespace CoupledField {
     // sequencestep. However, in case of optimization, the sequence step
     // gets initialized in Optimization::SolveProblem()
     handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
-    simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
+    
+    // In case we allow general postprocessing or this analysis is part of 
+    // a multisequence (in which case the subsequent run could need this
+    // simulation as restart information)
+    if(writeAllSteps_ || isPartOfSequence_)
+      simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
 
     // do we really want to create a new entry? Might blast up the output
     ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
@@ -77,18 +87,16 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_);
     ptPDE_->GetSolveStep()->PostStepStatic();
 
-    // in optimization we write the results via StoreResults() because
-    // we don't write every forward step. 
-    if(write_results)
-    {
-      StoreResults(1,0.0);
-      handler_->FinishMultiSequenceStep();
-      simState_->FinishMultiSequenceStep(true);
-      
-      if(!isPartOfSequence_)
-        handler_->Finalize(); // to be called only once in a HDF5 lifetime!
+    StoreResults(1,0.0);
+    handler_->FinishMultiSequenceStep();
+    
+    if( !isPartOfSequence_ ) {
+      handler_->Finalize(); // to be called only once in a HDF5 lifetime!
     }
 
+    if(writeAllSteps_ || isPartOfSequence_ ) { 
+      simState_->FinishMultiSequenceStep(true);
+    }
   }
 
   void StaticDriver::StoreResults(UInt stepNum, double step_val)
@@ -99,7 +107,8 @@ namespace CoupledField {
     ptPDE_->WriteResultsInFile(stepNum, step_val);
     ptPDE_->WriteGeneralPDEdefines();
     handler_->FinishStep();
-    simState_->WriteStep(stepNum, step_val );
+    if( writeAllSteps_ || isPartOfSequence_ )
+      simState_->WriteStep(stepNum, step_val );
   }
 
 } // end of namespace

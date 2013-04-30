@@ -53,15 +53,12 @@ DEFINE_LOG(msDriver, "msDriver")
   }
 
 
-  void MultiSequenceDriver::SolveProblem(bool write_results) {
-    // options not implemented
-    assert(write_results == true);
-
+  void MultiSequenceDriver::SolveProblem() {
 
     std::cout << "++ Starting to solve problem" << std::endl;
 
     // get resultHandler
-    ResultHandler * resHandler = domain_->GetResultHandler();
+    //ResultHandler * resHandler = domain_->GetResultHandler();
 
     // initiate restart step, which basically sets the sequenceStep_
     // to the step currently to be solved.
@@ -80,7 +77,7 @@ DEFINE_LOG(msDriver, "msDriver")
       sequenceStep_ = iStep;
       
       // Solve Problem
-      actDriver_->SolveProblem(write_results);
+      actDriver_->SolveProblem();
 
       // add up accumulated time
       if (analysisPerStep_[iStep] == BasePDE::TRANSIENT) {
@@ -88,9 +85,9 @@ DEFINE_LOG(msDriver, "msDriver")
         accumulatedTime_ += tD->GetDuration();
       }
       
-      // finish sequence step with resulthandler
-      resHandler->FinishMultiSequenceStep();
-      simState_->FinishMultiSequenceStep( !abortSimulation_, accumulatedTime_ );
+//      // finish sequence step with resulthandler
+//      resHandler->FinishMultiSequenceStep();
+//      simState_->FinishMultiSequenceStep( !abortSimulation_, accumulatedTime_ );
       
       // Get solution for next step and delete all PDEs
       if (iStep < numSteps_) {

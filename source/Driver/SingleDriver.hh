@@ -37,6 +37,9 @@ namespace CoupledField {
     //! pointer to basePDE 
     BasePDE * ptPDE_;
 
+    //! Flag if internal state of PDE (=FeFunctions) get written each step
+    bool writeAllSteps_;
+    
     //! true, if driver is part of a multiSequence, false if first run or single run 
     bool isPartOfSequence_;
 

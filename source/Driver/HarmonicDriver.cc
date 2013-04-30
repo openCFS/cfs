@@ -49,11 +49,11 @@ namespace CoupledField
     // Set correct analysistype
     analysis_ = BasePDE::HARMONIC;
 
-    // replace our info node by a more detailed level
+    param_ = param_->Get("harmonic");
+
+        // replace our info node by a more detailed level
     info_ = info_->Get("harmonic");
     info_->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("Hz");
-
-    param_ = param_->Get("harmonic");
 
     startFreq_ = 0.0;
     stopFreq_ = 0.0;
@@ -69,6 +69,10 @@ namespace CoupledField
     PtrParamNode restartNode = param_->Get("writeRestart", ParamNode::PASS);
     if (restartNode)
       writeRestart_ = restartNode->As<bool>();
+    
+    // read flag if all results should get written to database file section
+    // to allow e.g. for general postprocessing or result extraction
+    param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
     
     // register frequency variable at math parser
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
@@ -256,19 +260,16 @@ namespace CoupledField
   // ****************
   //   SolveProblem
   // ****************
-  void HarmonicDriver::SolveProblem(bool write_results)
+  void HarmonicDriver::SolveProblem()
   {
     // in harmonics one cannot extraxt the result writing to StoreResults() as
     // we have multiple frequencies. (exceptions is optimization)
 
-    if(write_results) {
-      // info stuff
-      ptPDE_->WriteGeneralPDEdefines();
-    }
+    ptPDE_->WriteGeneralPDEdefines();
     handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
     
-    if(writeRestart_)
-          simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
+    if(writeRestart_ || writeAllSteps_ )
+      simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
     
     // Read restart information
     ReadRestart();
@@ -282,24 +283,25 @@ namespace CoupledField
       // Determine next frequency value
       ComputeFrequencyStep(actFreqStep_);
 
-      // Write results into output-file(s) if we don't do optimization
-      if(write_results) {
-        // Log info for this frequency - suppress in Optimization due to search steps
-        if(progOpts->IsQuiet())
-          cout << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ << " frequency " << actFreq_ << endl; 
-        else
-          cout << endl << ptPDE_->GetName() << ": Harmonic step " 
-               << actFreqStep_ <<" ======================= " << endl;
+      // Log info for this frequency - suppress in Optimization due to search steps
+      if(progOpts->IsQuiet())
+        cout << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ << " frequency " << actFreq_ << endl; 
+      else
+        cout << endl << ptPDE_->GetName() << ": Harmonic step " 
+        << actFreqStep_ <<" ======================= " << endl;
 
-        handler_->BeginStep( actFreqStep_, actFreq_ );
-        ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
-        handler_->FinishStep( );
+      handler_->BeginStep( actFreqStep_, actFreq_ );
+      ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
+      handler_->FinishStep( );
+
+      // write out re-start in case of aborted simulation or if all steps should be written
+      if(  abortSimulation_  || writeAllSteps_ ) {
+        if( writeRestart_ || writeAllSteps_ )
+         simState_->WriteStep( actFreqStep_, actFreq_);
       }
       
-      // write out re-start only in the last step
-      if(  abortSimulation_ ) {
-        if( writeRestart_)
-         simState_->WriteStep( actFreqStep_, actFreq_);
+      // leave loop, if simulation should be aborted
+      if ( abortSimulation_ ) {
         break;
       }
         
@@ -315,14 +317,13 @@ namespace CoupledField
       envNode->Get("remainingTime")->SetValue(remainingTime);
     } // loop: frequencies
 
-    if(write_results) {
-      handler_->FinishMultiSequenceStep();
-      if(writeRestart_)
-        simState_->FinishMultiSequenceStep( !abortSimulation_ );
-      
-      // notify resultHandler about finishing of current sequence step
-      if(!isPartOfSequence_) handler_->Finalize();
-    }
+    handler_->FinishMultiSequenceStep();
+    if(writeRestart_ || writeAllSteps_ )
+      simState_->FinishMultiSequenceStep( !abortSimulation_ );
+
+    // Perform finalization only if not part of sequence
+    if(!isPartOfSequence_) 
+      handler_->Finalize();
   }
 
   Double HarmonicDriver::ComputeFrequencyStep(UInt actFreqStep)
