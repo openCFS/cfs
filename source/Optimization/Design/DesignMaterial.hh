@@ -22,7 +22,7 @@ template <class TYPE> class StdVector;
     
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
       DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR,
-      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT } Type;
+      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT, HOM_RECT_C1} Type;
     
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -142,6 +142,10 @@ template <class TYPE> class StdVector;
      * @param shape might also be the x or y component of the derivative! */
     void ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const;
 
+    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+       * @param vector p has the values of the design variable */
+    void ApplyHomRectC1Tensor(Matrix<double>& E, const Vector<double>& p,const int) const;
+
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
     inline void GetHomRectTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
 
@@ -180,9 +184,26 @@ template <class TYPE> class StdVector;
     /** fills the row in hom_rect_samples_ */
     void FillHomRectSamples(PtrParamNode homRect, unsigned int idx, const std::string& a, const std::string& b);
 
+    /** fills the coefficient data structure for the bicubic interpolation*/
+    void FillHomRectCoeff(Matrix<double> & coeff_,const char * filename);
+
+    /** evaluates the C1 interpolation polynomial at point p[0],p[1] and returns function value as double */
+    double EvaluateC1Interpolation(Matrix<double>&, const Vector<double>&, const Matrix<double>&, double &, double &, double &, double &, int &, int &, int &, int &) const;
+    /** evaluates the derivative of the C1 interpolation polynomial at point p[0],p[1] in direction 0 or 1 and returns function value as double */
+    double EvaluateC1Interpolation_Deriv(Matrix<double>&, const Vector<double>& p, const Matrix<double>&, double &, double &, double &, double &, int &, int &, int &, int &, const int direction) const;
+
+    //double EvaluateC1Interpolation(Matrix<double>& E, const Vector<double>& p, const Matrix<double> & coeff, int au,int al,int bu,int bl,int j, int k,int m,int n);
+
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
      * 9 rows and 6 columns for with TENSOR11 being the first */
     Matrix<double> hom_rect_samples_;
+    /** sampled values for coefficients of the bicubic interpolation polynomial; number of sample elements rows and 16 columns*/
+    Matrix<double> hom_rect_coeff11_;
+    Matrix<double> hom_rect_coeff12_;
+    Matrix<double> hom_rect_coeff22_;
+    Matrix<double> hom_rect_coeff33_;
+    Matrix<double> hom_rect_a_;
+    Matrix<double> hom_rect_b_;
 
   };
 

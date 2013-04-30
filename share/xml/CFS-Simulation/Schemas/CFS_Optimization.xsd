@@ -1076,6 +1076,22 @@
                             </xsd:attribute>
                           </xsd:complexType>
                         </xsd:element>
+                        <xsd:element name="homRectC1" minOccurs="0" maxOccurs="1">
+                          <xsd:complexType>
+                            <!-- documents in with notation the tensor data is given. Internal storrage is Hill-Mandel -->
+                            <xsd:attribute name="notation" use="required">
+                              <xsd:simpleType>
+                                <xsd:restriction base="xsd:token">
+                                  <xsd:enumeration value="voigt"/>
+                                  <xsd:enumeration value="hill_mandel"/>
+                                </xsd:restriction>
+                              </xsd:simpleType>
+                            </xsd:attribute>
+                            <xsd:attribute name="file" default="coeff.xml" type="xsd:token" use="optional"/>
+                         
+
+                          </xsd:complexType>
+                        </xsd:element>
                       </xsd:sequence>                
                       <xsd:attribute name="type" use="required">
                         <xsd:simpleType>
@@ -1094,6 +1110,8 @@
                             <xsd:enumeration value="laminates"/>
                             <!-- samples for homogenizes a-b rectangulars for interpolation. Requies homRect element -->
                             <xsd:enumeration value="hom-rect"/>
+                            <!--  samples for homogenizes a-b rectangulars for C1-interpolation. -->
+                            <xsd:enumeration value="hom-rect-C1"/>
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>

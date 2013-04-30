@@ -1,5 +1,7 @@
 #include <math.h>
+#include <vector>
 #include <string>
+#include <sstream>
 
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
@@ -14,6 +16,10 @@
 #include "Elements/2D/quad9fe.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
+
+#include "DataInOut/ParamHandling/ParamTools.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
+#include "MatVec/matrix.hh"
 
 DECLARE_LOG(dm)
 DEFINE_LOG(dm, "designMaterial")
@@ -80,6 +86,25 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     FillHomRectSamples(hr, 7, "0.0", "0.25");
     FillHomRectSamples(hr, 8, "0.25", "0.25");
   }
+  if(type_ == HOM_RECT_C1) {
+    PtrParamNode hr = pn->Get("homRectC1");
+    std::string file = hr->Get("file")->As<std::string>();
+    Xerces xerces(file);
+    PtrParamNode root = xerces.CreateParamNodeInstance();
+    int dim1 = root->Get("coeff11/matrix/dim1")->As<int>();
+    int dim2 = root->Get("coeff11/matrix/dim2")->As<int>();
+    int dim3 = root->Get("a/matrix/dim1")->As<int>();
+    int dim4 = root->Get("b/matrix/dim1")->As<int>();
+    ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"),dim1, dim2, hom_rect_coeff11_);
+    ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"),dim1, dim2, hom_rect_coeff12_);
+    ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"),dim1, dim2, hom_rect_coeff22_);
+    ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"),dim1, dim2, hom_rect_coeff33_);
+    ParamTools::AsTensor<double>(root->Get("a/matrix/real"),dim3, 1, hom_rect_a_);
+    ParamTools::AsTensor<double>(root->Get("b/matrix/real"),dim4, 1, hom_rect_b_);
+    // the internal tensor representation in hom_rect_samples_ is HILL-MANDEL!
+    Notation notation = hr->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
+    hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
+  }
 }
 
 void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx, const string& a, const string& b)
@@ -117,6 +142,8 @@ unsigned int DesignMaterial::RequiredParameters(OptimizationMaterial::System mat
   case LAMINATES:
     return r+5;
   case HOM_RECT:
+    return r+3;
+  case HOM_RECT_C1:
     return r+3;
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
   case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED:
@@ -206,6 +233,10 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
     return(design.Find(DesignElement::STIFF1) >= 0
         && design.Find(DesignElement::STIFF2) >= 0
         && design.Find(DesignElement::ROTANGLE) >= 0);
+  case HOM_RECT_C1:
+    return(design.Find(DesignElement::STIFF1) >= 0
+           && design.Find(DesignElement::STIFF2) >= 0
+           && design.Find(DesignElement::ROTANGLE) >= 0);
   }
   assert(false);
   return false;
@@ -757,8 +788,14 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, DesignElement::Type dir
    double rotAngle = params_[DesignElement::ROTANGLE];
 
    Vector<double> p(2);
-   p[0] = -1.0 + 4 * a; // assume max 0.5
-   p[1] = -1.0 + 4 * b; // assume max 0.5
+   if (type_== HOM_RECT) {
+     p[0] = -1.0 + 4 * a; // assume max 0.5
+     p[1] = -1.0 + 4 * b; // assume max 0.5
+   }
+   if (type_ == HOM_RECT_C1) {
+     p[0] = 2*a;
+     p[1] = 2*b;
+   }
 
    LOG_DBG2(dm) << "GHRT: dir=" << (direction == DesignElement::NO_DERIVATIVE ? "no_derivative" : DesignElement::type.ToString(direction))
                 << " not=" << notation << " rotAngle=" << rotAngle << " a=" << a << " b=" << b << " -> " << p.ToString();
@@ -768,17 +805,25 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, DesignElement::Type dir
    case DesignElement::NO_DERIVATIVE:
    case DesignElement::ROTANGLE:
    {
-     Vector<double> shape;
-     fe.GetShFnc(shape, p, NULL);
-     ApplyHomRectTensor(E, shape);
+     if(type_ == HOM_RECT) {
+       Vector<double> shape;
+       fe.GetShFnc(shape, p, NULL);
+       ApplyHomRectTensor(E, shape);
+       LOG_DBG2(dm) << "GHRT: shape=" << shape.ToString();
+     }
 
-     LOG_DBG2(dm) << "GHRT: shape=" << shape.ToString();
+     if(type_ == HOM_RECT_C1) {
+       ApplyHomRectC1Tensor(E,p,-1);
+     }
+
+
      break;
    }
 
    case DesignElement::STIFF1:
    case DesignElement::STIFF2:
    {
+     if(type_ == HOM_RECT) {
      Matrix<double> jac;
      Matrix<double> dummy; // not used -> strange function ?! :(
      fe.GetLocDerivShFnc(jac, p, dummy, NULL);
@@ -793,7 +838,11 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, DesignElement::Type dir
      E *= 4;
 
      LOG_DBG2(dm) << "GHRT: d_shape=" << d_shape.ToString();
-
+     }
+     if(type_ == HOM_RECT_C1) {
+       ApplyHomRectC1Tensor(E, p,direction == DesignElement::STIFF1 ? 0 : 1);
+       E *= 2;
+     }
      break;
    }
 
@@ -848,6 +897,116 @@ void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E, const Vector<double>&
   LOG_DBG(dm) << "AHRT 33=" << E[3-1][3-1] << " data=" << data.ToString();
 
 
+}
+void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, const Vector<double>& p,const int direction) const
+{
+  E.Resize(3,3);
+  E.Init(); // for off-diagonal
+
+  int m = hom_rect_a_.GetNumRows();
+  int n = hom_rect_b_.GetNumRows();
+  double al,au;
+  int j;
+  for (int i=0;i<m-1;i++) {
+    if (hom_rect_a_[i][0] <= p[0] && p[0] < hom_rect_a_[i+1][0]) {
+      al = hom_rect_a_[i][0];
+      au = hom_rect_a_[i+1][0];
+      j=i;
+      break;
+    } else if (p[0] == hom_rect_a_[m-1][0]) {
+      al = hom_rect_a_[m-2][0];
+      au = hom_rect_a_[m-1][0];
+      j=m-2;
+      break;
+    }else if (p[0] > hom_rect_a_[m-1][0]){
+              throw Exception("Interpolation of Hom_RectC1 tensor failed. Design Variable p[0]" +lexical_cast<string>(p[0])+ " out of bounds ");
+              break;
+    }
+  }
+  double bl,bu;
+  int k;
+  for (int i=0;i<n-1;i++) {
+    if (hom_rect_b_[i][0] <= p[1] && p[1] < hom_rect_b_[i+1][0]) {
+      bl = hom_rect_b_[i][0];
+      bu = hom_rect_b_[i+1][0];
+      k=i;
+      break;
+    } else if (p[1] == hom_rect_b_[n-1][0]) {
+      bl = hom_rect_b_[n-2][0];
+      bu = hom_rect_b_[n-1][0];
+      k=n-2;
+      break;
+    } else if (p[1] > hom_rect_b_[n-1][0]){
+              throw Exception("Interpolation of Hom_RectC1 tensor failed. Design Variable p[1]" +lexical_cast<string>(p[1])+ " out of bounds ");
+              break;
+    }
+  }
+  LOG_DBG(dm) <<"al= "<<al<<"au = "<<au;
+  if (direction == -1) {
+    E[1-1][1-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff11_, au,al,bu,bl,j,k,m,n);
+    E[1-1][2-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff12_, au,al,bu,bl,j,k,m,n);
+    E[2-1][1-1] = E[1-1][2-1];
+    E[2-1][2-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff22_, au,al,bu,bl,j,k,m,n);
+    E[3-1][3-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff33_, au,al,bu,bl,j,k,m,n);
+    LOG_DBG(dm)<<"E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2];
+  } else {
+      E[1-1][1-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff11_, au,al,bu,bl,j,k,m,n,direction);
+      E[1-1][2-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff12_, au,al,bu,bl,j,k,m,n,direction);
+      E[2-1][1-1] = E[1-1][2-1];
+      E[2-1][2-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff22_, au,al,bu,bl,j,k,m,n,direction);
+      E[3-1][3-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff33_, au,al,bu,bl,j,k,m,n,direction);
+  }
+
+}
+
+
+double DesignMaterial::EvaluateC1Interpolation(Matrix<double>& E, const Vector<double>& p,const Matrix<double> & coeff, double & au,double & al,double & bu,double & bl,int & j, int & k,int & m,int & n) const{
+    Matrix<double> c;
+    c.Resize(4,4);
+    LOG_DBG(dm) << "Matrix C";
+    for (int i=0;i<4;i++) {
+        for (int l=0;l<4;l++) {
+           c[i][l] = coeff[(n-1)*j+k][(i)*4+l];
+        }
+    }
+    LOG_DBG(dm) << c;
+    LOG_DBG(dm) <<"al= "<<al<<"au = "<<au;
+    LOG_DBG(dm) <<"p="<<p;
+    double u =(p[1]-bl)/(bu-bl);
+    double t=(p[0]-al)/(au-al);
+    LOG_DBG(dm)<<"u = "<<u<<" t= "<<t;
+    double res = 0;
+    for (int i = 3;i>=0;i--) {
+        res =t*(res)+((c[i][3]*u+c[i][2])*u+c[i][1])*u+c[i][0];
+    }
+    LOG_DBG(dm) << "Result =" << res;
+    return res;
+}
+
+double DesignMaterial::EvaluateC1Interpolation_Deriv(Matrix<double>& E, const Vector<double>& p,const Matrix<double> & coeff, double & au,double & al,double & bu,double & bl,int & j, int & k,int & m,int & n,const int direction) const{
+
+    Matrix<double> c;
+    c.Resize(4,4);
+    for (int i=0;i<4;i++) {
+        for (int l=0;l<4;l++) {
+           c[i][l] = coeff[(n-1)*j+k][(i)*4+l];
+        }
+    }
+    double t =(p[0]-al)/(au-al);
+    double u =(p[1]-bl)/(bu-bl);
+    double deriv = 0;
+    if (direction == 0){
+      for (int i = 3;i>=1;i--) {
+        deriv = t*deriv+(i/(au-al))*(((c[i][3]*u+c[i][2])*u+c[i][1])*u+c[i][0]);
+      }
+    }
+    if (direction == 1) {
+      for (int i = 3;i>=0;i--) {
+        deriv=t*deriv+(1/(bu-bl))*((c[i][3]*3*u+2*c[i][2])*u+c[i][1]);
+      }
+    }
+    LOG_DBG(dm) << "Deriv Result =" << deriv;
+    return deriv;
 }
 
 void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
@@ -1140,7 +1299,7 @@ double DesignMaterial::GetIsoMass(double D, double G){
 
 void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
 {
-  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != HOM_RECT));
+  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != HOM_RECT && type_ != HOM_RECT_C1));
   switch(type_){
   case FMO:
     GetAnisotropicTensor(t, direction, notation);
@@ -1167,6 +1326,9 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
     GetLaminatesTensor(t, subTensor, direction, notation);
     break;
   case HOM_RECT:
+    GetHomRectTensor(t, direction, notation);
+    break;
+  case HOM_RECT_C1:
     GetHomRectTensor(t, direction, notation);
     break;
   default: // case default
@@ -1339,6 +1501,7 @@ void DesignMaterial::SetEnums()
   type.Add(DENSITY_TIMES_ROTATED_2D_TENSOR, "density-times-rotated-2dtensor");
   type.Add(LAMINATES, "laminates");
   type.Add(HOM_RECT, "hom-rect");
+  type.Add(HOM_RECT_C1,"hom-rect-C1");
 
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");
