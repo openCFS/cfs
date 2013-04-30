@@ -593,6 +593,10 @@
                             <xsd:enumeration value="minor_print_level"/>
                             <xsd:enumeration value="print_frequency"/>
                             <xsd:enumeration value="factorization_frequency"/>
+                            <xsd:enumeration value="total_integer_workspace"/>
+                            <xsd:enumeration value="total_real_workspace"/>
+                            <xsd:enumeration value="user_integer_workspace"/>
+                            <xsd:enumeration value="user_real_workspace"/>
                             <!-- real options -->
                             <xsd:enumeration value="major_optimality_tolerance"/>
                             <xsd:enumeration value="minor_optimality_tolerance"/>

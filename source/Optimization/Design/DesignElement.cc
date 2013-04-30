@@ -933,6 +933,21 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
                 //<< " g=" << (g != NULL ? Condition::type.ToString(g->GetType()) : "null");
 
   double sum = 0.0;
+//
+//  if (de_->GetIndex() == 88)
+//  {
+//    std::cout << de_->GetIndex() << std::endl;
+//    std::cout << de_->GetType() << std::endl;
+//    for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
+//    {
+//      const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
+//      const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
+//      std::cout << de->GetIndex() << ": " << de->GetPlainValue(sp, g) << std::endl;
+//    }
+//    std::cout << std::endl;
+//    assert(de_->simp != NULL);
+//  }
+
 
   // mathematically the neighborhood includes this element, but this is not in the structure
   for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
