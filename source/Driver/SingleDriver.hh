@@ -29,6 +29,15 @@ namespace CoupledField {
     /** implement abstract identification class */ 
     DriverClass GetDriverClass() { return SINGLE_DRIVER; };
 
+    //! Set step value from outside
+    
+    //! This methods allows to set the time / frequency step from outside.
+    //! It is only allowed, if the SimSate object provides additional input.
+    virtual void SetToStepValue(UInt stepNum, Double stepVal ) {
+      EXCEPTION( "Not implemented" );
+    }
+    
+    
   protected:
   
     //! Initialize PDEs

@@ -1827,47 +1827,53 @@ namespace CoupledField {
                                      StdVector<shared_ptr<EntityList> >& entities, 
                                      StdVector<PtrCoefFct >& coef,
                                      bool& updateGeo ) {
-    
+
     // get grip of all elements of that type
     if( !myParam_->Has("bcsAndLoads") )
       return;
-    
+
     ParamNodeList elems = myParam_->Get("bcsAndLoads")->GetList(elemName);
-    
+
     entities.Resize(elems.GetSize());
     coef.Resize(elems.GetSize());
+
     for( UInt i = 0; i < elems.GetSize(); ++i ) {
       PtrParamNode xml = elems[i];
 
       // get entity list, depending on type
       std::string entName = xml->Get("name")->As<std::string>();
-    
-      // determine list type: In case we have have surface elements, generate explicitly
-      // a surface element list
-      EntityList::ListType listType = EntityList::ELEM_LIST; 
-      if( ptGrid_->GetEntityDim( entName ) == ptGrid_->GetDim() - 1) {
-        listType = EntityList::SURF_ELEM_LIST;
-      }
-      
-      switch( ptGrid_->GetEntityType(entName) ) {
-        case EntityList::NAMED_NODES:
-          entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, 
-                                                entName );
-          break;
-        case EntityList::REGION:
-        case EntityList::NAMED_ELEMS:
-          entities[i] = ptGrid_->GetEntityList( listType, entName );
-          break;
-        case EntityList::NO_TYPE:
-          EXCEPTION("No entities with name '" << entName << "' known");
-          break;
-      }
+      try {
+        // determine list type: In case we have have surface elements, generate explicitly
+        // a surface element list
+        EntityList::ListType listType = EntityList::ELEM_LIST; 
+        if( ptGrid_->GetEntityDim( entName ) == ptGrid_->GetDim() - 1) {
+          listType = EntityList::SURF_ELEM_LIST;
+        }
 
-      std::set<UInt> definedDofs;
-      ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
-                          definedDofs, updateGeo );
+        switch( ptGrid_->GetEntityType(entName) ) {
+          case EntityList::NAMED_NODES:
+            entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, 
+                                                  entName );
+            break;
+          case EntityList::REGION:
+          case EntityList::NAMED_ELEMS:
+            entities[i] = ptGrid_->GetEntityList( listType, entName );
+            break;
+          case EntityList::NO_TYPE:
+            EXCEPTION("No entities with name '" << entName << "' known");
+            break;
+        }
 
-    }
+        std::set<UInt> definedDofs;
+        ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
+                            definedDofs, updateGeo );
+
+      } catch (Exception& e) {
+        RETHROW_EXCEPTION(e, pdename_ << ": Could not read definition for '" << elemName
+                          << "' on entities '" << entName <<"'");
+      }
+    } // loop: elements
+
   }
 
   void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
@@ -1937,53 +1943,89 @@ namespace CoupledField {
       UInt sequenceStep = esNode->Get("sequenceStep")->As<UInt>();
       std::string quantityName = qNode->Get("name")->As<std::string>();
       std::string pdeName = qNode->Get("pdeName")->As<std::string>();
-      
-      SolutionType solType = SolutionTypeEnum.Parse(quantityName);
-      
-      Domain * inDomain = NULL;
-
-      // create SimState (for input)
-      boost::shared_ptr<SimState> inState(new SimState(true));
-
-      //              LOG_DBG(singlepde) << pdename_ 
-      //                  << ": Use initial condition from sequenceStep " << sequenceStep;
-
-      shared_ptr<SimInput> reader = domain_->GetResultHandler()->GetInputReader(fileId);
-      shared_ptr<SimInputHDF5> in;
       try {
-        in = dynamic_pointer_cast<SimInputHDF5>(reader);
-      } catch (...) {
-        EXCEPTION( "Reader with id'" << fileId << "' has not HDF5 format." );
+
+        SolutionType solType = SolutionTypeEnum.Parse(quantityName);
+
+        Domain * inDomain = NULL;
+
+        // create SimState (for input)
+        boost::shared_ptr<SimState> inState(new SimState(true));
+        shared_ptr<SimInput> reader = domain_->GetResultHandler()->GetInputReader(fileId);
+        shared_ptr<SimInputHDF5> in;
+        try {
+          in = dynamic_pointer_cast<SimInputHDF5>(reader);
+        } catch (...) {
+          EXCEPTION( "Reader with id'" << fileId << "' has not HDF5 format." );
+        }
+        inState->SetInputHdf5Reader(in);
+
+        // Get grid map of own domain, as the grids can be re-used
+        SimState::GridMap gridMap = domain_->GetGridMap();
+
+        // Obtain temporary Domain object, from which the initial state is read 
+        // in. As this generates inferior logging output, we make a visual
+        // break.
+        LOG_DBG(singlepde) << pdename_ 
+            << ": Obtaining Domain from simState object";
+        LOG_DBG(singlepde) << pdename_ << ": =================================="; 
+        LOG_DBG(singlepde) << pdename_ << ":  BEGIN OUTPUT OF TEMPORARY DOMAIN ";
+        LOG_DBG(singlepde) << pdename_ << ": ==================================";            
+
+        inDomain = inState->GetDomain(sequenceStep, gridMap);
+
+        LOG_DBG(singlepde) << pdename_ << ": ==================================="; 
+        LOG_DBG(singlepde) << pdename_ << ":  END OF OUTPUT OF TEMPORARY DOMAIN ";
+        LOG_DBG(singlepde) << pdename_ << ": ===================================";
+
+        // Obtain same PDE from new domain
+        SinglePDE * inPDE = inDomain->GetSinglePDE(pdeName);
+
+        // Check type of interpolation
+        std::string tfmString =  tfm->GetChild()->GetName();
+        if( tfmString == "constant") {
+
+          // set domain to one specific step
+          UInt stepNum = tfm->Get("constant")->Get("step")->As<UInt>();
+          inState->UpdateToStep(sequenceStep, stepNum);
+
+        } else if( tfmString == "continuous" ) {
+
+          // read parameters for continuous interpolation
+          PtrParamNode contNode = tfm->Get("continuous");
+          std::string interpolString = contNode->Get("interpolation")->As<std::string>();
+          Double offset = contNode->Get("offset")->As<Double>();
+          SimState::InterpolType interpolType = 
+              SimState::InterpolTypeEnum.Parse(interpolString);
+          inState->SetInterpolation( interpolType, mp_, analysistype_ , offset );
+
+        } else {
+          EXCEPTION( "Time / frequency mapping of type '" << tfmString 
+                     << "' not known.");
+        }
+
+        // Return coefficient function
+        coef = inPDE->GetCoefFct(solType);
+        if( !coef ) {
+          EXCEPTION( "Quantity '" << quantityName << "' is not computable by physic '"
+                     << pdeName << "'.")
+        }
+        // Check dimensionality of coefficient function
+//        if( coef->GetDimType() != type ) {
+//          EXCEPTION( "Quantity '" << quantityName << "' is of type '" 
+//                     << CoefFunction::CoefDimType_.ToString(coef->GetDimType())
+//                     << "' but type '" 
+//                     << CoefFunction::CoefDimType_.ToString(type) 
+//                     << "' is needed'" );
+//                     
+//        }
+      } catch (Exception& e) {
+        RETHROW_EXCEPTION(
+            e, "Could not obtain quantity '" << quantityName << "' from physic '"
+            << pdeName << "' from external simulation with id '" <<  fileId << "'.\n"
+            << "Please check, if desired quantity and physic are defined for the "
+            << "requested sequence step " << sequenceStep << ".");
       }
-      inState->SetInputHdf5Reader(in);
-
-      // Get grid map of own domain, as the grids can be re-used
-      SimState::GridMap gridMap = domain_->GetGridMap();
-
-      // Obtain temporary Domain object, from which the initial state is read 
-      // in. As this generates inferior logging output, we make a visual
-      // break.
-      LOG_DBG(singlepde) << pdename_ 
-          << ": Obtaining Domain from simState object";
-      LOG_DBG(singlepde) << pdename_ << ": =================================="; 
-      LOG_DBG(singlepde) << pdename_ << ":  BEGIN OUTPUT OF TEMPORARY DOMAIN ";
-      LOG_DBG(singlepde) << pdename_ << ": ==================================";            
-
-      inDomain = inState->GetDomain(sequenceStep, gridMap);
-
-      LOG_DBG(singlepde) << pdename_ << ": ==================================="; 
-      LOG_DBG(singlepde) << pdename_ << ":  END OF OUTPUT OF TEMPORARY DOMAIN ";
-      LOG_DBG(singlepde) << pdename_ << ": ===================================";
-
-      // Obtain same PDE from new domain
-      SinglePDE * inPDE = inDomain->GetSinglePDE(pdeName);
-      
-      // Set interpolation
-      SimState::InterpolType interpol = SimState::NEAREST_NEIGHBOR;
-      simState_->SetInterpolation( interpol, mp_, analysistype_ , 0.0 );
-      
-      // Return coefficient function
-      coef = inPDE->GetCoefFct(solType);
       
     } else if( valueNode->Has("coupling") ) {
       // ====================
@@ -2250,8 +2292,6 @@ namespace CoupledField {
       }
     }
 
-
-
     // -------------------
     // COMPOSITE MATERIALS
     // -------------------
@@ -2340,8 +2380,6 @@ namespace CoupledField {
     }
   }
 
-
-
   // ======================================================
   // GET /SET  METHODS
   // ======================================================
@@ -2367,11 +2405,6 @@ namespace CoupledField {
     }
   }
 
-
- 
-
- 
-  
   
   void SinglePDE::DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res ) {
 

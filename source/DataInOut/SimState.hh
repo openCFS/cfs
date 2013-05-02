@@ -48,9 +48,13 @@ namespace CoupledField {
   public:
     
     //! Define available interpolation methods
-    typedef enum { NO_INTERPOLATION = 0, 
-                   NEAREST_NEIGHBOR = 1, 
-                   LINEAR} InterpolType;
+    //@{
+    typedef enum { 
+      NO_INTERPOLATION = 0, 
+      NEAREST_NEIGHBOR = 1, 
+      LINEAR } InterpolType;
+    static Enum<InterpolType> InterpolTypeEnum;
+    //@}
 
     //! Constructor
     SimState(bool useAsInput );
@@ -183,11 +187,23 @@ namespace CoupledField {
     boost::signals::connection conn_;
     
     //! Math parser for parent domain
+    
+    //! The math parser of the parent / main domain is neeeded to register
+    //! a callback function, which is called everytime the time / frequency
+    //! value of the main domain is changed.
     MathParser * parentParser_;
     
     //! Math parser handle for parser of parent domain
     MathParser::HandleType parentHandle_;
     
+    //! Store stepNumbers
+    StdVector<UInt> stepNums_;
+    
+    //! Store stepValues
+    StdVector<Double> stepVals_;
+    
+    //! store type of interpolation
+    InterpolType interpol_;
   };
 
 }

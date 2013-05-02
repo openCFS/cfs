@@ -57,6 +57,9 @@ namespace CoupledField {
     //! Set accumulated time (may be used as initial time value)
     void SetAccumulatedTime( Double time );
 
+    //! \copydoc SingleDriver::SetToStepValue
+    virtual void SetToStepValue(UInt stepNum, Double stepVal );
+    
     //! Helper method which determines if an AnalyisType is complex.
     virtual bool IsComplex() { return false; };
     

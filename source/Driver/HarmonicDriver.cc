@@ -342,7 +342,7 @@ namespace CoupledField
     analysis_id_->Get("step")->SetValue(actFreqStep_);
     analysis_id_->Get("value")->SetValue(actFreq_);
 
-    // Set curent frequency value in the mathParser
+    // Set current frequency value in the mathParser
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", actFreqStep_ );
 
@@ -466,6 +466,21 @@ namespace CoupledField
     return retFreq;
   }
 
+  void HarmonicDriver::SetToStepValue(UInt stepNum, Double stepVal )  {
+    // ensure that this method is only called if simState has input
+    if( ! simState_->HasInput()) {
+      EXCEPTION( "Can only set external time step, if simulation state "
+              << "is read from external file" );
+    }
+    
+    actFreqStep_ = stepNum;;
+    actFreq_ = stepVal;
+
+    // Set current frequency value in the mathParser
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", actFreqStep_ );
+  }
+  
   
   void HarmonicDriver::SignalHandler( int sig ) {
 

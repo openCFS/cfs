@@ -23,6 +23,8 @@
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
+#include "Driver/SingleDriver.hh"
+
 namespace CoupledField {
 
 // declare class specific logging stream
@@ -66,10 +68,22 @@ class MaterialHandler;
     // Ensure, that hdf5 input class is present
     assert(inFile_);
 
+    // Initialize inpout readers
     inFile_->InitModule();
     inFile_->DB_Init();
-
     
+    // Check, that sequence step is set correctly 
+    UInt lastMsStep = GetLastMsStepNum();
+    if( sequenceStep > lastMsStep) {
+      EXCEPTION( "Can not return domain for sequence step " << sequenceStep
+                 << " as only " << lastMsStep << " multisequence steps are "
+                 << "defined" );
+    }
+
+    // Attention: currently we may not re-set the seuquence step, if the simState
+    // is primary intended for output
+    sequenceStep_ = sequenceStep;
+
     // Get content of param and material file
     std::string paramContent, matContent;
     inFile_->DB_GetParamFileContent( paramContent );
@@ -183,7 +197,13 @@ class MaterialHandler;
                                     BasePDE::AnalysisType analysis,
                                     Double offset ) {
     
+    // ensure, that domain was already obtained
+    if( ! domain_ ) {
+      EXCEPTION( "Please call GetDomin() before setting interpolation");
+    }
+    
     // store type of interpolation
+    interpol_ = type;
     
     
     // store parser and register callback function for step / freq update
@@ -199,6 +219,46 @@ class MaterialHandler;
     conn_ = parentParser_->AddExpChangeCallBack(
         boost::bind(&SimState::UpdateTimeFreqStep, this ),
         parentHandle_ );
+    
+    
+    // Loop over all registered FeFunctions
+    std::map<std::string, std::set<std::string> > coefFcts;
+    std::map<std::string, std::set<std::string> >::const_iterator pdeIt;
+    inFile_->DB_GetAvailPdeCoefFcts( sequenceStep_, coefFcts );
+
+    std::map<UInt,Double> stepNumVals;
+    // Loop over all available PDEs
+    for(pdeIt = coefFcts.begin(); pdeIt != coefFcts.end(); ++pdeIt ) {
+
+      const std::string & pdeName = pdeIt->first;
+      const std::set<std::string> & coefs = pdeIt->second;
+      std::set<std::string>::const_iterator coefIt = coefs.begin();
+
+      // Loop over all available CoefFcts
+      for( ; coefIt != coefs.end(); ++coefIt ) {
+        const std::string & coefName = *coefIt; 
+        std::map<UInt, Double> stepValues;
+        inFile_->DB_GetStepValues( sequenceStep_, pdeName, coefName, stepValues );
+
+        // insert step values in to own structure
+        std::map<UInt, Double>::const_iterator stepIt = stepValues.begin();
+        for( ; stepIt != stepValues.end(); ++stepIt ) {
+          stepNumVals[stepIt->first] = stepIt->second;
+        }
+      }
+    } // loop: pdes
+    
+    // Now we have all step numbers / vals. Copy them to stepNums_ and 
+    // stepVals_
+    stepNums_.Resize(stepNumVals.size());
+    stepVals_.Resize(stepNumVals.size());
+    std::map<UInt, Double>::const_iterator stepIt = stepNumVals.begin();
+    UInt pos = 0;
+    for( ; stepIt != stepNumVals.end(); ++stepIt, ++pos ) {
+      stepNums_[pos] = stepIt->first;
+      stepVals_[pos] = stepIt->second;
+    }
+    
   }
   
   void SimState::SetOutputHdf5Writer( shared_ptr<SimOutputHDF5> writer ) {
@@ -292,7 +352,6 @@ class MaterialHandler;
        lastStepNum = std::max(lastStepNum, stepValues.rbegin()->first);
        lastStepVal = std::max(lastStepVal, stepValues.rbegin()->second);
      }
-     
    } // loop: pdes
     
   }
@@ -364,22 +423,172 @@ class MaterialHandler;
   }
 
   void SimState::UpdateTimeFreqStep() {
-    Double actVal = parentParser_->Eval( parentHandle_ ); 
-    
-    std::cerr << "Time / Freq step changed to" << actVal;
+    Double actStepVal = parentParser_->Eval( parentHandle_ ); 
+
+    LOG_TRACE(simState) << "Updating Time / Freq value to" << actStepVal 
+        << " s / Hz.";
 
     // get current time / freq step
-    
-    
+    SingleDriver * ptDriver = domain_->GetSingleDriver();
+
+    // ======================================
     // determine "step" in the child driver
-    
-    // update the coefficient vectors
-    
+    // ======================================
+    Double w1, w2;
+    Integer index1, index2;
+
+    Double yValue = 0.0;
+
+    // get index of last element
+    const UInt kend = stepVals_.GetSize() - 1;
+
+    // if coordinate is out of bounds or we have just one entry,
+    // return boundary value (i.e.first or last) 
+    if ( actStepVal > stepVals_[kend] || kend == 0) {
+      yValue = stepNums_[kend];
+      index1 = index2 = kend;
+      w1 = 1.0;
+      w2 = 0.0;
+    }
+    else if ( actStepVal < stepVals_[0] ) {
+      yValue = stepNums_[0];
+      index1 = index2 = 0;
+      w1 = 1.0;
+      w2 = 0.0;
+    }
+    else {
+
+      UInt k;
+      index1=0;
+      index2=kend;
+      // We will find the right place in the table by means of bisection.
+      //  index1 and index2 bracket the input value of xEntry
+      while (index2-index1 > 1) {
+        k=(index2+index1) >> 1; // binary right shift
+        if (stepVals_[k] > actStepVal)
+          index2=k;
+        else
+          index1=k;
+      }
+
+      // size of x interval
+      Double dxVal=stepVals_[index2] - stepVals_[index1];
+
+      // The x-values must be distinct!
+      if (dxVal == 0.0) {
+        EXCEPTION("You cannot have two equal x values!" );
+      }
+
+      // relative distance of xEntry to x-Value bounds
+      w1= ( stepVals_[index2] - actStepVal )/dxVal;
+      w2 = ( actStepVal - stepVals_[index1] )/dxVal;
+
+
+      // Perform interpolation    
+      switch ( interpol_ ) {
+
+        case NEAREST_NEIGHBOR:
+          if ( w1 <= 0.5 ) {
+            yValue = stepNums_[index2];
+            w1 = 1;
+            w2 = 0;
+            index1 = index2;
+            index2 = 0;
+          } else {
+            yValue = stepNums_[index1];
+            w1 = 1;
+            w2 = 0;
+            index2 = 0;
+          }
+          break;
+
+        case LINEAR:
+          yValue = w1 * stepNums_[index1] + w2 * stepNums_[index2];
+          break;
+        default:
+          EXCEPTION( "Interpolation type not known");
+          break;
+      }
+    }
+
+    LOG_DBG(simState) << "\trequested stepNum is (interpolated)" << yValue;
+    LOG_DBG(simState) << "\tindex1: " << index1+1 << " (weight: " << w1 << ")";
+    LOG_DBG(simState) << "\tindex2: " << index2+1 << " (weight: " << w2 << ")";
+
+    // ===================================================
+    //  Update all coefficients with correspdoning weight
+    // ===================================================
+    std::set<shared_ptr<BaseFeFunction> >::iterator it = feFcts_.begin();
+    for( ; it != feFcts_.end(); ++it ) {
+      std::string pdeName = (*it)->GetPDE()->GetName();
+      std::string feName = 
+          SolutionTypeEnum.ToString((*it)->GetResultInfo()->resultType);
+      LOG_DBG(simState) << "\tUpdating feFunction " << feName 
+          << " of PDE " << pdeName;
+
+      if( interpol_ == NEAREST_NEIGHBOR ) {
+        LOG_DBG(simState) << "\t=> Nearest neighbor update ";
+        // In this case we can directly access the values
+        inFile_->DB_GetFeFctCoefs(sequenceStep_, index1+1, pdeName, feName,
+                                  (*it)->GetSingleVector() );
+
+      } else if ( interpol_ == LINEAR ) {
+        LOG_DBG(simState) << "\t=> Linear interpolation update ";
+
+        // get both involved step indices and calculate the weighted sum
+        if( ptDriver->IsComplex()) {
+          Vector<Complex> & coefVec = 
+              dynamic_cast<Vector<Complex>& >(*(*it)->GetSingleVector());
+          Vector<Complex> vals1, vals2;
+          vals1.Resize(coefVec.GetSize());
+          vals2.Resize(coefVec.GetSize());
+          // get values for both steps 
+          inFile_->DB_GetFeFctCoefs(sequenceStep_, index1+1, pdeName, feName, &vals1 );
+          inFile_->DB_GetFeFctCoefs(sequenceStep_, index2+1, pdeName, feName, &vals2 );
+
+          // assemble weighted sum
+          coefVec = vals1 * w1;
+          coefVec += (vals2 * w2);
+        } else {
+
+          Vector<Double> & coefVec = 
+              dynamic_cast<Vector<Double>& >(*(*it)->GetSingleVector());
+          Vector<Double> vals1, vals2;
+          vals1.Resize(coefVec.GetSize());
+          vals2.Resize(coefVec.GetSize());
+          // get values for both steps 
+          inFile_->DB_GetFeFctCoefs(sequenceStep_, index1+1, pdeName, feName, &vals1 );
+          inFile_->DB_GetFeFctCoefs(sequenceStep_, index2+1, pdeName, feName, &vals2 );
+
+          // assemble weighted sum
+          coefVec = vals1 * w1;
+          coefVec += (vals2 * w2);
+        }
+      }
+    }
+
     // update driver to time / freq step (initially 
     // we can also just set the value of the related mathParser
     // to the specified value and circumvent the driver itself)
+    ptDriver->SetToStepValue(index1+1, actStepVal);
+
   }
   
-  
+
+  // ************************************************************************
+  // ENUM INITIALIZATION
+  // ************************************************************************
+
+  // Definition of finite element space types
+   static EnumTuple interpolTypeTuples[] = {
+     EnumTuple(SimState::NO_INTERPOLATION, "undef"), 
+     EnumTuple(SimState::NEAREST_NEIGHBOR, "nearestNeighbor"), 
+     EnumTuple(SimState::LINEAR,           "linear")
+   };
+   
+   Enum<SimState::InterpolType> SimState::InterpolTypeEnum = \
+      Enum<SimState::InterpolType>("Types of interpolation",
+          sizeof(interpolTypeTuples) / sizeof(EnumTuple),
+          interpolTypeTuples);
 
 } // namespace

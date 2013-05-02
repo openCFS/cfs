@@ -299,6 +299,21 @@ namespace CoupledField {
 
   }
 
+  void TransientDriver::SetToStepValue(UInt stepNum, Double stepVal ) {
+    // ensure that this method is only called if simState has input
+    if( ! simState_->HasInput()) {
+      EXCEPTION( "Can only set external time step, if simulation state "
+              << "is read from external file" );
+    }
+    
+    actTime_ = stepVal;
+    actTimeStep_ = stepNum;
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                       "t", actTime_ );
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                       "step", actTimeStep_ );    
+  }
+  
   void TransientDriver::ReadRestart() {
 
     if ( isRestarted_ ) {

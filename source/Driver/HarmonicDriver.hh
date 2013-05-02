@@ -67,6 +67,10 @@ public:
   void StoreResults(UInt stepNum,
                     double step_val );
 
+  //! \copydoc SingleDriver::SetToStepValue
+  virtual void SetToStepValue(UInt stepNum, Double stepVal );
+
+  
   /** This is the list of all frequencies. As long as we have no adaptive
    * frequeceny steps this makes no problem. */
   struct Frequency
