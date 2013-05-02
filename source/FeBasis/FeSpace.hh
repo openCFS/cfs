@@ -156,19 +156,6 @@ public:
   //! Flag for Grid determined mapping of element DOFs or polynomial based mapping 
   typedef enum {GRID,POLYNOMIAL} MappingType; 
 
-  
-  //! Struct containing all virtual nodes for on entity type (Vertex, Face
-  struct EntityTypeNodes {
-    //! Nodes for all numbers of entity (edgeNodes, faceNodes, innerNodes)
-    StdVector<UInt> vNodes;
-    //! Offset to vNodes array
-    StdVector<UInt> offset;
-  };
-  
-  //! Enum which stores the (Virtual) Nodes of an element according to
-    //! their definition on vertices,edges,faces and interior
-  typedef std::map< BaseFE::EntityType , EntityTypeNodes> ElemVirtualNodes;
-
   typedef enum {INTEG_MODE_ABSOLUTE,INTEG_MODE_RELATIVE} IntegOrderMode;
   static Enum<IntegOrderMode> IntegOrderModeEnum;
 
@@ -649,12 +636,22 @@ protected:
   typedef boost::unordered_map<UInt, BaseFE::EntityType> NodeTypeMap;
   NodeTypeMap nodesType_;
 
-  //! This is the virtual node Map for standard element it just contains
-  //! the connectivity of the element, for higher order elements it contains also 
-  //! the virtual node numbers in the correct ordering
-  //! This Variable could be extended to store also the coordinates of all nodes
-  //! created
-  boost::unordered_map< UInt, ElemVirtualNodes > virtualNodes_;
+  
+  //! Auxilliary map for assigning an enumerable entity a list of nodes
+  
+  //! This map type can be used to assign an enumerable geometric 
+  //! entity (e.g. node/edge/face/element number, used as key in the map)
+  //! a list of virtual nodes (value of map).
+  typedef boost::unordered_map<UInt, StdVector<UInt> > EntityNodesType;
+  
+  //! Global map for continuous virtual node numbers
+  
+  //! This map contains all continuously numbered virtual nodes. For each
+  //! type of entity (key, e.g. VERTEX, EDGE, FACE, INTERIOR) it
+  //! contains a map (see EntityNodesType) which globally holds for each
+  //! unique entity number (e.g. node/edge/face/interior number) a 
+  //! list of virtual Nodes
+  boost::unordered_map<BaseFE::EntityType, EntityNodesType> vNodesCont_;
   
   // ====================================================================
   // Equation Map
@@ -694,7 +691,8 @@ protected:
   // MISCELLANEOUS
   // =========================================================
   
-  
+  //! Get set of all elements of this space
+  virtual void GetAllElems(std::set<const Elem*>& allElems );
 };
 
 

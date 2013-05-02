@@ -54,20 +54,21 @@ namespace CoupledField {
                      UInt dof){
       if( fctEntityType == VERTEX ) {
         numFcns.Resize( shape_.numVertices );
-        numFcns.Init( dof );
+        numFcns.Init( 1 );
       } else if ( fctEntityType == EDGE ) {
-        numFcns.Resize( shape_.numEdges*(order_ - 1) );
-        numFcns.Init( dof );
+        numFcns.Resize( shape_.numEdges);
+        numFcns.Init( order_-1 );
       } else if ( fctEntityType == FACE && shape_.numFaces > 0) {
-        numFcns.Resize( shape_.numFaces* ( (order_ - 1)*(order_ - 1)) );
-        numFcns.Init( dof );
-      } else if ( fctEntityType == INTERIOR && shape_.numFaces == 4 ) {
-        numFcns.Resize(  (order_ - 1)*(order_ - 1)*(order_ - 1)  );
-        numFcns.Init( dof );
+        numFcns.Resize( shape_.numFaces);
+        numFcns.Init( (order_-1) * (order_-1) );
+      } else if ( fctEntityType == INTERIOR && shape_.numFaces == 6 ) {
+        numFcns.Resize( 1 );
+        numFcns.Init( (order_-1)*(order_-1)*(order_-1) );
       } else if (fctEntityType == ALL ){
         numFcns.Resize(actNumFncs_);
       } else {
-        EXCEPTION( "Entitytype '" << fctEntityType << "' not known!");
+        numFcns.Resize(0);
+        //EXCEPTION( "Entitytype '" << fctEntityType << "' not known!");
       }
     }
 

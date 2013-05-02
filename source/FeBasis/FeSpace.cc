@@ -368,7 +368,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
             StdVector<UInt> eNodes;
             for (UInt i = 0; i < eList.GetSize(); i ++ ){
 
-              GetNodesOfElement(eNodes,eList[i],entType);
+              this->GetNodesOfElement(eNodes,eList[i],entType);
               for (UInt aNode = 0; aNode < eNodes.GetSize(); aNode += 1 ){
                 nodes.Push_back(eNodes[aNode]);
               }
@@ -378,7 +378,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         case EntityList::ELEM_LIST:
           for(entIt.Begin(); !entIt.IsEnd(); entIt++){
             StdVector<UInt> eNodes;
-            GetNodesOfElement(eNodes,entIt.GetElem(),entType);
+            this->GetNodesOfElement(eNodes,entIt.GetElem(),entType);
             for (UInt aNode = 0; aNode < eNodes.GetSize(); aNode += 1 ){
               nodes.Push_back(eNodes[aNode]);
             }
@@ -388,7 +388,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         case EntityList::SURF_ELEM_LIST:
           for(entIt.Begin(); !entIt.IsEnd(); entIt++){
             StdVector<UInt> eNodes;
-            GetNodesOfElement(eNodes,  entIt.GetSurfElem() ,entType);
+            this->GetNodesOfElement(eNodes,  entIt.GetSurfElem() ,entType);
             for (UInt aNode = 0; aNode < eNodes.GetSize(); aNode += 1 ){
               nodes.Push_back(eNodes[aNode]);
             }
@@ -414,39 +414,98 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   void FeSpace::GetNodesOfElement( StdVector<UInt>& nodes,
                                    const Elem* ptElem,
                                    BaseFE::EntityType entType){
-    UInt elemNum = ptElem->elemNum;
-    if(virtualNodes_.find(elemNum) ==virtualNodes_.end()){
+    nodes.Clear();
+    nodes.Reserve(30);
 
+    EntityNodesType& vNodes = vNodesCont_[BaseFE::VERTEX];
+    EntityNodesType& eNodes = vNodesCont_[BaseFE::EDGE];
+    EntityNodesType& fNodes = vNodesCont_[BaseFE::FACE];
+    EntityNodesType& iNodes = vNodesCont_[BaseFE::INTERIOR];
+
+    // Get hold of element
+    BaseFE * ptFe = this->GetFe(ptElem->elemNum);
+
+    // Collect vertex nodes
+    {
+      UInt numNodes = ptElem->connect.GetSize();
+      if( entType == BaseFE::VERTEX || entType == BaseFE::ALL ) {
+        for( UInt i = 0; i < numNodes; ++i ) {
+          StdVector<UInt>& vertexNodes = vNodes[ptElem->connect[i]];
+          for( UInt j = 0; j < vertexNodes.GetSize(); ++j ) {
+            nodes.Push_back(vertexNodes[j]);
+          }
+        }
+      }
+    }
+
+    // Collect edge nodes
+    {
+      UInt numEdges = ptElem->edges.GetSize();
+      if( entType == BaseFE::EDGE || entType == BaseFE::ALL ) {
+        // Check for permutation
+        if( ptFe->NeedsNodalPermutation() ) {
+          StdVector<UInt> perm;
+          for( UInt i = 0; i < numEdges; ++i ) {
+            StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->edges[i])];
+            ptFe->GetNodalPermutation( perm, ptElem, BaseFE::EDGE, i);
+            for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
+              nodes.Push_back(edgeNodes[perm[j]]);
+            }
+          }
+        } else {
+          for( UInt i = 0; i < numEdges; ++i ) {
+            StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->edges[i])];
+            for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
+              nodes.Push_back(edgeNodes[j]);
+            }
+          }
+        }
+      }
+    }
+
+    // Collect face nodes
+    {
+      UInt numFaces = ptElem->faces.GetSize();
+      if( entType == BaseFE::FACE || entType == BaseFE::ALL ) {
+        if( ptFe->NeedsNodalPermutation() ) {
+          StdVector<UInt> perm;
+          for( UInt i = 0; i < numFaces; ++i ) {
+            ptFe->GetNodalPermutation( perm, ptElem, BaseFE::FACE, i);
+            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->faces[i])];
+            for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
+              nodes.Push_back(faceNodes[perm[j]]);
+            }
+          }
+        } else {
+          for( UInt i = 0; i < numFaces; ++i ) {
+            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->faces[i])];
+            for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
+              nodes.Push_back(faceNodes[j]);
+            }
+          }
+        }
+      }
+    }
+
+    // Collect interior nodes
+    {
+      if( iNodes.size() ) {
+        if( entType == BaseFE::INTERIOR || entType == BaseFE::ALL ) {
+          StdVector<UInt>& intNodes = iNodes[ptElem->elemNum];
+          for( UInt j = 0; j < intNodes.GetSize(); ++j ) {
+            nodes.Push_back(intNodes[j]);
+          }
+        }
+      } 
+    }
+
+    // Ensure, that at least one virtual node is present
+    if( nodes.GetSize() == 0 ) { 
       EXCEPTION("FeSpace::GetNodesOfElement: Could not find requested element #"
           << ptElem->elemNum << " of region " 
           <<  ptGrid_->GetRegion().ToString(ptElem->regionId));
     }
-    if(entType == BaseFE::ALL){
-      nodes.Resize(virtualNodes_[elemNum][BaseFE::VERTEX].vNodes.GetSize()+
-                   virtualNodes_[elemNum][BaseFE::EDGE].vNodes.GetSize()+
-                   virtualNodes_[elemNum][BaseFE::FACE].vNodes.GetSize()+
-                   virtualNodes_[elemNum][BaseFE::INTERIOR].vNodes.GetSize());
-      ElemVirtualNodes::iterator nodeIt = virtualNodes_[elemNum].begin();
-      UInt c = 0;
-      while(nodeIt !=virtualNodes_[elemNum].end()){
-
-        StdVector<UInt> & entNodes =  nodeIt->second.vNodes;
-        for (UInt i = 0; i < entNodes.GetSize(); i++ ){
-          nodes[c++] =  entNodes[i];
-        }
-        nodeIt++;
-      }
-    }else{
-      nodes.Resize(virtualNodes_[elemNum][entType].vNodes.GetSize());
-      const StdVector<UInt>& entNodes =  virtualNodes_[elemNum][entType].vNodes;
-      for (UInt i = 0; i < entNodes.GetSize(); i++ ){
-        nodes[i] =  entNodes[i];
-      }
-    }
   }
-  
-
-
 
   void FeSpace::GetIntegration( BaseFE * fe, 
                                 RegionIdType region,
@@ -540,9 +599,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     //if so, we call a specialized but efficient function
     // if not, we get to the general case
     if(mapType_ == GRID && isContinuous_){
-      CreateGridNodes();
+      this->CreateGridNodes();
     }else{
-      CreatePolynomialNodes();
+      this->CreatePolynomialNodes();
       //we have the general case so we iterate over all elements
     }
   }
@@ -556,45 +615,36 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
     fctEntList = feFct->GetEntityList();
+    EntityNodesType& vNodes = vNodesCont_[BaseFE::VERTEX];
 
     for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
       LOG_DBG(feSpace) << "\tMapping entity list '" << fctEntList[actList]->GetName();
       EntityList::ListType actListType = fctEntList[actList]->GetType();
       if ( ! (actListType == EntityList::ELEM_LIST ||
-              actListType == EntityList::SURF_ELEM_LIST ||
-              actListType == EntityList::NC_ELEM_LIST) )  {
+          actListType == EntityList::SURF_ELEM_LIST ||
+          actListType == EntityList::NC_ELEM_LIST) )  {
         continue;
       }
       shared_ptr<EntityList> actElemList =  fctEntList[actList];
 
       std::string name= actElemList->GetName();
       feFct->GetGrid()->GetNodesByName( curNodes, name );
-      //GetNodesOfEntities( curNodes, actElemList );
       for ( UInt aNode= 0; aNode < curNodes.GetSize(); aNode++ ) {
-        if(gridToVirtualNodes_.find(curNodes[aNode]) == gridToVirtualNodes_.end()){
-          gridToVirtualNodes_[curNodes[aNode]].Push_back(curNodes[aNode]);
+        const UInt nodeNum = curNodes[aNode];
+        if(gridToVirtualNodes_.find(nodeNum) == gridToVirtualNodes_.end()){
+          gridToVirtualNodes_[nodeNum].Push_back(nodeNum);
+          vNodes[nodeNum] = nodeNum;
         }
       }
-
-      // loop over all elements a little overhead but makes our life easier later
-      // otherwise one would have to distinguish everytime for this special case
-      // for the future we should consider also to split the in vertex, edge, etc nodes
-      // perhaps the meshing tools are getting better for higher order elements...
-      EntityIterator entIt = actElemList->GetIterator();
-      for(entIt.Begin(); !entIt.IsEnd();entIt++){
-
-        const Elem* actEl = entIt.GetElem();
-        const StdVector<UInt> & elemNodes = actEl->connect;
-        virtualNodes_[actEl->elemNum][BaseFE::VERTEX].vNodes = elemNodes;
-        virtualNodes_[actEl->elemNum][BaseFE::VERTEX].offset = StdVector<UInt>(elemNodes.GetSize());
-        virtualNodes_[actEl->elemNum][BaseFE::VERTEX].offset.Init(1);
-      }
-    }
+      
+    } //loop: lists
 
     for(std::map<UInt,StdVector<UInt> >::const_iterator it = gridToVirtualNodes_.begin(); it != gridToVirtualNodes_.end(); ++it) {
       //here we can hardcode to zero as we assume continuous approximation
       nodesType_[it->second[0]] = BaseFE::VERTEX;
-    }
+    } // loop: lists
+
+
   }
 
 
@@ -610,17 +660,6 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     // - finally delete all intermediate arrays
     
     StdVector< shared_ptr<EntityList> > fctEntList;
-
-    //ok these data structures are a bit messy but this is the most obvious typ
-    // and they are temporary anyway. furthermore we run here once in a lifetime
-    // 1st key: v/e/f number
-    // 2nd key: element number
-    // 3rc key: virtual nodes
-    std::map< UInt, std::map<UInt, StdVector<Integer> > > vertexNodes;
-    std::map< UInt, std::map<UInt, StdVector<Integer> > > edgenodes;
-    std::map< UInt, std::map<UInt, StdVector<Integer> > > facenodes;
-    std::map<UInt, StdVector<Integer> > interiornodes;
-    //Different lists have to be treated differently
     EntityList::ListType actListType = EntityList::NO_LIST;
 
     LOG_TRACE(feSpace) << "starting to create virtual nodes based on POLYNOMIAL";
@@ -629,15 +668,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     assert(feFct);
     fctEntList = feFct->GetEntityList();
 
-    //get the highest possible node number
-    //UInt offset = feFunction_->GetGrid()->GetNumNodes();
+    // This is the counter for the virtual node number
     UInt offset =0;
-
-    //Stores the current order
-    // MappingType curMap = GRID;
-    
-    //changed algorithm first we add the volume elements and later on the surfaces
-    // so we loop twice over the entities
 
     // loop over all entitylists (i.e. regions)
     for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
@@ -660,14 +692,13 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       LOG_DBG(feSpace) << "treating entityList '" << fctEntList[actList]->GetName() << "'";
       //cast down to element list
       EntityList* actElemList = fctEntList[actList].get();
-//      RegionIdType curReg = actElemList->GetRegion();
-
-      // curMap = POLYNOMIAL;
 
       // Get iterator of current element list
       EntityIterator entIt = actElemList->GetIterator();
       
-      // loop over all elements
+      // ------------------------
+      //  loop over all elements
+      // ------------------------
       for(entIt.Begin(); !entIt.IsEnd();entIt++){
 
         // Fetch current finite element. This is performed by the specialized 
@@ -678,227 +709,156 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         LOG_DBG2(feSpace) << "treating element #" << entIt.GetElem()->elemNum;
         LOG_DBG2(feSpace) << "mapped volume element #" << actEl->elemNum;
 
-
         StdVector<UInt> permutations; // initially size 0
-        UInt elemNum = actEl->elemNum;
         
         //===========================================================
         //Assign the BaseFE::VERTEX node numbers
         //===========================================================
         {
           LOG_DBG2(feSpace) << "mapping vertex nodes";
-          UInt numVertexNodes = 0;
-          UInt eNum = elemNum;
           UInt numVert = Elem::shapes[actEl->type].numVertices;
-          StdVector<UInt> elemNodes = actEl->connect;
-
-          EntityTypeNodes & vtn =  virtualNodes_[actEl->elemNum][BaseFE::VERTEX];
-
-          // check, if the vertices of this element were already numbered
-          if( vtn.vNodes.GetSize() == 0 ) {
-            for ( UInt iVert= 0; iVert< numVert; iVert++ ) {
-              UInt vertexNum = elemNodes[iVert];
-              ptFe->GetNodalPermutation(permutations,actEl,BaseFE::VERTEX,iVert);
-              numVertexNodes = permutations.GetSize();
-
-              if(isContinuous_){
-                //in the continuous case we need to check if we already have an entry for
-                //this vertex
-                if(vertexNodes[vertexNum].size()>0){
-                  //so we need to redefine the volElemNumber
-                  eNum = vertexNodes[vertexNum].begin()->first;
-                }
-              }
-
-              // Check if the vertex is already numbered.
-              if( vertexNodes[vertexNum][eNum].GetSize() == 0 ) {
-
-                vertexNodes[vertexNum][eNum].Resize(numVertexNodes);
-                vertexNodes[vertexNum][eNum].Init();
-                for( UInt vertNode = 0; vertNode < numVertexNodes; ++vertNode ) {
-                  vertexNodes[vertexNum][eNum][vertNode] = ++offset;
-                  LOG_DBG3(feSpace) << "adding " << offset << " to node_";
+          EntityNodesType & vtn =  vNodesCont_[BaseFE::VERTEX];
+          const StdVector<UInt> & elemNodes = actEl->connect;
+          StdVector<UInt> numFncs;
+          ptFe->GetNumFncs( numFncs, BaseFE::VERTEX );
+          
+          // loop over vertices
+          for ( UInt iVert= 0; iVert< numVert; iVert++ ) {
+            UInt vertexNum = elemNodes[iVert];
+            StdVector<UInt> & en = vtn[vertexNum];
+            if( numFncs.GetSize() > 0 ) {
+              if ( en.GetSize() == 0 ) {
+                for( UInt iFunc = 0; iFunc < numFncs[iVert]; ++iFunc ) {
+                  en.Push_back(++offset);
                   nodesType_[offset] = BaseFE::VERTEX;
+                  LOG_DBG3(feSpace) << "adding " << offset << " to node_";
                 }
               }
 
-
-              for( UInt i = 0; i < numVertexNodes; ++i ) {
-                vtn.vNodes.Push_back(vertexNodes[vertexNum][eNum][permutations[i] ]);
-                LOG_DBG3(feSpace) << "adding " << vertexNodes[vertexNum][eNum][permutations[i] ]
-                                                                                  << " as virtual vertex node to element " << actEl->elemNum;
-              }
-              vtn.offset.Push_back( permutations.GetSize() );
-
-              if(isContinuous_){
-                if(gridToVirtualNodes_.find(vertexNum) == gridToVirtualNodes_.end()){
-                  LOG_DBG3(feSpace) << "gridToVirtualNodes[" << vertexNum << "] = " << offset;
-                  gridToVirtualNodes_[vertexNum].Push_back(offset);
-                } else {
-                  LOG_DBG3(feSpace) << "vertex " << vertexNum << " already mapped to virtualNode " << 
-                      gridToVirtualNodes_[vertexNum];
-                }
-              }else{
+              // Assign vertex also to virtualToGridNodes
+              if(gridToVirtualNodes_.find(vertexNum) == gridToVirtualNodes_.end()){
                 LOG_DBG3(feSpace) << "gridToVirtualNodes[" << vertexNum << "] = " << offset;
                 gridToVirtualNodes_[vertexNum].Push_back(offset);
+              } else {
+                LOG_DBG3(feSpace) << "vertex " << vertexNum << " already mapped to virtualNode " << 
+                    gridToVirtualNodes_[vertexNum];
               }
-            } // loop over vertices
-        } // mapping of vertex nodes
-        }
+            }
+          }  // loop: vertices
+        }// mapping of vertex nodes
         feFct->GetGrid()->MapEdges();
         feFct->GetGrid()->MapFaces();
-        
+
         ElemShape actShape = Elem::shapes[actEl->type];
-        
+
         //===========================================================
         //Assign the Edge node numbers
         //===========================================================
         {
           LOG_DBG2(feSpace) << "mapping edge nodes";
-          UInt numEdgeNodes = 0;
-          UInt eNum = elemNum;
-          EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::EDGE];
+          EntityNodesType & etn =  vNodesCont_[BaseFE::EDGE];
+          StdVector<UInt> numFncs;
+          ptFe->GetNumFncs( numFncs, BaseFE::EDGE );
+          // loop over edges
+          for ( UInt iEdge=0; iEdge < actShape.numEdges; iEdge++) {
+            UInt edgeNum = std::abs(actEl->edges[iEdge]);
+            StdVector<UInt> & en = etn[edgeNum];
 
-          // check if edges of this element were already numbered
-          if( etn.vNodes.GetSize() == 0 ) {
-            for ( UInt iEdge=0; iEdge < actShape.numEdges; iEdge++) {
-              UInt edgeNum = std::abs(actEl->edges[iEdge]);
-              //get the permutation Vector
-              ptFe->GetNodalPermutation(permutations,actEl,BaseFE::EDGE,iEdge);
-              numEdgeNodes = permutations.GetSize();
-              LOG_DBG2(feSpace) << "\tedge #" << edgeNum << " got " 
-                  << numEdgeNodes << " nodes";
-              if(isContinuous_){
-                //in the continuous case we need to check if we already have an entry for
-                //this vertex
-                if(edgenodes[edgeNum].size()>0){
-                  //so we need to redefine the volElemNumber
-                  eNum = edgenodes[edgeNum].begin()->first;
-                  LOG_DBG3(feSpace) << "\t-> was already mapped for element #" << eNum;
-                }
-              }
-              // Check if the edge is already numbered.
-              // Additionally, if we have the case of discontinuous approximation,
-              // we number the nodes separately for every element anyway.
-              if(edgenodes[edgeNum][eNum].GetSize() == 0 ) {
-                //here we assume spectral element approximation and we have
-                //order-1 nodes on the edge
-                edgenodes[edgeNum][eNum].Resize(numEdgeNodes);
-                edgenodes[edgeNum][eNum].Init();
-                for ( UInt edgeNode = 0;edgeNode < numEdgeNodes ;edgeNode++ ) {
-                  edgenodes[edgeNum][eNum][edgeNode] = ++offset;
+            // check if edge got already numbered
+            if( numFncs.GetSize() > 0 ) {
+              if ( en.GetSize() == 0 ) {
+                for( UInt iFunc = 0; iFunc < numFncs[iEdge]; ++iFunc ) {
+
+                  en.Push_back(++offset);
                   nodesType_[offset] = BaseFE::EDGE;
+                  
+                  LOG_DBG3(feSpace) << "adding " << offset << " to node_";
+                } // loop: fncs
+              } else {
+                if( en.GetSize() != numFncs[iEdge] ) {
+                  EXCEPTION("Edge " << iEdge+1 << 
+                            " of element #" << actEl->elemNum << " got already "
+                            << en.GetSize() << " virtual nodes and is now assigned "
+                            << numFncs[iEdge] << " virtual nodes" );
                 }
               }
+            }
+          }  // loop: edges
+        } // mapping of edge nodes
 
-              //fill the virtual Nodes in the correct ordering
-
-              for ( UInt i = 0; i < numEdgeNodes ; i++ ) {
-                etn.vNodes.Push_back(edgenodes[edgeNum][eNum][ permutations[i] ]);
-              }
-              etn.offset.Push_back( permutations.GetSize() );
-            } // loop over edges
-          }
-        }
         //===========================================================
         //Assign the Face node numbers
         //===========================================================
         {
           LOG_DBG2(feSpace) << "mapping face nodes";
-          UInt numFaceNodes = 0;
-          UInt eNum = elemNum;
-          EntityTypeNodes & ftn =  virtualNodes_[actEl->elemNum][BaseFE::FACE];
+          EntityNodesType & ftn =  vNodesCont_[BaseFE::FACE];
+          StdVector<UInt> numFncs;
+          ptFe->GetNumFncs( numFncs, BaseFE::FACE );
 
-          // check if faces of this element ware already numbered
-          if( ftn.vNodes.GetSize() == 0 ) {
-            for ( UInt iFace=0; iFace < actShape.numFaces; iFace++) {
-              UInt faceNum = actEl->faces[iFace];
-              //get the permutation Vector
-              ptFe->GetNodalPermutation(permutations,actEl,BaseFE::FACE,iFace);
-              numFaceNodes = permutations.GetSize();
-              LOG_DBG2(feSpace) << "\tface #" << faceNum << " got " 
-                  << numFaceNodes << " nodes";
-              if(isContinuous_){
-                //in the continuous case we need to check if we already have an entry for
-                //this vertex
-                if(facenodes[faceNum].size()>0){
-                  //so we need to redefine the volElemNumber
-                  eNum = facenodes[faceNum].begin()->first;
-                  LOG_DBG3(feSpace) << "\t-> was already mapped for element #" << eNum
-                      << " with " << facenodes[faceNum].size() << " entries";
-                }
-              }
-
-              // Check if the face is already numbered.
-              // Additionally, if we have the case of discontinuous approximation,
-              // we number the nodes separately for every element separately anyway.
-              if(facenodes[faceNum][eNum].GetSize() == 0 ){
-                facenodes[faceNum][eNum].Resize(numFaceNodes);
-                for ( UInt faceNode = 0;faceNode < numFaceNodes ;faceNode++ ) {
-                  facenodes[faceNum][eNum][faceNode] = ++offset;
+          // loop over faces
+          for ( UInt iFace=0; iFace < actShape.numFaces; iFace++) {
+            UInt faceNum = actEl->faces[iFace];
+            StdVector<UInt> & fn = ftn[faceNum];
+            // check if face got already numbered
+            if( numFncs.GetSize() > 0 ) {
+              if ( fn.GetSize() == 0 ) {
+                for( UInt iFunc = 0; iFunc < numFncs[iFace]; ++iFunc ) {
+                  fn.Push_back(++offset);
                   nodesType_[offset] = BaseFE::FACE;
-                }
+                  LOG_DBG3(feSpace) << "adding " << offset << " to node_";
+                } // loop: fncs
               } else {
-                // additional check, this face got already mapped with different size
-                if( facenodes[faceNum][eNum].GetSize() != numFaceNodes ) {
-                  WARN("Face #" << faceNum << " for element #" << eNum 
-                       << " got " << facenodes[faceNum][eNum].GetSize()
-                       << " faceNodes, whereas we want to set "
-                       << numFaceNodes << " entries for element #" <<
-                       elemNum );
+                if( fn.GetSize() != numFncs[iFace] ) {
+                  EXCEPTION("Face " << iFace+1 << 
+                            " of element #" << actEl->elemNum << " got already "
+                            << fn.GetSize() << " virtual nodes and is now assigned "
+                            << numFncs[iFace] << " virtual nodes" );
                 }
               }
-              //fill the virtual Nodes in the correct ordering
-
-              for ( UInt i = 0; i < numFaceNodes ; i++ ) {
-                ftn.vNodes.Push_back(facenodes[faceNum][eNum][ permutations[i] ]);
-              }
-              ftn.offset.Push_back( permutations.GetSize() );
             }
-          }
-        }
+          } // loop: faces
+        } // mapping of face nodes
+
         //===========================================================
         //Assign the Interior node numbers
         //===========================================================
         {
-          //get the permutation Vector just for the number of nodes
-          ptFe->GetNodalPermutation(permutations,actEl,BaseFE::INTERIOR,0);
-          UInt numIntNodes = permutations.GetSize();
-          EntityTypeNodes & itn =  virtualNodes_[actEl->elemNum][BaseFE::INTERIOR];
+          LOG_DBG2(feSpace) << "mapping interior nodes";
 
-          //Check if the current element got already numbered
-          if(interiornodes[actEl->elemNum].GetSize() == 0){
-            interiornodes[actEl->elemNum].Resize(numIntNodes);
-            for ( UInt intNode = 0;intNode < numIntNodes ;intNode++ ) {
-              interiornodes[actEl->elemNum][intNode] = ++offset;
-              nodesType_[offset] = BaseFE::INTERIOR;
+        
+          StdVector<UInt> numFncs;
+          ptFe->GetNumFncs( numFncs, BaseFE::INTERIOR );
+
+          // check, if element provides any interior functions at all
+          if( numFncs.GetSize() > 0 ) {
+            StdVector<UInt> & itn =  vNodesCont_[BaseFE::INTERIOR][actEl->elemNum];
+            if( itn.GetSize() == 0 ) {
+              for( UInt iFunc = 0; iFunc < numFncs[0]; ++iFunc ) {
+                itn.Push_back(++offset);
+                nodesType_[offset] = BaseFE::INTERIOR;
+                LOG_DBG3(feSpace) << "adding " << offset << " to node_";
+              } // loop: fncs
+            } else {
+              EXCEPTION("Interior of element #" << actEl->elemNum << " got already "
+                        << itn.GetSize() << " virtual nodes and is now assigned "
+                        << numFncs[0] << " virtual nodes" );
             }
           }
-          //fill the virtual Nodes in the correct ordering
-
-          for ( UInt i = 0; i  < numIntNodes ; i++ ) {
-            itn.vNodes.Push_back(interiornodes[actEl->elemNum][ permutations[i] ]);
-          }
-          itn.offset.Push_back( permutations.GetSize());
-        } // loop elements
-      }
-    } // loop entity lists
-
+        } // mapping of interior nodes
+      
+      } // loop: elements
+    } // loop: entity lists
     
     // trim all vectors to get unused memory back
-    boost::unordered_map< UInt, ElemVirtualNodes >::iterator it = 
-        virtualNodes_.begin();
-    for( ; it != virtualNodes_.end(); ++it ) {
-      ElemVirtualNodes & evn = it->second;
-      ElemVirtualNodes::iterator evnIt = evn.begin();
+    boost::unordered_map<BaseFE::EntityType, EntityNodesType>::iterator it;
+    it = vNodesCont_.begin();
+    for( ; it != vNodesCont_.end(); ++it ) {
+      EntityNodesType & evn = it->second;
+      EntityNodesType::iterator evnIt = evn.begin();
       for( ; evnIt != evn.end(); evnIt++ ) {
-//        evnIt->second.vNodes.Trim();
-//        evnIt->second.offset.Trim();
+        evnIt->second.Trim();
       }
-        
     }
-    
-    
     LOG_TRACE(feSpace) << "finished creation of virtual nodes";
   }
   
@@ -1158,7 +1118,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         ent.GetType() == EntityList::SURF_ELEM_LIST||
         ent.GetType() == EntityList::NC_ELEM_LIST){
       StdVector<UInt> nodes;
-      GetNodesOfElement(nodes,ent.GetElem());
+      GetNodesOfElement(nodes, ent.GetElem());
       eqns.Resize( nodes.GetSize() * dofsPerUnknown );
       eqns.Init();
       for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
@@ -1197,7 +1157,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         ent.GetType() == EntityList::SURF_ELEM_LIST||
         ent.GetType() == EntityList::NC_ELEM_LIST){
       StdVector<UInt> nodes;
-      GetNodesOfElement(nodes,ent.GetElem());
+      this->GetNodesOfElement(nodes,ent.GetElem());
       eqns.Resize( nodes.GetSize() );
       eqns.Init();
       for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
@@ -1231,7 +1191,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         ent.GetType() == EntityList::SURF_ELEM_LIST||
         ent.GetType() == EntityList::NC_ELEM_LIST){
       StdVector<UInt> nodes;
-      GetNodesOfElement(nodes,ent.GetElem(), entityType);
+      this->GetNodesOfElement(nodes,ent.GetElem(), entityType);
       eqns.Resize( nodes.GetSize() );
       eqns.Init();
       for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
@@ -1253,7 +1213,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       UInt dofsPerUnknown = GetNumDofs();
 
       StdVector<UInt> nodes;
-      GetNodesOfElement(nodes,elem);
+      this->GetNodesOfElement(nodes,elem);
       eqns.Resize( nodes.GetSize() * dofsPerUnknown );
       eqns.Init();
       for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
@@ -1421,7 +1381,6 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   void FeSpace::GetOlasMappings( StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                    std::map<UInt,StdVector<std::set<Integer> > >&
                                    minorBlocks ) {
-    
     // currently we only support "standard" solution strategy
     if( solStrat_->GetType() != SolStrategy::STD_STRATEGY ) {
       EXCEPTION( "Currently we just support the standard solution strategy for H1.");
@@ -1447,121 +1406,11 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       // ---------------------
       //  Static Condensation
       // ---------------------
-#if 0
-      // Not used at the moment      
-      UInt numDofs = GetNumDofs();
-#endif
       
-//      if( numDofs == 1 ) {
-        // push back empty set -> sbm block 0 has no minor blocks
-        minorBlocks[0]=(StdVector<std::set<Integer> >());
-//      } else {
-//        
-//        // group for each node / edge / face all equations
-//        // together
-//        
-//        // maintain of already used entities
-//        std::set<UInt> vertices, edges, faces, elems;
-//        
-//        // Loop over all elements
-//        boost::unordered_map< UInt, ElemVirtualNodes >::iterator elemIt = virtualNodes_.begin();
-//        for( ; elemIt != virtualNodes_.end(); ++elemIt ) {
-//
-//          const UInt elemNum = elemIt->first;
-//          const Elem * elem = ptGrid_->GetElem(elemNum);
-//          UInt dim = Elem::shapes[elem->type].dim;;
-//          LOG_DBG(feSpace) << "\nDim of elem #" 
-//              << elemNum << ": " << dim << std::endl;
-//          std::cerr << "\nDim of elem #" 
-//              << elemNum << ": " << dim << std::endl;
-//
-//          ElemVirtualNodes& vn = elemIt->second;
-//          
-//          // group vertex nodes 
-//          StdVector<UInt> & vertexNodes = vn[BaseFE::VERTEX].vNodes;
-//          for(UInt i = 0; i < vertexNodes.GetSize(); ++i ) {
-//            UInt vNum = vertexNodes[i];
-//            std::set<Integer> vEqns;
-//            if( vertices.find(vNum) == vertices.end() ) {
-//              // collect entries for minor block
-//              vEqns.insert(nodeMap_[vNum].Begin(),
-//                           nodeMap_[vNum].End());
-//              vertices.insert(vNum);
-//              if( vEqns.size() ) {
-//                minorBlocks[0].Push_back(vEqns);
-//                std::cerr << "vEqns has size " << vEqns.size() << std::endl;
-//              }
-//            }
-//          } // loop over vertex nodes
-//          
-//          
-//          // group edge nodes
-//          UInt pos = 0;
-//          StdVector<UInt> & edgeOffsets = vn[BaseFE::EDGE].offset;
-//          StdVector<UInt> & edgeNodes = vn[BaseFE::EDGE].vNodes;
-//          std::cerr << "got " << edgeOffsets.GetSize() << " edges\n";
-//          for( UInt iEdge = 0; iEdge < edgeOffsets.GetSize(); ++iEdge ) {
-//            std::cerr << "treating edge " << iEdge << std::endl;
-//            std::set<Integer> edgeEqns;
-//            for(UInt iNode = pos; iNode < edgeOffsets[iEdge]+pos; ++iNode ) {
-//              UInt edgeNum = edgeNodes[iNode];
-//              if( edges.find(edgeNum) == edges.end() ) {
-//                // collect entries for minor block
-//                edgeEqns.insert(nodeMap_[edgeNum].Begin(),
-//                                nodeMap_[edgeNum].End());
-//                edges.insert(edgeNum);
-//
-//              }
-//            } // edgenodes
-//            pos += edgeOffsets[iEdge];
-//            if( edgeEqns.size() ) {
-//              minorBlocks[0].Push_back(edgeEqns);
-//              std::cerr << "edgeEqns has size " << edgeEqns.size() << std::endl;
-//            }
-//          } // edges
-//
-//          // group face nodes (only in 3D)
-//          if( ptGrid_->GetDim() == 3) {
-//            pos = 0;
-//            StdVector<UInt> & faceOffsets = vn[BaseFE::FACE].offset;
-//            StdVector<UInt> & faceNodes = vn[BaseFE::FACE].vNodes;
-//            for( UInt iFace = 0; iFace < faceOffsets.GetSize(); ++iFace ) {
-//              std::cerr << "treating face " << iFace << std::endl;
-//              std::set<Integer> faceEqns;
-//              for(UInt iNode = pos; iNode < faceOffsets[iFace]+pos; ++iNode ) {
-//                UInt faceNum = faceNodes[iNode];
-//
-//                if( faces.find(faceNum) == faces.end() ) {
-//                  // collect entries for minor block
-//                  faceEqns.insert(nodeMap_[faceNum].Begin(),
-//                                  nodeMap_[faceNum].End());
-//                  faces.insert(faceNum);
-//                }
-//
-//              } // loop face nodes
-//              pos += faceOffsets[iFace];
-//              if( faceEqns.size() ) {
-//                minorBlocks[0].Push_back(faceEqns);
-//                std::cerr << "facEqns has size" << faceEqns.size() << std::endl;
-//              }
-//            } // loop over faces
-//            
-//          } // if dim == 3d
-//          
-//        } // loop over elements
-//        
-//      }
-      
+      minorBlocks[0]=(StdVector<std::set<Integer> >());
       // Create 2 SBM block sets:
       // 1st block: Contains all nodal, edge and face contributions
       // 2nd block: contains all element interior equations (in 2D: faces)
-      
-
-      
-      // if we have a multi-dof approximation, we can group the dofs
-      // with the same index
-      
-      
       
       // Preliminary first set: all equations
       // If we have lateron no interior equations, we can directly return
@@ -1582,23 +1431,16 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
       // list with all equation numbers for interior block
       std::set<Integer> intBlock;
-
-      // Loop over all elements
-      boost::unordered_map< UInt, ElemVirtualNodes >::iterator elemIt = virtualNodes_.begin();
-      for( ; elemIt != virtualNodes_.end(); ++elemIt ) {
-
-        const UInt elemNum = elemIt->first;
-        const Elem * elem = ptGrid_->GetElem(elemNum);
-        UInt dim = Elem::shapes[elem->type].dim;;
-        LOG_DBG(feSpace) << "\nDim of elem #" 
-            << elemNum << ": " << dim << std::endl;
-
-        
-        ElemVirtualNodes& vn = elemIt->second;
-        // collect all inner nodes 
-        StdVector<UInt> & innerNodes = vn[intType].vNodes;
+      EntityNodesType intNodes = vNodesCont_[intType];
+      
+      // Loop over all elements / faces
+      EntityNodesType::iterator intIt = intNodes.begin();
+      for( ; intIt != intNodes.end(); ++intIt ) {
+        StdVector<UInt> & innerNodes = intIt->second;
         LOG_DBG(feSpace) << "innerNode has size " << innerNodes.GetSize() 
                                                              << std::endl;
+
+        // set for all inner eqns per element
         std::set<Integer> innerEqns;
         for(UInt i = 0; i < innerNodes.GetSize(); ++i ) {
           // collect entries for SBM block
@@ -1612,8 +1454,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         if( innerEqns.size() ) {
           minorBlocks[1].Push_back(innerEqns);
         }
-      } // loop over elements
-      
+      } // loop: elements / faces (= "inner" entity type)
+
       // take set-difference:
       // so far we have collected all inner equations, now subtract them
       // from the set of "all" equations, to get non-inner equations
@@ -1625,10 +1467,29 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       sbmBlocks.Resize(2);
       sbmBlocks[0][fctId] = diff;
       sbmBlocks[1][fctId] = intBlock;
-      
+
     } // if static condensation
+
   }
 
+  
+  void FeSpace::GetAllElems(std::set<const Elem*>& allElems ) {
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock();
+    StdVector< shared_ptr<EntityList> > entityLists = feFct->GetEntityList();
+    for( UInt iList = 0; iList < entityLists.GetSize(); ++iList ) {
+      EntityList&  actList = *(entityLists[iList]);
+      // check, if entitylist contains elements
+      if( actList.GetType() == EntityList::ELEM_LIST ||
+          actList.GetType() == EntityList::SURF_ELEM_LIST || 
+          actList.GetType() == EntityList::NC_ELEM_LIST ) {
+        EntityIterator elemIt = actList.GetIterator();
+        for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++) {
+          allElems.insert(elemIt.GetElem());
+        }
+      }
+    }
+  }
+    
   void FeSpace::PrintEqnMap(){
 
     // obtain (fctId,eqnNr) -> (sbm,index) mapping from OLAS
@@ -1654,17 +1515,17 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     // =================================
     
     // iterate over all elements
-    Grid* ptGrid = feFct->GetGrid();
-    boost::unordered_map< UInt, ElemVirtualNodes >::iterator elemIt;
-    
-    for( elemIt = virtualNodes_.begin(); 
-        elemIt != virtualNodes_.end(); elemIt++ ) {
-     
+    std::set<const Elem*> allElems;
+    GetAllElems(allElems);
+  
+    // loop over all elements and print geometric information
+    std::set<const Elem*>::iterator elemIt;
+    for( elemIt = allElems.begin(); elemIt != allElems.end(); ++elemIt ) {
       // print element information (type, region, connect, edges, faces)
-      const Elem * ptElem = ptGrid->GetElem(elemIt->first);
+      const Elem * ptElem = *elemIt;
       
       std::cout << "=============\n"
-                << " Elem #" << elemIt->first << std::endl
+                << " Elem #" << ptElem->elemNum << std::endl
                 << "=============\n";
       std::cout << "Type: " << Elem::feType.ToString( ptElem->type ) << std::endl;
       std::cout << "Connect: " << ptElem->connect.ToString( 0 ) << std::endl;
@@ -1699,25 +1560,24 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       
       // print vertex / edge / face / inner information
       StdVector<BaseFE::EntityType> entTypes;
+      ElemShape& shape = Elem::shapes[ptElem->type];
       entTypes = BaseFE::VERTEX, BaseFE::EDGE, BaseFE::FACE, BaseFE::INTERIOR;
-      
       for( UInt iType = 0; iType < entTypes.GetSize(); ++iType ) {
         
         BaseFE::EntityType type = entTypes[iType];
         
         // vector containing entity numbers
         StdVector<UInt> entNumbers;
-        StdVector<UInt> & vNodes = elemIt->second[type].vNodes;
-        StdVector<UInt> & offset = elemIt->second[type].offset;
-        StdVector<UInt> rNodes(vNodes.GetSize());
-        rNodes.Init(0);
+        EntityNodesType &vNodes = vNodesCont_[type]; 
         
         // fill vector containing entity types
         if( type == BaseFE::VERTEX ) {
+          entNumbers = ptElem->connect;
           // note: we may only take the number of nodes, which are 
           // also used for the calculation element
-          entNumbers = ptElem->connect;
-          entNumbers.Resize(offset.GetSize());
+          if( mapType_ != GRID ) {
+            entNumbers.Resize( shape.numVertices );
+          }
         } else if( type == BaseFE::EDGE ) {
           entNumbers.Resize(ptElem->edges.GetSize());
           for( UInt i=0; i < ptElem->edges.GetSize(); ++i )
@@ -1729,51 +1589,45 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         } else if( type == BaseFE::INTERIOR ) {
           // only treat "interior", if we have any unknowns at all assigned
           // (= size of vNodes != 0)
-          if( vNodes.GetSize() ) {
+          if( vNodes.size() ) {
             entNumbers.Resize(1);
-            entNumbers.Init(0);
+            entNumbers.Init(ptElem->elemNum);
           }
         }
-        
-        // try to find real nodes (currently only for vertices)
-        if( type == BaseFE::VERTEX ) {
-          for( UInt i = 0; i < vNodes.GetSize(); ++i ) {
-            UInt actNode = ptElem->connect[i];
-            Integer index = vNodes.Find(gridToVirtualNodes_[actNode][0]);
-            if( index > -1 ) {
-              rNodes[index] = actNode;
-            }
-          }
-        }
-        // if any nodes are available
-        if( vNodes.GetSize() ) {
+
+        // if any nodes of the given are available
+        if( vNodes.size() ) {
           std::cout << iType+1 << ") " << BaseFE::entityType.ToString(type) << std::endl;
           std::cout << "========\n";
         } else {
           continue;
         }
         // loop over all entities
-        UInt pos = 0;
         for( UInt i = 0; i < entNumbers.GetSize(); ++i ) {
-          std::cout << "\t\t#" << std::abs(static_cast<Double>(entNumbers[i])) << "\t";
+          UInt entNumber = entNumbers[i];
+          std::cout << "\t\t#" << entNumber << "\t";
 
+          // Get hold of virtual nodes for given entity type
+          StdVector<UInt>& vNodesEnt = vNodes[entNumber];
+          UInt entNumNodes = vNodesEnt.GetSize();
+          
           // check, if any virtual nodes are assigned at all
-          if( offset[i] == 0 ) {
+          if( vNodesEnt.GetSize() == 0 ) {
             std::cout << "-\t-\t-\t-\n";
           }
           // leave, virtual node numbers are assigned
-          for( UInt j = 0; j < offset[i]; ++j ) {
+          for( UInt j = 0; j < entNumNodes; ++j ) {
 
             // print virtual node only for first entry            
             if( j > 0 ) {
               std::cout << prefix;
             }
             // print virtual node
-            std::cout << vNodes[pos] << "\t";
+            std::cout << vNodesEnt[j] << "\t";
             
 
             // equation numbers (loop)
-            StdVector<Integer> & eqns = nodeMap_[vNodes[pos]];
+            StdVector<Integer> & eqns = nodeMap_[vNodesEnt[j]];
             // immediately begin new line, if entity has no equations
             if( eqns.GetSize() == 0 ){
               std::cout << "\n";
@@ -1800,7 +1654,6 @@ ApproxOrder::ApproxOrder(UInt dim ) {
                 std::cout << "-\t-\n";
               }
             }
-            pos++;
           } // loop over virtual nodes
         } // loop over entity numbers
         std::cout << "\n";
@@ -1869,7 +1722,6 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       }
       nodeIt++;
     }
-
   }
   
   UInt FeSpace::GetNumDofs() const {

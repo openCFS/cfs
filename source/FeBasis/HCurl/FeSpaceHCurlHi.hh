@@ -90,8 +90,7 @@ protected:
   
   //! This method returns the groups of virtual face nodes, which belong
   //! together due to "thin" elements (high aspect ratio).
-  void GetThinFaceGroups( std::map<UInt, UInt>& faceElems, 
-                          StdVector<StdVector<UInt> >& faceGroups );
+  void GetThinFaceGroups( StdVector<StdVector<UInt> >& faceGroups );
   
   //! Map for reference elements by region
   std::map< RegionIdType, std::map<Elem::FEType, FeHCurlHi* > > refElems_;

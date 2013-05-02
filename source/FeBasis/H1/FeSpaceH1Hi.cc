@@ -186,7 +186,7 @@ namespace CoupledField{
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
     const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum); 
-    RegionIdType eRegion = ptElem->regionId;
+    RegionIdType eRegion = GetVolElem(ptElem)->regionId;
 
     //Check if the region is there, otherwise fall back to default
     if(refElems_.find(eRegion) == refElems_.end()){

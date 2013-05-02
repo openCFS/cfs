@@ -42,6 +42,11 @@ namespace CoupledField {
                      EntityType fctEntityType,
                      UInt dof = 1 );
 
+    //! Flag, if element has true nodal permutation
+    virtual bool NeedsNodalPermutation() {
+      return true;
+    }
+    
     //! This holds only for line,quad and hex,
     //! if other types are available the has to be reimplemented!
     //! Get the permutation Vector for a given Face or Edge

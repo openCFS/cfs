@@ -273,6 +273,287 @@ namespace CoupledField{
   void FeSpaceL2::MapNodalEqns(UInt phase){
     FeSpace::MapNodalEqns(phase);
   }
+  
+   void FeSpaceL2::GetNodesOfElement( StdVector<UInt>& nodes,
+                                    const Elem* ptElem,
+                                    BaseFE::EntityType entType){
+     UInt elemNum = ptElem->elemNum;
+     if(virtualNodes_.find(elemNum) ==virtualNodes_.end()){
+
+       EXCEPTION("FeSpace::GetNodesOfElement: Could not find requested element #"
+           << ptElem->elemNum << " of region " 
+           <<  ptGrid_->GetRegion().ToString(ptElem->regionId));
+     }
+     if(entType == BaseFE::ALL){
+       nodes.Resize(virtualNodes_[elemNum][BaseFE::VERTEX].vNodes.GetSize()+
+                    virtualNodes_[elemNum][BaseFE::EDGE].vNodes.GetSize()+
+                    virtualNodes_[elemNum][BaseFE::FACE].vNodes.GetSize()+
+                    virtualNodes_[elemNum][BaseFE::INTERIOR].vNodes.GetSize());
+       ElemVirtualNodes::iterator nodeIt = virtualNodes_[elemNum].begin();
+       UInt c = 0;
+       while(nodeIt !=virtualNodes_[elemNum].end()){
+
+         StdVector<UInt> & entNodes =  nodeIt->second.vNodes;
+         for (UInt i = 0; i < entNodes.GetSize(); i++ ){
+           nodes[c++] =  entNodes[i];
+         }
+         nodeIt++;
+       }
+     }else{
+       nodes.Resize(virtualNodes_[elemNum][entType].vNodes.GetSize());
+       const StdVector<UInt>& entNodes =  virtualNodes_[elemNum][entType].vNodes;
+       for (UInt i = 0; i < entNodes.GetSize(); i++ ){
+         nodes[i] =  entNodes[i];
+       }
+     }
+   }
+   
+   void FeSpaceL2::CreatePolynomialNodes(){
+     //follow the following algorithm
+     // - loop over every element
+     //  - get vertices and if not already mapped assign new virtual nodes
+     //  - get edges and if not already mapped assign new virtual nodes
+     //  - get faces and if not already mapped assign new virtual nodes
+     //  - assign interior node to the element
+     //  - now fill the Virtual node map with the information according to element orientation
+     // - finally delete all intermediate arrays
+
+     StdVector< shared_ptr<EntityList> > fctEntList;
+
+     //ok these data structures are a bit messy but this is the most obvious typ
+     // and they are temporary anyway. furthermore we run here once in a lifetime
+     // 1st key: v/e/f number
+     // 2nd key: element number
+     // 3rc key: virtual nodes
+     std::map< UInt, std::map<UInt, StdVector<Integer> > > vertexNodes;
+     std::map< UInt, std::map<UInt, StdVector<Integer> > > edgenodes;
+     std::map< UInt, std::map<UInt, StdVector<Integer> > > facenodes;
+     std::map<UInt, StdVector<Integer> > interiornodes;
+     //Different lists have to be treated differently
+     EntityList::ListType actListType = EntityList::NO_LIST;
+
+
+     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+     assert(feFct);
+     fctEntList = feFct->GetEntityList();
+
+     //get the highest possible node number
+     //UInt offset = feFunction_->GetGrid()->GetNumNodes();
+     UInt offset =0;
+
+     //Stores the current order
+     // MappingType curMap = GRID;
+
+     //changed algorithm first we add the volume elements and later on the surfaces
+     // so we loop twice over the entities
+
+     // loop over all entitylists (i.e. regions)
+     for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
+
+
+       actListType = fctEntList[actList]->GetType();
+       //determine mapping type and order of current entity list
+       //if we do not find the name of the reigon in our map, we fall back to the default
+       //BE CARFUL, if the user has specified something for the volume region but not for surface regions,
+       // it could be that the fallback to default leads to errors!
+
+       //check if we got what we expected
+
+       if ( ! (actListType == EntityList::ELEM_LIST) &&
+           ! (actListType == EntityList::SURF_ELEM_LIST) &&
+           ! (actListType == EntityList::NC_ELEM_LIST))  {
+         continue;
+       }
+       //cast down to element list
+       EntityList* actElemList = fctEntList[actList].get();
+       //      RegionIdType curReg = actElemList->GetRegion();
+
+       // curMap = POLYNOMIAL;
+
+       // Get iterator of current element list
+       EntityIterator entIt = actElemList->GetIterator();
+
+       // loop over all elements
+       for(entIt.Begin(); !entIt.IsEnd();entIt++){
+
+         // Fetch current finite element. This is performed by the specialized 
+         // version, so this element "knows" already about its order, unknowns etc.
+         BaseFE* ptFe = GetFe( entIt );
+         const Elem* actEl = entIt.GetElem();  
+
+         StdVector<UInt> permutations; // initially size 0
+         UInt elemNum = actEl->elemNum;
+
+         //===========================================================
+         //Assign the BaseFE::VERTEX node numbers
+         //===========================================================
+         {
+           UInt numVertexNodes = 0;
+           UInt eNum = elemNum;
+           UInt numVert = Elem::shapes[actEl->type].numVertices;
+           StdVector<UInt> elemNodes = actEl->connect;
+
+           EntityTypeNodes & vtn =  virtualNodes_[actEl->elemNum][BaseFE::VERTEX];
+
+           // check, if the vertices of this element were already numbered
+           if( vtn.vNodes.GetSize() == 0 ) {
+             for ( UInt iVert= 0; iVert< numVert; iVert++ ) {
+               UInt vertexNum = elemNodes[iVert];
+               ptFe->GetNodalPermutation(permutations,actEl,BaseFE::VERTEX,iVert);
+               numVertexNodes = permutations.GetSize();
+
+               // Check if the vertex is already numbered.
+               if( vertexNodes[vertexNum][eNum].GetSize() == 0 ) {
+
+                 vertexNodes[vertexNum][eNum].Resize(numVertexNodes);
+                 vertexNodes[vertexNum][eNum].Init();
+                 for( UInt vertNode = 0; vertNode < numVertexNodes; ++vertNode ) {
+                   vertexNodes[vertexNum][eNum][vertNode] = ++offset;
+                   nodesType_[offset] = BaseFE::VERTEX;
+                 }
+               }
+
+
+               for( UInt i = 0; i < numVertexNodes; ++i ) {
+                 vtn.vNodes.Push_back(vertexNodes[vertexNum][eNum][permutations[i] ]);
+               }
+               vtn.offset.Push_back( permutations.GetSize() );
+
+               gridToVirtualNodes_[vertexNum].Push_back(offset);
+             } // loop over vertices
+           } // mapping of vertex nodes
+         }
+         feFct->GetGrid()->MapEdges();
+         feFct->GetGrid()->MapFaces();
+
+         ElemShape actShape = Elem::shapes[actEl->type];
+
+         //===========================================================
+         //Assign the Edge node numbers
+         //===========================================================
+         {
+           UInt numEdgeNodes = 0;
+           UInt eNum = elemNum;
+           EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::EDGE];
+
+           // check if edges of this element were already numbered
+           if( etn.vNodes.GetSize() == 0 ) {
+             for ( UInt iEdge=0; iEdge < actShape.numEdges; iEdge++) {
+               UInt edgeNum = std::abs(actEl->edges[iEdge]);
+               //get the permutation Vector
+               ptFe->GetNodalPermutation(permutations,actEl,BaseFE::EDGE,iEdge);
+               numEdgeNodes = permutations.GetSize();
+          
+               // Check if the edge is already numbered.
+               // Additionally, if we have the case of discontinuous approximation,
+               // we number the nodes separately for every element anyway.
+               if(edgenodes[edgeNum][eNum].GetSize() == 0 ) {
+                 //here we assume spectral element approximation and we have
+                 //order-1 nodes on the edge
+                 edgenodes[edgeNum][eNum].Resize(numEdgeNodes);
+                 edgenodes[edgeNum][eNum].Init();
+                 for ( UInt edgeNode = 0;edgeNode < numEdgeNodes ;edgeNode++ ) {
+                   edgenodes[edgeNum][eNum][edgeNode] = ++offset;
+                   nodesType_[offset] = BaseFE::EDGE;
+                 }
+               }
+
+               //fill the virtual Nodes in the correct ordering
+
+               for ( UInt i = 0; i < numEdgeNodes ; i++ ) {
+                 etn.vNodes.Push_back(edgenodes[edgeNum][eNum][ permutations[i] ]);
+               }
+               etn.offset.Push_back( permutations.GetSize() );
+             } // loop over edges
+           }
+         }
+         //===========================================================
+         //Assign the Face node numbers
+         //===========================================================
+         {
+           UInt numFaceNodes = 0;
+           UInt eNum = elemNum;
+           EntityTypeNodes & ftn =  virtualNodes_[actEl->elemNum][BaseFE::FACE];
+
+           // check if faces of this element ware already numbered
+           if( ftn.vNodes.GetSize() == 0 ) {
+             for ( UInt iFace=0; iFace < actShape.numFaces; iFace++) {
+               UInt faceNum = actEl->faces[iFace];
+               //get the permutation Vector
+               ptFe->GetNodalPermutation(permutations,actEl,BaseFE::FACE,iFace);
+               numFaceNodes = permutations.GetSize();
+
+               // Check if the face is already numbered.
+               // Additionally, if we have the case of discontinuous approximation,
+               // we number the nodes separately for every element separately anyway.
+               if(facenodes[faceNum][eNum].GetSize() == 0 ){
+                 facenodes[faceNum][eNum].Resize(numFaceNodes);
+                 for ( UInt faceNode = 0;faceNode < numFaceNodes ;faceNode++ ) {
+                   facenodes[faceNum][eNum][faceNode] = ++offset;
+                   nodesType_[offset] = BaseFE::FACE;
+                 }
+               } else {
+                 // additional check, this face got already mapped with different size
+                 if( facenodes[faceNum][eNum].GetSize() != numFaceNodes ) {
+                   WARN("Face #" << faceNum << " for element #" << eNum 
+                        << " got " << facenodes[faceNum][eNum].GetSize()
+                        << " faceNodes, whereas we want to set "
+                        << numFaceNodes << " entries for element #" <<
+                        elemNum );
+                 }
+               }
+               //fill the virtual Nodes in the correct ordering
+
+               for ( UInt i = 0; i < numFaceNodes ; i++ ) {
+                 ftn.vNodes.Push_back(facenodes[faceNum][eNum][ permutations[i] ]);
+               }
+               ftn.offset.Push_back( permutations.GetSize() );
+             }
+           }
+         }
+         //===========================================================
+         //Assign the Interior node numbers
+         //===========================================================
+         {
+           //get the permutation Vector just for the number of nodes
+           ptFe->GetNodalPermutation(permutations,actEl,BaseFE::INTERIOR,0);
+           UInt numIntNodes = permutations.GetSize();
+           EntityTypeNodes & itn =  virtualNodes_[actEl->elemNum][BaseFE::INTERIOR];
+
+           //Check if the current element got already numbered
+           if(interiornodes[actEl->elemNum].GetSize() == 0){
+             interiornodes[actEl->elemNum].Resize(numIntNodes);
+             for ( UInt intNode = 0;intNode < numIntNodes ;intNode++ ) {
+               interiornodes[actEl->elemNum][intNode] = ++offset;
+               nodesType_[offset] = BaseFE::INTERIOR;
+             }
+           }
+           //fill the virtual Nodes in the correct ordering
+
+           for ( UInt i = 0; i  < numIntNodes ; i++ ) {
+             itn.vNodes.Push_back(interiornodes[actEl->elemNum][ permutations[i] ]);
+           }
+           itn.offset.Push_back( permutations.GetSize());
+         } // loop elements
+       }
+     } // loop entity lists
+
+
+     // trim all vectors to get unused memory back
+     boost::unordered_map< UInt, ElemVirtualNodes >::iterator it = 
+         virtualNodes_.begin();
+     for( ; it != virtualNodes_.end(); ++it ) {
+       ElemVirtualNodes & evn = it->second;
+       ElemVirtualNodes::iterator evnIt = evn.begin();
+       for( ; evnIt != evn.end(); evnIt++ ) {
+         //        evnIt->second.vNodes.Trim();
+         //        evnIt->second.offset.Trim();
+       }
+
+     }
+
+
+   }
 
   void FeSpaceL2::PrintEqnMap(){
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
