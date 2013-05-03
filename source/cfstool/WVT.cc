@@ -183,13 +183,14 @@ namespace CFSTool {
        regMatEnd = regionMatMap.end();
        for( ; regMatIt != regMatEnd; regMatIt++ ){
          std::string matName = regMatIt->second;
+         std::string regionName = regMatIt->first;
          PtrParamNode mNode = pNode->GetByVal("material",
                                               "name",
                                               matName);
 
          Double density = mNode->Get("flow")->Get("density")->As<Double>();
          std::cout << "density " << density << std::endl;         
-         regionDensityMap[matName] = density;
+         regionDensityMap[regionName] = density;
        }
 
        // read in mesh of input2
@@ -334,11 +335,26 @@ namespace CFSTool {
          // iterate over all regions
          StdVector<shared_ptr<EntityList> > regions;
          inputs_[0]->GetResultEntities( actMsStep, infos[iRes],
-                                    regions, false );
+                                        regions, false );
+
+         std::map<std::string, Double>::iterator it, end;
+         it = regionDensityMap.begin();
+         end = regionDensityMap.end();
+         for( ; it != end; it++ ) {
+           std::cout << "region: " << it->first << " density: " << it->second << std::endl;
+           
+         }
+
+
          for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
            // generate new result object and add it to output writer
            shared_ptr<BaseResult > inResult1, inResult2, inResult3, outResult, outResult2, outResult3;
-           
+
+           if(regionDensityMap.find( regions[iRegion]->GetName() ) == regionDensityMap.end())
+           {
+             continue;
+           }
+
            if(infos[iRes]->resultType != FLUIDMECH_VELOCITY) 
            {
              continue;
@@ -525,8 +541,17 @@ namespace CFSTool {
                                                                               regionNames );
 
 
-             GradientOperator<FeH1,3> gradOp;
-             
+             shared_ptr<BaseBOperator> gradOp;
+             switch(dim) {
+             case 2:
+               gradOp.reset( new GradientOperator<FeH1,2> );
+               break;
+             case 3:
+               gradOp.reset( new GradientOperator<FeH1,3> );
+               break;               
+             } 
+
+
              EntityIterator eIt = outResults[iRes]->GetEntityList()->GetIterator();
              
              Complex u_p_prime = Complex(0.0, 0.0);
@@ -543,16 +568,15 @@ namespace CFSTool {
                LocPoint lp = Elem::shapes[el1->type].midPointCoord;
                shared_ptr<ElemShapeMap> esm1 = ptGrid1->GetElemShapeMap( el1, true );
         
-               Vector<Double> p(3);
+               Vector<Double> p(dim);
                esm1->Local2Global(p, lp);
 
                globMidPointCoords.Push_back(p);
 
-               if(el1->elemNum == 2771) 
-               {
-                 std::cout << "elIdx: " << elIdx << std::endl;
-               }
-               
+               //               if(el1->elemNum == 2771) 
+               //               {
+               //                 std::cout << "elIdx: " << elIdx << std::endl;
+               //               }
              }
 
              StdVector< LocPoint > localCoords;
@@ -563,8 +587,6 @@ namespace CFSTool {
              eIt = outResults[iRes]->GetEntityList()->GetIterator();
              for(UInt elIdx=0 ; !eIt.IsEnd(); eIt++, elIdx++ ) 
              {
-               if(inResults1[iRes]->GetEntityList()->GetName() == "pipe_inner") continue;
-               
                const Elem* el1 = eIt.GetElem();
                const Elem* el2 = ptGrid2->GetElem(el1->elemNum);
                const Elem* el3 = ptGrid3->GetElem(el1->elemNum);
@@ -584,9 +606,8 @@ namespace CFSTool {
                lpm2.Set( lp, esm2, 0.0 );
                lpm3.Set( lp, esm3, 0.0 );
         
-               const Elem* el2_new = elems[elIdx];
-               std::cout << "el2: " << el2->elemNum <<  " el2_new: " << el2_new << " " << std::endl;
-               
+               // const Elem* el2_new = elems[elIdx];
+               //               std::cout << "el2: " << el2->elemNum <<  " el2_new: " << el2_new << " " << std::endl;
 
                Matrix<Double> bMat1, bMat2;
                Vector<Complex> eSol1, eSol2;
@@ -595,9 +616,8 @@ namespace CFSTool {
                Vector<Complex> u1, u2;
                Vector<Double> V;
                Vector<Complex> W;
-               gradOp.CalcOpMat( bMat1, lpm1, ptFe1 );
-               gradOp.CalcOpMat( bMat2, lpm2, ptFe2 );
-               
+               gradOp->CalcOpMat( bMat1, lpm1, ptFe1 );
+               gradOp->CalcOpMat( bMat2, lpm2, ptFe2 );
                
                u1FeFunc->GetVector( u1, lpm1 );
                u2FeFunc->GetVector( u2, lpm2 );
@@ -621,34 +641,11 @@ namespace CFSTool {
                    eSol2Comp[dof][eI] = eSol2[eI*numDofs+dof];
                  }
 
-                 gradOp.ApplyOp( u1Derivs[dof], lpm1, ptFe1, eSol1Comp[dof] );
-                 gradOp.ApplyOp( u2Derivs[dof], lpm2, ptFe2, eSol2Comp[dof] );
+                 gradOp->ApplyOp( u1Derivs[dof], lpm1, ptFe1, eSol1Comp[dof] );
+                 gradOp->ApplyOp( u2Derivs[dof], lpm2, ptFe2, eSol2Comp[dof] );
                }
 
-#if 0
-               Matrix<Complex> u1Derivs(3,3);
-               Matrix<Complex> u2Derivs(3,3);
-               u1Derivs.Init();
-               u2Derivs.Init();
-
-               UInt numFncs = ptFe1->GetNumFncs();
-               
-               for( UInt dof=0; dof < numDofs; dof++ ) 
-               {
-                 for( UInt f=0; f < numFncs; f++ ) 
-                 {
-                   u1Derivs[dof][0] += eSol1[f*numDofs+0]*bMat1[dof][f*numDofs+0];
-                   u1Derivs[dof][1] += eSol1[f*numDofs+1]*bMat1[dof][f*numDofs+1];
-                   u1Derivs[dof][2] += eSol1[f*numDofs+2]*bMat1[dof][f*numDofs+2];
-                   
-                   u2Derivs[dof][0] += eSol2[f*numDofs+0]*bMat2[dof][f*numDofs+0];
-                   u2Derivs[dof][1] += eSol2[f*numDofs+1]*bMat2[dof][f*numDofs+1];
-                   u2Derivs[dof][2] += eSol2[f*numDofs+2]*bMat2[dof][f*numDofs+2];
-                 }                   
-               }
-#endif               
-               
-               std::cout << "elemNum " << el1->elemNum << std::endl;
+               //                std::cout << "elemNum " << el1->elemNum << " numDofs " << numDofs << " dim " << dim << std::endl;
                W.Resize(u1.GetSize());
                W.Init();
                
@@ -664,21 +661,19 @@ namespace CFSTool {
                  }
                }
                
-               outVec[elIdx*numDofs+0] = W[0];
-               outVec[elIdx*numDofs+1] = W[1];
-               outVec[elIdx*numDofs+2] = W[2];
+               outVec3[elIdx] = Complex(0, 0);
+               for( UInt i=0; i < numDofs; i++ )
+               {
+                 // Prepare weight vector
+                 outVec[elIdx*numDofs+i] = W[i];
 
-#if 0               
-               outVec[elIdx*numDofs+0] = u1Derivs[2][0];
-               outVec[elIdx*numDofs+1] = u1Derivs[2][1];
-               outVec[elIdx*numDofs+2] = u1Derivs[2][2];
-#endif
+                 // Prepare mean velocity
+                 outVec2[elIdx*numDofs+i] = V[i];
+                 
+                 // Prepare weight vector density result
+                 outVec3[elIdx] += W[i]*V[i];
+               }
 
-               outVec2[elIdx*numDofs+0] = V[0];
-               outVec2[elIdx*numDofs+1] = V[1];
-               outVec2[elIdx*numDofs+2] = V[2];
-
-               outVec3[elIdx] = W[0]*V[0] + W[1]*V[1] + W[2]*V[2];
 
                // Get integration points
                shared_ptr<IntScheme> intScheme = u1FeFunc->GetFeSpace()->GetIntScheme();
@@ -686,21 +681,20 @@ namespace CFSTool {
                StdVector<LocPoint> intPoints;
                StdVector<Double> weights;
                intScheme->GetIntPoints( Elem::GetShapeType(el1->type), method, 0,
-                                         intPoints, weights );
+                                        intPoints, weights );
 
                u_p_prime += outVec3[elIdx] * lpm1.jacDet * weights[0];
-               
-               
              }
 
              std::cout << "\nu_p_prime " << u_p_prime << std::endl;
          
-           } // switch: Analysitype
+           } // switch: Analysis type
            // add result to output file
-           if (output )
+           if (output ) {
              output->AddResult( outResults[iRes] );
              output->AddResult( outResults2[iRes] );
              output->AddResult( outResults3[iRes] );
+           }
            
          } // loop over results
          
