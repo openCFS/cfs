@@ -47,22 +47,23 @@ namespace CoupledField {
     UInt numNodes = timeValues.GetNumCols();
     UInt numTsteps = timeValues.GetNumRows();
 
-    UInt numFreqs = std::ceil(numTsteps);
-
     Double freqInterval = Fs/(numTsteps);
+    UInt numFreqs = std::ceil((fmax +1)/freqInterval);
+    UInt cutMinNumFreqs = std::ceil(fmin/freqInterval);
+    Double fmin_first = cutMinNumFreqs * freqInterval;
+    numFreqs -= cutMinNumFreqs;
 
-     freqSteps.Resize(numFreqs);
-     freqSteps.Init();
-     freqSteps[0]=0.0;
-     fSteps.Resize(numFreqs);
-     fSteps.Init();
-     fSteps[0]=0.0;
+    freqSteps.Resize(numFreqs);
+    freqSteps.Init();
+    fSteps.Resize(numFreqs);
+    fSteps.Init();
+    fSteps[0]=0.0;
 
-     for(UInt actF=0;actF<numFreqs;actF++){
+    for(UInt actF=0;actF<numFreqs;actF++){
 
-      fSteps[actF] = actF * freqInterval;
+      fSteps[actF] = fmin_first + actF * freqInterval;
       freqSteps[actF]=fSteps[actF];
-     }
+    }
 
     freqValues.resize(numNodes,std::vector<Complex>(numFreqs));
 

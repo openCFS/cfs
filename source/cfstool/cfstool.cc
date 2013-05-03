@@ -1076,19 +1076,26 @@ namespace CFSTool {
     std::vector<std::string> chunkFileNames;
 
     PtrParamNode maxMemNode = param->Get("maxMemory",ParamNode::PASS);
-    if(maxMemNode){
+    long pages = sysconf(_SC_PHYS_PAGES);
+    long page_size = sysconf(_SC_PAGE_SIZE);
+    long mem = pages * page_size;
+    //compute in MB
+    maxMem = mem / (1024*1024) * 0.1; // 10% of max memory
+    Double maxMemTmp = boost::lexical_cast<Double>(maxMemNode->As<std::string>());
+    if(maxMemTmp != 0){
       try{
-        maxMem = boost::lexical_cast<Double>(maxMemNode->As<std::string>());
+        if (maxMemTmp > maxMem * 2.0)
+        {
+          std::cerr << "You want to used more than: " << maxMemTmp << std::endl
+            << " of RAM. During writing/caching this will exceed 3time and " <<std::endl
+            << "it may leed to swapping";
+        }
+        maxMem = maxMemTmp;
       } catch(bad_lexical_cast &) {
-      EXCEPTION("Error converting maxMem parameter");
+        EXCEPTION("Error converting maxMem parameter");
       }
     }else{
-      std::cerr << "No maxMemory parameter specified. Trying to guess from system and use 20% of it..." << std::endl;
-      long pages = sysconf(_SC_PHYS_PAGES);
-      long page_size = sysconf(_SC_PAGE_SIZE);
-      long mem = pages * page_size;
-      //compute in MB
-      maxMem = mem / (1024*1024) * 0.2;
+      std::cerr << "No maxMemory parameter specified. Trying to guess from system and use 10% of it..." << std::endl;
       std::cerr << "\t Maximum available memory in MB for FFT: " << maxMem << std::endl;
     }
 
@@ -1178,6 +1185,9 @@ namespace CFSTool {
           UInt regNodes = 0;
           if(regions[iRegion]->GetType() == EntityList::NODE_LIST){
             regNodes = regions[iRegion]->GetSize();
+            // get number of dofs of result
+            UInt numDofs = infos[iRes]->dofNames.GetSize();
+            regNodes *= numDofs;
             numNodes += regNodes;
           }else{
             std::cerr << "Got entity list which is not a node list. Cannot cope with that" << std::endl;
@@ -1258,6 +1268,8 @@ namespace CFSTool {
         UInt actChunkSize = nodeChunks[aRes].second;
         //std::cout<< actChunkSize<<endl;
         UInt numRegNodes = inResults[aRes]->GetEntityList()->GetSize();
+        UInt numDofs = inResults[aRes]->GetResultInfo()->dofNames.GetSize();
+        numRegNodes *= numDofs;
         UInt remainder = (numRegNodes - (actNumChunks-1)*actChunkSize);
         UInt offset = 0;
         //READ IN TIMESTEPS
@@ -1278,16 +1290,16 @@ namespace CFSTool {
 
         std::vector<std::string> fRange;
         // Initialize vector with output fields
-        Double fMin=0;
-        Double fMax=0;
+        Double fMin = 0;
+        Double fMax = 0;
 
         typedef boost::tokenizer< boost::char_separator<char> > Tok;
         boost::char_separator<char> sep(";| ");
 
         //lets read in frequency range the user specified
         PtrParamNode freqRangeNode = param->Get("frequencyRange",ParamNode::PASS);
-        if(freqRangeNode){
-          std::string freq = freqRangeNode->As<std::string>();
+        std::string freq = freqRangeNode->As<std::string>();
+        if(freq != ""){
           Tok tokenizer(freq, sep);
           std::copy(tokenizer.begin(), tokenizer.end(),
               std::back_inserter(fRange));
@@ -1309,8 +1321,6 @@ namespace CFSTool {
           Double fs = 1/tStep;
           fMax = fs/2;
         }
-        fMin = 0;
-        fMax = 10000;
 
         std::cout << "\t Cut on freqeuncy= " << fMin << " Hz" <<  std::endl;
         std::cout << "\t Cut off freqeuncy = " << fMax << " Hz" << std::endl << std::endl;
@@ -1556,6 +1566,9 @@ namespace CFSTool {
           Vector<Double> & outVec =  dynamic_cast<Result<Double>& >(*outResults[aRes]).GetVector();
 
           UInt actNumNodes = outResults[aRes]->GetEntityList()->GetSize();
+          UInt numDofs = outResults[aRes]->GetResultInfo()->dofNames.GetSize();
+          actNumNodes *= numDofs;
+
           outVec.Resize(actNumNodes);
           for(UInt actN = 0;actN< actNumNodes ;actN++){
               outVec[actN] = curIFFTVals[aRes][actN][fCounter];
@@ -1627,6 +1640,8 @@ namespace CFSTool {
           Vector<Complex> & outVec =  dynamic_cast<Result<Complex>& >(*outResults[aRes]).GetVector();
 
           UInt actNumNodes = outResults[aRes]->GetEntityList()->GetSize();
+          UInt numDofs = outResults[aRes]->GetResultInfo()->dofNames.GetSize();
+          actNumNodes *= numDofs;
           outVec.Resize(actNumNodes);
           //cout<<"actno.nodes"<<actNumNodes<<endl;
           for(UInt actN = 0;actN< actNumNodes ;actN++){
