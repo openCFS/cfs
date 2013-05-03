@@ -33,35 +33,47 @@ DEFINE_LOG(simState, "simState")
 
 class MaterialHandler;
 
-  SimState::SimState( bool useAsInput ) {
+  SimState::SimState( bool useAsInput, Domain* parentDomain ) {
+    LOG_DBG(simState) << " Created new SimState (address: " << this << ")";
+    LOG_DBG(simState) << " \tHasInput: " << (useAsInput ? "yes" : "no");
     ownWriter_ = false;
     isInitialized_ = false;
     hasInput_ = useAsInput;
     sequenceStep_ = 0;
     domain_ = NULL;
+    parentDomain_ = parentDomain;
+    parentParser_ = NULL;
+    interpol_ = NO_INTERPOLATION;
     
   }
   
   SimState::~SimState() {
-    
+    LOG_DBG(simState) << " Deleted SimState (address: " << this << ")";
+    LOG_DBG(simState) << " \tHasInput: " << (hasInput_ ? "yes" : "no");
     // close in file
-    inFile_.reset();
+    //inFile_.reset();
     outFile_.reset();
     feFcts_.clear();
     
+    // de-register callback
+    conn_.disconnect();
+    if( parentParser_ ) {
+      parentParser_->ReleaseHandle(parentHandle_);
+      parentParser_ = NULL;
+    }
     
   }
   
   void SimState::SetInputHdf5Reader(shared_ptr<SimInputHDF5> reader )  {
     inFile_ = reader;
-    LOG_DBG(simState) << "Set input reader with file '" 
+    LOG_DBG(simState) << " Set input reader with file '" 
                       << reader->GetFileName() << "'";
         
   }
 
   Domain * SimState::GetDomain(UInt sequenceStep, const GridMap& map ) {
 
-    LOG_TRACE(simState) << "GetDomain for sequenceStep " << sequenceStep;
+    LOG_TRACE(simState) << " GetDomain for sequenceStep " << sequenceStep;
     if( map.size() > 0 ) {
       LOG_TRACE(simState) << "\t=> Grid map was provided";
     }
@@ -124,12 +136,12 @@ class MaterialHandler;
     std::map<std::string, StdVector<shared_ptr<SimInput> > >::const_iterator it;
     it = gridInputs.begin();
 
-    ResultHandler * resHandler = NULL;
+    ResultHandler * resHandler = parentDomain_->GetResultHandler();
     // Create new domain
     LOG_TRACE(simState) << "Generating domain";
     domain_ = new Domain( gridInputs, resHandler, matHandler, shared_from_this(),
                           rootNode, infoNode, false );
-    LOG_DBG(simState) << "\t=> Generated new Domain (address: " << domain << ")";
+    LOG_DBG(simState) << "\t=> Generated new Domain (address: " << domain_ << ")";
     // Provide external grid map if non-empty
     if( map.size() > 0 ) {
       domain_->SetGridMap(map);
@@ -178,7 +190,7 @@ class MaterialHandler;
   }
   
   void SimState::UpdateToStep( UInt sequenceStep, UInt stepNum ) {
-    LOG_TRACE(simState) << "Updating input to sequence step "
+    LOG_TRACE(simState) << " Updating input to sequence step "
         << sequenceStep << " with step number " << stepNum;
     
     std::set<shared_ptr<BaseFeFunction> >::iterator it = feFcts_.begin();
@@ -262,7 +274,7 @@ class MaterialHandler;
   }
   
   void SimState::SetOutputHdf5Writer( shared_ptr<SimOutputHDF5> writer ) {
-    LOG_TRACE(simState) << "Setting HDF5 writer";
+    LOG_TRACE(simState) << " Setting HDF5 writer";
     
     if( writer ) {
     
@@ -405,6 +417,7 @@ class MaterialHandler;
 
   void SimState::Finalize() {
       feFcts_.clear();
+      inFile_.reset();
     }
   
   void SimState::Init() {
@@ -425,8 +438,8 @@ class MaterialHandler;
   void SimState::UpdateTimeFreqStep() {
     Double actStepVal = parentParser_->Eval( parentHandle_ ); 
 
-    LOG_TRACE(simState) << "Updating Time / Freq value to" << actStepVal 
-        << " s / Hz.";
+    LOG_TRACE(simState)  << "Updating Time / Freq value to " 
+        << actStepVal << " s / Hz.";
 
     // get current time / freq step
     SingleDriver * ptDriver = domain_->GetSingleDriver();
@@ -511,7 +524,7 @@ class MaterialHandler;
       }
     }
 
-    LOG_DBG(simState) << "\trequested stepNum is (interpolated)" << yValue;
+    LOG_DBG(simState) << "\trequested stepNum is " << yValue << " (interpolated)";
     LOG_DBG(simState) << "\tindex1: " << index1+1 << " (weight: " << w1 << ")";
     LOG_DBG(simState) << "\tindex2: " << index2+1 << " (weight: " << w2 << ")";
 
@@ -573,7 +586,6 @@ class MaterialHandler;
     ptDriver->SetToStepValue(index1+1, actStepVal);
 
   }
-  
 
   // ************************************************************************
   // ENUM INITIALIZATION

@@ -109,7 +109,10 @@ BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom
     std::string one = "1";
 
     PtrParamNode seqNode = paramNode->Get("sequenceStep")->Get("analysis");
+    
     PtrParamNode info = infoNode->Get("sequenceStep",ParamNode::APPEND);
+    info->SetComment("=== SEQUENCE STEP ===");
+    
     infoNode->Get("index")->SetValue(1);
     analysisString =
         myDom->GetParamRoot()->GetByVal(name, idx, one)->Get("analysis")->GetChild()->GetName();

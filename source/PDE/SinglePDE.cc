@@ -120,6 +120,13 @@ namespace CoupledField {
       if (it->second != NULL) delete it->second;
     }
     materials_.clear();
+    
+    // delete simstates and externally loaded domains
+    std::map<shared_ptr<SimState>, Domain* >::iterator inputIt = inputs_.begin();
+    for( ; inputIt != inputs_.end(); ++inputIt) {
+      inputIt->first->Finalize();
+      delete inputIt->second;
+    }
 
   }
 
@@ -1405,7 +1412,7 @@ namespace CoupledField {
         
         Domain * inDomain = NULL;
         // create SimState (for input)
-        boost::shared_ptr<SimState> inState(new SimState(true));
+        boost::shared_ptr<SimState> inState(new SimState(true, domain_));
         
         try {
           LOG_DBG(singlepde) << pdename_ 
@@ -1950,7 +1957,7 @@ namespace CoupledField {
         Domain * inDomain = NULL;
 
         // create SimState (for input)
-        boost::shared_ptr<SimState> inState(new SimState(true));
+        boost::shared_ptr<SimState> inState(new SimState(true, domain_));
         shared_ptr<SimInput> reader = domain_->GetResultHandler()->GetInputReader(fileId);
         shared_ptr<SimInputHDF5> in;
         try {
@@ -2010,15 +2017,22 @@ namespace CoupledField {
           EXCEPTION( "Quantity '" << quantityName << "' is not computable by physic '"
                      << pdeName << "'.")
         }
+        
+        // remeber input simState and domain
+        inputs_[inState] = inDomain;
+        
         // Check dimensionality of coefficient function
-//        if( coef->GetDimType() != type ) {
-//          EXCEPTION( "Quantity '" << quantityName << "' is of type '" 
-//                     << CoefFunction::CoefDimType_.ToString(coef->GetDimType())
-//                     << "' but type '" 
-//                     << CoefFunction::CoefDimType_.ToString(type) 
-//                     << "' is needed'" );
-//                     
-//        }
+        CoefFunction::CoefDimType dimType = coef->GetDimType();
+        if( !( 
+            (dimType == CoefFunction::SCALAR && type == ResultInfo::SCALAR ) ||
+            (dimType == CoefFunction::VECTOR && type == ResultInfo::VECTOR ) ||
+            (dimType == CoefFunction::TENSOR && type == ResultInfo::TENSOR ) ) ) {
+          EXCEPTION( "Quantity '" << quantityName << "' is of type '" 
+                     << CoefFunction::CoefDimType_.ToString(coef->GetDimType())
+                     << "' but type '" 
+                     << ResultInfo::EntryTypeEnum_.ToString(type) 
+                     << "' is required." );
+        }
       } catch (Exception& e) {
         RETHROW_EXCEPTION(
             e, "Could not obtain quantity '" << quantityName << "' from physic '"
@@ -2026,6 +2040,8 @@ namespace CoupledField {
             << "Please check, if desired quantity and physic are defined for the "
             << "requested sequence step " << sequenceStep << ".");
       }
+      
+      
       
     } else if( valueNode->Has("coupling") ) {
       // ====================

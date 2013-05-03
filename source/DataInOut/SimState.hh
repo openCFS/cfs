@@ -57,7 +57,7 @@ namespace CoupledField {
     //@}
 
     //! Constructor
-    SimState(bool useAsInput );
+    SimState(bool useAsInput, Domain * parentDomain = NULL );
 
     //! Destructor
     virtual ~SimState();
@@ -156,7 +156,7 @@ namespace CoupledField {
     //! Pointer to HDF5 input class
     shared_ptr<SimInputHDF5> inFile_;
     
-    //! Pointer to domain
+    //! Pointer to own domain
     Domain* domain_;
     
     //! Flag, if own writer is created
@@ -179,7 +179,9 @@ namespace CoupledField {
     
     //! Set of registered FeFunctions
     std::set<shared_ptr<BaseFeFunction> >feFcts_;
-    
+
+    //! Pointer to parent domain
+    Domain * parentDomain_;
     // ===========================================
     //  Interpolation Related Data
     // ===========================================

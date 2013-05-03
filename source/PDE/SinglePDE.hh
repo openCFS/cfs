@@ -437,6 +437,9 @@ namespace CoupledField
     //! This is performed in the method  SinglePde::FinalizePostProcResults().
     std::map<shared_ptr<CoefFunctionSurf>, PtrCoefFct > surfCoefFcts_;
 
+    
+    //! Map containing the input states and the related domains
+    std::map<shared_ptr<SimState>, Domain* > inputs_;
     //@}
     
   private:

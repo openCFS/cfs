@@ -249,13 +249,13 @@ void Domain::CreateGrid()
   if (!progOpts->GetPrintGrid() == true)
   {
     // Initialize resultHandler
-    if( resultHandler_ ) {
+    if( resultHandler_ && isParentDomain_) {
       resultHandler_->Init( gridMap_, false);
     }
 
     // print grid information to result file if requested
     if(param_->Get("domain")->Get("printGridInfo")->As<bool>() ) {
-      if( resultHandler_ ) {
+      if( resultHandler_ && isParentDomain_) {
         gridMap_["default"]->CreateGridInformation(resultHandler_, coordSys_);
       }
     }
@@ -291,7 +291,6 @@ void Domain::PostInit(UInt sequenceStep)
 // **************
 Domain::~Domain()
 {
-
   // delete all grids only, if no external grid were used
   if( !useExternalGridMap_) {
     std::map<std::string, Grid*>::iterator gridIt;
