@@ -49,6 +49,7 @@ namespace CoupledField {
 
     Double freqInterval = Fs/(numTsteps);
     UInt numFreqs = std::ceil((fmax +1)/freqInterval);
+    UInt numAllFreqs = std::ceil(numTsteps);
     UInt cutMinNumFreqs = std::ceil(fmin/freqInterval);
     Double fmin_first = cutMinNumFreqs * freqInterval;
     numFreqs -= cutMinNumFreqs;
@@ -90,7 +91,7 @@ namespace CoupledField {
       for(UInt j=0; j<numFreqs; j++){
       if(fSteps[j]>=fmin && fSteps[j]<=fmax){
 
-         freqValues[i][j]= Complex(fft_result[j][0]*2/numFreqs,fft_result[j][1]*2/numFreqs);
+         freqValues[i][j]= Complex(fft_result[j][0]*2/numAllFreqs,fft_result[j][1]*2/numAllFreqs);
          //std::cout<< freqValues[i][j]<<std::endl;
         }
       }
