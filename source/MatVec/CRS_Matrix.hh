@@ -8,6 +8,7 @@
 #include "SparseOLASMatrix.hh"
 #include "Vector.hh"
 #include "CoordFormat.hh"
+#include "PatternPool.hh"
 
 namespace CoupledField {
 
@@ -130,6 +131,10 @@ namespace CoupledField {
       this->nnz_        = 0;
       this->ncols_      = 0;
       this->nrows_      = 0;
+      
+      // We do not know a pool or pattern id yet
+      patternPool_ = NULL;
+      patternID_ = NO_PATTERN_ID;
     }
 
     //! Copy Constructor
@@ -174,26 +179,29 @@ namespace CoupledField {
       : diagPtr_( NULL ) {
 
 
+
       // assign basic properties
       this->nnz_   = nnz;
       this->nrows_ = nrows;
       this->ncols_ = ncols;
 
-      // Allocate memory for row and diagonal pointers
-      NEWARRAY( rowPtr_ , UInt, this->nrows_ + 1 );
-      NEWARRAY( diagPtr_, UInt, this->nrows_     );
-      rowPtr_[0]  = 0;
-      diagPtr_[0] = 0;
-
-      // Allocate memory for column indices
-      NEWARRAY( colInd_, UInt, this->nnz_ );
-
       // Allocate memory for matrix entries and initialise to zero
       NEWARRAY( data_, T, this->nnz_ );
       Init();
+      
+      // No memory allocation for the pattern at this point
+      // We either do this in SetSparsityPattern() or use
+      // a pattern from the pool
+      colInd_           = NULL;
+      rowPtr_           = NULL;
+      diagPtr_          = NULL;
 
       // No data provided, thus we assume unsortedness
       currentLayout_ = UNSORTED;
+      
+      // We do not know a pool or pattern id yet
+      patternPool_ = NULL;
+      patternID_ = NO_PATTERN_ID;
     }
 
     //! Constructor employing a CoordFormat matrix
@@ -211,10 +219,26 @@ namespace CoupledField {
     //! The default destructor is deep. It frees all memory dynamically
     //! allocated for attributes of this class.
     virtual ~CRS_Matrix() {
+
+      // Delete data vector
       delete []( data_ );
-      delete []( rowPtr_ );
-      delete []( colInd_ );
-      delete []( diagPtr_ );
+
+      // Check if we own the pattern or whether it belongs to a pool.
+      // In the former case we must free the memory. In the latter we
+      // must deregister
+      if ( patternPool_ == NULL ) {
+        delete []( rowPtr_ );
+        delete []( colInd_ );
+        delete []( diagPtr_ );
+      } else {
+        patternPool_->DeRegisterUser( patternID_ );
+        patternPool_ = NULL;
+        patternID_ = NO_PATTERN_ID;
+
+      }
+      
+      // It is not our task to destroy the pattern pool object!
+      patternPool_ = NULL;
     }
 
     //! Setup the sparsity pattern of the matrix
@@ -230,6 +254,35 @@ namespace CoupledField {
     //! resulting %CRS_Matrix is in LEX sub-format.
     void SetSparsityPattern( BaseGraph &graph );
 
+    //! Setup the sparsity pattern of the matrix
+  
+    //! This method provides an alternative form to set the sparsity pattern
+    //! of the matrix. If this method is used a fitting sparsity pattern must
+    //! already have been generated, e.g. by another instance of this class
+    //! that has the same pattern, and been added to the specified pool. In
+    //! this case we can simply obtain copy the address information from the
+    //! pool object.
+    //! \param patternPool  pointer to a PatternPool object that stores the
+    //!                     desired sparsity pattern
+    //! \param patternID    identifier required to obtain the sparsity
+    //!                     pattern from the pool of patterns
+    void SetSparsityPattern( PatternPool *patternPool,
+                             PatternIdType patternID );
+
+    //! Transfer ownership of sparsity pattern from matrix to pool
+
+    //! This method can be used to instruct the matrix to transfer the
+    //! ownership of its sparsity pattern to a PatternPool object such
+    //! that the sparsity pattern can be re-used by other instances of
+    //! the class. After a call to the method the matrix object will no
+    //! longer attempt to de-allocate memory for the pattern in its
+    //! destructor, but instead only de-register itself from the pool.
+    //! \param patternPool pointer to the PatternPool object to which the
+    //!        ownership of the sparsity pattern is to be transfered.
+    //! \return An identifier that can be used to identify the matrix
+    //!         pattern when communicating with the PatternPool object.
+    PatternIdType TransferPatternToPool( PatternPool *patternPool );
+    
     //! Copy the sparsity pattern of another matrix to this matrix 
     
     //! This method copies the sparsity pattern of the source matrix to the
@@ -656,6 +709,25 @@ namespace CoupledField {
 
     //! Attribute storing the current sub-format of the matrix layout
     subFormat currentLayout_;
+    
+    //! Flag indicating whether the sparsity pattern belongs to a pattern pool
+
+    //! This is a pointer to a PatternPool object. If the pointer is NULL
+    //! in an instance of this matrix class it indicates that the sparsity
+    //! pattern belongs to that instance, i.e. the destructor must de-allocate
+    //! the associated memory. If the pointer is not NULL this signals that
+    //! the sparsity pattern is shared between different matrix instances and
+    //! memory is administrated by the respective PatternPool object. Thus,
+    //! the destructor must de-register itself with that object.
+    PatternPool *patternPool_;
+
+    //! Attribute storing identifier for sparsity pattern if shared
+
+    //! This attribute stores the pattern identifier for the sparsity pattern
+    //! of the matrix, if the latter belongs to the PatternPool object to
+    //! which patternPool_ points to. If the matrix owns the pattern then the
+    //! value is NO_PATTERN_ID.
+    PatternIdType patternID_;
 
   };
 

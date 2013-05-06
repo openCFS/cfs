@@ -1342,21 +1342,10 @@ hsize_t H5IO::maxChunkSize_= 100;
 
     // obtain information about dimension of dataset
     UInt numEntries = GetNumEntries( loc, name );
-
-    // create temporary buffer
-    TYPE * buffer = new TYPE[numEntries];
-
-    // read data into buffer
-    ReadArray( loc, name, buffer );
-
-    // copy buffer data to vector
     data.Resize( numEntries );
-    for( UInt i = 0; i < numEntries; i++ ) {
-      data[i] = buffer[i];
-    }
-
-    // delete buffer
-    delete[] buffer;
+  
+    // read data into array
+    ReadArray( loc, name, data.GetPointer() );
   }
 
   template<typename TYPE>
@@ -1369,21 +1358,9 @@ hsize_t H5IO::maxChunkSize_= 100;
 
     // obtain information about dimension of dataset
     UInt numEntries = GetNumEntries( loc, name );
-
-    // create temporary buffer
-    TYPE * buffer = new TYPE[numEntries];
-
-    // read data into buffer
-    ReadArray( loc, name, buffer );
-
-    // copy buffer data to vector
     data.resize( numEntries );
-    for( UInt i = 0; i < numEntries; i++ ) {
-      data[i] = buffer[i];
-    }
 
-    // delete buffer
-    delete[] buffer;
+    ReadArray( loc, name, &data[0] );
   }
   
   

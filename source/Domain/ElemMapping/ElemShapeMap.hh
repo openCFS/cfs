@@ -597,7 +597,7 @@ namespace CoupledField {
     Matrix<Double> coords_;
     
     //! Shape of reference element
-    ElemShape shape_;
+    const ElemShape* shape_;
     
     //! Pointer to integration scheme
     shared_ptr<IntScheme> intScheme_;
