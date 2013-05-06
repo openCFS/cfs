@@ -89,10 +89,12 @@ namespace CoupledField {
       // fftw_execute(plan_backward);
 
       for(UInt j=0; j<numFreqs; j++){
-      if(fSteps[j]>=fmin && fSteps[j]<=fmax){
+        if(fSteps[j]==0 && fSteps[j]<=fmax){
+          freqValues[i][j]= Complex(fft_result[j][0]*1.0/numAllFreqs,fft_result[j][1]*1.0/numAllFreqs);
+        } else if(fSteps[j]>=fmin && fSteps[j]<=fmax){
 
-         freqValues[i][j]= Complex(fft_result[j][0]*2/numAllFreqs,fft_result[j][1]*2/numAllFreqs);
-         //std::cout<< freqValues[i][j]<<std::endl;
+          freqValues[i][j]= Complex(fft_result[j][0]*2.0/numAllFreqs,fft_result[j][1]*2.0/numAllFreqs);
+          //std::cout<< freqValues[i][j]<<std::endl;
         }
       }
     }
