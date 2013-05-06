@@ -79,8 +79,8 @@ calcAverage | convert | scalardiff |meshdiff | meshdiffnormed | fft")
             po::value<std::string>(&param_maxMemory)->default_value("0"),
             "maximal memory in MB allowed to use for calculation.\n\
 Beware: During writing this may trippel.\n\
-Default (0) results in a 10\% of main memory, \
-more than 20\% should not be used.")
+Default (0) results in a 0.1 of main memory, \
+more than 0.2 should not be used.")
         ;
       po::options_description cmdInvisible("Files needed");
 
