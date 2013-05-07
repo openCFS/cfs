@@ -954,7 +954,12 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       }
     } else {
       // 3) 1D element in 3D simulation
-      assert(ptElem->edges.GetSize() == 1);
+      
+      // In case the (only) edge is not numbered yet, wer perform a 
+      // mapping of edges now
+      if(ptElem->edges.GetSize() != 1) {
+        ptGrid_->MapEdges();
+      }
       UInt edgeNr = std::abs(ptElem->edges[0]);
       const StdVector<Elem*> & neighbors = ptGrid_->GetEdge(edgeNr).neighbors; 
      

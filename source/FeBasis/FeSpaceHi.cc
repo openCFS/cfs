@@ -416,16 +416,20 @@ void FeSpaceHi::FixHigherOrderAnisoDofs() {
     EntityIterator entIt = actElemList->GetIterator();
 
     // check if region is anisotropic and get order array
-    std::map<RegionIdType,ApproxOrder>::iterator approxIt =  
-        regionOrder_.find( entIt.GetElem()->regionId );
-    ApproxOrder & ord = approxIt->second;
+
 
     // loop over all elements
     for(entIt.Begin(); !entIt.IsEnd(); entIt++ ){
       const Elem * ptElem = entIt.GetElem();
 
       // Fetch reference element and set correct order
-      FeHi * ptFe = GetFeHi( ptElem->regionId, ptElem->type);
+      RegionIdType eRegion = GetVolElem(ptElem)->regionId;
+      FeHi * ptFe = GetFeHi( eRegion, ptElem->type);
+
+      // Get order approximation
+      std::map<RegionIdType,ApproxOrder>::iterator approxIt =  
+          regionOrder_.find( eRegion );
+      ApproxOrder & ord = approxIt->second;
       SetElemOrder( ptElem, ptFe, ord, true );
 
       // get vector of virtual nodes for current element
