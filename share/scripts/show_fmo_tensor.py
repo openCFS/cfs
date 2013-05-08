@@ -176,11 +176,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D")
 parser.add_argument("--h5_step", help="step number, too high is last (default '9999')", default=9999)
 parser.add_argument("--h5_region", help="region name (default 'mech')", default="mech")
-parser.add_argument("--tensor", help="tensor name (default 'mechTensor')", default="mechTensor")
+parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, 'elecTensor'", default="mechTensor")
 parser.add_argument("--scale", help="manual scaling factor", default=-1)
-parser.add_argument("--res", help="x-resolution (default 1500)", default=1500)
+parser.add_argument("--res", help="x-resolution (default 1200)", default=1200)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180)
-parser.add_argument("--show", help="default | ortho_norm | mono_norm (3D) | ortho_err | e21_normed (2D) | hom_rect", default="default")
+parser.add_argument("--show", help="default | ortho_norm | mono_norm (3D) | ortho_err | e21_normed (2D) | hom_rect | shear", default="default")
 parser.add_argument("--notation", help="mandel | voigt (default 'mandel')", default="mandel")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
@@ -190,6 +190,7 @@ parser.add_argument("--symmetries_planes", help="'true' or 'false' for 3D also s
 parser.add_argument("--hom_access", help="the 'plain ' or 'smart' hom values (default 'smart')", default = "smart")
 parser.add_argument("--hom_show", help="'thickness' or 'color' (default 'thickness')", default="thickness")
 parser.add_argument("--save", help="save 'image.png' or VTK Poly Data file 'file.vtp'")
+parser.add_argument("--plot", help="for single tensors: creates gnuplot file instead of image")
 args = parser.parse_args()
 
 # check ans postproc arguments
@@ -210,16 +211,25 @@ if args.input.startswith('['):
     sys.exit()
   if len(input) == 21:
     dim_2D = False  
-  tensor = to_mech_tensor(input)
   
-  tensor = HillMandel2Voigt(tensor) if args.notation == "mandel" else tensor
+  if args.tensor == 'mechTensor':  
+    tensor = to_mech_tensor(input)
+    tensor = HillMandel2Voigt(tensor) if args.notation == "mandel" else tensor
+    print "Voigt notation of input tensor:"
+  if args.tensor == 'piezoTensor':
+    tensor = to_piezo_tensor(input)
   
-  print "Voigt notation of input tensor:"
   dump_tensor(tensor)
-  
-  if len(tensor) == 3:
-    # convert back to hill mandel as we simulate a h5 file
-    vec = to_mech_vector(Voigt2HillMandel(tensor), as_array=True)
+
+  if len(tensor) == 3 or len(tensor) == 2:
+    assert((len(tensor) == 3 and args.tensor == 'mechTensor') or (len(tensor) <> 3 and args.tensor <> 'mechTensor'))
+    vec = None
+    
+    if len(tensor) == 3:
+      # convert back to hill mandel as we simulate a h5 file
+      vec = to_mech_vector(Voigt2HillMandel(tensor), as_array=True)
+    else:
+      vec = to_piezo_vector(tensor, as_array=True)
     tensor = []
     tensor.append(vec)
     centers.append([0.5,0.5,0.0])
@@ -230,21 +240,31 @@ else:
   centers  = centered_elements(f)
   tensor = get_element(f, args.tensor, args.h5_region, int(args.h5_step))
   
+  
 #perform 2D and 3D
 if dim_2D:  
-  im = 0
+  im = None
   if args.show == "hom_rect":
     s1    = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region)
     s2    = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region)
     angle = get_element(f, "design_rotAngle_plain", args.h5_region)
     im = show_rot_rect(centers, s1, s2, angle, args.hom_show, int(args.res), float(args.scale))
   else:
-    angle, data = perform_rotations(tensor, int(args.sampling), args.tensor, args.show)
-    im = orientational_stiffness(centers, angle, data, int(args.res), float(args.scale))
-  if args.save:
-    im.save(args.save)
-  else:
-    im.show()
+    angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.tensor, args.show)
+    
+    if args.plot <> None:
+      plot = open(args.plot, "w")
+      plot.write('#angle\tdata\n')
+      for i in range(len(angle[0])): # assume a single tensor, take the first element
+        plot.write(str(angle[0][i]) + '\t' + str(data[0][i]) + '\n')
+      plot.close()  
+    else:
+      im = orientational_stiffness(centers, angle, data, int(args.res), float(args.scale))
+  if im <> None:      
+    if args.save:
+      im.save(args.save)
+    else:
+      im.show()
 else:
   angle, data, aux = perform_cfs_rotation(tensor, int(args.sampling), aux_code)
 

@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
 
+
+
 from paraview_fmo import *
 
 # open a hdf5 file as
@@ -68,7 +70,6 @@ def find_corners(centers):
 def get_element(hdf5_file, name, region, step=99999):
   ms = hdf5_file['/Results/Mesh/MultiStep_1']
   # for optimization we assume steps to be numbered from 0, in simulation they start from 1
-  print "ms=" + str(len(ms))
   if step >= len(ms):
     step = max((len(ms) - 2,0)) # reset to last, first element is ResultDescription
   key = "/Results/Mesh/MultiStep_1/Step_" + str(step) + "/" + name + "/" + region + "/Elements/Real"
@@ -98,10 +99,10 @@ def to_cart(phi, r):
 # t = to_polygons(data, 100, 100, 2)
 # draw.polygon(t, fill="green", outline="black")
 # im.show()
-def to_polygons(angle, data, x_offset, y_offset, scale):
+def to_polygons(angle, data, x_offset, y_offset, scale, data_offset = 0):
   tupl = []
   for i in range(len(data)):
-    r = numpy.abs(data[i])
+    r = data_offset + data[i]
     x = r * numpy.cos(angle[i])
     y = r * numpy.sin(-angle[i])
     tupl.append((x_offset + scale * x,y_offset + scale * y))
@@ -183,20 +184,36 @@ def show_rot_rect(centers, s1, s2, angle, show, nx, scale=-1):
 def color_code(color_map, value):
   c = color_map.to_rgba(value)
   return "rgb(" + str(int(255 * c[0])) + ", " + str(int(255*c[1])) + "," + str(int(255*c[2])) + ")"
+
+
+# draws a thick circle, where the thickness is determined automatically by the radius 
+def draw_thick_circle(draw, center, radius):
+  
+  for o in numpy.arange(0.0, 0.01 * radius, 0.05):
+    draw.ellipse((center[0] - radius + o, center[1] - radius + o, center[0] + radius - o, center[1] + radius - o), fill=None, outline="black")
+
   
 ## visualize the orientational stiffness
 # @return the image
 def orientational_stiffness(centers, angle, data, nx, scale=-1):
 
-  im, draw, dim, dx, dy, min, max = create_image(centers, nx)
-
   max_val = numpy.max(data[:])
   min_val = numpy.min(data[:])
+  data_offset = -2 * min_val if min_val < 0 else 0
+
+  im, draw, dim, dx, dy, min, max = create_image(centers, nx)
+   
+  print "max=" + str(max_val) + " min=" + str(min_val)
    
   if scale == -1:
-    dist = 1.0 if len(centers) == 1 else centers[1][0] - centers[0][0] 
-    scale = 0.35 * dx * dist / max_val
-   
+    dist = 1.0 if len(centers) == 1 else centers[1][0] - centers[0][0]
+    if min_val >= 0: 
+      scale = 0.35 * dx * dist / max_val
+    else:
+      # in the case of negative values (e12 or stiffness for piezo) 
+      # min is not origin but origin is 2 * min, which means the 0-circle has radius -2 * min
+      scale = 0.3 * dx * dist / (max_val - min_val)
+     
   sm = cmx.ScalarMappable(colors.Normalize(vmin=min_val, vmax=max_val), cmap=plt.get_cmap('jet'))
     
   for i in range(len(data)):
@@ -204,9 +221,18 @@ def orientational_stiffness(centers, angle, data, nx, scale=-1):
     x_off = (coord[0] + min[0]) * dx
     y_off = (coord[1] + min[1]) * dy
 
-    pol = to_polygons(angle[i], data[i], x_off, dim[1] - y_off, scale)
+    pol = to_polygons(angle[i], data[i], x_off, dim[1] - y_off, scale, data_offset)
     m = numpy.max(data[i])
-    draw.polygon(pol, fill=color_code(sm, m), outline="black")
+    if min_val >= 0:
+      draw.polygon(pol, fill=color_code(sm, m), outline="black")
+    else:
+      r = 2 * min_val * scale
+      print "r=" + str(r)
+      
+      draw.ellipse((x_off+r, y_off+r, x_off-r, y_off-r), fill="grey", outline=None)      
+      draw.polygon(pol, fill=color_code(sm, m), outline="black")
+      draw_thick_circle(draw, (x_off, y_off), numpy.abs(r))
+    
 
   return im  
 
@@ -215,22 +241,26 @@ def orientational_stiffness(centers, angle, data, nx, scale=-1):
   
 # @param aux see  perform_cfs_rotation()
 # @return list of angles and list of data which might be aux   
-def perform_rotations(tensors, samples, name = "mechTensor", aux_code = "default"):
+def perform_rotations(tensors, notation, samples, name = "mechTensor", aux_code = "default"):
 
   res_angle = []
   res_data  = []
   for i in range(len(tensors)):
     t = tensors[i]
+    #print "pr: t=" + str(t)
     tensor = 0
     if name == "mechTensor":
-      tensor = HillMandel2Voigt(to_mech_tensor(t.transpose()))
+      if notation == "voigt":
+        tensor = to_mech_tensor(t.transpose())
+      else: 
+        tensor = HillMandel2Voigt(to_mech_tensor(t.transpose()))
     if name == "elecTensor":
       tensor = to_elec_tensor(t.transpose())
     if name == "piezoTensor":
       tensor = to_piezo_tensor(t.transpose())
 
     angle, data, aux = perform_cfs_rotation(tensor, samples, aux_code)
-
+    
     res_angle.append(angle)
     res_data.append(data if aux_code == "default" else aux)
 
