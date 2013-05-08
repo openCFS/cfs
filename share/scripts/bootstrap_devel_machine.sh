@@ -191,6 +191,11 @@ SetupRHEL() {
     rpm -Uhv --force $RPM || ExitFail
 
     # http://public-yum.oracle.com/
+    # http://linux.oracle.com/switch/
+    #
+    # https://linux.oracle.com/switch/centos/
+    # curl -O https://linux.oracle.com/switch/centos2ol.sh
+    # sh centos2ol.sh
     if [ "$DIST" = "ORACLE" ]; then
       case "${RHEL_REL}" in
 	5) wget http://public-yum.oracle.com/public-yum-el${RHEL_REL}.repo
