@@ -530,7 +530,6 @@ namespace CFSTool {
       try 
       {
         sstr << inputStr;
-        std::cout << sstr.str() << std::endl;
         read_xml(sstr, pt);
       } catch (boost::property_tree::xml_parser_error& xmlParseEx)
       {
@@ -554,10 +553,9 @@ namespace CFSTool {
       
     // Write the property tree to a stream as XML.
     write_xml(sstr, pt);
-
-    std::cout << sstr.str() << std::endl;
     std::string str = sstr.str();
 
+    // Create ParamNode tree from XML.
     CoupledField::Xerces xerces;
     xerces.SetString(str);
     pNode = xerces.CreateParamNodeInstance();
