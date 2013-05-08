@@ -47,3 +47,13 @@ ADD_CUSTOM_TARGET(share_xml_cfsmat ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Misc.xsd ${DST_DIR}/Schemas/CFS_Misc.xsd
   COMMENT "Updating XML schemata for CFS++ materials..."
 )
+
+SET(SRC_DIR ${CFS_SOURCE_DIR}/share/xml/config)
+SET(DST_DIR ${CFS_BINARY_DIR}/share/xml/config)
+ADD_CUSTOM_TARGET(share_xml_config ALL
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/cfstool.xml ${DST_DIR}/cfstool.xml
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/cfstool.json ${DST_DIR}/cfstool.json
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/log.xml ${DST_DIR}/log.xml
+  COMMENT "Updating XML & JSON config files for cfstool and logging..."
+)
+

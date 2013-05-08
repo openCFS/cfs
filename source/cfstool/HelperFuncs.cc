@@ -14,8 +14,14 @@
 #include <def_use_comsol.hh>
 
 #include <boost/tokenizer.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/fstream.hpp>
 namespace fs = boost::filesystem;
+
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include "General/Environment.hh"
 #include "DataInOut/SimInput.hh"
@@ -112,6 +118,8 @@ namespace CFSTool {
   {
     // determine suffix of fileName
     shared_ptr<SimInput> reader;
+    PtrParamNode inputNode = param->Get("fileFormats")->Get("input");
+    PtrParamNode readerNode;
 
     if (fileName.find( ".refelem") == std::string::npos &&
         !fs::exists( fileName ))
@@ -119,35 +127,70 @@ namespace CFSTool {
 
     if( fileName.find( ".mesh") != std::string::npos ) {
 #ifdef USE_MESH
-      reader = shared_ptr<SimInput>(new SimInputMESH( fileName, PtrParamNode(), info ) );
+      if(inputNode->Has("mesh")) {
+        readerNode = inputNode->Get("mesh");
+      } else {
+        readerNode = PtrParamNode(new ParamNode());
+        readerNode->SetName("mesh");
+      }
+        
+      reader = shared_ptr<SimInput>(new SimInputMESH( fileName, readerNode, info ) );
 #else
       EXCEPTION( "No support for MESH input file format." );
 #endif
     } else if( fileName.find( ".h5") != std::string::npos ) {
 #ifdef USE_HDF5
-      reader = shared_ptr<SimInput>(new SimInputHDF5(fileName, param, info));
+      if(inputNode->Has("hdf5")) {
+        readerNode = inputNode->Get("hdf5");
+      } else {
+        readerNode = PtrParamNode(new ParamNode());
+        readerNode->SetName("hdf5");
+      }
+
+      reader = shared_ptr<SimInput>(new SimInputHDF5(fileName, readerNode, info));
 #else
       EXCEPTION( "No support for HDF5 input file format." );
 #endif
     } else if( fileName.find( ".refelem") != std::string::npos ) {
+      readerNode = PtrParamNode(new ParamNode());
+      readerNode->SetName("refelem");
       reader = shared_ptr<SimInput>(new SimInputRefElems(fileName, param, info));
     } else if( fileName.find( ".msh") != std::string::npos ) {
 #ifdef USE_GMSH
-      PtrParamNode gmshNode(new ParamNode (ParamNode::EX, ParamNode::ELEMENT));
-      reader = shared_ptr<SimInput>(new SimInputGmsh(fileName, gmshNode, info) );
+      if(inputNode->Has("gmsh")) {
+        readerNode = inputNode->Get("gmsh");
+      } else {
+        readerNode = PtrParamNode(new ParamNode());
+        readerNode->SetName("gmsh");
+      }
+
+      reader = shared_ptr<SimInput>(new SimInputGmsh(fileName, readerNode, info) );
 #else  
       EXCEPTION( "No support for Gmsh input file format." );
 #endif
     } else if( fileName.find( ".mphtxt") != std::string::npos ) {
 #ifdef USE_COMSOL
-      PtrParamNode comsolNode(new ParamNode (ParamNode::EX, ParamNode::ELEMENT));
-      reader = shared_ptr<SimInput>(new SimInputMPHTXT(fileName, comsolNode, info) );
+      if(inputNode->Has("mphtxt")) {
+        readerNode = inputNode->Get("mphtxt");
+      } else {
+        readerNode = PtrParamNode(new ParamNode());
+        readerNode->SetName("mphtxt");
+      }
+
+      reader = shared_ptr<SimInput>(new SimInputMPHTXT(fileName, readerNode, info) );
 #else  
       EXCEPTION( "No support for Comsol .mphtxt input file format." );
 #endif
     } else if( fileName.find( ".gmv") != std::string::npos ) {
 #ifdef USE_GMV
-      reader = shared_ptr<SimInput>(new SimInputGMV(fileName, param, info));
+      if(inputNode->Has("gmv")) {
+        readerNode = inputNode->Get("gmv");
+      } else {
+        readerNode = PtrParamNode(new ParamNode());
+        readerNode->SetName("gmv");
+      }
+
+      reader = shared_ptr<SimInput>(new SimInputGMV(fileName, readerNode, info));
 #else
       EXCEPTION( "No support for GMV input file format." );
 #endif
@@ -155,7 +198,24 @@ namespace CFSTool {
         fileName.find( ".unverg") != std::string::npos ||
         fileName.find( ".unvref") != std::string::npos ) {
 #ifdef USE_UNV
-      reader = shared_ptr<SimInput>(new SimInputUnv( fileName, param, info ));
+      if(inputNode->Has("unv")) {
+        readerNode = inputNode->Get("unv");
+      } else {
+        readerNode = PtrParamNode(new ParamNode());
+        readerNode->SetName("unv");
+
+        PtrParamNode flavorNode(new ParamNode());
+        readerNode->AddChildNode( flavorNode );
+        flavorNode->SetName("flavor");
+        flavorNode->SetValue( "ideas" );
+
+        if(fileName.find( ".unverg") != std::string::npos ||
+           fileName.find( ".unvref") != std::string::npos ) {
+          flavorNode->SetValue( "capa" );
+        }
+      }
+
+      reader = shared_ptr<SimInput>(new SimInputUnv( fileName, readerNode, info ));
 #else
       EXCEPTION( "No support for UNV input file format." );
 #endif
@@ -163,6 +223,15 @@ namespace CFSTool {
       EXCEPTION( "Found not suitable reader for file '" << fileName
           << "'" );
     }
+
+    if(!inputNode->Has(readerNode->GetName())) {
+      inputNode->AddChildNode( readerNode );
+    }
+
+    PtrParamNode fn (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+    fn->SetName("fileName");
+    fn->SetValue( fileName );
+    readerNode->AddChildNode(fn);
 
     return reader;
   }
@@ -173,6 +242,8 @@ namespace CFSTool {
     // determine suffix for fileName
     shared_ptr<SimOutput> writer;
     std::string baseName;
+    PtrParamNode outputNode = param->Get("fileFormats")->Get("output");
+    PtrParamNode writerNode;
     
     // we do not have restart functionality in the cfstool
     bool restart = false;
@@ -180,7 +251,7 @@ namespace CFSTool {
     if( fileName.find( ".post") != std::string::npos ) {
 #ifdef USE_GIDPOST
       baseName = std::string(fileName, 0, fileName.find(".post"));
-      PtrParamNode gidNode( new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+
       PtrParamNode binary (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       binary->SetName( "binaryFormat");
       if( fileName.find( ".bin") != std::string::npos ) {
@@ -188,8 +259,21 @@ namespace CFSTool {
       } else {
         binary->SetValue( "false");
       }
-      gidNode->AddChildNode( binary);
-      writer = shared_ptr<SimOutput>( new SimOutputGiD( baseName, gidNode, 
+
+      if(outputNode->Has("gid")) {
+        writerNode = outputNode->Get("gid");
+        if(writerNode->Has("binaryFormat")) {
+          MergeParamNodes(binary, writerNode->Get("binaryFormat"));
+        } else {
+          writerNode->AddChildNode( binary);
+        }        
+      } else {
+        writerNode = PtrParamNode(new ParamNode());
+        writerNode->SetName("gid");
+        writerNode->AddChildNode( binary);
+      }
+
+      writer = shared_ptr<SimOutput>( new SimOutputGiD( baseName, writerNode, 
                                                         info, restart ) );
 #else
       EXCEPTION( "No support for GiD output file format." );
@@ -197,17 +281,29 @@ namespace CFSTool {
     } else if( fileName.find( ".gmv") != std::string::npos ) {
 #ifdef USE_GMV
       baseName = std::string(fileName, 0, fileName.find(".gmv"));
-      PtrParamNode gmvNode(new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
       PtrParamNode binary (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
-
       binary->SetName("binaryFormat");
       binary->SetValue( "yes" );
       PtrParamNode fixedGrid (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       fixedGrid->SetName("fixedGrid");
       fixedGrid->SetValue( "yes" );
-      gmvNode->AddChildNode( binary);
-      gmvNode->AddChildNode( fixedGrid );
-      writer = shared_ptr<SimOutput>( new SimOutputGMV( baseName, gmvNode, 
+
+      if(outputNode->Has("gmv")) {
+        writerNode = outputNode->Get("gmv");
+        if(!writerNode->Has("binaryFormat")) {
+          writerNode->AddChildNode( binary );
+        } 
+        if(!writerNode->Has("fixedGrid")) {
+          writerNode->AddChildNode( fixedGrid );
+        } 
+      } else {
+        writerNode = PtrParamNode(new ParamNode());
+        writerNode->SetName("gmv");
+        writerNode->AddChildNode( binary );
+        writerNode->AddChildNode( fixedGrid );
+      }
+
+      writer = shared_ptr<SimOutput>( new SimOutputGMV( baseName, writerNode, 
                                                         info, restart ) );
 #else
       EXCEPTION( "No support for GMV output file format." );
@@ -215,16 +311,28 @@ namespace CFSTool {
     } else if( fileName.find( ".msh") != std::string::npos ) {
 #ifdef USE_GMSH
       baseName = std::string(fileName, 0, fileName.find(".msh"));
-      PtrParamNode gmshNode(new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
       PtrParamNode binary (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       binary->SetName("binaryFormat");
       binary->SetValue( "yes" );
       PtrParamNode bigEndian (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       bigEndian->SetName("endianness");
       bigEndian->SetValue( "big" );
-      gmshNode->AddChildNode(binary);
-      gmshNode->AddChildNode(bigEndian);
-      writer = shared_ptr<SimOutput>( new SimOutputGmsh( baseName, gmshNode, 
+
+      if(outputNode->Has("gmsh")) {
+        writerNode = outputNode->Get("gmsh");
+        if(!writerNode->Has("binaryFormat")) {
+          writerNode->AddChildNode( binary );
+        } 
+        if(!writerNode->Has("endianness")) {
+          writerNode->AddChildNode( bigEndian );
+        } 
+      } else {
+        writerNode = PtrParamNode(new ParamNode());
+        writerNode->SetName("gmsh");
+        writerNode->AddChildNode( binary );
+        writerNode->AddChildNode( bigEndian );
+      }
+      writer = shared_ptr<SimOutput>( new SimOutputGmsh( baseName, writerNode,
                                                          info, restart ) );
 #else 
       EXCEPTION( "No support for GMsh output file format." );
@@ -232,12 +340,21 @@ namespace CFSTool {
     } else if(fileName.find( ".h5") != std::string::npos) {
 #ifdef USE_HDF5
       baseName = std::string(fileName, 0, fileName.find(".h5"));
-      PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
       PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       eFiles->SetName("externalFiles");
       eFiles->SetValue( "false" );
-      h5Node->AddChildNode(eFiles);
-      writer =  shared_ptr<SimOutput>( new SimOutputHDF5( baseName, h5Node, 
+
+      if(outputNode->Has("hdf5")) {
+        writerNode = outputNode->Get("hdf5");
+        if(!writerNode->Has("externalFiles")) {
+          writerNode->AddChildNode( eFiles );
+        } 
+      } else {
+        writerNode = PtrParamNode(new ParamNode());
+        writerNode->SetName("hdf5");
+        writerNode->AddChildNode( eFiles );
+      }
+      writer =  shared_ptr<SimOutput>( new SimOutputHDF5( baseName, writerNode, 
                                                           info, restart ) );
 #else
       EXCEPTION( "No support for HDF5 output file format." );
@@ -245,12 +362,22 @@ namespace CFSTool {
     } else if(fileName.find( ".xmf") != std::string::npos) {
 #ifdef USE_HDF5
       baseName = std::string(fileName, 0, fileName.find(".xmf"));
-      PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
       PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       eFiles->SetName("externalFiles");
       eFiles->SetValue( "false" );
-      h5Node->AddChildNode(eFiles);
-      writer =  shared_ptr<SimOutput>( new SimOutputXDMF( baseName, h5Node, 
+
+      if(outputNode->Has("xdmf")) {
+        writerNode = outputNode->Get("xdmf");
+        if(!writerNode->Has("externalFiles")) {
+          writerNode->AddChildNode( eFiles );
+        } 
+      } else {
+        writerNode = PtrParamNode(new ParamNode());
+        writerNode->SetName("xdmf");
+        writerNode->AddChildNode( eFiles );
+      }
+
+      writer =  shared_ptr<SimOutput>( new SimOutputXDMF( baseName, writerNode, 
                                                           info, restart ) );
 #else
       EXCEPTION( "No support for HDF5 output file format. Cannot write XDMF files." );
@@ -258,23 +385,44 @@ namespace CFSTool {
     } else if(fileName.find( ".rst") != std::string::npos) {
 #ifdef USE_ANSYSRST
       baseName = std::string(fileName, 0, fileName.find(".rst"));
-      PtrParamNode rstNode (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
-      writer =  shared_ptr<SimOutput>( new SimOutputRST( baseName, rstNode, info, restart ) );
+
+      if(outputNode->Has("rst")) {
+        writerNode = outputNode->Get("rst");
+      } else {
+        writerNode = PtrParamNode(new ParamNode());
+        writerNode->SetName("rst");
+      }
+
+      writer =  shared_ptr<SimOutput>( new SimOutputRST( baseName, writerNode,
+                                                         info, restart ) );
 #else
       EXCEPTION( "No support for ANSYS .rst output file format." );
 #endif
     } else if(fileName.find( ".unv") != std::string::npos) {
 #ifdef USE_UNV
       baseName = std::string(fileName, 0, fileName.find(".unv"));
-      PtrParamNode unvNode (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+
+      if(outputNode->Has("unv")) {
+        writerNode = outputNode->Get("unv");
+      } else {
+        writerNode = PtrParamNode(new ParamNode());
+        writerNode->SetName("unv");
+      }
+
       if(fileName.find( ".unverg") != std::string::npos) 
       {
         PtrParamNode flavor (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
         flavor->SetName("flavor");
         flavor->SetValue( "CAPA" );
-        unvNode->AddChildNode(flavor);
+        
+        if(writerNode->Has("flavor")) {
+          MergeParamNodes(flavor, writerNode->Get("flavor"));
+        } else {
+          writerNode->AddChildNode( flavor );          
+        }
       }
-      writer =  shared_ptr<SimOutput>( new SimOutputUnv( baseName, unvNode, 
+
+      writer =  shared_ptr<SimOutput>( new SimOutputUnv( baseName, writerNode, 
                                                          info, restart ) );
 #else
       EXCEPTION( "No support for IDEAS universal output file format." );
@@ -282,6 +430,16 @@ namespace CFSTool {
     } else {
       EXCEPTION( "Output format not supported!" );
     }
+
+    if(!outputNode->Has(writerNode->GetName())) {
+      outputNode->AddChildNode( writerNode );
+    }
+
+    PtrParamNode fn (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+    fn->SetName("fileName");
+    fn->SetValue( fileName );
+    writerNode->AddChildNode(fn);
+    
     // create output writer
     return writer;
   }
@@ -325,6 +483,135 @@ namespace CFSTool {
     pNode = xerces.CreateParamNodeInstance();
 
     return pNode;
+  }
+
+  PtrParamNode ParamNodeFromPropertyTree( const std::string& propertyFile,
+                                          const std::string& context ) {
+    PtrParamNode pNode;
+    std::stringstream sstr;
+    // Create an empty property tree object
+    using boost::property_tree::ptree;
+    ptree pt;
+
+    if( fs::exists(propertyFile) ) 
+    {
+      if( propertyFile.find(".xml") != std::string::npos) {
+        try 
+        {
+          read_xml(propertyFile, pt);
+        }  catch (boost::property_tree::xml_parser_error& xmlParseEx)
+        {
+          EXCEPTION("Could not parse XML file '" << propertyFile << "' for "
+                    << context << "!" << std::endl
+                    << "XML problem: " << xmlParseEx.what() << std::endl);
+        }        
+      } else if(propertyFile.find(".json") != std::string::npos) {
+        try 
+        {
+          read_json(propertyFile, pt);
+        }  catch (boost::property_tree::json_parser_error& jsonParseEx)
+        {
+          EXCEPTION("Could not parse JSON file '" << propertyFile << "' for "
+                    << context << "!" << std::endl
+                    << "JSON problem: " << jsonParseEx.what() << std::endl);
+        }        
+      }
+    }
+    else
+    {
+      std::string inputStr = propertyFile;
+      boost::trim(inputStr);
+
+      if(inputStr == "") 
+      {
+        return pNode;
+      }
+      
+      try 
+      {
+        sstr << inputStr;
+        std::cout << sstr.str() << std::endl;
+        read_xml(sstr, pt);
+      } catch (boost::property_tree::xml_parser_error& xmlParseEx)
+      {
+        sstr.str(""); sstr.clear();
+        sstr << inputStr;
+
+        try 
+        {
+          read_json(sstr, pt);
+        } catch (boost::property_tree::json_parser_error& jsonParseEx)
+        {
+          EXCEPTION("Could not parse input string neither as XML nor as JSON for "
+                    << context << "!" << std::endl
+                    << "XML problem: " << xmlParseEx.what() << std::endl
+                    << "JSON problem: " << jsonParseEx.what() << std::endl);
+        }        
+      }
+
+      sstr.str(""); sstr.clear();
+    }
+      
+    // Write the property tree to a stream as XML.
+    write_xml(sstr, pt);
+
+    std::cout << sstr.str() << std::endl;
+    std::string str = sstr.str();
+
+    CoupledField::Xerces xerces;
+    xerces.SetString(str);
+    pNode = xerces.CreateParamNodeInstance();
+
+    return pNode;
+  }
+  
+  void MergeParamNodes(PtrParamNode src, PtrParamNode dest) 
+  {
+    if(src && dest && src->HasChildren()) 
+    {
+      ParamNodeList list = src->GetChildren();
+
+      for(UInt node=0, nnodes=list.GetSize(); node < nnodes; node++) 
+      {
+        PtrParamNode newFormatNode = list[node];    
+        PtrParamNode oldFormatNode;
+        std::string format = newFormatNode->GetName();
+        
+        if( dest->Has(format) )
+        {
+          oldFormatNode = dest->Get(format);
+        
+          // Merge together informations
+          ParamNodeList fList;
+          if(newFormatNode->HasChildren()) fList = newFormatNode->GetChildren();
+          for(UInt snode=0, nsnodes=fList.GetSize(); snode < nsnodes; snode++) 
+          {
+            std::string str = fList[snode]->GetName();
+            
+            if( oldFormatNode->Has(str) ) 
+            {
+              ParamNodeList oldList = oldFormatNode->GetChildren();
+              for(UInt on=0, non=oldList.GetSize(); on < non; non++) 
+              {
+                if(oldList[on]->GetName() == str) 
+                {
+                  oldFormatNode->ReplaceChild(fList[snode], on);
+                  break;
+                }
+              }
+            }
+            else
+            {
+              oldFormatNode->AddChildNode(fList[snode]);
+            }
+          }
+        } 
+        else
+        {            
+          dest->AddChildNode( list[node] );
+        }
+      }
+    }
   }
 
 
