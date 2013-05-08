@@ -135,6 +135,15 @@ PtrParamNode ParamNode::SetNewChild(const std::string& name, unsigned int index)
   return node;
 }
 
+PtrParamNode ParamNode::ReplaceChild(PtrParamNode node, unsigned int index)
+{
+  NodeType type = children_[index]->type_;
+  node->parent_ = shared_from_this();
+  node->SetType(type);
+  children_[index] = node;
+  return node;
+}
+
 /************************************************************************
  * N O D E   A C C E S S     M E T H O D S
  ************************************************************************/

@@ -146,6 +146,8 @@ namespace CoupledField
       * @return the newly created object. */
      PtrParamNode SetNewChild(const std::string& name, unsigned int index);
     
+     PtrParamNode ReplaceChild(PtrParamNode node, unsigned int index);
+
     /************************************************************************
      * N O D E   A C C E S S     M E T H O D S
      ************************************************************************/
