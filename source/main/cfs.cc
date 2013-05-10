@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <exception>
 #include <iostream>
+#include <string>
 #include <utility>
 
 #include "DataInOut/DefineFiles/definefiles.hh"

@@ -9,6 +9,7 @@
 #include "General/defs.hh"
 #include "General/exception.hh"
 #include "Optimization/Design/DesignElement.hh"
+#include "Optimization/ErsatzMaterial.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 #include "Elements/2D/quad9fe.hh"
@@ -25,7 +26,7 @@ Enum<DesignMaterial::Type>         DesignMaterial::type;
 Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
 Enum<DesignMaterial::Notation>     DesignMaterial::notation;
 
-DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design)
+DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, ErsatzMaterial* em)
 {
   type_ = type.Parse(pn->Get("type")->As<string>());
   
@@ -42,6 +43,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   trace_ = pn->Get("trace")->As<double>();
   
   dampingIsDesign_ = pn->Get("optimizeDamping")->As<bool>();
+
+  em_ = em;
 
   // collect all designs here, to check whether all are given
   unsigned int r = RequiredParameters(material);
@@ -124,6 +127,8 @@ unsigned int DesignMaterial::RequiredParameters(OptimizationMaterial::System mat
   case DENSITY_TIMES_2D_TENSOR:
   case DENSITY_TIMES_ROTATED_2D_TENSOR:
     return r+7;
+  case ROTATION:
+    return r+1;
   }
 
   assert(false);
@@ -206,6 +211,8 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
     return(design.Find(DesignElement::STIFF1) >= 0
         && design.Find(DesignElement::STIFF2) >= 0
         && design.Find(DesignElement::ROTANGLE) >= 0);
+  case ROTATION:
+    return design.Find(DesignElement::ROTANGLE) >= 0;
   }
   assert(false);
   return false;
@@ -748,6 +755,42 @@ void DesignMaterial::GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type
   }
 }
 
+
+void DesignMaterial::GetRotatedTensor(Matrix<double>& E, MaterialClass mc, DesignElement::Type direction)
+{
+  double rotAngle = params_[DesignElement::ROTANGLE];
+
+  const DesignElement* de = NULL;
+  assert(false);
+
+  // get DMat!!!
+
+  switch(mc)
+  {
+  case MECHANIC:
+    E = dynamic_cast<MechMat*>(em_->GetMaterial())->MechStiffness(de->elem);
+    break;
+
+  case PIEZO:
+    E = dynamic_cast<PiezoElecMat*>(em_->GetMaterial())->CoupledStiffness(de);
+    break;
+
+  case ELECTROSTATIC:
+    E = dynamic_cast<PiezoElecMat*>(em_->GetMaterial())->ElecStiffnessNeg(de);
+    break;
+
+  default:
+    assert(false);
+    break;
+  }
+
+  LOG_DBG2(dm) << "GRT: E before rotation = " << E.ToString(2);
+
+  RotateHMStiffnessTensor(E, PLANE, direction, rotAngle);
+
+  LOG_DBG2(dm) << "GRT: E after rotation =  " << E.ToString(2);
+}
+
 void DesignMaterial::GetHomRectTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
 {
    Quad9FE fe;
@@ -1053,7 +1096,8 @@ void DesignMaterial::SetIsoTensor(Matrix<double>& t, SubTensorType subTensor, do
   SetTransIsoTensor(t, subTensor, D, nd, G, D, nd, G);
 }
 
-void DesignMaterial::RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation){
+void DesignMaterial::RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation)
+{
   switch(subTensor){
   case PLANE_STRAIN:
   case PLANE_STRESS:
@@ -1168,6 +1212,8 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
     break;
   case HOM_RECT:
     GetHomRectTensor(t, direction, notation);
+  case ROTATION:
+    GetRotatedTensor(t, MECHANIC, direction);
     break;
   default: // case default
     throw Exception("DesignMaterial Type not implemented yet");
@@ -1339,6 +1385,7 @@ void DesignMaterial::SetEnums()
   type.Add(DENSITY_TIMES_ROTATED_2D_TENSOR, "density-times-rotated-2dtensor");
   type.Add(LAMINATES, "laminates");
   type.Add(HOM_RECT, "hom-rect");
+  type.Add(ROTATION, "rotation");
 
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");

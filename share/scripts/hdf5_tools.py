@@ -99,10 +99,16 @@ def to_cart(phi, r):
 # t = to_polygons(data, 100, 100, 2)
 # draw.polygon(t, fill="green", outline="black")
 # im.show()
-def to_polygons(angle, data, x_offset, y_offset, scale, data_offset = 0):
+# @param only_pos if True only positive values are drawn, with False only the negative (to be used with another color)
+def to_polygons(angle, data, x_offset, y_offset, scale, only_pos):
   tupl = []
   for i in range(len(data)):
-    r = data_offset + data[i]
+    r = data[i]
+    if only_pos:
+      r = r if r > 0 else 0
+    else:
+      r = numpy.abs(r) if r < 0 else 0
+    r = numpy.abs(r)  
     x = r * numpy.cos(angle[i])
     y = r * numpy.sin(-angle[i])
     tupl.append((x_offset + scale * x,y_offset + scale * y))
@@ -207,12 +213,7 @@ def orientational_stiffness(centers, angle, data, nx, scale=-1):
    
   if scale == -1:
     dist = 1.0 if len(centers) == 1 else centers[1][0] - centers[0][0]
-    if min_val >= 0: 
-      scale = 0.35 * dx * dist / max_val
-    else:
-      # in the case of negative values (e12 or stiffness for piezo) 
-      # min is not origin but origin is 2 * min, which means the 0-circle has radius -2 * min
-      scale = 0.3 * dx * dist / (max_val - min_val)
+    scale = 0.35 * dx * dist / max_val
      
   sm = cmx.ScalarMappable(colors.Normalize(vmin=min_val, vmax=max_val), cmap=plt.get_cmap('jet'))
     
@@ -221,22 +222,14 @@ def orientational_stiffness(centers, angle, data, nx, scale=-1):
     x_off = (coord[0] + min[0]) * dx
     y_off = (coord[1] + min[1]) * dy
 
-    pol = to_polygons(angle[i], data[i], x_off, dim[1] - y_off, scale, data_offset)
+    pol = to_polygons(angle[i], data[i], x_off, dim[1] - y_off, scale, True)
     m = numpy.max(data[i])
-    if min_val >= 0:
-      draw.polygon(pol, fill=color_code(sm, m), outline="black")
-    else:
-      r = 2 * min_val * scale
-      print "r=" + str(r)
-      
-      draw.ellipse((x_off+r, y_off+r, x_off-r, y_off-r), fill="grey", outline=None)      
-      draw.polygon(pol, fill=color_code(sm, m), outline="black")
-      draw_thick_circle(draw, (x_off, y_off), numpy.abs(r))
-    
+    draw.polygon(pol, fill=color_code(sm, m), outline="black")
+    if min_val < 0:
+      pol = to_polygons(angle[i], data[i], x_off, dim[1] - y_off, scale, False)
+      draw.polygon(pol, fill="gray", outline="black")
 
   return im  
-
-
   
   
 # @param aux see  perform_cfs_rotation()

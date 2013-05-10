@@ -16,13 +16,15 @@ namespace CoupledField {
    * to a material tensor.  */
 template <class TYPE> class StdVector;
 
-  class DesignMaterial {
-    
+class ErsatzMaterial;
+
+  class DesignMaterial
+  {
   public:
     
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
       DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR,
-      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT } Type;
+      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT, ROTATION } Type;
     
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -35,7 +37,7 @@ template <class TYPE> class StdVector;
 
     /** constructor, reads in DesignMaterial from XML
      * @param pn pointer to PtrParamNode */ 
-    DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design);
+    DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, ErsatzMaterial* em);
     
     /** reset the parameter space */
     void ClearParameter() { params_.clear(); }
@@ -145,6 +147,10 @@ template <class TYPE> class StdVector;
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
     inline void GetHomRectTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
 
+    /** does only perform orientational optimization
+     * @param mc MECHANIC, PIEZO, ELECTROSTATIC */
+    inline void GetRotatedTensor(Matrix<double>& t, MaterialClass mc, DesignElement::Type direction);
+
     /** initialize the tensor with zeros */
     inline void ZeroTensor(Matrix<double>& t, SubTensorType subTensor);
     
@@ -183,6 +189,9 @@ template <class TYPE> class StdVector;
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
      * 9 rows and 6 columns for with TENSOR11 being the first */
     Matrix<double> hom_rect_samples_;
+
+    /** only for ROTATION to get OptimizationMaterial */
+    ErsatzMaterial* em_;
 
   };
 

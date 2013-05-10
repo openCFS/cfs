@@ -143,8 +143,6 @@ ErsatzMaterial::ErsatzMaterial() :
   }
 
   design = DesignSpace::CreateInstance(regions, pn, method_);
-  // make basic loggings
-  design->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"));
 
   // the L-mesh of the stress constraint benchmark is meshed by gid with different positions of
   // element nodes, such that one cannot use the same element matrix, even if the grid is regular
@@ -319,6 +317,8 @@ void ErsatzMaterial::PostInit()
   if(me->IsEnabled() && me->DoMaxwellHomogenization() && !maxwellHomogenization_)
     throw Exception("No maxwell homogenization objective for homogenization test charge excitation");
 
+  // make basic loggings
+  design->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"), this);
 }
 
 
@@ -1368,26 +1368,30 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool normalized)
   {
     assert(!f->elements.IsEmpty());
-// In CalcOrthotropeMaterialProperties() we construct a dummy function, this has Function::elements not set :(
-// only for physical
-// TODO: assumes a single transfer function for all regions!
+    // In CalcOrthotropeMaterialProperties() we construct a dummy function, this has Function::elements not set :(
+    // only for physical
+    // TODO: assumes a single transfer function for all regions!
     TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->GetDesignType(), Optimization::MECH) : NULL;
     bool regular = design->IsRegular();
     double sum = 0.0;
-// we need the total volume in the non-regular case
+    // we need the total volume in the non-regular case
     double total_vol = 0.0;
-    if (!normalized)
+    if(!normalized)
     {
       total_vol = 1.0;
     }
     else
     {
-      if (!regular)
-      for (unsigned int i = 0, n = f->elements.GetSize();i < n;i++)
-      total_vol += f->elements[i]->CalcVolume();
+      if(!regular)
+        for(unsigned int i = 0, n = f->elements.GetSize();i < n;i++)
+          total_vol += f->elements[i]->CalcVolume();
       else
-      total_vol = f->elements.GetSize();
+        total_vol = f->elements.GetSize();
     }
+    // in the multimaterial case we have to consider, the multiple design element case
+    if(design->HasMultiMaterial())
+      total_vol /= design->GetMultiMaterials().GetSize();
+
     LOG_DBG(em) << "CTV: d=" << derivative << " p=" << f->IsPhysical() << " n=" << normalized << " tv=" << total_vol;
     for(unsigned int i = 0, n = f->elements.GetSize(); i < n; i++)
     {

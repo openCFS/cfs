@@ -25,6 +25,7 @@
 #include "Optimization/Optimizer/BaseOptimizer.hh"
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/TransferFunction.hh"
+#include "Optimization/ErsatzMaterial.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/result.hh" // IWYU pragma: keep
@@ -450,11 +451,12 @@ unsigned int DesignSpace::CalcPseudoDesignElements() const
     sum += pseudoDesigns_[i].GetSize();
   return sum;
 }
-void DesignSpace::SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material){
+void DesignSpace::SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material, ErsatzMaterial* em)
+{
   if(transfer.GetSize() > 0)
     throw Exception("designmaterial can not be given when using transferFunctions");
   transfer.Push_back(TransferFunction()); // create an identity transfer function
-  designMaterial = new DesignMaterial(dm, material, design);
+  designMaterial = new DesignMaterial(dm, material, design, em);
 }
 void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
 {
@@ -741,6 +743,8 @@ bool DesignSpace::GetMultiMaterialTensor(Matrix<double>& t, const Elem* elem, Tr
   if(multimaterial.IsEmpty())
     return false;
 
+  t.Init(); // even if we don't know the size, otherwise we sum up
+
   if(tf == NULL && derivative != NULL)
     tf = GetTransferFunction(derivative);
   if(tf == NULL)
@@ -782,9 +786,13 @@ bool DesignSpace::GetMultiMaterialTensor(Matrix<double>& t, const Elem* elem, Tr
         }
 
         t.Add(tf->Transform(&de, DesignElement::SMART), tmp);
+
+        LOG_DBG3(designSpace) << "GMMT e=" << elem->elemNum << " des=" << d << " pl=" << de.GetDesign(DesignElement::PLAIN) << " sm=" << de.GetDesign(DesignElement::PLAIN) << " tf=" << tf->Transform(&de, DesignElement::SMART) << " tmp=" << tmp.ToString();
       }
     }
   }
+
+  LOG_DBG3(designSpace) << "GMMT e=" << elem->elemNum << " d=" << (derivative == NULL ? -1 : derivative->multimaterial->index) << " -> " << t.ToString();
 
   return true;
 }
@@ -1079,7 +1087,7 @@ BaseDesignElement* DesignSpace::GetDesignElement(unsigned int idx)
   return dynamic_cast<BaseDesignElement*>(&data[idx]);
 }
 
-DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception, bool include_pseudo_designs)
+DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception, bool include_pseudo_designs, int mm_index)
 {
   int idx = Find(elemNum, throw_exception, include_pseudo_designs);
   if(idx == -1) return NULL; // an exception was already thrown if desired
@@ -1088,11 +1096,14 @@ DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, b
   {
     for(unsigned int d = 0, nd = design.GetSize(); d < nd; d++)
     {
-      unsigned int pos = elements * d + idx;
-      if(data[pos].GetType() == dt)
+      DesignElement& de = data[elements * d + idx];
+      if(de.GetType() == dt)
       {
-        if(data[pos].elem->elemNum != elemNum) throw Exception("index mixed up");
-        return &data[pos];
+        assert(de.elem->elemNum == elemNum);
+        assert(mm_index == -1 || (mm_index >= 0 && de.multimaterial != NULL));
+
+        if(mm_index < 0 || de.multimaterial == NULL || mm_index == de.multimaterial->index)
+          return &de;
       }
     }
   }
@@ -1106,9 +1117,10 @@ DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, b
         return &(pseudoDesigns_[i][idx]);
     }
   }
-  if(throw_exception) throw Exception("design type not in design or pesudo design region problem");
+  if(throw_exception) throw Exception("design type not in design or pseudo design region problem");
   return NULL;
 }
+
 inline
 int DesignSpace::Find(unsigned int elemNum, bool throw_exception, bool include_pseudo_designs)
 {
@@ -1121,6 +1133,7 @@ int DesignSpace::Find(unsigned int elemNum, bool throw_exception, bool include_p
     EXCEPTION("could not find element " << elemNum << " in our (pseudo) design space");
   return idx;
 }
+
 int DesignSpace::Find(const Elem* elem, bool throw_exception)
 {
   // no extensions for pseudo designs implemented, yet!
@@ -1152,7 +1165,7 @@ DesignElement* DesignSpace::FindElementWithLargesFilter()
   }
   return res;
 }
-void DesignSpace::ToInfo(PtrParamNode in)
+void DesignSpace::ToInfo(PtrParamNode in, ErsatzMaterial* em)
 {
   PtrParamNode tf = in->Get("transferFunctions");
   for(unsigned int i = 0; i < transfer.GetSize(); i++)
@@ -1166,7 +1179,7 @@ void DesignSpace::ToInfo(PtrParamNode in)
   {
     DesignElement& de = data[i * elements];
     // FIXME an arbitrary transfer function is nonsense!
-    de.ToInfo(dv->Get("design", ParamNode::APPEND), GetTransferFunction(de.GetType(), Optimization::MECH, false)); // silent!
+    de.ToInfo(dv->Get("design", ParamNode::APPEND), GetTransferFunction(de.GetType(), Optimization::MECH, false), em); // silent!
   }
   in->Get("pamping")->SetValue(pamping_);
   if(regions.GetSize() > 0)
@@ -1488,6 +1501,36 @@ void DesignSpace::DesignRegion::ToInfo(PtrParamNode node) const
   node->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(regionId));
   node->Get("elements")->SetValue(elements);
   node->Get("bimaterial")->SetValue(HasBiMaterial() ? bimaterial_ : "-");
+}
+
+void MultiMaterial::ToInfo(PtrParamNode in, ErsatzMaterial* em)
+{
+  assert(em != NULL);
+  Matrix<double> E;
+  BaseMaterial* bm = NULL;
+
+  switch(em->GetMaterial()->GetSystem())
+  {
+  case OptimizationMaterial::PIEZOCOUPLING:
+    bm = GetMultiMaterial(ELECTROSTATIC);
+    bm->GetTensor(E, BaseMaterial::ConvertMaterialClass(ELECTROSTATIC), Global::REAL, em->pde->GetSubTensorType());
+    in->Get("electrostatic")->SetValue(E);
+
+    bm = GetMultiMaterial(PIEZO);
+    bm->GetTensor(E, BaseMaterial::ConvertMaterialClass(PIEZO), Global::REAL, em->pde->GetSubTensorType());
+    in->Get("piezo")->SetValue(E);
+
+    // no break by intention
+  case OptimizationMaterial::MECH:
+    bm = GetMultiMaterial(MECHANIC);
+    bm->GetTensor(E, BaseMaterial::ConvertMaterialClass(MECHANIC), Global::REAL, em->pde->GetSubTensorType());
+    in->Get("mechanic")->SetValue(E);
+    break;
+
+  default:
+    assert(false);
+    break;
+  }
 }
 
 BaseMaterial* MultiMaterial::GetMultiMaterial(const MaterialClass mc)

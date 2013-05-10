@@ -2472,8 +2472,14 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       {
         elemIt.GetElem()->ptElem;
 
-        if(domain->HasErsatzMaterialTensor())
-          domain->GetErsatzMaterial()->GetErsatzMaterialTensor(E, GetSubTensorType(), elemIt.GetElem(), DesignElement::NO_DERIVATIVE);
+        DesignSpace* space = domain->GetErsatzMaterial(false);
+        if(space)
+        {
+          if(space->HasErsatzMaterialTensor())
+            space->GetErsatzMaterialTensor(E, GetSubTensorType(), elemIt.GetElem(), DesignElement::NO_DERIVATIVE);
+          else if(space->HasMultiMaterial())
+            space->GetMultiMaterialTensor(E, elemIt.GetElem(), NULL, GetSubTensorType(), MECHANIC);
+        }
         else
           E.Init();
 
