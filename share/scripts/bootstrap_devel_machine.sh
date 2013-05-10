@@ -33,9 +33,9 @@ SetupDebian() {
     apt-get install subversion gcc g++ gfortran automake autoconf cmake \
         perl-base graphviz texlive-latex-base tex4ht \
         python-pygments doxygen tcl-dev python-dev git-svn \
-        cmake-curses-gui cmake-qt-gui gmsh openjdk-6-jdk \
+        cmake-curses-gui cmake-qt-gui gmsh default-jre \
         patch diffutils zip libxt-dev libxp6 tk-dev \
-        libgl1-mesa-dev libglu1-mesa-dev libxmuu-dev || ExitFail
+        libgl1-mesa-dev libglu1-mesa-dev libxmuu-dev xsltproc || ExitFail
 
     rm -f /usr/lib/libXext.so /usr/lib/libXmu.so
     ln -s /usr/lib/libXext.so.6.4.0 /usr/lib/libXext.so || ExitFail

@@ -930,6 +930,8 @@ namespace CoupledField
       }
    }
 
+#if 0 // DEBUG_SZOERNER does not work with non-matching
+  // responsable: ahueppe, strieben, szoerner
   void Quad1FE::Global2LocalCoords(Matrix<Double> & localCoords,
                                    const Matrix<Double> & globalCoords,
                                    const Matrix<Double> & coordMat ){
@@ -1057,6 +1059,7 @@ namespace CoupledField
      }
    }
  }
+#endif
 
 } // end of namespace
 

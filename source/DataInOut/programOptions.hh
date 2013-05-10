@@ -159,6 +159,9 @@ namespace CoupledField
     /** Is cfs invoked with the quite flag to compress console output? */
     bool IsQuiet() const;
 
+    //! Is cfs just computing the approximations of nonlinear material data
+    bool DoApproxNLmatData() const;
+
     // =======================================================================
     // AUXILLIARY METHODS FOR OUTPUTTING INFORMATION
     // =======================================================================

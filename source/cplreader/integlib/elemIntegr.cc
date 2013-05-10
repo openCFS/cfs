@@ -172,25 +172,88 @@ namespace CoupledField
     return elem;
   }
 
-  void ElemIntegr::PerformIntegration(const Matrix<Double> & coordMat,
-                                      const Matrix<Double>& NodaldTijdxj,
-                                      const Matrix<Double>& NodalVal,
-                                      Vector<Double>& elemvec,
-                                      Vector<Double>& nodalLoadDensity,
-                                      Vector<Double>& divLHTensor,
-                                      Double density)
-  {
-#ifdef TRACE
-    (*trace) << " entering ElemIntegr::PerformIntegration" << std::endl;
-#endif
-
+  void ElemIntegr::PerformIntegrationLighthill(const Matrix<Double> & coordMat,
+                          const Matrix<Double>& NodaldTijdxj,
+                          const Matrix<Double>& NodalVal,
+                          Vector<Double>& elemvec,
+                          Vector<Double>& nodalLoadDensity,
+                          Vector<Double>& divLHTensor,
+                          Double density){
     if(!ptElem_)
       return;
 
     //perform volume or surface (surfInt = true) integration
-      linearLoad_->CalcElemVec4QuadwithVel(coordMat,  NodalVal, elemvec, 
-                                           nodalLoadDensity, divLHTensor, 
+      linearLoad_->CalcElemVec4QuadwithVel(coordMat,  NodalVal, elemvec,
+                                           nodalLoadDensity, divLHTensor,
                                            ptElem_, density);
+
+  }
+
+  void ElemIntegr::PerformIntegrationLHPressure(const Matrix<Double> & coordMat,
+                                                const Vector<Double>& NodalPres,
+                                                Vector<Double>& elemVecPres,
+                                                Vector<Double>& nodalLoadDensity){
+    if(!ptElem_)
+      return;
+
+      linearLoad_->CalcElemVecLHwithPress(coordMat,  NodalPres, elemVecPres,nodalLoadDensity,
+                                          ptElem_);
+
+  }
+
+  void ElemIntegr::PerformIntegrationAPEMass(const Matrix<Double> & coordMat,
+                          const Matrix<Double>& NodalVal,
+                          const Vector<Double>& NodalPres,
+                          const Vector<Double>& nodalPressureTDeriv,
+                          Vector<Double>& elemVecPres,
+                          Double density){
+    if(!ptElem_)
+      return;
+
+    //perform integration for pressure values
+    linearLoad_->CalcElemVec4QuadwithPress(coordMat,
+                              NodalPres,
+                              nodalPressureTDeriv,
+                              NodalVal,
+                              elemVecPres,
+                              ptElem_,
+                              density);
+
+  }
+
+  void ElemIntegr::PerformIntegrationAPEMomentum(const Matrix<Double> & coordMat,
+                          const Matrix<Double>& NodalVal,
+                          const Matrix<Double>& nodalMeanVel,
+                          Vector<Double>& elemVecLamb,
+                          Vector<Double>& elemVecLambRhs,
+                          Double density){
+    if(!ptElem_)
+      return;
+
+    //perform integration for lamb vector
+    linearLoad_->CalcElemVecWithLamb(coordMat,
+                                     NodalVal,
+                                     nodalMeanVel,
+                                     elemVecLambRhs,
+                                     elemVecLamb,
+                                     ptElem_,
+                                     density);
+
+  }
+
+  void ElemIntegr::PerformIntegrationAeroAcouSrc(const Matrix<Double> & coordMat,
+                          const Matrix<Double>& NodalVal,
+                          const Matrix<Double>& nodalMeanVel,
+                          Vector<Double>& elemVecAeroAcou){
+    if(!ptElem_)
+      return;
+
+    linearLoad_->CalcElemVec4AeroAcouSrc(coordMat,
+                                         NodalVal,
+                                         nodalMeanVel,
+                                         elemVecAeroAcou,
+                                         ptElem_);
+
   }
 
   void ElemIntegr::PerformSurfaceIntegration(const UInt volElemType,
@@ -225,10 +288,18 @@ namespace CoupledField
   }
 
   void ElemIntegr::PerformIntegrationCentre(const Matrix<Double> & coordMat,
-                                            const Matrix<Double>& NodalVel,
-                                            Vector<Double>& resVec,
+                                            const Matrix<Double>& NodalVal,
+                                            const Vector<Double>& NodalPres,
+                                            const Matrix<Double>& nodalMeanVel,
+                                            const Vector<Double>& nodalMeanPressure,
+                                            const Vector<Double>& nodalPressureTDeriv,
+                                            Vector<Double>& elemvec,
                                             Vector<Double>& nodalLoadDensity,
                                             Vector<Double>& divLHTensor,
+                                            Vector<Double>& elemVecLamb,
+                                            Vector<Double>& elemVecLambRhs,
+                                            Vector<Double>& elemVecPres,
+                                            Vector<Double>& elemVecAeroAcou,
                                             Double density)
   {
 #ifdef TRACE
@@ -239,7 +310,7 @@ namespace CoupledField
       return;
 
     linearLoad_->CalcElemVec4QuadwithVelCentre(coordMat, 
-                                               NodalVel, resVec, 
+                                               NodalVal, elemvec,
                                                nodalLoadDensity, divLHTensor, 
                                                ptElem_, density);
   }

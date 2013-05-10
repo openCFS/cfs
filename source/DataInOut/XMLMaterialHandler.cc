@@ -525,6 +525,69 @@ namespace CoupledField {
           material->SetScalar(f->Get("interpolation")->As<std::string>(), FRACTIONAL_INTERPOL );
       }
     }
+
+    //========= Magnetostriction ================================================
+    if( mech->Has("magnetoStriction") ) {
+      PtrParamNode magStrictNode = mech->Get("magnetoStriction")->Get("nonlinear");
+
+      // fetch paramnodes for hdbc
+      ParamNodeList anIsoNodes = magStrictNode->GetList("anisotropic");
+
+      if ( anIsoNodes.GetSize() > 0 ) {
+        //        int haSize = anIsoNodes.GetSize();
+//         Vector<nlMatDescriptor*> haha;
+//         haha.Resize(2); // = new Vector<nlMatDescriptor>(haSize);
+//         haha[0].maxVal = 0.0;
+
+        std::vector<nlMatDescriptor> nlData;
+        nlData.resize(anIsoNodes.GetSize());
+        
+        // iterate over all parameter nodes
+        for( UInt i = 0; i < anIsoNodes.GetSize(); i++ ) {
+          // read parameters
+          nlMatDescriptor info;
+          info.angle = 0.0;
+          info.approxType = NO_APPROX_TYPE;
+          info.measAccuracy = 0.01;
+          info.maxVal = 2.5;
+          info.fileName = "";
+          info.fncStr = "";
+          info.fncDerivStr = "";          
+
+          // read approximation type  
+          if(anIsoNodes[i]->Has("angle")) {
+            info.angle =  anIsoNodes[i]->Get("angle")->As<Double>();
+          }
+
+          // read approximation type  
+          if(anIsoNodes[i]->Has("approxType")) {
+            std::string type =  anIsoNodes[i]->Get("approxType")->As<std::string>();
+            String2Enum(type,info.approxType );
+          }
+          
+          // read measurement accuracy
+          if(anIsoNodes[i]->Has("measAccuracy")) 
+            info.measAccuracy = anIsoNodes[i]->Get("measAccuracy")->As<Double>();
+          
+          // read maximum value for approximation
+          if(anIsoNodes[i]->Has("maxApproxVal")) 
+            info.maxVal = anIsoNodes[i]->Get("maxApproxVal")->As<Double>();
+          
+          // read name of function file 
+          if(anIsoNodes[i]->Has("dataName")) 
+            info.fileName = anIsoNodes[i]->Get("dataName")->As<std::string>().c_str();
+
+          nlData[i].angle        = info.angle;
+          nlData[i].fileName     = info.fileName;
+          nlData[i].approxType   = info.approxType;
+          nlData[i].measAccuracy = info.measAccuracy;
+          nlData[i].maxVal       = info.maxVal;
+        }
+
+        material->SetNonLinMagStrictVec(MAGNETOSTRICTION_NLCURVES, nlData);
+      }
+    }
+    
   }
 
 
@@ -839,65 +902,139 @@ namespace CoupledField {
       }
 
       // we know only nonlinear isotropic material
-      if(mag->Get("magneticPermeability")->Has("nonlinear") && 
-         mag->Get("magneticPermeability")->Get("nonlinear")->Has("isotropic")) {
-        PtrParamNode iso = mag->Get("magneticPermeability")->Get("nonlinear")->Get("isotropic");
+      if( mag->Get("magneticPermeability")->Has("nonlinear") ) {
+        if (mag->Get("magneticPermeability")->Get("nonlinear")->Has("isotropic")) {
+          PtrParamNode iso = mag->Get("magneticPermeability")->Get("nonlinear")->Get("isotropic");
+          
+          nlMatDescriptor info;
+          info. approxType = NO_APPROX_TYPE;
+          info.measAccuracy = 0.01;
+          info.maxVal = 2.5;
+          info.fileName = "";
+          info.fncStr = "";
+          info.fncDerivStr = "";
+          
+          // read approximation type  
+          if(iso->Has("approxType")) {
+            std::string type =  iso->Get("approxType")->As<std::string>();
+            String2Enum(type,info.approxType );
+          }
+          
+          // read measurement accuracy
+          if(iso->Has("measAccuracy")) 
+            info.measAccuracy = iso->Get("measAccuracy")->As<Double>();
+          
+          // read maximum value for approximation
+          if(iso->Has("maxApproxVal")) 
+            info.maxVal = iso->Get("maxApproxVal")->As<Double>();
+          
+          // read name of function file 
+          if(iso->Has("dataName")) 
+            info.fileName = iso->Get("dataName")->As<std::string>().c_str();
+          
+              // read analytic expression of function
+          if(iso->Has("fncExpr")) 
+            info.fncStr = iso->Get("fncExpr")->As<std::string>().c_str();
 
-        nlMatDescriptor info;
-        info. approxType = NO_APPROX_TYPE;
-        info.measAccuracy = 0.01;
-        info.maxVal = 2.5;
-        info.fileName = "";
-        
-        // read approximation type  
-        if(iso->Has("approxType")) {
-          std::string type =  iso->Get("approxType")->As<std::string>();
-          String2Enum(type,info.approxType );
-        }
-        
-        // read measurement accuracy
-        if(iso->Has("measAccuracy")) 
-          info.measAccuracy = iso->Get("measAccuracy")->As<Double>();
-        
-        // read maximum value for approximation
-        if(iso->Has("maxApproxVal")) 
-          info.maxVal = iso->Get("maxApproxVal")->As<Double>();
-        
-        // read name of function file 
-        if(iso->Has("dataName")) 
-          info.fileName = iso->Get("dataName")->As<std::string>().c_str();
+          // read analytic expression of derivative of function
+          if(iso->Has("fncDerivExpr")) 
+            info.fncDerivStr = iso->Get("fncDerivExpr")->As<std::string>().c_str();
 
-        //set info to material class
-        material->SetNonLinMat(MAG_PERMEABILITY, info);
-      } // nonlinear isotropic material   
+          //set info to material class
+          material->SetNonLinMat(MAG_PERMEABILITY, info);
+        } // nonlinear isotropic material   
+        
+        else if (mag->Get("magneticPermeability")->Get("nonlinear")->Has("anisotropic")) {
+          //anisotropic case: bundle of nonlinear curves
+          PtrParamNode nonLin = mag->Get("magneticPermeability")->Get("nonlinear")->Get("anisotropic");
+          
+          // fetch paramnodes for hdbc
+          ParamNodeList anIsoNodes = nonLin->GetList("data");
+          
+          if ( anIsoNodes.GetSize() > 0 ) {
+            std::vector<nlMatDescriptor> nlData;
+            nlData.resize(anIsoNodes.GetSize());
+            
+            // iterate over all parameter nodes
+            for( UInt i = 0; i < anIsoNodes.GetSize(); i++ ) {
+              // read parameters
+              nlMatDescriptor info;
+              info.angle = 0.0;
+              info.approxType = NO_APPROX_TYPE;
+              info.measAccuracy = 0.01;
+              info.maxVal = 2.5;
+              info.fileName = "";
+              info.fncStr = "";
+              info.fncDerivStr = "";
+              
+              // read approximation type  
+              if(anIsoNodes[i]->Has("angle")) {
+                info.angle =  anIsoNodes[i]->Get("angle")->As<Double>();
+              }
+              
+              // read approximation type  
+              if(anIsoNodes[i]->Has("approxType")) {
+                std::string type =  anIsoNodes[i]->Get("approxType")->As<std::string>();
+                String2Enum(type,info.approxType );
+              }
+              
+              // read measurement accuracy
+              if(anIsoNodes[i]->Has("measAccuracy")) 
+                info.measAccuracy = anIsoNodes[i]->Get("measAccuracy")->As<Double>();
+              
+              // read maximum value for approximation
+              if(anIsoNodes[i]->Has("maxApproxVal")) 
+                info.maxVal = anIsoNodes[i]->Get("maxApproxVal")->As<Double>();
+              
+              // read name of function file 
+              if(anIsoNodes[i]->Has("dataName")) 
+                info.fileName = anIsoNodes[i]->Get("dataName")->As<std::string>().c_str();
+
+              // read analytic expression of function
+              if(anIsoNodes[i]->Has("fncExpr")) 
+                info.fncStr = anIsoNodes[i]->Get("fncExpr")->As<std::string>().c_str();
+
+              // read analytic expression of derivative of function
+              if(anIsoNodes[i]->Has("fncDerivExpr")) 
+                info.fncDerivStr = anIsoNodes[i]->Get("fncDerivExpr")->As<std::string>().c_str();
+             
+              nlData[i].angle        = info.angle;
+              nlData[i].fileName     = info.fileName;
+              nlData[i].approxType   = info.approxType;
+              nlData[i].measAccuracy = info.measAccuracy;
+              nlData[i].maxVal       = info.maxVal;
+              nlData[i].fncStr       = info.fncStr;
+              nlData[i].fncDerivStr  = info.fncDerivStr;
+            }
+            material->SetNonLinMagBHcurves(MAG_PERMEABILITYCURVES, nlData);
+          }
+        }         
+      }                
     } // end of magneticPermeability  
 
 
     //read Preisach hysterese model
-    if(mag->Has("hystModel"))
-    {
-      if(mag->Get("hystModel")->Has("preisach"))
-      {
+    if(mag->Has("hystModel"))  {
+      if(mag->Get("hystModel")->Has("preisach")) {
         PtrParamNode p = mag->Get("hystModel")->Get("preisach");
         
         // force name
         material->SetScalar("preisach", HYST_MODEL);
-
+        
         // read E saturation of Preisach hysterese model
         if(p->Has("hSat"))
           material->SetScalar(p->Get("hSat")->As<Double>(), X_SATURATION, Global::REAL ); 
- 
+        
         // read P saturation of Preisach hysterese model
         if(p->Has("bSat"))
           material->SetScalar(p->Get("bSat")->As<Double>(), Y_SATURATION, Global::REAL ); 
-
+        
         // read weight dimension of Preisach hysterese model for weights
         int dim = -1;
         if(p->Has("dim")) dim = p->Get("dim")->As<Integer>();
-    
+        
         // read real permittivity tensor    
-        if(p->Has("weights"))
-        {
+        if(p->Has("weights")) {
           Matrix<Double> preisachWeightTensor(dim,dim);
           ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
           material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
@@ -905,7 +1042,7 @@ namespace CoupledField {
       }
     }
   }
-
+    
 //**********************************************************************
 //*************  READ THERMIC ******************************************
 //**********************************************************************
@@ -940,6 +1077,8 @@ namespace CoupledField {
           info.measAccuracy = 0.01;
           info.maxVal = 1000;
           info.fileName = "";
+          info.fncStr = "";
+          info.fncDerivStr = "";
 
           // read approximation type  
           if(iso->Has("approxType")) {
@@ -1001,7 +1140,9 @@ namespace CoupledField {
             info.measAccuracy = 0.01;
             info.maxVal = 1000;
             info.fileName = "";
-            
+            info.fncStr = "";
+            info.fncDerivStr = "";            
+
             // read approximation type  
             if(iso->Has("approxType")) {
               std::string type =  iso->Get("approxType")->As<std::string>();

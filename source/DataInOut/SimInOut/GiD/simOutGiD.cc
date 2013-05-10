@@ -348,7 +348,7 @@ namespace CoupledField {
       GiD_BeginElements();
 
       for ( UInt iNode = 0; iNode < nodeNumbers.GetSize(); iNode ++ ) {
-        UInt nodeNumber[2] = { nodeNumbers[iNode], actMeshId_ };
+        UInt nodeNumber[2] = { nodeNumbers[iNode], (UInt) actMeshId_ };
         GiD_WriteElementMat( numelem++, (int*)(&nodeNumber) );
       }
       GiD_EndElements();

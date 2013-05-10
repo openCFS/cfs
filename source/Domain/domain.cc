@@ -147,10 +147,10 @@ void Domain::CreateGrid()
     if (libmesh == "cfsGrid")
     {
       if (gridId == "default")
-        actGrid = new GridCFS(dim_);
+        actGrid = new GridCFS(dim_, gridId);
       else
       {
-        actGrid = new GridCFS(inputs[0]->GetDim());
+        actGrid = new GridCFS(inputs[0]->GetDim(), gridId);
       }
     }
     else
@@ -946,6 +946,13 @@ void Domain::RegisterVariables()
    Double value = 0.0;
    for(; it != varNodes.End(); it++ ) {
      (*it)->GetValue("name", varName);
+     if ( (varName == "t") || (varName == "dt") || (varName == "f")
+          || (varName == "step") )
+     {
+       EXCEPTION("The variable '" << varName
+                 << "' is reserved, its value will be set automatically. "
+                 << "Please choose a different name.");
+     }
      (*it)->GetValue("value", valString);
      mathParser_.SetExpr(handle, valString);
      value = mathParser_.Eval(handle);

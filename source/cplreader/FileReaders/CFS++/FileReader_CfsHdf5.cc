@@ -322,7 +322,10 @@ void FileReader_CfsHdf5::ReduceOrderOfNodalValues( \
       // these will be calculated later on
       if (fdPtr->isActive && fdPtr->resultName != "acouRhsLoad" 
           && fdPtr->resultName != "acouRhsLoadDensity"
-          && fdPtr->resultName != "acouDivLighthillTensor")
+          && fdPtr->resultName != "acouDivLighthillTensor"
+          && fdPtr->resultName != "acouMixedMassLoad"
+          && fdPtr->resultName != "acouLambVec"
+          && fdPtr->resultName != "acouLambRhs")
       {
         if (!mapOrigRegToNewReg.size())
         {

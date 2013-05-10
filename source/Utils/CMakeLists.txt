@@ -27,6 +27,7 @@ SET(UTILS_SRCS
   Point.cc
   hysteresis.cc
   readCFDbinary.cc
+  ApproxAnalytic.cc
   )
 
 

@@ -6,6 +6,7 @@
 #include <math.h>
 #include <iostream>
 #include <string>
+#include <sstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ResultCache.hh"
@@ -69,6 +70,7 @@ class Hysteresis;
     pdeId2_   = NO_PDE_ID;
 
     startStep_ = 1;
+    etaMinCount_ = 0;
 
     // In the end, read nonlinear data from xml-file
     if( nonLin_ ) {
@@ -178,6 +180,7 @@ class Hysteresis;
   {
 
     bool performOneMoreStep;
+    Double incrementalErr, residualErr;
 
     Vector<Double> solInc( numEqns_ );
 
@@ -189,11 +192,21 @@ class Hysteresis;
     // set the boundary conditions
     PDE_.SetBCs();
 
-    //perform the load-steps
+//     //perform the load-steps
+//     const UInt nrLoads = 5;
+//     const Double loadFactors[nrLoads] = {0.25, 0.5, 0.75, 0.9, 1.0};
+
+//     // currently just for testing!!
+//     // loop over load factor
+//     for ( UInt iload=0; iload<=nrLoads; iload++ ) {
+//       info->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactors[iload]);
+
+//       // setup right hand side
+//       Double RhsLinL2Norm = SetLinRHS(loadFactors[iload]);
+
+    // loop over load factor
     Double loadFactor = 0.0;
 
-    // currently just for testing!!
-    // loop over load factor
     for ( UInt iload=0; iload<1; iload++ ) {
       loadFactor += 1.0;
       info->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
@@ -236,8 +249,8 @@ class Hysteresis;
             // true is for transient simulation
             residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
           }
-
           // store the new solution
+
           PDE_.SaveSolution( actSol.GetPointer(), actSol.GetSize() );
 
           if ( lineSearch_ == "none" ) {
@@ -252,16 +265,18 @@ class Hysteresis;
             // calculation of residual error =======================================
             residualL2Norm = PDE_.GetRhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
           }
+          else {
+            algsys_->InitRHS(RhsLinVal_);
+            assemble_->AssembleNonLinRHS();  
+          }
 
           // calculation of residual error =======================================
-          Double residualErr;
           if ( RhsLinL2Norm > 1.0 )
             residualErr = residualL2Norm / RhsLinL2Norm;
           else
             residualErr = residualL2Norm;
 
           // calculate incremental error ========================================
-      	  Double incrementalErr;
       	  Double solIncrL2Norm = solInc.NormL2();
           Double actSolL2Norm  = actSol.NormL2();
 
@@ -273,8 +288,9 @@ class Hysteresis;
           }
 
           // output of norms and data
-          if ( nonLinLogging_ == true )
+          if ( nonLinLogging_ == true ) {
             WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+          }
 
           // boolean variable, holds condition if another iteration step is necessary
           performOneMoreStep =
@@ -284,6 +300,15 @@ class Hysteresis;
 
     } // load step loop
 
+    if ( performOneMoreStep ) {
+      Info->PrintF( pdename_, "NL scheme not converged\n" );
+      std::stringstream out;
+      out << "Residual error: " <<  residualErr << " ; Incremental error: " << incrementalErr 
+          << std::endl << std::endl;
+      std::string strAll = out.str();
+      Info->PrintF( pdename_, strAll.c_str() );
+    }
+    
   }
 
 
@@ -516,6 +541,7 @@ class Hysteresis;
     bool performOneMoreStep;
     Vector<Double> solInc( numEqns_ );
 
+    Double residualErr, incrementalErr;
     //get actual solution
     Vector<Double>  actSol =
       dynamic_cast<Vector<Double>&>(*(PDE_.GetSolutionVector()));
@@ -602,7 +628,6 @@ class Hysteresis;
           residualL2Norm = PDE_.GetRhsL2Norm(actRHS);
         }
 
-        Double residualErr;
         if ( RhsLinL2Norm > 1.0 )
           residualErr    = residualL2Norm /  RhsLinL2Norm;
         else
@@ -611,8 +636,7 @@ class Hysteresis;
         // calculate incremental error
         Double solIncrL2Norm = solInc.NormL2();
         Double actSolL2Norm = actSol.NormL2();
-        Double incrementalErr;
-
+ 
         if ( actSolL2Norm > 1.0)
           incrementalErr = solIncrL2Norm / actSolL2Norm;
         else
@@ -632,6 +656,21 @@ class Hysteresis;
       } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
     } // load step loop
+
+    if ( performOneMoreStep ) {
+      UInt actStep = (UInt) mParser_->Eval(mHandle_);
+      std::string strAll = "NL scheme for time step ";
+      std::string nrStep;
+      std::stringstream out;
+      out << actStep;
+      strAll +=  out.str() + " not converged!\n";
+      Info->PrintF( pdename_, strAll.c_str() );
+      out.str(std::string());
+      out << "Residual error: " <<  residualErr << " ; Incremental error: " << incrementalErr 
+          << std::endl << std::endl;
+      strAll = out.str();
+      Info->PrintF( pdename_, strAll.c_str() );
+    }
 
     UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
     if ( PDE_.IsIterCoupled() )
@@ -1166,8 +1205,8 @@ class Hysteresis;
   {
 
     Vector<Double> solOld(actSol);
-    const UInt nrEtas = 6;
-    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.1, 0.01};
+    const UInt nrEtas = 5;
+    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.1, 0.5};
 		// initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;
@@ -1205,6 +1244,16 @@ class Hysteresis;
         etaOpt = eta[i];
       }
     }
+
+//     if ( etaOpt == eta[nrEtas-1] ) 
+//       etaMinCount_++;
+//     else 
+//       etaMinCount_ = 0;
+//     if ( etaMinCount_ == 10 ) {
+//       //now try to boost the current solution out of a local minima
+//       etaOpt = eta[0];
+//       etaMinCount_ = 0;
+//     }
 
     etaLineSearch = etaOpt;
 

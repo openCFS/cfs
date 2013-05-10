@@ -48,6 +48,11 @@ namespace CoupledField
 
     coosy_ = NULL;
     hyst_  = NULL;
+    hystY_ = NULL;
+    hystZ_ = NULL;
+    vecHyst_ = NULL;
+    dimVecHyst_ = 0;
+    computeHystInverse_ = false;
 
     symmetryType_  = GENERAL;
     isHysteresis_  = false;
@@ -56,6 +61,9 @@ namespace CoupledField
     piezoMicroModel_   = NULL;
     isPiezoMicroModel_ = false;
     
+//     nonLinMagStrictInfoVec_.Resize(1);
+//     nonLinMagStrictInfoVec_[0] =  NULL;
+
     mp_ = domain->GetMathParser();
   }
 

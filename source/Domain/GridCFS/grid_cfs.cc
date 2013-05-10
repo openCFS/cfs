@@ -45,7 +45,9 @@ namespace CoupledField {
   DECLARE_LOG(gridcfs)
   DEFINE_LOG(gridcfs, "grid.cfs")
 
-  GridCFS::GridCFS(UInt dim) : Grid( ) {
+  GridCFS::GridCFS(UInt dim, const std::string &id) : Grid( ) {
+    
+    gridId_ = id;
     isQuadratic_ = false;
     dim_ = dim;
     assert(dim > 0);
@@ -56,7 +58,7 @@ namespace CoupledField {
     numEdges_ = 0;
     edgesMapped_ = false;
     facesMapped_ = false;
-
+    maxNumElemNodes_ = 0;
 
   }
 
@@ -137,7 +139,8 @@ namespace CoupledField {
 
             // make sure, that this is the correct grid
             listNode->GetValue("gridId", gridId);
-            if (domain->GetGrid(gridId) != this) return;
+            // exit this function, if it isn't our grid ID
+            if ( gridId != gridId_ ) return;
 
             // get coordinate system
             listNode->GetValue( "coordSysId", coordSysId );
@@ -3446,10 +3449,15 @@ namespace CoupledField {
       const std::string& surfName = namedIter->first;
       GetNodesByRegion(nodeList, region_.Parse(namedIter->first));
       std::string nodeRegName = "nodes_" + surfName;
+      if( nameTypeMap_.find( nodeRegName) != nameTypeMap_.end() ) {
+        std::cerr << "Skipping makeNameNodesFromLines() for region: "
+          << surfName << std::endl;
+        continue;
+      }
       if (excludeSurf[surfName] != "")
       {
-        UInt iTmp = region_.Parse(excludeSurf[surfName]);
-        GetNodesByRegion(nodeListTmp2, surfRegionIds_[iTmp]);
+        UInt excludeId = region_.Parse(excludeSurf[surfName]);
+        GetNodesByRegion(nodeListTmp2, excludeId);
         for (UInt iTmp1 = 0; iTmp1 < nodeList.GetSize(); ++iTmp1)
         {
           const UInt& currNode = nodeList[iTmp1];

@@ -411,6 +411,10 @@ namespace CoupledField {
       return "kg s^-1";
       break;
 
+    case ACOUMIXED_MASS_LOAD:
+      return "-";
+      break;
+
     case ACOU_LAMB_VEC:
       return "m^3 s^-1";
       break;
@@ -429,6 +433,10 @@ namespace CoupledField {
     
     case ACOU_ELEM_SPEED_OF_SOUND:
       return "m/s";
+      break;
+
+    case AERO_ACOU_SRC_RHS:
+      return "Pa/m^2";
       break;
 
     case ELEC_CHARGE:
@@ -469,6 +477,10 @@ namespace CoupledField {
 
     case MEAN_FLUIDMECH_VELOCITY:
       return "m/s";
+      break;
+
+    case MEAN_FLUIDMECH_PRESSURE:
+      return "Pa";
       break;
 
     case FLUIDMECH_PRESSURE:
@@ -853,6 +865,9 @@ namespace CoupledField {
     else if ( in == "smoothSplines" ) {
       out = SMOOTH_SPLINES;
     }
+    else if ( in == "analytic" ) {
+      out = ANALYTIC;
+    }
     else {
       EXCEPTION( "'" << in << "' cannot be converted into an '"
                  << "DataType' item!" );
@@ -1182,6 +1197,9 @@ namespace CoupledField {
     case SMOOTH_SPLINES:
       out = "smoothSplines";
       break;
+    case ANALYTIC:
+      out = "analytic";
+      break;
     default:
       EXCEPTION( "No string value found for the specified value of the "
                << "enumeration datatype ApproxCurveType.\n"
@@ -1345,6 +1363,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_DIV_LH_TENSOR, "acouDivLighthillTensor");
     SolutionTypeEnum.Add(ACOU_LAMB_RHS, "acouLambRhs"); 
     SolutionTypeEnum.Add(ACOU_LAMB_VEC, "acouLambVec"); 
+    SolutionTypeEnum.Add(ACOUMIXED_MASS_LOAD, "acouMixedMassLoad");
     SolutionTypeEnum.Add(ACOU_RHSVAL, "acouRHSval");
     SolutionTypeEnum.Add(ACOUSURF_RHSVAL, "acouSurfRHSval");
     SolutionTypeEnum.Add(ACOU_BUBBLE_RHS_VAL, "acouBubbleRhsVal");
@@ -1358,6 +1377,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");
     SolutionTypeEnum.Add(ACOU_PMLAUXSCALAR, "acouPmlAuxScalar");
     SolutionTypeEnum.Add(ACOU_PSEUDO_DENSITY, "acouPseudoDensity");
+    SolutionTypeEnum.Add(AERO_ACOU_SRC_RHS, "aeroAcouSourceRhs");
 
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
@@ -1379,6 +1399,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUID_FORCE, "fluidForce");
     //fluidMech
     SolutionTypeEnum.Add(MEAN_FLUIDMECH_VELOCITY, "meanFluidMechVelocity");
+    SolutionTypeEnum.Add(MEAN_FLUIDMECH_PRESSURE, "meanFluidMechPressure");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY, "fluidMechVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE, "fluidMechPressure");
     SolutionTypeEnum.Add(FLUIDMECH_SKINFRICTION, "fluidMechSkinFriction");

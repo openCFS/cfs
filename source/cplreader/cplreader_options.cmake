@@ -128,6 +128,14 @@ ADD_OPTION(extfiles
    goes into one big .h5 file. It may be tricky to copy such big files to USB hard
    disks, which are usually formatted with a FAT32 file system."
   )
+  
+ADD_OPTION(pressureRhsForWave
+  bool
+  false
+  "Compute wave equation source term based on Laplacian of fluid pressure."
+  "If this parameter is true, the acouRhsLoad for the wave equation is computed by the Lighthill
+   Tensor but by the Laplacian of the fluid pressure."
+  )
 
 ADD_OPTION(dim
   uint32_t
@@ -157,7 +165,7 @@ ADD_OPTION(activeparts
 ADD_OPTION(outputfields
   string
   acouRhsLoad
-  "Which physical fields should be output ([acouDivLighthillTensor | acouRhsLoad | acouRhsLoadDensity | fluidMechDensity | fluidMechPressure | fluidMechVelocity | fluidMechTKE | fluidMechSkinFriction | acouLambVec | acouLambRhs]).  Values may be separated by SPACE or SEMICOLON or |"
+  "Which physical fields should be output ([acouDivLighthillTensor | acouRhsLoad | acouRhsLoadDensity | fluidMechDensity | fluidMechPressure | fluidMechVelocity | fluidMechTKE | fluidMechSkinFriction | acouLambVec | acouLambRhs | aeroAcouSourceRhs]).  Values may be separated by SPACE or SEMICOLON or |"
   "Sometimes it may be necessary to do some post-processing on the fluid fields
    to get some understanding of the problem at hand. For this reason it is possible
    to write the most important fields (velocity, pressure, source terms, turbulence
@@ -167,7 +175,7 @@ ADD_OPTION(outputfields
 ADD_OPTION(firststep
   uint32_t
   1
-  "Index of first time step (only for CFX_EXPORT, FASTEST)"
+  "Index of first time step (only for CFX, CFX_EXPORT, FASTEST)"
   "To start reading at a different time step than the first one this parameter can by used.
    It is just implemented for CFX\\\\_EXPORT and FASTEST at the moment."
   )
@@ -184,6 +192,30 @@ ADD_OPTION(timestep
   -1.0
   "Time step length T in seconds"
   "This parameter specifies the length of each timestep in seconds."
+  )
+  
+ADD_OPTION(calcMeanPresField
+  bool
+  0
+  "Toggle calculation of mean pressure field"
+  "This parameter toggles the calculation of the time averaged mean pressure field"
+  )
+  
+ADD_OPTION(calcMeanVelField
+  bool
+  0
+  "Toggle calculation of mean velocity field"
+  "This parameter toggles the calculation of the time averaged mean velocity field"
+  )
+  
+    
+ADD_OPTION(numStepsForMeanField
+  uint32_t
+  0
+  "Specify how many files to consider for the mean field calculation"
+  "By default we will take the value given by the numSteps parameter to perform the 
+   temporal average of the flow and pressure field. By this parameter we can take more or 
+   less steps for the mean flow computation."
   )
 
 ADD_OPTION(calcsrc
@@ -211,6 +243,15 @@ ADD_OPTION(velscale
    components of the velocity field. This can be useful, if the CFD computation
    used a different scaling (cf. OpenFOAM simulations of the Freiberg guys)"
   )
+  
+ADD_OPTION(presscale
+  string
+  "1.0"
+  "Scale factors for pressure field in the format factor"
+  "This parameter specifies the factor to be multiplied with the pressure field. 
+   This can be useful, if the CFD computation
+   used a different scaling (cf. OpenFOAM simulations of the Freiberg guys)"
+  )
 
 ADD_OPTION(density
   double
@@ -221,9 +262,14 @@ ADD_OPTION(density
    air $1.2041 kg/m^3$ (at $20^\\\\circ C$ and $101.325 kPa$), water $998.2 kg/m^3$ (at $20^\\\\circ C$)"
   )
 
+IF(DEBUG)
+  SET(OPTION_SEGFAULT "true")
+ELSE(DEBUG)
+  SET(OPTION_SEGFAULT "false")
+ENDIF(DEBUG)
 ADD_OPTION(segfault
   bool
-  true
+  ${OPTION_SEGFAULT}
   "Cause program to segfault if an exception is encountered."
   "This parameter is especially important for debugging purposes and
    should not be necessary in standard runs."
@@ -360,7 +406,7 @@ ADD_OPTION(doCalcMultiNodes
   bool
   true
   "This flag needs to be set to remedy region interface artifacts."
-  "If multiple regions exist, nodes which are shared by both are stored multplie
+  "If multiple regions exist, nodes which are shared by both are stored multiple
   times, once for each region. But their acouRhsLoad is only calculated in each
   region seperatly and therefore get different values which need to be added.
   This flag should be set on otherwise artifacts at the region interface occur."
@@ -369,7 +415,7 @@ ADD_OPTION(doCalcMultiNodes
 ADD_OPTION(calcSurfaceTerms
   string
   none
-  "This flag anable the calculation of the surface integral within for lighthill source term. Specify 'all' or give a list of surface regions speperated by SPACE or SEMICOLON or |"
+  "This flag enables the calculation of the surface integral within for lighthill source term. Specify 'all' or give a list of surface regions separated by SPACE or SEMICOLON or |"
   "This flag indicates if we wish to calculate the surface integral of the 
   Lighthill right hand side which is up to now a very costly operation and therefore 
   off by default."
@@ -384,7 +430,25 @@ ADD_OPTION(cfxUseStnFrame
   option if you need the velocity in the stationary frame (i.e. absolute
   velocity)."
   )
+ 
+ADD_OPTION(cfxSinglePrecision
+  string
+  "auto"
+  "Single or double precision datasets. 'auto' for auto-detection. (CFX only)"
+  "Tells cplreader if it should expect float or double precision datasets in CFX result files. Set to 'auto' for auto-detection."
+  )
 
+ADD_OPTION(cfxLastStep
+  int32_t
+  -1
+  "Last time step computed by CFX simulation run"
+  "Specifies the number of the last time step computed by the CFX simulation
+  run (not necessarily the same as the last step that was written out). This
+  option must be given for data produced by CFX 12 and later. For data
+  produced by CFX 11 and earlier this option can be omitted, because it is
+  determined automatically."
+  )
+   
 CONFIGURE_FILE("ParamsInit.cc.in"
   "${CMAKE_CURRENT_BINARY_DIR}/ParamsInit.cc")
 

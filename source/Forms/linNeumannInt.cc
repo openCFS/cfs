@@ -53,6 +53,7 @@ namespace CoupledField
     phase_ = phaseStr;
     quantity_ = quantity;
     materialParam_ = materialParam;
+    ptVolElem_ = NULL;
   }
 
 
@@ -108,7 +109,9 @@ namespace CoupledField
             factor = 1.0;
             break;
 
-       default: EXCEPTION("material parameter " << materialParam_ << " not implemented");
+       default:
+         EXCEPTION("material parameter " << materialParam_ << " not implemented");
+         break;
     }
 
     // Calculate element vector

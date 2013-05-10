@@ -289,6 +289,9 @@ int CFS::Run()
     // Create grid
     domain->CreateGrid();
 
+    if ( progOpts->DoApproxNLmatData() )
+      std::cout << "DO APPROX" << std::endl;
+
     if(progOpts->GetPrintGrid())
       PrintGrid();
     else

@@ -178,7 +178,7 @@ namespace CoupledField
 
 
   /// calculates of stresses T (vector notation)
-  // T = c . S with c the material tensor snd S the linear strains
+  // T = c . S with c the material tensor and S the linear strains
   // S = B_lin * u
   // see Habil. M. Kaltenbacher
 

@@ -21,6 +21,7 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
+#include <string>
 
 #include "boost/regex.hpp"
 #include "boost/filesystem/operations.hpp"
@@ -192,13 +193,16 @@ namespace CoupledField{
      std::vector< std::vector<Double> > solution;
      std::vector<Double> solutionPressure;
      std::vector< std::vector<Double> > solutionSkinFriction;
+     std::vector< std::vector<Double> > solutionForce;
      solution.resize(3,std::vector<Double>(numVertices_));
      solutionSkinFriction.resize(3,std::vector<Double>(numVertices_));
+     solutionForce.resize(3,std::vector<Double>(numVertices_));
 
      cg_nfields(fn, 1, 1, numsols, &nfields ); 
      bool velocityFound = false;
      bool pressureFound = false;
      bool frictionFound = false;
+     bool fluidForceFound = false;
      for(UInt aSol = 1 ; aSol <= (UInt) nfields; aSol++){
         cg_field_info(fn, 1, 1, numsols, aSol, &datatype , fieldName );
         UInt spaceIdx = MapVelocityIndex(fieldName);
@@ -222,6 +226,18 @@ namespace CoupledField{
           solutionSkinFriction[spaceIdx].resize(numVertices_,0);
           solutionSkinFriction[spaceIdx].assign(curSol,curSol +numVertices_);
           frictionFound = true;
+          delete curSol;
+          curSol = NULL;
+        }
+        spaceIdx = MapForceIndex(fieldName);
+        if(spaceIdx != 9999){
+          cgsize_t range_min[3] = {1,1,1};
+          cgsize_t range_max[3] = {numVertices_,1,1};
+          Double * curSol = new Double[numVertices_];
+          cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
+          solutionForce[spaceIdx].resize(numVertices_,0);
+          solutionForce[spaceIdx].assign(curSol,curSol +numVertices_);
+          fluidForceFound = true;
           delete curSol;
           curSol = NULL;
         }
@@ -355,6 +371,37 @@ namespace CoupledField{
             }
         }
 
+        if ( fluidForceFound){
+            /* copy the fluid velocity values */
+          FlowDataPartStruct & tmpSolStruct = curType[FLUIDMECH_FORCE];
+
+          //          if(nboundary == 0){
+            tmpSolStruct.isActive = true;
+            if (tmpSolStruct.dofNames.empty()) {
+              tmpSolStruct.unit = MapSolTypeToUnit(FLUIDMECH_FORCE);
+              tmpSolStruct.dofNames.push_back("x");
+              tmpSolStruct.dofNames.push_back("y");
+              if(dim_ == 3){
+                tmpSolStruct.dofNames.push_back("z");
+              }
+
+              tmpSolStruct.resultName = SolutionTypeEnum.ToString(FLUIDMECH_FORCE);
+              tmpSolStruct.definedOn = ResultInfo::NODE;
+              tmpSolStruct.entryType = ResultInfo::VECTOR;
+            }
+            std::set<UInt> curNodes = nodeIt->second;
+            std::set<UInt>::iterator curNodeIt = curNodes.begin();
+            UInt numDOFs = tmpSolStruct.dofNames.size();
+            tmpSolStruct.data.resize(numDOFs * curNodes.size());
+            for(UInt n = 0; n < curNodes.size() ;n++){
+              UInt idx = *curNodeIt;
+              for(UInt i = 0; i < dim_; i++){
+                tmpSolStruct.data[n*numDOFs+i] = solutionForce[i][idx-1];
+              }
+              curNodeIt++;
+            }
+        }
+
       nodeIt++;
       }
        
@@ -406,8 +453,18 @@ namespace CoupledField{
   void FileReader_CGNS::ReadCGNSDirectory(std::string dirname, std::map<Double, std::string> & fileNames){
      Settings& settings = Settings::Instance();
      
+     std::string::size_type lastSlashPos=dirname.find_last_not_of('/');
+
+
+     if (lastSlashPos != std::string::npos)
+       dirname = dirname.substr( 0, lastSlashPos+1 );
+
 
      fs::path trnDir( dirname );
+     //here we need to strap
+
+     std::cout << trnDir.generic_string() << std::endl;
+
      fs::directory_iterator end_iter;
 
      //clear all contents of the map
@@ -493,6 +550,7 @@ namespace CoupledField{
                   ++dir_itr ) {
          if ( !fs::is_directory( *dir_itr ) ) {
            fn = dir_itr->path().filename().string();
+           std::cout << fn << std::endl;
            boost::tokenizer<> tok(fn);
            if(algo::ends_with(fn, ".cgns")) {
 
@@ -520,8 +578,11 @@ namespace CoupledField{
           }
        }
        //now erase the number of files according to startstep parameter
-       for(UInt i = 1;i<=firstStep;i++){
+       for(UInt i = 1;i<firstStep;i++){
          fileNames.erase(fileNames.begin());
+       }
+       if(numSteps == 0){
+         numSteps = fileNames.size();
        }
        if(numSteps<fileNames.size()){
          UInt diff = fileNames.size() - numSteps;
@@ -538,7 +599,7 @@ namespace CoupledField{
        //  iter++;
        //}
      }else{
-       std::cerr << "Please specify either calcsrc ot justmesh option" << std::endl;
+       std::cerr << "Please specify either calcsrc or justmesh option" << std::endl;
        exit(0);
      }
 
@@ -637,6 +698,20 @@ namespace CoupledField{
     return coordinateIndex;
   }
 
+  UInt FileReader_CGNS::MapForceIndex(char* coordName){
+    UInt coordinateIndex = 9999;
+    //check if the name fulfils the naming convention
+    //if not, we throw an error
+    if(strcmp(coordName,"ForceX") == 0 || strcmp(coordName,"Force") == 0){
+       coordinateIndex = 0;
+    }else if(strcmp(coordName,"ForceY") == 0){
+       coordinateIndex = 1;
+    }else if(strcmp(coordName,"ForceZ") == 0){
+       coordinateIndex = 2;
+    }
+    return coordinateIndex;
+  }
+
   void FileReader_CGNS::ReadUnstructuredGrid(Integer fileHandle,Integer dim,cgsize_t* size){
      char gridCoordName[33];
      char curCoordName[33];
@@ -709,12 +784,17 @@ namespace CoupledField{
 
        //elemArraySize = numCells*NodesPerElem
        cg_ElementDataSize(fileHandle,1,1,curReg,&elemArraySize);
-       cg_npe(eType,&vertsPerElem);
 
-       numEs = elemArraySize / vertsPerElem;
+
+       numEs = (end-start+1);
+
+       if(eType==ElementTypeNull || eType==ElementTypeUserDefined){
+    	   EXCEPTION("CGNS reader cannot handle nullType or User defined element types");
+       }
+
        numElems_ += numEs;
 
-       maxNumElemNodes_ = ((UInt)vertsPerElem>maxNumElemNodes_)? vertsPerElem : maxNumElemNodes_;
+
 
        std::cout << "Reading section " << sectionName << std::endl;
        std::cout << "------------------------------------------------------" << std::endl;
@@ -731,22 +811,54 @@ namespace CoupledField{
 
        regionIndexToNameMap_[curReg] = std::string(sectionName);
        elemRegionMap_[curReg] = StdVector<CGNSElem>(numEs);
-       elemTypeToRegionMap_[curReg] = elemTypeMap_[eType];
+       //elemTypeToRegionMap_[curReg] = elemTypeMap_[eType];
        //Ignore parental Data field for now and give NULL to function
        cg_elements_read(fileHandle,1,1,curReg,curElems,NULL);
        numElemsPerRegion_[curReg-1] = numEs;
 
-       for(Integer i = 0;i<numEs;i++){
-         CGNSElem curElem;
-         curElem.elemNum = start+i;
-         curElem.eType = elemTypeMap_[eType];
-         curElem.connect.Resize(vertsPerElem);
-         curElem.connect.Init();
-         for(Integer j = 0;j < vertsPerElem ; j++){
-           curElem.connect[j] = (UInt)curElems[(i*vertsPerElem)+j];
+       if(eType==MIXED){
+    	   //ok in this special case, the element connectivity array
+    	   //also stores the element type within it
+    	   //so we loop over and determine the type on the fly
+
+         //should point to the index storing the current eType
+         //afterwards there will be the node numbers
+         UInt eTypeIdx = 0;
+         for(Integer i = 0;i<numEs;i++){
+           //read
+           eType = (ElementType_t)curElems[eTypeIdx];
+           cg_npe(eType,&vertsPerElem);
+           maxNumElemNodes_ = ((UInt)vertsPerElem>maxNumElemNodes_)? vertsPerElem : maxNumElemNodes_;
+
+           CGNSElem curElem;
+           curElem.elemNum = start+i;
+           curElem.eType = elemTypeMap_[eType];
+           curElem.connect.Resize(vertsPerElem);
+           curElem.connect.Init();
+           for(Integer j = 0;j < vertsPerElem ; j++){
+             curElem.connect[j] = (UInt)curElems[eTypeIdx+j+1];
+           }
+           elemRegionMap_[curReg][i] = curElem;
+           eTypeIdx+=vertsPerElem+1;
          }
-         elemRegionMap_[curReg][i] = curElem;
+       }else{
+         cg_npe(eType,&vertsPerElem);
+         maxNumElemNodes_ = ((UInt)vertsPerElem>maxNumElemNodes_)? vertsPerElem : maxNumElemNodes_;
+         for(Integer i = 0;i<numEs;i++){
+      	   //determine number of vertices for current element
+
+      	   CGNSElem curElem;
+           curElem.elemNum = start+i;
+           curElem.eType = elemTypeMap_[eType];
+           curElem.connect.Resize(vertsPerElem);
+           curElem.connect.Init();
+           for(Integer j = 0;j < vertsPerElem ; j++){
+             curElem.connect[j] = (UInt)curElems[(i*vertsPerElem)+j];
+           }
+           elemRegionMap_[curReg][i] = curElem;
+         }
        }
+
        delete [] curElems;
      }
   }
@@ -842,8 +954,8 @@ namespace CoupledField{
     elemTypeMap_[CGNSLIB_H::TETRA_10] = Elem::TET10;
     elemTypeMap_[CGNSLIB_H::PYRA_5] = Elem::PYRA5;
     elemTypeMap_[CGNSLIB_H::PYRA_14] = Elem::PYRA13;
-    elemTypeMap_[CGNSLIB_H::PENTA_6] = Elem::UNDEF;
-    elemTypeMap_[CGNSLIB_H::PENTA_15] = Elem::UNDEF;
+    elemTypeMap_[CGNSLIB_H::PENTA_6] = Elem::WEDGE6;
+    elemTypeMap_[CGNSLIB_H::PENTA_15] = Elem::WEDGE15;
     elemTypeMap_[CGNSLIB_H::PENTA_18] = Elem::UNDEF;
     elemTypeMap_[CGNSLIB_H::HEXA_8] = Elem::HEXA8;
     elemTypeMap_[CGNSLIB_H::HEXA_20] = Elem::HEXA20;

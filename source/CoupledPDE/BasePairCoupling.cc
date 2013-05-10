@@ -620,7 +620,7 @@ class CoordSystem;
         } 
         
         // only enter, at least one region is present
-        if( listNode->HasChildren() ) {
+        if( listNode != NULL && listNode->HasChildren() ) {
           // fetch saveBegin, saveEnd and saveInc
           saveBegin = listNode->Get("saveBegin")->MathParse<UInt>();
           saveEnd = listNode->Get("saveEnd")->MathParse<UInt>();

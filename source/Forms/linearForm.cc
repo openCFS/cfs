@@ -30,7 +30,9 @@
 #include "Utils/coordSystem.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Utils/nodestoresol.hh"
+#include "Utils/result.hh"
 #include "Utils/tools.hh"
+#include "Utils/ApproxData.hh"
 #include "linMagStrictInt.hh"
 #include "linearForm.hh"
 #include "math.h"
@@ -420,6 +422,79 @@ DEFINE_LOG(linForm, "linForm")
   }
 
 
+  MagPermEdgeInt::MagPermEdgeInt(   Vector<Double> vecVal,
+                                    Double rel,
+                                    bool isaxi,
+                                    bool coordUpdate )
+    : LinearForm(), 
+      perm_(vecVal), 
+      reluctivity_(rel)
+  {
+    name_ = "MagPermEdgeInt";
+    isaxi_ = isaxi;
+    op_ = new CurlCurlEdgeInt(NULL, coordUpdate);
+    
+  }
+
+  MagPermEdgeInt::~MagPermEdgeInt() {
+    delete op_;
+  }
+
+
+  void MagPermEdgeInt:: CalcElemVector( Vector<Double>& elemVec, 
+                                        EntityIterator& ent ) {
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    // Extract pointer to reference element for curl-bilinear form
+    op_->ExtractElemInfo( ent );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    const UInt nrEdges = ptelem->GetNumEdges();
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+
+    // derivation of shape functions after global coordinates 
+    StdVector< Matrix<Double> > xiDx;
+    xiDx.Resize(nrEdges);
+
+    Matrix<Double> curl, curlTrans; 
+    Vector<Double> helpVec;
+    Double jacDet, factor;
+
+    elemVec.Resize( nrEdges );
+    helpVec.Resize( nrEdges );
+    elemVec.Init(0);  
+    helpVec.Init(0);
+
+    const Elem* geoElem = ent.GetElem();
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
+
+      // calc glob derivs of shape functions and jacobian determinante
+      ptelem->GetEdgeGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_,
+                                        geoElem);
+      op_->CalcEdgeCurl(curl, xiDx);
+
+      // Compute Jacobian for integration point
+      jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent.GetElem() );
+
+      // Perform a safety check
+      if ( jacDet <= 0.0 ) {
+        EXCEPTION( "CurlCurlEdgeInt::CalcElementMatrix: Mesh distortion encountered "
+            << "Jacobian determinant change sign or is zero!" );
+      }
+
+      factor = intWeights[actIntPt-1] * jacDet * reluctivity_;
+      curl.Transpose(curlTrans);  
+
+      helpVec  = curlTrans * perm_;
+      helpVec *= factor;
+      elemVec += helpVec;
+    }
+  }
+
   // ==================================================================
   // nLinMagnetics
   // ==================================================================
@@ -568,10 +643,14 @@ DEFINE_LOG(linForm, "linForm")
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
     // get pointer to nonlinear BH curve approximation
+    //isotropic
     ApproxData* nlinFnc_ = ptMaterial->GetNonlinFnc(MAG_PERMEABILITY);
+    //anisotropic
+    StdVector<ApproxData*> nlinFncs = 
+      ptMaterial->GetNonlinFncs(  MAG_PERMEABILITYCURVES );
 
     BaseForm * curlcurl3D;
-    if ( nlinFnc_ == NULL ) 
+    if ( nlinFnc_ == NULL && nlinFncs.GetSize() == 0) 
       //define the linear element matrix
       curlcurl3D = new CurlCurlEdgeInt( ptMaterial, coordUpdate_);
     else {
@@ -1467,6 +1546,28 @@ DEFINE_LOG(linForm, "linForm")
     divLHTensorTmp.Init(0.0);
     divLHTensor.Resize(dimelem);
     divLHTensor.Init(0.0);
+    
+//    //--------THis is hack
+//    // OK we have the problem that we need the derivative
+//    // of the velocities. nevertheless, we only have
+//    // the potential of the compressible field.
+//    // idea we compute the compressible velocity at the center and subtract it
+//    // from the nodal velocities.
+//    const UInt dof = NodalVel.GetNumCols();
+//    Vector<Double> centreNode(dimelem, 0.0);
+//    Matrix<Double> derivCentre;
+//    Vector<Double> VelDerivAtCentre;
+//    ptelem->GetGlobDerivShFnc(derivCentre, centreNode, ptCoord, elem, dof);
+//    Matrix<Double> trans;
+//    derivCentre.Transpose(trans);
+//    VelDerivAtCentre =  trans * nodalPressure;
+//    //std::cout << "VelDerivAtCentre" << std::endl;
+//    //std::cout << VelDerivAtCentre << std::endl<< std::endl;
+//    for(UInt curSh =0;curSh <(UInt) n;curSh++){
+//      for(UInt d =0;d < (UInt)dimelem;d++){
+//        NodalVel[d][n] -= VelDerivAtCentre[d];
+//      }
+//    }
 
     
     Vector<double> intWeights = ptelem->GetIntWeights();
@@ -1476,7 +1577,7 @@ DEFINE_LOG(linForm, "linForm")
 
 
     // Loop over all integration points 
-    for(Integer actInt=1; actInt <= l; actInt++)
+    for(Integer actInt=1; actInt <= (Integer)l; actInt++)
     {
       ptelem->GetShFncAtIp(Sf, actInt, elem);
       ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
@@ -1485,11 +1586,14 @@ DEFINE_LOG(linForm, "linForm")
       // velocity at integration point: (vx  vy)^T  (2x1)
       VelAtIP = NodalVel * Sf;
 
+      VelAtIP = VelAtIP;
+
       //first derivative of velocity at integration point: (2x2)
       //  vx,x   vx,y
       //  vy,x   vy,y
       //
       VelDerAtIP = NodalVel * xiDx;
+
 
       helpVec[0] = 2.0 * VelAtIP[0] * VelDerAtIP[0][0] 
                        + VelAtIP[1] * VelDerAtIP[0][1]
@@ -1531,6 +1635,119 @@ DEFINE_LOG(linForm, "linForm")
 
 
   } // end of method
+
+  void LinearFlowNoiseInt::CalcElemVec4AeroAcouSrc(const Matrix<Double>& ptCoord,
+                                                   const Matrix<Double> & NodalVel,
+                                                   const Matrix<Double> & nodalMeanVel,
+                                                   Vector<Double> & Result,
+                                                   const Elem* elem){
+
+    Integer l = ptelem->GetNumIntPoints();
+    Integer n = ptelem->GetNumNodes();
+    Integer dimelem = ptCoord.GetNumRows();
+
+    Matrix<Double> xiDx;
+    Vector<Double> Sf;
+
+    Vector<Double> VelAtIP;
+    Matrix<Double> VelDerAtIP;
+
+    Double jacDet;
+
+    Result.Resize(n);
+    Result.Init(0.0);
+
+    Vector<double> intWeights = ptelem->GetIntWeights();
+
+//    //--------THis is hack
+//    // OK we have the problem that we need the derivative
+//    // of the velocities. nevertheless, we only have
+//    // the potential of the compressible field.
+//    // idea we compute the compressible velocity at the center and subtract it
+//    // from the nodal velocities.
+//    const UInt dof = NodalVel.GetNumCols();
+//    Vector<Double> centreNode(dimelem, 0.0);
+//    Matrix<Double> derivCentre;
+//    Vector<Double> VelDerivAtCentre;
+//    ptelem->GetGlobDerivShFnc(derivCentre, centreNode, ptCoord, elem, dof);
+//    Matrix<Double> trans;
+//    derivCentre.Transpose(trans);
+//    VelDerivAtCentre =  trans * nodalPressure;
+//    //std::cout << "VelDerivAtCentre" << std::endl;
+//    //std::cout << VelDerivAtCentre << std::endl<< std::endl;
+//    for(UInt curSh =0;curSh <(UInt) n;curSh++){
+//      for(UInt d =0;d < (UInt)dimelem;d++){
+//        NodalVel[d][n] -= VelDerivAtCentre[d];
+//      }
+//    }
+
+    // Loop over all integration points
+    for(Integer actInt=1; actInt <= l; actInt++)
+    {
+      ptelem->GetShFncAtIp(Sf, actInt, elem);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+      //std::cout << "Normal:\n" << nVec << std::endl;
+
+      // ------------- compute (u . grad) u ------------------ //
+      // ok this part computes
+      // velocity at integration point: (vx  vy)^T  (2x1)
+      VelAtIP = NodalVel * Sf;
+
+      //first derivative of velocity at integration point: (2x2)
+      //  vx,x   vx,y
+      //  vy,x   vy,y
+      //
+      VelDerAtIP = NodalVel * xiDx;
+
+      //helpVec[0] = VelAtIP[0] * VelDerAtIP[0][0] +
+      //             VelAtIP[1] * VelDerAtIP[0][1];
+      //
+      //helpVec[1] = VelAtIP[0] * VelDerAtIP[1][0] +
+      //             VelAtIP[1] * VelDerAtIP[1][1];
+      //
+      //if(dimelem==3){
+      //  helpVec[0] += VelAtIP[2] * VelDerAtIP[0][2];
+      //  helpVec[1] += VelAtIP[2] * VelDerAtIP[1][2];
+      //  helpVec[2]  = VelAtIP[0] * VelDerAtIP[2][0] + VelAtIP[1] * VelDerAtIP[2][1] +
+      //                VelAtIP[2] * VelDerAtIP[2][2];
+      //}
+      //
+      //helpVec *= (jacDet *  intWeights[actInt -1]);
+      //partResult = xiDx * helpVec;
+      //Result += partResult;
+      //now compute convective term
+      for(UInt i=0;i<(UInt)n;++i){
+        for(UInt d1=0;d1<(UInt)dimelem;++d1){
+          for(UInt d2=0;d2<(UInt)dimelem;++d2){
+            Result[i] +=  xiDx[i][d1] * VelAtIP[d2] * VelDerAtIP[d1][d2] * jacDet *  intWeights[actInt -1];
+          }
+        }
+      }
+      // ------------- END compute (u . grad) u ------------------ //
+    /*  // ------------- compute div ( u - u_mean) ------------------ //
+
+      //first derivative of velocity at integration point: (2x2)
+      //  vx,x   vx,y
+      //  vy,x   vy,y
+      //
+      VelDerAtIP = (NodalVel-nodalMeanVel) * xiDx;
+
+      Double divAtIp = 0;
+      for(UInt d =0;d<(UInt)dimelem;d++){
+         divAtIp += VelDerAtIP[d][d];
+      }
+
+
+      //now compute convective term
+      for(UInt i=0;i<(UInt)n;++i){
+         Result[i] +=  Sf[i] * divAtIp * jacDet *  intWeights[actInt -1];
+      }
+      // ------------- END compute (u . grad) u ------------------ //
+      */
+    }
+
+  }
+
 
   void LinearFlowNoiseInt::CalcLighthillSurfaceTermVel(const Elem* volElem,
                                    const Elem* surfElem,
@@ -1654,6 +1871,199 @@ DEFINE_LOG(linForm, "linForm")
     ResultLHTens *= (divLHNormal / (volElem->ptElem->CalcVolume() * volume ));
   } // end of CalcLighthillSurfaceTerm
 
+
+  void LinearFlowNoiseInt::CalcElemVecLHwithPress(const Matrix<Double>& ptCoord, const Vector<Double> & NodalPress,
+                                                     Vector<Double> & Result,Vector<Double>& nodalLoadDensity, const Elem* elem){
+
+    Integer l = ptelem->GetNumIntPoints();
+    Integer n = ptelem->GetNumNodes();
+    Integer dimelem = ptCoord.GetNumRows();
+
+    Matrix<Double> xiDx;
+    Matrix<Double> xiDxT;
+    Vector<Double> presDerivAtIp(dimelem,0.0);
+    Vector<Double> partResult(n,0.0);
+
+    Double jacDet;
+    Vector<Double> intWeights = ptelem->GetIntWeights();
+    Result.Resize(n);
+    nodalLoadDensity.Resize(n);
+    Result.Init();
+    nodalLoadDensity.Init();
+    Double volume = 0;
+    // Loop over all integration points
+    for(Integer actInt=1; actInt <= l; actInt++){
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+      //compute pressure derivative at IP
+      xiDx.Transpose(xiDxT);
+      presDerivAtIp = xiDxT * NodalPress;
+
+      // Multiplication with the derivatives of the shape functions
+      partResult  = xiDx * presDerivAtIp;
+      partResult *= jacDet * intWeights[actInt -1];
+      Result     += partResult;
+
+
+      volume += jacDet * intWeights[actInt-1];
+    }
+    nodalLoadDensity = Result / volume;
+  }
+
+  // computeation of total derivative of perturbed pressure for PE
+  void LinearFlowNoiseInt::CalcElemVec4QuadwithPress(const Matrix<Double>& ptCoord,
+                                                     const Vector<Double> & NodalPress,
+                                                     const Vector<Double> & NodalPresTDeriv,
+                                                     const Matrix<Double> & NodalMeanVelocity,
+                                                     Vector<Double> & Result,
+                                                     const Elem* elem,
+                                                     Double density){
+
+    // Source term =  integral ( Sf . ( (curl(vel) x vel) - (curl(MeanVel) x MeanVel)))
+    Integer l = ptelem->GetNumIntPoints();
+    Integer n = ptelem->GetNumNodes();
+    Integer dimelem = ptCoord.GetNumRows();
+
+    Matrix<Double> xiDx;
+    Matrix<Double> xiDxT;
+    Vector<Double> Sf;
+    Vector<Double> SfPresScaled;
+    Result.Resize(n,0.0);
+
+    Vector<Double> MeanVelAtIp(dimelem,0.0);
+    Vector<Double> presDerivAtIp(dimelem,0.0);
+    Double PresTDerivAtIp = 0.0;
+    Double convectivePres = 0.0;
+    Double jacDet;
+    Vector<Double> intWeights = ptelem->GetIntWeights();
+
+    // Loop over all integration points
+    for(Integer actInt=1; actInt <= l; actInt++)
+    {
+      ptelem->GetShFncAtIp(Sf, actInt, elem);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+
+      MeanVelAtIp = NodalMeanVelocity * Sf;
+      PresTDerivAtIp = NodalPresTDeriv * Sf;
+      xiDx.Transpose(xiDxT);
+      presDerivAtIp = xiDxT * NodalPress;
+
+      //sum up the derivatives with respcet to mean velocity
+      convectivePres = 0.0;
+      for(UInt d=0;d<(UInt)dimelem;d++){
+        convectivePres += presDerivAtIp[d] *  MeanVelAtIp[d];
+      }
+
+
+      for(Integer i = 0;i<n;++i){
+       Result[i] += (Sf[i] * (PresTDerivAtIp+convectivePres)) * jacDet * intWeights[actInt -1];
+       //Result[i] += ((SfVelScaled[i] * PresAtIp))* jacDet * intWeights[actInt -1];
+       //Result[i] += ((Sf[i] * PresDerivAtIp)) * jacDet * intWeights[actInt -1];
+      }
+    }
+    //Result = NodalPress;
+  }
+
+  ///Calcualte aeroacoustic source term based on lamb vector
+  void LinearFlowNoiseInt::CalcElemVecWithLamb(const Matrix<Double>& ptCoord,
+                                               const Matrix<Double> & NodalVelocity,
+                                               const Matrix<Double> & NodalMeanVelocity,
+                                               Vector<Double> & Result,
+                                               Vector<Double> & elemLambvec,
+                                               const Elem* elem,
+                                               Double density){
+
+    // Source term =  integral ( Sf . ( (curl(vel) x vel) - (curl(MeanVel) x MeanVel)))
+    // lamb 2 is \omega' \times meanVel
+    // lamb 1 is mean\omega \times vel'
+
+    Integer l = ptelem->GetNumIntPoints();
+    Integer n = ptelem->GetNumNodes();
+    Integer dimelem = ptCoord.GetNumRows();
+
+    Matrix<Double> xiDx;
+    Vector<Double> Sf;
+
+    Vector<Double> VelAtIp(dimelem,0.0);
+    Vector<Double> PertVelAtIp(dimelem,0.0);
+    Matrix<Double> PertVelDerivAtIp(dimelem,dimelem);
+
+
+    Vector<Double> MeanVelAtIp(dimelem,0.0);
+    Matrix<Double> MeanVelDerivAtIp(dimelem,dimelem);
+
+    Vector<Double> LambAtIp1(dimelem,0.0);
+    Vector<Double> LambAtIp2(dimelem,0.0);
+
+    Vector<Double> PerturbedLambAtIp(dimelem,0.0);
+
+    Double jacDet;
+
+    Result.Resize(n*dimelem,0.0);
+    elemLambvec.Resize(dimelem,0.0);
+
+    Vector<Double> intWeights = ptelem->GetIntWeights();
+    Double volume = 0;
+
+    // Loop over all integration points
+    for(Integer actInt=1; actInt <= l; actInt++)
+    {
+      ptelem->GetShFncAtIp(Sf, actInt, elem);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+
+      MeanVelAtIp = NodalMeanVelocity * Sf;
+      VelAtIp = NodalVelocity * Sf;
+
+      PertVelAtIp = VelAtIp - MeanVelAtIp;
+
+      PertVelDerivAtIp = (NodalVelocity-NodalMeanVelocity) * xiDx;
+      MeanVelDerivAtIp = NodalMeanVelocity * xiDx;
+
+      LambAtIp1[0] = PertVelAtIp[1] * (MeanVelDerivAtIp[0][1] - MeanVelDerivAtIp[1][0]);
+      LambAtIp1[1] = PertVelAtIp[0] * (MeanVelDerivAtIp[1][0] - MeanVelDerivAtIp[0][1]);
+      LambAtIp2[0] = MeanVelAtIp[1] * (PertVelDerivAtIp[0][1] - PertVelDerivAtIp[1][0]);
+      LambAtIp2[1] = MeanVelAtIp[0] * (PertVelDerivAtIp[1][0] - PertVelDerivAtIp[0][1]);
+
+      if (dimelem == 3)
+      {
+          LambAtIp1[0] += PertVelAtIp[2] * (MeanVelDerivAtIp[0][2] - MeanVelDerivAtIp[2][0]);
+          LambAtIp1[1] += PertVelAtIp[2] * (MeanVelDerivAtIp[1][2] - MeanVelDerivAtIp[2][1]);
+          LambAtIp1[2] = PertVelAtIp[1] * (MeanVelDerivAtIp[2][1] - MeanVelDerivAtIp[1][2]) +
+                         PertVelAtIp[0] * (MeanVelDerivAtIp[2][0] - MeanVelDerivAtIp[0][2]);
+
+          LambAtIp2[0] += MeanVelAtIp[2] * (PertVelDerivAtIp[0][2] - PertVelDerivAtIp[2][0]);
+          LambAtIp2[1] += MeanVelAtIp[2] * (PertVelDerivAtIp[1][2] - PertVelDerivAtIp[2][1]);
+          LambAtIp2[2] = MeanVelAtIp[1] * (PertVelDerivAtIp[2][1] - PertVelDerivAtIp[1][2]) +
+                            MeanVelAtIp[0] * (PertVelDerivAtIp[2][0] - PertVelDerivAtIp[0][2]);
+      }
+
+      PerturbedLambAtIp = (LambAtIp1 + LambAtIp2);
+      //PerturbedLambAtIp = LambAtIp;
+
+      PerturbedLambAtIp *= (jacDet * intWeights[actInt -1]);
+
+      for(Integer i = 0;i<n;++i){
+        for(Integer d=0;d<dimelem; d++){
+          Result[i*dimelem+d] += Sf[i] * PerturbedLambAtIp[d];
+        }
+      }
+      elemLambvec += PerturbedLambAtIp;
+      volume += jacDet * intWeights[actInt-1];
+    }
+
+    elemLambvec /= volume;
+  }
+
+  void LinearFlowNoiseInt::CalcLambSurfaceTermVel(const Elem* volElem,
+                                                  const Elem* surfElem,
+                                                  const Matrix<Double>& ptVolCoord,
+                                                  const Matrix<Double>& ptSurfCoord,
+                                                  const Matrix<Double> & volumeVel,
+                                                  const Matrix<Double> & volumeMeanVel,
+                                                  Vector<Double> & surfNormal,
+                                                  Double density,
+                                                  Vector<Double> & Result){
+    EXCEPTION("Not implemented yet");
+  }
 
 //===================================================================================
 //=========================== Combustion Noise ======================================
@@ -3060,4 +3470,270 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
       }
     }
   }
+
+
+  // ==================================================================
+  // linMech: add mechanical strain due to magnetostrictive effect
+  // ==================================================================
+
+  AddMagStrictStrainRHSInt::AddMagStrictStrainRHSInt(BaseMaterial* matData,
+                                                     const std::string& readerId,
+                                                     const std::string& regionName,
+                                                     UintMap elemGlobalLocal,
+                                                     SubTensorType type)
+    : LinearForm(), 
+      matData_(matData), 
+      subTensorType_(type),
+      readerId_(readerId),
+      actStep_(0),
+      lastStep_(0),
+      sequenceStep_(1) { // assume, that magnetic results do not come from multi sequence analysis
+  
+    name_ = "AddMagStrictStrainRHSInt";
+  
+    //    isSolDependent_ = true;
+
+    globalToLocalElemeNr_ =  elemGlobalLocal;
+    regionNames_.Push_back(regionName);
+
+    // Specify that we want to use the current step number.
+    mParser_->SetExpr( mHandle_, "step" );
+      
+    // assume, that first calculated time step is 1
+    lastStep_ = 0;
+    
+    //get mechanical bilinear form 
+    bilinearStiff_  = new linElastInt(matData_, subTensorType_);
+
+    //set size of strain (Voigt notation)
+    if ( type == FULL )
+      strainIrr_.Resize(6);
+    else if ( type == AXI )
+      strainIrr_.Resize(4);
+    else
+      strainIrr_.Resize(3);
+  }
+
+  AddMagStrictStrainRHSInt::~AddMagStrictStrainRHSInt()
+  {
+    delete bilinearStiff_;
+  }
+
+  void AddMagStrictStrainRHSInt::CalcElemVector(Vector<double> &elemVec, EntityIterator &ent)  {
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo(ent);
+    ptelem->SetAnsatzFct(ansatzFct1_);
+    const UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    const Vector<Double> &intWeights = ptelem->GetIntWeights();
+    const UInt nrEl =  ent.GetElem()->elemNum;
+    const UInt dim  = ptelem->GetDim();
+
+    // extract pointer and get coords again for the integrator
+    bilinearStiff_->SetAnsatzFct( ansatzFct1_ );
+    bilinearStiff_->ExtractElemInfo(ent);
+    
+    // get magnetic solution
+    Vector<Double> elemSol;
+
+    // get current time step of transient analysis
+    actStep_ = (UInt) mParser_->Eval(mHandle_);
+
+    if ( lastStep_ < actStep_ ) {
+      // get result only once per time step
+      result_ = domain->GetResultHandler()->GetResult( readerId_,
+                                                      sequenceStep_, 
+                                                      actStep_, 
+                                                      MAG_FLUX_DENSITY, 
+                                                      regionNames_[0] );
+      lastStep_ = actStep_;
+    }
+    
+    Result<Double> &  actFlux = 
+      dynamic_cast<Result<Double>&>(*result_);
+    Vector<Double> & fluxVec = actFlux.GetVector();
+    
+    //    std::cout << "Flux: \n " << fluxVec << std::endl;
+
+    //get element sol
+    Vector<Double> vecB(dim);
+    UInt pos = globalToLocalElemeNr_[nrEl]*dim;
+    for (UInt i=0; i<dim; i++)
+      vecB[i]= fluxVec[pos+i];
+
+    //compute irreversible strains
+    computeStrainIrr( vecB );
+
+    // calc dMat and immediately calculate the element stress
+    Matrix<double> dMat;
+    bilinearStiff_->calcDMat(dMat, ent.GetElem());
+    Vector<Double> stress;
+    stress = dMat * strainIrr_;
+
+    elemVec.Resize(numFncs * dim, 0.0);
+    Matrix<double> linBMat;
+    Vector<double> partElemVec;
+        
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {   
+      bilinearStiff_->CalcBMatOnly(linBMat, actIntPt, ptelem, ptCoord_);
+      linBMat.MultT(stress, partElemVec);
+
+      const double jacDet(ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem()));
+
+      partElemVec *= jacDet * intWeights[actIntPt-1];
+      elemVec += partElemVec;
+    }
+
+    LOG_DBG2(linForm) << "AddStrainRHSInt " << ent.GetElem()->elemNum << " -> " << elemVec.ToString();
+  }
+
+  void AddMagStrictStrainRHSInt::computeStrainIrr(Vector<double>& vecB ) {
+
+    //get pointers to the nlFunctions
+    StdVector<ApproxData*> nlinFncs = 
+      matData_->GetNonlinFncs( MAGNETOSTRICTION_NLCURVES );
+
+    //compute angle 
+    Double angleB;
+    if ( abs(vecB[0]) > 1e-5 ) {
+      angleB = abs( std::atan( vecB[1] / vecB[0] ) );
+      angleB *= 180.0/3.1416;
+    }
+    else {
+      angleB = 90.0;
+    }
+
+    //    std::cout << "angle: " << angleB << std::endl;
+
+    StdVector<Double>& anglesCurve =  matData_->GetAnisotropicAngles();
+    UInt pos = 0;
+    Double dist, minDist;
+    minDist = abs( anglesCurve[0] - angleB );
+    for (UInt i=1; i<anglesCurve.GetSize(); i++ ) {
+      dist = abs( anglesCurve[i] - angleB );
+      if ( dist < minDist ) {
+        pos = i;
+        minDist = dist;
+      }
+    }
+
+    //    std::cout << "Use angle: " << anglesCurve[pos] << std::endl;
+
+    Double absB = vecB.NormL2();
+    Double strainVal = nlinFncs[pos]->EvaluateFunc( absB );
+
+    //    std::cout << "Babs: " << absB << "  S: " << strainVal << std::endl;
+
+    //unit vector of B
+    Vector<Double> unitVec = vecB;
+    unitVec /= absB;
+
+    if ( subTensorType_ == FULL ) {
+      strainIrr_[0] = unitVec[0] * unitVec[0] - 1.0/ 3.0; 
+      strainIrr_[1] = unitVec[1] * unitVec[1] - 1.0/ 3.0; 
+      strainIrr_[2] = unitVec[2] * unitVec[2] - 1.0/ 3.0; 
+      strainIrr_[3] = unitVec[1] * unitVec[2]; 
+      strainIrr_[4] = unitVec[0] * unitVec[2]; 
+      strainIrr_[5] = unitVec[0] * unitVec[1];
+      strainIrr_ *= 1.5; 
+      strainIrr_ *= strainVal; 
+    }
+    else 
+      EXCEPTION("AddMagStrictStrainRHSInt: Just 3D implmeneted");
+
+    //    std::cout << "Tensor:\n " << strainIrr_ <<  std::endl;
+  }
+
+
+  // =============================================================================
+  // acoustic RHS from flow simulation (CAA) using flow pressure fluctuations
+  // =============================================================================
+  linFlowPressureRHSInt::linFlowPressureRHSInt( bool isaxi, 
+                                                const std::string& readerId,
+                                                const std::string& regionName ) :
+    LinearForm(),
+    readerId_(readerId),
+    actStep_(0),
+    lastStep_(0),
+    sequenceStep_(1) // assume, that acoustic results do not come from multi sequence analysis
+  {
+    name_ = "linFlowPressureRHSInt";
+    isaxi_ = isaxi;
+    
+    regionNames_.Push_back(regionName);
+
+    // Specify that we want to use the current step number.
+    mParser_->SetExpr( mHandle_, "step" );
+      
+  }
+
+  linFlowPressureRHSInt::~linFlowPressureRHSInt() {}
+  
+  void linFlowPressureRHSInt::CalcElemVector( Vector<Double>& rhsSrc,
+                                                     EntityIterator& ent )
+  {
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    const UInt spacedim = ptelem->GetDim();
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+
+
+    // get current time step of transient analysis
+    actStep_ = (UInt) mParser_->Eval(mHandle_);
+    
+    if ( lastStep_ < actStep_ ) {
+      // get result only once per time step
+      resPress_ = domain->GetResultHandler()->GetStoreSol<Double>( readerId_,
+                                                                   sequenceStep_, 
+                                                                   actStep_, 
+                                                                   FLUIDMECH_PRESSURE, 
+                                                                   regionNames_ );
+      lastStep_ = actStep_;
+    }
+    
+    // retrieve flow pressure for element
+    Vector<Double> elemSol;
+    resPress_->GetElemSolution(elemSol, ent);
+
+    //    std::cout << "Pressure: \n " << elemSol << std::endl;
+
+    rhsSrc.Resize( numFncs );
+    rhsSrc.Init();
+
+    Double jacDet, factor;
+    Vector<Double> solGradAtIp, ShpFncAtIp, CoordAtIp;
+    Matrix<Double> xiDx;
+    solGradAtIp.Resize(spacedim);
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
+      ptelem->GetGlobDerivShFncAtIp( xiDx , actIntPt, ptCoord_, 
+                                     jacDet, ent.GetElem() );     
+      if (isaxi_) {
+        ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent.GetElem() );
+        CoordAtIp = ptCoord_ * ShpFncAtIp;
+        jacDet *= 2 * PI * CoordAtIp[0];
+      }
+      
+      // gradient of flow pressure
+      solGradAtIp.Init();
+      for ( UInt i=0; i<spacedim; i++ ) {
+        for ( UInt j=0; j<numFncs; j++ ) {
+          solGradAtIp[i] += xiDx[j][i] * elemSol[j];
+        }
+      }
+      
+      factor = jacDet * intWeights[actIntPt-1];
+      // source element vector
+      for (UInt i=0; i< numFncs; i++) {      
+        for (UInt j=0; j<spacedim; j++)
+          rhsSrc[i] += factor * xiDx[i][j] * solGradAtIp[j];
+      }
+    }
+  }
+
 } // end of namespace

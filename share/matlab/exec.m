@@ -1,27 +1,20 @@
-% ==============================================================
+% exec
 %
-%    exec
+% Executes a shell command like MATLAB's system function, but uses a
+% clean LD_LIBRARY_PATH.
 %
-%
-%    GENERAL
-%    Executes a shell command like MATLAB's system function, but uses a
-%    clean LD_LIBRARY_PATH.
-%
-%    INPUT/S
-%      cmd       - shell command to be executed
-%        
-%    OUTPUT/S
-%      status    - the shell's exit status
-%      result    - the command's output (stdout)
-%      
-%    ABOUT
-%
-%      -Created:     30 Oct 2007
-%      -Last update: 15 Nov 2007
-%      -Revision:    0.1
-%      -Author:      Jens Grabinger
-%
-% ==============================================================
+% Input Parameters
+%   * cmd       - shell command to be executed
+%     
+% Return Values
+%   * status    - the shell's exit status
+%   * result    - the command's output (stdout)
+%   
+% About
+%   * Created:  30 Oct 2007
+%   * Author:   Jens Grabinger
+%   * Revision: $Id$
+
 
 function [status, result] = exec(cmd)
 

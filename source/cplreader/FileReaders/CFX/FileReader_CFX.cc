@@ -2,14 +2,14 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <string>
+#include <algorithm>
 #include <cstring>
 #include <iostream>
-#include <map>
 #include <set>
 #include <fstream>
 #include <cstdio>
 #include <iomanip>
+#include <typeinfo>
 
 #include "boost/regex.hpp"
 #include "boost/filesystem/operations.hpp"
@@ -21,9 +21,6 @@ namespace fs=boost::filesystem;
 #include "boost/algorithm/string/trim.hpp"
 #include "boost/tokenizer.hpp"
 namespace algo=boost::algorithm;
-
-// #include <pcrecpp.h>
-// #include <muParser.h>
 
 #include "General/exception.hh"
 #include "cplreader/Settings.hh"
@@ -41,10 +38,10 @@ namespace algo=boost::algorithm;
 
 namespace CoupledField
 {
-  std::vector<int> FileReader_CFX::intvec;
-  std::vector<double> FileReader_CFX::doublevec;
-  std::vector<float> FileReader_CFX::floatvec;
-  std::vector<char> FileReader_CFX::charvec;
+  std::vector<int> FileReader_CFX::intvec_;
+  std::vector<double> FileReader_CFX::doublevec_;
+  std::vector<float> FileReader_CFX::floatvec_;
+  std::vector<char> FileReader_CFX::charvec_;
 
   int ind = 0;
 
@@ -52,8 +49,17 @@ namespace CoupledField
                                  const UInt dim,
                                  const UInt numFiles) :
     FileReader(name, dim, numFiles, 1),
+    multiLine_(false),
+    timeStep_(0.0),
     determineFloatDS_(true),
-    numElems_(0)
+    numZones_(0),
+    numVolumes_(0),
+    numBCPs_(0),
+    numNodes_(0),
+    numElems_(0),
+    numVolElems_(0),
+    numSurfElems_(0),
+    whatfile_(0)
   {
     Settings& settings = Settings::Instance();
 
@@ -62,20 +68,262 @@ namespace CoupledField
     baseName_+= "/";
     baseName_+= name_;
     baseName_+= "/";
+    
+    determineFloatDS_ = (settings.GetString("cfxSinglePrecision") == "auto");
   }
 
   FileReader_CFX::~FileReader_CFX()
   {
   }
 
+  template<typename T>
+  T FileReader_CFX::ReadScalar(std::string what,
+                               std::string where,
+                               Integer when,
+                               bool throwEx)
+  {
+    T data;
+    int dattyp = 0;
+    int length = 1;
+    int nsize  = 1;
+    int iopt   = __not_stop_if_failed__;
+    int ioptpar = 0;
+    int nerr   = 0;
+
+    snprintf(what_, sizeof(what_), "%s", what.c_str());
+    snprintf(where_, sizeof(where_), "%s", where.c_str());
+    
+    redsht_(&dattyp, &length, &nerr,
+            what_, where_, &when,
+            &nsize, &iopt, &ioptpar,
+            (float*) &data, (int*) &data, NULL, NULL, (double*) &data, NULL,
+            strlen(what_), strlen(where_), 0);
+    
+    if ( nerr == __io_ok__ ) {
+      return data;
+    } else {
+      if ( throwEx ) CHECK_CFX_IO(nerr);
+      return T();
+    }
+  }
+  
+  std::string FileReader_CFX::ReadString(std::string what,
+                                         std::string where,
+                                         Integer when,
+                                         bool throwEx)
+  {
+    int dattyp = 0;
+    int length = 1;
+    int nsize  = sizeof(carr_);
+    int iopt   = __not_stop_if_failed__;
+    int ioptpar = 0;
+    int nerr   = 0;
+
+    snprintf(what_, sizeof(what_), "%s", what.c_str());
+    snprintf(where_, sizeof(where_), "%s", where.c_str());
+    
+    redsht_(&dattyp, &length, &nerr,
+            what_, where_, &when,
+            &nsize, &iopt, &ioptpar,
+            NULL, NULL, carr_, NULL, NULL, sarr_,
+            strlen(what_), strlen(where_), 0);
+    
+    if ( nerr == __io_ok__ ) {
+      switch ( dattyp ) {
+      case __char_data_type__:
+        return boost::algorithm::trim_right_copy(
+            std::string(carr_, sizeof(carr_)));
+      case __string_data_type__:
+        return boost::algorithm::trim_right_copy(
+            std::string(sarr_, sizeof(sarr_)));
+      default:
+        if (throwEx) EXCEPTION("Dataset does not contain a string");
+        return std::string();
+      }
+    } else {
+      if ( throwEx ) CHECK_CFX_IO(nerr);
+      return std::string();
+    }
+  }
+
+  template<>
+  bool FileReader_CFX::ReadShortVector(std::vector<std::string> &out,
+                                       Integer size,
+                                       std::string what,
+                                       std::string where,
+                                       Integer when,
+                                       bool throwEx)
+  {
+    int dattyp = 0;
+    int length  = 1;
+    int iopt   = __not_stop_if_failed__;
+    int ioptar = 0;
+    int nerr   = 0;
+
+    if ( size < 1 ) size = 1;
+    
+    snprintf(what_, sizeof(what_), "%s", what.c_str());
+    snprintf(where_, sizeof(where_), "%s", where.c_str());
+    
+    charvec_.resize(IO_BUFSIZE*size);
+
+    redsht_(&dattyp, &length, &nerr,
+            what_, where_, &when,
+            &size, &iopt, &ioptar,
+            NULL, NULL, NULL, NULL, NULL, charvec_.data(),
+            strlen(what_), strlen(where_), 0);
+    
+    if ( nerr == __io_ok__ ) {
+      if ( dattyp != __string_data_type__ ) {
+        if (throwEx) EXCEPTION("Dataset does not contain a string array");
+        return false;
+      }
+      
+      out.clear();
+      out.reserve(size);
+
+      for ( UInt i=0; i<(UInt)size; ++i )
+      {
+        out.push_back(
+            boost::algorithm::trim_right_copy(
+                std::string(&charvec_[i*IO_BUFSIZE], IO_BUFSIZE)));
+      }
+      
+      return true;
+    } else {
+      if ( throwEx ) CHECK_CFX_IO(nerr);
+      return false;
+    }
+  }
+  
+  template<typename T>
+  bool FileReader_CFX::ReadShortVector(std::vector<T> &out,
+                                       Integer size,
+                                       std::string what,
+                                       std::string where,
+                                       Integer when,
+                                       bool throwEx)
+  {
+    int dattyp = 0;
+    int length = 1;
+    int iopt   = __not_stop_if_failed__;
+    int ioptpar = 0;
+    int nerr   = 0;
+    T *datarray;
+    
+    if (size < 1) size = 1;
+    out.resize(size*length);
+    datarray = out.data();
+    
+    snprintf(what_, sizeof(what_), "%s", what.c_str());
+    snprintf(where_, sizeof(where_), "%s", where.c_str());
+    
+
+    redsht_(&dattyp, &length, &nerr,
+        what_, where_, &when,
+        &size, &iopt, &ioptpar,
+        (float*)datarray, (int*)datarray, NULL, NULL, (double*)datarray, NULL,
+        strlen(what_), strlen(where_), 0);
+
+    if ( nerr == __io_ok__ ) {
+      out.resize(size*length);
+      return true;
+    } else { 
+      if ( throwEx ) CHECK_CFX_IO(nerr);
+      return false;
+    }
+
+  }
+
+  template<typename T>
+  bool FileReader_CFX::ReadLongVector(std::vector<T> &out,
+                                      Integer size,
+                                      std::string what,
+                                      std::string where,
+                                      Integer when,
+                                      bool throwEx)
+  {
+    int dattyp;
+    int length = 1;
+    int iopt   = __not_stop_if_failed__;
+    int nerr   = 0;
+    T *datarray;
+    
+    if (size < 1) size = 1;
+    out.resize(size*length);
+    datarray = out.data();
+    
+    const std::type_info &tiOut = typeid(T);
+    if ( tiOut == typeid(float) ) {
+      dattyp = __real_data_type__;
+    } else if ( tiOut == typeid(int) || tiOut == typeid(unsigned int) ) {
+      dattyp = __int_data_type__;
+    } else if ( tiOut == typeid(double) ) {
+      dattyp = __double_data_type__;
+    } else {
+      if (throwEx) EXCEPTION("Data type not supported: " << tiOut.name());
+      return false;
+    }
+
+    snprintf(what_, sizeof(what_), "%s", what.c_str());
+    snprintf(where_, sizeof(where_), "%s", where.c_str());
+
+    readlong_(&dattyp, &nerr,
+        what_, where_, &when,
+        &size, &iopt,
+        (float*)datarray, (int*)datarray, NULL, NULL, (double*)datarray, NULL,
+        strlen(what_), strlen(where_), 0);
+
+    if ( nerr == __io_ok__ ) {
+      return true;
+    } else { 
+      if ( throwEx ) CHECK_CFX_IO(nerr);
+      return false;
+    }
+
+  }
+  
+  bool FileReader_CFX::OpenCFXFile(const std::string &filename, bool throwEx) {
+    int nerr;
+    int whatfile = __io_open_primaryfile__;
+    
+    snprintf(fn_, sizeof(fn_), "%s", filename.c_str());
+
+    openfile_(&nerr, fn_, &whatfile, strlen(fn_));
+    
+    if ( nerr == __io_ok__ ) {
+      return true;
+    } else {
+      if ( throwEx ) CHECK_CFX_IO(nerr);
+      return false;
+    }
+  }
+  
+  bool FileReader_CFX::CloseCFXFile(bool throwEx) {
+    int nerr;
+    int whatfile = __io_close_primaryfile__;
+    
+    closefile_(&nerr, &whatfile);
+    
+    if ( nerr == __io_ok__ ) {
+      return true;
+    } else {
+      if ( throwEx ) CHECK_CFX_IO(nerr);
+      return false;
+    }
+  }
+  
   void FileReader_CFX::Init()
   {
     Settings& settings = Settings::Instance();
     
+    bool beVerbose = settings.GetInt("verbose");
+    int firstStep = settings.GetInt("firststep");
+    int nerr = 0;
+    
     std::stringstream sstr;
     sstr << baseName_ << name_ << ".res";
     std::string resFileName = sstr.str();
-    std::cout << "resFileName: " << resFileName << std::endl;
 
     if(fs::exists(resFileName))
     {
@@ -84,62 +332,70 @@ namespace CoupledField
       //     Open RESULTS file
       //-----------------------------------------------------------------------
 
-      snprintf(fn, sizeof(fn), "%s", resFileName.c_str());
-      whatfile = __io_open_primaryfile__;
-      if(settings.GetInt("verbose"))
-      {
-        std::cout << "Trying to open CFX results file " << fn
+      if ( beVerbose ) {
+        std::cout << "Trying to open CFX results file " << resFileName
                   << "." << std::endl;
       }
 
-      openfile_(&nerr, fn, &whatfile, strlen(fn));
-      CHECK_CFX_IO(nerr);
+      OpenCFXFile(resFileName);
 
       //-----------------------------------------------------------------------
       //     Read the latest time step number
       //-----------------------------------------------------------------------
-
-      sprintf(what, "G/TRANSIENT");
-      sprintf(where, "ZN1");
-
-      when  = -1;
-      length= 3;
-      nsize = 1;
-      iopt   = __not_stop_if_failed__;
-      ioptar = 0;
-      intvec.resize(length*nsize);
-      floatvec.resize(length*nsize);
-      int its;
-
-      redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-              &iopt, &ioptar,
-              &floatvec[0],&intvec[0],carr,larr,darr,sarr,
-              strlen(what), strlen(where), 0);
+      
+      sprintf(what_, "G/TRANSIENT");
+      sprintf(where_, "ZN1");
+      
+      int when;
+      int dattyp = 0;
+      int length = 1;
+      int nsize  = 3;
+      int iopt   = __not_stop_if_failed__;
+      int ioptpar =   0;
+      intvec_.resize(length*nsize);
+      floatvec_.resize(length*nsize);
+      
+      try {
+        when = settings.GetInt("cfxLastStep");
+      } catch (Exception &ex) {
+        when = -1;
+      }
+      
+      redsht_(&dattyp, &length, &nerr, what_, where_, &when, &nsize,
+              &iopt, &ioptpar,
+              floatvec_.data(), intvec_.data(), NULL, NULL, NULL, NULL,
+              strlen(what_), strlen(where_), 0);
+      if ( nerr == __io_ds_not_found__ ) {
+        EXCEPTION("Last time step of CFX run could not be determined automatically.\n"
+                  << "Please provide it using the --cfxLastStep option.");
+      }
       CHECK_CFX_IO(nerr);
-
-      its = intvec[2];
+      
+      int its = intvec_[2];
 
       //-----------------------------------------------------------------------
       //     Read the trninfo data set
       //-----------------------------------------------------------------------
-      sprintf(what, "G/TRN_INFO");
-      sprintf(where, "EVERY");
-      when  = its;
+      int ntrn;
 
-      dattyp    = -3;
-      length    = 1;
-      nsize     = its;
-      iopt   = __stop_if_failed__;
-      ioptar = 0;
-      int ntrn, dummy;
-      floatvec.resize(length*nsize);
-      intvec.resize(length*nsize);
-      charvec.resize(length*nsize*80);
+      sprintf(what_, "G/TRN_INFO");
+      sprintf(where_, "EVERY");
+      
+      when   = its;
+      dattyp =  -3;
+      length =   1;
+      nsize  = its;
+      iopt   = __not_stop_if_failed__;
+      ioptpar =   0;
+      floatvec_.resize(length*nsize);
+      intvec_.resize(length*nsize);
+      charvec_.resize(length*nsize*80);
 
-      redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-              &iopt, &ioptar,
-              &floatvec[0],&intvec[0],carr,&dummy,darr,&charvec[0],
-              strlen(what), strlen(where), 0);
+      redsht_(&dattyp, &length, &nerr,
+              what_, where_, &when,
+              &nsize, &iopt, &ioptpar,
+              &floatvec_[0], &intvec_[0], carr_, NULL, darr_, &charvec_[0],
+              strlen(what_), strlen(where_), 0);
       CHECK_CFX_IO(nerr);
 
       ntrn = nsize;
@@ -147,20 +403,22 @@ namespace CoupledField
       if ( settings.GetDouble("timestep") <= 0 )
       {
         settings.SetDouble("timestep",
-            (floatvec[1]-floatvec[0])/(float)(intvec[1]-intvec[0]));
+            (floatvec_[1]-floatvec_[0])/(float)(intvec_[1]-intvec_[0]));
       }
 
       numSteps_ = 0;
-      transientFNs_.clear();
+      trnFilenames_.clear();
       timeStepNumbers_.clear();
-      transientFNs_.reserve(ntrn);
+      trnFilenames_.reserve(ntrn);
       timeStepNumbers_.reserve(ntrn);
 
       for(int i = 0; i< ntrn; i++)
       {
-        int its  = intvec[i];
+        int its  = intvec_[i];
 
-        char* trnnam = &charvec[i*80];
+        if ( its < firstStep ) continue;
+        
+        char* trnnam = &charvec_[i*80];
         int n;
         for(n = 0; n< 80; n++)
         {
@@ -184,7 +442,7 @@ namespace CoupledField
           inFile_.close();
 
           numSteps_++;
-          transientFNs_.push_back(fileName);
+          trnFilenames_.push_back(fileName);
           timeStepNumbers_.push_back(its);
         }
 
@@ -195,34 +453,17 @@ namespace CoupledField
       //     to get the name of the def file and the time step
       //-----------------------------------------------------------------------
 
-      sprintf(what, "G/COMMANDS");
-      sprintf(where, "EVERY");
+      std::vector<std::string> commands;
+      ReadShortVector(commands, 10000, "G/COMMANDS");
 
-      dattyp = __string_data_type__;
-      when  = its;
-      length= 1000000;
-      nsize = 1;
-      iopt   = __stop_if_failed__;
-      ioptar = 0;
-      charvec.resize(length*nsize);
-      std::fill(charvec.begin(), charvec.end(), 0);
-      
-      redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-              &iopt, &ioptar,
-              rarr,iarr,carr,larr,darr,&charvec[0],
-              strlen(what), strlen(where), 0);
-      CHECK_CFX_IO(nerr);
-
-      whatfile = __io_close_primaryfile__;
-      closefile_(&nerr, &whatfile);
-      CHECK_CFX_IO(nerr);
+      CloseCFXFile();
 
       //-----------------------------------------------------------------------
       //     Parse the command string from the CFX results file and
       //     get infos about definition file, time unit and timestep
       //-----------------------------------------------------------------------
 
-      GetInfosFromCommand(nsize);
+      GetInfosFromCommand(commands);
     }
     else
     {
@@ -233,49 +474,58 @@ namespace CoupledField
       UInt stepNum;
       std::string fn;
 
-      for ( fs::directory_iterator dir_itr( trnDir );
-            dir_itr != end_iter;
-            ++dir_itr )
-      {
-        if ( !fs::is_directory( *dir_itr ) )
+      if(fs::exists(trnDir)) {
+        for ( fs::directory_iterator dir_itr( trnDir );
+              dir_itr != end_iter;
+              ++dir_itr )
         {
-          fn = dir_itr->path().filename().string();
-
-          if(algo::ends_with(fn, ".trn"))
+          if ( !fs::is_directory( *dir_itr ) )
           {
-            sstr.clear(); sstr.str("");
-            sstr << fn;
-            sstr >> stepNum;
-            stepNumSet.insert(stepNum);
+            fn = dir_itr->path().filename().string();
+  
+            if(algo::ends_with(fn, ".trn"))
+            {
+              sstr.clear(); sstr.str("");
+              sstr << fn;
+              sstr >> stepNum;
+              stepNumSet.insert(stepNum);
+            }
           }
         }
-      }
 
-      it = stepNumSet.begin();
-      end = stepNumSet.end();
+        it = stepNumSet.lower_bound(firstStep);
+        end = stepNumSet.end();
       
-      transientFNs_.reserve(stepNumSet.size());
-      timeStepNumbers_.reserve(stepNumSet.size());
+        trnFilenames_.reserve(stepNumSet.size());
+        timeStepNumbers_.reserve(stepNumSet.size());
 
-      for( ; it != end; it++ )
-      {
-        stepNum = *it;
-        sstr.clear(); sstr.str("");
-        sstr << baseName_ << name_ << "/" << stepNum << ".trn";
+        for( ; it != end; it++ )
+        {
+          stepNum = *it;
+          sstr.clear(); sstr.str("");
+          sstr << baseName_ << name_ << "/" << stepNum << ".trn";
 
-        fn = sstr.str();
+          fn = sstr.str();
 
-        numSteps_++;
-        transientFNs_.push_back(fn);
-        timeStepNumbers_.push_back(stepNum);
+          numSteps_++;
+          trnFilenames_.push_back(fn);
+          timeStepNumbers_.push_back(stepNum);
+        }
       }
     }
 
-    if(settings.GetDouble("timestep") <= 0)
-      EXCEPTION("Time step could not be determined. Please specify it using --timestep X.");
-
-    CheckTransientFiles();
-
+    if(!settings.GetInt("justmesh")) 
+    {
+      if(settings.GetDouble("timestep") <= 0) {
+        EXCEPTION("Time step could not be determined. Please specify it using --timestep X.");
+      } else {
+        CheckTransientFiles();
+      }
+      if ( numSteps_ == 0 ) {
+        EXCEPTION("No usable .trn files found. Either there are no .trn files"
+            << " or the value of the --firststep option is too high.");
+      }
+    }
     if (settings.GetInt("numsteps"))
     {
       UInt tmp = (UInt) settings.GetInt("numsteps");
@@ -293,734 +543,478 @@ namespace CoupledField
     std::vector< std::string > defFileNames;
     if(settings.GetString("deffile") != "")
       defFileNames.push_back(baseName_ + settings.GetString("deffile").c_str());
-    if(defFile != "")
-      defFileNames.push_back(baseName_ + defFile);
+    if(defFile_ != "")
+      defFileNames.push_back(baseName_ + defFile_);
     defFileNames.push_back(baseName_ + name_ + ".def");
-    defFile = "";
+    defFile_ = "";
 
     for(UInt i=0; i<defFileNames.size(); i++)
     {
-      if(settings.GetInt("verbose"))
+      if(beVerbose)
       {
-        std::cerr << "Trying to open deffile: " << defFileNames[i] << " ";
+        std::cout << "Trying to open CFX definition file: "
+                  << defFileNames[i] << " ";
+        std::cout.flush();
       }
 
       inFile_.clear();
       inFile_.open(defFileNames[i].c_str());
       if (inFile_)
       {
-        defFile = defFileNames[i];
+        defFile_ = defFileNames[i];
         inFile_.close();
-        if(settings.GetInt("verbose"))
+        if(beVerbose)
         {
-          std::cerr << "-> OK!" << std::endl;
+          std::cout << "-> OK!" << std::endl;
         }
 
         break;
       }
 
-      if(settings.GetInt("verbose"))
+      if(beVerbose)
       {
-        std::cerr << "-> failed!" << std::endl;
+        std::cout << "-> failed!" << std::endl;
       }
     }
 
-    if(defFile == "")
+    if(defFile_ == "")
     {
-      EXCEPTION("Can not find definition file.");
+      EXCEPTION("Cannot find definition file.");
     }
 
-    snprintf(fn, sizeof(fn),"%s", defFile.c_str());
-    whatfile = __io_open_primaryfile__;
-    openfile_(&nerr,
-              fn,
-              &whatfile,
-              strlen(fn));
-    CHECK_CFX_IO(nerr);
-
+    OpenCFXFile(defFile_);
+    
     //-----------------------------------------------------------------------
-    //     Reading number of vertices: NVX
+    // number of zones
     //-----------------------------------------------------------------------
-
-    sprintf(what, "G/NVX");
-    sprintf(where, "ZN1");
-    when  = 0;
-
-    dattyp = __int_data_type__;
-    length = 1;
-    nsize  = 1;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-
-    nvx = 0;
-
-    redsht_(&dattyp, &length, &nerr,
-            what, where, &when,
-            &nsize,
-            &iopt, &ioptar,
-            rarr, &nvx, carr, larr, darr, sarr,
-            strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-
-    if(settings.GetInt("verbose"))
-    {
-      printf("Number of vertices: %d\n", nvx);
+    
+    numZones_ =  ReadScalar<UInt>("G/NZN");
+    if ( beVerbose ) {
+      printf("Number of domains: %d\n", numZones_);
+    }
+    
+    nodeOffsetPerZone_.resize(numZones_);
+    elemOffsetPerZone_.resize(numZones_);
+    
+    std::vector< std::string > zoneNames;
+    zoneNames.resize(numZones_);
+    
+    //-----------------------------------------------------------------------
+    // number of volume regions
+    //-----------------------------------------------------------------------
+    
+    numVolumes_ = ReadScalar<UInt>("G/NVL");
+    if ( beVerbose ) {
+      printf("Number of volume regions: %d\n", numVolumes_);
     }
 
-
+    volumes_.resize(numVolumes_);
+    
     //-----------------------------------------------------------------------
-    //     Reading element connectivity
+    // number of surface regions
     //-----------------------------------------------------------------------
-    //
-    //---- Number of element sets
-    //
-    sprintf(what, "G/NES");
-    sprintf(where, "ZN1");
-    when  = 0;
-    int nes;
-
-    dattyp = __int_data_type__;
-    length = 1;
-    nsize  = 1;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-
-    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-            &iopt, &ioptar,
-            rarr,&nes,carr,larr,darr,sarr, strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-
-    if(settings.GetInt("verbose"))
-    {
-      printf("Number of element sets, NES= %d\n", nes);
+    
+    numBCPs_ = ReadScalar<UInt>("G/NBCP");
+    if ( beVerbose ) {
+      printf("Number of surface regions: %d\n", numBCPs_);
     }
 
-    numVolRegions_ = nes;
-
-    //
-    //---- Number of boundary patches
-    //
-    sprintf(what, "G/NBCP");
-    sprintf(where, "EVERY");
-    when  = 0;
-    int nbcp;
-
-    dattyp = __int_data_type__;
-    length = 1;
-    nsize  = 1;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-
-    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-            &iopt, &ioptar,
-            rarr,&nbcp,carr,larr,darr,sarr, strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-
-    if(settings.GetInt("verbose"))
-    {
-      printf("Number of boundary patches, NBCP = %d\n", nbcp);
-    }
-
-    numRegions_ = numVolRegions_ + nbcp;
-    numNodesPerRegion_.resize(numRegions_, nvx);
+    faceSetsPerBCP_.resize(numBCPs_);
+    numRegions_ = numVolumes_ + numBCPs_;
+    numNodesPerRegion_.resize(numRegions_, 0);
     numElemsPerRegion_.resize(numRegions_, 0);
-
-    //
-    //---- Number of face sets
-    //
-    sprintf(what, "G/NFS");
-    sprintf(where, "ZN1");
-    when  = 0;
-    int nfs;
-
-    dattyp = __int_data_type__;
-    length = 1;
-    nsize  = 1;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-
-    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-            &iopt, &ioptar,
-            rarr,&nfs,carr,larr,darr,sarr, strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-
-    if(settings.GetInt("verbose"))
-    {
-      printf("Number of face sets, NFS = %d\n", nfs);
-    }
-    
-    numFaceSets_ = nfs;
-
-    //
-    //---- Number of elements per set
-    //
-    sprintf(what, "G/NELES");
-    sprintf(where, "ZN1");
-    when  = 0;
-
-    dattyp = __int_data_type__;
-    length = 1;
-    nsize  = numVolRegions_;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-    intvec.resize(length*nsize);
-
-    redsht_( &dattyp, &length, &nerr,
-             what, where, &when, &nsize,
-             &iopt, &ioptar,
-             rarr, &intvec[0], carr, larr, darr, sarr,
-             strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-
-    for ( UInt i=0; i<numVolRegions_; ++i )
-    {
-      numElemsPerRegion_[i] = intvec[i];
-      numElems_ += numElemsPerRegion_[i];
-    }
-    
-    //
-    //---- start index (in KSFBCP) of surfaces per boundary patch
-    //
-    sprintf(what, "G/IPSFBCP");
-    sprintf(where, "EVERY");
-    when  = 0;
-
-    dattyp = __int_data_type__;
-    length = 1;
-    nsize  = nbcp+1;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-    intvec.resize(length*nsize);
-
-    redsht_( &dattyp, &length, &nerr,
-             what, where, &when, &nsize,
-             &iopt, &ioptar,
-             rarr, &intvec[0], carr, larr, darr, sarr,
-             strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-    
-    std::vector<UInt> bcpStartFS;
-    bcpStartFS.resize(nsize, 0);
-    std::copy(intvec.begin(), intvec.end(), bcpStartFS.begin());
-    
-    //
-    //---- map surface => face set
-    //
-    // KSFFS is a permutation of the surface numbers to obtain face set numbers
-    sprintf(what, "G/KSFFS");
-    sprintf(where, "ZN1");
-    when  = 0;
-
-    dattyp = __int_data_type__;
-    length = 1;
-    nsize  = numFaceSets_;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-    intvec.resize(length*nsize);
-
-    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-            &iopt, &ioptar,
-            rarr,&intvec[0],carr,larr,darr,sarr, strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-
-		// Here we assume, that there are as many surfaces as face sets (NSF==NFS).
-		// If that is not the case, things will go wrong!
-    std::vector<UInt> mapSurface2FaceSet;
-    mapSurface2FaceSet.resize(numFaceSets_, 0);
-    
-    for ( UInt i=0; i<numFaceSets_; ++i )
-    {
-      mapSurface2FaceSet[intvec[i]-1] = i;
-    }
-    
-    //
-    //---- surfaces per boundary patch
-    //
-    // Unify those surfaces that form a boundary patch
-    sprintf(what, "G/KSFBCP");
-    sprintf(where, "EVERY");
-    when  = 0;
-
-    dattyp = __int_data_type__;
-    length = 1;
-    nsize  = numFaceSets_;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-    intvec.resize(length*nsize);
-
-    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-            &iopt, &ioptar,
-            rarr,&intvec[0],carr,larr,darr,sarr, strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-
-		// initialize vector with -1, which means that face set will not be used
-    mapFaceSet2Region_.resize(numFaceSets_, -1);
-    
-    for ( UInt iBCP=0; iBCP<(UInt)nbcp; ++iBCP )
-    {
-      UInt iFS = bcpStartFS[iBCP];
-      do {
-        if (intvec[iFS-1] > 0) // intvec[iFS-1]==0 means that surface is unused
-          mapFaceSet2Region_[ mapSurface2FaceSet[ intvec[iFS-1] -1 ] ] = iBCP+numVolRegions_;
-      } while ( ++iFS < bcpStartFS[iBCP+1] );
-    }
-    
-    //
-    //---- number of surface elements per surface region
-    //
-    sprintf(what, "G/NFCFS");
-    sprintf(where, "ZN1");
-    when = 0;
-
-    dattyp = __int_data_type__;
-    length = 1;
-    nsize  = numFaceSets_;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-    intvec.resize(length*nsize);
-
-    redsht_( &dattyp, &length, &nerr,
-             what, where, &when, &nsize,
-             &iopt, &ioptar,
-             rarr, &intvec[0], carr, larr, darr, sarr,
-             strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-
-    numElemsPerFaceSet_.resize(numFaceSets_);
-    
-    for ( UInt i=0; i<numFaceSets_; ++i )
-    {
-      numElemsPerFaceSet_[i] = intvec[i];
-      if ( mapFaceSet2Region_[i] < 0 ) continue;
-      numElemsPerRegion_[mapFaceSet2Region_[i]] += intvec[i];
-      numElems_ += intvec[i];
-    }
-    
-    //---- Element type per element set
-    //---   elem type = 4: tet  , 4 nodes
-    //---             = 5: wedge, 6 nodes
-    //---             = 6: hex,   8 nodes
-    //---             = 7: pyr,   5 nodes
-
-    sprintf(what, "G/ILTPES");
-    sprintf(where, "ZN1");
-    when  = 0;
-
-    dattyp = __int_data_type__;
-    length = 1;
-    nsize  = numVolRegions_;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-    intvec.resize(length*nsize);
-
-    redsht_( &dattyp, &length, &nerr,
-             what, where, &when, &nsize,
-             &iopt, &ioptar,
-             rarr, &intvec[0], carr, larr, darr, sarr,
-             strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-
-    //
-    //---- loop over all element sets
-    //
-    regionElemTypes_.resize(numVolRegions_);
-    
-    for (int ies = 1; ies <= (int)numVolRegions_; ++ies)
-    {
-      //
-      //---- number of nodes per element
-      //
-      switch (intvec[ies-1])
-      {
-        case 4:
-          regionElemTypes_[ies-1] = Elem::TET4;
-          break;
-        case 5:
-          regionElemTypes_[ies-1] = Elem::WEDGE6;
-          break;
-        case 6:
-          regionElemTypes_[ies-1] = Elem::HEXA8;
-          break;
-        case 7:
-          regionElemTypes_[ies-1] = Elem::PYRA5;
-          break;
-        default:
-          regionElemTypes_[ies-1] = Elem::UNDEF;
-          break;
-      }
-
-      UInt nENod = Elem::GetNumElemNodes(*regionElemTypes_.rbegin());
-      if ( nENod > maxNumElemNodes_ )
-        maxNumElemNodes_ = nENod;
-
-      if(settings.GetInt("verbose"))
-      {
-        printf("ES: %d\nNumber of Elements: %d\nElem type: %d\n",
-               ies, nsize, intvec[ies-1]);
-
-
-        std::cout << "Partition " << (ies)
-                  << " nodes: " << numNodesPerRegion_[ies-1]
-                  << " elems: " << numElemsPerRegion_[ies-1]
-                  << std::endl;
-      }
-    }
-
-    
-    //
-    //---- read regions names
-    //
-    sprintf(what, "G/CLBVL");
-    sprintf(where, "ZN1");
-
-    dattyp = __string_data_type__;
-    when   = 0;
-    length = numVolRegions_;
-    nsize  = 80;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-    charvec.resize(length*nsize);
-    
-    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-            &iopt, &ioptar,
-            rarr,iarr,carr,larr,darr,&charvec[0],
-            strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-
     regionNames_.resize(numRegions_);
     
-    for ( UInt iRegion=0; iRegion<numVolRegions_; ++iRegion )
-    {
-      char *regionName = &charvec[iRegion*80];
-      
-      for ( UInt n=79; n>0; --n )
-      {
-        if ( isblank(regionName[n]) )
-          regionName[n] = 0;
-        else
-          break;
-      }
-      
-      sstr.str("");
-      sstr << regionName;
-      regionNames_[iRegion] = sstr.str();
-      
-      std::replace( regionNames_[iRegion].begin(),
-                    regionNames_[iRegion].end(),
-                    ' ', '_' );
-    }
-
-    //
-    //---- read regions names
-    //
-    sprintf(what, "G/NAMEMAP");
-    sprintf(where, "EVERY");
-
-    dattyp = __string_data_type__;
-    when   = 0;
-    length = 4;
-    nsize  = numRegions_;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-    charvec.resize(80*length*nsize);
+    //-----------------------------------------------------------------------
+    // Names of domains and boundary condition patches
+    //-----------------------------------------------------------------------
+    Integer nzif = ReadScalar<Integer>("G/NZIF", "EVERY", 0, false),
+            nvp = ReadScalar<Integer>("G/NVP", "EVERY", 0, false);
+    UInt tmp;
+    std::vector< std::string > nameMap;
+    std::istringstream iss;
+    ReadShortVector(nameMap, 4*(numZones_+numBCPs_+nzif+nvp), "G/NAMEMAP");
     
-    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-            &iopt, &ioptar,
-            rarr,iarr,carr,larr,darr,&charvec[0],
-            strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-    
-    // get rid of trailing spaces
-    for ( UInt i=0; i<(UInt)nsize; ++i ) {
-      char *name = &charvec[i*80];
-      for ( UInt n=79; n>0; --n ) {
-        if ( isblank(name[n]) )
-          name[n] = 0;
-        else
-          break;
+    for ( UInt i=0, numEntries=nameMap.size()/4; i<numEntries; ++i ) {
+      if ( nameMap[4*i+3] == "ZN" ) {
+        nameMap[4*i+1].replace(0, 2, "");
+        iss.clear();
+        iss.str(nameMap[4*i+1]);
+        iss >> tmp;
+        if ( tmp > 0 && tmp <= numZones_ ) {
+          zoneNames[tmp-1] = nameMap[4*i];
+        }
+      } else if ( nameMap[4*i+3] == "BCP" ) {
+        nameMap[4*i+1].replace(0, 3, "");
+        iss.clear();
+        iss.str(nameMap[4*i+1]);
+        iss >> tmp;
+        if ( tmp > 0 && tmp <= numBCPs_ ) {
+          replace(nameMap[4*i].begin(), nameMap[4*i].end(), ' ', '_');
+          regionNames_[tmp-1+numVolumes_] = nameMap[4*i];
+        }
       }
     }
-    
-    for ( UInt i=0; i<numRegions_; ++i)
-    {
-      char *regionName = &charvec[i*4*80];
-      char *cfxID = &charvec[(i*4+1)*80];
+
+    //------------------------------------------------------------------------
+    // Loop over all zones
+    //------------------------------------------------------------------------
+    Integer nvx, nel, nvl, nes;
+    UInt numElemNodes, currVol = 0;
+    ElemSet newES;
+    std::ostringstream zoneStr;
+    std::vector<Integer> kesvl, ipesvl, iltpes, neles;
+    std::vector<std::string> volNames;
+
+    for ( UInt iZone=1; iZone<=numZones_; ++iZone ) {
+      zoneStr.str("");
+      zoneStr << "ZN" << iZone;
+
+      //----------------------------------------------------------------------
+      // number of vertices: NVX
+      //----------------------------------------------------------------------
+      nvx = ReadScalar<Integer>("G/NVX", zoneStr.str());
       
-      // if cfxID begins in "BCP", we have a boundary patch
-      // (there are other entities in NAMEMAP as well)
-      if ( strncmp(cfxID, "BCP", 3) == 0 )
-      {
-        UInt bcpNum = 0;
-        
-        // overwrite "BCP" with blanks, so we can parse the trailing number
-        cfxID[0] = ' '; cfxID[1] = ' '; cfxID[2] = ' ';
-        sstr.clear();
-        sstr.str(cfxID);
-        sstr >> bcpNum;
-        
-        if ( sstr.fail() || bcpNum < 1 || bcpNum > (UInt)nbcp) {
-          EXCEPTION("Invalid boundary patch number: " << cfxID);
+      nodeOffsetPerZone_[iZone-1] = numNodes_;
+      numNodes_ += (UInt) nvx;
+
+      //----------------------------------------------------------------------
+      // number of elements: NEL
+      //----------------------------------------------------------------------
+      nel = ReadScalar<Integer>("G/NEL", zoneStr.str());
+      
+      elemOffsetPerZone_[iZone-1] = numElems_;
+      numElems_ += (UInt) nel;
+      
+      //----------------------------------------------------------------------
+      // number of volumes: NVL
+      //----------------------------------------------------------------------
+      nvl = ReadScalar<Integer>("G/NVL", zoneStr.str());
+      
+      //----------------------------------------------------------------------
+      // volume labels: CLBVL
+      //----------------------------------------------------------------------
+      ReadShortVector(volNames, nvl, "G/CLBVL", zoneStr.str());
+      
+      //----------------------------------------------------------------------
+      // number of element sets: NES
+      //----------------------------------------------------------------------
+      nes = ReadScalar<Integer>("G/NES", zoneStr.str());
+      
+      //----------------------------------------------------------------------
+      // number of elements per element sets: NELES
+      //----------------------------------------------------------------------
+      ReadShortVector(neles, nes, "G/NELES", zoneStr.str());
+      
+      //----------------------------------------------------------------------
+      // types of element sets: ILTPES
+      //----------------------------------------------------------------------
+      //---   elem type = 4: tet  , 4 nodes
+      //---             = 5: wedge, 6 nodes
+      //---             = 6: hex,   8 nodes
+      //---             = 7: pyr,   5 nodes
+      ReadShortVector(iltpes, nes, "G/ILTPES", zoneStr.str());
+      
+      //----------------------------------------------------------------------
+      // element sets per volume: KESVL, IPESVL
+      //----------------------------------------------------------------------
+      ReadShortVector(kesvl, nes, "G/KESVL", zoneStr.str());
+      ReadShortVector(ipesvl, nvl+1, "G/IPESVL", zoneStr.str());
+
+      for ( Integer iVol=0; iVol<nvl; ++iVol, ++currVol ) {
+        volumes_[currVol].zone = iZone;
+        regionNames_[currVol] = zoneNames[iZone-1] + "." + volNames[iVol];
+        replace( regionNames_[currVol].begin(), regionNames_[currVol].end(),
+                 ' ', '_' );
+
+        for ( Integer ies=ipesvl[iVol]; ies<ipesvl[iVol+1]; ++ies ) {
+          newES.num = (UInt) kesvl[ies-1];
+          newES.numElems = (UInt) neles[ies-1];
+          switch (iltpes[ies-1])
+          {
+            case 4:
+              newES.elemType = Elem::TET4;
+              break;
+            case 5:
+              newES.elemType = Elem::WEDGE6;
+              break;
+            case 6:
+              newES.elemType = Elem::HEXA8;
+              break;
+            case 7:
+              newES.elemType = Elem::PYRA5;
+              break;
+            default:
+              newES.elemType = Elem::UNDEF;
+              break;
+          }
+
+          volumes_[currVol].elemSets.push_back(newES);
+          
+          numElemNodes = Elem::GetNumElemNodes(newES.elemType);
+          if ( numElemNodes > maxNumElemNodes_ )
+            maxNumElemNodes_ = numElemNodes;
+
+          numElemsPerRegion_[currVol] += newES.numElems;
         }
         
-        // store name of boundary patch
-        sstr.clear();
-        sstr.str("");
-        sstr << regionName;
-        regionNames_[bcpNum-1+numVolRegions_] = sstr.str();
+        if (beVerbose)
+        {
+          std::cout << "- Volume region  '" << regionNames_[currVol] << "':\t"
+              << numElemsPerRegion_[currVol] << " Elements\n";
+        }
+      } // loop over iVol
+    } // loop over iZone
+
+    numVolElems_ = numElems_;
+
+    //-----------------------------------------------------------------------
+    // Surfaces and face sets
+    //-----------------------------------------------------------------------
+    Integer nfs, nsf, sfIdx;
+    std::vector<Integer> ksffs, ipsffs, nfcfs;
+    std::vector<FaceSet> surfaces;
+    
+    nsf = ReadScalar<Integer>("G/NSF");   // total number of surfaces
+    surfaces.resize(nsf);
+
+    for ( UInt iZone=1; iZone<=numZones_; ++iZone ) {
+      zoneStr.str("");
+      zoneStr << "ZN" << iZone;
+
+      nfs = ReadScalar<Integer>("G/NFS", zoneStr.str());
+      nsf = ReadScalar<Integer>("G/NSF", zoneStr.str());
+      if ( nfs != nsf ) {
+        WARN("The number of face sets (NFS=" << nfs
+             << ") is not equal to the number of surfaces (NSF=" << nsf
+             << ") in domain '" << zoneStr.str()
+             << "'. This case has never been tested!");
+      }
+
+      
+      ReadShortVector(ksffs, nsf, "G/KSFFS", zoneStr.str());
+      ReadShortVector(ipsffs, nfs+1, "G/IPSFFS", zoneStr.str());
+      ReadShortVector(nfcfs, nfs, "G/NFCFS", zoneStr.str());
+      
+      for ( Integer ifs=0; ifs<nfs; ++ifs ) {
+        for ( Integer iSurf=ipsffs[ifs]; iSurf<ipsffs[ifs+1]; ++iSurf ) {
+          sfIdx = ksffs[iSurf-1] - 1;
+          surfaces[sfIdx].zone = iZone;
+          surfaces[sfIdx].num = ifs+1;
+          surfaces[sfIdx].numElems = nfcfs[ifs];
+        }
       }
     }
     
+    numSurfElems_ = numElems_ - numVolElems_;
+    
+    //-----------------------------------------------------------------------
+    // Surfaces per boundary condition patch
+    //-----------------------------------------------------------------------
+    UInt numFaces;
+    std::vector<Integer> ksfbcp, ipsfbcp;
+    ReadShortVector(ksfbcp, surfaces.size(), "G/KSFBCP");
+    ReadShortVector(ipsfbcp, numBCPs_+1, "G/IPSFBCP");
+    
+    for ( UInt ibcp=0; ibcp<numBCPs_; ++ibcp ) {
+      numFaces = 0;
+      faceSetsPerBCP_[ibcp].reserve(ipsfbcp[ibcp+1]-ipsfbcp[ibcp]);
+      
+      for ( Integer isf=ipsfbcp[ibcp]; isf<ipsfbcp[ibcp+1]; ++isf ) {
+        if ( ksfbcp[isf-1] > 0) { // ksfbcp[isf-1]==0 means surface is unused
+          faceSetsPerBCP_[ibcp].push_back(surfaces[ksfbcp[isf-1]-1]);
+          numFaces += surfaces[ksfbcp[isf-1]-1].numElems;
+        }
+      }
+      
+      numElemsPerRegion_[numVolumes_+ibcp] = numFaces;
+      numElems_ += numFaces;
+      
+      if (beVerbose)
+      {
+        std::cout << "- Surface region '" << regionNames_[numVolumes_+ibcp]
+                  << "':\t" << numFaces << " Elements\n";
+      }
+    }
+
+    if ( beVerbose ) {
+      printf("Total number of nodes: %d\n", numNodes_);
+      printf("Total number of elements: %d\n", numElems_);
+    }
+
     //
     //---- read CFX Release No. for UserData
     //
-    sprintf(what, "G/CRELNO");
-    sprintf(where, "EVERY");
-
-    dattyp = __string_data_type__;
-    when  = 0;
-    length= 1;
-    nsize = 101;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-    charvec.resize(length*nsize);
-    
-    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-            &iopt, &ioptar,
-            rarr,iarr,&charvec[0],larr,darr,carr,
-            strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-
-    sstr.str("");
-    sstr << &charvec[0];
-    userDataCFXRelease = sstr.str();
-
+    userDataCFXRelease_ = ReadString("G/CRELNO", "EVERY", 0, false);
     
     //
     //---- close file
     //
-    whatfile = __io_close_primaryfile__;
-    closefile_(&nerr, &whatfile);
-    CHECK_CFX_IO(nerr);
-    
-    charvec.clear();
-    doublevec.clear();
-    floatvec.clear();
-    intvec.clear();
+    CloseCFXFile();
   }
 
-  void FileReader_CFX::ReadNodalCoords(std::vector<Double> & NODECOORD)
+  void FileReader_CFX::ReadNodalCoords(std::vector<Double> & nodeCoord)
   {
     Settings& settings = Settings::Instance();
-    NODECOORD.resize(numNodesPerRegion_[0]*3);
-
-    snprintf(fn, sizeof(fn),"%s", defFile.c_str());
-    whatfile = __io_open_primaryfile__;
-    openfile_(&nerr, fn, &whatfile, strlen(fn));
-    CHECK_CFX_IO(nerr);
-
-    if(settings.GetInt("verbose"))
-    {
-      printf("Successfully opened %s\n", defFile.c_str());
-    }
-
-    //-----------------------------------------------------------------------
-    //     Reading grid coordinates CRDVX (double precision in DEF file)
-    //-----------------------------------------------------------------------
-
-    sprintf(what, "G/CRDVX");
-    sprintf(where, "ZN1/VX");
-    when  = 0;
-
-    dattyp = __double_data_type__;
-    length = 3;
-    nsize  = numNodesPerRegion_[0];
-    iopt = __stop_if_failed__;
-    doublevec.resize(numNodesPerRegion_[0]*3, 0.0);
-
-    readlong_(&dattyp, &nerr, what,where,&when,&nsize,&iopt,
-              rarr,iarr,carr,larr,&doublevec[0],sarr,
-              strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-
-    NODECOORD = doublevec;
-
-    if(settings.GetInt("verbose"))
-    {
-      printf("Coordinate size = %d\n", nsize);
-    }
-
-    whatfile = __io_close_primaryfile__;
-    closefile_(&nerr, &whatfile);
-    CHECK_CFX_IO(nerr);
     
-    doublevec.clear();
+    bool beVerbose = settings.GetInt("verbose");
+    Integer size;
+    std::vector<Double> buffer;
+    std::ostringstream zoneStr;
+    
+    nodeCoord.resize(numNodes_*3);
+
+    OpenCFXFile(defFile_);
+
+    for ( UInt iZone=1; iZone<=numZones_; ++iZone ) {
+      zoneStr.str("");
+      zoneStr << "ZN" << iZone << "/VX";
+      
+      size = (iZone==numZones_) ? numNodes_ - nodeOffsetPerZone_[iZone-1]
+             : nodeOffsetPerZone_[iZone] - nodeOffsetPerZone_[iZone-1];
+      
+      if (beVerbose) {
+        std::cout << "Reading " << size << " nodes in domain " << iZone
+                  << "... ";
+        std::cout.flush();
+      }
+
+      if (!ReadLongVector(buffer, 3*size, "G/CRDVX", zoneStr.str(), 0, false))
+      {
+        ReadShortVector(buffer, 3*size, "G/CRDVX", zoneStr.str());
+      }
+      std::copy(buffer.begin(), buffer.end(),
+                nodeCoord.begin() + 3*nodeOffsetPerZone_[iZone-1]);
+      
+      if (beVerbose) {
+        std::cout << "done.\n";
+      }
+    }
+    
+    CloseCFXFile();
   }
 
-  void FileReader_CFX::ReadTopology( std::vector<UInt> & TOPOLOGYDATA,
-                                         std::vector<UInt> & elemTypes)
+  void FileReader_CFX::ReadTopology( std::vector<UInt> & topologyData,
+                                     std::vector<UInt> & elemTypes )
   {
     Settings& settings = Settings::Instance();
-    UInt elem = 0;
-    UInt elemType = Elem::UNDEF;
-    UInt numRegionElems=0;
-    UInt numElemNodes;
+    
+    bool beVerbose = settings.GetInt("verbose");
+    UInt i, j;
+    UInt nodeOffset, numElemNodes, locIdx, globIdx, volElemIdx;
     std::vector<UInt> elConnect(maxNumElemNodes_);
+    std::vector<UInt> buffer1, buffer2; 
+    std::ostringstream zoneStr;
 
-    std::cout  << "Reading connectivity from .def file" << std::endl;
+    std::cout  << "Reading element connectivity" << std::endl;
 
     // open .def file
-    snprintf(fn, sizeof(fn),"%s", defFile.c_str());
-    whatfile = __io_open_primaryfile__;
-    openfile_(&nerr, fn, &whatfile, strlen(fn));
-    CHECK_CFX_IO(nerr);
+    OpenCFXFile(defFile_);
 
     // allocate memory
-    TOPOLOGYDATA.resize(numElems_ * maxNumElemNodes_, 0);
+    topologyData.resize(numElems_ * maxNumElemNodes_, 0);
     elemTypes.resize(numElems_, Elem::UNDEF);
-
+    regionElems_.resize(numVolumes_+numBCPs_);
+    
     // first read volume regions
-    for ( UInt actRegion=0; actRegion<numVolRegions_; ++actRegion )
-    {
-      elemType = regionElemTypes_[actRegion];
-      numRegionElems = numElemsPerRegion_[actRegion];
-      numElemNodes = Elem::GetNumElemNodes((Elem::FEType)elemType);
-
-      // read element numbers
-      sprintf(what, "G/KELPE");
-      sprintf(where, "ZN1/ES%d", actRegion+1);
-      when = 0;
-
-      dattyp = __int_data_type__;
-      length = numRegionElems;
-      nsize  = 1;
-      iopt   = __stop_if_failed__;
-      intvec.resize(length*nsize);
-
-      readlong_( &dattyp, &nerr, what, where, &when, &nsize, &iopt,
-                 rarr, &intvec[0], carr, larr, darr, sarr,
-                 strlen(what), strlen(where), 0 );
-      CHECK_CFX_IO(nerr);
-
-      regionElems_[actRegion].resize(numRegionElems, 0);
-      std::copy( intvec.begin(), intvec.end(),
-                 regionElems_[actRegion].begin() );
+    for ( UInt iVol=0; iVol<numVolumes_; ++iVol ) {
+      std::vector<ElemSet>::iterator esIt = volumes_[iVol].elemSets.begin(),
+                                     esEnd = volumes_[iVol].elemSets.end();
       
-      std::vector<int>::const_iterator it = intvec.begin(),
-          itEnd = intvec.end();
-      for ( ; it != itEnd; ++it ) {
-        elemTypes[(*it)-1] = elemType;
+      regionElems_[iVol].reserve(numElemsPerRegion_[iVol]);
+      
+      for ( ; esIt != esEnd; ++esIt ) {
+        zoneStr.str("");
+        zoneStr << "ZN" << volumes_[iVol].zone << "/ES" << esIt->num;
+        
+        ReadLongVector(buffer1, esIt->numElems, "G/KELPE", zoneStr.str(), 0);
+        
+        numElemNodes = Elem::GetNumElemNodes(esIt->elemType);
+        ReadLongVector(buffer2, esIt->numElems*numElemNodes,
+                       "G/KVXPE", zoneStr.str());
+        
+        nodeOffset = nodeOffsetPerZone_[volumes_[iVol].zone-1];
+        locIdx = 0;
+        
+        for ( i=0; i<esIt->numElems; ++i, locIdx+=numElemNodes ) {
+          globIdx = buffer1[i] + elemOffsetPerZone_[volumes_[iVol].zone-1];
+          regionElems_[iVol].push_back( globIdx );
+          elemTypes[--globIdx] = esIt->elemType;
+          
+          globIdx *= maxNumElemNodes_;
+          if (esIt->elemType == Elem::HEXA8) {
+            topologyData[ globIdx + 0 ] = nodeOffset + buffer2[locIdx + 4];
+            topologyData[ globIdx + 1 ] = nodeOffset + buffer2[locIdx + 6];
+            topologyData[ globIdx + 2 ] = nodeOffset + buffer2[locIdx + 7];
+            topologyData[ globIdx + 3 ] = nodeOffset + buffer2[locIdx + 5];
+            topologyData[ globIdx + 4 ] = nodeOffset + buffer2[locIdx + 0];
+            topologyData[ globIdx + 5 ] = nodeOffset + buffer2[locIdx + 2];
+            topologyData[ globIdx + 6 ] = nodeOffset + buffer2[locIdx + 3];
+            topologyData[ globIdx + 7 ] = nodeOffset + buffer2[locIdx + 1];
+          } else {
+            for ( j=0; j<numElemNodes; ++j )  {
+              topologyData[globIdx + j] = nodeOffset + buffer2[locIdx + j];
+            }
+          }
+          
+          volumes_[iVol].nodes.insert(buffer2.begin()+locIdx,
+                                      buffer2.begin()+locIdx+numElemNodes);
+        }
       }
       
-      //---- reading connectivity for each element set
-      //     outer loop:  i_element
-      //     inner loop:  i_vx per element (1 ... nelvx)
-      sprintf(what,"G/KVXPE");
-
-      //
-      //---- where = ZN1/ESn where n is integer from 1 to nes
-      //
-      sprintf(where, "ZN1/ES%d", actRegion+1);
-      when  = 0;
-      dattyp = __int_data_type__;
-      length = numElemNodes;
-      nsize  = numRegionElems;
-      iopt   = __stop_if_failed__;
-      intvec.resize(length*nsize);
-
-      readlong_( &dattyp, &nerr, what, where, &when, &nsize, &iopt,
-                 rarr, &intvec[0], carr, larr, darr, sarr,
-                 strlen(what), strlen(where), 0 );
-      CHECK_CFX_IO(nerr);
-
-      if ( settings.GetInt("verbose") )
-      {
-        printf("Length of Connectivity array: %d\n", nsize);
+      numNodesPerRegion_[iVol] = volumes_[iVol].nodes.size();
+      
+      if (beVerbose) {
+        std::cout << "Read connectivity of volume region '"
+                  << regionNames_[iVol] << "'.\n";
       }
-
-      UInt baseIdx=0;
-      for ( UInt i=0; i<numRegionElems; ++i, baseIdx += numElemNodes )
-      {
-        std::fill(elConnect.begin(), elConnect.end(), 0);
-
-        if ( elemType == Elem::HEXA8 )
-        {
-          elConnect[0] = intvec[baseIdx + 4];
-          elConnect[1] = intvec[baseIdx + 6];
-          elConnect[2] = intvec[baseIdx + 7];
-          elConnect[3] = intvec[baseIdx + 5];
-          elConnect[4] = intvec[baseIdx + 0];
-          elConnect[5] = intvec[baseIdx + 2];
-          elConnect[6] = intvec[baseIdx + 3];
-          elConnect[7] = intvec[baseIdx + 1];
-        }
-        else
-        {
-          std::copy( &intvec[baseIdx],
-                     &intvec[baseIdx+numElemNodes],
-                     &elConnect[0] );
-        }
-
-        std::copy(elConnect.begin(), elConnect.end(),
-                  TOPOLOGYDATA.begin() + 
-                  (regionElems_[actRegion][i]-1)*maxNumElemNodes_);
-        ++elem;
-      }
-
-    }
-
-		// Make sure that std::vector's automatic allocation (via push_back)
-		// does not waste memory and time.
-    for ( UInt i=numVolRegions_; i<numRegions_; ++i )
-    {
-      regionElems_[i].reserve(numElemsPerRegion_[i]);
     }
     
-    for ( UInt iFS=0; iFS<numFaceSets_; ++iFS )
-    {
-      Integer iRegion = mapFaceSet2Region_[iFS];
-      if ( iRegion < 0 )
-        continue;
+    // start numbering of surface elements just after last volume element
+    UInt surfElemIdx = numVolElems_;
+    
+    for ( UInt ibcp=0; ibcp<numBCPs_; ++ibcp ) {
+      std::vector<FaceSet>::iterator fsIt = faceSetsPerBCP_[ibcp].begin(),
+                                     fsEnd = faceSetsPerBCP_[ibcp].end();
       
-      numRegionElems = numElemsPerFaceSet_[iFS];
+      regionElems_[numVolumes_+ibcp].reserve(numElemsPerRegion_[numVolumes_+ibcp]);
       
-      sprintf(what,"G/KELPF");
-      sprintf(where, "ZN1/FS%d", iFS+1);
-      when  = 0;
-      
-      dattyp = __int_data_type__;
-      length = numRegionElems;
-      nsize  = 2;
-      iopt   = __stop_if_failed__;
-      intvec.resize(length*nsize);
-
-      readlong_( &dattyp, &nerr, what, where, &when, &nsize, &iopt,
-                 rarr, &intvec[0], carr, larr, darr, sarr,
-                 strlen(what), strlen(where), 0 );
-      CHECK_CFX_IO(nerr);
-      
-      for ( UInt i=0; i<numRegionElems; ++i )
-      {
-        std::vector<UInt>::const_iterator connectIt
-            = TOPOLOGYDATA.begin() + (intvec[2*i]-1)*maxNumElemNodes_;
+      for ( ; fsIt != fsEnd; ++fsIt ) {
+        zoneStr.str("");
+        zoneStr << "ZN" << fsIt->zone << "/FS" << fsIt->num;
         
-        elemTypes[elem] = GetFaceOfElement( (UInt)elemTypes[intvec[2*i]-1],
-                                            (UInt)intvec[2*i+1],
-                                            connectIt,
-                                            elConnect);
+        // DO NOT USE the dataset "G/KFCPF" here, because its numbering may
+        // not be contiguous!
+        ReadLongVector( buffer1, 2*fsIt->numElems, "G/KELPF", zoneStr.str() );
         
-        std::copy(elConnect.begin(), elConnect.end(),
-                  TOPOLOGYDATA.begin() + elem*maxNumElemNodes_);
-
-        regionElems_[iRegion].push_back(++elem);
+        nodeOffset = nodeOffsetPerZone_[fsIt->zone-1];
+        
+        for ( i=0; i<fsIt->numElems; ++i, ++surfElemIdx ) {
+          regionElems_[numVolumes_+ibcp].push_back( surfElemIdx+1 );
+          
+          volElemIdx = buffer1[2*i] - 1 + elemOffsetPerZone_[fsIt->zone-1];
+          std::vector<UInt>::const_iterator connectIt
+              = topologyData.begin() + volElemIdx * maxNumElemNodes_;
+          
+          elemTypes[surfElemIdx] = GetFaceOfElement( elemTypes[volElemIdx],
+                                                     buffer1[2*i+1],
+                                                     connectIt,
+                                                     elConnect );
+          numElemNodes = elConnect.size();
+          for ( j=0; j<numElemNodes; ++j ) {
+            topologyData[surfElemIdx*maxNumElemNodes_+j] = elConnect[j]; 
+          }
+        }
+      }
+      
+      if (beVerbose) {
+        std::cout << "Read connectivity of surface region '"
+                  << regionNames_[numVolumes_+ibcp] << "'.\n";
       }
     }
-
+    
     // close .def file
-    whatfile = __io_close_primaryfile__;
-    closefile_(&nerr, &whatfile);
-    CHECK_CFX_IO(nerr);
-    
-    intvec.clear();
+    CloseCFXFile();
   }
 
   void FileReader_CFX::GetRegionElements(std::vector<UInt> & regionElements,
@@ -1029,6 +1023,25 @@ namespace CoupledField
     regionElements = regionElems_[regionIdx];
   }
 
+  template<typename A, typename B>
+  void FileReader_CFX::MapZoneResultToVolume( std::vector<A> &volResult,
+                                              const std::vector<B> &zoneResult,
+                                              const std::set<UInt> &regionNodes,
+                                              UInt numDOFs )
+  {
+    volResult.resize(regionNodes.size()*numDOFs);
+    
+    std::set<UInt>::iterator nodeIt = regionNodes.begin(),
+                             /*beginIt = regionNodes.begin(),*/
+                             endIt = regionNodes.end();
+    
+    for ( UInt i=0; nodeIt != endIt; ++nodeIt, ++i ) {
+      for ( UInt j=0; j<numDOFs; ++j ) {
+        volResult[i*numDOFs+j] = zoneResult[(*nodeIt-1)*numDOFs+j];
+      }
+    }    
+  }
+  
   //! get nodal values from the corresponding fluid datafile the new way
   void FileReader_CFX::ReadNodalValues(
       std::vector<FlowDataType>& nodalFlowData,
@@ -1036,110 +1049,94 @@ namespace CoupledField
       const UInt timeStepIdx )
   {
     Settings& settings = Settings::Instance();
-    bool floatDS;
     
-    if(determineFloatDS_) 
-    {
+    bool beVerbose = settings.GetInt("verbose");
+    bool floatDS, retVal;
+    
+
+    // swillmitzer: changed this to first check floatDataset
+    // before, floatDS was set to determineFloatDS_ which was
+    // true by default before checking floatDataset
+    if ( determineFloatDS_ ) {
       floatDS = true;
-    } 
-    else {
-      floatDS = settings.GetInt("floatDataset");
+    } else {
+      floatDS = settings.GetInt("cfxSinglePrecision");
     }
     
     // Open input file
-    snprintf(fn, sizeof(fn), "%s",
-             transientFNs_[timeStepIdx].c_str());
-    whatfile = __io_open_primaryfile__;
-
-    if(settings.GetInt("verbose"))
-    {
-      std::cout << "Opening file "<< fn << std::endl;
+    if ( beVerbose ) {
+      std::cout << "Opening file "<< trnFilenames_[timeStepIdx] << std::endl;
     }
+    OpenCFXFile(trnFilenames_[timeStepIdx]);
 
-    openfile_(&nerr, fn, &whatfile, strlen(fn));
-    CHECK_CFX_IO(nerr);
-
-    for ( UInt actPart=0; actPart < numVolRegions_; ++actPart )
+    for ( UInt actPart=0; actPart < numVolumes_; ++actPart )
     {
-      int nvx = numNodesPerRegion_[actPart];
+      UInt currZone = volumes_[actPart].zone;
+      Integer numZoneNodes;
       FlowDataType& fd = nodalFlowData[actPart];
       UInt numDOFs;
+      std::ostringstream zonePath;
 
       if(!activeParts[actPart])
         continue;
 
-      if(settings.GetInt("verbose"))
+      if(beVerbose)
       {
         std::cout << "Reading data on " << GetRegionName(actPart)
                   << std::endl;
       }
 
+      numZoneNodes = ( currZone == numZones_ ) ?
+                numNodes_ - nodeOffsetPerZone_[currZone-1] :
+                nodeOffsetPerZone_[currZone] - nodeOffsetPerZone_[currZone-1];
+      
+      zonePath.clear();
+      zonePath.str("");
+      zonePath << "ZN" << volumes_[actPart].zone << "/VX";
+      
       //-----------------------------------------------------------------------
       //     Reading velocity from input file
       //-----------------------------------------------------------------------
       if(requiredResults_[FLUIDMECH_VELOCITY] ||
          requiredResults_[NO_SOLUTION_TYPE])
       {
+        std::string velPath;
         if ( settings.GetInt("cfxUseStnFrame") ) {
-          sprintf(what, "G/VELS_FL1");
+          velPath = "G/VELS_FL1";
         } else {
-          sprintf(what, "G/VEL_FL1");
+          velPath = "G/VEL_FL1";
         }
-        sprintf(where, "ZN1/VX");
-        when  = timeStepNumbers_[timeStepIdx];
 
-        if (floatDS)
-          dattyp = __real_data_type__;
-        else
-          dattyp = __double_data_type__;
-        
-        length = 3;
-        nsize  = nvx;
-        doublevec.resize(length*nsize);
-        floatvec.resize(length*nsize);
-
-        iopt   = __stop_if_failed__;
-
-        if(floatDS)
-          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-              &floatvec[0],iarr,carr,larr,darr,sarr,
-              strlen(what), strlen(where), 0);
-        else
-          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-              rarr,iarr,carr,larr,&doublevec[0],sarr,
-              strlen(what), strlen(where), 0);
-
-        if(nerr)
-        {
-          if(determineFloatDS_) 
-          {
-            dattyp = __double_data_type__;
-
-            readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-                      &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
-                      strlen(what), strlen(where), 0);
-
-            if(nerr)
+        if ( floatDS ) {
+          retVal = ReadLongVector( floatvec_, 3*numZoneNodes,
+                                   velPath, zonePath.str(),
+                                   timeStepNumbers_[timeStepIdx], false );
+        } else {
+          retVal = ReadLongVector( doublevec_, 3*numZoneNodes,
+                                   velPath, zonePath.str(),
+                                   timeStepNumbers_[timeStepIdx], false );
+        }
+        if (retVal) {
+          if (determineFloatDS_) {
+            settings.SetInt("cfxSinglePrecision", 1);
+            determineFloatDS_ = false;
+          }
+        } else {
+          if (determineFloatDS_) {
+            if ( ReadLongVector( doublevec_, 3*numZoneNodes,
+                                 velPath, zonePath.str(),
+                                 timeStepNumbers_[timeStepIdx], false ) )
             {
+              settings.SetInt("cfxSinglePrecision", 0);
+              floatDS = false;
+              determineFloatDS_ = false;
+            } else {
               EXCEPTION("Could not determine if CFX datasets are single"
                         " or double precision");
             }
-
-            settings.SetInt("floatDataset", 0);
-            floatDS = false;
-            determineFloatDS_ = false;
-          }
-          else if(settings.GetInt("verbose")) {
+          } else if(beVerbose) {
             std::cerr << "WARNING: CFX dataset does not contain velocity!"
             << std::endl;
-          }
-        }
-        else 
-        {
-          if(determineFloatDS_) 
-          {
-            settings.SetInt("floatDataset", 1);
-            determineFloatDS_ = false;
           }
         }
       
@@ -1159,16 +1156,14 @@ namespace CoupledField
           fdps.entryType = ResultInfo::VECTOR;
         }
         numDOFs = fdps.dofNames.size();
-        fdps.data.resize(numDOFs * nvx);
 
-        if(floatDS)
-          std::copy(floatvec.begin(),
-                    floatvec.begin() + (numDOFs * nvx),
-                    fdps.data.begin());
-        else
-          std::copy(doublevec.begin(),
-                    doublevec.begin() + (numDOFs * nvx),
-                    fdps.data.begin());
+        if ( floatDS ) {
+          MapZoneResultToVolume( fdps.data, floatvec_,
+                                 volumes_[actPart].nodes, numDOFs );
+        } else {
+          MapZoneResultToVolume( fdps.data, doublevec_,
+                                 volumes_[actPart].nodes, numDOFs );
+        }
       }
 
       //-----------------------------------------------------------------------
@@ -1177,39 +1172,17 @@ namespace CoupledField
       if(requiredResults_[FLUIDMECH_PRESSURE] ||
          requiredResults_[NO_SOLUTION_TYPE])
       {
-        sprintf(what, "G/PRES");
-        sprintf(where, "ZN1/VX");
-        when  = timeStepNumbers_[timeStepIdx];
-
-        if(floatDS)
-          dattyp = __real_data_type__;
-        else
-          dattyp = __double_data_type__;
-
-        length = 1;
-        nsize  = nvx;
-        doublevec.resize(length*nsize);
-        floatvec.resize(length*nsize);
-
-        iopt   = __stop_if_failed__;
-
-        if(floatDS)
-          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-              &floatvec[0],iarr,carr,larr,darr,sarr,
-              strlen(what), strlen(where), 0);
-        else
-          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-              rarr,iarr,carr,larr,&doublevec[0],sarr,
-              strlen(what), strlen(where), 0);
-
-        if(nerr)
-        {
-          if(settings.GetInt("verbose"))
-            std::cerr << "WARNING: CFX dataset does not contain pressure!"
-            << std::endl;
+        if(floatDS) {
+          retVal = ReadLongVector( floatvec_, numZoneNodes,
+                                   "G/PRES", zonePath.str(),
+                                   timeStepNumbers_[timeStepIdx], false );
+        } else {
+          retVal = ReadLongVector( doublevec_, numZoneNodes,
+                                   "G/PRES", zonePath.str(),
+                                   timeStepNumbers_[timeStepIdx], false );
         }
-        else
-        {
+
+        if (retVal) {
           FlowDataPartStruct& fdps = fd[FLUIDMECH_PRESSURE];
           fdps.isActive = true; // all partitions have results
           if(fdps.dofNames.empty())
@@ -1221,16 +1194,18 @@ namespace CoupledField
             fdps.entryType = ResultInfo::SCALAR;
           }
           numDOFs = fdps.dofNames.size();
-          fdps.data.resize(numDOFs * nvx);
 
-          if(floatDS)
-            std::copy(floatvec.begin(),
-                floatvec.begin() + (numDOFs * nvx),
-                fdps.data.begin());
-          else
-            std::copy(doublevec.begin(),
-                doublevec.begin() + (numDOFs * nvx),
-                fdps.data.begin());
+          if ( floatDS ) {
+            MapZoneResultToVolume( fdps.data, floatvec_,
+                                   volumes_[actPart].nodes, numDOFs );
+          } else {
+            MapZoneResultToVolume( fdps.data, doublevec_,
+                                   volumes_[actPart].nodes, numDOFs );
+          }
+        } else {
+          if (beVerbose) {
+            std::cerr << "WARNING: CFX dataset does not contain pressure!\n";
+          }
         }
       }
 
@@ -1240,39 +1215,17 @@ namespace CoupledField
       if(requiredResults_[FLUIDMECH_DENSITY] ||
          requiredResults_[NO_SOLUTION_TYPE])
       {
-        sprintf(what, "G/DENSITY_FL1");
-        sprintf(where, "ZN1/VX");
-        when  = timeStepNumbers_[timeStepIdx];
-
-        if(floatDS)
-          dattyp = __real_data_type__;
-        else
-          dattyp = __double_data_type__;
-
-        length = 1;
-        nsize  = nvx;
-        doublevec.resize(length*nsize);
-        floatvec.resize(length*nsize);
-
-        iopt   = __stop_if_failed__;
-
-        if(floatDS)
-          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-              &floatvec[0],iarr,carr,larr,darr,sarr,
-              strlen(what), strlen(where), 0);
-        else
-          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-              rarr,iarr,carr,larr,&doublevec[0],sarr,
-              strlen(what), strlen(where), 0);
-
-        if(nerr)
-        {
-          if(settings.GetInt("verbose"))
-            std::cerr << "WARNING: CFX dataset does not contain density!"
-            << std::endl;
+        if (floatDS) {
+          retVal = ReadLongVector( floatvec_, numZoneNodes,
+                                   "G/DENSITY_FL1", zonePath.str(),
+                                   timeStepNumbers_[timeStepIdx], false );
+        } else {
+          retVal = ReadLongVector( doublevec_, numZoneNodes,
+                                   "G/DENSITY_FL1", zonePath.str(),
+                                   timeStepNumbers_[timeStepIdx], false );
         }
-        else
-        {
+
+        if (retVal) {
           FlowDataPartStruct& fdps = fd[FLUIDMECH_DENSITY];
           fdps.isActive = true; // all partitions have results
           if(fdps.dofNames.empty())
@@ -1284,16 +1237,18 @@ namespace CoupledField
             fdps.entryType = ResultInfo::SCALAR;
           }
           numDOFs = fdps.dofNames.size();
-          fdps.data.resize(numDOFs * nvx);
 
-          if(floatDS)
-            std::copy(floatvec.begin(),
-                floatvec.begin() + (numDOFs * nvx),
-                fdps.data.begin());
-          else
-            std::copy(doublevec.begin(),
-                doublevec.begin() + (numDOFs * nvx),
-                fdps.data.begin());
+          if ( floatDS ) {
+            MapZoneResultToVolume( fdps.data, floatvec_,
+                                   volumes_[actPart].nodes, numDOFs );
+          } else {
+            MapZoneResultToVolume( fdps.data, doublevec_,
+                                   volumes_[actPart].nodes, numDOFs );
+          }
+        } else {
+          if (beVerbose) {
+            std::cerr << "WARNING: CFX dataset does not contain density!\n";
+          }
         }
       }
 
@@ -1303,39 +1258,17 @@ namespace CoupledField
       if(requiredResults_[FLUIDMECH_TKE] ||
          requiredResults_[NO_SOLUTION_TYPE])
       {
-        sprintf(what, "G/TKE_FL1");
-        sprintf(where, "ZN1/VX");
-        when  = timeStepNumbers_[timeStepIdx];
-
-        if(floatDS)
-          dattyp = __real_data_type__;
-        else
-          dattyp = __double_data_type__;
-
-        length = 1;
-        nsize  = nvx;
-        doublevec.resize(length*nsize);
-        floatvec.resize(length*nsize);
-
-        iopt   = __stop_if_failed__;
-
-        if(floatDS)
-          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-              &floatvec[0],iarr,carr,larr,darr,sarr,
-              strlen(what), strlen(where), 0);
-        else
-          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-              rarr,iarr,carr,larr,&doublevec[0],sarr,
-              strlen(what), strlen(where), 0);
-
-        if(nerr)
-        {
-          if(settings.GetInt("verbose"))
-            std::cerr << "WARNING: CFX dataset does not contain turb. kin. energy!"
-            << std::endl;
+        if (floatDS) {
+          retVal = ReadLongVector( floatvec_, numZoneNodes,
+                                   "G/TKE_FL1", zonePath.str(),
+                                   timeStepNumbers_[timeStepIdx], false );
+        } else {
+          retVal = ReadLongVector( doublevec_, numZoneNodes,
+                                   "G/TKE_FL1", zonePath.str(),
+                                   timeStepNumbers_[timeStepIdx], false );
         }
-        else
-        {
+
+        if (retVal) {
           FlowDataPartStruct& fdps = fd[FLUIDMECH_TKE];
           fdps.isActive = true; // all partitions have results
           if(fdps.dofNames.empty())
@@ -1347,16 +1280,18 @@ namespace CoupledField
             fdps.entryType = ResultInfo::SCALAR;
           }
           numDOFs = fdps.dofNames.size();
-          fdps.data.resize(numDOFs * nvx);
 
-          if(floatDS)
-            std::copy(floatvec.begin(),
-                floatvec.begin() + (numDOFs * nvx),
-                fdps.data.begin());
-          else
-            std::copy(doublevec.begin(),
-                doublevec.begin() + (numDOFs * nvx),
-                fdps.data.begin());
+          if ( floatDS ) {
+            MapZoneResultToVolume( fdps.data, floatvec_,
+                                   volumes_[actPart].nodes, numDOFs );
+          } else {
+            MapZoneResultToVolume( fdps.data, doublevec_,
+                                   volumes_[actPart].nodes, numDOFs );
+          }
+        } else {
+          if (beVerbose) {
+            std::cerr << "WARNING: CFX dataset does not contain turb. kin. energy!\n";
+          }
         }
       }
       // TEMP_FL1
@@ -1386,61 +1321,39 @@ namespace CoupledField
     //-----------------------------------------------------------------------
     //     Close INPUT file
     //-----------------------------------------------------------------------
-    whatfile = __io_close_primaryfile__;
-    closefile_(&nerr, &whatfile);
-    CHECK_CFX_IO(nerr);
+    CloseCFXFile();
   }
 
-  void FileReader_CFX::GetInfosFromCommand(UInt numLines)
+  void FileReader_CFX::GetInfosFromCommand(std::vector<std::string> commands)
   {
     std::string cmd, attrib;
     int pos=0;
     std::ostringstream sstr;
 
-    //    std::cout << charvec << std::endl;
+    rootNode_.reset(new ParamNode(ParamNode::EX, ParamNode::ELEMENT ) );
+    rootNode_->SetName("CFX_COMMANDS_DATASET");
+    rootNode_->SetValue("Uninteresting");
+    currNode_ = rootNode_;
+    parents_.push(rootNode_);
+    multiLine_ = false;
     
-    std::stringbuf *pbuf;
-    std::stringstream ss;
-    
-    pbuf=ss.rdbuf();
-    pbuf->sputn (&charvec[0], charvec.size());
-                 //numLines*80);
-    //    std::cout << pbuf->str();
-
-    rootNode.reset(new ParamNode(ParamNode::EX, ParamNode::ELEMENT ) );
-    rootNode->SetName("CFX_COMMANDS_DATASET");
-    rootNode->SetValue("Uninteresting");
-    currNode = rootNode;
-    parents.push(rootNode);
-    multiLine = false;
-    
-    // Split COMMANDS dataset into 80 character tokens
-    std::string str = pbuf->str();
-    int offsets[] = {80};
-    boost::offset_separator f(offsets, offsets+1,true,false);
-    boost::tokenizer<boost::offset_separator> tok(str,f);
-    UInt i = 0;
-    for(boost::tokenizer<boost::offset_separator>::iterator beg=tok.begin();
-        beg!=tok.end(), i < numLines;
-        ++beg, i++)
-    {
-      std::string trimmed = boost::algorithm::trim_copy(*beg);
-      ParseCCLLine(trimmed);
-      // std::cout << trimmed << "\n";
-      // std::cout << *beg << "\n";
+    std::vector<std::string>::iterator comIt = commands.begin(),
+                                       endIt = commands.end();
+    for ( ; comIt != endIt; ++comIt ) {
+      ParseCCLLine(*comIt);
     }
 
     // std::string ds;
     // rootNode->ToXML(std::cout, 5);
     // std::cout << ds << "\n";
 
-    ParseCommand(charvec, pos, cmd, attrib, "", sstr);
-    ParseCommand(charvec, pos, cmd, attrib, "", sstr);
-    ParseCommand(charvec, pos, cmd, attrib, "", sstr);
-    ParseCommand(charvec, pos, cmd, attrib, "", sstr);
-    ParseCommand(charvec, pos, cmd, attrib, "", sstr);
+    ParseCommand(charvec_, pos, cmd, attrib, "", sstr);
+    ParseCommand(charvec_, pos, cmd, attrib, "", sstr);
+    ParseCommand(charvec_, pos, cmd, attrib, "", sstr);
+    ParseCommand(charvec_, pos, cmd, attrib, "", sstr);
+    ParseCommand(charvec_, pos, cmd, attrib, "", sstr);
 
-    userDataCFX_COMMANDS = sstr.str();
+    userDataCFX_COMMANDS_ = sstr.str();
 
 #if 0
     if(solTimeUnit != "[s]")
@@ -1497,7 +1410,7 @@ namespace CoupledField
 
     //        if(!pcrecpp::RE(regexp).Replace("", &s))
     //        {
-    //            std::cerr << "Error when replacing time unit in timestep string" << std::endl;
+    //            std::cerr << "Error when_ replacing time unit in timestep string" << std::endl;
     //            exit(1);
     //        }
     /*
@@ -1542,35 +1455,35 @@ namespace CoupledField
   {
     typedef boost::char_separator<char> charsep;
     typedef boost::tokenizer< charsep > chartok;
-    bool mlSwitch = multiLine;
+    bool mlSwitch = multiLine_;
 
     // Check if the current line is a continuation of a previous line.
     if((*line.rbegin()) == '\\') 
     {
-      multiLine = true;
+      multiLine_ = true;
 
-      mlSwitch = (multiLine != mlSwitch);
+      mlSwitch = (multiLine_ != mlSwitch);
 
       if(!mlSwitch) 
       {
         std::stringstream sstr;
         std::string val;
-        val = latestNode->As<std::string>();
+        val = latestNode_->As<std::string>();
         
         sstr << val << line;
-        latestNode->SetValue(sstr.str());
+        latestNode_->SetValue(sstr.str());
 
         return;
       }      
     } else 
     {
-      if(multiLine)
+      if(multiLine_)
       {
-        multiLine = false;
+        multiLine_ = false;
 
         std::stringstream sstr;
         std::string val;
-        val = latestNode->As<std::string>();
+        val = latestNode_->As<std::string>();
         
         // Replace continuation backslashes with nothing
         const boost::regex datExp("\\\\");
@@ -1580,7 +1493,7 @@ namespace CoupledField
                               boost::match_default | boost::format_sed);
 
         sstr << line;
-        latestNode->SetValue(sstr.str());
+        latestNode_->SetValue(sstr.str());
         return;
       }
     }    
@@ -1604,13 +1517,13 @@ namespace CoupledField
         keyValue[i] = boost::algorithm::trim_copy(*beg);
       }
 
-      latestNode = 
+      latestNode_ = 
         PtrParamNode(new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
       
-      latestNode->SetName(keyValue[0]);
-      latestNode->SetValue(keyValue[1]);
+      latestNode_->SetName(keyValue[0]);
+      latestNode_->SetValue(keyValue[1]);
 
-      currNode->AddChildNode( latestNode );
+      currNode_->AddChildNode( latestNode_ );
     } else 
     {
 
@@ -1627,14 +1540,14 @@ namespace CoupledField
         // If we have  encountered a new element name add a  new child node to
         // the current node.
 
-        latestNode = PtrParamNode(new ParamNode(ParamNode::EX,
+        latestNode_ = PtrParamNode(new ParamNode(ParamNode::EX,
                                                 ParamNode::ELEMENT));
-        latestNode->SetName(elemName);
-        latestNode->SetValue(elemName);
+        latestNode_->SetName(elemName);
+        latestNode_->SetValue(elemName);
 
-        currNode->AddChildNode( latestNode );
-        parents.push(currNode);
-        currNode = latestNode;
+        currNode_->AddChildNode( latestNode_ );
+        parents_.push(currNode_);
+        currNode_ = latestNode_;
 
         // If there exists a second token  add it as an attribute to the newly
         // generated node.
@@ -1644,17 +1557,17 @@ namespace CoupledField
           chartok::iterator it = tok2.begin();
           it++;
 
-          latestNode = 
+          latestNode_ = 
             PtrParamNode(new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
-          latestNode->SetName("name");
-          latestNode->SetValue(boost::algorithm::trim_copy(*it));
-          currNode->AddChildNode( latestNode );
+          latestNode_->SetName("name");
+          latestNode_->SetValue(boost::algorithm::trim_copy(*it));
+          currNode_->AddChildNode( latestNode_ );
         }        
       } else 
       {
         // Go one level up in the hierarchy.
-        currNode = parents.top();
-        parents.pop();
+        currNode_ = parents_.top();
+        parents_.pop();
       }
     }
   }
@@ -1666,7 +1579,6 @@ namespace CoupledField
                                     std::string indent,
                                     std::ostream& outFile)
   {
-    Settings& settings = Settings::Instance();
     int actPos = pos;
     int nextTokenPos;
     char endTest[4];
@@ -1702,10 +1614,6 @@ namespace CoupledField
       actPos++;
     }
 
-    if(settings.GetInt("verbose"))
-    {
-      std::cout << indent << cmd << " " << attrib << std::endl;
-    }
     outFile << indent << cmd << " " << attrib << std::endl;
 
 
@@ -1736,20 +1644,20 @@ namespace CoupledField
 
         if(cmd == "RUN DEFINITION" && option == "Definition File")
         {
-          defFile = value;
+          defFile_ = value;
         }
         if(cmd == "SOLUTION UNITS" && option == "Time Units")
         {
-          solTimeUnit = value;
+          solTimeUnit_ = value;
         }
         if(cmd == "TRANSIENT RESULTS" && option == "Time Interval")
         {
-          timeStepStr = value;
+          timeStepStr_ = value;
         }
 
         if(cmd == "EXPRESSIONS")
         {
-          exprMap[option] = value;
+          exprMap_[option] = value;
         }
 
       }
@@ -1762,10 +1670,6 @@ namespace CoupledField
         {
           actPos +=3;
 
-          if(settings.GetInt("verbose"))
-          {
-            std::cout << indent << "END" << std::endl;
-          }
           outFile << indent << cmd << " " << attrib << std::endl;
 
           while( isspace((int)cmdstr[actPos]) )
@@ -1793,7 +1697,6 @@ namespace CoupledField
                                    std::string indent,
                                    std::ostream& outFile)
   {
-    Settings& settings = Settings::Instance();
     int actPos = pos;
 
     while( isprint((int)cmdstr[actPos]) )
@@ -1830,10 +1733,6 @@ namespace CoupledField
     cmdstr[actPos] = 0;
     value = &cmdstr[pos];
 
-    if(settings.GetInt("verbose"))
-    {
-      std::cout << indent << option << " = " << value << std::endl;
-    }
     outFile << indent << option << " = " << value << std::endl;
 
     do
@@ -1847,25 +1746,25 @@ namespace CoupledField
 
   void FileReader_CFX::GetUserData(std::map<std::string, std::string>& userData)
   {
-    if(userDataCFX_COMMANDS == "")
+    if(userDataCFX_COMMANDS_ == "")
     {
-      userDataCFX_COMMANDS = "ATTENTION: The COMMANDS dataset has not been read.\n"
+      userDataCFX_COMMANDS_ = "ATTENTION: The COMMANDS dataset has not been read.\n"
                              "           This may be due to a missing .res file!";
     }
-    userData["CFX_COMMANDS"] = userDataCFX_COMMANDS;
+    userData["CFX_COMMANDS"] = userDataCFX_COMMANDS_;
 
     std::ostringstream sstr;
 
-    for(UInt i=0, n=timeStepNumbers_.size(); i<n; i++)
+    for(UInt i=0; i<numSteps_; ++i)
     {
       sstr << timeStepNumbers_[i] << ".trn -> step " << (i+1) << std::endl;
     }
 
     userData["TRN_TO_STEP_MAP"] = sstr.str();
     
-    if (userDataCFXRelease.length() > 0)
+    if (userDataCFXRelease_.length() > 0)
     {
-      userData["CFX_Release"] = userDataCFXRelease;
+      userData["CFX_Release"] = userDataCFXRelease_;
     }
   }
 
@@ -2013,8 +1912,8 @@ namespace CoupledField
 
     /// **************************timeStepNumbers_[timeStepIdx]; ************************
 
-    it = transientFNs_.begin();
-    end = transientFNs_.end();
+    it = trnFilenames_.begin();
+    end = trnFilenames_.end();
 
     // Check a few .trn files to determine the mean file size
     for( ; it != end; it++ ) 
@@ -2032,8 +1931,8 @@ namespace CoupledField
     }
     catch (boost::regex_error& e) {}
 
-    it = transientFNs_.begin();
-    end = transientFNs_.end();
+    it = trnFilenames_.begin();
+    end = trnFilenames_.end();
 
     for( ; it != end; it++ ) 
     {
@@ -2098,13 +1997,13 @@ namespace CoupledField
       }
     }
 
-    transientFNs_ = goodTRNs;
+    trnFilenames_ = goodTRNs;
 
-    it = transientFNs_.begin();
-    end = transientFNs_.end();
+    it = trnFilenames_.begin();
+    end = trnFilenames_.end();
 
     timeStepNumbers_.clear();
-    timeStepNumbers_.reserve(transientFNs_.size());
+    timeStepNumbers_.reserve(trnFilenames_.size());
     
     for( ; it != end; it++ ) 
     {
@@ -2123,8 +2022,9 @@ namespace CoupledField
   
   std::string FileReader_CFX::GetRegionName(const UInt regionIdx)
   {
-    if ( regionIdx >= numRegions_ )
+    if ( regionIdx >= numRegions_ ) {
       EXCEPTION("Region index too large.");
+    }
     return regionNames_[regionIdx];
   }
   
@@ -2308,6 +2208,7 @@ namespace CoupledField
         EXCEPTION("Element type " << elemType << " not supported");
         break;
     }
+    return Elem::UNDEF;
   }
 
-}
+} // end of namespace CoupledField

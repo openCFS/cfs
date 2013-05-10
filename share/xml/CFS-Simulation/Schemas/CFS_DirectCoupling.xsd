@@ -174,7 +174,7 @@
             </xsd:element>
 
             <!-- List defining nonlinear types -->
-            <xsd:element name="nonLinList" minOccurs="0" maxOccurs="0">
+            <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:choice maxOccurs="unbounded">
                   <xsd:element name="geometric" type="DT_PiezoDirectNonLinGeo"/>
