@@ -35,6 +35,7 @@ namespace fs = boost::filesystem;
 
 #include "DataInOut/simInput.hh"
 #include "DataInOut/simOutput.hh"
+#include "DataInOut/coloredConsole.hh"
 #include "Domain/GridCFS/grid_cfs.hh"
 #include "Domain/entityList.hh"
 #include "Domain/grid.hh"
@@ -1084,11 +1085,15 @@ namespace CFSTool {
     Double maxMemTmp = boost::lexical_cast<Double>(maxMemNode->As<std::string>());
     if(maxMemTmp != 0){
       try{
-        if (maxMemTmp > maxMem * 2.0)
+        if (maxMemTmp > maxMem * 2.0) // 20% of max memory
         {
-          std::cerr << "You want to used more than: " << maxMemTmp << std::endl
-            << " of RAM. During writing/caching this will exceed 3time and " <<std::endl
+          std::cout << std::endl;
+          std::cout << "You want to used more than: " 
+            << fg_yellow << maxMem * 2.0 << " MB " << fg_reset
+            << "of RAM." << std::endl
+            << "During writing/caching this will exceed 3time and "
             << "it may leed to swapping";
+          std::cout << std::endl;
         }
         maxMem = maxMemTmp;
       } catch(bad_lexical_cast &) {
