@@ -1011,33 +1011,40 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
   void FeSpace::ReadPolyNode(PtrParamNode node, MappingType & mapType, ApproxOrder & order){
 
-    bool grid = node->Get("useGridOrder",ParamNode::EX)->As<bool>();
-    //determine mapping type
-    mapType = (grid)? GRID : POLYNOMIAL;
+    // query for one of the following subchildren:
+    //   - gridOrder
+    //   - isoOrder
+    //   - anisoOrder
 
-    //Read isoOrder or Aniso Order
-    PtrParamNode isoOrderNode = node->Get("isoOrder", ParamNode::PASS );
-    if(isoOrderNode){
+    node->Dump();
+    if(node->Has("gridOrder") ) {
+      mapType= GRID;
+      UInt gridOrder = ptGrid_->IsQuadratic() ? 2 : 1;
+      order.SetIsoOrder( gridOrder );
+
+    } else if(node->Has("isoOrder")) {
+      PtrParamNode isoOrderNode = node->Get("isoOrder", ParamNode::PASS );
+      mapType= POLYNOMIAL;
       Integer isoOrder = isoOrderNode->As<Integer>();
       order.SetIsoOrder(isoOrder);
-    }
 
-    
-    PtrParamNode anIsoOrderNode = node->Get("anIsoOrder", ParamNode::PASS );
-    if(anIsoOrderNode){
+    } else if(node->Has("anisoOrder")) {
+      PtrParamNode anIsoOrderNode = node->Get("anIsoOrder", ParamNode::PASS );
+      mapType= POLYNOMIAL;
+
       UInt dim = ptGrid_->GetDim();
       Matrix<UInt> orderMat;
       orderMat.Resize(dim,3);
       StdVector<std::string> dofs(3);
-       anIsoOrderNode->GetValue("dof1",dofs[0],ParamNode::PASS);
-       anIsoOrderNode->GetValue("dof2",dofs[1],ParamNode::PASS);
-       anIsoOrderNode->GetValue("dof3",dofs[2],ParamNode::PASS);
-       if( dofs[2] == "" ) {
-         orderMat.Resize(dim,2); 
-       }
-       if( dofs[1] == "" ) {
-         orderMat.Resize(dim,1);
-       }
+      anIsoOrderNode->GetValue("dof1",dofs[0],ParamNode::PASS);
+      anIsoOrderNode->GetValue("dof2",dofs[1],ParamNode::PASS);
+      anIsoOrderNode->GetValue("dof3",dofs[2],ParamNode::PASS);
+      if( dofs[2] == "" ) {
+        orderMat.Resize(dim,2); 
+      }
+      if( dofs[1] == "" ) {
+        orderMat.Resize(dim,1);
+      }
       char_separator<char> sep(" ");
 
       for(UInt i = 0;i < orderMat.GetNumCols();i++){
@@ -1049,6 +1056,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         }
       }
       order.SetAnisoOrder(orderMat);
+      
+    } else {
+      EXCEPTION( "Could not find definition of polynomial order" );
     }
   }
 

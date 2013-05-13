@@ -429,6 +429,12 @@ void FeSpaceHi::FixHigherOrderAnisoDofs() {
       // Get order approximation
       std::map<RegionIdType,ApproxOrder>::iterator approxIt =  
           regionOrder_.find( eRegion );
+      if( approxIt == regionOrder_.end() ) {
+        EXCEPTION( "Could not find approximation for element #"
+            << ptElem->elemNum << " of region " 
+            << ptGrid_->GetRegion().ToString(ptElem->regionId) );
+      }
+      
       ApproxOrder & ord = approxIt->second;
       SetElemOrder( ptElem, ptFe, ord, true );
 
