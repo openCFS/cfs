@@ -312,6 +312,12 @@ namespace CoupledField
      /** Here we store result descriptions as defined in DesignElement.hh */
      StdVector<ResultDescription> resultDescriptions;
 
+
+     /**Here we store the value of the mechanical tensor of the material and its derivative with respect to the design variables**/
+     //StdVector<TensorElement> tensor_data;
+
+
+
      /** Might be nonsense if our constructor is no simp or ersatz material one! */
      int GetRegionId() const
      {

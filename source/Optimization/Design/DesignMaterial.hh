@@ -23,7 +23,7 @@ template <class TYPE> class StdVector;
     
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
       DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR,
-      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT, MODEL_REDUCTION, MODEL_REDUCTION2 } Type;
+      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT, REDBAS_PARAM, REDBAS_FREE, GREEDY_PARAM, GREEDY_FREE } Type;
     
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -54,7 +54,7 @@ template <class TYPE> class StdVector;
     void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
 
     /** helper for GetModRedTensor() but also stand alone to output G Matrix from model reduction as special result */
-    void GetModRedGTensor(Matrix<double>& G, DesignElement::Type direction);
+    void GetModRedGTensor(Matrix<double>& G, DesignElement::Type direction, const bool& all_param);
 
     void GetPiezoCouplingTensor(Matrix<double>& t, DesignElement::Type direction);
 
@@ -152,6 +152,9 @@ template <class TYPE> class StdVector;
     /**Computes the homogenized tensor from the reduced-order model obtaind for the homogenization formula */
     inline void GetModRedTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
 
+    /**Computes the homogenized tensor from the reduced-order model obtained for the homogenization formula with the greedy algorithm*/
+    inline void GetGreedyTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
+
     /** initialize the tensor with zeros */
     inline void ZeroTensor(Matrix<double>& t, SubTensorType subTensor);
     
@@ -189,34 +192,65 @@ template <class TYPE> class StdVector;
 
 
     /** fills the matrices in mod_red_matrices_ **/
-    void FillModRedMatrices(PtrParamNode matnode, const StdVector<std::string>& tensor_comp, const int& tensor_int);
+    void FillModRedMatrices(PtrParamNode matnode, const StdVector<std::string>& tensor_comp, const int& tensor_int, const UInt& dimbas);
 
     /** fills the vectors in mod_red_vectors_ **/
-    void FillModRedVectors(PtrParamNode vecnode, const StdVector<std::string>& tensor_comp, const int& tensor_int);
-
-    //Solves the corrector problems using the reduced basis
-    void GetModRedCorrector(StdVector<Matrix<double> >& corrector_, const Matrix<double>& G);
+    void FillModRedVectors(PtrParamNode vecnode, const StdVector<std::string>& tensor_comp, const int& tensor_int, const UInt& dimbas);
 
     //Returns the homogenized elasticity tensor associated to the matrix G
-    void GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const StdVector<Matrix<double> >& corrector_, Notation notation);
+    void GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const StdVector<Vector<double> >& corrector_, Notation notation);
 
     //Returns the derivative of the homogenized elasticity tensor associated with a matrix G and its derivative Gderiv
-    void GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const Matrix<double>& Gderiv, const StdVector<Matrix<double> >& corrector_, Notation notation);
+    void GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const Matrix<double>& Gderiv, const StdVector<Vector<double> >& corrector_, Notation notation);
+
+    /** gives the SVD parameters of the 2*2 matrix G ***/
+    void GetSVDGTensorParameters(const Matrix<double>& G, Vector<double>& paramvec);
+
+    //Get the values of the parameters
+    void GetModRedParamVector(Vector<double>& params);
+
+    //Solves the corrector problems using the reduced basis
+    void GetRedBasCorrector(StdVector<Vector<double> >& corrector_, const Matrix<double>& G);
+
+    //Get the Corrector for the greedy model reduction
+    void GetGreedyCorrector(StdVector<Vector<double> >& corrector_, const Vector<double>& params, const bool& all_param);
+
+    //Compute the value of angle-dependent functions in the greedy case
+    double AngleGreedyCalculus(const Vector<double>& coeffs, const double& angle);
+
+    //Compute the value of scaling-dependent functions in the greedy caseS
+    double ScalingGreedyCalculus(const Vector<double>& coeffs, const double& l);
 
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
      * 9 rows and 6 columns for with TENSOR11 being the first */
     Matrix<double> hom_rect_samples_;
 
-    //** Contains the matrices and vectors with the reduced basis information for the model reduction case
-    int dimension_;
+    //** Contains the matrices and vectors with the information for the model reduction case (reduced basis or greedy)
+    UInt dimension_;
+    UInt dimension_tot_;
 
-    //The matrices and vectors of teh reduced model shoul be given in Voigt notation
+    //The matrices and vectors of the reduced model should be given in Voigt notation
     StdVector<Matrix<double> > mod_red_matrices_;
 
-    StdVector<Matrix<double> > mod_red_vectors_;
+    StdVector<Vector<double> > mod_red_vectors_;
 
     //Mean_tensor_ = [E11, E12, E33];
     Matrix<double> mean_tensor_;
+
+    //Gives the information: do we treat the rotation angle theta just like another parameter or not
+    bool all_param_;
+
+
+    //Contains information for the greedy case
+    UInt Na_;
+    UInt Nl_;
+    double lmin_;
+    double lmax_;
+
+    //Contains the infomation about the parameters for the corrector problem in the greedy case
+    StdVector<Matrix<double> > matrices_param_;
+
+
 
 
   };

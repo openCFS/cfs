@@ -340,6 +340,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
   Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
   Function::type.Add(Function::DETERMINANT_MATRIX, "determinantMatrix");
+  Function::type.Add(Function::ROTATIONAL_MATRIX_1, "rotationalMatrix1");
+  Function::type.Add(Function::ROTATIONAL_MATRIX_2, "rotationalMatrix2");
   Function::type.Add(Function::DESIGN_BOUND, "designBound");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
@@ -355,6 +357,10 @@ void Optimization::SetEnums()
   Function::Local::locality.Add(Function::Local::BOUNDARY, "boundary");
   Function::Local::locality.Add(Function::Local::ELEMENT, "element");
   Function::Local::locality.Add(Function::Local::MULT_DESIGNS_ELEMENT, "multiple_designs_element");
+  Function::Local::locality.Add(Function::Local::MULT_DESIGNS_NEXT, "multiple_designs_next");
+  Function::Local::locality.Add(Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE, "multiple_designs_next_and_reverse");
+  Function::Local::locality.Add(Function::Local::MULT_DESIGNS_PREV_NEXT, "multiple_designs_prev_next");
+  Function::Local::locality.Add(Function::Local::MULT_DESIGNS_PREV_NEXT_AND_REVERSE, "multiple_designs_prev_next_and_reverse");
 
   Function::Local::phase.SetName("Function::Local::Phase");
   Function::Local::phase.Add(Function::Local::BOTH, "both");

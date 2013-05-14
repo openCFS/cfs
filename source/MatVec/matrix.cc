@@ -534,6 +534,26 @@ namespace CoupledField
         data_[0][k] += factor * other_mat.data_[0][k];
   }
 
+  /** Adds the multiple of the transpose of another matrix */
+   template<class TYPE>
+   void Matrix<TYPE>::AddT(const TYPE factor, const Matrix<TYPE>& mat)
+   {
+     const Matrix<TYPE>& other_mat = dynamic_cast<const Matrix<TYPE> & >(mat);
+ #ifdef CHECK_INITIALIZED
+     if (size_row_ == 0 || size_col_ == 0 || other_mat.size_row_ == 0 || other_mat.size_col_ == 0)
+       EXCEPTION("undefined Matrix");
+ #endif
+
+ #ifdef CHECK_INDEX
+     if (size_row_ != other_mat.size_col_ || size_col_ != other_mat.size_row_)
+       EXCEPTION("matrices do not match");
+ #endif
+
+     for(UInt k = 0, s = size_row_ ; k < s; ++k)
+       for (UInt kk =0, ss = size_col_; kk < ss; ++kk)
+         data_[k][kk] += factor * other_mat.data_[kk][k];
+   }
+
 
   /** Assigns a multiple of another matrix */
   template<class TYPE>
@@ -583,6 +603,7 @@ namespace CoupledField
       for ( kk = 0; kk < size_col_; kk++)
         rvec1[k] += data_[k][kk]*mvec1[kk];
   }
+
 
   template<class TYPE>
   TYPE Matrix<TYPE>::FrobeniusProduct(const Matrix<TYPE>& other_mat) const

@@ -354,6 +354,9 @@
                 <xsd:enumeration value="bensonVanderbeiMinor3"/>
                 <!--  In case of model reduction, ensures that the determinant of the matrix is positive -->
                 <xsd:enumeration value="determinantMatrix"/>
+               <!--  In case of model reduction, ensures that the rotational of the matrix is small enough -->
+                <xsd:enumeration value="rotationalMatrix1"/>
+                <xsd:enumeration value="rotationalMatrix2"/>
                 <!-- this allows to formulate design bounds as functions. Set box constraints then to +- inf -->
                 <xsd:enumeration value="designBound"/>
                 <!-- local sum of all multimaterial designs -->
@@ -1132,8 +1135,10 @@
                             <!-- samples for homogenizes a-b rectangulars for interpolation. Requies homRect element -->
                             <xsd:enumeration value="hom-rect"/>
                             <!--  model reduction  -->
-                            <xsd:enumeration value="model-reduction"/>
-                            <xsd:enumeration value="model-reduction2"/>
+                            <xsd:enumeration value="reducedBasis-param"/>
+                            <xsd:enumeration value="reducedBasis-free"/>
+                            <xsd:enumeration value="greedy-param"/>
+                            <xsd:enumeration value="greedy-free"/>
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>

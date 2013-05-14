@@ -84,13 +84,14 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     FillHomRectSamples(hr, 8, "0.25", "0.25");
   }
 
-  if((type_ == MODEL_REDUCTION) | (type_ == MODEL_REDUCTION2))
+  if((type_ == REDBAS_PARAM) | (type_ == REDBAS_FREE))
   {
     std::string file = pn->Get("modRed/file")->As<std::string>();
     Xerces xerces(file);
     PtrParamNode root = xerces.CreateParamNodeInstance();
     PtrParamNode hr = root->Get("modRed");
-    dimension_ = hr->Get("dimension")->As<int>();
+    dimension_ = hr->Get("dimension")->As<UInt>();
+    all_param_ = hr->Get("allParameters")->As<bool>();
     PtrParamNode mean = hr->Get("meantensor");
     PtrParamNode tensor = mean->Get("tensor");
     Matrix<double> mat(3,1);
@@ -98,7 +99,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     mean_tensor_ = mat;
 
     StdVector<Matrix<double> > matrices(30);
-    StdVector<Matrix<double> > vectors(12);
+    StdVector<Vector<double> > vectors(12);
     mod_red_matrices_ = matrices;
     mod_red_vectors_ = vectors;
 //    PtrParamNode matnode = hr->Get("matrices");
@@ -112,12 +113,157 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     for (int tensor_int =0; tensor_int <3; tensor_int ++)
     {
 
-        FillModRedMatrices(hr, tensor_comp, tensor_int);
-        FillModRedVectors(hr, tensor_comp,tensor_int);
+        FillModRedMatrices(hr, tensor_comp, tensor_int, dimension_);
+        FillModRedVectors(hr, tensor_comp,tensor_int, dimension_);
     }
-     std::cout << "matrices" << std::endl;
-     std::cout << "vectors"<< std::endl;
   }
+
+
+  if((type_ == GREEDY_FREE) | (type_ == GREEDY_PARAM))
+  {
+    std::string file = pn->Get("modRed/file")->As<std::string>();
+    Xerces xerces(file);
+    PtrParamNode root = xerces.CreateParamNodeInstance();
+    PtrParamNode hr = root->Get("modRed");
+
+    //Here dimension is the number of terms in the tensor-product expansion
+    dimension_ = hr->Get("dimension")->As<UInt>();
+   // dimension_tot_ = hr->Get("dimensionTotale")->As<UInt>();
+    Nl_ = hr->Get("Nl")->As<UInt>();
+    Na_ = hr->Get("Na")->As<UInt>();
+    lmin_ = hr->Get("lmin")->As<double>();
+    lmax_ = hr->Get("lmax")->As<double>();
+
+    all_param_ = hr->Get("allParameters")->As<bool>();
+
+    //If type_ == GREEDY_FREE, necessarily, we must have all_param_
+    assert((type_==GREEDY_PARAM) || (all_param_));
+
+    PtrParamNode mean = hr->Get("meantensor");
+    PtrParamNode tensor = mean->Get("tensor");
+    Matrix<double> mat(3,1);
+    ParamTools::AsTensor<double>(tensor->Get("real"),3, 1, mat);
+    mean_tensor_ = mat;
+
+    int num_param=3;
+    if (all_param_) num_param = 4;
+
+    StdVector<Matrix<double> > mat_param(num_param);
+    matrices_param_ = mat_param;
+
+///////////////Initialisation of matl2////////////////////////
+
+    mat.Resize(Nl_+1,3*dimension_);
+
+
+    PtrParamNode matl2 = hr->Get("matl2");
+    tensor = matl2->Get("tensor");
+    Matrix<double> mattrans(Nl_+1,3*dimension_);
+    ParamTools::AsTensor<double>(tensor->Get("real"),Nl_+1, 3*dimension_, mat);
+    matrices_param_[num_param-1] = mat;
+
+  /*  PtrParamNode matl2 = hr->Get("matl2");
+    tensor = matl2->Get("tensor");
+    Matrix<double> mattrans(Nl_+1,3*dimension_tot_);
+    ParamTools::AsTensor<double>(tensor->Get("real"),Nl_+1, 3*dimension_tot_, mattrans);
+
+
+    mat.Resize(Nl_+1,3*dimension_);
+    mat.Init();
+
+    Matrix<double> mathelp(Nl_+1,dimension_);
+    mattrans.GetSubMatrix(mathelp,0,0);
+    mat.SetSubMatrix(mathelp,0,0);
+    mattrans.GetSubMatrix(mathelp,0,dimension_tot_);
+    mat.SetSubMatrix(mathelp,0,dimension_);
+    mattrans.GetSubMatrix(mathelp,0,2*dimension_tot_);
+    mat.SetSubMatrix(mathelp,0,2*dimension_);
+
+    matrices_param_[num_param-1] = mat;*/
+
+/////////Initialisation of matl1 /////////////////////////////
+
+    mat.Resize(Nl_+1,3*dimension_);
+    PtrParamNode matl1 = hr->Get("matl1");
+    tensor = matl1->Get("tensor");
+    ParamTools::AsTensor<double>(tensor->Get("real"),Nl_+1, 3*dimension_, mat);
+    matrices_param_[num_param-2] = mat;
+
+    /*mattrans.Resize(Nl_+1,3*dimension_tot_);
+    mattrans.Init();
+
+    PtrParamNode matl1 = hr->Get("matl1");
+    tensor = matl1->Get("tensor");
+    ParamTools::AsTensor<double>(tensor->Get("real"),Nl_+1, 3*dimension_tot_, mattrans);
+
+    mat.Resize(Nl_+1,3*dimension_);
+    mat.Init();
+
+    mathelp.Resize(Nl_+1,dimension_);
+    mathelp.Init();
+    mattrans.GetSubMatrix(mathelp,0,0);
+    mat.SetSubMatrix(mathelp,0,0);
+    mattrans.GetSubMatrix(mathelp,0,dimension_tot_);
+    mat.SetSubMatrix(mathelp,0,dimension_);
+    mattrans.GetSubMatrix(mathelp,0,2*dimension_tot_);
+    mat.SetSubMatrix(mathelp,0,2*dimension_);
+
+    matrices_param_[num_param-2] = mat;*/
+
+
+
+///////////////Inintialisation of matphi//////////////////////////
+  mat.Resize(2*Na_+1,3*dimension_);
+  PtrParamNode matphi = hr->Get("matphi");
+  tensor = matphi->Get("tensor");
+  ParamTools::AsTensor<double>(tensor->Get("real"),2*Na_+1, 3*dimension_, mat);
+
+  matrices_param_[num_param-3] = mat;
+
+
+   /* mattrans.Resize(2*Na_+1,3*dimension_tot_);
+    mattrans.Init();
+
+    PtrParamNode matphi = hr->Get("matphi");
+    tensor = matphi->Get("tensor");
+    ParamTools::AsTensor<double>(tensor->Get("real"),2*Na_+1, 3*dimension_tot_, mattrans);
+
+
+    mat.Resize(2*Na_+1,3*dimension_);
+    mat.Init();
+    matrices_param_[num_param-3] = mat;*/
+
+   // std::cout << matrices_param_[num_param-3](0,0);
+
+    if (all_param_)
+    {
+
+          PtrParamNode mattheta = hr->Get("mattheta");
+          tensor = mattheta->Get("tensor");
+          mat.Resize(2*Na_+1,3*dimension_);
+          ParamTools::AsTensor<double>(tensor->Get("real"),2*Na_+1, 3*dimension_, mat);
+          matrices_param_[num_param-4] = mat;
+    }
+
+
+    StdVector<Matrix<double> > matrices(30);
+    StdVector<Vector<double> > vectors(12);
+    mod_red_matrices_ = matrices;
+    mod_red_vectors_ = vectors;
+
+        StdVector<std::string> tensor_comp(3);// =["11", "12", "33"];
+           tensor_comp[0]="11";
+           tensor_comp[1]="12";
+           tensor_comp[2]="33";
+
+           for (int tensor_int =0; tensor_int <3; tensor_int ++)
+           {
+
+               FillModRedMatrices(hr, tensor_comp, tensor_int, 3*dimension_);
+               FillModRedVectors(hr, tensor_comp,tensor_int, 3*dimension_);
+           }
+  }
+
 
 }
 
@@ -135,85 +281,95 @@ void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx, 
   hom_rect_samples_[idx][DesignElement::TENSOR23 - DesignElement::TENSOR11] = 0.0;
 }
 
-void DesignMaterial::FillModRedMatrices(PtrParamNode matnode, const StdVector<std::string>& tensor_comp, const int& tensor_int)
+
+
+
+void DesignMaterial::FillModRedMatrices(PtrParamNode matnode, const StdVector<std::string>& tensor_comp, const int& tensor_int, const UInt& dimbas)
 {
+
       PtrParamNode mat1 = matnode->Get("matuxux" + tensor_comp[tensor_int]);
       PtrParamNode tensor = mat1->Get("tensor");
-      Matrix<double> mat(dimension_,dimension_);
-      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+      Matrix<double> mat(dimbas,dimbas);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
       mod_red_matrices_[10*tensor_int +0] = mat;
 
       PtrParamNode mat2= matnode->Get("matuxvx" + tensor_comp[tensor_int] );
       tensor = mat2->Get("tensor");
-      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
        mod_red_matrices_[10*tensor_int + 1] = mat;
 
       PtrParamNode mat3= matnode->Get("matvxvx" + tensor_comp[tensor_int]);
       tensor = mat3->Get("tensor");
-      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
       mod_red_matrices_[10*tensor_int + 2] = mat;
 
 
       PtrParamNode mat4 = matnode->Get("matuxuy" + tensor_comp[tensor_int]);
       tensor = mat4->Get("tensor");
-      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
       mod_red_matrices_[ 10*tensor_int +3] = mat;
 
       PtrParamNode mat5 = matnode->Get("matuxvy" + tensor_comp[tensor_int]);
       tensor = mat5->Get("tensor");
-      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
        mod_red_matrices_[10*tensor_int + 4] = mat;
 
        PtrParamNode mat6 = matnode->Get("matuyvx" + tensor_comp[tensor_int]);
        tensor = mat6->Get("tensor");
-       ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+       ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
        mod_red_matrices_[ 10*tensor_int + 5] = mat;
 
       PtrParamNode mat7 = matnode->Get("matvxvy" + tensor_comp[tensor_int]);
       tensor = mat7->Get("tensor");
-      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
       mod_red_matrices_[10*tensor_int + 6] = mat;
 
 
       PtrParamNode mat8 = matnode->Get("matuyuy" + tensor_comp[tensor_int]);
       tensor = mat8->Get("tensor");
-      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
        mod_red_matrices_[10*tensor_int + 7] = mat;
 
        PtrParamNode mat9 = matnode->Get("matuyvy" + tensor_comp[tensor_int]);
        tensor = mat9->Get("tensor");
-       ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+       ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
        mod_red_matrices_[10*tensor_int + 8] = mat;
 
       PtrParamNode mat10 = matnode->Get("matvyvy" + tensor_comp[tensor_int]);
       tensor = mat10->Get("tensor");
-      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, dimension_, mat);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, dimbas, mat);
       mod_red_matrices_[10*tensor_int + 9] = mat;
 
 }
 
-void DesignMaterial::FillModRedVectors(PtrParamNode vecnode, const StdVector<std::string>& tensor_comp, const int& tensor_int)
+void DesignMaterial::FillModRedVectors(PtrParamNode vecnode, const StdVector<std::string>& tensor_comp, const int& tensor_int, const UInt& dimbas)
 {
+
       PtrParamNode vecux = vecnode->Get("vecux" + tensor_comp[tensor_int] );
       PtrParamNode tensor = vecux->Get("tensor");
-      Matrix<double> mat(dimension_,1);
-      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, 1, mat);
-      mod_red_vectors_[4*tensor_int +0] = mat;
+      Matrix<double> mat(dimbas,1);
+      Vector<double> vec(dimbas);
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, 1, mat);
+      mat.GetCol(vec,0);
+      mod_red_vectors_[4*tensor_int +0] = vec;
 
       PtrParamNode vecuy = vecnode->Get("vecuy" + tensor_comp[tensor_int]);
       tensor = vecuy->Get("tensor");
-      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, 1, mat);
-      mod_red_vectors_[4*tensor_int +1] = mat;
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, 1, mat);
+      mat.GetCol(vec,0);
+      mod_red_vectors_[4*tensor_int +1] = vec;
 
       PtrParamNode vecvx = vecnode->Get("vecvx" + tensor_comp[tensor_int]);
       tensor = vecvx->Get("tensor");
-      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, 1, mat);
-      mod_red_vectors_[ 4*tensor_int +2] = mat;
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, 1, mat);
+      mat.GetCol(vec,0);
+      mod_red_vectors_[ 4*tensor_int +2] = vec;
 
       PtrParamNode vecvy = vecnode->Get("vecvy" + tensor_comp[tensor_int]);
       tensor = vecvy->Get("tensor");
-      ParamTools::AsTensor<double>(tensor->Get("real"),dimension_, 1, mat);
-      mod_red_vectors_[ 4*tensor_int +3] = mat;
+      ParamTools::AsTensor<double>(tensor->Get("real"),dimbas, 1, mat);
+      mat.GetCol(vec,0);
+      mod_red_vectors_[ 4*tensor_int +3] = vec;
 
 }
 
@@ -245,8 +401,10 @@ unsigned int DesignMaterial::RequiredParameters(OptimizationMaterial::System mat
   case DENSITY_TIMES_2D_TENSOR:
   case DENSITY_TIMES_ROTATED_2D_TENSOR:
     return r+7;
-  case MODEL_REDUCTION:
-  case MODEL_REDUCTION2:
+  case REDBAS_PARAM:
+  case REDBAS_FREE:
+  case GREEDY_PARAM:
+  case GREEDY_FREE:
 	  return r+4;
   }
 
@@ -330,12 +488,14 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
     return(design.Find(DesignElement::STIFF1) >= 0
         && design.Find(DesignElement::STIFF2) >= 0
         && design.Find(DesignElement::ROTANGLE) >= 0);
-  case MODEL_REDUCTION:
+  case REDBAS_PARAM:
+  case GREEDY_PARAM:
     return(design.Find(DesignElement::ROTANGLE) >= 0
         && design.Find(DesignElement::ROTANGLE2) >= 0
         && design.Find(DesignElement::SCALING1) >= 0
         && design.Find(DesignElement::SCALING2) >= 0);
-  case MODEL_REDUCTION2:
+  case REDBAS_FREE:
+  case GREEDY_FREE:
       return(design.Find(DesignElement::G11) >= 0
           && design.Find(DesignElement::G12) >= 0
           && design.Find(DesignElement::G21) >= 0
@@ -957,9 +1117,9 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, DesignElement::Type dir
 */
 }
 
-void DesignMaterial::GetModRedCorrector(StdVector<Matrix<double> >& corrector_, const Matrix<double>& G)
+void DesignMaterial::GetRedBasCorrector(StdVector<Vector<double> >& corrector_, const Matrix<double>& G)
 {
-   corrector_ = StdVector<Matrix<double> >(3);
+   corrector_ = StdVector<Vector<double> >(3);
   //std::cout << "corrector"<< std::endl;
     double G11 = G[1-1][1-1];
     double G12 = G[1-1][2-1];
@@ -969,6 +1129,8 @@ void DesignMaterial::GetModRedCorrector(StdVector<Matrix<double> >& corrector_, 
    //std::cout << "G11=" << G11 << " G12=" << G12 << " G21=" << G21 << " G22=" << G22;
 
   Matrix<double> mat(dimension_, dimension_);
+  mat.Init();
+
   //mat = G11*G11*matuxux11 + G11*G12*(matuxuy11 + matuxuy11t) + G12*G12*matuyuy11
   //    + G21*G21*matvxvx11 + G21*G22*(matvxvy11 + matvxvy11t) + G22*G22*matvyvy11
   //    + G11*G21*(matuxvx12 + matuxvx12t) + G12*G21*(matuyvx12 + matuyvx12t) + G11*G22*(matuxvy12 + matuxvy12t) + G12*G22*(matuyvy12 + matuyvy12t)
@@ -976,7 +1138,7 @@ void DesignMaterial::GetModRedCorrector(StdVector<Matrix<double> >& corrector_, 
   //    +0.25*(G21*G21*matuxux33 + G21*G22*(matuxuy33 + matuxuy33t) + G22*G22*matuyuy33)
   //    +0.25*( G11*G21*(matuxvx33 + matuxvx33t) + G12*G21*(matuxvy33 + matuxvy33t) + G11*G22*(matuyvx33 + matuyvx33t) + G12*G22*(matuyvy33 + matuyvy33t))
 
-  mat = mod_red_matrices_[10*0 + 0]*G11*G11
+  /*mat = mod_red_matrices_[10*0 + 0]*G11*G11
       +(mod_red_matrices_[10*0 + 3] + Transpose(mod_red_matrices_[10*0 + 3]))*(G11*G12)
       + mod_red_matrices_[10*0 + 7]*G12*G12
 
@@ -1003,12 +1165,52 @@ void DesignMaterial::GetModRedCorrector(StdVector<Matrix<double> >& corrector_, 
       + (mod_red_matrices_[10*2 + 1] + Transpose(mod_red_matrices_[10*2 + 1]))*G11*G21
       + (mod_red_matrices_[10*2 + 5] + Transpose(mod_red_matrices_[10*2 + 5]))*G11*G22
       + (mod_red_matrices_[10*2 + 4] + Transpose(mod_red_matrices_[10*2 + 4]))*G12*G21
-      + (mod_red_matrices_[10*2 + 8] + Transpose(mod_red_matrices_[10*2 + 8]))*G12*G22;
+      + (mod_red_matrices_[10*2 + 8] + Transpose(mod_red_matrices_[10*2 + 8]))*G12*G22;*/
+
+
+  mat.Add(G11*G11, mod_red_matrices_[10*0 + 0]);
+   mat.Add(G11*G12, mod_red_matrices_[10*0 + 3]);
+   mat.AddT(G11*G12, mod_red_matrices_[10*0 + 3]);
+   mat.Add(G12*G12, mod_red_matrices_[10*0 + 7]);
+
+   mat.Add(G21*G21, mod_red_matrices_[10*0 + 2]);
+   mat.Add(G21*G22 ,mod_red_matrices_[10*0 + 6]);
+   mat.AddT(G21*G22,mod_red_matrices_[10*0 + 6]);
+   mat.Add(G22*G22, mod_red_matrices_[10*0 + 9]);
+
+   mat.Add(G11*G21, mod_red_matrices_[10*1 + 1] );
+   mat.AddT(G11*G21, mod_red_matrices_[10*1 + 1] );
+   mat.Add(G12*G21, mod_red_matrices_[10*1 + 5]);
+   mat.AddT(G12*G21, mod_red_matrices_[10*1 + 5]);
+   mat.Add(G11*G22, mod_red_matrices_[10*1 + 4]);
+   mat.AddT(G11*G22, mod_red_matrices_[10*1 + 4]);
+   mat.Add(G12*G22, mod_red_matrices_[10*1 + 8]);
+   mat.AddT(G12*G22, mod_red_matrices_[10*1 + 8]);
+
+   mat.Add(G21*G21, mod_red_matrices_[10*2 + 0]);
+   mat.Add(G21*G22, mod_red_matrices_[10*2 + 3] );
+   mat.AddT(G21*G22, mod_red_matrices_[10*2 + 3] );
+   mat.Add(G22*G22,mod_red_matrices_[10*2 + 7] );
+
+   mat.Add(G11*G11,mod_red_matrices_[10*2 + 2] );
+   mat.Add(G11*G12,mod_red_matrices_[10*2 + 6] );
+   mat.AddT(G11*G12,mod_red_matrices_[10*2 + 6] );
+   mat.Add(G12*G12, mod_red_matrices_[10*2 + 9]);
+
+   mat.Add(G11*G21, mod_red_matrices_[10*2 + 1]);
+   mat.AddT(G11*G21, mod_red_matrices_[10*2 + 1]);
+   mat.Add(G11*G22, mod_red_matrices_[10*2 + 5]);
+   mat.AddT(G11*G22, mod_red_matrices_[10*2 + 5]);
+   mat.Add(G12*G21, mod_red_matrices_[10*2 + 4]);
+   mat.AddT(G12*G21, mod_red_matrices_[10*2 + 4]);
+   mat.Add(G12*G22, mod_red_matrices_[10*2 + 8]);
+   mat.AddT(G12*G22, mod_red_matrices_[10*2 + 8]);
+
 
   for (int corrector_int =0; corrector_int<3; corrector_int++)
   {
 
-    Matrix<double> vec(dimension_,1);
+    Vector<double> vec(dimension_);
 
         if (corrector_int == 0)
         {
@@ -1030,34 +1232,40 @@ void DesignMaterial::GetModRedCorrector(StdVector<Matrix<double> >& corrector_, 
         }
 
         //lapackSysMatType lmst = ZHESV;
-        lapackSysMatType lmst =ZSYSV;
-        Matrix<Complex> matcomp(dimension_, dimension_);
+        //lapackSysMatType lmst =ZSYSV;
+        //Matrix<Complex> matcomp(dimension_, dimension_);
+        //Matrix<Complex> veccomp(dimension_,1);
+        //matcomp.SetPart(Global::REAL,mat);
+        //veccomp.SetPart(Global::REAL,vec);
+        //matcomp.solveWithLapack(veccomp,lmst);
+        //corrector_[corrector_int] = veccomp.GetPart(Global::REAL);
 
-        Matrix<Complex> veccomp(dimension_,1);
-
-        matcomp.SetPart(Global::REAL,mat);
-        veccomp.SetPart(Global::REAL,vec);
-
-        matcomp.solveWithLapack(veccomp,lmst);
-        corrector_[corrector_int] = veccomp.GetPart(Global::REAL);
+        Vector<double> sol(dimension_);
+        mat.DirectSolve(sol,vec);
+        corrector_[corrector_int] = sol;
   }
 }
 
-void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const StdVector<Matrix<double> >& corrector_, Notation notation)
+void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const StdVector<Vector<double> >& corrector_, Notation notation)
 {
 
   E.Resize(3,3);
   E.Init();
 
  // std::cout << "GetModRedTensorHom" << std::endl;
-  double G11 = G[1-1][1-1];
-  double G12 = G[1-1][2-1];
-  double G21 = G[2-1][1-1];
-  double G22 = G[2-1][2-1];
+  double G11 = G(0,0);
+  double G12 = G(0,1);
+  double G21 = G(1,0);
+  double G22 = G(1,1);
 
-  Matrix<double> mat(dimension_, dimension_);
+  UInt dimbas =0;
+  if ((type_ == REDBAS_PARAM) | (type_ == REDBAS_FREE)) dimbas = dimension_;
+  if ((type_ == GREEDY_PARAM) | (type_ == GREEDY_FREE)) dimbas = 3*dimension_;
 
-  mat = mod_red_matrices_[10*0 + 0]*G11*G11
+  Matrix<double> mat(dimbas, dimbas);
+  mat.Init();
+
+  /*mat = mod_red_matrices_[10*0 + 0]*G11*G11
       +(mod_red_matrices_[10*0 + 3] + Transpose(mod_red_matrices_[10*0 + 3]))*(G11*G12)
       + mod_red_matrices_[10*0 + 7]*G12*G12
 
@@ -1084,60 +1292,114 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
       + (mod_red_matrices_[10*2 + 1] + Transpose(mod_red_matrices_[10*2 + 1]))*G11*G21
       + (mod_red_matrices_[10*2 + 5] + Transpose(mod_red_matrices_[10*2 + 5]))*G11*G22
       + (mod_red_matrices_[10*2 + 4] + Transpose(mod_red_matrices_[10*2 + 4]))*G12*G21
-      + (mod_red_matrices_[10*2 + 8] + Transpose(mod_red_matrices_[10*2 + 8]))*G12*G22;
+      + (mod_red_matrices_[10*2 + 8] + Transpose(mod_red_matrices_[10*2 + 8]))*G12*G22;*/
 
-  Matrix<double> mat0(dimension_,1);
-  Matrix<double> mat1(dimension_,1);
-  Matrix<double> mat2(dimension_,1);
+
+  mat.Add(G11*G11, mod_red_matrices_[10*0 + 0]);
+  mat.Add(G11*G12, mod_red_matrices_[10*0 + 3]);
+  mat.AddT(G11*G12, mod_red_matrices_[10*0 + 3]);
+  mat.Add(G12*G12, mod_red_matrices_[10*0 + 7]);
+
+  mat.Add(G21*G21, mod_red_matrices_[10*0 + 2]);
+  mat.Add(G21*G22 ,mod_red_matrices_[10*0 + 6]);
+  mat.AddT(G21*G22,mod_red_matrices_[10*0 + 6]);
+  mat.Add(G22*G22, mod_red_matrices_[10*0 + 9]);
+
+  mat.Add(G11*G21, mod_red_matrices_[10*1 + 1] );
+  mat.AddT(G11*G21, mod_red_matrices_[10*1 + 1] );
+  mat.Add(G12*G21, mod_red_matrices_[10*1 + 5]);
+  mat.AddT(G12*G21, mod_red_matrices_[10*1 + 5]);
+  mat.Add(G11*G22, mod_red_matrices_[10*1 + 4]);
+  mat.AddT(G11*G22, mod_red_matrices_[10*1 + 4]);
+  mat.Add(G12*G22, mod_red_matrices_[10*1 + 8]);
+  mat.AddT(G12*G22, mod_red_matrices_[10*1 + 8]);
+
+  mat.Add(G21*G21, mod_red_matrices_[10*2 + 0]);
+  mat.Add(G21*G22, mod_red_matrices_[10*2 + 3] );
+  mat.AddT(G21*G22, mod_red_matrices_[10*2 + 3] );
+  mat.Add(G22*G22,mod_red_matrices_[10*2 + 7] );
+
+  mat.Add(G11*G11,mod_red_matrices_[10*2 + 2] );
+  mat.Add(G11*G12,mod_red_matrices_[10*2 + 6] );
+  mat.AddT(G11*G12,mod_red_matrices_[10*2 + 6] );
+  mat.Add(G12*G12, mod_red_matrices_[10*2 + 9]);
+
+  mat.Add(G11*G21, mod_red_matrices_[10*2 + 1]);
+  mat.AddT(G11*G21, mod_red_matrices_[10*2 + 1]);
+  mat.Add(G11*G22, mod_red_matrices_[10*2 + 5]);
+  mat.AddT(G11*G22, mod_red_matrices_[10*2 + 5]);
+  mat.Add(G12*G21, mod_red_matrices_[10*2 + 4]);
+  mat.AddT(G12*G21, mod_red_matrices_[10*2 + 4]);
+  mat.Add(G12*G22, mod_red_matrices_[10*2 + 8]);
+  mat.AddT(G12*G22, mod_red_matrices_[10*2 + 8]);
+
+
+  Vector<double> mat0(dimbas);
+  Vector<double> mat1(dimbas);
+  Vector<double> mat2(dimbas);
 
   mat.Mult(corrector_[0], mat0);
   mat.Mult(corrector_[1], mat1);
   mat.Mult(corrector_[2], mat2);
 
- /* Matrix<double> vec0(dimension_,1);
-  Matrix<double> vec1(dimension_,1);
-  Matrix<double> vec2(dimension_,1);
+  Vector<double> vec0(dimbas);
+  Vector<double> vec1(dimbas);
+  Vector<double> vec2(dimbas);
 
-  vec0 = mod_red_vectors_[4*0 +0]*G11 + mod_red_vectors_[4*0 +1]*G12
-      +mod_red_vectors_[4*1 +2]*G21 + mod_red_vectors_[4*1 +3]*G22;
+  vec0 = mod_red_vectors_[4*0+0]*G11 + mod_red_vectors_[4*0+1]*G12 + mod_red_vectors_[4*1+2]*G21 + mod_red_vectors_[4*1+3]*G22;
+  vec1 = mod_red_vectors_[4*1+0]*G11 + mod_red_vectors_[4*1+1]*G12 + mod_red_vectors_[4*0+2]*G21 + mod_red_vectors_[4*0+3]*G22;
+  vec2 = mod_red_vectors_[4*2+0]*G21 + mod_red_vectors_[4*2+1]*G22 + mod_red_vectors_[4*2+2]*G11 + mod_red_vectors_[4*2+3]*G12;
 
-  vec1 = mod_red_vectors_[4*0 +2]*G21 + mod_red_vectors_[4*0 +3]*G22
-      +mod_red_vectors_[4*1 +0]*G11 + mod_red_vectors_[4*1 +1]*G12;
 
-  vec2 = mod_red_vectors_[ 4*2 +0]*G21 + mod_red_vectors_[4*2 +1]*G22
-      +mod_red_vectors_[4*2 +2]*G11 + mod_red_vectors_[4*2 +3]*G12;*/
+ // double p11 = corrector_[0]*vec1;
+ // double p12 = corrector_[0]*vec2;
+ // double p13 = corrector_[0]*vec3;
+
+ // double p21 = corrector_[1]*vec1;
+ // double p22 = corrector_[1]*vec2;
+ // double p23 = corrector_[1]*vec3;
+
+ // double p31 = corrector_[2]*vec1;
+ // double p32 = corrector_[2]*vec2;
+ // double p33 = corrector_[2]*vec3;
 
    //E11 = E11mean + E11*dxg(u1) + E12*dyg(v1)
    E[1-1][1-1] = mean_tensor_[1-1][0]
 
-                + G11*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+0])
-                + G12*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+1])
-                + G21*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+2])
-                + G22*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+3])
+               + corrector_[0].Inner(mat0) + 2.0*(corrector_[0].Inner(vec0));
 
-                + G11*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+0])
-                + G12*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+1])
-                + G21*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+2])
-                + G22*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+3])
+                /*+ G11*(corrector_[0]*mod_red_vectors_[4*0+0])
+                + G12*(corrector_[0]*mod_red_vectors_[4*0+1])
+                + G21*(corrector_[0]*mod_red_vectors_[4*1+2])
+                + G22*(corrector_[0]*mod_red_vectors_[4*1+3])
 
-                +corrector_[0].FrobeniusProduct(mat0);
+                + G11*(corrector_[0]*mod_red_vectors_[4*0+0])
+                + G12*(corrector_[0]*mod_red_vectors_[4*0+1])
+                + G21*(corrector_[0]*mod_red_vectors_[4*1+2])
+                + G22*(corrector_[0]*mod_red_vectors_[4*1+3])
+
+                +corrector_[0]*mat0;*/
 
 
 
   // E12 = E12mean - E11*dxg(u2) - E12*dyg(v2)
    E[1-1][2-1] = mean_tensor_[2-1][0]
 
-                + G11*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+0])
-                + G12*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+1])
-                + G21*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+2])
-                + G22*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+3])
+               + corrector_[1].Inner(mat0)  + corrector_[1].Inner(vec0) + corrector_[0].Inner(vec1);
 
-                + G11*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+0])
-                + G12*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+1])
-                + G21*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+2])
-                + G22*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+3])
 
-                +corrector_[1].FrobeniusProduct(mat0);
+
+                /*+ G11*(corrector_[1]*mod_red_vectors_[4*0+0])
+                + G12*(corrector_[1]*mod_red_vectors_[4*0+1])
+                + G21*(corrector_[1]*mod_red_vectors_[4*1+2])
+                + G22*(corrector_[1]*mod_red_vectors_[4*1+3])
+
+                + G11*(corrector_[0]*mod_red_vectors_[4*1+0])
+                + G12*(corrector_[0]*mod_red_vectors_[4*1+1])
+                + G21*(corrector_[0]*mod_red_vectors_[4*0+2])
+                + G22*(corrector_[0]*mod_red_vectors_[4*0+3])
+
+                +corrector_[1]*mat0;*/
 
    E[2-1][1-1] =  E[1-1][2-1] ;
 
@@ -1145,67 +1407,75 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
   //E13 = - E11*dxg(u3) - E12*dyg(v3)
    E[1-1][3-1] = 0
 
-             + G11*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+0])
-             + G12*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+1])
-             + G21*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+2])
-             + G22*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+3])
+             + corrector_[2].Inner(mat0) + corrector_[2].Inner(vec0) + corrector_[0].Inner(vec2);
 
-             + G21*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+0])
-             + G22*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+1])
-             + G11*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+2])
-             + G12*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+3])
+             /*+ G11*(corrector_[2]*mod_red_vectors_[4*0+0])
+             + G12*(corrector_[2]*mod_red_vectors_[4*0+1])
+             + G21*(corrector_[2]*mod_red_vectors_[4*1+2])
+             + G22*(corrector_[2]*mod_red_vectors_[4*1+3])
 
-             +corrector_[2].FrobeniusProduct(mat0);
+             + G21*(corrector_[0]*mod_red_vectors_[4*2+0])
+             + G22*(corrector_[0]*mod_red_vectors_[4*2+1])
+             + G11*(corrector_[0]*mod_red_vectors_[4*2+2])
+             + G12*(corrector_[0]*mod_red_vectors_[4*2+3])
+
+             +corrector_[2]*mat0;*/
 
    E[3-1][1-1] = E[1-1][3-1];
 
   //E22 = E11mean - E12*dxg(u2) - E11*dyg(v2)
    E[2-1][2-1] = mean_tensor_[1-1][0]
 
-                + G11*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+0])
-                + G12*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+1])
-                + G21*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+2])
-                + G22*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+3])
+              + corrector_[1].Inner(mat1) + 2.0*(corrector_[1].Inner(vec1));
 
-                + G11*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+0])
-                + G12*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+1])
-                + G21*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+2])
-                + G22*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+3])
+               /* + G11*(corrector_[1]*mod_red_vectors_[4*1+0])
+                + G12*(corrector_[1]*mod_red_vectors_[4*1+1])
+                + G21*(corrector_[1]*mod_red_vectors_[4*0+2])
+                + G22*(corrector_[1]*mod_red_vectors_[4*0+3])
 
-                +corrector_[1].FrobeniusProduct(mat1);
+                + G11*(corrector_[1]*mod_red_vectors_[4*1+0])
+                + G12*(corrector_[1]*mod_red_vectors_[4*1+1])
+                + G21*(corrector_[1]*mod_red_vectors_[4*0+2])
+                + G22*(corrector_[1]*mod_red_vectors_[4*0+3])
+
+                +corrector_[1]*mat1;*/
 
 
   //E23 = - E12*dxg(u3) - E11*dyg(v3)
    E[2-1][3-1] = 0
 
-               + G11*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+0])
-               + G12*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+1])
-               + G21*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+2])
-               + G22*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+3])
+             + corrector_[2].Inner(mat1) + corrector_[2].Inner(vec1) + corrector_[1].Inner(vec2);
 
-               + G21*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+0])
-               + G22*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+1])
-               + G11*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+2])
-               + G12*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+3])
+               /*+ G11*(corrector_[2]*mod_red_vectors_[4*1+0])
+               + G12*(corrector_[2]*mod_red_vectors_[4*1+1])
+               + G21*(corrector_[2]*mod_red_vectors_[4*0+2])
+               + G22*(corrector_[2]*mod_red_vectors_[4*0+3])
 
-               +corrector_[2].FrobeniusProduct(mat1);
+               + G21*(corrector_[1]*mod_red_vectors_[4*2+0])
+               + G22*(corrector_[1]*mod_red_vectors_[4*2+1])
+               + G11*(corrector_[1]*mod_red_vectors_[4*2+2])
+               + G12*(corrector_[1]*mod_red_vectors_[4*2+3])
+
+               +corrector_[2]*mat1;*/
 
    E[3-1][2-1] = E[2-1][3-1];
 
   //E33 = E33mean - E33*0.5*(dyg(u3) + dxg(v3))
    E[3-1][3-1] = mean_tensor_[3-1][0]
 
-                + G21*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+0])
-                + G22*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+1])
-                + G11*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+2])
-                + G12*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+3])
+               + corrector_[2].Inner(mat2) + 2.0*(corrector_[2].Inner(vec2));
 
-                + G21*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+0])
-                + G22*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+1])
-                + G11*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+2])
-                + G12*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+3])
+                /*+ G21*(corrector_[2]*mod_red_vectors_[4*2+0])
+                + G22*(corrector_[2]*mod_red_vectors_[4*2+1])
+                + G11*(corrector_[2]*mod_red_vectors_[4*2+2])
+                + G12*(corrector_[2]*mod_red_vectors_[4*2+3])
 
-               +corrector_[2].FrobeniusProduct(mat2);
+                + G21*(corrector_[2]*mod_red_vectors_[4*2+0])
+                + G22*(corrector_[2]*mod_red_vectors_[4*2+1])
+                + G11*(corrector_[2]*mod_red_vectors_[4*2+2])
+                + G12*(corrector_[2]*mod_red_vectors_[4*2+3])
+
+               +corrector_[2]*mat2;*/
 
    E[1-1][3-1] = sqrt(2)*E[1-1][3-1];
    E[3-1][1-1] = E[1-1][3-1];
@@ -1223,7 +1493,7 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
    }
 }
 
-void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const Matrix<double>& Gderiv, const StdVector<Matrix<double> >& corrector_, Notation notation)
+void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const Matrix<double>& Gderiv, const StdVector<Vector<double> >& corrector_, Notation notation)
 {
 
    //Should be done with Hill-Mandel notation
@@ -1240,15 +1510,14 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
   double G21d = Gderiv[2-1][1-1];
   double G22d = Gderiv[2-1][2-1];
 
-  Matrix<double> matd(dimension_, dimension_);
-   //mat = G11*G11*matuxux11 + G11*G12*(matuxuy11 + matuxuy11t) + G12*G12*matuyuy11
-   //    + G21*G21*matvxvx11 + G21*G22*(matvxvy11 + matvxvy11t) + G22*G22*matvyvy11
-   //    + G11*G21*(matuxvx12 + matuxvx12t) + G12*G21*(matuyvx12 + matuyvx12t) + G11*G22*(matuxvy12 + matuxvy12t) + G12*G22*(matuyvy12 + matuyvy12t)
-   //    +0.25*(G11*G11*matvxvx33 + G11*G12*(matvxvy33 + matvxvy33t) + G12*G12*matvyvy33)
-   //    +0.25*(G21*G21*matuxux33 + G21*G22*(matuxuy33 + matuxuy33t) + G22*G22*matuyuy33)
-   //    +0.25*( G11*G21*(matuxvx33 + matuxvx33t) + G12*G21*(matuxvy33 + matuxvy33t) + G11*G22*(matuyvx33 + matuyvx33t) + G12*G22*(matuyvy33 + matuyvy33t))
+  UInt dimbas =0;
+  if ((type_ == REDBAS_PARAM) | (type_ == REDBAS_FREE)) dimbas = dimension_;
+  if ((type_ == GREEDY_PARAM) | (type_ == GREEDY_FREE)) dimbas = 3*dimension_;
 
-  matd = mod_red_matrices_[10*0 + 0]*(G11d*G11 + G11*G11d)
+  Matrix<double> matd(dimbas, dimbas);
+  matd.Init();
+
+  /*matd= mod_red_matrices_[10*0 + 0]*(G11d*G11 + G11*G11d)
         +(mod_red_matrices_[10*0 + 3] + Transpose(mod_red_matrices_[10*0 + 3]))*(G11d*G12 + G11*G12d)
         + mod_red_matrices_[10*0 + 7]*(G12d*G12 + G12*G12d)
 
@@ -1275,46 +1544,100 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
         + (mod_red_matrices_[10*2 + 1] + Transpose(mod_red_matrices_[10*2 + 1]))*(G11d*G21 + G11*G21d)
         + (mod_red_matrices_[10*2 + 5] + Transpose(mod_red_matrices_[10*2 + 5]))*(G11d*G22 + G11*G22d)
         + (mod_red_matrices_[10*2 + 4] + Transpose(mod_red_matrices_[10*2 + 4]))*(G12d*G21 + G12*G21d)
-        + (mod_red_matrices_[10*2 + 8] + Transpose(mod_red_matrices_[10*2 + 8]))*(G12d*G22 + G12*G22d);
+        + (mod_red_matrices_[10*2 + 8] + Transpose(mod_red_matrices_[10*2 + 8]))*(G12d*G22 + G12*G22d);*/
 
-   Matrix<double> mat0(dimension_,1);
-   Matrix<double> mat1(dimension_,1);
-   Matrix<double> mat2(dimension_,1);
+  matd.Add(G11d*G11 + G11*G11d, mod_red_matrices_[10*0 + 0]);
+  matd.Add(G11d*G12 + G11*G12d, mod_red_matrices_[10*0 + 3]);
+  matd.AddT(G11d*G12 + G11*G12d, mod_red_matrices_[10*0 + 3]);
+  matd.Add(G12d*G12 + G12*G12d, mod_red_matrices_[10*0 + 7]);
+
+  matd.Add(G21d*G21 + G21*G21d, mod_red_matrices_[10*0 + 2]);
+  matd.Add(G21d*G22 + G21*G22d,mod_red_matrices_[10*0 + 6]);
+  matd.AddT(G21d*G22 + G21*G22d,mod_red_matrices_[10*0 + 6]);
+  matd.Add(G22d*G22 + G22*G22d, mod_red_matrices_[10*0 + 9]);
+
+  matd.Add(G11d*G21 + G11*G21d, mod_red_matrices_[10*1 + 1] );
+  matd.AddT(G11d*G21 + G11*G21d, mod_red_matrices_[10*1 + 1] );
+  matd.Add(G12d*G21 + G12*G21d, mod_red_matrices_[10*1 + 5]);
+  matd.AddT(G12d*G21 + G12*G21d, mod_red_matrices_[10*1 + 5]);
+  matd.Add(G11d*G22 + G11*G22d, mod_red_matrices_[10*1 + 4]);
+  matd.AddT(G11d*G22 + G11*G22d, mod_red_matrices_[10*1 + 4]);
+  matd.Add(G12d*G22 + G12*G22d, mod_red_matrices_[10*1 + 8]);
+  matd.AddT(G12d*G22 + G12*G22d, mod_red_matrices_[10*1 + 8]);
+
+  matd.Add(G21d*G21 + G21*G21d, mod_red_matrices_[10*2 + 0]);
+  matd.Add(G21d*G22 + G21*G22d, mod_red_matrices_[10*2 + 3] );
+  matd.AddT(G21d*G22 + G21*G22d, mod_red_matrices_[10*2 + 3] );
+  matd.Add(G22d*G22 + G22*G22d,mod_red_matrices_[10*2 + 7] );
+
+  matd.Add(G11d*G11 + G11*G11d,mod_red_matrices_[10*2 + 2] );
+  matd.Add(G11d*G12 + G11*G12d,mod_red_matrices_[10*2 + 6] );
+  matd.AddT(G11d*G12 + G11*G12d,mod_red_matrices_[10*2 + 6] );
+  matd.Add(G12d*G12 + G12*G12d, mod_red_matrices_[10*2 + 9]);
+
+  matd.Add(G11d*G21 + G11*G21d, mod_red_matrices_[10*2 + 1]);
+  matd.AddT(G11d*G21 + G11*G21d, mod_red_matrices_[10*2 + 1]);
+  matd.Add(G11d*G22 + G11*G22d, mod_red_matrices_[10*2 + 5]);
+  matd.AddT(G11d*G22 + G11*G22d, mod_red_matrices_[10*2 + 5]);
+  matd.Add(G12d*G21 + G12*G21d, mod_red_matrices_[10*2 + 4]);
+  matd.AddT(G12d*G21 + G12*G21d, mod_red_matrices_[10*2 + 4]);
+  matd.Add(G12d*G22 + G12*G22d, mod_red_matrices_[10*2 + 8]);
+  matd.AddT(G12d*G22 + G12*G22d, mod_red_matrices_[10*2 + 8]);
+
+
+
+   Vector<double> mat0(dimbas);
+   Vector<double> mat1(dimbas);
+   Vector<double> mat2(dimbas);
 
    matd.Mult(corrector_[0], mat0);
    matd.Mult(corrector_[1], mat1);
    matd.Mult(corrector_[2], mat2);
 
 
+   Vector<double> vec0(dimbas);
+    Vector<double> vec1(dimbas);
+    Vector<double> vec2(dimbas);
+
+    vec0 = mod_red_vectors_[4*0+0]*G11d + mod_red_vectors_[4*0+1]*G12d + mod_red_vectors_[4*1+2]*G21d + mod_red_vectors_[4*1+3]*G22d;
+    vec1 = mod_red_vectors_[4*1+0]*G11d + mod_red_vectors_[4*1+1]*G12d + mod_red_vectors_[4*0+2]*G21d + mod_red_vectors_[4*0+3]*G22d;
+    vec2 = mod_red_vectors_[4*2+0]*G21d + mod_red_vectors_[4*2+1]*G22d + mod_red_vectors_[4*2+2]*G11d + mod_red_vectors_[4*2+3]*G12d;
+
+
+
   //E11 =- E11*dxgd(u1) - E12*dygd(v1) - E11*dxgd(u1) - E12*dygd(v1) + corr0'*mat*corr0;
   E[1-1][1-1] = 0
 
-                + G11d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+0])
-                + G12d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+1])
-                + G21d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+2])
-                + G22d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+3])
+                /*+ G11d*(corrector_[0]*mod_red_vectors_[4*0+0])
+                + G12d*(corrector_[0]*mod_red_vectors_[4*0+1])
+                + G21d*(corrector_[0]*mod_red_vectors_[4*1+2])
+                + G22d*(corrector_[0]*mod_red_vectors_[4*1+3])
 
-                + G11d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+0])
-                + G12d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+1])
-                + G21d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+2])
-                + G22d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+3])
+                + G11d*(corrector_[0]*mod_red_vectors_[4*0+0])
+                + G12d*(corrector_[0]*mod_red_vectors_[4*0+1])
+                + G21d*(corrector_[0]*mod_red_vectors_[4*1+2])
+                + G22d*(corrector_[0]*mod_red_vectors_[4*1+3])
 
-                +corrector_[0].FrobeniusProduct(mat0);
+                +corrector_[0]*mat0; */
+
+      +corrector_[0].Inner(mat0) + 2.0*(corrector_[0].Inner(vec0));
 
  // E12 = - E11*dxgd(u2) - E12*dygd(v2) - E12*dxgd(u1) - E22*dygd(v1) + corr1'*mat*corr0;
   E[1-1][2-1] =  0
 
-                 + G11d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+0])
-                 + G12d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+1])
-                 + G21d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+2])
-                 + G22d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+3])
+                 /*+ G11d*(corrector_[1]*mod_red_vectors_[4*0+0])
+                 + G12d*(corrector_[1]*mod_red_vectors_[4*0+1])
+                 + G21d*(corrector_[1]*mod_red_vectors_[4*1+2])
+                 + G22d*(corrector_[1]*mod_red_vectors_[4*1+3])
 
-                 + G11d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+0])
-                 + G12d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*1+1])
-                 + G21d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+2])
-                 + G22d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*0+3])
+                 + G11d*(corrector_[0]*mod_red_vectors_[4*1+0])
+                 + G12d*(corrector_[0]*mod_red_vectors_[4*1+1])
+                 + G21d*(corrector_[0]*mod_red_vectors_[4*0+2])
+                 + G22d*(corrector_[0]*mod_red_vectors_[4*0+3])
 
-                 +corrector_[1].FrobeniusProduct(mat0);
+                 +corrector_[1]*mat0;*/
+
+               +corrector_[1].Inner(mat0) + corrector_[1].Inner(vec0) + corrector_[0].Inner(vec1);
 
   E[2-1][1-1] =  E[1-1][2-1] ;
 
@@ -1322,17 +1645,20 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
  //E13 = - E11*dxgd(u3) - E12*dygd(v3) - E33*0.5*(dygd(u1)+dxgd(v1)) + corr2'*mat*corr0;
   E[1-1][3-1] =  0
 
-                 + G11d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+0])
-                 + G12d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+1])
-                 + G21d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+2])
-                 + G22d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+3])
+                /* + G11d*(corrector_[2]*mod_red_vectors_[4*0+0])
+                 + G12d*(corrector_[2]*mod_red_vectors_[4*0+1])
+                 + G21d*(corrector_[2]*mod_red_vectors_[4*1+2])
+                 + G22d*(corrector_[2]*mod_red_vectors_[4*1+3])
 
-                 + G21d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+0])
-                 + G22d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+1])
-                 + G11d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+2])
-                 + G12d*corrector_[0].FrobeniusProduct(mod_red_vectors_[4*2+3])
+                 + G21d*(corrector_[0]*mod_red_vectors_[4*2+0])
+                 + G22d*(corrector_[0]*mod_red_vectors_[4*2+1])
+                 + G11d*(corrector_[0]*mod_red_vectors_[4*2+2])
+                 + G12d*(corrector_[0]*mod_red_vectors_[4*2+3])
 
-                 +corrector_[2].FrobeniusProduct(mat0);
+                 +corrector_[2]*mat0;*/
+
+                + corrector_[2].Inner(mat0) + corrector_[2].Inner(vec0) + corrector_[0].Inner(vec2);
+               // + corrector_[2].Inner(mat0)  + corrector_[2].Inner(vec0) + corrector_[0]*vec2;
 
 
   E[3-1][1-1] = E[1-1][3-1];
@@ -1340,32 +1666,36 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
  //E22 = - E12*dxgd(u2) - E11*dygd(v2)- E12*dxgd(u2) - E11*dygd(v2) + corr1'*mat*corr1;
   E[2-1][2-1] =  0
 
-                 + G11d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+0])
-                 + G12d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+1])
-                 + G21d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+2])
-                 + G22d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+3])
+                 /*+ G11d*(corrector_[1]*mod_red_vectors_[4*1+0])
+                 + G12d*(corrector_[1]*mod_red_vectors_[4*1+1])
+                 + G21d*(corrector_[1]*mod_red_vectors_[4*0+2])
+                 + G22d*(corrector_[1]*mod_red_vectors_[4*0+3])
 
-                 + G11d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+0])
-                 + G12d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*1+1])
-                 + G21d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+2])
-                 + G22d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*0+3])
+                 + G11d*(corrector_[1]*mod_red_vectors_[4*1+0])
+                 + G12d*(corrector_[1]*mod_red_vectors_[4*1+1])
+                 + G21d*(corrector_[1]*mod_red_vectors_[4*0+2])
+                 + G22d*(corrector_[1]*mod_red_vectors_[4*0+3])
 
-                 +corrector_[1].FrobeniusProduct(mat1);
+                 +corrector_[1]*mat1;*/
+
+                + corrector_[1].Inner(mat1) + 2.0*(corrector_[1].Inner(vec1));
 
  //E23 = - E12*dxgd(u3) - E11*dygd(v3) - E33*05*(dygd(u2) + dxgd(v2)) + corr1'*mat*corr2
   E[2-1][3-1] =  0
 
-               + G11d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+0])
-               + G12d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*1+1])
-               + G21d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+2])
-               + G22d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*0+3])
+               /*+ G11d*(corrector_[2]*mod_red_vectors_[4*1+0])
+               + G12d*(corrector_[2]*mod_red_vectors_[4*1+1])
+               + G21d*(corrector_[2]*mod_red_vectors_[4*0+2])
+               + G22d*(corrector_[2]*mod_red_vectors_[4*0+3])
 
-               + G21d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+0])
-               + G22d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+1])
-               + G11d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+2])
-               + G12d*corrector_[1].FrobeniusProduct(mod_red_vectors_[4*2+3])
+               + G21d*(corrector_[1]*mod_red_vectors_[4*2+0])
+               + G22d*(corrector_[1]*mod_red_vectors_[4*2+1])
+               + G11d*(corrector_[1]*mod_red_vectors_[4*2+2])
+               + G12d*(corrector_[1]*mod_red_vectors_[4*2+3])
 
-               +corrector_[2].FrobeniusProduct(mat1);
+               +corrector_[2]*mat1;*/
+
+              + corrector_[2].Inner(mat1) + corrector_[2].Inner(vec1) + corrector_[1].Inner(vec2);
 
 
   E[3-1][2-1] = E[2-1][3-1];
@@ -1373,7 +1703,7 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
  //E33 = - E33*0.5*(dygd(u3) + dxgd(v3))- E33*0.5*(dygd(u3) + dxgd(v3)) + corr2'*mat*corr2;
   E[3-1][3-1] = 0
 
-              + G21d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+0])
+            /*  + G21d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+0])
               + G22d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+1])
               + G11d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+2])
               + G12d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+3])
@@ -1383,7 +1713,9 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
               + G11d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+2])
               + G12d*corrector_[2].FrobeniusProduct(mod_red_vectors_[4*2+3])
 
-              +corrector_[2].FrobeniusProduct(mat2);
+              +corrector_[2].FrobeniusProduct(mat2);*/
+
+             +corrector_[2].Inner(mat2) + 2.0*(corrector_[2].Inner(vec2));
 
                 E[1-1][3-1] = sqrt(2)*E[1-1][3-1];
                 E[3-1][1-1] = E[1-1][3-1];
@@ -1404,15 +1736,15 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
 
 }
 
-void DesignMaterial::GetModRedGTensor(Matrix<double>& G, DesignElement::Type direction)
+void DesignMaterial::GetModRedGTensor(Matrix<double>& G, DesignElement::Type direction, const bool& all_param)
 {
 
   G.Resize(2,2);
   G.Init();
 
-  assert((type_== MODEL_REDUCTION) | (type_==MODEL_REDUCTION2));
+  assert((type_== REDBAS_PARAM) | (type_== REDBAS_FREE) | (type_== GREEDY_PARAM) | (type_== GREEDY_FREE));
 
-  if(type_ == MODEL_REDUCTION)
+  if((type_ == REDBAS_PARAM) | (type_ == GREEDY_PARAM))
   {
   //Quad9FE fe;
   // std::cout << "GetModRedTensor" << std::endl;
@@ -1426,57 +1758,106 @@ void DesignMaterial::GetModRedGTensor(Matrix<double>& G, DesignElement::Type dir
   {
      case DesignElement::NO_DERIVATIVE:
      {
-        G(0,0) = l1*cos(theta)*cos(phi) -l2*sin(theta)*sin(phi); //matrix element G11
-        G(0,1) = l1*cos(theta)*sin(phi) +l2*sin(theta)*cos(phi); //matrix element G12
-        G(1,0) = -l1*sin(theta)*cos(phi) -l2*cos(theta)*sin(phi); //matrix element G21
-        G(1,1) = -l1*sin(theta)*sin(phi) + l2*cos(theta)*cos(phi); //matrix element G22
-
+       if (!all_param)
+       {
+          G(0,0) = l1*cos(phi); //matrix element G11
+          G(0,1) = l1*sin(phi); //matrix element G12
+          G(1,0) = -l2*sin(phi); //matrix element G21
+          G(1,1) = l2*cos(phi); //matrix element G22
+       }
+       else
+       {
+           G(0,0) = l1*cos(theta)*cos(phi) -l2*sin(theta)*sin(phi); //matrix element G11
+           G(0,1) = l1*cos(theta)*sin(phi) +l2*sin(theta)*cos(phi); //matrix element G12
+           G(1,0) = -l1*sin(theta)*cos(phi) -l2*cos(theta)*sin(phi); //matrix element G21
+           G(1,1) = -l1*sin(theta)*sin(phi) + l2*cos(theta)*cos(phi); //matrix element G22
+       }
        break;
      }
+
      case DesignElement::ROTANGLE:
      {
-         G(0,0) = -l1*sin(theta)*cos(phi) -l2*cos(theta)*sin(phi); //matrix element G11
-         G(0,1) = -l1*sin(theta)*sin(phi) +l2*cos(theta)*cos(phi); //matrix element G12
-         G(1,0) = -l1*cos(theta)*cos(phi) +l2*sin(theta)*sin(phi); //matrix element G21
-         G(1,1) = -l1*cos(theta)*sin(phi) - l2*sin(theta)*cos(phi); //matrix element G22
+         if (!all_param)
+         {
+           throw Exception("GetModRedGTensor should not be called when all_param_ = false and Design::Element direction = ROTANGLE");
+         }
+         else
+         {
+           G(0,0) = -l1*sin(theta)*cos(phi) -l2*cos(theta)*sin(phi); //matrix element G11
+           G(0,1) = -l1*sin(theta)*sin(phi) +l2*cos(theta)*cos(phi); //matrix element G12
+           G(1,0) = -l1*cos(theta)*cos(phi) +l2*sin(theta)*sin(phi); //matrix element G21
+           G(1,1) = -l1*cos(theta)*sin(phi) - l2*sin(theta)*cos(phi); //matrix element G22
+         }
        break;
      }
+
      case DesignElement::ROTANGLE2:
      {
-        G(0,0) = -l1*cos(theta)*sin(phi) - l2*sin(theta)*cos(phi); //matrix element G11
-        G(0,1) = l1*cos(theta)*cos(phi) - l2*sin(theta)*sin(phi); //matrix element G12
-        G(1,0) = l1*sin(theta)*sin(phi) - l2*cos(theta)*cos(phi); //matrix element G21
-        G(1,1) = -l1*sin(theta)*cos(phi) - l2*cos(theta)*sin(phi); //matrix element G22
+       if (!all_param)
+       {
+         G(0,0) = -l1*sin(phi); //matrix element G11
+         G(0,1) = l1*cos(phi); //matrix element G12
+         G(1,0) = - l2*cos(phi); //matrix element G21
+         G(1,1) = - l2*sin(phi); //matrix element G22
+       }
+       else
+       {
+         G(0,0) = -l1*cos(theta)*sin(phi) - l2*sin(theta)*cos(phi); //matrix element G11
+         G(0,1) = l1*cos(theta)*cos(phi) - l2*sin(theta)*sin(phi); //matrix element G12
+         G(1,0) = l1*sin(theta)*sin(phi) - l2*cos(theta)*cos(phi); //matrix element G21
+         G(1,1) = -l1*sin(theta)*cos(phi) - l2*cos(theta)*sin(phi); //matrix element G22
+       }
        break;
      }
+
      case DesignElement::SCALING1:
      {
-
-       G(0,0) = cos(theta)*cos(phi); //matrix element G11
-       G(0,1) = cos(theta)*sin(phi); //matrix element G12
-       G(1,0) = -sin(theta)*cos(phi); //matrix element G21
-       G(1,1) = -sin(theta)*sin(phi); //matrix element G22
-
+       if (!all_param)
+       {
+         G(0,0) = cos(phi); //matrix element G11
+         G(0,1) = sin(phi); //matrix element G12
+         G(1,0) = 0.0; //matrix element G21
+         G(1,1) = 0.0; //matrix element G22
+       }
+       else
+       {
+         G(0,0) = cos(theta)*cos(phi); //matrix element G11
+         G(0,1) = cos(theta)*sin(phi); //matrix element G12
+         G(1,0) = -sin(theta)*cos(phi); //matrix element G21
+         G(1,1) = -sin(theta)*sin(phi); //matrix element G22
+       }
        break;
      }
+
      case DesignElement::SCALING2:
      {
-       G(0,0) =-sin(theta)*sin(phi);
-       G(0,1) =sin(theta)*cos(phi);
-       G(1,0) =-cos(theta)*sin(phi);
-       G(1,1) = cos(theta)*cos(phi);
+       if (!all_param)
+       {
+         G(0,0) =0.0;
+         G(0,1) =0.0;
+         G(1,0) =-sin(phi);
+         G(1,1) = cos(phi);
+       }
+       else
+       {
+         G(0,0) =-sin(theta)*sin(phi);
+         G(0,1) =sin(theta)*cos(phi);
+         G(1,0) =-cos(theta)*sin(phi);
+         G(1,1) = cos(theta)*cos(phi);
+       }
        break;
      }
+
      default: //Zero matrix
        G(0,0) =0.0;
        G(0,1) =0.0;
        G(1,0) =0.0;
        G(1,1) =0.0;
-
+     break;
      }
 
   }
-  else if (type_ == MODEL_REDUCTION2)
+  else if ((type_ == REDBAS_FREE) | (type_ == GREEDY_FREE))
   {
      double G11 = params_[DesignElement::G11];
      double G12 = params_[DesignElement::G12];
@@ -1533,6 +1914,7 @@ void DesignMaterial::GetModRedGTensor(Matrix<double>& G, DesignElement::Type dir
             G(0,1) =0.0;
             G(1,0) =0.0;
             G(1,1) =0.0;
+            break;
 
           }
   }
@@ -1543,29 +1925,202 @@ void DesignMaterial::GetModRedGTensor(Matrix<double>& G, DesignElement::Type dir
 void DesignMaterial::GetModRedTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
 {
 
+  //if type_ == REDBAS_FREE or type_ == GREEDY_FREE then we must have all_param_
+  assert((all_param_) | (type_ == REDBAS_PARAM) | (type_ == GREEDY_PARAM));
+
   E.Resize(3,3);
   E.Init();
 
   Matrix<double> G(2,2);
-  GetModRedGTensor(G,DesignElement::NO_DERIVATIVE);
+  GetModRedGTensor(G,DesignElement::NO_DERIVATIVE, all_param_);
 
-  StdVector<Matrix<double> > corrector_(3);
+  Vector<double> paramvec(4);
+  GetModRedParamVector(paramvec);
+
+  double theta = paramvec[0];
+
+  StdVector<Vector<double> > corrector_(3);
   //The corrector calculation is always done with Voigt notation
-  GetModRedCorrector(corrector_, G);
+  if ((type_ == REDBAS_PARAM) | (type_== REDBAS_FREE)) GetRedBasCorrector(corrector_, G);
+  else if ((type_ == GREEDY_PARAM) | (type_== GREEDY_FREE)) GetGreedyCorrector(corrector_, paramvec, all_param_);
 
-  if (direction == DesignElement::NO_DERIVATIVE)
+  if ((direction == DesignElement::NO_DERIVATIVE) | ((!all_param_) & (direction == DesignElement::ROTANGLE)))
   {
     GetModRedHomTensor(E, G,corrector_, notation);
   }
   else
   {
     Matrix<double> Gderiv(2,2);
-    GetModRedGTensor(Gderiv,direction);
+    GetModRedGTensor(Gderiv,direction, all_param_);
     GetModRedHomTensor(E, G, Gderiv, corrector_, notation);
   }
+  if (!all_param_) RotateHMStiffnessTensor(E, PLANE, direction, theta, notation);
 
 
 }
+
+
+void DesignMaterial::GetModRedParamVector(Vector<double>& params)
+{
+
+  params.Resize(4,1);
+  params.Init();
+
+  if ((type_==GREEDY_PARAM) | (type_ == REDBAS_PARAM))
+  {
+    //Quad9FE fe;
+    // std::cout << "GetModRedTensor" << std::endl;
+
+    double theta = params_[DesignElement::ROTANGLE];
+    double phi = params_[DesignElement::ROTANGLE2];
+    double l1 = params_[DesignElement::SCALING1];
+    double l2 = params_[DesignElement::SCALING2];
+
+    params[0]=theta;
+    params[1]=phi;
+    params[2]=l1;
+    params[3]=l2;
+
+  }
+  else if ((type_==GREEDY_FREE) | (type_ == REDBAS_FREE))
+  {
+      Matrix<double> G(2,2);
+      GetModRedGTensor(G,DesignElement::NO_DERIVATIVE, true);
+
+      GetSVDGTensorParameters(G, params);
+
+  }
+}
+
+
+/*void DesignMaterial::GetGreedyTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
+{
+
+  E.Resize(3,3);
+  E.Init();
+
+  Matrix<double> params(4,1);
+  GetGreedyParams(params);
+
+  GetGreedyTensor(E,params,all_param_, direction,notation);
+
+}*/
+
+
+
+void DesignMaterial::GetGreedyCorrector(StdVector<Vector<double> >& corrector_, const Vector<double>& params, const bool& all_param)
+{
+
+  assert((type_== GREEDY_PARAM) | (type_ == GREEDY_FREE));
+
+  double theta = params[0];
+  double phi = params[1];
+  double l1 = params[2];
+  double l2 = params[3];
+
+  if (l1 < lmin_) l1 = lmin_;
+  else if (l1 > lmax_) l1 = lmax_;
+
+  if (l2 < lmin_) l2 = lmin_;
+  else if (l2 > lmax_) l2 = lmax_;
+
+  corrector_ = StdVector<Vector<double> >(3);
+  corrector_[0] = Vector<double>(3*dimension_);
+  corrector_[1] = Vector<double>(3*dimension_);
+  corrector_[2] = Vector<double>(3*dimension_);
+
+
+  // corrector_[0] = Matrix<double>(dimension_, 1);
+  // corrector_[1] = Matrix<double>(dimension_, 1);
+  // corrector_[2] = Matrix<double>(dimension_, 1);
+
+  //We begin by computing the coefficients of the three correctors in the reduced basis associated to the value of these parameters
+  if (all_param)
+  {
+
+      for (UInt k=0; k<dimension_; k++)
+      {
+        Vector<double> coord1theta(2*Na_+1);
+        Vector<double> coord2theta(2*Na_+1);
+        Vector<double> coord3theta(2*Na_+1);
+        Vector<double> coord1phi(2*Na_+1);
+        Vector<double> coord2phi(2*Na_+1);
+        Vector<double> coord3phi(2*Na_+1);
+        Vector<double> coord1l1(Nl_+1);
+        Vector<double> coord2l1(Nl_+1);
+        Vector<double> coord3l1(Nl_+1);
+        Vector<double> coord1l2(Nl_+1);
+        Vector<double> coord2l2(Nl_+1);
+        Vector<double> coord3l2(Nl_+1);
+
+        matrices_param_[0].GetCol(coord1theta, k);
+        matrices_param_[0].GetCol(coord2theta, dimension_+ k);
+        matrices_param_[0].GetCol(coord3theta, 2*dimension_+ k);
+
+        matrices_param_[1].GetCol(coord1phi, k);
+        matrices_param_[1].GetCol(coord2phi, dimension_+ k);
+        matrices_param_[1].GetCol(coord3phi, 2*dimension_+ k);
+
+        matrices_param_[2].GetCol(coord1l1, k);
+        matrices_param_[2].GetCol(coord2l1, dimension_+ k);
+        matrices_param_[2].GetCol(coord3l1, 2*dimension_+ k);
+
+        matrices_param_[3].GetCol(coord1l2, k);
+        matrices_param_[3].GetCol(coord2l2, dimension_+ k);
+        matrices_param_[3].GetCol(coord3l2, 2*dimension_+ k);
+
+        //corrector_[0][k] = -AngleGreedyCalculus(coord1theta, theta)*AngleGreedyCalculus(coord1phi, phi)*ScalingGreedyCalculus(coord1l1,l1)*ScalingGreedyCalculus(coord1l2,l2);
+        //corrector_[1][k] = -AngleGreedyCalculus(coord2theta, theta)*AngleGreedyCalculus(coord2phi, phi)*ScalingGreedyCalculus(coord2l1,l1)*ScalingGreedyCalculus(coord2l2,l2);
+        //corrector_[2][k] = -AngleGreedyCalculus(coord3theta, theta)*AngleGreedyCalculus(coord3phi, phi)*ScalingGreedyCalculus(coord3l1,l1)*ScalingGreedyCalculus(coord3l2,l2);
+
+        corrector_[0][k] = -AngleGreedyCalculus(coord1theta, theta)*AngleGreedyCalculus(coord1phi, phi)*ScalingGreedyCalculus(coord1l1,l1)*ScalingGreedyCalculus(coord1l2,l2);
+        corrector_[1][dimension_ +k] = -AngleGreedyCalculus(coord2theta, theta)*AngleGreedyCalculus(coord2phi, phi)*ScalingGreedyCalculus(coord2l1,l1)*ScalingGreedyCalculus(coord2l2,l2);
+        corrector_[2][2*dimension_+k] = -AngleGreedyCalculus(coord3theta, theta)*AngleGreedyCalculus(coord3phi, phi)*ScalingGreedyCalculus(coord3l1,l1)*ScalingGreedyCalculus(coord3l2,l2);
+
+
+      }
+
+
+  }
+  else
+  {
+          for (UInt k=0; k<dimension_; k++)
+          {
+            Vector<double> coord1phi(2*Na_+1);
+            Vector<double> coord2phi(2*Na_+1);
+            Vector<double> coord3phi(2*Na_+1);
+            Vector<double> coord1l1(Nl_+1);
+            Vector<double> coord2l1(Nl_+1);
+            Vector<double> coord3l1(Nl_+1);
+            Vector<double> coord1l2(Nl_+1);
+            Vector<double> coord2l2(Nl_+1);
+            Vector<double> coord3l2(Nl_+1);
+
+            matrices_param_[0].GetCol(coord1phi, k);
+            matrices_param_[0].GetCol(coord2phi, dimension_+ k);
+            matrices_param_[0].GetCol(coord3phi, 2*dimension_+ k);
+
+            matrices_param_[1].GetCol(coord1l1, k);
+            matrices_param_[1].GetCol(coord2l1, dimension_+ k);
+            matrices_param_[1].GetCol(coord3l1, 2*dimension_+ k);
+
+            matrices_param_[2].GetCol(coord1l2, k);
+            matrices_param_[2].GetCol(coord2l2, dimension_+ k);
+            matrices_param_[2].GetCol(coord3l2, 2*dimension_+ k);
+
+            //corrector_[0][k] = -AngleGreedyCalculus(coord1phi, phi)*ScalingGreedyCalculus(coord1l1,l1)*ScalingGreedyCalculus(coord1l2,l2);
+            //corrector_[1][k] = -AngleGreedyCalculus(coord2phi, phi)*ScalingGreedyCalculus(coord2l1,l1)*ScalingGreedyCalculus(coord2l2,l2);
+            //corrector_[2][k] = -AngleGreedyCalculus(coord3phi, phi)*ScalingGreedyCalculus(coord3l1,l1)*ScalingGreedyCalculus(coord3l2,l2);
+
+            corrector_[0][k] = -AngleGreedyCalculus(coord1phi, phi)*ScalingGreedyCalculus(coord1l1,l1)*ScalingGreedyCalculus(coord1l2,l2);
+            corrector_[1][dimension_ +k] = -AngleGreedyCalculus(coord2phi, phi)*ScalingGreedyCalculus(coord2l1,l1)*ScalingGreedyCalculus(coord2l2,l2);
+            corrector_[2][2*dimension_+k] = -AngleGreedyCalculus(coord3phi, phi)*ScalingGreedyCalculus(coord3l1,l1)*ScalingGreedyCalculus(coord3l2,l2);
+
+          }
+
+  }
+}
+
 
 void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const
 {
@@ -1884,7 +2439,7 @@ double DesignMaterial::GetIsoMass(double D, double G){
 
 void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
 {
-  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != HOM_RECT && type_ != MODEL_REDUCTION && type_ != MODEL_REDUCTION2));
+  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != HOM_RECT && type_ != REDBAS_PARAM && type_ != REDBAS_FREE && type_ != GREEDY_PARAM && type_ != GREEDY_FREE));
   switch(type_){
   case FMO:
     GetAnisotropicTensor(t, direction, notation);
@@ -1913,8 +2468,10 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
   case HOM_RECT:
     GetHomRectTensor(t, direction, notation);
     break;
-  case MODEL_REDUCTION:
-  case MODEL_REDUCTION2:
+  case GREEDY_PARAM:
+  case GREEDY_FREE:
+  case REDBAS_PARAM:
+  case REDBAS_FREE:
     GetModRedTensor(t, direction, notation);
     break;
   default: // case default
@@ -2087,9 +2644,10 @@ void DesignMaterial::SetEnums()
   type.Add(DENSITY_TIMES_ROTATED_2D_TENSOR, "density-times-rotated-2dtensor");
   type.Add(LAMINATES, "laminates");
   type.Add(HOM_RECT, "hom-rect");
-  type.Add(MODEL_REDUCTION, "model-reduction");
-  type.Add(MODEL_REDUCTION2, "model-reduction2");
-
+  type.Add(REDBAS_PARAM, "reducedBasis-param");
+  type.Add(REDBAS_FREE, "reducedBasis-free");
+  type.Add(GREEDY_PARAM, "greedy-param");
+  type.Add(GREEDY_FREE, "greedy-free");
 
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");
@@ -2102,5 +2660,110 @@ void DesignMaterial::SetEnums()
 
 }
 
+void DesignMaterial::GetSVDGTensorParameters(const Matrix<double>& G, Vector<double>& paramvec)
+{
+   /* G= R(theta)*(l1 0 \\ 0l2) R(phi) paramvec = (theta, phi, l1, l2) */
+  //Check first that G is a 2 by 2 matrix
+  assert((G.GetNumRows() == 2) & (G.GetNumCols() == 2));
 
+  if((G.GetNumRows() != 2) || (G.GetNumCols() != 2)){
+      throw Exception("GetSVDGTensor only works for 2*2 matrices");
+  }
+
+
+  paramvec.Resize(4);
+  paramvec.Init();
+
+  //help = G'*G
+  //help2 = G*G'
+  Matrix<double> help(2,2);
+  Matrix<double> transpose(2,2);
+  G.Transpose(transpose);
+  Matrix<double> help2(2,2);
+  G.MultT(G,help);
+  G.Mult(transpose,help2);
+
+  double theta = 0.5*std::atan2(help2(0,1)+help2(1,0), help2(0,0)-help2(1,1));
+
+  double phi = -0.5*std::atan2(help(0,1)+help(1,0), help(0,0)-help(1,1));
+
+  Matrix<double> Rthetainv(2,2);
+  Matrix<double> Rphiinv(2,2);
+  Rthetainv(0,0) = cos(theta);
+  Rthetainv(1,1) = cos(theta);
+  Rthetainv(0,1) = -sin(theta);
+  Rthetainv(1,0) = sin(theta);
+
+  Rphiinv(0,0) = cos(phi);
+  Rphiinv(1,1) = cos(phi);
+  Rphiinv(0,1) = -sin(phi);
+  Rphiinv(1,0) = sin(phi);
+
+  Matrix<double> t1(2,2);
+  Matrix<double> t2(2,2);
+
+  G.Mult(Rphiinv, t1);
+  Rthetainv.Mult(t1,t2);
+
+  double l1 = t2(0,0);
+  double l2 = t2(1,1);
+
+  if (l1 <0)
+  {
+    l1 = -l1;
+    l2 = -l2;
+    if (phi< 0) phi = PI +phi;
+    else phi = phi - PI;
+  }
+
+  if (phi <0) phi = phi +2*PI;
+  if (theta<0 ) theta = theta + 2*PI;
+
+  paramvec[0] = theta;
+  paramvec[1] = phi;
+  paramvec[2] = l1;
+  paramvec[3] = l2;
+
+}
+
+double DesignMaterial::AngleGreedyCalculus(const Vector<double>& coeffs, const double& angle)
+{
+   assert(coeffs.size() == 2*Na_+1);
+
+   double s=0;
+   for (UInt k= 0; k<2*Na_+1; k++ )
+   {
+     int indk = k - Na_;
+     if (indk<0)
+     {
+       s += coeffs[k]*sin(-indk*angle);
+     }
+     else if (indk>0)
+     {
+       s += coeffs[k]*cos(indk*angle);
+     }
+     else
+     {
+       s += coeffs[k];
+     }
+   }
+   return s;
+
+}
+
+double DesignMaterial::ScalingGreedyCalculus(const Vector<double>& coeffs, const double& l)
+{
+   assert(coeffs.size() == Nl_+1);
+   assert((l>=lmin_) & (l<=lmax_));
+   double dl = (lmax_ -lmin_)/Nl_;
+
+   int ind = static_cast <int> (std::floor((l-lmin_)/dl));
+
+   if (ind < 0) ind=0;
+   if (ind > int(Nl_)-1) ind = Nl_-1;
+   double r = l-lmin_-ind*dl;
+
+   return (1.0-r)*coeffs[ind] + r*coeffs[ind+1];
+
+}
 

@@ -129,10 +129,10 @@ class Function
       BENSON_VANDERBEI_3,        /*!< 3st minor constraint for numerical problemantic FMO pos def constraint */
       DESIGN_BOUND,              /*!< local design bound */
       MULTIMATERIAL_SUM,         /*!< local sum of multimaterial designs */
-      SLACK,                      /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function*/
-     DETERMINANT_MATRIX            /*!<               but triggers AuxDesign instead of DesignSpace. */
-      //ROTATIONAL_MATRIX1,
-      //ROTATIONAL_MATRIX2, /* This is to ensure in model reduction that the TRANSFO_MATRIX is indeed a gradient Matrix, returns the rot of the first and secind coordinate */
+      SLACK,                      /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function but triggers AuxDesign instead of DesignSpace. */
+     DETERMINANT_MATRIX,         /*!< to ensure that the determinant of the gradient transformation matrix is positive in model-reduction*/         /*!< constraint to ensure that the transformation matrix G in model-reduction is indeed the gradient of a mapping*/
+     ROTATIONAL_MATRIX_1,        /*!< first rotational constraint */
+    ROTATIONAL_MATRIX_2         /*!< 2nd rotational constraint */
 
     } Type; // in ConditionContainer::VirtualView::Refresh() we assume a maximal value for the type. Check!!
 
@@ -307,7 +307,11 @@ class Function
         DEG_45_STAR_AND_REVERSE, /*!< The doubled variant of DEG_45_STAR for oscillation */
         BOUNDARY,                /*!< For a neighbor definition the first and last element (JUMP) */
         ELEMENT,                  /*!< For stress there is no neighborhood, only the element itself */
-        MULT_DESIGNS_ELEMENT     /*!< ELEMENT for multiple different designs - only parametrized PLANE_STRESS for now */
+        MULT_DESIGNS_ELEMENT,
+        MULT_DESIGNS_NEXT,                    /*!< x_i and x_i+1 */
+        MULT_DESIGNS_NEXT_AND_REVERSE,        /*!< x_i and x_i+1 plus x_i+1 PLUS the x_i for classical slope */
+        MULT_DESIGNS_PREV_NEXT,
+        MULT_DESIGNS_PREV_NEXT_AND_REVERSE /*!< ELEMENT for multiple different designs - only parametrized PLANE_STRESS for now */
       } Locality;
 
       static Enum<Locality> locality;
@@ -450,6 +454,9 @@ class Function
         /** local determinant of G: det G >=param. This is very nonlinear, there might be a need for positive definiteness To Do*/
         double CalcDetGTensor(int neigh_idx, const Local* local, bool derivative) const;
 
+        /** Calculated the rotational of the gradient matrix */
+        double CalcRotGTensor(int neigh_idx, const Local* local, bool derivative, Type type) const;
+
         /* @param type the type we want to evaluate. Might be different from local->func->type_ in Approximation::TransformMultiplyer() */
         //double CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const;
 
@@ -503,6 +510,9 @@ class Function
       /** multiple designs on one element for paramMat
        * @param for FMO_POS_DEF_* we need to know which minor */
       void SetupMultDesignsElementMap(const Function* f = NULL);
+
+      /** Multiple designs on several elements for paramMat*/
+      void SetupMultDesignsVirtualElementMap(const Function* f = NULL);
 
       /** small helper to determine the number of neighbors in each (diagonal)
        * direction if we use a neighborhood. Parses the whole stuff */

@@ -884,6 +884,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::BENSON_VANDERBEI_2:
       case Function::BENSON_VANDERBEI_3:
       case Function::DETERMINANT_MATRIX:
+      case Function::ROTATIONAL_MATRIX_1:
+      case Function::ROTATIONAL_MATRIX_2:
       case Function::DESIGN_BOUND:
       case Function::MULTIMATERIAL_SUM:
       assert(c == NULL);

@@ -682,7 +682,7 @@ bool DesignSpace::GetTensor(Matrix<double>& t, DesignElement::Type type, SubTens
 bool DesignSpace::GetModRedGTensor(Matrix<double>& T, const Elem* elem)
 {
   if(CollectMaterialParametersForElement(elem)) {
-    designMaterial->GetModRedGTensor(T, DesignElement::NO_DERIVATIVE);
+    designMaterial->GetModRedGTensor(T, DesignElement::NO_DERIVATIVE, true);
     return true;
   }
   else

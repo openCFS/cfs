@@ -144,7 +144,9 @@ Function::Function(PtrParamNode pn)
     break;
 
   case DETERMINANT_MATRIX:
-    if(design_ != DesignElement::DEFAULT && design_ != DesignElement::G_ALL)
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
+    if(design_ != DesignElement::DEFAULT && design_ != DesignElement::G_ALL && design_ != DesignElement::ALL_DESIGNS)
           throw Exception("function '" + type.ToString(type_) + "' has invalid design type " + DesignElement::type.ToString(design_));
         break;
     break;
@@ -166,7 +168,9 @@ Function::Function(PtrParamNode pn)
     break;
   case TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
-    if(design_ != DesignElement::ALL_DESIGNS)
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
+    if(design_ == DesignElement::G_ALL)
       linear_ = true;
     else
       linear_ = false;
@@ -470,6 +474,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case POS_DEF_DET_MINOR_2:
     case POS_DEF_DET_MINOR_3:
     case DETERMINANT_MATRIX:
+    case ROTATIONAL_MATRIX_1:
+    case ROTATIONAL_MATRIX_2:
     case BENSON_VANDERBEI_1:
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
@@ -623,6 +629,8 @@ bool Function::IsLocal(Type t)
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
   case DETERMINANT_MATRIX:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
@@ -730,6 +738,8 @@ bool Function::ForSensitivityFiltering() const
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
   case DETERMINANT_MATRIX:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
@@ -885,6 +895,8 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
   case DETERMINANT_MATRIX:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
@@ -1016,6 +1028,14 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   switch(ftype)
   {
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
+        locality_ = MULT_DESIGNS_NEXT_AND_REVERSE;
+        if(locality_ != MULT_DESIGNS_NEXT_AND_REVERSE)
+          throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+        break;
+
+
   case SLOPE:
     if(user == DEFAULT && snopt)  locality_ = NEXT;
     if(user == DEFAULT && !snopt) locality_ = NEXT_AND_REVERSE;
@@ -1116,6 +1136,13 @@ Function::Local::Local(Function* func, DesignSpace* space)
     SetupMultDesignsElementMap(func);
     break;
 
+  case MULT_DESIGNS_NEXT:
+  case MULT_DESIGNS_PREV_NEXT:
+  case MULT_DESIGNS_NEXT_AND_REVERSE:
+  case MULT_DESIGNS_PREV_NEXT_AND_REVERSE:
+    SetupMultDesignsVirtualElementMap(func);
+    break;
+
   default:
     SetupVirtualElementMap(phase_);
     break;
@@ -1132,6 +1159,8 @@ Function::Local::~Local()
   if(structure_ != NULL) { delete structure_; structure_ = NULL; }
 }
 
+
+
 void Function::Local::SetupVirtualElementMap(Phase ph)
 {
   // we construct locality_ into reverse, prev and next
@@ -1140,7 +1169,7 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
   bool prev    = locality_ == PREV_NEXT_AND_REVERSE || locality_ == PREV_NEXT;
   bool next    = true; // always
   bool two_signs = locality_ == NEXT_AND_REVERSE || locality_ == PREV_NEXT_AND_REVERSE;
-  // assert((ph == BOTH && two_signs) || (!two_signs && ph != BOTH));
+   assert((ph == BOTH && two_signs) || (!two_signs && ph != BOTH));
   // assume ph is set correctly and Phase is in sync with the signs
   int sign_1 = ph != BOTH ? (int) ph : two_signs ? 1 : Identifier::NO_SIGN;
   int sign_2 = ph != BOTH ? (int) ph : -1;
@@ -1446,17 +1475,30 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
     des_idx.Push_back(space->FindDesign(DesignElement::PIEZO_23));
     break;
 
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
   case DETERMINANT_MATRIX:
     assert(space->design.GetSize() >= 4);
-    if(f->GetDesignType() != DesignElement::G_ALL)
-          throw Exception("'tensor_norm' only defined for 'G_ALL' design");
-       if(space->design[0].design != DesignElement::G11)
-         throw Exception("'Expect first design to be 'G11'");
+    if((f->GetDesignType() != DesignElement::G_ALL) & (f->GetDesignType() != DesignElement::ALL_DESIGNS))
+          throw Exception("'tensor_norm' only defined for 'G_ALL' or 'ALL_DESIGNS' design");
+       if( (space->design[0].design != DesignElement::G11) & (space->design[0].design != DesignElement::ROTANGLE) )
+         throw Exception("'Expect first design to be 'G11' or 'ROTANGLE'");
     //assert(space->design.GetSize() >= 4);
     //des_idx.Push_back(space->FindDesign(DesignElement::G11));
-    des_idx.Push_back(space->FindDesign(DesignElement::G12));
-    des_idx.Push_back(space->FindDesign(DesignElement::G21));
-    des_idx.Push_back(space->FindDesign(DesignElement::G22));
+       if (space->design[0].design == DesignElement::G11)
+       {
+           des_idx.Push_back(space->FindDesign(DesignElement::G12));
+           des_idx.Push_back(space->FindDesign(DesignElement::G21));
+           des_idx.Push_back(space->FindDesign(DesignElement::G22));
+
+       }
+       else if (space->design[0].design == DesignElement::ROTANGLE)
+       {
+             des_idx.Push_back(space->FindDesign(DesignElement::ROTANGLE2));
+             des_idx.Push_back(space->FindDesign(DesignElement::SCALING1));
+             des_idx.Push_back(space->FindDesign(DesignElement::SCALING2));
+
+       }
   break;
 
   case POS_DEF_DET_MINOR_1:
@@ -1519,6 +1561,155 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
     virtual_elem_map.Push_back(Identifier(de, neighbours));
   }
 }
+
+
+void Function::Local::SetupMultDesignsVirtualElementMap(const Function* f)//, const Phase ph)
+{
+  // only this element!
+  //element_dimension_ = 1; // two boundary "stones" per dimension
+  int  dim     = domain->GetGrid()->GetDim();
+  bool prev    = locality_ == MULT_DESIGNS_PREV_NEXT_AND_REVERSE || locality_ == MULT_DESIGNS_PREV_NEXT;
+  bool next    = true; // always
+  bool two_signs = locality_ == MULT_DESIGNS_NEXT_AND_REVERSE || locality_ == MULT_DESIGNS_PREV_NEXT_AND_REVERSE;
+  assert(two_signs);
+ // assert((ph == BOTH && two_signs) || (!two_signs && ph != BOTH));
+     // assume ph is set correctly and Phase is in sync with the signs
+  //int sign_1 = ph != BOTH ? (int) ph : two_signs ? 1 : Identifier::NO_SIGN;
+  //int sign_2 = ph != BOTH ? (int) ph : -1;
+
+    int sign_1 =  two_signs ? 1 : Identifier::NO_SIGN;
+    int sign_2 =  -1;
+
+  element_dimension_ = 1.0* (two_signs ? 2 : 1);
+
+  UInt elems = space->GetNumberOfElements();
+
+  virtual_elem_map.Reserve(element_dimension_ * elems);
+
+
+
+  // the neighbors are the design elements for the same FE-element but with other designs
+  // one is not a neighbor of oneself
+  StdVector<DesignElement*> neighbours;
+
+  StdVector<unsigned int> des_idx; // the design indices we consider here
+  switch(f->GetType())
+  {
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
+    assert(space->design.GetSize() >= 4);
+    if((f->GetDesignType() != DesignElement::G_ALL) & (f->GetDesignType() != DesignElement::ALL_DESIGNS))
+          throw Exception("'tensor_norm' only defined for 'G_ALL' or 'ALL_DESIGNS' design");
+       if((space->design[0].design != DesignElement::G11) & (space->design[0].design != DesignElement::ROTANGLE))
+         throw Exception("'Expect first design to be 'G11' or 'ROTANGLE'");
+    //assert(space->design.GetSize() >= 4);
+    //des_idx.Push_back(space->FindDesign(DesignElement::G11));
+       if (space->design[0].design == DesignElement::G11)
+       {
+           des_idx.Push_back(space->FindDesign(DesignElement::G12));
+           des_idx.Push_back(space->FindDesign(DesignElement::G21));
+           des_idx.Push_back(space->FindDesign(DesignElement::G22));
+       }
+       else if (space->design[0].design == DesignElement::ROTANGLE)
+       {
+                   des_idx.Push_back(space->FindDesign(DesignElement::ROTANGLE2));
+                   des_idx.Push_back(space->FindDesign(DesignElement::SCALING1));
+                   des_idx.Push_back(space->FindDesign(DesignElement::SCALING2));
+       }
+  break;
+
+  default:
+    // all designs but the first one
+    des_idx.Reserve(space->design.GetSize()-1);
+    for(unsigned int i = 1; i < space->design.GetSize(); i++) des_idx.Push_back(i);
+    break;
+  }
+
+  LOG_DBG(func) << "F:L:SMDEM des_idx=" << des_idx.ToString() << " total=" << space->design.ToString();
+
+  for(unsigned int e = 0; e < elems; e++)
+  {
+    DesignElement* de = func_->elements[e];
+    assert((int) e == space->Find(de->elem, true)); // assert that we still are on the right finite element
+
+    //Check that the elements has full neighbours
+    //if(de->GetType() == ( (func_->design_ == DesignElement::DEFAULT) ? DesignElement::DENSITY : func_->design_)){
+            VicinityElement* ve = de->vicinity;
+
+            // do we have a full neighborhood? All or none as in the original slope paper
+            bool full = true;
+            if(prev)
+            {
+              if(ve->design[VicinityElement::X_N] == NULL) full = false;
+              if(ve->design[VicinityElement::Y_N] == NULL) full = false;
+              if(dim == 3 && ve->design[VicinityElement::Z_N] == NULL) full = false;
+            }
+            if(next)
+            {
+              if(ve->design[VicinityElement::X_P] == NULL) full = false;
+              if(ve->design[VicinityElement::Y_P] == NULL) full = false;
+              if(dim == 3 && ve->design[VicinityElement::Z_P] == NULL) full = false;
+            }
+
+    //if this is the case, we can add the identifiers
+
+    if (full)
+    {
+      neighbours.Resize(0);
+
+      //We begin by adding the derivatives of the first design: same order as vicinity X_N =0, X_P =1; Y_N = 2; etc...
+      //for the first design
+      //assert((space->FindDesign(DesignElement::G11) == 0));
+
+      for(int a = 0; a < dim; a++)
+      {
+        DesignElement* prev_de = prev ? ve->GetNeighbour(VicinityElement::ToNeighbour(a, -1)) : NULL;
+        DesignElement* next_de = ve->GetNeighbour(VicinityElement::ToNeighbour(a, 1));
+
+        if (prev)
+        {
+          neighbours.Push_back(prev_de);
+        }
+        neighbours.Push_back(next_de);
+      }
+
+      //We then add the values of the other designs
+      for(unsigned int d = 0; d < des_idx.GetSize(); d++)
+      {
+        // the first design = 0 is no neighbor!
+        unsigned des = des_idx[d];
+        DesignElement* other = &(space->data[elems * des + e]);
+        neighbours.Push_back(other);
+
+        VicinityElement* veother = other->vicinity;
+
+        for(int a = 0; a < dim; a++)
+             {
+               DesignElement* prev_other = prev ? veother->GetNeighbour(VicinityElement::ToNeighbour(a, -1)) : NULL;
+               DesignElement* next_other = veother->GetNeighbour(VicinityElement::ToNeighbour(a, 1));
+
+               if (prev)
+               {
+                 neighbours.Push_back(prev_other);
+               }
+               neighbours.Push_back(next_other);
+             }
+
+
+        LOG_DBG3(func) << "F:L:SMDEM e=" << e << " el=" << de->elem->elemNum << " d = " << d << " des=" << des << " design="
+                     << DesignElement::type.ToString(space->design[des].design) << " idx=" << other->GetIndex() << " ed=" << de->GetType();
+      }
+
+      virtual_elem_map.Push_back(Identifier(de, neighbours, sign_1));
+      if(two_signs)
+         virtual_elem_map.Push_back(Identifier(de, neighbours, sign_2));
+
+    }
+  }
+}
+
+
+
 
 
 void Function::Local::ToInfo(PtrParamNode in)
@@ -1731,6 +1922,12 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     fv = CalcDetGTensor(-1, local, false);
   break;
 
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
+    fv = CalcRotGTensor(-1, local, false, f->type_);
+  break;
+
+
 
   case TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
@@ -1879,14 +2076,15 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
       gv = CalcBensonVanderbei(n, local, true, ft);
       break;
 
+    case ROTATIONAL_MATRIX_1:
+    case ROTATIONAL_MATRIX_2:
+      gv = CalcRotGTensor(n, local, true, ft);
+      break;
+
+
     case DETERMINANT_MATRIX:
       gv = CalcDetGTensor(n, local, true);
     break;
-
-    /*case ROTATIONAL_MATRIX1:
-    case ROTATIONAL_MATRIX2:
-      gv = CalcRotational(n,local,true,ft);
-      break;*/
 
     case TENSOR_TRACE:
     case GLOBAL_TENSOR_TRACE:
@@ -2383,9 +2581,11 @@ double Function::Local::Identifier::CalcDetGTensor(int neigh_idx, const Local* l
   bool ok = local->space->GetModRedGTensor(G, element->elem);
   assert(ok);
 
+  double ret = -12345678.0 * (ok ? 1.0 : 1.0);
+
   //element->GetDesignSpace()->designMaterial->GetModRedGTensor(G, DesignElement::NO_DERIVATIVE);
 
-  double ret = 0;
+  ret = 0;
 
   if (!derivative)
   {
@@ -2408,7 +2608,7 @@ double Function::Local::Identifier::CalcDetGTensor(int neigh_idx, const Local* l
        case DesignElement::G22:
          ret = G(0,0)-v;
          break;
-       default: assert(false);
+       default: assert(false); return 0.0;
        break;
        }
      }
@@ -2417,6 +2617,263 @@ double Function::Local::Identifier::CalcDetGTensor(int neigh_idx, const Local* l
      return ret;
 
 }
+
+
+double Function::Local::Identifier::CalcRotGTensor(int neigh_idx,  const Local* local, bool derivative, Type type) const
+{
+
+
+  assert((local->locality_ == MULT_DESIGNS_NEXT_AND_REVERSE));
+  //This means that in neighbor, we have
+  //[G11[X_P], G11[Y_P], G12[0], G12[X_P], G12[Y_P], G21[0], G21[X_P], G21[Y_P], G22[0], G22[X_P], G22[Y_P]]
+  //So, normally (2d case), neighbor has size 11.
+  //int  dim     = domain->GetGrid()->GetDim();
+  //assert(dim==2);
+  assert(this->neighbor.GetSize() == 11);
+
+  Function* f = local->func_;
+
+  double s = this->sign == -1 ? -1.0 : 1.0;
+
+ double ret=0.0;
+
+ double g110 =element->GetDesign(DesignElement::SMART);
+ double g11y =neighbor[1]->GetDesign(DesignElement::SMART);
+ double g120 =neighbor[2]->GetDesign(DesignElement::SMART);
+ double g12x = neighbor[3]->GetDesign(DesignElement::SMART);
+
+ double g210 =neighbor[5]->GetDesign(DesignElement::SMART);
+ double g21y =neighbor[7]->GetDesign(DesignElement::SMART);
+ double g220 =neighbor[8]->GetDesign(DesignElement::SMART);
+ double g22x =neighbor[9]->GetDesign(DesignElement::SMART);
+
+
+ double theta0  = element->GetDesign(DesignElement::SMART);
+  double thetax = neighbor[0]->GetDesign(DesignElement::SMART);
+  double thetay = neighbor[1]->GetDesign(DesignElement::SMART);
+
+double phi0 = neighbor[2]->GetDesign(DesignElement::SMART);
+double phix = neighbor[3]->GetDesign(DesignElement::SMART);
+double phiy = neighbor[4]->GetDesign(DesignElement::SMART);
+
+ double l10 = neighbor[5]->GetDesign(DesignElement::SMART);
+ double l1x = neighbor[6]->GetDesign(DesignElement::SMART);
+ double l1y = neighbor[7]->GetDesign(DesignElement::SMART);
+ double l20 = neighbor[8]->GetDesign(DesignElement::SMART);
+ double l2x = neighbor[9]->GetDesign(DesignElement::SMART);
+ double l2y = neighbor[10]->GetDesign(DesignElement::SMART);
+
+          if (!derivative)
+          {
+            switch(type)
+            {
+                    case ROTATIONAL_MATRIX_1:
+                      if (f->GetDesignType() == DesignElement::ALL_DESIGNS)
+                       {
+                        g110 = l10*cos(theta0)*cos(phi0) -l20*sin(theta0)*sin(phi0);
+                        g11y = l1y*cos(thetay)*cos(phiy) -l2y*sin(thetay)*sin(phiy);
+                        g120 = l10*cos(theta0)*sin(phi0) +l20*sin(theta0)*cos(phi0);
+                         g12x = l1x*cos(thetax)*sin(phix) +l2x*sin(thetax)*cos(phix);
+                       }
+                    ret = g110 - g11y - (g120-g12x);
+                    return s*ret;
+                    break;
+
+                    case ROTATIONAL_MATRIX_2:
+                      if (f->GetDesignType() == DesignElement::ALL_DESIGNS)
+                       {
+                        g220 = -l10*sin(theta0)*sin(phi0) + l20*cos(theta0)*cos(phi0);
+                        g22x = -l1x*sin(thetax)*sin(phix) + l2x*cos(thetax)*cos(phix);
+                        g210 = -l10*sin(theta0)*cos(phi0) -l20*cos(theta0)*sin(phi0);
+                        g21y = -l1y*sin(thetay)*cos(phiy) -l2y*cos(thetay)*sin(phiy);
+                       }
+                    ret = g210 - g21y -(g220 -g22x);
+                    return s*ret;
+                    break;
+                    default: assert(false); return 0.0;
+                    break;
+            }
+          }
+
+          else
+          {
+            switch(GetElement(neigh_idx)->GetType())
+                  {
+
+                  case DesignElement::G11:
+                    switch(type)
+                        {
+                            case ROTATIONAL_MATRIX_1:
+                                return sign == -1 ? -1.0 : 1.0;
+                                break;
+
+                                case ROTATIONAL_MATRIX_2:
+                                return 0.0;
+                                break;
+                                default:
+                                  assert(false);return 0.0;
+                                break;
+                        }
+                  break;
+                  case DesignElement::G12:
+                    switch(type)
+                        {
+                            case ROTATIONAL_MATRIX_1:
+                                return sign == -1 ? 1.0 : -1.0;
+                                break;
+
+                                case ROTATIONAL_MATRIX_2:
+                                return 0.0;
+                                break;
+                                default:
+                                  assert(false);return 0.0;
+                                break;
+                        }
+                  break;
+                  case DesignElement::G21:
+                    switch(type)
+                      {
+                        case ROTATIONAL_MATRIX_1:
+                        return 0.0;
+                        break;
+
+                        case ROTATIONAL_MATRIX_2:
+                          return sign == -1 ? -1.0 : 1.0;
+                        break;
+                        default:
+                          assert(false);return 0.0;
+                        break;
+                     }
+                    break;
+                  case DesignElement::G22:
+                    switch(type)
+                                {
+                                  case ROTATIONAL_MATRIX_1:
+                                  return 0.0;
+                                  break;
+
+                                  case ROTATIONAL_MATRIX_2:
+                                    return sign == -1 ? 1.0 : -1.0;
+                                  break;
+                                  default:
+                                    assert(false); return 0.0;
+                                  break;
+                               }
+                  break;
+
+                    case DesignElement::ROTANGLE:
+                      switch(type)
+                       {
+                           case ROTATIONAL_MATRIX_1:
+                             g110 = -l10*sin(theta0)*cos(phi0) -l20*cos(theta0)*sin(phi0);
+                             g11y = 0.0;
+                             g120 = -l10*sin(theta0)*sin(phi0) +l20*cos(theta0)*cos(phi0);
+                             g12x = 0.0;
+                             ret = g110 - g11y - (g120-g12x);
+                             return s*ret;
+                             break;
+
+                             case ROTATIONAL_MATRIX_2:
+                             g220 = -l10*cos(theta0)*sin(phi0) - l20*sin(theta0)*cos(phi0);
+                             g22x = 0.0;
+                             g210 = -l10*cos(theta0)*cos(phi0) +l20*sin(theta0)*sin(phi0);
+                             g21y = 0.0;
+                             ret = g210 - g21y -(g220 -g22x);
+                             return s*ret;
+                             break;
+                            default:
+                             assert(false);return 0.0;
+                            break;
+                      }
+                  break;
+
+                      case DesignElement::ROTANGLE2:
+                        switch(type)
+                        {
+                            case ROTATIONAL_MATRIX_1:
+                             g110 = -l10*cos(theta0)*sin(phi0) -l20*sin(theta0)*cos(phi0);
+                             g11y = 0.0;
+                             g120 = l10*cos(theta0)*cos(phi0) -l20*sin(theta0)*sin(phi0);
+                             g12x = 0.0;
+                             ret = g110 - g11y - (g120-g12x);
+                            return s*ret;
+                           break;
+
+                            case ROTATIONAL_MATRIX_2:
+                               g220 = -l10*sin(theta0)*cos(phi0) - l20*cos(theta0)*sin(phi0);
+                               g22x = 0.0;
+                               g210 = l10*sin(theta0)*sin(phi0) -l20*cos(theta0)*cos(phi0);
+                               g21y = 0.0;
+                               ret = g210 - g21y -(g220 -g22x);
+                             return s*ret;
+                             break;
+                             default:
+                             assert(false);return 0.0;
+                             break;
+                         }
+                     break;
+
+                        case DesignElement::SCALING1:
+                         switch(type)
+                          {
+                            case ROTATIONAL_MATRIX_1:
+                               g110 = cos(theta0)*cos(phi0);
+                               g11y = 0.0;
+                               g120 = cos(theta0)*sin(phi0);
+                               g12x =0.0;
+                               ret = g110 - g11y - (g120-g12x);
+                               return s*ret;
+                             break;
+
+                           case ROTATIONAL_MATRIX_2:
+                              g220 = -sin(theta0)*sin(phi0);
+                              g22x = 0.0;
+                              g210 = -sin(theta0)*cos(phi0);
+                              g21y = 0.0;
+                              ret = g210 - g21y -(g220 -g22x);
+                              return s*ret;
+                            break;
+                          default:
+                             assert(false);return 0.0;
+                             break;
+                         }
+                         break;
+
+                         case DesignElement::SCALING2:
+                           switch(type)
+                           {
+                               case ROTATIONAL_MATRIX_1:
+                                g110 = -sin(theta0)*sin(phi0);
+                                g11y = 0.0;
+                                g120 = sin(theta0)*cos(phi0);
+                                g12x = 0.0;
+                                ret = g110 - g11y - (g120-g12x);
+                                return s*ret;
+                                break;
+
+                              case ROTATIONAL_MATRIX_2:
+                              g220 = cos(theta0)*cos(phi0);
+                              g22x = 0.0;
+                              g210 = -cos(theta0)*sin(phi0);
+                              g21y = 0.0;
+                              ret = g210 - g21y -(g220 -g22x);
+                              return s*ret;
+                              break;
+                              default:
+                              assert(false); return 0.0;
+                              break;
+
+                          }
+                         break;
+
+                  default:
+                      assert(false);return 0.0;
+                  break;
+                  }
+          }
+
+
+ }
 
 
 

@@ -706,6 +706,8 @@ bool Condition::IsFeasibilityConstraint() const
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
   case DETERMINANT_MATRIX:
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
   case DESIGN_BOUND:
     return true;
   default:
