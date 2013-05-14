@@ -432,6 +432,7 @@ share/doc/user/advPrePostManual/pics/visit_adv_io.dot -text
 share/doc/user/advPrePostManual/pics/visit_adv_io.pdf -text
 share/doc/user/advPrePostManual/postproc.tex -text
 share/doc/user/advPrePostManual/preproc.tex -text
+share/doc/user/advPrePostManual/sources/OpenFOAM_postProcess.zip -text
 share/doc/user/advPrePostManual/sources/Pfeifenfussmodell_modificated_swept.in.txt -text
 share/doc/user/advPrePostManual/sources/ansys_surf_vol_mesh.txt -text
 share/doc/user/advPrePostManual/sources/ansys_transitional_pyra.txt svneol=native#text/plain
