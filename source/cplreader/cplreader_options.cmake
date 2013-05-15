@@ -165,11 +165,12 @@ ADD_OPTION(activeparts
 ADD_OPTION(outputfields
   string
   acouRhsLoad
-  "Which physical fields should be output ([acouDivLighthillTensor | acouRhsLoad | acouRhsLoadDensity | fluidMechDensity | fluidMechPressure | fluidMechVelocity | fluidMechTKE | fluidMechSkinFriction | acouLambVec | acouLambRhs | aeroAcouSourceRhs | mechRhsLoad]).  Values may be separated by SPACE or SEMICOLON or |"
+  "Which physical fields should be output ([acouDivLighthillTensor | acouRhsLoad | acouRhsLoadDensity | fluidMechDensity | fluidMechPressure | fluidMechVelocity | fluidMechTKE | fluidMechSkinFriction | acouLambVec | acouLambRhs | aeroAcouSourceRhs | mechRhsLoad | derivLighthillT_RHS | laplaceP_RHS | divLambVector_RHS]).  Values may be separated by SPACE or SEMICOLON or |"
   "Sometimes it may be necessary to do some post-processing on the fluid fields
    to get some understanding of the problem at hand. For this reason it is possible
    to write the most important fields (velocity, pressure, source terms, turbulence
-   kinetic energy, etc.) to the .h5 files by using the outputfields parameter."
+   kinetic energy, etc.) to the .h5 files by using the outputfields
+   parameter. Beware, not all outputfields work for all readers."
   )
 
 ADD_OPTION(firststep

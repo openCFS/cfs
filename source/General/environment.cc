@@ -442,6 +442,18 @@ namespace CoupledField {
       return "Pa/m^2";
       break;
 
+    case AERO_ACOU_D_LH_TENSOR:
+      return "Pa/m^2";
+      break;
+
+    case AERO_ACOU_LAPLACE_P_RHS:
+      return "Pa/m^2";
+      break;
+
+    case AERO_ACOU_DIV_LAMB_RHS:
+      return "1/s^2";
+      break;
+
     case ELEC_CHARGE:
       return "C";
       break;
@@ -1378,6 +1390,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_PMLAUXSCALAR, "acouPmlAuxScalar");
     SolutionTypeEnum.Add(ACOU_PSEUDO_DENSITY, "acouPseudoDensity");
     SolutionTypeEnum.Add(AERO_ACOU_SRC_RHS, "aeroAcouSourceRhs");
+    SolutionTypeEnum.Add(AERO_ACOU_D_LH_TENSOR, "derivLighthillT_RHS");
+    SolutionTypeEnum.Add(AERO_ACOU_LAPLACE_P_RHS, "laplaceP_RHS");
+    SolutionTypeEnum.Add(AERO_ACOU_DIV_LAMB_RHS, "divLambVector_RHS");
 
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
