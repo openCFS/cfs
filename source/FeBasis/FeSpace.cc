@@ -1016,7 +1016,6 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     //   - isoOrder
     //   - anisoOrder
 
-    node->Dump();
     if(node->Has("gridOrder") ) {
       mapType= GRID;
       UInt gridOrder = ptGrid_->IsQuadratic() ? 2 : 1;

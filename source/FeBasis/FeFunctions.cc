@@ -132,7 +132,7 @@ DECLARE_LOG(fefunc)
   }
 
   void BaseFeFunction::AddHomDirichletBc( shared_ptr<HomDirichletBc> bc ){
-    hdBcs_.Push_back(bc);
+    hdBcs_.Push_back( bc );
     entities_.Push_back(bc->entities);
   }
 
@@ -303,16 +303,58 @@ DECLARE_LOG(fefunc)
     if (fctId_ == NO_FCT_ID ) {
       EXCEPTION("No fctId was set!");
     }
-    
+
     // only create new vector, if we are not a time
     // derivative fe function
     if( timeDerivOrder_ == 0 ) {
       coeffs_ = new Vector<T>(feSpace_->GetNumEquations());
     }
-    
-   
+
+    /* Check: If boundary conditions are defined on node lists with more than
+     * one node and the space has no grid mapping, we issue a warning, as in
+     * this case only the vertex-associated dofs would be fixed.
+     */
+    if( this->feSpace_->GetMapType(ALL_REGIONS) != FeSpace::GRID ) {
+
+      std::string nodeListNames;
+      shared_ptr<EntityList> list;
+      {
+        // Loop over all HDBCs
+        HdBcList::iterator hdbcIt = hdBcs_.Begin();
+        for(; hdbcIt != hdBcs_.End(); ++hdbcIt ) {
+          list = (*hdbcIt)->entities;
+          if( list->GetType() == EntityList::NODE_LIST &&
+              list->GetSize() > 1 ) {
+            nodeListNames += "\t" + list->GetName() + "\n";
+          }
+        }
+      }
+
+      {
+        // Loop over all IDBCs
+        IdBcList::iterator idbcIt = idBcs_.Begin();
+        for(; idbcIt != idBcs_.End(); ++idbcIt ) {
+          list = (*idbcIt)->entities;
+          if( list->GetType() == EntityList::NODE_LIST &&
+              list->GetSize() > 1 ) {
+            nodeListNames += "\t" + list->GetName() + "\n";
+          }
+        }
+      }
+
+      if( !nodeListNames.empty()  ) {
+        WARN( "In case of general / higher order approximation, boundary "
+            << "conditions should be applied on (surface) elements instead "
+            << "of node lists. For the quantity '" 
+            << SolutionTypeEnum.ToString(result_->resultType)
+            << "' the following node lists are used in boundary "
+            << "conditions:\n\n" << nodeListNames 
+            << "\nPlease consider changing them to (surface) element lists "
+            << "or use Lagrangian polynomials with grid order!")
+      }
+    }
   }
-  
+
   template<typename T>
   void FeFunction<T>::SetResultInfo( shared_ptr<ResultInfo> info ){
      result_ = info;
