@@ -19,8 +19,8 @@ CoefFunction::Generate( MathParser * mp,
 
   PtrCoefFct ret;
 
-  bool depTime = ExprDependsOnTimeFreq(realVal);
-  bool depSpace = ExprDependsOnSpace(realVal);
+  bool depTime = ExprDependsOnTimeFreq(mp, realVal);
+  bool depSpace = ExprDependsOnSpace(mp, realVal);
   if( format == Global::REAL) {
     // === REAL CASE ===
     if( depSpace ) {
@@ -47,8 +47,8 @@ CoefFunction::Generate( MathParser * mp,
     
     // === COMPLEX CASE ===
     assert(imagVal != std::string(""));
-    depTime |= ExprDependsOnTimeFreq(imagVal);
-    depSpace |= ExprDependsOnSpace(imagVal);
+    depTime |= ExprDependsOnTimeFreq(mp, imagVal);
+    depSpace |= ExprDependsOnSpace(mp, imagVal);
     if( depSpace ) {
       // --- a) variable ---
       shared_ptr<CoefFunctionExpression<Complex> > c 
@@ -94,8 +94,8 @@ CoefFunction::Generate( MathParser * mp,
   
   // Loop over all entries
   for( UInt i = 0; i < realVal.GetSize(); ++i ) {
-    depTime  |= ExprDependsOnTimeFreq(realVal[i]);
-    depSpace |= ExprDependsOnSpace(realVal[i]);
+    depTime  |= ExprDependsOnTimeFreq(mp, realVal[i]);
+    depSpace |= ExprDependsOnSpace(mp, realVal[i]);
   }
   if( format == Global::REAL) {
 
@@ -130,8 +130,8 @@ CoefFunction::Generate( MathParser * mp,
     assert(imagVal.GetSize() == realVal.GetSize());
     
     for( UInt i = 0; i < imagVal.GetSize(); ++i ) {
-      depTime  |= ExprDependsOnTimeFreq(imagVal[i]);
-      depSpace |= ExprDependsOnSpace(imagVal[i]);
+      depTime  |= ExprDependsOnTimeFreq(mp, imagVal[i]);
+      depSpace |= ExprDependsOnSpace(mp, imagVal[i]);
     }
     if( depSpace ) {
       // --- a) general case: expression
@@ -235,8 +235,8 @@ CoefFunction::Generate( MathParser * mp,
    bool depSpace = false;
    // Loop over all entries
    for( UInt i = 0; i < realVal.GetSize(); ++i ) {
-     depTime  |= ExprDependsOnTimeFreq(realVal[i]);
-     depSpace |= ExprDependsOnSpace(realVal[i]);
+     depTime  |= ExprDependsOnTimeFreq(mp, realVal[i]);
+     depSpace |= ExprDependsOnSpace(mp, realVal[i]);
    }
    if( format == Global::REAL) {
      
@@ -270,8 +270,8 @@ CoefFunction::Generate( MathParser * mp,
      assert(imagVal.GetSize() == realVal.GetSize());
 
      for( UInt i = 0; i < imagVal.GetSize(); ++i ) {
-       depTime  |= ExprDependsOnTimeFreq(imagVal[i]);
-       depSpace |= ExprDependsOnSpace(imagVal[i]);
+       depTime  |= ExprDependsOnTimeFreq(mp, imagVal[i]);
+       depSpace |= ExprDependsOnSpace(mp, imagVal[i]);
      }
      if( depSpace ) {
        // --- a) general case: expression
@@ -451,8 +451,7 @@ PtrCoefFct CoefFunction::Generate( MathParser * mp,
 
 
 
-bool CoefFunction::ExprDependsOnTimeFreq(const std::string& expr) {
-  MathParser* mp = domain->GetMathParser();
+bool CoefFunction::ExprDependsOnTimeFreq(MathParser* mp, const std::string& expr) {
   MathParser::HandleType handle = mp->GetNewHandle(true);
   mp->SetExpr(handle, expr);
   bool depends = false;
@@ -465,8 +464,7 @@ bool CoefFunction::ExprDependsOnTimeFreq(const std::string& expr) {
   return depends;
 }
 
-bool CoefFunction::ExprDependsOnSpace(const std::string& expr) {
-  MathParser* mp = domain->GetMathParser();
+bool CoefFunction::ExprDependsOnSpace(MathParser* mp, const std::string& expr) {
   MathParser::HandleType handle = mp->GetNewHandle(true);
   mp->SetExpr(handle, expr);
   bool depends = false;

@@ -48,7 +48,7 @@ CoefFunctionTimeFreq(MathParser * mp) : CoefFunctionAnalytic() {
 
    // ensure that expression really depends only on time / freq
    for( UInt i = 0; i < val.GetSize(); ++i ) {
-     if( ExprDependsOnSpace(val[i]) ) {
+     if( ExprDependsOnSpace(mp_, val[i]) ) {
        EXCEPTION("Expression '" << val.ToString() 
                  << "' depends on spatial coordinates. "
                  << "Refusing to create CoefFunctionTimeFreq." );
@@ -83,7 +83,7 @@ SetVector(const StdVector<std::string>& val) {
 
   // ensure that expression really depends only on time / freq
   for( UInt i = 0; i < val.GetSize(); ++i ) {
-    if( ExprDependsOnSpace(val[i]) ) {
+    if( ExprDependsOnSpace(mp_, val[i]) ) {
       EXCEPTION("Expression '" << val.ToString() 
                 << "' depends on spatial coordinates. "
                 << "Refusing to create CoefFunctionTimeFreq." );
@@ -106,7 +106,7 @@ SetScalar(const std::string& val) {
   assert((this->dimType_ == NO_DIM) || (this->dimType_ == SCALAR) );
 
   // ensure that expression really depends only on time / freq
-  if( ExprDependsOnSpace(val) ) {
+  if( ExprDependsOnSpace(mp_, val) ) {
     EXCEPTION("Expression '" << val << "' depends on spatial coordinates. "
               << "Refusing to create CoefFunctionTimeFreq." );
   }
@@ -263,14 +263,14 @@ SetTensor(const StdVector<std::string>& realVal,
 
   // ensure that expression really depends only on time / freq
    for( UInt i = 0; i < realVal.GetSize(); ++i ) {
-     if( ExprDependsOnSpace(realVal[i]) ) {
+     if( ExprDependsOnSpace(mp_, realVal[i]) ) {
        EXCEPTION("Expression '" << realVal.ToString() 
                  << "' depends on spatial coordinates. "
                  << "Refusing to create CoefFunctionTimeFreq." );
      }
    }
    for( UInt i = 0; i < imagVal.GetSize(); ++i ) {
-     if( ExprDependsOnSpace(imagVal[i]) ) {
+     if( ExprDependsOnSpace(mp_, imagVal[i]) ) {
        EXCEPTION("Expression '" << imagVal.ToString() 
                  << "' depends on spatial coordinates. "
                  << "Refusing to create CoefFunctionTimeFreq." );
@@ -314,14 +314,14 @@ SetVector(const StdVector<std::string>& realVal,
   
   // ensure that expression really depends only on time / freq
   for( UInt i = 0; i < realVal.GetSize(); ++i ) {
-    if( ExprDependsOnSpace(realVal[i]) ) {
+    if( ExprDependsOnSpace(mp_, realVal[i]) ) {
       EXCEPTION("Expression '" << realVal.ToString() 
                 << "' depends on spatial coordinates. "
                 << "Refusing to create CoefFunctionTimeFreq." );
     }
   }
   for( UInt i = 0; i < imagVal.GetSize(); ++i ) {
-    if( ExprDependsOnSpace(imagVal[i]) ) {
+    if( ExprDependsOnSpace(mp_, imagVal[i]) ) {
       EXCEPTION("Expression '" << imagVal.ToString() 
                 << "' depends on spatial coordinates. "
                 << "Refusing to create CoefFunctionTimeFreq." );
@@ -347,8 +347,8 @@ SetScalar(const std::string& realVal,
   assert((this->dimType_ == NO_DIM) || (this->dimType_ == SCALAR) );
 
   // ensure that expression really depends only on time / freq
-  if( ExprDependsOnSpace(realVal)  || 
-      ExprDependsOnSpace(imagVal)) {
+  if( ExprDependsOnSpace(mp_, realVal)  || 
+      ExprDependsOnSpace(mp_, imagVal)) {
     EXCEPTION("Expression '(" << realVal  << ", " << imagVal 
               << ")' depends on spatial coordinates. "
               << "Refusing to create CoefFunctionTimeFreq." );

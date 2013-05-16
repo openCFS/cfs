@@ -348,7 +348,11 @@ namespace CFSTool
 
     if(pNode) 
     {
-      wvtNode->AddChildNode( pNode );
+     if(pNode->GetName() == "wvt") {
+       MergeParamNodes(pNode, wvtNode);
+     } else {
+       wvtNode->AddChildNode( pNode );
+     }
     }
 
     // Parse inputs to formatArgs parameter and build parameter tree.

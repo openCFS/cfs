@@ -23,7 +23,12 @@ CoefFunctionExpression<Double>::CoefFunctionExpression(MathParser * mp) :
   isComplex_ = false;
   
   // do not use rotated coordsys initially
-  this->coordSys_ = domain->GetCoordSystem();
+  if( domain ) {
+    this->coordSys_ = domain->GetCoordSystem();
+  } else 
+  {
+    this->coordSys_ = NULL;
+  }  
 }   
 
 CoefFunctionExpression<Double>::~CoefFunctionExpression(){
@@ -213,7 +218,12 @@ CoefFunctionExpression<Complex>::CoefFunctionExpression(MathParser * mp) :
   isComplex_ = true;
 
   // always store default coordinate system
-  this->coordSys_ = domain->GetCoordSystem();
+  if( domain ) {
+    this->coordSys_ = domain->GetCoordSystem();
+  } else 
+  {
+    this->coordSys_ = NULL;
+  }  
 }   
 
 CoefFunctionExpression<Complex>::~CoefFunctionExpression(){

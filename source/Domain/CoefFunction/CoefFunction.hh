@@ -447,10 +447,10 @@ protected:
   //@{ \name Helper methods
   
   //! Returns true, if expression depends on time / freq
-  static bool ExprDependsOnTimeFreq(const std::string& expr);
+  static bool ExprDependsOnTimeFreq(MathParser* mp, const std::string& expr);
   
   //! Returns true, if expression depends on space
-  static bool ExprDependsOnSpace(const std::string& expr);
+  static bool ExprDependsOnSpace(MathParser* mp, const std::string& expr);
   //@}
   
   //TODO: CHANGE THIS TO SHARED POINTER
