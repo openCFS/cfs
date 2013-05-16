@@ -19,9 +19,6 @@ namespace CoupledField{
       this->aOperator_ = aOp;
       this->factor_ = factor;
       
-      
-      WARN("We need a clean way to determine the highest integration order if two "
-          << "spaces are involved" ); 
   }
 
   //! Destructor
