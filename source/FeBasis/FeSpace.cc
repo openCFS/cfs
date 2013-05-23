@@ -1027,7 +1027,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       Integer isoOrder = isoOrderNode->As<Integer>();
       order.SetIsoOrder(isoOrder);
 
-    } else if(node->Has("anisoOrder")) {
+    } else if(node->Has("anIsoOrder")) {
       PtrParamNode anIsoOrderNode = node->Get("anIsoOrder", ParamNode::PASS );
       mapType= POLYNOMIAL;
 
