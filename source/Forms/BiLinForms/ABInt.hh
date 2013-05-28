@@ -86,7 +86,7 @@ namespace CoupledField {
 
   //! class for calculation of bilinear forms for non-conforming coupling
   template<class COEF_DATA_TYPE=Double, class B_DATA_TYPE=Double>
-  class NcSurfABInt : public SurfaceABInt<COEF_DATA_TYPE,B_DATA_TYPE> {
+  class SurfaceMortarABInt : public ABInt<COEF_DATA_TYPE,B_DATA_TYPE> {
 
   public:
 
@@ -94,20 +94,40 @@ namespace CoupledField {
     typedef PROMOTE(B_DATA_TYPE, COEF_DATA_TYPE) MAT_DATA_TYPE;
 
     //! Constructor with pointer to CoefFunction for surface itself
-    NcSurfABInt( BaseBOperator * aOp, BaseBOperator * bOp,
-                 PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
-                 const std::set<RegionIdType>& volRegions,
-                 bool coordUpdate = false)
-    : SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
-    ( aOp, bOp, scalCoef, factor, volRegions, coordUpdate) {};
+    SurfaceMortarABInt( BaseBOperator * aOp, BaseBOperator * bOp,
+                        PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+                        RegionIdType masterVolRegion,
+                        RegionIdType slaveVolRegion,
+                        bool coordUpdate = false);
 
     //! Destructor
-    ~NcSurfABInt() {};
+    ~SurfaceMortarABInt() {};
 
     //! Compute element matrix associated to AB form
     void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                             EntityIterator& ent1,
                             EntityIterator& ent2 );
+    
+    //! Set finite element space in cases of mixed spaces
+    void SetFeSpace( shared_ptr<FeSpace> feSpace1,
+                     shared_ptr<FeSpace> feSpace2);
+
+  protected:
+    
+    //! pointer to the FeSpace of the Lagrange multiplier
+    shared_ptr<FeSpace> ptFeSpaceLM_;
+    
+    //! pointer to the FeSpace of the field variable to be coupled
+    shared_ptr<FeSpace> ptFeSpaceField_;
+    
+    // RegionId of volume region on master side of the ncInterface
+    RegionIdType masterVolRegion_;
+
+    // RegionId of volume region on slave side of the ncInterface
+    RegionIdType slaveVolRegion_;
+
+    //! Set containing all volume regions for surface integrators
+    std::set<RegionIdType> volRegions_;
   };
 
 
@@ -146,7 +166,7 @@ namespace CoupledField {
     //to add two and more volume regions to one master or slave side
 
     //! Map containing all coefficient functions for volume regions for operator A
-    std::map< RegionIdType, PtrCoefFct > regionCoefs_;
+    //std::map< RegionIdType, PtrCoefFct > regionCoefs_;
   };
 }
 

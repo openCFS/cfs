@@ -32,12 +32,20 @@ namespace CoupledField
     //! Destructor
     virtual ~PerturbedFlowPDE(){};
 
+  protected:
+
     //! Initialize NonLinearities
     void InitNonLin();
 
     //! Define all (bilinearform) integrators needed for this PDE
     void DefineIntegrators( );
 
+    //! Defines the integrators needed for ncInterfaces
+    void DefineNcIntegrators() {
+      EXCEPTION("ncInterfaces are not implemented for PerturbedFlowPDE");
+    }
+
+    //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators(){};
 
     //! Define the SolveStep-Driver
@@ -55,8 +63,6 @@ namespace CoupledField
     //! Calculate field variables at arbitrary points
     void CalcField( SolutionType solType, StdVector<const Elem*>& elems,
                     StdVector<LocPoint>& points, SingleVector& values );
-
-  protected:
 
     //! SubType of electrostatic section
     std::string subType_;

@@ -110,7 +110,7 @@ namespace CoupledField{
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
     const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum);
-    RegionIdType eRegion = ptElem->regionId;
+    RegionIdType eRegion = GetVolElem(ptElem)->regionId;
 
     //Check if the region is there, otherwise fall back to default
     if(refElems_.find(eRegion) == refElems_.end()){
@@ -118,6 +118,7 @@ namespace CoupledField{
     }
 
     if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
+      std::cerr << refElems_[eRegion].size() << std::endl;
       EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
     BaseFE * myFe = refElems_[eRegion][ptElem->type];

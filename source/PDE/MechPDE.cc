@@ -376,6 +376,24 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     }
   }
   
+  void MechPDE::DefineNcIntegrators() {
+    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
+                                           endIt = ncInterfaces_.End();
+    for ( ; ncIt != endIt; ++ncIt ) {
+      switch (ncIt->type) {
+      case NC_MORTAR:
+        DefineMortarCoupling(MECH_DISPLACEMENT, *ncIt, dim_);
+        break;
+      case NC_NITSCHE:
+        EXCEPTION("ncInterfaces of Nitsche type are not implemented for MechPDE");
+        break;
+      default:
+        EXCEPTION("Unknown type of ncInterface");
+        break;
+      }
+    }
+  }
+  
   void MechPDE::DefineRhsLoadIntegrators() {
     LOG_TRACE(mechpde) << "Defining rhs load integrators for mechanic PDE";
     

@@ -17,6 +17,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <cmath>
+#include <def_expl_templ_inst.hh>
 
 #include "General/defs.hh"
 

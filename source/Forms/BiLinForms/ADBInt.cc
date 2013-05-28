@@ -213,8 +213,8 @@ namespace CoupledField{
   }
   
  // Explicit template instantiation
- template class ADBInt<Double,Double>;
- template class ADBInt<Double,Complex>;
- template class ADBInt<Complex,Double>;
- template class ADBInt<Complex,Complex>;
+  template class ADBInt<Double,Double>;
+  template class ADBInt<Double,Complex>;
+  template class ADBInt<Complex,Double>;
+  template class ADBInt<Complex,Complex>;
 }

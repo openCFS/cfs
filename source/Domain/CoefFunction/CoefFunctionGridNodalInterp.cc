@@ -12,6 +12,7 @@
  */
 //================================================================================================
 
+#include <def_expl_templ_inst.hh>
 
 #include "CoefFunctionGridNodalInterp.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"

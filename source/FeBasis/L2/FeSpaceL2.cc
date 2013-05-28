@@ -511,8 +511,8 @@ namespace CoupledField{
       std::string name2 = name1;
       name1 += "_dgInterior";
       name2 += "_dgInteriorOpposite";
-      interiorElemMap_[region] = shared_ptr<NcElemList>(new NcElemList(feFct->GetGrid(),name1));
-      interiorElemMapOpposite_[region] = shared_ptr<NcElemList>(new NcElemList(feFct->GetGrid(),name2));
+      interiorElemMap_[region] = shared_ptr<NcSurfElemList>(new NcSurfElemList(feFct->GetGrid(),name1));
+      interiorElemMapOpposite_[region] = shared_ptr<NcSurfElemList>(new NcSurfElemList(feFct->GetGrid(),name2));
     }
     surfElems = interiorElemMap_[region];
     opposingElems = interiorElemMapOpposite_[region];
@@ -527,7 +527,7 @@ namespace CoupledField{
         assert(feFct);
     std::string name = feFct->GetGrid()->GetRegion().ToString(region);
     name += "_dgInterior";
-    interiorElemMap_[region] = shared_ptr<NcElemList>(new NcElemList(feFct->GetGrid(),name));
+    interiorElemMap_[region] = shared_ptr<NcSurfElemList>(new NcSurfElemList(feFct->GetGrid(),name));
     surfElems = interiorElemMap_[region];
   }
 
@@ -538,7 +538,7 @@ namespace CoupledField{
     if(exteriorElements_.find(region) == exteriorElements_.end()){
       std::string name = feFct->GetGrid()->GetRegion().ToString(region);
       name += "_dgExterior";
-      exteriorElements_[region] = shared_ptr<NcElemList>(new NcElemList(feFct->GetGrid(),name));
+      exteriorElements_[region] = shared_ptr<NcSurfElemList>(new NcSurfElemList(feFct->GetGrid(),name));
     }
     surfElems = exteriorElements_[region];
   }
@@ -547,7 +547,7 @@ namespace CoupledField{
     //TODO: ADD DEBUGGING OUTPUT!!!!!
     //ok lets go. we collect the information from our maps and pass them to the grid
     std::set<RegionIdType> regions;
-    std::map<RegionIdType,shared_ptr<NcElemList> >::iterator regIter;
+    std::map<RegionIdType,shared_ptr<NcSurfElemList> >::iterator regIter;
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
     //its enough to go through the interiorElemMap_
@@ -562,18 +562,18 @@ namespace CoupledField{
     //ok first we fill the standard map and, if requested, the opposing map
     for(UInt aElem =0;aElem < interiorElemList.GetSize();++aElem){
       RegionIdType curReg = interiorElemList[aElem]->regionId;
-      shared_ptr<NcElemList> curIntList = interiorElemMap_[curReg];
-      curIntList->SetElement(interiorElemList[aElem]);
+      shared_ptr<NcSurfElemList> curIntList = interiorElemMap_[curReg];
+      curIntList->AddElement(interiorElemList[aElem]);
       //check if we need to fill in the opposite list
       if(interiorElemMapOpposite_.find(curReg) != interiorElemMapOpposite_.end()){
-        shared_ptr<NcElemList> curOppList = interiorElemMapOpposite_[curReg];
+        shared_ptr<NcSurfElemList> curOppList = interiorElemMapOpposite_[curReg];
         //we have at least one neighbor...
-        curOppList->SetElement(interiorElemList[aElem]->neighbors[0]);
+        curOppList->AddElement(interiorElemList[aElem]->neighbors[0]);
         UInt numNeighbors = interiorElemList[aElem]->neighbors.GetSize();
         for(UInt i = 1; i<numNeighbors;++i){
           //we need to push back in both lists....
-          curOppList->SetElement(interiorElemList[aElem]->neighbors[i]);
-          curIntList->SetElement(interiorElemList[aElem]);
+          curOppList->AddElement(interiorElemList[aElem]->neighbors[i]);
+          curIntList->AddElement(interiorElemList[aElem]);
         }
       }
     }
@@ -581,8 +581,8 @@ namespace CoupledField{
     for(UInt aElem =0;aElem < exteriorElemList.GetSize();++aElem){
       //obtain region id
       RegionIdType curReg = exteriorElemList[aElem]->regionId;
-      shared_ptr<NcElemList> & curIntList = exteriorElements_[curReg];
-      curIntList->SetElement(exteriorElemList[aElem]);
+      shared_ptr<NcSurfElemList> & curIntList = exteriorElements_[curReg];
+      curIntList->AddElement(exteriorElemList[aElem]);
     }
     regIter = exteriorElements_.begin();
     for(;regIter != exteriorElements_.end();++regIter){

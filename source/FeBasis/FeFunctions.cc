@@ -2,6 +2,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/tr1/type_traits.hpp>
+#include <def_expl_templ_inst.hh>
 
 #include "PDE/SinglePDE.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"

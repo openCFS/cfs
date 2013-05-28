@@ -194,7 +194,7 @@ namespace CoupledField {
     sequenceStep_ = sequenceStep;
 
     infoNode_ = myInfo_->Get("PDE")->Get("directCoupledPDE", ParamNode::APPEND);
-    infoNode_->Get(ParamNode::PN_HEADER)->Get("sequeceStep")->SetValue(sequenceStep);
+    infoNode_->Get(ParamNode::PN_HEADER)->Get("sequenceStep")->SetValue(sequenceStep);
 
     
     // Create algebraic system and pass it to SinglePDEs

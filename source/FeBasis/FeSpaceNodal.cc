@@ -5,6 +5,8 @@
 
 #include "FeSpaceNodal.hh"
 
+#include <def_expl_templ_inst.hh>
+
 #include "FeNodal.hh"
 #include "H1/H1ElemsLagVar.hh"
 

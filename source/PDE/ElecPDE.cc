@@ -58,13 +58,13 @@ namespace CoupledField {
     pdename_          = "electrostatic";
     pdematerialclass_ = ELECTROSTATIC;
  
-    nonLin_    = false;
+    nonLin_         = false;
     nonLinMaterial_ = false;
     isAlwaysStatic_ = true;
     isPiezoCoupled_ = false;
     
     //! Always use updated Lagrangian formulation 
-    updatedGeo_        = true;
+    updatedGeo_     = true;
     
     
     needSolPrev_ = true;
@@ -173,10 +173,6 @@ namespace CoupledField {
       REFACTOR;
     }
 
-    // =======================================================================
-    // Integrators for NonConforming Interfaces
-    // =======================================================================
-    ///OUT FOR REFACTOR
     // define integrators for electric impedances
     DefineImpedanceIntegrators();
   }
@@ -513,7 +509,7 @@ namespace CoupledField {
     // ===================================
     // Check for non-conforming interfaces
     // ===================================
-    StdVector<std::string> ncIfaceNames, ncIfaceNamesForPDE;
+    /*StdVector<std::string> ncIfaceNames, ncIfaceNamesForPDE;
     StdVector<RegionIdType> ncIfaceIds;
     
     LOG_DBG2(elecpde) << "NonMatching: Checking if nonconforming "
@@ -569,9 +565,26 @@ namespace CoupledField {
       lagr->dofNames = "l";
       lagr->definedOn = results_[0]->definedOn;
       results_.Push_back( lagr );
-    } 
+    } */
   }
   
+  void ElecPDE::DefineNcIntegrators() {
+    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
+                                           endIt = ncInterfaces_.End();
+    for ( ; ncIt != endIt; ++ncIt ) {
+      switch (ncIt->type) {
+      case NC_MORTAR:
+        DefineMortarCoupling(ELEC_POTENTIAL, *ncIt);
+        break;
+      case NC_NITSCHE:
+        DefineNitscheCoupling(ELEC_POTENTIAL, *ncIt);
+        break;
+      default:
+        EXCEPTION("Unknown type of ncInterface");
+        break;
+      }
+    }
+  }
   
   void ElecPDE::DefinePostProcResults() {
 

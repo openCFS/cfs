@@ -33,6 +33,8 @@ namespace CoupledField
     //!  Destructor
     virtual ~MagneticPDE();
 
+  protected:
+
     //! Initialize NonLinearities
     void InitNonLin();
 
@@ -41,6 +43,11 @@ namespace CoupledField
     
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
+
+    //! Defines the integrators needed for ncInterfaces
+    void DefineNcIntegrators() {
+      EXCEPTION("ncInterfaces are not implemented for MagneticPDE");
+    }
 
     //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators( ){};
@@ -58,8 +65,6 @@ namespace CoupledField
     virtual std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string&  formulation,
                     PtrParamNode infoNode );
-  protected:
-
     //! Flag for mixed formulation
     
     //! In case of a transient / harmonic 3D simulation, we need 

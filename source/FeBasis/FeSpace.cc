@@ -24,6 +24,7 @@ ApproxOrder::ApproxOrder( ) {
   isoOrder_ = 0;
   maxOrder_= 0;
   dim_ = 0;
+  isIsotropic_ = false;
   completeType_ = BaseFE::TRUNK_SPACE;
 }
 
@@ -31,6 +32,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   isoOrder_ = 0;
   maxOrder_= 0;
   dim_ = dim;
+  isIsotropic_ = false;
   completeType_ = BaseFE::TRUNK_SPACE;
 }
   
@@ -145,8 +147,12 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     myParam_ = paramNode;
     infoNode_ = infoNode;
     ptGrid_ = ptGrid;
+    type_ = UNDEF_SPACE;
+    mapType_ = GRID;
+    polyType_ = UNDEF_POLY;
     isFinalized_ = false;
     isContinuous_ = true;
+    isHierarchical_ = false;
     numEqns_ = 0;
     numFreeEquations_ = 0;
     solStep_ = 1;
@@ -177,7 +183,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
      
 
     /* One big Problem> Due to the splitting of spaces in Hi and Lo/Lagrange, it is not
-     * possible to deal with Diffent Polynomial types in different regions
+     * possible to deal with different Polynomial types in different regions
      * e.g. acoustic pressure is approximated by 2nd order Spectral elements in region1 and
      * anisotropic Legendre elements in region2 coupled by NcInterfaces.
      * This is to be changed in the future!
@@ -1046,9 +1052,15 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
   void FeSpace::ReadPolyNode(PtrParamNode node, MappingType & mapType, ApproxOrder & order){
 
-    bool grid = node->Get("useGridOrder",ParamNode::EX)->As<bool>();
     //determine mapping type
-    mapType = (grid)? GRID : POLYNOMIAL;
+    if ( node->Get("useGridOrder",ParamNode::EX)->As<bool>() ) {
+      mapType = GRID;
+      order.SetIsoOrder(1); // actual ansatz order will be determined later,
+                            // just set any isotropic order here.
+      return;
+    } else {
+      mapType = POLYNOMIAL;
+    }
 
     //Read isoOrder or Aniso Order
     PtrParamNode isoOrderNode = node->Get("isoOrder", ParamNode::PASS );

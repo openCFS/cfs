@@ -363,18 +363,18 @@ namespace CoupledField{
    }
 
    // Explicit template instantiation
-   template class BBInt<Double,Double>;
-   template class BBInt<Double,Complex>;
-   template class BBInt<Complex,Double>;
-   template class BBInt<Complex,Complex>;
-   
-   template class BBIntMassEdge<Double,Double>;
-   template class BBIntMassEdge<Double,Complex>;
-   template class BBIntMassEdge<Complex,Double>;
-   template class BBIntMassEdge<Complex,Complex>;
-   
-   template class SurfaceBBInt<Double,Double>;
-   template class SurfaceBBInt<Double,Complex>;
-   template class SurfaceBBInt<Complex,Double>;
-   template class SurfaceBBInt<Complex,Complex>;
+  template class BBInt<Double,Double>;
+  template class BBInt<Double,Complex>;
+  template class BBInt<Complex,Double>;
+  template class BBInt<Complex,Complex>;
+  
+  template class BBIntMassEdge<Double,Double>;
+  template class BBIntMassEdge<Double,Complex>;
+  template class BBIntMassEdge<Complex,Double>;
+  template class BBIntMassEdge<Complex,Complex>;
+  
+  template class SurfaceBBInt<Double,Double>;
+  template class SurfaceBBInt<Double,Complex>;
+  template class SurfaceBBInt<Complex,Double>;
+  template class SurfaceBBInt<Complex,Complex>;
 }

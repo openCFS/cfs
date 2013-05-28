@@ -329,7 +329,7 @@ namespace CoupledField
         : BiLinFormContext( biLinForm, destMat ) {};
 
     //! Destructor
-    virtual ~NcBiLinFormContext();
+    virtual ~NcBiLinFormContext(){};
 
     // ======================================================
     //  MAPPING METHODS

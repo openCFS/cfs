@@ -84,9 +84,12 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
-  <!-- Data type for specification of a non-conforming interface -->
-  <!-- ******************************************************************** -->
+  <!-- ********************************************************************
+        Data type for specification of a non-conforming interface
+       ********************************************************************
+        This defines only the geometrical part of the interface.
+        Formulation specific options (e.g. Mortar/Nitsche) are defined in
+        CFS_PDEbasic.xsd (DT_NcInterfaceList). -->
   <xsd:complexType name="DT_DomainNCIface">
     <xsd:attribute name="name" type="xsd:token" use="required">
       <xsd:annotation>
@@ -120,15 +123,6 @@
         </xsd:documentation>
       </xsd:annotation>      
     </xsd:attribute>
-    <xsd:attribute name="lagrangeMultType" use="optional">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:normalizedString">
-          <xsd:enumeration value="standard"/>
-          <xsd:enumeration value="dualDiscont"/>
-          <xsd:enumeration value="dualCubic"/>
-        </xsd:restriction>
-      </xsd:simpleType>      
-    </xsd:attribute>
     <xsd:attribute name="isecCalculation" use="optional">
       <xsd:simpleType>
         <xsd:restriction base="xsd:normalizedString">
@@ -139,7 +133,6 @@
     </xsd:attribute>
     <xsd:attribute name="tolAbs" type="DT_NonNegFloat" use="optional" default="1e-12"/>
     <xsd:attribute name="tolRel" type="DT_FloatUnitInterval" use="optional" default="1e-4"/>
-    <xsd:attribute name="crossPointHandling" type="DT_CFSBool" use="optional" default="no"/>
     <!--xsd:attribute name="removeEntitiesFromGrid" type="DT_CFSBool" use="optional" default="no"/-->
     <xsd:attribute name="gridProjection" use="optional" default="naive">
       <xsd:simpleType>
@@ -150,6 +143,7 @@
       </xsd:simpleType>
     </xsd:attribute>
     <xsd:attribute name="writeGraphvizFiles" type="DT_CFSBool" use="optional" default="no"/>
+    <xsd:attribute name="createSurfRegion" type="DT_CFSBool" use="optional" default="yes"/>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->

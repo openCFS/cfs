@@ -39,6 +39,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <cmath>
+#include <def_expl_templ_inst.hh>
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
@@ -640,6 +641,24 @@ namespace CoupledField{
     }
   }
 
+  void AcousticPDE::DefineNcIntegrators() {
+    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
+                                           endIt = ncInterfaces_.End();
+    for ( ; ncIt != endIt; ++ncIt ) {
+      switch (ncIt->type) {
+      case NC_MORTAR:
+        DefineMortarCoupling(formulation_, *ncIt);
+        break;
+      case NC_NITSCHE:
+        DefineNitscheCoupling(formulation_, *ncIt);
+        break;
+      default:
+        EXCEPTION("Unknown type of ncInterface");
+        break;
+      }
+    }
+  }
+  
   void AcousticPDE::DefineSurfaceIntegrators( ){
     //========================================================================================
     // ABC boundaries
@@ -655,10 +674,10 @@ namespace CoupledField{
         //RegionIdType sRegId = ptGrid_->GetRegion().Parse(regionName);
 
         // --- Set the FE ansatz for the current region ---
-        PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
+        /*PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
         std::string polyId = curRegNode->Get("polyId")->As<std::string>();
         std::string integId = curRegNode->Get("integId")->As<std::string>();
-        //feFunctions_[formulation_]->GetFeSpace()->SetRegionApproximation(sRegId, polyId,integId);
+        feFunctions_[formulation_]->GetFeSpace()->SetRegionApproximation(sRegId, polyId,integId);*/
 
         RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
         // c0 = sqrt(bulk_modulus / density)
@@ -696,7 +715,7 @@ namespace CoupledField{
         assemble_->AddBiLinearForm( abcContext );
       }
     }
-    if( ncIFaces_.GetSize() > 0 ) {
+    /*if( ncIFaces_.GetSize() > 0 ) {
       RegionIdType actRegion;
       std::string regionName;
       shared_ptr<BaseNcInterface> curNC;
@@ -811,7 +830,7 @@ namespace CoupledField{
         assemble_->AddBiLinearForm( penalty_u2_v1_Context );
         assemble_->AddBiLinearForm( flux_u2_dv1_Context );
       }
-    }
+    }*/
 
 
   }
@@ -1188,7 +1207,7 @@ namespace CoupledField{
     // ===================================
     // Check for non-conforming interfaces
     // ===================================
-    StdVector<std::string> ncIfaceNames, ncIfaceNamesForPDE;
+    /*StdVector<std::string> ncIfaceNames, ncIfaceNamesForPDE;
     StdVector<RegionIdType> ncIfaceIds;
 
     LOG_DBG2(acousticpde) << "NonMatching: Checking if nonconforming "
@@ -1238,7 +1257,7 @@ namespace CoupledField{
         std::string nmgFormStr =  pdeNCIfaceNodes[i]->Get("nmgFormulation",ParamNode::PASS)->As<std::string>();
         ncTypes_[ncIfaceIds[i]] = ncCouplingType_.Parse(nmgFormStr);
 
-        if(ncTypes_[ncIfaceIds[i]]==NITSCHE){
+        if(ncTypes_[ncIfaceIds[i]]==NC_NITSCHE){
 
           nitscheFactors_[ncIfaceIds[i]] = pdeNCIfaceNodes[i]->Get("nitscheFactor",ParamNode::PASS)->As<Double>();
 
@@ -1256,14 +1275,14 @@ namespace CoupledField{
     // In the case of the presence of non-conforming interfaces,
     // a second resultdof object has to be created, which describes the
     // Lagrange multiplier
-    //if( ncIFaces_.GetSize() > 0 ) {
-    //  LOG_DBG2(acousticpde) << "NonMatching: Defining new ResultDof Lagrange.";
-    //  shared_ptr<ResultInfo> lagr ( new ResultInfo );
-    //  lagr->resultType = LAGRANGE_MULT;
-    //  lagr->dofNames = "l";
-    //  lagr->definedOn = results_[0]->definedOn;
-    //  results_.Push_back( lagr );
-    //}
+    if( ncIFaces_.GetSize() > 0 ) {
+      LOG_DBG2(acousticpde) << "NonMatching: Defining new ResultDof Lagrange.";
+      shared_ptr<ResultInfo> lagr ( new ResultInfo );
+      lagr->resultType = LAGRANGE_MULT;
+      lagr->dofNames = "l";
+      lagr->definedOn = results_[0]->definedOn;
+      results_.Push_back( lagr );
+    }*/
 
   }
   

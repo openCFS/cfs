@@ -570,6 +570,24 @@ void HeatPDE::DefineIntegrators() {
 
 }
 
+void HeatPDE::DefineNcIntegrators() {
+  StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
+                                         endIt = ncInterfaces_.End();
+  for ( ; ncIt != endIt; ++ncIt ) {
+    switch (ncIt->type) {
+    case NC_MORTAR:
+      DefineMortarCoupling(HEAT_TEMPERATURE, *ncIt);
+      break;
+    case NC_NITSCHE:
+      DefineNitscheCoupling(HEAT_TEMPERATURE, *ncIt);
+      break;
+    default:
+      EXCEPTION("Unknown type of ncInterface");
+      break;
+    }
+  }
+}
+
 void HeatPDE::DefineRhsLoadIntegrators() {
   
   LOG_TRACE(heatcondpde) << "Defining rhs load integrators for thermal PDE";
@@ -722,7 +740,7 @@ void HeatPDE::DefinePrimaryResults() {
   // ===================================
   // Check for non-conforming interfaces
   // ===================================
-  StdVector<std::string> ncIfaceNames, ncIfaceNamesForPDE;
+  /*StdVector<std::string> ncIfaceNames, ncIfaceNamesForPDE;
     StdVector<RegionIdType> ncIfaceIds;
     
     LOG_DBG2(heatcondpde) << "NonMatching: Checking if nonconforming "
@@ -778,7 +796,7 @@ void HeatPDE::DefinePrimaryResults() {
       lagr->dofNames = "l";
       lagr->definedOn = results_[0]->definedOn;
       results_.Push_back( lagr );
-    } 
+    } */
 
 }
 
