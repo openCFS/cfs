@@ -289,9 +289,6 @@ namespace CoupledField {
       EXCEPTION("NcBiLinFormContext only works with MortarNcSurfElems at the moment.");
     }
     
-    /*const Elem *volElem1 = mortarElem->ptMaster->ptVolElems[0];
-    const Elem *volElem2 = mortarElem->ptSlave->ptVolElems[0];*/
-    
     // TODO jens: implement the general case for two different FeFunctions
     // (e.g. MechAcou coupling)
     shared_ptr<BaseFeFunction> feFuncField = this->feFct1_.lock(),

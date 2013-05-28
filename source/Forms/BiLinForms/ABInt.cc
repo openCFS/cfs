@@ -301,11 +301,7 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
     this->bOperator_->CalcOpMat( this->bMat_, lp2, ptFeB );
 
     // Calculate scalar factor
-    //if(!regionCoefs_.empty()) {
-    //  regionCoefs_[lp1.lpmVol->ptEl->regionId]->GetScalar(fac, lp1);
-    //} else {
-      this->coefScalar_->GetScalar(fac, lp1);
-    //}
+    this->coefScalar_->GetScalar(fac, lp1);
 
     fac *= MAT_DATA_TYPE(lp1.jacDet * weights[i]);
 
@@ -389,8 +385,6 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   const SurfElem *ptSurfSlave = ptMortarElem->ptSlave;
   assert(ptSurfMaster);
   assert(ptSurfSlave);
-  //const Elem* ptVolMaster = ptSurfMaster->ptVolElems[0];
-  //const Elem* ptVolSlave = ptSurfSlave->ptVolElems[0];
 
   LOG_DBG(mortarInt) << "NcSurfElem #" << ptMortarElem->elemNum
                      << ", type " << Elem::feType.ToString(ptMortarElem->type)
@@ -469,12 +463,7 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
     this->bOperator_->CalcOpMat( this->bMat_, lpmSlave, ptFeSlave );
 
     // Calculate scalar factor
-    // TODO jens: is this correct?
-    //if ( !this->regionCoefs_.empty() ) {
-    //  this->regionCoefs_[ptVolSlave->regionId]->GetScalar(fac, lpmSlave);
-    //} else {
-      this->coefScalar_->GetScalar(fac, lpmSlave);
-    //}
+    this->coefScalar_->GetScalar(fac, lpmSlave);
 
     fac *= MAT_DATA_TYPE(lpmNc.jacDet * weights[i]);
 

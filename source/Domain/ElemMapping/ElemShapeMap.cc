@@ -339,8 +339,13 @@ void LagrangeElemShapeMap::Global2Local(Vector<Double>& locPoint,
   case Elem::ET_QUAD4:
   case Elem::ET_QUAD8:
   case Elem::ET_QUAD9:
-    //Global2LocalGeneral(locPoint,globalPoint);
-    Global2LocalQuad4(locPoint, globalPoint);
+    // Use specialization of Global2Local for quadrilaterals
+    // that works only in 2D!
+    if (ptGrid_->GetDim() == 2) {
+      Global2LocalQuad4(locPoint, globalPoint);
+    } else {
+      Global2LocalGeneral(locPoint,globalPoint);
+    }
     break;
   case Elem::ET_HEXA20:
   case Elem::ET_HEXA27:

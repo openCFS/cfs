@@ -360,13 +360,13 @@ namespace CoupledField {
 
   // --- NC Element List ---
   // Default constructor
-  NcSurfElemList::NcSurfElemList(Grid * grid)
+  NcSurfElemList::NcSurfElemList( Grid * grid )
     : SurfElemList(grid)
   {
   }
   
   // Constructor
-  NcSurfElemList::NcSurfElemList( Grid * grid, std::string name)
+  NcSurfElemList::NcSurfElemList( Grid * grid, std::string name )
     : SurfElemList(grid)
   {
     this->type_ = NC_ELEM_LIST;
@@ -374,7 +374,7 @@ namespace CoupledField {
   }
 
   void NcSurfElemList::SetNamedElems( const std::string& name ) {
-    /*StdVector<Elem*> elems;
+    StdVector<Elem*> elems;
     grid_->GetElemsByName( elems, name );
     
     ncElems_.Clear();
@@ -387,18 +387,17 @@ namespace CoupledField {
                    << " in element list '" << name 
                    << "' is no NcSurfElem!" );
       }
-      ncElems_.Push_back( shared_ptr<NcSurfElem>(*actElem) );
+      ncElems_.Push_back( shared_ptr<NcSurfElem>(actElem) );
     }
     
     defineType_ = NAMED_ELEMS;
     size_ = ncElems_.GetSize();
     region_ = NO_REGION_ID;
-    name_ = name;*/
-    EXCEPTION("Not implemented");
+    name_ = name;
   }
 
-  void NcSurfElemList::SetRegion( RegionIdType  region ) { 
-    /*StdVector<SurfElem*> elems;
+  void NcSurfElemList::SetRegion( RegionIdType region ) { 
+    StdVector<SurfElem*> elems;
     grid_->GetSurfElems( elems, region );
     
     name_ = grid_->GetRegion().ToString( region );
@@ -412,34 +411,31 @@ namespace CoupledField {
                    << " in element list '" << name_
                    << "' is no NcSurfElem!" );
       }
-      ncElems_.Push_back( shared_ptr<NcSurfElem>(*curElem) );
+      ncElems_.Push_back( shared_ptr<NcSurfElem>(curElem) );
     }
 
     defineType_ = REGION;
     size_ = ncElems_.GetSize();
-    region_ = region;*/
-    EXCEPTION("Not implemented");
+    region_ = region;
   }
 
-  void NcSurfElemList::SetElement(const Elem * elem) {
-    /*const NcSurfElem * ncElem = dynamic_cast<const NcSurfElem*>(elem);
+  void NcSurfElemList::SetElement( const Elem * elem ) {
+    const NcSurfElem * ncElem = dynamic_cast<const NcSurfElem*>(elem);
     if ( !ncElem ) {
       EXCEPTION("Cannot use NcSurfElemList with anything other than NcSurfElems");
     }
-    SetNcSurfElem( shared_ptr<NcSurfElem>(*ncElem) );*/
-    EXCEPTION("Not implemented");
+    SetNcSurfElem( shared_ptr<NcSurfElem>( const_cast<NcSurfElem*>(ncElem) ) );
   }
 
-  void NcSurfElemList::SetSurfElem(const SurfElem * elem) {
-    /*const NcSurfElem * ncElem = dynamic_cast<const NcSurfElem*>(elem);
+  void NcSurfElemList::SetSurfElem( const SurfElem * elem ) {
+    const NcSurfElem * ncElem = dynamic_cast<const NcSurfElem*>(elem);
     if ( !ncElem ) {
       EXCEPTION("Cannot use NcSurfElemList with anything other than NcSurfElems");
     }
-    SetNcSurfElem( shared_ptr<NcSurfElem>(*ncElem) );*/
-    EXCEPTION("Not implemented");
+    SetNcSurfElem( shared_ptr<NcSurfElem>( const_cast<NcSurfElem*>(ncElem) ) );
   }
 
-  void NcSurfElemList::SetNcSurfElem(const shared_ptr<NcSurfElem> elem) {
+  void NcSurfElemList::SetNcSurfElem( const shared_ptr<NcSurfElem> elem ) {
     defineType_ = NO_TYPE;
     size_ = 1;
     region_ = NO_REGION_ID;
@@ -469,7 +465,7 @@ namespace CoupledField {
   }
 
   //! Get iterator
-  EntityIterator NcSurfElemList::GetIterator() const{
+  EntityIterator NcSurfElemList::GetIterator() const {
     EntityIterator it;
     it.type_ = NC_ELEM_LIST;
     it.ncElemList_ = this;

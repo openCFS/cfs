@@ -79,7 +79,7 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   nciNode->GetValue("tolAbs", tolAbs_, ParamNode::PASS);
   nciNode->GetValue("tolRel", tolRel_, ParamNode::PASS);
   
-  nciNode->GetValue("createSurfRegion", exportToGrid_, ParamNode::PASS);
+  nciNode->GetValue("storeIntegrationGrid", exportToGrid_, ParamNode::PASS);
 
   PtrParamNode rotNode = nciNode->Get("rotation", ParamNode::PASS);
   if (rotNode) {
@@ -282,7 +282,9 @@ void MortarInterface::UpdateInterface() {
       ncElemsHelper.Resize(numElems);
 
       for ( UInt i=0; i<numElems; ++i ) {
-        ncElemsHelper[i] = elemList_->GetNcSurfElem(i);
+        // We need to make explicit copies of the NcSurfElems, because the
+        // Grid deletes all its elements when it gets destroyed.
+        ncElemsHelper[i] = new SurfElem(*(elemList_->GetSurfElem(i)));
       }
 
       ptGrid_->AddSurfaceElems(region_, ncElemsHelper, ncElemIds);
@@ -538,7 +540,6 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
         // << " (" << region_.ToString(ifaceElem1->regionId) << ") "
          << "and " << ifaceElem2->elemNum);
         // << " (" << this->region_.ToString(ifaceElem2->regionId) << ") ");
-    //delete ncElem;
     return false;
   }
 

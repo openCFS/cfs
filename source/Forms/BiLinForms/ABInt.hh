@@ -164,9 +164,6 @@ namespace CoupledField {
 
     //TODO: for future purpose it would be helpful to be able
     //to add two and more volume regions to one master or slave side
-
-    //! Map containing all coefficient functions for volume regions for operator A
-    //std::map< RegionIdType, PtrCoefFct > regionCoefs_;
   };
 }
 
