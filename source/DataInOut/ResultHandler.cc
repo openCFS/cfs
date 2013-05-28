@@ -3,6 +3,8 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 #include <math.h>
 
+#include <def_expl_templ_inst.hh>
+
 #include "ResultHandler.hh"
 
 #include "DataInOut/ProgramOptions.hh"

@@ -117,10 +117,10 @@ namespace CoupledField {
     std::string GetName() const;
 
     //! Set name of named element list
-    virtual void SetNamedElems( const std::string& name);
+    virtual void SetNamedElems( const std::string& name );
 
     //! Set RegionId
-    virtual void SetRegion( RegionIdType  region );
+    virtual void SetRegion( RegionIdType region );
 
     //! Set single element
     virtual void SetElement( const Elem* elem );
@@ -129,10 +129,10 @@ namespace CoupledField {
     RegionIdType GetRegion() const;
     
     //! Get one element of the list
-    const Elem * GetElem( UInt nr ) const;
+    virtual const Elem * GetElem( UInt nr ) const;
 
     //! Get iterator
-    EntityIterator GetIterator() const;
+    virtual EntityIterator GetIterator() const;
 
   protected:
     StdVector<UInt> list_;
@@ -152,23 +152,88 @@ namespace CoupledField {
 
     //! Constructor
     SurfElemList( Grid * grid);
+    
+    //! Destructor
     virtual ~SurfElemList() {}
 
     //! Set name of named element list
-    void SetNamedElems( const std::string& name);
+    virtual void SetNamedElems( const std::string& name );
 
     //! Set RegionId
-    void SetRegion( RegionIdType  region );
+    virtual void SetRegion( RegionIdType region );
+
+    //! Set single element (if it can be casted to a SurfElem)
+    virtual void SetElement( const Elem* elem );
+
+    //! Set single surface element
+    virtual void SetSurfElem( const SurfElem* elem );
+
+    //! Get one element of the list
+    virtual const Elem * GetElem( UInt nr ) const;
 
     //! Get one surface element of the list
-    const SurfElem * GetSurfElem( UInt nr ) const;
+    virtual const SurfElem * GetSurfElem( UInt nr ) const;
 
     //! Get iterator
-    EntityIterator GetIterator() const;
+    virtual EntityIterator GetIterator() const;
     
   private:
-    StdVector<SurfElem*> surfElemList_;
+    StdVector<const SurfElem*> surfElemList_;
   };
+
+  
+  //! Class for storing NC elems
+  //! IMPORTANT: in difference to the other entitylists,
+  //!   this list stores directly the pointers to the elements
+  class NcSurfElemList : public SurfElemList {
+  public:
+
+    //! Default constructor
+    NcSurfElemList( Grid * grid);
+    
+    //! Constructor
+    NcSurfElemList( Grid * grid, std::string name );
+
+    virtual ~NcSurfElemList(){};
+
+    //! Set name of named element list
+    virtual void SetNamedElems( const std::string& name );
+
+    //! Set RegionId
+    virtual void SetRegion( RegionIdType region );
+
+    //! Set single element (if it can be casted to a NcSurfElem)
+    virtual void SetElement( const Elem* elem );
+
+    //! Set single surface element (if it can be casted to a NcSurfElem)
+    virtual void SetSurfElem( const SurfElem* elem );
+
+    //! Set single NcSurfElem
+    virtual void SetNcSurfElem( const shared_ptr<NcSurfElem> elem );
+
+    //! Get one element of the list
+    virtual const Elem * GetElem( UInt nr ) const;
+
+    //! Get one surface element of the list
+    virtual const SurfElem * GetSurfElem( UInt nr ) const;
+
+    //! returns const reference to NcElem
+    virtual NcSurfElem * GetNcSurfElem( UInt nr ) const;
+
+    //! Adds an element using a shared pointer which is better suited here
+    virtual void AddElement( const shared_ptr<NcSurfElem> elem );
+
+    //! Deletes all elements from the list
+    virtual void Clear() { ncElems_.Clear(); }
+    
+    //! Get iterator
+    virtual EntityIterator GetIterator() const;
+
+  private:
+    StdVector< shared_ptr<NcSurfElem> > ncElems_;
+    
+  };
+  
 
   //! List for nodes
   class NodeList : public EntityList {
@@ -280,37 +345,6 @@ namespace CoupledField {
 
   };
 
-  //! Class for storing NC elems
-  //! IMPORTANT: in difference to the other entitylists,
-  //!   this list stroes directly the pointers to the elements
-  class NcElemList : public EntityList{
-  public:
-
-    //! Constructor
-    NcElemList( Grid * grid,std::string name);
-
-    virtual ~NcElemList(){
-
-    }
-
-    //! returns the name of the list
-    std::string GetName() const;
-
-    //! returns const reference to NcElem
-    const NcSurfElem * GetNcSurfElem( UInt nr ) const;
-
-    //! Adds an element using a shared pointer which is better suited here
-    void SetElement( const shared_ptr<NcSurfElem> elem );
-
-    //! Get iterator
-    EntityIterator GetIterator() const;
-
-  private:
-    StdVector< shared_ptr<NcSurfElem> > ncElems_;
-
-    std::string name_;
-  };
-  
   
   //! List for names (regions or element/node groups)
   class NameList : public EntityList {
@@ -347,12 +381,12 @@ namespace CoupledField {
     
     friend class ElemList;
     friend class SurfElemList;
+    friend class NcSurfElemList;
     friend class NodeList;
     friend class RegionList;
     friend class NameList;
     friend class CoilList;
     friend class NumberList;
-    friend class NcElemList;
 
     //! Constructor
     EntityIterator();
@@ -427,7 +461,7 @@ namespace CoupledField {
     const NameList* nameList_;
     const CoilList * coilList_;
     const NumberList* numberList_;
-    const NcElemList* ncElemList_;
+    const NcSurfElemList* ncElemList_;
     UInt pos_;
     UInt size_;
   };

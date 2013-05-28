@@ -35,6 +35,8 @@ namespace CoupledField {
     //! Destructor
     virtual ~HeatPDE(){};
 
+  protected:
+    
     //! Read special boundary conditions
     void ReadSpecialBCs();
 
@@ -49,6 +51,9 @@ namespace CoupledField {
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
 
+    //! Defines the integrators needed for ncInterfaces
+    void DefineNcIntegrators();
+
     //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators( ){};
 
@@ -61,8 +66,6 @@ namespace CoupledField {
     //! Initialize all the nodes by this value
     void SetInitialCondition();
 
-  protected:
-	  
     //!  Define available postprocessing results
     void DefinePrimaryResults();
 

@@ -917,8 +917,7 @@ namespace CoupledField {
       UInt numSubElems = curShape.numSurfElems;
       for(UInt aSub =0; aSub<numSubElems ; ++aSub,++numNcSurfElems_){
         //create the subelement
-        shared_ptr<NcSurfElem> curSurf;
-        curSurf.reset(new NcSurfElem());
+        shared_ptr<NcSurfElem> curSurf(new NcSurfElem());
         //give it a number
         curSurf->elemNum = numElems_+numNcSurfElems_+1;
         curSurf->type = subelems[aSub];
@@ -1614,7 +1613,7 @@ namespace CoupledField {
   }
 
 
-  UInt GridCFS::GetDim() {
+  UInt GridCFS::GetDim() const {
     return dim_;
   }
 
@@ -2928,7 +2927,7 @@ namespace CoupledField {
 
     for(i=0; i<n; i++)
     {
-      // a check should be added to avoid insertions
+      // TODO: a check should be added to avoid insertions
       // of already existing elements
       surfelems[i]->regionId = regionid;
       numElems_++;

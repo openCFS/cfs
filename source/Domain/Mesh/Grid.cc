@@ -385,56 +385,69 @@ namespace CoupledField
   }
   
   
-   void Grid::Dump()
-   {
-     StdVector<Elem*>   elems;
+  void Grid::Dump()
+  {
+    StdVector<Elem*>   elems;
 
-     std::cout << "Grid: elements=" << GetNumElems() << " nodes=" << GetNumNodes() << std::endl;
+    std::cout << "Grid: elements=" << GetNumElems() << " nodes=" << GetNumNodes() << std::endl;
 
-     for(UInt i = 0; i < regionData.GetSize(); i++)
-     {
-       GetElems(elems, i);
+    for(UInt i = 0; i < regionData.GetSize(); i++)
+    {
+      GetElems(elems, i);
 
-       std::cout << "region: " << regionData[i].name << " id=" << i << " elements=" << elems.GetSize() <<  std::endl;
-     }
-   }
+      std::cout << "region: " << regionData[i].name << " id=" << i << " elements=" << elems.GetSize() <<  std::endl;
+    }
+  }
 
   // =========================================================================
   // NONCONFORMING INTERFACES SECTION
   // =========================================================================
 
-   void Grid::InitNcInterfacesFromXML() {
-     // if no param object is present, just leave
-     if (!param_) return;
+  void Grid::InitNcInterfacesFromXML() {
+    // if no param object is present, just leave
+    if (!param_) return;
 
-     // check if there is a ncInterfaceList, if not just leave
-     PtrParamNode nciListNode = param_->Get("domain")
-              ->Get("ncInterfaceList", ParamNode::PASS);
-     if (!nciListNode) return;
+    // check if there is a ncInterfaceList, if not just leave
+    PtrParamNode nciListNode = param_->Get("domain")
+                  ->Get("ncInterfaceList", ParamNode::PASS);
+    if (!nciListNode) return;
 
-     ParamNodeList nciList = nciListNode->GetList("ncInterface");
-     UInt numNCIs = nciList.GetSize();
-     ncInterfaces_.Reserve(numNCIs);
+    ParamNodeList nciList = nciListNode->GetList("ncInterface");
+    UInt numNCIs = nciList.GetSize();
+    ncInterfaces_.Reserve(numNCIs);
 
-     for ( UInt i=0; i<numNCIs; ++i ) {
-       ncInterfaces_.Push_back( shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
-     }
-   }
+    for ( UInt i=0; i<numNCIs; ++i ) {
+      AddNcInterface(shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
+    }
+  }
 
-   shared_ptr<BaseNcInterface> Grid::GetNcInterface(NcInterfaceId ncId) const {
-     if ( ncId < ncInterfaces_.GetSize() ) {
-       return ncInterfaces_[ncId];
-     } else {
-       EXCEPTION("NcInterface width ID " << ncId << " is unknown.");
-     }
-   }
+  shared_ptr<BaseNcInterface> Grid::GetNcInterface(NcInterfaceId ncId) const {
+    if ( ncId < ncInterfaces_.GetSize() ) {
+      return ncInterfaces_[ncId];
+    } else {
+      EXCEPTION("NcInterface with ID " << ncId << " is unknown.");
+    }
+  }
 
-   Grid::NcInterfaceId Grid::AddNcInterface(shared_ptr<BaseNcInterface> ncIf) {
-     ncInterfaces_.Push_back(ncIf);
-     return ncInterfaces_.GetSize()-1;
-   }
+  Grid::NcInterfaceId Grid::GetNcInterfaceId(const std::string &name) const {
+    std::map< std::string, NcInterfaceId >::const_iterator ncId
+        =nciNameMap_.find(name);
+    if ( ncId != nciNameMap_.end() ) {
+      return ncId->second;
+    } else {
+      EXCEPTION("NcInterface with name '" << name << " is unknown.");
+    }
+  }
 
-  bool Grid::IsSurfacePlanar(const StdVector<SurfElem*>& ifaceElems)
+  Grid::NcInterfaceId Grid::AddNcInterface(shared_ptr<BaseNcInterface> ncIf) {
+    ncInterfaces_.Push_back(ncIf);
+    if ( ncIf->GetName().length() > 0 ) {
+      nciNameMap_[ncIf->GetName()] = ncInterfaces_.GetSize()-1;
+    }
+    return ncInterfaces_.GetSize()-1;
+  }
+
+  bool Grid::IsSurfacePlanar(const StdVector<SurfElem*>& ifaceElems) const
   {
     std::set<Integer> ifaceNodes;
     std::set<Integer>::iterator it,end;

@@ -5,12 +5,13 @@
 #include <def_use_libfbi.hh>
 
 #include <set>
+#include <map>
 #include <boost/array.hpp>
 #include <boost/unordered_map.hpp>
 
 
 #if defined(USE_CGAL) && defined(USE_LIBFBI)
-#error "Either USE_CGAL or USE_LIBFBI can be actived, but not both!"
+#error "Either USE_CGAL or USE_LIBFBI can be active, but not both!"
 #endif
 
 #ifdef USE_CGAL
@@ -106,10 +107,10 @@ namespace CoupledField
 
     //! Returns the geometrical dimension of the mesh. Currently only
     //! two- and three-dimensional meshes are supported.
-    virtual UInt GetDim() = 0;
+    virtual UInt GetDim() const = 0;
 
     //! Return if grid uses quadratic elements
-    virtual bool IsQuadratic() = 0;
+    virtual bool IsQuadratic() const = 0;
 
         
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -682,11 +683,14 @@ namespace CoupledField
     //! Returns an NcInterface object identified by its ID
     shared_ptr<BaseNcInterface> GetNcInterface(NcInterfaceId ncId) const;
     
+    //! Returns an NcInterface object identified by its name
+    NcInterfaceId GetNcInterfaceId(const std::string &name) const;
+    
     //! Adds a new NcInterface to the grid and returns its ID
     NcInterfaceId AddNcInterface(shared_ptr<BaseNcInterface> ncIf);
     
     //! Computes if a list of surface elements are all coplanar
-    bool IsSurfacePlanar(const StdVector<SurfElem*>& surfElems);
+    bool IsSurfacePlanar(const StdVector<SurfElem*>& surfElems) const;
 
   protected:
     
@@ -737,6 +741,9 @@ namespace CoupledField
     //! map for storing ncInterfaces
     StdVector< shared_ptr<BaseNcInterface> > ncInterfaces_;
 
+    //! mapping from ncInterface name to ID
+    std::map< std::string, NcInterfaceId > nciNameMap_;
+    
     
     // =======================================================================
     // Integration Scheme
@@ -780,7 +787,7 @@ namespace CoupledField
     //! Flag for axi-symmetry
     bool isAxi_;
 
-    /** servive for AddSurfaceRegion() and AddVolumeRegion() */
+    /** service for AddSurfaceRegion() and AddVolumeRegion() */
     RegionIdType AddRegion(const std::string& name, RegionType type);
 
     

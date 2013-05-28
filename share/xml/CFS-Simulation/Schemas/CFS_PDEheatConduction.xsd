@@ -68,19 +68,8 @@
           </xsd:element>
 
           <!-- Non-conforming interfaces of the PDE -->
-          <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
-                  <xsd:complexType>
-                    <xsd:attribute name="name" type="xsd:token" use="required"/>
-                    <xsd:attribute name="nmgFormulation" type="DT_NMGFormulationBasic" use="optional" default="Nitsche"/>
-                    <xsd:attribute name="nitscheFactor" type="xsd:token" use="optional" default="50"/>
-                  </xsd:complexType>
-                </xsd:element>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element>
+          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList"
+                       minOccurs="0" maxOccurs="1"/>
           
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">

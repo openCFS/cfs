@@ -49,8 +49,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
   pdematerialclass_ = ELECTROMAGNETIC;
   
   //! Always use updated Lagrangian formulation 
-  updatedGeo_        = true;
-
+  updatedGeo_       = true;
+  isMixed_          = false;
 }
 
   MagneticPDE::~MagneticPDE()

@@ -706,7 +706,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
       pde1 = GetSinglePDE("mechanic");
       pde2 = GetSinglePDE("electrostatic");
 
-      // in the case of piezo coupling, the electrotstatic
+      // in the case of piezo coupling, the electrostatic
       // entries have to be multiplied by -1
       dynamic_cast<ElecPDE*> (pde2)->SetPiezoCoupling();
 

@@ -34,14 +34,6 @@ namespace CoupledField {
     //! typedefs for result handling
     typedef std::set<shared_ptr<ResultInfo> > ResultSet;
 
-    //! Typedef for nonconforming stuff Nietsche or Mortar
-    typedef enum{
-      NONE,
-      MORTAR,
-      NITSCHE
-    }NcCouplingType;
-    static Enum<NcCouplingType> ncCouplingType_;
-
     //! Virtual destructor
     virtual ~StdPDE();
     
@@ -175,7 +167,34 @@ namespace CoupledField {
     //@}
       
   protected:
-  
+
+    //! Enum for type of nonconforming coupling (Nitsche or Mortar)
+    typedef enum {
+      NC_NONE,
+      NC_MORTAR,
+      NC_NITSCHE
+    } NcCouplingType;
+    static Enum<NcCouplingType> ncCouplingType_;
+    static EnumTuple ncTypeTuples_[3];
+    
+    //! Enum for type of ansatz functions for Lagrange Multiplier (Mortar only) 
+    typedef enum {
+      LM_STANDARD,
+      LM_DUAL_DISCONTINUOUS,
+      LM_DUAL_CUBIC
+    } LagrangeMultType;
+    static Enum<LagrangeMultType> lmType_;
+    static EnumTuple lmTypeTuples_[3];
+
+    //! Struct for collecting all formulation-specific options on an NcInterface
+    struct NcInterfaceInfo {
+      UInt              interfaceId;
+      NcCouplingType    type;
+      LagrangeMultType  lagrangeMultType;
+      Double            nitscheFactor;
+      bool              crossPointHandling;
+    };
+
     //! Constructor
     /*!
       \param aptgrid pointer to grid
@@ -195,6 +214,9 @@ namespace CoupledField {
     virtual bool NeedsPrevSol() {
       return  needSolPrev_;
     }
+
+    //! Reads ncInterfaces defined in the XML file
+    virtual void ReadNcInterfaces() = 0;
 
     // ======================================================
     // DATA SECTION
@@ -393,14 +415,14 @@ namespace CoupledField {
     //! Map storing the feFunctions of the RHS
     std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
 
-    //! vector containing regionIds of non-conforming interfaces
+    /*//! vector containing regionIds of non-conforming interfaces
     StdVector<RegionIdType> ncIFaces_;
 
     //! map storing for each ncIface the nitsche NMGformulation factor
     std::map<RegionIdType,Double> nitscheFactors_;
 
     //! Type of non-matching formulation
-    std::map<RegionIdType,NcCouplingType> ncTypes_;
+    std::map<RegionIdType,NcCouplingType> ncTypes_;*/
 
   }; // class StdPDE
 

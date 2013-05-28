@@ -194,7 +194,7 @@
   </xsd:complexType>
   
   <!-- ******************************************************************* -->
-  <!--   Inomogeneous Boundary Conditions / RHS Excitation                 -->
+  <!--   Inhomogeneous Boundary Conditions / RHS Excitation                -->
   <!-- ******************************************************************* --> 
 
   <!-- Inhomogeneous scalar boundary condition / RHS value -->
@@ -319,17 +319,45 @@
     </xsd:restriction>
   </xsd:simpleType>
   
-
   <!-- ******************************************************************** -->
   <!--   Definition of non-matching grid formulations -->
   <!-- ******************************************************************** -->
   <xsd:simpleType name="DT_NMGFormulationBasic">
     <xsd:restriction base="xsd:token">
-       <xsd:enumeration value="None"/>
+       <xsd:enumeration value="none"/>
        <xsd:enumeration value="Nitsche"/>
        <xsd:enumeration value="Mortar"/>
     </xsd:restriction>
   </xsd:simpleType>
+  
+  <!--********************************************************************
+        Definition of Basic Datatype for non-conforming interfaces
+      ******************************************************************** -->
+  <xsd:complexType name="DT_NcInterfaceList">
+    <xsd:sequence>
+      <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:attribute name="name" type="xsd:token" use="required" />
+          <xsd:attribute name="nmgFormulation" type="DT_NMGFormulationBasic"
+                         use="optional" default="Nitsche" />
+          <xsd:attribute name="nitscheFactor" type="xsd:double"
+                         use="optional" default="50" />
+          <xsd:attribute name="lagrangeMultType"
+                         use="optional" default="standard">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="standard"/>
+                <xsd:enumeration value="dualDiscont"/>
+                <xsd:enumeration value="dualCubic"/>
+              </xsd:restriction>
+            </xsd:simpleType>      
+          </xsd:attribute>
+          <xsd:attribute name="crossPointHandling" type="DT_CFSBool"
+                         use="optional" default="no" />
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
   
   <!-- ******************************************************************** -->
   <!--   Definition of standard type for damping -->

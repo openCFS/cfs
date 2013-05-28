@@ -67,7 +67,7 @@ namespace CoupledField
     //@{ \name General Grid Information
 
     //! Return if grid uses quadratic elements
-    bool IsQuadratic() {return isQuadratic_; }
+    bool IsQuadratic() const { return isQuadratic_; }
 
     //! Return number of elements of a given type
     //! \param type Type of finite element (LINE, TRIA, ...)
@@ -80,7 +80,7 @@ namespace CoupledField
 
     //! Returns the geometrical dimension of the mesh. Currently only
     //! two- and three-dimensional meshes are supported.
-    UInt GetDim();  
+    UInt GetDim() const;  
 
     virtual void AddNodes(const UInt numNodes);
       

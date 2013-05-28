@@ -35,6 +35,8 @@ class AcousticMixedPDE : public SinglePDE{
 
     virtual ~AcousticMixedPDE(){};
 
+  protected:
+
     //! \copydoc SinglePDE::CreateFeSpaces
     virtual std::map<SolutionType, shared_ptr<FeSpace> >
     CreateFeSpaces( const std::string&  formulation,
@@ -43,7 +45,12 @@ class AcousticMixedPDE : public SinglePDE{
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
 
-    //! define all (bilinearform) integrators needed for this pde
+    //! Defines the integrators needed for ncInterfaces
+    virtual void DefineNcIntegrators() {
+      EXCEPTION("ncInterfaces are not implemented for AcousticMixedPDE");
+    };
+
+    //! define all (linearform) integrators needed for this pde
     void DefineRhsLoadIntegrators();
 
     //! define surface integrators needed for this pde
@@ -62,8 +69,6 @@ class AcousticMixedPDE : public SinglePDE{
 
     template<class DATA_TYPE, UInt DIM>
     void DefineRhsLoadIntegratorsTempl();
-
-  protected:
 
     //!  Define available postprocessing results
     void DefinePrimaryResults();

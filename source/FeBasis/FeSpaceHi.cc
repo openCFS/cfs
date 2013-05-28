@@ -2,6 +2,8 @@
 
 #include "FeHi.hh"
 
+#include <def_expl_templ_inst.hh>
+
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 #include "OLAS/algsys/AlgebraicSys.hh"
