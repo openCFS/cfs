@@ -7,6 +7,12 @@
 
 #include <set>
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/fstream.hpp>
+namespace fs = boost::filesystem;
+
 #include "Domain/Results/BaseResults.hh"
 #include "Domain/Results/ResultInfo.hh"
 #include "PDE/BasePDE.hh"
@@ -41,7 +47,7 @@ namespace CoupledField {
 
     //! Constructor
     SimOutput( const std::string& fileName, PtrParamNode outputNode,
-               PtrParamNode infoNode);
+               PtrParamNode infoNode, bool isRestart );
 
     //! Destructor
     virtual ~SimOutput();
@@ -109,10 +115,13 @@ namespace CoupledField {
     std::string fileName_;
 
     //! Name of output directory
-    std::string dirName_;
+    fs::path dirName_;
 
     //! Capabilities of output class
     std::set<Capability> capabilities_;
+    
+    //! Flag if result file is for a restarted simulation
+    bool isRestart_;
 
     //! Grid class
     Grid* ptGrid_;

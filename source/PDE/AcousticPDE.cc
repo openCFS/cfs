@@ -337,7 +337,7 @@ namespace CoupledField{
       BaseBDBInt * stiffInt = NULL;
       if( dim_ == 2 ) {
         if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(), 
+          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(),
                                         coeffPMLfactor, 1.0, updatedGeo_ );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
         }else{
@@ -347,11 +347,11 @@ namespace CoupledField{
       }
       else{
         if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(), 
+          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),
                                         coeffPMLfactor, 1.0, updatedGeo_ );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
         }else{
-          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), factor, 
+          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), factor,
                                        1.0, updatedGeo_ );
         }
       }
@@ -548,19 +548,21 @@ namespace CoupledField{
     coefBeta->SetScalar(beta,vars);
 
     ///now lets define some integrators
+    //the vectorial auxiliary variable is called U...
     BaseBDBInt *     dampdPdt = new BBInt<>(new IdentityOperator<FeH1,DIM>(), coefAlpha, 1.0, updatedGeo_ );
     BaseBDBInt *     dampP    = new BBInt<>(new IdentityOperator<FeH1,DIM>(), coefBeta, 1.0, updatedGeo_ );
+    //this is already integrated by parts...
     BaseBDBInt *     divU     = new ABInt<>(new GradientOperator<FeH1,DIM>(), new IdentityOperator<FeH1,DIM,DIM>(),factor,1.0,updatedGeo_);
     BaseBDBInt *     dUdt     = new BBInt<>(new IdentityOperator<FeH1,DIM,DIM>(), factor, 1.0, updatedGeo_ );
     BaseBDBInt *     AU       = new BDBInt<>(new IdentityOperator<FeH1,DIM,DIM>(), coefA,1.0, updatedGeo_ );
     BaseBDBInt *     BgradP   = new ADBInt<>(new IdentityOperator<FeH1,DIM,DIM>(),new GradientOperator<FeH1,DIM>(),coefB,1.0,updatedGeo_);
 
-    dampdPdt->SetName("dampdPdt");
-    dampP->SetName("dampP");
-    divU->SetName("divU");
-    dUdt->SetName("dUdt");
-    AU->SetName("AU");
-    BgradP->SetName("BgradP");
+    dampdPdt->SetName("acouPML_dampdPdt");
+    dampP->SetName("acouPML_dampP");
+    divU->SetName("acouPML_divU");
+    dUdt->SetName("acouPML_dUdt");
+    AU->SetName("acouPML_AU");
+    BgradP->SetName("acouPML_BgradP");
 
     BiLinFormContext * Context_dampdPdt   = new BiLinFormContext(dampdPdt, DAMPING );
     BiLinFormContext * Context_dampP      = new BiLinFormContext(dampP, STIFFNESS );
@@ -573,7 +575,6 @@ namespace CoupledField{
     Context_dampdPdt->SetFeFunctions(feFunctions_[formulation_],feFunctions_[formulation_]);
     Context_dampP->SetEntities( eList, eList );
     Context_dampP->SetFeFunctions(feFunctions_[formulation_],feFunctions_[formulation_]);
-
     Context_divU->SetEntities( eList, eList );
     Context_divU->SetFeFunctions(feFunctions_[formulation_],feFunctions_[ACOU_PMLAUXVEC]);
     Context_dUdt->SetEntities( eList, eList );
@@ -608,17 +609,16 @@ namespace CoupledField{
       coefC->SetTensor(matCReal,3,3,var);
       coefGamma->SetScalar(gamma,vars);
 
-
+      //the scalar auxiliary variable is called Nu...
       BaseBDBInt *     dampNu   = new BBInt<>(new IdentityOperator<FeH1,DIM>(), coefGamma, 1.0, updatedGeo_ );
-
       BaseBDBInt *     CgradNu  = new ADBInt<>(new IdentityOperator<FeH1,DIM,DIM>(),new GradientOperator<FeH1,DIM>(),coefC,-1.0,updatedGeo_);
       BaseBDBInt *     dNudt    = new BBInt<>(new IdentityOperator<FeH1,DIM>(), factor, 1.0, updatedGeo_ );
       BaseBDBInt *     P        = new BBInt<>(new IdentityOperator<FeH1,DIM>(), factor, -1.0, updatedGeo_ );
 
-      dampNu->SetName("dampNu");
-      CgradNu->SetName("CgradNu");
-      dNudt->SetName("dNudt");
-      P->SetName("P");
+      dampNu->SetName("acouPML_dampNu");
+      CgradNu->SetName("acouPML_CgradNu");
+      dNudt->SetName("acouPML_dNudt");
+      P->SetName("acouPML_P");
 
       BiLinFormContext * Context_dampNu     = new BiLinFormContext(dampNu, STIFFNESS );
       BiLinFormContext * Context_CgradNu    = new BiLinFormContext(CgradNu, STIFFNESS );
@@ -943,8 +943,7 @@ namespace CoupledField{
                           ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       coef[i]->SetConservative(true);
-      coef[i]->AddEntityList(ent[i]);
-      this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i]);
+      this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i], ent[i]);
     }
 
   }

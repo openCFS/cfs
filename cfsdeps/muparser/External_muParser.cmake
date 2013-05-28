@@ -1,4 +1,11 @@
 #-------------------------------------------------------------------------------
+# muParser - a fast math parser library
+#
+# Project Homepage
+# http://muparser.sourceforge.net/
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 # Set paths to muparser sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
 set(muparser_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/muparser")

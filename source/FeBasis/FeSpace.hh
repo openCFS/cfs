@@ -156,19 +156,6 @@ public:
   //! Flag for Grid determined mapping of element DOFs or polynomial based mapping 
   typedef enum {GRID,POLYNOMIAL} MappingType; 
 
-  
-  //! Struct containing all virtual nodes for on entity type (Vertex, Face
-  struct EntityTypeNodes {
-    //! Nodes for all numbers of entity (edgeNodes, faceNodes, innerNodes)
-    StdVector<UInt> vNodes;
-    //! Offset to vNodes array
-    StdVector<UInt> offset;
-  };
-  
-  //! Enum which stores the (Virtual) Nodes of an element according to
-    //! their definition on vertices,edges,faces and interior
-  typedef std::map< BaseFE::EntityType , EntityTypeNodes> ElemVirtualNodes;
-
   typedef enum {INTEG_MODE_ABSOLUTE,INTEG_MODE_RELATIVE} IntegOrderMode;
   static Enum<IntegOrderMode> IntegOrderModeEnum;
 
@@ -464,7 +451,7 @@ public:
   //! This method can be used to map a general coefficient function
   //! to the current finite element space. It returns a map, containing the 
   //! equations numbers and the corresponding coefficients.
-  //! \param entityList Entitylist on which the function is defined
+  //! \param support Entitylists on which the function is defined
   //! \param coefFct Coefficient function to be mapped 
   //! \param vals Map containing the equations numbers (key) and the
   //!             coefficient values (value)
@@ -473,17 +460,28 @@ public:
   //! \param comp Set containing the components, which should get mapped.
   //!             If empty, all components of the (vector-valued) function
   //!             get mapped
-  virtual void MapCoefFctToSpace(shared_ptr<EntityList> entityList, 
+  virtual void MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support, 
                                  shared_ptr<CoefFunction> coefFct,
                                  std::map<Integer, Double>& vals,
                                  bool cache,
                                  const std::set<UInt>& comp = std::set<UInt>() )=0;
 
-  virtual void MapCoefFctToSpace(shared_ptr<EntityList> entityList, 
+  virtual void MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support, 
                                  shared_ptr<CoefFunction> coefFct,
                                  std::map<Integer, Complex>& vals,
                                  bool cache,
                                  const std::set<UInt>& comp = std::set<UInt>() )=0;
+  
+  //! Check if entity approximation is the same in other space
+  
+  //! This method checks, if the approximation  of an entity list
+  //! (e.g. elements of a region) have the same approximation in this space
+  //! compared to another one.
+  //! In this case the coefficients in the related FeFunction correspond
+  //! and can be copied.
+  virtual bool IsSameEntityApproximation( shared_ptr<EntityList> list,
+                                          shared_ptr<FeSpace> space ) = 0;
+
 protected:
   
   bool lagrangeSurfSpace_;  
@@ -585,9 +583,7 @@ protected:
                                     const IntegOrder& order,
                                     IntegOrderMode mode,
                                     PtrParamNode infoNode );
-
-
-
+  
   // ====================================================================
   // INTERNAL INITIALIZATION
   // ====================================================================
@@ -640,12 +636,22 @@ protected:
   typedef boost::unordered_map<UInt, BaseFE::EntityType> NodeTypeMap;
   NodeTypeMap nodesType_;
 
-  //! This is the virtual node Map for standard element it just contains
-  //! the connectivity of the element, for higher order elements it contains also 
-  //! the virtual node numbers in the correct ordering
-  //! This Variable could be extended to store also the coordinates of all nodes
-  //! created
-  boost::unordered_map< UInt, ElemVirtualNodes > virtualNodes_;
+  
+  //! Auxilliary map for assigning an enumerable entity a list of nodes
+  
+  //! This map type can be used to assign an enumerable geometric 
+  //! entity (e.g. node/edge/face/element number, used as key in the map)
+  //! a list of virtual nodes (value of map).
+  typedef boost::unordered_map<UInt, StdVector<UInt> > EntityNodesType;
+  
+  //! Global map for continuous virtual node numbers
+  
+  //! This map contains all continuously numbered virtual nodes. For each
+  //! type of entity (key, e.g. VERTEX, EDGE, FACE, INTERIOR) it
+  //! contains a map (see EntityNodesType) which globally holds for each
+  //! unique entity number (e.g. node/edge/face/interior number) a 
+  //! list of virtual Nodes
+  boost::unordered_map<BaseFE::EntityType, EntityNodesType> vNodesCont_;
   
   // ====================================================================
   // Equation Map
@@ -685,9 +691,8 @@ protected:
   // MISCELLANEOUS
   // =========================================================
   
-  
-  
-  
+  //! Get set of all elements of this space
+  virtual void GetAllElems(std::set<const Elem*>& allElems );
 };
 
 

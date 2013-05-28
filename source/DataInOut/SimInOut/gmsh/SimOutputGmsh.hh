@@ -21,7 +21,7 @@ namespace CoupledField {
   {
   public:
     SimOutputGmsh(std::string fileName, PtrParamNode inputNode,
-                  PtrParamNode infoNode);
+                  PtrParamNode infoNode, bool isRestart );
     virtual ~SimOutputGmsh();
 
     //! Initialize class
@@ -78,9 +78,6 @@ namespace CoupledField {
     //!  Offset for step number in case of multisequence analysis
     Integer stepNumOffset_;
         
-    //! Offset for step value in case of multisequence analysis
-    Double stepValOffset_;
-
     // Converters for endianess
     EndianSwapper<UInt> uiSwap_;
     EndianSwapper<Integer> iSwap_;

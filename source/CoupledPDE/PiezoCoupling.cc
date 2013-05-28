@@ -302,7 +302,7 @@ namespace CoupledField {
     if ( isComplex ) {
       if( subType_ == "axi" ) {
         integ = new ADBInt<Complex>(new StrainOperatorAxi<FeH1,Complex>(),
-                                    new GradientOperator<FeH1,2,Complex>(), 
+                                    new GradientOperator<FeH1,2,Complex>(),
                                     curCoef, 1.0, true );
       } else if( subType_ == "planeStrain" ) {
         integ = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),

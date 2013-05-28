@@ -17,7 +17,8 @@ namespace CoupledField {
     //! \param sequenceStep current step in multisequence simulation
     //! \param isPartOfSequence true, if driver is part of  multiSequence
     SingleDriver( UInt sequenceStep, bool isPartOfSequence,
-                  shared_ptr<SimState> state, Domain* domain );
+                  shared_ptr<SimState> state, Domain* domain,
+                  PtrParamNode paramNode, PtrParamNode infoNode );
     
     //! Default destructor
     virtual ~SingleDriver();
@@ -28,23 +29,29 @@ namespace CoupledField {
     /** implement abstract identification class */ 
     DriverClass GetDriverClass() { return SINGLE_DRIVER; };
 
+    //! Set step value from outside
+    
+    //! This methods allows to set the time / frequency step from outside.
+    //! It is only allowed, if the SimSate object provides additional input.
+    virtual void SetToStepValue(UInt stepNum, Double stepVal ) {
+      EXCEPTION( "Not implemented" );
+    }
+    
+    
   protected:
   
-    //! Trigger reading of restart
-    virtual void ReadRestart( ) {};
-    
     //! Initialize PDEs
     void InitializePDEs();
 
     //! pointer to basePDE 
     BasePDE * ptPDE_;
 
+    //! Flag if internal state of PDE (=FeFunctions) get written each step
+    bool writeAllSteps_;
+    
     //! true, if driver is part of a multiSequence, false if first run or single run 
     bool isPartOfSequence_;
 
-    //! current sequences step in multiSequence simulation
-    UInt sequenceStep_;
-    
   };
 
 }

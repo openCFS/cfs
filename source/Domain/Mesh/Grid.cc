@@ -119,14 +119,14 @@ namespace CoupledField
       regionData[id].type_idx = surfRegionIds_.GetSize();
       surfRegionIds_.Push_back(id);
       surfElems_.Push_back(dummy_elems);
-      surfElemNodes_.Push_back(dummy_nodes);
+      numSurfElemNodes_.Push_back(0);
     }
     else
     {
       regionData[id].type_idx = volRegionIds_.GetSize();
       volRegionIds_.Push_back(id);
       volElems_.Push_back(dummy_elems);
-      volElemNodes_.Push_back(dummy_nodes);
+      numVolElemNodes_.Push_back(0);
     }
 
     return id;

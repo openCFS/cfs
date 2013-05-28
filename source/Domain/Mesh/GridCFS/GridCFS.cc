@@ -684,9 +684,7 @@ namespace CoupledField {
   {
     
     LOG_TRACE(gridcfs) << "Finalizing GridCFS (FinishInit)";
-    volElemNodes_.Clear();
     volRegionIds_.Clear();
-    surfElemNodes_.Clear();
     surfRegionIds_.Clear();
     volElems_.Clear();
     surfElems_.Clear();
@@ -695,20 +693,19 @@ namespace CoupledField {
     UInt e;
     UInt numElems = orderedElems_.GetSize();
     UInt numNodes = 0;
-    UInt numVolRegions, numSurfRegions;
 
     // the pattern regions are defined by density files in domain/regionList/region with pattern set
     StdVector<bool> pattern;
     RegionIdType pattern_reg = CheckPatternRegion(pattern); // assumed to be volume region only!
 
     std::map<RegionIdType, StdVector<Elem*> > volRegionElems, surfRegionElems;
-    std::map<RegionIdType, std::set<UInt> > volRegionNodes, surfRegionNodes;
+    std::map<RegionIdType, StdVector<UInt> > volRegionNodes, surfRegionNodes;
     std::map<RegionIdType, UInt > regionDims;
 
     LOG_DBG(gridcfs) << "Determine list of surface elements";
     
     // set of elements, which get surface-mapped
-    std::set<Elem*> surfElems;
+    StdVector<Elem*> surfElems;
     
     // loop over all elements
     for(e=0; e<numElems; e++)
@@ -750,13 +747,13 @@ namespace CoupledField {
       }
 
 
-      // get dimbnsion of element
+      // get dimension of element
       UInt elemDim = Elem::shapes[type].dim;
       bool isSurfElem = (dim_ - elemDim) == 1 ? true : false; 
 
       // decide, what to do with the element
       if( isSurfElem ) {
-        surfElems.insert( el );
+        surfElems.Push_back( el );
         LOG_DBG3(gridcfs) << "\tadding elem #" << el->elemNum 
                           << " to list of surface elements.";
       } else  {
@@ -764,88 +761,88 @@ namespace CoupledField {
           volRegionElems[el->regionId].Push_back(el);
           LOG_DBG3(gridcfs) << "\tadding elem #" << el->elemNum 
                                     << " to list of volume elements.";
-          volRegionNodes[el->regionId].insert( el->connect.Begin(),
-                                               el->connect.End() );
+          const StdVector<UInt> & connect = el->connect;
+          UInt numNodes = connect.GetSize();
+          for( UInt iNode = 0; iNode < numNodes; ++iNode ) {
+              volRegionNodes[el->regionId].Push_back(connect[iNode]);
+          }
         }
       } // if surfElem
     } // loop ordered elems
 
 
     std::map<RegionIdType, StdVector<Elem*> >::iterator regionElemIt, regionElemEnd;
-    std::map<RegionIdType, std::set<UInt> >::iterator regionNodeIt;
+    std::map<RegionIdType, StdVector<UInt> >::iterator regionNodeIt;
     std::set<UInt>::iterator setIt, setEnd;
     UInt region = 0;
 
-    numVolRegions = volRegionElems.size();
-    volElemNodes_.Resize(numVolRegions);
 
     regionElemIt = volRegionElems.begin();
     regionElemEnd = volRegionElems.end();
     regionNodeIt = volRegionNodes.begin();
 
-    for( ; regionElemIt != regionElemEnd; regionElemIt++, regionNodeIt++, region++)
-    {
+    for( ; regionElemIt != regionElemEnd; 
+        regionElemIt++, regionNodeIt++, region++) {
+      StdVector<UInt> elemNodes;
       regionElemIt->second.Trim();
       volElems_.Push_back(regionElemIt->second);
       regionData[regionElemIt->first].type = VOLUME_REGION;
       regionData[regionElemIt->first].type_idx = volRegionIds_.GetSize();
       volRegionIds_.Push_back(regionElemIt->first);
-
-      setIt = regionNodeIt->second.begin();
-      setEnd = regionNodeIt->second.end();
-
-      for( ; setIt != setEnd; setIt++)
-      {
-        volElemNodes_[region].insert(*setIt);
-      }
-
+      
+      // make number of region nodesu nique
+      StdVector<UInt> & regionNodes = regionNodeIt->second;
+      std::sort( regionNodes.Begin(), regionNodes.End() );
+      StdVector<UInt>::iterator uIt;
+      uIt = std::unique( regionNodes.Begin(), regionNodes.End() );
+      UInt numRegionNodes = std::distance(regionNodes.Begin(), uIt);
+      numVolElemNodes_.Push_back(numRegionNodes); 
     }
-
+    volRegionNodes.clear();
+  
     // Call creation of surface elements
-    std::map<UInt, SurfElem* > mappedSurfElems;
+    StdVector<SurfElem*> mappedSurfElems;
     CreateSurfaceElements( surfElems, mappedSurfElems );
 
     // Iterate over all surface elements and put their nodes and elements
     // according to their region id
-    std::map<UInt, SurfElem*>::iterator surfElemIt;
-    for( surfElemIt = mappedSurfElems.begin();
-         surfElemIt != mappedSurfElems.end();
-         surfElemIt++ ) {
-      SurfElem * surfEl = surfElemIt->second;
-      UInt elemNum = surfElemIt->first;
+    UInt numSurfElems = mappedSurfElems.GetSize();
+    for( UInt iSurfEl = 0; iSurfEl < numSurfElems; ++iSurfEl ) {
+      SurfElem * surfEl = mappedSurfElems[iSurfEl];
+      UInt elemNum = surfEl->elemNum;
       orderedElems_[elemNum-1] = surfEl;
       LOG_DBG3(gridcfs) << "Adding element #" << elemNum
-                         << " to list of surface elements";
+          << " to list of surface elements";
       if( surfEl->regionId != NO_REGION_ID ) {
         surfRegionElems[surfEl->regionId].Push_back( surfEl );
-        surfRegionNodes[surfEl->regionId].insert( surfEl->connect.Begin(),
-                                                  surfEl->connect.End() );
+        const StdVector<UInt> & connect = surfEl->connect;
+        UInt numNodes = connect.GetSize();
+        for( UInt iNode = 0; iNode < numNodes; ++iNode ) {
+          surfRegionNodes[surfEl->regionId].Push_back(connect[iNode]);
+        }
       }
     }
-    numSurfRegions = surfRegionElems.size();
-    surfElemNodes_.Resize(numSurfRegions );
 
     regionElemIt = surfRegionElems.begin();
     regionElemEnd = surfRegionElems.end();
     regionNodeIt = surfRegionNodes.begin();
-    region = 0;
 
     for( ; regionElemIt != regionElemEnd; regionElemIt++, regionNodeIt++, region++)
     {
+      RegionIdType region = regionElemIt->first;
       regionElemIt->second.Trim();
       surfElems_.Push_back(regionElemIt->second);
-      regionData[regionElemIt->first].type = SURFACE_REGION;
-      regionData[regionElemIt->first].type_idx = surfRegionIds_.GetSize();
-      surfRegionIds_.Push_back(regionElemIt->first);
-
-      setIt = regionNodeIt->second.begin();
-      setEnd = regionNodeIt->second.end();
-
-      for( ; setIt != setEnd; setIt++)
-      {
-        surfElemNodes_[region].insert(*setIt);
-      }
-
+      regionData[region].type = SURFACE_REGION;
+      regionData[region].type_idx = surfRegionIds_.GetSize();
+      surfRegionIds_.Push_back(region);
+      
+      // make number of region nodes unique
+      StdVector<UInt> & regionNodes = regionNodeIt->second;
+      std::sort( regionNodes.Begin(), regionNodes.End() );
+      StdVector<UInt>::iterator uIt;
+      uIt = std::unique( regionNodes.Begin(), regionNodes.End() );
+      UInt numRegionNodes = std::distance(regionNodes.Begin(), uIt);
+      numSurfElemNodes_.Push_back( numRegionNodes );
     }
 
     // in case of internalMesh the region is already marked as regular
@@ -1628,12 +1625,12 @@ namespace CoupledField {
     // look in volume regions
     index = volRegionIds_.Find(reg_id);
     if(index != -1)
-      return volElemNodes_[index].size();
+      return numVolElemNodes_[index];
 
     // look in surface regions
     index = surfRegionIds_.Find(reg_id);
     if(index != -1)
-      return surfElemNodes_[index].size();
+      return numSurfElemNodes_[index];
 
     EXCEPTION("The region with id '" << reg_id << "' is unknown");
     return 0;
@@ -1834,25 +1831,42 @@ namespace CoupledField {
     // look in volume regions
     index = volRegionIds_.Find(regionId);
     if ( index != -1 ) {
-      nodeList.Resize(volElemNodes_[index].size());
-      std::copy(volElemNodes_[index].begin(),
-                volElemNodes_[index].end(),
-                nodeList.Begin());
+      nodeList.Reserve(numVolElemNodes_[index]*4);
+      UInt numElems = volElems_[index].GetSize();
+      for( UInt iElem = 0; iElem <  numElems; ++iElem ) {
+        const Elem * el = volElems_[index][iElem];
+        const StdVector<UInt> & connect = el->connect;
+        UInt numNodes = connect.GetSize();
+        for( UInt iNode = 0; iNode < numNodes; ++iNode ) {
+          nodeList.Push_back(connect[iNode]);
+        }
+      }
+      
     } else {
-
       // look in surface regions
       index = surfRegionIds_.Find(regionId);
       if ( index != -1 ) {
-        nodeList.Resize(surfElemNodes_[index].size());
-        std::copy(surfElemNodes_[index].begin(),
-                  surfElemNodes_[index].end(),
-                  nodeList.Begin());
+        nodeList.Reserve(numSurfElemNodes_[index]*4);
+        UInt numElems = surfElems_[index].GetSize();
+        for( UInt iElem = 0; iElem <  numElems; ++iElem ) {
+          const Elem * el = surfElems_[index][iElem];
+          const StdVector<UInt> & connect = el->connect;
+          UInt numNodes = connect.GetSize();
+          for( UInt iNode = 0; iNode < numNodes; ++iNode ) {
+            nodeList.Push_back(connect[iNode]);
+          }
+        }
       } else {
         EXCEPTION( "GridCFS: The region with id '" << regionId
                    << "' was not found in the grid!" ); 
       }
     }
-
+    // sort vector, remove duplicates and return it 
+    std::sort(nodeList.Begin(), nodeList.End());
+    StdVector<UInt>::iterator it;
+    it = std::unique(nodeList.Begin(), nodeList.End());
+    
+    nodeList.Resize( std::distance( nodeList.Begin(), it ));
   }
 
 
@@ -2337,9 +2351,7 @@ namespace CoupledField {
       for (UInt k = 0, cs = connect.GetSize() ; k < cs; k++) {
         for (UInt actDim=0; actDim < dim_; actDim++) {
           coordMat[actDim][k] = coords_[connect[k]-1][actDim];
-          //std::cerr << "\n coordMat before:\n" << coordMat << "\n\n";
           coordMat[actDim][k] += deltCoords_[connect[k]-1][actDim];
-          //std::cerr << "\n coordMat after:\n" << coordMat << "\n\n";
         }
       }
     } else {
@@ -2468,7 +2480,7 @@ namespace CoupledField {
       for( UInt iDim = 0; iDim < dim_; iDim++ ) {
         actOffset[iDim] = offsets[iNode*dim_ + iDim];
       }
-      deltCoords_[nodes[iNode]-1] = actOffset;
+      deltCoords_[nodes[iNode]-1]= actOffset;
     }
   }
 
@@ -2487,8 +2499,8 @@ namespace CoupledField {
   // Helper Methods
   // =======================================================================
 
-  void GridCFS::CreateSurfaceElements( std::set<Elem*>& elems,
-                                       std::map<UInt, SurfElem*>& surfElems ) {
+  void GridCFS::CreateSurfaceElements( StdVector<Elem*>& elems,
+                                       StdVector<SurfElem*>& surfElems ) {
 
     LOG_TRACE(gridcfs) << "Starting to map surface elements";
 
@@ -2521,21 +2533,19 @@ namespace CoupledField {
     // surface elements
     SurfElem *myElem;
     Elem* oldElem;
-
-    std::set<Elem*>::iterator elIt;
-
-    LOG_DBG(gridcfs) << "There are " << elems.size() 
+    LOG_DBG(gridcfs) << "There are " << elems.GetSize() 
                      << " surface elements to be mapped";
-    for( elIt = elems.begin(); elIt != elems.end(); elIt++ ) {
-
-      oldElem = *elIt;
+    UInt numElems = elems.GetSize();
+    surfElems.Resize(numElems);
+    for( UInt iEl = 0; iEl < numElems; ++iEl ) {
+      oldElem = elems[iEl];
      // create new surface element
       myElem = new SurfElem();
       myElem->elemNum = oldElem->elemNum;
       myElem->type = oldElem->type;
       myElem->regionId = oldElem->regionId;
       myElem->connect = oldElem->connect;
-      surfElems[myElem->elemNum] = myElem;
+      surfElems[iEl] = myElem;
 
       // delete old volume element
       delete oldElem;
@@ -2549,14 +2559,11 @@ namespace CoupledField {
     UInt elemsFound = 0;
     UInt elemsAssigned = 0;
 
-    std::map<UInt,SurfElem*>::iterator surfElIt;
-    for( surfElIt = surfElems.begin();
-         surfElIt != surfElems.end();
-         surfElIt++ ) {
-
+    
+    for( UInt iEl = 0; iEl < numElems; ++iEl ) {
       elemsAssigned = 0;
 
-      myElem = surfElIt->second;
+      myElem = surfElems[iEl];
 
       // get number of nodes of surface element
       nrNodes = myElem->connect.GetSize();
@@ -2911,7 +2918,6 @@ namespace CoupledField {
                                  StdVector< UInt > & elemids)
   {
     UInt i, n;
-    UInt *ptConn;
     UInt numNodes;
 
     if(!isInitialized_)
@@ -2925,6 +2931,8 @@ namespace CoupledField {
     n=surfelems.GetSize();
     elemids.Resize(n);
 
+    StdVector<UInt> surfRegionNodes;
+    GetNodesByRegion( surfRegionNodes, regionid);
     for(i=0; i<n; i++)
     {
       // TODO: a check should be added to avoid insertions
@@ -2937,12 +2945,20 @@ namespace CoupledField {
       surfElems_[regionIdx].Push_back(surfelems[i]);
       elemids[i] = numElems_;
 
-      ptConn = &surfelems[i]->connect[0];
       numNodes = surfelems[i]->connect.GetSize();
-      surfElemNodes_[regionIdx].insert(ptConn,
-                                       ptConn+numNodes);
 
+      // Loop over all nodes an check, if they are already contained in
+      // the list of nodes
+      const StdVector<UInt> & connect = surfelems[i]->connect;
+      for( UInt iNode = 0; iNode < numNodes; ++iNode ) {
+        if( surfRegionNodes.Find(connect[iNode]) == -1 ) {
+          surfRegionNodes.Push_back(connect[iNode]);
+        }
+      }
     }
+    
+    // in the end store back the number of surface element nodes
+    numSurfElemNodes_[regionIdx] = surfRegionNodes.GetSize();
   }
 
   void GridCFS::AddVolumeElems( const RegionIdType regionid,
@@ -2950,7 +2966,6 @@ namespace CoupledField {
                                 StdVector< UInt > & elemids)
   {
     UInt i, n;
-    UInt *ptConn;
     UInt numNodes;
 
     if(!isInitialized_)
@@ -2965,6 +2980,9 @@ namespace CoupledField {
     n=volelems.GetSize();
     elemids.Resize(n);
 
+    StdVector<UInt> volRegionNodes;
+    GetNodesByRegion( volRegionNodes, regionid);
+
     for(i=0; i<n; i++)
     {
       // a check should be added to avoid insertions
@@ -2977,11 +2995,19 @@ namespace CoupledField {
       volElems_[regionIdx].Push_back(volelems[i]);
       elemids[i] = numElems_;
 
-      ptConn = &volelems[i]->connect[0];
       numNodes = volelems[i]->connect.GetSize();
-      volElemNodes_[regionIdx].insert(ptConn,
-                                      ptConn+numNodes);
+
+      // Loop over all nodes an check, if they are already contained in
+      // the list of nodes
+      const StdVector<UInt> & connect = volelems[i]->connect;
+      for( UInt iNode = 0; iNode < numNodes; ++iNode ) {
+        if( volRegionNodes.Find(connect[iNode]) == -1 ) {
+          volRegionNodes.Push_back(connect[iNode]);
+        }
+      }
     }
+    // in the end store back the number of surface element nodes
+    numVolElemNodes_[regionIdx] = volRegionNodes.GetSize();
   }
 
 
@@ -3004,7 +3030,7 @@ namespace CoupledField {
       }
 
       volElems_[index].Clear();
-      volElemNodes_[index].clear();
+      numVolElemNodes_[index] = 0;
     } else {
       // look in surface regions
       index = surfRegionIds_.Find(regionid);
@@ -3018,7 +3044,7 @@ namespace CoupledField {
         }
 
         surfElems_[index].Clear();
-        surfElemNodes_[index].clear();
+        numSurfElemNodes_[index] = 0;
       } else {
         EXCEPTION("GridCFS: The region with id '" << regionid
                   << "' was not found in the grid!");

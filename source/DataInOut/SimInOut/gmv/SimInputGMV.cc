@@ -486,7 +486,7 @@ namespace CoupledField {
         
         if(numNodes == 0)
         {
-          mi_->SetElemData(elem+1, Elem::ET_UNDEF, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_UNDEF, NO_REGION_ID, cellNodesPtr);
           continue;
         }
         //        cellNodesPtr = (long*)(gmv_meshdata.cellnodes + numNodesOffset);
@@ -495,30 +495,30 @@ namespace CoupledField {
         {
 
         case LINE:
-          mi_->SetElemData(elem+1, Elem::ET_LINE2, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_LINE2, NO_REGION_ID, cellNodesPtr);
           break;
 
         case LINE3:
           element_vertex_ids[0] = cellNodesPtr[0];
           element_vertex_ids[1] = cellNodesPtr[2];
           element_vertex_ids[2] = cellNodesPtr[1];
-          mi_->SetElemData(elem+1, Elem::ET_LINE3, 0, &element_vertex_ids[0]);
+          mi_->SetElemData(elem+1, Elem::ET_LINE3, NO_REGION_ID, &element_vertex_ids[0]);
           break;
 
         case TRI:
-          mi_->SetElemData(elem+1, Elem::ET_TRIA3, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_TRIA3, NO_REGION_ID, cellNodesPtr);
           break;
 
         case TRI6:
-          mi_->SetElemData(elem+1, Elem::ET_TRIA6, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_TRIA6, NO_REGION_ID, cellNodesPtr);
           break;
 
         case QUAD:
-          mi_->SetElemData(elem+1, Elem::ET_QUAD4, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_QUAD4, NO_REGION_ID, cellNodesPtr);
           break;
 
         case QUAD8:               
-          mi_->SetElemData(elem+1, Elem::ET_QUAD8, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_QUAD8, NO_REGION_ID, cellNodesPtr);
           break;
 
         case TET:
@@ -526,15 +526,15 @@ namespace CoupledField {
           element_vertex_ids[1] = cellNodesPtr[2];
           element_vertex_ids[2] = cellNodesPtr[3];
           element_vertex_ids[3] = cellNodesPtr[0];
-          mi_->SetElemData(elem+1, Elem::ET_TET4, 0, &element_vertex_ids[0]);
+          mi_->SetElemData(elem+1, Elem::ET_TET4, NO_REGION_ID, &element_vertex_ids[0]);
           break;
 
         case PTET4:
-          mi_->SetElemData(elem+1, Elem::ET_TET4, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_TET4, NO_REGION_ID, cellNodesPtr);
           break;
 
         case PTET10:
-          mi_->SetElemData(elem+1, Elem::ET_TET10, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_TET10, NO_REGION_ID, cellNodesPtr);
           break;
 
         case PYRAMID:
@@ -543,15 +543,15 @@ namespace CoupledField {
           element_vertex_ids[2] = cellNodesPtr[3];
           element_vertex_ids[3] = cellNodesPtr[4];
           element_vertex_ids[4] = cellNodesPtr[0];
-          mi_->SetElemData(elem+1, Elem::ET_PYRA5, 0, &element_vertex_ids[0]);
+          mi_->SetElemData(elem+1, Elem::ET_PYRA5, NO_REGION_ID, &element_vertex_ids[0]);
           break;
 
         case PPYRMD5:                    
-          mi_->SetElemData(elem+1, Elem::ET_PYRA5, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_PYRA5, NO_REGION_ID, cellNodesPtr);
           break;
 
         case PPYRMD13:               
-          mi_->SetElemData(elem+1, Elem::ET_PYRA13, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_PYRA13, NO_REGION_ID, cellNodesPtr);
           break;
 
         case PRISM:
@@ -561,15 +561,15 @@ namespace CoupledField {
           element_vertex_ids[3] = cellNodesPtr[0];
           element_vertex_ids[4] = cellNodesPtr[1];
           element_vertex_ids[5] = cellNodesPtr[2];
-          mi_->SetElemData(elem+1, Elem::ET_WEDGE6, 0, &element_vertex_ids[0]);
+          mi_->SetElemData(elem+1, Elem::ET_WEDGE6, NO_REGION_ID, &element_vertex_ids[0]);
           break;
 
         case PPRISM6:
-          mi_->SetElemData(elem+1, Elem::ET_WEDGE6, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_WEDGE6, NO_REGION_ID, cellNodesPtr);
           break;
 
         case PPRISM15:
-          mi_->SetElemData(elem+1, Elem::ET_WEDGE15, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_WEDGE15, NO_REGION_ID, cellNodesPtr);
           break;
 
         case HEX:
@@ -581,19 +581,19 @@ namespace CoupledField {
           element_vertex_ids[5] = cellNodesPtr[1];
           element_vertex_ids[6] = cellNodesPtr[2];
           element_vertex_ids[7] = cellNodesPtr[3];
-          mi_->SetElemData(elem+1, Elem::ET_HEXA8, 0, &element_vertex_ids[0]);
+          mi_->SetElemData(elem+1, Elem::ET_HEXA8, NO_REGION_ID, &element_vertex_ids[0]);
           break;
 
         case PHEX8:               
-          mi_->SetElemData(elem+1, Elem::ET_HEXA8, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_HEXA8, NO_REGION_ID, cellNodesPtr);
           break;
 
         case PHEX20:               
-          mi_->SetElemData(elem+1, Elem::ET_HEXA20, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_HEXA20, NO_REGION_ID, cellNodesPtr);
           break;
 
         case PHEX27:  
-          mi_->SetElemData(elem+1, Elem::ET_HEXA27, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_HEXA27, NO_REGION_ID, cellNodesPtr);
           break;
         }
 
@@ -641,7 +641,7 @@ namespace CoupledField {
             element_vertex_ids[6] = offset_y1z1 + ix+1 +1;
             element_vertex_ids[7] = offset_y1z1 + ix +1;
 
-            mi_->SetElemData(elem+1, Elem::ET_HEXA8, 0, &element_vertex_ids[0]);
+            mi_->SetElemData(elem+1, Elem::ET_HEXA8, NO_REGION_ID, &element_vertex_ids[0]);
                     
             elem++;
           }

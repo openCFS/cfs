@@ -34,21 +34,16 @@ namespace CoupledField {
     BasePDE(paramNode, infoNode, simState, domain),
     ptGrid_(aptgrid),
     subType_(),
-    numCouplingBcs_(0),
     nonLin_(false),
     nonLinMaterial_(false),
     isHysteresis_(false),
     isIterCoupled_(false),
-    updateCouplingBCs_(false),
     diagMass_(false),
     needsAlgsys_(true),
     isAlwaysStatic_(false),
     dim_(ptGrid_->GetDim()), 
     isaxi_(ptGrid_->IsAxi()),
     isComplex_(false),    
-    needSolPrev_(false),
-    isIncrFormulation_(false),
-    updatedLagrangeForm_(false),
     assemble_(NULL),
     solveStep_(NULL),
     algsys_(NULL)
@@ -247,11 +242,12 @@ namespace CoupledField {
     fncIt= feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
       fncIt->second->SetSystem(algsys_);
-
       // Print equation information
       //fncIt->second->GetFeSpace()->PrintEqnMap();
       fncIt++;
     }
+
+
     //exit(0);
     // Trigger writing of info file
     myInfo_->GetRoot()->ToFile("", true );
@@ -295,25 +291,37 @@ namespace CoupledField {
   //============================================================================================
 
   shared_ptr<BaseFeFunction> StdPDE::GetFeFunction( SolutionType solType ) {
+
+    shared_ptr<BaseFeFunction> feFct;    
     
-    //TODO> We need to find a more failsafe way to store the entity names associated with a 
-    //FeFunction
-    shared_ptr<BaseFeFunction> feFct;
-    SolutionType mySolType;
-    if( feFunctions_.find(solType) == feFunctions_.end()){
+    if( feFunctions_.find(solType) != feFunctions_.end() ){
+      feFct = feFunctions_[solType];
+    }
+    
+    if( timeDerivFeFunctions_.find(solType) != timeDerivFeFunctions_.end() ){
+      feFct = timeDerivFeFunctions_[solType];
+    }
+    
+    if( !feFct )  {
       EXCEPTION( "A FeFunction descriptor with solutionType '" << SolutionTypeEnum.ToString(solType)
                  << "' was not found for " << pdename_ );
-    }else{
-      mySolType = solType;
-    }
-    if(feFunctions_.find(mySolType) != feFunctions_.end()){
-      feFct = feFunctions_[mySolType];
-    }else{
-      EXCEPTION("StdPDE::GetFeFunction: Could not find the corresponding FeFunction for the given entity name\n \
-                         Did you specify all Regions, Surfregions and NamedNodes in the xml?");
     }
     return feFct;
 
+  }
+
+
+  // **********
+  // SetRhsLoads
+  // **********
+  void StdPDE::SetRhsValues() {
+
+    //do the same for RHS
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator rFncIt= this->rhsFeFunctions_.begin();
+    while(rFncIt != this->rhsFeFunctions_.end()){
+      rFncIt->second->ApplyLoads();
+      rFncIt++;
+    }
   }
 
 } // end of namespace

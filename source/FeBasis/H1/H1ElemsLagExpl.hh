@@ -54,6 +54,9 @@ public:
     return order_;
   }
   
+  //! Compare two element for equality (= same shape and approximation);
+  bool operator==( const FeH1LagrangeExpl& comp) const;
+  
   //! =======================================================================
   //! G E O M E T R I C   I N F O R M A T I O N
   //! =======================================================================

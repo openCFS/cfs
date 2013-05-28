@@ -80,15 +80,11 @@ namespace CoupledField {
   //! Global pointer to domain object
   extern Domain *domain;
 
-
   //! Damping type
   enum DampingType{NONE=0, RAYLEIGH=1, ABCDAMP=2, THERMOVISCOUS=3,
     FRACTIONAL=4, FRACTIONAL_GL=5, FRACTIONAL_BLANK=6,
     FRACTIONAL_GL_INT=7, FRACTIONAL_BLANK_INT=8,
     PML, DAMPLAYER};
-
-  //! Interpolation type used in fractional damping model
-  enum InterpolType{NOTUSED=0, trueVAL=1, LIN1PT=2};
 
   //! Type of nonlinearity for certain pdes
   typedef enum { NO_NONLINEARITY, WESTERVELT, KUZNETSOV, VARIABLE_SOS_CN1,
@@ -179,6 +175,7 @@ namespace CoupledField {
       FLUIDMECH_DENSITY, FLUIDMECH_FORCE, FLUIDMECH_TKE, 
       FLUIDMECH_STRESS, FLUIDMECH_STRAINRATE, FLUIDMECH_ENERGY, FLUIDMECH_STABILPARAM,
       FLUIDMECH_WEIGHT_VECTOR, FLUIDMECH_WEIGHT_DENSITY,
+      FLUIDMECH_WEIGHT_VECTOR_PHI, FLUIDMECH_WEIGHT_DENSITY_PHI,
 
       // ======
       //  MISC
@@ -243,40 +240,10 @@ namespace CoupledField {
   //! material parameter to be approximated / interpolated
   typedef enum{ GENERIC, MAGNETIC_MAT_BH, HEAT_MAT_CONDUCTIVITY, HEAT_MAT_CAPACITY }  ApproxMaterialCurves;
 
-  //! Enumberation for coupling method\n
-  //! NO_COUPLING          = No coupling at all
-  //! DIRECT_COUPLING      = Direct Coupling via matrix \n
-  //! ITER_RHS_COUPLING    = Iterative via RHS \n
-  //! ITER_MATRIX_COUPLING = Iterative via matrix
-  typedef enum{NO_COUPLING, DIRECT_COUPLING, ITER_RHS_COUPLING,
-                 ITER_MATRIX_COUPLING} CouplingMethod;
-
-  //! Enumeration for Input Coupling types \n
-  //! COORD_DISPL = Coupling via coordinate displacement \n
-  //! RHS   = Coupling via Right hand side \n
-  //! ID_BC = Coupling via inhomogenous dirichlet bc \n
-  //! MAT   = Coupling via material change \n
-  typedef enum {COORD_DISPL, RHS, ID_BC, MAT, GRID_VEL} CouplingInputType;
-
-  //! Enumeration for Output Coupling types\n
-  //! ELEM = Coupling via element quantities\n
-  //! NODE = Coupling via node quantities\n
-  typedef enum {NODE, ELEM} CouplingOutputType;
-
-  //! Enumeration for types of coupling regions\n
-  //! REGION = Coupling region is whole Subdomain\n
-  //! NODES = Coupling region is specified as nodes in .conf file\n
-  //! SURFACE = Coupling region is specified as 1D/2D surface elements
-  typedef enum {REGION, NODES, SURFACE} CouplingRegionType;
-
   //! Enumeration for directions
   //! direction of various fields
   //! "Rad" means readial, following two letters indicate the stress-plane
   enum  Directions {X=0, Y=1, Z=2, radXY=3, radXZ=4, radYZ=5};
-
-  //! orientation of calculation plane in 2D
-  //! (especially important for anisotropic simulations)
-  enum orientation2D {xy, xz, yz};
 
   //! nonlinear method definition
   typedef enum {FIXEDPOINT=1, NEWTON=2} NonLinMethodType ; 

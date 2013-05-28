@@ -17,6 +17,7 @@
 
 #include "CoefFunction.hh"
 #include <boost/tr1/type_traits.hpp>
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField{
 
@@ -200,6 +201,9 @@ private:
     Matrix<Double> innerMinMaxComp_;
     Matrix<Double> outerMinMaxComp_;
 
+    //! Support of the CoefFunction. Only needed for grid/solution results
+    StdVector<shared_ptr<EntityList> > entities_;
+    
     shared_ptr<DampFunction> dampFunction_;
 
     DampFunction::DampingType pmlType_;

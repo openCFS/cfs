@@ -459,8 +459,8 @@ namespace CoupledField
     //! \param elems (input) set containing surface elements which are not
     //!                      yet converted to \a SurfElem*
     //! \param mappedElems (output) set containing mapped surface elements 
-    void CreateSurfaceElements( std::set<Elem*> & elems,
-                                std::map<UInt, SurfElem*> & mappedElems );
+    void CreateSurfaceElements( StdVector<Elem*> & elems,
+                                StdVector<SurfElem*>& mappedElems );
 
     //! This method creates surface elements for each "volume" element contained
     //! in the given regions. We assume, that a surface element is always one

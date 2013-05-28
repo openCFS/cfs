@@ -59,6 +59,13 @@ namespace CoupledField {
       fncPermutation.Resize(0);
     }
   }
+  
+  bool FeH1LagrangeExpl::operator==( const FeH1LagrangeExpl& comp) const {
+    bool ret = true;
+    ret &= this->feType_ == comp.feType_;
+    ret &= this->order_ == comp.order_;
+    return ret;
+  }
 
 
   void FeH1LagrangeExpl::SetFunctionsAtIp(const StdVector<LocPoint>& iPoints){
@@ -2370,11 +2377,7 @@ namespace CoupledField {
                                           const Vector<Double>& point,
                                           const Elem* ptElem,
                                           UInt comp ) {
-        static bool issueWarning = true;
-        if(issueWarning) {
-          WARN("CalcShFnc for ET_PYRA14 implemented but not tested!");
-          issueWarning = false;
-        }
+        //WARN("CalcShFnc for ET_PYRA14 implemented but not tested!");
 
         // Shape functions for 14 node pyramid taken from
         // http://www.colorado.edu/engineering/CAS/courses.d/AFEM.d/AFEM.Ch19.d/AFEM.Ch19.pdf
@@ -2498,11 +2501,7 @@ namespace CoupledField {
                                                   const Vector<Double>& point,
                                                   const Elem* ptElem,
                                                   UInt comp ) {
-        static bool issueWarning = true;
-        if(issueWarning) {
-          WARN("CalcLocDerivShFnc for ET_PYRA14 implemented but not tested!");
-          issueWarning = false;
-        }
+        //WARN("CalcLocDerivShFnc for ET_PYRA14 implemented but not tested!");
         deriv.Resize(actNumFncs_, 3);
         // Transform coordinates to unit cube [-1,1]^3.
         Double x,y;

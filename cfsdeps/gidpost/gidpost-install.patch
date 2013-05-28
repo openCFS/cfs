@@ -1,0 +1,15 @@
+--- source/CMakeLists.txt.orig	2013-04-16 20:57:35.000000000 +0200
++++ source/CMakeLists.txt	2013-04-16 20:58:05.000000000 +0200
+@@ -53,9 +53,9 @@
+ # install rules
+ #
+ install (TARGETS gidpost
+-  RUNTIME DESTINATION bin
+-  LIBRARY DESTINATION lib
+-  ARCHIVE DESTINATION lib)
++  RUNTIME DESTINATION bin/${CFS_ARCH_STR}
++  LIBRARY DESTINATION ${LIB_SUFFIX}/${CFS_ARCH_STR}
++  ARCHIVE DESTINATION ${LIB_SUFFIX}/${CFS_ARCH_STR})
+ 
+ install (FILES gidpost.h ${gidpost_BINARY_DIR}/gidpost_config.h
+   DESTINATION include)

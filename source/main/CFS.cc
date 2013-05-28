@@ -46,53 +46,6 @@ using namespace std;
 // Create global info node
 PtrParamNode infoNode;
 
-void TestReload() {
-  
-  std::string h5Name = "RingHarm2d.h5";
-  PtrParamNode node(new ParamNode());
-  boost::shared_ptr<SimInputHDF5> in;
-  in.reset(new SimInputHDF5(h5Name, node, infoNode));
-  
-  // create SimState (for input)
-  boost::shared_ptr<SimState> state(new SimState(true));
-  state->SetInputHdf5Reader(in);
-  Domain * newDomain = state->GetDomain(1);
-  
-  // next step: set input to step 1
-
-  // Obtain grid
-  Grid * ptGrid = newDomain->GetGrid();
-  ptGrid->Dump();
-  
-  // Obtain mechanic PDE
-  SinglePDE * mechPDE = newDomain->GetSinglePDE("mechanic");
-  std::cerr << "name of pde is " << mechPDE->GetName() << std::endl;
-  
-  // Set specific step
-  state->UpdateToStep(1);
-  
-  
-  // Obtain stress at given element;
-  PtrCoefFct stress = mechPDE->GetCoefFct( MECH_STRESS );
-  if (! stress)  {
-    EXCEPTION("Stress CoefFunction not defined");
-  }
-  
-  const Elem * ptEl = ptGrid->GetElem(14);
-  boost::shared_ptr<ElemShapeMap> esm = ptGrid->GetElemShapeMap( ptEl);
-
-  LocPointMapped lpm;
-  LocPoint lp = Elem::shapes[ptEl->type].midPointCoord;
-  lpm.Set(lp, esm, 0.0);
-  Vector<Complex> vec;
-  stress->GetVector(vec, lpm);
-  std::cerr << "stress is " << vec.ToString() << std::endl;
-  
-  
-}
-
-
-
 int main(int argc, const char **argv)
 {
   CFS cfs(argc, argv);
@@ -194,8 +147,13 @@ CFS::~CFS()
   infoNode->ToFile(std::string(), true);
 
 
+  delete resultHandler;
+  resultHandler = NULL;
+  
   // Delete objects
   //delete param;
+  
+  
   delete domain;
   domain = NULL;
   
@@ -203,9 +161,7 @@ CFS::~CFS()
   delete progOpts;
   progOpts = NULL;
   
-  delete resultHandler;
-  resultHandler = NULL;
-  
+  simState->Finalize();
   simState.reset();
 
   // delete some global objects because valgrind complains otherwise
@@ -243,13 +199,6 @@ int CFS::Run()
     // Create grid
     domain->CreateGrid();
 
-    
-    // ============================
-    // PERFORM TEST
-    // ============================
-    //TestReload();
-    //exit(EXIT_SUCCESS);
-    
     if(progOpts->GetPrintGrid())
       PrintGrid();
     else

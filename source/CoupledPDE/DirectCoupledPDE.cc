@@ -107,85 +107,6 @@ namespace CoupledField {
     couplings_ = couplings;
   }
 
-  // ****************
-  //   SetInitial conditions
-  //   from the pde members
-  // ****************
-
-  void DirectCoupledPDE::SetInitialCondition() {
-
-    REFACTOR;
-//    Vector< Double > aux;
-//    aux.Init();
-//
-//    // Construct the initial solution vector
-//    shared_ptr<FeSpace> feSpace;
-//    UInt singleUnknowns=0;
-//    UInt lastIndex=0;
-//
-//
-//    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-//
-//      //------------------------------------------------
-//      // get the id of the this pde
-//      //pdeId = singlePDEs_[i]->GetPDEId();
-//      //------------------------------------------------
-//
-//      // the PDEs members haven't set up their initial conditions yet
-//      // -> set the initial conditions of this pde
-//      singlePDEs_[i]->SetInitialCondition();
-//      if(singlePDEs_[i]->IsSetInitialCondition()==true){
-//        this->isSetInitialCondition_=true;
-//      }
-//
-//
-//      //------------------------------------------------
-//      // get the number of unknowns of this pde
-//      singleUnknowns = singlePDEs_[i]->GetNumPdeEquations();
-//
-//      // check setup of linear system
-//      if(singlePDEs_[i]->usePenalty_==false){
-//        // uses elimination of Inhomogeneous DBC
-//        //std::cout << "Num of Inhomogeneous DBC = "<< eqn->GetNumInHomDirichletEqns () << std::endl;
-//        singleUnknowns -= eqn->GetNumInHomDirichletEqns();
-//        singleUnknowns -= eqn->GetNumInHomDirichletFileEqns();
-//      }
-//      //------------------------------------------------
-//
-//      // init the aux vector
-//      // **** it is supoussed that i=pdeID ****
-//      // -> the order of the solution vector is the same as ordering of pdeID
-//      for (UInt ii = lastIndex; ii < lastIndex+singleUnknowns; ii++) {
-//        //aux[ii]=singlePDEs_[i]->getInitialCondition();
-//        aux.Push_back(singlePDEs_[i]->getInitialCondition());
-//      }
-//
-//      lastIndex+=singleUnknowns;
-//
-//    }
-//
-//    // now we have our solution vector initialized
-//    //std::cout << "\n al final aux = "<< aux.Serialize() << std::endl;
-//
-//    if(this->IsSetInitialCondition()==true){
-//
-//
-//      // save the initial solution vector into algsys
-//      algsys_->InitSol(aux);
-//
-//      // save the initial vector in each pde solution vector
-//      SaveSolution(aux.GetPointer(), aux.GetSize());
-//
-//      // save the initial solution vector into algsys
-//      algsys_->InitSol( aux );
-//
-//    }
-
-  }
-
-
-
-
   // ********
   //   Init
   // ********
@@ -194,7 +115,6 @@ namespace CoupledField {
     sequenceStep_ = sequenceStep;
 
     infoNode_ = myInfo_->Get("PDE")->Get("directCoupledPDE", ParamNode::APPEND);
-    infoNode_->Get(ParamNode::PN_HEADER)->Get("sequenceStep")->SetValue(sequenceStep);
 
     
     // Create algebraic system and pass it to SinglePDEs
@@ -229,8 +149,9 @@ namespace CoupledField {
       singlePDEs_[i]->assemble_ = assemble_;
       singlePDEs_[i]->solStrat_ = solStrat_;
       
-      // Initialize all SinglePDEs
-      singlePDEs_[i]->Init( sequenceStep, infoNode_);
+      // Initialize all SinglePDEs (read domains, materials,
+      // define primary results)
+      singlePDEs_[i]->Init_Stage1( sequenceStep, infoNode_);
     }
 
     // Collect all feFunctions defined in single PDEs
@@ -250,9 +171,14 @@ namespace CoupledField {
       couplings_[i]->Init( sequenceStep_ );
     }
 
+    // Perform stage 2 initialization (boundary conditions, integerators)
+    for( UInt i = 0; i < singlePDEs_.GetSize(); ++i ) {
+     singlePDEs_[i]->Init_Stage2();
+    }
+    
     // Finalize initialization of SinglePDEs (i.e. FeSpaces, FeFunctions, Time stepping etc.)
     for( UInt i = 0; i < singlePDEs_.GetSize(); ++i ) {
-     singlePDEs_[i]->FinalizeInit();
+     singlePDEs_[i]->Init_Stage3();
     }
     
     // Initialize all Coupling Objects

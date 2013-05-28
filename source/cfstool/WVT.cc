@@ -4,12 +4,16 @@
 
 #include <def_use_hdf5.hh>
 
+#include <boost/filesystem/fstream.hpp>
+
 #include "DataInOut/SimOutput.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
+#include "Domain/CoordinateSystems/DefaultCoordSystem.hh"
 #include "FeBasis/BaseFE.hh"
 #include "FeBasis/FeSpace.hh"
 #include "FeBasis/H1/H1Elems.hh"
 #include "Forms/Operators/GradientOperator.hh"
+
 
 #ifdef USE_HDF5
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
@@ -41,6 +45,8 @@ namespace CFSTool {
        inputs_[0] = GetInputReader( lateral_mode_file, param_, info_ );
        inputs_[1] = GetInputReader( coriolis_mode_file, param_, info_ );
        inputs_[2] = GetInputReader( mean_flow_file, param_, info_ );
+
+       shared_ptr<MathParser> mp(new MathParser());       
 
        // check capabilities of input class
        StdVector<bool> readerCaps(3);
@@ -156,7 +162,8 @@ namespace CFSTool {
        std::map<std::string, std::string>::const_iterator regMatIt, regMatEnd;
 
        list = fluidNode->Get("regionList")->GetChildren();
-       ParamNodeList domainRegionList = pNode->Get("domain")->Get("regionList")->GetChildren();
+       ParamNodeList domainRegionList;
+       domainRegionList = pNode->Get("domain")->Get("regionList")->GetChildren();
 
        for(UInt i=0; i<list.GetSize(); i++) {
          std::string regionName = list[i]->Get("name")->As<std::string>();
@@ -183,13 +190,14 @@ namespace CFSTool {
        regMatEnd = regionMatMap.end();
        for( ; regMatIt != regMatEnd; regMatIt++ ){
          std::string matName = regMatIt->second;
+         std::string regionName = regMatIt->first;
          PtrParamNode mNode = pNode->GetByVal("material",
                                               "name",
                                               matName);
 
          Double density = mNode->Get("flow")->Get("density")->As<Double>();
          std::cout << "density " << density << std::endl;         
-         regionDensityMap[matName] = density;
+         regionDensityMap[regionName] = density;
        }
 
        // read in mesh of input2
@@ -252,7 +260,8 @@ namespace CFSTool {
        inputs_[1]->GetResultTypes( actMsStep, infos2, false );
        inputs_[2]->GetResultTypes( actMsStep, infos3, false );
        
-       StdVector<shared_ptr<BaseResult> > inResults1, inResults2, inResults_mean_flow, outResults, outResults2, outResults3;
+       StdVector<shared_ptr<BaseResult> > inResults1, inResults2, inResults_mean_flow,
+         outResults, outResults2, outResults3, outResults4, outResults5;
        // stepnumbers, for which at least one result is defined
        std::map<UInt, Double> stepVals, stepVals2, stepVals_mean_flow;
        // contains the stepnumbers/-values in which the particular result is
@@ -334,11 +343,27 @@ namespace CFSTool {
          // iterate over all regions
          StdVector<shared_ptr<EntityList> > regions;
          inputs_[0]->GetResultEntities( actMsStep, infos[iRes],
-                                    regions, false );
+                                        regions, false );
+
+         std::map<std::string, Double>::iterator it, end;
+         it = regionDensityMap.begin();
+         end = regionDensityMap.end();
+         for( ; it != end; it++ ) {
+           std::cout << "region: " << it->first << " density: " << it->second << std::endl;
+           
+         }
+
+
          for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
            // generate new result object and add it to output writer
-           shared_ptr<BaseResult > inResult1, inResult2, inResult3, outResult, outResult2, outResult3;
-           
+           shared_ptr<BaseResult > inResult1, inResult2, inResult3, outResult,
+             outResult2, outResult3, outResult4, outResult5;
+
+           if(regionDensityMap.find( regions[iRegion]->GetName() ) == regionDensityMap.end())
+           {
+             continue;
+           }
+
            if(infos[iRes]->resultType != FLUIDMECH_VELOCITY) 
            {
              continue;
@@ -351,6 +376,8 @@ namespace CFSTool {
            outResult = shared_ptr<BaseResult>( new Result<Complex>() );
            outResult2 = shared_ptr<BaseResult>( new Result<Complex>() );
            outResult3 = shared_ptr<BaseResult>( new Result<Complex>() );
+           outResult4 = shared_ptr<BaseResult>( new Result<Complex>() );
+           outResult5 = shared_ptr<BaseResult>( new Result<Complex>() );
            
            inResult1->SetEntityList( regions[iRegion] );
            inResult2->SetEntityList( regions[iRegion] );
@@ -366,6 +393,8 @@ namespace CFSTool {
            outResult->SetEntityList( outElems );
            outResult2->SetEntityList( outElems );
            outResult3->SetEntityList( outElems );
+           outResult4->SetEntityList( outElems );
+           outResult5->SetEntityList( outElems );
            
            inResult1->SetResultInfo( infos[iRes] );
            inResult2->SetResultInfo( infos[iRes] );
@@ -400,6 +429,26 @@ namespace CFSTool {
            outInfo3->definedOn = ResultInfo::ELEMENT;
 
            outResult3->SetResultInfo( outInfo3 );
+
+           shared_ptr<ResultInfo> outInfo4(new ResultInfo());
+           outInfo4->resultType = FLUIDMECH_WEIGHT_VECTOR_PHI;
+           outInfo4->resultName = SolutionTypeEnum.ToString(outInfo4->resultType);
+           outInfo4->dofNames = infos[iRes]->dofNames;
+           outInfo4->unit = MapSolTypeToUnit(outInfo4->resultType);
+           outInfo4->entryType = ResultInfo::VECTOR;
+           outInfo4->definedOn = ResultInfo::ELEMENT;
+           
+           outResult4->SetResultInfo( outInfo4 );
+
+           shared_ptr<ResultInfo> outInfo5(new ResultInfo());
+           outInfo5->resultType = FLUIDMECH_WEIGHT_DENSITY_PHI;
+           outInfo5->resultName = SolutionTypeEnum.ToString(outInfo5->resultType);
+           outInfo5->dofNames = "";
+           outInfo5->unit = MapSolTypeToUnit(outInfo5->resultType);
+           outInfo5->entryType = ResultInfo::SCALAR;
+           outInfo5->definedOn = ResultInfo::ELEMENT;
+
+           outResult5->SetResultInfo( outInfo5 );
            
            inResults1.Push_back( inResult1 );
            inResults2.Push_back( inResult2 );
@@ -407,6 +456,8 @@ namespace CFSTool {
            outResults.Push_back( outResult );
            outResults2.Push_back( outResult2 );
            outResults3.Push_back( outResult3 );
+           outResults4.Push_back( outResult4 );
+           outResults5.Push_back( outResult5 );
            if( output) {
              // Hardcoded: set output format to AMPL_PHASE
              //outResult->GetResultInfo()->complexFormat = AMPLITUDE_PHASE;
@@ -434,6 +485,23 @@ namespace CFSTool {
              output->RegisterResult( outResult3, 1, 1,
                                      resultSteps[actRes].size(),
                                      false );
+
+             // Hardcoded: set output format to AMPL_PHASE
+             //outResult->GetResultInfo()->complexFormat = AMPLITUDE_PHASE;
+             outResult4->GetResultInfo()->complexFormat = REAL_IMAG;
+             
+             // CAUTION: begin, inc, end are hardcoded and noch checked for each result
+             output->RegisterResult( outResult4, 1, 1,
+                                     resultSteps[actRes].size(),
+                                     false );
+             // Hardcoded: set output format to AMPL_PHASE
+             //outResult->GetResultInfo()->complexFormat = AMPLITUDE_PHASE;
+             outResult5->GetResultInfo()->complexFormat = REAL_IMAG;
+             
+             // CAUTION: begin, inc, end are hardcoded and noch checked for each result
+             output->RegisterResult( outResult5, 1, 1,
+                                     resultSteps[actRes].size(),
+                                     false );
            }
          }
        }
@@ -452,6 +520,7 @@ namespace CFSTool {
            continue;
          UInt actStepNum = iStep+1;
          Double actStepVal = stepVals[iStep+1];
+         Double freq = actStepVal;
          
          if( output) {
            output->BeginStep( actStepNum, actStepVal );
@@ -502,6 +571,10 @@ namespace CFSTool {
                dynamic_cast<Result<Complex>& >(*outResults2[iRes]).GetVector();
              Vector<Complex> & outVec3 =
                dynamic_cast<Result<Complex>& >(*outResults3[iRes]).GetVector();
+             Vector<Complex> & outVec4 =
+               dynamic_cast<Result<Complex>& >(*outResults4[iRes]).GetVector();
+             Vector<Complex> & outVec5 =
+               dynamic_cast<Result<Complex>& >(*outResults5[iRes]).GetVector();
              UInt numElems = outResults[iRes]->GetEntityList()->GetSize();
              UInt numDofs = outResults[iRes]->GetResultInfo()->dofNames.GetSize();
              UInt dim = ptGrid1->GetDim();
@@ -509,6 +582,8 @@ namespace CFSTool {
              outVec.Resize( numElems * numDofs );
              outVec2.Resize( numElems * numDofs );
              outVec3.Resize( numElems );
+             outVec4.Resize( numElems * numDofs );
+             outVec5.Resize( numElems );
              
              shared_ptr<BaseFeFunction> u1FeFunc = inputs_[0]->GetFeFunction<Complex>( actMsStep,
                                                                              actStepNum,
@@ -525,11 +600,78 @@ namespace CFSTool {
                                                                               regionNames );
 
 
-             GradientOperator<FeH1,3> gradOp;
-             
+             shared_ptr<BaseBOperator> gradOp;
+             switch(dim) {
+             case 2:
+               gradOp.reset( new GradientOperator<FeH1,2> );
+               break;
+             case 3:
+               gradOp.reset( new GradientOperator<FeH1,3> );
+               break;               
+             } 
+
+
              EntityIterator eIt = outResults[iRes]->GetEntityList()->GetIterator();
              
              Complex u_p_prime = Complex(0.0, 0.0);
+             Double deltaPhi = 0.0;
+             Double vol = 0.0;
+             Double durchfluss = 0.0;
+             Double u_p_real = 1.0;
+             Double u_p_imag = 0;
+             Vector<Complex> W_sum(3);
+             W_sum.Init();
+             Complex u_p = Complex(1.0, 0);
+             
+             PtrParamNode wvtNode = param->Get("wvt");
+             if(wvtNode->Has("u_p")) {
+               PtrParamNode upNode = wvtNode->Get("u_p");
+               
+               if(upNode->Has("real")) {
+                 u_p_real = upNode->Get("real")->As<Double>();
+               }
+               if(upNode->Has("imag")) {
+                 u_p_imag = upNode->Get("imag")->As<Double>();
+               }
+               u_p = Complex(u_p_real, u_p_imag);
+               u_p *= Complex(0,1);
+               u_p *= 2*PI*freq;
+             }
+             if(wvtNode->Has("v_p")) {
+               PtrParamNode vpNode = wvtNode->Get("v_p");
+               
+               if(vpNode->Has("real")) {
+                 u_p_real = vpNode->Get("real")->As<Double>();
+               }
+               if(vpNode->Has("imag")) {
+                 u_p_imag = vpNode->Get("imag")->As<Double>();
+               }
+             }
+
+             StdVector<std::string> realVal(3);
+             realVal[0] = "0";
+             realVal[1] = "0";
+             realVal[2] = "1";
+             Double meanVel = 1;
+             if(wvtNode->Has("V")) {
+               PtrParamNode vNode = wvtNode->Get("V");
+               
+               if(vNode->Has("meanVel")) {
+                 meanVel = vNode->Get("meanVel")->As<Double>();
+               }
+
+               if(vNode->Has("profile")) {
+                 PtrParamNode profileNode = vNode->Get("profile");
+                 
+                 // realVal[2] = "1-(sqrt(x^2+y^2)/13.15e-3)^10";
+                 realVal[2] = profileNode->As<std::string>();
+               }
+             }
+
+             PtrCoefFct coefV = CoefFunction::Generate(mp.get(), Global::REAL, realVal);
+             shared_ptr<DefaultCoordSystem> coordSys( new DefaultCoordSystem(ptGrid1) );
+             coefV->SetCoordinateSystem(coordSys.get());
+             
              Double rho_0 = regionDensityMap[inResults1[iRes]->GetEntityList()->GetName()];
 
 
@@ -543,16 +685,15 @@ namespace CFSTool {
                LocPoint lp = Elem::shapes[el1->type].midPointCoord;
                shared_ptr<ElemShapeMap> esm1 = ptGrid1->GetElemShapeMap( el1, true );
         
-               Vector<Double> p(3);
+               Vector<Double> p(dim);
                esm1->Local2Global(p, lp);
 
                globMidPointCoords.Push_back(p);
 
-               if(el1->elemNum == 2771) 
-               {
-                 std::cout << "elIdx: " << elIdx << std::endl;
-               }
-               
+               //               if(el1->elemNum == 2771) 
+               //               {
+               //                 std::cout << "elIdx: " << elIdx << std::endl;
+               //               }
              }
 
              StdVector< LocPoint > localCoords;
@@ -563,8 +704,6 @@ namespace CFSTool {
              eIt = outResults[iRes]->GetEntityList()->GetIterator();
              for(UInt elIdx=0 ; !eIt.IsEnd(); eIt++, elIdx++ ) 
              {
-               if(inResults1[iRes]->GetEntityList()->GetName() == "pipe_inner") continue;
-               
                const Elem* el1 = eIt.GetElem();
                const Elem* el2 = ptGrid2->GetElem(el1->elemNum);
                const Elem* el3 = ptGrid3->GetElem(el1->elemNum);
@@ -574,133 +713,206 @@ namespace CFSTool {
                IntScheme::IntegMethod method;
                BaseFE* ptFe1 = u1FeFunc->GetFeSpace()->GetFe( eIt, method, order );
                BaseFE* ptFe2 = u2FeFunc->GetFeSpace()->GetFe( el2->elemNum );
-               // BaseFE* ptFe3 = VFeFunc->GetFeSpace()->GetFe( el3->elemNum );
-               LocPoint lp = Elem::shapes[el1->type].midPointCoord;
-               LocPointMapped lpm1, lpm2, lpm3;
-               shared_ptr<ElemShapeMap> esm1 = ptGrid1->GetElemShapeMap( el1, true );
-               shared_ptr<ElemShapeMap> esm2 = ptGrid2->GetElemShapeMap( el2, true );
-               shared_ptr<ElemShapeMap> esm3 = ptGrid3->GetElemShapeMap( el3, true );
-               lpm1.Set( lp, esm1, 0.0 );
-               lpm2.Set( lp, esm2, 0.0 );
-               lpm3.Set( lp, esm3, 0.0 );
-        
-               const Elem* el2_new = elems[elIdx];
-               std::cout << "el2: " << el2->elemNum <<  " el2_new: " << el2_new << " " << std::endl;
-               
-
-               Matrix<Double> bMat1, bMat2;
-               Vector<Complex> eSol1, eSol2;
-               StdVector< Vector<Complex> > eSol1Comp(numDofs), eSol2Comp(numDofs);
-               Vector<Complex> eSol2_x, eSol2_y, esol2_z;
-               Vector<Complex> u1, u2;
-               Vector<Double> V;
-               Vector<Complex> W;
-               gradOp.CalcOpMat( bMat1, lpm1, ptFe1 );
-               gradOp.CalcOpMat( bMat2, lpm2, ptFe2 );
-               
-               
-               u1FeFunc->GetVector( u1, lpm1 );
-               u2FeFunc->GetVector( u2, lpm2 );
-               VFeFunc->GetVector( V, lpm3 );
-
-               dynamic_cast<FeFunction<Complex>*>(u1FeFunc.get())->GetElemSolution( eSol1, el1 );
-               dynamic_cast<FeFunction<Complex>*>(u2FeFunc.get())->GetElemSolution( eSol2, el2 );
-
-               StdVector< Vector<Complex> > u1Derivs(numDofs), u2Derivs(numDofs);
-
-               for(UInt dof=0; dof < numDofs; dof++) 
-               {
-                 UInt eN=eSol1.GetSize()/numDofs;
-                 
-                 eSol1Comp[dof].Resize(eN);
-                 eSol2Comp[dof].Resize(eN);
-
-                 for(UInt eI=0; eI < eN; eI++) 
-                 {
-                   eSol1Comp[dof][eI] = eSol1[eI*numDofs+dof];
-                   eSol2Comp[dof][eI] = eSol2[eI*numDofs+dof];
-                 }
-
-                 gradOp.ApplyOp( u1Derivs[dof], lpm1, ptFe1, eSol1Comp[dof] );
-                 gradOp.ApplyOp( u2Derivs[dof], lpm2, ptFe2, eSol2Comp[dof] );
-               }
-
-#if 0
-               Matrix<Complex> u1Derivs(3,3);
-               Matrix<Complex> u2Derivs(3,3);
-               u1Derivs.Init();
-               u2Derivs.Init();
-
-               UInt numFncs = ptFe1->GetNumFncs();
-               
-               for( UInt dof=0; dof < numDofs; dof++ ) 
-               {
-                 for( UInt f=0; f < numFncs; f++ ) 
-                 {
-                   u1Derivs[dof][0] += eSol1[f*numDofs+0]*bMat1[dof][f*numDofs+0];
-                   u1Derivs[dof][1] += eSol1[f*numDofs+1]*bMat1[dof][f*numDofs+1];
-                   u1Derivs[dof][2] += eSol1[f*numDofs+2]*bMat1[dof][f*numDofs+2];
-                   
-                   u2Derivs[dof][0] += eSol2[f*numDofs+0]*bMat2[dof][f*numDofs+0];
-                   u2Derivs[dof][1] += eSol2[f*numDofs+1]*bMat2[dof][f*numDofs+1];
-                   u2Derivs[dof][2] += eSol2[f*numDofs+2]*bMat2[dof][f*numDofs+2];
-                 }                   
-               }
-#endif               
-               
-               std::cout << "elemNum " << el1->elemNum << std::endl;
-               W.Resize(u1.GetSize());
-               W.Init();
-               
-               for( UInt i=0; i < numDofs; i++ )
-               {
-                 for( UInt j=0; j < dim; j++ )
-                 {
-#if 0
-                   W[i] += -rho_0 * (u2[j] * u1Derivs[i][j] - u1[j] * u2Derivs[j][i]);
-#endif               
-
-                   W[i] += -rho_0 * (u2[j] * u1Derivs[j][i] - u1[j] * u2Derivs[i][j]);
-                 }
-               }
-               
-               outVec[elIdx*numDofs+0] = W[0];
-               outVec[elIdx*numDofs+1] = W[1];
-               outVec[elIdx*numDofs+2] = W[2];
-
-#if 0               
-               outVec[elIdx*numDofs+0] = u1Derivs[2][0];
-               outVec[elIdx*numDofs+1] = u1Derivs[2][1];
-               outVec[elIdx*numDofs+2] = u1Derivs[2][2];
-#endif
-
-               outVec2[elIdx*numDofs+0] = V[0];
-               outVec2[elIdx*numDofs+1] = V[1];
-               outVec2[elIdx*numDofs+2] = V[2];
-
-               outVec3[elIdx] = W[0]*V[0] + W[1]*V[1] + W[2]*V[2];
 
                // Get integration points
                shared_ptr<IntScheme> intScheme = u1FeFunc->GetFeSpace()->GetIntScheme();
                
                StdVector<LocPoint> intPoints;
                StdVector<Double> weights;
-               intScheme->GetIntPoints( Elem::GetShapeType(el1->type), method, 0,
-                                         intPoints, weights );
+               intScheme->GetIntPoints( Elem::GetShapeType(el1->type), method, order,
+                                        intPoints, weights );
 
-               u_p_prime += outVec3[elIdx] * lpm1.jacDet * weights[0];
+
+               // std::cout << "Integration order " << order.GetIsoOrder() << " num. int points: " << intPoints.GetSize() << " weight: " << weights[0] << std::endl;
+
+               for( UInt i=0; i < numDofs; i++ )
+               {
+                 // Init weight vector
+                 outVec[elIdx*numDofs+i] = 0.0;
+                 
+                 // Init mean velocity
+                 outVec2[elIdx*numDofs+i] = 0.0;
+                 
+                 // Init weight vector W_Phi as given in Hemp1994 (19).
+                 outVec4[elIdx*numDofs+i] = 0.0;
+               }
                
+               // Init weight vector density result
+               outVec3[elIdx] = 0.0;
+
+               // Init weight  vector density  result  as inner  product
+               // between V and W_Phi as given in Hemp1994 (18).
+               outVec5[elIdx] = 0.0;
                
+               Double elementVolume = 0.0;
+
+               for(UInt ip=0, nip=intPoints.GetSize(); ip < nip; ip++) 
+               {
+
+               // BaseFE* ptFe3 = VFeFunc->GetFeSpace()->GetFe( el3->elemNum );
+                 //LocPoint lp = Elem::shapes[el1->type].midPointCoord;
+                 LocPoint lp = intPoints[ip];
+                 LocPointMapped lpm1, lpm2, lpm3;
+                 shared_ptr<ElemShapeMap> esm1 = ptGrid1->GetElemShapeMap( el1, true );
+                 shared_ptr<ElemShapeMap> esm2 = ptGrid2->GetElemShapeMap( el2, true );
+                 shared_ptr<ElemShapeMap> esm3 = ptGrid3->GetElemShapeMap( el3, true );
+                 lpm1.Set( lp, esm1, 0.0 );
+                 lpm2.Set( lp, esm2, 0.0 );
+                 lpm3.Set( lp, esm3, 0.0 );
+        
+                 // const Elem* el2_new = elems[elIdx];
+                 //               std::cout << "el2: " << el2->elemNum <<  " el2_new: " << el2_new << " " << std::endl;
+                 Vector<Double> p(dim);
+                 esm1->Local2Global(p, lp);
+
+                 Matrix<Double> bMat1, bMat2;
+                 Vector<Complex> eSol1, eSol2;
+                 StdVector< Vector<Complex> > eSol1Comp(numDofs), eSol2Comp(numDofs);
+                 Vector<Complex> eSol2_x, eSol2_y, esol2_z;
+                 Vector<Complex> u1, u2;
+                 Vector<Double> V;
+                 Vector<Complex> W;
+                 gradOp->CalcOpMat( bMat1, lpm1, ptFe1 );
+                 gradOp->CalcOpMat( bMat2, lpm2, ptFe2 );
+                 
+                 u1FeFunc->GetVector( u1, lpm1 );
+                 u2FeFunc->GetVector( u2, lpm2 );
+                 // Get V from HDF5 file
+                 VFeFunc->GetVector( V, lpm3 );
+                 // Get analytical V
+                 coefV->GetVector(V, lpm1);
+                 
+                 dynamic_cast<FeFunction<Complex>*>(u1FeFunc.get())->GetElemSolution( eSol1, el1 );
+                 dynamic_cast<FeFunction<Complex>*>(u2FeFunc.get())->GetElemSolution( eSol2, el2 );
+                 
+                 StdVector< Vector<Complex> > u1Derivs(numDofs), u2Derivs(numDofs);
+                 
+                 for(UInt dof=0; dof < numDofs; dof++) 
+                 {
+                   UInt eN=eSol1.GetSize()/numDofs;
+                   
+                   eSol1Comp[dof].Resize(eN);
+                   eSol2Comp[dof].Resize(eN);
+                   
+                   for(UInt eI=0; eI < eN; eI++) 
+                   {
+                     eSol1Comp[dof][eI] = eSol1[eI*numDofs+dof];
+                     eSol2Comp[dof][eI] = eSol2[eI*numDofs+dof];
+                   }
+                   
+                   gradOp->ApplyOp( u1Derivs[dof], lpm1, ptFe1, eSol1Comp[dof] );
+                   gradOp->ApplyOp( u2Derivs[dof], lpm2, ptFe2, eSol2Comp[dof] );
+                 }
+                 
+                 //                std::cout << "elemNum " << el1->elemNum << " numDofs " << numDofs << " dim " << dim << std::endl;
+                 W.Resize(u1.GetSize());
+                 W.Init();
+                 
+                 for( UInt i=0; i < numDofs; i++ )
+                 {
+                   for( UInt j=0; j < dim; j++ )
+                   {
+                  #if 0
+                     W[i] += -rho_0 * (u2[j] * u1Derivs[i][j] - u1[j] * u2Derivs[j][i]);
+                  #endif               
+                     
+                     // Compute components of weight vector as given in Hemp1994 (15).
+                     W[i] += -rho_0 * (u2[j] * u1Derivs[j][i] - u1[j] * u2Derivs[i][j]);
+                   }
+                 }
+                 
+                 Double volume =  lpm1.jacDet * weights[ip];
+                 elementVolume += volume;
+
+                 for( UInt i=0; i < numDofs; i++ )
+                 {
+                   // Prepare weight vector
+                   outVec[elIdx*numDofs+i] += W[i] * volume;
+
+                   W_sum[i] += W[i] * volume;
+
+                   // Prepare mean velocity
+                   //                   V[i] *= meanVel;                   
+
+                   durchfluss += V[i] * volume;
+
+                   outVec2[elIdx*numDofs+i] += V[i] * volume;
+                   
+                   // Prepare weight vector density result
+                   outVec3[elIdx] += W[i]*V[i];
+
+                   
+                   // Prepare weight vector W_Phi as given in Hemp1994 (19).
+                   outVec4[elIdx*numDofs+i] = W[i]/u_p * volume;
+                   
+                   // Prepare  weight  vector density  result  as inner  product
+                   // between V and W_Phi as given in Hemp1994 (18).
+                   outVec5[elIdx] += W[i]/u_p * V[i];
+                 }
+
+                 outVec3[elIdx] *= volume;
+                 outVec5[elIdx] *= volume;
+
+                 // u_p_prime (0.000359091,-2.8713e-05)  
+                 // Compute u_p_prime as given in Hemp1994 (13).
+                 u_p_prime += outVec3[elIdx];
+
+                 // Compute deltaPhi as given in Hemp1994 (18) and (19).
+                 deltaPhi += outVec5[elIdx].imag();
+
+               } // loop over integration points
+
+               for( UInt i=0; i < numDofs; i++ )
+               {
+                 outVec[elIdx*numDofs+i] /= elementVolume;
+                 outVec2[elIdx*numDofs+i] /= elementVolume;
+                 outVec4[elIdx*numDofs+i] /= elementVolume;
+               }               
+               outVec3[elIdx] /= elementVolume;
+               outVec5[elIdx] /= elementVolume;
+
+               vol += elementVolume;
              }
+             W_sum /= vol;
+
+             Double correct = (meanVel*vol/durchfluss);             
+             std::cout << "\nProfilkorrekturfaktor " << correct << std::endl;
+             outVec2 *= correct;
+             
+             deltaPhi *= correct;
+             
+             boost::filesystem::ofstream csv("output.csv", std::ios_base::binary);
 
              std::cout << "\nu_p_prime " << u_p_prime << std::endl;
-         
-           } // switch: Analysitype
+             std::cout << "\ndeltaPhi [rad]: " << deltaPhi << std::endl;
+             std::cout << "\ndeltaPhi [deg]: " << deltaPhi/3.14159*180 << std::endl;
+
+             csv << "freq,u_p_prime_real,u_p_prime_imag,u_p_prime_ampl,u_p_prime_phase,deltaPhi[rad],deltaPhi[deg],volume,real(W_x),imag(W_x),real(W_y),imag(W_y),real(W_z),imag(W_z)" << std::endl;
+             csv << freq << ","
+                 << u_p_prime.real() << ","
+                 << u_p_prime.imag() << ","
+                 << abs(u_p_prime) << ","
+                 << arg(u_p_prime) << ","
+                 << deltaPhi << ","
+                 << (deltaPhi/PI*180) << ","
+                 << vol << ","
+                 << W_sum[0].real() << ","
+                 << W_sum[0].imag() << ","
+                 << W_sum[1].real() << ","
+                 << W_sum[1].imag() << ","
+                 << W_sum[2].real() << ","
+                 << W_sum[2].imag() << std::endl;
+
+             csv.close();         
+           } // switch: Analysis type
            // add result to output file
-           if (output )
+           if (output ) {
              output->AddResult( outResults[iRes] );
              output->AddResult( outResults2[iRes] );
              output->AddResult( outResults3[iRes] );
+             output->AddResult( outResults4[iRes] );
+             output->AddResult( outResults5[iRes] );
+           }
            
          } // loop over results
          

@@ -94,6 +94,9 @@ namespace CoupledField {
       return isaxi_;
     }
     
+    //! Set special RHS values
+    virtual void SetRhsValues();
+
     //! Pass boundary conditions to the algebraic system 
     virtual void SetBCs() = 0;
     
@@ -210,11 +213,6 @@ namespace CoupledField {
       return *this;
     };
 
-    //! retruns, if PDE needs to store previous solution or not
-    virtual bool NeedsPrevSol() {
-      return  needSolPrev_;
-    }
-
     //! Reads ncInterfaces defined in the XML file
     virtual void ReadNcInterfaces() = 0;
 
@@ -267,9 +265,6 @@ namespace CoupledField {
     //! Associate the xml-name of inhom. Dirichlet Bc with SolutionType
     std::map<SolutionType, std::string> idbcSolNameMap_;
         
-    //! Number of additional in. Dirichlet boundary equations due to coupling
-    UInt numCouplingBcs_;
-
     //@}
 
     // -----------------------------------------------------------------------
@@ -320,17 +315,6 @@ namespace CoupledField {
     //@{
     //! \name Attributes connected to handling PDE coupling
     bool isIterCoupled_;        //!< PDE couples with others
-    Vector<Double> matParam_;      //!< change to material parameter
-    bool updateCouplingBCs_ ;  //!< flag if coupling BC were already set
-  
-    //! nodes at which coupling terms are calculated
-    std::list<UInt> couplingNodes;    
-  
-    //! elements at which coupling terms are calculated
-    StdVector<Elem*> couplingElements;
-  
-    //! iteration counter for coupled PDE solution process
-    UInt iterCoupledCounter_;
     //@}
 
 
@@ -342,7 +326,6 @@ namespace CoupledField {
     //! \name Attributes connected to time stepping
     bool diagMass_;           //!< use of diagonal mass matrix in explicit time stepping
     //@}
-
 
 
     // -----------------------------------------------------------------------
@@ -367,19 +350,12 @@ namespace CoupledField {
     UInt dim_;                  //!< space dimension of pde
     bool isaxi_;             //!< true: axisymmetric problem
     bool isComplex_;         //!< true, if some part of PDE is complex (Material, solution)
-    bool needSolPrev_;          //! true, if solution at time step n has also to bve stored
 
     //! list of damping types for all regions
     std::map<RegionIdType,DampingType> dampingList_;
     
     //! use of complex material data per region
     std::map<RegionIdType,bool> complexMatData_;
-
-    //! checks, if we have for the coupling a incremental solution
-    bool isIncrFormulation_;    
-    
-    //! if yes, PDE is computed on deformed geometry
-    bool updatedLagrangeForm_;
 
     //! Pointer to object of analysis (Static, Trans, Harm or Eig)
     Assemble * assemble_;

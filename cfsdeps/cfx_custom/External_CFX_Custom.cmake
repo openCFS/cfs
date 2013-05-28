@@ -1,4 +1,8 @@
 #-------------------------------------------------------------------------------
+# ANSYS CFX I/O libraries for reading .def, .res and .trn files.
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 # Set prefix path and path to cfxio sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
 set(cfxio_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/cfxio")

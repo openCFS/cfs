@@ -31,11 +31,11 @@ FeSpaceNodal ::~FeSpaceNodal() {
 }
 
 template<typename T>
-void FeSpaceNodal::MapCoefFctToSpacePriv(shared_ptr<EntityList> entityList,
-                                  shared_ptr<CoefFunction> coefFct,
-                                  std::map <Integer, T>& vals,
-                                  bool cache,
-                                  const std::set<UInt>& comp ) {
+void FeSpaceNodal::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityLists,
+                                         shared_ptr<CoefFunction> coefFct,
+                                         std::map <Integer, T>& vals,
+                                         bool cache,
+                                         const std::set<UInt>& comp ) {
 
   
   // Perform some checks at first:
@@ -50,25 +50,28 @@ void FeSpaceNodal::MapCoefFctToSpacePriv(shared_ptr<EntityList> entityList,
   
   shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
 
-
   if (IS_LOG_ENABLED(feSpaceNodal, trace)) {
     StdVector<UInt> compVec;
     std::set<UInt>::const_iterator it = comp.begin();
     for (; it != comp.end(); ++it ) {
       compVec.Push_back(*it);
     }
+    std::string entityNames;
+    for( UInt i = 0; i < entityLists.GetSize(); ++i ) {
+      entityNames += entityLists[i]->GetName() + ", ";
+    }
     LOG_TRACE(feSpaceNodal) << "Mapping coeffct " << coefFct->ToString() 
-                            << " on " << entityList->GetName() << " for dofs "
+                            << " on " << entityNames << " for dofs "
                             << compVec.ToString() << " for FeFunction "
                             << SolutionTypeEnum.ToString(feFct->GetResultInfo()->resultType);
   }
-  
   
   if( coefFct->GetDependency() == CoefFunction::CONSTANT ||
       coefFct->GetDependency() == CoefFunction::TIMEFREQ ) {
     // --------------------------
     //  SIMPLE MAPPING MECHANISM
     // --------------------------
+    LOG_DBG(feSpaceNodal) << "=> Applying simple mapping algorithm for constant values"; 
     LocPointMapped lpm;
     StdVector<Integer> eqns, vEqns;
     Vector<T> dummyVec;
@@ -78,49 +81,61 @@ void FeSpaceNodal::MapCoefFctToSpacePriv(shared_ptr<EntityList> entityList,
     } else {
       coefFct->GetVector( dummyVec, lpm);
     }
-            
-    // loop over all dofs
-    std::set<UInt>::const_iterator it = comp.begin();
-    for( ; it != comp.end(); ++it) {
-    
-      T val = dummyVec[*it];
-      this->GetEntityListEqns( eqns, entityList, *it );
-      UInt numEqns = eqns.GetSize();
+
+    // loop over all lists 
+    for( UInt i = 0; i < entityLists.GetSize(); ++i ) {
+      shared_ptr<EntityList> actList = entityLists[i];
       
-      // --- non-hierachical case ---
-      for( UInt i = 0; i < numEqns; ++i ) {
-        vals[eqns[i]] = val; 
-      }
-      
-    } // loop: dofs
-  } else 
-  {
+      // loop over all dofs
+      std::set<UInt>::const_iterator it = comp.begin();
+      for( ; it != comp.end(); ++it) {
+
+        T val = dummyVec[*it];
+        this->GetEntityListEqns( eqns, actList, *it );
+        UInt numEqns = eqns.GetSize();
+
+        // --- non-hierachical case ---
+        for( UInt i = 0; i < numEqns; ++i ) {
+          vals[eqns[i]] = val; 
+        }
+      } // loop: dofs
+    } // loop: lists
+  } else  {
     // ---------------------------
     //  GENERAL MAPPING MECHANISM
     // ---------------------------
+    LOG_DBG(feSpaceNodal) << "=> Applying general mapping algorithm for general values";
     //Get coordinate representation of the entity list
     StdVector< StdVector<UInt> > idxMap;
     StdVector< Vector<Double> > globalCoords;
     StdVector< Vector<T> > valuesAtCoords;
-    this->GetCoordinateRepresentation(entityList,idxMap,globalCoords);
 
-    coefFct->GetVectorValuesAtCoords(globalCoords,valuesAtCoords);
-    for( UInt aNode = 0; aNode < idxMap.GetSize(); ++aNode ) {
-      StdVector<UInt> curEqs = idxMap[aNode];
-      // loop over all dofs
-      //if we have an empty set we loop over everything
-      if(comp.size()==0){
-        UInt numDof = valuesAtCoords[aNode].GetSize();
-        for(UInt i = 0; i< numDof ; ++i) {
-          vals[curEqs[i]] = valuesAtCoords[aNode][i];
-        }
-      }else{
-        std::set<UInt>::const_iterator it = comp.begin();
-        for( ; it != comp.end(); ++it) {
-          vals[curEqs[*it]] = valuesAtCoords[aNode][*it];
-        }
-      }
-    }
+    // loop over all lists 
+    for( UInt i = 0; i < entityLists.GetSize(); ++i ) {
+      shared_ptr<EntityList> actList = entityLists[i];
+ 
+      // get all coordinates of the nodes and their equation numbers
+      this->GetCoordinateRepresentation(actList,idxMap,globalCoords);
+
+      // get solution of coefficient function at these coordinates
+      coefFct->GetVectorValuesAtCoords(globalCoords,valuesAtCoords, ptGrid_);
+      for( UInt aNode = 0; aNode < idxMap.GetSize(); ++aNode ) {
+        StdVector<UInt> curEqs = idxMap[aNode];
+        // loop over all dofs
+        //if we have an empty set we loop over everything
+        if(comp.size()==0){
+          UInt numDof = valuesAtCoords[aNode].GetSize();
+          for(UInt i = 0; i< numDof ; ++i) {
+            vals[curEqs[i]] = valuesAtCoords[aNode][i];
+          }
+        }else{
+          std::set<UInt>::const_iterator it = comp.begin();
+          for( ; it != comp.end(); ++it) {
+            vals[curEqs[*it]] = valuesAtCoords[aNode][*it];
+          }
+        } // if: comp size
+      } // loop: nodes
+    } // loop: lists
   } // end of general mapping section
 
 }
@@ -153,15 +168,17 @@ void FeSpaceNodal::GetCoordinateRepresentation( shared_ptr<EntityList>   eList,
  }
 
 void FeSpaceNodal::GetNodalCoords(StdVector<Vector<Double> > & coords,
-                                     StdVector<UInt> & vNodeNums,
-                                     const shared_ptr<EntityList> & entities){
-   //cover the special case of nodal mapping in which we can directly access the node coordinates
-   std::cout << "\t \t Getting Nodal Coords ...." << std::endl;std::cout.flush();
+                                  StdVector<UInt> & vNodeNums,
+                                  const shared_ptr<EntityList> & entities){
+  LOG_TRACE(feSpaceNodal) << "Getting Nodal Coords ...."; 
+  
+  //cover the special case of nodal mapping in which we can directly access the node coordinates
+  
    EntityIterator entIt = entities->GetIterator();
    StdVector<UInt> curNodes;
    StdVector<UInt> curENodes;
    std::map<UInt,bool> vnodeVisited;
-   std::cout << "\t \t \t Getting nodes of entities ...." << std::endl;;std::cout.flush();
+   LOG_DBG(feSpaceNodal) << "Getting nodes of entities";
 
 
    if(mapType_ == GRID){
@@ -175,7 +192,7 @@ void FeSpaceNodal::GetNodalCoords(StdVector<Vector<Double> > & coords,
        vNodeNums[i] = this->gridToVirtualNodes_[nodes[i]][0];
        this->ptGrid_->GetNodeCoordinate(coords[i],nodes[i],true);
      }
-     std::cout << "USED GIRD REPRESENTATION" << std::endl;
+     LOG_DBG(feSpaceNodal) << "USED GIRD REPRESENTATION";
    }else{
      this->GetNodesOfEntities(curNodes,entities,BaseFE::ALL);
      vNodeNums.Clear();
@@ -230,14 +247,20 @@ void FeSpaceNodal::GetNodalCoords(StdVector<Vector<Double> > & coords,
        esm.reset();
      }
    }
-   std::cout << "\t \t done" << std::endl;;std::cout.flush();
+   LOG_TRACE(feSpaceNodal) << "Finished Getting Nodal Coords ....";
  }
 
 
 
-}
+} // namespace
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template void FeSpaceNodal::MapCoefFctToSpacePriv<Double>( shared_ptr<EntityList> ,shared_ptr<CoefFunction>, std::map <Integer, Double>&,bool,const std::set<UInt>&);
-  template void FeSpaceNodal::MapCoefFctToSpacePriv<Complex>(shared_ptr<EntityList> ,shared_ptr<CoefFunction>, std::map <Integer, Complex>&,bool,const std::set<UInt>&);
+template void FeSpaceNodal::
+MapCoefFctToSpacePriv<Double>( StdVector<shared_ptr<EntityList> > ,
+                               shared_ptr<CoefFunction>, std::map <Integer, Double>&,
+                               bool,const std::set<UInt>&);
+template void FeSpaceNodal::
+MapCoefFctToSpacePriv<Complex>( StdVector<shared_ptr<EntityList> > ,
+                                shared_ptr<CoefFunction>, std::map <Integer, Complex>&,
+                                bool,const std::set<UInt>&);
 #endif

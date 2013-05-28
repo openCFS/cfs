@@ -24,7 +24,7 @@ namespace CoupledField {
 
     //! Constructor
     SimOutputText( const std::string& fileName, PtrParamNode outputNode,
-                   PtrParamNode infoNode );
+                   PtrParamNode infoNode, bool isRestart  );
 
     //! Destructor
     ~SimOutputText();
@@ -134,9 +134,6 @@ namespace CoupledField {
     //! Offset for step number in case of multisequence analysis
     Integer stepNumOffset_;
         
-    //! Offset for step value in case of multisequence analysis
-    Double stepValOffset_;
-    
     //! Flag, if node / element numbers in file names should be numbered
     //! based on global node / element number or consecutively
     bool globalNumbering_;

@@ -22,10 +22,11 @@ namespace CoupledField {
     //! Typedef for the unknown entities where the result is defined on
     typedef enum{ NODE, EDGE, FACE, ELEMENT, SURF_ELEM, REGION, 
                   SURF_REGION, NODELIST, COIL, FREE } EntityUnknownType;
+    static Enum<EntityUnknownType> EntityUnknownTypeEnum_;
     
     //! Typedef describing the entryType of the result
     typedef enum { UNKNOWN = 0, SCALAR = 1, VECTOR = 2, TENSOR = 3, STRING = 4 } EntryType;
-    
+    static Enum<EntryType> EntryTypeEnum_;
 
     //! Friend declaration for operator==
     friend bool operator==(ResultInfo& a, ResultInfo& b );

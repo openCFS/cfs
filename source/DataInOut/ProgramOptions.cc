@@ -75,6 +75,10 @@
 #include <xercesc/util/XercesVersion.hpp>
 #endif
 
+#ifdef USE_GIDPOST
+#include <gidpost.h>
+#endif
+
 #include <boost/version.hpp>
 
 #include <muParserBase.h>
@@ -767,8 +771,8 @@ namespace CoupledField {
 #ifdef USE_GIDPOST
     out << "USE_GIDPOST:           "
         << fg_blue << "YES" << fg_reset << endl;
-    out << "CFS_GIDPOST_VERSION:   "
-        << fg_blue << CFS_GIDPOST_VERSION << fg_reset << endl;
+    out << "GIDPOST_VERSION:       "
+        << fg_blue << GIDPOST_VERSION << fg_reset << endl;
  #else
     out << "USE_GIDPOST:           "
         << fg_blue << "NO" << fg_reset << endl;

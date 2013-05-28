@@ -85,7 +85,6 @@ namespace CoupledField {
   void Vector<T>::Fill(const T* source, unsigned int new_size)
   {
     Resize(new_size);
-
     for(unsigned int i = 0; i < new_size; i++)
       data_[i] = source[i];
   }
@@ -820,8 +819,7 @@ namespace CoupledField {
       if(size_ != vec.size_)
         Resize(vec.size_);
 
-      for(unsigned int i = 0; i < size_; ++i)
-        data_[i] = vec.data_[i];
+      std::copy(vec.data_, vec.data_+size_, data_);
     }
 
     return *this;
@@ -867,8 +865,7 @@ namespace CoupledField {
         Resize(x.size_);
       }
       
-      for(unsigned int i = 0; i < size_; ++i)
-        data_[i] = x.data_[i];
+      std::copy(x.data_, x.data_+size_, data_);
     }
     
     return *this;

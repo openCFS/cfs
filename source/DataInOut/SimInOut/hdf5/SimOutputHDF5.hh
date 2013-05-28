@@ -43,7 +43,7 @@ namespace CoupledField {
     
     //! Constructor with name of mesh-file
     SimOutputHDF5(std::string fileName, PtrParamNode inputNode,
-                  PtrParamNode infoNode);
+                  PtrParamNode infoNode, bool isRestart );
     
     //! Destructor
     virtual ~SimOutputHDF5();
@@ -51,6 +51,11 @@ namespace CoupledField {
     //! Initialize class 
     virtual void Init( Grid* ptGrid,
                        bool printGridOnly );
+    
+    //! Return file name including path
+    fs::path GetFileName() {
+      return  currFileName_;
+    }
     //@}
 
     // =======================================================================
@@ -104,8 +109,7 @@ namespace CoupledField {
 
     //! Begin new multisequence step for database section
     void DB_BeginMultiSequenceStep( UInt step,
-                                    BasePDE::AnalysisType type,
-                                    UInt numSteps  );
+                                    BasePDE::AnalysisType type );
 
     //! Begin single analysis step
     void DB_BeginStep( UInt stepNum, Double stepVal );
@@ -116,7 +120,7 @@ namespace CoupledField {
                              SingleVector* coefs );
 
     //! End multisequence step for database section
-    void DB_FinishMultiSequenceStep( );
+    void DB_FinishMultiSequenceStep(bool completed, Double accTime );
 
     //@}
     
@@ -237,6 +241,8 @@ namespace CoupledField {
     //! Set with used capabilities, i.e. types of content written to file
     std::set<Capability> usedCapabilities_;
     
+    //! Flag if module is initialized
+    bool isInitialized_;
     
     //! Flag indicating if grid is already written
     bool gridWritten_;

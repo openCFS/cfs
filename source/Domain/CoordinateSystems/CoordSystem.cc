@@ -1,7 +1,7 @@
 #include "CoordSystem.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-
+#include "boost/math/special_functions/fpclassify.hpp"
 
 namespace CoupledField{
 
@@ -125,6 +125,23 @@ namespace CoupledField{
 
     return angle;
          
+  }
+  
+  void CoordSystem::CheckRotationMat(const Matrix<Double>& rotMat ) {
+    
+    // ensure, that the  rotation matrix is correctly formed by 
+    // checking the determinant. 
+    // This could be extended to further checks (e.g. orthonormality)
+    Double det; 
+    rotationMat_.Determinant(det);
+    if( std::abs(det-1.0) > EPS  
+        || boost::math::isnan(det) 
+    || boost::math::isinf(det) ) {
+      WARN( "The determinant of the rotation matrix of the coordinate system '"
+          << name_ << "' is " << det << " instead of 1.\n"
+          << "This indicates an error. Please check the definition of the "
+          << "current coordinate system.");
+    }
   }
 
 

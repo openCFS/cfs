@@ -1,14 +1,10 @@
-#include <fstream>
 #include <sstream>
 #include <iostream>
 #include <string>
 #include <algorithm>
 
-#include "boost/date_time/posix_time/posix_time.hpp"
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/filesystem/fstream.hpp>
 
 #include <def_cfs_stats.hh>
 
@@ -19,20 +15,31 @@
 #include "Domain/ElemMapping/Elem.hh"
 #include "FeBasis/BaseFE.hh"
 
-namespace fs = boost::filesystem;
+
 
 namespace CoupledField {
 
   SimOutputXDMF::SimOutputXDMF(std::string fileName, PtrParamNode inputNode,
-                               PtrParamNode infoNode ) :
-    SimOutput(fileName, inputNode, infoNode),
+                               PtrParamNode infoNode, bool isRestart ) :
+    SimOutput(fileName, inputNode, infoNode, isRestart ),
     simOutHDF5_(NULL)
   {
+    // The restart case is currently not implemented, i.e. resuls from a 
+    // partial simulation get overwritten.
+    if( isRestart_ ) {
+      WARN( "The XDMF-Writer is currently not adapted to write restarted "
+            "results correctly, thus the results of the previous run get"
+            " overwritten." );
+    }
 
     fileName_ = fileName;
     formatName_ = "xdmf";
     dirName_ = "results_hdf5";
-    inputNode->GetValue("directory", dirName_, ParamNode::PASS );
+    
+    std::string dirString = "results_" + formatName_; 
+    inputNode->GetValue("directory", dirString, ParamNode::PASS );
+    dirName_ = dirString; 
+    
     
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
@@ -622,9 +629,11 @@ namespace CoupledField {
 //     OpenFile(true);
   }
   
-  void SimOutputXDMF::WriteGrid() {    
-    std::string gridFN = dirName_ + "/" + fileName_ + "_grid.xmf";
-    std::ofstream gridFile;
+  void SimOutputXDMF::WriteGrid() {
+    std::string gridName = fileName_+std::string("_grid.xmf");
+    fs::path gridFN = dirName_ / gridName;
+    //std::string gridFN = dirName_ + "/" + fileName_ + 
+    fs::ofstream gridFile;
 
     // ensure that grid gets only written once
     if(!gridWritten_)
@@ -634,7 +643,7 @@ namespace CoupledField {
 
     WriteDTD();
 
-    gridFile.open(gridFN.c_str());
+    gridFile.open(gridFN);
     gridFile << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl;
     gridFile << "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>" << std::endl << std::endl;
     gridFile << "<Xdmf>" << std::endl;
@@ -1157,8 +1166,8 @@ namespace CoupledField {
 
   void SimOutputXDMF::WriteDTD() 
   {
-    std::string dtdFN = dirName_ + "/Xdmf.dtd";
-    std::ofstream dtdFile(dtdFN.c_str());
+    fs::path dtdFN = dirName_ / "Xdmf.dtd";
+    fs::ofstream dtdFile(dtdFN);
     
     dtdFile << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl;
     dtdFile << "<!--Root element of dataset-->" << std::endl;

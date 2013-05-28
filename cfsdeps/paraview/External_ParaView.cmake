@@ -1,4 +1,16 @@
 #-------------------------------------------------------------------------------
+# Project Homepages
+# http://www.paraview.org
+# http://personal.cscs.ch/~jfavre/Projects/vtkLEA/vtklea.htm
+# see also the README_*.txt files in this directory.
+
+# http://www.paraview.org/Wiki/ParaView_Binaries
+# https://github.com/Kitware/ParaView/tree/v3.12.0/SuperBuild
+# http://www.paraview.org/Wiki/ParaView:Plugin_Deployment_with_Development_Installs
+# http://www.kitware.com/products/html/BuildingExternalProjectsWithCMake2.8.html
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 # Set prefix path and path to paraview sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
 set(paraview_sb_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/paraview_superbuild")

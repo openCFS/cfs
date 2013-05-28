@@ -161,8 +161,8 @@ ENDIF(USE_METIS)
 #-------------------------------------------------------------------------------
 IF(USE_GIDPOST)
   SET(GIDPOST_URL "${LSE17_SOURCES_DIR}/gidpost")
-  SET(GIDPOST_ZIP "gidpost1.71.zip")
-  SET(GIDPOST_MD5 "df8c3ed913cb8abafa36a47591438538")
+  SET(GIDPOST_ZIP "gidpost-2.1-for-cfs.zip")
+  SET(GIDPOST_MD5 "720b31e311295f3f30a81593b4f3654e")
 
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/gidpost/External_GiDpost.cmake")
 ENDIF(USE_GIDPOST)
@@ -359,8 +359,8 @@ IF(USE_CGAL)
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/mpfr/External_mpfr.cmake")
 
   SET(CGAL_URL "${LSE17_SOURCES_DIR}/cgal")
-  SET(CGAL_GZ "CGAL-3.9.tar.gz")
-  SET(CGAL_MD5 "797697130ff9231627521c0a38f16d2f")
+  SET(CGAL_BZ2 "CGAL-4.2.tar.bz2")
+  SET(CGAL_MD5 "df8e33389a8d9f15eb7eb17200c17002")
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cgal/External_CGAL.cmake")
 ENDIF(USE_CGAL)
 

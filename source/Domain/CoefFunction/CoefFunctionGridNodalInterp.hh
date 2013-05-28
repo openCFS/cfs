@@ -101,11 +101,13 @@ public:
 
   //! Give Values at global coordinate locations
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
-                                             StdVector< Vector<DATA_TYPE> >& values);
+                                        StdVector< Vector<DATA_TYPE> >& values, 
+                                        Grid* ptGrid );
 
   //! Give Values at global coordinate locations
   virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
-                                             StdVector< DATA_TYPE >& values);
+                                        StdVector< DATA_TYPE >& values, 
+                                        Grid* ptGrid );
 
   //@}
 
