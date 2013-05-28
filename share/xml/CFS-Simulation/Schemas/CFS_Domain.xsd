@@ -143,7 +143,16 @@
       </xsd:simpleType>
     </xsd:attribute>
     <xsd:attribute name="writeGraphvizFiles" type="DT_CFSBool" use="optional" default="no"/>
-    <xsd:attribute name="createSurfRegion" type="DT_CFSBool" use="optional" default="yes"/>
+    <xsd:attribute name="storeIntegrationGrid" type="DT_CFSBool" use="optional" default="yes">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          This attribute controls if the integration grid of the interface
+          (which is the collection of all pairwise intersections of master and
+          slave elements) is stored as a surfRegion in the grid, so it can be
+          visualized.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->

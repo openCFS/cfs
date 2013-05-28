@@ -118,8 +118,7 @@ namespace CoupledField{
     }
 
     if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
-      std::cerr << refElems_[eRegion].size() << std::endl;
-      EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
+      EXCEPTION(__func__ << ": requested FEType is not supported by space");
     }
     BaseFE * myFe = refElems_[eRegion][ptElem->type];
 
