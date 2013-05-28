@@ -60,7 +60,19 @@
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
-
+          
+        <!-- Initial conditions (optional) -->
+          <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                            
+              <!-- Initial state of previous sequence step / external file -->
+              <xsd:element name="initialState" type="DT_InitialState" minOccurs="0" maxOccurs="1"/>
+              
+ 		      </xsd:choice>
+ 		    </xsd:complexType>
+		  </xsd:element>
+		  
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -71,6 +83,8 @@
                 <xsd:element name="potential"     type="DT_BcInhomVector"  />
                 <xsd:element name="elecPotential" type="DT_BcInhomScalar"  />
                 
+                <!-- RHS Load Values-->
+                <xsd:element name="fluxDensity"   type="DT_BcInhomVector"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -85,15 +99,6 @@
             <xsd:complexType>
               <xsd:sequence>
                 <xsd:element ref="BasicCoil" minOccurs="1" maxOccurs="unbounded"/>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element>
-
-          <!-- Section for specifying permanent magnets (optional) -->
-          <xsd:element name="magnets" minOccurs="0">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="magnet" type="DT_Magnet" minOccurs="1" maxOccurs="unbounded"/>
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
@@ -436,15 +441,5 @@
   <xsd:element name="currentCoil2d" type="DT_CurrentCoil2D" substitutionGroup="BasicCoil"/>
   <xsd:element name="currentCoil3d" type="DT_CurrentCoil3D" substitutionGroup="BasicCoil"/>
 
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of data type for permanent magnets -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_Magnet">
-    <xsd:attribute name="name" type="xsd:token"/>
-    <xsd:attribute name="orientX" type="xsd:float"/>
-    <xsd:attribute name="orientY" type="xsd:float"/>
-    <xsd:attribute name="orientZ" type="xsd:float"/>
-  </xsd:complexType>
 
 </xsd:schema>

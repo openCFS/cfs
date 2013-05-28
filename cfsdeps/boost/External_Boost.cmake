@@ -1,4 +1,12 @@
 #-------------------------------------------------------------------------------
+# Boost provides free peer-reviewed portable C++ source libraries.
+# Needed by Botan and CGAL
+#
+# Project Homepage
+# http://www.boost.org
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 # Set prefix path and path to Boost sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
 set(boost_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/boost")
@@ -126,6 +134,13 @@ LIST(APPEND CMAKE_ARGS
 #MESSAGE("CMAKE_ARGS ${CMAKE_ARGS}")
 
 #-------------------------------------------------------------------------------
+# Set names of patch file and template file.
+#-------------------------------------------------------------------------------
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/boost/boost-patch.cmake.in")
+SET(PFN "${boost_prefix}/boost-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
+#-------------------------------------------------------------------------------
 # The Boost external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(boost
@@ -135,36 +150,10 @@ ExternalProject_Add(boost
   DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/boost
   URL ${BOOST_URL}/${BOOST_GZ}
   URL_MD5 ${BOOST_MD5}
+  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   CMAKE_ARGS
     ${CMAKE_ARGS}
   )
-
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/boost/boost-patch.cmake.in")
-SET(PFN "${boost_prefix}/boost-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-
-#-------------------------------------------------------------------------------
-# We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
-# want to apply the patch script  during configuration time but also if it has
-# changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
-# script. This can be achieved by  adding an additional build step between the
-# download and configure steps.
-#
-# NOTE: The  patch script should  be designed  in such a  way, that it  can be
-# applied to  an already patched  source tree. This  is due to the  fact, that
-# ExternalProject_Add only extracts the source if the MD5 sum has has changed.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(boost custom_patch
-   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-   DEPENDEES download
-   DEPENDERS configure
-   DEPENDS "${PFN}"
-   WORKING_DIRECTORY ${boost_source}
-)
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

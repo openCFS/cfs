@@ -160,6 +160,43 @@ namespace CoupledField {
     //return !(a==b);
     return ( a.resultType  < b.resultType );
   }
+  // ************************************************************************
+  // ENUM INITIALIZATION
+  // ************************************************************************
 
+  // Definition of unknown entity types
+  static EnumTuple unknownTypeTuples[] = 
+  {
+   EnumTuple(ResultInfo::NODE,  "NODE"), 
+   EnumTuple(ResultInfo::EDGE,  "EDGE"),
+   EnumTuple(ResultInfo::FACE,  "FACE"),
+   EnumTuple(ResultInfo::ELEMENT,  "ELEMENT"),
+   EnumTuple(ResultInfo::SURF_ELEM,  "SURF_ELEM"),
+   EnumTuple(ResultInfo::REGION,  "REGION"),
+   EnumTuple(ResultInfo::SURF_REGION,  "SURF_REGION"),
+   EnumTuple(ResultInfo::NODELIST,  "NODELIST"),
+   EnumTuple(ResultInfo::COIL,  "COIL"),
+   EnumTuple(ResultInfo::FREE,  "FREE")
+  };
+
+  Enum<ResultInfo::EntityUnknownType> ResultInfo::EntityUnknownTypeEnum_ = \
+      Enum<ResultInfo::EntityUnknownType>("Entry type of Results",
+                                          sizeof(unknownTypeTuples) / sizeof(EnumTuple),
+                                          unknownTypeTuples);
+
+  // Definition of entry types of resultinfo
+  static EnumTuple entryTypeTuples[] = 
+  {
+   EnumTuple(ResultInfo::UNKNOWN,  "NO_DIM"), 
+   EnumTuple(ResultInfo::SCALAR,  "SCALAR"),
+   EnumTuple(ResultInfo::VECTOR,  "VECTOR"),
+   EnumTuple(ResultInfo::TENSOR,  "TENSOR"),
+   EnumTuple(ResultInfo::STRING,  "STRING")
+  };
+
+  Enum<ResultInfo::EntryType> ResultInfo::EntryTypeEnum_ = \
+      Enum<ResultInfo::EntryType>("Entry type of Results",
+                                  sizeof(entryTypeTuples) / sizeof(EnumTuple),
+                                  entryTypeTuples);
 
 }

@@ -50,8 +50,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     nonLin_        = false;
     nonLinMaterial_= false;
 
-    needSolPrev_ = true;
-    
     //! Always use total Lagrangian formulation 
     updatedGeo_        = false;
 
@@ -94,8 +92,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
                  <<  pdename_ <<  "' does not fit to problem  geometry '"
                  << probGeo << "'"; );
     }
-    
-    std::cerr << "subType is " << subType_ << std::endl; 
     
     // Sanity check: 3D can only be computed if 3D elements are present
     if( subType_ == "3d" && ptGrid_->GetNumElemOfDim(3) == 0 ) {
@@ -268,7 +264,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
   {
 
     nonLin_ = false;
-    REFACTOR;
   }
 
 
@@ -596,8 +591,20 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         assemble_->AddLinearForm(ctx);
         myFct->AddEntityList(ent[i]);
       } // for
-    
-    
+
+      // ==================
+      //  SURFACE TRACTION
+      // ==================
+      LOG_DBG(mechpde) << "Reading direct right hand side values";
+
+      ReadRhsExcitation( "rhsValues", dispDofNames, ResultInfo::VECTOR, isComplex_,
+                          ent, coef, coefUpdateGeo );
+
+      for( UInt i = 0; i < ent.GetSize(); ++i ) {
+        //for non-linear simulations we might need a conservative interpolation in each timestep...
+        coef[i]->SetConservative(true);
+        this->rhsFeFunctions_[MECH_DISPLACEMENT]->AddLoadCoefFunction(coef[i], ent[i]);
+      }
   }
 
   BaseBDBInt *
@@ -798,7 +805,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     shared_ptr<ResultInfo> stress(new ResultInfo);
     stress->resultType = MECH_STRESS;
     stress->dofNames = stressComponents;
-    std::cerr << "stress Components: " << stressComponents.ToString() << std::endl;
     stress->unit =  "N/m^2";
     stress->entryType = ResultInfo::TENSOR;
     stress->definedOn = ResultInfo::ELEMENT;

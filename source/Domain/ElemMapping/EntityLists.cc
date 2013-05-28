@@ -32,6 +32,54 @@ namespace CoupledField {
     EntityList::listType.Add(EntityList::REGION_LIST, "region", false);
     EntityList::listType.Add(EntityList::NUMBER_LIST, "numberList");
   }
+  
+  void EntityList::Intersect(const StdVector<shared_ptr<EntityList> >& set1,
+                             const StdVector<shared_ptr<EntityList> >& set2,
+                             StdVector<shared_ptr<EntityList> >& intersect ) {
+
+    for( UInt i = 0; i < set1.GetSize(); ++i ) {
+      std::string name1 = set1[i]->GetName();
+      for( UInt j = 0; j < set2.GetSize(); ++j ) {
+        if( set2[j]->GetName() == name1 ) {
+          intersect.Push_back( set1[i]);
+          break;
+        }
+      }
+    }
+    intersect.Trim();
+  }
+
+  void EntityList::Union(const StdVector<shared_ptr<EntityList> >& set1,
+                         const StdVector<shared_ptr<EntityList> >& set2,
+                         StdVector<shared_ptr<EntityList> >& unionSet) {
+    // grab entries of set1
+    for( UInt i = 0; i < set1.GetSize(); ++i ) {
+      bool found = false;
+      std::string name1 = set1[i]->GetName();
+      for( UInt k = 0; k < unionSet.GetSize(); ++k ) {
+        if( unionSet[k]->GetName() == name1 ) {
+          found = true;
+          break;
+        }
+      }
+      if(!found)
+        unionSet.Push_back(set1[i]);
+    }
+    // grab entries of set2
+    for( UInt j = 0; j < set2.GetSize(); ++j ) {
+      bool found = false;
+      std::string name2 = set1[j]->GetName();
+      for( UInt k = 0; k < unionSet.GetSize(); ++k ) {
+        if( unionSet[k]->GetName() == name2 ) {
+          found = true;
+          break;
+        }
+      }
+      if(!found)
+        unionSet.Push_back(set2[j]);
+    }
+    unionSet.Trim();
+  }
 
 
   // --- Elem List ---
@@ -479,7 +527,17 @@ namespace CoupledField {
   // =================================================
   
   EntityIterator::EntityIterator() {
-    ptGrid_ = NULL;
+    ptGrid_        = NULL;
+    elemList_      = NULL; 
+    surfElemList_  = NULL;
+    nodeList_      = NULL;
+    regionList_    = NULL;
+    nameList_      = NULL;
+    coilList_      = NULL;
+    numberList_    = NULL;
+    ncElemList_    = NULL;
+    pos_ = 0;
+    size_ = 0;
   }
   
 

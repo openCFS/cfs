@@ -1,4 +1,17 @@
 #-------------------------------------------------------------------------------
+# bzip2  is a  freely available,  patent free  (see below),  high-quality data
+# compressor. It typically  compresses files to within 10% to  15% of the best
+# available  techniques (the  PPM family  of statistical  compressors), whilst
+# being  around  twice  as  fast  at  compression  and  six  times  faster  at
+# decompression. 
+#
+# Needed by Boost.
+#
+# Project Homepage
+# http://www.bzip.org
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 # Set paths to bzip2 sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
 set(bzip2_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/bzip2")
@@ -31,6 +44,13 @@ IF(CMAKE_TOOLCHAIN_FILE)
 ENDIF()
 
 #-------------------------------------------------------------------------------
+# Set names of patch file and template file.
+#-------------------------------------------------------------------------------
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/bzip2/bzip2-patch.cmake.in")
+SET(PFN "${bzip2_prefix}/bzip2-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
+#-------------------------------------------------------------------------------
 # The bzip2 external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(bzip2-static
@@ -39,35 +59,10 @@ ExternalProject_Add(bzip2-static
   SOURCE_DIR ${bzip2_source}
   URL ${BZIP2_URL}/${BZIP2_GZ}
   URL_MD5 ${BZIP2_MD5}
+  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   CMAKE_ARGS
     ${CMAKE_ARGS}
     -DBUILD_SHARED_LIBS:BOOL=OFF
-)
-
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/bzip2/bzip2-patch.cmake.in")
-SET(PFN "${bzip2_prefix}/bzip2-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-#-------------------------------------------------------------------------------
-# We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
-# want to apply the patch script  during configuration time but also if it has
-# changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
-# script. This can be achieved by  adding an additional build step between the
-# download and configure steps.
-#
-# NOTE: The  patch script should  be designed  in such a  way, that it  can be
-# applied to  an already patched  source tree. This  is due to the  fact, that
-# ExternalProject_Add only extracts the source if the MD5 sum has has changed.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(bzip2-static custom_patch
-   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-   DEPENDEES download
-   DEPENDERS configure
-   DEPENDS "${PFN}"
-   WORKING_DIRECTORY ${bzip2_source}
 )
 
 #-------------------------------------------------------------------------------

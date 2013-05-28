@@ -96,6 +96,12 @@ namespace CoupledField
                              EntityType entType,
                              UInt dof = 1) = 0;
 
+    //! Flag, if element has true nodal permutation
+    virtual bool NeedsNodalPermutation() {
+      return false;
+    }
+    
+    
     //! Get the nodal permutation Vector for a given Face or Edge
     //! e.g. If asked for a face, the element will check the flags
     //! of this face and return a vector of size NumberOfFncs on the Face

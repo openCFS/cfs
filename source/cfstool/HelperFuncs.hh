@@ -7,6 +7,16 @@
 
 #include <string>
 
+#include "General/defs.hh"
+
+using namespace CoupledField;
+
+namespace CoupledField
+{
+  class SimInput;
+  class SimOutput;
+}
+
 namespace CFSTool
 {
 
@@ -48,6 +58,11 @@ namespace CFSTool
                     std::string coordSysId="default",
                     std::string node_name="averageDomain");
   
+
+  PtrParamNode ParamNodeFromPropertyTree( const std::string& propertyFile,
+                                          const std::string& context );
+
+  void MergeParamNodes(PtrParamNode src, PtrParamNode dest);  
 
 }
 

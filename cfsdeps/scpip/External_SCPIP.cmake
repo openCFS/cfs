@@ -42,18 +42,6 @@ IF(CMAKE_TOOLCHAIN_FILE)
 ENDIF()
 
 #-------------------------------------------------------------------------------
-# The scpip external project
-#-------------------------------------------------------------------------------
-ExternalProject_Add(scpip
-  PREFIX "${scpip_prefix}"
-  SOURCE_DIR "${scpip_source}"
-  URL ${SCPIP_PATH}/${SCPIP_BZ2}
-  URL_MD5 ${SCPIP_MD5}
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-)
-
-#-------------------------------------------------------------------------------
 # Set names of patch file and template file.
 #-------------------------------------------------------------------------------
 SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/scpip/scpip-patch.cmake.in")
@@ -61,22 +49,16 @@ SET(PFN "${scpip_prefix}/scpip-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
-# We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
-# want to apply the patch script  during configuration time but also if it has
-# changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
-# script. This can be achieved by  adding an additional build step between the
-# download and configure steps.
-#
-# NOTE: The  patch script should  be designed  in such a  way, that it  can be
-# applied to  an already patched  source tree. This  is due to the  fact, that
-# ExternalProject_Add only extracts the source if the MD5 sum has has changed.
+# The scpip external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add_Step(scpip custom_patch
-   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-   DEPENDEES download
-   DEPENDERS configure
-   DEPENDS "${PFN}"
-   WORKING_DIRECTORY ${scpip_source}
+ExternalProject_Add(scpip
+  PREFIX "${scpip_prefix}"
+  SOURCE_DIR "${scpip_source}"
+  URL ${SCPIP_PATH}/${SCPIP_BZ2}
+  URL_MD5 ${SCPIP_MD5}
+  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+  CMAKE_ARGS
+    ${CMAKE_ARGS}
 )
 
 #-------------------------------------------------------------------------------

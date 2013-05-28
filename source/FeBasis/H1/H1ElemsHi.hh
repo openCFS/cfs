@@ -59,6 +59,9 @@ namespace CoupledField {
     
     //! \copydoc BaseFE::GetAnisoOrder
     virtual void GetAnisoOrder(StdVector<UInt>& order ) const;
+    
+    //! Compare two element for equality (= same shape and approximation);
+    bool operator==( const FeH1Hi& comp) const;
 
   protected:
     

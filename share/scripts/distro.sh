@@ -93,6 +93,7 @@ elif [ "${OS}" = "Linux" ] ; then
         case "$DIST" in
             "SUSE") DIST="SLE" ;;
             "Debian") REV=$(echo $REV | sed 's/\.[0-9]*$//') ;;
+            "Enterprise") DIST="ORACLE" ;;
         esac
     elif [ -f /etc/lsb-release ]; then
         . /etc/lsb-release;
@@ -110,8 +111,18 @@ elif [ "${OS}" = "Linux" ] ; then
                 #
                 # http://fedoraproject.org/wiki/History_of_Red_Hat_Linux
                 # http://fedoraproject.org/wiki/Releases/HistoricalSchedules
-        DIST=`cat /etc/redhat-release | cut -d' ' -f1`
-        PSEUDONAME=`cat /etc/redhat-release | sed s/.*\(// | sed s/\)//`
+        DIST=$(rpm -qf /etc/redhat-release | cut -d'-' -f1)
+        case "$DIST" in
+            "enterprise")
+               # https://blogs.oracle.com/VDIpier/entry/how_to_check_if_the
+               DIST="ORACLE"
+               PSEUDONAME=$(cat /etc/enterprise-release | cut -d'(' -f2 | cut -d ')' -f1)
+               ;;
+            *) DIST=$(cat /etc/redhat-release | cut -d' ' -f1) 
+               PSEUDONAME=`cat /etc/redhat-release | sed s/.*\(// | sed s/\)//`
+               ;;
+        esac
+        
         REV=`cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//`
 
     elif [ -f /etc/SuSE-release ] ; then

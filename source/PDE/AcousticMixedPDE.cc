@@ -170,7 +170,7 @@ namespace CoupledField{
                                           new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>() , 
                                           coeffKPV,1.0, updatedGeo_ );
       else
-        stiffIntPV = new ABInt<DATA_TYPE>(new  GradientOperator<FeH1,DIM,DATA_TYPE>() , 
+        stiffIntPV = new ABInt<DATA_TYPE>(new  GradientOperator<FeH1,DIM,DATA_TYPE>() ,
                                           new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(),  
                                           coeffKPV,1.0, updatedGeo_ );
 
@@ -269,7 +269,6 @@ namespace CoupledField{
         ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames, flowInfo->entryType, 
                              isComplex_, regionFlow, definedDofs, coefUpdateGeo );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
-        regionFlow->AddEntityList(actSDList);
 
         //now create the integrators
         BiLinearForm *convectiveVV = NULL;
@@ -555,10 +554,6 @@ namespace CoupledField{
 
   void AcousticMixedPDE::DefineSolveStep(){
       solveStep_ = new StdSolveStep(*this);
-    }
-
-    void AcousticMixedPDE::SetInitialCondition(){
-
     }
 
     //!  Define available postprocessing results

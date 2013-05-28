@@ -47,13 +47,15 @@ namespace CoupledField{
   TimeSchemeGLM::~TimeSchemeGLM(){
     for(UInt i=1;i<curScheme_->sizeGLMVec_;i++){
        if(avoidFreeingIdx_.find(i)==avoidFreeingIdx_.end())
-         delete glmVector_[i];
+         if( i < glmVector_.GetSize())
+           delete glmVector_[i];
     }
     glmVector_.Clear();
 
     for(UInt i=1;i<curScheme_->numStages_;i++){
       if((Integer)i!=avoidUpdateIdx_){
-        delete stageVector_[i];
+        if( i < stageVector_.GetSize())
+          delete stageVector_[i];
       }
     }
     stageVector_.Clear();

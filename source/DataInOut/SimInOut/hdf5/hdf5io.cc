@@ -1,4 +1,4 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+  // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
@@ -18,6 +18,7 @@ namespace CoupledField {
 // =================================
 //    Initialize Static Variables
 // =================================
+hsize_t H5IO::minChunkSize_= 10;
 hsize_t H5IO::maxChunkSize_= 100;
 
   std::map< std::string, std::pair<const H5::PredType*, const H5::PredType*> > H5IO::BaseHdfTypeConversion::atomTypeMap_;
@@ -587,6 +588,132 @@ hsize_t H5IO::maxChunkSize_= 100;
     }
 
   }
+  
+  template<typename TYPE>
+  void H5IO::Write1DArrayExt( H5::CommonFG &loc,
+                              const std::string& name,
+                              UInt size,
+                              const TYPE * buffer,
+                              const H5::DSetCreatPropList &create_plist ) {
+    
+    // Note: for extensible arrays it is okay to have initial zero size,
+    //       as they can be extended later on.
+    try {
+
+      // create conversion helper object and get native / std hdf5 datatype
+      HdfTypeConversion<TYPE> conv;
+      H5::DataType* stdType = conv.GetStdType();
+      H5::DataType* nativeType = conv.GetNativeType();
+
+      // create memory data space
+      const hsize_t dims = size;
+      const hsize_t maxDims[1] = {H5S_UNLIMITED};
+      H5::DataSpace space( 1, &dims, maxDims );
+
+      // generate dataset and fill it
+      conv.SetNativeData( buffer, size );
+      if( !conv.IsSet() ) {
+        EXCEPTION( "Could not convert data for 1D array '"
+            << name << "' of type " << typeid(TYPE).name() );
+      }
+
+      // set chunking of dataset
+      H5::DSetCreatPropList newList(create_plist);
+      hsize_t chunk = std::min( (UInt) size, (UInt) maxChunkSize_ );
+      chunk = std::max((UInt) chunk, (UInt) minChunkSize_);
+      newList.setChunk( 1, &chunk);
+      H5::DataSet dataset = loc.createDataSet( name, *stdType,
+                                               space, newList );
+      dataset.write( conv.GetOutBufferPtr(), *nativeType  );
+
+      // reset conversion object
+      conv.CleanUp();
+
+      // close dataset, dataspace- and types
+      space.close();
+      dataset.close();
+
+
+    } catch (H5::Exception& h5ex) {
+      EXCEPTION("Could not write 1D-Array '"
+          << name << "':\n" << h5ex.getCDetailMsg());
+    } catch( Exception& ex ) {
+      RETHROW_EXCEPTION(ex, "Could not write 1D-Array '" << name << "'" );
+    }
+
+  }
+
+  template<typename TYPE>
+  void H5IO::Extend1DArray( H5::CommonFG &loc,
+                            const std::string& name,
+                            UInt newSize,
+                            const TYPE * buffer,
+                            const H5::DSetCreatPropList &create_plist ) {
+
+    // check if dataset exists. Ohterwise write new array.
+    H5::DataSet dataset;
+    try {
+         dataset  = loc.openDataSet( name );
+    } catch ( ... ) {
+      Write1DArrayExt( loc, name, newSize, buffer, create_plist );
+      return;
+    }
+    
+    // Obtain old size and ensure, that new size is larger
+    UInt oldSize = H5IO::GetNumEntries(loc, name);
+    UInt size = newSize - oldSize; 
+
+    // check, that size is greater than zero
+    if( newSize == 0 || buffer == NULL ) {
+      EXCEPTION( "Attribute data buffer of 1D array '" << name
+                 << "' is NULL or has zero size" );
+    }
+    try {
+
+      // create conversion helper object and get native / std hdf5 datatype
+      HdfTypeConversion<TYPE> conv;
+      H5::DataType* nativeType = conv.GetNativeType();
+
+      // create memory data space
+      const hsize_t dims[1] = {size};
+      H5::DataSpace memSpace( 1, dims );
+
+      // generate dataset and fill it
+      conv.SetNativeData( buffer, size );
+      if( !conv.IsSet() ) {
+        EXCEPTION( "Could not convert data for 1D array '"
+            << name << "' of type " << typeid(TYPE).name() );
+      }
+
+      
+
+      // extend dataset to new size
+      const hsize_t newDims[] = {newSize};
+      dataset.extend( newDims );
+
+      H5::DataSpace fileSpace = dataset.getSpace();
+      hsize_t offset[1] = {oldSize};
+      hsize_t mySize[1] = {size};
+      fileSpace.selectHyperslab(  H5S_SELECT_SET, mySize, offset );
+
+      // write data
+      dataset.write( conv.GetOutBufferPtr(), *nativeType, memSpace, fileSpace );
+
+      // reset conversion object
+      conv.CleanUp();
+
+      // close dataset, dataspace- and types
+      fileSpace.close();
+      memSpace.close();
+      dataset.close();
+
+    } catch (H5::Exception& h5ex) {
+      EXCEPTION("Could not extend 1D-Array '"
+          << name << "':\n" << h5ex.getCDetailMsg());
+    } catch( Exception& ex ) {
+      RETHROW_EXCEPTION(ex, "Could not extend 1D-Array '" << name << "'" );
+    }
+  }
 
   template<typename TYPE>
   void H5IO::Reserve1DArray( H5::CommonFG &loc,
@@ -744,6 +871,152 @@ hsize_t H5IO::maxChunkSize_= 100;
       RETHROW_EXCEPTION(ex, "Could not write 2D-Array '" << name << "'" );
     }
   }
+  
+  template<typename TYPE>
+  void H5IO::Write2DArrayExt( H5::CommonFG &loc,
+                           const std::string& name,
+                           UInt rowSize,
+                           UInt colSize,
+                           const TYPE * buffer,
+                           const H5::DSetCreatPropList &create_plist ) {
+
+    // Note: for extensible arrays it is okay to have initial zero size,
+    //       as they can be extended later on.
+
+    try {
+
+      // create conversion helper object and get native / std hdf5 datatype
+      HdfTypeConversion<TYPE> conv;
+      H5::DataType* stdType = conv.GetStdType();
+      H5::DataType* nativeType = conv.GetNativeType();
+
+      // create memory data space
+      const hsize_t dims[] = {rowSize, colSize};
+      const hsize_t maxDims[] = {H5S_UNLIMITED, H5S_UNLIMITED};
+      const Integer rank = 2;
+
+      H5::DataSpace space( rank, dims, maxDims );
+
+      // generate dataset and fill it
+      conv.SetNativeData( buffer, rowSize * colSize );
+      if( !conv.IsSet() ) {
+        EXCEPTION( "Could not convert data for 2D array '"
+            << name << "' of type " << typeid(TYPE).name() );
+      }
+
+      H5::DSetCreatPropList newList(create_plist);
+      UInt chunkRowSize = std::min( (UInt) rowSize, (UInt) maxChunkSize_ );
+      chunkRowSize = std::max((UInt) chunkRowSize, (UInt) minChunkSize_);
+      
+      UInt chunkColSize = std::min( (UInt) colSize, (UInt) maxChunkSize_ );
+      chunkColSize = std::max((UInt) chunkColSize, (UInt) minChunkSize_);
+      const hsize_t chunk[2] = { chunkRowSize, chunkColSize };
+      newList.setChunk( 2, chunk);
+      H5::DataSet dataset = loc.createDataSet( name, *stdType,
+                                               space, newList );
+      dataset.write( conv.GetOutBufferPtr(), *nativeType  );
+
+      // reset conversion object
+      conv.CleanUp();
+
+      // close dataset, dataspace- and types
+      space.close();
+      dataset.close();
+
+    } catch (H5::Exception& h5ex) {
+      EXCEPTION("Could not write 2D-Array '" << name
+                << "':\n" << h5ex.getCDetailMsg());
+    } catch( Exception& ex ) {
+      RETHROW_EXCEPTION(ex, "Could not write 2D-Array '" << name << "'" );
+    }
+  }
+  
+  template<typename TYPE>
+   void H5IO::Extend2DArray( H5::CommonFG &loc,
+                             const std::string& name,
+                             UInt newRowSize,
+                             UInt newColSize,
+                             const TYPE * buffer,
+                             const H5::DSetCreatPropList &create_plist ) {
+
+     // check if dataset exists. Otherwise write new array.
+     H5::DataSet dataset;
+     try {
+       dataset  = loc.openDataSet( name );
+     } catch ( ... ) {
+       Write2DArrayExt( loc, name, newRowSize, newColSize, buffer, create_plist );
+       return;
+     }
+     
+     // Obtain old size and ensure, that new size is larger
+     StdVector<UInt> oldSize = H5IO::GetArrayDims(loc, name);
+     StdVector<UInt> size(2);
+     
+     hsize_t offset[2];
+     // Ensure, that either only column or only row size is different
+     if( newRowSize != oldSize[0] && newColSize == oldSize[1] ) {
+       // different rows, same columns
+       size[0] = newRowSize - oldSize[0];
+       size[1] = oldSize[1];
+       offset[0] = oldSize[0];
+       offset[1] = 0;
+     } else      if( newRowSize != oldSize[0] && newColSize == oldSize[1] ) {
+       // same rows, different columns
+       size[0] = oldSize[0];
+       size[1] = newColSize - oldSize[1];
+       offset[0] = 0;
+       offset[1] = oldSize[1];
+     }
+     
+
+     // check, that size is greater than zero
+     if( newRowSize == 0 || newColSize == 0 || buffer == NULL ) {
+       EXCEPTION( "Attribute data buffer of 2D array '" << name
+                  << "' is NULL or has zero size" );
+     }
+     try {
+
+       // create conversion helper object and get native / std hdf5 datatype
+       HdfTypeConversion<TYPE> conv;
+       H5::DataType* nativeType = conv.GetNativeType();
+
+       // create memory data space
+       const hsize_t dims[] = {size[0], size[1]};
+       H5::DataSpace memSpace( 2, dims );
+
+       // generate dataset and fill it
+       conv.SetNativeData( buffer, size[0] * size[1] );
+       if( !conv.IsSet() ) {
+         EXCEPTION( "Could not convert data for 2D array '"
+             << name << "' of type " << typeid(TYPE).name() );
+       }
+
+       // extend dataset to new size
+       const hsize_t newDims[] = {newRowSize, newColSize};
+       dataset.extend( newDims );
+       
+       H5::DataSpace fileSpace = dataset.getSpace();
+       hsize_t mySize[] = {size[0], size[1]};
+       fileSpace.selectHyperslab(  H5S_SELECT_SET, mySize, offset );
+
+       // write data
+       dataset.write( conv.GetOutBufferPtr(), *nativeType, memSpace, fileSpace );
+
+       // reset conversion object
+       conv.CleanUp();
+
+       // close dataset, dataspace- and types
+       fileSpace.close();
+       memSpace.close();
+       dataset.close();
+
+     } catch (H5::Exception& h5ex) {
+       EXCEPTION("Could not extend 2D-Array '"
+           << name << "':\n" << h5ex.getCDetailMsg());
+     } catch( Exception& ex ) {
+       RETHROW_EXCEPTION(ex, "Could not extend 2D-Array '" << name << "'" );
+     }
+   }
 
   template<typename TYPE>
   void H5IO::Reserve2DArray( H5::CommonFG &loc,
@@ -1069,21 +1342,10 @@ hsize_t H5IO::maxChunkSize_= 100;
 
     // obtain information about dimension of dataset
     UInt numEntries = GetNumEntries( loc, name );
-
-    // create temporary buffer
-    TYPE * buffer = new TYPE[numEntries];
-
-    // read data into buffer
-    ReadArray( loc, name, buffer );
-
-    // copy buffer data to vector
     data.Resize( numEntries );
-    for( UInt i = 0; i < numEntries; i++ ) {
-      data[i] = buffer[i];
-    }
-
-    // delete buffer
-    delete[] buffer;
+  
+    // read data into array
+    ReadArray( loc, name, data.GetPointer() );
   }
 
   template<typename TYPE>
@@ -1096,21 +1358,9 @@ hsize_t H5IO::maxChunkSize_= 100;
 
     // obtain information about dimension of dataset
     UInt numEntries = GetNumEntries( loc, name );
-
-    // create temporary buffer
-    TYPE * buffer = new TYPE[numEntries];
-
-    // read data into buffer
-    ReadArray( loc, name, buffer );
-
-    // copy buffer data to vector
     data.resize( numEntries );
-    for( UInt i = 0; i < numEntries; i++ ) {
-      data[i] = buffer[i];
-    }
 
-    // delete buffer
-    delete[] buffer;
+    ReadArray( loc, name, &data[0] );
   }
   
   
@@ -1164,6 +1414,19 @@ hsize_t H5IO::maxChunkSize_= 100;
                                   const H5::DSetCreatPropList   \
                                   &create_plist);               \
     template                                                    \
+    void H5IO::Write1DArrayExt<TYPE>(H5::CommonFG &loc,         \
+                                     const std::string& name,   \
+                                     UInt size,                 \
+                                     const TYPE * buffer,       \
+                                     const H5::DSetCreatPropList\
+                                     &create_plist);            \
+  template                                                      \
+  void H5IO::Extend1DArray<TYPE>( H5::CommonFG &loc,            \
+                                  const std::string& name,      \
+                                  UInt newSize,                 \
+                                  const TYPE * buffer,          \
+                                  const H5::DSetCreatPropList&);\
+  template                                                      \
     void H5IO::Reserve1DArray<TYPE>(H5::CommonFG &loc,          \
                                     const std::string& name,    \
                                     UInt size,                  \
@@ -1182,6 +1445,23 @@ hsize_t H5IO::maxChunkSize_= 100;
                                    const TYPE * buffer,         \
                                    const H5::DSetCreatPropList  \
                                    &create_plist );             \
+    template                                                    \
+    void H5IO::Write2DArrayExt<TYPE>( H5::CommonFG &loc,        \
+                                      const std::string& name,  \
+                                      UInt rowSize,             \
+                                      UInt colSize,             \
+                                      const TYPE * buffer,      \
+                                      const H5::DSetCreatPropList\
+                                       &create_plist );         \
+    template                                                    \
+    void H5IO::Extend2DArray<TYPE>( H5::CommonFG &loc,          \
+                               const std::string& name,         \
+                               UInt newRowSize,                 \
+                               UInt newColSize,                 \
+                               const TYPE * buffer,             \
+                               const H5::DSetCreatPropList      \
+                               &create_plist );                 \
+                                                                \
     template                                                    \
     void H5IO::Reserve2DArray<TYPE>( H5::CommonFG &loc,         \
                                      const std::string& name,   \
@@ -1271,7 +1551,61 @@ hsize_t H5IO::maxChunkSize_= 100;
     actMsGroup.close();
     return stepGroup;
   }
+  
+  H5::Group H5IO::OpenCreateGroup(H5::CommonFG &curGroup,
+                                  const std::string& name ) {
+    H5::Group ret;
+    try {
+      ret = curGroup.openGroup(name);
+    } catch (H5::Exception&){
+      try {
+        ret = curGroup.createGroup(name);
+      }  H5_CATCH("Could not open / create group " << name );
+    }
+    return ret;
+  }
 
+  bool H5IO::GroupExists( const H5::CommonFG &loc,
+                    const std::string& name ) {
+   bool ret = false;
+   try {
+     H5::Group tmp = loc.openGroup(name);
+     ret = true;
+     tmp.close();
+   } catch(H5::Exception) {
+     // nothing to do
+   }
+   return ret;
+  }
+  
+  bool H5IO::DatasetExists( const H5::CommonFG &loc,
+                            const std::string& name ){
+    bool ret = false;
+     try {
+       H5::DataSet tmp = loc.openDataSet(name);
+       ret = true;
+       tmp.close();
+     } catch(H5::Exception) {
+       // nothing to do
+     }
+     return ret;
+  }
+
+  bool H5IO::AttrExists( const H5::H5Object& obj,
+                         const std::string& name ) {
+    bool ret = false;
+     try {
+       H5::Attribute tmp = obj.openAttribute(name);
+       ret = true;
+       tmp.close();
+     } catch(H5::Exception) {
+       // nothing to do
+     }
+     return ret;
+  }
+
+  
+  
   void H5IO::SetMaxChunkSize( UInt chunkSize ) {
     H5IO::maxChunkSize_ = chunkSize;
 
@@ -1542,6 +1876,11 @@ hsize_t H5IO::maxChunkSize_= 100;
 
       for(UInt i=0; i<numObjs; i++)
       {
+        
+        char name[64];
+        H5Iget_name( ids[i], name, 64);
+        std::cerr << "object name: " << name << std::endl;
+        
         H5::DataSet ds;
         H5::Group group;
         H5::DataType dt;

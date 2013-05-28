@@ -23,7 +23,7 @@ public:
   //! \param isPartOfSequence true, if driver is part of  multiSequence
   HarmonicDriver(UInt sequenceStep, bool isPartOfSequence,
                  shared_ptr<SimState> state,
-                 Domain* domain);
+                 Domain* domain, PtrParamNode paramNode, PtrParamNode infoNode );
 
   //! Detructor
   virtual ~HarmonicDriver();
@@ -53,20 +53,24 @@ public:
   }
 
   //! Initialization method
-  void Init();
+  void Init(bool restart);
 
   //! Main method, where harmonic analysis is implemented.
-  void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL);
+  void SolveProblem();
 
   /** This allows optimization to handle the individual frequency steps, e.g. to compute
    * objective values. Internally this is is a service function for SolveProblem()
    * @param actFreqStep sets the actFreq_ attribute, to start with 1 and not to exceed numFreq_ */
-   Double ComputeFrequencyStep(UInt actFreqStep, PtrParamNode analysis_id);
+   Double ComputeFrequencyStep(UInt actFreqStep);
 
    /** This StoreResults meant for Optimization only */
   void StoreResults(UInt stepNum,
                     double step_val );
 
+  //! \copydoc SingleDriver::SetToStepValue
+  virtual void SetToStepValue(UInt stepNum, Double stepVal );
+
+  
   /** This is the list of all frequencies. As long as we have no adaptive
    * frequeceny steps this makes no problem. */
   struct Frequency
@@ -85,6 +89,10 @@ public:
   /** Helper method which determines if an AnalyisType is complex. */
   virtual bool IsComplex() { return true; };
 
+  //! Static method being called in the case of a Ctr-C signal
+  static void SignalHandler( int sig);
+
+  
 protected:
 
 
@@ -104,6 +112,9 @@ protected:
   //!                  an integral value from [1:numFreq_]
   Double ComputeNextFrequency(UInt freqIndex) const;
 
+  //! Frequency step to proceed from when performing restarted simulation
+  UInt restartStep_; 
+  
   //! Current frequency value
   Double actFreq_;
 
@@ -112,6 +123,9 @@ protected:
 
   //! Last frequency for which a simulation is performed
   Double stopFreq_;
+  
+  //! Last frequency step
+  UInt stopFreqStep_;
 
   //! Number of frequencies for which a simulation is performed
   UInt numFreq_;
@@ -121,14 +135,27 @@ protected:
 
   //! A attribute storing the type of algorithm used for frequency sampling
   FreqSamplingType samplingType_;
-
-  /** This is the pointer to our analysis description */
-  PtrParamNode pn_;
+  
+  // =======================================================================
+  //  Restart related data
+  // =======================================================================
+  
+  //! Read restart information
+  void ReadRestart();
+  
+  //! Flag, if analysis is restarted
+  bool isRestarted_;
+  
+  //! Flag, if restart file is to be written
+  bool writeRestart_;
   
   // =======================================================================
   //  Timing estimation
   // =======================================================================
 
+  //! Estimated time per step
+  Double timePerStep_;
+  
   //! Timer for estimating remaining runtime 
   boost::shared_ptr<Timer> timer_;
 

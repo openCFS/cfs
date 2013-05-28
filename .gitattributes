@@ -56,6 +56,7 @@ cfsdeps/boost/External_Boost.cmake -text
 cfsdeps/boost/boost-1.48.0-gcc47-winthreads.patch -text
 cfsdeps/boost/boost-intel-signbit-intrinsic.patch -text
 cfsdeps/boost/boost-multi_array.patch -text
+cfsdeps/boost/boost-newline.patch -text
 cfsdeps/boost/boost-patch.cmake.in -text
 cfsdeps/bzip2/CMakeLists.txt -text
 cfsdeps/bzip2/External_bzip2.cmake -text
@@ -108,10 +109,11 @@ cfsdeps/cgns/cgnsview-ccmio.patch -text
 cfsdeps/cmake/External_CMake.cmake -text
 cfsdeps/cmake/cmake-configure.cmake.in -text
 cfsdeps/cmake/cmake-install.cmake.in -text
-cfsdeps/gidpost/CMakeLists.txt -text
 cfsdeps/gidpost/External_GiDpost.cmake -text
+cfsdeps/gidpost/gidpost-file-append.patch -text
+cfsdeps/gidpost/gidpost-fortran.patch -text
+cfsdeps/gidpost/gidpost-install.patch -text
 cfsdeps/gidpost/gidpost-patch.cmake.in -text
-cfsdeps/gidpost/gidpost-sprintf-format.patch -text
 cfsdeps/gmp/External_gmp.cmake -text
 cfsdeps/gmp/gmp-configure.cmake.in -text
 cfsdeps/gmp/gmp-intel-atomic.patch -text
@@ -896,7 +898,6 @@ share/scripts/hdf5_concat2.sh.in -text
 share/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
 share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
 share/scripts/identify_compiler.cmake.in svneol=native#text/plain
-share/scripts/log.xml -text
 share/scripts/mingw_cross_toolchain_centos_6.cmake -text
 share/scripts/mingw_cross_toolchain_ubuntu_1204.cmake -text
 share/scripts/voidmesh.pl -text
@@ -940,6 +941,9 @@ share/xml/CFS-Simulation/Schemas/CFS_PostProc.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Preconds.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Solvers.xsd svneol=native#text/xml
 share/xml/CMakeLists.txt svneol=native#text/plain
+share/xml/config/cfstool.json -text
+share/xml/config/cfstool.xml -text
+share/xml/config/log.xml -text
 share/xsl/CMakeLists.txt svneol=native#text/plain
 share/xsl/check_for_docu_tag.xsl -text
 share/xsl/ctest_notes_trafo.xsl -text

@@ -140,12 +140,26 @@ public:
   //! Add constraint boundary condition
   void AddConstraint( shared_ptr<Constraint> bc );
 
+  //@{
   //! Add a Coefficient function to fill the FeFunction
-  void AddLoadCoefFunction( shared_ptr<CoefFunction> coef );
+  void AddLoadCoefFunction( shared_ptr<CoefFunction> coef,
+                            const StdVector<shared_ptr<EntityList> >& list);
+  
+  void AddLoadCoefFunction( shared_ptr<CoefFunction> coef,
+                            shared_ptr<EntityList >& list);
+  //@}
 
+  //@{
   //! Add an external data function to fill the FE function
-  void AddExternalDataSource( shared_ptr<CoefFunction> coef );
+  void AddExternalDataSource( shared_ptr<CoefFunction> coef,
+                              const StdVector<shared_ptr<EntityList> >& list);
+  
+  void AddExternalDataSource( shared_ptr<CoefFunction> coef,
+                              shared_ptr<EntityList>& list);
+  //@}
 
+  //! Remove external data sources
+  void RemoveExternalDataSource();
 
   //! Get Homogenious Boundary Conditions
   const HdBcList GetHomDirichletBCs(){
@@ -214,6 +228,9 @@ public:
    //! Incorporate load conditions, the characteristic here is that the values will be
    //! added, not set as in ApplyBCs
    virtual void ApplyLoads() = 0;
+   
+   //! Set the feFunction to values obtained by external data sources
+   virtual void ApplyExternalData() = 0;
   //@}
   
   //! generates an interpolation operator by determining the space used
@@ -226,6 +243,14 @@ public:
   //! Generate interpolation linear form
   virtual LinearForm* GenerateInterpolLinForm( UInt spaceDim, UInt dofDim, PtrCoefFct ,
                                            bool updatedGeo )=0;
+  
+  //! Copy the values from another FeFunction
+  
+  //! This method tries to copy the coefficient values from another FeFunction.
+  //! If both associated spaces have the same approximation type, this is merely
+  //! a simple equation mapping and copy operation. If the spaces have different
+  //! approximation types, the general mapping mechanism will be utilized.
+  virtual void InitFromFeFunction( shared_ptr<BaseFeFunction> feFct ) = 0;
 
 protected:
 
@@ -237,6 +262,9 @@ protected:
   
   //! Set with all regions the function is defined on
   std::set<RegionIdType> regions_;
+  
+  //! Support of the CoefFunction. Only needed for grid/solution results
+  StdVector<shared_ptr<EntityList> > entities_;
   
   //! Homogeneous Dirichlet BCs
   HdBcList hdBcs_;
@@ -374,6 +402,9 @@ public:
   //! Generate interpolation linear form
   LinearForm* GenerateInterpolLinForm( UInt spaceDim, UInt dofDim, PtrCoefFct,
                                        bool updatedGeo );
+  
+  //! \copydoc BaseFeFunction::InitFromFeFunction
+  void InitFromFeFunction( shared_ptr<BaseFeFunction> feFct );
   
 protected:
 

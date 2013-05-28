@@ -332,10 +332,10 @@
 		       default="no"/>
         <xsd:attribute name="readEntities"
 		       type="xsd:token"
-		       default="all"/>
+		       default=""/>
         <xsd:attribute name="linearizeEntities"
           type="xsd:token"
-          default="none"/>
+          default=""/>
         <xsd:attribute name="fileName"
 		       type="xsd:token"
 		       default="default"/>
@@ -504,6 +504,7 @@
     <xsd:attribute name="id" type="xsd:token" default="gid"/>
     <xsd:attribute name="directory" type="xsd:string" default="results_gid"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
+    <xsd:attribute name="mergeSequenceSteps" type="DT_CFSBool" default="yes"/>
   </xsd:complexType>
   
   <!-- ******************************************************************** -->

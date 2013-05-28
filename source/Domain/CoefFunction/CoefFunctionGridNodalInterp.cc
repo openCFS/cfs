@@ -26,6 +26,7 @@
 #include "FeBasis/FeFunctions.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 #include "General/Enum.hh"
+#include "Driver/BaseDriver.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Utils/Timer.hh"
 
@@ -355,14 +356,20 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     //create the matrix
     UInt dDim = this->resultInfo_->dofNames.GetSize();
     //determine the number of rows in the CRS matrix
+    StdVector<Integer> elemEqns;
     UInt nnz=0;
-    UInt numRows= targetSpace->GetNumEquations();
+    UInt numRows= targetSpace->GetNumFreeEquations();
     UInt numCols = this->solVec_.GetSize();
     std::map<UInt,std::vector<UInt> >::iterator eIt = this->elemNodeAssoc_.begin();
     while(eIt != this->elemNodeAssoc_.end()){
       const Elem* curE = this->domain_->GetGrid()->GetElem(eIt->first);
-      BaseFE * fe = targetSpace->GetFe(curE->elemNum);
-      nnz += fe->GetNumFncs()*eIt->second.size()*dDim;
+      targetSpace->GetElemEqns(elemEqns,curE);
+      for(UInt i=0;i<elemEqns.GetSize();++i){
+        if(elemEqns[i]>0){
+          nnz += eIt->second.size();
+        }
+      }
+      //nnz += fe->GetNumFncs()*eIt->second.size()*dDim;
       eIt++;
     }
 
@@ -371,7 +378,6 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 
     shared_ptr<ElemShapeMap> esm;
     Matrix<Double> opMat;
-    StdVector<Integer> elemEqns;
     eIt = this->elemNodeAssoc_.begin();
     LocPointMapped lpm;
     while(eIt != this->elemNodeAssoc_.end()){
@@ -389,8 +395,10 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
         for(UInt j=0;j<fe->GetNumFncs();j++){
           UInt idx = this->nodeIdxMap_[curNodeNum];
           for(UInt d =0;d<dDim;++d){
-            UInt curSrcEq =  this->eqnNumbers_[idx][d];
-            myContainer->AddEntry(elemEqns[j*dDim]-1,curSrcEq,opMat[j*dDim+d][d]);
+            if(elemEqns[j*dDim+d]>0){
+              UInt curSrcEq =  this->eqnNumbers_[idx][d];
+              myContainer->AddEntry(elemEqns[j*dDim+d]-1,curSrcEq,opMat[j*dDim+d][d]);
+            }
           }
         }//add to coordMatrix
       }//for each source node
@@ -402,6 +410,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 
     //now we create a CRS_Matrix from it
     this->consInterpMat_.reset(new CRS_Matrix<DATA_TYPE>(*myContainer));
+
     //delete coordinate matrix
     delete myContainer;
     //ready to go for conservative interpolation
@@ -521,7 +530,7 @@ template<class DATA_TYPE>
    for(UInt aReg=0;aReg<this->entities_.GetSize();aReg++){
      this->interpolFunction_->AddEntityList(this->entities_[aReg]);
      interpolSpace->SetRegionApproximation(this->entities_[aReg]->GetRegion(),polyId,integId);
-     this->interpolFunction_->AddExternalDataSource(this->shared_from_this());
+     this->interpolFunction_->AddExternalDataSource(this->shared_from_this(), this->entities_);
    }
    this->interpolFunction_->SetFctId(PSEUDO_FCT_ID);
 
@@ -540,7 +549,8 @@ template<class DATA_TYPE>
 
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
-                                                                               StdVector< Vector<DATA_TYPE> >& values){
+                                                                      StdVector< Vector<DATA_TYPE> >& values,
+                                                                      Grid* ptGrid ){
 
   StdVector<LocPoint> localCoords;
   StdVector< const Elem* > foundElements;
@@ -580,9 +590,10 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdV
 
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
-                                                                               StdVector< DATA_TYPE >& values){
+                                                                      StdVector< DATA_TYPE >& values,
+                                                                      Grid* ptGrid ){
   StdVector< Vector<DATA_TYPE> > vecValues;
-  this->GetVectorValuesAtCoords(globCoord,vecValues);
+  this->GetVectorValuesAtCoords(globCoord,vecValues, ptGrid);
   values.Resize(globCoord.GetSize(),0.0);
   for(UInt i=0;i<vecValues.GetSize();++i){
     values[i] = vecValues[i][0];

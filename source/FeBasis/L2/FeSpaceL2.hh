@@ -31,6 +31,18 @@ namespace CoupledField {
 class FeSpaceL2 : public FeSpaceNodal {
 public:
 
+  //! Struct containing all virtual nodes for on entity type (Vertex, Face
+  struct EntityTypeNodes {
+    //! Nodes for all numbers of entity (edgeNodes, faceNodes, innerNodes)
+    StdVector<UInt> vNodes;
+    //! Offset to vNodes array
+    StdVector<UInt> offset;
+  };
+  
+  //! Enum which stores the (Virtual) Nodes of an element according to
+    //! their definition on vertices,edges,faces and interior
+  typedef std::map< BaseFE::EntityType , EntityTypeNodes> ElemVirtualNodes;
+  
   //! Constructor
   FeSpaceL2(PtrParamNode aNode, PtrParamNode infoNode, Grid* ptGrid );
 
@@ -85,7 +97,19 @@ public:
     //! Dump information to screen
   virtual void PrintEqnMap();
 
+  
+  // =====================================================
+  //  Nodal section
+  // =====================================================
 
+  //! Get all Node Numbers of a specific element according to the mapping GRID based or
+  //! POLYNOMIAL Based according to the Type requested
+  virtual void GetNodesOfElement( StdVector<UInt>& nodes,
+                                  const Elem* ptElem,
+                                  BaseFE::EntityType entType = BaseFE::ALL);
+
+  virtual void CreatePolynomialNodes();
+  
  protected:
 
   //! Map Nodal BC Equation NUmbers
@@ -104,6 +128,13 @@ public:
   //! Nodal Equation Map
   //SingleEqnMap nodeMap_;
 
+  //! This is the virtual node Map for standard element it just contains
+  //! the connectivity of the element, for higher order elements it contains also 
+  //! the virtual node numbers in the correct ordering
+  //! This Variable could be extended to store also the coordinates of all nodes
+  //! created
+  boost::unordered_map< UInt, ElemVirtualNodes > virtualNodes_;
+  
   // ====================================================================
   // Store surface elements
   // ====================================================================

@@ -52,6 +52,24 @@ namespace CoupledField {
                               const H5::DSetCreatPropList &create_plist
                               = H5::DSetCreatPropList::DEFAULT );
 
+    //! Write a 1D array, which can be extended afterwards 
+    template<typename TYPE>
+    static void Write1DArrayExt( H5::CommonFG &loc,
+                                 const std::string& name,
+                                 UInt size,
+                                 const TYPE * buffer,
+                                 const H5::DSetCreatPropList &create_plist
+                                 = H5::DSetCreatPropList::DEFAULT );
+    
+    //! Append entries to extendible array. If not present, it is created.
+    template<typename TYPE>
+    static void Extend1DArray( H5::CommonFG &loc,
+                               const std::string& name,
+                               UInt newSize,
+                               const TYPE * buffer,
+                               const H5::DSetCreatPropList &create_plist
+                               = H5::DSetCreatPropList::DEFAULT );
+    
     //! Reserve space for a 1D array, but do not write anything to it
     template<typename TYPE>
     static void Reserve1DArray( H5::CommonFG &loc,
@@ -76,6 +94,27 @@ namespace CoupledField {
                               const TYPE * buffer,
                               const H5::DSetCreatPropList &create_plist
                               = H5::DSetCreatPropList::DEFAULT );
+
+
+    //! Write a 2D array, which can be extended afterwards 
+    template<typename TYPE>
+    static void Write2DArrayExt( H5::CommonFG &loc,
+                                 const std::string& name,
+                                 UInt rowSize,
+                                 UInt colSize,
+                                 const TYPE * buffer,
+                                 const H5::DSetCreatPropList &create_plist
+                                 = H5::DSetCreatPropList::DEFAULT );
+
+    //! Append entries to extendible array. If not present, it is created.
+    template<typename TYPE>
+    static void Extend2DArray( H5::CommonFG &loc,
+                               const std::string& name,
+                               UInt newRowSize,
+                               UInt newColSize,
+                               const TYPE * buffer,
+                               const H5::DSetCreatPropList &create_plist
+                               = H5::DSetCreatPropList::DEFAULT );
 
     //! Reserve space for a 2D array, but do not write anything to it
     template<typename TYPE>
@@ -107,7 +146,7 @@ namespace CoupledField {
 
     //! Get name of an object in a group with given index
 
-    //! This method retrieves the name of an object ob a group with given
+    //! This method retrieves the name of an object of a group with given
     //! index.
     //! \note This methods replaces the buggy method
     //! H5::CommonFG::getObjnameByIdx(), which skips by default the last
@@ -125,7 +164,7 @@ namespace CoupledField {
     static StdVector<UInt> GetArrayDims( const H5::CommonFG &loc,
                                            const std::string& name );
 
-    //! Return number of entries of a dataset / rray
+    //! Return number of entries of a dataset / array
     static UInt GetNumEntries( const H5::CommonFG &loc,
                                const std::string& name );
 
@@ -169,13 +208,30 @@ namespace CoupledField {
 
     //! Obtain grid result group for specified multisequence step
     static H5::Group GetMultiStepGroup( H5::H5File& file,
-                                            UInt msStep,
-                                            bool isHistory );
+                                        UInt msStep,
+                                        bool isHistory );
 
     //! Obtain grid result group for specified step in a given multistep
     static H5::Group GetStepGroup( H5::H5File& file,
                                    UInt msStep, UInt
                                    stepNum );
+
+    //! Open group and create it if not yet present
+    static H5::Group OpenCreateGroup(H5::CommonFG &curGroup,
+                                     const std::string& name );
+
+    //! Check if group exists
+    static bool GroupExists( const H5::CommonFG &loc,
+                             const std::string& name );
+
+    //! Check if dataset exists
+    static bool DatasetExists( const H5::CommonFG &loc,
+                               const std::string& name );
+
+    //! Check if attribute exists
+    static bool AttrExists( const H5::H5Object& obj,
+                            const std::string& name );
+
 
     // =======================================================================
     //  CONVERSION METHODS
@@ -206,8 +262,12 @@ namespace CoupledField {
     //  MISCELANEOUS METHODS
     // =======================================================================
 
-    //! Set chunksize to be used for Array data
+    //! Set minimum chunksize in case of extensible dataset
+    static void SetMinChunkSize( UInt chunkSize );
+
+    //! Set maximum chunksize to be used for Array data
     static void SetMaxChunkSize( UInt chunkSize );
+    
 
     //! Check for open objects in the hdf5 file and close them
     static void CheckOpenObjects(H5::H5File& file, bool verbose);
@@ -215,8 +275,12 @@ namespace CoupledField {
   private:
 
     // =======================================================================
-    //  MAXIMUM CHUNKSIZE
+    //  CHUNKSIZE BOUNDARIES
     // =======================================================================
+    //! Minimum chunk size (only used for extensible data arrays)
+    static hsize_t minChunkSize_;
+    
+    //! Maximum chunk size
     static hsize_t maxChunkSize_;
 
     // =======================================================================
@@ -298,9 +362,10 @@ namespace CoupledField {
       //! Size of the array
       UInt size_;
 
-      //! Numer of elements in the array
+      //! Number of elements in the array
       UInt numElems_;
 
+      //! Map data type name (key, string representation) to (native,std)-datatype
       static std::map< std::string, std::pair<const H5::PredType*, const H5::PredType*> > atomTypeMap_;
 
       void InitAtomTypeMap();

@@ -141,6 +141,9 @@ namespace CoupledField {
     //! Return the correct angle (rad) for given sin and cos value
     Double GetAngle( Double sinAlpha, Double cosAlpha );
 
+    //! Check, if initial definition of the rotation matrix is correct
+    void CheckRotationMat(const Matrix<Double>& rotMat );
+    
     //! Name of the coordinate system
     std::string name_;
 

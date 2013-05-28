@@ -126,6 +126,7 @@
       <xsd:enumeration value="harmonic"/>
       <xsd:enumeration value="eigenFrequency"/>
       <xsd:enumeration value="multiSequence"/>
+      <xsd:enumeration value="restart"/>
       
       <!-- ========================================================== -->
       <!--  Physic Related Keywords                                   -->

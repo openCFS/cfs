@@ -55,6 +55,7 @@ namespace CoupledField {
     //! write general defines (BCs, loads, etc.) to info-file
     void WriteGeneralPDEdefines();
   
+
     //! set boundary condition
     void SetBCs();
 
@@ -81,10 +82,6 @@ namespace CoupledField {
                             const Double asteptime = 0.0 );
 
     //@}
-
-
-    //! Set initial conditions
-    void SetInitialCondition();
 
   private:
 

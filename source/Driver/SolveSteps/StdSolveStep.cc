@@ -125,24 +125,27 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
+  void StdSolveStep::SolveStepStatic(PtrParamNode analysis_id) {
 
     if (nonLin_) {
       StepStaticNonLin(analysis_id);
     }
     else {
-      StepStaticLin(analysis_id, adjointParams);
+      StepStaticLin(analysis_id);
     }
   }
 
 
-  void StdSolveStep::StepStaticLin(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
+  void StdSolveStep::StepStaticLin(PtrParamNode analysis_id) {
 
     assemble_->AssembleMatrices();
 
     // The RHS-sources and boundary conditions
     // have to be reassembled each time
-    assemble_->AssembleLinRHS(adjointParams);
+    assemble_->AssembleLinRHS();
+    //Set special RHS Values
+    PDE_.SetRhsValues();
+
     PDE_.SetBCs();
 
     // store rhs vector back to PDE
@@ -268,6 +271,8 @@ namespace CoupledField {
           // recalculate RHS with new values to get new residual (f^(k+1))========
           algsys_->InitRHS(RhsLinVal_);
           assemble_->AssembleNonLinRHS();  
+          //Set special RHS Values
+          PDE_.SetRhsValues();
 
           //get RHS vector
           SBM_Vector actRHS(BaseMatrix::DOUBLE);
@@ -278,6 +283,8 @@ namespace CoupledField {
         } else {
           algsys_->InitRHS(RhsLinVal_ );
           assemble_->AssembleNonLinRHS();
+          //Set special RHS Values
+          PDE_.SetRhsValues();
         }
 
         // calculation of residual error =======================================
@@ -357,7 +364,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
+  void StdSolveStep::SolveStepTrans(PtrParamNode analysis_id) {
 
 
     // do a nonlinear material time step
@@ -373,12 +380,12 @@ namespace CoupledField {
     }
     // do a linear time step
     else {
-      StepTransLin(analysis_id, adjointParams);
+      StepTransLin(analysis_id);
     }
   }
 
 
-  void StdSolveStep::StepTransLin(PtrParamNode analysis_id, AdjointParameters* adjointParams) 
+  void StdSolveStep::StepTransLin(PtrParamNode analysis_id) 
   {
     //TODO: add consistency check here
     //basically loop over all functions and check if the solution order is the same...
@@ -414,11 +421,15 @@ namespace CoupledField {
       algsys_->InitRHS();
 
       //account for RHS
-      assemble_->AssembleLinRHS(adjointParams);
+      assemble_->AssembleLinRHS();
+      //Set special RHS Values
+      PDE_.SetRhsValues();
 
       // store rhs vector back to PDE 
       algsys_->GetRHSVal(rhsVec_);
       
+
+
       assemble_->AssembleMatrices();
       if(assemble_->IsMatrixUpdated()){
 
@@ -1101,8 +1112,12 @@ namespace CoupledField {
     //matrix_factor_Complex_[NO_FCT_ID][DAMPING] = Complex(1.0,0.0);
     //matrix_factor_Complex_[NO_FCT_ID][MASS] = Complex(1.0,0.0);
 
+
     //this has to be done each frequency!
     assemble_->AssembleLinRHS();
+
+    //Set special RHS Values
+    PDE_.SetRhsValues();
 
     assemble_->AssembleMatrices( );
     PDE_.SetBCs();
@@ -1197,6 +1212,8 @@ namespace CoupledField {
 
     // to incorporate loads
     assemble_->AssembleLinRHS(); 
+    //Set special RHS Values
+    PDE_.SetRhsValues();
 
     // Stores rhs vector into extForces and returns that L2-norm
     algsys_->GetRHSVal( RhsLinVal_ );
@@ -1217,6 +1234,8 @@ namespace CoupledField {
 
     // to incorporate loads
     assemble_->AssembleLinRHS(); 
+    //Set special RHS Values
+    PDE_.SetRhsValues();
     
     SBM_Vector newRhsLinVal(BaseMatrix::DOUBLE); //!< external forces (for nonlin simulations)
     algsys_->GetRHSVal( newRhsLinVal );

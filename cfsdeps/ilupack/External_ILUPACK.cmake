@@ -26,7 +26,6 @@ SET(CMAKE_ARGS
   -DCMAKE_Fortran_COMPILER_ID:STRING=${CMAKE_Fortran_COMPILER_ID}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
   -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
-  -DCFS_DISTRO:STRING=${CFS_DISTRO}
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
   -DAMD_LIB:STRING=${ILUPACK_AMD_LIBRARY}
   -DBLAS_LIB:FILEPATH=${ILUPACK_BLAS_LIBRARY}
@@ -58,6 +57,13 @@ IF(CFS_DISTRO STREQUAL "MACOSX")
 ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
 #-------------------------------------------------------------------------------
+# Set names of patch file and template file.
+#-------------------------------------------------------------------------------
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/ilupack/ilupack-patch.cmake.in")
+SET(PFN "${ilupack_prefix}/ilupack-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
+#-------------------------------------------------------------------------------
 # The ilupack external project (double real)
 #-------------------------------------------------------------------------------
 ExternalProject_Add(ilupack-double
@@ -66,36 +72,11 @@ ExternalProject_Add(ilupack-double
   SOURCE_DIR "${ilupack_source}"
   URL ${ILUPACK_PATH}/${ILUPACK_GZ}
   URL_MD5 ${ILUPACK_MD5}
+  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   LIST_SEPARATOR "^"
   CMAKE_ARGS
     ${CMAKE_ARGS}
     -DFLOAT_TYPE:STRING=DOUBLE_REAL
-)
-
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/ilupack/ilupack-patch.cmake.in")
-SET(PFN "${ilupack_prefix}/ilupack-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-#-------------------------------------------------------------------------------
-# We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
-# want to apply the patch script  during configuration time but also if it has
-# changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
-# script. This can be achieved by  adding an additional build step between the
-# download and configure steps.
-#
-# NOTE: The  patch script should  be designed  in such a  way, that it  can be
-# applied to  an already patched  source tree. This  is due to the  fact, that
-# ExternalProject_Add only extracts the source if the MD5 sum has has changed.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(ilupack-double custom_patch
-   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-   DEPENDEES download
-   DEPENDERS configure
-   DEPENDS "${PFN}"
-   WORKING_DIRECTORY ${ilupack_source}
 )
 
 #-------------------------------------------------------------------------------

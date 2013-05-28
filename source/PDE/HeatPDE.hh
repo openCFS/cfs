@@ -63,9 +63,6 @@ namespace CoupledField {
     //! define the SoltionStep-Driver
     void DefineSolveStep();
 
-    //! Initialize all the nodes by this value
-    void SetInitialCondition();
-
     //!  Define available postprocessing results
     void DefinePrimaryResults();
 

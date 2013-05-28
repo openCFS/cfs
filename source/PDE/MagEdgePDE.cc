@@ -83,11 +83,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     // --------------------------------------------------------------------
     ReadCoils();
 
-    // -----------------------------
-    // Check for permanent magnets
-    // -----------------------------
-    ReadMagnets();
-
   }
 
 
@@ -486,52 +481,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         coilDef_.Push_back( shared_ptr<Coil>( new Coil( regionId,
                                                         coilNodes[i], ptGrid_) ) );
         //Info->PrintCoil( *coilDef_.Last(), analysistype_ );
-      }
-    }
-  }
-
-
-  // ********************************************************
-  //   Query parameter object for information about magnets
-  // ********************************************************
-  void MagEdgePDE::ReadMagnets() {
-
-    // Check if the element "magnets" is present at all.
-    // Otherwise leave
-    PtrParamNode magnetNode = myParam_->Get( "magnets", ParamNode::PASS );
-    if ( !magnetNode )
-      return;
-
-    // Get single magnet nodes
-    ParamNodeList magnetNodes = magnetNode->GetChildren();
-
-    // trigger definition of magnets
-    if( magnetNodes.GetSize() > 0 ) {
-      WARN("Adjust printing of permanent magnet definition to InfoNode");
-//      Info->PrintF( pdename_,
-//              "Found permanent magnets in the following regions:\n" );
-
-      Double tmpDir;
-      for( UInt i = 0; i < magnetNodes.GetSize(); i++ ) {
-
-        // get region name of actual magnet
-        std::string regionName = magnetNodes[i]->Get("name")->As<std::string>();
-        RegionIdType regionId = ptGrid_->GetRegion().Parse( regionName );
-
-        magnetsDomain_.Push_back( regionId );
-
-        // read orientation
-        magnetNodes[i]->GetValue( "orientX", tmpDir );
-        magnetsOriX_.Push_back( tmpDir );
-
-        magnetNodes[i]->GetValue( "orientY", tmpDir );
-        magnetsOriY_.Push_back( tmpDir );
-
-        magnetNodes[i]->GetValue( "orientZ", tmpDir );
-        magnetsOriZ_.Push_back( tmpDir );
-
-        // report name to logfile
-        //Info->PrintF( pdename_, " %s\n", regionName.c_str());
       }
     }
   }

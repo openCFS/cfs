@@ -63,6 +63,9 @@ class FeSpaceH1Nodal : public FeSpaceNodal{
     //! Map equations i.e. initialize object
     virtual void Finalize();
 
+    //! \copdoc FeSpace::IsSameEntityApproximation
+    virtual bool IsSameEntityApproximation( shared_ptr<EntityList> list,
+                                            shared_ptr<FeSpace> space );
 
   protected:
     // ====================================================================
@@ -101,6 +104,9 @@ class FeSpaceH1Nodal : public FeSpaceNodal{
     
     //! Map for reference elements by region
     std::map< RegionIdType, std::map<Elem::FEType, FeH1* > > refElems_;
+    
+    //! Mapping type for each region
+    std::map< RegionIdType, MappingType> mappingType_;
     
     //! Order of the space
  

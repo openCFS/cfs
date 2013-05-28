@@ -166,35 +166,31 @@ std::string CoefFunctionMulti::ToString() const {
 }
 
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                           StdVector<Double >  & vals){
+                                                  StdVector<Double >  & vals,
+                                                  Grid* ptGrid ){
   EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
 
 }
 
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                           StdVector<Vector<Double> >  & vals){
+                                                  StdVector<Vector<Double> >  & vals,
+                                                  Grid* ptGrid ){
   EXCEPTION("CoefFunctionMulti::GetScalarValuesAtPoints: not implemented")
 }
 
+
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                          StdVector<Matrix<Double> >  & vals){
+                                                  StdVector<Complex >  & vals, 
+                                                  Grid* ptGrid){
   EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
 }
 
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                           StdVector<Complex >  & vals){
+                                                  StdVector<Vector<Complex> >  & vals,
+                                                  Grid* ptGrid ){
   EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
 }
 
-void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                           StdVector<Vector<Complex> >  & vals){
-  EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
-}
-
-void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                          StdVector<Matrix<Complex> >  & vals){
-  EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
-}
 
 
 } // end of namespace

@@ -478,7 +478,7 @@ void LISSolver::createPrecondString(PtrParamNode precondNode, std::string& outpu
         solstream << " -ilu_fill "<< fill;
         break;
       case SSOR:;
-        restart = 1.0;
+        restart = 1;
         sol[1]->GetValue("restart",restart,ParamNode::PASS);
         solstream << " -ssor_w "<< restart;
         break;

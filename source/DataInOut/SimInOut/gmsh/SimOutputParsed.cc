@@ -47,23 +47,25 @@
 
 #include "Domain/Mesh/Grid.hh"
 
-
-#include <fstream>
 #include <sstream>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/exception.hpp>
 #include <cmath>
-
-namespace fs = boost::filesystem;
 
 namespace CoupledField{
 
   SimOutputParsed::SimOutputParsed(std::string fileName,
                                  PtrParamNode outputNode,
-                                 PtrParamNode infoNode) :
-                SimOutput( fileName, outputNode, infoNode )
+                                 PtrParamNode infoNode, bool isRestart ) :
+                SimOutput( fileName, outputNode, infoNode, isRestart )
   {
 
+    // The restart case is currently not implemented, i.e. resuls from a 
+    // partial simulation get overwritten.
+    if( isRestart_ ) {
+      WARN( "The GMSH-Parsed-Writer is currently not adapted to write restarted "
+            "results correctly, thus the results of the previous run get"
+            " overwritten." );
+    }
+    
     formatName_ = "gmshParsed";
 
     capabilities_.insert( MESH );
@@ -83,7 +85,7 @@ namespace CoupledField{
 
   SimOutputParsed::~SimOutputParsed(){
     //delete input file streams
-    std::map<SolutionType, std::fstream*>::iterator inIt = infiles_.begin();
+    std::map<SolutionType, fs::fstream*>::iterator inIt = infiles_.begin();
     while(inIt != infiles_.end()){
       inIt->second->close();
       delete inIt->second;
@@ -93,7 +95,7 @@ namespace CoupledField{
     infiles_.clear();
 
     //delete output file streams
-    std::map<SolutionType, std::fstream*>::iterator outIt = outfiles_.begin();
+    std::map<SolutionType, fs::fstream*>::iterator outIt = outfiles_.begin();
     while(outIt != outfiles_.end()){
       outIt->second->close();
       delete outIt->second;
@@ -201,8 +203,8 @@ namespace CoupledField{
       PrepareResultFile(sol);
       firstStep_ = false;
     }
-    std::fstream* outFile =  outfiles_[sol->GetResultInfo()->resultType];
-    std::fstream* inFile =  infiles_[sol->GetResultInfo()->resultType];
+    fs::fstream* outFile =  outfiles_[sol->GetResultInfo()->resultType];
+    fs::fstream* inFile =  infiles_[sol->GetResultInfo()->resultType];
     if(!outFile){
       WARN("cannot obtain file pointer");
       return;
@@ -308,30 +310,26 @@ namespace CoupledField{
       std::string solName = SolutionTypeEnum.ToString(solIt->first);
 
       std::string name = fileName_ + "_" + solName + ".pos";
-      std::string totalName;
 
       // Generate basename for output file
-      totalName.append( dirName_ );
-      std::string pathsep = fs::path("/").string();
-      totalName.append( pathsep );
-      totalName.append( name );
+      fs::path filePath = dirName_ / name;
+      
+      outfiles_[solIt->first]  = new fs::fstream();
+      infiles_[solIt->first]  = new fs::fstream();
 
-      outfiles_[solIt->first]  = new std::fstream();
-      infiles_[solIt->first]  = new std::fstream();
+      fs::fstream* outFile =  outfiles_[solIt->first];
+      fs::fstream* inFile =  infiles_[solIt->first];
 
-      std::fstream* outFile =  outfiles_[solIt->first];
-      std::fstream* inFile =  infiles_[solIt->first];
-
-      outFile->open(totalName.c_str(),std::ios::trunc | std::ios::out);
-      inFile->open(totalName.c_str(),std::ios::in);
+      outFile->open(filePath.c_str(),std::ios::trunc | std::ios::out);
+      inFile->open(filePath.c_str(),std::ios::in);
 
       if ( !outFile && outFile->is_open() ) {
-        EXCEPTION("Could not open file " << totalName
+        EXCEPTION("Could not open file " << filePath
                   << " for writing parsed Gmsh output");
       }
 
       if ( !inFile && inFile->is_open() ) {
-        EXCEPTION("Could not open file " << totalName
+        EXCEPTION("Could not open file " << filePath
                   << " for reading parsed Gmsh output");
       }
       //write a newline at the beginning of the file, just in case...
@@ -405,7 +403,7 @@ namespace CoupledField{
   void SimOutputParsed::WriteDummyResults(const Elem* elem,
                                                ElemInterpolation& eInterpol,
                                                shared_ptr<BaseFeFunction> feFnc,
-                                               std::fstream* out){
+                                               fs::fstream* out){
      StdVector<Integer> eqns;
      feFnc->GetFeSpace()->GetElemEqns(eqns,elem);
      std::stringstream oStream;
@@ -474,8 +472,8 @@ namespace CoupledField{
     interp = "INTERPOLATION_SCHEME{" + cStream.str() + "}{\n" + expStream.str() + "};";
   }
 
-  void SimOutputParsed::PutVarsToResultFile(std::fstream* outfile, std::fstream* infile,
-                                                 std::string vars,long& destination){
+  void SimOutputParsed::PutVarsToResultFile(fs::fstream* outfile, fs::fstream* infile,
+                                            std::string vars,long& destination){
     //this is based on the code found at
     //http://www.codeproject.com/KB/cs/InsertTextInCSharp.aspx
 
