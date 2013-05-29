@@ -2624,7 +2624,7 @@ namespace CoupledField {
         }
         spaces[LAGRANGE_MULT] = FeSpace::CreateInstance(myParam_, infoNode,
                                                         type, ptGrid_);
-        //spaces[LAGRANGE_MULT]->SetLagrSurfSpace();
+        spaces[LAGRANGE_MULT]->SetLagrSurfSpace();
         spaces[LAGRANGE_MULT]->Init(solStrat_);
         
         break; // One FeSpace for the Lagrange multiplier is enough, so exit loop
@@ -2667,8 +2667,6 @@ namespace CoupledField {
     MortarInterface *mortarIf = dynamic_cast<MortarInterface*>(&(*ncIf));
     assert(mortarIf);
     
-    /*std::string slaveVolName = ptGrid_->GetRegion()
-        .ToString(mortarIf->GetSlaveVolRegion());*/
     // create ElemLists for slave surface and intersection
     shared_ptr<SurfElemList> elMaster(new SurfElemList(ptGrid_)),
                              elSlave(new SurfElemList(ptGrid_));
@@ -2684,13 +2682,19 @@ namespace CoupledField {
     if ( feFunctions_.find(LAGRANGE_MULT) == feFunctions_.end() ) {
       EXCEPTION("FeFunction of Lagrange multiplier not found");
     }
-    /*shared_ptr<FeSpace> mySpace = feFunctions_[solType]->GetFeSpace(),
-        mortarSpace = feFunctions_[LAGRANGE_MULT]->GetFeSpace();
     
-    PtrParamNode regionNode = myParam_->Get("regionList", ParamNode::EX)
+    // Set the same approximation for the Lagrange mutliplier as for the
+    // primary unknown in the slave region
+    shared_ptr<FeSpace> mortarSpace = feFunctions_[LAGRANGE_MULT]->GetFeSpace();
+    std::string slaveVolName = ptGrid_->GetRegion()
+        .ToString(mortarIf->GetSlaveVolRegion());
+    PtrParamNode slaveRegNode = myParam_->Get("regionList", ParamNode::EX)
         ->GetByVal("region", "name", slaveVolName, ParamNode::EX);
+    std::string polyId = slaveRegNode->Get("polyId")->As<std::string>();
+    std::string integId = slaveRegNode->Get("integId")->As<std::string>();
     
-    mortarSpace->SetRegionApproximation(mortarIf->GetSlaveSurfRegion(),*/
+    mortarSpace->SetRegionApproximation( mortarIf->GetSlaveSurfRegion(),
+                                         polyId, integId);
 
     // create a mass integrator on the slave surface (conforming grid)
     PtrCoefFct unity = CoefFunction::Generate( mp_, Global::REAL, "1" );
