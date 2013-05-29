@@ -872,6 +872,14 @@ namespace CoupledField {
     if( !statsRead_ )
       ReadMeshStats( meshGroup );
 
+    // Read all nodes from regions and initialize mapping from mesh node
+    // numbers to grid node numbers accordingly.
+    UInt baseNodeNum = mi_->GetNumNodes() + 1;
+    UInt baseElemNum = mi_->GetNumElems() + 1;
+    if (baseNodeNum > 1 || baseElemNum > 1) {
+      readAllEntities_ = false; // We cannot take shortcuts if this is not the only grid
+    }
+
     std::set<std::string>::iterator findIt;
 
     // ================================
@@ -955,12 +963,6 @@ namespace CoupledField {
     try {
       regionGroup = meshGroup.openGroup( "Regions" );
     } H5_CATCH( "Could not open 'Regions' group" );
-
-
-    // Read all nodes from regions and initialize mapping from mesh node
-    // numbers to grid node numbers accordingly.
-    UInt baseNodeNum = mi_->GetNumNodes() + 1;
-    UInt baseElemNum = mi_->GetNumElems() + 1;
 
     for( UInt i = 0, n=regionNames_.GetSize(); i < n; i++ ) {
       std::string regionName = regionNames_[i];

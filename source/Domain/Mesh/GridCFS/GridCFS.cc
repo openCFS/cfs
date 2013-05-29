@@ -790,7 +790,7 @@ namespace CoupledField {
       regionData[regionElemIt->first].type_idx = volRegionIds_.GetSize();
       volRegionIds_.Push_back(regionElemIt->first);
       
-      // make number of region nodesu nique
+      // make number of region nodes unique
       StdVector<UInt> & regionNodes = regionNodeIt->second;
       std::sort( regionNodes.Begin(), regionNodes.End() );
       StdVector<UInt>::iterator uIt;
