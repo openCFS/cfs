@@ -208,7 +208,7 @@ void Domain::CreateGrid()
         // What should work:
         // boost::filesystem::base(p) << "." << boost::filesystem::extension(p)
         if( isParentDomain_) 
-          std::cout << "'" << p.leaf() << "' ";
+          std::cout << p.leaf() << " ";
       }
 
       actGrid->FinishInit();
