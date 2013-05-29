@@ -911,7 +911,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       SetDefaultIntegration(infoNode_->Get("regionList")->Get("default"));
       iReg = ALL_REGIONS;
     }else{
-      EXCEPTION("The integration id does not match any in the IntegratoinSchemeList: " << integId);
+      EXCEPTION("The integration id does not match any in the IntegrationSchemeList: " << integId);
     }
     polyToIntegMap[pReg].insert(iReg);
   }
@@ -943,7 +943,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
       const SurfElem * ptSurfEl = dynamic_cast<const SurfElem*>(ptElem);
       boost::array<Elem*,2>::const_iterator it = ptSurfEl->ptVolElems.begin();
-      for( ; it != ptSurfEl->ptVolElems.end(); it++ ) {
+      for( ; it != ptSurfEl->ptVolElems.end(); ++it ) {
         // check, if element is set at all
         if( *it) {
           if(regions_.find( (*it)->regionId) != regions_.end()) {
@@ -956,7 +956,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       // check, if element could be found
       if( !ret) {
         EXCEPTION("Could not find a suitable volume neighbor for surface element #"
-            << ptSurfEl->elemNum << ". " );
+            << ptSurfEl->elemNum << " in region "
+            << ptGrid_->GetRegion().ToString( ptSurfEl->regionId ) << "." );
       }
     } else {
       // 3) 1D element in 3D simulation
