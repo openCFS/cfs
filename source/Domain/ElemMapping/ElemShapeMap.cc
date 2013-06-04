@@ -328,8 +328,7 @@ void LagrangeElemShapeMap::Local2Global(Vector<Double>& globPoint,
 void LagrangeElemShapeMap::Global2Local(Vector<Double>& locPoint,
     const Vector<Double>& globalPoint) {
 
-  // first of all check if the coorinate
-  //// coincides with one node
+  // first of all check if the coordinate coincides with one node
   bool isNode = Global2LocalOnNode(locPoint, globalPoint);
   if (isNode) {
     return;

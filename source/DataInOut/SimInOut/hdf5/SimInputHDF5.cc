@@ -206,7 +206,7 @@ namespace CoupledField {
       std::stringstream sstr;
       it=readEntities_.begin();
       end=readEntities_.end();
-      for( ; it != end; it++)
+      for( ; it != end; ++it)
         sstr << (*it) << " ";
       LOG_DBG(simInputHdf5) << sstr.str();
     }
@@ -214,7 +214,7 @@ namespace CoupledField {
     // Check if all readEntities_ can be found in file.
     it=readEntities_.begin();
     end=readEntities_.end();
-    for( ; it != end; it++) {
+    for( ; it != end; ++it) {
       StdVector<std::string>::iterator findIt;
 
       findIt = std::find(regionNames_.Begin(), regionNames_.End(), *it);
@@ -241,10 +241,10 @@ namespace CoupledField {
       end=linearizeEntities_.end();
       for( ; it != end; ) {
         if(readEntities_.find(*it) == readEntities_.end()) {
-          erase = it; it++;
+          erase = it; ++it;
           linearizeEntities_.erase(erase);
         }
-        it++;
+        ++it;
       }
     }
 
@@ -256,57 +256,50 @@ namespace CoupledField {
 
       findIt = std::find(nodeNames_.Begin(), nodeNames_.End(), *it);
       if( findIt != nodeNames_.End()) {
-        erase = it; it++;
+        erase = it; ++it;
         linearizeEntities_.erase(erase);
       }
-      it++;
+      ++it;
     }
 
-//  TODO: strieben - Remove these lines!
-//    std::cout << "linearizeEntities" << std::endl;
-//    typedef std::ostream_iterator<std::string> string_os_iter;
-//    std::copy (linearizeEntities_.begin(),
-//               linearizeEntities_.end(),
-//               string_os_iter (std::cout, " "));
-//    std::cout << std::endl;
 
-     // ========================
-     //  READ NODAL INFORMATION
-     // ========================
+    // ========================
+    //  READ NODAL INFORMATION
+    // ========================
 
-     // get the number of nodes
-     try{
-       nodeGroup = mGroup.openGroup( "Nodes") ;
-     } H5_CATCH( "Could not open Elements / Nodes group" );
+    // get the number of nodes
+    try{
+      nodeGroup = mGroup.openGroup( "Nodes") ;
+    } H5_CATCH( "Could not open Elements / Nodes group" );
 
-     //     H5IO::ReadAttribute( nodeGroup, "NumNodes", numNodes_ );
+    //     H5IO::ReadAttribute( nodeGroup, "NumNodes", numNodes_ );
 
-     // read node coordinates
-     H5IO::ReadArray( nodeGroup, "Coordinates", nodeCoords_ );
-     StdVector<UInt> dims;
-     dims = H5IO::GetArrayDims(nodeGroup, "Coordinates");
-     numNodes_ = dims[0]; 
+    // read node coordinates
+    H5IO::ReadArray( nodeGroup, "Coordinates", nodeCoords_ );
+    StdVector<UInt> dims;
+    dims = H5IO::GetArrayDims(nodeGroup, "Coordinates");
+    numNodes_ = dims[0]; 
 
-     // If a different coordinate system than the default one was specified
-     // we map the nodal coordinates into this coordinate system.
-     if(coordSysId_ != "default" || scaleFac_ != 1.0) 
-     {  
-       CoordSystem* coordSys = domain->GetCoordSystem(coordSysId_);
-       TransformNodes(*coordSys, scaleFac_);
-     }
-     
+    // If a different coordinate system than the default one was specified
+    // we map the nodal coordinates into this coordinate system.
+    if(coordSysId_ != "default" || scaleFac_ != 1.0) 
+    {  
+      CoordSystem* coordSys = domain->GetCoordSystem(coordSysId_);
+      TransformNodes(*coordSys, scaleFac_);
+    }
 
-     // read region, element and named entity informaion
-     ReadNodeElemData(mGroup);
-     ReadNodeGroups(mGroup);
-     ReadElemGroups(mGroup);
-     
-     // Clear / delete any unneeded vector / array
-     nodeCoords_.Clear();
-     // The mappings file->grid numbers can be deleted in any case, 
-     // as it is only needed within the Read...() methods
-     f2GElemNumMap_.clear();
-     f2GNodeNumMap_.clear();
+
+    // read region, element and named entity information
+    ReadNodeElemData(mGroup);
+    ReadNodeGroups(mGroup);
+    ReadElemGroups(mGroup);
+
+    // Clear / delete any unneeded vector / array
+    nodeCoords_.Clear();
+    // The mappings file->grid numbers can be deleted in any case, 
+    // as it is only needed within the Read...() methods
+    f2GElemNumMap_.clear();
+    f2GNodeNumMap_.clear();
   }
 
 

@@ -223,6 +223,12 @@ namespace CoupledField {
 
     virtual ~NcSurfElemList(){};
 
+    //! Returns the name of the NcSurfElemList
+    std::string GetName() const;
+
+    //! Sets the name of the NcSurfElemList
+    virtual void SetName(const std::string &name);
+    
     //! Set name of named element list
     virtual void SetNamedElems( const std::string& name );
 

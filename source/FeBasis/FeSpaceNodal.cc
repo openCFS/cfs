@@ -75,11 +75,21 @@ void FeSpaceNodal::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > enti
     LocPointMapped lpm;
     StdVector<Integer> eqns, vEqns;
     Vector<T> dummyVec;
+    std::set<UInt> dofs(comp);
+    
     if( coefFct->GetDimType() == CoefFunction::SCALAR ) {
       dummyVec.Resize(1);
       coefFct->GetScalar(dummyVec[0], lpm);
+      if ( dofs.size() == 0) {
+        dofs.insert(0);
+      }
     } else {
       coefFct->GetVector( dummyVec, lpm);
+      if ( dofs.size() == 0 ) {
+        for ( UInt i=0, numDofs=coefFct->GetVecSize(); i<numDofs; ++i ) {
+          dofs.insert(i);
+        }
+      }
     }
 
     // loop over all lists 
@@ -87,14 +97,14 @@ void FeSpaceNodal::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > enti
       shared_ptr<EntityList> actList = entityLists[i];
       
       // loop over all dofs
-      std::set<UInt>::const_iterator it = comp.begin();
-      for( ; it != comp.end(); ++it) {
+      std::set<UInt>::const_iterator it = dofs.begin();
+      for( ; it != dofs.end(); ++it) {
 
         T val = dummyVec[*it];
         this->GetEntityListEqns( eqns, actList, *it );
         UInt numEqns = eqns.GetSize();
 
-        // --- non-hierachical case ---
+        // --- non-hierarchical case ---
         for( UInt i = 0; i < numEqns; ++i ) {
           vals[eqns[i]] = val; 
         }
