@@ -365,7 +365,7 @@ SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   // create set of volume regions
   volRegions_.insert(masterVolRegion_);
   volRegions_.insert(slaveVolRegion_);
-};
+}
 
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>
 void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>

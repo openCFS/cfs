@@ -250,7 +250,25 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     } // regions
   }
   
-  
+  void MagneticPDE::DefineNcIntegrators() {
+    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
+                                           endIt = ncInterfaces_.End();
+    for ( ; ncIt != endIt; ++ncIt ) {
+      switch (ncIt->type) {
+      case NC_MORTAR:
+        DefineMortarCoupling(MAG_POTENTIAL, *ncIt);
+        break;
+      case NC_NITSCHE:
+        DefineNitscheCoupling(MAG_POTENTIAL, *ncIt);
+        break;
+      default:
+        EXCEPTION("Unknown type of ncInterface");
+        break;
+      }
+    }
+  }
+
+ 
   void MagneticPDE::DefineRhsLoadIntegrators() {
     
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];

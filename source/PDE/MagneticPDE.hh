@@ -45,9 +45,7 @@ namespace CoupledField
     void DefineIntegrators();
 
     //! Defines the integrators needed for ncInterfaces
-    void DefineNcIntegrators() {
-      EXCEPTION("ncInterfaces are not implemented for MagneticPDE");
-    }
+    void DefineNcIntegrators();
 
     //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators( ){};

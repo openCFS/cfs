@@ -78,7 +78,7 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "13")
-SET(CFS_VERSION_MONTH "05")
+SET(CFS_VERSION_MONTH "06")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 

@@ -107,7 +107,7 @@ namespace CoupledField {
   std::string ElemList::GetName() const {
     
     if( defineType_ == NO_TYPE ) {
-      return std::string("*anoymous list*");
+      return std::string("*anonymous list*");
     } else {
       return name_;
     }
@@ -421,6 +421,19 @@ namespace CoupledField {
     name_ = name;
   }
 
+  std::string NcSurfElemList::GetName() const {
+    if (name_.length() > 0) {
+      return name_;
+    } else {
+      return "*anonymous list*";
+    }
+  }
+  
+  void NcSurfElemList::SetName(const std::string & name) {
+    name_ = name;
+    defineType_ = NO_TYPE;
+  }
+  
   void NcSurfElemList::SetNamedElems( const std::string& name ) {
     StdVector<Elem*> elems;
     grid_->GetElemsByName( elems, name );

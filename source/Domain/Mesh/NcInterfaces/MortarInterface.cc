@@ -33,7 +33,8 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   region_(NO_REGION_ID)
 {
   name_ = nciNode->Get("name")->As<std::string>();
-
+  elemList_->SetName(name_);
+  
   StdVector<SurfElem*> masterElems;
   StdVector<SurfElem*> slaveElems;
 
@@ -246,8 +247,10 @@ void MortarInterface::UpdateInterface() {
         for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
           SurfElem* m_el = masterElems[i];
           SurfElem* s_el = slaveElems[j];
-          if ( (m_el->type != Elem::ET_QUAD4 && m_el->type != Elem::ET_TRIA3 )
-              || (s_el->type != Elem::ET_QUAD4 && s_el->type != Elem::ET_TRIA3) )
+          if ( (m_el->type != Elem::ET_QUAD4 && m_el->type != Elem::ET_QUAD8
+                && m_el->type != Elem::ET_TRIA3 && m_el->type != Elem::ET_TRIA6)
+              || (s_el->type != Elem::ET_QUAD4 && s_el->type != Elem::ET_QUAD8
+                  && s_el->type != Elem::ET_TRIA3 && s_el->type != Elem::ET_TRIA6) )
           {
             EXCEPTION("Only triangles and quadrilaterals can be intersected"
                 << " with polygon algorithm.");
@@ -537,8 +540,8 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
     WARN("Rejecting ncElem due to a relative volume of " << relativeElemVol
          << std::endl
          << "  for intersection of elements " << ifaceElem1->elemNum
-        // << " (" << region_.ToString(ifaceElem1->regionId) << ") "
-         << "and " << ifaceElem2->elemNum);
+        // << " (" << region_.ToString(ifaceElem1->regionId) << ")"
+         << " and " << ifaceElem2->elemNum);
         // << " (" << this->region_.ToString(ifaceElem2->regionId) << ") ");
     return false;
   }
