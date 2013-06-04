@@ -87,23 +87,46 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     FillHomRectSamples(hr, 8, "0.25", "0.25");
   }
   if(type_ == HOM_RECT_C1) {
-    PtrParamNode hr = pn->Get("homRectC1");
-    std::string file = hr->Get("file")->As<std::string>();
-    Xerces xerces(file);
-    PtrParamNode root = xerces.CreateParamNodeInstance();
-    int dim1 = root->Get("coeff11/matrix/dim1")->As<int>();
-    int dim2 = root->Get("coeff11/matrix/dim2")->As<int>();
-    int dim3 = root->Get("a/matrix/dim1")->As<int>();
-    int dim4 = root->Get("b/matrix/dim1")->As<int>();
-    ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"),dim1, dim2, hom_rect_coeff11_);
-    ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"),dim1, dim2, hom_rect_coeff12_);
-    ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"),dim1, dim2, hom_rect_coeff22_);
-    ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"),dim1, dim2, hom_rect_coeff33_);
-    ParamTools::AsTensor<double>(root->Get("a/matrix/real"),dim3, 1, hom_rect_a_);
-    ParamTools::AsTensor<double>(root->Get("b/matrix/real"),dim4, 1, hom_rect_b_);
-    // the internal tensor representation in hom_rect_samples_ is HILL-MANDEL!
-    Notation notation = hr->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
-    hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
+    if (dim == 2) {
+      PtrParamNode hr = pn->Get("homRectC1");
+      std::string file = hr->Get("file")->As<std::string>();
+      Xerces xerces(file);
+      PtrParamNode root = xerces.CreateParamNodeInstance();
+      int dim1 = root->Get("coeff11/matrix/dim1")->As<int>();
+      int dim2 = root->Get("coeff11/matrix/dim2")->As<int>();
+      int dim3 = root->Get("a/matrix/dim1")->As<int>();
+      int dim4 = root->Get("b/matrix/dim1")->As<int>();
+      ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"),dim1, dim2, hom_rect_coeff11_);
+      ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"),dim1, dim2, hom_rect_coeff12_);
+      ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"),dim1, dim2, hom_rect_coeff22_);
+      ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"),dim1, dim2, hom_rect_coeff33_);
+      ParamTools::AsTensor<double>(root->Get("a/matrix/real"),dim3, 1, hom_rect_a_);
+      ParamTools::AsTensor<double>(root->Get("b/matrix/real"),dim4, 1, hom_rect_b_);
+      // the internal tensor representation in hom_rect_samples_ is HILL-MANDEL!
+      Notation notation = hr->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
+      hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
+    }
+    if (dim == 3) {
+      PtrParamNode hr = pn->Get("homRectC1");
+      std::string file = hr->Get("file")->As<std::string>();
+      Xerces xerces(file);
+      PtrParamNode root = xerces.CreateParamNodeInstance();
+      int dim1 = root->Get("coeff11/matrix/dim1")->As<int>();
+      int dim2 = root->Get("coeff11/matrix/dim2")->As<int>();
+      int dim3 = root->Get("a/matrix/dim1")->As<int>();
+      int dim4 = root->Get("b/matrix/dim1")->As<int>();
+      int dim5 = root->Get("c/matrix/dim1")->As<int>();
+      ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"),dim1, dim2, hom_rect_coeff11_);
+      ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"),dim1, dim2, hom_rect_coeff12_);
+      ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"),dim1, dim2, hom_rect_coeff22_);
+      ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"),dim1, dim2, hom_rect_coeff33_);
+      ParamTools::AsTensor<double>(root->Get("a/matrix/real"),dim3, 1, hom_rect_a_);
+      ParamTools::AsTensor<double>(root->Get("b/matrix/real"),dim4, 1, hom_rect_b_);
+      ParamTools::AsTensor<double>(root->Get("c/matrix/real"),dim5, 1, hom_rect_c_);
+      // the internal tensor representation in hom_rect_samples_ is HILL-MANDEL!
+      Notation notation = hr->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
+      hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
+    }
   }
 }
 
@@ -779,7 +802,7 @@ void DesignMaterial::GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type
   }
 }
 
-void DesignMaterial::GetHomRectTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
+void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
 {
    Quad9FE fe;
 
@@ -905,17 +928,14 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, const Vector<double
 
   int m = hom_rect_a_.GetNumRows();
   int n = hom_rect_b_.GetNumRows();
-  double al,au;
-  int j;
+  double da = hom_rect_a_[1][0] - hom_rect_a_[0][0];
+  double db = hom_rect_b_[1][0] - hom_rect_b_[0][0];
+  int j = -1;
   for (int i=0;i<m-1;i++) {
     if (hom_rect_a_[i][0] <= p[0] && p[0] < hom_rect_a_[i+1][0]) {
-      al = hom_rect_a_[i][0];
-      au = hom_rect_a_[i+1][0];
       j=i;
       break;
     } else if (p[0] == hom_rect_a_[m-1][0]) {
-      al = hom_rect_a_[m-2][0];
-      au = hom_rect_a_[m-1][0];
       j=m-2;
       break;
     }else if (p[0] > hom_rect_a_[m-1][0]){
@@ -923,17 +943,12 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, const Vector<double
               break;
     }
   }
-  double bl,bu;
-  int k;
+  int k = -1;
   for (int i=0;i<n-1;i++) {
     if (hom_rect_b_[i][0] <= p[1] && p[1] < hom_rect_b_[i+1][0]) {
-      bl = hom_rect_b_[i][0];
-      bu = hom_rect_b_[i+1][0];
       k=i;
       break;
     } else if (p[1] == hom_rect_b_[n-1][0]) {
-      bl = hom_rect_b_[n-2][0];
-      bu = hom_rect_b_[n-1][0];
       k=n-2;
       break;
     } else if (p[1] > hom_rect_b_[n-1][0]){
@@ -941,69 +956,58 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, const Vector<double
               break;
     }
   }
-  LOG_DBG(dm) <<"al= "<<al<<"au = "<<au;
   if (direction == -1) {
-    E[1-1][1-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff11_, au,al,bu,bl,j,k,m,n);
-    E[1-1][2-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff12_, au,al,bu,bl,j,k,m,n);
+    E[1-1][1-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff11_,da,db,j,k,m,n);
+    E[1-1][2-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff12_,da,db ,j,k,m,n);
     E[2-1][1-1] = E[1-1][2-1];
-    E[2-1][2-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff22_, au,al,bu,bl,j,k,m,n);
-    E[3-1][3-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff33_, au,al,bu,bl,j,k,m,n);
+    E[2-1][2-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff22_, da,db,j,k,m,n);
+    E[3-1][3-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff33_, da,db,j,k,m,n);
     LOG_DBG(dm)<<"E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2];
   } else {
-      E[1-1][1-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff11_, au,al,bu,bl,j,k,m,n,direction);
-      E[1-1][2-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff12_, au,al,bu,bl,j,k,m,n,direction);
+      E[1-1][1-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff11_, da,db,j,k,m,n,direction);
+      E[1-1][2-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff12_, da,db,j,k,m,n,direction);
       E[2-1][1-1] = E[1-1][2-1];
-      E[2-1][2-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff22_, au,al,bu,bl,j,k,m,n,direction);
-      E[3-1][3-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff33_, au,al,bu,bl,j,k,m,n,direction);
+      E[2-1][2-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff22_, da,db,j,k,m,n,direction);
+      E[3-1][3-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff33_, da,db,j,k,m,n,direction);
   }
 
 }
 
 
-double DesignMaterial::EvaluateC1Interpolation(Matrix<double>& E, const Vector<double>& p,const Matrix<double> & coeff, double & au,double & al,double & bu,double & bl,int & j, int & k,int & m,int & n) const{
-    Matrix<double> c;
-    c.Resize(4,4);
-    LOG_DBG(dm) << "Matrix C";
-    for (int i=0;i<4;i++) {
-        for (int l=0;l<4;l++) {
-           c[i][l] = coeff[(n-1)*j+k][(i)*4+l];
-        }
-    }
-    LOG_DBG(dm) << c;
-    LOG_DBG(dm) <<"al= "<<al<<"au = "<<au;
+double DesignMaterial::EvaluateC1Interpolation(Matrix<double>& E, const Vector<double>& p,const Matrix<double> & coeff, double & da,double & db,int & j, int & k,int & m,int & n) const{
     LOG_DBG(dm) <<"p="<<p;
-    double u =(p[1]-bl)/(bu-bl);
-    double t=(p[0]-al)/(au-al);
+    double u =(p[1]-hom_rect_b_[k][0])/(db);
+    double t=(p[0]-hom_rect_a_[j][0])/(da);
     LOG_DBG(dm)<<"u = "<<u<<" t= "<<t;
     double res = 0;
-    for (int i = 3;i>=0;i--) {
-        res =t*(res)+((c[i][3]*u+c[i][2])*u+c[i][1])*u+c[i][0];
+    for (int i = 0;i<4;i++) {
+      for (int l=0;l<4;l++) {
+        res += coeff[(n-1)*j+k][(i)*4+l]*pow(t,i)*pow(u,l);
+      }
     }
     LOG_DBG(dm) << "Result =" << res;
     return res;
 }
 
-double DesignMaterial::EvaluateC1Interpolation_Deriv(Matrix<double>& E, const Vector<double>& p,const Matrix<double> & coeff, double & au,double & al,double & bu,double & bl,int & j, int & k,int & m,int & n,const int direction) const{
-
-    Matrix<double> c;
-    c.Resize(4,4);
-    for (int i=0;i<4;i++) {
-        for (int l=0;l<4;l++) {
-           c[i][l] = coeff[(n-1)*j+k][(i)*4+l];
-        }
-    }
-    double t =(p[0]-al)/(au-al);
-    double u =(p[1]-bl)/(bu-bl);
+double DesignMaterial::EvaluateC1Interpolation_Deriv(Matrix<double>& E, const Vector<double>& p,const Matrix<double> & coeff, double & da,double & db,int & j, int & k,int & m,int & n,const int direction) const{
+    double u =(p[1]-hom_rect_b_[k][0])/(db);
+    double t=(p[0]-hom_rect_a_[j][0])/(da);
     double deriv = 0;
     if (direction == 0){
-      for (int i = 3;i>=1;i--) {
-        deriv = t*deriv+(i/(au-al))*(((c[i][3]*u+c[i][2])*u+c[i][1])*u+c[i][0]);
+      for (int i = 1;i<4;i++) {
+        for (int l=0;l<4;l++) {
+          deriv += coeff[(n-1)*j+k][(i)*4+l] *i*pow(t,i-1)*pow(u,l);
+        }
       }
+      deriv /= da;
     }
     if (direction == 1) {
-      for (int i = 3;i>=0;i--) {
-        deriv=t*deriv+(1/(bu-bl))*((c[i][3]*3*u+2*c[i][2])*u+c[i][1]);
+      for (int i = 0;i<4;i++) {
+        for (int l=1;l<4;l++) {
+          deriv += coeff[(n-1)*j+k][(i)*4+l] *l*pow(t,i)*pow(u,l-1);
+        }
       }
+      deriv /= db;
     }
     LOG_DBG(dm) << "Deriv Result =" << deriv;
     return deriv;
@@ -1326,10 +1330,10 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
     GetLaminatesTensor(t, subTensor, direction, notation);
     break;
   case HOM_RECT:
-    GetHomRectTensor(t, direction, notation);
+    GetHomRectTensor(t,subTensor, direction, notation);
     break;
   case HOM_RECT_C1:
-    GetHomRectTensor(t, direction, notation);
+    GetHomRectTensor(t, subTensor,direction, notation);
     break;
   default: // case default
     throw Exception("DesignMaterial Type not implemented yet");

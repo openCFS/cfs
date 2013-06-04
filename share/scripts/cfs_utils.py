@@ -43,6 +43,15 @@ def xpath(xml, path):
   data = res[0]
   return data.getContent()    
 
+# does at leas one element exist
+def has(xml, path):
+  res = xml.xpathEval(path)
+  if  len(res) == 0:
+   return false
+  else:
+   return true
+
+
   
 # dump a xml node
 def dump(xml, path):

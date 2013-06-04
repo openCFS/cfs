@@ -2,6 +2,7 @@
 #define DESIGNMATERIAL_HH_
 
 #include <map>
+#include <cmath>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DesignElement.hh"
@@ -147,7 +148,7 @@ template <class TYPE> class StdVector;
     void ApplyHomRectC1Tensor(Matrix<double>& E, const Vector<double>& p,const int) const;
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
-    inline void GetHomRectTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
+    inline void GetHomRectTensor(Matrix<double>& t, SubTensorType subTensor,  DesignElement::Type direction, Notation notation);
 
     /** initialize the tensor with zeros */
     inline void ZeroTensor(Matrix<double>& t, SubTensorType subTensor);
@@ -188,9 +189,9 @@ template <class TYPE> class StdVector;
     void FillHomRectCoeff(Matrix<double> & coeff_,const char * filename);
 
     /** evaluates the C1 interpolation polynomial at point p[0],p[1] and returns function value as double */
-    double EvaluateC1Interpolation(Matrix<double>&, const Vector<double>&, const Matrix<double>&, double &, double &, double &, double &, int &, int &, int &, int &) const;
+    double EvaluateC1Interpolation(Matrix<double>&, const Vector<double>&, const Matrix<double>&, double &, double &, int &, int &, int &, int &) const;
     /** evaluates the derivative of the C1 interpolation polynomial at point p[0],p[1] in direction 0 or 1 and returns function value as double */
-    double EvaluateC1Interpolation_Deriv(Matrix<double>&, const Vector<double>& p, const Matrix<double>&, double &, double &, double &, double &, int &, int &, int &, int &, const int direction) const;
+    double EvaluateC1Interpolation_Deriv(Matrix<double>&, const Vector<double>& p, const Matrix<double>&, double &, double &, int &, int &, int &, int &, const int direction) const;
 
     //double EvaluateC1Interpolation(Matrix<double>& E, const Vector<double>& p, const Matrix<double> & coeff, int au,int al,int bu,int bl,int j, int k,int m,int n);
 
@@ -204,6 +205,7 @@ template <class TYPE> class StdVector;
     Matrix<double> hom_rect_coeff33_;
     Matrix<double> hom_rect_a_;
     Matrix<double> hom_rect_b_;
+    Matrix<double> hom_rect_c_;
 
   };
 

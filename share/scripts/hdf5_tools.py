@@ -5,6 +5,8 @@ import Image, ImageDraw
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
+from scipy import ndimage
+import numpy as np
 
 from paraview_fmo import *
 
@@ -43,7 +45,7 @@ def centered_elements(hdf5_file):
 
   return result     
                 
-## find mininmal and maximal coordiante
+## find minimal and maximal coordinate
 # @param coordinates as from centered_elements
 def find_corners(centers):
   min = [1e30, 1e30, 1e30]
@@ -125,7 +127,7 @@ def to_rectangle(height, width, angle, x_offset, y_offset):
   return tupl  
   
   
-def create_image(centers, nx):
+def create_image(centers, nx,color = "white"):
   # zoom gives proper offsets of the elements
   min, max = find_corners(centers) # we assume the real grid to start at 0/0
   
@@ -134,7 +136,7 @@ def create_image(centers, nx):
   dx = dim[0] / (max[0] + 2.0 * min[0])
   dy = dim[1] / (max[1] + 2.0 * min[1])
   
-  im = Image.new("RGB", dim, "white")
+  im = Image.new("RGB", dim, color)
   draw = ImageDraw.Draw(im)
   
   return im, draw, dim, dx, dy, min, max
@@ -166,8 +168,6 @@ def show_rot_rect(centers, s1, s2, angle, show, nx, scale=-1):
     #v2 = 0.5
     #theta = 0.2
 
-    
-
     # b
     size = length * v2 if show == "thickness" else 2
     pol = to_rectangle(size, length, theta + numpy.pi/2, x_off, dim[1] - y_off) 
@@ -177,6 +177,52 @@ def show_rot_rect(centers, s1, s2, angle, show, nx, scale=-1):
     size = length * v1 if show == "thickness" else 2
     pol = to_rectangle(size, length, theta, x_off, dim[1] - y_off) 
     draw.polygon(pol, fill="black" if show == "thickness" else color_code(sm, v1))
+
+  return im  
+
+## visualize the orientational stiffness
+# @return the image
+def show_rot_frame(centers, s1, s2, angle, show, nx, scale=-1):
+
+  im, draw, dim, dx, dy, min, max = create_image(centers, nx,"white")
+
+  length = 0.8 * (centers[1][0] - centers[0][0]) * dx
+  
+  sm = cmx.ScalarMappable(colors.Normalize(vmin=0.0, vmax=0.5), cmap=plt.get_cmap('jet'))
+  
+  for i in range(len(s1)):
+  
+    coord = centers[i]
+    x_off = (coord[0] + min[0]) * dx
+    y_off = (coord[1] + min[1]) * dy
+
+    v1 = s1[i,0]
+    v2 = s2[i,0]
+    theta = angle[i,0]
+    
+    #v1 = 1.
+    #v2 = 0.01
+    #theta = 2.5
+    #v1 = 0.15
+    #v2 = 1.
+    #theta = 0.2
+
+    
+    size = length if show == "thickness" else 2
+    pol = to_rectangle(size, length, theta + numpy.pi/2, x_off, dim[1] - y_off) 
+    draw.polygon(pol, fill="black" if show == "thickness" else color_code(sm, v2))
+    size = length if show == "thickness" else 2
+    pol = to_rectangle(size, length, theta, x_off, dim[1] - y_off) 
+    draw.polygon(pol, fill="black" if show == "thickness" else color_code(sm, v1))
+    
+    v1 *=2
+    v2 *=2
+
+
+    #a+b
+    size = length * (1.-v2) if show == "thickness" else 2
+    pol = to_rectangle(size, (1.-v1)*length, theta + numpy.pi/2, x_off, dim[1] - y_off) 
+    draw.polygon(pol, fill="white" if show == "thickness" else color_code(sm, v2))
 
   return im  
 
