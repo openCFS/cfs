@@ -71,9 +71,13 @@ void ParamNode::SetValue(const boost::any& value)
   {
     this->value_ = value;
 
+    // The following assertions are incompatible with the
+    // CFX filereader (which uses ParamNode) in cplreader
+#   ifndef CPLREADER_CFX
     // check for a valid string if it is a string
     assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('<') == std::string::npos));
     assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('>') == std::string::npos));
+#   endif
 
     assert(name_ != "");
 

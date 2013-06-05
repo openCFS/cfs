@@ -184,7 +184,7 @@ namespace CoupledField {
       ReadMeshStats(mGroup);
 
     // If all regions are to be read set list of readRegions accordingly.
-    std::set< std::string >::iterator it, end, erase;
+    std::set< std::string >::iterator it, end;
     if(*readEntities_.begin() == "all") {
       readEntities_.clear();
       readEntities_.insert(regionNames_.Begin(), regionNames_.End());
@@ -220,45 +220,34 @@ namespace CoupledField {
 
     // Make sure we have only entities in linearizeEntities_ which are
     // also part of readEntities_
-    if(*linearizeEntities_.begin() == "none") {
+    if ( *linearizeEntities_.begin() == "none" ) {
       linearizeEntities_.clear();
-    } else if(*linearizeEntities_.begin() == "all") {
+    } else if( *linearizeEntities_.begin() == "all" ) {
       linearizeEntities_.insert(readEntities_.begin(), readEntities_.end());
     } else {
-      it=linearizeEntities_.begin();
-      end=linearizeEntities_.end();
-      for( ; it != end; ) {
-        if(readEntities_.find(*it) == readEntities_.end()) {
-          erase = it; it++;
-//          std::cout << "Erasing nonexistant entity " << (*erase) << std::endl;
-          linearizeEntities_.erase(erase);
+      it = linearizeEntities_.begin();
+      end = linearizeEntities_.end();
+      for ( ; it != end; ) {
+        if ( readEntities_.find(*it) == readEntities_.end() ) {
+          linearizeEntities_.erase(it++);
+        } else {
+          ++it;
         }
-        it++;
       }
     }
 
     // Remove nodal entities from linearizeEntities_
-    it=linearizeEntities_.begin();
-    end=linearizeEntities_.end();
-    for( ; it != end; ) {
-      StdVector<std::string>::iterator findIt;
-
+    StdVector<std::string>::iterator findIt, endIt = nodeNames_.End();
+    it = linearizeEntities_.begin();
+    end = linearizeEntities_.end();
+    for ( ; it != end; ) {
       findIt = std::find(nodeNames_.Begin(), nodeNames_.End(), *it);
-      if( findIt != nodeNames_.End()) {
-        erase = it; it++;
-//        std::cout << "Erasing nodal entity " << (*erase) << std::endl;
-        linearizeEntities_.erase(erase);
+      if ( findIt != endIt ) {
+        linearizeEntities_.erase(it++);
+      } else {
+        ++it;
       }
-      it++;
     }
-
-//  TODO: strieben - Remove these lines!
-//    std::cout << "linearizeEntities" << std::endl;
-//    typedef std::ostream_iterator<std::string> string_os_iter;
-//    std::copy (linearizeEntities_.begin(),
-//               linearizeEntities_.end(),
-//               string_os_iter (std::cout, " "));
-//    std::cout << std::endl;
 
      // ========================
      //  READ NODAL INFORMATION
