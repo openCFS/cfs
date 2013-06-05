@@ -380,7 +380,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         DefineMortarCoupling(MECH_DISPLACEMENT, *ncIt, dim_);
         break;
       case NC_NITSCHE:
-        EXCEPTION("ncInterfaces of Nitsche type are not implemented for MechPDE");
+        EXCEPTION("ncInterface of Nitsche type is not implemented for MechPDE");
         break;
       default:
         EXCEPTION("Unknown type of ncInterface");

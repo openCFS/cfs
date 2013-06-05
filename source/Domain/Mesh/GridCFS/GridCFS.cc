@@ -930,7 +930,7 @@ namespace CoupledField {
           StdVector<UInt> fNodes = curShape.faceNodes[aSub];
           UInt numNodes = curShape.faceNodes[aSub].GetSize();
           curSurf->connect.Resize(numNodes);
-          //now we loop over the face nodes and assigne the corresponding nodes from the volume element
+          //now we loop over the face nodes and assign the corresponding nodes from the volume element
           for(UInt i=0;i<curShape.faceNodes[aSub].GetSize();++i){
         	  curSurf->connect[i] = curE->connect[fNodes[i]-1];
           }
@@ -1015,7 +1015,7 @@ namespace CoupledField {
       for(UInt i =0;i<interiorSurfElems[iElem]->connect.GetSize();++i){
         LOG_DBG3(gridcfs) << interiorSurfElems[iElem]->connect[i] << " ";
       }
-      LOG_DBG3(gridcfs) << std::endl << "\t Neighors:" << std::endl;
+      LOG_DBG3(gridcfs) << std::endl << "\t Neighbors:" << std::endl;
       StdVector<shared_ptr<NcSurfElem> > neigh = interiorSurfElems[iElem]->neighbors;
       for(UInt i=0;i < neigh.GetSize();++i){
         LOG_DBG3(gridcfs) << "\t " << neigh[i]->elemNum << " ";
@@ -1035,7 +1035,7 @@ namespace CoupledField {
       for(UInt i =0;i<exteriorSurfElems[iElem]->connect.GetSize();++i){
         LOG_DBG3(gridcfs) << exteriorSurfElems[iElem]->connect[i] << " ";
       }
-      LOG_DBG3(gridcfs) << std::endl << "\t Neighors:" << std::endl;
+      LOG_DBG3(gridcfs) << std::endl << "\t Neighbors:" << std::endl;
       StdVector<shared_ptr<NcSurfElem> > neigh = exteriorSurfElems[iElem]->neighbors;
       for(UInt i=0;i < neigh.GetSize();++i){
         LOG_DBG3(gridcfs) << "\t " << neigh[i]->elemNum << " ";

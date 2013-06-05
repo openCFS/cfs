@@ -515,7 +515,7 @@ namespace CoupledField {
         DefineMortarCoupling(ELEC_POTENTIAL, *ncIt);
         break;
       case NC_NITSCHE:
-        DefineNitscheCoupling(ELEC_POTENTIAL, *ncIt);
+        EXCEPTION("ncInterface of Nitsche type is not implemented for ElecPDE");
         break;
       default:
         EXCEPTION("Unknown type of ncInterface");

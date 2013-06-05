@@ -2102,7 +2102,7 @@ namespace CoupledField {
         std::string val = "0.0";
         std::string phase = "0.0";
         // allow for optional value / phase attributes 
-        valueNode->GetValue("values", val, ParamNode::PASS );
+        valueNode->GetValue("value", val, ParamNode::PASS );
         valueNode->GetValue("phase", phase, ParamNode::PASS );
         std::string real = AmplPhaseToReal(val, phase );
       
