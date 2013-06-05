@@ -430,7 +430,7 @@
         <xsd:complexType>
           <xsd:attribute name="name" type="xsd:token" use="required" />
           <xsd:attribute name="nmgFormulation" type="DT_NMGFormulationBasic"
-                         use="optional" default="Nitsche" />
+                         use="optional" default="Mortar" />
           <xsd:attribute name="nitscheFactor" type="xsd:double"
                          use="optional" default="50" />
           <xsd:attribute name="lagrangeMultType"

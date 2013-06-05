@@ -279,15 +279,13 @@ namespace CoupledField {
     const NcSurfElem* ncElem1 = it1.GetNcSurfElem();
     const NcSurfElem* ncElem2 = it2.GetNcSurfElem();
     
-    if ( ncElem1 != ncElem2 ) {
-      EXCEPTION("NcBiLinFormContext requires identical EntityIterators.");
-    }
+    // NcBiLinFormContext requires identical EntityIterators
+    assert( ncElem1 == ncElem2 );
     
     const MortarNcSurfElem *mortarElem =
         dynamic_cast<const MortarNcSurfElem*>(ncElem1);
-    if ( ! mortarElem ) {
-      EXCEPTION("NcBiLinFormContext only works with MortarNcSurfElems at the moment.");
-    }
+    // NcBiLinFormContext only works with MortarNcSurfElems at the moment
+    assert( mortarElem );
     
     // TODO jens: implement the general case for two different FeFunctions
     // (e.g. MechAcou coupling)

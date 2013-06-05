@@ -248,9 +248,11 @@ void MortarInterface::UpdateInterface() {
           SurfElem* m_el = masterElems[i];
           SurfElem* s_el = slaveElems[j];
           if ( (m_el->type != Elem::ET_QUAD4 && m_el->type != Elem::ET_QUAD8
-                && m_el->type != Elem::ET_TRIA3 && m_el->type != Elem::ET_TRIA6)
+                && m_el->type != Elem::ET_QUAD9 && m_el->type != Elem::ET_TRIA3
+                && m_el->type != Elem::ET_TRIA6)
               || (s_el->type != Elem::ET_QUAD4 && s_el->type != Elem::ET_QUAD8
-                  && s_el->type != Elem::ET_TRIA3 && s_el->type != Elem::ET_TRIA6) )
+                  && s_el->type != Elem::ET_QUAD9 && s_el->type != Elem::ET_TRIA3
+                  && s_el->type != Elem::ET_TRIA6) )
           {
             EXCEPTION("Only triangles and quadrilaterals can be intersected"
                 << " with polygon algorithm.");

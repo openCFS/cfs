@@ -232,34 +232,33 @@ namespace CoupledField {
 
     // Make sure we have only entities in linearizeEntities_ which are
     // also part of readEntities_
-    if(*linearizeEntities_.begin() == "__none__") {
+    if ( *linearizeEntities_.begin() == "__none__" ) {
       linearizeEntities_.clear();
-    } else if(*linearizeEntities_.begin() == "__all__") {
+    } else if ( *linearizeEntities_.begin() == "__all__" ) {
       linearizeEntities_.insert(readEntities_.begin(), readEntities_.end());
     } else {
-      it=linearizeEntities_.begin();
-      end=linearizeEntities_.end();
-      for( ; it != end; ) {
-        if(readEntities_.find(*it) == readEntities_.end()) {
-          erase = it; ++it;
-          linearizeEntities_.erase(erase);
+      it = linearizeEntities_.begin();
+      end = linearizeEntities_.end();
+      for ( ; it != end; ) {
+        if ( readEntities_.find(*it) == readEntities_.end() ) {
+          linearizeEntities_.erase(it++);
+        } else {
+          ++it;
         }
-        ++it;
       }
     }
 
     // Remove nodal entities from linearizeEntities_
-    it=linearizeEntities_.begin();
-    end=linearizeEntities_.end();
-    for( ; it != end; ) {
-      StdVector<std::string>::iterator findIt;
-
+    StdVector<std::string>::iterator findIt, endIt = nodeNames_.End();
+    it = linearizeEntities_.begin();
+    end = linearizeEntities_.end();
+    for ( ; it != end; ) {
       findIt = std::find(nodeNames_.Begin(), nodeNames_.End(), *it);
-      if( findIt != nodeNames_.End()) {
-        erase = it; ++it;
-        linearizeEntities_.erase(erase);
+      if ( findIt != endIt ) {
+        linearizeEntities_.erase(it++);
+      } else {
+        ++it;
       }
-      ++it;
     }
 
 
