@@ -7,7 +7,7 @@
 #include <set>
 #include <boost/array.hpp>
 #include <boost/unordered_map.hpp>
-
+#include <boost/unordered_set.hpp>
 
 #if defined(USE_CGAL) && defined(USE_LIBFBI)
 #error "Either USE_CGAL or USE_LIBFBI can be actived, but not both!"
@@ -802,7 +802,7 @@ namespace CoupledField
     StdVector<StdVector<Elem*> > volElems_;
 
     //! Vector with node numbers for each volume region
-    StdVector< std::set<UInt> > volElemNodes_;
+    StdVector<UInt> numVolElemNodes_;
 
     //! Vector with region ids for each volume region
     StdVector<RegionIdType> volRegionIds_;
@@ -811,7 +811,7 @@ namespace CoupledField
     StdVector<StdVector<Elem*> > surfElems_;
 
     //! Vector with node numbers for each surface region
-    StdVector< std::set<UInt> > surfElemNodes_;
+    StdVector<UInt> numSurfElemNodes_;
 
     //! Vector with region ids for each surface region
     StdVector<RegionIdType> surfRegionIds_;

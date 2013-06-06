@@ -61,6 +61,9 @@ namespace CoupledField
 
     //! pointer to MaterialHandler
     MaterialHandler * ptMaterialHandler_;
+    
+    //! set of opened files
+    std::set<AuxFileType> openFiles_;
 
   };
 

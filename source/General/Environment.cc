@@ -51,121 +51,6 @@ namespace CoupledField {
     EXCEPTION("Not implemented");
   }
 
-  // CouplingInputType
-  template<>
-  void String2Enum<CouplingInputType>( const std::string &in,
-                                       CouplingInputType &out ) {
-
-    if (in == "Coordinate-Displacement")
-      out = COORD_DISPL;
-    else if (in == "RHS")
-      out = RHS;
-    else if (in == "DirichletInhom")
-      out = ID_BC;
-    else if (in == "materialParam")
-      out = MAT;
-    else if (in == "gridVel")
-      out = GRID_VEL;
-    else {
-      EXCEPTION( "'" << in << "' cannot be converted into item of "
-                 << "'CouplingInputType'!" );
-    }
-  }
-
-  template<>
-  void Enum2String<CouplingInputType>(const CouplingInputType &in,
-                                      std::string &out) {
-
-    switch(in) {
-
-    case COORD_DISPL:
-      out = "Coordinate-Displacement";
-      break;
-    case RHS:
-      out = "RHS";
-      break;
-    case ID_BC:
-      out = "DirichletInhom";
-      break;
-    case MAT:
-      out = "materialParam";
-      break;
-    case GRID_VEL:
-      out = "gridVel";
-      break;
-    default:  
-      EXCEPTION("No conversion found for your 'CouplingInputType'" );
-    }
-  }
-
-  // CouplingOutputType
-  template<>
-  void String2Enum<CouplingOutputType>(const std::string &in,
-                                       CouplingOutputType &out) {
-
-    if (in == "nodal")
-      out = NODE;
-    else if (in == "elem")
-      out = ELEM;
-    else {
-      EXCEPTION( "'" << in << "' cannot be converted into item of "
-                 <<"'CouplingOutputType'!" );
-    }
-  }
-
-  template<>
-  void Enum2String<CouplingOutputType>(const CouplingOutputType &in,
-                                       std::string &out) {
-    switch(in) {
-
-    case NODE:
-      out = "nodal";
-      break;
-    case ELEM:
-      out = "elem";
-      break;
-    default:
-      EXCEPTION("No conversion found for your 'CouplingOutputType'" );
-    }
-  }
-
-  // CouplingRegionType
-  template<>
-  void String2Enum<CouplingRegionType>(const std::string &in,
-                                       CouplingRegionType &out) {
-    if (in == "region")
-      out = REGION;
-    else if (in == "node")
-      out = NODES;
-    else if (in == "interface")
-      out = SURFACE;
-    else {
-      EXCEPTION( "'" << in << "' cannot be converted into item of "
-                 << "'CouplingRegionType'!" );
-    }
-  }
-
-  template<>
-  void Enum2String<CouplingRegionType>(const CouplingRegionType &in,
-                                       std::string &out) {
-
-    switch(in) {
-
-    case REGION:
-      out = "region";
-      break;
-    case NODES:
-      out = "node";
-      break;
-    case SURFACE:
-      out = "interface";
-      break;
-    default:
-      EXCEPTION( "No conversion found for your 'CouplingRegionType'" );
-    }
-  }
-
-
   // SolutionType
   std::string MapSolTypeToUnit(SolutionType solType)
   {
@@ -318,6 +203,14 @@ namespace CoupledField {
 
       case FLUIDMECH_WEIGHT_DENSITY:
         return "kg m^-2 s^-2 m s^-1";
+        break;
+
+      case FLUIDMECH_WEIGHT_VECTOR_PHI:
+        return "kg m^-3 s^-1";
+        break;
+
+      case FLUIDMECH_WEIGHT_DENSITY_PHI:
+        return "kg m^-3 s^-1 m s^-1";
         break;
 
       case HEAT_TEMPERATURE:
@@ -1207,6 +1100,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_STRAINRATE, "fluidMechStrainRate");
     SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_VECTOR, "fluidMechWeightVector");
     SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_DENSITY, "fluidMechWeightDensity");
+    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_VECTOR_PHI, "fluidMechWeightVectorPhi");
+    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_DENSITY_PHI, "fluidMechWeightDensityPhi");
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
     // optimization
     SolutionTypeEnum.Add(HOMOGENIZED_TENSOR, "homogenizedTensor");

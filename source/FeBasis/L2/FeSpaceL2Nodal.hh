@@ -56,6 +56,9 @@ public:
     //! Map equations i.e. initialize object
     virtual void Finalize();
 
+    //! \copydoc FeSpace::IsSameEntityApproximation
+    virtual bool IsSameEntityApproximation( shared_ptr<EntityList> list,
+                                            shared_ptr<FeSpace> space );
 
   protected:
     // ====================================================================
@@ -91,7 +94,10 @@ public:
 
     //! Set with all regions being treated as spectral
     std::set<RegionIdType> spectralRegions_;
-
+    
+    //! Mapping type for each region
+    std::map< RegionIdType, MappingType> mappingType_;
+        
     //! Map for reference elements by region
     std::map< RegionIdType, std::map<Elem::FEType, FeH1* > > refElems_;
 };

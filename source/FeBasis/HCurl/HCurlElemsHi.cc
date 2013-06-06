@@ -22,7 +22,7 @@ DEFINE_LOG(feHCurlHi, "feHCurlHi")
 //!
 //!     curl(b*F) = b x curl(F) + grad(b) x F
 //!
-//! If we further assume, that F=grad(b), we arrive at
+//! If we further assume, that F = grad(b), we arrive at
 //!
 //!     curl(b*grad(a)) = b x curl(grad(a)) + grad(b) x grad(a)
 //!
@@ -289,6 +289,21 @@ void FeHCurlHi::GetAnisoOrder(StdVector<UInt>& order ) const {
   }
 }
 
+bool FeHCurlHi::operator==( const FeHCurlHi& comp) const {
+  bool ret = true;
+  ret &= this->feType_ == comp.feType_;
+  ret &= this->isIsotropic_ == comp.isIsotropic_;
+  if( isIsotropic_ ) {
+    ret &= this->isoOrder_ == comp.isoOrder_;
+  } else {
+    ret &= this->anisoOrder_ == comp.anisoOrder_;
+    ret &= this->orderEdge_ == comp.orderEdge_;
+    ret &= this->orderFace_ == comp.orderFace_;
+    ret &= this->orderInner_ == comp.orderInner_;
+  }
+  return ret;
+  
+}
 
 
 // ========================================================================

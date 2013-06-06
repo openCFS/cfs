@@ -69,7 +69,11 @@ namespace CoupledField {
       
       //! advance position by n
       void advance( ptrdiff_t n) { 
-        pos_ += static_cast<unsigned int>(n); }
+        if( n > 0 )
+          pos_ += std::abs(n);
+        else
+          pos_ -= std::abs(n);
+      }
       
       //! measure distance
       ptrdiff_t distance_to( iterator const & other ) const {
@@ -122,9 +126,13 @@ namespace CoupledField {
       void decrement() { pos_--; }
 
       //! advance position by n
-      void advance( ptrdiff_t n) { 
-        pos_ += static_cast<unsigned int>(n); }
-
+      void advance( ptrdiff_t n) {
+        if( n > 0 )
+          pos_ += std::abs(n);
+        else
+          pos_ -= std::abs(n);
+      }
+      
       //! measure distance
       ptrdiff_t distance_to( const_iterator const & other ) const {
         return other.pos_ - this->pos_;

@@ -9,8 +9,9 @@ namespace CoupledField{
 
   SingleDriver::SingleDriver( UInt sequenceStep,
                               bool isPartOfSequence,
-                              shared_ptr<SimState> state, Domain* domain  )
-    : BaseDriver(state, domain)
+                              shared_ptr<SimState> state, Domain* domain,
+                              PtrParamNode paramNode, PtrParamNode infoNode)
+    : BaseDriver(state, domain, paramNode, infoNode)
       
   {
   
@@ -18,6 +19,7 @@ namespace CoupledField{
     sequenceStep_ = sequenceStep;
     isPartOfSequence_ = isPartOfSequence;
     ptPDE_ = NULL;
+    writeAllSteps_ = false;
   }
   
   SingleDriver::~SingleDriver()
@@ -31,7 +33,7 @@ namespace CoupledField{
     if( ! isPartOfSequence_ ) {
       
       // Initialize pdes 
-      domain_->CreatePDEs( 1 );
+      domain_->CreatePDEs( 1, info_->GetParent() );
       ptPDE_ = domain_->GetBasePDE();
 
       domain_->InitPDEs( 1 );

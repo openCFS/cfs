@@ -120,7 +120,7 @@ namespace CoupledField {
                              SingleVector* coefs );
 
     //! End multisequence step for database section
-    void DB_FinishMultiSequenceStep( );
+    void DB_FinishMultiSequenceStep(bool completed, Double accTime );
 
     //@}
     
@@ -241,6 +241,8 @@ namespace CoupledField {
     //! Set with used capabilities, i.e. types of content written to file
     std::set<Capability> usedCapabilities_;
     
+    //! Flag if module is initialized
+    bool isInitialized_;
     
     //! Flag indicating if grid is already written
     bool gridWritten_;

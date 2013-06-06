@@ -45,6 +45,12 @@ IF(CMAKE_TOOLCHAIN_FILE)
   )
 ENDIF()
 
+IF(MINGW)
+  LIST(APPEND CMAKE_ARGS
+    -DCFS_ARCH:STRING=${CFS_ARCH}
+  )
+ENDIF()
+
 #-------------------------------------------------------------------------------
 # Set names of patch file and template file.
 #-------------------------------------------------------------------------------

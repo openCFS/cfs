@@ -48,10 +48,12 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   // The inversion can only be performed in case we have a quadratic Jacobian
   // i.e. the dimension of the element is the dimension of the grid
   if (jac.GetNumCols() == jac.GetNumRows()) {
+    // == normal volume element case (2D elemens in 2D, 3D elems in 3D) ===
     jac.Invert(jacInv);
     jac.Determinant(jacDet);
-  } else if (jac.GetNumRows() == 3) {
-    // 2D elements in 3D
+    
+  } else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 2) {
+    // === 2D elements in 3D === 
     Vector<Double> normal;
     normal.Resize(3);
     normal[0] = jac[1][0] * jac[2][1] - jac[2][0] * jac[1][1];
@@ -59,9 +61,15 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
     normal[2] = jac[0][0] * jac[1][1] - jac[1][0] * jac[0][1];
     jacDet = sqrt(
         normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
-
+    
+  } else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 1) {
+    // === 1D elements in 3D ===
+    jacDet = sqrt( jac[0][0] * jac[0][0] 
+                 + jac[1][0] * jac[1][0] 
+                 + jac[2][0] * jac[2][0]);
+    
   } else if (jac.GetNumRows() == 2) {
-    // 1D elements in 2D
+    // === 1D elements in 2D ===
     //see kaltenbacher, p.23, eq.(2.122)
     jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
   };
@@ -362,6 +370,8 @@ void LagrangeElemShapeMap::Global2LocalBarycentric(Vector<Double>& locPoint,
     const Vector<Double>& globalPoint) {
   //todo: check if we have 2D element in 3D
 
+  const ElemShape & shape = *shape_;
+  
   if (ptFe_->FeType() == Elem::ET_TRIA3) {
 
     Double lamb1 = (coords_[1][1] - coords_[1][2])
@@ -379,10 +389,10 @@ void LagrangeElemShapeMap::Global2LocalBarycentric(Vector<Double>& locPoint,
     Double lamb3 = 1 - lamb1 - lamb2;
     locPoint.Resize(2);
 
-    locPoint[0] = lamb1 * shape_.nodeCoords[0][0]
-        + lamb2 * shape_.nodeCoords[1][0] + lamb3 * shape_.nodeCoords[2][0];
-    locPoint[1] = lamb1 * shape_.nodeCoords[0][1]
-        + lamb2 * shape_.nodeCoords[1][1] + lamb3 * shape_.nodeCoords[2][1];
+    locPoint[0] = lamb1 * shape.nodeCoords[0][0]
+        + lamb2 * shape.nodeCoords[1][0] + lamb3 * shape.nodeCoords[2][0];
+    locPoint[1] = lamb1 * shape.nodeCoords[0][1]
+        + lamb2 * shape.nodeCoords[1][1] + lamb3 * shape.nodeCoords[2][1];
   } else if (ptFe_->FeType() == Elem::ET_TET4) {
     Matrix<Double> baryMat(3, 3);
     Matrix<Double> baryMatInv(3, 3);
@@ -410,21 +420,23 @@ void LagrangeElemShapeMap::Global2LocalBarycentric(Vector<Double>& locPoint,
     lamb = baryMatInv * b;
     Double lamb4 = 1 - lamb[0] - lamb[1] - lamb[2];
 
-    locPoint[0] = lamb[0] * shape_.nodeCoords[0][0]
-        + lamb[1] * shape_.nodeCoords[1][0] + lamb[2] * shape_.nodeCoords[2][0]
-        + lamb4 * shape_.nodeCoords[3][0];
-    locPoint[1] = lamb[0] * shape_.nodeCoords[0][1]
-        + lamb[1] * shape_.nodeCoords[1][1] + lamb[2] * shape_.nodeCoords[2][1]
-        + lamb4 * shape_.nodeCoords[3][1];
-    locPoint[2] = lamb[0] * shape_.nodeCoords[0][2]
-        + lamb[1] * shape_.nodeCoords[1][2] + lamb[2] * shape_.nodeCoords[2][2]
-        + lamb4 * shape_.nodeCoords[3][2];
+    locPoint[0] = lamb[0] * shape.nodeCoords[0][0]
+        + lamb[1] * shape.nodeCoords[1][0] + lamb[2] * shape.nodeCoords[2][0]
+        + lamb4 * shape.nodeCoords[3][0];
+    locPoint[1] = lamb[0] * shape.nodeCoords[0][1]
+        + lamb[1] * shape.nodeCoords[1][1] + lamb[2] * shape.nodeCoords[2][1]
+        + lamb4 * shape.nodeCoords[3][1];
+    locPoint[2] = lamb[0] * shape.nodeCoords[0][2]
+        + lamb[1] * shape.nodeCoords[1][2] + lamb[2] * shape.nodeCoords[2][2]
+        + lamb4 * shape.nodeCoords[3][2];
   }
 }
 
 bool LagrangeElemShapeMap::Global2LocalOnNode(Vector<Double>& locPoint,
     const Vector<Double>& glob) {
 
+  const ElemShape & shape = *shape_;
+  
   //first get the local node coordinates of the given element
   Vector<Double> curNodeGlobCoord;
   Vector<Double> diffVec;
@@ -433,8 +445,8 @@ bool LagrangeElemShapeMap::Global2LocalOnNode(Vector<Double>& locPoint,
   locPoint.Resize(coords_.GetNumRows());
   bool retVal = false;
   for (UInt i = 0; i < coords_.GetNumCols(); i++) {
-    for (UInt d = 0; d < shape_.dim; ++d) {
-      curNodePoint.coord[d] = shape_.nodeCoords[i][d];
+    for (UInt d = 0; d < shape.dim; ++d) {
+      curNodePoint.coord[d] = shape.nodeCoords[i][d];
     }
     Local2Global(curNodeGlobCoord, curNodePoint);
     diffVec = glob - curNodeGlobCoord;
@@ -818,6 +830,7 @@ void LagrangeElemShapeMap::Global2LocalLine2(Vector<Double>& locPoint,
   Double s;
   Double lengthOfWholeElem, lengthToPoint, fac;
   UInt globDim = globalPoint.GetSize();
+  const ElemShape & shape = *shape_;
 
   // x-----------o-------------x
   // c0          point         coordMat[i][1]
@@ -838,10 +851,10 @@ void LagrangeElemShapeMap::Global2LocalLine2(Vector<Double>& locPoint,
   diffVecToPoint.Resize(globDim);
   diffVecWholeElem.Resize(globDim);
 
-  xi_k[0] = shape_.nodeCoords[0][0];
+  xi_k[0] = shape.nodeCoords[0][0];
   Local2Global(c0, xi_k);
 
-  xi_k[0] = shape_.nodeCoords[1][0];
+  xi_k[0] = shape.nodeCoords[1][0];
   Local2Global(c1, xi_k);
 
   diffVecWholeElem = c1 - c0;
@@ -857,16 +870,16 @@ void LagrangeElemShapeMap::Global2LocalLine2(Vector<Double>& locPoint,
   diffVecToPoint.Inner(diffVecWholeElem, s);
   s = fac * lengthToPoint;
 
-  locPoint[0] = shape_.nodeCoords[0][0]
-      + (shape_.nodeCoords[1][0] - shape_.nodeCoords[0][0]) * s;
+  locPoint[0] = shape.nodeCoords[0][0]
+      + (shape.nodeCoords[1][0] - shape.nodeCoords[0][0]) * s;
 }
 
 void LagrangeElemShapeMap::Global2LocalGeneral(Vector<Double>& locPoint,
     const Vector<Double>& globalPoint) {
-
-  // increate counter
+  
+  const ElemShape & shape = *shape_;
   UInt globDim = globalPoint.GetSize(); // determine global dimension
-  UInt locDim = shape_.dim; // dimension of current element
+  UInt locDim = shape.dim; // dimension of current element
 
   Vector<Double> xi_start; // local start point for Newton-Raphson method
   Vector<Double> xi_k; // local point at iteration k
@@ -903,9 +916,9 @@ void LagrangeElemShapeMap::Global2LocalGeneral(Vector<Double>& locPoint,
   // Perform Newton-Raphson method on global point
   // Find good startpoint xi_k among local node coordinates
   f_min = 999e5; // really big value!
-  for (UInt k = 0; k < shape_.numNodes; k++) {
+  for (UInt k = 0; k < shape.numNodes; k++) {
     for (UInt l = 0; l < locDim; l++) {
-      xi_k[l] = shape_.nodeCoords[k][l];
+      xi_k[l] = shape.nodeCoords[k][l];
     }
 
     Local2Global(f, xi_k);
@@ -1245,7 +1258,7 @@ void LagrangeElemShapeMap::Global2LocalGeneral(Vector<Double>& locPoint,
 }
 
 void LagrangeElemShapeMap::GetGlobMidPoint(Vector<Double>& midPoint) {
-  Local2Global(midPoint, shape_.midPointCoord);
+  Local2Global(midPoint, shape_->midPointCoord);
 }
 
 Double LagrangeElemShapeMap::CalcVolume() {
@@ -1255,7 +1268,7 @@ Double LagrangeElemShapeMap::CalcVolume() {
   StdVector<Double> weights;
 
   // Order: use element order and add 2 to be sure for curved elements
-  UInt order = shape_.order + 2;
+  UInt order = shape_->order + 2;
   intScheme_->GetIntPoints(Elem::GetShapeType(ptElem_->type), IntScheme::GAUSS,
       order, intPoints, weights);
   Double vol = 0.0;
@@ -1274,9 +1287,10 @@ void LagrangeElemShapeMap::CalcNormal(Vector<Double>& normal,
     const LocPoint& lp) {
 
   // check, that element is a surface element at all
-  if (shape_.dim != ptGrid_->GetDim() - 1) {
+  if (shape_->dim != ptGrid_->GetDim() - 1) {
     EXCEPTION(
-        "Can not calculate normal of element #" << ptElem_->elemNum << " which is of dimension " << shape_.dim << " in a " << ptGrid_->GetDim() << "-dimensional grid!");
+        "Can not calculate normal of element #" << ptElem_->elemNum << " which is of dimension " 
+        << shape_->dim << " in a " << ptGrid_->GetDim() << "-dimensional grid!");
   }
 
   // Get neighboring volume element. 
@@ -1321,15 +1335,17 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
   //in 2D its quite simple, loop over the edges
   //and check if the local point is contained in the edge
   //in 3D it gets harder but we will come to this later
-  if(this->shape_.dim == 2){
+  const ElemShape & shape = *shape_;
+  
+  if(shape.dim == 2){
     //loop over edges
-    UInt numEdges = this->shape_.numEdges;
+    UInt numEdges = shape.numEdges;
     bool result = false;
     for(UInt aEdge = 0; aEdge < numEdges ; aEdge++){
       //get Vertices of current edge
-      StdVector<UInt> eVert = this->shape_.edgeVertices[aEdge];
-      Vector<Double> c1 = this->shape_.nodeCoords[eVert[0]-1];
-      Vector<Double> c2 = this->shape_.nodeCoords[eVert[1]-1];
+      StdVector<UInt> eVert = shape.edgeVertices[aEdge];
+      Vector<Double> c1 = shape.nodeCoords[eVert[0]-1];
+      Vector<Double> c2 = shape.nodeCoords[eVert[1]-1];
 
       Matrix<Double> tmp(3,3);
       tmp.Init();
@@ -1359,7 +1375,7 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
         normal[1] = -diff[0]/len;
 
         Vector<Double> test;
-        test = (lp.coord - shape_.midPointCoord) + normal;
+        test = (lp.coord - shape.midPointCoord) + normal;
         if(test.NormL2() < normal.NormL2()){
           normal *= -1.0;
         }
@@ -1370,7 +1386,7 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
     }
     if(!result){
       UInt tmp = lp.coord.GetSize();
-      WARN("could not dertermine surface normal.. tobecheckt")
+      WARN("could not determine surface normal.. to be checked!")
       numEdges =tmp;
     }
 
@@ -1476,54 +1492,56 @@ ptFe_->GetLocalIntPoints4Surface(surfConnect, ptElem_->connect, surfIntPoint,
 void LagrangeElemShapeMap::MapSurfLocDirs(const Elem* ptSurfElem,
   StdVector<UInt>& surfLocDirs) {
 
-// determine dimension of element
-// 1: look for edges
-// 2: look for faces
-UInt surfDim = Elem::shapes[ptSurfElem->type].dim;
-assert( surfDim < shape_.dim);
-surfLocDirs.Resize(surfDim);
+  const ElemShape & shape = *shape_;
+  // determine dimension of element
+  // 1: look for edges
+  // 2: look for faces
 
-if (surfDim == 1) {
-  // -------------
-  //  Common Edge
-  // -------------
-  // look for common edge
-  // A 1D surface element only has 1 edge
-  UInt edgeNum = std::abs(ptSurfElem->edges[0]);
-  Integer index = ptElem_->edges.Find(edgeNum);
-  if (index < 0) {
-    index = ptElem_->edges.Find(-Integer(edgeNum));
+  UInt surfDim = Elem::shapes[ptSurfElem->type].dim;
+  assert( surfDim < shape.dim);
+  surfLocDirs.Resize(surfDim);
+
+  if (surfDim == 1) {
+    // -------------
+    //  Common Edge
+    // -------------
+    // look for common edge
+    // A 1D surface element only has 1 edge
+    UInt edgeNum = std::abs(ptSurfElem->edges[0]);
+    Integer index = ptElem_->edges.Find(edgeNum);
     if (index < 0) {
-      EXCEPTION("edge not found");
+      index = ptElem_->edges.Find(-Integer(edgeNum));
+      if (index < 0) {
+        EXCEPTION("edge not found");
+      }
     }
-  }
-  surfLocDirs[0] = shape_.edgeLocDirs[index];
+    surfLocDirs[0] = shape.edgeLocDirs[index];
 
-} else if (surfDim == 2) {
-  // -------------
-  //  Common Face
-  // -------------
-  // a 2D surface element only has one face
-  UInt faceNum = std::abs(ptSurfElem->faces[0]);
-  Integer index = ptElem_->faces.Find(faceNum);
-  if (index < 0) {
-    EXCEPTION("face not found");
-  }
-  surfLocDirs[0] = shape_.faceLocDirs[index][0];
-  surfLocDirs[1] = shape_.faceLocDirs[index][1];
-
-  // only for quad-faces, we must check. if both
-  // directions have to get interchanged.
-  if (shape_.faceNodes[index].GetSize() == 4) {
-    // check, if directions have to get interchanged
-    if (!ptSurfElem->faceFlags[0][2]) {
-      std::swap(surfLocDirs[0], surfLocDirs[1]);
+  } else if (surfDim == 2) {
+    // -------------
+    //  Common Face
+    // -------------
+    // a 2D surface element only has one face
+    UInt faceNum = std::abs(ptSurfElem->faces[0]);
+    Integer index = ptElem_->faces.Find(faceNum);
+    if (index < 0) {
+      EXCEPTION("face not found");
     }
-  }
+    surfLocDirs[0] = shape.faceLocDirs[index][0];
+    surfLocDirs[1] = shape.faceLocDirs[index][1];
 
-} else {
-  EXCEPTION("Can only handle 1D or 2D elements.")
-}
+    // only for quad-faces, we must check. if both
+    // directions have to get interchanged.
+    if (shape.faceNodes[index].GetSize() == 4) {
+      // check, if directions have to get interchanged
+      if (!ptSurfElem->faceFlags[0][2]) {
+        std::swap(surfLocDirs[0], surfLocDirs[1]);
+      }
+    }
+
+  } else {
+    EXCEPTION("Can only handle 1D or 2D elements.")
+  }
 
 }
 
@@ -1534,12 +1552,12 @@ return ptFe_->CoordIsInsideElem(point, tolerance);
 }
 
 void LagrangeElemShapeMap::CalcDiameter(Vector<Double>& diameter) {
-Vector<Double> mins(shape_.dim), maxs(shape_.dim);
+Vector<Double> mins(shape_->dim), maxs(shape_->dim);
 mins.Init(std::numeric_limits<double>::max());
 maxs.Init();
-diameter.Resize(shape_.dim);
+diameter.Resize(shape_->dim);
 diameter.Init();
-for (UInt dim = 0; dim < shape_.dim; dim++) {
+for (UInt dim = 0; dim < shape_->dim; dim++) {
   for (UInt k = 0, n_elems = coords_.GetNumCols(); k < n_elems; k++) {
     Double test = coords_[dim][k];
     Double& min = mins[dim];
@@ -1578,53 +1596,55 @@ EXCEPTION("Not implemented");
 }
 
 void LagrangeElemShapeMap::GetMaxMinEdgeLength(Double& max, Double& min) {
-max = 1e-100;
-min = 1e+100;
-Double length, dl;
-for (UInt i = 0; i < shape_.numEdges; ++i) {
-  length = 0.0;
-  for (UInt iDim = 0; iDim < shape_.dim; ++iDim) {
-    dl = coords_[iDim][shape_.edgeVertices[i][1] - 1]
-        - coords_[iDim][shape_.edgeVertices[i][0] - 1];
-    length += dl * dl;
+  const ElemShape & shape = *shape_;
+  max = 1e-100;
+  min = 1e+100;
+  Double length, dl;
+  for (UInt i = 0; i < shape.numEdges; ++i) {
+    length = 0.0;
+    for (UInt iDim = 0; iDim < shape.dim; ++iDim) {
+      dl = coords_[iDim][shape.edgeVertices[i][1] - 1]
+                         - coords_[iDim][shape.edgeVertices[i][0] - 1];
+      length += dl * dl;
+    }
+    length = sqrt(length);
+    max = max > length ? max : length;
+    min = min < length ? min : length;
   }
-  length = sqrt(length);
-  max = max > length ? max : length;
-  min = min < length ? min : length;
-}
 }
 
 void LagrangeElemShapeMap::GetEdgeLength(StdVector<Double>& edges_out) {
-EXCEPTION("Not implemented");
+  EXCEPTION("Not implemented");
 }
 
 void LagrangeElemShapeMap::GetExtensionLocalDir(Vector<Double>& extension) {
-const Double MIN = 1e100;
-Vector<Double> min(shape_.dim);
-min.Init(MIN);
-Double length, dl;
-for (UInt i = 0; i < shape_.numEdges; ++i) {
-  length = 0.0;
-  for (UInt iDim = 0; iDim < shape_.dim; ++iDim) {
-    dl = coords_[iDim][shape_.edgeVertices[i][1] - 1]
-        - coords_[iDim][shape_.edgeVertices[i][0] - 1];
-    length += dl * dl;
-  }
-  length = sqrt(length);
-  Integer locDir = shape_.edgeLocDirs[i];
-  if (locDir > -1) {
-    if (length < min[locDir]) {
-      min[locDir] = length;
+  const Double MIN = 1e100;
+  const ElemShape & shape = *shape_;
+  Vector<Double> min(shape.dim);
+  min.Init(MIN);
+  Double length, dl;
+  for (UInt i = 0; i < shape.numEdges; ++i) {
+    length = 0.0;
+    for (UInt iDim = 0; iDim < shape.dim; ++iDim) {
+      dl = coords_[iDim][shape.edgeVertices[i][1] - 1]
+                         - coords_[iDim][shape.edgeVertices[i][0] - 1];
+      length += dl * dl;
+    }
+    length = sqrt(length);
+    Integer locDir = shape.edgeLocDirs[i];
+    if (locDir > -1) {
+      if (length < min[locDir]) {
+        min[locDir] = length;
+      }
     }
   }
-}
 
-extension.Resize(shape_.dim);
-extension.Init(0.0);
-for (UInt i = 0; i < shape_.dim; ++i) {
-  if (min[i] != MIN)
-    extension[i] = min[i];
-}
+  extension.Resize(shape.dim);
+  extension.Init(0.0);
+  for (UInt i = 0; i < shape.dim; ++i) {
+    if (min[i] != MIN)
+      extension[i] = min[i];
+  }
 }
 
 void LagrangeElemShapeMap::CalcJ(Matrix<Double>& jac, const LocPoint& lp) {
@@ -1693,7 +1713,7 @@ if( elems_.feMap_.find(ptElem->type) == elems_.feMap_.end()) {
 }
 #endif
 ptFe_ = elems_.feMap_[ptElem->type];
-shape_ = Elem::shapes[ptElem_->type];
+shape_ = &Elem::shapes[ptElem_->type];
 }
 
 } // namespace CoupledField

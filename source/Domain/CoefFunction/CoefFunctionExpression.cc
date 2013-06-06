@@ -23,7 +23,12 @@ CoefFunctionExpression<Double>::CoefFunctionExpression(MathParser * mp) :
   isComplex_ = false;
   
   // do not use rotated coordsys initially
-  this->coordSys_ = domain->GetCoordSystem();
+  if( domain ) {
+    this->coordSys_ = domain->GetCoordSystem();
+  } else 
+  {
+    this->coordSys_ = NULL;
+  }  
 }   
 
 CoefFunctionExpression<Double>::~CoefFunctionExpression(){
@@ -213,7 +218,12 @@ CoefFunctionExpression<Complex>::CoefFunctionExpression(MathParser * mp) :
   isComplex_ = true;
 
   // always store default coordinate system
-  this->coordSys_ = domain->GetCoordSystem();
+  if( domain ) {
+    this->coordSys_ = domain->GetCoordSystem();
+  } else 
+  {
+    this->coordSys_ = NULL;
+  }  
 }   
 
 CoefFunctionExpression<Complex>::~CoefFunctionExpression(){
@@ -440,7 +450,8 @@ GetStrTensor( UInt& numRows, UInt& numCols,
 }
 
 void CoefFunctionExpression<Double>::GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                                                       StdVector<Double >  & vals){
+                                                              StdVector<Double >  & vals,
+                                                              Grid* ptGrid ){
   assert(this->dimType_ == CoefFunction::SCALAR);
 
   vals.Resize(points.GetSize());
@@ -452,11 +463,12 @@ void CoefFunctionExpression<Double>::GetScalarValuesAtCoords( const StdVector<Ve
 }
 
 void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                      StdVector<Vector<Double> >  & vals){
+                                                              StdVector<Vector<Double> >  & vals,
+                                                              Grid* ptGrid ){
   Vector<Double> locVector;
   if( this->dimType_ == SCALAR ) {
     StdVector<Double> tmpVals;
-    this->GetScalarValuesAtCoords(points,tmpVals);
+    this->GetScalarValuesAtCoords(points,tmpVals,ptGrid);
     vals.Resize(tmpVals.GetSize(), Vector<Double>(1));
     for(UInt i=0;i<tmpVals.GetSize();i++){
       vals[i][0] = tmpVals[i];
@@ -474,7 +486,8 @@ void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Ve
 }
 
 void CoefFunctionExpression<Double>::GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                       StdVector<Matrix<Double> >  & vals){
+                                                              StdVector<Matrix<Double> >  & vals,
+                                                              Grid* ptGrid){
 
   assert(this->dimType_ == CoefFunction::TENSOR);
 
@@ -507,7 +520,8 @@ void CoefFunctionExpression<Double>::GetTensorValuesAtCoords( const StdVector<Ve
 
 
 void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                                                       StdVector<Complex >  & vals){
+                                                               StdVector<Complex >  & vals,
+                                                               Grid* ptGrid ){
   Double real, imag;
   assert(this->dimType_ == CoefFunction::SCALAR);
   // First, obtain global coordinates of current point and  register it at the mathParser
@@ -524,14 +538,15 @@ void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<V
 }
 
 void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                                                      StdVector<Vector<Complex> >  & vals){
+                                                               StdVector<Vector<Complex> >  & vals,
+                                                               Grid* ptGrid ){
   assert(this->dimType_ == CoefFunction::VECTOR);
   Vector<Double> temp;
   Vector<Complex> locVector;
 
   if( this->dimType_ == SCALAR ) {
      StdVector<Complex> tmpVals;
-     this->GetVectorValuesAtCoords(points,tmpVals);
+     this->GetVectorValuesAtCoords(points,tmpVals,ptGrid);
      vals.Resize(tmpVals.GetSize(), Vector<Complex>(1));
      for(UInt i=0;i<tmpVals.GetSize();i++){
        vals[i][0] = tmpVals[i];
@@ -554,8 +569,9 @@ void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<V
    }
 }
 
-void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                                                       StdVector<Matrix<Complex> >  & vals){
+void CoefFunctionExpression<Complex>::GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                                               StdVector<Matrix<Complex> >  & vals,
+                                                               Grid* ptGrid ){
 
   assert(this->dimType_ == CoefFunction::TENSOR);
   Matrix<Complex> locMatrix(this->numRows_, this->numCols_);

@@ -5,10 +5,9 @@
 #include <list>
 #include <math.h>
 
-// signal handling for post-poning Ctr-C
+// signal handling for catching Ctr-C
 #include <signal.h>
 
-#include <boost/filesystem.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "TransientDriver.hh"
@@ -25,7 +24,6 @@
 
 using std::cout;
 using std::endl;
-namespace fs = boost::filesystem;
 namespace pt = boost::posix_time;
 
 namespace CoupledField {
@@ -42,8 +40,9 @@ namespace CoupledField {
   // ===============
   TransientDriver::TransientDriver( UInt sequenceStep,
                                     bool isPartOfSequence,
-                                    shared_ptr<SimState> state, Domain* domain ) 
-    : SingleDriver( sequenceStep, isPartOfSequence, state, domain ), 
+                                    shared_ptr<SimState> state, Domain* domain,
+                                    PtrParamNode paramNode, PtrParamNode infoNode) 
+    : SingleDriver( sequenceStep, isPartOfSequence, state, domain, paramNode, infoNode ), 
       timer_(new Timer())
     {
     
@@ -53,39 +52,44 @@ namespace CoupledField {
     // Set analysistype
     analysis_ = BasePDE::TRANSIENT;
 
+    actTime_ = 0.0;
     actTimeStep_ = 0;
     initialTime_ = 0.0;
     firstdt_ = 0.0;
     restartStep_ = 0;
     endStep_ = 0;
-    abortSimulation_ = false;
+    isRestarted_ = false;
 
     // get parameter node
-    PtrParamNode myNode = 
-      domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), sequenceStep)
-      ->Get("analysis")->Get("transient");
+    param_ = param_->Get("transient");
 
-    driverNode = driverNode->Get("transient");
-    driverNode->Get("sequenceStep")->SetValue(sequenceStep);
-    driverNode->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("s");
+    info_ = info_->Get("transient");
+    info_->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("s");
     
     // for the evaluation of deltaT, we make use of math Parser to
     // allow variable definitions of time step size
-    firstdt_ = myNode->Get( "deltaT")->MathParse<Double>();
+    firstdt_ = param_->Get( "deltaT")->MathParse<Double>();
     
     // Get time stepping information from parameter object
-    numstep_ = myNode->Get( "numSteps")->MathParse<UInt>();
+    numstep_ = param_->Get( "numSteps")->MathParse<UInt>();
     
     // query if accumulated time should be used as initial time
-    std::string initTimeString = myNode->Get("initialTime")->As<std::string>();
+    std::string initTimeString = param_->Get("initialTime")->As<std::string>();
     useAccumulatedTime_ = initTimeString == "accumulated" ? true : false;
     
-    // Check for presence of restart flag
+    // Check for presence of restart flag.
+    // Note; in case of a multisequence analysis we always have to 
+    //       write a "restart", as it will be the basis for the
+    //       next multisequence step
     writeRestart_ = true;
-    PtrParamNode restartNode = myNode->Get("writeRestart", ParamNode::PASS);
-    if (restartNode)
+    PtrParamNode restartNode = param_->Get("writeRestart", ParamNode::PASS);
+    if (restartNode && !isPartOfSequence)
       writeRestart_ = restartNode->As<bool>();
   
+    // read flag if all results should get written to database file section
+    // to allow e.g. for general postprocessing or result extraction
+    param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
+    
     // in the end, directly register the global transient variables
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                        "t", 0 );
@@ -96,22 +100,27 @@ namespace CoupledField {
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                        "step", 1 );
     
-    // register signal handler
-    if( signal( SIGINT, TransientDriver::SignalHandler) == SIG_ERR ) {
-      EXCEPTION( "Could not register Signal Handler");
-    }
-    
-    // store pointer to global instance variable, if not yet set
-    if( !instance ) {
-      instance = this;
+    // register signal handler only, if it is a child driver
+    if( !simState_->HasInput() ) {
+      if( signal( SIGINT, TransientDriver::SignalHandler) == SIG_ERR ) {
+        EXCEPTION( "Could not register Signal Handler");
+      }
+
+      // store pointer to global instance variable, if not yet set
+      if( !instance ) {
+        instance = this;
+      }
     }
   }
 
   void TransientDriver::SetAccumulatedTime(Double accTime ) {
+    accTime_ = accTime;
+    
     if( !useAccumulatedTime_ ) 
       return;
-    actTimeStep_ = accTime;
+
     initialTime_ = accTime;
+    actTime_ = accTime;
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                         "t", actTimeStep_  );
     domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
@@ -123,39 +132,40 @@ namespace CoupledField {
   // ==============
   TransientDriver::~TransientDriver()
   { 
-    // unregister signal handler and use default action
-    // register signal handler
-    if( signal( SIGINT, SIG_DFL) == SIG_ERR ) {
-      EXCEPTION( "Could not assign default signal action");
+    if( !simState_->HasInput() ) {
+      // unregister signal handler and use default action
+      // register signal handler
+      if( signal( SIGINT, SIG_DFL) == SIG_ERR ) {
+        EXCEPTION( "Could not assign default signal action");
+      }
+      
+      // set global pointer to zero
+      instance = NULL;
     }
-    
-    // set global pointer to zero
-    instance = NULL;
-    
   }
 
   // ==================
   //   Initialization
   // ==================
-  void TransientDriver::Init() 
+  void TransientDriver::Init( bool restart) 
   {
+    isRestarted_ = restart;
     InitializePDEs();
   }
     
-  void TransientDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id) 
+  void TransientDriver::SolveProblem() 
   {
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain_->GetResultHandler();
 
-    simState_->BeginMultiSequenceStep(sequenceStep_, analysis_);
+    if(writeRestart_ || writeAllSteps_ || isPartOfSequence_ )
+      simState_->BeginMultiSequenceStep(sequenceStep_, analysis_);
     
     // Check for restart
     ReadRestart();
     
     // correct numstep due to restart
     numstep_ = numstep_ - restartStep_;
-    
-  
     
     UInt startStep = restartStep_ + 1;
     endStep_ = numstep_ + restartStep_;
@@ -178,9 +188,7 @@ namespace CoupledField {
      return;
     }
     
-    if(write_results){
        resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, numstep_+restartStep_ );
-     }
     
     // Outer loop over all timesteps
     UInt count = 0;
@@ -227,18 +235,11 @@ namespace CoupledField {
       }
       
 
-      if(given_analysis_id == NULL)
-      {
-        // do we really want to create a new entry? Might blast up the output
-        ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-        analysis_id_ = driverNode->Get(ParamNode::PN_PROCESS)->Get("step", at);
-        analysis_id_->Get("analysis_id")->SetValue(actTimeStep_);
-      }
-      else
-      {
-        assert(given_analysis_id->Has("analysis_id"));
-        analysis_id_ = CreateAnalysisIdChild(given_analysis_id, given_analysis_id->Get("analysis_id")->As<std::string>(), actTimeStep_, "step", actTimeStep_);
-      }
+      // do we really want to create a new entry? Might blast up the output
+      ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+      analysis_id_ = info_->Get(ParamNode::PN_PROCESS)->Get("step", at);
+      analysis_id_->Get("analysis_id")->SetValue(actTimeStep_);
+        
       analysis_id_->Get("step")->SetValue(actTimeStep_);
       analysis_id_->Get("value")->SetValue(actTime_);
       
@@ -249,16 +250,14 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SolveStepTrans(analysis_id_);
       ptPDE_->GetSolveStep()->PostStepTrans();
 
-      if(write_results){
-        // writing results in output-file(s)
-        resHandler->BeginStep( actTimeStep_, actTime_ );
-        ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ );
-        resHandler->FinishStep( );
-      }
+      // writing results in output-file(s)
+      resHandler->BeginStep( actTimeStep_, actTime_ );
+      ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ );
+      resHandler->FinishStep( );
       
       // write out re-start only in the last step
-      if( actTimeStep_ == endStep_ || abortSimulation_ ) {
-        if( writeRestart_)
+      if( actTimeStep_ == endStep_ || abortSimulation_  || writeAllSteps_ ) {
+        if( writeRestart_ || writeAllSteps_ || isPartOfSequence_)
          simState_->WriteStep( actTimeStep_, actTime_ );
       }
         
@@ -279,7 +278,7 @@ namespace CoupledField {
         now += pt::seconds(static_cast<long int>(remainingTime));
         
         analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
-        PtrParamNode envNode = driverNode->GetRoot()->
+        PtrParamNode envNode = info_->GetRoot()->
             Get(ParamNode::PN_HEADER)->Get("environment");
         envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
         envNode->Get("remainingTime")->SetValue(remainingTime);
@@ -288,52 +287,76 @@ namespace CoupledField {
     }
 
     // notify resultHandler about finishing of current sequence step
-    if(!isPartOfSequence_ && write_results) {
-      resHandler->FinishMultiSequenceStep();
-      // notify resultHandler about finishing of current sequence step
-      if(!isPartOfSequence_) resHandler->Finalize();
+    resHandler->FinishMultiSequenceStep();
+    if(!isPartOfSequence_) {
+      resHandler->Finalize();
     }
-    simState_->FinishMultiSequenceStep();
     
+    if(writeRestart_ || writeAllSteps_ || isPartOfSequence_ ) {
+      simState_->FinishMultiSequenceStep( !abortSimulation_, 
+                                          accTime_+GetDuration());
+    }
+
   }
 
+  void TransientDriver::SetToStepValue(UInt stepNum, Double stepVal ) {
+    // ensure that this method is only called if simState has input
+    if( ! simState_->HasInput()) {
+      EXCEPTION( "Can only set external time step, if simulation state "
+              << "is read from external file" );
+    }
+    
+    actTime_ = stepVal;
+    actTimeStep_ = stepNum;
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                       "t", actTime_ );
+    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                       "step", actTimeStep_ );    
+  }
+  
   void TransientDriver::ReadRestart() {
 
-    if ( progOpts->GetRestart() ){
+    if ( isRestarted_ ) {
 
       // Ensure simState is present
       assert( simState_ );
 
-      // Create input reader from current output reader 
-      simState_->SetInputReaderToSameInput();
-
+      // Create input reader from current output reader
+      bool hasInput = simState_->SetInputReaderToSameOutput();
+      if( !hasInput)  {
+        EXCEPTION( "Can not perform restarted simulation, as HDF5 file "
+            << "contains no restart information.");
+      }
+      
       // Obtain last step
-      UInt lastStep = simState_->GetLastStepNum();
-      restartStep_ = lastStep;
+      UInt lastStepNum;
+      Double lastStepVal;
+      simState_->GetLastStepNum(sequenceStep_, lastStepNum, lastStepVal );
+      restartStep_ = lastStepNum;
       
       // if lastStep is 0, no restart possibility
-      if( lastStep == 0 ) {
+      if( lastStepNum == 0 ) {
         EXCEPTION( "Can not perform restarted simulation, as HDF5 file "
             << "contains no restart information.");
       }
 
-      // Store restart step
-      simState_->UpdateToStep(lastStep);
+      // Restore coefficients from last restart step
+      simState_->UpdateToStep(sequenceStep_, lastStepNum);
 
-      if( lastStep == numstep_) {
+      if( simState_->IsCompleted( sequenceStep_ ) ) {
 
-        std::cerr << "\n\n";
-        std::cerr << "*******************************************************\n";
-        std::cerr << " No restart necessary, as the desired number of \n";
-        std::cerr << " time steps are already computed. \n";
-        std::cerr << "*******************************************************\n\n";
+        std::cout << "\n\n";
+        std::cout << "*******************************************************\n";
+        std::cout << " No restart necessary, as the desired number of \n";
+        std::cout << " time steps are already computed. \n";
+        std::cout << "*******************************************************\n\n";
         return;
       } else{
 
-        std::cerr << "\n\n";
-        std::cerr << "*******************************************************\n";
-        std::cerr << " Continuing simulation from step " << restartStep_  << std::endl;
-        std::cerr << "*******************************************************\n";
+        std::cout << "\n\n";
+        std::cout << "*******************************************************\n";
+        std::cout << " Continuing simulation from step " << restartStep_  << std::endl;
+        std::cout << "*******************************************************\n";
       }
     }
 
@@ -350,14 +373,14 @@ namespace CoupledField {
       
       instance->abortSimulation_ = true;
       
-      std::cerr << "\n\n";
-      std::cerr << "*******************************************************\n";
-      std::cerr << " Simulation will be halted after the current time \n";
-      std::cerr << " step " << instance->actTimeStep_ << " / " << instance->actTime_
+      std::cout << "\n\n";
+      std::cout << "*******************************************************\n";
+      std::cout << " Simulation will be halted after the current time \n";
+      std::cout << " step " << instance->actTimeStep_ << " / " << instance->actTime_
                 << " s.\n\n";
-      std::cerr << " Estimated time before end of simulation run: " << 
+      std::cout << " Estimated time before end of simulation run: " << 
           int(instance->timePerStep_) << " s" << std::endl;
-      std::cerr << "*******************************************************\n\n";
+      std::cout << "*******************************************************\n\n";
 
     }
   }

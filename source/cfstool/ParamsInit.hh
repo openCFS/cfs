@@ -3,9 +3,9 @@
 
 #include <string>
 
-namespace CoupledField 
+namespace CFSTool 
 {
-  void ParamsInit(int argc, char* argv[], PtrParamNode param);
+  void ParamsInit(int argc, char* argv[], PtrParamNode& param);
 }
 
 #endif

@@ -8,9 +8,11 @@
 #include <map>
 #include <boost/filesystem/path.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <boost/signals.hpp>
 
 #include "General/Environment.hh"
 #include "PDE/BasePDE.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace fs = boost::filesystem;
 
@@ -44,18 +46,27 @@ namespace CoupledField {
   class SimState  : public boost::enable_shared_from_this<SimState> {
   
   public:
+    
+    //! Define available interpolation methods
+    //@{
+    typedef enum { 
+      NO_INTERPOLATION = 0, 
+      NEAREST_NEIGHBOR = 1, 
+      LINEAR } InterpolType;
+    static Enum<InterpolType> InterpolTypeEnum;
+    //@}
 
     //! Constructor
-    SimState(bool useAsInput );
+    SimState(bool useAsInput, Domain * parentDomain = NULL );
 
     //! Destructor
-    ~SimState();
+    virtual ~SimState();
 
     //! Query, if SimState provides input data
     bool HasInput() {
       return hasInput_;
     }
-
+    
     // =======================================
     //  OUTPUT - FUNCTIONALITY 
     // =======================================
@@ -64,6 +75,10 @@ namespace CoupledField {
     //! If not set, a new writer is created internally
     void SetOutputHdf5Writer( shared_ptr<SimOutputHDF5> outFile );
 
+    shared_ptr<SimOutputHDF5> GetOutputWriter() {
+      return outFile_;
+    }
+    
     //! Pass parameter and material file names
     void SetMatParamFile( const fs::path& paramFile, 
                           const fs::path& matFile ); 
@@ -78,15 +93,18 @@ namespace CoupledField {
     void WriteStep( UInt stepNum, Double stepVal );
     
     //! Finish multisequence step
-    void FinishMultiSequenceStep( );
+    void FinishMultiSequenceStep( bool completed, 
+                                  Double accumulatedTime = 0.0 );
     
     
     // =======================================
     //  INPUT - FUNCTIONALITY 
     // =======================================
-
+    typedef std::map<std::string, Grid* > GridMap;
+    
     //! Retrieve a domain object from a previously set HDF5 file
-    Domain* GetDomain(UInt sequenceStep);
+    Domain* GetDomain(UInt sequenceStep,
+                      const GridMap& map = GridMap() );
 
     //! Set pointer to input hdf5 reader
     void SetInputHdf5Reader( shared_ptr<SimInputHDF5> inFile );
@@ -95,19 +113,42 @@ namespace CoupledField {
     
     //! This method generates an input reader from an already set
     //! input reader.
-    void SetInputReaderToSameInput();
+    bool SetInputReaderToSameOutput();
+    
+    //! Return list of sequence steps 
+    void GetSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
+                           std::map<UInt, Double>& accTime,
+                           std::map<UInt, bool>& isFinished );
+    
+    //! Return true, if the given sequence step is already completed
+    //! in the input file
+    bool IsCompleted( UInt sequenceStep );
+    
+    //! Return number of available sequence steps in file
+    UInt GetLastMsStepNum();
     
     //! Return last step number of input file
-    UInt GetLastStepNum();
+    void GetLastStepNum(UInt sequenceStep, UInt& lastStepNum,
+                        Double& lastStepVal );
  
+    //! Set interpolation strategy
+    void SetInterpolation( InterpolType type, MathParser * parser,
+                           BasePDE::AnalysisType analysis,
+                           Double offset );
+    
     //! Update internally to given time / frequency step
-    void UpdateToStep( UInt stepNum );
-
+    void UpdateToStep( UInt sequenceStep, UInt stepNum );
    
+    //! Finalize state (delete registered fefunctions etc.)
+    void Finalize();
+    
   protected:
     
     //! Initialize simulation state object
     void Init();
+    
+    //! Callback method in case of interpolation of time 
+    void UpdateTimeFreqStep();
     
     //! Pointer to HDF5 output class
     shared_ptr<SimOutputHDF5> outFile_;
@@ -115,7 +156,7 @@ namespace CoupledField {
     //! Pointer to HDF5 input class
     shared_ptr<SimInputHDF5> inFile_;
     
-    //! Pointer to domain
+    //! Pointer to own domain
     Domain* domain_;
     
     //! Flag, if own writer is created
@@ -138,6 +179,33 @@ namespace CoupledField {
     
     //! Set of registered FeFunctions
     std::set<shared_ptr<BaseFeFunction> >feFcts_;
+
+    //! Pointer to parent domain
+    Domain * parentDomain_;
+    // ===========================================
+    //  Interpolation Related Data
+    // ===========================================
+    //! Connection to math parser instance 
+    boost::signals::connection conn_;
+    
+    //! Math parser for parent domain
+    
+    //! The math parser of the parent / main domain is neeeded to register
+    //! a callback function, which is called everytime the time / frequency
+    //! value of the main domain is changed.
+    MathParser * parentParser_;
+    
+    //! Math parser handle for parser of parent domain
+    MathParser::HandleType parentHandle_;
+    
+    //! Store stepNumbers
+    StdVector<UInt> stepNums_;
+    
+    //! Store stepValues
+    StdVector<Double> stepVals_;
+    
+    //! store type of interpolation
+    InterpolType interpol_;
   };
 
 }

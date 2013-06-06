@@ -68,6 +68,9 @@ public:
   //! \copydoc BaseFE::GetAnsiOrder
   virtual void GetAnisoOrder(StdVector<UInt>& order ) const;
   
+  //! Compare two element for equality (= same shape and approximation);
+  bool operator==( const FeHCurlHi& comp) const;
+  
 protected:
   
   //! Calculate number of unknowns

@@ -9,11 +9,9 @@
 
 namespace CoupledField {
 
-
-
-
 // forward class declarations
 class FeHi;
+class Assemble;
 
 //! Class for hierarchical finite elements
 class FeSpaceHi : public FeSpace {
@@ -64,27 +62,27 @@ public:
   virtual ~FeSpaceHi();
 
   //! \copydoc FeSpace::MapCoefFctToSpace
-  void MapCoefFctToSpace(shared_ptr<EntityList> entityList,
-                                shared_ptr<CoefFunction> coefFct,
-                                std::map<Integer, Double>& vals,
-                                bool cache,
-                                const std::set<UInt>& comp = std::set<UInt>() ){
-    MapCoefFctToSpacePriv<Double>(entityList,coefFct,vals,cache,comp);
+  void MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support,
+                         shared_ptr<CoefFunction> coefFct,
+                         std::map<Integer, Double>& vals,
+                         bool cache,
+                         const std::set<UInt>& comp = std::set<UInt>() ){
+    MapCoefFctToSpacePriv<Double>(support,coefFct,vals,cache,comp);
   }
 
   //! \copydoc FeSpace::MapCoefFctToSpace
-  void MapCoefFctToSpace(shared_ptr<EntityList> entityList,
-                                shared_ptr<CoefFunction> coefFct,
-                                std::map<Integer, Complex>& vals,
-                                bool cache,
-                                const std::set<UInt>& comp = std::set<UInt>() ){
-    MapCoefFctToSpacePriv<Complex>(entityList,coefFct,vals,cache,comp);
+  void MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support,
+                         shared_ptr<CoefFunction> coefFct,
+                         std::map<Integer, Complex>& vals,
+                         bool cache,
+                         const std::set<UInt>& comp = std::set<UInt>() ){
+    MapCoefFctToSpacePriv<Complex>(support,coefFct,vals,cache,comp);
   }
   
 protected:
   
   template<typename T>
-  void MapCoefFctToSpacePriv(shared_ptr<EntityList> entityList,
+  void MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > support,
                                 shared_ptr<CoefFunction> coefFct,
                                 std::map<Integer, T>& vals,
                                 bool cache,

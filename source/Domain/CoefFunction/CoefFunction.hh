@@ -335,18 +335,6 @@ public:
     return isComplex_;
   }
 
-  virtual void AddEntityList(shared_ptr<EntityList> ent){
-    if(!entities_.Contains(ent)){
-      entities_.Push_back(ent);
-    }else{
-      WARN("entity list " << ent->GetName() << " already contained in CoefFunction")
-    }
-  }
-
-  virtual StdVector<shared_ptr<EntityList> > GetEntityList(){
-    return entities_;
-  }
-
   //! Dump coefficient function to string 
   virtual std::string ToString() const {
     EXCEPTION("CoefFuncion: ToString() not properly overwritten");
@@ -408,30 +396,47 @@ public:
   }
 
 
-  //! Give Values at global coordinate locations
+  //@{  
+  //! Return vectorial values at global coordinate locations
+  
+  //! This method allows to get the values at several global coordinate 
+  //! locations at once. This can be very efficient for simple expressions
+  //! (constant, analytical) or rather costly (e.g. for element-discerete values
+  //! involving a global-local transformation.
+  //!
+  //! In the base class, the most general approach is implemented, i.e. we
+  //! map every coordinate to element local coordinates and call the related
+  //! GetScalar() method, which can be rather costly.
+  //! In this case it is advisable to override this method in the derived 
+  //! CoefFunction class.
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
-                                             StdVector< Vector<Double> >& values){
-    EXCEPTION("This coefficient function does not support evaluation at global coordinates");
-  }
-
-  //! Give Values at global coordinate locations
+                                        StdVector< Vector<Double> >& values,
+                                        Grid* ptGrid );
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
-                                             StdVector< Vector<Complex> >& values){
-    EXCEPTION("This coefficient function does not support evaluation at global coordinates");
-  }
+                                        StdVector< Vector<Complex> >& values, 
+                                        Grid* ptGrid );
+  //@}
 
-  //! Give Values at global coordinate locations
+  //@{
+  //! Return scalar values at global coordinate locations
+  
+  //! This method allows to get the values at several global coordinate 
+  //! locations at once. This can be very efficient for simple expressions
+  //! (constant, analytical) or rather costly (e.g. for element-discerete values
+  //! involving a global-local transformation.
+  //!
+  //! In the base class, the most general approach is implemented, i.e. we
+  //! map every coordinate to element local coordinates and call the related
+  //! GetScalar() method, which can be rather costly.
+  //! In this case it is advisable to override this method in the derived 
+  //! CoefFunction class.
   virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
-                                             StdVector< Double >& values){
-    EXCEPTION("This coefficient function does not support evaluation at global coordinates");
-  }
-
-  //! Give Values at global coordinate locations
+                                        StdVector< Double >& values, 
+                                        Grid* ptGrid);
   virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
-                                             StdVector< Complex >& values){
-    EXCEPTION("This coefficient function does not support evaluation at global coordinates");
-  }
-
+                                        StdVector< Complex >& values, 
+                                        Grid* ptGrid);
+  //@}
 
   //@}
 protected:
@@ -442,10 +447,10 @@ protected:
   //@{ \name Helper methods
   
   //! Returns true, if expression depends on time / freq
-  static bool ExprDependsOnTimeFreq(const std::string& expr);
+  static bool ExprDependsOnTimeFreq(MathParser* mp, const std::string& expr);
   
   //! Returns true, if expression depends on space
-  static bool ExprDependsOnSpace(const std::string& expr);
+  static bool ExprDependsOnSpace(MathParser* mp, const std::string& expr);
   //@}
   
   //TODO: CHANGE THIS TO SHARED POINTER
@@ -464,8 +469,6 @@ protected:
   //! Flag, if coefficient function is complex-valued
   bool isComplex_;
 
-  //! Support of the CoefFunction. Only needed for grid/solution results
-  StdVector<shared_ptr<EntityList> > entities_;
 };
 
 

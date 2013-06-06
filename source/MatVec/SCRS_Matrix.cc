@@ -19,7 +19,12 @@ namespace CoupledField {
 
   template<typename T>
   SCRS_Matrix<T>::SCRS_Matrix( const SCRS_Matrix<T> &origMat ) {
-
+    
+    colInd_      = NULL;
+    rowPtr_      = NULL;
+    data_        = NULL;
+    patternPool_ = NULL;
+    patternID_   = NO_PATTERN_ID;
 
     // Set basic size informations
     numEntries_ = origMat.numEntries_;
@@ -52,16 +57,13 @@ namespace CoupledField {
       }
     }
 
-    // -----------------
-    // Pattern is shared
-    // -----------------
     else {
-
-      // Get hold of pool, pattern identifier and patttern
-      patternPool_ = origMat.patternPool_;
-      patternID_   = origMat.patternID_;
-      colInd_      = origMat.colInd_;
-      rowPtr_      = origMat.rowPtr_;
+      // -----------------
+      // Pattern is shared
+      // -----------------
+      
+      // Copy sparsity pattern from poool
+      this->SetSparsityPattern( origMat.patternPool_, origMat.patternID_ );
 
       // Generate copy of data array
       NEWARRAY( data_, T, numEntries_ );
@@ -69,7 +71,6 @@ namespace CoupledField {
         data_[i]   = origMat.data_[i];
       }
     }
-
 
   }
 

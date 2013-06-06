@@ -48,7 +48,7 @@ CoefFunctionTimeFreq(MathParser * mp) : CoefFunctionAnalytic() {
 
    // ensure that expression really depends only on time / freq
    for( UInt i = 0; i < val.GetSize(); ++i ) {
-     if( ExprDependsOnSpace(val[i]) ) {
+     if( ExprDependsOnSpace(mp_, val[i]) ) {
        EXCEPTION("Expression '" << val.ToString() 
                  << "' depends on spatial coordinates. "
                  << "Refusing to create CoefFunctionTimeFreq." );
@@ -83,7 +83,7 @@ SetVector(const StdVector<std::string>& val) {
 
   // ensure that expression really depends only on time / freq
   for( UInt i = 0; i < val.GetSize(); ++i ) {
-    if( ExprDependsOnSpace(val[i]) ) {
+    if( ExprDependsOnSpace(mp_, val[i]) ) {
       EXCEPTION("Expression '" << val.ToString() 
                 << "' depends on spatial coordinates. "
                 << "Refusing to create CoefFunctionTimeFreq." );
@@ -106,7 +106,7 @@ SetScalar(const std::string& val) {
   assert((this->dimType_ == NO_DIM) || (this->dimType_ == SCALAR) );
 
   // ensure that expression really depends only on time / freq
-  if( ExprDependsOnSpace(val) ) {
+  if( ExprDependsOnSpace(mp_, val) ) {
     EXCEPTION("Expression '" << val << "' depends on spatial coordinates. "
               << "Refusing to create CoefFunctionTimeFreq." );
   }
@@ -263,14 +263,14 @@ SetTensor(const StdVector<std::string>& realVal,
 
   // ensure that expression really depends only on time / freq
    for( UInt i = 0; i < realVal.GetSize(); ++i ) {
-     if( ExprDependsOnSpace(realVal[i]) ) {
+     if( ExprDependsOnSpace(mp_, realVal[i]) ) {
        EXCEPTION("Expression '" << realVal.ToString() 
                  << "' depends on spatial coordinates. "
                  << "Refusing to create CoefFunctionTimeFreq." );
      }
    }
    for( UInt i = 0; i < imagVal.GetSize(); ++i ) {
-     if( ExprDependsOnSpace(imagVal[i]) ) {
+     if( ExprDependsOnSpace(mp_, imagVal[i]) ) {
        EXCEPTION("Expression '" << imagVal.ToString() 
                  << "' depends on spatial coordinates. "
                  << "Refusing to create CoefFunctionTimeFreq." );
@@ -314,14 +314,14 @@ SetVector(const StdVector<std::string>& realVal,
   
   // ensure that expression really depends only on time / freq
   for( UInt i = 0; i < realVal.GetSize(); ++i ) {
-    if( ExprDependsOnSpace(realVal[i]) ) {
+    if( ExprDependsOnSpace(mp_, realVal[i]) ) {
       EXCEPTION("Expression '" << realVal.ToString() 
                 << "' depends on spatial coordinates. "
                 << "Refusing to create CoefFunctionTimeFreq." );
     }
   }
   for( UInt i = 0; i < imagVal.GetSize(); ++i ) {
-    if( ExprDependsOnSpace(imagVal[i]) ) {
+    if( ExprDependsOnSpace(mp_, imagVal[i]) ) {
       EXCEPTION("Expression '" << imagVal.ToString() 
                 << "' depends on spatial coordinates. "
                 << "Refusing to create CoefFunctionTimeFreq." );
@@ -347,8 +347,8 @@ SetScalar(const std::string& realVal,
   assert((this->dimType_ == NO_DIM) || (this->dimType_ == SCALAR) );
 
   // ensure that expression really depends only on time / freq
-  if( ExprDependsOnSpace(realVal)  || 
-      ExprDependsOnSpace(imagVal)) {
+  if( ExprDependsOnSpace(mp_, realVal)  || 
+      ExprDependsOnSpace(mp_, imagVal)) {
     EXCEPTION("Expression '(" << realVal  << ", " << imagVal 
               << ")' depends on spatial coordinates. "
               << "Refusing to create CoefFunctionTimeFreq." );
@@ -458,7 +458,8 @@ Recalculate() {
 
 // COLLECTION ACCESS
 void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                   StdVector<Double >  & vals){
+                                                            StdVector<Double >  & vals,
+                                                            Grid* ptGrid ){
   assert(this->dimType_ == SCALAR);
   vals.Resize(points.GetSize());
   vals.Init();
@@ -468,7 +469,8 @@ void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vect
 }
 
 void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                   StdVector<Vector<Double> >  & vals){
+                                                            StdVector<Vector<Double> >  & vals,
+                                                            Grid* ptGrid ){
   assert(this->dimType_ == VECTOR ||
          this->dimType_ == SCALAR );
 
@@ -498,8 +500,9 @@ void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vect
 
 }
 
-void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                  StdVector<Matrix<Double> >  & vals){
+void CoefFunctionTimeFreq<Double>::GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                                            StdVector<Matrix<Double> >  & vals,
+                                                            Grid* ptGrid ){
   assert(this->dimType_ == TENSOR);
   // if no coordinate system is set, just
   // use internal vector
@@ -524,7 +527,8 @@ void CoefFunctionTimeFreq<Double>::GetVectorValuesAtCoords( const StdVector<Vect
 }
 
 void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                   StdVector<Complex >  & vals){
+                                                             StdVector<Complex >  & vals,
+                                                             Grid* ptGrid ){
   assert(this->dimType_ == SCALAR);
   vals.Resize(points.GetSize());
   vals.Init();
@@ -534,7 +538,8 @@ void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vec
 }
 
 void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                   StdVector<Vector<Complex> >  & vals){
+                                                             StdVector<Vector<Complex> >  & vals,
+                                                             Grid* ptGrid ){
   assert(this->dimType_ == VECTOR ||
          this->dimType_ == SCALAR );
 
@@ -563,8 +568,9 @@ void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vec
   }
 }
 
-void CoefFunctionTimeFreq<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                          StdVector<Matrix<Complex> >  & vals){
+void CoefFunctionTimeFreq<Complex>::GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                                             StdVector<Matrix<Complex> >  & vals,
+                                                             Grid* ptGrid ){
   assert(this->dimType_ == TENSOR);
   // if no coordinate system is set, just
   // use internal vector

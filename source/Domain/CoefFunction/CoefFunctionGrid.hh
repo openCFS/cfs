@@ -61,7 +61,8 @@ class CoefFunctionGrid : public CoefFunction{
     Generate( Domain* ptDomain,
               Global::ComplexPart format,
               PtrParamNode infoNode,
-              PtrParamNode configNode);
+              PtrParamNode configNode,
+              shared_ptr<EntityList> list);
 
     ///Constructor which sets every field to default values
     /// carefully check for each field in an overloaded class
@@ -164,6 +165,9 @@ class CoefFunctionGrid : public CoefFunction{
     //! Store the dimension of (Vectorial) Result
     UInt dimDof_;
 
+    //! Support of the CoefFunction. Only needed for grid/solution results
+    StdVector<shared_ptr<EntityList> > entities_;
+    
     //! external step to t map
     std::map<UInt, Double> stepValueMap_;
 

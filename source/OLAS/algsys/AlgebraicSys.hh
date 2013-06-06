@@ -22,6 +22,7 @@ namespace CoupledField {
   class SBM_Matrix;
   class SBM_Vector;
   class BaseMatrix;
+  class PatternPool;
   class StdMatrix;
   class BaseVector;
   class SingleVector;
@@ -855,8 +856,13 @@ namespace CoupledField {
     void CheckConsistency();
     
     //! Generate  SBM matrix according to graph information
+    
+    //! This method generates the SBM matrix for a given entry type. In
+    //! addition, the flag sharePattern denotes, if  the matrix pattern
+    //! can be shared.
     SBM_Matrix* GenerateSBM_Matrix( FEMatrixType matType,
-                                    BaseMatrix::EntryType entryType );
+                                    BaseMatrix::EntryType entryType,
+                                    bool sharePattern );
     
     //! Pointer to the graph manager object
     GraphManager *graphManager_;
@@ -924,7 +930,7 @@ namespace CoupledField {
     //! For each (fctId,eqnNr) it stores the destination SBMBlock. To get
     //! the corresponding row/col index, one has to use the #eqnToIndex array
     //! of the corresponding SBMBlockInfo, stored in #blockInfo_.
-    StdVector<std::map<Integer, UInt> > eqnToSBMBlock_; 
+    StdVector<StdVector<UInt> > eqnToSBMBlock_; 
       
     //! Store for each SBMBlock the block information
     
@@ -941,68 +947,6 @@ namespace CoupledField {
     //! to know, which blocks are affected by this operation. Thus
     //! this structure gets filled during the definition of SBM blocks.
     std::map<FeFctIdType, std::set<UInt> > fctIdsInBlocks_;
-    
-    // =======================================================================
-    // MATRICES / VECTORS
-    // =======================================================================
-
-    //@{ \name Matrices and Vector
-    //! Pointers to Finite-Element matrices
-
-    //! This attribute points to an array containing pointers to the different
-    //! Finite-Element matrices (SYSTEM, MASS, STIFFNESS, ... ) managed by the
-    //! algebraic system. In the case of the %SBM_System class these are of
-    //! course SBM_Matrix objects.
-    std::map<FEMatrixType, SBM_Matrix*> sysMat_;
-    
-    //! Effective system matrix (without condensation block)
-    
-    //! This is the "effective" matrix to be solved, i.e. the one passed to 
-    //! the solver. This a shallow copy of the #sysMat and thus contains only
-    //! pointers into the global system matrix.
-    //! In case we use static condensation, the effective matrix does not 
-    //! contain the interior block and the related coupling matrices.
-    SBM_Matrix *effMat_;
-
-    //! Vector containing right-hand side of the linear system (see #effMat_)
-    SBM_Vector *rhs_;
-    
-    //! Effective rhs vector
-    SBM_Vector *effRhs_;
-
-    //! temporary rhs
-    SBM_Vector* tmpRHS_;
-
-    //! Vector containing (approximate) solution of the linear system
-    SBM_Vector *sol_;
-    
-    //! Effective solution vector
-    SBM_Vector *effSol_;
-
-    //! Buffer for storing the eigenvalues of the system
-    SingleVector *eigenValues_;
-
-    //! Buffer for storing the error bounds of the eigenvalues
-    SingleVector *eigenValError_;
-
-    
-    //! Store for each diagonal SBM-Block if it is symmetric.
-    StdVector<bool> isDiagBlockSymm_;
-    
-    //! Flag signaling symmetry of system matrix
-    bool sbmSymm_;
-    
-    //! Flag signaling use of only one matrix block
-    
-    //! This flag denotes, if the complete system matrix just consists of one 
-    //! single matrix block. In this case we can simply access the (1,1) entry
-    //! as StdMatrix and have the complete system. 
-    bool onlyOneMatrixBlock_;
-    
-    //! Flag if we have distinct matrix graphs for different matric types
-    bool distinctMatGraphs_;
-
-    //@}
     
     // =======================================================================
     // BOUNDARY CONDITIONS / CONSTRAINTS
@@ -1091,6 +1035,76 @@ namespace CoupledField {
 
     //! Flag indicating, if solution vector is complex
     bool isSolutionComplex_;
+  
+  // =======================================================================
+  // MATRICES / VECTORS
+  // =======================================================================
+
+  //@{ \name Matrices and Vector
+  //! Pointers to Finite-Element matrices
+
+  //! This attribute points to an array containing pointers to the different
+  //! Finite-Element matrices (SYSTEM, MASS, STIFFNESS, ... ) managed by the
+  //! algebraic system. In the case of the %SBM_System class these are of
+  //! course SBM_Matrix objects.
+  std::map<FEMatrixType, SBM_Matrix*> sysMat_;
+
+  //! Effective system matrix (without condensation block)
+
+  //! This is the "effective" matrix to be solved, i.e. the one passed to 
+  //! the solver. This a shallow copy of the #sysMat and thus contains only
+  //! pointers into the global system matrix.
+  //! In case we use static condensation, the effective matrix does not 
+  //! contain the interior block and the related coupling matrices.
+  SBM_Matrix *effMat_;
+
+  //! Vector containing right-hand side of the linear system (see #effMat_)
+  SBM_Vector *rhs_;
+
+  //! Effective rhs vector
+  SBM_Vector *effRhs_;
+
+  //! temporary rhs
+  SBM_Vector* tmpRHS_;
+
+  //! Vector containing (approximate) solution of the linear system
+  SBM_Vector *sol_;
+
+  //! Effective solution vector
+  SBM_Vector *effSol_;
+
+  //! Buffer for storing the eigenvalues of the system
+  SingleVector *eigenValues_;
+
+  //! Buffer for storing the error bounds of the eigenvalues
+  SingleVector *eigenValError_;
+
+  //! Store for each diagonal SBM-Block if it is symmetric.
+  StdVector<bool> isDiagBlockSymm_;
+
+  //! Pointer to a pool for sharing sparsity patterns between matrices
+  PatternPool *patternPool_;
+
+  //! Store for each SBM block the pattern Id (if applicable)
+  std::map<SubMatrixID, PatternIdType, SortSubMatrixID> sbmPatternIds_;
+
+  //! Flag, if matrix pattern can be shared
+  bool sharedPatternPossible_;
+
+  //! Flag signaling symmetry of system matrix
+  bool sbmSymm_;
+
+  //! Flag signaling use of only one matrix block
+
+  //! This flag denotes, if the complete system matrix just consists of one 
+  //! single matrix block. In this case we can simply access the (1,1) entry
+  //! as StdMatrix and have the complete system. 
+  bool onlyOneMatrixBlock_;
+
+  //! Flag if we have distinct matrix graphs for different matric types
+  bool distinctMatGraphs_;
+  //@}
+  
   };
 
 } // namespace

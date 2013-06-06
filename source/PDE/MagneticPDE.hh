@@ -83,39 +83,13 @@ namespace CoupledField
     
     //@}
 
-    // =======================================================================
-    //   PERMANENT MAGNETS
-    // =======================================================================
-
-    //@{ \name Attributes related to permanent magnets
-
-    //! Subdomains containing permanent magnets
-    StdVector <RegionIdType> magnetsDomain_;
-
-    //! x-component of direction of magnetisation for each magnet
-
-    //! x-component of direction of magnetisation for each magnet
-    //! \todo As suggested by Fred Hofer, the direction of magnetisation of a
-    //! permanent magnet must now be specified in the XML parameter file and
-    //! no longer in the material data file. While magneticPDE already reads
-    //! these data, they are not yet used in the simulation.
-    StdVector<Double> magnetsOriX_;
-
-    //! y-component of direction of magnetisation for each magnet
-    StdVector<Double> magnetsOriY_;
-
-    //! z-component of direction of magnetisation for each magnet
-    StdVector<Double> magnetsOriZ_;
-
-    //@}
+    //! Coefficient function, containing the overall reluctivity
+    shared_ptr<CoefFunctionMulti> reluc_;
     
     
     //! Query parameter object for information on coils
     void ReadCoils();
 
-    //! Query parameter object for information on permanent magnets
-    void ReadMagnets();
-    
     //! Initialize time stepping method
     void InitTimeStepping();
     

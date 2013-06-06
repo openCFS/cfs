@@ -189,6 +189,22 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     }
   }
   
+  bool FeH1Hi::operator==( const FeH1Hi& comp) const {
+    bool ret = true;
+    ret &= this->feType_ == comp.feType_;
+    ret &= this->isIsotropic_ == comp.isIsotropic_;
+    if( isIsotropic_ ) {
+      ret &= this->isoOrder_ == comp.isoOrder_;
+    } else {
+      ret &= this->anisoOrder_ == comp.anisoOrder_;
+      ret &= this->orderEdge_ == comp.orderEdge_;
+      ret &= this->orderFace_ == comp.orderFace_;
+      ret &= this->orderInner_ == comp.orderInner_;
+    }
+    return ret;
+    
+  }
+  
   
   
 //  void FeH1Hi::EvalPolynom( Double& value, Double& deriv,
