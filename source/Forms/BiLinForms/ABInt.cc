@@ -476,8 +476,7 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   }
   
   LOG_DBG2(mortarInt) << "Element matrix of NcSurfElem #"
-                      << ptMortarElem->elemNum << ":\n"
-                      << elemMat.ToString();
+                      << ptMortarElem->elemNum << ":\n" << elemMat;
 }
 
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>

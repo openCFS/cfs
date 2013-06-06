@@ -78,7 +78,7 @@ class GLMScheme{
                                   UInt valDerivOrder, Integer eqnNumber);
 
     //! Get type of scheme
-    virtual SchemeType GetType() = 0;
+    virtual SchemeType GetType() const = 0;
     
     //++++++++++++++++++++++++++++++++++++++++++++++++++
     //Define Scheme Formulation
@@ -176,7 +176,7 @@ class Trapezoidal : public GLMScheme{
     virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
 
     //! \copydoc GLMSchem::GetType
-    virtual SchemeType GetType() {
+    virtual SchemeType GetType() const {
       return TRAPEZOIDAL;
     }
     
@@ -242,7 +242,7 @@ class Newmark : public GLMScheme{
     Newmark(Double gamma,Double beta);
 
     //! \copydoc GLMSchem::GetType
-    virtual SchemeType GetType() {
+    virtual SchemeType GetType() const {
       return NEWMARK;
     }
     

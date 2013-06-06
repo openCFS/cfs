@@ -30,6 +30,7 @@
 // header for Solvestep and assemble
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
+#include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 #include "Driver/Assemble.hh"
 #include "Driver/SingleDriver.hh"
 #include "Driver/TransientDriver.hh"
@@ -2681,6 +2682,17 @@ namespace CoupledField {
     }
     if ( feFunctions_.find(LAGRANGE_MULT) == feFunctions_.end() ) {
       EXCEPTION("FeFunction of Lagrange multiplier not found");
+    }
+    
+    // For transient case we need to initialize the TimeStepping
+    // of the Lagrange multiplier
+    if ( analysistype_ == TRANSIENT ) {
+      TimeSchemeGLM* tsSol = dynamic_cast<TimeSchemeGLM*>(
+          feFunctions_[solType]->GetTimeScheme().get());
+      assert( tsSol );
+      shared_ptr<TimeSchemeGLM> tsCopy( new TimeSchemeGLM( *tsSol
+          /*tsSol->GetScheme()->GetType(), tsSol->GetSolutionTimeDerivOrder()*/));
+      feFunctions_[LAGRANGE_MULT]->SetTimeScheme( tsCopy );
     }
     
     // Set the same approximation for the Lagrange mutliplier as for the
