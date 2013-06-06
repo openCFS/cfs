@@ -115,7 +115,6 @@ namespace CoupledField {
     sequenceStep_ = sequenceStep;
 
     infoNode_ = myInfo_->Get("PDE")->Get("directCoupledPDE", ParamNode::APPEND);
-    infoNode_->Get(ParamNode::PN_HEADER)->Get("sequeceStep")->SetValue(sequenceStep);
 
     
     // Create algebraic system and pass it to SinglePDEs
@@ -150,8 +149,9 @@ namespace CoupledField {
       singlePDEs_[i]->assemble_ = assemble_;
       singlePDEs_[i]->solStrat_ = solStrat_;
       
-      // Initialize all SinglePDEs
-      singlePDEs_[i]->Init( sequenceStep, infoNode_);
+      // Initialize all SinglePDEs (read domains, materials,
+      // define primary results)
+      singlePDEs_[i]->Init_Stage1( sequenceStep, infoNode_);
     }
 
     // Collect all feFunctions defined in single PDEs
@@ -171,9 +171,14 @@ namespace CoupledField {
       couplings_[i]->Init( sequenceStep_ );
     }
 
+    // Perform stage 2 initialization (boundary conditions, integerators)
+    for( UInt i = 0; i < singlePDEs_.GetSize(); ++i ) {
+     singlePDEs_[i]->Init_Stage2();
+    }
+    
     // Finalize initialization of SinglePDEs (i.e. FeSpaces, FeFunctions, Time stepping etc.)
     for( UInt i = 0; i < singlePDEs_.GetSize(); ++i ) {
-     singlePDEs_[i]->FinalizeInit();
+     singlePDEs_[i]->Init_Stage3();
     }
     
     // Initialize all Coupling Objects

@@ -1,9 +1,11 @@
 #ifndef FILE_MULTISEQUENCEDRIVER_2004
 #define FILE_MULTISEQUENCEDRIVER_2004
 
+#include <map>
 #include "BaseDriver.hh"
 #include "SingleDriver.hh"
 #include "Utils/StdVector.hh"
+#include "DataInOut/SimState.hh"
 
 namespace CoupledField
 {
@@ -25,17 +27,21 @@ namespace CoupledField
   public:
   
     //! constructor
-    MultiSequenceDriver(shared_ptr<SimState> state, Domain* domain );
+    MultiSequenceDriver(shared_ptr<SimState> state, Domain* domain,
+                        PtrParamNode paramNode, PtrParamNode infoNode );
 
     //! destructir
     virtual ~MultiSequenceDriver();
 
     //! Initialization method
-    void Init();
+    void Init(bool restart);
+    
+    //! Change the current sequenceStep
+    void SetSequenceStep(UInt sequenceStep);
   
     //! main method, where time-stepping is implemented. 
     //! it is for transient and static problem
-    void SolveProblem(bool write_results = true, PtrParamNode given_analysis_id = PtrParamNode());
+    void SolveProblem();
 
     //! Return current time / frequency step of simulation
     UInt GetActStep( const std::string& pdename );
@@ -54,24 +60,30 @@ namespace CoupledField
     //! Print out information about multisequence steps
     void WriteMultiSequenceStep(const UInt sequenceStep, 
                                 const BasePDE::AnalysisType analysis);
+    
+    //! Set state to given step
+    void SetupStep(UInt sequenceStep);
 
+    //! Read restart information
+    void ReadRestart();
+    
     //! number of sequence steps
     UInt numSteps_;
-
-    //! current sequence step
-    UInt curSequenceStep_;
 
     //! accumulated time
     Double accumulatedTime_;
 
+    //! Flag, if analysis is restarted
+    bool isRestarted_;
+    
     //! current singleDriver object
     SingleDriver * actDriver_;
   
     //! stores for each step the participating pdes as name
-    StdVector<StdVector<std::string> > pdesPerStep_;
+    std::map<UInt, StdVector<std::string> > pdesPerStep_;
 
     //! stores for each step the analisystype of each pde
-    StdVector<BasePDE::AnalysisType > analysisPerStep_;
+    std::map<UInt, BasePDE::AnalysisType > analysisPerStep_;
 
   };
 

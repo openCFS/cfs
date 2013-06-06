@@ -28,16 +28,17 @@ namespace CoupledField {
     //! \param isPartOfSequence true, if driver is part of  multiSequence
     TransientDriver( UInt sequenceStep,
                      bool isPartOfSequence,
-                     shared_ptr<SimState> state, Domain* domain );
+                     shared_ptr<SimState> state, Domain* domain,
+                     PtrParamNode paramNode, PtrParamNode infoNode );
   
     //! Default destructor
     virtual ~TransientDriver();
 
     //! Initialization method
-    void Init();
+    void Init( bool restart);
 
     //! main method, where time-stepping is implemented. it is for transient and static problem
-    void SolveProblem(bool write_results = true, PtrParamNode given_analysis_id = PtrParamNode());
+    void SolveProblem();
 
     //! Return time increment
     Double GetDeltaT() { return firstdt_;}
@@ -56,6 +57,9 @@ namespace CoupledField {
     //! Set accumulated time (may be used as initial time value)
     void SetAccumulatedTime( Double time );
 
+    //! \copydoc SingleDriver::SetToStepValue
+    virtual void SetToStepValue(UInt stepNum, Double stepVal );
+    
     //! Helper method which determines if an AnalyisType is complex.
     virtual bool IsComplex() { return false; };
     
@@ -70,14 +74,11 @@ namespace CoupledField {
     //! Flag, if initial time starts at 0 or is accumulated 
     bool useAccumulatedTime_;
 
-    //! offset for first timestep (due to multiSequence )
-    UInt stepOffset_;
-
-    //! offset for first time (due to multiSequence)
-    Double timeOffset_;
-
     //! Current simulation time (in s)
     Double actTime_;
+    
+    //! Accumulated time so far (including time of all previous MS steps)
+    Double accTime_;
     
     //! Number of timesteps
     UInt numstep_;
@@ -98,14 +99,14 @@ namespace CoupledField {
     //  Restart related data
     // =======================================================================
 
+    //! Flag, if analysis is restarted
+    bool isRestarted_;
+    
     //! Flag, if restart file is to be written
     bool writeRestart_;
     
     //! Time step to proceed from when performing restarted simulation
-    UInt restartStep_;
-    
-    //! Static flag to HALT the simulation
-    bool abortSimulation_;
+    UInt restartStep_;    
     
     // =======================================================================
     //  Timing estimation

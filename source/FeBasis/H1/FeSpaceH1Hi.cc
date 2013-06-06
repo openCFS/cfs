@@ -186,7 +186,7 @@ namespace CoupledField{
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
     const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum); 
-    RegionIdType eRegion = ptElem->regionId;
+    RegionIdType eRegion = GetVolElem(ptElem)->regionId;
 
     //Check if the region is there, otherwise fall back to default
     if(refElems_.find(eRegion) == refElems_.end()){
@@ -266,6 +266,40 @@ namespace CoupledField{
     regionIntegration_[ALL_REGIONS].mode = INTEG_MODE_RELATIVE;
   }
 
+  
+  bool FeSpaceH1Hi::IsSameEntityApproximation( shared_ptr<EntityList> list,
+                                               shared_ptr<FeSpace> space ) {
+    
+    if( this->GetSpaceType()  != space->GetSpaceType()  ) {
+      return false;
+    }
+    if( this->IsHierarchical() != space->IsHierarchical()) {
+      return false;
+    }
+    
+    // Cast other space to same type
+    shared_ptr<FeSpaceH1Hi> otherSpace = dynamic_pointer_cast<FeSpaceH1Hi>(space);
+    
+    EntityList::ListType actListType = list->GetType();
+    if ( ! (actListType == EntityList::ELEM_LIST) &&
+        ! (actListType == EntityList::SURF_ELEM_LIST) &&
+        ! (actListType == EntityList::NC_ELEM_LIST))  {
+      return true;
+    }
+    
+    // Loop over all elements
+    EntityIterator it = list->GetIterator();
+    for( it.Begin(); !it.IsEnd(); it++) {
+      FeH1Hi * myElem = static_cast<FeH1Hi*>(this->GetFe(it));
+      FeH1Hi * otherElem = static_cast<FeH1Hi*>(otherSpace->GetFe(it));
+      if( !( *myElem == *otherElem) ) {
+        return false;
+      } else {
+      }
+    }
+    return true;
+  }
+  
   FeHi* FeSpaceH1Hi::GetFeHi( RegionIdType region, Elem::FEType type ) {
     FeHi * ret = NULL;
     //Check if the region is there, otherwise fall back to default

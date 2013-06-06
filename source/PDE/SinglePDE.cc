@@ -17,6 +17,8 @@
 
 // header for saving / retrieving the simulation state
 #include "DataInOut/SimState.hh"
+#include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
+#include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
 
 // header for logging
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -112,13 +114,19 @@ namespace CoupledField {
       }
     }
 
-
     // delete materials
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       if (it->second != NULL) delete it->second;
     }
     materials_.clear();
+    
+    // delete simstates and externally loaded domains
+    std::map<shared_ptr<SimState>, Domain* >::iterator inputIt = inputs_.begin();
+    for( ; inputIt != inputs_.end(); ++inputIt) {
+      inputIt->first->Finalize();
+      delete inputIt->second;
+    }
 
   }
 
@@ -126,12 +134,11 @@ namespace CoupledField {
   // ********
   //   Init
   // ********
-  void SinglePDE::Init( UInt sequenceStep, PtrParamNode base ) {
+  void SinglePDE::Init_Stage1( UInt sequenceStep, PtrParamNode base ) {
 
     sequenceStep_ = sequenceStep;
 
     infoNode_ = base == NULL ? myInfo_->Get("PDE")->Get(pdename_) : base->Get(pdename_);
-    infoNode_->Get(ParamNode::PN_HEADER)->Get("sequenceStep")->SetValue(sequenceStep);
 
     LOG_TRACE(singlepde) << pdename_ << ": Starting Initialization";
 
@@ -192,7 +199,7 @@ namespace CoupledField {
 
     // Generate a fitting algebraic system only if PDE is NOT
     // direct coupled
-    if( needsAlgsys_ == true ) {
+    if( needsAlgsys_ == true || !simState_->HasInput()) {
       if ( isDirectCoupled_ == false) {
         olasInfo_ = myInfo_->Get("OLAS")->Get(pdename_);
         algsys_ = new AlgebraicSys(olasNode_, olasInfo_, isComplex_);
@@ -206,7 +213,7 @@ namespace CoupledField {
 
     // Create new assemble class with according analysistype
     if( isDirectCoupled_ == false && needsAlgsys_ == true) {
-      assemble_ = new Assemble( algsys_, analysistype_, myInfo_->GetRoot() );
+      assemble_ = new Assemble( algsys_, analysistype_, myInfo_ );
     }
     
     // =====================================================================
@@ -233,17 +240,20 @@ namespace CoupledField {
       shared_ptr<BaseFeFunction> actFct = fncIt->second;
       shared_ptr<FeSpace> actSpace = fncIt->second->GetFeSpace();
       std::string fctName = SolutionTypeEnum.ToString(fncIt->first);
-      FeFctIdType fctId = algsys_->ObtainFctId( fctName );
+      FeFctIdType fctId;
+      if( algsys_) {
+        fctId = algsys_->ObtainFctId( fctName );
+      } else {
+        fctId = NO_FCT_ID;
+      }
       actFct->SetFctId(fctId);
       fncIt++;
     }
-
 
     // =====================================================================
     // trigger definition of available results
     // =====================================================================
     DefinePrimaryResults();
-    
     
     // =====================================================================
     // read in NonLinearities
@@ -258,19 +268,6 @@ namespace CoupledField {
       PtrParamNode in_ = in->GetByVal("region", "name", ptGrid_->GetRegion().ToString(regions_[i]));
 
       // Not needed at the moment. Commented out due to gcc 4.6.
-#if 0
-      std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(regions_[i]);
-      DampingType dampType;
-      if( it != dampingList_.end() ) {
-        dampType = it->second;
-      }else{
-        dampType = NONE;
-      }
-
-      //TODO:: this just a workaround to get the code compiled
-      // with fucking warnigs as errors
-      dampType = NONE;
-#endif
 
       std::string fuck_e2s;
       Enum2String(dampingList_[regions_[i]], fuck_e2s);
@@ -289,15 +286,17 @@ namespace CoupledField {
     // =====================================================================
     DefinePostProcResults();
     
+    // Proceed with initialization stage 2 in the un-coupled case
+  }
   
+    void SinglePDE::Init_Stage2() {
+    
     // =====================================================================
     // read in boundary conditions
     // =====================================================================
-
     LOG_TRACE(singlepde) << pdename_ << ": Reading boundary conditions";
     ReadBCs();
     ReadSpecialBCs();
-    //
 
     // =====================================================================
     // define the integrators for PDE and initialize eqn object
@@ -312,19 +311,13 @@ namespace CoupledField {
     // Print information about defined integrators
     if( needsAlgsys_ == true && !isDirectCoupled_ ) 
       assemble_->ToInfo(infoNode_->Get(ParamNode::PN_HEADER)->Get("integrators"));
+  }
 
+  void SinglePDE::Init_Stage3() {
     // =====================================================================
     //  map equations (FeSpaces) and finalize FeFunction (vector creation)
     // =====================================================================
     LOG_TRACE(singlepde) << pdename_ << ": Mapping Equations";
-
-    if ( isDirectCoupled_ == false ) {
-      FinalizeInit();
-    }
-  }
-
-  void SinglePDE::FinalizeInit() {
-
     // Finalize spaces and fefunctions
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
     fncIt= feFunctions_.begin();
@@ -349,20 +342,10 @@ namespace CoupledField {
       fncIt++;
     }
     
-   
-
     if ( analysistype_ == TRANSIENT ) {
       Double dt;
       dt = dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())
                 ->GetDeltaT();
-      //WARN("Note: The initialization of the timestepping class is currently wrong: "
-      //    "The 2nd argument must be the complete SBM-vector of the algebraic system in "
-      //    "order to correclty initialize the internal vectors of the timestepping method. "
-      //    "In the old implementation it was sufficient to know the number of unknowns. "
-      //    "In the current implementation, the SBM-vectors are just defined within the "
-      //    "SolveStep classed. Thus maybe the right thing to do is to shift the creation and "
-      //    "initialization of the timestepping scheme to the solveStep classes.")
-
 
       // Call the init function of timescheme of each fefunction
       fncIt= feFunctions_.begin();
@@ -372,14 +355,6 @@ namespace CoupledField {
         fncIt++;
       }
     }
-
-    // =======================================================================
-    // Trigger creation of timeDerivative FeFunctions
-    // NOTE: Has to be done here after initializaiton of timestepping scheme!
-    // =======================================================================
-    //DefineTimeDerivFeFunctions();
-
-
 
     // =====================================================================
     // define which solution types have to be saved
@@ -657,7 +632,7 @@ namespace CoupledField {
 
       // Convert enum
       quantity = SolutionTypeEnum.ToString(candidate->resultType);
-      LOG_DBG(singlepde) << "Searching for storeResults of quantity '"
+      LOG_DBG(singlepde) << pdename_ << ": Searching for storeResults of quantity '"
                    << quantity << "'";
 
       // try to catch possible errors
@@ -1032,8 +1007,9 @@ namespace CoupledField {
       
 
   PtrCoefFct SinglePDE::GetCoefFct( SolutionType type ) {
-    LOG_DBG(singlepde) << "Requesting coefficient function for solution type "
-                          << SolutionTypeEnum.ToString( type );
+    LOG_DBG(singlepde) <<  pdename_ << 
+        ": Requesting coefficient function for solution type "
+        << SolutionTypeEnum.ToString( type );
     
     PtrCoefFct ret;
     // 1) look in fieldCoefs
@@ -1047,13 +1023,19 @@ namespace CoupledField {
     } else {
       ret = fieldCoefs_[type];
     }
+    if( !ret ) {
+      LOG_DBG(singlepde) << pdename_ << ": \t=> NOT FOUND";
+    } else {
+      LOG_DBG(singlepde) << pdename_ << ": \t=> SUCCESS!";
+    }
     return ret;
   }
   
   void SinglePDE::WriteResultsInFile( const UInt kstep,
                                       const Double actTimeFreq ) {
-    LOG_DBG(singlepde) << "WriteResultsInFile() kstep: " <<  kstep
-                 << " actTimeFreq: " << actTimeFreq;
+    LOG_DBG(singlepde) << pdename_ 
+        << ": WriteResultsInFile() kstep: " <<  kstep
+        << " actTimeFreq: " << actTimeFreq;
     
     // ===================================================
     //  Trigger calculation of interpolated field results 
@@ -1398,49 +1380,149 @@ namespace CoupledField {
     if( !icNode )
       return;
     
+    // create info node for iniital conditions
+    PtrParamNode icInfo = infoNode_->Get("initialConditions");
     
-    /*  Initial implementation, not functionally yet
-     * 
-     * 
     // ===========================
     //  1) Initial State
     // ===========================
+    // Initial state denotes, that all FeFunctions and their time derivatives are
+    // initialized from the same PDE of either a previous sequenceStep 
+    // (multiSequence analysis) or loaded from an external HDF file (e.g. displacement,
+    // velocity and acceleration).
+    
     PtrParamNode isNode = icNode->Get("initialState", ParamNode::PASS );
     if( isNode ) {
       LOG_TRACE(singlepde) << pdename_ << ": Reading initial state";
       
+      PtrParamNode isInfo = icInfo->Get("initialState");
+      
+      // Ensure, that we have a static or transient analysis
+      if( !( analysistype_ == STATIC ||
+          analysistype_ == TRANSIENT ) ) {
+        WARN( "Initial conditions are only meaningful in a transient analysis and "
+            << "will be omitted for this type of analysis" );
+      }
+      
       PtrParamNode srcNode = isNode->GetChild();
       if( srcNode->GetName() == "sequenceStep" ) {
-        // Attention:
-        // Here we know that we have a multiSequence analysis!
-        
         UInt sequenceStep = srcNode->Get("index")->As<UInt>();
         Integer stepNum = srcNode->Get("step")->As<Integer>();
+        
+        
+        Domain * inDomain = NULL;
+        // create SimState (for input)
+        boost::shared_ptr<SimState> inState(new SimState(true, domain_));
+        
+        try {
+          LOG_DBG(singlepde) << pdename_ 
+              << ": Use initial condition from sequenceStep " << sequenceStep;
+        
+          // create new simState from current hdf file
+          std::string fileName = simState_->GetOutputWriter()->GetFileName().string();
 
-        // make own simState also capable of reading results
-        simState_->SetInputReaderToSameInput();
-        
-        // Obtain own domain
-        Domain * oldDom = simState_->GetDomain(0);
-        
-        // set correct sequence step
-        oldDom->InitPDEs( sequenceStep );
-        
-        // try to get last step number
-        if( stepNum == -1 ) {
-          stepNum = simState_->GetLastStepNum();
+          // create new param and info node (without logging to console) for the
+          // newly created Domain object
+          PtrParamNode node(new ParamNode());
+          PtrParamNode infoNode(new ParamNode(ParamNode::APPEND, ParamNode::ELEMENT,
+                                              false));
+          boost::shared_ptr<SimInputHDF5> in;
+          in.reset(new SimInputHDF5(fileName, node, infoNode));
+          inState->SetInputHdf5Reader(in);
+
+          // Get grid map of own domain, as the grids can be re-used
+          SimState::GridMap gridMap = domain_->GetGridMap();
+
+          // Obtain temporary Domain object, from which the initial state is read 
+          // in. As this generates inferior logging output, we make a visual
+          // break.
+          LOG_DBG(singlepde) << pdename_ 
+              << ": Obtaining Domain from simState object";
+          LOG_DBG(singlepde) << pdename_ << ": =================================="; 
+          LOG_DBG(singlepde) << pdename_ << ":  BEGIN OUTPUT OF TEMPORARY DOMAIN ";
+          LOG_DBG(singlepde) << pdename_ << ": ==================================";            
+
+          inDomain = inState->GetDomain(sequenceStep, gridMap);
+
+          LOG_DBG(singlepde) << pdename_ << ": ==================================="; 
+          LOG_DBG(singlepde) << pdename_ << ":  END OF OUTPUT OF TEMPORARY DOMAIN ";
+          LOG_DBG(singlepde) << pdename_ << ": ===================================";
+
+          // try to get last step number
+          if( stepNum == -1 ) {
+            Double stepVal = 0.0;
+            UInt lastStepNum = 0;
+            inState->GetLastStepNum(sequenceStep, lastStepNum, stepVal);
+            stepNum = lastStepNum;
+          }
+          LOG_DBG(singlepde) << pdename_ 
+              << ": Step number to be read in: " << stepNum;
+
+          // log to info node
+          PtrParamNode seqInfo = isInfo->Get("sequenceStep");
+          seqInfo->Get("index")->SetValue(sequenceStep);
+          seqInfo->Get("stepNum")->SetValue(stepNum);
+
+          // update to last step number
+          inState->UpdateToStep(sequenceStep, stepNum);
+
+          // Obtain same PDE from new domain
+          SinglePDE * inPDE = inDomain->GetSinglePDE(pdename_);
+
+          // -------------------
+          //  Primary Unknowns
+          // -------------------
+          // Loop over all feFunctions of this pde
+          LOG_DBG(singlepde) << pdename_  << ": Transferring primary FeFunctions";
+          std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
+          for(; fncIt != feFunctions_.end(); fncIt++ ) {
+            SolutionType solType = fncIt->first;
+            shared_ptr<BaseFeFunction> & myFct = fncIt->second;
+            shared_ptr<BaseFeFunction>  inFct = inPDE->GetFeFunction( solType );
+            LOG_DBG3(singlepde) << pdename_ << ": \t" << SolutionTypeEnum.ToString(solType);
+
+            // Now transfer results from inFct to myFct
+            myFct->InitFromFeFunction( inFct );
+          }
+
+          // --------------------
+          //  Time Derivative(s)
+          // --------------------
+          // 2) Loop over all time derivative functions (only if analysis type of both PDEs is
+          //    transient )
+          if( inPDE->GetAnalysisType() == TRANSIENT && analysistype_ == TRANSIENT ) {
+            LOG_DBG(singlepde) << pdename_  << ": Transferring time derivative FeFunctions";
+
+            fncIt= timeDerivFeFunctions_.begin();
+            for(; fncIt != timeDerivFeFunctions_.end(); fncIt++ ) {
+              SolutionType solType = fncIt->first;
+              shared_ptr<BaseFeFunction> & myFct = fncIt->second;
+              shared_ptr<BaseFeFunction>  inFct = inPDE->GetFeFunction( solType );
+              LOG_DBG3(singlepde) << pdename_ << ": \t" << SolutionTypeEnum.ToString(solType);
+
+              // Now transfer results from inFct to myFct
+              myFct->InitFromFeFunction( inFct );
+            }
+          } // if TRANSIENT
+
+          // Cleanup everything, so that temporary memory needed for domain gets freed
+          in.reset();
+          // important: This deletes the internal references to the
+          inState->Finalize(); 
+          inState.reset();
+          delete inDomain;
+          
+        } catch (Exception& e) {
+          if( inState ) { 
+            inState->Finalize(); 
+            inState.reset();
+          }
+          delete inDomain;
+          RETHROW_EXCEPTION(e, "Could not transfer initial state for Physic '" << pdename_ 
+                            << "' from sequenceStep " << sequenceStep );
         }
-        
-        // update to last step number
-        simState_->UpdateToStep(stepNum);
-        
-        
-        
-        
-        
-        
+
       } else if( srcNode->GetName() == "externalFiele" ) {
-        
         EXCEPTION( "No implemented yet")
             
       } else {
@@ -1452,12 +1534,14 @@ namespace CoupledField {
     // ===========================
     //  2) Initial condition
     // ===========================
-    
+    // Here only specific FeFunction(s) gets initialized, e.g. only the displacement,
     // ... to be implemented ..
-*/
+    
+    LOG_TRACE(singlepde) << pdename_ << ": Finished reading initial conditions";
   }
 
   void SinglePDE::ReadBCs() {
+    LOG_TRACE(singlepde) << pdename_ << ": Reading boundary conditions";
 
 
     // fetch "bcsAndLoads" parameter node, if present.
@@ -1524,7 +1608,6 @@ namespace CoupledField {
                         << "the default Cartesian system" );
             }
           }
-          coef->AddEntityList(actList);
           actBc->entities = actList;
           actBc->result = actFeFunction->GetResultInfo();
           actBc->dofs = definedDofs;
@@ -1591,7 +1674,6 @@ namespace CoupledField {
           }
         }
 
-        coef->AddEntityList(actList);
         actBc->entities = actList;
         actBc->result = actFeFunction->GetResultInfo();
         actBc->dofs = definedDofs;
@@ -1740,6 +1822,7 @@ namespace CoupledField {
                            << name << "'" );
       }
     }
+    LOG_TRACE(singlepde) << pdename_ << ": Finished reading boundary conditions";
   }
 
 
@@ -1751,47 +1834,53 @@ namespace CoupledField {
                                      StdVector<shared_ptr<EntityList> >& entities, 
                                      StdVector<PtrCoefFct >& coef,
                                      bool& updateGeo ) {
-    
+
     // get grip of all elements of that type
     if( !myParam_->Has("bcsAndLoads") )
       return;
-    
+
     ParamNodeList elems = myParam_->Get("bcsAndLoads")->GetList(elemName);
-    
+
     entities.Resize(elems.GetSize());
     coef.Resize(elems.GetSize());
+
     for( UInt i = 0; i < elems.GetSize(); ++i ) {
       PtrParamNode xml = elems[i];
 
       // get entity list, depending on type
       std::string entName = xml->Get("name")->As<std::string>();
-    
-      // determine list type: In case we have have surface elements, generate explicitly
-      // a surface element list
-      EntityList::ListType listType = EntityList::ELEM_LIST; 
-      if( ptGrid_->GetEntityDim( entName ) == ptGrid_->GetDim() - 1) {
-        listType = EntityList::SURF_ELEM_LIST;
-      }
-      
-      switch( ptGrid_->GetEntityType(entName) ) {
-        case EntityList::NAMED_NODES:
-          entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, 
-                                                entName );
-          break;
-        case EntityList::REGION:
-        case EntityList::NAMED_ELEMS:
-          entities[i] = ptGrid_->GetEntityList( listType, entName );
-          break;
-        case EntityList::NO_TYPE:
-          EXCEPTION("No entities with name '" << entName << "' known");
-          break;
-      }
+      try {
+        // determine list type: In case we have have surface elements, generate explicitly
+        // a surface element list
+        EntityList::ListType listType = EntityList::ELEM_LIST; 
+        if( ptGrid_->GetEntityDim( entName ) == ptGrid_->GetDim() - 1) {
+          listType = EntityList::SURF_ELEM_LIST;
+        }
 
-      std::set<UInt> definedDofs;
-      ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
-                          definedDofs, updateGeo );
+        switch( ptGrid_->GetEntityType(entName) ) {
+          case EntityList::NAMED_NODES:
+            entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, 
+                                                  entName );
+            break;
+          case EntityList::REGION:
+          case EntityList::NAMED_ELEMS:
+            entities[i] = ptGrid_->GetEntityList( listType, entName );
+            break;
+          case EntityList::NO_TYPE:
+            EXCEPTION("No entities with name '" << entName << "' known");
+            break;
+        }
 
-    }
+        std::set<UInt> definedDofs;
+        ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
+                            definedDofs, updateGeo );
+
+      } catch (Exception& e) {
+        RETHROW_EXCEPTION(e, pdename_ << ": Could not read definition for '" << elemName
+                          << "' on entities '" << entName <<"'");
+      }
+    } // loop: elements
+
   }
 
   void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
@@ -1815,12 +1904,14 @@ namespace CoupledField {
       //  EXTERNAL GRID DATA 
       // ====================
       if(!isComplex) {
-        coef = CoefFunctionGrid::Generate(domain_, Global::REAL, infoNode_ , valueNode->Get("grid"));
+        coef = CoefFunctionGrid::Generate(domain_, Global::REAL, infoNode_ , valueNode->Get("grid"),
+                                          list);
         //this is hardcoded so far. should be changed or generated depending on the type
         //of grid (nodal or higher order)
         //coef.reset(new CoefFunctionNodalGrid<Double>(valueNode->Get("grid")));
       } else {
-        coef = CoefFunctionGrid::Generate(domain_, Global::COMPLEX, infoNode_ , valueNode->Get("grid"));
+        coef = CoefFunctionGrid::Generate(domain_, Global::COMPLEX, infoNode_ , valueNode->Get("grid"),
+                                          list);
         //coef.reset(new CoefFunctionNodalGrid<Complex>(valueNode->Get("grid")));
       }
       //read in the defined dofs
@@ -1845,6 +1936,112 @@ namespace CoupledField {
 
       // here we assume no updated geometry
       updateGeo = false;
+      
+    } else if( valueNode->Has("externalSimulation") ) {
+      // =====================
+      //  EXTERNAL SIMULATION 
+      // =====================
+      PtrParamNode esNode = valueNode->Get("externalSimulation");
+      PtrParamNode qNode = esNode->Get("quantity");
+      PtrParamNode tfm = esNode->Get("timeFreqMapping");
+      
+      // obtain fileId and SequenceStep
+      std::string fileId = esNode->Get("inputId")->As<std::string>();
+      UInt sequenceStep = esNode->Get("sequenceStep")->As<UInt>();
+      std::string quantityName = qNode->Get("name")->As<std::string>();
+      std::string pdeName = qNode->Get("pdeName")->As<std::string>();
+      try {
+
+        SolutionType solType = SolutionTypeEnum.Parse(quantityName);
+
+        Domain * inDomain = NULL;
+
+        // create SimState (for input)
+        boost::shared_ptr<SimState> inState(new SimState(true, domain_));
+        shared_ptr<SimInput> reader = domain_->GetResultHandler()->GetInputReader(fileId);
+        shared_ptr<SimInputHDF5> in;
+        try {
+          in = dynamic_pointer_cast<SimInputHDF5>(reader);
+        } catch (...) {
+          EXCEPTION( "Reader with id'" << fileId << "' has not HDF5 format." );
+        }
+        inState->SetInputHdf5Reader(in);
+
+        // Get grid map of own domain, as the grids can be re-used
+        SimState::GridMap gridMap = domain_->GetGridMap();
+
+        // Obtain temporary Domain object, from which the initial state is read 
+        // in. As this generates inferior logging output, we make a visual
+        // break.
+        LOG_DBG(singlepde) << pdename_ 
+            << ": Obtaining Domain from simState object";
+        LOG_DBG(singlepde) << pdename_ << ": =================================="; 
+        LOG_DBG(singlepde) << pdename_ << ":  BEGIN OUTPUT OF TEMPORARY DOMAIN ";
+        LOG_DBG(singlepde) << pdename_ << ": ==================================";            
+
+        inDomain = inState->GetDomain(sequenceStep, gridMap);
+
+        LOG_DBG(singlepde) << pdename_ << ": ==================================="; 
+        LOG_DBG(singlepde) << pdename_ << ":  END OF OUTPUT OF TEMPORARY DOMAIN ";
+        LOG_DBG(singlepde) << pdename_ << ": ===================================";
+
+        // Obtain same PDE from new domain
+        SinglePDE * inPDE = inDomain->GetSinglePDE(pdeName);
+
+        // Check type of interpolation
+        std::string tfmString =  tfm->GetChild()->GetName();
+        if( tfmString == "constant") {
+
+          // set domain to one specific step
+          UInt stepNum = tfm->Get("constant")->Get("step")->As<UInt>();
+          inState->UpdateToStep(sequenceStep, stepNum);
+
+        } else if( tfmString == "continuous" ) {
+
+          // read parameters for continuous interpolation
+          PtrParamNode contNode = tfm->Get("continuous");
+          std::string interpolString = contNode->Get("interpolation")->As<std::string>();
+          Double offset = contNode->Get("offset")->As<Double>();
+          SimState::InterpolType interpolType = 
+              SimState::InterpolTypeEnum.Parse(interpolString);
+          inState->SetInterpolation( interpolType, mp_, analysistype_ , offset );
+
+        } else {
+          EXCEPTION( "Time / frequency mapping of type '" << tfmString 
+                     << "' not known.");
+        }
+
+        // Return coefficient function
+        coef = inPDE->GetCoefFct(solType);
+        if( !coef ) {
+          EXCEPTION( "Quantity '" << quantityName << "' is not computable by physic '"
+                     << pdeName << "'.")
+        }
+        
+        // remeber input simState and domain
+        inputs_[inState] = inDomain;
+        
+        // Check dimensionality of coefficient function
+        CoefFunction::CoefDimType dimType = coef->GetDimType();
+        if( !( 
+            (dimType == CoefFunction::SCALAR && type == ResultInfo::SCALAR ) ||
+            (dimType == CoefFunction::VECTOR && type == ResultInfo::VECTOR ) ||
+            (dimType == CoefFunction::TENSOR && type == ResultInfo::TENSOR ) ) ) {
+          EXCEPTION( "Quantity '" << quantityName << "' is of type '" 
+                     << CoefFunction::CoefDimType_.ToString(coef->GetDimType())
+                     << "' but type '" 
+                     << ResultInfo::EntryTypeEnum_.ToString(type) 
+                     << "' is required." );
+        }
+      } catch (Exception& e) {
+        RETHROW_EXCEPTION(
+            e, "Could not obtain quantity '" << quantityName << "' from physic '"
+            << pdeName << "' from external simulation with id '" <<  fileId << "'.\n"
+            << "Please check, if desired quantity and physic are defined for the "
+            << "requested sequence step " << sequenceStep << ".");
+      }
+      
+      
       
     } else if( valueNode->Has("coupling") ) {
       // ====================
@@ -2111,8 +2308,6 @@ namespace CoupledField {
       }
     }
 
-
-
     // -------------------
     // COMPOSITE MATERIALS
     // -------------------
@@ -2201,165 +2396,15 @@ namespace CoupledField {
     }
   }
 
-
-
   // ======================================================
   // GET /SET  METHODS
   // ======================================================
 
   //! Activate the direct coupling
   void SinglePDE::SetDirectCoupling () {
-
-
     isDirectCoupled_ = true;
   }
 
-
-
-
-
-  // ======================================================
-  // COUPLING SECTION
-  // ======================================================
-//
-//  void SinglePDE::CalcInputCoupling() {
-//
-//
-//    std::string errMsg;
-//    StdVector<UInt> * nodes;
-//    SingleVector * val;
-////    Integer eqnNr;
-//    // UInt couplingDof;
-//
-//    // Determine maximal allowed equation number for algebraic system
-////    Integer maxAllowedEqn = (Integer)algsys_->GetDimension();
-//
-//    // at first, check if this PDE is iterative coupled
-//    if (isIterCoupled_ == false)
-//      return;
-//
-//    // Outer loop over all INPUT coupling terms
-//    for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++) {
-//
-//      //    ptCoupling_ = &ptCoupling_[i];
-//      ptCoupling_->GetInputValues(i, val);
-//      // couplingDof = ptCoupling_->GetInputDof(i);
-//
-//      // Up to now, Coupling is only possible with
-//      // Real valued solutions
-//      Vector<Double> const & help = dynamic_cast<Vector<Double>&>(*val);
-//
-//
-//      switch(ptCoupling_->GetInputType(i)) {
-//
-//        // -------------------
-//        // COORDINATE COUPLING
-//        // -------------------
-//      case COORD:
-//
-//        ptCoupling_->GetInputNodes(i, nodes);
-//        ptGrid_->SetNodeOffset( *nodes , help );
-//
-//        break;
-//
-//        // -------------------
-//        // RHS COUPLING
-//        // -------------------
-//      case RHS:
-//        REFACTOR;
-////        ptCoupling_->GetInputNodes(i, nodes);
-////
-////        for ( UInt dof = 0; dof < couplingDof; dof++ ) {
-////          for ( UInt j = 0; j < nodes->GetSize(); j++ ) {
-////            eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
-////            if ( eqnNr != 0 && eqnNr <= maxAllowedEqn ) {
-////              algsys_->SetNodeRHS( help[ dof + couplingDof * j ], pdeId_,
-////                                   eqnNr );
-////            }
-////
-////#ifndef NDEBUG
-////            /*
-////            else if ( eqnNr > maxAllowedEqn ) {
-////              (*debug) << "SinglePDE::CalcInputCoupling: "
-////                       << "(" << pdename_ << ") "
-////                       << "Refused to pass "
-////                       << "eqnNr = " << eqnNr << " to SetNodeRHS(), since "
-////                       << "it execeeds numLastFreeDof = " << maxAllowedEqn
-////                       << std::endl;
-////            }
-////            else if ( eqnNr == 0 ) {
-////              (*debug) << "SinglePDE::CalcInputCoupling: "
-////                       << "(" << pdename_ << ") "
-////                       << "Refused to pass node " << (*nodes)[j] << "to SetNodeRHS(), since "
-////                       << "it is fixed by hom. Dirichlet BC" << std::endl;
-////            }
-////            */
-////#endif
-////
-////          }
-////        }
-//        break;
-//
-//        // -----------------------
-//        // InhomDirichlet COUPLING
-//        // -----------------------
-//      case ID_BC:
-//        REFACTOR;
-////        // How do we want to treat inhomogeneous Dirichlet boundary
-////        // conditions?
-////        {
-////          if ( usePenalty_ == false ) {
-////            EXCEPTION( "Cannot use inhom. Dirichlet coupling together with "
-////                       << "IDBC elimination, since the equation numbering "
-////                       << "object does currently not have the information "
-////                       << "required to put those values at the end of the "
-////                       << "equation number interval! Please set idbcHandling="
-////                       << '"' << "penalty" << '"' << " in your xml-file" );
-////          }
-////        }
-////
-////        // Set flag that the boundary conditions have to be incorporated
-////        updateCouplingBCs_ = true;
-////
-////        ptCoupling_->GetInputNodes(i, nodes);
-////
-////        for ( UInt dof = 0; dof < ptCoupling_->GetInputDof(i); dof++ ) {
-////          for ( UInt j = 0; j < nodes->GetSize(); j++) {
-////
-////            eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
-////
-////            if (eqnNr==0) {
-////              // In this case, we can not perform the coupling
-////              // The best would be to inform the user ONCE, that some nodes
-////              // can not couple. To accomplish this, we would need some way
-////              // to remember the warning we have already issued
-////              //EXCEPTION( "Coupling node " << (*nodes)[j] << " has a "
-////              //           << "zero equation number, so no Dirichlet BC "
-////              //           << "can be assigned" );
-////        //        std::cerr << "node=" << *nodes)[j]
-////            } else {
-////            algsys_->SetDirichlet( pdeId_, eqnNr,
-////                                   help[dof+j*couplingDof] );
-////            
-////            }
-////          }
-////        }
-//        break;
-//
-//      case MAT:
-//        break;
-//
-//      default:
-//        EXCEPTION( "Not implemented yet" );
-//        break;
-//      }
-//    }
-//  }
-//
-//  void SinglePDE::ResetCoupling() {
-//
-//
-//  }
 
   void SinglePDE::UpdateToSolStrategy() {
     
@@ -2376,152 +2421,12 @@ namespace CoupledField {
     }
   }
 
-
- 
-
-  //   Obtain information on desired output quantities from parameter file
-  // ***********************************************************************
-    // ***********************************************************************
-  //   Obtain information on desired output quantities from parameter file
-  // ***********************************************************************
-  void SinglePDE::GetPMLLayerData(Matrix<Double>& inner,
-                                  Matrix<Double>& outer,
-                                  RegionIdType actRegion,
-                                  std::string& coordSysId )  {
-
-    // fetch coordinate system object
-    CoordSystem * coordSys = domain_->GetCoordSystem(coordSysId);
-    
-    // only determine inner region, if not specified by hand using the
-    // <propRegion> sub-element
-    if ( inner.GetNumCols() != dim_ ) {
-
-      //we have to compute it, since the user has not specified it
-      inner.Resize(2,dim_);
-      
-      // The layout of inner is as follows
-      // min( x_min y_min z_min )
-      // max( x_max y_max z_max )
-      
-      // Set maximum values to minus large value and the minimum to large value
-      Double largeVal = 1e33;
-      for(UInt i = 0; i < dim_; i++ ) {
-        inner[0][i] =   largeVal;
-        inner[1][i] = - largeVal;
-      }
-
-      // Determine list of propagation regions (= all region except PML regions)
-      StdVector<RegionIdType> propRegions;
-      bool hasRealPropRegion = false;
-      for (UInt isd = 0; isd < regions_.GetSize(); isd++) {
-        RegionIdType aRegion = regions_[isd];
-        if ( aRegion != actRegion 
-         && dampingList_[aRegion] != PML ) {
-          hasRealPropRegion = true;
-          propRegions.Push_back( regions_[isd]);
-        }
-      }
-      // If we have no "real" propagation region, i.e. only one or several
-      // PML regions, we can not uniquely determine the damping parameters.
-      // In this case the user needs to define the propagation region by hand,
-      // so we issue an exception;
-      // we can not uniquely 
-      if( !hasRealPropRegion ){
-        EXCEPTION("The " << pdename_ << "  has only PML damped regions. \nThus the "
-            << "automatic calculation of damping parameters does not work!\n"
-            << "Use the <propRegion> element instead do define the propagation "
-            << "region explicitly!");
-      }
-
-      for (UInt isd = 0; isd < propRegions.GetSize(); isd++) {
-        StdVector<Elem*> elemssd;
-        ptGrid_->GetElems(elemssd, propRegions[isd] );
-
-        for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
-          StdVector<UInt> & connecth = elemssd[actEl]->connect;
-
-          Matrix<Double> ptCoord;
-          ptGrid_->GetElemNodesCoord(ptCoord, connecth,  false );
-
-          Vector<Double> globCoord(dim_), locCoord(dim_);
-          // loop over nodes
-          for (UInt i=0; i< ptCoord.GetNumCols(); i++) {
-
-            // convert global coordinate to local coordinate
-            for( UInt iDim = 0; iDim < dim_ ; ++iDim )  {
-              globCoord[iDim] = ptCoord[iDim][i];
-            }
-            coordSys->Global2LocalCoord(locCoord, globCoord);
-
-            // determine min / max of propagation region
-            for( UInt iDim = 0; iDim < dim_ ; ++iDim )  {
-              if ( locCoord[iDim] < inner[0][iDim] )
-                inner[0][iDim] = locCoord[iDim];
-              if ( locCoord[iDim] > inner[1][iDim] )
-                inner[1][iDim] = locCoord[iDim];
-
-            }
-          } // loop over nodes
-        } // loop over elements
-      } // loop over propagation regions
-    } // no propagation region specified 
-
-    outer.Resize(inner.GetNumRows(),inner.GetNumCols());
-    // set outer boundary values to max-value of acoustic propagation region
-    outer[0][0] = outer[1][0] = inner[1][0];
-    outer[0][1] = outer[1][1] = inner[1][1];
-    if (inner.GetNumCols() > 2 ) {
-      outer[0][2] = outer[1][2] = inner[1][2];
-    }
-
-    StdVector<Elem*> elemssd;
-    ptGrid_->GetElems(elemssd, actRegion );
-
-    for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
-      StdVector<UInt> & connecth = elemssd[actEl]->connect;
-
-      Matrix<Double> ptCoord;
-      ptGrid_->GetElemNodesCoord(ptCoord, connecth,  false );
-      Vector<Double> globCoord(dim_), locCoord(dim_);
-      for (UInt i=0; i< ptCoord.GetNumCols(); i++) {
-        
-        // convert global coordinate to local coordinate
-        for( UInt iDim = 0; iDim < dim_ ; ++iDim )  {
-          globCoord[iDim] = ptCoord[iDim][i];
-        }
-        coordSys->Global2LocalCoord(locCoord, globCoord);
-        
-        // determine extension of PML region
-        for( UInt iDim = 0; iDim < dim_ ; ++iDim )  {
-          
-          if ( locCoord[iDim] < outer[0][iDim] )
-            outer[0][iDim] = locCoord[iDim];
-         
-          if ( locCoord[iDim] > outer[1][iDim] )
-            outer[1][iDim] = locCoord[iDim];
-        }
-      }
-    }
-    
-    // Echo information about PML to info file
-    PtrParamNode base = infoNode_->Get(ParamNode::PN_HEADER)
-            ->Get("damping")->Get("pml");
-    base->Get("coordSysId")->SetValue(coordSysId);
-    PtrParamNode prop = base->Get("propRegion");
-    PtrParamNode damp = base->Get("dampingRegion");
-    std::string comp;
-    for( UInt i = 0; i < dim_; ++i ) {
-      comp = coordSys->GetDofName(i+1);
-      prop->Get(comp)->Get("min")->SetValue(inner[0][i]);
-      prop->Get(comp)->Get("max")->SetValue(inner[1][i]);
-      damp->Get(comp)->Get("min")->SetValue(outer[0][i]);
-      damp->Get(comp)->Get("max")->SetValue(outer[1][i]);
-    }
-  }
-  
   
   void SinglePDE::DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res ) {
 
+    LOG_DBG(singlepde) << pdename_ << ": Defining field result " 
+        << SolutionTypeEnum.ToString(res->resultType);
+    
     // create new result functor based on coefficient
     shared_ptr<ResultFunctor> func;
     if( isComplex_ ) {

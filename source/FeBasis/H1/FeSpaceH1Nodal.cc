@@ -110,7 +110,7 @@ namespace CoupledField{
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
     const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum);
-    RegionIdType eRegion = ptElem->regionId;
+    RegionIdType eRegion = GetVolElem(ptElem)->regionId;
 
     //Check if the region is there, otherwise fall back to default
     if(refElems_.find(eRegion) == refElems_.end()){
@@ -220,7 +220,6 @@ namespace CoupledField{
             << "polynomial order" );
       }
       
-      
       if( refElems_[region].empty() ) 
       {
         refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLine1();
@@ -314,7 +313,9 @@ namespace CoupledField{
 
     }
 
-    // print information to info.xml
+    // Store mapping type for this region
+    mappingType_[region] = mType;
+
   }
 
   void FeSpaceH1Nodal::CheckConsistency(){
@@ -368,6 +369,47 @@ namespace CoupledField{
     regionIntegration_[ALL_REGIONS].mode = INTEG_MODE_RELATIVE;
   }
   
+  bool FeSpaceH1Nodal::IsSameEntityApproximation( shared_ptr<EntityList> list,
+                                                  shared_ptr<FeSpace> space ) {
+    if( this->GetSpaceType()  != space->GetSpaceType()  ) {
+      return false;
+    }
+    if( this->IsHierarchical() != space->IsHierarchical()) {
+      return false;
+    }
+    
+    // Cast other space to same type
+    shared_ptr<FeSpaceH1Nodal> otherSpace = dynamic_pointer_cast<FeSpaceH1Nodal>(space);
+    
+    EntityList::ListType actListType = list->GetType();
+    if ( ! (actListType == EntityList::ELEM_LIST) &&
+        ! (actListType == EntityList::SURF_ELEM_LIST) &&
+        ! (actListType == EntityList::NC_ELEM_LIST))  {
+      return true;
+    }
+    
+    // Loop over all elements
+    EntityIterator it = list->GetIterator();
+
+    // switch depending on mapping type
+    for( it.Begin(); !it.IsEnd(); it++) {
+      if( mappingType_[it.GetElem()->regionId] == GRID ) {
+        FeH1LagrangeExpl * myElem = static_cast<FeH1LagrangeExpl*>(this->GetFe(it));
+        FeH1LagrangeExpl * otherElem = static_cast<FeH1LagrangeExpl*>(otherSpace->GetFe(it));
+        if( !( *myElem == *otherElem) ) {
+          return false;
+        }
+      } else {
+        FeH1LagrangeVar * myElem = static_cast<FeH1LagrangeVar*>(this->GetFe(it));
+        FeH1LagrangeVar * otherElem = static_cast<FeH1LagrangeVar*>(otherSpace->GetFe(it));
+        if( !( *myElem == *otherElem) ) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   void FeSpaceH1Nodal::MapNodalBCs(){
     LOG_TRACE(feSpaceH1Nodal) << "Mapping Nodal BCs";
     StdVector<UInt> actNodes;

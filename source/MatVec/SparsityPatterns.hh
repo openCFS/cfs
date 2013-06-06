@@ -39,6 +39,35 @@ namespace CoupledField {
     //! Array with starting indices of rows in cidx_ array
     UInt *rptr_;
   };
+  
+  //! Auxilliary class for administrating patterns of CRS_Matrix objects
+  //! in combination with the PatternPool class concept.
+  class CRS_Pattern : public BaseSparsityPattern {
+
+  public:
+
+    //! Default constructor
+    CRS_Pattern() {
+      cidx_   = NULL;
+      rptr_   = NULL;
+      diagPtr_ = NULL;
+    }
+
+    //! Destructor
+    virtual ~CRS_Pattern() {
+      delete [] ( cidx_ );
+      delete [] ( rptr_ );
+    }
+
+    //! Array with column indices of non-zero matrix entries
+    UInt *cidx_;
+
+    //! Array with starting indices of rows in cidx_ array
+    UInt *rptr_;
+    
+    //! Array containing the indices of the diagonal matrix entries
+    UInt *diagPtr_;
+  };
 
 }
 

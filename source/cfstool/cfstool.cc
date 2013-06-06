@@ -909,7 +909,7 @@ int main(int argc, char** argv)
   {
     param.reset(new ParamNode( ParamNode::PASS, ParamNode::ELEMENT));
 
-    ParamsInit(argc, argv, param);
+    CFSTool::ParamsInit(argc, argv, param);
 
     // Switch this flag tc true for debugging
     if (param->Get("forceSegFault")->As<bool>())

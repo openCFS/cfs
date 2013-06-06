@@ -25,6 +25,8 @@ def compute_analytical_sol(input, output, t):
     # Get input data array 'InputArray'
     input.GetPointData().SetActiveScalars('InputArray')
     values = input.GetPointData().GetScalars()
+    # Works also directly using:
+    # values = input.GetPointData().GetArray('mechDisplacement-mode')
 
     # Create a new output data array 'AnalyticalSol' and add it to output
     ca = vtk.vtkFloatArray()
@@ -73,7 +75,9 @@ def compute_analytical_sol(input, output, t):
 print self
 input = self.GetInputDataObject(0, 0)
 # Get current time step
-t = input.GetInformation().Get(vtk.vtkDataObject.DATA_TIME_STEPS(),0)
+t = input.GetInformation().Get(vtk.vtkDataObject.DATA_TIME_STEP())
+# In older VTK versions the time step can be obtained like this:
+# t = input.GetInformation().Get(vtk.vtkDataObject.DATA_TIME_STEPS(),0)
 output = self.GetOutputDataObject(0)
  
 # The VTK reader for CFS++ HDF5 file will produce vtkMultiBlockDataSets

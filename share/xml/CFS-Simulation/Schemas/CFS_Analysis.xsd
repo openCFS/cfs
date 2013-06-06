@@ -35,8 +35,7 @@
 
   <!-- This is an abstract basic type so that it cannot appear in an -->
   <!-- instance document -->
-  <xsd:complexType name="DT_AnalysisBasic" abstract="true"/>
-
+  <xsd:complexType name="DT_AnalysisBasic" abstract="true"/>  
 
   <!-- ******************************************************************* -->
   <!--   Definition of basic Analysis element -->
@@ -45,7 +44,7 @@
   <!-- This element is abstract in order to force substitution -->
   <!-- by the derived specialised analysis elements -->
 
-  <xsd:element name="AnalysisBasic" type="DT_AnalysisBasic" abstract="true"/> 
+  <xsd:element name="AnalysisBasic" type="DT_AnalysisBasic" abstract="true"/>
 
   <!-- ******************************************************************* -->
   <!--   Definition of element Analysis Static -->
@@ -59,12 +58,12 @@
     <xsd:complexContent>
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>
-          <xsd:element name="writeRestartInc"
-            type="xsd:nonNegativeInteger" minOccurs="0" maxOccurs="1"/>
-        </xsd:sequence>
-      </xsd:extension>
+          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
+		</xsd:sequence>      
+      </xsd:extension>    
     </xsd:complexContent>
   </xsd:complexType>
+
 
 
 
@@ -84,7 +83,13 @@
           <xsd:element name="numSteps" type="xsd:token"/>
           <xsd:element name="deltaT" type="xsd:token"/>
           <xsd:element name="writeRestart" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
+           <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
+        
+        <!-- Specify behavior of time step varaible t. Accumulated denots that
+             the time is accumulated over several sequence steps.
+             Zero denotes that each MultiSequence step has its own local time, 
+             starting at 0 -->
         <xsd:attribute name="initialTime" default="accumulated">
    	      <xsd:simpleType>
             <xsd:restriction base="xsd:token">
@@ -133,6 +138,8 @@
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
+          <xsd:element name="writeRestart" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
@@ -153,6 +160,7 @@
           <xsd:element name="numModes" type="xsd:token"/>
           <xsd:element name="freqShift" type="DT_NonNegFloat"/>
           <xsd:element name="writeModes" type="DT_CFSBool"/>
+          <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>

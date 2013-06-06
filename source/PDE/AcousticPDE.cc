@@ -1059,8 +1059,7 @@ namespace CoupledField{
                           ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       coef[i]->SetConservative(true);
-      coef[i]->AddEntityList(ent[i]);
-      this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i]);
+      this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i], ent[i]);
     }
 
   }

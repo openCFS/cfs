@@ -78,22 +78,21 @@ public:
 
   // COLLECTION ACCESS
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                             StdVector<Double >  & vals);
+                                        StdVector<Double >  & vals,
+                                        Grid* ptGrid );
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                             StdVector<Vector<Double> >  & vals);
+                                        StdVector<Vector<Double> >  & vals, 
+                                        Grid* ptGrid );
+
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                            StdVector<Matrix<Double> >  & vals);
+                                        StdVector<Complex >  & vals, 
+                                        Grid* ptGrid );
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                             StdVector<Complex >  & vals);
-
-  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                             StdVector<Vector<Complex> >  & vals);
-
-  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                            StdVector<Matrix<Complex> >  & vals);
+                                        StdVector<Vector<Complex> >  & vals, 
+                                        Grid* ptGrid );
 
 private:
   

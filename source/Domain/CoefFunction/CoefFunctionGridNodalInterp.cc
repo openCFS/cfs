@@ -25,6 +25,7 @@
 #include "FeBasis/FeFunctions.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 #include "General/Enum.hh"
+#include "Driver/BaseDriver.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Utils/Timer.hh"
 
@@ -528,7 +529,7 @@ template<class DATA_TYPE>
    for(UInt aReg=0;aReg<this->entities_.GetSize();aReg++){
      this->interpolFunction_->AddEntityList(this->entities_[aReg]);
      interpolSpace->SetRegionApproximation(this->entities_[aReg]->GetRegion(),polyId,integId);
-     this->interpolFunction_->AddExternalDataSource(this->shared_from_this());
+     this->interpolFunction_->AddExternalDataSource(this->shared_from_this(), this->entities_);
    }
    this->interpolFunction_->SetFctId(PSEUDO_FCT_ID);
 
@@ -547,7 +548,8 @@ template<class DATA_TYPE>
 
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
-                                                                               StdVector< Vector<DATA_TYPE> >& values){
+                                                                      StdVector< Vector<DATA_TYPE> >& values,
+                                                                      Grid* ptGrid ){
 
   StdVector<LocPoint> localCoords;
   StdVector< const Elem* > foundElements;
@@ -587,9 +589,10 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdV
 
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
-                                                                               StdVector< DATA_TYPE >& values){
+                                                                      StdVector< DATA_TYPE >& values,
+                                                                      Grid* ptGrid ){
   StdVector< Vector<DATA_TYPE> > vecValues;
-  this->GetVectorValuesAtCoords(globCoord,vecValues);
+  this->GetVectorValuesAtCoords(globCoord,vecValues, ptGrid);
   values.Resize(globCoord.GetSize(),0.0);
   for(UInt i=0;i<vecValues.GetSize();++i){
     values[i] = vecValues[i][0];

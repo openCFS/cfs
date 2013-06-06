@@ -33,21 +33,21 @@ public:
   virtual ~FeSpaceNodal();
 
   //! \copydoc FeSpace::MapCoefFctToSpace
-  virtual void MapCoefFctToSpace(shared_ptr<EntityList> entityList,
+  virtual void MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support,
                                 shared_ptr<CoefFunction> coefFct,
                                 std::map<Integer, Double>& vals,
                                 bool cache,
                                 const std::set<UInt>& comp = std::set<UInt>() ){
-    MapCoefFctToSpacePriv<Double>(entityList,coefFct,vals,cache,comp);
+    MapCoefFctToSpacePriv<Double>(support,coefFct,vals,cache,comp);
   }
 
   //! \copydoc FeSpace::MapCoefFctToSpace
-  virtual void MapCoefFctToSpace(shared_ptr<EntityList> entityList,
-                                          shared_ptr<CoefFunction> coefFct,
-                                          std::map<Integer, Complex>& vals,
-                                          bool cache,
-                                          const std::set<UInt>& comp = std::set<UInt>() ){
-    MapCoefFctToSpacePriv<Complex>(entityList,coefFct,vals,cache,comp);
+  virtual void MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support,
+                                 shared_ptr<CoefFunction> coefFct,
+                                 std::map<Integer, Complex>& vals,
+                                 bool cache,
+                                 const std::set<UInt>& comp = std::set<UInt>() ){
+    MapCoefFctToSpacePriv<Complex>(support,coefFct,vals,cache,comp);
   }
 
 protected:
@@ -70,11 +70,11 @@ protected:
 private:
 
   template<typename T>
-  void MapCoefFctToSpacePriv(shared_ptr<EntityList> entityList,
-                                shared_ptr<CoefFunction> coefFct,
-                                std::map<Integer, T>& vals,
-                                bool cache,
-                                const std::set<UInt>& comp = std::set<UInt>() );
+  void MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > support,
+                             shared_ptr<CoefFunction> coefFct,
+                             std::map<Integer, T>& vals,
+                             bool cache,
+                             const std::set<UInt>& comp = std::set<UInt>() );
 
 };
 }

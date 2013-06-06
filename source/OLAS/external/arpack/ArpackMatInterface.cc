@@ -17,6 +17,9 @@ namespace CoupledField {
 
     matrixA_ = matA;
     matrixB_ = NULL;
+    matrixC_ = NULL;
+    matrixD_ = NULL;
+    
     shift_ = pow(shift*8.0*atan(1.0),2);
     size_ = matA->GetNumRows();
     isGeneralized_ = false;
@@ -29,6 +32,9 @@ namespace CoupledField {
     
     matrixA_ = matA;
     matrixB_ = matB;
+    matrixC_ = NULL;
+    matrixD_ = NULL;
+    
     shift_ = pow(shift*8.0*atan(1.0),2);
     size_ = matA->GetNumRows();
     isGeneralized_ = true;
@@ -42,7 +48,9 @@ namespace CoupledField {
     
     matrixA_ = matA;
     matrixB_ = matB;
+    matrixC_ = NULL;
     matrixD_ = matD;
+    
     shift_   = shift*8.0*atan(1.0);
     size_    = 2*matA->GetNumRows();
     shiftAndInvert_ = shiftMode;
@@ -52,7 +60,12 @@ namespace CoupledField {
   }
 
   ArpackMatInterface::~ArpackMatInterface() {
-
+    if( matrixC_ ) {
+      delete matrixC_;
+      matrixC_ = NULL;
+    }
+    solver_  = NULL;
+    precond_ = NULL;
   }
   
   

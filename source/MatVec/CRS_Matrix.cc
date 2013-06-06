@@ -86,6 +86,11 @@ namespace CoupledField {
     NEWARRAY( diagPtr_, UInt, this->nrows_ );
     ChangeLayout( CRS_Matrix<T>::LEX );
 
+    
+    // Set pattern pool pointer to NULL, since we allocated pattern
+    // ourselves
+    patternPool_ = NULL;
+    patternID_ = NO_PATTERN_ID;
   }
 
 
@@ -93,8 +98,15 @@ namespace CoupledField {
   //   Copy Constructor
   // ********************
   template<typename T>
-  CRS_Matrix<T>::CRS_Matrix( const CRS_Matrix<T> &origMat )
-    : diagPtr_( NULL ) {
+  CRS_Matrix<T>::CRS_Matrix( const CRS_Matrix<T> &origMat ) {
+    colInd_           = NULL;
+    rowPtr_           = NULL;
+    diagPtr_          = NULL;
+
+    currentLayout_ = UNSORTED;
+
+    patternPool_ = NULL;
+    patternID_ = NO_PATTERN_ID;
 
 
     // Set basic size informations
@@ -102,26 +114,53 @@ namespace CoupledField {
     this->nrows_      = origMat.nrows_;
     this->ncols_      = origMat.ncols_;
 
-    // Allocate memory for internal arrays
-    NEWARRAY( colInd_ , UInt, this->nnz_        );
-    NEWARRAY( rowPtr_ , UInt, this->nrows_ + 1  );
-    NEWARRAY( diagPtr_, UInt, this->nrows_      );
-    NEWARRAY( data_   , T      , this->nnz_        );
+    // ---------------------
+    // Pattern is not shared
+    // ---------------------
+    if ( origMat.patternPool_ == NULL ) {
 
-    // Copy information
-    for (UInt i = 0; i < this->nnz_; i++ ) {
-      data_[i]   = origMat.data_[i];
-      colInd_[i] = origMat.colInd_[i];
+      // Allocate memory for internal arrays
+      NEWARRAY( colInd_ , UInt, this->nnz_        );
+      NEWARRAY( rowPtr_ , UInt, this->nrows_ + 1  );
+      NEWARRAY( diagPtr_, UInt, this->nrows_      );
+      NEWARRAY( data_   , T      , this->nnz_        );
+
+      // Copy information
+      for (UInt i = 0; i < this->nnz_; i++ ) {
+        data_[i]   = origMat.data_[i];
+        colInd_[i] = origMat.colInd_[i];
+      }
+
+      for (UInt i = 0; i < this->nrows_; i++ ) {
+        rowPtr_[i]  = origMat.rowPtr_[i];
+        diagPtr_[i] = origMat.diagPtr_[i];
+      }
+      rowPtr_[this->nrows_] = origMat.rowPtr_[this->nrows_];
+
+      // Copy layout flag
+      currentLayout_ = origMat.currentLayout_;
+      
+      // Set pattern pool pointer to NULL, since we allocated pattern
+      // ourselves
+      patternPool_ = NULL;
+      patternID_ = NO_PATTERN_ID;
+      
+    } else {
+      
+      // -----------------
+      // Pattern is shared
+      // -----------------
+      // Copy sparsity pattern from poool
+      this->SetSparsityPattern( origMat.patternPool_, origMat.patternID_ );
+      
+      // Generate copy of data array
+      NEWARRAY( data_, T, this->nnz_ );
+      for ( UInt i = 0; i < this->nnz_; i++ ) {
+        data_[i]   = origMat.data_[i];
+      }
+      // Copy layout flag
+      currentLayout_ = origMat.currentLayout_;
     }
-
-    for (UInt i = 0; i < this->nrows_; i++ ) {
-      rowPtr_[i]  = origMat.rowPtr_[i];
-      diagPtr_[i] = origMat.diagPtr_[i];
-    }
-    rowPtr_[this->nrows_] = origMat.rowPtr_[this->nrows_];
-
-    // Copy layout flag
-    currentLayout_ = origMat.currentLayout_;
   }
 
 #ifdef USE_MULTIGRID
@@ -206,16 +245,28 @@ namespace CoupledField {
     // node itself, in case of a self-reference) in lexicographic
     // ordering, i.e. in increasing number of node indices.
 
-
+    // Check that no pattern was allocated
+     if ( rowPtr_ != NULL || colInd_ != NULL || patternPool_ != NULL ) {
+       EXCEPTION( "There seems to already be a sparsity pattern!" );
+     }
+     
     UInt rs;
     UInt *index;
-
-    rowPtr_[0] = 0;
 
 #ifdef DEBUG_CRS_MATRIX
     (*debug) << "The Matrix Graph has size " << graph.GetSize() << std::endl;
     graph.Print( *debug );
 #endif
+    
+    // Allocate memory for row and diagonal pointers
+    NEWARRAY( rowPtr_ , UInt, this->nrows_ + 1 );
+    NEWARRAY( diagPtr_, UInt, this->nrows_     );
+    rowPtr_[0]  = 0;
+    diagPtr_[0] = 0;
+
+    // Allocate memory for column indices
+    NEWARRAY( colInd_, UInt, this->nnz_ );
+
 
     // loop over all rows
     for ( UInt i = 0; i < this->nrows_; i++ ) {
@@ -247,13 +298,88 @@ namespace CoupledField {
     currentLayout_ = CRS_Matrix<T>::LEX;
 
   }
+  
+  // **********************
+  //   SetSparsityPattern
+  // **********************
+  template<typename T>
+  void CRS_Matrix<T>::SetSparsityPattern( PatternPool *patternPool,
+                                          PatternIdType patternID ) {
 
+    // Safety checks
+    if ( patternPool == NULL ) {
+      EXCEPTION( "CRS_Matrix<T>::SetSparsityPattern: patternPool = NULL! "
+               << "This cannot work ;-)" );
+    }
+    if ( rowPtr_ != NULL || colInd_ != NULL || patternPool_ != NULL ) {
+      EXCEPTION( "There seems to already be a sparsity pattern!" );
+    }
+
+    // Set information
+    patternPool_ = patternPool;
+    patternID_   = patternID;
+
+    // Get hold of pattern
+    BaseSparsityPattern *basePattern = NULL;
+    basePattern = patternPool_->RegisterUser( patternID );
+
+    CRS_Pattern *myPattern = NULL;
+    myPattern = dynamic_cast<CRS_Pattern*>( basePattern );
+    if ( myPattern == NULL ) {
+      EXCEPTION( WRONG_CAST_MSG );
+    }
+
+    // Extract pointers
+    colInd_  = myPattern->cidx_;
+    rowPtr_  = myPattern->rptr_;
+    diagPtr_ = myPattern->diagPtr_;
+  }
+
+
+  // *************************
+   //   TransferPatternToPool
+   // *************************
+   template<typename T> PatternIdType
+   CRS_Matrix<T>::TransferPatternToPool( PatternPool *patternPool ) {
+
+
+     // Safety checks
+     if ( patternPool == NULL ) {
+       EXCEPTION( "CRS_Matrix<T>::TransferPatternToPool: "
+                << "patternPool = NULL! This cannot work ;-)" );
+     }
+     if ( patternPool_ != NULL ) {
+       EXCEPTION( "CRS_Matrix<T>::TransferPatternToPool: "
+                << "Do not own pattern, so I refuse to transfer it!" );
+     }
+
+     // Generate pattern object for putting into the pool
+     CRS_Pattern *myPattern = new CRS_Pattern;
+     myPattern->cidx_    = colInd_;
+     myPattern->rptr_    = rowPtr_;
+     myPattern->diagPtr_ = diagPtr_;
+
+     // Put pattern into the pool
+     patternID_   = patternPool->InsertPattern( myPattern );
+     patternPool_ = patternPool;
+     myPattern = NULL;
+
+     // We still use the pattern, so register ourselves with pool
+     patternPool->RegisterUser( patternID_ );
+
+     // Return identifier
+     return patternID_;
+   }
+   
   // *************************
   //   CopySparstiyPattern
   // *************************
   template<typename T>
   void CRS_Matrix<T>::SetSparsityPattern( const StdMatrix &srcMat ) {
-
+    if ( patternPool_ != NULL ) {
+      EXCEPTION("Setting of sparsity pattern not allowed if a pattern pool is present.");
+    }
+    
     if( srcMat.GetEntryType() == BaseMatrix::DOUBLE ) 
     {
       const CRS_Matrix<Double>& mat = dynamic_cast< const CRS_Matrix<Double>& >(srcMat);
@@ -1232,10 +1358,12 @@ namespace CoupledField {
   Double CRS_Matrix<T>::GetMemoryUsage() const {
     
     Double sum = 0.0;
-    sum += ( (this->nrows_ + 1) // rowPtr
-           + this->nrows_       // diagPtr
-           + this->nnz_ )       // colInd
-           * sizeof(UInt);
+    if( !patternPool_ ) {
+      sum += ( (this->nrows_ + 1) // rowPtr
+          + this->nrows_       // diagPtr
+          + this->nnz_ )       // colInd
+          * sizeof(UInt);
+    }
     sum += this->nnz_ * sizeof(T); // data
     return sum;
   }

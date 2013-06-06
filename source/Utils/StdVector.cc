@@ -156,8 +156,7 @@ namespace CoupledField {
 
     // Copy entries
     size_ = vec.size_;
-    for(unsigned int i = 0; i < size_; ++i)
-      data_[i] = vec.data_[i];
+    std::copy(vec.data_, vec.data_+size_, data_);
 
     return *this;
   }
@@ -178,8 +177,7 @@ namespace CoupledField {
 
     size_ = vec.size();
     
-    for(unsigned int i = 0; i < size_; ++i)
-      data_ [i] = vec[i];
+    std::copy(vec.begin(), vec.end(), data_);
 
     return *this;
   }
@@ -219,9 +217,7 @@ namespace CoupledField {
       help = new TYPE[ capacity_ ];
 
       // copy old entries into new buffer
-      for ( unsigned int i = 0; i < size_; i++ ) {
-        help[i] = data_[i];
-      }
+      std::copy(data_, data_+size_, help);
 
       // Perform push-back and increase size
       // note, that y might point to data, so copy before delete

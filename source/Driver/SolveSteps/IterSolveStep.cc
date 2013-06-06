@@ -498,9 +498,9 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
        if( rPDE_.singlePDEs_[i]->GetName() == pdeName ) {
          coef = rPDE_.singlePDEs_[i]->GetCoefFct(type);
          updateGeo = rPDE_.singlePDEs_[i]->IsUpdatedGeo();
-         LOG_DBG(itersolvestep) << "\t=> Found quantity, updateGeo: " << 
-             (updateGeo ? "yes" : "no");
          if( coef ) {
+           LOG_DBG(itersolvestep) << "\t=> Found quantity, updateGeo: " << 
+                        (updateGeo ? "yes" : "no");
            break;
          }
        }

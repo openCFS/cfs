@@ -1,8 +1,10 @@
 #ifndef FILE_CFS_SIMINPUT_HDF5_HH
 #define FILE_CFS_SIMINPUT_HDF5_HH
 
+#include <boost/unordered_map.hpp>
 #include <DataInOut/SimInput.hh>
 #include "H5Cpp.h"
+
 
 namespace CoupledField {
 
@@ -33,6 +35,11 @@ namespace CoupledField {
 
     //! Trigger reading of the mesh
     virtual void ReadMesh(Grid *mi);
+    
+    //! Return file name including path
+    std::string GetFileName() {
+      return fileName_;
+    }
     //@}
   
     // =======================================================================
@@ -156,7 +163,9 @@ namespace CoupledField {
                         SingleVector * coefs ); 
 
     //! Return multisequence steps and their analysistypes
-    void DB_GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis );
+    void DB_GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
+                                      std::map<UInt, Double>& accTime,
+                                      std::map<UInt, bool>& isFinished );
                                     
     //! Return PDE and CoefFunctions in given multisequence step
     void DB_GetAvailPdeCoefFcts( UInt msStep, 
@@ -239,6 +248,9 @@ namespace CoupledField {
     //! Flag for creating named nodes for each region
     bool genRegionNodes_;
     
+    //! Flag indicating if the complete grid is to be loaded
+    bool readAllEntities_;
+    
     //! Native directory path to hdf5 file
     std::string baseDir_;
 
@@ -267,19 +279,19 @@ namespace CoupledField {
     StdVector<Double> nodeCoords_;
     
     // Map from mesh file node numbers to grid node numbers
-    std::map<UInt, UInt> f2GNodeNumMap_;
+    boost::unordered_map<UInt, UInt> f2GNodeNumMap_;
 
     // Map from grid node numbers to mesh file numbers
-    std::map<UInt, UInt> g2FNodeNumMap_;
+    boost::unordered_map<UInt, UInt> g2FNodeNumMap_;
     
     // Map from mesh file elem numbers to grid elem numbers
-    std::map<UInt, UInt> f2GElemNumMap_;
+    boost::unordered_map<UInt, UInt> f2GElemNumMap_;
 
     // Map from grid elem numbers to mesh file elem numbers
-    std::map<UInt, UInt> g2FElemNumMap_;
+    boost::unordered_map<UInt, UInt> g2FElemNumMap_;
     
     // Map from grid entity nodes to indices of mesh entity nodes
-    std::map<std::string, StdVector<UInt> > entityNodeMap_;    
+    boost::unordered_map<std::string, StdVector<UInt> > entityNodeMap_;    
 
     // Coordinate system into which the node coordinates should be mapped
     std::string coordSysId_;

@@ -253,7 +253,7 @@ ELSEIF(MINGW)
      SET(MINGW_DIST_WRONG FALSE)
    ELSEIF(DIST STREQUAL "UBUNTU" AND REV STREQUAL "12.04")
      SET(MINGW_DIST_WRONG FALSE)
-   ELSEIF(DIST STREQUAL "CENTOS" AND REV MATCHES "6\\.")
+   ELSEIF(DIST STREQUAL "CENTOS" OR DIST STREQUAL "ORACLE" AND REV MATCHES "6\\.")
      SET(MINGW_DIST_WRONG FALSE)
    ENDIF()
 
@@ -261,7 +261,7 @@ ELSEIF(MINGW)
        MESSAGE(FATAL_ERROR
 "
 Cross compiling for Windows 64-bit has been only tested on
-CentOS 6 and Ubuntu 12.04 LTS (cf. Developer's Manual).
+CentOS/Oracle 6 and Ubuntu 12.04 LTS (cf. Developer's Manual).
 If you know what you are doing, disable this error and fix
 the build for your platform. But don't say, I did not warn you!
 "
