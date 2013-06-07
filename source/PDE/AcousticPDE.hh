@@ -27,6 +27,16 @@ namespace CoupledField{
 
     virtual ~AcousticPDE(){};
 
+    //! Indicate that acoustic PDE takes part in coupling to mechanics.
+    void SetMechanicCoupling() {
+      isMechCoupled_ = true;
+    }
+
+    //! Return acoustic formulation. Can either be pressure or potential.
+    SolutionType GetFormulation() const { return formulation_; }
+
+  protected:
+
     //! \copydoc SinglePDE::CreateFeSpaces
     virtual std::map<SolutionType, shared_ptr<FeSpace> >
     CreateFeSpaces( const std::string&  formulation,
@@ -34,6 +44,9 @@ namespace CoupledField{
 
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
+
+    //! Defines the integrators needed for ncInterfaces
+    void DefineNcIntegrators();
 
     //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators( );
@@ -43,16 +56,6 @@ namespace CoupledField{
 
     //! define the SoltionStep-Driver
     void DefineSolveStep();
-
-    //! Return acoustic formulation. Can either be pressure or potential.
-    SolutionType GetFormulation() const { return formulation_; }
-
-    //! Indicate that acoustic PDE takes part in coupling to mechanics.
-    void SetMechanicCoupling() {
-      isMechCoupled_ = true;
-    }
-
-  protected:
 
     //!  Define available primary results
     void DefinePrimaryResults();

@@ -19,19 +19,23 @@ class BaseNcInterface {
 
   public:
 
-    BaseNcInterface(Grid* grid) : ptGrid_(grid), region_(NO_REGION_ID) {};
+    BaseNcInterface(Grid* grid)
+      : ptGrid_(grid),
+        elemList_( new NcSurfElemList(grid) )
+    {};
 
     virtual ~BaseNcInterface() { ptGrid_ = NULL; };
 
     const std::string& GetName() const { return name_; }
     
-    void SetName(const std::string & name) {
-      this->name_ = name;
-      region_ = ptGrid_->AddSurfaceRegion(name_);
+    void SetName(const std::string &name) {
+      name_ = name;
+    }
+
+    const shared_ptr<NcSurfElemList> GetElemList() const {
+      return elemList_;
     }
     
-    RegionIdType GetRegionId() const { return region_; }
-
     virtual bool NeedsUpdate() const = 0;
     
     virtual void UpdateInterface() = 0;
@@ -44,7 +48,7 @@ class BaseNcInterface {
 
     Grid* ptGrid_;
     std::string name_;
-    RegionIdType region_;
+    shared_ptr<NcSurfElemList> elemList_;
 
 }; // class BaseNcInterface
 

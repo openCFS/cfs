@@ -174,13 +174,7 @@ namespace CoupledField {
     }
     
     // Determine, if axisymmetric geometry is used
-    std::string probGeo;
-    domain_->GetParamRoot()->Get("domain")->GetValue( "geometryType", probGeo );
-    if( probGeo == "axi" ) {
-      isaxi_ = true;
-    } else {
-      isaxi_ = false;
-    }
+    isaxi_ = ptGrid_->IsAxi();
 
     // Get type of analysis and create according 
     // assemble object

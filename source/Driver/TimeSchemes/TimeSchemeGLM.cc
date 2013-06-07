@@ -42,8 +42,19 @@ namespace CoupledField{
 
       curScheme_->solDerivOrder_ = solDerivOrder;
       solOrder_ = solDerivOrder;
-    }
+  }
 
+  // Copy constructor
+  TimeSchemeGLM::TimeSchemeGLM(const TimeSchemeGLM & ts) {
+    InitGLMs();
+    
+    curScheme_ = ts.curScheme_;
+    curType_ = curScheme_->GetType();
+    
+    curScheme_->solDerivOrder_ = ts.solOrder_;
+    solOrder_ = ts.solOrder_;
+  }
+  
   TimeSchemeGLM::~TimeSchemeGLM(){
     for(UInt i=1;i<curScheme_->sizeGLMVec_;i++){
        if(avoidFreeingIdx_.find(i)==avoidFreeingIdx_.end())

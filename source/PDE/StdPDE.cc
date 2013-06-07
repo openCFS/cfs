@@ -42,7 +42,7 @@ namespace CoupledField {
     needsAlgsys_(true),
     isAlwaysStatic_(false),
     dim_(ptGrid_->GetDim()), 
-    isaxi_(domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "axi"),
+    isaxi_(ptGrid_->IsAxi()),
     isComplex_(false),    
     assemble_(NULL),
     solveStep_(NULL),
@@ -327,14 +327,26 @@ namespace CoupledField {
 } // end of namespace
 
 
-static EnumTuple ncTypeTuples[] =
+EnumTuple StdPDE::ncTypeTuples_[] =
 {
- EnumTuple(StdPDE::NITSCHE, "Nitsche"),
- EnumTuple(StdPDE::MORTAR, "Mortar"),
- EnumTuple(StdPDE::NONE, "None")
+    EnumTuple(StdPDE::NC_NITSCHE, "Nitsche"),
+    EnumTuple(StdPDE::NC_MORTAR, "Mortar"),
+    EnumTuple(StdPDE::NC_NONE, "none")
 };
 
-Enum<StdPDE::NcCouplingType>StdPDE::ncCouplingType_ = \
+Enum<StdPDE::NcCouplingType> StdPDE::ncCouplingType_ = 
     Enum<StdPDE::NcCouplingType>("Type of non-conforming formulation used",
-                                  sizeof(ncTypeTuples) / sizeof(EnumTuple),
-                                  ncTypeTuples);
+                                  sizeof(ncTypeTuples_) / sizeof(EnumTuple),
+                                  ncTypeTuples_);
+
+EnumTuple StdPDE::lmTypeTuples_[] =
+{
+    EnumTuple(StdPDE::LM_STANDARD, "standard"),
+    EnumTuple(StdPDE::LM_DUAL_DISCONTINUOUS, "dualDiscont"),
+    EnumTuple(StdPDE::LM_DUAL_CUBIC, "dualCubic")
+};
+
+Enum<StdPDE::LagrangeMultType> StdPDE::lmType_ =
+    Enum<StdPDE::LagrangeMultType>("Type of ansatz functions for Lagrange Multiplier",
+                                   sizeof(lmTypeTuples_) / sizeof(EnumTuple),
+                                   lmTypeTuples_);

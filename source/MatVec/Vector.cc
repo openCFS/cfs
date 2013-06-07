@@ -469,6 +469,7 @@ namespace CoupledField {
       break;
     default:
       EXCEPTION("Vector<Complex>::GetPart: Only possible for REAL or IMAG part!" );
+      break;
     }
     
     return ret;
@@ -515,6 +516,7 @@ namespace CoupledField {
           break;
         default:
           EXCEPTION( "Vector<Complex>::SetPart: Only possible for REAL or IMAG part!" );
+          break;
       }
     } else {
       // ------------------
@@ -531,6 +533,7 @@ namespace CoupledField {
           break;
         default:
           EXCEPTION( "Vector<Complex>::SetPart: Only possible for REAL or IMAG part!" );
+          break;
       }
     }
   }

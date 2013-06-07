@@ -208,7 +208,7 @@ void Domain::CreateGrid()
         // What should work:
         // boost::filesystem::base(p) << "." << boost::filesystem::extension(p)
         if( isParentDomain_) 
-          std::cout << "'" << p.leaf() << "' ";
+          std::cout << p.leaf() << " ";
       }
 
       actGrid->FinishInit();
@@ -747,7 +747,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
       pde1 = GetSinglePDE("mechanic");
       pde2 = GetSinglePDE("electrostatic");
 
-      // in the case of piezo coupling, the electrotstatic
+      // in the case of piezo coupling, the electrostatic
       // entries have to be multiplied by -1
       dynamic_cast<ElecPDE*> (pde2)->SetPiezoCoupling();
 

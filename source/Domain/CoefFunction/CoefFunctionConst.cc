@@ -1,6 +1,7 @@
 #include "CoefFunctionConst.hh"
 
 #include <limits>
+#include <def_expl_templ_inst.hh>
 
 namespace CoupledField {
 

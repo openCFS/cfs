@@ -12,6 +12,8 @@
  */
 //================================================================================================
 
+#include <def_expl_templ_inst.hh>
+
 #include "CoefFunctionGridNodal.hh"
 
 #include "FeBasis/FeSpace.hh"

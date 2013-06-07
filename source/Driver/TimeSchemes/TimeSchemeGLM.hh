@@ -42,6 +42,9 @@ class TimeSchemeGLM : public BaseTimeScheme{
      * \param[in] solDerivOrder The time derivative order of the solution to the effective system
      */
     TimeSchemeGLM(GLMScheme* scheme, UInt solDerivOrder=0);
+    
+    //! Copy constructor
+    TimeSchemeGLM(const TimeSchemeGLM& ts);
 
     virtual ~TimeSchemeGLM();
 
@@ -65,12 +68,12 @@ class TimeSchemeGLM : public BaseTimeScheme{
       curScheme_->ComputeCoefficients(order,timeStepSize);
     }
 
-    /// Obtain number of stages of the scheme
+    //! Obtain number of stages of the scheme
     UInt GetNumStages(){
       return curScheme_->numStages_;
     }
 
-    /// Obtain reference to current stage vector to avoid copying of elements
+    //! Obtain reference to current stage vector to avoid copying of elements
     SingleVector * GetStageVector(UInt stage){
       assert(stage < curScheme_->numStages_);
       return stageVector_[stage];

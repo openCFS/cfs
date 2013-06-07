@@ -1186,7 +1186,7 @@ source/Domain/Mesh/GridCFS/GridCFS.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/Mesh/NcInterfaces/BaseNcInterface.hh -text
 source/Domain/Mesh/NcInterfaces/MortarInterface.cc -text
 source/Domain/Mesh/NcInterfaces/MortarInterface.hh -text
-source/Domain/Mesh/NcInterfaces/PolygonIterators.hh -text
+source/Domain/Mesh/NcInterfaces/PolygonIterators.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/Results/BaseResults.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/Results/BaseResults.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/Results/CMakeLists.txt -text

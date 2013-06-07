@@ -294,7 +294,7 @@ namespace CoupledField
     //! Pointer to simulation state object
     shared_ptr<SimState> simState_;
 
-    //! Mapping between name and coordinate sysem pointer
+    //! Mapping between name and coordinate system pointer
     std::map<std::string, CoordSystem*> coordSys_;
 
     //! Mathematic parser object

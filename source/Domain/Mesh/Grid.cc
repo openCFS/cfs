@@ -119,12 +119,14 @@ namespace CoupledField
       regionData[id].type_idx = surfRegionIds_.GetSize();
       surfRegionIds_.Push_back(id);
       surfElems_.Push_back(dummy_elems);
+      numSurfElemNodes_.Push_back(0);
     }
     else
     {
       regionData[id].type_idx = volRegionIds_.GetSize();
       volRegionIds_.Push_back(id);
       volElems_.Push_back(dummy_elems);
+      numVolElemNodes_.Push_back(0);
     }
 
     return id;
@@ -383,52 +385,69 @@ namespace CoupledField
   }
   
   
-   void Grid::Dump()
-   {
-     StdVector<Elem*>   elems;
+  void Grid::Dump()
+  {
+    StdVector<Elem*>   elems;
 
-     std::cout << "Grid: elements=" << GetNumElems() << " nodes=" << GetNumNodes() << std::endl;
+    std::cout << "Grid: elements=" << GetNumElems() << " nodes=" << GetNumNodes() << std::endl;
 
-     for(UInt i = 0; i < regionData.GetSize(); i++)
-     {
-       GetElems(elems, i);
+    for(UInt i = 0; i < regionData.GetSize(); i++)
+    {
+      GetElems(elems, i);
 
-       std::cout << "region: " << regionData[i].name << " id=" << i << " elements=" << elems.GetSize() <<  std::endl;
-     }
-   }
+      std::cout << "region: " << regionData[i].name << " id=" << i << " elements=" << elems.GetSize() <<  std::endl;
+    }
+  }
 
-   void Grid::InitNcInterfacesFromXML() {
-     // if no param object is present, just leave
-     if (!param_) return;
+  // =========================================================================
+  // NONCONFORMING INTERFACES SECTION
+  // =========================================================================
 
-     // check if there is a ncInterfaceList, if not just leave
-     PtrParamNode nciListNode = param_->Get("domain")
-              ->Get("ncInterfaceList", ParamNode::PASS);
-     if (!nciListNode) return;
+  void Grid::InitNcInterfacesFromXML() {
+    // if no param object is present, just leave
+    if (!param_) return;
 
-     ParamNodeList nciList = nciListNode->GetList("ncInterface");
-     UInt numNCIs = nciList.GetSize();
-     ncInterfaces_.Reserve(numNCIs);
+    // check if there is a ncInterfaceList, if not just leave
+    PtrParamNode nciListNode = param_->Get("domain")
+                  ->Get("ncInterfaceList", ParamNode::PASS);
+    if (!nciListNode) return;
 
-     for ( UInt i=0; i<numNCIs; ++i ) {
-       ncInterfaces_.Push_back( shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
-     }
-   }
+    ParamNodeList nciList = nciListNode->GetList("ncInterface");
+    UInt numNCIs = nciList.GetSize();
+    ncInterfaces_.Reserve(numNCIs);
 
-   shared_ptr<BaseNcInterface> Grid::GetNcInterface(NcInterfaceId ncId) const {
-     if ( ncId < ncInterfaces_.GetSize() ) {
-       return ncInterfaces_[ncId];
-     } else {
-       EXCEPTION("NcInterface width ID " << ncId << " is unknown.");
-     }
-   }
+    for ( UInt i=0; i<numNCIs; ++i ) {
+      AddNcInterface(shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
+    }
+  }
 
-   Grid::NcInterfaceId Grid::AddNcInterface(shared_ptr<BaseNcInterface> ncIf) {
-     ncInterfaces_.Push_back(ncIf);
-     return ncInterfaces_.GetSize()-1;
-   }
+  shared_ptr<BaseNcInterface> Grid::GetNcInterface(NcInterfaceId ncId) const {
+    if ( ncId < ncInterfaces_.GetSize() ) {
+      return ncInterfaces_[ncId];
+    } else {
+      EXCEPTION("NcInterface with ID " << ncId << " is unknown.");
+    }
+  }
 
-  bool Grid::IsSurfacePlanar(const StdVector<SurfElem*>& ifaceElems)
+  Grid::NcInterfaceId Grid::GetNcInterfaceId(const std::string &name) const {
+    std::map< std::string, NcInterfaceId >::const_iterator ncId
+        =nciNameMap_.find(name);
+    if ( ncId != nciNameMap_.end() ) {
+      return ncId->second;
+    } else {
+      EXCEPTION("NcInterface with name '" << name << " is unknown.");
+    }
+  }
+
+  Grid::NcInterfaceId Grid::AddNcInterface(shared_ptr<BaseNcInterface> ncIf) {
+    ncInterfaces_.Push_back(ncIf);
+    if ( ncIf->GetName().length() > 0 ) {
+      nciNameMap_[ncIf->GetName()] = ncInterfaces_.GetSize()-1;
+    }
+    return ncInterfaces_.GetSize()-1;
+  }
+
+  bool Grid::IsSurfacePlanar(const StdVector<SurfElem*>& ifaceElems) const
   {
     std::set<Integer> ifaceNodes;
     std::set<Integer>::iterator it,end;
@@ -466,7 +485,7 @@ namespace CoupledField
         GetNodeCoordinate(pv2, (*it));
         v1 = pv2 - pv1;
         // Normalize v1.
-        norm1 = Normalize(v1);
+        norm1 = v1.Normalize();
         if(norm1 < eps)
           norm1 = 0.0;
       }
@@ -478,7 +497,7 @@ namespace CoupledField
         v2 = pv3 - pv1;
 
         // Normalize v2.
-        norm2 = Normalize(v2);
+        norm2 = v2.Normalize();
         if(norm2 < eps)
           norm2 = 0.0;
 
@@ -512,7 +531,7 @@ namespace CoupledField
         case 3:
           if(normal.NormL2() == 0)
           {
-            CrossProd(v1, v2, normal);
+            v1.CrossProduct(v2, normal);
 
             // We may not use a zero-normal vector to perform our
             // test for coplanarity.
@@ -523,10 +542,10 @@ namespace CoupledField
               normal[2] = 0.0;
               continue;
             }
-            Normalize(normal);
+            normal.Normalize();
             continue;
           }
-          CrossProd(v1, v2, n);
+          v1.CrossProduct(v2, n);
 
           // If the norm of n is smaller than eps we have multiplied
           // linearly dependant vectors -> a point in the plane
@@ -536,7 +555,7 @@ namespace CoupledField
             continue;
           }
 
-          Normalize(n);
+          n.Normalize();
 
           n.Inner(normal, innerProd);
 

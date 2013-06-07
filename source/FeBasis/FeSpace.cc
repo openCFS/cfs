@@ -24,6 +24,7 @@ ApproxOrder::ApproxOrder( ) {
   isoOrder_ = 0;
   maxOrder_= 0;
   dim_ = 0;
+  isIsotropic_ = false;
   completeType_ = BaseFE::TRUNK_SPACE;
 }
 
@@ -31,6 +32,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   isoOrder_ = 0;
   maxOrder_= 0;
   dim_ = dim;
+  isIsotropic_ = false;
   completeType_ = BaseFE::TRUNK_SPACE;
 }
   
@@ -145,8 +147,12 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     myParam_ = paramNode;
     infoNode_ = infoNode;
     ptGrid_ = ptGrid;
+    type_ = UNDEF_SPACE;
+    mapType_ = GRID;
+    polyType_ = UNDEF_POLY;
     isFinalized_ = false;
     isContinuous_ = true;
+    isHierarchical_ = false;
     numEqns_ = 0;
     numFreeEquations_ = 0;
     solStep_ = 1;
@@ -177,7 +183,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
      
 
     /* One big Problem> Due to the splitting of spaces in Hi and Lo/Lagrange, it is not
-     * possible to deal with Diffent Polynomial types in different regions
+     * possible to deal with different Polynomial types in different regions
      * e.g. acoustic pressure is approximated by 2nd order Spectral elements in region1 and
      * anisotropic Legendre elements in region2 coupled by NcInterfaces.
      * This is to be changed in the future!
@@ -905,7 +911,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       SetDefaultIntegration(infoNode_->Get("regionList")->Get("default"));
       iReg = ALL_REGIONS;
     }else{
-      EXCEPTION("The integration id does not match any in the IntegratoinSchemeList: " << integId);
+      EXCEPTION("The integration id does not match any in the IntegrationSchemeList: " << integId);
     }
     polyToIntegMap[pReg].insert(iReg);
   }
@@ -937,7 +943,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
       const SurfElem * ptSurfEl = dynamic_cast<const SurfElem*>(ptElem);
       boost::array<Elem*,2>::const_iterator it = ptSurfEl->ptVolElems.begin();
-      for( ; it != ptSurfEl->ptVolElems.end(); it++ ) {
+      for( ; it != ptSurfEl->ptVolElems.end(); ++it ) {
         // check, if element is set at all
         if( *it) {
           if(regions_.find( (*it)->regionId) != regions_.end()) {
@@ -950,7 +956,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       // check, if element could be found
       if( !ret) {
         EXCEPTION("Could not find a suitable volume neighbor for surface element #"
-            << ptSurfEl->elemNum << ". " );
+            << ptSurfEl->elemNum << " in region "
+            << ptGrid_->GetRegion().ToString( ptSurfEl->regionId ) << "." );
       }
     } else {
       // 3) 1D element in 3D simulation

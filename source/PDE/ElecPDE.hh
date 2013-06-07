@@ -52,13 +52,19 @@ namespace CoupledField
     //! Destructor
     virtual ~ElecPDE(){};
 
+  protected:
+
     //! Initialize NonLinearities
     void InitNonLin();
 
     //! Define all (bilinearform) integrators needed for this pde
     void DefineIntegrators( );
     
-    void DefineSurfaceIntegrators(){};
+    //! Defines the integrators needed for ncInterfaces
+    void DefineNcIntegrators();
+
+    //! define surface integrators needed for this pde
+    virtual void DefineSurfaceIntegrators(){};
 
     //! Define all RHS linearforms for load / excitation 
     void DefineRhsLoadIntegrators();
@@ -79,6 +85,8 @@ namespace CoupledField
     // COUPLING SECTION
     // ======================================================
 
+  public:
+    
     //! Turn the piezo coupling on
 
     //! Triggers the correct assembly of the electrostatic block in a 
@@ -86,14 +94,14 @@ namespace CoupledField
     //! is negative compared to the normal one
     void SetPiezoCoupling();
 
+  protected:
+    
     /** @see virtual SinglePDE::GetNativeSolutionType() */
     SolutionType GetNativeSolutionType() const { return ELEC_POTENTIAL; }
 
     /** @see virtual SinglePDE::GetNativeDOF() */
     virtual UInt GetNativeDOF() const { return 1; }
 
-
-  protected:
 
     //! SubType of electrostatic section
     std::string subType_;

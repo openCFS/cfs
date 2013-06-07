@@ -58,13 +58,13 @@ namespace CoupledField {
     pdename_          = "electrostatic";
     pdematerialclass_ = ELECTROSTATIC;
  
-    nonLin_    = false;
+    nonLin_         = false;
     nonLinMaterial_ = false;
     isAlwaysStatic_ = true;
     isPiezoCoupled_ = false;
     
     //! Always use updated Lagrangian formulation 
-    updatedGeo_        = true;
+    updatedGeo_     = true;
     
     
     // Check the subtype of the problem
@@ -171,10 +171,6 @@ namespace CoupledField {
       REFACTOR;
     }
 
-    // =======================================================================
-    // Integrators for NonConforming Interfaces
-    // =======================================================================
-    ///OUT FOR REFACTOR
     // define integrators for electric impedances
     DefineImpedanceIntegrators();
   }
@@ -508,68 +504,25 @@ namespace CoupledField {
     availResults_.insert( rhs );
     DefineFieldResult( feFunctions_[ELEC_POTENTIAL], rhs );
 
-    // ===================================
-    // Check for non-conforming interfaces
-    // ===================================
-    StdVector<std::string> ncIfaceNames, ncIfaceNamesForPDE;
-    StdVector<RegionIdType> ncIfaceIds;
-    
-    LOG_DBG2(elecpde) << "NonMatching: Checking if nonconforming "
-                      << "interfaces of PDE exist in domain.";
-
-    PtrParamNode elecPDENCIfaceListNode;
-    elecPDENCIfaceListNode = domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
-    ->Get("pdeList/electrostatic/ncInterfaceList", ParamNode::PASS);
-    
-    if(!elecPDENCIfaceListNode)
-      return;
-
-    PtrParamNode domainNCIfaceListNode;
-    domainNCIfaceListNode = domain_->GetParamRoot()->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
-
-    if(!domainNCIfaceListNode)
-    {
-      EXCEPTION("No nonmatching interfaces have been specified in domain!");
-    }
-
-    ParamNodeList pdeNCIfaceNodes;
-    pdeNCIfaceNodes = elecPDENCIfaceListNode->GetList("ncInterface");
-
-    for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
-      std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
-
-      PtrParamNode domainIfaceNode = domainNCIfaceListNode
-          ->GetByVal("ncInterface", "name", pdeIfaceName, ParamNode::PASS);
-      if(!domainIfaceNode)
-      {
-        LOG_DBG2(elecpde) << "NonMatching: Nonconforming "
-        << "interface '" << ncIfaceNames[i]
-                                         << "' does not exist in domain.";
-
-        EXCEPTION( "ncInterface referenced from PDE not defined in domain!");
-      }
-
-      ncIfaceNamesForPDE.Push_back(pdeIfaceName);
-    }
-    ptGrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
-
-    for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
-      ncIFaces_.Push_back(ncIfaceIds[i]);
-    }
-
-    // In the case of the presence of non-conforming interfaces,
-    // a second resultdof object has to be created, which describes the 
-    // Lagrange multiplier
-    if( ncIFaces_.GetSize() > 0 ) {
-      LOG_DBG2(elecpde) << "NonMatching: Defining new ResultDof Lagrange.";
-      shared_ptr<ResultInfo> lagr ( new ResultInfo );
-      lagr->resultType = LAGRANGE_MULT;
-      lagr->dofNames = "l";
-      lagr->definedOn = results_[0]->definedOn;
-      results_.Push_back( lagr );
-    } 
   }
   
+  void ElecPDE::DefineNcIntegrators() {
+    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
+                                           endIt = ncInterfaces_.End();
+    for ( ; ncIt != endIt; ++ncIt ) {
+      switch (ncIt->type) {
+      case NC_MORTAR:
+        DefineMortarCoupling(ELEC_POTENTIAL, *ncIt);
+        break;
+      case NC_NITSCHE:
+        EXCEPTION("ncInterface of Nitsche type is not implemented for ElecPDE");
+        break;
+      default:
+        EXCEPTION("Unknown type of ncInterface");
+        break;
+      }
+    }
+  }
   
   void ElecPDE::DefinePostProcResults() {
 

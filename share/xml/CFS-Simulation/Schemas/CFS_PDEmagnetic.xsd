@@ -49,19 +49,9 @@
           </xsd:element>
 
           <!-- List defining nonlinear types -->
-          <xsd:element maxOccurs="1" minOccurs="0" name="ncInterfaceList">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element maxOccurs="unbounded" minOccurs="1" name="ncInterface">
-                  <xsd:complexType>
-                    <xsd:attribute name="name" type="xsd:token" use="required"/>
-                    <xsd:attribute name="nmgFormulation" type="DT_NMGFormulationBasic" use="optional" default="Nitsche"/>
-                    <xsd:attribute name="nitscheFactor" type="xsd:token" use="optional" default="50"/>
-                  </xsd:complexType>
-                </xsd:element>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element>
+          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList"
+                       minOccurs="0" maxOccurs="1"/>
+
           <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">

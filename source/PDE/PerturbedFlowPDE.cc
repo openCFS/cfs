@@ -581,16 +581,14 @@ namespace CoupledField {
 
     // Check for subType
     StdVector<std::string> velDofNames;
-
-    std::string geometryType;
-    domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", geometryType );
-
-    if( geometryType == "3d" ) {
+    if ( ptGrid_->GetDim() == 3 ) {
       velDofNames = "x", "y", "z";
-    } else if( geometryType == "plane" ) {
-      velDofNames = "x", "y";
-    } else if( geometryType == "axi" ) {
-      velDofNames = "r", "z";
+    } else { 
+      if( ptGrid_->IsAxi() ) {
+        velDofNames = "r", "z";
+      } else {
+        velDofNames = "x", "y";
+      }
     }
 
     // === Primary result according to definition ===

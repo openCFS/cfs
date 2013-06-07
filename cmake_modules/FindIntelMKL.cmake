@@ -124,18 +124,15 @@ SET (MKL_POSSIBLE_PATHS
   ${MKL_ROOT_DIR_DEFAULT}
   # Path set by ifortvars.sh resp. iccvars.sh
   $ENV{MKLROOT}
-  # Paths at LSE and local paths
+  # Local paths
   /opt/intel/composerxe-2011.4.191
   /opt/intel/Compiler/11.1/069/mkl
   /opt/intel/Compiler/11.0/059/Frameworks/mkl
   /opt/intel/Compiler/11.0/081/mkl
   /opt/intel/Compiler/11.0/074/mkl
   /opt/intel/mkl/10.0.5.025
-  /home/shareAll/linux_bin/intel/compiler/11.0/081/mkl
-  /home/shareAll/linux_bin/intel/mkl/10.0.5.025
   /opt/intel/mkl/9.1.023
   /opt/intel/mkl/9.1.021
-  /home/shareAll/linux_bin/intel/mkl/9.1.021
   # Paths on Woody
   /apps/intel/ComposerXE/mkl
   /apps/intel/ComposerXE/composerxe-2011.4.191/mkl

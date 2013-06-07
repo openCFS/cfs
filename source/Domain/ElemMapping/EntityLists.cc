@@ -107,44 +107,51 @@ namespace CoupledField {
   std::string ElemList::GetName() const {
     
     if( defineType_ == NO_TYPE ) {
-      return std::string("*anoymous list*");
+      return std::string("*anonymous list*");
     } else {
       return name_;
     }
   }
 
   void ElemList::SetNamedElems( const std::string& name ) {
-    defineType_ = NAMED_ELEMS;
-    name_ = name;
     StdVector<Elem*> elems;
     grid_->GetElemsByName( elems, name );
-    for ( UInt i = 0; i<elems.GetSize(); i++ ) {
+    
+    list_.Clear();
+    
+    for ( UInt i=0, numElems=elems.GetSize(); i<numElems; ++i ) {
       list_.Push_back( elems[i]->elemNum);
     }
+    
+    defineType_ = NAMED_ELEMS;
     size_ = list_.GetSize();
+    region_ = NO_REGION_ID;
     name_ = name;
   }
       
 
   void ElemList::SetRegion( RegionIdType region ) {
-    
-    defineType_ = REGION;
-    region_ = region;
     StdVector<Elem*> elems;
     grid_->GetElems( elems, region );
-    for ( UInt i = 0; i<elems.GetSize(); i++ ) {
+    
+    list_.Clear();
+    
+    for ( UInt i=0, numElems=elems.GetSize(); i<numElems; ++i ) {
       list_.Push_back( elems[i]->elemNum);
     }
+
+    defineType_ = REGION;
     size_ = list_.GetSize();
+    region_ = region;
     name_ = grid_->GetRegion().ToString( region );
   }
 
   void ElemList::SetElement( const Elem* elem) {
-
     defineType_ = NO_TYPE;
+    size_ = 1;
     region_ = NO_REGION_ID;
-    list_.Clear();
-    list_.Push_back( elem->elemNum );
+    name_ = "";
+    list_.Resize(1, elem->elemNum);
   }
   
   RegionIdType ElemList::GetRegion() const {
@@ -176,12 +183,13 @@ namespace CoupledField {
   }
 
   void SurfElemList::SetNamedElems( const std::string& name ) {
-    defineType_ = NAMED_ELEMS;
-    name_ = name;
     StdVector<Elem*> elems;
     grid_->GetElemsByName( elems, name );
+    
+    surfElemList_.Clear();
+    
     SurfElem * actElem = NULL;
-    for ( UInt i = 0; i<elems.GetSize(); i++ ) {
+    for ( UInt i=0, numElems=elems.GetSize(); i<numElems; ++i ) {
       actElem = dynamic_cast<SurfElem*>(elems[i]);
       if( actElem == NULL ) {
         EXCEPTION( "Element #" << elems[i]->elemNum 
@@ -189,28 +197,51 @@ namespace CoupledField {
                    << "' is no surface element!" );
       }
       surfElemList_.Push_back( actElem );
-      list_.Push_back( actElem->elemNum);
     }
-    size_ = list_.GetSize();
+    
+    defineType_ = NAMED_ELEMS;
+    size_ = surfElemList_.GetSize();
+    region_ = NO_REGION_ID;
     name_ = name;
   }
 
   void SurfElemList::SetRegion( RegionIdType  region ) { 
-
-    defineType_ = REGION;
-    region_ = region;
     StdVector<SurfElem*> elems;
     grid_->GetSurfElems( elems, region );
-    for ( UInt i = 0; i<elems.GetSize(); i++ ) {
+    
+    surfElemList_.Clear();
+    
+    for ( UInt i=0, numElems=elems.GetSize(); i<numElems; ++i ) {
       surfElemList_.Push_back( elems[i]);
-      list_.Push_back(elems[i]->elemNum);
     }
-    size_ = list_.GetSize();
+
+    defineType_ = REGION;
+    size_ = surfElemList_.GetSize();
+    region_ = region;
     name_ = grid_->GetRegion().ToString( region );
   }
 
+  void SurfElemList::SetElement(const Elem * elem) {
+    const SurfElem * sElem = dynamic_cast<const SurfElem*>(elem);
+    if ( !sElem ) {
+      EXCEPTION("Cannot use SurfElemList with volume elements");
+    }
+    SetSurfElem(sElem);
+  }
 
-  const SurfElem* SurfElemList::GetSurfElem( UInt nr ) const{
+  void SurfElemList::SetSurfElem(const SurfElem * elem) {
+    defineType_ = NO_TYPE;
+    size_ = 1;
+    region_ = NO_REGION_ID;
+    name_ = "";
+    surfElemList_.Resize(1, elem);
+  }
+  
+  const Elem* SurfElemList::GetElem(UInt nr) const {
+    return surfElemList_[nr];
+  }
+  
+  const SurfElem* SurfElemList::GetSurfElem( UInt nr ) const {
     return surfElemList_[nr];
   }
 
@@ -220,7 +251,7 @@ namespace CoupledField {
     it.ptGrid_ = this->grid_;
     it.surfElemList_ = this;
     it.pos_ = 0;
-    it.size_ = list_.GetSize();
+    it.size_ = surfElemList_.GetSize();
     return it;
   }
  
@@ -376,33 +407,129 @@ namespace CoupledField {
   }
 
   // --- NC Element List ---
-  //! Constructor
-  NcElemList::NcElemList( Grid * grid, std::string name)
-    : EntityList(grid){
+  // Default constructor
+  NcSurfElemList::NcSurfElemList( Grid * grid )
+    : SurfElemList(grid)
+  {
+  }
+  
+  // Constructor
+  NcSurfElemList::NcSurfElemList( Grid * grid, std::string name )
+    : SurfElemList(grid)
+  {
     this->type_ = NC_ELEM_LIST;
     name_ = name;
   }
 
-  //! returns the name of the list
-  std::string NcElemList::GetName() const{
-    return name_;
+  std::string NcSurfElemList::GetName() const {
+    if (name_.length() > 0) {
+      return name_;
+    } else {
+      return "*anonymous list*";
+    }
+  }
+  
+  void NcSurfElemList::SetName(const std::string & name) {
+    name_ = name;
+    defineType_ = NO_TYPE;
+  }
+  
+  void NcSurfElemList::SetNamedElems( const std::string& name ) {
+    StdVector<Elem*> elems;
+    grid_->GetElemsByName( elems, name );
+    
+    ncElems_.Clear();
+    
+    NcSurfElem * actElem = NULL;
+    for ( UInt i=0, numElems=elems.GetSize(); i<numElems; ++i ) {
+      actElem = dynamic_cast<NcSurfElem*>(elems[i]);
+      if( actElem == NULL ) {
+        EXCEPTION( "Element #" << elems[i]->elemNum 
+                   << " in element list '" << name 
+                   << "' is no NcSurfElem!" );
+      }
+      ncElems_.Push_back( shared_ptr<NcSurfElem>(actElem) );
+    }
+    
+    defineType_ = NAMED_ELEMS;
+    size_ = ncElems_.GetSize();
+    region_ = NO_REGION_ID;
+    name_ = name;
+  }
+
+  void NcSurfElemList::SetRegion( RegionIdType region ) { 
+    StdVector<SurfElem*> elems;
+    grid_->GetSurfElems( elems, region );
+    
+    name_ = grid_->GetRegion().ToString( region );
+    ncElems_.Clear();
+    
+    NcSurfElem * curElem = NULL;
+    for ( UInt i=0, numElems=elems.GetSize(); i<numElems; ++i ) {
+      curElem = dynamic_cast<NcSurfElem*>(elems[i]);
+      if ( ! curElem ) {
+        EXCEPTION( "Element #" << elems[i]->elemNum 
+                   << " in element list '" << name_
+                   << "' is no NcSurfElem!" );
+      }
+      ncElems_.Push_back( shared_ptr<NcSurfElem>(curElem) );
+    }
+
+    defineType_ = REGION;
+    size_ = ncElems_.GetSize();
+    region_ = region;
+  }
+
+  void NcSurfElemList::SetElement( const Elem * elem ) {
+    const NcSurfElem * ncElem = dynamic_cast<const NcSurfElem*>(elem);
+    if ( !ncElem ) {
+      EXCEPTION("Cannot use NcSurfElemList with anything other than NcSurfElems");
+    }
+    SetNcSurfElem( shared_ptr<NcSurfElem>( const_cast<NcSurfElem*>(ncElem) ) );
+  }
+
+  void NcSurfElemList::SetSurfElem( const SurfElem * elem ) {
+    const NcSurfElem * ncElem = dynamic_cast<const NcSurfElem*>(elem);
+    if ( !ncElem ) {
+      EXCEPTION("Cannot use NcSurfElemList with anything other than NcSurfElems");
+    }
+    SetNcSurfElem( shared_ptr<NcSurfElem>( const_cast<NcSurfElem*>(ncElem) ) );
+  }
+
+  void NcSurfElemList::SetNcSurfElem( const shared_ptr<NcSurfElem> elem ) {
+    defineType_ = NO_TYPE;
+    size_ = 1;
+    region_ = NO_REGION_ID;
+    ncElems_.Resize(1, elem);
+  }
+  
+  const Elem * NcSurfElemList::GetElem( UInt nr ) const
+  {
+    return ncElems_[nr].get();
+  }
+
+  const SurfElem * NcSurfElemList::GetSurfElem( UInt nr ) const
+  {
+    return ncElems_[nr].get();
   }
 
   //! returns const reference to NcElem
-  const NcSurfElem * NcElemList::GetNcSurfElem( UInt nr ) const{
+  NcSurfElem* NcSurfElemList::GetNcSurfElem( UInt nr ) const
+  {
     return ncElems_[nr].get();
   }
 
   //! Adds an element using a shared pointer which is better suited here
-  void NcElemList::SetElement( const shared_ptr<NcSurfElem> elem ){
+  void NcSurfElemList::AddElement( const shared_ptr<NcSurfElem> elem ) {
     ncElems_.Push_back(elem);
-    size_++;
+    ++size_;
   }
 
   //! Get iterator
-  EntityIterator NcElemList::GetIterator() const{
+  EntityIterator NcSurfElemList::GetIterator() const {
     EntityIterator it;
     it.type_ = NC_ELEM_LIST;
+    it.ptGrid_ = this->grid_;
     it.ncElemList_ = this;
     it.pos_ = 0;
     it.size_ = ncElems_.GetSize();
@@ -414,6 +541,7 @@ namespace CoupledField {
   // =================================================
   
   EntityIterator::EntityIterator() {
+    type_          = EntityList::NO_LIST;
     ptGrid_        = NULL;
     elemList_      = NULL; 
     surfElemList_  = NULL;
@@ -464,16 +592,25 @@ namespace CoupledField {
     switch(type_)
     {
     case EntityList::SURF_ELEM_LIST:
-      return surfElemList_->surfElemList_[ pos_ ];
+      return surfElemList_->GetSurfElem( pos_ );
       break;
     case EntityList::NC_ELEM_LIST:
       return ncElemList_->GetNcSurfElem( pos_ );
       break;
     default:
       EXCEPTION("type " << type_ << " not implemented for GetSurfElem");
-      break;
+      return NULL;
     }
 
+  }
+  
+  const NcSurfElem* EntityIterator::GetNcSurfElem() const {
+    if ( type_ == EntityList::NC_ELEM_LIST ) {
+      return ncElemList_->GetNcSurfElem( pos_ );
+    } else {
+      EXCEPTION("Type " << type_ << " not implemented for GetNcSurfElem");
+      return NULL;
+    }
   }
   
   RegionIdType EntityIterator::GetRegion() const {
@@ -513,6 +650,7 @@ namespace CoupledField {
       break;
     default:
       EXCEPTION( "Not implemented" );
+      break;
     }
       
      return id; 

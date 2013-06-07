@@ -30,6 +30,8 @@ namespace CoupledField
     //! the ReadCoils() method brought into being.
     ~MagEdgePDE();
     
+  protected:
+    
     //! Initialize NonLinearities
     virtual void InitNonLin();
 
@@ -39,6 +41,11 @@ namespace CoupledField
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
 
+    //! Defines the integrators needed for ncInterfaces
+    void DefineNcIntegrators() {
+      EXCEPTION("ncInterfaces are not implemented for MagEdgePDE");
+    }
+
     //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators( ){};
     
@@ -47,8 +54,6 @@ namespace CoupledField
 
     //! define the SoltionStep-Driver
     void DefineSolveStep();
-    
-  protected:
     
     // =======================================================================
     //  Initialization

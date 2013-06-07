@@ -5,12 +5,13 @@
 #include <def_use_libfbi.hh>
 
 #include <set>
+#include <map>
 #include <boost/array.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
 
 #if defined(USE_CGAL) && defined(USE_LIBFBI)
-#error "Either USE_CGAL or USE_LIBFBI can be actived, but not both!"
+#error "Either USE_CGAL or USE_LIBFBI can be active, but not both!"
 #endif
 
 #ifdef USE_CGAL
@@ -50,13 +51,13 @@ namespace CoupledField
   //!
   //! \note Some General Remarks:
   //! - Node and element numbers are always counted one-based
-  //! - The Type \c regionIdType is guraranteed to be of a countable type,
+  //! - The Type \c regionIdType is guaranteed to be of a countable type,
   //! e.g. \c Integer or \c short \c int. Therefore it is always zero-based
   //! and can be directly used as a index for vectors / arrays.
   //! - The region identifiers are used for surface AND volume elements
 
   class Grid {
-
+      
   public:
 
     // friend class declaration
@@ -106,10 +107,10 @@ namespace CoupledField
 
     //! Returns the geometrical dimension of the mesh. Currently only
     //! two- and three-dimensional meshes are supported.
-    virtual UInt GetDim() = 0;
+    virtual UInt GetDim() const = 0;
 
     //! Return if grid uses quadratic elements
-    virtual bool IsQuadratic() = 0;
+    virtual bool IsQuadratic() const = 0;
 
         
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -200,7 +201,7 @@ namespace CoupledField
     //+++++++++++++++++++++++++++ ELEM INFORMATION +++++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-   virtual shared_ptr<ElemShapeMap> GetElemShapeMap( const Elem* ptElem,
+    virtual shared_ptr<ElemShapeMap> GetElemShapeMap( const Elem* ptElem,
                                                         bool updated = false );
     
     virtual void AddElems(UInt nElems) = 0;
@@ -313,7 +314,7 @@ namespace CoupledField
      * @return id the new index within regionData */
     RegionIdType AddRegion(const std::string& regionName, bool regular = false);
 
-    //!  Add a new Surface region to the grid
+    //! Add a new Surface region to the grid
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
     //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED
     //! \param name (in) name of the new region
@@ -323,7 +324,7 @@ namespace CoupledField
     }
 
 
-    //!  Add a new volume region to the grid
+    //! Add a new volume region to the grid
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
     //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED
     //! \param name (in) name of the new region
@@ -651,7 +652,7 @@ namespace CoupledField
     //! Get type of list denoted by string
     EntityList::DefineType GetEntityType( const std::string& name ) const;
     
-    //! Get dimension of region / named elemenets / nodes with given name
+    //! Get dimension of region / named elements / nodes with given name
     UInt GetEntityDim( const std::string& name ) const;
 
     /** Convenience method for developers, dumps summary information to stdout */
@@ -671,41 +672,45 @@ namespace CoupledField
 
 
     // =======================================================================
-    // NONCONFORMING GRID SECTION
+    // NONCONFORMING INTERFACES SECTION
     // =======================================================================
     //@{ \name Methods for nonconforming grids
+
   public:
 
     typedef UInt NcInterfaceId;
-
+    
     //! Returns an NcInterface object identified by its ID
     shared_ptr<BaseNcInterface> GetNcInterface(NcInterfaceId ncId) const;
-
+    
+    //! Returns an NcInterface object identified by its name
+    NcInterfaceId GetNcInterfaceId(const std::string &name) const;
+    
     //! Adds a new NcInterface to the grid and returns its ID
     NcInterfaceId AddNcInterface(shared_ptr<BaseNcInterface> ncIf);
-
+    
     //! Computes if a list of surface elements are all coplanar
-    bool IsSurfacePlanar(const StdVector<SurfElem*>& surfElems);
+    bool IsSurfacePlanar(const StdVector<SurfElem*>& surfElems) const;
 
   protected:
-
+    
     //! Initialize non-conforming interfaces from XML files
     virtual void InitNcInterfacesFromXML();
-
-    //! NC_SIMON: add a node to the grid
-    //! \param coord (in) coordinates of point
+    
+    //! Add a node to the grid
+    //! \param coord (in) coordinates of node
     //! \param inode (out) node number
     virtual void AddNode( const Vector<Double> & coord, UInt & inode )
     { EXCEPTION( "Not implemented" ); }
 
-    //! NC_SIMON: add multiple nodes to the grid
+    //! add multiple nodes to the grid
     //! \param coords (in) coordinates of points
     //! \param inode (out) node numbers
     virtual void AddNodes( const StdVector< Vector<Double> > & coords,
                            StdVector< UInt > & inodes)
     { EXCEPTION( "Not implemented" ); }
 
-    //! NC_SIMON: Add surface elements
+    //! Add surface elements
     //! \param regionId (in) elements will be added to region with this id
     //! \param surfelems (in) surface elements to be added
     //! \param elemids (out) element id numbers returned
@@ -713,8 +718,8 @@ namespace CoupledField
                                   const StdVector< SurfElem* > & surfelems,
                                   StdVector< UInt > & elemids)
     { EXCEPTION( "Not implemented" ); }
-
-    //! NC_SIMON: Add volume elements
+  
+    //! Add volume elements
     //! \param regionId (in) elements will be added to region with this id
     //! \param volelems (in) volume elements to be added
     //! \param elemids (out) element id numbers returned
@@ -722,29 +727,30 @@ namespace CoupledField
                                   const StdVector< Elem* > & volelems,
                                   StdVector< UInt > & elemids)
     { EXCEPTION( "Not implemented" ); }
-
-
-    //! NC_SIMON: Remove all elements from the given region
+    
+    //! Remove all elements from the given region
     //! \param regionid (in) id of the region
     virtual void ClearRegion( const RegionIdType regionid)
     { EXCEPTION( "Not implemented" ); }
-
-
-
+  
     //! Delete all nodes in a node list
     virtual void DeleteNamedNodes( const std::string &name ) {
       EXCEPTION("Not implemented here.");
     }
-
+  
     //! map for storing ncInterfaces
     StdVector< shared_ptr<BaseNcInterface> > ncInterfaces_;
 
-    //@}
-
+    //! mapping from ncInterface name to ID
+    std::map< std::string, NcInterfaceId > nciNameMap_;
+    
+    
     // =======================================================================
     // Integration Scheme
     // =======================================================================
+    
   public:
+    
     shared_ptr<IntScheme> GetIntegrationScheme(){
       return integScheme_;
     }
@@ -781,7 +787,7 @@ namespace CoupledField
     //! Flag for axi-symmetry
     bool isAxi_;
 
-    /** servive for AddSurfaceRegion() and AddVolumeRegion() */
+    /** service for AddSurfaceRegion() and AddVolumeRegion() */
     RegionIdType AddRegion(const std::string& name, RegionType type);
 
     

@@ -31,11 +31,8 @@ namespace CoupledField {
     setCounterPart_ = false;
     negateEntries_ = false;
     
-
-    //ptPde1_ = NULL;
-    //ptPde2_ = NULL;
-
-    //dampingLayer_ = NULL;
+    ptPde1_ = NULL;
+    ptPde2_ = NULL;
   }
 
   BiLinFormContext::~BiLinFormContext() {
@@ -49,8 +46,6 @@ namespace CoupledField {
       integrator_ = NULL;
     }
     
-//    delete dampingLayer_;
-//    dampingLayer_ = NULL;
   }
   
   void BiLinFormContext::MapEqns( EntityIterator& it1, 
@@ -206,7 +201,7 @@ namespace CoupledField {
 
     integrator_ = linearForm;
 
-    //ptPde_ = NULL;
+    ptPde_ = NULL;
 
   }
 
@@ -272,4 +267,42 @@ namespace CoupledField {
     return os.str(); 
   }
   
-}
+  /***************************************************************************
+   * NcBiLinFormContext
+   **************************************************************************/
+  
+  void NcBiLinFormContext::MapEqns( EntityIterator &it1, EntityIterator &it2,
+                                    StdVector<Integer> &eqnVec1,
+                                    StdVector<Integer> &eqnVec2,
+                                    FeFctIdType &id1, FeFctIdType &id2)
+  {
+    const NcSurfElem* ncElem1 = it1.GetNcSurfElem();
+    const NcSurfElem* ncElem2 = it2.GetNcSurfElem();
+    
+    // NcBiLinFormContext requires identical EntityIterators
+    assert( ncElem1 == ncElem2 );
+    
+    const MortarNcSurfElem *mortarElem =
+        dynamic_cast<const MortarNcSurfElem*>(ncElem1);
+    // NcBiLinFormContext only works with MortarNcSurfElems at the moment
+    assert( mortarElem );
+    
+    // TODO jens: implement the general case for two different FeFunctions
+    // (e.g. MechAcou coupling)
+    shared_ptr<BaseFeFunction> feFuncField = this->feFct1_.lock(),
+                               feFuncLM = this->feFct2_.lock();
+    if ( feFuncField->GetResultInfo()->resultType == LAGRANGE_MULT ) {
+      feFuncField = this->feFct2_.lock();
+      feFuncLM = this->feFct1_.lock();
+      if ( feFuncField->GetResultInfo()->resultType == LAGRANGE_MULT ) {
+        EXCEPTION("You cannot couple two Lagrange multipliers");
+      }
+    }
+    feFuncField->GetFeSpace()->GetElemEqns(eqnVec1, mortarElem->ptMaster);
+    feFuncLM->GetFeSpace()->GetElemEqns(eqnVec2, mortarElem->ptSlave);
+    
+    id1 = feFuncField->GetFctId();
+    id2 = feFuncLM->GetFctId();
+  }
+  
+} // namespace CoupledField

@@ -3164,6 +3164,5 @@ namespace CoupledField {
    SetDirichlet( const FeFctIdType, Integer, const Double& );
    template void AlgebraicSys::
    SetDirichlet( const FeFctIdType, Integer, const Complex& );
-    
   
 }// end of Namespace
