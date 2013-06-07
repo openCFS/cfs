@@ -66,9 +66,6 @@ namespace CoupledField {
     //! current analysis type
     BasePDE::AnalysisType currAnalysis_;
 
-    //! only output grid
-    bool printGridOnly_;
-
     //! indicator of type for data
     bool ascii_;
 

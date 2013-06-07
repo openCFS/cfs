@@ -142,20 +142,20 @@ public:
 
   //@{
   //! Add a Coefficient function to fill the FeFunction
-  void AddLoadCoefFunction( shared_ptr<CoefFunction> coef,
+  void AddLoadCoefFunction( PtrCoefFct coef,
                             const StdVector<shared_ptr<EntityList> >& list);
   
-  void AddLoadCoefFunction( shared_ptr<CoefFunction> coef,
+  void AddLoadCoefFunction( PtrCoefFct coef,
                             shared_ptr<EntityList >& list);
   //@}
 
   //@{
   //! Add an external data function to fill the FE function
-  void AddExternalDataSource( shared_ptr<CoefFunction> coef,
+  void AddExternalDataSource( PtrCoefFct coef,
                               const StdVector<shared_ptr<EntityList> >& list);
   
-  void AddExternalDataSource( shared_ptr<CoefFunction> coef,
-                              shared_ptr<EntityList>& list);
+  void AddExternalDataSource( PtrCoefFct coef,
+                              shared_ptr<EntityList> list);
   //@}
 
   //! Remove external data sources

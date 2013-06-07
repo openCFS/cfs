@@ -144,13 +144,6 @@ namespace CoupledField {
     
     MathParser::HandleType mHandle_;
     
-    Double density_;
-    Double PoissonRatio_;
-    Double RayleighAlpha_;
-    Double RayleighBeta_;
-    Double RayleighFrequency_;
-    Double lossTangens_;
-
     Complex scalarEmodulus_;
     Complex scalarLameLambda_;
     Complex scalarLameMu_;

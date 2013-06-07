@@ -201,7 +201,7 @@ DEFINE_LOG(msDriver, "msDriver")
 
     LOG_TRACE(msDriver) << "SetupStep for MS " << sequenceStep;
     // Only setup step once
-    if( sequenceStep == sequenceStep && 
+    if( sequenceStep_ == sequenceStep && 
         actDriver_ !=  NULL) {
       return;
     }

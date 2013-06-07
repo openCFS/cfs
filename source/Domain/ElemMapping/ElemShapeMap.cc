@@ -208,7 +208,7 @@ void LocPointMapped::SetSurfInfo(const std::set<RegionIdType>& myRegions) {
   esmVol->GetLocalIntPoints4Surface(ptEl->connect, lp, lpVol, locNormal);
   lpmVol->Set(lpVol, esmVol, weight);
 
-  // calculate global normal pointing into current volume element
+  // calculate global normal pointing out of current volume element
   normal = Transpose(lpmVol->jacInv) * locNormal;
   normal /= normal.NormL2();
 }

@@ -72,9 +72,6 @@ private:
 
   //! Flag, if normal mapping should be performed
   bool mapNormal_;
-
-  //! Uniform vector size
-  UInt vecSize_;
 };
 
 
