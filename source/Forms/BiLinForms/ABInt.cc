@@ -412,11 +412,11 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 
   // Get shape map from grid
   shared_ptr<ElemShapeMap> esmNc =
-      domain->GetGrid()->GetElemShapeMap( ptMortarElem, this->coordUpdate_ );
+      ent1.GetGrid()->GetElemShapeMap( ptMortarElem, this->coordUpdate_ );
   shared_ptr<ElemShapeMap> esmMaster =
-      domain->GetGrid()->GetElemShapeMap( ptSurfMaster, this->coordUpdate_ );
+      ent1.GetGrid()->GetElemShapeMap( ptSurfMaster, this->coordUpdate_ );
   shared_ptr<ElemShapeMap> esmSlave =
-      domain->GetGrid()->GetElemShapeMap( ptSurfSlave, this->coordUpdate_ );
+      ent1.GetGrid()->GetElemShapeMap( ptSurfSlave, this->coordUpdate_ );
 
   // Get integration points
   StdVector<LocPoint> intPoints;
