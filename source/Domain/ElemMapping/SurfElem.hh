@@ -80,7 +80,7 @@ namespace CoupledField
    *   One distinct feature of these schemes is that the surface elements are
    *   closely related to their volume elements thereby it is possible during creation
    *   to store directly local coordinates associated to volume elements.
-   *   Furthermore we store a vector of neighbor elements which can be surfelems or
+   *   Furthermore we store a vector of neighbor elements which can be SurfElems or
    *   NcSurfElems again.
    */
   struct NcSurfElem : public SurfElem{

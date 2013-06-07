@@ -529,6 +529,7 @@ namespace CoupledField {
   EntityIterator NcSurfElemList::GetIterator() const {
     EntityIterator it;
     it.type_ = NC_ELEM_LIST;
+    it.ptGrid_ = this->grid_;
     it.ncElemList_ = this;
     it.pos_ = 0;
     it.size_ = ncElems_.GetSize();
@@ -540,6 +541,7 @@ namespace CoupledField {
   // =================================================
   
   EntityIterator::EntityIterator() {
+    type_          = EntityList::NO_LIST;
     ptGrid_        = NULL;
     elemList_      = NULL; 
     surfElemList_  = NULL;
