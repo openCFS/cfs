@@ -9,6 +9,10 @@
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
 
+#if defined(WIN32) || defined(__MINGW32__)
+#include <shlobj.h>
+#endif
+
 namespace fs = boost::filesystem;
 
 #include "General/Exception.hh"
@@ -60,24 +64,42 @@ namespace CFSTool
     fs::path home;
 
 #if defined(WIN32) || defined(__MINGW32__)
-    home = _wgetenv(L"LOCALAPPDATA");
-    cfstoolconfig = home;
-    cfstoolconfig += "/cfs++.mdmt.tuwien.ac.at/cfstool.xml";
-    configFiles.Push_back(cfstoolconfig);
 
-    cfstoolconfig = home;
-    cfstoolconfig += "/cfs++.mdmt.tuwien.ac.at/cfstool.json";
-    configFiles.Push_back(cfstoolconfig);
+    // Try to obtain paths to application data folders on Windows.
+    TCHAR szPath[MAX_PATH];
+    
+    if(SUCCEEDED(SHGetFolderPath(NULL, 
+                                 CSIDL_LOCAL_APPDATA|CSIDL_FLAG_DONT_VERIFY, 
+                                 NULL, 
+                                 0, 
+                                 szPath))) 
+    {
+      home = szPath;
+      cfstoolconfig = home;
+      cfstoolconfig += "/cfs++.mdmt.tuwien.ac.at/cfstool.xml";
+      configFiles.Push_back(cfstoolconfig);
+    
+      cfstoolconfig = home;
+      cfstoolconfig += "/cfs++.mdmt.tuwien.ac.at/cfstool.json";
+      configFiles.Push_back(cfstoolconfig);
+    }
 
-    home = _wgetenv(L"USERPROFILE");
+    if(SUCCEEDED(SHGetFolderPath(NULL, 
+                                 CSIDL_APPDATA|CSIDL_FLAG_DONT_VERIFY, 
+                                 NULL, 
+                                 0, 
+                                 szPath))) 
+    {
+      home = szPath;
+      cfstoolconfig = home;
+      cfstoolconfig += "/cfs++.mdmt.tuwien.ac.at/cfstool.xml";
+      configFiles.Push_back(cfstoolconfig);
+      
+      cfstoolconfig = home;
+      cfstoolconfig += "/cfs++.mdmt.tuwien.ac.at/cfstool.json";
+      configFiles.Push_back(cfstoolconfig);
+    }      
 
-    cfstoolconfig = home;
-    cfstoolconfig += "/cfs++.mdmt.tuwien.ac.at/cfstool.xml";
-    configFiles.Push_back(cfstoolconfig);
-
-    cfstoolconfig = home;
-    cfstoolconfig += "/cfs++.mdmt.tuwien.ac.at/cfstool.json";
-    configFiles.Push_back(cfstoolconfig);
 #else
     home = getenv("HOME");
 
