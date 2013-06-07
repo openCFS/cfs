@@ -13,6 +13,7 @@
 #include "FeBasis/FeSpace.hh"
 #include "FeBasis/H1/H1Elems.hh"
 #include "Forms/Operators/GradientOperator.hh"
+#include "Forms/Operators/CurlOperator.hh"
 
 
 #ifdef USE_HDF5
@@ -101,6 +102,8 @@ namespace CFSTool {
        bool ms1HasFlow = multiSeqStep1->Get("pdeList")->Has("fluidMech");
 
        PtrParamNode mechNode, fluidNode;
+
+       StdVector<std::string> cplSurfList;
        
        if( ms1HasMech && ms1HasFlow && multiSeqStep1->Has("couplingList"))
        {
@@ -121,6 +124,12 @@ namespace CFSTool {
 
            mechNode = multiSeqStep1->Get("pdeList")->Get("mechanic");
            fluidNode = multiSeqStep1->Get("pdeList")->Get("fluidMech");         
+
+           list = cplNode->Get("direct")->Get("fluidMechDirect")->Get("surfRegionList")->GetChildren();
+           for(UInt i=0; i<list.GetSize(); i++) {
+             std::cout << "############## " << list[i]->GetName() << ": " << list[i]->Get("name")->As<std::string>() << std::endl;
+             cplSurfList.Push_back(list[i]->Get("name")->As<std::string>());
+           }
          }
          else
          {
@@ -146,7 +155,14 @@ namespace CFSTool {
 
          if(ms1HasFlow) 
          {
-           fluidNode = multiSeqStep1->Get("pdeList")->Get("fluidMech");         
+           fluidNode = multiSeqStep1->Get("pdeList")->Get("fluidMech");
+
+           list = fluidNode->Get("bcsAndLoads")->GetList("velocity");
+           for(UInt i=0; i<list.GetSize(); i++) {
+             std::cout << "############## " << list[i]->GetName() << ": " << list[i]->Get("name")->As<std::string>() << std::endl;
+             cplSurfList.Push_back(list[i]->Get("name")->As<std::string>());
+           }
+
          }
        }
        
@@ -185,6 +201,7 @@ namespace CFSTool {
        pNode = GetParamNodeFromHDF5(inputs_[0], "MaterialFile");
 
        std::map<std::string, Double> regionDensityMap;
+       std::map<std::string, Double> regionViscosityMap;
 
        regMatIt = regionMatMap.begin();
        regMatEnd = regionMatMap.end();
@@ -195,9 +212,24 @@ namespace CFSTool {
                                               "name",
                                               matName);
 
-         Double density = mNode->Get("flow")->Get("density")->As<Double>();
+         PtrParamNode flowNode = mNode->Get("flow");
+
+         Double density = flowNode->Get("density")->As<Double>();
+         Double viscosity = 0.0;
+         if(flowNode->Has("dynamicViscosity")) 
+         {
+           viscosity = flowNode->Get("dynamicViscosity")->As<Double>();
+         }
+         else
+         {
+           viscosity = flowNode->Get("kinematicViscosity")->As<Double>();
+           viscosity *= density;
+         }
+         
          std::cout << "density " << density << std::endl;         
+         std::cout << "viscosity " << viscosity << std::endl;         
          regionDensityMap[regionName] = density;
+         regionViscosityMap[regionName] = viscosity;
        }
 
        // read in mesh of input2
@@ -270,6 +302,8 @@ namespace CFSTool {
        std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps2;
        std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps_mean_flow;
        
+       std::map<std::string, bool> surfMap;
+
        // First determine number of results in current multi sequence step in mean flow file
        // since it can be different than in the lateral and coriolis mode files.
        
@@ -297,7 +331,7 @@ namespace CFSTool {
        // iterate over all result types of input1
        for( UInt iRes = 0; iRes < infos.GetSize(); iRes++) {
          
-         if(infos[iRes]->resultName != "fluidMechVelocity")
+         if(infos[iRes]->resultType != FLUIDMECH_VELOCITY)
            continue;
          
          std::cout << "\t" << infos[iRes]->resultName << "\n";
@@ -338,39 +372,64 @@ namespace CFSTool {
              }
            }
          }
-         
-         
+
+
          // iterate over all regions
-         StdVector<shared_ptr<EntityList> > regions;
+         StdVector< shared_ptr<EntityList> > regions, resRegions;
          inputs_[0]->GetResultEntities( actMsStep, infos[iRes],
-                                        regions, false );
+                                        resRegions, false );
 
          std::map<std::string, Double>::iterator it, end;
          it = regionDensityMap.begin();
          end = regionDensityMap.end();
          for( ; it != end; it++ ) {
            std::cout << "region: " << it->first << " density: " << it->second << std::endl;
+           std::string regionName = it->first;
+
+           for( UInt iRegion = 0, nReg = resRegions.GetSize(); iRegion < nReg; iRegion++ ) {
+             std::string resRegionName = resRegions[iRegion]->GetName();
+
+             if(regionName == resRegionName) 
+             {
+               regions.Push_back(resRegions[iRegion]);
+               surfMap[regionName] = false;
+             }
+           }           
          }
 
+         for( UInt iRegion = 0, nReg = cplSurfList.GetSize(); iRegion < nReg; iRegion++ ) {
+           std::string cplRegionName = cplSurfList[iRegion];
+           
+           Enum<RegionIdType> regionEnum = ptGrid1->GetRegion();
+           RegionIdType regionId = regionEnum.Parse(cplRegionName);
 
-         for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
+           ElemList* cplElemEntities = new ElemList(ptGrid1);
+           cplElemEntities->SetRegion(regionId);
+           shared_ptr<EntityList> cplElems(cplElemEntities);             
+
+           regions.Push_back(cplElems);
+           surfMap[cplRegionName] = true;
+         }           
+
+         for( UInt iRegion = 0, nReg = regions.GetSize(); iRegion < nReg; iRegion++ ) {
            // generate new result object and add it to output writer
            shared_ptr<BaseResult > inResult1, inResult2, inResult3, outResult,
              outResult2, outResult3, outResult4, outResult5;
+           
+           std::string regionName = regions[iRegion]->GetName();
 
+           //           if(infos[iRes]->resultType != FLUIDMECH_VELOCITY) 
+           //           {
+           //             continue;
+           //           }
 
-           if(infos[iRes]->resultType != FLUIDMECH_VELOCITY) 
-           {
-             continue;
-           }
+           //           if(regionDensityMap.find( regionName ) == regionDensityMap.end() &&
+           //              std::find(cplSurfList.Begin(), cplSurfList.End(), regionName) == cplSurfList.End() )
+           //           {
+           //             continue;
+           //           }
 
-           if(regionDensityMap.find( regions[iRegion]->GetName() ) == regionDensityMap.end() &&
-              regions[iRegion]->GetName() != "pipe_inner" )
-           {
-             continue;
-           }
-
-           std::cout << "regions[iRegion]->GetName() " << regions[iRegion]->GetName() << std::endl;
+           std::cout << "regions[iRegion]->GetName() " << regionName << std::endl;
            //           EXCEPTION("HALT");
            
            inResult1 = shared_ptr<BaseResult>( new Result<Complex>() );
@@ -536,8 +595,12 @@ namespace CFSTool {
          // iterate over all results
          for( UInt iRes = 0; iRes < inResults1.GetSize(); iRes++) {
            
-           if(inResults1[iRes]->GetResultInfo()->resultName != "fluidMechVelocity")
-             continue;
+           std::string regionName = inResults1[iRes]->GetEntityList()->GetName();
+           bool isSurf = surfMap[regionName];
+
+           std::cout << "\n\t-- Computing " << (isSurf ? "surface" : "volume") << " weight vector for " <<
+             inResults1[iRes]->GetResultInfo()->resultName << " on " 
+                     << regionName << " --\n";
            
            // check if current result is defined within this step
            if( resultSteps[inResults1[iRes]->GetResultInfo()].find(actStepNum)
@@ -550,9 +613,6 @@ namespace CFSTool {
            inputs_[1]->GetResult( actMsStep, actStepNum, inResults2[iRes], false );
            inputs_[2]->GetResult( actMsStep, actStepNum, inResults_mean_flow[iRes], false );
            
-           std::cout << "\n\t-- Comparing result " <<
-             inResults1[iRes]->GetResultInfo()->resultName << " on " 
-                     << inResults1[iRes]->GetEntityList()->GetName() << " --\n";
            
            std::set<std::string> volRegionNames;
            std::set<RegionIdType> volRegions;
@@ -620,12 +680,15 @@ namespace CFSTool {
 
 
              shared_ptr<BaseBOperator> gradOp;
+             shared_ptr<BaseBOperator> curlOp;
              switch(dim) {
              case 2:
                gradOp.reset( new GradientOperator<FeH1,2> );
+               curlOp.reset( new CurlOperator<FeH1,2,Double> );
                break;
              case 3:
                gradOp.reset( new GradientOperator<FeH1,3> );
+               curlOp.reset( new CurlOperator<FeH1,3,Double> );
                break;               
              } 
 
@@ -691,6 +754,23 @@ namespace CFSTool {
              shared_ptr<DefaultCoordSystem> coordSys( new DefaultCoordSystem(ptGrid1) );
              coefV->SetCoordinateSystem(coordSys.get());
              
+
+             FeFunction<Double>* feFctPtr = new FeFunction<Double>(mp.get());
+             shared_ptr<BaseFeFunction> feFct(feFctPtr);
+             feFct->SetFeSpace( VFeFunc->GetFeSpace() );
+             feFct->AddEntityList( inResults_mean_flow[0]->GetEntityList() );
+             feFct->SetGrid(ptGrid3);
+             feFct->SetResultInfo(inResults_mean_flow[iRes]->GetResultInfo());
+             feFct->AddExternalDataSource( coefV,
+                                           inResults_mean_flow[0]->GetEntityList() ); // <--- Hier muss unbedingt die zugehörige Volumenregion zur Oberflächenregion hinein!
+             feFct->SetFctId(PSEUDO_FCT_ID);
+             feFct->Finalize();
+             feFct->ApplyExternalData();
+
+             //CoupledField::PtrCoefFct&, boost::shared_ptr<CoupledField::EntityList>
+             //CoupledField::PtrCoefFct, boost::shared_ptr<CoupledField::EntityList>&
+           
+
              Double rho_0 = regionDensityMap[inResults1[iRes]->GetEntityList()->GetName()];
 
 
@@ -732,6 +812,7 @@ namespace CFSTool {
                IntScheme::IntegMethod method;
                BaseFE* ptFe1 = u1FeFunc->GetFeSpace()->GetFe( eIt, method, order );
                BaseFE* ptFe2 = u2FeFunc->GetFeSpace()->GetFe( el2->elemNum );
+               BaseFE* ptFe3 = NULL;
 
                // Get integration points
                shared_ptr<IntScheme> intScheme = u1FeFunc->GetFeSpace()->GetIntScheme();
@@ -766,36 +847,34 @@ namespace CFSTool {
                Double elementVolume = 0.0;
 
 
-                 shared_ptr<LocPointMapped> lpm1, lpm2, lpm3;
-                 LocPointMapped lpm1Surf, lpm2Surf, lpm3Surf;
-                 // unused variables
-                 /*BaseFE* ptFe1Surf = NULL;
-                 BaseFE* ptFe2Surf = NULL;
-                 //                 BaseFE* ptFe3Surf = NULL;
-                 const Elem* el1Surf = NULL;
-                 const Elem* el2Surf = NULL;
-                 //                 const Elem* el3Surf = NULL;*/
-                 shared_ptr<ElemShapeMap> esm1 = ptGrid1->GetElemShapeMap( el1, true );
-                 shared_ptr<ElemShapeMap> esm2 = ptGrid2->GetElemShapeMap( el2, true );
-                 shared_ptr<ElemShapeMap> esm3 = ptGrid3->GetElemShapeMap( el3, true );
+               shared_ptr<LocPointMapped> lpm1, lpm2, lpm3;
+               LocPointMapped lpm1Surf, lpm2Surf, lpm3Surf;
+               BaseFE* ptFe1Surf = NULL;
+               BaseFE* ptFe2Surf = NULL;
+               BaseFE* ptFe3Surf = NULL;
+               const Elem* el1Surf = NULL;
+               const Elem* el2Surf = NULL;
+               const Elem* el3Surf = NULL;
+               shared_ptr<ElemShapeMap> esm1 = ptGrid1->GetElemShapeMap( el1, true );
+               shared_ptr<ElemShapeMap> esm2 = ptGrid2->GetElemShapeMap( el2, true );
+               shared_ptr<ElemShapeMap> esm3 = ptGrid3->GetElemShapeMap( el3, true );
+               
+               if( isSurf ) 
+               {
+                 el1Surf = el1;
+                 ptFe1Surf = ptFe1;
+                 
+                 el2Surf = el2;
+                 ptFe2Surf = ptFe2;
 
-                 bool isSurf = false;
-                 
-                 if( (dim - Elem::shapes[el1->type].dim) == 1 ) 
-                 {
-                   isSurf = true;
-                   
-                   /*el1Surf = el1;
-                   ptFe1Surf = ptFe1;
-                   
-                   el2Surf = el2;
-                   ptFe2Surf = ptFe2;*/
-                 }
-                 
+                 el3Surf = el3;
+                 ptFe3Surf = ptFe3;
+               }
+               
                for(UInt ip=0, nip=intPoints.GetSize(); ip < nip; ip++) 
                {
 
-               // BaseFE* ptFe3 = VFeFunc->GetFeSpace()->GetFe( el3->elemNum );
+                 // BaseFE* ptFe3 = VFeFunc->GetFeSpace()->GetFe( el3->elemNum );
                  //LocPoint lp = Elem::shapes[el1->type].midPointCoord;
                  LocPoint lp = intPoints[ip];
 
@@ -814,7 +893,8 @@ namespace CFSTool {
                    el2 = lpm2->ptEl;
                    ptFe2 = u2FeFunc->GetFeSpace()->GetFe( lpm2->ptEl->elemNum );
                    
-                   // ptFe3 = VFeFunc->GetFeSpace()->GetFe( lpm3->ptEl->elemNum );
+                   el3 = lpm3->ptEl;
+                   ptFe3 = feFct->GetFeSpace()->GetFe( lpm3->ptEl->elemNum );
                  } else 
                  {
                    lpm1.reset(new LocPointMapped());
@@ -823,6 +903,8 @@ namespace CFSTool {
                    lpm2->Set( lp, esm2, 0.0 );
                    lpm3.reset(new LocPointMapped());
                    lpm3->Set( lp, esm3, 0.0 );
+
+                   ptFe3 = feFct->GetFeSpace()->GetFe( lpm3->ptEl->elemNum );
                  }
                
                
@@ -832,28 +914,37 @@ namespace CFSTool {
                  Vector<Double> p(dim);
                  esm1->Local2Global(p, lp);
 
-                 Matrix<Double> bMat1, bMat2;
+                 // Matrix<Double> bMat1, bMat2, bMat3;
                  Vector<Complex> eSol1, eSol2;
+                 Vector<Double> eSol3;
                  StdVector< Vector<Complex> > eSol1Comp(numDofs), eSol2Comp(numDofs);
+                 StdVector< Vector<Double> > eSol3Comp(numDofs);
                  Vector<Complex> eSol2_x, eSol2_y, esol2_z;
                  Vector<Complex> u1, u2;
                  Vector<Double> V;
                  Vector<Complex> W;
+                 Vector<Complex> X;
 
-                 gradOp->CalcOpMat( bMat1, *lpm1, ptFe1 );
-                 gradOp->CalcOpMat( bMat2, *lpm2, ptFe2 );
+                 // gradOp->CalcOpMat( bMat1, *lpm1, ptFe1 );
+                 // gradOp->CalcOpMat( bMat2, *lpm2, ptFe2 );
+                 //curlOp->CalcOpMat( bMat3, *lpm1, ptFe1 );
+                 // gradOp->CalcOpMat( bMat3, *lpm1, ptFe1 );
                  
                  u1FeFunc->GetVector( u1, *lpm1 );
                  u2FeFunc->GetVector( u2, *lpm2 );
                  // Get V from HDF5 file
-                 VFeFunc->GetVector( V, *lpm3 );
+                 // VFeFunc->GetVector( V, *lpm3 );
                  // Get analytical V
-                 coefV->GetVector(V, *lpm1);
-                 
+                 // coefV->GetVector(V, *lpm1);
+                 feFct->GetVector(V, *lpm3);
+
                  dynamic_cast<FeFunction<Complex>*>(u1FeFunc.get())->GetElemSolution( eSol1, el1 );
                  dynamic_cast<FeFunction<Complex>*>(u2FeFunc.get())->GetElemSolution( eSol2, el2 );
+                 dynamic_cast<FeFunction<Double>*>(feFct.get())->GetElemSolution( eSol3, el3 );
                  
                  StdVector< Vector<Complex> > u1Derivs(numDofs), u2Derivs(numDofs);
+                 Vector<Double> curlV;
+                 StdVector< Vector<Complex> > u2Tau(numDofs);
                  
                  for(UInt dof=0; dof < numDofs; dof++) 
                  {
@@ -861,18 +952,85 @@ namespace CFSTool {
                    
                    eSol1Comp[dof].Resize(eN);
                    eSol2Comp[dof].Resize(eN);
+                   eSol3Comp[dof].Resize(eN);
                    
                    for(UInt eI=0; eI < eN; eI++) 
                    {
                      eSol1Comp[dof][eI] = eSol1[eI*numDofs+dof];
                      eSol2Comp[dof][eI] = eSol2[eI*numDofs+dof];
+                     eSol3Comp[dof][eI] = eSol3[eI*numDofs+dof];
                    }
                    
                    gradOp->ApplyOp( u1Derivs[dof], *lpm1, ptFe1, eSol1Comp[dof] );
                    gradOp->ApplyOp( u2Derivs[dof], *lpm2, ptFe2, eSol2Comp[dof] );
+                   //                   gradOp->ApplyOp( curlV, *lpm3, ptFe3, eSol3Comp[dof] );
                  }
                  
+                 curlOp->ApplyOp( curlV, *lpm3, ptFe3, eSol3 );
                  //                std::cout << "elemNum " << el1->elemNum << " numDofs " << numDofs << " dim " << dim << std::endl;
+                 Vector<Complex> Xl(numDofs), Xr(numDofs);
+                 Vector<Double> n(numDofs);
+
+                 if(isSurf) 
+                 {
+                   n = lpm3Surf.normal;
+                 } else 
+                 {
+                   n.Init();
+                 }                 
+
+                 Xl.Resize(numDofs);
+                 Xr.Resize(numDofs);
+                 X.Resize(numDofs);
+                 Xl.Init();
+                 Xr.Init();
+                 X.Init();
+
+                 for(UInt dof=0; dof < numDofs; dof++) 
+                 {
+                   UInt eN=u2Derivs[dof].GetSize();
+                   u2Tau[dof].Resize(eN);
+
+                   for(UInt eI=0; eI < eN; eI++) 
+                   {
+                     if(dof == eI) 
+                     {
+                       u2Tau[dof][eI] = 0.0;
+                     }
+                     else
+                     {
+                       u2Tau[dof][eI] = u2Derivs[dof][eI]+u2Derivs[eI][dof];
+                     }
+                     
+                     if(isSurf) 
+                     {
+                       Xl[dof] += u2Tau[dof][eI] * n[eI];
+                     }                     
+                   }
+                 }
+                 
+                 if(isSurf) 
+                 {
+                   Complex dp;
+                   dp = u1[0] * n[0] + u1[1] * n[1] + u1[2] * n[2];
+                   Xr[0] = n[0] * dp;
+                   Xr[1] = n[1] * dp;
+                   Xr[2] = n[2] * dp;
+                   //                 CrossProd(Xl, Xr, X);
+                   
+                   Double viscosity = regionViscosityMap[ptGrid1->regionData[el1->regionId].name];
+                   Complex complexFreq(0, 2*PI*freq);
+                   
+                   X[0] =  Xl[1] * Xr[2] - Xl[2] * Xr[1];
+                   X[1] = -Xl[0] * Xr[2] + Xl[2] * Xr[0];
+                   X[2] =  Xl[0] * Xr[1] - Xl[1] * Xr[0];
+
+                   X *= viscosity / complexFreq;
+                 }                 
+
+                 // std::cout << "elemNum " << el3->elemNum << " curl(V) " << curlV[2] << " V " << V << std::endl;
+                 // std::cout << "eSol3 " << eSol3 << V << std::endl;
+
                  W.Resize(u1.GetSize());
                  W.Init();
                  
@@ -886,7 +1044,9 @@ namespace CFSTool {
                      
                      if(isSurf) 
                      {
-                       W[i] += lpm1Surf.normal[i];
+                       // W[i] += lpm3Surf.normal[i];
+                       // W[i] += curlV[2][i];
+                       W[i] = V[i];
                      }
                      else 
                      {
@@ -910,32 +1070,63 @@ namespace CFSTool {
                  
                  elementVolume += volume;
 
-                 for( UInt i=0; i < numDofs; i++ )
+                 if (isSurf) 
                  {
-                   // Prepare weight vector
-                   outVec[elIdx*numDofs+i] += W[i] * volume;
+                   durchfluss = 1.0;
 
-                   W_sum[i] += W[i] * volume;
-
-                   // Prepare mean velocity
-                   //                   V[i] *= meanVel;                   
-
-                   durchfluss += V[i] * volume;
-
-                   outVec2[elIdx*numDofs+i] += V[i] * volume;
-                   
-                   // Prepare weight vector density result
-                   outVec3[elIdx] += W[i]*V[i];
-
-                   
-                   // Prepare weight vector W_Phi as given in Hemp1994 (19).
-                   outVec4[elIdx*numDofs+i] = W[i]/u_p * volume;
-                   
-                   // Prepare  weight  vector density  result  as inner  product
-                   // between V and W_Phi as given in Hemp1994 (18).
-                   outVec5[elIdx] += W[i]/u_p * V[i];
+                   for( UInt i=0; i < numDofs; i++ )
+                   {
+                     // Prepare weight vector
+                     outVec[elIdx*numDofs+i] += X[i] * volume;
+                     
+                     // Prepare mean velocity
+                     outVec2[elIdx*numDofs+i] += V[i] * volume;
+                     
+                     // Prepare weight vector density result
+                     outVec3[elIdx] += X[i]*curlV[i];
+                     
+                     
+                     // Prepare weight vector W_Phi as given in Hemp1994 (19).
+                     outVec4[elIdx*numDofs+i] = curlV[i] * volume;
+                     
+                     // Prepare  weight  vector density  result  as inner  product
+                     // between V and W_Phi as given in Hemp1994 (18).
+                     //                     outVec5[elIdx] += W[i]/u_p * V[i];
                  }
 
+                 }
+                 else 
+                 {                   
+                   for( UInt i=0; i < numDofs; i++ )
+                   {
+                     // Prepare weight vector
+                     outVec[elIdx*numDofs+i] += W[i] * volume;
+                     
+                     W_sum[i] += W[i] * volume;
+                     
+                     // Prepare mean velocity
+                     //                   V[i] *= meanVel;                   
+                     
+                     durchfluss += V[i] * volume;
+                     
+                     outVec2[elIdx*numDofs+i] += V[i] * volume;
+                     
+                     // Prepare weight vector density result
+                     outVec3[elIdx] += W[i]*V[i];
+                     
+                     
+                     // Prepare weight vector W_Phi as given in Hemp1994 (19).
+                     // outVec4[elIdx*numDofs+i] = W[i]/u_p * volume;
+                     // outVec4[elIdx*numDofs+i] += curlV[i] * volume;
+                     // outVec4[elIdx*numDofs+i] += u2Tau[1][i] * volume;
+                     // outVec4[elIdx*numDofs+i] += X[i] * volume;
+                     
+                     // Prepare  weight  vector density  result  as inner  product
+                     // between V and W_Phi as given in Hemp1994 (18).
+                     outVec5[elIdx] += W[i]/u_p * V[i];
+                   }
+                 }
+                 
                  outVec3[elIdx] *= volume;
                  outVec5[elIdx] *= volume;
 
@@ -961,7 +1152,7 @@ namespace CFSTool {
              }
              W_sum /= vol;
 
-             Double correct = (meanVel*vol/durchfluss);             
+             Double correct = (meanVel*vol/durchfluss);
              std::cout << "\nProfilkorrekturfaktor " << correct << std::endl;
              std::cout << "Volumen " << vol << std::endl;
              outVec2 *= correct;
@@ -1010,6 +1201,12 @@ namespace CFSTool {
          output->FinishMultiSequenceStep();
        
        if( output ) {
+
+         std::stringstream sstr;
+         param->ToXML(sstr, 2);
+         
+         WriteStringToHDF5UserData(output, "cfstoolConfig", sstr.str());
+
          output->Finalize();
          std::cout << "\nOutput successfully written to " << outFile << std::endl;
        }
