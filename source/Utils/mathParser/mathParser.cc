@@ -66,6 +66,13 @@ namespace CoupledField {
     // Clear all dynamically allocated memory
     dynamicPool_.clear();
     
+    // Clear registered callback functions
+    std::map< HandleType, PtSig >::iterator sigIt = exprChangeSignal_.begin(),
+                                            itEnd = exprChangeSignal_.end();
+    for ( ; sigIt != itEnd; ++sigIt ) {
+      sigIt->second->disconnect_all_slots();
+    }
+    exprChangeSignal_.clear();
   }
 
   MathParser::HandleType MathParser::GetNewHandle( bool setDefaults ) {
@@ -116,8 +123,12 @@ namespace CoupledField {
     pools_.erase( handle );
     parsers_.erase( handle );
     varsInUse_.erase( handle );
-    exprChangeSignal_.erase( handle );
     
+    // Disconnect all connected callbacks
+    if ( exprChangeSignal_.find(handle) != exprChangeSignal_.end() ) {
+      exprChangeSignal_[handle]->disconnect_all_slots();
+      exprChangeSignal_.erase( handle );
+    }
 
     // Remove handle from set
     activeHandles_.erase( handle );
