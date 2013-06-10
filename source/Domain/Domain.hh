@@ -226,6 +226,11 @@ namespace CoupledField
     
     //! Register variables of in element <variableList/>
     void RegisterVariables();
+    
+    //! Read in a single grid
+    void ReadGrid(const std::string & gridId,
+                  const StdVector< shared_ptr<SimInput> > & inputs,
+                  bool isAxi);
     //@}
   
     // ======================================================

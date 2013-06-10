@@ -299,7 +299,6 @@ cmake_modules/compiler.cmake -text
 cmake_modules/configure_def_headers.cmake -text
 cmake_modules/distro.cmake -text
 cmake_modules/platform_defaults.cmake -text
-cmake_modules/platform_defaults_altix.cmake -text
 cmake_modules/platform_defaults_lse.cmake -text
 cmake_modules/platform_defaults_mac.cmake -text
 cmake_modules/platform_defaults_sedici.cmake -text

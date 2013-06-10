@@ -31,7 +31,8 @@ namespace CoupledField
     //! Constructor 
 
     //! Standard Constructor 
-    GridCFS(UInt dim, PtrParamNode param, PtrParamNode infoNode );
+    GridCFS(UInt dim, PtrParamNode param, PtrParamNode infoNode,
+        const std::string &id = "default");
   
     //! Destructor
     virtual ~GridCFS();
@@ -524,6 +525,9 @@ namespace CoupledField
     // =======================================================================
     //@{ \name General Attributes
 
+    //! ID of grid
+    std::string gridId_;
+    
     //! Dimension of grid
     UInt dim_;
 
