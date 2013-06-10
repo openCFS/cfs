@@ -849,26 +849,26 @@ namespace CFSTool {
 
                shared_ptr<LocPointMapped> lpm1, lpm2, lpm3;
                LocPointMapped lpm1Surf, lpm2Surf, lpm3Surf;
-               BaseFE* ptFe1Surf = NULL;
-               BaseFE* ptFe2Surf = NULL;
-               BaseFE* ptFe3Surf = NULL;
-               const Elem* el1Surf = NULL;
-               const Elem* el2Surf = NULL;
-               const Elem* el3Surf = NULL;
+               // BaseFE* ptFe1Surf = NULL;
+               // BaseFE* ptFe2Surf = NULL;
+               // BaseFE* ptFe3Surf = NULL;
+               // const Elem* el1Surf = NULL;
+               // const Elem* el2Surf = NULL;
+               // const Elem* el3Surf = NULL;
                shared_ptr<ElemShapeMap> esm1 = ptGrid1->GetElemShapeMap( el1, true );
                shared_ptr<ElemShapeMap> esm2 = ptGrid2->GetElemShapeMap( el2, true );
                shared_ptr<ElemShapeMap> esm3 = ptGrid3->GetElemShapeMap( el3, true );
                
                if( isSurf ) 
                {
-                 el1Surf = el1;
-                 ptFe1Surf = ptFe1;
+                 // el1Surf = el1;
+                 // ptFe1Surf = ptFe1;
                  
-                 el2Surf = el2;
-                 ptFe2Surf = ptFe2;
+                 // el2Surf = el2;
+                 // ptFe2Surf = ptFe2;
 
-                 el3Surf = el3;
-                 ptFe3Surf = ptFe3;
+                 // el3Surf = el3;
+                 // ptFe3Surf = ptFe3;
                }
                
                for(UInt ip=0, nip=intPoints.GetSize(); ip < nip; ip++) 
