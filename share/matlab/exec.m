@@ -20,7 +20,7 @@ function [status, result] = exec(cmd)
 
 % contruct temporary filename
 rng('shuffle')
-tmpfile = sprintf('.exec%d.sh', randi(666666));
+tmpfile = sprintf('.exec%d.sh', randi(999999));
 
 % write shell script to temp file
 fid = fopen(tmpfile, 'w');
@@ -41,10 +41,10 @@ fprintf(fid, 'done\n\n');
 fprintf(fid, '# Determine machine type and add standard paths in front of lib path\n');
 fprintf(fid, 'case $HOSTTYPE in\n');
 fprintf(fid, '           i[3-6]86)\n');
-fprintf(fid, '              LD_LIBRARY_PATH="/lib:/usr/lib:$LD_LIBRARY_PATH"\n');
+fprintf(fid, '              LD_LIBRARY_PATH="/lib:/usr/lib:/lib/$HOSTTYPE-linux-gnu:/usr/lib/$HOSTTYPE-linux-gnu:$LD_LIBRARY_PATH"\n');
 fprintf(fid, '              ;;\n');
 fprintf(fid, '           x86_64)\n');
-fprintf(fid, '              LD_LIBRARY_PATH="/lib64:/usr/lib64:$LD_LIBRARY_PATH"\n');
+fprintf(fid, '              LD_LIBRARY_PATH="/lib64:/usr/lib64:/lib/$HOSTTYPE-linux-gnu:/usr/lib/$HOSTTYPE-linux-gnu:$LD_LIBRARY_PATH"\n');
 fprintf(fid, '              ;;\n');
 fprintf(fid, 'esac\n\n');
 
