@@ -12,14 +12,15 @@
 %   
 % About
 %   * Created:  30 Oct 2007
-%   * Author:   Jens Grabinger
+%   * Authors:  Simon Triebenbacher, Jens Grabinger
 %   * Revision: $Id$
 
 
 function [status, result] = exec(cmd)
 
 % contruct temporary filename
-tmpfile = sprintf('.exec%d.sh', ceil(666*rand));
+rng('shuffle')
+tmpfile = sprintf('.exec%d.sh', randi(666666));
 
 % write shell script to temp file
 fid = fopen(tmpfile, 'w');
@@ -38,8 +39,7 @@ fprintf(fid, '  LD_LIBRARY_PATH="$p:$LD_LIBRARY_PATH"\n');
 fprintf(fid, 'done\n\n');
 
 fprintf(fid, '# Determine machine type and add standard paths in front of lib path\n');
-fprintf(fid, 'MACH=`uname -m`\n');
-fprintf(fid, 'case $MACH in\n');
+fprintf(fid, 'case $HOSTTYPE in\n');
 fprintf(fid, '           i[3-6]86)\n');
 fprintf(fid, '              LD_LIBRARY_PATH="/lib:/usr/lib:$LD_LIBRARY_PATH"\n');
 fprintf(fid, '              ;;\n');
