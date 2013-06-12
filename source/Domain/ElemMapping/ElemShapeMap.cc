@@ -357,7 +357,10 @@ void LagrangeElemShapeMap::Global2Local(Vector<Double>& locPoint,
   case Elem::ET_HEXA20:
   case Elem::ET_HEXA27:
   case Elem::ET_HEXA8:
-
+  case Elem::ET_PYRA5:
+  case Elem::ET_TET10:
+  case Elem::ET_PYRA13:
+  case Elem::ET_WEDGE15:
     Global2LocalDuester(locPoint, globalPoint);
     break;
   case Elem::ET_TRIA3:

@@ -389,7 +389,13 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
       for(UInt aNode=0; aNode < eIt->second.size(); aNode++){
         UInt curNodeNum = eIt->second[aNode];
         LocPoint lp = this->localCoordsNodeAssoc_[curNodeNum];
-        lpm.Set(lp,esm,1.0);
+        try{
+          lpm.Set(lp,esm,1.0);
+        }catch(...){
+          WARN("Found negative Jacobian for current local point: " + lp.coord.ToString() + ". Setting to element mid-point.")
+          lp.coord = Elem::shapes[curE->type].midPointCoord;
+          lpm.Set(lp,esm,1.0);
+        }
         BaseFE * fe = targetSpace->GetFe(curE->elemNum);
         this->myOperator_->CalcOpMatTransposed(opMat,lpm,fe);
         for(UInt j=0;j<fe->GetNumFncs();j++){
