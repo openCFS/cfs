@@ -180,7 +180,7 @@ parser.add_argument("--tensor", help="tensor name (default 'mechTensor')", defau
 parser.add_argument("--scale", help="manual scaling factor", default=-1)
 parser.add_argument("--res", help="x-resolution (default 1500)", default=1500)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180)
-parser.add_argument("--show", help="default | ortho_norm | mono_norm (3D) | ortho_err | e21_normed (2D) | hom_rect  |  hom_rect_c1", default="default")
+parser.add_argument("--show", help="default | ortho_norm | mono_norm (3D) | ortho_err | e21_normed (2D)  hom_rect", default="default")
 parser.add_argument("--notation", help="mandel | voigt (default 'mandel')", default="mandel")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
@@ -234,11 +234,6 @@ else:
 if dim_2D:  
   im = 0
   if args.show == "hom_rect":
-    s1    = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region)
-    s2    = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region)
-    angle = get_element(f, "design_rotAngle_plain", args.h5_region)
-    im = show_rot_rect(centers, s1, s2, angle, args.hom_show, int(args.res), float(args.scale))
-  elif args.show == "hom_rect_c1":
     s1    = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region)
     s2    = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region)
     angle = get_element(f, "design_rotAngle_plain", args.h5_region)

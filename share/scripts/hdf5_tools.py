@@ -141,52 +141,19 @@ def create_image(centers, nx,color = "white"):
   
   return im, draw, dim, dx, dy, min, max
   
-## visualize the orientational stiffness
-# @return the image
-def show_rot_rect(centers, s1, s2, angle, show, nx, scale=-1):
-
-  im, draw, dim, dx, dy, min, max = create_image(centers, nx)
-
-  length = 0.8 * (centers[1][0] - centers[0][0]) * dx
-  
-  sm = cmx.ScalarMappable(colors.Normalize(vmin=0.0, vmax=0.5), cmap=plt.get_cmap('jet'))
-  
-  for i in range(len(s1)):
-  
-    coord = centers[i]
-    x_off = (coord[0] + min[0]) * dx
-    y_off = (coord[1] + min[1]) * dy
-
-    v1 = s1[i,0]
-    v2 = s2[i,0]
-    theta = angle[i,0]
-    
-    #v1 = 0.5
-    #v2 = 0.01
-    #theta = 2.5
-    #v1 = 0.15
-    #v2 = 0.5
-    #theta = 0.2
-
-    # b
-    size = length * v2 if show == "thickness" else 2
-    pol = to_rectangle(size, length, theta + numpy.pi/2, x_off, dim[1] - y_off) 
-    draw.polygon(pol, fill="black" if show == "thickness" else color_code(sm, v2))
-
-    # a
-    size = length * v1 if show == "thickness" else 2
-    pol = to_rectangle(size, length, theta, x_off, dim[1] - y_off) 
-    draw.polygon(pol, fill="black" if show == "thickness" else color_code(sm, v1))
-
-  return im  
 
 ## visualize the orientational stiffness
 # @return the image
 def show_rot_frame(centers, s1, s2, angle, show, nx, scale=-1):
 
+  delta_angle = numpy.max(angle[:,0]) - numpy.max(angle[:,0]) 
+   
+  # this is the space we make the frames smaller than the cell size to allow rotation 
+  rot_scale = 1.05 if delta_angle == 0.0 else 0.8 
+    
   im, draw, dim, dx, dy, min, max = create_image(centers, nx,"white")
 
-  length = 0.8 * (centers[1][0] - centers[0][0]) * dx
+  length = rot_scale * (centers[1][0] - centers[0][0]) * dx
   
   sm = cmx.ScalarMappable(colors.Normalize(vmin=0.0, vmax=0.5), cmap=plt.get_cmap('jet'))
   
@@ -196,17 +163,9 @@ def show_rot_frame(centers, s1, s2, angle, show, nx, scale=-1):
     x_off = (coord[0] + min[0]) * dx
     y_off = (coord[1] + min[1]) * dy
 
-    v1 = s1[i,0]
-    v2 = s2[i,0]
+    v1 = s2[i,0]  # it seems that stiff1 and stiff2 are mixed up. This tries to correct it
+    v2 = s1[i,0]
     theta = angle[i,0]
-    
-    #v1 = 1.
-    #v2 = 0.01
-    #theta = 2.5
-    #v1 = 0.15
-    #v2 = 1.
-    #theta = 0.2
-
     
     size = length if show == "thickness" else 2
     pol = to_rectangle(size, length, theta + numpy.pi/2, x_off, dim[1] - y_off) 
@@ -217,7 +176,6 @@ def show_rot_frame(centers, s1, s2, angle, show, nx, scale=-1):
     
     v1 *=2
     v2 *=2
-
 
     #a+b
     size = length * (1.-v2) if show == "thickness" else 2
