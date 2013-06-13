@@ -129,12 +129,12 @@ ADD_OPTION(extfiles
    disks, which are usually formatted with a FAT32 file system."
   )
   
-ADD_OPTION(pressureRhsForWave
-  bool
-  false
-  "Compute wave equation source term based on Laplacian of fluid pressure."
-  "If this parameter is true, the acouRhsLoad for the wave equation is computed by the Lighthill
-   Tensor but by the Laplacian of the fluid pressure."
+
+ADD_OPTION(quantityForAcouRhsLoad
+  string
+  fluidMechVelocity
+  "Specify which quantity from the fluid solver should be used for computing the RHS for wave equation.Choose one of ([fluidMechVelocity | fluidMechPressure | divLHTensor | fluidMechPressure_deriv2])"
+  "Cplreader is going to evaluate a different integral depending of the given choice"
   )
 
 ADD_OPTION(dim
@@ -386,13 +386,12 @@ ADD_OPTION(pres
   "Column of pressure in FASTEST result files (e.g. col5)."
   "Specify column of pressure in FASTEST ASCII files."
   )
-
-ADD_OPTION(useDivLHT
-  bool
-  false
-  "Use divLHT data"
-  "If this parameter is set, cplreader will attempt to use div Lighthill-Tensor
-  data instead of velocity data."
+  
+ ADD_OPTION(presD2
+  string
+  ""
+  "Column of second spatial pressure derivative in FASTEST result files (e.g. col5)."
+  "Specify column of second spatial pressure derivative in FASTEST ASCII files."
   )
 
 ADD_OPTION(reduceElementOrder

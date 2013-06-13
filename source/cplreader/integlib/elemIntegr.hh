@@ -39,6 +39,11 @@ namespace CoupledField
                             Vector<Double>& divLHTensor,
                             Double density);
 
+    void PerformIntegrationPresD2(const Matrix<Double> & coordMat,
+                                      const Vector<Double>& NodalPresD2,
+                                      Vector<Double>& elemvec,
+                                      Vector<Double>& nodalLoadDensity);
+
     void PerformIntegrationMechRhs(const Matrix<Double> & coordMat,
                             const Matrix<Double>& NodalForce,
                             Vector<Double>& elemvec);

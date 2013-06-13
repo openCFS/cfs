@@ -64,10 +64,34 @@ namespace CoupledField
       }
     }
 
+    //TODO> This needs refactoring!
     if(requiredResults_[ACOU_RHS_LOAD]  || settings.GetInt("calcsrc") || requiredResults_[ACOU_LAMB_RHS] )
       requiredResults_[FLUIDMECH_VELOCITY] = true;
-    if((requiredResults_[ACOUMIXED_MASS_LOAD] || (requiredResults_[ACOU_RHS_LOAD] && settings.GetInt("pressureRhsForWave")) || requiredResults_[NO_SOLUTION_TYPE]) && settings.GetInt("calcsrc"))
+    if((requiredResults_[ACOUMIXED_MASS_LOAD] || requiredResults_[NO_SOLUTION_TYPE]) && settings.GetInt("calcsrc"))
       requiredResults_[FLUIDMECH_PRESSURE] = true;
+
+    if(requiredResults_[ACOU_RHS_LOAD]){
+      std::string lhSrcQuant = settings.GetString("quantityForAcouRhsLoad");
+      //parse to solution type
+      SolutionType lhType = SolutionTypeEnum.Parse(lhSrcQuant);
+      switch(lhType){
+        case FLUIDMECH_VELOCITY:
+          requiredResults_[FLUIDMECH_VELOCITY] = true;
+          break;
+        case FLUIDMECH_PRESSURE:
+          requiredResults_[FLUIDMECH_PRESSURE] = true;
+          break;
+        case FLUIDMECH_DIV_LH_T:
+          requiredResults_[ACOU_DIV_LH_TENSOR_NODAL] = true;
+          break;
+        case FLUIDMECH_PRESSURE_DERIV_2:
+          requiredResults_[FLUIDMECH_PRESSURE_DERIV_2] = true;
+          break;
+        default:
+
+          break;
+      }
+    }
   }
 
   FileReader::~FileReader()

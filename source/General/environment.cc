@@ -1425,6 +1425,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_FORCE, "fluidMechForce");
     SolutionTypeEnum.Add(FLUIDMECH_DENSITY, "fluidMechDensity");
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");
+    SolutionTypeEnum.Add(FLUIDMECH_DIV_LH_T, "fluidMechDivLHT");
+    SolutionTypeEnum.Add(FLUIDMECH_DIV_LAMBVEC, "fluidMechLambVec");
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
     // bubble
     SolutionTypeEnum.Add(BUBBLE_RADIUS, "bubbleRadius");

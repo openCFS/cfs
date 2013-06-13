@@ -2047,6 +2047,43 @@ DEFINE_LOG(linForm, "linForm")
     nodalLoadDensity = Result / volume;
   }
 
+  void LinearFlowNoiseInt::CalcElemVecWaveWithPressD2(const Matrix<Double>& ptCoord, const Vector<Double> & NodalPress,
+      Vector<Double> & Result,Vector<Double>& nodalLoadDensity, const Elem* elem){
+
+    Integer l = ptelem->GetNumIntPoints();
+    Integer n = ptelem->GetNumNodes();
+
+    Vector<Double> Sf;
+    Double presD2AtIp = 0;
+    Vector<Double> partResult(n,0.0);
+
+    Double jacDet;
+    Vector<Double> intWeights = ptelem->GetIntWeights();
+    Result.Resize(n);
+    nodalLoadDensity.Resize(n);
+    Result.Init();
+    nodalLoadDensity.Init();
+    Double volume = 0;
+    // Loop over all integration points
+    for(Integer actInt=1; actInt <= l; actInt++){
+      ptelem->GetShFncAtIp(Sf, actInt, elem);
+      jacDet = ptelem->CalcJacobianDetAtIp(actInt,ptCoord,elem);
+
+      //compute pressure derivative at IP
+      presD2AtIp = Sf * NodalPress;
+
+      // Multiplication with the derivatives of the shape functions
+      partResult  = Sf * presD2AtIp;
+      partResult *= jacDet * intWeights[actInt -1];
+      Result     += partResult;
+
+
+      volume += jacDet * intWeights[actInt-1];
+    }
+    nodalLoadDensity = Result / volume;
+
+  }
+
   // computeation of total derivative of perturbed pressure for PE
   void LinearFlowNoiseInt::CalcElemVec4QuadwithPress(const Matrix<Double>& ptCoord,
                                                      const Vector<Double> & NodalPress,

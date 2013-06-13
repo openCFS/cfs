@@ -46,6 +46,7 @@ namespace CoupledField
   private:
     std::string vx_, vy_, vz_;
     std::string pres_;
+    std::string presD2_;
   };
 
 } // end of namespace

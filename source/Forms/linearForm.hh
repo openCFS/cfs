@@ -474,6 +474,10 @@ namespace CoupledField
   void CalcElemVecLHwithPress(const Matrix<Double>& ptCoord, const Vector<Double> & NodalPress,
                               Vector<Double> & Result, Vector<Double>& nodalLoadDensity,const Elem* elem);
 
+  /// Calculation of vector of right hand side for wave equation for given Lapl. Press (basically a mass integrator)
+  void CalcElemVecWaveWithPressD2(const Matrix<Double>& ptCoord, const Vector<Double> & NodalPress,
+                                      Vector<Double> & Result, Vector<Double>& nodalLoadDensity,const Elem* elem);
+
   /// Calculation of vector of right hand side using nodal mean pressure values
   /// Computes the integration of the total differential
   void CalcElemVec4QuadwithPress(const Matrix<Double>& ptCoord,

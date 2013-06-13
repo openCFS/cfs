@@ -191,6 +191,19 @@ namespace CoupledField
 
   }
   
+  void ElemIntegr::PerformIntegrationPresD2(const Matrix<Double> & coordMat,
+                                                 const Vector<Double>& NodalPresD2,
+                                                 Vector<Double>& elemvec,
+                                                 Vector<Double>& nodalLoadDensity){
+    if(!ptElem_)
+      return;
+
+    //perform volume or surface (surfInt = true) integration
+      linearLoad_->CalcElemVecWaveWithPressD2(coordMat,  NodalPresD2, elemvec,
+                                           nodalLoadDensity, ptElem_);
+
+  }
+
     void ElemIntegr::PerformIntegrationLighthillwithDivTij(const Matrix<Double> & coordMat,
                           const Matrix<Double>& NodaldTijdxj,
                           const Matrix<Double>& NodalVal,
