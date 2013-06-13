@@ -188,7 +188,7 @@ parser.add_argument("--symmetries_threshold", help="threshold value for symmetri
 parser.add_argument("--symmetries_mode", help="'minima' or 'all' subject to max and threshold (default 'minima'", default="minima")
 parser.add_argument("--symmetries_planes", help="'true' or 'false' for 3D also show planes to normals (default 'false')", default="false")
 parser.add_argument("--hom_access", help="the 'plain ' or 'smart' hom values (default 'smart')", default = "smart")
-parser.add_argument("--hom_show", help="'thickness' or 'color' (default 'thickness')", default="thickness")
+parser.add_argument("--hom_grad", help="interpolation of design: 'none', 'linear' (default 'linear')", default="linear")
 parser.add_argument("--save", help="save 'image.png' or VTK Poly Data file 'file.vtp'")
 args = parser.parse_args()
 
@@ -227,7 +227,7 @@ if args.input.startswith('['):
 else:   
   # read 2D CFS optimization result 
   f = h5py.File(args.input)
-  centers  = centered_elements(f)
+  centers, min, max, elem_dim  = centered_elements(f)
   tensor = get_element(f, args.tensor, args.h5_region, int(args.h5_step))
   
 #perform 2D and 3D
@@ -237,7 +237,7 @@ if dim_2D:
     s1    = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region)
     s2    = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region)
     angle = get_element(f, "design_rotAngle_plain", args.h5_region)
-    im = show_rot_frame(centers, s1, s2, angle, args.hom_show, int(args.res), float(args.scale))	
+    im = show_rot_frame((centers, min, max, elem_dim), s1, s2, angle, args.hom_grad, int(args.res), float(args.scale))	
   else:
     angle, data = perform_rotations(tensor, int(args.sampling), args.tensor, args.show)
     im = orientational_stiffness(centers, angle, data, int(args.res), float(args.scale))
