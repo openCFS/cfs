@@ -370,22 +370,21 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
   ptGrid_->GetNodeCoordinate(d0, nodenum_d0, isMoving_);
   ptGrid_->GetNodeCoordinate(d1, nodenum_d1, isMoving_);
   
-  ElemShapeMap & sm = *(ptGrid_->GetElemShapeMap(ifaceElem2));
-  LocPoint lp = Elem::shapes[ifaceElem2->type].midPointCoord;
-
   // Project master nodes onto slave element, if interface is not coplanar
   if ( !isCoplanar_ ) {
+    shared_ptr<ElemShapeMap> sm = ptGrid_->GetElemShapeMap(ifaceElem2);
+    LocPoint lp = Elem::shapes[ifaceElem2->type].midPointCoord;
+
     // compute maximal allowed distance as sum of lengths of both lines
     tmp = c1 - c0;
     Double maxDist = tmp.NormL2();
     tmp = d1 - d0;
     maxDist += tmp.NormL2();
     // compute normal vector of slave element
-    sm.CalcNormal(normal, lp);
-    //CalcSurfNormal(normal, *ifaceElem2);
+    sm->CalcNormal(normal, lp);
     // compute distance of c0 to plane of slave element
     tmp = c0 - d0;
-    normal.Inner(tmp, fac);
+    fac = normal.Inner(tmp);
     // make sure that distance does not exceed maximum distance
     if (fabs(fac) > maxDist)
       return false;
@@ -399,7 +398,7 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
 
     // do the same for c1
     tmp = c1 - d0;
-    normal.Inner(tmp, fac);
+    fac = normal.Inner(tmp);
     if ( fabs(fac) > 1e-12 )
     {
     c1 -= normal * fac;
@@ -1296,7 +1295,7 @@ bool MortarInterface::CutPolys(StdVector< Vector<Double> > &p1,
     // project each point of p1
     for (i = 0; i < p1.GetSize(); ++i) {
       temp1 = p1[i] - p2[0];
-      n.Inner( temp1, scale);
+      scale = n.Inner( temp1 );
       p1[i] -= n * scale;
     }
   }
