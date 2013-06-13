@@ -1,13 +1,14 @@
 import sys
 import h5py
 import numpy
+import operator
 import Image, ImageDraw
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
 from scipy import ndimage
 import numpy as np
-
+import scipy.interpolate as ip 
 from paraview_fmo import *
 
 # open a hdf5 file as
@@ -34,9 +35,14 @@ def centered_elements(hdf5_file):
   # first element dimensions
   node_coords = []
   for n in range(len(elements[0])):
-    node_coords.append(nodes[elements[0][n]-1]) # numbers are one-based
+    node_coords.append(   nodes[elements[0][n]-1]) # numbers are one-based
  
-  elem_dim = (max(node_coords[:][0]) - min(node_coords[:][0]), max(node_coords[:][1]) - min(node_coords[:][1]))
+  ma = max(node_coords,key=operator.itemgetter(1)) # if 0, 1 or 2 is unclear for me!
+  mi = min(node_coords,key=operator.itemgetter(1)) # if 0, 1 or 2 is unclear for me!
+ 
+  elem_dim = ma - mi
+    
+  # print "ed=" + str(elem_dim) + " ma=" + str(ma) + " mi=" + str(mi)
     
   result = []
   
@@ -191,16 +197,15 @@ def show_rot_frame(coords, s1, s2, angle, grad, nx, scale=-1):
   height = elem[1] * dy 
   length = elem[0] * dx
  
+  # print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " height=" + str(height) + " length=" + str(length) 
+ 
   for i in range(len(s1)):
   
     coord = centers[i]
     
-    #if coord[1] > 0.08:
+    # if coord[1] > 0.04:
     #  continue
           
-    #x_off = (coord[0] + min[0]) * dx 
-    #y_off = (coord[1] + min[1]) * dy
-
     x_off = (coord[0] + min[0] - 0.5 * elem[0]) * dx 
     y_off = (coord[1] + min[1]  - 0.5 * elem[1]) * dy
 
@@ -209,39 +214,24 @@ def show_rot_frame(coords, s1, s2, angle, grad, nx, scale=-1):
     hor = s1[i,0]  # it seems that stiff1 and stiff2 are mixed up. This tries to correct it
     ver = s2[i,0]
     theta = angle[i,0]
+
+    # print "hor=" + str(hor) + " ver=" + str(ver) 
     
     # lower horizontal line  
-    pol = to_frustum((x_off, dim[1] - y_off), (x_off + length, dim[1] - y_off - height * ver))
+    pol = to_frustum((x_off, dim[1] - y_off), (x_off + length, dim[1] - y_off - height * ver - 0.5))
     draw.polygon(pol, fill="black")
 
     # upper horizontal line
-    pol = to_frustum((x_off, dim[1] - y_off - height + height * ver), (x_off + length, dim[1] - y_off - height))
+    pol = to_frustum((x_off, dim[1] - y_off - height + height * ver - 0.5), (x_off + length, dim[1] - y_off - height))
     draw.polygon(pol, fill="black")
 
     # left vertical line
-    pol = to_frustum((x_off, dim[1] - y_off), (x_off + length *hor, dim[1] - y_off - height))
+    pol = to_frustum((x_off, dim[1] - y_off), (x_off + length *hor + 0.5, dim[1] - y_off - height))
     draw.polygon(pol, fill="black")
 
     # right vertical line
-    pol = to_frustum((x_off + length - length * hor, dim[1] - y_off), (x_off + length, dim[1] - y_off - height))
+    pol = to_frustum((x_off + length - length * hor - 0.5, dim[1] - y_off), (x_off + length, dim[1] - y_off - height))
     draw.polygon(pol, fill="black")
-
-
-    # pol = to_rectangle(height * v1, length, theta, x_off, dim[1] - y_off + height - 2 * v1)
-    # draw.polygon(pol, fill="black")
-    
-    
-    #pol = to_rectangle(length, 0.25 * v2 * dy, theta, x_off, dim[1] - y_off)
-    #draw.polygon(pol, fill="black")
-        
-    #pol = to_rectangle(length, length, theta + numpy.pi/2, x_off, dim[1] - y_off) 
-    #draw.polygon(pol, fill="black")
-
-    #pol = to_rectangle(0.9* length, 0.9 *length, theta, x_off, dim[1] - y_off) 
-
-    #a+b
-    #pol = to_rectangle(length * (1.-v2), (1.-v1)*length, theta + numpy.pi/2, x_off, dim[1] - y_off) 
-    #draw.polygon(pol, fill="white")
 
   return im  
 
