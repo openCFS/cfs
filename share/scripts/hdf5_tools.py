@@ -35,10 +35,12 @@ def centered_elements(hdf5_file):
   # first element dimensions
   node_coords = []
   for n in range(len(elements[0])):
-    node_coords.append(   nodes[elements[0][n]-1]) # numbers are one-based
+    node_coords.append(nodes[elements[0][n]-1]) # numbers are one-based
  
-  ma = max(node_coords,key=operator.itemgetter(1)) # if 0, 1 or 2 is unclear for me!
-  mi = min(node_coords,key=operator.itemgetter(1)) # if 0, 1 or 2 is unclear for me!
+  # print node_coords
+ 
+  ma = np.array([max(node_coords,key=operator.itemgetter(0))[0], max(node_coords,key=operator.itemgetter(1))[1],  max(node_coords,key=operator.itemgetter(2))[2]])
+  mi = np.array([min(node_coords,key=operator.itemgetter(0))[0], min(node_coords,key=operator.itemgetter(1))[1],  min(node_coords,key=operator.itemgetter(2))[2]])
  
   elem_dim = ma - mi
     
