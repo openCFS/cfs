@@ -104,6 +104,7 @@ namespace CoupledField
 
     SurfElem *ptMaster;
     SurfElem *ptSlave;
+    shared_ptr<SurfElem> projectedMaster;
   };
 
 } // end of namespace

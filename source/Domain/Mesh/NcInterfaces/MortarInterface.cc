@@ -318,7 +318,7 @@ void MortarInterface::UpdateInterface() {
 
 /****************************************************************************
  **
- ** SideOnSide
+ ** IntersectLines
  **
  **   computes the local coordinates of the overlap of the master and slave
  **   element with respect to the master side in the order of the
@@ -326,10 +326,8 @@ void MortarInterface::UpdateInterface() {
  **   element to elemList.
  **
  ** Input Parameters:
- **   ifaceElemM:  Master Side
- **   ifaceElemS:  Slave Side
- **   collinear:   indicates if the interface is coplanar or not
- **   coordUpdate: indicates if updated coordinates should be used
+ **   ifaceElem1:  Master Side
+ **   ifaceElem2:  Slave Side
  **
  ** Output Parameters:
  **   elemList: the found intersection NCElems will be pushed
@@ -391,7 +389,7 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
     // do the projection if necessary
     if ( fabs(fac) > 1e-12 )
     {
-    c0 -= normal * fac;
+      c0 -= normal * fac;
       // add new node later, if necessary
       nodenum_c0 = 0;
     }
@@ -537,7 +535,7 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
     }
   }
 
-  if(relativeElemVol < 1e-3) {
+  if (relativeElemVol < 1e-3) {
     WARN("Rejecting ncElem due to a relative volume of " << relativeElemVol
          << std::endl
          << "  for intersection of elements " << ifaceElem1->elemNum
@@ -547,9 +545,52 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
     return false;
   }
 
+  // In case of a curved interface store the projected master element.
+  // This is needed for coordinate transform of integration points.
+  shared_ptr<SurfElem> projMaster( new SurfElem() );
+  if ( !isCoplanar_ ) {
+    projMaster->type = Elem::ET_LINE2;
+    projMaster->connect.Resize(2);
+    
+    if (nodenum_c0 == 0) {
+      // create a new node for the projection of c0 onto d
+      Vector<Double> new_node;
+      new_node.Resize(3);
+      new_node[0] = c0[0];
+      new_node[1] = c0[1];
+      if (c0.GetSize() == 2)
+        new_node[2] = 0.0;
+      else
+        new_node[2] = c0[2];
+      ptGrid_->AddNode(new_node, nodenum_c0);
+      newNodes.Push_back(nodenum_c0);
+    }
+    projMaster->connect[0] = nodenum_c0;
+    
+    if (nodenum_c1 == 0) {
+      // create a new node for the projection of c0 onto d
+      Vector<Double> new_node;
+      new_node.Resize(3);
+      new_node[0] = c1[0];
+      new_node[1] = c1[1];
+      if (c1.GetSize() == 2)
+        new_node[2] = 0.0;
+      else
+        new_node[2] = c1[2];
+      ptGrid_->AddNode(new_node, nodenum_c1);
+      newNodes.Push_back(nodenum_c1);
+    }
+    projMaster->connect[1] = nodenum_c1;
+    
+    // projection might be identical to ncElem itself
+    if ( projMaster->connect != ncElem->connect ) {
+      ncElem->projectedMaster = projMaster;
+    } // else case: NULL pointer signals projectedMaster==ncElem
+  }
+  
+  ncElem->type = Elem::ET_LINE2;
   ncElem->ptMaster = ifaceElem1;
   ncElem->ptSlave = ifaceElem2;
-  ncElem->type = Elem::ET_LINE2;
 
   elemList_->AddElement(ncElem);
 
@@ -1007,7 +1048,7 @@ bool MortarInterface::IntersectRects( SurfElem *ifaceElem1,
 bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
                                         StdVector<UInt> &newNodes )
 {
-  UInt i, p1Size, p2Size;
+  UInt i, j, n, p1Size, p2Size;
   StdVector< Vector<Double> > p1, p2, r;
 
   switch(ifElem1->type) {
@@ -1058,13 +1099,49 @@ bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
   {
     StdVector<MortarNcSurfElem*> newElems;
     
-    UInt start = TriangulatePoly(r, newElems, newNodes);
+    UInt nodeStart = newNodes.GetSize();
+    UInt elemStart = TriangulatePoly(r, newElems, newNodes);
 
-    for (UInt i = start; i < newElems.GetSize(); ++i)
+    // store projected master element
+    shared_ptr<SurfElem> projMaster;
+    
+    if ( !isCoplanar_ ) {
+      Vector<Double> nodeCoord;
+      projMaster.reset( new SurfElem() );
+      projMaster->type = ifElem1->type;
+      projMaster->connect.Resize(p1Size);
+      
+      n = newNodes.GetSize();
+      for ( i = 0; i < p1Size; ++i ) {
+        Vector<Double> & p1Coord = p1[i];
+        for ( j = nodeStart; j < n; ++j ) {
+          ptGrid_->GetNodeCoordinate( nodeCoord, newNodes[j], isMoving_ );
+          if ( nodeCoord == p1Coord ) {
+            projMaster->connect[i] = newNodes[j];
+            break;
+          }
+        }
+        if ( j == n ) {
+          ptGrid_->AddNode(p1[i], projMaster->connect[i]);
+          newNodes.Push_back(projMaster->connect[i]);
+        }
+      }
+      
+      if ( newElems.GetSize() - elemStart == 1 ) { // there is only 1 element
+        if ( projMaster->connect == newElems[elemStart]->connect ) {
+          // projected master is identical to Mortar element
+          projMaster.reset(); // Reset to NULL pointer
+        }
+      }
+    }
+
+    n = newElems.GetSize();
+    for ( i = elemStart; i < n; ++i)
     {
       shared_ptr<MortarNcSurfElem> newElem(newElems[i]);
       newElem->ptMaster = ifElem1;
       newElem->ptSlave = ifElem2;
+      newElem->projectedMaster = projMaster;
       elemList_->AddElement(newElem);
     }
 

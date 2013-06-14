@@ -432,22 +432,10 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   elemMat.Init();
 
   // Loop over all integration points
-  Double dist, sign, scale;
-  Vector<Double> globIntPoint, nMaster, nSlave, masterMidPoint, line;
+  Vector<Double> globIntPoint;
   LocPoint ipMaster, ipSlave;
   LocPointMapped lpmNc, lpmMaster, lpmSlave;
 
-  if ( !isCoplanar_ ) {
-    // We obtain the master element's surface normal at its midpoint.
-    // This is not correct for 2nd order curved elements, obviously.
-    // But it is our best guess.
-    esmMaster->CalcNormal(nMaster,
-        Elem::shapes[ptSurfMaster->type].midPointCoord);
-    
-    // Obtain global coordinates of master element midpoint
-    esmMaster->GetGlobMidPoint(masterMidPoint);
-  }
-  
 #define USE_BLAS_VERSION
   const UInt numIntPts = intPoints.GetSize();
   for( UInt i = 0; i < numIntPts; ++i ) {
@@ -460,34 +448,27 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 
     // Projection for curved interfaces
     if ( !isCoplanar_ ) {
-      // TODO jens: For general applicability it would be better to project the
-      // master onto the slave element and determine to local integration
-      // point there. Local coordinates could then be used directly.
-      
-      // We have already calculated the local integration point in the slave
-      // element, so we can calculate the surface normal exactly there.
-      esmSlave->CalcNormal(nSlave, ipSlave.coord);
-      
-      // compute vector from master midpoint to integration point
-      line = globIntPoint - masterMidPoint;
-      
-      // inner product of line with master's normal gives shortest distance
-      dist = nMaster.Inner(line);
-
-      // inner product of master and slave normal gives projection factor
-      scale = nSlave.Inner(nMaster);
-      
-      // determine correct sign
-      sign = nSlave.Inner(line);
-      assert( sign != 0.0 );
-      sign /= fabs(sign);
-      
-      // do the projection
-      globIntPoint -= nSlave * sign * fabs(dist) * fabs(scale);
+      /* Instead of projecting the integration point back into the master
+       * element, we use a better approach: Orthogonal projection is a linear
+       * operation, so any point in the projected master element has the same
+       * local coordinates as its orthogonal projection in the original master
+       * element. So we perform the Global2Local mapping in the projected
+       * element, which has been computed already by the intersection
+       * algorithm. Sometimes the intersection is the projected master element
+       * itself, in which case we need no coordinate mapping at all.  
+       */ 
+      if ( ptMortarElem->projectedMaster ) {
+        shared_ptr<ElemShapeMap> esmProj = ent1.GetGrid()
+            ->GetElemShapeMap( ptMortarElem->projectedMaster.get(),
+                               this->coordUpdate_ );
+        esmProj->Global2Local(ipMaster.coord, globIntPoint);
+      } else { // projectedMaster == NULL means it is the MortarElem itself
+        ipMaster.coord = intPoints[i].coord;
+      }
+    } else {
+      // Calculate local coordinates of integration point in master element
+      esmMaster->Global2Local(ipMaster.coord, globIntPoint);
     }
-    
-    // Calculate local coordinates of integration point in master element
-    esmMaster->Global2Local(ipMaster.coord, globIntPoint);
     assert( esmMaster->CoordIsInsideElem(ipMaster.coord) );
 
     LOG_DBG3(mortarInt) << "Integration point #" << i+1

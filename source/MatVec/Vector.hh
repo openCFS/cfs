@@ -296,6 +296,9 @@ template<typename T> class ElemStoreSol;
     //! Is this vector collinear with another vector?
     bool Collinear( const Vector<T>& vec);
     
+    //! Equality operator
+    bool operator==(const Vector<T> &x) const;
+    
 //@}
 
 
