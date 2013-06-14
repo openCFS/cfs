@@ -242,7 +242,7 @@ if dim_2D:
     if args.hom_grad == 'none':
       im = show_frame(coords, s1, s2, args.hom_dir, int(args.res))
     else:
-      #angle = get_element(f, "design_rotAngle_plain", args.h5_region)
+      angle = get_element(f, "design_rotAngle_plain", args.h5_region)
       im = show_frame_grad(coords, s1, s2, args.hom_grad, args.hom_dir, int(args.res))      		
   else:
     angle, data = perform_rotations(tensor, int(args.sampling), args.tensor, args.show)
