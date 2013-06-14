@@ -88,6 +88,12 @@ def get_element(hdf5_file, name, region, step=99999):
   if step >= len(ms):
     step = max((len(ms) - 2,0)) # reset to last, first element is ResultDescription
   key = "/Results/Mesh/MultiStep_1/Step_" + str(step) + "/" + name + "/" + region + "/Elements/Real"
+  #print ms
+  #help(ms)
+  #print ms.keys()
+#  for i in range(len(ms.keys)):
+#    print ms.keys[i]
+  
   try:
     data = ms[key]
     return data
@@ -196,11 +202,11 @@ def get_interpol_data(coords, data, fallback, x, eval = True):
 ## visualize the orientational stiffness
 # @param grad is 'none' or 'linar'
 # @return the image
-def show_rot_frame_grad(coords, s1, s2, angle, grad, direction, nx):
+def show_frame_grad(coords, s1, s2, grad, direction, nx):
 
   centers, min, max, elem = coords
 
-  delta_angle = numpy.max(angle[:,0]) - numpy.max(angle[:,0]) 
+  # delta_angle = numpy.max(angle[:,0]) - numpy.max(angle[:,0]) 
   
   im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white")
 
@@ -251,17 +257,15 @@ def show_rot_frame_grad(coords, s1, s2, angle, grad, direction, nx):
         if x < nx: # the right most vertical line has no right for the horizontal line
           n1x = start[0] * dx
           n2x = right[0] * dx
-          n1y = dim[1] - start[1] * dy - height * v_start[1]
-          n4y = dim[1] - start[1] * dy + height * v_start[1]
-          n2y = dim[1] - right[1] * dy - height * v_right[1]
-          n3y = dim[1] - right[1] * dy + height * v_right[1]
+          n1y = dim[1] - start[1] * dy - height * 0.5 * v_start[1]
+          n4y = dim[1] - start[1] * dy + height * 0.5 * v_start[1]
+          n2y = dim[1] - right[1] * dy - height * 0.5 * v_right[1]
+          n3y = dim[1] - right[1] * dy + height * 0.5 * v_right[1]
           if int(n1y) == int(n4y):
-            n1y -= 0.55
-            n4y += 0.55
+            n4y = n1y + 1.01 
 
           if int(n2y) == int(n3y):
-            n2y -= 0.55
-            n3y += 0.55
+            n3y = n2y + 1.01
           
           tupels = []
           tupels.append((n1x, n1y))
@@ -276,17 +280,16 @@ def show_rot_frame_grad(coords, s1, s2, angle, grad, direction, nx):
         if y < ny: # the evaluation of the most upper horizontal line has no upper for vertical data
           n1y = dim[1] - start[1] * dy
           n4y = dim[1] - upper[1] * dy
-          n1x = start[0] * dy - length * v_start[0]
-          n2x = start[0] * dy + length * v_start[0]
-          n4x = upper[0] * dy - length * v_upper[0]
-          n3x = upper[0] * dy + length * v_upper[0]
+          n1x = start[0] * dy - length * 0.5 * v_start[0]
+          n2x = start[0] * dy + length * 0.5 * v_start[0]
+          n4x = upper[0] * dy - length * 0.5 * v_upper[0]
+          n3x = upper[0] * dy + length * 0.5 * v_upper[0]
 
           if int(n1x) == int(n2x):
-            n1x -= 0.55
-            n2x += 0.55
-          if int(n4x) == int(n4x):
-            n4x -= 0.55
-            n3x += 0.55   
+            n2x = n1x + 1.01
+
+          if int(n3x) == int(n4x):
+            n4x = n3x + 1.01
   
           tupels = []
           tupels.append((n1x, n1y))
@@ -333,20 +336,20 @@ def show_frame(coords, s1, s2, directions, nx):
     
     if not directions == 'vertical': 
       # lower horizontal line  
-      pol = to_rectangle_corner((x_off, dim[1] - y_off), (x_off + length, dim[1] - y_off - height * ver - 0.5))
+      pol = to_rectangle_corner((x_off, dim[1] - y_off), (x_off + length, dim[1] - y_off - height * 0.5 * ver - 0.5))
       draw.polygon(pol, fill="black")
   
       # upper horizontal line
-      pol = to_rectangle_corner((x_off, dim[1] - y_off - height + height * ver - 0.5), (x_off + length, dim[1] - y_off - height))
+      pol = to_rectangle_corner((x_off, dim[1] - y_off - height + height * 0.5 * ver - 0.5), (x_off + length, dim[1] - y_off - height))
       draw.polygon(pol, fill="black")
 
     if not directions == 'horizontal':
       # left vertical line
-      pol = to_rectangle_corner((x_off, dim[1] - y_off), (x_off + length *hor + 0.5, dim[1] - y_off - height))
+      pol = to_rectangle_corner((x_off, dim[1] - y_off), (x_off + length * 0.5 * hor + 0.5, dim[1] - y_off - height))
       draw.polygon(pol, fill="black")
   
       # right vertical line
-      pol = to_rectangle_corner((x_off + length - length * hor - 0.5, dim[1] - y_off), (x_off + length, dim[1] - y_off - height))
+      pol = to_rectangle_corner((x_off + length - length * 0.5 * hor - 0.5, dim[1] - y_off), (x_off + length, dim[1] - y_off - height))
       draw.polygon(pol, fill="black")
 
   return im  
