@@ -124,7 +124,7 @@ def to_polygons(angle, data, x_offset, y_offset, scale):
   return tupl    
 
 ## give the corners to draw a rotated rectangles as polygon
-def to_rectangle(height, width, angle, x_offset, y_offset):
+def to_rectangle_center(height, width, angle, x_offset, y_offset):
   
   # print "h=" + str(height) + " w=" + str(width) + " a=" + str(angle) + " x=" + str(x_offset) + " y=" + str(y_offset)
   
@@ -141,9 +141,9 @@ def to_rectangle(height, width, angle, x_offset, y_offset):
   return tupl  
 
 ## give the corners to draw a rotated rectangles as polygon
-def to_frustum(lower, upper):
+def to_rectangle_corner(lower, upper):
   
-  # print "to_frustum " + str(lower) + " -> " + str(upper)
+  # print "to_rectangle_corner " + str(lower) + " -> " + str(upper)
   
   tupl = []
 
@@ -184,22 +184,135 @@ def create_image(centers, nx,color = "white"):
   
   return im, draw, dim, dx, dy, min, max
   
+## helper for show_rot_frame_grad
+def get_interpol_data(coords, data, fallback, x, eval = True):
+  if not eval:
+    return None, None   
+  v = data[x]
+  if v[0] == -1.0:
+    v = fallback[x]
+  return coords[x], v  
 
 ## visualize the orientational stiffness
 # @param grad is 'none' or 'linar'
 # @return the image
-def show_rot_frame(coords, s1, s2, angle, grad, nx, scale=-1):
+def show_rot_frame_grad(coords, s1, s2, angle, grad, direction, nx):
 
   centers, min, max, elem = coords
-  
+
   delta_angle = numpy.max(angle[:,0]) - numpy.max(angle[:,0]) 
-   
+  
   im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white")
 
   height = elem[1] * dy 
   length = elem[0] * dx
  
-  # print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " height=" + str(height) + " length=" + str(length) 
+  # print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " height=" + str(height) + " length=" + str(length) + " min=" + str(min) + " max=" + str(max)
+
+  # convert to 2D
+  c = numpy.zeros((len(centers), 2))
+  c[:,0] = [x[0] for x in centers]
+  c[:,1] = [x[1] for x in centers]
+ 
+  # where we want nodes
+  nx = int((max[0] - min[0]) / elem[0])
+  ny = int((max[1] - min[1]) / elem[1])
+  out = numpy.zeros(((nx + 1) * (ny + 1), 2))
+  for y in range(ny+1):
+    for x in range(nx+1):
+      out[y * (nx+1) + x][0] = float(x)/nx * max[0]
+      out[y * (nx+1) + x][1] = float(y)/ny * max[1]
+
+  v = numpy.zeros((len(s1), 2))
+  for i in range(len(s1)):
+    v[i][0] = s1[i][0]
+    v[i][1] = s2[i][0]
+    
+  ip_data = ip.griddata(c, v, out, grad, -1.0)
+  # any interpolatiob but nearest neighbor can only interpolate in the convex hull,
+  # if the value is -1 we use the nearest interpolation
+  ip_near = ip.griddata(c, v, out, 'nearest') if grad <> 'nearest' else None
+
+  for y in range(ny+1):
+    for x in range(nx+1):
+      start, v_start = get_interpol_data(out, ip_data, ip_near, y * (nx+1) + x)
+      right, v_right = get_interpol_data(out, ip_data, ip_near, y * (nx+1) + x + 1, eval = True if x < nx else False)
+      upper, v_upper = get_interpol_data(out, ip_data, ip_near, (y + 1) * (nx+1) + x, eval = True if y < ny else False)
+      
+      # print "start=" + str(start) + " v_start=" + str(v_start) + " right=" + str(right) + " v_right=" + str(v_right)
+      
+      # 4 ------- 3
+      # |         |
+      # |         |
+      # 1---------2
+
+      # print horizontal line
+      if not direction == 'vertical':
+        if x < nx: # the right most vertical line has no right for the horizontal line
+          n1x = start[0] * dx
+          n2x = right[0] * dx
+          n1y = dim[1] - start[1] * dy - height * v_start[1]
+          n4y = dim[1] - start[1] * dy + height * v_start[1]
+          n2y = dim[1] - right[1] * dy - height * v_right[1]
+          n3y = dim[1] - right[1] * dy + height * v_right[1]
+          if int(n1y) == int(n4y):
+            n1y -= 0.55
+            n4y += 0.55
+
+          if int(n2y) == int(n3y):
+            n2y -= 0.55
+            n3y += 0.55
+          
+          tupels = []
+          tupels.append((n1x, n1y))
+          tupels.append((n2x, n2y))
+          tupels.append((n2x, n3y))
+          tupels.append((n1x, n4y))
+          
+          draw.polygon(tupels, fill="black")
+
+      # print vertical line
+      if not direction == 'horizontal':
+        if y < ny: # the evaluation of the most upper horizontal line has no upper for vertical data
+          n1y = dim[1] - start[1] * dy
+          n4y = dim[1] - upper[1] * dy
+          n1x = start[0] * dy - length * v_start[0]
+          n2x = start[0] * dy + length * v_start[0]
+          n4x = upper[0] * dy - length * v_upper[0]
+          n3x = upper[0] * dy + length * v_upper[0]
+
+          if int(n1x) == int(n2x):
+            n1x -= 0.55
+            n2x += 0.55
+          if int(n4x) == int(n4x):
+            n4x -= 0.55
+            n3x += 0.55   
+  
+          tupels = []
+          tupels.append((n1x, n1y))
+          tupels.append((n2x, n1y))
+          tupels.append((n3x, n4y))
+          tupels.append((n4x, n4y))
+          
+          draw.polygon(tupels, fill="black")
+  
+  
+
+  return im  
+
+
+## visualize the orientational stiffness
+# @param grad is 'none' or 'linar'
+# @return the image
+def show_frame(coords, s1, s2, directions, nx):
+
+  centers, min, max, elem = coords
+  
+  
+  im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white")
+
+  height = elem[1] * dy 
+  length = elem[0] * dx
  
   for i in range(len(s1)):
   
@@ -215,27 +328,30 @@ def show_rot_frame(coords, s1, s2, angle, grad, nx, scale=-1):
 
     hor = s1[i,0]  # it seems that stiff1 and stiff2 are mixed up. This tries to correct it
     ver = s2[i,0]
-    theta = angle[i,0]
 
     # print "hor=" + str(hor) + " ver=" + str(ver) 
     
-    # lower horizontal line  
-    pol = to_frustum((x_off, dim[1] - y_off), (x_off + length, dim[1] - y_off - height * ver - 0.5))
-    draw.polygon(pol, fill="black")
+    if not directions == 'vertical': 
+      # lower horizontal line  
+      pol = to_rectangle_corner((x_off, dim[1] - y_off), (x_off + length, dim[1] - y_off - height * ver - 0.5))
+      draw.polygon(pol, fill="black")
+  
+      # upper horizontal line
+      pol = to_rectangle_corner((x_off, dim[1] - y_off - height + height * ver - 0.5), (x_off + length, dim[1] - y_off - height))
+      draw.polygon(pol, fill="black")
 
-    # upper horizontal line
-    pol = to_frustum((x_off, dim[1] - y_off - height + height * ver - 0.5), (x_off + length, dim[1] - y_off - height))
-    draw.polygon(pol, fill="black")
-
-    # left vertical line
-    pol = to_frustum((x_off, dim[1] - y_off), (x_off + length *hor + 0.5, dim[1] - y_off - height))
-    draw.polygon(pol, fill="black")
-
-    # right vertical line
-    pol = to_frustum((x_off + length - length * hor - 0.5, dim[1] - y_off), (x_off + length, dim[1] - y_off - height))
-    draw.polygon(pol, fill="black")
+    if not directions == 'horizontal':
+      # left vertical line
+      pol = to_rectangle_corner((x_off, dim[1] - y_off), (x_off + length *hor + 0.5, dim[1] - y_off - height))
+      draw.polygon(pol, fill="black")
+  
+      # right vertical line
+      pol = to_rectangle_corner((x_off + length - length * hor - 0.5, dim[1] - y_off), (x_off + length, dim[1] - y_off - height))
+      draw.polygon(pol, fill="black")
 
   return im  
+
+
 
 def color_code(color_map, value):
   c = color_map.to_rgba(value)

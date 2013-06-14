@@ -188,7 +188,8 @@ parser.add_argument("--symmetries_threshold", help="threshold value for symmetri
 parser.add_argument("--symmetries_mode", help="'minima' or 'all' subject to max and threshold (default 'minima'", default="minima")
 parser.add_argument("--symmetries_planes", help="'true' or 'false' for 3D also show planes to normals (default 'false')", default="false")
 parser.add_argument("--hom_access", help="the 'plain ' or 'smart' hom values (default 'smart')", default = "smart")
-parser.add_argument("--hom_grad", help="interpolation of design: 'none', 'linear' (default 'linear')", default="linear")
+parser.add_argument("--hom_grad", help="interpolation of design: 'none', 'nearest', linear', 'cubic' (default 'linear')", default="linear", choices=['none', 'nearest', 'linear', 'cubic'] )
+parser.add_argument("--hom_dir", help="visualization of stiffness directions: 'both', 'horizontal', 'vertical' (default 'both')", default="both", choices=['both', 'horizontal', 'vertical'] )
 parser.add_argument("--save", help="save 'image.png' or VTK Poly Data file 'file.vtp'")
 args = parser.parse_args()
 
@@ -236,8 +237,13 @@ if dim_2D:
   if args.show == "hom_rect":
     s1    = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region)
     s2    = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region)
-    angle = get_element(f, "design_rotAngle_plain", args.h5_region)
-    im = show_rot_frame((centers, min, max, elem_dim), s1, s2, angle, args.hom_grad, int(args.res), float(args.scale))	
+    coords = (centers, min, max, elem_dim)
+    im = None
+    if args.hom_grad == 'none':
+      im = show_frame(coords, s1, s2, args.hom_dir, int(args.res))
+    else:
+      angle = get_element(f, "design_rotAngle_plain", args.h5_region)
+      im = show_rot_frame_grad(coords, s1, s2, angle, args.hom_grad, args.hom_dir, int(args.res))      		
   else:
     angle, data = perform_rotations(tensor, int(args.sampling), args.tensor, args.show)
     im = orientational_stiffness(centers, angle, data, int(args.res), float(args.scale))
