@@ -803,6 +803,20 @@ namespace CoupledField {
     return false;
   }
 
+  //*********************
+  //  Equality operator
+  //*********************
+  template<typename T>
+  bool Vector<T>::operator==(const Vector<T> &x) const {
+    if ( this == &x ) return true;
+    if ( size_ != x.size_ ) return false;
+    
+    for ( UInt i = 0; i < size_; ++i ) {
+      if ( data_[i] != x.data_[i])
+        return false;
+    }
+    return true;
+  }
 
   // ********************************
   //   Overload Assignment Operator
