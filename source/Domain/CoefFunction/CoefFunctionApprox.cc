@@ -227,10 +227,9 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     }
     
     
-    // ---------------------------------
-    //  Nearest neighbour interpolation
-    // ---------------------------------
-    
+    // ---------------------------- 
+    //  Nearest neighbour approach
+    // ----------------------------
 //    UInt pos = 0;
 //    Double dist, minDist;
 //    minDist = abs( angles_[0] - angleBPhi );
@@ -305,7 +304,17 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     //             is equivalent to BH-curve in transverse direction (phi=90°)
     // !! NOTE !!  till now the maximum angle provided for phi will also  
     //             be chosen for theta as well as its corresponding BH-curve      
-    Double coefScalarZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs) * zScaling_;
+    // Note: scaling of mu by factor c leads to scaling of nu by 1/c since: 
+    //       nu = 1/mu; c*mu => 1/c*mu  
+    Double coefScalarZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs) * (1/zScaling_);
+
+    // since we use curves from xy-plane take care that theta stays in range
+    // TODO-avolk: implement handling of theta bounds like it is done for phi!!
+    if (angleBTheta > angles_[kend]) {
+      WARN( "Theta = " << angleBTheta << " is out of bounds! "
+          << "Theta = " << angles_[kend] << " will be used instead!");
+      angleBTheta = angles_[kend];
+    }
 
     Double dThetaVal = angles_[kend] - 0.0;
     Double bhi = ( angles_[kend] - angleBTheta ) / dThetaVal;
@@ -424,9 +433,9 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     }
     
     
-    // ---------------------------------
-    //  Nearest neighbour interpolation
-    // ---------------------------------
+    // ---------------------------- 
+    //  Nearest neighbour approach
+    // ----------------------------
 //    UInt pos = 0;
 //    Double dist, minDist;
 //    minDist = abCoefFunctionApproxAniso::GetScalars( angles_[0] - angleB );
@@ -505,12 +514,22 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     // 2) g(x)=c*f(x) => g'(x)=c*f'(x) meaning that scaling can also be applied to derivative
     nuPrimeZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs) * (1/zScaling_);
 
+    // since we use curves from xy-plane take care that theta stays in range
+    // TODO-avolk: implement handling of theta bounds like it is done for phi!!
+    if (angleBTheta > angles_[kend]) {
+      WARN( "Theta = " << angleBTheta << " is out of bounds! "
+          << "Theta = " << angles_[kend] << " will be used instead!");
+      angleBTheta = angles_[kend];
+    }
+    
     Double dThetaVal = angles_[kend] - 0.0;
     Double bhi = ( angles_[kend] - angleBTheta ) / dThetaVal;
     Double blo = ( angleBTheta - 0.0 ) / dThetaVal;
 
     // interpolate between calculated nuPrime in xy-plane and z-direction 
     nuPrime = bhi * nuPrimeXY + blo * nuPrimeZ;    
+    
+    
     
     // coefMat = B^T [ e_B^T * nu' * |B| * e_B] B 
     Vector<Double> eB(dimDMat_);
