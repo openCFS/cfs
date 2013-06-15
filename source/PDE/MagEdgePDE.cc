@@ -230,7 +230,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
        // === Additional RHS integrator in case of Non-linearity ===
        if ( nonLin_ == true ) {
-         REFACTOR;
          // =================================
          //  Nonlinear RHS-integrator
          // =================================
