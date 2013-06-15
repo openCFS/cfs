@@ -11,6 +11,10 @@ namespace CoupledField {
 class ApproxData;
 class BaseBOperator;
 
+//! Scaling factor of anisotropic behavior in z-direction
+//! Note: this should only be temporary! -> see variable definition
+#define ZSCALING 1.0
+
 
 // ============================================================================
 //  ISOTROPIC VERSIONS
@@ -21,7 +25,7 @@ class BaseBOperator;
 //! for nonlinear methods. It internally
 //! utilizes the ApproxData class for approximating nonlinear curves.
 //! \note This class only works for real-valued scalar data.
-class CoefFunctionApprox : public CoefFunction{
+class CoefFunctionApprox : public CoefFunction {
 public:
 
   //! Constructor
@@ -65,7 +69,7 @@ protected:
 //! data, e.g. as needed for the nonlinear Newton methods. It internally
 //! utilizes the ApproxData class for approximating nonlinear curves.
 //! \note This class only works for real-valued scalar data.
-class CoefFunctionApproxDeriv : public CoefFunction{
+class CoefFunctionApproxDeriv : public CoefFunction {
 public:
 
   //! Constructor
@@ -148,6 +152,12 @@ protected:
   //! Vector containing the approximations of the curve
   StdVector<Double> angles_;
   
+  //! Scaling factor of anisotropic behavior in z-direction
+  //! Note: this should only be temporary!
+  //! -> Since we do not yet have nonlinear curves in z direction we use the same 
+  //! curves as given for the xy-plane but scale it with an appropriate factor.
+  Double zScaling_;
+  
   //! Depending FeFunction
   shared_ptr<FeFunction<Double> > feFct_; 
 };
@@ -158,7 +168,7 @@ protected:
 //! data, e.g. as needed for the nonlinear Newton methods. It internally
 //! utilizes the ApproxData class for approximating nonlinear curves.
 //! \note This class only works for real-valued scalar data.
-class CoefFunctionApproxDerivAniso : public CoefFunction{
+class CoefFunctionApproxDerivAniso : public CoefFunction {
 public:
 
   //! Constructor
@@ -194,6 +204,11 @@ protected:
   //! Vector containing the approximations of the curve
   StdVector<Double> angles_;
   
+  //! Scaling factor of anisotropic behavior in z-direction
+  //! Note: this should only be temporary!
+  //! -> Since we do not yet have nonlinear curves in z direction we use the same 
+  //! curves as given for the xy-plane but scale it with an appropriate factor.
+  Double zScaling_;
   
   //! Depending FeFunction
   shared_ptr<FeFunction<Double> > feFct_; 

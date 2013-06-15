@@ -167,6 +167,9 @@ void CoefFunctionApproxAniso::Init( Double coefScalar,
   angles_ = angles;
   feFct_ = fct;
   bOperator_ = bOp;
+  
+  // TODO-avolk: this should not be hardcoded here but specified in the xml file!!
+  zScaling_ = ZSCALING;
 }
 
 void CoefFunctionApproxAniso::GetScalar(Double& coefScalar, 
@@ -186,81 +189,150 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     coefScalar = coefScalar_;
   } else {
 
+    // x-values have to be positive! TODO-avolk: or is this handled somewhere below??
+//    if ( elemOpSol[0] <= 0 ) { 
+//      EXCEPTION("CoefFunctionApproxAniso::GetScalar(): x value has to be positive!" );
+//    }
 
-    //compute angle 
-    Double angleB;
-    if ( abs(elemOpSol[0]) > 1e-5 ) {
-      angleB = abs( std::atan( elemOpSol[1] / elemOpSol[0] ) );
-      angleB *= 180.0/3.1416;
+    // -------------------------------
+    //  compute angle phi of B vector 
+    // -------------------------------
+    Double angleBPhi;
+    if ( abs(elemOpSol[0]) > 1e-5 ) { // why is this done?? TODO-avolk
+      angleBPhi = abs( std::atan( elemOpSol[1] / elemOpSol[0] ) );
+      angleBPhi *= 180.0/3.141592654; // conversion rad to deg
     }
     else {
-      angleB = 90.0;
+      angleBPhi = 90.0;
     }
     
-
-    // -----------------------------
-    //  Angular based interpolation
-    // -----------------------------
+    // ---------------------------------
+    //  compute angle theta of B vector
+    // ---------------------------------
+    Double angleBTheta;
+    angleBTheta = std::acos( elemOpSol[2] / sqrt(elemOpSol[0]*elemOpSol[0] + 
+        elemOpSol[1]*elemOpSol[1] + elemOpSol[2]*elemOpSol[2] ));
+    angleBTheta *= 180.0/3.141592654; // conversion rad to deg
     
-    // if angle is out of bounds or we have just one entry,
-    // return boundary value (i.e.first or last) 
-    const UInt kend = angles_.GetSize() - 1;
-    if ( angleB > angles_[kend] || kend == 0) {
-      coefScalar = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs);
+    // theta in spherical coordinates is defined as the angle between the 
+    // zenith direction and the line segment (origin->point) with a range [0°;180°]
+    // therefore change range to [90°;-90°] and only use absolute value of it (-> symmetry!)
+    angleBTheta = abs(90 - angleBTheta);   
+
+    // take care that theta does not exceed its limits 
+    // TODO-avolk: Improve handling like it is done for phi!
+    if (angleBTheta > 90) {
+      angleBTheta = 90;
+      WARN("GetScalar(): theta of element " << lpm.ptEl->elemNum << " was greater than 90 degrees! :-(")
     }
-    else if ( angleB < angles_[0] ) {
-      coefScalar = nLinFnc_[0]->EvaluateFuncNu(fieldAbs);
-    }
-    else {
-      UInt klo,khi,k;
-      klo=0;
-      khi=kend;
-      // We will find the right place in the table by means of bisection.
-      //  klo and khi bracket the input value of xEntry
-      while (khi-klo > 1) {
-        k=(khi+klo) >> 1; // binary right shift
-        if (angles_[k] > angleB)
-          khi=k;
-        else
-          klo=k;
-      }
-
-      // size of x interval
-//      std::cerr << "ANGLE: " << angleB;
-//      std::cerr << "startAngle: " << angles_[klo]; 
-//      std::cerr << ", stopAngle: " << angles_[khi];
-      Double dxVal=angles_[khi] - angles_[klo];
-
-      // The x-values must be distinct!
-      if (dxVal == 0.0) {
-        EXCEPTION("You cannot have two equal angular values!" );
-      }
-
-      // relative distance of xEntry to x-Value bounds
-      Double a = ( angles_[khi] - angleB )/dxVal;
-      Double b = ( angleB - angles_[klo] )/dxVal;
-//      std::cerr << ", a = " << a << ", b=" << b << std::endl;
-      coefScalar =   a * nLinFnc_[klo]->EvaluateFuncNu(fieldAbs) 
-                   + b * nLinFnc_[khi]->EvaluateFuncNu(fieldAbs);
-    }
-
+    
+    
     // ---------------------------------
     //  Nearest neighbour interpolation
     // ---------------------------------
     
 //    UInt pos = 0;
 //    Double dist, minDist;
-//    minDist = abs( angles_[0] - angleB );
+//    minDist = abs( angles_[0] - angleBPhi );
 //    for (UInt i=1; i<angles_.GetSize(); i++ ) {
-//      dist = abs( angles_[i] - angleB );
+//      dist = abs( angles_[i] - angleBPhi );
 //      if ( dist < minDist ) {
 //        pos = i;
 //        minDist = dist;
 //      }
 //    }
-//    std::cerr << "elem: " << lpm.ptEl->elemNum << "absB: " << fieldAbs << ", angle: " << angleB << ", pos: " << pos << std::endl;
+//    std::cerr << "elem: " << lpm.ptEl->elemNum << "absB: " << fieldAbs << ", angle: " << angleBPhi << ", pos: " << pos << std::endl;
 //    coefScalar = nLinFnc_[pos]->EvaluateFuncNu(fieldAbs);
+    
+    
+    // ---------------------------------------------------
+    //  Angular based interpolation in the xy-plane (phi)
+    // ---------------------------------------------------
+    
+    Double coefScalarXY = 0.0;
+    
+    // if angle is out of bounds or we have just one entry,
+    // return boundary value (i.e.first or last) 
+    const UInt kend = angles_.GetSize() - 1;
+    if ( angleBPhi > angles_[kend] || kend == 0) {
+      coefScalarXY = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs);
+    }
+    else if ( angleBPhi < angles_[0] ) {
+      coefScalarXY = nLinFnc_[0]->EvaluateFuncNu(fieldAbs);
+    }
+    else {  // now that the angle is in range, search for the "best" given angle 
+      UInt klo,khi,k;
+      klo=0;
+      khi=kend;
+      // We will find the right place in the table by means of bisection.
+      // klo and khi bracket the input value of phi-value
+      while (khi-klo > 1) {
+        k=(khi+klo) >> 1; // binary right shift
+        if (angles_[k] > angleBPhi)
+          khi=k;
+        else
+          klo=k;
+      }
+      
+      // size of phi interval
+      Double dPhiVal = angles_[khi] - angles_[klo]; 
 
+      // The phi-values must be distinct!
+      if (dPhiVal == 0.0) {
+        EXCEPTION("You cannot have two equal angular values!" );
+      }
+
+      // relative distance of phi-value to phi-bounds
+      Double ahi = ( angles_[khi] - angleBPhi ) / dPhiVal;
+      Double alo = ( angleBPhi - angles_[klo] ) / dPhiVal;
+      
+      // value of coefficient interpolated within the xy-plane and theta=0°
+      coefScalarXY =   ahi * nLinFnc_[klo]->EvaluateFuncNu(fieldAbs) 
+                     + alo * nLinFnc_[khi]->EvaluateFuncNu(fieldAbs);      
+    }
+    
+    // --------------------------------------------------------------------
+    //  Angular based interpolation according to z direction (angle theta)
+    // --------------------------------------------------------------------
+
+    // TODO-avolk: this should be deleted after first tests!!
+    // added just to be shure that everything is woring correctly!
+    if (zScaling_ != ZSCALING) {
+      EXCEPTION("Something went wrong: scaling factor in z-direction was not set correctly!" );
+    }
+    
+    // ASSUMPTION: BH-curve of magn. flux in thickness direction (theta=90°) 
+    //             is equivalent to BH-curve in transverse direction (phi=90°)
+    // !! NOTE !!  till now the maximum angle provided for phi will also  
+    //             be chosen for theta as well as its corresponding BH-curve      
+    Double coefScalarZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs) * zScaling_;
+
+    Double dThetaVal = angles_[kend] - 0.0;
+    Double bhi = ( angles_[kend] - angleBTheta ) / dThetaVal;
+    Double blo = ( angleBTheta - 0.0 ) / dThetaVal;
+
+    // interpolate between calculated coefficient in xy-plane and z-direction 
+    coefScalar = bhi * coefScalarXY + blo * coefScalarZ;
+
+
+#ifndef NDEBUG
+    // some debug output... TODO-avolk: weg damit!
+    std::cerr << "GetScalar(): statistics of element " << lpm.ptEl->elemNum << ":";
+//    std::cerr << " B_x=" << elemOpSol[0];
+//    std::cerr << " B_y=" << elemOpSol[1];
+//    std::cerr << " B_z=" << elemOpSol[2];
+    std::cerr << " angleBPhi=" << angleBPhi;
+    std::cerr << " angleBTheta=" << angleBTheta;
+//    std::cerr << " startAngle=" << angles_[klo]; 
+//    std::cerr << " stopAngle=" << angles_[khi];
+//    std::cerr << " ahi=" << ahi << ", alo=" << alo << ", ahi+alo=" << ahi+alo;
+    std::cerr << " coefScalarXY=" << coefScalarXY;
+    std::cerr << " coefScalarZ=" << coefScalarZ;
+    std::cerr << " coefScalar=" << coefScalar;
+//    std::cerr << std::setprecision(4); 
+    std::cerr << std::endl;
+#endif
+    
   }
 }
 
@@ -271,7 +343,7 @@ std::string CoefFunctionApproxAniso::ToString() const {
 
 // ==========================================================================
 CoefFunctionApproxDerivAniso::CoefFunctionApproxDerivAniso() : CoefFunction() {
-  // this type of coefficient is nonlinear (i.e. solution dependend)
+  // this type of coefficient is nonlinear (i.e. solution dependent)
   dependType_ = SOLUTION;
   isAnalytic_ = false;
   isComplex_ = false;
@@ -297,12 +369,14 @@ void CoefFunctionApproxDerivAniso::Init( StdVector<ApproxData*>  nLinFnc,
   feFct_ = fct;
   bOperator_ = bOp;
   dimDMat_ = bOperator_->GetDimDMat();
+  
+  // TODO-avolk: this should not be hardcoded here but specified in the xml file!!
+  zScaling_ = ZSCALING;
 }
 
 void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat, 
                                              const LocPointMapped& lpm ) {
-
-
+  
   // extract element solution from feFunction
   Vector<Double> elemSol, elemB;
   feFct_->GetElemSolution(elemSol, lpm.ptEl);
@@ -317,87 +391,149 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     coefMat.Init();
   } else {
 
-    //get pointers to the nlFunctions
-
-    //compute angle 
-    Double angleB;
+    // -------------------------------
+    //  compute angle phi of B vector
+    // -------------------------------
+    Double angleBPhi;
     if ( abs(elemB[0]) > 1e-5 ) {
-      angleB = abs( std::atan( elemB[1] / elemB[0] ) );
-      angleB *= 180.0/3.1416;
+      angleBPhi = abs( std::atan( elemB[1] / elemB[0] ) );
+      angleBPhi *= 180.0/3.141592654; // conversion rad to deg
     }
     else {
-      angleB = 90.0;
+      angleBPhi = 90.0;
     }
 
-    Double nuPrime = 0.0;
-    // -----------------------------
-    //  Angular based interpolation
-    // -----------------------------
+    // ---------------------------------
+    //  compute angle theta of B vector
+    // ---------------------------------
+    Double angleBTheta;
+    angleBTheta = std::acos( elemB[2] / sqrt(elemB[0]*elemB[0] + 
+                              elemB[1]*elemB[1] + elemB[2]*elemB[2] ));
+    angleBTheta *= 180.0/3.141592654; // conversion rad to deg
+
+    // theta in spherical coordinates is defined as the angle between the 
+    // zenith direction and the line segment (origin->point) with a range [0°;180°]
+    // therefore change range to [90°;-90°] and only use absolute value of it (-> symmetry!)
+    angleBTheta = abs(90 - angleBTheta);
+
+    // take care that theta does not exceed its limits 
+    // TODO-avolk: Improve handling like it is done for phi!
+    if (angleBTheta > 90) {
+      angleBTheta = 90;
+      WARN("GetTensor(): theta of element " << lpm.ptEl->elemNum << " was greater than 90 degrees! :-(")
+    }
+    
+    
+    // ---------------------------------
+    //  Nearest neighbour interpolation
+    // ---------------------------------
+//    UInt pos = 0;
+//    Double dist, minDist;
+//    minDist = abCoefFunctionApproxAniso::GetScalars( angles_[0] - angleB );
+//    for (UInt i=1; i<angles_.GetSize(); i++ ) {
+//      dist = abs( angles_[i] - angleB );
+//      if ( dist < minDist ) {
+//        pos = i;
+//        minDist = dist;
+//      }
+//    }
+//    // evaluate derivative of reluctivity
+//    Double nuPrime = nLinFnc_[pos]->EvaluatePrimeNu(fieldAbs);
+    
+    
+    // ---------------------------------------------------
+    //  Angular based interpolation in the xy-plane (phi)
+    // ---------------------------------------------------
+    Double nuPrime, nuPrimeXY, nuPrimeZ;
+    
     // if angle is out of bounds or we have just one entry,
     // return boundary value (i.e.first or last) 
     const UInt kend = angles_.GetSize() - 1;
-    if ( angleB > angles_[kend] || kend == 0) {
-      nuPrime = nLinFnc_[kend]->EvaluatePrimeNu(fieldAbs);
+    if ( angleBPhi > angles_[kend] || kend == 0) {
+      nuPrimeXY = nLinFnc_[kend]->EvaluatePrimeNu(fieldAbs);
     }
-    else if ( angleB < angles_[0] ) {
-      nuPrime = nLinFnc_[0]->EvaluatePrimeNu(fieldAbs);
+    else if ( angleBPhi < angles_[0] ) {
+      nuPrimeXY = nLinFnc_[0]->EvaluatePrimeNu(fieldAbs);
     }
     else {
       UInt klo,khi,k;
       klo=0;
       khi=kend;
       // We will find the right place in the table by means of bisection.
-      //  klo and khi bracket the input value of xEntry
+      //  klo and khi bracket the input value of phi-value
       while (khi-klo > 1) {
         k=(khi+klo) >> 1; // binary right shift
-        if (angles_[k] > angleB)
+        if (angles_[k] > angleBPhi)
           khi=k;
         else
           klo=k;
       }
+      
+      // size of phi interval
+      Double dPhiVal = angles_[khi] - angles_[klo];
 
-//      std::cerr << "ANGLE: " << angleB;
-//      std::cerr << "startAngle: " << angles_[klo]; 
-//      std::cerr << ", stopAngle: " << angles_[khi];
-      Double dxVal=angles_[khi] - angles_[klo];
-
-      // The x-values must be distinct!
-      if (dxVal == 0.0) {
-        EXCEPTION("You cannot have two equal x values!" );
+      // The phi-values must be distinct!
+      if (dPhiVal == 0.0) {
+        EXCEPTION("You cannot have two equal angular values!" );
       }
 
-      // relative distance of xEntry to x-Value bounds
-      Double a = ( angles_[khi] - angleB )/dxVal;
-      Double b = ( angleB - angles_[klo] )/dxVal;
-//      std::cerr << ", a = " << a << ", b=" << b << std::endl;
-      nuPrime =   a * nLinFnc_[klo]->EvaluatePrimeNu(fieldAbs) 
-                + b * nLinFnc_[khi]->EvaluatePrimeNu(fieldAbs);
+      // relative distance of phi-value to phi-bounds
+      Double ahi = ( angles_[khi] - angleBPhi ) / dPhiVal;
+      Double alo = ( angleBPhi - angles_[klo] ) / dPhiVal;
+
+      // value of nuPrime interpolated within the xy-plane and theta=0°
+      nuPrimeXY =   ahi * nLinFnc_[klo]->EvaluatePrimeNu(fieldAbs) 
+                  + alo * nLinFnc_[khi]->EvaluatePrimeNu(fieldAbs);
     }
     
-    // ---------------------------------
-    //  Nearest neighbour interpolation
-    // ---------------------------------
-//    UInt pos = 0;
-//       Double dist, minDist;
-//       minDist = abs( angles_[0] - angleB );
-//       for (UInt i=1; i<angles_.GetSize(); i++ ) {
-//         dist = abs( angles_[i] - angleB );
-//         if ( dist < minDist ) {
-//           pos = i;
-//           minDist = dist;
-//         }
-//       }
-//    // evaluate derivative of reluctivity
-//    Double nuPrime = nLinFnc_[pos]->EvaluatePrimeNu(fieldAbs);
-    
-    
-    
+    // --------------------------------------------------------------------
+    //  Angular based interpolation according to z direction (angle theta)
+    // --------------------------------------------------------------------
+
+    // TODO-avolk: this should be deleted after first tests!!
+    // added just to be shure that everything is woring correctly!
+    if (zScaling_ != ZSCALING) {
+      EXCEPTION("Something went wrong: scaling factor in z-direction was not set correctly!" );
+    }
+        
+    // ASSUMPTION: BH-curve of magn. flux in thickness direction (theta=90°) 
+    //             is equivalent to BH-curve in transverse direction (phi=90°)
+    // !! NOTE !!  till now the maximum angle provided for phi will also  
+    //             be chosen for theta as well as its corresponding BH-curve
+    // Note: scaling of mu by factor c leads to scaling of nu' by 1/c since:
+    // 1) nu = 1/mu; c*mu => 1/c*mu meaning that scaling has to be applied by the reciprocal factor 
+    // 2) g(x)=c*f(x) => g'(x)=c*f'(x) meaning that scaling can also be applied to derivative
+    nuPrimeZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs) * (1/zScaling_);
+
+    Double dThetaVal = angles_[kend] - 0.0;
+    Double bhi = ( angles_[kend] - angleBTheta ) / dThetaVal;
+    Double blo = ( angleBTheta - 0.0 ) / dThetaVal;
+
+    // interpolate between calculated nuPrime in xy-plane and z-direction 
+    nuPrime = bhi * nuPrimeXY + blo * nuPrimeZ;    
     
     // coefMat = B^T [ e_B^T * nu' * |B| * e_B] B 
     Vector<Double> eB(dimDMat_);
     eB = elemB / fieldAbs;
     coefMat.DyadicMult( eB );
     coefMat *= nuPrime * fieldAbs;
+    
+    
+#ifndef NDEBUG
+    // some debug output... TODO-avolk: weg damit!
+    std::cerr << "GetTensor(): statistics of element " << lpm.ptEl->elemNum;
+    std::cerr << ": angleBPhi=" << angleBPhi;
+    std::cerr << ", angleBTheta=" << angleBTheta;
+//    std::cerr << ", startAngle=" << angles_[klo]; 
+//    std::cerr << ", stopAngle=" << angles_[khi];
+//    std::cerr << ", ahi=" << ahi << ", alo=" << alo << ", ahi+alo=" << ahi+alo;
+    std::cerr << ", nuPrimeXY=" << nuPrimeXY;
+    std::cerr << ", nuPrimeZ=" << nuPrimeZ;
+    std::cerr << ", nuPrime=" << nuPrime;
+//    std::cerr << std::setprecision(4); 
+    std::cerr << std::endl;
+#endif
+    
   }
 }
 
