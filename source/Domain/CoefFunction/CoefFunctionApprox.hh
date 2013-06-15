@@ -7,7 +7,7 @@
 
 namespace CoupledField {
 
-// forward clas declaration
+// forward class declaration
 class ApproxData;
 class BaseBOperator;
 
@@ -156,6 +156,7 @@ protected:
   //! Note: this should only be temporary!
   //! -> Since we do not yet have nonlinear curves in z direction we use the same 
   //! curves as given for the xy-plane but scale it with an appropriate factor.
+  //! Scaling is meant to be applied to mu (provided via BH-curve) -> nu is scaled by 1/zScaling_
   Double zScaling_;
   
   //! Depending FeFunction
@@ -208,6 +209,7 @@ protected:
   //! Note: this should only be temporary!
   //! -> Since we do not yet have nonlinear curves in z direction we use the same 
   //! curves as given for the xy-plane but scale it with an appropriate factor.
+  //! Scaling is meant to be applied to mu (provided via BH-curve) -> nu is scaled by 1/zScaling_
   Double zScaling_;
   
   //! Depending FeFunction
