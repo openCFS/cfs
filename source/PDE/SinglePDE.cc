@@ -2766,6 +2766,7 @@ namespace CoupledField {
                                           unity, -1.0,
                                           mortarIf->GetMasterVolRegion(),
                                           mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
                                           updatedGeo_ );
         break;
       case 2:
@@ -2774,6 +2775,7 @@ namespace CoupledField {
                                           unity, -1.0,
                                           mortarIf->GetMasterVolRegion(),
                                           mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
                                           updatedGeo_ );
         break;
       case 3:
@@ -2782,6 +2784,7 @@ namespace CoupledField {
                                           unity, -1.0,
                                           mortarIf->GetMasterVolRegion(),
                                           mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
                                           updatedGeo_ );
         break;
       default:
@@ -2796,6 +2799,7 @@ namespace CoupledField {
                                           unity, -1.0,
                                           mortarIf->GetMasterVolRegion(),
                                           mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
                                           updatedGeo_ );
         break;
       case 2:
@@ -2804,6 +2808,7 @@ namespace CoupledField {
                                           unity, -1.0,
                                           mortarIf->GetMasterVolRegion(),
                                           mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
                                           updatedGeo_ );
         break;
       case 3:
@@ -2812,6 +2817,7 @@ namespace CoupledField {
                                           unity, -1.0,
                                           mortarIf->GetMasterVolRegion(),
                                           mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
                                           updatedGeo_ );
         break;
       default:
@@ -2845,7 +2851,7 @@ namespace CoupledField {
     BiLinearForm *penalty_u2_v1 = NULL;
     BiLinearForm *penalty_u2_v2 = NULL;
     //now bilinear forms related to the normal derivatives
-    //du1 referes to the normal derivative directing from 1 to 2
+    //du1 refers to the normal derivative directing from 1 to 2
     BiLinearForm *flux_du1_v1 = NULL;
     BiLinearForm *flux_du1_v2 = NULL;
     BiLinearForm *flux_u1_dv1 = NULL;

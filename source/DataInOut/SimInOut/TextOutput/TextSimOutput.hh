@@ -52,9 +52,6 @@ namespace CoupledField {
     //! End single analysis step
     void FinishStep( );
     
-    //! Finish multisequence step
-    void FinishMultiSequenceStep( );
-
   private:
 
     //! Create new output stream
@@ -128,6 +125,9 @@ namespace CoupledField {
     //! Coordinate system
     CoordSystem * coordSys_;
 
+    //! Current multi-sequence step
+    UInt currMS_;
+    
     //! Type of analysis in current multisequence step
     BasePDE::AnalysisType actAnalysis_;
     

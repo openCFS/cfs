@@ -99,10 +99,6 @@ Domain::Domain(
 
 void Domain::CreateGrid()
 {
-  // Type of mesh library. May either be cfsGrid or adaptGrid
-  // (if AdaptGrid should be ever revived.)
-  std::string libmesh = "cfsGrid";
-
   std::string probGeo;
   param_->Get("domain")->GetValue("geometryType", probGeo);
   if (probGeo == "3d")
@@ -133,117 +129,37 @@ void Domain::CreateGrid()
     //  Own Grid Map
     // -------------------
 
+    // make sure that there is a grid with ID "default", which is read first
+    if ( gridInputs_.size() == 1 ) {
+      if (gridInputs_.find("default") == gridInputs_.end())
+      {
+        WARN("Grid '" << gridInputs_.begin()->first
+            << "' was renamed to 'default', as it is the only one.");
+      }
+      
+      ReadGrid("default", gridInputs_.begin()->second, probGeo == "axi");
+      gridInputs_.clear();
+    } else {
+      if (gridInputs_.find("default") == gridInputs_.end()) {
+        EXCEPTION("There is no grid with ID 'default'.");
+      }
+      
+      ReadGrid("default", gridInputs_["default"], probGeo == "axi");
+    }
+
     // Create grids using input readers.
     std::map<std::string, StdVector<shared_ptr<SimInput> > >::const_iterator
-    gridIt;
+        gridIt = gridInputs_.begin(),
+        endIt = gridInputs_.end();
 
-
-    // iterate over all grid ids
-    for (gridIt = gridInputs_.begin(); gridIt != gridInputs_.end(); ++gridIt)
+    // iterate over all other grid IDs
+    for ( ; gridIt != endIt; ++gridIt )
     {
-
-      if( isParentDomain_) 
-        std::cout << "++ Reading mesh ... " << std::flush; // endl after check for regularity
-
-      std::string gridId = gridIt->first;
-      if ((gridId != "default") && (gridInputs_.size() == 1))
-      {
-        WARN("Grid '" << gridId << "' was renamed to 'default', as "
-             << "it is the only one.");
-        gridId = "default";
-      }
-
-      StdVector<shared_ptr<SimInput> > const & inputs = gridIt->second;
-
-      // iterate over all inputs for the current grid and init reader
-      for (UInt iFile = 0; iFile < inputs.GetSize(); iFile++)
-      {
-        shared_ptr<SimInput> actInFile = inputs[iFile];
-        actInFile->InitModule();
-      }
-
-      // create new grid
-      Grid * actGrid = NULL;
-      if (libmesh == "cfsGrid")
-      {
-        if (gridId == "default")
-          actGrid = new GridCFS(dim_, param_, info_);
-        else
-        {
-          actGrid = new GridCFS( inputs[0]->GetDim(), param_, info_);
-        }
-      }
-      else
-      {
-        EXCEPTION( "Type of mesh_library should be one of "
-            << "'cfsgrid' or 'adaptgrid', but is '" << libmesh << "'" );
-      }
-
-      // set flag about axisymmetry
-      if( probGeo == "axi" ) {
-        actGrid->SetAxi( true );
-      } else {
-        actGrid->SetAxi( false );
-      }
-
-      // add grid to internal map
-      gridMap_[gridId] = actGrid;
-
-      // Read in coordinate systems
-      // This has to be done, before the grid gets finalized,
-      // as some methods in the grid rely on the existence of coordinate
-      // systems
-      if (gridId == "default")
-        CreateCoordinateSystems();
-
-      // iterate over all inputs for the current grid and read mesh
-      for (UInt iFile = 0; iFile < inputs.GetSize(); iFile++)
-      {
-        shared_ptr<SimInput> actInFile = inputs[iFile];
-        actInFile->ReadMesh(actGrid);
-        boost::filesystem::path p(actInFile->GetFileName());
-        // BOOST PROBLEM!!!
-        // if p.leaf() makes problem, p.filename() would maybe work.
-        // p.filename() does not compile for me!!
-        // What should work:
-        // boost::filesystem::base(p) << "." << boost::filesystem::extension(p)
-        if( isParentDomain_) 
-          std::cout << p.leaf() << " ";
-      }
-
-      actGrid->FinishInit();
-      
-      // check the grid on regularity
-      bool regular = false;
-      bool non_regular = false;
-      for (UInt r = 0; r < actGrid->regionData.GetSize(); r++)
-      {
-        if (actGrid->regionData[r].regular)
-          regular = true;
-        else
-          non_regular = true;
-      }
-      // finish output for grid reading
-      if( isParentDomain_) {
-        std::cout << "-> ";
-        if (regular && non_regular)
-          std::cout << "partially ";
-        if (!regular && non_regular)
-          std::cout << "not ";
-        std::cout << "regular" << std::endl; // also regular && !non_regular
+      if ( gridIt->first != "default") {
+        ReadGrid( gridIt->first, gridIt->second, probGeo == "axi" );
       }
     } // loop: input readers
   } // if: use of external grids
-
-  // make sure that there is a grid with ID "default"
-  if (gridMap_.find("default") == gridMap_.end())
-  {
-    EXCEPTION("There is no grid with ID 'default'.");
-  }
-
-  // Call the nonmatching grid intersection calculation
-  //gridMap_["default"]->InitNonmatchingInterfaces();
-
 
 
   if (!progOpts->GetPrintGrid() == true)
@@ -262,6 +178,102 @@ void Domain::CreateGrid()
 
   }
 
+}
+
+void Domain::ReadGrid(const std::string & gridId,
+                      const StdVector< shared_ptr<SimInput> > & inputs,
+                      bool isAxi)
+{
+  // Type of mesh library. May either be cfsGrid or adaptGrid
+  // (if AdaptGrid should be ever revived.)
+  std::string libmesh = "cfsGrid";
+
+  if( isParentDomain_) {
+    std::cout << "++ Reading mesh ... " << std::flush; // endl after check for regularity
+  }
+
+  // iterate over all inputs for the current grid and init reader
+  for (UInt iFile=0, numFiles=inputs.GetSize(); iFile < numFiles; ++iFile)
+  {
+    shared_ptr<SimInput> actInFile = inputs[iFile];
+    actInFile->InitModule();
+  }
+
+  // create new grid
+  Grid * actGrid = NULL;
+  if (libmesh == "cfsGrid")
+  {
+    if (gridId == "default")
+    {
+      actGrid = new GridCFS(dim_, param_, info_, gridId);
+    }
+    else
+    {
+      actGrid = new GridCFS( inputs[0]->GetDim(), param_, info_, gridId);
+    }
+  }
+  else
+  {
+    EXCEPTION( "Type of mesh_library should be one of "
+        << "'cfsgrid' or 'adaptgrid', but is '" << libmesh << "'" );
+  }
+
+  // set flag about axisymmetry
+  actGrid->SetAxi( isAxi );
+
+  // add grid to internal map
+  gridMap_[gridId] = actGrid;
+
+  // Read in coordinate systems
+  // This has to be done, before the grid gets finalized,
+  // as some methods in the grid rely on the existence of coordinate
+  // systems
+  if (gridId == "default")
+    CreateCoordinateSystems();
+
+  // iterate over all inputs for the current grid and read mesh
+  for (UInt iFile=0, numFiles=inputs.GetSize(); iFile < numFiles; ++iFile)
+  {
+    shared_ptr<SimInput> actInFile = inputs[iFile];
+
+    if( isParentDomain_) { 
+      boost::filesystem::path p(actInFile->GetFileName());
+      // BOOST PROBLEM!!!
+      // if p.leaf() makes problem, p.filename() would maybe work.
+      // p.filename() does not compile for me!!
+      // What should work:
+      // boost::filesystem::base(p) << "." << boost::filesystem::extension(p)
+      std::cout << p.leaf() << " " << std::flush;
+    }
+
+    actInFile->ReadMesh(actGrid);
+  }
+
+  actGrid->FinishInit();
+  
+  // Initialize non-conforming interfaces
+  if (gridId == "default")
+    actGrid->InitNcInterfacesFromXML();
+
+  // check the grid on regularity
+  bool regular = false;
+  bool non_regular = false;
+  for (UInt r=0, numRegs=actGrid->regionData.GetSize(); r < numRegs; ++r)
+  {
+    if (actGrid->regionData[r].regular)
+      regular = true;
+    else
+      non_regular = true;
+  }
+  // finish output for grid reading
+  if( isParentDomain_) {
+    std::cout << "-> ";
+    if (regular && non_regular)
+      std::cout << "partially ";
+    if (!regular && non_regular)
+      std::cout << "not ";
+    std::cout << "regular" << std::endl; // also regular && !non_regular
+  }
 }
 
 void Domain::PostInit(UInt sequenceStep)

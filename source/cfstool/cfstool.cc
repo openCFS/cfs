@@ -336,10 +336,28 @@ namespace CFSTool {
         std::cout << "Performing diff on the following results:\n";
       }
       // iterate over all result types of input_ref
-      for( UInt iRes = 0; iRes < infos_ref.GetSize(); iRes++) {
+      for( UInt iRes=0, numRes=infos_ref.GetSize(); iRes < numRes; ++iRes) {
 
         std::cout << "\t" << infos_ref[iRes]->resultName << "\n";
 
+        // find the corresponding result in the file to be tested
+        Integer testRes = -1;
+        for ( UInt j=0, n=infos.GetSize(); j<n; ++j ) {
+          if ( infos_ref[iRes]->resultType == NO_SOLUTION_TYPE ) {
+            if ( infos_ref[iRes]->resultName == infos[j]->resultName ) {
+              testRes = j;
+              break;
+            }
+          } else if ( infos_ref[iRes]->resultType == infos[j]->resultType ) {
+            testRes = j;
+            break;
+          }
+        }
+        if ( testRes == -1 ) {
+          EXCEPTION("Result '" << infos_ref[iRes]->resultName
+                    << "' is missing in file '" << inFile_fut << "'.");
+        }
+        
         // get stepvalues of reference file
         shared_ptr<ResultInfo> actRes_ref = infos_ref[iRes];
         input_ref->GetStepValues( actMsStep, actRes_ref,
@@ -348,7 +366,7 @@ namespace CFSTool {
                              resultSteps_ref[actRes_ref].end() );
 
         // get stepvalues of file under test
-        shared_ptr<ResultInfo> actRes = infos[iRes];
+        shared_ptr<ResultInfo> actRes = infos[testRes];
         input_fut->GetStepValues( actMsStep, actRes,
                                   resultSteps[actRes], isHistory);
         stepVals.insert( resultSteps[actRes].begin(),
@@ -362,7 +380,7 @@ namespace CFSTool {
         for( ; svIt_ref != stepVals_ref.end(); ++svIt_ref, ++svIt_fut ) {
           if( svIt_fut->first != svIt_ref->first ) {
             EXCEPTION( "Encountered different result steps for result " << 
-                       infos[iRes]->resultName );
+                       infos[testRes]->resultName );
           } else {
 
             Double val_fut = svIt_fut->second;
@@ -399,10 +417,10 @@ namespace CFSTool {
           inResult_ref->SetEntityList( regions[iRegion] );
           outResult->SetEntityList( regions[iRegion] );
 
-          inResult_fut->SetResultInfo( infos[iRes] );
+          inResult_fut->SetResultInfo( infos[testRes] );
 
           inResult_ref->SetResultInfo( infos_ref[iRes] );
-          outResult->SetResultInfo( infos[iRes] );
+          outResult->SetResultInfo( infos[testRes] );
 
           inResults_fut.Push_back( inResult_fut );
           inResults_ref.Push_back( inResult_ref );

@@ -686,6 +686,9 @@ namespace CoupledField
     //! Returns an NcInterface object identified by its name
     NcInterfaceId GetNcInterfaceId(const std::string &name) const;
     
+    //! Initialize non-conforming interfaces from XML files
+    virtual void InitNcInterfacesFromXML();
+    
     //! Adds a new NcInterface to the grid and returns its ID
     NcInterfaceId AddNcInterface(shared_ptr<BaseNcInterface> ncIf);
     
@@ -693,9 +696,6 @@ namespace CoupledField
     bool IsSurfacePlanar(const StdVector<SurfElem*>& surfElems) const;
 
   protected:
-    
-    //! Initialize non-conforming interfaces from XML files
-    virtual void InitNcInterfacesFromXML();
     
     //! Add a node to the grid
     //! \param coord (in) coordinates of node

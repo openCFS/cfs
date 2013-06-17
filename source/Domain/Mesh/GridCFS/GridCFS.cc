@@ -24,8 +24,10 @@ namespace CoupledField {
   DECLARE_LOG(gridcfs)
   DEFINE_LOG(gridcfs, "grid.cfs")
 
-  GridCFS::GridCFS(UInt dim, PtrParamNode param, PtrParamNode info) 
+  GridCFS::GridCFS(UInt dim, PtrParamNode param, PtrParamNode info,
+      const std::string &id) 
   : Grid( param, info ) {
+    gridId_ = id;
     isQuadratic_ = false;
     dim_ = dim;
     assert(dim > 0);
@@ -151,8 +153,8 @@ namespace CoupledField {
             std::string gridId, coordSysId;
 
             // make sure, that this is the correct grid
-            listNode->GetValue("gridId", gridId);
-            if (domain->GetGrid(gridId) != this) return;
+            if ( listNode->Get("gridId", ParamNode::INSERT)->As<std::string>()
+                != gridId_ ) return;
 
             // get coordinate system
             listNode->GetValue( "coordSysId", coordSysId );
@@ -861,9 +863,6 @@ namespace CoupledField {
     // Select nodes / elements according to the users specification in the
     // parameter file
     CreateUserDefinedNodesElems();
-    
-    // Initialize non-conforming interfaces
-    InitNcInterfacesFromXML();
     
     // In the end, trim all vectors, i.e. delete any non-used memory from its
     // capacity.

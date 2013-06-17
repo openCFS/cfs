@@ -98,6 +98,7 @@ namespace CoupledField {
                         PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
                         RegionIdType masterVolRegion,
                         RegionIdType slaveVolRegion,
+                        bool coplanar,
                         bool coordUpdate = false);
 
     //! Destructor
@@ -128,6 +129,9 @@ namespace CoupledField {
 
     //! Set containing all volume regions for surface integrators
     std::set<RegionIdType> volRegions_;
+    
+    //! Is the interface coplanar?
+    bool isCoplanar_;
   };
 
 

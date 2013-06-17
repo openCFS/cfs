@@ -7,6 +7,7 @@ namespace CoupledField {
 
   // forward class declaration
   class BasePDE;
+  class MathParser;
   
   //! Abstract base class for sinlge driver (static, transient, harmonic)
   class SingleDriver : public BaseDriver {
@@ -21,7 +22,7 @@ namespace CoupledField {
                   PtrParamNode paramNode, PtrParamNode infoNode );
     
     //! Default destructor
-    virtual ~SingleDriver();
+    virtual ~SingleDriver() {};
     
     //! set the pdes, which gets to be solved
     void SetPDE(BasePDE * pde);
@@ -52,6 +53,9 @@ namespace CoupledField {
     //! true, if driver is part of a multiSequence, false if first run or single run 
     bool isPartOfSequence_;
 
+    //! Pointer to math parser instance
+    MathParser * mathParser_;
+    
   };
 
 }

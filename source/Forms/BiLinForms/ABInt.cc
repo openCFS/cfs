@@ -352,9 +352,10 @@ SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
                       PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
                       RegionIdType masterVolRegion,
                       RegionIdType slaveVolRegion,
+                      bool coplanar,
                       bool coordUpdate)
-: ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
-       ( aOp, bOp, scalCoef, factor, coordUpdate)
+: ABInt<COEF_DATA_TYPE, B_DATA_TYPE>( aOp, bOp, scalCoef, factor, coordUpdate),
+  isCoplanar_(coplanar)
 {
   this->name_ = "SurfaceMortarABInt";
   this->isSymmetric_ = true;
@@ -430,21 +431,45 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
       nrFncsSlave * this->bOperator_->GetDimDof() );
   elemMat.Init();
 
-#define USE_BLAS_VERSION
   // Loop over all integration points
   Vector<Double> globIntPoint;
   LocPoint ipMaster, ipSlave;
   LocPointMapped lpmNc, lpmMaster, lpmSlave;
 
+#define USE_BLAS_VERSION
   const UInt numIntPts = intPoints.GetSize();
   for( UInt i = 0; i < numIntPts; ++i ) {
     // Calculate global coordinates of integration point
     esmNc->Local2Global(globIntPoint, intPoints[i]);
 
-    // Calculate local coordinates of integration point in master/slave elem
-    // TODO jens: Add projection for curved interfaces
-    esmMaster->Global2Local(ipMaster.coord, globIntPoint);
+    // Calculate local coordinates of integration point in slave element
     esmSlave->Global2Local(ipSlave.coord, globIntPoint);
+    assert( esmSlave->CoordIsInsideElem(ipSlave.coord) );
+
+    // Projection for curved interfaces
+    if ( !isCoplanar_ ) {
+      /* Instead of projecting the integration point back into the master
+       * element, we use a better approach: Orthogonal projection is a linear
+       * operation, so any point in the projected master element has the same
+       * local coordinates as its orthogonal projection in the original master
+       * element. So we perform the Global2Local mapping in the projected
+       * element, which has been computed already by the intersection
+       * algorithm. Sometimes the intersection is the projected master element
+       * itself, in which case we need no coordinate mapping at all.  
+       */ 
+      if ( ptMortarElem->projectedMaster ) {
+        shared_ptr<ElemShapeMap> esmProj = ent1.GetGrid()
+            ->GetElemShapeMap( ptMortarElem->projectedMaster.get(),
+                               this->coordUpdate_ );
+        esmProj->Global2Local(ipMaster.coord, globIntPoint);
+      } else { // projectedMaster == NULL means it is the MortarElem itself
+        ipMaster.coord = intPoints[i].coord;
+      }
+    } else {
+      // Calculate local coordinates of integration point in master element
+      esmMaster->Global2Local(ipMaster.coord, globIntPoint);
+    }
+    assert( esmMaster->CoordIsInsideElem(ipMaster.coord) );
 
     LOG_DBG3(mortarInt) << "Integration point #" << i+1
         << "\n\tglobal coordinates: " << globIntPoint.ToString()
