@@ -1,29 +1,118 @@
 IF(MINGW OR MSVC)
 
-  SET(MINGW_MKL_VERSION 10.0)
-
-  IF(MINGW_MKL_VERSION VERSION_EQUAL 10.0)
-
+  #-----------------------------------------------------------------------------
+  # If not specified by the user, try to determine proper MKL root directory.
+  #-----------------------------------------------------------------------------
+  IF(NOT MKL_ROOT_DIR)
     IF(NOT CFS_BUILD_OS STREQUAL CFS_TARGET_OS)
-      IF(NOT MKL_ROOT_DIR)
-        SET(MKL_ROOT_DIR "/opt/pckg/mkl_win/10.0.5.025")
-      ENDIF()
+      SET(MKL_POSSIBLE_ROOT_DIRS
+	"/opt/pckg/mkl_win/composer_xe_2013"
+	"/opt/pckg/mkl_win/10.0.5.025"
+	)
     ELSE()
-      IF(NOT MKL_ROOT_DIR)
-        SET(MKL_ROOT_DIR "e:/dev/intel/MKL/10.0.5.025")
-      ENDIF()
+      SET(MKL_POSSIBLE_ROOT_DIRS
+	"e:/dev/intel/MKL/composer_xe_2013"
+	"e:/dev/intel/MKL/10.0.5.025"
+	)
     ENDIF()
 
-    SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
+    find_file(MKL_H
+      "include/mkl.h"
+      PATHS ${MKL_POSSIBLE_ROOT_DIRS}
+      DOC "MKL root dir"
+      NO_DEFAULT_PATH
+      NO_CMAKE_ENVIRONMENT_PATH
+      NO_CMAKE_PATH
+      NO_SYSTEM_ENVIRONMENT_PATH
+      NO_CMAKE_SYSTEM_PATH
+      NO_CMAKE_FIND_ROOT_PATH
+      )
+
+    STRING(REPLACE "/include/mkl.h" "" MKL_ROOT_DIR "${MKL_H}")
+    MESSAGE(FATAL_ERROR "MKL_ROOT_DIR ${MKL_ROOT_DIR}")
+  ENDIF()
+
+
+  #-----------------------------------------------------------------------------
+  # Read mkl.h and try to determine MKL version.
+  #-----------------------------------------------------------------------------
+  FILE(STRINGS "${MKL_ROOT_DIR}/include/mkl.h" MKL_HEADER)
+
+  foreach(line IN LISTS MKL_HEADER)
+    IF(line MATCHES "#define __INTEL_MKL")
+      STRING(REPLACE "_" ";" MKL_LIST "${line}")
+      LIST(GET MKL_LIST 4 ITEM_FOUR)
+
+      IF(ITEM_FOUR STREQUAL "")
+	LIST(GET MKL_LIST 5 MKL_MAJOR_VERSION)
+        STRING(STRIP "${MKL_MAJOR_VERSION}" MKL_MAJOR_VERSION)
+      ELSEIF(ITEM_FOUR STREQUAL "MINOR")
+	LIST(GET MKL_LIST 6 MKL_MINOR_VERSION)
+        STRING(STRIP "${MKL_MINOR_VERSION}" MKL_MINOR_VERSION)
+      ELSEIF(ITEM_FOUR STREQUAL "UPDATE")
+	LIST(GET MKL_LIST 6 MKL_UPDATE)
+        STRING(STRIP "${MKL_UPDATE}" MKL_UPDATE)
+      ENDIF()
+    ENDIF()
+  endforeach()
+
+  SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
+
+  # MESSAGE("MKL_VERSION: ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE}")
+
+  #-----------------------------------------------------------------------------
+  # If MKL version is 11 bundle together linker libraries.
+  #-----------------------------------------------------------------------------
+  IF("${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE}" MATCHES "^11")
+
+    IF(CFS_ARCH STREQUAL "I386")
+      SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/ia32")
+      
+      SET(MKL_BLAS_LIB
+        # This works with MinGW GCC 4.7.1 on Windows XP
+        -Wl,--start-group
+	${MKL_LIB_DIR}/mkl_intel_c_dll.lib
+	# ${MKL_LIB_DIR}/mkl_sequential_dll.lib
+	${MKL_LIB_DIR}/mkl_intel_thread_dll.lib
+	${MKL_LIB_DIR}/mkl_core_dll.lib
+        -Wl,--end-group
+        # libiomp5md is not needed for mkl_sequential lib
+	${MKL_ROOT_DIR}/compiler/lib/ia32/libiomp5md.lib
+	${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/ia32/runtmchk.lib
+	)
+      SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
+      
+      SET(MKL_PARDISO_LIB "")
+    ELSE(CFS_ARCH STREQUAL "I386")
+      
+      SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64")
+      
+      SET(MKL_BLAS_LIB
+        # This works with MinGW GCC 4.5.3 on CentOS/Oracle 6
+        -Wl,--start-group
+	${MKL_LIB_DIR}/mkl_intel_lp64.lib
+	# ${MKL_LIB_DIR}/mkl_intel_thread.lib
+	${MKL_LIB_DIR}/mkl_sequential.lib
+	${MKL_LIB_DIR}/mkl_core.lib
+        -Wl,--end-group
+	# ${MKL_ROOT_DIR}/compiler/lib/intel64/libiomp5md.lib
+	${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc100/amd64/runtmchk.lib
+	)
+      SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
+      
+      SET(MKL_PARDISO_LIB "")
+    ENDIF(CFS_ARCH STREQUAL "I386")
+  ELSE()  
 
     IF(CFS_ARCH STREQUAL "I386")
       SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/ia32/lib")
 
       SET(MKL_BLAS_LIB
+        -Wl,--start-group
         ${MKL_LIB_DIR}/mkl_intel_c.lib
         ${MKL_LIB_DIR}/mkl_intel_thread.lib
         ${MKL_LIB_DIR}/mkl_core.lib
-        ${MKL_LIB_DIR}/mkl_intel_c.lib
+        -Wl,--end-group
         ${MKL_LIB_DIR}/libiomp5md.lib
         )
       IF(MINGW)
@@ -41,13 +130,15 @@ IF(MINGW OR MSVC)
       SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/em64t/lib")
 
       SET(MKL_BLAS_LIB
+        # This works with MinGW GCC 4.5.3 on CentOS/Oracle 6
+        -Wl,--start-group
         ${MKL_LIB_DIR}/mkl_intel_lp64.lib
         ${MKL_LIB_DIR}/mkl_intel_thread.lib
         ${MKL_LIB_DIR}/mkl_core.lib
-        ${MKL_LIB_DIR}/mkl_intel_lp64.lib
+        -Wl,--end-group
         ${MKL_LIB_DIR}/libiomp5mt.lib
         #    wrap-chkstk
-        #    ${MKL_LIB_DIR}/libguide40.lib
+	# ${MKL_LIB_DIR}/libguide.lib
         )
       IF(MINGW)
         LIST(APPEND MKL_BLAS_LIB 
@@ -59,37 +150,22 @@ IF(MINGW OR MSVC)
       SET(MKL_PARDISO_LIB
         ${MKL_LIB_DIR}/mkl_solver_lp64.lib
         )
+      
+      SET(DEPS_SEQUENTIAL
+	${MKL_LIB_DIR}/mkl_solver_lp64_sequential.lib
+	${MKL_LIB_DIR}/mkl_intel_lp64.lib
+	${MKL_LIB_DIR}/mkl_intel_thread.lib
+	${MKL_LIB_DIR}/mkl_core.lib
+	${MKL_LIB_DIR}/mkl_intel_lp64.lib
+	${MKL_LIB_DIR}/mkl_sequential.lib
+	${MKL_LIB_DIR}/libiomp5mt.lib
+	${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/amd64/runtmchk.lib
+	#    ${MKL_LIB_DIR}/libguide40.lib
+	#    /home/strieben/Documents/MKL/test/runtmchk.lib
+	)
+
     ENDIF(CFS_ARCH STREQUAL "I386")
     
-    SET(DEPS_SEQUENTIAL
-      ${MKL_LIB_DIR}/mkl_solver_lp64_sequential.lib
-      ${MKL_LIB_DIR}/mkl_intel_lp64.lib
-      ${MKL_LIB_DIR}/mkl_intel_thread.lib
-      ${MKL_LIB_DIR}/mkl_core.lib
-      ${MKL_LIB_DIR}/mkl_intel_lp64.lib
-      ${MKL_LIB_DIR}/mkl_sequential.lib
-      ${MKL_LIB_DIR}/libiomp5mt.lib
-      ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/amd64/runtmchk.lib
-      #    ${MKL_LIB_DIR}/libguide40.lib
-      #    /home/strieben/Documents/MKL/test/runtmchk.lib
-      )
-
-  ELSE()  
-    SET(MKL_ROOT_DIR "/opt/pckg/mkl_win/composer_xe_2013")
-    SET(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64")
-    SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
-
-    SET(MKL_BLAS_LIB
-      ${MKL_LIB_DIR}/mkl_intel_lp64.lib
-      ${MKL_LIB_DIR}/mkl_intel_thread.lib
-      ${MKL_LIB_DIR}/mkl_core.lib
-      ${MKL_LIB_DIR}/mkl_intel_lp64.lib
-      ${MKL_ROOT_DIR}/compiler/lib/intel64/libiomp5md.lib
-      ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc100/amd64/runtmchk.lib
-      )
-    SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
-
-    SET(MKL_PARDISO_LIB "")
   ENDIF()
 
   SET(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL." FORCE)

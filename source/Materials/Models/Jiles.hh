@@ -40,7 +40,6 @@ namespace CoupledField {
     Double c_;
 
     Double dt_;
-    Integer actElem_;
 
     Vector<Double> Xold_;
     Vector<Double> YirrOld_;

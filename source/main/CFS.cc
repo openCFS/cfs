@@ -43,6 +43,26 @@ using namespace CoupledField;
 using namespace std;
 
 
+#ifdef __MINGW32__
+
+#if 0
+extern "C" {
+int __security_cookie;
+}
+
+extern "C" void _fastcall __security_check_cookie(int i) {
+//do nothing
+}
+#endif
+
+// extern "C" void _chkstk() {
+//do nothing
+// }
+extern "C" void _allmul() {
+//do nothing
+}
+#endif //__MINGW32__
+
 // Create global info node
 PtrParamNode infoNode;
 

@@ -64,8 +64,10 @@ set CFS_BIN_DIR=%BASEDIR%
 cd ..
 set CFS_ROOT_DIR=%CD%
 
-echo WARNING: CFS_ROOT_DIR has not been set!
-echo Using '%CFS_ROOT_DIR%' as CFS_ROOT_DIR.
+if defined CFS_SCRIPT_DEBUG (
+   echo WARNING: CFS_ROOT_DIR has not been set!
+   echo Using '%CFS_ROOT_DIR%' as CFS_ROOT_DIR.
+)
 
 rem Call script with common definitions
 :call_common_bat

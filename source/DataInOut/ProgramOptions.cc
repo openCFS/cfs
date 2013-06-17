@@ -392,16 +392,9 @@ namespace CoupledField {
       schema = varMap_[ "schemaRoot" ].as<string>();
 #if defined(WIN32) || defined(__MINGW32__)
       // watch out for leading and closing " in schema string
-      int ip1=0,ip2=schema.size()-1;
-      if (schema[ip1] == '\"')
-        ip1++;
+      boost::trim_if( schema, boost::is_any_of(" \t\"\'") );
 
-      if (schema[ip2] == '\"')
-        ip2--;
-
-      std::string winSchema = std::string(schema,ip1,ip2);
-      schema = winSchema;
-//      std::cout << "winSchema = " << schema << std::endl;
+      // std::cout << "schema = " << schema << std::endl;
 #endif      
     } else {
       schema = XMLSCHEMA;

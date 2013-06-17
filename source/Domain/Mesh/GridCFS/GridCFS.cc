@@ -3121,7 +3121,22 @@ namespace CoupledField {
         } catch (Exception& ex) {
           // at this point, the correction failed e.g. due to a missing
           // implementation or a totally weird element connectivity.
-          failedElems.insert(el);
+          //before we give up, lets try a brute force attack
+          WARN("Trying to correct connectivity by permutating array. This can be costly! Recheck the mesh!");
+          bool success = false;
+          do{
+            shared_ptr<ElemShapeMap> esmTMP = GetElemShapeMap( el, false );
+            jacDet = esmTMP->CalcJDet( jacobian, Elem::shapes[el->type].midPointCoord);
+            if(jacDet > 0){
+              success = true;
+              break;
+            }
+          }while( std::next_permutation(el->connect.Begin(),el->connect.End()) );
+          if(!success){
+            failedElems.insert(el);
+          }else{
+            corrElems.insert(el);
+          }
         }
       }
     }    

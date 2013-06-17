@@ -277,10 +277,12 @@ namespace CoupledField {
                                     FeFctIdType &id1, FeFctIdType &id2)
   {
     const NcSurfElem* ncElem1 = it1.GetNcSurfElem();
+#ifndef NDEBUG // Paranoia pays...
     const NcSurfElem* ncElem2 = it2.GetNcSurfElem();
     
     // NcBiLinFormContext requires identical EntityIterators
     assert( ncElem1 == ncElem2 );
+#endif
     
     const MortarNcSurfElem *mortarElem =
         dynamic_cast<const MortarNcSurfElem*>(ncElem1);

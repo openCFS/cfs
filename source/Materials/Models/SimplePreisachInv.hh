@@ -62,10 +62,8 @@ namespace CoupledField {
 
     Double Xsaturated_;
     Double Ysaturated_;
-    Double YRemnant_;
 
     bool isVirgin_;
-    Integer actElem_;
 
     Vector<Double> previousYval_;
     Vector<Double> actXval_;
