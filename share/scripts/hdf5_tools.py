@@ -88,12 +88,6 @@ def get_element(hdf5_file, name, region, step=99999):
   if step >= len(ms):
     step = max((len(ms) - 2,0)) # reset to last, first element is ResultDescription
   key = "/Results/Mesh/MultiStep_1/Step_" + str(step) + "/" + name + "/" + region + "/Elements/Real"
-  #print ms
-  #help(ms)
-  #print ms.keys()
-#  for i in range(len(ms.keys)):
-#    print ms.keys[i]
-  
   try:
     data = ms[key]
     return data
@@ -206,8 +200,6 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
 
   centers, min, max, elem = coords
 
-  # delta_angle = numpy.max(angle[:,0]) - numpy.max(angle[:,0]) 
-  
   im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white")
 
   height = elem[1] * dy 
@@ -354,6 +346,45 @@ def show_frame(coords, s1, s2, directions, nx):
 
   return im  
 
+
+## visualize the orientational stiffness
+# @return the image
+def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1):
+
+  centers, min, max, elem = coords
+
+  im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white") 
+
+  delta_angle = numpy.max(angle[:,0]) - numpy.max(angle[:,0]) 
+
+  if scale == -1:
+    scale = 1.0 if delta_angle == 0.0 else 0.8 
+
+  length =  scale * (elem[0]) * dx
+  
+  print scale
+  
+  for i in range(len(s1)):
+  
+    coord = centers[i]
+    x_off = (coord[0] + min[0]) * dx
+    y_off = (coord[1] + min[1]) * dy
+
+    v1 = s1[i,0]
+    v2 = s2[i,0]
+    theta = angle[i,0]
+    
+    # b
+    if not direction == 'horizontal':
+      pol = to_rectangle_center(length * v2, length, theta, x_off, dim[1] - y_off) 
+      draw.polygon(pol, fill="black")
+
+    # a
+    if not direction == 'vertical': 
+      pol = to_rectangle_center(length * v1, length, theta + numpy.pi/2, x_off, dim[1] - y_off) 
+      draw.polygon(pol, fill="black")
+
+  return im  
 
 
 def color_code(color_map, value):

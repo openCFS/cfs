@@ -180,7 +180,7 @@ parser.add_argument("--tensor", help="tensor name (default 'mechTensor')", defau
 parser.add_argument("--scale", help="manual scaling factor", default=-1)
 parser.add_argument("--res", help="x-resolution (default 1500)", default=1500)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180)
-parser.add_argument("--show", help="default | ortho_norm | mono_norm (3D) | ortho_err | e21_normed (2D)  hom_rect", default="default")
+parser.add_argument("--show", help="default | ortho_norm | mono_norm (3D) | ortho_err | e21_normed (2D) | hom_rect | hom_rot_cross", default="default", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross'])
 parser.add_argument("--notation", help="mandel | voigt (default 'mandel')", default="mandel")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
@@ -234,16 +234,23 @@ else:
 #perform 2D and 3D
 if dim_2D:  
   im = 0
-  if args.show == "hom_rect":
+  if args.show == "hom_rect" or args.show == "hom_rot_cross":
     s1    = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region)
     s2    = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region)
     coords = (centers, min, max, elem_dim)
     im = None
-    if args.hom_grad == 'none':
-      im = show_frame(coords, s1, s2, args.hom_dir, int(args.res))
+    if args.show == "hom_rot_cross":
+      angle = None
+      try:
+        angle = get_element(f, "design_rotAngle_plain", args.h5_region)
+      except:
+        angle = numpy.zeros((len(s1),1))  
+      im = show_rot_cross(coords, s1, s2, angle, args.hom_dir, int(args.res), float(args.scale))
     else:
-      angle = get_element(f, "design_rotAngle_plain", args.h5_region)
-      im = show_frame_grad(coords, s1, s2, args.hom_grad, args.hom_dir, int(args.res))      		
+      if args.hom_grad == 'none':
+        im = show_frame(coords, s1, s2, args.hom_dir, int(args.res))
+      else:
+        im = show_frame_grad(coords, s1, s2, args.hom_grad, args.hom_dir, int(args.res))      		
   else:
     angle, data = perform_rotations(tensor, int(args.sampling), args.tensor, args.show)
     im = orientational_stiffness(centers, angle, data, int(args.res), float(args.scale))
