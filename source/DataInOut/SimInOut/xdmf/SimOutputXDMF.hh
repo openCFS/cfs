@@ -131,18 +131,9 @@ namespace CoupledField {
     //! Current multisequence number
     UInt currMS_;
     
-    //! Number of steps in this multisequence step
-    UInt currMSNumSteps_;
-    
     //! Current analysis step
     UInt currStep_;
     
-    //! Current analysis step value (time / frequency);
-    Double currStepValue_;
-
-    //! Type of current analysis type
-    BasePDE::AnalysisType currAnalysisType_;
-
     //! Type definition for registered results
     typedef std::map< std::string, std::vector< 
       shared_ptr<BaseResult> > > ResDescType;

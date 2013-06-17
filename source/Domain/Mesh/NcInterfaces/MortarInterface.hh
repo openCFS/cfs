@@ -16,9 +16,9 @@ namespace CoupledField {
 // forward declarations
 class CoordSystem;
 class MathParser;
-class MortarNcSurfElem;
 class NcSurfElemList;
-class SurfElem;
+struct MortarNcSurfElem;
+struct SurfElem;
 template<class TYPE> class StdVector;
 template<class TYPE> class Vector;
 

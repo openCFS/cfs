@@ -5,6 +5,11 @@
 #include "OLAS/precond/IdPrecondStd.hh"
 #include "OLAS/precond/generateprecond.hh"
 #include "MatVec/BaseMatrix.hh"
+#include "MatVec/CRS_Matrix.hh"
+#include "MatVec/SCRS_Matrix.hh"
+#include "MatVec/Diag_Matrix.hh"
+#include "MatVec/VBR_Matrix.hh"
+#include "MatVec/SBM_Matrix.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
@@ -28,10 +33,6 @@
 #include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
 #include "OLAS/precond/IC0Precond.hh"
 #include "OLAS/precond/SBMDiagPrecond.hh"
-
-#include "MatVec/Diag_Matrix.hh"
-#include "MatVec/VBR_Matrix.hh"
-#include "MatVec/SBM_Matrix.hh"
 
 namespace CoupledField {
 

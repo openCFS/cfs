@@ -142,7 +142,7 @@ DECLARE_LOG(fefunc)
     entities_.Push_back(bc->entities);
   }
 
-  void BaseFeFunction::AddLoadCoefFunction( shared_ptr<CoefFunction> load,
+  void BaseFeFunction::AddLoadCoefFunction( PtrCoefFct load,
                                             const StdVector<shared_ptr<EntityList> >& lists){
     this->loadCoefs_[load] = lists;
 
@@ -150,13 +150,13 @@ DECLARE_LOG(fefunc)
     //entities_.Push_back(bc->entities);
   }
 
-  void BaseFeFunction::AddLoadCoefFunction( shared_ptr<CoefFunction> coef,
+  void BaseFeFunction::AddLoadCoefFunction( PtrCoefFct coef,
                                             shared_ptr<EntityList >& list) {
     this->loadCoefs_[coef].Push_back(list);
 
   }
 
-  void BaseFeFunction::AddExternalDataSource( shared_ptr<CoefFunction> coef,
+  void BaseFeFunction::AddExternalDataSource( PtrCoefFct coef,
                                               const StdVector<shared_ptr<EntityList> >& lists){
     std::cerr << "size of lists is " << lists.GetSize() << std::endl;
     for( UInt i = 0; i < lists.GetSize(); ++i ) {
@@ -165,8 +165,8 @@ DECLARE_LOG(fefunc)
     this->externalDataCoefs_[coef] = lists;
   }
 
-  void BaseFeFunction::AddExternalDataSource( shared_ptr<CoefFunction> coef,
-                                              shared_ptr<EntityList >& list){
+  void BaseFeFunction::AddExternalDataSource( PtrCoefFct coef,
+                                              shared_ptr<EntityList > list){
     this->externalDataCoefs_[coef].Push_back(list);
   }
   

@@ -485,6 +485,14 @@ namespace CFSTool {
     return pNode;
   }
 
+  void WriteStringToHDF5UserData( shared_ptr<SimOutput>& outputHDF5,
+                                  const std::string& dsetName,
+                                  const std::string& str ) {
+    SimOutputHDF5* hdf5Writer = dynamic_cast<SimOutputHDF5*>(outputHDF5.get());
+
+    hdf5Writer->WriteStringToUserData( dsetName, str );
+  }
+
   PtrParamNode ParamNodeFromPropertyTree( const std::string& propertyFile,
                                           const std::string& context ) {
     PtrParamNode pNode;

@@ -59,8 +59,8 @@ namespace CoupledField{
     mp_->SetExpr(mHandleStep_, var);
 
     std::string factorString;
-    if(configNode->Has("factor")){
-      configNode->GetValue("factor",factorString);
+    if(configNode->Has("globalFactor")){
+      configNode->GetValue("globalFactor",factorString);
 
       if(isComplex_)
         factorFnc_ = CoefFunction::Generate(mp_,Global::COMPLEX,factorString);
@@ -199,11 +199,16 @@ namespace CoupledField{
       //but we should be careful!
       if(factorFnc_->GetDependency() == CoefFunction::CONSTANT ||
          factorFnc_->GetDependency() == CoefFunction::TIMEFREQ){
+        //determine factor
+        DATA_TYPE factor;
+        LocPointMapped lpm;
+        factorFnc_->GetScalar(factor,lpm);
+        std::cout << "Computed Factor for timestep: " << factor << std::endl;
         for( it.Begin(); !it.IsEnd(); it++ ) {
           UInt idx = nodeIdxMap_[it.GetNode()];
           eqns = eqnNumbers_[idx];
           for(UInt d = 0; d<eqns.GetSize();++d){
-            sol[eqns[d]] = resVec[locPos++];
+            sol[eqns[d]] = resVec[locPos++] * factor;
             //curVec->GetEntry(locPos++,sol[eqns[d]]);
           }
         }

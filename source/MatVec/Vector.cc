@@ -242,7 +242,7 @@ namespace CoupledField {
   {				
     Double sum(0.0);
 
-#pragma omp parallel for reduction(+:sum)
+//#pragma omp parallel for reduction(+:sum)
     for(unsigned int i = 0; i < size_; ++i)
       sum += OpType<T>::zConjz(data_[i]);
     

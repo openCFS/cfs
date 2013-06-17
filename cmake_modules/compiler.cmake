@@ -176,7 +176,19 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
   # Disable some annoying warnings.
   #-----------------------------------------------------------------------------
   SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
+  IF(CFS_CXX_COMPILER_VER MATCHES "4.8" OR
+     CFS_CXX_COMPILER_VER VERSION_GREATER "4.8")
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unused-local-typedefs")
+  ENDIF()
+
   SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-attributes")
+
+  IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual")
+
+    STRING(TOUPPER "${CMAKE_CXX_COMPILER_ID}" CFS_CXX_COMPILER_NAME)
+    SET(CFS_CXX_COMPILER_VER ${CMAKE_CXX_COMPILER_VERSION})
+  ENDIF()
 
   IF(APPLE)
     #---------------------------------------------------------------------------

@@ -31,7 +31,6 @@ namespace CoupledField {
                                 PtrParamNode infoNode, bool isRestart ) :
   SimOutput( fileName, outputNode, infoNode, isRestart ),
     output_(NULL),
-    printGridOnly_(false),
     ascii_(true),
     bigEndian_(false),
     stepNumOffset_(0),

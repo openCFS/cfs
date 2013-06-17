@@ -54,25 +54,6 @@ namespace CoupledField {
 
   private:
 
-
-    int size;
-    int node;
-
-    int ind;
-
-    double mu;
-    double * mat;
-    double * coef;
-    double * rhs;
-    double * h;
-    double * g;
-
-
-    double alpha;
-    double beta;
-    double theta;
-    double delta;
-
   };
 
 } //end of namespace

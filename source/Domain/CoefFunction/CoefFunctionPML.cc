@@ -233,7 +233,7 @@ void CoefFunctionPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType>
   PtrParamNode propNode = pmlDef->Get("propRegion",ParamNode::PASS);
   if(propNode){
     //read data from prop node
-    ParamNodeList dirNodes = pmlDef->GetChildren();
+    ParamNodeList dirNodes = propNode->GetChildren();
     std::string dirName;
     UInt dirIndex = 0;
     for( UInt iDir = 0; iDir < dirNodes.GetSize(); ++iDir ) {

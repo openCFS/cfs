@@ -44,6 +44,10 @@ namespace CFSTool
   PtrParamNode GetParamNodeFromHDF5( shared_ptr<SimInput>& inputHDF5,
                                      const std::string& xmlFile );
 
+  void WriteStringToHDF5UserData( shared_ptr<SimOutput>& outputHDF5,
+                                  const std::string& dsetName,
+                                  const std::string& str );  
+
   double RadPhase( const Complex& c );
 
   bool CheckReaderCapabilities(const std::string& readerDescription,

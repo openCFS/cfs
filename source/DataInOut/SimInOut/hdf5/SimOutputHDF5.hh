@@ -123,6 +123,9 @@ namespace CoupledField {
     void DB_FinishMultiSequenceStep(bool completed, Double accTime );
 
     //@}
+
+    void WriteStringToUserData(const std::string& dSetName, 
+                               const std::string& str);
     
   private:
 
@@ -145,9 +148,6 @@ namespace CoupledField {
 
     //! Create separate external file for each time / frequency step
     void CreateExternalFile();
-
-    void WriteStringToUserData(const std::string& dSetName, 
-                               const std::string& str);
 
     //! Write file meta information
     void WriteFileInfoHeader(); 
