@@ -251,6 +251,10 @@ void Domain::ReadGrid(const std::string & gridId,
 
   actGrid->FinishInit();
   
+  // Initialize non-conforming interfaces
+  if (gridId == "default")
+    actGrid->InitNcInterfacesFromXML();
+
   // check the grid on regularity
   bool regular = false;
   bool non_regular = false;
