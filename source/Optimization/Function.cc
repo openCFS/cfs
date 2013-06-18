@@ -376,7 +376,7 @@ void Function::ToInfo(PtrParamNode info)
   if(harmonic_)
     info->Get("omega_omega")->SetValue(omega_omega_);
   // we check for valid ocurence of paramter in the constructor
-  if(pn->Has("parameter"))
+  if(pn->Has("parameter") || IsLocal(type_))
     info->Get("parameter")->SetValue(parameter_);
 
   // We might have non-standard stresses

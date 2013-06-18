@@ -145,7 +145,7 @@ template <class TYPE> class StdVector;
 
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
        * @param vector p has the values of the design variable */
-    void ApplyHomRectC1Tensor(Matrix<double>& E, const Vector<double>& p,const int) const;
+    void ApplyHomRectC1Tensor(Matrix<double>& E,  Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
     inline void GetHomRectTensor(Matrix<double>& t, SubTensorType subTensor,  DesignElement::Type direction, Notation notation);
@@ -189,11 +189,14 @@ template <class TYPE> class StdVector;
     void FillHomRectCoeff(Matrix<double> & coeff_,const char * filename);
 
     /** evaluates the C1 interpolation polynomial at point p[0],p[1] and returns function value as double */
-    double EvaluateC1Interpolation(Matrix<double>&, const Vector<double>&, const Matrix<double>&, double &, double &, int &, int &, int &, int &) const;
+    double EvaluateC1Interpolation(Matrix<double>&,  Vector<double>&, const Matrix<double>&, double &, double &, int &, int &, int &, int &) const;
     /** evaluates the derivative of the C1 interpolation polynomial at point p[0],p[1] in direction 0 or 1 and returns function value as double */
-    double EvaluateC1Interpolation_Deriv(Matrix<double>&, const Vector<double>& p, const Matrix<double>&, double &, double &, int &, int &, int &, int &, const int direction) const;
+    double EvaluateC1Interpolation_Deriv(Matrix<double>&,  Vector<double>& p, const Matrix<double>&, double &, double &, int &, int &, int &, int &, DesignElement::Type direction) const;
 
-    //double EvaluateC1Interpolation(Matrix<double>& E, const Vector<double>& p, const Matrix<double> & coeff, int au,int al,int bu,int bl,int j, int k,int m,int n);
+    double EvaluateC1Interpolation_3D(Matrix<double>&,  Vector<double>&, const Matrix<double>&, double &, double &,double &, int &, int &,int &, int &, int &, int &) const;
+        /** evaluates the derivative of the C1 interpolation polynomial at point p[0],p[1] in direction 0 or 1 and returns function value as double */
+        double EvaluateC1Interpolation_Deriv_3D(Matrix<double>&,  Vector<double>& p, const Matrix<double>&, double &, double &,double &, int &, int &, int &, int &, int &, int &, DesignElement::Type direction) const;
+    //double EvaluateC1Interpolation(Matrix<double>& E,  Vector<double>& p, const Matrix<double> & coeff, int au,int al,int bu,int bl,int j, int k,int m,int n);
 
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
      * 9 rows and 6 columns for with TENSOR11 being the first */
@@ -203,6 +206,11 @@ template <class TYPE> class StdVector;
     Matrix<double> hom_rect_coeff12_;
     Matrix<double> hom_rect_coeff22_;
     Matrix<double> hom_rect_coeff33_;
+    Matrix<double> hom_rect_coeff23_;
+    Matrix<double> hom_rect_coeff44_;
+    Matrix<double> hom_rect_coeff55_;
+    Matrix<double> hom_rect_coeff66_;
+    Matrix<double> hom_rect_coeff13_;
     Matrix<double> hom_rect_a_;
     Matrix<double> hom_rect_b_;
     Matrix<double> hom_rect_c_;

@@ -185,7 +185,7 @@ def write_density_file(filename, data_inp, setname_inp, param = 0, elemnr=None):
            val = getNDArrayEntry(data, i, j, k)
            if elemnr <> None:
              nr = int(getNDArrayEntry(elemnr, i, j ,k))
-           
+            
            # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(nr)
            if param > 0:
             out.write('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '" physical="' + str(val**param) + '"/>\n')
