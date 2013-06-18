@@ -665,10 +665,10 @@ share/scripts/nas-tool-nas2msh.py -text
 share/scripts/nas-tool-voidmesh.py -text
 share/scripts/optimization_tools.py -text
 share/scripts/paraview_fmo.py -text
+share/scripts/physical_density_to_stiff.py -text
 share/scripts/printElemMatVec.py -text
 share/scripts/printElemMatVec.tcl svneol=native#text/x-tcl
 share/scripts/probe_ilupack_parameters.py -text
-share/scripts/pyhsical_density_to_stiff.py -text
 share/scripts/rstinfo -text
 share/scripts/show_fmo_tensor.py -text
 share/scripts/voidmesh.pl -text

@@ -9,5 +9,7 @@ args = parser.parse_args()
 
 
 d = read_density_as_vector(args.input, "physical")
-data = nunmpy.zeros((len(d), 2))
+data = numpy.zeros((len(d), 2))
+data[:,0] = d
+data[:,1] = d
 write_multi_design_file(args.output, data, "stiff1", "stiff2")
