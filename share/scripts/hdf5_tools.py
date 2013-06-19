@@ -193,20 +193,9 @@ def get_interpol_data(coords, data, fallback, x, eval = True):
     v = fallback[x]
   return coords[x], v  
 
-## visualize the orientational stiffness
-# @param grad is 'none' or 'linar'
-# @return the image
-def show_frame_grad(coords, s1, s2, grad, direction, nx):
-
+## helper which returns an interolated grid and one nearest neighbor interpolated grid
+def get_interpolation(coords, grad):
   centers, min, max, elem = coords
-
-  im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white")
-
-  height = elem[1] * dy 
-  length = elem[0] * dx
- 
-  # print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " height=" + str(height) + " length=" + str(length) + " min=" + str(min) + " max=" + str(max)
-
   # convert to 2D
   c = numpy.zeros((len(centers), 2))
   c[:,0] = [x[0] for x in centers]
@@ -230,6 +219,24 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
   # any interpolatiob but nearest neighbor can only interpolate in the convex hull,
   # if the value is -1 we use the nearest interpolation
   ip_near = ip.griddata(c, v, out, 'nearest') if grad <> 'nearest' else None
+  
+  return ip_data, ip_near 
+
+## visualize the orientational stiffness
+# @param grad is 'none' or 'linar'
+# @return the image
+def show_frame_grad(coords, s1, s2, grad, direction, nx):
+
+  centers, min, max, elem = coords
+
+  im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white")
+
+  height = elem[1] * dy 
+  length = elem[0] * dx
+ 
+  # print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " height=" + str(height) + " length=" + str(length) + " min=" + str(min) + " max=" + str(max)
+  ip_data, ip_near = get_interpolation(coords, grad)
+  
 
   for y in range(ny+1):
     for x in range(nx+1):
@@ -295,6 +302,46 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
 
   return im  
 
+## visualize the orientational stiffness
+# @return the image
+def show_rot_cross_grad(coords, s1, s2, angle, direction, nx, scale=-1):
+
+  centers, min, max, elem = coords
+
+  im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white") 
+
+  delta_angle = numpy.max(angle[:,0]) - numpy.max(angle[:,0]) 
+
+  if scale == -1:
+    scale = 1.0 if delta_angle == 0.0 else 0.8 
+
+  length =  scale * (elem[0]) * dx
+  
+  print scale
+  
+  for i in range(len(s1)):
+  
+    coord = centers[i]
+    x_off = (coord[0] + min[0]) * dx
+    y_off = (coord[1] + min[1]) * dy
+
+    v1 = s1[i,0]
+    v2 = s2[i,0]
+    theta = angle[i,0]
+    
+    # b
+    if not direction == 'horizontal':
+      pol = to_rectangle_center(length * v2, length, theta, x_off, dim[1] - y_off) 
+      draw.polygon(pol, fill="black")
+
+    # a
+    if not direction == 'vertical': 
+      pol = to_rectangle_center(length * v1, length, theta + numpy.pi/2, x_off, dim[1] - y_off) 
+      draw.polygon(pol, fill="black")
+
+  return im  
+
+
 
 ## visualize the orientational stiffness
 # @param grad is 'none' or 'linar'
@@ -302,7 +349,6 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
 def show_frame(coords, s1, s2, directions, nx):
 
   centers, min, max, elem = coords
-  
   
   im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white")
 
@@ -385,6 +431,8 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1):
       draw.polygon(pol, fill="black")
 
   return im  
+
+
 
 
 def color_code(color_map, value):

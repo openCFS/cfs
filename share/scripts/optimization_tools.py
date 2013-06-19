@@ -279,24 +279,31 @@ def physical_volume(data, penalty):
 
 
 ## apply a threshold filter on a 2D/3D matrix
-# @param data original 2D/3D data
+# @param data original 2D/3D data or vector
 # @param treshold all smaller threshold becomes min, otherwise max
-# @return a new data array 
+# @return new data of input type 
 def threshold_filter(data, threshold, min, max):
   
-  dim = data.ndim
-  x, y, z = getDim(data)
-  res = numpy.copy(data)
-    
   # handle the case that threshold is smaller than min
-  barrier = cond(threshold < min, min, threshold)
+  barrier = numpy.max((threshold, min))
+  res = None  
+  
+  if type(data) == list:
+    res = [0.0] * len(data)
+    for i in range(len(data)):
+      res[i] = max if data[i] >= barrier else min
+  else:
     
-  for i in range(x):
-    for j in range(y):
-      for k in range(z):
-        org = getNDArrayEntry(data, i, j, k)
-        val = cond(org < barrier, min, max)
-        setNDArrayEntry(res, i, j, k, val)        
+    dim = data.ndim
+    x, y, z = getDim(data)
+    res = numpy.copy(data)
+  
+    for i in range(x):
+      for j in range(y):
+        for k in range(z):
+          org = getNDArrayEntry(data, i, j, k)
+          val = cond(org < barrier, min, max)
+          setNDArrayEntry(res, i, j, k, val)        
 
   return res  
 
