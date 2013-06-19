@@ -2171,13 +2171,13 @@ namespace CoupledField
       curNodeNum = topology_[curElemNum * maxNENodes];
       //now we search through the topology vector and determine
       //all occurences of the nodeNumber and store their position
-      std::vector<UInt>::iterator i = topology_.begin(), end = topology_.end();
+      std::vector<UInt>::iterator it = topology_.begin(), end = topology_.end();
       while(true) {
-        i = std::find(i, topology_.end(), curNodeNum );
-        if (i == end)
+        it = std::find(it, topology_.end(), curNodeNum );
+        if (it == end)
             break;
-        matches.push_back(i - topology_.begin());
-        i++;
+        matches.push_back(it - topology_.begin());
+        ++it;
       }
       //now we have a vector containing all positions of the first node of the
       //element of interest now we need to determine the element indices
