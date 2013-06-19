@@ -140,6 +140,38 @@ def to_rectangle_center(height, width, angle, x_offset, y_offset):
 
   return tupl  
 
+# draws a rotated frustum
+def to_frustum_center(start, end, center, scale, elem, direction):
+  # 4 ------- 3
+  # |         |
+  # |         |
+  # 1---------2
+
+  # print horizontal line
+  angle = 0.5 * (start[2] + end[2])
+  val_1 = start[1]
+  val_2 = end[1]
+  
+  tupl = []
+  points = []
+  
+  print start
+  print end
+  print elem
+
+  
+  points.append((-1.0 * elem[0]/2, -val_1 * elem[1]/2))
+  points.append(( 1.0 * elem[0]/2, -val_2 * elem[1]/2))
+  points.append(( 1.0 * elem[0]/2,  val_2 * elem[1]/2))
+  points.append((-1.0 * elem[0]/2,  val_1 * elem[1]/2))
+  
+  for i in range(4):
+    print "i=" + str(i + 1) + " -> " + str(points[i])
+    r = (cos(angle) * points[i][0] -sin(angle)*points[i][1], sin(angle) * points[i][0] + cos(angle) * points[i][1])
+    tupl.append(((center[0] + r[0]) * scale[0], (center[1] + r[1]) * scale[1]))
+  
+  return tupl
+
 ## give the corners to draw a rotated rectangles as polygon
 def to_rectangle_corner(lower, upper):
   
@@ -194,7 +226,8 @@ def get_interpol_data(coords, data, fallback, x, eval = True):
   return coords[x], v  
 
 ## helper which returns an interolated grid and one nearest neighbor interpolated grid
-def get_interpolation(coords, grad):
+
+def get_interpolation(coords, grad, s1, s2, angle = None):
   centers, min, max, elem = coords
   # convert to 2D
   c = numpy.zeros((len(centers), 2))
@@ -210,17 +243,19 @@ def get_interpolation(coords, grad):
       out[y * (nx+1) + x][0] = float(x)/nx * max[0]
       out[y * (nx+1) + x][1] = float(y)/ny * max[1]
 
-  v = numpy.zeros((len(s1), 2))
+  v = numpy.zeros((len(s1),  2 if angle == None else 3))
   for i in range(len(s1)):
     v[i][0] = s1[i][0]
     v[i][1] = s2[i][0]
+    if angle <> None:
+      v[i][2] = angle[i][0]
     
   ip_data = ip.griddata(c, v, out, grad, -1.0)
   # any interpolatiob but nearest neighbor can only interpolate in the convex hull,
   # if the value is -1 we use the nearest interpolation
   ip_near = ip.griddata(c, v, out, 'nearest') if grad <> 'nearest' else None
   
-  return ip_data, ip_near 
+  return ip_data, ip_near, out, nx, ny 
 
 ## visualize the orientational stiffness
 # @param grad is 'none' or 'linar'
@@ -235,7 +270,7 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
   length = elem[0] * dx
  
   # print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " height=" + str(height) + " length=" + str(length) + " min=" + str(min) + " max=" + str(max)
-  ip_data, ip_near = get_interpolation(coords, grad)
+  ip_data, ip_near, out, nx, ny = get_interpolation(coords, grad, s1, s2)
   
 
   for y in range(ny+1):
@@ -304,7 +339,7 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
 
 ## visualize the orientational stiffness
 # @return the image
-def show_rot_cross_grad(coords, s1, s2, angle, direction, nx, scale=-1):
+def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale=-1):
 
   centers, min, max, elem = coords
 
@@ -312,31 +347,20 @@ def show_rot_cross_grad(coords, s1, s2, angle, direction, nx, scale=-1):
 
   delta_angle = numpy.max(angle[:,0]) - numpy.max(angle[:,0]) 
 
+  # print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " height=" + str(height) + " length=" + str(length) + " min=" + str(min) + " max=" + str(max)
+  ip_data, ip_near, out, nx, ny = get_interpolation(coords, grad, s1, s2, angle)
+
   if scale == -1:
     scale = 1.0 if delta_angle == 0.0 else 0.8 
 
-  length =  scale * (elem[0]) * dx
-  
-  print scale
-  
-  for i in range(len(s1)):
-  
-    coord = centers[i]
-    x_off = (coord[0] + min[0]) * dx
-    y_off = (coord[1] + min[1]) * dy
-
-    v1 = s1[i,0]
-    v2 = s2[i,0]
-    theta = angle[i,0]
-    
-    # b
-    if not direction == 'horizontal':
-      pol = to_rectangle_center(length * v2, length, theta, x_off, dim[1] - y_off) 
-      draw.polygon(pol, fill="black")
-
-    # a
-    if not direction == 'vertical': 
-      pol = to_rectangle_center(length * v1, length, theta + numpy.pi/2, x_off, dim[1] - y_off) 
+  for y in range(ny):
+    for x in range(ny):
+      start, v_start = get_interpol_data(out, ip_data, ip_near, y * (nx+1) + x)
+      right, v_right = get_interpol_data(out, ip_data, ip_near, y * (nx+1) + x + 1, eval = True if x < nx else False)
+      
+      center = ((0.5 * start[0] + right[0]), (0.5 * start[1] + right[1])) 
+      
+      pol = to_frustum_center(v_start, v_right, center, (dx, dy), elem, direction) 
       draw.polygon(pol, fill="black")
 
   return im  
@@ -407,8 +431,6 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1):
     scale = 1.0 if delta_angle == 0.0 else 0.8 
 
   length =  scale * (elem[0]) * dx
-  
-  print scale
   
   for i in range(len(s1)):
   

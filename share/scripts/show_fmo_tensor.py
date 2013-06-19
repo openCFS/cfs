@@ -244,8 +244,11 @@ if dim_2D:
       try:
         angle = get_element(f, "design_rotAngle_plain", args.h5_region)
       except:
-        angle = numpy.zeros((len(s1),1))  
-      im = show_rot_cross(coords, s1, s2, angle, args.hom_dir, int(args.res), float(args.scale))
+        angle = numpy.zeros((len(s1),1))
+      if args.hom_grad == 'none':
+        im = show_rot_cross(coords, s1, s2, angle, args.hom_dir, int(args.res), float(args.scale))
+      else:
+        im = show_rot_cross_grad(coords, s1, s2, angle, args.hom_grad, args.hom_dir, int(args.res), float(args.scale))          
     else:
       if args.hom_grad == 'none':
         im = show_frame(coords, s1, s2, args.hom_dir, int(args.res))
