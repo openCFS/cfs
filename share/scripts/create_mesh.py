@@ -34,10 +34,10 @@ def create_standard_mesh(resolution):
   mesh.bc.append(("west", range(0, (nx+1)*ny+1, nx+1)))
   mesh.bc.append(("east", range(nx, (nx+1)*(ny+1), nx+1)))
 
-  mesh.bc.append(("left_lower", 0))
-  mesh.bc.append(("right_lower", nx))
-  mesh.bc.append(("left_upper", (nx+1)*ny))
-  mesh.bc.append(("right_upper", (nx+1)*(ny+1)))
+  mesh.bc.append(("left_lower", [0]))
+  mesh.bc.append(("right_lower", [nx]))
+  mesh.bc.append(("left_upper", [(nx+1)*ny]))
+  mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
 
 
 parser = argparse.ArgumentParser()
