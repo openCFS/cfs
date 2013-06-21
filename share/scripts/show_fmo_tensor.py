@@ -180,7 +180,7 @@ parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, '
 parser.add_argument("--scale", help="manual scaling factor", default=-1)
 parser.add_argument("--res", help="x-resolution (default 1200)", default=1200)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180)
-parser.add_argument("--show", help="default | ortho_norm | mono_norm (3D) | ortho_err | e21_normed (2D) | hom_rect | shear", default="default")
+parser.add_argument("--show", help="default | ortho_norm | mono_norm (3D) | e21_normed (2D) | hom_rect | shear", default="default")
 parser.add_argument("--notation", help="mandel | voigt (default 'mandel')", default="mandel")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)

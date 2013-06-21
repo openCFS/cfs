@@ -231,7 +231,8 @@ def perform_cfs_rotation(tensor, steps, aux_data = "default"):
         if tensor.shape == (2,3):
           aux.append(numpy.min((sqrt(test[0,0]**2 + test[0,1]**2 + test[1,2]**2), sqrt(test[1,0]**2 + test[1,1]**2 + test[0,2]**2))))
       if aux_data == "e21_normed":
-        aux.append(numpy.abs(test[1,0]/test[1,1]))    
+        aux.append(test[2,2])
+        # aux.append(numpy.abs(test[1,0]/test[1,1]))    
                   
       idx += 1
   
