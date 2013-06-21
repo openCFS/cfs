@@ -287,6 +287,7 @@ namespace CoupledField
                                 StdVector< const Elem* > & elems,
                                 const std::set<RegionIdType>& srcRegions 
                                 = std::set<RegionIdType>(),
+                                Double globalTol = 0.0, Double localTol = 1e-2,
                                 bool printWarnings = true);
     
     //! Return for a given node number the element and a local coordinate
@@ -886,6 +887,7 @@ namespace CoupledField
     void MapGlobPointsToLoc( const StdVector<PointElemMatch>& matches,
                              StdVector<const Elem*>& elems,
                              StdVector<LocPoint>& lps,
+                             Double tol = 1e-2,
                              bool printWarnings = true);
 
 #ifdef USE_CGAL
@@ -904,14 +906,18 @@ namespace CoupledField
     //! This algorithm makes use of the CGAL fast intersection algorithm.
     void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
                                    const std::set<RegionIdType> srcRegions 
-                                   = std::set<RegionIdType>());
+                                   = std::set<RegionIdType>(),
+                                   Double tol = 0.0 );
 
     //! List containing the "boxes" of all elements
     std::vector<HandleBox> elemBoxes_;
 
     //! \param coords(in) The vector of global coordinates
     //! \param id(in) An identifier for this specific coordinate (e.g. index in a vector)
-    HandleBox CreateBoxFromCoord(const Vector<double> coors, UInt *id);
+    //! \param tol(in) Tolerance in meters which determines the size of the bounding box
+    HandleBox CreateBoxFromCoord( const Vector<double> coors,
+                                  UInt *id,
+                                  Double tol = 0.0 );
 
     //! create a box from a given element
     HandleBox CreateBoxFromElement(const Elem* elem,Double globToler);

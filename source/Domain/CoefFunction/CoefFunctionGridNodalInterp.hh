@@ -132,6 +132,12 @@ private:
 
   ///Matrix storing the weight for conservative interpolation
   shared_ptr<BaseMatrix> consInterpMat_;
+  
+  //! global tolerance (size in meters of bounding box of nodes)
+  Double globalTol_;
+  
+  //! local tolerance (interval of local coordinates outside of element)
+  Double localTol_;
   //@}
 
   // =====================================
