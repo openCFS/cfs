@@ -32,7 +32,7 @@ else:
   assert(args.fms_stiff1 <> None and args.fms_stiff2 <> None and args.fms_angle <> None )
   # the files are plain data lists (vectors)  
   stiff1 = numpy.genfromtxt(args.fms_stiff1)
-  stiff2 = numpy.genfromtxt(args.fms_stiff1)
+  stiff2 = numpy.genfromtxt(args.fms_stiff2)
   angle = numpy.genfromtxt(args.fms_angle)
   b = numpy.zeros((len(stiff1), 3))
   b[:,0] = stiff1
