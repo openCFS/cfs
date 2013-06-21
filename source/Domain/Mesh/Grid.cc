@@ -205,6 +205,7 @@ namespace CoupledField
                                      StdVector< LocPoint >& localCoords,
                                      StdVector< const Elem* > & elems,
                                      const std::set<RegionIdType>& srcRegions,
+                                     Double globalTol, Double localTol,
                                      bool printWarnings) {
 
     // 1) first, determine element candidates for each point, determined by
@@ -216,10 +217,10 @@ namespace CoupledField
      matches[i].globCoord = globCoords[i];
     }
     
-    MapPointsToBoundingBoxes( matches, srcRegions );
+    MapPointsToBoundingBoxes( matches, srcRegions, globalTol );
     
     // 2) Afterwards loop over all candidates 
-    MapGlobPointsToLoc( matches, elems, localCoords, printWarnings );
+    MapGlobPointsToLoc( matches, elems, localCoords, localTol, printWarnings );
   }
   
   const Elem* Grid::GetElemAtNode( UInt nodeNum,
@@ -773,6 +774,7 @@ namespace CoupledField
   void Grid::MapGlobPointsToLoc( const StdVector<PointElemMatch>& matches,
                                  StdVector<const Elem*>& elems,
                                  StdVector<LocPoint>& lps,
+                                 Double tol,
                                  bool printWarnings) {
     
     
@@ -788,8 +790,8 @@ namespace CoupledField
       std::set<const Elem*>::const_iterator it;
       Vector<Double> locCoord;
       const std::set<const Elem*> & mElems = matches[iM].matches;
-      StdVector<const Elem*> candidateElem;
-      StdVector<LocPoint>  candidateLp;
+      StdVector<const Elem*> candidateElem, vagueCandElem;
+      StdVector<LocPoint>  candidateLp, vagueCandLp;
 
       
       // loop over elements
@@ -798,16 +800,24 @@ namespace CoupledField
         // check, if global point can be mapped to the element
         shared_ptr<ElemShapeMap> esm = GetElemShapeMap(*it);
         esm->Global2Local(locCoord, matches[iM].globCoord );
-        if( esm->CoordIsInsideElem(locCoord, 1e-2) ) {
+        if( esm->CoordIsInsideElem(locCoord, 0.0) ) {
           candidateElem.Push_back( *it );
-          candidateLp.Push_back(locCoord );
+          candidateLp.Push_back( locCoord );
+        } else if ( esm->CoordIsInsideElem(locCoord, tol) ) {
+          vagueCandElem.Push_back( *it );
+          vagueCandLp.Push_back( locCoord );
         }
       }
 
       // Check, how many elements have been found
-      if( candidateElem.GetSize() == 0) {
-        if(printWarnings)
-          WARN( "No element found for location " <<  matches[iM].globCoord.ToString() );
+      if ( candidateElem.GetSize() == 0 ) {
+        if ( vagueCandElem.GetSize() > 0 ) {
+          elems[iM] = vagueCandElem[0];
+          lps[iM] = vagueCandLp[0];
+        } else if (printWarnings) {
+          WARN( "No element found for location "
+                << matches[iM].globCoord.ToString() );
+        }
       } else {
         elems[iM] = candidateElem[0];
         lps[iM] = candidateLp[0];
@@ -857,13 +867,16 @@ namespace CoupledField
   
   
 
-  HandleBox Grid::CreateBoxFromCoord(const Vector<double> coords, UInt* id) {
+  HandleBox Grid::CreateBoxFromCoord( const Vector<double> coords, UInt* id,
+                                      Double tol )
+  {
     if(coords.GetSize()==2){
-      return HandleBox(BBox3D(coords[0], coords[1], 0.0,
-                              coords[0], coords[1], 0.0), id);
+      return HandleBox(BBox3D(coords[0]-tol/2.0, coords[1]-tol/2.0, 0.0,
+                              coords[0]+tol/2.0, coords[1]+tol/2.0, 0.0), id);
     }else{
-      return HandleBox(BBox3D(coords[0], coords[1], coords[2],
-                              coords[0], coords[1], coords[2]), id);
+      return HandleBox(BBox3D(coords[0]-tol/2.0, coords[1]-tol/2.0,
+                              coords[2]-tol/2.0, coords[0]+tol/2.0,
+                              coords[1]+tol/2.0, coords[2]+tol/2.0), id);
     }
   }
 
@@ -915,7 +928,8 @@ namespace CoupledField
   }
   
   void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                       const std::set<RegionIdType> srcRegions) {
+                                       const std::set<RegionIdType> srcRegions,
+                                       Double tol ) {
 
     // If we haven't initialized the grid bounding boxes yet, do so now!
     if(elemBoxes_.empty())
@@ -939,12 +953,13 @@ namespace CoupledField
     UInt numPoints = matches.GetSize();
     std::vector<HandleBox> pointBoxes (numPoints);
     
-    // create also temporagy index array (will be automatically deleted)
+    // create also temporary index array (will be automatically deleted)
     boost::scoped_array<UInt> nodeIndices(new UInt[numPoints]);
     
     for( UInt i = 0; i < numPoints; ++i ) {
       nodeIndices[i] = i;
-      pointBoxes[i] = CreateBoxFromCoord( matches[i].globCoord, &nodeIndices[i] );
+      pointBoxes[i] = CreateBoxFromCoord( matches[i].globCoord,
+                                          &nodeIndices[i], tol );
     }
 
     // run the intersection algorithm and store results in a vector

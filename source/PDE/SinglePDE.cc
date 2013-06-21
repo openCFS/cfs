@@ -1338,6 +1338,7 @@ namespace CoupledField {
                                        locPoints,
                                        elems,
                                        regions,
+                                       0.0, 1.0e-2,
                                        false );
 
       for(UInt i=0, n=globPoints.GetSize(); i<n; i++) {
