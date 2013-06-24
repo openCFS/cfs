@@ -152,8 +152,12 @@ def to_frustum_center(start, end, center, scale, elem, direction):
   angle = 0.5 * (start[2] + end[2])
   if direction == 'vertical':
     angle += 0.5 * numpy.pi
-  val_1 = start[1]
-  val_2 = end[1]
+    
+  idx = 0 if direction == 'vertical' else 1
+  alt_idx = 1 if direction == 'vertical' else 0  
+    
+  val_1 = start[idx]
+  val_2 = end[idx]
   
   tupl = []
   points = []
@@ -162,10 +166,10 @@ def to_frustum_center(start, end, center, scale, elem, direction):
   #print end
   #print elem
   
-  points.append((-1.0 * elem[0]/2, -val_1 * elem[1]/2))
-  points.append(( 1.0 * elem[0]/2, -val_2 * elem[1]/2))
-  points.append(( 1.0 * elem[0]/2,  val_2 * elem[1]/2))
-  points.append((-1.0 * elem[0]/2,  val_1 * elem[1]/2))
+  points.append((-1.0 * elem[alt_idx]/2, -val_1 * elem[idx]/2))
+  points.append(( 1.0 * elem[alt_idx]/2, -val_2 * elem[idx]/2))
+  points.append(( 1.0 * elem[alt_idx]/2,  val_2 * elem[idx]/2))
+  points.append((-1.0 * elem[alt_idx]/2,  val_1 * elem[idx]/2))
   
   for i in range(4):
     #print "i=" + str(i + 1) + " -> " + str(points[i])
@@ -391,8 +395,6 @@ def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale=-1):
         
         center = ((0.5 * (start[0] + right[0]), max[1] - start[1]))
         
-        # print "start=" + str(start) + " right=" + str(right) + " center=" + str(center) 
-        
         pol = to_frustum_center(v_start, v_right, center, (dx, dy), elem, 'horizontal') 
         draw.polygon(pol, fill="black")
   
@@ -403,8 +405,10 @@ def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale=-1):
         upper, v_upper = get_interpol_data(out, ip_data, ip_near, (y+1) * (2*nx+1) + x)
 
         center = ((start[0], max[1] - 0.5 * (start[1] + upper[1])))
-        
-        # print "start=" + str(start) + " upper" + str(upper) + " center=" + str(center) 
+
+        if y == 0:
+          print "start=" + str(start) + " right=" + str(right) + " v_start=" + str(v_start) + " v_upper=" + str(v_upper)
+          #if v_start[0] < 0.2:
         
         pol = to_frustum_center(v_upper, v_start, center, (dx, dy), elem, 'vertical') 
         draw.polygon(pol, fill="black")
