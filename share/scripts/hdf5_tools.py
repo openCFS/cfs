@@ -141,6 +141,7 @@ def to_rectangle_center(height, width, angle, x_offset, y_offset):
   return tupl  
 
 # draws a rotated frustum
+# @param direction either vertical or horizontal, not both!
 def to_frustum_center(start, end, center, scale, elem, direction):
   # 4 ------- 3
   # |         |
@@ -149,16 +150,17 @@ def to_frustum_center(start, end, center, scale, elem, direction):
 
   # print horizontal line
   angle = 0.5 * (start[2] + end[2])
+  if direction == 'vertical':
+    angle += 0.5 * numpy.pi
   val_1 = start[1]
   val_2 = end[1]
   
   tupl = []
   points = []
   
-  print start
-  print end
-  print elem
-
+  #print start
+  #print end
+  #print elem
   
   points.append((-1.0 * elem[0]/2, -val_1 * elem[1]/2))
   points.append(( 1.0 * elem[0]/2, -val_2 * elem[1]/2))
@@ -166,7 +168,7 @@ def to_frustum_center(start, end, center, scale, elem, direction):
   points.append((-1.0 * elem[0]/2,  val_1 * elem[1]/2))
   
   for i in range(4):
-    print "i=" + str(i + 1) + " -> " + str(points[i])
+    #print "i=" + str(i + 1) + " -> " + str(points[i])
     r = (cos(angle) * points[i][0] -sin(angle)*points[i][1], sin(angle) * points[i][0] + cos(angle) * points[i][1])
     tupl.append(((center[0] + r[0]) * scale[0], (center[1] + r[1]) * scale[1]))
   
@@ -227,7 +229,9 @@ def get_interpol_data(coords, data, fallback, x, eval = True):
 
 ## helper which returns an interolated grid and one nearest neighbor interpolated grid
 
-def get_interpolation(coords, grad, s1, s2, angle = None):
+def get_interpolation(coords, grad, sample, s1, s2, angle = None):
+  assert(sample == 'elem_nodes' or sample == 'edge_centers')
+  
   centers, min, max, elem = coords
   # convert to 2D
   c = numpy.zeros((len(centers), 2))
@@ -236,12 +240,35 @@ def get_interpolation(coords, grad, s1, s2, angle = None):
  
   # where we want nodes
   nx = int((max[0] - min[0]) / elem[0])
+  print str((max[1] - min[1]) / elem[1])
   ny = int((max[1] - min[1]) / elem[1])
-  out = numpy.zeros(((nx + 1) * (ny + 1), 2))
-  for y in range(ny+1):
-    for x in range(nx+1):
-      out[y * (nx+1) + x][0] = float(x)/nx * max[0]
-      out[y * (nx+1) + x][1] = float(y)/ny * max[1]
+  out = None
+  if sample == 'elem_nodes':
+    out = numpy.zeros(((nx + 1) * (ny + 1), 2))
+    for y in range(ny+1):
+      for x in range(nx+1):
+        out[y * (nx+1) + x][0] = float(x)/nx * max[0]
+        out[y * (nx+1) + x][1] = float(y)/ny * max[1]
+  else: # 'edge_centers' this is much more complicated, draw a coarse grid and mark all element edge centers!
+    # ---5-------6----
+    # |      |       | 
+    # 2      3       4
+    # |      |       |
+    # ---0-------1----
+    
+    out = numpy.zeros(((2 * nx + 1) * (2 * ny + 1), 2))
+    # 0,1,5,6
+    for y in range(ny+1):
+      for x in range(nx):
+        out[y * (2*nx+1) + x][0] = float(x)/nx * max[0] + 0.5 * elem[0]
+        out[y * (2*nx+1) + x][1] = float(y)/ny * max[1]
+        # print "out[" + str(y * (2*nx+1) + x) + "] = " + str(out[y * (2*nx+1) + x])
+    # 2.3.4
+    for y in range(ny):
+      for x in range(nx+1):
+        out[nx + y * (2*nx+1) + x][0] = float(x)/nx * max[0]
+        out[nx + y * (2*nx+1) + x][1] = float(y)/ny * max[1] + 0.5 * elem[1]
+        # print "out[" + str(nx + y * (2*nx+1) + x) + "] = " + str(out[nx + y * (2*nx+1) + x])
 
   v = numpy.zeros((len(s1),  2 if angle == None else 3))
   for i in range(len(s1)):
@@ -270,7 +297,7 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
   length = elem[0] * dx
  
   # print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " height=" + str(height) + " length=" + str(length) + " min=" + str(min) + " max=" + str(max)
-  ip_data, ip_near, out, nx, ny = get_interpolation(coords, grad, s1, s2)
+  ip_data, ip_near, out, nx, ny = get_interpolation(coords, grad, 'elem_nodes', s1, s2)
   
 
   for y in range(ny+1):
@@ -347,21 +374,42 @@ def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale=-1):
 
   delta_angle = numpy.max(angle[:,0]) - numpy.max(angle[:,0]) 
 
-  # print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " height=" + str(height) + " length=" + str(length) + " min=" + str(min) + " max=" + str(max)
-  ip_data, ip_near, out, nx, ny = get_interpolation(coords, grad, s1, s2, angle)
+  #print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " min=" + str(min) + " max=" + str(max)
+  ip_data, ip_near, out, nx, ny = get_interpolation(coords, grad, 'edge_centers', s1, s2, angle)
 
+  #print "nx="  + str(nx) + " ny=" + str(ny)
+  
   if scale == -1:
     scale = 1.0 if delta_angle == 0.0 else 0.8 
 
-  for y in range(ny):
-    for x in range(ny):
-      start, v_start = get_interpol_data(out, ip_data, ip_near, y * (nx+1) + x)
-      right, v_right = get_interpol_data(out, ip_data, ip_near, y * (nx+1) + x + 1, eval = True if x < nx else False)
-      
-      center = ((0.5 * start[0] + right[0]), (0.5 * start[1] + right[1])) 
-      
-      pol = to_frustum_center(v_start, v_right, center, (dx, dy), elem, direction) 
-      draw.polygon(pol, fill="black")
+  # out is rather complex set, see get_interpolation for details!
+  if not direction == 'vertical':
+    for y in range(ny):
+      for x in range(nx):
+        start, v_start = get_interpol_data(out, ip_data, ip_near, nx + y * (2*nx+1) + x)
+        right, v_right = get_interpol_data(out, ip_data, ip_near, nx + y * (2*nx+1) + x + 1)
+        
+        center = ((0.5 * (start[0] + right[0]), max[1] - start[1]))
+        
+        # print "start=" + str(start) + " right=" + str(right) + " center=" + str(center) 
+        
+        pol = to_frustum_center(v_start, v_right, center, (dx, dy), elem, 'horizontal') 
+        draw.polygon(pol, fill="black")
+  
+  if not direction == 'horizontal':
+    for y in range(ny):
+      for x in range(nx):
+        start, v_start = get_interpol_data(out, ip_data, ip_near, y * (2*nx+1) + x)
+        upper, v_upper = get_interpol_data(out, ip_data, ip_near, (y+1) * (2*nx+1) + x)
+
+        center = ((start[0], max[1] - 0.5 * (start[1] + upper[1])))
+        
+        # print "start=" + str(start) + " upper" + str(upper) + " center=" + str(center) 
+        
+        pol = to_frustum_center(v_upper, v_start, center, (dx, dy), elem, 'vertical') 
+        draw.polygon(pol, fill="black")
+
+
 
   return im  
 
@@ -428,7 +476,7 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1):
   delta_angle = numpy.max(angle[:,0]) - numpy.max(angle[:,0]) 
 
   if scale == -1:
-    scale = 1.0 if delta_angle == 0.0 else 0.8 
+    scale = 1.02 if delta_angle == 0.0 else 0.8 
 
   length =  scale * (elem[0]) * dx
   
@@ -438,8 +486,9 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1):
     x_off = (coord[0] + min[0]) * dx
     y_off = (coord[1] + min[1]) * dy
 
-    v1 = s1[i,0]
-    v2 = s2[i,0]
+    # we need downscale the values when we overscale due to overlapping 
+    v1 = s1[i,0] / numpy.max((scale, 1.))
+    v2 = s2[i,0] / numpy.max((scale, 1.))
     theta = angle[i,0]
     
     # b

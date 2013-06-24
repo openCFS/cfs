@@ -190,6 +190,7 @@ parser.add_argument("--symmetries_planes", help="'true' or 'false' for 3D also s
 parser.add_argument("--hom_access", help="the 'plain ' or 'smart' hom values (default 'smart')", default = "smart")
 parser.add_argument("--hom_grad", help="interpolation of design: 'none', 'nearest', linear', 'cubic' (default 'linear')", default="linear", choices=['none', 'nearest', 'linear', 'cubic'] )
 parser.add_argument("--hom_dir", help="visualization of stiffness directions: 'both', 'horizontal', 'vertical' (default 'both')", default="both", choices=['both', 'horizontal', 'vertical'] )
+parser.add_argument("--hom_angle", help="bias added to the angle in grad!", default=0.0, type=float )
 parser.add_argument("--save", help="save 'image.png' or VTK Poly Data file 'file.vtp'")
 args = parser.parse_args()
 
@@ -242,9 +243,14 @@ if dim_2D:
     if args.show == "hom_rot_cross":
       angle = None
       try:
-        angle = get_element(f, "design_rotAngle_plain", args.h5_region)
+        # we need to copy the data, as we change the angle beyond and this would be written back to H5!
+        a = get_element(f, "design_rotAngle_plain", args.h5_region)
+        angle = numpy.zeros((len(a),1))
+        angle[:,0] = a[:,0]
       except:
         angle = numpy.zeros((len(s1),1))
+      # add angle bias
+      angle[:,0] += args.hom_angle * numpy.pi/180  
       if args.hom_grad == 'none':
         im = show_rot_cross(coords, s1, s2, angle, args.hom_dir, int(args.res), float(args.scale))
       else:
