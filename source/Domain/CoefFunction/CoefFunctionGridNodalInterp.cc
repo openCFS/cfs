@@ -285,6 +285,8 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
     WARN("There were " << elemCounter << " unmapped nodes. Perhaps you should increase the tolerances!");
 
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("numUnmappedNodes")->SetValue(elemCounter);
+  this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("globalTol")->SetValue(globalTol_);
+  this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("localTol")->SetValue(globalTol_);
 
   //if the user wants to, we save the node->element association here
   //now we store the information in our map
