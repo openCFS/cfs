@@ -200,16 +200,7 @@ def write_density_file(filename, data_inp, setname_inp, param = 0, elemnr=None):
 
 
 ## write simple multi-design density files
-def write_multi_design_file(filename, data, design1, design2 = None, design3 = None, design4 = None):
-
-  designs = []
-  designs.append(design1)
-  if design2:
-    designs.append(design2)
-  if design3:
-    designs.append(design3)  
-  if design4:
-    designs.append(design4)
+def write_multi_design_file(filename, data, designs, elemnr = None):
 
   assert(data.shape[1] == len(designs))
 
@@ -222,7 +213,8 @@ def write_multi_design_file(filename, data, design1, design2 = None, design3 = N
   
   for d in range(len(designs)):
     for e in range(len(data)):
-      out.write('    <element nr="' + str(e+1) + '" type="' + designs[d] + '" design="' + str(data[e, d]) + '"/>\n')
+      enr = e + 1 if elemnr == None else int(elemnr[e])
+      out.write('    <element nr="' + str(enr) + '" type="' + designs[d] + '" design="' + str(data[e, d]) + '"/>\n')
   out.write('  </set>\n')
   out.write(' </cfsErsatzMaterial>\n')
   out.close()

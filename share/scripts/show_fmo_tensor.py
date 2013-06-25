@@ -229,7 +229,8 @@ if args.input.startswith('['):
 else:   
   # read 2D CFS optimization result 
   f = h5py.File(args.input)
-  centers, min, max, elem_dim  = centered_elements(f)
+  validate_region(f, args.h5_region)
+  centers, min, max, elem_dim  = centered_elements(f, args.h5_region)
   tensor = get_element(f, args.tensor, args.h5_region, int(args.h5_step))
   
 #perform 2D and 3D

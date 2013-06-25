@@ -23,42 +23,54 @@ def dump_tensor(tensor):
       print '%(val)10.4g ' % {"val": tensor[y][x]},
     print ""    
   
+# checks if the region exists
+# exits with an message if not
+def validate_region(hdf5_file, region):
+  regions = hdf5_file['/Mesh/Regions']
+  if not any(k in regions.keys() for k in [region]):
+    print "region '" + region + "' not within regions " + str(regions.keys())
 
 ## give back elements with barycenters
 # assumes rectangles
 # @return list barycenter tuple ordered by elements and min and max node coordinates and first element dimensions
-def centered_elements(hdf5_file):
-  elements = hdf5_file['/Mesh/Elements/Connectivity']
+def centered_elements(hdf5_file, region):
+  all_elements = hdf5_file['/Mesh/Elements/Connectivity'] # for all regions
+  reg_elements = hdf5_file['/Mesh/Regions/' + region + '/Elements']
   types = hdf5_file['/Mesh/Elements/Types']
-  nodes = hdf5_file['/Mesh/Nodes/Coordinates']
+  all_nodes = hdf5_file['/Mesh/Nodes/Coordinates']
+  reg_nodes = hdf5_file['/Mesh/Regions/' + region + '/Nodes']
   
-  # first element dimensions
+  # determine elem_dim from first element dimensions, ignore region
   node_coords = []
-  for n in range(len(elements[0])):
-    node_coords.append(nodes[elements[0][n]-1]) # numbers are one-based
- 
-  # print node_coords
- 
+  for n in range(len(all_elements[0])):
+    node_coords.append(all_nodes[all_elements[0][n]-1]) # numbers are one-based
   ma = np.array([max(node_coords,key=operator.itemgetter(0))[0], max(node_coords,key=operator.itemgetter(1))[1],  max(node_coords,key=operator.itemgetter(2))[2]])
   mi = np.array([min(node_coords,key=operator.itemgetter(0))[0], min(node_coords,key=operator.itemgetter(1))[1],  min(node_coords,key=operator.itemgetter(2))[2]])
- 
   elem_dim = ma - mi
     
-  # print "ed=" + str(elem_dim) + " ma=" + str(ma) + " mi=" + str(mi)
+  # determine region dimensions, we need to resort for the desired region! Due to 1 to zero based conversion we need to do it manually :(
+  nodes = numpy.zeros((len(reg_nodes), 3))
+  for e in range(len(reg_nodes)):
+    nodes[e] = all_nodes[reg_nodes[e] - 1]  
+  min_dim = min(nodes[:,0]), min(nodes[:,1]) 
+  max_dim = max(nodes[:,0]), max(nodes[:,1])  
     
   result = []
-  
-  for e in range(len(elements)):
-     if types[e] == 6:
-       nod = elements[e]
+  for e in range(len(reg_elements)):
+    idx = reg_elements[e] - 1 # cfs writes one based
+    if types[idx] == 6:
+       nod = all_elements[idx]
        center = numpy.array([0.0, 0.0, 0.0])
        for n in range(len(nod)):
-         center += nodes[nod[n]-1] # numbers are one-based
+         center += all_nodes[nod[n]-1] # numbers are one-based
          # print "el=" + str(e) + " n=" + str(n) + " node=" + str(nod[n]) + "->" + str(nodes[nod[n]-1]) + " center=" + str(center) 
        center *= 1.0/len(nod)
        result.append(center)
+       # print "e=" + str(e) + " idx=" + str(idx) + " nod=" + str(nod) + " center=" + str(center) 
+    else:
+      assert(False) # 3D? not implented yet   
 
-  return result, (min(nodes[:,0]), min(nodes[:,1])), (max(nodes[:,0]), max(nodes[:,1])), elem_dim     
+  return result, min_dim, max_dim, elem_dim     
                 
 ## find minimal and maximal coordinate
 # @param coordinates as from centered_elements
@@ -142,21 +154,22 @@ def to_rectangle_center(height, width, angle, x_offset, y_offset):
 
 # draws a rotated frustum
 # @param direction either vertical or horizontal, not both!
-def to_frustum_center(start, end, center, scale, elem, direction):
+def to_frustum_center(start, end, center, elem_scale, elem, scale, direction):
   # 4 ------- 3
   # |         |
   # |         |
   # 1---------2
 
-  # print horizontal line
+
   angle = 0.5 * (start[2] + end[2])
+    # print "horizontal line
   if direction == 'vertical':
     angle += 0.5 * numpy.pi
     
   idx = 0 if direction == 'vertical' else 1
   alt_idx = 1 if direction == 'vertical' else 0  
     
-  val_1 = start[idx]
+  val_1 = start[idx] 
   val_2 = end[idx]
   
   tupl = []
@@ -166,15 +179,18 @@ def to_frustum_center(start, end, center, scale, elem, direction):
   #print end
   #print elem
   
-  points.append((-1.0 * elem[alt_idx]/2, -val_1 * elem[idx]/2))
-  points.append(( 1.0 * elem[alt_idx]/2, -val_2 * elem[idx]/2))
-  points.append(( 1.0 * elem[alt_idx]/2,  val_2 * elem[idx]/2))
-  points.append((-1.0 * elem[alt_idx]/2,  val_1 * elem[idx]/2))
+  #WARNING CHECK the scaling!!!
+  
+  # we scale the element scale, such it overlaps. therefore wen need to scale reciproc with the vale, which cancels!
+  points.append((-1.0 * scale * elem[alt_idx]/2, 1./max((1, scale)) * -val_1 * scale * elem[idx]/2))
+  points.append(( 1.0 * scale * elem[alt_idx]/2, 1./max((1, scale)) * -val_2 * scale * elem[idx]/2))
+  points.append(( 1.0 * scale * elem[alt_idx]/2, 1./max((1, scale)) *  val_2 * scale * elem[idx]/2))
+  points.append((-1.0 * scale * elem[alt_idx]/2, 1./max((1, scale)) *  val_1 * scale * elem[idx]/2))
   
   for i in range(4):
     #print "i=" + str(i + 1) + " -> " + str(points[i])
     r = (cos(angle) * points[i][0] -sin(angle)*points[i][1], sin(angle) * points[i][0] + cos(angle) * points[i][1])
-    tupl.append(((center[0] + r[0]) * scale[0], (center[1] + r[1]) * scale[1]))
+    tupl.append(((center[0] + r[0]) * elem_scale[0], (center[1] + r[1]) * elem_scale[1]))
   
   return tupl
 
@@ -395,7 +411,7 @@ def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale=-1):
         
         center = ((0.5 * (start[0] + right[0]), max[1] - start[1]))
         
-        pol = to_frustum_center(v_start, v_right, center, (dx, dy), elem, 'horizontal') 
+        pol = to_frustum_center(v_start, v_right, center, (dx, dy), elem, scale, 'horizontal') 
         draw.polygon(pol, fill="black")
   
   if not direction == 'horizontal':
@@ -406,11 +422,10 @@ def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale=-1):
 
         center = ((start[0], max[1] - 0.5 * (start[1] + upper[1])))
 
-        if y == 0:
-          print "start=" + str(start) + " right=" + str(right) + " v_start=" + str(v_start) + " v_upper=" + str(v_upper)
-          #if v_start[0] < 0.2:
+        #if y == 0:
+        #  print "start=" + str(start) + " right=" + str(right) + " v_start=" + str(v_start) + " v_upper=" + str(v_upper)
         
-        pol = to_frustum_center(v_upper, v_start, center, (dx, dy), elem, 'vertical') 
+        pol = to_frustum_center(v_upper, v_start, center, (dx, dy), elem, scale, 'vertical') 
         draw.polygon(pol, fill="black")
 
 
