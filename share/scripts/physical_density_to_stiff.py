@@ -19,8 +19,8 @@ if args.threshold > 0.:
 if args.angle > 0.:
     data = numpy.zeros((len(d), 3))
     for i in range(len(d)):
-        data[i,0] = d
-        data[i,1] = d
+        data[i,0] = d[i]
+        data[i,1] = d[i]
         data[i,2] = args.angle
     write_multi_design_file(args.output, data, ["stiff1", "stiff2","rotAngle"], nr)
 else:
