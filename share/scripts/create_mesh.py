@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from mesh_tool import *
-
+import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--res", help="long side resolution of mesh if action is 'mesh", type=int, required = True )

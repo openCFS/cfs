@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import argparse, Image, sys, os, copy
+import Image, sys, os, copy
 
 # writes a dense two region mesh
 # def write_dense_mesh(pixels, size, file, threshold):

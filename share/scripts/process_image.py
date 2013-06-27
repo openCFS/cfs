@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from mesh_tool import *
+import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("input", help="a greyscale image (any format, use gif when png makes problems)")
