@@ -37,6 +37,7 @@ ADD_CUSTOM_TARGET(share_xml_cfsmat ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATacoustic.xsd ${DST_DIR}/Schemas/CFS_MATacoustic.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATelectric.xsd ${DST_DIR}/Schemas/CFS_MATelectric.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATflow.xsd ${DST_DIR}/Schemas/CFS_MATflow.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATtest.xsd ${DST_DIR}/Schemas/CFS_MATtest.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATheatConduction.xsd ${DST_DIR}/Schemas/CFS_MATheatConduction.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATmagnetic.xsd ${DST_DIR}/Schemas/CFS_MATmagnetic.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATmagStrict.xsd ${DST_DIR}/Schemas/CFS_MATmagStrict.xsd
