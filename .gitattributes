@@ -1388,6 +1388,8 @@ source/Materials/Models/SimplePreisachInv.cc -text
 source/Materials/Models/SimplePreisachInv.hh -text
 source/Materials/PiezoMaterial.cc -text
 source/Materials/PiezoMaterial.hh -text
+source/Materials/TestMaterial.cc -text
+source/Materials/TestMaterial.hh -text
 source/ODESolve/BaseODEProblem.hh svneol=native#text/plain
 source/ODESolve/BaseODESolver.hh svneol=native#text/plain
 source/ODESolve/CMakeLists.txt svneol=native#text/plain
