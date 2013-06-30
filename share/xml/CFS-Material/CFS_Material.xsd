@@ -20,6 +20,7 @@
   <xsd:include schemaLocation="Schemas/CFS_MATmagnetic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATmechanical.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATpiezo.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_MATtest.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATpyroelectric.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATthermoelastic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATmagStrict.xsd"/>
@@ -45,6 +46,8 @@
               <xsd:element name="electric" type="DT_MatElectric"
 	        minOccurs="0" maxOccurs="1"/>
               <xsd:element name="flow" type="DT_MatFlow"
+	        minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="testmat" type="DT_MatTest"
 	        minOccurs="0" maxOccurs="1"/>
               <xsd:element name="heatConduction" type="DT_MatHeatConduction"
 	        minOccurs="0" maxOccurs="1"/>

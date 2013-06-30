@@ -41,6 +41,7 @@
 #include "PDE/MagneticPDE.hh"
 #include "PDE/MagEdgePDE.hh"
 #include "PDE/MechPDE.hh"
+#include "PDE/TestPDE.hh"
 
 // Coupling of Single PDEs
 #include "CoupledPDE/DirectCoupledPDE.hh"
@@ -648,6 +649,10 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
         ptSinglePde_[i] = new PerturbedFlowPDE(defaultGrid, actPdeNode, infoNode,
                                                simState_, this );
       }
+    }
+    else if (actPdeName == "testPDE") {
+        ptSinglePde_[i] = new TestPDE(defaultGrid, actPdeNode, infoNode,
+                                      simState_, this );
     }
     else
     {

@@ -1,0 +1,209 @@
+
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for PDE description for the TEST PDE
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of element for test PDE -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="testPDE" type="DT_PDETest"
+    substitutionGroup="PDEBasic">
+    <xsd:unique name="CS_TestRegion">
+      <xsd:selector xpath="cfs:region"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+  </xsd:element>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for test PDE -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_PDETest">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PDEBasic">
+        <xsd:sequence>
+
+          <!-- Regions the PDE lives on -->
+          <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Surface regions on which results can be calculated-->
+          <xsd:element name="surface" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Non-conforming interfaces of the PDE -->
+          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList"
+                       minOccurs="0" maxOccurs="1"/>
+
+          <!-- Initial conditions (optional) -->
+          <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                            
+              <!-- Initial state of previous sequence step / external file -->
+              <xsd:element name="initialState" type="DT_InitialState" minOccurs="0" maxOccurs="1"/>
+              
+ 		      </xsd:choice>
+ 		    </xsd:complexType>
+		  </xsd:element>
+          
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:choice minOccurs="0" maxOccurs="unbounded">
+                <!-- Dirichlet Boundary Conditions -->
+              <!-- Dirichlet Boundary Conditions -->  
+                <xsd:element name="testGround"    type="DT_BcHomScalar"/>
+                <xsd:element name="testPotential" type="DT_BcInhomScalar"/>       
+                
+                <!-- test specific boundary conditions -->
+                <xsd:element name="testSourceDensity" type="DT_BcInhomScalar"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+		  <!-- Section for specifying initial conditions (optional) -->
+          <xsd:element name="InitialCondition" type="xsd:double" minOccurs="0"/>
+
+          <!-- Desired solution values (optional) -->
+          <xsd:element name="storeResults" type="DT_TestStoreResults"
+            minOccurs="0" maxOccurs="1"/>
+
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of the test PDE unknown types -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_TestUnknownType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="testDof"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of the boundary condition types for test PDE  -->
+  <!-- ******************************************************************* -->
+
+  <!-- Element type for homogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_TestHD">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="quantity" default="testDof"
+          type="DT_TestUnknownType"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_TestID">
+    <xsd:complexContent>
+      <xsd:extension base="DT_TestHD">
+        <xsd:attribute name="value" type="xsd:token" use="required"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional"
+          default="0.0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying inhomogeneous neumann boundary conditions -->
+  <xsd:complexType name="DT_TestIN">
+    <xsd:complexContent>
+      <xsd:extension base="DT_TestHD">
+        <xsd:attribute name="value" type="xsd:double" use="optional"
+          default="0.0"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional"
+          default="0.0"/>
+      </xsd:extension>    
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+
+  <!-- Element type for specifying rhs source term -->
+  <xsd:complexType name="DT_TestRHS">
+    <xsd:attribute name="region" type="xsd:token" use="required"/>
+    <xsd:attribute name="isharmonic" type="DT_CFSBool" use="required"/>
+    <xsd:attribute name="inputId" type="xsd:token" use="optional"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of syntax for specifying output quantities of CFS -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of nodal result types of test PDE -->
+  <xsd:simpleType name="DT_TestNodeResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="testDof"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Definition of element result types of test PDE -->
+  <xsd:simpleType name="DT_TestElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="testField"/>      
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- Global type for specifying desired test output quantities -->
+  <xsd:complexType name="DT_TestStoreResults">
+    <xsd:sequence>
+      <xsd:choice maxOccurs="unbounded">
+
+        <!-- Nodal result definition -->
+        <xsd:element name="nodeResult" minOccurs="0" maxOccurs="unbounded"> <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_NodeResult">
+                <xsd:attribute name="type" type="DT_TestNodeResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- Element result definition -->
+        <xsd:element name="elemResult" minOccurs="0" maxOccurs="unbounded"> <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_ElemResult">
+                <xsd:attribute name="type" type="DT_TestElemResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+</xsd:schema>

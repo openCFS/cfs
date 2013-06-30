@@ -16,6 +16,7 @@
 #include "Materials/MechanicMaterial.hh"
 #include "Materials/PiezoMaterial.hh"
 #include "Materials/FlowMaterial.hh"
+#include "Materials/TestMaterial.hh"
 //#include "Materials/thermoelasticMaterial.hh"
 //#include "Materials/pyroelectricMaterial.hh"
 //#include "Materials/magStrictMaterial.hh"
@@ -118,6 +119,10 @@ namespace CoupledField {
     else if ( matClass == FLOW ) {
       material = new FlowMaterial(mp, cs);
       ReadFlow( material, pn );
+    }
+    else if ( matClass == TESTMAT ) {
+      material = new TestMaterial(mp, cs);
+      ReadTest( material, pn );
     }
     else if ( matClass == PYROELECTRIC ) {
       REFACTOR;
@@ -1122,6 +1127,29 @@ namespace CoupledField {
       material->SetCoefFct( KINEMATIC_VISCOSITY, kinVisc );
     }
   }
+
+  //**********************************************************************
+  //*************  READ TEST *********************************************
+  //**********************************************************************
+  void XMLMaterialHandler::ReadTest(BaseMaterial *material, PtrParamNode test)
+  {
+    // read alpha
+    if(test->Has("alpha")) {
+      PtrCoefFct alphaFct =
+          CoefFunction::Generate(mp_, Global::REAL,
+                                 test->Get("alpha")->As<std::string>() );
+      material->SetCoefFct( TEST_ALPHA, alphaFct );
+    }
+
+    // read beta
+    if(test->Has("beta")) {
+      PtrCoefFct betaFnc =
+          CoefFunction::Generate(mp_, Global::REAL,
+                                 test->Get("beta")->As<std::string>() );
+      material->SetCoefFct( TEST_BETA, betaFnc );
+    }
+  }
+
 
   //**********************************************************************
   //*************  READ PYROELECTRIC *************************************

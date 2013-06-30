@@ -913,6 +913,7 @@ share/xml/CFS-Material/Schemas/CFS_MATmagnetic.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Schemas/CFS_MATmechanical.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Schemas/CFS_MATpiezo.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Schemas/CFS_MATpyroelectric.xsd -text
+share/xml/CFS-Material/Schemas/CFS_MATtest.xsd -text
 share/xml/CFS-Material/Schemas/CFS_MATthermoelastic.xsd -text
 share/xml/CFS-Material/Schemas/CFS_Misc.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/CFS.xsd svneol=native#text/xml
@@ -936,6 +937,7 @@ share/xml/CFS-Simulation/Schemas/CFS_PDEmagedge.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmagnetic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmechanic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEsmooth.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEtest.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PostProc.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Preconds.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Solvers.xsd svneol=native#text/xml
@@ -1572,6 +1574,8 @@ source/PDE/SinglePDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/SinglePDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/StdPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/StdPDE.hh svneol=native#text/x-c%2B%2Bhdr
+source/PDE/TestPDE.cc -text
+source/PDE/TestPDE.hh -text
 source/Utils/ApproxData.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/ApproxData.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/AutoDiff.hh svneol=native#text/x-c%2B%2Bhdr
