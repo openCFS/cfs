@@ -9,6 +9,7 @@
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "Driver/Assemble.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
+#include "PDE/SinglePDE.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/BiLinForms/BiLinearForm.hh"
 
@@ -592,7 +593,9 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
           PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
       BasePDE::AnalysisType aType =
           isComplex ? BasePDE::HARMONIC : BasePDE::STATIC;
-      ctx->assemble = new Assemble( ctx->algSys, aType, infoNode );
+             
+      MathParser * mp = feFct->GetPDE()->GetDomain()->GetMathParser();
+      ctx->assemble = new Assemble( ctx->algSys, aType, mp, infoNode );
 
       // --------------------------------------------------------------------
       // generate (dimensional and space-dependent) interpolation (bi)linear

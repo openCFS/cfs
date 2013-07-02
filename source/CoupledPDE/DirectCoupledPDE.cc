@@ -129,7 +129,8 @@ namespace CoupledField {
     analysistype_ = domain_->GetSingleDriver()->GetAnalysisType( );
 
     // Create new Assemble object
-    assemble_ = new Assemble( algsys_, analysistype_, myInfo_->GetRoot() );
+    assemble_ = new Assemble( algsys_, analysistype_, this->mp_, 
+                              myInfo_->GetRoot() );
     
 
 //     // Initialize timestepping
