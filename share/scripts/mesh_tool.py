@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import Image, sys, os, copy
+import Image, sys, os, copy, numpy
 
 
 # writes a dense two region mesh
@@ -63,9 +63,7 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img =
   for y in range(ny + 1):
     for x in range(nx + 1):
       mesh.nodes.append((x * dx, y * dy))
- 
   # print mesh.nodes 
- 
   mech_count = 0
   for y in range(ny):
     for x in range(nx):

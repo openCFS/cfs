@@ -2,6 +2,28 @@
 from mesh_tool import *
 from optimization_tools import *
 import argparse
+import types
+import numpy
+
+def load_matrix_from_file(f):
+  """
+  This function is to load an ascii format matrix (float numbers separated by
+  whitespace characters and newlines) into a numpy matrix object.
+  f is a file object or a file path.
+  """
+
+  if type(f) == types.StringType:
+    fo = open(f, 'r')
+    matrix = load_matrix_from_file(fo)
+    fo.close()
+    return matrix
+  elif type(f) == types.FileType:
+    file_content = f.read().strip()
+    file_content = file_content.replace('\r\n', ';')
+    file_content = file_content.replace('\n', ';')
+    file_content = file_content.replace('\r', ';')
+    return numpy.matrix(file_content)
+    raise TypeError('f must be a file object or a file name.') 
 
 
 parser = argparse.ArgumentParser()
@@ -26,6 +48,9 @@ if not os.path.exists(args.input):
 if '.xml' in args.input:
   d  = read_density(args.input, "physical")
   create_dense_mesh_density(d, mesh, args.threshold, args.scale, args.rhomin)
+elif '.txt' in args.input:
+  d = load_matrix_from_file(args.input)
+  create_dense_mesh_density(d, mesh, args.threshold, args.scale, args.rhomin)
 else:
     # read the png into a list
   input_img = Image.open(args.input)
@@ -37,7 +62,7 @@ else:
   create_dense_mesh_img(input_img, mesh, float(args.threshold), float(args.scale), float(args.rhomin))
 
 if not args.noshow:
-  if '.xml' in args.input:
+  if '.xml' in args.input or '.txt' in args.input:
     show_dense_mesh_image(mesh, d.shape, args.showbinary, int(args.showsize))
   else:
     show_dense_mesh_image(mesh, input_img.size, args.showbinary, int(args.showsize))
