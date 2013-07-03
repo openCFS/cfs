@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+
 import Image, sys, os, copy
+
 
 # writes a dense two region mesh
 # def write_dense_mesh(pixels, size, file, threshold):
@@ -42,10 +44,19 @@ def show_dense_mesh_image(mesh, shape, binary, size):
   check_img.show()     
 
 
-def create_dense_mesh(input_img, mesh, threshold, scale, rhomin):
+def create_dense_mesh_img(input_img, mesh, threshold, scale, rhomin):
   input_pix = input_img.load()
   nx, ny = input_img.size
+  create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin)
 
+def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin):
+  data = numpy.copy(numpy_array)
+  data.transpose()
+  nx, ny = data.shape
+  create_dense_mesh(data, nx, ny, mesh, threshold, scale, rhomin,False)
+  
+def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img = True):  
+  input_pix = input_array
   dx = scale/nx
   dy = dx 
 
@@ -56,28 +67,24 @@ def create_dense_mesh(input_img, mesh, threshold, scale, rhomin):
   # print mesh.nodes 
  
   mech_count = 0
-
   for y in range(ny):
     for x in range(nx):
       e = Element()
-      # convert to black is one and white = 0
-      e.density = 1.0 - (input_pix[x,ny - y - 1] / 255.0)
+      if img:
+        # convert to black is one and white = 0
+        e.density = 1.0 - (input_pix[x,ny - y - 1] / 255.0)
+      else:
+        e.density = input_pix[x,y]
       if e.density < rhomin:
         e.density = rhomin
-        
-      #print str(input_pix[x,ny - y - 1]) + " -> " + str(e.density)
-        
-      # handle threshold  
-      if e.density >= threshold:
+      if float(e.density) >= float(threshold):
         e.region = 'mech'
         mech_count += 1
       else:
         e.region = 'void'
-            
       # assign nodes
       ll = (nx+1) * y + x  # lowerleft
       e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
-            
       mesh.elements.append(e)
       # e.dump()
   
@@ -91,7 +98,6 @@ def create_dense_mesh(input_img, mesh, threshold, scale, rhomin):
   print "dense resolution: " + str(nx) + " x " + str(ny) + " elements (" + str(scale) + "m x " + str(float(ny)/nx * scale) + "m)",
   print " -> " + str(mech_count) + " mech elements out of " + str(nx*ny) + " (" + str(float(mech_count) / (nx*ny) * 100.0) + " %)",
   print " with threshold " + str(threshold) 
-
 
 # @param mesh dense mesh (input)
 # @return sparse mesh
