@@ -85,7 +85,11 @@ elif [ "${OS}" = "Linux" ] ; then
     
     LSB_REL=$(which lsb_release 2> /dev/null)
     if [ "$?" = "0" -a ! "$LSB_REL" = "" -a "-f $LSB_REL" ]; then	
+        ID=$($LSB_REL -i -s)
         DESC=$($LSB_REL -d -s)
+        if [ "$ID" = "LinuxMint" ]; then
+            DESC=$ID
+        fi
         DIST=$(echo $DESC | sed 's/"//g' | cut -d' ' -f1)
         REV=$($LSB_REL -r -s)
         PSEUDONAME=$($LSB_REL -c -s)
