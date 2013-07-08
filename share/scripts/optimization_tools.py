@@ -18,7 +18,6 @@ from distutils.command.build_scripts import first_line_re
 # @param x, y, z optional mesh size in case it is not given in the density file. Note, the smallest number is 1, not 0!!
 def read_density(filename, attribute="design", x = None, y = None, z = None):
   vals = read_density_as_vector(filename, attribute)
-
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
   root = tree.getroot()
   if x == None and len(root.xpath("//mesh/@x")) > 0:
@@ -71,13 +70,28 @@ def read_density(filename, attribute="design", x = None, y = None, z = None):
   return ret
 
 ## read arbitrary multi-design density file as numpy array
-def read_multi_design(filename, design1, design2 = None, design3 = None, design4 = None):
+def read_multi_design(filename, design1, design2 = None, design3 = None, design4 = None,matrix = False):
   if not os.path.exists(filename):
     raise RuntimeError("file '" + filename + "' doesn't exist")
-  
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
-  
   root = tree.getroot()
+  if matrix:
+    x = None
+    y = None
+    z = None
+    if x == None and len(root.xpath("//mesh/@x")) > 0:
+      x = int(root.xpath("//mesh/@x")[0])
+    if y == None and len(root.xpath("//mesh/@y")) > 0:  
+      y = int(root.xpath("//mesh/@y")[0])
+    if z == None and len(root.xpath("//mesh/@z")) > 0:
+      z = int(root.xpath("//mesh/@z")[0])
+  
+    if x == None and y == None and z == None:
+      x = 1
+      y = 1
+      z = 1
+  
+    assert(x > 0 and y > 0 and z > 0)  
   sett = root.xpath("//set[last()]")[0]
   
   designs = 1
@@ -108,8 +122,17 @@ def read_multi_design(filename, design1, design2 = None, design3 = None, design4
     if idx == -1:
       print "design '" + type + "' not handled"  
     assert(idx != -1)
-    
-    out[nr-1,idx] = des  
+    out[nr-1,idx] = des
+  if matrix:
+    output = numpy.zeros((x,y,z,designs))
+    for t in range(designs):
+      count = 0
+      for k in range(z):
+        for j in range(y):
+          for i in range(x):
+            output[i][j][k][t] = out[count][t]
+            count += 1
+    out = output
   return out
   
 ## Reads a density.xml file as vector
@@ -210,8 +233,7 @@ def write_multi_design_file(filename, data, designs, elemnr = None):
   out.write('  <header>\n')
   out.write('  </header>\n')
   out.write('  <set id="optimization_tools.py">\n')
-  
-
+    
   for d in range(len(designs)):
     for e in range(len(data)):
       enr = e + 1 if elemnr == None else int(elemnr[e])

@@ -12,6 +12,10 @@ class Element:
     self.nodes = [] # list of zero based node indices. counter-clock wise
     self.region = None # region name
     self.density = 1 # from lower_bound to 1, not necessarily used
+    self.stiff1 = 0
+    self.stiff2 = 0
+    self.stiff3 = 0
+    self.rotAngle = 0
     
   def dump(self):
     print self.nodes
@@ -31,10 +35,10 @@ def show_dense_mesh_image(mesh, shape, binary, size):
 
   nx, ny = shape
   
-  for y in range(ny):
-    for x in range(nx):
+  for x in range(nx):
+    for y in range(ny):
       #print input_pix[x,y]
-      e = mesh.elements[y * nx + x]
+      e = mesh.elements[x * ny + y]
       val = 1-e.density # black is 0 in the image but 1 as density
       # print str(val) + " - " + str(barrier)
       show = (200,10,10) if binary else (int(val*255),int(val*255),int(val*255)) 
@@ -49,13 +53,14 @@ def create_dense_mesh_img(input_img, mesh, threshold, scale, rhomin):
   nx, ny = input_img.size
   create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin)
 
-def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin):
-  data = numpy.copy(numpy_array)
-  data.transpose()
-  nx, ny = data.shape
-  create_dense_mesh(data, nx, ny, mesh, threshold, scale, rhomin,False)
+def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin,multi_d=1):
+  if multi_d == 1:
+    nx, ny = numpy_array.shape
+  else:
+    nx,ny,nz,m = numpy_array.shape
+  create_dense_mesh(numpy_array, nx, ny, mesh, threshold, scale, rhomin,False,multi_design = multi_d)
   
-def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img = True):  
+def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img = True,multi_design=1):  
   input_pix = input_array
   dx = scale/nx
   dy = dx 
@@ -65,21 +70,40 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img =
       mesh.nodes.append((x * dx, y * dy))
   # print mesh.nodes 
   mech_count = 0
-  for y in range(ny):
-    for x in range(nx):
+  for x in range(nx):
+    for y in range(ny):
       e = Element()
       if img:
         # convert to black is one and white = 0
-        e.density = 1.0 - (input_pix[x,ny - y - 1] / 255.0)
+        e.density = 1.0 - (input_pix[y,ny - x - 1] / 255.0)
       else:
-        e.density = input_pix[x,y]
-      if e.density < rhomin:
-        e.density = rhomin
-      if float(e.density) >= float(threshold):
-        e.region = 'mech'
-        mech_count += 1
+        if multi_design == 1:
+          e.density = input_pix[x,y]
+        else:
+          e.stiff1 = input_pix[x,y,0,0]
+          e.stiff2 = input_pix[x,y,0,1]
+          if multi_design == 3:
+            e.rotAngle = input_pix[x,y,0,2]
+      if multi_design == 1:
+        if e.density < rhomin:
+          e.density = rhomin
       else:
-        e.region = 'void'
+        if e.stiff1 < rhomin:
+          e.stiff1 = rhomin
+        elif e.stiff2 < rhomin:
+          e.stiff2 = rhomin
+      if multi_design == 1:    
+        if float(e.density) >= float(threshold):
+          e.region = 'mech'
+          mech_count += 1
+        else:
+          e.region = 'void'
+      else:
+        if (float(e.stiff1) >= float(threshold)) | (float(e.stiff2) >= float(threshold)):  
+          e.region = 'mech'
+          mech_count += 1
+        else:
+          e.region = 'void'
       # assign nodes
       ll = (nx+1) * y + x  # lowerleft
       e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
