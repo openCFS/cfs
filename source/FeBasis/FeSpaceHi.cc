@@ -55,6 +55,26 @@ FeSpaceHi ::~FeSpaceHi() {
     entityCtx_.clear();
 }
 
+//! \copydoc FeSpace::MapCoefFctToSpace
+void FeSpaceHi ::MapCoefFctToSpace( StdVector<shared_ptr<EntityList> > support,
+                        shared_ptr<CoefFunction> coefFct,
+                        shared_ptr<BaseFeFunction> feFct,
+                        std::map<Integer, Double>& vals, bool cache,
+                        const std::set<UInt>& comp ) {
+  MapCoefFctToSpacePriv<Double>( support, coefFct, feFct, vals, cache, comp );
+}
+
+//! \copydoc FeSpace::MapCoefFctToSpace
+void FeSpaceHi ::MapCoefFctToSpace( StdVector<shared_ptr<EntityList> > support,
+                        shared_ptr<CoefFunction> coefFct,
+                        shared_ptr<BaseFeFunction> feFct,
+                        std::map<Integer, Complex>& vals, bool cache,
+                        const std::set<UInt>& comp) {
+  MapCoefFctToSpacePriv<Complex>( support, coefFct, feFct, vals, cache, comp );
+}
+
+
+
 void FeSpaceHi::MapNodalBCs() {
   LOG_TRACE(feSpaceHi) << "Mapping Nodal BCs";
   StdVector<UInt> actNodes;
@@ -476,6 +496,7 @@ void FeSpaceHi::FixHigherOrderAnisoDofs() {
 template<typename T>
 void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityLists,
                                           shared_ptr<CoefFunction> coefFct,
+                                          shared_ptr<BaseFeFunction> feFct,
                                           std::map <Integer, T>& vals,
                                           bool cache,
                                           const std::set<UInt>& comp ) {
@@ -490,7 +511,6 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
   //    according RHS integrator. The auxilliary data needed can be cached for
   //    repeated access / changing values (e.g. time / frequency dependend boundary+
   //    conditions.
-  shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
 
   // assemble complete name
   std::string entityNames;
@@ -731,10 +751,14 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template void FeSpaceHi::
   MapCoefFctToSpacePriv<Double>( StdVector<shared_ptr<EntityList> > ,
-                                 shared_ptr<CoefFunction>, std::map <Integer, Double>&,
+                                 shared_ptr<CoefFunction>,
+                                 shared_ptr<BaseFeFunction> feFct,
+                                 std::map <Integer, Double>&,
                                  bool,const std::set<UInt>&);
   template void FeSpaceHi::
   MapCoefFctToSpacePriv<Complex>( StdVector<shared_ptr<EntityList> > ,
-                                 shared_ptr<CoefFunction>, std::map <Integer, Complex>&,
+                                 shared_ptr<CoefFunction>,
+                                 shared_ptr<BaseFeFunction> feFct,
+                                 std::map <Integer, Complex>&,
                                  bool,const std::set<UInt>&);
 #endif

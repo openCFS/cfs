@@ -340,8 +340,12 @@ public:
                         , UInt dof );
   
   //! Return equation numbers for a specific dof and entitytype
-  virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
-                        , UInt dof, BaseFE::EntityType ); 
+  virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent,
+                        UInt dof, BaseFE::EntityType ); 
+  
+  //! Return equation numbers for a specific entitytype
+  virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent,
+                        BaseFE::EntityType ); 
 
   //! Get Equation numbers for a specific element
   virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem);
@@ -446,13 +450,15 @@ public:
   }
 
 
-  //! Map a general coefficient function onto the current finite element space
+  //! Map a general coefficient function onto a given FeFunction
   
   //! This method can be used to map a general coefficient function
   //! to the current finite element space. It returns a map, containing the 
   //! equations numbers and the corresponding coefficients.
   //! \param support Entitylists on which the function is defined
   //! \param coefFct Coefficient function to be mapped 
+  //! \param feFct FeFunction onto which the coeffunction get mapped.
+  //!              The feFunction must point to the same FeSpace.
   //! \param vals Map containing the equations numbers (key) and the
   //!             coefficient values (value)
   //! \param cache Flag, if mapping should be cached (e.g. for boundary
@@ -462,12 +468,14 @@ public:
   //!             get mapped
   virtual void MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support, 
                                  shared_ptr<CoefFunction> coefFct,
+                                 shared_ptr<BaseFeFunction> feFct,
                                  std::map<Integer, Double>& vals,
                                  bool cache,
                                  const std::set<UInt>& comp = std::set<UInt>() )=0;
 
   virtual void MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support, 
                                  shared_ptr<CoefFunction> coefFct,
+                                 shared_ptr<BaseFeFunction> feFct,
                                  std::map<Integer, Complex>& vals,
                                  bool cache,
                                  const std::set<UInt>& comp = std::set<UInt>() )=0;

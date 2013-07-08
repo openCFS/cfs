@@ -35,19 +35,21 @@ public:
   //! \copydoc FeSpace::MapCoefFctToSpace
   virtual void MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support,
                                 shared_ptr<CoefFunction> coefFct,
+                                shared_ptr<BaseFeFunction> feFct,
                                 std::map<Integer, Double>& vals,
                                 bool cache,
                                 const std::set<UInt>& comp = std::set<UInt>() ){
-    MapCoefFctToSpacePriv<Double>(support,coefFct,vals,cache,comp);
+    MapCoefFctToSpacePriv<Double>(support,coefFct,feFct,vals,cache,comp);
   }
 
   //! \copydoc FeSpace::MapCoefFctToSpace
   virtual void MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support,
                                  shared_ptr<CoefFunction> coefFct,
+                                 shared_ptr<BaseFeFunction> feFct,
                                  std::map<Integer, Complex>& vals,
                                  bool cache,
                                  const std::set<UInt>& comp = std::set<UInt>() ){
-    MapCoefFctToSpacePriv<Complex>(support,coefFct,vals,cache,comp);
+    MapCoefFctToSpacePriv<Complex>(support,coefFct,feFct,vals,cache,comp);
   }
 
 protected:
@@ -72,6 +74,7 @@ private:
   template<typename T>
   void MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > support,
                              shared_ptr<CoefFunction> coefFct,
+                             shared_ptr<BaseFeFunction> feFct,
                              std::map<Integer, T>& vals,
                              bool cache,
                              const std::set<UInt>& comp = std::set<UInt>() );

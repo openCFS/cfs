@@ -699,8 +699,8 @@ DECLARE_LOG(fefunc)
         std::map<Integer, T> coefs;
         StdVector<shared_ptr<EntityList> > list(1);
         list[0] = actBc.entities;
-        feSpace_->MapCoefFctToSpace( list, actBc.value, coefs, 
-                                     true, actBc.dofs );
+        feSpace_->MapCoefFctToSpace( list, actBc.value, shared_from_this(), coefs, 
+                                      true, actBc.dofs );
 
         // Loop over all entries and set them
         typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
@@ -784,7 +784,7 @@ DECLARE_LOG(fefunc)
 //            curEnt->GetType() == EntityList::SURF_ELEM_LIST ) {
           // Map coefficient function onto the actual FeSpace
           std::map<Integer, T> coefs;
-          feSpace_->MapCoefFctToSpace( lists, ptCoef, coefs, false );
+          feSpace_->MapCoefFctToSpace( lists, ptCoef, shared_from_this(), coefs, false );
 
           typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
           for( ; coefIt != coefs.end(); ++coefIt ) {
@@ -806,7 +806,7 @@ DECLARE_LOG(fefunc)
 
       // Map coefficient function onto the actual FeSpace
       std::map<Integer, T> coefs;
-      feSpace_->MapCoefFctToSpace( lists, curFnc, coefs, false );
+      feSpace_->MapCoefFctToSpace( lists, curFnc, shared_from_this(), coefs, false );
       Vector<T> & myVals = *this->coeffs_;
       typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
       for( ; coefIt != coefs.end(); ++coefIt ) {
@@ -852,7 +852,7 @@ DECLARE_LOG(fefunc)
       // -----------------
       // Map coefficient function onto the actual FeSpace using the general mechanism
       std::map<Integer, T> coefs;
-      feSpace_->MapCoefFctToSpace( intersect, feFct, coefs, false );
+      feSpace_->MapCoefFctToSpace( intersect, feFct, shared_from_this(), coefs, false );
       Vector<T> & myVals = *this->coeffs_;
       typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
       for( ; coefIt != coefs.end(); ++coefIt ) {
