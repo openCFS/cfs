@@ -269,3 +269,63 @@ def create_cantilever2d_mesh(type, resolution):
   
   return mesh
 
+## creates a mesh of predefined geometry
+def create_mbb_mesh(type, resolution):
+  mesh = Mesh()
+  mesh.nodes = []    # list 2d tupels (float, float)
+  mesh.elements = [] # list of Element
+  mesh.bc = []       # list of tupel (name, <list of zero based nodes>)  
+  
+  width = 2.0
+  height = 1.0
+  
+  nx = resolution
+  ny = int(nx * 0.5)
+  
+  dx = width / nx
+  dy = height / ny 
+  
+  e = 1e-4
+
+
+  for y in range(ny + 1):
+    for x in range(nx + 1):
+      mesh.nodes.append((x * dx, y * dy))
+ 
+  # print mesh.nodes 
+  for y in range(ny):
+    for x in range(nx):
+      e = Element()
+      e.density = 1.0
+
+      
+
+      # if type == 'mbb_reinforced' and (float(x) <= (.03 * nx + e) or float(x) >= (.97 * nx - e) or float(y) <= (.03 * ny + e) or float(y) >= (.97 * ny - e)):
+      if type == 'mbb_reinforced' and (x+1 <= .015 * nx + 1e-5 or x >= 0.985 * nx - 1e-5 or y+1 <= 0.03 * ny + 1e-5 or y >= 0.97 * ny - 1e-5):
+          e.region = 'reinforce'
+      else:
+        e.region = 'mech'
+
+      #if y == 0:
+      #  print "x=" + str(x) + " -> " + str(.015 * nx) + " r=" + e.region
+
+
+      # assign nodes
+      ll = (nx+1) * y + x  # lowerleft
+      e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
+            
+      mesh.elements.append(e)
+  
+  mesh.bc.append(("south", range(0, nx+1)))
+  mesh.bc.append(("north", range((nx+1)*ny, (nx+1)*(ny+1))))
+  mesh.bc.append(("west", range(0, (nx+1)*ny+1, nx+1)))
+  mesh.bc.append(("east", range(nx, (nx+1)*(ny+1), nx+1)))
+
+  mesh.bc.append(("left_lower", [0]))
+  mesh.bc.append(("right_lower", [nx]))
+  mesh.bc.append(("left_upper", [(nx+1)*ny]))
+  mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+  
+  return mesh
+
+
