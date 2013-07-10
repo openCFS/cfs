@@ -318,8 +318,7 @@ namespace CoupledField {
 	// der = 0.0;
       } 
       else {
-    // turbulent flow profile
-	arg = xa / flowRadius_;
+	arg = xa * xa/ ( flowRadius_ * flowRadius_ );
 	vel = std::pow( 1.0 - arg, 1./Double(flowOrder_) );
 	// der = -2.*factor/ ( Double(flowOrder_) * flowRadius_ 
 	//		    * flowRadius_) * vel / ( 1.0-arg );
