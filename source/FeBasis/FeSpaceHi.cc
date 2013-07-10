@@ -13,6 +13,10 @@
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/BiLinForms/BiLinearForm.hh"
 
+#include "def_use_pardiso.hh"
+#include "def_use_suitesparse.hh"
+#include "def_use_superlu.hh"
+
 namespace CoupledField {
 
 // declare class specific logging stream
@@ -605,6 +609,39 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
       // generate new algebraic system
       ctx->olasNode.reset(new ParamNode());
       ctx->olasNode->SetName(std::string("IDBC-") + name);
+
+      // Explicitly define optimized solver, if available.
+      PtrParamNode solverListNode(new ParamNode());
+      solverListNode->SetName("solverList");
+
+      PtrParamNode solverNode(new ParamNode());
+#ifdef USE_PARDISO
+      solverNode->SetName("pardiso");
+      PtrParamNode statsNode(new ParamNode());
+      statsNode->SetName("stats");
+      statsNode->SetValue("no");
+      solverNode->AddChildNode(statsNode);      
+      PtrParamNode loggingNode(new ParamNode());
+      loggingNode->SetName("logging");
+      loggingNode->SetValue("no");
+      solverNode->AddChildNode(loggingNode);      
+#elif USE_SUITESPARSE
+      solverNode->SetName("cholmod");
+#elif USE_SUPERLU
+      solverNode->SetName("superlu");
+#else
+      solverNode->SetName("directLDL");
+#endif
+
+      solverListNode->AddChildNode(solverNode);
+
+      PtrParamNode solverIdNode(new ParamNode());
+      solverIdNode->SetName("id");
+      solverIdNode->SetValue("default");
+      solverNode->AddChildNode(solverIdNode);
+
+      ctx->olasNode->AddChildNode(solverListNode);
+
       ctx->infoNode.reset(new ParamNode(ParamNode::INSERT));
       ctx->algSys = new AlgebraicSys( ctx->olasNode, ctx->infoNode, isComplex );
 
