@@ -615,7 +615,7 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
       solverListNode->SetName("solverList");
 
       PtrParamNode solverNode(new ParamNode());
-#ifdef USE_PARDISO
+#if defined(USE_PARDISO)
       solverNode->SetName("pardiso");
       PtrParamNode statsNode(new ParamNode());
       statsNode->SetName("stats");
@@ -625,9 +625,9 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
       loggingNode->SetName("logging");
       loggingNode->SetValue("no");
       solverNode->AddChildNode(loggingNode);      
-#elif USE_SUITESPARSE
+#elif defined(USE_SUITESPARSE)
       solverNode->SetName("cholmod");
-#elif USE_SUPERLU
+#elif defined(USE_SUPERLU)
       solverNode->SetName("superlu");
 #else
       solverNode->SetName("directLDL");

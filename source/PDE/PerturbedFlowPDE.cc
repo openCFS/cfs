@@ -359,26 +359,43 @@ namespace CoupledField {
         // Second convective term. Derivative tensor of mean flow field is a
         // factor computed by a CoefFunction.
         BaseBOperator* bOpGrad;
+        BaseBOperator* bOpId;
         if( dim_ == 2 ) {
-          bOpGrad = new GradientOperator<FeH1,2, Double>();
+          if(isComplex_)
+          {
+            bOpGrad = new GradientOperator<FeH1,2, Complex>();
+          } else {
+            bOpGrad = new GradientOperator<FeH1,2, Double>();
+          }
+
+          bOpId = new IdentityOperator<FeH1,2,2>();
         }
         else {
-          bOpGrad = new GradientOperator<FeH1,3, Double>();
+          if(isComplex_)
+          {
+            bOpGrad = new GradientOperator<FeH1,3, Complex>();
+          } else {
+            bOpGrad = new GradientOperator<FeH1,3, Double>();
+          }
+          
+          bOpId = new IdentityOperator<FeH1,3,3>();
         }
-        PtrCoefFct coeffConvec;
-        coeffConvec.reset(
-          new CoefFunctionMeanFlowConvection( density, viscosity, bOpGrad, meanVelFct )
-          );
-        
 
         //now create the integrators
         BiLinearForm *convectivevV = NULL;
-        if( dim_ == 2 ) {
-          convectivevV = new BDBInt<>( new IdentityOperator<FeH1,2,2>(),
-                                       coeffConvec, 1.0 );
+        PtrCoefFct coeffConvec;
+        if(isComplex_) {
+          coeffConvec.reset(
+            new CoefFunctionMeanFlowConvection<Complex>( density, viscosity,
+                                                         bOpGrad, meanVelFct )
+            );
+          convectivevV = new BDBInt<Complex,Complex>( bOpId, coeffConvec, 1.0 );
         } else {
-          convectivevV = new BDBInt<>( new IdentityOperator<FeH1,3,3>(),
-                                       coeffConvec, 1.0 );
+          coeffConvec.reset(
+            new CoefFunctionMeanFlowConvection<Double>( density, viscosity,
+                                                         bOpGrad, meanVelFct )
+            );
+          convectivevV = new BDBInt<Double,Double>( bOpId, coeffConvec, 1.0 );
         }
 
         convectivevV->SetName("PerturbedStiffIntConvectivevV");
@@ -909,12 +926,16 @@ namespace CoupledField {
     
     meanFlowCoef_.reset(
       new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1, isComplex_ )
-      //      new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1, isComplex_ )
       );
 
     // Since we also need the derivative of the mean flow velocity, we need to
     // create a FeFunction from the CoefFunction.
-    meanFlowFeFct_.reset( new FeFunction<Complex>(domain_->GetMathParser()) );    
+    if(isComplex_) {
+      meanFlowFeFct_.reset( new FeFunction<Complex>(domain_->GetMathParser()) );
+    }
+    else {
+      meanFlowFeFct_.reset( new FeFunction<Double>(domain_->GetMathParser()) );    
+    }    
     flowvelocity->SetFeFunction(meanFlowFeFct_);
     meanFlowFeSpace_->AddFeFunction(meanFlowFeFct_);
     meanFlowFeFct_->SetFeSpace( meanFlowFeSpace_ );

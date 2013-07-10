@@ -5,7 +5,7 @@
  *                 parameters for SUPG
  *
  *       \date     07/04/2013
- *       \author   Manfred Kaltenbacher
+ *       \author   Simon Triebenbacher
  */
 //==============================================================================
 
@@ -29,6 +29,7 @@ namespace CoupledField {
   //! Computes the stabilization parameters for SUPG
 
 
+  template<typename T>
   class CoefFunctionMeanFlowConvection : public CoefFunction
   {
   public:
@@ -42,7 +43,7 @@ namespace CoupledField {
     virtual ~CoefFunctionMeanFlowConvection(){;}
     
     //! Return real-valued tensor at integration point
-    virtual void GetTensor( Matrix<Double>& tensor, 
+    virtual void GetTensor( Matrix<T>& tensor, 
                             const LocPointMapped& lpm );
     
   protected:

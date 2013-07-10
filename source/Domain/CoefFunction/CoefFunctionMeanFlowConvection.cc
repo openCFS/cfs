@@ -3,10 +3,11 @@
 
 namespace CoupledField{
 
-  CoefFunctionMeanFlowConvection::CoefFunctionMeanFlowConvection(PtrCoefFct density,
-                                                                 PtrCoefFct viscosity,
-                                                                 BaseBOperator* opt,
-                                                                 shared_ptr<BaseFeFunction> feFnc)
+  template<typename T>
+  CoefFunctionMeanFlowConvection<T>::CoefFunctionMeanFlowConvection(PtrCoefFct density,
+                                                                    PtrCoefFct viscosity,
+                                                                    BaseBOperator* opt,
+                                                                    shared_ptr<BaseFeFunction> feFnc)
     : CoefFunction(),
       density_(density),  
       viscosity_(viscosity),
@@ -16,16 +17,17 @@ namespace CoupledField{
     dimType_ = TENSOR;
   }
   
-  void CoefFunctionMeanFlowConvection::GetTensor( Matrix<Double>& tensor, 
-                                                  const LocPointMapped& lpm ) {
+  template<typename T>
+  void CoefFunctionMeanFlowConvection<T>::GetTensor( Matrix<T>& tensor, 
+                                                     const LocPointMapped& lpm ) {
 
-    Vector<Complex> eSolV;
+    Vector<T> eSolV;
     const Elem* el = lpm.ptEl;
-    dynamic_cast<FeFunction<Complex>*>(feFct_.get())->GetElemSolution( eSolV, el );
+    dynamic_cast<FeFunction<T>*>(feFct_.get())->GetElemSolution( eSolV, el );
     BaseFE* ptFe =  feFct_->GetFeSpace()->GetFe(lpm.ptEl->elemNum);
-    UInt numDofs = 3;
-    StdVector< Vector<Double> > eSolComp(numDofs);
-    StdVector< Vector<Double> > VDerivs(numDofs);
+    UInt numDofs = feFct_->GetVecSize();
+    StdVector< Vector<T> > eSolComp(numDofs);
+    StdVector< Vector<T> > VDerivs(numDofs);
     UInt eN=eSolV.GetSize()/numDofs;
     tensor.Resize(numDofs, numDofs);
     tensor.Init();
@@ -39,7 +41,7 @@ namespace CoupledField{
       
       for(UInt eI=0; eI < eN; eI++) 
       {
-        eSolComp[rdof][eI] = eSolV[eI*numDofs+rdof].real();
+        eSolComp[rdof][eI] = eSolV[eI*numDofs+rdof];
       }
       
       bOperator_->ApplyOp( VDerivs[rdof], lpm, ptFe, eSolComp[rdof] );
@@ -50,5 +52,10 @@ namespace CoupledField{
       }
     }
   }
-  
+
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class CoefFunctionMeanFlowConvection<Double>;
+  template class CoefFunctionMeanFlowConvection<Complex>;
+#endif
 }// end of namespace
+
