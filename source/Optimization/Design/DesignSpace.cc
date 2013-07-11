@@ -564,6 +564,16 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
       case OPT_RESULT_8: return 7;
       case OPT_RESULT_9: return 8;
       case OPT_RESULT_10: return 9;
+      case OPT_RESULT_11: return 10;
+      case OPT_RESULT_12: return 11;
+      case OPT_RESULT_13: return 12;
+      case OPT_RESULT_14: return 13;
+      case OPT_RESULT_15: return 14;
+      case OPT_RESULT_16: return 15;
+      case OPT_RESULT_17: return 16;
+      case OPT_RESULT_18: return 17;
+      case OPT_RESULT_19: return 18;
+      case OPT_RESULT_20: return 19;
       default: throw Exception("invalid solution type");
     }
   }

@@ -116,6 +116,9 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type)
   case DesignElement::ROTANGLE:
   case DesignElement::STIFF1:
   case DesignElement::STIFF2:
+  case DesignElement::ROTANGLE2:
+  case DesignElement::SCALING1:
+  case DesignElement::SCALING2:
   case DesignElement::MULTIMATERIAL:
     return Optimization::MECH;
   case DesignElement::ACOU_DENSITY:

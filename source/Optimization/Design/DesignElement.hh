@@ -507,6 +507,21 @@ public:
    MultiMaterial*      multimaterial;
 };
 
+/**required in Design space**/
+class TensorElement
+{
+public:
+   TensorElement(DesignElement::Type design = DesignElement::NO_TYPE, MultiMaterial* mm = NULL)
+   {
+     this->design = design;
+     this->multimaterial = mm;
+   }
+
+   DesignElement::Type design;
+   /** index. -1 for non-multimaterial */
+   MultiMaterial* multimaterial;
+};
+
 
 /** implemented in StdVector.cc, there we need it */
 std::ostream & operator << ( std::ostream & out, const DesignID& id);

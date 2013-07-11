@@ -193,9 +193,11 @@ template <class TYPE> class StdVector;
 
     /** fills the matrices in mod_red_matrices_ **/
     void FillModRedMatrices(PtrParamNode matnode, const StdVector<std::string>& tensor_comp, const int& tensor_int, const UInt& dimbas);
+    void FillModRedMatrices(PtrParamNode matnode, const StdVector<std::string>& tensor_comp, const int& tensor_int, const UInt& dimbas, const UInt& dimbastot);
 
     /** fills the vectors in mod_red_vectors_ **/
     void FillModRedVectors(PtrParamNode vecnode, const StdVector<std::string>& tensor_comp, const int& tensor_int, const UInt& dimbas);
+    void FillModRedVectors(PtrParamNode vecnode, const StdVector<std::string>& tensor_comp, const int& tensor_int, const UInt& dimbas, const UInt& dimbastot);
 
     //Returns the homogenized elasticity tensor associated to the matrix G
     void GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const StdVector<Vector<double> >& corrector_, Notation notation);

@@ -128,6 +128,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
 
     //Here dimension is the number of terms in the tensor-product expansion
     dimension_ = hr->Get("dimension")->As<UInt>();
+    dimension_tot_ = hr->Get("TotalDimension")->As<UInt>();
    // dimension_tot_ = hr->Get("dimensionTotale")->As<UInt>();
     Nl_ = hr->Get("Nl")->As<UInt>();
     Na_ = hr->Get("Na")->As<UInt>();
@@ -153,96 +154,110 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
 
 ///////////////Initialisation of matl2////////////////////////
 
-    mat.Resize(Nl_+1,3*dimension_);
-
+    /*mat.Resize(Nl_+1,3*dimension_);
 
     PtrParamNode matl2 = hr->Get("matl2");
     tensor = matl2->Get("tensor");
     Matrix<double> mattrans(Nl_+1,3*dimension_);
     ParamTools::AsTensor<double>(tensor->Get("real"),Nl_+1, 3*dimension_, mat);
-    matrices_param_[num_param-1] = mat;
-
-  /*  PtrParamNode matl2 = hr->Get("matl2");
-    tensor = matl2->Get("tensor");
-    Matrix<double> mattrans(Nl_+1,3*dimension_tot_);
-    ParamTools::AsTensor<double>(tensor->Get("real"),Nl_+1, 3*dimension_tot_, mattrans);
-
-
-    mat.Resize(Nl_+1,3*dimension_);
-    mat.Init();
-
-    Matrix<double> mathelp(Nl_+1,dimension_);
-    mattrans.GetSubMatrix(mathelp,0,0);
-    mat.SetSubMatrix(mathelp,0,0);
-    mattrans.GetSubMatrix(mathelp,0,dimension_tot_);
-    mat.SetSubMatrix(mathelp,0,dimension_);
-    mattrans.GetSubMatrix(mathelp,0,2*dimension_tot_);
-    mat.SetSubMatrix(mathelp,0,2*dimension_);
-
     matrices_param_[num_param-1] = mat;*/
+
+
+    Matrix<double> mattot(Nl_+1, 3*dimension_tot_);
+    PtrParamNode matl2 = hr->Get("matl2");
+    tensor = matl2->Get("tensor");
+    ParamTools::AsTensor<double>(tensor->Get("real"),Nl_+1, 3*dimension_tot_, mattot);
+
+    Matrix<double> mattrans(Nl_+1,dimension_);
+    mat.Resize(Nl_+1, 3*dimension_);
+    mat.Init();
+    for (int i=0; i<3; i++)
+    {
+      mattot.GetSubMatrix(mattrans, 0, i*dimension_tot_);
+      mat.SetSubMatrix(mattrans, 0, i*dimension_);
+    }
+    matrices_param_[num_param-1] = mat;
 
 /////////Initialisation of matl1 /////////////////////////////
 
-    mat.Resize(Nl_+1,3*dimension_);
+    /*mat.Resize(Nl_+1,3*dimension_);
     PtrParamNode matl1 = hr->Get("matl1");
     tensor = matl1->Get("tensor");
     ParamTools::AsTensor<double>(tensor->Get("real"),Nl_+1, 3*dimension_, mat);
-    matrices_param_[num_param-2] = mat;
+    matrices_param_[num_param-2] = mat;*/
 
-    /*mattrans.Resize(Nl_+1,3*dimension_tot_);
-    mattrans.Init();
-
+    mattot.Resize(Nl_+1, 3*dimension_tot_);
+    mattot.Init();
     PtrParamNode matl1 = hr->Get("matl1");
     tensor = matl1->Get("tensor");
-    ParamTools::AsTensor<double>(tensor->Get("real"),Nl_+1, 3*dimension_tot_, mattrans);
+    ParamTools::AsTensor<double>(tensor->Get("real"),Nl_+1, 3*dimension_tot_, mattot);
 
-    mat.Resize(Nl_+1,3*dimension_);
+    mattrans.Resize(Nl_+1,dimension_);
+    mattrans.Init();
+    mat.Resize(Nl_+1, 3*dimension_);
     mat.Init();
-
-    mathelp.Resize(Nl_+1,dimension_);
-    mathelp.Init();
-    mattrans.GetSubMatrix(mathelp,0,0);
-    mat.SetSubMatrix(mathelp,0,0);
-    mattrans.GetSubMatrix(mathelp,0,dimension_tot_);
-    mat.SetSubMatrix(mathelp,0,dimension_);
-    mattrans.GetSubMatrix(mathelp,0,2*dimension_tot_);
-    mat.SetSubMatrix(mathelp,0,2*dimension_);
-
-    matrices_param_[num_param-2] = mat;*/
+    for (int i=0; i<3; i++)
+    {
+      mattot.GetSubMatrix(mattrans, 0, i*dimension_tot_);
+      mat.SetSubMatrix(mattrans, 0, i*dimension_);
+    }
+    matrices_param_[num_param-2] = mat;
 
 
 
 ///////////////Inintialisation of matphi//////////////////////////
-  mat.Resize(2*Na_+1,3*dimension_);
+ /* mat.Resize(2*Na_+1,3*dimension_);
   PtrParamNode matphi = hr->Get("matphi");
   tensor = matphi->Get("tensor");
   ParamTools::AsTensor<double>(tensor->Get("real"),2*Na_+1, 3*dimension_, mat);
 
-  matrices_param_[num_param-3] = mat;
+  matrices_param_[num_param-3] = mat;*/
 
-
-   /* mattrans.Resize(2*Na_+1,3*dimension_tot_);
-    mattrans.Init();
-
+    mattot.Resize(2*Na_+1, 3*dimension_tot_);
+    mattot.Init();
     PtrParamNode matphi = hr->Get("matphi");
     tensor = matphi->Get("tensor");
-    ParamTools::AsTensor<double>(tensor->Get("real"),2*Na_+1, 3*dimension_tot_, mattrans);
+    ParamTools::AsTensor<double>(tensor->Get("real"),2*Na_+1, 3*dimension_tot_, mattot);
 
-
-    mat.Resize(2*Na_+1,3*dimension_);
+    mattrans.Resize(2*Na_+1,dimension_);
+    mattrans.Init();
+    mat.Resize(2*Na_+1, 3*dimension_);
     mat.Init();
-    matrices_param_[num_param-3] = mat;*/
+    for (int i=0; i<3; i++)
+    {
+      mattot.GetSubMatrix(mattrans, 0, i*dimension_tot_);
+      mat.SetSubMatrix(mattrans, 0, i*dimension_);
+    }
+    matrices_param_[num_param-3] = mat;
 
-   // std::cout << matrices_param_[num_param-3](0,0);
+
 
     if (all_param_)
     {
 
-          PtrParamNode mattheta = hr->Get("mattheta");
+          /*PtrParamNode mattheta = hr->Get("mattheta");
           tensor = mattheta->Get("tensor");
           mat.Resize(2*Na_+1,3*dimension_);
           ParamTools::AsTensor<double>(tensor->Get("real"),2*Na_+1, 3*dimension_, mat);
+          matrices_param_[num_param-4] = mat;*/
+
+          mattot.Resize(2*Na_+1, 3*dimension_tot_);
+          mattot.Init();
+          PtrParamNode mattheta = hr->Get("mattheta");
+          tensor = mattheta->Get("tensor");
+          ParamTools::AsTensor<double>(tensor->Get("real"),2*Na_+1, 3*dimension_tot_, mattot);
+
+          mattrans.Resize(2*Na_+1,dimension_);
+          mattrans.Init();
+          mat.Resize(2*Na_+1, 3*dimension_);
+          mat.Init();
+          for (int i=0; i<3; i++)
+          {
+            mattot.GetSubMatrix(mattrans, 0, i*dimension_tot_);
+            mat.SetSubMatrix(mattrans, 0, i*dimension_);
+          }
           matrices_param_[num_param-4] = mat;
+
     }
 
 
@@ -259,8 +274,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
            for (int tensor_int =0; tensor_int <3; tensor_int ++)
            {
 
-               FillModRedMatrices(hr, tensor_comp, tensor_int, 3*dimension_);
-               FillModRedVectors(hr, tensor_comp,tensor_int, 3*dimension_);
+               FillModRedMatrices(hr, tensor_comp, tensor_int, dimension_, dimension_tot_);
+               FillModRedVectors(hr, tensor_comp,tensor_int, dimension_, dimension_tot_);
            }
   }
 
@@ -372,6 +387,208 @@ void DesignMaterial::FillModRedVectors(PtrParamNode vecnode, const StdVector<std
       mod_red_vectors_[ 4*tensor_int +3] = vec;
 
 }
+
+
+void DesignMaterial::FillModRedMatrices(PtrParamNode matnode, const StdVector<std::string>& tensor_comp, const int& tensor_int, const UInt& dimbas, const UInt& dimbastot)
+{
+
+      PtrParamNode mat1 = matnode->Get("matuxux" + tensor_comp[tensor_int]);
+      PtrParamNode tensor = mat1->Get("tensor");
+      Matrix<double> mattot(3*dimbastot,3*dimbastot);
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      Matrix<double> mat(3*dimbas, 3*dimbas);
+      Matrix<double> mattrans(dimbas, dimbas);
+      for (int i=0; i< 3; i++)
+      {
+        for (int j=0; j<3; j++)
+        {
+          mattot.GetSubMatrix(mattrans, i*dimbastot, j*dimbastot);
+          mat.SetSubMatrix(mattrans, i*dimbas, j*dimbas);
+        }
+      }
+      mod_red_matrices_[10*tensor_int +0] = mat;
+
+
+      PtrParamNode mat2= matnode->Get("matuxvx" + tensor_comp[tensor_int] );
+      tensor = mat2->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      for (int i=0; i< 3; i++)
+      {
+        for (int j=0; j<3; j++)
+        {
+          mattot.GetSubMatrix(mattrans, i*dimbastot, j*dimbastot);
+          mat.SetSubMatrix(mattrans, i*dimbas, j*dimbas);
+        }
+      }
+       mod_red_matrices_[10*tensor_int + 1] = mat;
+
+
+      PtrParamNode mat3= matnode->Get("matvxvx" + tensor_comp[tensor_int]);
+      tensor = mat3->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      for (int i=0; i< 3; i++)
+      {
+        for (int j=0; j<3; j++)
+        {
+          mattot.GetSubMatrix(mattrans, i*dimbastot, j*dimbastot);
+          mat.SetSubMatrix(mattrans, i*dimbas, j*dimbas);
+        }
+      }
+      mod_red_matrices_[10*tensor_int + 2] = mat;
+
+
+      PtrParamNode mat4 = matnode->Get("matuxuy" + tensor_comp[tensor_int]);
+      tensor = mat4->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      for (int i=0; i< 3; i++)
+      {
+        for (int j=0; j<3; j++)
+        {
+          mattot.GetSubMatrix(mattrans, i*dimbastot, j*dimbastot);
+          mat.SetSubMatrix(mattrans, i*dimbas, j*dimbas);
+        }
+      }
+      mod_red_matrices_[ 10*tensor_int +3] = mat;
+
+      PtrParamNode mat5 = matnode->Get("matuxvy" + tensor_comp[tensor_int]);
+      tensor = mat5->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      for (int i=0; i< 3; i++)
+      {
+        for (int j=0; j<3; j++)
+        {
+          mattot.GetSubMatrix(mattrans, i*dimbastot, j*dimbastot);
+          mat.SetSubMatrix(mattrans, i*dimbas, j*dimbas);
+        }
+      }
+       mod_red_matrices_[10*tensor_int + 4] = mat;
+
+       PtrParamNode mat6 = matnode->Get("matuyvx" + tensor_comp[tensor_int]);
+       tensor = mat6->Get("tensor");
+       ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+       for (int i=0; i< 3; i++)
+       {
+         for (int j=0; j<3; j++)
+         {
+           mattot.GetSubMatrix(mattrans, i*dimbastot, j*dimbastot);
+           mat.SetSubMatrix(mattrans, i*dimbas, j*dimbas);
+         }
+       }
+       mod_red_matrices_[ 10*tensor_int + 5] = mat;
+
+      PtrParamNode mat7 = matnode->Get("matvxvy" + tensor_comp[tensor_int]);
+      tensor = mat7->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      for (int i=0; i< 3; i++)
+             {
+               for (int j=0; j<3; j++)
+               {
+                 mattot.GetSubMatrix(mattrans, i*dimbastot, j*dimbastot);
+                 mat.SetSubMatrix(mattrans, i*dimbas, j*dimbas);
+               }
+             }
+      mod_red_matrices_[10*tensor_int + 6] = mat;
+
+
+      PtrParamNode mat8 = matnode->Get("matuyuy" + tensor_comp[tensor_int]);
+      tensor = mat8->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      for (int i=0; i< 3; i++)
+      {
+        for (int j=0; j<3; j++)
+        {
+          mattot.GetSubMatrix(mattrans, i*dimbastot, j*dimbastot);
+          mat.SetSubMatrix(mattrans, i*dimbas, j*dimbas);
+        }
+      }
+       mod_red_matrices_[10*tensor_int + 7] = mat;
+
+       PtrParamNode mat9 = matnode->Get("matuyvy" + tensor_comp[tensor_int]);
+       tensor = mat9->Get("tensor");
+       ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+       for (int i=0; i< 3; i++)
+       {
+         for (int j=0; j<3; j++)
+         {
+           mattot.GetSubMatrix(mattrans, i*dimbastot, j*dimbastot);
+           mat.SetSubMatrix(mattrans, i*dimbas, j*dimbas);
+         }
+       }
+       mod_red_matrices_[10*tensor_int + 8] = mat;
+
+      PtrParamNode mat10 = matnode->Get("matvyvy" + tensor_comp[tensor_int]);
+      tensor = mat10->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 3*dimbastot, mattot);
+      for (int i=0; i< 3; i++)
+      {
+        for (int j=0; j<3; j++)
+        {
+          mattot.GetSubMatrix(mattrans, i*dimbastot, j*dimbastot);
+          mat.SetSubMatrix(mattrans, i*dimbas, j*dimbas);
+        }
+      }
+      mod_red_matrices_[10*tensor_int + 9] = mat;
+
+}
+
+void DesignMaterial::FillModRedVectors(PtrParamNode vecnode, const StdVector<std::string>& tensor_comp, const int& tensor_int, const UInt& dimbas, const UInt& dimbastot)
+{
+
+      PtrParamNode vecux = vecnode->Get("vecux" + tensor_comp[tensor_int] );
+      PtrParamNode tensor = vecux->Get("tensor");
+      Matrix<double> mattot(3*dimbastot,1);
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 1, mattot);
+      Matrix<double> mat(3*dimbas,1);
+      Matrix<double> mattrans(dimbas,1);
+      for (int i=0; i< 3; i++)
+      {
+        mattot.GetSubMatrix(mattrans, i*dimbastot, 0);
+        mat.SetSubMatrix(mattrans, i*dimbas, 0);
+      }
+      Vector<double> vec(dimbas);
+      mat.GetCol(vec,0);
+      mod_red_vectors_[4*tensor_int +0] = vec;
+
+      PtrParamNode vecuy = vecnode->Get("vecuy" + tensor_comp[tensor_int]);
+      tensor = vecuy->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 1, mattot);
+      for (int i=0; i< 3; i++)
+            {
+              mattot.GetSubMatrix(mattrans, i*dimbastot, 0);
+              mat.SetSubMatrix(mattrans, i*dimbas, 0);
+            }
+      mat.GetCol(vec,0);
+      mod_red_vectors_[4*tensor_int +1] = vec;
+
+      PtrParamNode vecvx = vecnode->Get("vecvx" + tensor_comp[tensor_int]);
+      tensor = vecvx->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 1, mattot);
+      for (int i=0; i< 3; i++)
+            {
+              mattot.GetSubMatrix(mattrans, i*dimbastot, 0);
+              mat.SetSubMatrix(mattrans, i*dimbas, 0);
+            }
+      mat.GetCol(vec,0);
+      mod_red_vectors_[ 4*tensor_int +2] = vec;
+
+      PtrParamNode vecvy = vecnode->Get("vecvy" + tensor_comp[tensor_int]);
+      tensor = vecvy->Get("tensor");
+      ParamTools::AsTensor<double>(tensor->Get("real"),3*dimbastot, 1, mattot);
+      for (int i=0; i< 3; i++)
+            {
+              mattot.GetSubMatrix(mattrans, i*dimbastot, 0);
+              mat.SetSubMatrix(mattrans, i*dimbas, 0);
+            }
+      mat.GetCol(vec,0);
+      mod_red_vectors_[ 4*tensor_int +3] = vec;
+
+}
+
+
+
+
+
+
 
 unsigned int DesignMaterial::RequiredParameters(OptimizationMaterial::System material)
 {
@@ -1954,7 +2171,11 @@ void DesignMaterial::GetModRedTensor(Matrix<double>& E, DesignElement::Type dire
     GetModRedGTensor(Gderiv,direction, all_param_);
     GetModRedHomTensor(E, G, Gderiv, corrector_, notation);
   }
-  if (!all_param_) RotateHMStiffnessTensor(E, PLANE, direction, theta, notation);
+  if (!all_param_){
+    RotateHMStiffnessTensor(E, PLANE, direction, -theta, notation);
+    if (direction == DesignElement::ROTANGLE) E=-E;
+
+  }
 
 
 }
