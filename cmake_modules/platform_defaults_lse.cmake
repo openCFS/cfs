@@ -7,3 +7,5 @@ SET(CFS_PARDISO_DEFAULT "MKL")
 SET(MKL_ROOT_DIR_DEFAULT "/home/shareAll/linux_bin/intel/compiler/11.0/081/mkl")
 
 SET(USE_ILUPACK_DEFAULT ON)
+
+SET(CPLREADER_PERF_SUITE "/home/storBack/staff/jens/cplreader_performance_suite")
