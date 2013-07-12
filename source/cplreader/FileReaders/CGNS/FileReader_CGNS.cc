@@ -208,7 +208,7 @@ namespace CoupledField{
         UInt spaceIdx = MapVelocityIndex(fieldName);
         if(spaceIdx != 9999){
           cgsize_t range_min[3] = {1,1,1};
-          cgsize_t range_max[3] = {numVertices_,1,1};
+          cgsize_t range_max[3] = {(cgsize_t)numVertices_,1,1};
           Double * curSol = new Double[numVertices_];
           cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
           solution[spaceIdx].resize(numVertices_,0);
@@ -220,7 +220,7 @@ namespace CoupledField{
         spaceIdx = MapFrictionIndex(fieldName);
         if(spaceIdx != 9999){
           cgsize_t range_min[3] = {1,1,1};
-          cgsize_t range_max[3] = {numVertices_,1,1};
+          cgsize_t range_max[3] = {(cgsize_t)numVertices_,1,1};
           Double * curSol = new Double[numVertices_];
           cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
           solutionSkinFriction[spaceIdx].resize(numVertices_,0);
@@ -232,7 +232,7 @@ namespace CoupledField{
         spaceIdx = MapForceIndex(fieldName);
         if(spaceIdx != 9999){
           cgsize_t range_min[3] = {1,1,1};
-          cgsize_t range_max[3] = {numVertices_,1,1};
+          cgsize_t range_max[3] = {(cgsize_t)numVertices_,1,1};
           Double * curSol = new Double[numVertices_];
           cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
           solutionForce[spaceIdx].resize(numVertices_,0);
@@ -244,7 +244,7 @@ namespace CoupledField{
 
         if(strcmp(fieldName,"Pressure") == 0){
           cgsize_t range_min[3] = {1,1,1};
-          cgsize_t range_max[3] = {numVertices_,1,1};
+          cgsize_t range_max[3] = {(cgsize_t)numVertices_,1,1};
           Double * curSol = new Double[numVertices_];
           cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
           solutionPressure.resize(numVertices_,0);
@@ -733,7 +733,7 @@ namespace CoupledField{
      // READ IN COORDINATES
      //==================================================================
      cgsize_t range_min[3] = {1,1,1};
-     cgsize_t range_max[3] = {numVertices_,1,1};
+     cgsize_t range_max[3] = {(cgsize_t)numVertices_,1,1};
 
      nodeCoords_.Resize(ncoords);
      Double * curCoord = new Double[numVertices_];
