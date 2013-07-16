@@ -456,7 +456,49 @@ ADD_OPTION(cfxLastStep
   produced by CFX 11 and earlier this option can be omitted, because it is
   determined automatically."
   )
-   
+
+ADD_OPTION(digits
+  uint32_t
+  0
+  "number of digits at timestep input files"
+  "must be set greater than 0"
+  )
+
+ADD_OPTION(stepoffset
+  uint32_t
+  0
+  "offset for the steps, used by CCMDualizer internally"
+  "cplreader usually reads the steps: [ firststep , firststep + numsteps - 1], 
+    using this option the filreader will actually read [ firststep + offset , firststep + numsteps + offset - 1], 
+    while cplreader thinks it is reading [ firststep , firststep + numsteps - 1]"
+  )
+ADD_OPTION(PressureName
+  string
+  Pressure
+  "Name of the field variable set up in CCM for the exported pressure field (default: Pressure)"
+  "Sets the name of the CCM file reader to use for reading the pressure field"
+  )
+
+ADD_OPTION(VelocityName
+  string
+  Velocity
+  "Name of the field variable set up in CCM for the exported velocity field (default: Velocity)"
+  "Sets the name of the CCM file reader to use for reading the velocity field"
+  )
+
+ADD_OPTION(DivLHTName
+  string
+  DivLHT
+  "Name of the field variable set up in CCM for the exported divergence of Lighthill tensor field (default: DivLHT)"
+  "Sets the name of the CCM file reader to use for reading the divergence of Lighthill tensor field"
+  )
+
+ADD_OPTION(LaplacePName
+  string
+  LaplaceP
+  "Name of the field variable set up in CCM for the exported laplace of pressure field (default: LaplaceP)"
+  "Sets the name of the CCM file reader to use for reading the laplace of pressure field"
+  )
 CONFIGURE_FILE("ParamsInit.cc.in"
   "${CMAKE_CURRENT_BINARY_DIR}/ParamsInit.cc")
 

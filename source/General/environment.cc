@@ -514,6 +514,10 @@ namespace CoupledField {
       return "N/m^2";
       break;
 
+    case FLUIDMECH_DIV_LH_T:
+      return "kg m^-2 s^-2";
+      break;
+      
     case HEAT_TEMPERATURE:
       return "K";
       break;

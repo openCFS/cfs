@@ -302,6 +302,14 @@ IF(CPLREADER_CGNS)
 ENDIF(CPLREADER_CGNS)
 
 #-----------------------------------------------------------------------------
+# Find ccmio for STARCCM+ reader
+#-----------------------------------------------------------------------------
+IF(CPLREADER_STARCCM)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCCMIO.cmake")
+ENDIF(CPLREADER_STARCCM)
+
+
+#-----------------------------------------------------------------------------
 # Find ParaView postprocessor
 #-----------------------------------------------------------------------------
 IF(BUILD_PARAVIEW)
