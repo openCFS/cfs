@@ -1076,6 +1076,17 @@ namespace CFSTool {
 
     std::vector<std::string> chunkFileNames;
 
+    // Initialize vector with output fields
+    typedef boost::tokenizer< boost::char_separator<char> > Tok;
+    boost::char_separator<char> sep(";| ");
+
+    std::vector<std::string> outputFields;
+    PtrParamNode outputFieldNode = param->Get("outputfields",ParamNode::PASS);
+
+    Tok tokenizer(outputFieldNode->As<std::string>(), sep);
+    std::copy(tokenizer.begin(), tokenizer.end(),
+              std::back_inserter(outputFields));
+
     PtrParamNode maxMemNode = param->Get("maxMemory",ParamNode::PASS);
     long pages = sysconf(_SC_PHYS_PAGES);
     long page_size = sysconf(_SC_PAGE_SIZE);
@@ -1174,10 +1185,18 @@ namespace CFSTool {
       for( UInt iRes = 0; iRes < infos.GetSize(); iRes++) {
         StdVector<shared_ptr<EntityList> > regions;
         shared_ptr<ResultInfo> actRes = infos[iRes];
+        std::cout << "\t" << actRes->resultName << "\n";
+        bool computeField = \
+          ( std::find(outputFields.begin(),outputFields.end(),actRes->resultName) != outputFields.end() || \
+            std::find(outputFields.begin(),outputFields.end(),"all") != outputFields.end());
+        if (!computeField)
+        {
+          continue;
+        }
 
-        input->GetResultEntities( actMsStep, infos[iRes],regions, false );
+
+        input->GetResultEntities( actMsStep, actRes,regions, false );
         input->GetStepValues( actMsStep, actRes,resultSteps[actRes], false);
-        std::cout << "\t" << infos[iRes]->resultName << "\n";
 
         //iterate over each region the result is definied on
         for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
@@ -1191,7 +1210,7 @@ namespace CFSTool {
           if(regions[iRegion]->GetType() == EntityList::NODE_LIST){
             regNodes = regions[iRegion]->GetSize();
             // get number of dofs of result
-            UInt numDofs = infos[iRes]->dofNames.GetSize();
+            UInt numDofs = actRes->dofNames.GetSize();
             regNodes *= numDofs;
             numNodes += regNodes;
           }else{
@@ -1232,7 +1251,7 @@ namespace CFSTool {
 
           //define the output
           outResult->SetEntityList( regions[iRegion] );
-          outResult->SetResultInfo( infos[iRes] );
+          outResult->SetResultInfo( actRes );
           outResult->GetResultInfo()->complexFormat = REAL_IMAG;
           outResults.Push_back( outResult );
 
@@ -1248,7 +1267,7 @@ namespace CFSTool {
 
               //define the output
               outResult->SetEntityList( regions[iRegion] );
-              outResult->SetResultInfo( infos[iRes] );
+              outResult->SetResultInfo( actRes );
               outResult->GetResultInfo()->complexFormat = REAL_IMAG;
               outResults.Push_back( outResult );
 

@@ -39,6 +39,7 @@ namespace CoupledField
     std::string param_forceSegFault = "false";
     std::string param_frequencyRange = "";
     std::string param_maxMemory = "0";
+    std::string param_outputfields = "all";
     // copy command line into vector
     std::vector<std::string> args;
     //args.resize( argc-1 );
@@ -81,6 +82,9 @@ calcAverage | convert | scalardiff |meshdiff | meshdiffnormed | fft")
 Beware: During writing this may trippel.\n\
 Default (0) results in a 0.1 of main memory, \
 more than 0.2 should not be used.")
+        ("outputfields", \
+            po::value<std::string>(&param_outputfields)->default_value("all"),
+            "The physical quantities to perform a FFT.")
         ;
       po::options_description cmdInvisible("Files needed");
 
@@ -190,6 +194,9 @@ more than 0.2 should not be used.")
     leafs.Push_back(PtrParamNode(new ParamNode()));
     leafs[leafs.GetSize()-1]->SetName("maxMemory");
     leafs[leafs.GetSize()-1]->SetValue(param_maxMemory);
+    leafs.Push_back(PtrParamNode(new ParamNode()));
+    leafs[leafs.GetSize()-1]->SetName("outputfields");
+    leafs[leafs.GetSize()-1]->SetValue(param_outputfields);
 
   }
 }
