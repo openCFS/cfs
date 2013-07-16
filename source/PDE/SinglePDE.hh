@@ -279,6 +279,9 @@ namespace CoupledField
     //! read from config-file info about BCs
     void ReadBCs();
 
+    //! Read periodic BC
+    void ReadPeriodicBC(PtrParamNode prNode);
+    
     //! overloaded version of ReadBCs for special
     //! boundary conditions in derived classes
     virtual void ReadSpecialBCs(){}
