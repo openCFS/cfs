@@ -126,12 +126,12 @@
                 <xsd:element name="rhsValues"     type="DT_BcInhomVector"/>
                 
                 <!-- Special Boundary Conditions -->
-                <xsd:element name="constraint"     type="DT_MechCS" />
+                <xsd:element name="constraint"    type="DT_MechCS" />
                 
-            <!--<xsd:element name="spring"         type="DT_MechSpring"    />
-                <xsd:element name="preStress"      type="DT_MechPreStress"/>
-                <xsd:element name="testStrain"     type="DT_MechTestStrain"/>
-                <xsd:element name="periodic"       type="DT_MechPeriodic"   />-->
+            <!--<xsd:element name="spring"        type="DT_MechSpring"    />
+                <xsd:element name="preStress"     type="DT_MechPreStress" />
+                <xsd:element name="testStrain"    type="DT_MechTestStrain"/>-->
+                <xsd:element name="periodic"      type="DT_BcPeriodic"    />
               </xsd:choice>
 
             </xsd:complexType>
@@ -402,19 +402,6 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-  <!-- Element type for periodic boundary condition -->
-  <xsd:complexType name="DT_MechPeriodic">
-    <xsd:complexContent>
-      <xsd:extension base="DT_BCBasic">
-        <xsd:attribute name="master" type="xsd:token" use="required"/>
-        <xsd:attribute name="slave"  type="xsd:token" use="required"/>
-        <xsd:attribute name="quantity" default="mechDisplacement"
-          type="DT_MechUnknownType"/>
-        <xsd:attribute name="dof" type="DT_MechDOF" use="required"/>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-   
   <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->
   <!-- ******************************************************************* -->
