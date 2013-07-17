@@ -190,6 +190,7 @@
           <xsd:attribute name="y" type="xsd:token" use="optional"/>
           <xsd:attribute name="z" type="xsd:token" use="optional"/>
           <xsd:attribute name="r" type="xsd:token" use="optional"/>
+          <xsd:attribute name="phi" type="xsd:token" use="optional"/>
           <xsd:attribute name="coordSysId" type="xsd:token"
             use="optional"  default="default"/>
         </xsd:complexType>
