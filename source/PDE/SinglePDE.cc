@@ -1787,6 +1787,7 @@ namespace CoupledField {
 
   void SinglePDE::ReadPeriodicBC(PtrParamNode prNode) {
     bool allCoordsFree = false;
+    Double tol = 1e-6;
     UInt i, nDims, nFixed;
     std::string masterName, slaveName, resultName, dof, coordStr, coordSysId;
     StdVector<UInt> fixedCoords;
@@ -1799,6 +1800,7 @@ namespace CoupledField {
     prNode->GetValue( "dof", dof );
     prNode->GetValue( "quantity", resultName );
     prNode->GetValue( "fixedCoords", coordStr );
+    prNode->GetValue( "tolerance", tol, ParamNode::PASS );
     prNode->GetValue( "coordSysId", coordSysId );
 
     // fetch related resultInfo object
@@ -1850,12 +1852,13 @@ namespace CoupledField {
     // iterate over all master nodes and try to find "nearest"
     // node in slave list
     Vector<Double> mLoc, sLoc, diff, tmp;
-    Double minDist, dist;
+    Double minDist, dist, minFixed, fixedDiff;
     StdVector<UInt> nodes(2);
     EntityIterator masterIt = masterList.GetIterator();
     for( masterIt.Begin(); !masterIt.IsEnd(); masterIt++ ) {
 
       minDist = 1e42;
+      minFixed = minDist;
 
       // obtain nodal coordinate
       ptGrid_->GetNodeCoordinate( mLoc, masterIt.GetNode() );
@@ -1875,21 +1878,36 @@ namespace CoupledField {
       for( slaveIt.Begin(); !slaveIt.IsEnd(); slaveIt++ ) {
         ptGrid_->GetNodeCoordinate( sLoc, slaveIt.GetNode() );
         if ( !allCoordsFree ) {
-          if ( coordSysId != "default" ) { 
+          if ( coordSysId != "default" ) {
+            // obtain coordinates in given coordinate system
             coordSys->Global2LocalCoord(tmp, sLoc);
             sLoc = tmp;
           }
+          // first make sure that fixed coordinates match
           for ( i = 0; i < nFixed; ++i ) {
-            if ( abs(mLoc[fixedCoords[i]] - sLoc[fixedCoords[i]]) > 1e-12 )  {
+            // absolute difference
+            fixedDiff = abs(mLoc[fixedCoords[i]] - sLoc[fixedCoords[i]]);
+            // compute relative difference, if possible (i.e. coordinate != 0)
+            if ( mLoc[fixedCoords[i]] > 1e-14 ) fixedDiff /= mLoc[fixedCoords[i]];
+            // reject node if it exceeds the tolerance
+            if ( fixedDiff > tol )  {
+              if ( fixedDiff < minFixed ) {
+                // store best guess, so we can display a hint for the
+                // tolerance, that would be needed to find a match
+                minFixed = fixedDiff;
+              }
               break;
             }
           }
+          // skip to next slave node, because a fixed coordinate did not match
           if ( i < nFixed ) continue;
         }
 
+        // calculate distance between master and slave node
         diff = mLoc - sLoc;
         dist = diff.NormL2();
-        if( dist < minDist) {
+        if( dist < minDist ) {
+          // store slave node with least distance
           minDist = dist;
           nodes[1] = slaveIt.GetNode();
         }
@@ -1897,7 +1915,14 @@ namespace CoupledField {
       
       if ( nodes[1] == 0 ) {
         EXCEPTION("Could not find a matching slave node for master node "
-                  << nodes[0]);
+                  << nodes[0] << ".\nRelative deviation of nearest miss: "
+                  << minFixed);
+      }
+      else if ( nodes[0] == nodes[1] ) {
+        // Ignore nodes that are contained both in master and slave regions.
+        // That usually happens in rotationally periodic setups with nodes, that
+        // are located on the axis of rotation.
+        continue;
       }
       
       shared_ptr<NodeList> nodePair(new NodeList( ptGrid_ ) );
@@ -2171,7 +2196,7 @@ namespace CoupledField {
         // --------------
         //  S C A L A R
         // --------------
-        // in the scalar case, the coponent with index 0 is always defined
+        // in the scalar case, the component with index 0 is always defined
         definedDofs.insert(0);
         std::string val = "0.0";
         std::string phase = "0.0";
