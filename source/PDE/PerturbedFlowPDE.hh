@@ -90,12 +90,11 @@ namespace CoupledField
 
     //! create feFunction for meanFluidMech velocity
     void CreateMeanFlowFunction(StdVector<std::string> dofNames);
-
-  BaseBDBInt *
-  GetStiffIntegrator( BaseMaterial* actSDMat,
-                               RegionIdType regionId,
-                               bool isComplex );
-
+    
+    BaseBDBInt *
+    GetStiffIntegrator( BaseMaterial* actSDMat,
+                        RegionIdType regionId,
+                        bool isComplex );
 
     //! Coefficient function for the flow field
     
@@ -103,6 +102,8 @@ namespace CoupledField
     //! is in general different for each region and will most likely
     //! not be given in a close form, it is described by a CoefFunctionMulti.
     shared_ptr<CoefFunctionMulti> meanFlowCoef_;
+    shared_ptr<BaseFeFunction> meanFlowFeFct_;
+    shared_ptr<FeSpace> meanFlowFeSpace_;
 
     //! Surface regions on which pressure surface integral has to be defined
     StdVector<RegionIdType> presSurfaces_;

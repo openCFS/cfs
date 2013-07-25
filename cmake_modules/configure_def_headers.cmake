@@ -23,6 +23,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_lis.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_suitesparse.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_suitesparse.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_superlu.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_superlu.hh")
+
 IF(CFS_BLAS_LAPACK STREQUAL "MKL")
   SET(USE_MKL 1)
 ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")

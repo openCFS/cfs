@@ -90,7 +90,6 @@ namespace CoupledField {
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
     
-    // flag for updatedLagrange formulation
     // bool upLagrangeForm = true;
     
     //transform the type

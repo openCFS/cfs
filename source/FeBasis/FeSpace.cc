@@ -1223,6 +1223,48 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     }
 
   }
+  
+  void FeSpace::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent,
+                         BaseFE::EntityType entityType) { 
+     //Get result for the feFunction
+     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+     assert(feFct);
+     shared_ptr<ResultInfo> feFctResult = feFct->GetResultInfo();
+
+     //Get "dimension" of one Unknown
+     UInt dofsPerUnknown = GetNumDofs();
+     
+     //First cover the nodal/grid case
+     if ( ent.GetType() == EntityList::NODE_LIST ) {
+       UInt node = ent.GetNode();
+       eqns.Resize(dofsPerUnknown);
+       eqns.Init();
+       if(gridToVirtualNodes_.find(node)!= gridToVirtualNodes_.end()) {
+         for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
+           eqns[iDof] = nodeMap_[gridToVirtualNodes_[node][0]][iDof];
+         }
+       } else {
+         // In case a node was not found, we reset the eqnarray to
+         // size 0
+         eqns.Resize(0);
+       }
+     } else if( ent.GetType() == EntityList::ELEM_LIST ||
+         ent.GetType() == EntityList::SURF_ELEM_LIST||
+         ent.GetType() == EntityList::NC_ELEM_LIST){
+       StdVector<UInt> nodes;
+       this->GetNodesOfElement(nodes,ent.GetElem(), entityType);
+       eqns.Resize( nodes.GetSize() * dofsPerUnknown);
+       eqns.Init();
+       for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+         for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
+           eqns[(iNode*dofsPerUnknown) + iDof] = nodeMap_[nodes[iNode]][iDof];
+         }
+       }
+     } else {
+       EXCEPTION("In FeSpace::GetEqns(StdVector,EntityIterator,UInt):  Supplied an iterator which is not supported by FeSpace");
+     }
+
+  }
 
     void FeSpace::GetElemEqns(StdVector<Integer>& eqns,const Elem* elem){
       //Get result for the feFunction
@@ -1273,6 +1315,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         tmp.Init();
         GetEqns( tmp, it, entType);
         allEqns.insert(tmp.Begin(), tmp.End());
+        
       }
       eqns.Clear();
       eqns.Resize(allEqns.size());
@@ -1517,9 +1560,10 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     StdVector<UInt> blockNums, indices;
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
-    AlgebraicSys * algSys = feFct->GetSystem();
     FeFctIdType fctId = feFct->GetFctId();
-    algSys->MapCompleteFctIdToIndex(fctId, blockNums, indices);
+    AlgebraicSys * algSys = feFct->GetSystem();
+    if( algSys )
+      algSys->MapCompleteFctIdToIndex(fctId, blockNums, indices);
     
     std::string resultName = 
         SolutionTypeEnum.ToString(feFct->GetResultInfo()->resultType);
@@ -1661,11 +1705,11 @@ ApproxOrder::ApproxOrder(UInt dim ) {
               if( iEqn > 0 ) {
                 std::cout << prefix << "\t";
               }
-              
+
               //equation number
               std::cout << eqn << "\t";
 
-              if( eqn > 0 ) {
+              if( eqn > 0 && algSys) {
                 // SBM-Block
                 std::cout << blockNums[eqn-1] << "\t";
 
@@ -1719,7 +1763,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         std::cout << "|\t" << eqn;
 
 
-        if( eqn == 0) {
+        if( eqn == 0 || !algSys) {
           std::cout << "\t|" << std::setw(1) << "-";; 
 
           // index

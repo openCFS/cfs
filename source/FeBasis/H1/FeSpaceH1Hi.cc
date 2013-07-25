@@ -194,7 +194,7 @@ namespace CoupledField{
     }
 
     if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
-      EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
+      EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is not supported by space");
     }
     // Fetch reference element and set correct order
     FeH1Hi * myFe = refElems_[eRegion][ptElem->type];

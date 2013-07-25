@@ -9,8 +9,13 @@
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "Driver/Assemble.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
+#include "PDE/SinglePDE.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/BiLinForms/BiLinearForm.hh"
+
+#include "def_use_pardiso.hh"
+#include "def_use_suitesparse.hh"
+#include "def_use_superlu.hh"
 
 namespace CoupledField {
 
@@ -53,6 +58,26 @@ FeSpaceHi ::~FeSpaceHi() {
     }
     entityCtx_.clear();
 }
+
+//! \copydoc FeSpace::MapCoefFctToSpace
+void FeSpaceHi ::MapCoefFctToSpace( StdVector<shared_ptr<EntityList> > support,
+                        shared_ptr<CoefFunction> coefFct,
+                        shared_ptr<BaseFeFunction> feFct,
+                        std::map<Integer, Double>& vals, bool cache,
+                        const std::set<UInt>& comp ) {
+  MapCoefFctToSpacePriv<Double>( support, coefFct, feFct, vals, cache, comp );
+}
+
+//! \copydoc FeSpace::MapCoefFctToSpace
+void FeSpaceHi ::MapCoefFctToSpace( StdVector<shared_ptr<EntityList> > support,
+                        shared_ptr<CoefFunction> coefFct,
+                        shared_ptr<BaseFeFunction> feFct,
+                        std::map<Integer, Complex>& vals, bool cache,
+                        const std::set<UInt>& comp) {
+  MapCoefFctToSpacePriv<Complex>( support, coefFct, feFct, vals, cache, comp );
+}
+
+
 
 void FeSpaceHi::MapNodalBCs() {
   LOG_TRACE(feSpaceHi) << "Mapping Nodal BCs";
@@ -475,6 +500,7 @@ void FeSpaceHi::FixHigherOrderAnisoDofs() {
 template<typename T>
 void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityLists,
                                           shared_ptr<CoefFunction> coefFct,
+                                          shared_ptr<BaseFeFunction> feFct,
                                           std::map <Integer, T>& vals,
                                           bool cache,
                                           const std::set<UInt>& comp ) {
@@ -489,7 +515,6 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
   //    according RHS integrator. The auxilliary data needed can be cached for
   //    repeated access / changing values (e.g. time / frequency dependend boundary+
   //    conditions.
-  shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
 
   // assemble complete name
   std::string entityNames;
@@ -584,6 +609,39 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
       // generate new algebraic system
       ctx->olasNode.reset(new ParamNode());
       ctx->olasNode->SetName(std::string("IDBC-") + name);
+
+      // Explicitly define optimized solver, if available.
+      PtrParamNode solverListNode(new ParamNode());
+      solverListNode->SetName("solverList");
+
+      PtrParamNode solverNode(new ParamNode());
+#if defined(USE_PARDISO)
+      solverNode->SetName("pardiso");
+      PtrParamNode statsNode(new ParamNode());
+      statsNode->SetName("stats");
+      statsNode->SetValue("no");
+      solverNode->AddChildNode(statsNode);      
+      PtrParamNode loggingNode(new ParamNode());
+      loggingNode->SetName("logging");
+      loggingNode->SetValue("no");
+      solverNode->AddChildNode(loggingNode);      
+#elif defined(USE_SUITESPARSE)
+      solverNode->SetName("cholmod");
+#elif defined(USE_SUPERLU)
+      solverNode->SetName("superlu");
+#else
+      solverNode->SetName("directLDL");
+#endif
+
+      solverListNode->AddChildNode(solverNode);
+
+      PtrParamNode solverIdNode(new ParamNode());
+      solverIdNode->SetName("id");
+      solverIdNode->SetValue("default");
+      solverNode->AddChildNode(solverIdNode);
+
+      ctx->olasNode->AddChildNode(solverListNode);
+
       ctx->infoNode.reset(new ParamNode(ParamNode::INSERT));
       ctx->algSys = new AlgebraicSys( ctx->olasNode, ctx->infoNode, isComplex );
 
@@ -592,7 +650,9 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
           PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
       BasePDE::AnalysisType aType =
           isComplex ? BasePDE::HARMONIC : BasePDE::STATIC;
-      ctx->assemble = new Assemble( ctx->algSys, aType, infoNode );
+             
+      MathParser * mp = feFct->GetPDE()->GetDomain()->GetMathParser();
+      ctx->assemble = new Assemble( ctx->algSys, aType, mp, infoNode );
 
       // --------------------------------------------------------------------
       // generate (dimensional and space-dependent) interpolation (bi)linear
@@ -728,10 +788,14 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template void FeSpaceHi::
   MapCoefFctToSpacePriv<Double>( StdVector<shared_ptr<EntityList> > ,
-                                 shared_ptr<CoefFunction>, std::map <Integer, Double>&,
+                                 shared_ptr<CoefFunction>,
+                                 shared_ptr<BaseFeFunction> feFct,
+                                 std::map <Integer, Double>&,
                                  bool,const std::set<UInt>&);
   template void FeSpaceHi::
   MapCoefFctToSpacePriv<Complex>( StdVector<shared_ptr<EntityList> > ,
-                                 shared_ptr<CoefFunction>, std::map <Integer, Complex>&,
+                                 shared_ptr<CoefFunction>,
+                                 shared_ptr<BaseFeFunction> feFct,
+                                 std::map <Integer, Complex>&,
                                  bool,const std::set<UInt>&);
 #endif

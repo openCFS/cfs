@@ -36,12 +36,14 @@ namespace CoupledField
   
   Assemble::Assemble( AlgebraicSys* algsys,
                       BasePDE::AnalysisType analysis,
+                      MathParser* mp,
                       PtrParamNode infoNode) 
   : timer_(new Timer()) {
 
     // init general params
     algsys_ = algsys;
     analysisType_ = analysis;
+    mp_ = mp;
     isFirstTime_ = true;
     matrixUpdated_ = false;
     printProgressBar_ = false;
@@ -52,6 +54,10 @@ namespace CoupledField
     // Calculate matrix map from general matrix types to analysis
     // specific ones
     CreateMatrixMap();
+    
+    // Set expression for omega
+    mHandle_ = mp->GetNewHandle();
+    mp->SetExpr(mHandle_, "2*pi*f");
 
     // the timer object is used in every AssembleMatrices() call
     info_->Get("analysis")->Get(ParamNode::PN_SUMMARY)->Get("assemble/timer")->SetValue(timer_);
@@ -72,6 +78,7 @@ namespace CoupledField
     }
     
     delete linForms_;
+    mp_->ReleaseHandle(mHandle_);
   }
 
   void Assemble::SetAlgSys(AlgebraicSys * algsys)  {
@@ -1326,8 +1333,7 @@ namespace CoupledField
     } else {
       assert(analysisType_ == BasePDE::HARMONIC);
 
-      Double freq = context.GetFirstPde()->GetSolveStep()->GetActFreq();
-      Double omega = freq * 2 * PI;
+      Double omega = mp_->Eval( mHandle_ );
 
       Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
       algsys_->SetElementMatrix( mappedDest, harmMat,
@@ -1352,9 +1358,7 @@ namespace CoupledField
     assert(analysisType_ == BasePDE::HARMONIC);
 
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
-
-    Double freq = context.GetFirstPde()->GetSolveStep()->GetActFreq();
-    Double omega = freq * 2 * PI;
+    Double omega = mp_->Eval( mHandle_ );
 
     Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
 

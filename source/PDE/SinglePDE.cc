@@ -222,7 +222,7 @@ namespace CoupledField {
 
     // Create new assemble class with according analysistype
     if( isDirectCoupled_ == false && needsAlgsys_ == true) {
-      assemble_ = new Assemble( algsys_, analysistype_, myInfo_ );
+      assemble_ = new Assemble( algsys_, analysistype_, this->mp_, myInfo_ );
     }
     
     // =====================================================================
