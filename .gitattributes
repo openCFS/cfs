@@ -360,6 +360,7 @@ include/def_use_pardiso.hh.in -text
 include/def_use_scpip.hh.in -text
 include/def_use_snopt.hh.in -text
 include/def_use_suitesparse.hh.in -text
+include/def_use_superlu.hh.in -text
 include/def_use_unv.hh.in -text
 include/def_use_xerces.hh.in -text
 include/def_user_scpip.hh.in -text
@@ -913,6 +914,7 @@ share/xml/CFS-Material/Schemas/CFS_MATmagnetic.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Schemas/CFS_MATmechanical.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Schemas/CFS_MATpiezo.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Schemas/CFS_MATpyroelectric.xsd -text
+share/xml/CFS-Material/Schemas/CFS_MATtest.xsd -text
 share/xml/CFS-Material/Schemas/CFS_MATthermoelastic.xsd -text
 share/xml/CFS-Material/Schemas/CFS_Misc.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/CFS.xsd svneol=native#text/xml
@@ -936,6 +938,7 @@ share/xml/CFS-Simulation/Schemas/CFS_PDEmagedge.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmagnetic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmechanic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEsmooth.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEtest.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PostProc.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Preconds.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Solvers.xsd svneol=native#text/xml
@@ -1140,6 +1143,8 @@ source/Domain/CoefFunction/CoefFunctionGridNodalDefault.cc -text
 source/Domain/CoefFunction/CoefFunctionGridNodalDefault.hh -text
 source/Domain/CoefFunction/CoefFunctionGridNodalInterp.cc -text
 source/Domain/CoefFunction/CoefFunctionGridNodalInterp.hh -text
+source/Domain/CoefFunction/CoefFunctionMeanFlowConvection.cc -text
+source/Domain/CoefFunction/CoefFunctionMeanFlowConvection.hh -text
 source/Domain/CoefFunction/CoefFunctionMulti.cc -text
 source/Domain/CoefFunction/CoefFunctionMulti.hh -text
 source/Domain/CoefFunction/CoefFunctionPML.cc -text
@@ -1386,6 +1391,8 @@ source/Materials/Models/SimplePreisachInv.cc -text
 source/Materials/Models/SimplePreisachInv.hh -text
 source/Materials/PiezoMaterial.cc -text
 source/Materials/PiezoMaterial.hh -text
+source/Materials/TestMaterial.cc -text
+source/Materials/TestMaterial.hh -text
 source/ODESolve/BaseODEProblem.hh svneol=native#text/plain
 source/ODESolve/BaseODESolver.hh svneol=native#text/plain
 source/ODESolve/CMakeLists.txt svneol=native#text/plain
@@ -1443,6 +1450,11 @@ source/OLAS/external/pardiso/CMakeLists.txt svneol=native#text/plain
 source/OLAS/external/pardiso/PardisoDummy.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/pardiso/PardisoSolver.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/pardiso/PardisoSolver.hh svneol=native#text/x-c%2B%2Bhdr
+source/OLAS/external/superlu/CMakeLists.txt -text
+source/OLAS/external/superlu/SuperLUSolver.cc -text
+source/OLAS/external/superlu/SuperLUSolver.hh -text
+source/OLAS/external/superlu/dlinsolx2.cc -text
+source/OLAS/external/superlu/pzrepeat.cc -text
 source/OLAS/external/umfpack/CMakeLists.txt -text
 source/OLAS/external/umfpack/UMFPACKSolver.cc -text
 source/OLAS/external/umfpack/UMFPACKSolver.hh -text
@@ -1572,6 +1584,8 @@ source/PDE/SinglePDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/SinglePDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/StdPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/StdPDE.hh svneol=native#text/x-c%2B%2Bhdr
+source/PDE/TestPDE.cc -text
+source/PDE/TestPDE.hh -text
 source/Utils/ApproxData.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/ApproxData.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/AutoDiff.hh svneol=native#text/x-c%2B%2Bhdr

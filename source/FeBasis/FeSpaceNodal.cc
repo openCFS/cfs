@@ -33,6 +33,7 @@ FeSpaceNodal ::~FeSpaceNodal() {
 template<typename T>
 void FeSpaceNodal::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityLists,
                                          shared_ptr<CoefFunction> coefFct,
+                                         shared_ptr<BaseFeFunction> feFct,
                                          std::map <Integer, T>& vals,
                                          bool cache,
                                          const std::set<UInt>& comp ) {
@@ -48,8 +49,6 @@ void FeSpaceNodal::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > enti
   //    repeated access / changing values (e.g. time / frequency dependend boundary+
   //    conditions.
   
-  shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
-
   if (IS_LOG_ENABLED(feSpaceNodal, trace)) {
     StdVector<UInt> compVec;
     std::set<UInt>::const_iterator it = comp.begin();
@@ -63,7 +62,9 @@ void FeSpaceNodal::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > enti
     LOG_TRACE(feSpaceNodal) << "Mapping coeffct " << coefFct->ToString() 
                             << " on " << entityNames << " for dofs "
                             << compVec.ToString() << " for FeFunction "
-                            << SolutionTypeEnum.ToString(feFct->GetResultInfo()->resultType);
+                            << ( feFct->GetResultInfo() ?
+                               SolutionTypeEnum.ToString(feFct->GetResultInfo()->resultType)
+                               : "");
   }
   
   if( coefFct->GetDependency() == CoefFunction::CONSTANT ||
@@ -267,10 +268,14 @@ void FeSpaceNodal::GetNodalCoords(StdVector<Vector<Double> > & coords,
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
 template void FeSpaceNodal::
 MapCoefFctToSpacePriv<Double>( StdVector<shared_ptr<EntityList> > ,
-                               shared_ptr<CoefFunction>, std::map <Integer, Double>&,
+                               shared_ptr<CoefFunction>, 
+                               shared_ptr<BaseFeFunction> feFct,
+                               std::map <Integer, Double>&,
                                bool,const std::set<UInt>&);
 template void FeSpaceNodal::
 MapCoefFctToSpacePriv<Complex>( StdVector<shared_ptr<EntityList> > ,
-                                shared_ptr<CoefFunction>, std::map <Integer, Complex>&,
+                                shared_ptr<CoefFunction>, 
+                                shared_ptr<BaseFeFunction> feFct,
+                                std::map <Integer, Complex>&,
                                 bool,const std::set<UInt>&);
 #endif

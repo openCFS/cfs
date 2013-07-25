@@ -16,6 +16,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionSurf.cc
   CoefFunctionPML.cc
   CoefFunctionStabParams.cc
+  CoefFunctionMeanFlowConvection.cc
 )
 #
 ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})
