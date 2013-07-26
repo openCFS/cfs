@@ -360,7 +360,26 @@
     </xsd:complexContent> 
   </xsd:complexType>
 
+  <!-- ******************************************************************* -->
+  <!--   Periodic Boundary Conditions                                   -->
+  <!-- ******************************************************************* --> 
+  <xsd:complexType name="DT_BcPeriodic">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="master" type="xsd:token" use="required"/>
+        <xsd:attribute name="slave"  type="xsd:token" use="required"/>
+        <xsd:attribute name="quantity" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="xsd:token" use="required"/>
+        <xsd:attribute name="fixedCoords" type="xsd:token" use="optional"/>
+        <xsd:attribute name="tolerance" type="DT_NonNegFloat" use="optional"
+          default="1e-6"/>
+        <xsd:attribute name="coordSysId" type="xsd:token" use="optional"
+          default="default"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
+   
   <!-- ******************************************************************** -->
   <!--   Definition of initial state -->
   <!-- ******************************************************************** -->

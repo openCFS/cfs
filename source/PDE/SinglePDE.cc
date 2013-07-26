@@ -1338,6 +1338,7 @@ namespace CoupledField {
                                        locPoints,
                                        elems,
                                        regions,
+                                       0.0, 1.0e-2,
                                        false );
 
       for(UInt i=0, n=globPoints.GetSize(); i<n; i++) {
@@ -1545,7 +1546,7 @@ namespace CoupledField {
                             << "' from sequenceStep " << sequenceStep );
         }
 
-      } else if( srcNode->GetName() == "externalFiele" ) {
+      } else if( srcNode->GetName() == "externalFile" ) {
         EXCEPTION( "No implemented yet")
             
       } else {
@@ -1573,7 +1574,7 @@ namespace CoupledField {
     if( !bcsNode )
       return;
 
-    std::string name, resultName, dof, entType, inputId, value, phase;
+    std::string name, resultName, entType, inputId, value, phase;
     shared_ptr<BaseFeFunction> actFeFunction;
 
     // =====================================================================
@@ -1770,84 +1771,181 @@ namespace CoupledField {
 
     // fetch paramnodes for constraint
     ParamNodeList prNodes = bcsNode->GetList("periodic");
-    std::string masterName, slaveName;
 
     // iterate over all parameter nodes
-    for( UInt i = 0; i < prNodes.GetSize(); i++ ) {
+    for( UInt i=0, numNodes=prNodes.GetSize(); i < numNodes; ++i ) {
       try {
-        prNodes[i]->GetValue( "master", masterName );
-        prNodes[i]->GetValue( "slave", slaveName );
-        prNodes[i]->GetValue( "dof", dof );
-        prNodes[i]->GetValue( "quantity", resultName );
-
-        // fetch related resultInfo object
-        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName));
-        
-        // get entitylists
-        NodeList masterList( ptGrid_ ), slaveList( ptGrid_ );
-        masterList.SetNamedNodes( masterName );
-        slaveList.SetNamedNodes( slaveName );
-
-        // ensure, that both lists have the same length
-        if( masterList.GetSize() != slaveList.GetSize() ) {
-          EXCEPTION( "Node lists '" << masterName << "' and '"
-                     << slaveName << "' have different size" );
-        }
-
-        // iterate over all master nodes and try to find "nearest"
-        // node in slave list
-        Vector<Double> mLoc, sLoc, diff;
-        Double minDist, dist;
-        StdVector<UInt> nodes(2);
-        EntityIterator masterIt = masterList.GetIterator();
-        for( masterIt.Begin(); !masterIt.IsEnd(); masterIt++ ) {
-
-          minDist = 1e42;
-
-          // obtain nodal coordinate
-          ptGrid_->GetNodeCoordinate( mLoc, masterIt.GetNode() );
-          nodes.Init();
-          nodes[0] = masterIt.GetNode();
-
-          // iterate over all slave nodes and find the one with minimum
-          // distance
-          EntityIterator slaveIt = slaveList.GetIterator();
-          for( slaveIt.Begin(); !slaveIt.IsEnd(); slaveIt++ ) {
-            ptGrid_->GetNodeCoordinate( sLoc, slaveIt.GetNode() );
-            diff = mLoc - sLoc;
-            dist = diff.NormL2();
-            if( dist < minDist) {
-              minDist = dist;
-              nodes[1] = slaveIt.GetNode();
-            }
-          }
-          shared_ptr<NodeList> nodePair(new NodeList( ptGrid_ ) );
-          nodePair->SetNodes( nodes );
-
-          // create new constraint condition
-          shared_ptr<Constraint> actBc ( new Constraint );
-          actBc->masterEntities = nodePair;
-          actBc->slaveEntities = nodePair;
-          if( dof.empty() ) {
-            actBc->masterDof = 0;
-          } else {
-            actBc->masterDof = actFeFunction->GetResultInfo()->GetDofIndex( dof );
-          }
-          actBc->slaveDof = actBc->masterDof;
-          actBc->result = actFeFunction->GetResultInfo();
-          actBc->periodic = true;
-
-          // add definition
-          actFeFunction->AddConstraint(actBc);
-        }
+        ReadPeriodicBC(prNodes[i]);
       } catch (CoupledField::Exception & ex ) {
         RETHROW_EXCEPTION( ex, "Can not create periodic boundary on '"
-                           << name << "'" );
+                           << prNodes[i]->Get("master")->As<std::string>() << "/"
+                           << prNodes[i]->Get("slave")->As<std::string>() << "'" );
       }
     }
     LOG_TRACE(singlepde) << pdename_ << ": Finished reading boundary conditions";
   }
 
+  void SinglePDE::ReadPeriodicBC(PtrParamNode prNode) {
+    bool allCoordsFree = false;
+    Double tol = 1e-6;
+    UInt i, nDims, nFixed;
+    std::string masterName, slaveName, resultName, dof, coordStr, coordSysId;
+    StdVector<UInt> fixedCoords;
+    shared_ptr<BaseFeFunction> actFeFunction;
+    CoordSystem *coordSys = NULL;
+
+    // Read attribute values
+    prNode->GetValue( "master", masterName );
+    prNode->GetValue( "slave", slaveName );
+    prNode->GetValue( "dof", dof );
+    prNode->GetValue( "quantity", resultName );
+    prNode->GetValue( "fixedCoords", coordStr );
+    prNode->GetValue( "tolerance", tol, ParamNode::PASS );
+    prNode->GetValue( "coordSysId", coordSysId );
+
+    // fetch related resultInfo object
+    actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName));
+    
+    // get entitylists
+    NodeList masterList( ptGrid_ ), slaveList( ptGrid_ );
+    masterList.SetNamedNodes( masterName );
+    slaveList.SetNamedNodes( slaveName );
+
+    // ensure, that both lists have the same length
+    if( masterList.GetSize() != slaveList.GetSize() ) {
+      EXCEPTION( "Node lists '" << masterName << "' and '"
+                 << slaveName << "' have different size" );
+    }
+
+    // Get coordinate system
+    coordSys = domain_->GetCoordSystem( coordSysId );
+    assert( coordSys );
+    nDims = coordSys->GetDim();
+    
+    // Find out which coordinates are fixed
+    typedef boost::tokenizer< boost::char_separator<char> > Tok;
+    boost::char_separator<char> sep(";|, ");
+    Tok tok(coordStr, sep);
+    if ( tok.begin() == tok.end() ) {
+      allCoordsFree = true;
+      nFixed = 0;
+    }
+    else {
+      for ( Tok::iterator tokIt = tok.begin(); tokIt != tok.end(); ++tokIt ) {
+        for ( i = 0; i < nDims; ++i ) {
+          if ( coordSys->GetDofName(i+1) == *tokIt ) {
+            fixedCoords.Push_back( i );
+            break;
+          }
+        }
+        if ( i == nDims ) {
+          EXCEPTION("'" << *tokIt
+                    << "' is not a valid component name in coordinate system '"
+                    << coordSys->GetName() << "'");
+        }
+      }
+      allCoordsFree = fixedCoords.IsEmpty();
+      nFixed = fixedCoords.GetSize();
+    }
+    
+    // Brute force algorithm:
+    // iterate over all master nodes and try to find "nearest"
+    // node in slave list
+    Vector<Double> mLoc, sLoc, diff, tmp;
+    Double minDist, dist, minFixed, fixedDiff;
+    StdVector<UInt> nodes(2);
+    EntityIterator masterIt = masterList.GetIterator();
+    for( masterIt.Begin(); !masterIt.IsEnd(); masterIt++ ) {
+
+      minDist = 1e42;
+      minFixed = minDist;
+
+      // obtain nodal coordinate
+      ptGrid_->GetNodeCoordinate( mLoc, masterIt.GetNode() );
+      if ( !allCoordsFree && coordSysId != "default" ) {
+        // if all coordinates are free, the coordinate system is irrelevant
+        coordSys->Global2LocalCoord(tmp, mLoc);
+        mLoc = tmp;
+      }
+      
+      // initialize node pair
+      nodes.Init();
+      nodes[0] = masterIt.GetNode();
+
+      // iterate over all slave nodes and find the one with minimum
+      // distance
+      EntityIterator slaveIt = slaveList.GetIterator();
+      for( slaveIt.Begin(); !slaveIt.IsEnd(); slaveIt++ ) {
+        ptGrid_->GetNodeCoordinate( sLoc, slaveIt.GetNode() );
+        if ( !allCoordsFree ) {
+          if ( coordSysId != "default" ) {
+            // obtain coordinates in given coordinate system
+            coordSys->Global2LocalCoord(tmp, sLoc);
+            sLoc = tmp;
+          }
+          // first make sure that fixed coordinates match
+          for ( i = 0; i < nFixed; ++i ) {
+            // absolute difference
+            fixedDiff = abs(mLoc[fixedCoords[i]] - sLoc[fixedCoords[i]]);
+            // compute relative difference, if possible (i.e. coordinate != 0)
+            if ( mLoc[fixedCoords[i]] > 1e-14 ) fixedDiff /= mLoc[fixedCoords[i]];
+            // reject node if it exceeds the tolerance
+            if ( fixedDiff > tol )  {
+              if ( fixedDiff < minFixed ) {
+                // store best guess, so we can display a hint for the
+                // tolerance, that would be needed to find a match
+                minFixed = fixedDiff;
+              }
+              break;
+            }
+          }
+          // skip to next slave node, because a fixed coordinate did not match
+          if ( i < nFixed ) continue;
+        }
+
+        // calculate distance between master and slave node
+        diff = mLoc - sLoc;
+        dist = diff.NormL2();
+        if( dist < minDist ) {
+          // store slave node with least distance
+          minDist = dist;
+          nodes[1] = slaveIt.GetNode();
+        }
+      }
+      
+      if ( nodes[1] == 0 ) {
+        EXCEPTION("Could not find a matching slave node for master node "
+                  << nodes[0] << ".\nRelative deviation of nearest miss: "
+                  << minFixed);
+      }
+      else if ( nodes[0] == nodes[1] ) {
+        // Ignore nodes that are contained both in master and slave regions.
+        // That usually happens in rotationally periodic setups with nodes, that
+        // are located on the axis of rotation.
+        continue;
+      }
+      
+      shared_ptr<NodeList> nodePair(new NodeList( ptGrid_ ) );
+      nodePair->SetNodes( nodes );
+
+      // create new constraint condition
+      shared_ptr<Constraint> actBc ( new Constraint );
+      actBc->masterEntities = nodePair;
+      actBc->slaveEntities = nodePair;
+      if( dof.empty() ) {
+        actBc->masterDof = 0;
+      } else {
+        actBc->masterDof = actFeFunction->GetResultInfo()->GetDofIndex( dof );
+      }
+      actBc->slaveDof = actBc->masterDof;
+      actBc->result = actFeFunction->GetResultInfo();
+      actBc->periodic = true;
+
+      // add definition
+      actFeFunction->AddConstraint(actBc);
+    }
+    
+  }
 
 
   void SinglePDE::ReadRhsExcitation( const std::string& elemName, 
@@ -2098,7 +2196,7 @@ namespace CoupledField {
         // --------------
         //  S C A L A R
         // --------------
-        // in the scalar case, the coponent with index 0 is always defined
+        // in the scalar case, the component with index 0 is always defined
         definedDofs.insert(0);
         std::string val = "0.0";
         std::string phase = "0.0";

@@ -62,7 +62,9 @@ void FeSpaceNodal::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > enti
     LOG_TRACE(feSpaceNodal) << "Mapping coeffct " << coefFct->ToString() 
                             << " on " << entityNames << " for dofs "
                             << compVec.ToString() << " for FeFunction "
-                            << SolutionTypeEnum.ToString(feFct->GetResultInfo()->resultType);
+                            << ( feFct->GetResultInfo() ?
+                               SolutionTypeEnum.ToString(feFct->GetResultInfo()->resultType)
+                               : "");
   }
   
   if( coefFct->GetDependency() == CoefFunction::CONSTANT ||

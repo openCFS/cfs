@@ -1938,6 +1938,13 @@ namespace CoupledField {
                             const UInt* connect)
   {
     assert(type != Elem::ET_UNDEF);
+    
+    if ( ielem > orderedElems_.GetSize() ) {
+      EXCEPTION("Element numbers are not contiguous: Element number " << ielem
+                << " is out of allowed range. Either you forgot to write out "
+                << "some elements or you need to compress the element "
+                << "numbering. Please check your mesh!");
+    }
 
     UInt idx=ielem-1;
     Elem* el = orderedElems_[idx];

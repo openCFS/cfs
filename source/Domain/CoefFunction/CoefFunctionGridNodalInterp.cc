@@ -267,6 +267,8 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
                                     localCoords,
                                     foundElements,
                                     this->destRegions_,
+                                    globalTol_,
+                                    localTol_,
                                     false);
 
   //we now create some debugging information
@@ -280,9 +282,11 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
     }
   }
   if(elemCounter>0)
-    WARN("There were " << elemCounter << " unmapped nodes. Perhaps you should think about tolerances!");
+    WARN("There were " << elemCounter << " unmapped nodes. Perhaps you should increase the tolerances!");
 
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("numUnmappedNodes")->SetValue(elemCounter);
+  this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("globalTol")->SetValue(globalTol_);
+  this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("localTol")->SetValue(globalTol_);
 
   //if the user wants to, we save the node->element association here
   //now we store the information in our map
@@ -314,6 +318,13 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode
   this->extDataInfo_->Get("interpolation")->Get("type")->SetValue(interpStr);
   this->extDataInfo_->Get("interpolation")->Get("setBy")->SetValue("XML");
 
+  if ( this->curInterpType_ == CoefFunctionGrid::CONSERVATIVE ) {
+    globalTol_ = 0.0;
+    configNode->GetValue("globalTolerance", globalTol_, ParamNode::PASS);
+    localTol_ = 1e-3;
+    configNode->GetValue("localTolerance", localTol_, ParamNode::PASS);
+  }
+  
   //obtain grid pointer
   this->srcGrid_ = this->domain_->GetGrid(this->gridId_);
 
