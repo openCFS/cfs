@@ -11,9 +11,9 @@
 #include <vector>
 #include <string>
 
-#include "LibCCMIO/ccmio.h"
-#include "LibCCMIO/ccmiocore.h"
-#include "LibCCMIO/ccmiotypes.h"
+#include "ccmio.h"
+#include "ccmiocore.h"
+#include "ccmiotypes.h"
 
 #include "Utilities.hh"
 #include "FieldDataAcceptor.hh"

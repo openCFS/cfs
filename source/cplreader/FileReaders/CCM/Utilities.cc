@@ -53,7 +53,7 @@ namespace CCM {
     CCMIOID id;
     CCMIOError err = kCCMIONoErr;
     while (!IsError(err)) {
-      err = CCMIONextEntity(&err, parent, entityType, &i, &id);
+      err = CCMIONextEntity(&err, parent, entityType, (CCMIOSize_t*) &i, &id);
       if (!IsError(err)) {
         children.push_back(id);
       }
@@ -63,7 +63,7 @@ namespace CCM {
   void OpenLabel(CCMIOID& id, std::string& label) {
     CCMIOError err = kCCMIONoErr;
     uint length;
-    CCMIOEntityLabel(&err, id, &length, NULL);
+    CCMIOEntityLabel(&err, id, (CCMIOSize_t*) &length, NULL);
     char * labelchars = new char[length + 1];
     CCMIOEntityLabel(&err, id, NULL, labelchars);
     label = std::string(labelchars, length);
