@@ -304,6 +304,7 @@ cmake_modules/platform_defaults_mac.cmake -text
 cmake_modules/platform_defaults_sedici.cmake -text
 cmake_modules/platform_defaults_woody.cmake -text
 ctest_scripts/README.txt svneol=native#text/plain
+ctest_scripts/nightly_doc.graphml -text
 ctest_scripts/nightly_test.cmake -text
 ctest_scripts/old_scripts/CTestConfig.cmake -text
 ctest_scripts/old_scripts/ctest_eam_gcc_nightly_debug.cmake -text
@@ -376,10 +377,13 @@ ctest_scripts/sites/wiki/ctest_update_fespace_testsuite_wien.cmake -text
 ctest_scripts/sites/wiki/ctest_update_fespace_wien.cmake -text
 ctest_scripts/sites/wiki/ctest_update_trunk_testsuite_wien.cmake -text
 ctest_scripts/sites/wiki/ctest_update_trunk_wien.cmake -text
+ctest_scripts/sites/wiki/site_specific_init.cmake -text
+ctest_scripts/sites/wiki/site_specific_vars.cmake -text
 ctest_scripts/sites/winxp32/Vagrantfile -text
 ctest_scripts/sites/winxp32/cygwin.tgz -text
 ctest_scripts/sites/winxp32/fespace_gcc_debug.ctest -text
 ctest_scripts/sites/winxp32/provision.sh -text
+ctest_scripts/test_macros.cmake -text
 include/def_build_type_options.hh.in -text
 include/def_cfs_stats.hh.in -text
 include/def_config.hh.in -text

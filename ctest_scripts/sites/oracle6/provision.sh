@@ -18,16 +18,23 @@ NIGHTLY_DIR="$HOME/Documents/dev/NIGHTLY/CFS_FESPACE_NIGHTLY"
 LOG_FILE="$HOME/Documents/dev/nightly_test.log"
 echo "LOG_FILE $LOG_FILE"
 
+# Generate shell script which actually starts the nightly test CMake script.
 cat <<EOF > "${TEMPFILE}_2"
 #!/bin/sh
 $CMAKE -P $NIGHTLY_DIR/ctest_scripts/nightly_test.cmake > "$LOG_FILE" 2>&1
 EOF
 
+# Generate a shell script which sets a crontab like environment and calls the
+# nightly test shell script.
 cat <<EOF > $TEMPFILE
 #!/bin/sh
 env -i PATH=/bin:/sbin:/usr/bin:/usr/sbin HOME=$HOME SHELL=$SHELL $SHELL "${TEMPFILE}_2"
 EOF
 
+# Start a screen session for the automatic shutdown in 8 hours.
 screen -dmS  automatic_shutdown /sbin/shutdown -h -P 480
+
+# Start a screen session for starting the nightly tests. We use screen, because it immediately
+# returns and the host machine can go on starting the other VBoxes.
 sudo -u $USER screen -dmS nightly_test bash $TEMPFILE
 

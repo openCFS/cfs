@@ -44,4 +44,4 @@ SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_FESPACE_NIGHTLY
 SET(REPO "https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/branches/sbm_fespace_090409")
 SET(USER "testuser-klu")
 
-INCLUDE(ctest_update.cmake)
+INCLUDE(${SITE_DIR}/ctest_update.cmake)
