@@ -33,23 +33,23 @@ namespace CCM {
     return err != kCCMIONoErr;
   }
 
-  void CheckError(CCMIOError &err, std::string operation, bool mayExit) {
+  void CheckFileError(CCMIOError &err, std::string operation, bool mayExit) {
     if (!IsError(err)) {
       return;
     }
-    std::cout << operation << " (error " << err << "  " << CCMIOErrorNames[err] << ")" << std::endl;
+    std::cerr << "Error while reading ccm file: " << operation << " (error " << err << "  " << CCMIOErrorNames[err] << ")" << std::endl;
     if (mayExit) {
       exit(1);
     }
   }
 
-  void CheckError(CCMIOError &err, std::string operation) {
-    CheckError(err, operation, true);
+  void CheckFileError(CCMIOError &err, std::string operation) {
+    CheckFileError(err, operation, true);
   }
   
   void CollectChildEntities(CCMIOID& parent, std::vector<CCMIOID>& children, CCMIOEntity entityType) {
     children.clear();
-    int i = 0;
+    CCMIOSize_t i = CCMIOSIZEC(0);
     CCMIOID id;
     CCMIOError err = kCCMIONoErr;
     while (!IsError(err)) {
@@ -62,11 +62,11 @@ namespace CCM {
   
   void OpenLabel(CCMIOID& id, std::string& label) {
     CCMIOError err = kCCMIONoErr;
-    uint length;
+    CCMIOSize_t length;
     CCMIOEntityLabel(&err, id, (CCMIOSize_t*) &length, NULL);
-    char * labelchars = new char[length + 1];
+    char * labelchars = new char[TOINT64(length) + 1];
     CCMIOEntityLabel(&err, id, NULL, labelchars);
-    label = std::string(labelchars, length);
+    label = std::string(labelchars, TOINT64(length));
   }
 
 }

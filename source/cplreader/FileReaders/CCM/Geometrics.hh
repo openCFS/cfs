@@ -13,24 +13,6 @@
 
 namespace CCM {
 
-  template<class T>
-  T HexaOpposite(T index, T* faces) {
-    if (faces[0] == index) {
-      return faces[1];
-    } else if (faces[1] == index) {
-      return faces[0];
-    } else if (faces[2] == index) {
-      return faces[3];
-    } else if (faces[3] == index) {
-      return faces[2];
-    } else if (faces[4] == index) {
-      return faces[5];
-    } else if (faces[5] == index) {
-      return faces[4];
-    }
-    return 0;
-  }
-
   template<typename T>
   inline void CreateVector(T* source, T* target, T* vector) {
     vector[0] = target[0] - source[0];
@@ -48,6 +30,7 @@ namespace CCM {
     return vectorA[0] * vectorB[0] + vectorA[1] * vectorB[1] + vectorA[2] * vectorB[2];
   }
 
+/*
   template<typename T>
   inline void Product(T* vector, T value) {
     vector[0] *= value;
@@ -74,7 +57,7 @@ namespace CCM {
     vectorA[0] -= vectorB[0];
     vectorA[1] -= vectorB[1];
     vectorA[2] -= vectorB[2];
-  }
+  }*/
 
   template<typename T>
   inline void CrossProduct(T* vectorA, T* vectorB, T* product) {
@@ -82,7 +65,7 @@ namespace CCM {
     product[1] = vectorA[2]*vectorB[0] - vectorA[0]*vectorB[2];
     product[2] = vectorA[0]*vectorB[1] - vectorA[1]*vectorB[0];
   }
-
+/*
   template<typename T>
   inline void Normalize(T* vector) {
     T length = Length(vector);
@@ -130,15 +113,15 @@ namespace CCM {
     center[0] /= coordCount;
     center[1] /= coordCount;
     center[2] /= coordCount;
-  }
-
+  }*/
+/*
   template<typename T>
   inline T Distance(T* coordsA, T* coordsB) {
     T vect[3];
     CreateVector(coordsA, coordsB, vect);
     return Length(vect);
-  }
-
+  }*/
+/*
   template<typename T>
   inline bool IsNull(T* vect, T& distanceTolerance) {
     return IsEqualApprox(vect[0], 0, distanceTolerance) &&
@@ -150,7 +133,7 @@ namespace CCM {
   inline bool IsNull(T* vect) {
     return vect[0] == 0 && vect[1] == 0 && vect[2] == 0;
   }
-
+*/
 }
 
 #endif	/* _GEOUTIL_H */

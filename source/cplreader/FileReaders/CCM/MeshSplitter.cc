@@ -1,6 +1,6 @@
 /* 
  * File:   MeshSplitter.cpp
- * Author: tz
+ * Author: Matthias Tautz
  * 
  * Created on 3. Juni 2013, 10:57
  */
@@ -33,84 +33,37 @@ namespace CCM {
     std::cout << "Splitting Mesh" << std::endl;
     mesh_ = mesh;
 
-    InitTestSplit();
+    isTest = true;
+    ClearCounters();
     SplitCells();
     
-    InitSplit();
+    isTest = false;
+    InitSplittedMesh();
+    ClearCounters();
     SplitCells();
+    
     VerboseSplitResults();
-    CopyVertices();
     
+    CopyVertices();
     CopyMesh(cplMesh);
   }
   
-  void MeshSplitter::InitTestSplit() {
-    std::cout << "  Initializing Test Split" << std::endl;
-    isTest = true;
-    
-    tetras = 0;
-    pyramids = 0;
-    wedges = 0;
-    hexas = 0;
-    sum = 0;
-
-    invalidTetras = 0;
-    invalidPyramids = 0;
-    invalidWedges = 0;
-    invalidHexas = 0;
-    
-    rawTetras = 0;
-    rawPyramids = 0;
-    rawWedges = 0;
-    rawHexas = 0;
-    rawPrisms = 0;
-    rawPolyhedrons = 0;
-  }
-  
-  void MeshSplitter::InitSplit() {
-    std::cout << "  Initializing Mesh Split" << std::endl;
-    isTest = false;
-    cplMesh_.TOPOLOGYDATA.clear();
-    cplMesh_.TOPOLOGYDATA.resize(8*sum);
-    cplMesh_.elemTypes.clear();
-    cplMesh_.elemTypes.resize(sum);
-    cplMesh_.numRegions = 1;
-    cplMesh_.regionElements.clear();
-    cplMesh_.regionElements.resize(sum);
-    cplMesh_.maxNumElemNodes = 8;
-    
-    tetras = 0;
-    pyramids = 0;
-    wedges = 0;
-    hexas = 0;
-    sum = 0;
-
-    invalidTetras = 0;
-    invalidPyramids = 0;
-    invalidWedges = 0;
-    invalidHexas = 0;
-    
-    rawTetras = 0;
-    rawPyramids = 0;
-    rawWedges = 0;
-    rawHexas = 0;
-    rawPrisms = 0;
-    rawPolyhedrons = 0;
-  }
-  
   void MeshSplitter::SplitCells() {
-    std::cout << "  Analyzing and splitting cells"<< std::endl;
+    if (isTest) {
+      std::cout << "  Analyzing and splitting cells (testing)"<< std::endl;
+    } else {
+      std::cout << "  Analyzing and splitting cells "<< std::endl;
+    }
+    std::cout << std::endl;
+    
     std::vector<uint> faces3;
     std::vector<uint> faces4;
     std::vector<uint> facesMore;
-    
-    
     for (uint iCell = 1; iCell <= mesh_.cellCount; iCell++) {
       if (!mesh_.cellGhost[iCell]) {
         faces3.clear();
         faces4.clear();
         facesMore.clear();
-        bool isPolyhedron = true;
         
         uint miniCellFaceIndex = mesh_.cellFaceIndex[iCell];
         uint maxiCellFaceIndex = mesh_.cellFaceIndex[iCell] + mesh_.cellFaceCount[iCell];
@@ -126,188 +79,223 @@ namespace CCM {
         }
         
         if (faces4.size() == 6 && faces3.size() == 0 && facesMore.size() == 0) {
-          if(IsHexa(iCell, faces4)) {
-            rawHexas++;
-            isPolyhedron = false;
-          }
+          RunHexaTreatment(iCell, faces4);
         } else if (faces4.size() == 3 && faces3.size() == 2 && facesMore.size() == 0) {
-          if(IsWedge(iCell, faces4, faces3)) {
-            rawWedges++;
-            isPolyhedron = false;
-          }
+          RunWedgeTreatment(iCell, faces4, faces3);
         } else if (faces4.size() == 1 && faces3.size() == 4 && facesMore.size() == 0) {
-          CreatePyramid(iCell, faces4, faces3);
-          rawPyramids++;
-          isPolyhedron = false;
+          RunPyramidTreatment(iCell, faces4, faces3);
         } else if (faces4.size() == 0 && faces3.size() == 4 && facesMore.size() == 0) {
-          CreateTetra(iCell, faces3);
-          rawTetras++;
-          isPolyhedron = false;
+          RunTetraTreatment(iCell, faces3);
         } else if (faces3.size() == 0 && facesMore.size() == 2) {
           if (faces4.size() == mesh_.faceVertexCount[facesMore[0]]
                 && faces4.size() == mesh_.faceVertexCount[facesMore[1]]) {
-            if(IsPrism(iCell, faces4, facesMore)) {
-              rawPrisms++;
-              isPolyhedron = false;
-            }
+            RunPrismTreatment(iCell, faces4, facesMore);
+          } else {
+            RunPolyTreatment(iCell);
           }
-        }
-        if (isPolyhedron) {
-          rawPolyhedrons++;
-          SplitPolyhedron(iCell);
-        }
-      }
-    }
-  }
-  
-  inline bool MeshSplitter::IsHexa(uint& cell, std::vector<uint>& faces4) {
-    return IsHexa(cell, faces4, (uint)0);
-  }
- 
-  inline bool MeshSplitter::IsHexa(uint& cell, std::vector<uint>& faces4, uint depth) {
-    std::vector<uint> topBottom;
-    topBottom.push_back(faces4.back());
-    faces4.pop_back();
-    bool found = false;
-    for (uint i=0; i < 5 && !found; i++) {
-      if (!ShareFacesVertices(topBottom[0], faces4[i])) {
-        topBottom.push_back(faces4[i]);
-        faces4[i] = faces4[4];
-        faces4.pop_back();
-        found = true;
-      }
-    }
-    std::vector<uint> verticesOrdered;
-    bool isHexa = CheckPrism(cell, faces4, topBottom, verticesOrdered);
-    if (isHexa) {
-      if (!AddHexa(&verticesOrdered[0], (depth == 3)) && (depth < 3)) {
-        double vectorTopBottom[3];
-        double vectorTop[3];
-        CreateVector(&mesh_.vertexPosition[verticesOrdered[0]*3], &mesh_.vertexPosition[verticesOrdered[1]*3], vectorTop);
-        CreateVector(&mesh_.vertexPosition[verticesOrdered[0]*3], &mesh_.vertexPosition[verticesOrdered[4]*3], vectorTopBottom);
-        if (Length(vectorTopBottom) < Length(vectorTop)) {
-          IsPrism(cell, faces4, topBottom);
         } else {
-          faces4.push_back(topBottom[0]);
-          faces4.push_back(topBottom[1]);
-          if (IsHexa(cell, faces4, depth + 1)) {
-            return true;
-          }
+          RunPolyTreatment(iCell);
         }
-      } else {
-        SplitPolyhedron(cell);
       }
-      return true;
+    }
+  }
+  
+  inline bool MeshSplitter::ContainsFaceVertex(uint& face, uint& vertex) {
+    uint vertIndex = mesh_.faceVertexIndex[face];
+    uint maxIndex = vertIndex + mesh_.faceVertexCount[face]; 
+    for (;vertIndex < maxIndex; vertIndex++) {
+      if (vertex == mesh_.faceVertex[vertIndex]) {
+        return true;
+      }
     }
     return false;
   }
   
-  inline bool MeshSplitter::IsWedge(uint& cell, std::vector<uint>& faces4, std::vector<uint>& faces3) {
-    std::vector<uint> verticesOrdered;
-    bool isWedge = CheckPrism(cell, faces4, faces3, verticesOrdered);
-    if (isWedge) {
-      if (!AddWedge(&verticesOrdered[0])) {
-        SplitPolyhedron(cell);
+  inline bool MeshSplitter::ShareFacesVertices(uint& faceA, uint& faceB) {
+    uint vertIndexA = mesh_.faceVertexIndex[faceA];
+    uint maxIndexA = vertIndexA + mesh_.faceVertexCount[faceA]; 
+    
+    uint startVertIndexB = mesh_.faceVertexIndex[faceB];
+    uint maxIndexB = startVertIndexB + mesh_.faceVertexCount[faceB];
+    uint vertIndexB = startVertIndexB;
+    for (;vertIndexA < maxIndexA; vertIndexA++) {
+      for (vertIndexB = startVertIndexB; vertIndexB < maxIndexB; vertIndexB++) {
+        if (mesh_.faceVertex[vertIndexA] == mesh_.faceVertex[vertIndexB]) {
+          return true;
+        }
       }
-      return true;
     }
     return false;
   }
   
-  inline bool MeshSplitter::IsPrism(uint& cell, std::vector<uint>& faces4, std::vector<uint>& facesMore) {
-    std::vector<uint> verticesOrdered;
-    bool isPrism = CheckPrism(cell, faces4, facesMore, verticesOrdered);
-    if (isPrism) {
-      uint edges = verticesOrdered.size() / 2;
-      uint nodes[6];
-      nodes[0] = verticesOrdered[0];
-      nodes[3] = verticesOrdered[edges];
-      uint max = edges - 1;
-      for (uint i=1; i < max; i++) {
-        nodes[1] = verticesOrdered[i];
-        nodes[2] = verticesOrdered[i+1];
-        nodes[4] = verticesOrdered[i+edges];
-        nodes[5] = verticesOrdered[i+edges+1];
-        if (!AddWedge(nodes)) {
-          uint tetranodes[4];
-          tetranodes[0] = nodes[0];
-          tetranodes[1] = nodes[1];
-          tetranodes[2] = nodes[2];
-          tetranodes[3] = nodes[3];
-          AddTetra(tetranodes);
-          tetranodes[0] = nodes[3];
-          tetranodes[1] = nodes[4];
-          tetranodes[2] = nodes[0];
-          tetranodes[3] = nodes[5];
-          AddTetra(tetranodes);
-          tetranodes[0] = nodes[5];
-          tetranodes[1] = nodes[4];
-          tetranodes[2] = nodes[2];
-          tetranodes[3] = nodes[0];
-          AddTetra(tetranodes);
-        }
+  inline void PrintValidInvalidSplit(uint& valid, uint& invalid) {
+    std::cout << "        Valid:       " << valid << std::endl;
+    std::cout << "        Invalid:     " << invalid << std::endl << std::endl;
+  }
+  
+  void MeshSplitter::VerboseSplitResults() {
+    std::cout << "    Topological Mesh Statistics" << std::endl;
+    std::cout << "        Polyhedrons: " << topologicalPolyhedrons << std::endl;
+    std::cout << "        Prisms:      " << topologicalPrisms << std::endl;
+    std::cout << "        Hexas:       " << topologicalHexas << std::endl;
+    std::cout << "        Wedges:      " << topologicalWedges << std::endl;
+    std::cout << "        Pyradmids:   " << topologicalPyramids << std::endl;
+    std::cout << "        Tetras:      " << topologicalTetras << std::endl;
+    std::cout << "                     ---------" << std::endl;
+    std::cout << "        SUM:         " << mesh_.cellCount << std::endl;
+    std::cout << std::endl;
+    
+    std::cout << "    Invalid Topological FEM Cells" << std::endl;
+    std::cout << "        Hexas:       " << invalidHexas << std::endl;
+    std::cout << "        Wedges:      " << invalidWedges << std::endl;
+    std::cout << "        Pyradmids:   " << invalidPyramids << std::endl;
+    std::cout << "        Tetras:      " << invalidTetras << std::endl;
+    std::cout << std::endl;
+    
+    if (topologicalPolyhedrons > 0 || topologicalPrisms > 0 || invalidWedgesFromPrisms > 0 || invalidHexas > 0 || invalidWedgesFromHexas > 0 ||
+      invalidWedges > 0 || invalidPyramids > 0) {
+      std::cout << "    Split Statistics:" << std::endl;
+      if (topologicalPolyhedrons > 0) {
+        std::cout << "    Polyhedrons -> Tetras" << std::endl;
+	PrintValidInvalidSplit(tetrasFromPolyhedrons, invalidTetrasFromPolyhedrons);
       }
-      return true;
+      if (topologicalPrisms > 0) {
+        std::cout << "    Prisms -> Wedges" << std::endl;
+	PrintValidInvalidSplit(wedgesFromPrisms, invalidWedgesFromPrisms);
+      }
+      if (invalidWedgesFromPrisms > 0) {
+        std::cout << "    Prisms -> Invalid Wedges -> Tetras" << std::endl;
+	PrintValidInvalidSplit(tetrasFromPrisms, invalidTetrasFromPrisms);
+      }
+      if (invalidHexas > 0) {
+        std::cout << "    Invalid Hexas -> Wedges" << std::endl;
+	PrintValidInvalidSplit(wedgesFromHexas, invalidWedgesFromHexas);
+      }
+      if (invalidWedgesFromHexas > 0) {
+        std::cout << "    Invalid Hexas -> Invalid Wedges -> Tetras" << std::endl;
+	PrintValidInvalidSplit(tetrasFromHexas, invalidTetrasFromHexas);
+      }
+      if (invalidWedges > 0) {
+        std::cout << "    Invalid Wedges -> Tetras" << std::endl;
+	PrintValidInvalidSplit(tetrasFromWedges, invalidTetrasFromWedges);
+      }
+      if (invalidPyramids > 0) {
+        std::cout << "    Invalid Pyramids -> Tetras" << std::endl;
+	PrintValidInvalidSplit(tetrasFromPyramids, invalidTetrasFromPyramids);
+      }
     }
-    return false;
+    
+    std::cout << "    Splitted FEM Mesh Statistics" << std::endl;
+    std::cout << "        Hexas:       " << hexas << std::endl;
+    std::cout << "        Wedges:      " << wedges << std::endl;
+    std::cout << "        Pyradmids:   " << pyramids << std::endl;
+    std::cout << "        Tetras:      " << tetras << std::endl;
+    std::cout << "                     ---------" << std::endl;
+    std::cout << "        SUM:         " << sum << std::endl << std::endl;
+  }
+  
+  void MeshSplitter::CopyVertices() {
+    std::cout << "  Preparing Vertices " << mesh_.vertexCount << std::endl;
+    cplMesh_.NODECOORD.clear();
+    cplMesh_.NODECOORD.resize(mesh_.vertexCount*3);
+    uint max = (mesh_.vertexCount+1)*3;
+    for (uint i=3; i <= max; i++) {
+      cplMesh_.NODECOORD[i-3] = mesh_.vertexPosition[i];
+    }
+  }
+  
+  void MeshSplitter::CopyMesh(CPLMesh& cplMesh) {
+    cplMesh.maxNumElemNodes = cplMesh_.maxNumElemNodes;
+    cplMesh.numRegions = cplMesh_.numRegions;
+    cplMesh.NODECOORD.swap(cplMesh_.NODECOORD);
+    cplMesh.regionElements.swap(cplMesh_.regionElements);
+    cplMesh.TOPOLOGYDATA.swap(cplMesh_.TOPOLOGYDATA);
+    cplMesh.elemTypes.swap(cplMesh_.elemTypes);
+    cplMesh.numElemsPerRegion.clear();
+    cplMesh.numElemsPerRegion.push_back(sum);
+    cplMesh.numNodesPerRegion.clear();
+    cplMesh.numNodesPerRegion.push_back(mesh_.vertexCount);
+  }
+  
+  inline void MeshSplitter::NodeNumsToNodeCoords(uint* nodes, double** coords, uint nodeCount) {
+    for (uint i = 0; i < nodeCount; i++) {
+      coords[i] = &mesh_.vertexPosition[nodes[i]*3];
+    }
   }
 
-  inline void MeshSplitter::CreatePyramid(uint& cell, std::vector<uint>& faces4, std::vector<uint>& faces3) {
-    uint nodes[5];
-    uint primFace = faces4[0];
-    uint vertexIndex = mesh_.faceVertexIndex[primFace];
-    uint maxIndex = vertexIndex + 4;
-    uint i=0;
-    for (; vertexIndex < maxIndex; vertexIndex++) {
-      nodes[i] = mesh_.faceVertex[vertexIndex];
-      i++;
-    }
-    if (mesh_.faceCell[primFace*2] == cell) {
-      std::swap(nodes[0], nodes[3]);
-      std::swap(nodes[1], nodes[2]);
-    }
-    
-    i=0;
-    vertexIndex = mesh_.faceVertexIndex[faces3[0]];
-    maxIndex = vertexIndex + 3;
-    for (;vertexIndex < maxIndex; vertexIndex++) {
-      if (!ContainsFaceVertex(primFace, mesh_.faceVertex[vertexIndex])) {
-        nodes[4] = mesh_.faceVertex[vertexIndex];
-      }
-    }
-    if (!AddPyramid(nodes)) {
-      SplitPolyhedron(cell);
-    }
+  inline bool MeshSplitter::IsValidTetra(uint* nodes) {
+    double* coords[12];
+    NodeNumsToNodeCoords(nodes, coords, 4);
+    return AreTriangleNormal<0, 1, 2, 3, -1, -1, -1>(coords);
   }
   
-  inline void MeshSplitter::CreateTetra(uint& cell, std::vector<uint>& faces3) {
-    uint nodes[4];
-    uint primFace = faces3[0];
-    uint vertexIndex = mesh_.faceVertexIndex[primFace];
-    uint maxIndex = vertexIndex + 3;
-    uint i=0;
-    for (; vertexIndex < maxIndex; vertexIndex++) {
-      nodes[i] = mesh_.faceVertex[vertexIndex];
-      i++;
-    }
-    if (mesh_.faceCell[primFace*2] == cell) {
-      std::swap(nodes[0], nodes[2]);
-    }
-    
-    i=0;
-    vertexIndex = mesh_.faceVertexIndex[faces3[1]];
-    maxIndex = vertexIndex + 3;
-    for (;vertexIndex < maxIndex; vertexIndex++) {
-      if (!ContainsFaceVertex(primFace, mesh_.faceVertex[vertexIndex])) {
-        nodes[3] = mesh_.faceVertex[vertexIndex];
-      }
-    }
-    AddTetra(nodes);
+  inline bool MeshSplitter::IsValidPyramid(uint* nodes) {
+    double* coords[15];
+    NodeNumsToNodeCoords(nodes, coords, 5);
+    return AreQuadNormal<0, 1, 2, 3, 4, -1, -1, -1>(coords);
   }
   
-  inline bool MeshSplitter::CheckPrism(uint& cell, std::vector<uint>& faces4, 
-        std::vector<uint>& facesX, std::vector<uint>& verticesOrdered) {
-    if (ShareFacesVertices(facesX[0],facesX[1])) {
+  inline bool MeshSplitter::IsValidWedge(uint* nodes) {
+    double* coords[18];
+    NodeNumsToNodeCoords(nodes, coords, 6);
+    return AreTriangleNormal<0, 1, 2, 3, 4, 5, -1>(coords) && 
+          AreTriangleNormal<5, 4, 3, 0, 1, 2, -1>(coords) &&
+          AreQuadNormal<3, 4, 1, 0, 2, 5, -1, -1>(coords) &&
+          AreQuadNormal<4, 5, 2, 1, 0, 3, -1, -1>(coords) &&
+          AreQuadNormal<5, 3, 0, 2, 1, 4, -1, -1>(coords);
+  }
+  
+  inline bool MeshSplitter::IsValidHexa(uint* nodes) {
+    double* coords[24];
+    NodeNumsToNodeCoords(nodes, coords, 8);
+    return AreQuadNormal<0, 1, 2, 3, 4, 5, 6, 7>(coords) && 
+          AreQuadNormal<7, 6, 5, 4, 0, 1, 2, 3>(coords) &&
+          AreQuadNormal<0, 3, 7, 4, 1, 2, 5, 6>(coords) &&
+          AreQuadNormal<5, 6, 2, 1, 0, 3, 7, 4>(coords) &&
+          AreQuadNormal<1, 0, 4, 5, 2, 3, 6, 7>(coords) &&
+          AreQuadNormal<6, 7, 3, 2, 0, 1, 4, 5>(coords);
+  }
+  
+  inline void MeshSplitter::BuildTetra(uint* nodes) {
+    tetras++;
+    BuildCell(nodes, 4, CoupledField::Elem::TET4);
+  }
+  
+  inline void MeshSplitter::BuildPyramid(uint* nodes) {
+    pyramids++;
+    BuildCell(nodes, 5, CoupledField::Elem::PYRA5);
+  }
+  
+  inline void MeshSplitter::BuildWedge(uint* nodes) {
+    wedges++;
+    BuildCell(nodes, 6, CoupledField::Elem::WEDGE6);
+  }
+  
+  inline void MeshSplitter::BuildHexa(uint* nodes) {
+    hexas++;
+    BuildCell(nodes, 8, CoupledField::Elem::HEXA8);
+  }
+  
+  inline void MeshSplitter::BuildCell(uint* nodes, uint nodeCount, uint elemType) {
+    if (isTest) {
+      sum++;
+      return;
+    }
+    uint i=0;
+    for (i=0; i < nodeCount; i++) {
+      cplMesh_.TOPOLOGYDATA[sum * maxNumElemNodes + i] = nodes[i];
+    }
+    for (; i < maxNumElemNodes; i++) {
+      cplMesh_.TOPOLOGYDATA[sum * maxNumElemNodes + i] = (uint)0;
+    }
+    cplMesh_.regionElements[sum] = sum + 1;
+    cplMesh_.elemTypes[sum] = elemType;
+    sum++;
+  }
+  
+  inline bool MeshSplitter::IsPrismaticCell(uint& cell, std::vector<uint>& faces4, 
+        std::vector<uint>& facesTopBottom, std::vector<uint>& verticesOrdered) {
+    if (ShareFacesVertices(facesTopBottom[0],facesTopBottom[1])) {
       return false;
     }
     uint edges = faces4.size();
@@ -315,7 +303,7 @@ namespace CCM {
     
     
     // caring about top face;
-    uint faceTop = facesX[0];
+    uint faceTop = facesTopBottom[0];
     std::vector<uint> topVertices;
     topVertices.resize(edges+1,(uint)0);
     std::vector<uint> topFaces;
@@ -352,7 +340,7 @@ namespace CCM {
     }
     
     // caring about bottom face;
-    uint faceBottom = facesX[1];
+    uint faceBottom = facesTopBottom[1];
     std::vector<uint> bottomVertices;
     bottomVertices.resize(edges+1,(uint)0);
     std::vector<uint> bottomFaces;
@@ -397,7 +385,93 @@ namespace CCM {
     return true;
   }
   
-  inline void MeshSplitter::SplitPolyhedron(uint& cell) {
+  inline bool MeshSplitter::SortHexaFaces(std::vector<uint>& faces4, 
+        std::vector<uint>& facesTopBottom, std::vector<uint>& facesSides) {
+    facesTopBottom.clear();
+    facesSides.clear();
+    facesTopBottom.push_back(faces4[0]);
+    bool found = false;
+    for (uint i = 1; i < 6; i++) {
+      if (!ShareFacesVertices(facesTopBottom[0], faces4[i])) {
+        facesTopBottom.push_back(faces4[i]);
+        found = true;
+      } else {
+        facesSides.push_back(faces4[i]);
+      }
+    }
+    return found;
+  }
+  
+  inline void MeshSplitter::PrismaticNodesToWedges(std::vector<uint>& verticesOrdered, uint& wedgeCount, uint& invalidWedgeCount,
+        uint& tetraCount, uint& invalidTetraCount) {
+    uint edges = verticesOrdered.size() / 2;
+    uint nodes[6];
+    nodes[0] = verticesOrdered[0];
+    nodes[3] = verticesOrdered[edges];
+    uint max = edges - 1;
+    for (uint i=1; i < max; i++) {
+      nodes[1] = verticesOrdered[i];
+      nodes[2] = verticesOrdered[i+1];
+      nodes[4] = verticesOrdered[i+edges];
+      nodes[5] = verticesOrdered[i+edges+1];
+      if (IsValidWedge(nodes)) {
+        BuildWedge(nodes);
+        wedgeCount++;
+      } else {
+        invalidWedgeCount++;
+        uint tetranodes[4];
+        
+        tetranodes[0] = nodes[0];
+        tetranodes[1] = nodes[1];
+        tetranodes[2] = nodes[2];
+        tetranodes[3] = nodes[3];
+        TryBuildTetra(tetranodes, tetraCount, invalidTetraCount);
+        
+        tetranodes[0] = nodes[3];
+        tetranodes[1] = nodes[4];
+        tetranodes[2] = nodes[0];
+        tetranodes[3] = nodes[5];
+        TryBuildTetra(tetranodes, tetraCount, invalidTetraCount);
+        
+        tetranodes[0] = nodes[5];
+        tetranodes[1] = nodes[4];
+        tetranodes[2] = nodes[2];
+        tetranodes[3] = nodes[0];
+        TryBuildTetra(tetranodes, tetraCount, invalidTetraCount);
+      }
+    }
+  }
+  
+  inline void MeshSplitter::TryBuildTetra(uint* tetraNodes, uint& tetraCount, uint& invalidTetraCount) {
+    if (IsValidTetra(tetraNodes)) {
+      BuildTetra(tetraNodes);
+      tetraCount++;
+    } else {
+      invalidTetraCount++;
+    }
+  }
+  
+  inline void MeshSplitter::SortHexaNodesForAspectRatio(uint* nodes) {
+    double LengthA = CalcNodeDistance<0, 4>(nodes) + CalcNodeDistance<1, 5>(nodes) + CalcNodeDistance<2, 6>(nodes) + CalcNodeDistance<3, 7>(nodes);
+    double LengthB = CalcNodeDistance<1, 2>(nodes) + CalcNodeDistance<5, 6>(nodes) + CalcNodeDistance<4, 7>(nodes) + CalcNodeDistance<0, 3>(nodes);
+    double LengthC = CalcNodeDistance<0, 1>(nodes) + CalcNodeDistance<2, 3>(nodes) + CalcNodeDistance<4, 5>(nodes) + CalcNodeDistance<6, 7>(nodes);
+    
+    if (LengthC < LengthA && LengthC < LengthB) {
+      std::swap(nodes[0], nodes[3]);
+      std::swap(nodes[1], nodes[7]);
+      std::swap(nodes[2], nodes[4]);
+      std::swap(nodes[5], nodes[6]);
+    } else if (LengthB < LengthA && LengthB < LengthC) {
+      std::swap(nodes[0], nodes[1]);
+      std::swap(nodes[2], nodes[4]);
+      std::swap(nodes[3], nodes[5]);
+      std::swap(nodes[6], nodes[7]);
+    }
+  }
+
+  inline void MeshSplitter::RunPolyTreatment(uint& cell) {
+    topologicalPolyhedrons++;
+    
     uint faceIndex = mesh_.cellFaceIndex[cell];
     uint maxFaceIndex = faceIndex + mesh_.cellFaceCount[cell];
     uint masterVertex = mesh_.faceVertex[mesh_.faceVertexIndex[mesh_.cellFace[faceIndex]]];
@@ -407,7 +481,6 @@ namespace CCM {
     
     for (;faceIndex < maxFaceIndex; faceIndex++) {
       uint face = mesh_.cellFace[faceIndex];
-      uint sum = 0;
       if (!ContainsFaceVertex(face, masterVertex)) {
         bool master = mesh_.faceCell[face * 2] == cell;
         uint vertexIndex = mesh_.faceVertexIndex[face];
@@ -422,349 +495,186 @@ namespace CCM {
             nodes[2] = mesh_.faceVertex[vertexIndex];
             nodes[0] = mesh_.faceVertex[vertexIndex+1];
           }
-          sum++;
-          AddTetra(nodes);
+          TryBuildTetra(&nodes[0], tetrasFromPolyhedrons, invalidTetrasFromPolyhedrons);
         }
       }
     }
   }
-  
-  inline bool MeshSplitter::ContainsFaceVertex(uint& face, uint& vertex) {
-    uint vertIndex = mesh_.faceVertexIndex[face];
-    uint maxIndex = vertIndex + mesh_.faceVertexCount[face]; 
-    for (;vertIndex < maxIndex; vertIndex++) {
-      if (vertex == mesh_.faceVertex[vertIndex]) {
-        return true;
-      }
+
+  inline void MeshSplitter::RunPrismTreatment(uint& cell, std::vector<uint>& faces4, std::vector<uint>& facesMore) {
+    std::vector<uint> verticesOrdered;
+    bool success = IsPrismaticCell(cell, faces4, facesMore, verticesOrdered);
+    if (!success) {
+      RunPolyTreatment(cell);
+      return;
     }
-    return false;
+    topologicalPrisms++;
+    PrismaticNodesToWedges(verticesOrdered, wedgesFromPrisms, invalidWedgesFromPrisms,
+              tetrasFromPrisms, invalidTetrasFromPrisms);
   }
   
-  inline bool MeshSplitter::ShareFacesVertices(uint& faceA, uint& faceB) {
-    uint vertIndexA = mesh_.faceVertexIndex[faceA];
-    uint maxIndexA = vertIndexA + mesh_.faceVertexCount[faceA]; 
+  inline void MeshSplitter::RunHexaTreatment(uint& cell, std::vector<uint>& faces4) {
+    std::vector<uint> facesTopBottom;
+    std::vector<uint> facesSides;
+    bool success = true;
+    success = SortHexaFaces(faces4, facesTopBottom, facesSides);
+    if (!success) {
+      RunPolyTreatment(cell);
+      return;
+    }
+    std::vector<uint> verticesOrdered;
+    success = IsPrismaticCell(cell, facesSides, facesTopBottom, verticesOrdered);
+    if (!success) {
+      RunPolyTreatment(cell);
+      return;
+    }
+    topologicalHexas++;
+    success = IsValidHexa(&verticesOrdered[0]);
+    if (!success) {
+      invalidHexas++;
+      SortHexaNodesForAspectRatio(&verticesOrdered[0]);
+      PrismaticNodesToWedges(verticesOrdered, wedgesFromHexas, invalidWedgesFromHexas,
+            tetrasFromHexas, invalidTetrasFromHexas);
+      return;
+    }
+    BuildHexa(&verticesOrdered[0]);
+  }
+  
+  inline void MeshSplitter::RunWedgeTreatment(uint& cell, std::vector<uint>& faces4, std::vector<uint>& faces3) {
+    std::vector<uint> verticesOrdered;
+    bool success = IsPrismaticCell(cell, faces4, faces3, verticesOrdered);
+    if (!success) {
+      RunPolyTreatment(cell);
+      return;
+    }
+    topologicalWedges++;
+    uint dummy = (uint)0;
+    PrismaticNodesToWedges(verticesOrdered, dummy, invalidWedges, tetrasFromWedges, invalidTetrasFromWedges);
+  }
+  
+  inline void MeshSplitter::RunPyramidTreatment(uint& cell, std::vector<uint>& faces4, std::vector<uint>& faces3) {
+    uint nodes[5];
+    uint primFace = faces4[0];
+    uint vertexIndex = mesh_.faceVertexIndex[primFace];
+    uint maxIndex = vertexIndex + 4;
+    uint i=0;
+    for (; vertexIndex < maxIndex; vertexIndex++) {
+      nodes[i] = mesh_.faceVertex[vertexIndex];
+      i++;
+    }
+    if (mesh_.faceCell[primFace*2] == cell) {
+      std::swap(nodes[0], nodes[3]);
+      std::swap(nodes[1], nodes[2]);
+    }
     
-    uint startVertIndexB = mesh_.faceVertexIndex[faceB];
-    uint maxIndexB = startVertIndexB + mesh_.faceVertexCount[faceB];
-    uint vertIndexB = startVertIndexB;
-    for (;vertIndexA < maxIndexA; vertIndexA++) {
-      for (vertIndexB = startVertIndexB; vertIndexB < maxIndexB; vertIndexB++) {
-        if (mesh_.faceVertex[vertIndexA] == mesh_.faceVertex[vertIndexB]) {
-          return true;
-        }
+    i=0;
+    vertexIndex = mesh_.faceVertexIndex[faces3[0]];
+    maxIndex = vertexIndex + 3;
+    for (;vertexIndex < maxIndex; vertexIndex++) {
+      if (!ContainsFaceVertex(primFace, mesh_.faceVertex[vertexIndex])) {
+        nodes[4] = mesh_.faceVertex[vertexIndex];
       }
     }
-    return false;
-  }
-  
-  bool MeshSplitter::AddTetra(uint* nodes) {
-    double vectorA[3];
-    double vectorB[3];
-    double normVectorAB[3];
-    double vectorC[3];
-    CreateVector(&mesh_.vertexPosition[nodes[1]*3], &mesh_.vertexPosition[nodes[2]*3], vectorA);
-    CreateVector(&mesh_.vertexPosition[nodes[1]*3], &mesh_.vertexPosition[nodes[0]*3], vectorB);
-    CrossProduct(vectorA, vectorB, normVectorAB);
-    CreateVector(&mesh_.vertexPosition[nodes[1]*3], &mesh_.vertexPosition[nodes[3]*3], vectorC);
-    if (ScalarProduct(normVectorAB, vectorC) < 1E-15) {
-        invalidTetras++;
-        return false;
+    
+    topologicalPyramids++;
+    if (IsValidPyramid(nodes)) {
+      BuildPyramid(nodes);
+    } else {
+      std::swap(nodes[3], nodes[4]);
+      TryBuildTetra(nodes, tetrasFromPyramids, invalidTetrasFromPyramids);
+      std::swap(nodes[1], nodes[4]);
+      std::swap(nodes[1], nodes[2]);
+      TryBuildTetra(nodes, tetrasFromPyramids, invalidTetrasFromPyramids);
     }
+  }
 
-    if (isTest) {
-      tetras++;
-      sum++;
-      return true;
+  inline void MeshSplitter::RunTetraTreatment(uint& cell, std::vector<uint>& faces3) {
+    uint nodes[4];
+    uint primFace = faces3[0];
+    uint vertexIndex = mesh_.faceVertexIndex[primFace];
+    uint maxIndex = vertexIndex + 3;
+    uint i=0;
+    for (; vertexIndex < maxIndex; vertexIndex++) {
+      nodes[i] = mesh_.faceVertex[vertexIndex];
+      i++;
     }
-    uint i;
-    for (i=0; i < 4; i++) {
-      cplMesh_.TOPOLOGYDATA[sum*8+i] = nodes[i];
+    if (mesh_.faceCell[primFace*2] == cell) {
+      std::swap(nodes[0], nodes[2]);
     }
-    for (; i < 8; i++) {
-      cplMesh_.TOPOLOGYDATA[sum*8+i] = (uint)0;
+    
+    i=0;
+    vertexIndex = mesh_.faceVertexIndex[faces3[1]];
+    maxIndex = vertexIndex + 3;
+    for (;vertexIndex < maxIndex; vertexIndex++) {
+      if (!ContainsFaceVertex(primFace, mesh_.faceVertex[vertexIndex])) {
+        nodes[3] = mesh_.faceVertex[vertexIndex];
+      }
     }
-    cplMesh_.elemTypes[sum] = Elem::TET4;
-    tetras++;
-    AddedElement();
-    return true;
+    
+    topologicalTetras++;
+    uint dummy = (uint)0;
+    TryBuildTetra(nodes, dummy, invalidTetras);
   }
   
-  bool MeshSplitter::AddPyramid(uint* nodes) {
-    double vectorA[3];
-    double vectorB[3];
-    double normVectorAB[3];
-    double vectorC[3];
-    CreateVector(&mesh_.vertexPosition[nodes[0]*3], &mesh_.vertexPosition[nodes[1]*3], vectorA);
-    CreateVector(&mesh_.vertexPosition[nodes[0]*3], &mesh_.vertexPosition[nodes[3]*3], vectorB);
-    CrossProduct(vectorA, vectorB, normVectorAB);
-    CreateVector(&mesh_.vertexPosition[nodes[0]*3], &mesh_.vertexPosition[nodes[4]*3], vectorC);
-    if (ScalarProduct(normVectorAB, vectorC) < 1E-15) {
-        invalidPyramids++;
-        return false;
-    }
-    CreateVector(&mesh_.vertexPosition[nodes[1]*3], &mesh_.vertexPosition[nodes[2]*3], vectorA);
-    CreateVector(&mesh_.vertexPosition[nodes[1]*3], &mesh_.vertexPosition[nodes[0]*3], vectorB);
-    CrossProduct(vectorA, vectorB, normVectorAB);
-    CreateVector(&mesh_.vertexPosition[nodes[1]*3], &mesh_.vertexPosition[nodes[4]*3], vectorC);
-    if (ScalarProduct(normVectorAB, vectorC) < 1E-15) {
-        invalidPyramids++;
-        return false;
-    }
-    CreateVector(&mesh_.vertexPosition[nodes[2]*3], &mesh_.vertexPosition[nodes[3]*3], vectorA);
-    CreateVector(&mesh_.vertexPosition[nodes[2]*3], &mesh_.vertexPosition[nodes[1]*3], vectorB);
-    CrossProduct(vectorA, vectorB, normVectorAB);
-    CreateVector(&mesh_.vertexPosition[nodes[2]*3], &mesh_.vertexPosition[nodes[4]*3], vectorC);
-    if (ScalarProduct(normVectorAB, vectorC) < 1E-15) {
-        invalidPyramids++;
-        return false;
-    }
-    CreateVector(&mesh_.vertexPosition[nodes[3]*3], &mesh_.vertexPosition[nodes[0]*3], vectorA);
-    CreateVector(&mesh_.vertexPosition[nodes[3]*3], &mesh_.vertexPosition[nodes[2]*3], vectorB);
-    CrossProduct(vectorA, vectorB, normVectorAB);
-    CreateVector(&mesh_.vertexPosition[nodes[3]*3], &mesh_.vertexPosition[nodes[4]*3], vectorC);
-    if (ScalarProduct(normVectorAB, vectorC) < 1E-15) {
-        invalidPyramids++;
-        return false;
-    }
-
-    if (isTest) {
-      pyramids++;
-      sum++;
-      return true;
-    }
-    uint i;
-    for (i=0; i < 5; i++) {
-      cplMesh_.TOPOLOGYDATA[sum*8+i] = nodes[i];
-    }
-    for (; i < 8; i++) {
-      cplMesh_.TOPOLOGYDATA[sum*8+i] = (uint)0;
-    }
-    cplMesh_.elemTypes[sum] = Elem::PYRA5;
-    pyramids++;
-    AddedElement();
-    return true;
+  inline void MeshSplitter::ClearCounters() {
+    topologicalTetras = 0;
+    topologicalPyramids = 0;
+    topologicalWedges = 0;
+    topologicalHexas = 0;
+    topologicalPrisms = 0;
+    topologicalPolyhedrons = 0;
+    
+    invalidTetras = 0;
+    invalidPyramids = 0;
+    invalidWedges = 0;
+    invalidHexas = 0;
+    
+    tetrasFromPolyhedrons = 0;
+    invalidTetrasFromPolyhedrons = 0;
+    
+    wedgesFromPrisms = 0;
+    invalidWedgesFromPrisms = 0;
+    tetrasFromPrisms = 0;
+    invalidTetrasFromPrisms = 0;
+   
+    wedgesFromHexas = 0;
+    invalidWedgesFromHexas = 0;
+    tetrasFromHexas = 0;
+    invalidTetrasFromHexas = 0;
+    
+    tetrasFromWedges = 0;
+    invalidTetrasFromWedges = 0;
+    
+    tetrasFromPyramids = 0;
+    invalidTetrasFromPyramids = 0;
+    
+    tetras = 0;
+    pyramids = 0;
+    wedges = 0;
+    hexas = 0;
+    sum = 0;
   }
-  
-  bool MeshSplitter::AddWedge(uint* nodes) {
-    double vectorA[3];
-    double vectorB[3];
-    double normVectorAB[3];
-    double vectorC[3];
-
-    // face Upper
-    CreateVector(&mesh_.vertexPosition[nodes[1]*3], &mesh_.vertexPosition[nodes[2]*3], vectorA);
-    CreateVector(&mesh_.vertexPosition[nodes[1]*3], &mesh_.vertexPosition[nodes[0]*3], vectorB);
-    CrossProduct(vectorA, vectorB, normVectorAB);
-    for (uint i=3; i < 6; i++) {
-      CreateVector(&mesh_.vertexPosition[nodes[1]*3], &mesh_.vertexPosition[nodes[i]*3], vectorC);
-      if (ScalarProduct(normVectorAB, vectorC) < 1E-15) {
-        invalidWedges++;
-        return false;
-      }
+ 
+  inline void MeshSplitter::InitSplittedMesh() {
+    if (hexas > 0) {
+      maxNumElemNodes = 8;
+    } else if (wedges > 0) {
+      maxNumElemNodes = 6;
+    } else if (pyramids > 0) {
+      maxNumElemNodes = 5;
+    } else if (tetras > 0) {
+      maxNumElemNodes = 4;
     }
-    // face Lower
-    CreateVector(&mesh_.vertexPosition[nodes[4]*3], &mesh_.vertexPosition[nodes[3]*3], vectorA);
-    CreateVector(&mesh_.vertexPosition[nodes[4]*3], &mesh_.vertexPosition[nodes[5]*3], vectorB);
-    CrossProduct(vectorA, vectorB, normVectorAB);
-    for (uint i=0; i < 3; i++) {
-      CreateVector(&mesh_.vertexPosition[nodes[4]*3], &mesh_.vertexPosition[nodes[i]*3], vectorC);
-      if (ScalarProduct(normVectorAB, vectorC) < 1E-15) {
-        invalidWedges++;
-        return false;
-      }
-    }
-
-
-    if (isTest) {
-      wedges++;
-      sum++;
-      return true;
-    }
-    uint i;
-    for (i=0; i < 6; i++) {
-      cplMesh_.TOPOLOGYDATA[sum*8+i] = nodes[i];
-    }
-    for (; i < 8; i++) {
-      cplMesh_.TOPOLOGYDATA[sum*8+i] = (uint)0;
-    }
-    cplMesh_.elemTypes[sum] = Elem::WEDGE6;
-    wedges++;
-    AddedElement();
-    return true;
+    
+    cplMesh_.TOPOLOGYDATA.clear();
+    cplMesh_.TOPOLOGYDATA.resize(maxNumElemNodes*sum);
+    cplMesh_.elemTypes.clear();
+    cplMesh_.elemTypes.resize(sum);
+    cplMesh_.numRegions = 1;
+    cplMesh_.regionElements.clear();
+    cplMesh_.regionElements.resize(sum);
+    cplMesh_.maxNumElemNodes = maxNumElemNodes;
   }
-  
-  bool MeshSplitter::AddHexa(uint* nodes, bool countInvalid) {
-    double vectorA[3];
-    double vectorB[3];
-    double normVectorAB[3];
-    double vectorC[3];
-
-    // face Upper
-    CreateVector(&mesh_.vertexPosition[nodes[0]*3], &mesh_.vertexPosition[nodes[1]*3], vectorA);
-    CreateVector(&mesh_.vertexPosition[nodes[0]*3], &mesh_.vertexPosition[nodes[3]*3], vectorB);
-    CrossProduct(vectorA, vectorB, normVectorAB);
-    for (uint i=4; i < 8; i++) {
-      CreateVector(&mesh_.vertexPosition[nodes[0]*3], &mesh_.vertexPosition[nodes[i]*3], vectorC);
-      if (ScalarProduct(normVectorAB, vectorC) < 1E-15) {
-        if (countInvalid) {
-          invalidHexas++;
-        }
-        return false;
-      }
-    }
-    CreateVector(&mesh_.vertexPosition[nodes[1]*3], &mesh_.vertexPosition[nodes[2]*3], vectorA);
-    CreateVector(&mesh_.vertexPosition[nodes[1]*3], &mesh_.vertexPosition[nodes[0]*3], vectorB);
-    CrossProduct(vectorA, vectorB, normVectorAB);
-    for (uint i=4; i < 8; i++) {
-      CreateVector(&mesh_.vertexPosition[nodes[1]*3], &mesh_.vertexPosition[nodes[i]*3], vectorC);
-      if (ScalarProduct(normVectorAB, vectorC) < 1E-15) {
-        if (countInvalid) {
-          invalidHexas++;
-        }
-        return false;
-      }
-    }
-    CreateVector(&mesh_.vertexPosition[nodes[2]*3], &mesh_.vertexPosition[nodes[3]*3], vectorA);
-    CreateVector(&mesh_.vertexPosition[nodes[2]*3], &mesh_.vertexPosition[nodes[1]*3], vectorB);
-    CrossProduct(vectorA, vectorB, normVectorAB);
-    for (uint i=4; i < 8; i++) {
-      CreateVector(&mesh_.vertexPosition[nodes[1]*3], &mesh_.vertexPosition[nodes[i]*3], vectorC);
-      if (ScalarProduct(normVectorAB, vectorC) < 1E-15) {
-        if (countInvalid) {
-          invalidHexas++;
-        }
-        return false;
-      }
-    }
-    CreateVector(&mesh_.vertexPosition[nodes[3]*3], &mesh_.vertexPosition[nodes[0]*3], vectorA);
-    CreateVector(&mesh_.vertexPosition[nodes[3]*3], &mesh_.vertexPosition[nodes[2]*3], vectorB);
-    CrossProduct(vectorA, vectorB, normVectorAB);
-    for (uint i=4; i < 8; i++) {
-      CreateVector(&mesh_.vertexPosition[nodes[3]*3], &mesh_.vertexPosition[nodes[i]*3], vectorC);
-      if (ScalarProduct(normVectorAB, vectorC) < 1E-15) {
-        if (countInvalid) {
-          invalidHexas++;
-        }
-        return false;
-      }
-    }
-    // face Lower
-    CreateVector(&mesh_.vertexPosition[nodes[4]*3], &mesh_.vertexPosition[nodes[7]*3], vectorA);
-    CreateVector(&mesh_.vertexPosition[nodes[4]*3], &mesh_.vertexPosition[nodes[5]*3], vectorB);
-    CrossProduct(vectorA, vectorB, normVectorAB);
-    for (uint i=0; i < 4; i++) {
-      CreateVector(&mesh_.vertexPosition[nodes[5]*3], &mesh_.vertexPosition[nodes[i]*3], vectorC);
-      if (ScalarProduct(normVectorAB, vectorC) < 1E-15) {
-        if (countInvalid) {
-          invalidHexas++;
-        }
-        return false;
-      }
-    }
-    CreateVector(&mesh_.vertexPosition[nodes[5]*3], &mesh_.vertexPosition[nodes[4]*3], vectorA);
-    CreateVector(&mesh_.vertexPosition[nodes[5]*3], &mesh_.vertexPosition[nodes[6]*3], vectorB);
-    CrossProduct(vectorA, vectorB, normVectorAB);
-    for (uint i=0; i < 4; i++) {
-      CreateVector(&mesh_.vertexPosition[nodes[5]*3], &mesh_.vertexPosition[nodes[i]*3], vectorC);
-      if (ScalarProduct(normVectorAB, vectorC) < 1E-15) {
-        if (countInvalid) {
-          invalidHexas++;
-        }
-        return false;
-      }
-    }
-    CreateVector(&mesh_.vertexPosition[nodes[6]*3], &mesh_.vertexPosition[nodes[5]*3], vectorA);
-    CreateVector(&mesh_.vertexPosition[nodes[6]*3], &mesh_.vertexPosition[nodes[7]*3], vectorB);
-    CrossProduct(vectorA, vectorB, normVectorAB);
-    for (uint i=0; i < 4; i++) {
-      CreateVector(&mesh_.vertexPosition[nodes[5]*3], &mesh_.vertexPosition[nodes[i]*3], vectorC);
-      if (ScalarProduct(normVectorAB, vectorC) < 1E-15) {
-        if (countInvalid) {
-          invalidHexas++;
-        }
-        return false;
-      }
-    }
-    CreateVector(&mesh_.vertexPosition[nodes[7]*3], &mesh_.vertexPosition[nodes[6]*3], vectorA);
-    CreateVector(&mesh_.vertexPosition[nodes[7]*3], &mesh_.vertexPosition[nodes[4]*3], vectorB);
-    CrossProduct(vectorA, vectorB, normVectorAB);
-    for (uint i=0; i < 4; i++) {
-      CreateVector(&mesh_.vertexPosition[nodes[7]*3], &mesh_.vertexPosition[nodes[i]*3], vectorC);
-      if (ScalarProduct(normVectorAB, vectorC) < 1E-15) {
-        if (countInvalid) {
-          invalidHexas++;
-        }
-        return false;
-      }
-    }
-
-
-    if (isTest) {
-      hexas++;
-      sum++;
-      return true;
-    }
-    for (uint i=0; i < 8; i++) {
-      cplMesh_.TOPOLOGYDATA[sum*8+i] = nodes[i];
-    }
-    cplMesh_.elemTypes[sum] = Elem::HEXA8;
-    hexas++;
-    AddedElement();
-    return true;
-  }
-  
-  void MeshSplitter::AddedElement() {
-    cplMesh_.regionElements[sum] = sum + 1;
-    sum++;
-  }
-  
-  void MeshSplitter::VerboseSplitResults() {
-    std::cout << "    Initial Mesh Statistics" << std::endl;
-    std::cout << "        Tetras:      " << rawTetras << std::endl;
-    std::cout << "        Pyradmids:   " << rawPyramids << std::endl;
-    std::cout << "        Wedges:      " << rawWedges << std::endl;
-    std::cout << "        Hexas:       " << rawHexas << std::endl;
-    std::cout << "        Prisms:      " << rawPrisms << std::endl;
-    std::cout << "        Polyhedrons: " << rawPolyhedrons << std::endl;
-    std::cout << "                     ---------" << std::endl;
-    std::cout << "        SUM:         " << mesh_.cellCount << std::endl;
-    std::cout << std::endl;
-    std::cout << "    Splitted FEM Mesh Statistics" << std::endl;
-    std::cout << "        Tetras:      " << tetras << std::endl;
-    std::cout << "        Pyradmids:   " << pyramids << std::endl;
-    std::cout << "        Wedges:      " << wedges << std::endl;
-    std::cout << "        Hexas:       " << hexas << std::endl;
-    std::cout << "                     ---------" << std::endl;
-    std::cout << "        SUM:         " << sum << std::endl;
-    std::cout << "        Invalid Tetras:   " << invalidTetras << std::endl;
-    std::cout << "        Invalid Pyramids: " << invalidPyramids << std::endl;
-    std::cout << "        Invalid Wedges:   " << invalidWedges << std::endl;
-    std::cout << "        Invalid Hexas:    " << invalidHexas << std::endl;
-    std::cout << std::endl;
-  }
-  
-  void MeshSplitter::CopyVertices() {
-    std::cout << "  Preparing Vertices " << mesh_.vertexCount << std::endl;
-    cplMesh_.NODECOORD.clear();
-    cplMesh_.NODECOORD.resize(mesh_.vertexCount*3);
-    uint max = (mesh_.vertexCount+1)*3;
-    for (uint i=3; i <= max; i++) {
-      cplMesh_.NODECOORD[i-3] = mesh_.vertexPosition[i];
-    }
-  }
-  
-  void MeshSplitter::CopyMesh(CPLMesh& cplMesh) {
-    cplMesh.maxNumElemNodes = cplMesh_.maxNumElemNodes;
-    cplMesh.numRegions = cplMesh_.numRegions;
-    cplMesh.NODECOORD.swap(cplMesh_.NODECOORD);
-    cplMesh.regionElements.swap(cplMesh_.regionElements);
-    cplMesh.TOPOLOGYDATA.swap(cplMesh_.TOPOLOGYDATA);
-    cplMesh.elemTypes.swap(cplMesh_.elemTypes);
-    cplMesh.numElemsPerRegion.clear();
-    cplMesh.numElemsPerRegion.push_back(sum);
-    cplMesh.numNodesPerRegion.clear();
-    cplMesh.numNodesPerRegion.push_back(mesh_.vertexCount);
-  }
-  
+ 
 }
 

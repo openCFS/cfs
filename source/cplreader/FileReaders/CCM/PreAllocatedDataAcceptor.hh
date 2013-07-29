@@ -1,6 +1,6 @@
 /* 
  * File:   PreAllocatedCCMDoubleDataAcceptor.h
- * Author: Mace
+ * Author: Matthias Tautz
  *
  * Created on 3. Juni 2013, 01:29
  */
@@ -24,12 +24,18 @@ namespace CCM {
     virtual ~PreAllocatedDataAcceptor();
     
     double* data;
+    std::string GetFieldName();
     void SetFieldName(std::string fieldName);
     bool Accept(FieldData& fielddata, bool& alreadyAllocated);
+    
+    bool HasUnloadedData();
+    void ResetUnloadedData();
+    void GetUnloadedDataMaps(std::vector<ConsecutiveMap>& unloadedMaps);
   private:
     std::string fieldName_;
     std::vector<ConsecutiveMap> maps_;
-    
+    uint numMaps_;
+    std::vector<bool> loadedDataForMaps_;
   
   };
   

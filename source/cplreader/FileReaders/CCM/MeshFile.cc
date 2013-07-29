@@ -46,19 +46,23 @@ namespace CCM {
         CCMIOID facesID = facesIDs[iFaces];
         faceData.id = facesID.id;
         OpenLabel(facesID, faceData.label);
-        CCMIOEntitySize(&err_, facesID, (CCMIOSize_t*) &faceData.size, NULL);
+        CCMIOSize_t size;
+	CCMIOEntitySize(&err_, facesID, &size, NULL);
+	faceData.size = TOINT64(size);
         std::cout << "    Faces: " << faceData.label << " (id: " << faceData.id << ", size: " << faceData.size << ")" << std::endl;
         
         CCMIOID mapID;
-        CCMIOReadFaces(&err_, facesID, kCCMIOInternalFaces, &mapID, (CCMIOSize_t*) &faceData.faceVerticesSize, NULL, (CCMIOIndex_t) kCCMIOStart, (CCMIOIndex_t) kCCMIOEnd);
+        CCMIOSize_t faceVerticesSize;
+	CCMIOReadFaces(&err_, facesID, kCCMIOInternalFaces, &mapID, &faceVerticesSize, NULL, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
+	faceData.faceVerticesSize = TOINT64(faceVerticesSize);
         faceData.mapID = mapID.id;
         OpenLabel(mapID, faceData.mapLabel);
         std::cout << "      Map: " << faceData.mapLabel << " (id: " << faceData.mapID << ")" << std::endl;
         std::cout << "      Numer of Edges: " << (faceData.faceVerticesSize - faceData.size) << std::endl;
         faceData.faceVertices = new int[faceData.faceVerticesSize];
-        CCMIOReadFaces(&err_, facesID, kCCMIOInternalFaces, NULL, (CCMIOSize_t*) 0, faceData.faceVertices, (CCMIOIndex_t) kCCMIOStart, (CCMIOIndex_t) kCCMIOEnd);
+        CCMIOReadFaces(&err_, facesID, kCCMIOInternalFaces, NULL, NULL, faceData.faceVertices, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
         faceData.faceCells = new int[faceData.size * 2];
-        CCMIOReadFaceCells(&err_, facesID, kCCMIOInternalFaces, faceData.faceCells, (CCMIOIndex_t) kCCMIOStart, (CCMIOIndex_t) kCCMIOEnd);
+        CCMIOReadFaceCells(&err_, facesID, kCCMIOInternalFaces, faceData.faceCells, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
         faceDatas->push_back(faceData);
         std::cout << "      Completed" << faceData.mapLabel << std::endl;
       }
@@ -70,19 +74,23 @@ namespace CCM {
         CCMIOID facesID = facesIDs[iFaces];
         faceData.id = facesID.id;
         OpenLabel(facesID, faceData.label);
-        CCMIOEntitySize(&err_, facesID, (CCMIOSize_t*) &faceData.size, NULL);
+        CCMIOSize_t size;
+        CCMIOEntitySize(&err_, facesID, &size, NULL);
+	faceData.size = TOINT64(size);
         std::cout << "    " << faceData.label << " (id: " << faceData.id << ", size: " << faceData.size << ")" << std::endl;
         
         CCMIOID mapID;
-        CCMIOReadFaces(&err_, facesID, kCCMIOBoundaryFaces, &mapID, (CCMIOSize_t*) &faceData.faceVerticesSize, NULL, (CCMIOIndex_t) kCCMIOStart, (CCMIOIndex_t) kCCMIOEnd);
+        CCMIOSize_t faceVerticesSize;
+        CCMIOReadFaces(&err_, facesID, kCCMIOBoundaryFaces, &mapID, &faceVerticesSize, NULL, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
+	faceData.faceVerticesSize = TOINT64(faceVerticesSize);
         faceData.mapID = mapID.id;
         OpenLabel(mapID, faceData.mapLabel);
         std::cout << "      Map: " << faceData.mapLabel << " (id: " << faceData.mapID << ")" << std::endl;
         std::cout << "      Numer of Edges: " << (faceData.faceVerticesSize - faceData.size) << std::endl;
         faceData.faceVertices = new int[faceData.faceVerticesSize];
-        CCMIOReadFaces(&err_, facesID, kCCMIOBoundaryFaces, NULL, NULL, faceData.faceVertices, (CCMIOIndex_t) kCCMIOStart, (CCMIOIndex_t) kCCMIOEnd);
+        CCMIOReadFaces(&err_, facesID, kCCMIOBoundaryFaces, NULL, NULL, faceData.faceVertices, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
         faceData.faceCells = new int[faceData.size];
-        CCMIOReadFaceCells(&err_, facesID, kCCMIOBoundaryFaces, faceData.faceCells, (CCMIOIndex_t) kCCMIOStart, (CCMIOIndex_t) kCCMIOEnd);
+        CCMIOReadFaceCells(&err_, facesID, kCCMIOBoundaryFaces, faceData.faceCells, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
         faceDatas->push_back(faceData);
         std::cout << "      Completed" << faceData.mapLabel << std::endl;
       }
@@ -99,14 +107,18 @@ namespace CCM {
       CCMIOID verticesID = verticesIDs[iVertices];
       vertexData.id = verticesID.id;
       OpenLabel(verticesID, vertexData.label);
-      CCMIOEntitySize(&err_, verticesID, (CCMIOSize_t*) &vertexData.size, NULL);
+      CCMIOSize_t size;
+      CCMIOEntitySize(&err_, verticesID, &size, NULL);
+      vertexData.size = TOINT64(size);
       std::cout << "    " << vertexData.label << " (id: " << vertexData.id << ", size: " << vertexData.size << ")" << std::endl;
       
       CCMIOID mapID;
       vertexData.coordinates = new double[vertexData.size*3];
-      CCMIOReadVerticesd(&err_, verticesID, (CCMIOSize_t*) &vertexData.dim, &vertexData.scale, &mapID, 
-              vertexData.coordinates, (CCMIOIndex_t) kCCMIOStart, (CCMIOIndex_t) kCCMIOEnd);
+      CCMIOSize_t dim;
+      CCMIOReadVerticesd(&err_, verticesID, &dim, &vertexData.scale, &mapID, 
+              vertexData.coordinates, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
       vertexData.mapID = mapID.id;
+      vertexData.dim = TOINT64(dim);
       OpenLabel(mapID, vertexData.mapLabel);
       std::cout << "        Map: " << vertexData.mapLabel << " (id: " << vertexData.mapID << ")" << std::endl;
       std::cout << "        Dim: " << vertexData.dim << std::endl;
@@ -133,11 +145,13 @@ namespace CCM {
         CCMIOID cellsID = cellsIDs[iCells];
         cellData.id = cellsID.id;
         OpenLabel(cellsID, cellData.label);
-        CCMIOEntitySize(&err_, cellsID, (CCMIOSize_t*) &cellData.size, NULL);
+        CCMIOSize_t size;
+        CCMIOEntitySize(&err_, cellsID, &size, NULL);
+        cellData.size = TOINT64(size);
         std::cout << "    Cells: " << cellData.label << " (id: " << cellData.id << ", size: " << cellData.size << ")" << std::endl;
         
         CCMIOID mapID;
-        CCMIOReadCells(&err_, cellsID, &mapID, NULL, (CCMIOIndex_t) kCCMIOStart, (CCMIOIndex_t) kCCMIOEnd);
+        CCMIOReadCells(&err_, cellsID, &mapID, NULL, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
         cellData.mapID = mapID.id;
         OpenLabel(mapID, cellData.mapLabel);
         std::cout << "      Map: " << cellData.mapLabel << " (id: " << cellData.mapID << ")" << std::endl;

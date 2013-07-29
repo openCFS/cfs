@@ -1,6 +1,6 @@
 /* 
- * File:   MeshPreparator.h
- * Author: Mace
+ * File:   MeshPreparator.hh
+ * Author: Matthias Tautz
  *
  * Created on 2. Juni 2013, 15:15
  */
@@ -48,6 +48,8 @@ namespace CCM {
     void CreateGhostFaces();
     
     void ReadCellPositions();
+    
+    void PrintExportRecommends();
     
     DualizableMesh m_;
     DualizableMesh* mesh_;

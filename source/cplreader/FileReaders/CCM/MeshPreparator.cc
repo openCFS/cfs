@@ -1,5 +1,5 @@
 /* 
- * File:   MeshPreparator.cpp
+ * File:   MeshPreparator.cc
  * Author: Mace
  * 
  * Created on 2. Juni 2013, 15:15
@@ -18,9 +18,13 @@
 #include "PreAllocatedDataAcceptor.hh"
 #include "ValueMapCatcher.hh"
 
+#include "General/exception.hh"
+
 #ifdef _OPENMP
 #include "omp.h"
 #endif
+
+using namespace CoupledField;
 
 namespace CCM {
   
@@ -68,8 +72,20 @@ namespace CCM {
   void MeshPreparator::ReadMesh() {
     std::cout << "READING MESH FILE" << std::endl << std::endl;
     meshFile_->ReadMaps(&maps_);
+    if (maps_.empty()) {
+      PrintExportRecommends();
+      EXCEPTION("CCM mesh file does not contain map data");
+    }
     meshFile_->ReadFaces(&faces_);
+    if (faces_.empty()) {
+      PrintExportRecommends();
+      EXCEPTION("CCM mesh file does not contain faces data");
+    }
     meshFile_->ReadVertices(&vertices_);
+    if (vertices_.empty()) {
+      PrintExportRecommends();
+      EXCEPTION("CCM mesh file does not contain vertices data");
+    }
   }
   
   
@@ -81,8 +97,16 @@ namespace CCM {
     std::vector<Map> cellMaps;
     std::vector<Map> boundaryFaceMaps;
     ValueMapCatcher vmc(maps_, cellMaps, boundaryFaceMaps);
-    meshFile_->SetVerbose(false);
+    std::cout << "    Catching used field function data maps" << std::endl;
     meshFile_->ReadFields(NULL, &vmc);
+    if (cellMaps.empty()) {
+      PrintExportRecommends();
+      EXCEPTION("CCM mesh file does not contain field function data on cells");
+    }
+    if (boundaryFaceMaps.empty()) {
+      PrintExportRecommends();
+      EXCEPTION("CCM mesh file does not contain field function data on boundary faces");
+    }
     
     uint numCells = 0;
     uint numRealCells = 0;
@@ -117,7 +141,7 @@ namespace CCM {
           cellConMapsForFaces_[j] = conMap;
         }
       }
-      std::cout << boundaryFaceMaps.size() << "    " << conMap.startValue << " - " << (conMap.startValue + conMap.size - 1) << ": " << boundaryFaceMaps[i].label << std::endl;
+      std::cout <<  "    " << conMap.startValue << " - " << (conMap.startValue + conMap.size - 1) << ": " << boundaryFaceMaps[i].label << std::endl;
     }
     m_.cellCount = numCells;
     m_.cellGhostCount = numGhostCells;
@@ -136,7 +160,7 @@ namespace CCM {
       }
     }
     
-    std::cout << "  Applying cell remaps to raw Face -> Cell Data" << std::endl;
+    std::cout << "  Applying cell remapping to raw Face -> Cell Data" << std::endl;
     for (uint i=0; i < faces_.size(); i++) {
       uint size = faces_[i].isBoundary ? faces_[i].size : faces_[i].size * 2;
       int* faceCells = faces_[i].faceCells;
@@ -173,7 +197,7 @@ namespace CCM {
     }
     m_.vertexCount = numVertices;
     std::cout << "    Vertices:    " << numVertices << std::endl;
-    std::cout << "  Applying cell remaps to raw Face -> Vertex Data" << std::endl;
+    std::cout << "  Applying vertex remaping to raw Face -> Vertex Data" << std::endl;
     for (uint i=0; i < faces_.size(); i++) {
       uint size = faces_[i].faceVerticesSize;
       int* faceVertices = faces_[i].faceVertices;
@@ -436,26 +460,56 @@ namespace CCM {
   }
 
   void MeshPreparator::ReadCellPositions() {
-    std::cout << "Reading Cell Positions" << std::endl;
+    std::cout << "Reading Cell Centroids" << std::endl;
     PreAllocatedDataAcceptor prep(cellConMaps_);
     
-    std::cout << "  Reading X Positions" << std::endl;
+    std::cout << "  Reading X Centroids" << std::endl;
     double* posX = new double[m_.cellCount + 1];
     prep.SetFieldName("Centroid_0");
     prep.data = &posX[1];
     meshFile_->ReadFields(NULL, &prep);
+    if (prep.HasUnloadedData()) {
+      std::cerr << "CCM mesh file is missing centroid data (i) on the following regions/boundaries" << std::endl;
+      std::vector<ConsecutiveMap> missmaps;
+      prep.GetUnloadedDataMaps(missmaps);
+      for (uint i=0; i < missmaps.size(); i++) {
+	std::cerr << "    " << missmaps[i].label << std::endl;
+      }
+      PrintExportRecommends();
+    }
+    prep.ResetUnloadedData();
     
-    std::cout << "  Reading Y Positions" << std::endl;
+    std::cout << "  Reading Y Centroids" << std::endl;
     double* posY = new double[m_.cellCount + 1];
     prep.SetFieldName("Centroid_1");
     prep.data = &posY[1];
     meshFile_->ReadFields(NULL, &prep);
+    if (prep.HasUnloadedData()) {
+      std::cerr << "CCM mesh file is missing centroid data (i) on the following regions/boundaries" << std::endl;
+      std::vector<ConsecutiveMap> missmaps;
+      prep.GetUnloadedDataMaps(missmaps);
+      for (uint i=0; i < missmaps.size(); i++) {
+	std::cerr << "    " << missmaps[i].label << std::endl;
+      }
+      PrintExportRecommends();
+    }
+    prep.ResetUnloadedData();
     
-    std::cout << "  Reading Z Positions" << std::endl;
+    std::cout << "  Reading Z Centroids" << std::endl;
     double* posZ = new double[m_.cellCount + 1];
     prep.SetFieldName("Centroid_2");
     prep.data = &posZ[1];
     meshFile_->ReadFields(NULL, &prep);
+    if (prep.HasUnloadedData()) {
+      std::cerr << "CCM mesh file is missing centroid data (i) on the following regions/boundaries" << std::endl;
+      std::vector<ConsecutiveMap> missmaps;
+      prep.GetUnloadedDataMaps(missmaps);
+      for (uint i=0; i < missmaps.size(); i++) {
+	std::cerr << "    " << missmaps[i].label << std::endl;
+      }
+      PrintExportRecommends();
+    }
+    prep.ResetUnloadedData();
     
     std::cout << "  Reordering Data" << std::endl;
     m_.cellPosition = new double[3*(m_.cellCount + 1)];
@@ -469,6 +523,10 @@ namespace CCM {
     delete[] posX;
     delete[] posY;
     delete[] posZ;
+  }
+  
+  void MeshPreparator::PrintExportRecommends() {
+    std::cerr << "The mesh file should contain the data of the field functions Centroid (i,j,k) only for the region (and its boundaries) to be read from this filereader. Field function data from other regions and boundaries should not be stored, because it is leading to wrong mesh dualization." << std::endl;
   }
   
 }

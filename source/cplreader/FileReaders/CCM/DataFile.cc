@@ -39,6 +39,10 @@ namespace CCM {
     verbose_ = verbose;
   }
   
+  bool DataFile::GetVerbose() {
+    return verbose_;
+  }
+  
   bool DataFile::IsOpen() {
     return isOpen_;
   }
@@ -52,10 +56,14 @@ namespace CCM {
       CCMIOID ccmid = mapIDs[i];
       map.id = ccmid.id;
       OpenLabel(ccmid, map.label);
-      CCMIOEntitySize(&err_, ccmid, (CCMIOSize_t*) &map.size, (CCMIOSize_t*) &map.maxValue);
+      CCMIOSize_t maxValue;
+      CCMIOSize_t size;
+      CCMIOEntitySize(&err_, ccmid, &size, &maxValue);
+      map.maxValue = TOINT64(maxValue);
+      map.size = TOINT64(size);
       std::cout << "  " << map.label << " (size: "  << map.size << ", maxvalue: " << map.maxValue << ")" << std::endl;
       map.value = new int[map.size];
-      CCMIOReadMap(NULL, ccmid, map.value, (CCMIOIndex_t) kCCMIOStart, (CCMIOIndex_t) kCCMIOEnd);
+      CCMIOReadMap(NULL, ccmid, map.value, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
       maps->push_back(map);
     }
   }
@@ -202,16 +210,18 @@ namespace CCM {
             CCMIOID fieldDataID = fieldDataIDs[iFieldData];
             scalarData.id = fieldDataID.id;
             OpenLabel(fieldDataID, scalarData.label);
-            CCMIOEntitySize(&err_, fieldDataID, (CCMIOSize_t*) &scalarData.size, NULL);
+            CCMIOSize_t size;
+	    CCMIOEntitySize(&err_, fieldDataID, &size, NULL);
+	    scalarData.size = TOINT64(size);
     	      
             CCMIOID mapID;
             CCMIODataLocation loc;
             if (scalarData.type == DoubleData) {
-              CCMIOReadFieldDatad(&err_, fieldDataID, &mapID, &loc, NULL, (CCMIOIndex_t) 0, (CCMIOIndex_t) 0);
+              CCMIOReadFieldDatad(&err_, fieldDataID, &mapID, &loc, NULL, CCMIOINDEXC(0), CCMIOINDEXC(0));
             } else if (scalarData.type == FloatData) {
-              CCMIOReadFieldDataf(&err_, fieldDataID, &mapID, &loc, NULL, (CCMIOIndex_t) 0, (CCMIOIndex_t) 0);
+              CCMIOReadFieldDataf(&err_, fieldDataID, &mapID, &loc, NULL, CCMIOINDEXC(0), CCMIOINDEXC(0));
             } else if (scalarData.type == IntData) {
-              CCMIOReadFieldDatai(&err_, fieldDataID, &mapID, &loc, NULL, (CCMIOIndex_t) 0, (CCMIOIndex_t) 0);
+              CCMIOReadFieldDatai(&err_, fieldDataID, &mapID, &loc, NULL, CCMIOINDEXC(0), CCMIOINDEXC(0));
             }
             if (verbose_) {
               std::cout << "        Field Data: " << scalarData.label << " (id: " << scalarData.id << ", size: " << scalarData.size << ", ";
@@ -240,11 +250,7 @@ namespace CCM {
             
             bool alreadyAllocated = false;
             if (acceptor->Accept(scalarData, alreadyAllocated)) {
-              if (verbose_) {
-                std::cout << "            XXX  READING  XXX" << std::endl;
-              } else {
-                std::cout << "  Reading Field Data: " << scalarData.label << std::endl;
-              }
+              std::cout << "  Reading Field Data: " << scalarData.label << std::endl;
               if (!alreadyAllocated) {
                 if (scalarData.type == DoubleData) {
                   scalarData.doubleData = new double[scalarData.size];
@@ -255,19 +261,19 @@ namespace CCM {
                 }
               }
               if (scalarData.type == DoubleData) {
-                CCMIOReadFieldDatad(&err_, fieldDataID, NULL, NULL, scalarData.doubleData, (CCMIOIndex_t) kCCMIOStart, (CCMIOIndex_t) kCCMIOEnd);
+                CCMIOReadFieldDatad(&err_, fieldDataID, NULL, NULL, scalarData.doubleData, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
               } else if (scalarData.type == FloatData) {
-                CCMIOReadFieldDataf(&err_, fieldDataID, NULL, NULL, scalarData.floatData, (CCMIOIndex_t) kCCMIOStart, (CCMIOIndex_t) kCCMIOEnd);
+                CCMIOReadFieldDataf(&err_, fieldDataID, NULL, NULL, scalarData.floatData, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
               } else if (scalarData.type == IntData) {
-                CCMIOReadFieldDatai(&err_, fieldDataID, NULL, NULL, scalarData.intData, (CCMIOIndex_t) kCCMIOStart, (CCMIOIndex_t) kCCMIOEnd);
+                CCMIOReadFieldDatai(&err_, fieldDataID, NULL, NULL, scalarData.intData, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
               }
               if (data != NULL) {
                 data->push_back(scalarData);
               }
             } else {
               if (verbose_) {
-                std::cout << "            xxx  skipped  xxx" << std::endl;
-              }
+                std::cout << "  Skipping Field Data: " << scalarData.label << std::endl;              
+	      }
             }
           }
         }
@@ -287,20 +293,20 @@ namespace CCM {
       return false;;
     }
     CCMIOCloseFile(&err_, root_);
-    CheckError("Closing file ");
     std::cout << "Closing File " << fileName_ << std::endl << std::endl;
+    CheckError("Closing file ");
     isOpen_ = false;
     return true;
   }
   
-  void DataFile::CheckError(std::string) {
-    
+  void DataFile::CheckError(std::string operation) {
+    CheckFileError(err_, operation, false);
   }
 
   uint DataFile::GetMapSize(CCMIOID mapID) {
-    uint size;
+    CCMIOSize_t size;
     CCMIOEntitySize(&err_, mapID, (CCMIOSize_t*) &size, NULL);
-    return size;
+    return TOINT64(size);
   }
   
   DataFile::~DataFile() {

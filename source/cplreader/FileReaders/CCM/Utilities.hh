@@ -22,9 +22,9 @@ namespace CCM {
 
   bool IsError(CCMIOError& err);
 
-  void CheckError(CCMIOError &err, std::string operation, bool mayExit);
+  void CheckFileError(CCMIOError &err, std::string operation, bool mayExit);
 
-  void CheckError(CCMIOError &err, std::string operation);
+  void CheckFileError(CCMIOError &err, std::string operation);
   
   void CollectChildEntities(CCMIOID& parent, std::vector<CCMIOID>& children, CCMIOEntity entityType);
 

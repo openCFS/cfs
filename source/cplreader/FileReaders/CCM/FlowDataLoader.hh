@@ -35,6 +35,8 @@ namespace CCM {
   private:
     uint cellCount_;
     PreAllocatedDataAcceptor acceptor_;
+    
+    void VerboseMissingData();
   };
   
 }

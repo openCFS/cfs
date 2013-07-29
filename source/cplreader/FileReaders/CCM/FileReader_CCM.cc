@@ -57,6 +57,7 @@ namespace CoupledField
   void FileReader_CCM::Init() {
     std::cout << "Initialzing dual mesh Star-CCM+ File Reader" << std::endl;
     Settings& settings = Settings::Instance();
+    bool verbose = settings.GetInt("verbose") > 0;
     firstStep_ = settings.GetInt("firststep");
     stepOffset_ = settings.GetInt("stepoffset");
     digits_ = settings.GetInt("digits");
@@ -72,13 +73,15 @@ namespace CoupledField
     laplacePName = settings.GetString("LaplacePName");
     std::cout << "Name of Laplace of Pressure field: " << laplacePName << std::endl;
     std::cout << "Reading Steps: [ " << (firstStep_ + stepOffset_) << " , " << (firstStep_ + stepOffset_ + numSteps_ - 1) <<  " ] " << std::endl;
-    std::cout << "Saving as Steps: [ " << firstStep_ << " , " << (firstStep_ + numSteps_ - 1) <<  " ] " << std::endl;
+    std::cout << "Saving as Steps: [ " << firstStep_ << " , " << (firstStep_ + numSteps_ - 1) <<  " ] " << std::endl << std::endl;
     
+    std::cout << "Reading und Dualizing of mesh file" << std::endl;
     // opening mesh file  
     std::stringstream ss;
-	  ss << baseName_ << "mesh.ccm";
-	  std::string inFileName = ss.str();
+    ss << baseName_ << "mesh.ccm";
+    std::string inFileName = ss.str();
     MeshFile meshFile(inFileName);
+    meshFile.SetVerbose(verbose);
     
     // preparing dualization
     MeshPreparator preparator;
@@ -106,8 +109,6 @@ namespace CoupledField
     numElemsPerRegion_.swap(cplmesh_.numElemsPerRegion);
     numNodesPerRegion_.swap(cplmesh_.numNodesPerRegion);
     dim_ = 3;
-    
-    //WaitReturn();
     
     loader = new FlowDataLoader(dualMesh.vertexCount, valueConMaps);
     std::cout << "Initialization of dual mesh Star-CCM+ File Reader finished" << std::endl;

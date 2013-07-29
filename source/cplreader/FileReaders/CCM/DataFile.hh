@@ -35,6 +35,7 @@ namespace CCM {
       bool IsOpen();
       
       void SetVerbose(bool verbose);
+      bool GetVerbose();
       
       
     protected:

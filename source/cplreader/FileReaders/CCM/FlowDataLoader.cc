@@ -1,6 +1,6 @@
 /* 
  * File:   FlowDataLoader.cpp
- * Author: Mace
+ * Author: Matthias Tautz
  * 
  * Created on 4. Juni 2013, 23:05
  */
@@ -9,6 +9,7 @@
 
 #include <vector>
 #include <string>
+#include <iostream>
 
 #include "Utilities.hh"
 #include "DataFile.hh"
@@ -53,7 +54,11 @@ namespace CCM {
     fdps->data.resize(cellCount_);
     acceptor_.data = &fdps->data[0];
     acceptor_.SetFieldName(name);
+    acceptor_.ResetUnloadedData();
     file.ReadFields(NULL, &acceptor_);
+    if (acceptor_.HasUnloadedData()) {
+      VerboseMissingData();
+    }
     
     fdps->isActive = true;
     fdps->definedOn = ResultInfo::NODE;
@@ -70,7 +75,11 @@ namespace CCM {
     
     std::string nameC = name + "_0";
     acceptor_.SetFieldName(nameC);
+    acceptor_.ResetUnloadedData();
     file.ReadFields(NULL, &acceptor_);
+    if (acceptor_.HasUnloadedData()) {
+      VerboseMissingData();
+    }
 #pragma omp parallel for
     for (uint i=0; i < cellCount_; i++) {
       fdps->data[i*3] = cache[i];
@@ -78,7 +87,11 @@ namespace CCM {
     
     nameC = name + "_1";
     acceptor_.SetFieldName(nameC);
+    acceptor_.ResetUnloadedData();
     file.ReadFields(NULL, &acceptor_);
+    if (acceptor_.HasUnloadedData()) {
+      VerboseMissingData();
+    }
 #pragma omp parallel for
     for (uint i=0; i < cellCount_; i++) {
       fdps->data[i*3+1] = cache[i];
@@ -86,7 +99,11 @@ namespace CCM {
 
     nameC = name + "_2";
     acceptor_.SetFieldName(nameC);
+    acceptor_.ResetUnloadedData();
     file.ReadFields(NULL, &acceptor_);
+    if (acceptor_.HasUnloadedData()) {
+      VerboseMissingData();
+    }
 #pragma omp parallel for
     for (uint i=0; i < cellCount_; i++) {
       fdps->data[i*3+2] = cache[i];
@@ -105,5 +122,16 @@ namespace CCM {
     fdps->resultName = SolutionTypeEnum.ToString(solType);
   }
 
+  void FlowDataLoader::VerboseMissingData() {
+    std::vector<ConsecutiveMap> missingMaps;
+    acceptor_.GetUnloadedDataMaps(missingMaps);
+    std::cerr << "  WARNING: Could not read missing data for variable " << acceptor_.GetFieldName() << std::endl;
+    std::cout << "  Data is missing on the following Regions/Boundaries" << std::endl;
+    for (uint i = 0; i < missingMaps.size(); i++) {
+      std::cout << "      " << missingMaps[i].label << std::endl;
+    }
+  }
+  
+  
 }
 
