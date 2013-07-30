@@ -237,6 +237,8 @@ cfsdeps/scpip/scpip-gfortran.patch -text
 cfsdeps/scpip/scpip-patch.cmake.in -text
 cfsdeps/scpip/scpip.tar.bz2 -text
 cfsdeps/spacepart/External_spacepart.cmake -text
+cfsdeps/spacepart/libfbi-patch.cmake.in -text
+cfsdeps/spacepart/libfbi_cpp11.patch -text
 cfsdeps/suitesparse/External_SuiteSparse.cmake -text
 cfsdeps/suitesparse/SuiteSparse-METIS-CMake.patch -text
 cfsdeps/suitesparse/blas_lapack_gfortran.h -text
