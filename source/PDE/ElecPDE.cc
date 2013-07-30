@@ -568,7 +568,7 @@ namespace CoupledField {
     chargeD->entryType = ResultInfo::SCALAR;
     availResults_.insert( chargeD );
     // the coefficient function is defined later
-    shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true));
+    shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true, chargeD));
     surfCoefFcts_[sChargeDens] = fluxFunc;
     
     // === TOTAL ELECTRIC CHARGE ===

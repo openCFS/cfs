@@ -1356,6 +1356,7 @@ source/Forms/Operators/ConvectivePierceOperator.hh -text
 source/Forms/Operators/CurlOperator.hh -text
 source/Forms/Operators/DivOperator.hh -text
 source/Forms/Operators/GradientOperator.hh -text
+source/Forms/Operators/IdOpNormalStrain.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/Operators/IdentityOperator.hh -text
 source/Forms/Operators/IdentityOperatorNormal.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/Operators/IdentityOperatorNormalTrans.hh svneol=native#text/x-c%2B%2Bhdr

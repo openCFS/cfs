@@ -31,8 +31,6 @@ namespace CoupledField{
 //! This class implements the transposed identity operator for vectorial shape 
 //! functions,  which gets projected in normal direction. The element matrix
 //! is computed as:  
-//! normal direction. The element matrix is computed as 
-
 //! b = ( N_1*n_x, N_1*n_y, N1_*n_z, N_2*n_x, N_2*n_y, N2_*n_z, .. )
 //!   = n^T * N
 //!

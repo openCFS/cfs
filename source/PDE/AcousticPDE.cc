@@ -1226,7 +1226,7 @@ namespace CoupledField{
       DefineFieldResult( velFct, vel );
       
       // === ACOU_NORMAL_VELOCITY ===
-      velFctNormal.reset(new CoefFunctionSurf(true));
+      velFctNormal.reset(new CoefFunctionSurf(true, velNormal));
       DefineFieldResult(velFctNormal, velNormal);
       surfCoefFcts_[velFctNormal] = velFctPot;
       
@@ -1238,7 +1238,7 @@ namespace CoupledField{
       DefineFieldResult(intensFct, intensity);
       
       // === ACOU_NORMAL_INTENSITY ===
-      sNormIntens.reset(new CoefFunctionSurf(true));
+      sNormIntens.reset(new CoefFunctionSurf(true, intensNormal));
       DefineFieldResult( sNormIntens, intensNormal );
       surfCoefFcts_[sNormIntens] = intensFct;
       
@@ -1285,7 +1285,7 @@ namespace CoupledField{
       DefineFieldResult( velFct, vel );
 
       // === ACOU_NORMAL_VELOCITY ===
-      velFctNormal.reset(new CoefFunctionSurf(true));
+      velFctNormal.reset(new CoefFunctionSurf(true, velNormal));
       DefineFieldResult(velFctNormal, velNormal);
       surfCoefFcts_[velFctNormal] = velFct;
       
@@ -1297,7 +1297,7 @@ namespace CoupledField{
       DefineFieldResult(intensFct, intensity);
 
       // === ACOU_NORMAL_INTENSITY ===
-      sNormIntens.reset(new CoefFunctionSurf(true));
+      sNormIntens.reset(new CoefFunctionSurf(true, intensNormal));
       DefineFieldResult( sNormIntens, intensNormal );
       surfCoefFcts_[sNormIntens] = intensFct;
       

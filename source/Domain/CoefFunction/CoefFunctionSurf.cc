@@ -1,10 +1,13 @@
 #include "CoefFunctionSurf.hh"
 
 #include <boost/tr1/type_traits.hpp>
+
+#include "Domain/Results/ResultInfo.hh"
 namespace CoupledField {
 
 
-CoefFunctionSurf::CoefFunctionSurf( bool mapNormal ) 
+CoefFunctionSurf::CoefFunctionSurf( bool mapNormal, 
+                                    shared_ptr<ResultInfo> surfInfo ) 
 : CoefFunction() {
 
 
@@ -13,7 +16,29 @@ CoefFunctionSurf::CoefFunctionSurf( bool mapNormal )
   isAnalytic_ = false;
   isComplex_ =  false;
   mapNormal_ = mapNormal;
-  
+
+  if( this->mapNormal_) {
+    if( !surfInfo) {
+      EXCEPTION( "The resultinfo object must be set in case of normal mapping!")
+    }
+    switch(surfInfo->entryType ) {
+      case ResultInfo::SCALAR:
+        this->dimType_ = SCALAR;
+        break;
+      case ResultInfo::VECTOR:
+        this->dimType_ = VECTOR;
+        break;
+      case ResultInfo::TENSOR:
+        EXCEPTION( "A normal-mapped result can not be of type TENSOR")
+        break;
+      default:
+        EXCEPTION("Unhandled case for normal mapping")
+    }
+  } else {
+    // In this case, we simply take the dimensionality of the first
+    // volume coef in the method ::AddVolumeCoef
+    this->dimType_ = NO_DIM;
+  }
 }
 
 
@@ -31,25 +56,8 @@ void CoefFunctionSurf::AddVolumeCoef( RegionIdType region, PtrCoefFct coef ) {
     }
   } else {
     isComplex_ = coef->IsComplex();
-    dimType_ = coef->GetDimType();
-    // adjust dimensionality: In case of normal mapping,
-    // we perform a vector multiplication.
-    if( mapNormal_ ) {
-      switch(dimType_) {
-        case SCALAR:
-          dimType_ = VECTOR;
-          break;
-        case VECTOR:
-          dimType_ = SCALAR;
-          break;
-        case TENSOR:
-          dimType_ = VECTOR;
-          break;
-        default:
-          EXCEPTION( "Unknown dimensionality" ); 
-          break;     
-      }
-    } 
+    if( !this->mapNormal_)
+      dimType_ = coef->GetDimType();
   }
   regions_.insert(region);
   coefs_[region] = coef;
@@ -66,7 +74,6 @@ void CoefFunctionSurf::SetVolumeCoefs( std::map<RegionIdType, PtrCoefFct> coefs 
     AddVolumeCoef( it->first, it->second);
   }
 }
-
 
 CoefFunctionSurf::~CoefFunctionSurf() {
 
@@ -85,16 +92,37 @@ void CoefFunctionSurf::GetTensor(Matrix<Complex>& coefMat,
 
 
 void CoefFunctionSurf::GetVector(Vector<Double>& coefVec, 
-                               const LocPointMapped& lpm ) {
+                                 const LocPointMapped& lpm ) {
   assert(this->dimType_ == VECTOR);
-  EXCEPTION("not implemented");
 
+  // create local point for surface
+  LocPointMapped surfLpm(lpm);
+  surfLpm.SetSurfInfo( regions_);
+  RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
+  if( mapNormal_ ) {
+    Vector<Double> coefTens;
+    coefs_[region]->GetVector(coefTens, *surfLpm.lpmVol );
+    MapTensorNormal<Double>( coefVec, coefTens, surfLpm.normal);
+  } else {
+    coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
+  }
 }
 
 void CoefFunctionSurf::GetVector(Vector<Complex>& coefVec, 
                                const LocPointMapped& lpm ) {
   assert(this->dimType_ == VECTOR);
-  EXCEPTION("not implemented");
+
+  // create local point for surface
+  LocPointMapped surfLpm(lpm);
+  surfLpm.SetSurfInfo( regions_);
+  RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
+  if( mapNormal_ ) {
+    Vector<Complex> coefTens;
+    coefs_[region]->GetVector(coefTens, *surfLpm.lpmVol );
+    MapTensorNormal<Complex>( coefVec, coefTens, surfLpm.normal);
+  } else {
+    coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
+  }
 }
 
 
@@ -150,5 +178,33 @@ std::string  CoefFunctionSurf::ToString() const {
     }
   return ret.str();
 }
+
+
+template<typename TYPE>
+void CoefFunctionSurf::MapVecNormal( TYPE& ret, const Vector<TYPE>& vec,
+                                     const Vector<Double>& normal ) {
+  ret = vec * normal;
+}
+
+//! Mapping operation for tensors in Voigt notation
+template<typename TYPE>
+void CoefFunctionSurf::MapTensorNormal( Vector<TYPE>& ret, const Vector<TYPE>& tensor,
+                                        const Vector<Double>& n ) {
+  if( tensor.GetSize() == 6 ) {
+    // FULL 3D case
+    ret.Resize(3);
+    ret[0] = tensor[0]*n[0] + tensor[4]*n[2] + tensor[5]*n[1];
+    ret[1] = tensor[1]*n[1] + tensor[3]*n[2] + tensor[5]*n[0];
+    ret[2] = tensor[2]*n[2] + tensor[3]*n[1] + tensor[4]*n[0]; 
+  } else if( tensor.GetSize() == 4 || tensor.GetSize() == 3 ) {
+    // 2D / AXI-Symmetric case
+    ret.Resize(2);
+    ret[0] = tensor[0]*n[0] + tensor[2]*n[1];
+    ret[1] = tensor[1]*n[1] + tensor[2]*n[0];
+  } else {
+    EXCEPTION( "Case not implemented" );
+  }
+}
+  
 
 }

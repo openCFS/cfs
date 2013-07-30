@@ -211,7 +211,7 @@ namespace CoupledField {
     chargeD->definedOn = ResultInfo::SURF_ELEM;
     chargeD->entryType = ResultInfo::SCALAR;
     availResults_.insert( chargeD );
-    shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true));
+    shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true, chargeD));
     DefineFieldResult( sChargeDens, chargeD);
     
     // === Electric Charge (integrated) ===

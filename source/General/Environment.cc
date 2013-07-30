@@ -306,6 +306,10 @@ namespace CoupledField {
         return "";
         break;
 
+      case MECH_NORMAL_STRESS:
+        return "N/m^2";
+        break;
+
       case SMOOTH_DISPLACEMENT:
         return "m";
         break;
@@ -1019,6 +1023,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_POWER, "mechPower");
     SolutionTypeEnum.Add(MECH_DEF_SURF_VOLUME, "mechDisplacedSurfVolume");
     SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
+    SolutionTypeEnum.Add(MECH_NORMAL_STRESS, "mechNormalStress");
     
     //electrostatics
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
