@@ -72,8 +72,8 @@ FIND_PROGRAM(CTEST_SVN_COMMAND NAMES svn)
 #-----------------------------------------------------------------------------
 IF(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}/.svn")
   EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E make_directory ${CTEST_SOURCE_DIRECTORY})
-  EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
-  SET(CTEST_CHECKOUT_COMMAND "${CTEST_SVN_COMMAND} --username ${USER}  --password $ENV{CFS_TESTUSER_PW} --non-interactive co ${REPO} ${CTEST_SOURCE_DIRECTORY}")
+  EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy ${SITE_DIR}/CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
+  SET(CTEST_CHECKOUT_COMMAND "${CTEST_SVN_COMMAND} --username ${USER}  --password ${CFS_TESTUSER_PW} --non-interactive co ${REPO} ${CTEST_SOURCE_DIRECTORY}")
 ENDIF(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}/.svn")
 
 #-----------------------------------------------------------------------------
@@ -81,12 +81,12 @@ ENDIF(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}/.svn")
 #-----------------------------------------------------------------------------
 SET(CTEST_UPDATE_TYPE "svn")
 SET(CTEST_UPDATE_COMMAND "${CTEST_SVN_COMMAND}")
-SET(CTEST_UPDATE_OPTIONS "--username ${USER} --password $ENV{CFS_TESTUSER_PW} --non-interactive up ${CTEST_SOURCE_DIRECTORY}")
+SET(CTEST_UPDATE_OPTIONS "--username ${USER} --password ${CFS_TESTUSER_PW} --non-interactive ${CTEST_SOURCE_DIRECTORY}")
 
 #-----------------------------------------------------------------------------
 # Copy CDash server configuration file to source dir.
 #-----------------------------------------------------------------------------
-EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
+EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different ${SITE_DIR}/CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
 
 #-----------------------------------------------------------------------------
 # Start out with an empty binary directory.

@@ -1,10 +1,25 @@
-# env -i HOME=/Users/simon PATH=/bin:/usr/bin:/sbin:/usr/sbin /Users/simon/Applications/CMake\ 2.8-8.app/Contents/bin/cmake -P Documents/dev/nightly_test.cmake
+# This script is the main entry point for automated nightly builds of CFS++.
+# It gets either called from /etc/crontab or through the provisioner scripts
+# for Vagrant VBoxes.
+#
+# To call this script by hand, it is advisable to simulate a crontab
+# environment e.g. in the following way:
+# env -i HOME=/home/simon PATH=/bin:/usr/bin:/sbin:/usr/sbin \
+#        /opt/pckg/cmake-2.8.9/bin/cmake -P $HOME/Documents/dev/nightly_test.cmake
+#
 # vagrant ssh -c 'env -i HOME=/Users/simon PATH=/bin:/usr/bin:/sbin:/usr/sbin env && uname -a && /opt/pckg/cmake-2.8.10.2-Linux-i386/bin/cmake --version'
 
+# List command no longer ignores empty elements.
+CMAKE_POLICY(SET CMP0007 NEW)
+
+# Get base path of current script in order to include additional macros.
 GET_FILENAME_COMPONENT(CTEST_SCRIPTS_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 INCLUDE("${CTEST_SCRIPTS_DIR}/test_macros.cmake")
 
+# Set global variables, e.g. path to ctest exe, site base dir, host name etc.
 SET_GLOBAL_VARS()
+
+# Set site specific variables, e.g. test user home dir, svn user password, etc.
 SET_SITE_SPECIFIC_VARS()
 
 MESSAGE("CMAKE_COMMAND: ${CMAKE_COMMAND}")
@@ -18,21 +33,31 @@ MESSAGE("TESTUSER: ${TESTUSER}")
 MESSAGE("HOME: ${HOME}")
 MESSAGE("DAYOFWEEK: ${DAYOFWEEK}")
 
+# Perform site specific initialization tasks, e.g. update working copies,
+# start VBoxes, etc.
 SITE_SPECIFIC_INIT()
 
+# Iterate over all tests in ${SITE_DIR}
 FILE(GLOB TEST_FILES "${SITE_DIR}/*.ctest")
 
-FOREACH(F IN ITEMS ${TEST_FILES})
+FOREACH(TESTFN IN ITEMS ${TEST_FILES})
 
-  MESSAGE("BARBARA")
-  GET_FILENAME_COMPONENT(TEST_NAME "${F}" NAME_WE)
+  GET_FILENAME_COMPONENT(TEST_NAME "${TESTFN}" NAME_WE)
   MESSAGE("Performing test: ${TEST_NAME}...")
   GET_CTEST_BINARY_DIRECTORY(${TEST_NAME})
+
+  # Actually run test
   PERFORM_TEST(${TEST_NAME})
+  
+  # E.g. pack generated binaries to a globally accessible zip archive.
   DEPLOY_TEST(${TEST_NAME})
+
+  # Perform some test specific cleanup chores.
   CLEANUP_TEST(${TEST_NAME})
 
 ENDFOREACH()
 
+# Perform site specific finalization tasks, such as unpacking nightly
+# binaries to a global network share.
 SITE_SPECIFIC_FINISH()
 
