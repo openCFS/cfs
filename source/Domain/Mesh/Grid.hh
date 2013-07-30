@@ -926,7 +926,8 @@ namespace CoupledField
 
     void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
                                    const std::set<RegionIdType> srcRegions 
-                                   = std::set<RegionIdType>());
+                                   = std::set<RegionIdType>(),
+                                   Double tol = 1e-3 );
 
 #else
     //! Return list of potential elements containing global points (slow version)
@@ -937,7 +938,8 @@ namespace CoupledField
     //! the bounding boxed
     void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
                                    const std::set<RegionIdType> srcRegions 
-                                   = std::set<RegionIdType>());
+                                   = std::set<RegionIdType>(),
+                                   Double tol = 0.0 );
     
     //! Bounding boxes
     StdVector<boost::array<Double,6> > elemBoxes_;

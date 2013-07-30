@@ -1494,12 +1494,11 @@ namespace CoupledField {
   }
 
   void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                       const std::set<RegionIdType> srcRegions ) {
+                                       const std::set<RegionIdType> srcRegions,
+                                       Double tol ) {
 
     std::vector< Elem* > elems;
     std::vector< Vector<Double>* > points;
-    
-    Double globToler = 1e-3;
     
     StdVector<Elem*> volElems;
     GetVolElems(volElems, ALL_REGIONS);
@@ -1514,12 +1513,12 @@ namespace CoupledField {
       points.push_back(point);
     } // loop over points
     
-    ElemBoxGenerator ebg(this, globToler, GetDim());
+    ElemBoxGenerator ebg(this, tol, GetDim());
     PointBoxGenerator pbg(GetDim());
 
     // For 2D:
     //  auto adjList = fbi::SetA<Elem*, 0, 1>::SetB<Vector<Double>*, 0, 1>::intersect(
-    //    elems, ElemBoxGenerator(this, globToler, GetDim()), points, PointBoxGenerator(GetDim()));
+    //    elems, ElemBoxGenerator(this, tol, GetDim()), points, PointBoxGenerator(GetDim()));
     
     fbi::SetA<Elem*, 0, 1, 2>::ResultType adjList;
     adjList = fbi::SetA<Elem*, 0, 1, 2>::SetB<Vector<Double>*, 0, 1, 2>::intersect(
@@ -1558,10 +1557,9 @@ namespace CoupledField {
   // This is a very basic implementation for axis-parallel box intersection. It is just used
   // as internal replacement in case we want to use valgrind and can not use CGAL.
   void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                       const std::set<RegionIdType> srcRegions ) {
+                                       const std::set<RegionIdType> srcRegions,
+                                       Double tol ) {
 
-    Double globToler = 1e-3;
-    
     // obtain all volume elements from grid
     StdVector<Elem*> elems;
     GetVolElems(elems, ALL_REGIONS);
@@ -1613,13 +1611,13 @@ namespace CoupledField {
         shared_ptr<ElemShapeMap> esm = this->GetElemShapeMap(elems[i]);
         Vector<Double> dia;
         esm->CalcDiameter(dia);
-        bbox[0] -= globToler*dia[0];
-        bbox[3] += globToler*dia[0];
-        bbox[1] -= globToler*dia[1];
-        bbox[4] += globToler*dia[1];
+        bbox[0] -= tol*dia[0];
+        bbox[3] += tol*dia[0];
+        bbox[1] -= tol*dia[1];
+        bbox[4] += tol*dia[1];
         if( p.GetSize() == 3 ) {
-          bbox[2] -= globToler*dia[2];
-          bbox[5] += globToler*dia[2];
+          bbox[2] -= tol*dia[2];
+          bbox[5] += tol*dia[2];
         }
         elemBoxes_[i] = bbox;
       }
