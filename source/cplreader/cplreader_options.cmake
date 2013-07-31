@@ -153,10 +153,10 @@ ADD_OPTION(numsteps
   "The number of timesteps to read. By default (0) all available timesteps will be read."
   )
 
-ADD_OPTION(activeparts
+ADD_OPTION(activeParts
   string
   all
-  "Values will only be output on partitions specified by activeparts (all | numbers seperated by SPACE or SEMICOLON or |)."
+  "Values will only be output on regions specified by activeParts (all | region names separated by SPACE or SEMICOLON or |)."
   "When dealing with very large data sets with many partitions/sub-domains, it
    is often convenient to read the fields and compute the acoustic source for
    just a few of them."

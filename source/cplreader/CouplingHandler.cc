@@ -77,38 +77,6 @@ namespace CoupledField
     std::copy(tokenizer.begin(), tokenizer.end(),
               std::back_inserter(outputFields_));
 
-    // Initialize vector with active regions
-    Tok actp(settings.GetString("activeparts"), sep);
-    Tok::iterator tit, tend;
-    tit = actp.begin();
-    tend = actp.end();
-
-    activeParts_.resize(ptFileReader_->GetNumRegions());
-    if(*tit == "all")
-      std::fill(activeParts_.begin(), activeParts_.end(), true);
-    else
-    {
-      std::stringstream sstr;
-      UInt partIdx;
-
-      for( ; tit != tend; tit++)
-      {
-        sstr.clear(); sstr.str("");
-        sstr << *tit;
-        sstr >> partIdx;
-
-        if(partIdx > 0 && partIdx <= activeParts_.size())
-          activeParts_[partIdx-1] = true;
-      }
-    }
-
-    if(settings.GetInt("verbose"))
-    {
-      for(UInt i=0; i < activeParts_.size(); i++)
-        std::cout << "Partition " << (i+1) << " active: "
-                  << activeParts_[i] << std::endl;
-    }
-
     // Initialize element integrators for source term calculation
     ptElemIntegr_[Elem::LINE2]  = new ElemIntegr(Elem::LINE2);
     ptElemIntegr_[Elem::TRIA3]  = new ElemIntegr(Elem::TRIA3);
@@ -411,9 +379,32 @@ namespace CoupledField
       }
       
       // Fill vector with region names
-      for (actRegion = 0; actRegion<numRegions; actRegion++)
+      for (actRegion = 0; actRegion<numRegions; ++actRegion)
         regionNames.push_back(ptFileReader_->GetRegionName(actRegion));
       
+      // Initialize vector with active regions
+      typedef boost::tokenizer< boost::char_separator<char> > Tok;
+      boost::char_separator<char> sep(";| ");
+
+      Tok actp(settings.GetString("activeParts"), sep);
+      Tok::iterator tit, tend;
+      tit = actp.begin();
+      tend = actp.end();
+
+      activeParts_.resize(numRegions);
+      if (*tit == "all") {
+        std::fill(activeParts_.begin(), activeParts_.end(), true);
+      }
+      else {
+        for ( UInt i=0; i < numRegions; ++i ) {
+          activeParts_[i] = (std::find(tit, tend, regionNames[i]) != tend);
+          
+          if (settings.GetInt("verbose")) {
+            std::cout << regionNames[i] << " active: " << activeParts_[i] << std::endl;
+          }
+        }
+      }
+
       //at this point we can already calculate the surface region neighbours
       PrepareSurfaceRegions();
 
@@ -986,7 +977,7 @@ namespace CoupledField
         fdps2.entryType = ResultInfo::VECTOR;
         fdps2.isActive = true;
 
-        fdps2.data.resize(tmpMeanPresField[actRegion].size()*dim_);
+        fdps2.data.resize(tmpMeanVelField[actRegion].size()*dim_);
 
         std::fill(fdps2.data.begin(), fdps2.data.end(), 0);
 
@@ -1097,26 +1088,26 @@ namespace CoupledField
       // a refactoring of cplreader...
       switch(lhType){
       case FLUIDMECH_VELOCITY:
-        if(flowData.find(FLUIDMECH_VELOCITY)== flowData.end()){
-          EXCEPTION("Trying to compute wave equation RHS with nodal velocity, but no this field was found in input data!")
+        if(flowData.find(FLUIDMECH_VELOCITY) == flowData.end()){
+          EXCEPTION("Trying to compute wave equation RHS with nodal velocity, but this field was not found in input data!")
         }
         computeLHV = true;
         break;
       case FLUIDMECH_PRESSURE:
-        if(flowData.find(FLUIDMECH_PRESSURE)== flowData.end()){
-          EXCEPTION("Trying to compute wave equation RHS with nodal pressure, but no this field was found in input data!")
+        if(flowData.find(FLUIDMECH_PRESSURE) == flowData.end()){
+          EXCEPTION("Trying to compute wave equation RHS with nodal pressure, but this field was not found in input data!")
         }
         computeLHP = true;
         break;
       case FLUIDMECH_DIV_LH_T:
-        if(flowData.find(ACOU_DIV_LH_TENSOR_NODAL)== flowData.end()){
-          EXCEPTION("Trying to compute wave equation RHS with nodal divergence of LH tensor, but this field was found in input data!")
+        if(flowData.find(ACOU_DIV_LH_TENSOR_NODAL) == flowData.end()){
+          EXCEPTION("Trying to compute wave equation RHS with nodal divergence of LH tensor, but this field was not found in input data!")
         }
         useDivLHT = true;
         break;
       case FLUIDMECH_PRESSURE_DERIV_2:
-        if(flowData.find(FLUIDMECH_PRESSURE_DERIV_2)== flowData.end()){
-          EXCEPTION("Trying to compute wave equation RHS with nodal Laplacian of pressure, but this field was found in input data!")
+        if(flowData.find(FLUIDMECH_PRESSURE_DERIV_2) == flowData.end()){
+          EXCEPTION("Trying to compute wave equation RHS with nodal Laplacian of pressure, but this field was not found in input data!")
         }
         usePresD2 = true;
         break;
@@ -1745,7 +1736,7 @@ namespace CoupledField
 
     //we go as follows:
     /* 1. Check if FLUIDMECH_FORCE is available in the flowData struct
-     * 2. Check if we really hava a surface region
+     * 2. Check if we really have a surface region
      * 3. loop over all surface elements and compute a mass integrator on the surface elements
      * 4. add the result to the result struct
      */
@@ -1754,8 +1745,7 @@ namespace CoupledField
     FlowDataPartStruct& forceStruct = flowData[FLUIDMECH_FORCE];
     std::vector<Double>& forceField = forceStruct.data;
 
-    bool computeForce = ( std::find(outputFields_.begin(),outputFields_.end(),"mechRhsLoad") != outputFields_.end() ||
-                                std::find(outputFields_.begin(),outputFields_.end(),"all") != outputFields_.end());
+    bool computeForce = (std::find(outputFields_.begin(),outputFields_.end(),"mechRhsLoad") != outputFields_.end());
 
 
     if(computeForce && !forceStruct.isActive){

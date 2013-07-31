@@ -11,6 +11,8 @@
 #include <string>
 #include <typeinfo>
 
+#include "def_cplreader.hh"
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/coloredConsole.hh"
 #include "DataInOut/programOptions.hh"
