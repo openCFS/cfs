@@ -72,6 +72,9 @@ class Grid;
                                                 const Vector<Double> & loc ) const {
     Vector<Double> temp(dim_);
     UInt n=loc.GetSize();
+    if (dim_ < n) {
+      n = dim_;
+    }
     
     for(UInt i=0; i < n; i++)
       temp[i] = loc[i];
@@ -88,6 +91,9 @@ class Grid;
                                                 const Vector<Double> & glob ) const {
     Vector<Double> temp(dim_);
     UInt n=glob.GetSize();
+    if (dim_ < n) {
+      n = dim_;
+    }
     loc.Resize(dim_);
     
     for(UInt i=0; i < n; i++)
