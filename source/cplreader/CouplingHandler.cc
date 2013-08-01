@@ -977,7 +977,7 @@ namespace CoupledField
         fdps2.entryType = ResultInfo::VECTOR;
         fdps2.isActive = true;
 
-        fdps2.data.resize(tmpMeanVelField[actRegion].size()*dim_);
+        fdps2.data.resize(tmpMeanVelField[actRegion].size());
 
         std::fill(fdps2.data.begin(), fdps2.data.end(), 0);
 
