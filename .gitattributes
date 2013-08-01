@@ -343,6 +343,14 @@ ctest_scripts/sites/fedora18/linux64_fespace_clang_release.ctest -text
 ctest_scripts/sites/fedora18/linux64_fespace_gcc_debug.ctest -text
 ctest_scripts/sites/fedora18/linux64_fespace_gcc_release.ctest -text
 ctest_scripts/sites/fedora18/provision.sh -text
+ctest_scripts/sites/lse34/CTestConfig.cmake -text
+ctest_scripts/sites/lse34/ctest_update.cmake -text
+ctest_scripts/sites/lse34/ctest_update_fespace_source.cmake -text
+ctest_scripts/sites/lse34/ctest_update_fespace_testsuite.cmake -text
+ctest_scripts/sites/lse34/linux64_fespace_gcc_debug.ctest -text
+ctest_scripts/sites/lse34/linux64_fespace_gcc_release.ctest -text
+ctest_scripts/sites/lse34/site_specific_init.cmake -text
+ctest_scripts/sites/lse34/site_specific_vars.cmake -text
 ctest_scripts/sites/lucid/Vagrantfile -text
 ctest_scripts/sites/lucid/linux64_fespace_gcc_debug.ctest -text
 ctest_scripts/sites/lucid/linux64_fespace_gcc_release.ctest -text

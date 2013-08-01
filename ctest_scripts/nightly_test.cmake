@@ -9,6 +9,12 @@
 #
 # vagrant ssh -c 'env -i HOME=/Users/simon PATH=/bin:/usr/bin:/sbin:/usr/sbin env && uname -a && /opt/pckg/cmake-2.8.10.2-Linux-i386/bin/cmake --version'
 
+# We need at least CMake 2.8.9 for this to work
+CMAKE_MINIMUM_REQUIRED(
+  VERSION "2.8.9"
+  FATAL_ERROR
+)
+
 # List command no longer ignores empty elements.
 CMAKE_POLICY(SET CMP0007 NEW)
 
