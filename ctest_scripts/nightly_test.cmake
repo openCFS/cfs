@@ -4,8 +4,8 @@
 #
 # To call this script by hand, it is advisable to simulate a crontab
 # environment e.g. in the following way:
-# env -i HOME=/home/simon PATH=/bin:/usr/bin:/sbin:/usr/sbin \
-#        /opt/pckg/cmake-2.8.9/bin/cmake -P $HOME/Documents/dev/nightly_test.cmake
+# env -i HOME=/ PATH=/bin:/usr/bin:/sbin:/usr/sbin \
+#        /opt/pckg/cmake-2.8.9/bin/ctest -S $HOME/Documents/dev/nightly_test.cmake
 #
 # vagrant ssh -c 'env -i HOME=/Users/simon PATH=/bin:/usr/bin:/sbin:/usr/sbin env && uname -a && /opt/pckg/cmake-2.8.10.2-Linux-i386/bin/cmake --version'
 
@@ -28,11 +28,19 @@ SET_GLOBAL_VARS()
 # Set site specific variables, e.g. test user home dir, svn user password, etc.
 SET_SITE_SPECIFIC_VARS()
 
+MESSAGE(
+"
+=============================================================================
+ Global variables on ${HOSTNAME}...
+=============================================================================
+"
+)
 MESSAGE("CMAKE_COMMAND: ${CMAKE_COMMAND}")
 MESSAGE("CMAKE_EXECUTABLE_SUFFIX: ${CMAKE_EXECUTABLE_SUFFIX}")
 MESSAGE("CTEST_COMMAND: ${CTEST_COMMAND}")
 MESSAGE("CMAKE_CURRENT_LIST_FILE: ${CMAKE_CURRENT_LIST_FILE}")
 MESSAGE("SITE_BASE_DIR: ${SITE_BASE_DIR}")
+MESSAGE("NIGHTLY_ARCHIVES_DIR: ${NIGHTLY_ARCHIVES_DIR}")
 MESSAGE("HOSTNAME: ${HOSTNAME}")
 MESSAGE("SITE_DIR: ${SITE_DIR}")
 MESSAGE("TESTUSER: ${TESTUSER}")
@@ -43,16 +51,15 @@ MESSAGE("DAYOFWEEK: ${DAYOFWEEK}")
 # start VBoxes, etc.
 SITE_SPECIFIC_INIT()
 
-# Iterate over all tests in ${SITE_DIR}
-FILE(GLOB TEST_FILES "${SITE_DIR}/*.ctest")
+# Get list of tests to be performed on this site.
+GET_TEST_NAMES(TEST_NAMES)
 
-FOREACH(TESTFN IN ITEMS ${TEST_FILES})
+# Iterate over list of tests.
+FOREACH(TEST_NAME IN ITEMS ${TEST_NAMES})
 
-  GET_FILENAME_COMPONENT(TEST_NAME "${TESTFN}" NAME_WE)
-  MESSAGE("Performing test: ${TEST_NAME}...")
   GET_CTEST_BINARY_DIRECTORY(${TEST_NAME})
 
-  # Actually run test
+  # Actually run the test
   PERFORM_TEST(${TEST_NAME})
   
   # E.g. pack generated binaries to a globally accessible zip archive.

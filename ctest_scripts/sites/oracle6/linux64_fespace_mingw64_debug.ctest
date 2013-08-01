@@ -111,11 +111,6 @@ set(CTEST_SITE "${CFS_BUILD_HOST}")
 set(CTEST_BUILD_NAME "${BUILDNAME}")
 
 #-----------------------------------------------------------------------------
-# Copy CDash server configuration file to source dir.
-#-----------------------------------------------------------------------------
-EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
-
-#-----------------------------------------------------------------------------
 # Start out with an empty binary directory.
 #-----------------------------------------------------------------------------
 SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
@@ -145,6 +140,7 @@ SET(CTEST_INITIAL_CACHE
    USE_SUPERLU:BOOL=ON
    USE_PARDISO:BOOL=ON
    CFS_PARDISO:STRING=MKL
+   MKL_ROOT_DIR:PATH=/opt/pckg/mkl_win/10.0.5.025
    BUILDNAME:STRING=${BUILDNAME}")
 
 SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")

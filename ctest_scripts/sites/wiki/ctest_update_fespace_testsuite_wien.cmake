@@ -38,8 +38,8 @@ SET(BUILDNAME "Update Testsuite FeSpace")
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom/sedici
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "${HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_FESPACE")
-SET(CTEST_BINARY_DIRECTORY "${HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_FESPACE")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_FESPACE")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_FESPACE")
 
 SET(REPO "https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++_TEST/branches/FeSpace")
 SET(USER ${CFS_TESTUSER})

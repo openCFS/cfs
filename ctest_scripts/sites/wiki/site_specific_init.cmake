@@ -1,7 +1,10 @@
-MESSAGE("Jipi in site_specific_init.cmake on wiki!")
+# ===========================================================================
+#  Write SVN auth file to make sure all upcoming svn commands will 
+#  work properly.
+# ===========================================================================
+SET(SVNFILE
+  "${HOME}/.subversion/auth/svn.simple/f4c5d049eb353aa17027f06e57e71d0e")
 
-# Write SVN auth file to make sure all upcoming svn commands will work properly.
-SET(SVNFILE "${HOME}/.subversion/auth/svn.simple/f4c5d049eb353aa17027f06e57e71d0e")
 FILE(WRITE ${SVNFILE} "K 8
 passtype
 V 6
@@ -22,7 +25,13 @@ END
 "
 )
 
-MESSAGE("Update working copies...")
+MESSAGE(
+"
+=============================================================================
+ Update working copies...
+=============================================================================
+"
+)
 
 SET(UPDATE_SCRIPTS
   # Checkout or update FeSpace working copies
@@ -39,7 +48,8 @@ FOREACH(SCRIPT IN ITEMS ${UPDATE_SCRIPTS})
 
   # Checkout or update CFS++ FeSpace
   EXECUTE_PROCESS(
-    COMMAND ${CTEST_COMMAND} -V -DHOME:PATH=${HOME} -DSITE_DIR:PATH=${SITE_DIR} -DCFS_TESTUSER:STRING=${CFS_TESTUSER} -DCFS_TESTUSER_PW:STRING=${CFS_TESTUSER_PW} -S "${SITE_DIR}/${SCRIPT}"
+#    COMMAND env -i HOME=${HOME} PATH=$ENV{PATH} ${CTEST_COMMAND} -V -DSITE_DIR:PATH=${SITE_DIR} -DCFS_TESTUSER:STRING=${CFS_TESTUSER} -DCFS_TESTUSER_PW:STRING=${CFS_TESTUSER_PW} -S "${SITE_DIR}/${SCRIPT}"
+    COMMAND ${CTEST_COMMAND} -V -DSITE_DIR:PATH=${SITE_DIR} -DCFS_TESTUSER:STRING=${CFS_TESTUSER} -DCFS_TESTUSER_PW:STRING=${CFS_TESTUSER_PW} -S "${SITE_DIR}/${SCRIPT}"
   #  OUTPUT_VARIABLE DAYOFWEEK
     RESULT_VARIABLE RETVAL
     )
@@ -48,8 +58,20 @@ FOREACH(SCRIPT IN ITEMS ${UPDATE_SCRIPTS})
 
 ENDFOREACH()
 
-# Kill still running VMs
+
+# ===========================================================================
+#  Kill still running VMs...
+# ===========================================================================
+MESSAGE(
+"
+=============================================================================
+ Power off still running VMs...
+=============================================================================
+"
+)
+
 EXECUTE_PROCESS(
+#  COMMAND env -i HOME=${HOME} PATH=$ENV{PATH} VBoxManage list runningvms
   COMMAND VBoxManage list runningvms
   OUTPUT_VARIABLE RUNNING_VBOXES
   RESULT_VARIABLE RETVAL
@@ -59,15 +81,18 @@ IF(NOT RUNNING_VBOXES STREQUAL "")
   STRING(REPLACE "\n" ";" RUNNING_VBOXES ${RUNNING_VBOXES})
 
   FOREACH(VBOX IN ITEMS ${RUNNING_VBOXES})
-  #  MESSAGE("VBOX ${VBOX}" )
+    # MESSAGE("VBOX ${VBOX}" )
     STRING(REPLACE "{" ";" VBOX ${VBOX})
     LIST(GET VBOX 1 VBOX_UUID)
+    LIST(GET VBOX 0 VBOX_NAME)
     STRING(REPLACE "}" ";" VBOX ${VBOX_UUID})
     LIST(GET VBOX 0 VBOX_UUID)
-  #  MESSAGE("VBOX_UUID ${VBOX_UUID}" )
+
+    MESSAGE("Powering off ${VBOX_NAME}- ${VBOX_UUID}" )
 
     # Power off VBox
     EXECUTE_PROCESS(
+      # COMMAND env -i HOME=${HOME} PATH=$ENV{PATH} VBoxManage controlvm ${VBOX_UUID} poweroff
       COMMAND VBoxManage controlvm ${VBOX_UUID} poweroff
     #  OUTPUT_VARIABLE DAYOFWEEK
       RESULT_VARIABLE RETVAL
@@ -78,18 +103,41 @@ IF(NOT RUNNING_VBOXES STREQUAL "")
   ENDFOREACH()
 ENDIF()
 
-# Clean up last night's Virtual Box directories
+# ===========================================================================
+#  Clean up last night's Virtual Box directories
+# ===========================================================================
+MESSAGE(
+"
+=============================================================================
+ Clean up last night's Virtual Box directories...
+=============================================================================
+"
+)
 FILE(REMOVE_RECURSE
   "${HOME}/VirtualBox VMs"
   "${HOME}/.vagrant.d"
   "${HOME}/.VirtualBox"
 )
 
-MESSAGE("Starting VBoxes...")
+
+# ===========================================================================
+#  Start today's Virtual Boxes
+# ===========================================================================
+MESSAGE(
+"
+=============================================================================
+ Starting VBoxes...
+=============================================================================
+"
+)
+
 SET(VBOXES
-  lucid
+  hardy
+#  lucid
   precise
-#  oracle6
+  oracle6
+#  oracle5
+#  fedora18
 )
 
 FOREACH(VBOX IN ITEMS ${VBOXES})
@@ -100,6 +148,7 @@ FOREACH(VBOX IN ITEMS ${VBOXES})
 
   # Run vagrant up in site dirs
   EXECUTE_PROCESS(
+    # COMMAND env -i HOME=${HOME} PATH=$ENV{PATH} vagrant up
     COMMAND vagrant up
     WORKING_DIRECTORY "${SITE_BASE_DIR}/${VBOX}"
     RESULT_VARIABLE RETVAL

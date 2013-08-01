@@ -54,9 +54,9 @@ SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
 # to specifiy the compilers and that all messages should be output in English
 # language, so that CTest may properly parse them.
 #-----------------------------------------------------------------------------
-SET(ENV{CC} "/home/oracle/Documents/dev/bin32/gcc")
-SET(ENV{CXX} "/home/oracle/Documents/dev/bin32/g++")
-SET(ENV{FC} "/home/oracle/Documents/dev/bin32/gfortran")
+SET(ENV{CC} "/usr/bin/gcc")
+SET(ENV{CXX} "/usr/bin/g++")
+SET(ENV{FC} "/usr/bin/gfortran")
 SET(ENV{LC_MESSAGES} "C")
 SET(ENV{LC_ALL} "C")
 SET(ENV{LANG} "C")
@@ -100,7 +100,7 @@ INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 # MESSAGE("${CXX_ID} ${CXX_VERSION} ${CXX_GCC_VERSION}")
 # MESSAGE("${DIST} ${REV} ${ARCH}")
 
-SET(BUILDTYPE "RELEASE")
+SET(BUILDTYPE "DEBUG")
 SET(BUILDNAME "FeSpace ${DIST} ${REV} ${ARCH} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
 SITE_NAME(CFS_BUILD_HOST)
@@ -122,7 +122,7 @@ SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 #-----------------------------------------------------------------------------
 SET(CTEST_INITIAL_CACHE
   "BUILD_TESTING:BOOL=ON
-   DEBUG:BOOL=OFF
+   DEBUG:BOOL=ON
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
    TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_FESPACE
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE

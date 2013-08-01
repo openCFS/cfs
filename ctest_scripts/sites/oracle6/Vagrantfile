@@ -21,7 +21,7 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder "/home/testuser/Documents/dev/NIGHTLY", "/home/oracle/Documents/dev/NIGHTLY"
 
   config.vm.provision :shell do |shell|
-    shell.path = "provision.sh"
+    shell.path = "../../shared/provision_nightly_tests_linux.sh"
     shell.args = config.ssh.username
   end
 
