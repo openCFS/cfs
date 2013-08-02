@@ -175,7 +175,7 @@ namespace CoupledField{
   void CoefFunctionGridNodal<DATA_TYPE>::ReadSolution(UInt step,Vector<DATA_TYPE> & sol){
     std::set<std::string>::iterator regIter = srcRegions_.begin();
     sol.Resize(numEqns_);
-    sol.Init();
+    sol.Init(0.0);
     for( UInt i = 0; regIter != srcRegions_.end(); ++i,++regIter) {
       shared_ptr<BaseResult> Bres = domain_->GetResultHandler()->GetResult( this->inputId_, this->aSeqStep_ , step , this->solType_, *regIter );
       shared_ptr<EntityList> regionList = Bres->GetEntityList();
@@ -203,7 +203,7 @@ namespace CoupledField{
         DATA_TYPE factor;
         LocPointMapped lpm;
         factorFnc_->GetScalar(factor,lpm);
-        std::cout << "Computed Factor for timestep: " << factor << std::endl;
+        //std::cout << "Computed Factor for timestep: " << factor << std::endl;
         for( it.Begin(); !it.IsEnd(); it++ ) {
           UInt idx = nodeIdxMap_[it.GetNode()];
           eqns = eqnNumbers_[idx];

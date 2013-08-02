@@ -20,7 +20,7 @@ namespace CoupledField{
    DEFINE_LOG(timeschemeglm, "timescheme.glm")
 
 
-  TimeSchemeGLM::TimeSchemeGLM(GLMScheme::SchemeType type, UInt solDerivOrder) :
+  TimeSchemeGLM::TimeSchemeGLM(GLMScheme::SchemeType type, UInt solDerivOrder, NonLinType nlType) :
          avoidUpdateIdx_(-1) {
 
     InitGLMs();
@@ -30,9 +30,10 @@ namespace CoupledField{
 
     curScheme_->solDerivOrder_ = solDerivOrder;
     solOrder_ = solDerivOrder;
+    nLinType_ = nlType;
   }
   
-  TimeSchemeGLM::TimeSchemeGLM(GLMScheme* scheme, UInt solDerivOrder) :
+  TimeSchemeGLM::TimeSchemeGLM(GLMScheme* scheme, UInt solDerivOrder, NonLinType nlType) :
            avoidUpdateIdx_(-1) {
 
       InitGLMs();
@@ -42,6 +43,7 @@ namespace CoupledField{
 
       curScheme_->solDerivOrder_ = solDerivOrder;
       solOrder_ = solDerivOrder;
+      nLinType_ = nlType;
   }
 
   // Copy constructor
@@ -189,6 +191,21 @@ namespace CoupledField{
         predictorCalculated_[dId] = true;
       }
     }
+    //in case of non-linear PDEs in incremental formulation, we add the stage vector
+    //this is done in a simple hack and works for NEWMARK and TRAPEZOIDAL in Effective STIFFNESS ONLY!
+    //NOTES: Due to the current implementation in which the AssembleNonLinRhs already computes a nonLinear-stiffness
+    // matrix to the right hand side this limitation is fundamental. For future implementations one might need to think
+    // of alternative ways to accomplish the non-linear solution scheme
+    // furthermore, we assume, that the stageVector always holds the solution at the current non-linear iteration
+    // NOT the increment. Here it becomes apparent why solveStep and Timescheme are no longer separated as initially intended
+    if(nLinType_ == INCREMENTAL){
+      UInt col = curScheme_->numStages_;
+      Double coef = curScheme_->schemeCoefs_[cRow][col];
+      if(coef !=0){
+        SingleVector * curVec = stageVector_[actStage];
+        rhsVec->Add(coef * -1.0,(*curVec));
+      }
+    }
 
     //now loop over each column, scale the GLM vector Entry by the factor and add it to RHS
     for(UInt i=0;i<actStage;i++){
@@ -217,6 +234,8 @@ namespace CoupledField{
             glmVector_[i]->Add(coef,*curSVec);
             curSVec = NULL;
           }
+        }else if(nLinType_!=NONE){
+          glmVector_[i] = stageVector_[0];
         }
       }
     }else{
