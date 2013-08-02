@@ -61,6 +61,7 @@ SET(ENV{LC_MESSAGES} "C")
 SET(ENV{LC_ALL} "C")
 SET(ENV{LANG} "C")
 SET(ENV{LANGUAGE} "C")
+SET(ENV{WINELOADER} "/no/wine/loader/may/be/present/during/build/of/gmp")
 
 SET(IDCOMP_TEMPL "${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
 SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
@@ -159,8 +160,29 @@ ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 #ctest_read_custom_files("${CTEST_BINARY_DIRECTORY}")
 message("  Build")
 ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-# message("  Test")
-# ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+
+# Now we again need the proper wine loader
+SET(ENV{WINELOADER} "/usr/bin/wine")
+# Copy some extra .dlls from MinGW runtime
+SET(CFS_BIN_DIR "${CTEST_BINARY_DIRECTORY}/bin/MINGW_X86_64")
+SET(DLLS
+  libgcc_s_sjlj-1.dll
+  libstdc++-6.dll
+  libgfortran-3.dll
+  libgomp-1.dll
+  pthreadGC2.dll
+  pthreadGCE2.dll
+)
+
+FOREACH(DLL IN ITEMS ${DLLS})
+  EXECUTE_PROCESS(
+    COMMAND ${CMAKE_COMMAND} -E copy "/usr/x86_64-w64-mingw32/sys-root/mingw/bin/${DLL}" "${CFS_BIN_DIR}"
+    RESULT_VARIABLE RETVAL
+  )
+ENDFOREACH()
+
+message("  Test")
+ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 message("  Submit")
 ctest_submit(RETURN_VALUE res)
 message("  All done")

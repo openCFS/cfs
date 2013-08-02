@@ -3,15 +3,22 @@
 #-----------------------------------------------------------------------------
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_BUILD_NIGHTLY")
 
+INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
+
 message("  Searching for cfs and cfstool executables...")
-SET(CFS_BINARY "${CTEST_BINARY_DIRECTORY}/bin/${DIST_FAMILY}_${MAJOR_REV}_${ARCH}/cfsbin")
-SET(CFSTOOL_BINARY "${CTEST_BINARY_DIRECTORY}/bin/${DIST_FAMILY}_${MAJOR_REV}_${ARCH}/cfstoolbin")
+SET(CFS_BIN_DIR
+  "${CTEST_BINARY_DIRECTORY}/bin/${DIST_FAMILY}_${MAJOR_REV}_${ARCH}")
+SET(CFS_BINARY "${CFS_BIN_DIR}/cfsbin")
+SET(CFSTOOL_BINARY "${CFS_BIN_DIR}/cfstoolbin")
+SET(CPLREADER_BINARY "${CFS_BIN_DIR}/cplreader")
 
 MESSAGE("CFS_BINARY ${CFS_BINARY}")
 MESSAGE("CFSTOOL_BINARY ${CFSTOOL_BINARY}")
+MESSAGE("CPLREADER_BINARY ${CPLREADER_BINARY}")
 
 IF(EXISTS "${CFS_BINARY}" AND
-   EXISTS "${CFSTOOL_BINARY}")
+   EXISTS "${CFSTOOL_BINARY}" AND
+   EXISTS "${CPLREADER_BINARY}")
 
   message("  Cleaning up binary directory...")
 

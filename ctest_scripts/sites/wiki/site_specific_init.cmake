@@ -25,6 +25,19 @@ END
 "
 )
 
+IF(DAYOFWEEK EQUAL 1)
+  MESSAGE(
+"
+=============================================================================
+ Removing precompiled CFSDEPS on first day of the week...
+=============================================================================
+"
+  )
+
+  FILE(REMOVE_RECURSE 
+    "${HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE/precompiled")
+ENDIF()
+
 MESSAGE(
 "
 =============================================================================
@@ -48,9 +61,7 @@ FOREACH(SCRIPT IN ITEMS ${UPDATE_SCRIPTS})
 
   # Checkout or update CFS++ FeSpace
   EXECUTE_PROCESS(
-#    COMMAND env -i HOME=${HOME} PATH=$ENV{PATH} ${CTEST_COMMAND} -V -DSITE_DIR:PATH=${SITE_DIR} -DCFS_TESTUSER:STRING=${CFS_TESTUSER} -DCFS_TESTUSER_PW:STRING=${CFS_TESTUSER_PW} -S "${SITE_DIR}/${SCRIPT}"
     COMMAND ${CTEST_COMMAND} -V -DSITE_DIR:PATH=${SITE_DIR} -DCFS_TESTUSER:STRING=${CFS_TESTUSER} -DCFS_TESTUSER_PW:STRING=${CFS_TESTUSER_PW} -S "${SITE_DIR}/${SCRIPT}"
-  #  OUTPUT_VARIABLE DAYOFWEEK
     RESULT_VARIABLE RETVAL
     )
 
@@ -71,7 +82,6 @@ MESSAGE(
 )
 
 EXECUTE_PROCESS(
-#  COMMAND env -i HOME=${HOME} PATH=$ENV{PATH} VBoxManage list runningvms
   COMMAND VBoxManage list runningvms
   OUTPUT_VARIABLE RUNNING_VBOXES
   RESULT_VARIABLE RETVAL
@@ -92,9 +102,7 @@ IF(NOT RUNNING_VBOXES STREQUAL "")
 
     # Power off VBox
     EXECUTE_PROCESS(
-      # COMMAND env -i HOME=${HOME} PATH=$ENV{PATH} VBoxManage controlvm ${VBOX_UUID} poweroff
       COMMAND VBoxManage controlvm ${VBOX_UUID} poweroff
-    #  OUTPUT_VARIABLE DAYOFWEEK
       RESULT_VARIABLE RETVAL
       )
 
@@ -132,7 +140,7 @@ MESSAGE(
 )
 
 SET(VBOXES
-  hardy
+#  hardy
 #  lucid
   precise
   oracle6
@@ -148,11 +156,13 @@ FOREACH(VBOX IN ITEMS ${VBOXES})
 
   # Run vagrant up in site dirs
   EXECUTE_PROCESS(
-    # COMMAND env -i HOME=${HOME} PATH=$ENV{PATH} vagrant up
     COMMAND vagrant up
     WORKING_DIRECTORY "${SITE_BASE_DIR}/${VBOX}"
     RESULT_VARIABLE RETVAL
     )
+
+  # Delete unpacked intermediate box files to save hdd space.
+  FILE(REMOVE_RECURSE "${HOME}/.vagrant.d/boxes/${VBOX}")
 
   MESSAGE("RETVAL ${RETVAL}")
 

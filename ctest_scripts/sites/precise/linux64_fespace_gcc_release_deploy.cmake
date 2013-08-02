@@ -3,9 +3,14 @@
 #-----------------------------------------------------------------------------
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_BUILD_NIGHTLY")
 
+# Determine arch string
+INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
+
 message("  Searching for cfs and cfstool executables...")
-SET(CFS_BINARY "${CTEST_BINARY_DIRECTORY}/bin/UBUNTU_12.04_X86_64/cfsbin")
-SET(CFSTOOL_BINARY "${CTEST_BINARY_DIRECTORY}/bin/UBUNTU_12.04_X86_64/cfstoolbin")
+SET(CFS_BIN_DIR
+  "${CTEST_BINARY_DIRECTORY}/bin/${DIST}_${REV}_${ARCH}")
+SET(CFS_BINARY "${CFS_BIN_DIR}/cfsbin")
+SET(CFSTOOL_BINARY "${CFS_BIN_DIR}/cfstoolbin")
 
 MESSAGE("CFS_BINARY ${CFS_BINARY}")
 MESSAGE("CFSTOOL_BINARY ${CFSTOOL_BINARY}")

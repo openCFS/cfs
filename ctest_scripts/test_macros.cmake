@@ -126,6 +126,12 @@ MACRO(PERFORM_TEST TEST_NAME)
 =============================================================================
 "
   )
+
+  IF(EXISTS "${CTEST_BINARY_DIRECTORY}")
+    MESSAGE("Removing previous build directory ${CTEST_BINARY_DIRECTORY}...")
+    FILE(REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
+  ENDIF()
+
   IF(UNIX)
     STRING(REPLACE "_" ";" TARGET_ARCH_ENV_LIST "${TEST_NAME}")
     LIST(GET TARGET_ARCH_ENV_LIST 0 TARGET_ARCH)
@@ -223,17 +229,26 @@ MACRO(TEMP_NAME fname)
     math(EXPR _counter "${_counter} + 1")
   endwhile(EXISTS "${_base}${_counter}")
   set(${fname} "${_base}${_counter}")
-endmacro(temp_name)
+endmacro()
 
-# Evaluate expression
-# Suggestion from the Wiki: http://cmake.org/Wiki/CMake/Language_Syntax
-# Unfortunately, no built-in stuff for this: http://public.kitware.com/Bug/view.php?id=4034
-macro(eval expr)
+
+
+MACRO(EVAL expr)
+
+  # =========================================================================
+  #
+  #  Evaluate expression
+  #  Suggestion from the Wiki: http://cmake.org/Wiki/CMake/Language_Syntax
+  #  Unfortunately, no built-in stuff for this:
+  #  http://public.kitware.com/Bug/view.php?id=4034
+  #
+  # =========================================================================
+
   temp_name(_fname)
   file(WRITE ${_fname} "${expr}")
   include(${_fname})
   file(REMOVE ${_fname})
-endmacro(eval)
+endmacro()
 
 
 
@@ -269,7 +284,7 @@ MACRO(GET_CTEST_BINARY_DIRECTORY TEST_NAME)
   STRING(REPLACE "\$ENV{" "\\\$ENV{" CTEST_BINARY_DIRECTORY_STR "${CTEST_BINARY_DIRECTORY_STR}")
   MESSAGE(STATUS "CTEST_BINARY_DIRECTORY_STR ${CTEST_BINARY_DIRECTORY_STR}")
   EVAL("${CTEST_BINARY_DIRECTORY_STR}")
-  file(TO_CMAKE_PATH "${CTEST_BINARY_DIRECTORY}" CTEST_BINARY_DIRECTORY)
+  FILE(TO_CMAKE_PATH "${CTEST_BINARY_DIRECTORY}" CTEST_BINARY_DIRECTORY)
   MESSAGE(STATUS "CTEST_BINARY_DIRECTORY ${CTEST_BINARY_DIRECTORY}")
 
 #  FILE(REMOVE "${TMPFILE}")

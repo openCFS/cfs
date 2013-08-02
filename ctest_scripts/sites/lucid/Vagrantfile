@@ -13,7 +13,7 @@ Vagrant.configure("2") do |config|
   # doesn't already exist on the user's system.
   # This is a local path on wiki.mdmt but it could also be a path on
   # a ftp or http file server.
-  config.vm.box_url = "/var/local/testuser/lucid.box"
+  config.vm.box_url = "http://wiki.mdmt.tuwien.ac.at/boxes/lucid.box"
 
   config.ssh.username = "user"
 
