@@ -308,7 +308,17 @@ ARCH="${ARCH}"
 SUBARCH="${SUBARCH}"
 DELIM
 ) | sed 'y/'$LOWER'/'$UPPER'/;s/" /"#/g' | tr '#' '\n' ;;
-        -p) echo "DIST='${DIST}'; REV='${REV}'; ARCH='${ARCH}'" | sed 'y/'$LOWER'/'$UPPER'/' ;;
+        -p) # Perl syntax
+echo $(cat << DELIM
+\$OS='${OS}';
+\$DIST='${DIST}';
+\$DIST_FAMILY='${DIST_FAMILY}';
+\$REV='${REV}';
+\$MAJOR_REV='${MAJOR_REV}';
+\$ARCH='${ARCH}';
+\$SUBARCH='${SUBARCH}';
+DELIM
+) | sed 'y/'$LOWER'/'$UPPER'/;s/" /"#/g' | tr '#' '\n' ;;
         *) break ;;
     esac
     shift
