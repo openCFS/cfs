@@ -77,38 +77,6 @@ namespace CoupledField
     std::copy(tokenizer.begin(), tokenizer.end(),
               std::back_inserter(outputFields_));
 
-    // Initialize vector with active regions
-    Tok actp(settings.GetString("activeparts"), sep);
-    Tok::iterator tit, tend;
-    tit = actp.begin();
-    tend = actp.end();
-
-    activeParts_.resize(ptFileReader_->GetNumRegions());
-    if(*tit == "all")
-      std::fill(activeParts_.begin(), activeParts_.end(), true);
-    else
-    {
-      std::stringstream sstr;
-      UInt partIdx;
-
-      for( ; tit != tend; tit++)
-      {
-        sstr.clear(); sstr.str("");
-        sstr << *tit;
-        sstr >> partIdx;
-
-        if(partIdx > 0 && partIdx <= activeParts_.size())
-          activeParts_[partIdx-1] = true;
-      }
-    }
-
-    if(settings.GetInt("verbose"))
-    {
-      for(UInt i=0; i < activeParts_.size(); i++)
-        std::cout << "Partition " << (i+1) << " active: "
-                  << activeParts_[i] << std::endl;
-    }
-
     // Initialize element integrators for source term calculation
     ptElemIntegr_[Elem::LINE2]  = new ElemIntegr(Elem::LINE2);
     ptElemIntegr_[Elem::TRIA3]  = new ElemIntegr(Elem::TRIA3);
@@ -411,9 +379,32 @@ namespace CoupledField
       }
       
       // Fill vector with region names
-      for (actRegion = 0; actRegion<numRegions; actRegion++)
+      for (actRegion = 0; actRegion<numRegions; ++actRegion)
         regionNames.push_back(ptFileReader_->GetRegionName(actRegion));
       
+      // Initialize vector with active regions
+      typedef boost::tokenizer< boost::char_separator<char> > Tok;
+      boost::char_separator<char> sep(";| ");
+
+      Tok actp(settings.GetString("activeParts"), sep);
+      Tok::iterator tit, tend;
+      tit = actp.begin();
+      tend = actp.end();
+
+      activeParts_.resize(numRegions);
+      if (*tit == "all") {
+        std::fill(activeParts_.begin(), activeParts_.end(), true);
+      }
+      else {
+        for ( UInt i=0; i < numRegions; ++i ) {
+          activeParts_[i] = (std::find(tit, tend, regionNames[i]) != tend);
+          
+          if (settings.GetInt("verbose")) {
+            std::cout << regionNames[i] << " active: " << activeParts_[i] << std::endl;
+          }
+        }
+      }
+
       //at this point we can already calculate the surface region neighbours
       PrepareSurfaceRegions();
 
@@ -533,6 +524,17 @@ namespace CoupledField
             continue;
           }
 
+          //check for surface tasks
+          if(calcSrc &&  regionDims_[actRegion] == dim_-1){
+            if ( flowData[actRegion].find(FLUIDMECH_FORCE)
+                        != flowData[actRegion].end() )
+             {
+                flowData[actRegion][FLUIDMECH_FORCE].isActive = true;
+             }else{
+               flowData[actRegion][FLUIDMECH_FORCE].isActive = false;
+             }
+            CalculateMechSurfaceForce(actRegion,flowData[actRegion]);
+          }
 
           if(calcSrc && regionDims_[actRegion] == dim_)
           {
@@ -898,33 +900,32 @@ namespace CoupledField
 
           if(velField && velFieldRequest){
             FlowDataPartStruct& fdps = flowData[actRegion][FLUIDMECH_VELOCITY];
-            std::vector<Double>& velocityFieldVector = fdps.data;
+            const std::vector<Double>& velocityFieldVector = fdps.data;
 
             if(tmpMeanVelField.find(actRegion) == tmpMeanVelField.end()) {
               tmpMeanVelField[actRegion].resize(velocityFieldVector.size());
               std::fill(tmpMeanVelField[actRegion].begin(), tmpMeanVelField[actRegion].end(), 0);
             }
-            std::vector<Double> & curField = tmpMeanVelField[actRegion];
-            int numEs = (int)velocityFieldVector.size();
+
+            UInt numEs = velocityFieldVector.size();
 #pragma omp parallel for
-            for(int i = 0; i<numEs;++i){
-              curField[i] += velocityFieldVector[i] * actDt;
+            for(UInt i = 0; i<numEs;++i){
+              tmpMeanVelField[actRegion][i] += velocityFieldVector[i] * actDt;
             }
           }
 
           if(presField && presFieldRequest){
             FlowDataPartStruct& fdps = flowData[actRegion][FLUIDMECH_PRESSURE];
-            std::vector<Double>& presureFieldVector = fdps.data;
+            const std::vector<Double>& presureFieldVector = fdps.data;
 
             if(tmpMeanPresField.find(actRegion) == tmpMeanPresField.end()) {
               tmpMeanPresField[actRegion].resize(presureFieldVector.size());
               std::fill(tmpMeanPresField[actRegion].begin(), tmpMeanPresField[actRegion].end(), 0);
             }
-            std::vector<Double> & curField = tmpMeanPresField[actRegion];
-            int numEs = (int)presureFieldVector.size();
+            UInt numEs = presureFieldVector.size();
 #pragma omp parallel for
-            for(int i = 0; i<numEs;++i){
-              curField[i] += presureFieldVector[i] * actDt;
+            for(UInt i = 0; i<numEs;++i){
+              tmpMeanPresField[actRegion][i] += presureFieldVector[i] * actDt;
             }
           }
         }
@@ -937,6 +938,7 @@ namespace CoupledField
     Double simTime = endTime - startTime;
 
     std::cout << "   Averaging quantities ...";
+    std::cout.flush();
     for (UInt actRegion = 0; actRegion<numRegions && readOK; actRegion++){
       if(regionDims_[actRegion] == dim_ && tmpMeanPresField.find(actRegion) != tmpMeanPresField.end()){
         FlowDataPartStruct& fdps1 = flowData[actRegion][MEAN_FLUIDMECH_PRESSURE];
@@ -949,14 +951,14 @@ namespace CoupledField
 
         fdps1.entryType = ResultInfo::SCALAR;
         fdps1.isActive = true;
-        std::vector<Double>& meanPressureField = fdps1.data;
-        meanPressureField.resize(numRegionNodes_[actRegion]);
-        std::fill(meanPressureField.begin(), meanPressureField.end(), 0);
 
-        int numE = (int) tmpMeanPresField[actRegion].size();
+        fdps1.data.resize(tmpMeanPresField[actRegion].size());
+        std::fill(fdps1.data.begin(), fdps1.data.end(), 0);
+
+        UInt numE = tmpMeanPresField[actRegion].size();
 #pragma omp parallel for
-        for(int i = 0; i<numE;++i){
-          meanPressureField[i] = tmpMeanPresField[actRegion][i] / (simTime);
+        for(UInt i = 0; i<numE;++i){
+          fdps1.data[i] = tmpMeanPresField[actRegion][i] / (simTime);
         }
       }
 
@@ -974,19 +976,20 @@ namespace CoupledField
         fdps2.resultName = "meanFluidMechVelocity";
         fdps2.entryType = ResultInfo::VECTOR;
         fdps2.isActive = true;
-        std::vector<Double>& meanVelocityField = fdps2.data;
 
-        meanVelocityField.resize(numRegionNodes_[actRegion]*dim_);
+        fdps2.data.resize(tmpMeanVelField[actRegion].size());
 
-        std::fill(meanVelocityField.begin(), meanVelocityField.end(), 0);
+        std::fill(fdps2.data.begin(), fdps2.data.end(), 0);
 
 #pragma omp parallel for
         for(UInt i = 0; i<tmpMeanVelField[actRegion].size();++i){
-          meanVelocityField[i] = tmpMeanVelField[actRegion][i] / (simTime);
+          fdps2.data[i] = tmpMeanVelField[actRegion][i] / (simTime);
         }
       }
     }
     std::cout << "done" << std::endl;
+    std::cout.flush();
+
 
   }
 
@@ -1059,33 +1062,63 @@ namespace CoupledField
 
     std::string regionName = ptFileReader_->GetRegionName(regionIdx);
 
-
-
-
     //OK, we have so many different source formulations lets determine what the user wants and
     //what is available
 
     //lets see what is wanted
-    bool computeLHV = ( std::find(outputFields_.begin(),outputFields_.end(),"acouRhsLoad") != outputFields_.end() ||
+    bool computeWaveRhs = ( std::find(outputFields_.begin(),outputFields_.end(),"acouRhsLoad") != outputFields_.end() ||
                        std::find(outputFields_.begin(),outputFields_.end(),"acouDivLighthillTensor") != outputFields_.end() ||
                        std::find(outputFields_.begin(),outputFields_.end(),"acouRhsLoadDensity") != outputFields_.end() ||
                        std::find(outputFields_.begin(),outputFields_.end(),"all") != outputFields_.end());
 
-
+    //prepare some booleans to determine which quantity should be used for the Wave equation
+    bool useDivLHT = false;
     bool computeLHP = false;
-    if(computeLHV){
-      computeLHP = ( settings.GetInt("pressureRhsForWave") && computeLHV);
-      computeLHV = !computeLHP;
-      if(computeLHP){
-        std::cout << "Computing sources for wave equation with laplacian of pressure. Quantities like divLHTensor as well as densities on are not available!" << std::endl;
-       }
+    bool computeLHV = false;
+    bool usePresD2 = false;
 
-      if(computeLHV){
-        std::cout << "Computing sources for wave equation with Lighthill tensor." << std::endl;
+    if(computeWaveRhs){
+      //now we determine what to do depending on the quantity the user specified
+      //get the solution type string
+      std::string lhSrcQuant = settings.GetString("quantityForAcouRhsLoad");
+      //parse to solution type
+      SolutionType lhType = SolutionTypeEnum.Parse(lhSrcQuant);
+      //now we set one of our darn flags
+      //BIG TODO: This needs to be more failsafe, the big variety of different formulations will require
+      // a refactoring of cplreader...
+      switch(lhType){
+      case FLUIDMECH_VELOCITY:
+        if(flowData.find(FLUIDMECH_VELOCITY) == flowData.end()){
+          EXCEPTION("Trying to compute wave equation RHS with nodal velocity, but this field was not found in input data!")
+        }
+        computeLHV = true;
+        break;
+      case FLUIDMECH_PRESSURE:
+        if(flowData.find(FLUIDMECH_PRESSURE) == flowData.end()){
+          EXCEPTION("Trying to compute wave equation RHS with nodal pressure, but this field was not found in input data!")
+        }
+        computeLHP = true;
+        break;
+      case FLUIDMECH_DIV_LH_T:
+        if(flowData.find(ACOU_DIV_LH_TENSOR_NODAL) == flowData.end()){
+          EXCEPTION("Trying to compute wave equation RHS with nodal divergence of LH tensor, but this field was not found in input data!")
+        }
+        useDivLHT = true;
+        break;
+      case FLUIDMECH_PRESSURE_DERIV_2:
+        if(flowData.find(FLUIDMECH_PRESSURE_DERIV_2) == flowData.end()){
+          EXCEPTION("Trying to compute wave equation RHS with nodal Laplacian of pressure, but this field was not found in input data!")
+        }
+        usePresD2 = true;
+        break;
+      default:
+        EXCEPTION("Specified a quantity for computing Wave equation RHS which is not supported");
+        break;
       }
     }
 
 
+    //Here we come to the perturbation equation stuff, lets see what our user wants
     bool computeAPEMass = ( std::find(outputFields_.begin(),outputFields_.end(),"acouMixedMassLoad") != outputFields_.end() ||
                             std::find(outputFields_.begin(),outputFields_.end(),"all") != outputFields_.end());
 
@@ -1096,28 +1129,73 @@ namespace CoupledField
     bool computeAeroAcouSrc = ( std::find(outputFields_.begin(),outputFields_.end(),"aeroAcouSourceRhs") != outputFields_.end() ||
                                 std::find(outputFields_.begin(),outputFields_.end(),"all") != outputFields_.end());
 
-    //lets see what we have available
+    //security check for PE
+    if(computeAPEMass){
+      if(flowData.find(FLUIDMECH_PRESSURE) == flowData.end() || flowData.find(FLUIDMECH_VELOCITY) == flowData.end() ){
+        EXCEPTION("Cannot compute acouMixedMassLoad since pressure or velocity field is not available");
+      }
+    }
+    if(computeAPEMomentum || computeAeroAcouSrc){
+      if(flowData.find(FLUIDMECH_VELOCITY) == flowData.end()){
+        EXCEPTION("Cannot compute acouMixedMomentumLoad or aeroAcouSrcRhs since velocity field is not available");
+      }
+    }
+
+    
+    //obtain the fields provided by the file reader.
+    //If there would be a quantity which is requested but not provided, the checks above should already break execution
     // first we check for the velocity field
     FlowDataPartStruct& velocityStruct = flowData[FLUIDMECH_VELOCITY];
     std::vector<Double>& velField = velocityStruct.data;
 
-
     FlowDataPartStruct& meanVelocityStruct = flowData[MEAN_FLUIDMECH_VELOCITY];
     std::vector<Double>& meanVelocityField = meanVelocityStruct.data;
+    
+    // then we check for the divergence of Lighthill tensor field
+    FlowDataPartStruct& divlhtStruct = flowData[ACOU_DIV_LH_TENSOR_NODAL];
+    std::vector<Double>& divlhtField = divlhtStruct.data;
 
-    if(!velocityStruct.isActive)
-    {
-      if(computeLHV || computeAPEMomentum || computeAeroAcouSrc){
-        std::cerr << "Will not calculate velocity based sources on " << regionName
-                  << " since velocity field is not active!" << std::endl;
-      }
-      flowData.erase(FLUIDMECH_VELOCITY);
-      flowData.erase(MEAN_FLUIDMECH_VELOCITY);
-      computeLHV = false;
-      computeAPEMomentum = false;
-      computeAeroAcouSrc = false;
-      return;
-    }
+    // lets check for second derivative of fluid pressure
+    FlowDataPartStruct& presD2Struct = flowData[FLUIDMECH_PRESSURE_DERIV_2];
+    std::vector<Double>& presD2Field = presD2Struct.data;
+
+
+    //THESE CHECKS SHOULD BE OBSOLETE NOW as inactive quantities will not be accessed later
+    //BUT BE WARNED: everytime we access the map, those entries will be available! Anyhow, the aboves checks should
+    // work in the first timestep which should be enough for now. It is a dirty hack anyhow....
+
+    //now we check if we get the right this to do what is requested
+    //if(!useDivLHT) {
+    //
+    //  if(!velocityStruct.isActive)
+    //  {
+    //    if(computeLHV || computeAPEMomentum || computeAeroAcouSrc){
+    //      std::cerr << "Will not calculate velocity based sources on " << regionName
+    //                << " since velocity field is not active!" << std::endl;
+    //    }
+    //    flowData.erase(FLUIDMECH_VELOCITY);
+    //    flowData.erase(MEAN_FLUIDMECH_VELOCITY);
+    //    computeLHV = false;
+    //    computeAPEMomentum = false;
+    //    computeAeroAcouSrc = false;
+    //  }
+    //
+    //} else {
+    //
+    //  if(!divlhtStruct.isActive)
+    //  {
+    //    if(computeLHV || computeAPEMomentum || computeAeroAcouSrc){
+    //      std::cerr << "Will not calculate divLHT based sources on " << regionName
+    //                << " since divLHT field is not active!" << std::endl;
+    //    }
+    //    flowData.erase(ACOU_DIV_LH_TENSOR_NODAL);
+    //    computeLHV = false;
+    //    computeAPEMomentum = false;
+    //    computeAeroAcouSrc = false;
+    //  }
+    //
+    //}
+
 
     // now we turn to pressure field
     bool presFieldAvailable = true;
@@ -1143,12 +1221,11 @@ namespace CoupledField
     // ok now will double check if the mean fields are available
     bool meanVelFieldAvail = false;
 
-
     meanVelFieldAvail = (meanVelocityField.size()>0);
 //    meanPresFieldAvail = (meanPressureField.size() > 0);
 
     //Well thats it, now we should be sure to set the flags right to only compute things the user wants and the flow data
-    //features. The falgs will be checked if needed. we can go on...
+    //features. The flags will be checked if needed. we can go on...
 
 
     std::cout << "Calculating Aeroacoustic sources on " << regionName << " ";
@@ -1194,15 +1271,15 @@ namespace CoupledField
     std::fill(acouRhsDensityField.begin(), acouRhsDensityField.end(), 0.0);
 
     int nElems = ptFileReader_->GetNumElems(regionIdx);
-    
+
     FlowDataPartStruct& fdps4 = flowData[ACOU_DIV_LH_TENSOR];
     fdps4.isActive = true; // all partitions have results
     fdps4.definedOn = ResultInfo::ELEMENT; // elements
-    if(fdps4.dofNames.empty()) {
+    if (fdps4.dofNames.empty()) {
       fdps4.dofNames.push_back("x");
       fdps4.dofNames.push_back("y");
-      if(dim_ == 3)
-        fdps4.dofNames.push_back("z");        
+      if (dim_ == 3)
+        fdps4.dofNames.push_back("z");
     }
     fdps4.unit = MapSolTypeToUnit(ACOU_DIV_LH_TENSOR);
     fdps4.resultName = "acouDivLighthillTensor";
@@ -1212,6 +1289,8 @@ namespace CoupledField
 
     // Fill acouDivLighthillTensor field with zeros
     std::fill(acouDivLighthillTensor.begin(), acouDivLighthillTensor.end(), 0.0);
+
+
 
     // Init the structures for AcouMixedMassLoad
     FlowDataPartStruct& fdps5 = flowData[ACOUMIXED_MASS_LOAD];
@@ -1244,7 +1323,7 @@ namespace CoupledField
     fdps6.entryType = ResultInfo::VECTOR;
     std::vector<Double>& acouLambVec = fdps6.data;
 
-    // Fill acouDivLighthillTensor field with zeros
+    // Fill acouLambVector field with zeros
     std::fill(acouLambVec.begin(), acouLambVec.end(), 0);
 
     // PREPARE THE MOMENTUM RHS VECTOR i.e. based on Lamb Vector
@@ -1282,11 +1361,15 @@ namespace CoupledField
     std::fill(aeroAcouRhsField.begin(), aeroAcouRhsField.end(), 0);
 
 
-    //now we loop over all elements serial or parallel
-
 #ifdef _OPENMP
+    //now we loop over all elements serial or parallel
+    int tnum = 1;
+#pragma omp parallel
+{
+    tnum = omp_get_num_threads();
+}
     IntegrationMap ptElemI(ptElemIntegr_);
-    std::cout << "...parallel loop over " << nElems << " elements..." ;
+    std::cout << "... " << tnum << " threads, parallel loop over " << nElems << " elements..." ;
 #else
     std::cout << "...serial loop over " << nElems << " elements..." ;
 #endif
@@ -1299,6 +1382,7 @@ namespace CoupledField
     //nodal values for pressure and velocity
     Matrix<Double> nodalVel;
     Vector<Double> nodalPressure;
+    Vector<Double> nodalPressureD2;
 
 
     // LIGHTHILL Terms
@@ -1317,6 +1401,7 @@ namespace CoupledField
     Vector<Double> nodalPressureTDeriv;
     Vector<Double> nodalPerturbedPressure;
     Vector<Double> elemVecPres;
+
 
     //aeroacoustic Source
     Vector<Double> elemVecAeroAcou;
@@ -1348,6 +1433,7 @@ namespace CoupledField
       nodalMeanPressure.Resize(numElemNodes,0.0);
       nodalPressureTDeriv.Resize(numElemNodes,0.0);
       nodalPressure.Resize(numElemNodes,0.0);
+      nodalPressureD2.Resize(numElemNodes,0.0);
       nodalPerturbedPressure.Resize(numElemNodes,0.0);
 
       for( UInt n=0; n<numElemNodes; n++)
@@ -1368,13 +1454,24 @@ namespace CoupledField
         if(computeLHP){
           nodalPressure[n] = pressureField[regionNodeIndices_[regionIdx][nodeNum]];
         }
+        if(usePresD2){
+          nodalPressureD2[n] = presD2Field[regionNodeIndices_[regionIdx][nodeNum]];
+        }
 
         for( UInt d=0; d<elemDim; d++)
         {
           coordMat[d][n] = nodalCoords_[topoIdx+d];
-          nodalVel[d][n] = velField[velIdx+d];
-          if(meanVelFieldAvail)
-            nodalMeanVel[d][n] = meanVelocityField[velIdx+d];
+
+          if(computeLHV || computeAPEMomentum || computeAeroAcouSrc)
+          {
+            if (!useDivLHT) {
+              nodalVel[d][n] = velField[velIdx+d];
+            } else {
+              nodaldTijdxj[d][n] = divlhtField[velIdx+d];
+            }
+            if(meanVelFieldAvail)
+              nodalMeanVel[d][n] = meanVelocityField[velIdx+d];
+          }
         }
       }
       if(flowData.find(SMOOTH_DISPLACEMENT) != flowData.end())
@@ -1410,21 +1507,39 @@ namespace CoupledField
                                                       elemVecLambRhs,
                                                       elemVecPres,
                                                       elemVecAeroAcou,
-                                                      density);
-        } else {
-          if(computeLHV){
-            ptElemI[elemType].PerformIntegrationLighthill(coordMat,
-                                                          nodaldTijdxj,
-                                                          nodalVel,
-                                                          elemVecLH,
-                                                          nodalLoadDensity,
-                                                          divLHTensor,
-                                                          density);
-          }else if(computeLHP){
-            ptElemI[elemType].PerformIntegrationLHPressure(coordMat,
-                                                             nodalPressure,
-                                                             elemVecLH,
-                                                             nodalLoadDensity);
+                    density);
+          } else {
+            if (computeWaveRhs) {
+
+              if (computeLHV) {
+
+                ptElemI[elemType].PerformIntegrationLighthill(coordMat,
+                        nodaldTijdxj,
+                        nodalVel,
+                        elemVecLH,
+                        nodalLoadDensity,
+                        divLHTensor,
+                        density);
+              } else if(useDivLHT) {
+                ptElemI[elemType].PerformIntegrationLighthillwithDivTij(coordMat,
+                        nodaldTijdxj,
+                        nodalVel,
+                        elemVecLH,
+                        nodalLoadDensity,
+                        divLHTensor,
+                        density);
+              } else if(computeLHP) {
+                 ptElemI[elemType].PerformIntegrationLHPressure(coordMat,
+                         nodalPressure,
+                         elemVecLH,
+                         nodalLoadDensity);
+              } else if(usePresD2){
+                 ptElemI[elemType].PerformIntegrationPresD2(coordMat,
+                                                            nodalPressureD2,
+                                                            elemVecLH,
+                                                            nodalLoadDensity);
+              }
+
           }
 
           if(computeAPEMass){
@@ -1470,21 +1585,39 @@ namespace CoupledField
                                                              elemVecPres,
                                                              elemVecAeroAcou,
                                                              density);
-        } else {
-          if(computeLHV){
-            ptElemIntegr_[elemType]->PerformIntegrationLighthill(coordMat,
-                                                                 nodaldTijdxj,
-                                                                 nodalVel,
+          } else {
+            if (computeWaveRhs) {
+
+              if (computeLHV) {
+
+                ptElemIntegr_[elemType]->PerformIntegrationLighthill(coordMat,
+                        nodaldTijdxj,
+                        nodalVel,
+                        elemVecLH,
+                        nodalLoadDensity,
+                        divLHTensor,
+                        density);
+              } else if(useDivLHT) {
+                ptElemIntegr_[elemType]->PerformIntegrationLighthillwithDivTij(coordMat,
+                        nodaldTijdxj,
+                        nodalVel,
+                        elemVecLH,
+                        nodalLoadDensity,
+                        divLHTensor,
+                        density);
+              }else if(computeLHP) {
+                ptElemIntegr_[elemType]->PerformIntegrationLHPressure(coordMat,
+                                                                 nodalPressure,
                                                                  elemVecLH,
-                                                                 nodalLoadDensity,
-                                                                 divLHTensor,
-                                                                 density);
-          }else if(computeLHP){
-            ptElemIntegr_[elemType]->PerformIntegrationLHPressure(coordMat,
-                                                             nodalPressure,
-                                                             elemVecLH,
-                                                             nodalLoadDensity);
-          }
+                                                                 nodalLoadDensity);
+              } else if(usePresD2){
+                ptElemIntegr_[elemType]->PerformIntegrationPresD2(coordMat,
+                                                                  nodalPressureD2,
+                                                                  elemVecLH,
+                                                                  nodalLoadDensity);
+
+              }
+            }
 
           if(computeAPEMass){
             ptElemIntegr_[elemType]->PerformIntegrationAPEMass(coordMat,
@@ -1556,7 +1689,7 @@ namespace CoupledField
         }
 #endif
 
-        if(computeLHV || computeLHP){
+        if(computeLHV || computeLHP || useDivLHT || usePresD2){
 #pragma omp atomic 
           acouRhsField[idx] -= elemVecLH[n];
 #pragma omp atomic 
@@ -1595,6 +1728,111 @@ namespace CoupledField
 }//end of parallel region
 
     std::cout << "done." << std::endl;
+  }
+
+  //! This method calculates a surface mechanical force for FSI one-way coupling
+  void CouplingHandler::CalculateMechSurfaceForce(const UInt surfRegionIdx,
+      FlowDataType& flowData){
+
+    //we go as follows:
+    /* 1. Check if FLUIDMECH_FORCE is available in the flowData struct
+     * 2. Check if we really have a surface region
+     * 3. loop over all surface elements and compute a mass integrator on the surface elements
+     * 4. add the result to the result struct
+     */
+    std::string regionName = ptFileReader_->GetRegionName(surfRegionIdx);
+    UInt nElems = ptFileReader_->GetNumElems(surfRegionIdx);
+    FlowDataPartStruct& forceStruct = flowData[FLUIDMECH_FORCE];
+    std::vector<Double>& forceField = forceStruct.data;
+
+    bool computeForce = (std::find(outputFields_.begin(),outputFields_.end(),"mechRhsLoad") != outputFields_.end());
+
+
+    if(computeForce && !forceStruct.isActive){
+      EXCEPTION("the force field is not available. Going to abort");
+    }
+
+    if(!forceStruct.isActive){
+      flowData.erase(FLUIDMECH_FORCE);
+      return;
+    }
+
+    // Init Mechanic rhs load structures
+    FlowDataPartStruct& fdps2 = flowData[MECH_RHS_LOAD];
+    fdps2.isActive = true; // all partitions have results
+    fdps2.definedOn = ResultInfo::NODE; // nodes
+    if (fdps2.dofNames.empty()) {
+      fdps2.dofNames.push_back("x");
+      fdps2.dofNames.push_back("y");
+      if (dim_ == 3)
+        fdps2.dofNames.push_back("z");
+    }
+    fdps2.unit = MapSolTypeToUnit(MECH_RHS_LOAD);
+    fdps2.resultName = "mechRhsLoad";
+    fdps2.data.resize(numRegionNodes_[surfRegionIdx] * dim_);
+    fdps2.entryType = ResultInfo::VECTOR;
+    std::vector<Double>& mechRhsField = fdps2.data;
+    std::fill(mechRhsField.begin(), mechRhsField.end(), 0.0);
+
+
+    UInt forceIdx,topoIdx,idx;
+    Matrix<Double> coordMat;
+    //nodal values for force
+    Matrix<Double> nodalForce;
+    Vector<Double> elemVecForce;
+    Elem::FEType elemType;
+    UInt numElemNodes;
+    //UInt elemDim;
+    UInt elemIdx;
+    UInt maxNENodes = ptFileReader_->GetMaxNumElemNodes();
+    UInt nodeNum;
+
+    std::cout << "Calculating mechanical surface sources on " << regionName << " ";
+    std::cout << "...serial loop over " << nElems << " elements..." ;
+    std::cout.flush();
+
+    for(UInt i=0; i<nElems; i++)
+    {
+      elemIdx = regionElems_[surfRegionIdx][i] - 1;
+      elemType = (Elem::FEType) elemTypes_[elemIdx];
+      numElemNodes = Elem::GetNumElemNodes(elemType);
+      //elemDim = Elem::GetElemDim(elemType);
+
+      coordMat.Resize(dim_, numElemNodes);
+      nodalForce.Resize(dim_, numElemNodes);
+      for( UInt n=0; n<numElemNodes; n++)
+      {
+        nodeNum = topology_[elemIdx * maxNENodes + n];
+        topoIdx = (nodeNum - 1) * 3;
+        forceIdx = regionNodeIndices_[surfRegionIdx][nodeNum] * dim_;
+        for( UInt d=0; d<dim_; d++)
+        {
+          coordMat[d][n] = nodalCoords_[topoIdx+d];
+          nodalForce[d][n] = forceField[forceIdx+d];
+
+        }
+      }
+      try{
+      ptElemIntegr_[elemType]->PerformIntegrationMechRhs(coordMat,
+          nodalForce,
+          elemVecForce);
+      }catch(CoupledField::Exception &ex){
+        std::cerr << "WARN: An Exception occurred during mechanical source term "
+                          << "computation:\nElement " << elemIdx+1 << std::endl;
+
+       std::cerr << ex.what()<< std::endl;
+      }
+      for( UInt n=0; n<numElemNodes; n++)
+      {
+        nodeNum = topology_[elemIdx * maxNENodes + n];
+        idx = regionNodeIndices_[surfRegionIdx][nodeNum];
+        for(UInt d =0;d<dim_;++d){
+          mechRhsField[idx*dim_ + d] += elemVecForce[n*dim_+d];
+        }
+      }
+    }
+    std::cout << "done!" << std::endl;
+
   }
 
   void CouplingHandler::CalculateSurfaceIntegral(const int surfRegionIdx,
@@ -1923,13 +2161,13 @@ namespace CoupledField
       curNodeNum = topology_[curElemNum * maxNENodes];
       //now we search through the topology vector and determine
       //all occurences of the nodeNumber and store their position
-      std::vector<UInt>::iterator i = topology_.begin(), end = topology_.end();
+      std::vector<UInt>::iterator it = topology_.begin(), end = topology_.end();
       while(true) {
-        i = std::find(i, topology_.end(), curNodeNum );
-        if (i == end)
+        it = std::find(it, topology_.end(), curNodeNum );
+        if (it == end)
             break;
-        matches.push_back(i - topology_.begin());
-        i++;
+        matches.push_back(it - topology_.begin());
+        ++it;
       }
       //now we have a vector containing all positions of the first node of the
       //element of interest now we need to determine the element indices

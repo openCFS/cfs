@@ -94,6 +94,7 @@ namespace CoupledField {
               warnCallback_(*this);
             
 //            
+
 //            // This is pretty hard-coded.
 //            // In general we should think of a way
 //            // to register some sort of call-back mechanism which

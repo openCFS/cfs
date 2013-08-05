@@ -157,7 +157,12 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
     meshNode->GetValue("id", actId, ParamNode::INSERT);
     meshNode->GetValue("gridId", actGridId, ParamNode::INSERT);
     
-    inFiles[actId] = shared_ptr<SimInput> (new SimInputMESH(meshFile, PtrParamNode() ));
+    if ( meshFile.find(".h5", meshFile.length()-4) != std::string::npos ) {
+      inFiles[actId] = shared_ptr<SimInput>( new SimInputHDF5(meshFile,
+          PtrParamNode(new ParamNode())) );
+    } else {
+      inFiles[actId] = shared_ptr<SimInput>( new SimInputMESH(meshFile, PtrParamNode()) );
+    }
     gridInputs[actGridId].Push_back(inFiles[actId]);
     return;
   }

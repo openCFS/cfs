@@ -1412,6 +1412,46 @@ DEFINE_LOG(linForm, "linForm")
         elVel[dim][actNode] = FlowData[dim+1][connecth[actNode]-1]; 
   }
 
+  void LinearFlowNoiseInt::CalcElemVecSurfForce(const Matrix<Double> & coordMat,
+                        const Matrix<Double>& NodalForce,
+                        Vector<Double>& elemvec,
+                        const Elem* elem){
+    //basically this is a standard mass integrator
+    //one special thing though, we get a surface element but deal with
+    //volume dimensional data so we obtain a standard mass matrix
+    // and blow it up to the volume dimension
+    const Integer numIntPoints = ptelem->GetNumIntPoints();
+    const Integer numNodes = ptelem->GetNumNodes();
+    const UInt dimVol = coordMat.GetNumRows();
+    Vector<Double> intWeights = ptelem->GetIntWeights();
+
+    Vector<Double> Sf, forceAtIp;
+    forceAtIp.Resize(dimVol);
+    elemvec.Resize(dimVol*numNodes);
+    elemvec.Init();
+
+    // Loop over all integration points
+    for(Integer actInt=1; actInt <= numIntPoints; actInt++)
+    {
+      ptelem->GetShFncAtIp(Sf, actInt, elem);
+      Double jacdet = ptelem->CalcJacobianDetAtIp(actInt,coordMat,elem);
+      forceAtIp.Init();
+      for(UInt i = 0; i < (UInt)numNodes ; ++i ){
+        for(UInt d= 0; d < dimVol ; ++d){
+          forceAtIp[d] += Sf[i] * NodalForce[d][i];
+        }
+      }
+
+      for(UInt i = 0; i < (UInt)numNodes ; ++i ){
+        for(UInt d= 0; d < dimVol ; ++d){
+          elemvec[i*dimVol+d] += forceAtIp[d] * Sf[i] * jacdet * intWeights[actInt -1];
+        }
+      }
+
+    }
+
+  }
+
   void LinearFlowNoiseInt::CalcElemVec4QuadwithVelCentre(const Matrix<Double>& ptCoord,
                                                          const Matrix<Double> & NodalVel,
                                                          Vector<Double> & Result,
@@ -1509,7 +1549,7 @@ DEFINE_LOG(linForm, "linForm")
                                                    Double density)
   {
 #ifdef TRACE
-    (*trace) << "entering LinearFlowNoiseInt::CalcElemVector4Quad" << std::endl;
+    (*trace) << "entering LinearFlowNoiseInt::CalcElemVector4QuadwithVel" << std::endl;
 #endif
 
     // This functions computes the element RHS vector by integrating 
@@ -1629,6 +1669,104 @@ DEFINE_LOG(linForm, "linForm")
       
     }
 
+
+    nodalLoadDensity = Result / volume;
+    divLHTensor /= volume;
+
+
+  } // end of method
+  
+  void LinearFlowNoiseInt::CalcElemVec4QuadwithDivTij(const Matrix<Double>& ptCoord,
+                                                   const Matrix<Double> & NodalDivTij,
+                                                   Vector<Double> & Result,
+                                                   Vector<Double> & nodalLoadDensity,
+                                                   Vector<Double>& divLHTensor,
+                                                   const Elem* elem,
+                                                   Double density)
+  {
+#ifdef TRACE
+    (*trace) << "entering LinearFlowNoiseInt::CalcElemVector4QuadwithDivTij" << std::endl;
+#endif
+
+    // This functions computes the element RHS vector by integrating 
+    // the gradient of the shape function times the divergence of the tensor T.
+  
+    // Source term =  integral(grad[Sf].div[T])
+
+    Integer l = ptelem->GetNumIntPoints(); 
+    Integer n = ptelem->GetNumNodes();
+    Integer dimelem = ptCoord.GetNumRows();
+
+    Matrix<Double> xiDx;      
+    Vector<Double> Sf;
+
+    Vector<Double> divLHTensorTmp;
+
+    Double jacDet;
+
+    Result.Resize(n);
+    nodalLoadDensity.Resize(n);
+    Result.Init(0.0);
+    nodalLoadDensity.Init(0.0);
+
+    Vector<Double> partResult;
+    partResult.Resize(n);
+    
+    Vector<Double> helpVec;
+    helpVec.Resize(dimelem);
+
+    Double volume = 0.0;
+    divLHTensorTmp.Resize(dimelem);
+    divLHTensorTmp.Init(0.0);
+    divLHTensor.Resize(dimelem);
+    divLHTensor.Init(0.0);
+    
+//    //--------THis is hack
+//    // OK we have the problem that we need the derivative
+//    // of the velocities. nevertheless, we only have
+//    // the potential of the compressible field.
+//    // idea we compute the compressible velocity at the center and subtract it
+//    // from the nodal velocities.
+//    const UInt dof = NodalVel.GetNumCols();
+//    Vector<Double> centreNode(dimelem, 0.0);
+//    Matrix<Double> derivCentre;
+//    Vector<Double> VelDerivAtCentre;
+//    ptelem->GetGlobDerivShFnc(derivCentre, centreNode, ptCoord, elem, dof);
+//    Matrix<Double> trans;
+//    derivCentre.Transpose(trans);
+//    VelDerivAtCentre =  trans * nodalPressure;
+//    //std::cout << "VelDerivAtCentre" << std::endl;
+//    //std::cout << VelDerivAtCentre << std::endl<< std::endl;
+//    for(UInt curSh =0;curSh <(UInt) n;curSh++){
+//      for(UInt d =0;d < (UInt)dimelem;d++){
+//        NodalVel[d][n] -= VelDerivAtCentre[d];
+//      }
+//    }
+
+    
+    Vector<double> intWeights = ptelem->GetIntWeights();
+
+    //compute a simple normal vector (should be improved!!)
+    Vector<Double> nVec(dimelem);
+
+
+    // Loop over all integration points 
+    for(Integer actInt=1; actInt <= (Integer)l; actInt++)
+    {
+      ptelem->GetShFncAtIp(Sf, actInt, elem);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+
+      helpVec = NodalDivTij * Sf;
+      divLHTensorTmp = (helpVec * jacDet * intWeights[actInt -1]);
+
+      // Multiplication with the derivatives of the shape functions
+      partResult  = xiDx * divLHTensorTmp;
+      Result     += partResult;
+
+      divLHTensor += divLHTensorTmp;
+      volume += jacDet * intWeights[actInt-1];
+      
+    }
 
     nodalLoadDensity = Result / volume;
     divLHTensor /= volume;
@@ -1907,6 +2045,43 @@ DEFINE_LOG(linForm, "linForm")
       volume += jacDet * intWeights[actInt-1];
     }
     nodalLoadDensity = Result / volume;
+  }
+
+  void LinearFlowNoiseInt::CalcElemVecWaveWithPressD2(const Matrix<Double>& ptCoord, const Vector<Double> & NodalPress,
+      Vector<Double> & Result,Vector<Double>& nodalLoadDensity, const Elem* elem){
+
+    Integer l = ptelem->GetNumIntPoints();
+    Integer n = ptelem->GetNumNodes();
+
+    Vector<Double> Sf;
+    Double presD2AtIp = 0;
+    Vector<Double> partResult(n,0.0);
+
+    Double jacDet;
+    Vector<Double> intWeights = ptelem->GetIntWeights();
+    Result.Resize(n);
+    nodalLoadDensity.Resize(n);
+    Result.Init();
+    nodalLoadDensity.Init();
+    Double volume = 0;
+    // Loop over all integration points
+    for(Integer actInt=1; actInt <= l; actInt++){
+      ptelem->GetShFncAtIp(Sf, actInt, elem);
+      jacDet = ptelem->CalcJacobianDetAtIp(actInt,ptCoord,elem);
+
+      //compute pressure derivative at IP
+      presD2AtIp = Sf * NodalPress;
+
+      // Multiplication with the derivatives of the shape functions
+      partResult  = Sf * presD2AtIp;
+      partResult *= jacDet * intWeights[actInt -1];
+      Result     += partResult;
+
+
+      volume += jacDet * intWeights[actInt-1];
+    }
+    nodalLoadDensity = Result / volume;
+
   }
 
   // computeation of total derivative of perturbed pressure for PE

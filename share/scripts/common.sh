@@ -31,14 +31,19 @@ if [ ! -x "$DISTRO_SH" ]; then
 fi
 
 # Get operating system
-OS=$($DISTRO_SH -h | cut -d' ' -f1)
+eval $($DISTRO_SH -s)
+OS_DUMMY=$(echo $OS | sed 's/ //g')
+OS=$OS_DUMMY
 
 # Get architecture and distribution
-ARCH_STR=$($DISTRO_SH -a)
+if [ ! "$DIST_FAMILY" = "" ]; then
+  DISTRO=$DIST_FAMILY
+  DISTRO_VER=$MAJOR_REV
+else
+  DISTRO=$DIST
+  DISTRO_VER=$REV
+fi
 
-DISTRO=`echo $ARCH_STR | cut -d' ' -f 1`
-DISTRO_VER=`echo $ARCH_STR | cut -d' ' -f 2`
-ARCH=`echo $ARCH_STR | cut -d' ' -f 3`
 ARCH_STR="${DISTRO}_${DISTRO_VER}_${ARCH}"
 
 # Set lib path according to architecture
@@ -54,9 +59,9 @@ case "$ARCH" in
 esac
 
 case "$OS" in
-    Linux)
+    LINUX)
 	OS_SUPPORTED=1 ;;
-    Mac)
+    MACOSX)
 	OS_SUPPORTED=1 ;;
     *)
 	OS_SUPPORTED=0 ;;
