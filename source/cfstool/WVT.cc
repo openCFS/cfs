@@ -29,61 +29,69 @@ using namespace CoupledField;
 
 namespace CFSTool {
 
-  WVT::WVT( const std::string& lateral_mode_file,
-            const std::string& coriolis_mode_file,
-            const std::string& mean_flow_file,
-            const std::string& outFile,
-            const PtrParamNode& param,
-            const PtrParamNode& info) :
+  // Definition of WVT input file type mappings
+  static EnumTuple inputFileTypeTuples[] = {
+    EnumTuple(WVT::PRIMARY_MODE,   "primary mode"), 
+    EnumTuple(WVT::SECONDARY_MODE, "secondary mode"),
+    EnumTuple(WVT::MEAN_FLOW,      "mean flow")
+  };
+  Enum<WVT::InputFileType> WVT::inputFileType =                       \
+       Enum<WVT::InputFileType>("WVT input file types",
+           sizeof(inputFileTypeTuples) / sizeof(EnumTuple),
+           inputFileTypeTuples);
+
+
+  WVT::WVT( const PtrParamNode& param,
+            const PtrParamNode& info ) :
     param_(param),
-    info_(info),
-    writeOutputFile_(outFile != ""),
-    inputs_(3)
+    info_(info)
   {
+    // get filenames from parameter
+    priModeFile_ = param_->Get("file1")->As<std::string>();
+    secModeFile_ = param_->Get("file2")->As<std::string>();
+    meanFlowFile_ = param_->Get("file3")->As<std::string>();
+    outFile_ = param_->Get("file4")->As<std::string>();
 
-       bool printGridOnly = false;
+    writeOutputFile_ = outFile_ != "";
 
-       inputs_[0] = GetInputReader( lateral_mode_file, param_, info_ );
-       inputs_[1] = GetInputReader( coriolis_mode_file, param_, info_ );
-       inputs_[2] = GetInputReader( mean_flow_file, param_, info_ );
+    bool printGridOnly = false;
 
-       shared_ptr<MathParser> mp(new MathParser());       
-
-       // check capabilities of input class
-       StdVector<bool> readerCaps(3);
-       StdVector<std::string> readerDescriptions(3);
-       readerDescriptions[0] = "lateral mode";
-       readerDescriptions[1] = "coriolis mode";
-       readerDescriptions[2] = "mean flow";
-       StdVector<std::string> readerCapsResults(3);
-       for(UInt i=0; i<inputs_.GetSize(); i++) 
-       {
-         readerCaps[i] = CheckReaderCapabilities(readerDescriptions[i],
-                                                 inputs_[i],
-                                                 readerCapsResults[i]);
-       }
+    // Linear correction  factor for scaling  the actual mean  flow integrated
+    // over the fluid domain to the desired mean flow.
+    Double correct = 0.0;
        
-       if( !readerCaps[0] || !readerCaps[1] || !readerCaps[2] ) {
-         std::cerr << "Some input files are only capable of handling meshes, not results!\n\n";
 
-         for(UInt i=0; i<inputs_.GetSize(); i++) 
-         {
-           std::cerr << readerCapsResults[i] << std::endl;
-         }
+    inputs_[PRIMARY_MODE] = GetInputReader( priModeFile_, param_, info_ );
+    inputs_[SECONDARY_MODE] = GetInputReader( secModeFile_, param_, info_ );
+    inputs_[MEAN_FLOW] = GetInputReader( meanFlowFile_, param_, info_ );
 
-         exit(EXIT_FAILURE);
-       }
+    shared_ptr<MathParser> mp(new MathParser());       
+
+    // check capabilities of input class
+    InputsType::iterator iit, iend;
+    iit = inputs_.begin();
+    iend = inputs_.end();    
+    for( ; iit != iend; iit++) 
+    {
+      std::string readerCapsResult;
+      if(!CheckReaderCapabilities(inputFileType.ToString(iit->first),
+                                  iit->second,
+                                  readerCapsResult))
+      {
+        EXCEPTION(readerCapsResult);
+      }
+    }
 
        // read in mesh of input1
-       inputs_[0]->InitModule();
-       UInt dim = inputs_[0]->GetDim();
+       inputs_[PRIMARY_MODE]->InitModule();
+       UInt dim = inputs_[PRIMARY_MODE]->GetDim();
        Grid * ptGrid1 = new GridCFS(dim, param_, info_);
-       inputs_[0]->ReadMesh(ptGrid1);
+       inputs_[PRIMARY_MODE]->ReadMesh(ptGrid1);
        ptGrid1->FinishInit();
 
        // std::cout << "##############" << xmlFile << std::endl
        //    << "##############" << matFile << std::endl;
-       PtrParamNode pNode = GetParamNodeFromHDF5(inputs_[0], "ParameterFile");
+       PtrParamNode pNode = GetParamNodeFromHDF5(inputs_[PRIMARY_MODE], "ParameterFile");
 
        ParamNodeList list;
        
@@ -198,7 +206,7 @@ namespace CFSTool {
          }
        }
 
-       pNode = GetParamNodeFromHDF5(inputs_[0], "MaterialFile");
+       pNode = GetParamNodeFromHDF5(inputs_[PRIMARY_MODE], "MaterialFile");
 
        std::map<std::string, Double> regionDensityMap;
        std::map<std::string, Double> regionViscosityMap;
@@ -233,37 +241,37 @@ namespace CFSTool {
        }
 
        // read in mesh of input2
-       inputs_[1]->InitModule();
+       inputs_[SECONDARY_MODE]->InitModule();
        Grid * ptGrid2 = new GridCFS(dim, param_, info_);
-       inputs_[1]->ReadMesh(ptGrid2);
+       inputs_[SECONDARY_MODE]->ReadMesh(ptGrid2);
        ptGrid2->FinishInit();
 
        // read in mesh of input3
-       inputs_[2]->InitModule();
+       inputs_[MEAN_FLOW]->InitModule();
        Grid * ptGrid3 = new GridCFS(dim, param_, info_);
-       inputs_[2]->ReadMesh(ptGrid3);
+       inputs_[MEAN_FLOW]->ReadMesh(ptGrid3);
        ptGrid3->FinishInit();
 
        // obtain output writer
        shared_ptr<SimOutput> output;
-       if( outFile != "" ) {
-         output = GetOutputWriter( outFile, param_, info_ );
+       if( writeOutputFile_ ) {
+         output = GetOutputWriter( outFile_, param_, info_ );
          output->Init( ptGrid1, printGridOnly);
        }
 
        // obtain number of Sequence Steps and get analysis types
        std::map<UInt, BasePDE::AnalysisType> types;
        std::map<UInt, UInt> numSteps;
-       inputs_[0]->GetNumMultiSequenceSteps( types, numSteps, false );
+       inputs_[PRIMARY_MODE]->GetNumMultiSequenceSteps( types, numSteps, false );
 
-       std::cout << "\nFound " << types.size() << " sequence step(s) in '" << inputs_[0]->GetFileName() << "'\n";
+       std::cout << "\nFound " << types.size() << " sequence step(s) in '" << inputs_[PRIMARY_MODE]->GetFileName() << "'\n";
        std::map<UInt, BasePDE::AnalysisType> types2;
        std::map<UInt, UInt> numSteps2;
-       inputs_[1]->GetNumMultiSequenceSteps( types2, numSteps2, false );
-       std::cout << "\nFound " << types2.size() << " sequence step(s) in '" << inputs_[1]->GetFileName() << "'\n";
+       inputs_[SECONDARY_MODE]->GetNumMultiSequenceSteps( types2, numSteps2, false );
+       std::cout << "\nFound " << types2.size() << " sequence step(s) in '" << inputs_[SECONDARY_MODE]->GetFileName() << "'\n";
        
        if(types.size() != types2.size()){
-         std::cout << "'" << inputs_[0]->GetFileName() << "' and '" << inputs_[1]->GetFileName()
+         std::cout << "'" << inputs_[PRIMARY_MODE]->GetFileName() << "' and '" << inputs_[SECONDARY_MODE]->GetFileName()
             << "' have different number of sequence steps!\n";
          exit(EXIT_FAILURE);
        }
@@ -288,9 +296,9 @@ namespace CFSTool {
        
        // get resulttypes
        StdVector<shared_ptr<ResultInfo> > infos, infos2, infos3, infos_mean_flow;
-       inputs_[0]->GetResultTypes( actMsStep, infos, false );
-       inputs_[1]->GetResultTypes( actMsStep, infos2, false );
-       inputs_[2]->GetResultTypes( actMsStep, infos3, false );
+       inputs_[PRIMARY_MODE]->GetResultTypes( actMsStep, infos, false );
+       inputs_[SECONDARY_MODE]->GetResultTypes( actMsStep, infos2, false );
+       inputs_[MEAN_FLOW]->GetResultTypes( actMsStep, infos3, false );
        
        StdVector<shared_ptr<BaseResult> > inResults1, inResults2, inResults_mean_flow,
          outResults, outResults2, outResults3, outResults4, outResults5;
@@ -316,7 +324,7 @@ namespace CFSTool {
          }
          
          // get stepvalues of mean flow file
-         inputs_[2]->GetStepValues( actMsStep, actRes3,
+         inputs_[MEAN_FLOW]->GetStepValues( actMsStep, actRes3,
                                 resultSteps_mean_flow[actRes3], false);
          stepVals_mean_flow.insert( resultSteps_mean_flow[actRes3].begin(),
                                     resultSteps_mean_flow[actRes3].end() );
@@ -339,13 +347,13 @@ namespace CFSTool {
          // get stepvalues of reference file
          shared_ptr<ResultInfo> actRes = infos[iRes];
          shared_ptr<ResultInfo> actRes2 = infos2[iRes];
-         inputs_[0]->GetStepValues( actMsStep, actRes,
+         inputs_[PRIMARY_MODE]->GetStepValues( actMsStep, actRes,
                                 resultSteps[actRes], false);
          stepVals.insert( resultSteps[actRes].begin(),
                           resultSteps[actRes].end() );
          
          // get stepvalues of second file
-         inputs_[1]->GetStepValues( actMsStep, actRes2,
+         inputs_[SECONDARY_MODE]->GetStepValues( actMsStep, actRes2,
                                 resultSteps2[actRes2], false);
          stepVals2.insert( resultSteps2[actRes2].begin(),
                            resultSteps2[actRes2].end() );
@@ -376,7 +384,7 @@ namespace CFSTool {
 
          // iterate over all regions
          StdVector< shared_ptr<EntityList> > regions, resRegions;
-         inputs_[0]->GetResultEntities( actMsStep, infos[iRes],
+         inputs_[PRIMARY_MODE]->GetResultEntities( actMsStep, infos[iRes],
                                         resRegions, false );
 
          std::map<std::string, Double>::iterator it, end;
@@ -609,9 +617,9 @@ namespace CFSTool {
            }
            
            // obtain both result objects for current step
-           inputs_[0]->GetResult( actMsStep, actStepNum, inResults1[iRes], false );
-           inputs_[1]->GetResult( actMsStep, actStepNum, inResults2[iRes], false );
-           inputs_[2]->GetResult( actMsStep, actStepNum, inResults_mean_flow[iRes], false );
+           inputs_[PRIMARY_MODE]->GetResult( actMsStep, actStepNum, inResults1[iRes], false );
+           inputs_[SECONDARY_MODE]->GetResult( actMsStep, actStepNum, inResults2[iRes], false );
+           inputs_[MEAN_FLOW]->GetResult( actMsStep, actStepNum, inResults_mean_flow[iRes], false );
            
            
            std::set<std::string> volRegionNames;
@@ -664,16 +672,16 @@ namespace CFSTool {
              outVec4.Resize( numElems * numDofs );
              outVec5.Resize( numElems );
              
-             shared_ptr<BaseFeFunction> u1FeFunc = inputs_[0]->GetFeFunction<Complex>( actMsStep,
+             shared_ptr<BaseFeFunction> u1FeFunc = inputs_[PRIMARY_MODE]->GetFeFunction<Complex>( actMsStep,
                                                                              actStepNum,
                                                                              inResults1[iRes]->GetResultInfo()->resultType,
                                                                              volRegionNames);
-             shared_ptr<BaseFeFunction> u2FeFunc = inputs_[1]->GetFeFunction<Complex>( actMsStep,
+             shared_ptr<BaseFeFunction> u2FeFunc = inputs_[SECONDARY_MODE]->GetFeFunction<Complex>( actMsStep,
                                                                              actStepNum,
                                                                              inResults2[iRes]->GetResultInfo()->resultType,
                                                                              volRegionNames);
 
-             shared_ptr<BaseFeFunction> VFeFunc = inputs_[2]->GetFeFunction<Double>( actMsStep,
+             shared_ptr<BaseFeFunction> VFeFunc = inputs_[MEAN_FLOW]->GetFeFunction<Double>( actMsStep,
                                                                               actStepNum,
                                                                               inResults_mean_flow[iRes]->GetResultInfo()->resultType,
                                                                               volRegionNames );
@@ -938,6 +946,14 @@ namespace CFSTool {
                  // coefV->GetVector(V, *lpm1);
                  feFct->GetVector(V, *lpm3);
 
+#if 0
+                 Double radius = sqrt(p[0]*p[0] + p[1]*p[1]);
+                 Double R = 0.01315;
+                 V[0] = 0;
+                 V[1] = 0;
+                 V[2] = 1-(radius*radius/(R*R));
+#endif
+
                  dynamic_cast<FeFunction<Complex>*>(u1FeFunc.get())->GetElemSolution( eSol1, el1 );
                  dynamic_cast<FeFunction<Complex>*>(u2FeFunc.get())->GetElemSolution( eSol2, el2 );
                  dynamic_cast<FeFunction<Double>*>(feFct.get())->GetElemSolution( eSol3, el3 );
@@ -945,6 +961,7 @@ namespace CFSTool {
                  StdVector< Vector<Complex> > u1Derivs(numDofs), u2Derivs(numDofs);
                  Vector<Double> curlV;
                  StdVector< Vector<Complex> > u2Tau(numDofs);
+                 Double viscosity = regionViscosityMap[ptGrid1->regionData[el1->regionId].name];
                  
                  for(UInt dof=0; dof < numDofs; dof++) 
                  {
@@ -967,13 +984,14 @@ namespace CFSTool {
                  }
                  
                  curlOp->ApplyOp( curlV, *lpm3, ptFe3, eSol3 );
+
                  //                std::cout << "elemNum " << el1->elemNum << " numDofs " << numDofs << " dim " << dim << std::endl;
                  Vector<Complex> Xl(numDofs), Xr(numDofs);
                  Vector<Double> n(numDofs);
 
                  if(isSurf) 
                  {
-                   n = lpm3Surf.normal;
+                   n = -lpm3Surf.normal;
                  } else 
                  {
                    n.Init();
@@ -985,6 +1003,16 @@ namespace CFSTool {
                  Xl.Init();
                  Xr.Init();
                  X.Init();
+
+#if 0
+                 Vector<Double> t(numDofs);
+                 t[0] = n[1];
+                 t[1] = -n[0];
+                 t[2] = 0;
+                 t *= 1/t.NormL2();
+                 
+                 curlV = 2*radius/(R*R) * t;
+#endif
 
                  for(UInt dof=0; dof < numDofs; dof++) 
                  {
@@ -1018,7 +1046,6 @@ namespace CFSTool {
                    Xr[2] = n[2] * dp;
                    //                 CrossProd(Xl, Xr, X);
                    
-                   Double viscosity = regionViscosityMap[ptGrid1->regionData[el1->regionId].name];
                    Complex complexFreq(0, 2*PI*freq);
                    
                    X[0] =  Xl[1] * Xr[2] - Xl[2] * Xr[1];
@@ -1073,7 +1100,7 @@ namespace CFSTool {
                  if (isSurf) 
                  {
                    durchfluss = 1.0;
-
+                   
                    for( UInt i=0; i < numDofs; i++ )
                    {
                      // Prepare weight vector
@@ -1083,7 +1110,7 @@ namespace CFSTool {
                      outVec2[elIdx*numDofs+i] += V[i] * volume;
                      
                      // Prepare weight vector density result
-                     outVec3[elIdx] += X[i]*curlV[i];
+                     outVec3[elIdx] += X[i]*curlV[i] * volume;
                      
                      
                      // Prepare weight vector W_Phi as given in Hemp1994 (19).
@@ -1092,11 +1119,13 @@ namespace CFSTool {
                      // Prepare  weight  vector density  result  as inner  product
                      // between V and W_Phi as given in Hemp1994 (18).
                      //                     outVec5[elIdx] += W[i]/u_p * V[i];
-                 }
+
+                     outVec5[elIdx] += X[i]/u_p * curlV[i] * volume;
+                   }
 
                  }
                  else 
-                 {                   
+                 {         
                    for( UInt i=0; i < numDofs; i++ )
                    {
                      // Prepare weight vector
@@ -1112,24 +1141,18 @@ namespace CFSTool {
                      outVec2[elIdx*numDofs+i] += V[i] * volume;
                      
                      // Prepare weight vector density result
-                     outVec3[elIdx] += W[i]*V[i];
+                     outVec3[elIdx] += W[i]*V[i]*volume;
                      
                      
                      // Prepare weight vector W_Phi as given in Hemp1994 (19).
-                     // outVec4[elIdx*numDofs+i] = W[i]/u_p * volume;
-                     // outVec4[elIdx*numDofs+i] += curlV[i] * volume;
-                     // outVec4[elIdx*numDofs+i] += u2Tau[1][i] * volume;
-                     // outVec4[elIdx*numDofs+i] += X[i] * volume;
+                     outVec4[elIdx*numDofs+i] += W[i]/u_p * volume;
                      
                      // Prepare  weight  vector density  result  as inner  product
                      // between V and W_Phi as given in Hemp1994 (18).
-                     outVec5[elIdx] += W[i]/u_p * V[i];
+                     outVec5[elIdx] += W[i]/u_p * V[i] * volume;
                    }
                  }
                  
-                 outVec3[elIdx] *= volume;
-                 outVec5[elIdx] *= volume;
-
                  // u_p_prime (0.000359091,-2.8713e-05)  
                  // Compute u_p_prime as given in Hemp1994 (13).
                  u_p_prime += outVec3[elIdx];
@@ -1152,20 +1175,33 @@ namespace CFSTool {
              }
              W_sum /= vol;
 
-             Double correct = (meanVel*vol/durchfluss);
+             if(!isSurf) 
+             {
+               correct = (meanVel*vol/durchfluss);
+             }
+             
              std::cout << "\nProfilkorrekturfaktor " << correct << std::endl;
              std::cout << "Volumen " << vol << std::endl;
              outVec2 *= correct;
              
              deltaPhi *= correct;
              
-             boost::filesystem::ofstream csv("output.csv", std::ios_base::binary);
+             boost::filesystem::ofstream csv;
 
+             if(isSurf)
+             {
+               csv.open("output.csv", std::ios_base::binary | std::ios_base::app);
+             }
+             else
+             {
+               csv.open("output.csv", std::ios_base::binary);
+               csv << "freq,u_p_prime_real,u_p_prime_imag,u_p_prime_ampl,u_p_prime_phase,deltaPhi[rad],deltaPhi[deg],volume,real(W_x),imag(W_x),real(W_y),imag(W_y),real(W_z),imag(W_z)" << std::endl;
+             }
+             
              std::cout << "\nu_p_prime " << u_p_prime << std::endl;
              std::cout << "\ndeltaPhi [rad]: " << deltaPhi << std::endl;
              std::cout << "\ndeltaPhi [deg]: " << deltaPhi/3.14159*180 << std::endl;
 
-             csv << "freq,u_p_prime_real,u_p_prime_imag,u_p_prime_ampl,u_p_prime_phase,deltaPhi[rad],deltaPhi[deg],volume,real(W_x),imag(W_x),real(W_y),imag(W_y),real(W_z),imag(W_z)" << std::endl;
              csv << freq << ","
                  << u_p_prime.real() << ","
                  << u_p_prime.imag() << ","
@@ -1208,7 +1244,7 @@ namespace CFSTool {
          WriteStringToHDF5UserData(output, "cfstoolConfig", sstr.str());
 
          output->Finalize();
-         std::cout << "\nOutput successfully written to " << outFile << std::endl;
+         std::cout << "\nOutput successfully written to " << outFile_ << std::endl;
        }
        delete ptGrid1;
        delete ptGrid2;
