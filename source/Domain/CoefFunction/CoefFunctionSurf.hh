@@ -7,7 +7,7 @@
 namespace CoupledField {
 
 // forward class declaration
-class ResultInfo;
+struct ResultInfo;
 
 //! Evaluates a coefficient function on a surface 
 
