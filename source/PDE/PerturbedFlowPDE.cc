@@ -361,23 +361,9 @@ namespace CoupledField {
         BaseBOperator* bOpGrad;
         BaseBOperator* bOpId;
         if( dim_ == 2 ) {
-          if(isComplex_)
-          {
-            bOpGrad = new GradientOperator<FeH1,2, Complex>();
-          } else {
-            bOpGrad = new GradientOperator<FeH1,2, Double>();
-          }
-
           bOpId = new IdentityOperator<FeH1,2,2>();
         }
         else {
-          if(isComplex_)
-          {
-            bOpGrad = new GradientOperator<FeH1,3, Complex>();
-          } else {
-            bOpGrad = new GradientOperator<FeH1,3, Double>();
-          }
-          
           bOpId = new IdentityOperator<FeH1,3,3>();
         }
 
@@ -385,19 +371,38 @@ namespace CoupledField {
         BiLinearForm *convectivevV = NULL;
         PtrCoefFct coeffConvec;
         if(isComplex_) {
-          coeffConvec.reset(
-            new CoefFunctionMeanFlowConvection<Complex>( density, viscosity,
-                                                         bOpGrad, meanVelFct )
-            );
+          if( dim_ == 2 ) {
+            bOpGrad = new GradientOperator<FeH1,2, Complex>();
+            coeffConvec.reset(
+              new CoefFunctionMeanFlowConvection<Complex,2>( density, viscosity,
+                                                             bOpGrad, meanVelFct )
+              );
+          } else {
+            bOpGrad = new GradientOperator<FeH1,3, Complex>();
+            coeffConvec.reset(
+              new CoefFunctionMeanFlowConvection<Complex,3>( density, viscosity,
+                                                             bOpGrad, meanVelFct )
+              );
+          }          
           convectivevV = new BDBInt<Complex,Complex>( bOpId, coeffConvec, 1.0 );
+
         } else {
-          coeffConvec.reset(
-            new CoefFunctionMeanFlowConvection<Double>( density, viscosity,
-                                                         bOpGrad, meanVelFct )
-            );
+          if( dim_ == 2 ) {
+            bOpGrad = new GradientOperator<FeH1,2, Double>();
+            coeffConvec.reset(
+              new CoefFunctionMeanFlowConvection<Double,2>( density, viscosity,
+                                                            bOpGrad, meanVelFct )
+              );
+          } else {
+            bOpGrad = new GradientOperator<FeH1,3, Double>();
+            coeffConvec.reset(
+              new CoefFunctionMeanFlowConvection<Double,3>( density, viscosity,
+                                                            bOpGrad, meanVelFct )
+              );
+          }
           convectivevV = new BDBInt<Double,Double>( bOpId, coeffConvec, 1.0 );
         }
-
+        
         convectivevV->SetName("PerturbedStiffIntConvectivevV");
 
         BiLinFormContext *convectiveContextvV = NULL;
