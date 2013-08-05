@@ -1335,7 +1335,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::VOLUME:
       // Bastian's stuff needs IntegrateDesignVariable(). The SIMP stuff is better with CalcTrivialVolume() as
       // we cannot assume SIMP_TYPE transfer functions here!
-      if(method_ == SIMP_METHOD)
+      if(method_ == SIMP_METHOD || GetDesign()->FindDesign(DesignElement::DENSITY, false) > -1)
       return CalcTrivialVolume(func, derivative, normalized);
       else// FIXME check if it is ok not to give an exponent in the physical case!
       return IntegrateDesignVariable(f, g, derivative, des, normalized, false, 1.0);// no scaling, exponent=1
@@ -1375,6 +1375,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 // TODO: assumes a single transfer function for all regions!
     TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->GetDesignType(), Optimization::MECH) : NULL;
     bool regular = design->IsRegular();
+    unsigned int numEls = design->elements;
+    unsigned int base = design->FindDesign(DesignElement::DENSITY)*numEls;
     double sum = 0.0;
 // we need the total volume in the non-regular case
     double total_vol = 0.0;
@@ -1385,13 +1387,15 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     else
     {
       if (!regular)
-      for (unsigned int i = 0, n = f->elements.GetSize();i < n;i++)
-      total_vol += f->elements[i]->CalcVolume();
+      {
+        for (unsigned int i = base; i < base+numEls; i++)
+          total_vol += f->elements[i]->CalcVolume();
+      }
       else
-      total_vol = f->elements.GetSize();
+      total_vol = numEls;
     }
     LOG_DBG(em) << "CTV: d=" << derivative << " p=" << f->IsPhysical() << " n=" << normalized << " tv=" << total_vol;
-    for(unsigned int i = 0, n = f->elements.GetSize(); i < n; i++)
+    for (unsigned int i = base; i < base+numEls; i++)
     {
       DesignElement* de = f->elements[i];
 
