@@ -4,10 +4,13 @@
 
 #include <math.h>
 #include <stddef.h>
+#include <algorithm>
 #include <complex>
 #include <iostream>
 #include <string>
 #include <utility>
+
+#include "boost/tokenizer.hpp"
 
 #include "CoupledPDE/pdecoupling.hh"
 #include "DataInOut/Logging/cfslog.hh"
@@ -1220,6 +1223,7 @@ namespace CoupledField {
     std::string rhsRegion;
     PtrParamNode rhsValuesNode, bcsNode;
     StdVector<PtrParamNode> regionList;
+    std::set<std::string> srcRegions;
 
     bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
     if( bcsNode )
@@ -1240,6 +1244,24 @@ namespace CoupledField {
         {
           intNode = (*regionIter)->Get("interpolation", ParamNode::PASS);
           intNode->GetValue("justInterpolate", justInterpolate_, ParamNode::PASS);
+          
+          // make sure that no source region is given twice, because that
+          // does not work with our interpolation algorithm
+          std::set<std::string> mySrcRegions, intersection;
+          boost::char_separator<char> sep(";| ");
+          boost::tokenizer< char_separator<char> > tok(intNode
+              ->Get("srcRegions")->Get("names")->As<std::string>(), sep);
+          mySrcRegions.insert(tok.begin(), tok.end());
+          std::set_intersection(srcRegions.begin(), srcRegions.end(),
+                                mySrcRegions.begin(), mySrcRegions.end(),
+                                std::inserter(intersection, intersection.end()));
+          if ( intersection.empty() ) {
+            std::copy(mySrcRegions.begin(), mySrcRegions.end(),
+                      std::inserter(srcRegions, srcRegions.end()));
+          } else {
+            EXCEPTION("Conservative interpolation: the same source region must"
+                      << " not be used with two or more destination regions");   
+          }
         }
       } catch (Exception& ex)
       {
@@ -2295,11 +2317,13 @@ namespace CoupledField {
           }
         }
         if ( neighborRegionId != NO_REGION_ID ) {
-          if ( neighborRegionId == actSurfElem->ptVolElem1->regionId ) {
+          if ( (actSurfElem->ptVolElem1 != NULL) &&
+               (neighborRegionId == actSurfElem->ptVolElem1->regionId) ) {
             ptVolElem = actSurfElem->ptVolElem1;
             normSign = 1.0;
           }
-          else if ( neighborRegionId == actSurfElem->ptVolElem2->regionId ) {
+          else if ( (actSurfElem->ptVolElem2 != NULL) && 
+                    (neighborRegionId == actSurfElem->ptVolElem2->regionId) ){
             ptVolElem = actSurfElem->ptVolElem2;
             normSign = -1.0;
           }

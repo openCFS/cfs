@@ -630,6 +630,7 @@ namespace CoupledField {
     // all closing is already done in FinishStep
     
     registeredMeshResults_.clear();
+    registeredHistResults_.clear();
 
     // reset all data per sequence step
     meshResultSaveBegin_.clear();
@@ -1128,11 +1129,11 @@ namespace CoupledField {
       if( !isHistory ) {
         saveBegin = std::max( (UInt)1, meshResultSaveBegin_[resultName]);
         saveEnd = std::min( currMSNumSteps_, meshResultSaveEnd_[resultName] );
-        saveInc = meshResultSaveInc_[resultName];
+        saveInc = std::max( (UInt)1, meshResultSaveInc_[resultName] );
       } else {
         saveBegin = std::max( (UInt) 1, histResultSaveBegin_[resultName] );
         saveEnd = std::min( currMSNumSteps_, histResultSaveEnd_[resultName] );
-        saveInc = histResultSaveInc_[resultName];
+        saveInc = std::max( (UInt)1, histResultSaveInc_[resultName] );
       }
 
       // Generate list of entityNames for the current result.

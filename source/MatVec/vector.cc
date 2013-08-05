@@ -251,7 +251,7 @@ namespace CoupledField {
   template<typename T>
   void Vector<T>::Init( T entry)
   {
-#pragma omp parallel for 
+//#pragma omp parallel for 
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] = entry;
   }
