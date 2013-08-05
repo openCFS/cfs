@@ -32,10 +32,8 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_FESPACE_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_BUILD_NIGHTLY")
-
-SET(FESPACE_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_FESPACE_NIGHTLY")
 
 #-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
@@ -64,9 +62,9 @@ SET(ENV{LC_ALL} "C")
 SET(ENV{LANG} "C")
 SET(ENV{LANGUAGE} "C")
 
-SET(IDCOMP_TEMPL "${FESPACE_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
+SET(IDCOMP_TEMPL "${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
 SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
-SET(IDENTIFY_COMPILER_SRC "${FESPACE_SOURCE_DIRECTORY}/share/scripts/IdentifyCXXCompiler.cpp")
+SET(IDENTIFY_COMPILER_SRC "${CTEST_SOURCE_DIRECTORY}/share/scripts/IdentifyCXXCompiler.cpp")
 
 #-----------------------------------------------------------------------------
 # Let's first find out some infos about the system GNU compiler first.
@@ -90,7 +88,7 @@ EXECUTE_PROCESS(
 
 INCLUDE("${COMPILER_ID_FILE}")
 
-EXEC_PROGRAM("${FESPACE_SOURCE_DIRECTORY}/share/scripts/distro.sh -c"
+EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh -c"
   ARGS
   OUTPUT_VARIABLE DISTRO_OUT
   RETURN_VALUE RETVAL)
@@ -98,12 +96,12 @@ EXEC_PROGRAM("${FESPACE_SOURCE_DIRECTORY}/share/scripts/distro.sh -c"
 FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake" "${DISTRO_OUT}")
 INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 
-#
-# MESSAGE("CXX_ID CXX_VERSION CXX_VERSION ${CXX_ID} ${CXX_VERSION} ${CXX_GCC_VERSION}")
-# MESSAGE(FATAL_ERROR "${DIST} ${REV} ${ARCH}")
 
-SET(BUILDTYPE "RELEASE")
-SET(BUILDNAME "Trunk ${DIST} ${REV} ${ARCH} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+# MESSAGE("${CXX_ID} ${CXX_VERSION} ${CXX_GCC_VERSION}")
+# MESSAGE("${DIST} ${REV} ${ARCH}")
+
+SET(BUILDTYPE "DEBUG")
+SET(BUILDNAME "FeSpace ${DIST} ${REV} ${ARCH} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
 SITE_NAME(CFS_BUILD_HOST)
 STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
@@ -111,11 +109,6 @@ LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST)
 SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}.mdmt")
 set(CTEST_SITE "${CFS_BUILD_HOST}")
 set(CTEST_BUILD_NAME "${BUILDNAME}")
-
-#-----------------------------------------------------------------------------
-# Copy CDash server configuration file to source dir.
-#-----------------------------------------------------------------------------
-EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
 
 #-----------------------------------------------------------------------------
 # Start out with an empty binary directory.
@@ -129,21 +122,20 @@ SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 #-----------------------------------------------------------------------------
 SET(CTEST_INITIAL_CACHE
   "BUILD_TESTING:BOOL=ON
-   DEBUG:BOOL=OFF
+   DEBUG:BOOL=ON
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
-   TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_TRUNK
-   CFS_DEPS_ROOT:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_TRUNK_NIGHTLY
+   TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_FESPACE
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
-   CFSTOOL:BOOL=ON
-   CPLREADER:BOOL=ON
-   CPLREADER_PERF_SUITE:PATH=/media/CFD_Data/cplreader_performance_suite
 #   USE_ANSYSRST:BOOL=ON
+   CFSTOOL:BOOL=ON
    USE_GMV:BOOL=ON
    USE_GMSH:BOOL=ON
-   USE_PYTHON:BOOL=ON
+#   USE_PYTHON:BOOL=ON
 #   USE_TCL:BOOL=ON
    USE_CGAL:BOOL=ON
    USE_SCPIP:BOOL=ON
+   USE_SUITESPARSE:BOOL=ON
+   USE_SUPERLU:BOOL=ON
    USE_PARDISO:BOOL=ON
    CFS_PARDISO:STRING=MKL
    MKL_ROOT_DIR:PATH=/opt/pckg/intel/parallel_studio_xe_2011_sp1_update1/mkl

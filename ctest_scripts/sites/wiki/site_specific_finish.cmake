@@ -38,6 +38,14 @@ EXECUTE_PROCESS(
   RESULT_VARIABLE RETVAL)
 
 
+# ===========================================================================
+#  Make nightly binaries available via Apache server.
+# ===========================================================================
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_directory archives ${APACHE_NIGHTLY_DIR}
+  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+  RESULT_VARIABLE RETVAL)
+
 
 # ===========================================================================
 #  Unpack nightly binaries to /opt/pckg/cfs_nightly.
@@ -49,7 +57,7 @@ IF(NOT EXISTS "${CFS_NIGHTLY_DIR}/fespace_gcc")
 ENDIF()
 
 EXECUTE_PROCESS(
-  COMMAND unzip archives/oracle6_linux64_fespace_gcc_release.zip
+  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/oracle6_linux64_fespace_gcc_release.zip
   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
   RESULT_VARIABLE RETVAL)
 
@@ -62,7 +70,7 @@ FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
 
 
 EXECUTE_PROCESS(
-  COMMAND unzip archives/precise_linux64_fespace_gcc_release.zip
+  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/precise_linux64_fespace_gcc_release.zip
   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
   RESULT_VARIABLE RETVAL)
 
@@ -81,8 +89,15 @@ IF(NOT EXISTS "${CFS_NIGHTLY_DIR}/trunk_gcc")
 ENDIF()
 
 EXECUTE_PROCESS(
-  COMMAND unzip archives/oracle6_linux64_trunk_gcc_release.zip
+  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/oracle6_linux64_trunk_gcc_release.zip
   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+  RESULT_VARIABLE RETVAL)
+
+# Remove symlinks pointing to nirvana. Otherwise cmake -E copy_directory
+# will return an error.
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E remove bzcmp bzegrep bzfgrep bzless
+  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/bin/RHEL_6_X86_64"
   RESULT_VARIABLE RETVAL)
 
 EXECUTE_PROCESS(
@@ -94,8 +109,15 @@ FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
 
 
 EXECUTE_PROCESS(
-  COMMAND unzip archives/precise_linux64_trunk_gcc_release.zip
+  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/precise_linux64_trunk_gcc_release.zip
   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+  RESULT_VARIABLE RETVAL)
+
+# Remove symlinks pointing to nirvana. Otherwise cmake -E copy_directory
+# will return an error.
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E remove bzcmp bzegrep bzfgrep bzless
+  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/bin/UBUNTU_12.04_X86_64"
   RESULT_VARIABLE RETVAL)
 
 EXECUTE_PROCESS(
@@ -105,13 +127,24 @@ EXECUTE_PROCESS(
 
 FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
 
+# ===========================================================================
+#  Copy over CFSDEPS and CFSDEPSCACHE to /opt/pckg.
+# ===========================================================================
 
-# ===========================================================================
-#  Make nightly binaries available via Apache server.
-# ===========================================================================
+FILE(GLOB CFSDEPSCACHE_FILES "/opt/pckg/CFSDEPSCACHE/*")
+FILE(REMOVE_RECURSE ${CFSDEPSCACHE_FILES})
+
+FILE(GLOB CFSDEPS_FILES "/opt/pckg/CFSDEPS/*")
+FILE(REMOVE_RECURSE ${CFSDEPS_FILES})
+
 EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory archives ${APACHE_NIGHTLY_DIR}
-  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+  COMMAND ${CMAKE_COMMAND} -E copy_directory CFSDEPS_TRUNK_NIGHTLY /opt/pckg/CFSDEPS
+  WORKING_DIRECTORY "${HOME}/Documents/dev/NIGHTLY"
+  RESULT_VARIABLE RETVAL)
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_directory CFSDEPSCACHE /opt/pckg/CFSDEPSCACHE
+  WORKING_DIRECTORY "${HOME}/Documents/dev/NIGHTLY"
   RESULT_VARIABLE RETVAL)
 
 
