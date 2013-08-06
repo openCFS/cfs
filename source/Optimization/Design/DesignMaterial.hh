@@ -24,7 +24,7 @@ class ErsatzMaterial;
     
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
       DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR,
-      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT, ROTATION } Type;
+      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT} Type;
     
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -57,7 +57,7 @@ class ErsatzMaterial;
     void GetPiezoCouplingTensor(Matrix<double>& t, DesignElement::Type direction);
 
     /** returns the tensor with negative design variables such the design vector is still pos. definite */
-    void GetDielecTensor(Matrix<double>& t, DesignElement::Type direction);
+    void GetElecTensor(Matrix<double>& t, DesignElement::Type direction);
 
     /** retrieve rel. mass of element (tensor trace) or derivative thereof */
     double GetMaterialMass(DesignElement::Type direction);
@@ -132,7 +132,7 @@ class ErsatzMaterial;
     inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
     
     /* general anisotropic FMO tensor */
-    inline void GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
+    inline void GetElasticFMOTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
 
     /** Calculate the Tensor for Density times Tensor */
     inline void GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
@@ -164,8 +164,12 @@ class ErsatzMaterial;
     inline void SetIsoTensor(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
     
     /** rotate elasticity tensor in t (in Hill-Mandel notation!) by the angle a and adjust the entries back to notation to fit with CFS++ */
-    inline void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation = VOIGT);
+    void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double angle, Notation notation = VOIGT);
 
+    /** This exists only in Voigt notation! */
+    void RotatePiezoCouplingTensor(Matrix<double>& t, double angle, DesignElement::Type direction);
+
+    void RotateElecTensor(Matrix<double>& t, double angle, DesignElement::Type direction);
 
     /** Calculate the mass isotropic case */
     inline double GetIsoMaterialMass(DesignElement::Type direction);    

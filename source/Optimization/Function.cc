@@ -1474,6 +1474,10 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
 
   LOG_DBG(func) << "F:L:SMDEM des_idx=" << des_idx.ToString() << " total=" << space->design.ToString();
 
+  if(elems > func_->elements.GetSize())
+    EXCEPTION("for function " << Function::type.ToString(f->GetType()) << " with design " << DesignElement::type.ToString(f->GetDesignType())
+              << " the design space is " << func_->elements.GetSize() << " but should be " << elems);
+
   for(unsigned int e = 0; e < elems; e++)
   {
     DesignElement* de = func_->elements[e];

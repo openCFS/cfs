@@ -696,7 +696,7 @@ bool DesignSpace::GetDielecTensor(Matrix<double>& t, const Elem* elem, DesignEle
   if(direction == DesignElement::NO_DERIVATIVE && !designMaterial->HasParameter(DesignElement::DIELEC_11))
     return false;
   if(CollectMaterialParametersForElement(elem)) {
-    designMaterial->GetDielecTensor(t, direction);
+    designMaterial->GetElecTensor(t, direction);
     return true;
   }
   else

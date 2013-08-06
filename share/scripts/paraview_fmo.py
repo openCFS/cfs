@@ -128,12 +128,12 @@ def rotate_cfs(tensor, theta, phi = None):
 
   # 2D for elec, piezo and mech
   R = get_rot_2x2(theta)
-  
+  print R
   if tensor.shape == (2,2):
     return dot(R,dot(tensor,R.transpose()))
   
   Q = get_rot_3x3(theta, R)
-  
+  print Q
   if tensor.shape == (2,3):
     return dot(R, dot(tensor, Q.transpose()))
 
@@ -538,12 +538,12 @@ e2d[1,0] = 0.0
 e2d[1,1] = 1.27
 
 p0 = numpy.zeros((2,3))
-p0[0,0] = 0.0
-p0[0,1] = 0.0
+p0[0,0] = 0.01
+p0[0,1] = 0.01
 p0[0,2] = 17.0
 p0[1,0] = -6.5
 p0[1,1] = 23.3
-p0[1,2] = 0.0
+p0[1,2] = 0.01
 
 e3d = numpy.zeros((6,6))
 e3d[0,0] = 1.0
