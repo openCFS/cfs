@@ -158,11 +158,6 @@ set(CTEST_SITE "${CFS_BUILD_HOST}")
 set(CTEST_BUILD_NAME "${BUILDNAME}")
 
 #-----------------------------------------------------------------------------
-# Copy CDash server configuration file to source dir.
-#-----------------------------------------------------------------------------
-EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
-
-#-----------------------------------------------------------------------------
 # Start out with an empty binary directory.
 #-----------------------------------------------------------------------------
 SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
@@ -194,7 +189,12 @@ SET(CTEST_INITIAL_CACHE
    USE_OPENMP:BOOL=ON
    BUILDNAME:STRING=${BUILDNAME}")
 
+# Generate Unix Makefiles
 SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+
+# Since we only have one Intel license, we force a serial build here.
+# cf. http://www.kitware.com/blog/home/post/63
+SET(CTEST_BUILD_FLAGS "-j1")
 
 message("Start dashboard...")
 ctest_start(Nightly)
@@ -204,12 +204,37 @@ ctest_start(Nightly)
 FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
 message("  Configure")
 ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-# Configure twice so that CFX and OpenFOAM dependencies get built
-ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 #message("read custom files after configure")
 #ctest_read_custom_files("${CTEST_BINARY_DIRECTORY}")
 message("  Build")
 ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+
+# Copy some extra shared objects from Intel runtime
+SET(CFS_LIB_DIR "${CTEST_BINARY_DIRECTORY}/lib64/RHEL_6_X86_64")
+SET(DLLS
+  libifport.so.5
+  libifcore.so.5
+  libimf.so
+  libsvml.so
+  libintlc.so.5
+  libiomp5.so
+)
+
+
+FOREACH(DLL IN ITEMS ${DLLS})
+  EXECUTE_PROCESS(
+    COMMAND ${CMAKE_COMMAND} -E copy "${INTEL_COMPILER_PATH}/composer_xe_2011_sp1.7.256/compiler/lib/intel64/${DLL}" "${CFS_LIB_DIR}"
+    RESULT_VARIABLE RETVAL
+  )
+ENDFOREACH()
+
+# Manually reconfigure binary dir.
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} .
+  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}"
+  RESULT_VARIABLE RETVAL
+)
+
 message("  Test")
 ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 message("  Submit")

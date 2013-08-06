@@ -3,9 +3,6 @@
 #  builds to HTTP server and /opt/pckg/cfs_nightly.
 # ===========================================================================
 
-SET(CFS_NIGHTLY_DIR "/opt/pckg/cfs_nightly")
-SET(APACHE_NIGHTLY_DIR "/var/www/html/cfs_nightly")
-
 # Find out seconds of current time                                                                                                     
 EXECUTE_PROCESS(                                                                                                                       
   COMMAND date +%s                                                                                                                     
@@ -55,6 +52,10 @@ EXECUTE_PROCESS(
 IF(NOT EXISTS "${CFS_NIGHTLY_DIR}/fespace_gcc")
   FILE(MAKE_DIRECTORY "${CFS_NIGHTLY_DIR}/fespace_gcc")
 ENDIF()
+IF(NOT EXISTS "${CFS_NIGHTLY_DIR}/fespace_icc")
+  FILE(MAKE_DIRECTORY "${CFS_NIGHTLY_DIR}/fespace_icc")
+ENDIF()
+
 
 EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND} -E tar xvf archives/oracle6_linux64_fespace_gcc_release.zip
@@ -81,6 +82,17 @@ EXECUTE_PROCESS(
 
 FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
 
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/wiki_linux64_fespace_icc12_release.zip
+  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+  RESULT_VARIABLE RETVAL)
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY fespace_icc
+  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+  RESULT_VARIABLE RETVAL)
+
+FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
 
 
 # Unpack Trunk binaries
@@ -132,10 +144,14 @@ FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
 # ===========================================================================
 
 FILE(GLOB CFSDEPSCACHE_FILES "/opt/pckg/CFSDEPSCACHE/*")
-FILE(REMOVE_RECURSE ${CFSDEPSCACHE_FILES})
+IF(NOT CFSDEPSCACHE_FILES STREQUAL "")
+  FILE(REMOVE_RECURSE ${CFSDEPSCACHE_FILES})
+ENDIF()
 
 FILE(GLOB CFSDEPS_FILES "/opt/pckg/CFSDEPS/*")
-FILE(REMOVE_RECURSE ${CFSDEPS_FILES})
+IF(NOT CFSDEPS_FILES STREQUAL "")
+  FILE(REMOVE_RECURSE ${CFSDEPS_FILES})
+ENDIF()
 
 EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND} -E copy_directory CFSDEPS_TRUNK_NIGHTLY /opt/pckg/CFSDEPS

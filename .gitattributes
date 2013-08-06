@@ -397,6 +397,7 @@ ctest_scripts/sites/wiki/ctest_update_fespace_wien.cmake -text
 ctest_scripts/sites/wiki/ctest_update_trunk_testsuite_wien.cmake -text
 ctest_scripts/sites/wiki/ctest_update_trunk_wien.cmake -text
 ctest_scripts/sites/wiki/linux64_fespace_icc12_release.ctest -text
+ctest_scripts/sites/wiki/linux64_fespace_icc12_release_deploy.cmake -text
 ctest_scripts/sites/wiki/linux64_fespace_icc13_release.ctest -text
 ctest_scripts/sites/wiki/set_permissions.cmake -text
 ctest_scripts/sites/wiki/site_specific_finish.cmake -text

@@ -38,6 +38,14 @@ IF(DAYOFWEEK EQUAL 1)
     "${HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE/precompiled")
 ENDIF()
 
+# ===========================================================================
+#  Clean up last night's compiled binaries.
+# ===========================================================================
+FILE(GLOB CFS_NIGHTLY_ARCHIVES "${CFS_NIGHTLY_DIR}/archives/*")
+IF(NOT CFS_NIGHTLY_ARCHIVES STREQUAL "")
+  FILE(REMOVE ${CFS_NIGHTLY_ARCHIVES})
+ENDIF()
+
 MESSAGE(
 "
 =============================================================================

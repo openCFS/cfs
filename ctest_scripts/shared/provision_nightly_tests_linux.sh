@@ -8,7 +8,8 @@ echo "Starting nightly test on $HOSTNAME..."
 TEMPFILE=$(mktemp -t nightly_test_XXXX -u)
 echo "TEMPFILE $TEMPFILE"
 echo "USER $USER"
-PWDLINE=$(fgrep $USER /etc/passwd | grep nightly_test_user)
+# PWDLINE=$(fgrep $USER /etc/passwd | grep nightly_test_user)
+PWDLINE=$(getent passwd $USER)
 HOME=$(echo $PWDLINE | cut -d':' -f6)
 echo "HOME $HOME"
 CTEST="/opt/pckg/cmake-2.8.10.2-Linux-i386/bin/ctest"

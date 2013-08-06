@@ -60,10 +60,28 @@ MACRO(SET_SITE_SPECIFIC_VARS)
   #
   # =========================================================================
 
-#  MESSAGE("Entering SET_SITE_SPECIFIC_VARS...")
-  IF(EXISTS "${SITE_DIR}/site_specific_vars.cmake")
-    INCLUDE("${SITE_DIR}/site_specific_vars.cmake")
+  IF(UNIX)
+    # Set user name
+    EXECUTE_PROCESS(
+      COMMAND id -un
+      OUTPUT_VARIABLE TESTUSER
+      RESULT_VARIABLE RETVAL
+    )
+    STRING(STRIP ${TESTUSER} TESTUSER)
+
+    # Set home directory
+    EXECUTE_PROCESS(
+      COMMAND getent passwd ${TESTUSER}
+      OUTPUT_VARIABLE PWDLINE
+      RESULT_VARIABLE RETVAL
+    )
+    STRING(REPLACE ":" ";" PWDLINE ${PWDLINE})
+
+    LIST(GET PWDLINE 5 HOME)
   ENDIF()
+
+#  MESSAGE("Entering SET_SITE_SPECIFIC_VARS...")
+  INCLUDE("${SITE_DIR}/site_specific_vars.cmake" OPTIONAL)
 #  MESSAGE("Leaving SET_SITE_SPECIFIC_VARS...")
 ENDMACRO()
 
@@ -138,25 +156,25 @@ MACRO(PERFORM_TEST TEST_NAME)
 
     IF(TARGET_ARCH MATCHES "linux[0-9][0-9]")
       EXECUTE_PROCESS(
-        COMMAND ${TARGET_ARCH} ${CTEST_COMMAND} -V -S "${SITE_DIR}/${TEST_NAME}.ctest"
+        COMMAND ${TARGET_ARCH} ${CTEST_COMMAND} -V --build-two-config -S "${SITE_DIR}/${TEST_NAME}.ctest"
         WORKING_DIRECTORY "."
         RESULT_VARIABLE RETVAL
       )
     ELSE()
       EXECUTE_PROCESS(
-        COMMAND ${CTEST_COMMAND} -V -S "${SITE_DIR}/${TEST_NAME}.ctest"
+        COMMAND ${CTEST_COMMAND} -V --build-two-config -S "${SITE_DIR}/${TEST_NAME}.ctest"
         WORKING_DIRECTORY "."
         RESULT_VARIABLE RETVAL
       )
     ENDIF()
   ELSE(UNIX)
 
-    LIST(APPEND TEST_CMD "\\\"${CTEST_COMMAND}\\\"" -V -S "\\\"${SITE_DIR}/${TEST_NAME}.ctest\\\"")
+    LIST(APPEND TEST_CMD "\\\"${CTEST_COMMAND}\\\"" -V --build-two-config -S "\\\"${SITE_DIR}/${TEST_NAME}.ctest\\\"")
 
     MESSAGE(STATUS "TEST_CMD: ${TEST_CMD}")
 
     EXECUTE_PROCESS(
-      COMMAND ${CTEST_COMMAND} -V -S "${SITE_DIR}/${TEST_NAME}.ctest"
+      COMMAND ${CTEST_COMMAND} -V --build-two-config -S "${SITE_DIR}/${TEST_NAME}.ctest"
       WORKING_DIRECTORY "."
       RESULT_VARIABLE RETVAL
       )
@@ -305,9 +323,7 @@ MACRO(SITE_SPECIFIC_INIT)
   # =========================================================================
 
 #  MESSAGE("Entering SITE_SPECIFIC_INIT...")
-  IF(EXISTS "${SITE_DIR}/site_specific_init.cmake")
-    INCLUDE("${SITE_DIR}/site_specific_init.cmake")
-  ENDIF()
+  INCLUDE("${SITE_DIR}/site_specific_init.cmake" OPTIONAL)
 #  MESSAGE("Leaving SITE_SPECIFIC_INIT...")
 ENDMACRO()
 
@@ -326,9 +342,7 @@ MACRO(SITE_SPECIFIC_FINISH)
   # =========================================================================
 
 #  MESSAGE("Entering SITE_SPECIFIC_FINISH...")
-  IF(EXISTS "${SITE_DIR}/site_specific_finish.cmake")
-    INCLUDE("${SITE_DIR}/site_specific_finish.cmake")
-  ENDIF()
+  INCLUDE("${SITE_DIR}/site_specific_finish.cmake" OPTIONAL)
 #  MESSAGE("Leaving SITE_SPECIFIC_FINISH...")
 ENDMACRO()
 
