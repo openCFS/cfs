@@ -45,7 +45,8 @@ namespace CoupledField {
   //! \param delimiter (input)  character used as delimiter
   void SplitStringList( const std::string &list, StdVector<std::string> &strVec,
                         const char delimiter = ',' );
-
+  /** boost based SplitStringList() which consideres almost all whitespaces */
+  void SplitStringListWhitespace(const std::string &s, StdVector<std::string> &strVec);
     //@}
 
   // =========================================================================

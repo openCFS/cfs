@@ -89,6 +89,19 @@ namespace CoupledField
     virtual void Global2LocalCoords(Matrix<Double> & localCoords,
                                     const Matrix<Double> & globalCoords,
                                     const Matrix<Double> & coordMat);
+    //! The fast version of Global2LocalCoords, which is not implemented for
+    //! all elements
+    //! Get the local coordinates for given global ones
+    //! \param localCoords (output) local coordinates
+    //! \param globalCoords (input) global coordinates
+    //! \param coordMat (input) global corner coordinates of element
+    //!                         (spaceDim \f$\times\f$ nrNodes)
+    virtual void fastGlobal2LocalCoords(Matrix<Double> & localCoords,
+                                        const Matrix<Double> & globalCoords,
+                                        const Matrix<Double> & coordMat)
+    {
+      EXCEPTION( "Not implemented" );
+    }
 
     //! Returns wether a given local coordinate is
     //! within this element

@@ -69,6 +69,7 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     // Tensor trace for param mat
     case STIFF1:
     case STIFF2:
+    case STIFF3:
     // Batian's stuff
     // FIXMI!!
     case POISSON:
@@ -669,6 +670,7 @@ void DesignElement::SetEnums()
   type.Add(ROTANGLE, "rotAngle");
   type.Add(STIFF1, "stiff1");
   type.Add(STIFF2, "stiff2");
+  type.Add(STIFF3, "stiff3");
   type.Add(SLACK, "slack");
   type.Add(MULTIMATERIAL, "multimaterial");
   type.Add(ALL_DESIGNS, "allDesigns");

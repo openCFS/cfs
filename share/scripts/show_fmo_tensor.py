@@ -180,7 +180,7 @@ parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, '
 parser.add_argument("--scale", help="manual scaling factor", default=-1)
 parser.add_argument("--res", help="x-resolution (default 1200)", default=1200)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180)
-parser.add_argument("--show", help="default | ortho_norm | mono_norm (3D) | e21_normed (2D) | hom_rect | shear", default="default")
+parser.add_argument("--show", help="default | ortho_norm | mono_norm (3D) | ortho_err | e21_normed (2D) | hom_rect | hom_rot_cross | rot | shear", default="default", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'rot', 'shear'])
 parser.add_argument("--notation", help="mandel | voigt (default 'mandel')", default="mandel")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
@@ -188,7 +188,9 @@ parser.add_argument("--symmetries_threshold", help="threshold value for symmetri
 parser.add_argument("--symmetries_mode", help="'minima' or 'all' subject to max and threshold (default 'minima'", default="minima")
 parser.add_argument("--symmetries_planes", help="'true' or 'false' for 3D also show planes to normals (default 'false')", default="false")
 parser.add_argument("--hom_access", help="the 'plain ' or 'smart' hom values (default 'smart')", default = "smart")
-parser.add_argument("--hom_show", help="'thickness' or 'color' (default 'thickness')", default="thickness")
+parser.add_argument("--hom_grad", help="interpolation of design: 'none', 'nearest', linear', 'cubic' (default 'linear')", default="linear", choices=['none', 'nearest', 'linear', 'cubic'] )
+parser.add_argument("--hom_dir", help="visualization of stiffness directions: 'both', 'horizontal', 'vertical' (default 'both')", default="both", choices=['both', 'horizontal', 'vertical'] )
+parser.add_argument("--hom_angle", help="bias added to the angle in grad!", default=0.0, type=float )
 parser.add_argument("--save", help="save 'image.png' or VTK Poly Data file 'file.vtp'")
 parser.add_argument("--plot", help="for single tensors: creates gnuplot file instead of image")
 args = parser.parse_args()
@@ -237,18 +239,39 @@ if args.input.startswith('['):
 else:   
   # read 2D CFS optimization result 
   f = h5py.File(args.input)
-  centers  = centered_elements(f)
+  validate_region(f, args.h5_region)
+  centers, min, max, elem_dim  = centered_elements(f, args.h5_region)
   tensor = get_element(f, args.tensor, args.h5_region, int(args.h5_step))
   
   
 #perform 2D and 3D
 if dim_2D:  
   im = None
-  if args.show == "hom_rect":
+  if args.show == "hom_rect" or args.show == "hom_rot_cross":
     s1    = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region)
     s2    = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region)
-    angle = get_element(f, "design_rotAngle_plain", args.h5_region)
-    im = show_rot_rect(centers, s1, s2, angle, args.hom_show, int(args.res), float(args.scale))
+    coords = (centers, min, max, elem_dim)
+    im = None
+    if args.show == "hom_rot_cross":
+      angle = None
+      try:
+        # we need to copy the data, as we change the angle beyond and this would be written back to H5!
+        a = get_element(f, "design_rotAngle_plain", args.h5_region)
+        angle = numpy.zeros((len(a),1))
+        angle[:,0] = a[:,0]
+      except:
+        angle = numpy.zeros((len(s1),1))
+      # add angle bias
+      angle[:,0] += args.hom_angle * numpy.pi/180  
+      if args.hom_grad == 'none':
+        im = show_rot_cross(coords, s1, s2, angle, args.hom_dir, int(args.res), float(args.scale))
+      else:
+        im = show_rot_cross_grad(coords, s1, s2, angle, args.hom_grad, args.hom_dir, int(args.res), float(args.scale))          
+    else:
+      if args.hom_grad == 'none':
+        im = show_frame(coords, s1, s2, args.hom_dir, int(args.res))
+      else:
+        im = show_frame_grad(coords, s1, s2, args.hom_grad, args.hom_dir, int(args.res))      		
   else:
     angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.tensor, args.show)
     

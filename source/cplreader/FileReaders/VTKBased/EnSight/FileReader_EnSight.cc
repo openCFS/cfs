@@ -87,6 +87,7 @@ namespace CoupledField
     vy_ = settings.GetString("vy");
     vz_ = settings.GetString("vz");
     pres_ = settings.GetString("pres");
+    presD2_ = settings.GetString("presD2");
 
     // Either velocity  is a  single vector  or consists of  2 or  3 component
     // fields.  In the first case the names  for vx, vz and vz are required to
@@ -134,6 +135,11 @@ namespace CoupledField
     
     reader->SetPointArrayStatus(pres_.c_str(), 1);
     reader->SetCellArrayStatus(pres_.c_str(), 1);
+
+    //if(requiredResults_[FLUIDMECH_PRESSURE_DERIV_2]){
+      reader->SetPointArrayStatus(presD2_.c_str(), 1);
+      reader->SetCellArrayStatus(presD2_.c_str(), 1);
+    //}
   }
   
   void FileReader_EnSight::EnableRegions() 
@@ -183,6 +189,12 @@ namespace CoupledField
       reader->SetTimeValue(val);
     }    
   }
+
+  void FileReader_EnSight::ReadElemValues(std::vector<FlowDataType>& nodalFlowData,
+                                          const std::vector<bool>& activeParts,
+                                          const UInt timeStepIdx){
+  }
+
   
   /* get nodal values from the corresponding fluid datafile the new way */
   void FileReader_EnSight::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
@@ -316,12 +328,33 @@ namespace CoupledField
           }
         }
 
+        /* check if the array is fluid pressure data */
+        if (dsName == presD2_ &&
+            (requiredResults_[FLUIDMECH_PRESSURE_DERIV_2] ||
+             requiredResults_[NO_SOLUTION_TYPE]))
+        {
+          fdps = &fd[FLUIDMECH_PRESSURE_DERIV_2];
+          fdps->isActive = 1; // all partitions have results
+          if (fdps->dofNames.empty())
+          {
+            fdps->definedOn = ResultInfo::NODE; // nodes
+            fdps->entryType = ResultInfo::SCALAR;
+            fdps->dofNames.push_back("-");
+            fdps->unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE_DERIV_2);
+            fdps->resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE_DERIV_2);
+            fdps->data.resize(numDOFs * numTuples);
+          }
+        }
+
         if (((dsName == vx_ || dsName == vy_ || dsName == vz_) &&
              (requiredResults_[FLUIDMECH_VELOCITY] ||
               requiredResults_[NO_SOLUTION_TYPE])) ||
             (dsName == pres_ &&
              (requiredResults_[FLUIDMECH_PRESSURE] ||
-              requiredResults_[NO_SOLUTION_TYPE])))
+              requiredResults_[NO_SOLUTION_TYPE])) ||
+              (dsName == presD2_ &&
+               (requiredResults_[FLUIDMECH_PRESSURE_DERIV_2] ||
+                requiredResults_[NO_SOLUTION_TYPE])))
         {
           numDOFs = fdps->dofNames.size();
           fdps->data.resize(numDOFs * numTuples);
@@ -418,6 +451,71 @@ namespace CoupledField
       sstr << reader->GetCaseFileName();
       userData[sstr.str()] = str;
       fin.close();
+  }
+
+  void FileReader_EnSight::InitElemNodeMapping()
+  {
+    EnumMap::iterator it, end;
+
+    it = Elem::feType.map.begin();
+    end = Elem::feType.map.end();
+
+    for( ; it != end; it++ ) 
+    {
+      UInt et = it->first;
+      UInt numElemNodes = Elem::GetNumElemNodes((Elem::FEType)et);
+      
+      unstrucElemNodeMapping_[et].resize(numElemNodes);
+      uniformElemNodeMapping_[et].resize(numElemNodes);
+      
+      for(UInt i=0; i<numElemNodes; i++) 
+      {
+        unstrucElemNodeMapping_[et][i] = i;
+        uniformElemNodeMapping_[et][i] = i;
+      }
+
+      switch((Elem::FEType)et)
+      {
+      case Elem::QUAD4:
+        uniformElemNodeMapping_[et][0] = 0;
+        uniformElemNodeMapping_[et][1] = 1;
+        uniformElemNodeMapping_[et][2] = 3;
+        uniformElemNodeMapping_[et][3] = 2;
+        break;
+        
+      case Elem::WEDGE6:
+        unstrucElemNodeMapping_[et][0] = 0;
+        unstrucElemNodeMapping_[et][1] = 1;
+        unstrucElemNodeMapping_[et][2] = 2;
+        unstrucElemNodeMapping_[et][3] = 3;
+        unstrucElemNodeMapping_[et][4] = 4;
+        unstrucElemNodeMapping_[et][5] = 5;
+        break;
+      case Elem::HEXA8:
+        uniformElemNodeMapping_[et][0] = 0;
+        uniformElemNodeMapping_[et][1] = 1;
+        uniformElemNodeMapping_[et][2] = 3;
+        uniformElemNodeMapping_[et][3] = 2;
+        uniformElemNodeMapping_[et][4] = 4;
+        uniformElemNodeMapping_[et][5] = 5;
+        uniformElemNodeMapping_[et][6] = 7;
+        uniformElemNodeMapping_[et][7] = 6;
+
+        unstrucElemNodeMapping_[et][0] = 0;
+        unstrucElemNodeMapping_[et][1] = 1;
+        unstrucElemNodeMapping_[et][2] = 2;
+        unstrucElemNodeMapping_[et][3] = 3;
+        unstrucElemNodeMapping_[et][4] = 4;
+        unstrucElemNodeMapping_[et][5] = 5;
+        unstrucElemNodeMapping_[et][6] = 6;
+        unstrucElemNodeMapping_[et][7] = 7;
+        break;
+
+      default:
+        break;
+      }
+    }
+    
   }
 
 } // end of namespace

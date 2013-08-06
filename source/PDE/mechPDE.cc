@@ -2427,7 +2427,14 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   template <class TYPE>
     void MechPDE::CalcStressAndStrain(shared_ptr<BaseResult> res, SolutionType st, bool density)
     {
-      BaseMaterial* actSDMat = materials_[res->GetEntityList()->GetIterator().GetElem()->regionId];
+      std::map<RegionIdType, BaseMaterial*>::const_iterator it =
+        materials_.find(res->GetEntityList()->GetIterator().GetElem()->regionId);
+      if ( it == materials_.end() ) {
+        EXCEPTION("Cannot calculate result '" << SolutionTypeEnum.ToString(st)
+            << "' on surface elements (region '"
+            << res->GetEntityList()->GetName() << "').");
+      }
+      BaseMaterial* actSDMat = it->second;
       MechStressStrain<TYPE> stress_strain(actSDMat,GetSubTensorType());
       stress_strain.CalcStressStrainResult(this, res, st, density);
     }

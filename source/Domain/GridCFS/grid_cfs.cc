@@ -82,9 +82,14 @@ namespace CoupledField {
     // if no param object is present, just leave
     if (!param) return;
 
-    Vector<Double> coord(dim_);
-    std::string coordSys;
+    Vector<Double> locCoord(dim_), globCoord(dim_);
+    Double compoValue;
+    std::string coordSysId, compoName;
     std::string name;
+    bool isAxi = false;
+    if ( domain ) { // there is no global domain object when running cfstool
+      isAxi = domain->IsAxisymmetric();
+    }
 
     for( UInt iType = 0; iType < 2; iType++ ) {
       PtrParamNode listNode;
@@ -107,20 +112,54 @@ namespace CoupledField {
         for( UInt i=0; i < nodes.GetSize(); i++ ) {
 
           // fetch name of nodes to be selected
-          nodes[i]->GetValue("name", name );
+          nodes[i]->GetValue("name", name);
 
           // check if node is defined by point coord
           PtrParamNode coordNode = nodes[i]->Get("coord", ParamNode::PASS );
-          if( coordNode ) {
 
-            // ToDo: insert defintion for axisymmetric geometry
-            coord.Init();
-            coord[0] = coordNode->Get( "x" )->MathParse<Double>();
-            coord[1] = coordNode->Get( "y" )->MathParse<Double>();
-            if( dim_ == 3 )
-              coord[2] = coordNode->Get( "z" )->MathParse<Double>();
+          if( coordNode ) {
+            UInt compoIndex;
+            locCoord.Init(0.0);
+            globCoord.Init(0.0);
+            
+            coordSysId = "default";
+            coordNode->GetValue("coordSysId", coordSysId, ParamNode::PASS);
+            const CoordSystem* cosy = domain->GetCoordSystem(coordSysId);
+            
+            ParamNodeList compoList = coordNode->GetChildren();
+            ParamNodeList::iterator compoIt = compoList.Begin(),
+                                    endIt = compoList.End();
+            
+            for ( ; compoIt != endIt; ++compoIt ) {
+              compoName = (*compoIt)->GetName();
+              if ( compoName == "coordSysId" ) continue;
+              
+              compoValue = (*compoIt)->MathParse<Double>();
+              if ( compoValue == 0.0) continue;
+              
+              if ( isAxi && (compoName == "x" || compoName == "y") ) {
+                EXCEPTION(listNode->GetName() << " '" << name
+                          << "': Coordinate components must be 'r', 'z' "
+                          << "in an axisymmetric simulation.");
+              }
+              if ( isAxi && compoName == "r" ) compoName = "x";
+              if ( isAxi && compoName == "z" ) compoName = "y";
+              
+              try {
+                compoIndex = cosy->GetVecComponent(compoName)-1;
+              } catch (Exception &ex) {
+                RETHROW_EXCEPTION(ex, "Unable to create "
+                                  << listNode->GetName()
+                                  << " '" << name << "'.");
+              }
+              
+              locCoord[compoIndex] = compoValue;
+            }
+
+            cosy->Local2GlobalCoord(globCoord, locCoord);
+            
             StdVector<UInt> entityNum(1);
-            entityNum[0] = FindEntityMinDistance( isNode, coord );
+            entityNum[0] = FindEntityMinDistance( isNode, globCoord );
 
             // add node / element
             if( isNode ) {
@@ -310,7 +349,7 @@ namespace CoupledField {
   UInt GridCFS::FindEntityMinDistance( bool isNode, Vector<Double>& coord ) {
 
     UInt entityNum;
-
+    
     // iterate over all nodes/elements in the grid
     // vectors with node indices and distance
     std::vector<Double> entityDist;
@@ -1606,6 +1645,13 @@ namespace CoupledField {
                             RegionIdType region,
                             const UInt* connect)
   {
+    if ( ielem > orderedElems_.GetSize() ) {
+      EXCEPTION("Element numbers are not contiguous: Element number " << ielem
+                << " is out of allowed range. Either you forgot to write out "
+                << "some elements or you need to compress the element "
+                << "numbering. Please check your mesh!");
+    }
+    
     UInt idx=ielem-1;
     Elem* el = orderedElems_[idx];
     UInt d = 2;

@@ -154,7 +154,7 @@ public:
                    POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12, SLACK,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
-                   ROTANGLE, STIFF1, STIFF2, MULTIMATERIAL, ALL_DESIGNS} Type;
+                   ROTANGLE, STIFF1, STIFF2,STIFF3, MULTIMATERIAL, ALL_DESIGNS} Type;
 
   BaseDesignElement(Type type = NO_TYPE);
   virtual ~BaseDesignElement() {};
@@ -190,15 +190,15 @@ public:
 
   /** Reset either gradients of the class
    * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT 
-   * @param g this should preferably be a Funtion*, but it didn't work and 
+   * @param g this should preferably be a Function*, but it didn't work and
    *  it is currently only needed for Condition anyways */
   void Reset(ValueSpecifier vs, Function* f = NULL);
 
-  /**  Gets the lower bound of the desing variable -
+  /**  Gets the lower bound of the design variable -
    * up to now this are defaults by type */
   double GetLowerBound() const { return lower_; }
 
-  /** The upper bound of the desing variable for the optimizer */
+  /** The upper bound of the design variable for the optimizer */
   double GetUpperBound() const { return upper_; }
 
   /** Set the lower bound of the design variable */

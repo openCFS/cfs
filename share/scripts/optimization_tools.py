@@ -225,8 +225,7 @@ def write_density_file(filename, data_inp, setname_inp, param = 0, elemnr=None):
 ## write simple multi-design density files
 def write_multi_design_file(filename, data, designs, elemnr = None):
 
-  assert(data.shape[1] == len(designs))
-
+  #assert(data.shape[1] == len(designs))
   out = open(filename, "w")
   out.write('<?xml version="1.0"?>\n')
   out.write('<cfsErsatzMaterial>\n')

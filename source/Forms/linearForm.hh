@@ -405,6 +405,11 @@ namespace CoupledField
                                  Vector<Double> & Result,
                                  const Elem* elem);
 
+    void CalcElemVecSurfForce(const Matrix<Double> & coordMat,
+                          const Matrix<Double>& NodalForce,
+                          Vector<Double>& elemvec,
+                          const Elem* elem);
+
     /// Calculation of vector of right hand side using nodal velocity values at
     /// the centre of an element
     void CalcElemVec4QuadwithVelCentre(const Matrix<Double>& ptCoord, 
@@ -418,6 +423,14 @@ namespace CoupledField
     /// Calculation of vector of right hand side using nodal velocity values
     void CalcElemVec4QuadwithVel(const Matrix<Double>& ptCoord, 
                                  const Matrix<Double> & NodalVel,
+                                 Vector<Double> & Result, 
+                                 Vector<Double> & nodalLoadDensity,
+                                 Vector<Double>& divLHTensor, 
+                                 const Elem* elem, Double density);
+    
+    /// Calculation of vector of right hand side using nodal velocity values
+    void CalcElemVec4QuadwithDivTij(const Matrix<Double>& ptCoord, 
+                                 const Matrix<Double> & NodalDivTij,
                                  Vector<Double> & Result, 
                                  Vector<Double> & nodalLoadDensity,
                                  Vector<Double>& divLHTensor, 
@@ -460,6 +473,10 @@ namespace CoupledField
   /// Calculation of vector of right hand side for wave equation using laplacian pressure values
   void CalcElemVecLHwithPress(const Matrix<Double>& ptCoord, const Vector<Double> & NodalPress,
                               Vector<Double> & Result, Vector<Double>& nodalLoadDensity,const Elem* elem);
+
+  /// Calculation of vector of right hand side for wave equation for given Lapl. Press (basically a mass integrator)
+  void CalcElemVecWaveWithPressD2(const Matrix<Double>& ptCoord, const Vector<Double> & NodalPress,
+                                      Vector<Double> & Result, Vector<Double>& nodalLoadDensity,const Elem* elem);
 
   /// Calculation of vector of right hand side using nodal mean pressure values
   /// Computes the integration of the total differential
