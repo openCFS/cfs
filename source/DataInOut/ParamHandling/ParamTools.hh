@@ -55,16 +55,15 @@ namespace CoupledField
     static void AsTensor(PtrParamNode node, unsigned int dim1, unsigned int dim2, Matrix<TYPE>& ret)
     {
       StdVector<std::string> strVec;
-      SplitStringList(node->As<std::string>(), strVec, ' ' );
-
+      // do not use cfs-implemented SplitStringList() as it cannot handle newline separated SAX parsed data
+      SplitStringListWhitespace(node->As<std::string>(), strVec);
       ret.Resize( dim1, dim2 );
       ret.Init();
       
       if (strVec.GetSize() != dim1*dim2) 
       {
-         EXCEPTION("Wrong size of matrix '" << node->GetName() << "'. It contains of " 
-                   << strVec.GetSize() << " entries and should be " << dim1 
-                   << " x " << dim2);
+        EXCEPTION("Wrong size of matrix '" << node->GetName() << "'. It contains "
+       << strVec.GetSize() << " entries and should be " << dim1  << " x " << dim2);
       }
 
       for ( UInt i = 0; i < dim1; i++ ) {

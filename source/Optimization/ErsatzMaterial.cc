@@ -1324,10 +1324,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, bool normalized)
   {
-// only a constraint has a design type set (if it has)
-    DesignElement::Type des = g == NULL ? DesignElement::DEFAULT : g->GetDesignType();
-// parameter is form the base function
     Function* func = Function::GetFunction(f, g);
+    DesignElement::Type des = func->GetDesignType();
     switch(func->GetType())
     {
       case Function::VOLUME:

@@ -185,7 +185,7 @@ def write_density_file(filename, data_inp, setname_inp, param = 0, elemnr=None):
            val = getNDArrayEntry(data, i, j, k)
            if elemnr <> None:
              nr = int(getNDArrayEntry(elemnr, i, j ,k))
-           
+            
            # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(nr)
            if param > 0:
             out.write('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '" physical="' + str(val**param) + '"/>\n')
@@ -200,18 +200,9 @@ def write_density_file(filename, data_inp, setname_inp, param = 0, elemnr=None):
 
 
 ## write simple multi-design density files
-def write_multi_design_file(filename, data, design1, design2 = None, design3 = None, design4 = None):
+def write_multi_design_file(filename, data, designs, elemnr = None):
 
-  designs = []
-  designs.append(design1)
-  if design2:
-    designs.append(design2)
-  if design3:
-    designs.append(design3)  
-  if design4:
-    designs.append(design4)
-
-  assert(data.shape[1] == len(designs))
+  #assert(data.shape[1] == len(designs))
 
   out = open(filename, "w")
   out.write('<?xml version="1.0"?>\n')
@@ -222,7 +213,8 @@ def write_multi_design_file(filename, data, design1, design2 = None, design3 = N
   
   for d in range(len(designs)):
     for e in range(len(data)):
-      out.write('    <element nr="' + str(e+1) + '" type="' + designs[d] + '" design="' + str(data[e, d]) + '"/>\n')
+      enr = e + 1 if elemnr == None else int(elemnr[e])
+      out.write('    <element nr="' + str(enr) + '" type="' + designs[d] + '" design="' + str(data[e, d]) + '"/>\n')
   out.write('  </set>\n')
   out.write(' </cfsErsatzMaterial>\n')
   out.close()
@@ -279,24 +271,31 @@ def physical_volume(data, penalty):
 
 
 ## apply a threshold filter on a 2D/3D matrix
-# @param data original 2D/3D data
+# @param data original 2D/3D data or vector
 # @param treshold all smaller threshold becomes min, otherwise max
-# @return a new data array 
+# @return new data of input type 
 def threshold_filter(data, threshold, min, max):
   
-  dim = data.ndim
-  x, y, z = getDim(data)
-  res = numpy.copy(data)
-    
   # handle the case that threshold is smaller than min
-  barrier = cond(threshold < min, min, threshold)
+  barrier = numpy.max((threshold, min))
+  res = None  
+  
+  if type(data) == list:
+    res = [0.0] * len(data)
+    for i in range(len(data)):
+      res[i] = max if data[i] >= barrier else min
+  else:
     
-  for i in range(x):
-    for j in range(y):
-      for k in range(z):
-        org = getNDArrayEntry(data, i, j, k)
-        val = cond(org < barrier, min, max)
-        setNDArrayEntry(res, i, j, k, val)        
+    dim = data.ndim
+    x, y, z = getDim(data)
+    res = numpy.copy(data)
+  
+    for i in range(x):
+      for j in range(y):
+        for k in range(z):
+          org = getNDArrayEntry(data, i, j, k)
+          val = cond(org < barrier, min, max)
+          setNDArrayEntry(res, i, j, k, val)        
 
   return res  
 

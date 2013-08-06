@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <boost/tokenizer.hpp>
 
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
@@ -17,7 +18,6 @@
 #include "MatVec/vector.hh"
 #include "Utils/tools.hh"
 #include "boost/algorithm/string/classification.hpp"
-#include "boost/tokenizer.hpp"
 #include "math.h"
 #include "tools.hh"
 
@@ -67,7 +67,13 @@ namespace CoupledField {
     strVec.Push_back( std::string( list, lastDelim, i-lastDelim ));
 
   }
-  
+  void SplitStringListWhitespace(const std::string &s, StdVector<std::string> &strVec)
+  {
+    char_separator<char> sep(" ,\t\n");
+    tokenizer<char_separator<char> > tok(s, sep);
+    for(tokenizer<char_separator<char> >::iterator beg=tok.begin(); beg!=tok.end();++beg)
+      strVec.Push_back(*beg);
+  }
   Double dist_Mat(const Matrix<Double> &a) {
     Double preSqrt=0;
     UInt i;
