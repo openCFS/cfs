@@ -343,7 +343,7 @@ namespace CoupledField
     }else{
       stack.Push_back(stack.Last()->Get(xstring, ParamNode::APPEND));
     }
-//    std::cout << std::endl << "I process element: "<< xstring << " attrs: " << attrs.getLength() << " before: ";  DumpStack();
+    // std::cout << std::endl << "I process element: "<< xstring << " attrs: " << attrs.getLength() << " before: ";  DumpStack();
     XMLString::release(&xstring);
 
     for(unsigned int i = 0; i < attrs.getLength(); i++)
@@ -364,11 +364,12 @@ namespace CoupledField
     // std::cout << std::endl << "characters: "<< s << " length: " << length << " s length: " << s.length() << " before: ";  DumpStack();
     XMLString::release(&xstring);
   }
+
   void Xerces::SAXHandler::endElement(const XMLCh *const uri, const XMLCh *const localname, const XMLCh *const qname)
   {
-/*    char* message = XMLString::transcode(localname);
-    std::cout << std::endl << "finish: "<< message << " before: ";  DumpStack();
-    XMLString::release(&message);*/
+    char* message = XMLString::transcode(localname);
+    // std::cout << std::endl << "finish: "<< message << " before: ";  DumpStack();
+    XMLString::release(&message);
     // on the end of the file we have an end event for the root element
     if(stack.GetSize() > 1)
       stack.Erase(stack.GetSize()-1);

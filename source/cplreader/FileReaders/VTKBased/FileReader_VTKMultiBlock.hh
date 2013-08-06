@@ -41,6 +41,13 @@ namespace CoupledField
                          const std::vector<bool>& activeParts,
                          const UInt timeStepIdx) = 0;
 
+    /* get element values from the corresponding fluid datafile and interpolate to nodes */
+    virtual void ReadElemValues(std::vector<FlowDataType>& nodalFlowData,
+                                const std::vector<bool>& activeParts,
+                                const UInt timeStepIdx){
+      EXCEPTION("Not implemented in base class!");
+    };
+
     virtual Double GetTimeStep(UInt stepNumber);
     virtual std::string GetRegionName(const UInt partitionIdx);
 

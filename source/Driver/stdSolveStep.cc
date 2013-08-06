@@ -659,11 +659,13 @@ class Hysteresis;
 
     if ( performOneMoreStep ) {
       UInt actStep = (UInt) mParser_->Eval(mHandle_);
-      std::string strAll = "NL scheme for time step ";
+      std::string strAll = "Non-linear scheme for time step ";
       std::string nrStep;
       std::stringstream out;
       out << actStep;
-      strAll +=  out.str() + " not converged!\n";
+      strAll +=  out.str() + " did not converge!";
+      WARN(strAll);
+      strAll += "\n";
       Info->PrintF( pdename_, strAll.c_str() );
       out.str(std::string());
       out << "Residual error: " <<  residualErr << " ; Incremental error: " << incrementalErr 

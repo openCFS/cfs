@@ -68,6 +68,10 @@ namespace CoupledField
     void CalculateSurfaceIntegral(const int surfRegionIdx,
                                       std::vector<FlowDataType> & flowData);
 
+    //! This method calculates a surface mechanical force for FSI one-way coupling
+    void CalculateMechSurfaceForce(const UInt surfRegionIdx,
+        FlowDataType& flowData);
+
     //!Method for the determination of element neighbours for a given surface region
     //! the resulting datastructure stores for each element of the surface region the
     //! regionidx and the local elemIdx for the volume element

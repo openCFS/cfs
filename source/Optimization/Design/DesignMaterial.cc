@@ -918,6 +918,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
                  double e66 = (Eeps[5][5]-Etmp[5][5])/eps;
                  LOG_DBG(dm)<<"FD Derivative "<<((direction == DesignElement::STIFF1)?"1":((direction == DesignElement::STIFF2) ? "2":"3"))<<" E11= "<<e11<<" E12= "<<e12<<" E22= "<< e22<<
                  " E33= "<<e33<<" E23= "<<e23<<" E13= "<<e13<<" E44= "<<e44<<" E55= "<<e55<<" E66= "<<e66;
+                 LOG_DBG(dm)<<"deriv p= "<<p[0]<<", "<<p[1]<<", "<<p[2];
                  LOG_DBG(dm)<<"FD Derivative - Derivative: "<<((direction == DesignElement::STIFF1)?"1":((direction == DesignElement::STIFF2) ? "2":"3"))<<" diff E11= "<<E[0][0]-e11<<" diff E12= "<<E[0][1]-e12<<" diff E22= "<< E[1][1]-e22<<
                                   " diff E33= "<<E[2][2]-e33<<" diff E23= "<<E[1][2]-e23<<" diff E13= "<<E[0][2]-e13<<" diff E44= "<<E[3][3]-e44<<" diff E55= "<<E[4][4]-e55<<" diff E66= "<<E[5][5]-e66;
                #endif
