@@ -102,7 +102,6 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"),dim1, dim2, hom_rect_coeff33_);
       ParamTools::AsTensor<double>(root->Get("a/matrix/real"),dim3, 1, hom_rect_a_);
       ParamTools::AsTensor<double>(root->Get("b/matrix/real"),dim4, 1, hom_rect_b_);
-      // the internal tensor representation in hom_rect_samples_ is HILL-MANDEL!
       Notation notation = hr->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
       hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
     } else if (dim == 3) {
@@ -129,7 +128,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       ParamTools::AsTensor<double>(root->Get("b/matrix/real"),dim4, 1, hom_rect_b_);
       ParamTools::AsTensor<double>(root->Get("c/matrix/real"),dim5, 1, hom_rect_c_);
       // the internal tensor representation in hom_rect_samples_ is HILL-MANDEL!
-      Notation notation = root->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
+      Notation notation =  VOIGT;
       hom_rect_coeff44_ = hom_rect_coeff44_ * (notation == VOIGT ? 2.0 : 1.0);
       hom_rect_coeff55_ = hom_rect_coeff55_ * (notation == VOIGT ? 2.0 : 1.0);
       hom_rect_coeff66_ = hom_rect_coeff66_ * (notation == VOIGT ? 2.0 : 1.0);
@@ -819,6 +818,7 @@ void DesignMaterial::GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type
 
 void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
 {
+   // only relevant for hom_rect
    Quad9FE fe;
 
    double a = params_[DesignElement::STIFF1];
@@ -828,6 +828,9 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
    double rotAngle = params_[DesignElement::ROTANGLE];
 
    Vector<double> p(subTensor == FULL ? 3 : 2);
+
+
+
    if (type_== HOM_RECT) {
      p[0] = -1.0 + 4 * a; // assume max 0.5
      p[1] = -1.0 + 4 * b; // assume max 0.5
@@ -839,6 +842,14 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
        p[2] = c;
      }
    }
+   #ifndef NDEBUG
+     Vector<double> peps(p);
+     double eps = 1e-8;
+     Matrix<double> Eeps(E);
+     Matrix<double> Etmp(E);
+     Vector<double> Diff(subTensor == FULL ? 3 : 2);
+   #endif
+
 
    LOG_DBG2(dm) << "GHRT: dir=" << (direction == DesignElement::NO_DERIVATIVE ? "no_derivative" : DesignElement::type.ToString(direction))
                 << " not=" << notation << " rotAngle=" << rotAngle << " a=" << a << " b=" << b <<" c="<<(subTensor == FULL ? c : 0.0)<< " -> " << p.ToString();
@@ -885,18 +896,68 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
      }
      if(type_ == HOM_RECT_C1) {
        ApplyHomRectC1Tensor(E, p,direction,subTensor);
+       if (subTensor == FULL) {
+               #ifndef NDEBUG
+                 if (direction == DesignElement::STIFF1) {
+                   peps[0] += eps;
+                 } else if (direction == DesignElement::STIFF2) {
+                   peps[1] += eps;
+                 } else if (direction == DesignElement::STIFF3) {
+                   peps[2] += eps;
+                 }
+                 ApplyHomRectC1Tensor(Eeps,peps,DesignElement::NO_DERIVATIVE,subTensor);
+                 ApplyHomRectC1Tensor(Etmp,p,DesignElement::NO_DERIVATIVE,subTensor);
+                 double e11 = (Eeps[0][0]-Etmp[0][0])/eps;
+                 double e12 = (Eeps[0][1]-Etmp[0][1])/eps;
+                 double e13 = (Eeps[0][2]-Etmp[0][2])/eps;
+                 double e22 = (Eeps[1][1]-Etmp[1][1])/eps;
+                 double e23 = (Eeps[1][2]-Etmp[1][2])/eps;
+                 double e33 = (Eeps[2][2]-Etmp[2][2])/eps;
+                 double e44 = (Eeps[3][3]-Etmp[3][3])/eps;
+                 double e55 = (Eeps[4][4]-Etmp[4][4])/eps;
+                 double e66 = (Eeps[5][5]-Etmp[5][5])/eps;
+                 LOG_DBG(dm)<<"FD Derivative "<<((direction == DesignElement::STIFF1)?"1":((direction == DesignElement::STIFF2) ? "2":"3"))<<" E11= "<<e11<<" E12= "<<e12<<" E22= "<< e22<<
+                 " E33= "<<e33<<" E23= "<<e23<<" E13= "<<e13<<" E44= "<<e44<<" E55= "<<e55<<" E66= "<<e66;
+                 LOG_DBG(dm)<<"FD Derivative - Derivative: "<<((direction == DesignElement::STIFF1)?"1":((direction == DesignElement::STIFF2) ? "2":"3"))<<" diff E11= "<<E[0][0]-e11<<" diff E12= "<<E[0][1]-e12<<" diff E22= "<< E[1][1]-e22<<
+                                  " diff E33= "<<E[2][2]-e33<<" diff E23= "<<E[1][2]-e23<<" diff E13= "<<E[0][2]-e13<<" diff E44= "<<E[3][3]-e44<<" diff E55= "<<E[4][4]-e55<<" diff E66= "<<E[5][5]-e66;
+               #endif
+             }
      }
      break;
    }
 
    default:
-     ZeroTensor(E, PLANE);
+     ZeroTensor(E, subTensor == FULL ? FULL : PLANE);
    }
-
+   /*for (int i=0;i<6;i++) {
+     for(int j=0;j<6;j++){
+       if (direction == DesignElement::NO_DERIVATIVE) {
+         //if (!(i==1 && j==1)) {
+           if (i==j) {
+             if (i!=1) {
+               E[i][j] = p[0]+p[1]+p[2]+1.;
+             }
+           } else {
+             E[i][j] = 0.;
+           }
+         //}
+       } else {
+           //if (!(i==1 && i==j)) {
+             if (i==j) {
+               if (i!=1) {
+                 E[i][j] = 1.;
+               }
+             } else {
+               E[i][j] = 0.;
+             }
+           //}
+       }
+     }
+   }*/
    LOG_DBG2(dm) << "GHRT: E before rotation = " << E.ToString(2);
-   RotateHMStiffnessTensor(E, PLANE, direction, rotAngle, notation);
-
+   RotateHMStiffnessTensor(E, subTensor == FULL ? FULL : PLANE, direction, rotAngle, notation);
    LOG_DBG2(dm) << "GHRT: E after rotation =  " << E.ToString(2);
+
 
 /*   for(double y = 0; y <= 0.5; y += 0.25)
    {
@@ -946,10 +1007,10 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,D
   PtrParamNode inf_warn = info->Get("optimization/header/designSpace");
   int m = hom_rect_a_.GetNumRows();
   int n = hom_rect_b_.GetNumRows();
-  int o = subTensor == FULL ? hom_rect_c_.GetNumRows() : 0;
+  int o = (subTensor == FULL) ? hom_rect_c_.GetNumRows() : 0;
   double da = hom_rect_a_[1][0] - hom_rect_a_[0][0];
   double db = hom_rect_b_[1][0] - hom_rect_b_[0][0];
-  double dc = subTensor == FULL ? hom_rect_c_[1][0]-hom_rect_c_[0][0] : 1;
+  double dc = (subTensor == FULL) ? hom_rect_c_[1][0]-hom_rect_c_[0][0] : 1;
   int j = -1;
   for (int i=0;i<m-1;i++) {
     if (hom_rect_a_[i][0] <= p[0] && p[0] < hom_rect_a_[i+1][0]) {
@@ -961,9 +1022,14 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,D
     }else if (p[0] > hom_rect_a_[m-1][0]){
       j=m-2;
       p[0] = 1.;
-      if (p[0]>1.0001) {
-        inf_warn->Get(ParamNode::WARNING)->SetValue("Interpolation of Hom_RectC1 tensor failed. Design Variable p[0]" +lexical_cast<string>(p[1])+ " out of bounds ");
+      if (p[0]>1.01) {
+        inf_warn->Get(ParamNode::WARNING)->SetValue("Interpolation of Hom_RectC1 tensor failed. Design Variable p[0]" +lexical_cast<string>(p[0])+ " out of bounds ");
       }
+      break;
+    } else if (p[0] < -0.01){
+      j=0;
+      p[0] = 0.;
+      inf_warn->Get(ParamNode::WARNING)->SetValue("Interpolation of Hom_RectC1 tensor failed. Design Variable p[0]" +lexical_cast<string>(p[0])+ " out of bounds ");
       break;
     }
   }
@@ -978,9 +1044,14 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,D
     } else if (p[1] > hom_rect_b_[n-1][0]){
       k=n-2;
       p[1] = 1.;
-      if (p[1]>1.0001) {
-        inf_warn->Get(ParamNode::WARNING)->SetValue("Interpolation of Hom_RectC1 tensor failed. Design Variable p[0]" +lexical_cast<string>(p[1])+ " out of bounds ");
+      if (p[1]>1.01) {
+        inf_warn->Get(ParamNode::WARNING)->SetValue("Interpolation of Hom_RectC1 tensor failed. Design Variable p[1]" +lexical_cast<string>(p[1])+ " out of bounds ");
       }
+      break;
+    } else if (p[1]<-0.01) {
+      k=0;
+      p[1] = 0.;
+      inf_warn->Get(ParamNode::WARNING)->SetValue("Interpolation of Hom_RectC1 tensor failed. Design Variable p[1]" +lexical_cast<string>(p[1])+ " out of bounds ");
       break;
     }
   }
@@ -999,65 +1070,73 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,D
        } else if (p[2] > hom_rect_c_[o-1][0]){
          l=o-2;
          p[2] = 1.;
-         if (p[2]>1.0001) {
-           inf_warn->Get(ParamNode::WARNING)->SetValue("Interpolation of Hom_RectC1 tensor failed. Design Variable p[0]" +lexical_cast<string>(p[2])+ " out of bounds ");
+         if (p[2]>1.01) {
+           inf_warn->Get(ParamNode::WARNING)->SetValue("Interpolation of Hom_RectC1 tensor failed. Design Variable p[2]" +lexical_cast<string>(p[2])+ " out of bounds ");
          }
+         break;
+       } else if (p[2]< -0.01){
+         l=0;
+         p[2] = 0.;
+         inf_warn->Get(ParamNode::WARNING)->SetValue("Interpolation of Hom_RectC1 tensor failed. Design Variable p[2]" +lexical_cast<string>(p[2])+ " out of bounds ");
          break;
        }
      }
-     if (direction == DesignElement::NO_DERIVATIVE) {
+     if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE) {
        E[1-1][1-1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o);
-       E[2-1][1-1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o);
-       E[3-1][1-1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o);
-       E[3-1][2-1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o);
+       E[1-1][2-1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o);
+       E[1-1][3-1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o);
+       E[2-1][3-1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o);
        E[2-1][2-1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o);
        E[3-1][3-1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o);
        E[4-1][4-1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff44_, da,db,dc,j,k,l,m,n,o);
        E[5-1][5-1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff55_, da,db,dc,j,k,l,m,n,o);
        E[6-1][6-1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff66_, da,db,dc,j,k,l,m,n,o);
-       E[1-1][2-1] = E[2-1][1-1];
-       E[1-1][3-1] = E[3-1][1-1];
-       E[2-1][3-1] = E[3-1][2-1];
+       E[2-1][1-1] = E[1-1][2-1];
+       E[3-1][1-1] = E[1-1][3-1];
+       E[3-1][2-1] = E[2-1][3-1];
+       LOG_DBG(dm)<<"E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2]<<" E23= "<<E[1][2]<<" E13= "<<E[0][2]<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
      } else {
          E[1-1][1-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
-         E[2-1][1-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
-         E[3-1][1-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o,direction);
-         E[3-1][2-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o,direction);
+         E[1-1][2-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
+         E[1-1][3-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o,direction);
+         E[2-1][3-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o,direction);
          E[2-1][2-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o,direction);
          E[3-1][3-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o,direction);
          E[4-1][4-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff44_, da,db,dc,j,k,l,m,n,o,direction);
          E[5-1][5-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff55_, da,db,dc,j,k,l,m,n,o,direction);
          E[6-1][6-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff66_, da,db,dc,j,k,l,m,n,o,direction);
-         E[1-1][2-1] = E[2-1][1-1];
-         E[1-1][3-1] = E[3-1][1-1];
-         E[2-1][3-1] = E[3-1][2-1];
+         E[2-1][1-1] = E[1-1][2-1];
+         E[3-1][1-1] = E[1-1][3-1];
+         E[3-1][2-1] = E[2-1][3-1];
+         LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":((direction == DesignElement::STIFF2) ? "2":"3"))<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2]<<" E23= "<<E[1][2]<<" E13= "<<E[0][2]<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
      }
   } else {
     E.Resize(3,3);
     E.Init(); // for off-diagonal
-    if (direction == DesignElement::NO_DERIVATIVE) {
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE) {
       E[1-1][1-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff11_,da,db,j,k,m,n);
       E[1-1][2-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff12_,da,db ,j,k,m,n);
       E[2-1][1-1] = E[1-1][2-1];
       E[2-1][2-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff22_, da,db,j,k,m,n);
       E[3-1][3-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff33_, da,db,j,k,m,n);
       LOG_DBG(dm)<<"E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2];
+      LOG_DBG(dm)<<"hom_rect_coeff11 = "<<hom_rect_coeff11_[0][0];
     } else {
         E[1-1][1-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff11_, da,db,j,k,m,n,direction);
         E[1-1][2-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff12_, da,db,j,k,m,n,direction);
         E[2-1][1-1] = E[1-1][2-1];
         E[2-1][2-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff22_, da,db,j,k,m,n,direction);
         E[3-1][3-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff33_, da,db,j,k,m,n,direction);
-        LOG_DBG(dm)<<"E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2];
+        LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":"2")<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2];
     }
   }
 
 }
 
 double DesignMaterial::EvaluateC1Interpolation_3D(Matrix<double>& E, Vector<double>& p,const Matrix<double> & coeff, double & da,double & db, double & dc, int & j, int & k, int & l,int & m,int & n, int &o) const{
-    LOG_DBG(dm) <<"p="<<p;
-    double u =(p[1]-hom_rect_b_[k][0])/(db);
-    double t=(p[0]-hom_rect_a_[j][0])/(da);
+    LOG_DBG(dm) <<"p=["<<p[0]<<","<<p[1]<<", "<<p[2]<<"]";
+    double t=(p[0]-hom_rect_a_[j][0])/da;
+    double u =(p[1]-hom_rect_b_[k][0])/db;
     double v=(p[2]-hom_rect_c_[l][0])/dc;
     LOG_DBG(dm)<<"u = "<<u<<" t= "<<t<<" v= "<<v;
     double res = 0;
@@ -1073,15 +1152,17 @@ double DesignMaterial::EvaluateC1Interpolation_3D(Matrix<double>& E, Vector<doub
 }
 
 double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Matrix<double>& E,  Vector<double>& p,const Matrix<double> & coeff, double & da,double & db,double & dc,int & j, int & k, int & l,int & m,int & n, int & o, DesignElement::Type direction) const{
-    double u =(p[1]-hom_rect_b_[k][0])/(db);
-    double t=(p[0]-hom_rect_a_[j][0])/(da);
+    double u =(p[0]-hom_rect_a_[j][0])/(da);
+    double t=(p[1]-hom_rect_b_[k][0])/(db);
     double v = (p[2]-hom_rect_c_[l][0])/dc;
+    LOG_DBG(dm)<<"Deriv: u = "<<u<<" t= "<<t<<" v= "<<v;
+
     double deriv = 0;
     if (direction == DesignElement::STIFF1){
       for (int ii = 1;ii<4;ii++) {
         for (int jj=0;jj<4;jj++) {
           for (int kk=0;kk<4;kk++) {
-            deriv += coeff[(n-1)*(o-1)*j+(o-1)*k+l][ii+4*jj+16*kk]*ii*pow(t,ii-1)*pow(u,jj)*pow(v,kk);
+            deriv += coeff[(n-1)*(o-1)*j+(o-1)*k+l][ii+4*jj+16*kk]*ii*pow(u,ii-1)*pow(t,jj)*pow(v,kk);
           }
         }
       }
@@ -1091,7 +1172,7 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Matrix<double>& E,  Vect
       for (int ii = 0;ii<4;ii++) {
         for (int jj=1;jj<4;jj++) {
           for (int kk=0;kk<4;kk++) {
-            deriv += coeff[(n-1)*(o-1)*j+(o-1)*k+l][ii+4*jj+16*kk]*jj*pow(t,ii)*pow(u,jj-1)*pow(v,kk);
+            deriv += coeff[(n-1)*(o-1)*j+(o-1)*k+l][ii+4*jj+16*kk]*jj*pow(u,ii)*pow(t,jj-1)*pow(v,kk);
           }
         }
       }
@@ -1101,7 +1182,7 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Matrix<double>& E,  Vect
       for (int ii = 0;ii<4;ii++) {
         for (int jj=0;jj<4;jj++) {
           for (int kk=1;kk<4;kk++) {
-            deriv += coeff[(n-1)*(o-1)*j+(o-1)*k+l][ii+4*jj+16*kk]*kk*pow(t,ii)*pow(u,jj)*pow(v,kk-1);
+            deriv += coeff[(n-1)*(o-1)*j+(o-1)*k+l][ii+4*jj+16*kk]*kk*pow(u,ii)*pow(t,jj)*pow(v,kk-1);
           }
         }
       }
@@ -1111,10 +1192,12 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Matrix<double>& E,  Vect
     return deriv;
 }
 double DesignMaterial::EvaluateC1Interpolation(Matrix<double>& E,  Vector<double>& p,const Matrix<double> & coeff, double & da,double & db,int & j, int & k,int & m,int & n) const{
-    LOG_DBG(dm) <<"p="<<p;
+    LOG_DBG(dm) <<"p=["<<p[0]<<","<<p[1]<<"]";
     double u =(p[1]-hom_rect_b_[k][0])/(db);
     double t=(p[0]-hom_rect_a_[j][0])/(da);
+    LOG_DBG(dm)<<"u = "<<u<<" t= "<<t<<"\n";
     LOG_DBG(dm)<<"u = "<<u<<" t= "<<t;
+    LOG_DBG(dm)<<"j = "<<j<<" k= "<<k;
     double res = 0;
     for (int i = 0;i<4;i++) {
       for (int l=0;l<4;l++) {
@@ -1128,6 +1211,8 @@ double DesignMaterial::EvaluateC1Interpolation(Matrix<double>& E,  Vector<double
 double DesignMaterial::EvaluateC1Interpolation_Deriv(Matrix<double>& E,  Vector<double>& p,const Matrix<double> & coeff, double & da,double & db,int & j, int & k,int & m,int & n, DesignElement::Type direction) const{
     double u =(p[1]-hom_rect_b_[k][0])/(db);
     double t=(p[0]-hom_rect_a_[j][0])/(da);
+    LOG_DBG(dm)<<"Deriv: u = "<<u<<" t= "<<t<<"\n";
+
     double deriv = 0;
     if (direction == DesignElement::STIFF1){
       for (int i = 1;i<4;i++) {
@@ -1273,6 +1358,7 @@ void DesignMaterial::ZeroTensor(Matrix<double>& t, SubTensorType subTensor){
   switch(subTensor){
   case FULL:
     t.Resize(6, 6);
+    LOG_DBG(dm)<<"Zero Tensor: "<<t.ToString(2);
     break;
   case PLANE_STRAIN:
   case PLANE_STRESS:
@@ -1359,7 +1445,7 @@ void DesignMaterial::RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType su
   case PLANE_STRESS:
   case PLANE:
   {
-    Matrix<double> theta(3,3);
+     Matrix<double> theta(3,3);
      Matrix<double> help(3,3);
      theta.SetEntry(0,0, pow(cos(a),2));
      theta.SetEntry(0,1, pow(sin(a),2));
@@ -1411,13 +1497,14 @@ void DesignMaterial::RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType su
   case FULL:
   {
     //Rotation not implemented yet
+
     if (notation != HILL_MANDEL) {
       for (int i=0;i<6;i++) {
         for (int j=0;j<6;j++) {
-          if ((i>2 && j>2) || (i>2 && j<3)) {
+          if ((i<3 && j>2) || (i>2 && j<3)) {
             t(i,j) *= sq2inv;
-          } else if (i==j && i>2) {
-            t(i,j) *= 2.;
+          } else if (i>2 && j>2) {
+            t(i,j) /= 2.;
           }
         }
       }

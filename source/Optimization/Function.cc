@@ -2247,7 +2247,7 @@ double Function::Local::Identifier::CalcSumModuli(int neigh_idx, bool derivative
 
 double Function::Local::Identifier::CalcLaminatesVolume(int neigh_idx, bool derivative) const
 {
-  double scale(1.0), stiff1(0.0), stiff2(0.0);
+  double scale(1.0), stiff1(0.0), stiff2(0.0), stiff3(0.0);
   for(int i=-1; i < (int) neighbor.GetSize(); ++i)
   {
     switch(GetElement(i)->GetType())
@@ -2258,6 +2258,9 @@ double Function::Local::Identifier::CalcLaminatesVolume(int neigh_idx, bool deri
     case DesignElement::STIFF2:
       stiff2 = GetElement(i)->GetDesign(DesignElement::SMART);
       break;
+    case DesignElement::STIFF3:
+      stiff3 = GetElement(i)->GetDesign(DesignElement::SMART);
+      break;
     default:
       break;
     }
@@ -2267,17 +2270,21 @@ double Function::Local::Identifier::CalcLaminatesVolume(int neigh_idx, bool deri
     scale = element->GetDesignSpace()->designMaterial->GetParameter(DesignElement::DENSITY);
     stiff1 *= scale;
     stiff2 *= scale;
+    stiff3 *= scale;
   }
   if(!derivative)
-    return stiff1+stiff2-stiff1*stiff2;
+    //return stiff1+stiff2-stiff1*stiff2;
+    return stiff1 + stiff2 + stiff3 -stiff1*stiff2 -stiff1*stiff3 - stiff2*stiff3 - stiff1*stiff2*stiff3;
   else
   {
     switch(GetElement(neigh_idx)->GetType())
     {
     case DesignElement::STIFF1:
-      return scale-scale*stiff2;
+      return scale-scale*stiff2 - scale*stiff3 - scale* stiff2*stiff3;
     case DesignElement::STIFF2:
-      return scale-scale*stiff1;
+      return scale-scale*stiff1 - scale *stiff3 - scale *stiff1*stiff3;
+    case DesignElement::STIFF3:
+      return scale-scale*stiff1 - scale *stiff2 - scale *stiff1*stiff2;
     default:
       return 0.0;
     }

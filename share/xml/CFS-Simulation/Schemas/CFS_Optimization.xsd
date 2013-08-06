@@ -1361,6 +1361,7 @@
       <xsd:enumeration value="rotAngle"/>
       <xsd:enumeration value="stiff1"/>
       <xsd:enumeration value="stiff2"/>
+      <xsd:enumeration value="stiff3"/>
       <!-- multimaterial requies the material attribute -->
       <xsd:enumeration value="multimaterial"/>
     </xsd:restriction>
