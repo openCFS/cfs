@@ -1717,7 +1717,7 @@
     </xsd:sequence>
     
     <!-- define for sensitivity or design filtering -->
-    <xsd:attribute name="type" use="optional" default="sensitivity">
+    <xsd:attribute name="type" use="optional" default="density">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="sensitivity"/>

@@ -276,13 +276,15 @@ void ErsatzMaterial::PostInit()
       PtrParamNode output = f->pn->Get("output");
 
       if(output->Has("displacement"))
-        pde->ReadLoads(output->GetList("displacement"), output_nodes_);
+        pde->ReadLoads(output->GetList("displacement"), f->output_nodes);
       if(output->Has("elecPotential"))
-        domain->GetSinglePDE("electrostatic")->ReadLoads(output->GetList("elecPotential"), output_nodes_);
+        domain->GetSinglePDE("electrostatic")->ReadLoads(output->GetList("elecPotential"), f->output_nodes);
       if(output->Has("acoustic"))
-        domain->GetSinglePDE("acoustic")->ReadLoads(output->GetList("acoustic"), output_nodes_);
+        domain->GetSinglePDE("acoustic")->ReadLoads(output->GetList("acoustic"), f->output_nodes);
 
-      if(output_nodes_.GetSize() == 0)
+      LOG_DBG2(em) << "PI: o:" << f->IsObjective() << " added " << f->output_nodes[0]->ToString();
+
+      if(f->output_nodes.GetSize() == 0)
         throw Exception("no output optimization targets given");
       break;
     }
@@ -1526,8 +1528,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     Vector<T>& u = dynamic_cast<Vector<T> & >(*(forward.Get(excite, NULL)->GetVector(Solution::RAW_VECTOR)));
     Vector<T>& l = dynamic_cast<Vector<T>&>(*(adjoint.Get(excite, f)->GetVector(Solution::SEL_VECTOR)));
     assert(u.GetSize() == l.GetSize());
-    LOG_DBG2(em) << "OUPTUT: adjoint sel (l): " << l.ToString(1);
-    LOG_DBG2(em) << "OUPTUT: forward sol (u): " << u.ToString(0);
+    LOG_DBG2(em) << "CO: f=o: " << f->IsObjective() << " adjoint sel (l): " << l.ToString(1);
+    LOG_DBG2(em) << "CO: forward sol (u): " << u.ToString(0);
     double result = 0.0;
     switch(f->GetType())
     {
@@ -1537,7 +1539,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         T inner = u.Inner(l);
         result = ((complex<double>) inner).real();
         result *= excite.GetFactor(f);
-        LOG_DBG2(em) << "output <l,u>: " << inner << " * " << excite.GetFactor(f) << " -> " << result;
+        LOG_DBG2(em) << "CO: <l,u>: " << inner << " * " << excite.GetFactor(f) << " -> " << result;
         break;
       }
 
@@ -1546,7 +1548,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         // |<u,l>|
         T ul = u.Inner(l);
         result = std::abs(ul);
-        LOG_DBG2(em) << "output |<u,l>| = |" << ul << "| -> " << result;
+        LOG_DBG2(em) << "CO: |<u,l>| = |" << ul << "| -> " << result;
+        break;
       }
 
       case Objective::DYNAMIC_OUTPUT:
@@ -1566,10 +1569,10 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
           assert(std::abs(u_val) < 1e15);
 
           double sp = std::real(std::conj(u_val) * l[i] * u_val);
-          LOG_DBG2(em) << "CalcObjective: " << std::conj(u_val) << " * " << l[i] << " * " << u_val << " -> " << sp;
+          LOG_DBG2(em) << "CO: CalcObjective: " << std::conj(u_val) << " * " << l[i] << " * " << u_val << " -> " << sp;
           result += sp;
         }
-        LOG_DBG2(em) << "output <u,L u*>: " << result << " * " << excite.GetFactor(f) << " -> " << result * excite.GetFactor(f);
+        LOG_DBG2(em) << "CO: <u,L u*>: " << result << " * " << excite.GetFactor(f) << " -> " << result * excite.GetFactor(f);
         result *= excite.GetFactor(f);
         break;
       }
@@ -3001,7 +3004,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       org_loads = assemble_->GetLoads();
 
     // overwrite the assemble loads with "pseudo loads"s loads
-    assemble_->SetLoads(output_nodes_);
+    assemble_->SetLoads(f->output_nodes);
     // set our own RHS but delete first as Assemble adds
     assemble_->GetAlgSys()->InitRHS();
     // assemble the output nodes
@@ -3041,7 +3044,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
     assemble_->GetAlgSys()->InitRHS(rhs);
 // assert(rhs.NormMax() != 0.0);
-    LOG_DBG2(em) << "CARHS<double>: f=" << f->ToString() << " rhs before solving: " << rhs.ToString(1) << " max_norm=" << rhs.NormMax();
+    LOG_DBG2(em) << "CARHS<double>: f=" << f->ToString() << " obj=" << f->IsObjective() << " rhs before solving: " << rhs.ToString(1) << " max_norm=" << rhs.NormMax();
   }
 
   void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
