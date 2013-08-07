@@ -1,0 +1,65 @@
+fini
+/uis,msgpop,3         ! disable warning popups
+/clear
+/filname,cantilever,1 ! important: define name of the model
+/prep7
+/uis,msgpop,2        ! enable warning popups
+
+! initialize macros for mesh-interface to CFS++
+init
+
+!define constants
+eps=1e-7
+L=400e-6
+b=2e-6
+bc=45e-6
+
+!generate geometry of the cantilever
+block,0,L,0,bc,0,b
+
+!mesh volume
+setelems,'brick'
+esize,5e-6
+vsel,s,,,1
+vmesh,all
+
+!perform surface meshing
+!for the pressure load
+setelems,'quadr'
+allsel,
+asel,s,,,2
+amesh,all
+
+!for the mechanical fixing
+allsel
+asel,s,loc,x,-eps,eps
+asel,r,loc,y,-eps,bc+eps
+asel,r,loc,z,-eps,eps+b
+amesh,all
+
+! write elements
+allsel,all
+vsel,s,,,1
+eslv
+welems,'cantilever'
+
+!write surface elements for pressure load
+allsel
+asel,s,,,2
+esla
+welems,'excite'
+
+!write surface elements for mechanical fixing
+allsel
+asel,s,loc,x,-eps,eps
+asel,r,loc,y,-eps,bc+eps
+asel,r,loc,z,-eps,eps+b+b
+esla
+welems,'fix-all'
+
+! write all nodes
+allsel
+wnodes
+
+! write hdf5-mesh file
+mkhdf5
