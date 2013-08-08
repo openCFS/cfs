@@ -39,18 +39,21 @@ the following structure
 %
 \begin{xmllisting}
   <linearSystems>
-    <system name="...">
-      <setup .../>
-      <matrix .../>
-      <exportLinSys baseName="..."/>
-      <solver type="..." precond="..." />
+    <system id="...">
+       <solutionStrategy>
+         <standard>
+           <nonlinear ...>
+           <setup .../>
+           <matrix .../>
+           <exportLinSys baseName="..."/>
+           <solver type="..." precond="..." />
     </system>
   </linearSystems>
 \end{xmllisting}
 %
 %
 For each linear system for which properties are to be specified a separate
-\xel{system} block must be inserted. The \xat{name} attribute is used to
+\xel{system} block must be inserted. The \xat{id} attribute is used to
 relate the linear system with the respective PDE. Thus, the value of \xat{name}
 must either be a PDE name, e.g. \xatv{mechanic}, or the keyword
 \xatv{direct}.

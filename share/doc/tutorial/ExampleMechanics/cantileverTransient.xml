@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
- xsi:schemaLocation="http://www.cfs++.org ../../../sbm_fespace_090409/share/xml/CFS-Simulation/CFS.xsd"
+ xsi:schemaLocation="http://www.cfs++.org ../../../xml/CFS-Simulation/CFS.xsd"
  xmlns="http://www.cfs++.org">
   
   
@@ -10,8 +10,8 @@
       <hdf5 fileName="cantilever.h5"/>
     </input>
     <output>
-      <text/>
-      <hdf5/>
+      <text commentChar="%" id="txt"/>
+      <hdf5 id="hdf5"/>
     </output>
     <materialData file="mat.xml"/>
   </fileFormats>
@@ -61,25 +61,20 @@
             <comp dof="z"/>
           </fix>
         </bcsAndLoads>
-        <storeResults>
-          
+        <storeResults>          
          <nodeResult type="mechDisplacement">
-           <regionList saveBegin="20" saveEnd="140" saveInc="5">
+           <regionList saveBegin="10" saveEnd="40" saveInc="2">
              <region name="cantilever"/>
            </regionList>
-           
-         </nodeResult>
-           <allRegions/>
-           
-         </nodeResult>
+         </nodeResult>       
          <nodeResult type="mechDisplacement">
-            <allRegions/>
+           <allRegions outputIds="hdf5" saveBegin="10" saveEnd="40"/>
            <nodeList>
-             <nodes name="record"/>
-           </nodeList>
+               <nodes name="record"/>
+            </nodeList>
           </nodeResult> 
          <elemResult type="mechStress">
-            <allRegions/>
+            <allRegions saveBegin="10" saveEnd="40" saveInc="2"/>
           </elemResult>
         </storeResults>
       </mechanic>
