@@ -219,7 +219,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::AddEntityList(shared_ptr<EntityList
   }
 
   this->extDataInfo_->Get("DestinationRegionList")->Get("Region")->Get("name")->SetValue(ents->GetName());
-
+  this->destRegionName_ = ents->GetName();
 
 }
 
@@ -282,7 +282,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
     }
   }
   if(elemCounter>0)
-    WARN("There were " << elemCounter << " unmapped nodes in region \'" << *regIt << "\'. Perhaps you should increase the tolerances!");
+    WARN("There were " << elemCounter << " unmapped nodes from source region \'" << *regIt << "\' which are not mapped to region \'" << this->destRegionName_ << "\'. Perhaps you should increase the tolerances!");
 
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("numUnmappedNodes")->SetValue(elemCounter);
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("globalTol")->SetValue(globalTol_);

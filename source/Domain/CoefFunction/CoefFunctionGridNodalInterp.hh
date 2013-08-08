@@ -184,6 +184,8 @@ private:
 private:
   void ReadXMLNode(PtrParamNode configNode);
 
+  std::string destRegionName_;
+
 
 
 };
