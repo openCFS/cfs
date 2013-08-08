@@ -2933,9 +2933,14 @@ namespace CoupledField {
     assemble_->AddBiLinearForm(ncContext);
   }
   
+  template<UInt DIM>
   void SinglePDE::DefineNitscheCoupling( SolutionType solType,
                                          NcInterfaceInfo &iface)
   {
+    //in case of Nitsche coupling edge/face information is required
+    this->ptGrid_->MapEdges();
+    this->ptGrid_->MapFaces();
+
     shared_ptr<BaseNcInterface> ncIf =
         ptGrid_->GetNcInterface(iface.interfaceId);
     
@@ -2958,62 +2963,59 @@ namespace CoupledField {
 
     //we set here the penalty factor
     Double beta = iface.nitscheFactor;
-    if ( dim_ == 2 ) {
-      if ( analysistype_ == HARMONIC ) {
-        EXCEPTION("HARMONIC CASE NOT IMPLEMENTED FOR ACOUSTIC NMG");
-      } else {
-        curcpl = BiLinearForm::MASTER_MASTER;
-        
-        penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
-            ( new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
-              new SurfaceIdentityOperator<FeH1,2,1>(),
-              factor, beta, curcpl, false);
 
-        flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
-            ( new SurfaceNormalDerivOperator<FeH1,2,1>(),
-              new SurfaceIdentityOperator<FeH1,2,1>(),
-              factor, -1.0, curcpl, false);
-
-        flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
-            ( new SurfaceIdentityOperator<FeH1,2,1>(),
-              new SurfaceNormalDerivOperator<FeH1,2,1>(),
-              factor, -1.0, curcpl, false);
-
-        curcpl = BiLinearForm::SLAVE_SLAVE;
-        
-        penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
-            ( new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
-              new SurfaceIdentityOperator<FeH1,2,1>(),
-              factor, beta, curcpl, false);
-
-        curcpl = BiLinearForm::MASTER_SLAVE;
-        
-        penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
-            ( new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
-              new SurfaceIdentityOperator<FeH1,2,1>(),
-              factor, beta * -1.0, curcpl, false);
-
-        flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
-            ( new SurfaceNormalDerivOperator<FeH1,2,1>(),
-              new SurfaceIdentityOperator<FeH1,2,1>(),
-              factor, 1.0, curcpl, false);
-
-        curcpl = BiLinearForm::SLAVE_MASTER;
-        
-        penalty_u2_v1 = new SurfaceNitscheABInt<Double,Double>
-            ( new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
-              new SurfaceIdentityOperator<FeH1,2,1>(),
-              factor, beta * -1.0, curcpl, false);
-
-        flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>
-            ( new SurfaceIdentityOperator<FeH1,2,1>(),
-              new SurfaceNormalDerivOperator<FeH1,2,1>(),
-              factor, 1.0, curcpl, false);
-
-      }
-    } else {
-      EXCEPTION("Only 2D NMGs are supported right now!");
+    if ( analysistype_ == HARMONIC ) {
+            EXCEPTION("HARMONIC CASE NOT IMPLEMENTED FOR ACOUSTIC NMG");
     }
+
+    curcpl = BiLinearForm::MASTER_MASTER;
+
+    penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,1>(),
+          new SurfaceIdentityOperator<FeH1,DIM,1>(),
+          factor, beta, curcpl, false);
+
+    flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceNormalDerivOperator<FeH1,DIM,1>(),
+          new SurfaceIdentityOperator<FeH1,DIM,1>(),
+          factor, -1.0, curcpl, false);
+
+    flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
+        (  new SurfaceIdentityOperator<FeH1,DIM,1>(),
+           new SurfaceNormalDerivOperator<FeH1,DIM,1>(),
+           factor, -1.0, curcpl, false);
+
+    curcpl = BiLinearForm::SLAVE_SLAVE;
+
+    penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,1>(),
+          new SurfaceIdentityOperator<FeH1,DIM,1>(),
+          factor, beta, curcpl, false);
+
+    curcpl = BiLinearForm::MASTER_SLAVE;
+
+    penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,1>(),
+          new SurfaceIdentityOperator<FeH1,DIM,1>(),
+          factor, beta * -1.0, curcpl, false);
+
+    flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
+        (new SurfaceNormalDerivOperator<FeH1,DIM,1>(),
+         new SurfaceIdentityOperator<FeH1,DIM,1>(),
+         factor, 1.0, curcpl, false);
+
+    curcpl = BiLinearForm::SLAVE_MASTER;
+
+    penalty_u2_v1 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,1>(),
+          new SurfaceIdentityOperator<FeH1,DIM,1>(),
+          factor, beta * -1.0, curcpl, false);
+
+    flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>
+        (  new SurfaceIdentityOperator<FeH1,DIM,1>(),
+           new SurfaceNormalDerivOperator<FeH1,DIM,1>(),
+           factor, 1.0, curcpl, false);
+
     penalty_u1_v1->SetName("penalty_u1_v1");
     flux_du1_v1->SetName("flux_du1_v1");
     flux_u1_dv1->SetName("flux_u1_dv1");
@@ -3081,3 +3083,8 @@ namespace CoupledField {
   }
   
 } // end of namespace
+
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template void SinglePDE::DefineNitscheCoupling<2>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineNitscheCoupling<3>(SolutionType,NcInterfaceInfo&);
+#endif

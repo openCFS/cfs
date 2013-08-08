@@ -650,7 +650,11 @@ namespace CoupledField{
         DefineMortarCoupling(formulation_, *ncIt);
         break;
       case NC_NITSCHE:
-        DefineNitscheCoupling(formulation_, *ncIt);
+        if(dim_ == 2)
+          DefineNitscheCoupling<2>(formulation_, *ncIt);
+        else
+          DefineNitscheCoupling<3>(formulation_, *ncIt);
+
         break;
       default:
         EXCEPTION("Unknown type of ncInterface");
@@ -1332,18 +1336,29 @@ namespace CoupledField{
 
   //! Init the time stepping
   void AcousticPDE::InitTimeStepping(){
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
 
-    feFunctions_[formulation_]->SetTimeScheme(myScheme);
     if(this->isTimeDomPML_){
-      shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+      //basically the choice for alpha scheme needs to be done everytime we have
+      //a damping matrix not just for PML
+
+      //scheme for main unknown
+      GLMScheme * scheme1 = new Newmark(0.5,0.25,-0.3);
+      GLMScheme * scheme2 = new Newmark(0.5,0.25,-0.3);
+      shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
+      shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(scheme2,0));
+
       feFunctions_[ACOU_PMLAUXVEC]->SetTimeScheme(vecScheme);
+      feFunctions_[formulation_]->SetTimeScheme(acouScheme);
 
       if(!this->isAPML_ && dim_ == 3){
-        shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+        GLMScheme * scheme3 = new Newmark(0.5,0.25,-0.3);
+        shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(scheme3,0));
         feFunctions_[ACOU_PMLAUXSCALAR]->SetTimeScheme(scalScheme);
       }
-
+    }else{
+      GLMScheme * scheme1 = new Newmark(0.5,0.25,0.0);
+      shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
+      feFunctions_[formulation_]->SetTimeScheme(acouScheme);
     }
 
   }

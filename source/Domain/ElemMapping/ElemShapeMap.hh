@@ -328,7 +328,9 @@ namespace CoupledField {
     //! surface normal according to the point. If not, it returns
     //! false
     virtual bool CalcNormalOutOfVolume(Vector<Double> & normal,
-                                           const LocPoint & lp)=0;
+                                           const LocPoint & lp,
+                                           const Elem* volElem,
+                                           const SurfElem* edgeFaceElem)=0;
 
 
     //! Calculates corresponding volume point of neighboring surfaces
@@ -526,7 +528,9 @@ namespace CoupledField {
     
     //! @copydoc ElemShapeMap::CalcNormalOutOfVolume
     bool CalcNormalOutOfVolume(Vector<Double> & normal,
-                               const LocPoint & lp);
+                               const LocPoint & lp,
+                               const Elem* volElem,
+                               const SurfElem* edgeFaceElem);
 
     //! @copydoc ElemShapeMap::GetLocalIntPoints4Surface
     void GetLocalIntPoints4Surface( const StdVector<UInt> & surfConnect,

@@ -484,8 +484,10 @@ namespace CoupledField
     
     //! Defines integrators for Nitsche coupling of an unknown on one specific
     //! interface.
-    virtual void DefineNitscheCoupling( SolutionType solType,
-                                        NcInterfaceInfo &iface);
+    //! TODO: MOVE THIS BACK TO ACOUSTICS!!
+    template<UInt DIM>
+    void DefineNitscheCoupling( SolutionType solType,
+                                   NcInterfaceInfo &iface);
     
     //! Vector containing all ncInterfaces for this PDE
     StdVector< NcInterfaceInfo > ncInterfaces_;

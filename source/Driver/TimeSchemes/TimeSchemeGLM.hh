@@ -33,6 +33,8 @@ class TimeSchemeGLM : public BaseTimeScheme{
       TOTAL
     } NonLinType;
 
+
+
     /*!
      *  Constructor of the GLM scheme
      *  \param[in] type The TimeScheme to be used. Newmark, Trapezoidal, etc.
@@ -96,6 +98,11 @@ class TimeSchemeGLM : public BaseTimeScheme{
     virtual SingleVector* GetTimeDerivative(UInt order);
 
     virtual void SetTimeDerivVector(UInt order,SingleVector * coefVector);
+
+    /// Give the timestep the possibility to initialize
+    virtual void InitStage(UInt aStage,Double aTime,Domain* domain){
+      curScheme_->PrepareStage(aStage,aTime, domain);
+    };
 
   protected:
 

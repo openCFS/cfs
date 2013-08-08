@@ -247,7 +247,7 @@ namespace CoupledField{
       Double factor1,factor2;
       stepnumber = GetStepNum(needTinterp,factor1,factor2);
       if(needTinterp){
-        EXCEPTION("Temporal interpolation not supported right now")
+        EXCEPTION("StepValue interpolation not supported right now")
       }else{
         //we just read the solution vector
         if(lastStepRead_ != stepnumber){
@@ -282,7 +282,7 @@ namespace CoupledField{
     // apply some tolerance..
     std::map<UInt,Double>::iterator stepIter = stepValueMap_.begin();
     for(;stepIter != stepValueMap_.end(); ++stepIter){
-      if(abs(stepIter->second - aTimeFreq) < 1e-8){
+      if(abs(stepIter->second - aTimeFreq) < 1e-4){
         break;
       }
     }

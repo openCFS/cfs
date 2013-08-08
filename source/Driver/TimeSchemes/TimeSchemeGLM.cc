@@ -115,6 +115,7 @@ namespace CoupledField{
     //the corresponding stage vector points directly to the
     //glm Vector entry and the update step for this entry can be avoided
     stageVector_.Resize(curScheme_->numStages_);
+    UInt upperBound = curScheme_->numStages_-1;
     if(curScheme_->lastStageIsSolution_){
       if(solOrder_==0){
         avoidUpdateIdx_ = 0;
@@ -124,8 +125,11 @@ namespace CoupledField{
         avoidUpdateIdx_ = curScheme_->numOldSols_ + curScheme_->numSol1stDerivs_ ;
       }
       stageVector_[curScheme_->numStages_-1] = glmVector_[avoidUpdateIdx_];
+    }else{
+      //in case of a general scheme, we need to initialize the full stage vector
+      upperBound++;
     }
-    for(UInt i=0;i<curScheme_->numStages_-1;i++){
+    for(UInt i=0;i<upperBound;i++){
         stageVector_[i] = new Vector<Double>();
         stageVector_[i]->Resize(solVec->GetSize());
         stageVector_[i]->Init();
@@ -162,9 +166,8 @@ namespace CoupledField{
                                       SingleVector* rhsVec, Integer subIdx){
 
     //if the derivative id is equal to solution we do not need to do anything
-    //as the corresponding line in the GLM is equal to zero
-    if(derivId == (Integer)curScheme_->solDerivOrder_ ||
-       derivId > (Integer)curScheme_->maxDerivOrder_ ||
+    //as the corresponding line in the GLM is equal to zero, but not! always
+    if(derivId > (Integer)curScheme_->maxDerivOrder_ ||
        derivId < 0){
       rhsVec->Init();
       return;
@@ -238,8 +241,47 @@ namespace CoupledField{
           glmVector_[i] = stageVector_[0];
         }
       }
+
     }else{
-      Exception("The general case is not implemented yet");
+      //first we create a temporary GLM Vector for the solution
+      //which will overwrite the solution later
+      StdVector< SingleVector* > tmpGLM;
+      tmpGLM.Resize(curScheme_->sizeGLMVec_);
+      for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+        tmpGLM[i] = new Vector<Double>();
+        tmpGLM[i]->Resize(glmVector_[i]->GetSize());
+        tmpGLM[i]->Init();
+      }
+      for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+        //loop over all stages
+        for(UInt actS = 0; actS < curScheme_->numStages_; actS++){
+          SingleVector * curSVec = stageVector_[actS];
+          UInt row = curScheme_->numStages_ * (curScheme_->maxDerivOrder_+1);
+          Double coef = curScheme_->schemeCoefs_[row+i][actS];
+          if(coef != 0){
+            tmpGLM[i]->Add(coef,*curSVec);
+          }
+          curSVec = NULL;
+        }
+        //loop over all old solutions
+        for(UInt actSol = 0; actSol < curScheme_->sizeGLMVec_; actSol++){
+          SingleVector * curSVec = glmVector_[actSol];
+          UInt row = curScheme_->numStages_ * (curScheme_->maxDerivOrder_+1);
+          Double coef = curScheme_->schemeCoefs_[row+i][curScheme_->numStages_+actSol];
+          if(coef != 0){
+            tmpGLM[i]->Add(coef,*curSVec);
+          }
+          curSVec = NULL;
+        }
+      }
+      for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+        glmVector_[i]->operator =((*tmpGLM[i]));
+        //free memory
+        delete tmpGLM[i];
+      }
+      tmpGLM.Clear();
+      //free the memory
+
     }
   }
 

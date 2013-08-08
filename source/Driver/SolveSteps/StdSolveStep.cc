@@ -414,6 +414,7 @@ namespace CoupledField {
       for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
         FeFctIdType fctId = fncIt->second->GetFctId();
         stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),fctId);
+        fncIt->second->GetTimeScheme()->InitStage(i,actTime_,PDE_.GetDomain());
       }
       stageSol.SetOwnership(false);
 
@@ -515,8 +516,10 @@ namespace CoupledField {
       stageSol.Resize(feFunctions_.size());
       for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
         stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),pos);
+        fncIt->second->GetTimeScheme()->InitStage(i,actTime_,PDE_.GetDomain());
       }
       stageSol.SetOwnership(false);
+
 
       //initialize solution vector for each stage
       if ( i > 0 )

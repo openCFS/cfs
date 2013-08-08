@@ -46,7 +46,7 @@ CoefFunctionGridNodalInterp(Domain* ptDomain,
   this->stdInterpReady_ = false;
   this->consInterpReady_ = false;
   this->curInterpType_ = CoefFunctionGrid::NO_INTERPOLATION;
-  this->extDataInfo_ = curInfo->Get("externalGrid");
+  this->extDataInfo_ = curInfo->Get("externalGrid",ParamNode::APPEND);
   ReadXMLNode(configNode);
 
   //obtain grid pointer and store its dimension
@@ -282,7 +282,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
     }
   }
   if(elemCounter>0)
-    WARN("There were " << elemCounter << " unmapped nodes. Perhaps you should increase the tolerances!");
+    WARN("There were " << elemCounter << " unmapped nodes in region \'" << *regIt << "\'. Perhaps you should increase the tolerances!");
 
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("numUnmappedNodes")->SetValue(elemCounter);
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("globalTol")->SetValue(globalTol_);

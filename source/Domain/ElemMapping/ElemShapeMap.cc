@@ -130,10 +130,14 @@ void LocPointMapped::SetMortar(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   shared_ptr<ElemShapeMap> esmVol;
 
   const Elem * ptVolElem = NULL;
-  if (useMaster)
+  const SurfElem * ptSurfElem = NULL;
+  if (useMaster){
     ptVolElem = mortarElem->ptMaster->ptVolElems[0];
-  else
+    ptSurfElem = mortarElem->ptMaster;
+  }else{
     ptVolElem = mortarElem->ptSlave->ptVolElems[0];
+    ptSurfElem = mortarElem->ptSlave;
+  }
 
   lpmVol.reset(new LocPointMapped());
   esmVol = shapeMap->GetGrid()->GetElemShapeMap(ptVolElem,
@@ -148,7 +152,7 @@ void LocPointMapped::SetMortar(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   esmVol->Global2Local(localPoint, globalPoint);
   lpVol.coord = localPoint;
   lpVol.number = -1;
-  esmVol->CalcNormalOutOfVolume(locNormal,lpVol);
+  esmVol->CalcNormalOutOfVolume(locNormal,lpVol,ptVolElem,ptSurfElem);
   //esmVol->GetLocalIntPoints4Surface(ptEl->connect, lp, lpVol, locNormal);
   lpmVol->Set(lpVol, esmVol, weight);
 
@@ -1337,71 +1341,93 @@ void LagrangeElemShapeMap::CalcNormal(Vector<Double>& normal,
 }
 
 bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
-    const LocPoint & lp) {
+    const LocPoint & lp,
+    const Elem* volElem,
+    const SurfElem* edgeFaceElem) {
   //now we check for the element dimension
   //in 2D its quite simple, loop over the edges
   //and check if the local point is contained in the edge
   //in 3D it gets harder but we will come to this later
   const ElemShape & shape = *shape_;
+  bool success = false;
+  bool edgeFaceFound = false;
   
   if(shape.dim == 2){
-    //loop over edges
-    UInt numEdges = shape.numEdges;
-    bool result = false;
-    for(UInt aEdge = 0; aEdge < numEdges ; aEdge++){
-      //get Vertices of current edge
-      StdVector<UInt> eVert = shape.edgeVertices[aEdge];
-      Vector<Double> c1 = shape.nodeCoords[eVert[0]-1];
-      Vector<Double> c2 = shape.nodeCoords[eVert[1]-1];
+    //for the 2D case, we just determine the correct side of the
+    //volume element by checking the edge number
+    UInt locENum = 0;
+    UInt numEdges = volElem->edges.GetSize();
 
-      Matrix<Double> tmp(3,3);
-      tmp.Init();
-      tmp[0][0] = c1[0];
-      tmp[0][1] = c1[1];
-      tmp[0][2] = 1.0;
-      tmp[1][0] = c2[0];
-      tmp[1][1] = c2[1];
-      tmp[1][2] = 1.0;
-      tmp[2][0] = lp.coord[0];
-      tmp[2][1] = lp.coord[1];
-      tmp[2][2] = 1.0;
-      Double testing;
-      tmp.Determinant(testing);
-      //check if true
-      if(abs(testing)<1e-5){
-        //calculate the local normal according to vertices
-        //get edge vector
-        Vector<Double> diff;
-        diff = c2 - c1;
-        normal.Resize(2,0.0);
-        Double len = diff.NormL2();
-        //determine if we need to go to the outside
-
-
-        normal[0] = diff[1]/len;
-        normal[1] = -diff[0]/len;
-
-        Vector<Double> test;
-        test = (lp.coord - shape.midPointCoord) + normal;
-        if(test.NormL2() < normal.NormL2()){
-          normal *= -1.0;
-        }
-
-        result = true;
+    for(locENum = 0; locENum < numEdges; locENum++){
+      if(abs(edgeFaceElem->edges[0]) == abs(volElem->edges[locENum])){
+        edgeFaceFound = true;
         break;
       }
     }
-    if(!result){
-      UInt tmp = lp.coord.GetSize();
-      WARN("could not determine surface normal.. to be checked!")
-      numEdges =tmp;
+    if(!edgeFaceFound){
+      Exception("cannot determine corresponding edge to volume element for normal computation");
     }
+    //now we have the local edge number, lets get the connectivity and compute the normal
+    //get Vertices of current edge
+    StdVector<UInt> eVert = shape.edgeVertices[locENum];
+    Vector<Double> c1 = shape.nodeCoords[eVert[0]-1];
+    Vector<Double> c2 = shape.nodeCoords[eVert[1]-1];
+    Vector<Double> diff;
+    diff = c2 - c1;
+    normal.Resize(2,0.0);
+    Double len = diff.NormL2();
 
-    return result;
+    normal[0] = diff[1]/len;
+    normal[1] = -diff[0]/len;
+
+    success = true;
   }else{
-    EXCEPTION("3D case not implemented");
+    //loop over faces
+    UInt numFaces = shape.numFaces;
+    UInt locFaceNum = 0;
+    //determine on which face the local point is located and the compute the normal for this face
+    for(UInt locFaceNum = 0; locFaceNum < numFaces ; locFaceNum++){
+      if(abs(edgeFaceElem->faces[0]) == abs(volElem->faces[locFaceNum])){
+        edgeFaceFound = true;
+        break;
+      }
+    }
+    if(!edgeFaceFound){
+      Exception("cannot determine corresponding face to volume element for normal computation");
+    }
+    StdVector<UInt> fVert = shape.faceVertices[locFaceNum];
+    //take the first three vertices to span our surface (we will always have at least three vertices
+    Vector<Double> v1,v2,v3;
+    v1 = shape.nodeCoords[fVert[1]-1];
+    v2 = shape.nodeCoords[fVert[0]-1];
+    v3 = shape.nodeCoords[fVert[2]-1];
+    Vector<Double> c1;
+    Vector<Double> c2;
+    c1 = v1 - v2;
+    c2 = v1 - v3;
+    //compute cross product
+    normal.Resize(3,0.0);
+    c1.CrossProduct(c2,normal);
+    //normalize
+    normal /= normal.NormL2();
+
+    success = true;
   }
-  return false;
+
+  //just determine the direction, i.e. does the normal point in direction of the center or not
+  //if this is the case, the following vector will be shorter than the normal...
+  //funny thing, it does not really matter as long as we do the same shit for every
+  //surface
+  Vector<Double> test;
+  test = (lp.coord - shape.midPointCoord) + normal;
+  if(test.NormL2() < normal.NormL2()){
+    normal *= -1.0;
+  }
+
+  if(!success){
+    WARN("could not determine surface normal.. to be checked!")
+  }
+  return success;
 }
 
 // The follogin method is not needed anymore. 

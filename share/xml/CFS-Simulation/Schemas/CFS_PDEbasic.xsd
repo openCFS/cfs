@@ -77,7 +77,7 @@
           <xsd:element name="defaultGrid">             
              <xsd:complexType>
                <xsd:sequence>
-                 <xsd:element name="factor" maxOccurs="1" minOccurs="0" default="1" type="xsd:int"/>
+                 <xsd:element name="globalFactor" maxOccurs="1" minOccurs="0" default="1" type="xsd:token"/>
                </xsd:sequence>
                <xsd:attribute name="quantity" use="required"/>
                <xsd:attribute name="dependtype" type="DT_CoefGridDependType" use="required" />

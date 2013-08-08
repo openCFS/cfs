@@ -127,10 +127,11 @@ void Trapezoidal::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
 //NEWMARK SCHEME
 //================================================================
 
-Newmark::Newmark(Double gamma,Double beta)
+Newmark::Newmark(Double gamma,Double beta, Double alpha)
          : GLMScheme() {
   gamma_ = gamma;
   beta_ = beta;
+  alpha_ = alpha;
 
   maxDerivOrder_ = 2;
   numStages_ = 1;
@@ -139,8 +140,19 @@ Newmark::Newmark(Double gamma,Double beta)
   numSol2ndDerivs_ = 1;
   sizeGLMVec_ = numOldSols_ + numSol1stDerivs_ + numSol2ndDerivs_;
 
-  lastStageIsSolution_ = true;
-  usePredictors_ = true;
+
+  if(alpha == 0.0){
+    usePredictors_ = true;
+    lastStageIsSolution_ = true;
+  }else if (this->solDerivOrder_==0){
+    //alpha method is only inplemented for effective stiffness right now
+    usePredictors_ = false;
+    lastStageIsSolution_ = false;
+    //redefine beta and gamma accorin=ding to hughes
+    beta_ = (1-alpha_)*(1-alpha_)/4;
+    gamma_ = (1-2*alpha_)/2;
+
+  }
 
   //prepare coefficient matrix
   UInt numCols = numStages_ + ((maxDerivOrder_+1) * numOldSols_);
@@ -158,20 +170,20 @@ void Newmark::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
   case 0:
     solDerivOrder_ = 0;
     //zero order part
-    schemeCoefs_[0][0] = 1.0;
-    schemeCoefs_[0][1] = 0.0;
+    schemeCoefs_[0][0] = 1.0+alpha_;
+    schemeCoefs_[0][1] = alpha_;
     schemeCoefs_[0][2] = 0.0;
     schemeCoefs_[0][3] = 0.0;
     //fist order part
-    schemeCoefs_[1][0] = gamma_ / (beta_ * curTStepSize_);
-    schemeCoefs_[1][1] = gamma_ / (beta_ * curTStepSize_);
-    schemeCoefs_[1][2] = (gamma_ / beta_) - 1.0;
-    schemeCoefs_[1][3] = curTStepSize_ * ((gamma_/beta_) - 2.0) * 0.5;
+    schemeCoefs_[1][0] =  (1+alpha_) * gamma_ / (beta_ * curTStepSize_);
+    schemeCoefs_[1][1] =  (1+alpha_) * gamma_ / (beta_ * curTStepSize_);
+    schemeCoefs_[1][2] = ((1+alpha_) * gamma_ / beta_) - 1.0;
+    schemeCoefs_[1][3] =  (1+alpha_) * curTStepSize_ * ((gamma_/beta_) - 2.0) * 0.5;
     //second order part
-    schemeCoefs_[2][0] = 1.0 / (beta_ * curTStepSize_ * curTStepSize_);
-    schemeCoefs_[2][1] = 1.0 / (beta_ * curTStepSize_ * curTStepSize_);
+    schemeCoefs_[2][0] = 1.0 / ( beta_ * curTStepSize_ * curTStepSize_);
+    schemeCoefs_[2][1] = 1.0 / ( beta_ * curTStepSize_ * curTStepSize_);
     schemeCoefs_[2][2] = 1.0 / (beta_ * curTStepSize_);
-    schemeCoefs_[2][3] = (0.5 - beta_) / beta_;
+    schemeCoefs_[2][3] = (0.5/beta_ - 1) ;
 
     //UPDATE PART zero order
     schemeCoefs_[3][0] = 1.0;
@@ -182,12 +194,12 @@ void Newmark::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
     schemeCoefs_[4][0] = 1.0 * gamma_ / (beta_ * curTStepSize_);
     schemeCoefs_[4][1] = -1.0 * gamma_ / (beta_ * curTStepSize_);
     schemeCoefs_[4][2] = (-1.0 * gamma_ / beta_) + 1.0;
-    schemeCoefs_[4][3] = curTStepSize_ * ((gamma_ / beta_) - 2.0) * -0.5;
+    schemeCoefs_[4][3] = curTStepSize_ * (2.0 - (gamma_ / beta_)) * 0.5;
     //UPDATE PART second order
     schemeCoefs_[5][0] = 1.0 / (beta_ * curTStepSize_ * curTStepSize_);
     schemeCoefs_[5][1] = -1.0 / (beta_ * curTStepSize_ * curTStepSize_);
     schemeCoefs_[5][2] = -1.0 / (beta_ * curTStepSize_);
-    schemeCoefs_[5][3] = (beta_ - 0.5) / beta_;
+    schemeCoefs_[5][3] = (1.0 - 0.5/beta_);
     break;
   case 1 :
     solDerivOrder_ = 1;
@@ -245,7 +257,7 @@ void Newmark::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
     schemeCoefs_[3][0] = beta_ * curTStepSize_ * curTStepSize_;
     schemeCoefs_[3][1] = 1.0;
     schemeCoefs_[3][2] = 1.0 * curTStepSize_;
-    schemeCoefs_[3][3] = (0.5 - beta_) * curTStepSize_ * curTStepSize_;
+    schemeCoefs_[3][3] = (0.5 - beta_) * (1+alpha_) * curTStepSize_ * curTStepSize_;
     //fist order part
     schemeCoefs_[4][0] = gamma_ * curTStepSize_;
     schemeCoefs_[4][1] = 0.0;
