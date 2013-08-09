@@ -14,7 +14,7 @@ HOME=$(echo $PWDLINE | cut -d':' -f6)
 echo "HOME $HOME"
 CTEST="/opt/pckg/cmake-2.8.10.2-Linux-i386/bin/ctest"
 NIGHTLY_DIR="$HOME/Documents/dev/NIGHTLY/CFS_FESPACE_NIGHTLY"
-LOG_FILE="$HOME/Documents/dev/nightly_test.log"
+LOG_FILE="/vagrant/logs/nightly_test.log"
 echo "LOG_FILE $LOG_FILE"
 eval $(sh $NIGHTLY_DIR/share/scripts/distro.sh -s)
 echo "DIST $DIST"
@@ -28,6 +28,7 @@ echo "SHELL $SHELL"
 # Generate shell script which actually starts the nightly test CMake script.
 cat <<EOF > "${TEMPFILE}_2"
 #!/bin/sh
+mkdir -p /vagrant/logs
 $CTEST -S $NIGHTLY_DIR/ctest_scripts/nightly_test.cmake > "$LOG_FILE" 2>&1
 EOF
 

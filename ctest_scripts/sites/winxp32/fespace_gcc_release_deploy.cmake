@@ -1,15 +1,15 @@
 #-----------------------------------------------------------------------------
 # Set binary directory
 #-----------------------------------------------------------------------------
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
+SET(CTEST_BINARY_DIRECTORY "c:/CFS_BUILD_NIGHTLY")
 
 INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 
 message("  Searching for cfs and cfstool executables...")
 SET(CFS_BIN_DIR 
-  "${CTEST_BINARY_DIRECTORY}/bin/${DIST_FAMILY}_${MAJOR_REV}_${ARCH}")
-SET(CFS_BINARY "${CFS_BIN_DIR}/cfsbin")
-SET(CFSTOOL_BINARY "${CFS_BIN_DIR}/cfstoolbin")
+  "${CTEST_BINARY_DIRECTORY}/bin/MINGW_${ARCH}")
+SET(CFS_BINARY "${CFS_BIN_DIR}/cfsbin.exe")
+SET(CFSTOOL_BINARY "${CFS_BIN_DIR}/cfstoolbin.exe")
 
 MESSAGE("CFS_BINARY ${CFS_BINARY}")
 MESSAGE("CFSTOOL_BINARY ${CFSTOOL_BINARY}")
@@ -31,7 +31,7 @@ IF(EXISTS "${CFS_BINARY}" AND
 
   message("  Packing binaries...")
   EXECUTE_PROCESS(
-    COMMAND zip -yr "${NIGHTLY_ARCHIVES_DIR}/${HOSTNAME}_${TEST_NAME}.zip" CFS_BUILD_NIGHTLY
+    COMMAND zip -r "${NIGHTLY_ARCHIVES_DIR}/${HOSTNAME}_${TEST_NAME}.zip" CFS_BUILD_NIGHTLY
     WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/.."
     RESULT_VARIABLE RETVAL
   )

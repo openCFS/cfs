@@ -39,12 +39,40 @@ IF(DAYOFWEEK EQUAL 1)
 ENDIF()
 
 # ===========================================================================
+#  Clean up last night's local build directory, since we are low on
+#  hdd space.
+# ===========================================================================
+IF(EXISTS "${HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
+  FILE(REMOVE_RECURSE "${HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
+ENDIF()
+
+# ===========================================================================
 #  Clean up last night's compiled binaries.
 # ===========================================================================
 FILE(GLOB CFS_NIGHTLY_ARCHIVES "${CFS_NIGHTLY_DIR}/archives/*")
 IF(NOT CFS_NIGHTLY_ARCHIVES STREQUAL "")
   FILE(REMOVE ${CFS_NIGHTLY_ARCHIVES})
 ENDIF()
+
+# ===========================================================================
+#  Clean trunk test suite.
+# ===========================================================================
+SET(CFS_TESTSUITE_TRUNK_DIR 
+  "${HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_TRUNK")
+
+EXECUTE_PROCESS(
+  COMMAND svn status
+  WORKING_DIRECTORY "${CFS_TESTSUITE_TRUNK_DIR}"
+  OUTPUT_VARIABLE SVNST)
+STRING(REPLACE "\n" ";" SVNST ${SVNST})
+
+FOREACH(LINE IN ITEMS ${SVNST})
+  IF(LINE MATCHES "\\?       ")
+    STRING(REPLACE "?       " "${CFS_TESTSUITE_TRUNK_DIR}/" FN ${LINE})
+#    MESSAGE("FN ${FN}")
+    FILE(REMOVE_RECURSE ${FN})
+  ENDIF()
+ENDFOREACH()
 
 MESSAGE(
 "
@@ -77,102 +105,26 @@ FOREACH(SCRIPT IN ITEMS ${UPDATE_SCRIPTS})
 
 ENDFOREACH()
 
+# ===========================================================================
+#  Include macros for starting/stopping VBoxes on wiki.
+# ===========================================================================
+INCLUDE("${SITE_DIR}/macros_for_wiki.cmake")
 
 # ===========================================================================
 #  Kill still running VMs...
 # ===========================================================================
-MESSAGE(
-"
-=============================================================================
- Power off still running VMs...
-=============================================================================
-"
-)
-
-EXECUTE_PROCESS(
-  COMMAND VBoxManage list runningvms
-  OUTPUT_VARIABLE RUNNING_VBOXES
-  RESULT_VARIABLE RETVAL
-  )
-
-IF(NOT RUNNING_VBOXES STREQUAL "") 
-  STRING(REPLACE "\n" ";" RUNNING_VBOXES ${RUNNING_VBOXES})
-
-  FOREACH(VBOX IN ITEMS ${RUNNING_VBOXES})
-    # MESSAGE("VBOX ${VBOX}" )
-    STRING(REPLACE "{" ";" VBOX ${VBOX})
-    LIST(GET VBOX 1 VBOX_UUID)
-    LIST(GET VBOX 0 VBOX_NAME)
-    STRING(REPLACE "}" ";" VBOX ${VBOX_UUID})
-    LIST(GET VBOX 0 VBOX_UUID)
-
-    MESSAGE("Powering off ${VBOX_NAME}- ${VBOX_UUID}" )
-
-    # Power off VBox
-    EXECUTE_PROCESS(
-      COMMAND VBoxManage controlvm ${VBOX_UUID} poweroff
-      RESULT_VARIABLE RETVAL
-      )
-
-    MESSAGE("RETVAL ${RETVAL}")
-
-  ENDFOREACH()
-ENDIF()
+POWER_OFF_RUNNING_VBOXES()
 
 # ===========================================================================
 #  Clean up last night's Virtual Box directories
 # ===========================================================================
-MESSAGE(
-"
-=============================================================================
- Clean up last night's Virtual Box directories...
-=============================================================================
-"
-)
-FILE(REMOVE_RECURSE
-  "${HOME}/VirtualBox VMs"
-  "${HOME}/.vagrant.d"
-  "${HOME}/.VirtualBox"
-)
-
+CLEANUP_VBOX_DIRS()
 
 # ===========================================================================
-#  Start today's Virtual Boxes
+#  Start today's Virtual Boxes. At 1:30 we just start the most important
+#  VBoxes, which generate the nightly binaries for CentOS/RHEL 6 and
+#  Ubuntu 12.04. Other VBoxes are started depending on DAYOFWEEK in the
+#  script site_specific_finish.cmake.
 # ===========================================================================
-MESSAGE(
-"
-=============================================================================
- Starting VBoxes...
-=============================================================================
-"
-)
-
-SET(VBOXES
-#  hardy
-#  lucid
-  precise
-  oracle6
-#  oracle5
-#  fedora18
-)
-
-FOREACH(VBOX IN ITEMS ${VBOXES})
-
-  FILE(REMOVE_RECURSE
-    "${SITE_BASE_DIR}/${VBOX}/.vagrant"
-  )
-
-  # Run vagrant up in site dirs
-  EXECUTE_PROCESS(
-    COMMAND vagrant up
-    WORKING_DIRECTORY "${SITE_BASE_DIR}/${VBOX}"
-    RESULT_VARIABLE RETVAL
-    )
-
-  # Delete unpacked intermediate box files to save hdd space.
-  FILE(REMOVE_RECURSE "${HOME}/.vagrant.d/boxes/${VBOX}")
-
-  MESSAGE("RETVAL ${RETVAL}")
-
-ENDFOREACH()
+START_VBOXES("precise;oracle6")
 

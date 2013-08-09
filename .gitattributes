@@ -348,6 +348,9 @@ ctest_scripts/sites/fedora18/site_specific_init.cmake -text
 ctest_scripts/sites/hardy/Vagrantfile -text
 ctest_scripts/sites/hardy/linux32_fespace_gcc_debug.ctest -text
 ctest_scripts/sites/hardy/linux32_fespace_gcc_release.ctest -text
+ctest_scripts/sites/lmde201303/Vagrantfile -text
+ctest_scripts/sites/lmde201303/linux64_fespace_gcc_debug.ctest -text
+ctest_scripts/sites/lmde201303/linux64_fespace_gcc_release.ctest -text
 ctest_scripts/sites/lse34/ctest_update.cmake -text
 ctest_scripts/sites/lse34/ctest_update_fespace_source.cmake -text
 ctest_scripts/sites/lse34/ctest_update_fespace_testsuite.cmake -text
@@ -359,6 +362,8 @@ ctest_scripts/sites/lucid/Vagrantfile -text
 ctest_scripts/sites/lucid/linux64_fespace_gcc_debug.ctest -text
 ctest_scripts/sites/lucid/linux64_fespace_gcc_release.ctest -text
 ctest_scripts/sites/opensuse123/Vagrantfile -text
+ctest_scripts/sites/opensuse123/linux64_fespace_gcc_debug.ctest -text
+ctest_scripts/sites/opensuse123/linux64_fespace_gcc_release.ctest -text
 ctest_scripts/sites/oracle5/Vagrantfile -text
 ctest_scripts/sites/oracle5/linux64_fespace_gcc_debug.ctest -text
 ctest_scripts/sites/oracle5/linux64_fespace_gcc_release.ctest -text
@@ -377,6 +382,7 @@ ctest_scripts/sites/oracle6/linux64_fespace_open64_debug.ctest -text
 ctest_scripts/sites/oracle6/linux64_fespace_open64_release.ctest -text
 ctest_scripts/sites/oracle6/linux64_trunk_gcc_release.ctest -text
 ctest_scripts/sites/oracle6/linux64_trunk_gcc_release_deploy.cmake -text
+ctest_scripts/sites/oracle6/site_specific_init.cmake -text
 ctest_scripts/sites/precise/Vagrantfile -text
 ctest_scripts/sites/precise/generate_test_name_list.cmake -text
 ctest_scripts/sites/precise/linux64_fespace_gcc_debug.ctest -text
@@ -384,6 +390,7 @@ ctest_scripts/sites/precise/linux64_fespace_gcc_release.ctest -text
 ctest_scripts/sites/precise/linux64_fespace_gcc_release_deploy.cmake -text
 ctest_scripts/sites/precise/linux64_trunk_gcc_release.ctest -text
 ctest_scripts/sites/precise/linux64_trunk_gcc_release_deploy.cmake -text
+ctest_scripts/sites/precise/site_specific_init.cmake -text
 ctest_scripts/sites/sles10/Vagrantfile -text
 ctest_scripts/sites/sles10/linux64_fespace_gcc_debug.ctest -text
 ctest_scripts/sites/sles10/linux64_fespace_gcc_release.ctest -text
@@ -399,6 +406,7 @@ ctest_scripts/sites/wiki/ctest_update_trunk_wien.cmake -text
 ctest_scripts/sites/wiki/linux64_fespace_icc12_release.ctest -text
 ctest_scripts/sites/wiki/linux64_fespace_icc12_release_deploy.cmake -text
 ctest_scripts/sites/wiki/linux64_fespace_icc13_release.ctest -text
+ctest_scripts/sites/wiki/macros_for_wiki.cmake -text
 ctest_scripts/sites/wiki/set_permissions.cmake -text
 ctest_scripts/sites/wiki/site_specific_finish.cmake -text
 ctest_scripts/sites/wiki/site_specific_init.cmake -text
@@ -406,7 +414,11 @@ ctest_scripts/sites/wiki/site_specific_vars.cmake -text
 ctest_scripts/sites/winxp32/Vagrantfile -text
 ctest_scripts/sites/winxp32/cygwin.tgz -text
 ctest_scripts/sites/winxp32/fespace_gcc_debug.ctest -text
+ctest_scripts/sites/winxp32/fespace_gcc_release.ctest -text
+ctest_scripts/sites/winxp32/fespace_gcc_release_deploy.cmake -text
 ctest_scripts/sites/winxp32/provision.sh -text
+ctest_scripts/sites/winxp32/site_specific_init.cmake -text
+ctest_scripts/sites/winxp32/site_specific_vars.cmake -text
 ctest_scripts/test_macros.cmake -text
 include/def_build_type_options.hh.in -text
 include/def_cfs_stats.hh.in -text

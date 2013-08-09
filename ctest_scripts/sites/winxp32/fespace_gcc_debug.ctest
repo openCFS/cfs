@@ -32,7 +32,7 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "z:/CFS_FESPACE_NIGHTLY")
+SET(CTEST_SOURCE_DIRECTORY "c:/CFS_FESPACE_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "c:/CFS_BUILD_NIGHTLY")
 
 #-----------------------------------------------------------------------------
@@ -54,9 +54,9 @@ SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
 # to specifiy the compilers and that all messages should be output in English
 # language, so that CTest may properly parse them.
 #-----------------------------------------------------------------------------
-SET(ENV{CC} "gcc")
-SET(ENV{CXX} "g++")
-SET(ENV{FC} "gfortran")
+SET(ENV{CC} "c:/gcc32/gcc.bat")
+SET(ENV{CXX} "c:/gcc32/g++.bat")
+SET(ENV{FC} "c:/gcc32/gfortran.bat")
 SET(ENV{LC_MESSAGES} "C")
 SET(ENV{LC_ALL} "C")
 SET(ENV{LANG} "C")
@@ -93,6 +93,7 @@ EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/winver.bat -c"
   OUTPUT_VARIABLE DISTRO_OUT
   RETURN_VALUE RETVAL)
 
+STRING(REPLACE ";" "\n" DISTRO_OUT "${DISTRO_OUT}")
 FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake" "${DISTRO_OUT}")
 INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 
@@ -101,13 +102,14 @@ INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 # MESSAGE("${DIST} ${REV} ${ARCH}")
 
 SET(BUILDTYPE "DEBUG")
-SET(BUILDNAME "FeSpace ${DIST} ${REV} ${ARCH} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+SET(BUILDNAME "FeSpace MINGW ${ARCH} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
 SITE_NAME(CFS_BUILD_HOST)
+STRING(STRIP "${CFS_BUILD_HOST}" CFS_BUILD_HOST)
 STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
 LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST_STR)
-STRING(TOLOWER "${CFS_BUILD_HOST_STR}.mdmt" CFS_BUILD_HOST)
-set(CTEST_SITE "${CFS_BUILD_HOST}")
+STRING(TOLOWER "${CFS_BUILD_HOST_STR}" CFS_BUILD_HOST)
+set(CTEST_SITE "${CFS_BUILD_HOST}.mdmt")
 set(CTEST_BUILD_NAME "${BUILDNAME}")
 
 #-----------------------------------------------------------------------------
@@ -124,8 +126,8 @@ SET(CTEST_INITIAL_CACHE
   "BUILD_TESTING:BOOL=ON
    DEBUG:BOOL=ON
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
-#   TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_FESPACE
-   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
+   TESTSUITE_DIR:STRING=z:/CFS_TESTSUITE_FESPACE
+   CFS_DEPS_CACHE_DIR:PATH=z:/CFSDEPSCACHE
 #   USE_ANSYSRST:BOOL=ON
    CFSTOOL:BOOL=ON
    USE_GMV:BOOL=ON

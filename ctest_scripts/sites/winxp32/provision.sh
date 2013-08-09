@@ -1,9 +1,3 @@
-echo "Hello World!"
-
-echo $HOME
-
-ls $HOME
-
 GNU_DATE=/cygdrive/c/GnuWin32/bin/date.exe
 SCHTASKS=/cygdrive/c/WINDOWS/system32/schtasks.exe
 
@@ -28,12 +22,19 @@ trim() {
     echo -n "$var"  # Output trimmed string.
 }
 
+# Show Cygwin HOME directory.
+echo "HOME (Cygwin): $HOME"
+
 # Determine shutdown time of machine.
 SHUTDOWN_DATE_TIME=$($GNU_DATE --date='+8 hour' +'%d/%m/%Y %T')
 SHUTDOWN_DATE_TIME=$(trim "$SHUTDOWN_DATE_TIME")
 SHUTDOWN_DATE=$(echo $SHUTDOWN_DATE_TIME | cut -d' ' -f1)
 SHUTDOWN_TIME=$(echo $SHUTDOWN_DATE_TIME | cut -d' ' -f2)
 echo "Machine will shut down at $SHUTDOWN_DATE $SHUTDOWN_TIME."
+
+# Schedule task for shutting down Windows.
+$SCHTASKS /create /tn "$SHUTDOWN_MSG" /tr "$SHUTDOWN_EXE -f -s" /sc once \
+          /st $SHUTDOWN_TIME /sd $SHUTDOWN_DATE /ru Administrator /rp user
 
 # Determine start time of nightly tests.
 TEST_START_DATE_TIME=$($GNU_DATE --date='+10 minute' +'%d/%m/%Y %T')
@@ -42,24 +43,12 @@ TEST_START_DATE=$(echo $TEST_START_DATE_TIME | cut -d' ' -f1)
 TEST_START_TIME=$(echo $TEST_START_DATE_TIME | cut -d' ' -f2)
 echo "Nightly tests will start at $TEST_START_DATE $TEST_START_TIME."
 
-DUMMY_DATE_TIME=$($GNU_DATE --date='+20 second' +'%d/%m/%Y %T')
-DUMMY_DATE_TIME=$(trim "$DUMMY_DATE_TIME")
-DUMMY_DATE=$(echo $DUMMY_DATE_TIME | cut -d' ' -f1)
-DUMMY_TIME=$(echo $DUMMY_DATE_TIME | cut -d' ' -f2)
+# Generate batch script which actually starts the nightly test CMake script.
+cat <<EOF > "/cygdrive/c/start_nightly_tests.bat"
+ctest -V -S z:\\CFS_FESPACE_NIGHTLY\\ctest_scripts\\nightly_test.cmake > v:\\logs\\nightly_test.log 2>&1
+EOF
 
-echo "***$DUMMY_DATE###$DUMMY_TIME---"
+# Schedule task for starting nightly testing.
+$SCHTASKS /create /tn "CTest" /tr "cmd /K c:\\start_nightly_tests.bat" /sc once \
+          /st $TEST_START_TIME /sd $TEST_START_DATE /ru user /rp user
 
-# $SCHTASKS /create /tn "$SHUTDOWN_MSG" /tr "$SHUTDOWN_EXE -f -s" /sc once \
-#           /st $SHUTDOWN_TIME /sd $SHUTDOWN_DATE /ru Administrator /rp user
-
-# $SCHTASKS /create /tn "Show env" /tr "cmd /K set" /sc once \
-#         /st $DUMMY_TIME /sd $DUMMY_DATE /ru user /rp user
-
-$SCHTASKS /create /tn "CTest" /tr "cmd /K ctest -V -S z:\\CFS_FESPACE_NIGHTLY\\ctest_scripts\\nightly_test.cmake" /sc once \
-         /st $DUMMY_TIME /sd $DUMMY_DATE /ru user /rp user
-
-echo "==============="
-/cygdrive/c/GnuWin32/bin/dir y:
-echo "==============="
-/cygdrive/c/GnuWin32/bin/dir v:
-echo "==============="

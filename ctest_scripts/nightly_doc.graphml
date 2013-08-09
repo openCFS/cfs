@@ -546,13 +546,13 @@ called by ctest either from /etc/crontab on wiki.mdmt
 or by provisioner scripts in Vagrant boxes.
 
 In any case, a log file of the entire testing progress is
-written to HOME/Documents/dev/nightly_test.log
+written to SITE_DIR/logs/nightly_test.log
 
 Before nightly testing starts, it is advisable to reset
 the permissions of all involved directories, so that
 they are writeable by the test user. This operation
 is performed on e.g. on wiki by the script
-SITE_BASE_DIR/wiki/set_permissions.cmake
+SITE_DIR/set_permissions.cmake
 which is called with root priviledges from /etc/crontab.
 
 We use CTest instead of CMake, because it possible to
