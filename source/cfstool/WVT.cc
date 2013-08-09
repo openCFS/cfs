@@ -44,7 +44,9 @@ namespace CFSTool {
   WVT::WVT( const PtrParamNode& param,
             const PtrParamNode& info ) :
     param_(param),
-    info_(info)
+    info_(info),
+    dirCoupled_(false),
+    u_p_(1.0, 0.0)
   {
     // get filenames from parameter
     priModeFile_ = param_->Get("file1")->As<std::string>();
@@ -104,8 +106,6 @@ namespace CFSTool {
 
        // PtrParamNode multiSeqStep2 = pNode->GetByVal("sequenceStep", "index", 2);
 
-       bool dirCoupled = false;
-       
        bool ms1HasMech = multiSeqStep1->Get("pdeList")->Has("mechanic");
        bool ms1HasFlow = multiSeqStep1->Get("pdeList")->Has("fluidMech");
 
@@ -127,7 +127,7 @@ namespace CFSTool {
          
          if( cplNode->Get("direct")->Has("fluidMechDirect") ) 
          {  
-           dirCoupled = true;
+           dirCoupled_ = true;
            std::cout << "We have a <couplingList> tag." << std::endl;
 
            mechNode = multiSeqStep1->Get("pdeList")->Get("mechanic");
@@ -138,6 +138,13 @@ namespace CFSTool {
              std::cout << "############## " << list[i]->GetName() << ": " << list[i]->Get("name")->As<std::string>() << std::endl;
              cplSurfList.Push_back(list[i]->Get("name")->As<std::string>());
            }
+
+           // Now read mech displacement at sensor position 1 of lateral mode.
+           SimInputHDF5* hdf5Reader = dynamic_cast<SimInputHDF5*>(inputs_[PRIMARY_MODE].get());
+           StdVector<Complex> result;
+           hdf5Reader->GetNamedNodeResult("s_1", "mechDisplacement", result);
+
+           u_p_ = result[0];
          }
          else
          {
@@ -174,7 +181,7 @@ namespace CFSTool {
          }
        }
        
-       std::cout << dirCoupled << std::endl;
+       std::cout << "Direct coupled: " << dirCoupled_ << std::endl;
        
 
        // list = fluidNode->GetChildren();
@@ -711,30 +718,38 @@ namespace CFSTool {
              Double u_p_imag = 0;
              Vector<Complex> W_sum(3);
              W_sum.Init();
-             Complex u_p = Complex(1.0, 0);
              
              PtrParamNode wvtNode = param->Get("wvt");
-             if(wvtNode->Has("u_p")) {
-               PtrParamNode upNode = wvtNode->Get("u_p");
-               
-               if(upNode->Has("real")) {
-                 u_p_real = upNode->Get("real")->As<Double>();
-               }
-               if(upNode->Has("imag")) {
-                 u_p_imag = upNode->Get("imag")->As<Double>();
-               }
-               u_p = Complex(u_p_real, u_p_imag);
-               u_p *= Complex(0,1);
-               u_p *= 2*PI*freq;
+             if(dirCoupled_) 
+             {
+               u_p_ *= Complex(0,1);
+               u_p_ *= 2*PI*freq;
              }
-             if(wvtNode->Has("v_p")) {
-               PtrParamNode vpNode = wvtNode->Get("v_p");
-               
-               if(vpNode->Has("real")) {
-                 u_p_real = vpNode->Get("real")->As<Double>();
+             else
+             {
+               if(wvtNode->Has("u_p")) {
+                 PtrParamNode upNode = wvtNode->Get("u_p");
+                 
+                 if(upNode->Has("real")) {
+                   u_p_real = upNode->Get("real")->As<Double>();
+                 }
+                 if(upNode->Has("imag")) {
+                   u_p_imag = upNode->Get("imag")->As<Double>();
+                 }
+                 u_p_ = Complex(u_p_real, u_p_imag);
+                 u_p_ *= Complex(0,1);
+                 u_p_ *= 2*PI*freq;
                }
-               if(vpNode->Has("imag")) {
-                 u_p_imag = vpNode->Get("imag")->As<Double>();
+               if(wvtNode->Has("v_p")) {
+                 PtrParamNode vpNode = wvtNode->Get("v_p");
+                 
+                 if(vpNode->Has("real")) {
+                   u_p_real = vpNode->Get("real")->As<Double>();
+                 }
+                 if(vpNode->Has("imag")) {
+                   u_p_imag = vpNode->Get("imag")->As<Double>();
+                 }
+                 u_p_ = Complex(u_p_real, u_p_imag);
                }
              }
 
@@ -742,6 +757,10 @@ namespace CFSTool {
              realVal[0] = "0";
              realVal[1] = "0";
              realVal[2] = "1";
+             StdVector<std::string> imagVal(3);
+             realVal[0] = "0";
+             realVal[1] = "0";
+             realVal[2] = "0";
              Double meanVel = 1;
              if(wvtNode->Has("V")) {
                PtrParamNode vNode = wvtNode->Get("V");
@@ -778,6 +797,70 @@ namespace CFSTool {
              //CoupledField::PtrCoefFct&, boost::shared_ptr<CoupledField::EntityList>
              //CoupledField::PtrCoefFct, boost::shared_ptr<CoupledField::EntityList>&
            
+             shared_ptr<BaseFeFunction> priFeFct = u1FeFunc;
+             shared_ptr<BaseFeFunction> secFeFct = u2FeFunc;
+
+             if(wvtNode->Has("u1")) {
+               PtrParamNode u1Node = wvtNode->Get("u1");
+               
+               realVal[0] = realVal[1] = realVal[2] = "0.0";
+               imagVal[0] = imagVal[1] = imagVal[2] = "0.0";
+               if(u1Node->Has("x")) {
+                 PtrParamNode u1xNode = u1Node->Get("x");
+                 
+                 imagVal[0] = u1xNode->As<std::string>();
+               }
+
+               PtrCoefFct coefu1 = CoefFunction::Generate(mp.get(), Global::COMPLEX, realVal, imagVal);
+               shared_ptr<DefaultCoordSystem> coordSys( new DefaultCoordSystem(ptGrid1) );
+               coefu1->SetCoordinateSystem(coordSys.get());
+               
+               
+               FeFunction<Complex>* feFctPtr = new FeFunction<Complex>(mp.get());
+               shared_ptr<BaseFeFunction> feFct(feFctPtr);
+               feFct->SetFeSpace( u1FeFunc->GetFeSpace() );
+               feFct->AddEntityList( inResults1[iRes]->GetEntityList() );
+               feFct->SetGrid(ptGrid1);
+               feFct->SetResultInfo(inResults1[iRes]->GetResultInfo());
+               feFct->AddExternalDataSource( coefu1,
+                                             inResults1[iRes]->GetEntityList() ); // <--- Hier muss unbedingt die zugehörige Volumenregion zur Oberflächenregion hinein!
+               feFct->SetFctId(PSEUDO_FCT_ID);
+               feFct->Finalize();
+               feFct->ApplyExternalData();
+               priFeFct = feFct;
+             }
+
+             if(wvtNode->Has("u2")) {
+               PtrParamNode u2Node = wvtNode->Get("u2");
+               
+               realVal[0] = realVal[1] = realVal[2] = "0.0";
+               imagVal[0] = imagVal[1] = imagVal[2] = "0.0";
+               if(u2Node->Has("x")) {
+                 PtrParamNode u2xNode = u2Node->Get("x");
+                 
+                 imagVal[0] = u2xNode->As<std::string>();
+               }
+
+               PtrCoefFct coefu2 = CoefFunction::Generate(mp.get(), Global::COMPLEX, realVal, imagVal);
+               shared_ptr<DefaultCoordSystem> coordSys( new DefaultCoordSystem(ptGrid1) );
+               coefu2->SetCoordinateSystem(coordSys.get());
+               
+               
+               FeFunction<Complex>* feFctPtr = new FeFunction<Complex>(mp.get());
+               shared_ptr<BaseFeFunction> feFct(feFctPtr);
+               feFct->SetFeSpace( u2FeFunc->GetFeSpace() );
+               feFct->AddEntityList( inResults1[iRes]->GetEntityList() );
+               feFct->SetGrid(ptGrid1);
+               feFct->SetResultInfo(inResults1[iRes]->GetResultInfo());
+               feFct->AddExternalDataSource( coefu2,
+                                             inResults1[iRes]->GetEntityList() ); // <--- Hier muss unbedingt die zugehörige Volumenregion zur Oberflächenregion hinein!
+               feFct->SetFctId(PSEUDO_FCT_ID);
+               feFct->Finalize();
+               feFct->ApplyExternalData();
+               secFeFct = feFct;
+             }
+
+
 
              Double rho_0 = regionDensityMap[inResults1[iRes]->GetEntityList()->GetName()];
 
@@ -818,12 +901,12 @@ namespace CFSTool {
                // Obtain FE element from feSpace and integration scheme
                IntegOrder order;
                IntScheme::IntegMethod method;
-               BaseFE* ptFe1 = u1FeFunc->GetFeSpace()->GetFe( eIt, method, order );
-               BaseFE* ptFe2 = u2FeFunc->GetFeSpace()->GetFe( el2->elemNum );
+               BaseFE* ptFe1 = priFeFct->GetFeSpace()->GetFe( eIt, method, order );
+               BaseFE* ptFe2 = secFeFct->GetFeSpace()->GetFe( el2->elemNum );
                BaseFE* ptFe3 = NULL;
 
                // Get integration points
-               shared_ptr<IntScheme> intScheme = u1FeFunc->GetFeSpace()->GetIntScheme();
+               shared_ptr<IntScheme> intScheme = priFeFct->GetFeSpace()->GetIntScheme();
                
                StdVector<LocPoint> intPoints;
                StdVector<Double> weights;
@@ -896,10 +979,10 @@ namespace CFSTool {
                    lpm3 = lpm3Surf.lpmVol;
 
                    el1 = lpm1->ptEl;
-                   ptFe1 = u1FeFunc->GetFeSpace()->GetFe( lpm1->ptEl->elemNum );
+                   ptFe1 = priFeFct->GetFeSpace()->GetFe( lpm1->ptEl->elemNum );
                    
                    el2 = lpm2->ptEl;
-                   ptFe2 = u2FeFunc->GetFeSpace()->GetFe( lpm2->ptEl->elemNum );
+                   ptFe2 = secFeFct->GetFeSpace()->GetFe( lpm2->ptEl->elemNum );
                    
                    el3 = lpm3->ptEl;
                    ptFe3 = feFct->GetFeSpace()->GetFe( lpm3->ptEl->elemNum );
@@ -931,6 +1014,7 @@ namespace CFSTool {
                  Vector<Complex> u1, u2;
                  Vector<Double> V;
                  Vector<Complex> W;
+                 Vector<Complex> f(3);
                  Vector<Complex> X;
 
                  // gradOp->CalcOpMat( bMat1, *lpm1, ptFe1 );
@@ -938,8 +1022,8 @@ namespace CFSTool {
                  //curlOp->CalcOpMat( bMat3, *lpm1, ptFe1 );
                  // gradOp->CalcOpMat( bMat3, *lpm1, ptFe1 );
                  
-                 u1FeFunc->GetVector( u1, *lpm1 );
-                 u2FeFunc->GetVector( u2, *lpm2 );
+                 priFeFct->GetVector( u1, *lpm1 );
+                 secFeFct->GetVector( u2, *lpm2 );
                  // Get V from HDF5 file
                  // VFeFunc->GetVector( V, *lpm3 );
                  // Get analytical V
@@ -954,11 +1038,12 @@ namespace CFSTool {
                  V[2] = 1-(radius*radius/(R*R));
 #endif
 
-                 dynamic_cast<FeFunction<Complex>*>(u1FeFunc.get())->GetElemSolution( eSol1, el1 );
-                 dynamic_cast<FeFunction<Complex>*>(u2FeFunc.get())->GetElemSolution( eSol2, el2 );
+                 dynamic_cast<FeFunction<Complex>*>(priFeFct.get())->GetElemSolution( eSol1, el1 );
+                 dynamic_cast<FeFunction<Complex>*>(secFeFct.get())->GetElemSolution( eSol2, el2 );
                  dynamic_cast<FeFunction<Double>*>(feFct.get())->GetElemSolution( eSol3, el3 );
                  
                  StdVector< Vector<Complex> > u1Derivs(numDofs), u2Derivs(numDofs);
+                 StdVector< Vector<Double> > VDerivs(numDofs);
                  Vector<Double> curlV;
                  StdVector< Vector<Complex> > u2Tau(numDofs);
                  Double viscosity = regionViscosityMap[ptGrid1->regionData[el1->regionId].name];
@@ -980,7 +1065,7 @@ namespace CFSTool {
                    
                    gradOp->ApplyOp( u1Derivs[dof], *lpm1, ptFe1, eSol1Comp[dof] );
                    gradOp->ApplyOp( u2Derivs[dof], *lpm2, ptFe2, eSol2Comp[dof] );
-                   //                   gradOp->ApplyOp( curlV, *lpm3, ptFe3, eSol3Comp[dof] );
+                   gradOp->ApplyOp( VDerivs[dof], *lpm3, ptFe3, eSol3Comp[dof] );
                  }
                  
                  curlOp->ApplyOp( curlV, *lpm3, ptFe3, eSol3 );
@@ -1065,9 +1150,6 @@ namespace CFSTool {
                  {
                    for( UInt j=0; j < dim; j++ )
                    {
-                  #if 0
-                     W[i] += -rho_0 * (u2[j] * u1Derivs[i][j] - u1[j] * u2Derivs[j][i]);
-                  #endif               
                      
                      if(isSurf) 
                      {
@@ -1078,7 +1160,11 @@ namespace CFSTool {
                      else 
                      {
                        // Compute components of weight vector as given in Hemp1994 (15).
+                  #if 0
+                     W[i] += -rho_0 * (u2[j] * u1Derivs[i][j] - u1[j] * u2Derivs[j][i]);
+                  #else
                        W[i] += -rho_0 * (u2[j] * u1Derivs[j][i] - u1[j] * u2Derivs[i][j]);
+                  #endif               
                      }
                      
                    }
@@ -1120,7 +1206,7 @@ namespace CFSTool {
                      // between V and W_Phi as given in Hemp1994 (18).
                      //                     outVec5[elIdx] += W[i]/u_p * V[i];
 
-                     outVec5[elIdx] += X[i]/u_p * curlV[i] * volume;
+                     outVec5[elIdx] += X[i]/u_p_ * curlV[i] * volume;
                    }
 
                  }
@@ -1129,10 +1215,12 @@ namespace CFSTool {
                    for( UInt i=0; i < numDofs; i++ )
                    {
                      // Prepare weight vector
-                     outVec[elIdx*numDofs+i] += W[i] * volume;
+                     //                     outVec[elIdx*numDofs+i] += W[i] * volume;
+                     // Write u2 instead of W
+                     outVec[elIdx*numDofs+i] += u2[i] * volume;
                      
                      W_sum[i] += W[i] * volume;
-                     
+
                      // Prepare mean velocity
                      //                   V[i] *= meanVel;                   
                      
@@ -1143,13 +1231,22 @@ namespace CFSTool {
                      // Prepare weight vector density result
                      outVec3[elIdx] += W[i]*V[i]*volume;
                      
+                     f[i] = - rho_0 * (
+                       u1Derivs[i][0] * V[0] + u1Derivs[i][1] * V[1] + u1Derivs[i][2] * V[2]// C1
+                       //                       VDerivs[i][0] * u1[0] + VDerivs[i][1] * u1[1] + VDerivs[i][2] * u1[2] // C2
+                     );
                      
                      // Prepare weight vector W_Phi as given in Hemp1994 (19).
-                     outVec4[elIdx*numDofs+i] += W[i]/u_p * volume;
-                     
+                     //                     outVec4[elIdx*numDofs+i] += W[i]/u_p_ * volume;
+                     // outVec4[elIdx*numDofs+i] += u2[i] * volume;
+                     outVec4[elIdx*numDofs+i] += f[i] * volume;
+
                      // Prepare  weight  vector density  result  as inner  product
                      // between V and W_Phi as given in Hemp1994 (18).
-                     outVec5[elIdx] += W[i]/u_p * V[i] * volume;
+                     // outVec5[elIdx] += W[i]/u_p_ * V[i] * volume;
+
+                     // Compute "weight vector density" result from force and u2
+                     outVec5[elIdx] += (f[i] * u2[i])/u_p_ * volume;
                    }
                  }
                  

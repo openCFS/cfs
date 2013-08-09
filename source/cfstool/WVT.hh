@@ -52,6 +52,11 @@ namespace CFSTool
     std::string outFile_;
         
     bool writeOutputFile_;
+
+    //! Do primary and secondary mode input files come from a direct coupled FSI simulation?
+    bool dirCoupled_;
+
+    Complex u_p_;
     
     typedef std::map< InputFileType, shared_ptr<SimInput> > InputsType;
     InputsType inputs_;

@@ -1637,6 +1637,46 @@ namespace CoupledField {
 
   }
 
+  void SimInputHDF5::GetNamedNodeResult(const std::string& nodeName,
+                                        const std::string resultName,
+                                        StdVector<Complex>& result)
+  {    
+    StdVector<UInt> nodeNumbers;
+    StdVector<Double> real, imag;
+    
+    try {
+      H5::Group groupsGroup = mainRoot_.openGroup("Mesh/Groups");
+      
+      H5::Group namedNodeGroup = groupsGroup.openGroup(nodeName);
 
+      H5IO::ReadArray( namedNodeGroup, "Nodes", nodeNumbers);
+      
+      namedNodeGroup.close();
+      groupsGroup.close();
+      
+      for(UInt i=0, n=nodeNumbers.GetSize(); i<n; i++) 
+      {
+        std::cout << "Node numbers for " << nodeName << ": " << nodeNumbers[i] << std::endl;
+      }
+      
+      std::stringstream sstr;
+      
+      sstr << "Results/History/MultiStep_1/" << resultName << "/Nodes/" << nodeNumbers[0];
+
+      H5::Group historyNodeGroup = mainRoot_.openGroup(sstr.str());
+      H5IO::ReadArray( historyNodeGroup, "Real", real);
+      H5IO::ReadArray( historyNodeGroup, "Imag", imag);
+      historyNodeGroup.close();
+
+      std::cout << "real.size " << real.GetSize() << std::endl;
+      std::cout << "imag.size " << imag.GetSize() << std::endl;
+
+      result.Resize(1);
+      result[0] = Complex(real[0], imag[0]);
+
+      std::cout << "Complex result " << result[0] << std::endl;
+
+    }  H5_CATCH( "Could not close database section" );
+  }
 
 }
