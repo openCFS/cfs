@@ -2082,7 +2082,7 @@ namespace CoupledField
       //ok, this is only first order accurate for the first two timesteps
 
       int iSize = (int)size;
-  #pragma omp parallel for
+//#pragma omp parallel for
       for(int i = 0; i < iSize; ++i){
         myVec[i] = (actPresField[i] - oldVec[i]) / dt;
         oldVec[i] = actPresField[i];
@@ -2094,7 +2094,7 @@ namespace CoupledField
       const Double iDt = 1.0 / (2.0*dt);
 
       int iSize = (int)size;
-#pragma omp parallel for
+//#pragma omp parallel for
       for(int i = 0; i < iSize; ++i){
         myVec[i] = (c1 * actPresField[i] - c2 * oldVec[i] + c3*olderVec[i]) * iDt;
         olderVec[i] = oldVec[i];
