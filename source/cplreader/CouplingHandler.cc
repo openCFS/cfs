@@ -908,7 +908,7 @@ namespace CoupledField
             }
 
             UInt numEs = velocityFieldVector.size();
-#pragma omp parallel for
+//#pragma omp parallel for
             for(UInt i = 0; i<numEs;++i){
               tmpMeanVelField[actRegion][i] += velocityFieldVector[i] * actDt;
             }
@@ -923,7 +923,7 @@ namespace CoupledField
               std::fill(tmpMeanPresField[actRegion].begin(), tmpMeanPresField[actRegion].end(), 0);
             }
             UInt numEs = presureFieldVector.size();
-#pragma omp parallel for
+//#pragma omp parallel for
             for(UInt i = 0; i<numEs;++i){
               tmpMeanPresField[actRegion][i] += presureFieldVector[i] * actDt;
             }
@@ -956,7 +956,7 @@ namespace CoupledField
         std::fill(fdps1.data.begin(), fdps1.data.end(), 0);
 
         UInt numE = tmpMeanPresField[actRegion].size();
-#pragma omp parallel for
+//#pragma omp parallel for
         for(UInt i = 0; i<numE;++i){
           fdps1.data[i] = tmpMeanPresField[actRegion][i] / (simTime);
         }
@@ -981,7 +981,7 @@ namespace CoupledField
 
         std::fill(fdps2.data.begin(), fdps2.data.end(), 0);
 
-#pragma omp parallel for
+//#pragma omp parallel for
         for(UInt i = 0; i<tmpMeanVelField[actRegion].size();++i){
           fdps2.data[i] = tmpMeanVelField[actRegion][i] / (simTime);
         }
