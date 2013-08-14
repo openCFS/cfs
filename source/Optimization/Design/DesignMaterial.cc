@@ -1603,38 +1603,38 @@ void DesignMaterial::RotatePiezoCouplingTensor(Matrix<double>& E, double phi, De
 
 void DesignMaterial::RotateElecTensor(Matrix<double>& E, double phi, DesignElement::Type direction)
 {
-  // R(phi)^T * [e] * R(phi)
-  // derivative: dR(phi)^T/dphi * ([e] * R(phi)) + R(phi)^T * ([e] * dR(phi)/dphi)
+  // R(phi) * [e] * R(phi)^T
+  // derivative: dR(phi)/dphi * ([e] * R(phi)^T) + R(phi) * ([e] * dR(phi)/dphi)^T
 
-  Matrix<double> R(2,2);
-  R[0][0] = cos(phi);
-  R[0][1] = sin(phi);
-  R[1][0] = -R[0][1];
-  R[1][1] = R[0][0];
+  Matrix<double> RT(2,2);
+  RT[0][0] = cos(phi);
+  RT[0][1] = -sin(phi);
+  RT[1][0] = -RT[0][1];
+  RT[1][1] = RT[0][0];
 
   Matrix<double> help(2,2);
-  E.Mult(R, help); // help = E * R
+  E.Mult(RT, help); // help = E * R^T
 
   if(direction != DesignElement::ROTANGLE)
   {
-    R.MultT(help, E); // E = R^T * (E * R)
+    RT.MultT(help, E); // E = R * (E * R^T)
     return;
   }
   else
   {
-    Matrix<double> dR(2,2);
-    dR[0][0] = -sin(phi);
-    dR[0][1] = cos(phi);
-    dR[1][0] = -cos(phi);
-    dR[1][1] = -sin(phi);
+    Matrix<double> dRT(2,2);
+    dRT[0][0] = -sin(phi);
+    dRT[0][1] = -cos(phi);
+    dRT[1][0] = -dRT[0][1];
+    dRT[1][1] = dRT[0][0];
 
     Matrix<double> left(2,2);
-    dR.MultT(help, left); // left = dR^T * (E * R)
+    dRT.MultT(help, left); // left = dR * (E * R^T)
 
-    E.Mult(dR, help); // help = E * dR
+    E.Mult(dRT, help); // help = E * dR^T
 
-    R.MultT(help, dR); // overwrite dR to use temporary: dR = R^T * (help) = R^T * (E * dR)
-    E = left + dR;
+    RT.MultT(help, dRT); // overwrite dR to use temporary: dR = R * (help) = R * (E * dR^T)
+    E = left + dRT;
     return;
   }
 }

@@ -129,6 +129,11 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
       }
     }
   }
+  else
+  {
+    if(!trans_in.IsEmpty())
+      throw Exception("transfer functions may not be given for parametric material optimization");
+  }
 
 
   if(elements == 0 || design.IsEmpty())
