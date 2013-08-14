@@ -86,7 +86,7 @@ ADD_OPTION(name
 ADD_OPTION(type
   string
   CFX
-  "Type of dataset (can be ANSYS | CFS++ | CFX | CFX_EXPORT | FASTEST | OPENFOAM | CGNS | ENSIGHT | FIELDVIEW)"
+  "Type of dataset (can be ANSYS | CCM | CFS++ | CFX | CFX_EXPORT | FASTEST | OPENFOAM | CGNS | ENSIGHT | FIELDVIEW)"
   "Specify the type of dataset to be read: ANSYS see Sec. \\\\ref{sec:ansys},
    CFX see Sec. \\\\ref{sec:cfx}, CFX\\\\_EXPORT see Sec. \\\\ref{sec:cfx-export},
    FASTEST see Sec. \\\\ref{sec:fastest}, OPENFOAM see Sec. \\\\ref{sec:openfoam}."
@@ -133,7 +133,7 @@ ADD_OPTION(extfiles
 ADD_OPTION(quantityForAcouRhsLoad
   string
   fluidMechVelocity
-  "Specify which quantity from the fluid solver should be used for computing the RHS for wave equation.Choose one of ([fluidMechVelocity | fluidMechPressure | divLHTensor | fluidMechPressure_deriv2])"
+  "Specify which quantity from the fluid solver should be used for computing the RHS for wave equation.Choose one of ([fluidMechVelocity | fluidMechPressure | fluidMechDivLHT | fluidMechPressure_deriv2])"
   "Cplreader is going to evaluate a different integral depending of the given choice"
   )
 
@@ -460,14 +460,14 @@ ADD_OPTION(cfxLastStep
 ADD_OPTION(digits
   uint32_t
   0
-  "number of digits at timestep input files"
+  "number of digits at timestep input files (CCM only)"
   "must be set greater than 0"
   )
 
 ADD_OPTION(stepoffset
   uint32_t
   0
-  "offset for the steps, used by CCMDualizer internally"
+  "offset for the timesteps (CCM only)"
   "cplreader usually reads the steps: [ firststep , firststep + numsteps - 1], 
     using this option the filreader will actually read [ firststep + offset , firststep + numsteps + offset - 1], 
     while cplreader thinks it is reading [ firststep , firststep + numsteps - 1]"

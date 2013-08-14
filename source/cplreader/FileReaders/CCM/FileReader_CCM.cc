@@ -160,9 +160,9 @@ namespace CoupledField
       FlowDataPartStruct* fdps = &fdt[FLUIDMECH_PRESSURE_DERIV_2];
       loader->LoadScalar(fdps, dataFile, laplacePName, FLUIDMECH_PRESSURE_DERIV_2);
     }
-    if (requiredResults_[FLUIDMECH_DIV_LH_T]) {
-      FlowDataPartStruct* fdps = &fdt[FLUIDMECH_DIV_LH_T];
-      loader->LoadVector(fdps, dataFile, divLHTName, FLUIDMECH_DIV_LH_T);
+    if (requiredResults_[ACOU_DIV_LH_TENSOR_NODAL]) {
+      FlowDataPartStruct* fdps = &fdt[ACOU_DIV_LH_TENSOR_NODAL];
+      loader->LoadVector(fdps, dataFile, divLHTName, ACOU_DIV_LH_TENSOR_NODAL);
     }
     dataFile.Close();
   }
