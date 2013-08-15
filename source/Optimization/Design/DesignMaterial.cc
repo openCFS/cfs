@@ -771,16 +771,16 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
 
 void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
 {
-  // We use the anisotropic tensor only for solving FMO problems. Then we assume the design to be in Hill-Mandel
+  // We use the anisotropic tensor only for solving FMO problems. We assume the design to be in Hill-Mandel
   // notation and therefore we need to transform it for using it in CFS
 
   bool set = direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE;
 
   double e11 = set ? params_[DesignElement::TENSOR11] : 0;
   double e22 = set ? params_[DesignElement::TENSOR22] : 0;
-  double e33 = set ? params_[DesignElement::TENSOR33] * (notation == VOIGT ? 0.5 : 1.0) : 0;
-  double e23 = set ? params_[DesignElement::TENSOR23] * (notation == VOIGT ? 1.0/sqrt(2.0) : 1.0) : 0;
-  double e13 = set ? params_[DesignElement::TENSOR13] * (notation == VOIGT ? 1.0/sqrt(2.0) : 1.0) : 0;
+  double e33 = set ? params_[DesignElement::TENSOR33] : 0;
+  double e23 = set ? params_[DesignElement::TENSOR23] : 0;
+  double e13 = set ? params_[DesignElement::TENSOR13] : 0;
   double e12 = set ? params_[DesignElement::TENSOR12] : 0;
   double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
 
@@ -797,13 +797,13 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
     Set2dVoigtTensor(E, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR33:
-    Set2dVoigtTensor(E, 0.0, 0.0, notation == VOIGT ? 0.5 : 1.0, 0.0, 0.0, 0.0);
+    Set2dVoigtTensor(E, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR23:
-    Set2dVoigtTensor(E, 0.0, 0.0, 0.0, notation == VOIGT ? 1.0/sqrt(2.0) : 1.0, 0.0, 0.0);
+    Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR13:
-    Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, notation == VOIGT ? 1.0/sqrt(2.0) : 1.0, 0.0);
+    Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
     break;
   case DesignElement::TENSOR12:
     Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
@@ -813,9 +813,9 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
     ZeroTensor(E, PLANE_STRAIN);
   }
 
-  LOG_DBG2(dm) << "GEFMOT: E before rotation = " << E.ToString(2);
+  LOG_DBG2(dm) << "GEFMOT: E before rotation = " << E.ToString(2) << " d=" << DesignElement::type.ToString(direction);
   RotateHMStiffnessTensor(E, PLANE, direction, rotAngle, notation);
-  LOG_DBG2(dm) << "GEFMOT: E after rotation =  " << E.ToString(2);
+  LOG_DBG2(dm) << "GEFMOT: E after rotation =  " << E.ToString(2) << " n=" << (notation == VOIGT ? "v" : "n") ;
 
 }
 

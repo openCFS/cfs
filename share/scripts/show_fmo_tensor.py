@@ -181,7 +181,7 @@ parser.add_argument("--scale", help="manual scaling factor", default=-1, type=fl
 parser.add_argument("--res", help="x-resolution (default 1200)", default=1200, type=int)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
 parser.add_argument("--show", help="default | ortho_norm | mono_norm (3D) | ortho_err | e21_normed (2D) | hom_rect | hom_rot_cross | rot | shear", default="default", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'rot', 'shear'])
-parser.add_argument("--notation", help="mandel | voigt (default 'mandel')", default="mandel")
+parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", default="voigt")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
 parser.add_argument("--symmetries_threshold", help="threshold value for symmetries (default 9999)", default=9999)
@@ -274,6 +274,8 @@ if dim_2D:
       else:
         im = show_frame_grad(coords, s1, s2, args.hom_grad, args.hom_dir, int(args.res))
   else:
+    if args.tensor == 'mechTensor':
+      print "Input data is read as as " + args.notation
     angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.tensor, args.show)
     
     if args.plot <> None:
