@@ -17,8 +17,10 @@ namespace CoupledField {
    * to a material tensor.  */
 template <class TYPE> class StdVector;
 
-  class DesignMaterial {
-    
+class ErsatzMaterial;
+
+  class DesignMaterial
+  {
   public:
     
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
@@ -36,7 +38,7 @@ template <class TYPE> class StdVector;
 
     /** constructor, reads in DesignMaterial from XML
      * @param pn pointer to PtrParamNode */ 
-    DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design);
+    DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, ErsatzMaterial* em);
     
     /** reset the parameter space */
     void ClearParameter() { params_.clear(); }
@@ -56,7 +58,7 @@ template <class TYPE> class StdVector;
     void GetPiezoCouplingTensor(Matrix<double>& t, DesignElement::Type direction);
 
     /** returns the tensor with negative design variables such the design vector is still pos. definite */
-    void GetDielecTensor(Matrix<double>& t, DesignElement::Type direction);
+    void GetElecTensor(Matrix<double>& t, DesignElement::Type direction);
 
     /** retrieve rel. mass of element (tensor trace) or derivative thereof */
     double GetMaterialMass(DesignElement::Type direction);
@@ -131,7 +133,7 @@ template <class TYPE> class StdVector;
     inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
     
     /* general anisotropic FMO tensor */
-    inline void GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
+    inline void GetElasticFMOTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
 
     /** Calculate the Tensor for Density times Tensor */
     inline void GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
@@ -150,6 +152,10 @@ template <class TYPE> class StdVector;
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
     inline void GetHomRectTensor(Matrix<double>& t, SubTensorType subTensor,  DesignElement::Type direction, Notation notation);
 
+    /** does only perform orientational optimization
+     * @param mc MECHANIC, PIEZO, ELECTROSTATIC */
+    inline void GetRotatedTensor(Matrix<double>& t, MaterialClass mc, DesignElement::Type direction);
+
     /** initialize the tensor with zeros */
     inline void ZeroTensor(Matrix<double>& t, SubTensorType subTensor);
     
@@ -163,8 +169,12 @@ template <class TYPE> class StdVector;
     inline void SetIsoTensor(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
     
     /** rotate elasticity tensor in t (in Hill-Mandel notation!) by the angle a and adjust the entries back to notation to fit with CFS++ */
-    inline void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation = VOIGT);
+    void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double angle, Notation notation = VOIGT);
 
+    /** This exists only in Voigt notation! */
+    void RotatePiezoCouplingTensor(Matrix<double>& t, double angle, DesignElement::Type direction);
+
+    void RotateElecTensor(Matrix<double>& t, double angle, DesignElement::Type direction);
 
     /** Calculate the mass isotropic case */
     inline double GetIsoMaterialMass(DesignElement::Type direction);    
@@ -214,6 +224,9 @@ template <class TYPE> class StdVector;
     Matrix<double> hom_rect_a_;
     Matrix<double> hom_rect_b_;
     Matrix<double> hom_rect_c_;
+
+    /** only for ROTATION to get OptimizationMaterial */
+    ErsatzMaterial* em_;
 
   };
 

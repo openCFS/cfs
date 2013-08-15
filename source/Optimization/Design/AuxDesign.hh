@@ -69,7 +69,7 @@ class AuxDesign : public DesignSpace
     double GetSlackVariable() const { assert(slack_ != NULL); return aux_design_[0].GetDesign(); }
 
     /** see DesignSpace::ToInfo() */
-    void ToInfo(PtrParamNode in);
+    void ToInfo(PtrParamNode in, ErsatzMaterial* em);
 
     /** @see DesignSpace::GetDesignElement() */
     BaseDesignElement* GetDesignElement(unsigned int idx);

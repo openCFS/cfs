@@ -577,6 +577,9 @@ class Function
      * Created on request */
     StdVector<DesignElement*> elements;
 
+    /** When we optimize output we store here the nodes */
+    LoadList output_nodes;
+
   protected:
 
     /** common constructor stuff. To be called from special Objective constructor, too */

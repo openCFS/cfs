@@ -8,6 +8,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/elem.hh"
 #include "General/exception.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/TransferFunction.hh"
 #include "PDE/SinglePDE.hh"
@@ -273,7 +274,8 @@ double TransferFunction::Derivative(const DesignElement* de, DesignElement::Acce
   double value = de->GetValue(DesignElement::DESIGN, access);
 
   #ifdef CHECK_INDEX
-    if(de->GetType() != design_) throw Exception("type missmatch");
+    if(de->GetType() != design_ && (design_ == DesignElement::DEFAULT && de->GetDesignSpace() != NULL && de->GetDesignSpace()->design.GetSize() > 1))
+      throw Exception("type mismatch for the transfer function");
   #endif
     switch(type_)
     {

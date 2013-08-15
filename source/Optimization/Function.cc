@@ -156,6 +156,7 @@ Function::Function(PtrParamNode pn)
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case SLACK:
+  case MULTIMATERIAL_SUM:
     linear_ = true;
     break;
   case TENSOR_TRACE:
@@ -1473,6 +1474,10 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
 
   LOG_DBG(func) << "F:L:SMDEM des_idx=" << des_idx.ToString() << " total=" << space->design.ToString();
 
+  if(elems > func_->elements.GetSize())
+    EXCEPTION("for function " << Function::type.ToString(f->GetType()) << " with design " << DesignElement::type.ToString(f->GetDesignType())
+              << " the design space is " << func_->elements.GetSize() << " but should be " << elems);
+
   for(unsigned int e = 0; e < elems; e++)
   {
     DesignElement* de = func_->elements[e];
@@ -2636,7 +2641,8 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
       for(int i=-1; i < (int) neighbor.GetSize(); ++i)
       {
         ret += GetElement(i)->GetDesign(DesignElement::PLAIN);
-        LOG_DBG3(func) << "L::I::CMMS e_num=" << element->elem->elemNum << " i=" << i << " e=" <<  GetElement(i)->elem->elemNum << " mi=" << GetElement(i)->multimaterial->index << " -> " << ret;
+        LOG_DBG3(func) << "L::I::CMMS e_num=" << element->elem->elemNum << " i=" << i << " e=" <<  GetElement(i)->elem->elemNum << " mi=" << GetElement(i)->multimaterial->index
+                       << " v=" << GetElement(i)->GetDesign(DesignElement::PLAIN) << " -> " << ret;
       }
     }
     else
