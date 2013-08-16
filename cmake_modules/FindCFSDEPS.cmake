@@ -453,9 +453,8 @@ IF(BUILD_PARAVIEW)
   # Finally add an external project for ParaViewSuperbuild
   #---------------------------------------------------------------------------
   set(PARAVIEW_SB_URL "${LSE17_SOURCES_DIR}/paraview")
-  set(PARAVIEW_SB_GZ pvsuperbuild-3.98.1.tgz)
-  set(PARAVIEW_SB_MD5 c5471eebe633fe3410a24e543836ec81)
-
+  set(PARAVIEW_SB_GZ pvsuperbuild-4.0.1.tgz)
+  set(PARAVIEW_SB_MD5 f3f38d33eeb189ea54b987fae66e6dd1)
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/paraview/External_ParaView.cmake")
 ENDIF(BUILD_PARAVIEW)
 
