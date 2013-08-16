@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.cfs++.org ../../../xml/CFS-Simulation/CFS.xsd"
+ xmlns="http://www.cfs++.org">
+  
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="cantilever.h5"/>
+    </input>
+    <output>
+      <text commentChar="%" id="txt"/>
+      <hdf5 id="hdf5"/>
+    </output>
+    <materialData file="mat.xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d">
+    <regionList>
+      <region name="cantilever" material="Steel"/>
+    </regionList>
+    <elemList>
+      <elems name="excite"></elems>
+      <elems name="fix-all"></elems>
+    </elemList>
+    <nodeList>
+      <nodes name="record">
+        <coord x="400e-6" y="0" z="0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+  
+  <fePolynomialList>
+    <Legendre id="default">
+      <isoOrder>1</isoOrder>
+    </Legendre>
+  </fePolynomialList>
+  
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps> 40 </numSteps>
+        <deltaT> 0.05 </deltaT>
+      </transient>     
+    </analysis>
+    
+    <pdeList>
+      <mechanic subType="3d"> 
+        <regionList>
+          <region name="cantilever"/>
+        </regionList>
+        <bcsAndLoads>
+          
+          <!-- Appply pressure in z-direction -->
+          <pressure name="excite" value="-100*sin(2*pi*1*t)" /> 
+          
+          <fix name="fix-all">
+            <comp dof="x"/>
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+        </bcsAndLoads>
+        <storeResults>          
+         <nodeResult type="mechDisplacement">
+           <regionList saveBegin="10" saveEnd="40" saveInc="2">
+             <region name="cantilever"/>
+           </regionList>
+         </nodeResult>       
+         <nodeResult type="mechDisplacement">
+           <allRegions outputIds="hdf5" saveBegin="10" saveEnd="40"/>
+           <nodeList>
+               <nodes name="record"/>
+            </nodeList>
+          </nodeResult> 
+         <elemResult type="mechStress">
+            <allRegions saveBegin="10" saveEnd="40" saveInc="2"/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+         <solverList>
+          <pardiso>
+            <IterRefineSteps> 5 </IterRefineSteps>
+          </pardiso>
+        </solverList>
+      </system>
+      <system></system>
+    </linearSystems>
+    
+  </sequenceStep>
+  
+</cfsSimulation>

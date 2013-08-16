@@ -6,103 +6,6 @@
 # Source shell script for setting some common variables.
 . `dirname $0`/common.sh
 
-SUSEPackageHint()
-{
-    DISTRO=$1
-    DISTRO_VER=$2
-
-    DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
-
-    echo
-    echo "   python"
-    echo "   tcl"
-    echo
-}
-
-RedhatPackageHint()
-{
-    DISTRO=$1
-    DISTRO_VER=$2
-
-    DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
-
-    echo
-    echo "   blas"
-    echo "   boost"
-    echo "   compat-gcc-g77 or gcc-g77"
-    echo "   gcc-gfortran"
-    echo "   lapack"
-    echo "   python"
-    echo "   tcl"
-    echo "   xerces-c"
-    echo
-}
-
-DebianPackageHint()
-{
-    DISTRO=$1
-    DISTRO_VER=$2
-
-    DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
-
-    echo
-    echo "   blas or refblas3"
-    echo "   libg2c0"
-    echo "   libboost-*"
-    echo "   lapack, lapack99, lapack3"
-    echo "   python2.4"
-    echo "   tcl8.4"
-    echo "   libxerces27"
-    echo     
-}
-
-UbuntuPackageHint()
-{
-    DISTRO=$1
-    DISTRO_VER=$2
-
-    DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
-
-    echo
-    echo "   refblas3"
-    echo "   libboost-*"
-    echo "   libg2c0"
-    echo "   lapack3"
-    echo "   python2.4"
-    echo "   tcl8.4"
-    echo "   libxerces27"
-    echo
-}
-
-MandrivaPackageHint()
-{
-    DISTRO=$1
-    DISTRO_VER=$2
-
-    DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
-
-   "libblas1.1, libblas3, libblas, blas"
-   "libboost1, libboost, boost"
-   "gcc3.3-g77"
-   "libgfortran"
-   "lapack"
-   "python, libpython"
-   "libtcl8.4, tcl"
-   "xerces-c, libxerces-c"
-}
-
-GivePackageHint()
-{
-    DISTRO=$1
-    DISTRO_VER=$2
-
-    case "$DISTRO" in
-	SUSE) SUSEPackageHint $DISTRO $DISTRO_VER ;;
-	OPENSUSE) SUSEPackageHint $DISTRO $DISTRO_VER ;;
-	SLES) SUSEPackageHint $DISTRO $DISTRO_VER ;;
-	*) break ;;
-    esac
-}
 
 SetANSYSParameters()
 {
@@ -216,6 +119,22 @@ fi
 # Set path to CFS executable
 CFSTOOL_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/cfstoolbin
 
+# If we cannot find the usual executable, maybe we have crosscompiled
+# using MinGW and need to start the binary using Wine.
+MINGW=0
+if [ ! -e $CFSTOOL_EXE ]; then
+  
+  for arch in "X86_64" "I386"; do
+      CFSTOOL_EXE="$CFS_ROOT_DIR/bin/MINGW_$ARCH/cfstoolbin.exe"
+      if [ -e $CFSTOOL_EXE ]; then
+	  ARCH=$arch
+	  ARCH_STR="MINGW"_$ARCH
+	  MINGW=1;
+	  break;
+      fi
+  done
+fi
+
 # Set parameters according to distribution type.
 case "$CFS_DIST_TYPE" in
     ANSYS)
@@ -264,16 +183,21 @@ then
     echo "These were:"
     echo "$CFSTOOL_EXE_LDD";
     echo
-    echo "CFSTOOL depends on the following packages on $DISTRO $DISTRO_VER:"
-    GivePackageHint $DISTRO $DISTRO_VER
-    echo "Please install the required packages."
     exit 4
 fi
 
 # Execute the CFS exutable with arguments from this script
 if [ $# != 0 ]
 then
- $CFSTOOL_EXE "$@";
+    if [ $MINGW = 1 ]; then
+	wine $CFSTOOL_EXE "$@";
+    else
+	$CFSTOOL_EXE "$@";
+    fi
 else
- $CFSTOOL_EXE;
+    if [ $MINGW = 1 ]; then
+	wine $CFSTOOL_EXE;
+    else
+	$CFSTOOL_EXE;
+    fi
 fi

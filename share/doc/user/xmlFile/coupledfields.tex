@@ -90,20 +90,20 @@ criterias were met.
 Currently we have definitions for electrostatics, mechanics, magnetics and
 acoustics.
 
-\begin{table}[htb]
-\begin{center}
-\caption{Electrostatics}
-\bigskip
-\begin{tabular}{ll}
-\toprule
-input coupling & type \\
-\midrule
-nodeCoupling / regionCoupling & mechDisplacement \\
-nodeCoupling / regionCoupling & smoothDisplacement \\
-\bottomrule
-\end{tabular}
-\end{center}
-\end{table}
+% \begin{table}[htb]
+% \begin{center}
+% \caption{Electrostatics}
+% \bigskip
+% \begin{tabular}{ll}
+% \toprule
+% input coupling & type \\
+% \midrule
+% nodeCoupling / regionCoupling & mechDisplacement \\
+% nodeCoupling / regionCoupling & smoothDisplacement \\
+% \bottomrule
+% \end{tabular}
+% \end{center}
+% \end{table}
 
 \begin{table}[htb]
 \begin{center}
@@ -113,7 +113,7 @@ nodeCoupling / regionCoupling & smoothDisplacement \\
 \toprule
 input coupling    & type \\
 \midrule
-nodeCoupling / regionCoupling     & elecForceVWP \\
+%nodeCoupling / regionCoupling     & elecForceVWP \\
 nodeCoupling / regionCoupling    & magForceVWP \\
 regionCoupling    & magForceLorentz \\
 interfaceCoupling & acouForce \\
@@ -152,38 +152,38 @@ interfaceCoupling      & mechForce \\
 \end{table}
 
 \newpage
-\subsection{ElecMech}
-The two involved fields are the electrostatic and the mechanical field.
-Often we need a additional PDE for the smoothing of the mesh (moving/deforming 
-body problem).
+% \subsection{ElecMech}
+% The two involved fields are the electrostatic and the mechanical field.
+% Often we need a additional PDE for the smoothing of the mesh (moving/deforming 
+% body problem).
 
-\bigskip
-\noindent
-{\it Example:}
+% \bigskip
+% \noindent
+% {\it Example:}
 
-\begin{xmllisting}
-<couplingList>
-  <iterative>
-    <elecMech method="RHS">
-      <electrostatic>
-        <coupling quantity="smoothDisplacement" type="region" name="air1"/>
-        <coupling quantity="smoothDisplacement" type="region" name="air2"/>
-      </electrostatic>
-      <mechanic>
-        <coupling quantity="elecForceVWP" type="node" name="electrode1"/>
-      </mechanic>
-      <smooth>
-        <coupling quantity="mechDisplacement" type="node" name="electrode1"/>
-      </smooth>
-    </elecMech>
-    <nonLinear logging="no">
-      <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
-      <stopCrit value="1e-3" quantity="elecForceVWP" l2Norm="abs"/>
-      <maxNumIters> 20 </maxNumIters>
-    </nonLinear>
-  </iterative>>
-</couplingList>
-\end{xmllisting}
+% \begin{xmllisting}
+% <couplingList>
+%   <iterative>
+%     <elecMech method="RHS">
+%       <electrostatic>
+%         <coupling quantity="smoothDisplacement" type="region" name="air1"/>
+%         <coupling quantity="smoothDisplacement" type="region" name="air2"/>
+%       </electrostatic>
+%       <mechanic>
+%         <coupling quantity="elecForceVWP" type="node" name="electrode1"/>
+%       </mechanic>
+%       <smooth>
+%         <coupling quantity="mechDisplacement" type="node" name="electrode1"/>
+%       </smooth>
+%     </elecMech>
+%     <nonLinear logging="no">
+%       <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
+%       <stopCrit value="1e-3" quantity="elecForceVWP" l2Norm="abs"/>
+%       <maxNumIters> 20 </maxNumIters>
+%     </nonLinear>
+%   </iterative>>
+% </couplingList>
+% \end{xmllisting}
 
 \subsection{MagMech}
 The two involved fields are the magnetic and the mechanical field.
@@ -195,54 +195,47 @@ body problem).
 {\it Example:}
 
 \begin{xmllisting}
-<couplingList>
-  <iterative>
-    <magMech method="RHS">
-      <magnetic>
-        <coupling quantity="smoothDisplacement" type="region" name="air1"/>
-        <coupling quantity="smoothDisplacement" type="region" name="air2"/>
-      </magnetic>
-      <mechanic>
-        <coupling quantity="magForceLorentz" type="region" name="plate"/>
-      </mechanic>
-      <smooth>
-        <coupling quantity="mechDisplacement" type="node" name="surf1"/>
-      </smooth>
-      <nonLinear logging="no">
-        <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
-        <stopCrit value="1e-3" quantity="magForceLorentz" l2Norm="abs"/>
-      <maxNumIters> 20 </maxNumIters>
-    </nonLinear>
-  </iterative>
-</couplingList>
+     <couplingList>
+       <iterative>
+         <!-- Specify convergence criterias -->
+         <convergence logging="yes" maxNumIters="20" stopOnDivergence="no">
+           <quantity name="magForceLorentz" value="1e-3" normType="rel"/>
+           <quantity name="mechDisplacement" value="1e-3" normType="rel"/>
+         </convergence>
+         <!-- Define geometric update -->
+         <geometryUpdate>
+           <region name="material"/>
+         </geometryUpdate>
+       </iterative>
+     </couplingList>
 \end{xmllisting}
 
 
-\subsection{AcouMech}
-The two involved fields are the Acoustics and the mechanical field.
+% \subsection{AcouMech}
+% The two involved fields are the Acoustics and the mechanical field.
 
-\bigskip
-\noindent
-{\it Example:}
+% \bigskip
+% \noindent
+% {\it Example:}
 
-\begin{xmllisting}
-<couplingList>
-  <iterative>
-    <acouMech method="RHS">
-      <acoustic>
-        <coupling quantity="mechForce" type="interface" name="surf1"/>
-      </acoustic>
-      <mechanic>
-        <coupling quantity="acouForce" type="interface" name="surf1"/>
-      </mechanic>
-    </acouMech>
-    <nonLinear logging="no">
-      <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
-      <maxNumIters> 20 </maxNumIters>
-    </nonLinear>
-  </AcouMech>
-</couplingList>
-\end{xmllisting}
+% \begin{xmllisting}
+% <couplingList>
+%   <iterative>
+%     <acouMech method="RHS">
+%       <acoustic>
+%         <coupling quantity="mechForce" type="interface" name="surf1"/>
+%       </acoustic>
+%       <mechanic>
+%         <coupling quantity="acouForce" type="interface" name="surf1"/>
+%       </mechanic>
+%     </acouMech>
+%     <nonLinear logging="no">
+%       <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
+%       <maxNumIters> 20 </maxNumIters>
+%     </nonLinear>
+%   </AcouMech>
+% </couplingList>
+% \end{xmllisting}
 %
 % =============================================================================
 %
@@ -288,90 +281,81 @@ as the element normals are needed for calculating the coupling forces.
 \end{xmllisting}
 
 \subsection{PiezoDirect}
-The two involved fields are the Electrostatic and the mechanical field.
+The two involved fields are the electrostatic and the mechanical field.
 
 \bigskip
 \noindent
 {\it Example:}
 
 \begin{xmllisting}
-<couplingList>
-  <direct>
-    <piezoDirect>
-      <regionList>
-        <region name="..."/>
-        <region name="..."/>
-      </regionList>
-      <storeResults>
-        <elemResult type="mechStress">
-          <allRegions/>
-        </elemResult>
-      </storeResults>
-    </piezoDirect>
-  </direct>
+<couplingList>     
+   <direct>
+      <piezoDirect>
+        <regionList>
+          <region name="piezo-top"/>
+          <region name="piezo-bot"/>
+        </regionList>
+     </piezoDirect>
+   </direct>
 </couplingList>
 \end{xmllisting}
 
 \subsection{AcouMechDirect}
-The two involved fields are the Acoustics and Mechanical Field.
+The two involved fields are the acoustics and mechanical field.
 
 \bigskip
 \noindent
 {\it Example:}
 
 \begin{xmllisting}
-<couplingList>
-  <direct>
-    <acouMechDirect>
-      <surfRegionList>
-        <surfRegion name="..."/>
-      </surfRegionList>
-      <ncInterfaceList>
-        <ncInterface name="..."/>
-        <ncInterface name="..."/>
-      </ncInterfaceList>
-    </acouMechDirect>
-  </direct>
-</couplingList>
+    <couplingList>
+      <direct>
+        <acouMechDirect>
+          <surfRegionList>
+            <surfRegion name="coupleEl"/>
+          </surfRegionList>
+        </acouMechDirect>
+      </direct>
+    </couplingList>
 \end{xmllisting}
 
-\subsection{ThermoElectricDirect}
-The two involved fields are the heatConduction and Electrostatic Field.
+% \subsection{ThermoElectricDirect}
+% The two involved fields are the heatConduction and Electrostatic Field.
 
-\bigskip
-\noindent
-{\it Example:}
+% \bigskip
+% \noindent
+% {\it Example:}
 
-\begin{xmllisting}
-<couplingList>
-  <direct>
-    <thermoElectricDirect>
-      <regionList>
-        <region name="..."/>
-      </regionList>
-    </thermoElectricDirect>
-  </direct>
-</couplingList>
-\end{xmllisting}
+% \begin{xmllisting}
+% <couplingList>
+%   <direct>
+%     <thermoElectricDirect>
+%       <regionList>
+%         <region name="..."/>
+%       </regionList>
+%     </thermoElectricDirect>
+%   </direct>
+% </couplingList>
+% \end{xmllisting}
 
-\subsection{ThermoMechDirect}
-The two involved fields are the heatConduction and Mechanical Field.
+% \subsection{ThermoMechDirect}
+% The two involved fields are the heatConduction and Mechanical Field.
 
-\bigskip
-\noindent
-{\it Example:}
+% \bigskip
+% \noindent
+% {\it Example:}
 
-\begin{xmllisting}
-<couplingList>
-  <direct>
-    <thermoMechDirect>
-      <regionList>
-        <region name="..."/>
-      </regionList>
-    </thermoMechDirect>
-  </direct>
-</couplingList>
-\end{xmllisting}
+% \begin{xmllisting}
+% <couplingList>
+%   <direct>
+%     <thermoMechDirect>
+%       <regionList>
+%         <region name="..."/>
+%       </regionList>
+%     </thermoMechDirect>
+%   </direct>
+% </couplingList>
+% \end{xmllisting}
 %
 % =============================================================================
 %

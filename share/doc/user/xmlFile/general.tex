@@ -21,48 +21,125 @@ element. All parameters must appear between the opening and the
 closing tag.
 
 Only a few tags are allowed in this main body. They will be documented in the
-remaining sections. These top level tags have to be used in the order shown in
-table \ref{tab:leavesLevelOne}.
+remaining sections. In the following, you can find a simple example of
+a harmonic piezoelectric analysis.
 %
 %
-\begin{table}
-\label{tab:leavesLevelOne}
-\begin{center}
-\caption{Possible elements on the first leave level and their order.}
-\vspace{0.5cm}
-  \begin{tabular}{lll}
-    \toprule
-    leave name & leave type & occurence constraints \\
-    \midrule
-    analysis        & plane   & required\\
-    geometry        & plane   & required\\
-    input           & plane   & optional\\
-    output          & plane   & optional\\
-    materialData    & plane   & optional\\
-    domain          & section & required \\
-    pdeList         & section & required \\
-    couplingList    & section & required for iterative or direct coupling\\
-    \midrule
-    \multicolumn{3}{c}{\emph{elements in the following block can appear in any
-    order}}\\
-    \midrule
-    harmonic        & section & required for harmonic analysis \\
-    transient       & section & required for transient analysis \\
-    multiSequence   & section & required for multi sequence analysis \\
-    bubbleDynamic   & section & optional (for simulation of bubbles) \\
-    bubbleDriver    & section & optional (for simulation of bubbles) \\
-    transient4Slice & section & ??? \\
-    \midrule
-    MpCCI           & section & optional (for coupling via MpCCI)\\
-    linearSystems   & section & optional (for specifying properties of
-                      linear system solvers) \\
-    integRules      & section & optional (do not use)\\
-    expert          & plane   & optional (for disabling expert module)\\
-    devel           & plane   & optional (for developers only)\\
-    \bottomrule
-  \end{tabular}
-\end{center}
-\end{table}
+
+{\footnotesize
+\begin{xmllisting}
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org">
+
+  <fileFormats>
+    <output>
+      <text/>
+      <info/>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="axi">
+    <regionList>
+      <region name="piezo_ax" material="PZT-4"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="surf"/>
+    </surfRegionList>
+    <nodeList>
+      <nodes name="ep-lower"/>
+      <nodes name="ep-top"/>
+      <nodes name="axisBoun"/>
+      <nodes name="save-u"/>
+    </nodeList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <harmonic>
+        <numFreq>     5       </numFreq>
+        <startFreq>   2.0e6   </startFreq>
+        <stopFreq>    6.0e6   </stopFreq>
+      </harmonic>
+    </analysis>
+
+    <pdeList>
+      
+      <mechanic subType="axi">
+
+        <regionList>
+          <region name="piezo_ax" complexMaterial="yes"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <fix name="axisBoun">
+            <comp dof="r"/>
+          </fix>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechStrain">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+      
+      <electrostatic>
+        <regionList>
+          <region name="piezo_ax" complexMaterial="yes"/>
+        </regionList>
+        <bcsAndLoads>
+          <ground name="ep-lower" />
+          <potential name="ep-top" value="10" phase="30"/>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <elemResult type="elecFieldIntensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </electrostatic>
+
+    </pdeList>
+    
+    <couplingList>
+      <direct>
+        <piezoDirect>
+          
+          <regionList>
+            <region name="piezo_ax" complexMaterial="yes"/>
+          </regionList>
+
+          <storeResults>
+
+            <elemResult type="mechStress">
+              <allRegions/>
+            </elemResult>
+
+            <surfRegionResult type="elecCharge"> 
+              <surfRegionList>
+                <surfRegion name="surf" neighborRegion="piezo_ax" />
+              </surfRegionList>
+            </surfRegionResult>
+            
+          </storeResults> 
+        </piezoDirect>
+      </direct>
+    </couplingList>
+
+  </sequenceStep>
+  
+</cfsSimulation>
+\end{xmllisting}
+}
+
+
+
 %
 % EOF: general.tex
 %
