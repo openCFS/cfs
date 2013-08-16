@@ -137,6 +137,12 @@ ADD_OPTION(quantityForAcouRhsLoad
   "Cplreader is going to evaluate a different integral depending of the given choice"
   )
 
+ADD_OPTION(pressureForAPE
+  uint32_t 
+  0
+  "Compute soruce for momentum equation based on first derivative of flow pressure"
+  "Cplreader is going to evaluate a different integral depending of the given choice"
+  )
 ADD_OPTION(dim
   uint32_t
   3

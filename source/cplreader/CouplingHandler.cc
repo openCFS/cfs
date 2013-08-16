@@ -339,7 +339,8 @@ namespace CoupledField
     Settings& settings = Settings::Instance();
     bool calcSrc = settings.GetInt("calcsrc") != 0;
     UInt stepInc = settings.GetInt("stepincr");
-    UInt counter = 0;
+    UInt counter = settings.GetInt("firststep");
+    UInt counter2 = 0;
     Double stepVal = 0;
     UInt numFiles = ptFileReader_->GetNumFiles();
     UInt numRegions = ptFileReader_->GetNumRegions();
@@ -416,12 +417,15 @@ namespace CoupledField
          std::find(outputFields_.begin(),outputFields_.end(),"all")               != outputFields_.end() ||
          settings.GetInt("calcMeanPresField") ||
          settings.GetInt("calcMeanVelField")){
-        ComputeMeanValues(flowData);
+         if(settings.GetInt("pressureForAPE") != 1)
+           ComputeMeanValues(flowData);
       }
 
       while ( ( counter < numFiles*stepInc ) && readOK)
       {
         stepVal = ptFileReader_->GetTimeStep(counter);
+        stepVal = counter2*0.2;
+        counter2++;
         stepNum = counter + ptFileReader_->GetStartIndex();
         timeStepValues.push_back(stepVal);
         timeStepNumbers.push_back(stepNum);
@@ -817,8 +821,9 @@ namespace CoupledField
     while ( ( counter < userNumSteps*stepInc ) && readOK)
     {
       stepVal = ptFileReader_->GetTimeStep(counter);
-      if(counter == 0)
+      if(counter == 0){
         startTime = stepVal;
+      }
 
       if(counter == (userNumSteps-1)*stepInc){
         endTime = stepVal;
@@ -1451,7 +1456,7 @@ namespace CoupledField
         }
 
         //for pressure based wave equation we just need the fluid pressure
-        if(computeLHP){
+        if(computeLHP|| (computeAPEMomentum && settings.GetInt("pressureForAPE")) ){
           nodalPressure[n] = pressureField[regionNodeIndices_[regionIdx][nodeNum]];
         }
         if(usePresD2){
@@ -1552,13 +1557,19 @@ namespace CoupledField
           }
 
           if(computeAPEMomentum){
-            ptElemI[elemType].PerformIntegrationAPEMomentum(coordMat,
-                                                            nodalVel,
-                                                            nodalMeanVel,
-                                                            elemVecLamb,
-                                                            elemVecLambRhs,
-                                                            density);
-
+            if(settings.GetInt("pressureForAPE")==0){
+              ptElemI[elemType].PerformIntegrationAPEMomentum(coordMat,
+                                                              nodalVel,
+                                                              nodalMeanVel,
+                                                              elemVecLamb,
+                                                              elemVecLambRhs,
+                                                              density);
+            }else{
+              ptElemI[elemType].PerformIntegrationAPEMomentumPres(coordMat,
+                                                                  nodalPressure,
+                                                                  elemVecLambRhs,
+                                                                  density);
+            }
           }
 
           if(computeAeroAcouSrc){
@@ -1629,13 +1640,19 @@ namespace CoupledField
           }
 
           if(computeAPEMomentum){
-            ptElemIntegr_[elemType]->PerformIntegrationAPEMomentum(coordMat,
-                                                                   nodalVel,
-                                                                   nodalMeanVel,
-                                                                   elemVecLamb,
-                                                                   elemVecLambRhs,
-                                                                   density);
-
+            if(settings.GetInt("pressureForAPE")==0){
+              ptElemIntegr_[elemType]->PerformIntegrationAPEMomentum(coordMat,
+                                                                     nodalVel,
+                                                                     nodalMeanVel,
+                                                                     elemVecLamb,
+                                                                     elemVecLambRhs,
+                                                                     density);
+            }else{
+              ptElemIntegr_[elemType]->PerformIntegrationAPEMomentumPres(coordMat,
+                                                                         nodalPressure,
+                                                                         elemVecLambRhs,
+                                                                         density);
+            }
           }
 
           if(computeAeroAcouSrc){
@@ -1682,6 +1699,8 @@ namespace CoupledField
         nodeNum = topology_[elemIdx * maxNENodes + n];
         idx = regionNodeIndices_[regionIdx][nodeNum];
 
+        if(computeLHV || computeLHP || useDivLHT || usePresD2){
+
 #ifndef NDEBUG
         if (std::isnan(elemVecLH[n]) || std::isinf(elemVecLH[n])) {
           EXCEPTION("Source term calculated on element " << i+1
@@ -1689,28 +1708,27 @@ namespace CoupledField
         }
 #endif
 
-        if(computeLHV || computeLHP || useDivLHT || usePresD2){
-#pragma omp atomic 
+#pragma omp critical
           acouRhsField[idx] -= elemVecLH[n];
-#pragma omp atomic 
+#pragma omp critical 
           acouRhsDensityField[idx] -= nodalLoadDensity[n];
         }
 
         if(computeAeroAcouSrc){
-#pragma omp atomic
+#pragma omp critical 
           aeroAcouRhsField[idx] -= elemVecAeroAcou[n];
         }
 
         if(computeAPEMass){
           if(presFieldAvailable){
-#pragma omp atomic
+#pragma omp critical 
             acouMixedMassRhsField[idx] -= elemVecPres[n];
           }
         }
 
         if(computeAPEMomentum){
           for(UInt d =0;d<dim_;++d){
-#pragma omp atomic
+#pragma omp critical 
             acouLambVecRhsField[idx*dim_ + d] -= elemVecLambRhs[n*dim_+d];
           }
         }
@@ -1721,7 +1739,7 @@ namespace CoupledField
       {
         if(computeLHV)
           acouDivLighthillTensor[i*dim_ + n] = divLHTensor[n];
-        if(computeAPEMomentum)
+        if(computeAPEMomentum && settings.GetInt("pressureForAPE") ==0 )
           acouLambVec[i*dim_+n] = elemVecLamb[n];
       }      
     }

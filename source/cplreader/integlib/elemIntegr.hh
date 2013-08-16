@@ -75,6 +75,11 @@ namespace CoupledField
                             Vector<Double>& elemVecLambRhs,
                             Double density);
 
+    void PerformIntegrationAPEMomentumPres(const Matrix<Double> & coordMat,
+                            const Vector<Double>& NodalPres,
+                            Vector<Double>& elemVecLambRhs,
+                            Double density);
+
     void PerformIntegrationAeroAcouSrc(const Matrix<Double> & coordMat,
                             const Matrix<Double>& NodalVal,
                             const Matrix<Double>& nodalMeanVel,
