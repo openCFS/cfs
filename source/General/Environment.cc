@@ -169,6 +169,18 @@ namespace CoupledField {
         return "C";
         break;
 
+      case ELEC_CURRENT_DENSITY:
+        return "A/m^2";
+        break;
+
+      case ELEC_POWER_DENSITY:
+        return "W/m^3";
+        break;
+
+      case ELEC_POWER:
+        return "W";
+        break;
+
       case FLUIDMECH_VELOCITY:
         return "m/s";
         break;
@@ -461,9 +473,6 @@ namespace CoupledField {
 
 
 
-
-
-
   template<>
   void Enum2String<MaterialClass>(const MaterialClass &in,
                                   std::string &out) {
@@ -479,6 +488,9 @@ namespace CoupledField {
         break;
       case ELECTROSTATIC:
         out = "electric";
+        break;
+      case ELECTRICCONDUCTION:
+        out = "elecConduction";
         break;
       case FLUID:
         out = "acoustic";
@@ -523,8 +535,8 @@ namespace CoupledField {
     else if ( in == "electromagnetic" ) {
       out = ELECTROMAGNETIC;
     }
-    else if ( in == "electrostatic" ) {
-      out = ELECTROSTATIC;
+    else if ( in == "elecConduction" ) {
+      out = ELECTRICCONDUCTION;
     }
     else if ( in == "electromagnetic" ) {
       out = ELECTROMAGNETIC;
@@ -681,6 +693,9 @@ namespace CoupledField {
         break;
       case HYSTERESIS:
         out = "hysteresis";
+        break;
+      case NLELEC_CONDUCTIVITY:
+        out = "elecConductivity";
         break;
       case PIEZO_MICRO_HF:
         out = "piezoMicroHF";
@@ -1025,9 +1040,12 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
     SolutionTypeEnum.Add(MECH_NORMAL_STRESS, "mechNormalStress");
     
-    //electrostatics
+    //electrostatics / elctric current conduction
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");
+    SolutionTypeEnum.Add(ELEC_CURRENT_DENSITY, "elecCurrentDensity");
+    SolutionTypeEnum.Add(ELEC_POWER_DENSITY, "elecPowerDensity");
+    SolutionTypeEnum.Add(ELEC_POWER, "elecPower");
     SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
     SolutionTypeEnum.Add(ELEC_PSEUDO_POLARIZATION, "elecPseudoPolarization");
     SolutionTypeEnum.Add(ELEC_FORCE_VWP, "elecForceVWP");
@@ -1162,6 +1180,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV, "Magnetic_reluctivity_derivative" );
     MaterialTypeEnum.Add( MAG_CONDUCTIVITY, "Magnetic_Conductivity" ); 
     MaterialTypeEnum.Add( ELEC_PERMITTIVITY, "Electric_Permittivity" );
+    MaterialTypeEnum.Add( ELEC_CONDUCTIVITY, "Electric_Conductivity" );
+    MaterialTypeEnum.Add( ELEC_CONDUCTIVITY_TENSOR, "Electric_conductivity_tensor" );
     MaterialTypeEnum.Add( MECH_STIFFNESS_TENSOR, "MechanicStiffnessTensor" );
     MaterialTypeEnum.Add( COEFF_STRAIN_IRREVERSIBLE, "Coeff_Strain_Irreversible" ); 
     MaterialTypeEnum.Add( MECH_EMODULUS, "Mechanic_Emodulus" );

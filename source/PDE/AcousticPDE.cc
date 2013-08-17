@@ -449,21 +449,19 @@ namespace CoupledField{
         if( dim_ == 2 ) {
           convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
                                         new ConvectiveOperator<FeH1,2,1>(), coeffM, 2.0, coefUpdateGeo);
-          convectiveStiff = new ABInt<>(new ConvectivePierceOperator<FeH1,2,1>(),
-                                        new ConvectiveOperator<FeH1,2,1>(),coeffM, -1.0, coefUpdateGeo);
+          convectiveStiff = new BBInt<>(new ConvectiveOperator<FeH1,2,1>(),coeffM, -1.0, coefUpdateGeo);
         } else {
           convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),
                                         new ConvectiveOperator<FeH1,3,1>(), coeffM, 2.0, coefUpdateGeo);
-          convectiveStiff = new ABInt<>(new ConvectivePierceOperator<FeH1,3,1>(),
-                                        new ConvectiveOperator<FeH1,3,1>(), coeffM, -1.0, coefUpdateGeo);
+          convectiveStiff = new BBInt<>(new ConvectiveOperator<FeH1,3,1>(), coeffM, -1.0, coefUpdateGeo);
         }
-        convectiveDamp->SetBCoefFunctionOpB(meanFlowCoef_);
-        convectiveDamp->SetName("convectiveDampPierce");
         convectiveStiff->SetBCoefFunctionOpB(meanFlowCoef_);
         convectiveStiff->SetName("convectiveStiffPierce");
+        convectiveDamp->SetBCoefFunctionOpB(meanFlowCoef_);
+        convectiveDamp->SetName("convectiveDampPierce");
 
+        BiLinFormContext *convectiveContextStiff =  new BiLinFormContext(convectiveStiff, STIFFNESS );
         BiLinFormContext *convectiveContextDamp  =  new BiLinFormContext(convectiveDamp, DAMPING );
-        BiLinFormContext *convectiveContextStiff =  new BiLinFormContext(convectiveDamp, STIFFNESS );
 
         convectiveContextDamp->SetEntities( actSDList, actSDList );
         convectiveContextDamp->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);

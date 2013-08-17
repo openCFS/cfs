@@ -17,6 +17,7 @@
 #include "Materials/PiezoMaterial.hh"
 #include "Materials/FlowMaterial.hh"
 #include "Materials/TestMaterial.hh"
+#include "Materials/ElectricConductionMaterial.hh"
 //#include "Materials/thermoelasticMaterial.hh"
 //#include "Materials/pyroelectricMaterial.hh"
 //#include "Materials/magStrictMaterial.hh"
@@ -138,6 +139,10 @@ namespace CoupledField {
       REFACTOR;
       //material = new MagStrictMaterial();
       //ReadMagStrict( material, pn );
+    }
+    else if ( matClass == ELECTRICCONDUCTION ) {
+      material = new ElectricConductionMaterial(mp, cs);
+      ReadElectricConduction( material, pn );
     }
     else {
       EXCEPTION( "material type:" << matClass << " not defined" );
@@ -1053,7 +1058,7 @@ namespace CoupledField {
 
           ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
           material->SetTensor(tensor, HEAT_CONDUCTIVITY_TENSOR, Global::REAL);
-
+          material->SetSymmetryType(HEAT_CONDUCTIVITY_TENSOR,BaseMaterial::GENERAL);
         }
       }
 
@@ -1211,4 +1216,68 @@ namespace CoupledField {
       }
     }
   }
+
+  //**********************************************************************
+  //*************  READ ELECTRIC CONDUCTIVITY ******************************************
+    //**********************************************************************
+    void XMLMaterialHandler::ReadElectricConduction(BaseMaterial *material, PtrParamNode elec)
+    {
+      // read electric conductivity
+      if(elec->Has("elecConductivity")) {
+        if (elec->Get("elecConductivity")->Has("linear")) {
+          PtrParamNode lin = elec->Get("elecConductivity")->Get("linear");
+
+          // === ISOTROPIC ===
+          if (lin->Has("isotropic")) {
+            material->SetScalar(lin->Get("isotropic")->As<Double>(), ELEC_CONDUCTIVITY, Global::REAL);
+            material->SetSymmetryType(ELEC_CONDUCTIVITY,BaseMaterial::ISOTROPIC);
+          }
+          else if (lin->Has("tensor")){
+            // can only be a real 3x3 tensor
+            Matrix<double> tensor(3,3);
+            PtrParamNode tens_pn =
+                lin->GetByVal("tensor","dim1","3")->Get("real");
+
+            ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
+            material->SetTensor(tensor, ELEC_CONDUCTIVITY_TENSOR, Global::REAL);
+            material->SetSymmetryType(ELEC_CONDUCTIVITY_TENSOR,BaseMaterial::GENERAL);
+          }
+        }
+
+        // we know only nonlinear isotropic material
+        if(elec->Get("elecConductivity")->Has("nonlinear") &&
+            elec->Get("elecConductivity")->Get("nonlinear")->Has("isotropic"))
+        {
+          PtrParamNode iso = elec->Get("elecConductivity")->Get("nonlinear")->Get("isotropic");
+          BaseMaterial::MatDescriptorNl info;
+          info. approxType = NO_APPROX_TYPE;
+          info.measAccuracy = 0.01;
+          info.maxVal = 1000;
+          info.fileName = "";
+
+          // read approximation type
+          if(iso->Has("approxType")) {
+            std::string type =  iso->Get("approxType")->As<std::string>();
+            info.approxType = ApproxCurveTypeEnum.Parse(type );
+          }
+
+          // read measurement accuracy
+          if(iso->Has("measAccuracy"))
+            info.measAccuracy = iso->Get("measAccuracy")->As<Double>();
+
+          // read maximum value for approximation
+          if(iso->Has("maxApproxVal"))
+            info.maxVal = iso->Get("maxApproxVal")->As<Double>();
+
+          // read name of function file
+          if(iso->Has("dataName"))
+            info.fileName = iso->Get("dataName")->As<std::string>().c_str();
+
+          //set info to material class
+          material->SetNonLinMatIso(ELEC_CONDUCTIVITY, info);
+        } // nonlinear isotropic material
+
+      }
+    }
+
 } // end of namespace

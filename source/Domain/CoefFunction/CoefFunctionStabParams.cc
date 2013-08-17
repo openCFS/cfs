@@ -60,6 +60,7 @@ namespace CoupledField{
     Double dens, vis;
     density_->GetScalar(dens,lpm);
     viscosity_->GetScalar(vis,lpm);
+    //std::cout << "Density: " << dens << "  Viscosity: " << vis <<std::endl;
     
     Double vol = lpm.shapeMap->CalcVolume();
     
@@ -74,7 +75,8 @@ namespace CoupledField{
     {
       edgeLength =  std::pow(vol, 1.0/3.0);
     }
-    
+    //std::cout << "vol: " << vol << " len: " << edgeLength << std::endl;
+
     Double velL2, stabValVec;
     
     edgeLengthVel = 0.0;
@@ -136,7 +138,7 @@ namespace CoupledField{
       else
         scal = stabValDiff;
     }
-    //	std::cout << "\n StabVal:" << scal << std::endl;
+   // std::cout << "\n StabVal:" << scal << std::endl;
   }
   
   void CoefFunctionStabParams::GetTensor( Matrix<Double>& tensor, 

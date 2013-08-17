@@ -285,6 +285,24 @@
       </xsd:extension>
     </xsd:complexContent> 
   </xsd:complexType>
+
+
+  
+  <!-- Inhomogeneous vector-valued boundary condition / RHS value -->
+  <xsd:complexType name="DT_BcInhomScalarCoupled">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BcBasic">
+        <xsd:choice>
+          <!-- =========================== -->
+          <!--  B) Iterative Coupling      -->
+          <!-- =========================== -->            
+          <xsd:element name="coupling" maxOccurs="1" type="DT_IterCplData"/>
+          
+        </xsd:choice>
+      </xsd:extension>
+    </xsd:complexContent> 
+  </xsd:complexType>
+
   
   <!-- Inhomogeneous vector-valued boundary condition / RHS value -->
   <xsd:complexType name="DT_BcInhomVector">

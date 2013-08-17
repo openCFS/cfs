@@ -90,7 +90,7 @@ namespace CoupledField {
   typedef enum { NO_NONLINEARITY, WESTERVELT, KUZNETSOV, VARIABLE_SOS_CN1,
     VARIABLE_SOS_CN2, VARIABLE_SOS_CN2Mean,
     MATERIAL, GEOMETRIC, HYSTERESIS, PIEZO_MICRO_HF, PERMEABILITY,
-    NLHEAT_CONDUCTIVITY, NLHEAT_CAPACITY} NonLinType;
+    NLHEAT_CONDUCTIVITY, NLHEAT_CAPACITY, NLELEC_CONDUCTIVITY} NonLinType;
 
 
     //! Describes all possible solution types in a CFS simulation
@@ -116,12 +116,13 @@ namespace CoupledField {
       MECH_FORCE, 
       
       // ===============
-      //  ELECTROSTATIC  
+      //  ELECTROSTATIC / ELECTRIC CURRENT
       // ===============
       ELEC_POTENTIAL, ELEC_FIELD_INTENSITY, ELEC_FORCE_VWP,
       ELEC_CHARGE, ELEC_CHARGE_DENSITY, ELEC_FLUX_DENSITY,
       ELEC_ENERGY, ELEC_ENERGY_DENSITY,
       ELEC_POLARIZATION,ELEC_RHS_LOAD,ELEC_PSEUDO_POLARIZATION,
+      ELEC_CURRENT_DENSITY, ELEC_POWER, ELEC_POWER_DENSITY,
 
       // =================
       //  PSEUDO MECHANIC
@@ -205,7 +206,7 @@ namespace CoupledField {
     //! describes the possible material types
     typedef enum{NO_MATERIAL, MAG_PERMEABILITY, MAG_RELUCTIVITY, MAG_RELUCTIVITY_DERIV, MAG_CONDUCTIVITY,
       MAG_PERMEABILITY_1, MAG_PERMEABILITY_2, MAG_PERMEABILITY_3,MAG_PERMEABILITYCURVES, 
-      ELEC_PERMITTIVITY, MECH_STIFFNESS_TENSOR, MECH_EMODULUS,
+      ELEC_PERMITTIVITY, ELEC_CONDUCTIVITY, ELEC_CONDUCTIVITY_TENSOR, MECH_STIFFNESS_TENSOR, MECH_EMODULUS,
       MECH_POISSON, MECH_KMODULUS, MECH_GMODULUS,
       MECH_LAME_MU, MECH_LAME_LAMBDA, COEFF_STRAIN_IRREVERSIBLE,
       MECH_EMODULUS_X, MECH_EMODULUS_Y, MECH_EMODULUS_Z,
@@ -236,7 +237,7 @@ namespace CoupledField {
 
     typedef enum{ NO_CLASS, TESTMAT, ELECTROMAGNETIC, ELECTROSTATIC, FLUID, FLOW,
                   MECHANIC, PIEZO, THERMIC, PYROELECTRIC, THERMOELASTIC,
-                  MAGNETOSTRICTIVE } MaterialClass;
+                  MAGNETOSTRICTIVE, ELECTRICCONDUCTION } MaterialClass;
 
 
   // type of approximation / interpolation
@@ -244,7 +245,7 @@ namespace CoupledField {
   extern Enum<ApproxCurveType> ApproxCurveTypeEnum;
 
   //! material parameter to be approximated / interpolated
-  typedef enum{ GENERIC, MAGNETIC_MAT_BH, HEAT_MAT_CONDUCTIVITY, HEAT_MAT_CAPACITY }  ApproxMaterialCurves;
+  typedef enum{ GENERIC, MAGNETIC_MAT_BH, HEAT_MAT_CONDUCTIVITY, HEAT_MAT_CAPACITY, ELEC_MAT_CONDUCTIVITY }  ApproxMaterialCurves;
 
   //! Enumeration for directions
   //! direction of various fields

@@ -1015,6 +1015,7 @@ share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Examples/mat.xml svneol=native#text/xml
 share/xml/CFS-Material/Examples/matElec.xml svneol=native#text/xml
 share/xml/CFS-Material/Schemas/CFS_MATacoustic.xsd -text svneol=unset#text/xml
+share/xml/CFS-Material/Schemas/CFS_MATelecConduction.xsd -text
 share/xml/CFS-Material/Schemas/CFS_MATelectric.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Schemas/CFS_MATflow.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Schemas/CFS_MATheatConduction.xsd -text svneol=unset#text/xml
@@ -1040,6 +1041,7 @@ share/xml/CFS-Simulation/Schemas/CFS_Misc.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEacoustic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEacousticMixed.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDEbasic.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEelectricConduction.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDEelectrostatic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEfluidMech.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEheatConduction.xsd svneol=native#text/xml
@@ -1477,6 +1479,8 @@ source/Materials/BaseMaterial.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Materials/BaseMaterial.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/Materials/CMakeLists.txt svneol=native#text/plain
 source/Materials/Composite.hh svneol=native#text/x-c%2B%2Bhdr
+source/Materials/ElectricConductionMaterial.cc -text
+source/Materials/ElectricConductionMaterial.hh -text
 source/Materials/ElectroMagneticMaterial.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Materials/ElectroMagneticMaterial.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/Materials/ElectroStaticMaterial.cc -text svneol=unset#text/x-c%2B%2Bsrc
@@ -1678,6 +1682,8 @@ source/PDE/AcousticPDE.hh -text
 source/PDE/BasePDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/BasePDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/CMakeLists.txt svneol=native#text/plain
+source/PDE/ElecCurrentPDE.cc -text
+source/PDE/ElecCurrentPDE.hh -text
 source/PDE/ElecPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/ElecPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/HeatPDE.cc -text

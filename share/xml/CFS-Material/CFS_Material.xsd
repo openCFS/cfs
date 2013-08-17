@@ -24,6 +24,7 @@
   <xsd:include schemaLocation="Schemas/CFS_MATpyroelectric.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATthermoelastic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATmagStrict.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_MATelecConduction.xsd"/>
   
   <!-- ******************************************************************* -->
   <!--   Include further definitions -->
@@ -50,6 +51,8 @@
               <xsd:element name="testmat" type="DT_MatTest"
 	        minOccurs="0" maxOccurs="1"/>
               <xsd:element name="heatConduction" type="DT_MatHeatConduction"
+	        minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="elecConduction" type="DT_MatElecConduction"
 	        minOccurs="0" maxOccurs="1"/>
               <xsd:element name="magnetic" type="DT_MatMagnetic"
               minOccurs="0" maxOccurs="1"/>
