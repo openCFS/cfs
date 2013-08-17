@@ -18,7 +18,6 @@
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
-#include "Forms/Operators/ConvectivePierceOperator.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
 #include "Forms/Operators/DivOperator.hh"
 
