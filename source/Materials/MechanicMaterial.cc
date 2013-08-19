@@ -32,7 +32,6 @@ namespace CoupledField
 : BaseMaterial(mp, defaultCoosy) {
 
     materialDatabaseName_ = "Mechanics";
-    mHandle_ = mp_->GetNewHandle(true);
 
     //set the allowed material parameters
     isAllowed_.insert( DENSITY );
@@ -62,11 +61,6 @@ namespace CoupledField
     isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
     isAllowed_.insert( NONLIN_DATA_NAME );
 
-  }
-
-  MechanicMaterial::~MechanicMaterial() {
-
-    mp_->ReleaseHandle(mHandle_);
   }
 
   void MechanicMaterial::Finalize() {
@@ -505,6 +499,7 @@ namespace CoupledField
 
     default:
       EXCEPTION("fail");
+      return 0.0;
     }
   }
 
@@ -527,6 +522,7 @@ namespace CoupledField
 
     default:
       assert(false);
+      break;
     }
 
     return E11;
@@ -628,6 +624,7 @@ namespace CoupledField
     default:
       // PLAIN is unspecific
       subTensorNotAvailable(NO_MATERIAL, subTensor); // shall be clear
+      break;
     }
   }
  
@@ -722,6 +719,7 @@ namespace CoupledField
     default:
       EXCEPTION( "Calculation of full stiffness matrix for symmetryType '"
                        << symType << "' not implemented!" );
+      break;
     }
     
   }
@@ -775,6 +773,7 @@ namespace CoupledField
     }
     default:
       assert(false);
+      break;
     }
     return res;
   }
@@ -844,6 +843,7 @@ namespace CoupledField
 
     default:
       assert(false);
+      break;
     }
 
     return res;

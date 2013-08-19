@@ -279,8 +279,11 @@ namespace CoupledField
     //! read from config-file info about BCs
     void ReadBCs();
 
-    // overloaded version of ReadBCs for special
-    // boundary conditions in derived classes
+    //! Read periodic BC
+    void ReadPeriodicBC(PtrParamNode prNode);
+    
+    //! overloaded version of ReadBCs for special
+    //! boundary conditions in derived classes
     virtual void ReadSpecialBCs(){}
     
     //! write results in file
@@ -381,7 +384,6 @@ namespace CoupledField
     //! calculating spatial derivatives, fluxes and energy.
     std::map<RegionIdType, BaseBDBInt*> massInts_;
 
-    
     // -----------------------------------------------------------------------
     //  Result Handling
     // -----------------------------------------------------------------------
@@ -441,7 +443,57 @@ namespace CoupledField
     //! Map containing the input states and the related domains
     std::map<shared_ptr<SimState>, Domain* > inputs_;
     //@}
+
+    // -----------------------------------------------------------------------
+    //  Non-conforming interfaces
+    // -----------------------------------------------------------------------
+    //@{ \name Functions and data for non-conforming interfaces
     
+  protected:
+    
+    //! Reads ncInterfaces defined in the XML file
+    virtual void ReadNcInterfaces();
+    
+    //! Creates FeSpaces for additional unknowns used by ncInterfaces
+    
+    //! Default behavior in SinglePDE is to create the same FeSpace as for
+    //! the first primary result. So this function must be overridden in PDEs
+    //! with more than one primary result.
+    virtual void CreateNcFeSpaces(std::map<SolutionType, shared_ptr<FeSpace> >
+                                      &spaces,
+                                  const std::string &formulation,
+                                  PtrParamNode infoNode);
+    
+    //! Defines auxiliary results for non-conforming interfaces
+    
+    //! Default behavior in SinglePDE is to add the Lagrange multiplier as
+    //! a primary result. This can be overridden in a derived class.
+    virtual void DefineNcAuxResults();
+    
+    //! Defines the integrators needed for ncInterfaces
+    
+    //! If a derived class does not support ncInterfaces, it should implement
+    //! an exception and not simply ignore this.
+    virtual void DefineNcIntegrators() = 0;
+    
+    //! Defines integrators for Mortar coupling of an unknown on one specific
+    //! interface.
+    virtual void DefineMortarCoupling( SolutionType solType,
+                                       NcInterfaceInfo &iface,
+                                       UInt numDofs = 1);
+    
+    //! Defines integrators for Nitsche coupling of an unknown on one specific
+    //! interface.
+    //! TODO: MOVE THIS BACK TO ACOUSTICS!!
+    template<UInt DIM>
+    void DefineNitscheCoupling( SolutionType solType,
+                                   NcInterfaceInfo &iface);
+    
+    //! Vector containing all ncInterfaces for this PDE
+    StdVector< NcInterfaceInfo > ncInterfaces_;
+    
+    //@}
+
   private:
   };
 

@@ -16,6 +16,8 @@
 #define GLMSCHEMELIB_HH_
 
 #include "MatVec/Matrix.hh"
+#include "Domain/Domain.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField{
 
@@ -77,8 +79,13 @@ class GLMScheme{
     virtual Double TransformBC(const StdVector< SingleVector* > & glm, Double value,
                                   UInt valDerivOrder, Integer eqnNumber);
 
+    ///Sets some additional things depending on the scheme
+    virtual void PrepareStage(UInt i,Double aTime, Domain* domain){
+
+    };
+
     //! Get type of scheme
-    virtual SchemeType GetType() = 0;
+    virtual SchemeType GetType() const = 0;
     
     //++++++++++++++++++++++++++++++++++++++++++++++++++
     //Define Scheme Formulation
@@ -176,7 +183,7 @@ class Trapezoidal : public GLMScheme{
     virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
 
     //! \copydoc GLMSchem::GetType
-    virtual SchemeType GetType() {
+    virtual SchemeType GetType() const {
       return TRAPEZOIDAL;
     }
     
@@ -239,16 +246,21 @@ class Trapezoidal : public GLMScheme{
 class Newmark : public GLMScheme{
   public:
 
-    Newmark(Double gamma,Double beta);
+    Newmark(Double gamma,Double beta,Double alpha=0.0);
 
     //! \copydoc GLMSchem::GetType
-    virtual SchemeType GetType() {
+    virtual SchemeType GetType() const {
       return NEWMARK;
     }
     
     //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
     virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
 
+
+    virtual void PrepareStage(UInt i,Double aTime, Domain* domain){
+     /// domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+     ///                                    "t", aTime+(alpha_*curTStepSize_) );
+    }
   private:
     /*!parameter for switching between implicit and explicit scheme
      * for gamma = 0.5 the scheme is second order accurate */
@@ -258,6 +270,11 @@ class Newmark : public GLMScheme{
      * for beta_ = 0.25 the scheme is second order accurate in the
      * absence of damping matrix*/
     Double beta_;
+
+    /*!parameter for alpha method retains second order accuracy
+     * in presence of a damping matrix
+     * alpha_ = 0 corresponds to the standard newmark scheme*/
+    Double alpha_;
 
 };
 

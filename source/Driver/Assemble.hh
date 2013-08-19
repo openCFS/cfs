@@ -29,7 +29,9 @@ namespace CoupledField {
   public:
 
     //! Constructor
-    Assemble( AlgebraicSys* algsys, BasePDE::AnalysisType analysis,
+    Assemble( AlgebraicSys* algsys, 
+              BasePDE::AnalysisType analysis,
+              MathParser* mp,
               PtrParamNode infoNode); 
 
     //! Destructor
@@ -187,6 +189,12 @@ namespace CoupledField {
 
     //! Analysistype
     BasePDE::AnalysisType analysisType_;
+    
+    //! Pointer to math parser instance
+    MathParser* mp_;
+    
+    //! Handle for expression
+    MathParser::HandleType mHandle_;
 
     //! Flag indicating if system was already assembled
     bool isFirstTime_;

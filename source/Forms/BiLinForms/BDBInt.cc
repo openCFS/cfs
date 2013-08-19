@@ -347,9 +347,9 @@ namespace CoupledField{
   
   
 // Explicit template instantiation
-template class BDBInt<Double,Double>;
-template class BDBInt<Double,Complex>;
-template class BDBInt<Complex,Double>;
-template class BDBInt<Complex,Complex>;
+  template class BDBInt<Double,Double>;
+  template class BDBInt<Double,Complex>;
+  template class BDBInt<Complex,Double>;
+  template class BDBInt<Complex,Complex>;
   
 } // namespace

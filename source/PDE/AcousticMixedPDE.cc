@@ -17,6 +17,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <cmath>
+#include <def_expl_templ_inst.hh>
 
 #include "General/defs.hh"
 
@@ -118,17 +119,7 @@ namespace CoupledField{
     // BaseMaterial * actSDMat = NULL;
 
     //type of geometry
-    std::string geometryType;
-    domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", geometryType );
-
-    // convert to tensor type
-    // SubTensorType tensorType = FULL;
-    if (geometryType == "plane") {
-      // tensorType = PLANE_STRAIN;
-    } else if (geometryType == "axi") {
-      // tensorType = AXI;
-      isaxi_ = true;
-    }
+    isaxi_ = ptGrid_->IsAxi();
 
     // Define integrators for "standard" materials
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -571,15 +562,14 @@ namespace CoupledField{
       // Check for subType
       StdVector<std::string> velDofNames;
 
-      std::string geometryType;
-      domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", geometryType );
-
-      if( geometryType == "3d" ) {
+      if( ptGrid_->GetDim() == 3 ) {
         velDofNames = "x", "y", "z";
-      } else if( geometryType == "plane" ) {
-        velDofNames = "x", "y";
-      } else if( geometryType == "axi" ) {
-        velDofNames = "r", "z";
+      } else {
+        if( ptGrid_->IsAxi() ) {
+          velDofNames = "r", "z";
+        } else {
+          velDofNames = "x", "y";
+        }
       }
 
       // === Primary result according to definition ===

@@ -77,7 +77,7 @@
           <xsd:element name="defaultGrid">             
              <xsd:complexType>
                <xsd:sequence>
-                 <xsd:element name="factor" maxOccurs="1" minOccurs="0" default="1" type="xsd:int"/>
+                 <xsd:element name="globalFactor" maxOccurs="1" minOccurs="0" default="1" type="xsd:token"/>
                </xsd:sequence>
                <xsd:attribute name="quantity" use="required"/>
                <xsd:attribute name="dependtype" type="DT_CoefGridDependType" use="required" />
@@ -192,7 +192,7 @@
 	
 
   <!-- ******************************************************************* -->
-  <!--   Definition of standard types for Bcs and RHS values               -->
+  <!--   Definition of standard types for BCs and RHS values               -->
   <!-- ******************************************************************* -->
   <!-- Base element type for specifying boundary conditions and RHS values-->
   <xsd:complexType name="DT_BcBasic">    
@@ -249,7 +249,7 @@
   </xsd:complexType>
   
   <!-- ******************************************************************* -->
-  <!--   Inomogeneous Boundary Conditions / RHS Excitation                 -->
+  <!--   Inhomogeneous Boundary Conditions / RHS Excitation                -->
   <!-- ******************************************************************* --> 
 
   <!-- Inhomogeneous scalar boundary condition / RHS value -->
@@ -264,7 +264,7 @@
             <xsd:element name="values" type="DT_TokenList" minOccurs="1" maxOccurs="1"/>
             <xsd:element name="phase" type="DT_TokenList" minOccurs="0" maxOccurs="1"/>
           </xsd:sequence>
-
+          
           <2) single components given>
           <xsd:sequence>
             <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
@@ -278,7 +278,7 @@
           
           <Read Data from external Grids>
           <xsd:element name="grid" maxOccurs="1" type="DT_BaseGridData"/>
-            
+          
 					<Obtain data from iterative coupling>
 					<xsd:element name="coupling" maxOccurs="1" type="DT_IterCplData"/>
         </xsd:choice-->
@@ -291,7 +291,6 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BcBasic">
         <xsd:choice>
-          
           <!-- =========================== -->
           <!--  A) Analytical Description  -->
           <!-- =========================== -->
@@ -300,7 +299,7 @@
             <xsd:element name="values" type="DT_TokenList" minOccurs="1" maxOccurs="1"/>
             <xsd:element name="phase" type="DT_TokenList" minOccurs="0" maxOccurs="1"/>
           </xsd:sequence>
-
+          
           <!-- 2) single components given -->
           <xsd:sequence>
             <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
@@ -312,18 +311,18 @@
             </xsd:element>
           </xsd:sequence>
           
-	        <!-- =========================== -->
+          <!-- =========================== -->
           <!--  B) Iterative Coupling      -->
           <!-- =========================== -->            
-		      <xsd:element name="coupling" maxOccurs="1" type="DT_IterCplData"/>
-		  
-		      <!-- =========================== -->
+          <xsd:element name="coupling" maxOccurs="1" type="DT_IterCplData"/>
+          
+          <!-- =========================== -->
           <!--  C) External Grid           -->
           <!-- =========================== -->
           <!-- Read values from external, nodal grid -->
           <xsd:element name="grid" maxOccurs="1" type="DT_BaseGridData"/>
           
-		      <!-- =========================== -->
+          <!-- =========================== -->
           <!--  D) External HDF5 file      -->
           <!-- =========================== -->
           <xsd:element name="externalSimulation" maxOccurs="1" type="DT_ExternalSimulation"/>
@@ -361,7 +360,26 @@
     </xsd:complexContent> 
   </xsd:complexType>
 
+  <!-- ******************************************************************* -->
+  <!--   Periodic Boundary Conditions                                   -->
+  <!-- ******************************************************************* --> 
+  <xsd:complexType name="DT_BcPeriodic">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="master" type="xsd:token" use="required"/>
+        <xsd:attribute name="slave"  type="xsd:token" use="required"/>
+        <xsd:attribute name="quantity" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="xsd:token" use="required"/>
+        <xsd:attribute name="fixedCoords" type="xsd:token" use="optional"/>
+        <xsd:attribute name="tolerance" type="DT_NonNegFloat" use="optional"
+          default="1e-6"/>
+        <xsd:attribute name="coordSysId" type="xsd:token" use="optional"
+          default="default"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
+   
   <!-- ******************************************************************** -->
   <!--   Definition of initial state -->
   <!-- ******************************************************************** -->
@@ -411,17 +429,45 @@
     </xsd:restriction>
   </xsd:simpleType>
   
-
   <!-- ******************************************************************** -->
   <!--   Definition of non-matching grid formulations -->
   <!-- ******************************************************************** -->
   <xsd:simpleType name="DT_NMGFormulationBasic">
     <xsd:restriction base="xsd:token">
-       <xsd:enumeration value="None"/>
+       <xsd:enumeration value="none"/>
        <xsd:enumeration value="Nitsche"/>
        <xsd:enumeration value="Mortar"/>
     </xsd:restriction>
   </xsd:simpleType>
+  
+  <!--********************************************************************
+        Definition of Basic Datatype for non-conforming interfaces
+      ******************************************************************** -->
+  <xsd:complexType name="DT_NcInterfaceList">
+    <xsd:sequence>
+      <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:attribute name="name" type="xsd:token" use="required" />
+          <xsd:attribute name="nmgFormulation" type="DT_NMGFormulationBasic"
+                         use="optional" default="Mortar" />
+          <xsd:attribute name="nitscheFactor" type="xsd:double"
+                         use="optional" default="50" />
+          <xsd:attribute name="lagrangeMultType"
+                         use="optional" default="standard">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="standard"/>
+                <xsd:enumeration value="dualDiscont"/>
+                <xsd:enumeration value="dualCubic"/>
+              </xsd:restriction>
+            </xsd:simpleType>      
+          </xsd:attribute>
+          <xsd:attribute name="crossPointHandling" type="DT_CFSBool"
+                         use="optional" default="no" />
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
   
   <!-- ******************************************************************** -->
   <!--   Definition of standard type for damping -->
@@ -507,7 +553,7 @@
   <!--   Definition of basic result data type -->
   <!-- ******************************************************************** -->
   
-  <!-- Please but documentation here -->
+  <!-- Please insert documentation here -->
   <xsd:complexType name="DT_BasicResult" abstract="true">
     <xsd:attribute name="complexFormat" type="DT_ComplexFormat"
       use="optional" default="amplPhase"/>
@@ -518,7 +564,7 @@
   <!--   Definition of basic result storing data type -->
   <!-- ******************************************************************** -->
   
-  <!-- Please but documentation here -->
+  <!-- Please insert documentation here -->
   <xsd:complexType name="DT_ResultSavingType" abstract="true">
     <xsd:attribute name="saveBegin" type="xsd:token" default="0"/>
     <xsd:attribute name="saveEnd" type="xsd:token" default="2147483647"/>
@@ -530,7 +576,7 @@
   <!--   Definition of nodal result type -->
   <!-- ******************************************************************** -->
   
-  <!-- Please but documentation here -->
+  <!-- Please insert documentation here -->
   <xsd:complexType name="DT_NodeResult">
     <xsd:complexContent>
       <xsd:extension base="DT_BasicResult">
@@ -581,7 +627,7 @@
   <!--   Definition of element result type -->
   <!-- ******************************************************************** -->
   
-  <!-- Please but documentation here -->
+  <!-- Please insert documentation here -->
   <xsd:complexType name="DT_ElemResult">
     <xsd:complexContent>
       <xsd:extension base="DT_BasicResult">
@@ -633,7 +679,7 @@
   <!--   Definition of surface element result type -->
   <!-- ******************************************************************** -->
   
-  <!-- Please but documentation here -->
+  <!-- Please insert documentation here -->
   <xsd:complexType name="DT_SurfElemResult">
     <xsd:complexContent>
       <xsd:extension base="DT_BasicResult">
@@ -677,7 +723,7 @@
   <!--   Definition of region result type -->
   <!-- ******************************************************************** -->
   
-  <!-- Please but documentation here -->
+  <!-- Please insert documentation here -->
   <xsd:complexType name="DT_RegionResult">
     <xsd:complexContent>
       <xsd:extension base="DT_BasicResult">
@@ -712,7 +758,7 @@
   <!--   Definition of surface region result type -->
   <!-- ******************************************************************** -->
   
-  <!-- Please but documentation here -->
+  <!-- Please insert documentation here -->
   <xsd:complexType name="DT_SurfRegionResult">
     <xsd:complexContent>
       <xsd:extension base="DT_BasicResult">
@@ -778,7 +824,7 @@
   <!--   Definition of single region result description type -->
   <!-- ******************************************************************** -->
   
-  <!-- Please but documentation here -->
+  <!-- Please insert documentation here -->
   <xsd:complexType name="DT_SingleRegionResultDescr">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
     <xsd:attribute name="postProcId" type="xsd:token" default=""/>
@@ -791,7 +837,7 @@
   <!--   Definition of all region result description type -->
   <!-- ******************************************************************** -->
   
-  <!-- Please but documentation here -->
+  <!-- Please insert documentation here -->
   <xsd:complexType name="DT_AllRegionResultDescr">
     <xsd:complexContent>
       <xsd:extension base="DT_ResultSavingType">
@@ -807,7 +853,7 @@
   <!--   Definition of single surface region result description type -->
   <!-- ******************************************************************** -->
   
-  <!-- Please but documentation here -->
+  <!-- Please insert documentation here -->
   <xsd:complexType name="DT_SingleSurfRegionResultDescr">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
     <xsd:attribute name="neighborRegion" type="xsd:token"
@@ -821,7 +867,7 @@
   <!--   Definition of history result description type -->
   <!-- ******************************************************************** -->
   
-  <!-- Please but documentation here -->
+  <!-- Please insert documentation here -->
   <xsd:complexType name="DT_HistResultDescr">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
     <xsd:attribute name="postProcId" type="xsd:token" default=""/>
@@ -834,7 +880,7 @@
   <!--   Definition of surface element history result description type -->
   <!-- ******************************************************************** -->
   
-  <!-- Please but documentation here -->
+  <!-- Please insert documentation here -->
   <xsd:complexType name="DT_SurfElemHistResultDescr">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
     <xsd:attribute name="neighborRegion" type="xsd:token"

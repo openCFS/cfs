@@ -54,6 +54,7 @@ namespace CoupledField
 
     bool doInit_;
 
+#if 0 // Clang does not need this
     Hysteresis * hyst_;
 
     Double Esat_;
@@ -61,6 +62,7 @@ namespace CoupledField
     Double Ec_;
     UInt Dir_;
     bool isVirgin_;
+#endif
 
     //for differential permittivity
     Vector<Double> Eprevious_;

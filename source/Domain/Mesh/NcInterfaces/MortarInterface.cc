@@ -9,13 +9,14 @@
 #include "PolygonIterators.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
+#include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 #include "Utils/StdVector.hh"
 #include "MatVec/Vector.hh"
 #include "Utils/mathParser/mathParser.hh"
-#include "General/Enum.hh"
 
 #include <sstream>
+#include <boost/shared_ptr.hpp>
 
 namespace CoupledField {
 
@@ -23,16 +24,17 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   BaseNcInterface(grid),
   isCoplanar_(false),
   isMoving_(false),
+  exportToGrid_(true),
   coordSysId_(""),
   coordSys_(NULL),
   mParser_(NULL),
   tolAbs_(1e-12),
-  tolRel_(1e-4)
+  tolRel_(1e-4),
+  region_(NO_REGION_ID)
 {
-
-  const std::string curName = nciNode->Get("name")->As<std::string>();
-  SetName(curName);
-
+  name_ = nciNode->Get("name")->As<std::string>();
+  elemList_->SetName(name_);
+  
   StdVector<SurfElem*> masterElems;
   StdVector<SurfElem*> slaveElems;
 
@@ -77,6 +79,8 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
 
   nciNode->GetValue("tolAbs", tolAbs_, ParamNode::PASS);
   nciNode->GetValue("tolRel", tolRel_, ParamNode::PASS);
+  
+  nciNode->GetValue("storeIntegrationGrid", exportToGrid_, ParamNode::PASS);
 
   PtrParamNode rotNode = nciNode->Get("rotation", ParamNode::PASS);
   if (rotNode) {
@@ -116,7 +120,7 @@ void MortarInterface::SetRotation(const std::string &coordSysId, Double rpm) {
   
   std::ostringstream sstr("");
   sstr << std::setprecision(std::numeric_limits<Double>::digits10)
-      // 1 rpm = 360�� / 60 s = 6 ��/s
+      // 1 rpm = 360° / 60 s = 6 °/s
        << std::scientific << (6.0*rpm) << "*t";
   offsetExpr_.Resize(coordSys_->GetDim());
   offsetExpr_[1] = sstr.str();
@@ -165,7 +169,6 @@ void MortarInterface::UpdateInterface() {
   StdVector<SurfElem*> masterElems;
   StdVector<SurfElem*> slaveElems;
   StdVector<SurfElem*> ifaceElems;
-  StdVector<MortarNcSurfElem*> ncElems;
   StdVector<SurfElem*> ncElemsHelper;
   StdVector<UInt> masterNodes;
   StdVector<UInt> ncElemIds;
@@ -173,7 +176,10 @@ void MortarInterface::UpdateInterface() {
   StdVector<std::string> listNodeNames;
   std::string newNodesName = name_ + "_nodes";
 
-  ptGrid_->ClearRegion(region_);
+  elemList_->Clear();
+  if ( region_ != NO_REGION_ID ) {
+    ptGrid_->ClearRegion(region_);
+  }
   ptGrid_->GetListNodeNames(listNodeNames);
   if ( listNodeNames.Find(newNodesName) != -1 ) {
     ptGrid_->DeleteNamedNodes(newNodesName);
@@ -207,7 +213,7 @@ void MortarInterface::UpdateInterface() {
     case NCI_INTERSECT_LINE:
       for (UInt i = 0; i < masterElems.GetSize(); ++i) {
         for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
-          IntersectLines(masterElems[i], slaveElems[j], ncElems, newNodes );
+          IntersectLines(masterElems[i], slaveElems[j], newNodes );
         }
       }
       break;
@@ -227,8 +233,7 @@ void MortarInterface::UpdateInterface() {
                 << "rectangle algorithm.");
           }
 
-          if(IntersectRects( masterElems[i], slaveElems[j],
-                                   ncElems, newNodes))
+          if(IntersectRects( masterElems[i], slaveElems[j], newNodes))
           {
             /*LOG_DBG3(grid) << "Intersection between "
                 << masterElems[i]->elemNum << " and "
@@ -242,15 +247,18 @@ void MortarInterface::UpdateInterface() {
         for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
           SurfElem* m_el = masterElems[i];
           SurfElem* s_el = slaveElems[j];
-          if( (m_el->type != Elem::ET_QUAD4 )
-              || s_el->type != Elem::ET_QUAD4 )
+          if ( (m_el->type != Elem::ET_QUAD4 && m_el->type != Elem::ET_QUAD8
+                && m_el->type != Elem::ET_QUAD9 && m_el->type != Elem::ET_TRIA3
+                && m_el->type != Elem::ET_TRIA6)
+              || (s_el->type != Elem::ET_QUAD4 && s_el->type != Elem::ET_QUAD8
+                  && s_el->type != Elem::ET_QUAD9 && s_el->type != Elem::ET_TRIA3
+                  && s_el->type != Elem::ET_TRIA6) )
           {
             EXCEPTION("Only triangles and quadrilaterals can be intersected"
                 << " with polygon algorithm.");
           }
 
-          if (IntersectPolygons( masterElems[i], slaveElems[j],
-                                ncElems, newNodes ))
+          if (IntersectPolygons( masterElems[i], slaveElems[j], newNodes ))
           {
             /*LOG_DBG3(grid) << "Intersection between "
                 << masterElems[i]->elemNum << " and "
@@ -264,33 +272,40 @@ void MortarInterface::UpdateInterface() {
       break;
   }
 
-  UInt numElems = ncElems.GetSize();
+  if ( newNodes.GetSize() > 0 ) {
+    ptGrid_->AddNamedNodes(newNodesName, newNodes);
+  }
+
+  UInt numElems = elemList_->GetSize();
   
   if( numElems > 0 ) {
+    if ( exportToGrid_ ) {
+      if ( region_ == NO_REGION_ID ) {
+        region_ = ptGrid_->AddSurfaceRegion(name_);
+      }
 
-    ncElemsHelper.Resize(numElems);
+      ncElemsHelper.Resize(numElems);
 
-    for ( UInt i=0; i<numElems; ++i ) {
-      ncElemsHelper[i] = ncElems[i];
-    }
+      for ( UInt i=0; i<numElems; ++i ) {
+        // We need to make explicit copies of the NcSurfElems, because the
+        // Grid deletes all its elements when it gets destroyed.
+        ncElemsHelper[i] = new SurfElem(*(elemList_->GetSurfElem(i)));
+      }
 
-    ptGrid_->AddSurfaceElems(region_, ncElemsHelper, ncElemIds);
+      ptGrid_->AddSurfaceElems(region_, ncElemsHelper, ncElemIds);
 
-    if ( newNodes.GetSize() > 0 ) {
-      ptGrid_->AddNamedNodes(newNodesName, newNodes);
-    }
+      for ( UInt i=0; i<numElems; ++i ) {
+        std::map<std::string, UInt>::iterator it = ptGrid_->entityDim_.find(name_);
 
-
-    for ( UInt i=0; i<numElems; ++i ) {
-      std::map<std::string, UInt>::iterator it = ptGrid_->entityDim_.find(name_);
-
-      if( it != ptGrid_->entityDim_.end() ) {
-        if( it->second != Elem::shapes[ncElems[i]->type].dim ) {
-          EXCEPTION( "Region '" << name_
-                     << "' contains elements of different dimensions!");
+        if( it != ptGrid_->entityDim_.end() ) {
+          if( it->second != Elem::shapes[elemList_->GetSurfElem(i)->type].dim ) {
+            EXCEPTION( "Region '" << name_
+                << "' contains elements of different dimensions!");
+          }
+        } else {
+          ptGrid_->entityDim_[name_] =
+              Elem::shapes[elemList_->GetSurfElem(i)->type].dim;
         }
-      } else {
-        ptGrid_->entityDim_[name_] = Elem::shapes[ncElems[i]->type].dim;
       }
     }
   }
@@ -303,7 +318,7 @@ void MortarInterface::UpdateInterface() {
 
 /****************************************************************************
  **
- ** SideOnSide
+ ** IntersectLines
  **
  **   computes the local coordinates of the overlap of the master and slave
  **   element with respect to the master side in the order of the
@@ -311,10 +326,8 @@ void MortarInterface::UpdateInterface() {
  **   element to elemList.
  **
  ** Input Parameters:
- **   ifaceElemM:  Master Side
- **   ifaceElemS:  Slave Side
- **   collinear:   indicates if the interface is coplanar or not
- **   coordUpdate: indicates if updated coordinates should be used
+ **   ifaceElem1:  Master Side
+ **   ifaceElem2:  Slave Side
  **
  ** Output Parameters:
  **   elemList: the found intersection NCElems will be pushed
@@ -324,7 +337,6 @@ void MortarInterface::UpdateInterface() {
 
 bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
                                       SurfElem *ifaceElem2,
-                                      StdVector<MortarNcSurfElem*> &elemList,
                                       StdVector<UInt> &newNodes )
 {
   // c0, c1, d0 and d1 are the endpoints of the two line elements
@@ -339,11 +351,7 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
   StdVector<UInt> connect2;
   Double dist, fac;
   UInt nodenum_c0, nodenum_c1, nodenum_d0, nodenum_d1;
-  //not used?
-
-
-  //UInt eNum1 = ifaceElem1->elemNum;
-  //UInt eNum2 = ifaceElem2->elemNum;
+  Double relativeElemVol;
 
   s.Resize(2);
   t.Resize(2);
@@ -360,36 +368,35 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
   ptGrid_->GetNodeCoordinate(d0, nodenum_d0, isMoving_);
   ptGrid_->GetNodeCoordinate(d1, nodenum_d1, isMoving_);
   
-  ElemShapeMap & sm = *(ptGrid_->GetElemShapeMap(ifaceElem2));
-  LocPoint lp = Elem::shapes[ifaceElem2->type].midPointCoord;
-
   // Project master nodes onto slave element, if interface is not coplanar
   if ( !isCoplanar_ ) {
+    shared_ptr<ElemShapeMap> sm = ptGrid_->GetElemShapeMap(ifaceElem2);
+    LocPoint lp = Elem::shapes[ifaceElem2->type].midPointCoord;
+
     // compute maximal allowed distance as sum of lengths of both lines
     tmp = c1 - c0;
     Double maxDist = tmp.NormL2();
     tmp = d1 - d0;
     maxDist += tmp.NormL2();
     // compute normal vector of slave element
-    sm.CalcNormal(normal, lp);
-    //CalcSurfNormal(normal, *ifaceElem2);
+    sm->CalcNormal(normal, lp);
     // compute distance of c0 to plane of slave element
     tmp = c0 - d0;
-    normal.Inner(tmp, fac);
+    fac = normal.Inner(tmp);
     // make sure that distance does not exceed maximum distance
     if (fabs(fac) > maxDist)
       return false;
     // do the projection if necessary
     if ( fabs(fac) > 1e-12 )
     {
-    c0 -= normal * fac;
+      c0 -= normal * fac;
       // add new node later, if necessary
       nodenum_c0 = 0;
     }
 
     // do the same for c1
     tmp = c1 - d0;
-    normal.Inner(tmp, fac);
+    fac = normal.Inner(tmp);
     if ( fabs(fac) > 1e-12 )
     {
     c1 -= normal * fac;
@@ -440,11 +447,10 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
   if(t[1] <= 0.0)
     return false;
 
-  MortarNcSurfElem* ncElem = new MortarNcSurfElem;
+  shared_ptr<MortarNcSurfElem> ncElem(new MortarNcSurfElem());
   ncElem->connect.Resize(2);
 
-  //we get rid of this variable for line elements
-  Double relativeElemVol = t[1] - t[0];
+  relativeElemVol = t[1] - t[0];
 
   // If an intersection exists, we must distinguish 4 different cases.
   if(t[0] <= 0)
@@ -529,30 +535,70 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
     }
   }
 
-  if(relativeElemVol < 1e-3) {
+  if (relativeElemVol < 1e-3) {
     WARN("Rejecting ncElem due to a relative volume of " << relativeElemVol
          << std::endl
          << "  for intersection of elements " << ifaceElem1->elemNum
-        // << " (" << region_.ToString(ifaceElem1->regionId) << ") "
-         << "and " << ifaceElem2->elemNum);
+        // << " (" << region_.ToString(ifaceElem1->regionId) << ")"
+         << " and " << ifaceElem2->elemNum);
         // << " (" << this->region_.ToString(ifaceElem2->regionId) << ") ");
-    delete ncElem;
     return false;
   }
 
-  ncElem->ptMaster = ifaceElem2;
-  ncElem->ptSlave = ifaceElem1;
+  // In case of a curved interface store the projected master element.
+  // This is needed for coordinate transform of integration points.
+  shared_ptr<SurfElem> projMaster( new SurfElem() );
+  if ( !isCoplanar_ ) {
+    projMaster->type = Elem::ET_LINE2;
+    projMaster->connect.Resize(2);
+    
+    if (nodenum_c0 == 0) {
+      // create a new node for the projection of c0 onto d
+      Vector<Double> new_node;
+      new_node.Resize(3);
+      new_node[0] = c0[0];
+      new_node[1] = c0[1];
+      if (c0.GetSize() == 2)
+        new_node[2] = 0.0;
+      else
+        new_node[2] = c0[2];
+      ptGrid_->AddNode(new_node, nodenum_c0);
+      newNodes.Push_back(nodenum_c0);
+    }
+    projMaster->connect[0] = nodenum_c0;
+    
+    if (nodenum_c1 == 0) {
+      // create a new node for the projection of c0 onto d
+      Vector<Double> new_node;
+      new_node.Resize(3);
+      new_node[0] = c1[0];
+      new_node[1] = c1[1];
+      if (c1.GetSize() == 2)
+        new_node[2] = 0.0;
+      else
+        new_node[2] = c1[2];
+      ptGrid_->AddNode(new_node, nodenum_c1);
+      newNodes.Push_back(nodenum_c1);
+    }
+    projMaster->connect[1] = nodenum_c1;
+    
+    // projection might be identical to ncElem itself
+    if ( projMaster->connect != ncElem->connect ) {
+      ncElem->projectedMaster = projMaster;
+    } // else case: NULL pointer signals projectedMaster==ncElem
+  }
+  
   ncElem->type = Elem::ET_LINE2;
+  ncElem->ptMaster = ifaceElem1;
+  ncElem->ptSlave = ifaceElem2;
 
-
-  elemList.Push_back(ncElem);
+  elemList_->AddElement(ncElem);
 
   return true;
 }
 
 bool MortarInterface::IntersectRects( SurfElem *ifaceElem1,
                                       SurfElem *ifaceElem2,
-                                      StdVector<MortarNcSurfElem*>& elemList,
                                       StdVector<UInt> &newNodes )
 {
   Vector<Double> c0, c1, c2, d0, d1, d2;
@@ -723,7 +769,7 @@ bool MortarInterface::IntersectRects( SurfElem *ifaceElem1,
   if(t[3] <= 0.0)
     return false;
 
-  MortarNcSurfElem* ncElem = new MortarNcSurfElem;
+  shared_ptr<MortarNcSurfElem> ncElem(new MortarNcSurfElem());
   ncElem->connect.Resize(4);
 
   diffX *= distX;
@@ -989,21 +1035,20 @@ bool MortarInterface::IntersectRects( SurfElem *ifaceElem1,
       }
     }
   }
-  REFACTOR;
-//    ncElem->ptElem = ptQ1;
-//    ncElem->ptLagrangeParent = ifaceElem2;
-//    ncElem->ptSurfParent = ifaceElem1;
-//
-//    elemList.Push_back(ncElem);
+  
+  ncElem->type = Elem::ET_QUAD4;
+  ncElem->ptMaster = ifaceElem1;
+  ncElem->ptSlave = ifaceElem2;
 
+  elemList_->AddElement(ncElem);
+  
   return true;
 }
 
 bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
-                                        StdVector<MortarNcSurfElem*> &elemList,
                                         StdVector<UInt> &newNodes )
 {
-  UInt i, p1Size, p2Size;
+  UInt i, j, n, p1Size, p2Size;
   StdVector< Vector<Double> > p1, p2, r;
 
   switch(ifElem1->type) {
@@ -1052,12 +1097,52 @@ bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
 
   if (CutPolys(p1, p2, isCoplanar_, r))
   {
-    UInt start = TriangulatePoly(r, elemList, newNodes);
+    StdVector<MortarNcSurfElem*> newElems;
+    
+    UInt nodeStart = newNodes.GetSize();
+    UInt elemStart = TriangulatePoly(r, newElems, newNodes);
 
-    for (UInt i = start; i < elemList.GetSize(); ++i)
+    // store projected master element
+    shared_ptr<SurfElem> projMaster;
+    
+    if ( !isCoplanar_ ) {
+      Vector<Double> nodeCoord;
+      projMaster.reset( new SurfElem() );
+      projMaster->type = ifElem1->type;
+      projMaster->connect.Resize(p1Size);
+      
+      n = newNodes.GetSize();
+      for ( i = 0; i < p1Size; ++i ) {
+        Vector<Double> & p1Coord = p1[i];
+        for ( j = nodeStart; j < n; ++j ) {
+          ptGrid_->GetNodeCoordinate( nodeCoord, newNodes[j], isMoving_ );
+          if ( nodeCoord == p1Coord ) {
+            projMaster->connect[i] = newNodes[j];
+            break;
+          }
+        }
+        if ( j == n ) {
+          ptGrid_->AddNode(p1[i], projMaster->connect[i]);
+          newNodes.Push_back(projMaster->connect[i]);
+        }
+      }
+      
+      if ( newElems.GetSize() - elemStart == 1 ) { // there is only 1 element
+        if ( projMaster->connect == newElems[elemStart]->connect ) {
+          // projected master is identical to Mortar element
+          projMaster.reset(); // Reset to NULL pointer
+        }
+      }
+    }
+
+    n = newElems.GetSize();
+    for ( i = elemStart; i < n; ++i)
     {
-      elemList[i]->ptMaster = ifElem1;
-      elemList[i]->ptSlave = ifElem2;
+      shared_ptr<MortarNcSurfElem> newElem(newElems[i]);
+      newElem->ptMaster = ifElem1;
+      newElem->ptSlave = ifElem2;
+      newElem->projectedMaster = projMaster;
+      elemList_->AddElement(newElem);
     }
 
     return true;
@@ -1287,7 +1372,7 @@ bool MortarInterface::CutPolys(StdVector< Vector<Double> > &p1,
     // project each point of p1
     for (i = 0; i < p1.GetSize(); ++i) {
       temp1 = p1[i] - p2[0];
-      n.Inner( temp1, scale);
+      scale = n.Inner( temp1 );
       p1[i] -= n * scale;
     }
   }

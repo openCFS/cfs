@@ -414,6 +414,7 @@ namespace CoupledField {
       for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
         FeFctIdType fctId = fncIt->second->GetFctId();
         stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),fctId);
+        fncIt->second->GetTimeScheme()->InitStage(i,actTime_,PDE_.GetDomain());
       }
       stageSol.SetOwnership(false);
 
@@ -515,14 +516,21 @@ namespace CoupledField {
       stageSol.Resize(feFunctions_.size());
       for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
         stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),pos);
+        fncIt->second->GetTimeScheme()->InitStage(i,actTime_,PDE_.GetDomain());
       }
       stageSol.SetOwnership(false);
+
 
       //initialize solution vector for each stage
       if ( i > 0 )
         actSol = stageSol;
+      else{
+        //special case of incremental non-linearity, we set the stage vector to the solution vector
+        stageSol = actSol;
+      }
 
       solVec_  = actSol;
+
 
       // setup right hand side
       Double loadFactor = 1.0;
@@ -576,21 +584,28 @@ namespace CoupledField {
         Double residualL2Norm = 0.0;
         Double etaLineSearch  = 1.0;
         if ( lineSearch_ == "none" ) {
-          actSol.Add(1.0, solInc);
+          stageSol.Add(1.0, solInc);
         }
         else {
           // true is for transient simulation
-          residualL2Norm = LineSearch(solInc, stageSol, etaLineSearch);
+          solVec_  = stageSol;
+          residualL2Norm = LineSearch(solInc, stageSol, etaLineSearch,true);
         }
 
+        //std::cout << solInc.ToString(1,',') << std::endl;
+        //std::cout << stageSol.ToString(1,',') << std::endl;
+
         // store the new solution
-        stageSol = actSol;
-        solVec_  = actSol;
+        //stageSol = actSol;
+        //solVec_  = actSol;
+
+        solVec_  = stageSol;
 
         if ( lineSearch_ == "none" ) {
           // recalculate RHS with new values to get new residual (f^(k+1))========
           algsys_->InitRHS(RhsLinVal_);
           assemble_->AssembleNonLinRHS();  
+          PDE_.SetRhsValues();
 
           //now update RHS according to time stepping
           for(matIt = matrices.begin();matIt != matrices.end();matIt++){
@@ -609,10 +624,10 @@ namespace CoupledField {
           // calculation of residual error =======================================
           residualL2Norm = actRHS.NormL2(); // L2Norm of  ( f_i^(k+1) - f_a )
         } 
-        else {
-          algsys_->InitRHS(RhsLinVal_ );
-          assemble_->AssembleNonLinRHS();
-        }
+        //else {
+        //  algsys_->InitRHS(RhsLinVal_ );
+        //  assemble_->AssembleNonLinRHS();
+        //}
 
         // calculation of residual error =======================================
         Double residualErr;
@@ -624,7 +639,7 @@ namespace CoupledField {
         // calculate incremental error ========================================
         Double incrementalErr;
         Double solIncrL2Norm = solInc.NormL2();
-        Double actSolL2Norm  = actSol.NormL2();
+        Double actSolL2Norm  = stageSol.NormL2();
 
         if ( actSolL2Norm )
           incrementalErr = solIncrL2Norm / actSolL2Norm;
@@ -1295,9 +1310,24 @@ namespace CoupledField {
       algsys_->InitRHS(RhsLinVal_ );
 
       if( trans ) {
-        EXCEPTION("Line Search for nonlinear transient problems yet verified")
+        //EXCEPTION("Line Search for nonlinear transient problems yet verified")
 //        assemble_->AssembleNonLinRHS();
 //        TS_alg_->UpdateRHS(actSol);
+        assemble_->AssembleNonLinRHS();
+        PDE_.SetRhsValues();
+        //now update RHS according to time stepping
+        std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+        std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
+        std::map<FEMatrixType,Integer>::iterator matIt;
+        UInt pos = 0;
+        for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+          if(matIt->second < 0)
+            continue;
+          for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+            fncIt->second->GetTimeScheme()->ComputeStageRHS(0,matIt->second,stageRHS_.GetPointer(pos));
+          }
+          algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+        }
       }
       else {
         assemble_->AssembleNonLinRHS();

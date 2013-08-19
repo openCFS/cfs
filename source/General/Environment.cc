@@ -306,6 +306,10 @@ namespace CoupledField {
         return "";
         break;
 
+      case MECH_NORMAL_STRESS:
+        return "N/m^2";
+        break;
+
       case SMOOTH_DISPLACEMENT:
         return "m";
         break;
@@ -467,6 +471,9 @@ namespace CoupledField {
       case NO_CLASS:
         out = "No MaterialClass";
         break;
+      case TESTMAT:
+        out = "testmat";
+        break;
       case ELECTROMAGNETIC:
         out = "magnetic";
         break;
@@ -503,12 +510,16 @@ namespace CoupledField {
     }
   }
 
+
   template<>
   void String2Enum<MaterialClass>( const std::string &in, MaterialClass &out ) {
 
     if ( in == "No MaterialClass" ) {
       out = NO_CLASS;
     }
+    else if ( in == "testmat" ) {
+       out = TESTMAT;
+     }
     else if ( in == "electromagnetic" ) {
       out = ELECTROMAGNETIC;
     }
@@ -1012,6 +1023,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_POWER, "mechPower");
     SolutionTypeEnum.Add(MECH_DEF_SURF_VOLUME, "mechDisplacedSurfVolume");
     SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
+    SolutionTypeEnum.Add(MECH_NORMAL_STRESS, "mechNormalStress");
     
     //electrostatics
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
@@ -1103,6 +1115,12 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_VECTOR_PHI, "fluidMechWeightVectorPhi");
     SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_DENSITY_PHI, "fluidMechWeightDensityPhi");
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
+
+    // TEST PDE
+    SolutionTypeEnum.Add(TEST_DOF, "testDof");
+    SolutionTypeEnum.Add(TEST_FIELD, "testField");
+    SolutionTypeEnum.Add(TEST_RHS_LOAD, "testRhsLoad");
+
     // optimization
     SolutionTypeEnum.Add(HOMOGENIZED_TENSOR, "homogenizedTensor");
     // the actual result type is given in result descriptions
@@ -1212,6 +1230,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( DATA_ACCURACY, "dataAccuracy" ); 
     MaterialTypeEnum.Add( MAX_APPROX_VAL, "maxApproxVal" ); 
     MaterialTypeEnum.Add( PYROCOEFFICIENT_TENSOR, "Pyrocoefficient_Tensor" ); 
+    MaterialTypeEnum.Add( TEST_ALPHA, "Test_Alpha" );
+    MaterialTypeEnum.Add( TEST_BETA, "Test_BETA" );
 
     // ==== Initialization of Matrix Types ====
     feMatrixType.Add( NOTYPE, "none" );

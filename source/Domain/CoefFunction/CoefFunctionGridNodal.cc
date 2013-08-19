@@ -12,6 +12,8 @@
  */
 //================================================================================================
 
+#include <def_expl_templ_inst.hh>
+
 #include "CoefFunctionGridNodal.hh"
 
 #include "FeBasis/FeSpace.hh"
@@ -57,8 +59,8 @@ namespace CoupledField{
     mp_->SetExpr(mHandleStep_, var);
 
     std::string factorString;
-    if(configNode->Has("factor")){
-      configNode->GetValue("factor",factorString);
+    if(configNode->Has("globalFactor")){
+      configNode->GetValue("globalFactor",factorString);
 
       if(isComplex_)
         factorFnc_ = CoefFunction::Generate(mp_,Global::COMPLEX,factorString);
@@ -173,7 +175,7 @@ namespace CoupledField{
   void CoefFunctionGridNodal<DATA_TYPE>::ReadSolution(UInt step,Vector<DATA_TYPE> & sol){
     std::set<std::string>::iterator regIter = srcRegions_.begin();
     sol.Resize(numEqns_);
-    sol.Init();
+    sol.Init(0.0);
     for( UInt i = 0; regIter != srcRegions_.end(); ++i,++regIter) {
       shared_ptr<BaseResult> Bres = domain_->GetResultHandler()->GetResult( this->inputId_, this->aSeqStep_ , step , this->solType_, *regIter );
       shared_ptr<EntityList> regionList = Bres->GetEntityList();
@@ -197,11 +199,16 @@ namespace CoupledField{
       //but we should be careful!
       if(factorFnc_->GetDependency() == CoefFunction::CONSTANT ||
          factorFnc_->GetDependency() == CoefFunction::TIMEFREQ){
+        //determine factor
+        DATA_TYPE factor;
+        LocPointMapped lpm;
+        factorFnc_->GetScalar(factor,lpm);
+        //std::cout << "Computed Factor for timestep: " << factor << std::endl;
         for( it.Begin(); !it.IsEnd(); it++ ) {
           UInt idx = nodeIdxMap_[it.GetNode()];
           eqns = eqnNumbers_[idx];
           for(UInt d = 0; d<eqns.GetSize();++d){
-            sol[eqns[d]] = resVec[locPos++];
+            sol[eqns[d]] = resVec[locPos++] * factor;
             //curVec->GetEntry(locPos++,sol[eqns[d]]);
           }
         }
@@ -240,7 +247,7 @@ namespace CoupledField{
       Double factor1,factor2;
       stepnumber = GetStepNum(needTinterp,factor1,factor2);
       if(needTinterp){
-        EXCEPTION("Temporal interpolation not supported right now")
+        EXCEPTION("StepValue interpolation not supported right now")
       }else{
         //we just read the solution vector
         if(lastStepRead_ != stepnumber){
@@ -275,7 +282,7 @@ namespace CoupledField{
     // apply some tolerance..
     std::map<UInt,Double>::iterator stepIter = stepValueMap_.begin();
     for(;stepIter != stepValueMap_.end(); ++stepIter){
-      if(abs(stepIter->second - aTimeFreq) < 1e-8){
+      if(abs(stepIter->second - aTimeFreq) < 1e-4){
         break;
       }
     }

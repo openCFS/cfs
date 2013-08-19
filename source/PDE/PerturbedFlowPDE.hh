@@ -32,12 +32,20 @@ namespace CoupledField
     //! Destructor
     virtual ~PerturbedFlowPDE(){};
 
+  protected:
+
     //! Initialize NonLinearities
     void InitNonLin();
 
     //! Define all (bilinearform) integrators needed for this PDE
     void DefineIntegrators( );
 
+    //! Defines the integrators needed for ncInterfaces
+    void DefineNcIntegrators() {
+      EXCEPTION("ncInterfaces are not implemented for PerturbedFlowPDE");
+    }
+
+    //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators(){};
 
     //! Define the SolveStep-Driver
@@ -55,8 +63,6 @@ namespace CoupledField
     //! Calculate field variables at arbitrary points
     void CalcField( SolutionType solType, StdVector<const Elem*>& elems,
                     StdVector<LocPoint>& points, SingleVector& values );
-
-  protected:
 
     //! SubType of electrostatic section
     std::string subType_;
@@ -84,12 +90,11 @@ namespace CoupledField
 
     //! create feFunction for meanFluidMech velocity
     void CreateMeanFlowFunction(StdVector<std::string> dofNames);
-
-  BaseBDBInt *
-  GetStiffIntegrator( BaseMaterial* actSDMat,
-                               RegionIdType regionId,
-                               bool isComplex );
-
+    
+    BaseBDBInt *
+    GetStiffIntegrator( BaseMaterial* actSDMat,
+                        RegionIdType regionId,
+                        bool isComplex );
 
     //! Coefficient function for the flow field
     
@@ -97,6 +102,8 @@ namespace CoupledField
     //! is in general different for each region and will most likely
     //! not be given in a close form, it is described by a CoefFunctionMulti.
     shared_ptr<CoefFunctionMulti> meanFlowCoef_;
+    shared_ptr<BaseFeFunction> meanFlowFeFct_;
+    shared_ptr<FeSpace> meanFlowFeSpace_;
 
     //! Surface regions on which pressure surface integral has to be defined
     StdVector<RegionIdType> presSurfaces_;

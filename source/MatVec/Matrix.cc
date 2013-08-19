@@ -144,6 +144,8 @@ namespace CoupledField
   {
     std::ostringstream os;
 
+    os << std::scientific << std::setprecision(7);
+    
     switch(level)
     {
       case -1:
@@ -959,7 +961,7 @@ namespace CoupledField
     // Set output format
     out.setf( std::ios::scientific );
     const UInt oldPrec = out.precision();
-    const UInt newPrec = 4;
+    const UInt newPrec = 7;
     out.precision( newPrec );
 
     const unsigned int mrows(mat.GetNumRows());

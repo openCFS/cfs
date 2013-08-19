@@ -111,6 +111,15 @@ public:
 
   //@}
 
+  //! \copydoc CoefFunction::SetConservative
+  virtual void SetConservative(bool value){
+    CoefFunctionGrid::SetConservative(value);
+    globalTol_ = 0.0;
+    this->myConfigNode_->GetValue("globalTolerance", globalTol_, ParamNode::PASS);
+    localTol_ = 1e-3;
+    this->myConfigNode_->GetValue("localTolerance", localTol_, ParamNode::PASS);
+  }
+
 
 private:
 
@@ -132,6 +141,12 @@ private:
 
   ///Matrix storing the weight for conservative interpolation
   shared_ptr<BaseMatrix> consInterpMat_;
+  
+  //! global tolerance (size in meters of bounding box of nodes)
+  Double globalTol_;
+  
+  //! local tolerance (interval of local coordinates outside of element)
+  Double localTol_;
   //@}
 
   // =====================================
@@ -168,6 +183,8 @@ private:
   //================================================================================
 private:
   void ReadXMLNode(PtrParamNode configNode);
+
+  std::string destRegionName_;
 
 
 

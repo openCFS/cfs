@@ -31,16 +31,6 @@ namespace CoupledField {
     // read flag if all results should get written to database file section
     // to allow e.g. for general postprocessing or result extraction
     param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
-    
-    // Set current value of time step and time step size in the mathParser
-    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "t", 0.0 );
-    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "t0", 0.0 );
-    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "dt", 0.0 );    
-    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "step", 0 );  
   }
 
   void StaticDriver::Init(bool restart) {

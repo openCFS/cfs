@@ -177,8 +177,6 @@ namespace CoupledField{
 
 
     if( dim_ == 3 ) {
-      std::cout << "origin: " << origin_[0] << " " << origin_[1] << " " << origin_[2] << std::endl;
-      std::cout << "x: " << x[0] << " " << x[1] << " " << x[2] << std::endl;
       ytemp = yAxis_ - origin_;
 
       fac = ytemp[0]*x[0] + ytemp[1]*x[1] + ytemp[2]*x[2];
@@ -189,7 +187,6 @@ namespace CoupledField{
 
       y /= y.NormL2();
 
-      std::cout << "y: " << y[0] << " " << y[1] << " " << y[2] << std::endl;
 
       z[0] = x[1]*y[2] - x[2]*y[1];
       z[1] = x[2]*y[0] - x[0]*y[2];
@@ -197,7 +194,6 @@ namespace CoupledField{
 
       z /= z.NormL2();
 
-      std::cout << "z: " << z[0] << " " << z[1] << " " << z[2] << std::endl;
 
       // Check if there were coincident points for defining the different axes
       if (x.NormL2() < EPS ||

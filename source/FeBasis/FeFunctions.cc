@@ -2,6 +2,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/tr1/type_traits.hpp>
+#include <def_expl_templ_inst.hh>
 
 #include "PDE/SinglePDE.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -141,7 +142,7 @@ DECLARE_LOG(fefunc)
     entities_.Push_back(bc->entities);
   }
 
-  void BaseFeFunction::AddLoadCoefFunction( shared_ptr<CoefFunction> load,
+  void BaseFeFunction::AddLoadCoefFunction( PtrCoefFct load,
                                             const StdVector<shared_ptr<EntityList> >& lists){
     this->loadCoefs_[load] = lists;
 
@@ -149,13 +150,13 @@ DECLARE_LOG(fefunc)
     //entities_.Push_back(bc->entities);
   }
 
-  void BaseFeFunction::AddLoadCoefFunction( shared_ptr<CoefFunction> coef,
+  void BaseFeFunction::AddLoadCoefFunction( PtrCoefFct coef,
                                             shared_ptr<EntityList >& list) {
     this->loadCoefs_[coef].Push_back(list);
 
   }
 
-  void BaseFeFunction::AddExternalDataSource( shared_ptr<CoefFunction> coef,
+  void BaseFeFunction::AddExternalDataSource( PtrCoefFct coef,
                                               const StdVector<shared_ptr<EntityList> >& lists){
     std::cerr << "size of lists is " << lists.GetSize() << std::endl;
     for( UInt i = 0; i < lists.GetSize(); ++i ) {
@@ -164,8 +165,8 @@ DECLARE_LOG(fefunc)
     this->externalDataCoefs_[coef] = lists;
   }
 
-  void BaseFeFunction::AddExternalDataSource( shared_ptr<CoefFunction> coef,
-                                              shared_ptr<EntityList >& list){
+  void BaseFeFunction::AddExternalDataSource( PtrCoefFct coef,
+                                              shared_ptr<EntityList > list){
     this->externalDataCoefs_[coef].Push_back(list);
   }
   
@@ -698,8 +699,8 @@ DECLARE_LOG(fefunc)
         std::map<Integer, T> coefs;
         StdVector<shared_ptr<EntityList> > list(1);
         list[0] = actBc.entities;
-        feSpace_->MapCoefFctToSpace( list, actBc.value, coefs, 
-                                     true, actBc.dofs );
+        feSpace_->MapCoefFctToSpace( list, actBc.value, shared_from_this(), coefs, 
+                                      true, actBc.dofs );
 
         // Loop over all entries and set them
         typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
@@ -770,7 +771,7 @@ DECLARE_LOG(fefunc)
       StdVector<shared_ptr<EntityList> > & lists = it->second;
       if(ptCoef->IsConservative()){
         //this is a little circumfencial allocaing and releasing memory
-        //in each step. perhaps it would be better to mak a class variable or do it
+        //in each step. perhaps it would be better to make a class variable or do it
         //differently somehow
         Vector<T> loadVec(this->coeffs_->GetSize());
         loadVec.Init();
@@ -783,7 +784,7 @@ DECLARE_LOG(fefunc)
 //            curEnt->GetType() == EntityList::SURF_ELEM_LIST ) {
           // Map coefficient function onto the actual FeSpace
           std::map<Integer, T> coefs;
-          feSpace_->MapCoefFctToSpace( lists, ptCoef, coefs, false );
+          feSpace_->MapCoefFctToSpace( lists, ptCoef, shared_from_this(), coefs, false );
 
           typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
           for( ; coefIt != coefs.end(); ++coefIt ) {
@@ -805,7 +806,7 @@ DECLARE_LOG(fefunc)
 
       // Map coefficient function onto the actual FeSpace
       std::map<Integer, T> coefs;
-      feSpace_->MapCoefFctToSpace( lists, curFnc, coefs, false );
+      feSpace_->MapCoefFctToSpace( lists, curFnc, shared_from_this(), coefs, false );
       Vector<T> & myVals = *this->coeffs_;
       typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
       for( ; coefIt != coefs.end(); ++coefIt ) {
@@ -851,7 +852,7 @@ DECLARE_LOG(fefunc)
       // -----------------
       // Map coefficient function onto the actual FeSpace using the general mechanism
       std::map<Integer, T> coefs;
-      feSpace_->MapCoefFctToSpace( intersect, feFct, coefs, false );
+      feSpace_->MapCoefFctToSpace( intersect, feFct, shared_from_this(), coefs, false );
       Vector<T> & myVals = *this->coeffs_;
       typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
       for( ; coefIt != coefs.end(); ++coefIt ) {

@@ -32,6 +32,8 @@ namespace CoupledField
     //!  Deconstructor
     virtual ~MechPDE();
 
+  protected:
+
     //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
     void ReadDampingInformation();
 
@@ -40,6 +42,9 @@ namespace CoupledField
 
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
+
+    //! Defines the integrators needed for ncInterfaces
+    void DefineNcIntegrators();
 
     //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators( ){};
@@ -57,8 +62,6 @@ namespace CoupledField
     virtual std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string&  formulation,
                     PtrParamNode infoNode );
-  protected:
-
     //! Returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
     BaseBDBInt * GetStiffIntegrator( BaseMaterial* actSDMat,
                                      RegionIdType regionId,

@@ -33,12 +33,12 @@ namespace CoupledField
     public:
 
     //for NMG integrators
-    typedef enum{
+    typedef enum {
       MASTER_MASTER,
       SLAVE_SLAVE,
       MASTER_SLAVE,
       SLAVE_MASTER
-    }CouplingDirection;
+    } CouplingDirection;
 
       BiLinearForm( bool coordUpdate = false ){
         coordUpdate_ = coordUpdate;
@@ -51,13 +51,13 @@ namespace CoupledField
       virtual void CalcElementMatrix( Matrix<Double>& stiffMat,
                                           EntityIterator& ent1,
                                           EntityIterator& ent2){
-        EXCEPTION("BiLinearForm::CalcElementMatrix called this may not happen!");
+        EXCEPTION("BiLinearForm::CalcElementMatrix called, this must not happen!");
       }
 
       virtual void CalcElementMatrix( Matrix<Complex>& stiffMat,
                                           EntityIterator& ent1,
                                           EntityIterator& ent2){
-        EXCEPTION("Integrator::CalcElementMatrix called this may not happen!");
+        EXCEPTION("BiLinearForm::CalcElementMatrix called, this must not happen!");
       }
 
       //! Set finite element space in cases of mixed spaces
@@ -105,7 +105,7 @@ namespace CoupledField
       //! name of (bi)linearform
       std::string name_;
 
-      //! is the (bi) linear form symmetric
+      //! is the (bi)linear form symmetric
       bool isSymmetric_;
       
       //! flag for use of updated Lagrangian formulation

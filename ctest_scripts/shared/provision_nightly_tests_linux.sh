@@ -1,0 +1,47 @@
+#!/bin/bash
+
+USER=$1
+
+echo "Starting nightly test on $HOSTNAME..."
+# fn=$(mktemp)
+#tempfile=$TMP/nightly_test_$(od -N4 -tu /dev/random | awk 'NR==1 {print $2} {}')
+TEMPFILE=$(mktemp -t nightly_test_XXXX -u)
+echo "TEMPFILE $TEMPFILE"
+echo "USER $USER"
+# PWDLINE=$(fgrep $USER /etc/passwd | grep nightly_test_user)
+PWDLINE=$(getent passwd $USER)
+HOME=$(echo $PWDLINE | cut -d':' -f6)
+echo "HOME $HOME"
+CTEST="/opt/pckg/cmake-2.8.10.2-Linux-i386/bin/ctest"
+NIGHTLY_DIR="$HOME/Documents/dev/NIGHTLY/CFS_FESPACE_NIGHTLY"
+LOG_FILE="$HOME/Documents/dev/nightly_test.log"
+echo "LOG_FILE $LOG_FILE"
+eval $(sh $NIGHTLY_DIR/share/scripts/distro.sh -s)
+echo "DIST $DIST"
+if [ "$DIST" = "UBUNTU" ]; then
+  SHELL=$(which dash)
+else
+  SHELL=$(echo $PWDLINE | cut -d':' -f7)
+fi
+echo "SHELL $SHELL"
+
+# Generate shell script which actually starts the nightly test CMake script.
+cat <<EOF > "${TEMPFILE}_2"
+#!/bin/sh
+$CTEST -S $NIGHTLY_DIR/ctest_scripts/nightly_test.cmake > "$LOG_FILE" 2>&1
+EOF
+
+# Generate a shell script which sets a crontab like environment and calls the
+# nightly test shell script.
+cat <<EOF > $TEMPFILE
+#!/bin/sh
+env -i PATH=/bin:/sbin:/usr/bin:/usr/sbin HOME=$HOME SHELL=$SHELL $SHELL "${TEMPFILE}_2"
+EOF
+
+# Start a screen session for the automatic shutdown in 8 hours.
+screen -dmS  automatic_shutdown /sbin/shutdown -h -P 480
+
+# Start a screen session for starting the nightly tests. We use screen, because it immediately
+# returns and the host machine can go on starting the other VBoxes.
+sudo -u $USER screen -dmS nightly_test bash $TEMPFILE
+

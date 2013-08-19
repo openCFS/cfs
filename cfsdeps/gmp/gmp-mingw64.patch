@@ -1,5 +1,5 @@
---- gmp-h.in.orig	2012-11-24 21:33:23.949784263 +0100
-+++ gmp-h.in	2012-11-24 21:34:03.490003573 +0100
+--- gmp-h.in.orig	2013-08-02 19:33:13.942995375 +0200
++++ gmp-h.in	2013-08-02 19:33:13.943995375 +0200
 @@ -191,8 +191,8 @@
  typedef unsigned long long int	mp_limb_t;
  typedef long long int		mp_limb_signed_t;

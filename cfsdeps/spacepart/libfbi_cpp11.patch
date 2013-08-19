@@ -1,0 +1,10 @@
+--- include/fbi/variadic/fbi_orig.h	2013-07-30 15:17:37.680399895 +0200
++++ include/fbi/variadic/fbi.h	2013-07-30 15:17:55.903015278 +0200
+@@ -42,6 +42,7 @@
+ //c++0x
+ #include <random>
+ #include <tuple>
++#include <mutex>
+ //tree
+ #include <fbi/config.h>
+ #include <fbi/traits.h>

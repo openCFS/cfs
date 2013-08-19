@@ -140,14 +140,14 @@ public:
   // ====================================================================
 
   //!map that stores interor surface elements
-  std::map< RegionIdType, shared_ptr<NcElemList> > interiorElemMap_;
+  std::map< RegionIdType, shared_ptr<NcSurfElemList> > interiorElemMap_;
 
   //!map that stores interor surface elements opposing elements
-  std::map< RegionIdType, shared_ptr<NcElemList> > interiorElemMapOpposite_;
+  std::map< RegionIdType, shared_ptr<NcSurfElemList> > interiorElemMapOpposite_;
 
   //! map storing exterior elements of regions excluding those who have a
   //! neighbor in another region!
-  std::map< RegionIdType, shared_ptr<NcElemList> > exteriorElements_;
+  std::map< RegionIdType, shared_ptr<NcSurfElemList> > exteriorElements_;
 };
 }
 

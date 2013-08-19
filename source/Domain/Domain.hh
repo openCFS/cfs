@@ -226,6 +226,11 @@ namespace CoupledField
     
     //! Register variables of in element <variableList/>
     void RegisterVariables();
+    
+    //! Read in a single grid
+    void ReadGrid(const std::string & gridId,
+                  const StdVector< shared_ptr<SimInput> > & inputs,
+                  bool isAxi);
     //@}
   
     // ======================================================
@@ -294,7 +299,7 @@ namespace CoupledField
     //! Pointer to simulation state object
     shared_ptr<SimState> simState_;
 
-    //! Mapping between name and coordinate sysem pointer
+    //! Mapping between name and coordinate system pointer
     std::map<std::string, CoordSystem*> coordSys_;
 
     //! Mathematic parser object

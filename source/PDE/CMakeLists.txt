@@ -14,6 +14,7 @@ SET(PDE_SRCS
   StdPDE.cc
   AcousticPDE.cc
   AcousticMixedPDE.cc
+  TestPDE.cc
   )
 
 ADD_LIBRARY(pde STATIC ${PDE_SRCS})

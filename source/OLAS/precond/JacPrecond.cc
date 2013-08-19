@@ -1,3 +1,5 @@
+#include <def_expl_templ_inst.hh>
+
 #include "MatVec/opdefs.hh"
 #include "MatVec/Matrix.hh"
 #include "MatVec/CRS_Matrix.hh"

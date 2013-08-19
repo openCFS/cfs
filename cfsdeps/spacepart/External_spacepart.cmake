@@ -45,6 +45,13 @@ ENDIF()
 
 IF(USE_LIBFBI)
   #-----------------------------------------------------------------------------
+  # Set names of patch file and template file.
+  #-----------------------------------------------------------------------------
+  SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/spacepart/libfbi-patch.cmake.in")
+  SET(PFN "${boost_prefix}/libfbi-patch.cmake")
+  CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
+  #-----------------------------------------------------------------------------
   # The fast box intersection library external project
   #-----------------------------------------------------------------------------
   ExternalProject_Add(libfbi
@@ -53,6 +60,7 @@ IF(USE_LIBFBI)
     DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/spacepart
     URL ${LIBFBI_URL}/${LIBFBI_GZ}
     URL_MD5 ${LIBFBI_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     CMAKE_ARGS
     ${CMAKE_ARGS}
     -DBoost_DIR:PATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}

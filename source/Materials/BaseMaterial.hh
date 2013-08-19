@@ -149,7 +149,7 @@ namespace CoupledField {
     std::set<MaterialType> GetIsSetInfo() const
     { return isSet_;};
 
-    //! get infor, which material parameter is complex
+    //! get info, which material parameter is complex
     std::set<MaterialType> GetIsComplexInfo() const
     { return isComplex_;};
 
@@ -352,7 +352,7 @@ namespace CoupledField {
       EXCEPTION( "SetPreviousHystVal not implemented" );
     };
 
-    //! computes the scalar hystereis value
+    //! computes the scalar hysteresis value
     virtual Double ComputeScalarHystVal( UInt nrElem, Double Xval ) {
       EXCEPTION( "ComputeScalarHystVal not implemented" );
       return 1.0;
@@ -370,10 +370,10 @@ namespace CoupledField {
       EXCEPTION( "ComputeVectorHystVal not implemented" );
     };
 
-    //! get scalar hystereis value
+    //! get scalar hysteresis value
     virtual Double GetScalarHystVal( UInt nrElem );
 
-    //! get previous scalar hystereis value
+    //! get previous scalar hysteresis value
     virtual Double GetScalarHystPrevVal( UInt nrElem );
 
     //! get vector of hysteresis value
@@ -484,7 +484,7 @@ namespace CoupledField {
     //! map for mathParser Handles of real part of scalar material parameters
     handleMap scalarStringHandlesReal_;
     
-    //! map for imagomary part of scalar material data (string representation)
+    //! map for imaginary part of scalar material data (string representation)
     stringMap scalarStringParamsImag_;
 
     //! map for mathParser Handles of real part of scalar material parameters
@@ -502,7 +502,7 @@ namespace CoupledField {
     //! map storing the isotropic nonlinear material parameters
     nonLinIsoMap nonlinIsoParams_;
     
-    //! map storinf the anisotropic nonlinear material parameters
+    //! map storing the anisotropic nonlinear material parameters
     nonLinAnisoMap nonlinAnisoParams_;
     
     // ========================================================
@@ -568,7 +568,7 @@ namespace CoupledField {
     //! yes, piezoelectric micro-model is switched on
     bool isPiezoMicroModel_;	
 
-    //! object for piezo-micor-modeling
+    //! object for piezo-micro-modeling
     PiezoMicroModelBK* piezoMicroModel_;
 
   };

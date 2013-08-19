@@ -30,6 +30,7 @@
 // header for Solvestep and assemble
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
+#include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 #include "Driver/Assemble.hh"
 #include "Driver/SingleDriver.hh"
 #include "Driver/TransientDriver.hh"
@@ -59,6 +60,14 @@ using std::string;
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
+
+// used by Mortar coupling
+#include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
+#include "Forms/BiLinForms/ABInt.hh"
+#include "Forms/BiLinForms/BBInt.hh"
+#include "Forms/Operators/IdentityOperator.hh"
+#include "Forms/Operators/SurfaceOperators.hh"
 
 // TEMPORARY
 #include "MagEdgePDE.hh"
@@ -213,7 +222,7 @@ namespace CoupledField {
 
     // Create new assemble class with according analysistype
     if( isDirectCoupled_ == false && needsAlgsys_ == true) {
-      assemble_ = new Assemble( algsys_, analysistype_, myInfo_ );
+      assemble_ = new Assemble( algsys_, analysistype_, this->mp_, myInfo_ );
     }
     
     // =====================================================================
@@ -227,6 +236,12 @@ namespace CoupledField {
     // =====================================================================
     LOG_TRACE(singlepde) << pdename_ << ": Reading damping information";
     ReadDampingInformation( );
+
+    // =====================================================================
+    //  read in non-conforming interfaces
+    // =====================================================================
+    LOG_TRACE(singlepde) << pdename_ << ": Reading non-conforming interfaces";
+    ReadNcInterfaces();
     
     //======================================================================
     // trigger the creation of functionDescriptors
@@ -254,6 +269,11 @@ namespace CoupledField {
     // trigger definition of available results
     // =====================================================================
     DefinePrimaryResults();
+    
+    // =====================================================================
+    // trigger definition of auxiliary results for ncInterfaces
+    // =====================================================================
+    DefineNcAuxResults();
     
     // =====================================================================
     // read in NonLinearities
@@ -305,6 +325,9 @@ namespace CoupledField {
     // Call initialization of (bi)linear integrators
     LOG_TRACE(singlepde) << pdename_ << ": Defining integrators";
     DefineIntegrators();
+    if ( ncInterfaces_.GetSize() > 0 ) {
+      DefineNcIntegrators();
+    }
     DefineSurfaceIntegrators();
     DefineRhsLoadIntegrators();
 
@@ -1315,6 +1338,7 @@ namespace CoupledField {
                                        locPoints,
                                        elems,
                                        regions,
+                                       0.0, 1.0e-2,
                                        false );
 
       for(UInt i=0, n=globPoints.GetSize(); i<n; i++) {
@@ -1522,7 +1546,7 @@ namespace CoupledField {
                             << "' from sequenceStep " << sequenceStep );
         }
 
-      } else if( srcNode->GetName() == "externalFiele" ) {
+      } else if( srcNode->GetName() == "externalFile" ) {
         EXCEPTION( "No implemented yet")
             
       } else {
@@ -1550,7 +1574,7 @@ namespace CoupledField {
     if( !bcsNode )
       return;
 
-    std::string name, resultName, dof, entType, inputId, value, phase;
+    std::string name, resultName, entType, inputId, value, phase;
     shared_ptr<BaseFeFunction> actFeFunction;
 
     // =====================================================================
@@ -1747,84 +1771,181 @@ namespace CoupledField {
 
     // fetch paramnodes for constraint
     ParamNodeList prNodes = bcsNode->GetList("periodic");
-    std::string masterName, slaveName;
 
     // iterate over all parameter nodes
-    for( UInt i = 0; i < prNodes.GetSize(); i++ ) {
+    for( UInt i=0, numNodes=prNodes.GetSize(); i < numNodes; ++i ) {
       try {
-        prNodes[i]->GetValue( "master", masterName );
-        prNodes[i]->GetValue( "slave", slaveName );
-        prNodes[i]->GetValue( "dof", dof );
-        prNodes[i]->GetValue( "quantity", resultName );
-
-        // fetch related resultInfo object
-        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName));
-        
-        // get entitylists
-        NodeList masterList( ptGrid_ ), slaveList( ptGrid_ );
-        masterList.SetNamedNodes( masterName );
-        slaveList.SetNamedNodes( slaveName );
-
-        // ensure, that both lists have the same length
-        if( masterList.GetSize() != slaveList.GetSize() ) {
-          EXCEPTION( "Node lists '" << masterName << "' and '"
-                     << slaveName << "' have different size" );
-        }
-
-        // iterate over all master nodes and try to find "nearest"
-        // node in slave list
-        Vector<Double> mLoc, sLoc, diff;
-        Double minDist, dist;
-        StdVector<UInt> nodes(2);
-        EntityIterator masterIt = masterList.GetIterator();
-        for( masterIt.Begin(); !masterIt.IsEnd(); masterIt++ ) {
-
-          minDist = 1e42;
-
-          // obtain nodal coordinate
-          ptGrid_->GetNodeCoordinate( mLoc, masterIt.GetNode() );
-          nodes.Init();
-          nodes[0] = masterIt.GetNode();
-
-          // iterate over all slave nodes and find the one with minimum
-          // distance
-          EntityIterator slaveIt = slaveList.GetIterator();
-          for( slaveIt.Begin(); !slaveIt.IsEnd(); slaveIt++ ) {
-            ptGrid_->GetNodeCoordinate( sLoc, slaveIt.GetNode() );
-            diff = mLoc - sLoc;
-            dist = diff.NormL2();
-            if( dist < minDist) {
-              minDist = dist;
-              nodes[1] = slaveIt.GetNode();
-            }
-          }
-          shared_ptr<NodeList> nodePair(new NodeList( ptGrid_ ) );
-          nodePair->SetNodes( nodes );
-
-          // create new constraint condition
-          shared_ptr<Constraint> actBc ( new Constraint );
-          actBc->masterEntities = nodePair;
-          actBc->slaveEntities = nodePair;
-          if( dof.empty() ) {
-            actBc->masterDof = 0;
-          } else {
-            actBc->masterDof = actFeFunction->GetResultInfo()->GetDofIndex( dof );
-          }
-          actBc->slaveDof = actBc->masterDof;
-          actBc->result = actFeFunction->GetResultInfo();
-          actBc->periodic = true;
-
-          // add definition
-          actFeFunction->AddConstraint(actBc);
-        }
+        ReadPeriodicBC(prNodes[i]);
       } catch (CoupledField::Exception & ex ) {
         RETHROW_EXCEPTION( ex, "Can not create periodic boundary on '"
-                           << name << "'" );
+                           << prNodes[i]->Get("master")->As<std::string>() << "/"
+                           << prNodes[i]->Get("slave")->As<std::string>() << "'" );
       }
     }
     LOG_TRACE(singlepde) << pdename_ << ": Finished reading boundary conditions";
   }
 
+  void SinglePDE::ReadPeriodicBC(PtrParamNode prNode) {
+    bool allCoordsFree = false;
+    Double tol = 1e-6;
+    UInt i, nDims, nFixed;
+    std::string masterName, slaveName, resultName, dof, coordStr, coordSysId;
+    StdVector<UInt> fixedCoords;
+    shared_ptr<BaseFeFunction> actFeFunction;
+    CoordSystem *coordSys = NULL;
+
+    // Read attribute values
+    prNode->GetValue( "master", masterName );
+    prNode->GetValue( "slave", slaveName );
+    prNode->GetValue( "dof", dof );
+    prNode->GetValue( "quantity", resultName );
+    prNode->GetValue( "fixedCoords", coordStr );
+    prNode->GetValue( "tolerance", tol, ParamNode::PASS );
+    prNode->GetValue( "coordSysId", coordSysId );
+
+    // fetch related resultInfo object
+    actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName));
+    
+    // get entitylists
+    NodeList masterList( ptGrid_ ), slaveList( ptGrid_ );
+    masterList.SetNamedNodes( masterName );
+    slaveList.SetNamedNodes( slaveName );
+
+    // ensure, that both lists have the same length
+    if( masterList.GetSize() != slaveList.GetSize() ) {
+      EXCEPTION( "Node lists '" << masterName << "' and '"
+                 << slaveName << "' have different size" );
+    }
+
+    // Get coordinate system
+    coordSys = domain_->GetCoordSystem( coordSysId );
+    assert( coordSys );
+    nDims = coordSys->GetDim();
+    
+    // Find out which coordinates are fixed
+    typedef boost::tokenizer< boost::char_separator<char> > Tok;
+    boost::char_separator<char> sep(";|, ");
+    Tok tok(coordStr, sep);
+    if ( tok.begin() == tok.end() ) {
+      allCoordsFree = true;
+      nFixed = 0;
+    }
+    else {
+      for ( Tok::iterator tokIt = tok.begin(); tokIt != tok.end(); ++tokIt ) {
+        for ( i = 0; i < nDims; ++i ) {
+          if ( coordSys->GetDofName(i+1) == *tokIt ) {
+            fixedCoords.Push_back( i );
+            break;
+          }
+        }
+        if ( i == nDims ) {
+          EXCEPTION("'" << *tokIt
+                    << "' is not a valid component name in coordinate system '"
+                    << coordSys->GetName() << "'");
+        }
+      }
+      allCoordsFree = fixedCoords.IsEmpty();
+      nFixed = fixedCoords.GetSize();
+    }
+    
+    // Brute force algorithm:
+    // iterate over all master nodes and try to find "nearest"
+    // node in slave list
+    Vector<Double> mLoc, sLoc, diff, tmp;
+    Double minDist, dist, minFixed, fixedDiff;
+    StdVector<UInt> nodes(2);
+    EntityIterator masterIt = masterList.GetIterator();
+    for( masterIt.Begin(); !masterIt.IsEnd(); masterIt++ ) {
+
+      minDist = 1e42;
+      minFixed = minDist;
+
+      // obtain nodal coordinate
+      ptGrid_->GetNodeCoordinate( mLoc, masterIt.GetNode() );
+      if ( !allCoordsFree && coordSysId != "default" ) {
+        // if all coordinates are free, the coordinate system is irrelevant
+        coordSys->Global2LocalCoord(tmp, mLoc);
+        mLoc = tmp;
+      }
+      
+      // initialize node pair
+      nodes.Init();
+      nodes[0] = masterIt.GetNode();
+
+      // iterate over all slave nodes and find the one with minimum
+      // distance
+      EntityIterator slaveIt = slaveList.GetIterator();
+      for( slaveIt.Begin(); !slaveIt.IsEnd(); slaveIt++ ) {
+        ptGrid_->GetNodeCoordinate( sLoc, slaveIt.GetNode() );
+        if ( !allCoordsFree ) {
+          if ( coordSysId != "default" ) {
+            // obtain coordinates in given coordinate system
+            coordSys->Global2LocalCoord(tmp, sLoc);
+            sLoc = tmp;
+          }
+          // first make sure that fixed coordinates match
+          for ( i = 0; i < nFixed; ++i ) {
+            // absolute difference
+            fixedDiff = abs(mLoc[fixedCoords[i]] - sLoc[fixedCoords[i]]);
+            // compute relative difference, if possible (i.e. coordinate != 0)
+            if ( mLoc[fixedCoords[i]] > 1e-14 ) fixedDiff /= mLoc[fixedCoords[i]];
+            // reject node if it exceeds the tolerance
+            if ( fixedDiff > tol )  {
+              if ( fixedDiff < minFixed ) {
+                // store best guess, so we can display a hint for the
+                // tolerance, that would be needed to find a match
+                minFixed = fixedDiff;
+              }
+              break;
+            }
+          }
+          // skip to next slave node, because a fixed coordinate did not match
+          if ( i < nFixed ) continue;
+        }
+
+        // calculate distance between master and slave node
+        diff = mLoc - sLoc;
+        dist = diff.NormL2();
+        if( dist < minDist ) {
+          // store slave node with least distance
+          minDist = dist;
+          nodes[1] = slaveIt.GetNode();
+        }
+      }
+      
+      if ( nodes[1] == 0 ) {
+        EXCEPTION("Could not find a matching slave node for master node "
+                  << nodes[0] << ".\nRelative deviation of nearest miss: "
+                  << minFixed);
+      }
+      else if ( nodes[0] == nodes[1] ) {
+        // Ignore nodes that are contained both in master and slave regions.
+        // That usually happens in rotationally periodic setups with nodes, that
+        // are located on the axis of rotation.
+        continue;
+      }
+      
+      shared_ptr<NodeList> nodePair(new NodeList( ptGrid_ ) );
+      nodePair->SetNodes( nodes );
+
+      // create new constraint condition
+      shared_ptr<Constraint> actBc ( new Constraint );
+      actBc->masterEntities = nodePair;
+      actBc->slaveEntities = nodePair;
+      if( dof.empty() ) {
+        actBc->masterDof = 0;
+      } else {
+        actBc->masterDof = actFeFunction->GetResultInfo()->GetDofIndex( dof );
+      }
+      actBc->slaveDof = actBc->masterDof;
+      actBc->result = actFeFunction->GetResultInfo();
+      actBc->periodic = true;
+
+      // add definition
+      actFeFunction->AddConstraint(actBc);
+    }
+    
+  }
 
 
   void SinglePDE::ReadRhsExcitation( const std::string& elemName, 
@@ -2075,7 +2196,7 @@ namespace CoupledField {
         // --------------
         //  S C A L A R
         // --------------
-        // in the scalar case, the coponent with index 0 is always defined
+        // in the scalar case, the component with index 0 is always defined
         definedDofs.insert(0);
         std::string val = "0.0";
         std::string phase = "0.0";
@@ -2396,6 +2517,42 @@ namespace CoupledField {
     }
   }
 
+  void SinglePDE::ReadNcInterfaces()
+  {
+    PtrParamNode nciListNode = myParam_->Get("ncInterfaceList", ParamNode::PASS);
+    if ( !nciListNode ) return;
+    
+    ParamNodeList nciNodes = nciListNode->GetList("ncInterface");
+    
+    ParamNodeList::iterator nciIt = nciNodes.Begin(),
+                            endIt = nciNodes.End();
+    for ( ; nciIt != endIt; ++nciIt ) {
+      PtrParamNode nciNode = (*nciIt);
+      NcInterfaceInfo newIface;
+      
+      newIface.interfaceId = ptGrid_->GetNcInterfaceId( nciNode->Get("name")
+                                                        ->As<std::string>() );
+      newIface.type = ncCouplingType_.Parse( nciNode->Get("nmgFormulation",
+          ParamNode::INSERT)->As<std::string>() );
+      newIface.lagrangeMultType = lmType_.Parse( nciNode->
+          Get("lagrangeMultType",ParamNode::INSERT)->As<std::string>());
+      if (newIface.lagrangeMultType != LM_STANDARD) {
+        WARN("Dual ansatz functions for Lagrange multiplier are not implemented yet");
+      }
+      nciNode->GetValue( "nitscheFactor", newIface.nitscheFactor,
+                         ParamNode::INSERT );
+      nciNode->GetValue( "crossPointHandling", newIface.crossPointHandling,
+                         ParamNode::INSERT );
+      if (newIface.crossPointHandling) {
+        WARN("Cross-point handling is not implemented yet");
+      }
+      
+      ncInterfaces_.Push_back(newIface);
+    }
+  }
+
+
+
   // ======================================================
   // GET /SET  METHODS
   // ======================================================
@@ -2502,46 +2659,432 @@ namespace CoupledField {
   }
 
   void SinglePDE::DefineFeFunctions(){
-      //This is the default creation of spaces
-      //idee: die PDE gibt zum attribute formulation die passenden space zur��ck
-      //DOGMA: PRO UNBEKANNTE EINE FUNCTION UND EIN SPACE
-      std::string formulation;
-      myParam_->GetValue("feSpaceFormulation",formulation,ParamNode::EX);
-      infoNode_->SetComment("List of defined Spaces");
-      PtrParamNode feSpaceNode = infoNode_->Get("feSpaces");
-      std::map<SolutionType, shared_ptr<FeSpace> > spaces = 
-          CreateFeSpaces(formulation, feSpaceNode);
+    //This is the default creation of spaces
+    //idee: die PDE gibt zum attribute formulation die passenden space zur��ck
+    //DOGMA: PRO UNBEKANNTE EINE FUNCTION UND EIN SPACE
+    std::string formulation;
+    myParam_->GetValue("feSpaceFormulation",formulation,ParamNode::EX);
+    infoNode_->SetComment("List of defined Spaces");
+    PtrParamNode feSpaceNode = infoNode_->Get("feSpaces");
+    std::map<SolutionType, shared_ptr<FeSpace> > spaces = 
+        CreateFeSpaces(formulation, feSpaceNode);
+    CreateNcFeSpaces(spaces, formulation, feSpaceNode);
+    
+    //loop over all spaces and set an FeFunction
+    std::map<SolutionType, shared_ptr<FeSpace> >::iterator spIt = spaces.begin();
+    while(spIt != spaces.end()){
 
-      //loop over all spaces and set an FeFunction
-      std::map<SolutionType, shared_ptr<FeSpace> >::iterator spIt = spaces.begin();
-      while(spIt != spaces.end()){
+      if(feFunctions_.find(spIt->first) != feFunctions_.end()){
+        EXCEPTION("It seems that the PDE has created multiple spaces for one result: " << \
+            spIt->first << " This is not how its ought to be!");
+      }
 
-        if(feFunctions_.find(spIt->first) != feFunctions_.end()){
-          EXCEPTION("It seems that the PDE has created multiple spaces for one result: " << \
-                    spIt->first << " This is not how its ought to be!");
+      if( isComplex_ ) {
+        feFunctions_[spIt->first].reset(new FeFunction<Complex>(domain_->GetMathParser()));
+        rhsFeFunctions_[spIt->first].reset(new FeFunction<Complex>(domain_->GetMathParser()));
+      }else{
+        feFunctions_[spIt->first].reset(new FeFunction<Double>(domain_->GetMathParser()));
+        rhsFeFunctions_[spIt->first].reset(new FeFunction<Double>(domain_->GetMathParser()));
+
+        // Note: in the transient case, we also need fefunctions for the time derivatives
+        // ... todo: add initialization
+      }
+      //let the objects know about each other
+      spIt->second->AddFeFunction(feFunctions_[spIt->first]);
+      feFunctions_[spIt->first]->SetFeSpace(spIt->second);
+      feFunctions_[spIt->first]->SetPDE(this);
+      feFunctions_[spIt->first]->SetGrid(ptGrid_);
+
+      rhsFeFunctions_[spIt->first]->SetFeSpace(spIt->second);
+      rhsFeFunctions_[spIt->first]->SetPDE(this);
+      rhsFeFunctions_[spIt->first]->SetGrid(ptGrid_);
+      spIt++;
+    }
+  }
+  
+  void SinglePDE::CreateNcFeSpaces(
+      std::map<SolutionType, shared_ptr<FeSpace> > &spaces,
+      const std::string &formulation,
+      PtrParamNode infoNode)
+  {
+    // create FeSpaces for Lagrange multipliers of ncInterfaces (if any)
+    StdVector<NcInterfaceInfo>::iterator ncIt = ncInterfaces_.Begin(),
+                                         endIt = ncInterfaces_.End();
+    for ( ; ncIt != endIt; ++ncIt ) {
+      if ( ncIt->type == NC_MORTAR ) {
+        FeSpace::SpaceType type;
+        if ( formulation == "default" ) {
+          type = FeSpace::H1;
+        } else {
+          type = FeSpace::SpaceTypeEnum.Parse(formulation);
+          if ( type != FeSpace::H1 ) {
+            EXCEPTION("Mortar ncInterfaces currently support only H1 elements");
+          }
         }
-
-        if( isComplex_ ) {
-          feFunctions_[spIt->first].reset(new FeFunction<Complex>(domain_->GetMathParser()));
-          rhsFeFunctions_[spIt->first].reset(new FeFunction<Complex>(domain_->GetMathParser()));
-        }else{
-          feFunctions_[spIt->first].reset(new FeFunction<Double>(domain_->GetMathParser()));
-          rhsFeFunctions_[spIt->first].reset(new FeFunction<Double>(domain_->GetMathParser()));
-         
-          // Note: in the transient case, we also need fefunctions for the time derivatives
-          // ... todo: add initialization
-        }
-        //let the objects know about each other
-        spIt->second->AddFeFunction(feFunctions_[spIt->first]);
-        feFunctions_[spIt->first]->SetFeSpace(spIt->second);
-        feFunctions_[spIt->first]->SetPDE(this);
-        feFunctions_[spIt->first]->SetGrid(ptGrid_);
+        spaces[LAGRANGE_MULT] = FeSpace::CreateInstance(myParam_, infoNode,
+                                                        type, ptGrid_);
+        spaces[LAGRANGE_MULT]->SetLagrSurfSpace();
+        spaces[LAGRANGE_MULT]->Init(solStrat_);
         
-        rhsFeFunctions_[spIt->first]->SetFeSpace(spIt->second);
-        rhsFeFunctions_[spIt->first]->SetPDE(this);
-        rhsFeFunctions_[spIt->first]->SetGrid(ptGrid_);
-        spIt++;
+        break; // One FeSpace for the Lagrange multiplier is enough, so exit loop
+        // TODO: This might change, when we allow different FeSpaces for
+        // different regions of the same PDE.
       }
     }
+  }
+
+  void SinglePDE::DefineNcAuxResults() {
+    // create results for Lagrange multipliers of ncInterfaces (if any)
+    StdVector<NcInterfaceInfo>::iterator ncIt = ncInterfaces_.Begin(),
+                                                endIt = ncInterfaces_.End();
+    for ( ; ncIt != endIt; ++ncIt ) {
+      if ( ncIt->type == NC_MORTAR ) {
+        shared_ptr<ResultInfo> lm( new ResultInfo() );
+        lm->resultType = LAGRANGE_MULT;
+        lm->complexFormat = results_[0]->complexFormat;
+        lm->definedOn = results_[0]->definedOn;
+        lm->dofNames = results_[0]->dofNames;
+        lm->entryType = results_[0]->entryType;
+
+        feFunctions_[LAGRANGE_MULT]->SetResultInfo(lm);
+        lm->SetFeFunction(feFunctions_[LAGRANGE_MULT]);
+        results_.Push_back(lm);
+        DefineFieldResult(feFunctions_[LAGRANGE_MULT], lm);
+        
+        break; // one result is enough for all ncInterfaces
+      }
+    }
+  }
+  
+  void SinglePDE::DefineMortarCoupling(SolutionType solType,
+                                       NcInterfaceInfo &iface,
+                                       UInt numDofs)
+  {
+    // Get interface from grid and cast to MortarInterface class
+    shared_ptr<BaseNcInterface> ncIf =
+        ptGrid_->GetNcInterface(iface.interfaceId);
+    MortarInterface *mortarIf = dynamic_cast<MortarInterface*>(&(*ncIf));
+    assert(mortarIf);
+    
+    // create ElemLists for slave surface and intersection
+    shared_ptr<SurfElemList> elMaster(new SurfElemList(ptGrid_)),
+                             elSlave(new SurfElemList(ptGrid_));
+    elMaster->SetRegion(mortarIf->GetMasterSurfRegion());
+    elSlave->SetRegion(mortarIf->GetSlaveSurfRegion());
+    shared_ptr<NcSurfElemList> elMortar = mortarIf->GetElemList();
+    
+    // make sure there are appropriate FeFunctions for both unknowns
+    if ( feFunctions_.find(solType) == feFunctions_.end() ) {
+      EXCEPTION("FeFunction of " << SolutionTypeEnum.ToString(solType)
+                << " not found");
+    }
+    if ( feFunctions_.find(LAGRANGE_MULT) == feFunctions_.end() ) {
+      EXCEPTION("FeFunction of Lagrange multiplier not found");
+    }
+    
+    // For transient case we need to initialize the TimeStepping
+    // of the Lagrange multiplier
+    if ( analysistype_ == TRANSIENT ) {
+      TimeSchemeGLM* tsSol = dynamic_cast<TimeSchemeGLM*>(
+          feFunctions_[solType]->GetTimeScheme().get());
+      assert( tsSol );
+      shared_ptr<TimeSchemeGLM> tsCopy( new TimeSchemeGLM( *tsSol
+          /*tsSol->GetScheme()->GetType(), tsSol->GetSolutionTimeDerivOrder()*/));
+      feFunctions_[LAGRANGE_MULT]->SetTimeScheme( tsCopy );
+    }
+    
+    // Set the same approximation for the Lagrange mutliplier as for the
+    // primary unknown in the slave region
+    shared_ptr<FeSpace> mortarSpace = feFunctions_[LAGRANGE_MULT]->GetFeSpace();
+    std::string slaveVolName = ptGrid_->GetRegion()
+        .ToString(mortarIf->GetSlaveVolRegion());
+    PtrParamNode slaveRegNode = myParam_->Get("regionList", ParamNode::EX)
+        ->GetByVal("region", "name", slaveVolName, ParamNode::EX);
+    std::string polyId = slaveRegNode->Get("polyId")->As<std::string>();
+    std::string integId = slaveRegNode->Get("integId")->As<std::string>();
+    
+    mortarSpace->SetRegionApproximation( mortarIf->GetSlaveSurfRegion(),
+                                         polyId, integId);
+
+    // create a mass integrator on the slave surface (conforming grid)
+    PtrCoefFct unity = CoefFunction::Generate( mp_, Global::REAL, "1" );
+    BiLinearForm *massInt = NULL;
+    if ( dim_ == 2) {
+      switch (numDofs) {
+      case 1:
+        massInt = new BBInt<>( new IdentityOperator<FeH1,2,1>, unity, 1.0, updatedGeo_);
+        break;
+      case 2:
+        massInt = new BBInt<>( new IdentityOperator<FeH1,2,2>, unity, 1.0, updatedGeo_);
+        break;
+      case 3:
+        massInt = new BBInt<>( new IdentityOperator<FeH1,2,3>, unity, 1.0, updatedGeo_);
+        break;
+      default:
+        EXCEPTION("Not implemented");
+        break;
+      }
+    } else {
+      switch (numDofs) {
+      case 1:
+        massInt = new BBInt<>( new IdentityOperator<FeH1,3,1>, unity, 1.0, updatedGeo_);
+        break;
+      case 2:
+        massInt = new BBInt<>( new IdentityOperator<FeH1,3,2>, unity, 1.0, updatedGeo_);
+        break;
+      case 3:
+        massInt = new BBInt<>( new IdentityOperator<FeH1,3,3>, unity, 1.0, updatedGeo_);
+        break;
+      default:
+        EXCEPTION("Not implemented");
+        break;
+      }
+    }
+    massInt->SetName("MortarMassInt");
+
+    // create a context to put the mass integrator into the stiffness matrix
+    BiLinFormContext *massContext = new BiLinFormContext(massInt, STIFFNESS);
+    massContext->SetEntities(elSlave, elSlave);
+    massContext->SetFeFunctions( feFunctions_[solType], feFunctions_[LAGRANGE_MULT] );
+    massContext->SetCounterPart(true);
+    
+    feFunctions_[solType]->AddEntityList(elMaster);
+    feFunctions_[solType]->AddEntityList(elSlave);
+    feFunctions_[LAGRANGE_MULT]->AddEntityList(elSlave);
+    
+    assemble_->AddBiLinearForm(massContext);
+    
+    // create a non-conforming mass integrator
+    BiLinearForm *ncInt = NULL;
+    if ( dim_ == 2 ) {
+      switch (numDofs) {
+      case 1:
+        ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,1>(),
+                                          new IdentityOperator<FeH1,2,1>(),
+                                          unity, -1.0,
+                                          mortarIf->GetMasterVolRegion(),
+                                          mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
+                                          updatedGeo_ );
+        break;
+      case 2:
+        ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,2>(),
+                                          new IdentityOperator<FeH1,2,2>(),
+                                          unity, -1.0,
+                                          mortarIf->GetMasterVolRegion(),
+                                          mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
+                                          updatedGeo_ );
+        break;
+      case 3:
+        ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,3>(),
+                                          new IdentityOperator<FeH1,2,3>(),
+                                          unity, -1.0,
+                                          mortarIf->GetMasterVolRegion(),
+                                          mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
+                                          updatedGeo_ );
+        break;
+      default:
+        EXCEPTION("Not implemented");
+        break;
+      }
+    } else {
+      switch (numDofs) {
+      case 1:
+        ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,1>(),
+                                          new IdentityOperator<FeH1,3,1>(),
+                                          unity, -1.0,
+                                          mortarIf->GetMasterVolRegion(),
+                                          mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
+                                          updatedGeo_ );
+        break;
+      case 2:
+        ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,2>(),
+                                          new IdentityOperator<FeH1,3,2>(),
+                                          unity, -1.0,
+                                          mortarIf->GetMasterVolRegion(),
+                                          mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
+                                          updatedGeo_ );
+        break;
+      case 3:
+        ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,3>(),
+                                          new IdentityOperator<FeH1,3,3>(),
+                                          unity, -1.0,
+                                          mortarIf->GetMasterVolRegion(),
+                                          mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
+                                          updatedGeo_ );
+        break;
+      default:
+        EXCEPTION("Not implemented");
+        break;
+      }
+    }
+    ncInt->SetName("MortarNcInt");
+    
+    NcBiLinFormContext *ncContext = new NcBiLinFormContext(ncInt, STIFFNESS);
+    ncContext->SetEntities(elMortar, elMortar);
+    ncContext->SetFeFunctions( feFunctions_[solType], feFunctions_[LAGRANGE_MULT] );
+    ncContext->SetCounterPart(true);
+    
+    assemble_->AddBiLinearForm(ncContext);
+  }
+  
+  template<UInt DIM>
+  void SinglePDE::DefineNitscheCoupling( SolutionType solType,
+                                         NcInterfaceInfo &iface)
+  {
+    //in case of Nitsche coupling edge/face information is required
+    this->ptGrid_->MapEdges();
+    this->ptGrid_->MapFaces();
+
+    shared_ptr<BaseNcInterface> ncIf =
+        ptGrid_->GetNcInterface(iface.interfaceId);
+    
+    // create new entity list
+    shared_ptr<ElemList> actSDList = ncIf->GetElemList();
+
+    PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+    //notation> assume the test function is called v
+    BiLinearForm *penalty_u1_v1 = NULL;
+    BiLinearForm *penalty_u1_v2 = NULL;
+    BiLinearForm *penalty_u2_v1 = NULL;
+    BiLinearForm *penalty_u2_v2 = NULL;
+    //now bilinear forms related to the normal derivatives
+    //du1 refers to the normal derivative directing from 1 to 2
+    BiLinearForm *flux_du1_v1 = NULL;
+    BiLinearForm *flux_du1_v2 = NULL;
+    BiLinearForm *flux_u1_dv1 = NULL;
+    BiLinearForm *flux_u2_dv1 = NULL;
+    BiLinearForm::CouplingDirection curcpl;
+
+    //we set here the penalty factor
+    Double beta = iface.nitscheFactor;
+
+    if ( analysistype_ == HARMONIC ) {
+            EXCEPTION("HARMONIC CASE NOT IMPLEMENTED FOR ACOUSTIC NMG");
+    }
+
+    curcpl = BiLinearForm::MASTER_MASTER;
+
+    penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,1>(),
+          new SurfaceIdentityOperator<FeH1,DIM,1>(),
+          factor, beta, curcpl, false);
+
+    flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceNormalDerivOperator<FeH1,DIM,1>(),
+          new SurfaceIdentityOperator<FeH1,DIM,1>(),
+          factor, -1.0, curcpl, false);
+
+    flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
+        (  new SurfaceIdentityOperator<FeH1,DIM,1>(),
+           new SurfaceNormalDerivOperator<FeH1,DIM,1>(),
+           factor, -1.0, curcpl, false);
+
+    curcpl = BiLinearForm::SLAVE_SLAVE;
+
+    penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,1>(),
+          new SurfaceIdentityOperator<FeH1,DIM,1>(),
+          factor, beta, curcpl, false);
+
+    curcpl = BiLinearForm::MASTER_SLAVE;
+
+    penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,1>(),
+          new SurfaceIdentityOperator<FeH1,DIM,1>(),
+          factor, beta * -1.0, curcpl, false);
+
+    flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
+        (new SurfaceNormalDerivOperator<FeH1,DIM,1>(),
+         new SurfaceIdentityOperator<FeH1,DIM,1>(),
+         factor, 1.0, curcpl, false);
+
+    curcpl = BiLinearForm::SLAVE_MASTER;
+
+    penalty_u2_v1 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,1>(),
+          new SurfaceIdentityOperator<FeH1,DIM,1>(),
+          factor, beta * -1.0, curcpl, false);
+
+    flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>
+        (  new SurfaceIdentityOperator<FeH1,DIM,1>(),
+           new SurfaceNormalDerivOperator<FeH1,DIM,1>(),
+           factor, 1.0, curcpl, false);
+
+    penalty_u1_v1->SetName("penalty_u1_v1");
+    flux_du1_v1->SetName("flux_du1_v1");
+    flux_u1_dv1->SetName("flux_u1_dv1");
+    penalty_u2_v2->SetName("penalty_u2_v2");
+    penalty_u1_v2->SetName("penalty_u1_v2");
+    flux_du1_v2->SetName("flux_du1_v2");
+    penalty_u2_v1->SetName("penalty_u2_v1");
+    flux_u2_dv1->SetName("flux_u2_dv1");
+
+    curcpl = BiLinearForm::MASTER_MASTER;
+    SurfaceBiLinFormContext *penalty_u1_v1_Context =
+        new SurfaceBiLinFormContext(penalty_u1_v1, STIFFNESS, curcpl);
+    SurfaceBiLinFormContext *flux_du1_v1_Context =
+        new SurfaceBiLinFormContext(flux_du1_v1, STIFFNESS, curcpl);
+    SurfaceBiLinFormContext *flux_u1_dv1_Context =
+        new SurfaceBiLinFormContext(flux_u1_dv1, STIFFNESS, curcpl);
+    curcpl = BiLinearForm::SLAVE_SLAVE;
+    SurfaceBiLinFormContext *penalty_u2_v2_Context =
+        new SurfaceBiLinFormContext(penalty_u2_v2, STIFFNESS, curcpl);
+    curcpl = BiLinearForm::MASTER_SLAVE;
+    SurfaceBiLinFormContext *penalty_u1_v2_Context =
+        new SurfaceBiLinFormContext(penalty_u1_v2, STIFFNESS, curcpl);
+    SurfaceBiLinFormContext *flux_du1_v2_Context =
+        new SurfaceBiLinFormContext(flux_du1_v2, STIFFNESS, curcpl);
+    curcpl = BiLinearForm::SLAVE_MASTER;
+    SurfaceBiLinFormContext *penalty_u2_v1_Context =
+        new SurfaceBiLinFormContext(penalty_u2_v1, STIFFNESS, curcpl);
+    SurfaceBiLinFormContext *flux_u2_dv1_Context =
+        new SurfaceBiLinFormContext(flux_u2_dv1, STIFFNESS, curcpl);
+
+    penalty_u1_v1_Context->SetEntities(actSDList,actSDList);
+    flux_du1_v1_Context->SetEntities(actSDList,actSDList);
+    flux_u1_dv1_Context->SetEntities(actSDList,actSDList);
+    penalty_u2_v2_Context->SetEntities(actSDList,actSDList);
+    penalty_u1_v2_Context->SetEntities(actSDList,actSDList);
+    flux_du1_v2_Context->SetEntities(actSDList,actSDList);
+    penalty_u2_v1_Context->SetEntities(actSDList,actSDList);
+    flux_u2_dv1_Context->SetEntities(actSDList,actSDList);
+
+    penalty_u1_v1_Context->SetFeFunctions( feFunctions_[solType],
+                                           feFunctions_[solType] );
+    flux_du1_v1_Context->SetFeFunctions( feFunctions_[solType],
+                                         feFunctions_[solType] );
+    flux_u1_dv1_Context->SetFeFunctions( feFunctions_[solType],
+                                         feFunctions_[solType] );
+    penalty_u2_v2_Context->SetFeFunctions( feFunctions_[solType],
+                                           feFunctions_[solType] );
+    penalty_u1_v2_Context->SetFeFunctions( feFunctions_[solType],
+                                           feFunctions_[solType] );
+    flux_du1_v2_Context->SetFeFunctions( feFunctions_[solType],
+                                         feFunctions_[solType] );
+    penalty_u2_v1_Context->SetFeFunctions( feFunctions_[solType],
+                                           feFunctions_[solType] );
+    flux_u2_dv1_Context->SetFeFunctions( feFunctions_[solType],
+                                         feFunctions_[solType] );
+
+    assemble_->AddBiLinearForm( penalty_u1_v1_Context );
+    assemble_->AddBiLinearForm( flux_du1_v1_Context );
+    assemble_->AddBiLinearForm( flux_u1_dv1_Context );
+    assemble_->AddBiLinearForm( penalty_u2_v2_Context );
+    assemble_->AddBiLinearForm( penalty_u1_v2_Context );
+    assemble_->AddBiLinearForm( flux_du1_v2_Context );
+    assemble_->AddBiLinearForm( penalty_u2_v1_Context );
+    assemble_->AddBiLinearForm( flux_u2_dv1_Context );
+  }
+  
 } // end of namespace
 
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template void SinglePDE::DefineNitscheCoupling<2>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineNitscheCoupling<3>(SolutionType,NcInterfaceInfo&);
+#endif

@@ -59,17 +59,8 @@
           </xsd:element>
           
           <!-- Non-conforming interfaces of the PDE -->
-          <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
-                  <xsd:complexType>
-                    <xsd:attribute name="name" type="xsd:token" use="required"/>
-                  </xsd:complexType>
-                </xsd:element>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element>
+          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList"
+                       minOccurs="0" maxOccurs="1"/>
           
           <!-- List defining nonlinear types -->
           <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
@@ -135,12 +126,12 @@
                 <xsd:element name="rhsValues"     type="DT_BcInhomVector"/>
                 
                 <!-- Special Boundary Conditions -->
-                <xsd:element name="constraint"     type="DT_MechCS" />
+                <xsd:element name="constraint"    type="DT_MechCS" />
                 
-            <!--<xsd:element name="spring"         type="DT_MechSpring"    />
-                <xsd:element name="preStress"      type="DT_MechPreStress"/>
-                <xsd:element name="testStrain"     type="DT_MechTestStrain"/>
-                <xsd:element name="periodic"       type="DT_MechPeriodic"   />-->
+            <!--<xsd:element name="spring"        type="DT_MechSpring"    />
+                <xsd:element name="preStress"     type="DT_MechPreStress" />
+                <xsd:element name="testStrain"    type="DT_MechTestStrain"/>-->
+                <xsd:element name="periodic"      type="DT_BcPeriodic"    />
               </xsd:choice>
 
             </xsd:complexType>
@@ -411,19 +402,6 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-  <!-- Element type for periodic boundary condition -->
-  <xsd:complexType name="DT_MechPeriodic">
-    <xsd:complexContent>
-      <xsd:extension base="DT_BCBasic">
-        <xsd:attribute name="master" type="xsd:token" use="required"/>
-        <xsd:attribute name="slave"  type="xsd:token" use="required"/>
-        <xsd:attribute name="quantity" default="mechDisplacement"
-          type="DT_MechUnknownType"/>
-        <xsd:attribute name="dof" type="DT_MechDOF" use="required"/>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-   
   <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->
   <!-- ******************************************************************* -->
@@ -443,12 +421,22 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="mechStrain"/>
       <xsd:enumeration value="mechStress"/>
+      
       <xsd:enumeration value="mechStructIntensity"/>
       <xsd:enumeration value="vonMisesStress"/>
       <xsd:enumeration value="vonMisesStrain"/>
       <xsd:enumeration value="mechKinEnergyDensity"/>
       <xsd:enumeration value="mechDeformEnergyDensity"/>
       <xsd:enumeration value="mechTotalEnergyDensity"/>
+      <xsd:enumeration value="mechNormalStructIntensity"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- Definition of surface element result types of mechanic PDE -->
+  <xsd:simpleType name="DT_MechSurfElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="mechNormalStructIntensity"/>
+      <xsd:enumeration value="mechNormalStress"/>
     </xsd:restriction>
   </xsd:simpleType>
    
@@ -502,6 +490,19 @@
                 <xsd:attribute name="type" type="DT_MechElemResult" use="required"/>
                 <!-- Only for (von Mises) stress and strain. Divides value by element volume. -->
                 <xsd:attribute name="stress_strain_density" type="xsd:boolean" use="optional" default="false"/>                
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        
+        <!-- Surface Element result definition -->
+        <xsd:element name="surfElemResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfElemResult">
+                <xsd:attribute name="type" type="DT_MechSurfElemResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

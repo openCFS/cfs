@@ -79,6 +79,8 @@ namespace CoupledField {
   */
   void sortArray(Integer ndim, Integer l_sort, Vector<Double> & d);
 
+  /* Commented out due to refactoring.
+   * Can be removed, if implementation in Vector class works.
   //! NC_SIMON: Normalizes a vector using the L2-norm
   Double Normalize(Vector<Double>& vec);
 
@@ -100,6 +102,7 @@ namespace CoupledField {
                             const Vector<Double>& p3,
                             const Vector<Double>& p,
                             Vector<Double>& b);
+*/
 
 } // end of namespace CoupledField
 

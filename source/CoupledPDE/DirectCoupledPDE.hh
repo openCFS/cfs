@@ -88,6 +88,10 @@ namespace CoupledField {
     //! define the SolutionStep-Driver
     virtual void DefineSolveStep();
 
+    //! Reads ncInterfaces defined in the XML file
+    virtual void ReadNcInterfaces()
+    { EXCEPTION("Not implemented"); };
+
     //! References to SinglePDEs
     StdVector<SinglePDE*> singlePDEs_;
 
@@ -104,7 +108,7 @@ namespace CoupledField {
 
   //! \class DirectCoupledPDE
   //! 
-  //! \purpose This class is implementes the concept of directly coupling two
+  //! \purpose This class is implements the concept of directly coupling two
   //! or more SinglePDE's together by the use of BasePairCoupling 
   //! objects. It has the same interface as a StdPDE, so the solveStep-classes
   //! can work transparently with it.

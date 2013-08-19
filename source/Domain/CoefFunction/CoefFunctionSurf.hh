@@ -6,6 +6,9 @@
 
 namespace CoupledField {
 
+// forward class declaration
+struct ResultInfo;
+
 //! Evaluates a coefficient function on a surface 
 
 //! This class represents coefficient functions, which are defined just on a
@@ -18,7 +21,12 @@ class CoefFunctionSurf : public CoefFunction {
 public:
 
   //! Constructor
-  CoefFunctionSurf( bool mapNormal );
+  
+  //! Constructor for the class
+  //! \param mapNormal If true, only the normal component w.r.t. to the
+  //!                  surface element is taken into account.
+  //! \param surfInfo Result info object for surface result
+  CoefFunctionSurf( bool mapNormal, shared_ptr<ResultInfo> surfInfo =  shared_ptr<ResultInfo>());
 
   //! Destructor
   virtual ~CoefFunctionSurf();
@@ -62,6 +70,23 @@ public:
   //! \copydoc CoefFunction::ToString
   std::string ToString() const;
 
+  // ===========================
+  //  NORMAL MAPPING OPERATIONS
+  // ===========================
+  //@{ \name Functions for normal mapping
+  
+  //! Mapping operation for vectors
+  template<typename TYPE>
+  static void MapVecNormal( TYPE& ret, const Vector<TYPE>& vec, 
+                            const Vector<Double>& normal );
+  
+  //! Mapping operation for tensors in Voigt notation
+  template<typename TYPE>
+  static void MapTensorNormal( Vector<TYPE>& ret, const Vector<TYPE>& tensor,
+                               const Vector<Double>& normal );
+  
+  //@}
+  
 private:
 
   //! Map with CoefFunctions for each region
@@ -72,9 +97,6 @@ private:
 
   //! Flag, if normal mapping should be performed
   bool mapNormal_;
-
-  //! Uniform vector size
-  UInt vecSize_;
 };
 
 

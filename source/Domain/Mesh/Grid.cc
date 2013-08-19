@@ -119,12 +119,14 @@ namespace CoupledField
       regionData[id].type_idx = surfRegionIds_.GetSize();
       surfRegionIds_.Push_back(id);
       surfElems_.Push_back(dummy_elems);
+      numSurfElemNodes_.Push_back(0);
     }
     else
     {
       regionData[id].type_idx = volRegionIds_.GetSize();
       volRegionIds_.Push_back(id);
       volElems_.Push_back(dummy_elems);
+      numVolElemNodes_.Push_back(0);
     }
 
     return id;
@@ -203,6 +205,7 @@ namespace CoupledField
                                      StdVector< LocPoint >& localCoords,
                                      StdVector< const Elem* > & elems,
                                      const std::set<RegionIdType>& srcRegions,
+                                     Double globalTol, Double localTol,
                                      bool printWarnings) {
 
     // 1) first, determine element candidates for each point, determined by
@@ -214,10 +217,10 @@ namespace CoupledField
      matches[i].globCoord = globCoords[i];
     }
     
-    MapPointsToBoundingBoxes( matches, srcRegions );
+    MapPointsToBoundingBoxes( matches, srcRegions, globalTol );
     
     // 2) Afterwards loop over all candidates 
-    MapGlobPointsToLoc( matches, elems, localCoords, printWarnings );
+    MapGlobPointsToLoc( matches, elems, localCoords, localTol, printWarnings );
   }
   
   const Elem* Grid::GetElemAtNode( UInt nodeNum,
@@ -383,52 +386,69 @@ namespace CoupledField
   }
   
   
-   void Grid::Dump()
-   {
-     StdVector<Elem*>   elems;
+  void Grid::Dump()
+  {
+    StdVector<Elem*>   elems;
 
-     std::cout << "Grid: elements=" << GetNumElems() << " nodes=" << GetNumNodes() << std::endl;
+    std::cout << "Grid: elements=" << GetNumElems() << " nodes=" << GetNumNodes() << std::endl;
 
-     for(UInt i = 0; i < regionData.GetSize(); i++)
-     {
-       GetElems(elems, i);
+    for(UInt i = 0; i < regionData.GetSize(); i++)
+    {
+      GetElems(elems, i);
 
-       std::cout << "region: " << regionData[i].name << " id=" << i << " elements=" << elems.GetSize() <<  std::endl;
-     }
-   }
+      std::cout << "region: " << regionData[i].name << " id=" << i << " elements=" << elems.GetSize() <<  std::endl;
+    }
+  }
 
-   void Grid::InitNcInterfacesFromXML() {
-     // if no param object is present, just leave
-     if (!param_) return;
+  // =========================================================================
+  // NONCONFORMING INTERFACES SECTION
+  // =========================================================================
 
-     // check if there is a ncInterfaceList, if not just leave
-     PtrParamNode nciListNode = param_->Get("domain")
-              ->Get("ncInterfaceList", ParamNode::PASS);
-     if (!nciListNode) return;
+  void Grid::InitNcInterfacesFromXML() {
+    // if no param object is present, just leave
+    if (!param_) return;
 
-     ParamNodeList nciList = nciListNode->GetList("ncInterface");
-     UInt numNCIs = nciList.GetSize();
-     ncInterfaces_.Reserve(numNCIs);
+    // check if there is a ncInterfaceList, if not just leave
+    PtrParamNode nciListNode = param_->Get("domain")
+                  ->Get("ncInterfaceList", ParamNode::PASS);
+    if (!nciListNode) return;
 
-     for ( UInt i=0; i<numNCIs; ++i ) {
-       ncInterfaces_.Push_back( shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
-     }
-   }
+    ParamNodeList nciList = nciListNode->GetList("ncInterface");
+    UInt numNCIs = nciList.GetSize();
+    ncInterfaces_.Reserve(numNCIs);
 
-   shared_ptr<BaseNcInterface> Grid::GetNcInterface(NcInterfaceId ncId) const {
-     if ( ncId < ncInterfaces_.GetSize() ) {
-       return ncInterfaces_[ncId];
-     } else {
-       EXCEPTION("NcInterface width ID " << ncId << " is unknown.");
-     }
-   }
+    for ( UInt i=0; i<numNCIs; ++i ) {
+      AddNcInterface(shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
+    }
+  }
 
-   Grid::NcInterfaceId Grid::AddNcInterface(shared_ptr<BaseNcInterface> ncIf) {
-     ncInterfaces_.Push_back(ncIf);
-     return ncInterfaces_.GetSize()-1;
-   }
+  shared_ptr<BaseNcInterface> Grid::GetNcInterface(NcInterfaceId ncId) const {
+    if ( ncId < ncInterfaces_.GetSize() ) {
+      return ncInterfaces_[ncId];
+    } else {
+      EXCEPTION("NcInterface with ID " << ncId << " is unknown.");
+    }
+  }
 
-  bool Grid::IsSurfacePlanar(const StdVector<SurfElem*>& ifaceElems)
+  Grid::NcInterfaceId Grid::GetNcInterfaceId(const std::string &name) const {
+    std::map< std::string, NcInterfaceId >::const_iterator ncId
+        =nciNameMap_.find(name);
+    if ( ncId != nciNameMap_.end() ) {
+      return ncId->second;
+    } else {
+      EXCEPTION("NcInterface with name '" << name << " is unknown.");
+    }
+  }
+
+  Grid::NcInterfaceId Grid::AddNcInterface(shared_ptr<BaseNcInterface> ncIf) {
+    ncInterfaces_.Push_back(ncIf);
+    if ( ncIf->GetName().length() > 0 ) {
+      nciNameMap_[ncIf->GetName()] = ncInterfaces_.GetSize()-1;
+    }
+    return ncInterfaces_.GetSize()-1;
+  }
+
+  bool Grid::IsSurfacePlanar(const StdVector<SurfElem*>& ifaceElems) const
   {
     std::set<Integer> ifaceNodes;
     std::set<Integer>::iterator it,end;
@@ -466,7 +486,7 @@ namespace CoupledField
         GetNodeCoordinate(pv2, (*it));
         v1 = pv2 - pv1;
         // Normalize v1.
-        norm1 = Normalize(v1);
+        norm1 = v1.Normalize();
         if(norm1 < eps)
           norm1 = 0.0;
       }
@@ -478,7 +498,7 @@ namespace CoupledField
         v2 = pv3 - pv1;
 
         // Normalize v2.
-        norm2 = Normalize(v2);
+        norm2 = v2.Normalize();
         if(norm2 < eps)
           norm2 = 0.0;
 
@@ -512,7 +532,7 @@ namespace CoupledField
         case 3:
           if(normal.NormL2() == 0)
           {
-            CrossProd(v1, v2, normal);
+            v1.CrossProduct(v2, normal);
 
             // We may not use a zero-normal vector to perform our
             // test for coplanarity.
@@ -523,10 +543,10 @@ namespace CoupledField
               normal[2] = 0.0;
               continue;
             }
-            Normalize(normal);
+            normal.Normalize();
             continue;
           }
-          CrossProd(v1, v2, n);
+          v1.CrossProduct(v2, n);
 
           // If the norm of n is smaller than eps we have multiplied
           // linearly dependant vectors -> a point in the plane
@@ -536,7 +556,7 @@ namespace CoupledField
             continue;
           }
 
-          Normalize(n);
+          n.Normalize();
 
           n.Inner(normal, innerProd);
 
@@ -754,6 +774,7 @@ namespace CoupledField
   void Grid::MapGlobPointsToLoc( const StdVector<PointElemMatch>& matches,
                                  StdVector<const Elem*>& elems,
                                  StdVector<LocPoint>& lps,
+                                 Double tol,
                                  bool printWarnings) {
     
     
@@ -769,8 +790,8 @@ namespace CoupledField
       std::set<const Elem*>::const_iterator it;
       Vector<Double> locCoord;
       const std::set<const Elem*> & mElems = matches[iM].matches;
-      StdVector<const Elem*> candidateElem;
-      StdVector<LocPoint>  candidateLp;
+      StdVector<const Elem*> candidateElem, vagueCandElem;
+      StdVector<LocPoint>  candidateLp, vagueCandLp;
 
       
       // loop over elements
@@ -779,16 +800,24 @@ namespace CoupledField
         // check, if global point can be mapped to the element
         shared_ptr<ElemShapeMap> esm = GetElemShapeMap(*it);
         esm->Global2Local(locCoord, matches[iM].globCoord );
-        if( esm->CoordIsInsideElem(locCoord, 1e-2) ) {
+        if( esm->CoordIsInsideElem(locCoord, 0.0) ) {
           candidateElem.Push_back( *it );
-          candidateLp.Push_back(locCoord );
+          candidateLp.Push_back( locCoord );
+        } else if ( esm->CoordIsInsideElem(locCoord, tol) ) {
+          vagueCandElem.Push_back( *it );
+          vagueCandLp.Push_back( locCoord );
         }
       }
 
       // Check, how many elements have been found
-      if( candidateElem.GetSize() == 0) {
-        if(printWarnings)
-          WARN( "No element found for location " <<  matches[iM].globCoord.ToString() );
+      if ( candidateElem.GetSize() == 0 ) {
+        if ( vagueCandElem.GetSize() > 0 ) {
+          elems[iM] = vagueCandElem[0];
+          lps[iM] = vagueCandLp[0];
+        } else if (printWarnings) {
+          WARN( "No element found for location "
+                << matches[iM].globCoord.ToString() );
+        }
       } else {
         elems[iM] = candidateElem[0];
         lps[iM] = candidateLp[0];
@@ -838,13 +867,16 @@ namespace CoupledField
   
   
 
-  HandleBox Grid::CreateBoxFromCoord(const Vector<double> coords, UInt* id) {
+  HandleBox Grid::CreateBoxFromCoord( const Vector<double> coords, UInt* id,
+                                      Double tol )
+  {
     if(coords.GetSize()==2){
-      return HandleBox(BBox3D(coords[0], coords[1], 0.0,
-                              coords[0], coords[1], 0.0), id);
+      return HandleBox(BBox3D(coords[0]-tol/2.0, coords[1]-tol/2.0, 0.0,
+                              coords[0]+tol/2.0, coords[1]+tol/2.0, 0.0), id);
     }else{
-      return HandleBox(BBox3D(coords[0], coords[1], coords[2],
-                              coords[0], coords[1], coords[2]), id);
+      return HandleBox(BBox3D(coords[0]-tol/2.0, coords[1]-tol/2.0,
+                              coords[2]-tol/2.0, coords[0]+tol/2.0,
+                              coords[1]+tol/2.0, coords[2]+tol/2.0), id);
     }
   }
 
@@ -896,7 +928,8 @@ namespace CoupledField
   }
   
   void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                       const std::set<RegionIdType> srcRegions) {
+                                       const std::set<RegionIdType> srcRegions,
+                                       Double tol ) {
 
     // If we haven't initialized the grid bounding boxes yet, do so now!
     if(elemBoxes_.empty())
@@ -920,12 +953,13 @@ namespace CoupledField
     UInt numPoints = matches.GetSize();
     std::vector<HandleBox> pointBoxes (numPoints);
     
-    // create also temporagy index array (will be automatically deleted)
+    // create also temporary index array (will be automatically deleted)
     boost::scoped_array<UInt> nodeIndices(new UInt[numPoints]);
     
     for( UInt i = 0; i < numPoints; ++i ) {
       nodeIndices[i] = i;
-      pointBoxes[i] = CreateBoxFromCoord( matches[i].globCoord, &nodeIndices[i] );
+      pointBoxes[i] = CreateBoxFromCoord( matches[i].globCoord,
+                                          &nodeIndices[i], tol );
     }
 
     // run the intersection algorithm and store results in a vector
@@ -1460,12 +1494,11 @@ namespace CoupledField {
   }
 
   void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                       const std::set<RegionIdType> srcRegions ) {
+                                       const std::set<RegionIdType> srcRegions,
+                                       Double tol ) {
 
     std::vector< Elem* > elems;
     std::vector< Vector<Double>* > points;
-    
-    Double globToler = 1e-3;
     
     StdVector<Elem*> volElems;
     GetVolElems(volElems, ALL_REGIONS);
@@ -1480,12 +1513,12 @@ namespace CoupledField {
       points.push_back(point);
     } // loop over points
     
-    ElemBoxGenerator ebg(this, globToler, GetDim());
+    ElemBoxGenerator ebg(this, tol, GetDim());
     PointBoxGenerator pbg(GetDim());
 
     // For 2D:
     //  auto adjList = fbi::SetA<Elem*, 0, 1>::SetB<Vector<Double>*, 0, 1>::intersect(
-    //    elems, ElemBoxGenerator(this, globToler, GetDim()), points, PointBoxGenerator(GetDim()));
+    //    elems, ElemBoxGenerator(this, tol, GetDim()), points, PointBoxGenerator(GetDim()));
     
     fbi::SetA<Elem*, 0, 1, 2>::ResultType adjList;
     adjList = fbi::SetA<Elem*, 0, 1, 2>::SetB<Vector<Double>*, 0, 1, 2>::intersect(
@@ -1524,10 +1557,9 @@ namespace CoupledField {
   // This is a very basic implementation for axis-parallel box intersection. It is just used
   // as internal replacement in case we want to use valgrind and can not use CGAL.
   void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                       const std::set<RegionIdType> srcRegions ) {
+                                       const std::set<RegionIdType> srcRegions,
+                                       Double tol ) {
 
-    Double globToler = 1e-3;
-    
     // obtain all volume elements from grid
     StdVector<Elem*> elems;
     GetVolElems(elems, ALL_REGIONS);
@@ -1579,13 +1611,13 @@ namespace CoupledField {
         shared_ptr<ElemShapeMap> esm = this->GetElemShapeMap(elems[i]);
         Vector<Double> dia;
         esm->CalcDiameter(dia);
-        bbox[0] -= globToler*dia[0];
-        bbox[3] += globToler*dia[0];
-        bbox[1] -= globToler*dia[1];
-        bbox[4] += globToler*dia[1];
+        bbox[0] -= tol*dia[0];
+        bbox[3] += tol*dia[0];
+        bbox[1] -= tol*dia[1];
+        bbox[4] += tol*dia[1];
         if( p.GetSize() == 3 ) {
-          bbox[2] -= globToler*dia[2];
-          bbox[5] += globToler*dia[2];
+          bbox[2] -= tol*dia[2];
+          bbox[5] += tol*dia[2];
         }
         elemBoxes_[i] = bbox;
       }
