@@ -27,6 +27,7 @@ IF(EXISTS "${CFS_BINARY}" AND
     "${CTEST_BINARY_DIRECTORY}/testsuite"
     "${CTEST_BINARY_DIRECTORY}/source"
     "${CTEST_BINARY_DIRECTORY}/CMakeFiles"
+    "${CTEST_BINARY_DIRECTORY}/Testing"
   )
 
   message("  Packing binaries...")

@@ -107,7 +107,8 @@ ENDIF()
 #-------------------------------------------------------------------------------
 # Check if we are using the GNU C++ compiler
 #-------------------------------------------------------------------------------
-IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
+IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
+   CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
 
   # MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
 

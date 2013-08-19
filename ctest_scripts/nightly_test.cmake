@@ -20,7 +20,7 @@ CMAKE_POLICY(SET CMP0007 NEW)
 
 # Get base path of current script in order to include additional macros.
 GET_FILENAME_COMPONENT(CTEST_SCRIPTS_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-INCLUDE("${CTEST_SCRIPTS_DIR}/test_macros.cmake")
+INCLUDE("${CTEST_SCRIPTS_DIR}/shared/test_macros.cmake")
 
 # Set global variables, e.g. path to ctest exe, site base dir, host name etc.
 SET_GLOBAL_VARS()

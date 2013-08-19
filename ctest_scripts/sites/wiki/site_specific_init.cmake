@@ -91,6 +91,9 @@ SET(UPDATE_SCRIPTS
   ctest_update_trunk_wien.cmake
   ctest_update_trunk_testsuite_wien.cmake
   ctest_update_cfsdeps_trunk_wien.cmake
+
+  # Checkout or update modelling manual working copy
+  ctest_update_modelling_manual.cmake
 )
 
 FOREACH(SCRIPT IN ITEMS ${UPDATE_SCRIPTS})

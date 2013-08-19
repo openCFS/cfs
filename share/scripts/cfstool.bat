@@ -108,7 +108,7 @@ if %ERRORLEVEL% NEQ 0 (
     if %ERRORLEVEL% NEQ 0 (
         set WORKDIR=%TMPDIR%
         cd /d "%WORKDIR%"
-        if %ERRORLEVEL NEQ 0 (
+        if %ERRORLEVEL% NEQ 0 (
             echo Can not chdir back to "%WORKDIR%"
             echo and could not change to temp directory!
             set EXITCODE=1
@@ -122,24 +122,31 @@ set PATH=%PATH:"=%
 
 rem Run executable with arguments
 %CFSTOOL_EXE% %*
+if %ERRORLEVEL% NEQ 0 (
+  rem Since CMake EXECUTE_PROCESS does not respect the /B(atch) flag to exit
+  rem in some versions of Windows CMD.exe we explicitly print an EXITCODE
+  rem text to stderr here.
+  echo EXITCODE=1 1>&2
+  set EXITCODE=1
+) else (
+  set EXITCODE=0
+)
 
 :end
 
 rem Properly exit from script.
-if %EXITCODE% NEQ 0 (
-   if defined WINDOWS_PLATFORM (
-       if "_%WINDOWS_PLATFORM%_" == "_WIN9X_" (
-           endlocal
-           exit 1
-       )
-       if "_%WINDOWS_PLATFORM%_" == "_WINNT_" (
-           endlocal
-           color 00
-       )
-       endlocal
-       exit /B %EXITCODE%
-   ) else (
-       endlocal
-       exit 1
-   )
+if defined WINDOWS_PLATFORM (
+    if "_%WINDOWS_PLATFORM%_" == "_WIN9X_" (
+        endlocal
+        exit 1
+    )
+    if "_%WINDOWS_PLATFORM%_" == "_WINNT_" (
+        endlocal
+        color 00
+    )
+    endlocal
+    exit /B %EXITCODE%
+) else (
+    endlocal
+    exit 1
 )

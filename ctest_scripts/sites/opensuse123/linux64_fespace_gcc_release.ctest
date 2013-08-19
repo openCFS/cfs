@@ -32,7 +32,7 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_FESPACE_NIGHTLY")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_FESPACE_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_BUILD_NIGHTLY")
 
 #-----------------------------------------------------------------------------
@@ -138,7 +138,7 @@ SET(CTEST_INITIAL_CACHE
    USE_SUPERLU:BOOL=ON
    USE_PARDISO:BOOL=ON
    CFS_PARDISO:STRING=MKL
-   MKL_ROOT_DIR:PATH=/opt/pckg/intel/parallel_studio_xe_2011_sp1_update1/mkl
+   MKL_ROOT_DIR:PATH=/opt/pckg/intel/composer_xe_2013.5.192/mkl
    BUILDNAME:STRING=${BUILDNAME}")
 
 SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")

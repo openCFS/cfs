@@ -159,6 +159,48 @@ ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 #ctest_read_custom_files("${CTEST_BINARY_DIRECTORY}")
 message("  Build")
 ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+
+# Copy some extra .dlls from MinGW runtime
+SET(CFS_BIN_DIR "${CTEST_BINARY_DIRECTORY}/bin/MINGW_I386")
+SET(DLLS
+  libgcc_s_sjlj-1.dll
+  libstdc++-6.dll
+  libgfortran-3.dll
+  libgomp-1.dll
+  pthreadGC2.dll
+  pthreadGCE2.dll
+)
+
+FOREACH(DLL IN ITEMS ${DLLS})
+  EXECUTE_PROCESS(
+    COMMAND ${CMAKE_COMMAND} -E copy "c:/mingw64/bin/${DLL}" "${CFS_BIN_DIR}"
+    RESULT_VARIABLE RETVAL
+  )
+ENDFOREACH()
+
+# Copy some extra .dlls from Intel runtime
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy "Y:/mkl_win/composer_xe_2013/redist/ia32/compiler/libiomp5md.dll" "${CFS_BIN_DIR}"
+  RESULT_VARIABLE RETVAL
+)
+
+# Copy some extra .dlls from Intel MKL
+SET(DLLS
+  mkl_intel_thread.dll
+  mkl_core.dll
+  mkl_p4.dll
+  mkl_p4m3.dll
+  mkl_p4m.dll
+  mkl_p4p.dll
+)
+
+FOREACH(DLL IN ITEMS ${DLLS})
+  EXECUTE_PROCESS(
+    COMMAND ${CMAKE_COMMAND} -E copy "Y:/mkl_win/composer_xe_2013/redist/ia32/mkl/${DLL}" "${CFS_BIN_DIR}"
+    RESULT_VARIABLE RETVAL
+  )
+ENDFOREACH()
+
 message("  Test")
 ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 message("  Submit")

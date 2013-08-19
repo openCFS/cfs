@@ -54,7 +54,7 @@ SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
 # to specifiy the compilers and that all messages should be output in English
 # language, so that CTest may properly parse them.
 #-----------------------------------------------------------------------------
-SET(INTEL_COMPILER_PATH "/opt/intel/composer_xe_2013.3.163")
+SET(INTEL_COMPILER_PATH "/opt/pckg/intel/composer_xe_2013.5.192")
 
 SET(INTEL_COMPVARS_SH "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.sh")
 SET(INTEL_COMPVARS_CMAKE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
@@ -105,9 +105,6 @@ SET(ENV{LC_MESSAGES} "en_US.UTF-8")
 SET(ENV{LC_ALL} "en_US.UTF-8")
 SET(ENV{LANG} "en_US.UTF-8")
 SET(ENV{LANGUAGE} "en_US.UTF-8")
-
-SET(ENV{OMP_NUM_THREADS} 2)
-SET(ENV{MKL_NUM_THREADS} $ENV{OMP_NUM_THREADS})
 
 SET(IDCOMP_TEMPL "${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
 SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
@@ -187,7 +184,7 @@ SET(CTEST_INITIAL_CACHE
    USE_PARDISO:BOOL=ON
    CFS_PARDISO:STRING=MKL
    MKL_ROOT_DIR:PATH=${INTEL_COMPILER_PATH}/mkl
-   USE_OPENMP:BOOL=OFF
+   USE_OPENMP:BOOL=ON
    BUILDNAME:STRING=${BUILDNAME}")
 
 # Generate Unix Makefiles
@@ -243,6 +240,9 @@ EXECUTE_PROCESS(
   WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}"
   RESULT_VARIABLE RETVAL
 )
+
+SET(ENV{OMP_NUM_THREADS} 2)
+SET(ENV{MKL_NUM_THREADS} $ENV{OMP_NUM_THREADS})
 
 message("  Test")
 ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)

@@ -159,11 +159,6 @@ ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 #ctest_read_custom_files("${CTEST_BINARY_DIRECTORY}")
 message("  Build")
 ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-message("  Test")
-ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-message("  Submit")
-ctest_submit(RETURN_VALUE res)
-message("  All done")
 
 # Copy some extra .dlls from MinGW runtime
 SET(CFS_BIN_DIR "${CTEST_BINARY_DIRECTORY}/bin/MINGW_I386")
@@ -185,7 +180,7 @@ ENDFOREACH()
 
 # Copy some extra .dlls from Intel runtime
 EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy "Y:/mkl_win/composer_xe_2013/redist/ia32/compiler/libomp5md.dll" "${CFS_BIN_DIR}"
+  COMMAND ${CMAKE_COMMAND} -E copy "Y:/mkl_win/composer_xe_2013/redist/ia32/compiler/libiomp5md.dll" "${CFS_BIN_DIR}"
   RESULT_VARIABLE RETVAL
 )
 
@@ -193,6 +188,10 @@ EXECUTE_PROCESS(
 SET(DLLS
   mkl_intel_thread.dll
   mkl_core.dll
+  mkl_p4.dll
+  mkl_p4m3.dll
+  mkl_p4m.dll
+  mkl_p4p.dll
 )
 
 FOREACH(DLL IN ITEMS ${DLLS})
@@ -201,3 +200,10 @@ FOREACH(DLL IN ITEMS ${DLLS})
     RESULT_VARIABLE RETVAL
   )
 ENDFOREACH()
+
+message("  Test")
+ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+message("  Submit")
+ctest_submit(RETURN_VALUE res)
+message("  All done")
+

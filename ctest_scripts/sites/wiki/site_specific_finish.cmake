@@ -33,15 +33,6 @@ EXECUTE_PROCESS(
 
 
 # ===========================================================================
-#  Make nightly binaries available via Apache server.
-# ===========================================================================
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory archives ${APACHE_NIGHTLY_DIR}
-  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
-  RESULT_VARIABLE RETVAL)
-
-
-# ===========================================================================
 #  Unpack nightly binaries to /opt/pckg/cfs_nightly.
 # ===========================================================================
 
@@ -61,6 +52,68 @@ EXECUTE_PROCESS(
 
 EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY fespace_gcc
+  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+  RESULT_VARIABLE RETVAL)
+
+# Move documentation into place
+SET(DOXY_DIR "${CFS_DOCU_DIR}/doxygen")
+SET(XSD_SIM_DIR "${CFS_DOCU_DIR}/schema_sim")
+SET(XSD_MAT_DIR "${CFS_DOCU_DIR}/schema_mat")
+
+SET(DOCU_DIRS "${DOXY_DIR};${XSD_SIM_DIR};${XSD_MAT_DIR}")
+
+FOREACH(DIR IN ITEMS ${DOCU_DIRS})
+  IF(EXISTS "${DIR}")
+    FILE(REMOVE_RECURSE "${DIR}")
+  ENDIF()
+  FILE(MAKE_DIRECTORY "${DIR}")
+ENDFOREACH()
+
+# Copy Doxygen documentation
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/share/doc/developer/html"
+    "${DOXY_DIR}"
+)
+
+# Copy simulation schema documentation
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/share/xml/CFS-Simulation"
+    "${XSD_SIM_DIR}"
+)
+
+# Copy material schema documentation
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/share/xml/CFS-Material"
+    "${XSD_MAT_DIR}"
+)
+
+# Copy other manuals
+SET(MANUALS
+  share/doc/user/advPrePostManual/advPrePostManual.pdf
+  share/doc/user/xmlFile/xmlReference.pdf
+  share/doc/user/matFile/matRef.pdf
+  share/doc/developer/develManual/develManual.pdf
+  MODELLING_MANUAL_NIGHTLY/cfsManual.pdf
+)
+
+FOREACH(MAN IN ITEMS ${MANUALS})
+  EXECUTE_PROCESS(
+    COMMAND ${CMAKE_COMMAND} -E copy
+      "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/${MAN}"
+      "${CFS_DOCU_DIR}"
+  )
+ENDFOREACH()
+
+# Remove documentation and repack archive
+FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/share/doc")
+FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/MODELLING_MANUAL_NIGHTLY")
+FILE(REMOVE archives/oracle6_linux64_fespace_gcc_release.zip)
+
+EXECUTE_PROCESS(
+  COMMAND zip -yr archives/oracle6_linux64_fespace_gcc_release.zip CFS_BUILD_NIGHTLY
   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
   RESULT_VARIABLE RETVAL)
 
@@ -137,6 +190,11 @@ EXECUTE_PROCESS(
 FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
 
 # ===========================================================================
+#  Make nightly binaries available via Apache server.
+# ===========================================================================
+COPY_ZIPS_TO_APACHE()
+
+# ===========================================================================
 #  Copy over CFSDEPS and CFSDEPSCACHE to /opt/pckg.
 # ===========================================================================
 
@@ -160,15 +218,6 @@ EXECUTE_PROCESS(
   WORKING_DIRECTORY "${HOME}/Documents/dev/NIGHTLY"
   RESULT_VARIABLE RETVAL)
 
-# ===========================================================================
-#  Kill still running VMs...
-# ===========================================================================
-POWER_OFF_RUNNING_VBOXES()
-
-# ===========================================================================
-#  Clean up Virtual Box directories
-# ===========================================================================
-CLEANUP_VBOX_DIRS()
 
 # ===========================================================================
 #  Clean up local nightly build directory
@@ -185,102 +234,43 @@ SET(VBOXES "winxp32")
 
 MATH(EXPR DAY "${DAYOFWEEK} % 3")
 
-START_VBOXES(${VBOXES})
-
-# ===========================================================================
-#  Wait for 4h
-# ===========================================================================
-CTEST_SLEEP(14400)
-
-# ===========================================================================
-#  Make nightly binaries available via Apache server (again).
-# ===========================================================================
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory archives ${APACHE_NIGHTLY_DIR}
-  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
-  RESULT_VARIABLE RETVAL)
-
-
-
-# ===========================================================================
-#  At the moment we do not go on with the other VBoxes and just stop here.
-# ===========================================================================
-MESSAGE(FATAL_ERROR "We just stop here. Nothing wrong. Don't worry!")
-
-
-
-
-# ===========================================================================
-#  Kill still running VMs...
-# ===========================================================================
-POWER_OFF_RUNNING_VBOXES()
-
-# ===========================================================================
-#  Clean up Virtual Box directories
-# ===========================================================================
-CLEANUP_VBOX_DIRS()
-
 IF(DAY EQUAL 0)
-  SET(VBOXES "sles10")
+  LIST(APPEND VBOXES "sles10" "sles11" "opensuse123")
 ENDIF()
 IF(DAY EQUAL 1)
-  SET(VBOXES "oracle5")
+  LIST(APPEND VBOXES "oracle5" "fedora18")
 ENDIF()
 IF(DAY EQUAL 2)
-  SET(VBOXES "hardy")
+  LIST(APPEND VBOXES "hardy" "lucid" "lmde2013")
 ENDIF()
 
-# ===========================================================================
-#  Wait for 4h
-# ===========================================================================
-CTEST_SLEEP(14400)
+FOREACH(VBOX IN ITEMS ${VBOXES})
+  # =========================================================================
+  #  Kill still running VMs...
+  # =========================================================================
+  POWER_OFF_RUNNING_VBOXES()
 
-# ===========================================================================
-#  Kill still running VMs...
-# ===========================================================================
-POWER_OFF_RUNNING_VBOXES()
+  # =========================================================================
+  #  Clean up Virtual Box directories
+  # =========================================================================
+  CLEANUP_VBOX_DIRS()
 
-# ===========================================================================
-#  Clean up Virtual Box directories
-# ===========================================================================
-CLEANUP_VBOX_DIRS()
+  START_VBOXES(${VBOX})
 
-IF(DAY EQUAL 0)
-  SET(VBOXES "sles11")
-ENDIF()
-IF(DAY EQUAL 1)
-  SET(VBOXES "fedora18")
-ENDIF()
-IF(DAY EQUAL 2)
-  SET(VBOXES "lucid")
-ENDIF()
+  # Print current date and time for debug purposes
+  EXECUTE_PROCESS(
+    COMMAND date
+    RESULT_VARIABLE RETVAL)
 
-# ===========================================================================
-#  Wait for 4h
-# ===========================================================================
-CTEST_SLEEP(14400)
+  # =========================================================================
+  #  Wait for 5m, so that VBox can shutdown properly.
+  # =========================================================================
+  CTEST_SLEEP(300)
 
-# ===========================================================================
-#  Kill still running VMs...
-# ===========================================================================
-POWER_OFF_RUNNING_VBOXES()
+  # =========================================================================
+  #  Make nightly binaries available via Apache server (again).
+  # =========================================================================
+  COPY_ZIPS_TO_APACHE()
 
-# ===========================================================================
-#  Clean up Virtual Box directories
-# ===========================================================================
-CLEANUP_VBOX_DIRS()
+ENDFOREACH()
 
-IF(DAY EQUAL 0)
-  SET(VBOXES "opensuse123")
-ENDIF()
-IF(DAY EQUAL 2)
-  SET(VBOXES "lmde201303")
-ENDIF()
-
-# ===========================================================================
-#  Make nightly binaries available via Apache server (once more).
-# ===========================================================================
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory archives ${APACHE_NIGHTLY_DIR}
-  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
-  RESULT_VARIABLE RETVAL)

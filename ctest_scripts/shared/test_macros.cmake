@@ -18,8 +18,10 @@ MACRO(SET_GLOBAL_VARS)
   GET_FILENAME_COMPONENT(SITE_BASE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
   SET(SITE_BASE_DIR "${SITE_BASE_DIR}/sites")
   SITE_NAME(HOSTNAME)
+  STRING(STRIP ${HOSTNAME} HOSTNAME)
   STRING(REPLACE "." ";" HOSTNAME_LIST "${HOSTNAME}")
   LIST(GET HOSTNAME_LIST 0 HOSTNAME)
+  STRING(TOLOWER ${HOSTNAME} HOSTNAME)
   SET(SITE_DIR "${SITE_BASE_DIR}/${HOSTNAME}")
   EXECUTE_PROCESS(
     COMMAND date "+%u"
@@ -33,18 +35,6 @@ MACRO(SET_GLOBAL_VARS)
   #---------------------------------------------------------------------------
   SET(NIGHTLY_ARCHIVES_DIR "/opt/pckg/cfs_nightly/archives")
 
-  MESSAGE(
-  "
-=============================================================================
- Environment:
-=============================================================================
-  "
-  )
-  EXECUTE_PROCESS(
-    COMMAND "${CMAKE_COMMAND}" -E environment
-  #  WORKING_DIRECTORY "${BUILDDIR}"
-    RESULT_VARIABLE RETVAL
-    )
 ENDMACRO()
 
 
@@ -83,6 +73,20 @@ MACRO(SET_SITE_SPECIFIC_VARS)
 #  MESSAGE("Entering SET_SITE_SPECIFIC_VARS...")
   INCLUDE("${SITE_DIR}/site_specific_vars.cmake" OPTIONAL)
 #  MESSAGE("Leaving SET_SITE_SPECIFIC_VARS...")
+
+  MESSAGE(
+  "
+=============================================================================
+ Environment:
+=============================================================================
+  "
+  )
+  EXECUTE_PROCESS(
+    COMMAND "${CMAKE_COMMAND}" -E environment
+  #  WORKING_DIRECTORY "${BUILDDIR}"
+    RESULT_VARIABLE RETVAL
+    )
+
 ENDMACRO()
 
 
@@ -156,39 +160,49 @@ MACRO(PERFORM_TEST TEST_NAME)
 
     IF(TARGET_ARCH MATCHES "linux[0-9][0-9]")
       EXECUTE_PROCESS(
-        COMMAND ${TARGET_ARCH} ${CTEST_COMMAND} -V --build-two-config -S "${SITE_DIR}/${TEST_NAME}.ctest"
+        COMMAND ${TARGET_ARCH} ${CTEST_COMMAND} -V -S "${SITE_DIR}/${TEST_NAME}.ctest"
         WORKING_DIRECTORY "."
         RESULT_VARIABLE RETVAL
       )
     ELSE()
       EXECUTE_PROCESS(
-        COMMAND ${CTEST_COMMAND} -V --build-two-config -S "${SITE_DIR}/${TEST_NAME}.ctest"
+        COMMAND ${CTEST_COMMAND} -V -S "${SITE_DIR}/${TEST_NAME}.ctest"
         WORKING_DIRECTORY "."
         RESULT_VARIABLE RETVAL
       )
     ENDIF()
   ELSE(UNIX)
 
-    LIST(APPEND TEST_CMD "\\\"${CTEST_COMMAND}\\\"" -V --build-two-config -S "\\\"${SITE_DIR}/${TEST_NAME}.ctest\\\"")
+    LIST(APPEND TEST_CMD "\\\"${CTEST_COMMAND}\\\"" -V -S "\\\"${SITE_DIR}/${TEST_NAME}.ctest\\\"")
 
     MESSAGE(STATUS "TEST_CMD: ${TEST_CMD}")
 
     EXECUTE_PROCESS(
-      COMMAND ${CTEST_COMMAND} -V --build-two-config -S "${SITE_DIR}/${TEST_NAME}.ctest"
+      COMMAND ${CTEST_COMMAND} -V -S "${SITE_DIR}/${TEST_NAME}.ctest"
       WORKING_DIRECTORY "."
       RESULT_VARIABLE RETVAL
       )
 
   ENDIF(UNIX)
 
+  # Copy nightly test logs of CTest over to ${SITE_DIR}/logs/${TEST_NAME}
+  # so that they may be examined even if the corresponding VBox is already
+  # deleted.
   IF(NOT EXISTS "${SITE_DIR}/logs")
     FILE(MAKE_DIRECTORY "${SITE_DIR}/logs")
   ENDIF()
+  IF(EXISTS "${SITE_DIR}/logs/${TEST_NAME}")
+    FILE(REMOVE_RECURSE "${SITE_DIR}/logs/${TEST_NAME}")
+  ENDIF()
   FILE(MAKE_DIRECTORY "${SITE_DIR}/logs/${TEST_NAME}")
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory "${CTEST_BINARY_DIRECTORY}/Testing"  "${SITE_DIR}/logs/${TEST_NAME}"
-  RESULT_VARIABLE RETVAL)
 
+  EXECUTE_PROCESS(
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CTEST_BINARY_DIRECTORY}/Testing"  "${SITE_DIR}/logs/${TEST_NAME}"
+    RESULT_VARIABLE RETVAL)
+
+  EXECUTE_PROCESS(
+    COMMAND ${CMAKE_COMMAND} -E copy "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt"  "${SITE_DIR}/logs/${TEST_NAME}/CMakeCache.txt"
+    RESULT_VARIABLE RETVAL)
 
 ENDMACRO()
 

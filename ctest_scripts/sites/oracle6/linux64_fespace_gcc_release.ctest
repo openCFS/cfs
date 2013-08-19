@@ -47,7 +47,8 @@ SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
 # Use CMake (cmake) executable corresponding to CTest executable used to run
 # this script.
 #-----------------------------------------------------------------------------
-SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
+STRING(REGEX REPLACE "/ctest$" "/cmake" CTEST_CMAKE_COMMAND "${CTEST_EXECUTABLE_NAME}")
+SET(CTEST_CMAKE_COMMAND  "${CTEST_CMAKE_COMMAND}")
 
 #-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used
@@ -161,3 +162,64 @@ ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 message("  Submit")
 ctest_submit(RETURN_VALUE res)
 message("  All done")
+
+MESSAGE(
+"
+=============================================================================
+ Building documentation:
+=============================================================================
+"
+)
+
+# Now let's build the documentation
+EXECUTE_PROCESS(
+  COMMAND make doc
+  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}"
+)
+
+MESSAGE(
+"
+=============================================================================
+ Building Modelling Manual:
+=============================================================================
+"
+)
+
+EXECUTE_PROCESS(
+  COMMAND bash buildpdf
+  WORKING_DIRECTORY "$ENV{HOME}/Documents/dev/MODELLING_MANUAL_NIGHTLY"
+)
+
+EXECUTE_PROCESS(
+  COMMAND bash buildhtml
+  WORKING_DIRECTORY "$ENV{HOME}/Documents/dev/MODELLING_MANUAL_NIGHTLY"
+)
+
+FILE(MAKE_DIRECTORY 
+  "${CTEST_BINARY_DIRECTORY}/MODELLING_MANUAL_NIGHTLY"
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${CTEST_CMAKE_COMMAND} -E copy_directory 
+  "$ENV{HOME}/Documents/dev/MODELLING_MANUAL_NIGHTLY"
+  "${CTEST_BINARY_DIRECTORY}/MODELLING_MANUAL_NIGHTLY"
+)
+
+MESSAGE(
+"
+=============================================================================
+ Building schema documentation:
+=============================================================================
+"
+)
+
+EXECUTE_PROCESS(
+  COMMAND /opt/pckg/oxygen-11.2/schemaDocumentation.sh CFS.xsd -out:index.html -format:html -split:location -openInBrowser:false
+  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/share/xml/CFS-Simulation"
+)
+
+EXECUTE_PROCESS(
+  COMMAND /opt/pckg/oxygen-11.2/schemaDocumentation.sh CFS_Material.xsd -out:index.html -format:html -split:location -openInBrowser:false
+  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/share/xml/CFS-Material"
+)
+

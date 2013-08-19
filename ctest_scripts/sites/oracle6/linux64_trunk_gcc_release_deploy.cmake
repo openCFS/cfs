@@ -30,6 +30,8 @@ IF(EXISTS "${CFS_BINARY}" AND
     "${CTEST_BINARY_DIRECTORY}/CFS_TESTSUITE_TRUNK"
     "${CTEST_BINARY_DIRECTORY}/source"
     "${CTEST_BINARY_DIRECTORY}/CMakeFiles"
+    "${CTEST_BINARY_DIRECTORY}/vtk"
+    "${CTEST_BINARY_DIRECTORY}/Testing"
   )
 
   message("  Packing binaries...")

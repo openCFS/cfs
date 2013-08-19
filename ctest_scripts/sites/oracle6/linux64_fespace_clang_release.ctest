@@ -32,7 +32,7 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_FESPACE_NIGHTLY")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_FESPACE_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_BUILD_NIGHTLY")
 
 #-----------------------------------------------------------------------------
@@ -54,8 +54,8 @@ SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
 # to specifiy the compilers and that all messages should be output in English
 # language, so that CTest may properly parse them.
 #-----------------------------------------------------------------------------
-SET(ENV{CC} "/usr/bin/clang")
-SET(ENV{CXX} "/usr/bin/clang++")
+SET(ENV{CC} "/opt/pckg/clang+llvm-3.3-amd64-Ubuntu-10.04.4/bin/clang")
+SET(ENV{CXX} "/opt/pckg/clang+llvm-3.3-amd64-Ubuntu-10.04.4/bin/clang++")
 SET(ENV{FC} "/usr/bin/gfortran")
 SET(ENV{LC_MESSAGES} "C")
 SET(ENV{LC_ALL} "C")
@@ -100,7 +100,7 @@ INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 # MESSAGE("${CXX_ID} ${CXX_VERSION} ${CXX_GCC_VERSION}")
 # MESSAGE("${DIST} ${REV} ${ARCH}")
 
-SET(BUILDTYPE "DEBUG")
+SET(BUILDTYPE "RELEASE")
 SET(BUILDNAME "FeSpace ${DIST} ${REV} ${ARCH} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
 SITE_NAME(CFS_BUILD_HOST)
@@ -122,13 +122,13 @@ SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 #-----------------------------------------------------------------------------
 SET(CTEST_INITIAL_CACHE
   "BUILD_TESTING:BOOL=ON
-   DEBUG:BOOL=ON
+   DEBUG:BOOL=OFF
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
-   CMAKE_Fortran_FLAGS:STRING=-fplugin=dragonegg
+#   CMAKE_Fortran_FLAGS:STRING=-fplugin=dragonegg
    TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_FESPACE
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
-#   USE_ANSYSRST:BOOL=ON
    CFSTOOL:BOOL=ON
+#   USE_ANSYSRST:BOOL=ON
    USE_GMV:BOOL=ON
    USE_GMSH:BOOL=ON
 #   USE_PYTHON:BOOL=ON

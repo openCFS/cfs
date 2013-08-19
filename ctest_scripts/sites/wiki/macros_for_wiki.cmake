@@ -19,6 +19,21 @@ MACRO(GET_SECONDS OUTVAR TIME)
   SET(${OUTVAR} ${TMP})
 ENDMACRO()
 
+MACRO(COPY_ZIPS_TO_APACHE)
+  FILE(GLOB NIGHTLY_ZIPS "${CFS_NIGHTLY_DIR}/archives/*.zip")
+
+  FOREACH(ZIP IN ITEMS ${NIGHTLY_ZIPS})
+    get_filename_component(FN "${ZIP}" NAME)
+
+    EXECUTE_PROCESS(
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${ZIP}" "${APACHE_NIGHTLY_DIR}/${FN}"
+      RESULT_VARIABLE RETVAL)
+
+    UNSET(FN)
+  ENDFOREACH()
+ENDMACRO()
+
+
 MACRO(POWER_OFF_RUNNING_VBOXES)
 # ===========================================================================
 #  Kill still running VMs...
