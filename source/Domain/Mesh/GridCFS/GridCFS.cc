@@ -24,8 +24,10 @@ namespace CoupledField {
   DECLARE_LOG(gridcfs)
   DEFINE_LOG(gridcfs, "grid.cfs")
 
-  GridCFS::GridCFS(UInt dim, PtrParamNode param, PtrParamNode info) 
+  GridCFS::GridCFS(UInt dim, PtrParamNode param, PtrParamNode info,
+      const std::string &id) 
   : Grid( param, info ) {
+    gridId_ = id;
     isQuadratic_ = false;
     dim_ = dim;
     assert(dim > 0);
@@ -37,6 +39,7 @@ namespace CoupledField {
     numNcSurfElems_ = 0;
     edgesMapped_ = false;
     facesMapped_ = false;
+    maxNumElemNodes_ = 0;
 
   }
 
@@ -60,8 +63,9 @@ namespace CoupledField {
     // if no param object is present, just leave
     if (!param_) return;
 
-    Vector<Double> coord(dim_);
-    std::string coordSys;
+    Vector<Double> locCoord(dim_), globCoord(dim_);
+    Double compoValue;
+    std::string coordSysId, compoName;
     std::string name;
 
     for( UInt iType = 0; iType < 2; iType++ ) {
@@ -85,20 +89,53 @@ namespace CoupledField {
         for( UInt i=0; i < nodes.GetSize(); i++ ) {
 
           // fetch name of nodes to be selected
-          nodes[i]->GetValue("name", name );
+          nodes[i]->GetValue("name", name);
 
           // check if node is defined by point coord
           PtrParamNode coordNode = nodes[i]->Get("coord", ParamNode::PASS );
           if( coordNode ) {
+            UInt compoIndex;
+            locCoord.Init(0.0);
+            globCoord.Init(0.0);
+            
+            coordSysId = "default";
+            coordNode->GetValue("coordSysId", coordSysId, ParamNode::PASS);
+            const CoordSystem* cosy = domain->GetCoordSystem(coordSysId);
+            
+            ParamNodeList compoList = coordNode->GetChildren();
+            ParamNodeList::iterator compoIt = compoList.Begin(),
+                                    endIt = compoList.End();
+            
+            for ( ; compoIt != endIt; ++compoIt ) {
+              compoName = (*compoIt)->GetName();
+              if ( compoName == "coordSysId" ) continue;
+              
+              compoValue = (*compoIt)->MathParse<Double>();
+              if ( compoValue == 0.0) continue;
+              
+              if ( isAxi_ && (compoName == "x" || compoName == "y") ) {
+                EXCEPTION(listNode->GetName() << " '" << name
+                          << "': Coordinate components must be 'r', 'z' "
+                          << "in an axisymmetric simulation.");
+              }
+              if ( isAxi_ && compoName == "r" ) compoName = "x";
+              if ( isAxi_ && compoName == "z" ) compoName = "y";
+              
+              try {
+                compoIndex = cosy->GetVecComponent(compoName)-1;
+              } catch (Exception &ex) {
+                RETHROW_EXCEPTION(ex, "Unable to create "
+                                  << listNode->GetName()
+                                  << " '" << name << "'.");
+              }
+              
+              locCoord[compoIndex] = compoValue;
+            }
 
-            // ToDo: insert defintion for axisymmetric geometry
-            coord.Init();
-            coord[0] = coordNode->Get( "x" )->MathParse<Double>();
-            coord[1] = coordNode->Get( "y" )->MathParse<Double>();
-            if( dim_ == 3 )
-              coord[2] = coordNode->Get( "z" )->MathParse<Double>();
+            cosy->Local2GlobalCoord(globCoord, locCoord);
+            
             StdVector<UInt> entityNum(1);
-            entityNum[0] = FindEntityMinDistance( isNode, coord );
+            entityNum[0] = FindEntityMinDistance( isNode, globCoord );
 
             // add node / element
             if( isNode ) {
@@ -116,8 +153,8 @@ namespace CoupledField {
             std::string gridId, coordSysId;
 
             // make sure, that this is the correct grid
-            listNode->GetValue("gridId", gridId);
-            if (domain->GetGrid(gridId) != this) return;
+            if ( listNode->Get("gridId", ParamNode::INSERT)->As<std::string>()
+                != gridId_ ) return;
 
             // get coordinate system
             listNode->GetValue( "coordSysId", coordSysId );
@@ -755,7 +792,7 @@ namespace CoupledField {
       regionData[regionElemIt->first].type_idx = volRegionIds_.GetSize();
       volRegionIds_.Push_back(regionElemIt->first);
       
-      // make number of region nodesu nique
+      // make number of region nodes unique
       StdVector<UInt> & regionNodes = regionNodeIt->second;
       std::sort( regionNodes.Begin(), regionNodes.End() );
       StdVector<UInt>::iterator uIt;
@@ -801,7 +838,7 @@ namespace CoupledField {
       regionData[region].type_idx = surfRegionIds_.GetSize();
       surfRegionIds_.Push_back(region);
       
-      // make number of region nodesu nique
+      // make number of region nodes unique
       StdVector<UInt> & regionNodes = regionNodeIt->second;
       std::sort( regionNodes.Begin(), regionNodes.End() );
       StdVector<UInt>::iterator uIt;
@@ -827,9 +864,6 @@ namespace CoupledField {
     // parameter file
     CreateUserDefinedNodesElems();
     
-    // Initialize non-conforming interfaces
-    InitNcInterfacesFromXML();
-
     // In the end, trim all vectors, i.e. delete any non-used memory from its
     // capacity.
     coords_.Trim();
@@ -879,8 +913,7 @@ namespace CoupledField {
       UInt numSubElems = curShape.numSurfElems;
       for(UInt aSub =0; aSub<numSubElems ; ++aSub,++numNcSurfElems_){
         //create the subelement
-        shared_ptr<NcSurfElem> curSurf;
-        curSurf.reset(new NcSurfElem());
+        shared_ptr<NcSurfElem> curSurf(new NcSurfElem());
         //give it a number
         curSurf->elemNum = numElems_+numNcSurfElems_+1;
         curSurf->type = subelems[aSub];
@@ -896,7 +929,7 @@ namespace CoupledField {
           StdVector<UInt> fNodes = curShape.faceNodes[aSub];
           UInt numNodes = curShape.faceNodes[aSub].GetSize();
           curSurf->connect.Resize(numNodes);
-          //now we loop over the face nodes and assigne the corresponding nodes from the volume element
+          //now we loop over the face nodes and assign the corresponding nodes from the volume element
           for(UInt i=0;i<curShape.faceNodes[aSub].GetSize();++i){
         	  curSurf->connect[i] = curE->connect[fNodes[i]-1];
           }
@@ -981,7 +1014,7 @@ namespace CoupledField {
       for(UInt i =0;i<interiorSurfElems[iElem]->connect.GetSize();++i){
         LOG_DBG3(gridcfs) << interiorSurfElems[iElem]->connect[i] << " ";
       }
-      LOG_DBG3(gridcfs) << std::endl << "\t Neighors:" << std::endl;
+      LOG_DBG3(gridcfs) << std::endl << "\t Neighbors:" << std::endl;
       StdVector<shared_ptr<NcSurfElem> > neigh = interiorSurfElems[iElem]->neighbors;
       for(UInt i=0;i < neigh.GetSize();++i){
         LOG_DBG3(gridcfs) << "\t " << neigh[i]->elemNum << " ";
@@ -1001,7 +1034,7 @@ namespace CoupledField {
       for(UInt i =0;i<exteriorSurfElems[iElem]->connect.GetSize();++i){
         LOG_DBG3(gridcfs) << exteriorSurfElems[iElem]->connect[i] << " ";
       }
-      LOG_DBG3(gridcfs) << std::endl << "\t Neighors:" << std::endl;
+      LOG_DBG3(gridcfs) << std::endl << "\t Neighbors:" << std::endl;
       StdVector<shared_ptr<NcSurfElem> > neigh = exteriorSurfElems[iElem]->neighbors;
       for(UInt i=0;i < neigh.GetSize();++i){
         LOG_DBG3(gridcfs) << "\t " << neigh[i]->elemNum << " ";
@@ -1020,7 +1053,7 @@ namespace CoupledField {
                                          StdVector<shared_ptr<NcSurfElem> > & exteriorSurfElems,
                                          bool conforming){
 
-    // TODO: perhaps we can do some resize commands to avoid the tynamic memory allocation...
+    // TODO: perhaps we can do some resize commands to avoid the dynamic memory allocation...
 
     if(conforming){
       std::map<Integer,StdVector<UInt> > EdgeToSurfElemMap;
@@ -1576,7 +1609,7 @@ namespace CoupledField {
   }
 
 
-  UInt GridCFS::GetDim() {
+  UInt GridCFS::GetDim() const {
     return dim_;
   }
 
@@ -1785,6 +1818,7 @@ namespace CoupledField {
     default:
       EXCEPTION( "Can obtain nodes only for one region, named elements and "
                  << "named nodes" );
+      break;
     }
   }
 
@@ -1904,6 +1938,13 @@ namespace CoupledField {
                             const UInt* connect)
   {
     assert(type != Elem::ET_UNDEF);
+    
+    if ( ielem > orderedElems_.GetSize() ) {
+      EXCEPTION("Element numbers are not contiguous: Element number " << ielem
+                << " is out of allowed range. Either you forgot to write out "
+                << "some elements or you need to compress the element "
+                << "numbering. Please check your mesh!");
+    }
 
     UInt idx=ielem-1;
     Elem* el = orderedElems_[idx];
@@ -2900,7 +2941,7 @@ namespace CoupledField {
     GetNodesByRegion( surfRegionNodes, regionid);
     for(i=0; i<n; i++)
     {
-      // a check should be added to avoid insertions
+      // TODO: a check should be added to avoid insertions
       // of already existing elements
       surfelems[i]->regionId = regionid;
       numElems_++;
@@ -3032,6 +3073,42 @@ namespace CoupledField {
     numElems_ = numElems;
   }
 
+  void GridCFS::DeleteNamedNodes(const std::string &name) {
+    
+    if (nameTypeMap_.find(name) == nameTypeMap_.end()) {
+      EXCEPTION("Node list '" << name << "' does not exist.");
+    }
+    
+    Integer idx = namedNodeNames_.Find(name);
+    if (idx != -1) {
+      std::set<UInt> sortedNodes;
+      
+      // put the nodes into a std::set to get an ordered list
+      sortedNodes.insert(namedNodes_[idx].Begin(), namedNodes_[idx].End());
+      
+      if (*sortedNodes.begin() == coords_.GetSize()-sortedNodes.size()+1) {
+        // is a block at the end of the vector, so just resize
+        numNodes_ = coords_.GetSize() - sortedNodes.size();
+        coords_.Resize(numNodes_);
+        deltCoords_.Resize(numNodes_);
+      } else {
+        // Please implement the general case if you need it. But beware!
+        // It's compliated, because you need to renumber all nodes and
+        // therefore change the connectivity as well!
+        EXCEPTION("Cannot delete named nodes '" << name
+                  <<"', because it is not a contiguous block at the end of "
+                  <<"all node numbers.")
+      }
+      
+      namedNodeNames_.Erase( (UInt) idx );
+      namedNodes_.Erase( (UInt) idx );
+      nameTypeMap_.erase(name);
+    }
+    else {
+      EXCEPTION("Cannot delete '" << name << "': not a node list");
+    }
+  }
+  
   void GridCFS::CorrectElementConnectivities() {
     Matrix<Double> jacobian;   
     std::set<const Elem*> corrElems, failedElems;
@@ -3051,7 +3128,22 @@ namespace CoupledField {
         } catch (Exception& ex) {
           // at this point, the correction failed e.g. due to a missing
           // implementation or a totally weird element connectivity.
-          failedElems.insert(el);
+          //before we give up, lets try a brute force attack
+          WARN("Trying to correct connectivity by permutating array. This can be costly! Recheck the mesh!");
+          bool success = false;
+          do{
+            shared_ptr<ElemShapeMap> esmTMP = GetElemShapeMap( el, false );
+            jacDet = esmTMP->CalcJDet( jacobian, Elem::shapes[el->type].midPointCoord);
+            if(jacDet > 0){
+              success = true;
+              break;
+            }
+          }while( std::next_permutation(el->connect.Begin(),el->connect.End()) );
+          if(!success){
+            failedElems.insert(el);
+          }else{
+            corrElems.insert(el);
+          }
         }
       }
     }    
@@ -3150,42 +3242,6 @@ namespace CoupledField {
     it = midNodeProjections_.begin();
     for( ; it != midNodeProjections_.end(); ++it ) {
       it->second.Trim();
-    }
-  }
-
-  void GridCFS::DeleteNamedNodes(const std::string &name) {
-
-    if (nameTypeMap_.find(name) == nameTypeMap_.end()) {
-      EXCEPTION("Node list '" << name << "' does not exist.");
-    }
-
-    Integer idx = namedNodeNames_.Find(name);
-    if (idx != -1) {
-      std::set<UInt> sortedNodes;
-
-      // put the nodes into a std::set to get an ordered list
-      sortedNodes.insert(namedNodes_[idx].Begin(), namedNodes_[idx].End());
-
-      if (*sortedNodes.begin() == coords_.GetSize()-sortedNodes.size()+1) {
-        // is a block at the end of the vector, so just resize
-        numNodes_ = coords_.GetSize() - sortedNodes.size();
-        coords_.Resize(numNodes_);
-        deltCoords_.Resize(numNodes_);
-      } else {
-        // Please implement the general case if you need it. But beware!
-        // It's compliated, because you need to renumber all nodes and
-        // therefore change the connectivity as well!
-        EXCEPTION("Cannot delete named nodes '" << name
-                  <<"', because it is not a contiguous block at the end of "
-                  <<"all node numbers.")
-      }
-
-      namedNodeNames_.Erase( (UInt) idx );
-      namedNodes_.Erase( (UInt) idx );
-      nameTypeMap_.erase(name);
-    }
-    else {
-      EXCEPTION("Cannot delete '" << name << "': not a node list");
     }
   }
 

@@ -371,6 +371,24 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     }
   }
   
+  void MechPDE::DefineNcIntegrators() {
+    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
+                                           endIt = ncInterfaces_.End();
+    for ( ; ncIt != endIt; ++ncIt ) {
+      switch (ncIt->type) {
+      case NC_MORTAR:
+        DefineMortarCoupling(MECH_DISPLACEMENT, *ncIt, dim_);
+        break;
+      case NC_NITSCHE:
+        EXCEPTION("ncInterface of Nitsche type is not implemented for MechPDE");
+        break;
+      default:
+        EXCEPTION("Unknown type of ncInterface");
+        break;
+      }
+    }
+  }
+  
   void MechPDE::DefineRhsLoadIntegrators() {
     LOG_TRACE(mechpde) << "Defining rhs load integrators for mechanic PDE";
     
@@ -673,7 +691,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     }
     return bOp;
   }
-  
+
   void MechPDE::DefineSolveStep()
   {
 		  solveStep_ = new StdSolveStep(*this);
@@ -882,7 +900,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       intensNormal->unit =  "N/ms";
       intensNormal->entryType = ResultInfo::SCALAR;
       intensNormal->definedOn = ResultInfo::SURF_ELEM;
-      sNormStructIntens.reset(new CoefFunctionSurf(true));
+      sNormStructIntens.reset(new CoefFunctionSurf(true, intensNormal));
       DefineFieldResult( sNormStructIntens, intensNormal );
       surfCoefFcts_[sNormStructIntens] = intensFct;
       
@@ -975,6 +993,20 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
     // === MECHANIC DISPLACED SURFACE VOLUME ===
     // ... to be implemented
+
+    // === MECHANIC_NORMAL_STRESS ===
+    shared_ptr<ResultInfo> normalStressInfo;
+    shared_ptr<CoefFunctionSurf> normalStressFct;
+    normalStressInfo.reset(new ResultInfo);
+    normalStressInfo->resultType = MECH_NORMAL_STRESS;
+    normalStressInfo->dofNames = dispDofNames;
+    normalStressInfo->unit = "Pa";
+    normalStressInfo->entryType = ResultInfo::VECTOR;
+    normalStressInfo->definedOn = ResultInfo::SURF_ELEM;
+    
+    normalStressFct.reset(new CoefFunctionSurf(true, normalStressInfo));
+    DefineFieldResult(normalStressFct, normalStressInfo);
+    surfCoefFcts_[normalStressFct] = sigmaFunc;
   }
   
   std::map<SolutionType, shared_ptr<FeSpace> >

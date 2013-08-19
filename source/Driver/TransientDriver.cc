@@ -5,7 +5,7 @@
 #include <list>
 #include <math.h>
 
-// signal handling for catching Ctr-C
+// signal handling for catching Ctrl-C
 #include <signal.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -91,14 +91,7 @@ namespace CoupledField {
     param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
     
     // in the end, directly register the global transient variables
-    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                       "t", 0 );
-    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                        "t0", 0 );
-    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                       "dt", 0.0 );    
-    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                       "step", 1 );
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", 1 );
     
     // register signal handler only, if it is a child driver
     if( !simState_->HasInput() ) {
@@ -121,10 +114,8 @@ namespace CoupledField {
 
     initialTime_ = accTime;
     actTime_ = accTime;
-    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                        "t", actTimeStep_  );
-    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                        "t0", initialTime_ );
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", actTimeStep_ );
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t0", initialTime_ );
     
   }
   // ==============
@@ -205,12 +196,9 @@ namespace CoupledField {
       }
       
       // Set current value of timestep and time step size in the mathParser
-      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "t", actTime_ );
-      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "dt", dt );    
-      domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "step", actTimeStep_ );    
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", actTime_ );
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt", dt );    
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actTimeStep_ );    
 
       // Determine when to write logging information on terminal
       bool log = false;
@@ -308,10 +296,8 @@ namespace CoupledField {
     
     actTime_ = stepVal;
     actTimeStep_ = stepNum;
-    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                       "t", actTime_ );
-    domain_->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                       "step", actTimeStep_ );    
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", actTime_ );
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actTimeStep_ );    
   }
   
   void TransientDriver::ReadRestart() {

@@ -408,6 +408,8 @@ namespace CoupledField {
       }
   }
 
+  /* Commented out due to refactoring.
+   * Can be removed, if implementation in Vector class works.
   Double Normalize(Vector<Double>& vec)
   {
     Double norm = vec.NormL2();
@@ -471,14 +473,13 @@ namespace CoupledField {
     normal.Inner(n, b[0]);
     b[0] *= area_factor;
 
-    /*
-    diff = p - p3;
-    v.Cross(diff, n);
-    normal.Inner(n, b[1]);
-    b[1] *= area_factor;
-    */
+    //diff = p - p3;
+    //v.Cross(diff, n);
+    //normal.Inner(n, b[1]);
+    //b[1] *= area_factor;
 
     b[1] = 1 - b[0] - b[2];
   }
+*/
 
 } // end of namespace

@@ -444,9 +444,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   // ======================================================
 
   void MagEdgePDE::InitTimeStepping() {
+	// Use complete implicit scheme
     Double gamma = 1.0;
     GLMScheme * scheme = new Trapezoidal(gamma);
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0) );
+    TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
 
     feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
 

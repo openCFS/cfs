@@ -20,6 +20,7 @@
 
 #include "BaseBOperator.hh"
 #include "FeBasis/H1/H1Elems.hh"
+#include "FeBasis/HCurl/HCurlElems.hh"
 
 namespace CoupledField{
   template<class FE, UInt D, class TYPE>

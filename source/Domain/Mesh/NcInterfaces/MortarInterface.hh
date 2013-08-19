@@ -16,8 +16,9 @@ namespace CoupledField {
 // forward declarations
 class CoordSystem;
 class MathParser;
-class MortarNcSurfElem;
-class SurfElem;
+class NcSurfElemList;
+struct MortarNcSurfElem;
+struct SurfElem;
 template<class TYPE> class StdVector;
 template<class TYPE> class Vector;
 
@@ -82,17 +83,14 @@ class MortarInterface : public BaseNcInterface {
 
     //! intersect two line elements
     bool IntersectLines( SurfElem *ifaceElem1, SurfElem *ifaceElem2,
-                         StdVector<MortarNcSurfElem*> &elemList,
                          StdVector<UInt> &newNodes );
 
     //! intersect two axiparallel quads
     bool IntersectRects( SurfElem *ifaceElem1, SurfElem *ifaceElem2,
-                         StdVector<MortarNcSurfElem*> &elemList,
                          StdVector<UInt> &newNodes );
 
     //! intersect two elements of arbitrary type
     bool IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
-                            StdVector<MortarNcSurfElem*> &elemList,
                             StdVector<UInt> &newNodes );
 
 
@@ -159,6 +157,7 @@ class MortarInterface : public BaseNcInterface {
     RegionIdType slaveVolRegion_;
     bool isCoplanar_;
     bool isMoving_;
+    bool exportToGrid_;
     std::string coordSysId_;
     CoordSystem* coordSys_;
     MathParser* mParser_;
@@ -167,6 +166,7 @@ class MortarInterface : public BaseNcInterface {
     NcIntersectAlgo intersectAlgo_;
     Double tolAbs_;
     Double tolRel_;
+    RegionIdType region_;
 
 };
 

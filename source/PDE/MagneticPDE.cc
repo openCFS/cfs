@@ -15,6 +15,7 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/BiLinForms/ABInt.hh"
+#include "Forms/LinForms/KXInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/BDUInt.hh"
 #include "Forms/Operators/CurlOperator.hh"
@@ -120,57 +121,177 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       mySpace->SetRegionApproximation(actRegion, polyId,integId);
       
       
-      
-      // ====================================================================
-      //  Standard Linear CASE (2D AND 3D)
-      // ====================================================================
-      if( !nonLin_ ) {
-        BaseBDBInt * stiffInt = NULL;
-        PtrCoefFct curCoef = 
-            actMat->GetTensorCoefFnc( MAG_RELUCTIVITY, tensorType,
-                                     Global::REAL );
-        if( dim_ == 2) {
-          if( isaxi_ ) {
-            // axisymmetric case
-            stiffInt = new BDBInt<>(new CurlOperatorAxi<Double>(), curCoef, 1.0, updatedGeo_);
-          } else {
-            // plane 2D case
-            stiffInt = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef, 1.0, updatedGeo_);
+      //get possible nonlinearities defined in this region
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+      if ( nonLinTypes.GetSize() > 0 ) {
+        if ( nonLinTypes.Find(HYSTERESIS) != -1 ) {
+          Exception("Hysteresis nonlinearity is not supported.");
+        }else if (  nonLinTypes.Find(PERMEABILITY) != -1 ) {
+          BaseBOperator* bOp = NULL;
+          if( dim_ == 2) {
+            if( isaxi_ ) {
+              bOp = new CurlOperatorAxi<Double>();
+            }else{
+              bOp = new CurlOperator<FeH1,2,Double>();
+            }
+          }else{
+            bOp = new CurlOperator<FeH1,3,Double>();
           }
-        } else {
-          // 3D case
-          stiffInt = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, 1.0, updatedGeo_);
+          PtrCoefFct nuNl =
+              actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL,
+                  myFct, bOp );
+
+          BaseBDBInt * stiffInt = NULL;
+          if( dim_ == 2) {
+            if( isaxi_ ) {
+              // axisymmetric case
+              stiffInt = new BBInt<>(new CurlOperatorAxi<Double>(), nuNl, 1.0, updatedGeo_);
+            } else {
+              // plane 2D case
+              stiffInt = new BBInt<>(new CurlOperator<FeH1,2,Double>(), nuNl, 1.0, updatedGeo_);
+            }
+          } else {
+            // 3D case
+            stiffInt = new BBInt<>(new CurlOperator<FeH1,3,Double>(), nuNl, 1.0, updatedGeo_);
+
+          }
+          stiffInt->SetName("CurlCurlIntegrator-NL");
+          BiLinFormContext * stiffContext =
+              new BiLinFormContext(stiffInt, STIFFNESS );
+          stiffContext->SetEntities( actSDList, actSDList );
+          stiffContext->SetFeFunctions( myFct, myFct );
+          assemble_->AddBiLinearForm( stiffContext );
+          // Important: Add bdb-integrator to global list, as we need them later
+          // for calculation of postprocessing results
+          bdbInts_[actRegion] = stiffInt;
+          // add also material to global, distributed reluctivity coefficient function
+          //reluc_->AddRegion(actRegion, nuNl);
+
+          // ================================================
+          //  Nonlinear Stiffness Integrator (only Newton )
+          // ================================================
+          // Note: currently we set the nonlinear method hard-coded to NEWTON for
+          // testing purpose
+          if( nonLinMethod_ == NEWTON ) {
+
+            BaseBOperator* bOp = NULL;
+            if( dim_ == 2) {
+              if( isaxi_ ) {
+                bOp = new CurlOperatorAxi<Double>();
+              }else{
+                bOp = new CurlOperator<FeH1,2,Double>();
+              }
+            }else{
+              bOp = new CurlOperator<FeH1,3,Double>();
+            }
+            PtrCoefFct nuDeriv = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY_DERIV,
+                                                               Global::REAL, myFct, bOp );
+
+            //create stiffness integrator
+            BiLinearForm* stiff2 = NULL;
+            //stiff2 = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nuDeriv, 1.0, updatedGeo_) ;
+            if( dim_ == 2) {
+              if( isaxi_ ) {
+                // axisymmetric case
+                stiff2 = new BDBInt<>(new CurlOperatorAxi<Double>(), nuDeriv, 1.0, updatedGeo_);
+              } else {
+                // plane 2D case
+                stiff2 = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), nuDeriv, 1.0, updatedGeo_);
+              }
+            } else {
+              // 3D case
+              stiff2 = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), nuDeriv, 1.0, updatedGeo_);
+
+            }
+
+            stiff2->SetName("CurlCurlIntegrator-NL-Newton");
+
+            BiLinFormContext * stiffContext2 =
+                new BiLinFormContext(stiff2, STIFFNESS );
+            stiffContext2->SetEntities( actSDList, actSDList );
+            stiffContext2->SetFeFunctions( myFct, myFct );
+            assemble_->AddBiLinearForm( stiffContext2 );
+          }
+
+          // =================================
+          //  Nonlinear RHS-integrator
+          // =================================
+          LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0, myFct );
+          rhsNlinForm->SetName("RHSNonLinForm");
+          LinearFormContext * rhsNlinContext =
+              new LinearFormContext( rhsNlinForm );
+          rhsNlinContext->SetEntities( actSDList );
+          rhsNlinContext->SetFeFunction( myFct );
+          assemble_->AddLinearForm( rhsNlinContext );
         }
-        stiffInt->SetName("CurlCurlIntegrator");    
-        stiffInt->SetFeSpace( mySpace);
-        BiLinFormContext * stiffIntDescr =
-            new BiLinFormContext(stiffInt, STIFFNESS );
-        stiffIntDescr->SetEntities( actSDList, actSDList );
-        stiffIntDescr->SetFeFunctions( myFct, myFct );
-        
-        assemble_->AddBiLinearForm( stiffIntDescr );
-        
-        // Important: Add bdb-integrator to global list, as we need them later
-        // for calculation of postprocessing results
-        bdbInts_[actRegion] = stiffInt;
-        
-        // add also material to global, distributed reluctivity coefficient function
-        reluc_->AddRegion(actRegion, curCoef);
-        
+      }else{
         // ====================================================================
-        //  3D CASE (additional stiffness integrator)
+        //  Standard Linear CASE (2D AND 3D)
         // ====================================================================
-        if( dim_ == 3 ) {
-          BaseBDBInt * divInt = 
-              new BDBInt<>(new DivOperator<FeH1,3,Double>(), curCoef, 1.0, updatedGeo_);
-          divInt->SetFeSpace( mySpace );
-          divInt->SetName("DivDivIntegrator");
-          BiLinFormContext * divIntDescr =  
-                      new BiLinFormContext(divInt, STIFFNESS );
-          divIntDescr->SetEntities( actSDList, actSDList );
-          divIntDescr->SetFeFunctions( myFct, myFct );
-          assemble_->AddBiLinearForm( divIntDescr );
-        }
+
+          BaseBDBInt * stiffInt = NULL;
+          PtrCoefFct curCoef =
+              actMat->GetTensorCoefFnc( MAG_RELUCTIVITY, tensorType,
+                                       Global::REAL );
+          if( dim_ == 2) {
+            if( isaxi_ ) {
+              // axisymmetric case
+              stiffInt = new BDBInt<>(new CurlOperatorAxi<Double>(), curCoef, 1.0, updatedGeo_);
+            } else {
+              // plane 2D case
+              stiffInt = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef, 1.0, updatedGeo_);
+            }
+          } else {
+            // 3D case
+            stiffInt = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, 1.0, updatedGeo_);
+          }
+          stiffInt->SetName("CurlCurlIntegrator");
+          stiffInt->SetFeSpace( mySpace);
+          BiLinFormContext * stiffIntDescr =
+              new BiLinFormContext(stiffInt, STIFFNESS );
+          stiffIntDescr->SetEntities( actSDList, actSDList );
+          stiffIntDescr->SetFeFunctions( myFct, myFct );
+
+          assemble_->AddBiLinearForm( stiffIntDescr );
+
+          // Important: Add bdb-integrator to global list, as we need them later
+          // for calculation of postprocessing results
+          bdbInts_[actRegion] = stiffInt;
+
+          // add also material to global, distributed reluctivity coefficient function
+          reluc_->AddRegion(actRegion, curCoef);
+
+          // ====================================================================
+          //  3D CASE (additional stiffness integrator)
+          // ====================================================================
+          if( dim_ == 3 ) {
+            BaseBDBInt * divInt =
+                new BDBInt<>(new DivOperator<FeH1,3,Double>(), curCoef, 1.0, updatedGeo_);
+            divInt->SetFeSpace( mySpace );
+            divInt->SetName("DivDivIntegrator");
+            BiLinFormContext * divIntDescr =
+                        new BiLinFormContext(divInt, STIFFNESS );
+            divIntDescr->SetEntities( actSDList, actSDList );
+            divIntDescr->SetFeFunctions( myFct, myFct );
+            assemble_->AddBiLinearForm( divIntDescr );
+          }
+          // === Additional RHS integrator in case of Non-linearity ===
+          if ( nonLin_ == true ) {
+            REFACTOR;
+            // =================================
+            //  Nonlinear RHS-integrator
+            // =================================
+            LinearForm * rhsNlinForm =
+                new KXIntegrator<Double>(stiffInt, -1.0, myFct );
+            rhsNlinForm->SetName("RHSNonLinForm-Lin");
+            LinearFormContext * rhsNlinContext =
+                new LinearFormContext( rhsNlinForm );
+            rhsNlinContext->SetEntities( actSDList );
+            rhsNlinContext->SetFeFunction( myFct );
+            assemble_->AddLinearForm( rhsNlinContext );
+          }
+
+      }
         
         
         // ====================================================================
@@ -246,11 +367,29 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           }
         } // mixed
         
-      } // linear part
+       // linear part
     } // regions
   }
   
-  
+  void MagneticPDE::DefineNcIntegrators() {
+    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
+                                           endIt = ncInterfaces_.End();
+    for ( ; ncIt != endIt; ++ncIt ) {
+      switch (ncIt->type) {
+      case NC_MORTAR:
+        DefineMortarCoupling(MAG_POTENTIAL, *ncIt);
+        break;
+      case NC_NITSCHE:
+        EXCEPTION("ncInterface of Nitsche type is not implemented for MagneticPDE");
+        break;
+      default:
+        EXCEPTION("Unknown type of ncInterface");
+        break;
+      }
+    }
+  }
+
+ 
   void MagneticPDE::DefineRhsLoadIntegrators() {
     
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
@@ -420,9 +559,10 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
   // ======================================================
   void MagneticPDE::InitTimeStepping() {
     // Use complete implicit scheme
-    Double gamma = 1.0;
+    Double gamma = 1;
     GLMScheme * scheme = new Trapezoidal(gamma);
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0) );
+    TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
     feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
 
   }

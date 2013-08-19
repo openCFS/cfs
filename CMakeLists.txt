@@ -78,14 +78,14 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "13")
-SET(CFS_VERSION_MONTH "02")
+SET(CFS_VERSION_MONTH "06")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Cocky Coriolis")
+SET(CFS_NAME "Nonmatching Noolbenger")
 
 colormsg(HIBLUE "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
 
@@ -546,6 +546,10 @@ IF(USE_SUITESPARSE)
   ADD_SUBDIRECTORY(source/OLAS/external/umfpack)
   ADD_SUBDIRECTORY(source/OLAS/external/cholmod)
 ENDIF(USE_SUITESPARSE)
+
+IF(USE_SUPERLU)
+  ADD_SUBDIRECTORY(source/OLAS/external/superlu)
+ENDIF(USE_SUPERLU)
 
 IF(USE_LIS)
   ADD_SUBDIRECTORY(source/OLAS/external/lis)

@@ -12,6 +12,7 @@
  */
 //================================================================================================
 
+#include <def_expl_templ_inst.hh>
 
 #include "CoefFunctionGridNodalInterp.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -45,7 +46,7 @@ CoefFunctionGridNodalInterp(Domain* ptDomain,
   this->stdInterpReady_ = false;
   this->consInterpReady_ = false;
   this->curInterpType_ = CoefFunctionGrid::NO_INTERPOLATION;
-  this->extDataInfo_ = curInfo->Get("externalGrid");
+  this->extDataInfo_ = curInfo->Get("externalGrid",ParamNode::APPEND);
   ReadXMLNode(configNode);
 
   //obtain grid pointer and store its dimension
@@ -218,7 +219,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::AddEntityList(shared_ptr<EntityList
   }
 
   this->extDataInfo_->Get("DestinationRegionList")->Get("Region")->Get("name")->SetValue(ents->GetName());
-
+  this->destRegionName_ = ents->GetName();
 
 }
 
@@ -266,6 +267,8 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
                                     localCoords,
                                     foundElements,
                                     this->destRegions_,
+                                    globalTol_,
+                                    localTol_,
                                     false);
 
   //we now create some debugging information
@@ -279,9 +282,11 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
     }
   }
   if(elemCounter>0)
-    WARN("There were " << elemCounter << " unmapped nodes. Perhaps you should think about tolerances!");
+    WARN("There were " << elemCounter << " unmapped nodes from source region \'" << *regIt << "\' which are not mapped to region \'" << this->destRegionName_ << "\'. Perhaps you should increase the tolerances!");
 
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("numUnmappedNodes")->SetValue(elemCounter);
+  this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("globalTol")->SetValue(globalTol_);
+  this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("localTol")->SetValue(globalTol_);
 
   //if the user wants to, we save the node->element association here
   //now we store the information in our map
@@ -313,6 +318,13 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode
   this->extDataInfo_->Get("interpolation")->Get("type")->SetValue(interpStr);
   this->extDataInfo_->Get("interpolation")->Get("setBy")->SetValue("XML");
 
+  if ( this->curInterpType_ == CoefFunctionGrid::CONSERVATIVE ) {
+    globalTol_ = 0.0;
+    configNode->GetValue("globalTolerance", globalTol_, ParamNode::PASS);
+    localTol_ = 1e-3;
+    configNode->GetValue("localTolerance", localTol_, ParamNode::PASS);
+  }
+  
   //obtain grid pointer
   this->srcGrid_ = this->domain_->GetGrid(this->gridId_);
 
@@ -388,7 +400,13 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
       for(UInt aNode=0; aNode < eIt->second.size(); aNode++){
         UInt curNodeNum = eIt->second[aNode];
         LocPoint lp = this->localCoordsNodeAssoc_[curNodeNum];
-        lpm.Set(lp,esm,1.0);
+        try{
+          lpm.Set(lp,esm,1.0);
+        }catch(...){
+          WARN("Found negative Jacobian for current local point: " + lp.coord.ToString() + ". Setting to element mid-point.")
+          lp.coord = Elem::shapes[curE->type].midPointCoord;
+          lpm.Set(lp,esm,1.0);
+        }
         BaseFE * fe = targetSpace->GetFe(curE->elemNum);
         this->myOperator_->CalcOpMatTransposed(opMat,lpm,fe);
         for(UInt j=0;j<fe->GetNumFncs();j++){

@@ -242,7 +242,7 @@ namespace CoupledField {
   {				
     Double sum(0.0);
 
-#pragma omp parallel for reduction(+:sum)
+//#pragma omp parallel for reduction(+:sum)
     for(unsigned int i = 0; i < size_; ++i)
       sum += OpType<T>::zConjz(data_[i]);
     
@@ -469,6 +469,7 @@ namespace CoupledField {
       break;
     default:
       EXCEPTION("Vector<Complex>::GetPart: Only possible for REAL or IMAG part!" );
+      break;
     }
     
     return ret;
@@ -515,6 +516,7 @@ namespace CoupledField {
           break;
         default:
           EXCEPTION( "Vector<Complex>::SetPart: Only possible for REAL or IMAG part!" );
+          break;
       }
     } else {
       // ------------------
@@ -531,6 +533,7 @@ namespace CoupledField {
           break;
         default:
           EXCEPTION( "Vector<Complex>::SetPart: Only possible for REAL or IMAG part!" );
+          break;
       }
     }
   }
@@ -800,6 +803,20 @@ namespace CoupledField {
     return false;
   }
 
+  //*********************
+  //  Equality operator
+  //*********************
+  template<typename T>
+  bool Vector<T>::operator==(const Vector<T> &x) const {
+    if ( this == &x ) return true;
+    if ( size_ != x.size_ ) return false;
+    
+    for ( UInt i = 0; i < size_; ++i ) {
+      if ( data_[i] != x.data_[i])
+        return false;
+    }
+    return true;
+  }
 
   // ********************************
   //   Overload Assignment Operator

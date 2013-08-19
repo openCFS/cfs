@@ -24,6 +24,7 @@ ApproxOrder::ApproxOrder( ) {
   isoOrder_ = 0;
   maxOrder_= 0;
   dim_ = 0;
+  isIsotropic_ = false;
   completeType_ = BaseFE::TRUNK_SPACE;
 }
 
@@ -31,6 +32,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   isoOrder_ = 0;
   maxOrder_= 0;
   dim_ = dim;
+  isIsotropic_ = false;
   completeType_ = BaseFE::TRUNK_SPACE;
 }
   
@@ -145,8 +147,12 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     myParam_ = paramNode;
     infoNode_ = infoNode;
     ptGrid_ = ptGrid;
+    type_ = UNDEF_SPACE;
+    mapType_ = GRID;
+    polyType_ = UNDEF_POLY;
     isFinalized_ = false;
     isContinuous_ = true;
+    isHierarchical_ = false;
     numEqns_ = 0;
     numFreeEquations_ = 0;
     solStep_ = 1;
@@ -177,7 +183,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
      
 
     /* One big Problem> Due to the splitting of spaces in Hi and Lo/Lagrange, it is not
-     * possible to deal with Diffent Polynomial types in different regions
+     * possible to deal with different Polynomial types in different regions
      * e.g. acoustic pressure is approximated by 2nd order Spectral elements in region1 and
      * anisotropic Legendre elements in region2 coupled by NcInterfaces.
      * This is to be changed in the future!
@@ -905,7 +911,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       SetDefaultIntegration(infoNode_->Get("regionList")->Get("default"));
       iReg = ALL_REGIONS;
     }else{
-      EXCEPTION("The integration id does not match any in the IntegratoinSchemeList: " << integId);
+      EXCEPTION("The integration id does not match any in the IntegrationSchemeList: " << integId);
     }
     polyToIntegMap[pReg].insert(iReg);
   }
@@ -937,7 +943,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
       const SurfElem * ptSurfEl = dynamic_cast<const SurfElem*>(ptElem);
       boost::array<Elem*,2>::const_iterator it = ptSurfEl->ptVolElems.begin();
-      for( ; it != ptSurfEl->ptVolElems.end(); it++ ) {
+      for( ; it != ptSurfEl->ptVolElems.end(); ++it ) {
         // check, if element is set at all
         if( *it) {
           if(regions_.find( (*it)->regionId) != regions_.end()) {
@@ -950,7 +956,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       // check, if element could be found
       if( !ret) {
         EXCEPTION("Could not find a suitable volume neighbor for surface element #"
-            << ptSurfEl->elemNum << ". " );
+            << ptSurfEl->elemNum << " in region "
+            << ptGrid_->GetRegion().ToString( ptSurfEl->regionId ) << "." );
       }
     } else {
       // 3) 1D element in 3D simulation
@@ -1216,6 +1223,48 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     }
 
   }
+  
+  void FeSpace::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent,
+                         BaseFE::EntityType entityType) { 
+     //Get result for the feFunction
+     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+     assert(feFct);
+     shared_ptr<ResultInfo> feFctResult = feFct->GetResultInfo();
+
+     //Get "dimension" of one Unknown
+     UInt dofsPerUnknown = GetNumDofs();
+     
+     //First cover the nodal/grid case
+     if ( ent.GetType() == EntityList::NODE_LIST ) {
+       UInt node = ent.GetNode();
+       eqns.Resize(dofsPerUnknown);
+       eqns.Init();
+       if(gridToVirtualNodes_.find(node)!= gridToVirtualNodes_.end()) {
+         for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
+           eqns[iDof] = nodeMap_[gridToVirtualNodes_[node][0]][iDof];
+         }
+       } else {
+         // In case a node was not found, we reset the eqnarray to
+         // size 0
+         eqns.Resize(0);
+       }
+     } else if( ent.GetType() == EntityList::ELEM_LIST ||
+         ent.GetType() == EntityList::SURF_ELEM_LIST||
+         ent.GetType() == EntityList::NC_ELEM_LIST){
+       StdVector<UInt> nodes;
+       this->GetNodesOfElement(nodes,ent.GetElem(), entityType);
+       eqns.Resize( nodes.GetSize() * dofsPerUnknown);
+       eqns.Init();
+       for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+         for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
+           eqns[(iNode*dofsPerUnknown) + iDof] = nodeMap_[nodes[iNode]][iDof];
+         }
+       }
+     } else {
+       EXCEPTION("In FeSpace::GetEqns(StdVector,EntityIterator,UInt):  Supplied an iterator which is not supported by FeSpace");
+     }
+
+  }
 
     void FeSpace::GetElemEqns(StdVector<Integer>& eqns,const Elem* elem){
       //Get result for the feFunction
@@ -1266,6 +1315,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         tmp.Init();
         GetEqns( tmp, it, entType);
         allEqns.insert(tmp.Begin(), tmp.End());
+        
       }
       eqns.Clear();
       eqns.Resize(allEqns.size());
@@ -1510,9 +1560,10 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     StdVector<UInt> blockNums, indices;
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
-    AlgebraicSys * algSys = feFct->GetSystem();
     FeFctIdType fctId = feFct->GetFctId();
-    algSys->MapCompleteFctIdToIndex(fctId, blockNums, indices);
+    AlgebraicSys * algSys = feFct->GetSystem();
+    if( algSys )
+      algSys->MapCompleteFctIdToIndex(fctId, blockNums, indices);
     
     std::string resultName = 
         SolutionTypeEnum.ToString(feFct->GetResultInfo()->resultType);
@@ -1654,11 +1705,11 @@ ApproxOrder::ApproxOrder(UInt dim ) {
               if( iEqn > 0 ) {
                 std::cout << prefix << "\t";
               }
-              
+
               //equation number
               std::cout << eqn << "\t";
 
-              if( eqn > 0 ) {
+              if( eqn > 0 && algSys) {
                 // SBM-Block
                 std::cout << blockNums[eqn-1] << "\t";
 
@@ -1712,7 +1763,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         std::cout << "|\t" << eqn;
 
 
-        if( eqn == 0) {
+        if( eqn == 0 || !algSys) {
           std::cout << "\t|" << std::setw(1) << "-";; 
 
           // index

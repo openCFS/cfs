@@ -138,11 +138,13 @@ namespace CoupledField {
         return coefScalar_->GetDependency() == CoefFunction::SOLUTION;
       }
             
+      //! Set Finite Element Space
       void SetFeSpace( shared_ptr<FeSpace> feSpace ) {
         this->ptFeSpace1_ = feSpace;
         this->intScheme_ = ptFeSpace1_->GetIntScheme();
       }
 
+      //! Set finite element space in cases of mixed spaces
       virtual void SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2) {
         this->ptFeSpace1_ = feSpace1;
         this->ptFeSpace2_ = feSpace2;

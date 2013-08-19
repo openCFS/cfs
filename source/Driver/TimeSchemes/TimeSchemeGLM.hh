@@ -27,13 +27,20 @@ namespace CoupledField{
 class TimeSchemeGLM : public BaseTimeScheme{
   public:
 
+    typedef enum{
+      NONE,
+      INCREMENTAL,
+      TOTAL
+    } NonLinType;
+
+
 
     /*!
      *  Constructor of the GLM scheme
      *  \param[in] type The TimeScheme to be used. Newmark, Trapezoidal, etc.
      *  \param[in] solDerivOrder The time derivative order of the solution to the effective system
      */
-    TimeSchemeGLM(GLMScheme::SchemeType type, UInt solDerivOrder=0);
+    TimeSchemeGLM(GLMScheme::SchemeType type, UInt solDerivOrder=0, TimeSchemeGLM::NonLinType nlType=NONE);
     
     
     /*!
@@ -41,7 +48,10 @@ class TimeSchemeGLM : public BaseTimeScheme{
      * \param[in] scheme Externally created time scheme. Ownership gets handed to this class.
      * \param[in] solDerivOrder The time derivative order of the solution to the effective system
      */
-    TimeSchemeGLM(GLMScheme* scheme, UInt solDerivOrder=0);
+    TimeSchemeGLM(GLMScheme* scheme, UInt solDerivOrder=0, TimeSchemeGLM::NonLinType nlType=NONE);
+    
+    //! Copy constructor
+    TimeSchemeGLM(const TimeSchemeGLM& ts);
 
     virtual ~TimeSchemeGLM();
 
@@ -65,12 +75,12 @@ class TimeSchemeGLM : public BaseTimeScheme{
       curScheme_->ComputeCoefficients(order,timeStepSize);
     }
 
-    /// Obtain number of stages of the scheme
+    //! Obtain number of stages of the scheme
     UInt GetNumStages(){
       return curScheme_->numStages_;
     }
 
-    /// Obtain reference to current stage vector to avoid copying of elements
+    //! Obtain reference to current stage vector to avoid copying of elements
     SingleVector * GetStageVector(UInt stage){
       assert(stage < curScheme_->numStages_);
       return stageVector_[stage];
@@ -88,6 +98,11 @@ class TimeSchemeGLM : public BaseTimeScheme{
     virtual SingleVector* GetTimeDerivative(UInt order);
 
     virtual void SetTimeDerivVector(UInt order,SingleVector * coefVector);
+
+    /// Give the timestep the possibility to initialize
+    virtual void InitStage(UInt aStage,Double aTime,Domain* domain){
+      curScheme_->PrepareStage(aStage,aTime, domain);
+    };
 
   protected:
 
@@ -120,6 +135,9 @@ class TimeSchemeGLM : public BaseTimeScheme{
     StdVector<bool> predictorCalculated_;
 
     std::set<UInt> avoidFreeingIdx_;
+
+    ///Store the type of nonlinearity to be considered in the scheme
+    NonLinType nLinType_;
 
   private:
 

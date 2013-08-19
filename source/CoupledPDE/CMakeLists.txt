@@ -4,6 +4,7 @@ SET(COUPLED_PDE_SRCS
   IterCoupledPDE.cc
   PiezoCoupling.cc
   AcouMechCoupling.cc
+  AcouMechCoupling.cc
   FluidMechCoupling.cc
   )
 

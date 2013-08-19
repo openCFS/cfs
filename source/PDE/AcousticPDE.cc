@@ -39,6 +39,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <cmath>
+#include <def_expl_templ_inst.hh>
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
@@ -229,17 +230,7 @@ namespace CoupledField{
     // BaseMaterial * actSDMat = NULL;
 
     //type of geometry
-    std::string geometryType;
-    domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", geometryType );
-
-    // convert to tensor type
-    // SubTensorType tensorType = FULL;
-    if (geometryType == "plane") {
-      // tensorType = PLANE_STRAIN;
-    } else if (geometryType == "axi") {
-      // tensorType = AXI;
-      isaxi_ = true;
-    }
+    isaxi_ = ptGrid_->IsAxi();
 
     // Define integrators for "standard" materials
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -650,6 +641,28 @@ namespace CoupledField{
     }
   }
 
+  void AcousticPDE::DefineNcIntegrators() {
+    StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
+                                           endIt = ncInterfaces_.End();
+    for ( ; ncIt != endIt; ++ncIt ) {
+      switch (ncIt->type) {
+      case NC_MORTAR:
+        DefineMortarCoupling(formulation_, *ncIt);
+        break;
+      case NC_NITSCHE:
+        if(dim_ == 2)
+          DefineNitscheCoupling<2>(formulation_, *ncIt);
+        else
+          DefineNitscheCoupling<3>(formulation_, *ncIt);
+
+        break;
+      default:
+        EXCEPTION("Unknown type of ncInterface");
+        break;
+      }
+    }
+  }
+  
   void AcousticPDE::DefineSurfaceIntegrators( ){
     //========================================================================================
     // ABC boundaries
@@ -662,13 +675,6 @@ namespace CoupledField{
         std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
         shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
         std::string volRegName = abcNodes[i]->Get("volumeRegion")->As<std::string>();
-        //RegionIdType sRegId = ptGrid_->GetRegion().Parse(regionName);
-
-        // --- Set the FE ansatz for the current region ---
-        PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
-        std::string polyId = curRegNode->Get("polyId")->As<std::string>();
-        std::string integId = curRegNode->Get("integId")->As<std::string>();
-        //feFunctions_[formulation_]->GetFeSpace()->SetRegionApproximation(sRegId, polyId,integId);
 
         RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
         // c0 = sqrt(bulk_modulus / density)
@@ -706,124 +712,6 @@ namespace CoupledField{
         assemble_->AddBiLinearForm( abcContext );
       }
     }
-    if( ncIFaces_.GetSize() > 0 ) {
-      RegionIdType actRegion;
-      std::string regionName;
-      shared_ptr<BaseNcInterface> curNC;
-      for(UInt i=0;i < ncIFaces_.GetSize();++i){
-        curNC = this->ptGrid_->GetNcInterface(i);
-        actRegion = ncIFaces_[i];
-        regionName = curNC->GetName();
-        //curList = this->ptGrid_->GetEntityList(EntityList::SURF_ELEM_LIST,regionName);
-
-        // create new entity list
-        shared_ptr<ElemList> actSDList( new SurfElemList(ptGrid_ ) );
-        actSDList->SetRegion( actRegion );
-
-        PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-        //notation> assume the test function is called v
-        BaseBDBInt *penalty_u1_v1 = NULL;
-        BaseBDBInt *penalty_u1_v2 = NULL;
-        BaseBDBInt *penalty_u2_v1 = NULL;
-        BaseBDBInt *penalty_u2_v2 = NULL;
-        //now bilinear forms related to the normal derivatives
-        //du1 referes to the normal derivative directing from 1 to 2
-        BaseBDBInt *flux_du1_v1 = NULL;
-        BaseBDBInt *flux_du1_v2 = NULL;
-        BaseBDBInt *flux_u1_dv1 = NULL;
-        BaseBDBInt *flux_u2_dv1 = NULL;
-        BiLinearForm::CouplingDirection curcpl;
-
-        //we set here the penalty factor
-        Double beta = nitscheFactors_[actRegion];
-        if( dim_ == 2 ) {
-          if(analysistype_ == HARMONIC){
-            EXCEPTION("HARMONIC CASE NOT IMPLEMENTED FOR ACOUSTIC NMG");
-          }else{
-            curcpl = BiLinearForm::MASTER_MASTER;
-            penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
-                                                 new SurfaceIdentityOperator<FeH1,2,1>(),factor,beta,curcpl,false);
-
-            flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceNormalDerivOperator<FeH1,2,1>(),
-                new SurfaceIdentityOperator<FeH1,2,1>(),factor,-1.0,curcpl,false);
-
-            flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,1>(),
-                new SurfaceNormalDerivOperator<FeH1,2,1>(),factor,-1.0,curcpl,false);
-
-            curcpl = BiLinearForm::SLAVE_SLAVE;
-            penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
-                                                 new SurfaceIdentityOperator<FeH1,2,1>(),factor,beta,curcpl,false);
-
-            curcpl = BiLinearForm::MASTER_SLAVE;
-            penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
-                                                 new SurfaceIdentityOperator<FeH1,2,1>(),factor,beta*-1.0,curcpl,false);
-
-            flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>(new SurfaceNormalDerivOperator<FeH1,2,1>(),
-                new SurfaceIdentityOperator<FeH1,2,1>(),factor,1.0,curcpl,false);
-
-            curcpl = BiLinearForm::SLAVE_MASTER;
-            penalty_u2_v1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperatorScaledBySurface<FeH1,2,1>(),
-                                                 new SurfaceIdentityOperator<FeH1,2,1>(),factor,beta*-1.0,curcpl,false);
-
-            flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,1>(),
-                new SurfaceNormalDerivOperator<FeH1,2,1>(),factor,1.0,curcpl,false);
-
-          }
-        }else{
-          EXCEPTION("Only 2D NMGs are supported right now!");
-        }
-        penalty_u1_v1->SetName("penalty_u1_v1");
-        flux_du1_v1->SetName("flux_du1_v1");
-        flux_u1_dv1->SetName("flux_u1_dv1");
-        penalty_u2_v2->SetName("penalty_u2_v2");
-        penalty_u1_v2->SetName("penalty_u1_v2");
-        flux_du1_v2->SetName("flux_du1_v2");
-        penalty_u2_v1->SetName("penalty_u2_v1");
-        flux_u2_dv1->SetName("flux_u2_dv1");
-
-        curcpl = BiLinearForm::MASTER_MASTER;
-        SurfaceBiLinFormContext * penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1,STIFFNESS,curcpl);
-        SurfaceBiLinFormContext * flux_du1_v1_Context = new SurfaceBiLinFormContext(flux_du1_v1,STIFFNESS,curcpl);
-        SurfaceBiLinFormContext * flux_u1_dv1_Context = new SurfaceBiLinFormContext(flux_u1_dv1,STIFFNESS,curcpl);
-        curcpl = BiLinearForm::SLAVE_SLAVE;
-        SurfaceBiLinFormContext * penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2,STIFFNESS,curcpl);
-        curcpl = BiLinearForm::MASTER_SLAVE;
-        SurfaceBiLinFormContext * penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2,STIFFNESS,curcpl);
-        SurfaceBiLinFormContext * flux_du1_v2_Context = new SurfaceBiLinFormContext(flux_du1_v2,STIFFNESS,curcpl);
-        curcpl = BiLinearForm::SLAVE_MASTER;
-        SurfaceBiLinFormContext * penalty_u2_v1_Context = new SurfaceBiLinFormContext(penalty_u2_v1,STIFFNESS,curcpl);
-        SurfaceBiLinFormContext * flux_u2_dv1_Context = new SurfaceBiLinFormContext(flux_u2_dv1,STIFFNESS,curcpl);
-
-        penalty_u1_v1_Context->SetEntities(actSDList,actSDList);
-        flux_du1_v1_Context->SetEntities(actSDList,actSDList);
-        flux_u1_dv1_Context->SetEntities(actSDList,actSDList);
-        penalty_u2_v2_Context->SetEntities(actSDList,actSDList);
-        penalty_u1_v2_Context->SetEntities(actSDList,actSDList);
-        flux_du1_v2_Context->SetEntities(actSDList,actSDList);
-        penalty_u2_v1_Context->SetEntities(actSDList,actSDList);
-        flux_u2_dv1_Context->SetEntities(actSDList,actSDList);
-
-        penalty_u1_v1_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
-        flux_du1_v1_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
-        flux_u1_dv1_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
-        penalty_u2_v2_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
-        penalty_u1_v2_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
-        flux_du1_v2_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
-        penalty_u2_v1_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
-        flux_u2_dv1_Context->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
-
-        assemble_->AddBiLinearForm( penalty_u1_v1_Context );
-        assemble_->AddBiLinearForm( flux_du1_v1_Context );
-        assemble_->AddBiLinearForm( flux_u1_dv1_Context );
-        assemble_->AddBiLinearForm( penalty_u2_v2_Context );
-        assemble_->AddBiLinearForm( penalty_u1_v2_Context );
-        assemble_->AddBiLinearForm( flux_du1_v2_Context );
-        assemble_->AddBiLinearForm( penalty_u2_v1_Context );
-        assemble_->AddBiLinearForm( flux_u2_dv1_Context );
-      }
-    }
-
-
   }
 
   void AcousticPDE::DefineRhsLoadIntegrators() {
@@ -1112,15 +1000,14 @@ namespace CoupledField{
 
     //creates the mean flow
     StdVector<std::string> vecDofNames;
-    std::string geometryType;
-    domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", geometryType );
-
-    if( geometryType == "3d" ) {
+    if( ptGrid_->GetDim() == 3 ) {
       vecDofNames = "x", "y", "z";
-    } else if( geometryType == "plane" ) {
-      vecDofNames = "x", "y";
-    } else if( geometryType == "axi" ) {
-      vecDofNames = "r", "z";
+    } else {
+      if( ptGrid_->IsAxi() ) {
+        vecDofNames = "r", "z";
+      } else {
+        vecDofNames = "x", "y";
+      }
     }
 
     CreateMeanFlowFunction(vecDofNames);
@@ -1195,86 +1082,6 @@ namespace CoupledField{
       DefineFieldResult( feFunctions_[ACOU_PMLAUXVEC], pmlVec );
     }
 
-    // ===================================
-    // Check for non-conforming interfaces
-    // ===================================
-    StdVector<std::string> ncIfaceNames, ncIfaceNamesForPDE;
-    StdVector<RegionIdType> ncIfaceIds;
-
-    LOG_DBG2(acousticpde) << "NonMatching: Checking if nonconforming "
-                          << "interfaces of PDE exist in domain.";
-
-    PtrParamNode acouPDENCIfaceListNode;
-    acouPDENCIfaceListNode = domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
-    ->Get("pdeList/acoustic/ncInterfaceList", ParamNode::PASS);
-
-    if(acouPDENCIfaceListNode){
-
-
-      PtrParamNode domainNCIfaceListNode;
-      domainNCIfaceListNode = domain_->GetParamRoot()->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
-
-      if(!domainNCIfaceListNode)
-      {
-        EXCEPTION("No nonmatching interfaces have been specified in domain!");
-      }
-
-      ParamNodeList pdeNCIfaceNodes;
-      pdeNCIfaceNodes = acouPDENCIfaceListNode->GetList("ncInterface");
-
-      for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
-        std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
-
-        PtrParamNode domainIfaceNode = domainNCIfaceListNode
-            ->GetByVal("ncInterface", "name", pdeIfaceName, ParamNode::PASS);
-        if(!domainIfaceNode)
-        {
-          LOG_DBG2(acousticpde) << "NonMatching: Nonconforming "
-          << "interface '" << ncIfaceNames[i]
-                                           << "' does not exist in domain.";
-
-          EXCEPTION( "ncInterface referenced from PDE not defined in domain!");
-        }
-
-        ncIfaceNamesForPDE.Push_back(pdeIfaceName);
-
-
-      }
-      ptGrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
-
-      for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
-        ncIFaces_.Push_back(ncIfaceIds[i]);
-        std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
-        std::string nmgFormStr =  pdeNCIfaceNodes[i]->Get("nmgFormulation",ParamNode::PASS)->As<std::string>();
-        ncTypes_[ncIfaceIds[i]] = ncCouplingType_.Parse(nmgFormStr);
-
-        if(ncTypes_[ncIfaceIds[i]]==NITSCHE){
-
-          nitscheFactors_[ncIfaceIds[i]] = pdeNCIfaceNodes[i]->Get("nitscheFactor",ParamNode::PASS)->As<Double>();
-
-          //write some info
-          PtrParamNode base = infoNode_->Get(ParamNode::PN_HEADER)->Get("NMG",ParamNode::INSERT)->Get("nitsche",ParamNode::INSERT);
-          PtrParamNode curNCI = base->Get(pdeIfaceName,ParamNode::INSERT);
-          curNCI->Get("penaltyValue",ParamNode::INSERT)->SetValue(nitscheFactors_[ncIfaceIds[i]]);
-        }else{
-          EXCEPTION("Only Nitsche NMG formulation is supported right now for acoustic PDE");
-        }
-      }
-    }
-
-
-    // In the case of the presence of non-conforming interfaces,
-    // a second resultdof object has to be created, which describes the
-    // Lagrange multiplier
-    //if( ncIFaces_.GetSize() > 0 ) {
-    //  LOG_DBG2(acousticpde) << "NonMatching: Defining new ResultDof Lagrange.";
-    //  shared_ptr<ResultInfo> lagr ( new ResultInfo );
-    //  lagr->resultType = LAGRANGE_MULT;
-    //  lagr->dofNames = "l";
-    //  lagr->definedOn = results_[0]->definedOn;
-    //  results_.Push_back( lagr );
-    //}
-
   }
   
   void AcousticPDE::DefinePostProcResults(){
@@ -1283,15 +1090,15 @@ namespace CoupledField{
     shared_ptr<BaseFeFunction> feFct = feFunctions_[formulation_];
     shared_ptr<ResultInfo> res1 = feFct->GetResultInfo();
     
-    std::string geometryType;
-    domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", geometryType );
     StdVector<std::string> vecDofNames;
-    if( geometryType == "3d" ) {
+    if( ptGrid_->GetDim() == 3 ) {
       vecDofNames = "x", "y", "z";
-    } else if( geometryType == "plane" ) {
-      vecDofNames = "x", "y";
-    } else if( geometryType == "axi" ) {
-      vecDofNames = "r", "z";
+    } else {
+      if( ptGrid_->IsAxi() ) {
+        vecDofNames = "r", "z";
+      } else {
+        vecDofNames = "x", "y";
+      }
     }
     
     // === PRESSURE / POTENTIAL - 1.DERIVATIVE ===
@@ -1423,7 +1230,7 @@ namespace CoupledField{
       DefineFieldResult( velFct, vel );
       
       // === ACOU_NORMAL_VELOCITY ===
-      velFctNormal.reset(new CoefFunctionSurf(true));
+      velFctNormal.reset(new CoefFunctionSurf(true, velNormal));
       DefineFieldResult(velFctNormal, velNormal);
       surfCoefFcts_[velFctNormal] = velFctPot;
       
@@ -1435,7 +1242,7 @@ namespace CoupledField{
       DefineFieldResult(intensFct, intensity);
       
       // === ACOU_NORMAL_INTENSITY ===
-      sNormIntens.reset(new CoefFunctionSurf(true));
+      sNormIntens.reset(new CoefFunctionSurf(true, intensNormal));
       DefineFieldResult( sNormIntens, intensNormal );
       surfCoefFcts_[sNormIntens] = intensFct;
       
@@ -1482,7 +1289,7 @@ namespace CoupledField{
       DefineFieldResult( velFct, vel );
 
       // === ACOU_NORMAL_VELOCITY ===
-      velFctNormal.reset(new CoefFunctionSurf(true));
+      velFctNormal.reset(new CoefFunctionSurf(true, velNormal));
       DefineFieldResult(velFctNormal, velNormal);
       surfCoefFcts_[velFctNormal] = velFct;
       
@@ -1494,7 +1301,7 @@ namespace CoupledField{
       DefineFieldResult(intensFct, intensity);
 
       // === ACOU_NORMAL_INTENSITY ===
-      sNormIntens.reset(new CoefFunctionSurf(true));
+      sNormIntens.reset(new CoefFunctionSurf(true, intensNormal));
       DefineFieldResult( sNormIntens, intensNormal );
       surfCoefFcts_[sNormIntens] = intensFct;
       
@@ -1529,18 +1336,29 @@ namespace CoupledField{
 
   //! Init the time stepping
   void AcousticPDE::InitTimeStepping(){
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
 
-    feFunctions_[formulation_]->SetTimeScheme(myScheme);
     if(this->isTimeDomPML_){
-      shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+      //basically the choice for alpha scheme needs to be done everytime we have
+      //a damping matrix not just for PML
+
+      //scheme for main unknown
+      GLMScheme * scheme1 = new Newmark(0.5,0.25,-0.3);
+      GLMScheme * scheme2 = new Newmark(0.5,0.25,-0.3);
+      shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
+      shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(scheme2,0));
+
       feFunctions_[ACOU_PMLAUXVEC]->SetTimeScheme(vecScheme);
+      feFunctions_[formulation_]->SetTimeScheme(acouScheme);
 
       if(!this->isAPML_ && dim_ == 3){
-        shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+        GLMScheme * scheme3 = new Newmark(0.5,0.25,-0.3);
+        shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(scheme3,0));
         feFunctions_[ACOU_PMLAUXSCALAR]->SetTimeScheme(scalScheme);
       }
-
+    }else{
+      GLMScheme * scheme1 = new Newmark(0.5,0.25,0.0);
+      shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
+      feFunctions_[formulation_]->SetTimeScheme(acouScheme);
     }
 
   }

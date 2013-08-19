@@ -105,18 +105,22 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
   PtrParamNode tmpNode  =  infoNode->Get("externalData");
   if(configNode->Has("defaultGrid")){
     if(format == Global::COMPLEX){
-      ret.reset(new CoefFunctionGridNodalDefault<Complex>(ptDomain, configNode->Get("defaultGrid"), tmpNode));
+      ret.reset(new CoefFunctionGridNodalDefault<Complex>(ptDomain,
+          configNode->Get("defaultGrid"), tmpNode));
     }else{
-      ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain, configNode->Get("defaultGrid"), tmpNode));
+      ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
+          configNode->Get("defaultGrid"), tmpNode));
     }
   }else if(configNode->Has("externalGrid")){
     if(format == Global::COMPLEX){
-      ret.reset(new CoefFunctionGridNodalInterp<Complex>(ptDomain, configNode->Get("externalGrid"), tmpNode));
+      ret.reset(new CoefFunctionGridNodalInterp<Complex>(ptDomain,
+          configNode->Get("externalGrid", ParamNode::INSERT), tmpNode));
     }else{
-      ret.reset(new CoefFunctionGridNodalInterp<Double>(ptDomain, configNode->Get("externalGrid"), tmpNode));
+      ret.reset(new CoefFunctionGridNodalInterp<Double>(ptDomain,
+          configNode->Get("externalGrid", ParamNode::INSERT), tmpNode));
     }
   } else {
-    EXCEPTION("CoefFunctionGrid generator called with invalid xml tag. This is a serious Bug please report!");
+    EXCEPTION("CoefFunctionGrid generator called with invalid xml tag. This is a serious bug, please report!");
   }
   ret->AddEntityList( list);
   return ret;

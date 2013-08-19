@@ -29,7 +29,6 @@ namespace CoupledField {
     dirName_ = "history";
     fileName_ = fileName;
     coordSys_ = NULL;
-    stepNumOffset_ = 0;
     globalNumbering_ = true;
     // initialize delimiter string
     delim_ = "  ";
@@ -111,7 +110,7 @@ namespace CoupledField {
   void SimOutputText::BeginMultiSequenceStep( UInt step, 
                                               BasePDE::AnalysisType type,
                                               UInt numSteps ) {
-      
+      currMS_ = step;
       actAnalysis_ = type;
     }
   
@@ -127,13 +126,6 @@ namespace CoupledField {
 
     actStep_ = stepNum;
     actStepVal_ = stepVal;
-
-    // add  offset to step value to account for multisequence steps
-    if( actAnalysis_ == BasePDE::TRANSIENT ||
-        actAnalysis_ == BasePDE::STATIC  ) { 
-      actStep_ += stepNumOffset_;
-    }
-
     resultMap_.clear();
   }
 
@@ -155,15 +147,6 @@ namespace CoupledField {
     }
 
   }
-
-  void SimOutputText::FinishMultiSequenceStep( ) {
-    
-    // set offset for step value and number to last values
-    if( actAnalysis_ == BasePDE::TRANSIENT ||
-         actAnalysis_ == BasePDE::STATIC ) {
-      stepNumOffset_ = actStep_; 
-     }
-   }
 
   void SimOutputText::WriteStepCollectTimeFreq() {
 
@@ -209,6 +192,7 @@ namespace CoupledField {
           break;
         default:
           EXCEPTION( "Case not implemented" );
+          break;
         }
 
         if( actResults[iSol]->GetEntryType() == BaseMatrix::DOUBLE ) {
@@ -442,7 +426,8 @@ namespace CoupledField {
                                    UInt step,
                                    Double stepVal ) {
 
-    std::string namePrefix="history/" + fileName_ + "-";
+    std::string namePrefix="history/" + fileName_ + "-ms" +
+        lexical_cast<std::string>(currMS_) + "-";
     std::string totalName;
 
     // determine type of entity the result is defined on
@@ -486,6 +471,7 @@ namespace CoupledField {
             break;
           default:
             entityString = idString;
+            break;
         }
 
         //entityString = it.GetIdString();
@@ -725,6 +711,7 @@ namespace CoupledField {
                 break;
               default:
                 EXCEPTION( "Case not implemented" );
+                break;
             }
             // node/element number and coordinates 
             entityVector = (this->*pt2Func)(it);

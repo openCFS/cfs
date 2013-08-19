@@ -23,7 +23,7 @@ namespace CoupledField {
                      CoordSystem * defaultCoosy);
 
     //! Destructor
-    virtual ~MechanicMaterial();
+    virtual ~MechanicMaterial(){};
 
     //! Trigger finalization of mataterial (calculation of rotated matrices)
     void Finalize();
@@ -140,22 +140,6 @@ namespace CoupledField {
 
     //! Compute elasticity tensor from given parameters
     void ComputeFullStiffTensor();
-
-    
-    MathParser::HandleType mHandle_;
-    
-    Double density_;
-    Double PoissonRatio_;
-    Double RayleighAlpha_;
-    Double RayleighBeta_;
-    Double RayleighFrequency_;
-    Double lossTangens_;
-
-    Complex scalarEmodulus_;
-    Complex scalarLameLambda_;
-    Complex scalarLameMu_;
-
-    Matrix<Complex> stiffnessTensor_;
 
   };
 

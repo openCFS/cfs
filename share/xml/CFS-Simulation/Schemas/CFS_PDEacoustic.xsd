@@ -51,19 +51,8 @@
           </xsd:element>
 
           <!-- Non-conforming interfaces of the PDE -->
-          <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
-                  <xsd:complexType>
-                    <xsd:attribute name="name" type="xsd:token" use="required"/>
-                    <xsd:attribute name="nmgFormulation" type="DT_NMGFormulationBasic" use="optional" default="Nitsche"/>
-                    <xsd:attribute name="nitscheFactor" type="xsd:token" use="optional" default="50"/>
-                  </xsd:complexType>
-                </xsd:element>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element>
+          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList"
+                       minOccurs="0" maxOccurs="1"/>
 
           <!-- List defining nonlinear types -->
           <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
@@ -131,10 +120,11 @@
                 <xsd:element name="normalVelocity" type="DT_BcInhomScalar"/>
 
                 <!-- Special Boundary Conditions -->
-                <xsd:element name="absorbingBCs"   type="DT_AbsorbingBC" />
-                <xsd:element name="flowData"       type="DT_AcousticFlow"/>
+                <xsd:element name="absorbingBCs"   type="DT_AbsorbingBC"  />
+                <xsd:element name="flowData"       type="DT_AcousticFlow" />
                 <xsd:element name="rhsValues"      type="DT_BcInhomVector" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="impedance"      type="DT_AcouImpedance"/>
+                <xsd:element name="periodic"       type="DT_BcPeriodic"   />
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>

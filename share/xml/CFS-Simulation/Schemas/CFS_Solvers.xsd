@@ -479,6 +479,64 @@
     </xsd:restriction>
   </xsd:simpleType>
   
+  <!-- =================================================================== -->
+  <!-- ==                                                               == -->
+  <!-- ==                         SuperLU Solver                        == -->
+  <!-- ==                                                               == -->
+  <!-- =================================================================== -->
+  
+  
+  <!-- ******************************************************************* -->
+  <!-- Definition of element for SuperLU Solver -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="superlu" type="DT_SolverSuperLU"
+    substitutionGroup="SolverBasic">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        SuperLU package contains a set of subroutines to solve sparse linear
+        systems AX = B. Here A is a square, nonsingular, n × n sparse matrix,
+        and X and B are dense n × nrhs matrices, where nrhs is the number of
+        right-hand sides and solution vectors. Matrix A need not be symmetric
+        or definite; indeed, SuperLU is particularly appropriate for matrices
+        with very unsymmetric structure.
+
+        The package uses LU decomposition with partial (or threshold) pivoting,
+        and forward/back substitutions. The columns of A may be preordered before
+        factorization (either by the user or by SuperLU); this preordering for
+        sparsity is completely separate from the factorization. To improve
+        backward stability, we provide working precision iterative refinement
+        subroutines [2]. Routines are also available to equilibrate the system,
+        estimate the condition number, calculate the relative backward error,
+        and estimate error bounds for the refined solutions. We also include a
+        Matlab MEX-file interface, so that our factor and solve routines can
+        be called as alternatives to those built into Matlab. The LU
+        factorization routines can handle non-square matrices, but the
+        triangular solves are performed only for square matrices.
+
+        Starting from Version 4.0, we provide the incomplete factorization (ILU)
+        routines which can be used as preconditioners for iterative solvers [25].
+        
+        Xiaoye S. Li, James W. Demmel, John R. Gilbert, Laura Grigori,
+        Meiyue Shao, Ichitaro Yamazaki
+        
+        http://crd.lbl.gov/~xiaoye/SuperLU
+        http://www.netlib.org/scalapack/prototype
+      </xsd:documentation>
+    </xsd:annotation>
+  </xsd:element>  
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data types for SuperLU Solver -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_SolverSuperLU">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="logging"     type="DT_CFSBool" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
   
   <!-- =================================================================== -->
   <!-- ==                                                               == -->

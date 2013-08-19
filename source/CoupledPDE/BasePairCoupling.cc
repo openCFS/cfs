@@ -174,13 +174,7 @@ namespace CoupledField {
     }
     
     // Determine, if axisymmetric geometry is used
-    std::string probGeo;
-    domain_->GetParamRoot()->Get("domain")->GetValue( "geometryType", probGeo );
-    if( probGeo == "axi" ) {
-      isaxi_ = true;
-    } else {
-      isaxi_ = false;
-    }
+    isaxi_ = ptGrid_->IsAxi();
 
     // Get type of analysis and create according 
     // assemble object
@@ -665,7 +659,7 @@ namespace CoupledField {
         } 
         
         // only enter, at least one region is present
-        if( listNode->HasChildren() ) {
+        if( listNode != NULL && listNode->HasChildren() ) {
           // fetch saveBegin, saveEnd and saveInc
           saveBegin = listNode->Get("saveBegin")->MathParse<UInt>();
           saveEnd = listNode->Get("saveEnd")->MathParse<UInt>();

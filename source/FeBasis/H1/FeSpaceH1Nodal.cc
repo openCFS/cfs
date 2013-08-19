@@ -95,19 +95,23 @@ namespace CoupledField{
     Elem::FEType eType = ent.GetElem()->type;
 
     if(refElems_[eRegion].find(eType) == refElems_[eRegion].end()){
-      EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
+      EXCEPTION(__PRETTY_FUNCTION__
+                << ": requested fetype which is not supported by space");
     }
     BaseFE * myFe = refElems_[eRegion][ent.GetElem()->type];
 
-    // No need to set the order here, as this is already done once and for all in the
-    // SetMapType() method. For higher order spaces with non-uniform polynomial order, this necessary.
+    /* No need to set the order here, as this is already done once and for all
+     * in the SetMapType() method. For higher order spaces with non-uniform
+     * polynomial order, this necessary.
+     */
     // myFe->SetIsoOrder( isoOrder_);
 
     return myFe;
   }
 
   BaseFE* FeSpaceH1Nodal::GetFe( UInt elemNum ){
-    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    // request a strong pointer
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock();
     assert(feFct);
     const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum);
     RegionIdType eRegion = GetVolElem(ptElem)->regionId;
@@ -118,7 +122,8 @@ namespace CoupledField{
     }
 
     if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
-      EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
+      EXCEPTION(__PRETTY_FUNCTION__
+                << ": requested FEType is not supported by space");
     }
     BaseFE * myFe = refElems_[eRegion][ptElem->type];
 

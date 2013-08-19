@@ -40,8 +40,10 @@ namespace CoupledField
   }
   
   BaseMaterial::MatDescriptorNl::~MatDescriptorNl() {
+    if (approxData) {
       delete approxData;
     }
+  }
 
 
 
@@ -71,9 +73,18 @@ namespace CoupledField
     coosy_ = defaultCoosy;
   }
 
-   BaseMaterial::~BaseMaterial() {
+  BaseMaterial::~BaseMaterial() {
+    handleMap::iterator it = scalarStringHandlesReal_.begin(),
+                        itEnd = scalarStringHandlesReal_.end();
+    for ( ; it != itEnd; ++it ) {
+      mp_->ReleaseHandle(it->second);
+    }
 
-
+    it = scalarStringHandlesImag_.begin();
+    itEnd = scalarStringHandlesImag_.end();
+    for ( ; it != itEnd; ++it ) {
+      mp_->ReleaseHandle(it->second);
+    }
   }
 
 

@@ -12,6 +12,7 @@
  */
 //================================================================================================
 
+#include <def_expl_templ_inst.hh>
 
 #include "CoefFunctionGridNodalDefault.hh"
 #include "FeBasis/FeSpace.hh"
@@ -35,7 +36,7 @@ CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(Domain* pt
 
 
 
-  this->extDataInfo_ = curInfo->Get("defaultGrid");
+  this->extDataInfo_ = curInfo->Get("defaultGrid",ParamNode::APPEND);
   this->extDataInfo_->Get("interpolation")->Get("type")->SetValue("noInterpolation");
 
   std::string factorString = this->factorFnc_->ToString();
@@ -293,6 +294,7 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::MapConservative( shared_ptr<FeSpac
   //a little more memory but very efficient updates
   if(!this->conservativeReady_){
     BuildNodeIdxAssoc(targetSpace);
+    this->conservativeReady_ = true;
   }
   for(UInt i=0;i<this->fctSolAssoc_.GetSize();++i){
     const std::pair<UInt,UInt> & curP = this->fctSolAssoc_[i];

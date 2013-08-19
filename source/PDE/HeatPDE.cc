@@ -139,17 +139,15 @@ void HeatPDE::DefineIntegrators() {
   RegionIdType actRegion;
   BaseMaterial * actSDMat = NULL;  
 
-  //type of geometry
-  std::string geometryType;
-  domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", geometryType );
-
   // convert to tensor type
   SubTensorType tensorType = FULL;
-  if (geometryType == "plane") {
-    tensorType = PLANE_STRAIN;
-  } else if (geometryType == "axi") {
-    tensorType = AXI;
-    isaxi_ = true;
+  if ( ptGrid_->GetDim() == 2 ) {
+    if ( ptGrid_->IsAxi() ) {
+      tensorType = AXI;
+      isaxi_ = true;
+    } else {
+      tensorType = PLANE_STRAIN;
+    }
   }
 
   // Define integrators for "standard" materials
@@ -530,6 +528,24 @@ void HeatPDE::DefineIntegrators() {
 
 }
 
+void HeatPDE::DefineNcIntegrators() {
+  StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
+                                         endIt = ncInterfaces_.End();
+  for ( ; ncIt != endIt; ++ncIt ) {
+    switch (ncIt->type) {
+    case NC_MORTAR:
+      DefineMortarCoupling(HEAT_TEMPERATURE, *ncIt);
+      break;
+    case NC_NITSCHE:
+      EXCEPTION("ncInterface of Nitsche type is not implemented for HeatPDE");
+      break;
+    default:
+      EXCEPTION("Unknown type of ncInterface");
+      break;
+    }
+  }
+}
+
 void HeatPDE::DefineRhsLoadIntegrators() {
   
   LOG_TRACE(heatcondpde) << "Defining rhs load integrators for thermal PDE";
@@ -678,67 +694,6 @@ void HeatPDE::DefinePrimaryResults() {
   availResults_.insert( rhs );
   rhsFeFunctions_[HEAT_TEMPERATURE]->SetResultInfo(rhs);
   DefineFieldResult( rhsFeFunctions_[HEAT_TEMPERATURE], rhs );
-
-  // ===================================
-  // Check for non-conforming interfaces
-  // ===================================
-  StdVector<std::string> ncIfaceNames, ncIfaceNamesForPDE;
-    StdVector<RegionIdType> ncIfaceIds;
-    
-    LOG_DBG2(heatcondpde) << "NonMatching: Checking if nonconforming "
-                      << "interfaces of PDE exist in domain.";
-
-    PtrParamNode heatcondpdeNCIfaceListNode;
-    heatcondpdeNCIfaceListNode = domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
-    ->Get("pdeList/heatConduction/ncInterfaceList", ParamNode::PASS);
-    
-    if(!heatcondpdeNCIfaceListNode)
-      return;
-
-    PtrParamNode domainNCIfaceListNode;
-    domainNCIfaceListNode = domain_->GetParamRoot()->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
-
-    if(!domainNCIfaceListNode)
-    {
-      EXCEPTION("No nonmatching interfaces have been specified in domain!");
-    }
-
-    ParamNodeList pdeNCIfaceNodes;
-    pdeNCIfaceNodes = heatcondpdeNCIfaceListNode->GetList("ncInterface");
-
-    for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
-      std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
-
-      PtrParamNode domainIfaceNode = domainNCIfaceListNode
-          ->GetByVal("ncInterface", "name", pdeIfaceName, ParamNode::PASS);
-      if(!domainIfaceNode)
-      {
-        LOG_DBG2(heatcondpde) << "NonMatching: Nonconforming "
-        << "interface '" << ncIfaceNames[i]
-                                         << "' does not exist in domain.";
-
-        EXCEPTION( "ncInterface referenced from PDE not defined in domain!");
-      }
-
-      ncIfaceNamesForPDE.Push_back(pdeIfaceName);
-    }
-    ptGrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
-
-    for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
-      ncIFaces_.Push_back(ncIfaceIds[i]);
-    }
-
-    // In the case of the presence of non-conforming interfaces,
-    // a second resultdof object has to be created, which describes the 
-    // Lagrange multiplier
-    if( ncIFaces_.GetSize() > 0 ) {
-      LOG_DBG2(heatcondpde) << "NonMatching: Defining new ResultDof Lagrange.";
-      shared_ptr<ResultInfo> lagr ( new ResultInfo );
-      lagr->resultType = LAGRANGE_MULT;
-      lagr->dofNames = "l";
-      lagr->definedOn = results_[0]->definedOn;
-      results_.Push_back( lagr );
-    } 
 
 }
 

@@ -2,6 +2,7 @@
 #include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_suitesparse.hh>
+#include <def_use_superlu.hh>
 #include <def_use_lis.hh>
 
 #include "OLAS/algsys/SolStrategy.hh"
@@ -28,6 +29,10 @@
 #ifdef USE_SUITESPARSE
 #include "OLAS/external/cholmod/CholMod.hh"
 #include "OLAS/external/umfpack/UMFPACKSolver.hh"
+#endif
+
+#ifdef USE_SUPERLU
+#include "OLAS/external/superlu/SuperLUSolver.hh"
 #endif
 
 #ifdef USE_LIS
@@ -312,6 +317,39 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 #endif
     break;
 
+  case BaseSolver::SUPERLU:
+
+#ifdef USE_SUPERLU
+
+    // Check suitability of matrix
+    if ( mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
+      EXCEPTION( "SuperLUSolver only works with (S)CRS_Matrix class!" );
+    }
+    else {
+      const StdMatrix &stdmat = dynamic_cast<const StdMatrix &>(mat);
+      if ( stdmat.GetStorageType() != BaseMatrix::SPARSE_NONSYM &&
+          stdmat.GetStorageType() != BaseMatrix::SPARSE_SYM  ) {
+        EXCEPTION( "SuperLUSolver only works with (S)CRS_Matrix class!" );
+      }
+    }
+
+    if ( eType == BaseMatrix::DOUBLE ) {
+      retSolver = new SuperLUSolver<Double>( solverNode, olasInfo );
+      ASSERTMEM( retSolver, sizeof(SuperLUSolver<Double>) );
+      LOG_DBG(genSolver) << " GenerateSolver: Generated real SuperLU solver";
+    }
+    if ( eType == BaseMatrix::COMPLEX ) {
+      retSolver = new SuperLUSolver<Complex>( solverNode, olasInfo );
+      ASSERTMEM( retSolver, sizeof(SuperLUSolver<Complex>) );
+      LOG_DBG(genSolver) << " GenerateSolver: Generated complex SuperLU solver";
+    }
+#else
+
+    EXCEPTION( "Compile with USE_SUPERLU to enable interface to SuperLU "
+               "library" );
+#endif
+    break;
+
   case BaseSolver::ILUPACK:
 
 #ifdef USE_ILUPACK
@@ -438,6 +476,10 @@ GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {
 
     case BaseSolver::LIS:
       ret.insert(BaseMatrix::SPARSE_SYM);
+      ret.insert(BaseMatrix::SPARSE_NONSYM);
+      break;
+
+    case BaseSolver::SUPERLU:
       ret.insert(BaseMatrix::SPARSE_NONSYM);
       break;
 
