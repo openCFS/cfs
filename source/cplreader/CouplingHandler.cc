@@ -913,7 +913,7 @@ namespace CoupledField
             }
 
             UInt numEs = velocityFieldVector.size();
-//#pragma omp parallel for
+#pragma omp parallel for
             for(UInt i = 0; i<numEs;++i){
               tmpMeanVelField[actRegion][i] += velocityFieldVector[i] * actDt;
             }
@@ -928,7 +928,7 @@ namespace CoupledField
               std::fill(tmpMeanPresField[actRegion].begin(), tmpMeanPresField[actRegion].end(), 0);
             }
             UInt numEs = presureFieldVector.size();
-//#pragma omp parallel for
+#pragma omp parallel for
             for(UInt i = 0; i<numEs;++i){
               tmpMeanPresField[actRegion][i] += presureFieldVector[i] * actDt;
             }
@@ -961,7 +961,7 @@ namespace CoupledField
         std::fill(fdps1.data.begin(), fdps1.data.end(), 0);
 
         UInt numE = tmpMeanPresField[actRegion].size();
-//#pragma omp parallel for
+#pragma omp parallel for
         for(UInt i = 0; i<numE;++i){
           fdps1.data[i] = tmpMeanPresField[actRegion][i] / (simTime);
         }
@@ -986,7 +986,7 @@ namespace CoupledField
 
         std::fill(fdps2.data.begin(), fdps2.data.end(), 0);
 
-//#pragma omp parallel for
+#pragma omp parallel for
         for(UInt i = 0; i<tmpMeanVelField[actRegion].size();++i){
           fdps2.data[i] = tmpMeanVelField[actRegion][i] / (simTime);
         }
@@ -1467,7 +1467,7 @@ namespace CoupledField
         {
           coordMat[d][n] = nodalCoords_[topoIdx+d];
 
-          if(computeLHV || computeAPEMomentum || computeAeroAcouSrc)
+          if(computeAPEMass || computeLHV || computeAPEMomentum || computeAeroAcouSrc)
           {
             if (!useDivLHT) {
               nodalVel[d][n] = velField[velIdx+d];
@@ -2060,9 +2060,8 @@ namespace CoupledField
     if(pertPres.size() == 0){
       pertPres.resize(size);
     }
-    int iSize = (int)size;
 #pragma omp parallel for
-    for(int i=0;i<iSize;++i){
+    for(UInt i=0;i<size;++i){
       pertPres[i] = actPresField[i] - meanPressureField[i];
     }
   }
@@ -2081,43 +2080,23 @@ namespace CoupledField
     std::vector<Double> & oldVec = oldPressureField_n_1_[regIdx];
     std::vector<Double> & olderVec = oldPressureField_n_2_[regIdx];
     const UInt size = actPresField.size();
-    bool firstStep = false;
-    bool secondStep = false;
+
     if(oldVec.size() == 0){
-      oldVec.resize(size);
-      myVec.resize(size);
-      olderVec.resize(size);
-      firstStep=true;
+      oldVec.resize(size,0.0);
+      myVec.resize(size,0.0);
+      olderVec.resize(size,0.0);
     }
 
-    if(!firstStep && olderVec.size() == 0){
-      olderVec.resize(size);
-      secondStep = true;
-      olderVec.assign(oldVec.begin(),oldVec.end());
-    }
+    const Double c1 = 3.0;
+    const Double c2 = 4.0;
+    const Double c3 = 1.0;
+    const Double iDt = 1.0 / (2.0*dt);
 
-    if(firstStep || secondStep){
-      //ok, this is only first order accurate for the first two timesteps
-
-      int iSize = (int)size;
-//#pragma omp parallel for
-      for(int i = 0; i < iSize; ++i){
-        myVec[i] = (actPresField[i] - oldVec[i]) / dt;
-        oldVec[i] = actPresField[i];
-      }
-    }else{
-      const Double c1 = 3.0;
-      const Double c2 = 4.0;
-      const Double c3 = 1.0;
-      const Double iDt = 1.0 / (2.0*dt);
-
-      int iSize = (int)size;
-//#pragma omp parallel for
-      for(int i = 0; i < iSize; ++i){
-        myVec[i] = (c1 * actPresField[i] - c2 * oldVec[i] + c3*olderVec[i]) * iDt;
-        olderVec[i] = oldVec[i];
-        oldVec[i] = actPresField[i];
-      }
+#pragma omp parallel for
+    for(UInt i = 0; i < size; ++i){
+      myVec[i] = (c1 * actPresField[i] - c2 * oldVec[i] + c3*olderVec[i]) * iDt;
+      olderVec[i] = oldVec[i];
+      oldVec[i] = actPresField[i];
     }
   }
 
