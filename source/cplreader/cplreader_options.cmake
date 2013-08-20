@@ -133,7 +133,7 @@ ADD_OPTION(extfiles
 ADD_OPTION(quantityForAcouRhsLoad
   string
   fluidMechVelocity
-  "Specify which quantity from the fluid solver should be used for computing the RHS for wave equation.Choose one of ([fluidMechVelocity | fluidMechPressure | fluidMechDivLHT | fluidMechPressure_deriv2])"
+  "Specify which quantity from the fluid solver should be used for computing the RHS for wave equation.Choose one of ([fluidMechVelocity | fluidMechPressure | fluidMechDivLHT | fluidMechPressure_deriv2 | fluidMechPressure_timeDeriv2])"
   "Cplreader is going to evaluate a different integral depending of the given choice"
   )
 
