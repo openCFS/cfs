@@ -285,8 +285,8 @@ namespace CoupledField{
     }
   }
 
-  void TimeSchemeGLM::AddMatFactors(UInt stage, const std::map<FEMatrixType,Integer> & matMap
-                                          , std::map<FEMatrixType,Double> & matFactors){
+  void TimeSchemeGLM::AddMatFactors(UInt stage, const std::map<FEMatrixType,Integer> & matMap,
+                                        std::map<FEMatrixType,Double> & matFactors){
 
     //The correct matrix factors are always at the same position
     std::map<FEMatrixType,Integer>::const_iterator mIt = matMap.begin();

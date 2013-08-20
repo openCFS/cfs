@@ -341,7 +341,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           // ------------------------------
           {
             BiLinearForm * phiDivInt = 
-                new BBInt<>(new GradientOperator<FeH1,3,Double>(), conducCoef, 1.0, updatedGeo_);
+                new BBInt<>(new GradientOperator<FeH1,3,1,Double>(), conducCoef, 1.0, updatedGeo_);
             phiDivInt->SetName("MassIntegrator_PhiPhi");
             BiLinFormContext * massContext = 
                 new BiLinFormContext(phiDivInt, DAMPING);
@@ -356,7 +356,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           {
             BiLinearForm * cplInt = 
                 new ABInt<>(new IdentityOperator<FeH1,3,3,Double>() ,
-                            new GradientOperator<FeH1,3,Double>(), conducCoef, 1.0, updatedGeo_);
+                            new GradientOperator<FeH1,3,1,Double>(), conducCoef, 1.0, updatedGeo_);
             cplInt->SetName("MassIntegrator_Coupling_Phi_A");
             BiLinFormContext * cplContext = 
                 new BiLinFormContext(cplInt, DAMPING );

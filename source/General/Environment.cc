@@ -129,6 +129,18 @@ namespace CoupledField {
         return "m/s";
         break;
 
+      case ACOU_MIXED_MASS_LOAD:
+        return "-";
+        break;
+
+      case ACOU_MIXED_MOMENTUM_LOAD:
+        return "-";
+        break;
+
+      case ACOU_LAMB_RHS:
+        return "-";
+        break;
+
       case ELEC_CHARGE:
         return "C";
         break;
@@ -1086,6 +1098,10 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");
     SolutionTypeEnum.Add(ACOU_PMLAUXSCALAR, "acouPmlAuxScalar");
     SolutionTypeEnum.Add(ACOU_PSEUDO_DENSITY, "acouPseudoDensity");
+
+    SolutionTypeEnum.Add(ACOU_MIXED_MASS_LOAD, "acouMixedMassLoad");
+    SolutionTypeEnum.Add(ACOU_MIXED_MOMENTUM_LOAD, "acouMixedMomentumLoad");
+    SolutionTypeEnum.Add(ACOU_LAMB_RHS, "acouLambRhs");
 
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");

@@ -145,7 +145,7 @@ Newmark::Newmark(Double gamma,Double beta, Double alpha)
     usePredictors_ = true;
     lastStageIsSolution_ = true;
   }else if (this->solDerivOrder_==0){
-    //alpha method is only inplemented for effective stiffness right now
+    //alpha method is only implemented for effective stiffness right now
     usePredictors_ = false;
     lastStageIsSolution_ = false;
     //redefine beta and gamma accorin=ding to hughes

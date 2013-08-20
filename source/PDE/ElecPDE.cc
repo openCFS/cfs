@@ -366,10 +366,10 @@ namespace CoupledField {
     
     if ( isComplex ) {
       if( dim_ == 2 ) {
-        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,Complex>(),
+        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,1,Complex>(),
                                              curCoef, factor, updatedGeo_ );
       } else {
-        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,Complex>(),
+        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,1,Complex>(),
                                              curCoef, factor, updatedGeo_ );
       }
     }

@@ -366,6 +366,10 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     //now we know which node is in which element, lets loop over the entity list and
     //create the matrix
     UInt dDim = this->resultInfo_->dofNames.GetSize();
+    if(dDim==0){
+      //assume a scalar
+      dDim++;
+    }
     //determine the number of rows in the CRS matrix
     StdVector<Integer> elemEqns;
     UInt nnz=0;

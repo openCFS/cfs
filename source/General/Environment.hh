@@ -142,6 +142,11 @@ namespace CoupledField {
       ACOU_ELEM_SPEED_OF_SOUND,
 
       // ==========
+      //  ACOUSTIC MIXED
+    // ==========
+      ACOU_MIXED_MASS_LOAD, ACOU_MIXED_MOMENTUM_LOAD, ACOU_LAMB_RHS,
+
+      // ==========
       //  MAGNETIC 
       // ==========
       // -- primary results --

@@ -302,19 +302,19 @@ namespace CoupledField {
     if ( isComplex ) {
       if( subType_ == "axi" ) {
         integ = new ADBInt<Complex>(new StrainOperatorAxi<FeH1,Complex>(),
-                                    new GradientOperator<FeH1,2,Complex>(),
+                                    new GradientOperator<FeH1,2,1,Complex>(),
                                     curCoef, 1.0, true );
       } else if( subType_ == "planeStrain" ) {
         integ = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
-                                    new GradientOperator<FeH1,2,Complex>(),
+                                    new GradientOperator<FeH1,2,1,Complex>(),
                                     curCoef, 1.0, true);
       } else if( subType_ == "planeStress" ) {
         integ = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
-                                    new GradientOperator<FeH1,2,Complex>(),
+                                    new GradientOperator<FeH1,2,1,Complex>(),
                                     curCoef, 1.0, true);
       } else if( subType_ == "3d") {
         integ = new ADBInt<Complex>(new StrainOperator3D<FeH1,Complex>(),
-                                    new GradientOperator<FeH1,3,Complex>(),
+                                    new GradientOperator<FeH1,3,1,Complex>(),
                                     curCoef, 1.0, true);
       } else {
         EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );

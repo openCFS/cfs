@@ -1339,8 +1339,8 @@ namespace CoupledField{
       //a damping matrix not just for PML
 
       //scheme for main unknown
-      GLMScheme * scheme1 = new Newmark(0.5,0.25,-0.3);
-      GLMScheme * scheme2 = new Newmark(0.5,0.25,-0.3);
+      GLMScheme * scheme1 = new Newmark(0.5,0.25,0);
+      GLMScheme * scheme2 = new Newmark(0.5,0.25,0);
       shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
       shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(scheme2,0));
 
@@ -1348,7 +1348,7 @@ namespace CoupledField{
       feFunctions_[formulation_]->SetTimeScheme(acouScheme);
 
       if(!this->isAPML_ && dim_ == 3){
-        GLMScheme * scheme3 = new Newmark(0.5,0.25,-0.3);
+        GLMScheme * scheme3 = new Newmark(0.5,0.25,0);
         shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(scheme3,0));
         feFunctions_[ACOU_PMLAUXSCALAR]->SetTimeScheme(scalScheme);
       }
@@ -1357,9 +1357,7 @@ namespace CoupledField{
       shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
       feFunctions_[formulation_]->SetTimeScheme(acouScheme);
     }
-
   }
-
 
 }
 

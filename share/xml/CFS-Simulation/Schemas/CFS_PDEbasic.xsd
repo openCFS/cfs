@@ -444,6 +444,7 @@
        <xsd:enumeration value="HCurl"/>
        <xsd:enumeration value="HDiv"/>
        <xsd:enumeration value="L2"/>
+       <xsd:enumeration value="TaylorHood"/>
     </xsd:restriction>
   </xsd:simpleType>
   
