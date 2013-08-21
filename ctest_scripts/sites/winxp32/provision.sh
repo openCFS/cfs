@@ -53,6 +53,11 @@ echo "HOME (Cygwin): $HOME"
 echo "Importing time zone information into registry..."
 $REG import v:\\timezone.reg
 
+# Make sure logs directory exists before tests are started.
+echo "Creating 'logs' directory..."
+mkdir -p /cygdrive/v/logs
+
+
 if [ "$BLOCKING" = "blocking" ]; then
 
   # In this branch we directly start the nightly test job by running a
@@ -109,7 +114,7 @@ EOF
   $CMD /C "c:\\start_nightly_tests.bat"
 
   # Shut down machine after nightly testing has finished.
-  $SHUTDOWN_EXE -f -s now
+  shutdown -f -s now
 
 else # blocking
   
