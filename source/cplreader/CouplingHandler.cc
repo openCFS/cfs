@@ -339,8 +339,7 @@ namespace CoupledField
     Settings& settings = Settings::Instance();
     bool calcSrc = settings.GetInt("calcsrc") != 0;
     UInt stepInc = settings.GetInt("stepincr");
-    UInt counter = settings.GetInt("firststep");
-    UInt counter2 = 0;
+    UInt counter = 0;
     Double stepVal = 0;
     UInt numFiles = ptFileReader_->GetNumFiles();
     UInt numRegions = ptFileReader_->GetNumRegions();
@@ -424,8 +423,6 @@ namespace CoupledField
       while ( ( counter < numFiles*stepInc ) && readOK)
       {
         stepVal = ptFileReader_->GetTimeStep(counter);
-        stepVal = counter2*0.2;
-        counter2++;
         stepNum = counter + ptFileReader_->GetStartIndex();
         timeStepValues.push_back(stepVal);
         timeStepNumbers.push_back(stepNum);
