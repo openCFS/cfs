@@ -338,7 +338,7 @@ double DesignMaterial::GetLameMaterialMass(DesignElement::Type direction){
   }
 }
 
-void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction){
+void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
   double E = params_[DesignElement::EMODULISO];
   double E3 = params_[DesignElement::EMODUL];
   double G3 = params_[DesignElement::GMODUL];
@@ -460,7 +460,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     } // switch direction
     if(type_ == DENSITY_TIMES_ROTATED_2D_TENSOR || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED){
       double rotAngle = params_[DesignElement::ROTANGLE];
-      RotateHMStiffnessTensor(t, subTensor, direction, rotAngle);
+      RotateHMStiffnessTensor(t, subTensor, direction, rotAngle, notation);
       //    static int count(0);
       //    if (count % 10 == 0 && count/100 % 10 == 0){
       ////      std::cout << "(" << (count/100 % 10)*(count % 10)+1 << ")" << t.ToString() << std::endl;
@@ -1249,7 +1249,7 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC:
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED:
   case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED:
-    GetTransIsoMaterialTensor(t, subTensor, direction);
+    GetTransIsoMaterialTensor(t, subTensor, direction, notation);
     break;
   case DENSITY_TIMES_2D_TENSOR:
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:

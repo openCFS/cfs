@@ -127,7 +127,7 @@ template <class TYPE> class StdVector;
     inline void GetLameMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
 
     /** Calculate the Trans-Iso Tensor */
-    inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+    inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
     
     /* general anisotropic FMO tensor */
     inline void GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);

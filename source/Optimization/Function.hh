@@ -578,7 +578,7 @@ class Function
     /** real or pseudo design elements defined by the region.
      * if region is ALL_REGIONS this points to the standard design space.
      * Otherwise it is a sub set pointing to the design space or if region is not within the design (stress constraint)
-     * it it is filled by DesignElements with dummy values.
+     * it is filled by DesignElements with dummy values.
      * Created on request */
     StdVector<DesignElement*> elements;
 

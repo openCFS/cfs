@@ -666,6 +666,7 @@ bool DesignSpace::GetTensor(Matrix<double>& t, DesignElement::Type type, SubTens
   {
   case DesignElement::TENSOR_TRACE:
   case DesignElement::ELAST_ALL:
+  case DesignElement::ALL_DESIGNS:
     return GetErsatzMaterialTensor(t, subTensor, elem, direction, notation);
   case DesignElement::DIELEC_TRACE:
   case DesignElement::DIELEC_ALL:

@@ -128,7 +128,7 @@ Function::Function(PtrParamNode pn)
 
   case TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
-    if(design_ != DesignElement::DEFAULT && design_ != DesignElement::TENSOR_TRACE && design_ != DesignElement::DIELEC_TRACE)
+    if(design_ != DesignElement::DEFAULT && design_ != DesignElement::TENSOR_TRACE && design_ != DesignElement::DIELEC_TRACE && design_ != DesignElement::ALL_DESIGNS)
       throw Exception("function '" + type.ToString(type_) + "' has invalid design type " + DesignElement::type.ToString(design_));
     break;
 
@@ -161,7 +161,7 @@ Function::Function(PtrParamNode pn)
   case TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
     if(design_ != DesignElement::ALL_DESIGNS)
-      linear_ = true;
+      linear_ = false;
     else
       linear_ = false;
     break;
@@ -1947,7 +1947,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
                    << element->elem->elemNum << " sign=" << sign << " n=" << n
                    << " curr=" << GetElement(n)->elem->elemNum << " gv=" << gv
                    << " stored_gv=" << de->GetPlainGradient(f, g)
-                   << " current_position: " << ((LocalCondition*) g)->GetCurrentPosition()+1;
+                   << " current_position: " << (g != NULL ? ((LocalCondition*) g)->GetCurrentPosition()+1 : -1); //somehow only seems to work for constraints
 
 //    if (de->GetIndex() == 89)
 //    {
@@ -2767,7 +2767,8 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     DesignMaterial::Notation notation = local->func_->notation_;
     const DesignElement* de = GetElement(neigh_idx);
 
-    bool ok = local->space->GetTensor(E, local->func_->GetDesignType(), PLANE_STRAIN, element->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type does'nt matter)
+    bool ok = local->space->GetTensor(E, local->func_->GetDesignType(), domain->GetSinglePDE("mechanic")->GetSubTensorType(),
+        element->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type DOES matter)
 
     assert(ok);
     assert((local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && E.GetNumRows() == 2) || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE && E.GetNumRows() == 3));
