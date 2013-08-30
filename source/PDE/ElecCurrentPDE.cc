@@ -299,7 +299,7 @@ namespace CoupledField {
       edFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 0.5));
     }
     DefineFieldResult( edFunc, ed );
-   //stiffFormCoefs_.insert(edFunc);
+    stiffFormCoefs_.insert(edFunc);
     
     // Electric power
     shared_ptr<ResultInfo> energy( new ResultInfo );

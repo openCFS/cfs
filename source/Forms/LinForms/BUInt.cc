@@ -71,7 +71,10 @@ BUIntegrator(VEC_DATA_TYPE factor,
   void BUIntegrator<B_OP,VEC_DATA_TYPE,SURFACE>::
   CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
                   EntityIterator& ent){
-    // Declare necessary variables
+
+	 assert(rhsCoefs_->GetDimType() != CoefFunction::NO_DIM);
+
+	  // Declare necessary variables
      const Elem* ptElem = ent.GetElem();
      Matrix<Double> bMat;
      Vector<VEC_DATA_TYPE> cVec;

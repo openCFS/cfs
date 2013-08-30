@@ -41,11 +41,14 @@
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/DivOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
+#include "Forms/Operators/IdentityOperatorProjected.hh"
 #include "Forms/Operators/MultiIdOp.hh"
 #include "Forms/Operators/LaplOp.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 #include "Forms/Operators/StrainOperator.hh"
+
+#include "Domain/CoefFunction/CoefXpr.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -114,6 +117,14 @@ namespace CoupledField {
     stabilized_ = myParam_->Get("stabilization")->As<bool>();
     if ( stabilized_ )
     	std::cerr << "\n DO STABILIZED FORMULATION!!\n" << std::endl;
+
+    stabilizedBochev_ = false;
+    stabilizedBochev_ = myParam_->Get("stabilizationBochev")->As<bool>();
+    if ( stabilizedBochev_ )
+          std::cerr << "\n DO STABILIZED FORMULATION OF TYPE BOCHEV!!\n" << std::endl;
+
+    if ( stabilizedBochev_ && stabilized_)
+      EXCEPTION("Standad stabilization AND stabilization of Bochev not possible")
   }
   
   void PerturbedFlowPDE::InitNonLin() {
@@ -435,7 +446,7 @@ namespace CoupledField {
                                         bOpGrad, presFct,
                                         CoefFunctionStabParams::SUPG )
             );
-          
+
           //stabilization: velocity mass matrix
           BiLinearForm *convecMassVVstab = NULL;
           if( dim_ == 2 ) {
@@ -453,14 +464,14 @@ namespace CoupledField {
           }
           convecMassVVstab->SetBCoefFunctionOpA(meanFlowCoef_);
           convecMassVVstab->SetName("PerturbedDampIntVVConvectiveStab");
-          
+
           BiLinFormContext *dampContextVVStab = NULL;
           dampContextVVStab = new BiLinFormContext( convecMassVVstab,
                                                     DAMPING );
           dampContextVVStab->SetEntities( actSDList, actSDList );
           dampContextVVStab->SetFeFunctions( velFct, velFct);
           assemble_->AddBiLinearForm( dampContextVVStab );
-          
+
           //stabilization: velocity stiffness matrix
           BiLinearForm *convecStiffVVstab = NULL;
           if( dim_ == 2 ) {
@@ -476,14 +487,14 @@ namespace CoupledField {
           }
           convecStiffVVstab->SetBCoefFunctionOpB(meanFlowCoef_);
           convecStiffVVstab->SetName("PerturbedStiffIntVVConvectiveStab");
-          
+
           BiLinFormContext *stiffContextVVStab = NULL;
           stiffContextVVStab = new BiLinFormContext( convecStiffVVstab,
                                                      STIFFNESS );
           stiffContextVVStab->SetEntities( actSDList, actSDList );
           stiffContextVVStab->SetFeFunctions( velFct, velFct);
           assemble_->AddBiLinearForm( stiffContextVVStab );
-          
+
           //stabilization: pressure stiffness matrix, in velocity equation
           BiLinearForm *convecStiffVPstab = NULL;
           if( dim_ == 2 ) {
@@ -501,22 +512,22 @@ namespace CoupledField {
           }
           convecStiffVPstab->SetBCoefFunctionOpA(meanFlowCoef_);
           convecStiffVPstab->SetName("PerturbedStiffIntVPConvectiveStab");
-          
+
           BiLinFormContext *stiffContextVPStab = NULL;
           stiffContextVPStab = new BiLinFormContext( convecStiffVPstab,
                                                      STIFFNESS );
           stiffContextVPStab->SetEntities( actSDList, actSDList );
           stiffContextVPStab->SetFeFunctions( velFct, presFct);
           assemble_->AddBiLinearForm( stiffContextVPStab );
-          
+
           //pressure stabilization: velocity stiffness matrix, in pressure equation
           PtrCoefFct coeffPressStab;
           coeffPressStab.reset(
             new CoefFunctionStabParams(density, viscosity, meanFlowCoef_,
                                        bOpGrad, presFct,
-                                       CoefFunctionStabParams::PSPG ) 
+                                       CoefFunctionStabParams::PSPG )
             );
-          
+
           BiLinearForm *convecStiffPVstab = NULL;
           if( dim_ == 2 ) {
             convecStiffPVstab = new ABInt<>( new GradientOperator<FeH1,2>(),
@@ -531,19 +542,19 @@ namespace CoupledField {
           }
           convecStiffPVstab->SetBCoefFunctionOpB(meanFlowCoef_);
           convecStiffPVstab->SetName("PerturbedStiffIntPVConvectiveStab");
-          
+
           BiLinFormContext *stiffContextPVStab = NULL;
           stiffContextPVStab = new BiLinFormContext( convecStiffPVstab,
                                                      STIFFNESS );
           stiffContextPVStab->SetEntities( actSDList, actSDList );
           stiffContextPVStab->SetFeFunctions( presFct, velFct );
           assemble_->AddBiLinearForm( stiffContextPVStab );
-          
+
           //stabilization: Least Squares InCompressibility
           PtrCoefFct coeffLsicStab;
           coeffLsicStab.reset(
             new CoefFunctionStabParams( density, viscosity, meanFlowCoef_,
-                                        bOpGrad, presFct, 
+                                        bOpGrad, presFct,
                                         CoefFunctionStabParams::LSIC )
             );
           BiLinearForm *LsicStiffVVstab = NULL;
@@ -559,14 +570,14 @@ namespace CoupledField {
                                            coefUpdateGeo);
           }
           LsicStiffVVstab->SetName("PerturbedLSICStiffIntVVStab");
-          
+
           BiLinFormContext *stiffContextLsicStab = NULL;
           stiffContextLsicStab =new BiLinFormContext( LsicStiffVVstab,
                                                       STIFFNESS );
           stiffContextLsicStab->SetEntities( actSDList, actSDList );
           stiffContextLsicStab->SetFeFunctions( velFct, velFct);
           assemble_->AddBiLinearForm( stiffContextLsicStab );
-        }
+        } //stabilized
       } // is flow
       
       // ====================================================================
@@ -593,13 +604,38 @@ namespace CoupledField {
       //======================================================================
       // DO STABILIZATION due to pressure
       //======================================================================
-      if ( stabilized_) {
+      if ( stabilizedBochev_) {
         //stabilization of pressure
+        PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+
+        PtrCoefFct coeffKPPstab =
+            CoefFunction::Generate( mp_, Global::REAL,
+                CoefXprBinOp( mp_, factor, viscosity, CoefXpr::OP_DIV ) );
+
+        BiLinearForm * stiffIntPPstab = NULL;
+
+        if( dim_ == 2 ) {
+          stiffIntPPstab = new BBInt<>( new IdentityOperatorProjected<FeH1,2>(),
+              coeffKPPstab,1.0);
+        } else {
+          stiffIntPPstab = new BBInt<>( new IdentityOperatorProjected<FeH1,3>(),
+              coeffKPPstab,1.0);
+        }
+        stiffIntPPstab->SetName("PerturbedStiffIntPPstab");
+        BiLinFormContext *stiffContPPstab = NULL;
+        stiffContPPstab = new BiLinFormContext(stiffIntPPstab, STIFFNESS );
+        
+        stiffContPPstab->SetEntities( actSDList, actSDList );
+        stiffContPPstab->SetFeFunctions( presFct, presFct );
+        assemble_->AddBiLinearForm( stiffContPPstab );
+      }
+
+      if ( stabilized_) {
         PtrCoefFct coeffKPPstab;
         coeffKPPstab.reset(
           new CoefFunctionStabParams( density,
                                       viscosity,
-                                      CoefFunctionStabParams::PSPG ) 
+                                      CoefFunctionStabParams::PSPG )
           );
         BiLinearForm * stiffIntPPstab = NULL;
         if( dim_ == 2 ) {
@@ -612,11 +648,11 @@ namespace CoupledField {
         stiffIntPPstab->SetName("PerturbedStiffIntPPstab");
         BiLinFormContext *stiffContPPstab = NULL;
         stiffContPPstab = new BiLinFormContext(stiffIntPPstab, STIFFNESS );
-        
+
         stiffContPPstab->SetEntities( actSDList, actSDList );
         stiffContPPstab->SetFeFunctions( presFct, presFct );
         assemble_->AddBiLinearForm( stiffContPPstab );
-        
+
         //stabilization of pressure
         Double densityVal;
         LocPointMapped map;
@@ -634,7 +670,7 @@ namespace CoupledField {
         dampIntpvStab->SetName("PerturbedDampIntStab");
         BiLinFormContext *dampContextpvStab = NULL;
         dampContextpvStab = new BiLinFormContext( dampIntpvStab, DAMPING );
-        
+
         dampContextpvStab->SetEntities( actSDList, actSDList );
         dampContextpvStab->SetFeFunctions( presFct, velFct);
         assemble_->AddBiLinearForm( dampContextpvStab );

@@ -294,6 +294,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     
     // Initialize solution map
     solutionMap_[MAG_FORCE_LORENTZ_DENSITY] = MAG_FORCE_LORENTZ;
+    solutionMap_[ELEC_POWER_DENSITY] = ELEC_POWER;
   }
   
     
@@ -765,6 +766,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
               << std::endl;
         }
       }
+      std::cout << "Iter:" << iter << "  Norm: " << convIt->second->GetFinalNorm() << std::endl;
       iter++;
     } // end of while-loop
     

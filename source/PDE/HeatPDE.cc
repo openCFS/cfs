@@ -344,15 +344,15 @@ void HeatPDE::DefineIntegrators() {
 
     if( dim_ == 2) {
       if(isComplex_) {
-        lin = new BUIntegrator<IdentityOperator<FeH1,2>, Complex>(Complex(1.0), coef[i], updatedGeo_ );
+        lin = new BUIntegrator<IdentityOperator<FeH1,2>, Complex>(Complex(2.0), coef[i], updatedGeo_ );
       } else {
-        lin = new BUIntegrator<IdentityOperator<FeH1,2>, Double>(1.0, coef[i], updatedGeo_ );
+        lin = new BUIntegrator<IdentityOperator<FeH1,2>, Double>(2.0, coef[i], updatedGeo_ );
       }
     } else  {
       if(isComplex_) {
-        lin = new BUIntegrator<IdentityOperator<FeH1,3>, Complex>(Complex(1.0), coef[i], updatedGeo_ );
+        lin = new BUIntegrator<IdentityOperator<FeH1,3>, Complex>(Complex(2.0), coef[i], updatedGeo_ );
       } else {
-        lin = new BUIntegrator<IdentityOperator<FeH1,3>, Double>(1.0, coef[i], updatedGeo_ );
+        lin = new BUIntegrator<IdentityOperator<FeH1,3>, Double>(2.0, coef[i], updatedGeo_ );
       }
     }
     lin->SetName("ElectricPowerDensityInt");

@@ -8,7 +8,7 @@ namespace CoupledField  {
 //  FORM BASED COEFFICIENT FUNCTION
 // ==========================================================================
 
-CoefFunctionFormBased::CoefFunctionFormBased( ) {
+CoefFunctionFormBased::CoefFunctionFormBased( ) : CoefFunction(){
 
   
   // set inherited attributes
@@ -217,8 +217,10 @@ CoefFunctionBdBKernel(shared_ptr<BaseFeFunction> feFct,
   isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
 
   // set inherited attributes
-  dimType_ = CoefFunction::SCALAR;
-  
+  this->dimType_ = CoefFunction::SCALAR;
+
+ // std::cout << "DimType: " << CoefFunction::SCALAR << " << std::endl;
+
 }
 
 template<class TYPE> CoefFunctionBdBKernel<TYPE>::

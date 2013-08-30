@@ -155,6 +155,7 @@
           </xsd:simpleType>
         </xsd:attribute>     
          <xsd:attribute name="stabilization" type="xsd:boolean" default="false"/>   
+         <xsd:attribute name="stabilizationBochev" type="xsd:boolean" default="false"/>   
         <xsd:attribute name="movingMesh" type="DT_CFSBool" default="no"/>
         <xsd:attribute name="aeroAcoustics" type="DT_CFSBool" default="no"/>
       </xsd:extension>
