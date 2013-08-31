@@ -606,11 +606,11 @@ namespace CoupledField {
       //======================================================================
       if ( stabilizedBochev_) {
         //stabilization of pressure
-        PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+        PtrCoefFct coeffKPPstab = CoefFunction::Generate( mp_, Global::REAL, "1.0");
 
-        PtrCoefFct coeffKPPstab =
-            CoefFunction::Generate( mp_, Global::REAL,
-                CoefXprBinOp( mp_, factor, viscosity, CoefXpr::OP_DIV ) );
+//        PtrCoefFct coeffKPPstab =
+//            CoefFunction::Generate( mp_, Global::REAL,
+//                CoefXprBinOp( mp_, factor, viscosity, CoefXpr::OP_DIV ) );
 
         BiLinearForm * stiffIntPPstab = NULL;
 
