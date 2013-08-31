@@ -23,8 +23,6 @@ namespace CoupledField {
      PDE_(apde)
   {
 
-
-
     pdename_      = PDE_.GetName();
     isaxi_        = PDE_.GetIsaxi();
     subdoms_      = PDE_.GetRegions();

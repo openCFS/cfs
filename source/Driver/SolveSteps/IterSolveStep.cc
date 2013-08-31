@@ -766,7 +766,6 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
               << std::endl;
         }
       }
-      std::cout << "Iter:" << iter << "  Norm: " << convIt->second->GetFinalNorm() << std::endl;
       iter++;
     } // end of while-loop
     
