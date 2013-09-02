@@ -128,8 +128,13 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
     # code a command line like the following might be used
     # fgrep 'warning: use of old-style cast' out.txt | grep CFS_SOURCE_DIR | sort -u > old-style-cast.txt
     # 
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-100")
+
     # -frounding-math: is needed for CGAL library
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-100 -frounding-math")
+    IF(USE_CGAL)
+      SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -frounding-math")
+    ENDIF(USE_CGAL)
+
     SET(CHECK_MEM_ALLOC 1)
 
   ELSE(DEBUG)

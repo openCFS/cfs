@@ -264,13 +264,35 @@ MACRO(TEMP_NAME fname)
   if(${ARGC} GREATER 1) # Have to escape ARGC to correctly compare
     set(_base ${ARGV1})
   else(${ARGC} GREATER 1)
-    set(_base ".cmake-tmp")
+    set(_base "cmake_tmp")
   endif(${ARGC} GREATER 1)
-  set(_counter 0)
-  while(EXISTS "${_base}${_counter}")
-    math(EXPR _counter "${_counter} + 1")
-  endwhile(EXISTS "${_base}${_counter}")
-  set(${fname} "${_base}${_counter}")
+
+  SET(TMP_OK 0)
+
+  IF(UNIX)
+    # cf. http://content.hccfl.edu/pollock/ShScript/TempFile.htm
+    EXECUTE_PROCESS(
+      COMMAND mktemp --tmpdir=${SITE_DIR}/logs -t ${_base}_XXXX.cmake
+      WORKING_DIRECTORY "."
+      OUTPUT_VARIABLE TMPFILE
+      RESULT_VARIABLE RETVAL
+      )
+
+    # If RETVAL is zero everything went fine.
+    IF(NOT RETVAL)
+      STRING(REPLACE "\n" "" ${fname} "${TMPFILE}")
+      SET(TMP_OK 1)
+    ENDIF()
+  ENDIF()
+
+  IF(NOT TMP_OK)
+    set(_counter 0)
+    while(EXISTS "${SITE_DIR}/logs/${_base}${_counter}.cmake")
+      math(EXPR _counter "${_counter} + 1")
+    endwhile(EXISTS "${SITE_DIR}/logs/${_base}${_counter}.cmake")
+    set(${fname} "${SITE_DIR}/logs/${_base}${_counter}.cmake")
+    SET(TMP_OK 1)
+  ENDIF()
 endmacro()
 
 
@@ -286,7 +308,7 @@ MACRO(EVAL expr)
   #
   # =========================================================================
 
-  temp_name(_fname)
+  temp_name(_fname eval)
   file(WRITE ${_fname} "${expr}")
   include(${_fname})
   file(REMOVE ${_fname})
@@ -310,26 +332,12 @@ MACRO(GET_CTEST_BINARY_DIRECTORY TEST_NAME)
     ENDIF()
   ENDFOREACH()
 
-#  EXECUTE_PROCESS(
-#    COMMAND mktemp -t nightly_test_XXXX
-#    WORKING_DIRECTORY "."
-#    OUTPUT_VARIABLE TMPFILE
-#    RESULT_VARIABLE RETVAL
-#    )
-#  STRING(REPLACE "\n" "" TMPFILE "${TMPFILE}")
-
-#  MESSAGE("TMPFILE ${TMPFILE}")
-
-#  FILE(WRITE "${TMPFILE}" "${CTEST_BINARY_DIRECTORY_STR}")
-
-#  INCLUDE("${TMPFILE}")
   STRING(REPLACE "\$ENV{" "\\\$ENV{" CTEST_BINARY_DIRECTORY_STR "${CTEST_BINARY_DIRECTORY_STR}")
   MESSAGE(STATUS "CTEST_BINARY_DIRECTORY_STR ${CTEST_BINARY_DIRECTORY_STR}")
   EVAL("${CTEST_BINARY_DIRECTORY_STR}")
   FILE(TO_CMAKE_PATH "${CTEST_BINARY_DIRECTORY}" CTEST_BINARY_DIRECTORY)
   MESSAGE(STATUS "CTEST_BINARY_DIRECTORY ${CTEST_BINARY_DIRECTORY}")
 
-#  FILE(REMOVE "${TMPFILE}")
 ENDMACRO()
 
 

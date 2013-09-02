@@ -110,7 +110,7 @@ ENDFOREACH()
 # Remove documentation and repack archive
 FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/share/doc")
 FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/MODELLING_MANUAL_NIGHTLY")
-FILE(REMOVE archives/oracle6_linux64_fespace_gcc_release.zip)
+FILE(REMOVE "${CFS_NIGHTLY_DIR}/archives/oracle6_linux64_fespace_gcc_release.zip")
 
 EXECUTE_PROCESS(
   COMMAND zip -yr archives/oracle6_linux64_fespace_gcc_release.zip CFS_BUILD_NIGHTLY
@@ -133,7 +133,7 @@ EXECUTE_PROCESS(
 FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
 
 EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/wiki_linux64_fespace_icc12_release.zip
+  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/wiki_linux64_fespace_icc13_release.zip
   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
   RESULT_VARIABLE RETVAL)
 

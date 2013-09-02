@@ -174,6 +174,7 @@ cfsdeps/mpfr/External_mpfr.cmake -text
 cfsdeps/mpfr/mpfr-configure.cmake.in -text
 cfsdeps/muparser/CMakeLists.txt -text
 cfsdeps/muparser/External_muParser.cmake -text
+cfsdeps/muparser/muparser-clang-nested-anon-types.patch -text
 cfsdeps/muparser/muparser-dummy-math.patch -text
 cfsdeps/muparser/muparser-intel-atomic.patch -text
 cfsdeps/muparser/muparser-patch.cmake.in -text
@@ -375,6 +376,7 @@ ctest_scripts/sites/oracle6/generate_test_name_list.cmake -text
 ctest_scripts/sites/oracle6/linux32_fespace_gcc_debug.ctest -text
 ctest_scripts/sites/oracle6/linux32_fespace_gcc_release.ctest -text
 ctest_scripts/sites/oracle6/linux64_fespace_clang_release.ctest -text
+ctest_scripts/sites/oracle6/linux64_fespace_gcc48_release.ctest -text
 ctest_scripts/sites/oracle6/linux64_fespace_gcc_debug.ctest -text
 ctest_scripts/sites/oracle6/linux64_fespace_gcc_release.ctest -text
 ctest_scripts/sites/oracle6/linux64_fespace_gcc_release_deploy.cmake -text
@@ -409,10 +411,13 @@ ctest_scripts/sites/wiki/ctest_update_fespace_wien.cmake -text
 ctest_scripts/sites/wiki/ctest_update_modelling_manual.cmake -text
 ctest_scripts/sites/wiki/ctest_update_trunk_testsuite_wien.cmake -text
 ctest_scripts/sites/wiki/ctest_update_trunk_wien.cmake -text
+ctest_scripts/sites/wiki/di_log.cmake -text
 ctest_scripts/sites/wiki/linux32_fespace_icc13_release.ctest -text
+ctest_scripts/sites/wiki/linux32_fespace_icc13_release_deploy.cmake -text
+ctest_scripts/sites/wiki/linux64_fespace_icc11_release.ctest -text
 ctest_scripts/sites/wiki/linux64_fespace_icc12_release.ctest -text
-ctest_scripts/sites/wiki/linux64_fespace_icc12_release_deploy.cmake -text
 ctest_scripts/sites/wiki/linux64_fespace_icc13_release.ctest -text
+ctest_scripts/sites/wiki/linux64_fespace_icc13_release_deploy.cmake -text
 ctest_scripts/sites/wiki/macros_for_wiki.cmake -text
 ctest_scripts/sites/wiki/set_permissions.cmake -text
 ctest_scripts/sites/wiki/site_specific_finish.cmake -text

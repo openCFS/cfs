@@ -67,7 +67,9 @@
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
 #include "DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.hh"
 #ifndef __MINGW32__
+#ifndef __INTEL_COMPILER
 #include "DataInOut/SimInOut/Streaming/SimOutputStreaming.hh"
+#endif
 #endif
 
 #include "DataInOut/ParamHandling/XMLMaterialHandler.hh"
@@ -487,10 +489,12 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     }
 
 #ifndef __MINGW32__
+#ifndef __INTEL_COMPILER
     if (actFormat == "streaming")
     {
       out[actId] = shared_ptr<SimOutput> (new SimOutputStreaming(actNode, infoNode, restart));
     }
+#endif
 #endif
 
   } // loop over reader nodes

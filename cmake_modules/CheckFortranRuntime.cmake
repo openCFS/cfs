@@ -147,7 +147,13 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
       )
     
     MARK_AS_ADVANCED(IFORT_${lib}_LIBRARY)
-    LIST(APPEND CFS_FORTRAN_LIBS "${IFORT_${lib}_LIBRARY}")
+
+    # Obviously, the irc_s lib from Intel Fortran is not necessary
+    # and even can cause problems in conjunction with mkl_core.
+    IF(NOT lib STREQUAL "irc_s")
+      LIST(APPEND CFS_FORTRAN_LIBS "${IFORT_${lib}_LIBRARY}")
+    ENDIF()
+
   endforeach()
 ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 
