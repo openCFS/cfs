@@ -136,6 +136,7 @@ MESSAGE(
 FILE(REMOVE_RECURSE
   "${HOME}/VirtualBox VMs"
   "$ENV{VAGRANT_HOME}"
+  "${HOME}/.vagrant.d"
   "${HOME}/.VirtualBox"
 )
 ENDMACRO()
