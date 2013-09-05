@@ -203,7 +203,7 @@ namespace CoupledField {
       // ==========
       //  GEOMETRY
       // ==========
-      ELEM_LOC_DIR, JACOBIAN, ASPECT_RATIO
+      ELEM_LOC_DIR, JACOBIAN, ASPECT_RATIO, VOLUME
     } SolutionType;
 
     extern Enum<SolutionType> SolutionTypeEnum;
