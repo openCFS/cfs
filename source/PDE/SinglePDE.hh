@@ -487,7 +487,10 @@ namespace CoupledField
     //! TODO: MOVE THIS BACK TO ACOUSTICS!!
     template<UInt DIM, UInt D_DOF>
     void DefineNitscheCoupling( SolutionType solType,
-                                   NcInterfaceInfo &iface);
+                                NcInterfaceInfo &iface,
+                                RegionIdType masterVolId,
+                                RegionIdType slaveVolId,
+                                bool icModes = false);
     
     //! Vector containing all ncInterfaces for this PDE
     StdVector< NcInterfaceInfo > ncInterfaces_;

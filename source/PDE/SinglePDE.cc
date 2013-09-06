@@ -68,6 +68,7 @@ using std::string;
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
+#include "Forms/Operators/SurfaceNormalStressOperator.hh"
 
 // TEMPORARY
 #include "MagEdgePDE.hh"
@@ -2935,7 +2936,10 @@ namespace CoupledField {
   
   template<UInt DIM, UInt D_DOF>
   void SinglePDE::DefineNitscheCoupling( SolutionType solType,
-                                         NcInterfaceInfo &iface)
+                                         NcInterfaceInfo &iface,
+                                         RegionIdType masterVolId,
+                                         RegionIdType slaveVolId,
+                                         bool icModes)
   {
     //in case of Nitsche coupling edge/face information is required
     this->ptGrid_->MapEdges();
@@ -2975,15 +2979,31 @@ namespace CoupledField {
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
           factor, beta, curcpl, false);
 
-    flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
-        ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+    if ( pdename_ == "mechanic" ) {
+//      flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
+//      ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+//          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+//            factor, -1.0, curcpl, false);
+    }
+    else {
+      flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
+      ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, -1.0, curcpl, false);
+            factor, -1.0, curcpl, false);
+    }
 
-    flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
+    if ( pdename_ == "mechanic" ) {
+      flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
         (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-           new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+           new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
            factor, -1.0, curcpl, false);
+    }
+    else {
+        flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
+          (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+              factor, -1.0, curcpl, false);
+    }
 
     curcpl = BiLinearForm::SLAVE_SLAVE;
 
@@ -2998,11 +3018,18 @@ namespace CoupledField {
         ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
           factor, beta * -1.0, curcpl, false);
-
-    flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
-        (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-         new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-         factor, 1.0, curcpl, false);
+    if ( pdename_ == "mechanic" ) {
+//      flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
+//          (new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+//           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+//           factor, 1.0, curcpl, false);
+    }
+    else {
+        flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
+           (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            factor, 1.0, curcpl, false);
+    }
 
     curcpl = BiLinearForm::SLAVE_MASTER;
 
@@ -3011,10 +3038,18 @@ namespace CoupledField {
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
           factor, beta * -1.0, curcpl, false);
 
-    flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>
-        (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-           new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-           factor, 1.0, curcpl, false);
+    if ( pdename_ == "mechanic" ) {
+//      flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>
+//         (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+//            new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+//            factor, 1.0, curcpl, false);
+    }
+    else {
+      flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>
+         (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+            factor, 1.0, curcpl, false);
+    }
 
     penalty_u1_v1->SetName("penalty_u1_v1");
     flux_du1_v1->SetName("flux_du1_v1");
@@ -3085,8 +3120,8 @@ namespace CoupledField {
 } // end of namespace
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template void SinglePDE::DefineNitscheCoupling<2,1>(SolutionType,NcInterfaceInfo&);
-  template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&);
-  template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&);
-  template void SinglePDE::DefineNitscheCoupling<3,3>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineNitscheCoupling<2,1>(SolutionType,NcInterfaceInfo&,RegionIdType,RegionIdType,bool);
+  template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&,RegionIdType,RegionIdType,bool);
+  template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&,RegionIdType,RegionIdType,bool);
+  template void SinglePDE::DefineNitscheCoupling<3,3>(SolutionType,NcInterfaceInfo&,RegionIdType,RegionIdType,bool);
 #endif

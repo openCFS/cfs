@@ -25,6 +25,7 @@
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormalTrans.hh"
 #include "Forms/Operators/StrainOperator.hh"
+#include "Forms/Operators/SurfaceNormalStressOperator.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -380,7 +381,20 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         DefineMortarCoupling(MECH_DISPLACEMENT, *ncIt, dim_);
         break;
       case NC_NITSCHE:
-        EXCEPTION("ncInterface of Nitsche type is not implemented for MechPDE");
+      {
+        PtrParamNode ncNodes = myParam_->Get("NcInterfaceList");
+        std::string ncStr = this->ptGrid_->GetRegion().ToString(ncIt->interfaceId);
+        PtrParamNode curNcNode = this->myParam_->GetByVal("ncInterface","name",ncStr, ParamNode::PASS);
+        std::string masterStr = curNcNode->Get("masterRegion")->As<std::string>();
+        std::string slaveStr = curNcNode->Get("slaveRegion")->As<std::string>();
+        RegionIdType masterId = this->ptGrid_->GetRegion().Parse( masterStr );
+        RegionIdType slaveId  = this->ptGrid_->GetRegion().Parse( slaveStr );
+        if(dim_ == 2)
+          DefineNitscheCoupling<2,2>(MECH_DISPLACEMENT, *ncIt, masterId, slaveId);
+        else
+          DefineNitscheCoupling<3,3>(MECH_DISPLACEMENT, *ncIt, masterId, slaveId);
+
+      }
         break;
       default:
         EXCEPTION("Unknown type of ncInterface");

@@ -610,7 +610,7 @@ namespace CoupledField {
 
 //        PtrCoefFct coeffKPPstab =
 //            CoefFunction::Generate( mp_, Global::REAL,
-//                CoefXprBinOp( mp_, factor, viscosity, CoefXpr::OP_DIV ) );
+//                CoefXprBinOp( mp_, density, viscosity, CoefXpr::OP_DIV ) );
 
         BiLinearForm * stiffIntPPstab = NULL;
 

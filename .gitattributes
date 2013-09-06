@@ -1435,6 +1435,7 @@ source/Forms/Operators/LaplOp.hh -text
 source/Forms/Operators/MultiIdOp.hh -text
 source/Forms/Operators/NormalFluxOperators.hh -text
 source/Forms/Operators/StrainOperator.hh -text
+source/Forms/Operators/SurfaceNormalStressOperator.hh -text
 source/Forms/Operators/SurfaceOperators.hh -text
 source/General/CMakeLists.txt svneol=native#text/plain
 source/General/Enum.hh -text

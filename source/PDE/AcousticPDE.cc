@@ -648,9 +648,9 @@ namespace CoupledField{
         break;
       case NC_NITSCHE:
         if(dim_ == 2)
-          DefineNitscheCoupling<2,1>(formulation_, *ncIt);
+          DefineNitscheCoupling<2,1>(formulation_, *ncIt, NO_REGION_ID , NO_REGION_ID );
         else
-          DefineNitscheCoupling<3,1>(formulation_, *ncIt);
+          DefineNitscheCoupling<3,1>(formulation_, *ncIt, NO_REGION_ID , NO_REGION_ID );
 
         break;
       default:
