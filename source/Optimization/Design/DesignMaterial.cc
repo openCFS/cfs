@@ -66,7 +66,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     info->Get("optimization/header/designSpace")->Get(ParamNode::WARNING)->SetValue("There are designs specified that are not used!");
   }
 
-  if(type_ == HOM_RECT)
+  if(type_ == HOM_RECT || type_ == D_HOM_RECT)
   {
     PtrParamNode hr = pn->Get("homRect");
     hom_rect_samples_.Resize(9, 6);
@@ -118,6 +118,8 @@ unsigned int DesignMaterial::RequiredParameters(OptimizationMaterial::System mat
     return r+5;
   case HOM_RECT:
     return r+3;
+  case D_HOM_RECT:
+    return r+4;
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
   case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED:
   case ORTHOTROPIC:
@@ -223,6 +225,11 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
     return(design.Find(DesignElement::STIFF1) >= 0
         && design.Find(DesignElement::STIFF2) >= 0
         && design.Find(DesignElement::ROTANGLE) >= 0);
+  case D_HOM_RECT:
+    return(design.Find(DesignElement::STIFF1) >= 0
+            && design.Find(DesignElement::STIFF2) >= 0
+            && design.Find(DesignElement::ROTANGLE) >= 0
+            && design.Find(DesignElement::DENSITY) >= 0);
   }
   assert(false);
   return false;
@@ -856,6 +863,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, DesignElement::Type dir
    {
    case DesignElement::NO_DERIVATIVE:
    case DesignElement::ROTANGLE:
+   case DesignElement::DENSITY:
    {
      Vector<double> shape;
      fe.GetShFnc(shape, p, NULL);
@@ -894,6 +902,25 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, DesignElement::Type dir
    RotateHMStiffnessTensor(E, PLANE, direction, rotAngle, notation);
 
    LOG_DBG2(dm) << "GHRT: E after rotation =  " << E.ToString(2);
+
+   E *= 6;
+
+   if (type_ == D_HOM_RECT)
+   {
+     double dens = params_[DesignElement::DENSITY];
+     if (direction == DesignElement::DENSITY)
+     {
+       if(penalty_ == 1.0)
+         dens = 1.0;
+       else
+         dens = penalty_*std::pow(dens, penalty_-1.0);
+     }
+     else
+     {
+       dens = std::pow(dens, penalty_);
+     }
+     E *= dens;
+   }
 
 /*   for(double y = 0; y <= 0.5; y += 0.25)
    {
@@ -1229,7 +1256,7 @@ double DesignMaterial::GetIsoMass(double D, double G){
 
 void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
 {
-  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != HOM_RECT && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC));
+  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != HOM_RECT && type_ != D_HOM_RECT && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC));
   switch(type_){
   case FMO:
     GetAnisotropicTensor(t, direction, notation);
@@ -1260,6 +1287,7 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
     GetLaminatesTensor(t, subTensor, direction, notation);
     break;
   case HOM_RECT:
+  case D_HOM_RECT:
     GetHomRectTensor(t, direction, notation);
     break;
   default: // case default
@@ -1434,6 +1462,7 @@ void DesignMaterial::SetEnums()
   type.Add(DENSITY_TIMES_ROTATED_2D_TENSOR, "density-times-rotated-2dtensor");
   type.Add(LAMINATES, "laminates");
   type.Add(HOM_RECT, "hom-rect");
+  type.Add(D_HOM_RECT, "density-times-hom-rect");
 
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");
