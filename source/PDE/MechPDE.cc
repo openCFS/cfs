@@ -382,17 +382,24 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         break;
       case NC_NITSCHE:
       {
-        PtrParamNode ncNodes = myParam_->Get("NcInterfaceList");
-        std::string ncStr = this->ptGrid_->GetRegion().ToString(ncIt->interfaceId);
-        PtrParamNode curNcNode = this->myParam_->GetByVal("ncInterface","name",ncStr, ParamNode::PASS);
-        std::string masterStr = curNcNode->Get("masterRegion")->As<std::string>();
-        std::string slaveStr = curNcNode->Get("slaveRegion")->As<std::string>();
-        RegionIdType masterId = this->ptGrid_->GetRegion().Parse( masterStr );
-        RegionIdType slaveId  = this->ptGrid_->GetRegion().Parse( slaveStr );
+//        PtrParamNode ncNodes = myParam_->Get("ncInterfaceList", ParamNode::PASS);
+//        std::string ncStr = this->ptGrid_->GetRegion().ToString(ncIt->interfaceId);
+//        PtrParamNode curNcNode = this->myParam_->GetByVal("ncInterface","name",ncStr, ParamNode::PASS);
+//        std::string masterStr = curNcNode->Get("masterRegion")->As<std::string>();
+//        std::string slaveStr = curNcNode->Get("slaveRegion")->As<std::string>();
+//        RegionIdType masterId = this->ptGrid_->GetRegion().Parse( masterStr );
+//        RegionIdType slaveId  = this->ptGrid_->GetRegion().Parse( slaveStr );
+
+        //check for softening
+        bool icModes = false;
+        if ( regionSoftening_[ncIt->masterVolId] == "icModesTW" ||
+             regionSoftening_[ncIt->slaveVolId]  == "icModesTW" )
+               icModes = true;
+
         if(dim_ == 2)
-          DefineNitscheCoupling<2,2>(MECH_DISPLACEMENT, *ncIt, masterId, slaveId);
+          DefineNitscheCoupling<2,2>(MECH_DISPLACEMENT, *ncIt, icModes);
         else
-          DefineNitscheCoupling<3,3>(MECH_DISPLACEMENT, *ncIt, masterId, slaveId);
+          DefineNitscheCoupling<3,3>(MECH_DISPLACEMENT, *ncIt, icModes);
 
       }
         break;

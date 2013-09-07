@@ -2544,6 +2544,22 @@ namespace CoupledField {
                          ParamNode::INSERT );
       nciNode->GetValue( "crossPointHandling", newIface.crossPointHandling,
                          ParamNode::INSERT );
+
+      //check for master and slave volume region, the ncIterface belongs to!
+      if ( nciNode->Has("masterVolumeRegion") ) {
+        std::string regionStr = nciNode->Get("masterVolumeRegion")->As<std::string>();
+         newIface.masterVolId = this->ptGrid_->GetRegion().Parse( regionStr );
+      }
+      else
+        newIface.masterVolId = NO_REGION_ID;
+
+      if ( nciNode->Has("slaveVolumeRegion") ) {
+        std::string regionStr = nciNode->Get("slaveVolumeRegion")->As<std::string>();
+         newIface.slaveVolId = this->ptGrid_->GetRegion().Parse( regionStr );
+      }
+      else
+        newIface.slaveVolId = NO_REGION_ID;
+
       if (newIface.crossPointHandling) {
         WARN("Cross-point handling is not implemented yet");
       }
@@ -2937,8 +2953,6 @@ namespace CoupledField {
   template<UInt DIM, UInt D_DOF>
   void SinglePDE::DefineNitscheCoupling( SolutionType solType,
                                          NcInterfaceInfo &iface,
-                                         RegionIdType masterVolId,
-                                         RegionIdType slaveVolId,
                                          bool icModes)
   {
     //in case of Nitsche coupling edge/face information is required
@@ -2968,6 +2982,34 @@ namespace CoupledField {
     //we set here the penalty factor
     Double beta = iface.nitscheFactor;
 
+
+    // in case of mechanical PDE, we need the material tensor
+    shared_ptr<CoefFunction > coefMech;
+    SubTensorType tensorType = NO_TENSOR;
+    if ( solType == MECH_DISPLACEMENT ) {
+      if ( subType_ == "3d" )
+        tensorType = FULL;
+      else if ( subType_ == "axi" )
+        tensorType = AXI;
+      else if ( subType_ == "planeStrain" )
+        tensorType = PLANE_STRAIN;
+      else if ( subType_ == "planeStress" )
+        tensorType = PLANE_STRESS;
+
+
+      if ( isComplex_ ) {
+        coefMech = materials_[iface.masterVolId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR,
+                                                            tensorType, Global::COMPLEX );
+        EXCEPTION("Nitsche for Mechanical PDE currently not working!!")
+      }
+      else {
+        coefMech = materials_[iface.masterVolId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR,
+                                                               tensorType, Global::REAL );
+        //      Matrix<Double> matTensor;
+        //      coefMech->GetTensor(matTensor);
+      }
+    }
+
     if ( analysistype_ == HARMONIC ) {
             EXCEPTION("HARMONIC CASE NOT IMPLEMENTED FOR ACOUSTIC NMG");
     }
@@ -2979,11 +3021,12 @@ namespace CoupledField {
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
           factor, beta, curcpl, false);
 
-    if ( pdename_ == "mechanic" ) {
-//      flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
-//      ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
-//          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-//            factor, -1.0, curcpl, false);
+    if ( solType == MECH_DISPLACEMENT ) {
+      flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
+      ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+           factor, -1.0, curcpl, false);
+        flux_du1_v1->SetBCoefFunctionOpA(coefMech);
     }
     else {
       flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
@@ -2992,11 +3035,12 @@ namespace CoupledField {
             factor, -1.0, curcpl, false);
     }
 
-    if ( pdename_ == "mechanic" ) {
+    if ( solType == MECH_DISPLACEMENT ) {
       flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
         (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
            new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
            factor, -1.0, curcpl, false);
+      flux_u1_dv1->SetBCoefFunctionOpB(coefMech);
     }
     else {
         flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
@@ -3018,11 +3062,12 @@ namespace CoupledField {
         ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
           factor, beta * -1.0, curcpl, false);
-    if ( pdename_ == "mechanic" ) {
-//      flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
-//          (new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
-//           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-//           factor, 1.0, curcpl, false);
+    if ( solType == MECH_DISPLACEMENT ) {
+      flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
+          (new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+           factor, 1.0, curcpl, false);
+      flux_du1_v2->SetBCoefFunctionOpA(coefMech);
     }
     else {
         flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
@@ -3038,11 +3083,12 @@ namespace CoupledField {
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
           factor, beta * -1.0, curcpl, false);
 
-    if ( pdename_ == "mechanic" ) {
-//      flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>
-//         (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-//            new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
-//            factor, 1.0, curcpl, false);
+    if ( solType == MECH_DISPLACEMENT ) {
+      flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>
+         (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+            factor, 1.0, curcpl, false);
+      flux_u2_dv1->SetBCoefFunctionOpB(coefMech);
     }
     else {
       flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>
@@ -3120,8 +3166,8 @@ namespace CoupledField {
 } // end of namespace
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template void SinglePDE::DefineNitscheCoupling<2,1>(SolutionType,NcInterfaceInfo&,RegionIdType,RegionIdType,bool);
-  template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&,RegionIdType,RegionIdType,bool);
-  template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&,RegionIdType,RegionIdType,bool);
-  template void SinglePDE::DefineNitscheCoupling<3,3>(SolutionType,NcInterfaceInfo&,RegionIdType,RegionIdType,bool);
+  template void SinglePDE::DefineNitscheCoupling<2,1>(SolutionType,NcInterfaceInfo&,bool);
+  template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&,bool);
+  template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&,bool);
+  template void SinglePDE::DefineNitscheCoupling<3,3>(SolutionType,NcInterfaceInfo&,bool);
 #endif

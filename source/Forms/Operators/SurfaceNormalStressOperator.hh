@@ -108,7 +108,7 @@ public:
 
   protected:
     //! computes the normal operator
-    virtual void ComputeNormalOperator( Matrix<Double> normalOp,
+    virtual void ComputeNormalOperator( Matrix<Double>& normalOp,
                                        const LocPointMapped& lp ) {
 
       UInt dimD = strainOp_->GetDimDMat();
@@ -158,7 +158,7 @@ void SurfaceNormalStressOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bM
   assert(D == ptFe->shape_.dim);
 
   Matrix<Double> tmpMat;
-  this->CalcOpMat(tmpMat,lp,ptFe);
+  this->CalcOpMatTransposed(tmpMat,lp,ptFe);
   bMat = Transpose(tmpMat);
 
 }

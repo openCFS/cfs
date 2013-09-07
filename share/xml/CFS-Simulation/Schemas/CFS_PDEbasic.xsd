@@ -471,6 +471,8 @@
                          use="optional" default="Mortar" />
           <xsd:attribute name="nitscheFactor" type="xsd:double"
                          use="optional" default="50" />
+          <xsd:attribute name="masterVolumeRegion" type="xsd:token" use="optional"/>
+          <xsd:attribute name="slaveVolumeRegion"  type="xsd:token" use="optional" />
           <xsd:attribute name="lagrangeMultType"
                          use="optional" default="standard">
             <xsd:simpleType>
