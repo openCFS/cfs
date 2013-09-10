@@ -182,5 +182,26 @@ ENDFOREACH()
 message("  Test")
 ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 message("  Submit")
+
+# Set OSName to Windows before submission.
+FILE(GLOB XML_FILES "${CTEST_BINARY_DIRECTORY}/Testing/2*/*.xml")
+FOREACH(XML_FILE IN ITEMS ${XML_FILES})
+#  MESSAGE("XML_FILE ${XML_FILE}")
+  FILE(READ "${XML_FILE}" XML_CONTENTS)
+  STRING(REPLACE "\n" ";" XML_CONTENTS ${XML_CONTENTS})
+  SET(NEW_CONTENTS "")
+
+  FOREACH(LINE IN ITEMS ${XML_CONTENTS})
+    IF(LINE MATCHES "OSName=")
+      SET(LINE "  OSName=\"Windows\"")
+    ENDIF()
+
+    SET(NEW_CONTENTS "${NEW_CONTENTS}\n${LINE}")
+#    MESSAGE("LINE: ${LINE}")
+  ENDFOREACH()
+
+  FILE(WRITE "${XML_FILE}" ${NEW_CONTENTS})
+ENDFOREACH()
+
 ctest_submit(RETURN_VALUE res)
 message("  All done")

@@ -307,19 +307,21 @@ ELSE(WIN32)
   #-----------------------------------------------------------------------------
   # Configure our little build script using the previously defined variables.
   #-----------------------------------------------------------------------------
+  FILE(MAKE_DIRECTORY "${CFS_BINARY_DIR}/tmp/mkl_test")
   CONFIGURE_FILE(
     "${CFS_SOURCE_DIR}/share/scripts/compile_mkl_test.sh.in"
-    "${CFS_BINARY_DIR}/tmp/compile_mkl_test.sh" @ONLY)
+    "${CFS_BINARY_DIR}/tmp/mkl_test/compile_mkl_test.sh" @ONLY)
 
   #-----------------------------------------------------------------------------
   # Execute the build script and put the generated CMake code into mkl.cmake.
   #-----------------------------------------------------------------------------
-  EXEC_PROGRAM("sh ${CFS_BINARY_DIR}/tmp/compile_mkl_test.sh > ${CFS_BINARY_DIR}/CMakeFiles/mkl.cmake"
-    ARGS
+  EXECUTE_PROCESS(
+    COMMAND sh "${CFS_BINARY_DIR}/tmp/mkl_test/compile_mkl_test.sh"
     OUTPUT_VARIABLE MKL_INFO
-    RETURN_VALUE RETVAL)
+    RESULT_VARIABLE RETVAL)
 
   IF(RETVAL EQUAL 0)
+    FILE(WRITE "${CFS_BINARY_DIR}/CMakeFiles/mkl.cmake" ${MKL_INFO})
     #---------------------------------------------------------------------------
     # Finally just include the linker flags and version info.
     #---------------------------------------------------------------------------

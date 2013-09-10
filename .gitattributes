@@ -412,12 +412,13 @@ ctest_scripts/sites/wiki/ctest_update_modelling_manual.cmake -text
 ctest_scripts/sites/wiki/ctest_update_trunk_testsuite_wien.cmake -text
 ctest_scripts/sites/wiki/ctest_update_trunk_wien.cmake -text
 ctest_scripts/sites/wiki/di_log.cmake -text
-ctest_scripts/sites/wiki/linux32_fespace_icc13_release.ctest -text
-ctest_scripts/sites/wiki/linux32_fespace_icc13_release_deploy.cmake -text
+ctest_scripts/sites/wiki/linux32_fespace_icc14_release.ctest -text
+ctest_scripts/sites/wiki/linux32_fespace_icc14_release_deploy.cmake -text
 ctest_scripts/sites/wiki/linux64_fespace_icc11_release.ctest -text
 ctest_scripts/sites/wiki/linux64_fespace_icc12_release.ctest -text
 ctest_scripts/sites/wiki/linux64_fespace_icc13_release.ctest -text
-ctest_scripts/sites/wiki/linux64_fespace_icc13_release_deploy.cmake -text
+ctest_scripts/sites/wiki/linux64_fespace_icc14_release.ctest -text
+ctest_scripts/sites/wiki/linux64_fespace_icc14_release_deploy.cmake -text
 ctest_scripts/sites/wiki/macros_for_wiki.cmake -text
 ctest_scripts/sites/wiki/set_permissions.cmake -text
 ctest_scripts/sites/wiki/site_specific_finish.cmake -text

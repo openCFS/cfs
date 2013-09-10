@@ -133,7 +133,7 @@ EXECUTE_PROCESS(
 FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
 
 EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/wiki_linux64_fespace_icc13_release.zip
+  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/wiki_linux64_fespace_icc14_release.zip
   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
   RESULT_VARIABLE RETVAL)
 
