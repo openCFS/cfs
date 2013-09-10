@@ -93,7 +93,7 @@
                 <xsd:element name="velocity"   type="DT_BcInhomVector"  />
               
                 <!-- RHS Load Values-->
-                <xsd:element name="massEquationLoad"  type="DT_BcInhomScalar"/>
+                <xsd:element name="massEquationLoad"  type="DT_BcInhomVector"/>
                 <xsd:element name="momentumEquationLoad" type="DT_BcInhomVector"/>
                 
                 <!-- Special Boundary Conditions -->
@@ -300,7 +300,7 @@
         </xsd:element>
 
         <!-- Element result definition -->
-       <!--  <xsd:element name="elemResult" minOccurs="0"
+       <xsd:element name="elemResult" minOccurs="0"
           maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
@@ -309,7 +309,7 @@
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
-        </xsd:element> -->
+        </xsd:element>
 
         <!-- Surface region result definition -->
         <xsd:element name="surfRegionResult" minOccurs="0"
@@ -328,6 +328,13 @@
       </xsd:choice>
     </xsd:sequence>
   </xsd:complexType>
+
+<!-- Definition of element result types of acoustic PDE -->
+  <xsd:simpleType name="DT_AcousticMixedElemResults">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="pmlDampFactor"/>
+    </xsd:restriction>
+  </xsd:simpleType>
 
   <!-- ******************************************************************* -->
   <!--   Definition of data type for non-linearity in stokesFluid PDEs -->

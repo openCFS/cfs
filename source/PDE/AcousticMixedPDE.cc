@@ -503,6 +503,8 @@ namespace CoupledField{
     shared_ptr<CoefFunction> coeffPMLVec;
     coeffPMLVec.reset( new CoefFunctionPML<Double>(pmlNode,c0,eList,regions_,true) );
 
+    matCoefs_[PML_DAMP_FACTOR]->AddRegion(eList->GetRegion(), coeffPMLVec);
+
     //the tensorial PML
     shared_ptr<CoefFunctionCompound<Double> > coefA(new CoefFunctionCompound<Double>(mp_));
     //vector PML
@@ -519,6 +521,8 @@ namespace CoupledField{
       std::string integId = curRegNode->Get("integId")->As<std::string>();
       vecSpace->SetRegionApproximation(eList->GetRegion(), polyId ,integId);
     }
+
+
 
     std::map<std::string, PtrCoefFct> vars;
     std::map<std::string, PtrCoefFct> var;
@@ -804,6 +808,20 @@ namespace CoupledField{
       results_.Push_back( rhsV );
       availResults_.insert( rhsV );
 
+
+      // === PML DAMPING FACTORS ===
+      //if( matCoefs_.find(PML_DAMP_FACTOR) != matCoefs_.end() ) {
+      shared_ptr<ResultInfo> pml ( new ResultInfo );
+      pml->resultType = PML_DAMP_FACTOR;
+      pml->dofNames = velDofNames;
+      //pml->dofNames = "";
+      pml->unit = "";
+      pml->definedOn = ResultInfo::ELEMENT;
+      pml->entryType = ResultInfo::VECTOR;
+      shared_ptr<CoefFunctionMulti> pmlFct(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
+                                                                 isComplex_));
+      matCoefs_[PML_DAMP_FACTOR] = pmlFct;
+      DefineFieldResult(pmlFct, pml);
 
       // === PML AUX Variables ===
       if(this->isTimeDomPML_){
