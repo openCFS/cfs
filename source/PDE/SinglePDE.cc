@@ -3005,8 +3005,25 @@ namespace CoupledField {
       else {
         coefMech = materials_[iface.masterVolId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR,
                                                                tensorType, Global::REAL );
-        //      Matrix<Double> matTensor;
-        //      coefMech->GetTensor(matTensor);
+
+        //get correct sclaing of penalty term
+        StdVector<Vector<Double> > points(1);
+        Vector<Double> p1(DIM);
+        p1.Init();
+        points[0]= p1;
+        StdVector<Matrix<Double> > mats;
+        coefMech->GetTensorValuesAtCoords(points,mats,this->ptGrid_);
+        //std::cout << "matTensor\n: " << mats[0] << std::endl;
+
+        Double matVal = 0.0;
+        for (UInt i=0; i<mats[0].GetNumRows(); i++)
+          matVal += mats[0][i][i];
+
+        matVal /= (Double)mats[0].GetNumRows();
+        //std::cout << "matVal: " << matVal << std::endl;
+
+        //scale the penalty value
+        beta *= matVal;
       }
     }
 

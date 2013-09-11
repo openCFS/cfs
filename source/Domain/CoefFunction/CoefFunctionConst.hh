@@ -171,11 +171,15 @@ public:
 
 
   // COLLECTION ACCESS
-  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+  virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<T >  & vals, Grid* ptGrid);
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Vector<T> >  & vals,
+                                        Grid* ptGrid );
+
+  virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                        StdVector<Matrix<T> >  & vals,
                                         Grid* ptGrid );
 
 protected:
