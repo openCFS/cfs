@@ -169,6 +169,16 @@ namespace CoupledField {
       mainRoot_ = mainFile_.openGroup("/");
     } H5_CATCH( "Could not open main root" );
 
+    // Open mesh group
+    H5::Group meshGroup;
+    try{
+      meshGroup = mainRoot_.openGroup("Mesh");
+    } H5_CATCH( "Could not open mesh group" );
+
+    // Read dimension
+    H5IO::ReadAttribute( meshGroup, "Dimension", dim_ );
+    meshGroup.close();
+
     // check for use of external files
     try {
       H5::Group meshResGroup = mainRoot_.openGroup("Results/Mesh");
@@ -306,19 +316,7 @@ namespace CoupledField {
   //  GENERAL MESH INFORMATION
   // ======================================================
   UInt SimInputHDF5::GetDim() {
-    LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
-
-    // Open mesh group
-    H5::Group meshGroup;
-    try{
-      meshGroup = mainRoot_.openGroup("Mesh");
-    } H5_CATCH( "Could not open mesh group" );
-
-    // Read dimension
-    UInt dim;
-    H5IO::ReadAttribute( meshGroup, "Dimension", dim );
-    meshGroup.close();
-    return dim;
+    return dim_;
   }
 
   UInt SimInputHDF5::GetNumNodes(){
@@ -1361,22 +1359,27 @@ namespace CoupledField {
 
   void SimInputHDF5::TransformNodes(CoordSystem& coordSys, double scaleFac)
   {
-    UInt numNodes = nodeCoords_.GetSize() / 3;
+    if (dim_ != coordSys.GetDim()) {
+      EXCEPTION("Cannot use a " << coordSys.GetDim() << "D coordinate system ("
+                << coordSys.GetName() << ") to transform a "
+                << dim_ << "D mesh (" << fileName_ << ").");
+    }
+    
     Vector<Double> p, globPoint;
-    p.Resize(3);
-    globPoint.Resize(3);
+    p.Resize(dim_);
+    globPoint.Resize(dim_);
 
-    for(UInt i=0; i<numNodes; i++) 
+    for(UInt i=0; i<numNodes_; ++i) 
     {
       UInt idx = i*3;
       p[0] = nodeCoords_[idx + 0];
       p[1] = nodeCoords_[idx + 1];
-      p[2] = nodeCoords_[idx + 2];
+      if (dim_ == 3) p[2] = nodeCoords_[idx + 2];
       coordSys.Global2LocalCoord(globPoint, p);
       
       nodeCoords_[idx + 0] = globPoint[0] * scaleFac;
       nodeCoords_[idx + 1] = globPoint[1] * scaleFac;
-      nodeCoords_[idx + 2] = globPoint[2] * scaleFac;
+      if (dim_ == 3) nodeCoords_[idx + 2] = globPoint[2] * scaleFac;
     }
   }
   
