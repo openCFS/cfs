@@ -229,38 +229,50 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
   //first obtain the node coordinates of the source regions
 
 
-  StdVector<Vector<Double> > nodeGlobCoords;
+  StdVector< Vector<Double> > nodeGlobCoords;
   StdVector<LocPoint> localCoords;
-  StdVector< const Elem* > foundElements;
+  StdVector<const Elem*> foundElements;
 
   Grid* destGrid = this->domain_->GetGrid();
 
-
   StdVector<UInt> allNodes;
-  std::set<std::string>::iterator regIt = this->srcRegions_.begin();
-  bool multipleRegions = (this->srcRegions_.size()>1);
-  if(!multipleRegions){
-     RegionIdType aReg = this->srcGrid_->GetRegion().Parse(*regIt);
-     this->srcGrid_->GetNodesByRegion(allNodes,aReg);
-  }else{
-     StdVector<UInt> curNodes;
-     while(regIt != this->srcRegions_.end()){
-       RegionIdType aReg = this->srcGrid_->GetRegion().Parse(*regIt);
-       this->srcGrid_->GetNodesByRegion(curNodes,aReg);
-       allNodes.Reserve(allNodes.GetSize()+curNodes.GetSize());
-       for(UInt i=0;i<curNodes.GetSize();i++){
-         if(allNodes.Find(curNodes[i])==-1)
-           allNodes.Push_back(curNodes[i]);
-       }
-       regIt++;
-     }
+  std::set<std::string>::iterator regIt = this->srcRegions_.begin(),
+                                  endIt = this->srcRegions_.end();
+  bool multipleRegions = (this->srcRegions_.size() > 1);
+  
+  if (!multipleRegions) {
+    RegionIdType aReg = this->srcGrid_->GetRegion().Parse(*regIt);
+    this->srcGrid_->GetNodesByRegion(allNodes, aReg);
   }
-  UInt dim = this->srcGrid_->GetDim();
-  nodeGlobCoords.Resize(allNodes.GetSize(),Vector<Double>(dim));
+  else {
+    UInt numRegNodes = 0; 
+    StdVector<UInt> curNodes;
+    while (regIt != endIt){
+      RegionIdType aReg = this->srcGrid_->GetRegion().Parse(*regIt);
+      this->srcGrid_->GetNodesByRegion(curNodes, aReg);
+      numRegNodes = curNodes.GetSize();
+      allNodes.Reserve(allNodes.GetSize() + numRegNodes);
+      for (UInt i=0; i<numRegNodes; ++i) {
+        if (allNodes.Find(curNodes[i]) == -1) {
+          allNodes.Push_back(curNodes[i]);
+        }
+      }
+      ++regIt;
+    }
+  }
+
+  UInt numNodes = allNodes.GetSize();
+  UInt srcDim = this->srcGrid_->GetDim();
+  UInt destDim = destGrid->GetDim();
+  nodeGlobCoords.Reserve(numNodes);
   Vector<Double> aCoord;
-  for(UInt i=0;i<allNodes.GetSize();++i){
-    this->srcGrid_->GetNodeCoordinate(aCoord,allNodes[i]);
-    nodeGlobCoords[i] = aCoord;
+  for (UInt i=0; i<numNodes; ++i) {
+    this->srcGrid_->GetNodeCoordinate(aCoord, allNodes[i]);
+    if (srcDim > destDim) {
+      if (abs(aCoord[2]) > globalTol_) continue;
+      aCoord.Resize(destDim);
+    }
+    nodeGlobCoords.Push_back(aCoord);
   }
 
   destGrid->GetElemsAtGlobalCoords( nodeGlobCoords,
