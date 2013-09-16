@@ -119,7 +119,7 @@ def read_multi_design(filename, design1, design2 = None, design3 = None, design4
     if design4 and type == design4:
       idx = 3
     if idx == -1:
-      print "design '" + type + "' not handled"  
+      raise RuntimeError("design '" + type + "' not handled")
     assert(idx != -1)
     out[nr-1,idx] = des
   if matrix:
