@@ -147,6 +147,12 @@ private:
   
   //! local tolerance (interval of local coordinates outside of element)
   Double localTol_;
+  
+  //! For 3D => 2D interpolation use x-y-plane at this z-coordinate
+  Double xyPlaneAtZ_;
+  
+  //! Tolerance for z-coordinate of x-y-plane
+  Double zTol_;
   //@}
 
   // =====================================
@@ -186,7 +192,8 @@ private:
 
   std::string destRegionName_;
 
-
+  //! Pointer to destination grid for interpolation (usually "default" grid)
+  Grid * destGrid_;
 
 };
 

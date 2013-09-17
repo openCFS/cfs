@@ -90,6 +90,12 @@
                 <xsd:element name="globalFactor" maxOccurs="1" minOccurs="0" default="1" type="xsd:token"/>
                 <xsd:element name="globalTolerance" maxOccurs="1" minOccurs="1" type="xsd:double"/>
                 <xsd:element name="localTolerance" maxOccurs="1" minOccurs="1" type="xsd:double"/>
+                <xsd:element name="xyPlane" minOccurs="0" maxOccurs="1">
+                  <xsd:complexType>
+                    <xsd:attribute name="z" type="xsd:double" use="required"/>
+                    <xsd:attribute name="tolerance" type="DT_NonNegFloat" use="optional" default="1e-12"/>
+                  </xsd:complexType>
+                </xsd:element>
                 <xsd:element name="regionList">
                   <xsd:complexType>
                     <xsd:sequence>
@@ -108,7 +114,7 @@
               <xsd:attribute name="quantity" use="required"/>
               <xsd:attribute name="dependtype" type="DT_CoefGridDependType" use="required" />
               <xsd:attribute name="interpolation" type="DT_CoefGridInterpolMode" use="optional" default="standard"/>            
-               <xsd:attribute name="sequenceStep" type="xsd:integer" use="optional" default="1" />
+              <xsd:attribute name="sequenceStep" type="xsd:integer" use="optional" default="1" />
             </xsd:complexType>
           </xsd:element>
         </xsd:choice>

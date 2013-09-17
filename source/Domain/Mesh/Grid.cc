@@ -867,7 +867,7 @@ namespace CoupledField
   
   
 
-  HandleBox Grid::CreateBoxFromCoord( const Vector<double> coords, UInt* id,
+  HandleBox Grid::CreateBoxFromCoord( const Vector<double>& coords, UInt* id,
                                       Double tol )
   {
     if(coords.GetSize()==2){
@@ -890,22 +890,21 @@ namespace CoupledField
 
     xmin = xmax = p[0];
     ymin = ymax = p[1];
-    if(p.GetSize() == 2)
-      zmin = zmax = 0;
-    else
+    if(p.GetSize() == 2) {
+      zmin = zmax = 0.0;
+    }
+    else {
       zmin = zmax = p[2];
+    }
 
-    for(UInt j = 1, n=elem->connect.GetSize(); j < n; j++)
+    for(UInt j = 1, n=elem->connect.GetSize(); j < n; ++j)
     {
       GetNodeCoordinate(p, elem->connect[j]);
       xmin = (p[0] < xmin) ? p[0] : xmin;
       xmax = (p[0] > xmax) ? p[0] : xmax;
       ymin = (p[1] < ymin) ? p[1] : ymin;
       ymax = (p[1] > ymax) ? p[1] : ymax;
-      if(p.GetSize()==2){
-        zmin = 0;
-        zmax = 0;
-      }else{
+      if (p.GetSize() == 3) {
         zmin = (p[2] < zmin) ? p[2] : zmin;
         zmax = (p[2] > zmax) ? p[2] : zmax;
       }
@@ -917,7 +916,11 @@ namespace CoupledField
     xmax += globToler*dia[0];
     ymin -= globToler*dia[1];
     ymax += globToler*dia[1];
-    if(p.GetSize()>2){
+    if (p.GetSize() == 2) {
+      zmin = -globToler;
+      zmax = globToler;
+    }
+    else {
       zmin -= globToler*dia[2];
       zmax += globToler*dia[2];
     }

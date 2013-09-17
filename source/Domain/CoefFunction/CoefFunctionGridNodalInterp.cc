@@ -47,10 +47,8 @@ CoefFunctionGridNodalInterp(Domain* ptDomain,
   this->consInterpReady_ = false;
   this->curInterpType_ = CoefFunctionGrid::NO_INTERPOLATION;
   this->extDataInfo_ = curInfo->Get("externalGrid",ParamNode::APPEND);
+  this->destGrid_ = this->domain_->GetGrid();
   ReadXMLNode(configNode);
-
-  //obtain grid pointer and store its dimension
-  this->srcGrid_ = this->domain_->GetGrid(this->gridId_);
 
   // Determine which steps are available
   this->domain_->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
@@ -68,7 +66,7 @@ CoefFunctionGridNodalInterp(Domain* ptDomain,
     this->dimDof_ = this->resultInfo_->dofNames.GetSize();
     this->dimType_ = CoefFunction::TENSOR;
   }
-  UInt gDim = this->domain_->GetGrid()->GetDim();
+  UInt gDim = this->destGrid_->GetDim();
   UInt dDim = this->resultInfo_->dofNames.GetSize();
   this->CreateOperator(gDim,dDim);
 }
@@ -233,14 +231,10 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
   StdVector<LocPoint> localCoords;
   StdVector<const Elem*> foundElements;
 
-  Grid* destGrid = this->domain_->GetGrid();
-
-  StdVector<UInt> allNodes;
+  StdVector<UInt> allNodes, nodeNums;
   std::set<std::string>::iterator regIt = this->srcRegions_.begin(),
                                   endIt = this->srcRegions_.end();
-  bool multipleRegions = (this->srcRegions_.size() > 1);
-  
-  if (!multipleRegions) {
+  if (this->srcRegions_.size() == 1) {
     RegionIdType aReg = this->srcGrid_->GetRegion().Parse(*regIt);
     this->srcGrid_->GetNodesByRegion(allNodes, aReg);
   }
@@ -263,19 +257,28 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
 
   UInt numNodes = allNodes.GetSize();
   UInt srcDim = this->srcGrid_->GetDim();
-  UInt destDim = destGrid->GetDim();
+  UInt destDim = destGrid_->GetDim();
   nodeGlobCoords.Reserve(numNodes);
+  nodeNums.Reserve(numNodes);
   Vector<Double> aCoord;
   for (UInt i=0; i<numNodes; ++i) {
     this->srcGrid_->GetNodeCoordinate(aCoord, allNodes[i]);
     if (srcDim > destDim) {
-      if (abs(aCoord[2]) > globalTol_) continue;
+      if (abs(aCoord[2]-xyPlaneAtZ_) > zTol_) {
+        continue;
+      }
       aCoord.Resize(destDim);
     }
     nodeGlobCoords.Push_back(aCoord);
+    nodeNums.Push_back(allNodes[i]);
+  }
+  numNodes = nodeNums.GetSize();
+  if (numNodes == 0) {
+    EXCEPTION("There are no nodes for interpolation at z = " << xyPlaneAtZ_
+              << " m +/- " << zTol_ << " m.");
   }
 
-  destGrid->GetElemsAtGlobalCoords( nodeGlobCoords,
+  destGrid_->GetElemsAtGlobalCoords( nodeGlobCoords,
                                     localCoords,
                                     foundElements,
                                     this->destRegions_,
@@ -285,16 +288,18 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
 
   //we now create some debugging information
   UInt elemCounter = 0;
-  for(UInt i=0;i<foundElements.GetSize();++i){
-    if(!foundElements[i]){
-      elemCounter++;
-    }else{
+  for (UInt i=0; i<numNodes; ++i) {
+    if (!foundElements[i]) {
+      ++elemCounter;
+    }
+    else {
       LOG_DBG3(coeffunctiongridnodalinterp) << "Node #" << allNodes[i] << " get associated to element #" << foundElements[i]->elemNum << std::endl;
       LOG_DBG3(coeffunctiongridnodalinterp)<< "Local Coordinate is: " << localCoords[i] << std::endl << std::endl;
     }
   }
-  if(elemCounter>0)
+  if (elemCounter > 0) {
     WARN("There were " << elemCounter << " unmapped nodes from source region \'" << *regIt << "\' which are not mapped to region \'" << this->destRegionName_ << "\'. Perhaps you should increase the tolerances!");
+  }
 
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("numUnmappedNodes")->SetValue(elemCounter);
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("globalTol")->SetValue(globalTol_);
@@ -302,12 +307,12 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
 
   //if the user wants to, we save the node->element association here
   //now we store the information in our map
-  for(UInt i=0;i<foundElements.GetSize();++i){
+  for (UInt i=0; i<numNodes; ++i) {
     //check if we have the information
-    if(foundElements[i]){
+    if (foundElements[i]) {
       std::vector<UInt> & curVec = this->elemNodeAssoc_[foundElements[i]->elemNum];
-      curVec.push_back(allNodes[i]);
-      this->localCoordsNodeAssoc_[allNodes[i]] = localCoords[i];
+      curVec.push_back(nodeNums[i]);
+      this->localCoordsNodeAssoc_[nodeNums[i]] = localCoords[i];
     }
   }
 }
@@ -335,6 +340,17 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode
     configNode->GetValue("globalTolerance", globalTol_, ParamNode::PASS);
     localTol_ = 1e-3;
     configNode->GetValue("localTolerance", localTol_, ParamNode::PASS);
+    xyPlaneAtZ_ = 0.0;
+    zTol_ = 1e-12;
+    if (configNode->Has("xyPlane")) {
+      if (destGrid_->GetDim() == 3) {
+        WARN("xyPlane directive is ignored, because target grid of interpolation is 3D.");
+      }
+      else {
+        configNode->Get("xyPlane")->GetValue("z", xyPlaneAtZ_, ParamNode::EX);
+        configNode->Get("xyPlane")->GetValue("tolerance", zTol_, ParamNode::PASS);
+      }
+    }
   }
   
   //obtain grid pointer
@@ -380,7 +396,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     UInt dDim = this->resultInfo_->dofNames.GetSize();
     if(dDim==0){
       //assume a scalar
-      dDim++;
+      ++dDim;
     }
     //determine the number of rows in the CRS matrix
     StdVector<Integer> elemEqns;
@@ -389,7 +405,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     UInt numCols = this->solVec_.GetSize();
     std::map<UInt,std::vector<UInt> >::iterator eIt = this->elemNodeAssoc_.begin();
     while(eIt != this->elemNodeAssoc_.end()){
-      const Elem* curE = this->domain_->GetGrid()->GetElem(eIt->first);
+      const Elem* curE = this->destGrid_->GetElem(eIt->first);
       targetSpace->GetElemEqns(elemEqns,curE);
       for(UInt i=0;i<elemEqns.GetSize();++i){
         if(elemEqns[i]>0){
@@ -397,7 +413,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
         }
       }
       //nnz += fe->GetNumFncs()*eIt->second.size()*dDim;
-      eIt++;
+      ++eIt;
     }
 
     //ok lets create the container
@@ -409,9 +425,9 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     LocPointMapped lpm;
     while(eIt != this->elemNodeAssoc_.end()){
       const Elem* curE = NULL;
-      curE = this->domain_->GetGrid()->GetElem(eIt->first);
+      curE = this->destGrid_->GetElem(eIt->first);
       targetSpace->GetElemEqns(elemEqns,curE);
-      esm = this->domain_->GetGrid()->GetElemShapeMap( curE, true );
+      esm = this->destGrid_->GetElemShapeMap( curE, true );
       //now we add for each source node the corresponding entries
       for(UInt aNode=0; aNode < eIt->second.size(); aNode++){
         UInt curNodeNum = eIt->second[aNode];
@@ -435,7 +451,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
           }
         }//add to coordMatrix
       }//for each source node
-      eIt++;
+      ++eIt;
     }//for each target element
     myContainer->FinaliseAssembly();
     //TODO: delete unnecessary data structures
@@ -542,7 +558,7 @@ template<class DATA_TYPE>
    //with this information we can now create a nice FeSpace
    PtrParamNode interpolSpaceNode = this->extDataInfo_->Get("interpolation")->Get("standard")->Get("interpolationSpace");
    shared_ptr<FeSpace> interpolSpace;
-   interpolSpace = FeSpace::CreateInstance(motherNode,interpolSpaceNode,FeSpace::H1,this->domain_->GetGrid());
+   interpolSpace = FeSpace::CreateInstance(motherNode,interpolSpaceNode,FeSpace::H1,this->destGrid_);
 
 
    shared_ptr<SolStrategy> solStrat(new SolStrategyStd(motherNode));
@@ -550,7 +566,7 @@ template<class DATA_TYPE>
    interpolSpace->Init(solStrat);
    this->interpolFunction_.reset(new FeFunction<DATA_TYPE>(this->domain_->GetMathParser()));
    this->interpolFunction_->SetFeSpace(interpolSpace);
-   this->interpolFunction_->SetGrid(this->domain_->GetGrid());
+   this->interpolFunction_->SetGrid(this->destGrid_);
    interpolSpace->AddFeFunction(interpolFunction_);
    this->interpolFunction_->SetResultInfo(this->resultInfo_);
 

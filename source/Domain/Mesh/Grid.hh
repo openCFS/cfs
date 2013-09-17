@@ -915,7 +915,7 @@ namespace CoupledField
     //! \param coords(in) The vector of global coordinates
     //! \param id(in) An identifier for this specific coordinate (e.g. index in a vector)
     //! \param tol(in) Tolerance in meters which determines the size of the bounding box
-    HandleBox CreateBoxFromCoord( const Vector<double> coors,
+    HandleBox CreateBoxFromCoord( const Vector<double>& coords,
                                   UInt *id,
                                   Double tol = 0.0 );
 
