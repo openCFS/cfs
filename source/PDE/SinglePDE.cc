@@ -2766,6 +2766,11 @@ namespace CoupledField {
     MortarInterface *mortarIf = dynamic_cast<MortarInterface*>(&(*ncIf));
     assert(mortarIf);
     
+    // currently we have a moving formulation only for acoustics
+    updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?
+    bool isMoving = updatedGeo_
+        && (solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL);
+    
     // create ElemLists for slave surface and intersection
     shared_ptr<SurfElemList> elMaster(new SurfElemList(ptGrid_)),
                              elSlave(new SurfElemList(ptGrid_));
@@ -2782,6 +2787,11 @@ namespace CoupledField {
       EXCEPTION("FeFunction of Lagrange multiplier not found");
     }
     
+    // add element lists to FeFunctions
+    feFunctions_[solType]->AddEntityList(elMaster);
+    feFunctions_[solType]->AddEntityList(elSlave);
+    feFunctions_[LAGRANGE_MULT]->AddEntityList(elSlave);
+    
     // For transient case we need to initialize the TimeStepping
     // of the Lagrange multiplier
     if ( analysistype_ == TRANSIENT ) {
@@ -2793,7 +2803,7 @@ namespace CoupledField {
       feFunctions_[LAGRANGE_MULT]->SetTimeScheme( tsCopy );
     }
     
-    // Set the same approximation for the Lagrange mutliplier as for the
+    // Set the same approximation for the Lagrange multiplier as for the
     // primary unknown in the slave region
     shared_ptr<FeSpace> mortarSpace = feFunctions_[LAGRANGE_MULT]->GetFeSpace();
     std::string slaveVolName = ptGrid_->GetRegion()
@@ -2846,13 +2856,16 @@ namespace CoupledField {
     BiLinFormContext *massContext = new BiLinFormContext(massInt, STIFFNESS);
     massContext->SetEntities(elSlave, elSlave);
     massContext->SetFeFunctions( feFunctions_[solType], feFunctions_[LAGRANGE_MULT] );
-    massContext->SetCounterPart(true);
-    
-    feFunctions_[solType]->AddEntityList(elMaster);
-    feFunctions_[solType]->AddEntityList(elSlave);
-    feFunctions_[LAGRANGE_MULT]->AddEntityList(elSlave);
-    
+    massContext->SetCounterPart(!isMoving);
     assemble_->AddBiLinearForm(massContext);
+    
+    if (isMoving) {
+      BiLinFormContext *massContext2 = new BiLinFormContext(massInt, DAMPING);
+      massContext2->SetEntities(elSlave, elSlave);
+      massContext2->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[solType] );
+      massContext2->SetCounterPart(false);
+      assemble_->AddBiLinearForm(massContext2);
+    }
     
     // create a non-conforming mass integrator
     BiLinearForm *ncInt = NULL;
@@ -2928,9 +2941,16 @@ namespace CoupledField {
     NcBiLinFormContext *ncContext = new NcBiLinFormContext(ncInt, STIFFNESS);
     ncContext->SetEntities(elMortar, elMortar);
     ncContext->SetFeFunctions( feFunctions_[solType], feFunctions_[LAGRANGE_MULT] );
-    ncContext->SetCounterPart(true);
-    
+    ncContext->SetCounterPart(!isMoving);
     assemble_->AddBiLinearForm(ncContext);
+    
+    if (isMoving) {
+      NcBiLinFormContext *ncContext2 = new NcBiLinFormContext(ncInt, DAMPING);
+      ncContext2->SetEntities(elMortar, elMortar);
+      ncContext2->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[solType] );
+      ncContext2->SetCounterPart(false);
+      assemble_->AddBiLinearForm(ncContext2);
+    }
   }
   
   void SinglePDE::DefineNitscheCoupling( SolutionType solType,
