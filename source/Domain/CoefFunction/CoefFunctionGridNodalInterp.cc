@@ -46,7 +46,7 @@ CoefFunctionGridNodalInterp(Domain* ptDomain,
   this->stdInterpReady_ = false;
   this->consInterpReady_ = false;
   this->curInterpType_ = CoefFunctionGrid::NO_INTERPOLATION;
-  this->extDataInfo_ = curInfo->Get("externalGrid");
+  this->extDataInfo_ = curInfo->Get("externalGrid", ParamNode::APPEND);
   ReadXMLNode(configNode);
 
   //obtain grid pointer and store its dimension
@@ -282,7 +282,9 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
     }
   }
   if(elemCounter>0)
-    WARN("There were " << elemCounter << " unmapped nodes. Perhaps you should increase the tolerances!");
+    WARN("There were " << elemCounter << " unmapped nodes for target region '"
+         << (*(this->entities_.Begin()))->GetName()
+         << "'.\n Perhaps you should increase the tolerances!");
 
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("numUnmappedNodes")->SetValue(elemCounter);
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("globalTol")->SetValue(globalTol_);
@@ -351,7 +353,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
                                                                       Vector<DATA_TYPE>& feFncVec){
 
   if(!this->consInterpReady_){
-    std::cout << "Preparing for conservative interpolation of external data...";
+    std::cout << "Preparing for conservative interpolation of external data... ";
     std::cout.flush();
     boost::shared_ptr<Timer> t(new Timer);
     t->Start();
@@ -453,7 +455,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     this->extDataInfo_->Get("interpolation")->Get("conservative")->
         Get("creationTime")->SetValue(elapsed.str());
 
-    std::cout << "Done" << std::endl;
+    std::cout << " done." << std::endl;
     std::cout.flush();
   }
   //perhaps we need to reread the solution vector from file

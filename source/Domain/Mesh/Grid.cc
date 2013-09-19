@@ -448,6 +448,15 @@ namespace CoupledField
     return ncInterfaces_.GetSize()-1;
   }
 
+  void Grid::MoveNcInterfaces() {
+    StdVector< shared_ptr<BaseNcInterface> >::iterator it = ncInterfaces_.Begin(),
+        itEnd = ncInterfaces_.End();
+    for ( ; it != itEnd; ++it) {
+      (*it)->UpdateInterface();
+    }
+  }
+  
+  
   bool Grid::IsSurfacePlanar(const StdVector<SurfElem*>& ifaceElems) const
   {
     std::set<Integer> ifaceNodes;

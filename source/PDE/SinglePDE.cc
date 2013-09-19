@@ -158,7 +158,7 @@ namespace CoupledField {
     LOG_TRACE(singlepde) << pdename_ << ": Obtaining analysis type";
     analysistype_ = domain_->GetSingleDriver()->GetAnalysisType();
 
-    // NOTE: The concept of isAlwaysStatic bites with Direct Coupling
+    // TODO: The concept of isAlwaysStatic bites with Direct Coupling
     //       and must be re-designed
     if ( isAlwaysStatic_ == true &&
          analysistype_ == TRANSIENT ) {

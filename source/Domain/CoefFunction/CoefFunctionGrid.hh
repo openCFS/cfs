@@ -116,7 +116,9 @@ class CoefFunctionGrid : public CoefFunction{
     virtual void SetConservative(bool value){
       bool isReset = false;
       std::string interpTyStr;
-      if(this->curInterpType_ != CoefFunctionGrid::NO_INTERPOLATION){
+      if ((this->curInterpType_ == CoefFunctionGrid::CONSERVATIVE) != value
+          && this->curInterpType_ != CoefFunctionGrid::NO_INTERPOLATION)
+      {
         isReset = true;
       }
       if(value){

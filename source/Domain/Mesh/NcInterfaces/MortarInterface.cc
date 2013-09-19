@@ -11,6 +11,7 @@
 #include "Domain/ElemMapping/SurfElem.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
+#include "Driver/TransientDriver.hh"
 #include "Utils/StdVector.hh"
 #include "MatVec/Vector.hh"
 #include "Utils/mathParser/mathParser.hh"
@@ -82,10 +83,29 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   
   nciNode->GetValue("storeIntegrationGrid", exportToGrid_, ParamNode::PASS);
 
-  PtrParamNode rotNode = nciNode->Get("rotation", ParamNode::PASS);
-  if (rotNode) {
-    SetRotation( rotNode->Get("coordSysId")->As<std::string>(),
-                 rotNode->Get("rpm")->As<Double>());
+  PtrParamNode motionNode = nciNode->Get("rotation", ParamNode::PASS);
+  if (motionNode) {
+    SetRotation( motionNode->Get("coordSysId")->As<std::string>(),
+                 motionNode->Get("rpm")->As<Double>());
+  }
+  
+  motionNode = nciNode->Get("generalMotion", ParamNode::PASS);
+  if (motionNode) {
+    std::string coordSysId = "default";
+    StdVector<std::string> displaceExpr;
+    
+    if (motionNode->Has("displace3")) {
+      displaceExpr.Resize(3);
+      displaceExpr[2] = motionNode->Get("displae3")->As<std::string>();
+    } else {
+      displaceExpr.Resize(2);
+    }
+    displaceExpr[0] = motionNode->Get("displace1")->As<std::string>();
+    displaceExpr[1] = motionNode->Get("displace2")->As<std::string>();
+    
+    motionNode->GetValue("coordSysId", coordSysId, ParamNode::INSERT);
+    
+    SetMotion(displaceExpr, coordSysId);
   }
 
   if ( !isMoving_ ) {
@@ -112,6 +132,11 @@ MortarInterface::~MortarInterface() {
 void MortarInterface::SetRotation(const std::string &coordSysId, Double rpm) {
   if ( rpm == 0.0 ) return;
   
+  TransientDriver* driver = dynamic_cast<TransientDriver*>(domain->GetSingleDriver());
+  if ( !driver ) {
+    EXCEPTION("Moving ncInterfaces can be used for transient analysis only.");
+  }
+  
   coordSys_ = domain->GetCoordSystem(coordSysId);
   if ( coordSys_->GetDofName(2) != "phi" ) {
     EXCEPTION("For a rotating ncInterface the coordinate system must be "
@@ -131,6 +156,11 @@ void MortarInterface::SetRotation(const std::string &coordSysId, Double rpm) {
 void MortarInterface::SetMotion(const StdVector<std::string> &offsetExpr,
                                 const std::string &coordSysId)
 {
+  TransientDriver* driver = dynamic_cast<TransientDriver*>(domain->GetSingleDriver());
+  if ( !driver ) {
+    EXCEPTION("Moving ncInterfaces can be used for transient analysis only.");
+  }
+  
   offsetExpr_ = offsetExpr;
   coordSys_ = domain->GetCoordSystem(coordSysId);
   coordSysId_ = coordSysId;
@@ -146,7 +176,7 @@ void MortarInterface::SetMotion(const StdVector<std::string> &offsetExpr,
     if ( !offsetExpr_[i].empty() ) {
       mphOffset_[i] = mParser_->GetNewHandle(true);
       mParser_->SetExpr(mphOffset_[i], offsetExpr_[i]);
-      if ( !mParser_->IsExprConstant(mphOffset_[i]) ) 
+      if ( !mParser_->IsExprVariable( mphOffset_[i], "t") ) 
         isMoving_ = true;
     }
   }
@@ -159,10 +189,51 @@ void MortarInterface::SetMotion(const StdVector<std::string> &offsetExpr,
     nullOffsets.Resize(nodeNums.GetSize()*dim, 0.0);
     ptGrid_->SetNodeOffset(nodeNums, nullOffsets);
   } else {
-    WARN("You supplied only constant expressions as time-dependent "
-         << "coordinates for moving ncInterface '" << name_
+    WARN("You supplied constant expressions as time-dependent "
+         << "displacements for moving ncInterface '" << name_
          << "'. Interface is assumed stationary.");
   }
+}
+
+void MortarInterface::MoveInterface() {
+  
+  if ( !isMoving_ ) return;
+  
+  const bool useGlobalCoords = (coordSysId_ == "default");
+  UInt dim = coordSys_->GetDim(), numNodes;
+  StdVector<UInt> nodeNums;
+  Vector<Double> coordOrig, coordTmp, coordNew, nodeOffsets;
+
+  ptGrid_->GetNodesByRegion(nodeNums, slaveVolRegion_);
+
+  numNodes = nodeNums.GetSize();
+  nodeOffsets.Resize(numNodes * dim);
+
+  if ( useGlobalCoords ) {
+    for (UInt i = 0; i < numNodes; ++i) {
+      for (UInt j = 0; j < dim; ++j) {
+        nodeOffsets[i*dim+j] = mParser_->Eval(mphOffset_[j]);
+      }
+    }
+  }
+  else {
+    for (UInt i = 0; i < numNodes; ++i) {
+      ptGrid_->GetNodeCoordinate(coordOrig, nodeNums[i], false);
+
+      coordSys_->Global2LocalCoord(coordTmp, coordOrig);
+      for (UInt j = 0; j < dim; ++j) {
+        coordTmp[j] += mParser_->Eval(mphOffset_[j]);
+      }
+      coordSys_->Local2GlobalCoord(coordNew, coordTmp);
+
+      nodeOffsets[i * dim    ] = coordNew[0] - coordOrig[0];
+      nodeOffsets[i * dim + 1] = coordNew[1] - coordOrig[1];
+      if (dim == 3)
+        nodeOffsets[i*dim + 2] = coordNew[2] - coordOrig[2];
+    }
+  }
+
+  ptGrid_->SetNodeOffset(nodeNums, nodeOffsets);
 }
 
 void MortarInterface::UpdateInterface() {
@@ -176,6 +247,8 @@ void MortarInterface::UpdateInterface() {
   StdVector<std::string> listNodeNames;
   std::string newNodesName = name_ + "_nodes";
 
+  MoveInterface();
+  
   elemList_->Clear();
   if ( region_ != NO_REGION_ID ) {
     ptGrid_->ClearRegion(region_);
