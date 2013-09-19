@@ -91,6 +91,23 @@
         Formulation specific options (e.g. Mortar/Nitsche) are defined in
         CFS_PDEbasic.xsd (DT_NcInterfaceList). -->
   <xsd:complexType name="DT_DomainNCIface">
+    <xsd:choice minOccurs="0" maxOccurs="1">
+      <xsd:element name="generalMotion">
+        <xsd:complexType>
+          <xsd:attribute name="displace1" type="xsd:token" use="required"/>
+          <xsd:attribute name="displace2" type="xsd:token" use="required"/>
+          <xsd:attribute name="displace3" type="xsd:token" use="optional"/>
+          <xsd:attribute name="coordSysId" type="xsd:token" use="optional"
+            default="default"/>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="rotation">
+        <xsd:complexType>
+          <xsd:attribute name="rpm" type="xsd:double" use="required"/>
+          <xsd:attribute name="coordSysId" type="xsd:token" use="required"/>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:choice>
     <xsd:attribute name="name" type="xsd:token" use="required">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">

@@ -1,32 +1,26 @@
-% ==============================================================
+% exec
 %
-%    exec
+% Executes a shell command like MATLAB's system function, but uses a
+% clean LD_LIBRARY_PATH.
 %
-%
-%    GENERAL
-%    Executes a shell command like MATLAB's system function, but uses a
-%    clean LD_LIBRARY_PATH.
-%
-%    INPUT/S
-%      cmd       - shell command to be executed
-%        
-%    OUTPUT/S
-%      status    - the shell's exit status
-%      result    - the command's output (stdout)
-%      
-%    ABOUT
-%
-%      -Created:     30 Oct 2007
-%      -Last update: 15 Nov 2007
-%      -Revision:    0.1
-%      -Author:      Jens Grabinger
-%
-% ==============================================================
+% Input Parameters
+%   * cmd       - shell command to be executed
+%     
+% Return Values
+%   * status    - the shell's exit status
+%   * result    - the command's output (stdout)
+%   
+% About
+%   * Created:  30 Oct 2007
+%   * Authors:  Simon Triebenbacher, Jens Grabinger
+%   * Revision: $Id: exec.m 12446 2013-06-11 14:55:26Z jens $
+
 
 function [status, result] = exec(cmd)
 
 % contruct temporary filename
-tmpfile = sprintf('.exec%d.sh', ceil(666*rand));
+rng('shuffle')
+tmpfile = sprintf('.exec%d.sh', randi(999999));
 
 % write shell script to temp file
 fid = fopen(tmpfile, 'w');
@@ -45,13 +39,12 @@ fprintf(fid, '  LD_LIBRARY_PATH="$p:$LD_LIBRARY_PATH"\n');
 fprintf(fid, 'done\n\n');
 
 fprintf(fid, '# Determine machine type and add standard paths in front of lib path\n');
-fprintf(fid, 'MACH=`uname -m`\n');
-fprintf(fid, 'case $MACH in\n');
+fprintf(fid, 'case $HOSTTYPE in\n');
 fprintf(fid, '           i[3-6]86)\n');
-fprintf(fid, '              LD_LIBRARY_PATH="/lib:/usr/lib:$LD_LIBRARY_PATH"\n');
+fprintf(fid, '              LD_LIBRARY_PATH="/lib:/usr/lib:/lib/$HOSTTYPE-linux-gnu:/usr/lib/$HOSTTYPE-linux-gnu:$LD_LIBRARY_PATH"\n');
 fprintf(fid, '              ;;\n');
 fprintf(fid, '           x86_64)\n');
-fprintf(fid, '              LD_LIBRARY_PATH="/lib64:/usr/lib64:$LD_LIBRARY_PATH"\n');
+fprintf(fid, '              LD_LIBRARY_PATH="/lib64:/usr/lib64:/lib/$HOSTTYPE-linux-gnu:/usr/lib/$HOSTTYPE-linux-gnu:$LD_LIBRARY_PATH"\n');
 fprintf(fid, '              ;;\n');
 fprintf(fid, 'esac\n\n');
 

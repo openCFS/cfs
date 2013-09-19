@@ -46,8 +46,6 @@ class MortarInterface : public BaseNcInterface {
 
     void UpdateInterface();
     
-    void MoveInterface(Double t) { EXCEPTION("Not implemented yet."); }
-
   protected:
     
     void SetRotation(const std::string &coordSysId,
@@ -56,6 +54,8 @@ class MortarInterface : public BaseNcInterface {
     void SetMotion( const StdVector<std::string> &offsetExpr,
                     const std::string &coordSysId = "default" );
     
+    void MoveInterface();
+
     // =======================================================================
     // Non-matching grid interface calculation
     // =======================================================================

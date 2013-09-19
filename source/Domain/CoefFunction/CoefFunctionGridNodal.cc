@@ -203,7 +203,7 @@ namespace CoupledField{
         DATA_TYPE factor;
         LocPointMapped lpm;
         factorFnc_->GetScalar(factor,lpm);
-        std::cout << "Computed Factor for timestep: " << factor << std::endl;
+        //std::cout << "Computed Factor for timestep: " << factor << std::endl;
         for( it.Begin(); !it.IsEnd(); it++ ) {
           UInt idx = nodeIdxMap_[it.GetNode()];
           eqns = eqnNumbers_[idx];

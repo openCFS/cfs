@@ -356,6 +356,9 @@ namespace CoupledField {
   void StdSolveStep::PreStepTrans() {
     ResultCache::SetStepValue( actTime_ );
 
+    // Update moving ncInterfaces as needed
+    ptgrid_->MoveNcInterfaces();
+    
     // due to coupling-pdes, the RHS has to be initialized BEFORE
     // the coupling forces are assembled to the RHS
     algsys_->InitRHS();
