@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-import Image, sys, os, copy, numpy
-
+import Image, sys, os, copy, numpy, math
 
 # writes a dense two region mesh
 # def write_dense_mesh(pixels, size, file, threshold):
@@ -28,7 +27,7 @@ mesh = Mesh()
 mesh.nodes = []    # list 2d tupels (float, float)
 mesh.elements = [] # list of Element
 mesh.bc = []       # list of tupel (name, <list of zero based nodes>)  
-  
+
 def show_dense_mesh_image(mesh, shape, binary, size):
   check_img = Image.new("RGB", shape, "white")
   check_pix = check_img.load()
@@ -48,10 +47,10 @@ def show_dense_mesh_image(mesh, shape, binary, size):
   check_img.show()     
 
 
-def create_dense_mesh_img(input_img, mesh, threshold, scale, rhomin):
+def create_dense_mesh_img(input_img, mesh, threshold, scale, rhomin, angle):
   input_pix = input_img.load()
   nx, ny = input_img.size
-  create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin)
+  create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin,True,1,angle)
 
 def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin,multi_d=1):
   if multi_d == 1:
@@ -60,14 +59,22 @@ def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin,multi_
     nx,ny,nz,m = numpy_array.shape
   create_dense_mesh(numpy_array, nx, ny, mesh, threshold, scale, rhomin,False,multi_design = multi_d)
   
-def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img = True,multi_design=1):  
+def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img = True,multi_design=1,angle=0):  
   input_pix = input_array
   dx = scale/nx
-  dy = dx 
-
+  dy = dx
+  angle = angle/180 * math.pi
+  print "dx " + str(dx) + " dy " + str(dy)
+  print "angle " + str(angle)
   for y in range(ny + 1):
     for x in range(nx + 1):
-      mesh.nodes.append((x * dx, y * dy))
+      if angle == 0.0:
+        mesh.nodes.append((x * dx, y * dy))
+      else:
+        x_Coord = round(x * dx - y * dy * math.tan(angle), 8)
+        if abs(x_Coord) < 1e-8:
+          x_Coord = 0.0
+        mesh.nodes.append((x_Coord,y * dy))
   # print mesh.nodes 
   mech_count = 0
   for x in range(nx):
@@ -75,7 +82,7 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img =
       e = Element()
       if img:
         # convert to black is one and white = 0
-        e.density = 1.0 - (input_pix[y,ny - x - 1] / 255.0)
+        e.density = 1.0 - (input_pix[x,y] / 255.0)
       else:
         if multi_design == 1:
           e.density = input_pix[x,y]
@@ -351,5 +358,3 @@ def create_mbb_mesh(type, resolution):
   mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
   
   return mesh
-
-
