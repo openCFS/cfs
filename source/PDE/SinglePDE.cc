@@ -2943,6 +2943,7 @@ namespace CoupledField {
     ncContext->SetFeFunctions( feFunctions_[solType], feFunctions_[LAGRANGE_MULT] );
     ncContext->SetCounterPart(!isMoving);
     assemble_->AddBiLinearForm(ncContext);
+    ncIf->RegisterIntegrator(ncContext);
     
     if (isMoving) {
       NcBiLinFormContext *ncContext2 = new NcBiLinFormContext(ncInt, DAMPING);
@@ -2950,6 +2951,7 @@ namespace CoupledField {
       ncContext2->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[solType] );
       ncContext2->SetCounterPart(false);
       assemble_->AddBiLinearForm(ncContext2);
+      ncIf->RegisterIntegrator(ncContext2);
     }
   }
   

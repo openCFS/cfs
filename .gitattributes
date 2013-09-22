@@ -1235,6 +1235,7 @@ source/Domain/Mesh/Grid.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/Mesh/Grid.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/Mesh/GridCFS/GridCFS.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/Mesh/GridCFS/GridCFS.hh svneol=native#text/x-c%2B%2Bhdr
+source/Domain/Mesh/NcInterfaces/BaseNcInterface.cc -text
 source/Domain/Mesh/NcInterfaces/BaseNcInterface.hh -text
 source/Domain/Mesh/NcInterfaces/MortarInterface.cc -text
 source/Domain/Mesh/NcInterfaces/MortarInterface.hh -text
