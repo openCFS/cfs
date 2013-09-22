@@ -352,6 +352,8 @@ void MortarInterface::UpdateInterface() {
   UInt numElems = elemList_->GetSize();
   
   if( numElems > 0 ) {
+    UpdateIntegrators();
+    
     if ( exportToGrid_ ) {
       if ( region_ == NO_REGION_ID ) {
         region_ = ptGrid_->AddSurfaceRegion(name_);

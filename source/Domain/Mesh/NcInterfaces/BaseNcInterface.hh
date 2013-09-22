@@ -15,6 +15,8 @@
 
 namespace CoupledField {
 
+class NcBiLinFormContext;
+
 class BaseNcInterface {
 
   public:
@@ -40,8 +42,14 @@ class BaseNcInterface {
     
     virtual void UpdateInterface() = 0;
 
+    void RegisterIntegrator(NcBiLinFormContext* context) {
+      integrators_.Push_back(context);
+    }
+    
   protected:
 
+    void UpdateIntegrators();
+    
     // =======================================================================
     // Class variables
     // =======================================================================
@@ -49,6 +57,7 @@ class BaseNcInterface {
     Grid* ptGrid_;
     std::string name_;
     shared_ptr<NcSurfElemList> elemList_;
+    StdVector<NcBiLinFormContext*> integrators_;
 
 }; // class BaseNcInterface
 
