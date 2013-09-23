@@ -57,15 +57,19 @@ def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin,multi_
     nx, ny = numpy_array.shape
   else:
     nx,ny,nz,m = numpy_array.shape
-  create_dense_mesh(numpy_array, nx, ny, mesh, threshold, scale, rhomin,False,multi_design = multi_d)
+  create_dense_mesh(numpy_array, nx, ny, mesh, threshold, scale, rhomin,False,multi_design = multi_d,angle = 0.0)
   
-def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img = True,multi_design=1,angle=0):  
+def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img = True,multi_design=1,angle=0):
   input_pix = input_array
   dx = scale/nx
   dy = dx
+  # convert angle to rad and check for feasibility
   angle = angle/180 * math.pi
-  print "dx " + str(dx) + " dy " + str(dy)
+  if (abs(angle) > math.pi/2 - 1e-6):
+    print 'angle has to be between -pi/2 + 1e-6 and pi/2 - 1e-6'
+    return 0
   print "angle " + str(angle)
+  # create mesh.nodes
   for y in range(ny + 1):
     for x in range(nx + 1):
       if angle == 0.0:

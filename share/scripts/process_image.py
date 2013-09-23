@@ -67,7 +67,6 @@ else:
     print "Warning: mode is stupid, may give unusable results!"
   
   input_img = input_img.convert("L") #.transpose(Image.FLIP_TOP_BOTTOM)
-  print float(args.angle)
   create_dense_mesh_img(input_img, mesh, float(args.threshold), float(args.scale), float(args.rhomin), float(args.angle))
 
 if not args.noshow:
