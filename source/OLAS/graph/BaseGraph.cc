@@ -662,7 +662,7 @@ namespace CoupledField {
                          << " old one\n";
 
           for ( i = 0; i < numNodes_; i++ ) {
-            order[i] = i;
+            order[i] = i+1;
           }
         }
 
