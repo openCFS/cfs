@@ -342,6 +342,11 @@ namespace CoupledField
                           StdVector<Integer>& eqnVec2,
                           FeFctIdType& id1, FeFctIdType& id2 );
 
+    //! Returns all equations of this context
+    void GetEqns( StdVector<Integer>& eqnVec1,
+                  StdVector<Integer>& eqnVec2,
+                  FeFctIdType& id1, FeFctIdType& id2 ) const;
+    
   }; // class NcBiLinFormContext
 
 } // end of namespace

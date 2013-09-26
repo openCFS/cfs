@@ -146,6 +146,9 @@ namespace CoupledField {
     //! Set single element
     virtual void SetElement( const Elem* elem );
 
+    //! Add an element to the list
+    virtual void AddElement( const Elem* elem );
+    
     //! Get RegionId
     RegionIdType GetRegion() const;
     
@@ -191,6 +194,9 @@ namespace CoupledField {
 
     //! Set single surface element
     virtual void SetSurfElem( const SurfElem* elem );
+
+    //! Add an element to the list
+    virtual void AddElement( const SurfElem* elem );
 
     //! Get one element of the list
     virtual const Elem * GetElem( UInt nr ) const;
@@ -257,7 +263,7 @@ namespace CoupledField {
     virtual void AddElement( const shared_ptr<NcSurfElem> elem );
 
     //! Deletes all elements from the list
-    virtual void Clear() { ncElems_.Clear(); }
+    virtual void Clear() { ncElems_.Clear(); size_ = 0; }
     
     //! Get iterator
     virtual EntityIterator GetIterator() const;
