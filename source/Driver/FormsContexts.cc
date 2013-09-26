@@ -289,7 +289,7 @@ namespace CoupledField {
     // NcBiLinFormContext only works with MortarNcSurfElems at the moment
     assert( mortarElem );
     
-    // TODO jens: implement the general case for two different FeFunctions
+    // TODO: implement the general case for two different FeFunctions
     // (e.g. MechAcou coupling)
     shared_ptr<BaseFeFunction> feFuncField = this->feFct1_.lock(),
                                feFuncLM = this->feFct2_.lock();
@@ -307,4 +307,43 @@ namespace CoupledField {
     id2 = feFuncLM->GetFctId();
   }
   
+  void NcBiLinFormContext::GetEqns( StdVector<Integer>& eqnVec1,
+                StdVector<Integer>& eqnVec2,
+                FeFctIdType& id1, FeFctIdType& id2 ) const
+  {
+    EntityIterator it = ent1_->GetIterator();
+    assert(it.GetType() == EntityList::NC_ELEM_LIST);
+    assert(ent2_->GetIterator().GetType() == EntityList::NC_ELEM_LIST);
+
+    shared_ptr<ElemList> masterElems(new ElemList(ent1_->GetGrid()));
+    shared_ptr<ElemList> slaveElems(new ElemList(ent1_->GetGrid()));
+    
+    for ( ; !it.IsEnd(); it++ ) {
+      const NcSurfElem* ncElem = it.GetNcSurfElem();
+      const MortarNcSurfElem* mortarElem =
+          dynamic_cast<const MortarNcSurfElem*>(ncElem);
+      assert(mortarElem);
+      masterElems->AddElement(mortarElem->ptMaster);
+      slaveElems->AddElement(mortarElem->ptSlave);
+    }
+    
+    // TODO: implement the general case for two different FeFunctions
+    // (e.g. MechAcou coupling)
+    shared_ptr<BaseFeFunction> feFuncField = this->feFct1_.lock(),
+                               feFuncLM = this->feFct2_.lock();
+    if ( feFuncField->GetResultInfo()->resultType == LAGRANGE_MULT ) {
+      feFuncField = this->feFct2_.lock();
+      feFuncLM = this->feFct1_.lock();
+      if ( feFuncField->GetResultInfo()->resultType == LAGRANGE_MULT ) {
+        EXCEPTION("You cannot couple two Lagrange multipliers");
+      }
+    }
+    
+    feFuncField->GetFeSpace()->GetEntityListEqns(eqnVec1, masterElems);
+    feFuncLM->GetFeSpace()->GetEntityListEqns(eqnVec2, slaveElems);
+    
+    id1 = feFuncField->GetFctId();
+    id2 = feFuncLM->GetFctId();
+  }
+
 } // namespace CoupledField

@@ -116,11 +116,13 @@ namespace CoupledField {
   void ElemList::SetNamedElems( const std::string& name ) {
     StdVector<Elem*> elems;
     grid_->GetElemsByName( elems, name );
+    UInt numElems = elems.GetSize();
     
     list_.Clear();
+    list_.Reserve(numElems);
     
-    for ( UInt i=0, numElems=elems.GetSize(); i<numElems; ++i ) {
-      list_.Push_back( elems[i]->elemNum);
+    for ( UInt i=0; i<numElems; ++i ) {
+      list_.Push_back(elems[i]->elemNum);
     }
     
     defineType_ = NAMED_ELEMS;
@@ -133,10 +135,12 @@ namespace CoupledField {
   void ElemList::SetRegion( RegionIdType region ) {
     StdVector<Elem*> elems;
     grid_->GetElems( elems, region );
+    UInt numElems=elems.GetSize();
     
     list_.Clear();
+    list_.Reserve(numElems);
     
-    for ( UInt i=0, numElems=elems.GetSize(); i<numElems; ++i ) {
+    for ( UInt i=0; i<numElems; ++i ) {
       list_.Push_back( elems[i]->elemNum);
     }
 
@@ -172,6 +176,11 @@ namespace CoupledField {
     return it;
   }
  
+  //! Add an element to the list
+  void ElemList::AddElement( const Elem* elem ) {
+    list_.Push_back(elem->elemNum);
+    ++size_;
+  }
 
 
   // --- SurfElem List ---
@@ -235,6 +244,11 @@ namespace CoupledField {
     region_ = NO_REGION_ID;
     name_ = "";
     surfElemList_.Resize(1, elem);
+  }
+  
+  void SurfElemList::AddElement(const SurfElem* elem) {
+    surfElemList_.Push_back(elem);
+    ++size_;
   }
   
   const Elem* SurfElemList::GetElem(UInt nr) const {

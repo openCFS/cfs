@@ -237,6 +237,9 @@ void MortarInterface::MoveInterface() {
 }
 
 void MortarInterface::UpdateInterface() {
+  
+  if ( !isMoving_ && elemList_->GetSize() > 0 ) return;
+  
   StdVector<SurfElem*> masterElems;
   StdVector<SurfElem*> slaveElems;
   StdVector<SurfElem*> ifaceElems;
