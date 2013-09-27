@@ -318,14 +318,20 @@ namespace CoupledField {
     shared_ptr<ElemList> masterElems(new ElemList(ent1_->GetGrid()));
     shared_ptr<ElemList> slaveElems(new ElemList(ent1_->GetGrid()));
     
-    for ( ; !it.IsEnd(); it++ ) {
+    /*for ( ; !it.IsEnd(); it++ ) {
       const NcSurfElem* ncElem = it.GetNcSurfElem();
       const MortarNcSurfElem* mortarElem =
           dynamic_cast<const MortarNcSurfElem*>(ncElem);
       assert(mortarElem);
       masterElems->AddElement(mortarElem->ptMaster);
       slaveElems->AddElement(mortarElem->ptSlave);
-    }
+    }*/
+    const NcSurfElem* ncElem = it.GetNcSurfElem();
+    const MortarNcSurfElem* mortarElem =
+        dynamic_cast<const MortarNcSurfElem*>(ncElem);
+    assert(mortarElem);
+    masterElems->SetRegion(mortarElem->ptMaster->regionId);
+    slaveElems->SetRegion(mortarElem->ptSlave->regionId);
     
     // TODO: implement the general case for two different FeFunctions
     // (e.g. MechAcou coupling)
