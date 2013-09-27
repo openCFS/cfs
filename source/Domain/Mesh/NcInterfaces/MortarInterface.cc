@@ -25,6 +25,7 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   BaseNcInterface(grid),
   isCoplanar_(false),
   isMoving_(false),
+  moveMaster_(false),
   exportToGrid_(true),
   coordSysId_(""),
   coordSys_(NULL),
@@ -87,6 +88,8 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   if (motionNode) {
     SetRotation( motionNode->Get("coordSysId")->As<std::string>(),
                  motionNode->Get("rpm")->As<Double>());
+    moveMaster_ = (motionNode->Get("movingSide", ParamNode::INSERT)
+                    ->As<std::string>() == "master");
   }
   
   motionNode = nciNode->Get("generalMotion", ParamNode::PASS);
@@ -96,7 +99,7 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
     
     if (motionNode->Has("displace3")) {
       displaceExpr.Resize(3);
-      displaceExpr[2] = motionNode->Get("displae3")->As<std::string>();
+      displaceExpr[2] = motionNode->Get("displace3")->As<std::string>();
     } else {
       displaceExpr.Resize(2);
     }
@@ -106,6 +109,9 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
     motionNode->GetValue("coordSysId", coordSysId, ParamNode::INSERT);
     
     SetMotion(displaceExpr, coordSysId);
+
+    moveMaster_ = (motionNode->Get("movingSide", ParamNode::INSERT)
+                    ->As<std::string>() == "master");
   }
 
   //if ( !isMoving_ ) {
@@ -207,7 +213,12 @@ void MortarInterface::MoveInterface() {
   StdVector<UInt> nodeNums;
   Vector<Double> coordOrig, coordTmp, coordNew, nodeOffsets;
 
-  ptGrid_->GetNodesByRegion(nodeNums, slaveVolRegion_);
+  if (moveMaster_) {
+    ptGrid_->GetNodesByRegion(nodeNums, masterVolRegion_);
+  }
+  else {
+    ptGrid_->GetNodesByRegion(nodeNums, slaveVolRegion_);
+  }
 
   numNodes = nodeNums.GetSize();
   nodeOffsets.Resize(numNodes * dim);

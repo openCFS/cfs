@@ -157,6 +157,7 @@ class MortarInterface : public BaseNcInterface {
     RegionIdType slaveVolRegion_;
     bool isCoplanar_;
     bool isMoving_;
+    bool moveMaster_;
     bool exportToGrid_;
     std::string coordSysId_;
     CoordSystem* coordSys_;
