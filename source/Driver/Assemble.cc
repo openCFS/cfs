@@ -347,7 +347,14 @@ namespace CoupledField
             NcBiLinFormContext* ncContext = dynamic_cast<NcBiLinFormContext*>(forms[iForm]);
 
             if (ncContext) {
+              // Just get all equations, so we out a dense block in the graph
               ncContext->GetEqns(eqnVec1, eqnVec2, id1, id2);
+
+              // Perform remapping
+              ReMapEquations(eqnVec1, id1);
+              ReMapEquations(eqnVec2, id2);
+
+              // Pass entity eqn-connectivity to algebraic system
               algsys_->SetElementPos(id1, eqnVec1, id2, eqnVec2, destMap,
                                      setCounterPart);
             }

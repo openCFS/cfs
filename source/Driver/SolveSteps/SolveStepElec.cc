@@ -38,6 +38,10 @@ namespace CoupledField {
 
   void SolveStepElec::PreStepTrans() {
     ResultCache::SetStepValue(actTime_);
+
+    // Update moving ncInterfaces as needed
+    ptgrid_->MoveNcInterfaces();
+    
     PreStepStatic();
   }
 

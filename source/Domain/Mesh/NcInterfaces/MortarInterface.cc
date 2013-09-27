@@ -108,11 +108,11 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
     SetMotion(displaceExpr, coordSysId);
   }
 
-  if ( !isMoving_ ) {
+  //if ( !isMoving_ ) {
     // Calculate the intersection, if interface is stationary.
-    // If there is motion, UpdateInterface will be called by MoveInterface.
+    // If there is motion, UpdateInterface will be called by TransientDriver.
     UpdateInterface();
-  }
+  //}
 }
 
 MortarInterface::~MortarInterface() {
@@ -156,10 +156,10 @@ void MortarInterface::SetRotation(const std::string &coordSysId, Double rpm) {
 void MortarInterface::SetMotion(const StdVector<std::string> &offsetExpr,
                                 const std::string &coordSysId)
 {
-  TransientDriver* driver = dynamic_cast<TransientDriver*>(domain->GetSingleDriver());
+  /*TransientDriver* driver = dynamic_cast<TransientDriver*>(domain->GetSingleDriver());
   if ( !driver ) {
     EXCEPTION("Moving ncInterfaces can be used for transient analysis only.");
-  }
+  }*/
   
   offsetExpr_ = offsetExpr;
   coordSys_ = domain->GetCoordSystem(coordSysId);
@@ -172,12 +172,15 @@ void MortarInterface::SetMotion(const StdVector<std::string> &offsetExpr,
   }
 
   mParser_ = domain->GetMathParser();
-  for ( UInt i=0; i<dim; ++i ) {
-    if ( !offsetExpr_[i].empty() ) {
+  for ( UInt i=0; i<3; ++i ) {
+    if ( i < dim && !offsetExpr_[i].empty() ) {
       mphOffset_[i] = mParser_->GetNewHandle(true);
       mParser_->SetExpr(mphOffset_[i], offsetExpr_[i]);
-      if ( !mParser_->IsExprVariable( mphOffset_[i], "t") ) 
+      if ( mParser_->IsExprVariable( mphOffset_[i], "t") ) 
         isMoving_ = true;
+    }
+    else {
+      mphOffset_[i] = MathParser::GLOB_HANDLER;
     }
   }
   
@@ -270,7 +273,7 @@ void MortarInterface::UpdateInterface() {
     isCoplanar_ = false;
   } else {
     UInt numMasterElems = masterElems.GetSize(),
-        numSlaveElems = slaveElems.GetSize();
+         numSlaveElems = slaveElems.GetSize();
 
     ifaceElems.Reserve(numMasterElems + numSlaveElems);
 

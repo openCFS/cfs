@@ -962,7 +962,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     } else {
       // 3) 1D element in 3D simulation
       
-      // In case the (only) edge is not numbered yet, wer perform a 
+      // In case the (only) edge is not numbered yet, we perform a 
       // mapping of edges now
       if(ptElem->edges.GetSize() != 1) {
         ptGrid_->MapEdges();
