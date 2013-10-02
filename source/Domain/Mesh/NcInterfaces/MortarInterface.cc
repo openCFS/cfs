@@ -138,11 +138,6 @@ MortarInterface::~MortarInterface() {
 void MortarInterface::SetRotation(const std::string &coordSysId, Double rpm) {
   if ( rpm == 0.0 ) return;
   
-  TransientDriver* driver = dynamic_cast<TransientDriver*>(domain->GetSingleDriver());
-  if ( !driver ) {
-    EXCEPTION("Moving ncInterfaces can be used for transient analysis only.");
-  }
-  
   coordSys_ = domain->GetCoordSystem(coordSysId);
   if ( coordSys_->GetDofName(2) != "phi" ) {
     EXCEPTION("For a rotating ncInterface the coordinate system must be "
@@ -156,17 +151,12 @@ void MortarInterface::SetRotation(const std::string &coordSysId, Double rpm) {
   offsetExpr_.Resize(coordSys_->GetDim());
   offsetExpr_[1] = sstr.str();
 
-  SetMotion(offsetExpr_, coordSysId_);
+  SetMotion(offsetExpr_, coordSysId);
 }
 
 void MortarInterface::SetMotion(const StdVector<std::string> &offsetExpr,
                                 const std::string &coordSysId)
 {
-  /*TransientDriver* driver = dynamic_cast<TransientDriver*>(domain->GetSingleDriver());
-  if ( !driver ) {
-    EXCEPTION("Moving ncInterfaces can be used for transient analysis only.");
-  }*/
-  
   offsetExpr_ = offsetExpr;
   coordSys_ = domain->GetCoordSystem(coordSysId);
   coordSysId_ = coordSysId;
@@ -462,7 +452,7 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
   
   // Project master nodes onto slave element, if interface is not coplanar
   if ( !isCoplanar_ ) {
-    shared_ptr<ElemShapeMap> sm = ptGrid_->GetElemShapeMap(ifaceElem2);
+    shared_ptr<ElemShapeMap> sm = ptGrid_->GetElemShapeMap(ifaceElem2, isMoving_);
     LocPoint lp = Elem::shapes[ifaceElem2->type].midPointCoord;
 
     // compute maximal allowed distance as sum of lengths of both lines

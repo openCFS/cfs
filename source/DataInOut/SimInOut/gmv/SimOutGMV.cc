@@ -540,7 +540,7 @@ namespace CoupledField {
     for ( i = 1; i <= numnodes; i++) {
       Vector<Double> p;
       
-      ptGrid_->GetNodeCoordinate3D(p, i);  
+      ptGrid_->GetNodeCoordinate3D(p, i, !fixedgrid_);  
         
       if (ascii_) {
         (*gridFile) << " " << p[0] << " " << p[1] << " "
