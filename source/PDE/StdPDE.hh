@@ -196,6 +196,7 @@ namespace CoupledField {
       LagrangeMultType  lagrangeMultType;
       Double            nitscheFactor;
       bool              crossPointHandling;
+      bool              movingMortarForm;
     };
 
     //! Constructor

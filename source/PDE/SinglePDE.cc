@@ -1097,7 +1097,7 @@ namespace CoupledField {
         LocPointMapped lpm;
         for ( UInt iElem = 0; iElem < fap.elems.GetSize(); ++iElem ) {
           shared_ptr<ElemShapeMap> esm = 
-              ptGrid_->GetElemShapeMap( fap.elems[iElem] );
+              ptGrid_->GetElemShapeMap( fap.elems[iElem], true );
           lpm.Set(fap.locPoints[iElem], esm, 0.0);
           fct->GetVector(temp, lpm );
           
@@ -1113,7 +1113,7 @@ namespace CoupledField {
         LocPointMapped lpm;
         for ( UInt iElem = 0; iElem < fap.elems.GetSize(); ++iElem ) {
           shared_ptr<ElemShapeMap> esm = 
-              ptGrid_->GetElemShapeMap( fap.elems[iElem] );
+              ptGrid_->GetElemShapeMap( fap.elems[iElem], true );
           lpm.Set(fap.locPoints[iElem], esm, 0.0);
           fct->GetVector(temp, lpm );
 
@@ -2546,7 +2546,11 @@ namespace CoupledField {
       if (newIface.crossPointHandling) {
         WARN("Cross-point handling is not implemented yet");
       }
-      
+      nciNode->GetValue("movingMortar", newIface.movingMortarForm,
+                        ParamNode::INSERT);
+      if (newIface.movingMortarForm && newIface.type != NC_MORTAR) {
+        WARN("Moving formulation is only available with Mortar coupling");
+      }
       ncInterfaces_.Push_back(newIface);
     }
   }
@@ -2768,7 +2772,7 @@ namespace CoupledField {
     
     // currently we have a moving formulation only for acoustics
     updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?
-    bool isMoving = updatedGeo_
+    bool isMoving = updatedGeo_ && iface.movingMortarForm
         && (solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL);
     
     // create ElemLists for slave surface and intersection

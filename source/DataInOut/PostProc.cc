@@ -592,14 +592,15 @@ namespace CoupledField {
         // -> register coordinate as px/py/pz
         if( outIt.GetType() == EntityList::NODE_LIST) {
           Vector<Double> coords;
-          ptGrid_->GetNodeCoordinate( coords, outIt.GetNode() );
+          ptGrid_->GetNodeCoordinate( coords, outIt.GetNode(), true );
           mParser_->SetCoordinates(  rHandles_[outDof],
                                      *(domain->GetCoordSystem()),
                                      coords );
         } else if (outIt.GetType() == EntityList::ELEM_LIST) {
           
           Vector<Double> globMidPoint;
-          shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(outIt.GetElem());
+          shared_ptr<ElemShapeMap> esm =
+              ptGrid_->GetElemShapeMap(outIt.GetElem(), true);
           esm->GetGlobMidPoint(globMidPoint);
           mParser_->SetCoordinates(  rHandles_[outDof],
                                      *(domain->GetCoordSystem()),
@@ -646,7 +647,7 @@ namespace CoupledField {
         // -> register coordinate as px/py/pz
         if( outIt.GetType() == EntityList::NODE_LIST) {
           Vector<Double> coords;
-          ptGrid_->GetNodeCoordinate( coords, outIt.GetNode() );
+          ptGrid_->GetNodeCoordinate( coords, outIt.GetNode(), true );
           mParser_->SetCoordinates( rHandles_[outDof],
                                     *(domain->GetCoordSystem()),
                                     coords );
@@ -655,7 +656,8 @@ namespace CoupledField {
                                     coords );
         } else if (outIt.GetType() == EntityList::ELEM_LIST) {
           Vector<Double> globMidPoint;
-          shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(outIt.GetElem());
+          shared_ptr<ElemShapeMap> esm =
+              ptGrid_->GetElemShapeMap(outIt.GetElem(), true);
           esm->GetGlobMidPoint(globMidPoint);
           mParser_->SetCoordinates(  rHandles_[outDof],
                                      *(domain->GetCoordSystem()),

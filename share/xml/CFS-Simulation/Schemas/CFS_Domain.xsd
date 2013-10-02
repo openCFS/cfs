@@ -83,36 +83,46 @@
     </xsd:attribute>
   </xsd:complexType>
 
+  <!-- Data type for specification of the motion of an NcInterface -->
+  <xsd:complexType name="DT_NciMotion">
+    <xsd:attribute name="coordSysId" type="xsd:token" use="optional"
+                   default="default"/>
+    <xsd:attribute name="movingSide" use="optional" default="slave">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:normalizedString">
+          <xsd:enumeration value="master"/>
+          <xsd:enumeration value="slave"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+  </xsd:complexType>
 
   <!-- ********************************************************************
-        Data type for specification of a non-conforming interface
-       ********************************************************************
-        This defines only the geometrical part of the interface.
-        Formulation specific options (e.g. Mortar/Nitsche) are defined in
-        CFS_PDEbasic.xsd (DT_NcInterfaceList). -->
+    Data type for specification of a non-conforming interface
+    ********************************************************************
+    This defines only the geometrical part of the interface.
+    Formulation specific options (e.g. Mortar/Nitsche) are defined in
+    CFS_PDEbasic.xsd (DT_NcInterfaceList). -->
   <xsd:complexType name="DT_DomainNCIface">
     <xsd:choice minOccurs="0" maxOccurs="1">
       <xsd:element name="generalMotion">
         <xsd:complexType>
-          <xsd:attribute name="displace1" type="xsd:token" use="required"/>
-          <xsd:attribute name="displace2" type="xsd:token" use="required"/>
-          <xsd:attribute name="displace3" type="xsd:token" use="optional"/>
-          <xsd:attribute name="coordSysId" type="xsd:token" use="optional"
-            default="default"/>
-          <xsd:attribute name="movingSide" use="optional" default="slave">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:normalizedString">
-                <xsd:enumeration value="master"/>
-                <xsd:enumeration value="slave"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:attribute>
+          <xsd:complexContent>
+            <xsd:extension base="DT_NciMotion">
+              <xsd:attribute name="displace1" type="xsd:token" use="required"/>
+              <xsd:attribute name="displace2" type="xsd:token" use="required"/>
+              <xsd:attribute name="displace3" type="xsd:token" use="optional"/>
+            </xsd:extension>
+          </xsd:complexContent>
         </xsd:complexType>
       </xsd:element>
       <xsd:element name="rotation">
         <xsd:complexType>
-          <xsd:attribute name="rpm" type="xsd:double" use="required"/>
-          <xsd:attribute name="coordSysId" type="xsd:token" use="required"/>
+          <xsd:complexContent>
+            <xsd:extension base="DT_NciMotion">
+              <xsd:attribute name="rpm" type="xsd:double" use="required"/>
+            </xsd:extension>
+          </xsd:complexContent>
         </xsd:complexType>
       </xsd:element>
     </xsd:choice>
@@ -127,9 +137,9 @@
     <xsd:attribute name="masterSide" type="xsd:token" use="required">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
-          The master  side of the nonmatching  interface is given  by either a
+          The master side of the nonmatching interface is given by either a
           reference to an arbitrary surface or a volume region which is planar
-          along the  common interface with  the slave region. The  elements on
+          along the common interface with the slave region. The elements on
           this side are assumed to be smaller than the ones on the slave side.
         </xsd:documentation>
       </xsd:annotation>
@@ -137,16 +147,16 @@
     <xsd:attribute name="slaveSide" type="xsd:token" use="required">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
-          The slave  side of  the nonmatching interface  is given by  either a
+          The slave side of the nonmatching interface is given by either a
           reference to an arbitrary surface or a volume region which is planar
-          along  the common  interface  with the  master  region. The  surface
+          along the common interface with the master region. The surface
           elements on the slave side of the nonmatching interface are also the
-          definition domain of the Lagrange Multiplier.  In the case of curved
-          interfaces the  elements of the  master side will be  projected onto
-          the elements  of the slave side before  the intersection calculation
+          definition domain of the Lagrange Multiplier. In the case of curved
+          interfaces the elements of the master side will be projected onto
+          the elements of the slave side before the intersection calculation
           takes place.
         </xsd:documentation>
-      </xsd:annotation>      
+      </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="isecCalculation" use="optional">
       <xsd:simpleType>
@@ -156,9 +166,10 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
-    <xsd:attribute name="tolAbs" type="DT_NonNegFloat" use="optional" default="1e-12"/>
-    <xsd:attribute name="tolRel" type="DT_FloatUnitInterval" use="optional" default="1e-4"/>
-    <!--xsd:attribute name="removeEntitiesFromGrid" type="DT_CFSBool" use="optional" default="no"/-->
+    <xsd:attribute name="tolAbs" type="DT_NonNegFloat"
+                   use="optional" default="1e-12"/>
+    <xsd:attribute name="tolRel" type="DT_FloatUnitInterval"
+                   use="optional" default="1e-4" />
     <xsd:attribute name="gridProjection" use="optional" default="naive">
       <xsd:simpleType>
         <xsd:restriction base="xsd:normalizedString">
@@ -167,8 +178,10 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
-    <xsd:attribute name="writeGraphvizFiles" type="DT_CFSBool" use="optional" default="no"/>
-    <xsd:attribute name="storeIntegrationGrid" type="DT_CFSBool" use="optional" default="yes">
+    <xsd:attribute name="writeGraphvizFiles" type="DT_CFSBool"
+                   use="optional" default="no" />
+    <xsd:attribute name="storeIntegrationGrid" type="DT_CFSBool"
+                   use="optional" default="yes">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
           This attribute controls if the integration grid of the interface
