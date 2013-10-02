@@ -107,9 +107,16 @@ SET(BUILDNAME "FeSpace MINGW ${ARCH} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 SITE_NAME(CFS_BUILD_HOST)
 STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
 LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST)
-SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}.mdmt")
+SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}.cross-w64.mdmt")
 set(CTEST_SITE "${CFS_BUILD_HOST}")
 set(CTEST_BUILD_NAME "${BUILDNAME}")
+
+set(SITE_OS_NAME "Windows")
+set(SITE_OS_RELEASE "Vista Professional")
+set(SITE_OS_VERSION "(Build 6000)")
+set(SITE_OS_64BITS "1")
+set(SITE_COMPILER_NAME "GCC")
+set(SITE_COMPILER_VERSION "Fedora MinGW 4.5.3-2.el6")
 
 #-----------------------------------------------------------------------------
 # Start out with an empty binary directory.
@@ -125,7 +132,8 @@ SET(CTEST_INITIAL_CACHE
   "BUILD_TESTING:BOOL=ON
    DEBUG:BOOL=OFF
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
-   CMAKE_TOOLCHAIN_FILE=${CTEST_SOURCE_DIRECTORY}/share/scripts/mingw_cross_toolchain_centos_6.cmake
+   CMAKE_COLOR_MAKEFILE:BOOL=OFF
+   CMAKE_TOOLCHAIN_FILE=${CTEST_SOURCE_DIRECTORY}/share/scripts/toolchain_cross_linux_mingw_x86_64_centos_6.cmake
    TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_FESPACE
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
    CFSTOOL:BOOL=ON
@@ -181,27 +189,43 @@ ENDFOREACH()
 
 message("  Test")
 ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-message("  Submit")
 
+message("  Submit")
+# ctest_submit(RETURN_VALUE res)
 # Set OSName to Windows before submission.
 FILE(GLOB XML_FILES "${CTEST_BINARY_DIRECTORY}/Testing/2*/*.xml")
 FOREACH(XML_FILE IN ITEMS ${XML_FILES})
-#  MESSAGE("XML_FILE ${XML_FILE}")
+  MESSAGE("XML_FILE ${XML_FILE}")
   FILE(READ "${XML_FILE}" XML_CONTENTS)
-  STRING(REPLACE "\n" ";" XML_CONTENTS ${XML_CONTENTS})
-  SET(NEW_CONTENTS "")
+  FILE(COPY "${XML_FILE}" DESTINATION "${XML_FILE}_save")
 
-  FOREACH(LINE IN ITEMS ${XML_CONTENTS})
-    IF(LINE MATCHES "OSName=")
-      SET(LINE "  OSName=\"Windows\"")
-    ENDIF()
+  STRING(REPLACE ";" "\\;" XML_CONTENTS "${XML_CONTENTS}")
+  STRING(REGEX REPLACE "OSName=\"[a-zA-z ]+\"" "OSName=\"${SITE_OS_NAME}\"" XML_CONTENTS "${XML_CONTENTS}")
+  STRING(REGEX REPLACE "OSRelease=\"[a-zA-Z0-9.\\-]+_[a-zA-Z0-9.\\-]+\"" "OSRelease=\"${SITE_OS_RELEASE}\"" XML_CONTENTS "${XML_CONTENTS}")
+  STRING(REGEX REPLACE "OSVersion=\"[a-zA-Z0-9:# ]+\"" "OSVersion=\"${SITE_OS_VERSION}\"" XML_CONTENTS "${XML_CONTENTS}")
+  STRING(REPLACE "CompilerName=\"\"" "CompilerName=\"${SITE_COMPILER_NAME}\"\n\tCompilerVersion=\"${SITE_COMPILER_VERSION}\"" XML_CONTENTS "${XML_CONTENTS}")
+  STRING(REGEX REPLACE "OSPlatform=\"[a-zA-z0-9 ()]+\"" "OSPlatform=\"amd64\"" XML_CONTENTS "${XML_CONTENTS}")
+  STRING(REGEX REPLACE "Is64Bits=\"[a-zA-z0-9 ()]+\"" "Is64Bits=\"${SITE_OS_64BITS}\"" XML_CONTENTS "${XML_CONTENTS}")
 
-    SET(NEW_CONTENTS "${NEW_CONTENTS}\n${LINE}")
-#    MESSAGE("LINE: ${LINE}")
-  ENDFOREACH()
+  FILE(WRITE "${XML_FILE}" ${XML_CONTENTS})
 
-  FILE(WRITE "${XML_FILE}" ${NEW_CONTENTS})
+  EXECUTE_PROCESS(
+    COMMAND xmllint "${XML_FILE}"
+    OUTPUT_VARIABLE XMLLINT_OUT
+    ERROR_VARIABLE XMLLINT_ERR
+    RESULT_VARIABLE RETVAL
+  )
+
+  IF(RETVAL)
+    MESSAGE("xmllint error:\n${XMLLINT_ERR}")
+  ENDIF()
+
+  # Re-submit with OSName set to Windows.
+  # EXECUTE_PROCESS(
+  #  COMMAND curl --http1.0 -T "${XML_FILE}" http://lse17.e-technik.uni-erlangen.de:2000/cdash/submit.php?project=CFS
+  # )
 ENDFOREACH()
 
 ctest_submit(RETURN_VALUE res)
+
 message("  All done")

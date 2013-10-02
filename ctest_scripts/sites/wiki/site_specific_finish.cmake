@@ -107,6 +107,28 @@ FOREACH(MAN IN ITEMS ${MANUALS})
   )
 ENDFOREACH()
 
+MESSAGE("Submitting documentation to lse17...")
+file(GLOB CFS_DOCU_FILES
+  RELATIVE "${CFS_DOCU_DIR}"
+  "${CFS_DOCU_DIR}/*.pdf"
+  "${CFS_DOCU_DIR}/doxygen"
+  "${CFS_DOCU_DIR}/schema_*")
+
+EXECUTE_PROCESS(
+  COMMAND zip -yr cfs_docu_nightly.zip ${CFS_DOCU_FILES}
+  WORKING_DIRECTORY "${CFS_DOCU_DIR}"
+  RESULT_VARIABLE RETVAL
+)
+
+EXECUTE_PROCESS(
+  COMMAND curl -u ${CFS_TESTUSER}:${CFS_TESTUSER_PW} 
+               -k -T cfs_docu_nightly.zip
+               https://lse17.e-technik.uni-erlangen.de:2001/files/doc/cfs_docu_nightly.zip
+  WORKING_DIRECTORY "${CFS_DOCU_DIR}"
+  RESULT_VARIABLE RETVAL
+)
+FILE(REMOVE "${CFS_DOCU_DIR}/cfs_docu_nightly.zip")
+
 # Remove documentation and repack archive
 FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/share/doc")
 FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY/MODELLING_MANUAL_NIGHTLY")

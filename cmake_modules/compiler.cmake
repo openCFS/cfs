@@ -197,12 +197,14 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
   ENDIF()
 
   IF(APPLE)
-    #---------------------------------------------------------------------------
-    # The C++ linker creates compact exception stack unwinding data since
-    # MacOS X 10.6. This can cause page long linker warnings, which cannot be
-    # deactivated. So we disable it here alltogether (cf. man unwinddump).
-    #---------------------------------------------------------------------------
+    IF(NOT CMAKE_CROSSCOMPILING)
+      #-------------------------------------------------------------------------
+      # The C++ linker creates compact exception stack unwinding data since
+      # MacOS X 10.6. This can cause page long linker warnings, which cannot be
+      # deactivated. So we disable it here alltogether (cf. man unwinddump).
+      #-------------------------------------------------------------------------
     SET(CFS_LINKER_FLAGS "-Wl,-no_compact_unwind")
+    ENDIF()
   ENDIF()
 
 

@@ -82,6 +82,10 @@ MESSAGE(
 "
 )
 
+# Remove Testing directory from modelling manual.
+FILE(REMOVE_RECURSE
+  "$ENV{HOME}/Documents/dev/NIGHTLY/MODELLING_MANUAL_NIGHTLY/Testing")
+
 SET(UPDATE_SCRIPTS
   # Checkout or update FeSpace working copies
   ctest_update_fespace_wien.cmake

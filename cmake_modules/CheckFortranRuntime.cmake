@@ -47,24 +47,39 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
   #---------------------------------------------------------------------------
   # Prepare search paths for input to the FIND_LIBRARY function
   #---------------------------------------------------------------------------
+  SET(DIRSEP ":")
   STRING(REPLACE ";" "#____#" GFORTRAN_SEARCH_DIRS "${GFORTRAN_SEARCH_DIRS}")
   STRING(REPLACE "\n" ";" SEARCH_DIRS "${GFORTRAN_SEARCH_DIRS}")
+  IF(NOT CMAKE_CROSSCOMPILING AND WIN32)
+    SET(DIRSEP "#____#")
+  ENDIF()
+
   foreach(line IN LISTS SEARCH_DIRS)
     IF(line MATCHES "libraries")
       STRING(REPLACE "=" ";" line "${line}")
       LIST(GET line 1 line)
-      IF(MINGW AND CMAKE_CROSSCOMPILING OR UNIX)
-        STRING(REPLACE ":" ";" GFORTRAN_SEARCH_DIRS "${line}")
-      ELSEIF(WIN32)
-        STRING(REPLACE "#____#" ";" GFORTRAN_SEARCH_DIRS "${line}")
-      ENDIF()
-  #    MESSAGE("GFORTRAN_SEARCH_DIRS ${GFORTRAN_SEARCH_DIRS}")
+      STRING(REPLACE ${DIRSEP} ";" GFORTRAN_SEARCH_DIRS "${line}")
+      # MESSAGE(FATAL_ERROR "GFORTRAN_SEARCH_DIRS ${GFORTRAN_SEARCH_DIRS}")
     ENDIF()
   endforeach()
 
   IF(NOT RETVAL EQUAL 0)
     SET(GFORTRAN_SEARCH_DIRS "")
   ENDIF(NOT RETVAL EQUAL 0)
+
+  IF(APPLE AND CMAKE_CROSSCOMPILING)
+    IF(NOT MACOSX_BINARY_ARCH STREQUAL "i386")
+      SET(ADDITIONAL_GFORTRAN_SEARCH_DIRS "")
+      foreach(line IN ITEMS ${GFORTRAN_SEARCH_DIRS})
+        LIST(APPEND ADDITIONAL_GFORTRAN_SEARCH_DIRS "${line}/${MACOSX_BINARY_ARCH}")
+      endforeach()
+
+      SET(GFORTRAN_SEARCH_DIRS
+        ${ADDITIONAL_GFORTRAN_SEARCH_DIRS}
+        ${GFORTRAN_SEARCH_DIRS}
+      )
+    ENDIF()
+  ENDIF()
 
   #---------------------------------------------------------------------------
   # Let's find the shared version of the gfortran runtime lib.

@@ -37,7 +37,8 @@ MESSAGE(
 
 3. Download just the CMake binaries for your platform from Kitware at
    http://cmake.org/cmake/resources/software.html (works on Windows/Linux/Mac)
-   You may have to install additional packages by hand! (cf. Developer's Manual)
+   You may have to install additional packages by hand! (cf. Developer's Manual
+   and share/scripts/bootstrap_devel_machine.sh)
 
 ================================================================================
 ")
@@ -97,7 +98,8 @@ SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}"
   CACHE INTERNAL "CFS_BUILD_HOST")
 
 #-----------------------------------------------------------------------------
-# Set user who builds CFS++, in order to track back who built a given binary.
+# Set user who builds CFS++, in order to be able to track back who built a
+# given binary.
 #-----------------------------------------------------------------------------
 IF(WIN32 AND NOT CMAKE_CROSSCOMPILING)
   SET(REG_KEY "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows")
@@ -130,7 +132,8 @@ ENDIF()
 SET(CMAKE_MODULE_PATH ${CFS_SOURCE_DIR}/cmake_modules)
 
 #-----------------------------------------------------------------------------
-# Set default values according to environment or platform
+# Set default values according to environment or platform. The user can
+# specify his own defaults in $HOME/.cfs_platform_defaults.cmake
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/platform_defaults.cmake")
 
@@ -230,7 +233,7 @@ IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
 ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
 
 #-----------------------------------------------------------------------------
-# Options which have become so important that they are not optional anymore
+# Options which have become so important that they are not optional anymore.
 #-----------------------------------------------------------------------------
 SET(USE_HDF5 ${USE_HDF5_DEFAULT}
   CACHE INTERNAL "Use HDF5 for simulation in/output.")
@@ -303,7 +306,7 @@ OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)." ${CFSTOOL_DEFAULT})
 # Shall we build ParaView?
 #-----------------------------------------------------------------------------
 OPTION(BUILD_PARAVIEW
-  "Build the ParaView postprocessor with HDF5 and OpenFOAM extensions?."
+  "Build the ParaView postprocessor with CFS++/NACS HDF5 and OpenFOAM extensions?."
   ${BUILD_PARAVIEW_DEFAULT})
 
 #-----------------------------------------------------------------------------
@@ -407,14 +410,14 @@ INCLUDE("cmake_modules/FindPrograms.cmake")
 INCLUDE("cmake_modules/compiler.cmake")
 
 #-----------------------------------------------------------------------------
-# Determine if some Fortran system libs are installed (blas, lapack, g2c...)
-#-----------------------------------------------------------------------------
-INCLUDE("cmake_modules/CheckFortranRuntime.cmake")
-
-#-----------------------------------------------------------------------------
 # Determine on what UNIX/Linux/Windows distribution we are building on
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/distro.cmake")
+
+#-----------------------------------------------------------------------------
+# Determine if some Fortran system libs are installed (blas, lapack, g2c...)
+#-----------------------------------------------------------------------------
+INCLUDE("cmake_modules/CheckFortranRuntime.cmake")
 
 #-----------------------------------------------------------------------------
 # Perform some configure checks

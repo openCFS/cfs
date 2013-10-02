@@ -195,7 +195,14 @@ fi
 
 if [ "$CFS_SCRIPT_DEBUG" = "1" ]
 then
-    echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+    case "$OS" in
+	LINUX)
+            echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH" ;;
+	MACOSX)
+            echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH" ;;
+	*)
+	    ;;
+    esac
 fi
 
 # Check if we have the necessary executable for the current arch.

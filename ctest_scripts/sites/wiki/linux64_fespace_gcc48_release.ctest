@@ -33,7 +33,7 @@
 # Set source and binary directories on rom
 #-----------------------------------------------------------------------------
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_FESPACE_NIGHTLY")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_BUILD_NIGHTLY")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
 
 #-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
@@ -55,13 +55,15 @@ SET(CTEST_CMAKE_COMMAND  "${CTEST_CMAKE_COMMAND}")
 # to specifiy the compilers and that all messages should be output in English
 # language, so that CTest may properly parse them.
 #-----------------------------------------------------------------------------
-SET(ENV{CC} "/usr/bin/gcc")
-SET(ENV{CXX} "/usr/bin/g++")
-SET(ENV{FC} "/usr/bin/gfortran")
+SET(ENV{CC} "/opt/pckg/gcc-4.8.1/bin/gcc")
+SET(ENV{CXX} "/opt/pckg/gcc-4.8.1/bin/g++")
+SET(ENV{FC} "/opt/pckg/gcc-4.8.1/bin/gfortran")
 SET(ENV{LC_MESSAGES} "C")
 SET(ENV{LC_ALL} "C")
 SET(ENV{LANG} "C")
 SET(ENV{LANGUAGE} "C")
+SET(ENV{LD_LIBRARY_PATH} "/opt/pckg/gcc-4.8.1/lib64:$ENV{LD_LIBRARY_PATH}")
+
 
 SET(IDCOMP_TEMPL "${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
 SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
@@ -163,64 +165,4 @@ ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 message("  Submit")
 ctest_submit(RETURN_VALUE res)
 message("  All done")
-
-MESSAGE(
-"
-=============================================================================
- Building documentation:
-=============================================================================
-"
-)
-
-# Now let's build the documentation
-EXECUTE_PROCESS(
-  COMMAND make doc
-  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}"
-)
-
-MESSAGE(
-"
-=============================================================================
- Building Modelling Manual:
-=============================================================================
-"
-)
-
-EXECUTE_PROCESS(
-  COMMAND bash buildpdf
-  WORKING_DIRECTORY "$ENV{HOME}/Documents/dev/MODELLING_MANUAL_NIGHTLY"
-)
-
-EXECUTE_PROCESS(
-  COMMAND bash buildhtml
-  WORKING_DIRECTORY "$ENV{HOME}/Documents/dev/MODELLING_MANUAL_NIGHTLY"
-)
-
-FILE(MAKE_DIRECTORY 
-  "${CTEST_BINARY_DIRECTORY}/MODELLING_MANUAL_NIGHTLY"
-)
-
-EXECUTE_PROCESS(
-  COMMAND ${CTEST_CMAKE_COMMAND} -E copy_directory 
-  "$ENV{HOME}/Documents/dev/MODELLING_MANUAL_NIGHTLY"
-  "${CTEST_BINARY_DIRECTORY}/MODELLING_MANUAL_NIGHTLY"
-)
-
-MESSAGE(
-"
-=============================================================================
- Building schema documentation:
-=============================================================================
-"
-)
-
-EXECUTE_PROCESS(
-  COMMAND /opt/pckg/oxygen-11.2/schemaDocumentation.sh CFS.xsd -out:index.html -format:html -split:location -openInBrowser:false
-  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/share/xml/CFS-Simulation"
-)
-
-EXECUTE_PROCESS(
-  COMMAND /opt/pckg/oxygen-11.2/schemaDocumentation.sh CFS_Material.xsd -out:index.html -format:html -split:location -openInBrowser:false
-  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/share/xml/CFS-Material"
-)
 

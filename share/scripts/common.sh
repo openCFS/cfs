@@ -44,7 +44,69 @@ else
   DISTRO_VER=$REV
 fi
 
+POSSIBLE_ARCHS="I386"
+if [ "$ARCH" = "X86_64" ]; then
+    POSSIBLE_ARCHS="$ARCH $POSSIBLE_ARCHS"
+fi
+
 ARCH_STR="${DISTRO}_${DISTRO_VER}_${ARCH}"
+
+case "$OS" in
+    LINUX)
+	OS_SUPPORTED=1
+	if [ ! -d "$CFS_ROOT_DIR/bin/$ARCH_STR" ]; then
+	    ARCH_STR_FOUND=0
+	    
+	    for a in $POSSIBLE_ARCHS; do
+		LINUX_BIN="$CFS_ROOT_DIR/bin/${DISTRO}_${DISTRO_VER}_${a}/cfsbin"
+		if [ "$CFS_SCRIPT_DEBUG" = "1" ]; then
+		    echo "Trying $LINUX_BIN..."
+		fi
+                if [ -f "$LINUX_BIN" ]; then
+		    if [ "$CFS_SCRIPT_DEBUG" = "1" ]; then
+			echo "Found $LINUX_BIN!"
+			fi
+		    ARCH=$a
+		    ARCH_STR="${DISTRO}_${DISTRO_VER}_${ARCH}"
+		    ARCH_STR_FOUND=1
+		    break;
+                fi
+	    done
+	fi
+	;;
+    MACOSX)
+	LD_LIBRARY_PATH=$DYLD_LIBRARY_PATH
+	OS_SUPPORTED=1 
+	if [ ! -d "$CFS_ROOT_DIR/bin/$ARCH_STR" ]; then
+	    ARCH_STR_FOUND=0
+	    VERSIONS="10.9 10.8 10.7 10.6 10.5"
+	    
+	    for v in $VERSIONS; do
+		for a in $POSSIBLE_ARCHS; do
+		    OSX_BIN="$CFS_ROOT_DIR/bin/${DISTRO}_${v}_${a}/cfsbin"
+		    if [ "$CFS_SCRIPT_DEBUG" = "1" ]; then
+			echo "Trying $OSX_BIN..."
+		    fi
+                    if [ -f "$OSX_BIN" ]; then
+			if [ "$CFS_SCRIPT_DEBUG" = "1" ]; then
+			    echo "Found $OSX_BIN!"
+			fi
+			DISTRO_VER=$v
+			ARCH=$a
+			ARCH_STR="${DISTRO}_${DISTRO_VER}_${ARCH}"
+			ARCH_STR_FOUND=1
+			break;
+                    fi
+		done
+		if [ $ARCH_STR_FOUND = 1 ]; then
+		    break
+		fi
+	    done
+	fi
+	;;
+    *)
+	OS_SUPPORTED=0 ;;
+esac
 
 # Set lib path according to architecture
 case "$ARCH" in
@@ -56,15 +118,6 @@ case "$ARCH" in
 	LIB="lib" ;;
     *)
 	LIB="lib" ;;
-esac
-
-case "$OS" in
-    LINUX)
-	OS_SUPPORTED=1 ;;
-    MACOSX)
-	OS_SUPPORTED=1 ;;
-    *)
-	OS_SUPPORTED=0 ;;
 esac
 
 # At the moment we only support Linux
@@ -86,12 +139,22 @@ if [ "$BINARY_TREE" = "0" ]; then
 else
     if [ -z "$LD_LIBRARY_PATH" ]
     then 
-        LD_LIBRARY_PATH="$CFSDEPS_ROOT/$LIB:$CFS_ROOT_DIR/$LIB/$ARCH_STR";
+        LD_LIBRARY_PATH="$CFS_ROOT_DIR/$LIB/$ARCH_STR";
     else
-        LD_LIBRARY_PATH="$CFSDEPS_ROOT/$LIB:$CFS_ROOT_DIR/$LIB/$ARCH_STR:$LD_LIBRARY_PATH";
+        LD_LIBRARY_PATH="$CFS_ROOT_DIR/$LIB/$ARCH_STR:$LD_LIBRARY_PATH";
     fi
 fi
-export LD_LIBRARY_PATH;
+
+case "$OS" in
+    LINUX)
+	export LD_LIBRARY_PATH ;;
+    MACOSX)
+	DYLD_LIBRARY_PATH=$LD_LIBRARY_PATH
+	export DYLD_LIBRARY_PATH ;;
+    *)
+	;;
+esac
+
 
 if [ "$DISTRO" = "MACOSX" ]; then
     LDD="otool -L"

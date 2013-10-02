@@ -38,3 +38,10 @@ EXECUTE_PROCESS(
 #   COMMAND sudo yum -y install http://www.graphviz.org/pub/graphviz/stable/redhat/el6/x86_64/os/graphviz-2.28.0-1.el6.x86_64.rpm
 # )
 
+# ===========================================================================
+#  Install latest version of Pygments
+# ===========================================================================
+# EXECUTE_PROCESS(
+#   COMMAND sudo python /usr/bin/easy_install Pygments
+#   )
+

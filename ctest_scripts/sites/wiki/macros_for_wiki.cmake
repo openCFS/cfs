@@ -20,16 +20,39 @@ MACRO(GET_SECONDS OUTVAR TIME)
 ENDMACRO()
 
 MACRO(COPY_ZIPS_TO_APACHE)
-  FILE(GLOB NIGHTLY_ZIPS "${CFS_NIGHTLY_DIR}/archives/*.zip")
+  FILE(GLOB NIGHTLY_ZIPS 
+    "${CFS_NIGHTLY_DIR}/archives/*.zip"
+    "${CFS_NIGHTLY_DIR}/archives/*.dmg")
 
   FOREACH(ZIP IN ITEMS ${NIGHTLY_ZIPS})
     get_filename_component(FN "${ZIP}" NAME)
 
-    EXECUTE_PROCESS(
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${ZIP}" "${APACHE_NIGHTLY_DIR}/${FN}"
-      RESULT_VARIABLE RETVAL)
+    FILE(MD5 "${ZIP}" MD5_INPUT)
+    IF(NOT EXISTS "${APACHE_NIGHTLY_DIR}/${FN}")
+      SET(MD5_OUTPUT "EMPTY")
+    ELSE()
+      FILE(MD5 "${APACHE_NIGHTLY_DIR}/${FN}" MD5_OUTPUT)
+    ENDIF()
 
+    IF(NOT MD5_INPUT STREQUAL MD5_OUTPUT) 
+
+      EXECUTE_PROCESS(
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${ZIP}" "${APACHE_NIGHTLY_DIR}/${FN}"
+        RESULT_VARIABLE RETVAL)
+
+      MESSAGE("Submitting ${FN} to lse17...")
+      EXECUTE_PROCESS(
+        COMMAND curl -u ${CFS_TESTUSER}:${CFS_TESTUSER_PW} 
+                     -k -T ${FN}
+                     https://lse17.e-technik.uni-erlangen.de:2001/files/nightly-builds/${FN}
+        WORKING_DIRECTORY "${NIGHTLY_ARCHIVES_DIR}"
+        RESULT_VARIABLE RETVAL
+      )
+
+    ENDIF()
     UNSET(FN)
+    UNSET(MD5_INPUT)
+    UNSET(MD5_OUTPUT)
   ENDFOREACH()
 ENDMACRO()
 

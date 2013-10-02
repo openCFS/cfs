@@ -97,6 +97,8 @@ cfsdeps/cgal/CGAL.spec -text
 cfsdeps/cgal/CGAL_SetupBoost.cmake.in -text
 cfsdeps/cgal/External_CGAL.cmake -text
 cfsdeps/cgal/TryRunResults_GCC45_CENTOS6_WIN64.cmake -text
+cfsdeps/cgal/TryRunResults_MACOSX_I386_CENTOS6.cmake -text
+cfsdeps/cgal/TryRunResults_MACOSX_X86_64_CENTOS6.cmake -text
 cfsdeps/cgal/cgal-intel-isfinite.patch -text
 cfsdeps/cgal/cgal-patch.cmake.in -text
 cfsdeps/cgns/External_CGNS.cmake -text
@@ -120,9 +122,15 @@ cfsdeps/gmp/gmp-intel-atomic.patch -text
 cfsdeps/gmp/gmp-mingw64.patch -text
 cfsdeps/gmp/gmp-patch.cmake.in -text
 cfsdeps/hdf5/External_HDF5.cmake -text
-cfsdeps/hdf5/H5Tinit.c -text
-cfsdeps/hdf5/H5lib_settings.c -text
-cfsdeps/hdf5/TryRunResults_MINGW64_CENTOS6.cmake -text
+cfsdeps/hdf5/H5Tinit_MACOSX_I386.c -text
+cfsdeps/hdf5/H5Tinit_MACOSX_X86_64.c -text
+cfsdeps/hdf5/H5Tinit_MINGW_X86_64.c -text
+cfsdeps/hdf5/H5lib_settings_MACOSX_I386.c -text
+cfsdeps/hdf5/H5lib_settings_MACOSX_X86_64.c -text
+cfsdeps/hdf5/H5lib_settings_MINGW_X86_64.c -text
+cfsdeps/hdf5/TryRunResults_MACOSX_I386_CENTOS6.cmake -text
+cfsdeps/hdf5/TryRunResults_MACOSX_X86_64_CENTOS6.cmake -text
+cfsdeps/hdf5/TryRunResults_MINGW_X86_64_CENTOS6.cmake -text
 cfsdeps/hdf5/hdf5-cross-compile.patch -text
 cfsdeps/hdf5/hdf5-mingw.patch -text
 cfsdeps/hdf5/hdf5-msvc-gettimeofday.patch -text
@@ -375,8 +383,11 @@ ctest_scripts/sites/oracle6/Vagrantfile -text
 ctest_scripts/sites/oracle6/generate_test_name_list.cmake -text
 ctest_scripts/sites/oracle6/linux32_fespace_gcc_debug.ctest -text
 ctest_scripts/sites/oracle6/linux32_fespace_gcc_release.ctest -text
+ctest_scripts/sites/oracle6/linux32_fespace_macosx32_release.ctest -text
+ctest_scripts/sites/oracle6/linux32_fespace_macosx32_release_deploy.cmake -text
+ctest_scripts/sites/oracle6/linux32_fespace_macosx64_release.ctest -text
+ctest_scripts/sites/oracle6/linux32_fespace_macosx64_release_deploy.cmake -text
 ctest_scripts/sites/oracle6/linux64_fespace_clang_release.ctest -text
-ctest_scripts/sites/oracle6/linux64_fespace_gcc48_release.ctest -text
 ctest_scripts/sites/oracle6/linux64_fespace_gcc_debug.ctest -text
 ctest_scripts/sites/oracle6/linux64_fespace_gcc_release.ctest -text
 ctest_scripts/sites/oracle6/linux64_fespace_gcc_release_deploy.cmake -text
@@ -387,6 +398,8 @@ ctest_scripts/sites/oracle6/linux64_fespace_open64_debug.ctest -text
 ctest_scripts/sites/oracle6/linux64_fespace_open64_release.ctest -text
 ctest_scripts/sites/oracle6/linux64_trunk_gcc_release.ctest -text
 ctest_scripts/sites/oracle6/linux64_trunk_gcc_release_deploy.cmake -text
+ctest_scripts/sites/oracle6/readme_macosx.css -text
+ctest_scripts/sites/oracle6/readme_macosx.md -text
 ctest_scripts/sites/oracle6/site_specific_init.cmake -text
 ctest_scripts/sites/oracle6/site_specific_vars.cmake -text
 ctest_scripts/sites/precise/Vagrantfile -text
@@ -414,6 +427,7 @@ ctest_scripts/sites/wiki/ctest_update_trunk_wien.cmake -text
 ctest_scripts/sites/wiki/di_log.cmake -text
 ctest_scripts/sites/wiki/linux32_fespace_icc14_release.ctest -text
 ctest_scripts/sites/wiki/linux32_fespace_icc14_release_deploy.cmake -text
+ctest_scripts/sites/wiki/linux64_fespace_gcc48_release.ctest -text
 ctest_scripts/sites/wiki/linux64_fespace_icc11_release.ctest -text
 ctest_scripts/sites/wiki/linux64_fespace_icc12_release.ctest -text
 ctest_scripts/sites/wiki/linux64_fespace_icc13_release.ctest -text
@@ -1020,8 +1034,9 @@ share/scripts/hdf5_concat2.sh.in -text
 share/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
 share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
 share/scripts/identify_compiler.cmake.in svneol=native#text/plain
-share/scripts/mingw_cross_toolchain_centos_6.cmake -text
-share/scripts/mingw_cross_toolchain_ubuntu_1204.cmake -text
+share/scripts/toolchain_cross_linux_macosx_x86_64.cmake -text
+share/scripts/toolchain_cross_linux_mingw_x86_64_centos_6.cmake -text
+share/scripts/toolchain_cross_linux_mingw_x86_64_ubuntu_1204.cmake -text
 share/scripts/voidmesh.pl -text
 share/scripts/winver.bat -text
 share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
