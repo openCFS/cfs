@@ -968,7 +968,7 @@ void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E, const Vector<double>&
 
 void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
   switch(subTensor){
-  case PLANE_STRAIN:
+  case PLANE_STRAIN:    //see Allaire: Shape optimization by the homogenization method, pp. 127 [(2.64),(2.65)]
   {
     t.Resize(3,3);
     t.Init();
@@ -1032,7 +1032,7 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
     }
     break;
   }
-  case PLANE_STRESS:
+  case PLANE_STRESS:      //see Bendsoe, Sigmund: Topology Optimization
   {
     double E33 = 1e-5;
     double density = params_[DesignElement::DENSITY];

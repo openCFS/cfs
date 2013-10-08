@@ -593,6 +593,7 @@
                             <xsd:enumeration value="minor_print_level"/>
                             <xsd:enumeration value="print_frequency"/>
                             <xsd:enumeration value="factorization_frequency"/>
+                            <xsd:enumeration value="new_superbasics_limit"/>
                             <xsd:enumeration value="total_integer_workspace"/>
                             <xsd:enumeration value="total_real_workspace"/>
                             <xsd:enumeration value="user_integer_workspace"/>
