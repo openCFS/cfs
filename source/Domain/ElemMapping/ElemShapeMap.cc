@@ -1566,8 +1566,10 @@ void LagrangeElemShapeMap::MapSurfLocDirs(const Elem* ptSurfElem,
     // only for quad-faces, we must check. if both
     // directions have to get interchanged.
     if (shape.faceNodes[index].GetSize() == 4) {
-      // check, if directions have to get interchanged
-      if (!ptSurfElem->faceFlags[0][2]) {
+      // If the face of the volume element and on the surface
+      // element have different orientation, we have to interchange
+      // both local directions.
+      if( ptElem_->faceFlags[index][2] != ptSurfElem->faceFlags[0][2]) {
         std::swap(surfLocDirs[0], surfLocDirs[1]);
       }
     }

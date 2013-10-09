@@ -695,7 +695,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         LOG_DBG(feSpace) << "\tLEAVING";
         continue;
       }
+      LOG_DBG(feSpace) << "========================================";
       LOG_DBG(feSpace) << "treating entityList '" << fctEntList[actList]->GetName() << "'";
+      LOG_DBG(feSpace) << "========================================";
       //cast down to element list
       EntityList* actElemList = fctEntList[actList].get();
 
