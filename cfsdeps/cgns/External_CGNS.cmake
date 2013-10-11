@@ -57,22 +57,26 @@ SET(PFN "${cgns_prefix}/cgns-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since lse17 may not be
+# Set up a list of publicly available mirrors, since the non-standard port 
+# number of the FTP server on the CFS++ development server  may not be
 # accessible from behind firewalls.
+# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
+# used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "http://heanet.dl.sourceforge.net/project/cgns/cgnslib_3.1/cgnslib_3.1-2.tar.gz"
   "http://mirror.transact.net.au/pub/sourceforge/c/project/cg/cgns/cgnslib_3.1/cgnslib_3.1.3-2.tar.gz"
+  "${CGNS_URL}/${CGNS_GZ}"
 )
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/cgns/${CGNS_GZ}")
+SET(MD5_SUM ${CGNS_MD5})
 
-#-------------------------------------------------------------------------------
-# Try to download sources into CFSDEPS cache directory.
-#-------------------------------------------------------------------------------
-DOWNLOAD_CFSDEPS(
-  "${CFS_DEPS_CACHE_DIR}/sources/cgns/${CGNS_GZ}"
-  ${CGNS_MD5}
-  "${MIRRORS}"
-)
+SET(DLFN "${cgns_prefix}/cgns-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  )
 
 #-------------------------------------------------------------------------------
 # The CGNS-static external project
@@ -80,15 +84,25 @@ DOWNLOAD_CFSDEPS(
 ExternalProject_Add(cgns-static
   DEPENDS hdf5-static zlib
   PREFIX ${cgns_prefix}
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/cgns
   SOURCE_DIR ${cgns_source}
-  URL ${CGNS_URL}/${CGNS_GZ}
+  URL ${LOCAL_FILE}
   URL_MD5 ${CGNS_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   LIST_SEPARATOR ,
   CMAKE_ARGS
      ${CMAKE_ARGS}
     )
+
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(cgns-static cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${cgns_prefix}
+)
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

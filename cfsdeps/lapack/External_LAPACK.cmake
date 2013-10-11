@@ -41,22 +41,26 @@ SET(PFN "${lapack_prefix}/lapack-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since lse17 may not be
+# Set up a list of publicly available mirrors, since the non-standard port 
+# number of the FTP server on the CFS++ development server  may not be
 # accessible from behind firewalls.
+# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
+# used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "ftp://ftp.mirrorservice.org/sites/distfiles.macports.org/atlas/lapack-3.4.2.tgz"
   "http://www.netlib.org/lapack/lapack-3.4.2.tgz"
+  "${LAPACK_URL}/${LAPACK_GZ}"
 )
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/lapack/${LAPACK_GZ}")
+SET(MD5_SUM ${LAPACK_MD5})
 
-#-------------------------------------------------------------------------------
-# Try to download sources into CFSDEPS cache directory.
-#-------------------------------------------------------------------------------
-DOWNLOAD_CFSDEPS(
-  "${CFS_DEPS_CACHE_DIR}/sources/lapack/${LAPACK_GZ}"
-  ${LAPACK_MD5}
-  "${MIRRORS}"
-)
+SET(DLFN "${lapack_prefix}/lapack-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  )
 
 #-------------------------------------------------------------------------------
 # The Lapack external project
@@ -64,12 +68,23 @@ DOWNLOAD_CFSDEPS(
 ExternalProject_Add(lapack
   PREFIX "${lapack_prefix}"
   DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/lapack
-  URL ${LAPACK_URL}/${LAPACK_GZ}
+  URL ${LOCAL_FILE}
   URL_MD5 ${LAPACK_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   CMAKE_ARGS
     ${CMAKE_ARGS}
   )
+
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(lapack cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${lapack_prefix}
+)
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

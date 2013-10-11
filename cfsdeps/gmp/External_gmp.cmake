@@ -28,23 +28,27 @@ SET(PFN "${gmp_prefix}/gmp-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since lse17 may not be
+# Set up a list of publicly available mirrors, since the non-standard port 
+# number of the FTP server on the CFS++ development server  may not be
 # accessible from behind firewalls.
+# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
+# used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "http://ftp.uni-erlangen.de/mirrors/GNU/gmp/${GMP_BZ2}"
   "http://ftp.gwdg.de/pub/misc/gnu/ftp/gnu/gmp/${GMP_BZ2}"
   "http://ftp.gnu.org/gnu/gmp/${GMP_BZ2}"
+  "${GMP_URL}/${GMP_BZ2}"
 )
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/gmp/${GMP_BZ2}")
+SET(MD5_SUM ${GMP_MD5})
 
-#-------------------------------------------------------------------------------
-# Try to download sources into CFSDEPS cache directory.
-#-------------------------------------------------------------------------------
-DOWNLOAD_CFSDEPS(
-  "${CFS_DEPS_CACHE_DIR}/sources/gmp/${GMP_BZ2}"
-  ${GMP_MD5}
-  "${MIRRORS}"
-)
+SET(DLFN "${gmp_prefix}/gmp-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  )
 
 #-------------------------------------------------------------------------------
 # The gmp external project
@@ -52,14 +56,24 @@ DOWNLOAD_CFSDEPS(
 ExternalProject_Add(gmp
   PREFIX "${gmp_prefix}"
   SOURCE_DIR "${gmp_source}"
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/gmp
-  URL ${GMP_URL}/${GMP_BZ2}
+  URL ${LOCAL_FILE}
   URL_MD5 ${GMP_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   BUILD_IN_SOURCE 1
   CONFIGURE_COMMAND ${CMAKE_COMMAND} -P ${CONF}
   BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} -f Makefile
   INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} -f Makefile install
+)
+
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(gmp cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${gmp_prefix}
 )
 
 #-------------------------------------------------------------------------------

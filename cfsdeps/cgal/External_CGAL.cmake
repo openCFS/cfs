@@ -74,22 +74,26 @@ SET(BOOST_SETUP "${cgal_prefix}/CGAL_SetupBoost.cmake")
 CONFIGURE_FILE("${BOOST_SETUP_TEMPL}" "${BOOST_SETUP}" @ONLY) 
 
 #-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since lse17 may not be
+# Set up a list of publicly available mirrors, since the non-standard port 
+# number of the FTP server on the CFS++ development server  may not be
 # accessible from behind firewalls.
+# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
+# used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "http://archive.ubuntu.com/ubuntu/pool/universe/c/cgal/cgal_4.2.orig.tar.bz2"
   "https://gforge.inria.fr/frs/download.php/32361/CGAL-4.2.tar.bz2"
+  "${CGAL_URL}/${CGAL_BZ2}"
 )
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/cgal/${CGAL_BZ2}")
+SET(MD5_SUM ${CGAL_MD5})
 
-#-------------------------------------------------------------------------------
-# Try to download sources into CFSDEPS cache directory.
-#-------------------------------------------------------------------------------
-DOWNLOAD_CFSDEPS(
-  "${CFS_DEPS_CACHE_DIR}/sources/cgal/${CGAL_BZ2}"
-  ${CGAL_MD5}
-  "${MIRRORS}"
-)
+SET(DLFN "${cgal_prefix}/cgal-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  ) 
 
 #-------------------------------------------------------------------------------
 # The CGAL external project
@@ -97,8 +101,7 @@ DOWNLOAD_CFSDEPS(
 ExternalProject_Add(cgal
   DEPENDS boost zlib gmp mpfr
   PREFIX "${cgal_prefix}"
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/cgal
-  URL ${CGAL_URL}/${CGAL_BZ2}
+  URL ${LOCAL_FILE}
   URL_MD5 ${CGAL_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   CMAKE_ARGS
@@ -126,6 +129,17 @@ ExternalProject_Add(cgal
     -DMPFR_INCLUDE_DIR:PATH=${MPFR_INCLUDE_DIR}
     -DMPFR_LIBRARIES:FILEPATH=${MPFR_LIBRARY}
     -DWITH_MPFR:BOOL=ON
+)
+
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(cgal cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${cgal_prefix}
 )
 
 

@@ -38,32 +38,35 @@ SET(PFN "${qt4_prefix}/qt4-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since lse17 may not be
+# Set up a list of publicly available mirrors, since the non-standard port 
+# number of the FTP server on the CFS++ development server  may not be
 # accessible from behind firewalls.
+# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
+# used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "http://distfiles.macports.org/qt4-mac/qt-everywhere-opensource-src-4.8.2.tar.gz"
   "http://pkgs.fedoraproject.org/repo/pkgs/qt/qt-everywhere-opensource-src-4.8.2.tar.gz/3c1146ddf56247e16782f96910a8423b/qt-everywhere-opensource-src-4.8.2.tar.gz"
   "http://download.qt-project.org/archive/qt/4.8/4.8.2/qt-everywhere-opensource-src-4.8.2.tar.gz"
+  "${QT4_URL}/${QT4_GZ}"
 )
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/qt4/${QT4_GZ}")
+SET(MD5_SUM ${QT4_MD5})
 
-#-------------------------------------------------------------------------------
-# Try to download sources into CFSDEPS cache directory.
-#-------------------------------------------------------------------------------
-DOWNLOAD_CFSDEPS(
-  "${CFS_DEPS_CACHE_DIR}/sources/qt4/${QT4_GZ}"
-  ${QT4_MD5}
-  "${MIRRORS}"
-)
+SET(DLFN "${qt4_prefix}/qt4-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  )
 
 #-------------------------------------------------------------------------------
 # The qt4 external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(qt4
   PREFIX ${qt4_prefix}
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/qt4
   SOURCE_DIR ${qt4_source}
-  URL ${QT4_URL}/${QT4_GZ}
+  URL ${LOCAL_FILE}
   URL_MD5 ${QT4_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   CONFIGURE_COMMAND ${Qt4_CONFIGURE_COMMAND}
@@ -71,6 +74,16 @@ ExternalProject_Add(qt4
   INSTALL_COMMAND ${Qt4_INSTALL_COMMAND}
   )
 
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(qt4 cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${qt4_prefix}
+)
 
 SET(QT_QMAKE_EXECUTABLE "${CFS_BINARY_DIR}/qt4/bin/qmake")
 IF(WIN32 AND NOT MINGW)

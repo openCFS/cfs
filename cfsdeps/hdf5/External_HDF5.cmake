@@ -100,24 +100,27 @@ SET(PFN "${hdf5_prefix}/hdf5-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since lse17 may not be
+# Set up a list of publicly available mirrors, since the non-standard port 
+# number of the FTP server on the CFS++ development server  may not be
 # accessible from behind firewalls.
+# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
+# used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4/hdf5-1.8.8.tar.gz"
   "ftp://ftp.ca.freebsd.org/pub/packages/graphics/netcdf/netcdf-4/hdf5-1.8.8.tar.gz"
 #  "http://www.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8.8/src/hdf5-1.8.8.tar.gz"
+  "${HDF5_URL}/${HDF5_GZ}"
 )
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/hdf5/${HDF5_GZ}")
+SET(MD5_SUM ${HDF5_MD5})
 
-#-------------------------------------------------------------------------------
-# Try to download sources into CFSDEPS cache directory.
-#-------------------------------------------------------------------------------
-DOWNLOAD_CFSDEPS(
-  "${CFS_DEPS_CACHE_DIR}/sources/hdf5/${HDF5_GZ}"
-  ${HDF5_MD5}
-  "${MIRRORS}"
-)
-
+SET(DLFN "${hdf5_prefix}/hdf5-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  )
 
 #-------------------------------------------------------------------------------
 # The hdf5-static external project
@@ -125,9 +128,8 @@ DOWNLOAD_CFSDEPS(
 ExternalProject_Add(hdf5-static
   DEPENDS zlib
   PREFIX ${hdf5_prefix}
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/hdf5
   SOURCE_DIR ${hdf5_source}
-  URL ${HDF5_URL}/${HDF5_GZ}
+  URL ${LOCAL_FILE}
   URL_MD5 ${HDF5_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   LIST_SEPARATOR ^
@@ -143,6 +145,17 @@ ExternalProject_Add(hdf5-static
     # On Mac OS X we can get problems with the system strdup function.
     -DH5_HAVE_STRDUP:BOOL=OFF
     )
+
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(hdf5-static cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${hdf5_prefix}
+)
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

@@ -18,7 +18,8 @@ SET(boost_source "@boost_source@")
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 #=============================================================================
-# Unpack Boost.CMake.
+# Unpack Boost.CMake for building Boost using CMake instead of bjam. The
+# Boost.CMake project is the predecessor of the Ryppl project.
 #=============================================================================
 EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND} -E tar xvf "${CFS_SOURCE_DIR}/cfsdeps/boost/boost-cmake.tar.bz2"

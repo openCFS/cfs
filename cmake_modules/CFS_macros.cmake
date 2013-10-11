@@ -216,8 +216,10 @@ ENDMACRO (APPLY_PATCHES)
 
 MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
   SET(PERFORM_DOWNLOAD 0)                             
+  SET(DOWNLOAD_OKAY 0)                             
   STRING(STRIP ${MD5_SUM} MD5_SUM)                    
   STRING(TOLOWER ${MD5_SUM} MD5_SUM)                  
+  SET(TIMEOUT 60)                         
 
   IF(EXISTS ${LOCAL_FILE})
 #    MESSAGE("'${LOCAL_FILE}' already exists!\nComparing MD5 sums...")
@@ -234,8 +236,9 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
       FILE(REMOVE ${LOCAL_FILE})
       SET(PERFORM_DOWNLOAD 1)   
 #      MESSAGE("MD5 sums do not match!\nDeleting '${LOCAL_FILE}'...")
-#    ELSE()                                                          
-#      MESSAGE("MD5 sums match! Very fine!")                         
+    ELSE()                                                          
+#      MESSAGE("MD5 sums match! Very fine!")
+      SET(DOWNLOAD_OKAY 1)
     ENDIF()
   ELSE()
     SET(PERFORM_DOWNLOAD 1)
@@ -243,12 +246,15 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
 
   IF(PERFORM_DOWNLOAD)
     FOREACH(URL IN ITEMS ${MIRROR_LIST})
-      MESSAGE("Downloading '${URL}' to\n---> '${LOCAL_FILE}'...")
+      MESSAGE("downloading...
+     src='${URL}'
+     dst='${LOCAL_FILE}'
+     timeout=${TIMEOUT}")
 
       FILE(DOWNLOAD
         ${URL}
         ${LOCAL_FILE}
-        INACTIVITY_TIMEOUT 60
+        INACTIVITY_TIMEOUT ${TIMEOUT}
         STATUS DL_STATUS
         LOG DL_LOG
         SHOW_PROGRESS)
@@ -266,6 +272,7 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
         STRING(COMPARE EQUAL ${MD5_SUM} ${ACTUAL_MD5} MD5_EQUAL)
 
         IF(MD5_EQUAL)
+          SET(DOWNLOAD_OKAY 1)
           BREAK()
         ELSE()
           FILE(REMOVE ${LOCAL_FILE})
@@ -277,6 +284,10 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
       ENDIF()
 
     ENDFOREACH()
+  ENDIF()
+
+  IF(NOT DOWNLOAD_OKAY)
+    MESSAGE(FATAL_ERROR "Download failed!")
   ENDIF()
 ENDMACRO()
 

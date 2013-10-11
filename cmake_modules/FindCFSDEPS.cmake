@@ -244,8 +244,8 @@ IF(USE_BLAS OR USE_LAPACK)
   #-----------------------------------------------------------------------------
   IF(USE_SUITESPARSE OR USE_ILUPACK)
     SET(SUITESPARSE_URL "${LSE17_SOURCES_DIR}/suitesparse")
-    SET(SUITESPARSE_GZ "SuiteSparse-3.7.0.tar.gz")
-    SET(SUITESPARSE_MD5 "ecb1d1cc1101cf31f077bab46678e791")
+    SET(SUITESPARSE_GZ "SuiteSparse-4.2.1.tar.gz")
+    SET(SUITESPARSE_MD5 "4628df9eeae10ae5f0c486f1ac982fce")
 
     INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/suitesparse/External_SuiteSparse.cmake")
   ENDIF(USE_SUITESPARSE OR USE_ILUPACK)
@@ -291,8 +291,8 @@ ENDIF(USE_LIS)
 #-------------------------------------------------------------------------------
 IF(USE_SUPERLU)
   SET(SUPERLU_URL "${LSE17_SOURCES_DIR}/superlu")
-  SET(SUPERLU_GZ "superlu_4.1.tar.gz")
-  SET(SUPERLU_MD5 "bab07844b164b9b65947141ced43e199")
+  SET(SUPERLU_GZ "superlu_4.3.tar.gz")
+  SET(SUPERLU_MD5 "b72c6309f25e9660133007b82621ba7c")
   
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/superlu/External_SuperLU.cmake")
 ENDIF(USE_SUPERLU)

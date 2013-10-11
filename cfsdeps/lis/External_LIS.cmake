@@ -55,21 +55,25 @@ SET(PFN "${lis_prefix}/lis-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since lse17 may not be
+# Set up a list of publicly available mirrors, since the non-standard port 
+# number of the FTP server on the CFS++ development server  may not be
 # accessible from behind firewalls.
+# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
+# used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "http://www.ssisc.org/lis/dl/${LIS_GZ}"
+  "${LIS_URL}/${LIS_GZ}"
 )
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/lis/${LIS_GZ}")
+SET(MD5_SUM ${LIS_MD5})
 
-#-------------------------------------------------------------------------------
-# Try to download sources into CFSDEPS cache directory.
-#-------------------------------------------------------------------------------
-DOWNLOAD_CFSDEPS(
-  "${CFS_DEPS_CACHE_DIR}/sources/lis/${LIS_GZ}"
-  ${LIS_MD5}
-  "${MIRRORS}"
-)
+SET(DLFN "${lis_prefix}/lis-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  )
 
 #-------------------------------------------------------------------------------
 # The lis external project
@@ -77,8 +81,7 @@ DOWNLOAD_CFSDEPS(
 ExternalProject_Add(lis
   PREFIX "${lis_prefix}"
   SOURCE_DIR "${lis_source}"
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/lis
-  URL ${LIS_URL}/${LIS_GZ}
+  URL ${LOCAL_FILE}
   URL_MD5 ${LIS_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   CMAKE_ARGS
@@ -86,6 +89,17 @@ ExternalProject_Add(lis
 #    -DLIS_BUILD_TEST:BOOL=ON
     -DLIS_ENABLE_FORTRAN:BOOL=ON
     -DLIS_ENABLE_SAAMG:BOOL=ON
+)
+
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(lis cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${lis_prefix}
 )
 
 #-------------------------------------------------------------------------------
