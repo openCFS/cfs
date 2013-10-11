@@ -170,6 +170,7 @@ SET(DLLS
   libgomp-1.dll
   pthreadGC2.dll
   pthreadGCE2.dll
+  libquadmath-0.dll
 )
 
 FOREACH(DLL IN ITEMS ${DLLS})
