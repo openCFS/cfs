@@ -38,6 +38,25 @@ SET(PFN "${qt4_prefix}/qt4-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "http://distfiles.macports.org/qt4-mac/qt-everywhere-opensource-src-4.8.2.tar.gz"
+  "http://pkgs.fedoraproject.org/repo/pkgs/qt/qt-everywhere-opensource-src-4.8.2.tar.gz/3c1146ddf56247e16782f96910a8423b/qt-everywhere-opensource-src-4.8.2.tar.gz"
+  "http://download.qt-project.org/archive/qt/4.8/4.8.2/qt-everywhere-opensource-src-4.8.2.tar.gz"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/qt4/${QT4_GZ}"
+  ${QT4_MD5}
+  "${MIRRORS}"
+)
+
+#-------------------------------------------------------------------------------
 # The qt4 external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(qt4

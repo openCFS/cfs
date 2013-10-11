@@ -60,12 +60,29 @@ SET(PFN "${superlu_prefix}/superlu-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "http://crd-legacy.lbl.gov/~xiaoye/SuperLU/${SUPERLU_GZ}"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/superlu/${SUPERLU_GZ}"
+  ${SUPERLU_MD5}
+  "${MIRRORS}"
+)
+
+#-------------------------------------------------------------------------------
 # The superlu external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(superlu
   PREFIX "${superlu_prefix}"
   DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/superlu
-  URL ${SUPERLU_URL}/${SUPERLU_ZIP}
+  URL ${SUPERLU_URL}/${SUPERLU_GZ}
   URL_MD5 ${SUPERLU_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   LIST_SEPARATOR "^"

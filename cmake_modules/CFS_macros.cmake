@@ -212,3 +212,71 @@ MACRO (APPLY_PATCHES PATCHES INPUTDIR)
     ENDIF()
   endforeach(patch)
 ENDMACRO (APPLY_PATCHES)
+
+
+MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
+  SET(PERFORM_DOWNLOAD 0)                             
+  STRING(STRIP ${MD5_SUM} MD5_SUM)                    
+  STRING(TOLOWER ${MD5_SUM} MD5_SUM)                  
+
+  IF(EXISTS ${LOCAL_FILE})
+#    MESSAGE("'${LOCAL_FILE}' already exists!\nComparing MD5 sums...")
+
+    FILE(MD5 ${LOCAL_FILE} ACTUAL_MD5)
+    STRING(TOLOWER ${ACTUAL_MD5} ACTUAL_MD5)
+
+#    MESSAGE("ACTUAL_MD5 ${ACTUAL_MD5}")
+#    MESSAGE("EXPECTED_MD5 ${MD5_SUM}") 
+
+    STRING(COMPARE EQUAL ${MD5_SUM} ${ACTUAL_MD5} MD5_EQUAL)
+
+    IF(NOT MD5_EQUAL)
+      FILE(REMOVE ${LOCAL_FILE})
+      SET(PERFORM_DOWNLOAD 1)   
+#      MESSAGE("MD5 sums do not match!\nDeleting '${LOCAL_FILE}'...")
+#    ELSE()                                                          
+#      MESSAGE("MD5 sums match! Very fine!")                         
+    ENDIF()
+  ELSE()
+    SET(PERFORM_DOWNLOAD 1)
+  ENDIF()
+
+  IF(PERFORM_DOWNLOAD)
+    FOREACH(URL IN ITEMS ${MIRROR_LIST})
+      MESSAGE("Downloading '${URL}' to\n---> '${LOCAL_FILE}'...")
+
+      FILE(DOWNLOAD
+        ${URL}
+        ${LOCAL_FILE}
+        INACTIVITY_TIMEOUT 60
+        STATUS DL_STATUS
+        LOG DL_LOG
+        SHOW_PROGRESS)
+
+      LIST(GET DL_STATUS 0 DL_FAIL)
+      LIST(GET DL_STATUS 1 DL_MSG)
+
+      IF(NOT DL_FAIL)
+        FILE(MD5 ${LOCAL_FILE} ACTUAL_MD5)
+        STRING(TOLOWER ${ACTUAL_MD5} ACTUAL_MD5)
+
+#        MESSAGE("ACTUAL_MD5 ${ACTUAL_MD5}")
+#        MESSAGE("EXPECTED_MD5 ${MD5_SUM}")
+
+        STRING(COMPARE EQUAL ${MD5_SUM} ${ACTUAL_MD5} MD5_EQUAL)
+
+        IF(MD5_EQUAL)
+          BREAK()
+        ELSE()
+          FILE(REMOVE ${LOCAL_FILE})
+        ENDIF()
+
+      ELSE()
+        MESSAGE("Download failed: ${DL_MSG}")
+        FILE(REMOVE ${LOCAL_FILE})
+      ENDIF()
+
+    ENDFOREACH()
+  ENDIF()
+ENDMACRO()
+

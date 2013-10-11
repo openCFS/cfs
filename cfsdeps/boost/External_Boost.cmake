@@ -142,6 +142,24 @@ SET(PFN "${boost_prefix}/boost-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "http://distfiles.lesslinux.org/boost_1_52_0.tar.bz2"
+  "http://freefr.dl.sourceforge.net/project/boost/boost/1.52.0/boost_1_52_0.tar.bz2"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/boost/${BOOST_GZ}"
+  ${BOOST_MD5}
+  "${MIRRORS}"
+)
+
+#-------------------------------------------------------------------------------
 # The Boost external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(boost

@@ -38,6 +38,24 @@ IF(CMAKE_TOOLCHAIN_FILE)
 ENDIF()
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "ftp://ftp.spline.de/pub/gentoo/distfiles/muparser_v2_2_2.zip"
+  "http://pkgs.fedoraproject.org/repo/pkgs/muParser/muparser_v2_2_2.zip/6d77b5cb8096fe2c50afe36ad41bc14a/muparser_v2_2_2.zip"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/muparser/${MUPARSER_ZIP}"
+  ${MUPARSER_MD5}
+  "${MIRRORS}"
+)
+
+#-------------------------------------------------------------------------------
 # The muparser external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(muparser

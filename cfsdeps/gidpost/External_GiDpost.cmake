@@ -66,6 +66,23 @@ SET(PFN "${gidpost_prefix}/gidpost-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "ftp://www.gidhome.com/pub/Tools/${GIDPOST_ZIP}"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/gidpost/${GIDPOST_ZIP}"
+  ${GIDPOST_MD5}
+  "${MIRRORS}"
+)
+
+#-------------------------------------------------------------------------------
 # The GiDpost external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(gidpost

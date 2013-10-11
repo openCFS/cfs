@@ -55,6 +55,23 @@ SET(PFN "${lis_prefix}/lis-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "http://www.ssisc.org/lis/dl/${LIS_GZ}"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/lis/${LIS_GZ}"
+  ${LIS_MD5}
+  "${MIRRORS}"
+)
+
+#-------------------------------------------------------------------------------
 # The lis external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(lis

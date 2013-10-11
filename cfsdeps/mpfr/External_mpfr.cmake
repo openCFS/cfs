@@ -21,6 +21,25 @@ SET(CONF "${mpfr_prefix}/mpfr-configure.cmake")
 CONFIGURE_FILE("${CONF_TEMPL}" "${CONF}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "http://ftp.uni-erlangen.de/mirrors/GNU/mpfr/${MPFR_BZ2}"
+  "http://ftp.gwdg.de/pub/misc/gnu/ftp/gnu/mpfr/${MPFR_BZ2}"
+  "http://ftp.gnu.org/gnu/mpfr/${MPFR_BZ2}"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/mpfr/${MPFR_BZ2}"
+  ${MPFR_MD5}
+  "${MIRRORS}"
+)
+
+#-------------------------------------------------------------------------------
 # The mpfr external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(mpfr

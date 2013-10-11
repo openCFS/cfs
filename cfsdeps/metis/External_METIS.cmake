@@ -46,6 +46,24 @@ SET(PFN "${metis_prefix}/metis-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "ftp://ftp1.rrzn.uni-hannover.de/pub/mirror/bsd/FreeBSD/ports/distfiles/metis-4.0.3.tar.gz"
+  "http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/OLD/metis-4.0.3.tar.gz"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/metis/${METIS_GZ}"
+  ${METIS_MD5}
+  "${MIRRORS}"
+)
+
+#-------------------------------------------------------------------------------
 # The metis external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(metis

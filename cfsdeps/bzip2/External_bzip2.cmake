@@ -51,6 +51,25 @@ SET(PFN "${bzip2_prefix}/bzip2-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "ftp://ftp3.de.freebsd.org/FreeBSD/ports/distfiles/bzip2-1.0.6.tar.gz"
+  "ftp://ftp.jussieu.fr/pub/haiku/releases/r1alpha4/sources/bzip2-1.0.6.tar.gz"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/bzip2/${BZIP2_GZ}"
+  ${BZIP2_MD5}
+  "${MIRRORS}"
+)
+
+
+#-------------------------------------------------------------------------------
 # The bzip2 external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(bzip2-static

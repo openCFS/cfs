@@ -41,6 +41,24 @@ SET(PFN "${lapack_prefix}/lapack-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "ftp://ftp.mirrorservice.org/sites/distfiles.macports.org/atlas/lapack-3.4.2.tgz"
+  "http://www.netlib.org/lapack/lapack-3.4.2.tgz"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/lapack/${LAPACK_GZ}"
+  ${LAPACK_MD5}
+  "${MIRRORS}"
+)
+
+#-------------------------------------------------------------------------------
 # The Lapack external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(lapack

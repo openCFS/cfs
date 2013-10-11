@@ -59,6 +59,24 @@ SET(PFN "${zlib_prefix}/zlib-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "ftp://ftp.pl.pgpi.org/vol/rzm1/GraphicsMagick/delegates/zlib-1.2.7.tar.gz"
+  "ftp://ftp.uwsg.indiana.edu/linux/gentoo/distfiles/zlib-1.2.7.tar.gz"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/zlib/${ZLIB_GZ}"
+  ${ZLIB_MD5}
+  "${MIRRORS}"
+)
+
+#-------------------------------------------------------------------------------
 # The zlib external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(zlib

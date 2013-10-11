@@ -28,6 +28,25 @@ SET(PFN "${gmp_prefix}/gmp-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "http://ftp.uni-erlangen.de/mirrors/GNU/gmp/${GMP_BZ2}"
+  "http://ftp.gwdg.de/pub/misc/gnu/ftp/gnu/gmp/${GMP_BZ2}"
+  "http://ftp.gnu.org/gnu/gmp/${GMP_BZ2}"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/gmp/${GMP_BZ2}"
+  ${GMP_MD5}
+  "${MIRRORS}"
+)
+
+#-------------------------------------------------------------------------------
 # The gmp external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(gmp

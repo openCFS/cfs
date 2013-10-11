@@ -74,6 +74,23 @@ SET(PFN "${suitesparse_prefix}/suitesparse-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "http://www.cise.ufl.edu/research/sparse/SuiteSparse/${SUITESPARSE_GZ}"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/suitesparse/${SUITESPARSE_GZ}"
+  ${SUITESPARSE_MD5}
+  "${MIRRORS}"
+)
+
+#-------------------------------------------------------------------------------
 # The suitesparse external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(suitesparse

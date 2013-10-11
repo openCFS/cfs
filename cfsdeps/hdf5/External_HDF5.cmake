@@ -100,6 +100,26 @@ SET(PFN "${hdf5_prefix}/hdf5-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4/hdf5-1.8.8.tar.gz"
+  "ftp://ftp.ca.freebsd.org/pub/packages/graphics/netcdf/netcdf-4/hdf5-1.8.8.tar.gz"
+#  "http://www.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8.8/src/hdf5-1.8.8.tar.gz"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/hdf5/${HDF5_GZ}"
+  ${HDF5_MD5}
+  "${MIRRORS}"
+)
+
+
+#-------------------------------------------------------------------------------
 # The hdf5-static external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(hdf5-static

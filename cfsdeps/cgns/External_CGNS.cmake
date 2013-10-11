@@ -57,6 +57,24 @@ SET(PFN "${cgns_prefix}/cgns-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "http://heanet.dl.sourceforge.net/project/cgns/cgnslib_3.1/cgnslib_3.1-2.tar.gz"
+  "http://mirror.transact.net.au/pub/sourceforge/c/project/cg/cgns/cgnslib_3.1/cgnslib_3.1.3-2.tar.gz"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/cgns/${CGNS_GZ}"
+  ${CGNS_MD5}
+  "${MIRRORS}"
+)
+
+#-------------------------------------------------------------------------------
 # The CGNS-static external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cgns-static

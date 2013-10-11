@@ -74,6 +74,24 @@ SET(BOOST_SETUP "${cgal_prefix}/CGAL_SetupBoost.cmake")
 CONFIGURE_FILE("${BOOST_SETUP_TEMPL}" "${BOOST_SETUP}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "http://archive.ubuntu.com/ubuntu/pool/universe/c/cgal/cgal_4.2.orig.tar.bz2"
+  "https://gforge.inria.fr/frs/download.php/32361/CGAL-4.2.tar.bz2"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/cgal/${CGAL_BZ2}"
+  ${CGAL_MD5}
+  "${MIRRORS}"
+)
+
+#-------------------------------------------------------------------------------
 # The CGAL external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cgal

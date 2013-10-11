@@ -49,6 +49,24 @@ SET(PFN "${xerces_prefix}/xerces-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "ftp://ftp.de.cw.net/pub/FreeBSD/ports/distfiles/xerces-c-3.1.1.tar.gz"
+  "http://xml.apache.org/dist/xerces-c/3/sources/xerces-c-3.1.1.tar.gz"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/xerces/${XERCES_GZ}"
+  ${XERCES_MD5}
+  "${MIRRORS}"
+)
+
+#-------------------------------------------------------------------------------
 # The xerces external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(xerces

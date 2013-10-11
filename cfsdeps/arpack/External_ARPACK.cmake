@@ -46,6 +46,25 @@ SET(PFN "${ARPACK_prefix}/arpack-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since lse17 may not be
+# accessible from behind firewalls.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "ftp://ftp1.rrzn.uni-hannover.de/pub/mirror/bsd/FreeBSD/ports/distfiles/arpack-ng_3.1.1.tar.gz"
+  "ftp://ftp.uwsg.indiana.edu/pub/FreeBSD/ports/distfiles/arpack-ng_3.1.1.tar.gz"
+)
+
+#-------------------------------------------------------------------------------
+# Try to download sources into CFSDEPS cache directory.
+#-------------------------------------------------------------------------------
+DOWNLOAD_CFSDEPS(
+  "${CFS_DEPS_CACHE_DIR}/sources/arpack/${ARPACK_GZ}"
+  ${ARPACK_MD5}
+  "${MIRRORS}"
+)
+
+
+#-------------------------------------------------------------------------------
 # The ARPACK external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(arpack

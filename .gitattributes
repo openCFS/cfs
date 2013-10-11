@@ -54,6 +54,7 @@ cfsdeps/arpack/readme.arpack -text
 cfsdeps/boost/4315.patch -text
 cfsdeps/boost/External_Boost.cmake -text
 cfsdeps/boost/boost-1.48.0-gcc47-winthreads.patch -text
+cfsdeps/boost/boost-cmake.tar.bz2 -text svneol=unset#unset
 cfsdeps/boost/boost-intel-signbit-intrinsic.patch -text
 cfsdeps/boost/boost-multi_array.patch -text
 cfsdeps/boost/boost-newline.patch -text
