@@ -505,6 +505,10 @@ share/doc/auxilliaries/Pics/am2_logo.png -text
 share/doc/auxilliaries/Pics/cfs-logo.eps -text svneol=unset#application/postscript
 share/doc/auxilliaries/Pics/cfs-logo.pdf -text svneol=unset#application/pdf
 share/doc/auxilliaries/Pics/cfs-logo.png -text svneol=unset#image/png
+share/doc/auxilliaries/Pics/cfs-logo.svg -text
+share/doc/auxilliaries/Pics/cfs-logo_small.png -text svneol=unset#unset
+share/doc/auxilliaries/Pics/cfs.png -text svneol=unset#unset
+share/doc/auxilliaries/Pics/e325_logo.png -text svneol=unset#unset
 share/doc/auxilliaries/Pics/fau_logo.svg -text
 share/doc/auxilliaries/Pics/logo_am2.svg -text
 share/doc/auxilliaries/Pics/ls_am_klu.eps -text svneol=unset#application/postscript
@@ -517,6 +521,7 @@ share/doc/auxilliaries/Pics/lse_logo.pdf -text svneol=unset#application/pdf
 share/doc/auxilliaries/Pics/lse_logo.svg -text
 share/doc/auxilliaries/Pics/titelseite_logos.pdf -text svneol=unset#unset
 share/doc/auxilliaries/Pics/titelseite_logos.svg -text
+share/doc/auxilliaries/Pics/tu_signet.png -text svneol=unset#unset
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
 share/doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
 share/doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
@@ -587,11 +592,21 @@ share/doc/developer/Concepts/sbm-fespace/system1.png -text svneol=unset#image/pn
 share/doc/developer/Concepts/sbm-fespace/system2.png -text svneol=unset#image/png
 share/doc/developer/Concepts/sbm-fespace/system3.png -text svneol=unset#image/png
 share/doc/developer/Concepts/sbm-fespace/system4.png -text svneol=unset#image/png
+share/doc/developer/DoxygenConfig/background.png -text svneol=unset#unset
+share/doc/developer/DoxygenConfig/doxy-config-new.in -text
 share/doc/developer/DoxygenConfig/doxy-config.in -text
 share/doc/developer/DoxygenConfig/doxygen_manual.pdf -text svneol=unset#application/pdf
+share/doc/developer/DoxygenConfig/extra.css -text
 share/doc/developer/DoxygenConfig/footerTemplate.html svneol=native#text/html
+share/doc/developer/DoxygenConfig/footerTemplateNew.html -text
 share/doc/developer/DoxygenConfig/headerTemplate.html svneol=native#text/html
+share/doc/developer/DoxygenConfig/headerTemplateNew.html -text
+share/doc/developer/DoxygenConfig/latexHeader.tex -text
+share/doc/developer/DoxygenConfig/mainpage.md -text
 share/doc/developer/DoxygenConfig/mainpage.txt svneol=native#text/plain
+share/doc/developer/DoxygenConfig/markdownSyntax.md -text
+share/doc/developer/DoxygenConfig/schemaDoc.md -text
+share/doc/developer/DoxygenConfig/xmlRef.md -text
 share/doc/developer/Protokolle/Treffen_03_11_2003.pdf -text svneol=unset#application/pdf
 share/doc/developer/Protokolle/Treffen_07_06_2005.pdf -text svneol=unset#application/pdf
 share/doc/developer/Protokolle/Treffen_12_11_2003.pdf -text svneol=unset#application/pdf
@@ -607,6 +622,7 @@ share/doc/developer/develManual/contributors.tex -text
 share/doc/developer/develManual/debugging.tex -text
 share/doc/developer/develManual/develManual.bib -text
 share/doc/developer/develManual/develManual.cfg -text
+share/doc/developer/develManual/develManual.md -text
 share/doc/developer/develManual/develManual.tex -text
 share/doc/developer/develManual/firstTimeImplementing.tex -text
 share/doc/developer/develManual/getConfigCompile.tex -text
