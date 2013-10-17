@@ -27,6 +27,7 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   isMoving_(false),
   moveMaster_(false),
   exportToGrid_(true),
+  geoWarn_(true),
   coordSysId_(""),
   coordSys_(NULL),
   mParser_(NULL),
@@ -84,6 +85,8 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   
   nciNode->GetValue("storeIntegrationGrid", exportToGrid_, ParamNode::PASS);
 
+  nciNode->GetValue("geometryWarnings", geoWarn_, ParamNode::PASS);
+  
   PtrParamNode motionNode = nciNode->Get("rotation", ParamNode::PASS);
   if (motionNode) {
     SetRotation( motionNode->Get("coordSysId")->As<std::string>(),
@@ -618,12 +621,14 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
   }
 
   if (relativeElemVol < 1e-3) {
-    WARN("Rejecting ncElem due to a relative volume of " << relativeElemVol
-         << std::endl
-         << "  for intersection of elements " << ifaceElem1->elemNum
-        // << " (" << region_.ToString(ifaceElem1->regionId) << ")"
-         << " and " << ifaceElem2->elemNum);
-        // << " (" << this->region_.ToString(ifaceElem2->regionId) << ") ");
+    if (geoWarn_) {
+      WARN("Rejecting ncElem due to a relative volume of " << relativeElemVol
+          << std::endl
+          << "  for intersection of elements " << ifaceElem1->elemNum
+          // << " (" << region_.ToString(ifaceElem1->regionId) << ")"
+          << " and " << ifaceElem2->elemNum);
+      // << " (" << this->region_.ToString(ifaceElem2->regionId) << ") ");
+    }
     return false;
   }
 

@@ -10,8 +10,8 @@
 namespace CoupledField {
 
 void BaseNcInterface::UpdateIntegrators() {
-  StdVector<NcBiLinFormContext*>::iterator it = integrators_.Begin(),
-                                           itEnd = integrators_.End();
+  StdVector<BiLinFormContext*>::iterator it = integrators_.Begin(),
+                                         itEnd = integrators_.End();
   for ( ; it != itEnd; ++it ) {
     (*it)->SetEntities(elemList_, elemList_);
   }

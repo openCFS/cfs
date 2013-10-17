@@ -178,6 +178,8 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+    <xsd:attribute name="geometryWarnings" type="DT_CFSBool"
+                   use="optional" default="yes" />
     <xsd:attribute name="writeGraphvizFiles" type="DT_CFSBool"
                    use="optional" default="no" />
     <xsd:attribute name="storeIntegrationGrid" type="DT_CFSBool"

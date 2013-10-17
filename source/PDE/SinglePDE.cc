@@ -2822,17 +2822,26 @@ namespace CoupledField {
 
     // create a mass integrator on the slave surface (conforming grid)
     PtrCoefFct unity = CoefFunction::Generate( mp_, Global::REAL, "1" );
-    BiLinearForm *massInt = NULL;
+    BiLinearForm *massInt = NULL, *massInt2 = NULL;
     if ( dim_ == 2) {
       switch (numDofs) {
       case 1:
         massInt = new BBInt<>( new IdentityOperator<FeH1,2,1>, unity, 1.0, updatedGeo_);
+        if (isMoving) {
+          massInt2 = new BBInt<>( new IdentityOperator<FeH1,2,1>, unity, 1.0, updatedGeo_);
+        }
         break;
       case 2:
         massInt = new BBInt<>( new IdentityOperator<FeH1,2,2>, unity, 1.0, updatedGeo_);
+        if (isMoving) {
+          massInt2 = new BBInt<>( new IdentityOperator<FeH1,2,2>, unity, 1.0, updatedGeo_);
+        }
         break;
       case 3:
         massInt = new BBInt<>( new IdentityOperator<FeH1,2,3>, unity, 1.0, updatedGeo_);
+        if (isMoving) {
+          massInt2 = new BBInt<>( new IdentityOperator<FeH1,2,3>, unity, 1.0, updatedGeo_);
+        }
         break;
       default:
         EXCEPTION("Not implemented");
@@ -2842,12 +2851,21 @@ namespace CoupledField {
       switch (numDofs) {
       case 1:
         massInt = new BBInt<>( new IdentityOperator<FeH1,3,1>, unity, 1.0, updatedGeo_);
+        if (isMoving) {
+          massInt2 = new BBInt<>( new IdentityOperator<FeH1,3,1>, unity, 1.0, updatedGeo_);
+        }
         break;
       case 2:
         massInt = new BBInt<>( new IdentityOperator<FeH1,3,2>, unity, 1.0, updatedGeo_);
+        if (isMoving) {
+          massInt2 = new BBInt<>( new IdentityOperator<FeH1,3,2>, unity, 1.0, updatedGeo_);
+        }
         break;
       case 3:
         massInt = new BBInt<>( new IdentityOperator<FeH1,3,3>, unity, 1.0, updatedGeo_);
+        if (isMoving) {
+          massInt2 = new BBInt<>( new IdentityOperator<FeH1,3,3>, unity, 1.0, updatedGeo_);
+        }
         break;
       default:
         EXCEPTION("Not implemented");
@@ -2864,7 +2882,7 @@ namespace CoupledField {
     assemble_->AddBiLinearForm(massContext);
     
     if (isMoving) {
-      BiLinFormContext *massContext2 = new BiLinFormContext(massInt, DAMPING);
+      BiLinFormContext *massContext2 = new BiLinFormContext(massInt2, DAMPING);
       massContext2->SetEntities(elSlave, elSlave);
       massContext2->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[solType] );
       massContext2->SetCounterPart(false);
@@ -2872,7 +2890,7 @@ namespace CoupledField {
     }
     
     // create a non-conforming mass integrator
-    BiLinearForm *ncInt = NULL;
+    BiLinearForm *ncInt = NULL, *ncInt2 = NULL;
     if ( dim_ == 2 ) {
       switch (numDofs) {
       case 1:
@@ -2883,6 +2901,15 @@ namespace CoupledField {
                                           mortarIf->GetSlaveVolRegion(),
                                           mortarIf->IsPlanar(),
                                           updatedGeo_ );
+        if (isMoving) {
+          ncInt2 = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,1>(),
+                                          new IdentityOperator<FeH1,2,1>(),
+                                          unity, -1.0,
+                                          mortarIf->GetMasterVolRegion(),
+                                          mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
+                                          updatedGeo_ );
+        }
         break;
       case 2:
         ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,2>(),
@@ -2892,6 +2919,15 @@ namespace CoupledField {
                                           mortarIf->GetSlaveVolRegion(),
                                           mortarIf->IsPlanar(),
                                           updatedGeo_ );
+        if (isMoving) {
+          ncInt2 = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,2>(),
+                                          new IdentityOperator<FeH1,2,2>(),
+                                          unity, -1.0,
+                                          mortarIf->GetMasterVolRegion(),
+                                          mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
+                                          updatedGeo_ );
+        }
         break;
       case 3:
         ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,3>(),
@@ -2901,6 +2937,15 @@ namespace CoupledField {
                                           mortarIf->GetSlaveVolRegion(),
                                           mortarIf->IsPlanar(),
                                           updatedGeo_ );
+        if (isMoving) {
+          ncInt2 = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,3>(),
+                                          new IdentityOperator<FeH1,2,3>(),
+                                          unity, -1.0,
+                                          mortarIf->GetMasterVolRegion(),
+                                          mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
+                                          updatedGeo_ );
+        }
         break;
       default:
         EXCEPTION("Not implemented");
@@ -2916,6 +2961,15 @@ namespace CoupledField {
                                           mortarIf->GetSlaveVolRegion(),
                                           mortarIf->IsPlanar(),
                                           updatedGeo_ );
+        if (isMoving) {
+          ncInt2 = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,1>(),
+                                          new IdentityOperator<FeH1,3,1>(),
+                                          unity, -1.0,
+                                          mortarIf->GetMasterVolRegion(),
+                                          mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
+                                          updatedGeo_ );
+        }
         break;
       case 2:
         ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,2>(),
@@ -2925,6 +2979,15 @@ namespace CoupledField {
                                           mortarIf->GetSlaveVolRegion(),
                                           mortarIf->IsPlanar(),
                                           updatedGeo_ );
+        if (isMoving) {
+          ncInt2 = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,2>(),
+                                          new IdentityOperator<FeH1,3,2>(),
+                                          unity, -1.0,
+                                          mortarIf->GetMasterVolRegion(),
+                                          mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
+                                          updatedGeo_ );
+        }
         break;
       case 3:
         ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,3>(),
@@ -2934,6 +2997,15 @@ namespace CoupledField {
                                           mortarIf->GetSlaveVolRegion(),
                                           mortarIf->IsPlanar(),
                                           updatedGeo_ );
+        if (isMoving) {
+          ncInt2 = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,3>(),
+                                          new IdentityOperator<FeH1,3,3>(),
+                                          unity, -1.0,
+                                          mortarIf->GetMasterVolRegion(),
+                                          mortarIf->GetSlaveVolRegion(),
+                                          mortarIf->IsPlanar(),
+                                          updatedGeo_ );
+        }
         break;
       default:
         EXCEPTION("Not implemented");
@@ -2950,7 +3022,7 @@ namespace CoupledField {
     ncIf->RegisterIntegrator(ncContext);
     
     if (isMoving) {
-      NcBiLinFormContext *ncContext2 = new NcBiLinFormContext(ncInt, DAMPING);
+      NcBiLinFormContext *ncContext2 = new NcBiLinFormContext(ncInt2, DAMPING);
       ncContext2->SetEntities(elMortar, elMortar);
       ncContext2->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[solType] );
       ncContext2->SetCounterPart(false);
@@ -3104,6 +3176,15 @@ namespace CoupledField {
     assemble_->AddBiLinearForm( flux_du1_v2_Context );
     assemble_->AddBiLinearForm( penalty_u2_v1_Context );
     assemble_->AddBiLinearForm( flux_u2_dv1_Context );
-  }
+
+    ncIf->RegisterIntegrator( penalty_u1_v1_Context );
+    ncIf->RegisterIntegrator( flux_du1_v1_Context );
+    ncIf->RegisterIntegrator( flux_u1_dv1_Context );
+    ncIf->RegisterIntegrator( penalty_u2_v2_Context );
+    ncIf->RegisterIntegrator( penalty_u1_v2_Context );
+    ncIf->RegisterIntegrator( flux_du1_v2_Context );
+    ncIf->RegisterIntegrator( penalty_u2_v1_Context );
+    ncIf->RegisterIntegrator( flux_u2_dv1_Context );
+}
   
 } // end of namespace

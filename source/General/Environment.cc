@@ -1130,7 +1130,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_8, "optResult_8");
     SolutionTypeEnum.Add(OPT_RESULT_9, "optResult_9");
     // independent
-    SolutionTypeEnum.Add(LAGRANGE_MULT, "LagrangeMultiplier");
+    SolutionTypeEnum.Add(LAGRANGE_MULT, "lagrangeMultiplier");
     // evaluates the spacial gradient of the solution at the nodes.
     // common for all PDEs, no unit
     SolutionTypeEnum.Add(GRAD_ACOU_SOLUTION, "gradAcousticSolution"); // independent on acoustic formulation

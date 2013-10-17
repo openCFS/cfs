@@ -632,29 +632,24 @@ namespace CoupledField {
     PtrParamNode out = myInfo_->Get(ParamNode::PN_PROCESS)->Get("solver");
     out->Get("solutionIsOkay")->SetValue(true);
 
-    // Now modifiy the right-hand side vector.
+    // Now modify the right-hand side vector.
     // Note: It is mandatory to incorporate the IDBC values to the
     // complete RHS.
     if ( setIDBC ) 
       idbcHandler_->AddIDBCToRHS( rhs_ );
 
-    // Remove the export linear system stuff, it has changed in standardsys.cc an as below
-    // the solve part is commentet out, I see no reason to export linsys also here, it would
-    // require a generalization anyway. Fabian 16.11.07
     // check if we do export stuff
     PtrParamNode els = solStrat_->GetExportLinSysNode();
     std::string file;
     std::string base;
 
-    // TODO: This is most ugly copy & paste from standardsys.cc -> Generalize common parts!!
-    // need it common even when exclusive solution
     if(els) {
       std::ostringstream os;
       std::string name = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
       os << name;
-      //          std::string id = analysis_id->Get("analysis_id")->As<std::string>();
-      //          boost::replace_all(id, ":", "_");
-      //          os << "_" << id;
+      std::string id = analysis_id->Get("analysis_id")->As<std::string>();
+      boost::replace_all(id, ":", "_");
+      os << "_" << id;
       base = os.str();
     }
 
@@ -671,16 +666,23 @@ namespace CoupledField {
 
       sysMat_[SYSTEM]->Export(base.c_str(), format, NULL);
 
-      // HARD-CODED: Export also preconditioner
-      SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
-      if( onlyOneMatrixBlock_ ) {
-        precond_->GetPrecondSysMat((*copy)(0,0));
-      } else {
-        precond_->GetPrecondSysMat(*copy);
-      }
-      copy->Export((base+"_precond").c_str(), format, NULL);
+      switch (precond_->GetPrecondType()) {
+      case BasePrecond::NOPRECOND:
+      case BasePrecond::ID:
+        // don't export anything
+        break;
+      default:
+        // HARD-CODED: Export also preconditioner
+        SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
+        if( onlyOneMatrixBlock_ ) {
+          precond_->GetPrecondSysMat((*copy)(0,0));
+        } else {
+          precond_->GetPrecondSysMat(*copy);
+        }
+        copy->Export((base+"_precond").c_str(), format, NULL);
 
-      delete copy;
+        delete copy;
+      }
 
       if(els->HasByVal("mass", true) && sysMat_[MASS] != NULL)
         sysMat_[MASS]->Export((base+"_mass").c_str(), format, NULL);

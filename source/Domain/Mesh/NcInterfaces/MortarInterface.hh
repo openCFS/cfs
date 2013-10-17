@@ -159,6 +159,7 @@ class MortarInterface : public BaseNcInterface {
     bool isMoving_;
     bool moveMaster_;
     bool exportToGrid_;
+    bool geoWarn_;
     std::string coordSysId_;
     CoordSystem* coordSys_;
     MathParser* mParser_;

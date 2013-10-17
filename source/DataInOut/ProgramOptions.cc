@@ -901,7 +901,26 @@ namespace CoupledField {
         << endl
         << "10.10, Prickly Porcupine" << endl
         << "  No major advance beside taking care that young students are not confronted with" << endl
-        << "  X-rated terms. Luckily they don't hear developers conversation with compilers!." << endl;
+        << "  X-rated terms. Luckily they don't hear developers conversation with compilers!." << endl
+        << endl
+        << "11.06, Querulous Quokka" << endl
+        << endl
+        << "11.12, Scintillant Scapolite" << endl
+        << endl
+        << "12.02, Branchy Burbank" << endl
+        << "  c.f. http://web.mit.edu/invent/iow/burbank.html," << endl
+        << "  http://en.wikipedia.org/wiki/Russet_Burbank_potato" << endl
+        << endl
+        << "13.02, Cocky Coriolis" << endl
+        << endl
+        << "13.06, Nonmatching Noolbenger" << endl
+        << "  CFS++ now has a framework for non-conforming interfaces. Coupling can be done" << endl
+        << "  using Mortar or Nitsche formulation." << endl
+        << endl
+        << "13.10, Rotating Rhino" << endl
+        << "  Non-conforming interfaces can now cope with moving grids, especially rotation." << endl
+        << "  The animal part of the name shall express that CFS++ is heavier than ever," << endl
+        << "  despite lots of code optimization." << endl;
 
   }
 
