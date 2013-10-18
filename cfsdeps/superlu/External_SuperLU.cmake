@@ -80,6 +80,15 @@ CONFIGURE_FILE(
   @ONLY
   )
 
+# Since CMake may have problems with symlinks inside archives on Windows, we
+# have to unpack the archive using the GNU tar and gunzip utilities.
+SET(DLFN_UNTAR "${superlu_prefix}/superlu-download-untar.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cfsdeps/superlu/superlu-download-untar.cmake.in"
+  "${DLFN_UNTAR}"
+  @ONLY
+  )
+
 #-------------------------------------------------------------------------------
 # The superlu external project
 #-------------------------------------------------------------------------------
@@ -87,6 +96,7 @@ ExternalProject_Add(superlu
   PREFIX "${superlu_prefix}"
   URL ${LOCAL_FILE}
   URL_MD5 ${SUPERLU_MD5}
+  DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${DLFN_UNTAR}"
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   LIST_SEPARATOR "^"
   CMAKE_ARGS

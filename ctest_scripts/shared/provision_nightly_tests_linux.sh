@@ -39,6 +39,7 @@ echo "TZ $TZ"
 # Generate shell script which actually starts the nightly test CMake script.
 cat <<EOF > "${TEMPFILE}_2"
 #!/bin/sh
+rm -rf /vagrant/logs
 mkdir -p /vagrant/logs
 $CTEST -S $NIGHTLY_DIR/ctest_scripts/nightly_test.cmake > "$LOG_FILE" 2>&1
 if [ "$BLOCKING" = "blocking" ]; then

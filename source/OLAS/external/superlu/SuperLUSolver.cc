@@ -125,12 +125,10 @@ namespace CoupledField {
     //  factorisation must be performed
     // ============================================================
     bool facSymbolic = false;
-    bool facNumeric = false;
 
     // No factorisation available, so perform both steps
     if ( firstCall_ == true ) {
       facSymbolic = true;
-      facNumeric  = true;
     }
 
     else {
@@ -145,7 +143,6 @@ namespace CoupledField {
       // both steps, also the symbolical one
       if( newMatrixPattern ) {
         facSymbolic = true;
-        facNumeric  = true;
       }
 
       // If only the values of the matrix entries changed, we
@@ -153,7 +150,6 @@ namespace CoupledField {
       // factorisation
       else {
         facSymbolic = false;
-        facNumeric  = true;
       }
     }
 

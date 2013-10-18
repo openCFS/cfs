@@ -217,7 +217,7 @@ message("  Build")
 ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 
 # Copy some extra shared objects from Intel runtime
-SET(CFS_LIB_DIR "${CTEST_BINARY_DIRECTORY}/lib64/RHEL_6_X86_64")
+SET(CFS_LIB_DIR "${CTEST_BINARY_DIRECTORY}/lib64/RHEL_5_X86_64")
 SET(DLLS
   libifport.so.5
   libifcore.so.5
@@ -249,5 +249,19 @@ message("  Test")
 ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 message("  Submit")
 ctest_submit(RETURN_VALUE res)
+
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E create_symlink RHEL_5_X86_64 LINUX_X86_64
+  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/bin"
+  RESULT_VARIABLE RETVAL
+)
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E create_symlink RHEL_5_X86_64 LINUX_X86_64
+  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/lib64"
+  RESULT_VARIABLE RETVAL
+)
+
 message("  All done")
 

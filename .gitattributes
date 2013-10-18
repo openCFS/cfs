@@ -266,6 +266,7 @@ cfsdeps/superlu/example/pgetopt.h -text
 cfsdeps/superlu/example/xgetopt.c -text
 cfsdeps/superlu/example/xgetopt.h -text
 cfsdeps/superlu/src/CMakeLists.txt -text
+cfsdeps/superlu/superlu-download-untar.cmake.in -text
 cfsdeps/superlu/superlu-matgen.patch -text
 cfsdeps/superlu/superlu-patch.cmake.in -text
 cfsdeps/superlu/testing/CMakeLists.txt -text
@@ -378,8 +379,12 @@ ctest_scripts/sites/opensuse123/linux64_fespace_gcc_debug.ctest -text
 ctest_scripts/sites/opensuse123/linux64_fespace_gcc_release.ctest -text
 ctest_scripts/sites/opensuse123/site_specific_init.cmake -text
 ctest_scripts/sites/oracle5/Vagrantfile -text
+ctest_scripts/sites/oracle5/linux32_fespace_icc14_release.ctest -text
+ctest_scripts/sites/oracle5/linux32_fespace_icc14_release_deploy.cmake -text
 ctest_scripts/sites/oracle5/linux64_fespace_gcc_debug.ctest -text
 ctest_scripts/sites/oracle5/linux64_fespace_gcc_release.ctest -text
+ctest_scripts/sites/oracle5/linux64_fespace_icc14_release.ctest -text
+ctest_scripts/sites/oracle5/linux64_fespace_icc14_release_deploy.cmake -text
 ctest_scripts/sites/oracle5/nightly_test.sh -text
 ctest_scripts/sites/oracle6/Vagrantfile -text
 ctest_scripts/sites/oracle6/generate_test_name_list.cmake -text
@@ -402,6 +407,8 @@ ctest_scripts/sites/oracle6/linux64_trunk_gcc_release.ctest -text
 ctest_scripts/sites/oracle6/linux64_trunk_gcc_release_deploy.cmake -text
 ctest_scripts/sites/oracle6/readme_macosx.css -text
 ctest_scripts/sites/oracle6/readme_macosx.md -text
+ctest_scripts/sites/oracle6/readme_nightly_binaries.md -text
+ctest_scripts/sites/oracle6/site_specific_finish.cmake -text
 ctest_scripts/sites/oracle6/site_specific_init.cmake -text
 ctest_scripts/sites/oracle6/site_specific_vars.cmake -text
 ctest_scripts/sites/precise/Vagrantfile -text
@@ -427,14 +434,11 @@ ctest_scripts/sites/wiki/ctest_update_modelling_manual.cmake -text
 ctest_scripts/sites/wiki/ctest_update_trunk_testsuite_wien.cmake -text
 ctest_scripts/sites/wiki/ctest_update_trunk_wien.cmake -text
 ctest_scripts/sites/wiki/di_log.cmake -text
-ctest_scripts/sites/wiki/linux32_fespace_icc14_release.ctest -text
-ctest_scripts/sites/wiki/linux32_fespace_icc14_release_deploy.cmake -text
+ctest_scripts/sites/wiki/linux64_fespace_clang_release.ctest -text
 ctest_scripts/sites/wiki/linux64_fespace_gcc48_release.ctest -text
 ctest_scripts/sites/wiki/linux64_fespace_icc11_release.ctest -text
 ctest_scripts/sites/wiki/linux64_fespace_icc12_release.ctest -text
 ctest_scripts/sites/wiki/linux64_fespace_icc13_release.ctest -text
-ctest_scripts/sites/wiki/linux64_fespace_icc14_release.ctest -text
-ctest_scripts/sites/wiki/linux64_fespace_icc14_release_deploy.cmake -text
 ctest_scripts/sites/wiki/macros_for_wiki.cmake -text
 ctest_scripts/sites/wiki/set_permissions.cmake -text
 ctest_scripts/sites/wiki/site_specific_finish.cmake -text

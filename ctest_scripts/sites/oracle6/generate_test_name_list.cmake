@@ -7,7 +7,7 @@ MACRO(GENERATE_TEST_NAME_LIST TEST_NAME_LIST)
     linux64_fespace_mingw64_release
     linux64_trunk_gcc_release
     linux64_fespace_open64_release
-    linux64_fespace_clang_release
+#    linux64_fespace_clang_release
   )
 ENDMACRO()
 

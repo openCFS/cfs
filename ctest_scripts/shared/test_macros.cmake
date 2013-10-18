@@ -270,14 +270,17 @@ MACRO(TEMP_NAME fname)
   SET(TMP_OK 0)
 
   IF(UNIX)
+    SET(ENV{TMPDIR} "${SITE_DIR}/logs")
+
     # cf. http://content.hccfl.edu/pollock/ShScript/TempFile.htm
     EXECUTE_PROCESS(
-      COMMAND mktemp --tmpdir=${SITE_DIR}/logs -t ${_base}_XXXX.cmake
+      COMMAND mktemp
       WORKING_DIRECTORY "."
       OUTPUT_VARIABLE TMPFILE
       RESULT_VARIABLE RETVAL
       )
 
+    UNSET(ENV{TMPDIR})
     # If RETVAL is zero everything went fine.
     IF(NOT RETVAL)
       STRING(REPLACE "\n" "" ${fname} "${TMPFILE}")

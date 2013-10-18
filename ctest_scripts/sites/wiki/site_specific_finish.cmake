@@ -154,18 +154,21 @@ EXECUTE_PROCESS(
 
 FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
 
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/wiki_linux64_fespace_icc14_release.zip
-  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
-  RESULT_VARIABLE RETVAL)
+# The Intel binaries for general Linux distributions get only compiled every third day.
+# Therefore, we check for the existence of the corresponding archive first.
+IF(EXISTS "${CFS_NIGHTLY_DIR}/archives/oracle5_linux64_fespace_icc14_release.zip")
+  EXECUTE_PROCESS(
+    COMMAND ${CMAKE_COMMAND} -E tar xvf archives/wiki_linux64_fespace_icc14_release.zip
+    WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+    RESULT_VARIABLE RETVAL)
 
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY fespace_icc
-  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
-  RESULT_VARIABLE RETVAL)
+  EXECUTE_PROCESS(
+    COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY fespace_icc
+    WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+    RESULT_VARIABLE RETVAL)
 
-FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
-
+  FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
+ENDIF()
 
 # Unpack Trunk binaries
 IF(NOT EXISTS "${CFS_NIGHTLY_DIR}/trunk_gcc")

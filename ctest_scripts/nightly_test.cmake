@@ -22,6 +22,20 @@ CMAKE_POLICY(SET CMP0007 NEW)
 GET_FILENAME_COMPONENT(CTEST_SCRIPTS_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 INCLUDE("${CTEST_SCRIPTS_DIR}/shared/test_macros.cmake")
 
+EXECUTE_PROCESS(
+  COMMAND date "+%F %H:%M:%S"
+  OUTPUT_VARIABLE DATE_OUT
+)
+STRING(REPLACE "\n" "" DATE_OUT ${DATE_OUT})
+STRING(STRIP ${DATE_OUT} DATE_OUT)
+MESSAGE(
+"
+=============================================================================
+ Starting nightly tests on ${DATE_OUT}...
+=============================================================================
+"
+)
+
 # Set global variables, e.g. path to ctest exe, site base dir, host name etc.
 SET_GLOBAL_VARS()
 

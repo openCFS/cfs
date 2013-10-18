@@ -25,12 +25,20 @@ p {
 h1.title {
     text-align: center;
 }
+h1 {
+    text-align: left;
+}
 h2.author {
     text-align: center;
+}
+h2 {
+    text-align: left;
 }
 h3.date {
     text-align: center;
 }
-
+h3 {
+    text-align: left;
+}
 </style>
 

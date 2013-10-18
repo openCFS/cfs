@@ -22,7 +22,8 @@ ENDMACRO()
 MACRO(COPY_ZIPS_TO_APACHE)
   FILE(GLOB NIGHTLY_ZIPS 
     "${CFS_NIGHTLY_DIR}/archives/*.zip"
-    "${CFS_NIGHTLY_DIR}/archives/*.dmg")
+    "${CFS_NIGHTLY_DIR}/archives/*.dmg"
+    "${CFS_NIGHTLY_DIR}/archives/README.html")
 
   FOREACH(ZIP IN ITEMS ${NIGHTLY_ZIPS})
     get_filename_component(FN "${ZIP}" NAME)

@@ -73,6 +73,23 @@ case "$OS" in
                 fi
 	    done
 	fi
+        if [ ! "$ARCH_STR_FOUND" = "1" ]; then
+            for a in $POSSIBLE_ARCHS; do
+                LINUX_BIN="$CFS_ROOT_DIR/bin/${OS}_${a}/cfsbin"
+                if [ "$CFS_SCRIPT_DEBUG" = "1" ]; then
+                    echo "Trying $LINUX_BIN..."
+                fi
+                if [ -f "$LINUX_BIN" ]; then
+                    if [ "$CFS_SCRIPT_DEBUG" = "1" ]; then
+                        echo "Found $LINUX_BIN!"
+                        fi
+                    ARCH=$a
+                    ARCH_STR="${OS}_${ARCH}"
+                    ARCH_STR_FOUND=1
+                    break;
+                fi
+            done
+        fi
 	;;
     MACOSX)
 	LD_LIBRARY_PATH=$DYLD_LIBRARY_PATH
