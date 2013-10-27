@@ -2768,6 +2768,24 @@ namespace CoupledField {
         results_.Push_back(lm);
         DefineFieldResult(feFunctions_[LAGRANGE_MULT], lm);
         
+        shared_ptr<ResultInfo> lm_d1( new ResultInfo() );
+        lm_d1->resultType = LAGRANGE_MULT_DERIV_1;
+        lm_d1->complexFormat = lm->complexFormat;
+        lm_d1->definedOn = lm->definedOn;
+        lm_d1->dofNames = lm->dofNames;
+        lm_d1->entryType = lm->entryType;
+        availResults_.insert(lm_d1);
+        DefineTimeDerivResult(lm_d1->resultType, 1, lm->resultType);
+        
+        shared_ptr<ResultInfo> lm_d2( new ResultInfo() );
+        lm_d2->resultType = LAGRANGE_MULT_DERIV_2;
+        lm_d2->complexFormat = lm->complexFormat;
+        lm_d2->definedOn = lm->definedOn;
+        lm_d2->dofNames = lm->dofNames;
+        lm_d2->entryType = lm->entryType;
+        availResults_.insert(lm_d2);
+        DefineTimeDerivResult(lm_d2->resultType, 2, lm->resultType);
+        
         break; // one result is enough for all ncInterfaces
       }
     }

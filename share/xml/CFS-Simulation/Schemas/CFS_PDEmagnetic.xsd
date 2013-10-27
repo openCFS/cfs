@@ -242,6 +242,7 @@
       <xsd:enumeration value="magPotential"/>
       <xsd:enumeration value="magRhsLoad"/>
       <xsd:enumeration value="elecPotential"/>
+      <xsd:enumeration value="lagrangeMultiplier"/>
     </xsd:restriction>
   </xsd:simpleType>
 

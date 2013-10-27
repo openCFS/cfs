@@ -446,7 +446,7 @@
   <!-- Definition of surface element result types of fluid-mech coupling -->
   <xsd:simpleType name="DT_FluidMechDirectNodeResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="LagrangeMultiplier"/>
+      <xsd:enumeration value="lagrangeMultiplier"/>
     </xsd:restriction>
   </xsd:simpleType>
   

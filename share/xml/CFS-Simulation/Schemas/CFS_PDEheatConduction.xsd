@@ -196,6 +196,7 @@
   <xsd:simpleType name="DT_HeatNodeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="heatTemperature"/>
+      <xsd:enumeration value="lagrangeMultiplier"/>
       <xsd:enumeration value="heatRhsLoad"/>
       <xsd:enumeration value="optResult_1"/>      
       <xsd:enumeration value="optResult_2"/>      
