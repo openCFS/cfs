@@ -59,6 +59,7 @@ namespace CoupledField
     Settings& settings = Settings::Instance();
     bool verbose = settings.GetInt("verbose") > 0;
     firstStep_ = settings.GetInt("firststep");
+    startIndex_ = firstStep_;
     stepOffset_ = settings.GetInt("stepoffset");
     digits_ = settings.GetInt("digits");
     if (digits_ < 0) {

@@ -33,9 +33,9 @@ namespace CCM {
     FaceData faceData;
     for (uint iTopology = 0; iTopology < topologies_.size(); iTopology++) {
       CCMIOID topologyID = topologies_[iTopology];
-      //faceData.topolgyID = faceData.topolgyID;
+      faceData.topolgyID = topologyID.id;
       OpenLabel(topologyID, faceData.topologyLabel);
-      std::cout << "  Topology: " << faceData.topologyLabel << " (id: " << faceData.topolgyID << ")" << std::endl;
+      std::cout << "  Topology: " << faceData.topologyLabel << " (id: " << topologyID.id << ")" << std::endl;
       
       std::vector<CCMIOID> facesIDs;
       
@@ -58,13 +58,12 @@ namespace CCM {
         faceData.mapID = mapID.id;
         OpenLabel(mapID, faceData.mapLabel);
         std::cout << "      Map: " << faceData.mapLabel << " (id: " << faceData.mapID << ")" << std::endl;
-        std::cout << "      Numer of Edges: " << (faceData.faceVerticesSize - faceData.size) << std::endl;
+        std::cout << "      Number of Edges: " << (faceData.faceVerticesSize - faceData.size) << std::endl;
         faceData.faceVertices = new int[faceData.faceVerticesSize];
         CCMIOReadFaces(&err_, facesID, kCCMIOInternalFaces, NULL, NULL, faceData.faceVertices, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
         faceData.faceCells = new int[faceData.size * 2];
         CCMIOReadFaceCells(&err_, facesID, kCCMIOInternalFaces, faceData.faceCells, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
         faceDatas->push_back(faceData);
-        std::cout << "      Completed" << faceData.mapLabel << std::endl;
       }
       
       // reading boundary faces
@@ -86,13 +85,12 @@ namespace CCM {
         faceData.mapID = mapID.id;
         OpenLabel(mapID, faceData.mapLabel);
         std::cout << "      Map: " << faceData.mapLabel << " (id: " << faceData.mapID << ")" << std::endl;
-        std::cout << "      Numer of Edges: " << (faceData.faceVerticesSize - faceData.size) << std::endl;
+        std::cout << "      Number of Edges: " << (faceData.faceVerticesSize - faceData.size) << std::endl;
         faceData.faceVertices = new int[faceData.faceVerticesSize];
         CCMIOReadFaces(&err_, facesID, kCCMIOBoundaryFaces, NULL, NULL, faceData.faceVertices, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
         faceData.faceCells = new int[faceData.size];
         CCMIOReadFaceCells(&err_, facesID, kCCMIOBoundaryFaces, faceData.faceCells, CCMIOINDEXC(kCCMIOStart), CCMIOINDEXC(kCCMIOEnd));
         faceDatas->push_back(faceData);
-        std::cout << "      Completed" << faceData.mapLabel << std::endl;
       }
     }
     std::cout << "Reading Faces Completed" << std::endl << std::endl;
@@ -121,8 +119,8 @@ namespace CCM {
       vertexData.dim = TOINT64(dim);
       OpenLabel(mapID, vertexData.mapLabel);
       std::cout << "        Map: " << vertexData.mapLabel << " (id: " << vertexData.mapID << ")" << std::endl;
-      std::cout << "        Dim: " << vertexData.dim << std::endl;
-      std::cout << "        Scale Factor " << vertexData.scale << std::endl;
+      std::cout << "        Dimension: " << vertexData.dim << std::endl;
+      std::cout << "        Scale Factor: " << vertexData.scale << std::endl;
       vertexDatas->push_back(vertexData);
     }
     std::cout << "Reading Vertices Completed" << std::endl << std::endl;

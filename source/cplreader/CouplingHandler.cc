@@ -1733,27 +1733,27 @@ namespace CoupledField
         }
 #endif
 
-#pragma omp critical
+#pragma omp atomic
           acouRhsField[idx] -= elemVecLH[n];
-#pragma omp critical 
+#pragma omp atomic
           acouRhsDensityField[idx] -= nodalLoadDensity[n];
         }
 
         if(computeAeroAcouSrc){
-#pragma omp critical 
+#pragma omp atomic
           aeroAcouRhsField[idx] -= elemVecAeroAcou[n];
         }
 
         if(computeAPEMass){
           if(presFieldAvailable){
-#pragma omp critical 
+#pragma omp atomic
             acouMixedMassRhsField[idx] -= elemVecPres[n];
           }
         }
 
         if(computeAPEMomentum){
           for(UInt d =0;d<dim_;++d){
-#pragma omp critical 
+#pragma omp atomic
             acouLambVecRhsField[idx*dim_ + d] -= elemVecLambRhs[n*dim_+d];
           }
         }
