@@ -36,6 +36,8 @@
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 
+#include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
+
 namespace CoupledField {
 
 DECLARE_LOG(mechpde)
@@ -382,18 +384,14 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         break;
       case NC_NITSCHE:
       {
-//        PtrParamNode ncNodes = myParam_->Get("ncInterfaceList", ParamNode::PASS);
-//        std::string ncStr = this->ptGrid_->GetRegion().ToString(ncIt->interfaceId);
-//        PtrParamNode curNcNode = this->myParam_->GetByVal("ncInterface","name",ncStr, ParamNode::PASS);
-//        std::string masterStr = curNcNode->Get("masterRegion")->As<std::string>();
-//        std::string slaveStr = curNcNode->Get("slaveRegion")->As<std::string>();
-//        RegionIdType masterId = this->ptGrid_->GetRegion().Parse( masterStr );
-//        RegionIdType slaveId  = this->ptGrid_->GetRegion().Parse( slaveStr );
-
+        MortarInterface * ncIf = dynamic_cast<MortarInterface*>(ptGrid_
+                                    ->GetNcInterface(ncIt->interfaceId).get());
+        assert(ncIf);
+        
         //check for softening
         bool icModes = false;
-        if ( regionSoftening_[ncIt->masterVolId] == "icModesTW" ||
-             regionSoftening_[ncIt->slaveVolId]  == "icModesTW" )
+        if ( regionSoftening_[ncIf->GetMasterVolRegion()] == "icModesTW" ||
+             regionSoftening_[ncIf->GetSlaveVolRegion()]  == "icModesTW" )
                icModes = true;
 
         if(dim_ == 2)

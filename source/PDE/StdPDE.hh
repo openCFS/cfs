@@ -192,8 +192,6 @@ namespace CoupledField {
     //! Struct for collecting all formulation-specific options on an NcInterface
     struct NcInterfaceInfo {
       UInt              interfaceId;
-      RegionIdType      masterVolId;
-      RegionIdType      slaveVolId;
       NcCouplingType    type;
       LagrangeMultType  lagrangeMultType;
       Double            nitscheFactor;

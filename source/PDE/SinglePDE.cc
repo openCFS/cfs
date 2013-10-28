@@ -2545,21 +2545,6 @@ namespace CoupledField {
       nciNode->GetValue( "crossPointHandling", newIface.crossPointHandling,
                          ParamNode::INSERT );
 
-      //check for master and slave volume region, the ncIterface belongs to!
-      if ( nciNode->Has("masterVolumeRegion") ) {
-        std::string regionStr = nciNode->Get("masterVolumeRegion")->As<std::string>();
-         newIface.masterVolId = this->ptGrid_->GetRegion().Parse( regionStr );
-      }
-      else
-        newIface.masterVolId = NO_REGION_ID;
-
-      if ( nciNode->Has("slaveVolumeRegion") ) {
-        std::string regionStr = nciNode->Get("slaveVolumeRegion")->As<std::string>();
-         newIface.slaveVolId = this->ptGrid_->GetRegion().Parse( regionStr );
-      }
-      else
-        newIface.slaveVolId = NO_REGION_ID;
-
       if (newIface.crossPointHandling) {
         WARN("Cross-point handling is not implemented yet");
       }
@@ -2979,6 +2964,8 @@ namespace CoupledField {
 
     shared_ptr<BaseNcInterface> ncIf =
         ptGrid_->GetNcInterface(iface.interfaceId);
+    MortarInterface * nitscheIf = dynamic_cast<MortarInterface*>(ncIf.get());
+    assert(nitscheIf);
     
     // create new entity list
     shared_ptr<ElemList> actSDList = ncIf->GetElemList();
@@ -3016,13 +3003,13 @@ namespace CoupledField {
 
 
       if ( isComplex_ ) {
-        coefMech = materials_[iface.masterVolId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR,
-                                                            tensorType, Global::COMPLEX );
+        coefMech = materials_[nitscheIf->GetMasterVolRegion()]
+          ->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, Global::COMPLEX);
         EXCEPTION("Nitsche for Mechanical PDE currently not working!!")
       }
       else {
-        coefMech = materials_[iface.masterVolId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR,
-                                                               tensorType, Global::REAL );
+        coefMech = materials_[nitscheIf->GetMasterVolRegion()]
+          ->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, Global::REAL);
 
         //get correct sclaing of penalty term
         StdVector<Vector<Double> > points(1);
