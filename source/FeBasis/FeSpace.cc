@@ -1315,10 +1315,10 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         tmp.Init();
         GetEqns( tmp, it, entType);
         allEqns.insert(tmp.Begin(), tmp.End());
-        
       }
       eqns.Clear();
       eqns.Resize(allEqns.size());
+      eqns.Init();
       std::copy(allEqns.begin(), allEqns.end(), eqns.Begin());
     }
       

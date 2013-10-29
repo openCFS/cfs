@@ -354,11 +354,18 @@ namespace CoupledField
               ReMapEquations(eqnVec1, id1);
               ReMapEquations(eqnVec2, id2);
 
-              // Pass entity eqn-connectivity to algebraic system
-              algsys_->SetElementPos(id1, eqnVec1, id2, eqnVec2, destMap,
-                                     setCounterPart);
-            }
-            else {
+              if( !doTranspose ) {
+                algsys_-> SetElementPos( id1, eqnVec1,
+                    id2, eqnVec2,
+                    destMap,
+                    setCounterPart );
+              } else {
+                algsys_-> SetElementPos( id2, eqnVec2,
+                    id1, eqnVec1,
+                    destMap,
+                    setCounterPart );
+              }
+            } else {
               // Loop over all entities
               it1.Begin();
               it2.Begin();

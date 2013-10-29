@@ -484,8 +484,9 @@ namespace CoupledField
     
     //! Defines integrators for Nitsche coupling of an unknown on one specific
     //! interface.
-    virtual void DefineNitscheCoupling( SolutionType solType,
-                                        NcInterfaceInfo &iface);
+    template<UInt DIM, UInt D_DOF>
+    void DefineNitscheCoupling( SolutionType solType,
+                                   NcInterfaceInfo &iface);
     
     //! Vector containing all ncInterfaces for this PDE
     StdVector< NcInterfaceInfo > ncInterfaces_;

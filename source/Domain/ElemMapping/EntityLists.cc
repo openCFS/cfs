@@ -178,8 +178,11 @@ namespace CoupledField {
  
   //! Add an element to the list
   void ElemList::AddElement( const Elem* elem ) {
+#pragma omp critical
+{
     list_.Push_back(elem->elemNum);
     ++size_;
+}
   }
 
 
@@ -247,8 +250,11 @@ namespace CoupledField {
   }
   
   void SurfElemList::AddElement(const SurfElem* elem) {
+#pragma omp critical
+{
     surfElemList_.Push_back(elem);
     ++size_;
+}
   }
   
   const Elem* SurfElemList::GetElem(UInt nr) const {
@@ -535,8 +541,11 @@ namespace CoupledField {
 
   //! Adds an element using a shared pointer which is better suited here
   void NcSurfElemList::AddElement( const shared_ptr<NcSurfElem> elem ) {
+#pragma omp critical
+{
     ncElems_.Push_back(elem);
     ++size_;
+}
   }
 
   //! Get iterator
