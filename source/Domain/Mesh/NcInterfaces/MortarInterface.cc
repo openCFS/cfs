@@ -33,7 +33,8 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   mParser_(NULL),
   tolAbs_(1e-12),
   tolRel_(1e-4),
-  region_(NO_REGION_ID)
+  region_(NO_REGION_ID),
+  isReset_(false)
 {
   name_ = nciNode->Get("name")->As<std::string>();
   elemList_->SetName(name_);
@@ -243,10 +244,28 @@ void MortarInterface::MoveInterface() {
   ptGrid_->SetNodeOffset(nodeNums, nodeOffsets);
 }
 
+void MortarInterface::ResetInterface(){
+
+  if ( !isMoving_ && elemList_->GetSize() > 0 ) return;
+  StdVector<std::string> listNodeNames;
+  std::string newNodesName = name_ + "_nodes";
+
+  elemList_->Clear();
+  if ( region_ != NO_REGION_ID ) {
+    ptGrid_->ClearRegion(region_);
+  }
+  ptGrid_->GetListNodeNames(listNodeNames);
+  if ( listNodeNames.Find(newNodesName) != -1 ) {
+    ptGrid_->DeleteNamedNodes(newNodesName);
+  }
+  isReset_ = true;
+}
+
 void MortarInterface::UpdateInterface() {
   
-  if ( !isMoving_ && elemList_->GetSize() > 0 ) return;
+  if ( !isMoving_ && (elemList_->GetSize() > 0 || isReset_) ) return;
   
+  isReset_ = false;
   StdVector<SurfElem*> masterElems;
   StdVector<SurfElem*> slaveElems;
   StdVector<SurfElem*> ifaceElems;
@@ -258,15 +277,6 @@ void MortarInterface::UpdateInterface() {
   std::string newNodesName = name_ + "_nodes";
 
   MoveInterface();
-  
-  elemList_->Clear();
-  if ( region_ != NO_REGION_ID ) {
-    ptGrid_->ClearRegion(region_);
-  }
-  ptGrid_->GetListNodeNames(listNodeNames);
-  if ( listNodeNames.Find(newNodesName) != -1 ) {
-    ptGrid_->DeleteNamedNodes(newNodesName);
-  }
 
   ptGrid_->GetSurfElems(masterElems, masterSurfRegion_);
   ptGrid_->GetSurfElems(slaveElems, slaveSurfRegion_);
@@ -294,6 +304,7 @@ void MortarInterface::UpdateInterface() {
 
   switch (intersectAlgo_) {
     case NCI_INTERSECT_LINE:
+#pragma omp parallel for
       for (UInt i = 0; i < masterElems.GetSize(); ++i) {
         for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
           IntersectLines(masterElems[i], slaveElems[j], newNodes );
@@ -305,6 +316,7 @@ void MortarInterface::UpdateInterface() {
         EXCEPTION("Only coplanar interfaces are supported with coaxial "
             << "rectangle algorithm.");
       }
+#pragma omp parallel for
       for (UInt i = 0; i < masterElems.GetSize(); ++i) {
         for(UInt j = 0; j < slaveElems.GetSize(); ++j) {
           SurfElem* m_el = masterElems[i];
@@ -326,6 +338,7 @@ void MortarInterface::UpdateInterface() {
       }
       break;
     case NCI_INTERSECT_POLYGON:
+#pragma omp parallel for
       for (UInt i = 0; i < masterElems.GetSize(); ++i) {
         for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
           SurfElem* m_el = masterElems[i];
@@ -620,7 +633,7 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
     }
   }
 
-  if (relativeElemVol < 1e-3) {
+  if (relativeElemVol < 1e-6) {
     if (geoWarn_) {
       WARN("Rejecting ncElem due to a relative volume of " << relativeElemVol
           << std::endl

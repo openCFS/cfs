@@ -451,6 +451,15 @@ namespace CoupledField
   void Grid::MoveNcInterfaces() {
     StdVector< shared_ptr<BaseNcInterface> >::iterator it = ncInterfaces_.Begin(),
         itEnd = ncInterfaces_.End();
+
+    //Here some special things need to be done
+    //basically this code is very experimental and may fail in many
+    //situations. anyhow, we first remove the NCInterface nodes and update
+    //in a second step
+    for ( ; it != itEnd; ++it) {
+      (*it)->ResetInterface();
+    }
+    it = ncInterfaces_.Begin();
     for ( ; it != itEnd; ++it) {
       (*it)->UpdateInterface();
     }

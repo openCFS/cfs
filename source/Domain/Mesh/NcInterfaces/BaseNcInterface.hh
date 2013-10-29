@@ -40,6 +40,8 @@ class BaseNcInterface {
     
     virtual bool NeedsUpdate() const = 0;
     
+    virtual void ResetInterface() = 0;
+
     virtual void UpdateInterface() = 0;
 
     void RegisterIntegrator(BiLinFormContext* context) {

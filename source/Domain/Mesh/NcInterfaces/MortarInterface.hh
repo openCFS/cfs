@@ -44,6 +44,8 @@ class MortarInterface : public BaseNcInterface {
     
     const std::string& GetCoordSys() const { return coordSysId_; }
 
+    void ResetInterface();
+
     void UpdateInterface();
     
   protected:
@@ -169,6 +171,8 @@ class MortarInterface : public BaseNcInterface {
     Double tolAbs_;
     Double tolRel_;
     RegionIdType region_;
+
+    bool isReset_;
 
 };
 

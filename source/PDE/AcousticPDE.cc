@@ -650,7 +650,10 @@ namespace CoupledField{
         DefineMortarCoupling(formulation_, *ncIt);
         break;
       case NC_NITSCHE:
-        DefineNitscheCoupling(formulation_, *ncIt);
+        if(dim_ == 2)
+          DefineNitscheCoupling<2,1>(formulation_, *ncIt );
+        else
+          DefineNitscheCoupling<3,1>(formulation_, *ncIt );
         break;
       default:
         EXCEPTION("Unknown type of ncInterface");
