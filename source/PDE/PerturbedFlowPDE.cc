@@ -333,6 +333,10 @@ namespace CoupledField {
         // Get result info object for flow
         shared_ptr<ResultInfo> flowInfo;
         flowInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY);
+        // Read coefficient flow coefficient function for this region
+        bool coefUpdateGeo = false;
+        PtrCoefFct regionFlow;
+        std::set<UInt> definedDofs;
         
         //Add the region information
         PtrParamNode flowNode = 
@@ -340,28 +344,35 @@ namespace CoupledField {
                                               "name",
                                               flowId.c_str());
         
-        // Read coefficient flow coefficient function for this region
-        bool coefUpdateGeo = false;
-        PtrCoefFct regionFlow;
-        std::set<UInt> definedDofs;
-        ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames,
-                             flowInfo->entryType, isComplex_, regionFlow,
-                             definedDofs, coefUpdateGeo );
-        meanFlowCoef_->AddRegion( actRegion, regionFlow );
+        bool meanFlowScatteredData = flowNode->Has("scatteredData");
 
-        std::stringstream mysstr;
-        // mysstr << "mean_flow/laminar/laminar_IPD6_" << flowId << ".csv";
-        mysstr << "mean_flow/STARCCM_CSVProfile_CFS_COMSOL_Points/VelocityProfile_"
-               << flowId << ".csv";
+        if(meanFlowScatteredData)
+        {
+          PtrParamNode scatteredDataNode = flowNode->Get("scatteredData");
 
-        // VelocityProfile_
-        // mysstr << "/local/strieben/sims/Promass_DN250/CFX/Calc/" << flowId << "_4th.csv";
+          if( dim_ == 2 ) {
+            meanFlowCoefScattered_.reset(
+              new CoefFunctionScatteredData<Complex, 2>(scatteredDataNode)
+              );
+          } else {
+            meanFlowCoefScattered_.reset(
+              new CoefFunctionScatteredData<Complex, 3>(scatteredDataNode)
+              );
+          }
+        }
+        else 
+        {        
+          ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames,
+                               flowInfo->entryType, isComplex_, regionFlow,
+                               definedDofs, coefUpdateGeo );
+          meanFlowCoef_->AddRegion( actRegion, regionFlow );
+          
+          
+          meanVelFct->AddEntityList( actSDList );
+          meanVelFct->AddExternalDataSource( regionFlow,
+                                             actSDList );
+        }
         
-        meanFlowCoefScattered_.reset(new CoefFunctionScatteredData<Complex, 3>(mysstr.str()));
-
-        meanVelFct->AddEntityList( actSDList );
-        meanVelFct->AddExternalDataSource( regionFlow,
-                                           actSDList );
 
         //now create the integrators
         BiLinearForm *convectiveVv = NULL;
@@ -375,9 +386,16 @@ namespace CoupledField {
                                       density, 2.0, coefUpdateGeo );
         }
 
-        // convectiveVv->SetBCoefFunctionOpB(meanVelFct);
-        convectiveVv->SetBCoefFunctionOpB(meanFlowCoefScattered_);
-
+        if(meanFlowScatteredData)
+        {
+          convectiveVv->SetBCoefFunctionOpB(meanFlowCoefScattered_);
+        }
+        else 
+        {
+          convectiveVv->SetBCoefFunctionOpB(meanVelFct);
+        }
+        
+        
         convectiveVv->SetName("PerturbedStiffIntConvectiveVv");
 
         BiLinFormContext *convectiveContextVv = NULL;

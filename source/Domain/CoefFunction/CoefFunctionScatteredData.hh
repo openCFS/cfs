@@ -13,14 +13,19 @@
 
 #include <boost/tr1/type_traits.hpp>
 
+#include <def_use_cgal.hh>
+
+#ifdef USE_CGAL
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Orthogonal_k_neighbor_search.h>
 #include <CGAL/Search_traits.h>
 #include <list>
 #include <cmath>
+#endif
 
 #include "CoefFunction.hh"
 
+#ifdef USE_CGAL
 struct Point {
   double vec[3];
   double vel[3];
@@ -137,6 +142,7 @@ typedef CGAL::Search_traits<double, Point, const double*, Construct_coord_iterat
 typedef CGAL::Orthogonal_k_neighbor_search<Traits, Distance> K_neighbor_search;
 typedef K_neighbor_search::Tree Tree;
 
+#endif // USE_CGAL
 
 namespace CoupledField {
 
@@ -147,7 +153,7 @@ namespace CoupledField {
   public:
     
     //! Constructor
-    CoefFunctionScatteredData(const std::string& fileName);
+    CoefFunctionScatteredData(PtrParamNode& scatteredDataNode);
     //! Destructor
     virtual ~CoefFunctionScatteredData(){;}
     
@@ -158,9 +164,10 @@ namespace CoupledField {
     
   protected:
     std::vector< std::vector<double> > scatteredData_;
-    UInt counter_;
 
+#ifdef USE_CGAL
     boost::shared_ptr<Tree> searchTree_;
+#endif
   };
 }
 

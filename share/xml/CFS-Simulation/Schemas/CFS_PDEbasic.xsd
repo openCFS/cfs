@@ -196,6 +196,29 @@
 	</xsd:complexContent>
   </xsd:complexType>
 	
+  <!-- ******************************************************************** -->
+  <!--   Definition of scattered data on point clouds (measured, CSV, etc.) -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ScatteredData">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">  
+        <xsd:sequence>
+            <xsd:element name="fileName" minOccurs="1" maxOccurs="1" type="xsd:token"/>
+            <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="dof" type="xsd:token" use="required"/>
+              <xsd:attribute name="coordCol" type="xsd:nonNegativeInteger" use="required"/>
+              <xsd:attribute name="valCol" type="xsd:nonNegativeInteger" use="required"/>
+              <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+            </xsd:complexType>  
+          </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="quantity" use="required"/>
+        <xsd:attribute name="format" use="optional" default="csv"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>  
+  
 
   <!-- ******************************************************************* -->
   <!--   Definition of standard types for BCs and RHS values               -->
@@ -350,6 +373,11 @@
           <!--  D) External HDF5 file      -->
           <!-- =========================== -->
           <xsd:element name="externalSimulation" maxOccurs="1" type="DT_ExternalSimulation"/>
+
+          <!-- =========================== -->
+          <!--  E) Scattered data from CSV -->
+          <!-- =========================== -->
+          <xsd:element name="scatteredData" maxOccurs="1" type="DT_ScatteredData"/>          
           
         </xsd:choice>
       </xsd:extension>

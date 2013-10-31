@@ -60,6 +60,7 @@ namespace CFSTool {
             const PtrParamNode& info ) :
     param_(param),
     info_(info),
+    writeOutputFile_ (false),
     sensorNodeName_("s_1"),
     integOrder_(1),
     dirCoupled_(false),
@@ -83,19 +84,23 @@ namespace CFSTool {
 
     if(f4 == "") 
     {
-      if(f3 == "") 
+      if(f3 != "") 
       {
-        writeOutputFile_ = false;
-      } 
-      else 
-      {
-        outFile_ = f3;
-        writeOutputFile_ = true;
+        meanFlowFile_ = f3;
+        outFile_ = "";
+
+        if(wvtNode->Has("V")) {
+          PtrParamNode vNode = wvtNode->Get("V");
+        
+          if(vNode->Has("scatteredData")) {
+            meanFlowFile_ = "";
+            outFile_ = f3;
+            writeOutputFile_ = true;
+          }
+        }
       }
-      
-      meanFlowFile_ = "";
     }
-    else 
+    else
     {
       meanFlowFile_ = f3;
 
@@ -113,13 +118,13 @@ namespace CFSTool {
       if(wvtNode->Has("V")) {
         PtrParamNode vNode = wvtNode->Get("V");
         
-        if(vNode->Has("csv")) {
+        if(vNode->Has("scatteredData")) {
           meanFlowType_ = MF_SCATTERED_DATA;
         }
         else 
         {
           EXCEPTION("If no mean flow file is provided, "
-                    << "then {\"wvt\":{\"V\":{\"csv\":\"file\"}}} is required!");
+                    << "then {\"wvt\":{\"V\":{\"scatteredData\":{...}}}} is required!");
         }        
       }
       else 
@@ -207,16 +212,15 @@ namespace CFSTool {
       if(wvtNode->Has("V")) {
         PtrParamNode vNode = wvtNode->Get("V");
         
-        if(vNode->Has("csv")) {
-          PtrParamNode csvNode = vNode->Get("csv");
-          std::string csvFile = csvNode->As<std::string>();
+        if(vNode->Has("scatteredData")) {
+          PtrParamNode scatteredDataNode = vNode->Get("scatteredData");
 
           std::cout << "Reading " << meanFlowDataType.ToString(meanFlowType_)
-                    << " from '" << csvFile << "'"
+                    << " from '" << scatteredDataNode->Get("fileName")->As<std::string>() << "'"
                     << "..." << std::endl;
           
           meanFlowCoefScattered_.reset(new CoefFunctionScatteredData<Double, 3>(
-                                         csvFile)
+                                         scatteredDataNode)
             );
         }
       }
