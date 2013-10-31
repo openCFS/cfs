@@ -89,9 +89,9 @@ namespace CoupledField{
 
     for(UInt i=0, n=scatteredData_.size(); i<n; i++)
     {      
-      points.push_back(Point(scatteredData_[i][4],
+      points.push_back(Point(scatteredData_[i][3],
+                             scatteredData_[i][4],
                              scatteredData_[i][5],
-                             scatteredData_[i][6],
                              scatteredData_[i][0],
                              scatteredData_[i][1],
                              scatteredData_[i][2]));

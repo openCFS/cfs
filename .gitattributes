@@ -1801,6 +1801,7 @@ source/cfstool/ParamsInit.cc -text
 source/cfstool/ParamsInit.hh -text
 source/cfstool/WVT.cc -text
 source/cfstool/WVT.hh -text
+source/cfstool/WVT.md -text
 source/cfstool/cfstool.cc svneol=native#text/plain
 source/main/CFS.cc svneol=native#text/x-c%2B%2Bsrc
 source/main/CFS.hh -text

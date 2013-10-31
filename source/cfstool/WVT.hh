@@ -7,6 +7,8 @@
 
 #include <string>
 
+#include <boost/filesystem/fstream.hpp>
+
 #include "General/Environment.hh"
 #include "DataInOut/SimInput.hh"
 
@@ -25,14 +27,29 @@ namespace CFSTool
     WVT( const PtrParamNode& param,
          const PtrParamNode& info );
 
-    ~WVT() {};
+    ~WVT();
     
     typedef enum {PRIMARY_MODE, SECONDARY_MODE, MEAN_FLOW} InputFileType;
-
     static Enum<InputFileType> inputFileType;
+
+    typedef enum {MF_GRID_DATA, MF_ANALYTIC_EXP, MF_SCATTERED_DATA} MeanFlowDataType;
+    static Enum<MeanFlowDataType> meanFlowDataType;
+
+    void PostProcess();
     
   private:
 
+    void OpenIntPointsFile();
+    void CloseIntPointsFile();
+
+    static void WriteResultsToCSV(Double freq,
+                                  Complex u_p_prime, 
+                                  Double deltaPhiVol,
+                                  Double deltaPhiSurf,
+                                  Double vol,
+                                  Double meanVel,
+                                  Double meanVelCorrectionFactor);
+  private:
     const PtrParamNode& param_;
     const PtrParamNode& info_;
 
@@ -53,6 +70,15 @@ namespace CFSTool
         
     bool writeOutputFile_;
 
+    //! Name of named sensor node inside the primary mode HDF5 file. The harmonic
+    //! mechanic displacement value is read for this named node either from the
+    //! history branch or, if history for this node is not existant, the value
+    //! is read from the mesh result branch.
+    std::string sensorNodeName_;
+
+    //! Integration order
+    UInt integOrder_;
+
     //! Do primary and secondary mode input files come from a direct coupled FSI simulation?
     bool dirCoupled_;
 
@@ -61,7 +87,28 @@ namespace CFSTool
     typedef std::map< InputFileType, shared_ptr<SimInput> > InputsType;
     InputsType inputs_;
 
-    std::vector<std::vector<Double> > csvData_;
+    //! What kind of mean flow data do we use? Data given on grid points either from
+    //! HDF5 file or given as analytical expression. Or do we use data on a point cloud
+    //! read from a CSV file and provided through the CoefFunctionScatteredData.
+    MeanFlowDataType meanFlowType_;
+
+    //! CoefFunction which holds mean flow data as point cloud and interpolates
+    //! the data to the integration points using neareast neighbor mapping.
+    shared_ptr<CoefFunction> meanFlowCoefScattered_;
+
+    //! File in legacy VTK format for writing out a point cloud of
+    //! volume integration points. These points can then be read into a CFD code
+    //! for evaluation of the mean velocity. The file can also be read into
+    //! ParaView for visualization.
+    boost::filesystem::ofstream intPointsFile_;
+
+    //! Shall we write the integration point file?
+    bool writeIntPointsFile_;
+
+    std::string intPointsFileName_;
+
+    long intPointsFilePos_;
+    long numIntPoints_;
   };
 
 }

@@ -349,14 +349,15 @@ namespace CoupledField {
                              definedDofs, coefUpdateGeo );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
 
-        // std::stringstream mysstr;
+        std::stringstream mysstr;
         // mysstr << "mean_flow/laminar/laminar_IPD6_" << flowId << ".csv";
-          // STARCCM_CSVProfile_CFS_COMSOL_Points/VelocityProfile_"
-               
+        mysstr << "mean_flow/STARCCM_CSVProfile_CFS_COMSOL_Points/VelocityProfile_"
+               << flowId << ".csv";
+
         // VelocityProfile_
         // mysstr << "/local/strieben/sims/Promass_DN250/CFX/Calc/" << flowId << "_4th.csv";
         
-        // meanFlowCoefScattered_.reset(new CoefFunctionScatteredData<Complex, 3>(mysstr.str()));
+        meanFlowCoefScattered_.reset(new CoefFunctionScatteredData<Complex, 3>(mysstr.str()));
 
         meanVelFct->AddEntityList( actSDList );
         meanVelFct->AddExternalDataSource( regionFlow,
@@ -374,8 +375,8 @@ namespace CoupledField {
                                       density, 2.0, coefUpdateGeo );
         }
 
-        convectiveVv->SetBCoefFunctionOpB(meanVelFct);
-        // convectiveVv->SetBCoefFunctionOpB(meanFlowCoefScattered_);
+        // convectiveVv->SetBCoefFunctionOpB(meanVelFct);
+        convectiveVv->SetBCoefFunctionOpB(meanFlowCoefScattered_);
 
         convectiveVv->SetName("PerturbedStiffIntConvectiveVv");
 
