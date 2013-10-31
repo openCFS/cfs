@@ -60,6 +60,8 @@ namespace CFSTool
     
     typedef std::map< InputFileType, shared_ptr<SimInput> > InputsType;
     InputsType inputs_;
+
+    std::vector<std::vector<Double> > csvData_;
   };
 
 }

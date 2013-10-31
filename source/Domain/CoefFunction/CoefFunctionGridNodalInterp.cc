@@ -611,6 +611,22 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdV
     scrRegIds.insert(curId);
   }
 
+  if(!this->stdInterpReady_){
+    std::cout << "Preparing for interpolation of external data...";
+    std::cout.flush();
+    //====================================================
+    // Create Data structures for easy solution access
+    //====================================================
+    //in this special class we start with the equation mapping right
+    //after the first call to get entities as this method should not be called twice!
+    this->MapEqns();
+    //read in the first solution
+    this->ReadSolution(this->stepValueMap_.begin()->first,this->solVec_);
+    //    this->PrepareForStdInterp(this->myConfigNode_);
+    std::cout << "Done" << std::endl;
+    std::cout.flush();
+  }
+
   this->srcGrid_->GetElemsAtGlobalCoords( globCoord,
                                           localCoords,
                                           foundElements,

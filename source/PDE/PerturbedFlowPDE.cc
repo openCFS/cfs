@@ -9,7 +9,15 @@
 #include <string>
 #include <set>
 
+#ifdef __MINGW64__
+#include <intrin.h>
+#endif
+
+#include "Domain/CoefFunction/CoefFunctionScatteredData.hh"
+
 #include "PerturbedFlowPDE.hh"
+
+
 
 #include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -21,6 +29,7 @@
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionStabParams.hh"
 #include "Domain/CoefFunction/CoefFunctionMeanFlowConvection.hh"
+
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
 #include "Driver/Assemble.hh"
@@ -202,7 +211,9 @@ namespace CoupledField {
       // --------------------------
       // We hardcode the Taylor-Hood spaces for the moment
       velSpace->SetRegionApproximation(actRegion, "velPolyId", "velIntegId");
+      //velSpace->SetRegionApproximation(actRegion, "default", "default");
       meanVelSpace->SetRegionApproximation(actRegion, "velPolyId", "velIntegId");
+      // meanVelSpace->SetRegionApproximation(actRegion, "default", "default");
       presSpace->SetRegionApproximation(actRegion, "presPolyId", "presIntegId");
 
       PtrCoefFct density = materials_[actRegion]->GetScalCoefFnc(
@@ -334,9 +345,18 @@ namespace CoupledField {
         PtrCoefFct regionFlow;
         std::set<UInt> definedDofs;
         ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames,
-                             flowInfo->entryType, false, regionFlow,
+                             flowInfo->entryType, isComplex_, regionFlow,
                              definedDofs, coefUpdateGeo );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
+
+        // std::stringstream mysstr;
+        // mysstr << "mean_flow/laminar/laminar_IPD6_" << flowId << ".csv";
+          // STARCCM_CSVProfile_CFS_COMSOL_Points/VelocityProfile_"
+               
+        // VelocityProfile_
+        // mysstr << "/local/strieben/sims/Promass_DN250/CFX/Calc/" << flowId << "_4th.csv";
+        
+        // meanFlowCoefScattered_.reset(new CoefFunctionScatteredData<Complex, 3>(mysstr.str()));
 
         meanVelFct->AddEntityList( actSDList );
         meanVelFct->AddExternalDataSource( regionFlow,
@@ -345,16 +365,17 @@ namespace CoupledField {
         //now create the integrators
         BiLinearForm *convectiveVv = NULL;
         if( dim_ == 2 ) {
-          convectiveVv = new ABInt<>( new IdentityOperator<FeH1,2,2>(),
+          convectiveVv = new ABInt<Complex>( new IdentityOperator<FeH1,2,2>(),
                                       new ConvectiveOperator<FeH1,2,2>(),
-                                      density, 1.0, coefUpdateGeo );
+                                      density, 2.0, coefUpdateGeo );
         } else {
-          convectiveVv = new ABInt<>( new IdentityOperator<FeH1,3,3>(),
+          convectiveVv = new ABInt<Complex>( new IdentityOperator<FeH1,3,3>(),
                                       new ConvectiveOperator<FeH1,3,3>(),
-                                      density, 1.0, coefUpdateGeo );
+                                      density, 2.0, coefUpdateGeo );
         }
 
-        convectiveVv->SetBCoefFunctionOpB(meanFlowCoef_);
+        convectiveVv->SetBCoefFunctionOpB(meanVelFct);
+        // convectiveVv->SetBCoefFunctionOpB(meanFlowCoefScattered_);
 
         convectiveVv->SetName("PerturbedStiffIntConvectiveVv");
 
@@ -366,7 +387,7 @@ namespace CoupledField {
                                              feFunctions_[FLUIDMECH_VELOCITY] );
         assemble_->AddBiLinearForm( convectiveContextVv );
 
-#if 1
+#if 0
         // Second convective term. Derivative tensor of mean flow field is a
         // factor computed by a CoefFunction.
         BaseBOperator* bOpGrad;

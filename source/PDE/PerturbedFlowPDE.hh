@@ -102,6 +102,7 @@ namespace CoupledField
     //! is in general different for each region and will most likely
     //! not be given in a close form, it is described by a CoefFunctionMulti.
     shared_ptr<CoefFunctionMulti> meanFlowCoef_;
+    shared_ptr<CoefFunction> meanFlowCoefScattered_;
     shared_ptr<BaseFeFunction> meanFlowFeFct_;
     shared_ptr<FeSpace> meanFlowFeSpace_;
 

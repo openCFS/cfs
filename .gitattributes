@@ -1310,6 +1310,8 @@ source/Domain/CoefFunction/CoefFunctionMulti.cc -text
 source/Domain/CoefFunction/CoefFunctionMulti.hh -text
 source/Domain/CoefFunction/CoefFunctionPML.cc -text
 source/Domain/CoefFunction/CoefFunctionPML.hh -text
+source/Domain/CoefFunction/CoefFunctionScatteredData.cc -text
+source/Domain/CoefFunction/CoefFunctionScatteredData.hh -text
 source/Domain/CoefFunction/CoefFunctionStabParams.cc -text
 source/Domain/CoefFunction/CoefFunctionStabParams.hh -text
 source/Domain/CoefFunction/CoefFunctionSurf.cc -text

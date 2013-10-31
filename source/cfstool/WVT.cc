@@ -5,7 +5,7 @@
 #include <def_use_hdf5.hh>
 
 #include <boost/filesystem/fstream.hpp>
-
+#include <boost/tokenizer.hpp>
 #include "DataInOut/SimOutput.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "Domain/CoordinateSystems/DefaultCoordSystem.hh"
@@ -29,6 +29,64 @@ using namespace CoupledField;
 
 namespace CFSTool {
 
+  template<class T>
+  class CSVReader
+  {
+  public:
+    CSVReader(std::istream& myfile, UInt skipLines) :
+      myfile_(myfile),
+      skipLines_(skipLines)
+    {
+    }
+    
+    ~CSVReader() 
+    {
+    }
+
+  private:
+    std::istream& myfile_;
+    UInt skipLines_;
+
+  public:
+
+    std::istream& ReadCSV(std::vector<std::vector<T> >& data)
+    {
+      typedef boost::tokenizer<boost::escaped_list_separator<char> > Tokenizer;
+      std::string row;
+      UInt line = 0;
+      
+      while(std::getline(myfile_, row))
+      {
+        line++;
+
+        if(line <= skipLines_) continue;
+        
+        Tokenizer tokens(row, boost::escaped_list_separator<char>('\\', ',', '\"'));
+        data.push_back(std::vector<T>());
+        data.rbegin()->resize(std::distance(tokens.begin(), tokens.end()));
+        std::vector<T>& vec = (*data.rbegin());
+        
+        Tokenizer::iterator tkIt(tokens.begin());
+
+        for (UInt i=0; tkIt!=tokens.end(); ++tkIt, i++) 
+        {
+          T value;
+          std::stringstream sstr;
+          
+          sstr << (*tkIt);
+          sstr >> value;
+          
+          vec[i] = value;
+          
+          //          data.rbegin()->push_back(value);
+        }
+      }
+
+      return myfile_;
+    }
+  };
+  
+    
   // Definition of WVT input file type mappings
   static EnumTuple inputFileTypeTuples[] = {
     EnumTuple(WVT::PRIMARY_MODE,   "primary mode"), 
@@ -56,12 +114,27 @@ namespace CFSTool {
 
     writeOutputFile_ = outFile_ != "";
 
+    PtrParamNode wvtNode = param->Get("wvt");
+
     bool printGridOnly = false;
 
     // Linear correction  factor for scaling  the actual mean  flow integrated
     // over the fluid domain to the desired mean flow.
     Double correct = 0.0;
-       
+
+    std::ofstream intPointsFile("intpoints.vtk", std::ofstream::out | std::ofstream::trunc);
+
+    intPointsFile << "# vtk DataFile Version 2.0" << std::endl
+                  << "Integration points from CFS++ for STAR-CCM+ Arbitrary Probe" << std::endl
+                  << "ASCII" << std::endl
+                  << "DATASET POLYDATA" << std::endl;
+    long pos = intPointsFile.tellp();
+    long numIntPoints = 0;
+    intPointsFile << "POINTS"
+                  << "                                     "
+                  << "                                     " << std::endl;
+    intPointsFile.setf( std::ios::fixed, std::ios::floatfield );
+    intPointsFile.precision(12);
 
     inputs_[PRIMARY_MODE] = GetInputReader( priModeFile_, param_, info_ );
     inputs_[SECONDARY_MODE] = GetInputReader( secModeFile_, param_, info_ );
@@ -69,6 +142,26 @@ namespace CFSTool {
 
     shared_ptr<MathParser> mp(new MathParser());       
 
+
+    boost::filesystem::ifstream* in = NULL;
+    if(wvtNode->Has("V")) {
+      PtrParamNode vNode = wvtNode->Get("V");
+      
+      if(vNode->Has("csv")) {
+        PtrParamNode csvNode = vNode->Get("csv");
+        
+        in = new boost::filesystem::ifstream(csvNode->As<std::string>());
+      }
+    }
+
+    if(in) 
+    {
+      CSVReader<Double> csvReader((*in), 1);    
+      csvReader.ReadCSV(csvData_);
+      in->close();
+      in = NULL;
+    }
+    
     // check capabilities of input class
     InputsType::iterator iit, iend;
     iit = inputs_.begin();
@@ -389,7 +482,7 @@ namespace CFSTool {
          }
 
 
-         // iterate over all regions
+         // iterate over all regions of primary and secondary modes
          StdVector< shared_ptr<EntityList> > regions, resRegions;
          inputs_[PRIMARY_MODE]->GetResultEntities( actMsStep, infos[iRes],
                                         resRegions, false );
@@ -426,6 +519,24 @@ namespace CFSTool {
            surfMap[cplRegionName] = true;
          }           
 
+
+
+         // iterate over all regions of mean flow grid
+         StdVector< shared_ptr<EntityList> > meanFlowRegions;
+         inputs_[MEAN_FLOW]->GetResultEntities( actMsStep, infos[iRes],
+                                                resRegions, false );
+
+         for( UInt iRegion = 0, nReg = resRegions.GetSize(); iRegion < nReg; iRegion++ ) {
+           std::string resRegionName = resRegions[iRegion]->GetName();
+           
+           //           if(resRegionName == "fluid__________________________________________________________________________") 
+           //           {
+             meanFlowRegions.Push_back(resRegions[iRegion]);
+             //           }
+         }           
+
+
+
          for( UInt iRegion = 0, nReg = regions.GetSize(); iRegion < nReg; iRegion++ ) {
            // generate new result object and add it to output writer
            shared_ptr<BaseResult > inResult1, inResult2, inResult3, outResult,
@@ -458,7 +569,7 @@ namespace CFSTool {
            
            inResult1->SetEntityList( regions[iRegion] );
            inResult2->SetEntityList( regions[iRegion] );
-           inResult3->SetEntityList( regions[iRegion] );
+           inResult3->SetEntityList( meanFlowRegions[iRegion] );
            
            // Since derivatives need to be taken the output entities need to be elements
            Enum<RegionIdType> regionEnum = ptGrid1->GetRegion();
@@ -613,6 +724,10 @@ namespace CFSTool {
            std::string regionName = inResults1[iRes]->GetEntityList()->GetName();
            bool isSurf = surfMap[regionName];
 
+           if(isSurf)
+             continue;
+           
+
            std::cout << "\n\t-- Computing " << (isSurf ? "surface" : "volume") << " weight vector for " <<
              inResults1[iRes]->GetResultInfo()->resultName << " on " 
                      << regionName << " --\n";
@@ -630,6 +745,8 @@ namespace CFSTool {
            
            
            std::set<std::string> volRegionNames;
+           std::set<std::string> meanFlowVolRegionNames;
+           meanFlowVolRegionNames.insert( "fluid__________________________________________________________________________" );
            std::set<RegionIdType> volRegions;
            // volRegionNames.insert(inResults1[iRes]->GetEntityList()->GetName());
            std::map<std::string, Double>::iterator it, end;
@@ -689,9 +806,9 @@ namespace CFSTool {
                                                                              volRegionNames);
 
              shared_ptr<BaseFeFunction> VFeFunc = inputs_[MEAN_FLOW]->GetFeFunction<Double>( actMsStep,
-                                                                              actStepNum,
-                                                                              inResults_mean_flow[iRes]->GetResultInfo()->resultType,
-                                                                              volRegionNames );
+                                                                             actStepNum,
+                                                                             inResults_mean_flow[iRes]->GetResultInfo()->resultType,
+                                                                             meanFlowVolRegionNames );
 
 
              shared_ptr<BaseBOperator> gradOp;
@@ -718,8 +835,7 @@ namespace CFSTool {
              Double u_p_imag = 0;
              Vector<Complex> W_sum(3);
              W_sum.Init();
-             
-             PtrParamNode wvtNode = param->Get("wvt");
+
              if(dirCoupled_) 
              {
                u_p_ *= Complex(0,1);
@@ -762,6 +878,11 @@ namespace CFSTool {
              realVal[1] = "0";
              realVal[2] = "0";
              Double meanVel = 1;
+             // FeFunction pointer for analytical V-field.
+             FeFunction<Double>* feFctVPtr = NULL;
+             PtrCoefFct coefFctV;
+             shared_ptr<DefaultCoordSystem> coordSys( new DefaultCoordSystem(ptGrid1) );
+
              if(wvtNode->Has("V")) {
                PtrParamNode vNode = wvtNode->Get("V");
                
@@ -774,26 +895,37 @@ namespace CFSTool {
                  
                  // realVal[2] = "1-(sqrt(x^2+y^2)/13.15e-3)^10";
                  realVal[2] = profileNode->As<std::string>();
+
+                 coefFctV = CoefFunction::Generate(mp.get(), Global::REAL, realVal);
+                 coefFctV->SetCoordinateSystem(coordSys.get());
+
+                 feFctVPtr = new FeFunction<Double>(mp.get());
+
                }
              }
 
-             PtrCoefFct coefV = CoefFunction::Generate(mp.get(), Global::REAL, realVal);
-             shared_ptr<DefaultCoordSystem> coordSys( new DefaultCoordSystem(ptGrid1) );
-             coefV->SetCoordinateSystem(coordSys.get());
+             shared_ptr<BaseFeFunction> meanFlowFeFct;
              
-
-             FeFunction<Double>* feFctPtr = new FeFunction<Double>(mp.get());
-             shared_ptr<BaseFeFunction> feFct(feFctPtr);
-             feFct->SetFeSpace( VFeFunc->GetFeSpace() );
-             feFct->AddEntityList( inResults_mean_flow[0]->GetEntityList() );
-             feFct->SetGrid(ptGrid3);
-             feFct->SetResultInfo(inResults_mean_flow[iRes]->GetResultInfo());
-             feFct->AddExternalDataSource( coefV,
-                                           inResults_mean_flow[0]->GetEntityList() ); // <--- Hier muss unbedingt die zugehörige Volumenregion zur Oberflächenregion hinein!
-             feFct->SetFctId(PSEUDO_FCT_ID);
-             feFct->Finalize();
-             feFct->ApplyExternalData();
-
+             // If we have an analytical mean flow field, we use it. Otherwise we use
+             // the one read from the mean flow grid file.
+             if(feFctVPtr) 
+             {
+               meanFlowFeFct.reset(feFctVPtr);
+               meanFlowFeFct->SetFeSpace( VFeFunc->GetFeSpace() );
+               meanFlowFeFct->AddEntityList( inResults_mean_flow[0]->GetEntityList() );
+               meanFlowFeFct->SetGrid(ptGrid3);
+               meanFlowFeFct->SetResultInfo(inResults_mean_flow[iRes]->GetResultInfo());
+               meanFlowFeFct->AddExternalDataSource( coefFctV,
+                                             inResults_mean_flow[0]->GetEntityList() ); // <--- Hier muss unbedingt die zugehörige Volumenregion zur Oberflächenregion hinein!
+               meanFlowFeFct->SetFctId(PSEUDO_FCT_ID);
+               meanFlowFeFct->Finalize();
+               meanFlowFeFct->ApplyExternalData();
+             }
+             else
+             {
+               meanFlowFeFct = VFeFunc;
+             }
+             
              //CoupledField::PtrCoefFct&, boost::shared_ptr<CoupledField::EntityList>
              //CoupledField::PtrCoefFct, boost::shared_ptr<CoupledField::EntityList>&
            
@@ -864,9 +996,9 @@ namespace CFSTool {
 
              Double rho_0 = regionDensityMap[inResults1[iRes]->GetEntityList()->GetName()];
 
-
+#ifdef GRID_IP_MAPPING
              StdVector< Vector<Double> > globMidPointCoords;
-
+             
              for(UInt elIdx=0 ; !eIt.IsEnd(); eIt++, elIdx++ ) 
              {
                const Elem* el1 = eIt.GetElem();
@@ -890,13 +1022,21 @@ namespace CFSTool {
              StdVector< const Elem* > elems;
              std::set<RegionIdType> srcRegions;
              ptGrid2->GetElemsAtGlobalCoords(globMidPointCoords, localCoords, elems, srcRegions);
+#endif
+
+             // fluid________________________ region
+             ElemList meanFlowElems(ptGrid3);
+             meanFlowElems.SetRegion(1);
 
              eIt = outResults[iRes]->GetEntityList()->GetIterator();
-             for(UInt elIdx=0 ; !eIt.IsEnd(); eIt++, elIdx++ ) 
+             EntityIterator meanEIt = meanFlowElems.GetIterator();
+             UInt intPtIdx = 0;
+
+             for(UInt elIdx=0 ; !eIt.IsEnd(); eIt++, meanEIt++, elIdx++ ) 
              {
                const Elem* el1 = eIt.GetElem();
                const Elem* el2 = ptGrid2->GetElem(el1->elemNum);
-               const Elem* el3 = ptGrid3->GetElem(el1->elemNum);
+               const Elem* el3 = meanEIt.GetElem();
                
                // Obtain FE element from feSpace and integration scheme
                IntegOrder order;
@@ -910,11 +1050,13 @@ namespace CFSTool {
                
                StdVector<LocPoint> intPoints;
                StdVector<Double> weights;
+               order.SetIsoOrder(6);
+
                intScheme->GetIntPoints( Elem::GetShapeType(el1->type), method, order,
                                         intPoints, weights );
 
 
-               // std::cout << "Integration order " << order.GetIsoOrder() << " num. int points: " << intPoints.GetSize() << " weight: " << weights[0] << std::endl;
+               //               std::cout << "Integration order " << order.GetIsoOrder() << " num. int points: " << intPoints.GetSize() << " weight: " << weights[0] << std::endl;
 
                for( UInt i=0; i < numDofs; i++ )
                {
@@ -968,6 +1110,8 @@ namespace CFSTool {
                  // BaseFE* ptFe3 = VFeFunc->GetFeSpace()->GetFe( el3->elemNum );
                  //LocPoint lp = Elem::shapes[el1->type].midPointCoord;
                  LocPoint lp = intPoints[ip];
+                 Vector<Double> p(dim);
+                 LocPoint lp3;
 
                  if( isSurf ) 
                  {
@@ -985,7 +1129,7 @@ namespace CFSTool {
                    ptFe2 = secFeFct->GetFeSpace()->GetFe( lpm2->ptEl->elemNum );
                    
                    el3 = lpm3->ptEl;
-                   ptFe3 = feFct->GetFeSpace()->GetFe( lpm3->ptEl->elemNum );
+                   ptFe3 = meanFlowFeFct->GetFeSpace()->GetFe( lpm3->ptEl->elemNum );
                  } else 
                  {
                    lpm1.reset(new LocPointMapped());
@@ -993,17 +1137,41 @@ namespace CFSTool {
                    lpm2.reset(new LocPointMapped());
                    lpm2->Set( lp, esm2, 0.0 );
                    lpm3.reset(new LocPointMapped());
-                   lpm3->Set( lp, esm3, 0.0 );
 
-                   ptFe3 = feFct->GetFeSpace()->GetFe( lpm3->ptEl->elemNum );
+
+                   
+                   /*
+                   esm1->Local2Global(p, lp);
+
+                   Vector<Double> locPoint3;
+                   try 
+                   {
+                     esm3->Global2Local(locPoint3, p);
+                   } catch (Exception& ex) 
+                   {
+                     locPoint3 = lp.coord;
+                     locPoint3.Init();
+                   }                   
+                   
+                   LocPoint lp3_2(locPoint3);
+                   lp3 = lp3_2;
+                   */
+                   
+                   LocPoint lp3 = Elem::GetShape( Elem::GetShapeType( el3->type) ).midPointCoord;
+
+                   lpm3->Set( lp3, esm3, 0.0 );
+
+                   ptFe3 = meanFlowFeFct->GetFeSpace()->GetFe( lpm3->ptEl->elemNum );
                  }
                
                
 
                  // const Elem* el2_new = elems[elIdx];
                  //               std::cout << "el2: " << el2->elemNum <<  " el2_new: " << el2_new << " " << std::endl;
-                 Vector<Double> p(dim);
                  esm1->Local2Global(p, lp);
+
+                 intPointsFile << p[0] << " " << p[1] << " " << p[2] << std::endl;
+                 numIntPoints++;
 
                  // Matrix<Double> bMat1, bMat2, bMat3;
                  Vector<Complex> eSol1, eSol2;
@@ -1022,25 +1190,31 @@ namespace CFSTool {
                  //curlOp->CalcOpMat( bMat3, *lpm1, ptFe1 );
                  // gradOp->CalcOpMat( bMat3, *lpm1, ptFe1 );
                  
+                 // Get primary and secondary perturbed velocity fields.
                  priFeFct->GetVector( u1, *lpm1 );
                  secFeFct->GetVector( u2, *lpm2 );
-                 // Get V from HDF5 file
-                 // VFeFunc->GetVector( V, *lpm3 );
-                 // Get analytical V
-                 // coefV->GetVector(V, *lpm1);
-                 feFct->GetVector(V, *lpm3);
+                 // Get mean velocity V either from file or from analytical expression.
+                 meanFlowFeFct->GetVector(V, *lpm3);
+                 /*                 
+                 std::cout << csvData_[elIdx][0] << " " << (el1->elemNum - 34655) <<  " " << elIdx << std::endl;
+                 V[0] = csvData_[elIdx][8];
+                 V[1] = csvData_[elIdx][9];
+                 V[2] = csvData_[elIdx][10];
 
-#if 0
-                 Double radius = sqrt(p[0]*p[0] + p[1]*p[1]);
-                 Double R = 0.01315;
-                 V[0] = 0;
-                 V[1] = 0;
-                 V[2] = 1-(radius*radius/(R*R));
-#endif
+                 V[0] = csvData_[elIdx][0];
+                 V[1] = (el1->elemNum - 34655) ;
+                 V[2] = elIdx;
+                 std::cout << csvData_[elIdx][8] << " " << csvData_[elIdx][9] <<  " " << csvData_[elIdx][10] << std::endl;
+                 */
 
+                 //                 V[0] = csvData_[intPtIdx][0];
+                 //                 V[1] = csvData_[intPtIdx][1];
+                 //                 V[2] = csvData_[intPtIdx][2];
+                 intPtIdx++;
+                 
                  dynamic_cast<FeFunction<Complex>*>(priFeFct.get())->GetElemSolution( eSol1, el1 );
                  dynamic_cast<FeFunction<Complex>*>(secFeFct.get())->GetElemSolution( eSol2, el2 );
-                 dynamic_cast<FeFunction<Double>*>(feFct.get())->GetElemSolution( eSol3, el3 );
+                 dynamic_cast<FeFunction<Double>*>(meanFlowFeFct.get())->GetElemSolution( eSol3, el3 );
                  
                  StdVector< Vector<Complex> > u1Derivs(numDofs), u2Derivs(numDofs);
                  StdVector< Vector<Double> > VDerivs(numDofs);
@@ -1065,7 +1239,9 @@ namespace CFSTool {
                    
                    gradOp->ApplyOp( u1Derivs[dof], *lpm1, ptFe1, eSol1Comp[dof] );
                    gradOp->ApplyOp( u2Derivs[dof], *lpm2, ptFe2, eSol2Comp[dof] );
-                   gradOp->ApplyOp( VDerivs[dof], *lpm3, ptFe3, eSol3Comp[dof] );
+                   // gradOp->ApplyOp( VDerivs[dof], *lpm3, ptFe3, eSol3Comp[dof] );
+                   VDerivs[dof].Resize(3);
+                   VDerivs[dof].Init();
                  }
                  
                  curlOp->ApplyOp( curlV, *lpm3, ptFe3, eSol3 );
@@ -1178,7 +1354,7 @@ namespace CFSTool {
                  }
                  else
                  {
-                   volume = (*lpm1).jacDet * weights[ip];
+                   volume = (*lpm3).jacDet * weights[ip];
                  }
                  
                  elementVolume += volume;
@@ -1193,7 +1369,7 @@ namespace CFSTool {
                      outVec[elIdx*numDofs+i] += X[i] * volume;
                      
                      // Prepare mean velocity
-                     outVec2[elIdx*numDofs+i] += V[i] * volume;
+                     outVec2[elIdx*numDofs+i] += Complex(V[i], 0) * volume;
                      
                      // Prepare weight vector density result
                      outVec3[elIdx] += X[i]*curlV[i] * volume;
@@ -1224,15 +1400,15 @@ namespace CFSTool {
                      // Prepare mean velocity
                      //                   V[i] *= meanVel;                   
                      
-                     durchfluss += V[i] * volume;
+                     durchfluss += V[2] * volume;
                      
-                     outVec2[elIdx*numDofs+i] += V[i] * volume;
+                     outVec2[elIdx*numDofs+i] += Complex(V[i], 0) * volume;
                      
                      // Prepare weight vector density result
                      outVec3[elIdx] += W[i]*V[i]*volume;
                      
                      f[i] = - rho_0 * (
-                       u1Derivs[i][0] * V[0] + u1Derivs[i][1] * V[1] + u1Derivs[i][2] * V[2]// C1
+                       u1Derivs[i][0] * V[0] + u1Derivs[i][1] * V[1] + u1Derivs[i][2] * V[2] // + // C1
                        //                       VDerivs[i][0] * u1[0] + VDerivs[i][1] * u1[1] + VDerivs[i][2] * u1[2] // C2
                      );
                      
@@ -1279,9 +1455,11 @@ namespace CFSTool {
              
              std::cout << "\nProfilkorrekturfaktor " << correct << std::endl;
              std::cout << "Volumen " << vol << std::endl;
-             outVec2 *= correct;
+             std::cout << "Durchfluss " << (durchfluss/3) << std::endl;
+             std::cout << "mittlere Geschwindigkeit " << (durchfluss/3/vol) << std::endl;
+             //             outVec2 *= correct;
              
-             deltaPhi *= correct;
+             // deltaPhi *= correct;
              
              boost::filesystem::ofstream csv;
 
@@ -1345,6 +1523,12 @@ namespace CFSTool {
        }
        delete ptGrid1;
        delete ptGrid2;
+
+       std::stringstream sstr;
+       sstr << "POINTS " << numIntPoints << " float";
+       intPointsFile.seekp(pos);
+       intPointsFile.write(sstr.str().c_str(), sstr.str().length());
+       intPointsFile.close();
        
   } //WVT
 
