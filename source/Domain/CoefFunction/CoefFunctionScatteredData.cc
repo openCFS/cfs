@@ -1,4 +1,5 @@
 #include <boost/filesystem/fstream.hpp>
+#include "boost/filesystem/operations.hpp"
 #include <boost/tokenizer.hpp>
 
 #ifdef __MINGW64__
@@ -69,25 +70,27 @@ namespace CoupledField{
 
   template<typename T, UInt DOFS>
   CoefFunctionScatteredData<T,DOFS>::CoefFunctionScatteredData(PtrParamNode& scatteredDataNode)
-    : CoefFunction()
+    : CoefFunction(),
+      csvFileName_(""),
+      factor_(1.0)
   {
-    std::string fn = scatteredDataNode->Get("fileName")->As<std::string>();
+    dimType_ = VECTOR;
+
+    csvFileName_ = scatteredDataNode->Get("fileName")->As<std::string>();
           
-    std::map<UInt, UInt> dof2CoordColumn;
-    std::map<UInt, UInt> dof2ValueColumn;
     ParamNodeList coordList;
     coordList = scatteredDataNode->Get("coordinates")->GetList("comp");
     for(UInt i=0, n=coordList.GetSize(); i<n; i++) {
       std::string dof = coordList[i]->Get("dof")->As<std::string>();
       
       if( dof == "x" ) {
-        dof2CoordColumn[0] = coordList[i]->Get("col")->As<UInt>();
+        dof2CoordColumn_[0] = coordList[i]->Get("col")->As<UInt>();
       }
       if( dof == "y" ) {
-        dof2CoordColumn[1] = coordList[i]->Get("col")->As<UInt>();
+        dof2CoordColumn_[1] = coordList[i]->Get("col")->As<UInt>();
       }
       if( dof == "z" ) {
-        dof2CoordColumn[2] = coordList[i]->Get("col")->As<UInt>();
+        dof2CoordColumn_[2] = coordList[i]->Get("col")->As<UInt>();
       }
     }
 
@@ -97,24 +100,30 @@ namespace CoupledField{
       std::string dof = valueList[i]->Get("dof")->As<std::string>();
       
       if( dof == "x" ) {
-        dof2ValueColumn[0] = valueList[i]->Get("col")->As<UInt>();
+        dof2ValueColumn_[0] = valueList[i]->Get("col")->As<UInt>();
       }
       if( dof == "y" ) {
-        dof2ValueColumn[1] = valueList[i]->Get("col")->As<UInt>();
+        dof2ValueColumn_[1] = valueList[i]->Get("col")->As<UInt>();
       }
       if( dof == "z" ) {
-        dof2ValueColumn[2] = valueList[i]->Get("col")->As<UInt>();
+        dof2ValueColumn_[2] = valueList[i]->Get("col")->As<UInt>();
       }      
     }
 
-    Double factor = scatteredDataNode->Get("factor")->As<Double>();
+    factor_ = scatteredDataNode->Get("factor")->As<Double>();
+  }
+  
+  template<typename T, UInt DOFS>
+  void CoefFunctionScatteredData<T,DOFS>::ReadCSVFile() 
+  {
+    if(!boost::filesystem::exists(csvFileName_))
+    {
+      EXCEPTION("CSV file '" << csvFileName_ << "' does not exist!")
+    }
 
 #ifdef USE_CGAL
-    dimType_ = VECTOR;
-
-
     boost::filesystem::ifstream* in = NULL;
-    in = new boost::filesystem::ifstream(fn);
+    in = new boost::filesystem::ifstream(csvFileName_);
 
     if(in) 
     {
@@ -128,37 +137,41 @@ namespace CoupledField{
 
     for(UInt i=0, n=scatteredData_.size(); i<n; i++)
     {
-    switch(dof2CoordColumn.size())
+    switch(dof2CoordColumn_.size())
     {
       case 2:
-        points.push_back(Point(scatteredData_[i][dof2CoordColumn[0]],
-                               scatteredData_[i][dof2CoordColumn[1]],
+        points.push_back(Point(scatteredData_[i][dof2CoordColumn_[0]],
+                               scatteredData_[i][dof2CoordColumn_[1]],
                                0.0,
-                               scatteredData_[i][dof2ValueColumn[0]] * factor,
-                               scatteredData_[i][dof2ValueColumn[1]] * factor,
+                               scatteredData_[i][dof2ValueColumn_[0]] * factor_,
+                               scatteredData_[i][dof2ValueColumn_[1]] * factor_,
                                0.0));
         break;        
       case 3:
-        points.push_back(Point(scatteredData_[i][dof2CoordColumn[0]],
-                               scatteredData_[i][dof2CoordColumn[1]],
-                               scatteredData_[i][dof2CoordColumn[2]],
-                               scatteredData_[i][dof2ValueColumn[0]] * factor,
-                               scatteredData_[i][dof2ValueColumn[1]] * factor,
-                               scatteredData_[i][dof2ValueColumn[2]] * factor));
+        points.push_back(Point(scatteredData_[i][dof2CoordColumn_[0]],
+                               scatteredData_[i][dof2CoordColumn_[1]],
+                               scatteredData_[i][dof2CoordColumn_[2]],
+                               scatteredData_[i][dof2ValueColumn_[0]] * factor_,
+                               scatteredData_[i][dof2ValueColumn_[1]] * factor_,
+                               scatteredData_[i][dof2ValueColumn_[2]] * factor_));
         break;        
     }
     
     }
     searchTree_.reset(new Tree(points.begin(), points.end()));
 #else
-    // We do not want to throw an exception from a constructor.
-    WARN("CGAL is needed for nearest-neighbor mapping.")
+    EXCEPTION("Switch on USE_CGAL for nearest-neighbor mapping!")
 #endif
   }
   
   template<typename T, UInt DOFS>
   void CoefFunctionScatteredData<T,DOFS>::GetVector( Vector<T>& vec, 
                                                      const LocPointMapped& lpm ) {
+    if(!scatteredData_.size())
+    {
+      ReadCSVFile();
+    }    
+
 #ifdef USE_CGAL
     vec.Resize(DOFS);
     //    UInt size = scatteredData_.size();
@@ -193,6 +206,12 @@ namespace CoupledField{
     
 
     K_neighbor_search::iterator it = search.begin();
+
+    if(it == search.end())
+    {
+      EXCEPTION("Could not find a nearest neighbor for " << globPoint << "!");
+    }
+    
 
     if(DOFS == 2) 
     {

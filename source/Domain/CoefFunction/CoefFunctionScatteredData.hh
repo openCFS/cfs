@@ -163,8 +163,18 @@ namespace CoupledField {
     
     
   protected:
+
+    void ReadCSVFile();
+    
     std::vector< std::vector<double> > scatteredData_;
 
+    std::string csvFileName_;
+          
+    std::map<UInt, UInt> dof2CoordColumn_;
+    std::map<UInt, UInt> dof2ValueColumn_;
+
+    Double factor_;
+    
 #ifdef USE_CGAL
     boost::shared_ptr<Tree> searchTree_;
 #endif

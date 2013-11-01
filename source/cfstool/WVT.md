@@ -52,6 +52,13 @@
   the mean flow input  file or as data with respect to  a point cloud provided
   as CSV file.
 
+- The harmonic mechanic displacement at the  sensor position $P$ for the drive
+  mode comes either from the WVT arguments file in the case of a decoupled FSI
+  simulation or from  a named node (history  or mesh result) in the  case of a
+  coupled FSI  simulation. For the  decoupled FSI simulation  the displacement
+  has to be  read (manually or programtically) from the  mechanic results file
+  and entered into the WVT arguments file.
+
 ## Examples
 
 - Straight Pipe with Stokes mean flow from HDF5
