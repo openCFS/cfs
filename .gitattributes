@@ -508,6 +508,7 @@ share/doc/auxilliaries/Pics/TU_Signet.pdf -text svneol=unset#unset
 share/doc/auxilliaries/Pics/TU_Wien_Logo.pdf -text svneol=unset#unset
 share/doc/auxilliaries/Pics/am2_logo.pdf -text
 share/doc/auxilliaries/Pics/am2_logo.png -text
+share/doc/auxilliaries/Pics/cfs-docu.png -text svneol=unset#unset
 share/doc/auxilliaries/Pics/cfs-logo.eps -text svneol=unset#application/postscript
 share/doc/auxilliaries/Pics/cfs-logo.pdf -text svneol=unset#application/pdf
 share/doc/auxilliaries/Pics/cfs-logo.png -text svneol=unset#image/png
