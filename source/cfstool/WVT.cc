@@ -186,6 +186,8 @@ namespace CFSTool {
     OpenIntPointsFile();
 
     std::cout << "Integration order: " << integOrder_ << std::endl;
+    std::cout << "Sensor node name (cf. P in Fig. 3 [Hemp1]): "
+              << sensorNodeName_ << std::endl;
     
     // Linear correction  factor for scaling  the actual mean  flow integrated
     // over the fluid domain to the desired mean flow. Valid only for straight pipe!
@@ -196,36 +198,6 @@ namespace CFSTool {
     inputs_[SECONDARY_MODE] = GetInputReader( secModeFile_, param_, info_ );
 
     shared_ptr<MathParser> mp(new MathParser());
-
-    // Generate input readers for mean flow data
-    switch(meanFlowType_)
-    {
-    case MF_GRID_DATA:
-    case MF_ANALYTIC_EXP:
-      inputs_[MEAN_FLOW] = GetInputReader( meanFlowFile_, param_, info_ );
-      std::cout << "Reading " << meanFlowDataType.ToString(meanFlowType_)
-                << " from '" << meanFlowFile_ << "'"
-                << "..." << std::endl;
-      break;
-      
-    case MF_SCATTERED_DATA:
-      if(wvtNode->Has("V")) {
-        PtrParamNode vNode = wvtNode->Get("V");
-        
-        if(vNode->Has("scatteredData")) {
-          PtrParamNode scatteredDataNode = vNode->Get("scatteredData");
-
-          std::cout << "Reading " << meanFlowDataType.ToString(meanFlowType_)
-                    << " from '" << scatteredDataNode->Get("fileName")->As<std::string>() << "'"
-                    << "..." << std::endl;
-          
-          meanFlowCoefScattered_.reset(new CoefFunctionScatteredData<Double, 3>(
-                                         scatteredDataNode)
-            );
-        }
-      }
-      break;
-    }
 
     // check capabilities of input class
     InputsType::iterator iit, iend;
@@ -410,15 +382,43 @@ namespace CFSTool {
 
     // Only read third grid if we really need it.
     Grid * ptGrid3 = NULL;
-    if(meanFlowType_ != MF_SCATTERED_DATA) 
+    // Generate input readers for mean flow data
+    switch(meanFlowType_)
     {
+    case MF_GRID_DATA:
+    case MF_ANALYTIC_EXP:
+      inputs_[MEAN_FLOW] = GetInputReader( meanFlowFile_, param_, info_ );
+
       // read in mesh of input3
       inputs_[MEAN_FLOW]->InitModule();
       ptGrid3 = new GridCFS(dim, param_, info_);
       inputs_[MEAN_FLOW]->ReadMesh(ptGrid3);
       ptGrid3->FinishInit();
+
+      std::cout << "Reading " << meanFlowDataType.ToString(meanFlowType_)
+                << " from '" << meanFlowFile_ << "'"
+                << "..." << std::endl;
+      break;
+      
+    case MF_SCATTERED_DATA:
+      if(wvtNode->Has("V")) {
+        PtrParamNode vNode = wvtNode->Get("V");
+        
+        if(vNode->Has("scatteredData")) {
+          PtrParamNode scatteredDataNode = vNode->Get("scatteredData");
+
+          std::cout << "Reading " << meanFlowDataType.ToString(meanFlowType_)
+                    << " from '" << scatteredDataNode->Get("fileName")->As<std::string>() << "'"
+                    << "..." << std::endl;
+          
+          meanFlowCoefScattered_.reset(new CoefFunctionScatteredData<Double, 3>(
+                                         scatteredDataNode)
+            );
+        }
+      }
+      break;
     }
-    
+
     // obtain output writer
     shared_ptr<SimOutput> output;
     if( writeOutputFile_ ) {
@@ -474,7 +474,9 @@ namespace CFSTool {
     }
     
     StdVector<shared_ptr<BaseResult> > inResults1, inResults2, inResults_mean_flow,
-      outResults, outResults2, outResults3, outResults4, outResults5;
+      outResults, outResults2, outResults3, outResults4, outResults5,
+      outResults6, outResults7, outResults8;
+
     // stepnumbers, for which at least one result is defined
     std::map<UInt, Double> stepVals, stepVals2, stepVals_mean_flow;
     // contains the stepnumbers/-values in which the particular result is
@@ -615,8 +617,10 @@ namespace CFSTool {
       
       for( UInt iRegion = 0, nReg = regions.GetSize(); iRegion < nReg; iRegion++ ) {
         // generate new result object and add it to output writer
-        shared_ptr<BaseResult > inResult1, inResult2, inResult3, outResult,
-          outResult2, outResult3, outResult4, outResult5;
+        shared_ptr<BaseResult >
+          inResult1, inResult2, inResult3, outResult,
+          outResult2, outResult3, outResult4, outResult5,
+          outResult6, outResult7, outResult8;
         
         std::string regionName = regions[iRegion]->GetName();
         
@@ -642,6 +646,9 @@ namespace CFSTool {
         outResult3 = shared_ptr<BaseResult>( new Result<Complex>() );
         outResult4 = shared_ptr<BaseResult>( new Result<Complex>() );
         outResult5 = shared_ptr<BaseResult>( new Result<Complex>() );
+        outResult6 = shared_ptr<BaseResult>( new Result<Complex>() );
+        outResult7 = shared_ptr<BaseResult>( new Result<Complex>() );
+        outResult8 = shared_ptr<BaseResult>( new Result<Complex>() );
         
         inResult1->SetEntityList( regions[iRegion] );
         inResult2->SetEntityList( regions[iRegion] );
@@ -658,12 +665,15 @@ namespace CFSTool {
         outResult3->SetEntityList( outElems );
         outResult4->SetEntityList( outElems );
         outResult5->SetEntityList( outElems );
+        outResult6->SetEntityList( outElems );
+        outResult7->SetEntityList( outElems );
+        outResult8->SetEntityList( outElems );
         
         inResult1->SetResultInfo( infos[iRes] );
         inResult2->SetResultInfo( infos[iRes] );
         
         shared_ptr<ResultInfo> outInfo(new ResultInfo());
-        outInfo->resultType = FLUIDMECH_WEIGHT_VECTOR;
+        outInfo->resultType = FLUIDMECH_WVT;
         outInfo->resultName = SolutionTypeEnum.ToString(outInfo->resultType);
         outInfo->dofNames = infos[iRes]->dofNames;
         outInfo->unit = MapSolTypeToUnit(outInfo->resultType);
@@ -683,7 +693,7 @@ namespace CFSTool {
         outResult2->SetResultInfo( outInfo2 );
         
         shared_ptr<ResultInfo> outInfo3(new ResultInfo());
-        outInfo3->resultType = FLUIDMECH_WEIGHT_DENSITY;
+        outInfo3->resultType = FLUIDMECH_WVT_DENSITY;
         outInfo3->resultName = SolutionTypeEnum.ToString(outInfo3->resultType);
         outInfo3->dofNames = "";
         outInfo3->unit = MapSolTypeToUnit(outInfo3->resultType);
@@ -693,7 +703,7 @@ namespace CFSTool {
         outResult3->SetResultInfo( outInfo3 );
         
         shared_ptr<ResultInfo> outInfo4(new ResultInfo());
-        outInfo4->resultType = FLUIDMECH_WEIGHT_VECTOR_PHI;
+        outInfo4->resultType = FLUIDMECH_WVT_PHI;
         outInfo4->resultName = SolutionTypeEnum.ToString(outInfo4->resultType);
         outInfo4->dofNames = infos[iRes]->dofNames;
         outInfo4->unit = MapSolTypeToUnit(outInfo4->resultType);
@@ -703,7 +713,7 @@ namespace CFSTool {
         outResult4->SetResultInfo( outInfo4 );
         
         shared_ptr<ResultInfo> outInfo5(new ResultInfo());
-        outInfo5->resultType = FLUIDMECH_WEIGHT_DENSITY_PHI;
+        outInfo5->resultType = FLUIDMECH_WVT_DENSITY_PHI;
         outInfo5->resultName = SolutionTypeEnum.ToString(outInfo5->resultType);
         outInfo5->dofNames = "";
         outInfo5->unit = MapSolTypeToUnit(outInfo5->resultType);
@@ -711,6 +721,36 @@ namespace CFSTool {
         outInfo5->definedOn = ResultInfo::ELEMENT;
         
         outResult5->SetResultInfo( outInfo5 );
+
+        shared_ptr<ResultInfo> outInfo6(new ResultInfo());
+        outInfo6->resultType = FLUIDMECH_WVT_U1;
+        outInfo6->resultName = SolutionTypeEnum.ToString(outInfo6->resultType);
+        outInfo6->dofNames = infos[iRes]->dofNames;
+        outInfo6->unit = MapSolTypeToUnit(outInfo6->resultType);
+        outInfo6->entryType = ResultInfo::VECTOR;
+        outInfo6->definedOn = ResultInfo::ELEMENT;
+        
+        outResult6->SetResultInfo( outInfo6 );
+
+        shared_ptr<ResultInfo> outInfo7(new ResultInfo());
+        outInfo7->resultType = FLUIDMECH_WVT_U2;
+        outInfo7->resultName = SolutionTypeEnum.ToString(outInfo7->resultType);
+        outInfo7->dofNames = infos[iRes]->dofNames;
+        outInfo7->unit = MapSolTypeToUnit(outInfo7->resultType);
+        outInfo7->entryType = ResultInfo::VECTOR;
+        outInfo7->definedOn = ResultInfo::ELEMENT;
+        
+        outResult7->SetResultInfo( outInfo7 );
+
+        shared_ptr<ResultInfo> outInfo8(new ResultInfo());
+        outInfo8->resultType = FLUIDMECH_WVT_F;
+        outInfo8->resultName = SolutionTypeEnum.ToString(outInfo8->resultType);
+        outInfo8->dofNames = infos[iRes]->dofNames;
+        outInfo8->unit = MapSolTypeToUnit(outInfo8->resultType);
+        outInfo8->entryType = ResultInfo::VECTOR;
+        outInfo8->definedOn = ResultInfo::ELEMENT;
+        
+        outResult8->SetResultInfo( outInfo8 );
         
         inResults1.Push_back( inResult1 );
         inResults2.Push_back( inResult2 );
@@ -719,6 +759,9 @@ namespace CFSTool {
         outResults3.Push_back( outResult3 );
         outResults4.Push_back( outResult4 );
         outResults5.Push_back( outResult5 );
+        outResults6.Push_back( outResult6 );
+        outResults7.Push_back( outResult7 );
+        outResults8.Push_back( outResult8 );
 
         if(meanFlowType_ != MF_SCATTERED_DATA) 
         {
@@ -733,36 +776,43 @@ namespace CFSTool {
 
         if( output) {
           outResult->GetResultInfo()->complexFormat = REAL_IMAG;
-          
           // CAUTION: begin, inc, end are hardcoded and noch checked for each result
           output->RegisterResult( outResult, 1, 1,
                                   resultSteps[actRes].size(),
                                   false );
           
           outResult2->GetResultInfo()->complexFormat = REAL_IMAG;
-          
-          // CAUTION: begin, inc, end are hardcoded and noch checked for each result
           output->RegisterResult( outResult2, 1, 1,
                                   resultSteps[actRes].size(),
                                   false );
           
           outResult3->GetResultInfo()->complexFormat = REAL_IMAG;
-          
-          // CAUTION: begin, inc, end are hardcoded and noch checked for each result
           output->RegisterResult( outResult3, 1, 1,
                                   resultSteps[actRes].size(),
                                   false );
           
           outResult4->GetResultInfo()->complexFormat = REAL_IMAG;
-          
-          // CAUTION: begin, inc, end are hardcoded and noch checked for each result
           output->RegisterResult( outResult4, 1, 1,
                                   resultSteps[actRes].size(),
                                   false );
+
           outResult5->GetResultInfo()->complexFormat = REAL_IMAG;
-          
-          // CAUTION: begin, inc, end are hardcoded and noch checked for each result
           output->RegisterResult( outResult5, 1, 1,
+                                  resultSteps[actRes].size(),
+                                  false );
+
+          outResult6->GetResultInfo()->complexFormat = REAL_IMAG;
+          output->RegisterResult( outResult6, 1, 1,
+                                  resultSteps[actRes].size(),
+                                  false );
+
+          outResult7->GetResultInfo()->complexFormat = REAL_IMAG;
+          output->RegisterResult( outResult7, 1, 1,
+                                  resultSteps[actRes].size(),
+                                  false );
+
+          outResult8->GetResultInfo()->complexFormat = REAL_IMAG;
+          output->RegisterResult( outResult8, 1, 1,
                                   resultSteps[actRes].size(),
                                   false );
         }
@@ -869,6 +919,12 @@ namespace CFSTool {
             dynamic_cast<Result<Complex>& >(*outResults4[iRes]).GetVector();
           Vector<Complex> & outVec5 =
             dynamic_cast<Result<Complex>& >(*outResults5[iRes]).GetVector();
+          Vector<Complex> & outVec6 =
+            dynamic_cast<Result<Complex>& >(*outResults6[iRes]).GetVector();
+          Vector<Complex> & outVec7 =
+            dynamic_cast<Result<Complex>& >(*outResults7[iRes]).GetVector();
+          Vector<Complex> & outVec8 =
+            dynamic_cast<Result<Complex>& >(*outResults8[iRes]).GetVector();
           UInt numElems = outResults[iRes]->GetEntityList()->GetSize();
           UInt numDofs = outResults[iRes]->GetResultInfo()->dofNames.GetSize();
           UInt dim = ptGrid1->GetDim();
@@ -878,6 +934,9 @@ namespace CFSTool {
           outVec3.Resize( numElems );
           outVec4.Resize( numElems * numDofs );
           outVec5.Resize( numElems );
+          outVec6.Resize( numElems * numDofs );
+          outVec7.Resize( numElems * numDofs );
+          outVec8.Resize( numElems * numDofs );
           
           shared_ptr<BaseFeFunction> u1FeFunc =
             inputs_[PRIMARY_MODE]->GetFeFunction<Complex>( actMsStep,
@@ -1131,6 +1190,15 @@ namespace CFSTool {
               
               // Init weight vector W_Phi as given in Hemp1994 (19).
               outVec4[elIdx*numDofs+i] = 0.0;
+
+              // Init (u_1).
+              outVec6[elIdx*numDofs+i] = 0.0;
+
+              // Init (u_2).
+              outVec7[elIdx*numDofs+i] = 0.0;
+
+              // Init f.
+              outVec8[elIdx*numDofs+i] = 0.0;
             }
             
             // Init weight vector density result
@@ -1414,12 +1482,8 @@ namespace CFSTool {
                   else 
                   {
                     // Compute components of weight vector as given in Hemp1994 (15).
-                 #if 0
-                    W[i] += -rho_0 * (u2[j] * u1Derivs[i][j] - u1[j] * u2Derivs[j][i]);
-                 #else
-                    // W[i] += -rho_0 * (u2[j] * u1Derivs[j][i]); // Just take C1 also with WVT! // u1[j] * u2Derivs[i][j]);
-                    // W[i] += -rho_0 * (u2[j] * u1Derivs[j][i] - u1[j] * u2Derivs[i][j]);
-                 #endif               
+                    // Just take 2*C1 also with WVT!
+                    W[i] += -rho_0 * 2 * (u2[j] * u1Derivs[j][i]);
                   }
                      
                 }
@@ -1470,9 +1534,7 @@ namespace CFSTool {
                 for( UInt i=0; i < numDofs; i++ )
                 {
                   // Prepare weight vector
-                  //                     outVec[elIdx*numDofs+i] += W[i] * volume;
-                  // Write u2 instead of W
-                  outVec[elIdx*numDofs+i] += u2[i] * volume;
+                  outVec[elIdx*numDofs+i] += W[i] * volume;
                      
                   // Prepare mean velocity
                   //                   V[i] *= meanVel;                   
@@ -1495,20 +1557,28 @@ namespace CFSTool {
                     );
                      
                   // Prepare weight vector W_Phi as given in Hemp1994 (19).
-                  //                     outVec4[elIdx*numDofs+i] += W[i]/u_p_ * volume;
-                  // outVec4[elIdx*numDofs+i] += u2[i] * volume;
-                  outVec4[elIdx*numDofs+i] += f[i] * volume;
+                  outVec4[elIdx*numDofs+i] += W[i]/u_p_ * volume;
                   
                   // Prepare  weight  vector density  result  as inner  product
                   // between V and W_Phi as given in Hemp1994 (18).
                   Complex wvtDensityPhi(0,0);
 
-                  // wvtDensityPhi = W[i]/u_p_ * V[i] * volume;
+                  wvtDensityPhi = W[i]/u_p_ * V[i] * volume;
 
                   // Compute "weight vector density" result from force and u2
-                  wvtDensityPhi += (f[i] * u2[i])/u_p_ * volume;
+                  // Just take 2*C1 also with WVT!
+                  // wvtDensityPhi = 2*(f[i] * u2[i])/u_p_ * volume;
 
                   outVec5[elIdx] += wvtDensityPhi;
+
+                  // Prepare u1 velocity output vector
+                  outVec6[elIdx*numDofs+i] += u1[i] * volume;
+
+                  // Prepare u2 velocity output vector
+                  outVec7[elIdx*numDofs+i] += u2[i] * volume;
+
+                  // Prepare force output vector
+                  outVec8[elIdx*numDofs+i] += f[i] * volume;
 
                   // Compute deltaPhi as given in Hemp1994 (18) and (19).
                   deltaPhi += wvtDensityPhi.imag();
@@ -1521,6 +1591,9 @@ namespace CFSTool {
               outVec[elIdx*numDofs+i] /= elementVolume;
               outVec2[elIdx*numDofs+i] /= elementVolume;
               outVec4[elIdx*numDofs+i] /= elementVolume;
+              outVec6[elIdx*numDofs+i] /= elementVolume;
+              outVec7[elIdx*numDofs+i] /= elementVolume;
+              outVec8[elIdx*numDofs+i] /= elementVolume;
             }               
             outVec3[elIdx] /= elementVolume;
             outVec5[elIdx] /= elementVolume;
@@ -1533,10 +1606,18 @@ namespace CFSTool {
             correct = (meanVel*vol/durchfluss);
           }
              
-          std::cout << "\nProfilkorrekturfaktor " << correct << std::endl;
-          std::cout << "Volumen " << vol << std::endl;
-          std::cout << "Durchfluss " << (durchfluss) << std::endl;
-          std::cout << "mittlere Geschwindigkeit " << (durchfluss/vol) << std::endl;
+          std::cout << std::endl 
+                    << "Volume of fluid domain (vol):               "
+                    << vol
+                    << " m^3" << std::endl << std::endl;
+          std::cout << "The following values are only valid for a "
+                    << "straight pipe:" << std::endl;
+          std::cout << "  Flow rate (R = \\int_{\\Omega} V d\\Omega):  "
+                    << (durchfluss) << " m/s m^3" << std::endl;
+          std::cout << "  Mean Velocity (V_ = R/vol):               "
+                    << (durchfluss/vol)  << " m/s" << std::endl;
+          std::cout << "  Profile correction factor (meanVel/V_):   "
+                    << correct << std::endl;
           //             outVec2 *= correct;
              
           // deltaPhi *= correct;
@@ -1552,6 +1633,9 @@ namespace CFSTool {
           output->AddResult( outResults3[iRes] );
           output->AddResult( outResults4[iRes] );
           output->AddResult( outResults5[iRes] );
+          output->AddResult( outResults6[iRes] );
+          output->AddResult( outResults7[iRes] );
+          output->AddResult( outResults8[iRes] );
         }
            
       } // loop over results
@@ -1628,10 +1712,11 @@ namespace CFSTool {
     csv << "freq,u_p_prime_real,u_p_prime_imag,u_p_prime_ampl,"
         << "u_p_prime_phase,deltaPhi[rad],deltaPhi[deg],fluid_volume,mean_velocity,mean_velocity_correction_factor"
         << std::endl;
-  
-    std::cout << "\nu_p_prime " << u_p_prime << std::endl;
-    std::cout << "\ndeltaPhi [rad]: " << deltaPhiVol << std::endl;
-    std::cout << "\ndeltaPhi [deg]: " << deltaPhiVol/3.14159*180 << std::endl;
+
+    std::cout << "\n(u')_P (cf. [Hemp1] (13)):                  "
+              << u_p_prime << std::endl;
+    std::cout << "\nDeltaPhi (cf. [Hemp1] (18)):                "
+              << deltaPhiVol/PI*180 << "°" << std::endl;
     
     csv << freq << ","
         << u_p_prime.real() << ","

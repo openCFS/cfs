@@ -75,32 +75,39 @@ namespace CoupledField{
           
     std::map<UInt, UInt> dof2CoordColumn;
     std::map<UInt, UInt> dof2ValueColumn;
-    ParamNodeList list;
-    list = scatteredDataNode->GetList("comp");
-    for(UInt i=0, n=list.GetSize(); i<n; i++) {
-      std::string dof = list[i]->Get("dof")->As<std::string>();
+    ParamNodeList coordList;
+    coordList = scatteredDataNode->Get("coordinates")->GetList("comp");
+    for(UInt i=0, n=coordList.GetSize(); i<n; i++) {
+      std::string dof = coordList[i]->Get("dof")->As<std::string>();
       
       if( dof == "x" ) {
-        dof2CoordColumn[0] = list[i]->Get("coordCol")->As<UInt>();
-        dof2ValueColumn[0] = list[i]->Get("valCol")->As<UInt>();
+        dof2CoordColumn[0] = coordList[i]->Get("col")->As<UInt>();
       }
       if( dof == "y" ) {
-        dof2CoordColumn[1] = list[i]->Get("coordCol")->As<UInt>();
-        dof2ValueColumn[1] = list[i]->Get("valCol")->As<UInt>();
+        dof2CoordColumn[1] = coordList[i]->Get("col")->As<UInt>();
       }
       if( dof == "z" ) {
-        dof2CoordColumn[2] = list[i]->Get("coordCol")->As<UInt>();
-        dof2ValueColumn[2] = list[i]->Get("valCol")->As<UInt>();
-      }      
-
-#if 0
-      std::cout << list[i]->GetName() << ": '"
-                << list[i]->Get("dof")->As<std::string>()
-                << "' coordCol " << list[i]->Get("coordCol")->As<UInt>()
-                << " valCol " << list[i]->Get("valCol")->As<UInt>()
-                << std::endl;
-#endif
+        dof2CoordColumn[2] = coordList[i]->Get("col")->As<UInt>();
+      }
     }
+
+    ParamNodeList valueList;
+    valueList = scatteredDataNode->Get("values")->GetList("comp");
+    for(UInt i=0, n=valueList.GetSize(); i<n; i++) {
+      std::string dof = valueList[i]->Get("dof")->As<std::string>();
+      
+      if( dof == "x" ) {
+        dof2ValueColumn[0] = valueList[i]->Get("col")->As<UInt>();
+      }
+      if( dof == "y" ) {
+        dof2ValueColumn[1] = valueList[i]->Get("col")->As<UInt>();
+      }
+      if( dof == "z" ) {
+        dof2ValueColumn[2] = valueList[i]->Get("col")->As<UInt>();
+      }      
+    }
+
+    Double factor = scatteredDataNode->Get("factor")->As<Double>();
 
 #ifdef USE_CGAL
     dimType_ = VECTOR;
@@ -127,17 +134,17 @@ namespace CoupledField{
         points.push_back(Point(scatteredData_[i][dof2CoordColumn[0]],
                                scatteredData_[i][dof2CoordColumn[1]],
                                0.0,
-                               scatteredData_[i][dof2ValueColumn[0]],
-                               scatteredData_[i][dof2ValueColumn[1]],
+                               scatteredData_[i][dof2ValueColumn[0]] * factor,
+                               scatteredData_[i][dof2ValueColumn[1]] * factor,
                                0.0));
         break;        
       case 3:
         points.push_back(Point(scatteredData_[i][dof2CoordColumn[0]],
                                scatteredData_[i][dof2CoordColumn[1]],
                                scatteredData_[i][dof2CoordColumn[2]],
-                               scatteredData_[i][dof2ValueColumn[0]],
-                               scatteredData_[i][dof2ValueColumn[1]],
-                               scatteredData_[i][dof2ValueColumn[2]]));
+                               scatteredData_[i][dof2ValueColumn[0]] * factor,
+                               scatteredData_[i][dof2ValueColumn[1]] * factor,
+                               scatteredData_[i][dof2ValueColumn[2]] * factor));
         break;        
     }
     

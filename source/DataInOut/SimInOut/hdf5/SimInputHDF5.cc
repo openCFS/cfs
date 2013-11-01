@@ -1649,8 +1649,13 @@ namespace CoupledField {
     
     try {
       H5::Group groupsGroup = mainRoot_.openGroup("Mesh/Groups");
-      
-      H5::Group namedNodeGroup = groupsGroup.openGroup(nodeName);
+
+      H5::Group namedNodeGroup;
+      try {      
+        namedNodeGroup = groupsGroup.openGroup(nodeName);
+      } catch (H5::Exception& h5Ex ) {
+        EXCEPTION("Named node '" << nodeName << "' not found in HDF5 file!");
+      }      
 
       H5IO::ReadArray( namedNodeGroup, "Nodes", nodeNumbers);
       

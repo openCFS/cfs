@@ -221,20 +221,32 @@ namespace CoupledField {
         return "1/s";
         break;
 
-      case FLUIDMECH_WEIGHT_VECTOR:
+      case FLUIDMECH_WVT:
         return "kg m^-2 s^-2";
         break;
 
-      case FLUIDMECH_WEIGHT_DENSITY:
+      case FLUIDMECH_WVT_DENSITY:
         return "kg m^-2 s^-2 m s^-1";
         break;
 
-      case FLUIDMECH_WEIGHT_VECTOR_PHI:
+      case FLUIDMECH_WVT_PHI:
         return "kg m^-3 s^-1";
         break;
 
-      case FLUIDMECH_WEIGHT_DENSITY_PHI:
+      case FLUIDMECH_WVT_DENSITY_PHI:
         return "kg m^-3 s^-1 m s^-1";
+        break;
+
+      case FLUIDMECH_WVT_U1:
+        return "m s^-1";
+        break;
+
+      case FLUIDMECH_WVT_U2:
+        return "m s^-1";
+        break;
+
+      case FLUIDMECH_WVT_F:
+        return "N";
         break;
 
       case HEAT_TEMPERATURE:
@@ -1144,10 +1156,14 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");
     SolutionTypeEnum.Add(FLUIDMECH_STRESS, "fluidMechStress");
     SolutionTypeEnum.Add(FLUIDMECH_STRAINRATE, "fluidMechStrainRate");
-    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_VECTOR, "fluidMechWeightVector");
-    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_DENSITY, "fluidMechWeightDensity");
-    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_VECTOR_PHI, "fluidMechWeightVectorPhi");
-    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_DENSITY_PHI, "fluidMechWeightDensityPhi");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT, "fluidMechWVT");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_DENSITY, "fluidMechWVTDensity");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_PHI, "fluidMechWVTPhi");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_DENSITY_PHI, "fluidMechWVTDensityPhi");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_U1, "fluidMechWVT_u1");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_U2, "fluidMechWVT_u2");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_F, "fluidMechWVT_f");
+
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
 
     // TEST PDE

@@ -197,20 +197,62 @@
   </xsd:complexType>
 	
   <!-- ******************************************************************** -->
-  <!--   Definition of scattered data on point clouds (measured, CSV, etc.) -->
+  <!--  Definition of scattered data on point clouds (measured, CSV, etc.)  -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_ScatteredData">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">  
         <xsd:sequence>
-            <xsd:element name="fileName" minOccurs="1" maxOccurs="1" type="xsd:token"/>
-            <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+          <xsd:element name="fileName" minOccurs="1" maxOccurs="1" type="xsd:token">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Full path of file containing the scattered data. Currently only
+                CSV files are supported.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="coordinates" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                The columns of the single degrees of freedom (dofs) for the point
+                coordinates can be specified component-wise.
+              </xsd:documentation>
+            </xsd:annotation>
             <xsd:complexType>
-              <xsd:attribute name="dof" type="xsd:token" use="required"/>
-              <xsd:attribute name="coordCol" type="xsd:nonNegativeInteger" use="required"/>
-              <xsd:attribute name="valCol" type="xsd:nonNegativeInteger" use="required"/>
-              <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
-            </xsd:complexType>  
+              <xsd:sequence>
+                <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="dof" type="xsd:token" use="required"/>
+                    <xsd:attribute name="col" type="xsd:nonNegativeInteger" use="required"/>
+                  </xsd:complexType>  
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="values" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                The columns of the single degrees of freedom (dofs) for the values
+                can be specified component-wise.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="dof" type="xsd:token" use="required"/>
+                    <xsd:attribute name="col" type="xsd:nonNegativeInteger" use="required"/>
+                  </xsd:complexType>  
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="factor" minOccurs="0" maxOccurs="1" type="xsd:double" default="1.0">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                A scaling factor for all components of the values.
+              </xsd:documentation>
+            </xsd:annotation>            
           </xsd:element>
         </xsd:sequence>
         <xsd:attribute name="quantity" use="required"/>
@@ -366,8 +408,13 @@
           <!-- =========================== -->
           <!--  C) External Grid           -->
           <!-- =========================== -->
-          <!-- Read values from external, nodal grid -->
-          <xsd:element name="grid" maxOccurs="1" type="DT_BaseGridData"/>
+          <xsd:element name="grid" maxOccurs="1" type="DT_BaseGridData">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Read values from external, nodal grid.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
           
           <!-- =========================== -->
           <!--  D) External HDF5 file      -->
@@ -377,7 +424,13 @@
           <!-- =========================== -->
           <!--  E) Scattered data from CSV -->
           <!-- =========================== -->
-          <xsd:element name="scatteredData" maxOccurs="1" type="DT_ScatteredData"/>          
+          <xsd:element name="scatteredData" maxOccurs="1" type="DT_ScatteredData">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Scattered data coming from CSV files.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>          
           
         </xsd:choice>
       </xsd:extension>
