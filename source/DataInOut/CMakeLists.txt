@@ -11,7 +11,6 @@ SET(DATAINOUT_SRCS
   ColoredConsole.cc
   PostProc.cc
   ProgramOptions.cc
-  ResultCache.cc
   ResultHandler.cc
   SimState.cc
   SimInput.cc

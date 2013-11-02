@@ -6,7 +6,6 @@
 #include "Driver/Assemble.hh"
 #include "Materials/Models/Preisach.hh"
 #include "PDE/StdPDE.hh"
-#include "DataInOut/ResultCache.hh"
 
 #include "OLAS/algsys/AlgebraicSys.hh"
 
@@ -37,8 +36,6 @@ namespace CoupledField {
   }
 
   void SolveStepElec::PreStepTrans() {
-    ResultCache::SetStepValue(actTime_);
-
     // Update moving ncInterfaces as needed
     ptgrid_->MoveNcInterfaces();
     

@@ -38,7 +38,6 @@
 
 // header for resultHandling
 #include "DataInOut/ResultHandler.hh"
-#include "DataInOut/ResultCache.hh"
 
 #include "DataInOut/PostProc.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"

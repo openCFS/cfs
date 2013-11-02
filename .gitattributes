@@ -1067,8 +1067,6 @@ source/DataInOut/PostProc.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/PostProc.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ProgramOptions.cc svneol=native#text/plain
 source/DataInOut/ProgramOptions.hh svneol=native#text/plain
-source/DataInOut/ResultCache.cc -text
-source/DataInOut/ResultCache.hh -text
 source/DataInOut/ResultHandler.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ResultHandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/AnsysFile/CMakeLists.txt svneol=native#text/plain

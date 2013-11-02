@@ -6,7 +6,6 @@
 #include "MatVec/Vector.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 #include "Utils/Interpolate1D.hh"
-#include "DataInOut/ResultCache.hh"
 #include "Domain/Domain.hh"
 #include "Utils/mathfunctions.hh"
 
@@ -453,7 +452,6 @@ namespace CoupledField {
     parser.DefineFun("sample1D", Interpolate1D::Interpolate, false );
     parser.DefineFun("locCoord2D", MathParser::LocCoord2D, false );
     parser.DefineFun("locCoord3D", MathParser::LocCoord3D, false );
-    parser.DefineFun("input", ResultCache::GetResult, false);
 
     // Register signal generating functions
     parser.DefineFun("sinBurst", SinBurst, false );

@@ -16,7 +16,6 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ResultCache.hh"
 
 #include "PDE/SinglePDE.hh"
 
