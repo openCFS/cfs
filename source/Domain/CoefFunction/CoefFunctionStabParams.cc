@@ -33,10 +33,11 @@ namespace CoupledField{
 
   CoefFunctionStabParams::CoefFunctionStabParams(PtrCoefFct density,
                                                  PtrCoefFct viscosity,
-                                                 StabType type) 
+                                                 StabType type,
+                                                 bool isComplex) 
     : CoefFunction() 
   {
-    PerformInitialization( density, viscosity, type );
+    PerformInitialization( density, viscosity, type, isComplex );
   }
   
   CoefFunctionStabParams::CoefFunctionStabParams(PtrCoefFct density,
@@ -44,14 +45,15 @@ namespace CoupledField{
                                                  PtrCoefFct meanFlow,
                                                  BaseBOperator* opt,
                                                  shared_ptr<BaseFeFunction> feFnc,
-                                                 StabType type) 
+                                                 StabType type,
+                                                 bool isComplex) 
     : CoefFunction()
   {    
-    PerformInitialization(density, viscosity, type );
+    PerformInitialization(density, viscosity, type, isComplex );
     meanFlowCoef_ = meanFlow;
     IsSetMeanFlow_ = true;
     bOperator_ = opt;
-    feFct_ = feFnc;    
+    feFct_ = feFnc;
   }
 
   void CoefFunctionStabParams::GetScalar(Double& scal,
@@ -83,7 +85,28 @@ namespace CoupledField{
     velL2 = 0.0;
     if ( IsSetMeanFlow_ ) {
       Vector<Double> myVec;
-      meanFlowCoef_->GetVector(myVec,lpm);
+      
+      if(isComplex_) 
+      {
+        Vector<Complex> vec;
+        meanFlowCoef_->GetVector(vec,lpm);
+
+        UInt n = vec.GetSize();
+        myVec.Resize(n);
+
+        for(UInt i=0; i<n; i++) 
+        {
+          myVec[i] = vec[i].real();
+        }
+      }
+      else
+      {
+        Vector<Double> vec;
+        meanFlowCoef_->GetVector(vec,lpm);
+
+        myVec = vec;
+      }
+      
       velL2 = myVec.NormL2();
       
       if ( velL2 > 1e-10 ) {
@@ -144,12 +167,12 @@ namespace CoupledField{
   void CoefFunctionStabParams::GetTensor( Matrix<Double>& tensor, 
                                           const LocPointMapped& lpm ) {
     EXCEPTION( "Sabaradi nomoi nei!" );
-
   }
   
   void CoefFunctionStabParams::PerformInitialization(PtrCoefFct density,
                                                      PtrCoefFct viscosity,
-                                                     StabType type) {
+                                                     StabType type,
+                                                     bool isComplex) {
     
     dimType_ = SCALAR;
     isAnalytic_ = false;
@@ -160,6 +183,8 @@ namespace CoupledField{
     
     IsSetMeanFlow_ = false;
     stabType_ = type;
+
+    isComplex_ = isComplex;
   }
   
   

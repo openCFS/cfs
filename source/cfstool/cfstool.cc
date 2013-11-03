@@ -1081,6 +1081,7 @@ int main(int argc, char** argv)
       }
 
       CFSTool::WVT wvt( param, info );
+      wvt.PostProcess();
 
     } else {
       EXCEPTION( "No such mode: " << param_mode <<". See help for available modes." );
