@@ -133,7 +133,15 @@ namespace CoupledField {
           std::cerr << "\n DO STABILIZED FORMULATION OF TYPE BOCHEV!!\n" << std::endl;
 
     if ( stabilizedBochev_ && stabilized_)
-      EXCEPTION("Standad stabilization AND stabilization of Bochev not possible")
+      EXCEPTION("Standad stabilization AND stabilization of Bochev not possible");
+    
+    enableC2_ = false;
+    enableC2_ = myParam_->Get("enableC2")->As<bool>();
+    if ( enableC2_ )
+          std::cerr << "\n ENABLING SECOND CONVECTIVE TERM 2 (C2)\n" << std::endl;
+
+    factorC1_ = 2.0;
+    factorC1_ = myParam_->Get("factorC1")->As<Double>();
   }
   
   void PerturbedFlowPDE::InitNonLin() {
@@ -394,31 +402,32 @@ namespace CoupledField {
 
         //now create the integrators
         BiLinearForm *convectiveVv = NULL;
+
         if( dim_ == 2 ) {
           if(isComplex_) 
           {
             convectiveVv = new ABInt<Complex>( new IdentityOperator<FeH1,2,2>(),
                                                new ConvectiveOperator<FeH1,2,2,Complex>(),
-                                               density, 2.0, coefUpdateGeo );
+                                               density, factorC1_, coefUpdateGeo );
           }
           else
           {
             convectiveVv = new ABInt<Double>( new IdentityOperator<FeH1,2,2>(),
                                               new ConvectiveOperator<FeH1,2,2>(),
-                                              density, 2.0, coefUpdateGeo );
+                                              density, factorC1_, coefUpdateGeo );
           }
         } else {
           if(isComplex_) 
           {
             convectiveVv = new ABInt<Complex>( new IdentityOperator<FeH1,3,3>(),
                                                new ConvectiveOperator<FeH1,3,3,Complex>(),
-                                               density, 2.0, coefUpdateGeo );
+                                               density, factorC1_, coefUpdateGeo );
           }
           else
           {
             convectiveVv = new ABInt<Double>( new IdentityOperator<FeH1,3,3>(),
                                               new ConvectiveOperator<FeH1,3,3>(),
-                                              density, 2.0, coefUpdateGeo );
+                                              density, factorC1_, coefUpdateGeo );
           }
         }
 
@@ -442,66 +451,67 @@ namespace CoupledField {
                                              feFunctions_[FLUIDMECH_VELOCITY] );
         assemble_->AddBiLinearForm( convectiveContextVv );
 
-#if 0
-        // Second convective term. Derivative tensor of mean flow field is a
-        // factor computed by a CoefFunction.
-        BaseBOperator* bOpGrad;
-        BaseBOperator* bOpId;
-        if( dim_ == 2 ) {
-          bOpId = new IdentityOperator<FeH1,2,2>();
-        }
-        else {
-          bOpId = new IdentityOperator<FeH1,3,3>();
-        }
-
-        //now create the integrators
-        BiLinearForm *convectivevV = NULL;
-        PtrCoefFct coeffConvec;
-        if(isComplex_) {
+        if(enableC2_) 
+        {
+          // Second convective term. Derivative tensor of mean flow field is a
+          // factor computed by a CoefFunction.
+          BaseBOperator* bOpGrad;
+          BaseBOperator* bOpId;
           if( dim_ == 2 ) {
-            bOpGrad = new GradientOperator<FeH1,2, 1, Complex>();
-            coeffConvec.reset(
-              new CoefFunctionMeanFlowConvection<Complex,2>( density, viscosity,
-                                                             bOpGrad, meanVelFct )
-              );
-          } else {
-            bOpGrad = new GradientOperator<FeH1,3, 1, Complex>();
-            coeffConvec.reset(
-              new CoefFunctionMeanFlowConvection<Complex,3>( density, viscosity,
-                                                             bOpGrad, meanVelFct )
-              );
-          }          
-          convectivevV = new BDBInt<Complex,Complex>( bOpId, coeffConvec, 1.0 );
-
-        } else {
-          if( dim_ == 2 ) {
-            bOpGrad = new GradientOperator<FeH1,2, 1, Double>();
-            coeffConvec.reset(
-              new CoefFunctionMeanFlowConvection<Double,2>( density, viscosity,
-                                                            bOpGrad, meanVelFct )
-              );
-          } else {
-            bOpGrad = new GradientOperator<FeH1,3, 1, Double>();
-            coeffConvec.reset(
-              new CoefFunctionMeanFlowConvection<Double,3>( density, viscosity,
-                                                            bOpGrad, meanVelFct )
-              );
+            bOpId = new IdentityOperator<FeH1,2,2>();
           }
-          convectivevV = new BDBInt<Double,Double>( bOpId, coeffConvec, 1.0 );
+          else {
+            bOpId = new IdentityOperator<FeH1,3,3>();
+          }
+          
+          //now create the integrators
+          BiLinearForm *convectivevV = NULL;
+          PtrCoefFct coeffConvec;
+          if(isComplex_) {
+            if( dim_ == 2 ) {
+              bOpGrad = new GradientOperator<FeH1,2, 1, Complex>();
+              coeffConvec.reset(
+                new CoefFunctionMeanFlowConvection<Complex,2>( density, viscosity,
+                                                               bOpGrad, meanVelFct )
+                );
+            } else {
+              bOpGrad = new GradientOperator<FeH1,3, 1, Complex>();
+              coeffConvec.reset(
+                new CoefFunctionMeanFlowConvection<Complex,3>( density, viscosity,
+                                                               bOpGrad, meanVelFct )
+                );
+            }          
+            convectivevV = new BDBInt<Complex,Complex>( bOpId, coeffConvec, 1.0 );
+            
+          } else {
+            if( dim_ == 2 ) {
+              bOpGrad = new GradientOperator<FeH1,2, 1, Double>();
+              coeffConvec.reset(
+                new CoefFunctionMeanFlowConvection<Double,2>( density, viscosity,
+                                                              bOpGrad, meanVelFct )
+                );
+            } else {
+              bOpGrad = new GradientOperator<FeH1,3, 1, Double>();
+              coeffConvec.reset(
+                new CoefFunctionMeanFlowConvection<Double,3>( density, viscosity,
+                                                              bOpGrad, meanVelFct )
+                );
+            }
+            convectivevV = new BDBInt<Double,Double>( bOpId, coeffConvec, 1.0 );
+          }
+          
+          convectivevV->SetName("PerturbedStiffIntConvectivevV");
+          
+          BiLinFormContext *convectiveContextvV = NULL;
+          convectiveContextvV = new BiLinFormContext(convectivevV, STIFFNESS );
+          
+          convectiveContextvV->SetEntities( actSDList, actSDList );
+          convectiveContextvV->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],
+                                               feFunctions_[FLUIDMECH_VELOCITY] );
+          assemble_->AddBiLinearForm( convectiveContextvV );
         }
         
-        convectivevV->SetName("PerturbedStiffIntConvectivevV");
-
-        BiLinFormContext *convectiveContextvV = NULL;
-        convectiveContextvV = new BiLinFormContext(convectivevV, STIFFNESS );
-
-        convectiveContextvV->SetEntities( actSDList, actSDList );
-        convectiveContextvV->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],
-                                             feFunctions_[FLUIDMECH_VELOCITY] );
-        assemble_->AddBiLinearForm( convectiveContextvV );
-
-#endif
-
+        
         //======================================================================
         // DO STABILIZATION due to convection
         //======================================================================

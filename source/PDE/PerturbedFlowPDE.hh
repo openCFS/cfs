@@ -112,6 +112,9 @@ namespace CoupledField
     //! type of stabilization
     bool stabilized_;
     bool stabilizedBochev_;
+
+    bool enableC2_;
+    Double factorC1_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
