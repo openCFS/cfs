@@ -531,7 +531,7 @@ namespace CoupledField {
           // with interpolation
           if (timeInterp) {
             // do we need to load the data?
-            if (prevStep != lastStep_) {
+            if (prevStep == lastStep_) {
               // only if previous step gives a significant contribution
               if (fabs(1.0-intFactor) > timeTol) {
                 // load data from file
