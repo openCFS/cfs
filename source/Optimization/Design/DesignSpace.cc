@@ -84,7 +84,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   SetupMultiMaterial(pn_design);
 
   int mm_count = 0;
-
+  double rb = -1;
   // number of different designs, where multimaterial design is special
   for(unsigned int d = 0; d < pn_design.GetSize(); d++)
   {
@@ -102,7 +102,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     }
     else if(FindDesign(dt, false) < 0)
     {
-      design.Push_back(DesignID(dt, NULL));
+      rb = pn_design[d]->Get("relative_bound")->As<double>();
+      design.Push_back(DesignID(dt, NULL,rb));
     }
     // tolerate non unique designs - e.g. for different regions
   }
@@ -1166,7 +1167,12 @@ void DesignSpace::ToInfo(PtrParamNode in)
   {
     DesignElement& de = data[i * elements];
     // FIXME an arbitrary transfer function is nonsense!
-    de.ToInfo(dv->Get("design", ParamNode::APPEND), GetTransferFunction(de.GetType(), Optimization::MECH, false)); // silent!
+    PtrParamNode de_pn = dv->Get("design", ParamNode::APPEND);
+    if(design[this->FindDesign(de.GetType())].relative_bound > 0.) {
+      de_pn->Get("relative_bound")->SetValue(design[this->FindDesign(de.GetType())].relative_bound);
+    }
+    de.ToInfo(de_pn, GetTransferFunction(de.GetType(), Optimization::MECH, false)); // silent!
+
   }
   in->Get("pamping")->SetValue(pamping_);
   if(regions.GetSize() > 0)

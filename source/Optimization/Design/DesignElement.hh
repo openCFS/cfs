@@ -153,7 +153,7 @@ public:
                    POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12, SLACK,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
-                   ROTANGLE, STIFF1, STIFF2,STIFF3, MULTIMATERIAL, ALL_DESIGNS} Type;
+                   ROTANGLE,ROTX,ROTY,ROTZ, STIFF1, STIFF2,STIFF3, MULTIMATERIAL, ALL_DESIGNS} Type;
 
   BaseDesignElement(Type type = NO_TYPE);
   virtual ~BaseDesignElement() {};
@@ -494,15 +494,18 @@ private:
 class DesignID
 {
 public:
-   DesignID(DesignElement::Type design = DesignElement::NO_TYPE, MultiMaterial* mm = NULL)
+   DesignID(DesignElement::Type design = DesignElement::NO_TYPE, MultiMaterial* mm = NULL, double rb = -1.0)
    {
      this->design = design;
      this->multimaterial = mm;
+     this->relative_bound = rb;
    }
 
    DesignElement::Type design;
    /** index. -1 for non-multimaterial */
    MultiMaterial*      multimaterial;
+   /** relative bounds for design, negative if not applicable, size by number of design types */
+   double              relative_bound;
 };
 
 

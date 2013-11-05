@@ -886,6 +886,7 @@
                 <xsd:attribute name="physical_lower" use="optional" type="xsd:float"/>
                 <!-- The upper bound of the design variable -->
                 <xsd:attribute name="upper" use="optional" default="1.0" type="xsd:float"/>
+                <xsd:attribute name="relative_bound" use="optional" default="-1.0" type="xsd:float"/>
                 <xsd:attribute name="region" use="optional" type="xsd:token" default="all"/>
                 <xsd:attribute name="constant" use="optional" type="xsd:boolean" default="false"/>
                 <xsd:attribute name="fixed" use="optional" type="xsd:boolean" default="false"/>
@@ -1079,14 +1080,6 @@
                         <xsd:element name="homRectC1" minOccurs="0" maxOccurs="1">
                           <xsd:complexType>
                             <!-- documents in with notation the tensor data is given. Internal storrage is Hill-Mandel -->
-                            <xsd:attribute name="notation" use="required">
-                              <xsd:simpleType>
-                                <xsd:restriction base="xsd:token">
-                                  <xsd:enumeration value="voigt"/>
-                                  <xsd:enumeration value="hill_mandel"/>
-                                </xsd:restriction>
-                              </xsd:simpleType>
-                            </xsd:attribute>
                             <xsd:attribute name="file" default="coeff.xml" type="xsd:token" use="optional"/>
                          
 
@@ -1359,6 +1352,9 @@
       <xsd:enumeration value="piezo_22"/>
       <xsd:enumeration value="piezo_23"/>
       <xsd:enumeration value="rotAngle"/>
+      <xsd:enumeration value="rotX"/>
+      <xsd:enumeration value="rotY"/>
+      <xsd:enumeration value="rotZ"/>
       <xsd:enumeration value="stiff1"/>
       <xsd:enumeration value="stiff2"/>
       <xsd:enumeration value="stiff3"/>

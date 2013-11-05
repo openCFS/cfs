@@ -163,7 +163,7 @@ template <class TYPE> class StdVector;
     inline void SetIsoTensor(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
     
     /** rotate elasticity tensor in t (in Hill-Mandel notation!) by the angle a and adjust the entries back to notation to fit with CFS++ */
-    inline void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation = VOIGT);
+    inline void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double alpha, Notation notation = VOIGT,double beta = 0., double gamma = 0.);
 
 
     /** Calculate the mass isotropic case */
@@ -214,6 +214,8 @@ template <class TYPE> class StdVector;
     Matrix<double> hom_rect_a_;
     Matrix<double> hom_rect_b_;
     Matrix<double> hom_rect_c_;
+    bool deb_;
+    Notation notation_;
 
   };
 

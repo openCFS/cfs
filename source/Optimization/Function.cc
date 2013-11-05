@@ -1108,7 +1108,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
     break;
   }
 
-  if(virtual_elem_map.GetSize() == 0) throw Exception("mesh too small for locality of function '" + fname + "'");
+  if(virtual_elem_map.GetSize() == 0) throw Exception("mesh too small for locality of function '" + fname + "' or wrong design attribute");
 
   // needs to be set prior CalcSlopeConstraint() as the optimizers need the size
   values.Resize(virtual_elem_map.GetSize(), -1.0);
