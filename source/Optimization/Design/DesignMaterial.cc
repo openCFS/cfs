@@ -116,6 +116,8 @@ unsigned int DesignMaterial::RequiredParameters(OptimizationMaterial::System mat
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED:
   case LAMINATES:
     return r+5;
+  case D_LAMINATES:
+    return r+6;
   case HOM_RECT:
     return r+3;
   case D_HOM_RECT:
@@ -218,6 +220,13 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
   case LAMINATES:
     return(design.Find(DesignElement::STIFF1) >= 0
         && design.Find(DesignElement::STIFF2) >= 0
+        && design.Find(DesignElement::ROTANGLE) >= 0
+        && design.Find(DesignElement::EMODUL) >= 0
+        && design.Find(DesignElement::POISSON) >= 0);
+  case D_LAMINATES:
+    return(design.Find(DesignElement::STIFF1) >= 0
+        && design.Find(DesignElement::STIFF2) >= 0
+        && design.Find(DesignElement::DENSITY) >= 0
         && design.Find(DesignElement::ROTANGLE) >= 0
         && design.Find(DesignElement::EMODUL) >= 0
         && design.Find(DesignElement::POISSON) >= 0);
@@ -973,9 +982,8 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
     t.Resize(3,3);
     t.Init();
     double eps = 5.0625e-4;
-    double density = params_[DesignElement::DENSITY];
-    double stiff1 = density*params_[DesignElement::STIFF1];
-    double stiff2 = density*params_[DesignElement::STIFF2];
+    double stiff1 = params_[DesignElement::STIFF1];
+    double stiff2 = params_[DesignElement::STIFF2];
     double E = params_[DesignElement::EMODUL];
     double nu = params_[DesignElement::POISSON];
     double lambda = E*nu/((1+nu)*(1-2*nu));
@@ -996,6 +1004,7 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
     switch(direction){
     case DesignElement::NO_DERIVATIVE:
     case DesignElement::ROTANGLE:
+    case DesignElement::DENSITY:
       D.Init();
 //      mu /= eps;
 //      lambda /= eps;
@@ -1014,7 +1023,6 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
       Dinv.Mult(t, D);
       D.Mult(Dinv, t);
       t.Add(stiff2-1, Dinv);
-      t*=density;
       break;
     case DesignElement::STIFF2:
       t.SetEntry(0,0,1/(2*mu+lambda));
@@ -1024,7 +1032,6 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
       Dinv.Mult(t, D);
       D.Mult(Dinv, t);
       t.Add(stiff1-1, Dinv);
-      t*=density;
       break;
     default:
       ZeroTensor(t, subTensor);
@@ -1032,12 +1039,11 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
     }
     break;
   }
-  case PLANE_STRESS:      //see Bendsoe, Sigmund: Topology Optimization
+  case PLANE_STRESS:      //see Bendsoe, Sigmund: Topology Optimization S. 166
   {
     double E33 = 1e-5;
-    double density = params_[DesignElement::DENSITY];
-    double stiff1 = density*params_[DesignElement::STIFF1];
-    double stiff2 = density*params_[DesignElement::STIFF2];
+    double stiff1 = params_[DesignElement::STIFF1];
+    double stiff2 = params_[DesignElement::STIFF2];
     double E = params_[DesignElement::EMODUL];
     double nu = params_[DesignElement::POISSON];
     double n = (stiff2 + stiff1*stiff2*(nu*nu - 1) - 1);
@@ -1058,7 +1064,6 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
       double E22 = stiff2*stiff2*nu*nu*E11;
       double E12 = stiff2*nu*E11;
       Set2dVoigtTensor(t, E11, E22, 0.0, 0.0, 0.0, E12);
-      t*=density;
       break;
     }
     case DesignElement::STIFF2:
@@ -1067,7 +1072,6 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
       double E22 = E - 2*stiff2*nu*nu*E*stiff1/n+stiff2*stiff2*nu*nu*E11;
       double E12 = -nu*E*stiff1/n+stiff2*nu*E11;
       Set2dVoigtTensor(t, E11, E22, 0.0, 0.0, 0.0, E12);
-      t*=density;
     break;
     }
     default:
@@ -1078,6 +1082,23 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
     }
   default:
     throw Exception("subTensor not implemented yet");
+  }
+
+  if (type_ == D_LAMINATES)
+  {
+    double dens = params_[DesignElement::DENSITY];
+    if (direction == DesignElement::DENSITY)
+    {
+      if(penalty_ == 1.0)
+        dens = 1.0;
+      else
+        dens = penalty_*std::pow(dens, penalty_-1.0);
+    }
+    else
+    {
+      dens = std::pow(dens, penalty_);
+    }
+    t *= dens;
   }
 
   double rotAngle = params_[DesignElement::ROTANGLE];
@@ -1256,7 +1277,7 @@ double DesignMaterial::GetIsoMass(double D, double G){
 
 void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
 {
-  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != HOM_RECT && type_ != D_HOM_RECT && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC));
+  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != D_LAMINATES && type_ != HOM_RECT && type_ != D_HOM_RECT && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC));
   switch(type_){
   case FMO:
     GetAnisotropicTensor(t, direction, notation);
@@ -1284,6 +1305,7 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
     GetDensityTimes2dTensorTensor(t, subTensor, direction);
     break;
   case LAMINATES:
+  case D_LAMINATES:
     GetLaminatesTensor(t, subTensor, direction, notation);
     break;
   case HOM_RECT:
@@ -1461,6 +1483,7 @@ void DesignMaterial::SetEnums()
   type.Add(DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, "density-times-2dtensor-constant-trace");
   type.Add(DENSITY_TIMES_ROTATED_2D_TENSOR, "density-times-rotated-2dtensor");
   type.Add(LAMINATES, "laminates");
+  type.Add(D_LAMINATES, "density-times-laminates");
   type.Add(HOM_RECT, "hom-rect");
   type.Add(D_HOM_RECT, "density-times-hom-rect");
 
