@@ -1051,6 +1051,7 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
     {
     case DesignElement::NO_DERIVATIVE:
     case DesignElement::ROTANGLE:
+    case DesignElement::DENSITY:
     {
       double E11 = -(E*stiff1)/n;
       double E22 = stiff2*E+stiff2*stiff2*nu*nu*E11;
