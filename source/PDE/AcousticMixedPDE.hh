@@ -76,7 +76,14 @@ class AcousticMixedPDE : public SinglePDE{
     //! create feFunction for meanFluidMech velocity
     void CreateMeanFlowFunction(StdVector<std::string> dofNames);
 
+    //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
+    void ReadDampingInformation();
+
   private:
+
+    //! CREATE PML integrators
+    template<UInt DIM>
+    void DefineTransientPMLInts(shared_ptr<ElemList> eList, std::string id);
 
     bool usePiola_;
 
@@ -91,6 +98,10 @@ class AcousticMixedPDE : public SinglePDE{
     bool penalized_;
 
     bool doFluxTerm_;
+
+    bool isTimeDomPML_;
+
+    bool isTaylorHood_;
 };
 
 }

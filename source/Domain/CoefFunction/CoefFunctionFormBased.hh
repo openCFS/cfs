@@ -45,6 +45,11 @@ public:
   virtual void AddIntegrator( BaseBDBInt* form,  
                               RegionIdType region );
   
+  //! Return type of entry (scalar, vector, tensor)
+  virtual CoefDimType GetDimType() const{
+	  return dimType_;
+  }
+
 protected:
   
   //! Store bilinearform for each region
@@ -227,6 +232,7 @@ public:
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
     EXCEPTION("This class defines coefficients of scalar type only." );
   }
+
   //@}
 
   //! \copydoc CoefFunction::ToString
@@ -251,6 +257,7 @@ protected:
 
   //! Additional factor
   TYPE factor_;
+
 };
 
 } // end of namespace

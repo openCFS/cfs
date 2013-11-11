@@ -206,7 +206,7 @@ namespace CoupledField {
         log = true;
       if(numstep_ > 50 && numstep_ <= 500 && ! (actTimeStep_ % 10)) // every tenth step, not all but the tenth
         log = true;
-      if(numstep_ > 500 && (  (double) actTimeStep_ >= percentCounter)   ){
+      if(numstep_ > 500 && (  (double) count >= percentCounter)   ){
         log = true;
         percentCounter += timeStepPercent;
       }
@@ -329,16 +329,15 @@ namespace CoupledField {
       // Restore coefficients from last restart step
       simState_->UpdateToStep(sequenceStep_, lastStepNum);
 
-      if( simState_->IsCompleted( sequenceStep_ ) ) {
-
+      if (simState_->IsCompleted( sequenceStep_ ) && restartStep_ == numstep_) {
         std::cout << "\n\n";
         std::cout << "*******************************************************\n";
         std::cout << " No restart necessary, as the desired number of \n";
         std::cout << " time steps are already computed. \n";
         std::cout << "*******************************************************\n\n";
         return;
-      } else{
-
+      }
+      else {
         std::cout << "\n\n";
         std::cout << "*******************************************************\n";
         std::cout << " Continuing simulation from step " << restartStep_  << std::endl;

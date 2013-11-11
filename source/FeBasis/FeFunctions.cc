@@ -771,7 +771,7 @@ DECLARE_LOG(fefunc)
       StdVector<shared_ptr<EntityList> > & lists = it->second;
       if(ptCoef->IsConservative()){
         //this is a little circumfencial allocaing and releasing memory
-        //in each step. perhaps it would be better to mak a class variable or do it
+        //in each step. perhaps it would be better to make a class variable or do it
         //differently somehow
         Vector<T> loadVec(this->coeffs_->GetSize());
         loadVec.Init();

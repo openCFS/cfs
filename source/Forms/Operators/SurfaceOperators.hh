@@ -245,6 +245,7 @@ void SurfaceNormalDerivOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMa
   // Set correct size of matrix B and initialise with zeros
   bMat.Resize( D_DOF, numFncs );
   bMat.InitValue(0.0);
+
   // Get derivatives of local shape functions with respect to global
   // coords (format: nrNodes x spaceDim)
   Matrix<Double> xiDx;
@@ -252,9 +253,9 @@ void SurfaceNormalDerivOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMa
   fe->GetGlobDerivShFnc( xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
 
   //perform scalar mult with surface normal
-  for(UInt d = 0; d < DIM_DOF ; d ++){
-    for(UInt d1 = 0; d1 < DIM_SPACE ; d1 ++){
-      for(UInt sh = 0; sh < numFncs; sh ++){
+  for(UInt d = 0; d < DIM_DOF ; ++d){
+    for(UInt d1 = 0; d1 < DIM_SPACE ; ++d1){
+      for(UInt sh = 0; sh < numFncs; ++sh){
         bMat[d][sh*DIM_DOF + d] += xiDx[sh][d1] * lp.normal[d1];
       }
     }

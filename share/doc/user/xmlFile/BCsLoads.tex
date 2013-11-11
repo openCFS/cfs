@@ -7,7 +7,7 @@ conditions:
 \begin{itemize}
 \item homogenous,
 \item inhomogeneous and
-\item absorbing BCs.
+\item load conditions (see the specific PDEs).
 \end{itemize}
 
 {\bf Homogenous BCs} are used to suppress the nodal DOF at the specified
@@ -28,10 +28,6 @@ conditions are used, e.g. for grounding an electrode (electric potential
   inhomogeneous BC is the excitation of an electric device by an
   electric potential.
 
-{\bf Absorbing BCs} are used to get rid of the
-  artificial reflection of waves at the simulation boundaries. For
-  details see section "Acoustics".
-
 \bigskip
 
 In the section  \xel{bcsAndLoads} of the appropriate PDE in the
@@ -45,6 +41,9 @@ in the following manner
   </bcsAndLoads>
 \end{xmllisting}
 
+Please note, that each PDE has its own name for the homogeneous and
+inhomogeneous BCs (see Sec. \ref{Sec:SingleFields}), which substitutes
+\xml{dirichletHom} and \xml{dirichletInho}.
 With inhomogeneous BCs, one has additionally to define the \xatv{value} by
 giving the name of the boundary followed by the boundary value. If a
 time varying signal has to be applied, one has additionally to provide
@@ -76,13 +75,12 @@ freedom, e.g. in the mechanical PDE
    <dirichletHom   name="leftBound"   dof="x"/>
    <dirichletHom   name="leftBound"   dof="y"/>
    <dirichletInhom name="rightBound"  dof="y"  value="2.0"/>
-   <load           name="centerPoint" dof="x"  value="3.0"/>
 </bcsAndLoads>
 \end{xmllisting}
 
 \section{Loads}
-
-{\bf Loads} are used to apply external nodal loads like an electric
+%
+{\bf Loads} are used to apply external excitations like an electric
 charge.  The syntax of the {\xel{load} } command is equal to that of 
 the {\em inhomogeneous BCs}:
 \begin{xmllisting}
@@ -90,7 +88,9 @@ the {\em inhomogeneous BCs}:
    <load name="loadBound" value="10" dynamics="timeFile"/>
 </bcsAndLoads>
 \end{xmllisting}
-
+Please note that within each single PDE, we have physically motivated
+names for the loads  (see Sec. \ref{Sec:SingleFields}), which
+substitutes the \xml{load} command.
 Similar to the boundary conditions, the degree of freedom (dof) to
 which the load has to be applied, must be defined for PDEs with more
 than one dof per node:

@@ -18,7 +18,6 @@
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
-#include "Forms/Operators/ConvectivePierceOperator.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
 #include "Forms/Operators/DivOperator.hh"
 
@@ -449,21 +448,19 @@ namespace CoupledField{
         if( dim_ == 2 ) {
           convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
                                         new ConvectiveOperator<FeH1,2,1>(), coeffM, 2.0, coefUpdateGeo);
-          convectiveStiff = new ABInt<>(new ConvectivePierceOperator<FeH1,2,1>(),
-                                        new ConvectiveOperator<FeH1,2,1>(),coeffM, -1.0, coefUpdateGeo);
+          convectiveStiff = new BBInt<>(new ConvectiveOperator<FeH1,2,1>(),coeffM, -1.0, coefUpdateGeo);
         } else {
           convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),
                                         new ConvectiveOperator<FeH1,3,1>(), coeffM, 2.0, coefUpdateGeo);
-          convectiveStiff = new ABInt<>(new ConvectivePierceOperator<FeH1,3,1>(),
-                                        new ConvectiveOperator<FeH1,3,1>(), coeffM, -1.0, coefUpdateGeo);
+          convectiveStiff = new BBInt<>(new ConvectiveOperator<FeH1,3,1>(), coeffM, -1.0, coefUpdateGeo);
         }
-        convectiveDamp->SetBCoefFunctionOpB(meanFlowCoef_);
-        convectiveDamp->SetName("convectiveDampPierce");
         convectiveStiff->SetBCoefFunctionOpB(meanFlowCoef_);
         convectiveStiff->SetName("convectiveStiffPierce");
+        convectiveDamp->SetBCoefFunctionOpB(meanFlowCoef_);
+        convectiveDamp->SetName("convectiveDampPierce");
 
+        BiLinFormContext *convectiveContextStiff =  new BiLinFormContext(convectiveStiff, STIFFNESS );
         BiLinFormContext *convectiveContextDamp  =  new BiLinFormContext(convectiveDamp, DAMPING );
-        BiLinFormContext *convectiveContextStiff =  new BiLinFormContext(convectiveDamp, STIFFNESS );
 
         convectiveContextDamp->SetEntities( actSDList, actSDList );
         convectiveContextDamp->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
@@ -650,7 +647,7 @@ namespace CoupledField{
         DefineMortarCoupling(formulation_, *ncIt);
         break;
       case NC_NITSCHE:
-        if(dim_ == 2)
+        if (dim_ == 2)
           DefineNitscheCoupling<2,1>(formulation_, *ncIt );
         else
           DefineNitscheCoupling<3,1>(formulation_, *ncIt );
@@ -1229,7 +1226,7 @@ namespace CoupledField{
       DefineFieldResult( velFct, vel );
       
       // === ACOU_NORMAL_VELOCITY ===
-      velFctNormal.reset(new CoefFunctionSurf(true));
+      velFctNormal.reset(new CoefFunctionSurf(true, velNormal));
       DefineFieldResult(velFctNormal, velNormal);
       surfCoefFcts_[velFctNormal] = velFctPot;
       
@@ -1241,7 +1238,7 @@ namespace CoupledField{
       DefineFieldResult(intensFct, intensity);
       
       // === ACOU_NORMAL_INTENSITY ===
-      sNormIntens.reset(new CoefFunctionSurf(true));
+      sNormIntens.reset(new CoefFunctionSurf(true, intensNormal));
       DefineFieldResult( sNormIntens, intensNormal );
       surfCoefFcts_[sNormIntens] = intensFct;
       
@@ -1288,7 +1285,7 @@ namespace CoupledField{
       DefineFieldResult( velFct, vel );
 
       // === ACOU_NORMAL_VELOCITY ===
-      velFctNormal.reset(new CoefFunctionSurf(true));
+      velFctNormal.reset(new CoefFunctionSurf(true, velNormal));
       DefineFieldResult(velFctNormal, velNormal);
       surfCoefFcts_[velFctNormal] = velFct;
       
@@ -1300,7 +1297,7 @@ namespace CoupledField{
       DefineFieldResult(intensFct, intensity);
 
       // === ACOU_NORMAL_INTENSITY ===
-      sNormIntens.reset(new CoefFunctionSurf(true));
+      sNormIntens.reset(new CoefFunctionSurf(true, intensNormal));
       DefineFieldResult( sNormIntens, intensNormal );
       surfCoefFcts_[sNormIntens] = intensFct;
       
@@ -1335,22 +1332,31 @@ namespace CoupledField{
 
   //! Init the time stepping
   void AcousticPDE::InitTimeStepping(){
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
 
-    feFunctions_[formulation_]->SetTimeScheme(myScheme);
     if(this->isTimeDomPML_){
-      shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+      //basically the choice for alpha scheme needs to be done everytime we have
+      //a damping matrix not just for PML
+
+      //scheme for main unknown
+      GLMScheme * scheme1 = new Newmark(0.5,0.25,0);
+      GLMScheme * scheme2 = new Newmark(0.5,0.25,0);
+      shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
+      shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(scheme2,0));
+
       feFunctions_[ACOU_PMLAUXVEC]->SetTimeScheme(vecScheme);
+      feFunctions_[formulation_]->SetTimeScheme(acouScheme);
 
       if(!this->isAPML_ && dim_ == 3){
-        shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+        GLMScheme * scheme3 = new Newmark(0.5,0.25,0);
+        shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(scheme3,0));
         feFunctions_[ACOU_PMLAUXSCALAR]->SetTimeScheme(scalScheme);
       }
-
+    }else{
+      GLMScheme * scheme1 = new Newmark(0.5,0.25,0.0);
+      shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
+      feFunctions_[formulation_]->SetTimeScheme(acouScheme);
     }
-
   }
-
 
 }
 

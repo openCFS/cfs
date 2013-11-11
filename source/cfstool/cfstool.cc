@@ -1075,12 +1075,13 @@ int main(int argc, char** argv)
       CFSTool::Diff( file1, file2, file3, \
                      true, false, maxDiffResultName);
     } else if (param_mode == "wvt") {
-      if (num_files < 3)
+      if (num_files < 2)
       {
-        EXCEPTION( "Please provide 'lateral_mode_file', 'coriolis_mode_file',\n 'mean_velocity_file' and optionally ['out_file']" );
+        EXCEPTION( "Please provide 'lateral_mode_file', 'coriolis_mode_file',\n and optionally ['mean_velocity_file'] ['out_file']" );
       }
 
-      CFSTool::WVT wvt( file1, file2, file3, file4, param, info );
+      CFSTool::WVT wvt( param, info );
+      wvt.PostProcess();
 
     } else {
       EXCEPTION( "No such mode: " << param_mode <<". See help for available modes." );

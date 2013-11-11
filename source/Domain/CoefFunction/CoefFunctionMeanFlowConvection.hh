@@ -29,7 +29,7 @@ namespace CoupledField {
   //! Computes the stabilization parameters for SUPG
 
 
-  template<typename T>
+  template<typename T, UInt DOFS = 2>
   class CoefFunctionMeanFlowConvection : public CoefFunction
   {
   public:

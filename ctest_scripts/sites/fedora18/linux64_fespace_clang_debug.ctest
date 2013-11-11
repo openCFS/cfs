@@ -101,7 +101,7 @@ INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 # MESSAGE("${DIST} ${REV} ${ARCH}")
 
 SET(BUILDTYPE "DEBUG")
-SET(BUILDNAME "FeSpace ${DIST} ${REV} ${ARCH} CLANG ${BUILDTYPE}")
+SET(BUILDNAME "FeSpace ${DIST} ${REV} ${ARCH} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
 SITE_NAME(CFS_BUILD_HOST)
 STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
@@ -109,11 +109,6 @@ LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST)
 SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}.mdmt")
 set(CTEST_SITE "${CFS_BUILD_HOST}")
 set(CTEST_BUILD_NAME "${BUILDNAME}")
-
-#-----------------------------------------------------------------------------
-# Copy CDash server configuration file to source dir.
-#-----------------------------------------------------------------------------
-EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
 
 #-----------------------------------------------------------------------------
 # Start out with an empty binary directory.
@@ -129,6 +124,7 @@ SET(CTEST_INITIAL_CACHE
   "BUILD_TESTING:BOOL=ON
    DEBUG:BOOL=ON
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
+   CMAKE_COLOR_MAKEFILE:BOOL=OFF
    CMAKE_Fortran_FLAGS:STRING=-fplugin=dragonegg
    TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_FESPACE
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
@@ -138,7 +134,7 @@ SET(CTEST_INITIAL_CACHE
    USE_GMSH:BOOL=ON
 #   USE_PYTHON:BOOL=ON
 #   USE_TCL:BOOL=ON
-   USE_CGAL:BOOL=ON
+   USE_CGAL:BOOL=OFF
    USE_SCPIP:BOOL=ON
    USE_SUITESPARSE:BOOL=ON
    USE_SUPERLU:BOOL=ON

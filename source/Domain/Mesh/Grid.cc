@@ -885,7 +885,7 @@ namespace CoupledField
   
   
 
-  HandleBox Grid::CreateBoxFromCoord( const Vector<double> coords, UInt* id,
+  HandleBox Grid::CreateBoxFromCoord( const Vector<double>& coords, UInt* id,
                                       Double tol )
   {
     if(coords.GetSize()==2){
@@ -908,22 +908,21 @@ namespace CoupledField
 
     xmin = xmax = p[0];
     ymin = ymax = p[1];
-    if(p.GetSize() == 2)
-      zmin = zmax = 0;
-    else
+    if(p.GetSize() == 2) {
+      zmin = zmax = 0.0;
+    }
+    else {
       zmin = zmax = p[2];
+    }
 
-    for(UInt j = 1, n=elem->connect.GetSize(); j < n; j++)
+    for(UInt j = 1, n=elem->connect.GetSize(); j < n; ++j)
     {
       GetNodeCoordinate(p, elem->connect[j]);
       xmin = (p[0] < xmin) ? p[0] : xmin;
       xmax = (p[0] > xmax) ? p[0] : xmax;
       ymin = (p[1] < ymin) ? p[1] : ymin;
       ymax = (p[1] > ymax) ? p[1] : ymax;
-      if(p.GetSize()==2){
-        zmin = 0;
-        zmax = 0;
-      }else{
+      if (p.GetSize() == 3) {
         zmin = (p[2] < zmin) ? p[2] : zmin;
         zmax = (p[2] > zmax) ? p[2] : zmax;
       }
@@ -935,7 +934,11 @@ namespace CoupledField
     xmax += globToler*dia[0];
     ymin -= globToler*dia[1];
     ymax += globToler*dia[1];
-    if(p.GetSize()>2){
+    if (p.GetSize() == 2) {
+      zmin = -globToler;
+      zmax = globToler;
+    }
+    else {
       zmin -= globToler*dia[2];
       zmax += globToler*dia[2];
     }
@@ -1512,12 +1515,11 @@ namespace CoupledField {
   }
 
   void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                       const std::set<RegionIdType> srcRegions ) {
+                                       const std::set<RegionIdType> srcRegions,
+                                       Double tol ) {
 
     std::vector< Elem* > elems;
     std::vector< Vector<Double>* > points;
-    
-    Double globToler = 1e-3;
     
     StdVector<Elem*> volElems;
     GetVolElems(volElems, ALL_REGIONS);
@@ -1532,12 +1534,12 @@ namespace CoupledField {
       points.push_back(point);
     } // loop over points
     
-    ElemBoxGenerator ebg(this, globToler, GetDim());
+    ElemBoxGenerator ebg(this, tol, GetDim());
     PointBoxGenerator pbg(GetDim());
 
     // For 2D:
     //  auto adjList = fbi::SetA<Elem*, 0, 1>::SetB<Vector<Double>*, 0, 1>::intersect(
-    //    elems, ElemBoxGenerator(this, globToler, GetDim()), points, PointBoxGenerator(GetDim()));
+    //    elems, ElemBoxGenerator(this, tol, GetDim()), points, PointBoxGenerator(GetDim()));
     
     fbi::SetA<Elem*, 0, 1, 2>::ResultType adjList;
     adjList = fbi::SetA<Elem*, 0, 1, 2>::SetB<Vector<Double>*, 0, 1, 2>::intersect(
@@ -1576,10 +1578,9 @@ namespace CoupledField {
   // This is a very basic implementation for axis-parallel box intersection. It is just used
   // as internal replacement in case we want to use valgrind and can not use CGAL.
   void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                       const std::set<RegionIdType> srcRegions ) {
+                                       const std::set<RegionIdType> srcRegions,
+                                       Double tol ) {
 
-    Double globToler = 1e-3;
-    
     // obtain all volume elements from grid
     StdVector<Elem*> elems;
     GetVolElems(elems, ALL_REGIONS);
@@ -1631,13 +1632,13 @@ namespace CoupledField {
         shared_ptr<ElemShapeMap> esm = this->GetElemShapeMap(elems[i]);
         Vector<Double> dia;
         esm->CalcDiameter(dia);
-        bbox[0] -= globToler*dia[0];
-        bbox[3] += globToler*dia[0];
-        bbox[1] -= globToler*dia[1];
-        bbox[4] += globToler*dia[1];
+        bbox[0] -= tol*dia[0];
+        bbox[3] += tol*dia[0];
+        bbox[1] -= tol*dia[1];
+        bbox[4] += tol*dia[1];
         if( p.GetSize() == 3 ) {
-          bbox[2] -= globToler*dia[2];
-          bbox[5] += globToler*dia[2];
+          bbox[2] -= tol*dia[2];
+          bbox[5] += tol*dia[2];
         }
         elemBoxes_[i] = bbox;
       }

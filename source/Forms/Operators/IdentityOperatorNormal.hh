@@ -189,9 +189,9 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the bas class function
     //available
-    using BaseBOperator::CalcOpMat;
+    using IdentityOperatorNormal<FE,D,TYPE>::CalcOpMat;
 
-    using BaseBOperator::CalcOpMatTransposed;
+    using IdentityOperatorNormal<FE,D,TYPE>::CalcOpMatTransposed;
 
   protected:
 

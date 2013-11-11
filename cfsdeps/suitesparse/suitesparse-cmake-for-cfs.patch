@@ -1,7 +1,7 @@
 --- AMD/Lib/CMakeLists.txt	2012-12-17 12:33:36.159259937 +0100
 +++ AMD/Lib/CMakeLists.txt	2012-12-17 15:14:56.706103964 +0100
 @@ -1,18 +1,21 @@
- include_directories(../Include ${PROJECT_SOURCE_DIR}/UFconfig)
+ include_directories(../Include ${PROJECT_SOURCE_DIR}/SuiteSparse_config)
  
 -set(libamd_sources
 +set(amd_sources
@@ -25,7 +25,7 @@
 +add_library(amd STATIC
      ../Include/amd.h ../Include/amd_internal.h ../Source/amd_global.c)
 -target_link_libraries(libamd libamd_dint libamd_dlong libufconfig)
-+target_link_libraries(amd amd_dint amd_dlong ufconfig)
++target_link_libraries(amd amd_dint amd_dlong SuiteSparse_config)
 +
 +INSTALL(TARGETS amd amd_dlong amd_dint
 +  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
@@ -33,7 +33,7 @@
 --- CAMD/Lib/CMakeLists.txt	2012-12-17 12:33:36.159259937 +0100
 +++ CAMD/Lib/CMakeLists.txt	2012-12-17 15:15:11.000104074 +0100
 @@ -1,18 +1,21 @@
- include_directories(../Include ${PROJECT_SOURCE_DIR}/UFconfig)
+ include_directories(../Include ${PROJECT_SOURCE_DIR}/SuiteSparse_config)
  
 -set(libcamd_sources
 +set(camd_sources
@@ -57,7 +57,7 @@
 +add_library(camd STATIC
      ../Include/camd.h ../Include/camd_internal.h ../Source/camd_global.c)
 -target_link_libraries(libcamd libcamd_dint libcamd_dlong libufconfig)
-+target_link_libraries(camd camd_dint camd_dlong ufconfig)
++target_link_libraries(camd camd_dint camd_dlong SuiteSparse_config)
 +
 +INSTALL(TARGETS camd camd_dlong camd_dint
 +  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
@@ -65,7 +65,7 @@
 --- CCOLAMD/Lib/CMakeLists.txt	2012-12-17 12:33:36.160259933 +0100
 +++ CCOLAMD/Lib/CMakeLists.txt	2012-12-17 15:16:19.313103919 +0100
 @@ -1,14 +1,17 @@
- include_directories(../Include ${PROJECT_SOURCE_DIR}/UFconfig)
+ include_directories(../Include ${PROJECT_SOURCE_DIR}/SuiteSparse_config)
  
 -set(libccolamd_sources
 +set(ccolamd_sources
@@ -85,7 +85,7 @@
 +add_library(ccolamd STATIC
      ../Include/ccolamd.h ../Source/ccolamd_global.c)
 -target_link_libraries(libccolamd libccolamd_dint libccolamd_dlong libufconfig)
-+target_link_libraries(ccolamd ccolamd_dint ccolamd_dlong ufconfig)
++target_link_libraries(ccolamd ccolamd_dint ccolamd_dlong SuiteSparse_config)
 +
 +INSTALL(TARGETS ccolamd ccolamd_dlong ccolamd_dint
 +  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
@@ -220,11 +220,11 @@
 +#    ${cholmod_headers} dummy.c)
 +#target_link_libraries(cholmod
 +#    cholmod_dint cholmod_dlong
-+#    amd camd colamd ccolamd ufconfig libmetis ${MKL_LIBRARIES})
++#    amd camd colamd ccolamd SuiteSparse_config libmetis ${MKL_LIBRARIES})
 --- COLAMD/Lib/CMakeLists.txt	2012-12-17 12:33:36.160259933 +0100
 +++ COLAMD/Lib/CMakeLists.txt	2012-12-17 15:17:37.456103995 +0100
 @@ -1,14 +1,17 @@
- include_directories(../Include ${PROJECT_SOURCE_DIR}/UFconfig)
+ include_directories(../Include ${PROJECT_SOURCE_DIR}/SuiteSparse_config)
  
 -set(libcolamd_sources
 +set(colamd_sources
@@ -244,7 +244,7 @@
 +add_library(colamd STATIC
      ../Include/colamd.h ../Source/colamd_global.c)
 -target_link_libraries(libcolamd libcolamd_dint libcolamd_dlong libufconfig)
-+target_link_libraries(colamd colamd_dint colamd_dlong ufconfig)
++target_link_libraries(colamd colamd_dint colamd_dlong SuiteSparse_config)
 +
 +INSTALL(TARGETS colamd colamd_dlong colamd_dint
 +  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
@@ -311,7 +311,7 @@
 -    libufconfig libamd libcamd libcolamd libccolamd libcholmod ${MKL_LIBRARIES})
 +target_link_libraries(umfpack
 +    umfpack_dint umfpack_dlong umfpack_zint umfpack_zlong
-+    ufconfig amd camd colamd ccolamd cholmod)
++    SuiteSparse_config amd camd colamd ccolamd cholmod)
 +
 +INSTALL(TARGETS umfpack umfpack_dlong umfpack_dint umfpack_zlong umfpack_zint
 +  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
@@ -324,9 +324,9 @@
 -
 -link_directories("C:/Intel/ComposerXE-2011/mkl/lib/intel64")
 -set(MKL_LIBRARIES mkl_rt.lib)
-+project(SuiteSparse-3.7.0 C)
++project(SuiteSparse-4.2.1 C)
  
- add_subdirectory(UFconfig)
+ add_subdirectory(SuiteSparse_config)
  add_subdirectory(AMD)
  add_subdirectory(CAMD)
  add_subdirectory(COLAMD)
@@ -340,7 +340,7 @@
 -    libufconfig libamd libcamd libcolamd libccolamd libcholmod libumfpack)
 +# add_library(libsuitesparse SHARED libsuitesparse.def)
 +# target_link_libraries(libsuitesparse
-+#    libufconfig libamd libcamd libcolamd libccolamd libcholmod libumfpack)
++#    SuiteSparse_config libamd libcamd libcolamd libccolamd libcholmod libumfpack)
  
 -install(TARGETS libsuitesparse
 -    RUNTIME DESTINATION bin
@@ -350,3 +350,11 @@
 +#    RUNTIME DESTINATION bin
 +#    LIBRARY DESTINATION lib
 +#    ARCHIVE DESTINATION lib)
+--- SuiteSparse_config/CMakeLists.txt.orig	2013-09-07 20:35:55.000000000 +0200
++++ SuiteSparse_config/CMakeLists.txt	2013-09-07 20:36:07.000000000 +0200
+@@ -1,3 +1,5 @@
+ install(FILES SuiteSparse_config.h DESTINATION include)
+ 
+ add_library(SuiteSparse_config STATIC SuiteSparse_config.h SuiteSparse_config.c)
++
++INSTALL(TARGETS SuiteSparse_config ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")

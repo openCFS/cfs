@@ -5,17 +5,6 @@ set(hdf5_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/hdf5")
 set(hdf5_install  "${CMAKE_CURRENT_BINARY_DIR}")
 set(hdf5_source  "${hdf5_prefix}/src/hdf5")
 
-IF(NOT CFS_BUILD_OS STREQUAL CFS_TARGET_OS)
-  SET(HDF5_CROSS_COMPILE 1)
-ENDIF()
-
-IF(MINGW)
-  IF(NOT CFS_BUILD_ARCH STREQUAL CFS_TARGET_ARCH)
-    SET(HDF5_CROSS_COMPILE 1)
-  ENDIF()
-ENDIF()
-
-
 #SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/hdf5/hdf5-patch.cmake.in")
 #SET(PFN "${hdf5_prefix}/hdf5-patch.cmake")
 #CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
@@ -70,19 +59,34 @@ ENDIF()
 #    )
 
 IF(MINGW)
-  IF(HDF5_CROSS_COMPILE)
+  IF(CMAKE_CROSSCOMPILING)
     LIST(APPEND CMAKE_ARGS
       -DH5_HAVE_GETHOSTNAME:INTERNAL=0
       )
     
     IF(CFS_TARGET_ARCH STREQUAL "X86_64")
       LIST(APPEND CMAKE_ARGS
-	-C ${CMAKE_CURRENT_SOURCE_DIR}/cfsdeps/hdf5/TryRunResults_MINGW64_CENTOS6.cmake
+	-C ${CMAKE_CURRENT_SOURCE_DIR}/cfsdeps/hdf5/TryRunResults_MINGW_X86_64_CENTOS6.cmake
 	)
     ENDIF()
   ENDIF()
 
 ENDIF(MINGW)
+
+IF(APPLE)
+  IF(CMAKE_CROSSCOMPILING)
+    IF(CFS_TARGET_ARCH STREQUAL "X86_64")
+      LIST(APPEND CMAKE_ARGS
+	-C ${CMAKE_CURRENT_SOURCE_DIR}/cfsdeps/hdf5/TryRunResults_MACOSX_X86_64_CENTOS6.cmake
+	)
+    ELSE()
+      LIST(APPEND CMAKE_ARGS
+	-C ${CMAKE_CURRENT_SOURCE_DIR}/cfsdeps/hdf5/TryRunResults_MACOSX_I386_CENTOS6.cmake
+	)
+    ENDIF()
+  ENDIF()
+ENDIF(APPLE)
+
 
 LIST(APPEND CMAKE_ARGS
   -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARY}
@@ -96,14 +100,36 @@ SET(PFN "${hdf5_prefix}/hdf5-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since the non-standard port 
+# number of the FTP server on the CFS++ development server  may not be
+# accessible from behind firewalls.
+# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
+# used to configure the download CMake file for the library.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4/hdf5-1.8.8.tar.gz"
+  "ftp://ftp.ca.freebsd.org/pub/packages/graphics/netcdf/netcdf-4/hdf5-1.8.8.tar.gz"
+#  "http://www.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8.8/src/hdf5-1.8.8.tar.gz"
+  "${HDF5_URL}/${HDF5_GZ}"
+)
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/hdf5/${HDF5_GZ}")
+SET(MD5_SUM ${HDF5_MD5})
+
+SET(DLFN "${hdf5_prefix}/hdf5-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  )
+
+#-------------------------------------------------------------------------------
 # The hdf5-static external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(hdf5-static
   DEPENDS zlib
   PREFIX ${hdf5_prefix}
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/hdf5
   SOURCE_DIR ${hdf5_source}
-  URL ${HDF5_URL}/${HDF5_GZ}
+  URL ${LOCAL_FILE}
   URL_MD5 ${HDF5_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   LIST_SEPARATOR ^
@@ -119,6 +145,17 @@ ExternalProject_Add(hdf5-static
     # On Mac OS X we can get problems with the system strdup function.
     -DH5_HAVE_STRDUP:BOOL=OFF
     )
+
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(hdf5-static cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${hdf5_prefix}
+)
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

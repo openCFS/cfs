@@ -339,6 +339,7 @@ namespace CoupledField {
       shape_ = Elem::shapes[feType_];
       actNumFncs_ = 4;
       order_ = 1;
+      hasICModes_ = true;
     }
 
     FeH1LagrangeQuadVar::~FeH1LagrangeQuadVar(){
@@ -508,6 +509,26 @@ namespace CoupledField {
         coordMat[c++][1] = supPoints1D[i];
       }
     }
+  }
+
+  void FeH1LagrangeQuadVar::CalcShFncICModes( Vector<Double>& shape,
+		  	                                  const Vector<Double>& point,
+                                              const Elem* ptElem,
+                                              UInt comp  ) {
+	  shape.Resize( 2 );
+	  shape[0] = 1.0 - point[0] * point[0];
+	  shape[1] = 1.0 - point[1] * point[1];
+  }
+
+
+  void FeH1LagrangeQuadVar::CalcLocDerivShFncICModes( Matrix<Double> & deriv,
+                                                   const Vector<Double>& point,
+                                                   const Elem* ptElem,
+                                                   UInt comp ) {
+	   deriv.Resize( 2, 2);
+	   deriv.Init();
+	   deriv[0][0] = -2.0 * point[0];
+	   deriv[1][1] = -2.0 * point[1];
   }
 
   //=========================================================================

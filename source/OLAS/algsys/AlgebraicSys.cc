@@ -1680,7 +1680,7 @@ namespace CoupledField {
           if( index > blockInfo_[iBlock]->numLastFreeIndex ) {
             // fixed index
             fixedIndPerBlock[iBlock].insert( 
-                index - blockInfo_[iBlock]->numLastFreeIndex -1 + offset );
+                index - blockInfo_[iBlock]->numLastFreeIndex + offset );
           } else {
             // free index
             freeIndPerBlock[iBlock].insert( index + offset );
@@ -2357,6 +2357,11 @@ namespace CoupledField {
     std::map<UInt, std::set<UInt> > dummyFreeSet;
     MapCompleteFctIdToIndex(fctId, freeIndPerBlock, fixedIndPerBlock, true);
 
+    // If there are no affected free dofs, leave immediately
+    if( freeIndPerBlock.size() == 0 ) {
+      return;
+    }
+    
     // It's okay, if there are no factors, if there is only a system
     // matrix and no other ones
     if ( matFactors.empty() == true ) {

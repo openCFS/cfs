@@ -66,19 +66,50 @@ SET(PFN "${gidpost_prefix}/gidpost-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since the non-standard port 
+# number of the FTP server on the CFS++ development server  may not be
+# accessible from behind firewalls.
+# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
+# used to configure the download CMake file for the library.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "ftp://www.gidhome.com/pub/Tools/${GIDPOST_ZIP}"
+  "${GIDPOST_URL}/${GIDPOST_GZ}"
+)
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/gidpost/${GIDPOST_ZIP}")
+SET(MD5_SUM ${GIDPOST_MD5})
+
+SET(DLFN "${gidpost_prefix}/gidpost-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  )
+
+#-------------------------------------------------------------------------------
 # The GiDpost external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(gidpost
   DEPENDS hdf5-static zlib
   PREFIX "${gidpost_prefix}"
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/gidpost
-  URL ${GIDPOST_URL}/${GIDPOST_ZIP}
+  URL ${LOCAL_FILE}
   URL_MD5 ${GIDPOST_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   LIST_SEPARATOR ,
   CMAKE_ARGS
      ${CMAKE_ARGS}
   )
+
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(gidpost cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${gidpost_prefix}
+)
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

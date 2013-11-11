@@ -12,12 +12,23 @@ SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
 SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
 SET(CFS_ARCH "@CFS_ARCH@")
 SET(LIB_SUFFIX "@LIB_SUFFIX@")
-SET(MINGW "@MINGW@")
+SET(CMAKE_CROSSCOMPILING "@CMAKE_CROSSCOMPILING@")
+SET(CMAKE_TOOLCHAIN_PREFIX "@CMAKE_TOOLCHAIN_PREFIX@")
+SET(APPLE "@APPLE@")
+
 
 if(CFS_ARCH STREQUAL "I386")
-  SET(ABI "32")
+  IF(APPLE AND CMAKE_CROSSCOMPILING)
+    SET(ABI "long")
+  ELSE()
+    SET(ABI "32")
+  ENDIF()
 else(CFS_ARCH STREQUAL "I386")
-  SET(ABI "64")
+  IF(APPLE AND CMAKE_CROSSCOMPILING)
+    SET(ABI "longlong")
+  ELSE()
+    SET(ABI "64")
+  ENDIF()
 endif(CFS_ARCH STREQUAL "I386")
 
 SET(ENV{CC} "@CMAKE_C_COMPILER@")
@@ -37,9 +48,21 @@ SET(CONFIGURE_CMD
   "ABI=${ABI}"
 )
 
-IF(MINGW)
+IF(CMAKE_CROSSCOMPILING)
+  SET(TOOLCHAIN_PREFIX ${CMAKE_TOOLCHAIN_PREFIX})
+
+  IF(APPLE)
+    # If we specify i686-apple-darwin10, configure thinks that we can only use
+    # ABI=32, even if we are compiling for x86_64. Therefore, we set here
+    # none-apple-darwin10 and tell configure manually, which tools to use.
+    STRING(REPLACE "i686" "none" TOOLCHAIN_PREFIX ${CMAKE_TOOLCHAIN_PREFIX})
+
+    SET(ENV{AR} "@CMAKE_AR@")
+    SET(ENV{RANLIB} "@CMAKE_RANLIB@")
+  ENDIF()
+
   LIST(APPEND CONFIGURE_CMD
-    "--host=x86_64-w64-mingw32"
+    "--host=${TOOLCHAIN_PREFIX}"
     )
 ENDIF()
 

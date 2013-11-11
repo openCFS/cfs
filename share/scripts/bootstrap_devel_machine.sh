@@ -171,7 +171,7 @@ SetupRHEL() {
     YC=epel.repo
     echo "[epel]" > $YC && \
     echo "name=EPEL RHEL\$releasever - \$basearch" >> $YC && \
-    echo "baseurl=http://ftp.ucr.ac.cr/epel/${RHEL_REL}/\$basearch" >> $YC || ExitFail
+    echo "baseurl=http://ftp.uni-bayreuth.de/linux/fedora-epel/${RHEL_REL}/\$basearch" >> $YC || ExitFail
     rm -f RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
     wget http://ftp.ucr.ac.cr/epel/RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
     rpm --import RPM-GPG-KEY-EPEL-${RHEL_REL}

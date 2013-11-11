@@ -175,7 +175,7 @@ namespace CoupledField{
   void CoefFunctionGridNodal<DATA_TYPE>::ReadSolution(UInt step,Vector<DATA_TYPE> & sol){
     std::set<std::string>::iterator regIter = srcRegions_.begin();
     sol.Resize(numEqns_);
-    sol.Init();
+    sol.Init(0.0);
     for( UInt i = 0; regIter != srcRegions_.end(); ++i,++regIter) {
       shared_ptr<BaseResult> Bres = domain_->GetResultHandler()->GetResult( this->inputId_, this->aSeqStep_ , step , this->solType_, *regIter );
       shared_ptr<EntityList> regionList = Bres->GetEntityList();
@@ -247,7 +247,7 @@ namespace CoupledField{
       Double factor1,factor2;
       stepnumber = GetStepNum(needTinterp,factor1,factor2);
       if(needTinterp){
-        EXCEPTION("Temporal interpolation not supported right now")
+        EXCEPTION("StepValue interpolation not supported right now")
       }else{
         //we just read the solution vector
         if(lastStepRead_ != stepnumber){
@@ -277,12 +277,12 @@ namespace CoupledField{
     curTStep_ = aTimeFreq;
     UInt step = 0;
   
-    //std::cout << "timestep: " << curTStep_ << std::endl;
+    std::cout << "timestep: " << curTStep_ << std::endl;
     //ok find makes no sense here, we need to iterate over it and
     // apply some tolerance..
     std::map<UInt,Double>::iterator stepIter = stepValueMap_.begin();
     for(;stepIter != stepValueMap_.end(); ++stepIter){
-      if(abs(stepIter->second - aTimeFreq) < 1e-8){
+      if(abs(stepIter->second - aTimeFreq) < 1e-4){
         break;
       }
     }
@@ -302,8 +302,8 @@ namespace CoupledField{
         }
       }
       interpolateT = true;
-      //std::cout << "oldTime = " << oldTime << std::endl;
-      //std::cout << "stepIter->second = " << stepIter->second << std::endl;
+      std::cout << "oldTime = " << oldTime << std::endl;
+      std::cout << "stepIter->second = " << stepIter->second << std::endl;
       Double dt = stepIter->second - oldTime;
       iFactor1 = (stepIter->second  - curTStep_)/dt;
       iFactor2 = (curTStep_  - oldTime)/dt;
@@ -321,7 +321,7 @@ namespace CoupledField{
       iFactor1 = 0.0;
       iFactor2 = 0.0;
     }
-    //std::cout << "computed Step: " << step << std::endl;
+    std::cout << "computed Step: " << step << std::endl;
     return step;
   }
 }

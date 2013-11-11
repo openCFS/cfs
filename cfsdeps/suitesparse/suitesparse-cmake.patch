@@ -13,7 +13,7 @@ diff -r bd330bb9c312 -r 962f928cd637 AMD/Lib/CMakeLists.txt
 --- /dev/null Thu Jan 01 00:00:00 1970 +0000
 +++ AMD/Lib/CMakeLists.txt Mon Aug 15 23:27:23 2011 +0800
 @@ -0,0 +1,18 @@
-+include_directories(../Include ${PROJECT_SOURCE_DIR}/UFconfig)
++include_directories(../Include ${PROJECT_SOURCE_DIR}/SuiteSparse_config)
 +
 +set(libamd_sources
 +    ../Include/amd.h ../Include/amd_internal.h
@@ -46,7 +46,7 @@ diff -r bd330bb9c312 -r 962f928cd637 CAMD/Lib/CMakeLists.txt
 --- /dev/null Thu Jan 01 00:00:00 1970 +0000
 +++ CAMD/Lib/CMakeLists.txt Mon Aug 15 23:27:23 2011 +0800
 @@ -0,0 +1,18 @@
-+include_directories(../Include ${PROJECT_SOURCE_DIR}/UFconfig)
++include_directories(../Include ${PROJECT_SOURCE_DIR}/SuiteSparse_config)
 +
 +set(libcamd_sources
 +    ../Include/camd.h ../Include/camd_internal.h
@@ -79,7 +79,7 @@ diff -r bd330bb9c312 -r 962f928cd637 CCOLAMD/Lib/CMakeLists.txt
 --- /dev/null Thu Jan 01 00:00:00 1970 +0000
 +++ CCOLAMD/Lib/CMakeLists.txt Mon Aug 15 23:27:23 2011 +0800
 @@ -0,0 +1,14 @@
-+include_directories(../Include ${PROJECT_SOURCE_DIR}/UFconfig)
++include_directories(../Include ${PROJECT_SOURCE_DIR}/SuiteSparse_config)
 +
 +set(libccolamd_sources
 +    ../Include/ccolamd.h ../Source/ccolamd.c)
@@ -106,14 +106,14 @@ diff -r bd330bb9c312 -r 962f928cd637 CHOLMOD/Include/CMakeLists.txt
 +install(FILES
 +    cholmod.h cholmod_io64.h cholmod_config.h cholmod_core.h cholmod_check.h
 +    cholmod_cholesky.h cholmod_matrixops.h cholmod_modify.h cholmod_partition.h
-+    cholmod_supernodal.h
++    cholmod_supernodal.h cholmod_camd.h
 +    DESTINATION include)
 diff -r bd330bb9c312 -r 962f928cd637 CHOLMOD/Lib/CMakeLists.txt
 --- /dev/null Thu Jan 01 00:00:00 1970 +0000
 +++ CHOLMOD/Lib/CMakeLists.txt Mon Aug 15 23:27:23 2011 +0800
 @@ -0,0 +1,124 @@
 +include_directories(../Include
-+    ${PROJECT_SOURCE_DIR}/UFconfig
++    ${PROJECT_SOURCE_DIR}/SuiteSparse_config
 +    ${PROJECT_SOURCE_DIR}/AMD/Include
 +    ${PROJECT_SOURCE_DIR}/CAMD/Include
 +    ${PROJECT_SOURCE_DIR}/COLAMD/Include
@@ -246,7 +246,7 @@ diff -r bd330bb9c312 -r 962f928cd637 CMakeLists.txt
 +link_directories("C:/Intel/ComposerXE-2011/mkl/lib/intel64")
 +set(MKL_LIBRARIES mkl_rt.lib)
 +
-+add_subdirectory(UFconfig)
++add_subdirectory(SuiteSparse_config)
 +add_subdirectory(AMD)
 +add_subdirectory(CAMD)
 +add_subdirectory(COLAMD)
@@ -278,7 +278,7 @@ diff -r bd330bb9c312 -r 962f928cd637 COLAMD/Lib/CMakeLists.txt
 --- /dev/null Thu Jan 01 00:00:00 1970 +0000
 +++ COLAMD/Lib/CMakeLists.txt Mon Aug 15 23:27:23 2011 +0800
 @@ -0,0 +1,14 @@
-+include_directories(../Include ${PROJECT_SOURCE_DIR}/UFconfig)
++include_directories(../Include ${PROJECT_SOURCE_DIR}/SuiteSparse_config)
 +
 +set(libcolamd_sources
 +    ../Include/colamd.h ../Source/colamd.c)
@@ -292,13 +292,13 @@ diff -r bd330bb9c312 -r 962f928cd637 COLAMD/Lib/CMakeLists.txt
 +add_library(libcolamd STATIC EXCLUDE_FROM_ALL
 +    ../Include/colamd.h ../Source/colamd_global.c)
 +target_link_libraries(libcolamd libcolamd_dint libcolamd_dlong libufconfig)
-diff -r bd330bb9c312 -r 962f928cd637 UFconfig/CMakeLists.txt
+diff -r bd330bb9c312 -r 962f928cd637 SuiteSparse_config/CMakeLists.txt
 --- /dev/null Thu Jan 01 00:00:00 1970 +0000
-+++ UFconfig/CMakeLists.txt Mon Aug 15 23:27:23 2011 +0800
++++ SuiteSparse_config/CMakeLists.txt Mon Aug 15 23:27:23 2011 +0800
 @@ -0,0 +1,3 @@
-+install(FILES UFconfig.h DESTINATION include)
++install(FILES SuiteSparse_config.h DESTINATION include)
 +
-+add_library(libufconfig STATIC EXCLUDE_FROM_ALL UFconfig.h UFconfig.c)
++add_library(SuiteSparse_config STATIC SuiteSparse_config.h SuiteSparse_config.c)
 diff -r bd330bb9c312 -r 962f928cd637 UMFPACK/CMakeLists.txt
 --- /dev/null Thu Jan 01 00:00:00 1970 +0000
 +++ UMFPACK/CMakeLists.txt Mon Aug 15 23:27:23 2011 +0800
@@ -349,7 +349,7 @@ diff -r bd330bb9c312 -r 962f928cd637 UMFPACK/Lib/CMakeLists.txt
 +++ UMFPACK/Lib/CMakeLists.txt Mon Aug 15 23:27:23 2011 +0800
 @@ -0,0 +1,153 @@
 +include_directories(../Include
-+    ${PROJECT_SOURCE_DIR}/UFconfig
++    ${PROJECT_SOURCE_DIR}/SuiteSparse_config
 +    ${PROJECT_SOURCE_DIR}/AMD/Include
 +    ${PROJECT_SOURCE_DIR}/CAMD/Include
 +    ${PROJECT_SOURCE_DIR}/COLAMD/Include

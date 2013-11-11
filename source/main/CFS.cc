@@ -181,8 +181,10 @@ CFS::~CFS()
   delete progOpts;
   progOpts = NULL;
   
-  simState->Finalize();
-  simState.reset();
+  if (simState) {
+    simState->Finalize();
+    simState.reset();
+  }
 
   // delete some global objects because valgrind complains otherwise
   // does not really matter anyway...

@@ -25,6 +25,7 @@
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormalTrans.hh"
 #include "Forms/Operators/StrainOperator.hh"
+#include "Forms/Operators/SurfaceNormalStressOperator.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -34,6 +35,8 @@
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
+
+#include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 
 namespace CoupledField {
 
@@ -380,7 +383,23 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         DefineMortarCoupling(MECH_DISPLACEMENT, *ncIt, dim_);
         break;
       case NC_NITSCHE:
-        EXCEPTION("ncInterface of Nitsche type is not implemented for MechPDE");
+      {
+        MortarInterface * ncIf = dynamic_cast<MortarInterface*>(ptGrid_
+                                    ->GetNcInterface(ncIt->interfaceId).get());
+        assert(ncIf);
+        
+        //check for softening
+        bool icModes = false;
+        if ( regionSoftening_[ncIf->GetMasterVolRegion()] == "icModesTW" ||
+             regionSoftening_[ncIf->GetSlaveVolRegion()]  == "icModesTW" )
+               icModes = true;
+
+        if(dim_ == 2)
+          DefineNitscheCoupling<2,2>(MECH_DISPLACEMENT, *ncIt, icModes);
+        else
+          DefineNitscheCoupling<3,3>(MECH_DISPLACEMENT, *ncIt, icModes);
+
+      }
         break;
       default:
         EXCEPTION("Unknown type of ncInterface");
@@ -691,7 +710,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     }
     return bOp;
   }
-  
+
   void MechPDE::DefineSolveStep()
   {
 		  solveStep_ = new StdSolveStep(*this);
@@ -900,7 +919,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       intensNormal->unit =  "N/ms";
       intensNormal->entryType = ResultInfo::SCALAR;
       intensNormal->definedOn = ResultInfo::SURF_ELEM;
-      sNormStructIntens.reset(new CoefFunctionSurf(true));
+      sNormStructIntens.reset(new CoefFunctionSurf(true, intensNormal));
       DefineFieldResult( sNormStructIntens, intensNormal );
       surfCoefFcts_[sNormStructIntens] = intensFct;
       
@@ -993,6 +1012,20 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
     // === MECHANIC DISPLACED SURFACE VOLUME ===
     // ... to be implemented
+
+    // === MECHANIC_NORMAL_STRESS ===
+    shared_ptr<ResultInfo> normalStressInfo;
+    shared_ptr<CoefFunctionSurf> normalStressFct;
+    normalStressInfo.reset(new ResultInfo);
+    normalStressInfo->resultType = MECH_NORMAL_STRESS;
+    normalStressInfo->dofNames = dispDofNames;
+    normalStressInfo->unit = "Pa";
+    normalStressInfo->entryType = ResultInfo::VECTOR;
+    normalStressInfo->definedOn = ResultInfo::SURF_ELEM;
+    
+    normalStressFct.reset(new CoefFunctionSurf(true, normalStressInfo));
+    DefineFieldResult(normalStressFct, normalStressInfo);
+    surfCoefFcts_[normalStressFct] = sigmaFunc;
   }
   
   std::map<SolutionType, shared_ptr<FeSpace> >

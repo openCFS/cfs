@@ -13,7 +13,7 @@ namespace CoupledField{
   //! \tparam FE Type of Finite Element used
   //! \tparam D Dimension of the problem space
   //! \tparam TYPE Data type (DOUBLE, COMPLEX)
-  template<class FE, UInt D, class TYPE = Double>
+  template<class FE, UInt D, UInt D_DOF = 1, class TYPE = Double>
   class GradientOperator : public BaseBOperator{
     public:
 
@@ -27,7 +27,7 @@ namespace CoupledField{
     static const UInt ORDER_DIFF = 1;
 
     //! Number of components of the problem (scalar, vector)
-    static const UInt DIM_DOF = 1; // m=1 (Skalar), m=2,3 Vektor
+    static const UInt DIM_DOF = D_DOF; // m=1 (Skalar), m=2,3 Vektor
 
     //! Dimension of the underlying domain / space
     static const UInt DIM_SPACE = D; // n=2,3
@@ -97,36 +97,56 @@ namespace CoupledField{
 
   };
 
-  template<class FE, UInt D, class TYPE>
-  void GradientOperator<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+  template<class FE, UInt D, UInt D_DOF, class TYPE>
+  void GradientOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMat,
                                                 const LocPointMapped& lp, 
                                                 BaseFE* ptFe ){
     UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialise with zeros
-    bMat.Resize( DIM_SPACE, numFncs );
+    bMat.Resize( DIM_SPACE, numFncs  * DIM_DOF );
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
     FE *fe = (static_cast<FE*>(ptFe));
     fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
-    bMat= Transpose(xiDx);
+    if(DIM_DOF == 1){
+      bMat = Transpose(xiDx);
+    }else{
+      assert(DIM_SPACE == DIM_DOF);
+      for(UInt i = 0; i< numFncs ; ++i){
+        for(UInt sDim = 0; sDim < DIM_SPACE; ++sDim){
+          bMat[sDim][i*DIM_DOF + sDim] = xiDx[i][sDim];
+        }
+      }
+    }
+
   }
 
-  template<class FE, UInt D, class TYPE>
-  void GradientOperator<FE,D,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
+  template<class FE, UInt D, UInt D_DOF, class TYPE>
+  void GradientOperator<FE,D,D_DOF,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
                                                           const LocPointMapped& lp, 
                                                           BaseFE* ptFe ){
     const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialise with zeros
-    bMat.Resize(numFncs , DIM_SPACE );
+    bMat.Resize(numFncs  * DIM_DOF , DIM_SPACE );
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: spaceDim x nrNodes )
     FE *fe = (static_cast<FE*>(ptFe));
-    fe->GetGlobDerivShFnc( bMat, lp, lp.shapeMap->GetElem() , 1 );
 
-
+    if(DIM_DOF == 1){
+      fe->GetGlobDerivShFnc( bMat, lp, lp.shapeMap->GetElem() , 1 );
+    }else{
+      assert(DIM_SPACE == DIM_DOF);
+      Matrix<Double> xiDx;
+      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+      for(UInt i = 0; i< numFncs ; ++i){
+        for(UInt sDim = 0; sDim < DIM_SPACE; ++sDim){
+          bMat[i*DIM_DOF + sDim][sDim] = xiDx[i][sDim];
+        }
+      }
+    }
   }
 
   //! Calculate the gradient of the shape functions scaled by a
@@ -140,7 +160,7 @@ namespace CoupledField{
   //! \tparam D Dimension of the problem space
   //! \tparam TYPE Data type (DOUBLE, COMPLEX)
   template<class FE, UInt D, class TYPE = Double>
-  class ScaledGradientOperator : public GradientOperator<FE,D,TYPE>{
+  class ScaledGradientOperator : public GradientOperator<FE,D,1,TYPE>{
     public:
 
     // ------------------
@@ -294,7 +314,7 @@ namespace CoupledField{
                                                 BaseFE* ptFe ){
     assert(this->coef_ != NULL);
 
-    GradientOperator<FE,D,TYPE>::CalcOpMat(bMat,lp,ptFe);
+    GradientOperator<FE,D,1,TYPE>::CalcOpMat(bMat,lp,ptFe);
     Vector<Double> coefs;
     this->coef_->GetVector(coefs,lp);
     for(UInt i=0;i<bMat.GetNumCols();++i){
@@ -310,7 +330,7 @@ namespace CoupledField{
                                                           BaseFE* ptFe ){
     assert(this->coef_ != NULL);
 
-    GradientOperator<FE,D,TYPE>::CalcOpMatTransposed(bMat,lp,ptFe);
+    GradientOperator<FE,D,1,TYPE>::CalcOpMatTransposed(bMat,lp,ptFe);
     Vector<Double> coefs;
     this->coef_->GetVector(coefs,lp);
     for(UInt i=0;i<bMat.GetNumRows();++i){

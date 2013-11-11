@@ -293,6 +293,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     
     // Initialize solution map
     solutionMap_[MAG_FORCE_LORENTZ_DENSITY] = MAG_FORCE_LORENTZ;
+    solutionMap_[ELEC_POWER_DENSITY] = ELEC_POWER;
   }
   
     

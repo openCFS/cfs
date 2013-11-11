@@ -438,6 +438,32 @@ public:
                                         Grid* ptGrid);
   //@}
 
+  //@{
+  //! Return scalar values at global coordinate locations
+
+  //! This method allows to get the values at several global coordinate
+  //! locations at once. This can be very efficient for simple expressions
+  //! (constant, analytical) or rather costly (e.g. for element-discerete values
+  //! involving a global-local transformation.
+  //!
+  //! In the base class, the most general approach is implemented, i.e. we
+  //! map every coordinate to element local coordinates and call the related
+  //! GetScalar() method, which can be rather costly.
+  //! In this case it is advisable to override this method in the derived
+  //! CoefFunction class.
+  virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
+                                        StdVector< Matrix<Double> >& values,
+                                        Grid* ptGrid){
+    Exception("GetTensorValuesAtCoords<Double> not implemented in base class");
+  }
+
+  virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
+                                        StdVector< Matrix<Complex> >& values,
+                                        Grid* ptGrid){
+    Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
+  }
+  //@}
+
   //@}
 protected:
 

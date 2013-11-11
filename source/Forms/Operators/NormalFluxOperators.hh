@@ -82,9 +82,9 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the bas class function
     //available
-    using BaseBOperator::CalcOpMat;
+    using IdentityOperator<FE,D,D_DOF,TYPE>::CalcOpMat;
 
-    using BaseBOperator::CalcOpMatTransposed;
+    using IdentityOperator<FE,D,D_DOF,TYPE>::CalcOpMatTransposed;
     
     // ===============
     //  QUERY METHODS
@@ -178,9 +178,9 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the bas class function
     //available
-    using BaseBOperator::CalcOpMat;
+    using IdentityOperatorPiola<FE,D,D_DOF,TYPE>::CalcOpMat;
 
-    using BaseBOperator::CalcOpMatTransposed;
+    using IdentityOperatorPiola<FE,D,D_DOF,TYPE>::CalcOpMatTransposed;
 
   };
 

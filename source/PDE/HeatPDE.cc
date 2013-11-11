@@ -323,6 +323,47 @@ void HeatPDE::DefineIntegrators() {
     }
   }
 
+  // ===============
+  //  electric power density
+  // ===============
+  LOG_DBG(heatcondpde) << "Reading electric power densities";
+
+  shared_ptr<BaseFeFunction> myFct = feFunctions_[HEAT_TEMPERATURE];
+  StdVector<std::string> dispDofNames = myFct->GetResultInfo()->dofNames;
+  StdVector<shared_ptr<EntityList> > ent;
+  StdVector<PtrCoefFct > coef;
+  LinearForm * lin = NULL;
+
+  ReadRhsExcitation( "elecPowerDensity", dispDofNames, ResultInfo::SCALAR, isComplex_,
+                      ent, coef, updatedGeo_ );
+  for( UInt i = 0; i < ent.GetSize(); ++i ) {
+    // check type of entitylist
+    if (ent[i]->GetType() == EntityList::NODE_LIST) {
+      EXCEPTION("Electric power density must be defined on elements")
+    }
+
+    if( dim_ == 2) {
+      if(isComplex_) {
+        lin = new BUIntegrator<IdentityOperator<FeH1,2>, Complex>(Complex(2.0), coef[i], updatedGeo_ );
+      } else {
+        lin = new BUIntegrator<IdentityOperator<FeH1,2>, Double>(2.0, coef[i], updatedGeo_ );
+      }
+    } else  {
+      if(isComplex_) {
+        lin = new BUIntegrator<IdentityOperator<FeH1,3>, Complex>(Complex(2.0), coef[i], updatedGeo_ );
+      } else {
+        lin = new BUIntegrator<IdentityOperator<FeH1,3>, Double>(2.0, coef[i], updatedGeo_ );
+      }
+    }
+    lin->SetName("ElectricPowerDensityInt");
+    LinearFormContext *ctx = new LinearFormContext( lin );
+    ctx->SetEntities( ent[i] );
+    ctx->SetFeFunction(myFct);
+    assemble_->AddLinearForm(ctx);
+    myFct->AddEntityList(ent[i]);
+  } // for
+
+
   // ======================================================================
   // Neumann boundary condition
   // ======================================================================

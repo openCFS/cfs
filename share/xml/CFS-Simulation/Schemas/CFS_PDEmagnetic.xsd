@@ -40,7 +40,7 @@
                     <xsd:attribute name="integId"
                       type="xsd:string" use="optional" default="default">
                     </xsd:attribute>
-                    <xsd:attribute name="nonLinId" type="xsd:token"
+                    <xsd:attribute name="nonLinIds" type="xsd:token"
                       use="optional" default="" />
                   </xsd:complexType>
                 </xsd:element>
@@ -242,6 +242,7 @@
       <xsd:enumeration value="magPotential"/>
       <xsd:enumeration value="magRhsLoad"/>
       <xsd:enumeration value="elecPotential"/>
+      <xsd:enumeration value="lagrangeMultiplier"/>
     </xsd:restriction>
   </xsd:simpleType>
 

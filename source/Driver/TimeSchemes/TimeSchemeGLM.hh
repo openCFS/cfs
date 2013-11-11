@@ -27,13 +27,20 @@ namespace CoupledField{
 class TimeSchemeGLM : public BaseTimeScheme{
   public:
 
+    typedef enum{
+      NONE,
+      INCREMENTAL,
+      TOTAL
+    } NonLinType;
+
+
 
     /*!
      *  Constructor of the GLM scheme
      *  \param[in] type The TimeScheme to be used. Newmark, Trapezoidal, etc.
      *  \param[in] solDerivOrder The time derivative order of the solution to the effective system
      */
-    TimeSchemeGLM(GLMScheme::SchemeType type, UInt solDerivOrder=0);
+    TimeSchemeGLM(GLMScheme::SchemeType type, UInt solDerivOrder=0, TimeSchemeGLM::NonLinType nlType=NONE);
     
     
     /*!
@@ -41,7 +48,7 @@ class TimeSchemeGLM : public BaseTimeScheme{
      * \param[in] scheme Externally created time scheme. Ownership gets handed to this class.
      * \param[in] solDerivOrder The time derivative order of the solution to the effective system
      */
-    TimeSchemeGLM(GLMScheme* scheme, UInt solDerivOrder=0);
+    TimeSchemeGLM(GLMScheme* scheme, UInt solDerivOrder=0, TimeSchemeGLM::NonLinType nlType=NONE);
     
     //! Copy constructor
     TimeSchemeGLM(const TimeSchemeGLM& ts);
@@ -80,8 +87,8 @@ class TimeSchemeGLM : public BaseTimeScheme{
     }
 
     //! \copydoc BaseTimeScheme::AddMatFactors(UInt,const std::map<FEMatrixType,Integer> &,std::map<FEMatrixType,Double> &)
-    virtual void AddMatFactors(UInt stage, const std::map<FEMatrixType,Integer> & matMap
-                               , std::map<FEMatrixType,Double> & matFactors);
+    virtual void AddMatFactors(UInt stage, const std::map<FEMatrixType,Integer> & matMap,
+                                  std::map<FEMatrixType,Double> & matFactors);
 
     //! \copydoc BaseTimeScheme::AdaptBC(Double&,Double,UInt,Integer)
     virtual void AdaptBC(Double& transVal, Double initValue,UInt initDerivOrder, Integer eqnNumber){
@@ -91,6 +98,11 @@ class TimeSchemeGLM : public BaseTimeScheme{
     virtual SingleVector* GetTimeDerivative(UInt order);
 
     virtual void SetTimeDerivVector(UInt order,SingleVector * coefVector);
+
+    /// Give the timestep the possibility to initialize
+    virtual void InitStage(UInt aStage,Double aTime,Domain* domain){
+      curScheme_->PrepareStage(aStage,aTime, domain);
+    };
 
   protected:
 
@@ -123,6 +135,9 @@ class TimeSchemeGLM : public BaseTimeScheme{
     StdVector<bool> predictorCalculated_;
 
     std::set<UInt> avoidFreeingIdx_;
+
+    ///Store the type of nonlinearity to be considered in the scheme
+    NonLinType nLinType_;
 
   private:
 

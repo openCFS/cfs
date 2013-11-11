@@ -36,7 +36,8 @@ namespace CoupledField {
                                 PtrParamNode infoNode,
                                 shared_ptr<SimState> simState,
                                 Domain* domain)
-    : BasePairCoupling( pde1, pde2, paramNode, infoNode, simState, domain )
+    : BasePairCoupling( pde1, pde2, paramNode, infoNode, simState, domain ),
+      lmOrderSameAsVel_(true)
   {
     couplingName_ = "FluidMechDirect";
     materialClass_ = FLOW;
@@ -48,6 +49,11 @@ namespace CoupledField {
     
     // Initialize nonlinearities
     InitNonLin();
+
+    if(paramNode->Has("lmOrderSameAsVel")) 
+    {
+      lmOrderSameAsVel_ =  paramNode->Get("lmOrderSameAsVel")->As<bool>();
+    }    
   }
 
 
@@ -134,8 +140,14 @@ namespace CoupledField {
       velSpace->SetRegionApproximation(region, "velPolyId", "velIntegId");
       presSpace->SetRegionApproximation(region, "presPolyId", "presIntegId");
       dispSpace->SetRegionApproximation(region, "default", "default");
-      lagrangeMultSpace->SetRegionApproximation(region, "presPolyId", "velIntegId");
-      // lagrangeMultSpace->SetRegionApproximation(region, "velPolyId", "velIntegId");
+      if(lmOrderSameAsVel_)
+      {
+        lagrangeMultSpace->SetRegionApproximation(region, "velPolyId", "velIntegId");
+      }
+      else
+      {
+        lagrangeMultSpace->SetRegionApproximation(region, "presPolyId", "velIntegId");
+      }
 
       // This integrator gets assembled into the damping (first time deriv.) matrix in the row of the LM
       DefineDampingIntegrators("FluidMechDampingLMVelCouplingInt",
@@ -353,8 +365,15 @@ namespace CoupledField {
    formulation_ = LAGRANGE_MULT;
 
    PtrParamNode spaceNode;
-   spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE));
-   // spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY));
+   if(lmOrderSameAsVel_)
+   {
+     spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY));
+   }
+   else
+   {
+     spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE));
+   }
+   
    
    crSpaces[formulation_] =
        FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);

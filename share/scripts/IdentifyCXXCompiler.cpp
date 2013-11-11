@@ -26,6 +26,14 @@
 #define CXX_GCC_VERSION_TEXT __GNUC__.__GNUC_MINOR__.__GNUC_PATCHLEVEL__
 #endif
 
+#elif defined(__clang__)
+# define COMPILER_ID "Clang"
+# define CXX_ID_TEXT CLANG
+# define CXX_VERSION_TEXT __clang_major__.__clang_minor__.__clang_patchlevel__
+#if defined(__GNUC__)
+#define CXX_GCC_VERSION_TEXT __GNUC__.__GNUC_MINOR__.__GNUC_PATCHLEVEL__
+#endif
+
 #elif defined(__BORLANDC__)
 # define COMPILER_ID "Borland"
 

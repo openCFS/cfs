@@ -54,9 +54,10 @@ SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
 # to specifiy the compilers and that all messages should be output in English
 # language, so that CTest may properly parse them.
 #-----------------------------------------------------------------------------
-SET(ENV{CC} "$ENV{HOME}/Documents/dev/bin_open64/opencc")
-SET(ENV{CXX} "$ENV{HOME}/Documents/dev/bin_open64/openCC")
-SET(ENV{FC} "$ENV{HOME}/Documents/dev/bin_open64/openf95")
+SET(ENV{LD_LIBRARY_PATH} "/opt/open64-5.0/lib/gcc-lib/x86_64-open64-linux/5.0/32:$ENV{LD_LIBRARY_PATH}")
+SET(ENV{CC} "/opt/open64-5.0/bin/opencc")
+SET(ENV{CXX} "/opt/open64-5.0/bin/openCC")
+SET(ENV{FC} "/opt/open64-5.0/bin/openf95")
 SET(ENV{LC_MESSAGES} "C")
 SET(ENV{LC_ALL} "C")
 SET(ENV{LANG} "C")
@@ -111,11 +112,6 @@ set(CTEST_SITE "${CFS_BUILD_HOST}")
 set(CTEST_BUILD_NAME "${BUILDNAME}")
 
 #-----------------------------------------------------------------------------
-# Copy CDash server configuration file to source dir.
-#-----------------------------------------------------------------------------
-EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
-
-#-----------------------------------------------------------------------------
 # Start out with an empty binary directory.
 #-----------------------------------------------------------------------------
 SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
@@ -129,6 +125,7 @@ SET(CTEST_INITIAL_CACHE
   "BUILD_TESTING:BOOL=ON
    DEBUG:BOOL=ON
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
+   CMAKE_COLOR_MAKEFILE:BOOL=OFF
    TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_FESPACE
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
    CFSTOOL:BOOL=ON

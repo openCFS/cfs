@@ -493,7 +493,7 @@ namespace CoupledField
       
       std::cout << "\n\n";
       std::cout << "*******************************************************\n";
-      std::cout << " Simulation will be halted after the current time \n";
+      std::cout << " Simulation will be halted after the current frequency\n";
       std::cout << " step " << instance->actFreqStep_ << " / " << instance->actFreq_
                 << " Hz.\n\n";
       std::cout << " Estimated time before end of simulation run: " << 

@@ -42,6 +42,7 @@
 #include "PDE/MagEdgePDE.hh"
 #include "PDE/MechPDE.hh"
 #include "PDE/TestPDE.hh"
+#include "PDE/ElecCurrentPDE.hh"
 
 // Coupling of Single PDEs
 #include "CoupledPDE/DirectCoupledPDE.hh"
@@ -653,6 +654,10 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     else if (actPdeName == "testPDE") {
         ptSinglePde_[i] = new TestPDE(defaultGrid, actPdeNode, infoNode,
                                       simState_, this );
+    }
+    else if (actPdeName == "elecConduction") {
+        ptSinglePde_[i] = new ElecCurrentPDE(defaultGrid, actPdeNode, infoNode,
+                                      	  	  simState_, this );
     }
     else
     {

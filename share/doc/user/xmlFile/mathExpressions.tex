@@ -138,7 +138,7 @@ as this would NOT evaluate to a constant!
 Also CFS++ itself registers some variables related to the current simulation
 which can be used in mathematical expressions (see
 the following table).
-\begin{table}[ht]
+\begin{table}[htb]
 \begin{center}
  \caption{CFS specific variables}
  \vspace{0.5cm}
@@ -168,7 +168,7 @@ element & boundary conditions and loads \\
 Generates a short spike signal of a given duration (see
 Fig. \ref{fig:signalSpike}) starting from 0.
 %
-\begin{figure}[h!]
+\begin{figure}[htb]
  \begin{center}
    \includegraphics[width=8cm]{pics/sigSpike.png}
  \end{center}
@@ -222,7 +222,7 @@ of time until it will be deactivated (see Fig. \ref{fig:signalSinBurst}).
 Additionally, a fade-in/out can be applied, according to the $sin^2$ method of
 the \texttt{fadeIn} to reduce the higher harmonics of the signal (see Fig.
 \ref{fig:signalSinBurstFade}).
-\begin{figure}[h!]
+\begin{figure}[htb]
  \begin{center}
    \includegraphics[width=8cm]{pics/sigSinBurst.png}
  \end{center}
@@ -236,6 +236,7 @@ the \texttt{fadeIn} to reduce the higher harmonics of the signal (see Fig.
   \caption{Sine burst with 2 periods of fade-in/out: \xatv{sinBurst(1,6,2,2,t)}}
   \label{fig:signalSinBurstFade}
 \end{figure}
+
 \begin{mathFunc}
 {sinBurst(freq, nperiods, nfadein, nfadeout, timeval)}
 \param{freq} &  Frequency of the sine pulse.\\
@@ -255,7 +256,7 @@ signal. \\
 %
 Create data for a square burst signal, which can either be unipolar or bipolar
 (see Fig. \ref{fig:signalSquareBurst} ).
-\begin{figure}[h!]
+\begin{figure}[htb]
  \begin{center}
    \includegraphics[width=8cm]{pics/sigSquareBurst.png}
  \end{center}
@@ -320,7 +321,8 @@ which can be either 1 or 2 in 2D. For a polar coordinate system,
 \xatv{y}.
 \end{mathFunc}
 In the following example, a cylindrical coordinate system with id \xatv{mid} is
-defined. A Dirichlet boundary condition is applied, with a value varying with
+defined. An inhomogeneous Dirichlet boundary condition for an
+electrostatic analysis is applied, with a value varying with
 the angle $\varphi$ (second component in a polar coordinate system). 
 \begin{xmllisting}
 <domain>
@@ -332,7 +334,7 @@ the angle $\varphi$ (second component in a polar coordinate system).
   </coordSysList>
 </domain>
 ....
-<dirichletInhom name=".." value="locCoord('mid',2,x,y)"/>
+<potential name=".." value="locCoord('mid',2,x,y)"/>
 \end{xmllisting}
 %
 \subsection{\texttt{locCoord3D}}
@@ -385,7 +387,7 @@ We can subscribe boundary conditions with values read in from sample files.
 The notation is as follows:
 \begin{xmllisting}
 <bcsAndLoads>
-  <neumannInhom name="transducer" value="sample1D('x_amplitude.dat',x,2)"
+  <potential name="transducer" value="sample1D('x_amplitude.dat',x,2)"
     phase="sample1D('x_phase.dat',x,2)"/>
 </bcsAndLoads>
 \end{xmllisting}
@@ -408,9 +410,9 @@ following way:
 ...
 <pdename>
   <bcsAndLoads>
-    <dirichletInhom name="region1" dof="x" value="input('inhom',1,1)"
+    <potential name="region1" dof="x" value="input('inhom',1,1)"
                     phase="input('inhom',1,1)"/>
-    <dirichletInhom name="region2" dof="y" value="input('inhom',1,2)"
+    <potental name="region2" dof="y" value="input('inhom',1,2)"
                     phase="input('inhom',1,0)"/>
   </bcsAndLoads>
 </pdename>
@@ -469,11 +471,11 @@ shows supported boundary conditions.
 
 
 \section{Examples}
-If one wants to prescribe a linear space dependent load, the following can be
+If one wants to prescribe a linear space dependent force, the following can be
 written:
 \begin{xmllisting}
 <bcsAndLoads>
-  <load name="loadNode" value="10 * x" phase="cos(y)"/>
+  <force name="loadNode" value="10 * x" phase="cos(y)"/>
 <bcsAndLoads>
 \end{xmllisting}
 Here \myverb#x# is used to denote the x-coordinate of each node
@@ -484,7 +486,7 @@ contained in the node list.
 To define a variable with a sine of 1 kHz one can simply write:
 \begin{xmllisting}
 <bcsAndLoads>
-  <dirichletInhom name="bcNode" value="10 * sin(2 * pi * 1e3 * t)"/>
+  <potential name="bcNode" value="10 * sin(2 * pi * 1e3 * t)"/>
 <bcsAndLoads>
 \end{xmllisting}
 The variable \xatv{t} reflects the current time value in a transient
@@ -492,14 +494,14 @@ simulation.
 Of course one can also combine space- and time dependency:
 \begin{xmllisting}
 <bcsAndLoads>
-  <dirichletInhom name="bcNode" value="10 * x * sin(2 * pi * 1e3 * t)"/>
+  <potential name="bcNode" value="10 * x * sin(2 * pi * 1e3 * t)"/>
 <bcsAndLoads>
 \end{xmllisting}
 A ramp signal, which goes from $0 \ldots 1$ linearly and then
 stays at 1 is written via the \xatv{if}-statement as follows:
 \begin{xmllisting}
 <bcsAndLoads>
-  <dirichletInhom name="bcNode" value="if(t lt 1,t,1.0)"/>
+  <potential name="bcNode" value="if(t lt 1,t,1.0)"/>
 <bcsAndLoads>
 \end{xmllisting}
 

@@ -155,8 +155,11 @@
           </xsd:simpleType>
         </xsd:attribute>     
          <xsd:attribute name="stabilization" type="xsd:boolean" default="false"/>   
+         <xsd:attribute name="stabilizationBochev" type="xsd:boolean" default="false"/>   
         <xsd:attribute name="movingMesh" type="DT_CFSBool" default="no"/>
         <xsd:attribute name="aeroAcoustics" type="DT_CFSBool" default="no"/>
+        <xsd:attribute name="factorC1" type="xsd:double" default="2.0"/>
+        <xsd:attribute name="enableC2" type="xsd:boolean" default="false"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -374,7 +377,7 @@
         </xsd:element>
         
       </xsd:choice>
-    </xsd:sequence>
+    </xsd:sequence>    
   </xsd:complexType>
     
 
