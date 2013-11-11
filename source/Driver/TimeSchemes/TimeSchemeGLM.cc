@@ -20,7 +20,7 @@ namespace CoupledField{
    DEFINE_LOG(timeschemeglm, "timescheme.glm")
 
 
-  TimeSchemeGLM::TimeSchemeGLM(GLMScheme::SchemeType type, UInt solDerivOrder) :
+  TimeSchemeGLM::TimeSchemeGLM(GLMScheme::SchemeType type, UInt solDerivOrder, NonLinType nlType) :
          avoidUpdateIdx_(-1) {
 
     InitGLMs();
@@ -30,9 +30,10 @@ namespace CoupledField{
 
     curScheme_->solDerivOrder_ = solDerivOrder;
     solOrder_ = solDerivOrder;
+    nLinType_ = nlType;
   }
   
-  TimeSchemeGLM::TimeSchemeGLM(GLMScheme* scheme, UInt solDerivOrder) :
+  TimeSchemeGLM::TimeSchemeGLM(GLMScheme* scheme, UInt solDerivOrder, NonLinType nlType) :
            avoidUpdateIdx_(-1) {
 
       InitGLMs();
@@ -42,6 +43,7 @@ namespace CoupledField{
 
       curScheme_->solDerivOrder_ = solDerivOrder;
       solOrder_ = solDerivOrder;
+      nLinType_ = nlType;
   }
 
   // Copy constructor
@@ -113,6 +115,7 @@ namespace CoupledField{
     //the corresponding stage vector points directly to the
     //glm Vector entry and the update step for this entry can be avoided
     stageVector_.Resize(curScheme_->numStages_);
+    UInt upperBound = curScheme_->numStages_-1;
     if(curScheme_->lastStageIsSolution_){
       if(solOrder_==0){
         avoidUpdateIdx_ = 0;
@@ -122,8 +125,11 @@ namespace CoupledField{
         avoidUpdateIdx_ = curScheme_->numOldSols_ + curScheme_->numSol1stDerivs_ ;
       }
       stageVector_[curScheme_->numStages_-1] = glmVector_[avoidUpdateIdx_];
+    }else{
+      //in case of a general scheme, we need to initialize the full stage vector
+      upperBound++;
     }
-    for(UInt i=0;i<curScheme_->numStages_-1;i++){
+    for(UInt i=0;i<upperBound;i++){
         stageVector_[i] = new Vector<Double>();
         stageVector_[i]->Resize(solVec->GetSize());
         stageVector_[i]->Init();
@@ -160,9 +166,8 @@ namespace CoupledField{
                                       SingleVector* rhsVec, Integer subIdx){
 
     //if the derivative id is equal to solution we do not need to do anything
-    //as the corresponding line in the GLM is equal to zero
-    if(derivId == (Integer)curScheme_->solDerivOrder_ ||
-       derivId > (Integer)curScheme_->maxDerivOrder_ ||
+    //as the corresponding line in the GLM is equal to zero, but not! always
+    if(derivId > (Integer)curScheme_->maxDerivOrder_ ||
        derivId < 0){
       rhsVec->Init();
       return;
@@ -187,6 +192,21 @@ namespace CoupledField{
       if(curScheme_->usePredictors_){
         predictors_[dId]->Add(*rhsVec);
         predictorCalculated_[dId] = true;
+      }
+    }
+    //in case of non-linear PDEs in incremental formulation, we add the stage vector
+    //this is done in a simple hack and works for NEWMARK and TRAPEZOIDAL in Effective STIFFNESS ONLY!
+    //NOTES: Due to the current implementation in which the AssembleNonLinRhs already computes a nonLinear-stiffness
+    // matrix to the right hand side this limitation is fundamental. For future implementations one might need to think
+    // of alternative ways to accomplish the non-linear solution scheme
+    // furthermore, we assume, that the stageVector always holds the solution at the current non-linear iteration
+    // NOT the increment. Here it becomes apparent why solveStep and Timescheme are no longer separated as initially intended
+    if(nLinType_ == INCREMENTAL){
+      UInt col = curScheme_->numStages_;
+      Double coef = curScheme_->schemeCoefs_[cRow][col];
+      if(coef !=0){
+        SingleVector * curVec = stageVector_[actStage];
+        rhsVec->Add(coef * -1.0,(*curVec));
       }
     }
 
@@ -217,15 +237,56 @@ namespace CoupledField{
             glmVector_[i]->Add(coef,*curSVec);
             curSVec = NULL;
           }
+        }else if(nLinType_!=NONE){
+          glmVector_[i] = stageVector_[0];
         }
       }
+
     }else{
-      Exception("The general case is not implemented yet");
+      //first we create a temporary GLM Vector for the solution
+      //which will overwrite the solution later
+      StdVector< SingleVector* > tmpGLM;
+      tmpGLM.Resize(curScheme_->sizeGLMVec_);
+      for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+        tmpGLM[i] = new Vector<Double>();
+        tmpGLM[i]->Resize(glmVector_[i]->GetSize());
+        tmpGLM[i]->Init();
+      }
+      for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+        //loop over all stages
+        for(UInt actS = 0; actS < curScheme_->numStages_; actS++){
+          SingleVector * curSVec = stageVector_[actS];
+          UInt row = curScheme_->numStages_ * (curScheme_->maxDerivOrder_+1);
+          Double coef = curScheme_->schemeCoefs_[row+i][actS];
+          if(coef != 0){
+            tmpGLM[i]->Add(coef,*curSVec);
+          }
+          curSVec = NULL;
+        }
+        //loop over all old solutions
+        for(UInt actSol = 0; actSol < curScheme_->sizeGLMVec_; actSol++){
+          SingleVector * curSVec = glmVector_[actSol];
+          UInt row = curScheme_->numStages_ * (curScheme_->maxDerivOrder_+1);
+          Double coef = curScheme_->schemeCoefs_[row+i][curScheme_->numStages_+actSol];
+          if(coef != 0){
+            tmpGLM[i]->Add(coef,*curSVec);
+          }
+          curSVec = NULL;
+        }
+      }
+      for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+        glmVector_[i]->operator =((*tmpGLM[i]));
+        //free memory
+        delete tmpGLM[i];
+      }
+      tmpGLM.Clear();
+      //free the memory
+
     }
   }
 
-  void TimeSchemeGLM::AddMatFactors(UInt stage, const std::map<FEMatrixType,Integer> & matMap
-                                          , std::map<FEMatrixType,Double> & matFactors){
+  void TimeSchemeGLM::AddMatFactors(UInt stage, const std::map<FEMatrixType,Integer> & matMap,
+                                        std::map<FEMatrixType,Double> & matFactors){
 
     //The correct matrix factors are always at the same position
     std::map<FEMatrixType,Integer>::const_iterator mIt = matMap.begin();

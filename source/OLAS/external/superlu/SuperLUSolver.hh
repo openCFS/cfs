@@ -7,6 +7,12 @@
 #include "Utils/StdVector.hh"
 #include "OLAS/solver/BaseSolver.hh"
 
+// SuperLU header
+#include "slu_ddefs.h"
+
+// SuperLU_MT header
+// #include "pcsp_defs.h"
+
 namespace CoupledField {
 
   template<typename T>
@@ -59,6 +65,59 @@ namespace CoupledField {
     //! be initialised with a pointer to a parameter object right at
     //! instantiation.
     SuperLUSolver();
+
+    //! Stored information about the storage type and entry type of the matrix
+    BaseMatrix::StorageType stype;
+    BaseMatrix::EntryType etype;
+
+    //! Dimension of the linear system
+    int probDim_;
+
+    //! The number of right hand sides Pardiso should solve the system for
+    //! at one pass
+    int nrhs_;
+
+    //! Array containing entries of problem matrix
+
+    //! A flag specifying if Setup is being called for the first time
+    bool firstCall_;
+
+    //! Do we solve a system with complex or double entries?
+    bool isComplex_;
+
+    //! number of non zero entries
+    UInt nnz_;
+
+    SuperMatrix    A, L, U;
+    SuperMatrix    B, X;
+
+    char           equed[1];
+    yes_no_t       equil;
+    trans_t        trans;
+    NCformat       *Astore;
+    NCformat       *Ustore;
+    SCformat       *Lstore;
+    double         *a;
+    int            *asub;
+    int            *xa;
+    int            *perm_c; /* column permutation vector */
+    int            *perm_r; /* row permutations from partial pivoting */
+    int            *etree;
+    void           *work;
+    int            info, lwork, nrhs, ldx;
+    int            i;
+    double         *rhsb;
+    double         *rhsx;
+    double         *xact;
+    double         *R;
+    double         *C;
+    double         *ferr;
+    double         *berr;
+    double         u, rpg, rcond;
+    mem_usage_t    mem_usage;
+    superlu_options_t options;
+    SuperLUStat_t stat;
+
   };
 
 }

@@ -361,7 +361,6 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouPressure"/>
       <xsd:enumeration value="acouPotential"/>
-      <xsd:enumeration value="LagrangeMultiplier"/>
       <xsd:enumeration value="acouPmlAuxScalar"/>
       <xsd:enumeration value="acouPmlAuxVec"/>
     </xsd:restriction>
@@ -630,8 +629,9 @@
       <xsd:enumeration value="acouPotential"/>
       <xsd:enumeration value="acouPotentialD1"/>
       <xsd:enumeration value="acouPotentialD2"/>
-      <xsd:enumeration value="acouRhsLoad"/>
       <xsd:enumeration value="lagrangeMultiplier"/>
+      <xsd:enumeration value="acouRhsLoad"/>
+      <xsd:enumeration value="meanFluidMechVelocity"/>
     </xsd:restriction>
   </xsd:simpleType>
 

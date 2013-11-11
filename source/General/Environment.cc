@@ -129,6 +129,18 @@ namespace CoupledField {
         return "m/s";
         break;
 
+      case ACOU_MIXED_MASS_LOAD:
+        return "-";
+        break;
+
+      case ACOU_MIXED_MOMENTUM_LOAD:
+        return "-";
+        break;
+
+      case ACOU_LAMB_RHS:
+        return "-";
+        break;
+
       case ELEC_CHARGE:
         return "C";
         break;
@@ -169,6 +181,18 @@ namespace CoupledField {
         return "C";
         break;
 
+      case ELEC_CURRENT_DENSITY:
+        return "A/m^2";
+        break;
+
+      case ELEC_POWER_DENSITY:
+        return "W/m^3";
+        break;
+
+      case ELEC_POWER:
+        return "W";
+        break;
+
       case FLUIDMECH_VELOCITY:
         return "m/s";
         break;
@@ -197,20 +221,32 @@ namespace CoupledField {
         return "1/s";
         break;
 
-      case FLUIDMECH_WEIGHT_VECTOR:
+      case FLUIDMECH_WVT:
         return "kg m^-2 s^-2";
         break;
 
-      case FLUIDMECH_WEIGHT_DENSITY:
+      case FLUIDMECH_WVT_DENSITY:
         return "kg m^-2 s^-2 m s^-1";
         break;
 
-      case FLUIDMECH_WEIGHT_VECTOR_PHI:
+      case FLUIDMECH_WVT_PHI:
         return "kg m^-3 s^-1";
         break;
 
-      case FLUIDMECH_WEIGHT_DENSITY_PHI:
+      case FLUIDMECH_WVT_DENSITY_PHI:
         return "kg m^-3 s^-1 m s^-1";
+        break;
+
+      case FLUIDMECH_WVT_U1:
+        return "m s^-1";
+        break;
+
+      case FLUIDMECH_WVT_U2:
+        return "m s^-1";
+        break;
+
+      case FLUIDMECH_WVT_F:
+        return "N";
         break;
 
       case HEAT_TEMPERATURE:
@@ -304,6 +340,10 @@ namespace CoupledField {
 
       case MECH_STRAIN:
         return "";
+        break;
+
+      case MECH_NORMAL_STRESS:
+        return "N/m^2";
         break;
 
       case SMOOTH_DISPLACEMENT:
@@ -457,9 +497,6 @@ namespace CoupledField {
 
 
 
-
-
-
   template<>
   void Enum2String<MaterialClass>(const MaterialClass &in,
                                   std::string &out) {
@@ -475,6 +512,9 @@ namespace CoupledField {
         break;
       case ELECTROSTATIC:
         out = "electric";
+        break;
+      case ELECTRICCONDUCTION:
+        out = "elecConduction";
         break;
       case FLUID:
         out = "acoustic";
@@ -519,8 +559,8 @@ namespace CoupledField {
     else if ( in == "electromagnetic" ) {
       out = ELECTROMAGNETIC;
     }
-    else if ( in == "electrostatic" ) {
-      out = ELECTROSTATIC;
+    else if ( in == "elecConduction" ) {
+      out = ELECTRICCONDUCTION;
     }
     else if ( in == "electromagnetic" ) {
       out = ELECTROMAGNETIC;
@@ -677,6 +717,9 @@ namespace CoupledField {
         break;
       case HYSTERESIS:
         out = "hysteresis";
+        break;
+      case NLELEC_CONDUCTIVITY:
+        out = "elecConductivity";
         break;
       case PIEZO_MICRO_HF:
         out = "piezoMicroHF";
@@ -1019,10 +1062,14 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_POWER, "mechPower");
     SolutionTypeEnum.Add(MECH_DEF_SURF_VOLUME, "mechDisplacedSurfVolume");
     SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
+    SolutionTypeEnum.Add(MECH_NORMAL_STRESS, "mechNormalStress");
     
-    //electrostatics
+    //electrostatics / elctric current conduction
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");
+    SolutionTypeEnum.Add(ELEC_CURRENT_DENSITY, "elecCurrentDensity");
+    SolutionTypeEnum.Add(ELEC_POWER_DENSITY, "elecPowerDensity");
+    SolutionTypeEnum.Add(ELEC_POWER, "elecPower");
     SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
     SolutionTypeEnum.Add(ELEC_PSEUDO_POLARIZATION, "elecPseudoPolarization");
     SolutionTypeEnum.Add(ELEC_FORCE_VWP, "elecForceVWP");
@@ -1063,6 +1110,10 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");
     SolutionTypeEnum.Add(ACOU_PMLAUXSCALAR, "acouPmlAuxScalar");
     SolutionTypeEnum.Add(ACOU_PSEUDO_DENSITY, "acouPseudoDensity");
+
+    SolutionTypeEnum.Add(ACOU_MIXED_MASS_LOAD, "acouMixedMassLoad");
+    SolutionTypeEnum.Add(ACOU_MIXED_MOMENTUM_LOAD, "acouMixedMomentumLoad");
+    SolutionTypeEnum.Add(ACOU_LAMB_RHS, "acouLambRhs");
 
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
@@ -1105,10 +1156,14 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");
     SolutionTypeEnum.Add(FLUIDMECH_STRESS, "fluidMechStress");
     SolutionTypeEnum.Add(FLUIDMECH_STRAINRATE, "fluidMechStrainRate");
-    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_VECTOR, "fluidMechWeightVector");
-    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_DENSITY, "fluidMechWeightDensity");
-    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_VECTOR_PHI, "fluidMechWeightVectorPhi");
-    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_DENSITY_PHI, "fluidMechWeightDensityPhi");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT, "fluidMechWVT");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_DENSITY, "fluidMechWVTDensity");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_PHI, "fluidMechWVTPhi");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_DENSITY_PHI, "fluidMechWVTDensityPhi");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_U1, "fluidMechWVT_u1");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_U2, "fluidMechWVT_u2");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_F, "fluidMechWVT_f");
+
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
 
     // TEST PDE
@@ -1131,6 +1186,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_9, "optResult_9");
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "lagrangeMultiplier");
+    SolutionTypeEnum.Add(LAGRANGE_MULT_DERIV_1, "lagrangeMultiplierD1");
+    SolutionTypeEnum.Add(LAGRANGE_MULT_DERIV_2, "lagrangeMultiplierD2");
     // evaluates the spacial gradient of the solution at the nodes.
     // common for all PDEs, no unit
     SolutionTypeEnum.Add(GRAD_ACOU_SOLUTION, "gradAcousticSolution"); // independent on acoustic formulation
@@ -1157,6 +1214,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV, "Magnetic_reluctivity_derivative" );
     MaterialTypeEnum.Add( MAG_CONDUCTIVITY, "Magnetic_Conductivity" ); 
     MaterialTypeEnum.Add( ELEC_PERMITTIVITY, "Electric_Permittivity" );
+    MaterialTypeEnum.Add( ELEC_CONDUCTIVITY, "Electric_Conductivity" );
+    MaterialTypeEnum.Add( ELEC_CONDUCTIVITY_TENSOR, "Electric_conductivity_tensor" );
     MaterialTypeEnum.Add( MECH_STIFFNESS_TENSOR, "MechanicStiffnessTensor" );
     MaterialTypeEnum.Add( COEFF_STRAIN_IRREVERSIBLE, "Coeff_Strain_Irreversible" ); 
     MaterialTypeEnum.Add( MECH_EMODULUS, "Mechanic_Emodulus" );

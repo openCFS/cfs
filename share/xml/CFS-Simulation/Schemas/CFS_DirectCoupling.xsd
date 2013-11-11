@@ -362,6 +362,7 @@
             <xsd:element name="storeResults" type="DT_FluidMechDirectStoreResults"
               minOccurs="0" maxOccurs="1"/>          
           </xsd:sequence>
+          <xsd:attribute name="lmOrderSameAsVel" type="xsd:boolean" default="true"/>
         </xsd:extension>
       </xsd:complexContent>
     </xsd:complexType>
@@ -446,7 +447,7 @@
   <!-- Definition of surface element result types of fluid-mech coupling -->
   <xsd:simpleType name="DT_FluidMechDirectNodeResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="LagrangeMultiplier"/>
+      <xsd:enumeration value="lagrangeMultiplier"/>
     </xsd:restriction>
   </xsd:simpleType>
   

@@ -42,6 +42,6 @@ SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_TRUNK
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_TRUNK")
 
 SET(REPO "https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++_TEST/trunk")
-SET(USER "testuser-klu")
+SET(USER ${CFS_TESTUSER})
 
-INCLUDE(ctest_update.cmake)
+INCLUDE(${SITE_DIR}/ctest_update.cmake)

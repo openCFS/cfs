@@ -366,10 +366,10 @@ namespace CoupledField {
     
     if ( isComplex ) {
       if( dim_ == 2 ) {
-        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,Complex>(),
+        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,1,Complex>(),
                                              curCoef, factor, updatedGeo_ );
       } else {
-        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,Complex>(),
+        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,1,Complex>(),
                                              curCoef, factor, updatedGeo_ );
       }
     }
@@ -568,7 +568,7 @@ namespace CoupledField {
     chargeD->entryType = ResultInfo::SCALAR;
     availResults_.insert( chargeD );
     // the coefficient function is defined later
-    shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true));
+    shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true, chargeD));
     surfCoefFcts_[sChargeDens] = fluxFunc;
     
     // === TOTAL ELECTRIC CHARGE ===

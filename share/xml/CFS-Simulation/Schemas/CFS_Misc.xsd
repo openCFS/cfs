@@ -111,6 +111,7 @@
       <xsd:enumeration value="acoustic"/>
       <xsd:enumeration value="acousticXYZ"/>
       <xsd:enumeration value="electrostatic"/>
+      <xsd:enumeration value="elecConduction"/>
       <xsd:enumeration value="smooth"/>
       <xsd:enumeration value="mpcci"/>
       <xsd:enumeration value="heatConduction"/>

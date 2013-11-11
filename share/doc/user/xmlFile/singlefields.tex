@@ -1,11 +1,78 @@
-\chapter{Single Fields}
+\chapter{Single Fields}\label{Sec:SingleFields}
+
+
+\section{List of PDEs}
+Inside the config file command
+\begin{xmllisting}
+<pdeList>
+   <!-- List of PDEs ... -->
+</pdeList>
+\end{xmllisting}
+one has to specify the involved PDEs.  Some possible PDE names are
+given in the following table: 
+
+\begin{center}
+  \begin{tabular}{ll}
+  \toprule
+    {\it Type}      & {\it Description}  \\
+  \midrule
+    \xel{acoustic}     & Acoustic PDE (based on wave equation) \\
+    \xel{acousticMixed}  & Acoustic PDE (based on conservation equations) \\
+    \xel{electrostatic} & Electrostic PDE \\
+    \xel{fluidMech} & Flow; currently just for formulation equal
+    perturbed (linearized NS) \\
+    \xel{heatConduction} & thermal conduction PDE \\
+    \xel{magnetic}     & Magnetic PDE with nodal elements\\    
+    \xel{magneticEdge}     & Magnetic PDE with edge elements (just 3D)\\    
+    \xel{mechanic}     & Mechanical PDE\\    
+    \xel{testPDE}     & PDE for testing (also used in tutorials)\\    
+  \bottomrule  
+  \end{tabular}
+\end{center}
+
+\noindent
+As an example, a coupled electrostatic, mechanical simulation must be
+defined as
+\begin{xmllisting}
+<pdeList>
+   <mechanic>
+      Definitions of Mech-PDE ...
+   </mechanic>
+
+   <electrostatic>
+      Definitions of Electrostatic-PDE ...
+   </electrostatic>
+</pdeList>
+\end{xmllisting}
+
 
 \section{Electrostatics}
-\subsection{Results}
 The electric field intensity vector $\bE$ can be derived from the
 nodal degree of freedom, the electric potential $V$ by applying a
-gradient operator. This element quantity is calculated by applying
-the config-file-commands
+gradient operator. 
+
+\subsection{Specifiying BCs}
+You can specify homogeneous and inhomogeneous BCs by the follwoing
+commands
+
+\begin{tabular}{ll} 
+\toprule \rowcolor{darkgrey}
+Command & Description  \\
+\midrule
+\xel{ ground name="XX"/} & homog. Dirichlet BC \\
+\midrule
+\xel{potential name="YY" value="1"/} & inhomog. Dirichlet BC \\
+\bottomrule
+\end{tabular}
+
+
+\subsection{Sepcifying Loads}
+A load in an electorstatic computation is defined by an electric
+charge. 
+
+\subsection{Results}
+The electric field intensity id computed by a postprocessing
+operation, defined in the config-file as follows\\
 
 \begin{xmllisting}
 <storeResults>
@@ -33,59 +100,80 @@ in the config-file. The result is written to the info-file.
 <?xml version="1.0"?>
 
 <cfsSimulation xmlns="http://www.cfs++.org">
-
+  
    <fileFormats>
+    <input>
+      <hdf5/>
+    </input>
     <output>
-      <unv/>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
     </output>
     <materialData file="mat.xml" format="xml"/>
-   </fileFormats>
-
-  <domain geometryType="axi">
-   <regionList>
-    <region name="gndEl"  material="steel"/>
-    <region name="hotEl"  material="steel"/>
-    <region name="dielEl" material="silicon"/>
-    <region name="airEl"  material="air"/>
-   </regionList>
-
-   <nodeList>
-    <nodes name="hot"/>
-    <nodes name="gnd"/>
-   </nodeList>
+  </fileFormats>
+  
+  <domain geometryType="3d" printGridInfo="yes">
+    <regionList>
+      <region name="dielec-1" material="polyethylene"/>
+      <region name="dielec-2" material="air"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="inner"/>
+      <surfRegion name="outer"/>
+    </surfRegionList>
   </domain>
-
- <sequenceStep>
-  <analysis>
-   <static/>
-  </analysis>
-
-  <pdeList>
-    <electrostatic>
-     <regionList>
-       <region name="gndEl"/>
-       <region name="hotEl"/>
-       <region name="dielEl"/>
-       <region name="airEl"/>
-     </regionList>
-
-      <bcsAndLoads>
-        <dirichletHom name="gnd"/>
-        <dirichletInhom name="hot" value="1.0"/>
-      </bcsAndLoads>
-
-      <storeResults>
-        <elemResult type="elecFieldIntensity">
-         <allRegions/>
-        </elemResult>
-        <elemResult type="elecEnergy">
-         <allRegions/>
-        </elemResult>
-      </storeResults>
-
-    </electrostatic>
-  </pdeList>
- </sequenceStep>
+  
+  <fePolynomialList>
+    <Legendre id="default">
+       <isoOrder>3</isoOrder> 
+    </Legendre>
+  </fePolynomialList>
+  
+  
+  <sequenceStep>
+    <analysis>
+      <static/>
+    </analysis>
+    
+    <pdeList>
+      <electrostatic systemId="elec">
+        <regionList>
+          <region name="dielec-1" polyId="default"/>
+          <region name="dielec-2" polyId="default"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <ground name="outer"/>
+          <potential name="inner" value="1"/>
+        </bcsAndLoads>
+        
+        <storeResults>
+         <nodeResult type="elecPotential">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="elecFieldIntensity">
+            <allRegions/>
+          </elemResult>
+          <regionResult type="elecEnergy">
+            <allRegions outputIds="txt,h5"/>
+          </regionResult>
+        </storeResults>
+      </electrostatic>
+    </pdeList>
+    <linearSystems>
+      <system id="elec">
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination" staticCondensation="yes"/>
+            <solver id="default"/>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <pardiso/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
 </cfsSimulation>
 \end{xmllisting}
 }
@@ -114,6 +202,7 @@ entry.
 
 \begin{itemize}
 \item planeStrain \emph{(the default)}
+\item planeStress 
 \item 3d
 \item axi
 \end{itemize}
@@ -135,6 +224,74 @@ as it is the case for loads.
   stiffnessValue="1"/>
 </bcsAndLoads>
 \end{xmllisting}
+
+\subsection{Boundary and Load Conditions}
+You can specify homog. and inhomog. Dirichlet BCs as well as different
+load conditions.\\
+
+\begin{tabular}{ll} 
+\toprule \rowcolor{darkgrey}
+Command & Description  \\
+\midrule
+\xel{fix} & homog. Dirichlet BC \\
+\midrule
+\xel{displacement} & inhomog. Dirichlet BC \\
+\midrule
+\xel{force} & nodal forces \\
+\midrule
+\xel{pressure} & pressure force \\
+\bottomrule
+\end{tabular}
+
+\bigskip
+
+\noindent
+Here are some examples:
+\begin{xmllisting}
+       <bcsAndLoads>
+          <fix name="ux-dof">
+            <comp dof="x"/>
+          </fix>
+
+          <force name="uy-load">
+            <comp dof="y" value="(t  lt 7e-6)?4:0"/>
+          </force>
+
+         <pressure name="pload" value="1"/>
+        </bcsAndLoads>
+\end{xmllisting}
+
+\subsection{Damping}
+Currently, we support a standard Rayleigh damping model, which is
+specified as follows
+
+\begin{xmllisting}
+       <regionList>
+          <region name="cantilev" dampingId="1"/>
+        </regionList>
+
+        <dampingList>
+          <rayleigh id="1">
+            <adjustDamping> no </adjustDamping>
+            </rayleigh>
+        </dampingList>
+\end{xmllisting}
+
+\section{Softening}
+Using linear FE basis functioons for bending appplications of thin
+strutures results in the well known locking effects. We have currently
+implemented the approach if the incompatible modes of Taylor and
+Willson, which is activated as follows:
+\begin{xmllisting}
+        <regionList>
+          <region name="plate1" softeningId="1"/>
+        </regionList>
+        
+        <softeningList>
+          <icModesTW id="1"/>
+        </softeningList>
+\end{xmllisting}
+
 
 \subsection{Nodal Results}
 Possible nodal results are
@@ -194,49 +351,70 @@ norm/length of the calculated vector.
 {\footnotesize 
 \begin{xmllisting}
 <?xml version="1.0"?>
+
 <cfsSimulation xmlns="http://www.cfs++.org">
 
- <fileFormats>
-   <output>
-    <unv/>
-   </output>
-   <materialData file="mat.xml" format="xml"/>
- </fileFormats>
+  <fileFormats>
+    <input>
+      <hdf5 fileName="dampedEV2D.h5"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
 
- <domain geometryType="plane">
-   <regionList>
-    <region name="cantilev"  material="steel"/>
-   </regionList>
-   <nodeList>
-    <nodes name="leftN"/>
-    <nodes name="rightN"/>
-   </nodeList>
- </domain>
+  <domain geometryType="plane">
+    <regionList>
+      <region material="mechmat" name="solid"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="fixdis"/>
+    </surfRegionList>
+    <elemList/>
+    <nodeList/>
+  </domain>
 
- <sequenceStep>
-   <analysis>
-    <static/>
-   </analysis>
+  <sequenceStep index="1">
+    <analysis>
+      <eigenFrequency>
+        <isQuadratic>yes</isQuadratic>
+        <numModes> 12 </numModes>
+        <freqShift> 0 </freqShift>
+        <writeModes> yes </writeModes>
+      </eigenFrequency>
+    </analysis>
+    
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region dampingId="_RAYL_1_mech" name="solid"/>
+        </regionList>
 
-   <pdeList>
-    <mechanic subtype="planeStrain">
-     <regionList>
-      <region name="cantilev"/>
-     </regionList>
-     <bcsAndLoads>
-      <dirichletHom name="leftN" dof="x"/>
-      <dirichletHom name="leftN" dof="y"/>
-      <dirichletHom name="rightN" dof="x"/>
-      <load         name="rightN" dof="y" value="-1.0"/>
-     </bcsAndLoads>
-     <storeResults>
-      <nodeResult type="mechDisplacement">
-       <allRegions/>
-      </nodeResult>
-     </storeResults>
-    </mechanic>
-   </pdeList>
- </sequenceStep>
+        <dampingList>
+          <rayleigh id="_RAYL_1_mech">
+            <ratioDeltaF> 0.01 </ratioDeltaF>
+          </rayleigh>
+        </dampingList>
+
+        <bcsAndLoads>
+          <fix name="fixdis">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult complexFormat="amplPhase" type="mechDisplacement">
+            <regionList saveBegin="1" saveEnd="20" saveInc="1">
+              <region name="solid" outputIds=""/>
+            </regionList>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+  </sequenceStep>
 
 </cfsSimulation>
 \end{xmllisting}
@@ -245,45 +423,38 @@ norm/length of the calculated vector.
 
 \newpage
 \section{Acoustics}
+Here, the acoustic wave equation is solved using the acoustic pressure
+or the acoustic scalar potential. With which unkown the computation is
+performed, is directly sepcified at the starting of the PDE
+definition (by default is pressure formulation), e.g.,
 
-\subsection{General Setup}
-The \xel{acoustic} element is appended by the following child elements
-\begin{itemize}
-\item \xel{region}
-\item \xel{surface}
-\item \xel{timeSteppingFormulation} effective stiffness formulation 
-is default(optional), effective mass matrix formulation can be chosen unless one
-is not using the fractional damping model
-\item \xel{bcsAndLoads} (optional)
-\item \xel{nonLinear}\footnote{Other Nonlinearities than nonlinear acoustic
- PDE, which can be chosen by an attribute of \xel{region} element. This is
- currently not implemented.}
-\item \xel{storeResults} (optional)
-\end{itemize}
-and the following attributes
-\begin{itemize}
-\item \xel{pressFormu} used to choose for an acoustic pressure PDE
-formulatation \\
-with \xatv{acouPressure} as value.
-\item \xat{subType} for flownoise computations set this to
-\xatv{combustionNoise} or \xatv{standard} 
-\end{itemize}
+\begin{xmllisting}
+<acoustic formulation="acouPotential" />
 
-\subsection{Formulation}
-For linear acoustics, the PDE in pressure and acoustic potential has the same 
-form. Allthough default is acoustic potential. If acoustics is coupled to 
-other PDEs, acoustic potential is obligatory. Westervelt's nonlinear PDE is 
-in pressure, Kuznetsov's nonlinear PDE is in acoustic potential.
+<acoustic formulation="acouPressure" />
+\end{xmllisting}
 
-\subsection{Damping and nonlinear acoustic simulation}
-Damping and nonlinear acoustic PDE formulations can be chosen for each 
-region individually. Damping is a child element of \xel{region},
-type is either no damping, rayleigh damping (which is not physical), 
-thermoviscous damping and fractional damping according to a 
-frequency power law.
-\xat{nonLinear} comes as attribute to region. It can take the value
-\xatv{no},
-\xatv{westervelt}, or \xatv{kuznetsov}.
+\subsection{Damping}
+The standard Rayleigh damping model as for mechanical PDE (see for the
+definition there) is available. Furthermore, for open domain problems
+a PML (Perfectly Matched Layer) may be defined by the following
+syntax:
+
+\begin{xmllisting}
+       <regionList>
+          <region name="inner"/>
+          <region name="pml" dampingId="myPML"/>
+        </regionList>
+        
+        <dampingList>
+          <pml  id="myPML">
+            <type> inverseDist </type>
+            <dampFactor> 1 </dampFactor>
+          </pml>
+        </dampingList>
+\end{xmllisting}
+  
+
 
 \subsection{Boundary Conditions}
 Unique to the acoustic PDE is the possibiliy to prescribe inhomogeneous Neumann
@@ -294,9 +465,58 @@ below the region definitions. The syntax is:
 
 \begin{xmllisting} 
 <bcsAndLoads>
-  <neumannInhom name="transducer" value="1e-6" fileName="sweep5M.dat"/>
+    <normalVelocity value="sin(2*pi*50*t)" name="transducer"/> 
 </bcsAndLoads>
 \end{xmllisting}
+
+The standard homog. Dirichlet BC is defined, e.g., by
+
+\begin{xmllisting} 
+<bcsAndLoads>
+     <potential name="vp-restr" value="sin(2*pi*1e4*t)"/>
+</bcsAndLoads>
+\end{xmllisting}
+
+In addition, we provide the possibility to inteprolate acoustic RHS
+values available on an external grid to the computational grid (done
+in a conservative approach; so that the sum of all sources on both
+grids are the same). The following listing descibes such an example: 
+
+\begin{xmllisting} 
+<bcsAndLoads>
+  <rhsValues name="inner">
+     <grid>
+        <externalGrid gridId="srcG" inputId="srcI" 
+             quantity="acouRhsLoad" dependtype="GENERAL">
+          <globalTolerance>1e-4</globalTolerance>
+           <localTolerance>1e-2</localTolerance>
+           <regionList>
+              <region srcRegionName="srcReg"/>
+           </regionList>
+        </externalGrid>
+     </grid>
+  </rhsValues>
+  <rhsValues name="inner">
+     <grid>
+        <defaultGrid quantity="acouRhsLoad" dependtype="GENERAL"/>
+     </grid>
+  </rhsValues>
+</bcsAndLoads>
+\end{xmllisting}
+
+
+Furthermore, a standard first order absorbing boundary condition is
+available, which is activaed by
+
+\begin{xmllisting} 
+<bcsAndLoads>
+    <absorbingBCs name="dombnd" volumeRegion="fluid"/>
+</bcsAndLoads>
+\end{xmllisting}
+
+\noindent
+Thereby, \xml{dombnd} is a surface region with all necessary
+informations provided by the mesh-File.
 
 \subsection{Nodal Results}
 The config-file command for storing e.g. the acoustic potential in the result
@@ -395,30 +615,6 @@ acoustic pressure. Of special interest is the acoustic effective power
 \end{equation}
 which coincides with the real part of the calculated $P$.
 
-
-\subsection{Absorbing Boundary Conditions (ABC)} 
-In the config file, the command
-
-\begin{xmllisting}    
-<bcsAndLoads>  
-   <absorbingBCs name="abc"/>
-</bcsAndLoads>
-\end{xmllisting}
-      
-is needed, which defines the boundaries at which the \xatv{abc} are
-working.
-It should be clear, that the dimension of the boundary elements are
-one order lower compared to the dimension of the "domain" elements.
-Therefore, the boundary elements have to be listed with the config-file
-command
-
-\begin{xmllisting}
-<domain>
-  <surfRegionList>
-   <surfRegion name="abc"/>
-  </surfRegionList>
-</domain>
-\end{xmllisting}
 
 \subsection{Aeroacoustics}
 In aeroacoustics, sound sources are computed from a CFD simulation. This is
@@ -526,55 +722,58 @@ numbers is written, if the attribute \xat{writeNodes} is set to
 <cfsSimulation xmlns="http://www.cfs++.org">
 
   <fileFormats>
+    <input>
+      <gmsh fileName="Abc3d.msh"/>
+    </input>
     <output>
-     <gid/>
+      <hdf5/>
     </output>
     <materialData file="mat.xml" format="xml"/>
   </fileFormats>
-
-  <domain geometryType="plane">
+  
+  <domain geometryType="3d">
     <regionList>
-      <region material="softTissue" name="reg1"/>
-      <region material="bone" name="reg2"/>
+      <region name="acoust3d" material="air"/>
     </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="abc"/>
+    </surfRegionList>
+    
     <nodeList>
-      <nodes name="vp-restr"/>
+      <nodes name="center">
+        <coord x="0.0" y="0.0" z="0.0"/>
+      </nodes>
     </nodeList>
   </domain>
+  
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps> 40   </numSteps>
+        <deltaT> 0.000125 </deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <acoustic>
+        <regionList>
+          <region name="acoust3d"/>
+        </regionList>
+        <bcsAndLoads>
+          <pressure name="center" value="1.0*sin(2.0*_pi*1000.0*t)"/>
+          <absorbingBCs name="abc" volumeRegion="acoust3d"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+  </sequenceStep>
+  
 
- <sequenceStep>
-
-  <analysis>
-    <transient>
-      <numSteps>    600     </numSteps>
-      <firstDt>     2.5e-08 </firstDt>
-      <stepSaveBeg>   1     </stepSaveBeg>
-      <stepSaveEnd> 600     </stepSaveEnd>
-      <stepSaveInc>   1     </stepSaveInc>
-      <timeDataFile name="sin1M40cos.dat"/>
-    </transient> 
-  </analysis>
-
-  <pdeList>
-    <acoustic formulation="acouPotential">
-      <regionList>
-       <region name="reg1"/>
-       <region name="reg2"/>
-      </regionList>
-      <bcsAndLoads>
-        <dirichletInhom fileName="sin1M40cos.dat" name="vp-restr" value="1.0"/>
-      </bcsAndLoads>
-      <storeResults>
-        <nodeResult type="acouPotential">
-          <nodeList>
-            <nodes name="historyPoints"/>
-          </nodeList>
-        </nodeResult>
-      </storeResults>
-    </acoustic>
-  </pdeList>
-
- </sequenceStep>
 </cfsSimulation>
 \end{xmllisting}
 }
@@ -582,6 +781,31 @@ numbers is written, if the attribute \xat{writeNodes} is set to
 
 \newpage
 \section{Magnetics}
+Here, we solve for the low frequency approximation (no electromagnetic
+wave propagation). We differ between the standard nodal (correct in
+2D and wrong in 3D) and the edge (use in 3D) finite element
+discretization. The definitions are as follows
+\begin{xmllisting}
+<pdeList>
+   <magnetic>
+         :
+         :
+   </magnetic>
+</pdeList>
+\end{xmllisting}
+and
+\begin{xmllisting}
+<pdeList>
+  <magneticEdge>
+         :
+         :
+   </magneticEdge>
+</pdeList>
+\end{xmllisting} 
+
+For the specific commands with each of the two formulations, we have
+no differences.
+
 \subsubsection{Element Results}
 In the case of magnetic field calculation, many element results can be
 deduced by a postprocessing step:
@@ -892,80 +1116,151 @@ values {\xat{orientX} }, {\xat{orientY} } and {\xat{orientZ} }
 \right) \; .
 \end{equation}
 
+\subsection{Boundary conditions}
+In magnetics, mostly you just need to specify that the magnetic flux
+is parallel to the boundary, so that the magnetic vector components
+being in the plane of the boundary have to be zero. This operation is
+performed for nodal finite elements by (we also have to specify the
+vector component)
+\begin{xmllisting}
+<bcsAndLoads>
+   <fluxParallel name="az-fix">
+       <comp dof="z"/>
+   </fluxParallel>          
+</bcsAndLoads>
+\end{xmllisting}
+
+and for edge finite elements by
+\begin{xmllisting}
+<bcsAndLoads>
+    <fluxParallel name="botSurf"/>
+</bcsAndLoads>
+\end{xmllisting}
+
+
 \subsubsection{Example}
+Here, we list a nonlinear examples concerning the magnetic
+permeability.
 {\footnotesize
 \begin{xmllisting}
 <?xml version="1.0"?>
-<cfsSimulation xmlns="http://www.cfs++.org">
+<cfsSimulation xmlns="http://www.cfs++.org" >
 
- <fileFormats>
+  <fileFormats>
+    
     <output>
-      <gid/>
+    <hdf5/>
     </output>
     <materialData file="mat.xml" format="xml"/>
- </fileFormats>
+  </fileFormats>
 
- <domain geometryType="plane">
+  <domain geometryType="3d">
     <regionList>
-      <region name="myCoil" material="air"/>
-      <region name="iron"   material="iron"/>
-      <region name="air"    material="air"/>
+      <region name="air" material="iron"/>
+      <region name="coil" material="AIR"/>
     </regionList>
-    <nodeList>
-      <nodes name="bound"/>
-    </nodeList>
- </domain>
-
- <sequenceStep>
+    <elemList>
+      <elems name="bottom"/>
+      <elems name="top"/>
+      <elems name="surfxOuter"/>
+      <elems name="surfyOuter"/>
+    </elemList>
+  </domain>
+  
+  <fePolynomialList>
+    <Legendre id="default">
+      <isoOrder>0</isoOrder>
+    </Legendre>
+  </fePolynomialList>
+    
+   <sequenceStep>
     <analysis>
-      <static/> 
+      <static/>
     </analysis>
-   <pdeList>
-      <magnetic>
-        <regionList>
-          <region name="myCoil" />
-          <region name="iron"   />
-          <region name="air"    />
-        </regionList>
-        <bcsAndLoads>
-          <dirichletHom   name="bound"/>
-        </bcsAndLoads>
-
-        <coils>
-          <currentCoil2d name="myCoil">
-            <!-- whole coil area: 100*5 mm^2 with 20 windings -->
-            <windingCrossSection>50e-6 </windingCrossSection>
-            <value>       1            </value>
-            <id>          1            </id>
-          </currentCoil2d>
-        </coils>
-
-        <storeResults>
-          <elemResult type="magFluxDensity">
-            <regionList>
-              <region name="myCoil" />
-            </regionList>
-          </elemResult>
-          <elemResult type="magFluxDensity">
-            <regionList>
-              <region name="iron"/>
-            </regionList>
-          </elemResult>
-          <elemResult type="magFluxDensity">
-            <regionList>
-              <region name="air"/>
-            </regionList>
-          </elemResult>
-         </storeResults>
-      </magnetic>
-   </pdeList>
- <sequenceStep>
+    
+     <pdeList>
+       <magneticEdge>
+         <regionList>
+           <region name="air" nonLinIds="p" polyId="default"/>
+           <region name="coil" polyId="default"/>
+         </regionList>
+         
+         <nonLinList>
+           <permeability id="p"/>
+         </nonLinList>
+         
+         <bcsAndLoads>
+           <!-- B-tangential surfaces -  Dirichlet -->
+           <fluxParallel name="botSurf"/>
+           <fluxParallel name="topSurf"/>
+           <fluxParallel name="xOuterSurf"/>
+           <fluxParallel name="yOuterSurf"/>
+         </bcsAndLoads>
+         
+         <coils>
+           <currentCoil3d name="coil">
+             <windingCrossSection>  1 </windingCrossSection>
+             <value> 4000 </value>
+             <flowDirection>
+               <direction dof="z" value="1"/>
+             </flowDirection>
+           </currentCoil3d>
+         </coils>
+         
+         <storeResults>          
+           <elemResult type="magFluxDensity">
+             <allRegions/>
+           </elemResult>
+             <allRegions/>
+             </elemResult>
+             <regionResult type="magEnergy"> 
+            <allRegions/>
+          </regionResult>-->
+        </storeResults>
+      </magneticEdge>
+    </pdeList>
+     <linearSystems>
+       <system>
+         <solutionStrategy>
+           <standard>
+             <nonLinear logging="yes" method="newton">
+               <lineSearch type="minEnergy"/>
+               <incStopCrit> 1e-2</incStopCrit>
+               <resStopCrit> 1e-2</resStopCrit>
+               <maxNumIters> 20  </maxNumIters>
+             </nonLinear>
+           </standard>
+         </solutionStrategy>
+       </system>
+     </linearSystems>
+   </sequenceStep>
+    
 </cfsSimulation>
 \end{xmllisting}
 }
 
 \newpage
 \section{Heat Conduction}
+Here we solve for the standard heat conduction PDE.
+
+\subsection{Boundary Conditions and Loads}
+You can specifiy the standard homog. and inhomog. BCs for the
+temperature by typing the following commands
+\begin{xmllisting}
+<bcsAndLoads>
+    <temperature name="bcleft" value="0"/>
+    <temperature name="bcright" value="120"/>
+</bcsAndLoads>
+\end{xmllisting}
+
+Furthermore, you can specify a heat source density in (W/m$^3$) by
+\begin{xmllisting}
+<bcsAndLoads>
+   <heatSourceDensity name="slab" value="1e4"/>          
+</bcsAndLoads>
+\end{xmllisting}
+
+
 \subsection{Results}
 Until now, only the temperature, which is a nodal result, can be chosen for
 output either for the whole domain or at named history nodes.
@@ -984,50 +1279,50 @@ output either for the whole domain or at named history nodes.
 <?xml version="1.0"?>
 <cfsSimulation xmlns="http://www.cfs++.org">
 
- <fileFormats>
+   <fileFormats>
+   <input>
+      <hdf5 fileName="SlabVolSource.h5"/>
+   </input>
     <output>
-      <gmv fixedGrid="yes" binaryFormat="no"/>
+      <hdf5/>
     </output>
     <materialData file="mat.xml" format="xml"/>
- </fileFormats>
+  </fileFormats>
 
- <domain geometryType="plane">
+  <domain geometryType="plane">
     <regionList>
       <region name="slab" material="steel" />
     </regionList>
- </domain>
+  </domain>
 
- <sequenceStep>
+  <sequenceStep>
    <analysis>
-     <transient>
-       <numSteps>     400 </numSteps>
-       <firstDt>        2 </firstDt>
-       <stepSaveBeg>    1 </stepSaveBeg>
-       <stepSaveEnd>  400 </stepSaveEnd>
-       <stepSaveInc>    1 </stepSaveInc>
-       <timeDataFile name="sin80no.dat"/>
-     </transient> 
-   </analysis>
+      <static/>
+    </analysis>
 
-   <pdeList>
-     <heatConduction>
-       <regionList>
-         <region name="slab"/>
-       </regionList>
-       <bcsAndLoads>
-         <dirichletInhom name="bcleft" value="0.0"/>
-         <dirichletInhom name="bcright" value="100.0" dynamics="sin80no.dat"/>
-       </bcsAndLoads>
-       <storeResults>
-         <nodeResult type="heatTemperature">
-           <nodeList>
-             <nodes name="historyNode"/>
-           <nodeList>
-         </nodeResult>
-       </storeResults>
-     </heatConduction>
-   </pdeList> 
- <sequenceStep>
+    <pdeList>
+      <heatConduction>
+        <regionList>
+          <region name="slab"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <temperature name="bcleft" value="0"/>
+          <temperature name="bcright" value="0"/>
+          <heatSourceDensity name="slab" value="1e4"/>          
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="heatTemperature">
+            <allRegions/>
+            <nodeList>
+              <nodes name="historyNode"/>
+            </nodeList>
+          </nodeResult>
+        </storeResults>
+      </heatConduction>
+    </pdeList> 
+  </sequenceStep>
 </cfsSimulation>
 \end{xmllisting}
 }

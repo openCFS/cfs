@@ -1126,7 +1126,7 @@ namespace CoupledField {
                          std::map<std::string, CoordSystem*>& coordSysMap ) {
     
     // This method crates a "dummy" multisequence step, in
-    // wchich some grid-information rsults are created:
+    // which some grid-information results are created:
     // - Local directions (xi,eta,zeta) of elements
     // - Jacobian determinant
     // - surface element normals
@@ -1146,6 +1146,8 @@ namespace CoupledField {
     shared_ptr<ResultInfo> jacRes( new ResultInfo );
     shared_ptr<ResultInfo> surfNormal( new ResultInfo );
     shared_ptr<ResultInfo> aspectRatio( new ResultInfo );
+    shared_ptr<ResultInfo> area( new ResultInfo );
+    shared_ptr<ResultInfo> volume( new ResultInfo );
 
     StdVector<std::string> dirVec (dim_);
     if( dim_ == 3 ) {
@@ -1202,6 +1204,22 @@ namespace CoupledField {
     aspectRatio->entryType = ResultInfo::SCALAR;
     aspectRatio->dofNames = "";
     aspectRatio->unit = "";
+    
+    // 5) Area
+    area->resultType = VOLUME;
+    area->resultName = "area";
+    area->definedOn = ResultInfo::ELEMENT;
+    area->entryType = ResultInfo::SCALAR;
+    area->dofNames = "";
+    area->unit = "m^2";
+    
+    // 5) Volume / Area
+    volume->resultType = VOLUME;
+    volume->resultName = "volume";
+    volume->definedOn = ResultInfo::ELEMENT;
+    volume->entryType = ResultInfo::SCALAR;
+    volume->dofNames = "";
+    volume->unit = "m^3";
     
     // === create results for all coordinate systems available ===
     std::map<std::string, StdVector<shared_ptr<ResultInfo> > > coordDirs;
@@ -1279,6 +1297,19 @@ namespace CoupledField {
         sol->SetResultInfo(locDir3);
         ptRes->RegisterResult( sol,fnc,0, 0,1,1,outDest,"",true,false);
         resultList.Push_back(sol);
+        
+        sol = shared_ptr<BaseResult> (new Result<Double>());
+        sol->SetEntityList(ent);
+        sol->SetResultInfo(volume);
+        ptRes->RegisterResult(sol, fnc, 0, 0, 1, 1, outDest, "", true, false);
+        resultList.Push_back(sol);
+      }
+      else {
+        sol = shared_ptr<BaseResult> (new Result<Double>());
+        sol->SetEntityList(ent);
+        sol->SetResultInfo(area);
+        ptRes->RegisterResult(sol, fnc, 0, 0, 1, 1, outDest, "", true, false);
+        resultList.Push_back(sol);
       }
       
       // loop over all coordinate systems
@@ -1315,6 +1346,14 @@ namespace CoupledField {
       sol->SetResultInfo(surfNormal);
       ptRes->RegisterResult( sol,fnc,0, 0,1,1,outDest,"",true,false);
       surfResultList.Push_back(sol);
+      
+      if ( dim_ == 3 ) {
+        sol = shared_ptr<BaseResult> (new Result<Double>());
+        sol->SetEntityList(ent);
+        sol->SetResultInfo(area);
+        ptRes->RegisterResult(sol, fnc, 0, 0, 1, 1, outDest, "", true, false);
+        resultList.Push_back(sol);
+      }
     }
     
     // begin writing of results
@@ -1333,24 +1372,19 @@ namespace CoupledField {
           dynamic_cast<Result<Double>&>(*resultList[i]);
       EntityIterator it = actSol.GetEntityList()->GetIterator();
       Vector<Double> & actVal = actSol.GetVector();
-      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
 
       // check, which result is required
-      bool isJacobian = false;
-      bool isAspect = false;
-      if (actSol.GetResultInfo()->resultName == "xi") {
-        actLocDir = locDir_xi;
-      } else  if (actSol.GetResultInfo()->resultName == "eta") {
-        actLocDir = locDir_eta;
-      } else  if (actSol.GetResultInfo()->resultName == "zeta") {
-        actLocDir = locDir_zeta;
-      } else  if (actSol.GetResultInfo()->resultName == "aspectRatio") {
-        isAspect = true;
-      } else {
-        isJacobian = true;
-      }
-      
-      if (!isJacobian &&!isAspect) {
+      switch (actSol.GetResultInfo()->resultType) {
+      case ELEM_LOC_DIR:
+        if (actSol.GetResultInfo()->resultName == "xi") {
+          actLocDir = locDir_xi;
+        } else if (actSol.GetResultInfo()->resultName == "eta") {
+          actLocDir = locDir_eta;
+        } else if (actSol.GetResultInfo()->resultName == "zeta") {
+          actLocDir = locDir_zeta;
+        }
+        actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
+
         // loop over elements
         for ( it.Begin(); !it.IsEnd(); it++ ) {
           const Elem * ptElem = it.GetElem();
@@ -1367,7 +1401,10 @@ namespace CoupledField {
             actVal[it.GetPos()*dim_ + iDim] = globVec[iDim];
           }
         }
-      } else if(isAspect) {
+        break;
+
+      case ASPECT_RATIO:
+        actVal.Resize( actSol.GetEntityList()->GetSize() );
         // loop over elements
         for ( it.Begin(); !it.IsEnd(); it++ ) {
 
@@ -1377,7 +1414,10 @@ namespace CoupledField {
           esm->GetMaxMinEdgeLength(maxEdge,minEdge);
           actVal[it.GetPos()] = maxEdge / minEdge;
         } // loop over elements
-      } else {
+        break;
+        
+      case JACOBIAN:
+        actVal.Resize( actSol.GetEntityList()->GetSize() );
         // loop over elements
         for ( it.Begin(); !it.IsEnd(); it++ ) {
 
@@ -1390,6 +1430,22 @@ namespace CoupledField {
           jac.Determinant(jacDet);
           actVal[it.GetPos()] = jacDet;
         } // loop over elements
+        break;
+        
+      case VOLUME:
+        actVal.Resize( actSol.GetEntityList()->GetSize() );
+        // loop over elements
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+
+          const Elem * ptElem = it.GetElem();
+          shared_ptr<ElemShapeMap>  esm = GetElemShapeMap(ptElem);
+          actVal[it.GetPos()] = esm->CalcVolume();
+        } // loop over elements
+        break;
+        
+      default:
+        WARN("Grid info '" << actSol.GetResultInfo()->resultName
+             << "is enabled, but calculation is not implemented.");
       }
       ptRes->UpdateResult(resultList[i]);
     } // loop over volume results
@@ -1442,21 +1498,41 @@ namespace CoupledField {
           dynamic_cast<Result<Double>&>(*surfResultList[i]);
       EntityIterator it = actSol.GetEntityList()->GetIterator();
       Vector<Double> & actVal = actSol.GetVector();
-      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
       
-      // loop over surface elements
-      for ( it.Begin(); !it.IsEnd(); it++ ) {
-        const SurfElem * ptElem = it.GetSurfElem();
-        shared_ptr<ElemShapeMap> esm = GetElemShapeMap(ptElem);
-        Vector<Double> midPoint = 
-            Elem::shapes[it.GetElem()->type].midPointCoord;
-        esm->CalcNormal( normal, midPoint );
+      switch (actSol.GetResultInfo()->resultType) {
+      case ELEM_LOC_DIR:
+        actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
+
+        // loop over surface elements
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+          const SurfElem * ptElem = it.GetSurfElem();
+          shared_ptr<ElemShapeMap> esm = GetElemShapeMap(ptElem);
+          Vector<Double> midPoint = 
+              Elem::shapes[it.GetElem()->type].midPointCoord;
+          esm->CalcNormal( normal, midPoint );
+
+
+          for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+            actVal[it.GetPos()*dim_ + iDim] = normal[iDim];
+          }
+        } // loop over elements
+        break;
         
+      case VOLUME:
+        actVal.Resize( actSol.GetEntityList()->GetSize() );
+
+        // loop over surface elements
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+          const SurfElem * ptElem = it.GetSurfElem();
+          shared_ptr<ElemShapeMap> esm = GetElemShapeMap(ptElem);
+          actVal[it.GetPos()] = esm->CalcVolume();
+        } // loop over elements
+        break;
         
-        for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-          actVal[it.GetPos()*dim_ + iDim] = normal[iDim];
-        }
-      } // loop over elements
+      default:
+        WARN("Grid info '" << actSol.GetResultInfo()->resultName
+             << "is enabled, but calculation is not implemented.");
+      }
       
       ptRes->UpdateResult(surfResultList[i]);
     } // loop over surface results

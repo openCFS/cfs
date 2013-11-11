@@ -111,6 +111,15 @@ public:
 
   //@}
 
+  //! \copydoc CoefFunction::SetConservative
+  virtual void SetConservative(bool value){
+    CoefFunctionGrid::SetConservative(value);
+    globalTol_ = 0.0;
+    this->myConfigNode_->GetValue("globalTolerance", globalTol_, ParamNode::PASS);
+    localTol_ = 1e-3;
+    this->myConfigNode_->GetValue("localTolerance", localTol_, ParamNode::PASS);
+  }
+
 
 private:
 
@@ -138,6 +147,12 @@ private:
   
   //! local tolerance (interval of local coordinates outside of element)
   Double localTol_;
+  
+  //! For 3D => 2D interpolation use x-y-plane at this z-coordinate
+  Double xyPlaneAtZ_;
+  
+  //! Tolerance for z-coordinate of x-y-plane
+  Double zTol_;
   //@}
 
   // =====================================
@@ -175,7 +190,10 @@ private:
 private:
   void ReadXMLNode(PtrParamNode configNode);
 
+  std::string destRegionName_;
 
+  //! Pointer to destination grid for interpolation (usually "default" grid)
+  Grid * destGrid_;
 
 };
 

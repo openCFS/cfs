@@ -15,6 +15,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionTimeFreq.cc
   CoefFunctionSurf.cc
   CoefFunctionPML.cc
+  CoefFunctionScatteredData.cc
   CoefFunctionStabParams.cc
   CoefFunctionMeanFlowConvection.cc
 )

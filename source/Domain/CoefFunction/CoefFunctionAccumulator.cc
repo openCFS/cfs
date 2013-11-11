@@ -61,7 +61,13 @@ void CoefFunctionAccumulator::GetVector(Vector<Double>& coefVec,
 
 void CoefFunctionAccumulator::GetScalar(Double& coef,
                                         const LocPointMapped& lpm ){
-  
+
+	fct_->GetScalar(coef, lpm);
+
+	if( integrate_ )
+		squaredSum_ = coef * coef * lpm.weight * lpm.jacDet;
+	else
+		squaredSum_ = coef * coef;
 }
 
 } // end of namespace

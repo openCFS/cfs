@@ -169,6 +169,16 @@ namespace CoupledField {
       mainRoot_ = mainFile_.openGroup("/");
     } H5_CATCH( "Could not open main root" );
 
+    // Open mesh group
+    H5::Group meshGroup;
+    try{
+      meshGroup = mainRoot_.openGroup("Mesh");
+    } H5_CATCH( "Could not open mesh group" );
+
+    // Read dimension
+    H5IO::ReadAttribute( meshGroup, "Dimension", dim_ );
+    meshGroup.close();
+
     // check for use of external files
     try {
       H5::Group meshResGroup = mainRoot_.openGroup("Results/Mesh");
@@ -306,19 +316,7 @@ namespace CoupledField {
   //  GENERAL MESH INFORMATION
   // ======================================================
   UInt SimInputHDF5::GetDim() {
-    LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
-
-    // Open mesh group
-    H5::Group meshGroup;
-    try{
-      meshGroup = mainRoot_.openGroup("Mesh");
-    } H5_CATCH( "Could not open mesh group" );
-
-    // Read dimension
-    UInt dim;
-    H5IO::ReadAttribute( meshGroup, "Dimension", dim );
-    meshGroup.close();
-    return dim;
+    return dim_;
   }
 
   UInt SimInputHDF5::GetNumNodes(){
@@ -618,7 +616,7 @@ namespace CoupledField {
   }
 
   void SimInputHDF5::GetMeshResult( UInt sequenceStep, UInt stepNum,
-                                     shared_ptr<BaseResult> result ) {
+                                    shared_ptr<BaseResult> result ) {
 
     // open stepgroup, open specific result subgroup
     H5::Group stepGroup = H5IO::GetStepGroup( mainFile_, sequenceStep,
@@ -1361,22 +1359,27 @@ namespace CoupledField {
 
   void SimInputHDF5::TransformNodes(CoordSystem& coordSys, double scaleFac)
   {
-    UInt numNodes = nodeCoords_.GetSize() / 3;
+    if (dim_ != coordSys.GetDim()) {
+      EXCEPTION("Cannot use a " << coordSys.GetDim() << "D coordinate system ("
+                << coordSys.GetName() << ") to transform a "
+                << dim_ << "D mesh (" << fileName_ << ").");
+    }
+    
     Vector<Double> p, globPoint;
-    p.Resize(3);
-    globPoint.Resize(3);
+    p.Resize(dim_);
+    globPoint.Resize(dim_);
 
-    for(UInt i=0; i<numNodes; i++) 
+    for(UInt i=0; i<numNodes_; ++i) 
     {
       UInt idx = i*3;
       p[0] = nodeCoords_[idx + 0];
       p[1] = nodeCoords_[idx + 1];
-      p[2] = nodeCoords_[idx + 2];
+      if (dim_ == 3) p[2] = nodeCoords_[idx + 2];
       coordSys.Global2LocalCoord(globPoint, p);
       
       nodeCoords_[idx + 0] = globPoint[0] * scaleFac;
       nodeCoords_[idx + 1] = globPoint[1] * scaleFac;
-      nodeCoords_[idx + 2] = globPoint[2] * scaleFac;
+      if (dim_ == 3) nodeCoords_[idx + 2] = globPoint[2] * scaleFac;
     }
   }
   
@@ -1637,6 +1640,115 @@ namespace CoupledField {
 
   }
 
+  void SimInputHDF5::GetNamedNodeResult(const std::string& nodeName,
+                                        const std::string resultName,
+                                        StdVector<Complex>& result)
+  {    
+    StdVector<UInt> nodeNumbers;
+    StdVector<Double> real, imag;
+    
+    try {
+      H5::Group groupsGroup = mainRoot_.openGroup("Mesh/Groups");
 
+      H5::Group namedNodeGroup;
+      try {      
+        namedNodeGroup = groupsGroup.openGroup(nodeName);
+      } catch (H5::Exception& h5Ex ) {
+        EXCEPTION("Named node '" << nodeName << "' not found in HDF5 file!");
+      }      
+
+      H5IO::ReadArray( namedNodeGroup, "Nodes", nodeNumbers);
+      
+      namedNodeGroup.close();
+      groupsGroup.close();
+      
+      for(UInt i=0, n=nodeNumbers.GetSize(); i<n; i++) 
+      {
+        std::cout << "Node numbers for " << nodeName << ": " << nodeNumbers[i] << std::endl;
+      }
+      
+      std::stringstream sstr;
+      
+      try {
+        // Try to read node results from history group.
+        sstr << "Results/History/MultiStep_1/" << resultName << "/Nodes/" << nodeNumbers[0];
+
+        H5::Group historyNodeGroup = mainRoot_.openGroup(sstr.str());
+        H5IO::ReadArray( historyNodeGroup, "Real", real);
+        H5IO::ReadArray( historyNodeGroup, "Imag", imag);
+        historyNodeGroup.close();
+
+        std::cout << "real.size " << real.GetSize() << std::endl;
+        std::cout << "imag.size " << imag.GetSize() << std::endl;
+
+        result.Resize(1);
+        result[0] = Complex(real[0], imag[0]);
+
+        std::cout << "Complex result " << result[0] << std::endl;
+
+      }  catch (H5::Exception& h5Ex ) {
+        // Try to read node results from history group.
+
+        sstr.clear(); sstr.str("");
+        sstr << "Results/Mesh/MultiStep_1/ResultDescription/" << resultName;
+        H5::Group resDescGroup = mainRoot_.openGroup(sstr.str());
+
+        StdVector< shared_ptr<ResultInfo> > infos;
+        shared_ptr<ResultInfo> myInfo;
+        GetResultTypes( 1, infos, false );
+        
+        for(UInt i=0, n= infos.GetSize(); i<n; i++)
+        {
+          if(infos[i]->resultName == resultName) 
+          {
+            myInfo = infos[i];
+            break;
+          }          
+        }
+        
+
+        StdVector<shared_ptr<EntityList> > list;
+        shared_ptr<EntityList> myList;
+
+        GetResultEntities( 1, myInfo, list, false );
+
+        UInt dist = 0;
+        for(UInt i=0, n= list.GetSize(); i<n; i++)
+        {
+          const StdVector<UInt>& nodes = dynamic_cast<NodeList*>(list[i].get())->GetNodes();
+          std::string name = dynamic_cast<NodeList*>(list[i].get())->GetName();
+
+          UInt numNodes = nodes.GetSize();
+          const UInt* pt = std::find(&nodes[0], &nodes[nodes.GetSize()-1]+1, nodeNumbers[0]);
+          dist = std::distance(&nodes[0], pt);
+
+          std::cout << "Searching for node " << nodeNumbers[0] << " in list " << name << std::endl;
+          
+          if(dist < numNodes) 
+          {
+            myList = list[i];
+            std::cout << "Found node!" << std::endl;
+            break;
+          }
+        }
+        
+
+        Result<Complex>* resPt = new Result<Complex>;
+        shared_ptr<BaseResult> res( resPt );
+        res->SetResultInfo(myInfo);
+        res->SetEntityList(myList);
+        
+        GetMeshResult( 1, 1, res );
+
+        Vector<Complex> resVec =  resPt->GetVector();
+        result.Resize(1);
+        result[0] = resVec[dist * myInfo->dofNames.GetSize()];
+
+        std::cout << "Complex result " << result[0] << std::endl;
+        // EXCEPTION( STR << ":\n" << h5Ex.getCDetailMsg() );
+      }
+
+    }  H5_CATCH( "Could not close database section" );
+  }
 
 }

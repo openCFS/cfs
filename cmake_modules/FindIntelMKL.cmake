@@ -1,3 +1,16 @@
+#-------------------------------------------------------------------------------
+# This script  is responsible for the  determination of the correct  include and
+# linker  parameters for  the Intel  Math Kernel  Library (MKL).  We distinguish
+# between Windows/MinGW builds and Unix (Linux  and MacOS X) builds. On Linux we
+# just support the  MinGW (cross-)compilers at the moment,  which are officially
+# incompatible  with  MKL.   This  is  due  to  the   different  OpenMP  runtime
+# environments for  GCC and  Intel/MS compilers.  Anyway, we  found a  number of
+# working combinations  of GCC and  MKL versions. These combinations  are pretty
+# much hardcoded at the moment.
+#
+# On Unix  we determine the  required linker flags by  compiling one of  the MKL
+# examples and reading the flags from the Makefile output (cf. below).
+#-------------------------------------------------------------------------------
 IF(MINGW OR MSVC)
 
   #-----------------------------------------------------------------------------
@@ -172,22 +185,23 @@ IF(MINGW OR MSVC)
 
 ELSEIF(UNIX)
 
+IF(NOT CMAKE_CROSSCOMPILING)
 #-------------------------------------------------------------------------------
-# The idea behind the algorithm implemented for finding MKL, is to let the
-# make files in the MKL example directories tell us which linker flags we need.
-# We therefore tell the MKLROOT (which contains a include/mkl.h) to an external
-# shell script (compile_mkl_test.sh) which will then copy one of the example 
-# make files to a temporary directory, make some necessary modifications to it
-# and compile a simple test program which will afterwards print out the version
-# of MKL. All outputs of the shell script and test executable are in CMake 
-# syntax and get written to CMakeFiles/mkl.cmake which will in turn be included
+# The idea behind the algorithm implemented for	 finding MKL, is to let the make
+# files in the MKL  example directories tell us which linker  flags we need.  We
+# therefore tell  the MKLROOT  (which contains a  include/mkl.h) to  an external
+# shell script	(compile_mkl_test.sh) which  will then copy  one of  the example
+# make files to	 a temporary directory, make some necessary  modifications to it
+# and compile a simple test program  which will afterwards print out the version
+# of MKL.  All outputs	of the	shell script  and test	executable are	in CMake
+# syntax and get written to CMakeFiles/mkl.cmake  which will in turn be included
 # from the current script.
-#
-# This somewhat complicated procedure has been chosen, since Intel seems to 
-# change the file and directory layout of their compiler and MKL suite even 
-# with every minor version. Therefore Intel should know best, what linker 
-# switches to use for what version and we happily copy that information.
-#
+# 
+# This	somewhat complicated  procedure has  been chosen,  since Intel	seems to
+# change the file and directory layout of their compiler and MKL suite even with
+# every minor version. Therefore Intel should know best, what linker switches to
+# use for what version and we happily copy that information.
+# 
 # ATTENTION: The path to MKL should not contain any spaces!
 #-------------------------------------------------------------------------------
 
@@ -307,26 +321,32 @@ ELSE(WIN32)
   #-----------------------------------------------------------------------------
   # Configure our little build script using the previously defined variables.
   #-----------------------------------------------------------------------------
+  SET(COMPILE_MKL_TEST_DIR "${CFS_BINARY_DIR}/tmp/mkl_test")
+  FILE(MAKE_DIRECTORY "${COMPILE_MKL_TEST_DIR}")
   CONFIGURE_FILE(
     "${CFS_SOURCE_DIR}/share/scripts/compile_mkl_test.sh.in"
-    "${CFS_BINARY_DIR}/tmp/compile_mkl_test.sh" @ONLY)
+    "${COMPILE_MKL_TEST_DIR}/compile_mkl_test.sh" @ONLY)
 
   #-----------------------------------------------------------------------------
   # Execute the build script and put the generated CMake code into mkl.cmake.
   #-----------------------------------------------------------------------------
-  EXEC_PROGRAM("sh ${CFS_BINARY_DIR}/tmp/compile_mkl_test.sh > ${CFS_BINARY_DIR}/CMakeFiles/mkl.cmake"
-    ARGS
+  EXECUTE_PROCESS(
+    COMMAND sh "${COMPILE_MKL_TEST_DIR}/compile_mkl_test.sh"
     OUTPUT_VARIABLE MKL_INFO
-    RETURN_VALUE RETVAL)
+    WORKING_DIRECTORY "${COMPILE_MKL_TEST_DIR}"
+    RESULT_VARIABLE RETVAL)
 
   IF(RETVAL EQUAL 0)
+    FILE(WRITE "${CFS_BINARY_DIR}/CMakeFiles/mkl.cmake" ${MKL_INFO})
+    FILE(REMOVE_RECURSE "${COMPILE_MKL_TEST_DIR}")
+
     #---------------------------------------------------------------------------
     # Finally just include the linker flags and version info.
     #---------------------------------------------------------------------------
     INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/mkl.cmake)
   ELSE(RETVAL EQUAL 0)
     MESSAGE(SEND_ERROR "A problem occurred during determination of MKL linker
-                        flags. Please run ${CFS_BINARY_DIR}/tmp/compile_mkl_test.sh
+                        flags. Please run ${CFS_BINARY_DIR}/tmp/mkl_test/compile_mkl_test.sh
                         by hand to investigate the problem.")
   ENDIF(RETVAL EQUAL 0)
 
@@ -347,6 +367,30 @@ MARK_AS_ADVANCED(MKL_ROOT_DIR)
 
 # TODO: libguide und libiomp durch die von MKL ersetzen.
 # TODO: für libmkl_intel_lp64.a libmkl_gf_lp64.a für gnu einsetzen.
+ELSE(NOT CMAKE_CROSSCOMPILING)
+  IF(APPLE)
+    # At the moment we just hard code the paths to MKL.    
+    SET(MKL_ROOT_DIR "/opt/pckg/macosx_10.6_dev/intel/composerxe-2011.0.085/mkl")
+    SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
+    # BLAS Libs
+    SET(MKL_BLAS_LIB
+      ${MKL_ROOT_DIR}/lib/libmkl_intel_lp64.a
+      ${MKL_ROOT_DIR}/lib/libmkl_intel_thread.a
+      ${MKL_ROOT_DIR}/lib/libmkl_core.a
+      -L${MKL_ROOT_DIR}/../compiler/lib
+      ${MKL_ROOT_DIR}/../compiler/lib/libiomp5.a
+      -lpthread;-lm
+      CACHE STRING "BLAS Libs.")
+    # LAPACK Libs
+    SET(MKL_LAPACK_LIB ""
+      CACHE STRING "LAPACK Libs.")
+    # Pardiso Libs
+    SET(MKL_PARDISO_LIB ""
+      CACHE STRING "Pardiso Libs.")
+  ENDIF()
+ENDIF(NOT CMAKE_CROSSCOMPILING)
+
+
 ENDIF() # MINGW OR MSVC
 
 #-------------------------------------------------------------------------------

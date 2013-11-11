@@ -178,6 +178,26 @@ namespace CoupledField {
                             const Elem* ptElem,
                             UInt comp = 1 );
     virtual void GetLocalDOFCoordinates(Matrix<Double> & coordMat);
+
+    //! @copydoc FeH1::GetNumICModes
+     virtual UInt GetNumICModes() {
+    	 if ( order_ == 1 )
+    		 return 2;
+    	 else
+    		 return 0;
+     }
+
+     //! @copydoc FeH1::CalcShFncICModes
+     void CalcShFncICModes( Vector<Double>& shape,
+                            const Vector<Double>& point,
+                            const Elem* ptElem,
+                            UInt comp = 1 );
+
+     //! @copydoc FeH1::CalcLocDerivShFncICModes
+     void CalcLocDerivShFncICModes( Matrix<Double> & deriv,
+                                    const Vector<Double>& point,
+                                    const Elem* ptElem,
+                                    UInt comp = 1 );
   };
   
   //! Lagrangian hexahedral element of varaiable order

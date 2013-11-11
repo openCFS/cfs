@@ -67,6 +67,7 @@ using std::string;
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
+#include "Forms/Operators/SurfaceNormalStressOperator.hh"
 
 // TEMPORARY
 #include "MagEdgePDE.hh"
@@ -2542,6 +2543,7 @@ namespace CoupledField {
                          ParamNode::INSERT );
       nciNode->GetValue( "crossPointHandling", newIface.crossPointHandling,
                          ParamNode::INSERT );
+
       if (newIface.crossPointHandling) {
         WARN("Cross-point handling is not implemented yet");
       }
@@ -2753,6 +2755,24 @@ namespace CoupledField {
         lm->SetFeFunction(feFunctions_[LAGRANGE_MULT]);
         results_.Push_back(lm);
         DefineFieldResult(feFunctions_[LAGRANGE_MULT], lm);
+        
+        shared_ptr<ResultInfo> lm_d1( new ResultInfo() );
+        lm_d1->resultType = LAGRANGE_MULT_DERIV_1;
+        lm_d1->complexFormat = lm->complexFormat;
+        lm_d1->definedOn = lm->definedOn;
+        lm_d1->dofNames = lm->dofNames;
+        lm_d1->entryType = lm->entryType;
+        availResults_.insert(lm_d1);
+        DefineTimeDerivResult(lm_d1->resultType, 1, lm->resultType);
+        
+        shared_ptr<ResultInfo> lm_d2( new ResultInfo() );
+        lm_d2->resultType = LAGRANGE_MULT_DERIV_2;
+        lm_d2->complexFormat = lm->complexFormat;
+        lm_d2->definedOn = lm->definedOn;
+        lm_d2->dofNames = lm->dofNames;
+        lm_d2->entryType = lm->entryType;
+        availResults_.insert(lm_d2);
+        DefineTimeDerivResult(lm_d2->resultType, 2, lm->resultType);
         
         break; // one result is enough for all ncInterfaces
       }
@@ -3035,13 +3055,17 @@ namespace CoupledField {
   
   template<UInt DIM, UInt D_DOF>
   void SinglePDE::DefineNitscheCoupling( SolutionType solType,
-                                         NcInterfaceInfo &iface)
+                                         NcInterfaceInfo &iface,
+                                         bool icModes)
   {
     shared_ptr<BaseNcInterface> ncIf =
         ptGrid_->GetNcInterface(iface.interfaceId);
+    MortarInterface * nitscheIf = dynamic_cast<MortarInterface*>(ncIf.get());
+    assert(nitscheIf);
     
-    ptGrid_->MapEdges();
-    ptGrid_->MapFaces();
+    //in case of Nitsche coupling edge/face information is required
+    this->ptGrid_->MapEdges();
+    this->ptGrid_->MapFaces();
 
     // currently we have a moving formulation only for acoustics
     updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?
@@ -3067,57 +3091,137 @@ namespace CoupledField {
 
     //we set here the penalty factor
     Double beta = iface.nitscheFactor;
+
+    // in case of mechanical PDE, we need the material tensor
+    shared_ptr<CoefFunction > coefMech;
+    SubTensorType tensorType = NO_TENSOR;
+    if ( solType == MECH_DISPLACEMENT ) {
+      if ( subType_ == "3d" )
+        tensorType = FULL;
+      else if ( subType_ == "axi" )
+        tensorType = AXI;
+      else if ( subType_ == "planeStrain" )
+        tensorType = PLANE_STRAIN;
+      else if ( subType_ == "planeStress" )
+        tensorType = PLANE_STRESS;
+
+
+      if ( isComplex_ ) {
+        coefMech = materials_[nitscheIf->GetMasterVolRegion()]
+          ->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, Global::COMPLEX);
+        EXCEPTION("Nitsche for Mechanical PDE currently not working!!")
+      }
+      else {
+        coefMech = materials_[nitscheIf->GetMasterVolRegion()]
+          ->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, Global::REAL);
+
+        //get correct scaling of penalty term
+        StdVector<Vector<Double> > points(1);
+        Vector<Double> p1(DIM);
+        p1.Init();
+        points[0]= p1;
+        StdVector<Matrix<Double> > mats;
+        coefMech->GetTensorValuesAtCoords(points,mats,this->ptGrid_);
+        //std::cout << "matTensor\n: " << mats[0] << std::endl;
+
+        Double matVal = 0.0;
+        for (UInt i=0; i<mats[0].GetNumRows(); i++)
+          matVal += mats[0][i][i];
+
+        matVal /= (Double)mats[0].GetNumRows();
+        //std::cout << "matVal: " << matVal << std::endl;
+
+        //scale the penalty value
+        beta *= matVal;
+      }
+    }
+
     if ( analysistype_ == HARMONIC ) {
       EXCEPTION("HARMONIC CASE NOT IMPLEMENTED FOR ACOUSTIC NMG");
-    } else {
-      curcpl = BiLinearForm::MASTER_MASTER;
+    }
 
-      penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, beta, curcpl, updatedGeo_);
+    curcpl = BiLinearForm::MASTER_MASTER;
 
+    penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
+          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+          factor, beta, curcpl, updatedGeo_);
+
+    if ( solType == MECH_DISPLACEMENT ) {
       flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+      ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+        new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+           factor, -1.0, curcpl, updatedGeo_);
+        flux_du1_v1->SetBCoefFunctionOpA(coefMech);
+    }
+    else {
+      flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
+      ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             factor, -1.0, curcpl, updatedGeo_);
+    }
 
+    if ( solType == MECH_DISPLACEMENT ) {
       flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-            factor, -1.0, curcpl, updatedGeo_);
+        (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+           new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+           factor, -1.0, curcpl, updatedGeo_);
+      flux_u1_dv1->SetBCoefFunctionOpB(coefMech);
+    }
+    else {
+        flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
+          (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+              factor, -1.0, curcpl, updatedGeo_);
+    }
 
-      curcpl = BiLinearForm::SLAVE_SLAVE;
+    curcpl = BiLinearForm::SLAVE_SLAVE;
 
-      penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, beta, curcpl, updatedGeo_);
+    penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
+          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+          factor, beta, curcpl, updatedGeo_);
 
-      curcpl = BiLinearForm::MASTER_SLAVE;
+    curcpl = BiLinearForm::MASTER_SLAVE;
 
-      penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, beta * -1.0, curcpl, updatedGeo_);
-
+    penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
+          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+          factor, beta * -1.0, curcpl, updatedGeo_);
+    
+    if ( solType == MECH_DISPLACEMENT ) {
       flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+          (new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+           factor, 1.0, curcpl, updatedGeo_);
+      flux_du1_v2->SetBCoefFunctionOpA(coefMech);
+    }
+    else {
+        flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
+           (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             factor, 1.0, curcpl, updatedGeo_);
+    }
 
-      curcpl = BiLinearForm::SLAVE_MASTER;
+    curcpl = BiLinearForm::SLAVE_MASTER;
 
-      penalty_u2_v1 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, beta * -1.0, curcpl, updatedGeo_);
+    penalty_u2_v1 = new SurfaceNitscheABInt<Double,Double>
+        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
+          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+          factor, beta * -1.0, curcpl, updatedGeo_);
 
+    if ( solType == MECH_DISPLACEMENT ) {
       flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+         (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
+            factor, 1.0, curcpl, updatedGeo_);
+      flux_u2_dv1->SetBCoefFunctionOpB(coefMech);
+    }
+    else {
+      flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>
+         (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
             factor, 1.0, curcpl, updatedGeo_);
-
     }
 
     penalty_u1_v1->SetName("penalty_u1_v1");
@@ -3223,14 +3327,13 @@ namespace CoupledField {
     ncIf->RegisterIntegrator( flux_du1_v2_Context );
     //ncIf->RegisterIntegrator( penalty_u2_v1_Context );
     //ncIf->RegisterIntegrator( flux_u2_dv1_Context );
+  }
 
-
-}
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template void SinglePDE::DefineNitscheCoupling<2,1>(SolutionType,NcInterfaceInfo&);
-  template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&);
-  template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&);
-  template void SinglePDE::DefineNitscheCoupling<3,3>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineNitscheCoupling<2,1>(SolutionType,NcInterfaceInfo&,bool);
+  template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&,bool);
+  template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&,bool);
+  template void SinglePDE::DefineNitscheCoupling<3,3>(SolutionType,NcInterfaceInfo&,bool);
 #endif
 
 } // end of namespace

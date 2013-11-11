@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org">
+    <material name="air">
+        <acoustic>
+            <density> 1 </density>
+            <compressionModulus> 1 </compressionModulus>
+        </acoustic>
+    </material>
+</cfsMaterialDataBase>

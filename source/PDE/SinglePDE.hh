@@ -486,7 +486,8 @@ namespace CoupledField
     //! interface.
     template<UInt DIM, UInt D_DOF>
     void DefineNitscheCoupling( SolutionType solType,
-                                   NcInterfaceInfo &iface);
+                                NcInterfaceInfo &iface,
+                                bool icModes = false);
     
     //! Vector containing all ncInterfaces for this PDE
     StdVector< NcInterfaceInfo > ncInterfaces_;

@@ -18,6 +18,7 @@
 #include <def_use_lapack.hh>
 #include <def_use_cgal.hh>
 #include <def_xmlschema.hh>
+#include <def_use_openmp.hh>
 
 #include <def_cfs_fortran_interface.hh>
 
@@ -608,13 +609,22 @@ namespace CoupledField {
         << " " << CMAKE_EXE_LINKER_FLAGS_RELEASE
         << fg_reset << endl << endl;
 #endif
- #ifdef USE_ARPACK    
+
+#ifdef USE_OPENMP
+    out << "USE_OPENMP:            "
+        << fg_blue  << "YES" << fg_reset << endl;
+#else
+    out << "USE_OPENMP:            "
+        << fg_blue  << "NO" << fg_reset << endl;
+#endif
+
+#ifdef USE_ARPACK    
     out << "USE_ARPACK:            "
         << fg_blue  << "YES" << fg_reset << endl;
     out << "ARPACK_VERSION:        "
         << fg_blue  << ARPACK_VERSION_NUMBER << " "
         << ARPACK_VERSION_DATE << fg_reset << endl;
- #else
+#else
     out << "USE_ARPACK:            "
         << fg_blue  << "NO" << fg_reset << endl;
 #endif

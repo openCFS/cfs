@@ -74,19 +74,50 @@ SET(PFN "${suitesparse_prefix}/suitesparse-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since the non-standard port 
+# number of the FTP server on the CFS++ development server  may not be
+# accessible from behind firewalls.
+# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
+# used to configure the download CMake file for the library.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "http://www.cise.ufl.edu/research/sparse/SuiteSparse/${SUITESPARSE_GZ}"
+  "${SUITESPARSE_URL}/${SUITESPARSE_GZ}"
+)
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/suitesparse/${SUITESPARSE_GZ}")
+SET(MD5_SUM ${SUITESPARSE_MD5})
+
+SET(DLFN "${suitesparse_prefix}/suitesparse-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  ) 
+
+#-------------------------------------------------------------------------------
 # The suitesparse external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(suitesparse
   DEPENDS metis
   PREFIX "${suitesparse_prefix}"
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/suitesparse
   SOURCE_DIR "${suitesparse_source}"
-  URL ${SUITESPARSE_URL}/${SUITESPARSE_GZ}
+  URL ${LOCAL_FILE}
   URL_MD5 ${SUITESPARSE_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   CMAKE_ARGS
     ${CMAKE_ARGS}
     -DBUILD_SHARED_LIBS:BOOL=OFF
+)
+
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(suitesparse cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${suitesparse_prefix}
 )
 
 #-------------------------------------------------------------------------------
@@ -128,6 +159,7 @@ SET(CHOLMOD_LIBS
   ccolamd_dint
   ccolamd_dlong
   ccolamd
+  SuiteSparse_config
   )
 
 SET(CHOLMOD_LIBRARY "")
@@ -136,6 +168,14 @@ foreach(lib IN LISTS CHOLMOD_LIBS)
   LIST(APPEND CHOLMOD_LIBRARY
     "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${lib}${CMAKE_STATIC_LIBRARY_SUFFIX}")
 endforeach()
+
+IF(NOT CFS_DISTRO STREQUAL "MACOSX")
+  IF(NOT MINGW)
+    LIST(APPEND CHOLMOD_LIBRARY
+      "-lrt"
+      )
+  ENDIF()
+ENDIF()
 
 LIST(APPEND CHOLMOD_LIBRARY
   ${AMD_LIBRARY}

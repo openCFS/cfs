@@ -64,12 +64,6 @@ ELSE(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
     "Directory for CFSDEPS sources and prebuilt binaries.")
 ENDIF(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
 
-SET(CFS_FORCE_DEPS_DUMMY "$ENV{CFS_FORCE_DEPS_CACHE_DIR}")
-IF(NOT ${CFS_FORCE_DEPS_DUMMY} STREQUAL "")
-  SET(CFS_FORCE_DEPS_CACHE_DIR ON CACHE PATH
-    "Force 'CFS_DEPS_CACHE_DIR/precompiled/forced'.")
-ENDIF(NOT ${CFS_FORCE_DEPS_DUMMY} STREQUAL "")
-
 #-----------------------------------------------------------------------------
 # Check if cache directory is present
 #-----------------------------------------------------------------------------
@@ -110,11 +104,6 @@ SET(BZIP2_GZ "bzip2-1.0.6.tar.gz")
 SET(BZIP2_MD5 "00b516f4704d4a7cb50a1d97e6e8e15b")
 
 INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/bzip2/External_bzip2.cmake")
-
-#-------------------------------------------------------------------------------
-# Search for CMake 2.8 if older CMake is used
-#-------------------------------------------------------------------------------
-INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCMake.cmake")
 
 #-------------------------------------------------------------------------------
 # Search for HDF5 library
@@ -161,8 +150,8 @@ ENDIF(USE_METIS)
 #-------------------------------------------------------------------------------
 IF(USE_GIDPOST)
   SET(GIDPOST_URL "${LSE17_SOURCES_DIR}/gidpost")
-  SET(GIDPOST_ZIP "gidpost-2.1-for-cfs.zip")
-  SET(GIDPOST_MD5 "720b31e311295f3f30a81593b4f3654e")
+  SET(GIDPOST_ZIP "gidpost-2.1.zip")
+  SET(GIDPOST_MD5 "a7fe745e40593dc4598920b312663d29")
 
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/gidpost/External_GiDpost.cmake")
 ENDIF(USE_GIDPOST)
@@ -255,8 +244,8 @@ IF(USE_BLAS OR USE_LAPACK)
   #-----------------------------------------------------------------------------
   IF(USE_SUITESPARSE OR USE_ILUPACK)
     SET(SUITESPARSE_URL "${LSE17_SOURCES_DIR}/suitesparse")
-    SET(SUITESPARSE_GZ "SuiteSparse-3.7.0.tar.gz")
-    SET(SUITESPARSE_MD5 "ecb1d1cc1101cf31f077bab46678e791")
+    SET(SUITESPARSE_GZ "SuiteSparse-4.2.1.tar.gz")
+    SET(SUITESPARSE_MD5 "4628df9eeae10ae5f0c486f1ac982fce")
 
     INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/suitesparse/External_SuiteSparse.cmake")
   ENDIF(USE_SUITESPARSE OR USE_ILUPACK)
@@ -302,8 +291,8 @@ ENDIF(USE_LIS)
 #-------------------------------------------------------------------------------
 IF(USE_SUPERLU)
   SET(SUPERLU_URL "${LSE17_SOURCES_DIR}/superlu")
-  SET(SUPERLU_ZIP "superlu_4.1.zip")
-  SET(SUPERLU_MD5 "ec39cd404545f098095092f7ba5a5434")
+  SET(SUPERLU_GZ "superlu_4.3.tar.gz")
+  SET(SUPERLU_MD5 "b72c6309f25e9660133007b82621ba7c")
   
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/superlu/External_SuperLU.cmake")
 ENDIF(USE_SUPERLU)
@@ -312,8 +301,8 @@ ENDIF(USE_SUPERLU)
 # Find Boost
 #-------------------------------------------------------------------------------
 SET(BOOST_URL "${LSE17_SOURCES_DIR}/boost")
-SET(BOOST_GZ "boost-cmake-1.52.0.zip")
-SET(BOOST_MD5 "d091f4af89691a1e6592c8855273eea0")
+SET(BOOST_GZ "boost_1_52_0.tar.bz2")
+SET(BOOST_MD5 "3a855e0f919107e0ca4de4d84ad3f750")
 INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/boost/External_Boost.cmake")
 
 #-------------------------------------------------------------------------------

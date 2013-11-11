@@ -1,0 +1,89 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for material description of an electric conduction material
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of material for electric conduction PDEs -->
+  <!--   some hack: currently electric conductivity and capacity treated -->
+  <!--   with same definition -->
+  <!-- ******************************************************************* -->
+
+    <xsd:complexType name="DT_MatElecConduction">
+    <xsd:sequence>
+      <xsd:element name="elecConductivity" type="DT_elecConductivity"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of electric conductivity-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_elecConductivity">
+    <xsd:sequence>
+      <xsd:element name="linear" type="DT_LinElecConductivity"/>
+      <xsd:element name="nonlinear" type="DT_NonLinElecConductivity" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of electric conductivity -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_LinElecConductivity">
+    <xsd:choice>
+      <xsd:element name="tensor" type="DT_elecConductivityTensor"/>
+      <xsd:element name="isotropic" type="DT_NonNegFloat"/>
+    </xsd:choice>
+  </xsd:complexType>
+  
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of electric conductivity in tensor form                -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_elecConductivityTensor">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="9"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+  
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of non linear electric conductivity-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_NonLinElecConductivity">
+    <xsd:sequence>
+      <xsd:element name="isotropic" type="DT_IsotrNonLinElecConductivity"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of isotropic non linear electric conductivity-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_IsotrNonLinElecConductivity">
+    <xsd:sequence>
+      <xsd:element name="dependency" type="xsd:string"/>
+      <xsd:element name="approxType" type="xsd:string"/>
+      <xsd:element name="measAccuracy" type="DT_NonNegFloat"/>
+      <xsd:element name="maxApproxVal" type="DT_NonNegFloat"/>
+      <xsd:element name="dataName" type="xsd:string"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+</xsd:schema>

@@ -13,6 +13,7 @@ namespace CoupledField {
   : FeH1(), FeNodal() {
    order_ = 0;
    preComputShFnc_ = true;
+   serendipity_ = false;
   }
     
   FeH1LagrangeExpl::~FeH1LagrangeExpl() {
@@ -49,10 +50,35 @@ namespace CoupledField {
         fncPermutation[i] = i;
       }
     }else if( fctEntityType == FACE && ptElem->faces.GetSize() > 0) {
-      fncPermutation.Resize((order_-1) * (order_-1));
-      for(UInt i = 0; i< order_-1 ; i++){
-        for(UInt j = 0; j< order_-1 ; j++){
-          fncPermutation[(i*(order_-1)) + j] = i*(order_-1) + j;
+      if(!serendipity_){
+        //WARNING: for order > 2 we would need to check for orientation. See H1ElemsLagVar.cc
+        fncPermutation.Resize((order_-1) * (order_-1));
+        for(UInt i = 0; i< order_-1 ; i++){
+          for(UInt j = 0; j< order_-1 ; j++){
+            fncPermutation[(i*(order_-1)) + j] = i*(order_-1) + j;
+          }
+        }
+      }else{
+        //in case of serendipity elements, we apply an offset to face and interior
+        //equation numbers as they have edge and face DOFs only for order > 3
+        //as those are not implemented, we just throw an error
+        if(order_>3){
+          Exception("Function FeH1LagrangeExpl::GetNodalPermutation needs to be extended for higher order serendipity elements!");
+        }
+        fncPermutation.Resize(0);
+      }
+    }else if( fctEntityType == INTERIOR && ptElem->faces.GetSize() > 3){
+      if(serendipity_){
+        if(order_>3){
+          Exception("Function FeH1LagrangeExpl::GetNodalPermutation needs to be extended for higher order serendipity elements!");
+        }else{
+          fncPermutation.Resize(0);
+        }
+      }else{
+        UInt numIFncs = (order_-1)*(order_-1)*(order_-1);
+        fncPermutation.Resize(numIFncs);
+        for(UInt k = 0; k< numIFncs ; k++){
+          fncPermutation[k] = k;
         }
       }
     }else{
@@ -875,6 +901,7 @@ namespace CoupledField {
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 3;
     order_ = 2; 
+    serendipity_ = true;
   }
   FeH1LagrangeLine2::~FeH1LagrangeLine2() {
     
@@ -909,6 +936,7 @@ namespace CoupledField {
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 6;
     order_ = 2;
+    serendipity_ = true;
   }
 
   FeH1LagrangeTria2::~FeH1LagrangeTria2() {
@@ -968,6 +996,7 @@ namespace CoupledField {
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 8;
     order_ = 2;
+    serendipity_ = true;
   }
     
   FeH1LagrangeQuad2::~FeH1LagrangeQuad2() {
@@ -1127,6 +1156,7 @@ namespace CoupledField {
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 20;
     order_ = 2;
+    serendipity_ = true;
   }
     
   FeH1LagrangeHex2::~FeH1LagrangeHex2() {
@@ -1490,6 +1520,7 @@ namespace CoupledField {
      shape_ = Elem::shapes[feType_];
      actNumFncs_ = 15;
      order_ = 2; 
+     serendipity_ = true;
    }
      
    FeH1LagrangeWedge2::~FeH1LagrangeWedge2() {
@@ -1811,6 +1842,7 @@ namespace CoupledField {
       shape_ = Elem::shapes[feType_];
       actNumFncs_ = 10;
       order_ = 2;
+      serendipity_ = true;
     }
 
     FeH1LagrangeTet2::~FeH1LagrangeTet2() {
@@ -2097,6 +2129,7 @@ namespace CoupledField {
        shape_ = Elem::shapes[feType_];
        actNumFncs_ = 13;
        order_ = 2;
+       serendipity_ = true;
      }
 
      FeH1LagrangePyra2::~FeH1LagrangePyra2() {

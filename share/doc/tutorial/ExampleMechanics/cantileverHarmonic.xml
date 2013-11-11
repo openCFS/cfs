@@ -1,0 +1,105 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.cfs++.org ../../../sbm_fespace_090409/share/xml/CFS-Simulation/CFS.xsd"
+ xmlns="http://www.cfs++.org">
+  
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="cantilever.h5"/>
+    </input>
+    <output>
+      <text/>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d">
+    <regionList>
+      <region name="cantilever" material="Steel"/>
+    </regionList>
+    <elemList>
+      <elems name="excite"></elems>
+      <elems name="fix-all"></elems>
+    </elemList>
+    <nodeList>
+      <nodes name="record">
+        <coord x="400e-6" y="0" z="0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+  
+  <fePolynomialList>
+    <Legendre id="default">
+      <isoOrder>1</isoOrder>
+    </Legendre>
+  </fePolynomialList>
+  
+  <sequenceStep>
+    <analysis>
+      <harmonic>
+        <numFreq> 10 </numFreq>
+        <startFreq>100 </startFreq>
+        <stopFreq> 1e6</stopFreq>
+        <sampling>log</sampling>
+        <frequencyList>
+          <freq value="10"/>
+          <freq value="100"/>
+        </frequencyList>
+        
+      </harmonic>
+      <harmonic>
+        <numFreq> 10 </numFreq>
+        <startFreq> 10 </startFreq>
+        <stopFreq> 1e4 </stopFreq>
+        <sampling>linear</sampling>
+      </harmonic>
+    </analysis>
+    
+    <pdeList>
+      <mechanic subType="3d"> 
+        <regionList>
+          <region name="cantilever"/>
+        </regionList>
+        <bcsAndLoads>
+          
+          <!-- Appply pressure in z-direction -->
+          <pressure name="excite" value="-100" /> 
+          
+          <fix name="fix-all">
+            <comp dof="x"/>
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+        </bcsAndLoads>
+        <storeResults>
+          
+         <nodeResult type="mechDisplacement">
+            <allRegions/>
+           <nodeList>
+             <nodes name="record"/>
+           </nodeList>
+          </nodeResult> 
+         <elemResult type="mechStress">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+         <solverList>
+          <pardiso>
+            <IterRefineSteps> 5 </IterRefineSteps>
+          </pardiso>
+        </solverList>
+      </system>
+      <system></system>
+    </linearSystems>
+    
+  </sequenceStep>
+  
+</cfsSimulation>

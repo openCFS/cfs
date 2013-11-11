@@ -88,7 +88,12 @@ elif [ "${OS}" = "Linux" ] ; then
         ID=$($LSB_REL -i -s)
         DESC=$($LSB_REL -d -s)
         if [ "$ID" = "LinuxMint" ]; then
-            DESC=$ID
+            LMDE=$(echo $DESC | cut -d' ' -f1)
+            if [ "$LMDE" = "LMDE" ]; then
+                DESC=$LMDE
+            else
+                DESC=$ID
+            fi
         fi
         DIST=$(echo $DESC | sed 's/"//g' | cut -d' ' -f1)
         REV=$($LSB_REL -r -s)
@@ -215,6 +220,7 @@ elif [ "${OS}" = "Linux" ] ; then
                     "precise") PSEUDONAME="Precise Pangolin";; # 12.04
                     "quantal") PSEUDONAME="Quantal Quetzal";; # 12.10
                     "raring") PSEUDONAME="Raring Ringtail";; # 13.04
+                    "saucy") PSEUDONAME="Saucy Salamander";; # 13.10
                 esac;;
             "knoppix")
                 DIST=Knoppix;
@@ -308,7 +314,17 @@ ARCH="${ARCH}"
 SUBARCH="${SUBARCH}"
 DELIM
 ) | sed 'y/'$LOWER'/'$UPPER'/;s/" /"#/g' | tr '#' '\n' ;;
-        -p) echo "DIST='${DIST}'; REV='${REV}'; ARCH='${ARCH}'" | sed 'y/'$LOWER'/'$UPPER'/' ;;
+        -p) # Perl syntax
+echo $(cat << DELIM
+\$OS='${OS}';
+\$DIST='${DIST}';
+\$DIST_FAMILY='${DIST_FAMILY}';
+\$REV='${REV}';
+\$MAJOR_REV='${MAJOR_REV}';
+\$ARCH='${ARCH}';
+\$SUBARCH='${SUBARCH}';
+DELIM
+) | sed 'y/'$LOWER'/'$UPPER'/;s/" /"#/g' | tr '#' '\n' ;;
         *) break ;;
     esac
     shift
