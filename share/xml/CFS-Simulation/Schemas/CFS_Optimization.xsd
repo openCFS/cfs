@@ -1357,6 +1357,9 @@
       <xsd:enumeration value="rotAngle"/>
       <xsd:enumeration value="stiff1"/>
       <xsd:enumeration value="stiff2"/>
+      <xsd:enumeration value="rotAngleX"/>
+      <xsd:enumeration value="rotAngleY"/>
+      <xsd:enumeration value="rotAngleZ"/>
       <xsd:enumeration value="lowerEigenBound"/> <!-- This is used as lower Eigenvalue bound in "(density-times-)orthotropic" formulations -->
       <!-- multimaterial requies the material attribute -->
       <xsd:enumeration value="multimaterial"/>

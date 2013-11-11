@@ -668,6 +668,9 @@ void DesignElement::SetEnums()
   type.Add(ROTANGLE, "rotAngle");
   type.Add(STIFF1, "stiff1");
   type.Add(STIFF2, "stiff2");
+  type.Add(ROTANGLEX, "rotAngleX");
+  type.Add(ROTANGLEY, "rotAngleY");
+  type.Add(ROTANGLEZ, "rotAngleZ");
   type.Add(SLACK, "slack");
   type.Add(LOWER_EIG_BOUND, "lowerEigenBound");
   type.Add(MULTIMATERIAL, "multimaterial");

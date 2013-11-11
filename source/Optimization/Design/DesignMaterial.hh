@@ -162,7 +162,24 @@ template <class TYPE> class StdVector;
     
     /** rotate elasticity tensor in t (in Hill-Mandel notation!) by the angle a and adjust the entries back to notation to fit with CFS++ */
     inline void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation = VOIGT);
-
+    
+    /** rotate elasticity tensor in Voigt notation according to the parameters, eventually calculating a derivative
+     * @param t Material Tensor which is rotated in place (or the derivative is calculated in place)
+     * @param direction if one of ROTATEANGLEX, ROTATEANGLEY, ROTATEANGLEZ calculate the derivative of the rotation w.r.t. this parameter
+     */
+    void RotateVoigtTensor(Matrix<double>& t, DesignElement::Type direction);
+    
+    /** helper function to set a rotation matrix of size 3x3
+     * the matrix (when calculating R*x) would rotate the vector x by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
+     * @param R the place to set the rotation matrix
+     * @sthetax sin(thetax)
+     * @cthetax cos(thetax)
+     * @sthetay sin(thetax)
+     * @cthetay cos(thetax)
+     * @sthetaz sin(thetax)
+     * @cthetaz cos(thetax)
+     */
+    void SetRotationMatrix(Matrix<double>& R, double sthetax, double cthetax, double sthetay, double cthetay, double sthetaz, double cthetaz);
 
     /** Calculate the mass isotropic case */
     inline double GetIsoMaterialMass(DesignElement::Type direction);    
