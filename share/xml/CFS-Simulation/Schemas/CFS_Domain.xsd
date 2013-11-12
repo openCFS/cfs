@@ -158,7 +158,7 @@
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
-    <xsd:attribute name="isecCalculation" use="optional">
+    <xsd:attribute name="intersectionMethod" use="optional">
       <xsd:simpleType>
         <xsd:restriction base="xsd:normalizedString">
           <xsd:enumeration value="coaxi"/>
