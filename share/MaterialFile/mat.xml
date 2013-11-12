@@ -5,11 +5,12 @@
   xmlns="http://www.cfs++.org">
   <material name="Air">
     <acoustic>
-      <!-- Data obtained from : "http://www.ondacorp.com"
-           Reference(s) : "Handbook of Chemistry and Physics, 45th Edition" -->
-      <!-- Remarks : "dry air @ 20 degree c" -->
-      <density> 1.29 </density>
-      <compressionModulus> 1.527E+05 </compressionModulus>
+      <!-- Data obtained from : www.wikipedia.de -> "Luft" und "Kompressionsmodul" und "Adiabatenexponent"  
+      Reference(s) :  -->
+      <!-- Remarks : Standardbedingungen bei Temp. T=20 degree und Druckp=1013 hPa"
+                     Kompressionsmodul aus Adiabatenexponent gamma = 1,40 berechnet -->
+      <density> 1.204 </density>
+      <compressionModulus> 1.41855E+05 </compressionModulus>
     </acoustic>
     <electric>
       <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
@@ -98,6 +99,28 @@
       </magneticPermeability>
     </magnetic>
   </material>
+
+  
+  
+  
+  <material name="Nickel">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+        Reference(s) : "www.matweb.com"
+        Remarks : "Alluminium Alloy" -->
+      <density> 8908 </density>
+      <elasticity>
+        <isotropic>
+          <real>
+            <elasticityModulus> 2.00E+11 </elasticityModulus>
+            <poissonNumber> 0.33 </poissonNumber>
+          </real>
+        </isotropic>
+      </elasticity>
+    </mechanical>
+     </material>
+  
+  
 
   <material name="BariumTitanate">
     <mechanical>
@@ -251,7 +274,7 @@
         <isotropic>
           <real>
             <elasticityModulus> 7.0e10 </elasticityModulus>
-            <poissonNumber> 0.22 </poissonNumber>
+            <poissonNumber> 0.2 </poissonNumber>
           </real>
         </isotropic>
       </elasticity>

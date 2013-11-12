@@ -1,9 +1,5 @@
-% ==============================================================
-%
 %    FftHdf5Core
 %
-%
-%    GENERAL
 %      Time data filtering tool for CFS++ HDF5 data.
 %
 %      This script reads transient results from HDF5 files and performs a FFT
@@ -22,30 +18,23 @@
 %      and transient data are written to temporary files. At the end all
 %      temporary files are combined into one file.
 %    
-%      ATTENTION: PATH must include h5tool for this script to work correctly.
+% Input Parameters
+%   * mode      - 1: save harmonic data; 2: save filtered transient data
+%   * infile    - path of input HDF5 file
+%   * outfile   - path of output HDF5 file
+%   * quantity  - which quantity to convert
+%   * region    - region the quantity is defined on
+%   * lowfreq   - lowest frequency to be stored (0 for unlimited)
+%   * highfreq  - highest frequency to be stored (0 for unlimited)
+%   * bufsize   - maximum memory consumption (in megabytes)
 %
+% Return Value
+%   None
 %
-%    INPUT/S
-%      mode      - 1: save harmonic data; 2: save filtered transient data
-%      infile    - path of input HDF5 file
-%      outfile   - path of output HDF5 file
-%      quantity  - which quantity to convert
-%      region    - region the quantity is defined on
-%      lowfreq   - lowest frequency to be stored (0 for unlimited)
-%      highfreq  - highest frequency to be stored (0 for unlimited)
-%      bufsize   - maximum memory consumption (in megabytes)
-%        
-%    OUTPUT/S
-%
-%      
-%    ABOUT
-%
-%      -Created:     Jan 2006
-%      -Last update: 3 Jun 2008
-%      -Revision:    0.6
-%      -Authors:     Max Escobar, Simon Triebenbacher, Jens Grabinger
-%
-% =======================================================================
+% About
+%   * Created:  Jan 2006
+%   * Authors:  Max Escobar, Simon Triebenbacher, Jens Grabinger
+%   * Revision: $Id$
 
 
 function [] =  FftHdf5Core(mode, infile, outfile, quantity, region, lowfreq, highfreq, bufsize)
@@ -59,19 +48,11 @@ if exist(infile, 'file') ~= 2
   error('File not found: %s', infile);
 end
 
-% construct cfg filename for h5tool
-tmpfile = strcat(infile, '.cfg');
-
-% check that h5tool is found
-fid = fopen(tmpfile, 'w');
-attr_cfg = fprintf(fid, 'gschmarri\nnix\n%s\n', infile);
-fclose(fid);
-[status,result] = exec(sprintf('h5tool < %s > /dev/null', tmpfile));
-if (~ status == 0)
-  delete(tmpfile);
-  disp(result);
-  error('h5tool not found! Make sure h5tool is in PATH.');
-end
+% add path to HDF5Tools from Matlab Central
+% http://www.mathworks.com/matlabcentral/fileexchange/17172-hdf5tools
+thisfile = mfilename('fullpath');
+[here, ~, ~] = fileparts(thisfile);
+addpath([here '/hdf5tools'])
 
 multistep = 1;
 step = 1;
@@ -109,7 +90,7 @@ if exist(outfile, 'file') == 2
   outfileinfo = hdf5info(outfile);
   toplevelout = outfileinfo.GroupHierarchy;
 
-  [found2 resgroup2 restype2 msgroup2 datafile2] = FindPathHDF5(toplevelout, multistep, step, quantity, region);
+  [found2, resgroup2, ~, ~, datafile2] = FindPathHDF5(toplevelout, multistep, step, quantity, region);
 
   if found2 == 8
     error('Quantity %s already present in file %s under path: %s.', quantity, datafile2.Filename, resgroup2.Name);
@@ -117,8 +98,8 @@ if exist(outfile, 'file') == 2
 end
 
 % get delta_t of the transient simulation
-time_step1 = hdf5read(infile, strcat(basepath, '/Step_1/StepValue'));
-time_step2 = hdf5read(infile, strcat(basepath, '/Step_2/StepValue'));
+time_step1 = h5attget(infile, [basepath '/Step_1'], 'StepValue');
+time_step2 = h5attget(infile, [basepath '/Step_2'], 'StepValue');
 dt = time_step2 - time_step1;
 
 % adapt no. of frequency steps according to maximum frequency
@@ -138,7 +119,7 @@ if lowfreq > 0
       numharmsteps = numharmsteps - firstharmstep;
     else
       firstharmstep = 0;
-      warning('Lower frequency boundary out of range. Ignoring it.');
+      warning('Lower frequency boundary out of range. Ignoring it.'); %#ok<*WNTAG>
     end
   end
 end
@@ -152,7 +133,7 @@ disp(' ')
 
 % read first time step
 dataset = sprintf('%s/Real', resgroup.Name);
-ds = hdf5read(datafile.Filename, dataset);
+ds = h5varget(datafile.Filename, dataset);
 
 % Number of scalars in dataset
 num_items = length(ds);
@@ -172,37 +153,57 @@ numiter = ceil(size_in_mb / bufsize * 6); % scale by 6, because we need
                                           % 6*bufsize for fft
 
 % Delete temp files from last run.
-[pathstr, name, ext, versn] = fileparts(outfile);
-if isempty(pathstr)
-  tempdir = './TEMP_FFT';
-else
-  tempdir = sprintf('%s/TEMP_FFT', pathstr);
-end
-exec(sprintf('rm -rf %s', tempdir));
-exec(sprintf('mkdir %s', tempdir));
+[~, name, ~] = fileparts(outfile);
+tmpdir = tempname();
+exec(sprintf('rm -rf %s', tmpdir));
+exec(sprintf('mkdir %s', tmpdir));
                                          
 % Number of scalars treated in one iteration (= chunk size)
 items_per_iter = ceil(num_items / numiter);
 
 % initialize chunk counters
-item_start = 1;
 if items_per_iter < num_items
   item_end = items_per_iter;
 else
   item_end = num_items;
 end
 
+% initialize chunk counters while takeing into account
+% a possible restart (right now hardcoded as its only prepared)
+
+%flag if we really wanna do this...
+resumefile =0; 
+
+if resumefile == 1;
+  %specify the chunk number to START!! with
+  %NOT the number of chunks to skip...
+  startChunkNum = 3;
+  itercount = startChunkNum;
+  item_start = ((startChunkNum-1)*items_per_iter) + 1;
+  item_end = (startChunkNum)*items_per_iter;
+  if item_end > num_items
+    item_end = num_items;
+  end 
+else
+  item_start = 1;
+  itercount = 1;
+  exec(sprintf('rm -rf %s', tmpdir));
+  exec(sprintf('mkdir %s', tmpdir));
+end
+
+
+
 % create buffer with chunk size
 mat = zeros(numsteps, items_per_iter);
 
 % read in transient data divided into chunks
-for iter=1:numiter
+for iter=itercount:numiter
 
   for i=1:numsteps
   
     fprintf('Reading step %d of %d, chunk %d of %d\n', i, numsteps, iter, numiter)
 
-    [found resgroup restype msgroup datafile] = FindPathHDF5(toplevel, multistep, i, quantity, region);
+    [found, resgroup, restype, ~, datafile] = FindPathHDF5(toplevel, multistep, i, quantity, region);
     if found < 8
       errorstr = sprintf('Cannot find dataset of time step %d.', i);
       if found >= 3
@@ -213,7 +214,7 @@ for iter=1:numiter
     end
 
     dataset = sprintf('%s/Real', resgroup.Name);
-    ds = hdf5read(datafile.Filename, dataset);
+    ds = h5varget(datafile.Filename, dataset);
 
     mat(i,1:(item_end-item_start+1)) = ds(item_start:item_end);
 
@@ -232,6 +233,7 @@ for iter=1:numiter
   MAT = fft(mat);
   
   % mode 1: write out harmonic data
+  outfile_iter = sprintf('%s/%s_%d.h5', tmpdir, name, iter);
   if mode == 1
     % split result into real and imaginary part
     real_MAT = 2.*real(MAT)./numsteps;
@@ -239,8 +241,6 @@ for iter=1:numiter
     clear MAT
 
     % write back harmonic datasets, one file for each chunk
-    outfile_iter = sprintf('%s/%s_%d.h5', tempdir, name, iter);
-
     if numiter > 1
       fprintf('Buffering result of chunk %d\n', iter)
     end
@@ -281,8 +281,6 @@ for iter=1:numiter
     clear MAT
 
     % write back transient datasets, one file for each chunk
-    outfile_iter = sprintf('%s/%s_%d.h5', tempdir, name, iter);
-
     if numiter > 1
       fprintf('Buffering result of chunk %d\n', iter)
     end
@@ -329,18 +327,18 @@ for i=1:numfiles
 
   % store chunks into one dataset
   for iter=1:numiter
-    outfile_iter = sprintf('%s/%s_%d.h5', tempdir, name, iter);
+    outfile_iter = sprintf('%s/%s_%d.h5', tmpdir, name, iter);
 
     idx = (iter-1)*items_per_iter;
     idxend = idx+items_per_iter;
   
     dataset = sprintf('%s/Real', outpath);
-    ds = hdf5read(outfile_iter, dataset);
+    ds = h5varget(outfile_iter, dataset);
     ds_real(idx+1:idxend) = ds;
 
     if mode == 1
       dataset = sprintf('%s/Imag', outpath);
-      ds = hdf5read(outfile_iter, dataset);
+      ds = h5varget(outfile_iter, dataset);
       ds_imag(idx+1:idxend) = ds;
     end
 
@@ -348,7 +346,7 @@ for i=1:numfiles
 
   clear ds
 
-  fprintf('Writing step %d of %d\n', i, numharmsteps)
+  fprintf('Writing step %d of %d\n', i, numfiles)
 
   % write to final output file
   dataset = sprintf('%s/Real', outpath);
@@ -368,9 +366,18 @@ for i=1:numfiles
   attr_details.AttachType = 'group';
   attr_details.Name = 'StepValue';
   if mode == 1
-    hdf5write(outfile, attr_details, f(i), 'WriteMode', 'append');
+    step_value = f(i);
   else
-    hdf5write(outfile, attr_details, t(i), 'WriteMode', 'append');
+    step_value = t(i);
+  end
+  try
+    fattr=h5attget(outfile, steppath, 'StepValue');
+    if fattr ~= step_value
+      warning('Attribute %s/StepValue already exists in output file and has a different value', ...
+              steppath);
+    end
+  catch %#ok<CTCH>
+    h5attput(outfile, steppath, 'StepValue', step_value);
   end
 
 end
@@ -380,80 +387,98 @@ clear ds_real ds_imag
 fprintf('\nFinalizing output file\n')
 
 % set required attributes of results
-attr_details.AttachedTo = basepath;
-attr_details.AttachType = 'group';
-attr_details.Name = 'LastStepNum';
-hdf5write(outfile, attr_details, uint32(i), 'WriteMode', 'append');
-attr_details.Name = 'LastStepValue';
+try
+  oldlaststep = h5attget(outfile, basepath, 'LastStepNum');
+catch %#ok<CTCH>
+  oldlaststep = 0;
+end
+if i > oldlaststep
+  h5attput(outfile, basepath, 'LastStepNum', uint32(i));
 if mode == 1
-  hdf5write(outfile, attr_details, f(i), 'WriteMode', 'append');
+    h5attput(outfile, basepath, 'LastStepValue', f(i));
 else
-  hdf5write(outfile, attr_details, t(i), 'WriteMode', 'append');
+    h5attput(outfile, basepath, 'LastStepValue', t(i));
+  end
 end
-
-% use h5tool to write analysis type
-fid = fopen(tmpfile, 'w');
 if mode == 1
-  attr_cfg = fprintf(fid, 'attribute\ncreate\n%s\n%s\nstring\nAnalysisType\nappend\nharmonic\n', outfile, basepath);
+  analtype = 'harmonic';
 else
-  attr_cfg = fprintf(fid, 'attribute\ncreate\n%s\n%s\nstring\nAnalysisType\nappend\ntransient\n', outfile, basepath);
+  analtype = 'transient';
 end
-fclose(fid);
-if exec(sprintf('h5tool < %s > /dev/null', tmpfile))
-  warning('h5tool failed, result file may be incomplete.');
+try
+  oldatype = h5attget(outfile, basepath, 'AnalysisType');
+catch %#ok<CTCH>
+  oldatype = {analtype};
 end
-
-% declare not to use external files
-attr_details.AttachedTo = '/Results/Mesh';
-attr_details.AttachType = 'group';
-attr_details.Name = 'ExternalFiles';
-hdf5write(outfile, attr_details, uint32(0), 'WriteMode', 'append');
+if oldatype{1} ~= analtype
+  error('Output file has "%s" set as analysis type, but you want to write %s data', ...
+      oldatype{1}, analtype)
+end
+h5WriteVLStrAtt(outfile, basepath, 'AnalysisType', analtype, true);
+try
+  oldextfiles = h5attget(outfile, '/Results/Mesh', 'ExternalFiles');
+catch %#ok<CTCH>
+  oldextfiles = 0;
+end
+if oldextfiles ~= 0
+  error('Output file uses external step files, but this is not supported here')
+end
+h5attput(outfile, '/Results/Mesh', 'ExternalFiles', uint32(0));
 
 % write ResultDescription of quantity
-rdpath = sprintf('%s/ResultDescription/%s', basepath, quantity);
-ds_name = sprintf('%s/%s', rdpath, 'DefinedOn');
-hdf5write(outfile, ds_name, uint32(restype), 'WriteMode', 'append');
-ds_name = sprintf('%s/%s', rdpath, 'EntryType');
-hdf5write(outfile, ds_name, uint32(1), 'WriteMode', 'append');
-ds_name = sprintf('%s/%s', rdpath, 'NumDOFs');
-hdf5write(outfile, ds_name, uint32(1), 'WriteMode', 'append');
-ds_name = sprintf('%s/%s', rdpath, 'StepNumbers');
-hdf5write(outfile, ds_name, uint32(1:numfiles), 'WriteMode', 'append');
-ds_name = sprintf('%s/%s', rdpath, 'StepValues');
+rdpath = [basepath '/ResultDescription/'  quantity];
+% create first dataset explicitly, so that groups get created as well
+try
+  h5datacreate(outfile, [rdpath '/DefinedOn'], 'type', 'uint32', 'size', 1);
+  h5varput(outfile, [rdpath '/DefinedOn'], uint32(restype));
+catch %#ok<CTCH>
+end
+try
+  h5datacreate(outfile, [rdpath '/EntryType'], 'type', 'uint32', 'size', 1);
+  h5varput(outfile, [rdpath '/EntryType'], uint32(1));
+catch %#ok<CTCH>
+end
+try
+  h5datacreate(outfile, [rdpath '/NumDOFs'], 'type', 'uint32', 'size', 1);
+  h5varput(outfile, [rdpath '/NumDOFs'], uint32(1));
+catch %#ok<CTCH>
+end
+try
+  h5datacreate(outfile, [rdpath '/StepNumbers'], 'type', 'uint32', 'size', numfiles);
+  h5varput(outfile, [rdpath '/StepNumbers'], uint32(1:numfiles));
+catch %#ok<CTCH>
+end
+try
+  h5datacreate(outfile, [rdpath '/StepValues'], 'type', 'double', 'size', numfiles);
 if mode == 1
-  hdf5write(outfile, ds_name, f, 'WriteMode', 'append');
+    h5varput(outfile, [rdpath '/StepValues'], f);
 else
-  hdf5write(outfile, ds_name, t, 'WriteMode', 'append');
+    h5varput(outfile, [rdpath '/StepValues'], t);
+  end
+catch %#ok<CTCH>
 end
 
-% use h5tool to write string datasets in ResultDescription
-fid = fopen(tmpfile, 'w');
-attr_cfg = fprintf(fid, 'dataset\ncreate\n%s\n%s/ResultDescription/%s\nstring\nDOFNames\nappend\n-\n', outfile, basepath, quantity);
-fclose(fid);
-if exec(sprintf('h5tool < %s > /dev/null', tmpfile))
-  warning('h5tool failed, result file may be incomplete.');
-end
+h5WriteVLStrDset(outfile, rdpath, 'DOFNames', '-', true);
 
-fid = fopen(tmpfile, 'w');
-attr_cfg = fprintf(fid, 'dataset\ncreate\n%s\n%s/ResultDescription/%s\nstring\nEntityNames\nappend\n%s\n', outfile, basepath, quantity, region);
-fclose(fid);
-if exec(sprintf('h5tool < %s > /dev/null', tmpfile))
-  warning('h5tool failed, result file may be incomplete.');
+try
+  oldregnames = h5varget(outfile, [rdpath '/EntityNames']);
+  regnames = [oldregnames; {region}];
+catch %#ok<CTCH>
+  regnames = {region};
 end
+h5WriteVLStrDset(outfile, rdpath, 'EntityNames', regnames, true);
 
-fid = fopen(tmpfile, 'w');
-attr_cfg = fprintf(fid, 'dataset\ncreate\n%s\n%s/ResultDescription/%s\nstring\nUnit\nappend\nunknown\n', outfile, basepath, quantity);
-fclose(fid);
-if exec(sprintf('h5tool < %s > /dev/null', tmpfile))
-  warning('h5tool failed, result file may be incomplete.');
-end
+h5WriteVLStrDset(outfile, rdpath, 'Unit', 'unknown', true);
 
 % copy mesh to output file
-CopyTreeHDF5(infile, '/Mesh', outfile, '/Mesh');
+try
+  h5attget(outfile, '/Mesh', 'Dimension');
+catch %#ok<CTCH>
+  h5copy(infile, outfile, '/Mesh', '/Mesh');
+end
 
 % write FileInfo group to outfile
 WriteFileInfoHDF5(outfile, [1 2]);
 
 % Delete temp files
-exec(sprintf('rm -rf %s', tempdir));
-delete(tmpfile);
+exec(sprintf('rm -rf %s', tmpdir));

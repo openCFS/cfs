@@ -13,7 +13,7 @@
 % About
 %   * Created:  30 Oct 2007
 %   * Authors:  Simon Triebenbacher, Jens Grabinger
-%   * Revision: $Id: exec.m 12446 2013-06-11 14:55:26Z jens $
+%   * Revision: $Id$
 
 
 function [status, result] = exec(cmd)
