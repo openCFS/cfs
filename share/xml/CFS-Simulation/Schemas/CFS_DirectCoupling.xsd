@@ -305,7 +305,7 @@
 		  <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
 		    <xsd:complexType>
 		      <xsd:attribute name="name" type="xsd:token" use="required" />
-          <xsd:attribute name="nmgFormulation" type="DT_NMGFormulationBasic" use="optional" default="Nitsche"/>
+          <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional" default="Nitsche"/>
           <xsd:attribute name="nitscheFactor" type="xsd:token" use="optional" default="50"/>
 		    </xsd:complexType>
 		  </xsd:element>

@@ -2532,7 +2532,7 @@ namespace CoupledField {
       
       newIface.interfaceId = ptGrid_->GetNcInterfaceId( nciNode->Get("name")
                                                         ->As<std::string>() );
-      newIface.type = ncCouplingType_.Parse( nciNode->Get("nmgFormulation",
+      newIface.type = ncCouplingType_.Parse( nciNode->Get("formulation",
           ParamNode::INSERT)->As<std::string>() );
       newIface.lagrangeMultType = lmType_.Parse( nciNode->
           Get("lagrangeMultType",ParamNode::INSERT)->As<std::string>());

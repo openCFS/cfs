@@ -64,7 +64,7 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   slaveVolRegion_ = slaveElems[0]->ptVolElems[0]->regionId;
 
   std::string isecCalc;
-  nciNode->GetValue("isecCalculation", isecCalc, ParamNode::PASS);
+  nciNode->GetValue("intersectionMethod", isecCalc, ParamNode::PASS);
   if (ptGrid_->GetDim() == 2) {
     intersectAlgo_ = NCI_INTERSECT_LINE;
     if ( !isecCalc.empty() ) {
