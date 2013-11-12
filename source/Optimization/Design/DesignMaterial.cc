@@ -594,12 +594,18 @@ void DesignMaterial::RotateVoigtTensor(Matrix<double>& t, DesignElement::Type di
   // rotates the material by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
   // this is NOT identical to BaseMaterial::RotateTensorByRotationAngles, because the rotation angles are specified differently (thetay=-beta)
   
-  assert(dim == 3);
-  double thetax = params_[DesignElement::ROTANGLEX];
-  double thetay = params_[DesignElement::ROTANGLEY];
-  double thetaz = 0.0;
-  if(params_.find(DesignElement::ROTANGLEZ) != params_.end()){
-    thetaz = params_[DesignElement::ROTANGLEZ];
+  double thetax = 0.0, thetay = 0.0, thetaz = 0.0;
+  if(dim == 3){
+    thetax = params_[DesignElement::ROTANGLEX];
+    thetay = params_[DesignElement::ROTANGLEY];
+    thetaz = 0.0;
+    if(params_.find(DesignElement::ROTANGLEZ) != params_.end()){
+      thetaz = params_[DesignElement::ROTANGLEZ];
+    }else if(transIsoType_ != TRANSISO_XY){
+      throw Exception("The parameterization of the rotation is incompatible to the choice of the isotropic plane");
+    }
+  }else{ // dim == 2
+    thetaz = params_[DesignElement::ROTANGLE];  
   }
   
   double sthetax = sin(thetax);
@@ -609,61 +615,68 @@ void DesignMaterial::RotateVoigtTensor(Matrix<double>& t, DesignElement::Type di
   double sthetaz = sin(thetaz);
   double cthetaz = cos(thetaz);
 
-  Matrix<Double> R(3,3);
+  Matrix<Double> R(dim, dim);
   SetRotationMatrix(R, sthetax, cthetax, sthetay, cthetay, sthetaz, cthetaz);
 
   // see also baseMaterial.cc for this
-  Matrix<Double> Q(6,6);
-  Q.Resize(6,6);  
+  int dimQ = dim == 3 ? 6 : 3;
+  Matrix<Double> Q(dimQ, dimQ);
+  Q.Resize(dimQ, dimQ);
+  int l = dimQ-1;
 
   Q[0][0] = R[0][0]*R[0][0];
   Q[0][1] = R[0][1]*R[0][1];
-  Q[0][2] = R[0][2]*R[0][2];
-  Q[0][3] = 2.0*R[0][1]*R[0][2];
-  Q[0][4] = 2.0*R[0][0]*R[0][2];
-  Q[0][5] = 2.0*R[0][0]*R[0][1];
+  Q[0][l] = 2.0*R[0][0]*R[0][1];
 
   Q[1][0] = R[1][0]*R[1][0];
   Q[1][1] = R[1][1]*R[1][1];
-  Q[1][2] = R[1][2]*R[1][2];
-  Q[1][3] = 2.0*R[1][1]*R[1][2];
-  Q[1][4] = 2.0*R[1][0]*R[1][2];
-  Q[1][5] = 2.0*R[1][0]*R[1][1];
+  Q[1][l] = 2.0*R[1][0]*R[1][1];
 
-  Q[2][0] = R[2][0]*R[2][0];
-  Q[2][1] = R[2][1]*R[2][1];
-  Q[2][2] = R[2][2]*R[2][2];
-  Q[2][3] = 2.0*R[2][1]*R[2][2];
-  Q[2][4] = 2.0*R[2][0]*R[2][2];
-  Q[2][5] = 2.0*R[2][0]*R[2][1];
-
-  Q[3][0] = R[1][0]*R[2][0];
-  Q[3][1] = R[1][1]*R[2][1];
-  Q[3][2] = R[1][2]*R[2][2];
-  Q[3][3] = R[1][1]*R[2][2] + R[1][2]*R[2][1];
-  Q[3][4] = R[1][0]*R[2][2] + R[1][2]*R[2][0];
-  Q[3][5] = R[1][0]*R[2][1] + R[1][1]*R[2][0];
-
-  Q[4][0] = R[0][0]*R[2][0];
-  Q[4][1] = R[0][1]*R[2][1];
-  Q[4][2] = R[0][2]*R[2][2];
-  Q[4][3] = R[0][1]*R[2][2] + R[0][2]*R[2][1];
-  Q[4][4] = R[0][0]*R[2][2] + R[0][2]*R[2][0];
-  Q[4][5] = R[0][0]*R[2][1] + R[0][1]*R[2][0];
-
-  Q[5][0] = R[0][0]*R[1][0];
-  Q[5][1] = R[0][1]*R[1][1];
-  Q[5][2] = R[0][2]*R[1][2];
-  Q[5][3] = R[0][1]*R[1][2] + R[0][2]*R[1][1];
-  Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0];
-  Q[5][5] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
+  Q[l][0] = R[0][0]*R[1][0];
+  Q[l][1] = R[0][1]*R[1][1];
+  Q[l][l] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
   
-  if(direction != DesignElement::ROTANGLEX && direction != DesignElement::ROTANGLEY && direction != DesignElement::ROTANGLEZ){
+  if(dim == 3){  
+    Q[0][2] = R[0][2]*R[0][2];
+    Q[0][3] = 2.0*R[0][1]*R[0][2];
+    Q[0][4] = 2.0*R[0][0]*R[0][2];
+
+    Q[1][2] = R[1][2]*R[1][2];
+    Q[1][3] = 2.0*R[1][1]*R[1][2];
+    Q[1][4] = 2.0*R[1][0]*R[1][2];
+
+    Q[2][0] = R[2][0]*R[2][0];
+    Q[2][1] = R[2][1]*R[2][1];
+    Q[2][2] = R[2][2]*R[2][2];
+    Q[2][3] = 2.0*R[2][1]*R[2][2];
+    Q[2][4] = 2.0*R[2][0]*R[2][2];
+    Q[2][5] = 2.0*R[2][0]*R[2][1];
+
+    Q[3][0] = R[1][0]*R[2][0];
+    Q[3][1] = R[1][1]*R[2][1];
+    Q[3][2] = R[1][2]*R[2][2];
+    Q[3][3] = R[1][1]*R[2][2] + R[1][2]*R[2][1];
+    Q[3][4] = R[1][0]*R[2][2] + R[1][2]*R[2][0];
+    Q[3][5] = R[1][0]*R[2][1] + R[1][1]*R[2][0];
+
+    Q[4][0] = R[0][0]*R[2][0];
+    Q[4][1] = R[0][1]*R[2][1];
+    Q[4][2] = R[0][2]*R[2][2];
+    Q[4][3] = R[0][1]*R[2][2] + R[0][2]*R[2][1];
+    Q[4][4] = R[0][0]*R[2][2] + R[0][2]*R[2][0];
+    Q[4][5] = R[0][0]*R[2][1] + R[0][1]*R[2][0];
+
+    Q[5][2] = R[0][2]*R[1][2];
+    Q[5][3] = R[0][1]*R[1][2] + R[0][2]*R[1][1];
+    Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0];
+  }
+
+  if(direction != DesignElement::ROTANGLEX && direction != DesignElement::ROTANGLEY && direction != DesignElement::ROTANGLEZ && direction != DesignElement::ROTANGLE){
     // calculate Q*t*Q' and store back to t. unfortunately MultT is the wrong way
-    Matrix<Double> help(6,6);
+    Matrix<Double> help(dimQ, dimQ);
     Q.Mult(t, help);
-    Matrix<Double> QT(6,6);
-    QT.Resize(6,6);
+    Matrix<Double> QT(dimQ, dimQ);
+    QT.Resize(dimQ, dimQ);
     Q.Transpose(QT);
     help.Mult(QT, t);
   }else{ // we need a derivative
@@ -677,6 +690,7 @@ void DesignMaterial::RotateVoigtTensor(Matrix<double>& t, DesignElement::Type di
       cthetay = -sin(thetay);
       break;
     case DesignElement::ROTANGLEZ:
+    case DesignElement::ROTANGLE:
       sthetaz = cos(thetaz);
       cthetaz = -sin(thetaz);
       break;
@@ -684,63 +698,69 @@ void DesignMaterial::RotateVoigtTensor(Matrix<double>& t, DesignElement::Type di
       assert(false);
       break;
     }
-    Matrix<Double> dR(3,3);
+    Matrix<Double> dR(dim, dim);
     SetRotationMatrix(dR, sthetax, cthetax, sthetay, cthetay, sthetaz, cthetaz); // this now produces the derivative
     
-    Matrix<Double> dQ(6,6); // this part can be produced from the definition of Q above by sed 's/R\(\[\d\]\[\d\]\)\*R\(\[\d\]\[\d\]\)/dR\1*R\2+R\1*dR\2/g', effectively using the product rule
-    dQ[0][0] = dR[0][0]*R[0][0]+R[0][0]*dR[0][0];
-    dQ[0][1] = dR[0][1]*R[0][1]+R[0][1]*dR[0][1];
-    dQ[0][2] = dR[0][2]*R[0][2]+R[0][2]*dR[0][2];
-    dQ[0][3] = 2.0*dR[0][1]*R[0][2]+R[0][1]*dR[0][2];
-    dQ[0][4] = 2.0*dR[0][0]*R[0][2]+R[0][0]*dR[0][2];
-    dQ[0][5] = 2.0*dR[0][0]*R[0][1]+R[0][0]*dR[0][1];
+    Matrix<Double> dQ(dimQ, dimQ);
+    // this part can be produced from the definition of Q above by sed 's/R\(\[\d\]\[\d\]\)\*R\(\[\d\]\[\d\]\)/dR\1*R\2+R\1*dR\2/g', effectively using the product rule
+    Q[0][0] = dR[0][0]*R[0][0]+R[0][0]*dR[0][0];
+    Q[0][1] = dR[0][1]*R[0][1]+R[0][1]*dR[0][1];
+    Q[0][l] = 2.0*dR[0][0]*R[0][1]+R[0][0]*dR[0][1];
 
-    dQ[1][0] = dR[1][0]*R[1][0]+R[1][0]*dR[1][0];
-    dQ[1][1] = dR[1][1]*R[1][1]+R[1][1]*dR[1][1];
-    dQ[1][2] = dR[1][2]*R[1][2]+R[1][2]*dR[1][2];
-    dQ[1][3] = 2.0*dR[1][1]*R[1][2]+R[1][1]*dR[1][2];
-    dQ[1][4] = 2.0*dR[1][0]*R[1][2]+R[1][0]*dR[1][2];
-    dQ[1][5] = 2.0*dR[1][0]*R[1][1]+R[1][0]*dR[1][1];
+    Q[1][0] = dR[1][0]*R[1][0]+R[1][0]*dR[1][0];
+    Q[1][1] = dR[1][1]*R[1][1]+R[1][1]*dR[1][1];
+    Q[1][l] = 2.0*dR[1][0]*R[1][1]+R[1][0]*dR[1][1];
 
-    dQ[2][0] = dR[2][0]*R[2][0]+R[2][0]*dR[2][0];
-    dQ[2][1] = dR[2][1]*R[2][1]+R[2][1]*dR[2][1];
-    dQ[2][2] = dR[2][2]*R[2][2]+R[2][2]*dR[2][2];
-    dQ[2][3] = 2.0*dR[2][1]*R[2][2]+R[2][1]*dR[2][2];
-    dQ[2][4] = 2.0*dR[2][0]*R[2][2]+R[2][0]*dR[2][2];
-    dQ[2][5] = 2.0*dR[2][0]*R[2][1]+R[2][0]*dR[2][1];
-
-    dQ[3][0] = dR[1][0]*R[2][0]+R[1][0]*dR[2][0];
-    dQ[3][1] = dR[1][1]*R[2][1]+R[1][1]*dR[2][1];
-    dQ[3][2] = dR[1][2]*R[2][2]+R[1][2]*dR[2][2];
-    dQ[3][3] = dR[1][1]*R[2][2]+R[1][1]*dR[2][2] + dR[1][2]*R[2][1]+R[1][2]*dR[2][1];
-    dQ[3][4] = dR[1][0]*R[2][2]+R[1][0]*dR[2][2] + dR[1][2]*R[2][0]+R[1][2]*dR[2][0];
-    dQ[3][5] = dR[1][0]*R[2][1]+R[1][0]*dR[2][1] + dR[1][1]*R[2][0]+R[1][1]*dR[2][0];
-
-    dQ[4][0] = dR[0][0]*R[2][0]+R[0][0]*dR[2][0];
-    dQ[4][1] = dR[0][1]*R[2][1]+R[0][1]*dR[2][1];
-    dQ[4][2] = dR[0][2]*R[2][2]+R[0][2]*dR[2][2];
-    dQ[4][3] = dR[0][1]*R[2][2]+R[0][1]*dR[2][2] + dR[0][2]*R[2][1]+R[0][2]*dR[2][1];
-    dQ[4][4] = dR[0][0]*R[2][2]+R[0][0]*dR[2][2] + dR[0][2]*R[2][0]+R[0][2]*dR[2][0];
-    dQ[4][5] = dR[0][0]*R[2][1]+R[0][0]*dR[2][1] + dR[0][1]*R[2][0]+R[0][1]*dR[2][0];
-
-    dQ[5][0] = dR[0][0]*R[1][0]+R[0][0]*dR[1][0];
-    dQ[5][1] = dR[0][1]*R[1][1]+R[0][1]*dR[1][1];
-    dQ[5][2] = dR[0][2]*R[1][2]+R[0][2]*dR[1][2];
-    dQ[5][3] = dR[0][1]*R[1][2]+R[0][1]*dR[1][2] + dR[0][2]*R[1][1]+R[0][2]*dR[1][1];
-    dQ[5][4] = dR[0][0]*R[1][2]+R[0][0]*dR[1][2] + dR[0][2]*R[1][0]+R[0][2]*dR[1][0];
-    dQ[5][5] = dR[0][0]*R[1][1]+R[0][0]*dR[1][1] + dR[0][1]*R[1][0]+R[0][1]*dR[1][0];
+    Q[l][0] = dR[0][0]*R[1][0]+R[0][0]*dR[1][0];
+    Q[l][1] = dR[0][1]*R[1][1]+R[0][1]*dR[1][1];
+    Q[l][l] = dR[0][0]*R[1][1]+R[0][0]*dR[1][1] + dR[0][1]*R[1][0]+R[0][1]*dR[1][0];
     
+    if(dim == 3){  
+      Q[0][2] = dR[0][2]*R[0][2]+R[0][2]*dR[0][2];
+      Q[0][3] = 2.0*dR[0][1]*R[0][2]+R[0][1]*dR[0][2];
+      Q[0][4] = 2.0*dR[0][0]*R[0][2]+R[0][0]*dR[0][2];
+
+      Q[1][2] = dR[1][2]*R[1][2]+R[1][2]*dR[1][2];
+      Q[1][3] = 2.0*dR[1][1]*R[1][2]+R[1][1]*dR[1][2];
+      Q[1][4] = 2.0*dR[1][0]*R[1][2]+R[1][0]*dR[1][2];
+
+      Q[2][0] = dR[2][0]*R[2][0]+R[2][0]*dR[2][0];
+      Q[2][1] = dR[2][1]*R[2][1]+R[2][1]*dR[2][1];
+      Q[2][2] = dR[2][2]*R[2][2]+R[2][2]*dR[2][2];
+      Q[2][3] = 2.0*dR[2][1]*R[2][2]+R[2][1]*dR[2][2];
+      Q[2][4] = 2.0*dR[2][0]*R[2][2]+R[2][0]*dR[2][2];
+      Q[2][5] = 2.0*dR[2][0]*R[2][1]+R[2][0]*dR[2][1];
+
+      Q[3][0] = dR[1][0]*R[2][0]+R[1][0]*dR[2][0];
+      Q[3][1] = dR[1][1]*R[2][1]+R[1][1]*dR[2][1];
+      Q[3][2] = dR[1][2]*R[2][2]+R[1][2]*dR[2][2];
+      Q[3][3] = dR[1][1]*R[2][2]+R[1][1]*dR[2][2] + dR[1][2]*R[2][1]+R[1][2]*dR[2][1];
+      Q[3][4] = dR[1][0]*R[2][2]+R[1][0]*dR[2][2] + dR[1][2]*R[2][0]+R[1][2]*dR[2][0];
+      Q[3][5] = dR[1][0]*R[2][1]+R[1][0]*dR[2][1] + dR[1][1]*R[2][0]+R[1][1]*dR[2][0];
+
+      Q[4][0] = dR[0][0]*R[2][0]+R[0][0]*dR[2][0];
+      Q[4][1] = dR[0][1]*R[2][1]+R[0][1]*dR[2][1];
+      Q[4][2] = dR[0][2]*R[2][2]+R[0][2]*dR[2][2];
+      Q[4][3] = dR[0][1]*R[2][2]+R[0][1]*dR[2][2] + dR[0][2]*R[2][1]+R[0][2]*dR[2][1];
+      Q[4][4] = dR[0][0]*R[2][2]+R[0][0]*dR[2][2] + dR[0][2]*R[2][0]+R[0][2]*dR[2][0];
+      Q[4][5] = dR[0][0]*R[2][1]+R[0][0]*dR[2][1] + dR[0][1]*R[2][0]+R[0][1]*dR[2][0];
+
+      Q[5][2] = dR[0][2]*R[1][2]+R[0][2]*dR[1][2];
+      Q[5][3] = dR[0][1]*R[1][2]+R[0][1]*dR[1][2] + dR[0][2]*R[1][1]+R[0][2]*dR[1][1];
+      Q[5][4] = dR[0][0]*R[1][2]+R[0][0]*dR[1][2] + dR[0][2]*R[1][0]+R[0][2]*dR[1][0];
+    }
+   
     // we now, have to calculate dQ*t*Q' + Q*t*dQ'
-    Matrix<Double> help(6,6);
+    Matrix<Double> help(dimQ, dimQ);
     dQ.Mult(t, help);
-    Matrix<Double> QT(6,6);
-    QT.Resize(6,6);
+    Matrix<Double> QT(dimQ, dimQ);
+    QT.Resize(dimQ, dimQ);
     Q.Transpose(QT);
     help.Mult(QT, t);
 
     Q.Mult(t, help);
-    Matrix<Double> dQT(6,6);
-    dQT.Resize(6,6);
+    Matrix<Double> dQT(dimQ, dimQ);
+    dQT.Resize(dimQ, dimQ);
     dQ.Transpose(dQT);
     help.Mult(dQT, dQ); // we do now need dQ anymore and overwrite it
     t.Add(1.0, dQ);
@@ -750,16 +770,18 @@ void DesignMaterial::RotateVoigtTensor(Matrix<double>& t, DesignElement::Type di
 }
 
 void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double sthetax, double cthetax, double sthetay, double cthetay, double sthetaz, double cthetaz){
-  R.Resize(3,3);
+  R.Resize(dim, dim);
   R[0][0] =  cthetay * cthetaz;
   R[0][1] = -cthetay * sthetaz;
-  R[0][2] = -sthetay;
   R[1][0] =  cthetax * sthetaz - sthetax * sthetay * cthetaz;
   R[1][1] =  cthetax * cthetaz + sthetax * sthetay * sthetaz;
-  R[1][2] = -sthetax * cthetay;
-  R[2][0] =  sthetax * sthetaz + cthetax * sthetay * cthetaz;
-  R[2][1] =  sthetax * cthetaz - cthetax * sthetay * sthetaz;
-  R[2][2] =  cthetax * cthetay;  
+  if(dim == 3){
+    R[0][2] = -sthetay;
+    R[1][2] = -sthetax * cthetay;
+    R[2][0] =  sthetax * sthetaz + cthetax * sthetay * cthetaz;
+    R[2][1] =  sthetax * cthetaz - cthetax * sthetay * sthetaz;
+    R[2][2] =  cthetax * cthetay;
+  }
 }
   
  

@@ -164,8 +164,10 @@ template <class TYPE> class StdVector;
     inline void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation = VOIGT);
     
     /** rotate elasticity tensor in Voigt notation according to the parameters, eventually calculating a derivative
+     *  in 3d: rotates the material by ROTANGLEZ around the z-axis by ROTANGLEY around the y-axis and by ROTANGLEX around the x-axis in this given order
+     *  in 2d: rotates the material by ROTANGLE
      * @param t Material Tensor which is rotated in place (or the derivative is calculated in place)
-     * @param direction if one of ROTATEANGLEX, ROTATEANGLEY, ROTATEANGLEZ calculate the derivative of the rotation w.r.t. this parameter
+     * @param direction if one of ROTANGLEX, ROTANGLEY, ROTANGLEZ, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
      */
     void RotateVoigtTensor(Matrix<double>& t, DesignElement::Type direction);
     
