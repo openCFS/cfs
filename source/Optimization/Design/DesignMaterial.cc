@@ -62,7 +62,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   }
   if(!CheckRequiredDesigns(d)){
     throw Exception("Not all Parameters for chosen DesignMaterial given");
-  }else if(design.GetSize() > r){ // design.GetSize() < r is impossible as CheckRequiredDesigns passed
+  }else if(d.GetSize() > r){ // design.GetSize() < r is impossible as CheckRequiredDesigns passed
     info->Get("optimization/header/designSpace")->Get(ParamNode::WARNING)->SetValue("There are designs specified that are not used!");
   }
 
@@ -130,7 +130,7 @@ unsigned int DesignMaterial::RequiredParameters(OptimizationMaterial::System mat
   case DENSITY_TIMES_ORTHOTROPIC:
     return r+7;
   case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED:
-    return r + 5 + (dim == 3 ? 2 : 1);
+    return r + 6 + (dim == 3 ? 2 : 1);
   }
 
   assert(false);
@@ -357,6 +357,7 @@ double DesignMaterial::GetLameMaterialMass(DesignElement::Type direction){
 }
 
 void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
+  LOG_DBG2(dm) << "GetTransIsoMaterialTensor called with direction=" << (direction == DesignElement::NO_DERIVATIVE ? "no_derivative" : DesignElement::type.ToString(direction)) << " and notation=" << notation;
   double E = params_[DesignElement::EMODULISO];
   double E3 = params_[DesignElement::EMODUL];
   double G3 = params_[DesignElement::GMODUL];
@@ -496,8 +497,11 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   double nu3;
   double n3;
   double c;
-  double dens = params_[DesignElement::DENSITY];
-  double factor = std::pow(dens, penalty_);
+  double dens = 1.0, factor = 1.0;
+  if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED){
+    dens = params_[DesignElement::DENSITY];
+    factor = std::pow(dens, penalty_);
+  }
   if(type_ == TRANSVERSAL_ISOTROPIC){
     nu3 = nu13 * E3/E;
     n3 = nu3*nu3*E/E3;
@@ -515,6 +519,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   double f = E/((1.0+nu)*c);
   double dE = 0.0, dE3 = 0.0, dnu = 0.0, dnu3 = 0.0, dn3 = 0.0, dG3 = 0.0;
   
+  bool tensorset = false;
   switch(direction){
   case DesignElement::DENSITY: // almost the same as no derivative, we only change the factor a little
     if(penalty_ != 1.0){
@@ -522,13 +527,17 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     }
     // no break
   case DesignElement::NO_DERIVATIVE:
+  case DesignElement::ROTANGLE:
+  case DesignElement::ROTANGLEX:
+  case DesignElement::ROTANGLEY:
   {
-    double D = factor*(1.0-n3)*f;
-    double D3 = factor*(1.0-nu)*E3/c;
-    double nD = factor*(nu+n3)*f;
-    double nD3 = factor*(1.0+nu)*nu3*f;
-    double G = factor*0.5*E/(1.0+nu);
-    SetTransIsoTensor(t, subTensor, D, nD, G, D3, nD3, factor*G3);
+    double D = (1.0-n3)*f;
+    double D3 = (1.0-nu)*E3/c;
+    double nD = (nu+n3)*f;
+    double nD3 = (1.0+nu)*nu3*f;
+    double G = 0.5*E/(1.0+nu);
+    SetTransIsoTensor(t, subTensor, factor * D, factor * nD, factor * G, factor * D3, factor * nD3, factor*G3);
+    tensorset = true;
     break;
   }
   case DesignElement::EMODULISO:
@@ -572,7 +581,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     ZeroTensor(t, subTensor);
     return;
   } // switch(direction)
-  if(direction != DesignElement::NO_DERIVATIVE || direction != DesignElement::DENSITY){ // these two cases are handled already
+  if(!tensorset){ // several cases are handled already and set the tensor
     double dc = -dnu-2.0*dn3;
     double df = ( dE - E*dnu/(1.0+nu) - E*dc/c ) / ((1.0+nu)*c);
     double dD = (1.0-n3)*df - dn3*f;
@@ -580,13 +589,16 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     double dD3 = ( (1.0-nu)*dE3 - dnu*E3 - (1.0-nu)*E3*dc/c ) / c;
     double dnD3 = (1.0+nu)*nu3*df + (1.0+nu)*dnu3*f + dnu*nu3*f;
     double dG = 0.5 * ( (1.0+nu)*dE - E*dnu ) / ( (1.0+nu)*(1.0+nu) );
-    SetTransIsoTensor(t, subTensor, dD, dnD, dG, dD3, dnD3, dG3);
+    SetTransIsoTensor(t, subTensor, factor * dD, factor * dnD, factor * dG, factor * dD3, factor * dnD3, factor * dG3);
   }
   
   if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED){
     // for all rotated types, rotate the material tensor
+    LOG_DBG3(dm) << "GetTransIsoMaterialTensor: tensor before rotation=" << t.ToString();
     RotateVoigtTensor(t, direction);
-  }  
+  }
+  LOG_DBG2(dm) << "GetTransIsoMaterialTensor: tensor result is " << t.ToString();
+  
 }
 
 void DesignMaterial::RotateVoigtTensor(Matrix<double>& t, DesignElement::Type direction){
@@ -617,6 +629,7 @@ void DesignMaterial::RotateVoigtTensor(Matrix<double>& t, DesignElement::Type di
 
   Matrix<Double> R(dim, dim);
   SetRotationMatrix(R, sthetax, cthetax, sthetay, cthetay, sthetaz, cthetaz);
+  LOG_DBG3(dm) << "Rotation matrix for tx=" << thetax << ", ty=" << thetay << ", tz=" << thetaz << " is " << R.ToString();
 
   // see also baseMaterial.cc for this
   int dimQ = dim == 3 ? 6 : 3;
@@ -670,6 +683,7 @@ void DesignMaterial::RotateVoigtTensor(Matrix<double>& t, DesignElement::Type di
     Q[5][3] = R[0][1]*R[1][2] + R[0][2]*R[1][1];
     Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0];
   }
+  LOG_DBG3(dm) << "Corresponding Q is " << Q.ToString();
 
   if(direction != DesignElement::ROTANGLEX && direction != DesignElement::ROTANGLEY && direction != DesignElement::ROTANGLEZ && direction != DesignElement::ROTANGLE){
     // calculate Q*t*Q' and store back to t. unfortunately MultT is the wrong way
@@ -680,107 +694,117 @@ void DesignMaterial::RotateVoigtTensor(Matrix<double>& t, DesignElement::Type di
     Q.Transpose(QT);
     help.Mult(QT, t);
   }else{ // we need a derivative
-    switch(direction){ // some derivatives on the angle
-    case DesignElement::ROTANGLEX:
-      sthetax = cos(thetax);
-      cthetax = -sin(thetax);
-      break;
-    case DesignElement::ROTANGLEY:
-      sthetay = cos(thetay);
-      cthetay = -sin(thetay);
-      break;
-    case DesignElement::ROTANGLEZ:
-    case DesignElement::ROTANGLE:
-      sthetaz = cos(thetaz);
-      cthetaz = -sin(thetaz);
-      break;
-    default:
-      assert(false);
-      break;
-    }
     Matrix<Double> dR(dim, dim);
-    SetRotationMatrix(dR, sthetax, cthetax, sthetay, cthetay, sthetaz, cthetaz); // this now produces the derivative
+    SetRotationMatrix(dR, sthetax, cthetax, sthetay, cthetay, sthetaz, cthetaz, direction); // this now produces the derivative
+    LOG_DBG3(dm) << "Corresponding dR is " << dR.ToString();
     
     Matrix<Double> dQ(dimQ, dimQ);
-    // this part can be produced from the definition of Q above by sed 's/R\(\[\d\]\[\d\]\)\*R\(\[\d\]\[\d\]\)/dR\1*R\2+R\1*dR\2/g', effectively using the product rule
-    Q[0][0] = dR[0][0]*R[0][0]+R[0][0]*dR[0][0];
-    Q[0][1] = dR[0][1]*R[0][1]+R[0][1]*dR[0][1];
-    Q[0][l] = 2.0*dR[0][0]*R[0][1]+R[0][0]*dR[0][1];
+    // this part can be produced from the definition of Q above by sed 's/Q/dQ;s/R\(\[\d\]\[\d\]\)\*R\(\[\d\]\[\d\]\)/(dR\1*R\2+R\1*dR\2)/g', effectively using the product rule
+    dQ[0][0] = (dR[0][0]*R[0][0]+R[0][0]*dR[0][0]);
+    dQ[0][1] = (dR[0][1]*R[0][1]+R[0][1]*dR[0][1]);
+    dQ[0][l] = 2.0*(dR[0][0]*R[0][1]+R[0][0]*dR[0][1]);
 
-    Q[1][0] = dR[1][0]*R[1][0]+R[1][0]*dR[1][0];
-    Q[1][1] = dR[1][1]*R[1][1]+R[1][1]*dR[1][1];
-    Q[1][l] = 2.0*dR[1][0]*R[1][1]+R[1][0]*dR[1][1];
+    dQ[1][0] = (dR[1][0]*R[1][0]+R[1][0]*dR[1][0]);
+    dQ[1][1] = (dR[1][1]*R[1][1]+R[1][1]*dR[1][1]);
+    dQ[1][l] = 2.0*(dR[1][0]*R[1][1]+R[1][0]*dR[1][1]);
 
-    Q[l][0] = dR[0][0]*R[1][0]+R[0][0]*dR[1][0];
-    Q[l][1] = dR[0][1]*R[1][1]+R[0][1]*dR[1][1];
-    Q[l][l] = dR[0][0]*R[1][1]+R[0][0]*dR[1][1] + dR[0][1]*R[1][0]+R[0][1]*dR[1][0];
+    dQ[l][0] = (dR[0][0]*R[1][0]+R[0][0]*dR[1][0]);
+    dQ[l][1] = (dR[0][1]*R[1][1]+R[0][1]*dR[1][1]);
+    dQ[l][l] = (dR[0][0]*R[1][1]+R[0][0]*dR[1][1]) + (dR[0][1]*R[1][0]+R[0][1]*dR[1][0]);
     
     if(dim == 3){  
-      Q[0][2] = dR[0][2]*R[0][2]+R[0][2]*dR[0][2];
-      Q[0][3] = 2.0*dR[0][1]*R[0][2]+R[0][1]*dR[0][2];
-      Q[0][4] = 2.0*dR[0][0]*R[0][2]+R[0][0]*dR[0][2];
+      dQ[0][2] = (dR[0][2]*R[0][2]+R[0][2]*dR[0][2]);
+      dQ[0][3] = 2.0*(dR[0][1]*R[0][2]+R[0][1]*dR[0][2]);
+      dQ[0][4] = 2.0*(dR[0][0]*R[0][2]+R[0][0]*dR[0][2]);
 
-      Q[1][2] = dR[1][2]*R[1][2]+R[1][2]*dR[1][2];
-      Q[1][3] = 2.0*dR[1][1]*R[1][2]+R[1][1]*dR[1][2];
-      Q[1][4] = 2.0*dR[1][0]*R[1][2]+R[1][0]*dR[1][2];
+      dQ[1][2] = (dR[1][2]*R[1][2]+R[1][2]*dR[1][2]);
+      dQ[1][3] = 2.0*(dR[1][1]*R[1][2]+R[1][1]*dR[1][2]);
+      dQ[1][4] = 2.0*(dR[1][0]*R[1][2]+R[1][0]*dR[1][2]);
 
-      Q[2][0] = dR[2][0]*R[2][0]+R[2][0]*dR[2][0];
-      Q[2][1] = dR[2][1]*R[2][1]+R[2][1]*dR[2][1];
-      Q[2][2] = dR[2][2]*R[2][2]+R[2][2]*dR[2][2];
-      Q[2][3] = 2.0*dR[2][1]*R[2][2]+R[2][1]*dR[2][2];
-      Q[2][4] = 2.0*dR[2][0]*R[2][2]+R[2][0]*dR[2][2];
-      Q[2][5] = 2.0*dR[2][0]*R[2][1]+R[2][0]*dR[2][1];
+      dQ[2][0] = (dR[2][0]*R[2][0]+R[2][0]*dR[2][0]);
+      dQ[2][1] = (dR[2][1]*R[2][1]+R[2][1]*dR[2][1]);
+      dQ[2][2] = (dR[2][2]*R[2][2]+R[2][2]*dR[2][2]);
+      dQ[2][3] = 2.0*(dR[2][1]*R[2][2]+R[2][1]*dR[2][2]);
+      dQ[2][4] = 2.0*(dR[2][0]*R[2][2]+R[2][0]*dR[2][2]);
+      dQ[2][5] = 2.0*(dR[2][0]*R[2][1]+R[2][0]*dR[2][1]);
 
-      Q[3][0] = dR[1][0]*R[2][0]+R[1][0]*dR[2][0];
-      Q[3][1] = dR[1][1]*R[2][1]+R[1][1]*dR[2][1];
-      Q[3][2] = dR[1][2]*R[2][2]+R[1][2]*dR[2][2];
-      Q[3][3] = dR[1][1]*R[2][2]+R[1][1]*dR[2][2] + dR[1][2]*R[2][1]+R[1][2]*dR[2][1];
-      Q[3][4] = dR[1][0]*R[2][2]+R[1][0]*dR[2][2] + dR[1][2]*R[2][0]+R[1][2]*dR[2][0];
-      Q[3][5] = dR[1][0]*R[2][1]+R[1][0]*dR[2][1] + dR[1][1]*R[2][0]+R[1][1]*dR[2][0];
+      dQ[3][0] = (dR[1][0]*R[2][0]+R[1][0]*dR[2][0]);
+      dQ[3][1] = (dR[1][1]*R[2][1]+R[1][1]*dR[2][1]);
+      dQ[3][2] = (dR[1][2]*R[2][2]+R[1][2]*dR[2][2]);
+      dQ[3][3] = (dR[1][1]*R[2][2]+R[1][1]*dR[2][2]) + (dR[1][2]*R[2][1]+R[1][2]*dR[2][1]);
+      dQ[3][4] = (dR[1][0]*R[2][2]+R[1][0]*dR[2][2]) + (dR[1][2]*R[2][0]+R[1][2]*dR[2][0]);
+      dQ[3][5] = (dR[1][0]*R[2][1]+R[1][0]*dR[2][1]) + (dR[1][1]*R[2][0]+R[1][1]*dR[2][0]);
 
-      Q[4][0] = dR[0][0]*R[2][0]+R[0][0]*dR[2][0];
-      Q[4][1] = dR[0][1]*R[2][1]+R[0][1]*dR[2][1];
-      Q[4][2] = dR[0][2]*R[2][2]+R[0][2]*dR[2][2];
-      Q[4][3] = dR[0][1]*R[2][2]+R[0][1]*dR[2][2] + dR[0][2]*R[2][1]+R[0][2]*dR[2][1];
-      Q[4][4] = dR[0][0]*R[2][2]+R[0][0]*dR[2][2] + dR[0][2]*R[2][0]+R[0][2]*dR[2][0];
-      Q[4][5] = dR[0][0]*R[2][1]+R[0][0]*dR[2][1] + dR[0][1]*R[2][0]+R[0][1]*dR[2][0];
+      dQ[4][0] = (dR[0][0]*R[2][0]+R[0][0]*dR[2][0]);
+      dQ[4][1] = (dR[0][1]*R[2][1]+R[0][1]*dR[2][1]);
+      dQ[4][2] = (dR[0][2]*R[2][2]+R[0][2]*dR[2][2]);
+      dQ[4][3] = (dR[0][1]*R[2][2]+R[0][1]*dR[2][2]) + (dR[0][2]*R[2][1]+R[0][2]*dR[2][1]);
+      dQ[4][4] = (dR[0][0]*R[2][2]+R[0][0]*dR[2][2]) + (dR[0][2]*R[2][0]+R[0][2]*dR[2][0]);
+      dQ[4][5] = (dR[0][0]*R[2][1]+R[0][0]*dR[2][1]) + (dR[0][1]*R[2][0]+R[0][1]*dR[2][0]);
 
-      Q[5][2] = dR[0][2]*R[1][2]+R[0][2]*dR[1][2];
-      Q[5][3] = dR[0][1]*R[1][2]+R[0][1]*dR[1][2] + dR[0][2]*R[1][1]+R[0][2]*dR[1][1];
-      Q[5][4] = dR[0][0]*R[1][2]+R[0][0]*dR[1][2] + dR[0][2]*R[1][0]+R[0][2]*dR[1][0];
+      dQ[5][2] = (dR[0][2]*R[1][2]+R[0][2]*dR[1][2]);
+      dQ[5][3] = (dR[0][1]*R[1][2]+R[0][1]*dR[1][2]) + (dR[0][2]*R[1][1]+R[0][2]*dR[1][1]);
+      dQ[5][4] = (dR[0][0]*R[1][2]+R[0][0]*dR[1][2]) + (dR[0][2]*R[1][0]+R[0][2]*dR[1][0]);
     }
+    LOG_DBG3(dm) << "Corresponding dQ is " << dQ.ToString();
    
     // we now, have to calculate dQ*t*Q' + Q*t*dQ'
     Matrix<Double> help(dimQ, dimQ);
+    Matrix<Double> dQT(dimQ, dimQ);
+    dQT.Resize(dimQ, dimQ);
+    dQ.Transpose(dQT);
+
     dQ.Mult(t, help);
     Matrix<Double> QT(dimQ, dimQ);
     QT.Resize(dimQ, dimQ);
     Q.Transpose(QT);
-    help.Mult(QT, t);
+    help.Mult(QT, dQ); // dQ is no longer needed, we overwrite it
 
     Q.Mult(t, help);
-    Matrix<Double> dQT(dimQ, dimQ);
-    dQT.Resize(dimQ, dimQ);
-    dQ.Transpose(dQT);
-    help.Mult(dQT, dQ); // we do now need dQ anymore and overwrite it
-    t.Add(1.0, dQ);
+    help.Mult(dQT, t); // here, we overwrite t
+    t.Add(1.0, dQ);    // and add the rest
     //FIXME: this section is ugly and should be fixed if expression templates work reliably        
   }  
   
 }
 
-void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double sthetax, double cthetax, double sthetay, double cthetay, double sthetaz, double cthetaz){
+void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double sthetax, double cthetax, double sthetay, double cthetay, double sthetaz, double cthetaz, DesignElement::Type direction){
   R.Resize(dim, dim);
-  R[0][0] =  cthetay * cthetaz;
-  R[0][1] = -cthetay * sthetaz;
-  R[1][0] =  cthetax * sthetaz - sthetax * sthetay * cthetaz;
-  R[1][1] =  cthetax * cthetaz + sthetax * sthetay * sthetaz;
+  double ndx = 1.0, ndy = 1.0, ndz = 1.0;
+  // for the derivative, we replace the correspond sin by cos and cos by -sin and set nd to 0.0
+  switch(direction){
+  case DesignElement::ROTANGLEX:
+    ndx = sthetax;
+    sthetax = cthetax;
+    cthetax = -ndx;
+    ndx = 0.0;
+    break;
+  case DesignElement::ROTANGLEY:
+    ndy = sthetay;
+    sthetay = cthetay;
+    cthetay = -ndy;
+    ndy = 0.0;
+    break;
+  case DesignElement::ROTANGLEZ:
+  case DesignElement::ROTANGLE:
+    ndz = sthetaz;
+    sthetaz = cthetaz;
+    cthetaz = -ndz;
+    ndz = 0.0;
+    break;
+  default:
+    break;
+  }
+  R[0][0] =  ndx * cthetay * cthetaz;
+  R[0][1] = -ndx * cthetay * sthetaz;
+  R[1][0] =  cthetax * ndy * sthetaz - sthetax * sthetay * cthetaz;
+  R[1][1] =  cthetax * ndy * cthetaz + sthetax * sthetay * sthetaz;
   if(dim == 3){
-    R[0][2] = -sthetay;
-    R[1][2] = -sthetax * cthetay;
-    R[2][0] =  sthetax * sthetaz + cthetax * sthetay * cthetaz;
-    R[2][1] =  sthetax * cthetaz - cthetax * sthetay * sthetaz;
-    R[2][2] =  cthetax * cthetay;
+    R[0][2] = -ndx * sthetay * ndz;
+    R[1][2] = -sthetax * cthetay * ndz;
+    R[2][0] =  sthetax * ndy * sthetaz + cthetax * sthetay * cthetaz;
+    R[2][1] =  sthetax * ndy * cthetaz - cthetax * sthetay * sthetaz;
+    R[2][2] =  cthetax * cthetay * ndz;
   }
 }
   

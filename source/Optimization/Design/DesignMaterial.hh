@@ -180,8 +180,9 @@ template <class TYPE> class StdVector;
      * @cthetay cos(thetax)
      * @sthetaz sin(thetax)
      * @cthetaz cos(thetax)
+     * @direction if given direction of the derivative to be calculated
      */
-    void SetRotationMatrix(Matrix<double>& R, double sthetax, double cthetax, double sthetay, double cthetay, double sthetaz, double cthetaz);
+    void SetRotationMatrix(Matrix<double>& R, double sthetax, double cthetax, double sthetay, double cthetay, double sthetaz, double cthetaz, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
     /** Calculate the mass isotropic case */
     inline double GetIsoMaterialMass(DesignElement::Type direction);    
