@@ -964,7 +964,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     } else {
       // 3) 1D element in 3D simulation
       
-      // In case the (only) edge is not numbered yet, wer perform a 
+      // In case the (only) edge is not numbered yet, we perform a 
       // mapping of edges now
       if(ptElem->edges.GetSize() != 1) {
         ptGrid_->MapEdges();
@@ -1317,10 +1317,10 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         tmp.Init();
         GetEqns( tmp, it, entType);
         allEqns.insert(tmp.Begin(), tmp.End());
-        
       }
       eqns.Clear();
       eqns.Resize(allEqns.size());
+      eqns.Init();
       std::copy(allEqns.begin(), allEqns.end(), eqns.Begin());
     }
       

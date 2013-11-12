@@ -379,7 +379,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
                                                                       Vector<DATA_TYPE>& feFncVec){
 
   if(!this->consInterpReady_){
-    std::cout << "Preparing for conservative interpolation of external data...";
+    std::cout << "Preparing for conservative interpolation of external data... ";
     std::cout.flush();
     boost::shared_ptr<Timer> t(new Timer);
     t->Start();
@@ -485,7 +485,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     this->extDataInfo_->Get("interpolation")->Get("conservative")->
         Get("creationTime")->SetValue(elapsed.str());
 
-    std::cout << "Done" << std::endl;
+    std::cout << " done." << std::endl;
     std::cout.flush();
   }
   //perhaps we need to reread the solution vector from file

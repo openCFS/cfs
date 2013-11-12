@@ -696,6 +696,9 @@ namespace CoupledField
     //! Computes if a list of surface elements are all coplanar
     bool IsSurfacePlanar(const StdVector<SurfElem*>& surfElems) const;
 
+    //! Triggers calculation of node offsets for moving interfaces
+    void MoveNcInterfaces();
+    
   protected:
     
     //! Add a node to the grid

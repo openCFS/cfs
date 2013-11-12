@@ -11,6 +11,7 @@
 #include "Domain/ElemMapping/SurfElem.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
+#include "Driver/TransientDriver.hh"
 #include "Utils/StdVector.hh"
 #include "MatVec/Vector.hh"
 #include "Utils/mathParser/mathParser.hh"
@@ -24,13 +25,16 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   BaseNcInterface(grid),
   isCoplanar_(false),
   isMoving_(false),
+  moveMaster_(false),
   exportToGrid_(true),
+  geoWarn_(true),
   coordSysId_(""),
   coordSys_(NULL),
   mParser_(NULL),
   tolAbs_(1e-12),
   tolRel_(1e-4),
-  region_(NO_REGION_ID)
+  region_(NO_REGION_ID),
+  isReset_(false)
 {
   name_ = nciNode->Get("name")->As<std::string>();
   elemList_->SetName(name_);
@@ -60,7 +64,7 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   slaveVolRegion_ = slaveElems[0]->ptVolElems[0]->regionId;
 
   std::string isecCalc;
-  nciNode->GetValue("isecCalculation", isecCalc, ParamNode::PASS);
+  nciNode->GetValue("intersectionMethod", isecCalc, ParamNode::PASS);
   if (ptGrid_->GetDim() == 2) {
     intersectAlgo_ = NCI_INTERSECT_LINE;
     if ( !isecCalc.empty() ) {
@@ -82,17 +86,43 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   
   nciNode->GetValue("storeIntegrationGrid", exportToGrid_, ParamNode::PASS);
 
-  PtrParamNode rotNode = nciNode->Get("rotation", ParamNode::PASS);
-  if (rotNode) {
-    SetRotation( rotNode->Get("coordSysId")->As<std::string>(),
-                 rotNode->Get("rpm")->As<Double>());
+  nciNode->GetValue("geometryWarnings", geoWarn_, ParamNode::PASS);
+  
+  PtrParamNode motionNode = nciNode->Get("rotation", ParamNode::PASS);
+  if (motionNode) {
+    SetRotation( motionNode->Get("coordSysId")->As<std::string>(),
+                 motionNode->Get("rpm")->As<Double>());
+    moveMaster_ = (motionNode->Get("movingSide", ParamNode::INSERT)
+                    ->As<std::string>() == "master");
+  }
+  
+  motionNode = nciNode->Get("generalMotion", ParamNode::PASS);
+  if (motionNode) {
+    std::string coordSysId = "default";
+    StdVector<std::string> displaceExpr;
+    
+    if (motionNode->Has("displace3")) {
+      displaceExpr.Resize(3);
+      displaceExpr[2] = motionNode->Get("displace3")->As<std::string>();
+    } else {
+      displaceExpr.Resize(2);
+    }
+    displaceExpr[0] = motionNode->Get("displace1")->As<std::string>();
+    displaceExpr[1] = motionNode->Get("displace2")->As<std::string>();
+    
+    motionNode->GetValue("coordSysId", coordSysId, ParamNode::INSERT);
+    
+    SetMotion(displaceExpr, coordSysId);
+
+    moveMaster_ = (motionNode->Get("movingSide", ParamNode::INSERT)
+                    ->As<std::string>() == "master");
   }
 
-  if ( !isMoving_ ) {
+  //if ( !isMoving_ ) {
     // Calculate the intersection, if interface is stationary.
-    // If there is motion, UpdateInterface will be called by MoveInterface.
+    // If there is motion, UpdateInterface will be called by TransientDriver.
     UpdateInterface();
-  }
+  //}
 }
 
 MortarInterface::~MortarInterface() {
@@ -125,7 +155,7 @@ void MortarInterface::SetRotation(const std::string &coordSysId, Double rpm) {
   offsetExpr_.Resize(coordSys_->GetDim());
   offsetExpr_[1] = sstr.str();
 
-  SetMotion(offsetExpr_, coordSysId_);
+  SetMotion(offsetExpr_, coordSysId);
 }
 
 void MortarInterface::SetMotion(const StdVector<std::string> &offsetExpr,
@@ -142,12 +172,15 @@ void MortarInterface::SetMotion(const StdVector<std::string> &offsetExpr,
   }
 
   mParser_ = domain->GetMathParser();
-  for ( UInt i=0; i<dim; ++i ) {
-    if ( !offsetExpr_[i].empty() ) {
+  for ( UInt i=0; i<3; ++i ) {
+    if ( i < dim && !offsetExpr_[i].empty() ) {
       mphOffset_[i] = mParser_->GetNewHandle(true);
       mParser_->SetExpr(mphOffset_[i], offsetExpr_[i]);
-      if ( !mParser_->IsExprConstant(mphOffset_[i]) ) 
+      if ( mParser_->IsExprVariable( mphOffset_[i], "t") ) 
         isMoving_ = true;
+    }
+    else {
+      mphOffset_[i] = MathParser::GLOB_HANDLER;
     }
   }
   
@@ -159,20 +192,61 @@ void MortarInterface::SetMotion(const StdVector<std::string> &offsetExpr,
     nullOffsets.Resize(nodeNums.GetSize()*dim, 0.0);
     ptGrid_->SetNodeOffset(nodeNums, nullOffsets);
   } else {
-    WARN("You supplied only constant expressions as time-dependent "
-         << "coordinates for moving ncInterface '" << name_
+    WARN("You supplied constant expressions as time-dependent "
+         << "displacements for moving ncInterface '" << name_
          << "'. Interface is assumed stationary.");
   }
 }
 
-void MortarInterface::UpdateInterface() {
-  StdVector<SurfElem*> masterElems;
-  StdVector<SurfElem*> slaveElems;
-  StdVector<SurfElem*> ifaceElems;
-  StdVector<SurfElem*> ncElemsHelper;
-  StdVector<UInt> masterNodes;
-  StdVector<UInt> ncElemIds;
-  StdVector<UInt> newNodes;
+void MortarInterface::MoveInterface() {
+  
+  if ( !isMoving_ ) return;
+  
+  const bool useGlobalCoords = (coordSysId_ == "default");
+  UInt dim = coordSys_->GetDim(), numNodes;
+  StdVector<UInt> nodeNums;
+  Vector<Double> coordOrig, coordTmp, coordNew, nodeOffsets;
+
+  if (moveMaster_) {
+    ptGrid_->GetNodesByRegion(nodeNums, masterVolRegion_);
+  }
+  else {
+    ptGrid_->GetNodesByRegion(nodeNums, slaveVolRegion_);
+  }
+
+  numNodes = nodeNums.GetSize();
+  nodeOffsets.Resize(numNodes * dim);
+
+  if ( useGlobalCoords ) {
+    for (UInt i = 0; i < numNodes; ++i) {
+      for (UInt j = 0; j < dim; ++j) {
+        nodeOffsets[i*dim+j] = mParser_->Eval(mphOffset_[j]);
+      }
+    }
+  }
+  else {
+    for (UInt i = 0; i < numNodes; ++i) {
+      ptGrid_->GetNodeCoordinate(coordOrig, nodeNums[i], false);
+
+      coordSys_->Global2LocalCoord(coordTmp, coordOrig);
+      for (UInt j = 0; j < dim; ++j) {
+        coordTmp[j] += mParser_->Eval(mphOffset_[j]);
+      }
+      coordSys_->Local2GlobalCoord(coordNew, coordTmp);
+
+      nodeOffsets[i * dim    ] = coordNew[0] - coordOrig[0];
+      nodeOffsets[i * dim + 1] = coordNew[1] - coordOrig[1];
+      if (dim == 3)
+        nodeOffsets[i*dim + 2] = coordNew[2] - coordOrig[2];
+    }
+  }
+
+  ptGrid_->SetNodeOffset(nodeNums, nodeOffsets);
+}
+
+void MortarInterface::ResetInterface(){
+
+  if ( !isMoving_ && elemList_->GetSize() > 0 ) return;
   StdVector<std::string> listNodeNames;
   std::string newNodesName = name_ + "_nodes";
 
@@ -184,6 +258,25 @@ void MortarInterface::UpdateInterface() {
   if ( listNodeNames.Find(newNodesName) != -1 ) {
     ptGrid_->DeleteNamedNodes(newNodesName);
   }
+  isReset_ = true;
+}
+
+void MortarInterface::UpdateInterface() {
+  
+  if ( !isMoving_ && (elemList_->GetSize() > 0 || isReset_) ) return;
+  
+  isReset_ = false;
+  StdVector<SurfElem*> masterElems;
+  StdVector<SurfElem*> slaveElems;
+  StdVector<SurfElem*> ifaceElems;
+  StdVector<SurfElem*> ncElemsHelper;
+  StdVector<UInt> masterNodes;
+  StdVector<UInt> ncElemIds;
+  StdVector<UInt> newNodes;
+  StdVector<std::string> listNodeNames;
+  std::string newNodesName = name_ + "_nodes";
+
+  MoveInterface();
 
   ptGrid_->GetSurfElems(masterElems, masterSurfRegion_);
   ptGrid_->GetSurfElems(slaveElems, slaveSurfRegion_);
@@ -194,7 +287,7 @@ void MortarInterface::UpdateInterface() {
     isCoplanar_ = false;
   } else {
     UInt numMasterElems = masterElems.GetSize(),
-        numSlaveElems = slaveElems.GetSize();
+         numSlaveElems = slaveElems.GetSize();
 
     ifaceElems.Reserve(numMasterElems + numSlaveElems);
 
@@ -211,6 +304,7 @@ void MortarInterface::UpdateInterface() {
 
   switch (intersectAlgo_) {
     case NCI_INTERSECT_LINE:
+#pragma omp parallel for
       for (UInt i = 0; i < masterElems.GetSize(); ++i) {
         for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
           IntersectLines(masterElems[i], slaveElems[j], newNodes );
@@ -222,6 +316,7 @@ void MortarInterface::UpdateInterface() {
         EXCEPTION("Only coplanar interfaces are supported with coaxial "
             << "rectangle algorithm.");
       }
+#pragma omp parallel for
       for (UInt i = 0; i < masterElems.GetSize(); ++i) {
         for(UInt j = 0; j < slaveElems.GetSize(); ++j) {
           SurfElem* m_el = masterElems[i];
@@ -243,6 +338,7 @@ void MortarInterface::UpdateInterface() {
       }
       break;
     case NCI_INTERSECT_POLYGON:
+#pragma omp parallel for
       for (UInt i = 0; i < masterElems.GetSize(); ++i) {
         for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
           SurfElem* m_el = masterElems[i];
@@ -279,6 +375,8 @@ void MortarInterface::UpdateInterface() {
   UInt numElems = elemList_->GetSize();
   
   if( numElems > 0 ) {
+    UpdateIntegrators();
+    
     if ( exportToGrid_ ) {
       if ( region_ == NO_REGION_ID ) {
         region_ = ptGrid_->AddSurfaceRegion(name_);
@@ -370,7 +468,7 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
   
   // Project master nodes onto slave element, if interface is not coplanar
   if ( !isCoplanar_ ) {
-    shared_ptr<ElemShapeMap> sm = ptGrid_->GetElemShapeMap(ifaceElem2);
+    shared_ptr<ElemShapeMap> sm = ptGrid_->GetElemShapeMap(ifaceElem2, isMoving_);
     LocPoint lp = Elem::shapes[ifaceElem2->type].midPointCoord;
 
     // compute maximal allowed distance as sum of lengths of both lines
@@ -535,13 +633,15 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
     }
   }
 
-  if (relativeElemVol < 1e-3) {
-    WARN("Rejecting ncElem due to a relative volume of " << relativeElemVol
-         << std::endl
-         << "  for intersection of elements " << ifaceElem1->elemNum
-        // << " (" << region_.ToString(ifaceElem1->regionId) << ")"
-         << " and " << ifaceElem2->elemNum);
-        // << " (" << this->region_.ToString(ifaceElem2->regionId) << ") ");
+  if (relativeElemVol < 1e-6) {
+    if (geoWarn_) {
+      WARN("Rejecting ncElem due to a relative volume of " << relativeElemVol
+          << std::endl
+          << "  for intersection of elements " << ifaceElem1->elemNum
+          // << " (" << region_.ToString(ifaceElem1->regionId) << ")"
+          << " and " << ifaceElem2->elemNum);
+      // << " (" << this->region_.ToString(ifaceElem2->regionId) << ") ");
+    }
     return false;
   }
 

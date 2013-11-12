@@ -251,11 +251,12 @@ void SurfaceNormalDerivOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMa
   Matrix<Double> xiDx;
   FE *fe = (static_cast<FE*>(ptFe));
   fe->GetGlobDerivShFnc( xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
+
   //perform scalar mult with surface normal
-  for(UInt d = 0; d < DIM_DOF ; d ++){
-    for(UInt d1 = 0; d1 < DIM_SPACE ; d1++){
-      for(UInt sh = 0; sh < numFncs; sh++){
-         bMat[d][sh*DIM_DOF + d] += xiDx[sh][d1] * lp.normal[d1];
+  for(UInt d = 0; d < DIM_DOF ; ++d){
+    for(UInt d1 = 0; d1 < DIM_SPACE ; ++d1){
+      for(UInt sh = 0; sh < numFncs; ++sh){
+        bMat[d][sh*DIM_DOF + d] += xiDx[sh][d1] * lp.normal[d1];
       }
     }
   }

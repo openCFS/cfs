@@ -131,68 +131,6 @@ namespace CoupledField {
   
 
 
-  SurfaceBiLinFormContext::SurfaceBiLinFormContext( BiLinearForm* biLinForm, FEMatrixType destMat, BiLinearForm::CouplingDirection currentDirection  )
-                             : BiLinFormContext(biLinForm,destMat){
-
-    this->currentDirection_ = currentDirection;
-  }
-
-  //! Destructor
-  SurfaceBiLinFormContext::~SurfaceBiLinFormContext(){
-
-  }
-
-
-  void SurfaceBiLinFormContext::MapEqns( EntityIterator& it1,
-                            EntityIterator& it2,
-                            StdVector<Integer>& eqnVec1,
-                            StdVector<Integer>& eqnVec2,
-                            FeFctIdType& id1, FeFctIdType& id2 ){
-    //this is more or less a switch case statement which terms to consider and where to aquire the
-    //equation numbers
-    const SurfElem* sElem1 = it1.GetSurfElem();
-    const SurfElem* sElem2 = it2.GetSurfElem();
-    //just to be sure, this context requires it1 and it2 to be identical
-    if(sElem1->elemNum != sElem2->elemNum){
-      EXCEPTION("SurfaceBiLinFormContext requires identical iterators")
-    }
-    //now lets try to downcast to MortarNcSurfElem
-    const MortarNcSurfElem * mSe1 = dynamic_cast<const MortarNcSurfElem*>(sElem1);
-
-    if(mSe1->ptMaster->ptVolElems[1] != NULL){
-      EXCEPTION("Master surface element has not exactly one neighbor... can this be true??")
-    }
-    if(mSe1->ptSlave->ptVolElems[1] != NULL){
-      EXCEPTION("Master surface element has not exactly one neighbor... can this be true??")
-    }
-    Elem* volEMaster = mSe1->ptMaster->ptVolElems[0];
-    Elem* volESlave  = mSe1->ptSlave->ptVolElems[0];
-
-    switch(currentDirection_){
-    case BiLinearForm::MASTER_MASTER:
-      this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volEMaster);
-      eqnVec2 = eqnVec1;
-      break;
-    case BiLinearForm::SLAVE_SLAVE:
-      this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);
-      eqnVec2 = eqnVec1;
-      break;
-    case BiLinearForm::MASTER_SLAVE:
-      this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volEMaster);
-      this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,volESlave);
-      break;
-    case BiLinearForm::SLAVE_MASTER:
-      this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);
-      this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,volEMaster);
-      break;
-    default:
-      EXCEPTION("Undefined coupling direction");
-    }
-    // Get PDE IDs
-    id1 = feFct1_.lock()->GetFctId();
-    id2 = feFct2_.lock()->GetFctId();
-  }
-
 
 
 // -------------------------------------------------------------------------
@@ -276,6 +214,8 @@ namespace CoupledField {
                                     StdVector<Integer> &eqnVec2,
                                     FeFctIdType &id1, FeFctIdType &id2)
   {
+
+
     const NcSurfElem* ncElem1 = it1.GetNcSurfElem();
 #ifndef NDEBUG // Paranoia pays...
     const NcSurfElem* ncElem2 = it2.GetNcSurfElem();
@@ -289,7 +229,7 @@ namespace CoupledField {
     // NcBiLinFormContext only works with MortarNcSurfElems at the moment
     assert( mortarElem );
     
-    // TODO jens: implement the general case for two different FeFunctions
+    // TODO: implement the general case for two different FeFunctions
     // (e.g. MechAcou coupling)
     shared_ptr<BaseFeFunction> feFuncField = this->feFct1_.lock(),
                                feFuncLM = this->feFct2_.lock();
@@ -307,4 +247,176 @@ namespace CoupledField {
     id2 = feFuncLM->GetFctId();
   }
   
+  void NcBiLinFormContext::GetEqns( StdVector<Integer>& eqnVec1,
+                StdVector<Integer>& eqnVec2,
+                FeFctIdType& id1, FeFctIdType& id2 ) const
+  {
+
+    EntityIterator it = ent1_->GetIterator();
+    assert(it.GetType() == EntityList::NC_ELEM_LIST);
+    assert(ent2_->GetIterator().GetType() == EntityList::NC_ELEM_LIST);
+
+    shared_ptr<ElemList> masterElems(new ElemList(ent1_->GetGrid()));
+    shared_ptr<ElemList> slaveElems(new ElemList(ent1_->GetGrid()));
+    
+    /*for ( ; !it.IsEnd(); it++ ) {
+      const NcSurfElem* ncElem = it.GetNcSurfElem();
+      const MortarNcSurfElem* mortarElem =
+          dynamic_cast<const MortarNcSurfElem*>(ncElem);
+      assert(mortarElem);
+      masterElems->AddElement(mortarElem->ptMaster);
+      slaveElems->AddElement(mortarElem->ptSlave);
+    }*/
+    const NcSurfElem* ncElem = it.GetNcSurfElem();
+    const MortarNcSurfElem* mortarElem =
+        dynamic_cast<const MortarNcSurfElem*>(ncElem);
+    assert(mortarElem);
+    masterElems->SetRegion(mortarElem->ptMaster->regionId);
+    slaveElems->SetRegion(mortarElem->ptSlave->regionId);
+    
+    // TODO: implement the general case for two different FeFunctions
+    // (e.g. MechAcou coupling)
+    shared_ptr<BaseFeFunction> feFuncField = this->feFct1_.lock(),
+                               feFuncLM = this->feFct2_.lock();
+    if ( feFuncField->GetResultInfo()->resultType == LAGRANGE_MULT ) {
+      feFuncField = this->feFct2_.lock();
+      feFuncLM = this->feFct1_.lock();
+      if ( feFuncField->GetResultInfo()->resultType == LAGRANGE_MULT ) {
+        EXCEPTION("You cannot couple two Lagrange multipliers");
+      }
+    }
+    
+    feFuncField->GetFeSpace()->GetEntityListEqns(eqnVec1, masterElems);
+    feFuncLM->GetFeSpace()->GetEntityListEqns(eqnVec2, slaveElems);
+    
+    id1 = feFuncField->GetFctId();
+    id2 = feFuncLM->GetFctId();
+  }
+
+  SurfaceBiLinFormContext::SurfaceBiLinFormContext( BiLinearForm* biLinForm, FEMatrixType destMat, BiLinearForm::CouplingDirection currentDirection  )
+                              : NcBiLinFormContext(biLinForm,destMat){
+
+     this->currentDirection_ = currentDirection;
+   }
+
+   //! Destructor
+   SurfaceBiLinFormContext::~SurfaceBiLinFormContext(){
+
+   }
+
+
+   void SurfaceBiLinFormContext::MapEqns( EntityIterator& it1,
+                             EntityIterator& it2,
+                             StdVector<Integer>& eqnVec1,
+                             StdVector<Integer>& eqnVec2,
+                             FeFctIdType& id1, FeFctIdType& id2 ){
+     //this is more or less a switch case statement which terms to consider and where to aquire the
+     //equation numbers
+     const SurfElem* sElem1 = it1.GetSurfElem();
+     const SurfElem* sElem2 = it2.GetSurfElem();
+     //just to be sure, this context requires it1 and it2 to be identical
+     if(sElem1->elemNum != sElem2->elemNum){
+       EXCEPTION("SurfaceBiLinFormContext requires identical iterators")
+     }
+     //now lets try to downcast to MortarNcSurfElem
+     const MortarNcSurfElem * mSe1 = dynamic_cast<const MortarNcSurfElem*>(sElem1);
+
+     if(mSe1->ptMaster->ptVolElems[1] != NULL){
+       EXCEPTION("Master surface element has not exactly one neighbor... can this be true??")
+     }
+     if(mSe1->ptSlave->ptVolElems[1] != NULL){
+       EXCEPTION("Master surface element has not exactly one neighbor... can this be true??")
+     }
+     Elem* volEMaster = mSe1->ptMaster->ptVolElems[0];
+     Elem* volESlave  = mSe1->ptSlave->ptVolElems[0];
+
+     switch(currentDirection_){
+     case BiLinearForm::MASTER_MASTER:
+       this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volEMaster);
+       eqnVec2 = eqnVec1;
+       break;
+     case BiLinearForm::SLAVE_SLAVE:
+       this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);
+       eqnVec2 = eqnVec1;
+       break;
+     case BiLinearForm::MASTER_SLAVE:
+       this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volEMaster);
+       this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,volESlave);
+       break;
+     case BiLinearForm::SLAVE_MASTER:
+       this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);
+       this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,volEMaster);
+       break;
+     default:
+       EXCEPTION("Undefined coupling direction");
+     }
+     // Get PDE IDs
+     id1 = feFct1_.lock()->GetFctId();
+     id2 = feFct2_.lock()->GetFctId();
+   }
+
+   void SurfaceBiLinFormContext::GetEqns( StdVector<Integer>& eqnVec1,
+                                               StdVector<Integer>& eqnVec2,
+                                               FeFctIdType& id1, FeFctIdType& id2 ) const {
+
+     EntityIterator it = ent1_->GetIterator();
+     eqnVec1.Clear();
+     eqnVec2.Clear();
+     shared_ptr<SurfElemList> masterElems(new SurfElemList(ent1_->GetGrid()));
+     shared_ptr<SurfElemList> slaveElems(new SurfElemList(ent1_->GetGrid()));
+
+     const NcSurfElem* ncElem = it.GetNcSurfElem();
+     const MortarNcSurfElem* mortarElem =
+         dynamic_cast<const MortarNcSurfElem*>(ncElem);
+     assert(mortarElem);
+
+     masterElems->SetRegion(mortarElem->ptMaster->regionId);
+     slaveElems->SetRegion(mortarElem->ptSlave->regionId);
+
+     //now we gather the volume elements
+     shared_ptr<ElemList> masterVolElems(new ElemList(ent1_->GetGrid()));
+     shared_ptr<ElemList> slaveVolElems(new ElemList(ent1_->GetGrid()));
+
+     EntityIterator slaveSurfsIt = slaveElems->GetIterator();
+     slaveSurfsIt.Begin();
+     for( ; !slaveSurfsIt.IsEnd(); slaveSurfsIt++ ) {
+       const SurfElem* sElem1 = slaveSurfsIt.GetSurfElem();
+       Elem* curElem = sElem1->ptVolElems[0];
+       slaveVolElems->AddElement(curElem);
+     }
+
+     EntityIterator masterSurfsIt = masterElems->GetIterator();
+     masterSurfsIt.Begin();
+     for( ; !masterSurfsIt.IsEnd(); masterSurfsIt++ ) {
+       const SurfElem* sElem1 = masterSurfsIt.GetSurfElem();
+       Elem* curElem = sElem1->ptVolElems[0];
+       masterVolElems->AddElement(curElem);
+     }
+
+     //now we gather all volume elements associated
+     switch(currentDirection_){
+     case BiLinearForm::MASTER_MASTER:
+       this->feFct1_.lock()->GetFeSpace()->GetEntityListEqns(eqnVec1,masterVolElems);
+       eqnVec2 = eqnVec1;
+       break;
+     case BiLinearForm::SLAVE_SLAVE:
+       this->feFct2_.lock()->GetFeSpace()->GetEntityListEqns(eqnVec1,slaveVolElems);
+       eqnVec2 = eqnVec1;
+       break;
+     case BiLinearForm::MASTER_SLAVE:
+       this->feFct1_.lock()->GetFeSpace()->GetEntityListEqns(eqnVec1,masterVolElems);
+       this->feFct2_.lock()->GetFeSpace()->GetEntityListEqns(eqnVec2,slaveVolElems);
+       break;
+     case BiLinearForm::SLAVE_MASTER:
+       this->feFct1_.lock()->GetFeSpace()->GetEntityListEqns(eqnVec1,slaveVolElems);
+       this->feFct2_.lock()->GetFeSpace()->GetEntityListEqns(eqnVec2,masterVolElems);
+       break;
+     default:
+       EXCEPTION("Undefined coupling direction");
+     }
+     id1 = this->feFct1_.lock()->GetFctId();
+     id2 = this->feFct2_.lock()->GetFctId();
+   }
+
+
 } // namespace CoupledField

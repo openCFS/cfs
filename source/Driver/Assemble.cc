@@ -16,7 +16,6 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ResultCache.hh"
 
 #include "PDE/SinglePDE.hh"
 
@@ -285,7 +284,7 @@ namespace CoupledField
 
     StdVector<Integer> eqnVec1, eqnVec2;
     FeFctIdType id1, id2;
-    
+
     // Perform re-mapping of FctIds
     ReMapFctId( fctId1 );
     ReMapFctId( fctId2 );
@@ -297,15 +296,13 @@ namespace CoupledField
       EntityList& firstEntities = *(listIt->first.first);
       EntityList& secondEntities = *(listIt->first.second);
 
-      
-      // Loop over all entities
+
       EntityIterator it1 = firstEntities.GetIterator();
       EntityIterator it2 = secondEntities.GetIterator();
-      for( it1.Begin(); !it1.IsEnd(); it1++, it2++ ) {
-      
-        // Loop over all bilinearforms
-        for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
-          
+
+      // Loop over all bilinearforms
+      for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
+
         // get integrator
         BiLinFormContext & actContext = *forms[iForm];
 
@@ -325,7 +322,7 @@ namespace CoupledField
 
         assert(actContext.GetFirstFeFunction().lock());
         assert(actContext.GetSecondFeFunction().lock());
-        
+
         // case a)
         if( actContext.GetFirstFeFunction().lock()->GetFctId() == fctId1 &&
             actContext.GetSecondFeFunction().lock()->GetFctId() == fctId2 ) {
@@ -346,36 +343,63 @@ namespace CoupledField
 
           try {
 
-            // Get equation numbers
-            actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, id1, id2 );
-            
-            // Perform remapping
-            ReMapEquations(eqnVec1, id1);
-            ReMapEquations(eqnVec2, id2);
+            NcBiLinFormContext* ncContext = dynamic_cast<NcBiLinFormContext*>(forms[iForm]);
 
-            // Pass entity eqn-connectivity to algebraic system
-            if( !doTranspose ) {
-              algsys_-> SetElementPos( id1, eqnVec1,
-                                       id2, eqnVec2,
-                                       destMap,
-                                       setCounterPart );
+            if (ncContext) {
+              // Just get all equations, so we out a dense block in the graph
+              ncContext->GetEqns(eqnVec1, eqnVec2, id1, id2);
+
+              // Perform remapping
+              ReMapEquations(eqnVec1, id1);
+              ReMapEquations(eqnVec2, id2);
+
+              if( !doTranspose ) {
+                algsys_-> SetElementPos( id1, eqnVec1,
+                    id2, eqnVec2,
+                    destMap,
+                    setCounterPart );
+              } else {
+                algsys_-> SetElementPos( id2, eqnVec2,
+                    id1, eqnVec1,
+                    destMap,
+                    setCounterPart );
+              }
             } else {
-              algsys_-> SetElementPos( id2, eqnVec2,
-                                       id1, eqnVec1,
-                                       destMap,
-                                       setCounterPart );
-            }
+              // Loop over all entities
+              it1.Begin();
+              it2.Begin();
+              for( ; !(it1.IsEnd() || it2.IsEnd()); it1++, it2++ ) {
+                // Get equation numbers
+                actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, id1, id2 );
 
+                // Perform remapping
+                ReMapEquations(eqnVec1, id1);
+                ReMapEquations(eqnVec2, id2);
+
+                // Pass entity eqn-connectivity to algebraic system
+                if( !doTranspose ) {
+                  algsys_-> SetElementPos( id1, eqnVec1,
+                      id2, eqnVec2,
+                      destMap,
+                      setCounterPart );
+                } else {
+                  algsys_-> SetElementPos( id2, eqnVec2,
+                      id1, eqnVec1,
+                      destMap,
+                      setCounterPart );
+                }
+              } // loop over entities
+
+            }
           } catch (Exception& e) {
             RETHROW_EXCEPTION(e, "Could not setup matrix graph for "
-                              << "BiLinearForm '"
-                              << actContext.GetIntegrator()->GetName() << "' on '"
-                              << actContext.GetFirstEntities()->GetName()<< "'" );
+                << "BiLinearForm '"
+                << actContext.GetIntegrator()->GetName() << "' on '"
+                << actContext.GetFirstEntities()->GetName()<< "'" );
           }
 
         } // if
-        } // loop (integrators)
-      } // loop over entities
+      } // loop (integrators)
     } // loop over entity-list pair
   }
 

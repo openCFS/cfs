@@ -44,10 +44,10 @@ class MortarInterface : public BaseNcInterface {
     
     const std::string& GetCoordSys() const { return coordSysId_; }
 
+    void ResetInterface();
+
     void UpdateInterface();
     
-    void MoveInterface(Double t) { EXCEPTION("Not implemented yet."); }
-
   protected:
     
     void SetRotation(const std::string &coordSysId,
@@ -56,6 +56,8 @@ class MortarInterface : public BaseNcInterface {
     void SetMotion( const StdVector<std::string> &offsetExpr,
                     const std::string &coordSysId = "default" );
     
+    void MoveInterface();
+
     // =======================================================================
     // Non-matching grid interface calculation
     // =======================================================================
@@ -157,7 +159,9 @@ class MortarInterface : public BaseNcInterface {
     RegionIdType slaveVolRegion_;
     bool isCoplanar_;
     bool isMoving_;
+    bool moveMaster_;
     bool exportToGrid_;
+    bool geoWarn_;
     std::string coordSysId_;
     CoordSystem* coordSys_;
     MathParser* mParser_;
@@ -167,6 +171,8 @@ class MortarInterface : public BaseNcInterface {
     Double tolAbs_;
     Double tolRel_;
     RegionIdType region_;
+
+    bool isReset_;
 
 };
 

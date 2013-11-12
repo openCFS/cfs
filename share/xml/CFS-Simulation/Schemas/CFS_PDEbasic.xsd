@@ -270,7 +270,7 @@
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="name" type="xsd:token"  use="required"/>
-        <xsd:attribute name="coordSysId" type="xsd:token"  default="default"/>
+        <xsd:attribute name="coordSysId" type="xsd:token" use="optional" default="default"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
@@ -290,13 +290,13 @@
   <!-- Homogeneous vector-valued boundary condition -->
   <xsd:complexType name="DT_BcHomVector">
     <xsd:complexContent>
-      <xsd:extension base="DT_BcBasic">
+      <xsd:extension base="DT_BcHomScalar">
         <!-- single components given -->
         <xsd:sequence>
           <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
             <xsd:complexType>
               <xsd:attribute name="dof" type="xsd:token" use="required"/>
-            </xsd:complexType>  
+            </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
       </xsd:extension>
@@ -306,15 +306,7 @@
    <!-- Homogeneous tensor-valued boundary condition -->
   <xsd:complexType name="DT_BcHomTensor">
     <xsd:complexContent>
-      <xsd:extension base="DT_BcBasic">
-        <!-- single components given -->
-        <xsd:sequence>
-          <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
-            <xsd:complexType>
-              <xsd:attribute name="dof" type="xsd:token" use="required"/>
-            </xsd:complexType>  
-          </xsd:element>
-        </xsd:sequence>
+      <xsd:extension base="DT_BcHomVector">
       </xsd:extension>
     </xsd:complexContent> 
   </xsd:complexType>
@@ -326,33 +318,19 @@
   <!-- Inhomogeneous scalar boundary condition / RHS value -->
   <xsd:complexType name="DT_BcInhomScalar">
     <xsd:complexContent>
-      <xsd:extension base="DT_BcBasic">
-        <xsd:attribute name="value" type="xsd:token"  use="required"/>
-        <xsd:attribute name="phase" type="xsd:token"  default="0.0"/>
-        <!--xsd:choice>
-          <1) complete vector given>
-          <xsd:sequence>
-            <xsd:element name="values" type="DT_TokenList" minOccurs="1" maxOccurs="1"/>
-            <xsd:element name="phase" type="DT_TokenList" minOccurs="0" maxOccurs="1"/>
-          </xsd:sequence>
+      <xsd:extension base="DT_BcHomScalar">
+        <xsd:choice>
+          <!-- Read Data from external Grids -->
+          <xsd:element name="grid" minOccurs="0" maxOccurs="1" type="DT_BaseGridData"/>
           
-          <2) single components given>
-          <xsd:sequence>
-            <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
-              <xsd:complexType>
-                <xsd:attribute name="dof" type="xsd:token" use="required"/>
-                <xsd:attribute name="value" type="xsd:token" use="required"/>
-                <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
-              </xsd:complexType>  
-            </xsd:element>
-          </xsd:sequence>
-          
-          <Read Data from external Grids>
-          <xsd:element name="grid" maxOccurs="1" type="DT_BaseGridData"/>
-          
-					<Obtain data from iterative coupling>
-					<xsd:element name="coupling" maxOccurs="1" type="DT_IterCplData"/>
-        </xsd:choice-->
+					<!-- Obtain data from iterative coupling -->
+					<xsd:element name="coupling" minOccurs="0" maxOccurs="1" type="DT_IterCplData"/>
+
+          <!-- External HDF5 file -->
+          <xsd:element name="externalSimulation" maxOccurs="1" type="DT_ExternalSimulation"/>
+        </xsd:choice>
+        <xsd:attribute name="value" type="xsd:token" use="optional"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
       </xsd:extension>
     </xsd:complexContent> 
   </xsd:complexType>
@@ -378,7 +356,7 @@
   <!-- Inhomogeneous vector-valued boundary condition / RHS value -->
   <xsd:complexType name="DT_BcInhomVector">
     <xsd:complexContent>
-      <xsd:extension base="DT_BcBasic">
+      <xsd:extension base="DT_BcHomScalar">
         <xsd:choice>
           <!-- =========================== -->
           <!--  A) Analytical Description  -->
@@ -396,7 +374,7 @@
                 <xsd:attribute name="dof" type="xsd:token" use="required"/>
                 <xsd:attribute name="value" type="xsd:token" use="required"/>
                 <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
-              </xsd:complexType>  
+              </xsd:complexType>              
             </xsd:element>
           </xsd:sequence>
           
@@ -440,7 +418,7 @@
   <!-- Inhomogeneous tensor-valued boundary condition / RHS value -->
   <xsd:complexType name="DT_BcInhomTensor">
     <xsd:complexContent>
-      <xsd:extension base="DT_BcBasic">
+      <xsd:extension base="DT_BcHomScalar">
         <xsd:choice>
           
           <!-- 1) complete vector given -->
@@ -554,7 +532,7 @@
       <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
         <xsd:complexType>
           <xsd:attribute name="name" type="xsd:token" use="required" />
-          <xsd:attribute name="nmgFormulation" type="DT_NMGFormulationBasic"
+          <xsd:attribute name="formulation" type="DT_NMGFormulationBasic"
                          use="optional" default="Mortar" />
           <xsd:attribute name="nitscheFactor" type="xsd:double"
                          use="optional" default="50" />
@@ -570,6 +548,8 @@
           </xsd:attribute>
           <xsd:attribute name="crossPointHandling" type="DT_CFSBool"
                          use="optional" default="no" />
+          <xsd:attribute name="movingMortar" type="DT_CFSBool"
+                         use="optional" default="no"/>
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>

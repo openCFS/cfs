@@ -7,7 +7,6 @@
 #include "PDE/SinglePDE.hh"
 #include "CoupledPDE/IterCoupledPDE.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"
-#include "DataInOut/ResultCache.hh"
 #include "Domain/CoefFunction/CoefFunctionAccumulator.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 namespace CoupledField
@@ -666,7 +665,6 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   
   void IterSolveStep::PreStepTrans()
   {
-    ResultCache::SetStepValue( actTime_ );
   }
   
   
@@ -792,7 +790,6 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   //----------------------- HARMONIC---------------------------------------
   void IterSolveStep::PreStepHarmonic()
   {
-    ResultCache::SetStepValue( actFreq_ );
   }
   
   void IterSolveStep::SolveStepHarmonic(PtrParamNode analysis_id)

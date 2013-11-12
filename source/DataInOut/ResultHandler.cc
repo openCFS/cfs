@@ -963,7 +963,7 @@ namespace CoupledField {
       for( ; !it.IsEnd(); it++ ) {
         // get global element midpoint
         UInt nodeNum = it.GetNode();
-        destGrid->GetNodeCoordinate( globPoints[pos++], nodeNum);
+        destGrid->GetNodeCoordinate( globPoints[pos++], nodeNum, false );
       }
     } else if( actContext.result->GetResultInfo()->definedOn == ResultInfo::ELEMENT ) {
       // loop over all elements
@@ -1016,7 +1016,7 @@ namespace CoupledField {
             vals[pos++] = NAN;
             continue;
           }
-          esm = srcGrid->GetElemShapeMap( elems[i]);
+          esm = srcGrid->GetElemShapeMap( elems[i], true );
           lpm.Set( lps[i], esm, 0.0 );
           coef->GetScalar( temp[0], lpm);
           vals[pos++] = temp[0];
@@ -1028,7 +1028,7 @@ namespace CoupledField {
             vals[pos++] = NAN;
             continue;
           }
-          esm = srcGrid->GetElemShapeMap( elems[i]);
+          esm = srcGrid->GetElemShapeMap( elems[i], true );
           lpm.Set( lps[i], esm, 0.0 );
 
           // Calculate coefficient function and store the result into the vector
@@ -1066,7 +1066,7 @@ namespace CoupledField {
         for( UInt i = 0; i < lps.GetSize(); ++i ) {
           if( elems[i] == NULL)
             continue;
-          esm = srcGrid->GetElemShapeMap( elems[i]);
+          esm = srcGrid->GetElemShapeMap( elems[i], true );
           lpm.Set( lps[i], esm, 0.0 );
           coef->GetScalar( temp[0], lpm);
           vals[pos++] = temp[0];
@@ -1076,7 +1076,7 @@ namespace CoupledField {
         for( UInt i = 0; i < lps.GetSize(); ++i ) {
           if( elems[i] == NULL)
             continue;
-          esm = srcGrid->GetElemShapeMap( elems[i]);
+          esm = srcGrid->GetElemShapeMap( elems[i], true );
           lpm.Set( lps[i], esm, 0.0 );
 
           // Calculate coefficient function and store the result into the vector
