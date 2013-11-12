@@ -1,20 +1,16 @@
-% ==============================================================
-%
 %    FindPathHDF5
 %
-%
-%    GENERAL
 %    Searches a HDF5 file for the path to a given result.
 %
-%    INPUT/S
-%      toplevel  - Top level node (/) of a HDF5 file
-%      multistep - which multistep to search for
-%      step      - which step to search for
-%      quantity  - what quantity
-%      region    - on what region
+% Input Parameters
+%   * toplevel  - Top level node (/) of a HDF5 file
+%   * multistep - which multistep to search for
+%   * step      - which step to search for
+%   * quantity  - what quantity
+%   * region    - on what region
 %      
-%    OUTPUT/S
-%      found     - integer that indicates at which node level the search
+% Return Values
+%   * found    - integer that indicates at which node level the search
 %                  was stopped.
 %
 %                  toplevel                             found=0
@@ -35,25 +31,20 @@
 %                                |
 %                                `-Real                 found=8
 %
-%      resgroup  - group node where the search ended (according to output
+%   * resgroup - group node where the search ended (according to output
 %                  parameter 'found', if found >= 3). Does NOT point to
 %                  dataset 'Real' even if found == 8.
-%      restype   - if found >= 7, restype is the name of the group containing
+%   * restype  - if found >= 7, restype is the name of the group containing
 %                  the Real dataset (currently either 'Nodes' or 'Elements')
-%      msgroup   - node of the multistep group (valid if found >= 3)
-%      datafile  - the data file's top level group (used with external files).
+%   * msgroup  - node of the multistep group (valid if found >= 3)
+%   * datafile - the data file's top level group (used with external files).
 %                  Equals the input parameter toplevel, if no external files
 %                  are present.
 %
-%      
-%    ABOUT
-%
-%      -Created:     Jun 2007
-%      -Last update: 15 Nov 2007
-%      -Revision:    0.3
-%      -Authors:     Simon Triebenbacher, Jens Grabinger
-%
-% ==============================================================
+% About
+%   * Created:  Jun 2007
+%   * Authors:  Simon Triebenbacher, Jens Grabinger
+%   * Revision: $Id$
 
 
 function [found resgroup restype msgroup datafile] =  FindPathHDF5(toplevel, multistep, step, quantity, region)
@@ -85,8 +76,8 @@ for group=1:number_of_groups
         found = 2;
 
         try
-          ext_files = hdf5read(toplevel.Filename, '/Results/Mesh/ExternalFiles');
-        catch
+          ext_files = h5attget(toplevel.Filename, '/Results/Mesh', 'ExternalFiles');
+        catch %#ok<CTCH>
         end
         
         for voldatagroup=1:nvoldatagroups
@@ -114,18 +105,6 @@ if found < 3
 end
 msgroup = actgroup3;
 resgroup = msgroup;
-
-%% commented out, because we look for the 'Real' dataset only
-%cmpstr = sprintf('%s/AnalysisType', basepath);
-%nmstepattrs = length(actgroup3.Attributes);
-%for mstepattr=1:nmstepattrs
-%  actattr = actgroup3.Attributes(mstepattr);
-%  attr_name = actattr.Name;
-%  if strcmp(attrname, cmpstr)
-%    ana_type = hdf5read(actattr.Filename, attr_name);
-%    break
-%  end
-%end
 
 % look for time step
 nmstepgroups = length(actgroup3.Groups);
@@ -157,19 +136,9 @@ curpath = resgroup.Name;
 
 if ext_files
 
-  % construct cfg filename for h5tool
-  tmpfile = strcat(toplevel.Filename, '.cfg');
-
-  % use h5tool to read external file name
-  fid = fopen(tmpfile, 'w');
-  fprintf(fid, 'attribute\nread\n%s\n%s\nExtHDF5FileName\nstring\n', toplevel.Filename, curpath);
-  fclose(fid);
-  [status ext_filename] = exec(sprintf('h5tool < %s | tail -1', tmpfile));
+  fn_attr = h5attget(toplevel.Filename, curpath, 'ExtHDF5FileName');
+  ext_filename = fn_attr{1};
   
-  if status ~= 0 || isempty(ext_filename)
-    return
-  end
-
   % extract path to input file, because external time step files are given
   % relative to this path
   pos = strfind(toplevel.Filename, '/');
@@ -185,7 +154,7 @@ if ext_files
   if exist(ext_filename,'file') == 2
     try
       df_info = hdf5info(ext_filename);
-    catch
+    catch %#ok<CTCH>
       return
     end
     datafile = df_info.GroupHierarchy;
@@ -263,7 +232,7 @@ for mstepgroup=1:nmstepgroups
           ds_name = ds.Name;
 
           if strcmp(ds_name, cmpstr)
-            restype = hdf5read(ds.Filename, ds_name);
+            restype = h5varget(ds.Filename, ds_name);
             break
           end
         end
