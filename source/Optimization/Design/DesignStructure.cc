@@ -266,13 +266,13 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
     LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
   }
 
-  in->Get("avg_radius")->SetValue(avg_radius / (design == DesignElement::ALL_DESIGNS ? data.GetSize() : 1.0));
-  in->Get("avg_neighbors")->SetValue(avg_neighbours / (design == DesignElement::ALL_DESIGNS ? data.GetSize() : 1.0));
+  in->Get("avg_radius")->SetValue(avg_radius / (end-start+1));
+  in->Get("avg_neighbors")->SetValue(avg_neighbours / (end-start+1));
 
   timer->Stop();
   
-  std::cout << "Filter: " << "avg radius: " << (avg_radius / (design == DesignElement::ALL_DESIGNS ? data.GetSize() : 1.0))
-            << " avg neighbourhood: " << (avg_neighbours / (design == DesignElement::ALL_DESIGNS ? data.GetSize() : 1.0)) << std::endl;
+  std::cout << "Filter: " << "avg radius: " << (avg_radius / (end-start+1))
+            << " avg neighbourhood: " << (avg_neighbours / (end-start+1)) << std::endl;
 }
 
 void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<SIMPElement::NeighbourElement>& neighbors)
