@@ -276,6 +276,7 @@ namespace CoupledField {
         sampleVals[iDim].Resize(1);
         sampleVals[iDim].Init();
       } else {
+        assert(coords[iDim].stop-coords[iDim].start >= 0);
         UInt numSamples  =
           UInt( floor ( (coords[iDim].stop-coords[iDim].start)
                         / coords[iDim].inc ) )+1;
