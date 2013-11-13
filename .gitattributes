@@ -1073,9 +1073,11 @@ share/python/change-svn-wc-format.py -text
 share/python/common.py -text
 share/python/continuation.py -text
 share/python/create_density.py -text
+share/python/density-to-png.py -text
 share/python/extract_info_xml_results.py -text
 share/python/gid_screenshots.py -text
 share/python/nas-tool-gid-to-nas.py -text
+share/python/nas-tool-nas2msh.py -text
 share/python/nas-tool-voidmesh.py -text
 share/python/optimization_tools.py -text
 share/python/pcolor.py -text

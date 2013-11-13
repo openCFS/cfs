@@ -2,7 +2,9 @@
 /.csettings
 /.project
 /.settings
+/CTestConfig.cmake
 /compile
+ctest_scripts/sites/lse34/logs
 /debug
 /icc
 /iccdebug

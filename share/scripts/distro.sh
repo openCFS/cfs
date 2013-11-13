@@ -180,7 +180,8 @@ elif [ "${OS}" = "Linux" ] ; then
             "5.0") PSEUDONAME="lenny";;
             "6.0") PSEUDONAME="squeeze";;
             "7.0") PSEUDONAME="wheezy";;
-            "8.0") PSEUDONAME="sid";;
+            "8.0") PSEUDONAME="jessie";;
+            "9.0") PSEUDONAME="sid";;
         esac
 #                PSEUDONAME="$PSEUDONAME `cat /etc/debian_version`"
 

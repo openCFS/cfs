@@ -307,6 +307,23 @@ def rotate(data, rot):
          
   return result       
 
+## flip a 2d matrix
+# exchange x and y
+def flip_2d_matrix(data):
+  
+  assert(data.ndim == 2)
+  
+  x = data.shape[0]
+  y = data.shape[1]
+  res = numpy.zeros((y, x))
+  
+  for i in range(x):
+    for j in range(y):
+        val = getNDArrayEntry(data, i, j, 0)
+        setNDArrayEntry(res, j, i, 0, val)        
+
+  return res  
+
 ## rotate a 3d matrix
 # exchange x and y
 def rotate_matrix_x_y(data):
@@ -349,12 +366,14 @@ def enlarge_matrix(data, times_x, times_y = 1, times_z = 1):
   dim = data.ndim
   x_edge = data.shape[0]
   y_edge = data.shape[1]
-  z_edge = cond(dim == 2, 0, data.shape[2])
+  
+  if dim == 3:
+    z_edge = data.shape[2]
   res = numpy.zeros((x_edge * times_x, y_edge * times_y, z_edge * times_z))
   
   for x in range(times_x):
     for y in range(times_y):
-      for z in range(cond(dim == 2, 0, times_z)):
+        for z in range(times_z):
         # copy complete block
         x_base = x * x_edge
         y_base = y * y_edge
@@ -367,6 +386,21 @@ def enlarge_matrix(data, times_x, times_y = 1, times_z = 1):
               setNDArrayEntry(res, x_base + i, y_base + j, z_base + k, val)
 
   return res                     
+  else:
+    res = numpy.zeros((x_edge * times_x, y_edge * times_y))
+    
+    for x in range(times_x):
+      for y in range(times_y):
+        # copy complete block
+        x_base = x * x_edge
+        y_base = y * y_edge
+        
+        for i in range(x_edge):
+          for j in range(y_edge):
+            val = getNDArrayEntry(data, i, j, 0)
+            setNDArrayEntry(res, x_base + i, y_base + j, 0, val)
+    
+    return res     
 
 ## handles arbitrary 2d and 3d density files, doubles in each dimension 
 # @param infile the density file with the densities to be blown upper
@@ -703,21 +737,38 @@ def is_valid_density_file(infile):
   headerfound = False
   setfound = False
 
-  infi = open(infile, "r")
-  for event, element in etree.iterparse(infi):
-    if element.tag == "cfsErsatzMaterial":
+  lc = 0
+  for line in open(infile, 'r'):
+    lc += 1
+    ls = line.strip().split()
+    if len(ls) < 1:
+      continue
+
+    ls0strip = ls[0].strip()
+
+    # we assume the first line is <?xml version="1.0"?>
+    if lc == 1:
+      if ls0strip != '<?xml':
+        return False
+      continue
+
+    if ls0strip == '<cfsErsatzMaterial' or ls0strip == '<cfsErsatzMaterial>':
       ersatzfound = True
-    if element.tag == "header":
+
+    if ls0strip == '<header' or ls0strip == '<header>':
       headerfound = True
-    if element.tag == "set":
+
+    # if we find a set, all requirements are met, so we break
+    if ls0strip == '<set' or ls0strip == '<set>':
       setfound = True
+      break
 
     # if all is found, then we break
-    if ersatzfound and headerfound and setfound:
+    if (ersatzfound and headerfound and setfound):
       break
-  infi.close()
 
-  return ersatzfound and headerfound and setfound
+  return (ersatzfound and headerfound and setfound)
+
 
 
 # do an ascii print of the density data
