@@ -377,7 +377,16 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     for ( ; ncIt != endIt; ++ncIt ) {
       switch (ncIt->type) {
       case NC_MORTAR:
-        DefineMortarCoupling(MAG_POTENTIAL, *ncIt);
+        if (dim_ == 2) {
+          DefineMortarCoupling<2,1>(MAG_POTENTIAL, *ncIt);
+          if (isMixed_)
+            DefineMortarCoupling<2,1>(ELEC_POTENTIAL, *ncIt);
+        }
+        else {
+          DefineMortarCoupling<3,3>(MAG_POTENTIAL, *ncIt);
+          if (isMixed_)
+            DefineMortarCoupling<3,1>(ELEC_POTENTIAL, *ncIt);
+        }
         break;
       case NC_NITSCHE:
         EXCEPTION("ncInterface of Nitsche type is not implemented for MagneticPDE");
@@ -902,7 +911,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
     }else{
        EXCEPTION( "The formulation " << formulation 
-                  << "of the mechanic PDE is not known!" );
+                  << "of the magnetic PDE is not known!" );
      }
      return crSpaces;
    }

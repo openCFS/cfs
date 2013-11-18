@@ -575,7 +575,10 @@ void HeatPDE::DefineNcIntegrators() {
   for ( ; ncIt != endIt; ++ncIt ) {
     switch (ncIt->type) {
     case NC_MORTAR:
-      DefineMortarCoupling(HEAT_TEMPERATURE, *ncIt);
+      if (dim_ == 2)
+        DefineMortarCoupling<2,1>(HEAT_TEMPERATURE, *ncIt);
+      else
+        DefineMortarCoupling<3,1>(HEAT_TEMPERATURE, *ncIt);
       break;
     case NC_NITSCHE:
       EXCEPTION("ncInterface of Nitsche type is not implemented for HeatPDE");

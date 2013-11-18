@@ -2779,9 +2779,9 @@ namespace CoupledField {
     }
   }
   
+  template<UInt DIM, UInt D_DOF>
   void SinglePDE::DefineMortarCoupling(SolutionType solType,
-                                       NcInterfaceInfo &iface,
-                                       UInt numDofs)
+                                       NcInterfaceInfo &iface)
   {
     // Get interface from grid and cast to MortarInterface class
     shared_ptr<BaseNcInterface> ncIf =
@@ -2821,8 +2821,7 @@ namespace CoupledField {
       TimeSchemeGLM* tsSol = dynamic_cast<TimeSchemeGLM*>(
           feFunctions_[solType]->GetTimeScheme().get());
       assert( tsSol );
-      shared_ptr<TimeSchemeGLM> tsCopy( new TimeSchemeGLM( *tsSol
-          /*tsSol->GetScheme()->GetType(), tsSol->GetSolutionTimeDerivOrder()*/));
+      shared_ptr<TimeSchemeGLM> tsCopy( new TimeSchemeGLM( *tsSol ));
       feFunctions_[LAGRANGE_MULT]->SetTimeScheme( tsCopy );
     }
     
@@ -2842,56 +2841,12 @@ namespace CoupledField {
     // create a mass integrator on the slave surface (conforming grid)
     PtrCoefFct unity = CoefFunction::Generate( mp_, Global::REAL, "1" );
     BiLinearForm *massInt = NULL, *massInt2 = NULL;
-    if ( dim_ == 2) {
-      switch (numDofs) {
-      case 1:
-        massInt = new BBInt<>( new IdentityOperator<FeH1,2,1>, unity, 1.0, updatedGeo_);
-        if (isMoving) {
-          massInt2 = new BBInt<>( new IdentityOperator<FeH1,2,1>, unity, 1.0, updatedGeo_);
-        }
-        break;
-      case 2:
-        massInt = new BBInt<>( new IdentityOperator<FeH1,2,2>, unity, 1.0, updatedGeo_);
-        if (isMoving) {
-          massInt2 = new BBInt<>( new IdentityOperator<FeH1,2,2>, unity, 1.0, updatedGeo_);
-        }
-        break;
-      case 3:
-        massInt = new BBInt<>( new IdentityOperator<FeH1,2,3>, unity, 1.0, updatedGeo_);
-        if (isMoving) {
-          massInt2 = new BBInt<>( new IdentityOperator<FeH1,2,3>, unity, 1.0, updatedGeo_);
-        }
-        break;
-      default:
-        EXCEPTION("Not implemented");
-        break;
-      }
-    } else {
-      switch (numDofs) {
-      case 1:
-        massInt = new BBInt<>( new IdentityOperator<FeH1,3,1>, unity, 1.0, updatedGeo_);
-        if (isMoving) {
-          massInt2 = new BBInt<>( new IdentityOperator<FeH1,3,1>, unity, 1.0, updatedGeo_);
-        }
-        break;
-      case 2:
-        massInt = new BBInt<>( new IdentityOperator<FeH1,3,2>, unity, 1.0, updatedGeo_);
-        if (isMoving) {
-          massInt2 = new BBInt<>( new IdentityOperator<FeH1,3,2>, unity, 1.0, updatedGeo_);
-        }
-        break;
-      case 3:
-        massInt = new BBInt<>( new IdentityOperator<FeH1,3,3>, unity, 1.0, updatedGeo_);
-        if (isMoving) {
-          massInt2 = new BBInt<>( new IdentityOperator<FeH1,3,3>, unity, 1.0, updatedGeo_);
-        }
-        break;
-      default:
-        EXCEPTION("Not implemented");
-        break;
-      }
-    }
+    massInt = new BBInt<>( new IdentityOperator<FeH1,DIM,D_DOF>, unity, 1.0, updatedGeo_);
     massInt->SetName("MortarMassInt");
+    if (isMoving) {
+      massInt2 = new BBInt<>( new IdentityOperator<FeH1,DIM,D_DOF>, unity, 1.0, updatedGeo_);
+      massInt2->SetName("MortarMassInt");
+    }
 
     // create a context to put the mass integrator into the stiffness matrix
     BiLinFormContext *massContext = new BiLinFormContext(massInt, STIFFNESS);
@@ -2910,128 +2865,24 @@ namespace CoupledField {
     
     // create a non-conforming mass integrator
     BiLinearForm *ncInt = NULL, *ncInt2 = NULL;
-    if ( dim_ == 2 ) {
-      switch (numDofs) {
-      case 1:
-        ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,1>(),
-                                          new IdentityOperator<FeH1,2,1>(),
-                                          unity, -1.0,
-                                          mortarIf->GetMasterVolRegion(),
-                                          mortarIf->GetSlaveVolRegion(),
-                                          mortarIf->IsPlanar(),
-                                          updatedGeo_ );
-        if (isMoving) {
-          ncInt2 = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,1>(),
-                                          new IdentityOperator<FeH1,2,1>(),
-                                          unity, -1.0,
-                                          mortarIf->GetMasterVolRegion(),
-                                          mortarIf->GetSlaveVolRegion(),
-                                          mortarIf->IsPlanar(),
-                                          updatedGeo_ );
-        }
-        break;
-      case 2:
-        ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,2>(),
-                                          new IdentityOperator<FeH1,2,2>(),
-                                          unity, -1.0,
-                                          mortarIf->GetMasterVolRegion(),
-                                          mortarIf->GetSlaveVolRegion(),
-                                          mortarIf->IsPlanar(),
-                                          updatedGeo_ );
-        if (isMoving) {
-          ncInt2 = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,2>(),
-                                          new IdentityOperator<FeH1,2,2>(),
-                                          unity, -1.0,
-                                          mortarIf->GetMasterVolRegion(),
-                                          mortarIf->GetSlaveVolRegion(),
-                                          mortarIf->IsPlanar(),
-                                          updatedGeo_ );
-        }
-        break;
-      case 3:
-        ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,3>(),
-                                          new IdentityOperator<FeH1,2,3>(),
-                                          unity, -1.0,
-                                          mortarIf->GetMasterVolRegion(),
-                                          mortarIf->GetSlaveVolRegion(),
-                                          mortarIf->IsPlanar(),
-                                          updatedGeo_ );
-        if (isMoving) {
-          ncInt2 = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,2,3>(),
-                                          new IdentityOperator<FeH1,2,3>(),
-                                          unity, -1.0,
-                                          mortarIf->GetMasterVolRegion(),
-                                          mortarIf->GetSlaveVolRegion(),
-                                          mortarIf->IsPlanar(),
-                                          updatedGeo_ );
-        }
-        break;
-      default:
-        EXCEPTION("Not implemented");
-        break;
-      }
-    } else {
-      switch (numDofs) {
-      case 1:
-        ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,1>(),
-                                          new IdentityOperator<FeH1,3,1>(),
-                                          unity, -1.0,
-                                          mortarIf->GetMasterVolRegion(),
-                                          mortarIf->GetSlaveVolRegion(),
-                                          mortarIf->IsPlanar(),
-                                          updatedGeo_ );
-        if (isMoving) {
-          ncInt2 = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,1>(),
-                                          new IdentityOperator<FeH1,3,1>(),
-                                          unity, -1.0,
-                                          mortarIf->GetMasterVolRegion(),
-                                          mortarIf->GetSlaveVolRegion(),
-                                          mortarIf->IsPlanar(),
-                                          updatedGeo_ );
-        }
-        break;
-      case 2:
-        ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,2>(),
-                                          new IdentityOperator<FeH1,3,2>(),
-                                          unity, -1.0,
-                                          mortarIf->GetMasterVolRegion(),
-                                          mortarIf->GetSlaveVolRegion(),
-                                          mortarIf->IsPlanar(),
-                                          updatedGeo_ );
-        if (isMoving) {
-          ncInt2 = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,2>(),
-                                          new IdentityOperator<FeH1,3,2>(),
-                                          unity, -1.0,
-                                          mortarIf->GetMasterVolRegion(),
-                                          mortarIf->GetSlaveVolRegion(),
-                                          mortarIf->IsPlanar(),
-                                          updatedGeo_ );
-        }
-        break;
-      case 3:
-        ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,3>(),
-                                          new IdentityOperator<FeH1,3,3>(),
-                                          unity, -1.0,
-                                          mortarIf->GetMasterVolRegion(),
-                                          mortarIf->GetSlaveVolRegion(),
-                                          mortarIf->IsPlanar(),
-                                          updatedGeo_ );
-        if (isMoving) {
-          ncInt2 = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,3,3>(),
-                                          new IdentityOperator<FeH1,3,3>(),
-                                          unity, -1.0,
-                                          mortarIf->GetMasterVolRegion(),
-                                          mortarIf->GetSlaveVolRegion(),
-                                          mortarIf->IsPlanar(),
-                                          updatedGeo_ );
-        }
-        break;
-      default:
-        EXCEPTION("Not implemented");
-        break;
-      }
-    }
+    ncInt = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,DIM,D_DOF>(),
+        new IdentityOperator<FeH1,DIM,D_DOF>(),
+        unity, -1.0,
+        mortarIf->GetMasterVolRegion(),
+        mortarIf->GetSlaveVolRegion(),
+        mortarIf->IsPlanar(),
+        updatedGeo_ );
     ncInt->SetName("MortarNcInt");
+    if (isMoving) {
+      ncInt2 = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,DIM,D_DOF>(),
+          new IdentityOperator<FeH1,DIM,D_DOF>(),
+          unity, -1.0,
+          mortarIf->GetMasterVolRegion(),
+          mortarIf->GetSlaveVolRegion(),
+          mortarIf->IsPlanar(),
+          updatedGeo_ );
+      ncInt2->SetName("MortarNcInt");
+    }
     
     NcBiLinFormContext *ncContext = new NcBiLinFormContext(ncInt, STIFFNESS);
     ncContext->SetEntities(elMortar, elMortar);
@@ -3330,6 +3181,10 @@ namespace CoupledField {
   }
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template void SinglePDE::DefineMortarCoupling<2,1>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineMortarCoupling<2,2>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineMortarCoupling<3,1>(SolutionType,NcInterfaceInfo&);
+  template void SinglePDE::DefineMortarCoupling<3,3>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineNitscheCoupling<2,1>(SolutionType,NcInterfaceInfo&,bool);
   template void SinglePDE::DefineNitscheCoupling<2,2>(SolutionType,NcInterfaceInfo&,bool);
   template void SinglePDE::DefineNitscheCoupling<3,1>(SolutionType,NcInterfaceInfo&,bool);

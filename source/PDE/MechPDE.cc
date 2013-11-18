@@ -380,7 +380,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     for ( ; ncIt != endIt; ++ncIt ) {
       switch (ncIt->type) {
       case NC_MORTAR:
-        DefineMortarCoupling(MECH_DISPLACEMENT, *ncIt, dim_);
+        if (dim_ == 2)
+          DefineMortarCoupling<2,2>(MECH_DISPLACEMENT, *ncIt);
+        else
+          DefineMortarCoupling<3,3>(MECH_DISPLACEMENT, *ncIt);
         break;
       case NC_NITSCHE:
       {

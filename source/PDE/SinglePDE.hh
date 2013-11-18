@@ -478,9 +478,9 @@ namespace CoupledField
     
     //! Defines integrators for Mortar coupling of an unknown on one specific
     //! interface.
-    virtual void DefineMortarCoupling( SolutionType solType,
-                                       NcInterfaceInfo &iface,
-                                       UInt numDofs = 1);
+    template<UInt DIM, UInt D_DOF>
+    void DefineMortarCoupling( SolutionType solType,
+                                       NcInterfaceInfo &iface);
     
     //! Defines integrators for Nitsche coupling of an unknown on one specific
     //! interface.

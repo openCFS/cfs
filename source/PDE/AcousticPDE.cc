@@ -644,7 +644,10 @@ namespace CoupledField{
     for ( ; ncIt != endIt; ++ncIt ) {
       switch (ncIt->type) {
       case NC_MORTAR:
-        DefineMortarCoupling(formulation_, *ncIt);
+        if (dim_ == 2)
+          DefineMortarCoupling<2,1>(formulation_, *ncIt);
+        else
+          DefineMortarCoupling<3,1>(formulation_, *ncIt);
         break;
       case NC_NITSCHE:
         if (dim_ == 2)
