@@ -62,7 +62,9 @@ namespace CoupledField {
     }
     
     //! Determine if sequenceSteps sould be merged
-    mergeSequenceSteps_= myParam_->Get("mergeSequenceSteps")->As<bool>();
+    if (myParam_->Has("mergeSequenceSteps")) {
+      mergeSequenceSteps_= myParam_->Get("mergeSequenceSteps")->As<bool>();
+    }
 
     // concatenate output file name
     try {
