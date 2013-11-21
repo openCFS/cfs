@@ -229,22 +229,64 @@ namespace CoupledField {
     // NcBiLinFormContext only works with MortarNcSurfElems at the moment
     assert( mortarElem );
     
-    // TODO: implement the general case for two different FeFunctions
-    // (e.g. MechAcou coupling)
-    shared_ptr<BaseFeFunction> feFuncField = this->feFct1_.lock(),
-                               feFuncLM = this->feFct2_.lock();
-    if ( feFuncField->GetResultInfo()->resultType == LAGRANGE_MULT ) {
-      feFuncField = this->feFct2_.lock();
-      feFuncLM = this->feFct1_.lock();
-      if ( feFuncField->GetResultInfo()->resultType == LAGRANGE_MULT ) {
-        EXCEPTION("You cannot couple two Lagrange multipliers");
-      }
-    }
-    feFuncField->GetFeSpace()->GetElemEqns(eqnVec1, mortarElem->ptMaster);
-    feFuncLM->GetFeSpace()->GetElemEqns(eqnVec2, mortarElem->ptSlave);
+    shared_ptr<BaseFeFunction> feFunc1 = this->feFct1_.lock(),
+                               feFunc2 = this->feFct2_.lock();
+    SolutionType solType1 = feFunc1->GetResultInfo()->resultType,
+                 solType2 = feFunc2->GetResultInfo()->resultType;
     
-    id1 = feFuncField->GetFctId();
-    id2 = feFuncLM->GetFctId();
+    if ( (solType1 == LAGRANGE_MULT) && (solType2 != LAGRANGE_MULT) ) {
+      feFunc1->GetFeSpace()->GetElemEqns(eqnVec1, mortarElem->ptSlave);
+      feFunc2->GetFeSpace()->GetElemEqns(eqnVec2, mortarElem->ptMaster);
+    }
+    else if ( (solType1 != LAGRANGE_MULT) && (solType2 == LAGRANGE_MULT) ) {
+      feFunc1->GetFeSpace()->GetElemEqns(eqnVec1, mortarElem->ptMaster);
+      feFunc2->GetFeSpace()->GetElemEqns(eqnVec2, mortarElem->ptSlave);
+    }
+    else if ( (solType1 != LAGRANGE_MULT) && (solType2 != LAGRANGE_MULT) ) {
+      // no Lagrange multiplier => probably acou-mech acoupling
+      
+      SurfElem *surfElem1 = NULL, *surfElem2 = NULL;
+      const std::set<RegionIdType> &regions1 = feFunc1->GetRegions(),
+                                   &regions2 = feFunc2->GetRegions();
+      
+      if (regions1.find(mortarElem->ptMaster->ptVolElems[0]->regionId)
+          != regions1.end()) {
+        surfElem1 = mortarElem->ptMaster;
+      }
+      else if (regions1.find(mortarElem->ptSlave->ptVolElems[0]->regionId)
+          != regions1.end()) {
+        surfElem1 = mortarElem->ptSlave;
+      }
+      else {
+        EXCEPTION("None of the parents of NcSurfElem " << mortarElem->elemNum
+            << "were found in the regions of FeFunction '"
+            << SolutionTypeEnum.ToString(solType1) << "'");
+      }
+      
+      if (regions2.find(mortarElem->ptMaster->ptVolElems[0]->regionId)
+          != regions2.end()) {
+        surfElem2 = mortarElem->ptMaster;
+      }
+      else if (regions2.find(mortarElem->ptSlave->ptVolElems[0]->regionId)
+          != regions2.end()) {
+        surfElem2 = mortarElem->ptSlave;
+      }
+      else {
+        EXCEPTION("None of the parents of NcSurfElem " << mortarElem->elemNum
+            << "were found in the regions of FeFunction '"
+            << SolutionTypeEnum.ToString(solType2) << "'");
+      }
+
+      feFunc1->GetFeSpace()->GetElemEqns(eqnVec1, surfElem1);
+      feFunc2->GetFeSpace()->GetElemEqns(eqnVec2, surfElem2);
+    }
+    else {
+      // speaking of paranoia ...
+      EXCEPTION("You cannot couple two Lagrange multipliers");
+    }
+    
+    id1 = feFunc1->GetFctId();
+    id2 = feFunc2->GetFctId();
   }
   
   void NcBiLinFormContext::GetEqns( StdVector<Integer>& eqnVec1,
@@ -274,23 +316,64 @@ namespace CoupledField {
     masterElems->SetRegion(mortarElem->ptMaster->regionId);
     slaveElems->SetRegion(mortarElem->ptSlave->regionId);
     
-    // TODO: implement the general case for two different FeFunctions
-    // (e.g. MechAcou coupling)
-    shared_ptr<BaseFeFunction> feFuncField = this->feFct1_.lock(),
-                               feFuncLM = this->feFct2_.lock();
-    if ( feFuncField->GetResultInfo()->resultType == LAGRANGE_MULT ) {
-      feFuncField = this->feFct2_.lock();
-      feFuncLM = this->feFct1_.lock();
-      if ( feFuncField->GetResultInfo()->resultType == LAGRANGE_MULT ) {
-        EXCEPTION("You cannot couple two Lagrange multipliers");
+    shared_ptr<BaseFeFunction> feFunc1 = this->feFct1_.lock(),
+                               feFunc2 = this->feFct2_.lock();
+    SolutionType solType1 = feFunc1->GetResultInfo()->resultType,
+                 solType2 = feFunc2->GetResultInfo()->resultType;
+    
+    if ( (solType1 == LAGRANGE_MULT) && (solType2 != LAGRANGE_MULT) ) {
+      feFunc1->GetFeSpace()->GetEntityListEqns(eqnVec1, slaveElems);
+      feFunc2->GetFeSpace()->GetEntityListEqns(eqnVec2, masterElems);
+    }
+    else if ( (solType1 != LAGRANGE_MULT) && (solType2 == LAGRANGE_MULT) ) {
+      feFunc1->GetFeSpace()->GetEntityListEqns(eqnVec1, masterElems);
+      feFunc2->GetFeSpace()->GetEntityListEqns(eqnVec2, slaveElems);
+    }
+    else if ( (solType1 != LAGRANGE_MULT) && (solType2 != LAGRANGE_MULT) ) {
+      // no Lagrange multiplier => probably acou-mech acoupling
+      
+      shared_ptr<ElemList> elemList1, elemList2;
+      const std::set<RegionIdType> &regions1 = feFunc1->GetRegions(),
+                                   &regions2 = feFunc2->GetRegions();
+      
+      if (regions1.find(mortarElem->ptMaster->ptVolElems[0]->regionId)
+          != regions1.end()) {
+        elemList1 = masterElems;
       }
+      else if (regions1.find(mortarElem->ptSlave->ptVolElems[0]->regionId)
+          != regions1.end()) {
+        elemList1 = slaveElems;
+      }
+      else {
+        EXCEPTION("None of the parents of NcSurfElem " << mortarElem->elemNum
+            << "were found in the regions of FeFunction '"
+            << SolutionTypeEnum.ToString(solType1) << "'");
+      }
+      
+      if (regions2.find(mortarElem->ptMaster->ptVolElems[0]->regionId)
+          != regions2.end()) {
+        elemList2 = masterElems;
+      }
+      else if (regions2.find(mortarElem->ptSlave->ptVolElems[0]->regionId)
+          != regions2.end()) {
+        elemList2 = slaveElems;
+      }
+      else {
+        EXCEPTION("None of the parents of NcSurfElem " << mortarElem->elemNum
+            << "were found in the regions of FeFunction '"
+            << SolutionTypeEnum.ToString(solType2) << "'");
+      }
+
+      feFunc1->GetFeSpace()->GetEntityListEqns(eqnVec1, elemList1);
+      feFunc2->GetFeSpace()->GetEntityListEqns(eqnVec2, elemList2);
+    }
+    else {
+      // speaking of paranoia ...
+      EXCEPTION("You cannot couple two Lagrange multipliers");
     }
     
-    feFuncField->GetFeSpace()->GetEntityListEqns(eqnVec1, masterElems);
-    feFuncLM->GetFeSpace()->GetEntityListEqns(eqnVec2, slaveElems);
-    
-    id1 = feFuncField->GetFctId();
-    id2 = feFuncLM->GetFctId();
+    id1 = feFunc1->GetFctId();
+    id2 = feFunc2->GetFctId();
   }
 
   SurfaceBiLinFormContext::SurfaceBiLinFormContext( BiLinearForm* biLinForm, FEMatrixType destMat, BiLinearForm::CouplingDirection currentDirection  )
