@@ -5,6 +5,20 @@ import Image, sys, os, copy, numpy, math
 # writes a dense two region mesh
 # def write_dense_mesh(pixels, size, file, threshold):
 
+# element types as in gid (simInputMESH.cc -> AnsysType2ElemType)
+QUAD4 = 6
+HEXA8= 10
+WEDGE6 = 14
+
+def nodes_by_type(type):
+  if type == QUAD4:
+    return 4
+  if type == HEXA8:
+    return 8
+  if type == WEDGE6:
+    return 6
+  assert(False)
+
 # gid element
 class Element: 
   def __init__(self):
@@ -15,18 +29,21 @@ class Element:
     self.stiff2 = 0
     self.stiff3 = 0
     self.rotAngle = 0
+    self.type = -1
     
   def dump(self):
     print self.nodes
     print self.region
     print self.density     
 
+
 # gid Mesh
-class Mesh: pass
-mesh = Mesh()
-mesh.nodes = []    # list 2d tupels (float, float)
-mesh.elements = [] # list of Element
-mesh.bc = []       # list of tupel (name, <list of zero based nodes>)  
+class Mesh:
+  def __init__(self):
+   self.nodes = []    # list 2d tupels (float, float) or 3d tuples
+   self.elements2d = [] # list of Element
+   self.elements3d = [] # list of Element
+   self.bc = []       # list of tupel (name, <list of zero based nodes>)  
 
 def show_dense_mesh_image(mesh, shape, binary, size):
   check_img = Image.new("RGB", shape, "white")
@@ -37,7 +54,7 @@ def show_dense_mesh_image(mesh, shape, binary, size):
   for x in range(nx):
     for y in range(ny):
       #print input_pix[x,y]
-      e = mesh.elements[x * ny + y]
+      e = mesh.elements2d[x * ny + y]
       val = 1-e.density # black is 0 in the image but 1 as density
       # print str(val) + " - " + str(barrier)
       show = (200,10,10) if binary else (int(val*255),int(val*255),int(val*255)) 
@@ -83,6 +100,7 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img =
   for x in range(nx):
     for y in range(ny):
       e = Element()
+      e.type = QUAD4
       if img:
         # convert to black is one and white = 0
         e.density = 1.0 - (input_pix[x,y] / 255.0)
@@ -117,7 +135,7 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img =
       # assign nodes
       ll = (nx+1) * y + x  # lowerleft
       e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
-      mesh.elements.append(e)
+      mesh.elements2d.append(e)
       # e.dump()
   
   mesh.bc.append(("bottom", range(0, nx+1)))
@@ -135,7 +153,6 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img =
 # @return sparse mesh
 def convert_to_sparse_mesh(dense):
   sparse = Mesh()
-  sparse.elements = []
 
   # necessary 0-based nodes as unique set
   nns = set()
@@ -185,15 +202,40 @@ def convert_to_sparse_mesh(dense):
 
   return sparse
 
+def count_elements(elements, type):
+  count = 0
+  for e in elements:
+    if e.type == type:
+      count += 1
+  return count
+
+def write_gid_elements(out, elements):
+  for i in range(len(elements)): # write one based!
+    e = elements[i]
+    nodes = len(e.nodes)
+    out.write(str(i+1) + ' ' + str(e.type) + ' ' + str(nodes) + ' ' + e.region  + "\n")
+    
+    # prepare for second order elements
+    for n in range(nodes):
+      out.write(str(e.nodes[n]+1) + ("\n" if n == len(e.nodes) - 1 else " ")) # write one based node numbers
+
+
 def write_gid_mesh(mesh, filename):
+  dim = 3 if len(mesh.elements3d) > 0 else 2
+  quad4  = count_elements(mesh.elements2d, QUAD4)
+  hexa8  = count_elements(mesh.elements3d, HEXA8)
+  wedge6 = count_elements(mesh.elements3d, WEDGE6)
+  assert(quad4 == len(mesh.elements2d))
+  assert(hexa8 + wedge6 == len(mesh.elements3d))
+  
   out = open(filename, "w")
   
   out.write('[Info]\n')
   out.write('Version 1\n')
-  out.write('Dimension 2\n')
+  out.write('Dimension ' + str(dim) + '\n')
   out.write('NumNodes ' + str(len(mesh.nodes)) + '\n')
-  out.write('Num3DElements 0\n')
-  out.write('Num2DElements ' + str(len(mesh.elements)) + '\n')
+  out.write('Num3DElements ' + str(len(mesh.elements3d)) + '\n')
+  out.write('Num2DElements ' + str(len(mesh.elements2d)) + '\n')
   out.write('Num1DElements 0\n')
   bcn = 0
   for i in range(len(mesh.bc)):
@@ -207,21 +249,25 @@ def write_gid_mesh(mesh, filename):
   out.write('Num 3d-line,quad : 0\n')
   out.write('Num triangle     : 0\n')
   out.write('Num triangle,quad: 0\n')
-  out.write('Num quadr        : ' + str(len(mesh.elements)) + '\n')
+  out.write('Num quadr        : ' + str(quad4) + '\n')
   out.write('Num quadr,quad   : 0\n')
   out.write('Num tetra        : 0\n')
   out.write('Num tetra,quad   : 0\n')
-  out.write('Num brick        : 0\n')
+  out.write('Num brick        : ' + str(hexa8) + '\n')
   out.write('Num brick,quad   : 0\n')
   out.write('Num pyramid      : 0\n')
   out.write('Num pyramid,quad : 0\n')
-  out.write('Num wedge        : 0\n')
+  out.write('Num wedge        : ' + str(wedge6) + '\n')
   out.write('Num wedge,quad   : 0\n')
   
   out.write('\n[Nodes]\n')
   out.write('#NodeNr x-coord y-coord z-coord\n')
   for i in range(len(mesh.nodes)): # write one based!
-    out.write(str(i+1) + "  " + str(mesh.nodes[i][0]) + "  " + str(mesh.nodes[i][1]) + "  0.0\n")
+    out.write(str(i+1) + "  " + str(mesh.nodes[i][0]) + "  " + str(mesh.nodes[i][1]))
+    if dim == 3:
+      out.write("  "  + str(mesh.nodes[i][2]) + "\n")
+    else:
+      out.write("  0.0\n")
 
   out.write('\n[1D Elements]\n')
   out.write('#ElemNr  ElemType  NrOfNodes  Level\n')
@@ -230,16 +276,12 @@ def write_gid_mesh(mesh, filename):
   out.write('\n[2D Elements]\n')
   out.write('#ElemNr  ElemType  NrOfNodes  Level\n')
   out.write('#Node1 Node2 ... NodeNrOfNodes\n')
-  for i in range(len(mesh.elements)): # write one based!
-    e = mesh.elements[i]
-    out.write(str(i+1) + " 6 4 " + e.region  + "\n")
-    # prepare for second order elements
-    for n in range(len(e.nodes)):
-      out.write(str(e.nodes[n]+1) + ("\n" if n == len(e.nodes) - 1 else " ")) # write one based node numbers
+  write_gid_elements(out, mesh.elements2d)
  
   out.write('\n[3D Elements]\n')
   out.write('#ElemNr  ElemType  NrOfNodes  Level\n')
   out.write('#Node1 Node2 ... NodeNrOfNodes\n')
+  write_gid_elements(out, mesh.elements3d)
   
   out.write('\n[Node BC]\n')
   out.write('#NodeNr Level\n')
@@ -258,9 +300,6 @@ def write_gid_mesh(mesh, filename):
 ## creates a mesh of predefined geometry
 def create_cantilever2d_mesh(type, resolution):
   mesh = Mesh()
-  mesh.nodes = []    # list 2d tupels (float, float)
-  mesh.elements = [] # list of Element
-  mesh.bc = []       # list of tupel (name, <list of zero based nodes>)  
   
   width = 3.0
   height = 2.0
@@ -280,6 +319,7 @@ def create_cantilever2d_mesh(type, resolution):
     for x in range(nx):
       e = Element()
       e.density = 1.0
+      e.type = QUAD4
       if type == 'cantilever2d_reinforced' and float(x) >= (28./30. * nx):
         e.region = 'reinforce'
       else:
@@ -289,7 +329,7 @@ def create_cantilever2d_mesh(type, resolution):
       ll = (nx+1) * y + x  # lowerleft
       e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
             
-      mesh.elements.append(e)
+      mesh.elements2d.append(e)
   
   mesh.bc.append(("south", range(0, nx+1)))
   mesh.bc.append(("north", range((nx+1)*ny, (nx+1)*(ny+1))))
@@ -306,9 +346,6 @@ def create_cantilever2d_mesh(type, resolution):
 ## creates a mesh of predefined geometry
 def create_mbb_mesh(type, resolution):
   mesh = Mesh()
-  mesh.nodes = []    # list 2d tupels (float, float)
-  mesh.elements = [] # list of Element
-  mesh.bc = []       # list of tupel (name, <list of zero based nodes>)  
   
   width = 2.0
   height = 1.0
@@ -330,10 +367,8 @@ def create_mbb_mesh(type, resolution):
   for y in range(ny):
     for x in range(nx):
       e = Element()
+      e.type = QUAD4
       e.density = 1.0
-
-      
-
       # if type == 'mbb_reinforced' and (float(x) <= (.03 * nx + e) or float(x) >= (.97 * nx - e) or float(y) <= (.03 * ny + e) or float(y) >= (.97 * ny - e)):
       if type == 'mbb_reinforced' and (x+1 <= .015 * nx + 1e-5 or x >= 0.985 * nx - 1e-5 or y+1 <= 0.03 * ny + 1e-5 or y >= 0.97 * ny - 1e-5):
           e.region = 'reinforce'
@@ -348,7 +383,7 @@ def create_mbb_mesh(type, resolution):
       ll = (nx+1) * y + x  # lowerleft
       e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
             
-      mesh.elements.append(e)
+      mesh.elements2d.append(e)
   
   mesh.bc.append(("south", range(0, nx+1)))
   mesh.bc.append(("north", range((nx+1)*ny, (nx+1)*(ny+1))))

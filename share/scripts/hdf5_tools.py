@@ -95,16 +95,37 @@ def find_corners(centers):
         max[c] = test[c]
   return min, max      
     
-           
+# dumps meta data    
+def dump_h5_meta(hdf5_file):          
+  print 'Steps in "' + hdf5_file.filename + '":'
+  ms = hdf5_file['/Results/Mesh/MultiStep_1']
+  for name in ms:
+    if name <> 'ResultDescription':
+      print '  ' + name
+  ms = hdf5_file['/Results/Mesh/MultiStep_1/Step_0']    
+  print 'Design variables:'
+  des = None
+  for name in ms:
+    print '  ' + name
+    des = name
+  if des == None:
+    raise Exception("no design variables within Step_0")
+  ms = hdf5_file['/Results/Mesh/MultiStep_1/Step_0/' + des]   
+  print 'Regions (for ' + des + '):'
+  for name in ms:
+    print '  ' + name
+    des = None
+          
+# returns a deep copied numpy array          
 def get_element(hdf5_file, name, region, step=99999):
   ms = hdf5_file['/Results/Mesh/MultiStep_1']
   # for optimization we assume steps to be numbered from 0, in simulation they start from 1
   if step >= len(ms):
-    step = max((len(ms) - 2,0)) # reset to last, first element is ResultDescription
+    step = max((len(ms) - 2,0)) # reset to last, first element is ResultDescriptionms 
   key = "/Results/Mesh/MultiStep_1/Step_" + str(step) + "/" + name + "/" + region + "/Elements/Real"
   try:
     data = ms[key]
-    return data
+    return numpy.copy(data)
   except:
     raise Exception("cannot access '" + key + "' in " + str(hdf5_file.filename))
   

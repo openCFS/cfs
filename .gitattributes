@@ -630,6 +630,7 @@ share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain
 share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
 share/scripts/IdentifyFortranCompiler.F90 -text
+share/scripts/abaqus_reader.py -text
 share/scripts/base_structures_images.py -text
 share/scripts/bootstrap_devel_machine.sh svneol=native#text/plain
 share/scripts/build_tee.pl -text

@@ -107,7 +107,6 @@ def read_multi_design(filename, design1, design2 = None, design3 = None, design4
   out = numpy.zeros((length, designs))
   for element in sett:
     nr   = int(element.get("nr"))
-    des  = float(element.get(attribute))
     type = element.get("type")
     idx  = -1
     if type == design1:
@@ -118,10 +117,9 @@ def read_multi_design(filename, design1, design2 = None, design3 = None, design4
       idx = 2
     if design4 and type == design4:
       idx = 3
-    if idx == -1:
-      raise RuntimeError("design '" + type + "' not handled")
-    assert(idx != -1)
-    out[nr-1,idx] = des
+    if idx <>  -1:
+      des  = float(element.get(attribute))
+      out[nr-1,idx] = des
   if matrix:
     output = numpy.zeros((x,y,z,designs))
     for t in range(designs):
