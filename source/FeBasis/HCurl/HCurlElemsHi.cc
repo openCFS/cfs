@@ -219,6 +219,7 @@ FeHCurlHi::~FeHCurlHi() {
 UInt FeHCurlHi::GetNumFncs( ) {
   if(updateUnknowns_) this->CalcNumUnknowns();
   return actNumFncs_;
+  
 }
 
 void FeHCurlHi::GetNumFncs( StdVector<UInt>& numFcns,
@@ -230,6 +231,11 @@ void FeHCurlHi::GetNumFncs( StdVector<UInt>& numFcns,
   
 void FeHCurlHi::UseGradient(EntityType entity, bool usage) {
   useGrad_[entity] = usage;
+  updateUnknowns_ = true;
+}
+
+void FeHCurlHi::SetOnlyLowestOrder( bool flag ) {
+  onlyLowestOrder_ = flag;
   updateUnknowns_ = true;
 }
 

@@ -973,7 +973,7 @@ namespace CoupledField {
       case CapaInterfaceC::ElectricField:
         return ELEC_FIELD_INTENSITY;
       case CapaInterfaceC::MagneticField:
-        return MAG_HFIELD;
+        return MAG_FIELD_INTENSITY;
       case CapaInterfaceC::EddyCurrent:
         return MAG_EDDY_CURRENT_DENSITY;
       default:
@@ -989,7 +989,7 @@ namespace CoupledField {
         return CapaInterfaceC::Stresses;
       case ELEC_FIELD_INTENSITY:
         return CapaInterfaceC::ElectricField;
-      case MAG_HFIELD:
+      case MAG_FIELD_INTENSITY:
         return CapaInterfaceC::MagneticField;
       case MAG_EDDY_CURRENT_DENSITY:
         return CapaInterfaceC::EddyCurrent;

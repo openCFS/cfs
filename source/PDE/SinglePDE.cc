@@ -1126,12 +1126,13 @@ namespace CoupledField {
 
       std::ofstream  out(fap.fileName.c_str(),std::ios::out );
 
-      Vector<Double> globPoint;
+      Vector<Double> globPoint, globPointcSys;
+      
       StdVector<std::string> globCoordNames;
       StdVector<std::string> locCoordNames;
-      globCoordNames.Push_back("x");
-      globCoordNames.Push_back("y");
-      globCoordNames.Push_back("z");      
+      for(UInt i = 0; i < dim_; ++i ) {
+        globCoordNames.Push_back(fap.coordSys->GetDofName(i+1));
+      }
       locCoordNames.Push_back("xi");
       locCoordNames.Push_back("eta");
       locCoordNames.Push_back("zeta");      
@@ -1172,9 +1173,12 @@ namespace CoupledField {
           shared_ptr<ElemShapeMap> esm = 
               ptGrid_->GetElemShapeMap(fap.elems[iPoint], true);
           esm->Local2Global(globPoint, fap.locPoints[iPoint]);
+          
+          fap.coordSys->Global2LocalCoord(globPointcSys, globPoint);
+          
           // write to file
           out << fap.elems[iPoint]->elemNum << delim;
-          out << globPoint.ToString(0, delim) << delim;
+          out << globPointcSys.ToString(0, delim) << delim;
           for(UInt j = 0; j < numDofs; ++j ) {
             out << vec[iPoint*numDofs + j].real() << delim;
           }
@@ -1249,6 +1253,9 @@ namespace CoupledField {
       FieldAtPoints & actField = fields_[iPart];
       actField.fileName = actNode->Get("fileName")->As<std::string>();
       actField.csv = actNode->Get("csv")->As<bool>();
+      std::string coordSysId = actNode->Get("coordSysId")->As<std::string>();
+      actField.coordSys = domain_->GetCoordSystem(coordSysId);
+      
       std::string delim = actNode->Get("delimiter")->As<std::string>();
       if(actField.csv && delim.length() == 0) 
       {
@@ -1288,7 +1295,7 @@ namespace CoupledField {
       for( UInt iComp = 0; iComp < listNodes.GetSize(); iComp++ ) {
         PtrParamNode actCompNode = listNodes[iComp];
         actCompNode->GetValue("comp", comp);
-        compIndex = domain_->GetCoordSystem("default")->GetVecComponent(comp)-1;
+        compIndex = actField.coordSys->GetVecComponent(comp)-1;
         start[compIndex]=  actCompNode->Get("start")->MathParse<Double>();
         stop[compIndex]=  actCompNode->Get("stop")->MathParse<Double>();
         inc[compIndex] = actCompNode->Get("inc")->MathParse<Double>();
@@ -1319,14 +1326,18 @@ namespace CoupledField {
           for( UInt zSample = 0; zSample < numSamples[2]; zSample++ ) {
             Double actZ = start[2] + zSample * inc[2];
 
-            Vector<Double>& globPoint = globPoints[pIdx++];
-            globPoint.Resize(dim_);
+            // transform global point w.r.t. to coordinate system
+            // to global point w.r.t. to global cartesian system
+            Vector<Double> globPointcSys;
+            globPointcSys.Resize(dim_);
 
-            globPoint[0] = actX;
-            globPoint[1] = actY;
+            globPointcSys[0] = actX;
+            globPointcSys[1] = actY;
             if( dim_ > 2) {
-              globPoint[2] = actZ;
+              globPointcSys[2] = actZ;
             } 
+            actField.coordSys->Local2GlobalCoord(globPoints[pIdx++],
+                                                 globPointcSys);
           } // z
         } // y
       } // x

@@ -257,7 +257,7 @@ namespace CoupledField{
      // Special: Only use lower order functions
      ptFe->SetOnlyLowestOrder(true);
 
-     const UInt nrFncs = ptFe->BaseFE::GetNumFncs();
+     const UInt nrFncs = ptFe->GetNumFncs();
 
      // Get shape map from grid
      shared_ptr<ElemShapeMap> esm = 

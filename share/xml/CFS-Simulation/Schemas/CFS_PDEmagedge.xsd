@@ -241,6 +241,7 @@
   <xsd:simpleType name="DT_MagneticEdgeElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magFluxDensity"/>
+      <xsd:enumeration value="magFieldIntensity"/>
       <xsd:enumeration value="magPotentialDiv"/>
       <xsd:enumeration value="magEddyCurrentDensity"/>
       <xsd:enumeration value="magTotalCurrentDensity"/>
@@ -258,6 +259,13 @@
       <xsd:enumeration value="magEnergy"/>
       <xsd:enumeration value="magEddyPower"/>
       <xsd:enumeration value="magForceLorentz"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- Definition of region result types of magnetic PDE -->
+  <xsd:simpleType name="DT_MagneticEdgeSurfRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magEddyCurrent"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -297,6 +305,19 @@
             <xsd:complexContent>
               <xsd:extension base="DT_RegionResult">
                 <xsd:attribute name="type" type="DT_MagneticEdgeRegionResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Surface region result definition -->
+        <xsd:element name="surfRegionResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfRegionResult">
+                <xsd:attribute name="type" type="DT_MagneticEdgeSurfRegionResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

@@ -233,7 +233,7 @@ bool CoefXpr::IsComplex( PtrCoefFct a,
   return (a->IsComplex() || b->IsComplex() );
 }
 
-void CoefXpr::Tranpose( UInt nRows, UInt nCols, 
+void CoefXpr::Transpose( UInt nRows, UInt nCols, 
                         const StdVector<std::string>& in,
                         StdVector<std::string>& trans ) {
   trans.Resize( in.GetSize() );
@@ -512,6 +512,7 @@ void CoefXprUnaryOp::Init( PtrCoefFct a,
    
    dimType_ = CoefXpr::GetDimType( a, op );
    isAnalytical_ = a->IsAnalytic();
+   dependType_ = a->GetDependency();
    isComplex_ = CoefXpr::IsComplex(a, op );
    a_ = a;
    aName_ = CoefXpr::GetUniqueVarName();
@@ -612,7 +613,7 @@ void CoefXprUnaryOp::GetTensorXpr( UInt& numRows, UInt& numCols,
 }
 
 void CoefXprUnaryOp::
-GetArgs( std::map<std::string, PtrCoefFct >& vars ) const {
+  GetArgs( std::map<std::string, PtrCoefFct >& vars ) const {
   vars[aName_] = a_;
 }
 
@@ -630,6 +631,8 @@ void CoefXprBinOp::Init( PtrCoefFct a,
    dimType_ = GetDimType( a, b, op);
    isAnalytical_ = a->IsAnalytic() && b->IsAnalytic();
    isComplex_ = a->IsComplex() || b->IsComplex();
+   dependType_ = std::max(a->GetDependency(), 
+                          b->GetDependency());
    a_ = a;
    b_ = b;
    aName_ = CoefXpr::GetUniqueVarName();
@@ -654,6 +657,17 @@ CoefXprBinOp::CoefXprBinOp( MathParser * mp,
   PtrCoefFct temp  = CoefFunction::Generate( mp_, part, b );
   Init( a, temp, op );
 }
+
+CoefXprBinOp::CoefXprBinOp( MathParser * mp,
+                            const CoefXpr& a,
+                            PtrCoefFct b, 
+                            CoefXpr::OpType op ) : CoefXpr(mp) {
+  
+  Global::ComplexPart part = a.IsComplex() ? Global::COMPLEX : Global::REAL;
+  PtrCoefFct temp  = CoefFunction::Generate( mp_, part, a );
+  Init( temp, b, op );
+}
+
 
 CoefXprBinOp::CoefXprBinOp( MathParser * mp,
                             PtrCoefFct a, 
@@ -1331,6 +1345,8 @@ void CoefXprVecScalOp::Init( PtrCoefFct a,
 
   dimType_ = a->GetDimType();
   isAnalytical_ = a->IsAnalytic() && b->IsAnalytic();
+  dependType_ = std::max(a->GetDependency(), 
+                         b->GetDependency());
   isComplex_ = a->IsComplex() || b->IsComplex();
   a_ = a;
   b_ = b;
@@ -1452,6 +1468,8 @@ void CoefXprTensScalOp::Init( PtrCoefFct a,
   dimType_ = a->GetDimType();
   isAnalytical_ = a->IsAnalytic() && b->IsAnalytic();
   isComplex_ = a->IsComplex() || b->IsComplex();
+  dependType_ = std::max(a->GetDependency(), 
+                         b->GetDependency());
   a_ = a;
   b_ = b;
   aName_ = CoefXpr::GetUniqueVarName();
@@ -1567,6 +1585,7 @@ void CoefXprMechSubTensor::Init( PtrCoefFct a ) {
   
   dimType_ = CoefFunction::TENSOR;
   isAnalytical_ = a->IsAnalytic();
+  dependType_ = a->GetDependency();
   isComplex_ = a->IsComplex();
   a_ = a;
   aName_ = CoefXpr::GetUniqueVarName();
@@ -1725,9 +1744,9 @@ void CoefXprMechSubTensor::GetTensorXpr( UInt& numRows, UInt& numCols,
   // interchange variables, if transposed tensor is requested
   if( transposed_ ) {
     StdVector<std::string> tmp;
-    CoefXpr::Tranpose( numRows, numCols, real, tmp );
+    CoefXpr::Transpose( numRows, numCols, real, tmp );
     real = tmp;
-    CoefXpr::Tranpose( numRows, numCols, imag, tmp );
+    CoefXpr::Transpose( numRows, numCols, imag, tmp );
     imag = tmp;
   }
  
@@ -1758,6 +1777,7 @@ void CoefXprSubTensor::Init( PtrCoefFct a ) {
   dimType_ = CoefFunction::TENSOR;
   isAnalytical_ = a->IsAnalytic();
   isComplex_ = a->IsComplex();
+  dependType_ = a->GetDependency();
   a_ = a;
   aName_ = CoefXpr::GetUniqueVarName();
   tensorType_ = NO_TENSOR;
@@ -1936,9 +1956,9 @@ void CoefXprSubTensor::GetTensorXpr( UInt& numRows, UInt& numCols,
   // interchange variables, if transposed tensor is requested
   if( transposed_ ) {
     StdVector<std::string> tmp;
-    CoefXpr::Tranpose( numRows, numCols, real, tmp );
+    CoefXpr::Transpose( numRows, numCols, real, tmp );
     real = tmp;
-    CoefXpr::Tranpose( numRows, numCols, imag, tmp );
+    CoefXpr::Transpose( numRows, numCols, imag, tmp );
     imag = tmp;
     std::swap(numRows, numCols);
   }

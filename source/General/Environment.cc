@@ -265,7 +265,7 @@ namespace CoupledField {
         return "Vs/m^2";
         break;
 
-      case MAG_HFIELD:
+      case MAG_FIELD_INTENSITY:
         return "A/m";
         break;
 
@@ -1122,18 +1122,19 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_RHS_LOAD, "magRhsLoad");
     
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");
-    SolutionTypeEnum.Add(MAG_HFIELD, "magHfield");
+    SolutionTypeEnum.Add(MAG_FIELD_INTENSITY, "magFieldIntensity");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT_DENSITY, "magEddyCurrentDensity");
     SolutionTypeEnum.Add(MAG_TOTAL_CURRENT_DENSITY, "magTotalCurrentDensity");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY, "magForceLorentzDensity");
-    SolutionTypeEnum.Add(MAG_EDDY_POWER_DENSIY, "magEddyPowerDensity");
+    SolutionTypeEnum.Add(MAG_EDDY_POWER_DENSITY, "magEddyPowerDensity");
     SolutionTypeEnum.Add(MAG_ENERGY_DENSITY, "magEnergyDensity");
     
     SolutionTypeEnum.Add(MAG_FORCE_VWP, "magForceVWP");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ, "magForceLorentz");
     SolutionTypeEnum.Add(MAG_ENERGY, "magEnergy");
     SolutionTypeEnum.Add(MAG_EDDY_POWER, "magEddyPower");
+    SolutionTypeEnum.Add(MAG_EDDY_CURRENT, "magEddyCurrent");
 
     SolutionTypeEnum.Add(MAG_COIL_CURRENT_DENSITY, "magCoilCurrentDensity");
     

@@ -747,7 +747,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
         // === EDDY POWER DENSITY ===
         shared_ptr<ResultInfo> epd(new ResultInfo());
-        epd->resultType = MAG_EDDY_POWER_DENSIY;
+        epd->resultType = MAG_EDDY_POWER_DENSITY;
         epd->dofNames = "";
         epd->unit = "W/m^3";
         epd->definedOn = ResultInfo::ELEMENT;

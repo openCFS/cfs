@@ -253,6 +253,9 @@ namespace CoupledField
       //! Delimiter for CSV fields
       char delim;
 
+      //! Pointer to coordinate system
+      CoordSystem * coordSys;
+      
       //! Vector with elements 
       StdVector<const Elem*> elems;
       

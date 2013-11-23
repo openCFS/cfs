@@ -909,6 +909,22 @@ namespace CoupledField {
   }
   
   template<typename T>
+  void VBR_Matrix<T>::SetDiagBlock( UInt blockRow, 
+                                    const DenseMatrix& diagBlock ) {
+
+    const Matrix<T> & ret = static_cast<const Matrix<T>& >(diagBlock);
+    T* intPt = &data_[diagBlockPtr_[blockRow]];
+    // check for same size
+    
+    UInt size = bRow_[blockRow+1] - bRow_[blockRow]; 
+    for( UInt i = 0; i < size; ++ i ) {
+      for( UInt j = 0; j < size; ++ j ) {
+         intPt[size*i+j] = ret[i][j];
+      }
+    }
+  }
+  
+  template<typename T>
   void VBR_Matrix<T>::Scale( Double factor ) {
     EXCEPTION("Not implemented");
   }

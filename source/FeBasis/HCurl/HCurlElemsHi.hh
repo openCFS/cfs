@@ -27,7 +27,7 @@ public:
   void UseGradient(EntityType entity, bool usage);
   
   //! Set Usage of only lowest order functions
-  void SetOnlyLowestOrder( bool flag) { onlyLowestOrder_ = flag; }
+  void SetOnlyLowestOrder( bool flag);
   
   //! Get total number of functions
   UInt GetNumFncs();

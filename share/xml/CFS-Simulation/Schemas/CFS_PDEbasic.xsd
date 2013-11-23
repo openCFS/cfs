@@ -883,6 +883,7 @@
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>
+    <xsd:attribute name="coordSysId" type="xsd:token" default="default" use="optional"/>
     <xsd:attribute name="fileName" default="xsd:token"/>
     <xsd:attribute name="csv" default="no" type="DT_CFSBool">
       <xsd:annotation>

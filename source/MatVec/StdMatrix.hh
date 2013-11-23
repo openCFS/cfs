@@ -392,6 +392,15 @@ namespace CoupledField {
     virtual void GetDiagBlock( UInt blockRow, DenseMatrix& diagBlock ) const {
       EXCEPTION( "Not implemented in the base class" );
     }
+    
+    //! Set the diagonal block
+
+    //! This method sets the dense diagonal matrix block in case block 
+    //! information is supported by the matrix structure and information is 
+    //! provided by the graph during setup.
+    virtual void SetDiagBlock( UInt blockRow, const DenseMatrix& diagBlock ) {
+      EXCEPTION( "Not implemented in the base class" );
+    }
 
     //@}
     

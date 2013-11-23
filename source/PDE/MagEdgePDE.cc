@@ -16,6 +16,7 @@
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
+#include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 
 // forms
@@ -402,8 +403,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           ent[i]->GetType() == EntityList::SURF_ELEM_LIST ) {
         EXCEPTION("Prescribed magnetic flux density can only be defined im volume")
       }
-      
-      PtrCoefFct factor = CoefFunction::Generate(mp_, Global::REAL,
+      Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+      PtrCoefFct factor = CoefFunction::Generate(mp_, part,
                                                  CoefXprBinOp(mp_, reluc_, coef[i] , CoefXpr::OP_MULT ) );
       
 //      if(isComplex_) {
@@ -416,7 +417,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       EntityIterator it = ent[i]->GetIterator();
       it.Begin();
       if(isComplex_) {
-             lin = new BUIntegrator<CurlOperator<FeHCurl,3, Double>, Complex>(Complex(1.0), 
+             lin = new BUIntegrator<CurlOperator<FeHCurl,3, Complex>, Complex>(Complex(1.0), 
                                                                               factor, coefUpdateGeo);
            } else {
              lin = new BUIntegrator<CurlOperator<FeHCurl,3, Double>, Double>(1.0, factor, 
@@ -563,9 +564,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     rhsFeFunctions_[MAG_POTENTIAL]->SetResultInfo(rhs);
     DefineFieldResult( rhsFeFunctions_[MAG_POTENTIAL], rhs );
 
-    // === EDDY CURRENT DENSITY ===
+    
     shared_ptr<CoefFunctionFormBased> jFunc;
+    shared_ptr<CoefFunction> jPowerDensFunc;
     if( analysistype_ != STATIC ) {
+      // === EDDY CURRENT DENSITY ===
       shared_ptr<BaseFeFunction> aDotFct = 
           timeDerivFeFunctions_[MAG_POTENTIAL_DERIV1];
       shared_ptr<ResultInfo> eddy(new ResultInfo);
@@ -582,7 +585,81 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         jFunc.reset(new CoefFunctionFlux<Double>(aDotFct, eddy, -1.0));
       }
       DefineFieldResult( jFunc, eddy );
+      
+      // === EDDY CURRENT (SURFACE RESULT) ===
+      shared_ptr<ResultInfo> ec(new ResultInfo());
+      ec->resultType = MAG_EDDY_CURRENT;
+      ec->dofNames = "";
+      ec->unit = "A";
+      ec->definedOn = ResultInfo::SURF_REGION;
+      ec->entryType = ResultInfo::SCALAR;
+      availResults_.insert( ec );
+      
+      // first, create normal mapping
+      shared_ptr<CoefFunctionSurf> ncd(new CoefFunctionSurf(true, ec));
+      surfCoefFcts_[ncd] = jFunc;
+          
+      // then, integrate values
+      shared_ptr<ResultFunctor> eddyCurrentFunc;
+      if( isComplex_ ) {
+        eddyCurrentFunc.reset(new ResultFunctorIntegrate<Complex>(ncd, 
+                                                                  feFct, ec ) );
+      } else {
+        eddyCurrentFunc.reset(new ResultFunctorIntegrate<Double>(ncd, 
+                                                           feFct, ec ) );
+      }
+      resultFunctors_[MAG_EDDY_CURRENT] = eddyCurrentFunc;
+         
+      // === EDDY POWER DENSITY ===
+      shared_ptr<ResultInfo> epd(new ResultInfo());
+      epd->resultType = MAG_EDDY_POWER_DENSITY;
+      epd->dofNames = "";
+      epd->unit = "W/m^3";
+      epd->definedOn = ResultInfo::ELEMENT;
+      epd->entryType = ResultInfo::SCALAR;
+      shared_ptr<CoefFunctionFormBased> epdFunctor;
+      if( isComplex_ ) { 
+        epdFunctor.reset( new CoefFunctionBdBKernel<Complex>(aDotFct, 1.0));
+      } else {
+        epdFunctor.reset( new CoefFunctionBdBKernel<Double>(aDotFct, 1.0));
+      }
+      DefineFieldResult( epdFunctor, epd );
+      massFormCoefs_.insert(epdFunctor);
+
+      // === EDDY POWER ===
+      shared_ptr<ResultInfo> ep(new ResultInfo());
+      ep->resultType = MAG_EDDY_POWER;
+      ep->dofNames = "";
+      ep->unit = "W";
+      ep->definedOn = ResultInfo::REGION;
+      ep->entryType = ResultInfo::SCALAR;
+      availResults_.insert( ep );
+      shared_ptr<ResultFunctor> epFunctor;
+      if( isComplex_ ) {
+        epFunctor.reset(new EnergyResultFunctor<Complex>(aDotFct, ep, 1.0));
+      } else {
+        epFunctor.reset(new EnergyResultFunctor<Double>(aDotFct, ep, 1.0));
+      }
+      resultFunctors_[MAG_EDDY_POWER] = epFunctor;
+      massFormFunctors_.insert(epFunctor);
     }
+      
+//      
+//      // === EDDY POWER DENSITY ===
+//      shared_ptr<ResultInfo> eddyPowerDens(new ResultInfo);
+//      eddyPowerDens->resultType = MAG_EDDY_POWER_DENSITY;
+//      eddyPowerDens->dofNames = "";
+//      eddyPowerDens->unit = "W/m^3";
+//      eddyPowerDens->definedOn = ResultInfo::ELEMENT;
+//      eddyPowerDens->entryType = ResultInfo::SCALAR;
+//      availResults_.insert( eddyPowerDens );
+//      
+//      jPowerDensFunc = CoefFunction::Generate(mp_, part, 
+//                           CoefXprBinOp(mp_,
+//                              CoefXprBinOp(mp_, jFunc, jFunc, CoefXpr::OP_MULT),
+//                              conduc_, CoefXpr::OP_DIV) );
+//      DefineFieldResult( jPowerDensFunc, eddyPowerDens);
+//    }
 
     // === COIL CURRENT DENSITY ===
     shared_ptr<ResultInfo> ccd(new ResultInfo);
@@ -662,6 +739,20 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     DefineFieldResult( muFunc, perm);
 
 
+    // === MAGNETIC FIELD INTENSITY ===
+    shared_ptr<ResultInfo> magIntens(new ResultInfo);
+    magIntens->resultType = MAG_FIELD_INTENSITY;
+    magIntens->dofNames = vecComponents;
+    magIntens->unit = "A/m";
+    magIntens->definedOn = ResultInfo::ELEMENT;
+    magIntens->entryType = ResultInfo::VECTOR;
+    availResults_.insert( magIntens );
+
+    // assemble coefficient function hFunc = reluctivity * flux density
+    PtrCoefFct hFunc = CoefFunction::Generate( mp_, part, 
+                                                CoefXprBinOp( mp_, reluc_, bFunc, CoefXpr::OP_MULT ) );
+    DefineFieldResult( hFunc, magIntens);
+    
     // === MAGNETIC ENERGY ===
     shared_ptr<ResultInfo> energy(new ResultInfo);
     energy->resultType = MAG_ENERGY;

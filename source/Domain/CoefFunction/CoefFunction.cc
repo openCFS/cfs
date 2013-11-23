@@ -443,7 +443,10 @@ PtrCoefFct CoefFunction::Generate( MathParser * mp,
       }
       ret = cf;
     }
+   
     
+    // Determine the dependType of the returned coefFunction
+    ret->dependType_ = xpr.GetDependency(); 
   }
   
   return ret;
