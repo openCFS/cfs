@@ -153,8 +153,6 @@ Function::Function(PtrParamNode pn)
   case VOLUME: // the volume is not linear on heaviside densities
   case SLOPE:
   case GLOBAL_SLOPE:
-  case SUM_MODULI:
-  case GLOBAL_SUM_MODULI:
   case SLACK:
     linear_ = true;
     break;
@@ -2269,17 +2267,7 @@ double Function::Local::Identifier::CalcBumpGradient(int neigh_idx) const
 
 double Function::Local::Identifier::CalcSumModuli(DesignElement::Access access, int neigh_idx, bool derivative) const
 {
-  if(derivative)
-  {
-    DesignElement::Type type = GetElement(neigh_idx)->GetType();
-    if (type == DesignElement::EMODULISO || type == DesignElement::EMODUL)
-      return 1.0;
-    if(type == DesignElement::GMODUL)
-      return 2.0;
-    else return 0.0;
-  }
-
-  double E1(0.0), E3(0.0), G(0.0);
+  double E1(0.0), E3(0.0), G(0.0), theta(0.0);
   for(int i=-1; i < (int) neighbor.GetSize(); ++i)
   {
     switch(GetElement(i)->GetType())
@@ -2294,6 +2282,8 @@ double Function::Local::Identifier::CalcSumModuli(DesignElement::Access access, 
       G = GetElement(i)->GetDesign(access);
       break;
     case DesignElement::POISSON:
+      theta = GetElement(i)->GetDesign(access);
+      break;
     case DesignElement::POISSONISO:
     case DesignElement::DENSITY:
     case DesignElement::ROTANGLE:
@@ -2304,7 +2294,25 @@ double Function::Local::Identifier::CalcSumModuli(DesignElement::Access access, 
       break;
     }
   }
-  return E1+E3+2*G;
+
+  if(derivative)
+  {
+    switch(GetElement(neigh_idx)->GetType())
+    {
+    case DesignElement::EMODULISO:
+    case DesignElement::EMODUL:
+      return 1.0/(1.0-theta);
+    case DesignElement::POISSON:
+    {
+      double nninvtmp = 1/((1.0-theta)*(1.0-theta));
+      return E1*nninvtmp+E3*nninvtmp;
+    }
+    default:
+      return 0.0;
+    }
+  }
+
+  return E1/(1.0-theta)+E3/(1.0-theta)+2*G;
 }
 
 double Function::Local::Identifier::CalcOrthotropicTensorTrace(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
