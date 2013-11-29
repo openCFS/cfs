@@ -214,6 +214,13 @@ EXECUTE_PROCESS(
 
 FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
 
+# Convert CFS++ XSD schema from FeSpace to RelaxNG and Vim syntax for
+# auto-completion in Emacs, Vim and oXygen XML editors.
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -P cfs_xsd2rng.cmake
+  WORKING_DIRECTORY "/home/testuser/Documents/dev/NIGHTLY/CFS_XSD2RNG"
+  RESULT_VARIABLE RETVAL)
+
 # ===========================================================================
 #  Make nightly binaries available via Apache server.
 # ===========================================================================
