@@ -114,6 +114,9 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type)
   case DesignElement::POISSON:
   case DesignElement::POISSONISO:
   case DesignElement::ROTANGLE:
+  case DesignElement::ROTANGLEX:
+  case DesignElement::ROTANGLEY:
+  case DesignElement::ROTANGLEZ:
   case DesignElement::STIFF1:
   case DesignElement::STIFF2:
   case DesignElement::STIFF3:

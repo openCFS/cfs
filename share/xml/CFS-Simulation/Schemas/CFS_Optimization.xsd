@@ -1352,9 +1352,9 @@
       <xsd:enumeration value="piezo_22"/>
       <xsd:enumeration value="piezo_23"/>
       <xsd:enumeration value="rotAngle"/>
-      <xsd:enumeration value="rotX"/>
-      <xsd:enumeration value="rotY"/>
-      <xsd:enumeration value="rotZ"/>
+      <xsd:enumeration value="rotAngleX"/>
+      <xsd:enumeration value="rotAngleY"/>
+      <xsd:enumeration value="rotAngleZ"/>
       <xsd:enumeration value="stiff1"/>
       <xsd:enumeration value="stiff2"/>
       <xsd:enumeration value="stiff3"/>
