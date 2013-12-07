@@ -124,22 +124,27 @@ namespace CoupledField {
       std::string integId = curRegNode->Get("integId")->As<std::string>();
       mySpace->SetRegionApproximation(actRegion, polyId,integId);
 
+      PtrCoefFct coef;
 
-      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
-      if ( nonLinTypes.Find(NLELEC_CONDUCTIVITY) != -1 ) {
-        shared_ptr<BaseFeFunction> feFuncTemp = feFunctions_[HEAT_TEMPERATURE];
+      StdVector<NonLinType> matDepenTypes = regionMatDepTypes_[actRegion];
+      if ( matDepenTypes.Find(NLELEC_CONDUCTIVITY) != -1 ) {
+        std::cout << "Matdependency conductivity found" << std::endl;
 
-        BaseBOperator * bOp = new IdentityOperator<FeH1>();
-        PtrCoefFct condNL =
-            actSDMat->GetScalCoefFncNonLin( ELEC_CONDUCTIVITY, Global::REAL, feFuncTemp, bOp);
+        shared_ptr<BaseFeFunction> myFct = feFunctions_[ELEC_POTENTIAL];
+        StdVector<std::string> dispDofNames = myFct->GetResultInfo()->dofNames;
+        shared_ptr<EntityList> ent = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
+
+        //get coeff-Fnc to evaluate the temperature
+        ReadMaterialDependency( "elecConductivity", dispDofNames, ResultInfo::SCALAR, isComplex_,
+                                ent, coef, updatedGeo_ );
 
         // create stiffness integrator
         BaseBDBInt* stiffInt = NULL;
         if( dim_ == 2 ) {
-          stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), condNL,
+          stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), coef,
                                  1.0, updatedGeo_ );
         } else {
-          stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), condNL,
+          stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), coef,
                                  1.0, updatedGeo_ );
         }
         stiffInt->SetName("StiffnessIntegrator-NL");
@@ -151,22 +156,9 @@ namespace CoupledField {
 
         assemble_->AddBiLinearForm( stiffContext );
         bdbInts_[actRegion] = stiffInt;
-
-
-        // =================================
-        //  Nonlinear RHS-integrator
-        // =================================
-        LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0,
-                                                feFunctions_[ELEC_POTENTIAL] );
-        rhsNlinForm->SetName("RHSNonLinFormHeatStiff");
-        LinearFormContext * rhsNlinContext =
-            new LinearFormContext( rhsNlinForm );
-        rhsNlinContext->SetEntities( actSDList );
-        rhsNlinContext->SetFeFunction( feFunctions_[ELEC_POTENTIAL] );
-        assemble_->AddLinearForm( rhsNlinContext );
       }
       else {
-        // ----- standard real-valued stiffness integrator
+        // ----- standard real-valued stiffness integrator with constant conductivity
         BaseBDBInt * stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion);
         stiffInt->SetName("LinElecCurrentIntegrator");
         BiLinFormContext * stiffIntDescr =
@@ -182,18 +174,6 @@ namespace CoupledField {
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results
         bdbInts_[actRegion] = stiffInt;
-
-        if ( nonLinTypes.Find(NLELEC_CONDUCTIVITY) != -1 ) {
-          // === Additional RHS integrator in case of Non-linearity ===
-          LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0,
-                                                  feFunctions_[ELEC_POTENTIAL]);
-          rhsNlinForm->SetName("RHSNonLinFormElecCurrentStiff-Lin");
-          LinearFormContext * rhsNlinContext =
-              new LinearFormContext( rhsNlinForm );
-          rhsNlinContext->SetEntities( actSDList );
-          rhsNlinContext->SetFeFunction( feFunctions_[ELEC_POTENTIAL] );
-          assemble_->AddLinearForm( rhsNlinContext );
-        }
       }
     }
 

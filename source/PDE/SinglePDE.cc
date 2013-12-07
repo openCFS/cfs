@@ -281,6 +281,12 @@ namespace CoupledField {
     LOG_TRACE(singlepde) << pdename_ << ": Initializing non-linearities";
     InitNonLin();
 
+    // =====================================================================
+    // read in material dependencies
+    // =====================================================================
+    LOG_TRACE(singlepde) << pdename_ << ": Initializing material depenencies";
+    InitMaterialDependencies();
+
     // Todo: Move this part to the definition of damping
     PtrParamNode in = infoNode_->Get(ParamNode::PN_HEADER);
     for(UInt i = 0; i < regions_.GetSize(); i++ )
@@ -511,6 +517,79 @@ namespace CoupledField {
     if ( nonLin_ ) {
       if ( pdename_ == "heatConduction")
         nonLinTotalFormulation_ = true;
+    }
+  }
+
+
+  // *********************************
+  //  Initialize material depenencies
+  // *********************************
+  void SinglePDE::InitMaterialDependencies() {
+
+    matDepend_ = false;
+
+    // Check, if "matDependencyList" is present
+    PtrParamNode matDepListNode = myParam_->Get("matDependencyList", ParamNode::PASS );
+    if( matDepListNode ) {
+
+      // Get nonlinear types
+      ParamNodeList matDepNodes = matDepListNode->GetChildren();
+      for( UInt i = 0; i < matDepNodes.GetSize(); i++ ) {
+
+        std::string actTypeString = matDepNodes[i]->GetName();
+        std::string actId = matDepNodes[i]->Get("id")->As<std::string>();
+
+        NonLinType actType;
+        String2Enum( actTypeString, actType );
+
+        //save for each nonlinearity type the id
+        matDepTypes_[actId] = actType;
+      }
+
+
+      // Run over all region and set entry in "regionNonLinId"
+      ParamNodeList regionNodes =
+        myParam_->Get("regionList")->GetChildren();
+
+      RegionIdType actRegionId;
+      std::string actRegionName, actMatDepId;
+
+      for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+        //take care: one region can have more then one material dependency!!
+
+        // get data
+        regionNodes[i]->GetValue( "name", actRegionName );
+        regionNodes[i]->GetValue( "matDependIds", actMatDepId );
+
+        if( actMatDepId == "" )
+          continue;
+
+        typedef boost::tokenizer< boost::char_separator<char> > Tok;
+        boost::char_separator<char> sep(";|, ");
+
+        Tok tok(actMatDepId, sep);
+
+        actRegionId = ptGrid_->GetRegion().Parse( actRegionName );
+
+        for(Tok::iterator it=tok.begin(); it!=tok.end(); ++it) {
+          std::string matDepId = (*it);
+
+          if(matDepTypes_.find(matDepId) == matDepTypes_.end()) {
+            WARN( "Material depenency with id '" << matDepId
+                  << "' was not defined in 'matDependencyList'");
+            continue;
+          }
+
+          regionMatDepTypes_[actRegionId].Push_back( matDepTypes_[matDepId] );
+
+          //write info
+          std::string matDepString;
+          Enum2String( matDepTypes_[matDepId], matDepString );
+
+          //if one nonlinearity is set, then the whole PDE is set to nonlinear
+          matDepend_ = true;
+        }
+      }
     }
   }
 
@@ -1964,6 +2043,23 @@ namespace CoupledField {
     
   }
 
+  void SinglePDE::ReadMaterialDependency( const std::string& elemName,
+                                     const StdVector<std::string>& compNames,
+                                     ResultInfo::EntryType type,
+                                     bool isComplex,
+                                     shared_ptr<EntityList>& entity,
+                                     PtrCoefFct& coef,
+                                     bool& updateGeo ) {
+
+    // get grip of all elements of that type
+    if( !myParam_->Has("matDependencyList") )
+      return;
+
+    PtrParamNode xml = myParam_->Get("matDependencyList")->Get(elemName);
+    std::set<UInt> definedDofs;
+    ReadUserFieldValues(entity,xml,compNames,type,isComplex,coef,
+                            definedDofs, updateGeo );
+  }
 
   void SinglePDE::ReadRhsExcitation( const std::string& elemName, 
                                      const StdVector<std::string>& compNames,

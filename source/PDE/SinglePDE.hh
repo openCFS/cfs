@@ -207,6 +207,26 @@ namespace CoupledField
     //! Define all RHS linearforms for load / excitation 
     virtual void DefineRhsLoadIntegrators( ) {}
 
+    //! Read material depenecy information
+
+    //! This method reads an xml element for a general material dependency and
+    //! returns the CoefFunction.
+    //! \param elemName Name of ParamNode within <matDependencyList> to be read
+    //! \param compNames Names of the components (vector, tensor)
+    //! \param type Type of CoefFunction to be read in (scalar, vector, tensor)
+    //! \param isComplex Denotes  if a complex valued coef-function is to be
+    //!                  generated
+    //! \param entities Vector of entityLists
+    //! \param coef Vector of coefficients function for the values
+    //! \param updateGeo Flag indicating, if coefficient function is defined
+    //!                  on an updated geometry (e.g. due to iterative coupling).
+    void ReadMaterialDependency( const std::string& elemName,
+                            const StdVector<std::string>& compNames,
+                            ResultInfo::EntryType type,
+                            bool isComplex,
+                            shared_ptr<EntityList>& entity,
+                            PtrCoefFct& coef,
+                            bool& updateGeo );
 
     //! Read single RHS excitation
     
@@ -295,6 +315,9 @@ namespace CoupledField
     
     //! Initialize NonLinearities
     virtual void InitNonLin();
+
+    //! Initialize material dependencies
+    virtual void InitMaterialDependencies();
 
     //! Define the time FeFunctions for this PDE according to the
     //! definition in the XML file

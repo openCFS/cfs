@@ -128,18 +128,18 @@
   <!--   Definition of data from iterative coupled field problems           -->
   <!-- ******************************************************************** -->
 	<xsd:complexType name="DT_IterCplData">
-		<xsd:complexContent>
-	  	<xsd:restriction base="xsd:anyType">        
+           <xsd:complexContent>
+	     <xsd:restriction base="xsd:anyType">        
 	    	<xsd:sequence>
-		    	<xsd:element name="quantity">
-		    		<xsd:complexType>
-		    			<xsd:attribute name="name" type="xsd:token" use="required"/>	    		
-		    		</xsd:complexType>	    	
-		    	</xsd:element>
-				</xsd:sequence>
-				<xsd:attribute name="pdeName" type="xsd:token" use="required"/>
-			</xsd:restriction>
-		</xsd:complexContent>
+		    <xsd:element name="quantity">
+		    	<xsd:complexType>
+		    	      <xsd:attribute name="name" type="xsd:token" use="required"/>	    		
+		        </xsd:complexType>	    	
+		    </xsd:element>
+		</xsd:sequence>
+		<xsd:attribute name="pdeName" type="xsd:token" use="required"/>
+             </xsd:restriction>
+	   </xsd:complexContent>
 	</xsd:complexType>
   
 
@@ -498,6 +498,16 @@
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
+
+
+  <xsd:complexType name="DT_matDependencyBasic">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="id" type="xsd:token" use="required"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
   
   <!-- ******************************************************************** -->
   <!--   Definition of basic function space types -->
@@ -978,5 +988,36 @@
     <xsd:attribute name="writeResult" type="DT_CFSBool" default="yes"/>
   </xsd:complexType>
   
+
+ <!-- ***************************************************** -->
+ <!--   Definition for material dependencies in PDEs        -->
+ <!-- ***************************************************** -->
+  <xsd:complexType name="DT_matDependency">
+    <xsd:complexContent>
+      <xsd:extension base="DT_matDependencyCoupled"> </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_matDependencyCoupled">
+    <xsd:complexContent>
+      <xsd:extension base="DT_matDepBasic">
+        <xsd:choice>
+          <!-- =========================== -->
+          <!--  A) Iterative Coupling      -->
+          <!-- =========================== -->            
+          <xsd:element name="coupling" maxOccurs="1" type="DT_IterCplData"/>          
+        </xsd:choice>
+      </xsd:extension>
+    </xsd:complexContent> 
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_matDepBasic">    
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="id" type="xsd:token"  use="required"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
 
 </xsd:schema>
