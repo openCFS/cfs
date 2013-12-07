@@ -185,8 +185,6 @@ void HeatPDE::DefineIntegrators() {
     StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
     if ( nonLinTypes.Find(NLHEAT_CONDUCTIVITY) != -1 ) {
       // informs material that approx./interpol. for heat conductivity is needed
-      std::cout << "Do NL Cond" << std::endl;
-
       BaseBOperator * bOp = new IdentityOperator<FeH1>();
       PtrCoefFct condNL = 
           actSDMat->GetScalCoefFncNonLin( HEAT_CONDUCTIVITY, Global::REAL, feFunc, bOp);
@@ -213,14 +211,14 @@ void HeatPDE::DefineIntegrators() {
       // =================================
       //  Nonlinear RHS-integrator
       // =================================
-      LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0, 
+      LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0,
                                                           feFunc );
-        rhsNlinForm->SetName("RHSNonLinFormHeatStiff");
-        LinearFormContext * rhsNlinContext =
-            new LinearFormContext( rhsNlinForm );
-        rhsNlinContext->SetEntities( actSDList );
-        rhsNlinContext->SetFeFunction( feFunc );
-        assemble_->AddLinearForm( rhsNlinContext );
+      rhsNlinForm->SetName("RHSNonLinFormHeatStiff");
+      LinearFormContext * rhsNlinContext =
+          new LinearFormContext( rhsNlinForm );
+      rhsNlinContext->SetEntities( actSDList );
+      rhsNlinContext->SetFeFunction( feFunc );
+      assemble_->AddLinearForm( rhsNlinContext );
     }
     else {
       // --- linear real-valued stiffness integrator ---
@@ -246,43 +244,45 @@ void HeatPDE::DefineIntegrators() {
       
       assemble_->AddBiLinearForm( stiffIntDescr );
       bdbInts_[actRegion] = stiffInt;
+
+      if ( nonLinTypes.Find(NLHEAT_CONDUCTIVITY) ||
+                nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ) {
+        // === Additional RHS integrator in case of Non-linearity ===
+        LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0,
+                                                            feFunc );
+        rhsNlinForm->SetName("RHSNonLinFormHeatStiff-Lin");
+        LinearFormContext * rhsNlinContext =
+            new LinearFormContext( rhsNlinForm );
+        rhsNlinContext->SetEntities( actSDList );
+        rhsNlinContext->SetFeFunction( feFunc );
+        assemble_->AddLinearForm( rhsNlinContext );
+      }
     }
 
     // ====================================================================
     // mass integrator
     // ====================================================================
 
-    // Factor for mass matrix: density * heatCapacity
-    PtrCoefFct density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
-    PtrCoefFct heatCapacity = 
-        actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
-    PtrCoefFct massFactor =
-        CoefFunction::Generate(mp_, Global::REAL,
-                               CoefXprBinOp( mp_, density, heatCapacity, 
-                                             CoefXpr::OP_MULT ) );
-    
-
     if ( nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ) {
-      // informs material that approx./interpol. for heat conductivity is needed
-      std::cout << "Do NL Capacity" << std::endl;
-//      
+      // Factor for mass matrix: density * heatCapacity
+      PtrCoefFct density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
       BaseBOperator * bOp = new IdentityOperator<FeH1>();
       PtrCoefFct capNL = 
           actSDMat->GetScalCoefFncNonLin( HEAT_CAPACITY, Global::REAL,
                                           feFunc, bOp);
 
-      PtrCoefFct nlMassCoeff = 
+      PtrCoefFct nlMassCoeff =
           CoefFunction::Generate(mp_, Global::REAL,
                                  CoefXprBinOp(mp_,  capNL, density, CoefXpr::OP_MULT ) );
 
       // create stiffness integrator
       BaseBDBInt* massIntNL = NULL;
       if( dim_ == 2 ) {
-        massIntNL = new BBInt<>(new IdentityOperator<FeH1,2>(), nlMassCoeff, 
-                                1.0, updatedGeo_ );
+        massIntNL = new BBInt<>(new IdentityOperator<FeH1,2>(), nlMassCoeff,
+                                1, updatedGeo_ );
       } else {
-        massIntNL = new BBInt<>(new IdentityOperator<FeH1,3>(), nlMassCoeff, 
-                                1.0, updatedGeo_ );
+        massIntNL = new BBInt<>(new IdentityOperator<FeH1,3>(), nlMassCoeff,
+                                1, updatedGeo_ );
       }
       massIntNL->SetName("MassIntegrator-NL");
 
@@ -293,19 +293,18 @@ void HeatPDE::DefineIntegrators() {
 
       assemble_->AddBiLinearForm( massNLContext );
       bdbInts_[actRegion] = massIntNL;
-
-      // =================================
-      //  Nonlinear RHS-integrator
-      // =================================
-      LinearForm * rhsNlinForm = new KXIntegrator<Double>(massIntNL, -1.0, feFunc );
-      rhsNlinForm->SetName("RHSNonLinFormHeatMass");
-      LinearFormContext * rhsNlinContext =
-        new LinearFormContext( rhsNlinForm );
-      rhsNlinContext->SetEntities( actSDList );
-      rhsNlinContext->SetFeFunction( feFunc );
-      assemble_->AddLinearForm( rhsNlinContext );
     }
     else {
+      // Linear case
+      // Factor for mass matrix: density * heatCapacity
+      PtrCoefFct density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
+      PtrCoefFct heatCapacity =
+          actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
+      PtrCoefFct massFactor =
+          CoefFunction::Generate(mp_, Global::REAL,
+                                 CoefXprBinOp( mp_, density, heatCapacity,
+                                               CoefXpr::OP_MULT ) );
+
       BiLinearForm *massInt = NULL;
       if(dim_==2)
         massInt = new BBInt<>(new IdentityOperator<FeH1,2,1,Double>(), massFactor,1.0, updatedGeo_ );
@@ -697,11 +696,11 @@ void HeatPDE::InitTimeStepping() {
 
   // Until now no effective mass formulation in the trapezoidal
   //  integration scheme is implemented!
-  //TS_alg_ = new Trapezoidal( algsys_, olasNode_ );
-  shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::TRAPEZOIDAL, 0) );
+  Double gamma = 1;
+  GLMScheme * scheme = new Trapezoidal(gamma);
 
+  shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0) );
   feFunctions_[HEAT_TEMPERATURE]->SetTimeScheme(myScheme);
-
 
 }
 

@@ -14,7 +14,7 @@ namespace CoupledField {
                                       FEMatrixType destMat) {
 
     integrator_ = biLinForm;
-    
+
     destMat_ = destMat;
     secDestMat_ = NOTYPE;
     mathParser_ = domain->GetMathParser();

@@ -24,6 +24,7 @@
 #include "Domain/CoefFunction/CoefXpr.hh"
 
 #include "Utils/SmoothSpline.hh"
+#include "Utils/LinInterpolate.hh"
 using std::string;
 using std::map;
 using std::set;
@@ -1019,15 +1020,28 @@ namespace CoupledField
      // Check, if smooth spline approximation was already created 
      // and initialized
      if( !matNl.approxData ) {
-       SmoothSpline * sp = new SmoothSpline( matNl.fileName, matType ); 
-       sp->SetAccuracy( matNl.measAccuracy );
-       sp->SetMaxY( matNl.maxVal );
-       sp->CalcBestParameter();
-       sp->CalcApproximation();
-       sp->Print();
-       matNl.approxData = sp;
+       if ( matNl.approxType == SMOOTH_SPLINES ) {
+         SmoothSpline * sp = new SmoothSpline( matNl.fileName, matType );
+         sp->SetAccuracy( matNl.measAccuracy );
+         sp->SetMaxY( matNl.maxVal );
+         sp->CalcBestParameter();
+         sp->CalcApproximation();
+         sp->Print();
+         matNl.approxData = sp;
+       }
+       else if ( matNl.approxType == LIN_INTERPOLATE ) {
+         LinInterpolate * sp = new LinInterpolate( matNl.fileName, matType );
+         //sp->SetAccuracy( matNl.measAccuracy );
+         //sp->SetMaxY( matNl.maxVal );
+         sp->Print();
+         matNl.approxData = sp;
+        }
+       else {
+         EXCEPTION( "No nonlinear approx/interpolate type not available '"
+             << ApproxCurveTypeEnum.ToString(matNl.approxType) << "'");
+       }
      }
-     
+
      ApproxData * sp = matNl.approxData;
      
      // get linear starting value

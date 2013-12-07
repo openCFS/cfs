@@ -71,10 +71,11 @@ namespace CoupledField {
     residualStopCrit_ = 1e-3;
     nonLinMaxIter_ = 10;
 
-    nonLin_            = PDE_.IsNonLin();
-    nonLinMaterial_    = PDE_.IsNonLinMaterial();
-    isHyst_            = PDE_.IsHysteresis();
-    regionNonLinTypes_ = PDE_.GetNonLinRegionTypes();
+    nonLin_                 = PDE_.IsNonLin();
+    nonLinMaterial_         = PDE_.IsNonLinMaterial();
+    nonLinTotalFormulation_ = PDE_.IsTotalNonLinFormulation();
+    isHyst_                 = PDE_.IsHysteresis();
+    regionNonLinTypes_      = PDE_.GetNonLinRegionTypes();
 
     startStep_ = 1;
     
@@ -303,6 +304,7 @@ namespace CoupledField {
           WARN("Zero solution vector!! ");
         }
 
+        //std::cout << "Norm:\n" << "Residual: " << residualErr << "  Incr.Error: " <<  incrementalErr << std::endl << std::endl;
         // output of norms and data
         if ( nonLinLogging_ == true ) {
           WriteNonLinIterToInfoXML(pdename_, iLevel+1,iterationCounter, residualErr, 
@@ -372,7 +374,10 @@ namespace CoupledField {
     }
     // do a nonlinear time step
     else if (nonLin_){
-      StepTransNonLin(analysis_id);
+      if ( nonLinTotalFormulation_ )
+        StepTransNonLinTotal(analysis_id);
+      else
+        StepTransNonLin(analysis_id);
     }
     // do a linear time step
     else {
@@ -482,6 +487,7 @@ namespace CoupledField {
 
   void StdSolveStep::StepTransNonLin(PtrParamNode analysis_id) {
 
+    //std::cout << "in StepTransNonLin" << std::endl;
     bool performOneMoreStep;
     SBM_Vector solInc(BaseMatrix::DOUBLE);
 
@@ -535,6 +541,7 @@ namespace CoupledField {
       // inner forces due to nonlin formulation
       assemble_->AssembleNonLinRHS();  
 
+
       //now update RHS according to time stepping
       for(matIt = matrices.begin();matIt != matrices.end();matIt++){
         if(matIt->second < 0)
@@ -550,7 +557,6 @@ namespace CoupledField {
 
       do {
         iterationCounter++;
-
         // do matrices
         assemble_->AssembleMatrices();
         matrix_factor_.clear();
@@ -591,10 +597,6 @@ namespace CoupledField {
         //std::cout << solInc.ToString(1,',') << std::endl;
         //std::cout << stageSol.ToString(1,',') << std::endl;
 
-        // store the new solution
-        //stageSol = actSol;
-        //solVec_  = actSol;
-
         solVec_  = stageSol;
 
         if ( lineSearch_ == "none" ) {
@@ -620,10 +622,6 @@ namespace CoupledField {
           // calculation of residual error =======================================
           residualL2Norm = actRHS.NormL2(); // L2Norm of  ( f_i^(k+1) - f_a )
         } 
-        //else {
-        //  algsys_->InitRHS(RhsLinVal_ );
-        //  assemble_->AssembleNonLinRHS();
-        //}
 
         // calculation of residual error =======================================
         Double residualErr;
@@ -670,120 +668,135 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::StepTransNonLinTotal(PtrParamNode base_analysis_id) {
-    REFACTOR;
-/*
-    std::cout << "\n In :StepTransNonLinTotal  \n " << std::endl;
- 
+  void StdSolveStep::StepTransNonLinTotal(PtrParamNode analysis_id) {
+    //std::cout << "In Step Total" << std::endl;
     bool performOneMoreStep;
-    UInt iterationCounter=0;
-    Double etaLineSearch;
-    Double incrementalErr, residualErr;
+    SBM_Vector solNew(BaseMatrix::DOUBLE);
+    SBM_Vector diffSol(BaseMatrix::DOUBLE);
 
-    SBM_Vector newSol(BaseMatrix::DOUBLE), 
-               oldSol(BaseMatrix::DOUBLE), solPrev(BaseMatrix::DOUBLE);
-  
-    // remember previous solution  
-    solPrev = solVec_;
+    //get actual solution
+    SBM_Vector  actSol(BaseMatrix::DOUBLE);
+    actSol = solVec_;
 
-    // perform predictor step
-    if ( TS_alg_== NULL ) {
-      Exception( "TS_alg has NULL-Pointer, in StdSolveStep::StepTransNonLin");
+    //obtain the number of stages
+    UInt numStages = feFunctions_.begin()->second->GetTimeScheme()->GetNumStages();
+
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+    std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
+    std::map<FEMatrixType,Integer>::iterator matIt;
+
+    UInt pos = 0;
+
+    bool updatePredictor = ( PDE_.IsIterCoupled() == false || couplingIter_ == 0 );
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+      fncIt->second->GetTimeScheme()->BeginStep(updatePredictor);
     }
-    else {
-      //compute predictors
-      TS_alg_->Predictor(solPrev);
-    }
 
-    //! account for Dirichlet BCs
-    PDE_.SetBCs( );    
+    for(UInt i=0;i<numStages;i++){
+      //do initialization
+      rhsVec_.Init();
 
-    Double loadFactor = 0.0;
-    for ( UInt iload=0; iload<1; iload++ ) {
-      loadFactor += 1.0;
-//      Info->PrintF(pdename_, "\n");
-//      Info->PrintF(pdename_, "LoadFactor: %g \n", loadFactor);
+      //we obtain a reference to the stage vectors of the scheme
+      SBM_Vector stageSol;
+      stageSol.Resize(feFunctions_.size());
+      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+        stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),pos);
+        fncIt->second->GetTimeScheme()->InitStage(i,actTime_,PDE_.GetDomain());
+      }
+      stageSol.SetOwnership(false);
+      stageSol = actSol;
 
-      // setup right hand side
-      Double RhsLinL2Norm = SetLinRHS(loadFactor);
-
-      // inner forces due to nonlin formulation
-      assemble_->AssembleNonLinRHS();  
+      // set iteration counter
+      UInt iterationCounter=0;
 
       do {
         iterationCounter++;
-        
-        // set solution of previous iteration
-        if (iterationCounter == 1 ) {
-          oldSol = solPrev;
-        }
-        else {
-          oldSol = newSol;
-        }
-        
-        //init RHS with linear part!
-        algsys_->InitRHS(RhsLinVal_);
-        
-        PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(base_analysis_id, "load", iload, "nonLin", iterationCounter);
-        
-        //perform new assembly
+
+        // setup right hand side
+        algsys_->InitRHS();
+        assemble_->AssembleLinRHS();
+        //PDE_.SetRhsValues();
+
+        // do matrices
         assemble_->AssembleMatrices();
-        algsys_->ConstructEffectiveMatrix(matrix_factor_);
+        matrix_factor_.clear();
         
+        // set system matrix to zero initially, as ConstructEffectiveMatrix only
+        // sums up the contributions
+        algsys_->InitMatrix(SYSTEM);
+        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+          FeFctIdType fctId = fncIt->second->GetFctId();
+          fncIt->second->GetTimeScheme()
+            ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
+          algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+        }
         
-        //Update RHS (mass matrix on right hand side)
-        TS_alg_->UpdateRHS();
-        
-        // build in the Dirichlet vales in system matrix and rhs
+        //now update RHS according to time stepping
+        for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+          if(matIt->second < 0)
+            continue;
+          for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+            fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
+          }
+          algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+        }
+
+        PDE_.SetBCs();
         algsys_->BuildInDirichlet();
-        
-        algsys_->SetupSolver(child_id);
-        algsys_->SetupPrecond(child_id);
-        
-        algsys_->Solve(child_id);
-        algsys_->GetSolutionVal(newSol); 
-        
-        //store solution for (n+1)
-        solVec_ = newSol;
-        
-        // compute L2-Norm of error between last incremental solution and
-        // actual incremental solution
-        Double solIncrL2Norm=0;
-        SBM_Vector temp(BaseMatrix::DOUBLE);
-        temp.Add(1.0, newSol, -1.0, oldSol );
-//        for (UInt i=0; i<newSol.GetSize(); i++)
-//          solIncrL2Norm += (newSol[i]-oldSol[i])*(newSol[i]-oldSol[i]);
-//        
-//        solIncrL2Norm = sqrt(solIncrL2Norm);
-        solIncrL2Norm = temp.NormL2();
-        Double actSolL2Norm = newSol.NormL2();
-        
-        if (actSolL2Norm > 1)
-          incrementalErr = solIncrL2Norm / actSolL2Norm;
+        algsys_->SetupPrecond(analysis_id);
+        algsys_->SetupSolver(analysis_id);
+
+//        bool setIDBC = false;
+//        if ( iterationCounter == 1 )
+        bool setIDBC = true;
+
+        algsys_->Solve(analysis_id, setIDBC);
+        algsys_->GetSolutionVal(solNew, setIDBC );
+
+        // calculate incremental error ========================================
+        diffSol = solNew;
+        diffSol.Add( -1.0, actSol);
+        Double solIncrL2Norm = diffSol.NormL2();
+        Double solNewL2Norm = solNew.NormL2();
+
+        Double incrementalErr;
+        if (solNewL2Norm > 1)
+          incrementalErr = solIncrL2Norm / solNewL2Norm;
         else
           incrementalErr = solIncrL2Norm;
 
         //just dummy things
-        etaLineSearch = RhsLinL2Norm;
-        etaLineSearch = 1.0;
-        residualErr   = incrementalErr;
-        
+        Double etaLineSearch = 1.0;
+        Double residualErr = incrementalErr;
+
         // output of norms and data
-        nonLinLogging_ = true;
-        if ( nonLinLogging_ == true )
-          WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
-        
-        performOneMoreStep = (incrementalErr > incStopCrit_) ; //|| (residualErr > residualStopCrit_);      
-        
-      } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
-    } // load step loop
+        if ( nonLinLogging_ == true ) {
+          WriteNonLinIterToInfoXML(pdename_, 1,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+          // write norm to file
+          logFile_ <<  iterationCounter << "\t"
+              << residualErr << "\t"
+              << incrementalErr << "\t"
+              << etaLineSearch << std::endl;
+        }
 
-    if ( incrementalErr > incStopCrit_ ) 
-      std::cout << "Not converged, norm is: " <<incrementalErr << std::endl; 
+        stageSol = solNew;
+        solVec_  = stageSol;
 
-    //perform corrector step  
-    TS_alg_->Corrector(newSol);
-    */
+        //store new solution
+        actSol = solNew;
+
+        // boolean variable, holds condition if another iteration step is necessary
+        performOneMoreStep =
+          (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+
+      } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
+
+    } //stages
+
+    //update stage
+    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+      fncIt->second->GetTimeScheme()->FinishStep();
+    }
   }
 
   

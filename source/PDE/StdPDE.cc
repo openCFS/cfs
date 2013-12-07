@@ -36,6 +36,7 @@ namespace CoupledField {
     subType_(),
     nonLin_(false),
     nonLinMaterial_(false),
+    nonLinTotalFormulation_(false),
     isHysteresis_(false),
     isIterCoupled_(false),
     diagMass_(false),

@@ -32,7 +32,7 @@ namespace CoupledField{
      this->bOperator_ = bOp;
      this->coefScalar_ = scalCoef;
      this->factor_ = factor;
-     
+
      // Ensure, that the coefficient set is a scalar valued one
      if( this->coefScalar_->GetDimType() != CoefFunction::SCALAR ) {
        EXCEPTION( "The BBInt-class only works with scalar-valued "
@@ -84,6 +84,7 @@ namespace CoupledField{
 
        // Calculate scalar factor
        this->coefScalar_->GetScalar(fac, lp);
+
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
 
 #ifdef USE_BLAS_VERSION

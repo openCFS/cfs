@@ -156,6 +156,9 @@ namespace CoupledField {
     bool IsNonLinMaterial() 
     { return nonLinMaterial_;};
 
+    bool IsTotalNonLinFormulation()
+    { return nonLinTotalFormulation_;};
+
     bool IsHysteresis() 
     { return isHysteresis_;};
 
@@ -276,6 +279,7 @@ namespace CoupledField {
     //! \name Attributes connected to nonlinearity
     bool nonLin_;           //!< flag for nonlinear calculations
     bool nonLinMaterial_;           //!< flag for nonlinear material calculations
+    bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
     bool isHysteresis_;     //!< flag for hysteresis
 
     //! map for each region the type of nonlinearity

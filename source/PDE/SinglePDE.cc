@@ -506,6 +506,12 @@ namespace CoupledField {
         nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
       }
     }
+
+    //do PDE specific steps
+    if ( nonLin_ ) {
+      if ( pdename_ == "heatConduction")
+        nonLinTotalFormulation_ = true;
+    }
   }
 
    /** can generally be called multiple times. We overwrite old values! Brute force but keeps data size */

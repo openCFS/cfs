@@ -679,7 +679,8 @@ namespace CoupledField {
       out = NLHEAT_CONDUCTIVITY;
     } else if( in == "heatCapacity") {
       out = NLHEAT_CAPACITY;
-
+    } else if( in == "elecConductivity") {
+       out = NLELEC_CONDUCTIVITY;
     } else {
       EXCEPTION( "'" << in << "' cannot be converted into an "
                  << "'NonLinType' item!" );

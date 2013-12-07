@@ -33,6 +33,7 @@
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
+#include "Forms/LinForms/KXInt.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 
@@ -123,25 +124,77 @@ namespace CoupledField {
       std::string integId = curRegNode->Get("integId")->As<std::string>();
       mySpace->SetRegionApproximation(actRegion, polyId,integId);
 
-      
-      
-      // ----- standard real-valued stiffness integrator
-      BaseBDBInt * stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion);
-      stiffInt->SetName("LinElecCurrentIntegrator");
-      BiLinFormContext * stiffIntDescr =
+
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+      if ( nonLinTypes.Find(NLELEC_CONDUCTIVITY) != -1 ) {
+        shared_ptr<BaseFeFunction> feFuncTemp = feFunctions_[HEAT_TEMPERATURE];
+
+        BaseBOperator * bOp = new IdentityOperator<FeH1>();
+        PtrCoefFct condNL =
+            actSDMat->GetScalCoefFncNonLin( ELEC_CONDUCTIVITY, Global::REAL, feFuncTemp, bOp);
+
+        // create stiffness integrator
+        BaseBDBInt* stiffInt = NULL;
+        if( dim_ == 2 ) {
+          stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), condNL,
+                                 1.0, updatedGeo_ );
+        } else {
+          stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), condNL,
+                                 1.0, updatedGeo_ );
+        }
+        stiffInt->SetName("StiffnessIntegrator-NL");
+
+        BiLinFormContext * stiffContext =
           new BiLinFormContext(stiffInt, STIFFNESS );
-      feFunctions_[ELEC_POTENTIAL]->AddEntityList( actSDList );
+        stiffContext->SetEntities( actSDList, actSDList );
+        stiffContext->SetFeFunctions( feFunctions_[ELEC_POTENTIAL], feFunctions_[ELEC_POTENTIAL] );
 
-      //stiffIntDescr->SetPtPdes(this, this);
-      stiffIntDescr->SetEntities( actSDList, actSDList );
-      stiffIntDescr->SetFeFunctions( feFunctions_[ELEC_POTENTIAL],feFunctions_[ELEC_POTENTIAL]);
-      stiffInt->SetFeSpace( feFunctions_[ELEC_POTENTIAL]->GetFeSpace());
+        assemble_->AddBiLinearForm( stiffContext );
+        bdbInts_[actRegion] = stiffInt;
 
-      assemble_->AddBiLinearForm( stiffIntDescr );
-      // Important: Add bdb-integrator to global list, as we need them later
-      // for calculation of postprocessing results
-      bdbInts_[actRegion] = stiffInt;
-      
+
+        // =================================
+        //  Nonlinear RHS-integrator
+        // =================================
+        LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0,
+                                                feFunctions_[ELEC_POTENTIAL] );
+        rhsNlinForm->SetName("RHSNonLinFormHeatStiff");
+        LinearFormContext * rhsNlinContext =
+            new LinearFormContext( rhsNlinForm );
+        rhsNlinContext->SetEntities( actSDList );
+        rhsNlinContext->SetFeFunction( feFunctions_[ELEC_POTENTIAL] );
+        assemble_->AddLinearForm( rhsNlinContext );
+      }
+      else {
+        // ----- standard real-valued stiffness integrator
+        BaseBDBInt * stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion);
+        stiffInt->SetName("LinElecCurrentIntegrator");
+        BiLinFormContext * stiffIntDescr =
+            new BiLinFormContext(stiffInt, STIFFNESS );
+        feFunctions_[ELEC_POTENTIAL]->AddEntityList( actSDList );
+
+        //stiffIntDescr->SetPtPdes(this, this);
+        stiffIntDescr->SetEntities( actSDList, actSDList );
+        stiffIntDescr->SetFeFunctions( feFunctions_[ELEC_POTENTIAL],feFunctions_[ELEC_POTENTIAL]);
+        stiffInt->SetFeSpace( feFunctions_[ELEC_POTENTIAL]->GetFeSpace());
+
+        assemble_->AddBiLinearForm( stiffIntDescr );
+        // Important: Add bdb-integrator to global list, as we need them later
+        // for calculation of postprocessing results
+        bdbInts_[actRegion] = stiffInt;
+
+        if ( nonLinTypes.Find(NLELEC_CONDUCTIVITY) != -1 ) {
+          // === Additional RHS integrator in case of Non-linearity ===
+          LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0,
+                                                  feFunctions_[ELEC_POTENTIAL]);
+          rhsNlinForm->SetName("RHSNonLinFormElecCurrentStiff-Lin");
+          LinearFormContext * rhsNlinContext =
+              new LinearFormContext( rhsNlinForm );
+          rhsNlinContext->SetEntities( actSDList );
+          rhsNlinContext->SetFeFunction( feFunctions_[ELEC_POTENTIAL] );
+          assemble_->AddLinearForm( rhsNlinContext );
+        }
+      }
     }
 
   }
