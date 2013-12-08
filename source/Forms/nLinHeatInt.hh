@@ -87,6 +87,7 @@ template <class TYPE> class Matrix;
     
     ApproxData *nlinFnc_;      //!< pointer to approximation object
     Vector<Double> temperature_;    //!< magnetic vector potential at nodes
+    Double density_;
 
   };
 
