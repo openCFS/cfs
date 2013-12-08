@@ -1059,6 +1059,13 @@ namespace CoupledField {
           ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
           material->SetTensor(tensor, HEAT_CONDUCTIVITY_TENSOR, Global::REAL);
           material->SetSymmetryType(HEAT_CONDUCTIVITY_TENSOR,BaseMaterial::GENERAL);
+
+          //set mean value of diagonal entries
+          Double meanCond = 0.0;
+          for ( UInt i=0; i<tensor.GetNumRows(); i++)
+            meanCond += tensor[i][i];
+          meanCond /= (Double)tensor.GetNumRows();
+          material->SetScalar(meanCond, HEAT_CONDUCTIVITY, Global::REAL);
         }
       }
 

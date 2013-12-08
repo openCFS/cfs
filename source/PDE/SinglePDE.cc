@@ -3039,7 +3039,41 @@ namespace CoupledField {
     // create new entity list
     shared_ptr<ElemList> actSDList = ncIf->GetElemList();
 
-    PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+    //we set here the penalty factor
+    Double beta = iface.nitscheFactor;
+
+    //possible material parameter and adaption of penalty term
+    PtrCoefFct factor;
+    if ( solType == HEAT_TEMPERATURE ) {
+      factor = materials_[nitscheIf->GetMasterVolRegion()]
+                       ->GetScalCoefFnc( HEAT_CONDUCTIVITY, Global::REAL );
+
+      //get the value of the conductivity and scale the penalty term
+      StdVector<Vector<Double> > points(1);
+      Vector<Double> p1(DIM);
+      p1.Init();
+      points[0]= p1;
+      StdVector<Double> ergVec;
+      factor->GetScalarValuesAtCoords(points,ergVec,this->ptGrid_);
+      beta *= ergVec[0];
+    }
+    else if ( solType == ELEC_POTENTIAL ) {
+      factor = materials_[nitscheIf->GetMasterVolRegion()]
+                       ->GetScalCoefFnc( ELEC_CONDUCTIVITY, Global::REAL );
+
+      //get the value of the conductivity and scale the penalty term
+      StdVector<Vector<Double> > points(1);
+      Vector<Double> p1(DIM);
+      p1.Init();
+      points[0]= p1;
+      StdVector<Double> ergVec;
+      factor->GetScalarValuesAtCoords(points,ergVec,this->ptGrid_);
+      beta *= ergVec[0];
+    }
+    else
+      factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+
+
     //notation> assume the test function is called v
     BiLinearForm *penalty_u1_v1 = NULL;
     BiLinearForm *penalty_u1_v2 = NULL;
@@ -3053,10 +3087,7 @@ namespace CoupledField {
     BiLinearForm *flux_u2_dv1 = NULL;
     BiLinearForm::CouplingDirection curcpl;
 
-    //we set here the penalty factor
-    Double beta = iface.nitscheFactor;
-
-    // in case of mechanical PDE, we need the material tensor
+     // in case of mechanical PDE, we need the material tensor
     shared_ptr<CoefFunction > coefMech;
     SubTensorType tensorType = NO_TENSOR;
     if ( solType == MECH_DISPLACEMENT ) {
