@@ -382,6 +382,10 @@ int DesignElement::GetOptResultIndex(SolutionType st)
     return 8;
   case OPT_RESULT_10:
     return 9;
+  case OPT_RESULT_11:
+    return 10;
+  case OPT_RESULT_12:
+    return 11;
   default:
     return -1;
   }

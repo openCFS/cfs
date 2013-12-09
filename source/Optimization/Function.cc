@@ -2302,6 +2302,8 @@ double Function::Local::Identifier::CalcSumModuli(DesignElement::Access access, 
     case DesignElement::EMODULISO:
     case DesignElement::EMODUL:
       return 1.0/(1.0-theta);
+    case DesignElement::GMODUL:
+      return 2.0;
     case DesignElement::POISSON:
     {
       double nninvtmp = 1/((1.0-theta)*(1.0-theta));
@@ -2374,7 +2376,7 @@ double Function::Local::Identifier::CalcOrthotropicTensorTrace(const Local* loca
 
 double Function::Local::Identifier::CalcLaminatesVolume(DesignElement::Access access, int neigh_idx, bool derivative) const
 {
-  double scale(1.0), stiff1(0.0), stiff2(0.0);
+  double stiff1(0.0), stiff2(0.0);
   for(int i=-1; i < (int) neighbor.GetSize(); ++i)
   {
     switch(GetElement(i)->GetType())
@@ -2389,12 +2391,6 @@ double Function::Local::Identifier::CalcLaminatesVolume(DesignElement::Access ac
       break;
     }
   }
-  if(element->GetDesignSpace()->designMaterial->GetType() == DesignMaterial::LAMINATES)
-  {
-    scale = element->GetDesignSpace()->designMaterial->GetParameter(DesignElement::DENSITY);
-    stiff1 *= scale;
-    stiff2 *= scale;
-  }
   if(!derivative)
     return stiff1+stiff2-stiff1*stiff2;
   else
@@ -2402,9 +2398,9 @@ double Function::Local::Identifier::CalcLaminatesVolume(DesignElement::Access ac
     switch(GetElement(neigh_idx)->GetType())
     {
     case DesignElement::STIFF1:
-      return scale-scale*stiff2;
+      return 1.0-stiff2;
     case DesignElement::STIFF2:
-      return scale-scale*stiff1;
+      return 1.0-stiff1;
     default:
       return 0.0;
     }

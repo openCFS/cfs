@@ -1278,7 +1278,7 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
   }
   case PLANE_STRESS:      //see Bendsoe, Sigmund: Topology Optimization S. 166
   {
-    double E33 = 1e-5;
+    double E33 = 2e-2;
     double stiff1 = params_[DesignElement::STIFF1];
     double stiff2 = params_[DesignElement::STIFF2];
     double E = params_[DesignElement::EMODUL];
