@@ -154,6 +154,7 @@ namespace CoupledField {
         stiffContext->SetEntities( actSDList, actSDList );
         stiffContext->SetFeFunctions( feFunctions_[ELEC_POTENTIAL], feFunctions_[ELEC_POTENTIAL] );
 
+        feFunctions_[ELEC_POTENTIAL]->AddEntityList( actSDList );
         assemble_->AddBiLinearForm( stiffContext );
         bdbInts_[actRegion] = stiffInt;
       }
