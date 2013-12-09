@@ -137,12 +137,17 @@ namespace CoupledField {
     virtual PtrCoefFct GetSubTensorCoefFnc( MaterialType matType, 
                                             SubTensorType tensorType,
                                             bool transposed  ) ;
+
+    //! Return tensor-valued coefficient function for nonlinear function
+    virtual PtrCoefFct GetTensorCoefFncNonLin( MaterialType matType,
+                                               SubTensorType type,
+                                               Global::ComplexPart matDataType,
+                                               PtrCoefFct dependency );
     
-    //! Return scalar-valued coefficient function (linear)
+    //! Return scalar-valued coefficient function for nonlinear function
     virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
                                             Global::ComplexPart matDataType,
-                                            shared_ptr<BaseFeFunction> feFct,
-                                            BaseBOperator* bOp );
+                                            PtrCoefFct dependency );
     //@}
     
     //! get info, which material parameter is set

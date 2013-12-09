@@ -32,8 +32,7 @@ public:
   
   //! Initialize with data
   void Init( Double coefScalar, ApproxData * nLinFnc,
-             shared_ptr<FeFunction<Double> > fct,
-             BaseBOperator* bOp );
+             PtrCoefFct dependCoef  );
 
   
   //! \see CoefFunction::GetScalar
@@ -49,14 +48,11 @@ protected:
   //! Constant initial value of the curve
   Double coefScalar_;
   
-  //! Differential operator to calculate the field value
-  BaseBOperator* bOperator_;
-  
   //! Class for function approximation
   ApproxData * nLinFnc_;
   
-  //! Depending FeFunction
-  shared_ptr<FeFunction<Double> > feFct_; 
+  //! Coefficient function which this one depends one
+  PtrCoefFct dependCoef_;
 };
 
 //! Provide a coefficient for approximated derivative of sample data (scalar)
@@ -76,8 +72,8 @@ public:
   
   //! Initialize with data
   void Init( ApproxData * nLinFnc,
-             shared_ptr<FeFunction<Double> > fct,
-             BaseBOperator* bOp );
+             UInt dimDMat,
+             PtrCoefFct dependCoef );
 
   //! \see CoefFunction::GetTensor
   void GetTensor(Matrix<Double>& coefMat, 
@@ -88,17 +84,14 @@ public:
 
 protected:
   
-  //! Differential operator to calculate the field value
-  BaseBOperator* bOperator_;
-  
   //! Dimension of the D-matrix
   UInt dimDMat_;
   
   //! Class for function approximation
   ApproxData * nLinFnc_;
   
-  //! Depending FeFunction
-  shared_ptr<FeFunction<Double> > feFct_; 
+  //! Coefficient function which this one depends one
+  PtrCoefFct dependCoef_;
 };
 
 // ============================================================================
@@ -124,8 +117,7 @@ public:
   void Init( Double coefScalar, 
              StdVector<ApproxData*>  nLinFnc,
              StdVector<Double> angles,
-             shared_ptr<FeFunction<Double> > fct,
-             BaseBOperator* bOp );
+             PtrCoefFct dependCoef );
 
   //! \see CoefFunction::GetScalar
   void GetScalar(Double& coefScalar, 
@@ -139,17 +131,14 @@ protected:
   //! Constant initial value of the curve
   Double coefScalar_;
   
-  //! Differential operator to calculate the field value
-  BaseBOperator* bOperator_;
-  
   //! Vector containing the approximations of the curves
   StdVector<ApproxData* > nLinFnc_;
   
   //! Vector containing the approximations of the curve
   StdVector<Double> angles_;
   
-  //! Depending FeFunction
-  shared_ptr<FeFunction<Double> > feFct_; 
+  //! Coefficient function which this one depends one
+  PtrCoefFct dependCoef_;
 };
 
 //! Provide a coefficient for approximated anisotropic derivative of sample data (scalar)
@@ -170,8 +159,8 @@ public:
   //! Initialize with data
   void Init( StdVector<ApproxData*>  nLinFnc,
              StdVector<Double> angles,
-             shared_ptr<FeFunction<Double> > fct,
-             BaseBOperator* bOp );
+             UInt dimDMat,
+             PtrCoefFct dependCoef );
 
   //! \see CoefFunction::GetTensor
   void GetTensor(Matrix<Double>& coefMat, 
@@ -182,9 +171,6 @@ public:
 
 protected:
   
-  //! Differential operator to calculate the field value
-  BaseBOperator* bOperator_;
-  
   //! Dimension of the D-matrix
   UInt dimDMat_;
   
@@ -194,9 +180,8 @@ protected:
   //! Vector containing the approximations of the curve
   StdVector<Double> angles_;
   
-  
-  //! Depending FeFunction
-  shared_ptr<FeFunction<Double> > feFct_; 
+  //! Coefficient function which this one depends one
+  PtrCoefFct dependCoef_;
 };
 
 }

@@ -185,9 +185,10 @@ void HeatPDE::DefineIntegrators() {
     StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
     if ( nonLinTypes.Find(NLHEAT_CONDUCTIVITY) != -1 ) {
       // informs material that approx./interpol. for heat conductivity is needed
-      BaseBOperator * bOp = new IdentityOperator<FeH1>();
+      //BaseBOperator * bOp = new IdentityOperator<FeH1>();
+      PtrCoefFct heatCoef = this->GetCoefFct(HEAT_TEMPERATURE);
       PtrCoefFct condNL = 
-          actSDMat->GetScalCoefFncNonLin( HEAT_CONDUCTIVITY, Global::REAL, feFunc, bOp);
+          actSDMat->GetScalCoefFncNonLin( HEAT_CONDUCTIVITY, Global::REAL, heatCoef);
                                       
       // create stiffness integrator
       BaseBDBInt* stiffInt = NULL;
@@ -265,11 +266,11 @@ void HeatPDE::DefineIntegrators() {
 
     if ( nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ) {
       // Factor for mass matrix: density * heatCapacity
+      PtrCoefFct heatCoef = this->GetCoefFct(HEAT_TEMPERATURE);
       PtrCoefFct density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
-      BaseBOperator * bOp = new IdentityOperator<FeH1>();
+      //BaseBOperator * bOp = new IdentityOperator<FeH1>();
       PtrCoefFct capNL = 
-          actSDMat->GetScalCoefFncNonLin( HEAT_CAPACITY, Global::REAL,
-                                          feFunc, bOp);
+          actSDMat->GetScalCoefFncNonLin( HEAT_CAPACITY, Global::REAL, heatCoef );
 
       PtrCoefFct nlMassCoeff =
           CoefFunction::Generate(mp_, Global::REAL,

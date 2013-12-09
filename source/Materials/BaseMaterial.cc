@@ -996,11 +996,18 @@ namespace CoupledField
      return mFunct;
    }
 
+   PtrCoefFct BaseMaterial::GetTensorCoefFncNonLin( MaterialType matType,
+                                                    SubTensorType type,
+                                                    Global::ComplexPart matDataType,
+                                                    PtrCoefFct dependency ) {
+     EXCEPTION("Currently only implemented for ElectroMagnetic material")
+   }
+   
+   
 
    PtrCoefFct BaseMaterial::GetScalCoefFncNonLin(MaterialType matType,
                                                  Global::ComplexPart matDataType,
-                                                 shared_ptr<BaseFeFunction> feFct,
-                                                 BaseBOperator* bOp) {
+                                                 PtrCoefFct dependency) {
      shared_ptr<CoefFunctionApprox> coef;
      
      // Ensure that only real-valued parameters are used
@@ -1048,9 +1055,7 @@ namespace CoupledField
      Double startVal = 0.0;
      this->GetScalar( startVal, matType, Global::REAL );
      coef.reset(new CoefFunctionApprox());
-     shared_ptr<FeFunction<Double> > dfeFct = 
-         dynamic_pointer_cast<FeFunction<Double> >(feFct);
-     coef->Init( startVal, sp, dfeFct, bOp );
+     coef->Init( startVal, sp, dependency );
 
      return coef;
    }

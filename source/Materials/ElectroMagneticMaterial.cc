@@ -807,13 +807,11 @@ namespace CoupledField
 
   PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin(MaterialType matType,
                                                            Global::ComplexPart matDataType,
-                                                           shared_ptr<BaseFeFunction> feFct,
-                                                           BaseBOperator* bOp) {
+                                                           PtrCoefFct fluxCoef ) {
      
      // Ensure that only MAG_RELUCTIVITY or MAG_RELUCTIVITY_DERIV are queried
-     if( matType != MAG_RELUCTIVITY && matType != MAG_RELUCTIVITY_DERIV ) {
-       EXCEPTION("Nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY "
-           << "or MAG_RELUCTIVITY_DERIV" );
+     if( matType != MAG_RELUCTIVITY  ) {
+       EXCEPTION("Scalar Nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY!");
      }
      
      // Ensure that only real-valued parameters are used
@@ -843,92 +841,12 @@ namespace CoupledField
        }
 
        ApproxData * sp = matNl.approxData;
-       if( matType == MAG_RELUCTIVITY ) {
-         // get linear starting value
-         Double startVal = 0.0;
-         this->GetScalar( startVal, matType, Global::REAL );
-         shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox());
-         shared_ptr<FeFunction<Double> > dfeFct = 
-             dynamic_pointer_cast<FeFunction<Double> >(feFct);
-         coef->Init( startVal, sp, dfeFct, bOp );
-         ret = coef;
-       } else if (matType == MAG_RELUCTIVITY_DERIV ) {
-         shared_ptr<CoefFunctionApproxDeriv> coef( new CoefFunctionApproxDeriv());
-         shared_ptr<FeFunction<Double> > dfeFct = 
-             dynamic_pointer_cast<FeFunction<Double> >(feFct);
-         coef->Init( sp, dfeFct, bOp );
-         ret = coef;
-       }
-
-     } else if( nonlinAnisoParams_.find(MAG_PERMEABILITY) != nonlinAnisoParams_.end() ) {
-       // ---------------------------
-       // ANISOTROPIC VERSION
-       // ---------------------------
-       StdVector<MatDescriptorNl> & matNl = nonlinAnisoParams_[MAG_PERMEABILITY];
-       UInt numCurves = matNl.GetSize();
-       StdVector<Double> angles(numCurves);
-       StdVector<ApproxData*> approx(numCurves);
-       // Loop over all entries
-       for( UInt i = 0; i < matNl.GetSize(); ++i ) {
-         MatDescriptorNl & actNl = matNl[i];
-         angles[i] = actNl.angle;
-         // Check, if smooth spline approximation was already created 
-         // and initialized
-         if( !actNl.approxData ) {
-           SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY ); 
-           sp->SetAccuracy( actNl.measAccuracy );
-           sp->SetMaxY( actNl.maxVal );
-           sp->CalcBestParameter();
-           sp->CalcApproximation();
-           sp->Print();
-           actNl.approxData = sp;
-         }
-
-         approx[i] = actNl.approxData;
-       }
-       
-       // -------------------------
-       // Insertion sort algorithm
-       // ------------------------
-       Double compAngle;
-       ApproxData * compApprox = NULL;
-       UInt j;
-       for( UInt i = 1; i < numCurves; i++ ) {
-         compAngle = angles[i];
-         compApprox = approx[i];
-         j = i;
-         while( ( j > 0 ) && ( angles[j - 1] > compAngle ) ) {
-           angles[j] = angles[j - 1];
-           approx[j] = approx[j - 1];
-           j = j - 1;
-         }
-         angles[j] = compAngle;
-         approx[j] = compApprox;
-       }
-       // -----------------------
-//       std::cerr << "angles are:\n";
-//       for( UInt i = 0; i < numCurves; ++i ) {
-//         std::cerr << "angle: " << angles[i] 
-//                   << " fName: " << approx[i]->GetNlFileName() << std::endl;
-//       }
-       
-       if( matType == MAG_RELUCTIVITY ) {
-         // get linear starting value
-         Double startVal = 0.0;
-         this->GetScalar( startVal, matType, Global::REAL );
-         shared_ptr<CoefFunctionApproxAniso> coef( new CoefFunctionApproxAniso());
-         shared_ptr<FeFunction<Double> > dfeFct = 
-             dynamic_pointer_cast<FeFunction<Double> >(feFct);
-         coef->Init( startVal, approx, angles, dfeFct, bOp );
-         ret = coef;
-       } else if (matType == MAG_RELUCTIVITY_DERIV ) {
-         shared_ptr<CoefFunctionApproxDerivAniso> coef( new CoefFunctionApproxDerivAniso());
-         shared_ptr<FeFunction<Double> > dfeFct = 
-             dynamic_pointer_cast<FeFunction<Double> >(feFct);
-         coef->Init( approx, angles, dfeFct, bOp );
-         ret = coef;
-       }
-
+       // get linear starting value
+       Double startVal = 0.0;
+       this->GetScalar( startVal, matType, Global::REAL );
+       shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox());
+       coef->Init( startVal, sp, fluxCoef);
+       ret = coef;
 
      } else {
        EXCEPTION( "No nonlinear definition found for material type '"
@@ -938,5 +856,132 @@ namespace CoupledField
      
      return ret;
    }
+  
+  
+  PtrCoefFct ElectroMagneticMaterial::GetTensorCoefFncNonLin( MaterialType matType,
+                                                              SubTensorType type,
+                                                              Global::ComplexPart matDataType,
+                                                              PtrCoefFct dependency ) {
+
+       // Ensure that only MAG_RELUCTIVITY or MAG_RELUCTIVITY_DERIV are queried
+       if( matType != MAG_RELUCTIVITY && matType != MAG_RELUCTIVITY_DERIV ) {
+         EXCEPTION("Nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY "
+             << "or MAG_RELUCTIVITY_DERIV" );
+       }
+       
+       // Ensure that only real-valued parameters are used
+       if( matDataType != Global::REAL ) {
+         EXCEPTION( "Only real-valued nonlinear parameters are supported");
+       }
+       PtrCoefFct ret;
+       
+       UInt dimDMat = (type == FULL) ? 3 : 2;
+       
+       // check if material is isotropic or anisotropic
+       if( nonlinIsoParams_.find(MAG_PERMEABILITY) != nonlinIsoParams_.end() ) {
+         
+         // Check, if MAG_RELUCTIVITY is queried
+         if( matType == MAG_RELUCTIVITY ) {
+           EXCEPTION("An isotropic nonlinear MAG_RELUCTIVITY must be queried using "\
+                     "GetScalCoefFncNonLin");
+         }
+         
+         // ---------------------------
+         // ISOTROPIC VERSION
+         // ---------------------------
+         // check, if nonlinear curve was already calculated
+         MatDescriptorNl & matNl = nonlinIsoParams_[MAG_PERMEABILITY];
+
+         // Check, if smooth spline approximation was already created 
+         // and initialized
+         if( !matNl.approxData ) {
+           SmoothSpline * sp = new SmoothSpline( matNl.fileName, MAG_PERMEABILITY ); 
+           sp->SetAccuracy( matNl.measAccuracy );
+           sp->SetMaxY( matNl.maxVal );
+           sp->CalcBestParameter();
+           sp->CalcApproximation();
+           sp->Print();
+           matNl.approxData = sp;
+         }
+
+         ApproxData * sp = matNl.approxData;
+         shared_ptr<CoefFunctionApproxDeriv> coef( new CoefFunctionApproxDeriv());
+         coef->Init( sp, dimDMat, dependency );
+         ret = coef;
+
+       } else if( nonlinAnisoParams_.find(MAG_PERMEABILITY) != nonlinAnisoParams_.end() ) {
+         // ---------------------------
+         // ANISOTROPIC VERSION
+         // ---------------------------
+         StdVector<MatDescriptorNl> & matNl = nonlinAnisoParams_[MAG_PERMEABILITY];
+         UInt numCurves = matNl.GetSize();
+         StdVector<Double> angles(numCurves);
+         StdVector<ApproxData*> approx(numCurves);
+         // Loop over all entries
+         for( UInt i = 0; i < matNl.GetSize(); ++i ) {
+           MatDescriptorNl & actNl = matNl[i];
+           angles[i] = actNl.angle;
+           // Check, if smooth spline approximation was already created 
+           // and initialized
+           if( !actNl.approxData ) {
+             SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY ); 
+             sp->SetAccuracy( actNl.measAccuracy );
+             sp->SetMaxY( actNl.maxVal );
+             sp->CalcBestParameter();
+             sp->CalcApproximation();
+             sp->Print();
+             actNl.approxData = sp;
+           }
+
+           approx[i] = actNl.approxData;
+         }
+         
+         // -------------------------
+         // Insertion sort algorithm
+         // ------------------------
+         Double compAngle;
+         ApproxData * compApprox = NULL;
+         UInt j;
+         for( UInt i = 1; i < numCurves; i++ ) {
+           compAngle = angles[i];
+           compApprox = approx[i];
+           j = i;
+           while( ( j > 0 ) && ( angles[j - 1] > compAngle ) ) {
+             angles[j] = angles[j - 1];
+             approx[j] = approx[j - 1];
+             j = j - 1;
+           }
+           angles[j] = compAngle;
+           approx[j] = compApprox;
+         }
+         // -----------------------
+  //       std::cerr << "angles are:\n";
+  //       for( UInt i = 0; i < numCurves; ++i ) {
+  //         std::cerr << "angle: " << angles[i] 
+  //                   << " fName: " << approx[i]->GetNlFileName() << std::endl;
+  //       }
+         
+         if( matType == MAG_RELUCTIVITY ) {
+           // get linear starting value
+           Double startVal = 0.0;
+           this->GetScalar( startVal, matType, Global::REAL );
+           shared_ptr<CoefFunctionApproxAniso> coef( new CoefFunctionApproxAniso());
+           coef->Init( startVal, approx, angles, dependency );
+           ret = coef;
+         } else if (matType == MAG_RELUCTIVITY_DERIV ) {
+           shared_ptr<CoefFunctionApproxDerivAniso> coef( new CoefFunctionApproxDerivAniso());
+           coef->Init( approx, angles, dimDMat, dependency );
+           ret = coef;
+         }
+
+
+       } else {
+         EXCEPTION( "No nonlinear definition found for material type '"
+             << MaterialTypeEnum.ToString(matType) << "'");
+       }
+
+       
+       return ret;
+     }
 
 }

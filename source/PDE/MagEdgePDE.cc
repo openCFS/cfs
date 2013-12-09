@@ -147,10 +147,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         // =================================
         
         // create stiffness integrator
-        BaseBOperator* bOp = new CurlOperator<FeHCurl,3, Double>();
+        //BaseBOperator* bOp = new CurlOperator<FeHCurl,3, Double>();
+        PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
         PtrCoefFct nuNl = 
             actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, 
-                                          feFunc, bOp );
+                                          magFluxCoef  );
         BaseBDBInt* stiff1 = NULL;
         stiff1 = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, 1.0, updatedGeo_) ;
         stiff1->SetName("CurlCurlIntegrator-NL");
@@ -173,9 +174,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        // testing purpose
        if( nonLinMethod_ == NEWTON ) {
 
-         BaseBOperator* bOp = new CurlOperator<FeHCurl,3, Double>();
-         PtrCoefFct nuDeriv = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY_DERIV, 
-                                                            Global::REAL, feFunc, bOp );
+         //BaseBOperator* bOp = new CurlOperator<FeHCurl,3, Double>();
+         PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
+         PtrCoefFct nuDeriv = actMat->GetTensorCoefFncNonLin( MAG_RELUCTIVITY_DERIV, FULL,  
+                                                            Global::REAL, magFluxCoef );
          
          //create stiffness integrator
          BiLinearForm* stiff2 = NULL;

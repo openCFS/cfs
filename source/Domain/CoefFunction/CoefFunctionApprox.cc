@@ -18,42 +18,34 @@ CoefFunctionApprox::CoefFunctionApprox() : CoefFunction() {
   // this type of coefficient is nonlinear (i.e. solution dependend)
   dependType_ = SOLUTION;
   isAnalytic_ = false;
-  bOperator_ = NULL;
   isComplex_ = false;
 }
 
 CoefFunctionApprox::~CoefFunctionApprox(){
-  delete bOperator_;
-  bOperator_ = NULL;
   ;
 }
 
 void CoefFunctionApprox::Init( Double coefScalar, ApproxData * nLinFnc,
-                               shared_ptr<FeFunction<Double> > fct,
-                               BaseBOperator* bOp ) {
+                               PtrCoefFct dependCoef ) {
 
   // set type to scalar
   dimType_ = SCALAR;
-  coefScalar_ = coefScalar;
   nLinFnc_ = nLinFnc;
-  feFct_ = fct;
-  bOperator_ = bOp;
+  coefScalar_ = coefScalar;
+  dependCoef_ = dependCoef;
 }
 
 //! \see CoefFunction::GetScalar
 void CoefFunctionApprox::GetScalar(Double& coefScalar, 
                                    const LocPointMapped& lpm ) {
 
-  // extract element solution from feFunction
-  Vector<Double> elemSol, elemOpSol;
-  feFct_->GetElemSolution(elemSol, lpm.ptEl);
-
-  // apply b-operator matrix to element solution to obtain field value
-  BaseFE * ptFe = feFct_->GetFeSpace()->GetFe(lpm.ptEl->elemNum);
-  bOperator_->ApplyOp( elemOpSol, lpm, ptFe, elemSol );
-
+  
+  // evaluate vector of dependency
+  Vector<Double> elemSol;
+  dependCoef_->GetVector( elemSol, lpm);
+  
   if ( nLinFnc_->GetMatType() == MAG_PERMEABILITY ) {
-    Double fieldAbs = elemOpSol.NormL2();
+    Double fieldAbs = elemSol.NormL2();
 
     if( fieldAbs == 0 ) { 
       coefScalar = coefScalar_;
@@ -62,7 +54,7 @@ void CoefFunctionApprox::GetScalar(Double& coefScalar,
     }
   }
   else {
-    coefScalar = nLinFnc_->EvaluateFunc(elemOpSol[0]);
+    coefScalar = nLinFnc_->EvaluateFunc(elemSol[0]);
   }
 }
 
@@ -84,34 +76,26 @@ CoefFunctionApproxDeriv::CoefFunctionApproxDeriv() : CoefFunction() {
 }
 
 CoefFunctionApproxDeriv::~CoefFunctionApproxDeriv(){
-  delete bOperator_;
-  bOperator_ = NULL;
 }
 
 void CoefFunctionApproxDeriv::Init( ApproxData * nLinFnc,
-                                   shared_ptr<FeFunction<Double> > fct,
-                                   BaseBOperator* bOp ) {
+                                    UInt dimDMat,
+                                    PtrCoefFct dependCoef ) {
 
   // set type to TENSOR
   dimType_ = TENSOR;
   nLinFnc_ = nLinFnc;
-  feFct_ = fct;
-  bOperator_ = bOp;
-  dimDMat_ = bOperator_->GetDimDMat();
+  dimDMat_ = dimDMat;
+  this->dependCoef_ = dependCoef;
 }
 
 void CoefFunctionApproxDeriv::GetTensor(Matrix<Double>& coefMat, 
                                         const LocPointMapped& lpm ) {
 
 
-  // extract element solution from feFunction
-  Vector<Double> elemSol, elemB;
-  feFct_->GetElemSolution(elemSol, lpm.ptEl);
-
-  // apply b-operator matrix to element solution to obtain field value
-  BaseFE * ptFe = feFct_->GetFeSpace()->GetFe(lpm.ptEl->elemNum);
-  bOperator_->ApplyOp( elemB, lpm, ptFe, elemSol );
-
+  // evaluate vector of dependency
+  Vector<Double> elemB;
+  dependCoef_->GetVector( elemB, lpm);
   Double fieldAbs = elemB.NormL2();
   coefMat.Resize( dimDMat_, dimDMat_ );
   if( fieldAbs == 0 ) {
@@ -143,13 +127,10 @@ CoefFunctionApproxAniso::CoefFunctionApproxAniso() : CoefFunction() {
   dependType_ = SOLUTION;
   isAnalytic_ = false;
   isComplex_ = false;
-  bOperator_ = NULL;
 }
 
 //! Destructor
 CoefFunctionApproxAniso::~CoefFunctionApproxAniso(){
-  delete bOperator_;
-  bOperator_ = NULL;
   ;
 }
 
@@ -157,30 +138,24 @@ CoefFunctionApproxAniso::~CoefFunctionApproxAniso(){
 void CoefFunctionApproxAniso::Init( Double coefScalar, 
                                     StdVector<ApproxData*>  nLinFnc,
                                     StdVector<Double> angles,
-                                    shared_ptr<FeFunction<Double> > fct,
-                                    BaseBOperator* bOp ) {
+                                    PtrCoefFct dependCoef ) {
 
   // set type to scalar
   dimType_ = SCALAR;
   coefScalar_ = coefScalar;
   nLinFnc_ = nLinFnc;
   angles_ = angles;
-  feFct_ = fct;
-  bOperator_ = bOp;
+  dependCoef_ = dependCoef;
 }
 
 void CoefFunctionApproxAniso::GetScalar(Double& coefScalar, 
                                         const LocPointMapped& lpm ) {
 
-  // extract element solution from feFunction
-  Vector<Double> elemSol, elemOpSol;
-  feFct_->GetElemSolution(elemSol, lpm.ptEl);
+  // evaluate vector of dependency
+  Vector<Double> elemSol;
+  dependCoef_->GetVector( elemSol, lpm);
 
-  // apply b-operator matrix to element solution to obtain field value
-  BaseFE * ptFe = feFct_->GetFeSpace()->GetFe(lpm.ptEl->elemNum);
-  bOperator_->ApplyOp( elemOpSol, lpm, ptFe, elemSol );
-
-  Double fieldAbs = elemOpSol.NormL2();
+  Double fieldAbs = elemSol.NormL2();
 
   if( fieldAbs == 0 ) { 
     coefScalar = coefScalar_;
@@ -189,8 +164,8 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
 
     //compute angle 
     Double angleB;
-    if ( abs(elemOpSol[0]) > 1e-5 ) {
-      angleB = abs( std::atan( elemOpSol[1] / elemOpSol[0] ) );
+    if ( abs(elemSol[0]) > 1e-5 ) {
+      angleB = abs( std::atan( elemSol[1] / elemSol[0] ) );
       angleB *= 180.0/3.1416;
     }
     else {
@@ -275,41 +250,32 @@ CoefFunctionApproxDerivAniso::CoefFunctionApproxDerivAniso() : CoefFunction() {
   dependType_ = SOLUTION;
   isAnalytic_ = false;
   isComplex_ = false;
-  bOperator_ = NULL;
 }
 
 //! Destructor
 CoefFunctionApproxDerivAniso::~CoefFunctionApproxDerivAniso(){
-  delete bOperator_;
-  bOperator_ = NULL;
   ;
 }
 
 //! Initialize with data
 void CoefFunctionApproxDerivAniso::Init( StdVector<ApproxData*>  nLinFnc,
                                          StdVector<Double> angles,
-                                         shared_ptr<FeFunction<Double> > fct,
-                                         BaseBOperator* bOp ) {
+                                         UInt dimDMat,
+                                         PtrCoefFct dependCoef ) {
   // set type to TENSOR
   dimType_ = TENSOR;
   nLinFnc_ = nLinFnc;
   angles_ = angles;
-  feFct_ = fct;
-  bOperator_ = bOp;
-  dimDMat_ = bOperator_->GetDimDMat();
+  dimDMat_ = dimDMat;
+  dependCoef_ = dependCoef;
 }
 
 void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat, 
                                              const LocPointMapped& lpm ) {
 
-
-  // extract element solution from feFunction
-  Vector<Double> elemSol, elemB;
-  feFct_->GetElemSolution(elemSol, lpm.ptEl);
-
-  // apply b-operator matrix to element solution to obtain field value
-  BaseFE * ptFe = feFct_->GetFeSpace()->GetFe(lpm.ptEl->elemNum);
-  bOperator_->ApplyOp( elemB, lpm, ptFe, elemSol );
+  // evaluate vector of dependency
+  Vector<Double> elemB;
+  dependCoef_->GetVector( elemB, lpm);
 
   Double fieldAbs = elemB.NormL2();
   coefMat.Resize( dimDMat_, dimDMat_ );

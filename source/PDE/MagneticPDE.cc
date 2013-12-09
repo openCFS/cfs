@@ -127,19 +127,9 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
         if ( nonLinTypes.Find(HYSTERESIS) != -1 ) {
           Exception("Hysteresis nonlinearity is not supported.");
         }else if (  nonLinTypes.Find(PERMEABILITY) != -1 ) {
-          BaseBOperator* bOp = NULL;
-          if( dim_ == 2) {
-            if( isaxi_ ) {
-              bOp = new CurlOperatorAxi<Double>();
-            }else{
-              bOp = new CurlOperator<FeH1,2,Double>();
-            }
-          }else{
-            bOp = new CurlOperator<FeH1,3,Double>();
-          }
+          PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
           PtrCoefFct nuNl =
-              actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL,
-                  myFct, bOp );
+              actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, magFluxCoef);
 
           BaseBDBInt * stiffInt = NULL;
           if( dim_ == 2) {
@@ -173,19 +163,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           // Note: currently we set the nonlinear method hard-coded to NEWTON for
           // testing purpose
           if( nonLinMethod_ == NEWTON ) {
-
-            BaseBOperator* bOp = NULL;
-            if( dim_ == 2) {
-              if( isaxi_ ) {
-                bOp = new CurlOperatorAxi<Double>();
-              }else{
-                bOp = new CurlOperator<FeH1,2,Double>();
-              }
-            }else{
-              bOp = new CurlOperator<FeH1,3,Double>();
-            }
-            PtrCoefFct nuDeriv = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY_DERIV,
-                                                               Global::REAL, myFct, bOp );
+            PtrCoefFct nuDeriv = actMat->GetTensorCoefFncNonLin( MAG_RELUCTIVITY_DERIV, tensorType,
+                                                                 Global::REAL, magFluxCoef );
 
             //create stiffness integrator
             BiLinearForm* stiff2 = NULL;
