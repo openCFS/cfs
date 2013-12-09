@@ -1053,8 +1053,9 @@ int main(int argc, char** argv)
       Double maxDiff = std::max( maxDiffMesh, maxDiffHist );
       if( maxDiff > tolerance ) {
         std::cout << "'" << file1 << "' and '" << file2
-          << "' have maximum difference " << maxDiff
-          << " at '" << maxDiffResultName << "'\n";
+                  << "' have maximum difference " << maxDiff
+                  << " at '" << maxDiffResultName << "' which is greater than "
+                  << "the specified tolerance " << tolerance << ".\n";
         exit(EXIT_FAILURE);
       } else {
         std::cout << "  No differences larger than tolerance found.\n";

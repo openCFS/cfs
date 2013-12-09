@@ -203,25 +203,26 @@ elif [ "${OS}" = "Linux" ] ; then
                         # https://wiki.ubuntu.com/DevelopmentCodeNames
                         # http://en.wikipedia.org/wiki/History_of_Ubuntu
                 case "$DISTRIB_CODENAME" in
-                    "warty") PSEUDONAME="Warty Warthog";; # 4.10
-                    "hoary") PSEUDONAME="Hoary Hedgehog";; # 5.04
-                    "breezy") PSEUDONAME="Breezy Badger";; # 5.10
-                    "dapper") PSEUDONAME="Dapper Drake";; # 6.06 LTS
-                    "edgy") PSEUDONAME="Edgy Eft";; # 6.10
-                    "feisty") PSEUDONAME="Feisty Fawn";; # 7.04
-                    "gutsy") PSEUDONAME="Gutsy Gibbon";; # 7.10
-                    "hardy") PSEUDONAME="Hardy Heron";; # 8.04 LTS
-                    "intrepid") PSEUDONAME="Intrepid Ibex";; # 8.10
-                    "jaunty") PSEUDONAME="Jaunty Jackalope";; # 9.04
-                    "karmic") PSEUDONAME="Karmic Koala";; # 9.10
-                    "lucid") PSEUDONAME="Lucid Lynx";; # 10.04 LTS
+                    "warty")    PSEUDONAME="Warty Warthog";;    # 4.10
+                    "hoary")    PSEUDONAME="Hoary Hedgehog";;   # 5.04
+                    "breezy")   PSEUDONAME="Breezy Badger";;    # 5.10
+                    "dapper")   PSEUDONAME="Dapper Drake";;     # 6.06 LTS
+                    "edgy")     PSEUDONAME="Edgy Eft";;         # 6.10
+                    "feisty")   PSEUDONAME="Feisty Fawn";;      # 7.04
+                    "gutsy")    PSEUDONAME="Gutsy Gibbon";;     # 7.10
+                    "hardy")    PSEUDONAME="Hardy Heron";;      # 8.04 LTS
+                    "intrepid") PSEUDONAME="Intrepid Ibex";;    # 8.10
+                    "jaunty")   PSEUDONAME="Jaunty Jackalope";; # 9.04
+                    "karmic")   PSEUDONAME="Karmic Koala";;     # 9.10
+                    "lucid")    PSEUDONAME="Lucid Lynx";;       # 10.04 LTS
                     "maverick") PSEUDONAME="Maverick Meerkat";; # 10.10
-                    "natty") PSEUDONAME="Natty Narwhal";; # 11.04
-                    "oneiric") PSEUDONAME="Oneiric Ocelot";; # 11.10
-                    "precise") PSEUDONAME="Precise Pangolin";; # 12.04
-                    "quantal") PSEUDONAME="Quantal Quetzal";; # 12.10
-                    "raring") PSEUDONAME="Raring Ringtail";; # 13.04
-                    "saucy") PSEUDONAME="Saucy Salamander";; # 13.10
+                    "natty")    PSEUDONAME="Natty Narwhal";;    # 11.04
+                    "oneiric")  PSEUDONAME="Oneiric Ocelot";;   # 11.10
+                    "precise")  PSEUDONAME="Precise Pangolin";; # 12.04 LTS
+                    "quantal")  PSEUDONAME="Quantal Quetzal";;  # 12.10
+                    "raring")   PSEUDONAME="Raring Ringtail";;  # 13.04
+                    "saucy")    PSEUDONAME="Saucy Salamander";; # 13.10
+                    "trusty")   PSEUDONAME="Trusty Tahr";;      # 14.04 LTS
                 esac;;
             "knoppix")
                 DIST=Knoppix;
@@ -242,8 +243,8 @@ elif [ ${OS} = "Darwin" ]; then
         OS="Mac OS X"
         DIST="MACOSX"
         DIST_FAMILY="MACOSX"
-        FULL_REV=$MACOSVER
-        MAJOR_REV=`echo $FULL_REV | sed -e 's/\.[0-9]$//' -e 's/Server //'`
+        FULL_REV=$(echo $MACOSVER | sed -e 's/^[ \t]*//')
+        MAJOR_REV=`echo $FULL_REV | sed -e 's/\(\.[0-9]\)\(\.[0-9]\)$/\1/' -e 's/Server //'`
         REV=`echo $FULL_REV | sed -e 's/Server //' -e 's/ //g'`
 
         case "$MAJOR_REV" in
@@ -256,6 +257,7 @@ elif [ ${OS} = "Darwin" ]; then
             "10.6") PSEUDONAME="Snow Leopard"; ARCH="X86_64";;
             "10.7") PSEUDONAME="Lion"; ARCH="X86_64";;
             "10.8") PSEUDONAME="Mountain Lion"; ARCH="X86_64";;
+            "10.9") PSEUDONAME="Mavericks"; ARCH="X86_64";;
         esac
 
         OSSTR="$OS $DIST $MAJOR_REV ($FULL_REV $PSEUDONAME ${MACH})"
