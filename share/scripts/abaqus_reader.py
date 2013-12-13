@@ -16,6 +16,9 @@ def structure_abaqus(all_lines):
   #assume *ELEMENT to end with *something (which might be the next *ELEMENT). Multiple!
   element_start = []
   element_end   = []
+  #strange HWNAME COMP sections to be ended by **something not HWNAME COMP
+  comp_start = []
+  comp_end = []
   for line in all_lines:
     pos += 1
     if line.startswith('*NODE'):
@@ -33,9 +36,17 @@ def structure_abaqus(all_lines):
       assert(len(element_start) == len(element_end))
       element_start.append(pos) # including *ELEMENT
       continue
+    if line.startswith('**HWNAME COMP'):
+      if len(comp_end) < len(comp_start):
+        comp_end.append(pos)
+      comp_start.append(pos)
+      continue
+    if line.startswith('**') and not line.startswith('**HWCOLOR') and len(comp_start) == len(comp_end) + 1:
+      comp_end.append(pos)
+      continue
     
   assert(len(element_start) == len(element_end))  
-  return node_start, node_end, element_start, element_end
+  return node_start, node_end, element_start, element_end, comp_start, comp_end
 
 # find the maximum number (first element) within a range
 def find_max_number(all_lines, start_search, end_search):
@@ -68,15 +79,16 @@ def parse_element_header(line):
 
   return type, name
 
+def parse_comp_header(line):
+  return line.split()[3]
+
 def parse_abaqus(input):
   lines = open(input,"r").readlines()
   
   mesh = Mesh()
 
   # read and map nodes
-  # ------------------------------
-  
-  node_start, node_end, element_start, element_end = structure_abaqus(lines)
+  node_start, node_end, element_start, element_end, comp_start, comp_end = structure_abaqus(lines)
   
   # we need to map from abaqus node number to 0-based index
   max_node_nr = find_max_number(lines, node_start+1, node_end)
@@ -123,15 +135,28 @@ def parse_abaqus(input):
         idx = abaqus_nr_to_idx[nr]
         assert(idx > -1)
         e.nodes.append(idx)
-      if len(e.nodes) <> numnodes:
-        print lines[j-1]
-        print lines[j-1].endswith(',\n')
-        print line
       assert(len(e.nodes) == numnodes)
-      mesh.elements3d.append(e)
+      mesh.elements.append(e)
       j += 1  
   
-  
+  #process named nodes
+  # in the robot art, the *KINEMATIC COUPLING,REF NODE=711809 are not within elements, give them extra name 'ref'
+  ref = []  
+  for c in range(len(comp_start)):
+    name = parse_comp_header(lines[comp_start[c]])
+    nodes = []
+    for n in range(comp_start[c], comp_end[c]):
+      line = lines[n]
+      if line.startswith('*KINEMATIC COUPLING,REF NODE='):
+        nr = int(line.replace('\n','').split('=')[-1])
+        ref.append(abaqus_nr_to_idx[nr])
+      else:
+        # don't know what in 5006,1,3 the second and third value means
+        if not line.startswith('*'):
+          nr = int(line.split(',')[0])
+          nodes.append(abaqus_nr_to_idx[nr])         
+    mesh.bc.append((name, nodes))
+  mesh.bc.append(('ref', ref))  
   # print mesh.nodes
   # print idx_to_abaqus_nr
   return mesh

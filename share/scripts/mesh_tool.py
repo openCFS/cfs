@@ -19,6 +19,14 @@ def nodes_by_type(type):
     return 6
   assert(False)
 
+def elem_dim(type):
+  if type == HEXA8 or type == WEDGE6:
+    return 3
+  else: 
+    return 2 
+  
+
+
 # gid element
 class Element: 
   def __init__(self):
@@ -41,8 +49,7 @@ class Element:
 class Mesh:
   def __init__(self):
    self.nodes = []    # list 2d tupels (float, float) or 3d tuples
-   self.elements2d = [] # list of Element
-   self.elements3d = [] # list of Element
+   self.elements = [] # list of Element
    self.bc = []       # list of tupel (name, <list of zero based nodes>)  
 
 def show_dense_mesh_image(mesh, shape, binary, size):
@@ -54,7 +61,7 @@ def show_dense_mesh_image(mesh, shape, binary, size):
   for x in range(nx):
     for y in range(ny):
       #print input_pix[x,y]
-      e = mesh.elements2d[x * ny + y]
+      e = mesh.elements[x * ny + y]
       val = 1-e.density # black is 0 in the image but 1 as density
       # print str(val) + " - " + str(barrier)
       show = (200,10,10) if binary else (int(val*255),int(val*255),int(val*255)) 
@@ -135,7 +142,7 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img =
       # assign nodes
       ll = (nx+1) * y + x  # lowerleft
       e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
-      mesh.elements2d.append(e)
+      mesh.elements.append(e)
       # e.dump()
   
   mesh.bc.append(("bottom", range(0, nx+1)))
@@ -209,24 +216,30 @@ def count_elements(elements, type):
       count += 1
   return count
 
-def write_gid_elements(out, elements):
+def write_gid_elements(out, elements, dim):
   for i in range(len(elements)): # write one based!
     e = elements[i]
-    nodes = len(e.nodes)
-    out.write(str(i+1) + ' ' + str(e.type) + ' ' + str(nodes) + ' ' + e.region  + "\n")
+    if elem_dim(e.type) == dim:
+      nodes = len(e.nodes)
+      out.write(str(i+1) + ' ' + str(e.type) + ' ' + str(nodes) + ' ' + e.region  + "\n")
     
-    # prepare for second order elements
-    for n in range(nodes):
-      out.write(str(e.nodes[n]+1) + ("\n" if n == len(e.nodes) - 1 else " ")) # write one based node numbers
+      # prepare for second order elements
+      for n in range(nodes):
+        out.write(str(e.nodes[n]+1) + ("\n" if n == len(e.nodes) - 1 else " ")) # write one based node numbers
 
 
 def write_gid_mesh(mesh, filename):
-  dim = 3 if len(mesh.elements3d) > 0 else 2
-  quad4  = count_elements(mesh.elements2d, QUAD4)
-  hexa8  = count_elements(mesh.elements3d, HEXA8)
-  wedge6 = count_elements(mesh.elements3d, WEDGE6)
-  assert(quad4 == len(mesh.elements2d))
-  assert(hexa8 + wedge6 == len(mesh.elements3d))
+  
+  
+  
+  quad4  = count_elements(mesh.elements, QUAD4)
+  hexa8  = count_elements(mesh.elements, HEXA8)
+  wedge6 = count_elements(mesh.elements, WEDGE6)
+  
+  num_2d = quad4
+  num_3d = hexa8 + wedge6
+  assert(num_2d + num_3d == len(mesh.elements))
+  dim = 3 if num_3d > 0 else 2
   
   out = open(filename, "w")
   
@@ -234,8 +247,8 @@ def write_gid_mesh(mesh, filename):
   out.write('Version 1\n')
   out.write('Dimension ' + str(dim) + '\n')
   out.write('NumNodes ' + str(len(mesh.nodes)) + '\n')
-  out.write('Num3DElements ' + str(len(mesh.elements3d)) + '\n')
-  out.write('Num2DElements ' + str(len(mesh.elements2d)) + '\n')
+  out.write('Num3DElements ' + str(num_3d) + '\n')
+  out.write('Num2DElements ' + str(num_2d) + '\n')
   out.write('Num1DElements 0\n')
   bcn = 0
   for i in range(len(mesh.bc)):
@@ -276,12 +289,12 @@ def write_gid_mesh(mesh, filename):
   out.write('\n[2D Elements]\n')
   out.write('#ElemNr  ElemType  NrOfNodes  Level\n')
   out.write('#Node1 Node2 ... NodeNrOfNodes\n')
-  write_gid_elements(out, mesh.elements2d)
+  write_gid_elements(out, mesh.elements, 2)
  
   out.write('\n[3D Elements]\n')
   out.write('#ElemNr  ElemType  NrOfNodes  Level\n')
   out.write('#Node1 Node2 ... NodeNrOfNodes\n')
-  write_gid_elements(out, mesh.elements3d)
+  write_gid_elements(out, mesh.elements, 3)
   
   out.write('\n[Node BC]\n')
   out.write('#NodeNr Level\n')
@@ -329,7 +342,7 @@ def create_cantilever2d_mesh(type, resolution):
       ll = (nx+1) * y + x  # lowerleft
       e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
             
-      mesh.elements2d.append(e)
+      mesh.elements.append(e)
   
   mesh.bc.append(("south", range(0, nx+1)))
   mesh.bc.append(("north", range((nx+1)*ny, (nx+1)*(ny+1))))
@@ -383,7 +396,7 @@ def create_mbb_mesh(type, resolution):
       ll = (nx+1) * y + x  # lowerleft
       e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
             
-      mesh.elements2d.append(e)
+      mesh.elements.append(e)
   
   mesh.bc.append(("south", range(0, nx+1)))
   mesh.bc.append(("north", range((nx+1)*ny, (nx+1)*(ny+1))))
