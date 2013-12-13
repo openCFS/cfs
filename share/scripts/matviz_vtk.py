@@ -135,7 +135,7 @@ def create_symmety_planes(minima, scale, add_planes):
 
 # show the data on the screen
 # @planes list of vtk actors containing symmetry planes 
-def show_vtk(polydata,  planes = None):
+def show_vtk(polydata, res, planes = []):
   #Create a mapper and actor
   mapper = vtk.vtkPolyDataMapper()
   if vtk.VTK_MAJOR_VERSION <= 5:
@@ -145,7 +145,7 @@ def show_vtk(polydata,  planes = None):
   
   actor = vtk.vtkActor()
   actor.SetMapper(mapper)
-   
+  actor.GetProperty().SetColor(0.5,0.5,0.5) # (R,G,B)
   # Setup a renderer, render window, and interactor
   renderer = vtk.vtkRenderer()
   renderWindow = vtk.vtkRenderWindow()
@@ -155,14 +155,16 @@ def show_vtk(polydata,  planes = None):
   renderWindowInteractor = vtk.vtkRenderWindowInteractor()
   renderWindowInteractor.SetRenderWindow(renderWindow)
    
+  renderWindow.SetSize(res,res)
+   
   #Add the actor to the scene
-  if planes:
-    for i in range(len(planes)):
-      renderer.AddActor(planes[i])
+  for i in range(len(planes)):
+    renderer.AddActor(planes[i])
 
   renderer.AddActor(actor)
   renderer.SetBackground(1,1,1) # Background color white
    
+
   #Render and interact
   renderWindow.Render()
    
@@ -176,11 +178,14 @@ def show_vtk(polydata,  planes = None):
 # @param cells  vtk.vtkCellArray() where cells are added via InsertNextCell
 # @param points vtk.vtkPoints() where the points are added
 # @param dir 'x', 'y', 'z'
-def create_centered_bar(cells, points, center, length, thick, dir):
+def create_centered_bar(cells, points, center, length, width, height):
+  
+  #print "ccb: c=" + str(center) + " l=" + str(length) + " t=" + str(thick) + " dir=" + dir  
+  
   # Add the points to a vtkPoints object
-  dx = 0.5 * (length if dir == 'x' else thick)
-  dy = 0.5 * (length if dir == 'y' else thick)
-  dz = 0.5 * (length if dir == 'z' else thick)  
+  dx = 0.5 * length
+  dy = 0.5 * width
+  dz = 0.5 * height  
 
   cx, cy, cz = center
   #points = vtk.vtkPoints()
@@ -249,46 +254,45 @@ def create_centered_bar(cells, points, center, length, thick, dir):
   cells.InsertNextCell(quad)
 
 ## without rotation and shearing
-def create_frame(coords, s1, s2, s3):
+def create_3d_frame(coords, s1, s2, s3, dir, scale):
 
   centers, min, max, elem = coords
   
-  height = elem[1] * dy 
-  length = elem[0] * dx
- 
+  dx = elem[0]
+  dy = elem[1] 
+  dz = elem[2]
+
+  cells = vtk.vtkCellArray()
+  points = vtk.vtkPoints()
+
+  if scale <= 0:
+    scale = 1.0
+
   for i in range(len(s1)):
-  
     coord = centers[i]
+    print "s1=" + str(s1[i]) + " s2=" + str(s2[i]) + " s3=" + str(s3[i])
+    if dir == 'horizontal' or dir == 'all':
+      create_centered_bar(cells, points, coord, scale * dx, scale * s1[i] * dy, scale * s1[i] * dz)
+    if dir == 'vertical' or dir == 'all':
+      create_centered_bar(cells, points, coord, scale * s2[i] * dx, scale * dy, scale * s2[i] * dz)
+    if dir == 'sagittal' or dir == 'all':
+      create_centered_bar(cells, points, coord, scale * s3[i] * dx, scale * s3[i] * dy, scale * dz)
     
-    # if coord[1] > 0.04:
-    #  continue
-          
-    x_off = (coord[0] + min[0] - 0.5 * elem[0]) * dx 
-    y_off = (coord[1] + min[1]  - 0.5 * elem[1]) * dy
-
-    #print str(coord) + " " + str(x_off) + " " + str(y_off)
-
-    hor = s1[i,0]  # it seems that stiff1 and stiff2 are mixed up. This tries to correct it
-    ver = s2[i,0]
-
-    # print "hor=" + str(hor) + " ver=" + str(ver) 
+  polydata = vtk.vtkPolyData()
+  polydata.SetPoints(points)
+  polydata.SetPolys(cells)
     
-    if not directions == 'vertical': 
-      # lower horizontal line  
-      pol = to_rectangle_corner((x_off, dim[1] - y_off), (x_off + length, dim[1] - y_off - height * 0.5 * ver - 0.5))
-      draw.polygon(pol, fill="black")
-  
-      # upper horizontal line
-      pol = to_rectangle_corner((x_off, dim[1] - y_off - height + height * 0.5 * ver - 0.5), (x_off + length, dim[1] - y_off - height))
-      draw.polygon(pol, fill="black")
+  return polydata
 
-    if not directions == 'horizontal':
-      # left vertical line
-      pol = to_rectangle_corner((x_off, dim[1] - y_off), (x_off + length * 0.5 * hor + 0.5, dim[1] - y_off - height))
-      draw.polygon(pol, fill="black")
-  
-      # right vertical line
-      pol = to_rectangle_corner((x_off + length - length * 0.5 * hor - 0.5, dim[1] - y_off), (x_off + length, dim[1] - y_off - height))
-      draw.polygon(pol, fill="black")
 
-  return im  
+## litte helper
+# @param save filename or none
+# @param list which might be empty
+def show_write_vtk(poly, res, save, actors = []):
+  if save:
+    writer = vtk.vtkXMLPolyDataWriter()
+    writer.SetInput(poly)
+    writer.SetFileName(save)
+    writer.Write()    
+  else:
+    show_vtk(poly, res, actors)  

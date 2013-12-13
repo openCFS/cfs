@@ -62,7 +62,7 @@ def to_rectangle_center(height, width, angle, x_offset, y_offset):
   return tupl  
 
 # draws a rotated frustum
-# @param direction either vertical or horizontal, not both!
+# @param direction either vertical or horizontal, not all! or 'sagittal'
 def to_frustum_center(start, end, center, elem_scale, elem, scale, direction):
   # 4 ------- 3
   # |         |
@@ -395,7 +395,7 @@ def show_frame(coords, s1, s2, directions, nx):
 
 ## visualize the orientational stiffness
 # @return the image
-def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1):
+def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1.0):
 
   centers, min, max, elem = coords
 
@@ -403,7 +403,7 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1):
 
   delta_angle = numpy.max(angle[:,0]) - numpy.max(angle[:,0]) 
 
-  if scale == -1:
+  if scale == -1.0:
     scale = 1.02 if delta_angle == 0.0 else 0.8 
 
   length =  scale * (elem[0]) * dx
@@ -448,7 +448,7 @@ def draw_thick_circle(draw, center, radius):
   
 ## visualize the orientational stiffness
 # @return the image
-def orientational_stiffness(centers, angle, data, nx, scale=-1):
+def orientational_stiffness(centers, angle, data, nx, scale=-1.0):
 
   max_val = numpy.max(data[:])
   min_val = numpy.min(data[:])
@@ -458,7 +458,7 @@ def orientational_stiffness(centers, angle, data, nx, scale=-1):
    
   print "max=" + str(max_val) + " min=" + str(min_val)
    
-  if scale == -1:
+  if scale == -1.0:
     dist = 1.0 if len(centers) == 1 else centers[1][0] - centers[0][0]
     scale = 0.35 * dx * dist / max_val
      

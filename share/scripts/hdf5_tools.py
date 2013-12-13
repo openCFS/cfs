@@ -15,8 +15,8 @@ def validate_region(hdf5_file, region):
     print "region '" + region + "' not within regions " + str(regions.keys())
 
 ## give back elements with barycenters
-# assumes rectangles
-# @return list barycenter tuple ordered by elements and min and max node coordinates and first element dimensions
+# works 2D and 3D
+# @return list barycenter tuple ordered by elements and min and max node coordinates and first region element dimensions
 def centered_elements(hdf5_file, region):
   all_elements = hdf5_file['/Mesh/Elements/Connectivity'] # for all regions
   reg_elements = hdf5_file['/Mesh/Regions/' + region + '/Elements']
@@ -24,10 +24,11 @@ def centered_elements(hdf5_file, region):
   all_nodes = hdf5_file['/Mesh/Nodes/Coordinates']
   reg_nodes = hdf5_file['/Mesh/Regions/' + region + '/Nodes']
   
-  # determine elem_dim from first element dimensions, ignore region
+  # determine elem_dim from first region element dimensions
+  elem_id = reg_elements[0] - 1
   node_coords = []
-  for n in range(len(all_elements[0])):
-    node_coords.append(all_nodes[all_elements[0][n]-1]) # numbers are one-based
+  for n in range(len(all_elements[elem_id])):
+    node_coords.append(all_nodes[all_elements[elem_id][n]-1]) # numbers are one-based
   ma = numpy.array([max(node_coords,key=operator.itemgetter(0))[0], max(node_coords,key=operator.itemgetter(1))[1],  max(node_coords,key=operator.itemgetter(2))[2]])
   mi = numpy.array([min(node_coords,key=operator.itemgetter(0))[0], min(node_coords,key=operator.itemgetter(1))[1],  min(node_coords,key=operator.itemgetter(2))[2]])
   elem_dim = ma - mi
@@ -36,23 +37,20 @@ def centered_elements(hdf5_file, region):
   nodes = numpy.zeros((len(reg_nodes), 3))
   for e in range(len(reg_nodes)):
     nodes[e] = all_nodes[reg_nodes[e] - 1]  
-  min_dim = min(nodes[:,0]), min(nodes[:,1]) 
-  max_dim = max(nodes[:,0]), max(nodes[:,1])  
+  min_dim = min(nodes[:,0]), min(nodes[:,1]), min(nodes[:,2])  
+  max_dim = max(nodes[:,0]), max(nodes[:,1]), max(nodes[:,2])   
     
   result = []
   for e in range(len(reg_elements)):
     idx = reg_elements[e] - 1 # cfs writes one based
-    if types[idx] == 6:
-       nod = all_elements[idx]
-       center = numpy.array([0.0, 0.0, 0.0])
-       for n in range(len(nod)):
-         center += all_nodes[nod[n]-1] # numbers are one-based
-         # print "el=" + str(e) + " n=" + str(n) + " node=" + str(nod[n]) + "->" + str(nodes[nod[n]-1]) + " center=" + str(center) 
-       center *= 1.0/len(nod)
-       result.append(center)
-       # print "e=" + str(e) + " idx=" + str(idx) + " nod=" + str(nod) + " center=" + str(center) 
-    else:
-      assert(False) # 3D? not implented yet   
+    nod = all_elements[idx]
+    center = numpy.array([0.0, 0.0, 0.0])
+    for n in range(len(nod)):
+      center += all_nodes[nod[n]-1] # numbers are one-based
+      # print "el=" + str(e) + " n=" + str(n) + " node=" + str(nod[n]) + "->" + str(nodes[nod[n]-1]) + " center=" + str(center) 
+    center *= 1.0/len(nod)
+    result.append(center)
+    # print "e=" + str(e) + " idx=" + str(idx) + " nod=" + str(nod) + " center=" + str(center) 
 
   return result, min_dim, max_dim, elem_dim     
                 
@@ -89,7 +87,6 @@ def last_h5_step(hdf5_file):
 
   return int(last[5:])
           
-
     
 # dumps meta data    
 def dump_h5_meta(hdf5_file):   
@@ -121,7 +118,6 @@ def get_element(hdf5_file, name, region, given_step=99999):
   ms = hdf5_file['/Results/Mesh/MultiStep_1']
   
   step = min((given_step, last_h5_step(hdf5_file)))
-  print step   
   key = "/Results/Mesh/MultiStep_1/Step_" + str(step) + "/" + name + "/" + region + "/Elements/Real"
   try:
     data = ms[key]
