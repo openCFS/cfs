@@ -270,7 +270,10 @@ def create_3d_frame(coords, s1, s2, s3, dir, scale):
 
   for i in range(len(s1)):
     coord = centers[i]
-    print "s1=" + str(s1[i]) + " s2=" + str(s2[i]) + " s3=" + str(s3[i])
+    #print "s1=" + str(s1[i]) + " s2=" + str(s2[i]) + " s3=" + str(s3[i])
+    #s1[i] *= 0.5
+    #s2[i] *= 0.5
+    #s3[i] *= 0.5
     if dir == 'horizontal' or dir == 'all':
       create_centered_bar(cells, points, coord, scale * dx, scale * s1[i] * dy, scale * s1[i] * dz)
     if dir == 'vertical' or dir == 'all':
@@ -291,7 +294,10 @@ def create_3d_frame(coords, s1, s2, s3, dir, scale):
 def show_write_vtk(poly, res, save, actors = []):
   if save:
     writer = vtk.vtkXMLPolyDataWriter()
-    writer.SetInput(poly)
+    if vtk.VTK_MAJOR_VERSION <= 5:
+      writer.SetInput(poly)
+    else:
+      writer.SetInputData(poly)
     writer.SetFileName(save)
     writer.Write()    
   else:

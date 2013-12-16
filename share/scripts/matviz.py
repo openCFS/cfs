@@ -172,7 +172,7 @@ if h5_read or dim_2D:
         if dim_2D:
           viz = show_frame_grad(coords, s1, s2, args.hom_grad, args.hom_dir, args.res)
         else:
-          print 'graded hom_rect in 3D not yet implemented'
+          print 'graded hom_rect in 3D only for --hom_grad none implemented'
           exit()
   # no hom_rect stuff but orientational stiffness
   else:
