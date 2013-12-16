@@ -128,8 +128,6 @@ namespace CoupledField {
 
       StdVector<NonLinType> matDepenTypes = regionMatDepTypes_[actRegion];
       if ( matDepenTypes.Find(NLELEC_CONDUCTIVITY) != -1 ) {
-        std::cout << "Matdependency conductivity found" << std::endl;
-
         shared_ptr<BaseFeFunction> myFct = feFunctions_[ELEC_POTENTIAL];
         StdVector<std::string> dispDofNames = myFct->GetResultInfo()->dofNames;
         shared_ptr<EntityList> ent = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
@@ -137,17 +135,20 @@ namespace CoupledField {
         //get coeff-Fnc to evaluate the temperature
         ReadMaterialDependency( "elecConductivity", dispDofNames, ResultInfo::SCALAR, isComplex_,
                                 ent, coef, updatedGeo_ );
+        //coef-Fnc for electric conductivity
+        PtrCoefFct condNL =
+                  actSDMat->GetScalCoefFncNonLin( ELEC_CONDUCTIVITY, Global::REAL, coef);
 
         // create stiffness integrator
         BaseBDBInt* stiffInt = NULL;
         if( dim_ == 2 ) {
-          stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), coef,
+          stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), condNL,
                                  1.0, updatedGeo_ );
         } else {
-          stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), coef,
+          stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), condNL,
                                  1.0, updatedGeo_ );
         }
-        stiffInt->SetName("StiffnessIntegrator-NL");
+        stiffInt->SetName("StiffnessIntegrator-Temperatur-Depend");
 
         BiLinFormContext * stiffContext =
           new BiLinFormContext(stiffInt, STIFFNESS );

@@ -434,6 +434,7 @@ namespace CoupledField {
 
       assemble_->AssembleMatrices();
       if(assemble_->IsMatrixUpdated()){
+        //std::cout << "in SolveStepLin: new matrices computed" << std::endl;
 
         // set system matrix to zero initially, as ConstructEffectiveMatrix only
         // sums up the contributions

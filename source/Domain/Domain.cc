@@ -714,6 +714,7 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep, PtrParamNode infoNode)
   
   // Loop over all SinglePDEs and pass pointer to iterative coupled PDE
   for( UInt i = 0; i < ptSinglePde_.GetSize(); ++i ) {
+    //std::cout << "PDE: " << ptSinglePde_[i]->GetName() << std::endl;
     ptSinglePde_[i]->SetIterCoupledPDE( ptIterCoupledPde_ );
   }
   

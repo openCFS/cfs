@@ -422,11 +422,12 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     
     // 3) Resort the PDE order 
     ResortPDEOrder();
+    isFinalized_ = true;
   }
   
   void IterSolveStep::ResortPDEOrder() {
     LOG_TRACE(itersolvestep) << "Resorting PDE order";
-    
+
     // Collect all uncoupled SinglePDes
     std::set<SinglePDE*> uncoupledPdes;
     uncoupledPdes.insert(rPDE_.singlePDEs_.Begin(), 
@@ -449,17 +450,27 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     // 1) We start by all uncoupled Pdes
     // 2) Add coupled Pdes in the end
     rPDE_.numPDEs_ = uncoupledPdes.size() + rPDE_.coupledPDEs_.GetSize();
+
     rPDE_.PDEs_.Reserve( rPDE_.numPDEs_ );
     std::set<SinglePDE*>::iterator it = uncoupledPdes.begin();
     // remember mechanic PDE if present
     SinglePDE * mechPDE = NULL;
+    SinglePDE * heatPDE = NULL;
     for( ; it != uncoupledPdes.end(); ++it ) {
       if( (*it)->GetName() == "mechanic" ) {
         mechPDE = *it;
-      } else {
+      }
+      else if ( (*it)->GetName() == "heatConduction" ) {
+        heatPDE = *it;
+      }
+      else {
         rPDE_.PDEs_.Push_back( *it );
       }
     }
+
+    if ( heatPDE )
+      rPDE_.PDEs_.Push_back( heatPDE );
+
     if( mechPDE )
       rPDE_.PDEs_.Push_back(mechPDE);
     
@@ -699,6 +710,9 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     while (iter < maxiter_ &&  (! normsReached)) {
       LOG_DBG(itersolvestep) << "\n";
       LOG_DBG(itersolvestep) << "=== Iteration #" << iter+1 << "===";
+
+      //std::cout << "=== Iteration #" << iter+1 << "===" << std::endl;
+
       // --------------------------------------
       //  1) Re-Set all convergence criterions
       // --------------------------------------
@@ -762,6 +776,8 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
               << std::setw(width[2]) << std::setiosflags(std::ios::scientific) << norm
               << std::setw(width[3]) << std::setiosflags(std::ios::scientific) << convIt->second->GetFinalNorm()
               << std::endl;
+
+          //std::cout << "Quantity " << quantityName << " :" << norm << std::endl;
         }
       }
       iter++;
