@@ -603,8 +603,10 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
 
 void DesignMaterial::RotateVoigtTensor(Matrix<double>& t, DesignElement::Type direction){
   // rotation matrix is found in Dissertation of B. Schmidt: Topology Preserving Multi-Layer Shape and Material Optimization p. 62
+  // and also found in Wikipedia Drehmatrix (german)
   // rotates the material by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
-  // this is NOT identical to BaseMaterial::RotateTensorByRotationAngles, because the rotation angles are specified differently (thetay=-beta)
+  // direction of rotation around an axis is positive (ccw), if the axis is pointing towards oneself
+  // this is identical to BaseMaterial::RotateTensorByRotationAngles
   
   double thetax = 0.0, thetay = 0.0, thetaz = 0.0;
   if(dim == 3){
@@ -769,6 +771,10 @@ void DesignMaterial::RotateVoigtTensor(Matrix<double>& t, DesignElement::Type di
 }
 
 void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double sthetax, double cthetax, double sthetay, double cthetay, double sthetaz, double cthetaz, DesignElement::Type direction){
+  // rotation matrix is found in Dissertation of B. Schmidt: Topology Preserving Multi-Layer Shape and Material Optimization p. 62
+  // and also found in Wikipedia Drehmatrix (german)
+  // rotates the material by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
+  // direction of rotation around an axis is positive (ccw), if the axis is pointing towards oneself
   R.Resize(dim, dim);
   double ndx = 1.0, ndy = 1.0, ndz = 1.0;
   // for the derivative, we replace the correspond sin by cos and cos by -sin and set nd to 0.0
@@ -797,13 +803,13 @@ void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double sthetax, double
   }
   R[0][0] =  ndx * cthetay * cthetaz;
   R[0][1] = -ndx * cthetay * sthetaz;
-  R[1][0] =  cthetax * ndy * sthetaz - sthetax * sthetay * cthetaz;
-  R[1][1] =  cthetax * ndy * cthetaz + sthetax * sthetay * sthetaz;
+  R[1][0] =  cthetax * ndy * sthetaz + sthetax * sthetay * cthetaz;
+  R[1][1] =  cthetax * ndy * cthetaz - sthetax * sthetay * sthetaz;
   if(dim == 3){
-    R[0][2] = -ndx * sthetay * ndz;
+    R[0][2] =  ndx * sthetay * ndz;
     R[1][2] = -sthetax * cthetay * ndz;
-    R[2][0] =  sthetax * ndy * sthetaz + cthetax * sthetay * cthetaz;
-    R[2][1] =  sthetax * ndy * cthetaz - cthetax * sthetay * sthetaz;
+    R[2][0] =  sthetax * ndy * sthetaz - cthetax * sthetay * cthetaz;
+    R[2][1] =  sthetax * ndy * cthetaz + cthetax * sthetay * sthetaz;
     R[2][2] =  cthetax * cthetay * ndz;
   }
 }
@@ -1278,7 +1284,7 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
   }
   case PLANE_STRESS:      //see Bendsoe, Sigmund: Topology Optimization S. 166
   {
-    double E33 = 2e-2;
+    double E33 = 2e-1;
     double stiff1 = params_[DesignElement::STIFF1];
     double stiff2 = params_[DesignElement::STIFF2];
     double E = params_[DesignElement::EMODUL];
