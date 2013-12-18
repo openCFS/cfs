@@ -858,28 +858,27 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case JUMP:
   case GLOBAL_JUMP:
   case BUMP:
-  case STRESS:
-  case STRESS_DENSITY:
-  case TENSOR_TRACE:
-  case TENSOR_NORM:
-  case GLOBAL_TENSOR_TRACE:
-  case SUM_MODULI:
-  case GLOBAL_SUM_MODULI:
-  case LAMINATES_VOL:
-  case GLOBAL_LAMINATES_VOL:
-  case PARAM_PS_POS_DEF:
-  case POS_DEF_DET_MINOR_1:
-  case POS_DEF_DET_MINOR_2:
-  case POS_DEF_DET_MINOR_3:
-  case BENSON_VANDERBEI_1:
-  case BENSON_VANDERBEI_2:
-  case BENSON_VANDERBEI_3:
-  case DESIGN_BOUND:
-  case MULTIMATERIAL_SUM:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
     VicinityElement::Init(space, structure);
+    InitLocal(space);
+    break;
+
+  case LAMINATES_VOL:
+  case GLOBAL_LAMINATES_VOL:
+  case TENSOR_TRACE:
+  case TENSOR_NORM:
+  case GLOBAL_TENSOR_TRACE:
+  case GLOBAL_SUM_MODULI:
+  case PARAM_PS_POS_DEF:
+  case DESIGN_BOUND:
+  case MULTIMATERIAL_SUM:
+  case STRESS:
+  case STRESS_DENSITY:
+  case SUM_MODULI:
+
+    // we need no neighbors.
     InitLocal(space);
     break;
 
