@@ -3048,27 +3048,20 @@ namespace CoupledField {
       factor = materials_[nitscheIf->GetMasterVolRegion()]
                        ->GetScalCoefFnc( HEAT_CONDUCTIVITY, Global::REAL );
 
-      //get the value of the conductivity and scale the penalty term
-      StdVector<Vector<Double> > points(1);
-      Vector<Double> p1(DIM);
-      p1.Init();
-      points[0]= p1;
-      StdVector<Double> ergVec;
-      factor->GetScalarValuesAtCoords(points,ergVec,this->ptGrid_);
-      beta *= ergVec[0];
+      //not necessary, since coef "factor" is also provided to the jump-bilinear form
+
+//      //get the value of the conductivity and scale the penalty term
+//      StdVector<Vector<Double> > points(1);
+//      Vector<Double> p1(DIM);
+//      p1.Init();
+//      points[0]= p1;
+//      StdVector<Double> ergVec;
+//      factor->GetScalarValuesAtCoords(points,ergVec,this->ptGrid_);
+//      beta *= ergVec[0];
     }
     else if ( solType == ELEC_POTENTIAL ) {
       factor = materials_[nitscheIf->GetMasterVolRegion()]
                        ->GetScalCoefFnc( ELEC_CONDUCTIVITY, Global::REAL );
-
-      //get the value of the conductivity and scale the penalty term
-      StdVector<Vector<Double> > points(1);
-      Vector<Double> p1(DIM);
-      p1.Init();
-      points[0]= p1;
-      StdVector<Double> ergVec;
-      factor->GetScalarValuesAtCoords(points,ergVec,this->ptGrid_);
-      beta *= ergVec[0];
     }
     else
       factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
