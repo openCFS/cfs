@@ -14,24 +14,34 @@ def validate_region(hdf5_file, region):
   if not any(k in regions.keys() for k in [region]):
     print "region '" + region + "' not within regions " + str(regions.keys())
 
-## give back elements with barycenters
-# works 2D and 3D
-# @return list barycenter tuple ordered by elements and min and max node coordinates and first region element dimensions
-def centered_elements(hdf5_file, region):
-  all_elements = hdf5_file['/Mesh/Elements/Connectivity'] # for all regions
-  reg_elements = hdf5_file['/Mesh/Regions/' + region + '/Elements']
-  types = hdf5_file['/Mesh/Elements/Types']
-  all_nodes = hdf5_file['/Mesh/Nodes/Coordinates']
-  reg_nodes = hdf5_file['/Mesh/Regions/' + region + '/Nodes']
-  
-  # determine elem_dim from first region element dimensions
-  elem_id = reg_elements[0] - 1
+def element_dimensions(elem_id, all_elements, all_nodes):
   node_coords = []
   for n in range(len(all_elements[elem_id])):
     node_coords.append(all_nodes[all_elements[elem_id][n]-1]) # numbers are one-based
   ma = numpy.array([max(node_coords,key=operator.itemgetter(0))[0], max(node_coords,key=operator.itemgetter(1))[1],  max(node_coords,key=operator.itemgetter(2))[2]])
   mi = numpy.array([min(node_coords,key=operator.itemgetter(0))[0], min(node_coords,key=operator.itemgetter(1))[1],  min(node_coords,key=operator.itemgetter(2))[2]])
   elem_dim = ma - mi
+  return elem_dim
+
+
+## give back elements with barycenters
+# works 2D and 3D
+# @return list barycenter tuple ordered by elements and min and max node coordinates and region element dimensions (first or all)
+def centered_elements(hdf5_file, region, all_elem_dim = False):
+  all_elements = hdf5_file['/Mesh/Elements/Connectivity'].value # for all regions
+  reg_elements = hdf5_file['/Mesh/Regions/' + region + '/Elements'].value
+  types = hdf5_file['/Mesh/Elements/Types'].value
+  all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'].value
+  reg_nodes = hdf5_file['/Mesh/Regions/' + region + '/Nodes']
+  
+  # determine elem_dim from first region element dimensions or from all
+  elem_dim = None
+  if all_elem_dim:
+    elem_dim = [0.0] * len(reg_elements)
+    for i in range(len(reg_elements)):
+      elem_dim[i] = element_dimensions(reg_elements[i] - 1, all_elements, all_nodes)
+  else:
+    elem_dim = element_dimensions(reg_elements[0] - 1, all_elements, all_nodes)        
     
   # determine region dimensions, we need to resort for the desired region! Due to 1 to zero based conversion we need to do it manually :(
   nodes = numpy.zeros((len(reg_nodes), 3))
@@ -51,7 +61,6 @@ def centered_elements(hdf5_file, region):
     center *= 1.0/len(nod)
     result.append(center)
     # print "e=" + str(e) + " idx=" + str(idx) + " nod=" + str(nod) + " center=" + str(center) 
-
   return result, min_dim, max_dim, elem_dim     
                 
 ## find minimal and maximal coordinate
@@ -109,19 +118,18 @@ def dump_h5_meta(hdf5_file):
   ms = hdf5_file['/Results/Mesh/MultiStep_1/' + step + '/' + des]   
   print 'Regions (for ' + des + '):'
   for name in ms:
-    print '  ' + name
+    size = len(hdf5_file['/Mesh/Regions/' + name + '/Elements'])
+    print '  ' + name + ' with ' + str(size) + ' elements'
+    
     des = None
           
           
 # returns a deep copied numpy array          
 def get_element(hdf5_file, name, region, given_step=99999):
-  ms = hdf5_file['/Results/Mesh/MultiStep_1']
-  
   step = min((given_step, last_h5_step(hdf5_file)))
   key = "/Results/Mesh/MultiStep_1/Step_" + str(step) + "/" + name + "/" + region + "/Elements/Real"
   try:
-    data = ms[key]
-    return numpy.copy(data)
+    return hdf5_file[key].value
   except:
     raise Exception("cannot access '" + key + "' in " + str(hdf5_file.filename))
   

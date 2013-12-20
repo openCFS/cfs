@@ -8,7 +8,8 @@ import os
 
 ## reads design_stiff* and design_rotAngle* for 2D and 3D. Fills other stuff by defaults
 # considers density read
-# @return s1, s2, s3, angle1, angle2 
+# @param angle array of anglex, angley, anglez
+# @return s1, s2, s3, angle 
 def read_stiff_angle(hdf_file, dim_2D, args):
   # rot means, that we only show rotAngle, e.g. for piezoelectric polarization
   s1 = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1 
@@ -20,21 +21,19 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     s2 *= rho
     s3 *= rho
   
-  
-  a1 = numpy.zeros((len(s1),1))
-  a2 = numpy.zeros((len(s1),1))
+  angle = numpy.zeros(((len(s1),3)))
   
   if args.show == "hom_rot_cross" or args.show == "rot":
     try:
       if dim_2D:
-        a1 = get_element(f, "design_rotAngle_" + args.hom_access, args.h5_region, args.h5_step)
+        angle[:,0] = get_element(f, "design_rotAngle_" + args.hom_access, args.h5_region, args.h5_step)
       else:
-        a1 = get_element(f, "design_rotAngleX_" + args.hom_access, args.h5_region, args.h5_step)
-        a2 = get_element(f, "design_rotAngleY_" + args.hom_access, args.h5_region, args.h5_step)
+        angle[:,0] = get_element(f, "design_rotAngleX_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
+        angle[:,1] = get_element(f, "design_rotAngleY_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
+        angle[:,2] = get_element(f, "design_rotAngleZ_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
     except:
       print 'could not read angle, ignore it'
-
-  return s1, s2, s3, a1, a2
+  return s1, s2, s3, angle
 
 ## show or write either Image or polydata
 # @param viz eithe Image or polydata
@@ -61,6 +60,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D")
 parser.add_argument("--h5_step", help="step number, too high is last (default '9999')", default=9999, type=int)
 parser.add_argument("--h5_region", help="region name (default 'mech')", default="mech")
+#parser.add_argument('--h5_nonreg', action='store_true', help='assume the h5 file to be nonregular')
 parser.add_argument('--h5_info', action='store_true', help='dump some meta data information about the h5 file')
 parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, 'elecTensor'", default="mechTensor")
 parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=float)
@@ -77,6 +77,7 @@ parser.add_argument("--hom_access", help="the 'plain ' or 'smart' hom values (de
 parser.add_argument("--hom_grad", help="interpolation of design: 'none', 'nearest', linear', 'cubic' (default 'linear')", default="linear", choices=['none', 'nearest', 'linear', 'cubic'] )
 parser.add_argument("--hom_dir", help="visualization of stiffness directions (default 'all')", default="all", choices=['all', 'horizontal', 'vertical', 'sagittal'] )
 parser.add_argument("--hom_angle", help="bias added to the angle in grad!", default=0.0, type=float )
+parser.add_argument("--hom_samples", help="activates interpolation and gives samples in x-direction", type=int)
 parser.add_argument('--density_scale', action='store_true', help='scale by <hom_access> density')
 parser.add_argument("--save", help="save 'image.png' or VTK Poly Data file 'file.vtp'")
 parser.add_argument("--plot", help="for single tensors: creates gnuplot file instead of image")
@@ -131,7 +132,7 @@ else:
   if not os.path.exists(args.input):
     print 'Error: file does not exist: ' + args.input
     sys.exit()
-  f = h5py.File(args.input)
+  f = h5py.File(args.input, 'r')
   
   if args.h5_info:
     dump_h5_meta(f)
@@ -139,8 +140,6 @@ else:
      
   validate_region(f, args.h5_region)
   centers, min, max, elem_dim  = centered_elements(f, args.h5_region)
-  tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
-
   dim_2D = min[2] == max[2]
   print 'detected dimension ' + ('2D' if dim_2D else '3D')  
   
@@ -151,33 +150,50 @@ if h5_read or dim_2D:
   viz = None
   if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "rot":
 
-    s1, s2, s3, a1, a2 = read_stiff_angle(f, dim_2D, args)
+    s1, s2, s3, angle = read_stiff_angle(f, dim_2D, args)
+    # add angle bias
+    angle += args.hom_angle * numpy.pi/180
+
     coords = (centers, min, max, elem_dim)
 
     # viz is either Image or polydata
-    if args.show == "hom_rot_cross" or args.show == "rot":
-      # add optional angle bias
-      print 'change angle'
-      if args.hom_grad == 'none':
-        viz = show_rot_cross(coords, s1, s2, a1, args.hom_dir, args.res, args.scale)
+    if dim_2D:
+      if args.show == "hom_rot_cross" or args.show == "rot":
+        # add optional angle bias
+        print 'change angle'
+        if args.hom_grad == 'none':
+          viz = show_rot_cross(coords, s1, s2, angle[:,0], args.hom_dir, args.res, args.scale)
+        else:
+          viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, args.scale)          
       else:
-        viz = show_rot_cross_grad(coords, s1, s2, a1, args.hom_grad, args.hom_dir, args.res, args.scale)          
-    else:
-      if args.hom_grad == 'none':
-        if dim_2D:
+        if args.hom_grad == 'none':
           viz = show_frame(coords, s1, s2, args.hom_dir, args.res)
         else:
-          viz = create_3d_frame(coords, s1, s2, s3, args.hom_dir, args.scale)
-      else:
-        if dim_2D:
           viz = show_frame_grad(coords, s1, s2, args.hom_grad, args.hom_dir, args.res)
-        else:
-          print 'graded hom_rect in 3D only for --hom_grad none implemented'
+    # the 3D VTK stuff      
+    else:       
+      if args.show == "rot":
+        s1 = ones((len(s1),1)) * 0.25
+        s2 = ones((len(s1),1)) * 0.25
+        s3 = ones((len(s1),1)) * 0.25
+      if args.hom_samples:
+        if args.hom_grad == 'none':
+          print 'for hom_rect in 3D with hom_samples you need to specify hom_grad'
           exit()
+        else:
+          viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, args.scale)
+      else: # no sample
+        if args.hom_grad == 'none':
+            viz = create_3d_frame(coords, s1, s2, s3, angle, args.hom_dir, args.scale)  
+        else:
+          print 'hom_rect in 3D only for --hom_grad none implemented'
+          exit()
+            
   # no hom_rect stuff but orientational stiffness
   else:
     if args.tensor == 'mechTensor':
       print "Input data is read as as " + args.notation
+    tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
     angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.tensor, args.show)
     
     if args.plot <> None:

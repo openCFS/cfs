@@ -156,7 +156,7 @@ def get_interpol_data(coords, data, fallback, x, eval = True):
     v = fallback[x]
   return coords[x], v  
 
-## helper which returns an interolated grid and one nearest neighbor interpolated grid
+## helper which returns an interpolated grid and one nearest neighbor interpolated grid
 
 def get_interpolation(coords, grad, sample, s1, s2, angle = None):
   assert(sample == 'elem_nodes' or sample == 'edge_centers')
@@ -169,7 +169,6 @@ def get_interpolation(coords, grad, sample, s1, s2, angle = None):
  
   # where we want nodes
   nx = int((max[0] - min[0]) / elem[0])
-  print str((max[1] - min[1]) / elem[1])
   ny = int((max[1] - min[1]) / elem[1])
   out = None
   if sample == 'elem_nodes':
@@ -207,7 +206,7 @@ def get_interpolation(coords, grad, sample, s1, s2, angle = None):
       v[i][2] = angle[i][0]
     
   ip_data = ip.griddata(c, v, out, grad, -1.0)
-  # any interpolatiob but nearest neighbor can only interpolate in the convex hull,
+  # any interpolation but nearest neighbor can only interpolate in the convex hull,
   # if the value is -1 we use the nearest interpolation
   ip_near = ip.griddata(c, v, out, 'nearest') if grad <> 'nearest' else None
   
@@ -336,8 +335,6 @@ def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale=-1):
         
         pol = to_frustum_center(v_upper, v_start, center, (dx, dy), elem, scale, 'vertical') 
         draw.polygon(pol, fill="black")
-
-
 
   return im  
 

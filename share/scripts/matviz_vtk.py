@@ -2,6 +2,7 @@ import vtk
 from vtk.util.colors import *
 from numpy import *
 from matviz_rot import *
+import scipy.interpolate as ip 
 
 ## creates 3D data to vtkPolyData
 def create_vtk_poly_data(angle, data):
@@ -177,29 +178,45 @@ def show_vtk(polydata, res, planes = []):
 # helper for create_frame
 # @param cells  vtk.vtkCellArray() where cells are added via InsertNextCell
 # @param points vtk.vtkPoints() where the points are added
-# @param dir 'x', 'y', 'z'
-def create_centered_bar(cells, points, center, length, width, height):
+# @param dim list of length, width, height
+# @param angle list of angle_x, angle_y, angle_z or None
+def create_centered_bar(cells, points, center, dim, angle = None):
   
   #print "ccb: c=" + str(center) + " l=" + str(length) + " t=" + str(thick) + " dir=" + dir  
+  length, width, height = dim
+  angle_x, angle_y, angle_z = (0.0, 0.0, 0.0) if angle is None else angle
   
-  # Add the points to a vtkPoints object
-  dx = 0.5 * length
-  dy = 0.5 * width
-  dz = 0.5 * height  
+  
+  cthetax = cos(angle_x)
+  sthetax = sin(angle_x)
+  cthetay = cos(angle_y)
+  sthetay = sin(angle_y)
+  cthetaz = cos(angle_z)
+  sthetaz = sin(angle_z)
+  
+  # see DesignMaterial::SetRotationMatrix()
+  R = zeros((3,3))
+  R[0][0] =  cthetay * cthetaz
+  R[0][1] =  -cthetay * sthetaz
+  R[1][0] =  cthetax * sthetaz + sthetax * sthetay * cthetaz
+  R[1][1] =  cthetax * cthetaz - sthetax * sthetay * sthetaz
+  R[0][2] =  sthetay
+  R[1][2] = -sthetax * cthetay
+  R[2][0] =  sthetax * sthetaz - cthetax * sthetay * cthetaz
+  R[2][1] =  sthetax * cthetaz + cthetax * sthetay * sthetaz
+  R[2][2] =  cthetax * cthetay
 
   cx, cy, cz = center
   #points = vtk.vtkPoints()
   
   base = points.GetNumberOfPoints()
   
-  points.InsertNextPoint([cx-dx,cy-dy,cz-dz]) # 0
-  points.InsertNextPoint([cx+dx,cy-dy,cz-dz]) # 1
-  points.InsertNextPoint([cx+dx,cy+dy,cz-dz]) # 2
-  points.InsertNextPoint([cx-dx,cy+dy,cz-dz]) # 3
-  points.InsertNextPoint([cx+dx,cy-dy,cz+dz]) # 4
-  points.InsertNextPoint([cx-dx,cy-dy,cz+dz]) # 5
-  points.InsertNextPoint([cx+dx,cy+dy,cz+dz]) # 6
-  points.InsertNextPoint([cx-dx,cy+dy,cz+dz]) # 7
+  
+  for x in [(-1.0,-1.0,-1.0),(1.0,-1.0,-1.0),(1.0,1.0,-1.0),(-1.0,1.0,-1.0),(1.0,-1.0,1.0),(-1.0,-1.0,1.0),(1.0,1.0,1.0),(-1.0,1.0,1.0)]:
+    p = (x[0] * 0.5 * length, x[1] * 0.5 * width, x[2] * 0.5 * height)
+    r = R.dot(p)
+    n = [float(cx + r[0]), float(cy + r[1]),float(cz + r[2])]
+    points.InsertNextPoint(n) # 0 ... 7
   
   # Create a cell array to store the quad in
   #quads = vtk.vtkCellArray()
@@ -254,13 +271,13 @@ def create_centered_bar(cells, points, center, length, width, height):
   cells.InsertNextCell(quad)
 
 ## without rotation and shearing
-def create_3d_frame(coords, s1, s2, s3, dir, scale):
+def create_3d_frame(coords, s1, s2, s3, angles, dir, scale):
 
-  centers, min, max, elem = coords
-  
-  dx = elem[0]
-  dy = elem[1] 
-  dz = elem[2]
+  centers, min, max, elem_dim = coords
+
+  dx = elem_dim[0]
+  dy = elem_dim[1] 
+  dz = elem_dim[2]
 
   cells = vtk.vtkCellArray()
   points = vtk.vtkPoints()
@@ -270,22 +287,117 @@ def create_3d_frame(coords, s1, s2, s3, dir, scale):
 
   for i in range(len(s1)):
     coord = centers[i]
-    #print "s1=" + str(s1[i]) + " s2=" + str(s2[i]) + " s3=" + str(s3[i])
-    #s1[i] *= 0.5
-    #s2[i] *= 0.5
-    #s3[i] *= 0.5
+    angle = angles[i] if angles is not None else None
     if dir == 'horizontal' or dir == 'all':
-      create_centered_bar(cells, points, coord, scale * dx, scale * s1[i] * dy, scale * s1[i] * dz)
+      create_centered_bar(cells, points, coord, (scale * dx, scale * s1[i] * dy, scale * s1[i] * dz), angle)
     if dir == 'vertical' or dir == 'all':
-      create_centered_bar(cells, points, coord, scale * s2[i] * dx, scale * dy, scale * s2[i] * dz)
+      create_centered_bar(cells, points, coord, (scale * s2[i] * dx, scale * dy, scale * s2[i] * dz), angle)
     if dir == 'sagittal' or dir == 'all':
-      create_centered_bar(cells, points, coord, scale * s3[i] * dx, scale * s3[i] * dy, scale * dz)
+      create_centered_bar(cells, points, coord, (scale * s3[i] * dx, scale * s3[i] * dy, scale * dz), angle)
     
   polydata = vtk.vtkPolyData()
   polydata.SetPoints(points)
   polydata.SetPolys(cells)
     
   return polydata
+
+
+## for the robot arm we have check for the two nondesign holes as they are within the
+## convex hull of the design :(
+def valid_position(pos, coords):
+  mi, ma = coords[1:3]
+  delta = (abs(ma[0] - mi[0]), abs(ma[1] - mi[1]), abs(ma[2] - mi[2]))
+  if int(delta[0]) == 508 and int(delta[2]) == 126:
+    if (pos[0] + 147.0)**2 + pos[2]**2 < 40.0**2: # center -147, 0, 0
+      return False 
+    if (pos[0] - 250.0)**2 + pos[2]**2 < 37.0**2: # center 250, 0, 0
+      return False 
+  
+
+  return True   
+
+## without rotation and shearing
+def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale):
+  centers, min, max = coords[0:3] # we cannot use the first region element element dimensions 
+  
+  cells = vtk.vtkCellArray()
+  points = vtk.vtkPoints()
+
+  if scale <= 0:
+    scale = 1.0
+
+  ip_data, ip_near, out, ndim = get_interpolation(coords, grad, s1, s2, s3, ip_nx, angles)
+
+  dx = (max[0] - min[0]) / ip_nx
+
+  within = 0
+  invalid = 0
+  for i in range(len(out)):
+    coord = out[i]
+    s1, s2, s3 = ip_data[i][0:3]
+    angle = None if angles is None else ip_data[i][3:6]
+    
+    if s1 > 0.0:
+      within += 1
+      
+      if not valid_position(coord, coords):
+        invalid += 1
+        continue
+      
+      if dir == 'horizontal' or dir == 'all':
+        create_centered_bar(cells, points, coord, (scale * dx, scale * s1 * dx, scale * s1 * dx), angle)
+      if dir == 'vertical' or dir == 'all':
+        create_centered_bar(cells, points, coord, (scale * s2 * dx, scale * dx, scale * s2 * dx), angle)
+      if dir == 'sagittal' or dir == 'all':
+        create_centered_bar(cells, points, coord, (scale * s3 * dx, scale * s3 * dx, scale * dx), angle)
+    
+  if grad <> 'nearest':  
+    print str(within) + ' elements out of ' + str(len(out)) + ' in convex hull'  
+  if invalid > 0:  
+    print str(invalid) + ' elements out of ' + str(len(out)) + ' are considered invalid (shall not be visualized)'
+    
+  polydata = vtk.vtkPolyData()
+  polydata.SetPoints(points)
+  polydata.SetPolys(cells)
+    
+  return polydata
+
+# this is copy & paste from matviz_2d but extendet to 3D
+# @param nx_ip number of interpolations within x
+def get_interpolation(coords, grad, s1, s2, s3, nx, angle = None):
+  # we make our own elem
+  centers, mi, ma = coords[0:3] # skip elem
+ 
+  delta = (abs(ma[0] - mi[0]), abs(ma[1] - mi[1]), abs(ma[2] - mi[2]))
+  # where we want nodes
+  ny = int(delta[1] / (delta[0] / nx))
+  nz = int(delta[2] / (delta[0] / nx))
+ 
+  if ny == 0 or nz == 0 or nx == 0:
+    print 'chose a higher hom_samples such that also the smallest side gets discretized'
+    exit()
+
+  out = numpy.zeros(((nx + 1) * (ny + 1) * (nz + 1), 3))
+  idx = 0
+  for z in range(nz+1):
+    for y in range(ny+1):
+      for x in range(nx+1):
+        out[idx] = ((mi[0] + float(x)/nx * delta[0], mi[1] + float(y)/ny * delta[1], mi[2] + float(z)/nz * delta[2]))
+        idx += 1
+
+  v = numpy.zeros((len(s1),  3 if angle == None else 6))
+  v[:,0] = s1[:,0]
+  v[:,1] = s2[:,0]
+  v[:,2] = s3[:,0]
+  if angle <> None:
+    v[:,3:6] = angle[:,:]
+  
+  ip_data = ip.griddata(centers, v, out, grad, -1.0)
+  # any interpolation but nearest neighbor can only interpolate in the convex hull,
+  # if the value is -1 we use the nearest interpolation
+  ip_near = ip.griddata(centers, v, out, 'nearest') if grad <> 'nearest' else None
+  
+  return ip_data, ip_near, out, (nx, ny, nz) 
 
 
 ## litte helper
