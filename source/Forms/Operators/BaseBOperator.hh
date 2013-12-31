@@ -131,6 +131,11 @@ public:
     coef_ = coef;
   }
 
+  //! Set the coefficient function of the operator
+  virtual PtrCoefFct GetCoefFunction(){
+    return coef_;
+  }
+
   //! set operator to rurface operator
   virtual void SetOperator2SurfOperator() {
     isSurfOpt_ = true;

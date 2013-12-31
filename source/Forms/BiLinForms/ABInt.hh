@@ -37,6 +37,15 @@ namespace CoupledField {
       this->aOperator_->SetCoefFunction(coef);
     }
 
+    //! \copydoc BiLinearForm::IsSolDependent
+    virtual void SetSolDependent() {
+      solDependent_ = true;
+    }
+
+    //! \copydoc BiLinearForm::IsSolDependent
+    virtual bool IsSolDependent() {
+      return solDependent_;
+    }
 
   protected:
 
@@ -46,6 +55,8 @@ namespace CoupledField {
     //! Store intermediate A-matrix
     Matrix<MAT_DATA_TYPE> aMat_;
     
+    bool solDependent_;
+
 };
 
   //! general class for calculation of AB-Forms

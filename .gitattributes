@@ -1795,6 +1795,8 @@ source/PDE/ElecCurrentPDE.cc -text
 source/PDE/ElecCurrentPDE.hh -text
 source/PDE/ElecPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/ElecPDE.hh svneol=native#text/x-c%2B%2Bhdr
+source/PDE/FlowPDE.cc -text
+source/PDE/FlowPDE.hh -text
 source/PDE/HeatPDE.cc -text
 source/PDE/HeatPDE.hh -text
 source/PDE/MagEdgePDE.cc -text

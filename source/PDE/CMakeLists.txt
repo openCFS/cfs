@@ -15,6 +15,7 @@ SET(PDE_SRCS
   AcousticPDE.cc
   AcousticMixedPDE.cc
   ElecCurrentPDE.cc
+  FlowPDE.cc
   TestPDE.cc
   )
 

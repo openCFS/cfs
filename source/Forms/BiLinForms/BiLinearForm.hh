@@ -100,6 +100,9 @@ namespace CoupledField
         EXCEPTION("Integrator::SetCoefFunctionOpA not available in base class!");
       }
 
+      //! \copydoc BiLinearForm::IsSolDependent
+      virtual void SetSolDependent() {;}
+
     protected:
 
       //! name of (bi)linearform

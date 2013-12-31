@@ -37,6 +37,7 @@
 #include "PDE/AcousticMixedPDE.hh"
 #include "PDE/ElecPDE.hh"
 #include "PDE/PerturbedFlowPDE.hh"
+#include "PDE/FlowPDE.hh"
 #include "PDE/HeatPDE.hh"
 #include "PDE/MagneticPDE.hh"
 #include "PDE/MagEdgePDE.hh"
@@ -648,6 +649,10 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
 
       if (formulation == "perturbed") {
         ptSinglePde_[i] = new PerturbedFlowPDE(defaultGrid, actPdeNode, infoNode,
+                                               simState_, this );
+      }
+      else {
+        ptSinglePde_[i] = new FlowPDE(defaultGrid, actPdeNode, infoNode,
                                                simState_, this );
       }
     }

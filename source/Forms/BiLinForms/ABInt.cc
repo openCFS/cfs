@@ -29,6 +29,7 @@ ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 {
   this->name_ = "ABInt";
   this->aOperator_ = aOp;
+  this->solDependent_ = false;
 
   // Note: In general the AB-Integrator is not symmetric, as is should 
   // get only used, if the A- and B differential operators are distinct.
