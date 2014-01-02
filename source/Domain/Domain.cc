@@ -174,7 +174,13 @@ void Domain::CreateGrid()
 
     // print grid information to result file if requested
     if(param_->Get("domain")->Get("printGridInfo")->As<bool>() ) {
-      if( resultHandler_ && isParentDomain_) {
+      // only print grid information, if we are the master domain (i.e. not
+      // within a child domain when reading from an external simulation) and if
+      // we are not in a restarted state (i.e. we assume that the grid information was
+      // printed already in the first attempt)
+      if( resultHandler_ && 
+          isParentDomain_&&
+          !progOpts->GetRestart()) {
         gridMap_["default"]->CreateGridInformation(resultHandler_, coordSys_);
       }
     }
