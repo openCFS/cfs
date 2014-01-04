@@ -207,10 +207,13 @@ FeHCurlHi::FeHCurlHi(Elem::FEType feType )
   onlyLowestOrder_ = false;
   isoOrder_ = 0;
   
-  // disable by default use of gradient functions
-  useGrad_[EDGE]     = false;
-  useGrad_[FACE]     = false;
-  useGrad_[INTERIOR] = false;
+  // initialize useage of gradients
+  useEdgeGrad_.Resize( shape_.numEdges );
+  useFaceGrad_.Resize( shape_.numFaces );
+  useEdgeGrad_.Init( false );
+  useFaceGrad_.Init( false );
+  useInteriorGrad_ = false;
+  
 }
 FeHCurlHi::~FeHCurlHi() {
 
@@ -229,11 +232,6 @@ void FeHCurlHi::GetNumFncs( StdVector<UInt>& numFcns,
   numFcns = entityFncs_[entityType]; 
 }
   
-void FeHCurlHi::UseGradient(EntityType entity, bool usage) {
-  useGrad_[entity] = usage;
-  updateUnknowns_ = true;
-}
-
 void FeHCurlHi::SetOnlyLowestOrder( bool flag ) {
   onlyLowestOrder_ = flag;
   updateUnknowns_ = true;
@@ -311,6 +309,26 @@ bool FeHCurlHi::operator==( const FeHCurlHi& comp) const {
   
 }
 
+void FeHCurlHi::SetUseGradients(bool useGrad) {
+  useInteriorGrad_ = useGrad;
+  useEdgeGrad_.Init( useGrad );
+  useFaceGrad_.Init( useGrad );
+
+  updateUnknowns_ = true;
+}
+
+void FeHCurlHi::SetEdgeGradient(UInt edgeNum, bool useGrad) {
+  assert( edgeNum <= elemShape_.numEdges);
+  useEdgeGrad_[edgeNum] = useGrad;
+  updateUnknowns_ = true;
+}
+
+void FeHCurlHi::SetFaceGradient(UInt faceNum, bool useGrad) {
+  assert( faceNum <= elemShape_.numFaces);
+  useFaceGrad_[faceNum] = useGrad;
+  updateUnknowns_ = true;
+}
+
 
 // ========================================================================
 //  FeHCurlHi explicit element definition 
@@ -345,7 +363,7 @@ void FeHCurlHiQuad::CalcNumUnknowns() {
   UInt unknowns = 0;
   for( UInt i = 0; i < shape_.numEdges; ++i ) {
     unknowns = 1; // Lowest order Nedelc functions
-    if( useGrad_[EDGE])
+    if( useEdgeGrad_[i])
       unknowns += orderEdge_[i];
     edgeFncs[i] = unknowns;
     LOG_DBG(feHCurlHi) <<   "edge " << i+1 << " has " << unknowns << "unknowns";
@@ -361,7 +379,7 @@ void FeHCurlHiQuad::CalcNumUnknowns() {
         orderFace_[i][1] > 0 ) {
       unknowns = orderFace_[i][0] * orderFace_[i][1] // face functions of 1st kind
                 + orderFace_[i][0] + orderFace_[i][1];
-      if( useGrad_[FACE])
+      if( useFaceGrad_[i])
         unknowns +=  orderFace_[i][0] * orderFace_[i][1];
       faceFncs[i] = unknowns;
       LOG_DBG(feHCurlHi) << "face " << i+1 << " has " << unknowns << "unknowns";
@@ -418,7 +436,7 @@ void FeHCurlHiHex::CalcNumUnknowns() {
   UInt unknowns = 0;
   for( UInt i = 0; i < shape_.numEdges; ++i ) {
     unknowns = 1; // Lowest order Nedelc functions
-    if( useGrad_[EDGE])
+    if( useEdgeGrad_[i])
       unknowns += orderEdge_[i];
     edgeFncs[i] = unknowns;
     LOG_DBG(feHCurlHi) <<   "edge " << i+1 << " has " << unknowns << "unknowns";
@@ -435,7 +453,7 @@ void FeHCurlHiHex::CalcNumUnknowns() {
         orderFace_[i][1] > 0 ) {
       unknowns = orderFace_[i][0] * orderFace_[i][1] // face functions of 1st kind
                 + orderFace_[i][0] + orderFace_[i][1];
-      if( useGrad_[FACE])
+      if( useFaceGrad_[i])
         unknowns +=  orderFace_[i][0] * orderFace_[i][1];
       faceFncs[i] = unknowns;
       LOG_DBG(feHCurlHi) << "face " << i+1 << " has " << unknowns << "unknowns";
@@ -457,7 +475,7 @@ void FeHCurlHiHex::CalcNumUnknowns() {
     unknowns = 2 * (orderInner_[0] * orderInner_[1] * orderInner_[2]) 
                    + orderInner_[1] * orderInner_[2] 
                    + orderInner_[0] * (orderInner_[2] + orderInner_[1]);
-    if( useGrad_[INTERIOR] ) { 
+    if( useInteriorGrad_ ) { 
       unknowns += orderInner_[0] * orderInner_[1] * orderInner_[2];
     }
     actNumFncs_ += unknowns;
@@ -521,7 +539,7 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp
       shape[k][i] = xi.DVal(k)*eta.Val()*fac;
     }
     // b) gradient functions
-    if( useGrad_[EDGE] && !onlyLowestOrder_ ) {
+    if( useEdgeGrad_[i] ) {
       IntLegendreP2(xiVals, order+1, fac*xi );
       
       for( UInt j = 0; j < order; ++j ) {
@@ -615,7 +633,7 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp
       IntLegendreP2(etaVals, order2+1, eta );
       
       // a) gradient fields
-      if( useGrad_[FACE])
+//      if( useGrad_[FACE])
         WARN("Calculation of face gradient fields not yet implemented");
       
       // b) curl of gradient fields
@@ -661,7 +679,7 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp
   IntLegendreP2(zetaVals, orderInner_[2]+1, z );
 
   // a) gradient fiels
-  if( useGrad_[INTERIOR]) {
+  if( useInteriorGrad_ ) {
     for( UInt i = 0; i < orderInner_[0]; ++i ) {
       for( UInt j = 0; j < orderInner_[1]; ++j ) {
         for( UInt k = 0; k < orderInner_[2]; ++k ) {
@@ -722,6 +740,7 @@ template<FeHCurlHiHex::DiffType DIFF_TYPE>
 void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& lpm,
                                   const Elem* elem, UInt comp  ) {
   if (updateUnknowns_) CalcNumUnknowns();
+  
     AutoDiff<Double, 3> x (lpm.lp.coord[0],0);
     AutoDiff<Double, 3> y (lpm.lp.coord[1],1);
     AutoDiff<Double, 3> z (lpm.lp.coord[2],2);
@@ -743,7 +762,7 @@ void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& l
                                      0.5*((1.0+x)+(1.0-y)+(1.0+z)),
                                      0.5*((1.0+x)+(1.0+y)+(1.0+z)),
                                      0.5*((1.0-x)+(1.0+y)+(1.0+z))};
-    UInt pos = 12;
+    UInt pos = 0;
     shape.Resize(3,actNumFncs_);
     shape.Init();
     
@@ -765,20 +784,25 @@ void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& l
 
       // === a) standard Nedelec shape functions ===
       Xpr_SGradU<3,DIFF_TYPE> xpr(eta,xi*fac);
-      for( UInt k = 0; k < 3; ++k ) {
-        shape[k][i] =  xpr[k];
-      }
+      COPYSHFNC
       
       // ===  b) gradient functions ===
-      if( useGrad_[EDGE] && !onlyLowestOrder_ ) {
-        IntLegendreP2(xiVals, order+1, fac*xi );
+      if( useEdgeGrad_[i]) {
+        if (onlyLowestOrder_) {
+          for( UInt j = 0; j < order; ++j ) {
+            pos++;
+          }
+        } else {
+          IntLegendreP2(xiVals, order+1, fac*xi );
 
-        for( UInt j = 0; j < order; ++j ) {
-          Xpr_GradU<3,DIFF_TYPE> xpr(xiVals[j]*eta);
-          COPYSHFNC
-        }
-      }
-    }
+          for( UInt j = 0; j < order; ++j ) {
+            Xpr_GradU<3,DIFF_TYPE> xpr(xiVals[j]*eta);
+            COPYSHFNC
+          }
+        }// if: lowestOrder
+      } //if: edgeGrad
+    } //loop: edges
+    
     if(onlyLowestOrder_) return;
     
     // -------------------------
@@ -812,7 +836,7 @@ void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& l
         IntLegendreP2(etaVals, order2+1,eta );
         
         // === a) type 1: gradient fields ===
-        if( useGrad_[FACE]) {
+        if( useFaceGrad_[iFace]) {
           for( UInt i = 0; i < order1; ++i ) {
             for( UInt j = 0; j < order2; ++j ) {
               Xpr_GradU<3,DIFF_TYPE> xpr( xiVals[i] * etaVals[j] * sum_lambda);
@@ -829,7 +853,7 @@ void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& l
           }
         }
         
-        // === c) type 3 face functions ===
+        // === c) type 3: face functions ===
         for( UInt i = 0; i < order1; ++i ) {
           Xpr_Diff_SVGradU<3,DIFF_TYPE> xpr(1.0, eta, xiVals[i] * sum_lambda );
           COPYSHFNC
@@ -856,7 +880,7 @@ void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& l
       IntLegendreP2(zetaVals, orderInner_[2]+1, z );
 
       // === a) type 1: gradient fields ===
-      if( useGrad_[INTERIOR] ) {
+      if( useInteriorGrad_ ) {
         for( UInt i = 0; i < orderInner_[0]; ++i ) {
           for( UInt j = 0; j < orderInner_[1]; ++j ) {
             for( UInt k = 0; k < orderInner_[2]; ++k ) {
@@ -962,7 +986,7 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped&
       curl[j][i] = temp.DVal(j);
     }
     // b) gradient functions -> get skipped
-    if( useGrad_[EDGE] ) {
+    if( useEdgeGrad_[i] ) {
       pos += order;
     }
   }
@@ -1071,7 +1095,7 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped&
       IntLegendreP2(etaVals, order2+1,eta );
 
       // a) gradient fields
-      if( useGrad_[FACE])
+      if( useFaceGrad_[f])
         WARN("Calculation of face gradient fields not yet implemented");
 
       // b) curl of gradient fields
@@ -1154,7 +1178,7 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped&
   IntLegendreP2(zetaVals, orderInner_[2]+1, z );
 
   // a) gradient fiels
-  if( useGrad_[INTERIOR]) {
+  if( useInteriorGrad_) {
     pos += orderInner_[0] * orderInner_[1] * orderInner_[2];
   }
 
@@ -1242,8 +1266,6 @@ void FeHCurlHiHex::GetCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lpm
   //this->CalcLocCurlShFnc( locCurl, lpm, elem, comp );
   //std::cerr << "Old local curl\n" << locCurl << std::endl;
   CalcLocShFnc2<CURL>( locCurl, lpm, elem, comp );
-  //std::cerr << "New local curl\n" << locCurl << std::endl;
-  
   curl = lpm.jac * locCurl;
   curl *= ( 1.0 / std::abs(lpm.jacDet) );
   

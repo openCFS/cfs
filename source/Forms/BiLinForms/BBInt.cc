@@ -256,7 +256,7 @@ namespace CoupledField{
      FeHCurlHi* ptFe = 
          static_cast<FeHCurlHi*>(this->ptFeSpace1_->GetFe( ent1, method, order ));
      // Special: Only use lower order functions
-     ptFe->SetOnlyLowestOrder(true);
+     //ptFe->SetOnlyLowestOrder(true);
 
      const UInt nrFncs = ptFe->GetNumFncs();
 
@@ -295,7 +295,7 @@ namespace CoupledField{
 #endif
 
      }
-     ptFe->SetOnlyLowestOrder(false);
+     //ptFe->SetOnlyLowestOrder(false);
    }
 
    template< class COEF_DATA_TYPE, class B_DATA_TYPE> 
