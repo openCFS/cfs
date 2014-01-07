@@ -128,6 +128,17 @@ IF(USE_CGNS)
 ENDIF(USE_CGNS)
 
 #-------------------------------------------------------------------------------
+# Search for STAR-CCM+ I/O library
+#-------------------------------------------------------------------------------
+IF(USE_CCMIO)
+  SET(CCMIO_URL "${LSE17_SOURCES_DIR}/ccmio")
+  SET(CCMIO_GZ "libccmio-2.6.1.tar.gz")
+  SET(CCMIO_MD5 "f81fbdfb960b1a4f3bcc7feee491efe4")
+
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/ccmio/External_CCMIO.cmake")
+ENDIF(USE_CCMIO)
+
+#-------------------------------------------------------------------------------
 # Search for CFX I/O library
 #-------------------------------------------------------------------------------
 IF(USE_CFXIO)

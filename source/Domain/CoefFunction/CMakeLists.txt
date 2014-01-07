@@ -30,4 +30,11 @@ ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})
 #  $(TARGET_LL)
 #  )
 
-
+IF(USE_CCMIO)
+  ADD_EXECUTABLE(readexample readexample.cc)
+  TARGET_LINK_LIBRARIES(readexample
+    ${CCMIO_LIBRARY}
+    ${CGNS_LIBRARY}
+    ${HDF5_LIBRARY}
+    ${ZLIB_LIBRARY})
+ENDIF()

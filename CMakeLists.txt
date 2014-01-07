@@ -249,6 +249,20 @@ OPTION(USE_CGNS "Enable support for the CFD General Notation System."
   ${USE_CGNS_DEFAULT})
 
 #-----------------------------------------------------------------------------
+# CCMIO - STAR-CCM+ I/O library
+#-----------------------------------------------------------------------------
+OPTION(USE_CCMIO "Enable support for the STAR-CCM+ I/O library."
+  ${USE_CCMIO_DEFAULT})
+
+# Since the CCMIO library depends on the ADF library from CGNS, we need to
+# force USE_CGNS to ON.
+IF(USE_CCMIO AND
+    NOT USE_CGNS)
+    SET(USE_CGNS ON CACHE BOOL
+      "Enable support for the CFD General Notation System." FORCE)
+ENDIF()
+
+#-----------------------------------------------------------------------------
 # CFXIO - Support for reading ANSYS CFX result files
 #-----------------------------------------------------------------------------
 IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")

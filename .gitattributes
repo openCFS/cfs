@@ -63,6 +63,11 @@ cfsdeps/bzip2/CMakeLists.txt -text
 cfsdeps/bzip2/External_bzip2.cmake -text
 cfsdeps/bzip2/bzip2-mingw.patch -text
 cfsdeps/bzip2/bzip2-patch.cmake.in -text
+cfsdeps/ccmio/CMakeLists.txt -text
+cfsdeps/ccmio/CMakeLists_libadf.txt -text
+cfsdeps/ccmio/CMakeLists_libccmio.txt -text
+cfsdeps/ccmio/External_CCMIO.cmake -text
+cfsdeps/ccmio/ccmio-patch.cmake.in -text
 cfsdeps/cfx_custom/External_CFX_Custom.cmake -text
 cfsdeps/cfx_custom/cfx_custom_v100_include.tar.bz2 -text svneol=unset#unset
 cfsdeps/cfx_custom/cfx_custom_v100_linux-amd64.tar.bz2 -text svneol=unset#unset
@@ -106,6 +111,7 @@ cfsdeps/cgns/External_CGNS.cmake -text
 cfsdeps/cgns/cgns-arch-mac.patch -text
 cfsdeps/cgns/cgns-cmake-mac.patch -text
 cfsdeps/cgns/cgns-cmake-policy.patch -text
+cfsdeps/cgns/cgns-hdf5.patch -text
 cfsdeps/cgns/cgns-install-target.patch -text
 cfsdeps/cgns/cgns-patch.cmake.in -text
 cfsdeps/cgns/cgnsview-ccmio.patch -text
@@ -1375,6 +1381,7 @@ source/Domain/CoefFunction/CoefFunctionTimeFreq.cc -text
 source/Domain/CoefFunction/CoefFunctionTimeFreq.hh -text
 source/Domain/CoefFunction/CoefXpr.cc -text
 source/Domain/CoefFunction/CoefXpr.hh -text
+source/Domain/CoefFunction/readexample.cc -text
 source/Domain/CoordinateSystems/CMakeLists.txt -text
 source/Domain/CoordinateSystems/CartesianCoordSystem.cc svneol=native#text/plain
 source/Domain/CoordinateSystems/CartesianCoordSystem.hh svneol=native#text/plain
