@@ -381,3 +381,25 @@ MACRO(SITE_SPECIFIC_FINISH)
 #  MESSAGE("Leaving SITE_SPECIFIC_FINISH...")
 ENDMACRO()
 
+MACRO(INIT_CACHE CACHE_VAR)
+  # =========================================================================
+  #
+  #  Set parameters in initial cache for features which are required to work
+  #  on all sites and tests, no matter what platform defaults have been set.
+  #
+  # =========================================================================
+  SET(${CACHE_VAR}
+    "BUILD_TESTING:BOOL=ON
+     CMAKE_COLOR_MAKEFILE:BOOL=OFF
+     CFSTOOL:BOOL=ON
+     USE_GMV:BOOL=ON
+     USE_GMSH:BOOL=ON
+     USE_CGAL:BOOL=ON
+     USE_CCMIO:BOOL=ON
+     USE_SCPIP:BOOL=ON
+     USE_SUITESPARSE:BOOL=ON
+     USE_SUPERLU:BOOL=ON
+    "
+  )
+ENDMACRO()
+
