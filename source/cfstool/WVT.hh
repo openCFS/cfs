@@ -42,6 +42,10 @@ namespace CFSTool
     void OpenIntPointsFile();
     void CloseIntPointsFile();
 
+    void AcouPot2AcouVelFeFct(const shared_ptr<BaseFeFunction>& acouPotFeFct,
+                              const shared_ptr<BaseBOperator>& gradOp,
+                              shared_ptr<BaseFeFunction>& acouVelFeFct);
+
     static void WriteResultsToCSV(Double freq,
                                   Complex u_p_prime, 
                                   Double deltaPhiVol,
@@ -52,6 +56,18 @@ namespace CFSTool
   private:
     const PtrParamNode& param_;
     const PtrParamNode& info_;
+
+    //! Dimension of grid
+    UInt dim_;
+    
+    //! Number of DOFs for fluid velocity vectors
+    UInt numDofs_;
+
+    //! Names of DOFs for fluid velocity vectors
+    StdVector<std::string> dofNames_;
+
+    //! Global math parser instance.
+    shared_ptr<MathParser> mp_;
 
     //! File name of input file for primary mode. Usually, this is the lateral
     //! mode.

@@ -13,6 +13,7 @@
 #include "DataInOut/SimOutput.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "Domain/CoordinateSystems/DefaultCoordSystem.hh"
+#include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "FeBasis/BaseFE.hh"
 #include "FeBasis/FeSpace.hh"
 #include "FeBasis/H1/H1Elems.hh"
@@ -60,6 +61,8 @@ namespace CFSTool {
             const PtrParamNode& info ) :
     param_(param),
     info_(info),
+    dim_(0),
+    numDofs_(0),
     writeOutputFile_ (false),
     sensorNodeName_("s_1"),
     integOrder_(1),
@@ -197,7 +200,7 @@ namespace CFSTool {
     inputs_[PRIMARY_MODE] = GetInputReader( priModeFile_, param_, info_ );
     inputs_[SECONDARY_MODE] = GetInputReader( secModeFile_, param_, info_ );
 
-    shared_ptr<MathParser> mp(new MathParser());
+    mp_.reset(new MathParser());
 
     // check capabilities of input class
     InputsType::iterator iit, iend;
@@ -216,10 +219,22 @@ namespace CFSTool {
 
     // read in mesh of input1
     inputs_[PRIMARY_MODE]->InitModule();
-    UInt dim = inputs_[PRIMARY_MODE]->GetDim();
-    Grid * ptGrid1 = new GridCFS(dim, param_, info_);
+    dim_ = inputs_[PRIMARY_MODE]->GetDim();
+    Grid * ptGrid1 = new GridCFS(dim_, param_, info_);
     inputs_[PRIMARY_MODE]->ReadMesh(ptGrid1);
     ptGrid1->FinishInit();
+
+    // Init dofNames array.
+    switch(dim_) {
+    case 2:
+      dofNames_ = "x", "y";
+      break;
+    case 3:
+      dofNames_ = "x", "y", "z";
+      break;               
+    } 
+
+    numDofs_ = dofNames_.GetSize();
     
     // Read the XML parameter file from the HDF5 result file of the primary/drive mode.
     PtrParamNode pNode = GetParamNodeFromHDF5(inputs_[PRIMARY_MODE],
@@ -231,39 +246,104 @@ namespace CFSTool {
 
     bool ms1HasMech = multiSeqStep1->Get("pdeList")->Has("mechanic");
     bool ms1HasFlow = multiSeqStep1->Get("pdeList")->Has("fluidMech");
+    bool ms1HasAcou = multiSeqStep1->Get("pdeList")->Has("acoustic");
+    bool ms1HasCplLst = multiSeqStep1->Has("couplingList");
     
     PtrParamNode mechNode, fluidNode;
     
     StdVector<std::string> cplSurfList;
     
-    if( ms1HasMech && ms1HasFlow && multiSeqStep1->Has("couplingList"))
+    if( ms1HasCplLst )
     {
-      // For directly coupled WVT, mechanic and fluid analyses need to be
-      // in the first MS step. There needs to be also a coupling section.
-      // Normally you do not need to apply WVT to directly coupled system
-      // since the phase difference between the sensors can be readily
-      // obtained by comparing the phases of the mech. displacements.
-      // But we want to cross-check our directly and iteratively coupled
-      // results.
-      
       PtrParamNode cplNode = multiSeqStep1->Get("couplingList");
-      
-      if( cplNode->Get("direct")->Has("fluidMechDirect") ) 
-      {  
-        dirCoupled_ = true;
-        std::cout << "We have a <couplingList> tag." << std::endl;
-        
-        mechNode = multiSeqStep1->Get("pdeList")->Get("mechanic");
-        fluidNode = multiSeqStep1->Get("pdeList")->Get("fluidMech");         
-        
-        list = cplNode->Get("direct")->Get("fluidMechDirect")
-               ->Get("surfRegionList")->GetChildren();
-        for(UInt i=0; i<list.GetSize(); i++) {
-          std::cout << "Coupling " << list[i]->GetName() << ": "
-                    << list[i]->Get("name")->As<std::string>() << std::endl;
-          cplSurfList.Push_back(list[i]->Get("name")->As<std::string>());
+      std::cout << "We have a <couplingList> tag." << std::endl;
+
+      if( ms1HasMech ) 
+      {
+        if( ms1HasFlow)
+        {
+          // For directly coupled WVT, mechanic and fluid analyses need to be
+          // in the first MS step. There needs to be also a coupling section.
+          // Normally you do not need to apply WVT to directly coupled system
+          // since the phase difference between the sensors can be readily
+          // obtained by comparing the phases of the mech. displacements.
+          // But we want to cross-check our directly and iteratively coupled
+          // results.
+          
+          if( cplNode->Get("direct")->Has("fluidMechDirect") ) 
+          {  
+            dirCoupled_ = true;
+            
+            mechNode = multiSeqStep1->Get("pdeList")->Get("mechanic");
+            fluidNode = multiSeqStep1->Get("pdeList")->Get("fluidMech");         
+
+            std::cout << "Coupling type: fluidMechDirect" << std::endl;
+            
+            list = cplNode->Get("direct")->Get("fluidMechDirect")
+                   ->Get("surfRegionList")->GetChildren();
+            for(UInt i=0; i<list.GetSize(); i++) {
+              std::cout << "Coupling " << list[i]->GetName() << ": "
+                        << list[i]->Get("name")->As<std::string>() << std::endl;
+              cplSurfList.Push_back(list[i]->Get("name")->As<std::string>());
+            }
+          }
+          else
+          {
+            EXCEPTION("There exist mechanic and fluidMech PDEs in the " <<
+                      "first multi-sequence step,\nbut no coupling node." <<
+                      "This case is not yet handled by WVT.");
+          }
         }
-        
+
+        if( ms1HasAcou )
+        {
+          if( cplNode->Get("direct")->Has("acouMechDirect") ) 
+          {  
+            dirCoupled_ = true;
+            
+            mechNode = multiSeqStep1->Get("pdeList")->Get("mechanic");
+            fluidNode = multiSeqStep1->Get("pdeList")->Get("acoustic");
+            
+            std::cout << "Coupling type: acouMechDirect" << std::endl;
+
+            // Since the acoustic particle velocity is the negative gradient
+            // of the acoustic potential, we require acouPotential formulation.
+            if( !fluidNode->Has("formulation") ) 
+            {
+              EXCEPTION("The acoustic PDE does not have a formulation " <<
+                        "attribute!\nWVT requires acouPotential " <<
+                        "formulation at the moment.");
+            }
+
+            // Now check if the acouPotential result is available in the HDF5.
+            try 
+            {
+              fluidNode->Get("storeResults")->GetByVal("nodeResult",
+                                                       "type",
+                                                       "acouPotential");
+            } catch( Exception& ex ) 
+            {
+              RETHROW_EXCEPTION(ex, "No nodal result 'acouPotential' " <<
+                                "available in HDF5 file!");
+            }            
+            
+            // Obtain list of coupling surfaces.
+            list = cplNode->Get("direct")->Get("acouMechDirect")
+                   ->Get("surfRegionList")->GetChildren();
+            for(UInt i=0; i<list.GetSize(); i++) {
+              std::cout << "Coupling " << list[i]->GetName() << ": "
+                        << list[i]->Get("name")->As<std::string>() << std::endl;
+              cplSurfList.Push_back(list[i]->Get("name")->As<std::string>());
+            }
+          }
+          else
+          {
+            EXCEPTION("There exist mechanic and acoustic PDEs in the " <<
+                      "first multi-sequence step,\nbut no coupling node." <<
+                      "This case is not yet handled by WVT.");
+          }
+        }
+
         // Now read mech displacement at sensor position 1 of lateral mode.
         SimInputHDF5* hdf5Reader = dynamic_cast<SimInputHDF5*>(
           inputs_[PRIMARY_MODE].get()
@@ -273,12 +353,6 @@ namespace CFSTool {
         
         u_p_ = result[0];
       }
-      else
-      {
-        EXCEPTION("There exist mechanic and fluidMech PDEs in the " <<
-                  "first multi-sequence step,\nbut no coupling node." <<
-                  "This case is not yet handled by WVT.");
-      }
     }
     else
     {
@@ -286,7 +360,8 @@ namespace CFSTool {
       // in the first MS step and the fluid analysis in the second MS step 
       // in the future. Since this is not implemented at the moment, we
       // require fluid in the first MS and get the mechanic velocities at
-      // sensor positions in lateral mode from somewhere else.
+      // sensor positions in lateral mode from somewhere else (namely the
+      // wvtArgs.json file)
       
       if(ms1HasMech) 
       {
@@ -376,7 +451,7 @@ namespace CFSTool {
     
     // read in mesh of input2
     inputs_[SECONDARY_MODE]->InitModule();
-    Grid * ptGrid2 = new GridCFS(dim, param_, info_);
+    Grid * ptGrid2 = new GridCFS(dim_, param_, info_);
     inputs_[SECONDARY_MODE]->ReadMesh(ptGrid2);
     ptGrid2->FinishInit();
 
@@ -391,7 +466,7 @@ namespace CFSTool {
 
       // read in mesh of input3
       inputs_[MEAN_FLOW]->InitModule();
-      ptGrid3 = new GridCFS(dim, param_, info_);
+      ptGrid3 = new GridCFS(dim_, param_, info_);
       inputs_[MEAN_FLOW]->ReadMesh(ptGrid3);
       ptGrid3->FinishInit();
 
@@ -515,8 +590,17 @@ namespace CFSTool {
     // iterate over all result types of input1
     for( UInt iRes = 0; iRes < infos.GetSize(); iRes++) {
       
-      if(infos[iRes]->resultType != FLUIDMECH_VELOCITY)
-        continue;
+      if(ms1HasCplLst && ms1HasAcou)
+      {
+        if(infos[iRes]->resultType != ACOU_POTENTIAL)
+          continue;
+      }
+      else 
+      {
+        if(infos[iRes]->resultType != FLUIDMECH_VELOCITY)
+          continue;
+      }
+      
       
       std::cout << "\t" << infos[iRes]->resultName << "\n";
       
@@ -675,7 +759,7 @@ namespace CFSTool {
         shared_ptr<ResultInfo> outInfo(new ResultInfo());
         outInfo->resultType = FLUIDMECH_WVT;
         outInfo->resultName = SolutionTypeEnum.ToString(outInfo->resultType);
-        outInfo->dofNames = infos[iRes]->dofNames;
+        outInfo->dofNames = dofNames_;
         outInfo->unit = MapSolTypeToUnit(outInfo->resultType);
         outInfo->entryType = ResultInfo::VECTOR;
         outInfo->definedOn = ResultInfo::ELEMENT;
@@ -685,7 +769,7 @@ namespace CFSTool {
         shared_ptr<ResultInfo> outInfo2(new ResultInfo());
         outInfo2->resultType = MEAN_FLUIDMECH_VELOCITY;
         outInfo2->resultName = SolutionTypeEnum.ToString(outInfo2->resultType);
-        outInfo2->dofNames = infos[iRes]->dofNames;
+        outInfo2->dofNames = dofNames_;
         outInfo2->unit = MapSolTypeToUnit(outInfo2->resultType);
         outInfo2->entryType = ResultInfo::VECTOR;
         outInfo2->definedOn = ResultInfo::ELEMENT;
@@ -705,7 +789,7 @@ namespace CFSTool {
         shared_ptr<ResultInfo> outInfo4(new ResultInfo());
         outInfo4->resultType = FLUIDMECH_WVT_PHI;
         outInfo4->resultName = SolutionTypeEnum.ToString(outInfo4->resultType);
-        outInfo4->dofNames = infos[iRes]->dofNames;
+        outInfo4->dofNames = dofNames_;
         outInfo4->unit = MapSolTypeToUnit(outInfo4->resultType);
         outInfo4->entryType = ResultInfo::VECTOR;
         outInfo4->definedOn = ResultInfo::ELEMENT;
@@ -725,7 +809,7 @@ namespace CFSTool {
         shared_ptr<ResultInfo> outInfo6(new ResultInfo());
         outInfo6->resultType = FLUIDMECH_WVT_U1;
         outInfo6->resultName = SolutionTypeEnum.ToString(outInfo6->resultType);
-        outInfo6->dofNames = infos[iRes]->dofNames;
+        outInfo6->dofNames = dofNames_;
         outInfo6->unit = MapSolTypeToUnit(outInfo6->resultType);
         outInfo6->entryType = ResultInfo::VECTOR;
         outInfo6->definedOn = ResultInfo::ELEMENT;
@@ -735,7 +819,7 @@ namespace CFSTool {
         shared_ptr<ResultInfo> outInfo7(new ResultInfo());
         outInfo7->resultType = FLUIDMECH_WVT_U2;
         outInfo7->resultName = SolutionTypeEnum.ToString(outInfo7->resultType);
-        outInfo7->dofNames = infos[iRes]->dofNames;
+        outInfo7->dofNames = dofNames_;
         outInfo7->unit = MapSolTypeToUnit(outInfo7->resultType);
         outInfo7->entryType = ResultInfo::VECTOR;
         outInfo7->definedOn = ResultInfo::ELEMENT;
@@ -745,7 +829,7 @@ namespace CFSTool {
         shared_ptr<ResultInfo> outInfo8(new ResultInfo());
         outInfo8->resultType = FLUIDMECH_WVT_F;
         outInfo8->resultName = SolutionTypeEnum.ToString(outInfo8->resultType);
-        outInfo8->dofNames = infos[iRes]->dofNames;
+        outInfo8->dofNames = dofNames_;
         outInfo8->unit = MapSolTypeToUnit(outInfo8->resultType);
         outInfo8->entryType = ResultInfo::VECTOR;
         outInfo8->definedOn = ResultInfo::ELEMENT;
@@ -926,18 +1010,16 @@ namespace CFSTool {
           Vector<Complex> & outVec8 =
             dynamic_cast<Result<Complex>& >(*outResults8[iRes]).GetVector();
           UInt numElems = outResults[iRes]->GetEntityList()->GetSize();
-          UInt numDofs = outResults[iRes]->GetResultInfo()->dofNames.GetSize();
-          UInt dim = ptGrid1->GetDim();
           
-          outVec.Resize( numElems * numDofs );
-          outVec2.Resize( numElems * numDofs );
+          outVec.Resize( numElems * numDofs_ );
+          outVec2.Resize( numElems * numDofs_ );
           outVec3.Resize( numElems );
-          outVec4.Resize( numElems * numDofs );
+          outVec4.Resize( numElems * numDofs_ );
           outVec5.Resize( numElems );
-          outVec6.Resize( numElems * numDofs );
-          outVec7.Resize( numElems * numDofs );
-          outVec8.Resize( numElems * numDofs );
-          
+          outVec6.Resize( numElems * numDofs_ );
+          outVec7.Resize( numElems * numDofs_ );
+          outVec8.Resize( numElems * numDofs_ );
+
           shared_ptr<BaseFeFunction> u1FeFunc =
             inputs_[PRIMARY_MODE]->GetFeFunction<Complex>( actMsStep,
                                                            actStepNum,
@@ -948,6 +1030,7 @@ namespace CFSTool {
                                                              actStepNum,
                                                              inResults2[iRes]->GetResultInfo()->resultType,
                                                              volRegionNames);
+          
           
           shared_ptr<BaseFeFunction> VFeFunc;
           if(meanFlowType_ != MF_SCATTERED_DATA) 
@@ -962,7 +1045,7 @@ namespace CFSTool {
           
           shared_ptr<BaseBOperator> gradOp;
           shared_ptr<BaseBOperator> curlOp;
-          switch(dim) {
+          switch(dim_) {
           case 2:
             gradOp.reset( new GradientOperator<FeH1,2> );
             curlOp.reset( new CurlOperator<FeH1,2,Double> );
@@ -1046,10 +1129,10 @@ namespace CFSTool {
                 // realVal[2] = "1-(sqrt(x^2+y^2)/13.15e-3)^10";
                 realVal[2] = profileNode->As<std::string>();
                 
-                coefFctV = CoefFunction::Generate(mp.get(), Global::REAL, realVal);
+                coefFctV = CoefFunction::Generate(mp_.get(), Global::REAL, realVal);
                 coefFctV->SetCoordinateSystem(coordSys.get());
                 
-                feFctVPtr = new FeFunction<Double>(mp.get());
+                feFctVPtr = new FeFunction<Double>(mp_.get());
                 
               }
             }
@@ -1076,12 +1159,15 @@ namespace CFSTool {
             }
           }
           
-          //CoupledField::PtrCoefFct&, boost::shared_ptr<CoupledField::EntityList>
-          //CoupledField::PtrCoefFct, boost::shared_ptr<CoupledField::EntityList>&
-          
           shared_ptr<BaseFeFunction> priFeFct = u1FeFunc;
           shared_ptr<BaseFeFunction> secFeFct = u2FeFunc;
           
+          if(ms1HasCplLst && ms1HasAcou) 
+          {
+            AcouPot2AcouVelFeFct(u1FeFunc, gradOp, priFeFct);
+            AcouPot2AcouVelFeFct(u2FeFunc, gradOp, secFeFct);
+          }          
+
           if(wvtNode->Has("u1")) {
             PtrParamNode u1Node = wvtNode->Get("u1");
             
@@ -1093,12 +1179,12 @@ namespace CFSTool {
               imagVal[0] = u1xNode->As<std::string>();
             }
             
-            PtrCoefFct coefu1 = CoefFunction::Generate(mp.get(), Global::COMPLEX, realVal, imagVal);
+            PtrCoefFct coefu1 = CoefFunction::Generate(mp_.get(), Global::COMPLEX, realVal, imagVal);
             shared_ptr<DefaultCoordSystem> coordSys( new DefaultCoordSystem(ptGrid1) );
             coefu1->SetCoordinateSystem(coordSys.get());
                
             
-            FeFunction<Complex>* feFctPtr = new FeFunction<Complex>(mp.get());
+            FeFunction<Complex>* feFctPtr = new FeFunction<Complex>(mp_.get());
             shared_ptr<BaseFeFunction> feFct(feFctPtr);
             feFct->SetFeSpace( u1FeFunc->GetFeSpace() );
             feFct->AddEntityList( inResults1[iRes]->GetEntityList() );
@@ -1109,6 +1195,7 @@ namespace CFSTool {
             feFct->SetFctId(PSEUDO_FCT_ID);
             feFct->Finalize();
             feFct->ApplyExternalData();
+
             priFeFct = feFct;
           }
           
@@ -1123,12 +1210,12 @@ namespace CFSTool {
               imagVal[0] = u2xNode->As<std::string>();
             }
             
-            PtrCoefFct coefu2 = CoefFunction::Generate(mp.get(), Global::COMPLEX, realVal, imagVal);
+            PtrCoefFct coefu2 = CoefFunction::Generate(mp_.get(), Global::COMPLEX, realVal, imagVal);
             shared_ptr<DefaultCoordSystem> coordSys( new DefaultCoordSystem(ptGrid1) );
             coefu2->SetCoordinateSystem(coordSys.get());
             
             
-            FeFunction<Complex>* feFctPtr = new FeFunction<Complex>(mp.get());
+            FeFunction<Complex>* feFctPtr = new FeFunction<Complex>(mp_.get());
             shared_ptr<BaseFeFunction> feFct(feFctPtr);
             feFct->SetFeSpace( u2FeFunc->GetFeSpace() );
             feFct->AddEntityList( inResults1[iRes]->GetEntityList() );
@@ -1180,25 +1267,25 @@ namespace CFSTool {
             
             //               std::cout << "Integration order " << order.GetIsoOrder() << " num. int points: " << intPoints.GetSize() << " weight: " << weights[0] << std::endl;
             
-            for( UInt i=0; i < numDofs; i++ )
+            for( UInt i=0; i < numDofs_; i++ )
             {
               // Init weight vector
-              outVec[elIdx*numDofs+i] = 0.0;
+              outVec[elIdx*numDofs_+i] = 0.0;
               
               // Init mean velocity
-              outVec2[elIdx*numDofs+i] = 0.0;
+              outVec2[elIdx*numDofs_+i] = 0.0;
               
               // Init weight vector W_Phi as given in Hemp1994 (19).
-              outVec4[elIdx*numDofs+i] = 0.0;
+              outVec4[elIdx*numDofs_+i] = 0.0;
 
               // Init (u_1).
-              outVec6[elIdx*numDofs+i] = 0.0;
+              outVec6[elIdx*numDofs_+i] = 0.0;
 
               // Init (u_2).
-              outVec7[elIdx*numDofs+i] = 0.0;
+              outVec7[elIdx*numDofs_+i] = 0.0;
 
               // Init f.
-              outVec8[elIdx*numDofs+i] = 0.0;
+              outVec8[elIdx*numDofs_+i] = 0.0;
             }
             
             // Init weight vector density result
@@ -1245,7 +1332,7 @@ namespace CFSTool {
               // BaseFE* ptFe3 = VFeFunc->GetFeSpace()->GetFe( el3->elemNum );
               //LocPoint lp = Elem::shapes[el1->type].midPointCoord;
               LocPoint lp = intPoints[ip];
-              Vector<Double> p(dim);
+              Vector<Double> p(dim_);
               LocPoint lp3;
               
               if( isSurf ) 
@@ -1314,8 +1401,8 @@ namespace CFSTool {
               // Matrix<Double> bMat1, bMat2, bMat3;
               Vector<Complex> eSol1, eSol2;
               Vector<Double> eSol3;
-              StdVector< Vector<Complex> > eSol1Comp(numDofs), eSol2Comp(numDofs);
-              StdVector< Vector<Double> > eSol3Comp(numDofs);
+              StdVector< Vector<Complex> > eSol1Comp(numDofs_), eSol2Comp(numDofs_);
+              StdVector< Vector<Double> > eSol3Comp(numDofs_);
               Vector<Complex> eSol2_x, eSol2_y, esol2_z;
               Vector<Complex> u1, u2;
               Vector<Double> V;
@@ -1331,8 +1418,8 @@ namespace CFSTool {
               // Get primary and secondary perturbed velocity fields.
               priFeFct->GetVector( u1, *lpm1 );
               secFeFct->GetVector( u2, *lpm2 );
-              // Get mean velocity V either from file or from analytical expression.
 
+              // Get mean velocity V either from file or from analytical expression.
               switch(meanFlowType_)
               {
               case MF_GRID_DATA:
@@ -1353,15 +1440,15 @@ namespace CFSTool {
                 dynamic_cast<FeFunction<Double>*>(meanFlowFeFct.get())->GetElemSolution( eSol3, el3 );
               }
               
-              StdVector< Vector<Complex> > u1Derivs(numDofs), u2Derivs(numDofs);
-              StdVector< Vector<Double> > VDerivs(numDofs);
+              StdVector< Vector<Complex> > u1Derivs(numDofs_), u2Derivs(numDofs_);
+              StdVector< Vector<Double> > VDerivs(numDofs_);
               Vector<Double> curlV;
-              StdVector< Vector<Complex> > u2Tau(numDofs);
+              StdVector< Vector<Complex> > u2Tau(numDofs_);
               Double viscosity = regionViscosityMap[ptGrid1->regionData[el1->regionId].name];
                  
-              for(UInt dof=0; dof < numDofs; dof++) 
+              for(UInt dof=0; dof < numDofs_; dof++) 
               {
-                UInt eN=eSol1.GetSize()/numDofs;
+                UInt eN=eSol1.GetSize()/numDofs_;
                    
                 eSol1Comp[dof].Resize(eN);
                 eSol2Comp[dof].Resize(eN);
@@ -1372,11 +1459,11 @@ namespace CFSTool {
                 
                 for(UInt eI=0; eI < eN; eI++) 
                 {
-                  eSol1Comp[dof][eI] = eSol1[eI*numDofs+dof];
-                  eSol2Comp[dof][eI] = eSol2[eI*numDofs+dof];
+                  eSol1Comp[dof][eI] = eSol1[eI*numDofs_+dof];
+                  eSol2Comp[dof][eI] = eSol2[eI*numDofs_+dof];
                   if(ptGrid3) 
                   {
-                    eSol3Comp[dof][eI] = eSol3[eI*numDofs+dof];
+                    eSol3Comp[dof][eI] = eSol3[eI*numDofs_+dof];
                   }
                 }
                    
@@ -1392,9 +1479,9 @@ namespace CFSTool {
                 curlOp->ApplyOp( curlV, *lpm3, ptFe3, eSol3 );
               }
               
-              //                std::cout << "elemNum " << el1->elemNum << " numDofs " << numDofs << " dim " << dim << std::endl;
-              Vector<Complex> Xl(numDofs), Xr(numDofs);
-              Vector<Double> n(numDofs);
+              //                std::cout << "elemNum " << el1->elemNum << " numDofs_ " << numDofs_ << " dim " << dim << std::endl;
+              Vector<Complex> Xl(numDofs_), Xr(numDofs_);
+              Vector<Double> n(numDofs_);
 
               if(isSurf) 
               {
@@ -1404,15 +1491,15 @@ namespace CFSTool {
                 n.Init();
               }                 
 
-              Xl.Resize(numDofs);
-              Xr.Resize(numDofs);
-              X.Resize(numDofs);
+              Xl.Resize(numDofs_);
+              Xr.Resize(numDofs_);
+              X.Resize(numDofs_);
               Xl.Init();
               Xr.Init();
               X.Init();
 
            #if 0
-              Vector<Double> t(numDofs);
+              Vector<Double> t(numDofs_);
               t[0] = n[1];
               t[1] = -n[0];
               t[2] = 0;
@@ -1421,7 +1508,7 @@ namespace CFSTool {
               curlV = 2*radius/(R*R) * t;
            #endif
 
-              for(UInt dof=0; dof < numDofs; dof++) 
+              for(UInt dof=0; dof < numDofs_; dof++) 
               {
                 UInt eN=u2Derivs[dof].GetSize();
                 u2Tau[dof].Resize(eN);
@@ -1468,9 +1555,9 @@ namespace CFSTool {
               W.Resize(u1.GetSize());
               W.Init();
                  
-              for( UInt i=0; i < numDofs; i++ )
+              for( UInt i=0; i < numDofs_; i++ )
               {
-                for( UInt j=0; j < dim; j++ )
+                for( UInt j=0; j < dim_; j++ )
                 {
                      
                   if(isSurf) 
@@ -1506,20 +1593,20 @@ namespace CFSTool {
               {
                 durchfluss = 1.0;
                    
-                for( UInt i=0; i < numDofs; i++ )
+                for( UInt i=0; i < numDofs_; i++ )
                 {
                   // Prepare weight vector
-                  outVec[elIdx*numDofs+i] += X[i] * volume;
+                  outVec[elIdx*numDofs_+i] += X[i] * volume;
                      
                   // Prepare mean velocity
-                  outVec2[elIdx*numDofs+i] += Complex(V[i], 0) * volume;
+                  outVec2[elIdx*numDofs_+i] += Complex(V[i], 0) * volume;
                      
                   // Prepare weight vector density result
                   outVec3[elIdx] += X[i]*curlV[i] * volume;
                      
                      
                   // Prepare weight vector W_Phi as given in Hemp1994 (19).
-                  outVec4[elIdx*numDofs+i] = curlV[i] * volume;
+                  outVec4[elIdx*numDofs_+i] = curlV[i] * volume;
                      
                   // Prepare  weight  vector density  result  as inner  product
                   // between V and W_Phi as given in Hemp1994 (18).
@@ -1531,10 +1618,10 @@ namespace CFSTool {
               }
               else 
               {         
-                for( UInt i=0; i < numDofs; i++ )
+                for( UInt i=0; i < numDofs_; i++ )
                 {
                   // Prepare weight vector
-                  outVec[elIdx*numDofs+i] += W[i] * volume;
+                  outVec[elIdx*numDofs_+i] += W[i] * volume;
                      
                   // Prepare mean velocity
                   //                   V[i] *= meanVel;                   
@@ -1542,7 +1629,7 @@ namespace CFSTool {
                   durchfluss += V[i] * volume;
                      
                   // Prepare mean velocity output vector
-                  outVec2[elIdx*numDofs+i] += Complex(V[i], 0) * volume;
+                  outVec2[elIdx*numDofs_+i] += Complex(V[i], 0) * volume;
                      
                   // Prepare weight vector density result
                   Complex wvtDensity = W[i]*V[i]*volume;
@@ -1557,7 +1644,7 @@ namespace CFSTool {
                     );
                      
                   // Prepare weight vector W_Phi as given in Hemp1994 (19).
-                  outVec4[elIdx*numDofs+i] += W[i]/u_p_ * volume;
+                  outVec4[elIdx*numDofs_+i] += W[i]/u_p_ * volume;
                   
                   // Prepare  weight  vector density  result  as inner  product
                   // between V and W_Phi as given in Hemp1994 (18).
@@ -1572,13 +1659,13 @@ namespace CFSTool {
                   outVec5[elIdx] += wvtDensityPhi;
 
                   // Prepare u1 velocity output vector
-                  outVec6[elIdx*numDofs+i] += u1[i] * volume;
+                  outVec6[elIdx*numDofs_+i] += u1[i] * volume;
 
                   // Prepare u2 velocity output vector
-                  outVec7[elIdx*numDofs+i] += u2[i] * volume;
+                  outVec7[elIdx*numDofs_+i] += u2[i] * volume;
 
                   // Prepare force output vector
-                  outVec8[elIdx*numDofs+i] += f[i] * volume;
+                  outVec8[elIdx*numDofs_+i] += f[i] * volume;
 
                   // Compute deltaPhi as given in Hemp1994 (18) and (19).
                   deltaPhi += wvtDensityPhi.imag();
@@ -1586,14 +1673,14 @@ namespace CFSTool {
               }
             } // loop over integration points
 
-            for( UInt i=0; i < numDofs; i++ )
+            for( UInt i=0; i < numDofs_; i++ )
             {
-              outVec[elIdx*numDofs+i] /= elementVolume;
-              outVec2[elIdx*numDofs+i] /= elementVolume;
-              outVec4[elIdx*numDofs+i] /= elementVolume;
-              outVec6[elIdx*numDofs+i] /= elementVolume;
-              outVec7[elIdx*numDofs+i] /= elementVolume;
-              outVec8[elIdx*numDofs+i] /= elementVolume;
+              outVec[elIdx*numDofs_+i] /= elementVolume;
+              outVec2[elIdx*numDofs_+i] /= elementVolume;
+              outVec4[elIdx*numDofs_+i] /= elementVolume;
+              outVec6[elIdx*numDofs_+i] /= elementVolume;
+              outVec7[elIdx*numDofs_+i] /= elementVolume;
+              outVec8[elIdx*numDofs_+i] /= elementVolume;
             }               
             outVec3[elIdx] /= elementVolume;
             outVec5[elIdx] /= elementVolume;
@@ -1696,6 +1783,86 @@ namespace CFSTool {
       intPointsFile_.write(sstr.str().c_str(), sstr.str().length());
       intPointsFile_.close();
     }
+  }
+
+  void WVT::AcouPot2AcouVelFeFct(const shared_ptr<BaseFeFunction>& acouPotFeFct,
+                                 const shared_ptr<BaseBOperator>& gradOp,
+                                 shared_ptr<BaseFeFunction>& acouVelFeFct) 
+  {
+    // Create new CoefFunctionBOp for acoustic particle velocity
+    PtrCoefFct partVelCoefFunc;
+
+    shared_ptr<ResultInfo> partVelInfoElem(new ResultInfo());
+    partVelInfoElem->resultType = ACOU_VELOCITY;
+    partVelInfoElem->resultName = SolutionTypeEnum.ToString(partVelInfoElem->resultType);
+    partVelInfoElem->dofNames = dofNames_;
+    partVelInfoElem->unit = MapSolTypeToUnit(partVelInfoElem->resultType);
+    partVelInfoElem->entryType = ResultInfo::VECTOR;
+    partVelInfoElem->definedOn = ResultInfo::ELEMENT;
+
+    CoefFunctionBOp<Complex>* pVCF = NULL;
+    pVCF = new CoefFunctionBOp<Complex>(acouPotFeFct, partVelInfoElem, -1);
+            
+    const std::set<RegionIdType> regions = acouPotFeFct->GetRegions();
+    std::set<RegionIdType>::const_iterator regIt, regEnd;
+    regIt = regions.begin();
+    regEnd = regions.end();
+    
+    for( ; regIt != regEnd; regIt++) 
+    {
+      RegionIdType id = *regIt;
+      pVCF->AddBOperator(gradOp.get(), id);
+    }
+            
+    partVelCoefFunc.reset(pVCF);
+
+    // Create new FeFunction for acoustic particle velocity
+    shared_ptr<ResultInfo> partVelInfoNode(new ResultInfo());
+    partVelInfoNode->resultType = ACOU_VELOCITY;
+    partVelInfoNode->resultName = SolutionTypeEnum.ToString(partVelInfoNode->resultType);
+    partVelInfoNode->dofNames = dofNames_;
+    partVelInfoNode->unit = MapSolTypeToUnit(partVelInfoNode->resultType);
+    partVelInfoNode->entryType = ResultInfo::VECTOR;
+    partVelInfoNode->definedOn = ResultInfo::NODE;
+
+    // Create a dummy ParamNode for the FeSpace
+    PtrParamNode aNode = PtrParamNode(new ParamNode());
+    aNode->SetName("feSpaceNode");
+
+    // Create a dummy info node for the FeSpace
+    std::stringstream infoNodeStr;
+    infoNodeStr << "{\"infoNode\":{" << std::endl
+                << "\"h1Nodal\":{\"regionList\":{\"default\":{\"order\":\"\"}}}"
+                << "}}" << std::endl;
+    PtrParamNode infoNode = ParamNodeFromPropertyTree( infoNodeStr.str(),
+                                                       "infoNode" );
+
+    shared_ptr<FeSpace> nodalSpace = 
+      FeSpace::CreateInstance(aNode, infoNode,
+                              FeSpace::H1, acouPotFeFct->GetGrid());
+    nodalSpace->SetDefaultRegionApproximation();
+
+    acouVelFeFct.reset(new FeFunction<Complex>(mp_.get()));
+    acouVelFeFct->SetGrid(acouPotFeFct->GetGrid());
+    // Take care of cyclic dependency between FeFunction and FeSpaces
+    acouVelFeFct->SetFeSpace(nodalSpace);
+    nodalSpace->AddFeFunction(acouVelFeFct);
+    acouVelFeFct->SetResultInfo(partVelInfoNode);
+    partVelInfoNode->SetFeFunction(acouVelFeFct);
+    nodalSpace->AddFeFunction(acouVelFeFct);
+
+    StdVector< shared_ptr<EntityList> > eList = acouPotFeFct->GetEntityList();            
+    for( UInt i=0,n=eList.GetSize() ; i<n; i++) 
+    {
+      acouVelFeFct->AddEntityList( eList[i] );
+    }
+
+    acouVelFeFct->AddExternalDataSource( partVelCoefFunc,
+                                  eList );
+    acouVelFeFct->SetFctId(PSEUDO_FCT_ID);
+    nodalSpace->Finalize();
+    acouVelFeFct->Finalize();
+    acouVelFeFct->ApplyExternalData();
   }
 
   void WVT::WriteResultsToCSV(Double freq,
