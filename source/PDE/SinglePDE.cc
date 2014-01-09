@@ -1,3 +1,12 @@
+// We put include of CoefFunctionScatteredData.hh and intrin.hh for MinGW
+// in first place to prevent the following error:
+// boost/thread/win32/interlocked_read.hpp:61:20: error:
+//   '_InterlockedCompareExchange' is not a member of 'boost::detail'
+#ifdef __MINGW64__
+#include <intrin.h>
+#endif
+#include "Domain/CoefFunction/CoefFunctionScatteredData.hh"
+
 #include "PDE/SinglePDE.hh"
 
 #include <fstream>
@@ -2298,7 +2307,36 @@ namespace CoupledField {
       
       coef = iterCplPde_->GetCouplingCoefFct(solType, list, pdeName, updateGeo);
       
+    } else if( valueNode->Has("scatteredData") ) {
+      PtrParamNode scatteredDataNode = valueNode->Get("scatteredData");
       
+      if( dim_ == 2 ) {
+        if(isComplex)
+        {
+          coef.reset(
+            new CoefFunctionScatteredData<Complex, 2>(scatteredDataNode)
+            );
+        }
+        else
+        {
+          coef.reset(
+            new CoefFunctionScatteredData<Double, 2>(scatteredDataNode)
+            );
+        }
+      } else {
+        if(isComplex) 
+        {
+          coef.reset(
+            new CoefFunctionScatteredData<Complex, 3>(scatteredDataNode)
+            );
+        }
+        else
+        {
+          coef.reset(
+            new CoefFunctionScatteredData<Double, 3>(scatteredDataNode)
+            );
+        } 
+      }
     }else{
       // ======================================
       //  STANDARD EXPLICIT BOUNDARY CONDITION 

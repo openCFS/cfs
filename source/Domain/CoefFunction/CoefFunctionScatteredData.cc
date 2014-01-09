@@ -75,6 +75,7 @@ namespace CoupledField{
       factor_(1.0)
   {
     dimType_ = VECTOR;
+    dependType_ = CoefFunction::GENERAL;
 
     csvFileName_ = scatteredDataNode->Get("fileName")->As<std::string>();
           
@@ -228,6 +229,14 @@ namespace CoupledField{
     EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
 #endif
   }
+
+  template<typename T, UInt DOFS>
+  std::string CoefFunctionScatteredData<T,DOFS>::ToString() const {
+  std::stringstream out;
+  out << "CoefFunctionScatteredData<" << typeid(T).name() << ", " << DOFS << ">";
+  return out.str();
+}
+
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class CoefFunctionScatteredData<Double,2>;

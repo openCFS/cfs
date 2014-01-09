@@ -9,15 +9,7 @@
 #include <string>
 #include <set>
 
-#ifdef __MINGW64__
-#include <intrin.h>
-#endif
-
-#include "Domain/CoefFunction/CoefFunctionScatteredData.hh"
-
 #include "PerturbedFlowPDE.hh"
-
-
 
 #include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -352,53 +344,15 @@ namespace CoupledField {
                                               "name",
                                               flowId.c_str());
         
-        bool meanFlowScatteredData = flowNode->Has("scatteredData");
-
-        if(meanFlowScatteredData)
-        {
-          PtrParamNode scatteredDataNode = flowNode->Get("scatteredData");
-
-          if( dim_ == 2 ) {
-            if(isComplex_) 
-            {
-              meanFlowCoefScattered_.reset(
-                new CoefFunctionScatteredData<Complex, 2>(scatteredDataNode)
-                );
-            }
-            else
-            {
-              meanFlowCoefScattered_.reset(
-                new CoefFunctionScatteredData<Double, 2>(scatteredDataNode)
-                );
-            }
-          } else {
-            if(isComplex_) 
-            {
-              meanFlowCoefScattered_.reset(
-                new CoefFunctionScatteredData<Complex, 3>(scatteredDataNode)
-                );
-            }
-            else
-            {
-              meanFlowCoefScattered_.reset(
-                new CoefFunctionScatteredData<Double, 3>(scatteredDataNode)
-                );
-            } 
-          }
-        }
-        else 
-        {        
-          ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames,
-                               flowInfo->entryType, isComplex_, regionFlow,
-                               definedDofs, coefUpdateGeo );
-          meanFlowCoef_->AddRegion( actRegion, regionFlow );
+        ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames,
+                             flowInfo->entryType, isComplex_, regionFlow,
+                             definedDofs, coefUpdateGeo );
+        meanFlowCoef_->AddRegion( actRegion, regionFlow );
           
-          
-          meanVelFct->AddEntityList( actSDList );
-          meanVelFct->AddExternalDataSource( regionFlow,
-                                             actSDList );
-        }
         
+        meanVelFct->AddEntityList( actSDList );
+        meanVelFct->AddExternalDataSource( regionFlow,
+                                           actSDList );
 
         //now create the integrators
         BiLinearForm *convectiveVv = NULL;
@@ -431,15 +385,7 @@ namespace CoupledField {
           }
         }
 
-        if(meanFlowScatteredData)
-        {
-          convectiveVv->SetBCoefFunctionOpB(meanFlowCoefScattered_);
-        }
-        else 
-        {
-          convectiveVv->SetBCoefFunctionOpB(meanVelFct);
-        }
-        
+        convectiveVv->SetBCoefFunctionOpB(meanVelFct);
         
         convectiveVv->SetName("PerturbedStiffIntConvectiveVv");
 

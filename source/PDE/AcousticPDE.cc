@@ -446,13 +446,34 @@ namespace CoupledField{
         BiLinearForm *convectiveStiff = NULL;
         BiLinearForm *convectiveDamp = NULL;
         if( dim_ == 2 ) {
-          convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
-                                        new ConvectiveOperator<FeH1,2,1>(), coeffM, 2.0, coefUpdateGeo);
-          convectiveStiff = new BBInt<>(new ConvectiveOperator<FeH1,2,1>(),coeffM, -1.0, coefUpdateGeo);
+          if( isComplex_ ) {
+            convectiveDamp  = new ABInt<Complex>(new IdentityOperator<FeH1,2,1>(),
+                                                 new ConvectiveOperator<FeH1,2,1,Complex>(),
+                                                 coeffM, 2.0, coefUpdateGeo);
+            convectiveStiff = new BBInt<Complex>(new ConvectiveOperator<FeH1,2,1,Complex>(),
+                                                 coeffM, -1.0, coefUpdateGeo);
+          } else {            
+            convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
+                                          new ConvectiveOperator<FeH1,2,1>(),
+                                          coeffM, 2.0, coefUpdateGeo);
+            convectiveStiff = new BBInt<>(new ConvectiveOperator<FeH1,2,1>(),
+                                          coeffM, -1.0, coefUpdateGeo);
+          }        
         } else {
-          convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),
-                                        new ConvectiveOperator<FeH1,3,1>(), coeffM, 2.0, coefUpdateGeo);
-          convectiveStiff = new BBInt<>(new ConvectiveOperator<FeH1,3,1>(), coeffM, -1.0, coefUpdateGeo);
+          if( isComplex_ ) {
+            convectiveDamp  = new ABInt<Complex>(new IdentityOperator<FeH1,3,1>(),
+                                                 new ConvectiveOperator<FeH1,3,1,Complex>(),
+                                                 coeffM, 2.0, coefUpdateGeo);
+            convectiveStiff = new BBInt<Complex>(new ConvectiveOperator<FeH1,3,1,Complex>(),
+                                                 coeffM, -1.0, coefUpdateGeo);
+
+          } else {            
+            convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),
+                                          new ConvectiveOperator<FeH1,3,1>(),
+                                          coeffM, 2.0, coefUpdateGeo);
+            convectiveStiff = new BBInt<>(new ConvectiveOperator<FeH1,3,1>(),
+                                          coeffM, -1.0, coefUpdateGeo);
+          }          
         }
         convectiveStiff->SetBCoefFunctionOpB(meanFlowCoef_);
         convectiveStiff->SetName("convectiveStiffPierce");

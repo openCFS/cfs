@@ -9,15 +9,7 @@
 #include <string>
 #include <set>
 
-#ifdef __MINGW64__
-#include <intrin.h>
-#endif
-
-#include "Domain/CoefFunction/CoefFunctionScatteredData.hh"
-
 #include "FlowPDE.hh"
-
-
 
 #include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"

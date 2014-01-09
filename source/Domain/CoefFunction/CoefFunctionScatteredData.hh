@@ -161,6 +161,12 @@ namespace CoupledField {
     virtual void GetVector( Vector<T>& vec, 
                             const LocPointMapped& lpm );
     
+
+    //! Return size of vector in case coefficient function is a vector
+    virtual UInt GetVecSize() const { return DOFS; }
+
+    //! Dump coefficient function to string 
+    virtual std::string ToString() const;
     
   protected:
 
