@@ -129,7 +129,10 @@ void FeSpaceNodal::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > enti
       this->GetCoordinateRepresentation(actList,idxMap,globalCoords);
 
       // get solution of coefficient function at these coordinates
-      coefFct->GetVectorValuesAtCoords(globalCoords,valuesAtCoords, ptGrid_);
+      // Only search for coordinates in elements belonging to the
+      // regions where the current FeSpace is defined.
+      coefFct->GetVectorValuesAtCoords(globalCoords,valuesAtCoords,
+                                       ptGrid_, regions_);
       for( UInt aNode = 0; aNode < idxMap.GetSize(); ++aNode ) {
         StdVector<UInt> curEqs = idxMap[aNode];
         // loop over all dofs
