@@ -128,6 +128,15 @@ SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 # run.
 #-----------------------------------------------------------------------------
 INIT_CACHE(CTEST_INITIAL_CACHE)
+# Explicitly switch off CGAL for native MinGW build since GMP and MPFR use a
+# configure/make/make install mechanism, which does not work under native
+# Windows without a Bash shell.
+STRING(REPLACE
+  "USE_CGAL:BOOL=ON"
+  "USE_CGAL:BOOL=OFF"
+  CTEST_INITIAL_CACHE
+  ${CTEST_INITIAL_CACHE}
+  )  
 SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
    DEBUG:BOOL=ON
