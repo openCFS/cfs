@@ -154,7 +154,7 @@ namespace CoupledField {
     dim_ = 0;
     // int bulkdone, usedmax,hits;
     // int label;
-    int debug = false;  
+    bool debug = false;  
     int offset,domains,mindom,minbc,elemdim = 0;
     char line[MAXLINESIZE],*cp;
     // int l,n,ind,inds[MAXNODESD2],sideind[MAXNODESD1];
