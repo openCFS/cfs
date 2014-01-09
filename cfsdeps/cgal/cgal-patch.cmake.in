@@ -36,7 +36,7 @@ EXECUTE_PROCESS(
 #=============================================================================
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   SET(patches
-    "cgal-intel-isfinite.patch";
+    "cgal-intel-isfinite.patch"
   )
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
 
