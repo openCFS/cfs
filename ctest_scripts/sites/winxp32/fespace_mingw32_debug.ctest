@@ -123,6 +123,69 @@ set(CTEST_BUILD_NAME "${BUILDNAME}")
 SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 
 #-----------------------------------------------------------------------------
+# Modify CFSDEPS scripts since GMP and MPFR cannot be built natively on
+# Windows. Therefore, we just place precompiled binaries in our build dir.
+#-----------------------------------------------------------------------------
+FILE(READ
+  "${CTEST_SOURCE_DIRECTORY}/cmake_modules/FindCFSDEPS.cmake"
+  FIND_CFSDEPS)
+STRING(REPLACE
+  "MINGW AND NOT CMAKE_CROSSCOMPILING OR MSVC"
+  "FALSE"
+  FIND_CFSDEPS
+  ${FIND_CFSDEPS})
+FILE(WRITE
+  "${CTEST_SOURCE_DIRECTORY}/cmake_modules/FindCFSDEPS.cmake"
+  ${FIND_CFSDEPS})
+
+FILE(READ
+  "${CTEST_SOURCE_DIRECTORY}/cfsdeps/cgal/External_CGAL.cmake"
+  EXT_CGAL)
+STRING(REPLACE
+  "gmp mpfr"
+  ""
+  EXT_CGAL
+  ${EXT_CGAL})
+FILE(WRITE
+  "${CTEST_SOURCE_DIRECTORY}/cfsdeps/cgal/External_CGAL.cmake"
+  ${EXT_CGAL})
+
+FILE(WRITE ${CTEST_SOURCE_DIRECTORY}/cfsdeps/gmp/External_gmp.cmake "
+SET(LD \"\${CFS_BINARY_DIR}/\${LIB_SUFFIX}/\${CFS_ARCH_STR}\")
+SET(GMP_LIBRARY
+  \"\${LD}/\${CMAKE_STATIC_LIBRARY_PREFIX}gmp.dll\${CMAKE_STATIC_LIBRARY_SUFFIX}\"
+  CACHE FILEPATH \"GMP library.\")
+
+SET(GMPXX_LIBRARY
+  \"\${LD}/\${CMAKE_STATIC_LIBRARY_PREFIX}gmpxx.dll\${CMAKE_STATIC_LIBRARY_SUFFIX}\"
+  CACHE FILEPATH \"GMPXX library.\")
+
+SET(GMP_INCLUDE_DIR \"\${CFS_BINARY_DIR}/include\")
+
+MARK_AS_ADVANCED(GMP_LIBRARY)
+MARK_AS_ADVANCED(GMPXX_LIBRARY)
+MARK_AS_ADVANCED(GMP_INCLUDE_DIR)
+")
+
+FILE(WRITE ${CTEST_SOURCE_DIRECTORY}/cfsdeps/mpfr/External_mpfr.cmake "
+SET(LD \"\${CFS_BINARY_DIR}/\${LIB_SUFFIX}/\${CFS_ARCH_STR}\")
+SET(MPFR_LIBRARY
+  \"\${LD}/\${CMAKE_STATIC_LIBRARY_PREFIX}mpfr.dll\${CMAKE_STATIC_LIBRARY_SUFFIX}\"
+  CACHE FILEPATH \"MPFR library.\")
+
+SET(MPFR_INCLUDE_DIR \"\${CFS_BINARY_DIR}/include\")
+
+MARK_AS_ADVANCED(MPFR_LIBRARY)
+MARK_AS_ADVANCED(MPFR_INCLUDE_DIR)
+")
+
+EXECUTE_PROCESS(
+  COMMAND "${CMAKE_COMMAND}" -E tar xvf "y:/mkl_win/gmp_mpfr_mingw32.tgz"
+  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}"
+  RESULT_VARIABLE RETVAL
+  )
+
+#-----------------------------------------------------------------------------
 # Enter the following values into the initial cache
 # ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt before starting the configure
 # run.
