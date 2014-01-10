@@ -1,8 +1,9 @@
 #include <stdlib.h>     // For exit()
-#include <ccmio.h>
 #include <vector>
 #include <map>
 #include <iostream>
+
+#include <ccmio.h>
 
 typedef std::vector< unsigned int > UIntArray;
 typedef std::map< int, std::vector< int > > FaceMap;

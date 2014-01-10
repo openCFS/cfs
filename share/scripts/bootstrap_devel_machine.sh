@@ -141,7 +141,8 @@ SetupFedora() {
         perl graphviz texlive-latex tetex-tex4ht \
         python-pygments doxygen tcl-devel python-devel git-svn \
         cmake-gui java-1.6.0-openjdk-devel java-1.7.0-openjdk-devel tk-devel \
-        patch diffutils zip libXt-devel libXp ncurses-devel || ExitFail
+        patch diffutils zip libXt-devel libXp ncurses-devel \
+        mesa-libGL-devel mesa-libGLU-devel || ExitFail
 }
 
 SetupRHEL() {

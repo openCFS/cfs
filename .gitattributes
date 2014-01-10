@@ -367,6 +367,7 @@ ctest_scripts/sites/fedora18/site_specific_init.cmake -text
 ctest_scripts/sites/hardy/Vagrantfile -text
 ctest_scripts/sites/hardy/linux32_fespace_gcc_debug.ctest -text
 ctest_scripts/sites/hardy/linux32_fespace_gcc_release.ctest -text
+ctest_scripts/sites/hardy/site_specific_init.cmake -text
 ctest_scripts/sites/lmde2013/Vagrantfile -text
 ctest_scripts/sites/lmde2013/linux64_fespace_gcc_debug.ctest -text
 ctest_scripts/sites/lmde2013/linux64_fespace_gcc_release.ctest -text
