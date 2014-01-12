@@ -32,6 +32,7 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/LinForms/BUInt.hh"
+#include "Forms/LinForms/KXInt.hh"
 
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/DivOperator.hh"
@@ -212,18 +213,39 @@ namespace CoupledField {
       stiffContPV->SetFeFunctions( presFct, velFct);
       assemble_->AddBiLinearForm( stiffContPV );
 
+//      // --------------------------------------------------------------------
+//      //  VERSION 2: K_VP Integrator
+//      //  (upper off-diagonal integrators - partially integrated, volume)
+//      // --------------------------------------------------------------------
+//      PtrCoefFct coeffKVP = CoefFunction::Generate(mp_,Global::REAL, "1.0");
+//      BiLinearForm * stiffIntVP = NULL;
+//      if( dim_ == 2 ) {
+//        stiffIntVP = new ABInt<>( new DivOperator<FeH1,2>(),
+//                                  new MultiIdOp<FeH1,2>(), coeffKVP, -1.0 );
+//      } else {
+//        stiffIntVP = new ABInt<>( new DivOperator<FeH1,3>(),
+//                                  new MultiIdOp<FeH1,3>(), coeffKVP, -1.0 );
+//      }
+//      stiffIntVP->SetName("FlowStiffIntVP");
+//      BiLinFormContext *stiffContVP = NULL;
+//      stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
+//
+//      stiffContVP->SetEntities( actSDList, actSDList );
+//      stiffContVP->SetFeFunctions( velFct, presFct );
+//      assemble_->AddBiLinearForm( stiffContVP );
+
       // --------------------------------------------------------------------
-      //  VERSION 2: K_VP Integrator
-      //  (upper off-diagonal integrators - partially integrated, volume)
+      //  VERSION 2: K_VP Integrator (upper off-diagonal integrator, not integration by parts)
       // --------------------------------------------------------------------
-      PtrCoefFct coeffKVP = CoefFunction::Generate(mp_,Global::REAL, "1.0");
+      PtrCoefFct coeffKVP
+                = CoefFunction::Generate(mp_,Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
       if( dim_ == 2 ) {
-        stiffIntVP = new ABInt<>( new DivOperator<FeH1,2>(),
-                                  new MultiIdOp<FeH1,2>(), coeffKVP, -1.0 );
+        stiffIntVP = new ABInt<> (new IdentityOperator<FeH1,2,2>,
+                                  new GradientOperator<FeH1,2>, coeffKVP, 1.0 );
       } else {
-        stiffIntVP = new ABInt<>( new DivOperator<FeH1,3>(),
-                                  new MultiIdOp<FeH1,3>(), coeffKVP, -1.0 );
+        stiffIntVP = new ABInt<> (new IdentityOperator<FeH1,3,3>,
+                                  new GradientOperator<FeH1,3>, coeffKVP, 1.0);
       }
       stiffIntVP->SetName("FlowStiffIntVP");
       BiLinFormContext *stiffContVP = NULL;
@@ -407,7 +429,7 @@ namespace CoupledField {
           oneFuncs, 1.0, flowRegions
           );
       }
-      stiffIntVPSurf->SetName("PerturbedStiffIntVPSurf");
+      stiffIntVPSurf->SetName("FlowStiffIntVPSurf");
       BiLinFormContext *stiffContVP = NULL; 
       stiffContVP = new BiLinFormContext(stiffIntVPSurf, STIFFNESS );
 
@@ -432,8 +454,10 @@ namespace CoupledField {
     GLMScheme * schemeV = new Trapezoidal(gamma);
     GLMScheme * schemeP = new Trapezoidal(gamma);
 
-    shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(schemeV, 0) );
-    shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(schemeP, 0) );
+ //   TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+
+    shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(schemeV, 0 ) );
+    shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(schemeP, 0 ) );
     feFunctions_[FLUIDMECH_VELOCITY]->SetTimeScheme(mySchemeV);
     feFunctions_[FLUIDMECH_PRESSURE]->SetTimeScheme(mySchemeP);
   }
@@ -576,7 +600,7 @@ namespace CoupledField {
       // eFunc->AddIntegrator(stiffIntVP, region);
       sigmaFunc->AddIntegrator(
         GetStiffIntegrator( actSDMat, region, isComplex_ ), 
-        region 
+        region
         );
       strainFunc->AddIntegrator(
         GetStiffIntegrator( actSDMat, region, isComplex_ ),

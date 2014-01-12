@@ -700,10 +700,12 @@ void HeatPDE::InitTimeStepping() {
 
   // Until now no effective mass formulation in the trapezoidal
   //  integration scheme is implemented!
-  Double gamma = 1;
+  Double gamma = 0.5;
   GLMScheme * scheme = new Trapezoidal(gamma);
 
-  shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0) );
+  TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+
+  shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
   feFunctions_[HEAT_TEMPERATURE]->SetTimeScheme(myScheme);
 
 }

@@ -534,6 +534,8 @@ namespace CoupledField {
 
       solVec_  = actSol;
 
+      // setup the matrices
+      assemble_->AssembleMatrices();
 
       // setup right hand side
       Double loadFactor = 1.0;
@@ -541,7 +543,6 @@ namespace CoupledField {
 
       // inner forces due to nonlin formulation
       assemble_->AssembleNonLinRHS();  
-
 
       //now update RHS according to time stepping
       for(matIt = matrices.begin();matIt != matrices.end();matIt++){
@@ -558,8 +559,7 @@ namespace CoupledField {
 
       do {
         iterationCounter++;
-        // do matrices
-        assemble_->AssembleMatrices();
+
         matrix_factor_.clear();
         
         // set system matrix to zero initially, as ConstructEffectiveMatrix only
@@ -577,6 +577,7 @@ namespace CoupledField {
         algsys_->SetupPrecond( analysis_id);
         algsys_->SetupSolver(analysis_id);
 
+        // just set inh. Dirichlet BCs for the first iteration
         bool setIDBC = false;
         if ( iterationCounter == 1 )
           setIDBC = true;
@@ -586,6 +587,11 @@ namespace CoupledField {
 
         Double residualL2Norm = 0.0;
         Double etaLineSearch  = 1.0;
+
+        //necessary due to inh. Dirichlet BCs!!
+        if ( iterationCounter == 1 )
+          stageSol.Init();
+
         if ( lineSearch_ == "none" ) {
           stageSol.Add(1.0, solInc);
         }
@@ -600,11 +606,14 @@ namespace CoupledField {
 
         solVec_  = stageSol;
 
+        // setup the matrices to compute correct error norms
+        assemble_->AssembleMatrices();
+
         if ( lineSearch_ == "none" ) {
           // recalculate RHS with new values to get new residual (f^(k+1))========
           algsys_->InitRHS(RhsLinVal_);
           assemble_->AssembleNonLinRHS();  
-          PDE_.SetRhsValues();
+          //PDE_.SetRhsValues();
 
           //now update RHS according to time stepping
           for(matIt = matrices.begin();matIt != matrices.end();matIt++){
@@ -1323,7 +1332,7 @@ namespace CoupledField {
 //        assemble_->AssembleNonLinRHS();
 //        TS_alg_->UpdateRHS(actSol);
         assemble_->AssembleNonLinRHS();
-        PDE_.SetRhsValues();
+        //PDE_.SetRhsValues();
         //now update RHS according to time stepping
         std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
         std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();

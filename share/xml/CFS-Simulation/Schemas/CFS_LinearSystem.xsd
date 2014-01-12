@@ -92,7 +92,7 @@
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_SystemSetup">
   <!-- How should Dirichlet equations be handled -->
-    <xsd:attribute name="idbcHandling" use="optional" default="penalty">
+    <xsd:attribute name="idbcHandling" use="optional" default="elimination">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="penalty"/>

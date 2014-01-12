@@ -586,6 +586,7 @@ namespace CoupledField {
     //! \param SysMatUpdated indicates if we need to allocate new memory for the tmpRHS_ vector
     void UpdateRHS(FEMatrixType matrixType, const SBM_Vector& fup,bool SysMatUpdated);
 
+
     //! Add a value to a diagonal matrix entry
 
     //! This method allows to directly add a value to the value of an entry
@@ -695,6 +696,10 @@ namespace CoupledField {
     //! \note After assembling the dirichlet values, the preconditioner and
     //! the solver have to be set up again.
     void BuildInDirichlet();
+
+    //! correct RHS according to inhomogeneous Dirichlet bcs
+    void AddIDBCToRHS();
+
 
     //! Return complete solution vector
 

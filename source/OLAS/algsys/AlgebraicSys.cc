@@ -558,6 +558,14 @@ namespace CoupledField {
 
   }
 
+
+  void AlgebraicSys::AddIDBCToRHS() {
+    LOG_TRACE(algSys) << "Add IDBC to RHS ";
+
+    idbcHandler_->AddIDBCToRHS( rhs_ );
+  }
+
+
   void AlgebraicSys::Solve(PtrParamNode analysis_id, bool setIDBC) {
     
     LOG_TRACE(algSys) << "Solving problem";
@@ -2234,7 +2242,6 @@ namespace CoupledField {
   }
 
 
-
   void AlgebraicSys::UpdateRHS(FEMatrixType matrixType, 
                                const SBM_Vector& fup,bool SysMatUpdated) {
     
@@ -2243,6 +2250,9 @@ namespace CoupledField {
 
     if(matrixTypes_.find(matrixType) == matrixTypes_.end())
       return;
+
+//    std::cout << "Updating RHS with matrix "
+//        << feMatrixType.ToString(matrixType) << std::endl;
 
     // ensure that the RHS vector to set consists of as many
     // sub-vectors as the RHS of the system
