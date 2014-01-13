@@ -837,7 +837,7 @@ Function::Local::Identifier& LocalCondition::GetCurrentVirtualContext()
 unsigned int LocalCondition::GetSparsityPatternSize() const
 {
   if(!this->ForDensityFiltering())
-    return local->virtual_elem_map[0].neighbor.GetSize() + 1;
+    return local->virtual_elem_map[0].neighbor.GetSize() + 1; // why the fuck +1
   else
     return ((Condition*) this)->GetSparsityPattern().GetSize();
 }

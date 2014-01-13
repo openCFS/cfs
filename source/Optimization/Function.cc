@@ -1148,32 +1148,24 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
 
 
   // traverse all elements and check for full neighborhood
-  for(int e = 0, ss = space->data.GetSize(); e < ss; ++e)
+  for(int e = 0, ss = func_->elements.GetSize(); e < ss; ++e) // it seems to be wrong to start from 0!
   {
-    DesignElement* de = &(space->data[e]);
+    DesignElement* de = func_->elements[e];
     if(de->GetType() == ( (func_->design_ == DesignElement::DEFAULT) ? DesignElement::DENSITY : func_->design_)){
       VicinityElement* ve = de->vicinity;
 
-      // do we have a full neighborhood? All or none as in the original slope paper
-      bool full = true;
-      if(prev)
+      for(int a = 0; a < dim; a++)
       {
-        if(ve->design[VicinityElement::X_N] == NULL) full = false;
-        if(ve->design[VicinityElement::Y_N] == NULL) full = false;
-        if(dim == 3 && ve->design[VicinityElement::Z_N] == NULL) full = false;
-      }
-      if(next)
-      {
-        if(ve->design[VicinityElement::X_P] == NULL) full = false;
-        if(ve->design[VicinityElement::Y_P] == NULL) full = false;
-        if(dim == 3 && ve->design[VicinityElement::Z_P] == NULL) full = false;
-      }
+        // do we have a full neighborhood? All or none as in the original slope paper
+        bool full = true;
+        if(prev)
+          if(ve->design[2*a + 1] == NULL) full = false; // X_N=1, Y_N=3, Z_N=5
+        if(next)
+          if(ve->design[2*a] == NULL) full = false; // X_P=0, Y_P=2, Z_P=4
 
-      LOG_DBG2(func) << "Local::Local e_num=" << de->elem->elemNum << " vicinity=" << ve->ToString() << " full=" << full;
+        LOG_DBG2(func) << "Local::Local e_num=" << de->elem->elemNum << " vicinity=" << ve->ToString() << " full=" << full;
 
-      if(full)
-      {
-        for(int a = 0; a < dim; a++)
+        if(full)
         {
           DesignElement* prev_de = prev ? ve->GetNeighbour(VicinityElement::ToNeighbour(a, -1)) : NULL;
           DesignElement* next_de = ve->GetNeighbour(VicinityElement::ToNeighbour(a, 1));
