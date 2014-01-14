@@ -1863,6 +1863,8 @@ source/Utils/tools.hh -text
 source/cfstool/CMakeLists.txt svneol=native#text/plain
 source/cfstool/HelperFuncs.cc -text
 source/cfstool/HelperFuncs.hh -text
+source/cfstool/MatFile.cc -text
+source/cfstool/MatFile.hh -text
 source/cfstool/ParamsInit.cc -text
 source/cfstool/ParamsInit.hh -text
 source/cfstool/WVT.cc -text
