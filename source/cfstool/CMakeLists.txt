@@ -13,6 +13,7 @@ SET(CFSTOOL_SRCS
   ParamsInit.cc
   HelperFuncs.cc
   WVT.cc
+  MatFile.cc
   cfstool.cc
 )
 

@@ -53,6 +53,14 @@ namespace CFSTool
                                   Double vol,
                                   Double meanVel,
                                   Double meanVelCorrectionFactor);
+
+    static void WriteResultsToMatlab(Double freq,
+                                     Complex u_p_prime, 
+                                     Double deltaPhiVol,
+                                     Double deltaPhiSurf,
+                                     Double vol,
+                                     Double meanVel,
+                                     Double meanVelCorrectionFactor);
   private:
     const PtrParamNode& param_;
     const PtrParamNode& info_;

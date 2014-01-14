@@ -29,6 +29,7 @@
 
 #include "ParamsInit.hh"
 #include "HelperFuncs.hh"
+#include "MatFile.hh"
 #include "WVT.hh"
 
 using namespace CoupledField;
@@ -1711,6 +1712,8 @@ namespace CFSTool {
              
           WriteResultsToCSV(freq, u_p_prime, deltaPhi, 0,
                             vol, meanVel, correct);
+          WriteResultsToMatlab(freq, u_p_prime, deltaPhi, 0,
+                               vol, meanVel, correct);
 
         } // switch: Analysis type
         // add result to output file
@@ -1897,6 +1900,37 @@ namespace CFSTool {
         << meanVelCorrectionFactor
         << std::endl;
     csv.close();         
+  }
+
+  void WVT::WriteResultsToMatlab(Double freq,
+                                 Complex u_p_prime, 
+                                 Double deltaPhiVol,
+                                 Double deltaPhiSurf,
+                                 Double vol,
+                                 Double meanVel,
+                                 Double meanVelCorrectionFactor)
+  {
+    // Create new MatFile object.
+    CoupledField::MatFile mf("wvtout.mat");
+
+    Double val = 0.0;
+
+    mf.WriteVector("freq", 1, &freq);
+    mf.WriteVector("u_p_prime_real", 1, &u_p_prime.real());
+    mf.WriteVector("u_p_prime_imag", 1, &u_p_prime.imag());
+    val = abs(u_p_prime);
+    mf.WriteVector("u_p_prime_ampl", 1, &val);
+    val = arg(u_p_prime);
+    mf.WriteVector("u_p_prime_phase", 1, &val);
+    mf.WriteVector("deltaPhi_rad", 1, &deltaPhiVol);
+    val = (deltaPhiVol/PI*180);
+    mf.WriteVector("deltaPhi_deg", 1, &val);
+    mf.WriteVector("fluid_volume", 1, &vol);
+    mf.WriteVector("mean_velocity", 1, &meanVel);
+    mf.WriteVector("mean_velocity_correction_factor", 1, &meanVelCorrectionFactor);
+    
+    // Close .mat file and automatically prepend a header.
+    mf.Close();
   }
 
 
