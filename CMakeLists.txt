@@ -625,6 +625,7 @@ IF(NOT CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
 ENDIF()
 ENDIF()
+ADD_SUBDIRECTORY(source/DataInOut/ScatteredDataInOut)
 
 ADD_SUBDIRECTORY(source/Domain)
 ADD_SUBDIRECTORY(source/Domain/CoefFunction)

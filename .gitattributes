@@ -467,6 +467,7 @@ include/def_expl_templ_inst.hh.in -text
 include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
 include/def_use_blas.hh.in -text
+include/def_use_ccmio.hh.in -text
 include/def_use_cfxio.hh.in -text
 include/def_use_cgal.hh.in -text
 include/def_use_cgns.hh.in -text
@@ -1246,6 +1247,13 @@ source/DataInOut/ProgramOptions.cc svneol=native#text/plain
 source/DataInOut/ProgramOptions.hh svneol=native#text/plain
 source/DataInOut/ResultHandler.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ResultHandler.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/ScatteredDataInOut/CMakeLists.txt -text
+source/DataInOut/ScatteredDataInOut/ScatteredDataReader.hh -text
+source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCCM.cc -text
+source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCCM.hh -text
+source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCCMDemo.cc -text
+source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCSV.cc -text
+source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCSV.hh -text
 source/DataInOut/SimInOut/AnsysFile/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysFile/SimInputMESH.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/AnsysFile/SimInputMESH.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1382,7 +1390,6 @@ source/Domain/CoefFunction/CoefFunctionTimeFreq.cc -text
 source/Domain/CoefFunction/CoefFunctionTimeFreq.hh -text
 source/Domain/CoefFunction/CoefXpr.cc -text
 source/Domain/CoefFunction/CoefXpr.hh -text
-source/Domain/CoefFunction/readexample.cc -text
 source/Domain/CoordinateSystems/CMakeLists.txt -text
 source/Domain/CoordinateSystems/CartesianCoordSystem.cc svneol=native#text/plain
 source/Domain/CoordinateSystems/CartesianCoordSystem.hh svneol=native#text/plain

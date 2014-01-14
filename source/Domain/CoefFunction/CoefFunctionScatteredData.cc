@@ -9,130 +9,107 @@
 #include "CoefFunctionScatteredData.hh"
 #include "FeBasis/FeSpace.hh"
 
+#include "def_use_ccmio.hh"
+#include "DataInOut/ScatteredDataInOut/ScatteredDataReaderCSV.hh"
+#ifdef USE_CCMIO
+#include "DataInOut/ScatteredDataInOut/ScatteredDataReaderCCM.hh"
+#endif
+
+
 namespace CoupledField{
-
-  template<class T>
-  class CSVReader
-  {
-  public:
-    CSVReader(std::istream& myfile, UInt skipLines) :
-      myfile_(myfile),
-      skipLines_(skipLines)
-    {
-    }
-    
-    ~CSVReader() 
-    {
-    }
-
-  private:
-    std::istream& myfile_;
-    UInt skipLines_;
-
-  public:
-
-    std::istream& ReadCSV(std::vector<std::vector<T> >& data)
-    {
-      typedef boost::tokenizer<boost::escaped_list_separator<char> > Tokenizer;
-      std::string row;
-      UInt line = 0;
-      
-      while(std::getline(myfile_, row))
-      {
-        line++;
-
-        if(line <= skipLines_) continue;
-        
-        Tokenizer tokens(row, boost::escaped_list_separator<char>('\\', ',', '\"'));
-        data.push_back(std::vector<T>());
-        data.rbegin()->resize(std::distance(tokens.begin(), tokens.end()));
-        std::vector<T>& vec = (*data.rbegin());
-        
-        Tokenizer::iterator tkIt(tokens.begin());
-
-        for (UInt i=0; tkIt!=tokens.end(); ++tkIt, i++) 
-        {
-          Double value;
-          std::stringstream sstr;
-          
-          sstr << (*tkIt);
-          sstr >> value;
-          
-          vec[i] = value;
-          
-          //          data.rbegin()->push_back(value);
-        }
-      }
-
-      return myfile_;
-    }
-  };
 
   template<typename T, UInt DOFS>
   CoefFunctionScatteredData<T,DOFS>::CoefFunctionScatteredData(PtrParamNode& scatteredDataNode)
     : CoefFunction(),
-      csvFileName_(""),
+      fileName_(""),
       factor_(1.0)
   {
     dimType_ = VECTOR;
     dependType_ = CoefFunction::GENERAL;
 
-    csvFileName_ = scatteredDataNode->Get("fileName")->As<std::string>();
-          
-    ParamNodeList coordList;
-    coordList = scatteredDataNode->Get("coordinates")->GetList("comp");
-    for(UInt i=0, n=coordList.GetSize(); i<n; i++) {
-      std::string dof = coordList[i]->Get("dof")->As<std::string>();
-      
-      if( dof == "x" ) {
-        dof2CoordColumn_[0] = coordList[i]->Get("col")->As<UInt>();
-      }
-      if( dof == "y" ) {
-        dof2CoordColumn_[1] = coordList[i]->Get("col")->As<UInt>();
-      }
-      if( dof == "z" ) {
-        dof2CoordColumn_[2] = coordList[i]->Get("col")->As<UInt>();
-      }
-    }
+    fileName_ = scatteredDataNode->Get("fileName")->As<std::string>();
 
-    ParamNodeList valueList;
-    valueList = scatteredDataNode->Get("values")->GetList("comp");
-    for(UInt i=0, n=valueList.GetSize(); i<n; i++) {
-      std::string dof = valueList[i]->Get("dof")->As<std::string>();
-      
-      if( dof == "x" ) {
-        dof2ValueColumn_[0] = valueList[i]->Get("col")->As<UInt>();
-      }
-      if( dof == "y" ) {
-        dof2ValueColumn_[1] = valueList[i]->Get("col")->As<UInt>();
-      }
-      if( dof == "z" ) {
-        dof2ValueColumn_[2] = valueList[i]->Get("col")->As<UInt>();
-      }      
-    }
+    format_ = scatteredDataNode->Get("format")->As<std::string>();
 
+    if(format_ == "csv") 
+    {
+      ParamNodeList coordList;
+      coordList = scatteredDataNode->Get("coordinates")->GetList("comp");
+      for(UInt i=0, n=coordList.GetSize(); i<n; i++) {
+        std::string dof = coordList[i]->Get("dof")->As<std::string>();
+        
+        if( dof == "x" ) {
+          dof2CoordColumn_[0] = coordList[i]->Get("col")->As<UInt>();
+        }
+        if( dof == "y" ) {
+          dof2CoordColumn_[1] = coordList[i]->Get("col")->As<UInt>();
+        }
+        if( dof == "z" ) {
+          dof2CoordColumn_[2] = coordList[i]->Get("col")->As<UInt>();
+        }
+      }
+      
+      ParamNodeList valueList;
+      valueList = scatteredDataNode->Get("values")->GetList("comp");
+      for(UInt i=0, n=valueList.GetSize(); i<n; i++) {
+        std::string dof = valueList[i]->Get("dof")->As<std::string>();
+        
+        if( dof == "x" ) {
+          dof2ValueColumn_[0] = valueList[i]->Get("col")->As<UInt>();
+        }
+        if( dof == "y" ) {
+          dof2ValueColumn_[1] = valueList[i]->Get("col")->As<UInt>();
+        }
+        if( dof == "z" ) {
+          dof2ValueColumn_[2] = valueList[i]->Get("col")->As<UInt>();
+        }      
+      }
+    } else 
+    {
+      dof2CoordColumn_[0] = 0;
+      dof2CoordColumn_[1] = 1;
+      dof2CoordColumn_[2] = 2;
+      
+      dof2ValueColumn_[0] = 3;
+      dof2ValueColumn_[1] = 4;
+      dof2ValueColumn_[2] = 5;
+    }    
+    
     factor_ = scatteredDataNode->Get("factor")->As<Double>();
   }
   
   template<typename T, UInt DOFS>
-  void CoefFunctionScatteredData<T,DOFS>::ReadCSVFile() 
+  void CoefFunctionScatteredData<T,DOFS>::Read() 
   {
-    if(!boost::filesystem::exists(csvFileName_))
+    if(!boost::filesystem::exists(fileName_))
     {
-      EXCEPTION("CSV file '" << csvFileName_ << "' does not exist!")
+      EXCEPTION("Scattered data file '" << fileName_ << "' does not exist!")
     }
 
 #ifdef USE_CGAL
-    boost::filesystem::ifstream* in = NULL;
-    in = new boost::filesystem::ifstream(csvFileName_);
+    ScatteredDataReaderPtr sdataReader;
 
-    if(in) 
+    if(format_ == "csv") 
     {
-      CSVReader<double> csvReader((*in), 1);
-      csvReader.ReadCSV(scatteredData_);
-      in->close();
-      in = NULL;
-    }
+      ScatteredDataReaderCSV* SCRCSV = new ScatteredDataReaderCSV(fileName_);
+      SCRCSV->SetNumSkipLines(1);
+      sdataReader.reset(SCRCSV);
+    } else if (format_ == "ccm") {
+#ifdef USE_CCMIO
+      ScatteredDataReaderCCM* SCRCCM = new ScatteredDataReaderCCM(fileName_);
+      std::vector<std::string> componentShortNames(3);
+      componentShortNames[0] = "SU";
+      componentShortNames[1] = "SV";
+      componentShortNames[2] = "SW";
+      SCRCCM->SetComponentShortNames(componentShortNames);
+      sdataReader.reset(SCRCCM);
+#else
+      EXCEPTION("STAR-CCM+ files not supported! Compile with USE_CCMIO=ON.");
+#endif
+    } else {
+      EXCEPTION("No format for scattered data file specified!");
+    }      
+    sdataReader->Read(scatteredData_);
 
     std::list<Point> points;
 
@@ -170,7 +147,7 @@ namespace CoupledField{
                                                      const LocPointMapped& lpm ) {
     if(!scatteredData_.size())
     {
-      ReadCSVFile();
+      Read();
     }    
 
 #ifdef USE_CGAL

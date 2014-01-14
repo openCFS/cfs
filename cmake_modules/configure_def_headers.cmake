@@ -107,6 +107,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_unv.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ansysrst.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_ansysrst.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ccmio.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_ccmio.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_openmp.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_openmp.hh")
 
