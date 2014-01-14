@@ -40,3 +40,6 @@ EXECUTE_PROCESS(
 EXECUTE_PROCESS(
   COMMAND sudo yum install -y mesa-libGL-devel mesa-libGLU-devel
   )
+EXECUTE_PROCESS(
+  COMMAND sudo yum update -y mesa-libglapi
+  )
