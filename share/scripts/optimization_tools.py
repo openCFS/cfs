@@ -71,7 +71,7 @@ def read_density(filename, attribute="design", x=None, y=None, z=None):
   return ret
 
 # # read arbitrary multi-design density file as numpy array
-def read_multi_design(filename, design1, design2=None, design3=None, design4=None):
+def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None,design6=None):
   if not os.path.exists(filename):
     raise RuntimeError("file '" + filename + "' doesn't exist")
   
@@ -87,6 +87,10 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
     designs = 3  
   if design4:
     designs = 4
+  if design5:
+    designs = 5
+  if design6:
+    designs = 6
   length = len(sett) / designs
   
   out = numpy.zeros((length, designs))
@@ -104,6 +108,10 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
       idx = 2
     if design4 and type == design4:
       idx = 3
+    if design5 and type == design5:
+      idx = 4
+    if design6 and type == design6:
+      idx = 5
     if idx == -1:
       print "design '" + type + "' not handled"  
     assert(idx != -1)
