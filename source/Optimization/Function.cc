@@ -2243,29 +2243,10 @@ double Function::Local::Identifier::CalcSumModuli(int neigh_idx, bool derivative
   return E1+E3+2*G;
 }
 
-double Function::Local::Identifier::CalcTotalVolume(bool regular) {
-  // we need the total volume in the non-regular case
-  double total_vol = 0;
-  if (!regular) {
-    for (unsigned int i = 0, n = f->elements.GetSize();i < n;i++) {
-      total_vol += func_->elements[i]->CalcVolume();
-    }
-  } else {
-    total_vol = func_->elements.GetSize();
-  }
-  return total_vol;
-}
 
 double Function::Local::Identifier::CalcLaminatesVolume(int neigh_idx, bool derivative) const
 {
-  bool regular = space->IsRegular();
-  double vol;
-  if (regular){
-    vol = 1.;
-  } else {
-    vol = element->CalcVolume()/CalcTotalVolume(regular);
-  }
-  double scale(1.0), stiff1(0.0), stiff2(0.0), stiff3(1.0);
+  double scale(1.0), stiff1(0.0), stiff2(0.0), stiff3(0.0);
   for(int i=-1; i < (int) neighbor.GetSize(); ++i)
   {
     switch(GetElement(i)->GetType())
@@ -2291,19 +2272,18 @@ double Function::Local::Identifier::CalcLaminatesVolume(int neigh_idx, bool deri
     stiff3 *= scale;
   }
   if(!derivative)
-    //old 2D volume: return stiff1+stiff2-stiff1*stiff2;
-    //3D volume is also valid in 2D with stiff1, stiff2
-    return vol*(stiff1 + stiff2 + stiff3 - stiff1*stiff2 - stiff1*stiff3 - stiff2*stiff3 + stiff1*stiff2*stiff3);
+    //return stiff1+stiff2-stiff1*stiff2;
+    return stiff1 + stiff2 + stiff3 -stiff1*stiff2 -stiff1*stiff3 - stiff2*stiff3 - stiff1*stiff2*stiff3;
   else
   {
     switch(GetElement(neigh_idx)->GetType())
     {
     case DesignElement::STIFF1:
-      return vol*scale*(1. - stiff2 - stiff3 + stiff2*stiff3);
+      return scale-scale*stiff2 - scale*stiff3 - scale* stiff2*stiff3;
     case DesignElement::STIFF2:
-      return vol*scale*(1. - stiff1 - stiff3 + stiff1*stiff3);
+      return scale-scale*stiff1 - scale *stiff3 - scale *stiff1*stiff3;
     case DesignElement::STIFF3:
-      return vol*scale*(1. - stiff1 - stiff2 + stiff1*stiff2);
+      return scale-scale*stiff1 - scale *stiff2 - scale *stiff1*stiff2;
     default:
       return 0.0;
     }

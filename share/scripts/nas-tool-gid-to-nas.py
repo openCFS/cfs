@@ -5,8 +5,8 @@ import sys
 # define a mapping from name in gid file to type of condition (boundary, force) in nastran file
 # FORCE: needs an index and four double values: index is for multiload! Format is ['FORCE', load case #, ?, x, y, z]
 # SPC:   needs two values: a string defining type of bc (1: x, 2: y, 12: xy, 123: xyz, ...) and a value
-table = {'load1':  ['FORCE', 1, 1.0, 0.0, -1.0, 0.0],\
-         'load2':  ['FORCE', 2, 1.0, 0.0, 1.0, 0.0],\
+table = {'load1':  ['FORCE', 1, 1.0, 0.0, -5.0, 0.0],\
+         'load2':  ['FORCE', 2, 1.0, 0.0, 5.0, 0.0],\
          'support': ['SPC', '  123', 0.0]}
 
 quads = False
