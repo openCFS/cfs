@@ -191,16 +191,18 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
          assemble_->AddBiLinearForm( stiffContext2 );
        }
         
-       // =================================
-       //  Nonlinear RHS-integrator
-       // =================================
-        LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiff1, -1.0, feFunc );
-        rhsNlinForm->SetName("RHSNonLinForm");
-        LinearFormContext * rhsNlinContext =
-            new LinearFormContext( rhsNlinForm );
-        rhsNlinContext->SetEntities( actSDList );
-        rhsNlinContext->SetFeFunction( feFunc );
-        assemble_->AddLinearForm( rhsNlinContext );
+       if ( analysistype_ == STATIC ) {
+         // =================================
+         //  Nonlinear RHS-integrator
+         // =================================
+         LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiff1, -1.0, feFunc );
+         rhsNlinForm->SetName("RHSNonLinForm");
+         LinearFormContext * rhsNlinContext =
+             new LinearFormContext( rhsNlinForm );
+         rhsNlinContext->SetEntities( actSDList );
+         rhsNlinContext->SetFeFunction( feFunc );
+         assemble_->AddLinearForm( rhsNlinContext );
+       }
       } else {
 
        // ***************************************
@@ -232,8 +234,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        reluc_->AddRegion(actRegion, curCoef);
 
        // === Additional RHS integrator in case of Non-linearity ===
-       if ( nonLin_ == true ) {
-         REFACTOR;
+       if ( nonLin_ == true && analysistype_ == STATIC ) {
+         //REFACTOR;
          // =================================
          //  Nonlinear RHS-integrator
          // =================================

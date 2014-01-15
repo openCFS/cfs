@@ -60,6 +60,11 @@ namespace CoupledField
     //! solution) is present for the wrapped bilinearform
     bool IsNonLin();
 
+    //! bilinearform is part of Newton tangential matrix
+    bool IsNewtonBilinearForm() {
+      return integrator_->IsNewtonBilinearForm();
+    }
+
     //! Get destination matrix
     FEMatrixType GetDestMat() const { return destMat_; }
 

@@ -175,7 +175,9 @@ namespace CoupledField {
 
 
   void StdSolveStep::StepStaticNonLin(PtrParamNode analysis_id) {
+
     bool performOneMoreStep;
+    bool isNewton = false;
 
     SBM_Vector solInc(BaseMatrix::DOUBLE);
 
@@ -203,9 +205,6 @@ namespace CoupledField {
       PDE_.UpdateToSolStrategy();
       algsys_->UpdateToSolStrategy();
 
-      // Inititalize RHS load vector
-      algsys_->InitRHS();
-      
       // set the boundary conditions
       PDE_.SetBCs();
 
@@ -214,11 +213,18 @@ namespace CoupledField {
       PDE_.GetInfoNode()->Get("PDE")->Get(pdename_)->
           Get("load_factor")->SetValue(loadFactor);
 
+      // setup the matrices
+      isNewton = false;
+      assemble_->AssembleMatrices(isNewton);
+
       // setup right hand side
+      algsys_->InitRHS();
       Double RhsLinL2Norm = SetLinRHS(loadFactor);
 
-      // assemble nonlinear parts to RHS
-      assemble_->AssembleNonLinRHS();
+      //substract from RHS the term K*sol
+      solVec_.ScalarMult(-1.0);
+      algsys_->UpdateRHS(SYSTEM,solVec_,true);
+      solVec_.ScalarMult(-1.0);
 
       // set iteration counter
       UInt iterationCounter=0;
@@ -230,11 +236,11 @@ namespace CoupledField {
         iterationCounter++;
         // RHS is already set up!!
 
-//        PtrParamNode child_id = 
-//            BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
+        // assemble Newton bilinear forms
+        isNewton = true;
+        assemble_->AssembleMatrices(isNewton);
 
-        // setup and solve new system (rhs is already set) =====================
-        assemble_->AssembleMatrices();
+        //compute effective matrix
         algsys_->ConstructEffectiveMatrix( NO_FCT_ID,
                                            matrix_factor_[NO_FCT_ID] );
 
@@ -256,36 +262,43 @@ namespace CoupledField {
         Double etaLineSearch  = 1.0;
         if ( lineSearch_ == "none" ) {
           actSol.Add(1.0, solInc);
-        }
-        else {
-          // true is for transient simulation
-          residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
-        }
+          // store the new solution
+          solVec_ = actSol;
 
-        // store the new solution
-        solVec_ = actSol;
-
-        if ( lineSearch_ == "none" ) {
-          // recalculate RHS with new values to get new residual (f^(k+1))========
+          //=================compute residual norm
+          // set linear part of RHS
           algsys_->InitRHS(RhsLinVal_);
-          assemble_->AssembleNonLinRHS();  
-          //Set special RHS Values
-          PDE_.SetRhsValues();
+
+          // setup the matrices
+          isNewton = false;
+          assemble_->AssembleMatrices(isNewton);
+
+          //substract from RHS the term K*sol
+          solVec_.ScalarMult(-1.0);
+          algsys_->UpdateRHS(SYSTEM,solVec_,true);
+          solVec_.ScalarMult(-1.0);
 
           //get RHS vector
           SBM_Vector actRHS(BaseMatrix::DOUBLE);
           algsys_->GetRHSVal( actRHS );
 
           // calculation of residual error =======================================
-          residualL2Norm = actRHS.NormL2(); // L2Norm of  ( f_i^(k+1) - f_a )
-        } else {
-          algsys_->InitRHS(RhsLinVal_ );
-          assemble_->AssembleNonLinRHS();
-          //Set special RHS Values
-          PDE_.SetRhsValues();
+          residualL2Norm = actRHS.NormL2();
+          std::cout << "ResAbsolut: " << residualL2Norm << std::endl;
+        }
+        else {
+          // do line search
+          residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
+
+          // store the new solution
+          solVec_ = actSol;
+
+          // setup the matrices with new solution
+          isNewton = false;
+          assemble_->AssembleMatrices(isNewton);
         }
 
-        // calculation of residual error =======================================
+        // calculation relative residual error ====================================
         Double residualErr;
         if ( RhsLinL2Norm > 1.0 )
           residualErr = residualL2Norm / RhsLinL2Norm;
@@ -304,7 +317,6 @@ namespace CoupledField {
           WARN("Zero solution vector!! ");
         }
 
-        //std::cout << "Norm:\n" << "Residual: " << residualErr << "  Incr.Error: " <<  incrementalErr << std::endl << std::endl;
         // output of norms and data
         if ( nonLinLogging_ == true ) {
           WriteNonLinIterToInfoXML(pdename_, iLevel+1,iterationCounter, residualErr, 
@@ -490,6 +502,8 @@ namespace CoupledField {
 
     //std::cout << "in StepTransNonLin" << std::endl;
     bool performOneMoreStep;
+    bool isNewton = false;
+
     SBM_Vector solInc(BaseMatrix::DOUBLE);
 
     //get actual solution
@@ -535,14 +549,12 @@ namespace CoupledField {
       solVec_  = actSol;
 
       // setup the matrices
-      assemble_->AssembleMatrices();
+      isNewton = false;
+      assemble_->AssembleMatrices(isNewton);
 
       // setup right hand side
       Double loadFactor = 1.0;
       Double RhsLinL2Norm = SetLinRHS(loadFactor);
-
-      // inner forces due to nonlin formulation
-      assemble_->AssembleNonLinRHS();  
 
       //now update RHS according to time stepping
       for(matIt = matrices.begin();matIt != matrices.end();matIt++){
@@ -553,12 +565,20 @@ namespace CoupledField {
         }
         algsys_->UpdateRHS(matIt->first,stageRHS_,true);
       }
+      //substract from RHS the term K*sol
+      solVec_.ScalarMult(-1.0);
+      algsys_->UpdateRHS(STIFFNESS,solVec_,true);
+      solVec_.ScalarMult(-1.0);
 
       // set iteration counter
       UInt iterationCounter=0;
 
       do {
         iterationCounter++;
+
+        //now assemble the Newton bilinear forms
+        isNewton = true;
+        assemble_->AssembleMatrices(isNewton);
 
         matrix_factor_.clear();
         
@@ -571,6 +591,7 @@ namespace CoupledField {
             ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
           algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
         }
+        // setup the matrices to compute correct error norms
         
         PDE_.SetBCs();
         algsys_->BuildInDirichlet();
@@ -585,6 +606,8 @@ namespace CoupledField {
         algsys_->Solve(analysis_id, setIDBC);
         algsys_->GetSolutionVal(solInc, setIDBC );
 
+        //std::cout << solInc.ToString(1,',') << std::endl;
+
         Double residualL2Norm = 0.0;
         Double etaLineSearch  = 1.0;
 
@@ -592,28 +615,17 @@ namespace CoupledField {
         if ( iterationCounter == 1 )
           stageSol.Init();
 
+
         if ( lineSearch_ == "none" ) {
           stageSol.Add(1.0, solInc);
-        }
-        else {
-          // true is for transient simulation
           solVec_  = stageSol;
-          residualL2Norm = LineSearch(solInc, stageSol, etaLineSearch,true);
-        }
 
-        //std::cout << solInc.ToString(1,',') << std::endl;
-        //std::cout << stageSol.ToString(1,',') << std::endl;
+          // setup the matrices with new solution
+          isNewton = false;
+          assemble_->AssembleMatrices(isNewton);
 
-        solVec_  = stageSol;
-
-        // setup the matrices to compute correct error norms
-        assemble_->AssembleMatrices();
-
-        if ( lineSearch_ == "none" ) {
           // recalculate RHS with new values to get new residual (f^(k+1))========
           algsys_->InitRHS(RhsLinVal_);
-          assemble_->AssembleNonLinRHS();  
-          //PDE_.SetRhsValues();
 
           //now update RHS according to time stepping
           for(matIt = matrices.begin();matIt != matrices.end();matIt++){
@@ -625,13 +637,23 @@ namespace CoupledField {
             algsys_->UpdateRHS(matIt->first,stageRHS_,true);
           }
 
+          //substract from RHS the term K*sol
+          solVec_.ScalarMult(-1.0);
+          algsys_->UpdateRHS(STIFFNESS,solVec_,true);
+          solVec_.ScalarMult(-1.0);
+
           //get RHS vector
           SBM_Vector actRHS(BaseMatrix::DOUBLE);
           algsys_->GetRHSVal( actRHS );
 
           // calculation of residual error =======================================
-          residualL2Norm = actRHS.NormL2(); // L2Norm of  ( f_i^(k+1) - f_a )
-        } 
+          residualL2Norm = actRHS.NormL2();
+        }
+        else {
+           //solVec_  = stageSol;
+          residualL2Norm = LineSearch(solInc, stageSol, etaLineSearch,true);
+          solVec_  = stageSol;
+        }
 
         // calculation of residual error =======================================
         Double residualErr;
@@ -1305,8 +1327,7 @@ namespace CoupledField {
 
 
   Double StdSolveStep::LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol,
-                                  Double& etaLineSearch, bool trans)
-  {
+                                  Double& etaLineSearch, bool trans)  {
 
     SBM_Vector solOld(BaseMatrix::DOUBLE);
     solOld = actSol;
@@ -1318,12 +1339,89 @@ namespace CoupledField {
 
     for( UInt i=0; i<nrEtas; i++) {
       actSol.Add( 1.0, solOld, eta[i], solIncrement);
+
+      //store new solution
+      solVec_ = actSol;
+      
+      // set RHS: linear part
+      algsys_->InitRHS(RhsLinVal_ );
+
+      // setup the matrices
+      bool isNewton = false;
+      assemble_->AssembleMatrices(isNewton);
+
+      if( trans ) {
+        //now update RHS according to time stepping
+        std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+        std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
+        std::map<FEMatrixType,Integer>::iterator matIt;
+        UInt pos = 0;
+        for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+          if(matIt->second < 0)
+            continue;
+          for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+            fncIt->second->GetTimeScheme()->ComputeStageRHS(0,matIt->second,stageRHS_.GetPointer(pos));
+          }
+          algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+        }
+
+        //substract from RHS the term K*sol
+        solVec_.ScalarMult(-1.0);
+        algsys_->UpdateRHS(STIFFNESS,solVec_,true);
+        solVec_.ScalarMult(-1.0);
+      }
+      else {
+        solVec_.ScalarMult(-1.0);
+        algsys_->UpdateRHS(SYSTEM,solVec_,true);
+        solVec_.ScalarMult(-1.0);
+      }
+
+
+      // =====================================================================
+      // calculation of error norms
+      // =====================================================================
+      SBM_Vector actRHS(BaseMatrix::DOUBLE);
+      algsys_->GetRHSVal( actRHS );
+
+      // calculation of residual error =======================================
+      Double residualL2Norm = actRHS.NormL2();
+
+      if (residualL2Norm < residualL2NormOpt) {
+        residualL2NormOpt = residualL2Norm;
+        etaOpt = eta[i];
+      }
+    }
+
+    etaLineSearch = etaOpt;
+    
+    // Careful: in the end, we have to re-assemble the RHS with the correct
+    // value i.e. use the "optimal" solution
+    actSol.Add( 1.0, solOld, etaOpt, solIncrement );
+
+    return residualL2NormOpt;
+  }
+
+
+  Double StdSolveStep::LineSearchMag(SBM_Vector& solIncrement, SBM_Vector& actSol,
+                                          Double& etaLineSearch, bool trans)
+  {
+
+    SBM_Vector solOld(BaseMatrix::DOUBLE);
+    solOld = actSol;
+    const UInt nrEtas = 5;
+    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.1};
+    // initialize etaOpt or receive compiler warning
+    Double etaOpt = 0.0;
+    Double residualL2NormOpt = 1e15;
+
+    for( UInt i=0; i<nrEtas; i++) {
+      actSol.Add( 1.0, solOld, eta[i], solIncrement);
 //      actSol = solIncrement * eta[i];
 //      actSol += solOld;
 
       //store new solution
       solVec_ = actSol;
-      
+
       // recalculate RHS with new values to get new residual (f^(k+1))========
       algsys_->InitRHS(RhsLinVal_ );
 
@@ -1368,14 +1466,13 @@ namespace CoupledField {
     }
 
     etaLineSearch = etaOpt;
-    
+
     // Careful: in the end, we have to re-assemble the RHS with the correct
     // value i.e. use the "optimal" solution
-    actSol.Add( 1.0, solOld, etaOpt, solIncrement );
+    actSol.Add(1.0, solOld, etaOpt, solIncrement );
 
     return residualL2NormOpt;
   }
-
 
   Double StdSolveStep::LineSearchMaterial(SBM_Vector& solIncrement, SBM_Vector& actSol,
                                           Double& etaLineSearch, Double& RhsLinL2Norm, bool trans)

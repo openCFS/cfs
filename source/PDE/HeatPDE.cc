@@ -212,14 +212,14 @@ void HeatPDE::DefineIntegrators() {
       // =================================
       //  Nonlinear RHS-integrator
       // =================================
-      LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0,
-                                                          feFunc );
-      rhsNlinForm->SetName("RHSNonLinFormHeatStiff");
-      LinearFormContext * rhsNlinContext =
-          new LinearFormContext( rhsNlinForm );
-      rhsNlinContext->SetEntities( actSDList );
-      rhsNlinContext->SetFeFunction( feFunc );
-      assemble_->AddLinearForm( rhsNlinContext );
+//      LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0,
+//                                                          feFunc );
+//      rhsNlinForm->SetName("RHSNonLinFormHeatStiff");
+//      LinearFormContext * rhsNlinContext =
+//          new LinearFormContext( rhsNlinForm );
+//      rhsNlinContext->SetEntities( actSDList );
+//      rhsNlinContext->SetFeFunction( feFunc );
+//      assemble_->AddLinearForm( rhsNlinContext );
     }
     else {
       // --- linear real-valued stiffness integrator ---
@@ -246,18 +246,18 @@ void HeatPDE::DefineIntegrators() {
       assemble_->AddBiLinearForm( stiffIntDescr );
       bdbInts_[actRegion] = stiffInt;
 
-      if ( nonLinTypes.Find(NLHEAT_CONDUCTIVITY) ||
-                nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ) {
-        // === Additional RHS integrator in case of Non-linearity ===
-        LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0,
-                                                            feFunc );
-        rhsNlinForm->SetName("RHSNonLinFormHeatStiff-Lin");
-        LinearFormContext * rhsNlinContext =
-            new LinearFormContext( rhsNlinForm );
-        rhsNlinContext->SetEntities( actSDList );
-        rhsNlinContext->SetFeFunction( feFunc );
-        assemble_->AddLinearForm( rhsNlinContext );
-      }
+//      if ( nonLinTypes.Find(NLHEAT_CONDUCTIVITY) ||
+//                nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ) {
+//        // === Additional RHS integrator in case of Non-linearity ===
+//        LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0,
+//                                                            feFunc );
+//        rhsNlinForm->SetName("RHSNonLinFormHeatStiff-Lin");
+//        LinearFormContext * rhsNlinContext =
+//            new LinearFormContext( rhsNlinForm );
+//        rhsNlinContext->SetEntities( actSDList );
+//        rhsNlinContext->SetFeFunction( feFunc );
+//        assemble_->AddLinearForm( rhsNlinContext );
+//      }
     }
 
     // ====================================================================

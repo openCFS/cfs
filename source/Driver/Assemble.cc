@@ -403,7 +403,7 @@ namespace CoupledField
     } // loop over entity-list pair
   }
 
-  void Assemble::AssembleMatrices() {
+  void Assemble::AssembleMatrices(bool isNewtonPart) {
     
     // check for static condensation:
     
@@ -417,14 +417,14 @@ namespace CoupledField
     // excplicitly distinguish both cases in two different methods.
     
     if (algsys_->UseStaticCondensation() ) {
-      AssembleMatrices_Cond();
+      AssembleMatrices_Cond(isNewtonPart);
     } else {
-      AssembleMatrices_Std();
+      AssembleMatrices_Std(isNewtonPart);
     }
     
   }
   
-  void Assemble::AssembleMatrices_Std() {
+  void Assemble::AssembleMatrices_Std(bool isNewtonPart) {
     Matrix<Double> elemMatrix;
     Matrix<Complex> elemMatrixC;
     StdVector<Integer> eqnVec1, eqnVec2;
@@ -441,11 +441,14 @@ namespace CoupledField
 
 
     // Init all matrices, which have to be reassembled
-    std::map<FEMatrixType, bool>::iterator it;
-    for( it = matReassemble_.begin(); it != matReassemble_.end(); it++ ) {
-      if( it->second == true ) {
-        LOG_DBG2(assemble) << "AssembleMatrices: init matrix " << it->first;
-        algsys_->InitMatrix( matrixMap_[it->first] );
+    // Just to be done, when isNewtonPart is false!
+    if ( !isNewtonPart) {
+      std::map<FEMatrixType, bool>::iterator it;
+      for( it = matReassemble_.begin(); it != matReassemble_.end(); it++ ) {
+        if( it->second == true ) {
+          LOG_DBG2(assemble) << "AssembleMatrices: init matrix " << it->first;
+          algsys_->InitMatrix( matrixMap_[it->first] );
+        }
       }
     }
 
@@ -457,7 +460,7 @@ namespace CoupledField
       EntityList& secondEntities = *(listIt->first.second);
       UInt size = firstEntities.GetSize();
 
-      
+
       // Total work: numElement x numForms
       std::stringstream progStream;
       boost::progress_display progress( size*forms.GetSize(), progStream );
@@ -467,56 +470,19 @@ namespace CoupledField
             << firstEntities.GetName()
             << " (" << size << " elements)'\n";
       }
-      
-      
-      // First loop over all intgrators to check, if any of them
-      // gets re-assembled
-      // Loop over all bilinearforms
-      bool anyReassemble = false;
-      for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
 
-        BiLinFormContext & actContext = *forms[iForm];
-
-        // get matrix destinations
-        FEMatrixType destMat = actContext.GetDestMat();
-        FEMatrixType secDestMat = actContext.GetSecDestMat();
-
-        // If assemble was already called and the current destination
-        // matrix must not be reassembled -> continue with next iterator
-        if( matReassemble_[destMat] == false ) {
-          if( matReassemble_[secDestMat] != NOTYPE ) {
-            if(  matReassemble_[secDestMat] == false ) {
-              continue;
-            }
-          } else  {
-            continue;
-          }
-        }
-        anyReassemble = true;
-      }
-      if( !anyReassemble ) {
-        continue;
-      }
-      
-      // Loop over all entities
-      EntityIterator it1 = firstEntities.GetIterator();
-      EntityIterator it2 = secondEntities.GetIterator();
-      for( it1.Begin(); !it1.IsEnd(); it1++, it2++ ) {
-
-        LOG_DBG2(assemble) << "\telems are " << it1.GetElem()->elemNum 
-            << " and " << it2.GetElem()->elemNum;
-
+      if ( !isNewtonPart) {
+        // First loop over all integrators to check, if any of them
+        // gets re-assembled
         // Loop over all bilinearforms
+        bool anyReassemble = false;
         for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
 
           BiLinFormContext & actContext = *forms[iForm];
 
-          
-          
           // get matrix destinations
           FEMatrixType destMat = actContext.GetDestMat();
           FEMatrixType secDestMat = actContext.GetSecDestMat();
-
 
           // If assemble was already called and the current destination
           // matrix must not be reassembled -> continue with next iterator
@@ -529,16 +495,65 @@ namespace CoupledField
               continue;
             }
           }
+          anyReassemble = true;
+        }
+        if( !anyReassemble ) {
+          continue;
+        }
+      }
+
+      // Loop over all entities
+      EntityIterator it1 = firstEntities.GetIterator();
+      EntityIterator it2 = secondEntities.GetIterator();
+      for( it1.Begin(); !it1.IsEnd(); it1++, it2++ ) {
+
+        LOG_DBG2(assemble) << "\telems are " << it1.GetElem()->elemNum 
+            << " and " << it2.GetElem()->elemNum;
+
+        // Loop over all bilinear forms
+        for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
+
+          BiLinFormContext & actContext = *forms[iForm];
+          bool bilinearFormIsNewton =  actContext.IsNewtonBilinearForm();
+
+          //when we just want to assemble a Newton bilinear form and
+          //the bilinear form is not a Newton one, then go to the next!
+          if ( isNewtonPart && !bilinearFormIsNewton )
+            continue;
+
+          //if we want to assemble all bilinear forms except Newton ones
+          //and the bilinear form is a Newton one, then go to next!
+          if ( !isNewtonPart && bilinearFormIsNewton )
+            continue;
+
+          // get matrix destinations
+          FEMatrixType destMat = actContext.GetDestMat();
+          FEMatrixType secDestMat = actContext.GetSecDestMat();
+
+          if ( !isNewtonPart) {
+            // If assemble was already called and the current destination
+            // matrix must not be reassembled -> continue with next iterator
+            if( matReassemble_[destMat] == false ) {
+              if( matReassemble_[secDestMat] != NOTYPE ) {
+                if(  matReassemble_[secDestMat] == false ) {
+                  continue;
+                }
+              } else  {
+                continue;
+              }
+            }
+          }
+
           LOG_DBG(assemble) << "AssembleMatrices for bilinform " << actContext.GetIntegrator()->GetName();
-                    LOG_DBG2(assemble) << "bilinform=" << actContext.ToString();
-                    
+          LOG_DBG2(assemble) << "bilinform=" << actContext.ToString();
+
           // Update flag
           matrixUpdated_ = true;
 
           BiLinearForm * form = actContext.GetIntegrator();
 
           try {
-            
+
             // make only output if desired
             if( printProgressBar_) {
               ++progress;
@@ -549,7 +564,7 @@ namespace CoupledField
             // Calc element matrix
             if ( form->IsComplex() ){
               form->CalcElementMatrix( elemMatrixC, it1, it2 );
-              
+
             } else {
               form->CalcElementMatrix( elemMatrix, it1, it2 );
               LOG_DBG3(assemble) << "elementMatrix is \n" << elemMatrix << std::endl; 
@@ -557,71 +572,71 @@ namespace CoupledField
                 assert(!form->IsComplex());
                 elemMatrix*= (-1.0);
               }
-               }
+            }
 
-               // Map equation numbers
-               actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
-               // Perform remapping
-               ReMapEquations(eqnVec1, fctId1);
-               ReMapEquations(eqnVec2, fctId2);
+            // Map equation numbers
+            actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
+            // Perform remapping
+            ReMapEquations(eqnVec1, fctId1);
+            ReMapEquations(eqnVec2, fctId2);
 
-               // Pass element matrix to algebraic system (primary matrix)
-               if ( form->IsComplex() )
-                 InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
-               else
-                 InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2);
+            // Pass element matrix to algebraic system (primary matrix)
+            if ( form->IsComplex() )
+              InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
+            else
+              InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2);
 
-               if (secDestMat != NOTYPE ) { // Check for secondary matrix type
-                 Double dampFactor = 1.0;
-                 // get secondary matrix factor string 
-                 Double secMatFac = actContext.EvalSecMatFac();
-                 
-                 // damping with "exotic" complex material
-                 if ( form->IsComplex() ) {
-                   // complex damping
-                   elemMatrixC *= secMatFac * dampFactor;
+            if (secDestMat != NOTYPE ) { // Check for secondary matrix type
+              Double dampFactor = 1.0;
+              // get secondary matrix factor string
+              Double secMatFac = actContext.EvalSecMatFac();
 
-                   // Pass secondary matrix part to algebraic system
-                   InsertMatrix(secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
-                 }
-                 // "standard" Rayleigh damping. Includes the standard SIMP optimization!
-                 else {
-                   // Rayleigh damping
-                   elemMatrix *= secMatFac * dampFactor;
-                   LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " Rayleigh damping form=" << form->GetName() << " sMF=" << secMatFac << " df=" <<  dampFactor;
-                   // Pass secondary matrix part to algebraic system
-                   InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2);
-                 }
-                 // optionally with do SIMP pamping (intermediate material has complex mass damping)
-                 //            if(domain->GetErsatzMaterialPamping(it1.GetElem(), form, elemMatrix)) {
-                 //              LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " pamping form=" << form->GetName() << " add=" << elemMatrix.ToString();
-                 //              InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
-                 //            }
+              // damping with "exotic" complex material
+              if ( form->IsComplex() ) {
+                // complex damping
+                elemMatrixC *= secMatFac * dampFactor;
 
-               } // handle secDestMat != NOTYPE
+                // Pass secondary matrix part to algebraic system
+                InsertMatrix(secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
+              }
+              // "standard" Rayleigh damping. Includes the standard SIMP optimization!
+              else {
+                // Rayleigh damping
+                elemMatrix *= secMatFac * dampFactor;
+                LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " Rayleigh damping form=" << form->GetName() << " sMF=" << secMatFac << " df=" <<  dampFactor;
+                // Pass secondary matrix part to algebraic system
+                InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2);
+              }
+              // optionally with do SIMP pamping (intermediate material has complex mass damping)
+              //            if(domain->GetErsatzMaterialPamping(it1.GetElem(), form, elemMatrix)) {
+              //              LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " pamping form=" << form->GetName() << " add=" << elemMatrix.ToString();
+              //              InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
+              //            }
 
-               // increment iterators
-             } catch (Exception& e) {
-               RETHROW_EXCEPTION(e, "Could not calculate element matrix of "
-                                 << "BiLinearForm '"
-                                 << form->GetName() << "' on '"
-                                 << actContext.GetFirstEntities()->GetName()<< "'" );
-             }
-           } // loop over bilinearforms
-         } // loop over entities
-       }// loop over entitylist pairs
-       // Change flag
-       isFirstTime_ = false;
+            } // handle secDestMat != NOTYPE
 
-       // We have assembled all matrices, we will not do so next time
-       // except: CheckNonLinearities sets one of these, or Optimization does
-       matReassemble_.clear();
+            // increment iterators
+          } catch (Exception& e) {
+            RETHROW_EXCEPTION(e, "Could not calculate element matrix of "
+                << "BiLinearForm '"
+                << form->GetName() << "' on '"
+                << actContext.GetFirstEntities()->GetName()<< "'" );
+          }
+        } // loop over bilinearforms
+      } // loop over entities
+    }// loop over entitylist pairs
+    // Change flag
+    isFirstTime_ = false;
 
-       timer_->Stop();
+    // We have assembled all matrices, we will not do so next time
+    // except: CheckNonLinearities sets one of these, or Optimization does
+    matReassemble_.clear();
+
+    timer_->Stop();
     
   }
   
-    void Assemble::AssembleMatrices_Cond() {
+    void Assemble::AssembleMatrices_Cond(bool isNewtonPart) {
 
     Matrix<Double> elemMatrix;
     Matrix<Complex> elemMatrixC;

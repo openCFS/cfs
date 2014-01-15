@@ -29,7 +29,7 @@ namespace CoupledField
   // forward class declaration
   class FeSpace;
 
-  class BiLinearForm{
+class BiLinearForm{
     public:
 
     //for NMG integrators
@@ -42,6 +42,7 @@ namespace CoupledField
 
       BiLinearForm( bool coordUpdate = false ){
         coordUpdate_ = coordUpdate;
+        isNewtonBilinearForm_ = false;
       }
 
       virtual ~BiLinearForm(){
@@ -90,6 +91,16 @@ namespace CoupledField
         return coordUpdate_;
       }
       
+      //! set bilinearform to part of Newton tangential matrix
+      void SetNewtonBilinearForm() {
+        isNewtonBilinearForm_ = true;
+      }
+
+      //! Return if bilinearform is part of Newton tangential matrix
+      bool IsNewtonBilinearForm() {
+        return isNewtonBilinearForm_;
+      }
+
       //! Set Coefficient Function of B operator
       virtual void SetBCoefFunctionOpB(PtrCoefFct coef){
         EXCEPTION("Integrator::SetBCoefFunctionOpB not available in base class!");
@@ -113,6 +124,9 @@ namespace CoupledField
       
       //! flag for use of updated Lagrangian formulation
       bool coordUpdate_; 
+
+      //! is the (bi)linear part of the Newton tangential matrix
+      bool isNewtonBilinearForm_;
 
       //! pointer to finite element space 1
       shared_ptr<FeSpace> ptFeSpace1_;

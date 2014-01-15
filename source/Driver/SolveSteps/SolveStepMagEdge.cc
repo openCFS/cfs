@@ -6,6 +6,7 @@
 #include "PDE/MagEdgePDE.hh"
 #include "Driver/Assemble.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
+#include "OLAS/algsys/SolStrategy.hh"
 #include "Utils/Timer.hh"
 
 namespace CoupledField {
@@ -179,9 +180,167 @@ namespace CoupledField {
   void SolveStepMagEdge::StepStaticNonLin( PtrParamNode analysis_id ) {
     
     // Note: currently hard-coded to section from StdSolveStep
-    StdSolveStep::StepStaticNonLin(analysis_id);
+    //StdSolveStep::StepStaticNonLin(analysis_id);
+
+    bool performOneMoreStep;
+
+    SBM_Vector solInc(BaseMatrix::DOUBLE);
+
+    //get actual solution
+    SBM_Vector  actSol(BaseMatrix::DOUBLE);
+    actSol = solVec_;
+
+    shared_ptr<SolStrategy> solStrat_ = algsys_->GetSolStrategy();
+
+    // =================================
+    //  Outer loop: Multilevel strategy
+    // =================================
+    UInt numLevels = solStrat_->GetNumSolSteps();
+    for( UInt iLevel = 0; iLevel < numLevels; ++iLevel ) {
+
+      // create new timer object and put it to related info element
+      shared_ptr<Timer> timer(new Timer());
+      PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
+      iter->GetByVal("solStep","value",iLevel+1,ParamNode::INSERT)
+          ->Get("timer")->SetValue(timer);
+      timer->Start();
+
+      // update the current solution step in a multilevel approach and
+      // inform PDEs (containing the FeSpaces), as well as the AlgebraicSystem
+      solStrat_->SetActSolStep(iLevel + 1);
+      ReadNonLinData();
+      PDE_.UpdateToSolStrategy();
+      algsys_->UpdateToSolStrategy();
+
+      // Inititalize RHS load vector
+      algsys_->InitRHS();
+
+      // set the boundary conditions
+      PDE_.SetBCs();
+
+      //perform the load-steps
+      Double loadFactor = 1.0;
+      PDE_.GetInfoNode()->Get("PDE")->Get(pdename_)->
+          Get("load_factor")->SetValue(loadFactor);
+
+      // setup right hand side
+      Double RhsLinL2Norm = SetLinRHS(loadFactor);
+
+      // assemble nonlinear parts to RHS
+      assemble_->AssembleNonLinRHS();
+
+      // set iteration counter
+      UInt iterationCounter=0;
+
+      // =================================
+      //  Inner nonlinear loop
+      // =================================
+      do {
+        iterationCounter++;
+        // RHS is already set up!!
+
+//        PtrParamNode child_id =
+//            BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
+
+        // setup and solve new system (rhs is already set) =====================
+        assemble_->AssembleMatrices();
+        algsys_->ConstructEffectiveMatrix( NO_FCT_ID,
+                                           matrix_factor_[NO_FCT_ID] );
+
+        algsys_->BuildInDirichlet();
+        algsys_->SetupPrecond(analysis_id);
+        algsys_->SetupSolver(analysis_id);
+
+        bool setIDBC = false;
+        if ( iterationCounter == 1 )
+          setIDBC = true;
+
+        algsys_->Solve(analysis_id, setIDBC);
+
+        // new solution is only an increment of the full solution =============
+        algsys_->GetSolutionVal( solInc, setIDBC );
+
+
+        Double residualL2Norm = 0.0;
+        Double etaLineSearch  = 1.0;
+        if ( lineSearch_ == "none" ) {
+          actSol.Add(1.0, solInc);
+        }
+        else {
+          // true is for transient simulation
+          residualL2Norm = LineSearchMag(solInc, actSol, etaLineSearch);
+        }
+
+        // store the new solution
+        solVec_ = actSol;
+
+        if ( lineSearch_ == "none" ) {
+          // recalculate RHS with new values to get new residual (f^(k+1))========
+          algsys_->InitRHS(RhsLinVal_);
+          assemble_->AssembleNonLinRHS();
+          //Set special RHS Values
+          PDE_.SetRhsValues();
+
+          //get RHS vector
+          SBM_Vector actRHS(BaseMatrix::DOUBLE);
+          algsys_->GetRHSVal( actRHS );
+
+          // calculation of residual error =======================================
+          residualL2Norm = actRHS.NormL2(); // L2Norm of  ( f_i^(k+1) - f_a )
+        } else {
+          algsys_->InitRHS(RhsLinVal_ );
+          assemble_->AssembleNonLinRHS();
+          //Set special RHS Values
+          PDE_.SetRhsValues();
+        }
+
+        // calculation of residual error =======================================
+        Double residualErr;
+        if ( RhsLinL2Norm > 1.0 )
+          residualErr = residualL2Norm / RhsLinL2Norm;
+        else
+          residualErr = residualL2Norm;
+
+        // calculate incremental error ========================================
+        Double incrementalErr;
+        Double solIncrL2Norm = solInc.NormL2();
+        Double actSolL2Norm  = actSol.NormL2();
+
+        if ( actSolL2Norm )
+          incrementalErr = solIncrL2Norm / actSolL2Norm;
+        else {
+          incrementalErr = solIncrL2Norm;
+          WARN("Zero solution vector!! ");
+        }
+
+        //std::cout << "Norm:\n" << "Residual: " << residualErr << "  Incr.Error: " <<  incrementalErr << std::endl << std::endl;
+        // output of norms and data
+        if ( nonLinLogging_ == true ) {
+          WriteNonLinIterToInfoXML(pdename_, iLevel+1,iterationCounter, residualErr,
+                                   incrementalErr, etaLineSearch);
+          // write norm to file
+          logFile_ <<  iterationCounter << "\t"
+              << residualErr << "\t"
+              << incrementalErr << "\t"
+              << etaLineSearch << std::endl;
+        }
+
+        // boolean variable, holds condition if another iteration step is necessary
+        performOneMoreStep =
+            (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+
+      } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
+
+      // stop timer
+      timer->Stop();
+    } // loop over levels
     
   }
   
+
+
+
+
+
 } // end of namespace
 

@@ -69,7 +69,7 @@ namespace CoupledField {
     void SetupMatrixGraph( FeFctIdType fctId1, FeFctIdType fctId2 );
 
     //! Trigger assembly of the matrices
-    void AssembleMatrices();
+    void AssembleMatrices(bool isNewtonPart=false);
 
     //! Trigger assembly of all linear right hand side terms
     void AssembleLinRHS();
@@ -131,10 +131,10 @@ namespace CoupledField {
   protected:
 
     //! Assemble matrices without static condensation
-    void AssembleMatrices_Std();
+    void AssembleMatrices_Std(bool isNewtonPart=false);
     
     //! Assemble matrices with satic condensation
-    void AssembleMatrices_Cond();
+    void AssembleMatrices_Cond(bool isNewtonPart=false);
 
     
     //! Assemble linearForms of right hand side

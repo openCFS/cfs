@@ -149,6 +149,10 @@ namespace CoupledField
                       Double& etaLineSearch, bool trans=false);
 
     //! does a line search and returns the optimal residual norm
+    Double LineSearchMag(SBM_Vector& solIncrement, SBM_Vector& actSol,
+                      Double& etaLineSearch, bool trans=false);
+
+    //! does a line search and returns the optimal residual norm
     Double LineSearchMaterial(SBM_Vector& solIncrement, 
                               SBM_Vector& actSol, 
                               Double& etaLineSearch, Double& RHSLin2Norm,

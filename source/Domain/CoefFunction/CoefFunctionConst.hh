@@ -172,15 +172,21 @@ public:
 
   // COLLECTION ACCESS
   virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                        StdVector<T >  & vals, Grid* ptGrid);
+                                        StdVector<T >  & vals, Grid* ptGrid,
+                                        const std::set<RegionIdType>& srcRegions
+                                        = std::set<RegionIdType>() );
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Vector<T> >  & vals,
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const std::set<RegionIdType>& srcRegions
+                                        = std::set<RegionIdType>()  );
 
   virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Matrix<T> >  & vals,
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const std::set<RegionIdType>& srcRegions
+                                        = std::set<RegionIdType>() );
 
 protected:
   
