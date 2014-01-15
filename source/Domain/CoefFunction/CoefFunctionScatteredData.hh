@@ -151,6 +151,10 @@ namespace CoupledField {
   class CoefFunctionScatteredData : public CoefFunction
   {
   public:
+    enum InterpolationAlgorithm
+    {
+      SHEPARD, NEAREST_NEIGHBOR
+    };
     
     //! Constructor
     CoefFunctionScatteredData(PtrParamNode& scatteredDataNode);
@@ -179,10 +183,19 @@ namespace CoupledField {
     std::map<UInt, UInt> dof2CoordColumn_;
     std::map<UInt, UInt> dof2ValueColumn_;
 
+    // Scale factor for values.
     Double factor_;
 
+    //! Format of input file. Comma separated value files (csv) and STAR-CCM+
+    //! binary .ccm files (ccm) are supported.
     std::string format_;
-    
+
+    //! Type of interpolation algorithm.
+    InterpolationAlgorithm interpolAlgo_;
+
+    //! Number of neighbor points to include in interpolation.
+    UInt numNeighbors_;
+
 #ifdef USE_CGAL
     boost::shared_ptr<Tree> searchTree_;
 #endif

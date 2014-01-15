@@ -349,6 +349,7 @@ namespace CoupledField
     i = 0;
     while (pos < faces.size())
     {
+      // Insert nodes of faces into sets for the two connected cells.
       int cell1 = faceCells[2 * i];
       int cell2 = faceCells[2 * i + 1];
       int nVerts = faces[pos];
@@ -397,6 +398,7 @@ namespace CoupledField
       j = 0;
       while (pos < faces.size())
       {
+        // Insert nodes of boundary face into set for the connected cell.
         int cell = faceCells[j];
         int nVerts = faces[pos];
         cell2Verts_[cell].insert(&faces[pos+1], &faces[pos+1+nVerts]);
@@ -638,7 +640,7 @@ namespace CoupledField
     }
   }
 
-  void ScatteredDataReaderCCM::ReadScalar( CCMIOError &err, CCMIOID field,
+  void ScatteredDataReaderCCM::ReadScalar( CCMIOError &err, CCMIOID& field,
                                            vector<int> &mapData, vector<float> &data,
                                            bool readingVector /* = false */)
   {

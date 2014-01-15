@@ -33,13 +33,3 @@ EXECUTE_PROCESS(
   WORKING_DIRECTORY ${NEW_WC_DIR}
   RESULT_VARIABLE RETVAL
   )
-
-# ===========================================================================
-#  Install mesa-libGL and mesa-libGLU devel packages needed for cgnsview
-# ===========================================================================
-EXECUTE_PROCESS(
-  COMMAND sudo yum install -y mesa-libGL-devel mesa-libGLU-devel libXmu-devel
-  )
-EXECUTE_PROCESS(
-  COMMAND sudo yum update -y mesa-libglapi
-  )

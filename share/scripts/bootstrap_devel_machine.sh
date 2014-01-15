@@ -38,7 +38,7 @@ SetupDebian() {
         cmake-curses-gui cmake-qt-gui gmsh default-jre openjdk-6-jdk \
         patch diff diffutils zip libxt-dev libxp6 tk-dev xsltproc \
         libgl1-mesa-dev libglu1-mesa-dev libxmuu-dev libncurses5-dev \
-        util-linux gcc-multilib"
+        util-linux gcc-multilib libxmu-dev"
 
     for pckg in $PCKGS; do
         apt-get install -y --force-yes -f $pckg
@@ -60,8 +60,9 @@ SetupSuse() {
         python-pygments doxygen tcl-devel python-devel git-svn \
         java-1_6_0-openjdk-devel cmake-gui xorg-x11-libXt-devel \
         diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel \
-        ncurses-devel perl util-linux glibc-devel-32bit \
-        gcc-32bit gcc-c++-32bit gcc-fortran-32bit"
+        ncurses-devel perl util-linux glibc-devel-32bit libXmu-devel\
+        gcc-32bit gcc-c++-32bit gcc-fortran-32bit glu-devel"
+
     
     # We need to add the SDK DVDs as repos in case of SLE
     if [ "$DIST" = "SLE" ]; then 
@@ -142,7 +143,7 @@ SetupFedora() {
         python-pygments doxygen tcl-devel python-devel git-svn \
         cmake-gui java-1.6.0-openjdk-devel java-1.7.0-openjdk-devel tk-devel \
         patch diffutils zip libXt-devel libXp ncurses-devel \
-        mesa-libGL-devel mesa-libGLU-devel || ExitFail
+        mesa-libGL-devel mesa-libGLU-devel libXmu-devel mesa-libglapi || ExitFail
 }
 
 SetupRHEL() {

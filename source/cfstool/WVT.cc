@@ -1916,8 +1916,10 @@ namespace CFSTool {
     Double val = 0.0;
 
     mf.WriteVector("freq", 1, &freq);
-    mf.WriteVector("u_p_prime_real", 1, &u_p_prime.real());
-    mf.WriteVector("u_p_prime_imag", 1, &u_p_prime.imag());
+    val = u_p_prime.real();
+    mf.WriteVector("u_p_prime_real", 1, &val);
+    val = u_p_prime.imag();
+    mf.WriteVector("u_p_prime_imag", 1, &val);
     val = abs(u_p_prime);
     mf.WriteVector("u_p_prime_ampl", 1, &val);
     val = arg(u_p_prime);

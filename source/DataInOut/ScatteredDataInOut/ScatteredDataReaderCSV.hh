@@ -5,7 +5,9 @@
 
 namespace CoupledField 
 {
-  
+  /**
+   * Class for reading scattered data from comma separated files.
+   */  
   class ScatteredDataReaderCSV : public ScatteredDataReader
   {
   public:
@@ -25,6 +27,7 @@ namespace CoupledField
 
   private:
 
+    //! Number of heading lines in .csv to skip.
     UInt skipLines_;
   };
   

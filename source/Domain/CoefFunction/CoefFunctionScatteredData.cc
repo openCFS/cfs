@@ -22,7 +22,9 @@ namespace CoupledField{
   CoefFunctionScatteredData<T,DOFS>::CoefFunctionScatteredData(PtrParamNode& scatteredDataNode)
     : CoefFunction(),
       fileName_(""),
-      factor_(1.0)
+      factor_(1.0),
+      interpolAlgo_(SHEPARD),
+      numNeighbors_(20)
   {
     dimType_ = VECTOR;
     dependType_ = CoefFunction::GENERAL;
@@ -31,6 +33,27 @@ namespace CoupledField{
 
     format_ = scatteredDataNode->Get("format")->As<std::string>();
 
+    if(scatteredDataNode->Has("interpolAlgo")) 
+    {
+      std::string interpolAlgo;
+      interpolAlgo = scatteredDataNode->Get("interpolAlgo")->As<std::string>();
+      if(interpolAlgo == "nearest-neighbor") 
+      {
+        interpolAlgo_ = NEAREST_NEIGHBOR;
+      }
+    }    
+
+    if(scatteredDataNode->Has("numNeighbors")) 
+    {
+      numNeighbors_ = scatteredDataNode->Get("numNeighbors")->As<UInt>();
+      
+      if(numNeighbors_ < 2) 
+      {
+        interpolAlgo_ = NEAREST_NEIGHBOR;
+        numNeighbors_ = 1;
+      }
+    }
+    
     if(format_ == "csv") 
     {
       ParamNodeList coordList;
@@ -170,18 +193,7 @@ namespace CoupledField{
       query = query3;
     }
 
-    K_neighbor_search search(*searchTree_.get(), query, 1);
-
-#if 0
-    // report the N nearest neighbors and their distance
-    // This should sort all N points by increasing distance from origin
-    for(K_neighbor_search::iterator it = search.begin(); it != search.end(); ++it) {
-      std::cout << "neighbours: " << it->first.x() << " " << it->first.y() << " " << it->first.z() << " "<< std::sqrt(it->second) << std::endl << it->first.vx() << " " << it->first.vy() << " " << it->first.vz() << std::endl;
-    }
-
-    EXCEPTION("Global point: " << globPoint << "\nquery: " << query.x() << " " << query.y() << " " << query.z());
-#endif
-    
+    K_neighbor_search search(*searchTree_.get(), query, numNeighbors_);
 
     K_neighbor_search::iterator it = search.begin();
 
@@ -189,19 +201,67 @@ namespace CoupledField{
     {
       EXCEPTION("Could not find a nearest neighbor for " << globPoint << "!");
     }
-    
 
-    if(DOFS == 2) 
+    Double dmin = it->second;
+    Double dmax = dmin;
+    for( ; it != search.end(); ++it) {
+      dmin = dmin < it->second ? dmin : it->second;
+      dmax = dmax > it->second ? dmax : it->second;
+    }
+    dmin = std::sqrt(dmin);
+    dmax = std::sqrt(dmax);
+
+    if(numNeighbors_ == 1 ||
+        interpolAlgo_ == NEAREST_NEIGHBOR ||
+        std::distance(search.begin(), search.end()) == 1 ||
+        dmin/dmax < 1e-6)
     {
-      vec[0] = it->first.vx();
-      vec[1] = it->first.vy();
+      // Apply nearest neigbor interpolation.
+      if(DOFS == 2) 
+      {
+        vec[0] = it->first.vx();
+        vec[1] = it->first.vy();
+      }
+      else 
+      {
+        vec[0] = it->first.vx();
+        vec[1] = it->first.vy();
+        vec[2] = it->first.vz();
+      }
     }
     else 
-    {
-      vec[0] = it->first.vx();
-      vec[1] = it->first.vy();
-      vec[2] = it->first.vz();
+    {    
+      // Apply Shepard interpolation cf. Numerical Recipes 3rd ed. p. 143ff.
+      // or http://www.ems-i.com/gmshelp/Interpolation/Interpolation_Schemes \
+      // /Inverse_Distance_Weighted/Shepards_Method.htm
+      Vector<T> sum(3);
+      Double weights = 0.0;
+      Double p = 2.0;
+
+      // report the N nearest neighbors and their distance
+      // This should sort all N points by increasing distance from origin
+      for(it = search.begin(); it != search.end(); ++it) {
+        Double d = std::sqrt(it->second);
+        Double w = pow((dmax-d)/(dmax*d), p);
+        weights += w;
+        sum[0] += it->first.vx() * w;
+        sum[1] += it->first.vy() * w;
+        sum[2] += it->first.vz() * w;
+      }
+
+      if(DOFS == 2) 
+      {
+        vec[0] = sum[0] / weights;
+        vec[1] = sum[1] / weights;
+      }
+      else 
+      {
+        vec[0] = sum[0] / weights;
+        vec[1] = sum[1] / weights;
+        vec[2] = sum[2] / weights;
+      }
     }
+    
 #else
     EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
 #endif

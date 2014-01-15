@@ -252,11 +252,25 @@
               <xsd:documentation xml:lang="en">
                 A scaling factor for all components of the values.
               </xsd:documentation>
-            </xsd:annotation>            
+            </xsd:annotation>
           </xsd:element>
         </xsd:sequence>
         <xsd:attribute name="quantity" use="required"/>
         <xsd:attribute name="format" use="optional" default="csv"/>
+        <xsd:attribute name="interpolAlgo" use="optional" default="shepard">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              Interpolation algorithm for scattered data points. May be one of shepard, nearest-neighbor.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="numNeighbors" use="optional" type="xsd:unsignedInt" default="20">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              Number of scattered data points to include in interpolation.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>        
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>  

@@ -11,7 +11,16 @@
 
 namespace CoupledField 
 {
-  
+  /**
+   * Class for reading cell-centered data from STAR-CCM+ .ccm files.
+   *
+   * This class reads the vertex coordinates and stores them in a map with
+   * their global id as key. The vertex ids belonging to the polyhedral cells
+   * are read from the internal faces data sets and cell centers are computed
+   * from them. Data arrays are read and provided using their short names.
+   * The member functions in this class are mostly based on the readexample.cpp
+   * provided in the documentation of the CCMIO 2.6.1 library.
+   */  
   class ScatteredDataReaderCCM : public ScatteredDataReader
   {
   public:
@@ -21,9 +30,6 @@ namespace CoupledField
     {};
     virtual ~ScatteredDataReaderCCM();
   
-  
-    enum DataType { kScalar, kVector, kVertex, kCell, kInternalFace, kBoundaryFace,
-                    kBoundaryData, kBoundaryFaceData, kCellType };
   
     void ReadInput();
     void WriteCellCenters();
@@ -37,12 +43,15 @@ namespace CoupledField
 
   private:
 
+    enum DataType { kScalar, kVector, kVertex, kCell, kInternalFace, kBoundaryFace,
+                    kBoundaryData, kBoundaryFaceData, kCellType };
+
     void ReadMesh( CCMIOError &err, CCMIOID &vertices, CCMIOID &topology );
     void ReadVertices( CCMIOError &err, CCMIOID &vertices,
                        char const *counter, int offset = 0 );
     void ReadSolverInfo( CCMIOError &err, CCMIOID &solution);
     void ReadPost( CCMIOError &err, CCMIOID &solution );
-    void ReadScalar( CCMIOError &err, CCMIOID field, std::vector<int> &mapData,
+    void ReadScalar( CCMIOError &err, CCMIOID& field, std::vector<int> &mapData,
                      std::vector<float> &data, bool readingVector = false );
     void ReadSets( CCMIOError &err, CCMIOID &problem );
     void CheckError( CCMIOError const &err, char const *str );
