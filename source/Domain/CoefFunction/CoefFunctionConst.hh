@@ -24,6 +24,7 @@ public:
     dependType_ = CONSTANT;
     isAnalytic_ = true;
     isComplex_ = std::tr1::is_same<T,Complex>::value;
+    supportDerivative_ = true;
   }
 
   //! Destructor
@@ -152,6 +153,26 @@ public:
         break;
     }
     return "";
+  }
+
+  //! \copydoc CoefFunction::SetDerivativeOperation
+  virtual void SetDerivativeOperation(CoefDerivativeType type){
+    this->derivType_ = type;
+    //derivative of a constant is always zero...
+    switch(dimType_){
+    case SCALAR:
+      this->coefScalar_ = 0.0;
+      break;
+    case VECTOR:
+      this->coefVec_.Init();
+      break;
+    case TENSOR:
+      this->constCoefMat_.Init();
+      break;
+    default:
+      break;
+    }
+    return;
   }
 
   // =========================================================================

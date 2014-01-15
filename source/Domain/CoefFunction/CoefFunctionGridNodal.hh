@@ -18,6 +18,7 @@
 
 #include "CoefFunctionGrid.hh"
 #include "Forms/Operators/IdentityOperator.hh"
+#include "Forms/Operators/DivOperator.hh"
 #include "DataInOut/ResultHandler.hh"
 
 namespace CoupledField{
@@ -64,6 +65,38 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     //! Dump coefficient function to string
     virtual std::string ToString() const =0 ;
 
+    //! \copydoc CoefFunction::SetDerivativeOperation
+    virtual void SetDerivativeOperation(CoefDerivativeType type){
+      this->derivType_ = type;
+
+      //make some checks here!
+      switch(dimType_){
+      case SCALAR:
+        //only NONE is valid right now
+        //if extended to gradient, this would be fine too
+        if(type==VECTOR_DIVERGENCE){
+          EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for scalar coefFunction");
+        }
+        break;
+      case VECTOR:
+        //this is fine in all cases right now
+        if(type==VECTOR_DIVERGENCE){
+          //change dim type to scalar
+          this->dimType_ = SCALAR;
+
+        }
+        break;
+      case TENSOR:
+        if(type==VECTOR_DIVERGENCE){
+          EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for tensor coefFunction");
+        }
+        break;
+      default:
+        break;
+      }
+      return;
+    }
+
   protected:
 
     //=======================================================================================
@@ -72,6 +105,10 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     //!Create the interpolation operator
     //!and sets the corresponding class variable
     void CreateOperator(UInt spaceDim, UInt dofDim);
+
+    //!Creates a divergence operator in case we want the divergence of an
+    //! external vector field
+    void CreateDivOperator(UInt spaceDim, UInt dofDim);
 
     //! BOperator to map solutions to arbitrary points
     //! Right now, hardcoded identity operator

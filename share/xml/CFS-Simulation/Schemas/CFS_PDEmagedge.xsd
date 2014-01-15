@@ -258,7 +258,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magEnergy"/>
       <xsd:enumeration value="magEddyPower"/>
-      <xsd:enumeration value="magForceLorentz"/>
+      <xsd:enumeration value="magForceLorentz"/>   
     </xsd:restriction>
   </xsd:simpleType>
   
@@ -266,6 +266,7 @@
   <xsd:simpleType name="DT_MagneticEdgeSurfRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magEddyCurrent"/>
+      <xsd:enumeration value="magFlux"/>
     </xsd:restriction>
   </xsd:simpleType>
 

@@ -48,6 +48,9 @@ PtrCoefFct CoefFunctionExpression<Double>::GetComplexPart( Global::ComplexPart p
 void CoefFunctionExpression<Double>::GetTensor( Matrix<Double>& coefMat, 
                                                 const LocPointMapped& lpm ){
   assert(this->dimType_ == CoefFunction::TENSOR);
+  if(this->derivType_ == VECTOR_DIVERGENCE){
+    EXCEPTION("CoefFunctionExpression<Double>::GetTensor VECTOR_DIVERGENCE is not valid for GetTensor");
+  }
   Vector<Double> pointCoord;
   Matrix<Double> locMatrix;
 
@@ -81,6 +84,7 @@ void CoefFunctionExpression<Double>::GetVector( Vector<Double>& coefVec,
                                                 const LocPointMapped& lpm ){
   assert(this->dimType_ == CoefFunction::VECTOR ||
          this->dimType_ == CoefFunction::SCALAR);
+
   Vector<Double> pointCoord, locVector;
 
   // in case of scalars, just set one entry in the vector
@@ -101,12 +105,17 @@ void CoefFunctionExpression<Double>::GetVector( Vector<Double>& coefVec,
 
 void CoefFunctionExpression<Double>::GetScalar(Double& coefScalar, 
                                                const LocPointMapped& lpm){
-  assert(this->dimType_ == CoefFunction::SCALAR);
   // First, obtain global coordinates of current point and  register it at the mathParser
   Vector<Double> pointCoord;;
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
   this->mp_->SetCoordinates(mHandle_, *(this->coordSys_), pointCoord);
-  coefScalar = this->mp_->Eval(mHandle_);
+  if(this->derivType_ == NONE){
+    assert(this->dimType_ == CoefFunction::SCALAR);
+    coefScalar = this->mp_->Eval(mHandle_);
+  }else if (this->derivType_ == VECTOR_DIVERGENCE){
+    //assert(this->dimType_ == CoefFunction::VECTOR);
+    this->mp_->EvalDivVector(mHandle_,coefScalar);
+  }
 }
 
 void CoefFunctionExpression<Double>::
@@ -332,19 +341,26 @@ void CoefFunctionExpression<Complex>::GetVector( Vector<Complex>& coefVec,
    }
 }
 
-void CoefFunctionExpression<Complex>::GetScalar( Complex& coefScalar, 
-                                                 const LocPointMapped& lpm){
-  Double real, imag;
-  assert(this->dimType_ == CoefFunction::SCALAR);
+void CoefFunctionExpression<Complex>::GetScalar(Complex& coefScalar,
+                                               const LocPointMapped& lpm){
   // First, obtain global coordinates of current point and  register it at the mathParser
-  Vector<Double> pointCoord;;
+  Double real, imag;
+  Vector<Double> pointCoord;
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
   this->mp_->SetCoordinates(mHandleReal_, *(this->coordSys_), pointCoord);
   this->mp_->SetCoordinates(mHandleImag_, *(this->coordSys_), pointCoord);
-  
-  real = this->mp_->Eval(mHandleReal_);
-  imag = this->mp_->Eval(mHandleImag_);
-  coefScalar = Complex(real, imag);
+  if(this->derivType_ == NONE){
+    assert(this->dimType_ == CoefFunction::SCALAR);
+    real = this->mp_->Eval(mHandleReal_);
+    imag = this->mp_->Eval(mHandleImag_);
+    coefScalar = Complex(real, imag);
+  }else if (this->derivType_ == VECTOR_DIVERGENCE){
+    assert(this->dimType_ == CoefFunction::VECTOR);
+    Vector<Complex> locVector;
+    this->mp_->EvalDivVector(mHandleReal_,real);
+    this->mp_->EvalDivVector(mHandleImag_,imag);
+    coefScalar = Complex(real, imag);
+  }
 }
 
 void CoefFunctionExpression<Complex>::SetTensor( const StdVector<std::string>& realVal, 

@@ -201,6 +201,10 @@ namespace CoupledField {
         return "m/s";
         break;
 
+      case DIV_MEAN_FLUIDMECH_VELOCITY:
+        return "1/s";
+        break;
+
       case FLUIDMECH_PRESSURE:
         return "Pa";
         break;
@@ -262,6 +266,14 @@ namespace CoupledField {
         break;
 
       case MAG_FLUX_DENSITY:
+        return "Vs/m^2";
+        break;
+
+      case MAG_FLUX:
+        return "Vs";
+        break;
+
+      case MAG_NORMAL_FLUX_DENSITY:
         return "Vs/m^2";
         break;
 
@@ -1123,6 +1135,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_RHS_LOAD, "magRhsLoad");
     
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");
+    SolutionTypeEnum.Add(MAG_FLUX, "magFlux");
+    SolutionTypeEnum.Add(MAG_NORMAL_FLUX_DENSITY, "magNormalFluxDensity");
     SolutionTypeEnum.Add(MAG_FIELD_INTENSITY, "magFieldIntensity");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT_DENSITY, "magEddyCurrentDensity");
     SolutionTypeEnum.Add(MAG_TOTAL_CURRENT_DENSITY, "magTotalCurrentDensity");
@@ -1147,6 +1161,7 @@ namespace CoupledField {
     //fluidMech
     SolutionTypeEnum.Add(FLUID_FORCE, "fluidForce");
     SolutionTypeEnum.Add(MEAN_FLUIDMECH_VELOCITY, "meanFluidMechVelocity");
+    SolutionTypeEnum.Add(DIV_MEAN_FLUIDMECH_VELOCITY, "divMeanFluidMechVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY, "fluidMechVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE, "fluidMechPressure");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_1, "fluidMechVelocity_deriv1");

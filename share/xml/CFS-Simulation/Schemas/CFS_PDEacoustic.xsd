@@ -644,6 +644,7 @@
       <xsd:enumeration value="acouVelocity"/>
       <xsd:enumeration value="density"/>
       <xsd:enumeration value="pmlDampFactor"/>
+      <xsd:enumeration value="divMeanFluidMechVelocity"/>
     </xsd:restriction>
   </xsd:simpleType>
 

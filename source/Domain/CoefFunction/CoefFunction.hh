@@ -91,6 +91,13 @@ public:
   } CoefDependType;
   static Enum<CoefDependType> CoefDependType_;
   
+  //! Modifications of coefficient function
+  typedef enum{
+    NONE,              /*!< Default interpolation of data*/
+    VECTOR_DIVERGENCE  /*!< Return divergence of vector valued CoefFuncton when called with getScalar*/
+  } CoefDerivativeType;
+  static Enum<CoefDerivativeType> CoefDerivativeType_;
+
   // ========================
   //  FACTORY METHODS
   // ========================
@@ -194,6 +201,8 @@ public:
     dependType_ = CONSTANT;
     isAnalytic_ = false;
     isComplex_ = false;
+    supportDerivative_ = false;
+    derivType_ = NONE;
     
     // by default, the coefficients do not
     // depend on any coordinate system
@@ -341,6 +350,12 @@ public:
     return "";
   }
   
+  //! sets the derivative modification to the coefFunction
+  virtual void SetDerivativeOperation(CoefDerivativeType type){
+    EXCEPTION("CoefFunction: This CoefFunction does not support derivatives");
+    return;
+  }
+
   // ======================================================================
   //  Helper methods for generating variable names of coefficient function
   // ======================================================================
@@ -501,11 +516,17 @@ protected:
   //! Dependency type of the coefficient function
   CoefDependType dependType_;
   
+  //! storing the derivative type of the CoefFunction
+  CoefDerivativeType derivType_;
+
   //! Flag, if coefficient function is analytic (= can be represented as string)
   bool isAnalytic_;
   
   //! Flag, if coefficient function is complex-valued
   bool isComplex_;
+
+  //! Flag indicating if the CoefFunction supports derivatives
+  bool supportDerivative_;
 
 };
 
@@ -545,6 +566,40 @@ public:
                              StdVector<std::string>& real, 
                              StdVector<std::string>& imag ) {
     EXCEPTION( "Not implemented here");
+  }
+
+  //! \copydoc CoefFunction::SetDerivativeOperation
+  virtual void SetDerivativeOperation(CoefDerivativeType type){
+    this->derivType_ = type;
+
+    //make some checks here!
+    switch(dimType_){
+    case SCALAR:
+      //only NONE is valid right now
+      //if extended to gradient, this would be fine too
+      if(type==VECTOR_DIVERGENCE){
+        EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for scalar coefFunction");
+      }
+      break;
+    case VECTOR:
+      //this is fine in all cases right now
+      if(type==VECTOR_DIVERGENCE){
+        //change dim type to scalar
+        this->dimType_ = SCALAR;
+        //PAY ATTENTION: In case of a derivative, the coefFunction is
+        // no longer analytic due to the current implementation!
+        this->isAnalytic_ = false;
+      }
+      break;
+    case TENSOR:
+      if(type==VECTOR_DIVERGENCE){
+        EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for tensor coefFunction");
+      }
+      break;
+    default:
+      break;
+    }
+    return;
   }
 
 };

@@ -370,6 +370,69 @@ namespace CoupledField {
     }
 
   }
+
+  Double MathParser::DiffVectorEntry(HandleType handle, std::string varName, Integer VecPos){
+    //basically a mod of the original diff implementation
+    mu::Parser & myParser = GetParser( handle );
+    VarPool &  curPool = pools_[handle];
+    Double buffer = curPool[varName];
+    Double eps = (buffer==0)? 1e-10 : 1e-7*buffer;
+
+    Integer nExpr;
+    mu::value_type *v = NULL;
+    Double f1,f2,f3,f4;
+
+    SetValue( handle, varName, buffer + 2*eps );
+    MATHPARSER_EXEC( v = myParser.Eval(nExpr));
+    if(nExpr < VecPos)
+      Exception("Invalid indices for vector diff");
+    f1 = v[VecPos];
+
+    SetValue( handle, varName, buffer + 1*eps );
+    MATHPARSER_EXEC( v = myParser.Eval(nExpr));
+    if(nExpr < VecPos)
+      Exception("Invalid indices for vector diff");
+    f2 = v[VecPos];
+
+    SetValue( handle, varName, buffer - 1*eps );
+    MATHPARSER_EXEC( v = myParser.Eval(nExpr));
+    if(nExpr < VecPos)
+      Exception("Invalid indices for vector diff");
+    f3 = v[VecPos];
+
+    SetValue( handle, varName, buffer - 2*eps );
+    MATHPARSER_EXEC( v = myParser.Eval(nExpr));
+    if(nExpr < VecPos)
+      Exception("Invalid indices for vector diff");
+    f4 = v[VecPos];
+
+    curPool[varName] =  buffer;
+    SetValue( handle, varName, buffer );
+    return (-f1 + 8*f2 - 8*f3 + f4 ) / (12*eps);
+  }
+
+  void MathParser::EvalDivVector( HandleType handle, Double& divergence ){
+
+    //loop over variable pool and compute divergence
+    divergence = 0.0;
+
+    if(this->IsExprVariable(handle,"x")){
+      divergence += this->DiffVectorEntry(handle,"x",0);
+    }
+    if(this->IsExprVariable(handle,"y")){
+      divergence += this->DiffVectorEntry(handle,"y",1);
+    }
+    if(this->IsExprVariable(handle,"z")){
+      divergence += this->DiffVectorEntry(handle,"z",2);
+    }
+    if(this->IsExprVariable(handle,"r")){
+      divergence += this->DiffVectorEntry(handle,"r",0);
+    }
+    if(this->IsExprVariable(handle,"phi")){
+      divergence += this->DiffVectorEntry(handle,"phi",1);
+    }
+  }
+
      
   void MathParser::EvalMatrix( HandleType handle, Matrix<Double>& matrix,
                                UInt numRows , UInt numCols ) {

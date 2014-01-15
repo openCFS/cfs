@@ -24,18 +24,6 @@
 
 namespace CoupledField{
 
-//template<class T>
-//struct map_data_compare : public std::binary_function<typename T::value_type, 
-//                                                      typename T::mapped_type, 
-//                                                      bool>
-//{
-//public:
-//    bool operator() (typename T::value_type &pair, 
-//                     typename T::mapped_type i) const
-//    {
-//        return pair.second == i;
-//    }
-//};
 
   template<class DATA_TYPE>
   CoefFunctionGridNodal<DATA_TYPE>::CoefFunctionGridNodal(Domain* ptDomain,
@@ -118,6 +106,18 @@ namespace CoupledField{
       else if(spaceDim == 3)
         this->myOperator_.reset(new IdentityOperator<FeH1,3,3,DATA_TYPE>());
     }
+  }
+
+  template<class DATA_TYPE>
+  void CoefFunctionGridNodal<DATA_TYPE>::CreateDivOperator(UInt spaceDim, UInt dofDim){
+
+    if(spaceDim != dofDim)
+      EXCEPTION("CoefFunctionGridNodal<DATA_TYPE>: Divergence need vectorial data!");
+
+    if(spaceDim == 2)
+      this->myOperator_.reset(new ScalarDivergenceOperator<FeH1,2,DATA_TYPE>());
+    else if(spaceDim == 3)
+      this->myOperator_.reset(new ScalarDivergenceOperator<FeH1,3,DATA_TYPE>());
   }
 
   template<class DATA_TYPE>

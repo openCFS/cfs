@@ -70,7 +70,8 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
       numRows = numRows_;
       numCols = numCols_;
     }
-    
+
+
     std::string ToString() const;
     
     // =========================================================================
