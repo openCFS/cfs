@@ -196,6 +196,9 @@ namespace CoupledField {
     //! Number of neighbor points to include in interpolation.
     UInt numNeighbors_;
 
+    //! Exponent for calculation of interpolation weight function.
+    Double p_;
+
 #ifdef USE_CGAL
     boost::shared_ptr<Tree> searchTree_;
 #endif

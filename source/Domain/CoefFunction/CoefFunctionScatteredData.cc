@@ -15,7 +15,6 @@
 #include "DataInOut/ScatteredDataInOut/ScatteredDataReaderCCM.hh"
 #endif
 
-
 namespace CoupledField{
 
   template<typename T, UInt DOFS>
@@ -24,7 +23,8 @@ namespace CoupledField{
       fileName_(""),
       factor_(1.0),
       interpolAlgo_(SHEPARD),
-      numNeighbors_(20)
+      numNeighbors_(20),
+      p_(2)
   {
     dimType_ = VECTOR;
     dependType_ = CoefFunction::GENERAL;
@@ -52,6 +52,11 @@ namespace CoupledField{
         interpolAlgo_ = NEAREST_NEIGHBOR;
         numNeighbors_ = 1;
       }
+    }
+
+    if(scatteredDataNode->Has("p")) 
+    {
+      p_ = scatteredDataNode->Get("p")->As<Double>();
     }
     
     if(format_ == "csv") 
@@ -136,29 +141,34 @@ namespace CoupledField{
 
     std::list<Point> points;
 
-    for(UInt i=0, n=scatteredData_.size(); i<n; i++)
+    UInt n = scatteredData_.size();
+    for(UInt i=0; i<n; i++)
     {
-    switch(dof2CoordColumn_.size())
-    {
+      switch(dof2CoordColumn_.size())
+      {
       case 2:
         points.push_back(Point(scatteredData_[i][dof2CoordColumn_[0]],
-                               scatteredData_[i][dof2CoordColumn_[1]],
-                               0.0,
-                               scatteredData_[i][dof2ValueColumn_[0]] * factor_,
-                               scatteredData_[i][dof2ValueColumn_[1]] * factor_,
-                               0.0));
+        scatteredData_[i][dof2CoordColumn_[1]],
+        0.0,
+        scatteredData_[i][dof2ValueColumn_[0]] * factor_,
+        scatteredData_[i][dof2ValueColumn_[1]] * factor_,
+        0.0));
         break;        
       case 3:
         points.push_back(Point(scatteredData_[i][dof2CoordColumn_[0]],
-                               scatteredData_[i][dof2CoordColumn_[1]],
-                               scatteredData_[i][dof2CoordColumn_[2]],
-                               scatteredData_[i][dof2ValueColumn_[0]] * factor_,
-                               scatteredData_[i][dof2ValueColumn_[1]] * factor_,
-                               scatteredData_[i][dof2ValueColumn_[2]] * factor_));
+        scatteredData_[i][dof2CoordColumn_[1]],
+        scatteredData_[i][dof2CoordColumn_[2]],
+        scatteredData_[i][dof2ValueColumn_[0]] * factor_,
+        scatteredData_[i][dof2ValueColumn_[1]] * factor_,
+        scatteredData_[i][dof2ValueColumn_[2]] * factor_));
         break;        
+      }    
     }
-    
-    }
+    if(n < numNeighbors_) 
+    {
+      numNeighbors_ = n;
+    }    
+
     searchTree_.reset(new Tree(points.begin(), points.end()));
 #else
     EXCEPTION("Switch on USE_CGAL for nearest-neighbor mapping!")
@@ -216,6 +226,8 @@ namespace CoupledField{
         std::distance(search.begin(), search.end()) == 1 ||
         dmin/dmax < 1e-6)
     {
+      it = search.begin();
+
       // Apply nearest neigbor interpolation.
       if(DOFS == 2) 
       {
@@ -236,13 +248,16 @@ namespace CoupledField{
       // /Inverse_Distance_Weighted/Shepards_Method.htm
       Vector<T> sum(3);
       Double weights = 0.0;
-      Double p = 2.0;
+      // The point which is farthest away, should at least have a non-zero
+      // weight of 0.01. If we would choose R = dmax, it would not contribute
+      // at all.
+      Double R = 1.01 * dmax;
 
       // report the N nearest neighbors and their distance
       // This should sort all N points by increasing distance from origin
       for(it = search.begin(); it != search.end(); ++it) {
         Double d = std::sqrt(it->second);
-        Double w = pow((dmax-d)/(dmax*d), p);
+        Double w = std::pow((R-d)/(R*d), p_);
         weights += w;
         sum[0] += it->first.vx() * w;
         sum[1] += it->first.vy() * w;

@@ -270,6 +270,13 @@
               Number of scattered data points to include in interpolation.
             </xsd:documentation>
           </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="p" use="optional" type="xsd:double" default="2.0">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              Exponent for calculation of weights.
+            </xsd:documentation>
+          </xsd:annotation>
         </xsd:attribute>        
       </xsd:restriction>
     </xsd:complexContent>
