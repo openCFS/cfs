@@ -575,7 +575,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     shared_ptr<CoefFunctionSurf> sNormFDens;
     sNormFDens.reset(new CoefFunctionSurf(true, normFlux));
     DefineFieldResult( sNormFDens, normFlux );
-    surfCoefFcts_[sNormFDens] = sNormFDens;
+    surfCoefFcts_[sNormFDens] = bFunc;
 
     // === MAGNETIC_FLUX ===
     shared_ptr<ResultInfo> flux(new ResultInfo);
