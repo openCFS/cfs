@@ -249,7 +249,7 @@ namespace CoupledField {
         algsys_->SetupSolver(analysis_id);
 
         bool setIDBC = false;
-        if ( iterationCounter == 1 )
+        if ( iterationCounter == 1 && couplingIter_ == 0 )
           setIDBC = true;
 
         algsys_->Solve(analysis_id, setIDBC);
@@ -260,7 +260,10 @@ namespace CoupledField {
 
         Double residualL2Norm = 0.0;
         Double etaLineSearch  = 1.0;
-        if ( lineSearch_ == "none" ) {
+        if ( lineSearch_ == "none" || iterationCounter == 1) {
+          //to incooperate the inhomog. Dirichlet BCs we need a full
+          //step for the first iteration
+
           actSol.Add(1.0, solInc);
           // store the new solution
           solVec_ = actSol;
@@ -284,7 +287,7 @@ namespace CoupledField {
 
           // calculation of residual error =======================================
           residualL2Norm = actRHS.NormL2();
-          std::cout << "ResAbsolut: " << residualL2Norm << std::endl;
+          //std::cout << "ResAbsolut: " << residualL2Norm << std::endl;
         }
         else {
           // do line search
@@ -497,7 +500,6 @@ namespace CoupledField {
   }
 
 
-
   void StdSolveStep::StepTransNonLin(PtrParamNode analysis_id) {
 
     //std::cout << "in StepTransNonLin" << std::endl;
@@ -600,7 +602,7 @@ namespace CoupledField {
 
         // just set inh. Dirichlet BCs for the first iteration
         bool setIDBC = false;
-        if ( iterationCounter == 1 )
+        if ( iterationCounter == 1 && couplingIter_ == 0 )
           setIDBC = true;
 
         algsys_->Solve(analysis_id, setIDBC);
@@ -612,11 +614,13 @@ namespace CoupledField {
         Double etaLineSearch  = 1.0;
 
         //necessary due to inh. Dirichlet BCs!!
-        if ( iterationCounter == 1 )
+        if ( iterationCounter == 1 && couplingIter_ == 0 )
           stageSol.Init();
 
+        if ( lineSearch_ == "none" || iterationCounter == 1) {
+          //to incooperate the inhomog. Dirichlet BCs we need a full
+          //step for the first iteration
 
-        if ( lineSearch_ == "none" ) {
           stageSol.Add(1.0, solInc);
           solVec_  = stageSol;
 

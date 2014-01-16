@@ -599,6 +599,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
 
         rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
+        rPDE_.PDEs_[i]->GetSolveStep()->SetCouplingIter(iter);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic();
         rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(analysis_id);
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
