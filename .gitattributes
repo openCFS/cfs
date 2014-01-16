@@ -121,6 +121,7 @@ cfsdeps/cmake/cmake-install.cmake.in -text
 cfsdeps/gidpost/External_GiDpost.cmake -text
 cfsdeps/gidpost/gidpost-file-append.patch -text
 cfsdeps/gidpost/gidpost-fortran.patch -text
+cfsdeps/gidpost/gidpost-hdf5-lite.patch -text
 cfsdeps/gidpost/gidpost-install.patch -text
 cfsdeps/gidpost/gidpost-patch.cmake.in -text
 cfsdeps/gmp/External_gmp.cmake -text
