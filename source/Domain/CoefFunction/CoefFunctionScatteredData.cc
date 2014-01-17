@@ -178,26 +178,98 @@ namespace CoupledField{
   template<typename T, UInt DOFS>
   void CoefFunctionScatteredData<T,DOFS>::GetVector( Vector<T>& vec, 
                                                      const LocPointMapped& lpm ) {
+    Vector<double> globPoint(DOFS);
+    lpm.shapeMap->Local2Global(globPoint, lpm.lp);
+    this->InterpolateVector(globPoint,vec);
+  }
+
+  template<typename T, UInt DOFS>
+  void CoefFunctionScatteredData<T,DOFS>::GetScalar( T & value,
+                                                       const LocPointMapped& lpm ){
+    //if we have no interpolation, we just throw an exception as everything is
+    //only implemented for vector valued data....
+    if(this->derivType_ == NONE){
+      EXCEPTION("CoefFunctionScatteredData supports only vector valued input data")
+    }
+
+    if(this->derivType_ == VECTOR_DIVERGENCE){
+      //here we do a very dirty thing. we just compute derivatives by
+      //application of a four point stencil...
+      //this is very dirty hack implementation to ensure compatibility
+      // we will need the derivative w.r.t. the interpolation procedure used here...
+
+
+      //obtain the global coordinate
+      Vector<double> globPoint(DOFS);
+
+      T divergence = 0.0;
+      lpm.shapeMap->Local2Global(globPoint, lpm.lp);
+      LocPointMapped tmpLocPoint = lpm;
+
+      //temorarily change the dimType to Vector again
+      this->dimType_ = VECTOR;
+
+      // determine eps according to element jacobian
+      // perhaps we should take the volume of the element instead?
+      Vector<Double> dia;
+      lpm.shapeMap->CalcDiameter(dia);
+      Double eps = 1e-4;
+
+      //First, the x-value
+
+      for(UInt d = 0;d<DOFS;d++){
+        T val1,val2,val3,val4;
+        Double buffer = globPoint[d];
+        Vector<T> curValue;
+
+        globPoint[d] = buffer + 2*eps * dia[d];
+        this->InterpolateVector(globPoint,curValue);
+        val1 = curValue[d];
+
+        globPoint[d] = buffer + 1*eps * dia[d];
+        this->InterpolateVector(globPoint,curValue);
+        val2 = curValue[d];
+
+        globPoint[d] = buffer - 1*eps * dia[d];
+        this->InterpolateVector(globPoint,curValue);
+        val3 = curValue[d];
+
+        globPoint[d] = buffer - 2*eps * dia[d];
+        this->InterpolateVector(globPoint,curValue);
+        val4 = curValue[d];
+
+        divergence += (-val1 + 8.0 * val2 - 8.0 * val3 + val4 ) / (12.0 * eps * dia[d]);
+
+        globPoint[d] = buffer;
+      }
+
+      this->dimType_ = SCALAR;
+      value = divergence;
+    }
+  }
+
+
+  template<typename T, UInt DOFS>
+  void CoefFunctionScatteredData<T,DOFS>::InterpolateVector(Vector<Double> globPoint, Vector<T> & vec){
     if(!scatteredData_.size())
     {
       Read();
-    }    
+    }
+
 
 #ifdef USE_CGAL
     vec.Resize(DOFS);
     //    UInt size = scatteredData_.size();
-    
-    Vector<double> globPoint(DOFS);
+
     Vector<T> diff(DOFS);
-    lpm.shapeMap->Local2Global(globPoint, lpm.lp);
 
     Point query(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-    if(DOFS == 2) 
+    if(DOFS == 2)
     {
       Point query2(globPoint[0], globPoint[1], 0.0, 0.0, 0.0, 0.0);
       query = query2;
     }
-    else 
+    else
     {
       Point query3(globPoint[0], globPoint[1], globPoint[2], 0.0, 0.0, 0.0);
       query = query3;
@@ -229,20 +301,20 @@ namespace CoupledField{
       it = search.begin();
 
       // Apply nearest neigbor interpolation.
-      if(DOFS == 2) 
+      if(DOFS == 2)
       {
         vec[0] = it->first.vx();
         vec[1] = it->first.vy();
       }
-      else 
+      else
       {
         vec[0] = it->first.vx();
         vec[1] = it->first.vy();
         vec[2] = it->first.vz();
       }
     }
-    else 
-    {    
+    else
+    {
       // Apply Shepard interpolation cf. Numerical Recipes 3rd ed. p. 143ff.
       // or http://www.ems-i.com/gmshelp/Interpolation/Interpolation_Schemes \
       // /Inverse_Distance_Weighted/Shepards_Method.htm
@@ -264,23 +336,26 @@ namespace CoupledField{
         sum[2] += it->first.vz() * w;
       }
 
-      if(DOFS == 2) 
+      if(DOFS == 2)
       {
         vec[0] = sum[0] / weights;
         vec[1] = sum[1] / weights;
       }
-      else 
+      else
       {
         vec[0] = sum[0] / weights;
         vec[1] = sum[1] / weights;
         vec[2] = sum[2] / weights;
       }
     }
-    
+
 #else
     EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
 #endif
-  }
+    }
+
+
+
 
   template<typename T, UInt DOFS>
   std::string CoefFunctionScatteredData<T,DOFS>::ToString() const {

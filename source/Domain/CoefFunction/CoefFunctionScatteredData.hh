@@ -165,6 +165,9 @@ namespace CoupledField {
     virtual void GetVector( Vector<T>& vec, 
                             const LocPointMapped& lpm );
     
+    //! Return scalar value at Integration point
+    virtual void GetScalar( T & value,
+                               const LocPointMapped& lpm );
 
     //! Return size of vector in case coefficient function is a vector
     virtual UInt GetVecSize() const { return DOFS; }
@@ -172,7 +175,41 @@ namespace CoupledField {
     //! Dump coefficient function to string 
     virtual std::string ToString() const;
     
+    //! \copydoc CoefFunction::SetDerivativeOperation
+    virtual void SetDerivativeOperation(CoefDerivativeType type){
+      this->derivType_ = type;
+
+      //make some checks here!
+      switch(dimType_){
+      case SCALAR:
+        //only NONE is valid right now
+        //if extended to gradient, this would be fine too
+        if(type==VECTOR_DIVERGENCE){
+          EXCEPTION("CoefFunctionScatteredData: VECTOR_DIVERGENCE is not a valid operator for scalar coefFunction");
+        }
+        break;
+      case VECTOR:
+        //this is fine in all cases right now
+        if(type==VECTOR_DIVERGENCE){
+          //change dim type to scalar
+          this->dimType_ = SCALAR;
+          WARN("Scattered Data Interpolation is currently very sensitive when it comes to divergences! Use with special care!")
+        }
+        break;
+      case TENSOR:
+        if(type==VECTOR_DIVERGENCE){
+          EXCEPTION("CoefFunctionScatteredData: VECTOR_DIVERGENCE is not a valid operator for tensor coefFunction");
+        }
+        break;
+      default:
+        break;
+      }
+      return;
+    }
+
   protected:
+
+    void InterpolateVector(Vector<Double> globPoint, Vector<T> & vec);
 
     void Read();
     

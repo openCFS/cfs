@@ -168,6 +168,17 @@
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
+        
+        <!-- Type of acoustic flow formulation -->
+        <xsd:attribute name="flowFormulation" use="optional"
+          default="standard">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="standard"/>
+              <xsd:enumeration value="withDivergence"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
 
         <!-- Type of function space (Lagrange / Legendre) with
         optional order -->
