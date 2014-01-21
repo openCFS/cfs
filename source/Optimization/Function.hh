@@ -321,6 +321,15 @@ class Function
 
       static Enum<Phase> phase;
 
+      /** Data structure for the interpolation coefficients for latticeVol3D*/
+      Matrix<double> vol_coeff_;
+      Matrix<double> vol_a_;
+      Matrix<double> vol_b_;
+      Matrix<double> vol_c_;
+
+      /** total volume for CalcLaminatesVol in the unregular grid case*/
+      double total_vol_;
+
       Phase GetPhase() const { return phase_; }
 
       /** The beta value for smoothing min/max, checks if its set. */
@@ -422,8 +431,28 @@ class Function
         /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
         double CalcSumModuli(int neigh_idx = -1, bool derivative = false) const;
 
+        /** volume of material of the homogenized cross shaped structure in 3D including derivatives */
+        //double Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool derivative, double der) const;
+
+        /** Function returns/interpolates the volume in 3D for cross shaped base cell*/
+        double Interpolate_Volume3D(Vector<double>& p, const Matrix<double>& vol_a, const Matrix<double>& vol_b, const Matrix<double>& vol_c, const Matrix<double>& vol_coeff,
+            double direction) const;
+
+        /** Function evaluates the interpolation polynomial used for volume calculation in 3D for cross shaped base cell*/
+        double EvaluateC1Interpolation_3D( Vector<double>& p, const Matrix<double>& vol_a, const Matrix<double>& vol_b, const Matrix<double>& vol_c,const Matrix<double> & vol_coeff, double & da, double & db,
+            double & dc, int & j, int & k, int & l, int & m, int & n, int &o) const;
+
+        /** Function calculates the derivative of the interpolation polynomial with respect to stiffness number, specified by variable direction*/
+        double EvaluateC1Interpolation_Deriv_3D(Vector<double>& p, const Matrix<double> & vol_a, const Matrix<double> & vol_b, const Matrix<double>& vol_c, const Matrix<double> & vol_coeff, double & da, double & db,
+            double & dc, int & j, int & k, int & l, int & m, int & n, int & o,
+            double direction) const;
+
         /** volume of material (strong phase for plane strain) in laminate homogenization formulas */
-        double CalcLaminatesVolume(int neigh_idx = -1, bool derivative = false) const;
+        double CalcLaminatesVolume(const Local* local, int neigh_idx = -1, bool derivative = false) const;
+
+        /** volume of material from homogenized lattice structure in 3D */
+        double CalcLatticeVolume3D(const Local* local, int neigh_idx=-1, bool derivative = false) const;
+
 
         /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to hold */
         double CalcParamPSPosDef(int neigh_idx, bool derivative) const;
@@ -592,6 +621,9 @@ class Function
     /** By the size of DesignSpace::GetNumberOfVariables() which might include slack - to be handled in AuxDesign.
      * the sparse patterns are determined on the fly by LocalCondition::GetSparsityPattern() */
     void SetDenseSparsityPattern(DesignSpace* space);
+
+    /** matrices for polynomial coefficients and discretization steps of the interpolation for volume calculation in 3D with cross shaped base cells*/
+
 
     /** This is DEFAULT (= applies always) if not defined */
     DesignElement::Type design_;
