@@ -586,13 +586,16 @@ void CoefXprUnaryOp::GetScalarXpr( std::string& real, std::string& imag ) const 
       if( ! a_->IsComplex() ) {
         args = "( sqrt(";
         std::string tmp;
-        for( UInt i = 0; i < aR.GetSize(); ++ i ) {
+        CoefXpr::ApplyBinaryFunc( tmp, aR[0], aR[0], OP_MULT );
+        args.Push_back(tmp);
+        for( UInt i = 1; i < aR.GetSize(); ++ i ) {
           CoefXpr::ApplyBinaryFunc( tmp, aR[i], aR[i], OP_MULT );
-          args.Push_back(tmp);
           args.Push_back("+");
+          args.Push_back(tmp);
         }
         args.Push_back(") )");
         imag = "0.0";
+        real = args.Serialize(' ');
       } else {
         EXCEPTION("Norm of complex valued vector not implemented yet");
       }
