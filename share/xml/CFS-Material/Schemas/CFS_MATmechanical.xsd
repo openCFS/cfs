@@ -24,6 +24,7 @@
         type="DT_NonLinMechElastCoeff" minOccurs="0"/>
       <xsd:element name="irreversibleStrainCoefficient"
         type="DT_IrreversibelStrainCoeff" minOccurs="0"/>
+      <xsd:element name="thermalExpanison" type="DT_ThermalExpansion" minOccurs="0"/>
       <xsd:element name="mechanicalDamping" type="DT_MechDamping"
         minOccurs="0"/>
     </xsd:sequence>
@@ -171,7 +172,59 @@
     <xsd:attribute name="nonlinear" type="xsd:string" use="required"/>
   </xsd:complexType>
 
-  
+  <!-- ******************************************************************* -->
+  <!--   Definition of thermal expansion coefficients -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_ThermalExpansion">
+    <xsd:choice>
+      <xsd:element name="isotropic" type="DT_ThermalExpansionIsotropic"/>
+      <xsd:element name="orthotropic" type="DT_ThermalExpansionOrthotropic"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of isotropic thermal expansion coefficien              -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_ThermalExpansionIsotropic">
+    <xsd:sequence>
+      <xsd:element name="real" type="DT_ThermalExpIsotrRealImag"/>
+      <xsd:element name="imag" type="DT_ThermalExpIsotrRealImag" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of real and imaginery isotropic thermal expansion coefficien  -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_ThermalExpIsotrRealImag">
+    <xsd:sequence>
+      <xsd:element name="refTemperature" type="xsd:token" minOccurs="0"/>
+      <xsd:element name="TEC" type="xsd:token" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of orthotropic thermal expansion coefficien              -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_ThermalExpansionOrthotropic">
+    <xsd:sequence>
+      <xsd:element name="real" type="DT_ThermalExpOrthoRealImag"/>
+      <xsd:element name="imag" type="DT_ThermalExpOrthoRealImag" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of real and imaginery orthotropic thermal expansion coefficien  -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_ThermalExpOrthoRealImag">
+    <xsd:sequence>
+      <xsd:element name="refTemperature" type="xsd:token" minOccurs="0"/>
+      <xsd:element name="TEC1" type="xsd:token" minOccurs="0"/>
+      <xsd:element name="TEC2" type="xsd:token" minOccurs="0"/>
+      <xsd:element name="TEC3" type="xsd:token" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of mechanical damping                                  -->
   <!-- ******************************************************************* -->

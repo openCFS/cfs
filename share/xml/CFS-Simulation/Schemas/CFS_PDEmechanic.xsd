@@ -124,7 +124,10 @@
                 <xsd:element name="force"         type="DT_BcInhomVector"/>
                 <xsd:element name="forceDensity"  type="DT_BcInhomVector"/>
                 <xsd:element name="rhsValues"     type="DT_BcInhomVector"/>
-                
+
+                <!-- RHS, due to thermal strains-->
+                <xsd:element name="thermalStrain" type="DT_BcInhomScalar"/>
+
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="constraint"    type="DT_MechCS" />
                 

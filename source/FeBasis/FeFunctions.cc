@@ -582,33 +582,33 @@ DECLARE_LOG(fefunc)
           //  1D Entities
           // =============
           if(dofDim==1) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,1,T>,T>(1.0, coefFct, updatedGeo );
+            rhsInt = new BUIntegrator<T>( new IdentityOperator<FeH1,2,1,T>(), 1.0, coefFct, updatedGeo );
           } else if(dofDim==2) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,2,T>,T>(1.0, coefFct, updatedGeo );
+            rhsInt = new BUIntegrator<T>( new IdentityOperator<FeH1,2,2,T>(), 1.0, coefFct, updatedGeo );
           }else if(dofDim==3){
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,3,T>,T>(1.0, coefFct, updatedGeo );
+            rhsInt = new BUIntegrator<T>( new IdentityOperator<FeH1,2,3,T>(), 1.0, coefFct, updatedGeo );
           }
         } else if(spaceDim==2){
           // =============
           //  2D Entities
           // =============
           if(dofDim==1) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,1,T>,T>(1.0, coefFct, updatedGeo );
+            rhsInt = new BUIntegrator<T>( new IdentityOperator<FeH1,2,1,T>, 1.0, coefFct, updatedGeo );
           } else if(dofDim==2) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,2,T>,T>(1.0, coefFct, updatedGeo );
+            rhsInt = new BUIntegrator<T>( new IdentityOperator<FeH1,2,2,T>, 1.0, coefFct, updatedGeo );
           }else if(dofDim==3){
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,2,3,T>,T>(1.0, coefFct, updatedGeo );
+            rhsInt = new BUIntegrator<T>( new IdentityOperator<FeH1,2,3,T>, 1.0, coefFct, updatedGeo );
           }
         } else if(spaceDim==3){
           // =============
           //  3D Entities
           // =============
           if(dofDim==1) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,3,1,T>,T>(1.0, coefFct, updatedGeo );
+            rhsInt = new BUIntegrator<T>( new IdentityOperator<FeH1,3,1,T>, 1.0, coefFct, updatedGeo );
           } else if(dofDim==2) {
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,3,2,T>,T>(1.0, coefFct, updatedGeo );
+            rhsInt = new BUIntegrator<T>( new IdentityOperator<FeH1,3,2,T>, 1.0, coefFct, updatedGeo );
           }else if(dofDim==3){
-            rhsInt = new BUIntegrator<IdentityOperator<FeH1,3,3,T>,T>(1.0, coefFct, updatedGeo );
+            rhsInt = new BUIntegrator<T>( new IdentityOperator<FeH1,3,3,T>, 1.0, coefFct, updatedGeo );
           }
         }
         break;

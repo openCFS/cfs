@@ -499,15 +499,19 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       
       if( dim_ == 2) {
         if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
+          lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2,2>(),
+                                            Complex(1.0), coef[i], coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Double>(1.0, coef[i], coefUpdateGeo);
+          lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2,2>(),
+                                           1.0, coef[i], coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
+          lin = new BUIntegrator<Complex>(new IdentityOperator<FeH1,3,3>(),
+                                          Complex(1.0), coef[i], coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double>(1.0, coef[i], coefUpdateGeo);
+          lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3,3>(),
+                                           1.0, coef[i], coefUpdateGeo);
         }
       }
       lin->SetName("ForceDensityInt");
@@ -519,6 +523,59 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     } // for
     
     
+    // ==================
+    //  THERMAL STRAIN
+    // ==================
+    LOG_DBG(mechpde) << "Reading thermal strain definition";
+
+    ReadRhsExcitation( "thermalStrain", dispDofNames, ResultInfo::SCALAR, isComplex_,
+                       ent, coef, coefUpdateGeo );
+
+      for( UInt i = 0; i < ent.GetSize(); ++i ) {
+        // check type of entitylist
+        if (ent[i]->GetType() == EntityList::NODE_LIST) {
+          EXCEPTION("Thermal strain must be defined on elements")
+        }
+
+        RegionIdType myRegionId = ent[i]->GetRegion();
+        MaterialType matType;
+        if( subType_ == "axi" )
+           matType =  MECH_TEC_VECTORTECAXI;
+        else if( subType_ == "planeStrain" || subType_ == "planeStress" )
+          matType =  MECH_TEC_VECTORTECPLANE;
+        else if( subType_ == "3d")
+          matType = MECH_TEC_VECTORTEC;
+        else
+          EXCEPTION("Mechanical Tensortype not implemented!")
+
+        PtrCoefFct vecTEC = materials_[myRegionId]->GetVectorCoefFnc(matType,
+                                                                     Global::REAL );
+
+        PtrCoefFct refTemp = materials_[myRegionId]->GetScalCoefFnc(MECH_TEC_REFTEMPERATURE, Global::REAL );
+
+        PtrCoefFct TminusTref =
+                  CoefFunction::Generate( mp_, Global::REAL,
+                                         CoefXprBinOp(mp_,coef[i],refTemp,CoefXpr::OP_SUB));
+        PtrCoefFct thermalStressCoef =
+                  CoefFunction::Generate( mp_, Global::REAL,
+                                         CoefXprBinOp(mp_,TminusTref,vecTEC,CoefXpr::OP_MULT));
+
+        BaseBOperator * bOp = GetStrainOperator( isComplex_, false );
+
+        if(isComplex_) {
+            EXCEPTION("Complex thermal strain RHS linear form not implemented");
+        }
+        else {
+            lin = new BUIntegrator<Double>(bOp, 1.0, thermalStressCoef, coefUpdateGeo);
+        }
+        lin->SetName("ThermalStrainInt");
+        LinearFormContext *ctx = new LinearFormContext( lin );
+        ctx->SetEntities( ent[i] );
+        ctx->SetFeFunction(myFct);
+        assemble_->AddLinearForm(ctx);
+        myFct->AddEntityList(ent[i]);
+      } // for
+
     // ===============
     //  PRESSURE 
     // ===============
@@ -542,23 +599,23 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       
       if( dim_ == 2) {
         if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,2>, 
-                                 Complex,true>(Complex(presFac), coef[i], 
-                                               volRegions, coefUpdateGeo);
+          lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormalTrans<FeH1,2>(),
+                                                  Complex(presFac), coef[i],
+                                                  volRegions, coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,2>, 
-                                 Double,true>(presFac, coef[i], volRegions, 
-                                              coefUpdateGeo);
+          lin = new BUIntegrator<Double,true> ( new IdentityOperatorNormalTrans<FeH1,2>(),
+                                                presFac, coef[i], volRegions,
+                                                coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,3>, 
-                                 Complex, true>(Complex(presFac), coef[i], 
-                                                volRegions, coefUpdateGeo);
+          lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormalTrans<FeH1,3>(),
+                                                 Complex(presFac), coef[i],
+                                                 volRegions, coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,3>, 
-                                 Double, true>(presFac, coef[i], 
-                                               volRegions, coefUpdateGeo);
+          lin = new BUIntegrator<Double, true> ( new IdentityOperatorNormalTrans<FeH1,3>(),
+                                                 presFac, coef[i],
+                                                 volRegions, coefUpdateGeo);
         }
       }
       lin->SetName("PressureInt");
@@ -568,6 +625,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       assemble_->AddLinearForm(ctx);
       myFct->AddEntityList(ent[i]);
     } // for
+
 
     
     // ==================
@@ -591,19 +649,19 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         
         if( dim_ == 2) {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Complex>(Complex(1.0), 
-                                                                        coef[i], coefUpdateGeo);
+            lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2,2>(),
+                                              Complex(1.0), coef[i], coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Double>(1.0, coef[i], 
-                                                                       coefUpdateGeo);
+            lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2,2>(),
+                                             1.0, coef[i],coefUpdateGeo);
           }
         } else  {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex>(Complex(1.0), 
-                                                                        coef[i], coefUpdateGeo);
+            lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,3,3>(),
+                                              Complex(1.0), coef[i], coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double>(1.0, coef[i], 
-                                                                       coefUpdateGeo);
+            lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3,3>(),
+                                             1.0, coef[i], coefUpdateGeo);
           }
         }
         lin->SetName("TractionIntegrator");

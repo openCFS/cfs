@@ -417,11 +417,13 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           phaseVec.Init(coilDef_[coil]->phase_);
           coef = CoefFunction::Generate(mp_, Global::COMPLEX, currDensity, phaseVec );
           coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
-          curInt = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex >(1.0, coef, updatedGeo_);
+          curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3>(),
+                                              1.0, coef, updatedGeo_);
         } else {
           coef = CoefFunction::Generate(mp_, Global::REAL, currDensity);
           coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
-          curInt = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double >(1.0, coef, updatedGeo_);
+          curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3>(),
+                                             1.0, coef, updatedGeo_);
         } // complex
       } else {
         // ===============
@@ -435,11 +437,13 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           phaseVec.Init(coilDef_[coil]->phase_);
           coef = CoefFunction::Generate(mp_, Global::COMPLEX, currDensity, phaseVec );
           //coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_;
-          curInt = new BUIntegrator<IdentityOperator<FeH1,2,1>, Complex >(1.0, coef, updatedGeo_);
+          curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1>(),
+                                              1.0, coef, updatedGeo_);
         } else {
           coef = CoefFunction::Generate(mp_, Global::REAL, currDensity);
           //coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
-          curInt = new BUIntegrator<IdentityOperator<FeH1,2,1>, Double >(1.0, coef, updatedGeo_);
+          curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1>(),
+                                             1.0, coef, updatedGeo_);
 
         } // complex
       } // dimension

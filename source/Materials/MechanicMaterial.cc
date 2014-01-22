@@ -50,6 +50,14 @@ namespace CoupledField
     isAllowed_.insert( MECH_GMODULUS_XY );
     isAllowed_.insert( MECH_LAME_LAMBDA );
     isAllowed_.insert( MECH_LAME_MU );
+    isAllowed_.insert( MECH_TEC );
+    isAllowed_.insert( MECH_TEC1 );
+    isAllowed_.insert( MECH_TEC2 );
+    isAllowed_.insert( MECH_TEC3 );
+    isAllowed_.insert( MECH_TEC_VECTORTEC );
+    isAllowed_.insert( MECH_TEC_VECTORTECPLANE );
+    isAllowed_.insert( MECH_TEC_VECTORTECAXI );
+    isAllowed_.insert( MECH_TEC_REFTEMPERATURE );
     isAllowed_.insert( RAYLEIGH_ALPHA );
     isAllowed_.insert( RAYLEIGH_BETA );
     isAllowed_.insert( RAYLEIGH_FREQUENCY);
@@ -67,6 +75,9 @@ namespace CoupledField
 
     // Trigger calculation of stiffness tensor
     ComputeFullStiffTensor();
+
+    // Trigger calculation of thermal expansion vector
+    ComputeFullThermalExpanionVector();
 
   }
 
@@ -929,8 +940,60 @@ namespace CoupledField
     return res;
   }
 
+  void MechanicMaterial::ComputeFullThermalExpanionVector() {
+
+   Vector<Double> tecVec(6);
+   tecVec.Init();
+   bool isSetTEC = false;
+   if (  isSet_.find( MECH_TEC ) != isSet_.end() ) {
+     Double tecScal;
+     GetScalar(tecScal, MECH_TEC, Global::REAL);
+     tecVec[0] = tecScal;
+     tecVec[1] = tecScal;
+     tecVec[2] = tecScal;
+     isSetTEC = true;
+    }
+   else if ( isSet_.find( MECH_TEC1 ) != isSet_.end() ) {
+     Double tecScal;
+     GetScalar(tecScal, MECH_TEC1, Global::REAL);
+     tecVec[0] = tecScal;
+     GetScalar(tecScal, MECH_TEC2, Global::REAL);
+     tecVec[1] = tecScal;
+     GetScalar(tecScal, MECH_TEC3, Global::REAL);
+     tecVec[2] = tecScal;
+     isSetTEC = true;
+   }
+
+   if ( isSetTEC ) {
+
+     Matrix<Double> cTensor;
+     GetTensor(cTensor, MECH_STIFFNESS_TENSOR, Global::REAL);
+
+     Vector<Double> TEV(6);
+     TEV = cTensor * tecVec;
+
+     SetVector( TEV, MECH_TEC_VECTORTEC ,Global::REAL );
+
+     //set for plane case
+     Vector<Double> TEV2d(3);
+     TEV2d.Init();
+     TEV2d[0] = TEV[0];
+     TEV2d[1] = TEV[1];
+     SetVector( TEV2d, MECH_TEC_VECTORTECPLANE ,Global::REAL );
+
+     //set for axi case
+     Vector<Double> TEVaxi(4);
+     TEVaxi.Init();
+     TEVaxi[0] = TEV[0];
+     TEVaxi[1] = TEV[1];
+     SetVector( TEVaxi, MECH_TEC_VECTORTECAXI ,Global::REAL );
+   }
+  }
+
+
   // required in ErsatzMaterial. The complex version is explictely called here
   template void MechanicMaterial::ComputeSubTensor<Double>(Matrix<Double>& matMatrix, SubTensorType subTensor, const Matrix<Double>& mat);
 
   
+
 } // end of namespace

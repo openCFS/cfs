@@ -344,15 +344,19 @@ void HeatPDE::DefineIntegrators() {
 
     if( dim_ == 2) {
       if(isComplex_) {
-        lin = new BUIntegrator<IdentityOperator<FeH1,2>, Complex>(Complex(2.0), coef[i], updatedGeo_ );
+        lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2>(),
+                                          Complex(2.0), coef[i], updatedGeo_ );
       } else {
-        lin = new BUIntegrator<IdentityOperator<FeH1,2>, Double>(2.0, coef[i], updatedGeo_ );
+        lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2>(),
+                                         2.0, coef[i], updatedGeo_ );
       }
     } else  {
       if(isComplex_) {
-        lin = new BUIntegrator<IdentityOperator<FeH1,3>, Complex>(Complex(2.0), coef[i], updatedGeo_ );
+        lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,3>(),
+                                          Complex(2.0), coef[i], updatedGeo_ );
       } else {
-        lin = new BUIntegrator<IdentityOperator<FeH1,3>, Double>(2.0, coef[i], updatedGeo_ );
+        lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3>(),
+                                         2.0, coef[i], updatedGeo_ );
       }
     }
     lin->SetName("ElectricPowerDensityInt");
@@ -673,9 +677,11 @@ void HeatPDE::DefineRhsLoadIntegrators() {
       it.Begin();
       
       if(isComplex_) {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
+        lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(),
+                                          Complex(1.0), coef[i], coefUpdateGeo);
       } else  {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i], coefUpdateGeo);
+        lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1>(),
+                                         1.0, coef[i], coefUpdateGeo);
       }
       lin->SetName("HeatSourceDensityInt");
       LinearFormContext *ctx = new LinearFormContext( lin );

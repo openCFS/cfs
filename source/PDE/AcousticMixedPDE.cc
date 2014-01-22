@@ -633,7 +633,8 @@ namespace CoupledField{
       if(coef[i]->IsConservative()){
         this->rhsFeFunctions_[ACOU_PRESSURE]->AddLoadCoefFunction(coef[i], ent[i]);
       }else{
-        lin = new BUIntegrator<IdentityOperator<FeH1,DIM,1,DATA_TYPE>, DATA_TYPE >(1.0,coef[i],coefUpdateGeo);
+        lin = new BUIntegrator<DATA_TYPE>( new IdentityOperator<FeH1,DIM,1,DATA_TYPE>(),
+                                           1.0,coef[i],coefUpdateGeo);
 
         lin->SetName("massEquationInt");
         LinearFormContext *ctx = new LinearFormContext( lin );
@@ -655,9 +656,11 @@ namespace CoupledField{
          this->rhsFeFunctions_[ACOU_VELOCITY]->AddLoadCoefFunction(coef[i], ent[i]);
       }else{
         if(usePiola_){
-          lin = new BUIntegrator<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE >(1.0,coef[i],coefUpdateGeo);
+          lin = new BUIntegrator<DATA_TYPE>( new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),
+                                             1.0,coef[i],coefUpdateGeo);
         }else{
-          lin = new BUIntegrator<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE >(1.0,coef[i],coefUpdateGeo);
+          lin = new BUIntegrator<DATA_TYPE>( new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(),
+                                             1.0,coef[i],coefUpdateGeo);
         }
 
         lin->SetName("momentumEquationInt");

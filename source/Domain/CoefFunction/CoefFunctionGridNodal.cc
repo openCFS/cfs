@@ -31,6 +31,9 @@ namespace CoupledField{
                                    :CoefFunctionGrid(ptDomain, configNode){
     eqnMapComplete_ = false;
 
+    //Set sequence Step according to XML definition
+    this->aSeqStep_ = configNode->Get("sequenceStep")->As<UInt>();
+
     std::string solString = configNode->Get("quantity")->As<std::string>();
     solType_ = SolutionTypeEnum.Parse(solString );
     isComplex_ =  std::tr1::is_same<DATA_TYPE,Complex>::value;
@@ -277,7 +280,7 @@ namespace CoupledField{
     curTStep_ = aTimeFreq;
     UInt step = 0;
   
-    std::cout << "timestep: " << curTStep_ << std::endl;
+    //std::cout << "timestep: " << curTStep_ << std::endl;
     //ok find makes no sense here, we need to iterate over it and
     // apply some tolerance..
     std::map<UInt,Double>::iterator stepIter = stepValueMap_.begin();
@@ -302,8 +305,8 @@ namespace CoupledField{
         }
       }
       interpolateT = true;
-      std::cout << "oldTime = " << oldTime << std::endl;
-      std::cout << "stepIter->second = " << stepIter->second << std::endl;
+//      std::cout << "oldTime = " << oldTime << std::endl;
+//      std::cout << "stepIter->second = " << stepIter->second << std::endl;
       Double dt = stepIter->second - oldTime;
       iFactor1 = (stepIter->second  - curTStep_)/dt;
       iFactor2 = (curTStep_  - oldTime)/dt;
@@ -321,7 +324,6 @@ namespace CoupledField{
       iFactor1 = 0.0;
       iFactor2 = 0.0;
     }
-    std::cout << "computed Step: " << step << std::endl;
     return step;
   }
 }

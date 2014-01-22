@@ -66,7 +66,6 @@ namespace CoupledField {
     
     //! Always use updated Lagrangian formulation 
     updatedGeo_     = true;
-    
   }
   
   void ElecCurrentPDE::InitNonLin() {

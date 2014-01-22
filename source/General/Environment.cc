@@ -1076,7 +1076,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_DEF_SURF_VOLUME, "mechDisplacedSurfVolume");
     SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
     SolutionTypeEnum.Add(MECH_NORMAL_STRESS, "mechNormalStress");
-    
+
     //electrostatics / elctric current conduction
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");
@@ -1250,6 +1250,14 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MECH_GMODULUS_XY, "Mechanic_Gmodulus_XY" );
     MaterialTypeEnum.Add( MECH_LAME_MU, "Mechanic_LameMu" );
     MaterialTypeEnum.Add( MECH_LAME_LAMBDA, "Mechanic_LameLambda" ); 
+    MaterialTypeEnum.Add( MECH_TEC, "Mechanic_ThermalExpCoef" );
+    MaterialTypeEnum.Add( MECH_TEC1, "Mechanic_ThermalExpCoef1" );
+    MaterialTypeEnum.Add( MECH_TEC2, "Mechanic_ThermalExpCoef2" );
+    MaterialTypeEnum.Add( MECH_TEC3, "Mechanic_ThermalExpCoef3" );
+    MaterialTypeEnum.Add( MECH_TEC_VECTORTEC, "Mechanic_TEC_Vector" );
+    MaterialTypeEnum.Add( MECH_TEC_VECTORTECPLANE, "Mechanic_TEC_VectorPlane" );
+    MaterialTypeEnum.Add( MECH_TEC_VECTORTECAXI, "Mechanic_TEC_VectorAxi" );
+    MaterialTypeEnum.Add( MECH_TEC_REFTEMPERATURE, "refTemperature");
     MaterialTypeEnum.Add( RAYLEIGH_ALPHA, "Rayleigh_Alpha" ); 
     MaterialTypeEnum.Add( RAYLEIGH_BETA, "Rayleigh_Beta" ); 
     MaterialTypeEnum.Add( RAYLEIGH_FREQUENCY, "Rayleigh_Frequency" ); 

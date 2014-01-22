@@ -716,7 +716,7 @@ namespace CoupledField{
       BaseBDBInt *     P        = new BBInt<>(new IdentityOperator<FeH1,DIM>(), factor, -1.0, updatedGeo_ );
 
       dampNu->SetName("acouPML_dampNu");
-      CgradNu->SetName("acouPML_CgradNu");
+      CgradNu->SetName("acouPML_CgIdentityOperaradNu");
       dNudt->SetName("acouPML_dNudt");
       P->SetName("acouPML_P");
 
@@ -868,19 +868,19 @@ namespace CoupledField{
       if( formulation_ == ACOU_POTENTIAL ) {
         if( dim_ == 2) {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperator<FeH1,2,1>,
-                Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,2,1>(),
+                                                  scalFactor, exValue, volRegions, coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperator<FeH1,2,1>, 
-                Double,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Double,true>( new IdentityOperator<FeH1,2,1>(),
+                                                 scalFactor, exValue, volRegions, coefUpdateGeo);
           }
         } else  {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperator<FeH1,3,1>, 
-                Complex,true>(1.0, exValue, volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,3,1>(),
+                                                  1.0, exValue, volRegions, coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperator<FeH1,3,1>, 
-                Double,true>(1.0, exValue , volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Double,true>( new IdentityOperator<FeH1,3,1>(),
+                                                 1.0, exValue , volRegions, coefUpdateGeo);
           }
         }
       } else if( formulation_ == ACOU_PRESSURE && isComplex_) {
@@ -897,11 +897,11 @@ namespace CoupledField{
                                          CoefXprBinOp(mp_, tmp2,surfDens, 
                                                       CoefXpr::OP_MULT) );
         if( dim_ == 2) {
-          lin = new BUIntegrator<IdentityOperator<FeH1,2,1>,
-              Complex,true>(1.0, exValue, volRegions, coefUpdateGeo);
+          lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,2,1>(),
+                                                1.0, exValue, volRegions, coefUpdateGeo);
         } else  {
-          lin = new BUIntegrator<IdentityOperator<FeH1,3,1>, 
-              Complex,true>(1.0, exValue, volRegions, coefUpdateGeo);
+          lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,3,1>(),
+                                                1.0, exValue, volRegions, coefUpdateGeo);
         }
 
       } else {
@@ -952,19 +952,19 @@ namespace CoupledField{
       if( formulation_ == ACOU_POTENTIAL ) {
         if( dim_ == 2) {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>,
-                Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Complex,true>( new IdentityOperatorNormal<FeH1,2>(),
+                                                  scalFactor, exValue, volRegions, coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>, 
-                Double,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Double,true>( new IdentityOperatorNormal<FeH1,2>(),
+                                                 scalFactor, exValue, volRegions, coefUpdateGeo);
           }
         } else  {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-                Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Complex,true>( new IdentityOperatorNormal<FeH1,3>(),
+                                                  scalFactor, exValue, volRegions, coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-                Double,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Double,true>( new IdentityOperatorNormal<FeH1,3>(),
+                                                 scalFactor, exValue, volRegions, coefUpdateGeo);
           }
         }
       } else if( formulation_ == ACOU_PRESSURE && isComplex_) {
@@ -981,11 +981,11 @@ namespace CoupledField{
                                          CoefXprBinOp(mp_, surfDens, tmp2, 
                                                       CoefXpr::OP_MULT) );
         if( dim_ == 2) {
-          lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>,
-              Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+          lin = new BUIntegrator<Complex,true>( new IdentityOperatorNormal<FeH1,2>(),
+                                                scalFactor, exValue, volRegions, coefUpdateGeo);
         } else  {
-          lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-              Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+          lin = new BUIntegrator<Complex,true>( new IdentityOperatorNormal<FeH1,3>(),
+                                                scalFactor, exValue, volRegions, coefUpdateGeo);
         }
       } else {
         EXCEPTION( "Normal velocity can only be prescribed for potential "

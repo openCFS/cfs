@@ -942,7 +942,37 @@ namespace CoupledField
    
    PtrCoefFct  BaseMaterial::GetVectorCoefFnc(MaterialType matType,
                                               Global::ComplexPart matDataType) {
-     EXCEPTION("Not implemented")
+     //EXCEPTION("Not implemented")
+     PtrCoefFct mFunct;
+
+     if( vectorCoef_.find(matType) !=  vectorCoef_.end() ) {
+       // --------------------------------------
+       //  Coefficient Function already defined
+       // --------------------------------------
+       mFunct = vectorCoef_[matType]->GetComplexPart( matDataType );
+
+     } else {
+       // -------------------------------------------
+       //  Create CoefFunction from constant entries
+       // -------------------------------------------
+       if(matDataType == Global::REAL){
+         CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
+         Vector<Double> real;
+         GetVector(real,matType,matDataType);
+         tmpFnc->SetVector(real);
+         mFunct.reset(tmpFnc);
+       }else if(matDataType == Global::COMPLEX){
+         CoefFunctionConst<Complex>* tmpFnc = new CoefFunctionConst<Complex>();
+         Vector<Complex> val;
+         GetVector(val,matType,matDataType);
+         tmpFnc->SetVector(val);
+         mFunct.reset(tmpFnc);
+       }else{
+         EXCEPTION("Material Data Type not supported");
+       }
+     }
+     mFunct->SetCoordinateSystem(this->coosy_);
+     return mFunct;
    }
 
    PtrCoefFct  BaseMaterial::GetScalCoefFnc(MaterialType matType,

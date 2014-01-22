@@ -203,9 +203,11 @@ void TestPDE::DefineRhsLoadIntegrators() {
       it.Begin();
       
       if(isComplex_) {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
+        lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
+                                         Complex(1.0), coef[i], coefUpdateGeo);
       } else  {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i], coefUpdateGeo);
+        lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
+                                        1.0, coef[i], coefUpdateGeo);
       }
       lin->SetName("TestSourceDensityInt");
       LinearFormContext *ctx = new LinearFormContext( lin );

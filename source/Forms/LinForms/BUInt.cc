@@ -20,9 +20,10 @@
 
 namespace CoupledField{
 
-template< class B_OP, class VEC_DATA_TYPE, bool SURFACE >
-BUIntegrator<B_OP,VEC_DATA_TYPE,SURFACE>::
-BUIntegrator(VEC_DATA_TYPE factor,
+template< class VEC_DATA_TYPE, bool SURFACE >
+BUIntegrator<VEC_DATA_TYPE,SURFACE>::
+BUIntegrator(BaseBOperator * bOp,
+             VEC_DATA_TYPE factor,
              shared_ptr<CoefFunction > rhsCoef, 
              bool coordUpdate,
              bool fullEvaluation )
@@ -30,7 +31,7 @@ BUIntegrator(VEC_DATA_TYPE factor,
                fullEvaluation_(fullEvaluation) {
   factor_ = factor;
   this->name_ = "RhsBUIntegrator";
-
+  this->bOperator_= bOp;
 //  assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
 //#ifndef NDEBUG
 //  if(rhsCoef->GetDimType() != CoefFunction::VECTOR){
@@ -42,9 +43,10 @@ BUIntegrator(VEC_DATA_TYPE factor,
 
 }
 
-template< class B_OP, class VEC_DATA_TYPE, bool SURFACE >
-BUIntegrator<B_OP,VEC_DATA_TYPE,SURFACE>::
-BUIntegrator(VEC_DATA_TYPE factor,
+template< class VEC_DATA_TYPE, bool SURFACE >
+BUIntegrator<VEC_DATA_TYPE,SURFACE>::
+BUIntegrator(BaseBOperator * bOp,
+             VEC_DATA_TYPE factor,
              shared_ptr<CoefFunction > rhsCoef,
              const std::set<RegionIdType>& volRegions,
              bool coordUpdate,
@@ -54,6 +56,7 @@ BUIntegrator(VEC_DATA_TYPE factor,
                {
   factor_ = factor;
   this->name_ = "RhsBUIntegrator";
+  this->bOperator_= bOp;
 
   assert(rhsCoef->GetDimType() == CoefFunction::VECTOR ||
          rhsCoef->GetDimType() == CoefFunction::SCALAR);
@@ -67,8 +70,8 @@ BUIntegrator(VEC_DATA_TYPE factor,
   volRegions_ = volRegions;
 }
 
-  template<class B_OP, class VEC_DATA_TYPE, bool SURFACE >
-  void BUIntegrator<B_OP,VEC_DATA_TYPE,SURFACE>::
+  template< class VEC_DATA_TYPE, bool SURFACE >
+  void BUIntegrator<VEC_DATA_TYPE,SURFACE>::
   CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
                   EntityIterator& ent){
 
@@ -128,7 +131,7 @@ BUIntegrator(VEC_DATA_TYPE factor,
        fac = VEC_DATA_TYPE(lp.jacDet * weights[i]);
        fac *= factor_;
        // Call the CalcBMat()-method
-       operator_.CalcOpMatTransposed( bMat, lp, ptFe);
+       bOperator_->CalcOpMatTransposed( bMat, lp, ptFe);
 
        // Evaluate coefficient function in integration point
        // ( in case of full order)

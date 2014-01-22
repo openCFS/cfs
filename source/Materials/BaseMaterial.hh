@@ -281,6 +281,12 @@ namespace CoupledField {
       EXCEPTION("not implemented");      
     }
 
+    //! get a complex vector
+     virtual void GetVector( Vector<Complex>& param, MaterialType matType, Global::ComplexPart dataType ) const
+     {
+       EXCEPTION("not implemented");
+     }
+
     //! get a real material tensor
     virtual void GetTensor( Matrix<Double>& param, MaterialType matType, 
                             Global::ComplexPart dataType, SubTensorType = FULL ) const

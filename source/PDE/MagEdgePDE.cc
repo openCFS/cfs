@@ -340,10 +340,12 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           coilCoefs_[actRegion] = coef;
           
           if( isComplex_ ) {
-            curInt = new BUIntegrator<IdentityOperator<FeHCurl,3,1,Complex>,Complex >(1.0, coef, updatedGeo_);
+            curInt = new BUIntegrator<Complex>( new IdentityOperator<FeHCurl,3,1,Complex>(),
+                                                1.0, coef, updatedGeo_);
           }
           else {
-            curInt = new BUIntegrator<IdentityOperator<FeHCurl,3,1,Double>,Double >(1.0, coef, updatedGeo_);
+            curInt = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(),
+                                               1.0, coef, updatedGeo_);
           }
           curInt->SetName("CoilIntegrator");
           LinearFormContext * coilContext =
@@ -430,11 +432,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       EntityIterator it = ent[i]->GetIterator();
       it.Begin();
       if(isComplex_) {
-             lin = new BUIntegrator<CurlOperator<FeHCurl,3, Complex>, Complex>(Complex(1.0), 
-                                                                              factor, coefUpdateGeo);
+             lin = new BUIntegrator<Complex>( new CurlOperator<FeHCurl,3, Complex>(),
+                                              Complex(1.0), factor, coefUpdateGeo);
            } else {
-             lin = new BUIntegrator<CurlOperator<FeHCurl,3, Double>, Double>(1.0, factor, 
-                                                                             coefUpdateGeo);
+             lin = new BUIntegrator<Double>( new CurlOperator<FeHCurl,3, Double>(),
+                                             1.0, factor, coefUpdateGeo);
            }
       lin->SetName("FluxIntegrator");
       LinearFormContext *ctx = new LinearFormContext( lin );

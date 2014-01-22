@@ -34,8 +34,6 @@ CoefFunctionGridNodalDefault<DATA_TYPE>::CoefFunctionGridNodalDefault(Domain* pt
   this->conservativeReady_ = false;
   this->srcIsSurface_ = false;
 
-
-
   this->extDataInfo_ = curInfo->Get("defaultGrid",ParamNode::APPEND);
   this->extDataInfo_->Get("interpolation")->Get("type")->SetValue("noInterpolation");
 
@@ -104,7 +102,8 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefM
   //cover the case of nc_surfElems
   const Elem* sourceElem = NULL;
 
-  //ok we always take the volume element
+  this->UpdateSolution();
+   //ok we always take the volume element
   //because even if we are coping here with surfaces, e.g. for boundary conditions,
   //the volume element connectivity should give also the boundary nodes and
   //we do not cover special, nonconforming cases here...
@@ -143,6 +142,8 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMat,
   assert(this->dimType_ != CoefFunction::TENSOR);
   //this is really simple. we just take the nodal result and
   //interpolate it to lpm
+
+  this->UpdateSolution();
 
   //cover the case of nc_surfElems
   const Elem* sourceElem = NULL;

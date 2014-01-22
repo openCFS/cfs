@@ -529,6 +529,58 @@ namespace CoupledField {
       }
     } // end of irreversibleStrainCoefficient
 
+
+    // check and read thermal expansion coefficients (TECs)
+    if (mech->Has("thermalExpanison")) {
+      PtrParamNode tec = mech->Get("thermalExpanison");
+
+      // check values for isotropic
+      if (tec->Has("isotropic"))  {
+        // read the real part
+        if (tec->Get("isotropic")->Has("real")) {
+          PtrParamNode real = tec->Get("isotropic")->Get("real");
+          // read reference temperature
+           if (real->Has("refTemperature")) {
+             material->SetScalar(real->Get("refTemperature")->As<std::string>(), MECH_TEC_REFTEMPERATURE, Global::REAL );
+           }
+          // read thermal expansion coefficient (TEC)
+          if (real->Has("TEC")) {
+            material->SetScalar(real->Get("TEC")->As<std::string>(), MECH_TEC, Global::REAL );
+          }
+        }
+        // read the imaginary part
+        if (tec->Get("isotropic")->Has("imag")) {
+          EXCEPTION("Complex thermal expansion coefficient not implemented");
+        }
+      } // end of isotropic
+      // check values for isotropic
+      if (tec->Has("orthotropic"))  {
+        // read the real part
+        if (tec->Get("orthotropic")->Has("real")) {
+          PtrParamNode real = tec->Get("orthotropic")->Get("real");
+          // read real reference temperature
+
+          if (real->Has("refTemperature")) {
+            material->SetScalar(real->Get("refTemperature")->As<std::string>(), MECH_TEC_REFTEMPERATURE, Global::REAL );
+          }
+          // read real thermal expansion coefficients (TEC)
+          if (real->Has("TEC1")) {
+            material->SetScalar(real->Get("TEC1")->As<std::string>(), MECH_TEC1, Global::REAL );
+          }
+          if (real->Has("TEC2")) {
+            material->SetScalar(real->Get("TEC2")->As<std::string>(), MECH_TEC2, Global::REAL );
+          }
+          if (real->Has("TEC3")) {
+            material->SetScalar(real->Get("TEC3")->As<std::string>(), MECH_TEC3, Global::REAL );
+          }
+        }
+        // read the imaginary part
+        if (tec->Get("orthotropic")->Has("imag")) {
+          EXCEPTION("Complex thermal expansion coefficient not implemented");
+        }
+      }
+    }
+
     // read mechanical damping
     if(mech->Has("mechanicalDamping"))
     {

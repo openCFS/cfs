@@ -323,7 +323,9 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode
 
   this->inputId_ = configNode->Get("inputId")->As<std::string>();
   this->gridId_ = configNode->Get("gridId")->As<std::string>();
-  this->aSeqStep_ = this->domain_->GetDriver()->GetActSequenceStep();
+
+  //this was already determined in constructor of CoefFunctionGrid
+  //this->aSeqStep_ = this->domain_->GetDriver()->GetActSequenceStep();
 
   this->DetermineResult(this->inputId_,this->aSeqStep_);
 
