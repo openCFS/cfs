@@ -1810,6 +1810,13 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
     double factor =
         local->DoNormalizeGlobal() ?
             1.0 / local->virtual_elem_map.GetSize() : 1.0;
+    if (!local->space->IsRegular()) {
+      if (local->DoNormalizeGlobal()) {
+        PtrParamNode inf_warn = info->Get("optimization/header/designSpace");
+        local->func_->info_->Get(ParamNode::WARNING)->SetValue(
+                    "Option normalize is not defined for unregular grids. Turn normalize off!");
+      }
+    }
 
     double v = std::max(0.0, fv - f->GetParameter());
 
@@ -1945,7 +1952,13 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
       double factor =
           local->DoNormalizeGlobal() && local->power_ == 1.0 ?
               1.0 / local->virtual_elem_map.GetSize() : 1.0;
-
+      if (!local->space->IsRegular()) {
+        if (local->DoNormalizeGlobal()) {
+          PtrParamNode inf_warn = info->Get("optimization/header/designSpace");
+          local->func_->info_->Get(ParamNode::WARNING)->SetValue(
+                      "Option normalize is not defined for unregular grids. Turn normalize off!");
+        }
+      }
       gv *= grad_glob_fv * factor;
       LOG_DBG2(func)<< "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
       << element->elem->elemNum << " sign=" << sign << " n=" << n
@@ -2598,7 +2611,7 @@ double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, int 
 }
 
 double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, int neigh_idx, bool derivative) const {
-  double scale(1.0), stiff1(0.0), stiff2(0.0);
+  double scale(1.0), stiff1(0.0), stiff2(0.0), vol;
   int dim = domain->GetGrid()->GetDim();
   for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
     switch (GetElement(i)->GetType()) {
@@ -2621,7 +2634,10 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, int 
   }
   bool regular = local->space->IsRegular();
   /** if grid is nonregular, the volume has to be scaled by element size */
-  double svol = (regular ? 1.0 : element->CalcVolume())/local->total_vol_;
+  if (!regular) {
+    assert(local->total_vol_ != 0);
+  }
+  double svol = (regular ? 1.0 : (element->CalcVolume())/local->total_vol_);
   if (!derivative) {
       if (dim == 2) {
         return svol*(stiff1 + stiff2 - stiff1 * stiff2);
@@ -2634,16 +2650,22 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, int 
         if (dim == 2) {
           return svol*(scale - scale * stiff2 - scale * stiff2);
         } else {
-          return svol * CalcLatticeVolume3D(local,neigh_idx,derivative);
+          vol = svol * CalcLatticeVolume3D(local,neigh_idx,derivative);
+          assert(vol!= -1);
+          return vol;
         }
       case DesignElement::STIFF2:
         if (dim == 2) {
           return svol*(scale - scale * stiff1 - scale * stiff1);
         } else {
-          return svol*CalcLatticeVolume3D(local,neigh_idx,derivative);
+          vol = svol * CalcLatticeVolume3D(local,neigh_idx,derivative);
+          assert(vol!= -1);
+          return vol;
         }
       case DesignElement::STIFF3:
-        return svol*CalcLatticeVolume3D(local,neigh_idx,derivative);
+        vol = svol * CalcLatticeVolume3D(local,neigh_idx,derivative);
+        assert(vol!= -1);
+        return vol;
 
       default:
         return 0.0;

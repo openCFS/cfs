@@ -330,7 +330,7 @@ void write_to_xml_vol(string file, vector<vector<double>  > Coeff, vector<double
   f<<"<matrix dim1=\""<<aa.size()<<"\" dim2=\"1\">"<<endl;
   f<<"<real>"<<endl;
   for (int i = 0;i<aa.size();i++) {
-    f<<aa[i]<<" ";
+    f<<aa[i]<<"\t";
   }
   f<<endl;
   f<<"</real>"<<endl;
@@ -341,14 +341,14 @@ void write_to_xml_vol(string file, vector<vector<double>  > Coeff, vector<double
   f<<"<matrix dim1=\""<<bb.size()<<"\" dim2=\"1\">"<<endl;
   f<<"<real>"<<endl;
   for (int i = 0;i<bb.size();i++) {
-    f<<bb[i]<<" ";
+    f<<bb[i]<<"\t";
   }
   f<<"\n </real>"<<endl;
   f<<"</matrix>"<<endl;
   f<<"</b>"<<endl;
   f<<"<c> \n<matrix dim1=\""<<cc.size()<<"\" dim2=\"1\">\n<real>\n";
   for (int i = 0;i<cc.size();i++) {
-    f<<cc[i]<<" ";
+    f<<cc[i]<<"\t";
   }
   f<<endl;
   f<<"</real>"<<endl;
@@ -360,7 +360,7 @@ void write_to_xml_vol(string file, vector<vector<double>  > Coeff, vector<double
   f<<"<real>"<<endl;
   for (int i=0;i<ende;i++) {
     for (int j=0;j<64;j++) {
-      f<<setprecision(12)<<Coeff[i][j]<<" ";
+      f<<setprecision(12)<<Coeff[i][j]<<"\t";
     }
     f<<endl;
   }
@@ -464,7 +464,7 @@ int main(int argc, char * argv[]) {
         }
       }
     }
-    cout<<"a= [ ";
+    /*cout<<"a= [ ";
     for (int i=0;i<m;i++) {
       cout<<" "<<aa[i];
     }
@@ -477,7 +477,7 @@ int main(int argc, char * argv[]) {
           }
           cout<<endl;
         }
-    }
+    }*/
 
     cout<<"Volume table calculated."<<endl;
     tricubic_offline(Coeff,aa, bb, cc, E,m, n, o,1,da,db,dc);
