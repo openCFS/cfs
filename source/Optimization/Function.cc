@@ -972,13 +972,15 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   //total volume in the non-regular case is needed for the volume calculations
   bool regular = space->IsRegular();
   this->total_vol_ = 0.0;
-  if (!this->normalize_) {
+  if (this->normalize_) {
     this->total_vol_ = 1.0;
   } else {
     if (!regular) {
       for (unsigned int i = 0, n = this->func_->elements.GetSize(); i < n;i++) {
         this->total_vol_ += this->func_->elements[i]->CalcVolume();
       }
+    } else {
+      this->total_vol_ = 1.0;
     }
   }
 
@@ -2543,25 +2545,6 @@ double Function::Local::Identifier::EvaluateC1Interpolation_Deriv_3D(
 //  }
 //}
 
-/*double Function::Local::Identifier::UnregularVolume(const Local* local) const {
-  bool regular = space->IsRegular();
-  double sum = 0.0;
-  // we need the total volume in the non-regular case
-  double total_vol = 0.0;
-  if (!local->normalize_) {
-    total_vol = 1.0;
-  } else {
-    if (!regular) {
-      for (unsigned int i = 0, n = local->func_->elements.GetSize(); i < n;
-          i++) {
-        total_vol += local->func_->elements[i]->CalcVolume();
-      }
-    } else {
-      total_vol = local->func_->elements.GetSize();
-    }
-  }
-
-}*/
 
 double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, int neigh_idx, bool derivative) const {
   double stiff1(0.0), stiff2(0.0), stiff3(0.0);
