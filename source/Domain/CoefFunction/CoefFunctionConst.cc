@@ -198,7 +198,8 @@ template<typename T>
 void CoefFunctionConst<T>::GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                     StdVector<Matrix<T> >  & vals,
                                                     Grid* ptGrid ,
-                                                    const std::set<RegionIdType>& srcRegions){
+                                                    const std::set<RegionIdType>& srcRegions)
+{
   assert(this->dimType_ == TENSOR);
   vals.Resize(points.GetSize());
   vals.Init();

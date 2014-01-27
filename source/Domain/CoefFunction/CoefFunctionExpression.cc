@@ -467,7 +467,9 @@ GetStrTensor( UInt& numRows, UInt& numCols,
 
 void CoefFunctionExpression<Double>::GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                               StdVector<Double >  & vals,
-                                                              Grid* ptGrid ){
+                                                              Grid* ptGrid,
+                                                              const std::set<RegionIdType>& srcRegions )
+{
   assert(this->dimType_ == CoefFunction::SCALAR);
 
   vals.Resize(points.GetSize());
@@ -480,11 +482,13 @@ void CoefFunctionExpression<Double>::GetScalarValuesAtCoords( const StdVector<Ve
 
 void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                               StdVector<Vector<Double> >  & vals,
-                                                              Grid* ptGrid ){
+                                                              Grid* ptGrid,
+                                                              const std::set<RegionIdType>& srcRegions )
+{
   Vector<Double> locVector;
   if( this->dimType_ == SCALAR ) {
     StdVector<Double> tmpVals;
-    this->GetScalarValuesAtCoords(points,tmpVals,ptGrid);
+    this->GetScalarValuesAtCoords(points, tmpVals, ptGrid, srcRegions);
     vals.Resize(tmpVals.GetSize(), Vector<Double>(1));
     for(UInt i=0;i<tmpVals.GetSize();i++){
       vals[i][0] = tmpVals[i];
@@ -503,8 +507,9 @@ void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Ve
 
 void CoefFunctionExpression<Double>::GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                               StdVector<Matrix<Double> >  & vals,
-                                                              Grid* ptGrid){
-
+                                                              Grid* ptGrid,
+                                                              const std::set<RegionIdType>& srcRegions )
+{
   assert(this->dimType_ == CoefFunction::TENSOR);
 
   Matrix<Double> locMatrix;
@@ -537,7 +542,9 @@ void CoefFunctionExpression<Double>::GetTensorValuesAtCoords( const StdVector<Ve
 
 void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                                StdVector<Complex >  & vals,
-                                                               Grid* ptGrid ){
+                                                               Grid* ptGrid,
+                                                               const std::set<RegionIdType>& srcRegions )
+{
   Double real, imag;
   assert(this->dimType_ == CoefFunction::SCALAR);
   // First, obtain global coordinates of current point and  register it at the mathParser
@@ -555,14 +562,16 @@ void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<V
 
 void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                                StdVector<Vector<Complex> >  & vals,
-                                                               Grid* ptGrid ){
+                                                               Grid* ptGrid,
+                                                               const std::set<RegionIdType>& srcRegions )
+{
   assert(this->dimType_ == CoefFunction::VECTOR);
   Vector<Double> temp;
   Vector<Complex> locVector;
 
   if( this->dimType_ == SCALAR ) {
      StdVector<Complex> tmpVals;
-     this->GetVectorValuesAtCoords(points,tmpVals,ptGrid);
+     this->GetVectorValuesAtCoords(points, tmpVals, ptGrid, srcRegions);
      vals.Resize(tmpVals.GetSize(), Vector<Complex>(1));
      for(UInt i=0;i<tmpVals.GetSize();i++){
        vals[i][0] = tmpVals[i];
@@ -587,8 +596,9 @@ void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<V
 
 void CoefFunctionExpression<Complex>::GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                                StdVector<Matrix<Complex> >  & vals,
-                                                               Grid* ptGrid ){
-
+                                                               Grid* ptGrid,
+                                                               const std::set<RegionIdType>& srcRegions )
+{
   assert(this->dimType_ == CoefFunction::TENSOR);
   Matrix<Complex> locMatrix(this->numRows_, this->numCols_);
   Matrix<Double> temp;

@@ -79,20 +79,28 @@ public:
   // COLLECTION ACCESS
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Double >  & vals,
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const std::set<RegionIdType>& srcRegions 
+                                        = std::set<RegionIdType>() );
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Vector<Double> >  & vals, 
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const std::set<RegionIdType>& srcRegions 
+                                        = std::set<RegionIdType>() );
 
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Complex >  & vals, 
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const std::set<RegionIdType>& srcRegions 
+                                        = std::set<RegionIdType>() );
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Vector<Complex> >  & vals, 
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const std::set<RegionIdType>& srcRegions 
+                                        = std::set<RegionIdType>() );
 
 private:
   

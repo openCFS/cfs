@@ -601,18 +601,24 @@ template<class DATA_TYPE>
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                                                       StdVector< Vector<DATA_TYPE> >& values,
-                                                                      Grid* ptGrid ){
-
+                                                                      Grid* ptGrid,
+                                                                      const std::set<RegionIdType>& srcRegions )
+{
   StdVector<LocPoint> localCoords;
   StdVector< const Elem* > foundElements;
   //build up set of source regions
   std::set<std::string>::iterator regIter = this->srcRegions_.begin();
   std::set<RegionIdType> scrRegIds;
-  for( ; regIter != this->srcRegions_.end(); ++regIter) {
-    RegionIdType curId = this->srcGrid_->GetRegion().Parse(*regIter);
-    scrRegIds.insert(curId);
+  if (srcRegions.size()) {
+    scrRegIds.insert(srcRegions.begin(), srcRegions.end());
   }
-
+  else {
+    for( ; regIter != this->srcRegions_.end(); ++regIter) {
+      RegionIdType curId = this->srcGrid_->GetRegion().Parse(*regIter);
+      scrRegIds.insert(curId);
+    }
+  }
+  
   if(!this->stdInterpReady_){
     std::cout << "Preparing for interpolation of external data...";
     std::cout.flush();
@@ -658,9 +664,11 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdV
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                                                       StdVector< DATA_TYPE >& values,
-                                                                      Grid* ptGrid ){
+                                                                      Grid* ptGrid,
+                                                                      const std::set<RegionIdType>& srcRegions )
+{
   StdVector< Vector<DATA_TYPE> > vecValues;
-  this->GetVectorValuesAtCoords(globCoord,vecValues, ptGrid);
+  this->GetVectorValuesAtCoords(globCoord,vecValues, ptGrid, srcRegions);
   values.Resize(globCoord.GetSize(),0.0);
   for(UInt i=0;i<vecValues.GetSize();++i){
     values[i] = vecValues[i][0];

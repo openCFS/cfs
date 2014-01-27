@@ -139,14 +139,20 @@ class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
   // COLLECTION ACCESS
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Double >  & vals, 
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const std::set<RegionIdType>& srcRegions 
+                                        = std::set<RegionIdType>() );
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Vector<Double> >  & vals,
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const std::set<RegionIdType>& srcRegions 
+                                        = std::set<RegionIdType>() );
   virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Matrix<Double> >  & vals,
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const std::set<RegionIdType>& srcRegions 
+                                        = std::set<RegionIdType>() );
 
   protected:
 
@@ -321,14 +327,20 @@ public:
   // COLLECTION ACCESS
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Complex >  & vals, 
-                                        Grid* ptGrid);
+                                        Grid* ptGrid,
+                                        const std::set<RegionIdType>& srcRegions 
+                                        = std::set<RegionIdType>() );
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Vector<Complex> >  & vals,
-                                        Grid* ptGrid);
+                                        Grid* ptGrid,
+                                        const std::set<RegionIdType>& srcRegions 
+                                        = std::set<RegionIdType>() );
   virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Matrix<Complex> >  & vals,
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const std::set<RegionIdType>& srcRegions 
+                                        = std::set<RegionIdType>() );
 
 
 protected:
