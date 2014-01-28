@@ -213,18 +213,9 @@ namespace CoupledField {
       PDE_.GetInfoNode()->Get("PDE")->Get(pdename_)->
           Get("load_factor")->SetValue(loadFactor);
 
-      // setup the matrices
-      isNewton = false;
-      assemble_->AssembleMatrices(isNewton);
-
       // setup right hand side
       algsys_->InitRHS();
       Double RhsLinL2Norm = SetLinRHS(loadFactor);
-
-      //substract from RHS the term K*sol
-      solVec_.ScalarMult(-1.0);
-      algsys_->UpdateRHS(SYSTEM,solVec_,true);
-      solVec_.ScalarMult(-1.0);
 
       // set iteration counter
       UInt iterationCounter=0;
@@ -234,7 +225,21 @@ namespace CoupledField {
       // =================================
       do {
         iterationCounter++;
-        // RHS is already set up!!
+
+        if ( lineSearch_ != "none" || iterationCounter == 1) {
+          // set linear part of RHS
+          algsys_->InitRHS(RhsLinVal_);
+
+          // setup the matrices
+          isNewton = false;
+          assemble_->AssembleMatrices(isNewton);
+
+          //substract from RHS the term K*sol
+          solVec_.ScalarMult(-1.0);
+          algsys_->UpdateRHS(SYSTEM,solVec_,true);
+          solVec_.ScalarMult(-1.0);
+        }
+
 
         // assemble Newton bilinear forms
         isNewton = true;
@@ -295,10 +300,6 @@ namespace CoupledField {
 
           // store the new solution
           solVec_ = actSol;
-
-          // setup the matrices with new solution
-          isNewton = false;
-          assemble_->AssembleMatrices(isNewton);
         }
 
         // calculation relative residual error ====================================
@@ -550,33 +551,38 @@ namespace CoupledField {
 
       solVec_  = actSol;
 
-      // setup the matrices
-      isNewton = false;
-      assemble_->AssembleMatrices(isNewton);
-
       // setup right hand side
       Double loadFactor = 1.0;
       Double RhsLinL2Norm = SetLinRHS(loadFactor);
-
-      //now update RHS according to time stepping
-      for(matIt = matrices.begin();matIt != matrices.end();matIt++){
-        if(matIt->second < 0)
-          continue;
-        for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
-          fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
-        }
-        algsys_->UpdateRHS(matIt->first,stageRHS_,true);
-      }
-      //substract from RHS the term K*sol
-      solVec_.ScalarMult(-1.0);
-      algsys_->UpdateRHS(STIFFNESS,solVec_,true);
-      solVec_.ScalarMult(-1.0);
 
       // set iteration counter
       UInt iterationCounter=0;
 
       do {
         iterationCounter++;
+
+        if ( lineSearch_ != "none" || iterationCounter == 1) {
+          // set linear part of RHS
+          algsys_->InitRHS(RhsLinVal_);
+
+          // setup the matrices
+          isNewton = false;
+          assemble_->AssembleMatrices(isNewton);
+
+          //now update RHS according to time stepping
+          for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+            if(matIt->second < 0)
+              continue;
+            for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+              fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
+            }
+            algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+          }
+          //substract from RHS the term K*sol
+          solVec_.ScalarMult(-1.0);
+          algsys_->UpdateRHS(STIFFNESS,solVec_,true);
+          solVec_.ScalarMult(-1.0);
+        }
 
         //now assemble the Newton bilinear forms
         isNewton = true;
@@ -1335,8 +1341,8 @@ namespace CoupledField {
 
     SBM_Vector solOld(BaseMatrix::DOUBLE);
     solOld = actSol;
-    const UInt nrEtas = 5;
-    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.1};
+    const UInt nrEtas = 4;
+    const Double eta[nrEtas] = {0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
 		// initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;
@@ -1398,8 +1404,7 @@ namespace CoupledField {
 
     etaLineSearch = etaOpt;
     
-    // Careful: in the end, we have to re-assemble the RHS with the correct
-    // value i.e. use the "optimal" solution
+    // Set new solution
     actSol.Add( 1.0, solOld, etaOpt, solIncrement );
 
     return residualL2NormOpt;
@@ -1413,7 +1418,7 @@ namespace CoupledField {
     SBM_Vector solOld(BaseMatrix::DOUBLE);
     solOld = actSol;
     const UInt nrEtas = 5;
-    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.1};
+    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.1};
     // initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;

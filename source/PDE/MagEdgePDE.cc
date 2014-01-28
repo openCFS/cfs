@@ -183,6 +183,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
          BiLinearForm* stiff2 = NULL;
          stiff2 = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nuDeriv, 1.0, updatedGeo_) ;
          stiff2->SetName("CurlCurlIntegrator-NL-Newton");
+         stiff2->SetNewtonBilinearForm();
 
          BiLinFormContext * stiffContext2 =
              new BiLinFormContext(stiff2, STIFFNESS );
@@ -239,7 +240,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
          // =================================
          //  Nonlinear RHS-integrator
          // =================================
-         LinearForm * rhsNlinForm = 
+         LinearForm * rhsNlinForm =
              new KXIntegrator<Double>(curlcurl, -1.0, feFunc );
          rhsNlinForm->SetName("RHSNonLinForm-Lin");
          LinearFormContext * rhsNlinContext =
@@ -450,9 +451,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
   void MagEdgePDE::DefineSolveStep()
   {
-    SolveStepMagEdge *magSolveStep = new SolveStepMagEdge(*this); 
+    SolveStepMagEdge *magSolveStep = new SolveStepMagEdge(*this);
+    solveStep_ = magSolveStep;
     
-    solveStep_ = magSolveStep; 
+//    solveStep_ = new StdSolveStep(*this);
   }
 
 

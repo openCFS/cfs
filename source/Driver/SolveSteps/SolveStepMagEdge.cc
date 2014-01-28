@@ -244,6 +244,9 @@ namespace CoupledField {
 
         // setup and solve new system (rhs is already set) =====================
         assemble_->AssembleMatrices();
+        bool isNewtonPart = true;
+        assemble_->AssembleMatrices(isNewtonPart);
+
         algsys_->ConstructEffectiveMatrix( NO_FCT_ID,
                                            matrix_factor_[NO_FCT_ID] );
 

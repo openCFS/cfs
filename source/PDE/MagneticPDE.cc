@@ -184,6 +184,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
             }
 
             stiff2->SetName("CurlCurlIntegrator-NL-Newton");
+            //! mark the bi-linear form to be a Newton part
+            stiff2->SetNewtonBilinearForm();
 
             BiLinFormContext * stiffContext2 =
                 new BiLinFormContext(stiff2, STIFFNESS );
@@ -191,17 +193,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
             stiffContext2->SetFeFunctions( myFct, myFct );
             assemble_->AddBiLinearForm( stiffContext2 );
           }
-
-          // =================================
-          //  Nonlinear RHS-integrator
-          // =================================
-          LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0, myFct );
-          rhsNlinForm->SetName("RHSNonLinForm");
-          LinearFormContext * rhsNlinContext =
-              new LinearFormContext( rhsNlinForm );
-          rhsNlinContext->SetEntities( actSDList );
-          rhsNlinContext->SetFeFunction( myFct );
-          assemble_->AddLinearForm( rhsNlinContext );
         }
       }else{
         // ====================================================================
@@ -254,22 +245,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
             divIntDescr->SetFeFunctions( myFct, myFct );
             assemble_->AddBiLinearForm( divIntDescr );
           }
-          // === Additional RHS integrator in case of Non-linearity ===
-          if ( nonLin_ == true ) {
-            REFACTOR;
-            // =================================
-            //  Nonlinear RHS-integrator
-            // =================================
-            LinearForm * rhsNlinForm =
-                new KXIntegrator<Double>(stiffInt, -1.0, myFct );
-            rhsNlinForm->SetName("RHSNonLinForm-Lin");
-            LinearFormContext * rhsNlinContext =
-                new LinearFormContext( rhsNlinForm );
-            rhsNlinContext->SetEntities( actSDList );
-            rhsNlinContext->SetFeFunction( myFct );
-            assemble_->AddLinearForm( rhsNlinContext );
-          }
-
       }
         
         
