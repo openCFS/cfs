@@ -1897,14 +1897,14 @@ namespace CoupledField {
     // Read attribute values
     prNode->GetValue( "master", masterName );
     prNode->GetValue( "slave", slaveName );
-    prNode->GetValue( "dof", dof );
+    prNode->GetValue( "dof", dof, ParamNode::PASS );
     prNode->GetValue( "quantity", resultName );
-    prNode->GetValue( "fixedCoords", coordStr );
+    prNode->GetValue( "fixedCoords", coordStr, ParamNode::PASS );
     prNode->GetValue( "tolerance", tol, ParamNode::PASS );
     prNode->GetValue( "coordSysId", coordSysId );
 
     // fetch related resultInfo object
-    actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName));
+    actFeFunction = GetFeFunction(SolutionTypeEnum.Parse(resultName));
     
     // get entitylists
     NodeList masterList( ptGrid_ ), slaveList( ptGrid_ );
@@ -2033,6 +2033,10 @@ namespace CoupledField {
       actBc->masterEntities = nodePair;
       actBc->slaveEntities = nodePair;
       if( dof.empty() ) {
+        if (actFeFunction->GetResultInfo()->entryType != ResultInfo::SCALAR) {
+          EXCEPTION("The 'dof' attribute of the periodic boundary is missing. "
+                    << "It is mandatory for vectorial unknowns.");
+        }
         actBc->masterDof = 0;
       } else {
         actBc->masterDof = actFeFunction->GetResultInfo()->GetDofIndex( dof );

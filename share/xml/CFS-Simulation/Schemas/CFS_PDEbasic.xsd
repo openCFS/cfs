@@ -473,7 +473,7 @@
         <xsd:attribute name="master" type="xsd:token" use="required"/>
         <xsd:attribute name="slave"  type="xsd:token" use="required"/>
         <xsd:attribute name="quantity" type="xsd:token" use="required"/>
-        <xsd:attribute name="dof" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="xsd:token" use="optional"/>
         <xsd:attribute name="fixedCoords" type="xsd:token" use="optional"/>
         <xsd:attribute name="tolerance" type="DT_NonNegFloat" use="optional"
           default="1e-6"/>
