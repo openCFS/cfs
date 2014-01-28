@@ -1326,6 +1326,7 @@ namespace CoupledField {
     ApproxCurveTypeEnum.Add( LIN_INTERPOLATE, "LinInterpolate" );
     ApproxCurveTypeEnum.Add( CUBIC_SPLINES, "CubicSplines" );
     ApproxCurveTypeEnum.Add( SMOOTH_SPLINES, "smoothSplines" );
+    ApproxCurveTypeEnum.Add( ANALYTIC, "analytic" );
     
     
     MAX_NUM_FE_MATRICES = feMatrixType.map.size() - 1;
