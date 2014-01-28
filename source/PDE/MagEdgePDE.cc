@@ -115,7 +115,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     //==============================================================
     //begin new implementation
     //==============================================================
-    shared_ptr<FeSpace> mySpace = feFunctions_[MAG_POTENTIAL]->GetFeSpace();
+
     for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion ++){
       actRegion = regions_[iRegion];
       actMat    = materials_[actRegion];
@@ -127,7 +127,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
       std::string polyId = curRegNode->Get("polyId")->As<std::string>();
       std::string integId = curRegNode->Get("integId")->As<std::string>();
-      mySpace->SetRegionApproximation(actRegion, polyId,integId);
+      feSpace->SetRegionApproximation(actRegion,polyId,integId);
       
       //get possible nonlinearities defined in this region
       StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
