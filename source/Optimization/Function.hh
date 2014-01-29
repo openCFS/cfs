@@ -501,8 +501,8 @@ class Function
       /** Store the local values. */
       Vector<double> values;
 
-      /** Here ErsatzMaterial::CalcGlobalFunction() stores the number of the active (non-zero)
-       * functions to be used in Optimization::LogFileLine() -> just a service */
+      /** Here ErsatzMaterial::CalcGlobalFunction() stores the number of infeasible element functions and prints the
+       * value in Optimization::LogFileLine() -> just a service */
       int infeasible;
 
     private:

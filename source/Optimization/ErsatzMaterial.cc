@@ -1380,11 +1380,13 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
     else
     {
-      if (!regular)
-      for (unsigned int i = 0, n = f->elements.GetSize();i < n;i++)
-      total_vol += f->elements[i]->CalcVolume();
-      else
-      total_vol = f->elements.GetSize();
+      if (!regular) {
+        for (unsigned int i = 0, n = f->elements.GetSize();i < n;i++) {
+          total_vol += f->elements[i]->CalcVolume();
+        }
+      } else {
+        total_vol = f->elements.GetSize();
+      }
     }
     LOG_DBG(em) << "CTV: d=" << derivative << " p=" << f->IsPhysical() << " n=" << normalized << " tv=" << total_vol;
     for(unsigned int i = 0, n = f->elements.GetSize(); i < n; i++)
@@ -2686,7 +2688,21 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         Function::Local::Identifier& id = vem[i];
         double fv = id.EvalFunction(local, false, von_mises_stress != NULL ? (*von_mises_stress)[i] : -1.0);
         res += fv;
-        if(fv > 0) local->infeasible++;
+        // Get inverse factor, influenced by element number, in order to compare constraint bound with constraint value of a certain design element
+              // actually the normalization is already in grad_glob_fv if power != 1.0!
+        bool regular = local->space->IsRegular();
+          /** if grid is nonregular, the volume has to be scaled by element size */
+          if (!regular) {
+            assert(local->total_vol_ != 0);
+          }
+          double factor = 1.;
+          double relbound = factor * dynamic_cast<Condition*>(f)->GetBoundValue();
+        if (f->GetType() == Function::GLOBAL_LAMINATES_VOL) {
+          factor = (regular ? 1.0 : (id.element->CalcVolume()/local->total_vol_));
+          //double factor = local->DoNormalizeGlobal() && local->GetPower() == 1.0 ? local->virtual_elem_map.GetSize() : 1.0;
+          relbound *= factor;
+        }
+        if((fv-relbound) > 0) local->infeasible++;
         LOG_DBG2(em) << "CGF: !d c=" << f->type.ToString(f->GetType()) << " i=" << i << " de="
         << id.element->elem->elemNum << " sign=" << id.sign << " fv=" << fv << " infeasible=" << local->infeasible << " -> " << res;
       }

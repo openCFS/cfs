@@ -2620,7 +2620,7 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, int 
   if (!regular) {
     assert(local->total_vol_ != 0);
   }
-  double svol = (regular ? 1.0 : (element->CalcVolume())/local->total_vol_);
+  double svol = (regular ? 1.0 : (element->CalcVolume()/local->total_vol_));
   if (!derivative) {
       if (dim == 2) {
         return svol*(stiff1 + stiff2 - stiff1 * stiff2);
