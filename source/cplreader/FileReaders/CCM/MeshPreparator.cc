@@ -70,7 +70,6 @@ namespace CCM {
   }
   
   void MeshPreparator::ReadMesh() {
-    std::cout << "READING MESH FILE" << std::endl << std::endl;
     meshFile_->ReadMaps(&maps_);
     if (maps_.empty()) {
       PrintExportRecommends();

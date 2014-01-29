@@ -447,6 +447,10 @@ class Function
         /** CalcStress() and the gradient are actually done in EM/SIMP */
 
         DesignElement* element; // this represents DesignSpace::data[element_idx]
+
+        /** this are all design elements for the local function. For slopes a spatial neighborhood, for
+         * globalLaminatesVolumes the variables stiff1, stiff2 for the same FE-Element, ...
+         * @see GetElement() */
         StdVector<DesignElement*> neighbor;
 
         /** sign is only needed if we treat slope constraints as two separate constraints

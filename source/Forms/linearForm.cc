@@ -2138,6 +2138,44 @@ DEFINE_LOG(linForm, "linForm")
     //Result = NodalPress;
   }
 
+  // computeation of total derivative of perturbed pressure for PE
+  void LinearFlowNoiseInt::CalcElemVecWithGradP(const Matrix<Double>& ptCoord,
+                                                const Vector<Double> & NodalPress,
+                                                Vector<Double> & Result,
+                                                const Elem* elem,
+                                                Double density){
+
+    Integer l = ptelem->GetNumIntPoints();
+    Integer n = ptelem->GetNumNodes();
+    Integer dimelem = ptCoord.GetNumRows();
+
+    Matrix<Double> xiDx;
+    Matrix<Double> xiDxT;
+    Vector<Double> Sf;
+    Result.Resize(n*dimelem,0.0);
+
+    Vector<Double> presDerivAtIp(dimelem,0.0);
+    Double jacDet;
+    Vector<Double> intWeights = ptelem->GetIntWeights();
+
+    // Loop over all integration points
+    for(Integer actInt=1; actInt <= l; actInt++)
+    {
+      ptelem->GetShFncAtIp(Sf, actInt, elem);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+
+      xiDx.Transpose(xiDxT);
+      presDerivAtIp = xiDxT * NodalPress;
+
+      //sum up the derivatives with respcet to mean velocity
+      for(Integer i = 0;i<n;++i){
+        for(UInt d=0;d<(UInt)dimelem;d++){
+          Result[i*dimelem+d] += Sf[i] * presDerivAtIp[d] * jacDet * intWeights[actInt-1];
+        }
+      }
+    }
+    //Result = NodalPress;
+  }
   ///Calcualte aeroacoustic source term based on lamb vector
   void LinearFlowNoiseInt::CalcElemVecWithLamb(const Matrix<Double>& ptCoord,
                                                const Matrix<Double> & NodalVelocity,

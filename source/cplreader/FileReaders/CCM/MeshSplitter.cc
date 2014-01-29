@@ -185,7 +185,7 @@ namespace CCM {
       }
     }
     
-    std::cout << "    Splitted FEM Mesh Statistics" << std::endl;
+    std::cout << "    Splitted Finite Elements Mesh Statistics" << std::endl;
     std::cout << "        Hexas:       " << hexas << std::endl;
     std::cout << "        Wedges:      " << wedges << std::endl;
     std::cout << "        Pyradmids:   " << pyramids << std::endl;
@@ -570,10 +570,16 @@ namespace CCM {
     i=0;
     vertexIndex = mesh_.faceVertexIndex[faces3[0]];
     maxIndex = vertexIndex + 3;
+    bool found = false;
     for (;vertexIndex < maxIndex; vertexIndex++) {
       if (!ContainsFaceVertex(primFace, mesh_.faceVertex[vertexIndex])) {
         nodes[4] = mesh_.faceVertex[vertexIndex];
+        found = true;
       }
+    }
+    if (!found) {
+      RunPolyTreatment(cell);
+      return;
     }
     
     topologicalPyramids++;
@@ -605,10 +611,16 @@ namespace CCM {
     i=0;
     vertexIndex = mesh_.faceVertexIndex[faces3[1]];
     maxIndex = vertexIndex + 3;
+    bool found = false;
     for (;vertexIndex < maxIndex; vertexIndex++) {
       if (!ContainsFaceVertex(primFace, mesh_.faceVertex[vertexIndex])) {
         nodes[3] = mesh_.faceVertex[vertexIndex];
+        found = true;
       }
+    }
+    if (!found) {
+      RunPolyTreatment(cell);
+      return;
     }
     
     topologicalTetras++;
