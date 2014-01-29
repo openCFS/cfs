@@ -38,6 +38,7 @@ parser.add_argument('--showsize', help="pixels in x direction for pop-up (defaul
 parser.add_argument('--noshow', action='store_true', help='do not pop up the image window')
 parser.add_argument('--densfile', help="output .density.xml with only 'mech' densities")
 parser.add_argument('--multi_d', help="number of design variables in density.xml file",type = int, default = 1)
+parser.add_argument('--shearangle', help="shearing angle of mesh in degree", type = float, default=0.0)
 
 
 
@@ -66,7 +67,7 @@ else:
     print "Warning: mode is stupid, may give unusable results!"
   
   input_img = input_img.convert("L") #.transpose(Image.FLIP_TOP_BOTTOM)
-  create_dense_mesh_img(input_img, mesh, float(args.threshold), float(args.scale), float(args.rhomin))
+  create_dense_mesh_img(input_img, mesh, float(args.threshold), float(args.scale), float(args.rhomin), float(args.shearangle))
 
 if not args.noshow:
   if args.multi_d > 1:

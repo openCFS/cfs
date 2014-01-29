@@ -1,20 +1,11 @@
-# This file is actually depreciated. Most stuff is copied to matviz_rot.py and maintained there
-
-# This is a Paraview programmable filter to visualize for a FMO result the stiffest and second stiffest (if any)
-# direction and the corresponding magnitude.
-#
-# Apply a successive CellCenters Filter then the Glyph filter can be used. The Glyph filter for the second stiffest 
-# vector needs to be scaled
-#
-# The current CFS-HDF5 Reader does not work with Paraview programmable filter. The result needs to exported (e.g. VTK)
-# first.
-
+# The file has been copied from paraview_fmo.py which is now depreciated. 
 
 # visualize:
 # import pylab
 # pylab.plot(data[:,1])
 # pylab.show()
 
+import sys
 import numpy
 import numpy.linalg
 
@@ -22,6 +13,15 @@ from numpy import dot
 from numpy import sin
 from numpy import cos
 from numpy import sqrt
+
+## print tensor, pyhton makes for 6x6 tensors too early line breaks
+def dump_tensor(tensor):
+  for y in range(tensor.shape[0]):
+    sys.stdout.write(str(y+1) + ": ")
+    for x in range(tensor.shape[1]):
+      #sys.stdout.write(str(tensor[y][x]) + "\t")
+      print '%(val)10.4g ' % {"val": tensor[y][x]},
+    print ""    
 
 
 ## This rotates a 2*2 2D tensor via the third direction. As in Richter and CFS
@@ -502,33 +502,6 @@ def find_stiffest_orientation(tensor, steps, also_poissons_ratio=False):
     return first, second
 
 
-## takes takes the paraview tensor data and generates a set of vectors of orientations
-# @return array of first and secondary stiffness tensors, v21 and v12
-def pv_mech(input, steps):
-  el = len(input) 
-
-  first  = zeros((el, 3))
-  second = zeros((el, 3))
-  v21    = zeros((el, 3))
-  v12    = zeros((el, 3))
-  
-  for i in range(el):
-    t = input[i]
-    first[i], second[i], v21[i], v12[i] = find_stiffest_orientation(HillMandel2Voigt(to_mech_tensor(t.transpose())), steps, True)
-
-  return first, second, v21, v12
-
-
-
-
-## process the paraview stuff
-def paraview_show():
-  data = inputs[0].CellData['mechTensor'] 
-  first, second, v21, v12 = pv_mech(data, 90)
-  output.CellData.append(first,"mech_stiffest")
-  output.CellData.append(second,"mech_second")
-  output.CellData.append(v21,"mech_v21")
-  output.CellData.append(v12,"mech_v12")
   
   
 e2d = numpy.zeros((2,2))

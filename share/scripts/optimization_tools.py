@@ -70,7 +70,7 @@ def read_density(filename, attribute="design", x = None, y = None, z = None):
   return ret
 
 ## read arbitrary multi-design density file as numpy array
-def read_multi_design(filename, design1, design2 = None, design3 = None, design4 = None,matrix = False):
+def read_multi_design(filename, design1, design2 = None, design3 = None, design4 = None, matrix = False, attribute="design"):
   if not os.path.exists(filename):
     raise RuntimeError("file '" + filename + "' doesn't exist")
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
@@ -107,8 +107,6 @@ def read_multi_design(filename, design1, design2 = None, design3 = None, design4
   out = numpy.zeros((length, designs))
   for element in sett:
     nr   = int(element.get("nr"))
-    des  = float(element.get("design"))
-    #des  = float(element.get("physical"))
     type = element.get("type")
     idx  = -1
     if type == design1:
@@ -119,10 +117,9 @@ def read_multi_design(filename, design1, design2 = None, design3 = None, design4
       idx = 2
     if design4 and type == design4:
       idx = 3
-    if idx == -1:
-      print "design '" + type + "' not handled"  
-    assert(idx != -1)
-    out[nr-1,idx] = des
+    if idx <>  -1:
+      des  = float(element.get(attribute))
+      out[nr-1,idx] = des
   if matrix:
     output = numpy.zeros((x,y,z,designs))
     for t in range(designs):

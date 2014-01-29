@@ -1,10 +1,31 @@
 #!/usr/bin/env python
 
-import Image, sys, os, copy, numpy
-
+import Image, sys, os, copy, numpy, math
 
 # writes a dense two region mesh
 # def write_dense_mesh(pixels, size, file, threshold):
+
+# element types as in gid (simInputMESH.cc -> AnsysType2ElemType)
+QUAD4 = 6
+HEXA8= 10
+WEDGE6 = 14
+
+def nodes_by_type(type):
+  if type == QUAD4:
+    return 4
+  if type == HEXA8:
+    return 8
+  if type == WEDGE6:
+    return 6
+  assert(False)
+
+def elem_dim(type):
+  if type == HEXA8 or type == WEDGE6:
+    return 3
+  else: 
+    return 2 
+  
+
 
 # gid element
 class Element: 
@@ -16,19 +37,21 @@ class Element:
     self.stiff2 = 0
     self.stiff3 = 0
     self.rotAngle = 0
+    self.type = -1
     
   def dump(self):
     print self.nodes
     print self.region
     print self.density     
 
+
 # gid Mesh
-class Mesh: pass
-mesh = Mesh()
-mesh.nodes = []    # list 2d tupels (float, float)
-mesh.elements = [] # list of Element
-mesh.bc = []       # list of tupel (name, <list of zero based nodes>)  
-  
+class Mesh:
+  def __init__(self):
+   self.nodes = []    # list 2d tupels (float, float) or 3d tuples
+   self.elements = [] # list of Element
+   self.bc = []       # list of tupel (name, <list of zero based nodes>)  
+
 def show_dense_mesh_image(mesh, shape, binary, size):
   check_img = Image.new("RGB", shape, "white")
   check_pix = check_img.load()
@@ -48,34 +71,46 @@ def show_dense_mesh_image(mesh, shape, binary, size):
   check_img.show()     
 
 
-def create_dense_mesh_img(input_img, mesh, threshold, scale, rhomin):
+def create_dense_mesh_img(input_img, mesh, threshold, scale, rhomin, shearAngle):
   input_pix = input_img.load()
   nx, ny = input_img.size
-  create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin)
+  create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin,True,1,shearAngle)
 
 def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin,multi_d=1):
   if multi_d == 1:
     nx, ny = numpy_array.shape
   else:
     nx,ny,nz,m = numpy_array.shape
-  create_dense_mesh(numpy_array, nx, ny, mesh, threshold, scale, rhomin,False,multi_design = multi_d)
+  create_dense_mesh(numpy_array, nx, ny, mesh, threshold, scale, rhomin,False,multi_design = multi_d,shearAngle = 0.0)
   
-def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img = True,multi_design=1):  
+def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img = True,multi_design=1,shearAngle=0):
+  # convert angle to rad and check for feasibility
+  angle = shearAngle/180 * math.pi
+  if (abs(angle) > math.pi/2 - 1e-6):
+    print 'angle has to be between -pi/2 + 1e-6 and pi/2 - 1e-6'
+    return 0 
   input_pix = input_array
-  dx = scale/nx
-  dy = dx 
-
+  dx = scale/nx/math.cos(angle)
+  dy = scale/ny
+    # create mesh.nodes
   for y in range(ny + 1):
     for x in range(nx + 1):
-      mesh.nodes.append((x * dx, y * dy))
+      if angle == 0.0:
+        mesh.nodes.append((x * dx, y * dy))
+      else:
+        x_Coord = round(x * dx - y * dy * math.tan(angle), 8)
+        if abs(x_Coord) < 1e-8:
+          x_Coord = 0.0
+        mesh.nodes.append((x_Coord,y * dy))
   # print mesh.nodes 
   mech_count = 0
   for x in range(nx):
     for y in range(ny):
       e = Element()
+      e.type = QUAD4
       if img:
         # convert to black is one and white = 0
-        e.density = 1.0 - (input_pix[y,ny - x - 1] / 255.0)
+        e.density = 1.0 - (input_pix[x,y] / 255.0)
       else:
         if multi_design == 1:
           e.density = input_pix[x,y]
@@ -125,7 +160,6 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img =
 # @return sparse mesh
 def convert_to_sparse_mesh(dense):
   sparse = Mesh()
-  sparse.elements = []
 
   # necessary 0-based nodes as unique set
   nns = set()
@@ -175,15 +209,46 @@ def convert_to_sparse_mesh(dense):
 
   return sparse
 
+def count_elements(elements, type):
+  count = 0
+  for e in elements:
+    if e.type == type:
+      count += 1
+  return count
+
+def write_gid_elements(out, elements, dim):
+  for i in range(len(elements)): # write one based!
+    e = elements[i]
+    if elem_dim(e.type) == dim:
+      nodes = len(e.nodes)
+      out.write(str(i+1) + ' ' + str(e.type) + ' ' + str(nodes) + ' ' + e.region  + "\n")
+    
+      # prepare for second order elements
+      for n in range(nodes):
+        out.write(str(e.nodes[n]+1) + ("\n" if n == len(e.nodes) - 1 else " ")) # write one based node numbers
+
+
 def write_gid_mesh(mesh, filename):
+  
+  
+  
+  quad4  = count_elements(mesh.elements, QUAD4)
+  hexa8  = count_elements(mesh.elements, HEXA8)
+  wedge6 = count_elements(mesh.elements, WEDGE6)
+  
+  num_2d = quad4
+  num_3d = hexa8 + wedge6
+  assert(num_2d + num_3d == len(mesh.elements))
+  dim = 3 if num_3d > 0 else 2
+  
   out = open(filename, "w")
   
   out.write('[Info]\n')
   out.write('Version 1\n')
-  out.write('Dimension 2\n')
+  out.write('Dimension ' + str(dim) + '\n')
   out.write('NumNodes ' + str(len(mesh.nodes)) + '\n')
-  out.write('Num3DElements 0\n')
-  out.write('Num2DElements ' + str(len(mesh.elements)) + '\n')
+  out.write('Num3DElements ' + str(num_3d) + '\n')
+  out.write('Num2DElements ' + str(num_2d) + '\n')
   out.write('Num1DElements 0\n')
   bcn = 0
   for i in range(len(mesh.bc)):
@@ -197,21 +262,25 @@ def write_gid_mesh(mesh, filename):
   out.write('Num 3d-line,quad : 0\n')
   out.write('Num triangle     : 0\n')
   out.write('Num triangle,quad: 0\n')
-  out.write('Num quadr        : ' + str(len(mesh.elements)) + '\n')
+  out.write('Num quadr        : ' + str(quad4) + '\n')
   out.write('Num quadr,quad   : 0\n')
   out.write('Num tetra        : 0\n')
   out.write('Num tetra,quad   : 0\n')
-  out.write('Num brick        : 0\n')
+  out.write('Num brick        : ' + str(hexa8) + '\n')
   out.write('Num brick,quad   : 0\n')
   out.write('Num pyramid      : 0\n')
   out.write('Num pyramid,quad : 0\n')
-  out.write('Num wedge        : 0\n')
+  out.write('Num wedge        : ' + str(wedge6) + '\n')
   out.write('Num wedge,quad   : 0\n')
   
   out.write('\n[Nodes]\n')
   out.write('#NodeNr x-coord y-coord z-coord\n')
   for i in range(len(mesh.nodes)): # write one based!
-    out.write(str(i+1) + "  " + str(mesh.nodes[i][0]) + "  " + str(mesh.nodes[i][1]) + "  0.0\n")
+    out.write(str(i+1) + "  " + str(mesh.nodes[i][0]) + "  " + str(mesh.nodes[i][1]))
+    if dim == 3:
+      out.write("  "  + str(mesh.nodes[i][2]) + "\n")
+    else:
+      out.write("  0.0\n")
 
   out.write('\n[1D Elements]\n')
   out.write('#ElemNr  ElemType  NrOfNodes  Level\n')
@@ -220,16 +289,12 @@ def write_gid_mesh(mesh, filename):
   out.write('\n[2D Elements]\n')
   out.write('#ElemNr  ElemType  NrOfNodes  Level\n')
   out.write('#Node1 Node2 ... NodeNrOfNodes\n')
-  for i in range(len(mesh.elements)): # write one based!
-    e = mesh.elements[i]
-    out.write(str(i+1) + " 6 4 " + e.region  + "\n")
-    # prepare for second order elements
-    for n in range(len(e.nodes)):
-      out.write(str(e.nodes[n]+1) + ("\n" if n == len(e.nodes) - 1 else " ")) # write one based node numbers
+  write_gid_elements(out, mesh.elements, 2)
  
   out.write('\n[3D Elements]\n')
   out.write('#ElemNr  ElemType  NrOfNodes  Level\n')
   out.write('#Node1 Node2 ... NodeNrOfNodes\n')
+  write_gid_elements(out, mesh.elements, 3)
   
   out.write('\n[Node BC]\n')
   out.write('#NodeNr Level\n')
@@ -248,9 +313,6 @@ def write_gid_mesh(mesh, filename):
 ## creates a mesh of predefined geometry
 def create_cantilever2d_mesh(type, resolution):
   mesh = Mesh()
-  mesh.nodes = []    # list 2d tupels (float, float)
-  mesh.elements = [] # list of Element
-  mesh.bc = []       # list of tupel (name, <list of zero based nodes>)  
   
   width = 3.0
   height = 2.0
@@ -270,6 +332,7 @@ def create_cantilever2d_mesh(type, resolution):
     for x in range(nx):
       e = Element()
       e.density = 1.0
+      e.type = QUAD4
       if type == 'cantilever2d_reinforced' and float(x) >= (28./30. * nx):
         e.region = 'reinforce'
       else:
@@ -296,9 +359,6 @@ def create_cantilever2d_mesh(type, resolution):
 ## creates a mesh of predefined geometry
 def create_mbb_mesh(type, resolution):
   mesh = Mesh()
-  mesh.nodes = []    # list 2d tupels (float, float)
-  mesh.elements = [] # list of Element
-  mesh.bc = []       # list of tupel (name, <list of zero based nodes>)  
   
   width = 2.0
   height = 1.0
@@ -320,10 +380,8 @@ def create_mbb_mesh(type, resolution):
   for y in range(ny):
     for x in range(nx):
       e = Element()
+      e.type = QUAD4
       e.density = 1.0
-
-      
-
       # if type == 'mbb_reinforced' and (float(x) <= (.03 * nx + e) or float(x) >= (.97 * nx - e) or float(y) <= (.03 * ny + e) or float(y) >= (.97 * ny - e)):
       if type == 'mbb_reinforced' and (x+1 <= .015 * nx + 1e-5 or x >= 0.985 * nx - 1e-5 or y+1 <= 0.03 * ny + 1e-5 or y >= 0.97 * ny - 1e-5):
           e.region = 'reinforce'
@@ -351,5 +409,3 @@ def create_mbb_mesh(type, resolution):
   mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
   
   return mesh
-
-
