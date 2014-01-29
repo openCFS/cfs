@@ -257,6 +257,10 @@ namespace CoupledField {
         return "K";
         break;
 
+      case HEAT_FLUX_DENSITY:
+        return "W/m^2";
+        break;
+
       case HEAT_RHS_LOAD:
         return "?";
         break;
@@ -347,6 +351,10 @@ namespace CoupledField {
         break;
 
       case MECH_STRESS:
+        return "N/m^2";
+        break;
+
+      case MECH_THERMAL_STRESS:
         return "N/m^2";
         break;
 
@@ -1061,6 +1069,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_RHS_LOAD, "mechRhsLoad");    
     
     SolutionTypeEnum.Add(MECH_STRESS, "mechStress");
+    SolutionTypeEnum.Add(MECH_THERMAL_STRESS, "mechThermalStress");
     SolutionTypeEnum.Add(MECH_STRAIN, "mechStrain");
     SolutionTypeEnum.Add(MECH_STRUCT_INTENSTIY, "mechStructIntensity");
     SolutionTypeEnum.Add(MECH_NORMAL_STRUCT_INTENSITY, "mechNormalStructIntensity");
@@ -1156,6 +1165,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
     //heat conduction
     SolutionTypeEnum.Add(HEAT_TEMPERATURE, "heatTemperature");
+    SolutionTypeEnum.Add(HEAT_FLUX_DENSITY, "heatFluxDensity");
     SolutionTypeEnum.Add(HEAT_RHS_LOAD, "heatRhsLoad");
     SolutionTypeEnum.Add(HEAT_SOURCE_DENSITY, "heatSourceDensity");
     //fluidMech

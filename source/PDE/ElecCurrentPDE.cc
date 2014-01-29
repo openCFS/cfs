@@ -316,9 +316,9 @@ namespace CoupledField {
     flux->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionFormBased> fluxFunc;
     if( isComplex_ ) {
-      fluxFunc.reset(new CoefFunctionFlux<Complex>(feFct, flux));
+      fluxFunc.reset(new CoefFunctionFlux<Complex>(feFct, flux, Complex(-1.0)));
     } else {
-      fluxFunc.reset(new CoefFunctionFlux<Double>(feFct, flux));
+      fluxFunc.reset(new CoefFunctionFlux<Double>(feFct, flux, -1.0));
     }
     DefineFieldResult( fluxFunc, flux );
     stiffFormCoefs_.insert(fluxFunc);

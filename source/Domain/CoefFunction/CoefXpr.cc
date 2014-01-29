@@ -34,6 +34,7 @@ UInt CoefXpr::GetNumOperands(OpType op ) {
     // UNARY FUNCTIONS
     case OP_NORM:
     case OP_SQRT:
+    case OP_TRACE:
       return 1;
       break;
         
@@ -601,6 +602,14 @@ void CoefXprUnaryOp::GetScalarXpr( std::string& real, std::string& imag ) const 
       }
     }
   }
+  // -------------
+   //  TENSOR CASE
+   // -------------
+   else if( a_->GetDimType() == CoefFunction::TENSOR ) {
+     if( op_ == OP_TRACE ) {
+       EXCEPTION("CoefXprUnaryOp::GetScalarXpr: TENSOR trace not implemented");
+     }
+   }
 }
 
 void CoefXprUnaryOp::GetVectorXpr( StdVector<std::string>& real, 

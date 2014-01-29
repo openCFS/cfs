@@ -159,7 +159,7 @@ namespace CoupledField {
     SurfaceNitscheABInt( BaseBOperator * aOp, BaseBOperator * bOp,
                          PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
                          BiLinearForm::CouplingDirection cplDir,
-                         bool coordUpdate = false);
+                         bool coordUpdate = false, bool isSym = false);
 
     //! Destructor
     ~SurfaceNitscheABInt() {}

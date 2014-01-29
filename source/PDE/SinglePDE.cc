@@ -3167,37 +3167,44 @@ namespace CoupledField {
 
     curcpl = BiLinearForm::MASTER_MASTER;
 
+    // NOTE: the algebraic system sets the system matrix to
+    // nonSym  if any bilinear form with the same fctID1 and fctID2 is nonSym.
+    // We set here the symmetric flag to true in the constructor
+    // of the SurfaceNitscheABInt even though the bilinear form itself is
+    // not symmetric. Nitsche formulation is basically sym due to the
+    // set counterpart directive for the context.
+
     penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
         ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, beta, curcpl, updatedGeo_);
+          factor, beta, curcpl, updatedGeo_, true);
 
     if ( solType == MECH_DISPLACEMENT ) {
       flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
       ( new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
         new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-           factor, -1.0, curcpl, updatedGeo_);
+           factor, -1.0, curcpl, updatedGeo_, true);
         flux_du1_v1->SetBCoefFunctionOpA(coefMech);
     }
     else {
       flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
       ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, -1.0, curcpl, updatedGeo_);
+            factor, -1.0, curcpl, updatedGeo_, true);
     }
 
     if ( solType == MECH_DISPLACEMENT ) {
       flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
         (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
            new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
-           factor, -1.0, curcpl, updatedGeo_);
+           factor, -1.0, curcpl, updatedGeo_, true);
       flux_u1_dv1->SetBCoefFunctionOpB(coefMech);
     }
     else {
         flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
           (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-              factor, -1.0, curcpl, updatedGeo_);
+              factor, -1.0, curcpl, updatedGeo_, true);
     }
 
     curcpl = BiLinearForm::SLAVE_SLAVE;
@@ -3205,49 +3212,30 @@ namespace CoupledField {
     penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
         ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, beta, curcpl, updatedGeo_);
+          factor, beta, curcpl, updatedGeo_, true);
 
     curcpl = BiLinearForm::MASTER_SLAVE;
 
     penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
         ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, beta * -1.0, curcpl, updatedGeo_);
+          factor, beta * -1.0, curcpl, updatedGeo_, true);
     
     if ( solType == MECH_DISPLACEMENT ) {
       flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-           factor, 1.0, curcpl, updatedGeo_);
+           factor, 1.0, curcpl, updatedGeo_, true);
       flux_du1_v2->SetBCoefFunctionOpA(coefMech);
     }
     else {
         flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
            (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, 1.0, curcpl, updatedGeo_);
+            factor, 1.0, curcpl, updatedGeo_, true);
     }
 
     curcpl = BiLinearForm::SLAVE_MASTER;
-
-//    penalty_u2_v1 = new SurfaceNitscheABInt<Double,Double>
-//        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
-//          new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-//          factor, beta * -1.0, curcpl, updatedGeo_);
-
-//    if ( solType == MECH_DISPLACEMENT ) {
-//      flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>
-//         (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-//            new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_,icModes),
-//            factor, 1.0, curcpl, updatedGeo_);
-//      flux_u2_dv1->SetBCoefFunctionOpB(coefMech);
-//    }
-//    else {
-//      flux_u2_dv1 = new SurfaceNitscheABInt<Double,Double>
-//         (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-//            new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-//            factor, 1.0, curcpl, updatedGeo_);
-//    }
 
     penalty_u1_v1->SetName("penalty_u1_v1");
     flux_du1_v1->SetName("flux_du1_v1");
@@ -3255,8 +3243,6 @@ namespace CoupledField {
     penalty_u2_v2->SetName("penalty_u2_v2");
     penalty_u1_v2->SetName("penalty_u1_v2");
     flux_du1_v2->SetName("flux_du1_v2");
-//    penalty_u2_v1->SetName("penalty_u2_v1");
-//    flux_u2_dv1->SetName("flux_u2_dv1");
 
     SurfaceBiLinFormContext *penalty_u1_v1_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v1_Context   = NULL;
@@ -3264,8 +3250,7 @@ namespace CoupledField {
     SurfaceBiLinFormContext *penalty_u2_v2_Context = NULL;
     SurfaceBiLinFormContext *penalty_u1_v2_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v2_Context   = NULL;
-//    SurfaceBiLinFormContext *penalty_u2_v1_Context = NULL;
-//    SurfaceBiLinFormContext *flux_u2_dv1_Context   = NULL;
+
     if (isMoving) {
       curcpl = BiLinearForm::MASTER_MASTER;
       penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, DAMPING, curcpl);
@@ -3277,8 +3262,6 @@ namespace CoupledField {
       penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, DAMPING, curcpl);
       flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2, STIFFNESS, curcpl);
       curcpl = BiLinearForm::SLAVE_MASTER;
-//      penalty_u2_v1_Context = new SurfaceBiLinFormContext(penalty_u2_v1, DAMPING, curcpl);
-//      flux_u2_dv1_Context   = new SurfaceBiLinFormContext(flux_u2_dv1, STIFFNESS, curcpl);
 
       penalty_u1_v1_Context->SetMotion(true);
       flux_du1_v1_Context->SetMotion(true);
@@ -3286,8 +3269,6 @@ namespace CoupledField {
       penalty_u2_v2_Context->SetMotion(true);
       penalty_u1_v2_Context->SetMotion(true);
       flux_du1_v2_Context->SetMotion(true);
-//      penalty_u2_v1_Context->SetMotion(true);
-//      flux_u2_dv1_Context->SetMotion(true);
 
     }else{
       curcpl = BiLinearForm::MASTER_MASTER;
@@ -3300,8 +3281,6 @@ namespace CoupledField {
       penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, STIFFNESS, curcpl);
       flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2  , STIFFNESS, curcpl);
       curcpl = BiLinearForm::SLAVE_MASTER;
-//      penalty_u2_v1_Context = new SurfaceBiLinFormContext(penalty_u2_v1, STIFFNESS, curcpl);
-//      flux_u2_dv1_Context   = new SurfaceBiLinFormContext(flux_u2_dv1  , STIFFNESS, curcpl);
     }
 
     penalty_u1_v1_Context->SetEntities(actSDList,actSDList);
@@ -3310,8 +3289,6 @@ namespace CoupledField {
     penalty_u2_v2_Context->SetEntities(actSDList,actSDList);
     penalty_u1_v2_Context->SetEntities(actSDList,actSDList);
     flux_du1_v2_Context->SetEntities(actSDList,actSDList);
-//    penalty_u2_v1_Context->SetEntities(actSDList,actSDList);
-//    flux_u2_dv1_Context->SetEntities(actSDList,actSDList);
 
     penalty_u1_v1_Context->SetFeFunctions( feFunctions_[solType],
                                            feFunctions_[solType] );
@@ -3325,10 +3302,6 @@ namespace CoupledField {
                                            feFunctions_[solType] );
     flux_du1_v2_Context->SetFeFunctions( feFunctions_[solType],
                                          feFunctions_[solType] );
-//    penalty_u2_v1_Context->SetFeFunctions( feFunctions_[solType],
-//                                           feFunctions_[solType] );
-//    flux_u2_dv1_Context->SetFeFunctions( feFunctions_[solType],
-//                                         feFunctions_[solType] );
 
     penalty_u1_v2_Context->SetCounterPart(true);
     flux_du1_v2_Context->SetCounterPart(true);
@@ -3340,18 +3313,12 @@ namespace CoupledField {
     assemble_->AddBiLinearForm( penalty_u1_v2_Context );
     assemble_->AddBiLinearForm( flux_du1_v2_Context );
 
-
-    //assemble_->AddBiLinearForm( penalty_u2_v1_Context );
-    //assemble_->AddBiLinearForm( flux_u2_dv1_Context );
-
     ncIf->RegisterIntegrator( penalty_u1_v1_Context );
     ncIf->RegisterIntegrator( flux_du1_v1_Context );
     ncIf->RegisterIntegrator( flux_u1_dv1_Context );
     ncIf->RegisterIntegrator( penalty_u2_v2_Context );
     ncIf->RegisterIntegrator( penalty_u1_v2_Context );
     ncIf->RegisterIntegrator( flux_du1_v2_Context );
-    //ncIf->RegisterIntegrator( penalty_u2_v1_Context );
-    //ncIf->RegisterIntegrator( flux_u2_dv1_Context );
   }
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION

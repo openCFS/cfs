@@ -304,7 +304,7 @@ namespace CoupledField {
         else
           residualErr = residualL2Norm;
 
-        // calculate incremental error ========================================
+        // calculate incremental error AssembleNonLinRHS();========================================
         Double incrementalErr;
         Double solIncrL2Norm = solInc.NormL2();
         Double actSolL2Norm  = actSol.NormL2();

@@ -102,6 +102,10 @@ namespace CoupledField
     
     //! Tensor type
     SubTensorType tensorType_;
+
+    //! coefFunctzion for thermal stress
+    shared_ptr<CoefFunctionMulti> thermalStress_;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

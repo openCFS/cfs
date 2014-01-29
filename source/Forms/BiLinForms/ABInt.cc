@@ -209,14 +209,14 @@ SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 ::SurfaceNitscheABInt( BaseBOperator * aOp, BaseBOperator * bOp,
                        PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
                        BiLinearForm::CouplingDirection cplDir,
-                       bool coordUpdate )
+                       bool coordUpdate, bool isSym )
   : ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(aOp, bOp, scalCoef, factor, coordUpdate)
 {
   this->name_ = "SurfaceNitscheABInt";
 
   this->myDirection_ = cplDir;
 
-  this->isSymmetric_ = false;
+  this->isSymmetric_ = isSym;
 }
 
 

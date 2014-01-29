@@ -14,6 +14,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "Domain/CoefFunction/CoefFunctionApprox.hh"
+#include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Utils/StdVector.hh"
 
 #include "Driver/Assemble.hh"
@@ -750,6 +751,26 @@ void HeatPDE::DefinePrimaryResults() {
   rhsFeFunctions_[HEAT_TEMPERATURE]->SetResultInfo(rhs);
   DefineFieldResult( rhsFeFunctions_[HEAT_TEMPERATURE], rhs );
 
+}
+
+void HeatPDE::DefinePostProcResults() {
+  shared_ptr<BaseFeFunction> feFct = feFunctions_[HEAT_TEMPERATURE];
+
+  // === HEAT FLUX DENSITY ===
+  shared_ptr<ResultInfo> flux ( new ResultInfo );
+  flux->resultType = HEAT_FLUX_DENSITY;
+  flux->SetVectorDOFs(dim_, isaxi_);
+  flux->unit = "W/m^2";
+  flux->definedOn = ResultInfo::ELEMENT;
+  flux->entryType = ResultInfo::VECTOR;
+  shared_ptr<CoefFunctionFormBased> fluxFunc;
+  if( isComplex_ ) {
+    fluxFunc.reset(new CoefFunctionFlux<Complex>(feFct, flux, Complex(-1.0)));
+  } else {
+    fluxFunc.reset(new CoefFunctionFlux<Double>(feFct, flux, -1.0));
+  }
+  DefineFieldResult( fluxFunc, flux );
+  stiffFormCoefs_.insert(fluxFunc);
 }
 
 } // end of namespace CoupledField

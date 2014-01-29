@@ -213,6 +213,7 @@
   <!-- Definition of element result types of heatConduction PDE -->
   <xsd:simpleType name="DT_HeatElemResult">
     <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="heatFluxDensity"/>      
       <xsd:enumeration value="optResult_1"/>      
       <xsd:enumeration value="optResult_2"/>      
       <xsd:enumeration value="optResult_3"/>                  

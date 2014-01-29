@@ -33,6 +33,7 @@
 
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
+#include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 
@@ -100,6 +101,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     if( subType_ == "3d" && ptGrid_->GetNumElemOfDim(3) == 0 ) {
       EXCEPTION("Can not calculate 3D mechanics without 3D elements in the grid!");
     }
+
+    // thermal stress coefFunction
+    thermalStress_.reset(new CoefFunctionMulti(CoefFunction::VECTOR,
+                         stressDim_, 1, isComplex_, true));
 }
 
 
@@ -531,6 +536,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     ReadRhsExcitation( "thermalStrain", dispDofNames, ResultInfo::SCALAR, isComplex_,
                        ent, coef, coefUpdateGeo );
 
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+
       for( UInt i = 0; i < ent.GetSize(); ++i ) {
         // check type of entitylist
         if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -548,17 +555,20 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         else
           EXCEPTION("Mechanical Tensortype not implemented!")
 
-        PtrCoefFct vecTEC = materials_[myRegionId]->GetVectorCoefFnc(matType,
-                                                                     Global::REAL );
+        PtrCoefFct vecTEC = materials_[myRegionId]->GetVectorCoefFnc(matType, part);
 
-        PtrCoefFct refTemp = materials_[myRegionId]->GetScalCoefFnc(MECH_TEC_REFTEMPERATURE, Global::REAL );
+        PtrCoefFct refTemp = materials_[myRegionId]->GetScalCoefFnc(MECH_TEC_REFTEMPERATURE,
+                                                                    part);
 
         PtrCoefFct TminusTref =
-                  CoefFunction::Generate( mp_, Global::REAL,
+                  CoefFunction::Generate( mp_, part,
                                          CoefXprBinOp(mp_,coef[i],refTemp,CoefXpr::OP_SUB));
         PtrCoefFct thermalStressCoef =
-                  CoefFunction::Generate( mp_, Global::REAL,
+                  CoefFunction::Generate( mp_, part,
                                          CoefXprBinOp(mp_,TminusTref,vecTEC,CoefXpr::OP_MULT));
+
+        // store the coefFunction for postprocessing
+        thermalStress_->AddRegion( myRegionId, thermalStressCoef);
 
         BaseBOperator * bOp = GetStrainOperator( isComplex_, false );
 
@@ -894,8 +904,36 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     } else {
       sigmaFunc.reset(new CoefFunctionFlux<Double>(feFct, stress));
     }
-    DefineFieldResult( sigmaFunc, stress );
+    // check for thermal strains
+    bool isThermalStrain = false;
+    PtrParamNode bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
+    if( bcsNode ) {
+      if( bcsNode->Has("thermalStrain") ) {
+        isThermalStrain = true;
+      }
+    }
+    if ( isThermalStrain )  {
+      //! Cauchy stress is [c] ( Bu - alpha DeltaT )
+      PtrCoefFct actualStress =
+          CoefFunction::Generate( mp_, part,
+              CoefXprBinOp(mp_,sigmaFunc,thermalStress_,CoefXpr::OP_SUB));
+      DefineFieldResult( actualStress, stress );
+    }
+    else {
+      DefineFieldResult( sigmaFunc, stress );
+    }
     stiffFormCoefs_.insert(sigmaFunc);
+
+    // === THERMOMECHANIC STRESS ===
+    if ( isThermalStrain )  {
+      shared_ptr<ResultInfo> stress(new ResultInfo);
+      stress->resultType = MECH_THERMAL_STRESS;
+      stress->dofNames = stressComponents;
+      stress->unit =  "N/m^2";
+      stress->entryType = ResultInfo::TENSOR;
+      stress->definedOn = ResultInfo::ELEMENT;
+      DefineFieldResult( thermalStress_, stress );
+    }
 
     // === MECHANIC STRAIN ===
     shared_ptr<ResultInfo> strain(new ResultInfo);

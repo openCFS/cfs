@@ -118,7 +118,8 @@ public:
     OP_CROSS_AXI,             /*!< Binary x operation (axisymmetric cross product) */
     OP_POW,                   /*!< Binary x^y operation */
     OP_NORM,                  /*!< Unary L2-Norm operation */
-    OP_SQRT                   /*!< Unary square root operation */
+    OP_SQRT,                   /*!< Unary square root operation */
+    OP_TRACE                  /*!< Unary trace of tensor operation  */
   } OpType;
   
   //! Get number of operands for OpType

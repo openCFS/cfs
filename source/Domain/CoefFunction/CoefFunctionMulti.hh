@@ -104,15 +104,19 @@ public:
 
 private:
   
+  //! perform initialization (set zeroCoef_)
+  void Init();
+
   //! Return coefficient function for a given region
   inline PtrCoefFct GetRegionCoef( RegionIdType region ) {
-    std::map<RegionIdType,PtrCoefFct >::const_iterator it = 
-        regionCoefs_.find(region);
+    std::map<RegionIdType,PtrCoefFct >::const_iterator it =
+                           regionCoefs_.find(region);
     if(it == regionCoefs_.end()){
       if ( !zeroEmptyRegions_ )
         EXCEPTION("Region " << region << " is not contained in functor");
       return zeroCoef_;
     }
+
     return it->second;
   }
   
