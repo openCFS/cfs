@@ -959,10 +959,15 @@ namespace CoupledField
            std::map<std::string,PtrCoefFct> symbolsTens;
            symbolsTens["a"] = dependency;
            StdVector<std::string> bbStr;
-           bbStr = "( a_0_R * a_0_R )" , "( a_0_R * a_1_R )" , "( a_0_R * a_2_R )" ,
-                   "( a_0_R * a_1_R )" , "( a_1_R * a_1_R )" , "( a_1_R * a_2_R )" ,
-                   "( a_0_R * a_2_R )" , "( a_1_R * a_2_R )" , "( a_2_R * a_2_R )" ;
-           dnudBTens->SetTensor(bbStr,3,3,symbolsTens);
+           if ( dimDMat == 3 ) {
+             bbStr = "( a_0_R * a_0_R )" , "( a_0_R * a_1_R )" , "( a_0_R * a_2_R )" ,
+                     "( a_0_R * a_1_R )" , "( a_1_R * a_1_R )" , "( a_1_R * a_2_R )" ,
+                     "( a_0_R * a_2_R )" , "( a_1_R * a_2_R )" , "( a_2_R * a_2_R )" ;
+           } else {
+             bbStr = "( a_0_R * a_0_R )" , "( a_0_R * a_1_R )" ,
+                     "( a_0_R * a_1_R )" , "( a_1_R * a_1_R )" ;
+           }
+           dnudBTens->SetTensor(bbStr,dimDMat,dimDMat,symbolsTens);
 
            CoefXprTensScalOp dnudBOp = CoefXprTensScalOp( mp_, dnudBTens, scalFnc, CoefXpr::OP_MULT );
            PtrCoefFct dnudBFnc = CoefFunction::Generate( mp_, Global::REAL, dnudBOp );
