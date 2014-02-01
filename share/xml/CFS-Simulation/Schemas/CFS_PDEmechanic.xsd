@@ -424,11 +424,12 @@
   <xsd:simpleType name="DT_MechElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="mechStrain"/>
+      <xsd:enumeration value="mechThermalStrain"/>
       <xsd:enumeration value="mechStress"/>
       <xsd:enumeration value="mechThermalStress"/>
       
       <xsd:enumeration value="mechStructIntensity"/>
-      <xsd:enumeration value="vonMisesStress"/>
+      <xsd:enumeration value="vonMises"/>
       <xsd:enumeration value="vonMisesStrain"/>
       <xsd:enumeration value="mechKinEnergyDensity"/>
       <xsd:enumeration value="mechDeformEnergyDensity"/>

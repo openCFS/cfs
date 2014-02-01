@@ -103,6 +103,9 @@ namespace CoupledField
     //! Tensor type
     SubTensorType tensorType_;
 
+    //! coefFunctzion for thermal strain
+    shared_ptr<CoefFunctionMulti> thermalStrain_;
+
     //! coefFunctzion for thermal stress
     shared_ptr<CoefFunctionMulti> thermalStress_;
 

@@ -291,7 +291,7 @@ namespace CoupledField {
 
     shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_POTENTIAL];
     
-    // === ELECTRIC CURRENT INTENSITY ===
+    // === ELECTRIC FIELD INTENSITY ===
     shared_ptr<ResultInfo> ef ( new ResultInfo );
     ef->resultType = ELEC_FIELD_INTENSITY;
     ef->SetVectorDOFs(dim_, isaxi_);
@@ -307,7 +307,7 @@ namespace CoupledField {
     DefineFieldResult( eFunc, ef );
     stiffFormCoefs_.insert(eFunc);
     
-    // === ELECTRIC FLUX DENSITY ===
+    // === ELECTRIC CURRENT INTENSITY ===
     shared_ptr<ResultInfo> flux ( new ResultInfo );
     flux->resultType = ELEC_CURRENT_DENSITY;
     flux->SetVectorDOFs(dim_, isaxi_);

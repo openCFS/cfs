@@ -362,6 +362,10 @@ namespace CoupledField {
         return "";
         break;
 
+      case MECH_THERMAL_STRAIN:
+         return "";
+         break;
+
       case MECH_NORMAL_STRESS:
         return "N/m^2";
         break;
@@ -1071,9 +1075,10 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_STRESS, "mechStress");
     SolutionTypeEnum.Add(MECH_THERMAL_STRESS, "mechThermalStress");
     SolutionTypeEnum.Add(MECH_STRAIN, "mechStrain");
+    SolutionTypeEnum.Add(MECH_THERMAL_STRAIN, "mechThermalStrain");
     SolutionTypeEnum.Add(MECH_STRUCT_INTENSTIY, "mechStructIntensity");
     SolutionTypeEnum.Add(MECH_NORMAL_STRUCT_INTENSITY, "mechNormalStructIntensity");
-    SolutionTypeEnum.Add(VON_MISES_STRESS, "vonMisesStress");
+    SolutionTypeEnum.Add(VON_MISES_STRESS, "vonMises");
     SolutionTypeEnum.Add(VON_MISES_STRAIN, "vonMisesStrain");
     SolutionTypeEnum.Add(MECH_KIN_ENERGY_DENS, "mechKinEnergyDensity");
     SolutionTypeEnum.Add(MECH_DEFORM_ENERGY_DENS, "mechDeformEnergyDensity");
@@ -1264,9 +1269,14 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MECH_TEC1, "Mechanic_ThermalExpCoef1" );
     MaterialTypeEnum.Add( MECH_TEC2, "Mechanic_ThermalExpCoef2" );
     MaterialTypeEnum.Add( MECH_TEC3, "Mechanic_ThermalExpCoef3" );
-    MaterialTypeEnum.Add( MECH_TEC_VECTORTEC, "Mechanic_TEC_Vector" );
-    MaterialTypeEnum.Add( MECH_TEC_VECTORTECPLANE, "Mechanic_TEC_VectorPlane" );
-    MaterialTypeEnum.Add( MECH_TEC_VECTORTECAXI, "Mechanic_TEC_VectorAxi" );
+    MaterialTypeEnum.Add( MECH_TEC_VECTOR, "Mechanic_TEC_Vector" );
+    MaterialTypeEnum.Add( MECH_TEC_VECTORPLANE, "Mechanic_TEC_VectorPlane" );
+    MaterialTypeEnum.Add( MECH_TEC_VECTORAXI, "Mechanic_TEC_VectorAxi" );
+
+    MaterialTypeEnum.Add( MECH_STIFFTENSOR_TEC_VECTOR, "Mechanic_StiffTEC_Vector" );
+    MaterialTypeEnum.Add( MECH_STIFFTENSOR_TEC_VECTORPLANE, "Mechanic_StiffTEC_VectorPlane" );
+    MaterialTypeEnum.Add( MECH_STIFFTENSOR_TEC_VECTORAXI, "Mechanic_StiffTEC_VectorAxi" );
+
     MaterialTypeEnum.Add( MECH_TEC_REFTEMPERATURE, "refTemperature");
     MaterialTypeEnum.Add( RAYLEIGH_ALPHA, "Rayleigh_Alpha" ); 
     MaterialTypeEnum.Add( RAYLEIGH_BETA, "Rayleigh_Beta" ); 
