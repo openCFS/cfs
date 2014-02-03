@@ -97,7 +97,7 @@ BaseFE* FeSpaceL2Nodal::GetFe( const EntityIterator ent ){
   }
 
   if(refElems_[eRegion].find(ent.GetElem()->type) == refElems_[eRegion].end()){
-    EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
+    EXCEPTION("fespacel2::getfe( const entityiterator): requested fetype which is noch supported by space");
   }
   BaseFE * myFe = refElems_[eRegion][ent.GetElem()->type];
 
@@ -242,7 +242,9 @@ void FeSpaceL2Nodal::SetRegionElements(RegionIdType region,
     refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHexVar();
     refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLineVar();
     refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuadVar();
+    refElems_[region][Elem::ET_QUAD9]  = new FeH1LagrangeQuadVar();
     refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHexVar();
+    refElems_[region][Elem::ET_HEXA27] = new FeH1LagrangeHexVar();
 
     UInt isoOrder = order.GetIsoOrder();
     

@@ -41,6 +41,7 @@
 #include "Forms/Operators/MultiIdOp.hh"
 #include "Forms/Operators/LaplOp.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
+#include "Domain/CoefFunction/CoefFunctionMeanFlowConvection.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 #include "Forms/Operators/StrainOperator.hh"
 
@@ -48,6 +49,7 @@
 #include "Driver/SolveSteps/StdSolveStep.hh"
 
 #include "Domain/CoefFunction/CoefXpr.hh"
+#include "OLAS/algsys/SolStrategy.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -119,7 +121,14 @@ namespace CoupledField {
   }
   
   void FlowPDE::InitNonLin() {
-    SinglePDE::InitNonLin();
+    nonLinMethod_ = FIXEDPOINT;
+    PtrParamNode nonLinNode = solStrat_->GetNonLinNode();
+    if( nonLinNode ) {
+      std::string methodString;
+      nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
+      nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
+    }
+
     nonLin_ = true;
     nonLinTotalFormulation_ = true;
   }
@@ -172,8 +181,10 @@ namespace CoupledField {
       //  Set region approximation
       // --------------------------
       // We hardcode the Taylor-Hood spaces for the moment
-      velSpace->SetRegionApproximation(actRegion, "velPolyId", "velIntegId");
-      presSpace->SetRegionApproximation(actRegion, "presPolyId", "presIntegId");
+//      velSpace->SetRegionApproximation(actRegion, "velPolyId", "velIntegId");
+//      presSpace->SetRegionApproximation(actRegion, "presPolyId", "presIntegId");
+      velSpace->SetRegionApproximation(actRegion, "velPolyId", "default");
+      presSpace->SetRegionApproximation(actRegion, "presPolyId", "default");
 
       PtrCoefFct density = materials_[actRegion]->GetScalCoefFnc(
         DENSITY,
@@ -302,6 +313,44 @@ namespace CoupledField {
                                            feFunctions_[FLUIDMECH_VELOCITY] );
       assemble_->AddBiLinearForm( convectiveContextVv );
 
+      if( nonLinMethod_ == NEWTON ) {
+        BaseBOperator* bOpGrad;
+        BaseBOperator* bOpId;
+        if( dim_ == 2 )
+        bOpId = new IdentityOperator<FeH1,2,2>();
+        else
+          bOpId = new IdentityOperator<FeH1,3,3>();
+
+        //now create the integrators
+        BiLinearForm *convectivevV = NULL;
+        PtrCoefFct coeffConvec;
+        PtrCoefFct constCoeff = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+        if( dim_ == 2 ) {
+          bOpGrad = new GradientOperator<FeH1,2, 1, Double>();
+          coeffConvec.reset(
+              new CoefFunctionMeanFlowConvection<Double,2>( density, constCoeff,
+                                                              bOpGrad, feFunctions_[FLUIDMECH_VELOCITY]) );
+        } else {
+          bOpGrad = new GradientOperator<FeH1,3, 1, Double>();
+          coeffConvec.reset(
+              new CoefFunctionMeanFlowConvection<Double,3>( density, constCoeff,
+                                                              bOpGrad, feFunctions_[FLUIDMECH_VELOCITY]) );
+        }
+        convectivevV = new BDBInt<Double,Double>( bOpId, coeffConvec, 1.0 );
+
+        convectivevV->SetName("FlowStiffIntConvectiveNewtonVv");
+        //! mark the bi-linear form to be a Newton part
+        convectivevV->SetNewtonBilinearForm();
+
+        BiLinFormContext *convectiveContextvV = NULL;
+        convectiveContextvV = new BiLinFormContext(convectivevV, STIFFNESS );
+
+        convectiveContextvV->SetEntities( actSDList, actSDList );
+        convectiveContextvV->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],
+                                             feFunctions_[FLUIDMECH_VELOCITY] );
+        assemble_->AddBiLinearForm( convectiveContextvV );
+      }
+
       // ====================================================================
       // damping integrators
       // ====================================================================
@@ -407,9 +456,9 @@ namespace CoupledField {
       actSDList->SetRegion( *surfIt );
 
       velFct->AddEntityList( actSDList );
-      velSpace->SetRegionApproximation(*surfIt, "velPolyId", "velIntegId");
+      velSpace->SetRegionApproximation(*surfIt, "velPolyId", "default");
       presFct->AddEntityList( actSDList );
-      presSpace->SetRegionApproximation(*surfIt, "presPolyId", "presIntegId");
+      presSpace->SetRegionApproximation(*surfIt, "presPolyId", "default");
 
       // --------------------------------------------------------------------
       //  VERSION 2: K_VP Integrator
@@ -633,9 +682,23 @@ namespace CoupledField {
         FeSpace::CreateInstance(myParam_,spaceNode,FeSpace::H1, ptGrid_);
       crSpaces[FLUIDMECH_PRESSURE]->Init(solStrat_);
 
-    }else{
+    } else if ( formulation == "L2" ) {
+      std::string form = SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY);
+      PtrParamNode potSpaceNode = infoNode->Get(form);
+      crSpaces[FLUIDMECH_VELOCITY] =
+          FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::L2, ptGrid_);
+
+      form = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE);
+      potSpaceNode = infoNode->Get(form);
+      crSpaces[FLUIDMECH_PRESSURE] =
+              FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
+
+      crSpaces[FLUIDMECH_VELOCITY]->Init(solStrat_);
+      crSpaces[FLUIDMECH_PRESSURE]->Init(solStrat_);
+    }
+    else{
       EXCEPTION("The formulation " << formulation << 
-                "of fluid perturbed PDE is not known!");
+                "  of fluidmech PDE is not known!");
     }
     return crSpaces;
   }
