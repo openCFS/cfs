@@ -156,17 +156,28 @@ def get_interpol_data(coords, data, fallback, x, eval = True):
     v = fallback[x]
   return coords[x], v  
 
-## helper which returns an interpolated grid and one nearest neighbor interpolated grid
-
-def get_interpolation(coords, grad, sample, s1, s2, angle = None):
-  assert(sample == 'elem_nodes' or sample == 'edge_centers')
-  
-  centers, min, max, elem = coords
+## helper for get_interpolation and Fields
+#@return 2d locations and 2d data
+def convert_interpolation_input(centers, s1, s2, angle):
   # convert to 2D
   c = numpy.zeros((len(centers), 2))
   c[:,0] = [x[0] for x in centers]
   c[:,1] = [x[1] for x in centers]
- 
+
+  v = numpy.zeros((len(s1),  2 if angle == None else 3))
+  for i in range(len(s1)):
+    v[i][0] = s1[i][0]
+    v[i][1] = s2[i][0]
+    if angle <> None:
+      v[i][2] = angle[i][0]
+      
+  return c, v    
+
+## helper which returns an interpolated grid and one nearest neighbor interpolated grid
+def get_interpolation(coords, grad, sample, s1, s2, angle = None):
+  assert(sample == 'elem_nodes' or sample == 'edge_centers')
+  
+  centers, min, max, elem = coords
   # where we want nodes
   nx = int((max[0] - min[0]) / elem[0])
   ny = int((max[1] - min[1]) / elem[1])
@@ -198,12 +209,7 @@ def get_interpolation(coords, grad, sample, s1, s2, angle = None):
         out[nx + y * (2*nx+1) + x][1] = float(y)/ny * max[1] + 0.5 * elem[1]
         # print "out[" + str(nx + y * (2*nx+1) + x) + "] = " + str(out[nx + y * (2*nx+1) + x])
 
-  v = numpy.zeros((len(s1),  2 if angle == None else 3))
-  for i in range(len(s1)):
-    v[i][0] = s1[i][0]
-    v[i][1] = s2[i][0]
-    if angle <> None:
-      v[i][2] = angle[i][0]
+  c, v = convert_interpolation_input(centers, s1, s2, angle)
     
   ip_data = ip.griddata(c, v, out, grad, -1.0)
   # any interpolation but nearest neighbor can only interpolate in the convex hull,

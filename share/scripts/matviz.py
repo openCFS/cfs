@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from matviz_vtk import *
 from matviz_2d  import *
+from matviz_streamline import *
 from hdf5_tools import *
 import argparse
 import sys
@@ -66,7 +67,7 @@ parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, '
 parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=float)
 parser.add_argument("--res", help="x-resolution (default 1000)", default=1000, type=int)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
-parser.add_argument("--show", help="default | ortho_norm | mono_norm (3D) | ortho_err | e21_normed (2D) | hom_rect | hom_rot_cross | rot | shear", default="default", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'rot', 'shear'])
+parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'rot', 'stream'])
 parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", default="voigt")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
@@ -148,7 +149,7 @@ else:
 if h5_read or dim_2D:
   # either Image or polydata  
   viz = None
-  if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "rot":
+  if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "rot" or args.show == 'stream':
 
     s1, s2, s3, angle = read_stiff_angle(f, dim_2D, args)
     # add angle bias
@@ -158,18 +159,22 @@ if h5_read or dim_2D:
 
     # viz is either Image or polydata
     if dim_2D:
-      if args.show == "hom_rot_cross" or args.show == "rot":
+      if args.show == "hom_rect": 
+        if args.hom_grad == 'none':
+          viz = show_frame(coords, s1, s2, args.hom_dir, args.res)
+        else:
+          viz = show_frame_grad(coords, s1, s2, args.hom_grad, args.hom_dir, args.res)
+      elif args.show == "hom_rot_cross" or args.show == "rot":
         # add optional angle bias
         print 'change angle'
         if args.hom_grad == 'none':
           viz = show_rot_cross(coords, s1, s2, angle[:,0], args.hom_dir, args.res, args.scale)
         else:
-          viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, args.scale)          
+          viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, args.scale)
+      elif args.show == "stream":
+          viz = show_streamline(coords, s1, s2, angle[:,0])            
       else:
-        if args.hom_grad == 'none':
-          viz = show_frame(coords, s1, s2, args.hom_dir, args.res)
-        else:
-          viz = show_frame_grad(coords, s1, s2, args.hom_grad, args.hom_dir, args.res)
+        assert(False)
     # the 3D VTK stuff      
     else:       
       if args.show == "rot":
