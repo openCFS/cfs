@@ -24,16 +24,17 @@ def read_stiff_angle(hdf_file, dim_2D, args):
   
   angle = numpy.zeros(((len(s1),3)))
   
-  if args.show == "hom_rot_cross" or args.show == "rot":
+  if args.show == "hom_rot_cross" or args.show == "rot" or args.show == "stream":
     try:
       if dim_2D:
-        angle[:,0] = get_element(f, "design_rotAngle_" + args.hom_access, args.h5_region, args.h5_step)
+        angle[:,0] = get_element(f, "design_rotAngle_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
       else:
         angle[:,0] = get_element(f, "design_rotAngleX_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
         angle[:,1] = get_element(f, "design_rotAngleY_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
         angle[:,2] = get_element(f, "design_rotAngleZ_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
-    except:
-      print 'could not read angle, ignore it'
+    except Exception, e:
+      print 'could not read angle, ignore it: ', e
+      
   return s1, s2, s3, angle
 
 ## show or write either Image or polydata

@@ -169,7 +169,7 @@ def convert_interpolation_input(centers, s1, s2, angle):
     v[i][0] = s1[i][0]
     v[i][1] = s2[i][0]
     if angle <> None:
-      v[i][2] = angle[i][0]
+      v[i][2] = angle[i]
       
   return c, v    
 
@@ -306,7 +306,7 @@ def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale=-1):
 
   im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white") 
 
-  delta_angle = numpy.max(angle[:,0]) - numpy.max(angle[:,0]) 
+  delta_angle = numpy.max(angle[:]) - numpy.max(angle[:]) 
 
   #print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " min=" + str(min) + " max=" + str(max)
   ip_data, ip_near, out, nx, ny = get_interpolation(coords, grad, 'edge_centers', s1, s2, angle)
