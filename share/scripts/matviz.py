@@ -13,8 +13,8 @@ import os
 # @return s1, s2, s3, angle 
 def read_stiff_angle(hdf_file, dim_2D, args):
   # rot means, that we only show rotAngle, e.g. for piezoelectric polarization
-  s1 = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1 
-  s2 = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1
+  s1 = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1 
+  s2 = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1
   s3 = numpy.ones((len(centers),1)) * .1 if dim_2D or args.show == "rot" else get_element(f, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step) 
   if args.density_scale:
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)

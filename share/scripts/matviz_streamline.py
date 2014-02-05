@@ -150,9 +150,6 @@ def sort_data(s1, s2, angle):
       #print '  after: s1=' + str(s1[i]) + ' s2=' + str(s2[i]) + ' a=' + str(angle[i]) 
  
 def show_streamline(coords, s1, s2, angle):            
-  
-  
-  print s1
  
   centers, min, max, elem = coords
   
