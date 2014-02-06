@@ -184,6 +184,7 @@ Function::Function(PtrParamNode pn) {
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case SLACK:
+  case MULTIMATERIAL_SUM:
     linear_ = true;
     break;
   case TENSOR_TRACE:
@@ -950,7 +951,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
 
   this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : false;
 
-  if (pn->Get("lattice_vol_coeff_file") != NULL) {
+  if (pn != NULL && pn->Has("lattice_vol_coeff_file")) {
   //read interpolation data for volume calculation in 3D
   std::string file = pn->Get("lattice_vol_coeff_file")->As<std::string>();
   Xerces xerces(file);
@@ -972,18 +973,13 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   //total volume in the non-regular case is needed for the volume calculations
   bool regular = space->IsRegular();
   this->total_vol_ = 0.0;
-  if (this->normalize_) {
-    this->total_vol_ = 1.0;
-  } else {
-    if (!regular) {
+  if (!regular) {
       for (unsigned int i = 0, n = this->func_->elements.GetSize(); i < n;i++) {
         this->total_vol_ += this->func_->elements[i]->CalcVolume();
       }
-    } else {
+  } else {
       this->total_vol_ = 1.0;
-    }
   }
-
   switch (ftype) {
   case GLOBAL_JUMP:
   case GLOBAL_MOLE:
@@ -1551,7 +1547,13 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f) {
 
   LOG_DBG(func)<< "F:L:SMDEM des_idx=" << des_idx.ToString() << " total=" << space->design.ToString();
 
-  for (unsigned int e = 0; e < elems; e++) {
+
+  if(elems > func_->elements.GetSize())
+    EXCEPTION("for function " << Function::type.ToString(f->GetType()) << " with design " << DesignElement::type.ToString(f->GetDesignType())
+              << " the design space is " << func_->elements.GetSize() << " but should be " << elems);
+
+  for(unsigned int e = 0; e < elems; e++)
+  {
     DesignElement* de = func_->elements[e];
     assert((int ) e == space->Find(de->elem, true)); // assert that we still are on the right finite element
 
@@ -1807,17 +1809,17 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
   case GLOBAL_SUM_MODULI:
   case GLOBAL_LAMINATES_VOL:
   case GLOBAL_TENSOR_TRACE: {
-    // we normalize all values by the number of "constraints". Note that it is
+    // we normalize all values by the number of "constraints". If Note that it is
     // sufficient for the function value, the gradient is then also right
-    double factor =
-        local->DoNormalizeGlobal() ?
-            1.0 / local->virtual_elem_map.GetSize() : 1.0;
-    if (!local->space->IsRegular()) {
-      if (local->DoNormalizeGlobal()) {
-        PtrParamNode inf_warn = info->Get("optimization/header/designSpace");
-        local->func_->info_->Get(ParamNode::WARNING)->SetValue(
-                    "Option normalize is not defined for unregular grids. Turn normalize off!");
+    double factor;
+    if (local->DoNormalizeGlobal()) {
+      if (f->type_ == GLOBAL_LAMINATES_VOL) {
+        factor = local->space->IsRegular() ? (1.0 / local->virtual_elem_map.GetSize()) : (1./local->total_vol_) ;
+      } else {
+        factor = 1.0 / local->virtual_elem_map.GetSize();
       }
+    } else {
+      factor = 1.;
     }
 
     double v = std::max(0.0, fv - f->GetParameter());
@@ -1951,15 +1953,15 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     // post process the globalized functions
     if (local->IsGlobalized()) {
       // actually the normalization is already in grad_glob_fv if power != 1.0!
-      double factor =
-          local->DoNormalizeGlobal() && local->power_ == 1.0 ?
-              1.0 / local->virtual_elem_map.GetSize() : 1.0;
-      if (!local->space->IsRegular()) {
-        if (local->DoNormalizeGlobal()) {
-          PtrParamNode inf_warn = info->Get("optimization/header/designSpace");
-          local->func_->info_->Get(ParamNode::WARNING)->SetValue(
-                      "Option normalize is not defined for unregular grids. Turn normalize off!");
+      double factor;
+      if (local->DoNormalizeGlobal() && local->power_ == 1.0) {
+        if (ft == GLOBAL_LAMINATES_VOL) {
+          factor = local->space->IsRegular() ? (1.0 / local->virtual_elem_map.GetSize()) : 1. / local->total_vol_ ;
+        } else {
+          factor = 1.0 / local->virtual_elem_map.GetSize();
         }
+      } else {
+        factor = 1.;
       }
       gv *= grad_glob_fv * factor;
       LOG_DBG2(func)<< "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
@@ -2620,7 +2622,9 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, int 
   if (!regular) {
     assert(local->total_vol_ != 0);
   }
-  double svol = (regular ? 1.0 : (element->CalcVolume()/local->total_vol_));
+  /**svol is a scaling factor for unstructured, nonregular grids. */
+  double svol = regular ? 1.0 : element->CalcVolume();
+  LOG_DBG2(func)<<"Element volume =  "<<element->CalcVolume();
   if (!derivative) {
       if (dim == 2) {
         return svol*(stiff1 + stiff2 - stiff1 * stiff2);
@@ -2631,7 +2635,7 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, int 
       switch (GetElement(neigh_idx)->GetType()) {
       case DesignElement::STIFF1:
         if (dim == 2) {
-          return svol*(scale - scale * stiff2 - scale * stiff2);
+          return svol*(scale - scale * stiff2);
         } else {
           vol = svol * CalcLatticeVolume3D(local,neigh_idx,derivative);
           assert(vol!= -1);
@@ -2639,7 +2643,7 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, int 
         }
       case DesignElement::STIFF2:
         if (dim == 2) {
-          return svol*(scale - scale * stiff1 - scale * stiff1);
+          return svol*(scale - scale * stiff1);
         } else {
           vol = svol * CalcLatticeVolume3D(local,neigh_idx,derivative);
           assert(vol!= -1);
@@ -2998,25 +3002,28 @@ double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
   return ret;
 }
 
-double Function::Local::Identifier::CalcMultiMaterialSum(int neigh_idx,
-    const Local* local, bool derivative) const {
-  Matrix<double> E;
-
-  double ret = 0.0;
-
-  if (!derivative) {
-    for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
-      ret += GetElement(i)->GetDesign(DesignElement::PLAIN);
-      LOG_DBG3(func)<< "L::I::CMMS e_num=" << element->elem->elemNum << " i=" << i << " e=" << GetElement(i)->elem->elemNum << " mi=" << GetElement(i)->multimaterial->index << " -> " << ret;
-    }
-  }
-  else
+double Function::Local::Identifier::CalcMultiMaterialSum(int neigh_idx, const Local* local, bool derivative) const
   {
-    ret = 1.0;
+    Matrix<double> E;
+
+    double ret = 0.0;
+
+    if(!derivative)
+    {
+      for(int i=-1; i < (int) neighbor.GetSize(); ++i)
+      {
+        ret += GetElement(i)->GetDesign(DesignElement::PLAIN);
+        LOG_DBG3(func) << "L::I::CMMS e_num=" << element->elem->elemNum << " i=" << i << " e=" <<  GetElement(i)->elem->elemNum << " mi=" << GetElement(i)->multimaterial->index
+                       << " v=" << GetElement(i)->GetDesign(DesignElement::PLAIN) << " -> " << ret;
+      }
+    }
+    else
+    {
+      ret = 1.0;
+    }
+    LOG_DBG3(func) << "L::I::CMMS e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
+    return ret;
   }
-  LOG_DBG3(func)<< "L::I::CMMS e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
-  return ret;
-}
 
 double Function::Local::Identifier::CalcTensorTrace(int neigh_idx,
     const Local* local, bool derivative) const {

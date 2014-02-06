@@ -88,7 +88,7 @@ namespace CoupledField {
   {
     std::stringstream ss;
     ss << HomDirichletBc::ToString() << ", value=" << value << ", phase=" << phase
-       << ", weight=" << weight;
+       << ", weight=" << weight << ", name=" << this->entities->GetName();
     return ss.str();
   }
 

@@ -630,6 +630,8 @@ share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain
 share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
 share/scripts/IdentifyFortranCompiler.F90 -text
+share/scripts/abaqus_reader.py -text
+share/scripts/base_structures_images.py -text
 share/scripts/bootstrap_devel_machine.sh svneol=native#text/plain
 share/scripts/build_tee.pl -text
 share/scripts/cfs -text
@@ -646,6 +648,7 @@ share/scripts/convert_fms_to_hom.py -text
 share/scripts/cplreader -text
 share/scripts/create-sparse-gid-mesh-2d-quadratic.py -text
 share/scripts/create_density.py -text
+share/scripts/create_mesh.py -text
 share/scripts/cubemesh.pl -text
 share/scripts/density-to-png.py -text
 share/scripts/distro.sh svneol=native#text/plain
@@ -706,6 +709,12 @@ share/scripts/material_catalogue/interpolation3D/write_to_xml_3D.m -text
 share/scripts/material_catalogue/inv_tensor.xml -text
 share/scripts/material_catalogue/inv_tensor_3D.xml -text
 share/scripts/material_catalogue/mat.xml -text
+share/scripts/matviz.py -text
+share/scripts/matviz_2d.py -text
+share/scripts/matviz_rot.py -text
+share/scripts/matviz_vtk.py -text
+share/scripts/mesh_tool.py -text
+share/scripts/monitor_memory.sh -text
 share/scripts/nas-tool-gid-to-nas.py -text
 share/scripts/nas-tool-nas2msh.py -text
 share/scripts/nas-tool-voidmesh.py -text
@@ -716,8 +725,11 @@ share/scripts/physical_density_to_stiff_rotAngle.py -text
 share/scripts/printElemMatVec.py -text
 share/scripts/printElemMatVec.tcl svneol=native#text/x-tcl
 share/scripts/probe_ilupack_parameters.py -text
+share/scripts/process_image.py -text
+share/scripts/readme_show_fmo_tensor.txt -text
+share/scripts/readme_show_fmo_tensor_windows.txt -text
 share/scripts/rstinfo -text
-share/scripts/show_fmo_tensor.py -text
+share/scripts/show_fmo_tensor_examples.txt -text
 share/scripts/voidmesh.pl -text
 share/scripts/xmlreplace.py -text
 share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml

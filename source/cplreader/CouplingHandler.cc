@@ -416,7 +416,8 @@ namespace CoupledField
          std::find(outputFields_.begin(),outputFields_.end(),"all")               != outputFields_.end() ||
          settings.GetInt("calcMeanPresField") ||
          settings.GetInt("calcMeanVelField")){
-        ComputeMeanValues(flowData);
+         if(settings.GetInt("pressureForAPE") != 1)
+           ComputeMeanValues(flowData);
       }
 
       while ( ( counter < numFiles*stepInc ) && readOK)
@@ -817,8 +818,9 @@ namespace CoupledField
     while ( ( counter < userNumSteps*stepInc ) && readOK)
     {
       stepVal = ptFileReader_->GetTimeStep(counter);
-      if(counter == 0)
+      if(counter == 0){
         startTime = stepVal;
+      }
 
       if(counter == (userNumSteps-1)*stepInc){
         endTime = stepVal;
@@ -1076,6 +1078,7 @@ namespace CoupledField
     bool computeLHP = false;
     bool computeLHV = false;
     bool usePresD2 = false;
+    bool usePresDT2 = false;
 
     if(computeWaveRhs){
       //now we determine what to do depending on the quantity the user specified
@@ -1087,6 +1090,12 @@ namespace CoupledField
       //BIG TODO: This needs to be more failsafe, the big variety of different formulations will require
       // a refactoring of cplreader...
       switch(lhType){
+      case FLUIDMECH_PRESSURE_TIME_DERIV_2:
+        if(flowData.find(FLUIDMECH_PRESSURE) == flowData.end()){
+          EXCEPTION("Trying to compute wave equation RHS with nodal pressure time derivative, but pressure field was not found in input data!")
+        }
+        usePresDT2 = true;
+        break;
       case FLUIDMECH_VELOCITY:
         if(flowData.find(FLUIDMECH_VELOCITY) == flowData.end()){
           EXCEPTION("Trying to compute wave equation RHS with nodal velocity, but this field was not found in input data!")
@@ -1207,13 +1216,14 @@ namespace CoupledField
     std::vector<Double>& pressureField = pressureStruct.data;
 
     if(!pressureStruct.isActive){
-      if(computeAPEMass || computeLHP){
+      if(computeAPEMass || computeLHP || usePresDT2){
         std::cerr << "Cannot calculate Pressure sources on " << regionName
                   << " since no pressure field is available!" << std::endl;
       }
       presFieldAvailable = false;
       computeAPEMass = false;
       computeLHP = false;
+      usePresDT2 = false;
       flowData.erase(FLUIDMECH_PRESSURE);
       flowData.erase(MEAN_FLUIDMECH_PRESSURE);
     }
@@ -1238,6 +1248,9 @@ namespace CoupledField
     if( computeAPEMass ){
       ComputePerturbedPressureField(pressureField,regionIdx,flowData[MEAN_FLUIDMECH_PRESSURE]);
       UpdatePressureTimeDeriv(perturbedPressureField_[regionIdx] , regionIdx);
+    }
+    if( usePresDT2 ){
+      UpdatePressure2ndTimeDeriv(pressureField , regionIdx);
     }
 
 
@@ -1401,6 +1414,7 @@ namespace CoupledField
     Vector<Double> nodalPressureTDeriv;
     Vector<Double> nodalPerturbedPressure;
     Vector<Double> elemVecPres;
+    Vector<Double> nodalPressureTDeriv2;
 
 
     //aeroacoustic Source
@@ -1432,6 +1446,7 @@ namespace CoupledField
       nodalMeanVel.Resize(elemDim, numElemNodes);
       nodalMeanPressure.Resize(numElemNodes,0.0);
       nodalPressureTDeriv.Resize(numElemNodes,0.0);
+      nodalPressureTDeriv2.Resize(numElemNodes,0.0);
       nodalPressure.Resize(numElemNodes,0.0);
       nodalPressureD2.Resize(numElemNodes,0.0);
       nodalPerturbedPressure.Resize(numElemNodes,0.0);
@@ -1451,18 +1466,21 @@ namespace CoupledField
         }
 
         //for pressure based wave equation we just need the fluid pressure
-        if(computeLHP){
+        if(computeLHP|| (computeAPEMomentum && settings.GetInt("pressureForAPE")) ){
           nodalPressure[n] = pressureField[regionNodeIndices_[regionIdx][nodeNum]];
         }
         if(usePresD2){
           nodalPressureD2[n] = presD2Field[regionNodeIndices_[regionIdx][nodeNum]];
+        }
+        if(usePresDT2){
+          nodalPressureTDeriv2[n] =  pressure2ndTimeDeriv_[regionIdx][regionNodeIndices_[regionIdx][nodeNum]];
         }
 
         for( UInt d=0; d<elemDim; d++)
         {
           coordMat[d][n] = nodalCoords_[topoIdx+d];
 
-          if(computeLHV || computeAPEMomentum || computeAeroAcouSrc)
+          if(computeAPEMass || computeLHV || computeAPEMomentum || computeAeroAcouSrc)
           {
             if (!useDivLHT) {
               nodalVel[d][n] = velField[velIdx+d];
@@ -1538,7 +1556,13 @@ namespace CoupledField
                                                             nodalPressureD2,
                                                             elemVecLH,
                                                             nodalLoadDensity);
+              } else if(usePresDT2){
+                 ptElemI[elemType].PerformIntegrationPresD2(coordMat,
+                                                            nodalPressureTDeriv2,
+                                                            elemVecLH,
+                                                            nodalLoadDensity);
               }
+
 
           }
 
@@ -1552,13 +1576,19 @@ namespace CoupledField
           }
 
           if(computeAPEMomentum){
-            ptElemI[elemType].PerformIntegrationAPEMomentum(coordMat,
-                                                            nodalVel,
-                                                            nodalMeanVel,
-                                                            elemVecLamb,
-                                                            elemVecLambRhs,
-                                                            density);
-
+            if(settings.GetInt("pressureForAPE")==0){
+              ptElemI[elemType].PerformIntegrationAPEMomentum(coordMat,
+                                                              nodalVel,
+                                                              nodalMeanVel,
+                                                              elemVecLamb,
+                                                              elemVecLambRhs,
+                                                              density);
+            }else{
+              ptElemI[elemType].PerformIntegrationAPEMomentumPres(coordMat,
+                                                                  nodalPressure,
+                                                                  elemVecLambRhs,
+                                                                  density);
+            }
           }
 
           if(computeAeroAcouSrc){
@@ -1616,7 +1646,13 @@ namespace CoupledField
                                                                   elemVecLH,
                                                                   nodalLoadDensity);
 
+              } else if(usePresDT2){
+                 ptElemIntegr_[elemType]->PerformIntegrationPresD2(coordMat,
+                                                                   nodalPressureTDeriv2,
+                                                                   elemVecLH,
+                                                                   nodalLoadDensity);
               }
+
             }
 
           if(computeAPEMass){
@@ -1629,13 +1665,19 @@ namespace CoupledField
           }
 
           if(computeAPEMomentum){
-            ptElemIntegr_[elemType]->PerformIntegrationAPEMomentum(coordMat,
-                                                                   nodalVel,
-                                                                   nodalMeanVel,
-                                                                   elemVecLamb,
-                                                                   elemVecLambRhs,
-                                                                   density);
-
+            if(settings.GetInt("pressureForAPE")==0){
+              ptElemIntegr_[elemType]->PerformIntegrationAPEMomentum(coordMat,
+                                                                     nodalVel,
+                                                                     nodalMeanVel,
+                                                                     elemVecLamb,
+                                                                     elemVecLambRhs,
+                                                                     density);
+            }else{
+              ptElemIntegr_[elemType]->PerformIntegrationAPEMomentumPres(coordMat,
+                                                                         nodalPressure,
+                                                                         elemVecLambRhs,
+                                                                         density);
+            }
           }
 
           if(computeAeroAcouSrc){
@@ -1682,6 +1724,8 @@ namespace CoupledField
         nodeNum = topology_[elemIdx * maxNENodes + n];
         idx = regionNodeIndices_[regionIdx][nodeNum];
 
+        if(computeLHV || computeLHP || useDivLHT || usePresD2 || usePresDT2){
+
 #ifndef NDEBUG
         if (std::isnan(elemVecLH[n]) || std::isinf(elemVecLH[n])) {
           EXCEPTION("Source term calculated on element " << i+1
@@ -1689,10 +1733,9 @@ namespace CoupledField
         }
 #endif
 
-        if(computeLHV || computeLHP || useDivLHT || usePresD2){
-#pragma omp atomic 
+#pragma omp atomic
           acouRhsField[idx] -= elemVecLH[n];
-#pragma omp atomic 
+#pragma omp atomic
           acouRhsDensityField[idx] -= nodalLoadDensity[n];
         }
 
@@ -1721,7 +1764,7 @@ namespace CoupledField
       {
         if(computeLHV)
           acouDivLighthillTensor[i*dim_ + n] = divLHTensor[n];
-        if(computeAPEMomentum)
+        if(computeAPEMomentum && settings.GetInt("pressureForAPE") ==0 )
           acouLambVec[i*dim_+n] = elemVecLamb[n];
       }      
     }
@@ -2042,10 +2085,71 @@ namespace CoupledField
     if(pertPres.size() == 0){
       pertPres.resize(size);
     }
-    int iSize = (int)size;
 #pragma omp parallel for
-    for(int i=0;i<iSize;++i){
+    for(UInt i=0;i<size;++i){
       pertPres[i] = actPresField[i] - meanPressureField[i];
+    }
+  }
+
+  void CouplingHandler::UpdatePressure2ndTimeDeriv(const std::vector<Double> & actPresField, const int regIdx){
+
+    if(actPresField.size() == 0){
+      return;
+    }
+    Settings& settings = Settings::Instance();
+    if(settings.GetDouble("timestep") == 0){
+      std::cerr << "Got zero timestep value from fielreader. Aborting derivative calculation... " << std::endl;
+    }
+    const Double dt = settings.GetDouble("timestep");
+
+    std::vector<Double> & myVec = pressure2ndTimeDeriv_[regIdx];
+    std::vector<Double> & oldVecN1 = oldPressureFieldF2nd_n_1_[regIdx];
+    std::vector<Double> & oldVecN2 = oldPressureFieldF2nd_n_2_[regIdx];
+    std::vector<Double> & oldVecN3 = oldPressureFieldF2nd_n_3_[regIdx];
+    std::vector<Double> & oldVecN4 = oldPressureFieldF2nd_n_4_[regIdx];
+
+    const UInt size = actPresField.size();
+
+    //we leave the first 4 step values to zero
+    //we do this here by a cascade of if-clauses
+    if(oldVecN4.size()==0){
+      oldVecN4.resize(size,0.0);
+      oldVecN4.assign(actPresField.begin(),actPresField.end());
+      myVec.resize(size,0.0);
+      return;
+    }else if(oldVecN3.size()==0){
+      oldVecN3.resize(size,0.0);
+      oldVecN3.assign(actPresField.begin(),actPresField.end());
+      myVec.resize(size,0.0);
+      return;
+    }else if(oldVecN2.size()==0){
+      oldVecN2.resize(size,0.0);
+      oldVecN2.assign(actPresField.begin(),actPresField.end());
+      myVec.resize(size,0.0);
+      return;
+    }else if(oldVecN1.size()==0){
+      oldVecN1.resize(size,0.0);
+      oldVecN1.assign(actPresField.begin(),actPresField.end());
+      myVec.resize(size,0.0);
+      return;
+    }else{
+      //so all past timesteps have values we start the computation
+      const Double c1 =   35.0 / 12.0;
+      const Double c2 = - 26.0 / 3.0;
+      const Double c3 =   19.0 / 2.0;
+      const Double c4 = - 14.0 / 3.0;
+      const Double c5 =   11.0 / 12;
+      const Double iDt =   1.0 / (dt*dt);
+#pragma omp parallel for
+      for(UInt i = 0; i < size; ++i){
+        //compute the derivative and exchange the contents  
+        myVec[i] = ( c1 * actPresField[i] + c2*oldVecN1[i] + c3*oldVecN2[i] + c4*oldVecN3[i] + c5*oldVecN4[i] ) * iDt;
+        //now shift in this! order
+        oldVecN4[i] = oldVecN3[i];
+        oldVecN3[i] = oldVecN2[i];
+        oldVecN2[i] = oldVecN1[i];
+        oldVecN1[i] = actPresField[i];
+      }
     }
   }
 
@@ -2063,43 +2167,23 @@ namespace CoupledField
     std::vector<Double> & oldVec = oldPressureField_n_1_[regIdx];
     std::vector<Double> & olderVec = oldPressureField_n_2_[regIdx];
     const UInt size = actPresField.size();
-    bool firstStep = false;
-    bool secondStep = false;
+
     if(oldVec.size() == 0){
-      oldVec.resize(size);
-      myVec.resize(size);
-      olderVec.resize(size);
-      firstStep=true;
+      oldVec.resize(size,0.0);
+      myVec.resize(size,0.0);
+      olderVec.resize(size,0.0);
     }
 
-    if(!firstStep && olderVec.size() == 0){
-      olderVec.resize(size);
-      secondStep = true;
-      olderVec.assign(oldVec.begin(),oldVec.end());
-    }
+    const Double c1 = 3.0;
+    const Double c2 = 4.0;
+    const Double c3 = 1.0;
+    const Double iDt = 1.0 / (2.0*dt);
 
-    if(firstStep || secondStep){
-      //ok, this is only first order accurate for the first two timesteps
-
-      int iSize = (int)size;
-  #pragma omp parallel for
-      for(int i = 0; i < iSize; ++i){
-        myVec[i] = (actPresField[i] - oldVec[i]) / dt;
-        oldVec[i] = actPresField[i];
-      }
-    }else{
-      const Double c1 = 3.0;
-      const Double c2 = 4.0;
-      const Double c3 = 1.0;
-      const Double iDt = 1.0 / (2.0*dt);
-
-      int iSize = (int)size;
 #pragma omp parallel for
-      for(int i = 0; i < iSize; ++i){
-        myVec[i] = (c1 * actPresField[i] - c2 * oldVec[i] + c3*olderVec[i]) * iDt;
-        olderVec[i] = oldVec[i];
-        oldVec[i] = actPresField[i];
-      }
+    for(UInt i = 0; i < size; ++i){
+      myVec[i] = (c1 * actPresField[i] - c2 * oldVec[i] + c3*olderVec[i]) * iDt;
+      olderVec[i] = oldVec[i];
+      oldVec[i] = actPresField[i];
     }
   }
 

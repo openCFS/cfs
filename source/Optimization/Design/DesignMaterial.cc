@@ -12,6 +12,7 @@
 #include "General/defs.hh"
 #include "General/exception.hh"
 #include "Optimization/Design/DesignElement.hh"
+#include "Optimization/ErsatzMaterial.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 #include "Elements/2D/quad9fe.hh"
@@ -32,8 +33,9 @@ Enum<DesignMaterial::Type> DesignMaterial::type;
 Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
 Enum<DesignMaterial::Notation> DesignMaterial::notation;
 
-DesignMaterial::DesignMaterial(PtrParamNode pn,
-    OptimizationMaterial::System material, StdVector<DesignID>& design) {
+
+DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, ErsatzMaterial* em)
+{
   type_ = type.Parse(pn->Get("type")->As<string>());
 
   dim = domain->GetGrid()->GetDim();
@@ -50,7 +52,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn,
 
   dampingIsDesign_ = pn->Get("optimizeDamping")->As<bool>();
 
-  deb_ = true;
+  em_ = em;
 
   // collect all designs here, to check whether all are given
   unsigned int r = RequiredParameters(material);
@@ -803,56 +805,54 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t,
   }
 }
 
-void DesignMaterial::GetAnisotropicTensor(Matrix<double>& t,
-    DesignElement::Type direction, Notation notation) {
-  // We use the anisotropic tensor only for solving FMO problems. Then we assume the design to be in Hill-Mandel
+
+void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
+{
+  // We use the anisotropic tensor only for solving FMO problems. We assume the design to be in Hill-Mandel
   // notation and therefore we need to transform it for using it in CFS
-  double e11 = 0;
-  double e22 = 0;
-  double e33 = 0;
-  double e23 = 0;
-  double e13 = 0;
-  double e12 = 0;
-  assert(direction != DesignElement::DENSITY);
-  if (direction == DesignElement::NO_DERIVATIVE) {
-    e11 = params_[DesignElement::TENSOR11];
-    e22 = params_[DesignElement::TENSOR22];
-    e33 = params_[DesignElement::TENSOR33] * (notation == VOIGT ? 0.5 : 1.0);
-    e23 = params_[DesignElement::TENSOR23]
-        * (notation == VOIGT ? 1.0 / sqrt(2.0) : 1.0);
-    e13 = params_[DesignElement::TENSOR13]
-        * (notation == VOIGT ? 1.0 / sqrt(2.0) : 1.0);
-    e12 = params_[DesignElement::TENSOR12];
-  }
+
+  bool set = direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE;
+
+  double e11 = set ? params_[DesignElement::TENSOR11] : 0;
+  double e22 = set ? params_[DesignElement::TENSOR22] : 0;
+  double e33 = set ? params_[DesignElement::TENSOR33] : 0;
+  double e23 = set ? params_[DesignElement::TENSOR23] : 0;
+  double e13 = set ? params_[DesignElement::TENSOR13] : 0;
+  double e12 = set ? params_[DesignElement::TENSOR12] : 0;
+  double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
+
   switch (direction) {
   case DesignElement::NO_DERIVATIVE:
-    Set2dVoigtTensor(t, e11, e22, e33, e23, e13, e12);
+  case DesignElement::ROTANGLE:
+    Set2dVoigtTensor(E, e11, e22, e33, e23, e13, e12);
     break;
   case DesignElement::TENSOR11:
-    Set2dVoigtTensor(t, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    Set2dVoigtTensor(E, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR22:
-    Set2dVoigtTensor(t, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
+    Set2dVoigtTensor(E, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR33:
-    Set2dVoigtTensor(t, 0.0, 0.0, notation == VOIGT ? 0.5 : 1.0, 0.0, 0.0, 0.0);
+    Set2dVoigtTensor(E, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR23:
-    Set2dVoigtTensor(t, 0.0, 0.0, 0.0,
-        notation == VOIGT ? 1.0 / sqrt(2.0) : 1.0, 0.0, 0.0);
+    Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR13:
-    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0,
-        notation == VOIGT ? 1.0 / sqrt(2.0) : 1.0, 0.0);
+    Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
     break;
   case DesignElement::TENSOR12:
-    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+    Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
     break;
   default:
-    // for piezo FMO the derivative w.r.t. dielec_11, ... is zero
-    ZeroTensor(t, PLANE_STRAIN);
-    return;
+    // for piezo FMO the derivative w.r.E. dielec_11, ... is zero
+    ZeroTensor(E, PLANE_STRAIN);
   }
+
+  LOG_DBG2(dm) << "GEFMOT: E before rotation = " << E.ToString(2) << " d=" << DesignElement::type.ToString(direction);
+  RotateHMStiffnessTensor(E, PLANE, direction, rotAngle, notation);
+  LOG_DBG2(dm) << "GEFMOT: E after rotation =  " << E.ToString(2) << " n=" << (notation == VOIGT ? "v" : "n") ;
+
 }
 
 void DesignMaterial::GetHomRectTensor(Matrix<double>& E,
@@ -943,10 +943,8 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E,
         } else if (direction == DesignElement::STIFF3) {
           peps[2] += eps;
         }
-        deb_ = false;
         ApplyHomRectC1Tensor(Eeps,peps,DesignElement::NO_DERIVATIVE,subTensor);
         ApplyHomRectC1Tensor(Etmp,p,DesignElement::NO_DERIVATIVE,subTensor);
-        deb_ = true;
         LOG_DBG(dm)<<"Eeps11: "<<std::setprecision(10)<<Eeps[0][0]<<", E11: "<<Etmp[0][0]<<" Diff: "<<Eeps[0][0]-Etmp[0][0];
         LOG_DBG(dm)<<"Eeps13: "<<std::setprecision(10)<<Eeps[0][2]<<", E13: "<<Etmp[0][2]<<" Diff: "<<Eeps[0][2]-Etmp[0][2];
         double e11 = (Eeps[0][0]-Etmp[0][0])/eps;
@@ -1149,9 +1147,7 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
       E[2 - 1][1 - 1] = E[1 - 1][2 - 1];
       E[3 - 1][1 - 1] = E[1 - 1][3 - 1];
       E[3 - 1][2 - 1] = E[2 - 1][3 - 1];
-      if (deb_) {
-        LOG_DBG(dm)<<"E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2]<<" E23= "<<E[1][2]<<" E13= "<<E[0][2]<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
-      }
+      LOG_DBG(dm)<<"E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2]<<" E23= "<<E[1][2]<<" E13= "<<E[0][2]<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
     } else {
       E[1-1][1-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
       E[1-1][2-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
@@ -1165,9 +1161,7 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
       E[2-1][1-1] = E[1-1][2-1];
       E[3-1][1-1] = E[1-1][3-1];
       E[3-1][2-1] = E[2-1][3-1];
-      if (deb_) {
-        LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":((direction == DesignElement::STIFF2) ? "2":"3"))<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2]<<" E23= "<<E[1][2]<<" E13= "<<E[0][2]<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
-      }
+      LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":((direction == DesignElement::STIFF2) ? "2":"3"))<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2]<<" E23= "<<E[1][2]<<" E13= "<<E[0][2]<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
     }
   } else {
     E.Resize(3,3);
@@ -1199,9 +1193,7 @@ double DesignMaterial::EvaluateC1Interpolation_3D(Matrix<double>& E,
   double t=(p[0]-hom_rect_a_[j][0])/da;
   double u =(p[1]-hom_rect_b_[k][0])/db;
   double v=(p[2]-hom_rect_c_[l][0])/dc;
-  if (deb_) {
-    LOG_DBG(dm)<<"u = "<<u<<" t= "<<t<<" v= "<<v;
-  }
+  LOG_DBG(dm)<<"u = "<<u<<" t= "<<t<<" v= "<<v;
   double res = 0;
   for (int ii = 0;ii<4;ii++) {
     for (int jj=0;jj<4;jj++) {
@@ -1210,9 +1202,7 @@ double DesignMaterial::EvaluateC1Interpolation_3D(Matrix<double>& E,
       }
     }
   }
-  if (deb_) {
-    LOG_DBG(dm) << "Result =" << res;
-  }
+  LOG_DBG(dm) << "Result =" << res;
   return res;
 }
 
@@ -1222,11 +1212,9 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Matrix<double>& E,
     DesignElement::Type direction) const {
   double u = (p[0] - hom_rect_a_[j][0]) / (da);
   double t = (p[1] - hom_rect_b_[k][0]) / (db);
-  double v = (p[2] - hom_rect_c_[l][0]) / dc;
-  if (deb_) {
-    LOG_DBG(dm)<<"Deriv: u = "<<u<<" t= "<<t<<" v= "<<v<<" j= "<<j<<" k= "<<k<<" l= "<<l;
-    LOG_DBG(dm)<<"p_deriv: ["<<p[0]<<", "<<", "<<p[1]<<", "<<p[2];
-  }
+  double v = (p[2] - hom_rect_c_[l][0]) / (dc);
+  LOG_DBG(dm)<<"Deriv: u = "<<u<<" t= "<<t<<" v= "<<v<<" j= "<<j<<" k= "<<k<<" l= "<<l;
+  LOG_DBG(dm)<<"p_deriv: ["<<p[0]<<", "<<", "<<p[1]<<", "<<p[2];
   double deriv = 0;
   if (direction == DesignElement::STIFF1) {
     for (int ii = 1; ii < 4; ii++) {
@@ -1261,9 +1249,7 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Matrix<double>& E,
     }
     deriv /= dc;
   }
-  if (deb_) {
-    LOG_DBG(dm)<< "Deriv Result =" << deriv;
-  }
+  LOG_DBG(dm)<< "Deriv Result =" << deriv;
   return deriv;
 }
 double DesignMaterial::EvaluateC1Interpolation(Matrix<double>& E,
@@ -1552,236 +1538,69 @@ void DesignMaterial::SetIsoTensor(Matrix<double>& t, SubTensorType subTensor,
   SetTransIsoTensor(t, subTensor, D, nd, G, D, nd, G);
 }
 
-void DesignMaterial::RotateHMStiffnessTensor(Matrix<double>& t,
-    SubTensorType subTensor, DesignElement::Type direction, double alpha,
-    Notation notation, double beta, double gamma) {
-  const double sq2inv = 1 / sqrt(2);
-  switch (subTensor) {
+
+void DesignMaterial::RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation)
+{
+  switch(subTensor){
   case PLANE_STRAIN:
   case PLANE_STRESS:
-  case PLANE: {
-    Matrix<double> R(3, 3);
-    Matrix<double> help(3, 3);
-    R.SetEntry(0, 0, pow(cos(alpha), 2));
-    R.SetEntry(0, 1, pow(sin(alpha), 2));
-    R.SetEntry(0, 2, -sqrt(2) / 2 * sin(2 * alpha));
-    R.SetEntry(1, 0, R(0, 1));
-    R.SetEntry(1, 1, R(0, 0));
-    R.SetEntry(1, 2, -R(0, 2));
-    R.SetEntry(2, 0, R(1, 2));
-    R.SetEntry(2, 1, R(0, 2));
-    R.SetEntry(2, 2, cos(2 * alpha));
-    LOG_DBG3(dm)<< "RTHM: R =  " << R.ToString(2) << " d=" << DesignElement::type.ToString(direction);
+  case PLANE:
+  {
+    Matrix<double> theta(3,3);
+    Matrix<double> help(3,3);
+    const double sq2inv = 1/sqrt(2);
+    theta.SetEntry(0,0, pow(cos(a),2));
+    theta.SetEntry(0,1, pow(sin(a),2));
+    theta.SetEntry(0,2, -sqrt(2)/2*sin(2*a));
+    theta.SetEntry(1,0, theta(0,1));
+    theta.SetEntry(1,1, theta(0,0));
+    theta.SetEntry(1,2, -theta(0,2));
+    theta.SetEntry(2,0, theta(1,2));
+    theta.SetEntry(2,1, theta(0,2));
+    theta.SetEntry(2,2, cos(2*a));
+    t.Mult(theta, help);
+    if(direction == DesignElement::ROTANGLE){
+      Matrix<double> dtheta(3,3);
+      dtheta.SetEntry(0,0, -sin(2*a));
+      dtheta.SetEntry(0,1, -dtheta(0,0));
+      dtheta.SetEntry(0,2, -sqrt(2)*cos(2*a));
+      dtheta.SetEntry(1,0, dtheta(0,1));
+      dtheta.SetEntry(1,1, dtheta(0,0));
+      dtheta.SetEntry(1,2, -dtheta(0,2));
+      dtheta.SetEntry(2,0, dtheta(1,2));
+      dtheta.SetEntry(2,1, dtheta(0,2));
+      dtheta.SetEntry(2,2, -2*sin(2*a));
+      Matrix<double> dthetaTttheta(3,3);
 
-    t.Mult(R, help);
-    if (direction == DesignElement::ROTANGLE) {
-      Matrix<double> dR(3, 3);
-      dR.SetEntry(0, 0, -sin(2 * alpha));
-      dR.SetEntry(0, 1, -dR(0, 0));
-      dR.SetEntry(0, 2, -sqrt(2) * cos(2 * alpha));
-      dR.SetEntry(1, 0, dR(0, 1));
-      dR.SetEntry(1, 1, dR(0, 0));
-      dR.SetEntry(1, 2, -dR(0, 2));
-      dR.SetEntry(2, 0, dR(1, 2));
-      dR.SetEntry(2, 1, dR(0, 2));
-      dR.SetEntry(2, 2, -2 * sin(2 * alpha));
-      Matrix<double> dRTtR(3, 3);
-      dR.MultT(help, dRTtR);
-      t.Mult(dR, help);
-      R.MultT(help, dR);
-      t = dRTtR + dR;
-      if (notation != HILL_MANDEL) {
-        t(0, 2) *= sq2inv;
-        t(1, 2) *= sq2inv;
-        t(2, 2) /= 2;
-        t(2, 0) *= sq2inv;
-        t(2, 1) *= sq2inv;
+      LOG_DBG3(dm) << "RHMST phi=" << a << " Theta=" << theta.ToString(2) << " dTheta=" << dtheta.ToString(2);
+
+      dtheta.MultT(help, dthetaTttheta);
+      t.Mult(dtheta, help);
+      theta.MultT(help, dtheta);
+      t = dthetaTttheta + dtheta;
+      if(notation != HILL_MANDEL)
+      {
+        t(0,2)*=sq2inv;
+        t(1,2)*=sq2inv;
+        t(2,2)/=2;
+        t(2,0)*=sq2inv;
+        t(2,1)*=sq2inv;
       }
       return;
     }
-    R.MultT(help, t);
-    if (notation != HILL_MANDEL) {
-      t(0, 2) *= sq2inv;
-      t(1, 2) *= sq2inv;
-      t(2, 2) /= 2;
-      t(2, 0) *= sq2inv;
-      t(2, 1) *= sq2inv;
+    theta.MultT(help, t);
+    if(notation != HILL_MANDEL)
+    {
+      t(0,2)*=sq2inv;
+      t(1,2)*=sq2inv;
+      t(2,2)/=2;
+      t(2,0)*=sq2inv;
+      t(2,1)*=sq2inv;
     }
+    LOG_DBG3(dm) << "RHMST phi=" << a << " Theta=" << theta.ToString(2);
+
     return;
   }
-//  case FULL:
-//  {
-//    Matrix<double> Q(6, 6);
-//    Matrix<double> help(6, 6);
-//    Matrix<double> R(3, 3);
-//    // source: share/scripts/paraview_fmo.py
-//    // rotates vector with matrix R = R_x(alpha) * R_y(beta) * R_z(gamma)
-//    R[0][0] = cos(beta) * cos(gamma);
-//    R[0][1] = -cos(beta) * sin(gamma);
-//    R[0][2] = sin(beta);
-//    R[1][0] = cos(alpha) * sin(gamma) + sin(alpha) * sin(beta) * cos(gamma);
-//    R[1][1] = cos(alpha) * cos(gamma) - sin(alpha) * sin(beta) * sin(gamma);
-//    R[1][2] = -sin(alpha) * cos(beta);
-//    R[2][0] = sin(alpha) * sin(gamma) - cos(alpha) * sin(beta) * cos(gamma);
-//    R[2][1] = sin(alpha) * cos(gamma) + cos(alpha) * sin(beta) * sin(gamma);
-//    R[2][2] = cos(alpha) * cos(beta);
-//
-//    Q[0][0] = R[0][0] * R[0][0];
-//    Q[0][1] = R[0][1] * R[0][1];
-//    Q[0][2] = R[0][2] * R[0][2];
-//    Q[0][3] = 2.0 * R[0][1] * R[0][2];
-//    Q[0][4] = 2.0 * R[0][0] * R[0][2];
-//    Q[0][5] = 2.0 * R[0][0] * R[0][1];
-//
-//    Q[1][0] = R[1][0] * R[1][0];
-//    Q[1][1] = R[1][1] * R[1][1];
-//    Q[1][2] = R[1][2] * R[1][2];
-//    Q[1][3] = 2.0 * R[1][1] * R[1][2];
-//    Q[1][4] = 2.0 * R[1][0] * R[1][2];
-//    Q[1][5] = 2.0 * R[1][0] * R[1][1];
-//
-//    Q[2][0] = R[2][0] * R[2][0];
-//    Q[2][1] = R[2][1] * R[2][1];
-//    Q[2][2] = R[2][2] * R[2][2];
-//    Q[2][3] = 2.0 * R[2][1] * R[2][2];
-//    Q[2][4] = 2.0 * R[2][0] * R[2][2];
-//    Q[2][5] = 2.0 * R[2][0] * R[2][1];
-//
-//    Q[3][0] = R[1][0] * R[2][0];
-//    Q[3][1] = R[1][1] * R[2][1];
-//    Q[3][2] = R[1][2] * R[2][2];
-//    Q[3][3] = R[1][1] * R[2][2] + R[1][2] * R[2][1];
-//    Q[3][4] = R[1][0] * R[2][2] + R[1][2] * R[2][0];
-//    Q[3][5] = R[1][0] * R[2][1] + R[1][1] * R[2][0];
-//
-//    Q[4][0] = R[0][0] * R[2][0];
-//    Q[4][1] = R[0][1] * R[2][1];
-//    Q[4][2] = R[0][2] * R[2][2];
-//    Q[4][3] = R[0][1] * R[2][2] + R[0][2] * R[2][1];
-//    Q[4][4] = R[0][0] * R[2][2] + R[0][2] * R[2][0];
-//    Q[4][5] = R[0][0] * R[2][1] + R[0][1] * R[2][0];
-//
-//    Q[5][0] = R[0][0] * R[1][0];
-//    Q[5][1] = R[0][1] * R[1][1];
-//    Q[5][2] = R[0][2] * R[1][2];
-//    Q[5][3] = R[0][1] * R[1][2] + R[0][2] * R[1][1];
-//    Q[5][4] = R[0][0] * R[1][2] + R[0][2] * R[1][0];
-//    Q[5][5] = R[0][0] * R[1][1] + R[0][1] * R[1][0];
-//    t.Mult(Q, help);
-//    if (direction == DesignElement::ROTX || direction == DesignElement::ROTY || direction == DesignElement::ROTZ) {
-//      Matrix<double> dQ(6, 6);
-//      Matrix<double> dR(3,3);
-//      switch (direction) {
-//      case DesignElement::ROTX:
-//        dR[0][0] =  0.;
-//        dR[0][1] = 0.;
-//        dR[0][2] =  0.;
-//        dR[1][0] =  -cos(alpha)*sin(gamma) + cos(alpha)*sin(beta)*cos(gamma);
-//        dR[1][1] =  -sin(alpha)*cos(gamma) - cos(alpha)*sin(beta)*sin(gamma);
-//        dR[1][2] = -cos(alpha)*cos(beta);
-//        dR[2][0] =  cos(alpha)*sin(gamma) + sin(alpha)*sin(beta)*cos(gamma);
-//        dR[2][1] =  cos(alpha)*cos(gamma) - sin(alpha)*sin(beta)*sin(gamma);
-//        dR[2][2] =  -sin(alpha)*cos(beta);
-//        break;
-//      case DesignElement::ROTY:
-//        dR[0][0] =  -sin(beta) * cos(gamma);
-//        dR[0][1] = sin(beta) * sin(gamma);
-//        dR[0][2] =  cos(beta);
-//        dR[1][0] =  sin(alpha)*cos(beta)*cos(gamma);
-//        dR[1][1] =  -sin(alpha)*cos(beta)*sin(gamma);
-//        dR[1][2] = sin(alpha)*cos(beta);
-//        dR[2][0] =  - cos(alpha)*cos(beta)*cos(gamma);
-//        dR[2][1] =  cos(alpha)*cos(beta)*sin(gamma);
-//        dR[2][2] =  -cos(alpha)*sin(beta);
-//        break;
-//      case DesignElement::ROTZ:
-//        dR[0][0] =  -cos(beta) * sin(gamma);
-//        dR[0][1] = -cos(beta) * cos(gamma);
-//        dR[0][2] =  0.;
-//        dR[1][0] =  cos(alpha)*cos(gamma) - sin(alpha)*sin(beta)*sin(gamma);
-//        dR[1][1] =  -cos(alpha)*sin(gamma) - sin(alpha)*sin(beta)*cos(gamma);
-//        dR[1][2] = 0.;
-//        dR[2][0] =  sin(alpha)*cos(gamma) + cos(alpha)*sin(beta)*sin(gamma);
-//        dR[2][1] =  -sin(alpha)*sin(gamma) + cos(alpha)*sin(beta)*cos(gamma);
-//        dR[2][2] =  0.;
-//        break;
-//      default:
-//          throw Exception("Rotation desing variable not implemented yet");
-//      }
-//      dQ[0][0] = 2.*R[0][0]*dR[0][0];
-//      dQ[0][1] = 2.*R[0][1]*dR[0][1];
-//      dQ[0][2] = 2.*R[0][2]*dR[0][2];
-//      dQ[0][3] = 2.0*R[0][1]*dR[0][2]+2.*R[0][2]*dR[0][1];
-//      dQ[0][4] = 2.0*R[0][0]*dR[0][2]+2.*R[0][2]*dR[0][0];
-//      dQ[0][5] = 2.0*R[0][1]*dR[0][0]+2.*R[0][0]*dR[0][1];
-//
-//      dQ[1][0] = 2.*R[1][0]*dR[1][0];
-//      dQ[1][1] = 2.*R[1][1]*dR[1][1];
-//      dQ[1][2] = 2.*R[1][2]*dR[1][2];
-//      dQ[1][3] = 2.0*R[1][1]*dR[1][2]+2.0*R[1][2]*dR[1][1];
-//      dQ[1][4] = 2.0*R[1][0]*dR[1][2]+2.0*dR[1][0]*R[1][2];
-//      dQ[1][5] = 2.0*R[1][0]*dR[1][1]+2.0*dR[1][0]*R[1][1];
-//
-//      dQ[2][0] = 2.*R[2][0]*dR[2][0];
-//      dQ[2][1] = 2.*R[2][1]*dR[2][1];
-//      dQ[2][2] = 2.*R[2][2]*dR[2][2];
-//      dQ[2][3] = 2.0*R[2][1]*dR[2][2]+ 2.0*dR[2][1]*R[2][2];
-//      dQ[2][4] = 2.0*R[2][0]*dR[2][2]+2.0*dR[2][0]*R[2][2];
-//      dQ[2][5] = 2.0*R[2][0]*dR[2][1]+2.0*dR[2][0]*R[2][1];
-//
-//      dQ[3][0] = R[1][0]*dR[2][0] +  dR[1][0]*R[2][0];
-//      dQ[3][1] = R[1][1]*dR[2][1] + dR[1][1]*R[2][1];
-//      dQ[3][2] = R[1][2]*dR[2][2] + dR[1][2]*R[2][2];
-//      dQ[3][3] = R[1][1]*dR[2][2] + R[1][2]*dR[2][1] + dR[1][1]*R[2][2] + dR[1][2]*R[2][1];
-//      dQ[3][4] = R[1][0]*dR[2][2] + R[1][2]*dR[2][0] + dR[1][0]*R[2][2] + dR[1][2]*R[2][0];
-//      dQ[3][5] = R[1][0]*dR[2][1] + R[1][1]*dR[2][0] + dR[1][0]*R[2][1] + dR[1][1]*R[2][0];
-//
-//      dQ[4][0] = R[0][0]*dR[2][0] + dR[0][0]*R[2][0];
-//      dQ[4][1] = R[0][1]*dR[2][1] + dR[0][1]*R[2][1];
-//      dQ[4][2] = R[0][2]*dR[2][2] + dR[0][2]*R[2][2];
-//      dQ[4][3] = R[0][1]*dR[2][2] + R[0][2]*dR[2][1] + dR[0][1]*R[2][2] + dR[0][2]*R[2][1];
-//      dQ[4][4] = R[0][0]*dR[2][2] + R[0][2]*dR[2][0] + dR[0][0]*R[2][2] + dR[0][2]*R[2][0];
-//      dQ[4][5] = R[0][0]*dR[2][1] + R[0][1]*dR[2][0] + dR[0][0]*R[2][1] + dR[0][1]*R[2][0];
-//
-//      dQ[5][0] = R[0][0]*dR[1][0] + dR[0][0]*R[1][0];
-//      dQ[5][1] = R[0][1]*dR[1][1] + dR[0][1]*R[1][1];
-//      dQ[5][2] = R[0][2]*dR[1][2] + dR[0][2]*R[1][2];
-//      dQ[5][3] = R[0][1]*dR[1][2] + R[0][2]*dR[1][1] + dR[0][1]*R[1][2] + dR[0][2]*R[1][1];
-//      dQ[5][4] = R[0][0]*dR[1][2] + R[0][2]*dR[1][0] + dR[0][0]*R[1][2] + dR[0][2]*R[1][0];
-//      dQ[5][5] = R[0][0]*dR[1][1] + R[0][1]*dR[1][0] + dR[0][0]*R[1][1] + dR[0][1]*R[1][0];
-//
-//      Matrix<double> dQTtQ(6, 6);
-//      dQ.MultT(help, dQTtQ);
-//      t.Mult(dQ, help);
-//      Q.MultT(help, dQ);
-//      t = dQTtQ + dQ;
-//      if (notation != HILL_MANDEL) {
-//        for (int i=0;i<6;i++) {
-//          for (int j=0;j<6;j++) {
-//            if ((i<3 && j>2) || (i>2 && j<3)) {
-//              t(i,j) *= sq2inv;
-//            } else if (i>2 && j>2) {
-//              t(i,j) /= 2.;
-//            }
-//          }
-//        }
-//      }
-//      return;
-//    }
-//    Q.MultT(help, t);
-//    if (notation != HILL_MANDEL) {
-//      for (int i=0;i<6;i++) {
-//        for (int j=0;j<6;j++) {
-//          if ((i<3 && j>2) || (i>2 && j<3)) {
-//            t(i,j) *= sq2inv;
-//          } else if (i>2 && j>2) {
-//            t(i,j) /= 2.;
-//          }
-//        }
-//      }
-//    }
-//    return;
-//  }
   default:
     throw Exception("subTensor not implemented yet");
   }
@@ -1979,9 +1798,119 @@ void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double sthetax, double
   }
 }
 
-double DesignMaterial::GetTransIsoMass(double iD, double iG, double oD,
-    double oG) {
-  switch (dim) {
+void DesignMaterial::RotatePiezoCouplingTensor(Matrix<double>& E, double phi, DesignElement::Type direction)
+{
+  // R(phi) * [e] * Q(phi)^T
+  // derivative: dR(phi)/dphi * ([e] * Q(phi)^T) + R(phi) * ([e] * dQ(phi)/dphi)^T
+
+  // Note, that we use VOIGT rotation matrix Q here, while in RotateHMStiffnessTensor Hill-Mandel is used. Also the QT here is QT^T of the HM rotation!
+
+  Matrix<double> R(2,2);
+  R[0][0] = cos(phi);
+  R[0][1] = sin(phi);
+  R[1][0] = -R[0][1];
+  R[1][1] = R[0][0];
+
+  Matrix<double> QT(3,3);
+
+  QT[0][0] = R[0][0]*R[0][0];
+  QT[0][1] = R[1][0]*R[1][0];
+  QT[0][2] = R[0][0]*R[1][0];
+
+  QT[1][0] = R[0][1]*R[0][1];
+  QT[1][1] = R[1][1]*R[1][1];
+  QT[1][2] = R[0][1]*R[1][1];
+
+  QT[2][0] = 2.0*R[0][0]*R[0][1];
+  QT[2][1] = 2.0*R[1][0]*R[1][1];
+  QT[2][2] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
+
+  Matrix<double> help(2,3);
+  E.Mult(QT, help); // help = E * Q^T
+  if(direction != DesignElement::ROTANGLE)
+  {
+    R.Mult(help, E); // E = R * (E * Q^T)
+
+    LOG_DBG3(dm) << "RPCT phi=" << phi << " R=" << R.ToString(2) << " QT=" << QT.ToString(2);
+    return;
+  }
+  else
+  {
+    Matrix<double> dR(2,2);
+    dR[0][0] = -sin(phi);
+    dR[0][1] = cos(phi);
+    dR[1][0] = -cos(phi);
+    dR[1][1] = -sin(phi);
+
+    Matrix<double> dQT(3,3);
+
+    dQT[0][0] = -2.0*R[0][0]*R[0][1];   // -2 cos(a) sin(a)
+    dQT[0][1] = -dQT[0][0];             // 2 cos(a) sin(a)
+    dQT[0][2] = -1.0*cos(2.0*phi);      // sin(a)^2 - cos(a)^2
+
+    dQT[1][0] = dQT[0][1];              // 2 cos(a) sin(a)
+    dQT[1][1] = dQT[0][0];              // -2 cos(a) sin(a)
+    dQT[1][2] = -dQT[0][2];             // cos(a)^2 - sin(a)^2
+
+    dQT[2][0] = 2.0*dQT[1][2];          // 2 cos(a)^2 - 2 sin(a)^2
+    dQT[2][1] = 2.0*dQT[0][2];          // 2 sin(a)^2 - 2 cos(a)^2
+    dQT[2][2] = 2.0 * dQT[0][0];        // -4 cos(a) sin(a)
+
+    Matrix<double> left(2,3);
+    dR.Mult(help, left); // left = dR * (E * Q^T)
+
+    E.Mult(dQT, help); // help = E * dQ^T
+
+    Matrix<double> right(2,3);
+    R.Mult(help, right); // right = R * (help) = R * (E * dQ^T)
+    E = left + right;
+    LOG_DBG3(dm) << "RPCT phi=" << phi << " R=" << R.ToString(2) << " dR=" << dR.ToString(2) << " QT=" << QT.ToString(2) << " dQT=" << dQT.ToString(2);
+    return;
+  }
+}
+
+
+void DesignMaterial::RotateElecTensor(Matrix<double>& E, double phi, DesignElement::Type direction)
+{
+  // R(phi) * [e] * R(phi)^T
+  // derivative: dR(phi)/dphi * ([e] * R(phi)^T) + R(phi) * ([e] * dR(phi)/dphi)^T
+
+  Matrix<double> RT(2,2);
+  RT[0][0] = cos(phi);
+  RT[0][1] = -sin(phi);
+  RT[1][0] = -RT[0][1];
+  RT[1][1] = RT[0][0];
+
+  Matrix<double> help(2,2);
+  E.Mult(RT, help); // help = E * R^T
+
+  if(direction != DesignElement::ROTANGLE)
+  {
+    RT.MultT(help, E); // E = R * (E * R^T)
+    return;
+  }
+  else
+  {
+    Matrix<double> dRT(2,2);
+    dRT[0][0] = -sin(phi);
+    dRT[0][1] = -cos(phi);
+    dRT[1][0] = -dRT[0][1];
+    dRT[1][1] = dRT[0][0];
+
+    Matrix<double> left(2,2);
+    dRT.MultT(help, left); // left = dR * (E * R^T)
+
+    E.Mult(dRT, help); // help = E * dR^T
+
+    RT.MultT(help, dRT); // overwrite dR to use temporary: dR = R * (help) = R * (E * dR^T)
+    E = left + dRT;
+    return;
+  }
+}
+
+
+double DesignMaterial::GetTransIsoMass(double iD, double iG, double oD, double oG){
+  switch(dim){
   case 2:
     switch (transIsoType_) {
     case TRANSISO_XY:
@@ -2012,7 +1941,7 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t,
 
   switch (type_) {
   case FMO:
-    GetAnisotropicTensor(t, direction, notation);
+    GetElasticFMOTensor(t, direction, notation);
     break;
   case ISOTROPIC:
     GetIsoMaterialTensor(t, subTensor, direction);
@@ -2046,95 +1975,98 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t,
   }
 }
 
-void DesignMaterial::GetDielecTensor(Matrix<double>& t,
-    DesignElement::Type direction) {
-  // only 2D!
-  double e11 = 0;
-  double e22 = 0;
-  double e12 = 0;
-  if (direction == DesignElement::NO_DERIVATIVE) {
-    e11 = params_[DesignElement::DIELEC_11];
-    e22 = params_[DesignElement::DIELEC_22];
-    e12 = params_[DesignElement::DIELEC_12];
-  }
-  t.Resize(2, 2);
-  t.Init();
 
-  switch (direction) {
+void DesignMaterial::GetElecTensor(Matrix<double>& E, DesignElement::Type direction)
+{
+
+  // only 2D!
+  bool set = direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE;
+
+  double e11 = set ? params_[DesignElement::DIELEC_11] : 0;
+  double e22 = set ? params_[DesignElement::DIELEC_22] : 0;
+  double e12 = set ? params_[DesignElement::DIELEC_12] : 0;
+  double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
+
+  E.Resize(2,2);
+  E.Init();
+
+  switch(direction)
+  {
   case DesignElement::NO_DERIVATIVE:
+  case DesignElement::ROTANGLE:
     // negative for the piezo case
-    t[0][0] = -e11;
-    t[0][1] = -e12;
-    t[1][0] = -e12;
-    t[1][1] = -e22;
+    E[0][0] = -e11; E[0][1] = -e12;
+    E[1][0] = -e12; E[1][1] = -e22;
     break;
   case DesignElement::DIELEC_11:
-    t[0][0] = -1.0;
+    E[0][0] = -1.0;
     break;
   case DesignElement::DIELEC_22:
-    t[1][1] = -1.0;
+    E[1][1] = -1.0;
     break;
   case DesignElement::DIELEC_12:
-    t[0][1] = -1.0;
+    E[0][1] = -1.0;
     break;
   default:
     // sensitivity is zero!
     break;
   }
+
+  LOG_DBG2(dm) << "GET: E before rotation = " << E.ToString(2);
+  RotateElecTensor(E, rotAngle, direction);
+  LOG_DBG2(dm) << "GET: E after rotation =  " << E.ToString(2);
 }
 
-void DesignMaterial::GetPiezoCouplingTensor(Matrix<double>& t,
-    DesignElement::Type direction) {
-  // only 2D!
-  double e11 = 0;
-  double e12 = 0;
-  double e13 = 0;
-  double e21 = 0;
-  double e22 = 0;
-  double e23 = 0;
-  if (direction == DesignElement::NO_DERIVATIVE) {
-    e11 = params_[DesignElement::PIEZO_11];
-    e12 = params_[DesignElement::PIEZO_12];
-    e13 = params_[DesignElement::PIEZO_13];
-    e21 = params_[DesignElement::PIEZO_21];
-    e22 = params_[DesignElement::PIEZO_22];
-    e23 = params_[DesignElement::PIEZO_23];
-  }
-  t.Resize(2, 3);
-  t.Init();
 
-  switch (direction) {
+void DesignMaterial::GetPiezoCouplingTensor(Matrix<double>& E, DesignElement::Type direction)
+{
+  // only 2D!
+  bool set = direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE;
+  double e11 = set ? params_[DesignElement::PIEZO_11] : 0;
+  double e12 = set ? params_[DesignElement::PIEZO_12] : 0;
+  double e13 = set ? params_[DesignElement::PIEZO_13] : 0;
+  double e21 = set ? params_[DesignElement::PIEZO_21] : 0;
+  double e22 = set ? params_[DesignElement::PIEZO_22] : 0;
+  double e23 = set ? params_[DesignElement::PIEZO_23] : 0;
+  double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
+  E.Resize(2,3);
+  E.Init();
+
+  switch(direction)
+  {
   case DesignElement::NO_DERIVATIVE:
-    t[0][0] = e11;
-    t[0][1] = e12;
-    t[0][2] = e13;
-    t[1][0] = e21;
-    t[1][1] = e22;
-    t[1][2] = e23;
+  case DesignElement::ROTANGLE:
+    E[0][0] = e11; E[0][1] = e12; E[0][2] = e13;
+    E[1][0] = e21; E[1][1] = e22; E[1][2] = e23;
     break;
   case DesignElement::PIEZO_11:
-    t[0][0] = 1.0;
+    E[0][0] = 1.0;
     break;
   case DesignElement::PIEZO_12:
-    t[0][1] = 1.0;
+    E[0][1] = 1.0;
     break;
   case DesignElement::PIEZO_13:
-    t[0][2] = 1.0;
+    E[0][2] = 1.0;
     break;
   case DesignElement::PIEZO_21:
-    t[1][0] = 1.0;
+    E[1][0] = 1.0;
     break;
   case DesignElement::PIEZO_22:
-    t[1][1] = 1.0;
+    E[1][1] = 1.0;
     break;
   case DesignElement::PIEZO_23:
-    t[1][2] = 1.0;
+    E[1][2] = 1.0;
     break;
 
   default:
     // empty, sensitivity is zero
     break;
   }
+
+  LOG_DBG2(dm) << "GPCT: E before rotation = " << E.ToString(2) << " ra=" << rotAngle << " d=" << DesignElement::type.ToString(direction);
+  RotatePiezoCouplingTensor(E, rotAngle, direction);
+  LOG_DBG2(dm) << "GPCT: E after rotation =  " << E.ToString(2);
+
 }
 
 double DesignMaterial::GetMaterialMass(DesignElement::Type direction) {

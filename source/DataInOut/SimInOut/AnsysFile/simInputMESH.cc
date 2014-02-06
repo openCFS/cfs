@@ -309,7 +309,7 @@ namespace CoupledField {
     case 15:
       return Elem::WEDGE15;
     default:
-      EXCEPTION("Undefined element in mesh!");
+      EXCEPTION("Undefined element in mesh: " << itype);
       break;
     }
     

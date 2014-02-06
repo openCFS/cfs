@@ -543,7 +543,7 @@ bool DesignElement::HasPhysicalDesign() const
 }
 
 
-void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf) const
+void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial* em) const
 {
   in->Get("type")->SetValue(type.ToString(type_));
   in->Get("upperBound")->SetValue(upper_);
@@ -554,6 +554,7 @@ void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf) const
   {
     in->Get("material")->SetValue(multimaterial->name);
     in->Get("mm_index")->SetValue(multimaterial->index);
+    multimaterial->ToInfo(in, em);
   }
 }
 

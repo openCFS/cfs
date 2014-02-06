@@ -888,6 +888,7 @@
                 <xsd:attribute name="relative_bound" use="optional" default="-1.0" type="xsd:float"/>
                 <xsd:attribute name="region" use="optional" type="xsd:token" default="all"/>
                 <xsd:attribute name="constant" use="optional" type="xsd:boolean" default="false"/>
+                <!-- if set true does not change the initial value. -->
                 <xsd:attribute name="fixed" use="optional" type="xsd:boolean" default="false"/>
                 <xsd:attribute name="scale" use="optional" type="xsd:boolean" default="false"/>
                 <!-- If true we interpret lower as physical_lower value. Must not be concurrent with physical_lower -->
@@ -1716,7 +1717,7 @@
     </xsd:sequence>
     
     <!-- define for sensitivity or design filtering -->
-    <xsd:attribute name="type" use="optional" default="sensitivity">
+    <xsd:attribute name="type" use="optional" default="density">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="sensitivity"/>

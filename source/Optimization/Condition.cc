@@ -729,6 +729,10 @@ string Condition::ToString(MultipleExcitation* me) const
   if(type_ == HOM_TENSOR)
     os << ToString(coords);
 
+  // with multiple output constraints we need to identify
+  if(type_ == OUTPUT && !output_nodes.IsEmpty())
+    os << "_" << output_nodes[0]->entities->GetName();
+
   // e.g. stresses are extended for every excitation
   if((type_ == STRESS || type_ == STRESS_DENSITY) && me != NULL && me->IsEnabled())
     os << "_" << me->excitations[excite_].label; // change to excite label

@@ -143,8 +143,6 @@ ErsatzMaterial::ErsatzMaterial() :
   }
 
   design = DesignSpace::CreateInstance(regions, pn, method_);
-  // make basic loggings
-  design->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"));
 
   // the L-mesh of the stress constraint benchmark is meshed by gid with different positions of
   // element nodes, such that one cannot use the same element matrix, even if the grid is regular
@@ -278,13 +276,15 @@ void ErsatzMaterial::PostInit()
       PtrParamNode output = f->pn->Get("output");
 
       if(output->Has("displacement"))
-        pde->ReadLoads(output->GetList("displacement"), output_nodes_);
+        pde->ReadLoads(output->GetList("displacement"), f->output_nodes);
       if(output->Has("elecPotential"))
-        domain->GetSinglePDE("electrostatic")->ReadLoads(output->GetList("elecPotential"), output_nodes_);
+        domain->GetSinglePDE("electrostatic")->ReadLoads(output->GetList("elecPotential"), f->output_nodes);
       if(output->Has("acoustic"))
-        domain->GetSinglePDE("acoustic")->ReadLoads(output->GetList("acoustic"), output_nodes_);
+        domain->GetSinglePDE("acoustic")->ReadLoads(output->GetList("acoustic"), f->output_nodes);
 
-      if(output_nodes_.GetSize() == 0)
+      LOG_DBG2(em) << "PI: o:" << f->IsObjective() << " added " << f->output_nodes[0]->ToString();
+
+      if(f->output_nodes.GetSize() == 0)
         throw Exception("no output optimization targets given");
       break;
     }
@@ -319,6 +319,8 @@ void ErsatzMaterial::PostInit()
   if(me->IsEnabled() && me->DoMaxwellHomogenization() && !maxwellHomogenization_)
     throw Exception("No maxwell homogenization objective for homogenization test charge excitation");
 
+  // make basic loggings
+  design->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"), this);
 }
 
 
@@ -1366,20 +1368,21 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool normalized)
   {
     assert(!f->elements.IsEmpty());
-// In CalcOrthotropeMaterialProperties() we construct a dummy function, this has Function::elements not set :(
-// only for physical
-// TODO: assumes a single transfer function for all regions!
+    // In CalcOrthotropeMaterialProperties() we construct a dummy function, this has Function::elements not set :(
+    // only for physical
+    // TODO: assumes a single transfer function for all regions!
     TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->GetDesignType(), Optimization::MECH) : NULL;
     bool regular = design->IsRegular();
     double sum = 0.0;
-// we need the total volume in the non-regular case
+    // we need the total volume in the non-regular case
     double total_vol = 0.0;
-    if (!normalized)
+    if(!normalized)
     {
       total_vol = 1.0;
     }
     else
     {
+
       if (!regular) {
         for (unsigned int i = 0, n = f->elements.GetSize();i < n;i++) {
           total_vol += f->elements[i]->CalcVolume();
@@ -1388,6 +1391,10 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         total_vol = f->elements.GetSize();
       }
     }
+    // in the multimaterial case we have to consider, the multiple design element case
+    if(design->HasMultiMaterial())
+      total_vol /= design->GetMultiMaterials().GetSize();
+
     LOG_DBG(em) << "CTV: d=" << derivative << " p=" << f->IsPhysical() << " n=" << normalized << " tv=" << total_vol;
     for(unsigned int i = 0, n = f->elements.GetSize(); i < n; i++)
     {
@@ -1524,8 +1531,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     Vector<T>& u = dynamic_cast<Vector<T> & >(*(forward.Get(excite, NULL)->GetVector(Solution::RAW_VECTOR)));
     Vector<T>& l = dynamic_cast<Vector<T>&>(*(adjoint.Get(excite, f)->GetVector(Solution::SEL_VECTOR)));
     assert(u.GetSize() == l.GetSize());
-    LOG_DBG2(em) << "OUPTUT: adjoint sel (l): " << l.ToString(1);
-    LOG_DBG2(em) << "OUPTUT: forward sol (u): " << u.ToString(0);
+    LOG_DBG2(em) << "CO: f=o: " << f->IsObjective() << " adjoint sel (l): " << l.ToString(1);
+    LOG_DBG2(em) << "CO: forward sol (u): " << u.ToString(0);
     double result = 0.0;
     switch(f->GetType())
     {
@@ -1535,7 +1542,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         T inner = u.Inner(l);
         result = ((complex<double>) inner).real();
         result *= excite.GetFactor(f);
-        LOG_DBG2(em) << "output <l,u>: " << inner << " * " << excite.GetFactor(f) << " -> " << result;
+        LOG_DBG2(em) << "CO: <l,u>: " << inner << " * " << excite.GetFactor(f) << " -> " << result;
         break;
       }
 
@@ -1544,7 +1551,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         // |<u,l>|
         T ul = u.Inner(l);
         result = std::abs(ul);
-        LOG_DBG2(em) << "output |<u,l>| = |" << ul << "| -> " << result;
+        LOG_DBG2(em) << "CO: |<u,l>| = |" << ul << "| -> " << result;
+        break;
       }
 
       case Objective::DYNAMIC_OUTPUT:
@@ -1564,10 +1572,10 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
           assert(std::abs(u_val) < 1e15);
 
           double sp = std::real(std::conj(u_val) * l[i] * u_val);
-          LOG_DBG2(em) << "CalcObjective: " << std::conj(u_val) << " * " << l[i] << " * " << u_val << " -> " << sp;
+          LOG_DBG2(em) << "CO: CalcObjective: " << std::conj(u_val) << " * " << l[i] << " * " << u_val << " -> " << sp;
           result += sp;
         }
-        LOG_DBG2(em) << "output <u,L u*>: " << result << " * " << excite.GetFactor(f) << " -> " << result * excite.GetFactor(f);
+        LOG_DBG2(em) << "CO: <u,L u*>: " << result << " * " << excite.GetFactor(f) << " -> " << result * excite.GetFactor(f);
         result *= excite.GetFactor(f);
         break;
       }
@@ -2673,7 +2681,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     LOG_DBG(em) << "CGF c=" << f->type.ToString(f->GetType()) << " derivative=" << derivative;
     Function::Local* local = f->GetLocal();
     assert(local != NULL);
-// the neighborhoods are already defined by Local!
+    // the neighborhoods are already defined by Local!
     StdVector<Function::Local::Identifier>& vem = local->virtual_elem_map;
     if(!derivative)
     {
@@ -2688,21 +2696,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         Function::Local::Identifier& id = vem[i];
         double fv = id.EvalFunction(local, false, von_mises_stress != NULL ? (*von_mises_stress)[i] : -1.0);
         res += fv;
-        // Get inverse factor, influenced by element number, in order to compare constraint bound with constraint value of a certain design element
-              // actually the normalization is already in grad_glob_fv if power != 1.0!
-        bool regular = local->space->IsRegular();
-          /** if grid is nonregular, the volume has to be scaled by element size */
-          if (!regular) {
-            assert(local->total_vol_ != 0);
-          }
-          double factor = 1.;
-          double relbound = factor * dynamic_cast<Condition*>(f)->GetBoundValue();
-        if (f->GetType() == Function::GLOBAL_LAMINATES_VOL) {
-          factor = (regular ? 1.0 : (id.element->CalcVolume()/local->total_vol_));
-          //double factor = local->DoNormalizeGlobal() && local->GetPower() == 1.0 ? local->virtual_elem_map.GetSize() : 1.0;
-          relbound *= factor;
-        }
-        if((fv-relbound) > 0) local->infeasible++;
+        if(fv > 0) local->infeasible++;
         LOG_DBG2(em) << "CGF: !d c=" << f->type.ToString(f->GetType()) << " i=" << i << " de="
         << id.element->elem->elemNum << " sign=" << id.sign << " fv=" << fv << " infeasible=" << local->infeasible << " -> " << res;
       }
@@ -3013,7 +3007,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       org_loads = assemble_->GetLoads();
 
     // overwrite the assemble loads with "pseudo loads"s loads
-    assemble_->SetLoads(output_nodes_);
+    assemble_->SetLoads(f->output_nodes);
     // set our own RHS but delete first as Assemble adds
     assemble_->GetAlgSys()->InitRHS();
     // assemble the output nodes
@@ -3053,7 +3047,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
     assemble_->GetAlgSys()->InitRHS(rhs);
 // assert(rhs.NormMax() != 0.0);
-    LOG_DBG2(em) << "CARHS<double>: f=" << f->ToString() << " rhs before solving: " << rhs.ToString(1) << " max_norm=" << rhs.NormMax();
+    LOG_DBG2(em) << "CARHS<double>: f=" << f->ToString() << " obj=" << f->IsObjective() << " rhs before solving: " << rhs.ToString(1) << " max_norm=" << rhs.NormMax();
   }
 
   void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)

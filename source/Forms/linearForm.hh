@@ -487,6 +487,13 @@ namespace CoupledField
                                  Vector<Double> & Result, const Elem* elem,
                                  Double density);
 
+  ///Calcualte aeroacoustic source term based on first pressure derivative 
+  void CalcElemVecWithGradP(const Matrix<Double>& ptCoord,
+                            const Vector<Double> & NodalPress,
+                            Vector<Double> & Result,
+                            const Elem* elem,
+                            Double density);
+
   ///Calcualte aeroacoustic source term based on lamb vector
   void CalcElemVecWithLamb(const Matrix<Double>& ptCoord,
                            const Matrix<Double> & NodalVelocity,

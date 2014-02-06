@@ -386,8 +386,8 @@ class Function
 
         /** Service function. Calculates the actual objective, based on function->type.
          * Is very fast for grad_glob and power == 1
-         * @param grad_glob only active when globalized. Not the globalization but the grad of the globalization
-         *                  is applied, but based on the function evaluation, not the function gradient!
+         * @param grad_glob only active when globalized. If grad_glob is active EvalFunction is called as in EvalGrad in order to calculated
+         * the gradient.
          * @param von_mises_stresss only used when the function is stress -> determined by ErsatzMaterial::CalcVonMisesStressGlobalizationFactor() */
         double EvalFunction(const Local* local, bool grad_glob = false, double von_mises_stresss = -1.0) const;
 
@@ -476,6 +476,10 @@ class Function
         /** CalcStress() and the gradient are actually done in EM/SIMP */
 
         DesignElement* element; // this represents DesignSpace::data[element_idx]
+
+        /** this are all design elements for the local function. For slopes a spatial neighborhood, for
+         * globalLaminatesVolumes the variables stiff1, stiff2 for the same FE-Element, ...
+         * @see GetElement() */
         StdVector<DesignElement*> neighbor;
 
         /** sign is only needed if we treat slope constraints as two separate constraints
@@ -605,6 +609,9 @@ class Function
      * it it is filled by DesignElements with dummy values.
      * Created on request */
     StdVector<DesignElement*> elements;
+
+    /** When we optimize output we store here the nodes */
+    LoadList output_nodes;
 
   protected:
 

@@ -350,15 +350,18 @@ public:
    * It works for both (mechanical) SIMP and PiezoSIMP. 
    * gradient is used to calculate some adjoints only for gradient calculations, some for function evaluations */
   void SolveAdjointProblem(Excitation* excite, Function* f);
+
   /** Determines the selection vector by a "pseudo loading" for output like objectives.
    * Stores in adjoint.select. Used by SolveAdjointProblem()
    * @param alter_rsh false if you want only selection and the system shall not be changed! */
   void ConstructSelection(Excitation& excite, Function* f, bool alter_rhs);
+
   /** This is helper SolveAdjointProblem().
    * There is a template method (which cannot be virtual) with distinct implementation.
    * Assumes adjont.select is set (by ConstructSelection())
    * This is for output loads or general real/complex rhs. */
   virtual void ConstructAdjointRHS(Excitation& excite, Function* f);
+
   /** A simple variant of IntegrateDesignVariable() which works also for non-simp transfer function.
    * Handles also non-regular and physical
    * @param normalized @see CalcVolume() */
@@ -627,9 +630,6 @@ private:
    * It shall be cheap enough to calc here twice! */
   template<class T>
   void CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod);
-
-  /** When we optimize output we store here the nodes */
-  LoadList output_nodes_;
 
   /** do we perform homogenization induced by any of the objective or constraints? */
   bool homogenization_;

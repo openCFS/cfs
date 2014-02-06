@@ -33,6 +33,7 @@ class SinglePDE;
 class TransferFunction;
 class DesignSpace;
 class MultiMaterial;
+class ErsatzMaterial;
 struct Elem;
 
 /** This DesignElement package provides information about the direct neighbours for uniform cartesian
@@ -330,7 +331,7 @@ public:
     
     /** Write key values as attributes
      * @param tf if given prints the physical lower bound */
-    void ToInfo(PtrParamNode in, TransferFunction* tf) const;
+    void ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial* em) const;
 
     /** @see BaseDesignElement::ToString() */
     std::string ToString() const { return ToString(this); }

@@ -57,9 +57,9 @@ void AuxDesign::PostInit(int objectives, int constraints)
     full_data[offset + i] = &(aux_design_[i]);
 }
 
-void AuxDesign::ToInfo(PtrParamNode in)
+void AuxDesign::ToInfo(PtrParamNode in, ErsatzMaterial* em)
 {
-  DesignSpace::ToInfo(in);
+  DesignSpace::ToInfo(in, em);
 
   if(slack_ != NULL)
   {
