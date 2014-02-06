@@ -147,7 +147,7 @@ void HeatPDE::DefineIntegrators() {
       tensorType = AXI;
       isaxi_ = true;
     } else {
-      tensorType = PLANE_STRAIN;
+      tensorType = PLANE;
     }
   }
 
@@ -225,7 +225,7 @@ void HeatPDE::DefineIntegrators() {
     else {
       // --- linear real-valued stiffness integrator ---
       shared_ptr<CoefFunction > curCoef = 
-        actSDMat->GetTensorCoefFnc( HEAT_CONDUCTIVITY, tensorType, 
+        actSDMat->GetTensorCoefFnc( HEAT_CONDUCTIVITY_TENSOR, tensorType,
                                     Global::REAL );
 
       BaseBDBInt* stiffInt = NULL;

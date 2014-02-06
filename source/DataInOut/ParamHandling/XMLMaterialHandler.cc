@@ -1108,9 +1108,9 @@ namespace CoupledField {
         // === ISOTROPIC ===
         if (lin->Has("isotropic")) {
           material->SetScalar(lin->Get("isotropic")->As<Double>(), HEAT_CONDUCTIVITY, Global::REAL);
-          material->SetSymmetryType(HEAT_CONDUCTIVITY,BaseMaterial::ISOTROPIC);
         }
         else if (lin->Has("tensor")){
+
           // can only be a real 3x3 tensor
           Matrix<double> tensor(3,3);
           PtrParamNode tens_pn = 
@@ -1160,6 +1160,7 @@ namespace CoupledField {
 
         //set info to material class
         material->SetNonLinMatIso(HEAT_CONDUCTIVITY, info);
+        //material->SetSymmetryType(HEAT_CONDUCTIVITY,BaseMaterial::ISOTROPIC);
       } // nonlinear isotropic material  
 
     }

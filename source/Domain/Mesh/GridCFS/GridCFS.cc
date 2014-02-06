@@ -252,7 +252,7 @@ namespace CoupledField {
         sampleVals[iDim].Init();
       } else {
         UInt numSamples  =
-          UInt( floor ( (coords[iDim].stop-coords[iDim].start)
+          UInt( floor ( abs(coords[iDim].stop-coords[iDim].start)
                         / coords[iDim].inc ) )+1;
         sampleVals[iDim].Resize( numSamples );
         for( UInt iSample = 0; iSample < numSamples; iSample++ ) {
