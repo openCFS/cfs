@@ -307,7 +307,7 @@ namespace CoupledField {
     DefineFieldResult( eFunc, ef );
     stiffFormCoefs_.insert(eFunc);
     
-    // === ELECTRIC CURRENT INTENSITY ===
+    // === ELECTRIC CURRENT DENSITY ===
     shared_ptr<ResultInfo> flux ( new ResultInfo );
     flux->resultType = ELEC_CURRENT_DENSITY;
     flux->SetVectorDOFs(dim_, isaxi_);
@@ -322,6 +322,39 @@ namespace CoupledField {
     }
     DefineFieldResult( fluxFunc, flux );
     stiffFormCoefs_.insert(fluxFunc);
+
+    // == ELECTRIC_NORMAL_CURRENT_DENSITY ==
+    shared_ptr<ResultInfo> fluxNormal ( new ResultInfo );
+    fluxNormal->resultType = ELEC_NORMAL_CURRENT_DENSITY;
+    fluxNormal->dofNames = "";
+    fluxNormal->unit = "A/m^2";
+    fluxNormal->entryType = ResultInfo::SCALAR;
+    fluxNormal->definedOn = ResultInfo::SURF_ELEM;
+
+    shared_ptr<CoefFunctionSurf> fluxFctNormal;
+    fluxFctNormal.reset(new CoefFunctionSurf(true, fluxNormal));
+    DefineFieldResult( fluxFctNormal, fluxNormal );
+    surfCoefFcts_[fluxFctNormal] = fluxFunc;
+
+    // === ELEC_CURRENT ===
+    shared_ptr<ResultInfo> current (new ResultInfo );
+    current.reset(new ResultInfo);
+    current->resultType = ELEC_CURRENT;
+    current->dofNames = "";
+    current->unit = "A";
+    current->entryType = ResultInfo::SCALAR;
+    current->definedOn = ResultInfo::SURF_REGION; /* cannot output to gmsh */
+    // Current = \int \vec j \dot \vec n dA
+    shared_ptr<ResultFunctor> currentFct;
+    if (isComplex_) {
+      currentFct.reset( new ResultFunctorIntegrate<Complex>(fluxFctNormal, 
+                                                           feFct, current) );
+    } else {
+      currentFct.reset( new ResultFunctorIntegrate<Double>(fluxFctNormal, 
+                                                           feFct, current) );
+    }
+    resultFunctors_[ELEC_CURRENT] = currentFct;
+    availResults_.insert(current);
 
 
     // === ELECTRIC POWER DENSITY ===

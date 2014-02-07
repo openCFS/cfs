@@ -185,6 +185,14 @@ namespace CoupledField {
         return "A/m^2";
         break;
 
+      case ELEC_NORMAL_CURRENT_DENSITY:
+        return "A/m^2";
+        break;
+
+      case ELEC_CURRENT:
+        return "A";
+        break;
+
       case ELEC_POWER_DENSITY:
         return "W/m^3";
         break;
@@ -1095,6 +1103,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");
     SolutionTypeEnum.Add(ELEC_CURRENT_DENSITY, "elecCurrentDensity");
+    SolutionTypeEnum.Add(ELEC_NORMAL_CURRENT_DENSITY, "elecNormalCurrentDensity");
+    SolutionTypeEnum.Add(ELEC_CURRENT, "elecCurrent");
     SolutionTypeEnum.Add(ELEC_POWER_DENSITY, "elecPowerDensity");
     SolutionTypeEnum.Add(ELEC_POWER, "elecPower");
     SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
