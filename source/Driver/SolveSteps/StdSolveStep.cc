@@ -748,7 +748,20 @@ namespace CoupledField {
         fncIt->second->GetTimeScheme()->InitStage(i,actTime_,PDE_.GetDomain());
       }
       stageSol.SetOwnership(false);
-      stageSol = actSol;
+
+      //initialize solution vector for each stage
+      if ( i > 0 )
+        actSol = stageSol;
+      else{
+        //special case of incremental non-linearity, we set the stage vector to the solution vector
+        stageSol = actSol;
+      }
+
+      solVec_  = actSol;
+
+      // setup right hand side
+      Double loadFactor = 1.0;
+      Double RhsLinL2Norm = SetLinRHS(loadFactor);
 
       // set iteration counter
       UInt iterationCounter=0;
@@ -757,13 +770,15 @@ namespace CoupledField {
         iterationCounter++;
 
         // setup right hand side
-        algsys_->InitRHS();
-        assemble_->AssembleLinRHS();
-        //PDE_.SetRhsValues();
+//        algsys_->InitRHS();
+//        assemble_->AssembleLinRHS();
 
-        // do matrices
+        // do matrices: Newton is not working for total formulation!!
         isNewton = false;
         assemble_->AssembleMatrices(isNewton);
+
+        // set RHS
+        algsys_->InitRHS(RhsLinVal_);
 
         //now update RHS according to time stepping
         for(matIt = matrices.begin();matIt != matrices.end();matIt++){
@@ -774,10 +789,6 @@ namespace CoupledField {
           }
           algsys_->UpdateRHS(matIt->first,stageRHS_,true);
         }
-
-        //now assemble the Newton bilinear forms
-         isNewton = true;
-         assemble_->AssembleMatrices(isNewton);
 
         // set system matrix to zero initially, as ConstructEffectiveMatrix only
         // sums up the contributions
@@ -795,8 +806,7 @@ namespace CoupledField {
         algsys_->SetupPrecond(analysis_id);
         algsys_->SetupSolver(analysis_id);
 
-//        bool setIDBC = false;
-//        if ( iterationCounter == 1 )
+        //always set inhomog. Dirichlet BCs
         bool setIDBC = true;
 
         algsys_->Solve(analysis_id, setIDBC);
@@ -846,6 +856,7 @@ namespace CoupledField {
     for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
       fncIt->second->GetTimeScheme()->FinishStep();
     }
+
   }
 
   

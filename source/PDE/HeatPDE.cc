@@ -131,7 +131,7 @@ void HeatPDE::ReadSpecialBCs() {
   void HeatPDE::InitNonLin() {
 
     SinglePDE::InitNonLin();
- //   nonLinTotalFormulation_ = true;
+ //  nonLinTotalFormulation_ = true;
 
   }
 
@@ -711,11 +711,15 @@ void HeatPDE::InitTimeStepping() {
   Double gamma = 0.5;
   GLMScheme * scheme = new Trapezoidal(gamma);
 
-  TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-
-  shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
-  feFunctions_[HEAT_TEMPERATURE]->SetTimeScheme(myScheme);
-
+  if ( nonLinTotalFormulation_ ) {
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0)); //, nlType) );
+    feFunctions_[HEAT_TEMPERATURE]->SetTimeScheme(myScheme);
+  }
+  else {
+    TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
+    feFunctions_[HEAT_TEMPERATURE]->SetTimeScheme(myScheme);
+  }
 }
 
 

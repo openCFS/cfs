@@ -133,7 +133,7 @@ namespace CoupledField {
     }
 
     nonLin_ = true;
-    nonLinTotalFormulation_ = true;
+    //nonLinTotalFormulation_ = true;
   }
 
   void FlowPDE::DefineIntegrators() {
@@ -530,12 +530,19 @@ namespace CoupledField {
     GLMScheme * schemeV = new Trapezoidal(gamma);
     GLMScheme * schemeP = new Trapezoidal(gamma);
 
- //   TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-
-    shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(schemeV, 0 ) );
-    shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(schemeP, 0 ) );
-    feFunctions_[FLUIDMECH_VELOCITY]->SetTimeScheme(mySchemeV);
-    feFunctions_[FLUIDMECH_PRESSURE]->SetTimeScheme(mySchemeP);
+    if ( nonLinTotalFormulation_ ) {
+      shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(schemeV, 0 ) );
+      shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(schemeP, 0 ) );
+      feFunctions_[FLUIDMECH_VELOCITY]->SetTimeScheme(mySchemeV);
+      feFunctions_[FLUIDMECH_PRESSURE]->SetTimeScheme(mySchemeP);
+    }
+    else {
+      TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+      shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(schemeV, 0, nlType ) );
+      shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(schemeP, 0, nlType ) );
+      feFunctions_[FLUIDMECH_VELOCITY]->SetTimeScheme(mySchemeV);
+      feFunctions_[FLUIDMECH_PRESSURE]->SetTimeScheme(mySchemeP);
+    }
   }
 
   void FlowPDE::ReadSpecialBCs( ) 
