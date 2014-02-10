@@ -1382,11 +1382,14 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
     else
     {
-      if(!regular)
-        for(unsigned int i = 0, n = f->elements.GetSize();i < n;i++)
+
+      if (!regular) {
+        for (unsigned int i = 0, n = f->elements.GetSize();i < n;i++) {
           total_vol += f->elements[i]->CalcVolume();
-      else
+        }
+      } else {
         total_vol = f->elements.GetSize();
+      }
     }
     // in the multimaterial case we have to consider, the multiple design element case
     if(design->HasMultiMaterial())
@@ -2678,7 +2681,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     LOG_DBG(em) << "CGF c=" << f->type.ToString(f->GetType()) << " derivative=" << derivative;
     Function::Local* local = f->GetLocal();
     assert(local != NULL);
-// the neighborhoods are already defined by Local!
+    // the neighborhoods are already defined by Local!
     StdVector<Function::Local::Identifier>& vem = local->virtual_elem_map;
     if(!derivative)
     {

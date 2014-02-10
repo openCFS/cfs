@@ -48,13 +48,13 @@ class ErsatzMaterial;
 
     /** Get a parameter of the parametric material optimization */
     double GetParameter(const DesignElement::Type p) { assert(HasParameter(p)); return params_[p]; }
-    
+
     /** checks for a parameter */
     bool HasParameter(const DesignElement::Type p) const { return params_.find(p) != params_.end(); }
 
     /** Calculate the derivative tensor from the given material parameters */
     void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
-    
+
     void GetPiezoCouplingTensor(Matrix<double>& t, DesignElement::Type direction);
 
     /** returns the tensor with negative design variables such the design vector is still pos. definite */
@@ -62,22 +62,22 @@ class ErsatzMaterial;
 
     /** retrieve rel. mass of element (tensor trace) or derivative thereof */
     double GetMaterialMass(DesignElement::Type direction);
-    
+
     /** return whether mass is also a design (else it is calculated from tensor) */
     bool MassIsDesign(){
       return massIsDesign_;
     }
-    
+
     /** return whether damping is also design */
     bool DampingIsDesign(){
       return dampingIsDesign_;
     }
-    
+
     /** retrieve damping parameters for element or derivative */
     bool GetMaterialDamping(double& alpha, double& beta, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
-    
+
     void static SetEnums();
-    
+
     Type GetType() const { return type_; }
 
     /** the actual notation is not stored but assumed as HILL_MANDEL for FMO problems.
@@ -90,36 +90,36 @@ class ErsatzMaterial;
     void DumpParams();
 
     std::map<DesignElement::Type, double> params_;
-   
+
     /** mass is considered an independent design */
     bool massIsDesign_;
-    
+
     /** damping is also optimized */
     bool dampingIsDesign_;
-    
+
     /** multiply mass with this, can be used to scale tensor trace */
     double massFactor_;
-    
+
     /** for density times 2d tensor, this is the penalization for density*/
     double penalty_;
-    
+
     /** for density times 2d tensor with constant trace */
     double trace_;
-    
+
     static Enum<Type> type;
-    Type type_;   
+    Type type_;
 
     static Enum<TransIsoType> transIsoType;
     TransIsoType transIsoType_;
-    
+
     unsigned int dim;
-    
+
     /** returns the numbers of parameters required for this material */
     unsigned int RequiredParameters(OptimizationMaterial::System material);
-    
+
     /** Check whether all required designs are available */
     bool CheckRequiredDesigns(StdVector<DesignElement::Type>& design);
-    
+
   private:
     /* note that most of these functions are called really often, so inlining is used */
 
@@ -137,7 +137,7 @@ class ErsatzMaterial;
 
     /** Calculate the Tensor for Density times Tensor */
     inline void GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
-    
+
     /** Calculate the tensor for Laminates */
     inline void GetLaminatesTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
 
@@ -171,6 +171,26 @@ class ErsatzMaterial;
     /** rotate elasticity tensor in t (in Hill-Mandel notation!) by the angle a and adjust the entries back to notation to fit with CFS++ */
     void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double angle, Notation notation = VOIGT);
 
+    /** rotate elasticity tensor in Voigt notation according to the parameters, eventually calculating a derivative
+      *  in 3d: rotates the material by ROTANGLEZ around the z-axis by ROTANGLEY around the y-axis and by ROTANGLEX around the x-axis in this given order
+      *  in 2d: rotates the material by ROTANGLE
+      * @param t Material Tensor which is rotated in place (or the derivative is calculated in place)
+      * @param direction if one of ROTANGLEX, ROTANGLEY, ROTANGLEZ, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
+      */
+    void RotateVoigtTensor(Matrix<double>& t, DesignElement::Type direction);
+    /** helper function to set a rotation matrix of size 3x3
+           * the matrix (when calculating R*x) would rotate the vector x by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
+           * @param R the place to set the rotation matrix
+           * @sthetax sin(thetax)
+           * @cthetax cos(thetax)
+           * @sthetay sin(thetax)
+           * @cthetay cos(thetax)
+           * @sthetaz sin(thetax)
+           * @cthetaz cos(thetax)
+           * @direction if given direction of the derivative to be calculated
+           */
+    void SetRotationMatrix(Matrix<double>& R, double sthetax, double cthetax, double sthetay, double cthetay, double sthetaz, double cthetaz, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+
     /** This exists only in Voigt notation! */
     void RotatePiezoCouplingTensor(Matrix<double>& t, double angle, DesignElement::Type direction);
 
@@ -184,11 +204,11 @@ class ErsatzMaterial;
     
     /** Calculate the mass trans-iso case */
     inline double GetTransIsoMaterialMass(DesignElement::Type direction);
-    
+
 
     /** Get the trans-iso mass (tensor trace) out of the corresponding tensor entries */
     inline double GetTransIsoMass(double iD, double iG, double oD, double oG);
-    
+
     /** Get the isotropic mass (tensor trace) out of the corresponding tensor entries */
     inline double GetIsoMass(double D, double G);
 
