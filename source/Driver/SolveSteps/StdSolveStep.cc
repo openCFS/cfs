@@ -761,7 +761,8 @@ namespace CoupledField {
 
       // setup right hand side
       Double loadFactor = 1.0;
-      Double RhsLinL2Norm = SetLinRHS(loadFactor);
+      Double incrementalErr;
+      incrementalErr = SetLinRHS(loadFactor);
 
       // set iteration counter
       UInt iterationCounter=0;
@@ -818,7 +819,6 @@ namespace CoupledField {
         Double solIncrL2Norm = diffSol.NormL2();
         Double solNewL2Norm = solNew.NormL2();
 
-        Double incrementalErr;
         if (solNewL2Norm > 1)
           incrementalErr = solIncrL2Norm / solNewL2Norm;
         else
