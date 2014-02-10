@@ -711,8 +711,10 @@ namespace CoupledField {
 
 
   void StdSolveStep::StepTransNonLinTotal(PtrParamNode analysis_id) {
-    //std::cout << "In Step Total" << std::endl;
+    std::cout << "In Step Total" << std::endl;
     bool performOneMoreStep;
+    bool isNewton;
+
     SBM_Vector solNew(BaseMatrix::DOUBLE);
     SBM_Vector diffSol(BaseMatrix::DOUBLE);
 
@@ -760,19 +762,9 @@ namespace CoupledField {
         //PDE_.SetRhsValues();
 
         // do matrices
-        assemble_->AssembleMatrices();
-        matrix_factor_.clear();
-        
-        // set system matrix to zero initially, as ConstructEffectiveMatrix only
-        // sums up the contributions
-        algsys_->InitMatrix(SYSTEM);
-        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
-          FeFctIdType fctId = fncIt->second->GetFctId();
-          fncIt->second->GetTimeScheme()
-            ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
-          algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
-        }
-        
+        isNewton = false;
+        assemble_->AssembleMatrices(isNewton);
+
         //now update RHS according to time stepping
         for(matIt = matrices.begin();matIt != matrices.end();matIt++){
           if(matIt->second < 0)
@@ -781,6 +773,21 @@ namespace CoupledField {
             fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
           }
           algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+        }
+
+        //now assemble the Newton bilinear forms
+         isNewton = true;
+         assemble_->AssembleMatrices(isNewton);
+
+        // set system matrix to zero initially, as ConstructEffectiveMatrix only
+        // sums up the contributions
+        matrix_factor_.clear();
+        algsys_->InitMatrix(SYSTEM);
+        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+          FeFctIdType fctId = fncIt->second->GetFctId();
+          fncIt->second->GetTimeScheme()
+            ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
+          algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
         }
 
         PDE_.SetBCs();

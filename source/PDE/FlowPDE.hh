@@ -98,6 +98,9 @@ namespace CoupledField
 
     //! type of stabilization
     bool stabilizedBochev_;
+
+    //! add Bochev stabilization for pressure
+    bool addBochevPressStab_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

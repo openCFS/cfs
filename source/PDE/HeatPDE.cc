@@ -131,6 +131,7 @@ void HeatPDE::ReadSpecialBCs() {
   void HeatPDE::InitNonLin() {
 
     SinglePDE::InitNonLin();
+ //   nonLinTotalFormulation_ = true;
 
   }
 

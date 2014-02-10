@@ -118,6 +118,9 @@ namespace CoupledField {
     if ( stabilizedBochev_ )
           std::cerr << "\n DO STABILIZED FORMULATION OF TYPE BOCHEV!!\n" << std::endl;
 
+    addBochevPressStab_ = false;
+    addBochevPressStab_= myParam_->Get("addBochevPressStabilization")->As<bool>();
+
   }
   
   void FlowPDE::InitNonLin() {
@@ -349,6 +352,30 @@ namespace CoupledField {
         convectiveContextvV->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],
                                              feFunctions_[FLUIDMECH_VELOCITY] );
         assemble_->AddBiLinearForm( convectiveContextvV );
+      }
+
+      if ( addBochevPressStab_ ) {
+        //we add the pressure stabilization of Bochev
+        PtrCoefFct coeffKPPstab = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+
+        BiLinearForm * stiffIntPPstab = NULL;
+
+        if( dim_ == 2 ) {
+          stiffIntPPstab = new BBInt<>( new IdentityOperatorProjected<FeH1,2>(),
+              coeffKPPstab,1.0);
+        } else {
+          stiffIntPPstab = new BBInt<>( new IdentityOperatorProjected<FeH1,3>(),
+              coeffKPPstab,1.0);
+        }
+        stiffIntPPstab->SetName("FlowStiffIntPPstab");
+        //stiffIntPPstab->SetNewtonBilinearForm();
+
+        BiLinFormContext *stiffContPPstab = NULL;
+        stiffContPPstab = new BiLinFormContext(stiffIntPPstab, STIFFNESS );
+
+        stiffContPPstab->SetEntities( actSDList, actSDList );
+        stiffContPPstab->SetFeFunctions( presFct, presFct );
+        assemble_->AddBiLinearForm( stiffContPPstab );
       }
 
       // ====================================================================
