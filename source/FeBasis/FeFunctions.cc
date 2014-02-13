@@ -133,11 +133,13 @@ DECLARE_LOG(fefunc)
   }
 
   void BaseFeFunction::AddHomDirichletBc( shared_ptr<HomDirichletBc> bc ){
+    LOG_DBG(fefunc) << PREFIX << "AddHomDirichletBc()";
     hdBcs_.Push_back( bc );
     entities_.Push_back(bc->entities);
   }
 
   void BaseFeFunction::AddInhomDirichletBc( shared_ptr<InhomDirichletBc> bc ){
+    LOG_DBG(fefunc) << PREFIX << "AddInhomDirichletBc()";
     idBcs_.Push_back(bc);
     entities_.Push_back(bc->entities);
   }
@@ -159,8 +161,10 @@ DECLARE_LOG(fefunc)
   void BaseFeFunction::AddExternalDataSource( PtrCoefFct coef,
                                               const StdVector<shared_ptr<EntityList> >& lists){
     std::cerr << "size of lists is " << lists.GetSize() << std::endl;
+    LOG_DBG(fefunc) << PREFIX << "AddExternalDataSource()" << "size of lists is " << lists.GetSize();
     for( UInt i = 0; i < lists.GetSize(); ++i ) {
       std::cerr << "\tregion: " << lists[i]->GetName() << std::endl;
+      LOG_DBG(fefunc) << "\tregion: " << lists[i]->GetName() ;
     }
     this->externalDataCoefs_[coef] = lists;
   }
@@ -211,6 +215,7 @@ DECLARE_LOG(fefunc)
     timeDerivOrder_ = 0;
     idOp_ = NULL;
     isComplex_ = std::tr1::is_same<T,Complex>::value;
+    
     
     if( mp_ ) {
     // harmonic case
@@ -394,6 +399,7 @@ DECLARE_LOG(fefunc)
     shared_ptr<EntityList> list = res->GetEntityList();
     Vector<T> & actSol = dynamic_cast<Result<T>&>(*res).GetVector();
     actSol.Resize( list->GetSize() * numDofs );
+    LOG_DBG(fefunc) << PREFIX << "ExtractResult for size " << actSol.GetSize();
 
     EntityIterator it = list->GetIterator();
     actSol.Init();
@@ -624,6 +630,7 @@ DECLARE_LOG(fefunc)
   template<typename T>
   void FeFunction<T>::GetEntitySolution( SingleVector& elemSol, 
                                          const EntityIterator& it ){
+    LOG_DBG(fefunc) << PREFIX << "GetEntitySolution()";
     Vector<T> & temp = dynamic_cast<Vector<T>&>(elemSol);
     StdVector<Integer> eqns;
     Vector<T> & vals = *coeffs_;
@@ -664,6 +671,7 @@ DECLARE_LOG(fefunc)
   template<typename T>
   void FeFunction<T>::GetElemSolution( Vector<T>& elemSol,
                                          const Elem* elem ) {
+    LOG_DBG(fefunc) << PREFIX << "GetElemSolution()";
     StdVector<Integer> eqns;
     Vector<T> & vals = *coeffs_;
     feSpace_->GetElemEqns(eqns, elem);
@@ -684,6 +692,7 @@ DECLARE_LOG(fefunc)
     // InHomogeneous BCs
     // ==================================================
     //loop over all inhomogeneous BCs
+    LOG_DBG(fefunc) << PREFIX << "ApplyBC() (inhomogeneous)";
     for ( UInt i = 0; i < idBcs_.GetSize(); i++ ) {
       InhomDirichletBc const & actBc = *(idBcs_[i]);
       
@@ -763,6 +772,7 @@ DECLARE_LOG(fefunc)
   
   template<typename T>
   void FeFunction<T>::ApplyLoads(){
+    //LOG_DBG(fefunc) << PREFIX << "ApplyLoads()";
     //loop over all loads
     LoadCoefList::iterator it = loadCoefs_.begin();
     // Loop over all coeffunctions
@@ -798,6 +808,7 @@ DECLARE_LOG(fefunc)
   template<typename T>
   void FeFunction<T>::ApplyExternalData(){
 
+    LOG_DBG(fefunc) << PREFIX << "ApplyExternalData()";
     LoadCoefList::iterator it = externalDataCoefs_.begin();
     // Loop over all loads
     for ( ; it != externalDataCoefs_.end(); ++it  ) {
@@ -903,6 +914,20 @@ DECLARE_LOG(fefunc)
     idOp_->ApplyOp(vec, lpm, ptFe, elemSol );
   }
   
+  template<typename T>
+  void FeFunction<T>::GetAvgElemValue(T & vec, 
+                         const Elem* elem) {
+    // get element solution
+    Vector<T> elemSol;
+    GetElemSolution( elemSol, elem);
+    // average
+    vec = 0.;
+    for (UInt i = 0; i < elemSol.GetSize(); i++) {
+      vec += elemSol[i];
+    }
+    vec /= elemSol.GetSize();
+
+   }
   
   template<typename T>
   void FeFunction<T>::GetScalar(T & scal, 
