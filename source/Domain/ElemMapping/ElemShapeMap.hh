@@ -159,6 +159,8 @@ namespace CoupledField {
     void SetMortar( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
                                           Double weight, bool useMaster);
 
+    //! Return shape map
+    const shared_ptr<ElemShapeMap> GetShapeMap() const {return shapeMap;}
 
     //! Shape map for this element
     shared_ptr<ElemShapeMap> shapeMap;

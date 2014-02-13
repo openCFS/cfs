@@ -1323,6 +1323,10 @@ namespace CoupledField {
           info.maxVal = 1000;
           info.fileName = "";
 
+          // read dependency: can be "temperature" or voltage
+          if(iso->Has("dependency"))
+            material->SetScalar(iso->Get("dependency")->As<std::string>(), NONLIN_DEPENDENCY);
+
           // read approximation type
           if(iso->Has("approxType")) {
             std::string type =  iso->Get("approxType")->As<std::string>();

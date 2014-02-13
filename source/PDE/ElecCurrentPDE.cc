@@ -125,7 +125,8 @@ namespace CoupledField {
 
       PtrCoefFct coef;
 
-      StdVector<NonLinType> matDepenTypes = regionMatDepTypes_[actRegion];
+      StdVector<NonLinType> matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];   // non-linearity
       if ( matDepenTypes.Find(NLELEC_CONDUCTIVITY) != -1 ) {
         shared_ptr<BaseFeFunction> myFct = feFunctions_[ELEC_POTENTIAL];
         StdVector<std::string> dispDofNames = myFct->GetResultInfo()->dofNames;
@@ -148,6 +149,88 @@ namespace CoupledField {
                                  1.0, updatedGeo_ );
         }
         stiffInt->SetName("StiffnessIntegrator-Temperatur-Depend");
+
+        BiLinFormContext * stiffContext =
+          new BiLinFormContext(stiffInt, STIFFNESS );
+        stiffContext->SetEntities( actSDList, actSDList );
+        stiffContext->SetFeFunctions( feFunctions_[ELEC_POTENTIAL], feFunctions_[ELEC_POTENTIAL] );
+
+        feFunctions_[ELEC_POTENTIAL]->AddEntityList( actSDList );
+        assemble_->AddBiLinearForm( stiffContext );
+        bdbInts_[actRegion] = stiffInt;
+      }
+      else if ( nonLinTypes.Find(NLELEC_BIPOLE) != -1 ) {
+        shared_ptr<BaseFeFunction> myFct = feFunctions_[ELEC_POTENTIAL];
+        StdVector<std::string> dispDofNames = myFct->GetResultInfo()->dofNames;
+        shared_ptr<EntityList> ent = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
+
+        // ReadMaterialDependency( "elecConductivity", dispDofNames, ResultInfo::SCALAR, isComplex_,
+        //                         ent, coef, updatedGeo_ );
+	
+	//////////////////////////////// snip
+	if ( !myParam_->Has("poleList") ) 
+	  return;
+	
+        PtrParamNode xml = myParam_->Get("poleList")->Get("Bipole"); // <coupling pdeName="elecConduction" .. <quantity elecPowerDensity > >
+        if(! xml->Has("anode") ) {
+	  EXCEPTION("Bipole must define 'anode' and 'cathode'");
+	}
+        if(! xml->Has("cathode") ) {
+	  EXCEPTION("Bipole must define 'anode' and 'cathode'");
+	}
+        std::string anodeRegion, cathodeRegion;
+        xml->Get("anode")->GetValue("region", anodeRegion);
+        xml->Get("cathode")->GetValue("region", cathodeRegion);
+        //  coef = iterCplPde_->GetCouplingCoefFct(solType, list, pdeName, updateGeo);
+       
+        // anode and cathode aren't necessarily in regions_ of "this" pde, but their volume regions have to be.
+        // get regionId
+        RegionIdType anodeRegionId = ptGrid_->GetRegion().Parse( anodeRegion );
+        RegionIdType cathodeRegionId = ptGrid_->GetRegion().Parse( cathodeRegion );
+
+        StdVector<RegionIdType> vRegsAnode, vRegsCathode;
+	ptGrid_->GetListOfVolumeRegions(anodeRegionId, vRegsAnode);
+	ptGrid_->GetListOfVolumeRegions(cathodeRegionId, vRegsCathode);
+
+        for (UInt reg = 0; reg < vRegsAnode.GetSize(); reg++){
+          if( regions_.Find(vRegsAnode[reg]) < 0)
+	    EXCEPTION("Bipole regions 'anode=" << anodeRegion << "' must refer to (surf) regions inside the ELEC CURRENT pde");
+	}
+        for (UInt reg = 0; reg < vRegsCathode.GetSize(); reg++){
+          if( regions_.Find(vRegsCathode[reg]) < 0)
+	    EXCEPTION("Bipole regions 'cathode=" << cathodeRegion << "' must refer to (surf) regions inside the ELEC CURRENT pde");
+	}
+
+
+        // get elec Pot coef
+        PtrCoefFct elPotCoef = this->GetCoefFct(ELEC_POTENTIAL);
+        // PtrCoefFct elPotCoefDummy;
+	// elPotCoefDummy.reset(new CoefFunction());
+        // -- //coef-Fnc for electric conductivity
+
+	// test
+	StdVector<RegionIdType> depRegionIds;
+	depRegionIds.Push_back(anodeRegionId); // first anode
+	depRegionIds.Push_back(cathodeRegionId);// then cathode
+        PtrCoefFct condNLNew = 
+          actSDMat->GetScalCoefFncNonLinLumpedBiPole( ELEC_CONDUCTIVITY, Global::REAL, elPotCoef, depRegionIds);
+
+
+
+	//////////////////////////////// snip
+        // PtrCoefFct condNL = 
+        //   actSDMat->GetScalCoefFncNonLin( ELEC_CONDUCTIVITY, Global::REAL, elPotCoef);
+
+        // create stiffness integrator
+        BaseBDBInt* stiffInt = NULL;
+        if( dim_ == 2 ) {
+          stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), condNLNew,
+                                 1.0, updatedGeo_ );
+        } else {
+          stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), condNLNew,
+                                 1.0, updatedGeo_ );
+        }
+        stiffInt->SetName("ElecStiffnessIntegrator-Voltage-Depend");
 
         BiLinFormContext * stiffContext =
           new BiLinFormContext(stiffInt, STIFFNESS );

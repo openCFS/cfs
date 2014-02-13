@@ -66,6 +66,90 @@ std::string CoefFunctionApprox::ToString() const {
   return "";
 }
 
+// ============================================================================
+//  Super Approx Coef
+// ============================================================================
+
+CoefFunctionApproxSuper::CoefFunctionApproxSuper() : CoefFunction() {
+  // this type of coefficient is nonlinear (i.e. solution dependend)
+  dependType_ = SOLUTION;
+  isAnalytic_ = false;
+  isComplex_ = false;
+  ptAproxCoefFct = NULL;
+  terminalA_ = -1;
+  terminalB_ = -1;
+  terminalC_ = -1;
+}
+
+CoefFunctionApproxSuper::~CoefFunctionApproxSuper(){
+  ;
+}
+
+void CoefFunctionApproxSuper::Init( Double coefScalar, ApproxData * nLinFnc,
+                               PtrCoefFct dependCoef ) {
+
+  ptAproxCoefFct = new CoefFunctionApprox();
+  ptAproxCoefFct->Init(coefScalar, nLinFnc, dependCoef);
+  // set type to scalar
+  dimType_ = SCALAR;
+  nLinFnc_ = nLinFnc;
+  coefScalar_ = coefScalar;
+  dependCoef_ = dependCoef;
+}
+void CoefFunctionApproxSuper::SetLumpedRegions(RegionIdType regA, RegionIdType regB, RegionIdType regC){
+
+  terminalA_ = regA;
+  terminalB_ = regB;
+  if (regC > -1)
+    terminalC_ = regC;
+
+}
+
+//! \see CoefFunction::GetScalar
+void CoefFunctionApproxSuper::GetScalar(Double& coefScalar, 
+                                   const LocPointMapped& lpm ) {
+
+  Grid * ptGrid = lpm.GetShapeMap()->GetGrid();
+  StdVector <Elem*> aElems, bElems;
+  ptGrid->GetElems(aElems, terminalA_);
+  ptGrid->GetElems(bElems, terminalB_);
+  Vector<Double> aAvg, bAvg;
+  aAvg.Resize(aElems.GetSize());
+  bAvg.Resize(bElems.GetSize());
+  Double aTot = 0., bTot = 0., diff = 0;
+  for (UInt i = 0; i < aElems.GetSize(); i++) {
+    dependCoef_->GetAvgElemValue(aAvg[i], aElems[i]);
+    aTot += aAvg[i];
+  }
+  aTot /= aElems.GetSize();
+  for (UInt i = 0; i < bElems.GetSize(); i++) {
+    dependCoef_->GetAvgElemValue(bAvg[i], bElems[i]);
+    bTot += bAvg[i];
+  }
+  bTot /= bElems.GetSize();
+  diff = bTot - aTot;
+
+ // then evaluation to be done at difference of potential
+ 
+//   if ( nLinFnc_->GetMatType() == MAG_PERMEABILITY ) {
+//     Double fieldAbs = elemSol.NormL2();
+// 
+//     if( fieldAbs == 0 ) { 
+//       coefScalar = coefScalar_;
+//     } else {
+//       coefScalar = nLinFnc_->EvaluateFuncNu(fieldAbs);
+//     }
+//   }
+//   else {
+  coefScalar = nLinFnc_->EvaluateFunc(diff);
+//   }
+}
+
+std::string CoefFunctionApproxSuper::ToString() const {
+  return "";
+}
+
+
 
 // ========================================================================
 

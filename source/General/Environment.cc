@@ -713,6 +713,10 @@ namespace CoupledField {
       out = NLHEAT_CAPACITY;
     } else if( in == "elecConductivity") {
        out = NLELEC_CONDUCTIVITY;
+    } else if( in == "elecBiPole") {
+       out = NLELEC_BIPOLE;
+    } else if( in == "elecTriPole") {
+       out = NLELEC_TRIPOLE;
     } else {
       EXCEPTION( "'" << in << "' cannot be converted into an "
                  << "'NonLinType' item!" );
@@ -753,6 +757,12 @@ namespace CoupledField {
         break;
       case NLELEC_CONDUCTIVITY:
         out = "elecConductivity";
+        break;
+      case NLELEC_BIPOLE:
+        out = "elecBiPole";
+        break;
+      case NLELEC_TRIPOLE:
+        out = "elecTriPole";
         break;
       case PIEZO_MICRO_HF:
         out = "piezoMicroHF";

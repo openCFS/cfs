@@ -12,6 +12,9 @@
 
 #include "ElectricConductionMaterial.hh"
 #include <Utils/LinInterpolate.hh>
+#include "Domain/CoefFunction/CoefFunctionApprox.hh"
+#include "Utils/SmoothSpline.hh"
+#include "Utils/LinInterpolate.hh"
 
 
 namespace CoupledField
@@ -32,6 +35,7 @@ ElectricConductionMaterial::ElectricConductionMaterial(MathParser* mp,
   isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
   isAllowed_.insert( DATA_ACCURACY );
   isAllowed_.insert( MAX_APPROX_VAL );
+  isAllowed_.insert( NONLIN_DEPENDENCY );
 }
 
 ElectricConductionMaterial::~ElectricConductionMaterial() {
@@ -265,5 +269,76 @@ void ElectricConductionMaterial::ComputeFullMuTensor() {
       //SetTensor( elecCond, ELEC_CONDUCTIVITY_TENSOR, Global::REAL );
   }
  }
+
+PtrCoefFct ElectricConductionMaterial::GetScalCoefFncNonLin(MaterialType matType,
+                                                           Global::ComplexPart matDataType,
+                                                           PtrCoefFct fluxCoef ) {
+
+
+  return BaseMaterial::GetScalCoefFncNonLin(matType, matDataType, fluxCoef);
+}
+PtrCoefFct ElectricConductionMaterial::GetScalCoefFncNonLinLumpedBiPole(MaterialType matType,
+                                            Global::ComplexPart matDataType,
+                                            PtrCoefFct dependency,  
+					    StdVector<RegionIdType> & regs) {
+
+  poleA_ = regs[0];
+  poleB_ = regs[1];
+  //PtrCoefFct ret;
+  shared_ptr<CoefFunctionApproxSuper> coef;
+
+  // Ensure that only real-valued parameters are used
+  if( matDataType != Global::REAL ) {
+    EXCEPTION( "Only real-valued nonlinear parameters are supported");
+  }
+  
+  // check if isotropic material type is defined
+  if( nonlinIsoParams_.find(matType) == nonlinIsoParams_.end() ) {
+    EXCEPTION( "No nonlinear definition found for material type '"
+        << MaterialTypeEnum.ToString(matType) << "'");
+  }
+  
+  // check, if nonlinear curve was already calculated ??
+  MatDescriptorNl & matNl = nonlinIsoParams_[matType];
+
+  // Check, if smooth spline approximation was already created 
+  // and initialized
+  if( !matNl.approxData ) {
+    if ( matNl.approxType == SMOOTH_SPLINES ) {
+      SmoothSpline * sp = new SmoothSpline( matNl.fileName, matType );
+      sp->SetAccuracy( matNl.measAccuracy );
+      sp->SetMaxY( matNl.maxVal );
+      sp->CalcBestParameter();
+      sp->CalcApproximation();
+      sp->Print();
+      matNl.approxData = sp;
+    }
+    else if ( matNl.approxType == LIN_INTERPOLATE ) {
+      LinInterpolate * sp = new LinInterpolate( matNl.fileName, matType );
+      //sp->SetAccuracy( matNl.measAccuracy );
+      //sp->SetMaxY( matNl.maxVal );
+      sp->Print();
+      matNl.approxData = sp;
+     }
+    else {
+      EXCEPTION( "No nonlinear approx/interpolate type not available '"
+          << ApproxCurveTypeEnum.ToString(matNl.approxType) << "'");
+    }
+  }
+
+  ApproxData * sp = matNl.approxData;
+  
+  // get linear starting value
+  Double startVal = 0.0;
+  this->GetScalar( startVal, matType, Global::REAL );
+  coef.reset(new CoefFunctionApproxSuper());
+  coef->Init( startVal, sp, dependency );
+  coef->SetLumpedRegions(regs[0], regs[1]);
+
+
+  //return ret;
+  return coef;
+}
+
 
 }

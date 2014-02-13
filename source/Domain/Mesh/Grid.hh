@@ -529,6 +529,11 @@ namespace CoupledField
     //! \param elemNames list of names of elements
     virtual void GetListElemNames( StdVector<std::string> & elemNames) = 0;
 
+    //! Get list of volume regions attached to another region. e.g. get all the volume regions of a surface
+    //! \param reg_id (in) query parameter
+    //! \param volRegIds (out) list
+    virtual void GetListOfVolumeRegions( RegionIdType reg_id, StdVector<RegionIdType> &volRegIds ) = 0;
+
     //! Get list of elements by their name
     virtual void GetElemsByName( StdVector<Elem*> & elems,
                                  const std::string & elemsName ) = 0;

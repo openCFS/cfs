@@ -44,9 +44,22 @@
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="matDependIds" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/> <!-- added by SE for voltage dependent conductance -->
+                    <!-- <xsd:attribute name="specialRegion" type="xsd:token" use="optional" default=""/>--><!-- may not be a good place -->
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- List defining nonlinear types -->
+          <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="elecConductivity" type="DT_ElecConductionNonLin"/>  <!-- can't think of electric conductivity depending on potential. It can only depend on voltage drops, hence the following types: -->
+                <xsd:element name="elecBiPole" type="DT_ElecBiPole"/>   <!-- e.g. air break through, or diode -->
+                <xsd:element name="elecTriPole" type="DT_ElecTriPole"/>   <!-- e.g. transistor -->
+              </xsd:choice>
             </xsd:complexType>
           </xsd:element>
 
@@ -58,6 +71,17 @@
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
+
+          <!-- List defining bipole/triplole types -->
+          <xsd:element name="poleList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="Bipole" type="DT_BiPoleDefinition"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+               <!-- <xsd:element name="elecTriPole" type="DT_BiPoleDefinition"/> --> <!-- todo-->
+
 
           <!-- Surface regions on which results can be calculated-->
           <xsd:element name="surface" minOccurs="0" maxOccurs="unbounded">
@@ -281,13 +305,65 @@
 
 
   <!-- ******************************************************************* -->
-  <!--   Definition of heat nonlinarity -->
+  <!--   Definition of elec nonlinarity -->
   <!-- ******************************************************************* -->
 
   <!-- Definition of electric conduction nonlinearity type -->
-  <xsd:complexType name="DT_ElecConductionNonLin">
+  <xsd:complexType name="DT_ElecConductionNonLin"> <!-- application unclear to me (SE) -->
     <xsd:complexContent>
       <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Definition of electric conduction nonlinearity type -->
+  <xsd:complexType name="DT_ElecBiPole">
+    <xsd:complexContent>
+      <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <!-- Definition of electric conduction nonlinearity type -->
+  <xsd:complexType name="DT_ElecTriPole">
+    <xsd:complexContent>
+      <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!--<xsd:complexType name="DT_BiPoleDefinition">
+   <xsd:complexContent>
+      <xsd:extension base="DT_PoleBasic"> </xsd:extension>
+      <xsd:sequence>
+        <xsd:element name="anode" minOccurs="1" maxOccurs="1">
+	  	<xsd:complexType>
+	  	      <xsd:attribute name="name" type="xsd:token" use="required"/>	    		
+	  	</xsd:complexType>	    	
+        </xsd:element> 
+      </xsd:sequence>
+    </xsd:complexContent>
+  </xsd:complexType> -->
+  <xsd:complexType name="DT_BiPoleDefinition">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PoleBasic">
+        <xsd:sequence>
+          <xsd:element name="anode" minOccurs="1" maxOccurs="1">          
+	  	<xsd:complexType>
+	  	      <xsd:attribute name="region" type="xsd:token" use="required"/>	    		
+	  	</xsd:complexType>	    	
+	  </xsd:element>
+          <xsd:element name="cathode" minOccurs="1" maxOccurs="1">          
+	  	<xsd:complexType>
+	  	      <xsd:attribute name="region" type="xsd:token" use="required"/>	    		
+	  	</xsd:complexType>	    	
+	  </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent> 
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_PoleBasic">    
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="id" type="xsd:token"  use="required"/>
+      </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
 

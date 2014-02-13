@@ -10,6 +10,8 @@ namespace CoupledField {
 // forward clas declaration
 class ApproxData;
 class BaseBOperator;
+class Grid;
+class FeFunctions;
 
 
 // ============================================================================
@@ -44,6 +46,55 @@ public:
   std::string ToString() const;
 
 protected:
+  
+  //! Constant initial value of the curve
+  Double coefScalar_;
+  
+  //! Class for function approximation
+  ApproxData * nLinFnc_;
+  
+  //! Coefficient function which this one depends one
+  PtrCoefFct dependCoef_;
+};
+
+// ============================================================================
+//  Super Approx Coef Function
+// ============================================================================
+//! Provide a coefficient for approximated sample data (scalar)
+
+//! This class encapsulates a CoefFunctionApprox and holds data on regions where to evaluate
+//! the dependCoef
+//! \note This class only works for real-valued scalar data.
+class CoefFunctionApproxSuper : public CoefFunction{
+public:
+
+  //! Constructor
+  CoefFunctionApproxSuper();
+
+  //! Destructor
+  virtual ~CoefFunctionApproxSuper();
+  
+  //! Initialize with data
+  void Init( Double coefScalar, ApproxData * nLinFnc,
+             PtrCoefFct dependCoef  );
+
+  
+  //! \see CoefFunction::GetScalar
+  void GetScalar(Double& coefScalar, 
+                 const LocPointMapped& lpm );
+    
+  void SetLumpedRegions(RegionIdType regA, RegionIdType regB, RegionIdType regC = -1);
+
+  //! \see CoefFunction::ToString
+  std::string ToString() const;
+
+protected:
+
+  //! the actual approximation coef function
+  CoefFunctionApprox * ptAproxCoefFct;
+
+  //! region Ids of the terminals
+  RegionIdType terminalA_, terminalB_, terminalC_;
   
   //! Constant initial value of the curve
   Double coefScalar_;

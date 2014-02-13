@@ -133,7 +133,12 @@ namespace CoupledField
     //! Get a list with names of all named elements in the grid
     //! \param elemNames list of names of elements
     virtual void GetListElemNames( StdVector<std::string> & elemNames);
-      
+
+    //! Get list of volume regions attached to another region. e.g. get all the volume regions of a surface
+    //! \param reg_id (in) query parameter
+    //! \param volRegIds (out) list
+    virtual void GetListOfVolumeRegions( RegionIdType reg_id, StdVector<RegionIdType> &volRegIds );
+
     //@}
 
 

@@ -141,6 +141,24 @@
              </xsd:restriction>
 	   </xsd:complexContent>
 	</xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data from iterative coupled field problems           -->
+  <!-- ******************************************************************** -->
+	<xsd:complexType name="DT_IterCplNonLinData">
+           <xsd:complexContent>
+	     <xsd:restriction base="xsd:anyType">        
+	    	<xsd:sequence>
+		    <xsd:element name="quantity">
+		    	<xsd:complexType>
+		    	      <xsd:attribute name="name" type="xsd:token" use="required"/>	    		
+		        </xsd:complexType>	    	
+		    </xsd:element>
+		</xsd:sequence>
+		<xsd:attribute name="pdeName" type="xsd:token" use="required"/>
+             </xsd:restriction>
+	   </xsd:complexContent>
+	</xsd:complexType>
   
 
   <!-- ******************************************************************** -->
@@ -1027,6 +1045,7 @@
           <!--  A) Iterative Coupling      -->
           <!-- =========================== -->            
           <xsd:element name="coupling" maxOccurs="1" type="DT_IterCplData"/>          
+          <!-- <xsd:element name="couplingAndNonLinearity" maxOccurs="1" type="DT_IterCplNonLinData"/>          -->
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent> 

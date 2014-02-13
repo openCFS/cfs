@@ -247,6 +247,12 @@ public:
         << "Most likely this method is called with a complex-valued "
         << "CoefFunction object." );
   }
+  //! Return real-valued element averaged value
+  virtual void GetAvgElemValue(Double & vec, 
+                         const Elem* elem) {
+    EXCEPTION( "CoefFunction::GetAvgElemValue<Double> not implemented in base class" );
+  }
+
 
   //! Return real-valued scalar at integration point
   virtual void GetScalar(Double& scal, 

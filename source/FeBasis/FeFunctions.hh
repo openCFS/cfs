@@ -386,6 +386,11 @@ public:
   virtual void GetVector(Vector<T>& vec, 
                          const LocPointMapped& lpm );
 
+  //! Return real-valued element averaged value
+  virtual void GetAvgElemValue(T & vec, 
+                         const Elem* elem) ;
+  
+
   //! Return complex-valued scalar at integration point
   virtual void GetScalar(T& scalar, 
                          const LocPointMapped& lpm );

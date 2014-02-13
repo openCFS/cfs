@@ -704,7 +704,7 @@ namespace CoupledField {
     std::map<RegionIdType, StdVector<UInt> > volRegionNodes, surfRegionNodes;
     std::map<RegionIdType, UInt > regionDims;
 
-    LOG_DBG(gridcfs) << "Determine list of surface elements";
+    LOG_DBG(gridcfs) << "Determine list of surface elements: " << numElems;
     
     // set of elements, which get surface-mapped
     StdVector<Elem*> surfElems;
@@ -855,6 +855,8 @@ namespace CoupledField {
     isInitialized_ = true;
 
     // Try to fix problems due to negative Jacobian determinants
+    LOG_TRACE(gridcfs) << "Trying to correct negative Jacobians. -> CoupledField::LagrangeElemShapeMap::CalcJDet -> CoupledField::FeH1::GetLocDerivShFnc";
+
     CorrectElementConnectivities();
     
     // make named nodes from lines
@@ -1849,6 +1851,49 @@ namespace CoupledField {
   void GridCFS::GetListElemNames( StdVector<std::string> & elemNames) {
     elemNames = namedElemNames_;
   }
+  void GridCFS::GetListOfVolumeRegions( RegionIdType reg_id, StdVector<RegionIdType> &volRegIds ) {
+
+    // check if region id is a volume anyways, then just return that
+    Integer index = 0;
+    volRegIds.Clear();
+
+    // look in volume regions
+    index = volRegionIds_.Find(reg_id);
+    if ( index != -1 ) {
+     volRegIds.Resize(1);
+     volRegIds[0] = reg_id;
+    
+    } else {
+      // look in surface regions
+      index = surfRegionIds_.Find(reg_id);
+      if ( index != -1 ) {
+        UInt numElems = surfElems_[index].GetSize();
+	SurfElem * ptSurfElem;
+	Integer iFound;
+        for( UInt iElem = 0; iElem <  numElems; ++iElem ) {
+          ptSurfElem = dynamic_cast<SurfElem*>(surfElems_[index][iElem]);
+	  if (ptSurfElem->ptVolElems[0] != NULL) {
+	    iFound = volRegIds.Find(ptSurfElem->ptVolElems[0]->regionId);
+	    if (iFound == -1) // not found
+	      volRegIds.Push_back(ptSurfElem->ptVolElems[0]->regionId);
+
+	  } else if(ptSurfElem->ptVolElems[1] != NULL) {
+	    WARN("not implemented");
+	  } else {
+            EXCEPTION( "GridCFS: The surface region with id '" << reg_id
+                   << "' doesn't have a volume attached!" ); 
+	  }
+	}
+      // loop over all elements and save their volRegionIds 
+      } else {
+        EXCEPTION( "GridCFS: The region with id '" << reg_id
+                   << "' was not found in the grid!" ); 
+
+      }
+    }
+
+
+  }
 
   // ======================================================
   // NODE ACCESS FUNCTIONS
@@ -2147,6 +2192,7 @@ namespace CoupledField {
 
 
   const Elem * GridCFS::GetElem( UInt elemNr ) {
+    LOG_TRACE(gridcfs) << "GetElem ptr for element nr " << elemNr;
 
  #ifndef NDEBUG
     if ( elemNr > numElems_ ) {
@@ -2241,6 +2287,7 @@ namespace CoupledField {
 
   void GridCFS::GetElems( StdVector<Elem*> & elems,
                           const RegionIdType regionId ) {
+    LOG_TRACE(gridcfs) << "GetElems for region " << region_.ToString(regionId);
     elems.Clear();
 
     // check if region Id is ALL_REGIONS
@@ -2268,6 +2315,7 @@ namespace CoupledField {
         }
       }
     }
+    LOG_DBG(gridcfs) << "GetElems returning '" << elems.GetSize() <<"' elements";
   }
 
 
@@ -2319,6 +2367,7 @@ namespace CoupledField {
   void GridCFS::GetElemsByName( StdVector<Elem*> & elems,
                                 const std::string & elemsName ) {
 
+    LOG_TRACE(gridcfs) << "GetElemsByName for name " << elemsName;
     StdVector<UInt> elemNumbers;
     Integer index = namedElemNames_.Find(elemsName);
 
@@ -2339,6 +2388,7 @@ namespace CoupledField {
   void GridCFS::GetElemNumsByName( StdVector<UInt> & elemNums,
                                        const std::string & elemName )
   {
+    LOG_TRACE(gridcfs) << "GetElemNumsByName for name " << elemName;
     if ( nameTypeMap_.find(elemName) == nameTypeMap_.end() )
     {
       EXCEPTION( "There are no entities with name '" << elemName
@@ -2430,6 +2480,7 @@ namespace CoupledField {
                                    const StdVector<UInt> & connect,
                                    bool updated ) {
 
+    LOG_TRACE(gridcfs) << "GetElemNodeCoord() for connect list: " << connect.ToString();
     coordMat.Resize(dim_, connect.GetSize());
 
     if( updated == true && deltCoords_.GetSize() != 0 ) {

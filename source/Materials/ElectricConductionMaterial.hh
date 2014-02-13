@@ -54,6 +54,16 @@ namespace CoupledField {
 		    Global::ComplexPart dataType,
 		    SubTensorType = FULL ) const;	
 
+    //! Return scalar-valued coefficient function for nonlinear function 
+    virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
+                                            Global::ComplexPart matDataType,
+                                            PtrCoefFct fluxDensity );
+
+    virtual PtrCoefFct GetScalCoefFncNonLinLumpedBiPole(MaterialType matType,
+                                            Global::ComplexPart matDataType,
+                                            PtrCoefFct dependency,  
+					    StdVector<RegionIdType> & regs)  ;
+
   private:
 
     //! compute the correct subTensor (3D, AXI, ..)
@@ -64,6 +74,10 @@ namespace CoupledField {
 
     //! Calculate full tensor from scalar values
     void ComputeFullMuTensor();
+
+    RegionIdType poleA_;
+    RegionIdType poleB_;
+    RegionIdType poleC_;
 
   };
 
