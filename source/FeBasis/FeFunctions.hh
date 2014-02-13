@@ -388,10 +388,7 @@ public:
 
   //! Return real-valued element averaged value
   virtual void GetAvgElemValue(T & vec, 
-                         const Elem* elem) {
-
-  }
-  
+                         const Elem* elem); 
 
   //! Return complex-valued scalar at integration point
   virtual void GetScalar(T& scalar, 
