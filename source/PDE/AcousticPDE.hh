@@ -96,6 +96,15 @@ namespace CoupledField{
     //! not be given in a close form, it is described by a CoefFunctionMulti.
     shared_ptr<CoefFunctionMulti> divMeanFlowCoef_;
 
+    //! store convective bilinear forms
+    std::map<RegionIdType, BaseBDBInt*> convectiveInts_;
+
+    //! convective coefficient function for martial derivatve
+    shared_ptr<CoefFunctionFormBased> convectiveCoef_;
+
+    //! override from Single PDE due to convective operators
+    virtual void FinalizePostProcResults();
+
     //! stores if the Acoustic PDE is coupled to mechanics
     bool isMechCoupled_;
 

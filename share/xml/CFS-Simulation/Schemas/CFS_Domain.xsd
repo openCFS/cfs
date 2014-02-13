@@ -166,6 +166,33 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+    <xsd:attribute name="forceXValue" type="xsd:token" use="optional" default="none">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+        Usefull for a coplanar interfaces. It sets the x-coordinate of all 
+        nodes on the interface to the given value. Use if your preprocessor 
+        may have a low precission.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="forceYValue" type="xsd:token" use="optional" default="none">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+        Usefull for a coplanar interfaces. It sets the y-coordinate of all 
+        nodes on the interface to the given value. Use if your preprocessor 
+        may have a low precission.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="forceZValue" type="xsd:token" use="optional" default="none">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+        Usefull for a coplanar interfaces. It sets the z-coordinate of all 
+        nodes on the interface to the given value. Use if your preprocessor 
+        may have a low precission.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
     <xsd:attribute name="tolAbs" type="DT_NonNegFloat"
                    use="optional" default="1e-12"/>
     <xsd:attribute name="tolRel" type="DT_FloatUnitInterval"

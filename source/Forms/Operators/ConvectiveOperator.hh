@@ -42,11 +42,11 @@ namespace CoupledField{
     static const UInt DIM_ELEM = D;
 
     //! Dimension of the related material
-    static const UInt DIM_D_MAT = D;
+    static const UInt DIM_D_MAT = D_DOF;
     //@}
 
     ConvectiveOperator(){
-      this->name_ = "DivOperator";
+      this->name_ = "ConvectiveOperator";
     }
 
     virtual ~ConvectiveOperator(){

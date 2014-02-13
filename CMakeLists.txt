@@ -316,6 +316,8 @@ OPTION(COVERAGE "Turn on code coverage output." ${COVERAGE_DEFAULT})
 
 OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)." ${CFSTOOL_DEFAULT})
 
+OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)." ${CFSDAT_DEFAULT})
+
 #-----------------------------------------------------------------------------
 # Shall we build ParaView?
 #-----------------------------------------------------------------------------
@@ -663,6 +665,10 @@ ADD_SUBDIRECTORY(source/main)
 IF(CFSTOOL)
   ADD_SUBDIRECTORY(source/cfstool)
 ENDIF(CFSTOOL)
+
+IF(CFSDAT)
+  ADD_SUBDIRECTORY(source/cfsdat)
+ENDIF(CFSDAT)
 
 #-----------------------------------------------------------------------------
 # Build the actual headers with defines from templates.

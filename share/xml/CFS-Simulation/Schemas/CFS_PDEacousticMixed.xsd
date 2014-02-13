@@ -46,6 +46,7 @@
                     <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="penalizationFactor" type="xsd:double" use="optional" default="0.5"/>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="initialFieldId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -77,6 +78,8 @@
                             
               <!-- Initial state of previous sequence step / external file -->
               <xsd:element name="initialState" type="DT_InitialState" minOccurs="0" maxOccurs="1"/>
+              <!-- Initial state given by used -->
+              <xsd:element name="initialField" type="DT_InitialField" minOccurs="0" maxOccurs="1"/>
               
  		      </xsd:choice>
  		    </xsd:complexType>

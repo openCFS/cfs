@@ -524,6 +524,42 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- ******************************************************************** -->
+  <!--   Definition of initial fields -->
+  <!-- ******************************************************************** -->
+
+  <!-- Base element type for specifying the initial state of a PDE, i.e.
+       its intial value for the primary quantity and its time derivatives -->
+  <xsd:complexType name="DT_InitialField">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+       <xsd:choice minOccurs="0">
+         <!-- 1) Same simulation, different multisequence step -->
+         <xsd:element name="scalar" minOccurs="0">
+           <xsd:complexType>
+             <xsd:attribute name="value" type="xsd:token" use="required"/>
+           </xsd:complexType>  
+         </xsd:element>
+         <xsd:element name="vector" minOccurs="0">
+           <xsd:complexType>
+             <!-- 2) single components given -->
+             <xsd:sequence>
+               <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+                 <xsd:complexType>
+                   <xsd:attribute name="dof" type="xsd:token" use="required"/>
+                   <xsd:attribute name="value" type="xsd:token" use="required"/>
+                   <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+                 </xsd:complexType>              
+               </xsd:element>
+             </xsd:sequence>
+           </xsd:complexType>  
+         </xsd:element>
+       </xsd:choice>
+       <xsd:attribute name="id" type="xsd:token" use="required"/>
+       <xsd:attribute name="quantity" type="xsd:token" use="required" />
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <!-- ******************************************************************** -->
   <!--   Definition of standard type for nonlinearity -->

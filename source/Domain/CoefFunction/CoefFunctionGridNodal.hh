@@ -83,7 +83,9 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
         if(type==VECTOR_DIVERGENCE){
           //change dim type to scalar
           this->dimType_ = SCALAR;
-
+          UInt gDim = this->domain_->GetGrid()->GetDim();
+          UInt dDim = this->resultInfo_->dofNames.GetSize();
+          this->CreateDivOperator(gDim,dDim);
         }
         break;
       case TENSOR:

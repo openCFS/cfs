@@ -40,7 +40,6 @@ namespace CoupledField {
     edgesMapped_ = false;
     facesMapped_ = false;
     maxNumElemNodes_ = 0;
-
   }
 
 
@@ -958,11 +957,22 @@ namespace CoupledField {
           Edge curEdge = edges_[abs(curE->edges[aSub])-1];
           curSurf->edges.Push_back(abs(curE->edges[aSub]));
 
-          //first the corner nodes
-          for( UInt i = 0; i < 2; i++ ) {
-            curSurf->connect.Push_back(curE->connect[curShape.edgeNodes[aSub][i]-1]);
-            curSurf->localCoords.Push_back(curShape.nodeCoords[curShape.edgeVertices[aSub][i]-1]);
+
+          if(curE->edges[aSub]<0){
+            //first the corner nodes
+            for( Integer i = 1; i >= 0; i-- ) {
+              curSurf->connect.Push_back(curE->connect[curShape.edgeVertices[aSub][(UInt)i]-1]);
+              curSurf->localCoords.Push_back(curShape.nodeCoords[curShape.edgeVertices[aSub][(UInt)i]-1]);
+            }
+          }else{
+            //first the corner nodes
+            for( UInt i = 0; i < 2; i++ ) {
+              curSurf->connect.Push_back(curE->connect[curShape.edgeVertices[aSub][i]-1]);
+              curSurf->localCoords.Push_back(curShape.nodeCoords[curShape.edgeVertices[aSub][i]-1]);
+            }
           }
+
+
           //now we check for more nodes on the edge
           //and assume the the corners were the first two entries in the edgeNodes array
           UInt numNodes = curShape.edgeNodes[aSub].GetSize();
@@ -3229,9 +3239,13 @@ namespace CoupledField {
         // Please implement the general case if you need it. But beware!
         // It's compliated, because you need to renumber all nodes and
         // therefore change the connectivity as well!
-        EXCEPTION("Cannot delete named nodes '" << name
-                  <<"', because it is not a contiguous block at the end of "
-                  <<"all node numbers.")
+        numNodes_ = coords_.GetSize() - sortedNodes.size();
+        coords_.Resize(numNodes_);
+        deltCoords_.Resize(numNodes_);
+
+        WARN("Deleting named nodes which are not a continuous block at the end \n" <<
+              "of the node array. In case of rotating AND static NcInterfaces \n" <<
+              "this may lead to wrong results. Only proceed if you know what you are doing.")
       }
       
       namedNodeNames_.Erase( (UInt) idx );

@@ -47,6 +47,7 @@
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
 #include "Domain/CoefFunction/CoefFunctionCompound.hh"
+#include "Domain/CoefFunction/CoefFunctionSurf.hh"
 
 #include "Domain/Results/ResultFunctor.hh"
 
@@ -328,12 +329,14 @@ namespace CoupledField{
         //now create the integrators
         BiLinearForm *convectiveVV = NULL;
         BiLinearForm *convectivePP = NULL;
+
         PtrCoefFct convFactor;
-        
+        Double factorPPT = 1.0;
         if(doFluxTerm_) {
           convFactor = 
               CoefFunction::Generate(mp_, Global::REAL, 
                                      CoefXprBinOp(mp_, "0.5", density, CoefXpr::OP_MULT ) );
+          factorPPT = 0.5;
         } else {
           convFactor = density;
         }
@@ -355,24 +358,32 @@ namespace CoupledField{
         = CoefFunction::Generate(mp_, Global::REAL, 
                                  CoefXprBinOp(mp_, "1.0", compressibility, CoefXpr::OP_DIV) );
         
+
+
         convectivePP = 
             new ABInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,1,DATA_TYPE>(), 
                                  new ConvectiveOperator<FeH1,DIM,1,DATA_TYPE>(),
-                                 coeffPP, 1.0 , coefUpdateGeo);
+                                 coeffPP, factorPPT , coefUpdateGeo);
+
+
 
         convectiveVV->SetBCoefFunctionOpB(meanFlowCoef_);
         convectivePP->SetBCoefFunctionOpB(meanFlowCoef_);
 
+
         convectiveVV->SetName("convectiveVV");
         convectivePP->SetName("convectivePP");
 
+
         BiLinFormContext *convectiveContextVV =  new BiLinFormContext(convectiveVV, STIFFNESS );
         BiLinFormContext *convectiveContextPP =  new BiLinFormContext(convectivePP, STIFFNESS );
+
 
         convectiveContextVV->SetEntities( actSDList, actSDList );
         convectiveContextVV->SetFeFunctions( feFunctions_[ACOU_VELOCITY],feFunctions_[ACOU_VELOCITY]);
         convectiveContextPP->SetEntities( actSDList, actSDList );
         convectiveContextPP->SetFeFunctions( feFunctions_[ACOU_PRESSURE],feFunctions_[ACOU_PRESSURE]);
+
         assemble_->AddBiLinearForm( convectiveContextVV );
         assemble_->AddBiLinearForm( convectiveContextPP );
 
@@ -389,6 +400,28 @@ namespace CoupledField{
               CoefFunction::Generate(mp_, Global::REAL,
                                      CoefXprBinOp(mp_, lexical_cast<std::string>(penaltyFactor),
                                                   density, CoefXpr::OP_MULT ) );
+
+          shared_ptr<ResultInfo> flowvelocityNormal( new ResultInfo);
+          flowvelocityNormal->resultType = MEAN_FLUIDMECH_VELOCITY_NORMAL;
+          flowvelocityNormal->dofNames = "";
+          flowvelocityNormal->unit = "m/s";
+
+          flowvelocityNormal->definedOn = ResultInfo::NODE;
+          flowvelocityNormal->entryType = ResultInfo::SCALAR;
+
+
+          shared_ptr<CoefFunctionSurf> normVel = shared_ptr<CoefFunctionSurf>(new CoefFunctionSurf(true,flowvelocityNormal));
+
+          normVel->AddVolumeCoef(actRegion,meanFlowCoef_);
+
+          PtrCoefFct formFactor2 =
+              CoefFunction::Generate(mp_, Global::REAL,
+                                     CoefXprBinOp(mp_,normVel, formFactor,
+                                          CoefXpr::OP_MULT ) );
+          PtrCoefFct formFactor3 =
+              CoefFunction::Generate(mp_, Global::REAL,
+                  CoefXprUnaryOp(mp_,formFactor2,CoefXpr::OP_NORM ) );
+
           BiLinearForm *convectiveVOpp = NULL;
           BiLinearForm *convectiveV = NULL;
           BiLinearForm *exteriorVV = NULL;
@@ -396,19 +429,21 @@ namespace CoupledField{
           volRegion.insert(actRegion);
           if( usePiola_ ) {
             convectiveVOpp = new SurfaceBBInt<DATA_TYPE>(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),
-                                                         formFactor, -0.5,volRegion, updatedGeo_);
-            convectiveV    = new SurfaceBBInt<DATA_TYPE>(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),
-                                                         formFactor, 0.5, volRegion, updatedGeo_);
+                formFactor3, -0.5,volRegion, updatedGeo_);
+            convectiveV   = new SurfaceBBInt<DATA_TYPE>(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),
+                formFactor3, 0.5, volRegion, updatedGeo_);
             exteriorVV     = new SurfaceBBInt<DATA_TYPE>(new IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>(),
-                                                         formFactor, -0.5,volRegion, updatedGeo_);
+                formFactor3, 0.5,volRegion, updatedGeo_);
           } else {
             convectiveVOpp = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(),
-                                                  formFactor, -0.5, updatedGeo_ );
-            convectiveV    = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(), 
-                                                  formFactor, 0.5, updatedGeo_);
-            exteriorVV     = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(), 
-                                                  formFactor, -0.5, updatedGeo_);
+                formFactor3, -0.5, updatedGeo_ );
+            convectiveV    = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(),
+                formFactor3, 0.5, updatedGeo_);
+            exteriorVV    = new BBInt<DATA_TYPE>(new IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>(),
+                formFactor3, 0.5, updatedGeo_);
           }
+
+
           convectiveV->SetName("penaltyMass");
           convectiveVOpp->SetName("penalityOpposite");
           exteriorVV->SetName("exteriorRegion");
@@ -421,7 +456,7 @@ namespace CoupledField{
           BiLinFormContext * penaltyContextV =  new BiLinFormContext(convectiveV, STIFFNESS );
           BiLinFormContext * penaltyContextExt =  new BiLinFormContext(exteriorVV, STIFFNESS );
 
-          penaltyContextVOpp->SetEntities( list, oppositList );
+          penaltyContextVOpp->SetEntities(  oppositList,list );
           penaltyContextV->SetEntities( list, list );
           penaltyContextExt->SetEntities(extList,extList);
 
@@ -437,6 +472,8 @@ namespace CoupledField{
         if(doFluxTerm_){
           BiLinearForm *fluxTerm = NULL;
           BiLinearForm *convectiveVVTrans = NULL;
+          BiLinearForm *convectivePPT = NULL;
+
           std::set<RegionIdType> volRegion;
           volRegion.insert(actRegion);
 
@@ -458,11 +495,18 @@ namespace CoupledField{
                                                      density, -0.5, updatedGeo_);
           }
 
+          convectivePPT = new ABInt<DATA_TYPE>(new ConvectiveOperator<FeH1,DIM,1,DATA_TYPE>(),
+                                                 new IdentityOperator<FeH1,DIM,1,DATA_TYPE>(),
+                                                 coeffPP, -0.5 , coefUpdateGeo);
+
           convectiveVVTrans->SetBCoefFunctionOpA(meanFlowCoef_);
           fluxTerm->SetBCoefFunctionOpB(meanFlowCoef_);
 
           fluxTerm->SetName("fluxTerm");
           convectiveVVTrans->SetName("convectiveVVtrans");
+
+          convectivePPT->SetBCoefFunctionOpA(meanFlowCoef_);
+          convectivePPT->SetName("convectivePPTransposed");
 
           //now we obtain the entity lists
           shared_ptr<EntityList> list,oppositList,extList;
@@ -471,15 +515,18 @@ namespace CoupledField{
 
           BiLinFormContext * fluxContext =  new BiLinFormContext(fluxTerm, STIFFNESS );
           BiLinFormContext * convectiveTransContext =  new BiLinFormContext(convectiveVVTrans, STIFFNESS );
+          BiLinFormContext * convectiveContextPPT =  new BiLinFormContext(convectivePPT, STIFFNESS );
 
-          fluxContext->SetEntities( list, oppositList );
+          fluxContext->SetEntities( oppositList,list  );
           convectiveTransContext->SetEntities( actSDList, actSDList );
 
           fluxContext->SetFeFunctions( feFunctions_[ACOU_VELOCITY],feFunctions_[ACOU_VELOCITY]);
           convectiveTransContext->SetFeFunctions( feFunctions_[ACOU_VELOCITY],feFunctions_[ACOU_VELOCITY]);
+          convectiveContextPPT->SetEntities( actSDList, actSDList );
+          convectiveContextPPT->SetFeFunctions( feFunctions_[ACOU_PRESSURE],feFunctions_[ACOU_PRESSURE]);
           assemble_->AddBiLinearForm( fluxContext );
           assemble_->AddBiLinearForm( convectiveTransContext );
-
+          assemble_->AddBiLinearForm( convectiveContextPPT );
         }
       }
     }

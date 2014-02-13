@@ -209,6 +209,10 @@ namespace CoupledField {
         return "m/s";
         break;
 
+      case MEAN_FLUIDMECH_VELOCITY_NORMAL:
+        return "m/s";
+        break;
+
       case DIV_MEAN_FLUIDMECH_VELOCITY:
         return "1/s";
         break;
@@ -1196,6 +1200,7 @@ namespace CoupledField {
     //fluidMech
     SolutionTypeEnum.Add(FLUID_FORCE, "fluidForce");
     SolutionTypeEnum.Add(MEAN_FLUIDMECH_VELOCITY, "meanFluidMechVelocity");
+    SolutionTypeEnum.Add(MEAN_FLUIDMECH_VELOCITY_NORMAL, "meanFluidMechVelocityNormal");
     SolutionTypeEnum.Add(DIV_MEAN_FLUIDMECH_VELOCITY, "divMeanFluidMechVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY, "fluidMechVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE, "fluidMechPressure");

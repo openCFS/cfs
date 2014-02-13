@@ -226,14 +226,15 @@ namespace CoupledField{
 
 
         // CURRENTLY NOT WORKING!
-        //factorFnc_->GetScalarValuesAtPoints(CoordVec,values);
-        values.Init(1.0);
+        //factorFnc_->GetScalarValuesAtCoords(CoordVec,values);
+        factorFnc_->GetScalarValuesAtCoords(CoordVec,values,this->domain_->GetGrid());
+        //values.Init(1.0);
         node = 0;
         for( it.Begin(); !it.IsEnd(); it++,node++ ) {
           UInt idx = nodeIdxMap_[it.GetNode()];
           eqns = eqnNumbers_[idx];
-          for(UInt d = 0; d<eqns.GetSize();++d){
-            sol[eqns[d]] = resVec[locPos++];
+          for(UInt d = 0; d<eqns.GetSize();++d,++locPos){
+            sol[eqns[d]] = resVec[locPos] * values[locPos];
 
             //curVec->GetEntry(locPos++,sol[eqns[d]]);
           }

@@ -426,6 +426,7 @@ namespace CoupledField {
     // Finally set the initialization flag to true
     isInitialized_ = true;
     LOG_TRACE(singlepde) << pdename_ << ": Finished initializaton";
+
   }
 
 
@@ -1486,7 +1487,7 @@ namespace CoupledField {
   //   SetBCs
   // **********
   void SinglePDE::SetBCs() {
-    
+
     // TODO: Is this method really necessary here or can we move it to the SolveStep-class?
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
@@ -1659,7 +1660,45 @@ namespace CoupledField {
     //  2) Initial condition
     // ===========================
     // Here only specific FeFunction(s) gets initialized, e.g. only the displacement,
-    // ... to be implemented ..
+    PtrParamNode ifNode = icNode->Get("initialField", ParamNode::PASS );
+    if( ifNode ) {
+      LOG_TRACE(singlepde) << pdename_ << ": Reading initial condition";
+      //get scalar or vector element
+
+      //read which quantity to initialize
+      std::string quantityStr = ifNode->Get("quantity",ParamNode::EX)->As<std::string>();
+      SolutionType solType = SolutionTypeEnum.Parse(quantityStr);
+      shared_ptr<ResultInfo> aResult = this->feFunctions_[solType]->GetResultInfo();
+
+      //get every region which has this ID
+      std::string idStr = ifNode->Get("id",ParamNode::PASS)->As<std::string>();
+      ParamNodeList regionList = myParam_->Get("regionList")->GetListByVal("region","initialFieldId",idStr);
+
+      for(UInt aNode = 0; aNode < regionList.GetSize(); aNode++){
+        // create new entity list
+        RegionIdType actRegion = ptGrid_->GetRegion().Parse(regionList[aNode]->Get("name")->As<std::string>());
+
+        shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+        actSDList->SetRegion( actRegion );
+
+        //Create a CoefFunction to process the initial field
+        PtrCoefFct regionCoef;
+        std::set<UInt> definedDofs;
+        bool coefUpdateGeo;
+        if(aResult->dofNames.GetSize()>1){
+          ReadUserFieldValues( actSDList, ifNode->Get("vector"), aResult->dofNames, aResult->entryType,
+                               isComplex_, regionCoef, definedDofs, coefUpdateGeo );
+        }else{
+          ReadUserFieldValues( actSDList, ifNode->Get("scalar"), aResult->dofNames, aResult->entryType,
+                                         isComplex_, regionCoef, definedDofs, coefUpdateGeo );
+        }
+        this->feFunctions_[solType]->AddExternalDataSource(regionCoef,actSDList);
+
+      }
+
+      //Trigger the feFunction to fill itself from the field
+      this->feFunctions_[solType]->ApplyExternalData();
+    }
     
     LOG_TRACE(singlepde) << pdename_ << ": Finished reading initial conditions";
   }

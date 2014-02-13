@@ -93,9 +93,17 @@ public:
   // ========================
   //@{ \name Access Methods
 
+  //! \copydoc CoefFunction::GetTensor
+  virtual void GetTensor(Matrix<TYPE>& coefMat,
+                           const LocPointMapped& lpm );
+
   //! \copydoc CoefFunction::GetVector
   virtual void GetVector(Vector<TYPE>& coefVec,
                          const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetScalar
+  virtual void GetScalar(TYPE& coefScal,
+                           const LocPointMapped& lpm );
 
   //! \copydoc CoefFunction::GetVecSize
   virtual UInt GetVecSize() const;
@@ -164,9 +172,17 @@ public:
   // ========================
   //@{ \name Access Methods
 
+  //! \copydoc CoefFunction::GetTensor
+  virtual void GetTensor(Matrix<TYPE>& coefMat,
+                           const LocPointMapped& lpm );
+
   //! \copydoc CoefFunction::GetVector
   virtual void GetVector(Vector<TYPE>& coefVec,
                          const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetScalar
+  virtual void GetScalar(TYPE& coefScal,
+                           const LocPointMapped& lpm );
 
   //! \copydoc CoefFunction::GetVecSize
   virtual UInt GetVecSize() const;

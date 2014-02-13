@@ -222,11 +222,44 @@ hsize_t H5IO::maxChunkSize_= 100;
 
     const char** buffer_;
 
+    bool isFixedLength;
+
+    UInt fixedLength;
   public:
     HdfTypeConversion()
-      : buffer_( NULL ) {
+      : buffer_( NULL ),
+        isFixedLength (false),
+        fixedLength(0){
       nativeType_ = new H5::StrType( H5::PredType::C_S1, H5T_VARIABLE);
       stdType_ = new H5::StrType( H5::PredType::C_S1, H5T_VARIABLE);
+    }
+
+    void AdaptToTypeBeforeRead(const H5::DataType& data){
+
+
+      //only do special things if we have not variable length
+      if(!data.isVariableStr()){
+        //we need to check for fixed or variable length
+        delete nativeType_;
+        delete stdType_;
+        nativeType_ = NULL;
+        stdType_ = NULL;
+
+        UInt dim = H5Tget_size(data.getId());
+        nativeType_ = new H5::StrType( H5::PredType::C_S1, dim+1);
+        stdType_    = new H5::StrType( H5::PredType::C_S1, dim+1);
+
+        isFixedLength = true;
+        fixedLength = dim;
+        if( buffer_ ) {
+          delete[] buffer_;
+          buffer_ = NULL;
+          buffer_ = new const char*[numElems_];
+          for(UInt i = 0;i < numElems_;i++){
+            buffer_[i] = new char[fixedLength+1];
+          }
+        }
+      }
     }
 
     const void * GetOutBufferPtr() {
@@ -240,7 +273,19 @@ hsize_t H5IO::maxChunkSize_= 100;
       CleanUp();
       numElems_ = numData;
       buffer_ = new const char*[numElems_];
-      return buffer_;
+      if(isFixedLength){
+        for(UInt i = 0;i < numElems_;i++){
+          buffer_[i] = new char[fixedLength+1];
+        }
+      }
+      //only adjust here was we do not want to write
+      // in fixed length string...
+      if(isFixedLength){
+        return const_cast<char *>(*buffer_);
+      }else{
+        return buffer_;
+      }
+      return NULL;
     }
 
     void GetNativeData( std::string * data) {
@@ -303,6 +348,26 @@ hsize_t H5IO::maxChunkSize_= 100;
       H5::StrType sType( H5::PredType::C_S1, H5T_VARIABLE);
       nativeType_ = new H5::VarLenType( &sType );
       stdType_ = new H5::VarLenType( &sType );
+    }
+
+    void AdaptToTypeBeforeRead(const H5::DataType& data){
+
+      //we need to check for fixed or variable length
+      //this should work for fixed string lengths but i am not sure
+      //therefore we throw a warning
+      if(!data.isVariableStr()){
+        delete nativeType_;
+        delete stdType_;
+        nativeType_ = NULL;
+        stdType_ = NULL;
+
+        UInt dim = H5Tget_size(data.getId());
+
+        nativeType_ = new H5::StrType( H5::PredType::C_S1, dim+1);
+        stdType_    = new H5::StrType( H5::PredType::C_S1, dim+1);
+
+          WARN("HDF5 File input: Converting vectors of fixed length strings is experimental!");
+      }
     }
 
     const void * GetOutBufferPtr() {
@@ -1218,6 +1283,8 @@ hsize_t H5IO::maxChunkSize_= 100;
       // open attribute
       H5::Attribute attribute = obj.openAttribute( name );
 
+      conv.AdaptToTypeBeforeRead(attribute.getDataType());
+
       // read data in buffer of conversion object
       attribute.read( *nativeType, conv.GetInBufferPtr(1) );
 
@@ -1308,6 +1375,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       // check, that standard hdf5 datatype is the same as the datatype
       // of the stored dataset
       // .. not sure if this can be implemented properly ...
+      conv.AdaptToTypeBeforeRead(dataset.getDataType());
 
       // read data in buffer of conversion object
       dataset.read( conv.GetInBufferPtr(size), *nativeType );
