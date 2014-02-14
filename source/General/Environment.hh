@@ -142,6 +142,11 @@ namespace CoupledField {
       ACOU_PMLAUXVEC, ACOU_PMLAUXSCALAR,
       ACOU_ELEM_SPEED_OF_SOUND,
 
+      // =========
+      // AEROACOUSTIC SOURCE TERMS
+      // =========
+      ACOU_RHS_LOADP, ACOU_APE_RHS_LOAD, ACOU_VORTEX_RHS_LOAD,
+
       // ==========
       //  ACOUSTIC MIXED
     // ==========
