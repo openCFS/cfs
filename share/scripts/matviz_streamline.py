@@ -21,6 +21,8 @@ def create_figure(min, max):
 class Data:
   def __init__(self, min, max, nx, input_space, input_data, method):
     
+    self.NO_VAL = -12345.6
+    
     self.min = min
     self.max = max
     self.nx = nx      
@@ -38,7 +40,12 @@ class Data:
         out[y * nx + x][0] = min[0] + dx * x + 0.5 * dx 
         out[y * nx + x][1] = min[0] + dy * y + 0.5 * dy
 
-    self.data = scipy.interpolate.griddata(input_space, input_data, out, method, 0.0)
+    self.data = scipy.interpolate.griddata(input_space, input_data, out, method, self.NO_VAL)
+  
+    if method <> 'nearest':
+      self.nearest = scipy.interpolate.griddata(input_space, input_data, out, 'nearest')
+
+
 
   ## tests if the coordinates are within min, max  
   def within(self, x, y): 
@@ -48,13 +55,17 @@ class Data:
       return False
     return True
     
-  ## gives for the coordinates the value line. Does not further interpolate but assumes piecewise constant data    
+  ## gives for the coordinates the value line. Does not further interpolate but assumes piecewise constant data.
+  # has a fallback to nearest    
   def getData(self, x, y):  
     i = int((x - self.min[0]) / self.dx)
     #j = int((self.max[1] - y - self.min[1]) / self.dx)
     j = int((y - self.min[1]) / self.dy)
     #print 'getData x=' + str(x) + ' y=' + str(y) + ' -> i=' + str(i) + ' j=' + str(j) + ' idx=' + str(self.nx * j + i),
     v = self.data[self.nx * j + i]
+    if v[0] == self.NO_VAL:
+      v = self.nearest[self.nx * j + i]
+    
     #print ' -> ' + str(v) 
     return v
     
@@ -94,7 +105,7 @@ class Data:
 class Fields:
 
   ## constructs the data sets macro and fine
-  def __init__(self, coords, s1, s2, angle):
+  def __init__(self, coords, s1, s2, angle, macro_samples):
     
     centers, min, max, elem = coords
     # convert to 2D
@@ -102,27 +113,31 @@ class Fields:
     
     nx = int((max[0] - min[0]) / elem[0])
 
-    self.macro = Data(min, max, nx, c, v, 'nearest')
-    self.fine  = Data(min, max, 4 * nx, c, v, 'nearest')
+    self.macro = Data(min, max, nx if macro_samples == None else macro_samples, c, v, 'linear')
+    self.fine  = Data(min, max, 4 * nx, c, v, 'linear')
  
  
   ## calculates the streamline from a given point up to the end
+  # @param idx 0 for s1 and 1 for s2 which changes the angle!
   # return a list of coordinates. The first entry is the starting point
-  def streamline(self, x, y, step):
+  def streamline(self, x, y, idx, steplength):
+    
+    assert(idx == 0 or idx == 1)
     
     trace = []
-    trace.append((x, y))
+    trace.append(((x, y), self.fine.getData(x, y)[idx]))
     
     while True:
       here = self.fine.getData(x, y)
-      angle = here[2]
+      angle = here[2] + idx * numpy.pi/2 # for idx==0 nothing changes
+      
       #print 'x=' + str(x) + ' y=' + str(y) + ' data=' + str(here),
-      x += step * numpy.cos(angle)
-      y += step * numpy.sin(angle)
+      x += steplength * numpy.cos(angle)
+      y += steplength * numpy.sin(angle)
       #print ' next_x=' + str(x) + ' next_y=' + str(y)
       
       if self.fine.within(x, y) and len(trace) < 2000: # prevent circular streams
-        trace.append((x, y))
+        trace.append(((x, y), here[idx]))
       else:
         break
 
@@ -130,12 +145,29 @@ class Fields:
       
 
 ## draws a trace  
-def draw_trace(fig, trace):
-  if len(trace) > 2:
-    # up-side down
-    path = Path(trace)
-    patch = matplotlib.patches.PathPatch(path, facecolor='none', lw=2)
-    fig.add_patch(patch)
+# @param scale scale stiffness to color. 1.0 for normal or 2.0 if max stiff = 0.5
+def draw_trace(fig, trace, scale):
+  # we search for portions in the trace with similar value which need to be at least two segments wide.
+  # Small value errors are ok. value equals color
+  
+  vertices = [i[0] for i in trace]
+  values   = [i[1] for i in trace]
+
+  start = 0
+  pos = 1
+  val = values[0]
+  while pos < len(trace):
+    # up to the value changes or we reach the end
+    if abs(values[pos] - val) > 0.1 or pos == len(trace)-1:
+      assert(pos > start)
+      #print 's=' + str(start) + ' e=' + str(pos)
+      path = Path(vertices[start:pos])
+      patch = matplotlib.patches.PathPatch(path, edgecolor=str(1.0 - (val * scale)), facecolor='none', lw=1)
+      fig.add_patch(patch)
+
+      start = pos
+      val = values[pos]      
+    pos += 1
       
 ## sort data such that s1 > s2. Will change angle by +/ pi/2. Sorts in-place!
 def sort_data(s1, s2, angle):
@@ -149,33 +181,39 @@ def sort_data(s1, s2, angle):
       angle[i] = float(angle[i]) - numpy.pi/2 if angle[i] > numpy.pi/2 else float(angle[i]) + numpy.pi/2 
       #print '  after: s1=' + str(s1[i]) + ' s2=' + str(s2[i]) + ' a=' + str(angle[i]) 
  
-def show_streamline(coords, s1, s2, angle):            
+def show_streamline(coords, s1, s2, angle, dir, samples):            
  
   centers, min, max, elem = coords
-  
-
   
   #print len(centers)
   #print min
   #print max
   #print elem
   
-  #sort_data(s1, s2, angle)
+  sort_data(s1, s2, angle)
 
-  fields = Fields(coords, s1, s2, angle)
+  fields = Fields(coords, s1, s2, angle, samples)
   #fields.macro.dump(s1,0)
-  fields.macro.dump_data()
+  #fields.macro.dump_data()
   
   fig = create_figure(min, max)
 
   #trace = fields.streamline(0.251, 0.251, 0.1)
   #draw_trace(fig, trace)
 
+  #interpret horizontal as s1. Note that we sort!!
+  dirs = [1,0] # 1 is weaker, draw first and second the darker s1 lines
+  if dir == 'horizontal':
+    dirs = [0]
+  if dir == 'vertical':
+    dirs = [1]
+
   if True:
-    for j in range(fields.macro.ny):
-      for i in range(fields.macro.nx):
-       trace = fields.streamline(i * fields.macro.dx, j * fields.macro.dy, 0.02)
-       draw_trace(fig, trace)
+    for idx in dirs:
+      for j in range(fields.macro.ny):
+        for i in range(fields.macro.nx):
+         trace = fields.streamline(i * fields.macro.dx, j * fields.macro.dy, idx, 0.02)
+         draw_trace(fig, trace, 2.0)
   
   
   matplotlib.pyplot.show()

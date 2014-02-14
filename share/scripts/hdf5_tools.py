@@ -123,6 +123,18 @@ def dump_h5_meta(hdf5_file):
     
     des = None
           
+## Test for result
+def has_element(hdf5_file, name, given_step=99999):
+  try:   
+    step = min((given_step, last_h5_step(hdf5_file)))
+    ms = hdf5_file['/Results/Mesh/MultiStep_1/Step_' + str(step)]    
+    for v in ms:
+      if name == v:
+        return True
+  except Exception, e:
+    print 'error probing for ' + name + ' in has_element: ', e
+
+  return False
           
 # returns a deep copied numpy array          
 def get_element(hdf5_file, name, region, given_step=99999):
