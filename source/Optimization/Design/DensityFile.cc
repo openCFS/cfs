@@ -167,6 +167,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
   string name = "design";
   if (pn != NULL && pn->Has("name"))
     name = pn->Get("name")->As<string>();
+  double db = -1;
   for (unsigned int e = 0; e < elsize; ++e)
   {
     // the design set consists of entries like
@@ -192,9 +193,18 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
 
     // this is also for the void-region! mainly for computing high resolution inv hom problems
     if(de != NULL) // && regionIds.Find(de->elem->regionId) >= 0)
-      de->SetDesign(val);
+    {
+        de->SetDesign(val);
+        // Get value of the relative bound for current design variable. If value not set, db = -1.
+        db = ersatzMaterial->design[ersatzMaterial->FindDesign(dt)].relative_bound;
+        if( db > 0.)
+        {
+          // if a relative_bound is set in the xml file, upper and lower bound are overwritten
+          de->SetUpperBound(val+db);
+          de->SetLowerBound(val-db);
+        }
+    }
   }
-
   return ersatzMaterial;
 
 }
