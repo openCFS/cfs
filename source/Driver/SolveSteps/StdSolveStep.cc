@@ -714,6 +714,7 @@ namespace CoupledField {
     std::cout << "In Step Total" << std::endl;
     bool performOneMoreStep;
     bool isNewton;
+    Double incrementalErr;
 
     SBM_Vector solNew(BaseMatrix::DOUBLE);
     SBM_Vector diffSol(BaseMatrix::DOUBLE);
@@ -761,7 +762,6 @@ namespace CoupledField {
 
       // setup right hand side
       Double loadFactor = 1.0;
-      Double incrementalErr;
       incrementalErr = SetLinRHS(loadFactor);
 
       // set iteration counter
@@ -769,10 +769,6 @@ namespace CoupledField {
 
       do {
         iterationCounter++;
-
-        // setup right hand side
-//        algsys_->InitRHS();
-//        assemble_->AssembleLinRHS();
 
         // do matrices: Newton is not working for total formulation!!
         isNewton = false;

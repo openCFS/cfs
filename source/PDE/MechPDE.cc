@@ -35,6 +35,7 @@
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionCompound.hh"
+#include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 
@@ -1195,7 +1196,39 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
 
     // === MECHANIC DISPLACED SURFACE VOLUME ===
-    // ... to be implemented
+    shared_ptr<ResultInfo> dispNormal, dispVol;
+    shared_ptr<CoefFunctionSurf> dispFctNormal;
+
+    //normal mechanical displacement
+    dispNormal.reset(new ResultInfo);
+    dispNormal->resultType = MECH_NORMAL_DISPLACEMENT;
+    dispNormal->dofNames = "";
+    dispNormal->unit = "m";
+    dispNormal->entryType = ResultInfo::SCALAR;
+    dispNormal->definedOn = ResultInfo::SURF_ELEM;
+
+    dispFctNormal.reset(new CoefFunctionSurf(true, dispNormal));
+    DefineFieldResult(dispFctNormal, dispNormal);
+    surfCoefFcts_[dispFctNormal] = feFct;
+
+    dispVol.reset(new ResultInfo);
+    dispVol->resultType = MECH_DEF_SURF_VOLUME;
+    dispVol->dofNames = "";
+    dispVol->unit = "m^3";
+    dispVol->entryType = ResultInfo::SCALAR;
+    dispVol->definedOn = ResultInfo::SURF_REGION;
+    // Integrate normal displacement
+    shared_ptr<ResultFunctor> dispVolFct;
+    if( isComplex_ ) {
+      dispVolFct.reset(new ResultFunctorIntegrate<Complex>(dispFctNormal,
+                                                          feFct, dispVol ) );
+    } else {
+      dispVolFct.reset(new ResultFunctorIntegrate<Double>(dispFctNormal,
+                                                         feFct, dispVol) );
+    }
+    resultFunctors_[MECH_DEF_SURF_VOLUME] = dispVolFct;
+    availResults_.insert(dispVol);
+
 
     // === MECHANIC_NORMAL_STRESS ===
     shared_ptr<ResultInfo> normalStressInfo;

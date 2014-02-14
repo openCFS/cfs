@@ -354,6 +354,10 @@ namespace CoupledField {
         return "m";
         break;
 
+      case MECH_NORMAL_DISPLACEMENT:
+        return "m";
+        break;
+
       case MECH_VELOCITY:
         return "m/s";
         break;
@@ -1101,6 +1105,7 @@ namespace CoupledField {
     SolutionTypeEnum.SetName("SolutionTypeEnum");
     //mechanics
     SolutionTypeEnum.Add(MECH_DISPLACEMENT, "mechDisplacement");
+    SolutionTypeEnum.Add(MECH_NORMAL_DISPLACEMENT, "mechNormalDisplacement");
     
     SolutionTypeEnum.Add(MECH_ACCELERATION, "mechAcceleration");
     SolutionTypeEnum.Add(MECH_VELOCITY, "mechVelocity");
