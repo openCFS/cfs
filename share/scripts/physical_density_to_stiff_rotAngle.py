@@ -48,15 +48,28 @@ if args.refangle:
         d2[i, 2] = tmp
     write_multi_design_file(args.output, d2, ["stiff1", "stiff2", "rotAngle"])
 else:
-  data = numpy.zeros((len(d), 3))
-  for i in range(len(d)): 
-      # data[i,0] = 1.-numpy.sqrt(1.-d[i])
-      # data[i,1] = 1.-numpy.sqrt(1.-d[i])
-      data[i, 0] = d[i]
-      data[i, 1] = d[i]
-      data[i, 2] = 0.
-      if args.rot:
-        data[i, 2] = d2[i, 2]
+  if args.rot:
+    data = numpy.zeros((len(d), 3))
+    for i in range(len(d2)):
       if args.angle:
-        data[i, 2] = args.angle      
-  write_multi_design_file(args.output, data, ["stiff1", "stiff2", "rotAngle"])
+          data[i, 0] = d2[i, 1]
+          data[i, 1] = d2[i, 2]
+          data[i, 2] = args.angle    
+      else:
+          data[i, 0] = d[i]
+          data[i, 1] = d[i]
+          data[i, 2] = d2[i, 2]         
+    write_multi_design_file(args.output, data, ["stiff1", "stiff2", "rotAngle"])
+  else:
+    data = numpy.zeros((len(d), 3))
+    for i in range(len(d)): 
+        # data[i,0] = 1.-numpy.sqrt(1.-d[i])
+        # data[i,1] = 1.-numpy.sqrt(1.-d[i])
+        data[i, 0] = d[i]
+        data[i, 1] = d[i]
+        data[i, 2] = 0.
+        if args.rot:
+          data[i, 2] = d2[i, 2]
+        if args.angle:
+          data[i, 2] = args.angle      
+    write_multi_design_file(args.output, data, ["stiff1", "stiff2", "rotAngle"])
