@@ -1275,15 +1275,15 @@ hsize_t H5IO::maxChunkSize_= 100;
                             const std::string& name,
                             TYPE& data ) {
     try {
-
-      // create conversion helper object and get native / std hdf5 datatype
-      HdfTypeConversion<TYPE> conv;
-      H5::DataType* nativeType = conv.GetNativeType();
-
       // open attribute
       H5::Attribute attribute = obj.openAttribute( name );
 
+      // create conversion helper object and get native / std hdf5 datatype
+      HdfTypeConversion<TYPE> conv;
       conv.AdaptToTypeBeforeRead(attribute.getDataType());
+
+      // now! obtain the native type...
+      H5::DataType* nativeType = conv.GetNativeType();
 
       // read data in buffer of conversion object
       attribute.read( *nativeType, conv.GetInBufferPtr(1) );
@@ -1358,11 +1358,6 @@ hsize_t H5IO::maxChunkSize_= 100;
                  << "' is NULL" );
     }
     try {
-
-      // create conversion helper object and get native / std hdf5 datatype
-      HdfTypeConversion<TYPE> conv;
-      H5::DataType* nativeType = conv.GetNativeType();
-
       // open dataset
       H5::DataSet dataset = loc.openDataSet( name );
 
@@ -1375,7 +1370,10 @@ hsize_t H5IO::maxChunkSize_= 100;
       // check, that standard hdf5 datatype is the same as the datatype
       // of the stored dataset
       // .. not sure if this can be implemented properly ...
+      // create conversion helper object and get native / std hdf5 datatype
+      HdfTypeConversion<TYPE> conv;
       conv.AdaptToTypeBeforeRead(dataset.getDataType());
+      H5::DataType* nativeType = conv.GetNativeType();
 
       // read data in buffer of conversion object
       dataset.read( conv.GetInBufferPtr(size), *nativeType );
