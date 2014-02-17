@@ -49,7 +49,7 @@ if args.refangle:
     write_multi_design_file(args.output, d2, ["stiff1", "stiff2", "rotAngle"])
 else:
   if args.rot:
-    data = numpy.zeros((len(d), 3))
+    data = numpy.zeros((len(d2), 3))
     for i in range(len(d2)):
       if args.angle:
           data[i, 0] = d2[i, 1]
