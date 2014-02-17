@@ -18,6 +18,24 @@
       </elasticity>
     </mechanical>
   </material>
+  
+   <material name="0_5_3D_cross">
+    <mechanical>
+      <density> 1. </density>
+      <elasticity> 
+        <tensor dim1="6">
+          <real>
+            1.099548e+00 4.488537e-01 4.488537e-01 0.00000E+00 0.00000E+00 0.00000E+00
+            4.488537e-01 1.099548e+00 4.488537e-01 0.00000E+00 0.00000E+00 0.00000E+00
+            4.488537e-01 4.488537e-01 1.099548e+00 0.00000E+00 0.00000E+00 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 3.163719e-01 0.00000E+00 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 3.163719e-01 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 3.163719e-01
+          </real>
+        </tensor>
+      </elasticity>
+    </mechanical>
+  </material>
   <material name="Steel">
     <mechanical>
       <!-- Data obtained from : "http://www.matweb.com"
@@ -75,45 +93,67 @@
       <elasticity>
         <isotropic>
           <real>
-            <elasticityModulus>1e12</elasticityModulus>
+            <elasticityModulus>1e5</elasticityModulus>
             <poissonNumber> 0.3 </poissonNumber>
           </real>
         </isotropic>
       </elasticity>
       <mechanicalDamping>
         <rayleigh>
-          <alpha>1e2</alpha>
-          <beta>1e-4</beta>
-          <measuredFreq>100</measuredFreq>
+          <alpha>0.05</alpha>
+          <beta>0.002</beta>
+          <measuredFreq>1e3</measuredFreq>
         </rayleigh>
       </mechanicalDamping>
     </mechanical>
   </material>
-  <material name="sigmund">
+<material name="scaled_titanium">
+    <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks : "Titanium, Ti", only poissonNumber from table-->
     <mechanical>
-      <density> 1 </density>
+      <density> 7872 </density>
+
       <elasticity>
         <isotropic>
           <real>
-            <elasticityModulus> 5 </elasticityModulus>
-            <poissonNumber> 0.35 </poissonNumber>
+            <elasticityModulus>1<!-- real value = 116 Gpa--></elasticityModulus>
+            <poissonNumber> 0.34 </poissonNumber>
           </real>
         </isotropic>
       </elasticity>
+      <mechanicalDamping>
+        <rayleigh>
+          <alpha>0.05</alpha>
+          <beta>0.002</beta>
+          <measuredFreq>1e3</measuredFreq>
+        </rayleigh>
+      </mechanicalDamping>
     </mechanical>
   </material>
-  <material name="sigmund_void">
+<material name="scaled_aluminum">
+    <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks : "Aluminum, Al", only poissonNumber from table-->
     <mechanical>
-      <density> 1 </density>
+      <density> 7872 </density>
+
       <elasticity>
         <isotropic>
           <real>
-            <elasticityModulus> 0.00086 </elasticityModulus>
-            <poissonNumber> 0.23076 </poissonNumber>
+            <elasticityModulus>0.5862 <!-- real value = 68 Gpa--></elasticityModulus>
+            <poissonNumber> 0.36 </poissonNumber>
           </real>
         </isotropic>
       </elasticity>
+      <mechanicalDamping>
+        <rayleigh>
+          <alpha>0.05</alpha>
+          <beta>0.002</beta>
+          <measuredFreq>1e3</measuredFreq>
+        </rayleigh>
+      </mechanicalDamping>
     </mechanical>
-  </material>
-  
+  </material>    
 </cfsMaterialDataBase>
+

@@ -712,6 +712,7 @@ share/scripts/material_catalogue/mat.xml -text
 share/scripts/matviz.py -text
 share/scripts/matviz_2d.py -text
 share/scripts/matviz_rot.py -text
+share/scripts/matviz_streamline.py -text
 share/scripts/matviz_vtk.py -text
 share/scripts/mesh_tool.py -text
 share/scripts/monitor_memory.sh -text

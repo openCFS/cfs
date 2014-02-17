@@ -156,17 +156,28 @@ def get_interpol_data(coords, data, fallback, x, eval = True):
     v = fallback[x]
   return coords[x], v  
 
-## helper which returns an interpolated grid and one nearest neighbor interpolated grid
-
-def get_interpolation(coords, grad, sample, s1, s2, angle = None):
-  assert(sample == 'elem_nodes' or sample == 'edge_centers')
-  
-  centers, min, max, elem = coords
+## helper for get_interpolation and Fields
+#@return 2d locations and 2d data
+def convert_interpolation_input(centers, s1, s2, angle):
   # convert to 2D
   c = numpy.zeros((len(centers), 2))
   c[:,0] = [x[0] for x in centers]
   c[:,1] = [x[1] for x in centers]
- 
+
+  v = numpy.zeros((len(s1),  2 if angle == None else 3))
+  for i in range(len(s1)):
+    v[i][0] = s1[i][0]
+    v[i][1] = s2[i][0]
+    if angle <> None:
+      v[i][2] = angle[i]
+      
+  return c, v    
+
+## helper which returns an interpolated grid and one nearest neighbor interpolated grid
+def get_interpolation(coords, grad, sample, s1, s2, angle = None):
+  assert(sample == 'elem_nodes' or sample == 'edge_centers')
+  
+  centers, min, max, elem = coords
   # where we want nodes
   nx = int((max[0] - min[0]) / elem[0])
   ny = int((max[1] - min[1]) / elem[1])
@@ -198,12 +209,7 @@ def get_interpolation(coords, grad, sample, s1, s2, angle = None):
         out[nx + y * (2*nx+1) + x][1] = float(y)/ny * max[1] + 0.5 * elem[1]
         # print "out[" + str(nx + y * (2*nx+1) + x) + "] = " + str(out[nx + y * (2*nx+1) + x])
 
-  v = numpy.zeros((len(s1),  2 if angle == None else 3))
-  for i in range(len(s1)):
-    v[i][0] = s1[i][0]
-    v[i][1] = s2[i][0]
-    if angle <> None:
-      v[i][2] = angle[i][0]
+  c, v = convert_interpolation_input(centers, s1, s2, angle)
     
   ip_data = ip.griddata(c, v, out, grad, -1.0)
   # any interpolation but nearest neighbor can only interpolate in the convex hull,
@@ -300,7 +306,8 @@ def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale=-1):
 
   im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white") 
 
-  delta_angle = numpy.max(angle[:,0]) - numpy.max(angle[:,0]) 
+#  delta_angle = numpy.max(angle) - numpy.max(angle) 
+  delta_angle = numpy.max(angle[:]) - numpy.max(angle[:]) 
 
   #print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " min=" + str(min) + " max=" + str(max)
   ip_data, ip_near, out, nx, ny = get_interpolation(coords, grad, 'edge_centers', s1, s2, angle)
@@ -390,20 +397,23 @@ def show_frame(coords, s1, s2, directions, nx):
   return im  
 
 
-## visualize the orientational stiffness
 # @return the image
-def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1.0):
+def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1.0, color="grayscale"):
 
   centers, min, max, elem = coords
 
   im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white") 
 
-  delta_angle = numpy.max(angle[:,0]) - numpy.max(angle[:,0]) 
+  delta_angle = numpy.max(angle) - numpy.max(angle) 
 
   if scale == -1.0:
     scale = 1.02 if delta_angle == 0.0 else 0.8 
 
   length =  scale * (elem[0]) * dx
+  
+  max_val = numpy.max([numpy.max(s1), numpy.max(s2)])
+  min_val = numpy.min([numpy.min(s1), numpy.min(s2)])
+  sm = cmx.ScalarMappable(colors.Normalize(vmin=min_val, vmax=max_val), cmap=plt.get_cmap('Greys'))
   
   for i in range(len(s1)):
   
@@ -412,19 +422,31 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1.0):
     y_off = (coord[1] + min[1]) * dy
 
     # we need downscale the values when we overscale due to overlapping 
-    v1 = s1[i,0] / numpy.max((scale, 1.))
-    v2 = s2[i,0] / numpy.max((scale, 1.))
-    theta = angle[i,0]
-    
-    # b
-    if not direction == 'horizontal':
-      pol = to_rectangle_center(length * v2, length, theta, x_off, dim[1] - y_off) 
-      draw.polygon(pol, fill="black")
+    v1 = [0,0]
+    v1[0] = s1[i,0] / numpy.max((scale, 1.))
+    v1[1] = s2[i,0] / numpy.max((scale, 1.))
+    theta = angle[i]
+    c = [0,0]
+    c[0] = color_code(sm,v1[0]) if color == "grayscale" else color_code(sm, max_val)
+    c[1] = color_code(sm,v1[1]) if color == "grayscale" else color_code(sm, max_val)
 
     # a
-    if not direction == 'vertical': 
-      pol = to_rectangle_center(length * v1, length, theta + numpy.pi/2, x_off, dim[1] - y_off) 
-      draw.polygon(pol, fill="black")
+    if direction == 'horizontal': 
+      pol = to_rectangle_center(length * v1[0], length, theta, x_off, dim[1] - y_off) 
+      draw.polygon(pol, fill=c[0], outline=c[0])      
+    # b
+    elif direction == 'vertical':
+      pol = to_rectangle_center(length * v1[1], length, theta + numpy.pi/2, x_off, dim[1] - y_off) 
+      draw.polygon(pol, fill=c[1], outline=c[1])
+    else:
+      vmax = 0 if v1[0] > v1[1] else 1
+      vmin = (vmax + 1) % 2
+      pol = to_rectangle_center(length * v1[vmin], length, theta + vmin*numpy.pi/2, x_off, dim[1] - y_off) 
+      draw.polygon(pol, fill=c[vmin], outline=c[vmin])
+      pol = to_rectangle_center(length * v1[vmax], length, theta + vmax*numpy.pi/2, x_off, dim[1] - y_off) 
+      draw.polygon(pol, fill=c[vmax], outline=c[vmax])
+      
+    
 
   return im  
 

@@ -857,9 +857,12 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
 
 void DesignMaterial::GetHomRectTensor(Matrix<double>& E,
     SubTensorType subTensor, DesignElement::Type direction, Notation notation) {
-  // only relevant for hom_rect
+  // only relevant for hom_rect and hom_rect_c1
   Quad9FE fe;
 
+
+
+  // Get design variables
   double a = params_[DesignElement::STIFF1];
   double b = params_[DesignElement::STIFF2];
   double c = subTensor == FULL ? params_[DesignElement::STIFF3] : 0.0;
@@ -867,6 +870,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E,
   if (subTensor != FULL) {
     rotAngle = params_[DesignElement::ROTANGLE];
   }
+
 
   Vector<double> p(subTensor == FULL ? 3 : 2);
 
@@ -1027,12 +1031,17 @@ void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E,
 void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
     DesignElement::Type direction, SubTensorType subTensor) const {
   PtrParamNode inf_warn = info->Get("optimization/header/designSpace");
+  // length of the discretized design interval
   int m = hom_rect_a_.GetNumRows();
   int n = hom_rect_b_.GetNumRows();
   int o = (subTensor == FULL) ? hom_rect_c_.GetNumRows() : 0;
+  // grid size of the discretized design interval, works only for uniform grids
   double da = hom_rect_a_[1][0] - hom_rect_a_[0][0];
   double db = hom_rect_b_[1][0] - hom_rect_b_[0][0];
   double dc = (subTensor == FULL) ? hom_rect_c_[1][0] - hom_rect_c_[0][0] : 1;
+
+  // selection of interpolation interval depending on design value p[i]
+  //TODO: Replace for-loops by analytical calculation of interval
   int j = -1;
   for (int i = 0; i < m - 1; i++) {
     if (hom_rect_a_[i][0] <= p[0] && p[0] < hom_rect_a_[i + 1][0]) {
@@ -1044,6 +1053,7 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
     } else if (p[0] > hom_rect_a_[m - 1][0]) {
       j = m - 2;
       p[0] = 1.;
+      // SNOPT violates the box constraints sometimes infinitisimally, therefore the last or the first interval are chosen
       if (p[0] > 1.01) {
         inf_warn->Get(ParamNode::WARNING)->SetValue(
             "Interpolation of Hom_RectC1 tensor failed. Design Variable p[0]"
@@ -1124,6 +1134,7 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
 
     }
     assert(l != -1);
+    // Calculation of the interpolated tensor values
     if (direction == DesignElement::NO_DERIVATIVE
         || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
       E[1 - 1][1 - 1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff11_, da,
@@ -1149,6 +1160,7 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
       E[3 - 1][2 - 1] = E[2 - 1][3 - 1];
       LOG_DBG(dm)<<"E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2]<<" E23= "<<E[1][2]<<" E13= "<<E[0][2]<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
     } else {
+      // Calculation of the interpolated tensor derivatives
       E[1-1][1-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
       E[1-1][2-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
       E[1-1][3-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o,direction);
@@ -1163,6 +1175,7 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
       E[3-1][2-1] = E[2-1][3-1];
       LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":((direction == DesignElement::STIFF2) ? "2":"3"))<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2]<<" E23= "<<E[1][2]<<" E13= "<<E[0][2]<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
     }
+
   } else {
     E.Resize(3,3);
     E.Init(); // for off-diagonal
@@ -1185,7 +1198,6 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
   }
 
 }
-
 double DesignMaterial::EvaluateC1Interpolation_3D(Matrix<double>& E,
     Vector<double>& p, const Matrix<double> & coeff, double & da, double & db,
     double & dc, int & j, int & k, int & l, int & m, int & n, int &o) const {

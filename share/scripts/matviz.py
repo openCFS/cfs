@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from matviz_vtk import *
 from matviz_2d  import *
+from matviz_streamline import *
 from hdf5_tools import *
 import argparse
 import sys
@@ -11,28 +12,65 @@ import os
 # @param angle array of anglex, angley, anglez
 # @return s1, s2, s3, angle 
 def read_stiff_angle(hdf_file, dim_2D, args):
-  # rot means, that we only show rotAngle, e.g. for piezoelectric polarization
-  s1 = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1 
-  s2 = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1
-  s3 = numpy.ones((len(centers),1)) * .1 if dim_2D or args.show == "rot" else get_element(f, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step) 
-  if args.density_scale:
+  # rot means, that we only show rotation according to rotAngle, e.g. for piezoelectric polarization
+  if args.parametrization == 'hom_rect' or args.parametrization == 'dxhom_rect':
+    s1 = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1 
+    s2 = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1
+    s3 = numpy.ones((len(centers),1)) * .1 if dim_2D or args.show == "rot" else get_element(f, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step)
+    if has_element(hdf_file, "design_density_" + args.hom_access):
+      rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
+      s1 *= rho
+      s2 *= rho
+      s3 *= rho
+      print "scale stiffness values by density_'" + args.hom_access + "' with average value " + str(numpy.mean(rho))
+  elif args.parametrization == 'trans-iso' or args.parametrization == 'dxtrans-iso':
+    s1 = get_element(f, "design_emodul-iso_" + args.hom_access, args.h5_region, args.h5_step)
+    s2 = get_element(f, "design_emodul_" + args.hom_access, args.h5_region, args.h5_step)
+    try:
+      theta = get_element(f, "design_poisson_" + args.hom_access, args.h5_region, args.h5_step)
+    except:
+      theta = 0.0
+      print 'could not read theta (design_poisson_' + args.hom_access + '), setting to ' + str(theta)
+    m = 2.0*numpy.max([numpy.max(s1), numpy.max(s2)])
+    s1 *= 1/(m*(1-theta))
+    s2 *= 1/(m*(1-theta))
+    s3 = numpy.ones((len(centers),1)) * .1 # fix for 3D
+  elif args.parametrization == 'ortho' or args.parametrization == 'dxortho':
+    t11 = get_element(f, "design_tensor11_" + args.hom_access, args.h5_region, args.h5_step)
+    t12 = get_element(f, "design_tensor12_" + args.hom_access, args.h5_region, args.h5_step)
+    t22 = get_element(f, "design_tensor22_" + args.hom_access, args.h5_region, args.h5_step)
+    t33 = get_element(f, "design_tensor33_" + args.hom_access, args.h5_region, args.h5_step)
+    s1 = t11*t11+t12*t12
+    s2 = t12*t12+t22*t22
+    m = 2.0*numpy.max([numpy.max(s1), numpy.max(s2)])
+    s1 *= 1/m
+    s2 *= 1/m
+    s3 = numpy.ones((len(centers),1)) * .1 # fix for 3D
+    
+  if args.parametrization == 'dxhom_rect' or args.show == 'dxtrans-iso' or args.show == 'dxortho':
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
+    rho = pow(rho, args.penalty)
     s1 *= rho
     s2 *= rho
     s3 *= rho
   
   angle = numpy.zeros(((len(s1),3)))
   
-  if args.show == "hom_rot_cross" or args.show == "rot":
+  if args.show == "hom_rot_cross" or args.show == "rot" or args.show == "stream":
     try:
       if dim_2D:
-        angle[:,0] = get_element(f, "design_rotAngle_" + args.hom_access, args.h5_region, args.h5_step)
+	try:
+	  angle[:,0] = get_element(f, "design_rotAngle_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
+	except:
+	  print 'could not read design_rotAngle_' + args.hom_access + ', trying design_rotAngle_plain'
+	  angle[:,0] = get_element(f, "design_rotAngle_plain", args.h5_region, args.h5_step)[:,0]
       else:
         angle[:,0] = get_element(f, "design_rotAngleX_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
         angle[:,1] = get_element(f, "design_rotAngleY_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
         angle[:,2] = get_element(f, "design_rotAngleZ_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
-    except:
-      print 'could not read angle, ignore it'
+    except Exception, e:
+      print 'could not read angle, ignore it: ', e
+      
   return s1, s2, s3, angle
 
 ## show or write either Image or polydata
@@ -66,7 +104,7 @@ parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, '
 parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=float)
 parser.add_argument("--res", help="x-resolution (default 1000)", default=1000, type=int)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
-parser.add_argument("--show", help="default | ortho_norm | mono_norm (3D) | ortho_err | e21_normed (2D) | hom_rect | hom_rot_cross | rot | shear", default="default", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'rot', 'shear'])
+parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'rot', 'stream'])
 parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", default="voigt")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
@@ -78,9 +116,11 @@ parser.add_argument("--hom_grad", help="interpolation of design: 'none', 'neares
 parser.add_argument("--hom_dir", help="visualization of stiffness directions (default 'all')", default="all", choices=['all', 'horizontal', 'vertical', 'sagittal'] )
 parser.add_argument("--hom_angle", help="bias added to the angle in grad!", default=0.0, type=float )
 parser.add_argument("--hom_samples", help="activates interpolation and gives samples in x-direction", type=int)
-parser.add_argument('--density_scale', action='store_true', help='scale by <hom_access> density')
+parser.add_argument("--parametrization", help="parametrization of the stiffness tensor", default="hom_rect", choices=['hom_rect', 'dxhom_rect', 'trans_iso', 'dx_trans_iso', 'ortho', 'dxortho'])
 parser.add_argument("--save", help="save 'image.png' or VTK Poly Data file 'file.vtp'")
 parser.add_argument("--plot", help="for single tensors: creates gnuplot file instead of image")
+parser.add_argument("--penalty", help="penalty parameter for SIMP (default 5)", default=5.0)
+parser.add_argument("--color", help="only for hom_rot_cross: black or grayscale", default="grayscale")
 args = parser.parse_args()
 
 # check ans postproc arguments
@@ -148,7 +188,7 @@ else:
 if h5_read or dim_2D:
   # either Image or polydata  
   viz = None
-  if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "rot":
+  if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "rot" or args.show == 'stream':
 
     s1, s2, s3, angle = read_stiff_angle(f, dim_2D, args)
     # add angle bias
@@ -158,18 +198,22 @@ if h5_read or dim_2D:
 
     # viz is either Image or polydata
     if dim_2D:
-      if args.show == "hom_rot_cross" or args.show == "rot":
-        # add optional angle bias
-        print 'change angle'
-        if args.hom_grad == 'none':
-          viz = show_rot_cross(coords, s1, s2, angle[:,0], args.hom_dir, args.res, args.scale)
-        else:
-          viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, args.scale)          
-      else:
+      if args.show == "hom_rect": 
         if args.hom_grad == 'none':
           viz = show_frame(coords, s1, s2, args.hom_dir, args.res)
         else:
           viz = show_frame_grad(coords, s1, s2, args.hom_grad, args.hom_dir, args.res)
+      elif args.show == "hom_rot_cross" or args.show == "rot":
+        # add optional angle bias
+        print 'change angle'
+        if args.hom_grad == 'none':
+          viz = show_rot_cross(coords, s1, s2, angle[:,0], args.hom_dir, args.res, args.scale, args.color)
+        else:
+          viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, args.scale)
+      elif args.show == "stream":
+          viz = show_streamline(coords, s1, s2, angle[:,0], args.hom_dir, args.hom_samples)            
+      else:
+        assert(False)
     # the 3D VTK stuff      
     else:       
       if args.show == "rot":
