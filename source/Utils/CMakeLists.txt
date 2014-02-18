@@ -3,6 +3,7 @@ SET(UTILS_SRCS
   Coil.cc
   Interpolate1D.cc
   LinInterpolate.cc
+  BiLinInterpolate.cc
   mathfunctions.cc
   Polynomial.cc
   Timer.cc

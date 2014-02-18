@@ -12,13 +12,14 @@ namespace CoupledField {
   public:
 
     //! constructor
-    ApproxData( std::string nlFncName, MaterialType matType );
+    ApproxData( std::string nlFncName, MaterialType matType , UInt numIndep = 1);
 
     //! destructor: nothing to do
     virtual ~ApproxData() {;};
 
     //! reads in the sampled data form file with name fncName
     void ReadNlinFunc( std::string fncName );
+    void ReadNlinFuncTwoIndep( std::string fncName );
 
     //! return file name
     std::string GetNlFileName() {
@@ -43,6 +44,8 @@ namespace CoupledField {
 
     //! evaluates the functions
     virtual Double EvaluateFunc( Double t ) = 0;
+    virtual Double EvaluateFunc(double x, double y) {EXCEPTION("only implemented in BiLinInterpolate"); Double a=-1.; return a;} // bilinear
+    virtual Double EvaluateFunc(double x, double y, double z) {EXCEPTION("only implemented in TriLinInterpolate"); Double a=-1.; return a;} //trilinear
 
     //! evalutates the derivazive of the function
     virtual Double EvaluatePrime( Double t ) = 0;
@@ -79,8 +82,12 @@ namespace CoupledField {
   protected:
 
     Vector<Double> x_;  //!< independent value
+    Vector<Double> x1_;  //!< independent value
+    Vector<Double> x2_;  //!< independent value
     Vector<Double> y_;  //!< function value
+    StdVector< Vector <Double> > z_; //! function value for two independent vars
     UInt numMeas_;      //!< number of sampled points
+    UInt numIndepend_;  //!< number of independent values (default 1)
     MaterialType matType_; //!< material parameter to be approximated
     std::string nlFileName_; //!< name of file
 

@@ -4,16 +4,26 @@
 #include "Utils/tools.hh"
 //#include "DataInOut/simInput.hh"
 #include "ApproxData.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"  
 
 namespace CoupledField
 { 
 
-  ApproxData::ApproxData(std::string nlFileName, MaterialType matType )
+DECLARE_LOG(approxdata)  
+DEFINE_LOG(approxdata, "approxdata")
+
+  ApproxData::ApproxData(std::string nlFileName, MaterialType matType, UInt numIndep)
   {
+    numIndepend_ = numIndep;
     matType_ = matType;
     nlFileName_ = nlFileName;
-    ReadNlinFunc(nlFileName);
-    PerformChecksOnInputData(nlFileName);
+    if (numIndepend_ == 1) {
+      ReadNlinFunc(nlFileName);
+      PerformChecksOnInputData(nlFileName);
+    } else {
+      ReadNlinFuncTwoIndep(nlFileName);
+
+    }
 
   }
 
@@ -71,6 +81,127 @@ namespace CoupledField
       x_[k] = xx[k];
       y_[k] = yy[k];
     }
+  }
+
+  void ApproxData::ReadNlinFuncTwoIndep(std::string fncName)  {
+  
+    std::ifstream datafile;
+  
+    datafile.open(fncName.c_str());
+    if ( !datafile ) {
+      std::string str = "Failed to open file '" + fncName +
+        "' suspected to contain nonlinear data";
+      EXCEPTION( str );
+    }
+  
+    datafile.clear(); // clear flags
+  
+    // we don't trust .eof() =)
+    datafile.seekg(0,std::ios::end);
+    std::string::size_type pos = 0, line_start_pos = 0,
+      pos_end = datafile.tellg();
+    
+    datafile.seekg(0,std::ios::beg); // start from the beginning
+    std::string     buf;
+    Double          x0val,x1val, yval;
+    std::vector<Double> xx0, xx1;
+    std::vector<Double> yy;
+    std::vector<UInt> blockSizes;
+    UInt nblocks;
+    UInt nMeas = 0;
+    
+    while(pos <= pos_end)
+      {     
+        line_start_pos = datafile.tellg();
+        std::getline(datafile,buf);
+        // Data file must be in gnuplot syntax:
+	// x0 y0 z0
+	// x0 y1 z1
+	// x0 y2 z3
+	//
+	// x1 y0 z4
+	// x1 y1 z5
+	// x1 y2 z6
+	//
+	// ...
+        // big choice of signs for comment's
+        if ((buf[0] != '#' || buf[0] != '%' || buf[0] != '!') && buf.size() > 0) 
+          {
+            datafile.seekg(line_start_pos); // rewind
+          
+            datafile >> x0val >> x1val >> yval;                  
+            xx0.push_back(x0val);
+	    xx1.push_back(x1val);
+            yy.push_back(yval);
+            datafile.ignore(100,'\n');
+	    nMeas += 1;
+          }
+	else if (buf.size() == 0) {
+          // advance block
+	  blockSizes.push_back(nMeas);
+	  nMeas=0;
+	}
+      
+        pos = datafile.tellg();  // and, where we are ?    
+      }
+
+    UInt firstBlockSize = blockSizes[0];
+    for (UInt k=1; k< blockSizes.size(); k ++ ){
+      // blocks have to be the same size
+      if (blockSizes[k] != firstBlockSize) 
+        EXCEPTION("each block size must be the same in the data file");
+      // the x1 coordinates must be the same for each block
+      for (UInt l=0; l< firstBlockSize; l++) {
+        if (xx1[l] != xx1[k*firstBlockSize + l])
+          EXCEPTION("coordinate x1 must be the same in each block of the data file");
+      }
+    }
+    for (UInt k=0; k<blockSizes.size(); k++) {
+      for (UInt l=0; l<firstBlockSize; l++) {
+        if (xx0[k*firstBlockSize] != xx0[k*firstBlockSize + l])
+          EXCEPTION("coordinate x0 must be the same throughout a block of the data file");
+      }
+    }
+  
+    datafile.close();
+    numMeas_ = xx0.size(); // FIXME: do I need it somewhere?
+    nblocks = blockSizes.size();
+    LOG_DBG(approxdata) << "Read 2d file '" << fncName << "' with " << nblocks << 
+    " blocks with " << firstBlockSize << " measurements each.";
+
+    x_.Resize(nblocks);
+    z_.Resize(nblocks);
+    x1_.Resize(firstBlockSize);
+
+    for (UInt l=0; l<firstBlockSize; l++) {
+      x1_[l] = xx1[l];
+    }
+    for (UInt l=1; l<firstBlockSize; l++) {
+      if ( x1_[l-1] > x1_[l]){
+        LOG_DBG(approxdata) << "x1 Vector: " << x1_.ToString();
+        EXCEPTION("coordinate x1 must increase monotonically");
+	}
+    }
+      
+    for ( UInt k=0; k<nblocks; k++ ) {
+      z_[k].Resize(firstBlockSize);
+      x_[k] = xx0[k*firstBlockSize];
+      for (UInt l=0; l<firstBlockSize; l++) {
+        z_[k][l] = yy[k*firstBlockSize + l];
+      }
+    }
+    for (UInt l=1; l<nblocks; l++) {
+      if ( x_[l-1] > x_[l]){
+        LOG_DBG(approxdata) << "x0 Vector: " << x_.ToString();
+        EXCEPTION("coordinate x0 must increase monotonically");
+	}
+      
+    }
+    LOG_DBG(approxdata) << "x0 Vector: " << x_.ToString();
+    LOG_DBG(approxdata) << "x1 Vector: " << x1_.ToString();
+    LOG_DBG(approxdata) << "z   Array: \n" << z_.ToString();
+
+    
   }
 
 
