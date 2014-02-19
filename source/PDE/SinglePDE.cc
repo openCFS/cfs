@@ -3214,9 +3214,9 @@ namespace CoupledField {
     // set counterpart directive for the context.
 
     penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
-        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
+        ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, beta, curcpl, updatedGeo_, true);
+          factor, beta, curcpl, updatedGeo_, true, true);
 
     if ( solType == MECH_DISPLACEMENT ) {
       flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
@@ -3249,16 +3249,16 @@ namespace CoupledField {
     curcpl = BiLinearForm::SLAVE_SLAVE;
 
     penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
-        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
+        ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, beta, curcpl, updatedGeo_, true);
+          factor, beta, curcpl, updatedGeo_, true, true);
 
     curcpl = BiLinearForm::MASTER_SLAVE;
 
     penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
-        ( new SurfaceIdentityOperatorScaledBySurface<FeH1,DIM,D_DOF>(),
+        ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-          factor, beta * -1.0, curcpl, updatedGeo_, true);
+          factor, beta * -1.0, curcpl, updatedGeo_, true, true);
     
     if ( solType == MECH_DISPLACEMENT ) {
       flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>

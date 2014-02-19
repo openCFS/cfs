@@ -1635,9 +1635,11 @@ void LagrangeElemShapeMap::GetMaxMinEdgeLength(Double& max, Double& min) {
   max = 1e-100;
   min = 1e+100;
   Double length, dl;
+  //check for surface element
+  UInt dim = std::max(this->ptGrid_->GetDim(), shape.dim);
   for (UInt i = 0; i < shape.numEdges; ++i) {
     length = 0.0;
-    for (UInt iDim = 0; iDim < shape.dim; ++iDim) {
+    for (UInt iDim = 0; iDim < dim; ++iDim) {
       dl = coords_[iDim][shape.edgeVertices[i][1] - 1]
                          - coords_[iDim][shape.edgeVertices[i][0] - 1];
       length += dl * dl;

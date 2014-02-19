@@ -1216,16 +1216,16 @@ namespace CoupledField{
     //first call base class method
     SinglePDE::FinalizePostProcResults();
 
-    //now we additonally add the convective stuff
-    std::map<RegionIdType, BaseBDBInt*>::iterator stiffIt = this->convectiveInts_.begin();
-    for(; stiffIt != convectiveInts_.end(); ++stiffIt ) {
-      RegionIdType region = stiffIt->first;
-      BaseBDBInt* bdb = stiffIt->second;
-      if( !bdb)
-        continue;
-
-      convectiveCoef_->AddIntegrator(bdb, region);
-    }
+    ////now we additonally add the convective stuff
+    //std::map<RegionIdType, BaseBDBInt*>::iterator stiffIt = this->convectiveInts_.begin();
+    //for(; stiffIt != convectiveInts_.end(); ++stiffIt ) {
+    //  RegionIdType region = stiffIt->first;
+    //  BaseBDBInt* bdb = stiffIt->second;
+    //  if( !bdb)
+    //    continue;
+    //
+    //  convectiveCoef_->AddIntegrator(bdb, region);
+    //}
   }
 
   void AcousticPDE::DefinePostProcResults(){

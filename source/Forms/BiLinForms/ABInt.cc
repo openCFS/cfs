@@ -209,7 +209,7 @@ SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 ::SurfaceNitscheABInt( BaseBOperator * aOp, BaseBOperator * bOp,
                        PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
                        BiLinearForm::CouplingDirection cplDir,
-                       bool coordUpdate, bool isSym )
+                       bool coordUpdate, bool isSym, bool isPenalty )
   : ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(aOp, bOp, scalCoef, factor, coordUpdate)
 {
   this->name_ = "SurfaceNitscheABInt";
@@ -217,6 +217,7 @@ SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   this->myDirection_ = cplDir;
 
   this->isSymmetric_ = isSym;
+  this->isPenalty_ = isPenalty;
 }
 
 
@@ -285,6 +286,45 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
       nrFncsB * this->bOperator_->GetDimDof() );
   elemMat.Init();
 
+  MAT_DATA_TYPE myFactor = this->factor_;
+  if(this->isPenalty_){
+    ////adapt the penalization term to the desired one
+    ////first, the standard
+    //MAT_DATA_TYPE surface2(1.0/esm1->CalcVolume());
+    //myFactor *= surface2;
+
+   shared_ptr<ElemShapeMap> esm1T =
+       ent1.GetGrid()->GetElemShapeMap( mSe1->ptMaster, this->coordUpdate_ );
+   shared_ptr<ElemShapeMap> esm2T =
+       ent1.GetGrid()->GetElemShapeMap( mSe1->ptSlave, this->coordUpdate_ );
+
+   //obtain pointer to basis functions
+   BaseFE* SFe1 = this->ptFeSpace1_->GetFe(mSe2->ptMaster->elemNum);
+   BaseFE* SFe2 = this->ptFeSpace1_->GetFe(mSe2->ptSlave->elemNum);
+
+   MAT_DATA_TYPE tmp(2.0);
+   Double min,max;
+   esm1T->GetMaxMinEdgeLength(min,max);
+   UInt order1 = SFe1->GetIsoOrder();
+   if(order1 == 0){
+     StdVector<UInt> aIsoOrder;
+     SFe1->GetAnisoOrder(aIsoOrder);
+     for(UInt i=0;i<aIsoOrder.GetSize();i++)
+       order1 = (aIsoOrder[i]>order1)? aIsoOrder[i] : order1;
+   }
+   MAT_DATA_TYPE surface1(min/(Double)order1);
+   esm2T->GetMaxMinEdgeLength(min,max);
+   UInt order2 = SFe2->GetIsoOrder();
+   if(order2 == 0){
+     StdVector<UInt> aIsoOrder;
+     SFe2->GetAnisoOrder(aIsoOrder);
+     for(UInt i=0;i<aIsoOrder.GetSize();i++)
+       order2 = (aIsoOrder[i]>order2)? aIsoOrder[i] : order2;
+   }
+   MAT_DATA_TYPE surface2(min/(Double)order2);
+   myFactor *= tmp/(surface1+surface2);
+  }
+
 #define USE_BLAS_VERSION
   // Loop over all integration points
   LocPointMapped lp1,lp2;
@@ -308,9 +348,9 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 
 #ifdef USE_BLAS_VERSION
     this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false,
-        this->factor_*fac, 1.0);
+        myFactor*fac, 1.0);
 #else
-    elemMat += Transpose(this->aMat_) * this->bMat_ * this->factor_*fac;
+    elemMat += Transpose(this->aMat_) * this->bMat_ * myFactor *fac;
 #endif
 
   }

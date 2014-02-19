@@ -286,7 +286,8 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
  					           StdVector<RegionIdType> & regs) {
 
   UInt ndeps = dependencies.GetSize(); // 1 no temp dep, 2: temp dep
-  UInt nregs = regs.GetSize(); // 2 regs dipole, 3 regs tripole
+  //obsolete variable: only used for debug builds and can be avoided
+  //UInt nregs = regs.GetSize(); // 2 regs dipole, 3 regs tripole
 
   // Ensure that only real-valued parameters are used
   if( matDataType != Global::REAL ) {
@@ -351,7 +352,7 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
   shared_ptr<CoefFunctionComposite> coef;
   if (nlType == NLELEC_BIPOLE) {
     assert ( ndeps == 1) ;
-    assert ( nregs == 2) ;
+    assert ( regs.GetSize() == 2) ;
     coef.reset(new CoefFunctionBipole());
     coef->SetRegion(ANODE,regs[0]);
     coef->SetRegion(CATHODE,regs[1]);
@@ -361,7 +362,7 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
   }
   else if (nlType == NLELEC_BIPOLE_TEMP_DEP) {
     assert ( ndeps == 2) ;
-    assert ( nregs == 2) ;
+    assert ( regs.GetSize() == 2) ;
     coef.reset(new CoefFunctionHeatBipole());
     coef->SetRegion(ANODE,regs[0]);
     coef->SetRegion(CATHODE,regs[1]);
@@ -372,12 +373,12 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
   }
   else if (nlType == NLELEC_TRIPOLE) {
     assert ( ndeps == 1) ;
-    assert ( nregs == 3) ;
+    assert ( regs.GetSize() == 3) ;
     EXCEPTION("not implemented yet");
   }
   else if (nlType == NLELEC_TRIPOLE_TEMP_DEP) {
     assert ( ndeps == 2) ;
-    assert ( nregs == 3) ;
+    assert ( regs.GetSize() == 3) ;
     EXCEPTION("not implemented yet");
   }
   else {

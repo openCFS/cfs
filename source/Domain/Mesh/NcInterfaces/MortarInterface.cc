@@ -633,7 +633,7 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
     }
   }
 
-  if (relativeElemVol < 1e-6) {
+  if (relativeElemVol < 1e-13) {
     if (geoWarn_) {
       WARN("Rejecting ncElem due to a relative volume of " << relativeElemVol
           << std::endl

@@ -363,7 +363,16 @@ void SurfaceIdentityOperatorScaledBySurface<FE,D,D_DOF,TYPE>::
   assert(lp.isSurface);
   assert(D == ptFe->shape_.dim);
 
-  Double factor2 = lp.shapeMap->CalcVolume();
+  //Double factor2 = lp.shapeMap->CalcVolume();
+  const NcSurfElem* sElem = dynamic_cast<const NcSurfElem*>(lp.ptEl);
+
+  shared_ptr<ElemShapeMap> esm1 = lp.shapeMap->GetGrid()->GetElemShapeMap(sElem->neighbors[0].get(),true);
+  shared_ptr<ElemShapeMap> esm2 = lp.shapeMap->GetGrid()->GetElemShapeMap(sElem->neighbors[1].get(),true);
+
+  Double v1 = esm1->CalcVolume();
+  Double v2 = esm1->CalcVolume();
+
+  Double factor2 = 2/(v1+v2);
 
   UInt numFncs = ptFe->GetNumFncs();
 
