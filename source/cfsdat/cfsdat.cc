@@ -32,6 +32,7 @@
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
 
+
 //CFS includes
 #include <def_cfs_stats.hh>
 
@@ -44,6 +45,9 @@
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
+
+//#include <mpi.h>
+#include <stdio.h>
 
 using namespace CoupledField;
 namespace CoupledField
@@ -82,6 +86,18 @@ namespace CFSDat {
 
 int main(int argc, char** argv)
 {
+
+  //int rank, size;
+
+
+//MPI_Init (&argc, &argv);      /* starts MPI */
+//MPI_Comm_rank (MPI_COMM_WORLD, &rank);        /* get current process id */
+//MPI_Comm_size (MPI_COMM_WORLD, &size);        /* get number of processes */
+//printf( "Hello world from process %d of %d\Sn", rank, size );
+//MPI_Finalize();
+return 0;
+
+  /*
   std::string infoFileName;
   SetEnvironmentEnums();
   BasePDE::SetEnums();
@@ -105,5 +121,5 @@ int main(int argc, char** argv)
      return -1;
    }
    //info->ToFile(infoFileName);
-
+*/
 }

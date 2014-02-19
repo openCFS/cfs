@@ -138,6 +138,7 @@ CoefFunctionGrid::CoefFunctionGrid(Domain* ptDomain, PtrParamNode configNode){
   curInterpType_ = NO_INTERPOLATION;
   curTStep_ = 0;
   myConfigNode_ = configNode;
+  verbose_ = false;
   //obtain the sequence step for result
   //plz note we take here the same value as for the current simulation
   //TODO: Parametrize by XML

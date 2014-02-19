@@ -30,7 +30,7 @@ namespace CoupledField{
                                                           PtrParamNode configNode)
                                    :CoefFunctionGrid(ptDomain, configNode){
     eqnMapComplete_ = false;
-
+    lastStepRead_ = 0;
     //Set sequence Step according to XML definition
     this->aSeqStep_ = configNode->Get("sequenceStep")->As<UInt>();
 
@@ -195,7 +195,6 @@ namespace CoupledField{
       //Vector<DATA_TYPE> curVec = resVec; // = dynamic_cast< Vector<DATA_TYPE>* >(Bres-);
       StdVector<UInt> eqns;
       UInt locPos = 0;
-
       //TODO> In case of multiple source regions, node results on the interface between the regions appear multiple times
       //The current implementation will overwrite the results obtained from reg1 with the one from reg2
       //this should not be problematic as the results in region 1 and 2 should be identical.
@@ -253,6 +252,7 @@ namespace CoupledField{
       if(needTinterp){
         EXCEPTION("StepValue interpolation not supported right now")
       }else{
+        //std::cout << "Got Step : " << lastStepRead_ << "Computed Step:" << stepnumber << std::endl;
         //we just read the solution vector
         if(lastStepRead_ != stepnumber){
           this->ReadSolution(stepnumber,this->solVec_);
@@ -286,7 +286,7 @@ namespace CoupledField{
     // apply some tolerance..
     std::map<UInt,Double>::iterator stepIter = stepValueMap_.begin();
     for(;stepIter != stepValueMap_.end(); ++stepIter){
-      if(abs(stepIter->second - aTimeFreq) < 1e-4){
+      if(abs(stepIter->second - aTimeFreq) < 1e-10){
         break;
       }
     }

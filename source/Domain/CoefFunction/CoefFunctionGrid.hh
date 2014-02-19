@@ -188,6 +188,9 @@ class CoefFunctionGrid : public CoefFunction{
     //! Pointer to info node of grid coefFunction
     PtrParamNode extDataInfo_;
 
+    //! Flag indicating verbose level of the coefFunction
+    bool verbose_;
+
 };
 
 }

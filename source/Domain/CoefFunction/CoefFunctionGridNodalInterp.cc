@@ -327,6 +327,8 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode
   //this was already determined in constructor of CoefFunctionGrid
   //this->aSeqStep_ = this->domain_->GetDriver()->GetActSequenceStep();
 
+  this->verbose_ = configNode->Get("verbose")->As<bool>();
+
   this->DetermineResult(this->inputId_,this->aSeqStep_);
 
   this->extDataInfo_->Get("interpolation")->Get("sourceGridID")->SetValue(this->gridId_);
@@ -337,11 +339,12 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode
   this->extDataInfo_->Get("interpolation")->Get("type")->SetValue(interpStr);
   this->extDataInfo_->Get("interpolation")->Get("setBy")->SetValue("XML");
 
+  globalTol_ = 0.0;
+  configNode->GetValue("globalTolerance", globalTol_, ParamNode::PASS);
+  localTol_ = 1e-3;
+  configNode->GetValue("localTolerance", localTol_, ParamNode::PASS);
+
   if ( this->curInterpType_ == CoefFunctionGrid::CONSERVATIVE ) {
-    globalTol_ = 0.0;
-    configNode->GetValue("globalTolerance", globalTol_, ParamNode::PASS);
-    localTol_ = 1e-3;
-    configNode->GetValue("localTolerance", localTol_, ParamNode::PASS);
     xyPlaneAtZ_ = 0.0;
     zTol_ = 1e-12;
     if (configNode->Has("xyPlane")) {
@@ -497,6 +500,43 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 
   //here it gets simple we just take the external solution vector and multiply with matrix
   this->consInterpMat_->MultAdd(this->solVec_,feFncVec);
+
+
+  if(this->verbose_ == true){
+    DATA_TYPE accu1 = 0;
+    std::map<UInt,std::vector<UInt> >::iterator eIt = this->elemNodeAssoc_.begin();
+    UInt dDim = this->resultInfo_->dofNames.GetSize();
+    if(dDim==0){
+      //assume a scalar
+      ++dDim;
+    }
+    while(eIt != this->elemNodeAssoc_.end()){
+      for(UInt aNode=0; aNode < eIt->second.size(); aNode++){
+        UInt curNodeNum = eIt->second[aNode];
+        UInt idx = this->nodeIdxMap_[curNodeNum];
+        for(UInt d =0;d<dDim;++d){
+          UInt curSrcEq =  this->eqnNumbers_[idx][d];
+          accu1 += this->solVec_[curSrcEq];
+        }
+      }
+      eIt++;
+    }
+
+    DATA_TYPE accu2 = 0;
+    for(UInt i = 0; i < feFncVec.GetSize(); i++){
+      accu2 += feFncVec[i];
+    }
+    DATA_TYPE accu3 = 0;
+    for(UInt i = 0; i < feFncVec.GetSize(); i++){
+      accu3 += this->solVec_[i];
+    }
+    PtrParamNode aStepNode = this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("TimeSteps")->Get("Step",ParamNode::APPEND);
+    aStepNode->Get("ReadStep")->SetValue(this->lastStepRead_);
+    aStepNode->Get("CurrentTimeValue")->SetValue(this->curTStep_);
+    aStepNode->Get("MappedSourceVectorSum")->SetValue(accu1);
+    aStepNode->Get("InterpolatedVectorSum")->SetValue(accu2);
+    aStepNode->Get("CompleteSourceVectorSum")->SetValue(accu1);
+  }
 }
 
 //Prepare for standard interpolation
@@ -540,9 +580,10 @@ template<class DATA_TYPE>
    PtrParamNode polyMotherNode = this->myConfigNode_->GetRoot()->
        Get("fePolynomialList", ParamNode::INSERT );
    polyNode_ = polyMotherNode->GetByVal("Lagrange","id",polyId, ParamNode::INSERT);
-   polyNode_->Get("useGridOrder", ParamNode::INSERT)->SetValue("true");
-   polyNode_->Get("spectral", ParamNode::INSERT)->SetValue("true");
-   polyNode_->Get("isoOrder", ParamNode::INSERT)->SetValue("1");
+
+   polyNode_->Get("spectral", ParamNode::INSERT)->SetValue("false");
+   polyNode_->Get("gridOrder",ParamNode::INSERT);
+   //polyNode_->Get("isoOrder", ParamNode::INSERT)->SetValue("2");
 
    PtrParamNode integMotherNode = this->myConfigNode_->GetRoot()->
        Get("integrationSchemeList", ParamNode::INSERT );
@@ -609,7 +650,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdV
   //build up set of source regions
   std::set<std::string>::iterator regIter = this->srcRegions_.begin();
   std::set<RegionIdType> scrRegIds;
-  if (srcRegions.size()) {
+  if (srcRegions.size()>0) {
     scrRegIds.insert(srcRegions.begin(), srcRegions.end());
   }
   else {
@@ -638,7 +679,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdV
   this->srcGrid_->GetElemsAtGlobalCoords( globCoord,
                                           localCoords,
                                           foundElements,
-                                          scrRegIds);
+                                          std::set<RegionIdType>(),this->globalTol_,this->localTol_);
 
   Vector<DATA_TYPE> eSol;
   Matrix<DATA_TYPE> opMat;

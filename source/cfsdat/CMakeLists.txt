@@ -123,6 +123,15 @@ TARGET_LINK_LIBRARIES(cfsdatbin ${TARGET_LL})
 
 SET(CFS_LINK_FLAGS "")
 
+#EXEC_PROGRAM(mpicc ARGS --showme:compile
+#             OUTPUT_VARIABLE MPI_COMPILE_FLAGS)
+##SET(GTK_PKG_FLAGS "${GTK_PKG_FLAGS}" CACHE STRING "GTK Flags")
+#EXEC_PROGRAM(mpicc ARGS --showme:compile
+#             OUTPUT_VARIABLE MPI_LINK_FLAGS)
+#
+#  SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} ${MPI_LINK_FLAGS}")
+#  MESSAGE(${MPI_LINK_FLAGS})
+
 # Make sure CFS Tool gets linked with system libgcc.so instead of ANSYS libgcc.so.
 IF(UNIX AND USE_ANSYSRST)
   SET(CFS_LINK_FLAGS "${CFS_LINK_FLAGS} -Wl,-rpath,/${LIB_SUFFIX}")
