@@ -912,6 +912,7 @@ DECLARE_LOG(fefunc)
     // apply identity operator to it
     BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
     idOp_->ApplyOp(vec, lpm, ptFe, elemSol );
+    LOG_DBG(fefunc) << PREFIX << ": Requesting vector solution of point in elem " << lpm.ptEl->elemNum << ". Sol[0] = " << vec[0]; 
   }
   
   template<typename T>
@@ -926,6 +927,7 @@ DECLARE_LOG(fefunc)
       vec += elemSol[i];
     }
     vec /= elemSol.GetSize();
+    LOG_DBG(fefunc) << PREFIX << ": Requesting average solution of element " << elem->elemNum << ". Sol = " << vec;
 
    }
   

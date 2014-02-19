@@ -735,8 +735,12 @@ namespace CoupledField {
        out = NLELEC_CONDUCTIVITY;
     } else if( in == "elecBiPole") {
        out = NLELEC_BIPOLE;
+    } else if( in == "elecBiPoleTempDep") {
+       out = NLELEC_BIPOLE_TEMP_DEP;
     } else if( in == "elecTriPole") {
        out = NLELEC_TRIPOLE;
+    } else if( in == "elecTriPoleTempDep") {
+       out = NLELEC_TRIPOLE_TEMP_DEP;
     } else {
       EXCEPTION( "'" << in << "' cannot be converted into an "
                  << "'NonLinType' item!" );
@@ -781,8 +785,14 @@ namespace CoupledField {
       case NLELEC_BIPOLE:
         out = "elecBiPole";
         break;
+      case NLELEC_BIPOLE_TEMP_DEP:
+        out = "elecBiPoleTempDep";
+        break;
       case NLELEC_TRIPOLE:
         out = "elecTriPole";
+        break;
+      case NLELEC_TRIPOLE_TEMP_DEP:
+        out = "elecTriPoleTempDep";
         break;
       case PIEZO_MICRO_HF:
         out = "piezoMicroHF";
@@ -1389,6 +1399,8 @@ namespace CoupledField {
     // ==== Initialization of ApproxCurveTypes ====
     ApproxCurveTypeEnum.Add( NO_APPROX_TYPE , "No approximation" );
     ApproxCurveTypeEnum.Add( LIN_INTERPOLATE, "LinInterpolate" );
+    ApproxCurveTypeEnum.Add( BILIN_INTERPOLATE, "BiLinInterpolate" );
+    ApproxCurveTypeEnum.Add( TRILIN_INTERPOLATE, "TriLinInterpolate" );
     ApproxCurveTypeEnum.Add( CUBIC_SPLINES, "CubicSplines" );
     ApproxCurveTypeEnum.Add( SMOOTH_SPLINES, "smoothSplines" );
     ApproxCurveTypeEnum.Add( ANALYTIC, "analytic" );

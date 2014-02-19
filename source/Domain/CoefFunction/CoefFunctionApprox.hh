@@ -12,6 +12,7 @@ class ApproxData;
 class BaseBOperator;
 class Grid;
 class FeFunctions;
+//class LocalPointMapped;
 
 
 // ============================================================================
@@ -58,54 +59,118 @@ protected:
 };
 
 // ============================================================================
-//  Super Approx Coef Function
+//  Coef Function Composite
 // ============================================================================
 //! Provide a coefficient for approximated sample data (scalar)
 
-//! This class encapsulates a CoefFunctionApprox and holds data on regions where to evaluate
-//! the dependCoef
+//! This class works similar to the CoefFunctionApprox 
+//! It has the following additional features:
+//!  - it can hold `n` dependant coef functions. e.g. when a non-linearity depends on two solutions (e.g. heat and elec potential)
+//!  - it allows the definition of regions (called terminals) where the value of a given dependency is evaluated
+//! 
 //! \note This class only works for real-valued scalar data.
-class CoefFunctionApproxSuper : public CoefFunction{
+
+class CoefFunctionComposite : public CoefFunction{
 public:
 
   //! Constructor
-  CoefFunctionApproxSuper();
+  CoefFunctionComposite();
 
   //! Destructor
-  virtual ~CoefFunctionApproxSuper();
-  
-  //! Initialize with data
-  void Init( Double coefScalar, ApproxData * nLinFnc,
-             PtrCoefFct dependCoef  );
-
+  virtual ~CoefFunctionComposite() {}
   
   //! \see CoefFunction::GetScalar
-  void GetScalar(Double& coefScalar, 
-                 const LocPointMapped& lpm );
+  virtual void GetScalar(Double& coefScalar, 
+                 const LocPointMapped& lpm ) {EXCEPTION("not implemented");}
     
-  void SetLumpedRegions(RegionIdType regA, RegionIdType regB, RegionIdType regC = -1);
+  void SetRegion(TerminalConnector tc, RegionIdType reg);
+  void SetDependCoef(NonLinType nl, PtrCoefFct dep );
+
+  //! Initialize with data
+  void Init( Double coefScalar, ApproxData * nLinFnc  );
+
+  //! Helper function to return the average value at the defined terminal/region \param tc
+  //! for the NonLinType \param nl for a point \param lpm
+  Double GetAvgTerminalValue(TerminalConnector tc, NonLinType nl, const LocPointMapped & lpm);
 
   //! \see CoefFunction::ToString
-  std::string ToString() const;
+  std::string ToString() const {return "Composite Coefficient function";}
 
 protected:
 
-  //! the actual approximation coef function
-  CoefFunctionApprox * ptAproxCoefFct;
-
   //! region Ids of the terminals
-  RegionIdType terminalA_, terminalB_, terminalC_;
+  std::map<TerminalConnector, RegionIdType> terminals_;
+
+  //! number of regions
+  UInt nRegions_;
+
+  //! Class for function approximation
+  ApproxData * nLinFnc_;
   
   //! Constant initial value of the curve
   Double coefScalar_;
   
-  //! Class for function approximation
-  ApproxData * nLinFnc_;
-  
   //! Coefficient function which this one depends one
-  PtrCoefFct dependCoef_;
+  std::map<NonLinType, PtrCoefFct> dependCoefs_;
+
+  //! number of depending coef fcts
+  UInt nDepCoefs_;
 };
 
+// ============================================================================
+
+// ============================================================================
+//  Coef Function Bipole
+// ============================================================================
+//! Provide an approximated value for a bipolar (two terminals) which depends on
+//! the difference of the dependant coef function on the two terminals
+
+class CoefFunctionBipole : public CoefFunctionComposite {
+public:
+  //! Constructor
+  CoefFunctionBipole() {}
+
+  //! Destructor
+  virtual ~CoefFunctionBipole() {}
+
+  //! \see CoefFunction::GetScalar
+  void GetScalar(Double& coefScalar, 
+                 const LocPointMapped& lpm );
+    
+  //! \see CoefFunction::ToString
+  std::string ToString() const {return "Composite Coefficient function for temperature dependent bipole";}
+};
+
+// ============================================================================
+
+// ============================================================================
+//  Coef Function Heat Bipole
+// ============================================================================
+//! Provide an approximated value for a bipolar (two terminals) which depends on
+//! the difference of the dependant coef function on the two terminals
+//! _and_ on the temperature (second dependant coef function)
+//! This class requires that the nonlinear function depends on two variables. 
+//! (Currently only supported by BiLinApproximate)
+//! 
+
+class CoefFunctionHeatBipole : public CoefFunctionComposite {
+public:
+  //! Constructor
+  CoefFunctionHeatBipole() {}
+
+  //! Destructor
+  virtual ~CoefFunctionHeatBipole() {}
+
+  //! \see CoefFunction::GetScalar
+  void GetScalar(Double& coefScalar, 
+                 const LocPointMapped& lpm );
+    
+  //! \see CoefFunction::ToString
+  std::string ToString() const {return "Composite Coefficient function for temperature dependent bipole";}
+};
+
+
+// ============================================================================
 //! Provide a coefficient for approximated derivative of sample data (scalar)
 
 //! This class encapsulates the approximation of the derivative of sampled 

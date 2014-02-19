@@ -90,9 +90,12 @@ namespace CoupledField {
   typedef enum { NO_NONLINEARITY, WESTERVELT, KUZNETSOV, VARIABLE_SOS_CN1,
     VARIABLE_SOS_CN2, VARIABLE_SOS_CN2Mean,
     MATERIAL, GEOMETRIC, HYSTERESIS, PIEZO_MICRO_HF, PERMEABILITY,
-    NLHEAT_CONDUCTIVITY, NLHEAT_CAPACITY, NLELEC_CONDUCTIVITY,
-    NLELEC_BIPOLE, NLELEC_TRIPOLE} NonLinType;
+    NLHEAT_CONDUCTIVITY, NLHEAT_CAPACITY, NLELEC_CONDUCTIVITY, /* temperature dep */
+    NLELEC_BIPOLE, NLELEC_BIPOLE_TEMP_DEP, NLELEC_TRIPOLE, NLELEC_TRIPOLE_TEMP_DEP} NonLinType;
 
+  //! Terminal Connector enum
+  typedef enum { CATHODE, ANODE, DRAIN, SOURCE, GATE, BODY, COLLECTOR,
+    EMITTER, BASE} TerminalConnector;
 
     //! Describes all possible solution types in a CFS simulation
     typedef enum{
@@ -259,7 +262,7 @@ namespace CoupledField {
 
 
   // type of approximation / interpolation
-  typedef enum{ NO_APPROX_TYPE, LIN_INTERPOLATE, CUBIC_SPLINES, SMOOTH_SPLINES, ANALYTIC } ApproxCurveType;
+  typedef enum{ NO_APPROX_TYPE, LIN_INTERPOLATE, BILIN_INTERPOLATE, TRILIN_INTERPOLATE, CUBIC_SPLINES, SMOOTH_SPLINES, ANALYTIC } ApproxCurveType;
   extern Enum<ApproxCurveType> ApproxCurveTypeEnum;
 
   //! material parameter to be approximated / interpolated
@@ -457,6 +460,7 @@ namespace CoupledField {
   DEFINE_ENUM_CONVERSION(MaterialClass)
   DEFINE_ENUM_CONVERSION(IntegMethod)
   DEFINE_ENUM_CONVERSION(NonLinType)
+  DEFINE_ENUM_CONVERSION(TerminalConnector)
   DEFINE_ENUM_CONVERSION(DampingType)
   DEFINE_ENUM_CONVERSION(StopCritType)
   DEFINE_ENUM_CONVERSION(FEMatrixType)

@@ -15,6 +15,7 @@
 #include "Domain/CoefFunction/CoefFunctionApprox.hh"
 #include "Utils/SmoothSpline.hh"
 #include "Utils/LinInterpolate.hh"
+#include "Utils/BiLinInterpolate.hh"
 
 
 namespace CoupledField
@@ -277,15 +278,15 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncNonLin(MaterialType matType
 
   return BaseMaterial::GetScalCoefFncNonLin(matType, matDataType, fluxCoef);
 }
-PtrCoefFct ElectricConductionMaterial::GetScalCoefFncNonLinLumpedBiPole(MaterialType matType,
-                                            Global::ComplexPart matDataType,
-                                            PtrCoefFct dependency,  
-					    StdVector<RegionIdType> & regs) {
 
-  poleA_ = regs[0];
-  poleB_ = regs[1];
-  //PtrCoefFct ret;
-  shared_ptr<CoefFunctionApproxSuper> coef;
+PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(MaterialType matType,
+                                                   NonLinType nlType,
+                                                   Global::ComplexPart matDataType,
+                                                   StdVector<PtrCoefFct> dependencies,
+ 					           StdVector<RegionIdType> & regs) {
+
+  UInt ndeps = dependencies.GetSize(); // 1 no temp dep, 2: temp dep
+  UInt nregs = regs.GetSize(); // 2 regs dipole, 3 regs tripole
 
   // Ensure that only real-valued parameters are used
   if( matDataType != Global::REAL ) {
@@ -299,6 +300,7 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncNonLinLumpedBiPole(Material
   }
   
   // check, if nonlinear curve was already calculated ??
+  // using matType...
   MatDescriptorNl & matNl = nonlinIsoParams_[matType];
 
   // Check, if smooth spline approximation was already created 
@@ -320,6 +322,21 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncNonLinLumpedBiPole(Material
       sp->Print();
       matNl.approxData = sp;
      }
+     else if ( matNl.approxType == BILIN_INTERPOLATE ) {
+
+      if ( ndeps != 2 )
+        EXCEPTION("bilinear interpoltation requires two ptrCoefFcts");
+      std::string val = stringParams_[NONLIN_DEPENDENCY];
+      if  (  val == "voltage-temperature" ) {
+        BiLinInterpolate * sp = new BiLinInterpolate( matNl.fileName, matType );
+        //sp->SetAccuracy( matNl.measAccuracy );
+        //sp->SetMaxY( matNl.maxVal );
+        sp->Print();
+        matNl.approxData = sp;
+      } else {
+        EXCEPTION("'dependency' string in material xml must be specified with value 'voltage-temperature' to force user check column ordering: | voltage | temperature | sigma |");
+      }
+    }
     else {
       EXCEPTION( "No nonlinear approx/interpolate type not available '"
           << ApproxCurveTypeEnum.ToString(matNl.approxType) << "'");
@@ -327,16 +344,47 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncNonLinLumpedBiPole(Material
   }
 
   ApproxData * sp = matNl.approxData;
-  
   // get linear starting value
   Double startVal = 0.0;
   this->GetScalar( startVal, matType, Global::REAL );
-  coef.reset(new CoefFunctionApproxSuper());
-  coef->Init( startVal, sp, dependency );
-  coef->SetLumpedRegions(regs[0], regs[1]);
 
+  shared_ptr<CoefFunctionComposite> coef;
+  if (nlType == NLELEC_BIPOLE) {
+    assert ( ndeps == 1) ;
+    assert ( nregs == 2) ;
+    coef.reset(new CoefFunctionBipole());
+    coef->SetRegion(ANODE,regs[0]);
+    coef->SetRegion(CATHODE,regs[1]);
+    coef->SetDependCoef(NLELEC_BIPOLE, dependencies[0] );
+    coef->Init( startVal, sp);
 
-  //return ret;
+  }
+  else if (nlType == NLELEC_BIPOLE_TEMP_DEP) {
+    assert ( ndeps == 2) ;
+    assert ( nregs == 2) ;
+    coef.reset(new CoefFunctionHeatBipole());
+    coef->SetRegion(ANODE,regs[0]);
+    coef->SetRegion(CATHODE,regs[1]);
+    coef->SetDependCoef(NLELEC_BIPOLE, dependencies[0] );
+    coef->SetDependCoef(NLELEC_CONDUCTIVITY, dependencies[1] ); // this means temperature dep
+    coef->Init( startVal, sp);
+
+  }
+  else if (nlType == NLELEC_TRIPOLE) {
+    assert ( ndeps == 1) ;
+    assert ( nregs == 3) ;
+    EXCEPTION("not implemented yet");
+  }
+  else if (nlType == NLELEC_TRIPOLE_TEMP_DEP) {
+    assert ( ndeps == 2) ;
+    assert ( nregs == 3) ;
+    EXCEPTION("not implemented yet");
+  }
+  else {
+    EXCEPTION("non linear type not recongized");
+  }
+
+    
   return coef;
 }
 

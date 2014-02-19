@@ -148,12 +148,16 @@ namespace CoupledField {
     virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
                                             Global::ComplexPart matDataType,
                                             PtrCoefFct dependency );
+					    
     //! Return scalar-valued coefficient function for nonlinear function
-    //! where the value is calculated depending on the value of \param dependency on \param regs.
-    virtual PtrCoefFct GetScalCoefFncNonLinLumpedBiPole(MaterialType matType,
-                                            Global::ComplexPart matDataType,
-                                            PtrCoefFct dependency,  
-					    StdVector<RegionIdType> & regs)  {EXCEPTION("not implemented in base class"); PtrCoefFct dummy; return dummy;};
+    //! where the value is calculated depending on the value of \param temperatureCoef and \param elecPotCoef on \param regs. 
+    virtual PtrCoefFct GetScalCoefFncMultivariateNonLin(MaterialType matType,
+                                                   NonLinType nlType,
+                                                   Global::ComplexPart matDataType,
+                                                   StdVector<PtrCoefFct> dependencies,
+ 					           StdVector<RegionIdType> & regs) 
+						   {EXCEPTION("not implemented in base class"); PtrCoefFct dummy; return dummy;}
+
     //@}
     
     //! get info, which material parameter is set

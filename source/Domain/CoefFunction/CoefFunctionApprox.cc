@@ -6,10 +6,13 @@
 #include "FeBasis/FeFunctions.hh"
 #include "FeBasis/FeSpace.hh"
 #include "Forms/Operators/BaseBOperator.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 
 namespace CoupledField {
 
+  DECLARE_LOG(coeffctapprox)
+  DEFINE_LOG(coeffctapprox, "coeffctapprox")
 // ============================================================================
 //  ISOTROPIC VERSIONS
 // ============================================================================
@@ -56,6 +59,7 @@ void CoefFunctionApprox::GetScalar(Double& coefScalar,
   else {
     coefScalar = nLinFnc_->EvaluateFunc(elemSol[0]);
   }
+  LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal = '" << elemSol[0] << ". IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
 }
 
 bool IsComplex(){
@@ -65,91 +69,90 @@ bool IsComplex(){
 std::string CoefFunctionApprox::ToString() const {
   return "";
 }
-
 // ============================================================================
-//  Super Approx Coef
+//  coef function composite
 // ============================================================================
 
-CoefFunctionApproxSuper::CoefFunctionApproxSuper() : CoefFunction() {
-  // this type of coefficient is nonlinear (i.e. solution dependend)
+CoefFunctionComposite::CoefFunctionComposite() : CoefFunction() {
+
   dependType_ = SOLUTION;
   isAnalytic_ = false;
   isComplex_ = false;
-  ptAproxCoefFct = NULL;
-  terminalA_ = -1;
-  terminalB_ = -1;
-  terminalC_ = -1;
 }
 
-CoefFunctionApproxSuper::~CoefFunctionApproxSuper(){
-  ;
+void CoefFunctionComposite::SetRegion(TerminalConnector tc, RegionIdType reg){
+
+  terminals_[tc] = reg;
+  nRegions_ = terminals_.size();
+
+}
+void CoefFunctionComposite::SetDependCoef(NonLinType nl, PtrCoefFct dep ) {
+
+  dependCoefs_[nl] = dep;
+  nDepCoefs_ = dependCoefs_.size();
+
 }
 
-void CoefFunctionApproxSuper::Init( Double coefScalar, ApproxData * nLinFnc,
-                               PtrCoefFct dependCoef ) {
+Double CoefFunctionComposite::GetAvgTerminalValue(TerminalConnector tc, NonLinType nl, const LocPointMapped & lpm) {
 
-  ptAproxCoefFct = new CoefFunctionApprox();
-  ptAproxCoefFct->Init(coefScalar, nLinFnc, dependCoef);
-  // set type to scalar
+  Grid * ptGrid = lpm.GetShapeMap()->GetGrid();
+  StdVector <Elem*> elems;
+  ptGrid->GetElems(elems, terminals_[tc]);
+  Vector<Double> ElemAvg;
+  ElemAvg.Resize(elems.GetSize());
+  Double avg = 0.;
+  for (UInt i = 0; i < elems.GetSize(); i++) {
+    dependCoefs_[nl]->GetAvgElemValue(ElemAvg[i], elems[i]);
+    avg += ElemAvg[i];
+  }
+  avg /= elems.GetSize();
+  return avg;
+}
+
+void CoefFunctionComposite::Init( Double coefScalar, ApproxData * nLinFnc) {
+
   dimType_ = SCALAR;
   nLinFnc_ = nLinFnc;
   coefScalar_ = coefScalar;
-  dependCoef_ = dependCoef;
-}
-void CoefFunctionApproxSuper::SetLumpedRegions(RegionIdType regA, RegionIdType regB, RegionIdType regC){
-
-  terminalA_ = regA;
-  terminalB_ = regB;
-  if (regC > -1)
-    terminalC_ = regC;
 
 }
 
-//! \see CoefFunction::GetScalar
-void CoefFunctionApproxSuper::GetScalar(Double& coefScalar, 
+// ========================================================================
+//
+// ============================================================================
+//  Coef Function Bipole
+// ============================================================================
+//
+void CoefFunctionBipole::GetScalar(Double& coefScalar, 
                                    const LocPointMapped& lpm ) {
 
-  Grid * ptGrid = lpm.GetShapeMap()->GetGrid();
-  StdVector <Elem*> aElems, bElems;
-  ptGrid->GetElems(aElems, terminalA_);
-  ptGrid->GetElems(bElems, terminalB_);
-  Vector<Double> aAvg, bAvg;
-  aAvg.Resize(aElems.GetSize());
-  bAvg.Resize(bElems.GetSize());
-  Double aTot = 0., bTot = 0., diff = 0;
-  for (UInt i = 0; i < aElems.GetSize(); i++) {
-    dependCoef_->GetAvgElemValue(aAvg[i], aElems[i]);
-    aTot += aAvg[i];
-  }
-  aTot /= aElems.GetSize();
-  for (UInt i = 0; i < bElems.GetSize(); i++) {
-    dependCoef_->GetAvgElemValue(bAvg[i], bElems[i]);
-    bTot += bAvg[i];
-  }
-  bTot /= bElems.GetSize();
-  diff = bTot - aTot;
-
- // then evaluation to be done at difference of potential
- 
-//   if ( nLinFnc_->GetMatType() == MAG_PERMEABILITY ) {
-//     Double fieldAbs = elemSol.NormL2();
-// 
-//     if( fieldAbs == 0 ) { 
-//       coefScalar = coefScalar_;
-//     } else {
-//       coefScalar = nLinFnc_->EvaluateFuncNu(fieldAbs);
-//     }
-//   }
-//   else {
+  Double aAvg = GetAvgTerminalValue(ANODE, NLELEC_BIPOLE, lpm);
+  Double bAvg = GetAvgTerminalValue(CATHODE, NLELEC_BIPOLE, lpm);
+  Double diff = bAvg - aAvg;
+  
   coefScalar = nLinFnc_->EvaluateFunc(diff);
-//   }
+  LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal (diff) = '" << diff << ". IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
+
 }
+//
+// ============================================================================
+//  Coef Function Heat Bipole
+// ============================================================================
+//
+void CoefFunctionHeatBipole::GetScalar(Double& coefScalar, 
+                                   const LocPointMapped& lpm ) {
+  Double aAvg = GetAvgTerminalValue(ANODE, NLELEC_BIPOLE, lpm);
+  Double bAvg = GetAvgTerminalValue(CATHODE, NLELEC_BIPOLE, lpm);
+  Double diff = bAvg - aAvg;
 
-std::string CoefFunctionApproxSuper::ToString() const {
-  return "";
+  Vector<Double> elemSol;
+  dependCoefs_[NLELEC_CONDUCTIVITY]->GetVector( elemSol, lpm);
+
+
+  coefScalar = nLinFnc_->EvaluateFunc(diff, elemSol[0]);
+  LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal (diff) = '" << diff << " and temperature = '" << elemSol[0] <<"'. IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
+
 }
-
-
 
 // ========================================================================
 
