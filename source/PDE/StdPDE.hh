@@ -198,6 +198,7 @@ namespace CoupledField {
       NcCouplingType    type;
       LagrangeMultType  lagrangeMultType;
       Double            nitscheFactor;
+      Double            nitscheFactorDamp;
       bool              crossPointHandling;
       bool              movingMortarForm;
     };

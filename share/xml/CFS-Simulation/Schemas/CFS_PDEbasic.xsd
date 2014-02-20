@@ -621,7 +621,9 @@
           <xsd:attribute name="formulation" type="DT_NMGFormulationBasic"
                          use="optional" default="Mortar" />
           <xsd:attribute name="nitscheFactor" type="xsd:double"
-                         use="optional" default="50" />
+                         use="optional" default="100" />
+          <xsd:attribute name="nitscheFactorDamping" type="xsd:double"
+                         use="optional" default="1e-2" />
           <xsd:attribute name="lagrangeMultType"
                          use="optional" default="standard">
             <xsd:simpleType>

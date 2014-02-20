@@ -535,7 +535,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     aStepNode->Get("CurrentTimeValue")->SetValue(this->curTStep_);
     aStepNode->Get("MappedSourceVectorSum")->SetValue(accu1);
     aStepNode->Get("InterpolatedVectorSum")->SetValue(accu2);
-    aStepNode->Get("CompleteSourceVectorSum")->SetValue(accu1);
+    aStepNode->Get("CompleteSourceVectorSum")->SetValue(accu3);
   }
 }
 

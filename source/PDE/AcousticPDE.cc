@@ -1533,6 +1533,7 @@ namespace CoupledField{
         feFunctions_[ACOU_PMLAUXSCALAR]->SetTimeScheme(scalScheme);
       }
     }else{
+      //GLMScheme * scheme1 = new Newmark(0.8,0.4225,-0.3);
       GLMScheme * scheme1 = new Newmark(0.5,0.25,0.0);
       shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
       feFunctions_[formulation_]->SetTimeScheme(acouScheme);
