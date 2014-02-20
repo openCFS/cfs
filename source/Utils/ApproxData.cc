@@ -107,7 +107,9 @@ DEFINE_LOG(approxdata, "approxdata")
     
     datafile.seekg(0,std::ios::beg); // start from the beginning
     std::string     buf;
-    Double x2val;
+    std::vector<Double> x;
+    std::vector<std::string> filenames;
+    Double xt;
     std::string iFilename;
     UInt nSlices = 0;
     while(pos <= pos_end)
@@ -118,7 +120,9 @@ DEFINE_LOG(approxdata, "approxdata")
         if ((buf[0] != '#' || buf[0] != '%' || buf[0] != '!') && buf.size() > 0) 
           {
             datafile.seekg(line_start_pos); // rewind
-            datafile >> x2val >> iFilename;
+            datafile >> xt >> iFilename;
+	    x.push_back(xt);
+	    filenames.push_back(iFilename);
             datafile.ignore(100,'\n');
 	    nSlices += 1;
 	  }
@@ -126,8 +130,59 @@ DEFINE_LOG(approxdata, "approxdata")
       }
 
     datafile.close();
+    numMeas_ = x.size();
+    if ( x.size() != filenames.size() || x.size() < 2) {
+      EXCEPTION("Error in slices data file: You need to provide a list of <double, string> tuples, each providing the data for a 2d slice. You need to provide at least two slices.");
+      }
+    
+
+    LOG_DBG(approxdata) << "Read 3d slices file '" << fncName << "' with " << numMeas_ << 
+    " slice files ";
+
+    x_.Resize(numMeas_);
+    slicesFiles_.Resize(numMeas_);
+    for (UInt k=0; k < numMeas_; k++) {
+
+      x_[k] = x[k];
+      slicesFiles_[k] = filenames[k];
+    }
+
+    for (UInt l=1; l<numMeas_; l++) {
+      if ( x_[l-1] >= x_[l]){
+        EXCEPTION("coordinate x must increase monotonically");
+	}
+    }
+    LOG_DBG(approxdata) << "x Vector: " << x_.ToString();
+    LOG_DBG(approxdata) << "slices filenames: \n" << slicesFiles_.ToString();
+      
 
   }
+
+  void ApproxData::findBracketIndices(const double &x, const Vector<Double> & axis, UInt & klo, UInt & khi, double &diff) {
+    const UInt kend = axis.GetSize() - 1;
+    UInt k;
+    klo=0;
+    khi=kend;
+    // We will find the right place in the table by means of bisection.
+    //  klo and khi bracket the input value of xEntry
+    while (khi-klo > 1) {
+      k=(khi+klo) >> 1; // binary right shift
+      if (axis[k] > x)
+        khi=k;
+      else
+        klo=k;
+    }
+    // size of x interval
+    diff = axis[khi] - axis[klo];
+
+    // The x-values must be distinct!
+    if (diff == 0.0) {
+      EXCEPTION("You cannot have two equal x values!" );
+    }
+
+  }
+
+
   void ApproxData::ReadNlinFuncTwoIndep(std::string fncName)  {
   
     std::ifstream datafile;
@@ -224,7 +279,7 @@ DEFINE_LOG(approxdata, "approxdata")
       x1_[l] = xx1[l];
     }
     for (UInt l=1; l<firstBlockSize; l++) {
-      if ( x1_[l-1] > x1_[l]){
+      if ( x1_[l-1] >= x1_[l]){
         LOG_DBG(approxdata) << "x1 Vector: " << x1_.ToString();
         EXCEPTION("coordinate x1 must increase monotonically");
 	}
@@ -238,7 +293,7 @@ DEFINE_LOG(approxdata, "approxdata")
       }
     }
     for (UInt l=1; l<nblocks; l++) {
-      if ( x_[l-1] > x_[l]){
+      if ( x_[l-1] >= x_[l]){
         LOG_DBG(approxdata) << "x0 Vector: " << x_.ToString();
         EXCEPTION("coordinate x0 must increase monotonically");
 	}

@@ -399,9 +399,8 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
     coef->SetRegion(GATE,regs[0]);
     coef->SetRegion(DRAIN,regs[1]);
     coef->SetRegion(SOURCE,regs[2]);
-    coef->SetDependCoef(NLELEC_BIPOLE, dependencies[0] );
+    coef->SetDependCoef(NLELEC_TRIPOLE, dependencies[0] );
     coef->Init( startVal, sp);
-    //EXCEPTION("not implemented yet");
   }
   else if (nlType == NLELEC_TRIPOLE_TEMP_DEP) {
     if (ndeps -1 != 2 || nregs != 3)
@@ -410,7 +409,9 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
     coef->SetRegion(GATE,regs[0]);
     coef->SetRegion(DRAIN,regs[1]);
     coef->SetRegion(SOURCE,regs[2]);
-    EXCEPTION("not implemented yet");
+    coef->SetDependCoef(NLELEC_TRIPOLE, dependencies[0] );
+    coef->SetDependCoef(NLELEC_CONDUCTIVITY, dependencies[1] ); // this means temperature dep
+    coef->Init( startVal, sp);
   }
   else {
     EXCEPTION("non linear type not recongized");

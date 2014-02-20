@@ -29,8 +29,6 @@ namespace CoupledField {
     //! returns y(x)
     virtual double EvaluateFunc(double x);
 
-    void findBracketIndices(const double &x, const Vector<Double> & axis, UInt & klo, UInt & khi, double &diff);
-
     virtual double EvaluateFunc(double x, double y);
 
     //! returns  y'(x)  

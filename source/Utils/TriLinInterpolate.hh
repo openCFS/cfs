@@ -5,6 +5,7 @@
 #include "Utils/StdVector.hh"
 #include "General/Environment.hh"
 #include "ApproxData.hh"
+#include "BiLinInterpolate.hh"
 
 namespace CoupledField {
 
@@ -28,8 +29,6 @@ namespace CoupledField {
 
     //! returns y(x)
     virtual double EvaluateFunc(double x);
-
-    void findBracketIndices(const double &x, const Vector<Double> & axis, UInt & klo, UInt & khi, double &diff);
 
     virtual double EvaluateFunc(double x, double y);
 
@@ -59,6 +58,9 @@ namespace CoupledField {
 
 
   private:
+
+    StdVector<BiLinInterpolate *> slices_;
+    
 
   };
 

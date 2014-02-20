@@ -278,7 +278,6 @@ namespace CoupledField {
             actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY, NLELEC_TRIPOLE_TEMP_DEP, 
 	                 Global::REAL, dep, depRegionIds);
           intName = "ElecStiffnessIntegrator-TRipole-Voltage-Temperature-Depend";
-	  EXCEPTION("not implemented yet");
 	}
 	else 
 	  EXCEPTION("Nonlinarity not defined.");

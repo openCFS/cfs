@@ -43,6 +43,12 @@ namespace CoupledField {
       EXCEPTION(" ApproxData: SetMaxY not implemented");
     };
 
+
+    //! find lower \param klo, and higher \param khi index of the boundary values of \param x in a monotonically 
+    //! increasing double dataset \param axis. 
+    //! Also returns difference.
+    void findBracketIndices(const double &x, const Vector<Double> & axis, UInt & klo, UInt & khi, double &diff);
+
     //! evaluates the functions
     virtual Double EvaluateFunc( Double t ) = 0;
     virtual Double EvaluateFunc(double x, double y) {EXCEPTION("only implemented in BiLinInterpolate"); Double a=-1.; return a;} // bilinear
@@ -84,14 +90,13 @@ namespace CoupledField {
 
     Vector<Double> x_;  //!< independent value
     Vector<Double> x1_;  //!< independent value
-    Vector<Double> x2_;  //!< independent value
     Vector<Double> y_;  //!< function value
     StdVector< Vector <Double> > z_; //! function value for two independent vars
-    StdVector< StdVector<Vector <Double> > > zz_; //! function value for trhee independent vars
     UInt numMeas_;      //!< number of sampled points
     UInt numIndepend_;  //!< number of independent values (default 1)
     MaterialType matType_; //!< material parameter to be approximated
     std::string nlFileName_; //!< name of file
+    StdVector< std::string > slicesFiles_; //! holding files containing 2d slices (needed for 3d data)
 
   };
 

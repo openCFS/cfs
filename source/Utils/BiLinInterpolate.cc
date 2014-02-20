@@ -94,30 +94,6 @@ DEFINE_LOG(bilinappx, "bilinappx")
     return zValue;
   }
 
-  void BiLinInterpolate::findBracketIndices(const double &x, const Vector<Double> & axis, UInt & klo, UInt & khi, double &diff) {
-    const UInt kend = axis.GetSize() - 1;
-    UInt k;
-    klo=0;
-    khi=kend;
-    // We will find the right place in the table by means of bisection.
-    //  klo and khi bracket the input value of xEntry
-    while (khi-klo > 1) {
-      k=(khi+klo) >> 1; // binary right shift
-      if (axis[k] > x)
-        khi=k;
-      else
-        klo=k;
-    }
-    // size of x interval
-    diff = axis[khi] - axis[klo];
-
-    // The x-values must be distinct!
-    if (diff == 0.0) {
-      EXCEPTION("You cannot have two equal x values!" );
-    }
-
-  }
-
   Double BiLinInterpolate::EvaluateFunc( Double xEntry ) {
 
     EXCEPTION("you need to provide x and y for BiLinear interpolation");

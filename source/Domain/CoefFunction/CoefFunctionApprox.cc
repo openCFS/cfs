@@ -164,9 +164,9 @@ void CoefFunctionHeatBipole::GetScalar(Double& coefScalar,
 void CoefFunctionTripole::GetScalar(Double& coefScalar, 
                                    const LocPointMapped& lpm ) {
 
-  Double Vdrain = GetAvgTerminalValue(DRAIN, NLELEC_BIPOLE, lpm);
-  Double Vsource = GetAvgTerminalValue(SOURCE, NLELEC_BIPOLE, lpm);
-  Double Vgate = GetAvgTerminalValue(GATE, NLELEC_BIPOLE, lpm);
+  Double Vdrain = GetAvgTerminalValue(DRAIN, NLELEC_TRIPOLE, lpm);
+  Double Vsource = GetAvgTerminalValue(SOURCE, NLELEC_TRIPOLE, lpm);
+  Double Vgate = GetAvgTerminalValue(GATE, NLELEC_TRIPOLE, lpm);
   Double Vds = Vdrain-Vsource;
   Double Vgs = Vgate-Vsource;
    
@@ -181,9 +181,9 @@ void CoefFunctionTripole::GetScalar(Double& coefScalar,
 //
 void CoefFunctionHeatTripole::GetScalar(Double& coefScalar, 
                                    const LocPointMapped& lpm ) {
-  Double Vdrain = GetAvgTerminalValue(DRAIN, NLELEC_BIPOLE, lpm);
-  Double Vsource = GetAvgTerminalValue(SOURCE, NLELEC_BIPOLE, lpm);
-  Double Vgate = GetAvgTerminalValue(GATE, NLELEC_BIPOLE, lpm);
+  Double Vdrain = GetAvgTerminalValue(DRAIN, NLELEC_TRIPOLE, lpm);
+  Double Vsource = GetAvgTerminalValue(SOURCE, NLELEC_TRIPOLE, lpm);
+  Double Vgate = GetAvgTerminalValue(GATE, NLELEC_TRIPOLE, lpm);
   Double Vds = Vdrain-Vsource;
   Double Vgs = Vgate-Vsource;
 
@@ -191,9 +191,7 @@ void CoefFunctionHeatTripole::GetScalar(Double& coefScalar,
   Vector<Double> elemSol;
   dependCoefs_[NLELEC_CONDUCTIVITY]->GetVector( elemSol, lpm);
 
-
-  EXCEPTION("not implemented");
-  // coefScalar = nLinFnc_->EvaluateFunc(Vgs, Vds, elemSol[0]);
+  coefScalar = nLinFnc_->EvaluateFunc(Vds, Vgs, elemSol[0]);
   LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal vgs = '" << Vgs << " and vds = '" << Vds <<"' and temperature = '" << elemSol[0] <<"'. IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
 
 }
