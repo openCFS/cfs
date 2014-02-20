@@ -149,6 +149,8 @@
           </xsd:simpleType>
         </xsd:attribute>
 
+        <xsd:attribute name="timeStepAlpha" use="optional" default="0.0" type="xsd:double"/>
+
         <!-- updated Lagrangian formulation -->
         <xsd:attribute name="updatedLagrange" use="optional" default="no">
           <xsd:simpleType>

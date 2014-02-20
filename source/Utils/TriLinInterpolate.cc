@@ -18,7 +18,7 @@ DEFINE_LOG(trilinappx, "trilinappx")
     // structure slicesFiles_ contains list of filenames for 2d slices 
     slices_.Resize(numMeas_);
 
-    for (UInt i; i<numMeas_; i++) {
+    for (UInt i = 0; i<numMeas_; i++) {
       slices_[i] = new BiLinInterpolate(slicesFiles_[i], matType);
     }
 

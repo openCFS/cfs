@@ -919,14 +919,14 @@ namespace CoupledField{
    }
 
    void AcousticMixedPDE::InitTimeStepping(){
-     shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(GLMScheme::TRAPEZOIDAL, 0) );
-     shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(GLMScheme::TRAPEZOIDAL, 0) );
+     shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(GLMScheme::BDF2, 0) );
+     shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(GLMScheme::BDF2, 0) );
 
      feFunctions_[ACOU_PRESSURE]->SetTimeScheme(mySchemeP);
      feFunctions_[ACOU_VELOCITY]->SetTimeScheme(mySchemeV);
 
      if(this->isTimeDomPML_){
-       shared_ptr<BaseTimeScheme> mySchemeQ(new TimeSchemeGLM(GLMScheme::TRAPEZOIDAL, 0) );
+       shared_ptr<BaseTimeScheme> mySchemeQ(new TimeSchemeGLM(GLMScheme::BDF2, 0) );
        feFunctions_[ACOU_PMLAUXVEC]->SetTimeScheme(mySchemeQ);
      }
 

@@ -144,14 +144,13 @@ Newmark::Newmark(Double gamma,Double beta, Double alpha)
   if(alpha == 0.0){
     usePredictors_ = true;
     lastStageIsSolution_ = true;
-  }else if (this->solDerivOrder_==0){
+  }else {
     //alpha method is only implemented for effective stiffness right now
     usePredictors_ = false;
     lastStageIsSolution_ = false;
     //redefine beta and gamma accorin=ding to hughes
     beta_ = (1-alpha_)*(1-alpha_)/4;
     gamma_ = (1-2*alpha_)/2;
-
   }
 
   //prepare coefficient matrix
@@ -165,6 +164,10 @@ Newmark::Newmark(Double gamma,Double beta, Double alpha)
 void Newmark::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
   curTStepSize_ = deltaT;
   solDerivOrder_ = solDerivOrder;
+
+  if(solDerivOrder != 0 && alpha_ != 0.0){
+    EXCEPTION("Alpha-Method timestepping currently only supports effective stiffness formulation");
+  }
 
   switch(solDerivOrder){
   case 0:
@@ -270,6 +273,84 @@ void Newmark::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
     schemeCoefs_[5][3] = 0.0;
     break;
 
+  }
+}
+
+//================================================================
+//BDF2 SCHEME
+//================================================================
+
+Bdf2::Bdf2()
+      : GLMScheme(){
+
+  maxDerivOrder_ = 1;
+  numStages_ = 1;
+  numOldSols_ = 2;
+  numSol1stDerivs_ = 1;
+  numSol2ndDerivs_ = 0;
+  sizeGLMVec_ = numOldSols_ + numSol1stDerivs_;
+
+  lastStageIsSolution_ = false;
+  usePredictors_ = false;
+
+  //prepare coefficient matrix
+  UInt numCols = numStages_ + ((maxDerivOrder_+1) * numOldSols_);
+  UInt numRows = (maxDerivOrder_+1)*(numStages_) + sizeGLMVec_;
+  schemeCoefs_.Resize(numRows,numCols);
+  schemeCoefs_.Init();
+}
+
+void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
+  curTStepSize_ = deltaT;
+  solDerivOrder_ = solDerivOrder;
+
+  switch(solDerivOrder){
+  case 1:
+    solDerivOrder_ = 1;
+    schemeCoefs_[0][0] = 2*curTStepSize_/3;
+    schemeCoefs_[0][1] = -4/3;
+    schemeCoefs_[0][2] = 1/3;
+    schemeCoefs_[0][3] = 0;
+    schemeCoefs_[1][0] = 1;
+    schemeCoefs_[1][1] = 0;
+    schemeCoefs_[1][2] = 0;
+    schemeCoefs_[1][3] = 0;
+    schemeCoefs_[2][0] = 2*curTStepSize_/3;
+    schemeCoefs_[2][1] = 4/3;
+    schemeCoefs_[2][2] = -1/3;
+    schemeCoefs_[2][3] = 0;
+    schemeCoefs_[3][0] = 0;
+    schemeCoefs_[3][1] = 0;
+    schemeCoefs_[3][2] = 1;
+    schemeCoefs_[3][3] = 0;
+    schemeCoefs_[4][0] = 1;
+    schemeCoefs_[4][1] = 0;
+    schemeCoefs_[4][2] = 0;
+    schemeCoefs_[4][3] = 0;
+    break;
+  case 0:
+    solDerivOrder_ = 0;
+    schemeCoefs_[0][0] = 1;
+    schemeCoefs_[0][1] = 0;
+    schemeCoefs_[0][2] = 0;
+    schemeCoefs_[0][3] = 0;
+    schemeCoefs_[1][0] = 3/(2*curTStepSize_);
+    schemeCoefs_[1][1] = 2/(curTStepSize_);
+    schemeCoefs_[1][2] = (-0.5/curTStepSize_);
+    schemeCoefs_[1][3] = 0;
+    schemeCoefs_[2][0] = 1;
+    schemeCoefs_[2][1] = 0;
+    schemeCoefs_[2][2] = 0;
+    schemeCoefs_[2][3] = 0;
+    schemeCoefs_[3][0] = 0;
+    schemeCoefs_[3][1] = 1;
+    schemeCoefs_[3][2] = 0;
+    schemeCoefs_[3][3] = 0;
+    schemeCoefs_[4][0] = 3/(2*curTStepSize_);
+    schemeCoefs_[4][1] = -2/(curTStepSize_);
+    schemeCoefs_[4][2] = (0.5/curTStepSize_);
+    schemeCoefs_[4][3] = 0;
+    break;
   }
 }
 

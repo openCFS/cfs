@@ -379,6 +379,7 @@ namespace CoupledField{
     //availSchemes[GLMScheme::TRAPEZOIDAL] = new Trapezoidal(1.0);
 
     availSchemes[GLMScheme::NEWMARK] = new Newmark(0.5,0.25);
+    availSchemes[GLMScheme::BDF2] = new Bdf2();
   }
 
 }
