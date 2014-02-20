@@ -4,6 +4,7 @@ SET(UTILS_SRCS
   Interpolate1D.cc
   LinInterpolate.cc
   BiLinInterpolate.cc
+  TriLinInterpolate.cc
   mathfunctions.cc
   Polynomial.cc
   Timer.cc

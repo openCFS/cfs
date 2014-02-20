@@ -20,10 +20,13 @@ DEFINE_LOG(approxdata, "approxdata")
     if (numIndepend_ == 1) {
       ReadNlinFunc(nlFileName);
       PerformChecksOnInputData(nlFileName);
-    } else {
+    } else if (numIndepend_ == 2) {
       ReadNlinFuncTwoIndep(nlFileName);
-
+    } else if (numIndepend_ == 3) {
+      ReadNlinFuncThreeIndep(nlFileName);
     }
+    else
+      EXCEPTION("Cannot handle number of independent variables: " << numIndepend_);
 
   }
 
@@ -83,6 +86,48 @@ DEFINE_LOG(approxdata, "approxdata")
     }
   }
 
+  void ApproxData::ReadNlinFuncThreeIndep(std::string fncName)  {
+   // general idea:
+   // filename given is a list of <value, filename> pairs
+    std::ifstream datafile;
+  
+    datafile.open(fncName.c_str());
+    if ( !datafile ) {
+      std::string str = "Failed to open file '" + fncName +
+        "' suspected to contain nonlinear data";
+      EXCEPTION( str );
+    }
+  
+    datafile.clear(); // clear flags
+  
+    // we don't trust .eof() =)
+    datafile.seekg(0,std::ios::end);
+    std::string::size_type pos = 0, line_start_pos = 0,
+      pos_end = datafile.tellg();
+    
+    datafile.seekg(0,std::ios::beg); // start from the beginning
+    std::string     buf;
+    Double x2val;
+    std::string iFilename;
+    UInt nSlices = 0;
+    while(pos <= pos_end)
+      {     
+        line_start_pos = datafile.tellg();
+        std::getline(datafile,buf);
+
+        if ((buf[0] != '#' || buf[0] != '%' || buf[0] != '!') && buf.size() > 0) 
+          {
+            datafile.seekg(line_start_pos); // rewind
+            datafile >> x2val >> iFilename;
+            datafile.ignore(100,'\n');
+	    nSlices += 1;
+	  }
+        pos = datafile.tellg();  // and, where we are ?    
+      }
+
+    datafile.close();
+
+  }
   void ApproxData::ReadNlinFuncTwoIndep(std::string fncName)  {
   
     std::ifstream datafile;
@@ -138,12 +183,15 @@ DEFINE_LOG(approxdata, "approxdata")
           }
 	else if (buf.size() == 0) {
           // advance block
-	  blockSizes.push_back(nMeas);
+	  if (nMeas>0)
+	    blockSizes.push_back(nMeas);
 	  nMeas=0;
 	}
       
         pos = datafile.tellg();  // and, where we are ?    
       }
+
+    datafile.close();
 
     UInt firstBlockSize = blockSizes[0];
     for (UInt k=1; k< blockSizes.size(); k ++ ){
@@ -163,7 +211,6 @@ DEFINE_LOG(approxdata, "approxdata")
       }
     }
   
-    datafile.close();
     numMeas_ = xx0.size(); // FIXME: do I need it somewhere?
     nblocks = blockSizes.size();
     LOG_DBG(approxdata) << "Read 2d file '" << fncName << "' with " << nblocks << 

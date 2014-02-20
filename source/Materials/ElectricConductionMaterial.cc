@@ -16,6 +16,7 @@
 #include "Utils/SmoothSpline.hh"
 #include "Utils/LinInterpolate.hh"
 #include "Utils/BiLinInterpolate.hh"
+#include "Utils/TriLinInterpolate.hh"
 
 
 namespace CoupledField
@@ -286,8 +287,11 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
  					           StdVector<RegionIdType> & regs) {
 
   UInt ndeps = dependencies.GetSize(); // 1 no temp dep, 2: temp dep
-  //obsolete variable: only used for debug builds and can be avoided
-  //UInt nregs = regs.GetSize(); // 2 regs dipole, 3 regs tripole
+  // for a tripole, we've got a dependency more because two differences can be calculated
+  if (nlType == NLELEC_TRIPOLE || nlType == NLELEC_TRIPOLE_TEMP_DEP) {
+    ndeps += 1;
+  }
+  UInt nregs = regs.GetSize(); // 2 regs dipole, 3 regs tripole
 
   // Ensure that only real-valued parameters are used
   if( matDataType != Global::REAL ) {
@@ -328,14 +332,31 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
       if ( ndeps != 2 )
         EXCEPTION("bilinear interpoltation requires two ptrCoefFcts");
       std::string val = stringParams_[NONLIN_DEPENDENCY];
-      if  (  val == "voltage-temperature" ) {
+      if  (  val == "voltage-temperature" || val == "voltage-voltage" ) {
         BiLinInterpolate * sp = new BiLinInterpolate( matNl.fileName, matType );
         //sp->SetAccuracy( matNl.measAccuracy );
         //sp->SetMaxY( matNl.maxVal );
         sp->Print();
         matNl.approxData = sp;
       } else {
-        EXCEPTION("'dependency' string in material xml must be specified with value 'voltage-temperature' to force user check column ordering: | voltage | temperature | sigma |");
+        EXCEPTION("'dependency' string in material xml must be specified with value 'voltage-temperature' (or 'voltage-voltage')" << 
+	" to force user check column ordering: | voltage | temperature | sigma |");
+      }
+    }
+     else if ( matNl.approxType == TRILIN_INTERPOLATE ) {
+
+      if ( ndeps != 3 )
+        EXCEPTION("trilinear interpoltation requires two ptrCoefFcts");
+      std::string val = stringParams_[NONLIN_DEPENDENCY];
+      if  (  val == "voltage-voltage-temperature"  ) {
+        TriLinInterpolate * sp = new TriLinInterpolate( matNl.fileName, matType );
+        //sp->SetAccuracy( matNl.measAccuracy );
+        //sp->SetMaxY( matNl.maxVal );
+        sp->Print();
+        matNl.approxData = sp;
+      } else {
+        EXCEPTION("'dependency' string in material xml must be specified with value 'voltage-voltage-temperature' " << 
+	" to force user check column ordering: | voltage | voltage | temperature | sigma |");
       }
     }
     else {
@@ -351,8 +372,8 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
 
   shared_ptr<CoefFunctionComposite> coef;
   if (nlType == NLELEC_BIPOLE) {
-    assert ( ndeps == 1) ;
-    assert ( regs.GetSize() == 2) ;
+    if (ndeps != 1 || nregs != 2)
+      EXCEPTION("For a nonlinear electric dipole, two regions and one dependent coef function must be provided");
     coef.reset(new CoefFunctionBipole());
     coef->SetRegion(ANODE,regs[0]);
     coef->SetRegion(CATHODE,regs[1]);
@@ -361,8 +382,8 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
 
   }
   else if (nlType == NLELEC_BIPOLE_TEMP_DEP) {
-    assert ( ndeps == 2) ;
-    assert ( regs.GetSize() == 2) ;
+    if (ndeps != 2 || nregs != 2)
+      EXCEPTION("For a nonlinear temperature dependent electric dipole, two regions and two dependent coef functions must be provided");
     coef.reset(new CoefFunctionHeatBipole());
     coef->SetRegion(ANODE,regs[0]);
     coef->SetRegion(CATHODE,regs[1]);
@@ -372,13 +393,23 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
 
   }
   else if (nlType == NLELEC_TRIPOLE) {
-    assert ( ndeps == 1) ;
-    assert ( regs.GetSize() == 3) ;
-    EXCEPTION("not implemented yet");
+    if (ndeps - 1 != 1 || nregs != 3) // - 1 because of extra dependency of multiple terminal
+      EXCEPTION("For a nonlinear electric tripole, three regions and one dependent coef function must be provided");
+    coef.reset(new CoefFunctionTripole());
+    coef->SetRegion(GATE,regs[0]);
+    coef->SetRegion(DRAIN,regs[1]);
+    coef->SetRegion(SOURCE,regs[2]);
+    coef->SetDependCoef(NLELEC_BIPOLE, dependencies[0] );
+    coef->Init( startVal, sp);
+    //EXCEPTION("not implemented yet");
   }
   else if (nlType == NLELEC_TRIPOLE_TEMP_DEP) {
-    assert ( ndeps == 2) ;
-    assert ( regs.GetSize() == 3) ;
+    if (ndeps -1 != 2 || nregs != 3)
+      EXCEPTION("For a nonlinear temperature dependent electric tripole, three regions and two dependent coef functions (elec and heat) must be provided");
+    coef.reset(new CoefFunctionHeatTripole());
+    coef->SetRegion(GATE,regs[0]);
+    coef->SetRegion(DRAIN,regs[1]);
+    coef->SetRegion(SOURCE,regs[2]);
     EXCEPTION("not implemented yet");
   }
   else {

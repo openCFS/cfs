@@ -1861,6 +1861,8 @@ source/Utils/StdVector.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/StdVectorSerialize.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/Timer.cc -text
 source/Utils/Timer.hh -text
+source/Utils/TriLinInterpolate.cc -text
+source/Utils/TriLinInterpolate.hh -text
 source/Utils/boost-serialization.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/mathParser/CMakeLists.txt svneol=native#text/plain
 source/Utils/mathParser/mathParser.cc svneol=native#text/x-c%2B%2Bsrc

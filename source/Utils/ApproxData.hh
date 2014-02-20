@@ -20,6 +20,7 @@ namespace CoupledField {
     //! reads in the sampled data form file with name fncName
     void ReadNlinFunc( std::string fncName );
     void ReadNlinFuncTwoIndep( std::string fncName );
+    void ReadNlinFuncThreeIndep( std::string fncName );
 
     //! return file name
     std::string GetNlFileName() {
@@ -86,6 +87,7 @@ namespace CoupledField {
     Vector<Double> x2_;  //!< independent value
     Vector<Double> y_;  //!< function value
     StdVector< Vector <Double> > z_; //! function value for two independent vars
+    StdVector< StdVector<Vector <Double> > > zz_; //! function value for trhee independent vars
     UInt numMeas_;      //!< number of sampled points
     UInt numIndepend_;  //!< number of independent values (default 1)
     MaterialType matType_; //!< material parameter to be approximated

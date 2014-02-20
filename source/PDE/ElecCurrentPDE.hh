@@ -107,6 +107,7 @@ namespace CoupledField
 
   private:
 
+    void GetPoleRegionIds(NonLinType nl, StdVector<RegionIdType> & regIds);
 
   };
 

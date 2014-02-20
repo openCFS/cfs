@@ -169,6 +169,52 @@ public:
   std::string ToString() const {return "Composite Coefficient function for temperature dependent bipole";}
 };
 
+// ============================================================================
+
+// ============================================================================
+//  Coef Function Tripole
+// ============================================================================
+//! Provide an approximated value for a tripolar (three terminals) which depends on
+//! the unkown of the dependant coef function on the three terminals
+
+class CoefFunctionTripole : public CoefFunctionComposite {
+public:
+  //! Constructor
+  CoefFunctionTripole() {}
+
+  //! Destructor
+  virtual ~CoefFunctionTripole() {}
+
+  //! \see CoefFunction::GetScalar
+  void GetScalar(Double& coefScalar, 
+                 const LocPointMapped& lpm );
+    
+  //! \see CoefFunction::ToString
+  std::string ToString() const {return "Composite Coefficient function for tripole";}
+};
+
+// ============================================================================
+//  Coef Function Heat Tripole
+// ============================================================================
+//! Provide an approximated value for a tripolar (three terminals) which depends on
+//! the unkown of the dependant coef function on the three terminals
+//! _and_ the temperature
+
+class CoefFunctionHeatTripole : public CoefFunctionComposite {
+public:
+  //! Constructor
+  CoefFunctionHeatTripole() {}
+
+  //! Destructor
+  virtual ~CoefFunctionHeatTripole() {}
+
+  //! \see CoefFunction::GetScalar
+  void GetScalar(Double& coefScalar, 
+                 const LocPointMapped& lpm );
+    
+  //! \see CoefFunction::ToString
+  std::string ToString() const {return "Composite Coefficient function for temperature dependent tripole";}
+};
 
 // ============================================================================
 //! Provide a coefficient for approximated derivative of sample data (scalar)

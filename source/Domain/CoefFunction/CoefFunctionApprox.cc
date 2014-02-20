@@ -145,12 +145,56 @@ void CoefFunctionHeatBipole::GetScalar(Double& coefScalar,
   Double bAvg = GetAvgTerminalValue(CATHODE, NLELEC_BIPOLE, lpm);
   Double diff = bAvg - aAvg;
 
+  // get temperature
   Vector<Double> elemSol;
   dependCoefs_[NLELEC_CONDUCTIVITY]->GetVector( elemSol, lpm);
 
 
   coefScalar = nLinFnc_->EvaluateFunc(diff, elemSol[0]);
   LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal (diff) = '" << diff << " and temperature = '" << elemSol[0] <<"'. IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
+
+}
+
+// ========================================================================
+//
+// ============================================================================
+//  Coef Function Tripole
+// ============================================================================
+//
+void CoefFunctionTripole::GetScalar(Double& coefScalar, 
+                                   const LocPointMapped& lpm ) {
+
+  Double Vdrain = GetAvgTerminalValue(DRAIN, NLELEC_BIPOLE, lpm);
+  Double Vsource = GetAvgTerminalValue(SOURCE, NLELEC_BIPOLE, lpm);
+  Double Vgate = GetAvgTerminalValue(GATE, NLELEC_BIPOLE, lpm);
+  Double Vds = Vdrain-Vsource;
+  Double Vgs = Vgate-Vsource;
+   
+  coefScalar = nLinFnc_->EvaluateFunc(Vgs, Vds);
+  LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal vgs = '" << Vgs << " and vds = '" << Vds <<"'. IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
+
+}
+//
+// ============================================================================
+//  Coef Function Heat Tripole
+// ============================================================================
+//
+void CoefFunctionHeatTripole::GetScalar(Double& coefScalar, 
+                                   const LocPointMapped& lpm ) {
+  Double Vdrain = GetAvgTerminalValue(DRAIN, NLELEC_BIPOLE, lpm);
+  Double Vsource = GetAvgTerminalValue(SOURCE, NLELEC_BIPOLE, lpm);
+  Double Vgate = GetAvgTerminalValue(GATE, NLELEC_BIPOLE, lpm);
+  Double Vds = Vdrain-Vsource;
+  Double Vgs = Vgate-Vsource;
+
+  // get temperature
+  Vector<Double> elemSol;
+  dependCoefs_[NLELEC_CONDUCTIVITY]->GetVector( elemSol, lpm);
+
+
+  EXCEPTION("not implemented");
+  // coefScalar = nLinFnc_->EvaluateFunc(Vgs, Vds, elemSol[0]);
+  LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal vgs = '" << Vgs << " and vds = '" << Vds <<"' and temperature = '" << elemSol[0] <<"'. IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
 
 }
 
