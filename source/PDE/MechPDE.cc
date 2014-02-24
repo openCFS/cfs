@@ -914,6 +914,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     rhs->unit = "N";
     rhs->entryType = ResultInfo::VECTOR;
     rhs->definedOn = ResultInfo::NODE;
+    rhsFeFunctions_[MECH_DISPLACEMENT]->SetResultInfo(rhs);
     DefineFieldResult( rhsFeFunctions_[MECH_DISPLACEMENT], rhs );
 
     // === MECHANIC STRESS ===

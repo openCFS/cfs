@@ -504,8 +504,9 @@ namespace CoupledField {
     rhs->unit = "C";
     rhs->definedOn = results_[0]->definedOn;
     rhs->entryType = ResultInfo::SCALAR;
+    rhsFeFunctions_[ELEC_POTENTIAL]->SetResultInfo(rhs);
     availResults_.insert( rhs );
-    DefineFieldResult( feFunctions_[ELEC_POTENTIAL], rhs );
+    DefineFieldResult( rhsFeFunctions_[ELEC_POTENTIAL], rhs );
 
   }
   

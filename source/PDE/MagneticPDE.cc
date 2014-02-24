@@ -661,6 +661,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       rhs->unit = "";
       rhs->entryType = ResultInfo::VECTOR;
       rhs->definedOn = ResultInfo::NODE;
+      rhsFeFunctions_[MAG_POTENTIAL]->SetResultInfo(rhs);
       DefineFieldResult( rhsFeFunctions_[MAG_POTENTIAL], rhs );
 
       // === MAGNETIC FLUX DENSITY ===

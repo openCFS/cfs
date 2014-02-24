@@ -1122,6 +1122,7 @@ namespace CoupledField{
     rhs->unit = "?";
     rhs->definedOn = results_[0]->definedOn;
     rhs->entryType = ResultInfo::SCALAR;
+    this->rhsFeFunctions_[formulation_]->SetResultInfo(rhs);
     DefineFieldResult( this->rhsFeFunctions_[formulation_], rhs );
     results_.Push_back( rhs );
     availResults_.insert( rhs );
