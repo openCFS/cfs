@@ -175,8 +175,11 @@ namespace CoupledField {
       meshGroup = mainRoot_.openGroup("Mesh");
     } H5_CATCH( "Could not open mesh group" );
 
-    // Read dimension
-    H5IO::ReadAttribute( meshGroup, "Dimension", dim_ );
+    // Read dimension only if present (as it is only written
+    // in case a mesh was written before)
+    if(H5IO::AttrExists(meshGroup, "Dimension")) {
+      H5IO::ReadAttribute( meshGroup, "Dimension", dim_ );
+    }  
     meshGroup.close();
 
     // check for use of external files
