@@ -653,6 +653,7 @@ bool Function::ForDensityFiltering() const
   case GLOBAL_SUM_MODULI:                 // TODO Be careful! Right now this is hardcoded in
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:   // Function::Local::Identifier::EvalFunction
   case GLOBAL_LAMINATES_VOL:              // and ::EvalGradient !!
+  case LAMINATES_VOL:
     return false;
 
   case MULTI_OBJECTIVE:
@@ -1685,7 +1686,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     break;
 
   case LAMINATES_VOL:
-    fv = CalcLaminatesVolume();
+    fv = CalcLaminatesVolume(DesignElement::PLAIN);
     break;
   case GLOBAL_LAMINATES_VOL:
     fv = CalcLaminatesVolume(DesignElement::PLAIN);
@@ -1844,7 +1845,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
       break;
 
     case LAMINATES_VOL:
-      gv = CalcLaminatesVolume(DesignElement::SMART, n, true);
+      gv = CalcLaminatesVolume(DesignElement::PLAIN, n, true);
       break;
     case GLOBAL_LAMINATES_VOL:
       gv = CalcLaminatesVolume(DesignElement::PLAIN, n, true);
