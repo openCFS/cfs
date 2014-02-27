@@ -86,6 +86,8 @@ namespace CoupledField {
     //! prints out original and approximated function
     virtual void Print() {;};
 
+    void SetFactor(Double f) { factor_=f;}
+
   protected:
 
     Vector<Double> x_;  //!< independent value
@@ -97,6 +99,8 @@ namespace CoupledField {
     MaterialType matType_; //!< material parameter to be approximated
     std::string nlFileName_; //!< name of file
     StdVector< std::string > slicesFiles_; //! holding files containing 2d slices (needed for 3d data)
+
+    Double factor_; //! A factor (default 1.) which can be used to scale the value of the approxmated function
 
   };
 

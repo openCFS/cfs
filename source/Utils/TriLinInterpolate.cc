@@ -18,7 +18,7 @@ DEFINE_LOG(trilinappx, "trilinappx")
     // structure slicesFiles_ contains list of filenames for 2d slices 
     slices_.Resize(numMeas_);
 
-    for (UInt i = 0; i<numMeas_; i++) {
+    for (UInt i=0; i<numMeas_; i++) {
       slices_[i] = new BiLinInterpolate(slicesFiles_[i], matType);
     }
 
@@ -57,8 +57,8 @@ DEFINE_LOG(trilinappx, "trilinappx")
     // linear interpolation on  x0
     zValue = c0 * (1 - (x0Entry - x_[k0lo])/diff0) + c1 * (x0Entry - x_[k0lo])/diff0;
       
-    LOG_DBG(trilinappx) << "Eval trilinear interpolator at points (" << x0Entry << ", " << x1Entry << ", " << x2Entry << "): " << zValue;
-    return zValue;
+    LOG_DBG(trilinappx) << "Eval trilinear interpolator at points (" << x0Entry << ", " << x1Entry << ", " << x2Entry << "): " << zValue*factor_;
+    return zValue*factor_;
   }
 
   Double TriLinInterpolate::EvaluateFunc( Double x0Entry , Double x1Entry) {

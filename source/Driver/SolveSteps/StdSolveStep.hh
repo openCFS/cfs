@@ -182,6 +182,15 @@ namespace CoupledField
                                           const Double incrementalErr, 
                                           double etaLineSearch=0.0);
 
+    virtual void WriteNonLinIterToInfoXML(const std::string& pdeName, 
+                                          const UInt coupledIterStep,
+                                          const UInt solStep,
+                                          const UInt iterationCounter,
+                                          const Double residualErr, 
+                                          const Double incrementalErr, 
+                                          double etaLineSearch=0.0);
+    
+
     //------------- storage vectors for nonlinear analysis --------------
     //Vector<Double> RhsLinVal_; //!< external forces (for nonlin simulations)
     SBM_Vector oldRhsLinVal_; //!< external forces (for nonlin simulations)

@@ -528,9 +528,9 @@ namespace CoupledField {
     availResults_.insert( energy );
     shared_ptr<ResultFunctor> energyFunc;
     if( isComplex_ ) {
-      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy,0.5));
+      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy,1.));
     } else {
-      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy,0.5));
+      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy,1.));
     }
     resultFunctors_[ELEC_POWER] = energyFunc;
     stiffFormFunctors_.insert(energyFunc);

@@ -324,6 +324,7 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
       LinInterpolate * sp = new LinInterpolate( matNl.fileName, matType );
       //sp->SetAccuracy( matNl.measAccuracy );
       //sp->SetMaxY( matNl.maxVal );
+      sp->SetFactor(matNl.factor); 
       sp->Print();
       matNl.approxData = sp;
      }
@@ -334,8 +335,7 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
       std::string val = stringParams_[NONLIN_DEPENDENCY];
       if  (  val == "voltage-temperature" || val == "voltage-voltage" ) {
         BiLinInterpolate * sp = new BiLinInterpolate( matNl.fileName, matType );
-        //sp->SetAccuracy( matNl.measAccuracy );
-        //sp->SetMaxY( matNl.maxVal );
+	sp->SetFactor(matNl.factor); 
         sp->Print();
         matNl.approxData = sp;
       } else {
@@ -350,8 +350,7 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
       std::string val = stringParams_[NONLIN_DEPENDENCY];
       if  (  val == "voltage-voltage-temperature"  ) {
         TriLinInterpolate * sp = new TriLinInterpolate( matNl.fileName, matType );
-        //sp->SetAccuracy( matNl.measAccuracy );
-        //sp->SetMaxY( matNl.maxVal );
+	sp->SetFactor(matNl.factor); 
         sp->Print();
         matNl.approxData = sp;
       } else {

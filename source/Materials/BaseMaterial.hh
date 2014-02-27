@@ -61,6 +61,9 @@ namespace CoupledField {
 
       //! Pointer to interpolation class
       ApproxData* approxData;
+
+      //! Scale factor material data read from file
+      Double factor;
       
     };
     

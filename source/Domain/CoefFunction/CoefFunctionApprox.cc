@@ -191,7 +191,12 @@ void CoefFunctionHeatTripole::GetScalar(Double& coefScalar,
   Vector<Double> elemSol;
   dependCoefs_[NLELEC_CONDUCTIVITY]->GetVector( elemSol, lpm);
 
-  coefScalar = nLinFnc_->EvaluateFunc(Vds, Vgs, elemSol[0]);
+  // special case: my material actually returns current and thus has to be divided by Vds 
+  if (fabs(Vds) < 1e-9) { // Volts
+    coefScalar = 1e-9;
+  } else {
+    coefScalar = 1./Vds*nLinFnc_->EvaluateFunc(Vds, Vgs, elemSol[0]);
+  }
   LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal vgs = '" << Vgs << " and vds = '" << Vds <<"' and temperature = '" << elemSol[0] <<"'. IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
 
 }

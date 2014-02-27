@@ -1322,6 +1322,7 @@ namespace CoupledField {
           info.measAccuracy = 0.01;
           info.maxVal = 1000;
           info.fileName = "";
+	  info.factor = 1.;
 
           // read dependency: can be "temperature" or voltage
           if(iso->Has("dependency"))
@@ -1344,6 +1345,10 @@ namespace CoupledField {
           // read name of function file
           if(iso->Has("dataName"))
             info.fileName = iso->Get("dataName")->As<std::string>().c_str();
+
+          // read factor
+          if(iso->Has("factor"))
+            info.factor = iso->Get("factor")->As<Double>();
 
           //set info to material class
           material->SetNonLinMatIso(ELEC_CONDUCTIVITY, info);

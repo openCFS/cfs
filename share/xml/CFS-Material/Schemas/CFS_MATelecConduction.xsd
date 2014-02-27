@@ -83,6 +83,7 @@
       <xsd:element name="measAccuracy" type="DT_NonNegFloat"/>
       <xsd:element name="maxApproxVal" type="DT_NonNegFloat"/>
       <xsd:element name="dataName" type="xsd:string"/>
+      <xsd:element name="factor" type="xsd:float" minOccurs="0" maxOccurs="1"/>
     </xsd:sequence>
   </xsd:complexType>
   

@@ -90,8 +90,8 @@ DEFINE_LOG(bilinappx, "bilinappx")
 
     }
 
-    LOG_DBG(bilinappx) << "Eval bilinear interpolator at points (" << x0Entry << ", " << x1Entry << "): " << zValue;
-    return zValue;
+    LOG_DBG(bilinappx) << "Eval bilinear interpolator at points (" << x0Entry << ", " << x1Entry << "): " << zValue*factor_;
+    return zValue*factor_;
   }
 
   Double BiLinInterpolate::EvaluateFunc( Double xEntry ) {

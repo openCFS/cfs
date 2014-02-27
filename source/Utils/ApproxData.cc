@@ -17,6 +17,7 @@ DEFINE_LOG(approxdata, "approxdata")
     numIndepend_ = numIndep;
     matType_ = matType;
     nlFileName_ = nlFileName;
+    factor_ = 1.;
     if (numIndepend_ == 1) {
       ReadNlinFunc(nlFileName);
       PerformChecksOnInputData(nlFileName);

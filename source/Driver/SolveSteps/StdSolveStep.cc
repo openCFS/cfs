@@ -323,8 +323,14 @@ namespace CoupledField {
 
         // output of norms and data
         if ( nonLinLogging_ == true ) {
-          WriteNonLinIterToInfoXML(pdename_, iLevel+1,iterationCounter, residualErr, 
-                                   incrementalErr, etaLineSearch);
+          //UInt actStep = PDE_.GetSolveStep()->GetActStep();
+
+          if (PDE_.IsIterCoupled()) {
+            WriteNonLinIterToInfoXML(pdename_, couplingIter_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+	  } else {
+            WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+	  }
+
           // write norm to file
           logFile_ <<  iterationCounter << "\t"
               << residualErr << "\t"
@@ -686,7 +692,14 @@ namespace CoupledField {
 
         // output of norms and data
         if ( nonLinLogging_ == true ) {
-          WriteNonLinIterToInfoXML(pdename_, 1,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+          // get current step 
+          UInt actStep = PDE_.GetSolveStep()->GetActStep();
+
+          if (PDE_.IsIterCoupled()) {
+            WriteNonLinIterToInfoXML(pdename_, couplingIter_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+	  } else {
+            WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+	  }
           // write norm to file
           logFile_ <<  iterationCounter << "\t"
               << residualErr << "\t"
@@ -706,6 +719,7 @@ namespace CoupledField {
     for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
       fncIt->second->GetTimeScheme()->FinishStep();
     }
+
 
   }
 
@@ -1631,9 +1645,32 @@ namespace CoupledField {
     PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
     iter = iter->GetByVal("solStep","value",solStep,ParamNode::INSERT)
         ->Get("iteration",ParamNode::APPEND);
+    iter->Get("pdeName")->SetValue(pdeName);
     iter->Get("nr")->SetValue(iterationCounter);
     iter->Get("residualErr")->SetValue(residualErr);
     iter->Get("incrementalErr")->SetValue(incrementalErr);
+    // SE: include PDE name and time step
+    if(etaLineSearch)
+      iter->Get("eta_linesearch")->SetValue(etaLineSearch);
+  }
+
+  void StdSolveStep::WriteNonLinIterToInfoXML(const std::string& pdeName,
+                                              const UInt coupledIterStep,
+                                              const UInt solStep,
+                                              const UInt iterationCounter,
+                                              const Double residualErr, 
+                                              const Double incrementalErr, double etaLineSearch)
+  {
+    
+    PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
+    iter = iter->GetByVal("solStep","value",solStep,ParamNode::INSERT);
+    iter = iter->GetByVal("couplingStep", "value", coupledIterStep, ParamNode::INSERT)
+        ->Get("iteration",ParamNode::APPEND);
+    iter->Get("pdeName")->SetValue(pdeName);
+    iter->Get("nr")->SetValue(iterationCounter);
+    iter->Get("residualErr")->SetValue(residualErr);
+    iter->Get("incrementalErr")->SetValue(incrementalErr);
+    // SE: include PDE name and time step
     if(etaLineSearch)
       iter->Get("eta_linesearch")->SetValue(etaLineSearch);
   }

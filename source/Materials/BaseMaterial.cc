@@ -37,6 +37,7 @@ namespace CoupledField
     measAccuracy = 0.0;
     maxVal = 0.0;
     angle = 0.0;
+    factor = 0.0;
     approxData = NULL;
   }
   
