@@ -631,6 +631,8 @@ share/scripts/IdentifyCCompiler.c svneol=native#text/plain
 share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
 share/scripts/IdentifyFortranCompiler.F90 -text
 share/scripts/abaqus_reader.py -text
+share/scripts/adjustDesign.py -text
+share/scripts/angles-twoload.py -text
 share/scripts/base_structures_images.py -text
 share/scripts/bootstrap_devel_machine.sh svneol=native#text/plain
 share/scripts/build_tee.pl -text
@@ -654,6 +656,7 @@ share/scripts/density-to-png.py -text
 share/scripts/distro.sh svneol=native#text/plain
 share/scripts/extract_info_xml_results.py -text
 share/scripts/extract_kkt.py -text
+share/scripts/fmk-extracttensorsfromh5.py -text
 share/scripts/gid_screenshots.py -text
 share/scripts/h5tool -text
 share/scripts/hdf5_aux.sh.in -text
