@@ -348,7 +348,12 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
       if ( ndeps != 3 )
         EXCEPTION("trilinear interpoltation requires two ptrCoefFcts");
       std::string val = stringParams_[NONLIN_DEPENDENCY];
-      if  (  val == "voltage-voltage-temperature"  ) {
+      if  (  val == "voltage-voltage-temperature" || 
+             val == "voltage-voltage-temperature-Vds" ||
+             val == "voltage-voltage-temperature-Vds-ElemArea" ||
+             val == "voltage-voltage-temperature-Vds-nearestVs" ||
+             val == "voltage-voltage-temperature-Vds-nearestVd"
+          ) {
         TriLinInterpolate * sp = new TriLinInterpolate( matNl.fileName, matType );
 	sp->SetFactor(matNl.factor); 
         sp->Print();
@@ -411,9 +416,23 @@ PtrCoefFct ElectricConductionMaterial::GetScalCoefFncMultivariateNonLin(Material
     coef->SetDependCoef(NLELEC_TRIPOLE, dependencies[0] );
     coef->SetDependCoef(NLELEC_CONDUCTIVITY, dependencies[1] ); // this means temperature dep
     coef->Init( startVal, sp);
+
   }
   else {
     EXCEPTION("non linear type not recongized");
+  }
+  std::string val = stringParams_[NONLIN_DEPENDENCY];
+  if (val.find("Vds") != std::string::npos) {
+    coef->SetDivideByVds(true);
+  }
+  if (val.find("nearestVd") != std::string::npos) {
+    coef->SetLocValue(DRAIN);
+  }
+  if (val.find("nearestVs") != std::string::npos) {
+    coef->SetLocValue(SOURCE);
+  }
+  if (val.find("ElemArea") != std::string::npos) {
+    coef->SetElemAreaMult(DRAIN); // refer to drain area
   }
 
     

@@ -1861,7 +1861,34 @@ namespace CoupledField {
   void GridCFS::GetListElemNames( StdVector<std::string> & elemNames) {
     elemNames = namedElemNames_;
   }
-  void GridCFS::GetListOfVolumeRegions( RegionIdType reg_id, StdVector<RegionIdType> &volRegIds ) {
+
+
+  void GridCFS::GetAdjacentSurfElem( const UInt volElemNum, StdVector<Elem *> & surfEl, const RegionIdType reg_id) {
+    Integer index = 0;
+    surfEl.Clear();
+    index = surfRegionIds_.Find(reg_id);
+    if ( index != -1 ) {
+      UInt numElems = surfElems_[index].GetSize();
+      SurfElem * ptSurfElem;
+      for( UInt iElem = 0; iElem <  numElems; ++iElem ) {
+        ptSurfElem = dynamic_cast<SurfElem*>(surfElems_[index][iElem]);
+        if (ptSurfElem->ptVolElems[0] != NULL) {
+	  if (ptSurfElem->ptVolElems[0]->elemNum == volElemNum)
+	    surfEl.Push_back( (Elem *) surfElems_[index][iElem]);
+        }
+        if (ptSurfElem->ptVolElems[1] != NULL) {
+	  if (ptSurfElem->ptVolElems[1]->elemNum == volElemNum)
+	    surfEl.Push_back( (Elem *) surfElems_[index][iElem]);
+        }
+      }
+    } else {
+        EXCEPTION( "GridCFS: The surface region with id '" << reg_id
+                   << "' was not found in the grid!" ); 
+
+    }
+  }
+
+  void GridCFS::GetListOfVolumeRegions( const RegionIdType reg_id, StdVector<RegionIdType> &volRegIds ) {
 
     // check if region id is a volume anyways, then just return that
     Integer index = 0;

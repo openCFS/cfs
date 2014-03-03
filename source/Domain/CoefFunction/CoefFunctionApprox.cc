@@ -93,6 +93,13 @@ void CoefFunctionComposite::SetDependCoef(NonLinType nl, PtrCoefFct dep ) {
 
 }
 
+Double CoefFunctionComposite::GetTerminalValue(TerminalConnector tc, NonLinType nl, const LocPointMapped & lpm) {
+  if (surfElems_.find(tc) != surfElems_.end())
+    return GetLocalTerminalValue(tc, nl, lpm);
+  else
+    return GetAvgTerminalValue(tc, nl, lpm);
+}
+
 Double CoefFunctionComposite::GetAvgTerminalValue(TerminalConnector tc, NonLinType nl, const LocPointMapped & lpm) {
 
   Grid * ptGrid = lpm.GetShapeMap()->GetGrid();
@@ -109,11 +116,81 @@ Double CoefFunctionComposite::GetAvgTerminalValue(TerminalConnector tc, NonLinTy
   return avg;
 }
 
+Double CoefFunctionComposite::GetMaxTerminalValue(TerminalConnector tc, NonLinType nl, const LocPointMapped & lpm) {
+
+  EXCEPTION("Easy to implement");
+  Double max = 0.;
+  return max;
+}
+
+void CoefFunctionComposite::SetLocValue(TerminalConnector tc) {
+  if ( surfElems_.find(tc) != surfElems_.end() ) {
+    EXCEPTION("Terminal " << tc << " was already defined.");
+  }
+  surfElems_[tc][0] = NULL; // force seg fault at access of element 0, since element number start from 1, this should be ok
+  }
+
+Double CoefFunctionComposite::GetLocalTerminalValue(TerminalConnector tc, NonLinType nl, const LocPointMapped & lpm) {
+  Double val = 0.;
+  UInt volElemNum = lpm.ptEl->elemNum;
+  
+  if ( surfElems_[tc].find(volElemNum) == surfElems_[tc].end() ) {
+    // element not yet found
+    Grid * ptGrid = lpm.GetShapeMap()->GetGrid();
+    StdVector <Elem*> surfElem;
+    ptGrid->GetAdjacentSurfElem(volElemNum, surfElem, terminals_[tc]);
+    if (surfElem.GetSize() != 1) {
+      EXCEPTION("Could not find unique adjacent surface element for volume element '" << volElemNum
+      << "' in region '" << terminals_[tc] << "'. What I got was: " << surfElem.ToString());
+    }
+    // add to map
+    surfElems_[tc].insert(std::make_pair(volElemNum, surfElem[0]));
+    LOG_DBG(coeffctapprox) << "Volume element '" << volElemNum << "' has adjacent surface element: " << surfElem[0]->elemNum;
+  }
+
+  dependCoefs_[nl]->GetAvgElemValue(val, surfElems_[tc][volElemNum]);
+  return val;
+}
+
+void CoefFunctionComposite::MultiplyByElemArea( Double & value, const LocPointMapped & lpm) {
+  if (!multElemArea_)
+    return;
+
+  UInt volElemNum = lpm.ptEl->elemNum;
+
+  if ( elemAreas_.find(volElemNum) == elemAreas_.end() ) {
+    // element not yet calculated
+    Grid * ptGrid = lpm.GetShapeMap()->GetGrid();
+    StdVector <Elem*> surfElem;
+    ptGrid->GetAdjacentSurfElem(volElemNum, surfElem, terminals_[tcElemArea_]);
+    if (surfElem.GetSize() != 1) {
+      EXCEPTION("Could not find unique adjacent surface element for volume element '" << volElemNum
+      << "' in region '" << terminals_[tcElemArea_] << "'. What I got was: " << surfElem.ToString());
+    }
+    // calculate area of this element
+    shared_ptr<ElemShapeMap> esm = ptGrid->GetElemShapeMap( surfElem[0]);
+    Double area = esm->CalcVolume();
+    // add to map
+    elemAreas_.insert(std::make_pair(volElemNum, area));
+    LOG_DBG(coeffctapprox) << "Volume element '" << volElemNum << "' has adjacent surface element '" << surfElem[0]->elemNum
+      << "', which has an area of: " << area;
+  } 
+
+  value *= elemAreas_[volElemNum];
+
+}
+
+void CoefFunctionComposite::SetElemAreaMult(TerminalConnector tc) {
+  multElemArea_ = true;
+  tcElemArea_ = tc;
+}
 void CoefFunctionComposite::Init( Double coefScalar, ApproxData * nLinFnc) {
 
   dimType_ = SCALAR;
   nLinFnc_ = nLinFnc;
   coefScalar_ = coefScalar;
+  divideByVds_ = false;
+  multElemArea_ = false;
 
 }
 
@@ -126,8 +203,8 @@ void CoefFunctionComposite::Init( Double coefScalar, ApproxData * nLinFnc) {
 void CoefFunctionBipole::GetScalar(Double& coefScalar, 
                                    const LocPointMapped& lpm ) {
 
-  Double aAvg = GetAvgTerminalValue(ANODE, NLELEC_BIPOLE, lpm);
-  Double bAvg = GetAvgTerminalValue(CATHODE, NLELEC_BIPOLE, lpm);
+  Double aAvg = GetTerminalValue(ANODE, NLELEC_BIPOLE, lpm);
+  Double bAvg = GetTerminalValue(CATHODE, NLELEC_BIPOLE, lpm);
   Double diff = bAvg - aAvg;
   
   coefScalar = nLinFnc_->EvaluateFunc(diff);
@@ -141,8 +218,8 @@ void CoefFunctionBipole::GetScalar(Double& coefScalar,
 //
 void CoefFunctionHeatBipole::GetScalar(Double& coefScalar, 
                                    const LocPointMapped& lpm ) {
-  Double aAvg = GetAvgTerminalValue(ANODE, NLELEC_BIPOLE, lpm);
-  Double bAvg = GetAvgTerminalValue(CATHODE, NLELEC_BIPOLE, lpm);
+  Double aAvg = GetTerminalValue(ANODE, NLELEC_BIPOLE, lpm);
+  Double bAvg = GetTerminalValue(CATHODE, NLELEC_BIPOLE, lpm);
   Double diff = bAvg - aAvg;
 
   // get temperature
@@ -164,8 +241,8 @@ void CoefFunctionHeatBipole::GetScalar(Double& coefScalar,
 void CoefFunctionTripole::GetScalar(Double& coefScalar, 
                                    const LocPointMapped& lpm ) {
 
-  Double Vdrain = GetAvgTerminalValue(DRAIN, NLELEC_TRIPOLE, lpm);
-  Double Vsource = GetAvgTerminalValue(SOURCE, NLELEC_TRIPOLE, lpm);
+  Double Vdrain = GetTerminalValue(DRAIN, NLELEC_TRIPOLE, lpm);
+  Double Vsource = GetTerminalValue(SOURCE, NLELEC_TRIPOLE, lpm);
   Double Vgate = GetAvgTerminalValue(GATE, NLELEC_TRIPOLE, lpm);
   Double Vds = Vdrain-Vsource;
   Double Vgs = Vgate-Vsource;
@@ -179,10 +256,13 @@ void CoefFunctionTripole::GetScalar(Double& coefScalar,
 //  Coef Function Heat Tripole
 // ============================================================================
 //
+CoefFunctionHeatTripole::CoefFunctionHeatTripole() : CoefFunctionComposite() {
+}
+
 void CoefFunctionHeatTripole::GetScalar(Double& coefScalar, 
                                    const LocPointMapped& lpm ) {
-  Double Vdrain = GetAvgTerminalValue(DRAIN, NLELEC_TRIPOLE, lpm);
-  Double Vsource = GetAvgTerminalValue(SOURCE, NLELEC_TRIPOLE, lpm);
+  Double Vdrain = GetTerminalValue(DRAIN, NLELEC_TRIPOLE, lpm);
+  Double Vsource = GetTerminalValue(SOURCE, NLELEC_TRIPOLE, lpm);
   Double Vgate = GetAvgTerminalValue(GATE, NLELEC_TRIPOLE, lpm);
   Double Vds = Vdrain-Vsource;
   Double Vgs = Vgate-Vsource;
@@ -192,15 +272,24 @@ void CoefFunctionHeatTripole::GetScalar(Double& coefScalar,
   dependCoefs_[NLELEC_CONDUCTIVITY]->GetVector( elemSol, lpm);
 
   // special case: my material actually returns current and thus has to be divided by Vds 
-  if (fabs(Vds) < 1e-9) { // Volts
-    coefScalar = 1e-9;
-  } else {
-    coefScalar = 1./Vds*nLinFnc_->EvaluateFunc(Vds, Vgs, elemSol[0]);
+  if (divideByVds_) {
+    if (fabs(Vds) < 1e-9) { // Volts
+      coefScalar = 1e-9;
+    } else {
+      coefScalar = 1./Vds*nLinFnc_->EvaluateFunc(Vds, Vgs, elemSol[0]);
+    }
   }
+  else {
+    coefScalar = nLinFnc_->EvaluateFunc(Vds, Vgs, elemSol[0]);
+  }
+
+  MultiplyByElemArea(coefScalar, lpm);
+
   LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal vgs = '" << Vgs << " and vds = '" << Vds <<"' and temperature = '" << elemSol[0] <<"'. IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
 
 }
 
+//
 // ========================================================================
 
 CoefFunctionApproxDeriv::CoefFunctionApproxDeriv() : CoefFunction() {

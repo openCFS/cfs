@@ -457,6 +457,14 @@ namespace CoupledField
                                         const StdVector<RegionIdType>
                                         &neighRegions ) = 0;
 
+    //! Get the surface element of which \param volElemNum is in ptVolElems[0,1]. Surf elem must be in region reg_id.
+    //! If not found, Elem vector \parm surfEl (in) is empty.
+    virtual void GetAdjacentSurfElem( const UInt volElemNum, StdVector<Elem *> & surfEl, const RegionIdType reg_id = ALL_REGIONS) = 0;
+
+    //! Get list of volume regions attached to another region. e.g. get all the volume regions of a surface
+    //! \param reg_id (in) query parameter
+    //! \param volRegIds (out) list
+    virtual void GetListOfVolumeRegions( const RegionIdType reg_id, StdVector<RegionIdType> &volRegIds ) = 0;
 
     //! Returns the volume of a given region
 
@@ -529,14 +537,11 @@ namespace CoupledField
     //! \param elemNames list of names of elements
     virtual void GetListElemNames( StdVector<std::string> & elemNames) = 0;
 
-    //! Get list of volume regions attached to another region. e.g. get all the volume regions of a surface
-    //! \param reg_id (in) query parameter
-    //! \param volRegIds (out) list
-    virtual void GetListOfVolumeRegions( RegionIdType reg_id, StdVector<RegionIdType> &volRegIds ) = 0;
-
     //! Get list of elements by their name
     virtual void GetElemsByName( StdVector<Elem*> & elems,
                                  const std::string & elemsName ) = 0;
+
+
 
     /** To be called when all regions are added.
      * Sets the internal element and region structures. */

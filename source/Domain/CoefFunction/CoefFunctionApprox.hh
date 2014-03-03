@@ -83,8 +83,20 @@ public:
   virtual void GetScalar(Double& coefScalar, 
                  const LocPointMapped& lpm ) {EXCEPTION("not implemented");}
     
+  //! Set the regions of the terminals
   void SetRegion(TerminalConnector tc, RegionIdType reg);
+  
+  //! Set the depending coef functions (e.g. heat/elecConduction)
   void SetDependCoef(NonLinType nl, PtrCoefFct dep );
+
+  //! set if the closest value of the terminal should be used or the average terminal value (default)
+  void SetLocValue(TerminalConnector tc) ;
+
+  //! set if the division by Vds is to be done
+  void SetDivideByVds(bool status) { divideByVds_ = status;}
+
+  //! set the multiplication of an elemen area factor
+  void SetElemAreaMult( TerminalConnector regId); 
 
   //! Initialize with data
   void Init( Double coefScalar, ApproxData * nLinFnc  );
@@ -92,6 +104,19 @@ public:
   //! Helper function to return the average value at the defined terminal/region \param tc
   //! for the NonLinType \param nl for a point \param lpm
   Double GetAvgTerminalValue(TerminalConnector tc, NonLinType nl, const LocPointMapped & lpm);
+
+  //! Helper function to return the closest value of the unknown on the terminal \param tc
+  //! for the NonLInType \param nl at the point \param lpm
+  Double GetLocalTerminalValue(TerminalConnector tc, NonLinType nl, const LocPointMapped & lpm);
+
+  //! Helper function to return the maximum value at the defined terminal/region \param tc
+  //! for the NonLinType \param nl for a point \param lpm
+  Double GetMaxTerminalValue(TerminalConnector tc, NonLinType nl, const LocPointMapped & lpm);
+
+  Double GetTerminalValue(TerminalConnector tc, NonLinType nl, const LocPointMapped & lpm);
+
+  void MultiplyByElemArea( Double & value, const LocPointMapped & lpm);
+
 
   //! \see CoefFunction::ToString
   std::string ToString() const {return "Composite Coefficient function";}
@@ -115,6 +140,26 @@ protected:
 
   //! number of depending coef fcts
   UInt nDepCoefs_;
+
+  //! Sets if return value should be divided by Vds.
+  bool divideByVds_;
+
+  //! Set return value is to be multiplied by an element area factor
+  bool multElemArea_;
+
+  //! Terminal referred to for element Area
+  TerminalConnector tcElemArea_;
+
+  //! map containing the element areas in tcElemArea_ for each volume element number
+  std::map<UInt, Double> elemAreas_;
+
+  //! map containing the pointers to the surface element for a give volume element number
+  // std::map<UInt, Elem *> surfElems_;
+
+  //! map containing the pointers to the surface element for a give volume element number and for a give terminal
+  std::map<TerminalConnector, std::map<UInt, Elem *> > surfElems_;
+
+  //StdVector< std::map<UInt, Elem*> > surfElems_;'
 };
 
 // ============================================================================
@@ -203,7 +248,7 @@ public:
 class CoefFunctionHeatTripole : public CoefFunctionComposite {
 public:
   //! Constructor
-  CoefFunctionHeatTripole() {}
+  CoefFunctionHeatTripole() ;
 
   //! Destructor
   virtual ~CoefFunctionHeatTripole() {}
@@ -211,9 +256,14 @@ public:
   //! \see CoefFunction::GetScalar
   void GetScalar(Double& coefScalar, 
                  const LocPointMapped& lpm );
+
     
   //! \see CoefFunction::ToString
   std::string ToString() const {return "Composite Coefficient function for temperature dependent tripole";}
+
+private:
+
+
 };
 
 // ============================================================================
