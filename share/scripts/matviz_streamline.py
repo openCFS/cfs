@@ -8,13 +8,16 @@ import scipy.interpolate
 
 
 ## create and prepare a matplot figure where patched might be "added" to
-def create_figure(min, max):
-  fig = matplotlib.pyplot.figure()
+def create_figure(min, max, res):
+  
+  dpi_x = (res / 100) * (max[0] - min[0]) 
+  dpi_y = dpi_x * (max[1] - min[1]) / (max[0] - min[0]) 
+  
+  fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
   ax = fig.add_subplot(111)
   ax.set_xlim(min[0],max[0])
   ax.set_ylim(min[1],max[1])
-  
-  return ax
+  return fig, ax
 
 
 ## Subclass for Fields
@@ -127,10 +130,12 @@ class Trace:
     
   #give the macro fields we touch with the trace
   def touched(self, macro):     
-    data = numpy.zeros((macro.nx, maro.ny))
-    for p in points:
-      ix = (p[0] - macro.min[0]) / macro.dx
-      iy = (p[1] - macro.min[1]) / macro.dy
+    data = numpy.zeros((macro.nx, macro.ny))
+    for p in self.points:
+      ix = (p[0] - 1e-6 - macro.min[0]) / macro.dx
+      iy = (p[1] - 1e-6 - macro.min[1]) / macro.dy
+      #print 'p=' + str(p) + ' min=' + str(macro.min) + ' d=' + str((macro.dy, macro.dy)) + ' i=' + str((ix, iy))
+      
       data[ix,iy] = max((data[ix,iy], 1.0))
 
     return data
@@ -158,23 +163,38 @@ class Fields:
   ## calculates the streamline from a given point up to both ends
   # @param idx 0 for s1 and 1 for s2 which changes the angle!
   # return a list of coordinates. The first entry is the starting point
-  def streamline(self, cell, macro, idx, steplength):
+  def streamline(self, cell, macro, steplength):
     
-    x = (cell[0] + 0.5) * macro.dx, 
+    x = (cell[0] + 0.5) * macro.dx 
     y = (cell[1] + 0.5) * macro.dy
     
     # print 'streamline x=' + str(x) + ' y=' + str(y) + ' idx=' + str(idx) + ' steplength=' + str(steplength) 
-    assert(idx == 0 or idx == 1)
-    
-    trace1 = self.directional_streamline(x,y,idx, steplength, 1.0)
-    trace2 = self.directional_streamline(x,y,idx, steplength, -1.0)
-    
-    print trace1
-    print trace2
+
     # we want a single trace but we cannot simply concatenate
     # the second trace needs to be reverted and set before first trace
-    tmp = trace2[::-1] + trace1
-    return Trace([i[0] for i in tmp], [i[1] for i in tmp], cell, idx)
+    trace1 = self.directional_streamline(x,y, 0, steplength, 1.0)
+    trace2 = self.directional_streamline(x,y, 0, steplength, -1.0)
+    tmp_a = trace2[::-1] + trace1
+    
+    trace1 = self.directional_streamline(x,y, 1, steplength, 1.0)
+    trace2 = self.directional_streamline(x,y, 1, steplength, -1.0)
+    tmp_b = trace2[::-1] + trace1
+
+    val_a = [i[1] for i in tmp_a]
+    val_b = [i[1] for i in tmp_b]
+    
+    trace_a = None
+    trace_b = None
+    
+    traces = []
+    
+    a_max = sum(val_a)/len(val_a) > sum(val_b)/len(val_b)
+        
+    traces.append(Trace([i[0] for i in tmp_a], val_a, cell, 0 if a_max else 1))
+    traces.append(Trace([i[0] for i in tmp_b], val_b, cell, 1 if a_max else 0))
+       
+    return traces   
+         
     
 
   ## helper for streamline
@@ -234,7 +254,7 @@ def draw_trace(fig, trace):
 
 ## draws a thick trace  
 # @param scale scale stiffness to color. 1.0 for normal or 2.0 if max stiff = 0.5
-def draw_thick_trace(fig, dx, trace):
+def draw_thick_trace(fig, dx, trace, minimal):
   # two adjacent coordinates and the intermediate value give a bar with the thickness
   
   
@@ -246,7 +266,8 @@ def draw_thick_trace(fig, dx, trace):
 
   for i in range(0,len(vertices)-1,1):
     #print i
-    draw_frustum(fig, dx, vertices[i:i+2], values[i:i+2])
+    if max(values[i:i+2]) > minimal:
+      draw_frustum(fig, dx, vertices[i:i+2], values[i:i+2])
 
 
 
@@ -275,7 +296,7 @@ def draw_frustum(fig, dx, coord, thick):
   
   v2 = v2 * 1./ v2n
  
-  print 'coord: ' + str(coord) + ' thickness: ' + str(thick) + ' v2: ' + str(v2)# + ' sp=' + str(numpy.dot(v1, v2))
+  #print 'coord: ' + str(coord) + ' thickness: ' + str(thick) + ' v2: ' + str(v2)# + ' sp=' + str(numpy.dot(v1, v2))
   
   #v2 = numpy.zeros(2)
   
@@ -292,10 +313,10 @@ def draw_frustum(fig, dx, coord, thick):
   patch = matplotlib.patches.PathPatch(path, edgecolor='black', facecolor='black', lw=1)
   fig.add_patch(patch)
 
-  o1 = p1+t1*v2
-  o2 = p2+t2*v2
-  o3 = p2-t2*v2
-  o4 = p1-t1*v2
+  #o1 = p1+t1*v2
+  #o2 = p2+t2*v2
+  #o3 = p2-t2*v2
+  #o4 = p1-t1*v2
 
   #print 'p1=' + str(p1) + ' p2=' + str(p2) + ' v2=' + str(v2) + ' t1=' + str(t1) + ' t2=' + str(t2)
   #print 'o1=' + str(o1) + ' o2=' + str(o2) + ' o3=' + str(o3) + ' o4=' + str(o4)
@@ -313,13 +334,14 @@ def draw_frustum(fig, dx, coord, thick):
 #@return sum of the values, not mormalized
 
  
-def show_streamline(coords, s1, s2, angle, dir, scale, minimal, style, step, samples):            
+def show_streamline(coords, s1, s2, angle, dir, scale, minimal, style, step, samples, res):            
  
   centers, min, max, elem = coords
 
   if scale > 0.0:  
     s1 *= scale
     s2 *= scale
+    minimal *= scale
   
   #print len(centers)
   #print min
@@ -330,7 +352,7 @@ def show_streamline(coords, s1, s2, angle, dir, scale, minimal, style, step, sam
   #fields.macro.dump(s1,0)
   #fields.macro.dump_data()
   
-  fig = create_figure(min, max)
+  fig, sub = create_figure(min, max, res)
 
   #trace = fields.streamline(0.251, 0.251, 0.1)
   #draw_trace(fig, trace)
@@ -344,13 +366,15 @@ def show_streamline(coords, s1, s2, angle, dir, scale, minimal, style, step, sam
 
   traces = []
 
-  if False:
-    for idx in dirs:
+  if True:
+    #for idx in dirs:
       for j in range(fields.macro.ny):
         for i in range(fields.macro.nx):
-          trace = fields.streamline((i,j), fields.macro, idx, step)
-          if trace.max > minimal:
-            traces.append(trace)
+          #trace = fields.streamline((i,j), fields.macro, idx, step)
+          trace_list = fields.streamline((i,j), fields.macro, step)
+          for trace in trace_list:
+            if trace.max > minimal:
+              traces.append(trace)
   else:
     trace = fields.streamline((0.2/fields.macro.nx, 0.2/fields.macro.ny), fields.macro, 0, step)
     traces.append(trace)
@@ -358,13 +382,17 @@ def show_streamline(coords, s1, s2, angle, dir, scale, minimal, style, step, sam
   # sort by max field
   traces = sorted(traces, key=lambda trace: trace.max, reverse=True)
 
-  # here we count  
-
+  # here we count the macro cells touched by the traces. For both indices two fiels
+  cells = (numpy.zeros((fields.macro.nx, fields.macro.ny)), numpy.zeros((fields.macro.nx, fields.macro.ny)))  
   for i in range(len(traces)):
+    mycells = cells[trace.idx]
     trace = traces[i]
-    if style == 'line':      
-      draw_trace(fig, trace)
-    else:        
-      draw_thick_trace(fig, fields.macro.dx, trace)    
+    # draw the trace only if there is no line yet at the trace origin 
+    if mycells[trace.cell] < 1:
+      mycells += trace.touched(fields.macro)
+      if style == 'line':      
+        draw_trace(sub, trace)
+      else:        
+        draw_thick_trace(sub, fields.macro.dx, trace, minimal)    
   
-  matplotlib.pyplot.show()
+  return (fig, sub)

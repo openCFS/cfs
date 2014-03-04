@@ -84,6 +84,15 @@ def show_or_write(viz, args):
       viz.save(args.save)
     else:
       viz.show()
+  elif isinstance(viz, tuple):
+    fig = viz[0]
+    sub = viz[1]
+    
+    if args.save:
+      extent = sub.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+      fig.savefig(args.save, bbox_inches=extent)  
+    else:
+      matplotlib.pyplot.show()
   else:
     show_write_vtk(viz, args.res, args.save)
 
@@ -118,7 +127,7 @@ parser.add_argument("--angle_factor", help="factor for angle. -1.0 turns, 0.0 di
 parser.add_argument("--hom_samples", help="activates interpolation and gives samples in x-direction", type=int)
 parser.add_argument("--stream_style", help="select visualization", choices=['line', 'thick'], default='thick')
 parser.add_argument("--stream_step", help="step length for ODE integration", type=float, default=0.02)
-parser.add_argument("--minimal", help="minimal stiffness to be drawn", type=float, default=0.0)
+parser.add_argument("--minimal", help="minimal stiffness to be drawn, will be scaled", type=float, default=0.0)
 parser.add_argument("--parametrization", help="parametrization of the stiffness tensor", default="hom_rect", choices=['hom_rect', 'dxhom_rect', 'trans_iso', 'dx_trans_iso', 'ortho', 'dxortho'])
 parser.add_argument("--save", help="save 'image.png' or VTK Poly Data file 'file.vtp'")
 parser.add_argument("--plot", help="for single tensors: creates gnuplot file instead of image")
@@ -218,7 +227,7 @@ if h5_read or dim_2D:
         else:
           viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, args.scale)
       elif args.show == "stream":
-          viz = show_streamline(coords, s1, s2, angle[:,0], args.hom_dir, args.scale, args.minimal, args.stream_style, args.stream_step, args.hom_samples)            
+          viz = show_streamline(coords, s1, s2, angle[:,0], args.hom_dir, args.scale, args.minimal, args.stream_style, args.stream_step, args.hom_samples, args.res)            
       else:
         assert(False)
     # the 3D VTK stuff      
