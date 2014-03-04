@@ -577,6 +577,7 @@ namespace CoupledField {
 
           //now update RHS according to time stepping
           for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+            //std::cout << "Matrix: " << matIt->first << std::endl;
             if(matIt->second < 0)
               continue;
             for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
@@ -640,11 +641,12 @@ namespace CoupledField {
           isNewton = false;
           assemble_->AssembleMatrices(isNewton);
 
-          // recalculate RHS with new values to get new residual (f^(k+1))========
+          // set linear part of RHS
           algsys_->InitRHS(RhsLinVal_);
 
           //now update RHS according to time stepping
           for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+            //std::cout << "Matrix: " << matIt->first << std::endl;
             if(matIt->second < 0)
               continue;
             for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
@@ -687,7 +689,7 @@ namespace CoupledField {
           incrementalErr = solIncrL2Norm / actSolL2Norm;
         else {
           incrementalErr = solIncrL2Norm;
-          WARN("Zero solution vector!! ");
+          //WARN("Zero solution vector!! ");
         }
 
         // output of norms and data

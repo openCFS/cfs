@@ -121,6 +121,8 @@ namespace CoupledField {
     addBochevPressStab_ = false;
     addBochevPressStab_= myParam_->Get("addBochevPressStabilization")->As<bool>();
 
+    //check for FE spcae formulation
+    myParam_->GetValue("feSpaceFormulation",FEspaceFormulation_,ParamNode::EX);
   }
   
   void FlowPDE::InitNonLin() {
@@ -227,47 +229,97 @@ namespace CoupledField {
       stiffContPV->SetFeFunctions( presFct, velFct);
       assemble_->AddBiLinearForm( stiffContPV );
 
-//      // --------------------------------------------------------------------
-//      //  VERSION 2: K_VP Integrator
-//      //  (upper off-diagonal integrators - partially integrated, volume)
-//      // --------------------------------------------------------------------
-//      PtrCoefFct coeffKVP = CoefFunction::Generate(mp_,Global::REAL, "1.0");
-//      BiLinearForm * stiffIntVP = NULL;
-//      if( dim_ == 2 ) {
-//        stiffIntVP = new ABInt<>( new DivOperator<FeH1,2>(),
-//                                  new MultiIdOp<FeH1,2>(), coeffKVP, -1.0 );
-//      } else {
-//        stiffIntVP = new ABInt<>( new DivOperator<FeH1,3>(),
-//                                  new MultiIdOp<FeH1,3>(), coeffKVP, -1.0 );
-//      }
-//      stiffIntVP->SetName("FlowStiffIntVP");
-//      BiLinFormContext *stiffContVP = NULL;
-//      stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
-//
-//      stiffContVP->SetEntities( actSDList, actSDList );
-//      stiffContVP->SetFeFunctions( velFct, presFct );
-//      assemble_->AddBiLinearForm( stiffContVP );
+      if ( FEspaceFormulation_ == "L2" ) {
+        //      // --------------------------------------------------------------------
+        //      //  VERSION 2: K_VP Integrator
+        //      //  (upper off-diagonal integrators - partially integrated, volume)
+        //      // --------------------------------------------------------------------
+        PtrCoefFct coeffKVP = CoefFunction::Generate(mp_,Global::REAL, "1.0");
+        BiLinearForm * stiffIntVP = NULL;
+        if( dim_ == 2 ) {
+          stiffIntVP = new ABInt<>( new DivOperator<FeH1,2>(),
+              new MultiIdOp<FeH1,2>(), coeffKVP, -1.0 );
+        } else {
+          stiffIntVP = new ABInt<>( new DivOperator<FeH1,3>(),
+              new MultiIdOp<FeH1,3>(), coeffKVP, -1.0 );
+        }
+        stiffIntVP->SetName("FlowStiffIntVP");
+        BiLinFormContext *stiffContVP = NULL;
+        stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
 
-      // --------------------------------------------------------------------
-      //  VERSION 2: K_VP Integrator (upper off-diagonal integrator, not integration by parts)
-      // --------------------------------------------------------------------
-      PtrCoefFct coeffKVP
-                = CoefFunction::Generate(mp_,Global::REAL, "1.0");
-      BiLinearForm * stiffIntVP = NULL;
-      if( dim_ == 2 ) {
-        stiffIntVP = new ABInt<> (new IdentityOperator<FeH1,2,2>,
-                                  new GradientOperator<FeH1,2>, coeffKVP, 1.0 );
-      } else {
-        stiffIntVP = new ABInt<> (new IdentityOperator<FeH1,3,3>,
-                                  new GradientOperator<FeH1,3>, coeffKVP, 1.0);
+        stiffContVP->SetEntities( actSDList, actSDList );
+        stiffContVP->SetFeFunctions( velFct, presFct );
+        assemble_->AddBiLinearForm( stiffContVP );
+
+        // add penalty terms
+        BiLinearForm *penaltyPresOpp = NULL;
+        BiLinearForm *penaltyPres = NULL;
+//        BiLinearForm *penaltyPressEx = NULL;
+        std::set<RegionIdType> volRegion;
+        volRegion.insert(actRegion);
+        if( dim_ == 2 ) {
+          penaltyPresOpp = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>(),
+              density, -0.5, updatedGeo_ );
+          penaltyPres = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>(),
+              density, 0.5, updatedGeo_);
+//          penaltyPressEx = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>(),
+//              density, 0.5, updatedGeo_);
+        }
+        else {
+          penaltyPresOpp = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>(),
+               density, -0.5, updatedGeo_ );
+           penaltyPres = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>(),
+               density, 0.5, updatedGeo_);
+//           penaltyPressEx = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>(),
+//               density, 0.5, updatedGeo_);
+        }
+
+        penaltyPresOpp->SetName("penaltyPressOpposite");
+        penaltyPres->SetName("penalityPress");
+//        penaltyPressEx->SetName("penaltyPressExterior");
+
+        //now we obtain the entity lists
+        shared_ptr<EntityList> list,oppositList; //,extList;
+        presFct->GetFeSpace()->GetInteriorSurfaceElems(actRegion,list,oppositList);
+//        presFct->GetFeSpace()->GetExteriorSurfaceElems(actRegion,extList);
+
+        BiLinFormContext * penaltyContextPressOpp =  new BiLinFormContext(penaltyPresOpp, STIFFNESS );
+        BiLinFormContext * penaltyContextPress =  new BiLinFormContext(penaltyPres, STIFFNESS );
+//        BiLinFormContext * penaltyContextPressExt =  new BiLinFormContext(penaltyPressEx, STIFFNESS );
+
+        penaltyContextPressOpp->SetEntities(  oppositList,list );
+        penaltyContextPress->SetEntities( list, list );
+//        penaltyContextPressExt->SetEntities(extList,extList);
+
+        penaltyContextPressOpp->SetFeFunctions( presFct, presFct);
+        penaltyContextPress->SetFeFunctions( presFct,presFct);
+//        penaltyContextPressExt->SetFeFunctions( presFct,presFct);
+        assemble_->AddBiLinearForm( penaltyContextPressOpp );
+        assemble_->AddBiLinearForm( penaltyContextPress );
+//        assemble_->AddBiLinearForm( penaltyContextPressExt );
       }
-      stiffIntVP->SetName("FlowStiffIntVP");
-      BiLinFormContext *stiffContVP = NULL;
-      stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
+      else {
+        // --------------------------------------------------------------------
+        //  VERSION 2: K_VP Integrator (upper off-diagonal integrator, not integration by parts)
+        // --------------------------------------------------------------------
+        PtrCoefFct coeffKVP
+        = CoefFunction::Generate(mp_,Global::REAL, "1.0");
+        BiLinearForm * stiffIntVP = NULL;
+        if( dim_ == 2 ) {
+          stiffIntVP = new ABInt<> (new IdentityOperator<FeH1,2,2>,
+              new GradientOperator<FeH1,2>, coeffKVP, 1.0 );
+        } else {
+          stiffIntVP = new ABInt<> (new IdentityOperator<FeH1,3,3>,
+              new GradientOperator<FeH1,3>, coeffKVP, 1.0);
+        }
+        stiffIntVP->SetName("FlowStiffIntVP");
+        BiLinFormContext *stiffContVP = NULL;
+        stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
 
-      stiffContVP->SetEntities( actSDList, actSDList );
-      stiffContVP->SetFeFunctions( velFct, presFct );
-      assemble_->AddBiLinearForm( stiffContVP );
+        stiffContVP->SetEntities( actSDList, actSDList );
+        stiffContVP->SetFeFunctions( velFct, presFct );
+        assemble_->AddBiLinearForm( stiffContVP );
+      }
 
       // --------------------------------------------------------------------
       //  VERSION 2: K_Laplace Integrator
@@ -520,15 +572,19 @@ namespace CoupledField {
     solveStep_ = new StdSolveStep(*this);
   }
 
+
   // ======================================================
   // TIME STEPPING SECTION
   // ======================================================
 
   void FlowPDE::InitTimeStepping() {
 
-    Double gamma = 0.5;
-    GLMScheme * schemeV = new Trapezoidal(gamma);
-    GLMScheme * schemeP = new Trapezoidal(gamma);
+    GLMScheme * schemeV = new Bdf2();
+    GLMScheme * schemeP = new Bdf2();
+
+//    Double gamma = 0.5;
+//    GLMScheme * schemeV = new Trapezoidal(gamma);
+//    GLMScheme * schemeP = new Trapezoidal(gamma);
 
     if ( nonLinTotalFormulation_ ) {
       shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(schemeV, 0 ) );
@@ -720,12 +776,12 @@ namespace CoupledField {
       std::string form = SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY);
       PtrParamNode potSpaceNode = infoNode->Get(form);
       crSpaces[FLUIDMECH_VELOCITY] =
-          FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::L2, ptGrid_);
+          FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
 
       form = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE);
       potSpaceNode = infoNode->Get(form);
       crSpaces[FLUIDMECH_PRESSURE] =
-              FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
+              FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::L2, ptGrid_);
 
       crSpaces[FLUIDMECH_VELOCITY]->Init(solStrat_);
       crSpaces[FLUIDMECH_PRESSURE]->Init(solStrat_);

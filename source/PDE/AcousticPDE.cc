@@ -1477,6 +1477,47 @@ namespace CoupledField{
       availResults_.insert(power);
     }
     
+    // === ACOUSTIC KINETIC ENERGY ===
+    shared_ptr<ResultFunctor> keFunc;
+    shared_ptr<ResultInfo> kinEnergy(new ResultInfo);
+    kinEnergy->resultType = ACOU_KIN_ENERGY;
+    kinEnergy->dofNames = "";
+    kinEnergy->unit = "Ws";
+    kinEnergy->entryType = ResultInfo::SCALAR;
+    kinEnergy->definedOn = ResultInfo::REGION;
+    availResults_.insert ( kinEnergy );
+
+    shared_ptr<BaseFeFunction> deriv1vFct;
+    if ( formulation_ == ACOU_PRESSURE )
+      deriv1vFct = timeDerivFeFunctions_[ACOU_PRESSURE_DERIV_1];
+    else
+      deriv1vFct = timeDerivFeFunctions_[ACOU_POTENTIAL_DERIV_1];
+
+    if( isComplex_ ) {
+      keFunc.reset(new EnergyResultFunctor<Complex>(deriv1vFct, kinEnergy, 0.5));
+    } else {
+      keFunc.reset(new EnergyResultFunctor<Double>(deriv1vFct, kinEnergy, 0.5));
+    }
+    resultFunctors_[ACOU_KIN_ENERGY] = keFunc;
+    massFormFunctors_.insert(keFunc);
+
+    // === ACOUSTIC POTENTIAL ENERGY ===
+    shared_ptr<ResultFunctor> keFuncPot;
+    shared_ptr<ResultInfo> potEnergy(new ResultInfo);
+    potEnergy->resultType = ACOU_POT_ENERGY;
+    potEnergy->dofNames = "";
+    potEnergy->unit = "Ws";
+    potEnergy->entryType = ResultInfo::SCALAR;
+    potEnergy->definedOn = ResultInfo::REGION;
+    availResults_.insert ( potEnergy );
+    if( isComplex_ ) {
+      keFuncPot.reset(new EnergyResultFunctor<Complex>(feFct, potEnergy, 0.5));
+    } else {
+      keFuncPot.reset(new EnergyResultFunctor<Double>(feFct, potEnergy, 0.5));
+    }
+    resultFunctors_[ACOU_POT_ENERGY] = keFuncPot;
+    stiffFormFunctors_.insert(keFuncPot);
+
   }
 
    void AcousticPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){
@@ -1537,6 +1578,7 @@ namespace CoupledField{
       }
     }else{
       //GLMScheme * scheme1 = new Newmark(0.8,0.4225,-0.3);
+      //GLMScheme * scheme1 = new Newmark(0.6,0.3025,alpha);
       GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
       shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
       feFunctions_[formulation_]->SetTimeScheme(acouScheme);

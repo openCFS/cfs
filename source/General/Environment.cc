@@ -137,6 +137,14 @@ namespace CoupledField {
         return "Ws";
         break;
 
+      case ACOU_POT_ENERGY:
+        return "Ws";
+        break;
+
+      case ACOU_KIN_ENERGY:
+        return "Ws";
+        break;
+
       case ACOU_ELEM_SPEED_OF_SOUND:
         return "m/s";
         break;
@@ -1187,7 +1195,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_INTENSITY, "acouIntensity");
     SolutionTypeEnum.Add(ACOU_NORMAL_INTENSITY, "acouNormalIntensity");
     SolutionTypeEnum.Add(ACOU_SURFINTENSITY, "acouSurfIntensity");
-    SolutionTypeEnum.Add(ACOU_ENERGY, "acouEnergy");
+    SolutionTypeEnum.Add(ACOU_POT_ENERGY, "acouPotEnergy");
+    SolutionTypeEnum.Add(ACOU_KIN_ENERGY, "acouKinEnergy");
     SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");
     SolutionTypeEnum.Add(ACOU_PMLAUXSCALAR, "acouPmlAuxScalar");
     SolutionTypeEnum.Add(ACOU_PSEUDO_DENSITY, "acouPseudoDensity");

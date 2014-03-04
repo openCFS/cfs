@@ -291,7 +291,7 @@ Bdf2::Bdf2()
   sizeGLMVec_ = numOldSols_ + numSol1stDerivs_;
 
   lastStageIsSolution_ = false;
-  usePredictors_ = false;
+  usePredictors_ = true;
 
   //prepare coefficient matrix
   UInt numCols = numStages_ + ((maxDerivOrder_+1) * numOldSols_);

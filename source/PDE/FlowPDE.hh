@@ -101,6 +101,9 @@ namespace CoupledField
 
     //! add Bochev stabilization for pressure
     bool addBochevPressStab_;
+
+    //! FE space formulation
+    std::string FEspaceFormulation_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

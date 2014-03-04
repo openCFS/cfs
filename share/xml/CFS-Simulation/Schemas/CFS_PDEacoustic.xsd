@@ -681,6 +681,8 @@
   <xsd:simpleType name="DT_AcousticRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouEnergy"/>
+      <xsd:enumeration value="acouPotEnergy"/>      
+     <xsd:enumeration value="acouKinEnergy"/>
     </xsd:restriction>
   </xsd:simpleType>
 
