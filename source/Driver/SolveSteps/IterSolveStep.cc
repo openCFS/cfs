@@ -36,7 +36,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         ret = std::abs(newVal);
         break;
       case L2REL:
-        if (std::abs(newVal) > EPS ) {
+        if (std::abs(newVal) > 1.0 ) {
           ret = delta / std::abs(newVal);
         } else {
           ret = delta;
