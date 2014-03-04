@@ -90,7 +90,7 @@ def to_frustum_center(start, end, center, elem_scale, elem, scale, direction):
   
   #WARNING CHECK the scaling!!!
   
-  # we scale the element scale, such it overlaps. therefore wen need to scale reciproc with the vale, which cancels!
+  # we scale the element scale, such it overlaps. therefore we need to scale reciproc with the vale, which cancels!
   points.append((-1.0 * scale * elem[alt_idx]/2, 1./max((1, scale)) * -val_1 * scale * elem[idx]/2))
   points.append(( 1.0 * scale * elem[alt_idx]/2, 1./max((1, scale)) * -val_2 * scale * elem[idx]/2))
   points.append(( 1.0 * scale * elem[alt_idx]/2, 1./max((1, scale)) *  val_2 * scale * elem[idx]/2))
