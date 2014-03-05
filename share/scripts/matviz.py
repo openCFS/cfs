@@ -79,6 +79,8 @@ def show_or_write(viz, args):
       viz.save(args.save)
     else:
       viz.show()
+  elif isinstance(viz, matplotlib.figure.Figure):
+    return
   else:
     show_write_vtk(viz, args.res, args.save)
 
@@ -112,7 +114,7 @@ parser.add_argument("--hom_dir", help="visualization of stiffness directions (de
 parser.add_argument("--hom_angle", help="bias added to the angle in grad!", default=0.0, type=float )
 parser.add_argument("--hom_samples", help="activates interpolation and gives samples in x-direction", type=int)
 parser.add_argument("--parametrization", help="parametrization of the stiffness tensor", default="hom_rect", choices=['hom_rect', 'trans-iso', 'ortho'])
-parser.add_argument("--save", help="save 'image.png' or VTK Poly Data file 'file.vtp'")
+parser.add_argument("--save", help="save 'image.png' (pixel), 'image.pdf' (vector) or VTK Poly Data file 'file.vtp'")
 parser.add_argument("--plot", help="for single tensors: creates gnuplot file instead of image")
 parser.add_argument("--penalty", help="penalty parameter for SIMP (default 5)", default=5.0)
 parser.add_argument("--color", help="only for hom_rot_cross: black or grayscale", default="grayscale")
@@ -202,7 +204,7 @@ if h5_read or dim_2D:
         # add optional angle bias
         print 'change angle'
         if args.hom_grad == 'none':
-          viz = show_rot_cross(coords, s1, s2, angle[:,0], args.hom_dir, args.res, args.scale, args.color)
+          viz = show_rot_cross(coords, s1, s2, angle[:,0], args.hom_dir, args.res, args.scale, args.color, args.save)
         else:
           viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, args.scale)
       elif args.show == "stream":

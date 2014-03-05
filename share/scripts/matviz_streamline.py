@@ -1,19 +1,8 @@
 from matviz_2d import *
-import matplotlib.pyplot
-from matplotlib.path import Path
 from scipy import ndimage
 import numpy 
 import scipy.interpolate
 
-
-## create and prepare a matplot figure where patched might be "added" to
-def create_figure(min, max):
-  fig = matplotlib.pyplot.figure()
-  ax = fig.add_subplot(111)
-  ax.set_xlim(min[0],max[0])
-  ax.set_ylim(min[1],max[1])
-  
-  return ax
 
 
 ## Subclass for Fields
