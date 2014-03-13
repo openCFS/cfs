@@ -803,10 +803,16 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       resultFunctors_[MAG_FORCE_LORENTZ] = lfFunc;
       
       // === MAGNETIC ENERGY ===
+      if( isMixed_)
+        WARN("Adjust energy for mixed case.");
       shared_ptr<ResultInfo> energy(new ResultInfo);
       energy->resultType = MAG_ENERGY;
       energy->dofNames = "";
-      energy->unit = "Ws/m";
+      if( dim_ == 2 ){
+        energy->unit = "Ws/m";
+      } else {
+        energy->unit = "Ws";
+      }
       energy->definedOn = ResultInfo::REGION;
       energy->entryType = ResultInfo::SCALAR;
       availResults_.insert( energy );
