@@ -802,6 +802,23 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       }
       resultFunctors_[MAG_FORCE_LORENTZ] = lfFunc;
       
+      // === MAGNETIC ENERGY ===
+      shared_ptr<ResultInfo> energy(new ResultInfo);
+      energy->resultType = MAG_ENERGY;
+      energy->dofNames = "";
+      energy->unit = "Ws/m";
+      energy->definedOn = ResultInfo::REGION;
+      energy->entryType = ResultInfo::SCALAR;
+      availResults_.insert( energy );
+      shared_ptr<ResultFunctor> energyFunc;
+      if( isComplex_ ) {
+        energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy, 0.5));
+      } else {
+        energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy, 0.5));
+      }
+      resultFunctors_[MAG_ENERGY] = energyFunc;
+      stiffFormFunctors_.insert(energyFunc);
+
   }
   
   void MagneticPDE::FinalizePostProcResults() {
