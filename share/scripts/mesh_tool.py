@@ -91,8 +91,10 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img =
     return 0 
   input_pix = input_array
   dx = scale/nx/math.cos(angle)
-  dy = scale/ny
-    # create mesh.nodes
+  # from daniel ?! dy = scale/ny
+  dy = dx
+  
+  # create mesh.nodes
   for y in range(ny + 1):
     for x in range(nx + 1):
       if angle == 0.0:

@@ -8,13 +8,27 @@ import scipy.interpolate
 
 
 ## create and prepare a matplot figure where patched might be "added" to
-def create_figure(min, max, res):
+def create_figure(min, max, res, for_save):
   
+  # we set the aspect ration and also the resolution such that we can export as png
+  # the problem is that we set the size of the figure but export the subplot w/o axes which is smaller than the figure
+  
+  # the dirty solution is to create the figure twice scaled by the error
   dpi_x = (res / 100) * (max[0] - min[0]) 
   dpi_y = dpi_x * (max[1] - min[1]) / (max[0] - min[0]) 
   
   fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
   ax = fig.add_subplot(111)
+
+  if for_save:
+    wrong = ax.get_window_extent().size
+    dpi_x *= res / wrong[0]  
+    dpi_y *= (dpi_y * 100) / wrong[1] 
+    fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
+    matplotlib.pyplot.axis('off')
+    ax = fig.add_subplot(111)
+    # the second figure would make problems with matplotlib.pyplot.show()
+  
   ax.set_xlim(min[0],max[0])
   ax.set_ylim(min[1],max[1])
   return fig, ax
@@ -37,6 +51,9 @@ class Data:
     # dy might be slightly different from dx but is close
     dy = (max[1] - min[1]) / ny
     self.dy = dy
+
+    # convenience for nx and ny
+    self.ndim = (nx, ny)
 
     out = numpy.zeros((nx*ny, 2))
     for y in range(ny):
@@ -127,6 +144,8 @@ class Trace:
     self.idx    = idx
     self.max    = max(self.data)
     self.avg    = sum(self.data) / len(self.data)
+    assert(min(self.data) >= 0.0)
+    #print 'min trace ' + str(min(self.data)) + ' max trace ' + str(self.max)
     
   #give the macro fields we touch with the trace
   def touched(self, macro):     
@@ -136,93 +155,91 @@ class Trace:
       iy = (p[1] - 1e-6 - macro.min[1]) / macro.dy
       #print 'p=' + str(p) + ' min=' + str(macro.min) + ' d=' + str((macro.dy, macro.dy)) + ' i=' + str((ix, iy))
       
-      data[ix,iy] = max((data[ix,iy], 1.0))
+      data[ix,iy] = max((data[ix,iy], 1))
 
     return data
 
 
 
-## this contains the physical fields stiff and angle in the macroscopic and fine discretization.
+## this contains the physical fields stiff1 or stiff2 and angle in the macroscopic and fine discretization.
 # The macroscopic is where we consider cells. This might be the original discretization
 # The fine discretization is used for doing the streamlines. This might be the same as the macroscopic 
 class Fields:
 
   ## constructs the data sets macro and fine
-  def __init__(self, coords, s1, s2, angle, macro_samples):
+  def __init__(self, coords, s, angle, macro_samples):
     
     centers, min, max, elem = coords
     # convert to 2D
-    c, v = convert_interpolation_input(centers, s1, s2, angle)
+    c, v = convert_interpolation_input(centers, s, angle)
     
+    # this is the original data discretization
     nx = int((max[0] - min[0]) / elem[0])
+    # our macro discretization can be given from the user
+    dx = nx if macro_samples == None else macro_samples
 
-    self.macro = Data(min, max, nx if macro_samples == None else macro_samples, c, v, 'linear')
-    self.fine  = Data(min, max, 4 * nx, c, v, 'linear')
+    self.macro = Data(min, max, dx, c, v, 'linear')
+    # no need to be much smaller than original, if coarser assume 0.2 step length.
+    self.fine  = Data(min, max, numpy.min((3 * nx, 5 * dx)), c, v, 'linear')
  
- 
-  ## calculates the streamline from a given point up to both ends
+   ## calculates the streamline from a given point up to both ends
   # @param idx 0 for s1 and 1 for s2 which changes the angle!
-  # return a list of coordinates. The first entry is the starting point
-  def streamline(self, cell, macro, steplength):
+  # return a list with two trace objects for both indices
+  def streamline(self, cell, steplength, minimal, idx):
     
-    x = (cell[0] + 0.5) * macro.dx 
-    y = (cell[1] + 0.5) * macro.dy
+    x = (cell[0] + 0.5) * self.macro.dx 
+    y = (cell[1] + 0.5) * self.macro.dy
     
+    
+
     # print 'streamline x=' + str(x) + ' y=' + str(y) + ' idx=' + str(idx) + ' steplength=' + str(steplength) 
+
+    # we construct the traces for both indices and determine by the average value what is stiff1 and stiff2. 
+    # better would be to check for horizontal or vertical extend
 
     # we want a single trace but we cannot simply concatenate
     # the second trace needs to be reverted and set before first trace
-    trace1 = self.directional_streamline(x,y, 0, steplength, 1.0)
-    trace2 = self.directional_streamline(x,y, 0, steplength, -1.0)
-    tmp_a = trace2[::-1] + trace1
+    trace1 = self.directional_streamline(x,y, self.macro.dx * steplength, minimal, idx, 1.0)
+    trace2 = self.directional_streamline(x,y, self.macro.dx * steplength, minimal, idx, -1.0)
+    tmp = trace2[::-1] + trace1
     
-    trace1 = self.directional_streamline(x,y, 1, steplength, 1.0)
-    trace2 = self.directional_streamline(x,y, 1, steplength, -1.0)
-    tmp_b = trace2[::-1] + trace1
-
-    val_a = [i[1] for i in tmp_a]
-    val_b = [i[1] for i in tmp_b]
+    val = [i[1] for i in tmp]
     
-    trace_a = None
-    trace_b = None
-    
-    traces = []
-    
-    a_max = sum(val_a)/len(val_a) > sum(val_b)/len(val_b)
-        
-    traces.append(Trace([i[0] for i in tmp_a], val_a, cell, 0 if a_max else 1))
-    traces.append(Trace([i[0] for i in tmp_b], val_b, cell, 1 if a_max else 0))
-       
-    return traces   
+    if len(val) > 0:
+      return Trace([i[0] for i in tmp], val, cell, idx) 
+    else:
+      return None
          
     
 
   ## helper for streamline
   #@param direction 1.0 for forward, -1.0 for backward
-  def directional_streamline(self, x, y, idx, steplength, direction):
+  def directional_streamline(self, x, y, steplength, minimal, idx, direction):
     
     trace = []
-    trace.append(((x, y), self.fine.getData(x, y)[idx]))
-    
+    trace.append(((x, y), self.fine.getData(x, y)[0]))
     while True:
-      here = self.fine.getData(x, y)
-      angle = here[2] + idx * numpy.pi/2 # for idx==0 nothing changes
+      here  = self.fine.getData(x, y)
+      val   = here[0]
+      assert(val >= 0.0)
+      angle = here[1] + idx * numpy.pi/2 # for idx==0 nothing changes
       
       #print 'x=' + str(x) + ' y=' + str(y) + ' data=' + str(here),
       x += steplength * numpy.cos(angle) * direction 
       y += steplength * numpy.sin(angle) * direction
-      #print ' next_x=' + str(x) + ' next_y=' + str(y)
+      #print ' next_x=' + str(x) + ' next_y=' + str(y) + ' val=' + str(val)
 
+      if val < minimal: # stop stream if we go into void
+        break;
       if len(trace) > 2000: # prevent circular streams  
         break
       if self.fine.within(x, y): 
-        trace.append(((x, y), here[idx]))
+        trace.append(((x, y), val))
       else:
         #print 'limit ' + str(self.fine.limit(x, y))
-        trace.append((self.fine.limit(x, y), here[idx]))
+        trace.append((self.fine.limit(x, y), val))
         break
-
-    return trace
+    return trace if len(trace) > 2 else []
 
 ## draws a trace  
 # @param scale scale stiffness to color. 1.0 for normal or 2.0 if max stiff = 0.5
@@ -244,6 +261,9 @@ def draw_trace(fig, trace):
       path = Path(vertices[start:pos+1])
       #print path
       gray = max((1.0 - val, 0.0))
+      if gray > 1.0:
+        print 'invalid color v=' + str(val) + ' -> ' + str(gray)
+        gray = 0.5 
       patch = matplotlib.patches.PathPatch(path, edgecolor=str(gray), facecolor='none', lw=1)
       fig.add_patch(patch)
 
@@ -327,72 +347,71 @@ def draw_frustum(fig, dx, coord, thick):
   #print str(o3[0]) + ', ' + str(o3[1]) + ' with points, ',
   #print str(o4[0]) + ', ' + str(o4[1]) + ' with points'
   
-   
-
-
-## calculate the weight of a trace
-#@return sum of the values, not mormalized
 
  
-def show_streamline(coords, s1, s2, angle, dir, scale, minimal, style, step, samples, res):            
+def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, s1_samples, s2_samples, res, do_save):            
+
+  assert(not (s1_samples == None and s2_samples <> None))
  
   centers, min, max, elem = coords
 
   if scale > 0.0:  
     s1 *= scale
     s2 *= scale
-    minimal *= scale
+    s1_minimal *= scale
+
+  # we scale minimal in such a way, that for different sampling the thinnest lines are drawn in the same thickness 
+  minimal = (s1_minimal, s1_minimal if s2_samples == None else (1.0 * s2_samples / s1_samples) * s1_minimal)
+  print minimal
+
+  # separate fields due to possibly separate sampling
+  fields = (Fields(coords, s1, angle, s1_samples), Fields(coords, s2, angle, s2_samples if s2_samples <> None else s1_samples))
   
-  #print len(centers)
-  #print min
-  #print max
-  #print elem
+  fig, sub = create_figure(min, max, res, do_save)
 
-  fields = Fields(coords, s1, s2, angle, samples)
-  #fields.macro.dump(s1,0)
-  #fields.macro.dump_data()
-  
-  fig, sub = create_figure(min, max, res)
 
-  #trace = fields.streamline(0.251, 0.251, 0.1)
-  #draw_trace(fig, trace)
-
-  #interpret horizontal as s1. Note that we sort!!
+  #interpret horizontal as s1. Note that we sort must not sort, this results in jumps in the angle in the two-load case
   dirs = [1,0] # 1 is weaker, draw first and second the darker s1 lines
   if dir == 'horizontal':
     dirs = [0]
   if dir == 'vertical':
     dirs = [1]
 
-  traces = []
 
+  #generate all > minimal traces, draw (or not draw) them later
+  traces = []
   if True:
-    #for idx in dirs:
-      for j in range(fields.macro.ny):
-        for i in range(fields.macro.nx):
-          #trace = fields.streamline((i,j), fields.macro, idx, step)
-          trace_list = fields.streamline((i,j), fields.macro, step)
-          for trace in trace_list:
-            if trace.max > minimal:
-              traces.append(trace)
+    for idx in dirs:
+      field = fields[idx]
+      for j in range(field.macro.ny):
+        for i in range(field.macro.nx):
+          trace = field.streamline((i,j), step, minimal[idx], idx)
+          if trace <> None:
+            traces.append(trace)
   else:
-    trace = fields.streamline((0.2/fields.macro.nx, 0.2/fields.macro.ny), fields.macro, 0, step)
+    trace = fields[0].streamline((0.2/fields[0].macro.nx, 0.2/fields[0].macro.ny), step, minimal[0], 0)
     traces.append(trace)
 
   # sort by max field
   traces = sorted(traces, key=lambda trace: trace.max, reverse=True)
 
-  # here we count the macro cells touched by the traces. For both indices two fiels
-  cells = (numpy.zeros((fields.macro.nx, fields.macro.ny)), numpy.zeros((fields.macro.nx, fields.macro.ny)))  
-  for i in range(len(traces)):
+  # here we count the macro cells touched by the traces. For both indices two fields
+  cells = (numpy.zeros(fields[0].macro.ndim), numpy.zeros(fields[1].macro.ndim))  
+
+  for trace in traces:
     mycells = cells[trace.idx]
-    trace = traces[i]
-    # draw the trace only if there is no line yet at the trace origin 
-    if mycells[trace.cell] < 1:
-      mycells += trace.touched(fields.macro)
-      if style == 'line':      
-        draw_trace(sub, trace)
-      else:        
-        draw_thick_trace(sub, fields.macro.dx, trace, minimal)    
-  
+    field   = fields[trace.idx]
+    
+    # draw the trace only if there is no line yet at the trace origin
+    if mycells[trace.cell] > 1:
+      continue
+    
+    # dont't draw if we would become too much traces accumulated within any cell 
+    mycells += trace.touched(field.macro)
+
+    if style == 'line':      
+      draw_trace(sub, trace)
+    else:        
+      draw_thick_trace(sub, field.macro.dx, trace, minimal[trace.idx])
+          
   return (fig, sub)
