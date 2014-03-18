@@ -94,11 +94,10 @@ namespace CoupledField {
   void StdPDE::DefineAlgSys() 
   {
     LOG_TRACE(stdPde) << pdename_ << ": Defining Algsys";
-   
+
     // Immediately leave if external simState is provided
     if (simState_->HasInput())
       return;
-    
     
     // Trigger writing of info file
     myInfo_->GetRoot()->ToFile("", true );
@@ -120,7 +119,7 @@ namespace CoupledField {
     //std::map<UInt,StdVector <MinorBlockDef > > minorBlocks;
     //          ^        ^
     //          |        |
-    //        sbm   min blockNum
+    //        sbm   minor blockNum
 
     // Structure for mapping of minor blocks 
     std::map<UInt,StdVector<std::set<Integer> > > minorBlocks;
@@ -128,7 +127,6 @@ namespace CoupledField {
     // -----------------------------------------------------------
     //  1) Register FeFunctions with Algebraic System
     // -----------------------------------------------------------
-
     // Note: currently we use the same graph for all matrix
     // types (STIFFNESS, MASS, SYSTEM...)
     UInt numFcts = feFunctions_.size();
@@ -156,7 +154,6 @@ namespace CoupledField {
     // ---------------------------------------
     //  2) Define SBM-Blocks and minor blocks
     // ---------------------------------------
-
     LOG_DBG(stdPde) << pdename_ << ": Defining SBM-blocks";
 
     UInt numBlocks = sbmBlocks.GetSize();
@@ -180,11 +177,14 @@ namespace CoupledField {
         // check if minor blocks are defined at all
         if(sbmSubBlocks.GetSize() == 0 ) continue;
 
-        // Warning: Sub-matrix block is currently restricted to 
+        // Warning: Sub-matrix block is currently restricted to
         // just one FeFunction
         if( feFunctions_.size() > 1){
-          EXCEPTION( "Sub-matrix block is currently just working for "
-              << "1 FeFunction!" );
+          WARN( "Sub-matrix block is currently just working for "
+              << "1 FeFunction!"
+              << "However unless you don't use any sub-block specific stuff like "
+              << "special preconditioners it could work." );
+          continue;
         }
         FeFctIdType fctId = feFunctions_.begin()->second->GetFctId();
 
@@ -247,7 +247,6 @@ namespace CoupledField {
       //fncIt->second->GetFeSpace()->PrintEqnMap();
       fncIt++;
     }
-
 
     //exit(0);
     // Trigger writing of info file

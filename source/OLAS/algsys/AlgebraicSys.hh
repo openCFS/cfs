@@ -52,12 +52,12 @@ namespace CoupledField {
   //! associated with this FeFunction / FeSpace.
   //! The corresponding mapping
   //! \f[ \mathrm{(FeFunctionId, eqnNr) \rightarrow (sbmBlock, index)} \f]
-  //! can an be externally defined. This allows different ways of splittings
+  //! can be externally defined. This allows different ways of splittings
   //! for different solution strategies. In addition, single SBM blocks
   //! can be re-ordered to minimize the bandwidth. 
   //!
   //! Furthermore we can define a sub-matrix structure, so called sub-blocks.
-  //! which camn be used e.g. for block-preconditioners. They are only
+  //! which can be used e.g. for block-preconditioners. They are only
   //! stored as additional indices within one matrix block.
   //! 
   //! \note The indices for FeFunctionId and SBM-blockindices are 0-based,
@@ -410,7 +410,7 @@ namespace CoupledField {
                                   StdVector<UInt>& indices );
     
     //! @see MapFctIdEqnToIndex()
-    //! Return all for each SBM block all indices for a given fctId.
+    //! Return for each SBM block all indices for a given fctId.
     //! In case of the elimination approach to handle IDBCs, the second
     //! set contains all indices corresponding to the auxiliary matrices
     //! stored in the IDBC handler. 
@@ -538,7 +538,7 @@ namespace CoupledField {
                            const StdVector<Integer>& eqnNrs1,
                            FeFctIdType fctId2,
                            const StdVector<Integer>& eqnNrs2,
-                           bool setCounterPart );
+                           bool setCounterPart,bool unsetStaticCond );
 
     //! Assemble the local rhs vector to the global one
 

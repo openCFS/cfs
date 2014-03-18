@@ -295,6 +295,7 @@ void Domain::PostInit(UInt sequenceStep)
   // we do not have to delete driver as it is due to SetDriver() deleted
   // either via ptSingleDriver_ or multiSequenceDriver_ in the destructor
   BaseDriver* driver = BaseDriver::CreateInstance( simState_, this, param_, info_ );
+
   SetDriver(driver); // see above!
   //info_->FinishProgress();
 
@@ -302,7 +303,7 @@ void Domain::PostInit(UInt sequenceStep)
   // Note: In case this is not the parent / main domain, we do not read a 
   // restart file.
   driver->Init( isParentDomain_ ? progOpts->GetRestart() : false );
-  
+
   if( multiSequenceDriver_ && !isParentDomain_ )
     multiSequenceDriver_->SetSequenceStep(sequenceStep);
 }
@@ -569,7 +570,6 @@ void Domain::InitPDEs(UInt sequenceStep)
   for (UInt i = 0; i < numDirectCoupledPde_; i++)
   {
     if( isParentDomain_) 
-      std::cout << "++ Initializing direct coupling" << std::endl;
     ptDirectCoupledPde_[i]->Init(sequenceStep);
     ptDirectCoupledPde_[i]->DefineAlgSys();
   }
@@ -593,7 +593,6 @@ void Domain::InitPDEs(UInt sequenceStep)
 // **************************
 void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
 {
-
   // default grid
   Grid * defaultGrid = gridMap_["default"];
 

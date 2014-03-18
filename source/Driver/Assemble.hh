@@ -128,6 +128,10 @@ namespace CoupledField {
     /** Returns the linear forms list for external modification */
     StdVector<LinearFormContext*>& GetLinForms() { return *linForms_; }
 
+    //! Assemble matrices with satic condensation for transient simulations
+    void AssembleMatrices_CondTrans(bool isNewtonPart,UInt currentStage, std::map<FeFctIdType, std::map<FEMatrixType,Double> > timeStepFactors);
+
+
   protected:
 
     //! Assemble matrices without static condensation
@@ -136,7 +140,6 @@ namespace CoupledField {
     //! Assemble matrices with satic condensation
     void AssembleMatrices_Cond(bool isNewtonPart=false);
 
-    
     //! Assemble linearForms of right hand side
     void AssembleRHSLinForms(bool nonLin );
 
@@ -167,13 +170,13 @@ namespace CoupledField {
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                        Matrix<Double>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
-                       FeFctIdType fctId1, FeFctIdType fctId2 );
+                       FeFctIdType fctId1, FeFctIdType fctId2,bool unsetStaticCondensation = false );
 
     //! Insert complex matrix into algebraic system and adapt harmonic matrices
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                        Matrix<Complex>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
-                       FeFctIdType fctId1, FeFctIdType fctId2 );
+                       FeFctIdType fctId1, FeFctIdType fctId2,bool unsetStaticCondensation = false );
 
     //! Check which integrator is non-linear due to solution-dependent
     //! non-linearities or updated lagrangian formulation

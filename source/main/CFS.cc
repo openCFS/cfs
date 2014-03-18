@@ -212,7 +212,6 @@ int CFS::Run()
       cout << endl;
     }
 
-
     ReadXMLFile();
     SetupIO(paramNode_);
 
@@ -223,9 +222,9 @@ int CFS::Run()
 
     if(progOpts->GetPrintGrid())
       PrintGrid();
-    else
+    else{
       SolveProblem();
-
+    }
     timer->Stop();
     if(!progOpts->IsQuiet()) cout << endl; // conditional empty line
     
