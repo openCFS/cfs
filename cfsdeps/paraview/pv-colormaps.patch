@@ -1,0 +1,125 @@
+--- Qt/Components/Resources/XML/ColorMaps.xml	2013-02-07 16:41:16.000000000 +0100
++++ Qt/Components/Resources/XML/ColorMaps.xml	2013-03-22 15:09:44.059997290 +0100
+@@ -25,6 +25,122 @@
+     <Point x="1.0" r="0.0" g="0.0" b="0.0" o="1.0"/>
+     <NaN r="1.0" g="0.0" b="0.0"/>
+   </ColorMap>
++<ColorMap name="Matlab (Jet)" space="RGB">
++  <Point x="0" o="0" r="0" g="0" b="0.498039"/>
++  <Point x="0.125" o="0.125" r="0" g="0" b="1"/>
++  <Point x="0.375" o="0.375" r="0" g="1" b="1"/>
++  <Point x="0.625" o="0.625" r="1" g="1" b="0"/>
++  <Point x="0.875" o="0.875" r="1" g="0" b="0"/>
++  <Point x="1" o="1" r="0.498039" g="0" b="0"/>
++  <NaN r="1" g="1" b="0"/>
++</ColorMap>  
++<ColorMap name="GiD" space="HSV">
++  <Point x="0" o="0" r="0" g="0" b="0.498039"/>
++  <Point x="0.125" o="0.125" r="0" g="0" b="1"/>
++  <Point x="0.375" o="0.375" r="0" g="1" b="1"/>
++  <Point x="0.625" o="0.625" r="1" g="1" b="0"/>
++  <Point x="0.875" o="0.875" r="1" g="0" b="0"/>
++  <Point x="1" o="1" r="0.498039" g="0" b="0"/>
++  <NaN r="1" g="1" b="0"/>
++</ColorMap>
++<ColorMap name="Polytec" space="RGB">
++  <Point x="0" o="0" r="0.831373" g="1" b="0.831373"/>
++  <Point x="0.25" o="0.25" r="0" g="1" b="0"/>
++  <Point x="0.5" o="0.5" r="0.25098" g="0.25098" b="0.25098"/>
++  <Point x="0.75" o="0.75" r="1" g="0" b="0"/>
++  <Point x="1" o="1" r="1" g="0.831373" b="0.831373"/>
++  <NaN r="1" g="1" b="0"/>
++</ColorMap>
++<ColorMap name="CapaPost" space="RGB">
++  <Point x="0" o="0" r="0" g="0" b="0.501961"/>
++  <Point x="0.1" o="0.1" r="0" g="0" b="1"/>
++  <Point x="0.2" o="0.2" r="0" g="1" b="1"/>
++  <Point x="0.32" o="0.32" r="0" g="0.8" b="0.501961"/>
++  <Point x="0.42" o="0.42" r="0" g="1" b="0"/>
++  <Point x="0.52" o="0.52" r="1" g="1" b="0"/>
++  <Point x="0.75" o="0.75" r="1" g="0" b="0"/>
++  <Point x="0.85" o="0.85" r="1" g="0" b="1"/>
++  <Point x="1" o="1" r="1" g="0.8" b="1"/>
++  <NaN r="1" g="1" b="0"/>
++</ColorMap>
++<ColorMap name="Hot Cold" space="RGB">
++  <Point x="0" o="0" r="0" g="0" b="0.501961"/>
++  <Point x="0.4375" o="0.4375" r="1" g="0" b="0.501961"/>
++  <Point x="0.5625" o="0.5625" r="1" g="0" b="0"/>
++  <Point x="1" o="1" r="1" g="1" b="0.65098"/>
++  <NaN r="1" g="1" b="0"/>
++</ColorMap>
++<ColorMap name="GMV Materials" space="HSV" indexedLookup="true">
++  <Point x="1" o="0" r="0.192157" g="0.286275" b="0.384314"/>
++  <Point x="17" o="1" r="0.623529" g="0.0784314" b="0.34902"/>
++  <Point x="20" o="1" r="1" g="0.247059" b="0.247059"/>
++  <Point x="21" o="1" r="0.411765" g="0.411765" b="0.411765"/>
++  <Point x="22" o="1" r="0.372549" g="0.588235" b="0"/>
++  <Point x="23" o="1" r="0" g="0.498039" b="1"/>
++  <Point x="24" o="1" r="0.223529" g="0" b="0.447059"/>
++  <Point x="25" o="1" r="0" g="1" b="0.14902"/>
++  <Point x="26" o="1" r="0" g="1" b="1"/>
++  <Point x="27" o="1" r="1" g="0" b="0.215686"/>
++  <Point x="28" o="1" r="1" g="0.25098" b="0"/>
++  <Point x="29" o="1" r="0" g="0" b="1"/>
++  <Point x="30" o="1" r="1" g="0" b="0.486275"/>
++  <Point x="31" o="1" r="1" g="1" b="0"/>
++  <Point x="32" o="1" r="1" g="0" b="0"/>
++  <Point x="33" o="1" r="1" g="0" b="1"/>
++  <Point x="34" o="1" r="0" g="1" b="0"/>
++  <Point x="35" o="1" r="0" g="1" b="0.447059"/>
++  <Point x="54" o="1" r="0.447059" g="0.211765" b="0.890196"/>
++  <Point x="55" o="1" r="1" g="0.270588" b="0.501961"/>
++  <Point x="56" o="1" r="1" g="0.890196" b="0.521569"/>
++  <Point x="57" o="1" r="0.34902" g="0.0509804" b="1"/>
++  <Point x="58" o="1" r="0.533333" g="0.623529" b="0.211765"/>
++  <Point x="59" o="1" r="0.623529" g="0.00392157" b="1"/>
++  <Point x="60" o="1" r="0.623529" g="0.117647" b="0.117647"/>
++  <Point x="61" o="1" r="0.117647" g="0.623529" b="0.207843"/>
++  <Point x="62" o="1" r="0.117647" g="0.207843" b="0.623529"/>
++  <Point x="63" o="1" r="0.447059" g="0.686275" b="0.14902"/>
++  <Point x="64" o="1" r="0.576471" g="0.34902" b="1"/>
++  <Point x="65" o="1" r="0.305882" g="0.117647" b="1"/>
++  <Point x="66" o="1" r="0.447059" g="0.0509804" b="0.890196"/>
++  <Point x="67" o="1" r="0.447059" g="1" b="0.117647"/>
++  <Point x="68" o="1" r="1" g="0" b="0"/>
++  <Point x="69" o="1" r="1" g="0" b="1"/>
++  <Point x="70" o="1" r="0" g="1" b="0"/>
++  <Point x="71" o="1" r="0" g="1" b="0.447059"/>
++  <NaN r="0.250004" g="0" b="0"/>
++  <Annotation v="17" t="17"/>
++  <Annotation v="16" t="16"/>
++  <Annotation v="15" t="15"/>
++  <Annotation v="14" t="14"/>
++  <Annotation v="13" t="13"/>
++  <Annotation v="12" t="12"/>
++  <Annotation v="11" t="11"/>
++  <Annotation v="10" t="10"/>
++  <Annotation v="9" t="9"/>
++  <Annotation v="8" t="8"/>
++  <Annotation v="7" t="7"/>
++  <Annotation v="6" t="6"/>
++  <Annotation v="5" t="5"/>
++  <Annotation v="4" t="4"/>
++  <Annotation v="3" t="3"/>
++  <Annotation v="2" t="2"/>
++  <Annotation v="1" t="1"/>
++  <Annotation v="18" t="18"/>
++  <Annotation v="19" t="19"/>
++  <Annotation v="20" t="20"/>
++  <Annotation v="21" t="21"/>
++  <Annotation v="22" t="22"/>
++  <Annotation v="23" t="23"/>
++  <Annotation v="24" t="24"/>
++  <Annotation v="25" t="25"/>
++  <Annotation v="26" t="26"/>
++  <Annotation v="27" t="27"/>
++  <Annotation v="28" t="28"/>
++  <Annotation v="29" t="29"/>
++  <Annotation v="30" t="30"/>
++  <Annotation v="31" t="31"/>
++  <Annotation v="32" t="32"/>
++</ColorMap>
+   <ColorMap name="Blue to Yellow" space="RGB">
+     <Point x="0.0" r="0.0392156862745" g="0.0392156862745" b="0.949019607843" o="0.0"/>
+     <Point x="1.0" r="0.949019607843" g="0.949019607843" b="0.0392156862745" o="1.0"/>

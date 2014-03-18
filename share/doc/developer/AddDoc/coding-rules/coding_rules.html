@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.70)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>Coding Standards</TITLE>
+<META NAME="description" CONTENT="Coding Standards">
+<META NAME="keywords" CONTENT="coding_rules">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="coding_rules.css">
+
+</HEAD>
+
+<BODY >
+
+<H1><A NAME="SECTION00010000000000000000">
+Coding Standards</A>
+</H1>
+<DL COMPACT>
+<DT><B>Indentation style</B></DT>
+<DD>The indentation style can be characterized as the
+     "indented brace". This means that the curly brace (scope delimiter) should
+     be placed on the following line. It should look like this:
+<PRE>
+if (indicator == TRUE)
+{
+ doSmth();
+}
+</PRE>
+</DD>
+<DT><B>Names</B></DT>
+<DD>We use capitalization to indicate words within a name. To
+     distinguish a local variable of a method from an attribute (global
+     variable of the class), we append a trailing underline to the end of the
+     attribute's name. Something like this:
+<PRE>
+class Foo{
+ Integer varOfClass_;
+}
+</PRE>
+     Your names should be transparent, i.e. self-explanatory, and not
+     incorporate non-standard abbreviations. This leads to longer names, but
+     it also makes reading the code easier.
+</DD>
+<DT><B>using namespace</B></DT>
+<DD>Directives "using namespace std" can be used only
+     in function scope. It's better to use the namespace in name of variable or method. For example, it's clear to determine that variable <TT>grd::Vertex</TT> is from namespace of grd, that is used in classes by Roberto. Also, all methods iand variables from standard library of C++ should be mentioned with namespace <TT>std::</TT>, like that: <TT>std::cout </TT>. 
+</DD>
+<DT><B>C++ standard libraries</B></DT>
+<DD>It is preferable to use methods from the
+     standard C++ library and not the standard C library and also to use the
+     corresponding headers. So header inclusion should look like:
+<PRE>
+#include &lt;fstream&gt;
+#include &lt;iostream&gt;
+#include &lt;string&gt;
+</PRE>
+and not like:
+<PRE>
+#include &lt;fstream.h&gt;
+#include &lt;iostream.h&gt;
+#include &lt;string.h&gt;
+</PRE>
+     Note that the .h versions of the C++-headers are deprecated. If they exist
+     on a system, this is only for backward compatibility.
+</DD>
+<DT><B>#include</B></DT>
+<DD>The header file of the class should include only the
+     superclasses (general classes of CFS++, such as <TT>Vector,
+     Environment, etc.</TT>) header. All headers of standard libraries should be
+     included in the source file. If you use some class in header file, you
+     should provide a declaration of the class instead of including a header
+     file of this class, for example in the following fashion:
+     <PRE>
+     class Elem;
+     class Grid
+     {
+      Elem * listElems;
+     };
+</PRE>
+     and not in this way:
+     <PRE>
+     #include "elem.hh"
+     class Grid
+     {
+      Elem * listElems;
+     };
+</PRE> 
+     If you have to include some files from another library, then it is better
+     to do this using a flag/macro. Using this approach the code can then also
+     be compiled without external classes. 
+</DD>
+<DT><B>Get/Set</B></DT>
+<DD>We try to maintain the concept of data encapsulation and
+     keep variables of a class protected. Therefore, all variables of a class
+     should be declared as protected. Public access to variables can then be
+     provided by appropriate Set/Get methods.
+</DD>
+</DL>
+
+<P>
+<BR><HR>
+<ADDRESS>
+Andreas Hauck
+2005-06-01
+</ADDRESS>
+</BODY>
+</HTML>

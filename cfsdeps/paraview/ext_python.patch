@@ -1,0 +1,20 @@
+--- SuperBuild/External_Python.cmake.orig	2012-11-11 11:21:14.233662706 +0100
++++ SuperBuild/External_Python.cmake	2012-11-11 11:22:52.166656275 +0100
+@@ -23,7 +23,7 @@
+   ExternalProject_Add(${proj}
+     URL ${PYTHON_URL}/${PYTHON_GZ}
+     URL_MD5 ${PYTHON_MD5}
+-    DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR}
++    DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/python
+     SOURCE_DIR ${python_build}
+     PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${ParaViewSuperBuild_CMAKE_SOURCE_DIR}/PythonPatches/pyproject.vsprops ${python_base}
+     CONFIGURE_COMMAND ""
+@@ -115,7 +115,7 @@
+   ExternalProject_Add(python
+     URL ${PYTHON_URL}/${PYTHON_GZ}
+     URL_MD5 ${PYTHON_MD5}
+-    DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR}
++    DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/python
+     SOURCE_DIR ${python_source}
+     INSTALL_DIR ${python_install}
+     BUILD_IN_SOURCE 1

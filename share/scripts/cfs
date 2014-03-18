@@ -1,0 +1,395 @@
+#!/bin/sh
+
+# This is the start script for CFS. It should be placed in
+# CFS_DIST/bin under the name 'cfs'
+
+# Source shell script for setting some common variables.
+COMMON_SH=`dirname $0`/common.sh
+if [ ! -x "$COMMON_SH" ]; then
+  echo "Could not execute $COMMON_SH. Exiting..."
+  exit 1
+fi
+. $COMMON_SH
+
+# Determine  ANSYS  revision  from .xml  file  in  order  to set  the  correct
+# LD_LIBRARY_PATH. The default is v110.
+ANSYS_REV="v110"
+
+for param in "$@"; do
+    if [ -f "${param}.xml" ]; then
+#	echo $param
+	RSTTAG=$(fgrep '<rst' "${param}.xml")
+	
+	for field in $RSTTAG; do 
+	    REV=$(echo $field | sed -n '/ansysRevision.*/p' | \
+		cut -d'"' -f2 | sed 's/\.//');
+	done
+#	echo "v$REV"
+    fi
+done
+
+if [ ! "$REV" = "" ]; then
+    ANSYS_REV="v$REV"
+fi
+
+SetANSYSParameters()
+{
+    ARCH=$1
+    ANSYS_ROOT_DIR=$2
+
+    case "$ARCH" in
+	I386)
+	    ANS_ARCH=linia32;
+	    LIB=/lib ;;
+	X86_64)
+	    if [ "$SUBARCH" = "OPTERON" ]; then
+		ANS_ARCH=linop64;
+	    else
+		ANS_ARCH=linem64t;
+	    fi
+	    LIB=/lib64 ;;
+	IA64)
+	    ANS_ARCH=linia64;
+	    LIB=/lib ;;
+    esac
+
+    # If ANSYS directory does not exist, try to determine it from executable.
+    if [ ! -d "$ANSYS_ROOT_DIR" ]
+    then
+        PGFLIB=`$LDD $CFS_EXE | grep libpgf90.so | cut -d' ' -f3`
+
+        if [ -f "$PGFLIB" ]
+        then
+            SEDSTR="s/\\/ansys\\/syslib\\/$ANS_ARCH\\/libpgf90.so//"
+            ANSYS_ROOT_DIR=`echo $PGFLIB | sed -e $SEDSTR`
+        fi
+    fi
+
+#    if [ ! -d "$ANSYS_ROOT_DIR" ]
+#    then
+#
+#
+#	echo "Cannot find root directory of ANSYS:"
+#	echo "  $ANSYS_ROOT_DIR"
+#	echo "Please set either environment variable ANSYS_ROOT_DIR"
+#	echo "or edit $HOME/.nacsrc."
+#	exit 1
+#    fi
+
+
+    LD_LIBRARY_PATH=$CFS_ROOT_DIR/$LIB/$ARCH_STR:$CFS_ROOT_DIR/$LIB/$ARCH_STR/$ANSYS_REV/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/syslib/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/customize/misc/$ANS_ARCH:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH
+}
+
+SetGIDParameters()
+{
+  dummy=1
+}
+
+# Set XML schema root path
+if [ -r $CFS_ROOT_DIR/share/xml/CFS-Simulation/CFS.xsd ]; then
+    CFS_SCHEMA_ROOT=$CFS_ROOT_DIR/share/xml
+    export CFS_SCHEMA_ROOT
+fi
+
+# Get settings concerning the distribution type of CFS: GiD/ANSYS
+#if [ "$CFS_DIST_TYPE" != "" ]
+#then 
+#    CFS_DIST_TYPE_TEMP=$CFS_DIST_TYPE 
+#fi
+
+if [ "$ANSYS_ROOT_DIR" != "" ]
+then 
+    ANSYS_ROOT_DIR_TEMP=$ANSYS_ROOT_DIR 
+fi
+
+# Check if a CFS config file exists in user's home directory.
+if [ -e $HOME/.nacsrc ]
+then 
+    . $HOME/.nacsrc;
+fi
+
+# environment variables override variables from config file.
+#if [ "$CFS_DIST_TYPE_TEMP" != "" ]
+#then 
+#    CFS_DIST_TYPE=$CFS_DIST_TYPE_TEMP
+#    unset CFS_DIST_TYPE_TEMP
+#fi
+
+if [ "$ANSYS_ROOT_DIR_TEMP" != "" ]
+then 
+    ANSYS_ROOT_DIR=$ANSYS_ROOT_DIR_TEMP
+    unset ANSYS_ROOT_DIR_TEMP
+fi
+
+CFS_DIST_TYPE="ANSYS"
+
+if [ "$CFS_DIST_TYPE" = "" ]
+then 
+    echo "Cannot determine distribution type of CFS."
+    echo "CFS_DIST_TYPE should be one of GID / ANSYS."
+    exit 1
+fi
+
+if [ "$CFS_SCRIPT_DEBUG" = "1" ]
+then
+    echo "CFS_DIST_TYPE: $CFS_DIST_TYPE"
+    echo "CFS_SCHEMA_ROOT: $CFS_SCHEMA_ROOT"
+    echo "OS: $OS"
+    echo "ARCH_STR: $ARCH_STR"
+    echo "DISTRO: $DISTRO"
+    echo "DISTRO_VER: $DISTRO_VER"
+    echo "ARCH: $ARCH"
+fi
+
+# Set path to CFS executable
+CFS_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/cfsbin
+
+# If we cannot find the usual executable, maybe we have crosscompiled
+# using MinGW and need to start the binary using Wine.
+MINGW=0
+if [ ! -e $CFS_EXE ]; then
+  
+  for arch in "X86_64" "I386"; do
+      CFS_EXE="$CFS_ROOT_DIR/bin/MINGW_$ARCH/cfsbin.exe"
+      if [ -e $CFS_EXE ]; then
+	  ARCH=$arch
+	  ARCH_STR="MINGW"_$ARCH
+	  MINGW=1;
+	  break;
+      fi
+  done
+fi
+
+# Set paths to HDF5 executables
+H5IMPORT_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/tools/h5import
+H5DUMP_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/tools/h5dump
+H5TOOL_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/h5tool
+
+if [ $MINGW = 1 ]; then
+    H5IMPORT_EXE="${H5IMPORT_EXE}.exe"
+    H5DUMP_EXE="${H5DUMP_EXE}.exe"
+    H5TOOL_EXE="${H5TOOL_EXE}.exe"
+fi
+
+# Set parameters according to distribution type.
+case "$CFS_DIST_TYPE" in
+    ANSYS)
+	SetANSYSParameters $ARCH $ANSYS_ROOT_DIR ;;
+    GID)
+	SetGIDParameters ;;
+    *)
+	echo "Unknown distribution type $CFS_DIST_TYPE.";
+	echo "Should be one of GID / ANSYS.";
+	exit 1;;
+esac
+
+# Check if we have the necessary libraries for the current arch.
+if [ "$BINARY_TREE" = "0" ]; then
+    if [ ! -d "$CFS_ROOT_DIR/$LIB/$ARCH_STR" ]
+    then 
+        echo "Cannot find CFS library path for architecture $ARCH_STR."
+        exit 2
+    fi
+fi
+
+if [ "$CFS_SCRIPT_DEBUG" = "1" ]
+then
+    case "$OS" in
+	LINUX)
+            echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH" ;;
+	MACOSX)
+            echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH" ;;
+	*)
+	    ;;
+    esac
+fi
+
+# Check if we have the necessary executable for the current arch.
+if [ ! -e $CFS_EXE ]
+then 
+    echo "Cannot find CFS++ executable for architecture $ARCH_STR."
+    exit 3
+fi
+
+if [ "$CFS_SCRIPT_DEBUG" = "1" ]
+then
+    echo "Libraries:"
+    $LDD $CFS_EXE
+fi
+
+# Check if some system libraries are missing.
+CFS_EXE_LDD=`$LDD $CFS_EXE | grep "not found"`
+
+if [ "$CFS_EXE_LDD" != "" ]
+then 
+    echo "Some dependencies on system libraries could not be resolved."
+    echo "These were:"
+    echo "$CFS_EXE_LDD";
+    echo
+    exit 4
+fi
+
+# Check if OMP_NUM_THREADS has been previously set and set it to 1 if not.
+if [ "$OMP_NUM_THREADS" = "" ]
+then
+    OMP_NUM_THREADS=1
+fi
+
+if [ "$CFS_SCRIPT_DEBUG" = "1" ]
+then
+    echo "Setting OMP_NUM_THREADS=$OMP_NUM_THREADS"
+fi
+
+export OMP_NUM_THREADS
+
+# Check if MKL_NUM_THREADS has been previously set and set it to
+# OMP_NUM_THREADS if not.
+if [ "$MKL_NUM_THREADS" = "" ]
+then 
+    MKL_NUM_THREADS=$OMP_NUM_THREADS
+fi
+
+if [ "$CFS_SCRIPT_DEBUG" = "1" ]
+then
+    echo "Setting MKL_NUM_THREADS=$MKL_NUM_THREADS"
+fi
+
+export MKL_NUM_THREADS
+
+if [ $OMP_NUM_THREADS != $MKL_NUM_THREADS ]
+then
+    echo "Warning: OMP_NUM_THREADS($OMP_NUM_THREADS) != MKL_NUM_THREADS($MKL_NUM_THREADS)."
+    echo "Warning: MKL_NUM_THREADS overrides OMP_NUM_THREADS for Intel MKL!"
+fi
+
+# Determine name of simulation for extending result HDF5 file.
+last_was_param=0
+
+for token in "$@"; do
+#    echo ${token%[^-]*}
+#    echo ${token%%[^-]*}
+#    echo ${token#[^-]*}
+#    echo ${token##[^-]*}
+
+    param=`echo $token | sed 's/[^-]*$//g'`
+    #param=${token%%[^-]*}
+
+    if [ "$param" = "" ]; then
+#        echo "some kind of name"
+        if [ $last_was_param -eq 0 ]; then
+            sim_name=$token
+        fi
+        last_was_param=0
+    else
+#        echo "some parameter"
+        last_was_param=1
+    fi
+
+done
+
+# Initialize st_size and st_mtime to defined values and get the before/after
+# values of these variables to check if HDF5 file has changed.
+st_size="0"
+st_mtime="0"
+
+hdf5_file_name="results_hdf5/${sim_name}.h5"
+if [ ! "$sim_name" = "" ] && [ -r "$hdf5_file_name" ]; then
+    if [ "$OS" = "MACOSX" ]; then
+        eval "$(stat -s $hdf5_file_name)"
+        st_size_before=$st_size
+        st_mtime_before=$st_mtime
+    else
+        st_size_before=$(stat --format %s $hdf5_file_name)
+        st_mtime_before=$(stat --format %Y $hdf5_file_name)
+    fi
+fi
+
+
+# Execute the CFS exutable with arguments from this script
+if [ $# != 0 ]
+then
+    if [ $MINGW = 1 ]; then
+	wine $CFS_EXE "$@";
+    else    
+	$CFS_EXE "$@";
+    fi
+    # If CFS++ returned with an error return code, let's also return an error.
+    if [ ! $? -eq 0 ]; then
+       exit 1
+    fi
+else
+    if [ $MINGW = 1 ]; then
+	wine $CFS_EXE "$@";
+    else    
+	$CFS_EXE;
+    fi
+    exit 0;
+fi
+
+
+# Get file state of output HDF5 file
+if [ -r "$hdf5_file_name" ]; then
+    if [ "$OS" = "MACOSX" ]; then
+        eval "$(stat -s $hdf5_file_name)"
+        st_size_after=$st_size
+        st_mtime_after=$st_mtime
+    else
+        st_size_after=$(stat --format %s $hdf5_file_name)
+        st_mtime_after=$(stat --format %Y $hdf5_file_name)
+    fi
+fi
+
+# If HDF5 file did not change just exit
+if [ "$st_size_before" = "$st_size_after" ] && [ "$st_mtime_before" = "$st_mtime_after" ]; then
+    exit 0
+fi
+
+# Create OS-specific hardware info files
+if [ "$OS" = "MACOSX" ]; then
+    /usr/sbin/system_profiler SPHardwareDataType SPSoftwareDataType > macosx_info.txt
+    OSFILELIST="macosx_info.txt";
+    STATCMD="stat -x"
+fi
+if [ "$OS" = "LINUX" ]; then
+    cat /proc/cpuinfo > linux_cpuinfo.txt
+    cat /proc/meminfo > linux_meminfo.txt
+    OSFILELIST="linux_cpuinfo.txt linux_meminfo.txt";
+    STATCMD="stat"
+fi
+
+# Create dump of environment (OMP_NUM_THREADS, etc.)
+env | sort > environment_info.txt
+OSFILELIST="$OSFILELIST environment_info.txt"
+
+# Setup a file list which should be imported to the HDF5 file
+FILELIST="$OSFILELIST ${sim_name}.deb ${sim_name}.info ${sim_name}.info.xml ${sim_name}.las ${sim_name}.mem"
+
+# Error checking function
+ErrorCheck () {  if [ ! $? -eq 0 ]; then echo "An error occurred while importing $file into HDF5!"; fi }
+
+# Iterate over all files and import them
+for file in $FILELIST; do
+    if [ -r $file ]; then
+	CMDSTR="dataset\ncreate\n$hdf5_file_name\n/UserData\nstring\n${file}\nignore\n"
+	printf $CMDSTR > tmp.dat
+	echo "Output of '$STATCMD $file': " >> tmp.dat
+	$STATCMD $file >> tmp.dat
+	echo >> tmp.dat
+	echo "================================================================================" >> tmp.dat
+	cat ${file} >> tmp.dat
+	if [ $MINGW = 1 ]; then
+	    wine $H5TOOL_EXE < tmp.dat > /dev/null; ErrorCheck
+	else    
+	    $H5TOOL_EXE < tmp.dat > /dev/null; ErrorCheck
+	fi
+	rm -f tmp.dat
+    fi
+done
+
+# Delete OS-specific files
+for file in $OSFILELIST; do
+    if [ -r $file ]; then
+	rm -f $file
+    fi
+done

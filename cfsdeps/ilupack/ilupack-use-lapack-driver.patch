@@ -1,0 +1,14 @@
+--- include/ilupack.h.orig	2013-01-10 18:16:15.996855190 +0100
++++ include/ilupack.h	2013-01-10 18:17:01.092886445 +0100
+@@ -6,8 +6,9 @@
+ */
+ #ifndef _ILU_PACK_H
+ #define _ILU_PACK_H
+-#define USE_LAPACK_DRIVER
+-
++/*
++ * #define USE_LAPACK_DRIVER
++ */
+ 
+ #include <stdlib.h>
+ 

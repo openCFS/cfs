@@ -1,0 +1,88 @@
+--- include/muParserCallback.h.orig	2012-02-28 22:12:25.429652645 +0100
++++ include/muParserCallback.h	2012-02-28 22:10:56.902967870 +0100
+@@ -79,6 +79,8 @@
+     ParserCallback(strfun_type1 a_pFun, bool a_bAllowOpti);
+     ParserCallback(strfun_type2 a_pFun, bool a_bAllowOpti);
+     ParserCallback(strfun_type3 a_pFun, bool a_bAllowOpti);
++    ParserCallback(strfun_type4 a_pFun, bool a_bAllowOpti);
++    ParserCallback(strfun_type5 a_pFun, bool a_bAllowOpti);
+     ParserCallback();
+     ParserCallback(const ParserCallback &a_Fun);
+     
+--- include/muParserDef.h.orig	2012-02-28 22:04:45.945666488 +0100
++++ include/muParserDef.h	2012-02-28 22:05:48.602028697 +0100
+@@ -357,6 +357,13 @@
+   /** \brief Callback type used for functions taking a string and two values as arguments. */
+   typedef value_type (*strfun_type3)(const char_type*, value_type, value_type);
+ 
++  /** \brief Callback type used for functions taking a string and three values as arguments. */
++  typedef value_type (*strfun_type4)(const char_type*, value_type, value_type, value_type);
++  
++    /** \brief Callback type used for functions taking a string and four values as arguments. */
++  typedef value_type (*strfun_type5)(const char_type*, value_type, value_type, value_type, value_type);
++
++
+   /** \brief Callback used for functions that identify values in a string. */
+   typedef int (*identfun_type)(const char_type *sExpr, int *nPos, value_type *fVal);
+ 
+--- src/muParserBase.cpp.orig	2012-02-28 22:04:23.667248797 +0100
++++ src/muParserBase.cpp	2012-02-28 22:07:42.659046959 +0100
+@@ -770,6 +770,15 @@
+       case 2: valTok.SetVal( ((strfun_type3)pFunc)(a_vArg[2].GetAsString().c_str(), 
+                                                    a_vArg[1].GetVal(), 
+                                                    a_vArg[0].GetVal()) );  break;
++      case 3: valTok.SetVal( ((strfun_type4)pFunc)(a_vArg[3].GetAsString().c_str(), 
++                                                   a_vArg[2].GetVal(),                                            
++	                                           a_vArg[1].GetVal(), 
++                                                   a_vArg[0].GetVal()) );  break;
++      case 4: valTok.SetVal( ((strfun_type5)pFunc)(a_vArg[4].GetAsString().c_str(), 
++	                                           a_vArg[3].GetVal(),
++                                                   a_vArg[2].GetVal(), 
++                                                   a_vArg[1].GetVal(), 
++                                                   a_vArg[0].GetVal()) );  break;
+       default: Error(ecINTERNAL_ERROR);
+       }
+     }
+@@ -1130,6 +1139,8 @@
+               case 0: Stack[sidx] = (*(strfun_type1)pTok->Fun.ptr)(m_vStringBuf[iIdxStack].c_str()); continue;
+               case 1: Stack[sidx] = (*(strfun_type2)pTok->Fun.ptr)(m_vStringBuf[iIdxStack].c_str(), Stack[sidx]); continue;
+               case 2: Stack[sidx] = (*(strfun_type3)pTok->Fun.ptr)(m_vStringBuf[iIdxStack].c_str(), Stack[sidx], Stack[sidx+1]); continue;
++              case 3: Stack[sidx] = (*(strfun_type4)pTok->Fun.ptr)(m_vStringBuf[iIdxStack].c_str(), Stack[sidx], Stack[sidx+1], Stack[sidx+2]); continue;
++              case 4: Stack[sidx] = (*(strfun_type5)pTok->Fun.ptr)(m_vStringBuf[iIdxStack].c_str(), Stack[sidx], Stack[sidx+1], Stack[sidx+2], Stack[sidx+3]); continue;
+               }
+ 
+               continue;
+--- src/muParserCallback.cpp.orig	2012-02-28 22:04:29.698091166 +0100
++++ src/muParserCallback.cpp	2012-02-28 22:08:47.484352054 +0100
+@@ -355,7 +355,30 @@
+     ,m_bAllowOpti(a_bAllowOpti)
+   {}
+ 
+-
++  
++  //---------------------------------------------------------------------------
++  ParserCallback::ParserCallback(strfun_type4 a_pFun, bool a_bAllowOpti)
++    :m_pFun((void*)a_pFun)
++    ,m_iArgc(3)
++    ,m_iPri(-1)
++    ,m_eOprtAsct(oaNONE)
++    ,m_iCode(cmFUNC_STR)
++    ,m_iType(tpSTR)
++    ,m_bAllowOpti(a_bAllowOpti)
++  {}
++ 
++ 
++  //---------------------------------------------------------------------------
++  ParserCallback::ParserCallback(strfun_type5 a_pFun, bool a_bAllowOpti)
++    :m_pFun((void*)a_pFun)
++    ,m_iArgc(4)
++    ,m_iPri(-1)
++    ,m_eOprtAsct(oaNONE)
++    ,m_iCode(cmFUNC_STR)
++    ,m_iType(tpSTR)
++   ,m_bAllowOpti(a_bAllowOpti)
++  {}
++  
+   //---------------------------------------------------------------------------
+   /** \brief Default constructor. 
+       \throw nothrow

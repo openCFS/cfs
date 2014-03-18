@@ -1,0 +1,12 @@
+--- src/CMakeLists.txt.orig	2014-01-07 13:49:31.663998917 +0100
++++ src/CMakeLists.txt	2014-01-07 13:53:33.374998881 +0100
+@@ -13,7 +13,8 @@
+   add_definitions(-DBUILD_HDF5)
+   if (WIN32)
+     if (HDF5_LIBRARY)
+-      file(STRINGS ${HDF5_LIBRARY} HDF5isDLL REGEX "__imp__H5close")
++      LIST(GET HDF5_LIBRARY 0 HDF5_LIBRARY0)
++      file(STRINGS ${HDF5_LIBRARY0} HDF5isDLL REGEX "__imp__H5close")
+       if (HDF5isDLL)
+         # this is only needed when using hdf5 dll libs
+         add_definitions(-DWIN32 -D_HDF5USEDLL_)

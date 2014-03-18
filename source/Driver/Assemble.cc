@@ -1,0 +1,1689 @@
+#include "Assemble.hh"
+
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <boost/lexical_cast.hpp>
+#include <boost/progress.hpp>
+
+#include "Domain/ElemMapping/EntityLists.hh"
+#include "Domain/Domain.hh"
+#include "Domain/Mesh/Grid.hh"
+
+#include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Driver/HarmonicDriver.hh"
+
+#include "DataInOut/ProgramOptions.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+
+#include "PDE/SinglePDE.hh"
+
+#include "OLAS/algsys/AlgebraicSys.hh"
+
+#include "Utils/Timer.hh"
+
+#include "Forms/BiLinForms/BiLinearForm.hh"
+#include "Forms/LinForms/LinearForm.hh"
+
+namespace CoupledField
+{
+// declare logging stream
+DECLARE_LOG(assemble)
+            DEFINE_LOG(assemble, "assemble")
+
+
+            Assemble::Assemble( AlgebraicSys* algsys,
+                                BasePDE::AnalysisType analysis,
+                                MathParser* mp,
+                                PtrParamNode infoNode)
+: timer_(new Timer()) {
+
+  // init general params
+  algsys_ = algsys;
+  analysisType_ = analysis;
+  mp_ = mp;
+  isFirstTime_ = true;
+  matrixUpdated_ = false;
+  printProgressBar_ = false;
+  info_ = infoNode;
+
+  linForms_ = new StdVector<LinearFormContext*>();
+
+  // Calculate matrix map from general matrix types to analysis
+  // specific ones
+  CreateMatrixMap();
+
+  // Set expression for omega
+  mHandle_ = mp->GetNewHandle();
+  mp->SetExpr(mHandle_, "2*pi*f");
+
+  // the timer object is used in every AssembleMatrices() call
+  info_->Get("analysis")->Get(ParamNode::PN_SUMMARY)->Get("assemble/timer")->SetValue(timer_);
+}
+
+Assemble::~Assemble() {
+
+  // Delete bilinear contexts
+  std::set<BiLinFormContext*>::iterator it = allBiLinForms_.begin();
+  for( ; it != allBiLinForms_.end(); ++it){
+    delete (*it);
+  }
+
+
+  // Delete linear contexts
+  for(unsigned int i = 0; i < linForms_->GetSize(); ++i){
+    delete (*linForms_)[i];
+  }
+
+  delete linForms_;
+  mp_->ReleaseHandle(mHandle_);
+}
+
+void Assemble::SetAlgSys(AlgebraicSys * algsys)  {
+  algsys_ = algsys;
+}
+
+void Assemble::ResetMatrixReassembly() {
+  // Initialize reassemble-map
+  // Note: in the beginning all matrices have to be "re-"assembled
+  // which means the destination matrices have to be cleared and
+  // initialized. After the first "AssmebleMatrices" call the
+  // correct values for reassembling are determined
+  matReassemble_[STIFFNESS] = true;
+  matReassemble_[DAMPING] = true;
+  matReassemble_[MASS] = true;
+  matReassemble_[AUXILIARY] = true;
+
+  // reset also flag for "firstTime"
+  isFirstTime_ = true;
+  matrixUpdated_ = true;
+}
+
+void Assemble::SetEqnCustomMap( const std::map<Integer, Integer>& eqnMap,
+                                const std::map<FeFctIdType, FeFctIdType>& fctIdMap ) {
+  customEqnMap_ = eqnMap;
+  customFctIdMap_ = fctIdMap;
+}
+
+
+BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator, bool silent)
+{
+  REFACTOR;
+  // the EntityList has the region name as name but not the id
+  //     std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
+
+  BiLinFormContext* result = NULL;
+
+  //     // iterate over all descriptors
+  //     StdVector<BiLinFormContext*>::iterator iter;
+  //     int counter = 0;
+  //     for (iter = biLinForms_->Begin(); iter != biLinForms_->End(); iter++)
+  //     {
+  //       counter++;
+  //       // we are wrong if the region does not match
+  ////       if((*iter)->GetFirstEntities()->GetName() != region) continue;
+  //       if((*iter)->GetFirstEntities()->GetRegion() != regionId) continue;
+  //       // when pde1 is given we compare it by name and continue if the names are different
+  ////       if(pde1 != NULL && (*iter)->GetFirstPde()->GetName() != pde1->GetName()) continue;
+  //       if((*iter)->GetFirstPde() != pde1) continue;
+  ////       if(pde2 != NULL && (*iter)->GetSecondPde()->GetName() != pde2->GetName()) continue;
+  //       if((*iter)->GetSecondPde() != pde2) continue;
+  //       //std::cout << counter << ":" << (*iter)->GetIntegrator()->GetName() << " vs " << integrator << std::endl;
+  //       if((*iter)->GetIntegrator()->GetName() != integrator) continue;
+  //
+  //       // we come here because we had no contradiction - check for uniqueness
+  //       if(result != NULL) throw Exception("parameters not unique!");
+  //       // absolutley no contradiction, save result and continue to
+  //       // check that there is no further match
+  //       result = *iter;
+  //     }
+  //
+  //     if(result == NULL && !silent)
+  //     {
+  //       std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
+  //       EXCEPTION("BiLinFormContext '" << integrator << "' at region '" << region << "' not found within " << counter << " integrators");
+  //     }
+  return result;
+}
+
+LinearForm* Assemble::GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent)
+{
+  REFACTOR;
+  // the EntityList has the region name as name but not the id
+  std::string region = pde->GetGrid()->GetRegion().ToString(regionId);
+
+  LinearForm* result = NULL;
+
+  //// iterate over all descriptors
+  //for(UInt i = 0; i < linForms_->GetSize(); i++)
+  //{
+  //  // we are wrong if the region does not match
+  //  LinearFormContext* lfc = (*linForms_)[i];
+  //  if(lfc->GetEntities()->GetName() != region) continue;
+  //  // when pde1 is given we compare it by name and continue if the names are different
+  //  if(lfc->GetPde()->GetName() != pde->GetName()) continue;
+  //  if(lfc->GetIntegrator()->GetName() != integrator) continue;
+  //
+  //  // we come here because we had no contradiction - check for uniqueness
+  //  if(result != NULL) throw Exception("parameters not unique!");
+  //  result = lfc;
+  //}
+  //
+  //if(result == NULL && !silent)
+  //  EXCEPTION("LinearFormContext '" << integrator << "' at region '" << region << "' not found");
+  return result;
+}
+
+void Assemble::AddBiLinearForm( BiLinFormContext* biLinContext ) {
+
+  LOG_DBG(assemble) << "Adding BiLinearForm '"
+      << biLinContext->GetIntegrator()->GetName()
+      << "' on '"
+      << biLinContext->GetFirstEntities()->GetName()
+      << "'";
+
+  // assert that Integrator is set
+  assert( biLinContext->GetIntegrator() != NULL );
+
+  // assert that some entities are set
+  assert( biLinContext->GetFirstEntities() != NULL );
+  assert( biLinContext->GetSecondEntities() != NULL );
+
+
+  // If the datatype of the bilinearformcontext is "COMPLEX"
+  // we have to ensure that we are in an harmonic case.
+  // Otherwise we issue an error
+  if( (biLinContext->GetEntryType() == Global::IMAG ||
+      biLinContext->GetEntryType() == Global::COMPLEX )
+      && analysisType_ != BasePDE::HARMONIC ) {
+    EXCEPTION( "Can not add integrator '"
+        << biLinContext->GetIntegrator()->GetName()
+        << "' with complex/imaginary entries for a "
+        << "non-harmonic analysis." );
+  }
+
+  FEMatrixType mappedFEType = matrixMap_[biLinContext->GetDestMat()];
+  FEMatrixType mappedSecFEType =
+      matrixMap_[biLinContext->GetSecDestMat()];
+
+  // Check if integrator can be assembled in this type of simulation
+  if( mappedFEType != NOTYPE ) {
+
+    // Store bilinear form
+    allBiLinForms_.insert(biLinContext);
+
+    // Note: As the shared_ptr to an Entitylist is not
+    // unique within CFS, we have to ensure, that the names of
+    // the entity lists rather than the pointers match!
+
+    // Loop over all existing bilinearforms and check,
+    // if pair (EntityList1, EntityList2) was already defined
+    std::string ent1Name = biLinContext->GetFirstEntities()->GetName();
+    std::string ent2Name = biLinContext->GetSecondEntities()->GetName();
+    std::pair<shared_ptr<EntityList>,shared_ptr<EntityList> > pair;
+    BiLinContextListType::iterator it = biLinForms_.begin();
+    bool found = false;
+    for( ; it != biLinForms_.end(); ++it ) {
+      if( it->first.first->GetName() == ent1Name &&
+          it->first.second->GetName() == ent2Name ) {
+        pair = it->first;
+        found = true;
+        break;
+      }
+    }
+    if(!found) {
+      pair = std::pair<shared_ptr<EntityList>,shared_ptr<EntityList> >
+      (biLinContext->GetFirstEntities(), biLinContext->GetSecondEntities());
+    }
+    biLinForms_[pair].Push_back(biLinContext);
+
+    // Pass needed matrix type to algebraic system
+    assert(biLinContext->GetFirstFeFunction().lock());
+    assert(biLinContext->GetSecondFeFunction().lock());
+    FeFctIdType id1 = biLinContext->GetFirstFeFunction().lock()->GetFctId();
+    FeFctIdType id2 = biLinContext->GetSecondFeFunction().lock()->GetFctId();
+    ReMapFctId(id1);
+    ReMapFctId(id2);
+
+    // determine symmetry type and complex status
+    bool isSym = IsFEMatSymmetric(biLinContext);
+    bool isComplex = IsFEMatComplex(biLinContext);
+
+    algsys_->SetFEMatrixType( mappedFEType, isSym, isComplex, id1, id2 );
+
+    // Check for secondary matrix type
+    if( mappedSecFEType != NOTYPE ) {
+      algsys_->SetFEMatrixType( mappedSecFEType, isSym, isComplex, id1, id2 );
+    }
+  }
+  else {
+    delete biLinContext;
+  }
+}
+
+void Assemble::AddLinearForm( LinearFormContext* linContext ) {
+
+  LOG_DBG(assemble) << "AddLinearForm: " << linContext->ToString()
+                                             << " on " << linContext->GetEntities()->GetName();
+
+  // assert that Integrator is set
+  assert( linContext->GetIntegrator() != NULL );
+
+  // assert that the pdes are set
+  assert( linContext->GetPde() != NULL );
+
+  // assert that some entites are set
+  assert( linContext->GetEntities() != NULL );
+
+  linForms_->Push_back( linContext );
+
+}
+
+void Assemble::SetupMatrixGraph(FeFctIdType fctId1, FeFctIdType fctId2 ) {
+
+  StdVector<Integer> eqnVec1, eqnVec2;
+  FeFctIdType id1, id2;
+
+  // Perform re-mapping of FctIds
+  ReMapFctId( fctId1 );
+  ReMapFctId( fctId2 );
+
+  // iterate over all entitylist-pairs and
+  BiLinContextListType::iterator listIt = biLinForms_.begin();
+  for ( ; listIt != biLinForms_.end(); ++listIt) {
+    StdVector<BiLinFormContext*> & forms = listIt->second;
+    EntityList& firstEntities = *(listIt->first.first);
+    EntityList& secondEntities = *(listIt->first.second);
+
+
+    EntityIterator it1 = firstEntities.GetIterator();
+    EntityIterator it2 = secondEntities.GetIterator();
+
+    // Loop over all bilinearforms
+    for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
+
+      // get integrator
+      BiLinFormContext & actContext = *forms[iForm];
+
+      FEMatrixType destMap = matrixMap_[actContext.GetDestMat()];
+
+      // The bilinearform gets set if
+      // a) the two pde-Ids match in the same order
+      // b) the two pde-Ids match in the reverse order
+      //    and the counter part has to be set
+      bool doAssemble = false;
+      bool doTranspose = true;
+      bool setCounterPart = false;
+
+      if( fctId1 != fctId2 ) {
+        setCounterPart = actContext.IsSetCounterPart();
+      }
+
+      assert(actContext.GetFirstFeFunction().lock());
+      assert(actContext.GetSecondFeFunction().lock());
+
+      // case a)
+      if( actContext.GetFirstFeFunction().lock()->GetFctId() == fctId1 &&
+          actContext.GetSecondFeFunction().lock()->GetFctId() == fctId2 ) {
+        doAssemble = true;
+        doTranspose = false;
+      } else
+
+        //case b)
+        if( actContext.GetFirstFeFunction().lock()->GetFctId() == fctId1 &&
+            actContext.GetSecondFeFunction().lock()->GetFctId() == fctId2 &&
+            actContext.IsSetCounterPart() ) {
+          doAssemble = true;
+          doTranspose = true;
+        }
+
+      // Check if fctIds of formsContext match
+      if( doAssemble ) {
+
+        try {
+
+          NcBiLinFormContext* ncContext = dynamic_cast<NcBiLinFormContext*>(forms[iForm]);
+
+          if (ncContext) {
+            // Just get all equations, so we out a dense block in the graph
+            ncContext->GetEqns(eqnVec1, eqnVec2, id1, id2);
+
+            // Perform remapping
+            ReMapEquations(eqnVec1, id1);
+            ReMapEquations(eqnVec2, id2);
+
+            if( !doTranspose ) {
+              algsys_-> SetElementPos( id1, eqnVec1,
+                                       id2, eqnVec2,
+                                       destMap,
+                                       setCounterPart );
+            } else {
+              algsys_-> SetElementPos( id2, eqnVec2,
+                                       id1, eqnVec1,
+                                       destMap,
+                                       setCounterPart );
+            }
+          } else {
+            // Loop over all entities
+            it1.Begin();
+            it2.Begin();
+            for( ; !(it1.IsEnd() || it2.IsEnd()); it1++, it2++ ) {
+              // Get equation numbers
+              actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, id1, id2 );
+
+              // Perform remapping
+              ReMapEquations(eqnVec1, id1);
+              ReMapEquations(eqnVec2, id2);
+
+              // Pass entity eqn-connectivity to algebraic system
+              if( !doTranspose ) {
+                algsys_-> SetElementPos( id1, eqnVec1,
+                                         id2, eqnVec2,
+                                         destMap,
+                                         setCounterPart );
+              } else {
+                algsys_-> SetElementPos( id2, eqnVec2,
+                                         id1, eqnVec1,
+                                         destMap,
+                                         setCounterPart );
+              }
+            } // loop over entities
+
+          }
+        } catch (Exception& e) {
+          RETHROW_EXCEPTION(e, "Could not setup matrix graph for "
+                            << "BiLinearForm '"
+                            << actContext.GetIntegrator()->GetName() << "' on '"
+                            << actContext.GetFirstEntities()->GetName()<< "'" );
+        }
+
+      } // if
+    } // loop (integrators)
+  } // loop over entity-list pair
+}
+
+void Assemble::AssembleMatrices(bool isNewtonPart) {
+
+  // check for static condensation:
+
+  // If static condensation is enabled, we must always pass the
+  // complete system matrix per element to the algebraic system
+  // in order to be able to invert the complete inner block.
+  // This influences of course also the secondary matrix factors
+  // and the assembly of complex entries. This has to be refactored
+  // in this case.
+  // Until we have now common structure for both cases, we
+  // excplicitly distinguish both cases in two different methods.
+
+  if (algsys_->UseStaticCondensation() ) {
+    AssembleMatrices_Cond(isNewtonPart);
+  } else {
+    AssembleMatrices_Std(isNewtonPart);
+  }
+
+}
+
+void Assemble::AssembleMatrices_Std(bool isNewtonPart) {
+  Matrix<Double> elemMatrix;
+  Matrix<Complex> elemMatrixC;
+  StdVector<Integer> eqnVec1, eqnVec2;
+  FeFctIdType fctId1, fctId2;
+
+  timer_->Start();
+
+  // Reset for matrix update
+  matrixUpdated_ = false;
+
+  // Temporary: Check each time for non-linearities
+  // On first Assembly, assemble all matrices for each BilinearForm
+  CheckNonLinearities(isFirstTime_);
+
+
+  // Init all matrices, which have to be reassembled
+  // Just to be done, when isNewtonPart is false!
+  if ( !isNewtonPart) {
+    std::map<FEMatrixType, bool>::iterator it;
+    for( it = matReassemble_.begin(); it != matReassemble_.end(); it++ ) {
+      if( it->second == true ) {
+        LOG_DBG2(assemble) << "AssembleMatrices: init matrix " << it->first;
+        algsys_->InitMatrix( matrixMap_[it->first] );
+      }
+    }
+  }
+
+  // iterate over all entitylist-pairs and
+  BiLinContextListType::iterator listIt = biLinForms_.begin();
+  for ( ; listIt != biLinForms_.end(); ++listIt) {
+    StdVector<BiLinFormContext*> & forms = listIt->second;
+    EntityList& firstEntities = *(listIt->first.first);
+    EntityList& secondEntities = *(listIt->first.second);
+    UInt size = firstEntities.GetSize();
+
+
+    // Total work: numElement x numForms
+    std::stringstream progStream;
+    boost::progress_display progress( size*forms.GetSize(), progStream );
+
+    if( printProgressBar_) {
+      std::cout << "  - Calculating BiLinearForms on '"
+          << firstEntities.GetName()
+          << " (" << size << " elements)'\n";
+    }
+
+    if ( !isNewtonPart) {
+      // First loop over all integrators to check, if any of them
+      // gets re-assembled
+      // Loop over all bilinearforms
+      bool anyReassemble = false;
+      for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
+
+        BiLinFormContext & actContext = *forms[iForm];
+
+        // get matrix destinations
+        FEMatrixType destMat = actContext.GetDestMat();
+        FEMatrixType secDestMat = actContext.GetSecDestMat();
+
+        // If assemble was already called and the current destination
+        // matrix must not be reassembled -> continue with next iterator
+        if( matReassemble_[destMat] == false ) {
+          if( matReassemble_[secDestMat] != NOTYPE ) {
+            if(  matReassemble_[secDestMat] == false ) {
+              continue;
+            }
+          } else  {
+            continue;
+          }
+        }
+        anyReassemble = true;
+      }
+      if( !anyReassemble ) {
+        continue;
+      }
+    }
+
+    // Loop over all entities
+    EntityIterator it1 = firstEntities.GetIterator();
+    EntityIterator it2 = secondEntities.GetIterator();
+    for( it1.Begin(); !it1.IsEnd(); it1++, it2++ ) {
+
+      LOG_DBG2(assemble) << "\telems are " << it1.GetElem()->elemNum
+          << " and " << it2.GetElem()->elemNum;
+
+      // Loop over all bilinear forms
+      for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
+
+        BiLinFormContext & actContext = *forms[iForm];
+        bool bilinearFormIsNewton =  actContext.IsNewtonBilinearForm();
+
+        //when we just want to assemble a Newton bilinear form and
+        //the bilinear form is not a Newton one, then go to the next!
+        if ( isNewtonPart && !bilinearFormIsNewton )
+          continue;
+
+        //if we want to assemble all bilinear forms except Newton ones
+        //and the bilinear form is a Newton one, then go to next!
+        if ( !isNewtonPart && bilinearFormIsNewton )
+          continue;
+
+        // get matrix destinations
+        FEMatrixType destMat = actContext.GetDestMat();
+        FEMatrixType secDestMat = actContext.GetSecDestMat();
+
+        if ( !isNewtonPart) {
+          // If assemble was already called and the current destination
+          // matrix must not be reassembled -> continue with next iterator
+          if( matReassemble_[destMat] == false ) {
+            if( matReassemble_[secDestMat] != NOTYPE ) {
+              if(  matReassemble_[secDestMat] == false ) {
+                continue;
+              }
+            } else  {
+              continue;
+            }
+          }
+        }
+
+        //LOG_DBG(assemble)
+        //std::cout << "AssembleMatrices for bilinform " << actContext.GetIntegrator()->GetName() << std::endl;
+        //LOG_DBG2(assemble)
+        //std::cout << "bilinform=" << actContext.ToString() << std::endl;
+
+        // Update flag
+        matrixUpdated_ = true;
+
+        BiLinearForm * form = actContext.GetIntegrator();
+
+        try {
+
+          // make only output if desired
+          if( printProgressBar_) {
+            ++progress;
+            std::cout << progStream.str();
+            progStream.str("");
+          }
+
+          // Calc element matrix
+          if ( form->IsComplex() ){
+            form->CalcElementMatrix( elemMatrixC, it1, it2 );
+
+          } else {
+            form->CalcElementMatrix( elemMatrix, it1, it2 );
+            LOG_DBG3(assemble) << "elementMatrix is \n" << elemMatrix << std::endl;
+            if(actContext.IsSetNegate()== true){
+              assert(!form->IsComplex());
+              elemMatrix*= (-1.0);
+            }
+          }
+
+          // Map equation numbers
+          actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
+          // Perform remapping
+          ReMapEquations(eqnVec1, fctId1);
+          ReMapEquations(eqnVec2, fctId2);
+
+          // Pass element matrix to algebraic system (primary matrix)
+          if ( form->IsComplex() )
+            InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
+          else
+            InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2);
+
+          if (secDestMat != NOTYPE ) { // Check for secondary matrix type
+            Double dampFactor = 1.0;
+            // get secondary matrix factor string
+            Double secMatFac = actContext.EvalSecMatFac();
+
+            // damping with "exotic" complex material
+            if ( form->IsComplex() ) {
+
+              // complex damping
+              elemMatrixC *= secMatFac * dampFactor;
+
+              // Pass secondary matrix part to algebraic system
+              InsertMatrix(secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
+            }
+            // "standard" Rayleigh damping. Includes the standard SIMP optimization!
+            else {
+              // Rayleigh damping
+              elemMatrix *= secMatFac * dampFactor;
+              LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " Rayleigh damping form=" << form->GetName() << " sMF=" << secMatFac << " df=" <<  dampFactor;
+              // Pass secondary matrix part to algebraic system
+              InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2);
+            }
+            // optionally with do SIMP pamping (intermediate material has complex mass damping)
+            //            if(domain->GetErsatzMaterialPamping(it1.GetElem(), form, elemMatrix)) {
+            //              LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " pamping form=" << form->GetName() << " add=" << elemMatrix.ToString();
+            //              InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
+            //            }
+
+          } // handle secDestMat != NOTYPE
+
+          // increment iterators
+        } catch (Exception& e) {
+          RETHROW_EXCEPTION(e, "Could not calculate element matrix of "
+                            << "BiLinearForm '"
+                            << form->GetName() << "' on '"
+                            << actContext.GetFirstEntities()->GetName()<< "'" );
+        }
+      } // loop over bilinearforms
+    } // loop over entities
+  }// loop over entitylist pairs
+  // Change flag
+  isFirstTime_ = false;
+
+  // We have assembled all matrices, we will not do so next time
+  // except: CheckNonLinearities sets one of these, or Optimization does
+  matReassemble_.clear();
+
+  timer_->Stop();
+
+}
+
+// assembling of element matrices for transient simulations
+// NEW: the time integrations factors will be integrated on element level, such that
+//      the resulting matrices can be sort directly into the system matrix
+//      This summation on element level is necessary if static condensation shall be used
+//      as the inversion of the interiour degrees of freedom has to be applied to the
+//      summed up element matrix
+//      To get the correct timestepping factors we need to provide the current stage
+//      and the matMap map (from stdSolveStep)
+//
+// NOTE: still only for singlePDE problems!
+void Assemble::AssembleMatrices_CondTrans(bool isNewtonPart,UInt currentStage,
+                                          std::map<FeFctIdType, std::map<FEMatrixType,Double> > timeStepFactors ){
+  Matrix<Double> elemMatrix;
+  Matrix<Complex> elemMatrixC;
+  StdVector<Integer> eqnVec1, eqnVec2;
+  FeFctIdType fctId1, fctId2;
+
+  timer_->Start();
+
+  // Reset for matrix update
+  matrixUpdated_ = false;
+
+  // Temporary: Check each time for non-linearities
+  // On first Assembly, assemble all matrices for each BilinearForm
+  CheckNonLinearities(isFirstTime_);
+
+  // check if any matrix needs to be reassembled
+  // if yes we have to reset the whole system matrix as we add the element matrices
+  // directly to it
+  // if no we can leave this function
+
+  std::map<FEMatrixType, bool>::iterator it;
+  for( it = matReassemble_.begin(); it != matReassemble_.end(); it++ ) {
+    if( it->second == true ) {
+      LOG_DBG2(assemble) << "AssembleMatrices: init matrix " << it->first;
+      algsys_->InitMatrix( matrixMap_[it->first] );
+      algsys_->InitMatrix( SYSTEM );
+      matrixUpdated_ = true;
+    }
+  }
+
+  if(matrixUpdated_ == false){
+    return;
+  }
+
+  // create temporary matrices for each pair of function ids (mech-mech,mech-acou,acou-mech,...)
+  // and for each of these pairs a matrix of each type (Stiffness, mass, ...)
+  std::map< std::pair<FeFctIdType,FeFctIdType>, std::map<FEMatrixType, Matrix<Double> > > rElemMats;
+  //std::map< std::pair<FeFctIdType,FeFctIdType>, std::map<FEMatrixType, Matrix<Complex> > > cElemMats;
+
+  // and we also have to store for each fctIdPair the equation vectors
+  std::map< std::pair<FeFctIdType,FeFctIdType>, std::pair<StdVector<Integer>,StdVector<Integer> > > eqnVecs;
+  // and for the actual context
+  std::map< std::pair<FeFctIdType,FeFctIdType>, bool > counterParts;
+
+  // iterate over all entitylist-pairs
+  BiLinContextListType::iterator listIt = biLinForms_.begin();
+  for ( ; listIt != biLinForms_.end(); ++listIt) {
+
+    // get vector of all formcontexts
+    StdVector<BiLinFormContext*> & forms = listIt->second;
+
+    // get lists of elements/entities
+    EntityList& firstEntities = *(listIt->first.first);
+    EntityList& secondEntities = *(listIt->first.second);
+
+    // total number of elements/entities in the first entitylist
+    UInt size = firstEntities.GetSize();
+
+    if( printProgressBar_) {
+      std::cout << "  - Calculating BiLinearForms on '"
+          << firstEntities.GetName()
+          << " (" << size << " elements)'\n";
+    }
+    // Total work: numElement x numForms
+    std::stringstream progStream;
+    boost::progress_display progress( size*forms.GetSize(),
+                                      progStream );
+
+    // Loop over all elements/entities
+    EntityIterator it1 = firstEntities.GetIterator();
+    EntityIterator it2 = secondEntities.GetIterator();
+    for( it1.Begin(); !it1.IsEnd(); it1++, it2++ ) {
+
+      // clear all maps (assume that each element is assigned only to one entitylist!)
+      eqnVecs.clear();
+      rElemMats.clear();
+      //cElemMats.clear();
+
+      LOG_DBG2(assemble) << "\telems are " << it1.GetElem()->elemNum
+          << " and " << it2.GetElem()->elemNum;
+      try {
+        // Loop over all bilinearforms
+        // for each bilinearform sort element matrix not directly into the system
+        // but sort it into the rElemMats resp. cElemMats
+        for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
+
+          // get current context
+          BiLinFormContext & actContext = *forms[iForm];
+
+          // get matrix destinations
+          FEMatrixType destMat = actContext.GetDestMat();
+          FEMatrixType secDestMat = actContext.GetSecDestMat();
+
+          // get function ids
+          fctId1 = actContext.GetFirstFeFunction().lock()->GetFctId();
+          fctId2 = actContext.GetSecondFeFunction().lock()->GetFctId();
+
+          // get eqnVecs
+          actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
+
+          // perform remapping
+          ReMapEquations(eqnVec1, fctId1);
+          ReMapEquations(eqnVec2, fctId2);
+
+          // build pair for map
+          std::pair<FeFctIdType,FeFctIdType> fctIdPair(fctId1,fctId2);
+
+          // sort equations into the map
+          std::pair<StdVector<Integer>,StdVector<Integer> > eqnPair (eqnVec1,eqnVec2);
+          eqnVecs[fctIdPair] = eqnPair;
+
+          // sort context to map
+          counterParts[fctIdPair] = actContext.IsSetCounterPart();
+
+
+          //          FEMatrixType secDestMat = actContext.GetSecDestMat();
+
+          // get secondary matrix factor string
+          //          Double secMatFac = actContext.EvalSecMatFac();
+
+          // If assemble was already called and the current destination
+          // matrix must not be reassembled -> continue with next iterator
+          //          if( matReassemble_[destMat] == false ) {
+          //            continue;
+          //          }
+          //
+          //          // Update flag
+          //          matrixUpdated_ = true;
+
+          BiLinearForm * form = actContext.GetIntegrator();
+
+          // make only output if desired
+          if( printProgressBar_) {
+            ++progress;
+            std::cout << progStream.str();
+            progStream.str("");
+          }
+
+          // Calc element matrix
+          if ( form->IsComplex() ){
+            EXCEPTION("Complex form not implemented yet");
+            //form->CalcElementMatrix( elemMatrixC, it1, it2 );
+            //cElemMats[fctIdPair][destMat] += elemMatrixC;
+          } else {
+            form->CalcElementMatrix( elemMatrix, it1, it2 );
+            if(actContext.IsSetNegate()== true){
+              assert(!form->IsComplex());
+              elemMatrix*= (-1.0);
+            }
+
+            // insert element matrix to dest (needed later to construct rhs)
+            InsertMatrix( destMat, actContext, elemMatrix,
+                          eqnVec1, eqnVec2,
+                          fctId1, fctId2, true);
+
+
+            if(rElemMats[fctIdPair].count(destMat) == 0){
+              rElemMats[fctIdPair][destMat] = elemMatrix;
+            } else {
+              rElemMats[fctIdPair][destMat] += elemMatrix;
+            }
+          }
+
+          // calc element matrix for second destination (for damping!)
+          if (secDestMat != NOTYPE ) { // Check for secondary matrix type
+            Double dampFactor = 1.0;
+            // get secondary matrix factor string
+            Double secMatFac = actContext.EvalSecMatFac();
+
+            // damping with "exotic" complex material
+            if ( form->IsComplex() ) {
+              EXCEPTION("Complex form not implemented yet");
+              // complex damping
+              //elemMatrixC *= secMatFac * dampFactor;
+
+              // Pass secondary matrix part to algebraic system
+              //InsertMatrix(secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2, true);
+            }
+            // "standard" Rayleigh damping. Includes the standard SIMP optimization!
+            else {
+              // Rayleigh damping
+              elemMatrix *= secMatFac * dampFactor;
+              LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " Rayleigh damping form=" << form->GetName() << " sMF=" << secMatFac << " df=" <<  dampFactor;
+              // Pass secondary matrix part to algebraic system
+              InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2, true);
+
+              if(rElemMats[fctIdPair].count(secDestMat) == 0){
+                rElemMats[fctIdPair][secDestMat] = elemMatrix;
+              } else {
+                rElemMats[fctIdPair][secDestMat] += elemMatrix;
+              }
+            }
+          } // handle secDestMat != NOTYPE
+
+        } // loop over bilinearforms
+      } catch (Exception& e) {
+        RETHROW_EXCEPTION(e, "Could not calculate element matrix of "
+                          << "BiLinearForm"  );
+      }
+
+
+      // up till now we have gathered for the current element all element-matrix-parts
+      // sorted by function IDs
+      // in the next step we loop over all function IDs and combine the element-matrix-parts
+      // with the corresponding time-stepping factors to the complete element-matrix (w.r.t. a fctId-pair)
+      // These element matrices can be passed to the algsys which can apply static condensation to it
+      // NOTE: static condensation only for single fields so far! for coupled fields the element matrices for
+      //       each fctId-pair have to be collected in a super-element matrix to which static condensation can
+      //       then be applied
+
+      std::map< std::pair<FeFctIdType,FeFctIdType>, bool >::iterator mapIt;
+      // loop over all fucntionIds pairs
+      for(mapIt = counterParts.begin(); mapIt != counterParts.end(); ++mapIt){
+
+        // get key pair
+        std::pair<FeFctIdType,FeFctIdType> keyPair = mapIt->first;
+
+        // combine timestepping factors with matrices
+        Matrix<Double> rElemMatSummed;
+        //Matrix<Complex> cElemMatSummed;
+        UInt count = 0;
+
+        std::map<FEMatrixType,Double>::iterator timeIt;
+        for ( timeIt = timeStepFactors[keyPair.first].begin(); timeIt != timeStepFactors[keyPair.first].end(); timeIt++ ) {
+
+          if ( rElemMats[keyPair].count(timeIt->first) == 1 && (*timeIt).second != 0.0 ) {
+
+            if(count == 0){
+              rElemMatSummed = timeIt->second*rElemMats[keyPair][(*timeIt).first];
+            }else{
+              rElemMatSummed += timeIt->second*rElemMats[keyPair][(*timeIt).first];
+            }
+            count++;
+          }
+          //              if ( cElemMats[keyPair][(*it).first] != NULL  && (*it).second != 0.0 ) {
+          //                if(count == 0){
+          //                  cElemMatSummed = it->second*cElemMats[keyPair][(*it).first];
+          //                }else{
+          //                  cElemMatSummed += it->second*cElemMats[keyPair][(*it).first];
+          //                }
+          //              }
+        }
+
+        // now we can sort in the summed up matrices
+        algsys_->SetElementMatrix( SYSTEM, rElemMatSummed,
+                                   keyPair.first, eqnVecs[keyPair].first,
+                                   keyPair.second, eqnVecs[keyPair].second,
+                                   mapIt->second,false);
+
+      }
+
+    } // loop over entities
+  }// loop over entitylist pairs
+  // Change flag
+  isFirstTime_ = false;
+
+  // We have assembled all matrices, we will not do so next time
+  // except: CheckNonLinearities sets one of these, or Optimization does
+  matReassemble_.clear();
+
+  timer_->Stop();
+
+}
+
+
+void Assemble::AssembleMatrices_Cond(bool isNewtonPart) {
+
+  Matrix<Double> elemMatrix;
+  Matrix<Complex> elemMatrixC;
+  StdVector<Integer> eqnVec1, eqnVec2;
+  FeFctIdType fctId1, fctId2;
+
+  timer_->Start();
+
+  // Reset for matrix update
+  matrixUpdated_ = false;
+
+  // Temporary: Check each time for non-linearities
+  // On first Assembly, assemble all matrices for each BilinearForm
+  CheckNonLinearities(isFirstTime_);
+
+  // Init all matrices, which have to be reassembled
+  std::map<FEMatrixType, bool>::iterator it;
+  for( it = matReassemble_.begin(); it != matReassemble_.end(); it++ ) {
+    if( it->second == true ) {
+      LOG_DBG2(assemble) << "AssembleMatrices: init matrix " << it->first;
+      algsys_->InitMatrix( matrixMap_[it->first] );
+    }
+  }
+
+  // temporary matrices
+  Matrix<Double> rElemMat;
+  Matrix<Complex> cElemMat;
+
+  // iterate over all entitylist-pairs and
+  BiLinContextListType::iterator listIt = biLinForms_.begin();
+  for ( ; listIt != biLinForms_.end(); ++listIt) {
+    StdVector<BiLinFormContext*> & forms = listIt->second;
+    EntityList& firstEntities = *(listIt->first.first);
+    EntityList& secondEntities = *(listIt->first.second);
+    UInt size = firstEntities.GetSize();
+
+    if( printProgressBar_) {
+      std::cout << "  - Calculating BiLinearForms on '"
+          << firstEntities.GetName()
+          << " (" << size << " elements)'\n";
+    }
+    // Total work: numElement x numForms
+    std::stringstream progStream;
+    boost::progress_display progress( size*forms.GetSize(),
+                                      progStream );
+
+
+    // Loop over all entities
+    EntityIterator it1 = firstEntities.GetIterator();
+    EntityIterator it2 = secondEntities.GetIterator();
+    for( it1.Begin(); !it1.IsEnd(); it1++, it2++ ) {
+      LOG_DBG2(assemble) << "\telems are " << it1.GetElem()->elemNum
+          << " and " << it2.GetElem()->elemNum;
+      try {
+        // Loop over all bilinearforms
+        for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
+
+          BiLinFormContext & actContext = *forms[iForm];
+
+          //LOG_DBG(assemble)
+          //std::cout << "AssembleMatrices for bilinform " << actContext.GetIntegrator()->GetName();
+          //LOG_DBG2(assemble)
+          //std::cout << "bilinform=" << actContext.ToString();
+
+          // get matrix destinations
+          FEMatrixType destMat = actContext.GetDestMat();
+          //          FEMatrixType secDestMat = actContext.GetSecDestMat();
+
+          // get secondary matrix factor string 
+          //          Double secMatFac = actContext.EvalSecMatFac();
+
+          // If assemble was already called and the current destination
+          // matrix must not be reassembled -> continue with next iterator
+          if( matReassemble_[destMat] == false ) {
+            continue;
+          }
+
+          // Update flag
+          matrixUpdated_ = true;
+
+          BiLinearForm * form = actContext.GetIntegrator();
+
+
+          // make only output if desired
+          if( printProgressBar_) {
+            ++progress;
+            std::cout << progStream.str();
+            progStream.str("");
+          }
+
+          // Calc element matrix
+          if ( form->IsComplex() ){
+            form->CalcElementMatrix( elemMatrixC, it1, it2 );
+            cElemMat += elemMatrixC;
+          } else {
+            form->CalcElementMatrix( elemMatrix, it1, it2 );
+            if(actContext.IsSetNegate()== true){
+              assert(!form->IsComplex());
+              elemMatrix*= (-1.0);
+            }
+            if(iForm == 0) {
+              rElemMat = elemMatrix;
+            } else {
+
+              rElemMat += elemMatrix;
+            }
+          }
+
+          //            // info.xml logging in detailed logging case for the first element only
+          //            if(i == 0 && progOpts->DoDetailedInfo())
+          //            {
+          //              PtrParamNode in = info->Get("PDE")->Get(actContext.GetFirstPde()->GetName())->Get(ParamNode::PN_PROCESS)->Get("matrices");
+          //              in = in->Get("tensor", ParamNode::APPEND);
+          //              in->Get("form")->SetValue(form->GetName());
+          //              in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId));
+          //              in->Get("element")->SetValue(it1.GetElem()->elemNum);
+          //              // it makes sense to add the analysis id here
+          //              if(form->IsComplex())
+          //                in->Get("matrix")->SetValue(elemMatrixC);
+          //              else
+          //              {
+          //                in->Get("matrix")->SetValue(elemMatrix);
+          //              }
+          //            }
+
+          //            LOG_DBG3(assemble) << "CalcElemMatrix " << i << " -> " << (form->IsComplex() ? elemMatrixC.ToString(0) : elemMatrix.ToString(0));
+          //            LOG_DBG2(assemble) << "CalcElemMatrix " << i << " -> " << (form->IsComplex() ? elemMatrixC.ToString(1) : elemMatrix.ToString(1));
+
+          // Map equation numbers
+          actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
+          // Perform remapping
+          ReMapEquations(eqnVec1, fctId1);
+          ReMapEquations(eqnVec2, fctId2);
+
+        } // loop over bilinearforms    // increment iterators
+        //            assert((form->IsComplex() &&
+        //                    eqnVec1.GetSize() == elemMatrixC.GetNumRows() &&
+        //                    eqnVec2.GetSize() == elemMatrixC.GetNumCols()) || !form->IsComplex());
+        //            assert((!form->IsComplex() &&
+        //                    eqnVec1.GetSize() == elemMatrix.GetNumRows() &&
+        //                    eqnVec2.GetSize() == elemMatrix.GetNumCols()) || form->IsComplex());
+
+        // Pass element matrix to algebraic system (primary matrix)
+        //            if ( form->IsComplex() )
+        //              InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
+        //            else
+        // HARD-CODED Section:
+        // just take last bilinearform and ask everything from there
+        BiLinFormContext &  actContext = *forms.Last();
+        //BaseForm * form = actContext.GetIntegrator();
+        FEMatrixType destMat = actContext.GetDestMat();
+        //               FEMatrixType secDestMat = actContext.GetSecDestMat();
+        //               Double secMatFac = actContext.EvalSecMatFac();
+
+        InsertMatrix( destMat, actContext, rElemMat, eqnVec1, eqnVec2, fctId1, fctId2);
+
+        // if optimization provides Damping Parameters, we use them, and ignore everything else
+        //double secMatFacOpt = 0.0;
+        //          if(domain->HasErsatzMaterialDamping() &&
+        //              domain->GetErsatzMaterial()->GetErsatzMaterialDampingParameterForIntegrator(it1.GetElem(), form, secMatFacOpt)){
+        //            elemMatrix *= secMatFacOpt; // only in non-complex case, complex is not known in ParamMat
+        //            InsertMatrix(DAMPING, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
+        //          }else
+        //            if (secDestMat != NOTYPE ) { // Check for secondary matrix type
+        //              EXCEPTION("We do not want a second matrix factor");
+        //              Double dampFactor = 1.0;
+        //
+        //              // damping with "exotic" complex material
+        //              if ( form->IsComplex() ) {
+        //                // complex damping
+        //                elemMatrixC *= secMatFac * dampFactor;
+        //
+        //                // Pass secondary matrix part to algebraic system
+        //                InsertMatrix(secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
+        //              }
+        //              // "standard" Rayleigh damping. Includes the standard SIMP optimization!
+        //              else {
+        //                // Rayleigh damping
+        //                elemMatrix *= secMatFac * dampFactor;
+        //                LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " Rayleigh damping form=" << form->GetName() << " sMF=" << secMatFac << " df=" <<  dampFactor;
+        //                // Pass secondary matrix part to algebraic system
+        //                InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2);
+        //              }
+        //              // optionally with do SIMP pamping (intermediate material has complex mass damping)
+        //              //            if(domain->GetErsatzMaterialPamping(it1.GetElem(), form, elemMatrix)) {
+        //              //              LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " pamping form=" << form->GetName() << " add=" << elemMatrix.ToString();
+        //              //              InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
+        //              //            }
+        //
+        //            } // handle secDestMat != NOTYPE
+
+
+      } catch (Exception& e) {
+        RETHROW_EXCEPTION(e, "Could not calculate element matrix of "
+                          << "BiLinearForm"  );
+      }
+
+    } // loop over entities
+  }// loop over entitylist pairs
+  // Change flag
+  isFirstTime_ = false;
+
+  // We have assembled all matrices, we will not do so next time
+  // except: CheckNonLinearities sets one of these, or Optimization does
+  matReassemble_.clear();
+
+  timer_->Stop();
+}
+
+
+void Assemble::AssembleLinRHS()
+{
+  AssembleRHSLinForms(false );
+}
+
+void Assemble::AssembleNonLinRHS() {
+  AssembleRHSLinForms(true );
+}
+
+void Assemble::AssembleRHSLinForms(bool nonLin ) {
+
+  StdVector<Integer> eqnVec;
+  FeFctIdType fctId;
+  StdVector<LinearFormContext*>::iterator formsIt;
+
+  // iterate over all descriptors
+  for ( formsIt = linForms_->Begin();
+      formsIt != linForms_->End();
+      formsIt++ ) {
+
+    // get integrator
+    LinearFormContext & actContext = **formsIt;
+
+    // Check, if lin/non-lin type of Context matches parameter nonLin
+    if( actContext.IsNonLin() != nonLin ) {
+      continue;
+    }
+
+    LinearForm * form = actContext.GetIntegrator();
+
+    try {
+
+      // get entity iterator
+
+      EntityIterator  entIt = actContext.GetEntities()->GetIterator();
+      UInt size = actContext.GetEntities()->GetSize();
+
+      if( printProgressBar_) {
+        std::cout << "  - Calculating '" << form->GetName() << "' on '"
+            << actContext.GetEntities()->GetName()
+            << " (" << size << " elements)'\n";
+      }
+
+      std::stringstream progStream;
+      boost::progress_display progress( size, progStream );
+
+      if ( analysisType_ == BasePDE::HARMONIC ) {
+
+        Vector<Complex> elemVec;
+        for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
+          // make only output if desired
+          if( printProgressBar_) {
+            ++progress;
+            std::cout << progStream.str();
+            progStream.str("");
+          }
+
+          // Calculate complex valued element vector
+          form->CalcElemVector( elemVec, entIt );
+
+          // Map equation numbers
+          actContext.MapEqns( entIt, eqnVec, fctId );
+          // Perform remapping
+          ReMapEquations(eqnVec, fctId);
+
+          assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
+
+          algsys_-> SetElementRHS( elemVec,
+                                   fctId, eqnVec );
+        }
+
+      } else {
+
+        // That should be STATIC, TRANSIENT or EIGENFREQUENCY
+
+        Vector<Double> elemVec;
+        // iterate over all entities
+        for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
+
+          // make only output if desired
+          if( printProgressBar_) {
+            ++progress;
+            std::cout << progStream.str();
+            progStream.str("");
+          }
+
+          // Calculate real valued element vector
+          form->CalcElemVector( elemVec, entIt );
+
+          // Map equation numbers
+          actContext.MapEqns( entIt, eqnVec, fctId );
+
+          // Perform remapping
+          ReMapEquations(eqnVec, fctId);
+
+          assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
+          // Pass element vector to algebraic system
+          algsys_-> SetElementRHS( elemVec,
+                                   fctId, eqnVec );
+        }
+
+      }
+    } catch (Exception& e) {
+      RETHROW_EXCEPTION(e, "Could not calculate RHS vector for LinearForm '"
+                        << form->GetName() << "' on '"
+                        << actContext.GetEntities()->GetName() << "'" );
+    }
+  }
+}
+
+void Assemble::ToInfo(PtrParamNode in)
+{
+  PtrParamNode list = in->Get("matrixBiLinearForms");
+
+  // iterate over all descriptors
+  std::set<BiLinFormContext*>::iterator it;
+  for ( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ )
+  {
+    // get integrator
+    BiLinFormContext & context = **it;
+
+    PtrParamNode form = list->Get("bilinearForm", ParamNode::APPEND);
+    // integrator name
+    form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
+
+    // region name of entity list
+    std::string regionName;
+    if( context.GetFirstEntities()->GetType() == EntityList::ELEM_LIST )
+    {
+      shared_ptr<ElemList> list =
+          boost::dynamic_pointer_cast<ElemList,EntityList>
+      (context.GetFirstEntities());
+      regionName = list->GetName();
+    }
+    else if ( context.GetFirstEntities()->GetType() == EntityList::SURF_ELEM_LIST )
+    {
+      shared_ptr<SurfElemList> list =
+          boost::dynamic_pointer_cast<SurfElemList,EntityList>
+      (context.GetFirstEntities());
+      regionName = list->GetName();
+    }
+    form->Get("region")->SetValue(regionName);
+
+    // add information about row / column coordinate
+    PtrParamNode row = form->Get("row", ParamNode::APPEND);
+    PtrParamNode col = form->Get("column", ParamNode::APPEND);
+
+    // associated PDEs
+    row->Get("pde")->SetValue(context.GetFirstPde()->GetName());
+    col->Get("pde")->SetValue(context.GetSecondPde()->GetName());
+
+    // associated FeFunctions
+    assert(context.GetFirstFeFunction().lock());
+    assert(context.GetSecondFeFunction().lock());
+    row->Get("functionId")->SetValue(context.GetFirstFeFunction().lock()->GetFctId());
+    col->Get("functionId")->SetValue(context.GetSecondFeFunction().lock()->GetFctId());
+
+    // associated result types
+    std::string tmp;
+    tmp = SolutionTypeEnum.ToString(context.GetFirstResultInfo()->resultType);
+    row->Get("result")->SetValue(tmp);
+    tmp = SolutionTypeEnum.ToString(context.GetSecondResultInfo()->resultType);
+    col->Get("result")->SetValue(tmp);
+
+    // matrix destination
+    PtrParamNode dest = form->Get("destination", ParamNode::APPEND);
+
+    // original destination matrix
+    Enum2String(context.GetDestMat(), tmp );
+    dest->Get("feMatrix")->SetValue(tmp);
+
+    // mapped destination matrix
+    Enum2String(matrixMap_[context.GetDestMat()], tmp );
+    dest->Get("feMatrixMapped")->SetValue(tmp);
+
+    // secondary destination matrix and factor
+    Enum2String(context.GetSecDestMat(), tmp );
+    dest->Get("feSecondMatrix")->SetValue(tmp);
+    dest->Get("feSecondMatrixFac")->SetValue(context.GetSecMatFac());
+
+    // additional attributes
+    PtrParamNode attr = form->Get("attributes", ParamNode::APPEND);
+
+    // entry Type (real / imag)
+    tmp = Global::complexPart.ToString(context.GetEntryType());
+    attr->Get("entryType")->SetValue( tmp );
+
+    // flag setcounterpart
+    tmp = context.IsSetCounterPart() ? "yes" : "no";
+    attr->Get("counterPart")->SetValue( tmp );
+
+    // issymmetric
+    tmp = context.GetIntegrator()->IsSymmetric() ? "yes" : "no";
+    attr->Get("symmetric")->SetValue( tmp );
+
+    //      // isSolDependent
+    //      tmp = context.GetIntegrator()->IsSolDependent() ? "yes" : "no";
+    //      attr->Get("solutionDependent")->SetValue( tmp );
+    //
+    //      // updated geometry
+    //      tmp = context.GetIntegrator()->IsCoordUpdate() ? "yes" : "no";
+    //      attr->Get("updatedGeo")->SetValue( tmp );
+
+  }
+
+  list = in->Get("rhsLinearForms");
+
+  // iterate over all descriptors
+  StdVector<LinearFormContext*>::iterator linIt;
+  for (linIt = linForms_->Begin(); linIt != linForms_->End(); linIt++)
+  {
+    PtrParamNode form = list->Get("linearForm", ParamNode::APPEND);
+
+    // get integrator
+    LinearFormContext & context = **linIt;
+
+    form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
+
+    // region name of entity list
+    std::string regionName;
+    if( context.GetEntities()->GetType() == EntityList::ELEM_LIST )
+    {
+      shared_ptr<ElemList> list =
+          boost::dynamic_pointer_cast<ElemList,EntityList>
+      (context.GetEntities());
+      regionName = list->GetName();
+    }
+    else if ( context.GetEntities()->GetType() == EntityList::SURF_ELEM_LIST )
+    {
+      shared_ptr<SurfElemList> list =
+          boost::dynamic_pointer_cast<SurfElemList,EntityList>
+      (context.GetEntities());
+      regionName = list->GetName();
+    }
+
+    form->Get("region")->SetValue(regionName);
+
+
+    // add information about row / column coordinate
+    PtrParamNode row = form->Get("row", ParamNode::APPEND);
+
+    // associated PDEs
+    row->Get("pde")->SetValue(context.GetPde()->GetName());
+
+    // associated result types
+    std::string tmp;
+    tmp = SolutionTypeEnum.ToString(context.GetResultInfo()->resultType);
+    row->Get("result")->SetValue(tmp);
+
+  }
+}
+
+
+void Assemble::CheckNonLinearities(bool setall) {
+  // iterate over all bilinearforms
+  std::set<BiLinFormContext*>::iterator it;
+
+  for( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ )
+  {
+    BiLinFormContext & actContext = **it;
+
+    if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || setall)
+    {
+      matReassemble_[actContext.GetDestMat()] = true;
+      if ( actContext.GetSecDestMat() != NOTYPE )
+        matReassemble_[actContext.GetSecDestMat()] = true;
+    }
+  }
+  // Now we know which matrices are nonlinear (e.g. due to nonlinear stiffnes integrator)
+  // However, due to the secondaryMatrix-mechanism it could happen, that initially only
+  // the STIFFNESS matrix is set to reassemble. Due to the secondary matrix factor of
+  // the linear stiffness itegrator, also the DAMPING matrix has to be re-assembled
+  // (first additional loop). In a next loop, we determine, that also the MASS integrator
+  // has to be re-assembled, as his secondary-matrix is the DAMPING one, which also
+  // has to be re-assembled (second loop). So to be on the save side and resolve
+  // all dependencies (i.e. all matrices have to be re-assembled), we perform
+  // the check 3 time.
+
+  for( UInt i = 0; i < 3; ++i ) {
+    for( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ ) {
+      BiLinFormContext & actContext = **it;
+      bool oneIsNonLin = false;
+
+      // check primary or secondary matrix is nonlinear
+      if( matReassemble_[actContext.GetDestMat()] == true ||
+          ( actContext.GetSecDestMat() != NOTYPE &&
+              matReassemble_[actContext.GetSecDestMat()] == true) ) {
+        oneIsNonLin = true;
+      }
+      if( oneIsNonLin ) {
+        matReassemble_[actContext.GetDestMat()] = true;
+        if( actContext.GetSecDestMat() != NOTYPE )
+          matReassemble_[actContext.GetSecDestMat()] = true;
+      }
+    } // loops over integrators
+  } // 3 loops
+  if( IS_LOG_ENABLED( assemble, dbg) ) {
+    // Finally print status of matrices
+    std::map<FEMatrixType, bool>::const_iterator it2 =  matReassemble_.begin();
+    LOG_DBG(assemble) <<  "Status for matrix re-assembly: ";
+    for( ; it2 != matReassemble_.end(); ++it2) {
+      LOG_DBG(assemble) <<  "\t" << feMatrixType.ToString(it2->first)
+                                            << ": " << (it2->second ? "true" : "false");
+    }
+
+  }
+}
+
+void Assemble::Matrix2Harmonic(Matrix<Complex>& harmMat,
+                               Matrix<Double>& origMat,
+                               FEMatrixType matrixType,
+                               Global::ComplexPart entryType,
+                               Double omega ) {
+
+  Double factor = 0.0;
+  UInt derivOrder = 0;
+  // first determine factor of due to time derivative: d/dt = jOmega
+  // 0: stiffness
+  // 1: damping / mass
+  // 2: mass
+  switch( matrixType ) {
+    case STIFFNESS:
+      derivOrder = 0;
+      factor = 1;
+      break;
+    case DAMPING:
+      derivOrder = 1;
+      factor = omega;
+      break;
+    case MASS:
+      derivOrder = 2;
+      factor = -omega*omega;
+      break;
+    default:
+      EXCEPTION("No default conversion from double entries to matrix type"
+          << matrixType << "known" );
+  }
+
+  // determine if destination is real / imaginary part
+  // if time derivative is 0 or 2, a real part stay a real part
+  // and a imaginary one a imaginary one.
+  // Only if the derivative oder = 1, we have to interchange them
+  Global::ComplexPart destType;
+  if( derivOrder == 1 ) {
+    destType = (entryType == Global::REAL) ? Global::IMAG : Global::REAL;
+  } else {
+    destType = entryType;
+  }
+
+  harmMat.Resize( origMat.GetNumRows(), origMat.GetNumCols() );
+  harmMat.SetPart( destType, origMat );
+  harmMat *= factor;
+}
+
+void Assemble::Matrix2Harmonic(Matrix<Complex>& harmMat,
+                               Matrix<Complex>& origMat,
+                               FEMatrixType matrixType,
+                               Global::ComplexPart entryType,
+                               Double omega ) {
+
+  Complex factor(0.0, 0.0);
+  // first determine factor of due to time derivative: d/dt = jOmega
+  // 0: stiffness
+  // 1: damping / mass
+  // 2: mass
+  switch( matrixType ) {
+    case STIFFNESS:
+      factor = Complex(1.0, 0.0);
+      break;
+    case DAMPING:
+      factor = Complex(0.0, omega);
+      break;
+    case MASS:
+      factor = Complex(-omega*omega, 0.0);
+      break;
+    default:
+      EXCEPTION("No default conversion from double entries to matrix type"
+          << matrixType << "known" );
+  }
+  harmMat = origMat * factor;
+
+}
+
+
+void Assemble::CreateMatrixMap()
+{
+
+  // Dependent on the type of analysis, only certain matrix types
+  // (SYSTEM, STIFFNESS, MASS, DAMPING, CONVECTION, ...) are present.
+  switch(analysisType_)
+  {
+    case BasePDE::STATIC:
+      matrixMap_[SYSTEM]    = SYSTEM;
+      matrixMap_[STIFFNESS] = SYSTEM;
+      matrixMap_[DAMPING]   = NOTYPE;
+      matrixMap_[MASS]      = NOTYPE;
+      matrixMap_[AUXILIARY] = NOTYPE;
+      break;
+
+    case BasePDE::TRANSIENT:
+      matrixMap_[SYSTEM]    = SYSTEM;
+      matrixMap_[STIFFNESS] = STIFFNESS;
+      matrixMap_[DAMPING]   = DAMPING;
+      matrixMap_[MASS]      = MASS;
+      matrixMap_[AUXILIARY] = AUXILIARY;
+      break;
+
+    case BasePDE::HARMONIC:
+      matrixMap_[SYSTEM]    = SYSTEM;
+      matrixMap_[STIFFNESS] = SYSTEM;
+      matrixMap_[DAMPING]   = SYSTEM;
+      matrixMap_[MASS]      = SYSTEM;
+      matrixMap_[AUXILIARY] = AUXILIARY; // optimization for radiation needs this
+      break;
+
+    case BasePDE::EIGENFREQUENCY:
+      matrixMap_[SYSTEM]    = NOTYPE;
+      matrixMap_[STIFFNESS] = STIFFNESS;
+      matrixMap_[DAMPING]   = DAMPING;
+      matrixMap_[MASS]      = MASS;
+      matrixMap_[AUXILIARY] = NOTYPE;
+      break;
+
+    default: 
+      EXCEPTION("Analysistype '" << BasePDE::analysisType.ToString(analysisType_) 
+                << "' not known!");
+  }
+}
+
+void Assemble::ReMapEquations( StdVector<Integer>&  eqns,
+                               FeFctIdType& fctId) {
+  if( customEqnMap_.size() == 0 )
+    return;
+
+  UInt numEqns = eqns.GetSize();
+  StdVector<Integer> tmp(numEqns);
+  for( UInt i = 0; i < numEqns; ++i )  {
+    tmp[i] = customEqnMap_[eqns[i]];
+  }
+  eqns = tmp;
+  fctId = customFctIdMap_[fctId];
+}
+
+void Assemble::ReMapFctId(  FeFctIdType& fctId ) {
+  if( customFctIdMap_.size() != 0 ) {
+    std::map<FeFctIdType, FeFctIdType>::const_iterator it;
+    it = customFctIdMap_.find(fctId);
+    if( it != customFctIdMap_.end() ) {
+      fctId = it->second;
+    } else {
+      EXCEPTION("Can not re-map FeFct with id '" << fctId << "'");
+    }
+  }
+}
+
+bool Assemble::IsFEMatSymmetric( BiLinFormContext* actCt  ) {
+
+
+  bool isSymmetric = true;
+  // set collecting all diagonal-positions
+  std::set<shared_ptr<ResultInfo> > allResults, diagResults;
+
+  // Check, where bilinearform gets assembled to diagonal block
+  if( (actCt->GetFirstFeFunction().lock() == actCt->GetSecondFeFunction().lock())
+      && (actCt->GetFirstEntities() == actCt->GetSecondEntities() ) ) {
+
+    // Bilinearform gets assembled to main diagonal.
+    // If bilinearform is non-symmetric, so is the related FE-matrix
+    if( !actCt->GetIntegrator()->IsSymmetric()  ) {
+      isSymmetric = false;
+    }
+  } else {
+
+    // BiLinearform gets assembled to off-diagonal block.
+
+    // If the bilinearorm is also assembled to the transposed block
+    // we assume that the matrix still remains symmetric.
+    // Otherwise we assume, that we need a non-symmetric matrix.
+    if( !actCt->IsSetCounterPart() ) {
+      isSymmetric= false;
+    }
+  }
+
+  // return flag for matrix of interest
+  return isSymmetric;
+}
+
+bool Assemble::IsFEMatComplex( BiLinFormContext* actCt  ) {
+
+  bool isComplex = false;
+  if (actCt->GetIntegrator()->IsComplex() ||
+      analysisType_ == BasePDE::HARMONIC ) {
+    isComplex = true;
+  }
+  return isComplex;
+}
+
+
+void Assemble::InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
+                             Matrix<Double>& elemMat,
+                             StdVector<Integer>& eqnVec1,
+                             StdVector<Integer>& eqnVec2,
+                             FeFctIdType fctId1, FeFctIdType fctId2,
+                             bool unsetStaticCondensation)
+{
+  // map original matrix destination to analysis-dependent one
+  FEMatrixType mappedDest = matrixMap_[dest];
+
+  Matrix<Complex> harmMat;
+  // if destination matrix is NOTYPE -> leave
+  if( mappedDest == NOTYPE )
+    return;
+
+  assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
+
+  if( analysisType_ == BasePDE::TRANSIENT
+      || analysisType_ == BasePDE::STATIC
+      || analysisType_ == BasePDE::EIGENFREQUENCY) {
+    algsys_->SetElementMatrix( mappedDest, elemMat,
+                               fctId1, eqnVec1,
+                               fctId2, eqnVec2,
+                               context.IsSetCounterPart(),unsetStaticCondensation );
+
+  } else {
+    assert(analysisType_ == BasePDE::HARMONIC);
+
+    Double omega = mp_->Eval( mHandle_ );
+
+    Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
+    algsys_->SetElementMatrix( mappedDest, harmMat,
+                               fctId1, eqnVec1,
+                               fctId2, eqnVec2,
+                               context.IsSetCounterPart(),unsetStaticCondensation );
+  }
+
+}
+
+void Assemble::InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
+                             Matrix<Complex>& elemMat,
+                             StdVector<Integer>& eqnVec1,
+                             StdVector<Integer>& eqnVec2,
+                             FeFctIdType fctId1, FeFctIdType fctId2, bool unsetStaticCondensation) {
+  Matrix<Complex> harmMat;
+
+  // map original matrix destination to analysis-dependent one
+  FEMatrixType mappedDest = matrixMap_[dest];
+
+  assert(mappedDest != NOTYPE);
+  assert(analysisType_ == BasePDE::HARMONIC);
+
+  assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
+  Double omega = mp_->Eval( mHandle_ );
+
+  Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
+
+  algsys_->SetElementMatrix( mappedDest, harmMat, fctId1, eqnVec1,
+                             fctId2, eqnVec2, context.IsSetCounterPart(),unsetStaticCondensation );
+}
+
+
+}

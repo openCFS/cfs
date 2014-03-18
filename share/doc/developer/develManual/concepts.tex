@@ -1,0 +1,264 @@
+\chapter{Concepts}
+
+\section{General Overview}
+\section{FE-Space}
+\section{FE-Function}
+\section{Integrator}
+\section{BOperator}
+\section{CoefficientFunction}
+\section{TimeStepping}
+\input{timestepping}
+\section{Driver}
+\section{Matrix / Vector}
+\section{AlgSys}
+\section{ParamNode}
+\section{Elements}
+
+\label{sec:cfs_element_types}
+
+\begin{figure}[htb] 
+  \centering 
+  \begin{overpic}[scale=0.7]{pics/cfs_elem_types}
+    \put(4.5,96){\sf {\textcolor{blue}{TRIA3}} (4), {\textcolor{red}{TRIA6}} (5)}
+    \put(6,78){\sf {\small 1}}
+    \put(19.5,78){\sf {\small 2}}
+    \put(5,94){\sf {\small 3}}
+    \put(12.5,78){\sf {\small 4}}
+    \put(13.7,87){\sf {\small 5}}
+    \put(5,87){\sf {\small 6}}
+
+    \put(-6.5,86.2){{\sf {\tiny \shortstack[c]{1 = (0 0 0), 2 = (1 0 0),\\3 = (0 1 0), 4 = (0.5 0 0)\\5 = (0.5 0.5 0),\\6 = (0 0.5 0)}}}}
+
+    \put(27,90.5){\sf {\textcolor{blue}{LINE2}} (2), {\textcolor{red}{LINE3}} (3)}
+    \put(28.3,86.3){\sf {\small 1}}
+    \put(41.5,83.5){\sf {\small 2}}
+    \put(34.5,85){\sf {\small 3}}
+
+    \put(32,79.5){{\sf {\tiny \shortstack[c]{1 = (-1, 0, 0)\\2 = (1, 0, 0)\\3 = (0, 0, 0)}}}}
+
+    \put(42,96){\sf {\textcolor{blue}{QUAD4} (6)}, {\textcolor{red}{QUAD8}} (7), {\textcolor{green}{QUAD9}} (8)}
+    \put(49.2,78){\sf {\small 1}}
+    \put(65.5,78){\sf {\small 2}}
+    \put(65.5,93.5){\sf {\small 3}}
+    \put(49.2,93.3){\sf {\small 4}}
+
+    \put(57.5,78){\sf {\small 5}}
+    \put(65.5,86.5){\sf {\small 6}}
+    \put(57.2,92){\sf {\small 7}}
+    \put(49.2,86.5){\sf {\small 8}}
+    \put(58.5,86.5){\sf {\small 9}}
+
+    \put(68,85){{\sf {\tiny \shortstack[c]{1 = (-1 -1 0), 2 = (1 -1 0),\\3 = (1 1 0), 4 = (-1  1 0),\\5 = (0 -1 0), 6 = (1 0 0),\\7 = (0 1 0), 8 = (-1  0 0),\\9 = (0 0 0)}}}}
+
+    \put(5,68){\sf {\textcolor{blue}{TET4}} (9), {\textcolor{red}{TET10}} (10)}
+    \put(17,49){\sf {\small 1}}
+    \put(27,41){\sf {\small 2}}
+    \put(30,55.5){\sf {\small 3}}
+    \put(15.5,66){\sf {\small 4}}
+
+    \put(21.5,45.5){\sf {\small 5}}
+    \put(29.5,49){\sf {\small 6}}
+    \put(24,54.3){\sf {\small 7}}
+
+    \put(15.5,57.5){\sf {\small 8}}
+    \put(23,56){\sf {\small 9}}
+    \put(24.5,60){\sf {\small 10}}
+
+    \put(-2,54){{\sf {\tiny \shortstack[c]{1 = (0 0 0), 2 = (1 0 0), \\3 = (0 1 0), 4 = (0 0 1), \\5 = (0.5 0 0), 6 = (0.5 0.5 0),\\7 = (0 0.5 0), 8 = (0 0 0.5),\\9 = (0.5 0 0.5), 10 = (0 0.5 0.5)}}}}
+
+    \put(36,72){\sf {\textcolor{blue}{HEXA8}} (11), {\textcolor{red}{HEXA20}} (12), {\textcolor{green}{HEXA27}} (13)}
+    \put(37.5,45.2){\sf {\small 1}}
+    \put(56,43.5){\sf {\small 2}}
+    \put(59,54){\sf {\small 3}}
+    \put(44.5,56.5){\sf {\small 4}}
+
+    \put(34,65){\sf {\small 5}}
+    \put(57,63){\sf {\small 6}}
+    \put(59.5,68.7){\sf {\small 7}}
+    \put(42,70){\sf {\small 8}}
+
+    \put(46,44.5){\sf {\small 9}}
+    \put(57.8,49.5){\sf {\small 10}}
+    \put(50,56){\sf {\small 11}}
+    \put(42,53){\sf {\small 12}}
+
+    \put(46,64.2){\sf {\small 13}}
+    \put(58.5,66){\sf {\small 14}}
+    \put(51,69.5){\sf {\small 15}}
+    \put(38.5,68.2){\sf {\small 16}}
+
+    \put(34.5,55){\sf {\small 17}}
+    \put(56.0,54.5){\sf {\small 18}}
+    \put(59,61){\sf {\small 19}}
+    \put(44.5,61.5){\sf {\small 20}}
+
+    \put(47,54){\sf {\small 21}}
+    \put(58,58){\sf {\small 22}}
+    \put(51.5,61.5){\sf {\small 23}}
+    \put(41.5,59){\sf {\small 24}}
+
+
+    \put(50,50.5){\sf {\small 25}}
+    \put(49,67){\sf {\small 26}}
+    \put(49.7,58.2){\sf {\small 27}}
+
+    \put(64,46){{\sf {\tiny \shortstack[c]{1 = (-1 -1 -1), 2 = (1 -1 -1),\\3 = (1 1 -1), 4 = (-1 1 -1), \\5 = (-1 -1 1), 6 = (1 -1 1), \\7 = (1 1 1), 8 = (-1 1 1), \\9 = (0 -1 -1), 10 = (1 0 -1), \\11 = (0 1 -1), 12 = (-1 0 -1), \\13 = (0 -1 1), 14 = (1 0 1), \\15 = (0 1 1), 16 = (-1 0 1), \\17 = (-1 -1 0), 18 = (1 -1 0), \\19 = (1 1 0), 20 = (-1 1 0), \\21 = (0 -1 0), 22 = (1 0 0), \\23 = (0 1 0), 24 = (-1 0 0), \\25 = (0 0 -1), 26 = (0 0 1),\\27 = (0 0 0) 
+}}}}
+
+
+    \put(8,37){\sf {\textcolor{blue}{WEDGE6}} (16), {\textcolor{red}{WEDGE15}} (17)}
+    \put(16.4,9.2){\sf {\small 1}}
+    \put(26.5,7.5){\sf {\small 2}}
+    \put(20.2,18){\sf {\small 3}}
+    \put(13.3,29.8){\sf {\small 4}}
+    \put(28,29){\sf {\small 5}}
+    \put(18.5,35){\sf {\small 6}}
+
+    \put(21,8.5){\sf {\small 7}}
+    \put(24,13.5){\sf {\small 8}}
+    \put(16.8,14){\sf {\small 9}}
+
+    \put(21.5,29.5){\sf {\small 10}}
+    \put(23.3,32){\sf {\small 11}}
+    \put(14,32){\sf {\small 12}}
+
+    \put(13,19.5){\sf {\small 13}}
+    \put(27.3,18.2){\sf {\small 14}}
+    \put(20.5,24.5){\sf {\small 15}}
+
+    \put(-6,16){{\sf {\tiny \shortstack[c]{1 = (1 1 0), 2 = (-1 1 0), \\3 = (-1 -1 0), 4 = (1 -1 0), \\5 = (0 0 1), 6 = (0 1 0), \\7 = (-1 0 0), 8 = (0 -1 0), \\9 = (1 0 0), 10 = (0.5 0.5 0.5), \\11 = (-0.5 0.5 0.5), 12 = (-0.5 -0.5 0.5), \\13 = (0.5 -0.5 0.5)}}}}
+
+    \put(41.5,33){\sf {\textcolor{blue}{PYRA5}} (14), {\textcolor{red}{PYRA13}} (15)}
+    \put(37,14.5){\sf {\small 1}}
+    \put(59.5,10.5){\sf {\small 2}}
+    \put(60.7,25){\sf {\small 3}}
+    \put(41.5,27.5){\sf {\small 4}}
+    \put(51,30.7){\sf {\small 5}}
+
+    \put(48,12.3){\sf {\small 6}}
+    \put(61,19){\sf {\small 7}}
+    \put(52,25){\sf {\small 8}}
+    \put(39.3,23){\sf {\small 9}}
+
+    \put(45,24){\sf {\small 10}}
+    \put(55.5,22.5){\sf {\small 11}}
+    \put(56.5,27.5){\sf {\small 12}}
+    \put(45.5,29.5){\sf {\small 13}}
+
+    \put(64,15){{\sf {\tiny \shortstack[c]{1 = (0 0 -1), 2 = (1 0 -1), \\3 = (0 1 -1), 4 = (0 0 1), \\5 = (1 0 1), 6 = (0 1 1), \\7 = (0.5 0 -1), 8 = (0.5 0.5 -1), \\9 = (0 0.5 -1), 10 = (0.5 0 1), \\11 = (0.5 0.5 1), 12 = (0 0.5 1), \\13 = (0 0 0), 14 = (1 0 0), \\15 = (0 1 0)}}}}
+
+
+
+  \end{overpic}
+  \caption{Available element types in CFS++.}
+  \label{fig:cfs_elem_types}
+\end{figure}
+
+\section{Input/Output IDs vs. Grid IDs}
+\section{Mortar FEM Implementation}
+
+\section{The Enum Class}
+\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/Enum}
+
+\section{Exceptions}
+\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/Exceptions}
+
+\section{Parameter Handling}
+\subsection{XML File and Xerces Handler}
+\subsection{ParamNode}
+\subsection{Setting Parameters Using Python and TCL Scripts}
+\section{HDF5 File Format}
+
+\subsection{Design Goals}
+
+\begin{description}
+
+\item[Manual  Convertibility] It  should  be easily  possible  to copy  around
+result datasets between files which contain the same mesh, e.g. in order to do
+comparative  studies  (e.g.   in  ParaView).   E.g.   just  the  corresponding
+ResultDescription  group and  the  groups under  the  Step groups  have to  be
+copied. The h5tool makes it  possible to change groups, datasets or attributes
+from the command line.
+
+\item[Everything in  one Place]  After having completed  a simulation  as much
+information  about the  simulation run  (e.g. input  XML file,  material file,
+machine information,  information about  other simulations after  a conversion
+step from CFX  or OpenFOAM, etc.) as possible should be  available in a single
+place.  This is  achieved by  attaching the  corresponding information  to the
+/UserData group.
+
+\item[Restart from Result  File] Especially on batch processing  systems it is
+necessesary  for a numerical  code to  have restart  capability. This  is true
+because  computational resources  are assigned  to processes  in a  time slice
+scheduling process. In order to  implement restart capability it is necessary,
+to not  only store the  primary result variable,  but also its  different time
+derivatives according  to the time  discretization scheme applied.   By saving
+this information also into the HDF5  file it becomes also possible to evaluate
+these quantities in  a post-processor. The HDF5 format  makes it also possible
+to  move restart  files between  different system  architectures  (e.g. little
+vs. big endian machines).
+
+\item[Native  Data Hub]  The HDF5  files are  considered CFS++'s  native files
+because they support every available  feature present in CFS++. These features
+contain the  ability to read/write the  mesh, the mesh based  result data, the
+history data which is restricted to  some entities in the mesh. All other pre-
+and post-processing data  formats only support a subset  of these features. By
+supporting  all  features   it  is  also  possible  to   use  HDF5  files  for
+comparisons. E.g. the whole test suite builds upon comparisons between results
+or history results in reference HDF5 files and HDF5 files generated by running
+simulations. For a format conversion matrix refer to Sec. \ref{sec:cfs_tool}.
+
+\item[Constricted File Systems] Simulation  data has to be transferred between
+different      machines.      Nowadays,      USB     devices,      CDs     and
+DVDs\footnote{\url{http://en.wikipedia.org/wiki/ISO\_9660\#The_2.2F4_GiB_file_size_limit}}
+or similar  media are the preferred  means for data  transfers.  These devices
+are however often formatted using FAT32  which restricts the file size to 2GB.
+In order to  support such file systems the  transient/harmonic datasets can be
+saved to external files which prevents the main file from growing beyond 2GB.
+
+\item[Simple Hierarchy] Some  tools for reading HDF5 files  do not support all
+features.  Therefore the  data is saved in a very simple  hierarchy, therewith
+avoiding the use of complex database-like tables containing composite data.
+
+\item[Long  Term Archivability]  The  everything in  one  place paradigm  also
+ensures that data  in HDF5 files can  be interpreted a long time  after it has
+been generated. The mature nature of  the HDF5 format and long term support of
+the project  developers also  contribute to this  goal. A  lot of time  can be
+saved for scientists who have to continue on research projects from colleagues
+if  they can  easily reuse  old data.  The goal  of archivability  of research
+results  is  therefore even  formulated  in  guide  lines for  making  project
+proposals for research foundations like the  DFG (cf. Sec.  3.7 Umgang mit den
+im Projekt erzielten Forschungsdaten in \cite{DFGGuidelines}).
+
+\end{description}
+
+\subsection{XML  Hierarchy  of  HDF5  File  Format}
+
+
+Develop       writer      for       XDMF       metadata      format       (cf.
+\url{http://www.visitusers.org/index.php?title=Using_XDMF_to_read_HDF5},
+\url{http://www.xdmf.org/index.php/Main_Page}).
+
+\input{pygmentized/hdf5_file_format}
+
+\subsection{Fortran Code for Writing  HDF5 Files} During a planned cooperation
+with  a guy named  Kreuzinger, a  demonstration program  for writing  an early
+version of our  HDF5 files has been developed  (not completely compatible with
+the current specification).  For the case  that someone may still have use for
+it,     the     corresponding    CMake     project     is    attached     here
+\attachfile[icon=PushPin,description={Fortran   code  for  writing   an  older
+version  of our  HDF5 files.},mimetype=text/plain]{attachments/kreuzinger.txt}
+in the form of a shell archive (extract via: {\tt sh kreuzinger.txt}).  Please
+note  that  the  HDF5  library   (1.6.x)  has  to  be  compiled  with  Fortran
+support. The one from CFSDEPS does  not have Fortran support!  Also, all paths
+are hardcoded into the CMakeLists.txt files and need to be adjusted.
+
+\section{Interpolation Between Grids}
+
+\attachfile[icon=PushPin,description={How  to reactivate  LSE24  MpCCI license
+for                                                                   debugging
+purposes.},mimetype=text/plain]{attachments/mpcci_reactivate_lse24_lic.txt}
+
+\section{The Logging Mechanism}
+\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/Logging}
+

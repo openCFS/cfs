@@ -1,0 +1,104 @@
+\chapter{BCs and Loads}
+\section{Boundary Conditions}
+Boundary Conditions are used to describe the behavior of the system at
+the boundary. Currently we support different types of boundary
+conditions: 
+
+\begin{itemize}
+\item homogenous,
+\item inhomogeneous and
+\item load conditions (see the specific PDEs).
+\end{itemize}
+
+{\bf Homogenous BCs} are used to suppress the nodal DOF at the specified
+points. Therewith, the value of the dof is set to zero. These
+conditions are used, e.g. for grounding an electrode (electric potential
+= 0).
+
+{\bf Inhomogeneous BCs}  are used for assigning a
+  specific value to a boundary. They describe non-zero (maybe
+  time-varying) values.  Therefore, you have to select the name of the
+  specific nodes (according to the section \xel{nodes} in
+\xel{$<$domain$>$}) and a value which has to be assigned to this node.
+  Additionally, a name of a time function file may be provided for
+  time varying BCs. In this case, the resulting values applied to the
+  selected nodes will be ${dof}(timestep) =
+  function(timeFncName,timestep)*factor$, where $factor$ stands for
+  the value given to the BCs. A typical application for an
+  inhomogeneous BC is the excitation of an electric device by an
+  electric potential.
+
+\bigskip
+
+In the section  \xel{bcsAndLoads} of the appropriate PDE in the
+config-file (there can be more than one!), the BCs have to be defined
+in the following manner
+\begin{xmllisting}
+  <bcsAndLoads>
+     <dirichletHom   name="nameBound1"/>
+     <dirichletHom   name="nameBound2"/>
+     <dirichletInhom name="nameBound3" value="-1.0"/>
+  </bcsAndLoads>
+\end{xmllisting}
+
+Please note, that each PDE has its own name for the homogeneous and
+inhomogeneous BCs (see Sec. \ref{Sec:SingleFields}), which substitutes
+\xml{dirichletHom} and \xml{dirichletInho}.
+With inhomogeneous BCs, one has additionally to define the \xatv{value} by
+giving the name of the boundary followed by the boundary value. If a
+time varying signal has to be applied, one has additionally to provide
+the name of the time file in the attribute {\xatv{signal.dat} }:
+\begin{xmllisting}
+  <dirichletInhom name="nameBound3" value="10 * sample1D('signal.dat',t,1)"/>
+\end{xmllisting}
+
+\noindent
+If we want to define a boundary condition for a PDE with more
+than one dof, we have additionally to define the dof, the BC has to
+work on. For the homogenous BC one has to use
+\begin{xmllisting}
+  <dirichletHom   name="nameBound1" dof="XXX"/>
+\end{xmllisting}
+\noindent
+for the inhomogenous BC the command
+
+\begin{xmllisting}
+  <dirichletInhom   name="nameBound1"  dof="XXX"/>
+\end{xmllisting}
+
+\noindent
+has to be called. Herein, \xatv{XXX} stands for the name degrees of
+freedom, e.g. in the mechanical PDE
+
+\begin{xmllisting}
+<bcsAndLoads>
+   <dirichletHom   name="leftBound"   dof="x"/>
+   <dirichletHom   name="leftBound"   dof="y"/>
+   <dirichletInhom name="rightBound"  dof="y"  value="2.0"/>
+</bcsAndLoads>
+\end{xmllisting}
+
+\section{Loads}
+%
+{\bf Loads} are used to apply external excitations like an electric
+charge.  The syntax of the {\xel{load} } command is equal to that of 
+the {\em inhomogeneous BCs}:
+\begin{xmllisting}
+<bcsAndLoads>
+   <load name="loadBound" value="10" dynamics="timeFile"/>
+</bcsAndLoads>
+\end{xmllisting}
+Please note that within each single PDE, we have physically motivated
+names for the loads  (see Sec. \ref{Sec:SingleFields}), which
+substitutes the \xml{load} command.
+Similar to the boundary conditions, the degree of freedom (dof) to
+which the load has to be applied, must be defined for PDEs with more
+than one dof per node:
+
+\begin{xmllisting}
+  <load  name="nameBound1"  dof="XXX"/>
+\end{xmllisting}
+
+
+
+

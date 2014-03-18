@@ -1,0 +1,16 @@
+gmvinput ascii
+nodev   6
+ 0 0 0
+ 1 0 0
+ 0 1 0
+
+ 0.5 0 0
+ 0.5 0.5 0
+ 0 0.5 0
+cells   1
+6tri  6
+ 1 2 3 4 5 6
+material 1 0
+6tri    
+1
+endgmv

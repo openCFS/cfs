@@ -1,0 +1,343 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for PDE description for a magnetic PDE with edge degrees of freedoms
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of element for magnetics PDEs -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="magneticEdge" type="DT_PDEMagneticEdge"
+    substitutionGroup="PDEBasic">
+    <xsd:unique name="CS_MagneticEdgeRegion">
+      <xsd:selector xpath="cfs:region"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+  </xsd:element>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for magnetics PDEs -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_PDEMagneticEdge">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PDEBasic">
+        <xsd:sequence>
+
+         <!-- set penalty factor for static / non-conductive regimes --> 
+         <xsd:element name="penaltyFactor" type="xsd:float" minOccurs="0"
+                       maxOccurs="1"/>
+          
+          <xsd:element name="thinElements" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="maxAspectRatio" type="xsd:float" default="10"/>
+            </xsd:complexType>
+          </xsd:element>
+          
+          <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="nonLinIds" type="xsd:token" 
+                      use="optional" default=""/>
+                    <xsd:attribute name="polyId"
+                      type="xsd:string" use="optional" default="default">
+                    </xsd:attribute>
+                    <xsd:attribute name="integId"
+                      type="xsd:string" use="optional" default="default">
+                    </xsd:attribute>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- List defining nonlinear types -->
+          <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="permeability" type="DT_MagneticEdgeNonLinPerm"/>
+                </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+        <!-- Initial conditions (optional) -->
+          <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                            
+              <!-- Initial state of previous sequence step / external file -->
+              <xsd:element name="initialState" type="DT_InitialState" minOccurs="0" maxOccurs="1"/>
+              
+ 		      </xsd:choice>
+ 		    </xsd:complexType>
+		  </xsd:element>
+
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                 <!-- Dirichlet Boundary Conditions -->
+                <xsd:element name="fluxParallel"  type="DT_BcHomScalar"    />
+                <xsd:element name="potential"     type="DT_BcInhomScalar"  />
+                
+                <!-- RHS Load Values-->
+                <xsd:element name="fluxDensity"   type="DT_BcInhomVector"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Section for specifying the coils (optional) -->
+          <xsd:element name="coils" minOccurs="0">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element ref="BasicCoil" minOccurs="1"
+                  maxOccurs="unbounded"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Desired solution values (optional) -->
+          <xsd:element name="storeResults" type="DT_MagneticEdgeStoreResults"
+            minOccurs="0" maxOccurs="1"/>
+          
+        </xsd:sequence>
+
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of permeability nonlienarity -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of permeability nonlinearity type -->
+  <xsd:complexType name="DT_MagneticEdgeNonLinPerm">
+    <xsd:complexContent>
+      <xsd:extension base="DT_NonLinBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of the magnetic unknown types -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_MagneticEdgeUnknownType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magPotential"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of enumeration type describing the degrees of freedom  -->
+  <!-- ******************************************************************* -->
+
+  <xsd:simpleType name="DT_MagneticEdgeDOF">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="x"/>
+      <xsd:enumeration value="y"/>
+      <xsd:enumeration value="z"/>
+      <xsd:enumeration value=""/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of the boundary condition types for magnetics -->
+  <!-- ******************************************************************* -->
+
+  <!-- Element type for homogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_MagneticEdgeHD">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="DT_MagneticDOF" use="optional" default=""/>
+        <xsd:attribute name="quantity" default="magPotential"
+          type="DT_MagneticEdgeUnknownType"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_MagneticEdgeID">
+    <xsd:complexContent>
+      <xsd:extension base="DT_MagneticHD">
+        <xsd:attribute name="value" type="xsd:token" use="required"/>
+        <xsd:attribute name="phase" type="xsd:token" 
+          use="optional" default="0.0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying inhomogeneous neumann conditions -->
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_MagneticEdgeIN">
+    <xsd:complexContent>
+      <xsd:extension base="DT_MagneticID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- Element type for constraint condition -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_MagneticEdgeCS">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="quantity" default="magPotential"
+          type="DT_MagneticUnknownType"/>
+        <xsd:attribute name="masterDof" type="xsd:token" use="optional"
+          default=""/>
+        <xsd:attribute name="slaveDof" type="xsd:token" use="optional"
+          default=""/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for non-linearity in mechanic PDEs -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_MagneticEdgeNonLin">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="no"/>
+      <xsd:enumeration value="geo"/>
+      <xsd:enumeration value="permeability"/>
+      <xsd:enumeration value="conductivity"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of syntax for specifying output quantities of CFS -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of edge result types of magnetic PDE -->
+  <xsd:simpleType name="DT_MagneticEdgeEdgeResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magPotential"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- Definition of nodal result types of magnetic PDE -->
+  <xsd:simpleType name="DT_MagneticEdgeNodeResult">
+    <xsd:restriction base="xsd:token">
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Definition of elem result types of magnetic PDE -->
+  <xsd:simpleType name="DT_MagneticEdgeElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magFluxDensity"/>
+      <xsd:enumeration value="magFieldIntensity"/>
+      <xsd:enumeration value="magPotentialDiv"/>
+      <xsd:enumeration value="magEddyCurrentDensity"/>
+      <xsd:enumeration value="magTotalCurrentDensity"/>
+      <xsd:enumeration value="magCoilCurrentDensity"/>
+      <xsd:enumeration value="magForceLorentzDensity"/>
+      <xsd:enumeration value="magPotential"/>
+      <xsd:enumeration value="magElemPermeability"/> 
+      <xsd:enumeration value="magRhsLoad"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+ <!-- Definition of region result types of magnetic PDE -->
+  <xsd:simpleType name="DT_MagneticEdgeRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magEnergy"/>
+      <xsd:enumeration value="magEddyPower"/>
+      <xsd:enumeration value="magForceLorentz"/>   
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- Definition of region result types of magnetic PDE -->
+  <xsd:simpleType name="DT_MagneticEdgeSurfRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magEddyCurrent"/>
+      <xsd:enumeration value="magFlux"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Global type for specifying desired electrostatic output quantities -->
+  <xsd:complexType name="DT_MagneticEdgeStoreResults">
+    <xsd:sequence>
+      <xsd:choice maxOccurs="unbounded">
+
+        <!-- Nodal result definition -->
+        <xsd:element name="nodeResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_NodeResult">
+                <xsd:attribute name="type" type="DT_MagneticEdgeNodeResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Element result definition -->
+        <xsd:element name="elemResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_ElemResult">
+                <xsd:attribute name="type" type="DT_MagneticEdgeElemResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- Region result definition -->
+        <xsd:element name="regionResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_RegionResult">
+                <xsd:attribute name="type" type="DT_MagneticEdgeRegionResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Surface region result definition -->
+        <xsd:element name="surfRegionResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfRegionResult">
+                <xsd:attribute name="type" type="DT_MagneticEdgeSurfRegionResult"
+                  use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- FieldResults -->
+        <xsd:element name="field" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_FieldResult">
+                <xsd:attribute name="type" type="DT_MagneticEdgeElemResult"/>
+              </xsd:extension>
+            </xsd:complexContent>           
+          </xsd:complexType>
+        </xsd:element>
+        
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+</xsd:schema>

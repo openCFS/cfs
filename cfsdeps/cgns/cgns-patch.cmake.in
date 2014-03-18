@@ -1,0 +1,25 @@
+set(cgns_source  "@cgns_source@")
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
+SET(CFS_DISTRO "@CFS_DISTRO@")
+SET(MINGW "@MINGW@")
+
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+SET(patches
+  "cgnsview-ccmio.patch"
+  "cgns-cmake-policy.patch"
+  "cgns-install-target.patch"
+)
+
+IF(CFS_DISTRO STREQUAL "MACOSX")
+ SET(patches
+   ${patches}
+   "cgns-cmake-mac.patch"
+   "cgns-arch-mac.patch"
+   )
+ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+
+LIST(APPEND patches "cgns-hdf5.patch")
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/cgns")

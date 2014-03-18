@@ -1,0 +1,164 @@
+* Fri Jun 18 2010 John Evans <john.g.evans.ne@gmail.com> -r46
+- H5VARPUT now pivots on the block argument instead of the count argument.
+- Removed H5IMFINFO and H5IMREAD from contents
+- Tested on 2007b - 2010a
+
+* Fri Apr 16 2010 John Evans <john.g.evans.ne@gmail.com> -r37
+- Fixed some formatting.
+- H5VARGET can take an open file id now.
+
+* Fri Mar 26 2010 John Evans <john.g.evans.ne@gmail.com> -r22
+- Added hardlink_g.h5 to test/data
+
+* Wed Mar 17 2010 John Evans <john.g.evans.ne@gmail.com> -r17
+- Fixed bug where soft links pointing to nothing were not 
+-      correctly detected.
+- Updated h5dump tests to not print output to the screen.
+
+* Fri Feb 19 2010 John Evans <john.g.evans.ne@gmail.com> -r12
+- Fixed last mlint issues in test suite.
+
+* Thu Feb 18 2010 John Evans <john.g.evans.ne@gmail.com> -r10
+- Removed (HFILE,ATTPATH) syntax from H5ATTGET. 
+- Fixed all mlint issues in top level.
+- Commented out enum testing for H5VARGET.
+
+* Feb 17, 2010 -r4
+- Added h5datacreate.m and h5filecreate.m, inspired by Philip Top.
+
+* Oct 28 2009 
+- Added H5COPY
+
+* Oct 15 2009 - Release 0.47
+- Removed 3-argument invocation of H5ATTPUT (bad, very bad)
+- Stated version requirements for H5DUMP.
+- Allowing 2D char attributes now (credit to Philip Top)
+
+* Oct 08 2009
+- Fixed typo for H5DUMP for R2009a
+
+* Oct 07 2009 - Release 0.46 
+- Fixed H5DUMP for R2009b 
+
+* Mon Jul 27 2009 - Release 0.44 
+- Made 2009a fix for test suite (credit to Jon Olav)
+- Fixed h5varget bound check on 2009a (credit to Jon Olav) 
+
+* Wed May 27 2009  
+- Added attribution for the test datasets.
+
+* Wed May 13 2009  
+- H5ATTGET now returns a row vector for a 1D attribute.
+- test suite for h5attget updated.
+
+* Tues May 12 2009 - Release 0.43 
+- Feb 26 update was incorrect, 'H5S_ALL' is never correct for partial writes.
+
+* Tues Mar 03 2009  
+- Fixed bug in H5VARGET and H5VARPUT where the fill value was mishandled.
+- Added dataset extending when possible.
+
+* Thurs Feb 26 2009  
+- H5VARPUT only needs 'H5S_ALL' for the memory space ID.
+
+* Tues Feb 24 2009  
+- Added bitfield support to H5DUMP.
+
+* Thur Feb 19 2009 - Release 0.42
+- Updated H5PROPINFO help for additional properties
+- Hopefully fixed th5propinfo to run properly on all platforms.
+- Fixed user prompt for y/n in th5imread
+
+* Mon Feb 16 2009 
+- Removed h5dump2.m and notes.txt.
+- Replaced test/data/h5ex_t_objref.h5 with 1.6.5 version, problem with NULL
+-    dataspace produced by 1.8.x version.
+- Fixed incorrect message in TH5DUMP about which test was running.
+- Fixed TH5VARGET/test_retrievePartialContiguousCompoundDataset so as to 
+-    not run on versions prior to R2009a.
+
+* Sun Feb 08 2009 - Release 0.41
+- Fixed expected values for H5PROPINFO for the correct HDF5 library version.
+
+* Thu Feb 05 2009
+- Added reference test for H5DUMP.
+- Fixed full enum test to ask for strings.
+
+* Mon Feb 02 2009
+- Fixed enum misunderstandings in H5VARGET.
+
+* Wed Jan 28 2009
+- Removed call to H5T.get_order in dump_datatype function, it's not needed.
+- The enum string had one too many carriage returns.
+- The layout string had one too many carriage returns.
+
+* Mon Jan 27 2009 - Release 0.40
+- Added link support, layout, and optional 2nd argument to new H5DUMP.
+
+* Sun Jan 26 2009
+- Added opaque support to new H5DUMP.
+
+* Sat Jan 24 2009
+- Added compound support to new H5DUMP.
+
+* Tue Jan 20 2009
+- Added enum support to new H5DUMP.
+
+* Mon Jan 19 2009
+- Added vlen support to new H5DUMP.
+
+* Sun Jan 18 2009
+- Started rewriting H5DUMP to only use low-level interface.
+
+* Sat Jan 17 2009
+- Added H5IMFINFO, H5IMREAD functions.
+
+* Sun Jan 11 2009 - Release 0.30
+- Added int16 support for enum datasets.
+
+* Sat Jan 10 2009
+- Added many more tests.
+- Added a warning in case the property name changes in H5PROPINFO.
+
+* Fri Jan 09 2009
+- H5VARGET will now turn floating point fill values into NaNs.
+- Removed debugging fprintf from H5PROPINFO
+
+* Tues Jan 06 2009
+- Fixed invalid field name issue in H5PROPINFO.
+
+* Sun Jan 04 2009 - Release 0.20
+- Added support for file creation property lists to h5propinfo
+
+* Sat Jan 03 2009
+- Fixed h5attput so that int64 maps to H5T_LLONG
+- Added enhanced support for some DCPL properties in h5propinfo.
+
+* Thu December 18 2008
+- Added h5propinfo function
+
+* Mon December 15 2008
+- Added test suite.
+- Added better error message when selection doesn't jive with dataset in file.
+
+* Fri November 02 2007
+- Compensated for enum byte swapping issue.
+- Added full enumeration preference.
+
+* Thu November 01 2007
+- Verified reading H5T_COMPOUNDs
+
+* Wed October 31 2007
+- Verified reading H5T_ARRAYs
+
+* Tue October 30 2007
+- Read support for references in H5VARGET.
+- References now look the same as what the low-level interface expects.
+- Refactored H5ATTPUT, H5DUMP.  Whacked mlint warnings.
+- Prints a placeholder for compound attributes in H5DUMP.
+
+* Mon October 29 2007
+- Added H5ATTGET, H5ATTPUT
+
+* Fri October 26 2007
+- Added example to H5VARGET

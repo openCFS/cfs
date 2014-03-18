@@ -1,0 +1,31 @@
+graph G {
+  subgraph clusterA {
+    label = "XDMF2";
+    color=blue
+    style=filled;
+    color=lightgrey;
+    ".h5" -- ".xmf";
+  }
+
+  "ANSYS Classic" -- ".h5"
+  "GiD" -- ".h5"
+  "cplreader" -- ".h5"
+  "CFS++" -- ".h5"
+  "CFS++" -- ".xmf"
+
+  "VisIt" -- "clusterA"
+  "ParaView" -- "clusterA"
+  "ParaView" -- ".h5"
+  "EnSight" -- "clusterA"
+
+   VisIt [shape=box];
+	"ANSYS Classic" [shape=box];
+        "CFS++" [shape=box,color=darkgrey,style=filled];
+        "cplreader" [shape=box,color=darkgrey,style=filled];
+        GiD [shape=box];
+	ParaView [shape=box];
+
+        ".h5" [color=white,style=filled];
+        ".xmf" [color=white,style=filled];
+
+}

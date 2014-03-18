@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<cfstoolConfig>
+  <!--
+     Configuration file for cfstool in XML format.
+     Contains defaults for I/O file formats.
+  -->
+  <fileFormats>
+    <input>
+      <gmsh/>
+      <gmv/>
+      <hdf5/>
+      <mphtxt debug="false"/>
+      <mesh/>
+      <unv flavor="ideas"/>
+    </input>
+    <output>
+      <csv/>
+      <gid binaryFormat="true"/>
+      <gmsh binaryFormat="true" endianness="big"/>
+      <gmv binaryFormat="true" fixedGrid="yes"/>
+      <hdf5 externalFiles="false"/>
+      <xdmf externalFiles="false"/>
+      <unv flavor="ideas"/>
+    </output>  
+  </fileFormats>
+</cfstoolConfig>

@@ -1,0 +1,287 @@
+\chapter{Parameter Identification} \label{paramIdent}
+%
+%
+This chapter explains how to perform a parameter identification in piezoelectricity using CFS++. 
+The \xel{analysis} type in your xml-file to choose is \xel{paramIdent}, see
+example below.\\
+
+
+The parameter identification feature of {\it CFS++} compares simulated and
+measured data in piezoelectric computations and performs automatically a fit of
+the data and identifies the complete set (or a subset) of the material
+parameters involved.
+Material characterization can be performed either for a single piezoelectric
+body or for a compound consisting of a piezoelectric part and additionally one
+or two adaption (backing) layers which are assumed to be isotropic.
+
+A parameter identification always needs the following steps:
+\begin{itemize}
+\item Create an initial guess of the material parameters (e.g. parameters from a
+similar material or IEEE-Standard identification rules). 
+\item Select a fitting method, see Table \ref{TableFittingMethods}.
+\item Select a measurement quantity, e.g. electrical impedance or mechanical
+displacements at certain nodes, see Table \ref{TableFittingQuantity}.
+\item Determine (carefully) the frequencies at which measurements shall be
+evaluated (this is actually the most critical part!).
+\item Run the identification process. Check for convergence and examine if your
+results are reasonable.
+\end{itemize}
+ (All steps are given in details and with examples in Chapter 3 of PhD Thesis
+{\it Forward and Inverse Problems in Piezoelectricity}, Tom Lahmer, Department
+of Sensor Technology, Erlangen-Nuremberg, 2008)\\ \newpage
+
+The following analysis section needs to be included in your xml-file:
+\begin{xmllisting}
+<analysis>
+  <paramIdent>
+    <fittingMethod type="method"/>
+    <fittingQuantity type="physical_quantity"/>
+    <calcImpedanceCurve> yes/no </calcImpedanceCurve>
+    <calcCharge name="surf" neighborRegion="piezo_axi"/>
+    <calcMechDisplacementCurve> yes/no </calcMechDisplacementCurve>
+    <computeCurveAfterIterationStep> positive_integer
+</computeCurveAfterIterationStep>
+    <numFreq> positive_integer </numFreq>
+    <startFreq> positive_integer </startFreq>
+    <stopFreq> positive_integer </stopFreq>
+    <maxNrIterations> positive_integer </maxNrIterations>
+    <stopRes> positive_integer </stopRes>
+    <excitationVoltage> positive_integer </excitationVoltage>
+    <artDataNoise> positive_integer </artDataNoise>
+    <mechDisplAtOppositeNode1> positive_integer </mechDisplAtOppositeNode1>
+    <dofOfMechDispl1> positive_integer </dofOfMechDispl1>
+  </paramIdent>
+</analysis>
+\end{xmllisting}
+
+
+
+\begin{table}
+\begin{center}
+\caption{Implemented parameter identification methods.}
+\label{TableFittingMethods}
+\vspace{0.5cm}
+\begin{tabular}{lp{0.3\textwidth}p{0.5\textwidth} }
+\toprule
+{\bf fittingMethodType} & {\bf Method} & {\bf Comments} \\
+\midrule
+Landweber &  Nonlinear Landweber iteration & robust, however rather slow \\ 
+\midrule
+minimalError &  modified Landweber iteration with flexible step size choice &
+robust, usually remarkably faster than Landweber\\ 
+\midrule
+steepestDescent &  modified Landweber iteration with flexible step size choice 
+& very similar to the minimal error method \\ 
+\midrule
+Newton & Newton's method with inexact inner iterations & fast, good convergence
+properties provided that initial guess is close to solution. Otherwise risk of
+divergence \\ 
+\midrule
+NewtonComplex & inexact Newton method. & similar as Newton's method, adapted for
+simultaneous determination of real and imaginary parts \\
+\midrule
+leastSquares & simple least-squares error minimizer & converges globally, may
+become slow after a view steps. It is always a good choice if the initial guess
+is poor\\
+\midrule
+confidenceIntervals & computes upper bounds of confidence intervals& provides
+information about the reliability of the identified parameters (only real
+parts!). Does not identify anything.\\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table} 
+
+\begin{table}
+\begin{center}
+\caption{Input quantities.}
+\label{TableFittingQuantity}
+\vspace{0.5cm}
+\begin{tabular}{llp{0.5\textwidth}}
+\toprule
+ {\bf fittingQuantity} & {\bf Quantity } & {\bf Comments}\\ 
+\midrule
+logImpedance & $\log(Z)$ & identifies well real and imaginary parts of the
+parameters \\ \midrule
+logAmplitude & $\log(|Z|)$ & identifies well real and imaginary parts of the
+parameters, is very robust \\ 
+\midrule
+amplitude & $|Z|$ & less robust, gives very precise results in resonance peaks
+\\
+\midrule
+phase & ${\rm arg}(Z)$ & very usefull to identify imaginary parts \\
+\midrule
+logAmplitudeMech & $\log(|u|)$ & considers logarithm of mechanical displacements
+\\
+\midrule
+amplitudeMech & $|u|$ & modulus of mechanical displacement \\
+\midrule
+displacementMech & $u$ & usually a good choice, very precise \\
+\midrule
+phaseMech & ${\rm arg}(u)$ & helps to identify imaginary parts \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table} 
+
+The best way to check the quality of your parameters is the comparison of your
+simulated impedance curve (or mechanical displacement curve) with your
+measurements. Setting 
+\begin{xmllisting}
+  <calcImpedanceCurve> yes </calcImpedanceCurve>
+  <calcMechDisplacemetCurve> yes</calcMechDisplacementCurve>
+\end{xmllisting}
+ leads to a calculation of such a curve in the interval $[startFreq,stopFreq]$
+with \xel{numFreq} evaluation points. The output will be a file called {\em
+imped.dat} ({\em mechDispl.dat}) which can be evaluated with MATLAB/GNUPlot,.. .
+The file {\em imped.dat} contains the frequency, the computed amplitude, phase,
+real and imaginary part of the impedance at the surface of the ceramic.  The
+calculation will be done before and during the parameter identification process
+(after each  \verb!<computeCurveAfterIterationStep>! iteration step). Comparing
+the results with the measurements gives hints whether your identification
+proceeds successfully or not.
+Since the computation of the impedance requires the computed surface charges we
+alway need to provide the tag 
+  \verb!<calcCharge name="surf" neighborRegion="piezo_axi"/>! which says on
+which surface the electric charges are computed. Note, parameter values (except
+density!) are not taken from the material file {\em e.g. mat.xml}. You have to
+set them in the file {\em measuredData.dat}, see below.
+\\ 
+
+\noindent Further settings: \\
+The parameter fitting will be done until some discrepancy principle becomes
+active, i.e. if the norm of the residual (the misfit between measurement and
+simulation) falls below the quantity \xel{$<$stopRes$>$}. If you do not know to
+which accuracy you can fit the data, select some extremely small value or zero
+and enforce a stopping of the iterations by setting a maximal number of
+iteration steps with \xel{$<$maxNrIterations$>$ 20 - 200
+$</$maxNrIterations$>$}.
+\\ 
+The \xel{$<$excitationVoltage$>$ 10 $</$excitationVoltage$>$} is supposed to
+coincide with value of the excitation voltage you specify with your
+inhomogeneous Dirichlet boundary conditions in the electrostatic part.
+
+Setting artificial data noise makes only sense if you intend to work with
+synthetically created data (in order to get a feeling how the algorithms behave
+in case of different amounts of data noise in your measurements). Setting e.g.
+\xel{$<$artDataNoise> 0.01 $</$artDataNoise$>$}
+would add one per cent random data noise on your impedance or mechanical
+displacement curve. 
+
+If there are mechanical measurements available (difference of mechanical
+displacements in one space direction of pairwise facing points) you need to
+select the appropriate nodes in your mesh and the corresponding degree of
+freedom (dof).\\
+ E.g.  \\ 
+\begin{xmllisting}
+  <mechDisplAtNode0> 5 </mechDisplAtNode0>
+  <mechDisplAtOppositeNode0> 15 </mechDisplAtOppositeNode0>
+  <dofOfMechDispl0> 0 </dofOfMechDispl0>
+\end{xmllisting}
+ evaluates the difference of the mechanical displacement at the nodes 5 and 15
+in $0$ direction (i.e. x- direction). You can select up to three different node
+pairs.
+
+\subsection{Input Files}
+The file  {\em measuredData.dat} provides additional data for the identification
+process. 
+Important: Each line in this file needs to be closed by $'/'$ and all entries
+need to be separated by $','$.\\ \\
+\verb! #  denotes a comment line !\\
+\verb! f) 1.0E+06, 2.0E+06, 3.0E+06, ... / ! \\
+Numbers after $f)$ are frequencies at which measurements will be read out of the
+additional input-file {\it mess.dat  ( or messMech.dat)} which contains
+frequencies, amplitudes and phases (or frequencies, real and imaginary part) of
+your measurements, e.g. \\
+\noindent 
+\begin{verbatim}
+ r) 1.32000E+11, 1.150000E+11, 7.10000E+10, 7.30000E+10,  ...
+5.84000E-09,/ 
+i) 0.069500E+11,0.08940E+11, -0.08080E+11,-0.08960E+11,  ...
+0.0830E-08,/
+ R) 1,  1,  1,  1,  1,  1,   1,  1,  1,   1,/
+ I) 0,  1,  0,  0,  0,  0,  0 ,  1,  0,   1,/
+\end{verbatim}
+\noindent The row $r)$ contains initial guesses for the real-valued material
+parameters in the following order\\ $$c_{11}^E, c_{33}^E, c_{12}^E, c_{13}^E,
+c_{44}^E, e_{15}, e_{31}, e_{33}, \epsilon_{11}^S, \epsilon_{33}^S.$$ In the
+next row, after $i)$, the corresponding imaginary parts are listed. The booleans
+after $R)$ and $I)$ decide which parameters should be updated (identified)
+during the identification. Sometimes it can be of profit to reduce the set of
+parameters to those which have a strong impact on the solution in order to save
+computation time.Depending on your geometry and vibration mode there are always
+some parameters which are not identifiable at all. In the example above all real
+parts will be fitted, from the imaginary parts only the three values
+$c_{33},e_{33}$ and $\epsilon_{33}$. Be aware while determining complex material
+parameters, that the materialtype is set to complex values in the xml-File,
+i.e.\\ \noindent \verb!<materialDataType type="imagMaterialParameter"/>! \\
+\noindent 
+
+
+\subsection{Output Files}
+Several output files will be created during the run of the program:\\ 
+\begin{itemize}
+\item \noindent {\em parFinal.dat}, here, you find the computed parameters
+during the identification. Since they are in the same form as those in the file
+{\em measuredData.dat} you can simply copy them into this file and reuse them
+for a new fit, evaluating measurements at different and in particular more
+frequencies, for example,
+\item \noindent {\em parLog.dat}, records the norm of the residual and the
+development of the parameters,
+\item \noindent {\em imped.dat}, impedance curve computed with the current set
+of parameters, 
+\item \noindent {\em mechDispl.dat}, mechanical deflection curve computed with
+the current set of parameters, 
+\item \noindent {\em confInterval.dat} upper bounds of confidence intervals
+considering the $0.99$ quantile of the $\chi^2$ probability distribution (for
+details see Chapter 3.3.3 of PhD Thesis, {\it Forward and Inverse Problems in
+Piezoelectricity}.
+\end{itemize}
+
+\subsection{Additional Remarks}
+Select \xel{gid} as output quantity. Do not select any store results
+except the electric charge, otherwise you repeatedly write these values
+repeatedly the result files which may become extremely large.
+
+Do not forget to set the density in you mat.xml file. This is the only quantity which will not be overwritten by the parameters from the file measuredData.dat
+
+\section{Parameter Identification with Adaption and Backing Layers}
+It may be of interest how adaption and backing layers influence the behavior of your transducer and which effective material parameters these layers have. E.g. \\
+\begin{xmllisting}
+<domain geometryType="axi">
+  <regionList>
+    <region name="piezo_axi" material="PZ27"/>
+    <region name="adaption" material="material1"/>
+    <region name="backing" material="material2"/>
+  </regionList>
+</domain>
+\end{xmllisting}
+
+The fitting feature of {\it CFS++} can handle up to two additional isotropic materials which are characterized only by their mechanical stiffness. The stiffness tensor is composed by the Lam\'{e} parameters $\lambda$ and $\mu$ which can be computed from the elasticity modulus $E$ and the Poisson ratio $\nu$ as follows:
+$$\lambda = \frac{\nu E}{(1+\nu)(1-2\nu)},\quad \mu = \frac{E}{2(1+\nu)}.$$
+ The extended parameter set is given in the file {\it measuredData.dat} as follows\\
+\verb! # piezoelectric constants:! \\
+\verb! r) 1.47000E+11, 1.100E+11, 1.05000E+11, 9.37000E+10, ... ,/ !\\
+\verb! # first additional material, real parts (mu, lambda):!\\
+\verb! a) 7.76e+10, 1.0e+11,/!\\
+\verb! # which parameter shall be updated?!\\
+\verb! A) 1, 0,/ !\\
+\verb! # first additional material, imaginary parts (mu, lambda):!\\
+\verb! b) 7.0e+9, 1.5e+9,/!\\
+\verb! # which parameter shall be updated?!\\
+\verb! B) 1, 0,/ !\\
+\verb! #!\\
+\verb! # second additional material, real parts (mu, lambda):!\\
+\verb! c) 2.6e+10, 5.9e+11,/!\\
+\verb! # which parameter shall be updated?!\\
+\verb! C) 1, 0,/ !\\
+\verb! # second additional material, imaginary parts (mu, lambda):..!\\
+\verb! d) 2.2e+9, 2.5e+9,/!\\
+\verb! # which parameter shall be updated?! \\
+\verb! D) 1, 1,/ !\\
+\verb! #!\\
+
+\noindent Create your *.mesh-file in that way that the regions occur in the same order as in the xml-file and that the piezoelectric material is always the first material.
+
+
+

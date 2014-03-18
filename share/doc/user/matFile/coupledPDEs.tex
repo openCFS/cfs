@@ -1,0 +1,31 @@
+\chapter{Coupled Field PDEs}
+
+\section{Piezoelectrics}
+
+\begin{itemize}
+\item Tensor of piezoelectric coupling coefficients
+\begin{verbatim}
+<piezoCouplingTensor dataType="real" dim1="3" dim2="6">
+ 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 1.05000E+01 0.00000E+00
+ 0.00000E+00 0.00000E+00 0.00000E+00 1.05000E+01 0.00000E+00 0.00000E+00
+-4.10000E+00-4.10000E+00 1.41000E+01 0.00000E+00 0.00000E+00 0.00000E+00
+</piezoCouplingTensor>
+<piezoCouplingTensor dataType="imag" dim1="3" dim2="6">
+ 0.00000E+00  0.00000E+00 0.00000E+00 0.00000E+00 1.05000E-02 0.00000E+00
+ 0.00000E+00  0.00000E+00 0.00000E+00 1.05000E-02 0.00000E+00 0.00000E+00
+-4.10000E-02 -4.10000E-02 1.41000E-01 0.00000E+00 0.00000E+00 0.00000E+00
+</piezoCouplingTensor>
+<piezoCouplingCoefficient nonlinear="function">
+  <entry>      33            </entry>
+  <dependency> elecField     </dependency>
+  <approxType> smoothSplines </approxType>
+  <dataName>   PZT5A33NL1      </dataName>
+</piezoCouplingCoefficient>
+\end{verbatim}
+
+\end{itemize}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "matRef"
+%%% End: 

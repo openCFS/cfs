@@ -1,0 +1,115 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
+#ifndef FILE_CFS_MAGNETIC_PDE_HH
+#define FILE_CFS_MAGNETIC_PDE_HH
+
+#include <map>
+
+#include "SinglePDE.hh"
+
+namespace CoupledField
+{
+
+
+  //! Class for magnetic field calculation (eddy current case)
+  
+  //! This class is utilized to solve the magnetic problem (eddy current case)
+  //! in 2D and 3D using nodal finite elements. The primary unknown is the 
+  //! magnetic vector potential \[\vec{A}\]. 
+  //! In case of 3D time dependent / harmonic simulations an additional scalar
+  //! potential \[\Phi\] is utilized to ensure that the solution is embedded
+  //! in the space HCurl.
+  class MagneticPDE: public SinglePDE {
+
+  public:
+
+    //! Constructor
+    MagneticPDE( Grid *aGrid, PtrParamNode paramNode,
+                 PtrParamNode infoNode,
+                 shared_ptr<SimState> simState, Domain* domain );
+
+    //!  Destructor
+    virtual ~MagneticPDE();
+
+  protected:
+
+    //! Initialize NonLinearities
+    void InitNonLin();
+
+    //! read special boundary conditions (coils, magnets)
+    void ReadSpecialBCs();
+    
+    //! define all (bilinearform) integrators needed for this pde
+    void DefineIntegrators();
+
+    //! Defines the integrators needed for ncInterfaces
+    void DefineNcIntegrators();
+
+    //! define surface integrators needed for this pde
+    void DefineSurfaceIntegrators( ){};
+
+    //! Define all RHS linearforms for load / excitation 
+    void DefineRhsLoadIntegrators();
+    
+    //! define the SoltionStep-Driver
+    void DefineSolveStep();
+
+    //! Read special results definition
+    void ReadSpecialResults();
+
+    //! \copydoc SinglePDE::CreateFeSpaces
+    virtual std::map<SolutionType, shared_ptr<FeSpace> > 
+    CreateFeSpaces( const std::string&  formulation,
+                    PtrParamNode infoNode );
+    //! Flag for mixed formulation
+    
+    //! In case of a transient / harmonic 3D simulation, we need 
+    //! an additional scalar potential to ensure HCurl compatibility.
+    bool isMixed_;
+
+    // =======================================================================
+    //   COILS
+    // =======================================================================
+
+    //@{ \name Attributes related to coils
+
+    //! Names of coils resp. their subdomains
+    StdVector<RegionIdType> coilRegionId_;  
+
+    //! Parameters of the individual coils;
+    StdVector<shared_ptr<Coil> > coilDef_;
+
+    //! Coefficients holding the current density for each coil
+    std::map<RegionIdType, PtrCoefFct> coilCoefs_;
+    
+    //@}
+
+    //! Coefficient function, containing the overall reluctivity
+    shared_ptr<CoefFunctionMulti> reluc_;
+    
+    
+    //! Query parameter object for information on coils
+    void ReadCoils();
+
+    //! Initialize time stepping method
+    void InitTimeStepping();
+    
+    //! read in softening types
+    void ReadSoftening();
+
+    //! Define available primary result types
+    void DefinePrimaryResults();
+    
+    //! Define available postprocessing results
+    void DefinePostProcResults();
+    
+    //! \copydoc SinglePDE::FinalizePostProcResults
+    void FinalizePostProcResults();
+
+  };
+
+} // end of namespace
+#endif
+

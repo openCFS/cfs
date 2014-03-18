@@ -1,0 +1,218 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description for all things that did not fit elsewhere
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <!-- ******************************************************************** -->
+  <!--  Definitions of various custom simple data types --> 
+  <!-- ******************************************************************** -->
+
+  <!-- Data type for strings with one element (character) -->
+  <xsd:simpleType name="DT_Character">
+    <xsd:restriction base="xsd:token">
+      <xsd:length value="1"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Data type for positive floating point numbers -->
+  <xsd:simpleType name="DT_PosFloat">
+    <xsd:restriction base="xsd:float">
+      <xsd:minExclusive value="0"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- Data type for non-negative floating point numbers -->
+  <xsd:simpleType name="DT_NonNegFloat">
+    <xsd:restriction base="xsd:float">
+      <xsd:minInclusive value="0"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- Data type for floating point numbers in [0,1] -->
+  <xsd:simpleType name="DT_FloatUnitInterval">
+    <xsd:restriction base="xsd:float">
+      <xsd:minInclusive value="0"/>
+      <xsd:maxInclusive value="1"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- Data type for specifying an angle in degrees (DEG) -->
+  <xsd:simpleType name="DT_DegAngle">
+    <xsd:restriction base="xsd:float">
+      <xsd:minInclusive value="0"/>
+      <xsd:maxInclusive value="360"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- Data type for setting flags -->
+  <xsd:simpleType name="DT_CFSBool">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="yes"/>
+      <xsd:enumeration value="no"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Data type for setting endianesss -->
+  <xsd:simpleType name="DT_CFSEndianness">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="little"/>
+      <xsd:enumeration value="big"/>
+      <xsd:enumeration value="native"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- Data type for setting a array of doubles -->
+  <xsd:simpleType name="DT_DoubleList">
+    <xsd:list itemType="xsd:double"/>
+  </xsd:simpleType>
+  
+  <!-- Data type for setting a array of tokens -->
+  <xsd:simpleType name="DT_TokenList">
+    <xsd:list itemType="xsd:token"/>
+  </xsd:simpleType>  
+  
+  <!-- Data defining a scalar value -->
+  <xsd:complexType name="DT_Scalar" mixed="false">
+    <xsd:attribute name="value" type="xsd:token" use="required"/>
+    <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+  </xsd:complexType>
+
+  <!-- Data defining a vectorial value -->
+  <xsd:complexType name="DT_Vector">
+    <xsd:attribute name="dim" type="xsd:token" use="required"/>
+    <!--fill here with remaining definitions of a vector-->
+  </xsd:complexType>
+  
+  <!-- Data defining a tensorial value -->
+  <xsd:complexType name="DT_Tensor">
+    <xsd:attribute name="dim1" type="xsd:token" use="required"/>
+    <xsd:attribute name="dim2" type="xsd:token" use="required"/>
+    <!--fill here with remaining definitions of a vector-->
+  </xsd:complexType>
+
+
+  <!-- Data type for distinguishing the different PDEs in multiSequence -->
+  <xsd:simpleType name="DT_PDEType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="mechanic"/>
+      <xsd:enumeration value="magnetic"/>
+      <xsd:enumeration value="acoustic"/>
+      <xsd:enumeration value="acousticXYZ"/>
+      <xsd:enumeration value="electrostatic"/>
+      <xsd:enumeration value="elecConduction"/>
+      <xsd:enumeration value="smooth"/>
+      <xsd:enumeration value="mpcci"/>
+      <xsd:enumeration value="heatConduction"/>
+      <xsd:enumeration value="stokesFluid"/>
+      <xsd:enumeration value="bubble"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Data type for describing a coordinate direction -->
+  <xsd:simpleType name="DT_CosyCompType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="x"/>
+      <xsd:enumeration value="y"/>
+      <xsd:enumeration value="z"/>
+      <xsd:enumeration value="r"/>
+      <xsd:enumeration value="phi"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+
+  <!-- Data type for describing a point either by a node name or a -->
+  <!-- position vector (in 3D)-->
+  <xsd:complexType name="DT_PointType">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="node" type="xsd:token" use="optional" default="none"/>
+        <xsd:attribute name="x" type="xsd:token" use="optional" default="0.0"/>
+        <xsd:attribute name="y" type="xsd:token" use="optional" default="0.0"/>
+        <xsd:attribute name="z" type="xsd:token" use="optional" default="0.0"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Data type for describing a point either by a node name or a -->
+  <!-- position vector (in 2D x-y plane)-->
+  <xsd:complexType name="DT_PointType2D">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="node" type="xsd:token" use="optional" default="none"/>
+        <xsd:attribute name="x" type="xsd:token" use="optional" default="0.0"/>
+        <xsd:attribute name="y" type="xsd:token" use="optional" default="0.0"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- Data type for describing type of entities -->
+  <xsd:simpleType name="DT_EntityType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="region"/>
+      <xsd:enumeration value="surfRegion"/>
+      <xsd:enumeration value="nodeList"/>
+      <xsd:enumeration value="elemList"/>
+      <xsd:enumeration value="surfElemList"/>
+
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of material data type (real or complex) -->
+  <!-- ******************************************************************* -->
+
+  <xsd:simpleType name="DT_MatDataType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="imagMaterialParameter"/>
+      <xsd:enumeration value="realMaterialParameter"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:complexType name="DT_MatData">
+    <xsd:attribute name="type" type="DT_MatDataType" use="optional"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of output format for complex number  -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_ComplexFormat">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="realImag"/>
+      <xsd:enumeration value="amplPhase"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- ******************************************************************* -->
+  <!--   Data type for defining a coil by means of current Sticks --> 
+  <!--   using the law of Biot-Savart -->
+  <!-- ******************************************************************* -->
+  
+  <xsd:complexType name="DT_BiotSavartCoil">      
+    <xsd:sequence>
+      <xsd:element name="coil" minOccurs="1" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:attribute name="name" type="xsd:token" use="required"/>
+          <xsd:attribute name="file" type="xsd:token" use="required"/>
+          <xsd:attribute name="value" type="xsd:token" use="optional" default="1"/>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence> 
+    <xsd:attribute name="showInGrid" type="DT_CFSBool" default="yes"/>
+    
+    
+  </xsd:complexType>
+
+</xsd:schema>
+

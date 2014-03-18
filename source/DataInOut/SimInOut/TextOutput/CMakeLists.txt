@@ -1,0 +1,9 @@
+SET(SIMOUTTEXT_SRCS TextSimOutput.cc)
+
+ADD_LIBRARY(simouttext STATIC ${SIMOUTTEXT_SRCS})
+
+SET(TARGET_LL
+  datainout
+)
+
+TARGET_LINK_LIBRARIES(simouttext ${TARGET_LL})

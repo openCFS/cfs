@@ -1,0 +1,91 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for material description of an heat conduction material
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of material for heat conduction PDEs -->
+  <!--   some hack: currently heat conductivity and capacity treated -->
+  <!--   with same definition -->
+  <!-- ******************************************************************* -->
+
+    <xsd:complexType name="DT_MatHeatConduction">
+    <xsd:sequence>
+      <xsd:element name="density" type="xsd:token"/>
+      <xsd:element name="heatCapacity" type="DT_thermalConductivity"/>
+      <xsd:element name="heatConductivity" type="DT_thermalConductivity"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of heat conductivity-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_thermalConductivity">
+    <xsd:sequence>
+      <xsd:element name="linear" type="DT_LinThermalConductivity"/>
+      <xsd:element name="nonlinear" type="DT_NonLinThermalConductivity" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of Thermal Conductivity -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_LinThermalConductivity">
+    <xsd:choice>
+      <xsd:element name="tensor" type="DT_thermalConductivityTensor"/>
+      <xsd:element name="isotropic" type="DT_NonNegFloat"/>
+    </xsd:choice>
+  </xsd:complexType>
+  
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of Thermal Conductivity in tensor form                -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_thermalConductivityTensor">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="9"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+  
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of non linear heat conductivity-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_NonLinThermalConductivity">
+    <xsd:sequence>
+      <xsd:element name="isotropic" type="DT_IsotrNonLinThermalConductivity"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of isotropic non linear heat conductivity-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_IsotrNonLinThermalConductivity">
+    <xsd:sequence>
+      <xsd:element name="dependency" type="xsd:string"/>
+      <xsd:element name="approxType" type="xsd:string"/>
+      <xsd:element name="measAccuracy" type="DT_NonNegFloat"/>
+      <xsd:element name="maxApproxVal" type="DT_NonNegFloat"/>
+      <xsd:element name="dataName" type="xsd:string"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+</xsd:schema>
