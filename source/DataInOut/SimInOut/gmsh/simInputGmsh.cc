@@ -28,6 +28,7 @@
 #include "MatVec/vector.hh"
 #include "Utils/coordSystem.hh"
 #include "boost/algorithm/string/trim.hpp"
+#include <boost/filesystem.hpp>
 #include "simInputGmsh.hh"
 
 namespace CoupledField {
@@ -114,6 +115,10 @@ namespace CoupledField {
     UInt fileType = 0;
 
     std::ifstream in(fileName_.c_str(), std::ios::binary);
+    if ( !boost::filesystem::exists( fileName_ ))
+    {
+      EXCEPTION("Input file does not exist:\n" << fileName_ << std::endl);
+    }
     while(in.good() ) {
       in.getline(line,sizeof(line));
       std::string sline(line);
