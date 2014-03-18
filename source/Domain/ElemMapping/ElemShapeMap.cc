@@ -1718,6 +1718,14 @@ if (jac.GetNumCols() == jac.GetNumRows()) {
   jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
 }
 
+// Adjust "volume" of Jacobian in case of axi-symmetry
+Vector<Double> globPoint;
+if (IsAxi()) {
+  Local2Global(globPoint, lp);
+  jacDet *= 2 * PI * globPoint[0];
+}
+
+
 return jacDet;
 }
 
