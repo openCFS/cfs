@@ -275,6 +275,9 @@ namespace CoupledField
       * if AuxDesign or ShapeDesign is used*/
      unsigned int GetNumberOfErsatzMaterialVariables() const { return DesignSpace::GetNumberOfVariables(); }
      
+     /** this is the number of Aux/Shape variables */
+     virtual int GetNumberOfAuxParameters() const { return 0; }
+     
      /** Find the element with the largest Filter neighborhood, if no filter is used or if the
       * value is not unique (what should be the case) any suitable is returned.
       * We do not cache the result, and search all, so use with care. */

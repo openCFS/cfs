@@ -558,6 +558,10 @@ IF(USE_PARDISO64)
   SUBDIRS(source/OLAS/external/pardiso64)
 ENDIF(USE_PARDISO64)
 
+IF(USE_IPOPT)
+  SUBDIRS(source/OLAS/external/contact-ipopt)
+ENDIF(USE_IPOPT)
+
 SUBDIRS(source/CoupledPDE)
 SUBDIRS(source/DataInOut)
 SUBDIRS(source/DataInOut/DefineFiles)

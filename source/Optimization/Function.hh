@@ -34,6 +34,7 @@ class DesignSpace;
 class Excitation;
 class MultipleExcitation;
 class Objective;
+class ShapeDesign;
 
 /** A Function is the (abstract) base class of Objective and Condition (which is a constraint but the name was
  * already used)
@@ -129,8 +130,9 @@ class Function
       BENSON_VANDERBEI_3,        /*!< 3st minor constraint for numerical problemantic FMO pos def constraint */
       DESIGN_BOUND,              /*!< local design bound */
       MULTIMATERIAL_SUM,         /*!< local sum of multimaterial designs */
-      SLACK                      /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function
+      SLACK,                     /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function
                                       but triggers AuxDesign instead of DesignSpace. */
+      SHAPE_INF                  /*!< In Shape Optimization, there might be restrictions (not only box constraints) for shape parameters, this is the inf-norm version which splits nicely */
     } Type; // in ConditionContainer::VirtualView::Refresh() we assume a maximal value for the type. Check!!
 
     /** to convert string/enum for this type */
@@ -303,8 +305,9 @@ class Function
         DEG_45_STAR,             /*!< Different notation. prev_next but also diagonals */
         DEG_45_STAR_AND_REVERSE, /*!< The doubled variant of DEG_45_STAR for oscillation */
         BOUNDARY,                /*!< For a neighbor definition the first and last element (JUMP) */
-        ELEMENT,                  /*!< For stress there is no neighborhood, only the element itself */
-        MULT_DESIGNS_ELEMENT     /*!< ELEMENT for multiple different designs - only parametrized PLANE_STRESS for now */
+        ELEMENT,                 /*!< For stress there is no neighborhood, only the element itself */
+        MULT_DESIGNS_ELEMENT,    /*!< ELEMENT for multiple different designs - only parametrized PLANE_STRESS for now */
+        SHAPE                    /*!< SHAPE, the sparsity pattern is read from file */
       } Locality;
 
       static Enum<Locality> locality;
@@ -366,23 +369,23 @@ class Function
         Identifier() : sign(NO_SIGN) {}
 
         /** @param prev if NONE neighbor is size 1 otherwise size two */
-        Identifier(DesignElement* elem, DesignElement* prev, DesignElement* next, int si = NO_SIGN);
+        Identifier(BaseDesignElement* elem, BaseDesignElement* prev, BaseDesignElement* next, int si = NO_SIGN);
 
         /** Identifier when we have a neighborgood defined by a radius - eg mole */
-        Identifier(DesignElement* elem, StdVector<DesignElement*> buddies, int si = NO_SIGN);
+        Identifier(BaseDesignElement* elem, StdVector<BaseDesignElement*> buddies, int si = NO_SIGN);
 
         /** Returns the element
          * @param idx == -1 for elem, otherwise form neighbors */
-        DesignElement* GetElement(int idx) {
+        BaseDesignElement* GetElement(int idx) {
           return idx == -1 ? element : neighbor[idx];
         }
 
-        const DesignElement* GetElement(int idx) const {
-          return const_cast<const DesignElement*>(idx == -1 ? element : neighbor[idx]);
+        const BaseDesignElement* GetElement(int idx) const {
+          return const_cast<const BaseDesignElement*>(idx == -1 ? element : neighbor[idx]);
         }
 
         /** identifies the element by the design type. Works only for special neighborhoods! */
-        DesignElement* GetElement(DesignElement::Type type);
+        BaseDesignElement* GetElement(DesignElement::Type type);
 
         /** Service function. Calculates the actual objective, based on function->type.
          * Is very fast for grad_glob and power == 1
@@ -474,13 +477,17 @@ class Function
         double CalcBensonVanderbei(int neigh_idx, const Local* local, bool derivative, Type type) const;
 
         /** CalcStress() and the gradient are actually done in EM/SIMP */
+        
+        /** Shape Parameter Constraints */
+        double CalcShape(Function* f, const Local* l) const;
+        double CalcShapeGradient(Function* f, const Local* l, int neigh_idx) const;
 
-        DesignElement* element; // this represents DesignSpace::data[element_idx]
+        BaseDesignElement* element; // this represents DesignSpace::data[element_idx]
 
         /** this are all design elements for the local function. For slopes a spatial neighborhood, for
          * globalLaminatesVolumes the variables stiff1, stiff2 for the same FE-Element, ...
          * @see GetElement() */
-        StdVector<DesignElement*> neighbor;
+        StdVector<BaseDesignElement*> neighbor;
 
         /** sign is only needed if we treat slope constraints as two separate constraints
          *  in case we do not do this, sign will be -1000, else -1 for X_N, 1 for X_P */
@@ -527,6 +534,9 @@ class Function
       /** multiple designs on one element for paramMat
        * @param for FMO_POS_DEF_* we need to know which minor */
       void SetupMultDesignsElementMap(const Function* f = NULL);
+      
+      /** Shape Element Maps */
+      void SetupShapeElementMap(const Function* func, ShapeDesign* design);
 
       /** small helper to determine the number of neighbors in each (diagonal)
        * direction if we use a neighborhood. Parses the whole stuff */

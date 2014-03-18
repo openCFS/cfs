@@ -26,6 +26,11 @@ EvaluateOnly::EvaluateOnly(Optimization* optimization, PtrParamNode pn)
 {
   // reduce to our actual ParamNode
   pn = pn->Get(Optimization::optimizer.ToString(Optimization::EVALUATE_INITIAL_DESIGN), ParamNode::PASS);
+  
+  eval_grad = true;
+  if(pn != NULL){ // tag can be omitted
+    eval_grad = pn->Get("objective_gradient")->As<bool>();
+  }
 
   PostInitScale(1.0, true);
 }
@@ -70,11 +75,13 @@ void EvaluateOnly::SolveProblem()
     LOG_DBG(eval) << "SP: obj=" << v;
     // calc gradients, they might be stored in store results!
     // gradients might need adjoints
-    optimization->SolveAdjointProblems();
-    optimization->CalcObjectiveGradient(&grad);
-    for(unsigned int i = 0; i < grad.GetSize(); i++) {
-      BaseDesignElement* de = optimization->GetDesign()->GetDesignElement(i);
-      LOG_DBG2(eval) << "SP: obj grad i=" << i << " (" << (i+1) <<  ") de=\"" << de->ToString() << "\" -> " << grad[i];
+    if(eval_grad){
+      optimization->SolveAdjointProblems();
+      optimization->CalcObjectiveGradient(&grad);
+      for(unsigned int i = 0; i < grad.GetSize(); i++) {
+        BaseDesignElement* de = optimization->GetDesign()->GetDesignElement(i);
+        LOG_DBG2(eval) << "SP: obj grad i=" << i << " (" << (i+1) <<  ") de=\"" << de->ToString() << "\" -> " << grad[i];
+      }
     }
     
     for(int c = 0; c < optimization->constraints.view->GetNumberOfTotalConstraints(); c++)

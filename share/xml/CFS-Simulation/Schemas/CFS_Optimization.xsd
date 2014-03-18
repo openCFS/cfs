@@ -21,6 +21,7 @@
         <xsd:complexType>
           <xsd:attribute name="design" use="optional" type="xsd:boolean" default="false"/>
           <xsd:attribute name="designGradient" use="optional" type="xsd:boolean" default="false"/>
+          <xsd:attribute name="designConstraintGradients" use="optional" type="xsd:boolean" default="false"/>
         </xsd:complexType>
       </xsd:element>      
       
@@ -330,6 +331,7 @@
                 <xsd:enumeration value="designBound"/>
                 <!-- local sum of all multimaterial designs -->
                 <xsd:enumeration value="multimaterial_sum"/>
+                <xsd:enumeration value="shape_inf"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -778,6 +780,19 @@
                       <xsd:enumeration value="second"/>
                     </xsd:restriction>
                   </xsd:simpleType>
+                </xsd:attribute>
+              </xsd:complexType>
+            </xsd:element>
+            
+            <xsd:element name="evaluate" minOccurs="0">
+              <xsd:complexType>
+                <xsd:attribute name="objective_gradient" type="xsd:boolean" use="optional" default="true">
+                  <xsd:annotation>
+                    <xsd:documentation>
+  Set to false to disable calculation of adjoint and gradient, if not needed. 
+  Warning: This breaks cost functions, which depend on adjoints. Use at your own risk.
+  Note: Constraint gradient evaluation can be disabled by setting to observed.</xsd:documentation>
+                  </xsd:annotation>
                 </xsd:attribute>
               </xsd:complexType>
             </xsd:element>

@@ -1004,6 +1004,8 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
   // had to weaken this condition for DESIGN_TRACKING in debug mode
   assert((regions[0].GetSize() == 1) || (g->GetType() != Function::DESIGN_TRACKING));
   assert(g != NULL); // only constraints can have sparse Jacobians
+  
+  unsigned int data_size = DesignSpace::GetNumberOfVariables();
 
   StdVector<unsigned int>& sparsity = g->GetSparsityPattern();
 
@@ -1011,9 +1013,12 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
   unsigned int base = out.window.GetStart();
   for(unsigned int i = 0; i < sparsity.GetSize(); i++)
   {
-    assert(out.InWindow(base + i));
-    double scaling = use_scaling ? regions[FindDesign(data[sparsity[i]].GetType())][0].scale_design : 1.0;
-    out[base + i] = data[sparsity[i]].GetValue(vs, access, g) * scaling;
+    unsigned int s = sparsity[i];
+    if(s <= data_size){ // else we have parts of the sparsity pattern on the aux design
+      assert(out.InWindow(base + i));
+      double scaling = use_scaling ? regions[FindDesign(data[s].GetType())][0].scale_design : 1.0;
+      out[base + i] = data[sparsity[i]].GetValue(vs, access, g) * scaling;
+    }
   }
 }
 void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Condition* g, bool use_scaling) const
@@ -1296,11 +1301,10 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   def.access = (ri->resultType == PHYSICAL_PSEUDO_DENSITY || ri->resultType == ELEC_PHYSICAL_PSEUDO_DENSITY) ?
       DesignElement::SMART : DesignElement::PLAIN;
   def.value  = DesignElement::DESIGN;
-  ResultDescription& descr = def;
   // ignore defaults if there is a result description for the OPT_RESULT_* case
   for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
     if(resultDescriptions[i].solutionType == ri->resultType)
-      descr = resultDescriptions[i];
+      def = resultDescriptions[i];
   if(ri->definedOn == ResultInfo::NODE)
     FillNodeResults(result, def);
   else
