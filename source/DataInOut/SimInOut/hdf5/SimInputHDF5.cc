@@ -161,6 +161,10 @@ namespace CoupledField {
 
     statsRead_ = false;
 
+    if ( !fs::exists( fileName_ ))
+    {
+      EXCEPTION("Input file does not exist:\n" << fileName_ << std::endl);
+    }
     try {
       mainFile_ = H5::H5File( fileName_, H5F_ACC_RDONLY );
     } H5_CATCH( "Could not open HDF5 file '" << fileName_ << "'" );
