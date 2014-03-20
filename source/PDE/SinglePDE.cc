@@ -421,7 +421,9 @@ namespace CoupledField {
     // =====================================================================
     // Set the initial conditions
     // =====================================================================
-    ReadInitialConditions();
+    if( !simState_->HasInput()) {
+      ReadInitialConditions();
+	}
     
     // Finally set the initialization flag to true
     isInitialized_ = true;

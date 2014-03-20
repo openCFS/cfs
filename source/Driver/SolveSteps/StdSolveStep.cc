@@ -14,8 +14,14 @@
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "OLAS/algsys/SolStrategy.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+
 
 namespace CoupledField {
+
+// declare logging stream
+DECLARE_LOG(stdsolvestep)
+DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
   StdSolveStep::StdSolveStep(StdPDE & apde)
     :BaseSolveStep(),
@@ -33,6 +39,7 @@ namespace CoupledField {
 
     results_      = PDE_.GetResultInfos();
     couplingIter_ = 0;
+    solutionLimit_ = NO_SOLUTION_TYPE;
 
     // copy FE functions of PDE
     feFunctions_ = PDE_.GetFeFunctions();
@@ -70,6 +77,8 @@ namespace CoupledField {
     incStopCrit_ = 1e-2;
     residualStopCrit_ = 1e-3;
     nonLinMaxIter_ = 10;
+    minValidValue_ = -DBL_MAX;
+    maxValidValue_ = DBL_MAX;
 
     nonLin_                 = PDE_.IsNonLin();
     nonLinMaterial_         = PDE_.IsNonLinMaterial();
@@ -325,23 +334,29 @@ namespace CoupledField {
         if ( nonLinLogging_ == true ) {
           //UInt actStep = PDE_.GetSolveStep()->GetActStep();
 
-          if (PDE_.IsIterCoupled()) {
-            WriteNonLinIterToInfoXML(pdename_, couplingIter_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch);
-	  } else {
+        if (PDE_.IsIterCoupled()) {
+          WriteNonLinIterToInfoXML(pdename_, couplingIter_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+        } else {
             WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch);
-	  }
+        }
 
-          // write norm to file
-          logFile_ <<  iterationCounter << "\t"
-              << residualErr << "\t"
-              << incrementalErr << "\t"
-              << etaLineSearch << std::endl;
+        // write norm to file
+        logFile_ <<  iterationCounter << "\t"
+            << residualErr << "\t"
+            << incrementalErr << "\t"
+            << etaLineSearch << std::endl;
         }
 
         // boolean variable, holds condition if another iteration step is necessary
         performOneMoreStep =
             (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
 
+        
+        if (performOneMoreStep && iterationCounter == nonLinMaxIter_) {
+          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ << "' at iteration '" << iterationCounter 
+                  << "'.\n ==> incremental error: " << incrementalErr
+                  << "\n ==> residual error: " << residualErr);
+        }
       } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
       // stop timer
@@ -510,6 +525,7 @@ namespace CoupledField {
   void StdSolveStep::StepTransNonLin(PtrParamNode analysis_id) {
 
     //std::cout << "in StepTransNonLin" << std::endl;
+    LOG_TRACE(stdsolvestep) << "StdSolveStep::StepTransNonLin";
     bool performOneMoreStep;
     bool isNewton = false;
 
@@ -536,6 +552,7 @@ namespace CoupledField {
     for(UInt i=0;i<numStages;i++){
       //do initialization 
       rhsVec_.Init();
+      LOG_DBG(stdsolvestep) << "StepTransNonLin: Stage: " << i ;
 
       //we obtain a reference to the stage vectors of the scheme
       SBM_Vector stageSol;
@@ -699,9 +716,9 @@ namespace CoupledField {
 
           if (PDE_.IsIterCoupled()) {
             WriteNonLinIterToInfoXML(pdename_, couplingIter_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
-	  } else {
+      } else {
             WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
-	  }
+      }
           // write norm to file
           logFile_ <<  iterationCounter << "\t"
               << residualErr << "\t"
@@ -713,14 +730,43 @@ namespace CoupledField {
         performOneMoreStep =
           (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
 
+        if (performOneMoreStep && iterationCounter == nonLinMaxIter_) {
+          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ << "' at iteration '" << iterationCounter 
+                  << "'.\n ==> incremental error: " << incrementalErr
+                  << "\n ==> residual error: " << residualErr);
+        }
       } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
     } //stages
       
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator limitFeFctIt;
+    limitFeFctIt = feFunctions_.find(solutionLimit_);
+    if (limitFeFctIt != feFunctions_.end() ) {
+      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+        if (fncIt == limitFeFctIt) { // pos is now referring to the corresponding subVec[pos]
+          //const SingleVector * subv = solVec_.GetPointer(pos);
+          Vector<Double> & dsubVec = dynamic_cast<Vector<Double> & > (*(solVec_.GetPointer(pos)));
+          for (UInt j=0; j < dsubVec.GetSize(); j++) {
+            if (dsubVec[j] >= maxValidValue_) {
+              EXCEPTION("A value ('" << dsubVec[j] << "') in the solution of PDE '" << pdename_ << 
+                      "' is larger than the allowed maximum limit set in the XML: "
+                      << maxValidValue_); 
+            }
+            if (dsubVec[j] <= minValidValue_) {
+              EXCEPTION("A value ('" << dsubVec[j] << "') in the solution of PDE '" << pdename_ << 
+                      "' is smaller than the allowed minimum limit set in the XML: "
+                      << minValidValue_); 
+            }
+          }
+        }
+      }
+    }
+
     //update stage
     for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
       fncIt->second->GetTimeScheme()->FinishStep();
     }
+    
 
 
   }
@@ -859,6 +905,12 @@ namespace CoupledField {
         // boolean variable, holds condition if another iteration step is necessary
         performOneMoreStep =
           (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+
+        if (performOneMoreStep && iterationCounter == nonLinMaxIter_) {
+          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ << "' at iteration '" << iterationCounter 
+                  << "'.\n ==> incremental error: " << incrementalErr
+                  << "\n ==> residual error: " << residualErr);
+        }
 
       } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
@@ -1318,7 +1370,9 @@ namespace CoupledField {
 
     // If extForcesL2Norm is 0, no residual norm can be calculated
     if (!RhsLinL2Norm) {
-      WARN("Zero external force vector!! ");
+        // Note: there are PDEs, such as elecconduction, which always have rhs=0. Those should not emit this warning. SE.
+      if (pdename_ != "elecConduction")
+        WARN("Zero external force vector!! ");
     }
 
     return RhsLinL2Norm;
@@ -1373,7 +1427,7 @@ namespace CoupledField {
     solOld = actSol;
     const UInt nrEtas = 4;
     const Double eta[nrEtas] = {0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
-		// initialize etaOpt or receive compiler warning
+        // initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;
 
@@ -1523,7 +1577,7 @@ namespace CoupledField {
     const UInt nrEtas = 3;
     const Double eta[nrEtas] = {0.9, 0.5, 0.3};
     //    const Double eta[nrEtas] = {0.1, 0.2, 0.4, 0.5, 0.7, 0.9, 1.0};
-		// initialize etaOpt or receive compiler warning
+        // initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;
 
@@ -1634,6 +1688,46 @@ namespace CoupledField {
 
       // maximal number of NL-iterations
       nonLinNode->GetValue( "maxNumIters", nonLinMaxIter_, ParamNode::PASS );
+
+      LOG_TRACE(stdsolvestep) << "Nonlinear convergence criteria were read:";
+      LOG_DBG3(stdsolvestep) << "\tincremental Stopping Criterion: " << incStopCrit_;
+      LOG_DBG3(stdsolvestep) << "\tresidual Stopping Criterion: " << residualStopCrit_;
+      LOG_DBG3(stdsolvestep) << "\tmaxNumIters: " << nonLinMaxIter_;
+      if( nonLinNode->Has("stopOnLimit") ) {
+        std::string solutionString;
+        // quantity
+        solutionString = nonLinNode->Get( "stopOnLimit")
+            ->Get( "quantity" )->As<std::string>();
+        solutionLimit_ = SolutionTypeEnum.Parse(solutionString);
+        if (feFunctions_.find(solutionLimit_) == feFunctions_.end() ) 
+          EXCEPTION("ERROR: Solution type '" << solutionString << "' is not part of PDE '" << pdename_ << 
+                      "' and cannot serve as stopping limit criterion");
+        // minimum value
+        nonLinNode->Get( "stopOnLimit")
+            ->GetValue( "min", minValidValue_, ParamNode::PASS );
+        // maximum value
+        nonLinNode->Get( "stopOnLimit")
+            ->GetValue( "max", maxValidValue_, ParamNode::PASS );
+        // region
+        std::string solutionRegion;
+        solutionRegion = nonLinNode->Get( "stopOnLimit")
+            ->Get( "region" )->As<std::string>();
+        solutionLimitReg_ = ptgrid_->GetRegion().Parse(solutionRegion);
+        if (solutionLimitReg_ != ALL_REGIONS) {
+          if( subdoms_.Find(solutionLimitReg_) == -1 ) 
+              EXCEPTION("ERROR: Region '" << solutionRegion <<"' is not part of PDE '" << pdename_ << 
+                      "' and cannot serve as stopping limit region");
+
+          // don't know how to implement region checking as we only have the solution as vector (glmvector_[0])
+          EXCEPTION("checking limits in a region is not implemented (and I don't know how) (SE). " 
+                  << "Just remove the 'region=XXX' tag");
+        }
+        LOG_DBG3(stdsolvestep) << "\tStop on Limit: " << solutionString;
+        LOG_DBG3(stdsolvestep) << "\t\tmin:     " << minValidValue_;
+        LOG_DBG3(stdsolvestep) << "\t\tmax:     " << maxValidValue_;
+        LOG_DBG3(stdsolvestep) << "\t\tin Region:     " << solutionRegion;
+        LOG_DBG3(stdsolvestep) << "\t\tRegionID:     " << solutionLimitReg_;
+      }
     }
   }
 
@@ -1651,7 +1745,6 @@ namespace CoupledField {
     iter->Get("nr")->SetValue(iterationCounter);
     iter->Get("residualErr")->SetValue(residualErr);
     iter->Get("incrementalErr")->SetValue(incrementalErr);
-    // SE: include PDE name and time step
     if(etaLineSearch)
       iter->Get("eta_linesearch")->SetValue(etaLineSearch);
   }

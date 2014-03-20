@@ -216,6 +216,26 @@
       </xsd:simpleType>
     </xsd:attribute>
   </xsd:complexType>
+
+  <xsd:complexType name="DT_StopIter">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="quantity" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="heatTemperature"/>
+              <xsd:enumeration value="elecPower"/>
+              <xsd:enumeration value="elecPotential"/>
+              <xsd:enumeration value="elecCurrent"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="min" type="xsd:float" use="optional" default="-INF"/>
+        <xsd:attribute name="max" type="xsd:float" use="optional" default="INF"/>
+        <xsd:attribute name="region" type="xsd:token" use="optional" default="all"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
   
   <xsd:complexType name="DT_NonLinParams">
     <xsd:sequence>
@@ -223,6 +243,7 @@
       <xsd:element name="incStopCrit" type="DT_PosFloat"/>
       <xsd:element name="resStopCrit" type="DT_PosFloat"/>
       <xsd:element name="maxNumIters" type="xsd:positiveInteger"/>
+	  <xsd:element name="stopOnLimit" type="DT_StopIter" minOccurs="0" maxOccurs="1"/>
     </xsd:sequence>
     <xsd:attribute name="method" type="DT_NonLinSolver" use="optional"
       default="fixPoint"/>

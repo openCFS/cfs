@@ -274,7 +274,7 @@ void CoefFunctionHeatTripole::GetScalar(Double& coefScalar,
   // special case: my material actually returns current and thus has to be divided by Vds 
   if (divideByVds_) {
     if (fabs(Vds) < 1e-9) { // Volts
-      coefScalar = 1e-9;
+      coefScalar = 1e-4;
     } else {
       coefScalar = 1./Vds*nLinFnc_->EvaluateFunc(Vds, Vgs, elemSol[0]);
     }

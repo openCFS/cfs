@@ -233,6 +233,11 @@ namespace CoupledField
     bool isHyst_;           //!< flag for hystersis modeling
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
+	Double minValidValue_;     //! stopping if any value in the region exceeds value
+	Double maxValidValue_;     //! stopping if any value in the region exceeds value
+	SolutionType solutionLimit_; //! solution type for which a limit is set
+	RegionIdType solutionLimitReg_; //! region in which to check the min/max values for non convergence
+
     UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
     std::string nonLinMethod_; //!< method for handling the non-linearity
     bool nonLinLogging_;    //!< log progress of non-linear iterations

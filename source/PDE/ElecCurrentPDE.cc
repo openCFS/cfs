@@ -76,58 +76,58 @@ namespace CoupledField {
 
   void ElecCurrentPDE::GetPoleRegionIds(NonLinType nl, StdVector<RegionIdType> & regIds) {
 
-        // TODO: also check pole id
-	if ( !myParam_->Has("poleList") ) 
-	  EXCEPTION("B/-Tripole was defined but no xml section 'poleList' is present.");
+    // TODO: also check pole id
+    if ( !myParam_->Has("poleList") ) 
+      EXCEPTION("B/-Tripole was defined but no xml section 'poleList' is present.");
 
-        StdVector<std::string> poleNames, regNames;
-	StdVector<RegionIdType> volRegions;
-        PtrParamNode xml;
-	if ( nl == NLELEC_BIPOLE || nl == NLELEC_BIPOLE_TEMP_DEP) {
+    StdVector<std::string> poleNames, regNames;
+    StdVector<RegionIdType> volRegions;
+    PtrParamNode xml;
+    if ( nl == NLELEC_BIPOLE || nl == NLELEC_BIPOLE_TEMP_DEP) {
 
-	  poleNames.Push_back ("anode");
-	  poleNames.Push_back ("cathode");
+      poleNames.Push_back ("anode");
+      poleNames.Push_back ("cathode");
 
-          regNames.Resize(2);
-	  volRegions.Resize(2);
-	  regIds.Resize(2);
-	  
-          xml = myParam_->Get("poleList")->Get("Bipole"); 
-	}
-	else if ( nl == NLELEC_TRIPOLE || nl == NLELEC_TRIPOLE_TEMP_DEP) {
-	  poleNames.Push_back ("gate");
-	  poleNames.Push_back ("drain");
-	  poleNames.Push_back ("source");
+      regNames.Resize(2);
+      volRegions.Resize(2);
+      regIds.Resize(2);
+      
+      xml = myParam_->Get("poleList")->Get("Bipole"); 
+    }
+    else if ( nl == NLELEC_TRIPOLE || nl == NLELEC_TRIPOLE_TEMP_DEP) {
+      poleNames.Push_back ("gate");
+      poleNames.Push_back ("drain");
+      poleNames.Push_back ("source");
 
-          regNames.Resize(3);
-	  volRegions.Resize(3);
-	  regIds.Resize(3);
-	  
-          xml = myParam_->Get("poleList")->Get("Tripole"); 
-	}
-	else  {
-          EXCEPTION("NonLinType not understood.");
-	}
+      regNames.Resize(3);
+      volRegions.Resize(3);
+      regIds.Resize(3);
+      
+      xml = myParam_->Get("poleList")->Get("Tripole"); 
+    }
+    else  {
+      EXCEPTION("NonLinType not understood.");
+    }
 
         
-        for (UInt i=0; i< poleNames.GetSize(); i++) {
-          if(! xml->Has(poleNames[i]) ) {
-	    EXCEPTION("poleList must define " << poleNames[i] );
-	  }
-          xml->Get(poleNames[i])->GetValue("region", regNames[i]);
+    for (UInt i=0; i< poleNames.GetSize(); i++) {
+      if(! xml->Has(poleNames[i]) ) {
+        EXCEPTION("poleList must define " << poleNames[i] );
+      }
+      xml->Get(poleNames[i])->GetValue("region", regNames[i]);
 
-	  regIds[i] = ptGrid_->GetRegion().Parse( regNames[i] );
+      regIds[i] = ptGrid_->GetRegion().Parse( regNames[i] );
 
-	  StdVector<RegionIdType> volRegs;
-	  ptGrid_->GetListOfVolumeRegions(regIds[i], volRegs);
+      StdVector<RegionIdType> volRegs;
+      ptGrid_->GetListOfVolumeRegions(regIds[i], volRegs);
 
-          for (UInt reg = 0; reg < volRegs.GetSize(); reg++){
-            if( regions_.Find(volRegs[reg]) < 0)
-	      EXCEPTION("Pole regions '" << regNames[i] << "' must refer to (surf) regions inside the ELEC CURRENT pde");
-	  }
-	}
-	
+      for (UInt reg = 0; reg < volRegs.GetSize(); reg++){
+        if( regions_.Find(volRegs[reg]) < 0)
+          EXCEPTION("Pole regions '" << regNames[i] << "' must refer to (surf) regions inside the ELEC CURRENT pde");
+      }
+    }
   }
+
   void ElecCurrentPDE::DefineIntegrators() {
 
     RegionIdType actRegion;
@@ -231,56 +231,56 @@ namespace CoupledField {
         PtrCoefFct elPotCoef = this->GetCoefFct(ELEC_POTENTIAL);
         PtrCoefFct condNLNew;
 
-	StdVector<RegionIdType> depRegionIds;
-	StdVector<PtrCoefFct> dep;
-	std::string intName = "";
-	if (nonLinTypes.Find(NLELEC_BIPOLE) != -1 ) {
+        StdVector<RegionIdType> depRegionIds;
+        StdVector<PtrCoefFct> dep;
+        std::string intName = "";
+        if (nonLinTypes.Find(NLELEC_BIPOLE) != -1 ) {
           GetPoleRegionIds(NLELEC_BIPOLE, depRegionIds);
-	  dep.Push_back(elPotCoef);
+          dep.Push_back(elPotCoef);
           condNLNew = 
             actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY, NLELEC_BIPOLE, Global::REAL, dep, depRegionIds);
-	    /*  ELEC_CONDUCTIVITY means gamma(T) */ 
+            /*  ELEC_CONDUCTIVITY means gamma(T) */ 
           intName = "ElecStiffnessIntegrator-Bipole-Voltage-Depend";
-	}
+        }
         else if ( nonLinTypes.Find(NLELEC_BIPOLE_TEMP_DEP) != -1)  {
-	  // both nonlinearity and mat dependency
+          // both nonlinearity and mat dependency
           //get coeff-Fnc to evaluate the temperature
           ReadMaterialDependency( "elecConductivity", dispDofNames, ResultInfo::SCALAR, isComplex_,
                                   ent, heatCoef, updatedGeo_ );
           
           GetPoleRegionIds(NLELEC_BIPOLE_TEMP_DEP, depRegionIds);
 
-	  dep.Push_back(elPotCoef);
-	  dep.Push_back(heatCoef);
+          dep.Push_back(elPotCoef);
+          dep.Push_back(heatCoef);
           condNLNew = 
             actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY, NLELEC_BIPOLE_TEMP_DEP, 
-	                 Global::REAL, dep, depRegionIds);
+                         Global::REAL, dep, depRegionIds);
           intName = "ElecStiffnessIntegrator-Bipole-Voltage-Temperature-Depend";
-	}
+        }
         else if ( nonLinTypes.Find(NLELEC_TRIPOLE) != -1 ) {
           GetPoleRegionIds(NLELEC_TRIPOLE, depRegionIds);
-	  dep.Push_back(elPotCoef);
+          dep.Push_back(elPotCoef);
           condNLNew = 
             actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY, NLELEC_TRIPOLE, Global::REAL, dep, depRegionIds);
           intName = "ElecStiffnessIntegrator-Tripole-Voltage-Depend";
-	}
+        }
         else if ( nonLinTypes.Find(NLELEC_TRIPOLE_TEMP_DEP) != -1)  {
-	  // both nonlinearity and mat dependency
+          // both nonlinearity and mat dependency
           //get coeff-Fnc to evaluate the temperature
           ReadMaterialDependency( "elecConductivity", dispDofNames, ResultInfo::SCALAR, isComplex_,
                                   ent, heatCoef, updatedGeo_ );
           
           GetPoleRegionIds(NLELEC_TRIPOLE_TEMP_DEP, depRegionIds);
 
-	  dep.Push_back(elPotCoef);
-	  dep.Push_back(heatCoef);
+          dep.Push_back(elPotCoef);
+          dep.Push_back(heatCoef);
           condNLNew = 
             actSDMat->GetScalCoefFncMultivariateNonLin( ELEC_CONDUCTIVITY, NLELEC_TRIPOLE_TEMP_DEP, 
-	                 Global::REAL, dep, depRegionIds);
+                         Global::REAL, dep, depRegionIds);
           intName = "ElecStiffnessIntegrator-TRipole-Voltage-Temperature-Depend";
-	}
-	else 
-	  EXCEPTION("Nonlinarity not defined.");
+        }
+        else 
+          EXCEPTION("Nonlinarity not defined.");
 
         // create stiffness integrator
         BaseBDBInt* stiffInt = NULL;
@@ -511,9 +511,10 @@ namespace CoupledField {
     availResults_.insert( ed );
     shared_ptr<CoefFunctionFormBased> edFunc;
     if( isComplex_ ) {
+      /* for harmonic analysis, the effective value is 1/sqrt(2) \hat I \times 1/sqrt(2) \hat U */
       edFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, 0.5));
     } else {
-      edFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 0.5));
+      edFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 1.));
     }
     DefineFieldResult( edFunc, ed );
     stiffFormCoefs_.insert(edFunc);
@@ -528,7 +529,8 @@ namespace CoupledField {
     availResults_.insert( energy );
     shared_ptr<ResultFunctor> energyFunc;
     if( isComplex_ ) {
-      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy,1.));
+      /* for harmonic analysis, the effective value is 1/sqrt(2) \hat I \times 1/sqrt(2) \hat U */
+      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy,0.5));
     } else {
       energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy,1.));
     }
