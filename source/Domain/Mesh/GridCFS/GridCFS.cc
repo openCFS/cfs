@@ -846,6 +846,19 @@ namespace CoupledField {
       numSurfElemNodes_.Push_back( numRegionNodes );
     }
 
+    if (regionData.GetSize() != (volElems_.GetSize() + surfElems_.GetSize()))
+    {
+      for(UInt i = 0; i < regionData.GetSize(); i++)
+      {
+        if (volRegionIds_.Find(regionData[i].id) == -1
+            && surfRegionIds_.Find(regionData[i].id) == -1)
+        {
+          EXCEPTION("Region has neither volume nor surface elements: " \
+              << region_.ToString(regionData[i].id));
+        }
+      }
+    }
+
     // in case of internalMesh the region is already marked as regular
     // so we can skip the test here
     for(unsigned int i = 0; i < regionData.GetSize(); i++)
