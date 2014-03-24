@@ -1,9 +1,36 @@
 from matviz_2d import *
 from scipy import ndimage
 import numpy 
+from  numpy.linalg import norm
 import scipy.interpolate
+import xml.etree.ElementTree
 
 
+## create and prepare a matplot figure where patched might be "added" to
+def create_figure(min, max, res, for_save):
+  
+  # we set the aspect ration and also the resolution such that we can export as png
+  # the problem is that we set the size of the figure but export the subplot w/o axes which is smaller than the figure
+  
+  # the dirty solution is to create the figure twice scaled by the error
+  dpi_x = (res / 100) * (max[0] - min[0]) 
+  dpi_y = dpi_x * (max[1] - min[1]) / (max[0] - min[0]) 
+  
+  fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
+  ax = fig.add_subplot(111)
+
+  if for_save:
+    wrong = ax.get_window_extent().size
+    dpi_x *= res / wrong[0]  
+    dpi_y *= (dpi_y * 100) / wrong[1] 
+    fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
+    matplotlib.pyplot.axis('off')
+    ax = fig.add_subplot(111)
+    # the second figure would make problems with matplotlib.pyplot.show()
+  
+  ax.set_xlim(min[0],max[0])
+  ax.set_ylim(min[1],max[1])
+  return fig, ax
 
 ## Subclass for Fields
 # this performs an interpolation, stores the data and allows access 
@@ -22,6 +49,9 @@ class Data:
     # dy might be slightly different from dx but is close
     dy = (max[1] - min[1]) / ny
     self.dy = dy
+
+    # convenience for nx and ny
+    self.ndim = (nx, ny)
 
     out = numpy.zeros((nx*ny, 2))
     for y in range(ny):
@@ -43,6 +73,19 @@ class Data:
     if y < self.min[1] or y > self.max[1]:
       return False
     return True
+
+  # limit to be within
+  def limit(self, x, y):
+    # assume not to be within
+    x_out = max((self.min[0], min((self.max[0], x))))
+    y_out = max((self.min[1], min((self.max[1], y))))
+    
+    #print 'x=' + str(x) + ' y=' + str(y) + str((x_out, y_out))
+    return (x_out, y_out)
+
+  
+
+
     
   ## gives for the coordinates the value line. Does not further interpolate but assumes piecewise constant data.
   # has a fallback to nearest    
@@ -88,121 +131,328 @@ class Data:
     #img.resize((600,600), Image.ANTIALIAS)
     img.show()      
 
-## this contains the physical fields stiff and angle in the macroscopic and fine discretization.
+
+## This holds a trace
+class Trace:
+  #@param cell tupel if indices of macro cell where we start in the center
+  def __init__(self, points, data, cell, idx):
+    self.points = points
+    self.data   = data
+    self.cell   = cell
+    self.idx    = idx
+    self.max    = max(self.data)
+    self.avg    = sum(self.data) / len(self.data)
+    assert(min(self.data) >= 0.0)
+    #print 'min trace ' + str(min(self.data)) + ' max trace ' + str(self.max)
+    
+  #give the macro fields we touch with the trace
+  def touched(self, macro):     
+    data = numpy.zeros((macro.nx, macro.ny))
+    for p in self.points:
+      ix = (p[0] - 1e-6 - macro.min[0]) / macro.dx
+      iy = (p[1] - 1e-6 - macro.min[1]) / macro.dy
+      #print 'p=' + str(p) + ' min=' + str(macro.min) + ' d=' + str((macro.dy, macro.dy)) + ' i=' + str((ix, iy))
+      
+      data[ix,iy] = max((data[ix,iy], 1))
+
+    return data
+
+
+
+## this contains the physical fields stiff1 or stiff2 and angle in the macroscopic and fine discretization.
 # The macroscopic is where we consider cells. This might be the original discretization
 # The fine discretization is used for doing the streamlines. This might be the same as the macroscopic 
 class Fields:
 
   ## constructs the data sets macro and fine
-  def __init__(self, coords, s1, s2, angle, macro_samples):
+  def __init__(self, coords, s, angle, macro_samples):
     
     centers, min, max, elem = coords
     # convert to 2D
-    c, v = convert_interpolation_input(centers, s1, s2, angle)
+    c, v = convert_interpolation_input(centers, s, angle)
     
+    # this is the original data discretization
     nx = int((max[0] - min[0]) / elem[0])
+    # our macro discretization can be given from the user
+    dx = nx if macro_samples == None else macro_samples
 
-    self.macro = Data(min, max, nx if macro_samples == None else macro_samples, c, v, 'linear')
-    self.fine  = Data(min, max, 4 * nx, c, v, 'linear')
+    self.macro = Data(min, max, dx, c, v, 'linear')
+    # no need to be much smaller than original, if coarser assume 0.2 step length.
+    self.fine  = Data(min, max, numpy.min((3 * nx, 5 * dx)), c, v, 'linear')
  
- 
-  ## calculates the streamline from a given point up to the end
+  ## from macro index give cell center coordinates
+  def index2coord(self, cell):
+    x = (cell[0] + 0.5) * self.macro.dx 
+    y = (cell[1] + 0.5) * self.macro.dy
+    return x, y
+  ## calculates the streamline from a given point up to both ends
   # @param idx 0 for s1 and 1 for s2 which changes the angle!
-  # return a list of coordinates. The first entry is the starting point
-  def streamline(self, x, y, idx, steplength):
+  # return a list with two trace objects for both indices
+  def streamline(self, cell, steplength, minimal, idx):
     
-    assert(idx == 0 or idx == 1)
+    x, y = self.index2coord(cell)
+    
+    # print 'streamline x=' + str(x) + ' y=' + str(y) + ' idx=' + str(idx) + ' steplength=' + str(steplength) 
+
+    # we construct the traces for both indices and determine by the average value what is stiff1 and stiff2. 
+    # better would be to check for horizontal or vertical extend
+
+    # we want a single trace but we cannot simply concatenate
+    # the second trace needs to be reverted and set before first trace
+    trace1 = self.directional_streamline(x,y, self.macro.dx * steplength, minimal, idx, 1.0)
+    trace2 = self.directional_streamline(x,y, self.macro.dx * steplength, minimal, idx, -1.0)
+    tmp = trace2[::-1] + trace1
+    
+    val = [i[1] for i in tmp]
+    
+    if len(val) > 0:
+      return Trace([i[0] for i in tmp], val, cell, idx) 
+    else:
+      return None
+         
+    
+
+  ## helper for streamline
+  #@param direction 1.0 for forward, -1.0 for backward
+  def directional_streamline(self, x, y, steplength, minimal, idx, direction):
     
     trace = []
-    trace.append(((x, y), self.fine.getData(x, y)[idx]))
-    
+    trace.append(((x, y), self.fine.getData(x, y)[0]))
     while True:
-      here = self.fine.getData(x, y)
-      angle = here[2] + idx * numpy.pi/2 # for idx==0 nothing changes
+      here  = self.fine.getData(x, y)
+      val   = here[0]
+      assert(val >= 0.0)
+      angle = here[1] + idx * numpy.pi/2 # for idx==0 nothing changes
       
       #print 'x=' + str(x) + ' y=' + str(y) + ' data=' + str(here),
-      x += steplength * numpy.cos(angle)
-      y += steplength * numpy.sin(angle)
-      #print ' next_x=' + str(x) + ' next_y=' + str(y)
-      
-      if self.fine.within(x, y) and len(trace) < 2000: # prevent circular streams
-        trace.append(((x, y), here[idx]))
-      else:
-        break
+      x += steplength * numpy.cos(angle) * direction 
+      y += steplength * numpy.sin(angle) * direction
+      #print ' next_x=' + str(x) + ' next_y=' + str(y) + ' val=' + str(val)
 
-    return trace  
-      
+      if val < minimal: # stop stream if we go into void
+        break;
+      if len(trace) > 2000: # prevent circular streams  
+        break
+      if self.fine.within(x, y): 
+        trace.append(((x, y), val))
+      else:
+        #print 'limit ' + str(self.fine.limit(x, y))
+        trace.append((self.fine.limit(x, y), val))
+        break
+    return trace if len(trace) > 2 else []
 
 ## draws a trace  
 # @param scale scale stiffness to color. 1.0 for normal or 2.0 if max stiff = 0.5
-def draw_trace(fig, trace, scale):
+def draw_trace(fig, trace):
   # we search for portions in the trace with similar value which need to be at least two segments wide.
   # Small value errors are ok. value equals color
   
-  vertices = [i[0] for i in trace]
-  values   = [i[1] for i in trace]
+  vertices = trace.points
+  values   = trace.data
 
   start = 0
   pos = 1
   val = values[0]
-  while pos < len(trace):
+  while pos < len(vertices):
     # up to the value changes or we reach the end
-    if abs(values[pos] - val) > 0.1 or pos == len(trace)-1:
+    if abs(values[pos] - val) > 0.1 or pos == len(vertices)-1:
       assert(pos > start)
-      #print 's=' + str(start) + ' e=' + str(pos)
-      path = Path(vertices[start:pos])
-      patch = matplotlib.patches.PathPatch(path, edgecolor=str(1.0 - (val * scale)), facecolor='none', lw=1)
+      #print 's=' + str(start) + ' e=' + str(pos) + ' v=' + str(val)
+      path = Path(vertices[start:pos+1])
+      #print path
+      gray = max((1.0 - val, 0.0))
+      if gray > 1.0:
+        print 'invalid color v=' + str(val) + ' -> ' + str(gray)
+        gray = 0.5 
+      patch = matplotlib.patches.PathPatch(path, edgecolor=str(gray), facecolor='none', lw=1)
       fig.add_patch(patch)
 
-      start = pos
+      start = pos-1 # make sure there is no gap between two segments 
       val = values[pos]      
     pos += 1
-      
-## sort data such that s1 > s2. Will change angle by +/ pi/2. Sorts in-place!
-def sort_data(s1, s2, angle):
+
+
+## draws a thick trace  
+# @param scale scale stiffness to color. 1.0 for normal or 2.0 if max stiff = 0.5
+def draw_thick_trace(fig, dx, trace, minimal):
+  # two adjacent coordinates and the intermediate value give a bar with the thickness
   
-  for i in range(len(s1)):
-    if s1[i] < s2[i]:
-      #print ' before: s1=' + str(s1[i]) + ' s2=' + str(s2[i]) + ' a=' + str(angle[i]),  
-      t = float(s1[i]) # without float() the reference is copied and t changes value!
-      s1[i] = float(s2[i])
-      s2[i] = t
-      angle[i] = float(angle[i]) - numpy.pi/2 if angle[i] > numpy.pi/2 else float(angle[i]) + numpy.pi/2 
-      #print '  after: s1=' + str(s1[i]) + ' s2=' + str(s2[i]) + ' a=' + str(angle[i]) 
+  
+  # we search for portions in the trace with similar value which need to be at least two segments wide.
+  # Small value errors are ok. value equals color
+  
+  vertices = trace.points
+  values   = trace.data
+
+  for i in range(0,len(vertices)-1,1):
+    #print i
+    if max(values[i:i+2]) > minimal:
+      draw_frustum(fig, dx, vertices[i:i+2], values[i:i+2])
+
+
+
+## draw a frustum defined by the start and end point of the center line and the thickness at the start and end
+def draw_frustum(fig, dx, coord, thick):
+  assert(len(coord) == len(thick))
+  assert(len(coord) == 2)
+
+  # construct orthogonal vector by solving for the scalar product
+  # p1: start of center line
+  # p2: end of center line
+  # v1 = p2-p1
+  # p3: new point on orthogonal vector, one component set, the other solved
+  # v2 = p3-p1  -> v1*v2 = 0
+  x1 = coord[0][0]
+  x2 = coord[1][0]
+  y1 = coord[0][1]
+  y2 = coord[1][1]
+  
+  v1 = [x2-x1, y2-y1]
+  v2 = numpy.array((y2-y1, x1-x2))
+  v2n = norm(v2)
+
+  if v2n < 1e-6:
+    return
+  
+  v2 = v2 * 1./ v2n
  
-def show_streamline(coords, s1, s2, angle, dir, samples):            
+  #print 'coord: ' + str(coord) + ' thickness: ' + str(thick) + ' v2: ' + str(v2)# + ' sp=' + str(numpy.dot(v1, v2))
+  
+  #v2 = numpy.zeros(2)
+  
+  p1 = [x1,y1]
+  p2 = [x2,y2]
+  
+  t1 = 0.5*dx*thick[0]
+  t2 = 0.5*dx*thick[1]
+  
+  verts = [p1+t1*v2, p2+t2*v2, p2-t2*v2, p1-t1*v2, (0,0)]
+  codes = [Path.MOVETO, Path.LINETO, Path.LINETO, Path.LINETO, Path.CLOSEPOLY]
+
+  path = Path(verts, codes)
+  patch = matplotlib.patches.PathPatch(path, edgecolor='black', facecolor='black', lw=1)
+  fig.add_patch(patch)
+
+  #o1 = p1+t1*v2
+  #o2 = p2+t2*v2
+  #o3 = p2-t2*v2
+  #o4 = p1-t1*v2
+
+  #print 'p1=' + str(p1) + ' p2=' + str(p2) + ' v2=' + str(v2) + ' t1=' + str(t1) + ' t2=' + str(t2)
+  #print 'o1=' + str(o1) + ' o2=' + str(o2) + ' o3=' + str(o3) + ' o4=' + str(o4)
+
+  #print 'plot ' + str(x1) + ', ' + str(y1) + ' with points, ', str(x2) + ', ' + str(y2) + ' with points, ',
+  #print str(o1[0]) + ', ' + str(o1[1]) + ' with points, ',
+  #print str(o2[0]) + ', ' + str(o2[1]) + ' with points, ',
+  #print str(o3[0]) + ', ' + str(o3[1]) + ' with points, ',
+  #print str(o4[0]) + ', ' + str(o4[1]) + ' with points'
+  
+
+ 
+def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, s1_samples, s2_samples, res, do_save, info):            
+
+  assert(not (s1_samples == None and s2_samples <> None))
  
   centers, min, max, elem = coords
-  
-  #print len(centers)
-  #print min
-  #print max
-  #print elem
-  
-  sort_data(s1, s2, angle)
 
-  fields = Fields(coords, s1, s2, angle, samples)
-  #fields.macro.dump(s1,0)
-  #fields.macro.dump_data()
+  if scale > 0.0:  
+    s1 *= scale
+    s2 *= scale
+    s1_minimal *= scale
+
+  # we scale minimal in such a way, that for different sampling the thinnest lines are drawn in the same thickness 
+  minimal = (s1_minimal, s1_minimal if s2_samples == None else (1.0 * s2_samples / s1_samples) * s1_minimal)
+
+  # separate fields due to possibly separate sampling
+  fields = (Fields(coords, s1, angle, s1_samples), Fields(coords, s2, angle, s2_samples if s2_samples <> None else s1_samples))
   
-  fig = create_figure(min, max)
+  fig, sub = create_figure(min, max, res, do_save)
 
-  #trace = fields.streamline(0.251, 0.251, 0.1)
-  #draw_trace(fig, trace)
 
-  #interpret horizontal as s1. Note that we sort!!
+  #interpret horizontal as s1. Note that we sort must not sort, this results in jumps in the angle in the two-load case
   dirs = [1,0] # 1 is weaker, draw first and second the darker s1 lines
   if dir == 'horizontal':
     dirs = [0]
   if dir == 'vertical':
     dirs = [1]
 
+
+  #generate all > minimal traces, draw (or not draw) them later
+  traces = []
   if True:
     for idx in dirs:
-      for j in range(fields.macro.ny):
-        for i in range(fields.macro.nx):
-         trace = fields.streamline(i * fields.macro.dx, j * fields.macro.dy, idx, 0.02)
-         draw_trace(fig, trace, 2.0)
+      field = fields[idx]
+      for j in range(field.macro.ny):
+        for i in range(field.macro.nx):
+          trace = field.streamline((i,j), step, minimal[idx], idx)
+          if trace <> None:
+            traces.append(trace)
+  else:
+    trace = fields[0].streamline((0.2/fields[0].macro.nx, 0.2/fields[0].macro.ny), step, minimal[0], 0)
+    traces.append(trace)
+
+  # sort by max field
+  traces = sorted(traces, key=lambda trace: trace.max, reverse=True)
+
+  # here we count the macro cells touched by the traces. For both indices two fields
+  cells = (numpy.zeros(fields[0].macro.ndim), numpy.zeros(fields[1].macro.ndim))  
+
+  # conditionally draw the traces
+  count = [0,0] 
+  for trace in traces:
+    mycells = cells[trace.idx]
+    field   = fields[trace.idx]
+    
+    # draw the trace only if there is no line yet at the trace origin
+    if mycells[trace.cell] > 1:
+      continue
+    
+    mycells += trace.touched(field.macro)
+    count[trace.idx] += 1 
+
+    if style == 'line':      
+      draw_trace(sub, trace)
+    else:        
+      draw_thick_trace(sub, field.macro.dx, trace, minimal[trace.idx])
+          
+  # finally some statistics        
+          
+  print 'drawn traces for s1: ' + str(count[0]) + ' and s2: ' + str(count[1])
+  if info <> None:
+    traces = xml.etree.ElementTree.SubElement(info, "drawnTraces")
+    traces.set("s1", str(count[0]))  
+    traces.set("s2", str(count[1]))
+          
+  # see how much we macro cells are not drawn
+  void_count = [0, 0]
+  mat_count  = [0, 0]
+  void_sum = [0.0, 0.0]
+  mat_sum  = [0.0, 0.0]
+
+  for idx in [0, 1]:
+    mycells = cells[idx]
+    field = fields[idx]
+    for i in range(field.macro.nx):
+      for j in range(field.macro.ny):
+        x, y = field.index2coord((i, j))
+        val = field.macro.getData(x, y)[0]
+        if mycells[i,j] == 0:
+          void_sum[idx] += val 
+          void_count[idx] += 1
+        else:
+          mat_sum[idx] += val
+          mat_count[idx] += 1
   
-  
-  matplotlib.pyplot.show()
+  print void_sum       
+  print mat_sum
+  print 'below minimal cells (fraction) s1: ' + str(float(void_count[0])/(void_count[0] + mat_count[0])) + ' s2: ' + str(float(void_count[1])/(void_count[1] + mat_count[1]))
+  print 'below minimal material (fraction) s1: ' + str(void_sum[0]/(void_sum[0] + mat_sum[0])) + ' s2: ' + str(void_sum[1]/(void_sum[1] + mat_sum[1])) 
+  if info <> None:
+    cells = xml.etree.ElementTree.SubElement(info, "belowMinimalCells")
+    cells.set("s1", str(float(void_count[0])/(void_count[0] + mat_count[0])))
+    cells.set("s2", str(float(void_count[1])/(void_count[1] + mat_count[1])))
+    cells = xml.etree.ElementTree.SubElement(info, "belowMinimalMaterial")
+    cells.set("s1", str(void_sum[0]/(void_sum[0] + mat_sum[0])))
+    cells.set("s2", str(void_sum[1]/(void_sum[1] + mat_sum[1])))
+          
+  return (fig, sub)

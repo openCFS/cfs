@@ -141,7 +141,6 @@ namespace CoupledField {
     std::stringstream msName;
     H5::Group resultDescGroup;
 
-
     currMSNumSteps_ = numSteps;
 
     // If it does not exist, create Group for Grid / Volume data
@@ -218,9 +217,10 @@ namespace CoupledField {
 
           // iterate over all results
           ResDescType::iterator it;
-          for( it = registeredHistResults_.begin();
-              it != registeredHistResults_.end();
-              it++ ) {
+          for(it = registeredHistResults_.begin(); it != registeredHistResults_.end(); it++)
+          {
+            // suppress too much warnings about multiple names
+            int warn_count = 0;
 
             // create for each result a group within the ms group
             H5::Group resultGroup;
@@ -254,10 +254,13 @@ namespace CoupledField {
                 H5::Group entityGroup; 
                 try {
                   entityGroup = entityTypeGroup.openGroup( entIt.GetIdString() );
-                  WARN("You are trying to add history entity '" << entIt.GetIdString()
-                       << "' under group '"
-                       << "History/" << msName.str() << "/" << it->first << "/" << entityString 
-                       << "'\nwhich already exists under a different name! Please check your mesh and XML files.");
+                  if(warn_count < 1)
+                  {
+                    WARN("You are trying to add history entity '" << entIt.GetIdString() << "' under group '"
+                         << "History/" << msName.str() << "/" << it->first << "/" << entityString
+                         << "'\nwhich already exists under a different name! Please check your mesh and XML files.");
+                  }
+                  warn_count++;
                   entityGroup.close();
 
                   continue;
@@ -275,7 +278,10 @@ namespace CoupledField {
               }
             }
             entityTypeGroup.close();
-          }
+
+            if(warn_count > 0)
+              WARN("Suppressed '" << (warn_count - 1) << "' warnings of different history names.");
+          } // end registeredHistResults loop
 
 
         }

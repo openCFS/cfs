@@ -26,6 +26,8 @@
 #include "Utils/result.hh"
 #include "resultHandler.hh"
 
+using boost::static_pointer_cast;
+
 namespace CoupledField {
 
 

@@ -25,6 +25,8 @@
 #include "Utils/tools.hh"
 
 using std::string;
+using boost::make_tuple;
+using std::pair;
 
 using namespace CoupledField;
 class DesignStructure;

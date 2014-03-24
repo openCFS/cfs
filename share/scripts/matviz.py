@@ -6,6 +6,9 @@ from hdf5_tools import *
 import argparse
 import sys
 import os
+import StringIO
+import xml.etree.ElementTree
+import xml.dom.minidom
 
 ## reads design_stiff* and design_rotAngle* for 2D and 3D. Fills other stuff by defaults
 # considers density read
@@ -73,14 +76,38 @@ def read_stiff_angle(hdf_file, dim_2D, args):
 # @save filename for output
 def show_or_write(viz, args):
   assert(viz <> None)
-  
+  global info
   if isinstance(viz, Image.Image):
+    frac= 1 - numpy.average(numpy.array(viz)) / 255
+    print 'volume fraction from image : ' + str(frac)
+    if info <> None:
+      vol = xml.etree.ElementTree.SubElement(info, "volume")
+      vol.set("imageMaterial", str(frac))  
+    
     if args.save:
       viz.save(args.save)
     else:
       viz.show()
-  elif isinstance(viz, matplotlib.figure.Figure):
-    return
+  elif isinstance(viz, tuple):
+    fig = viz[0]
+    sub = viz[1]
+    
+    if args.save:
+      extent = sub.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+      print 'write file: ' + args.save
+      fig.savefig(args.save, bbox_inches=extent)
+
+      if args.save.split('.')[-1] <> 'pdf':      
+        # I war not able to  render a memory image first, make an array out of the data and determine the grayness
+        # So read again from file :( 
+        tmp = Image.open(args.save)
+        frac= 1 - numpy.average(numpy.array(tmp)) / 255
+        print 'volume fraction from image : ' + str(frac)
+        if info <> None:
+          vol = xml.etree.ElementTree.SubElement(info, "volume")
+          vol.set("imageMaterial", str(frac))  
+    else:
+      matplotlib.pyplot.show()
   else:
     show_write_vtk(viz, args.res, args.save)
 
@@ -111,13 +138,18 @@ parser.add_argument("--symmetries_planes", help="'true' or 'false' for 3D also s
 parser.add_argument("--hom_access", help="the 'plain ' or 'smart' hom values (default 'smart')", default = "smart")
 parser.add_argument("--hom_grad", help="interpolation of design: 'none', 'nearest', linear', 'cubic' (default 'linear')", default="linear", choices=['none', 'nearest', 'linear', 'cubic'] )
 parser.add_argument("--hom_dir", help="visualization of stiffness directions (default 'all')", default="all", choices=['all', 'horizontal', 'vertical', 'sagittal'] )
-parser.add_argument("--hom_angle", help="bias added to the angle in grad!", default=0.0, type=float )
-parser.add_argument("--hom_samples", help="activates interpolation and gives samples in x-direction", type=int)
+parser.add_argument("--angle_factor", help="factor for angle. -1.0 turns, 0.0 disables angles", default=1.0, type=float )
+parser.add_argument("--hom_samples", help="activates interpolation and, the value gives samples in x-direction", type=int)
+parser.add_argument("--stream_style", help="select visualization", choices=['line', 'thick'], default='thick')
+parser.add_argument("--stream_step", help="step length for ODE integration per macro cell", type=float, default=0.2)
+parser.add_argument("--stream_s2_samples", help="sampling of s2 if not given hom_samples applies", type=int)
+parser.add_argument("--minimal", help="minimal stiffness to be drawn, will be scaled", type=float, default=0.0)
 parser.add_argument("--parametrization", help="parametrization of the stiffness tensor", default="hom_rect", choices=['hom_rect', 'trans-iso', 'ortho'])
 parser.add_argument("--save", help="save 'image.png' (pixel), 'image.pdf' (vector) or VTK Poly Data file 'file.vtp'")
 parser.add_argument("--plot", help="for single tensors: creates gnuplot file instead of image")
 parser.add_argument("--penalty", help="penalty parameter for SIMP (default 5)", default=5.0)
 parser.add_argument("--color", help="only for hom_rot_cross: black or grayscale", default="grayscale")
+parser.add_argument("--info", help="creates a xml file of given name with additional information")
 args = parser.parse_args()
 
 # check ans postproc arguments
@@ -126,6 +158,16 @@ if not args.symmetries == "default" and not args.show == "default" and not args.
   sys.exit()
 aux_code = args.show if not args.show == "default" else args.symmetries # might still be default
 
+# in this global varibale we can store meta-information to be exported as xml file 
+info = None
+if args.info is not None:
+  info = xml.etree.ElementTree.Element("matviz")
+  cmd = sys.argv[0].split('/')[-1]
+  for i in range(1, len(sys.argv)):
+    cmd += ' ' + sys.argv[i]
+  doc = xml.etree.ElementTree.SubElement(info, "commandLine")
+  doc.text = cmd  
+    
 # check for tensor input
 tensor  = [] # becomes a single tensor or a tensor array
 centers = []
@@ -189,7 +231,11 @@ if h5_read or dim_2D:
 
     s1, s2, s3, angle = read_stiff_angle(f, dim_2D, args)
     # add angle bias
-    angle += args.hom_angle * numpy.pi/180
+    if args.angle_factor <> 1.0:
+      print 'scale angle by ' + str(args.angle_factor)
+      angle *= args.angle_factor  
+    
+    print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + '] s2 in [' + str(numpy.min(s2)) + ':' + str(numpy.max(s2)) + ']'
 
     coords = (centers, min, max, elem_dim)
 
@@ -208,7 +254,7 @@ if h5_read or dim_2D:
         else:
           viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, args.scale)
       elif args.show == "stream":
-          viz = show_streamline(coords, s1, s2, angle[:,0], args.hom_dir, args.hom_samples)            
+          viz = show_streamline(coords, s1, s2, angle[:,0], args.hom_dir, args.scale, args.minimal, args.stream_style, args.stream_step, args.hom_samples, args.stream_s2_samples, args.res, args.save <> None, info)            
       else:
         assert(False)
     # the 3D VTK stuff      
@@ -280,3 +326,9 @@ else:
     actors = create_symmety_planes(mins, 1.2 * numpy.max(data if args.show == "default" else aux), not args.symmetries_planes == "false")
 
   show_write_vtk(poly, args.res, args.save, actors)  
+
+if args.info:
+  print 'write info xml file: ' + args.info
+  out = open(args.info, "w")
+  out.write(xml.dom.minidom.parseString(xml.etree.ElementTree.tostring(info)).toprettyxml())
+  

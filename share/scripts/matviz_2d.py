@@ -116,7 +116,7 @@ def to_frustum_center(start, end, center, elem_scale, elem, scale, direction):
   
   #WARNING CHECK the scaling!!!
   
-  # we scale the element scale, such it overlaps. therefore wen need to scale reciproc with the vale, which cancels!
+  # we scale the element scale, such it overlaps. therefore we need to scale reciproc with the vale, which cancels!
   points.append((-1.0 * scale * elem[alt_idx]/2, 1./max((1, scale)) * -val_1 * scale * elem[idx]/2))
   points.append(( 1.0 * scale * elem[alt_idx]/2, 1./max((1, scale)) * -val_2 * scale * elem[idx]/2))
   points.append(( 1.0 * scale * elem[alt_idx]/2, 1./max((1, scale)) *  val_2 * scale * elem[idx]/2))
@@ -198,6 +198,23 @@ def convert_interpolation_input(centers, s1, s2, angle):
       v[i][2] = angle[i]
       
   return c, v    
+
+## helper for get_interpolation and Fields
+#@return 2d locations and 2d data
+def convert_interpolation_input(centers, s1, angle):
+  # convert to 2D
+  c = numpy.zeros((len(centers), 2))
+  c[:,0] = [x[0] for x in centers]
+  c[:,1] = [x[1] for x in centers]
+
+  v = numpy.zeros((len(s1),  1 if angle == None else 2))
+  for i in range(len(s1)):
+    v[i][0] = s1[i][0]
+    if angle <> None:
+      v[i][1] = angle[i]
+      
+  return c, v    
+
 
 ## helper which returns an interpolated grid and one nearest neighbor interpolated grid
 def get_interpolation(coords, grad, sample, s1, s2, angle = None):

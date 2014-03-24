@@ -13,6 +13,8 @@
 #include "Utils/StdVector.hh"
 #include "tcl.h"
 
+#undef TCL_NO_DEPRECATED
+#define USE_INTERP_RESULT 1
 
 namespace CoupledField {
 

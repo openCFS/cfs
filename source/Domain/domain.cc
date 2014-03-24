@@ -187,7 +187,7 @@ void Domain::CreateGrid()
       // p.filename() does not compile for me!!
       // What should work:
       // boost::filesystem::base(p) << "." << boost::filesystem::extension(p)
-      std::cout << "'" << p.leaf() << "' ";
+      std::cout << p.leaf() << " ";
     }
 
     actGrid->FinishInit();

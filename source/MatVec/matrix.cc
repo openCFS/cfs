@@ -22,7 +22,11 @@
 #include "def_build_type_options.hh"
 #include "matrix.hh"
 
+using boost::tokenizer;
+using boost::char_separator;
+
 namespace CoupledField {
+
 class SingleVector;
 }  // namespace CoupledField
 
