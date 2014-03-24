@@ -199,6 +199,12 @@ private:
   //! Pointer to destination grid for interpolation (usually "default" grid)
   Grid * destGrid_;
 
+  //! cache global coords in case of standard interpolation of transient data
+  StdVector<LocPoint> localCoords_;
+
+  // cache found elements in case of standard interpolation of transient data
+  StdVector< const Elem* > foundElements_;
+
 };
 
 

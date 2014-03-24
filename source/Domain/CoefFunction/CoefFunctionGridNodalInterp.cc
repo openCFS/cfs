@@ -127,7 +127,13 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefMa
     this->PrepareForStdInterp(this->myConfigNode_);
     std::cout << "Done" << std::endl;
     std::cout.flush();
+  }else{
+    if(this->dependType_ != CoefFunction::CONSTANT){
+      this->UpdateSolution();
+      this->interpolFunction_->ApplyExternalData();
+    }
   }
+
 
 
     //there is a special case when dealing with surface elements
@@ -623,6 +629,17 @@ template<class DATA_TYPE>
      this->interpolFunction_->AddEntityList(this->entities_[aReg]);
      interpolSpace->SetRegionApproximation(this->entities_[aReg]->GetRegion(),polyId,integId);
      this->interpolFunction_->AddExternalDataSource(this->shared_from_this(), this->entities_);
+     //now check if this is a surface region
+     //if so, we add the associated volume region
+     if(this->entities_[aReg]->GetType() == EntityList::SURF_ELEM_LIST ||
+        this->entities_[aReg]->GetType() == EntityList::NC_ELEM_LIST ){
+       EntityIterator it = this->entities_[aReg]->GetIterator();
+       RegionIdType volRegionId = it.GetSurfElem()->ptVolElems[0]->regionId;
+       std::string volReg = this->destGrid_->GetRegion().ToString(volRegionId);
+       shared_ptr<EntityList> VolList = this->destGrid_->GetEntityList( EntityList::ELEM_LIST, volReg);
+       this->interpolFunction_->AddEntityList(VolList);
+       interpolSpace->SetRegionApproximation(volRegionId,polyId,integId);
+     }
    }
    this->interpolFunction_->SetFctId(PSEUDO_FCT_ID);
 
@@ -645,8 +662,6 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdV
                                                                       Grid* ptGrid,
                                                                       const std::set<RegionIdType>& srcRegions )
 {
-  StdVector<LocPoint> localCoords;
-  StdVector< const Elem* > foundElements;
   //build up set of source regions
   std::set<std::string>::iterator regIter = this->srcRegions_.begin();
   std::set<RegionIdType> scrRegIds;
@@ -676,28 +691,35 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdV
     std::cout.flush();
   }
 
-  this->srcGrid_->GetElemsAtGlobalCoords( globCoord,
-                                          localCoords,
-                                          foundElements,
-                                          std::set<RegionIdType>(),this->globalTol_,this->localTol_);
+  if(localCoords_.GetSize() == 0){
+    this->srcGrid_->GetElemsAtGlobalCoords( globCoord,
+                                             localCoords_,
+                                             foundElements_,
+                                             std::set<RegionIdType>(),this->globalTol_,this->localTol_);
+   }
 
   Vector<DATA_TYPE> eSol;
   Matrix<DATA_TYPE> opMat;
   LocPointMapped lpm;
   shared_ptr<ElemShapeMap> esm;
   values.Resize(globCoord.GetSize(), Vector<DATA_TYPE>(this->dimDof_));
-  for(UInt i=0;i<foundElements.GetSize();++i){
-    const Elem* curE = foundElements[i];
+  for(UInt i=0;i<foundElements_.GetSize();++i){
+    const Elem* curE = foundElements_[i];
     if(!curE){
       continue;
     }
     this->GetElemSolution(eSol,curE->elemNum);
     esm = this->srcGrid_->GetElemShapeMap( curE, true );
-    LocPoint lp = localCoords[i];
+    LocPoint lp = localCoords_[i];
     lpm.Set(lp,esm,1.0);
     BaseFE * fe = esm->GetBaseFE();
     this->myOperator_->CalcOpMat(opMat,lpm,fe);
     values[i] = opMat * eSol;
+  }
+  //release memory in case of constant data
+  if(this->dependType_ == CoefFunction::CONSTANT){
+    localCoords_.Clear();
+    foundElements_.Clear();
   }
 }
 
