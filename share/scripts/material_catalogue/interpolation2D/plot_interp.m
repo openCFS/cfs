@@ -15,7 +15,6 @@ E12_grid = zeros(m+1,n+1);
 for i=2:size(list,1)
     E12_grid(list(i,1)+1,list(i,2)+1) = list(i,4);
 end
-
 E22_grid = zeros(m+1,n+1);
 for i=2:size(list,1)
     E22_grid(list(i,1)+1,list(i,2)+1) = list(i,5);

@@ -1,5 +1,7 @@
 function [res] = bicubic_int(Coeff,a,b,x1,x2)
-% Auswertung des Interpolationspolynoms an der Stelle x1,x2
+% Auswertung des Interpolationspolynoms an der Stelle x1,x2,
+% diskretisierte Dickenvektoren a, b
+% Interpolationskoeffizienten Coeff
 m = length(a);
 n = length(b);
 for i=1:m-1
@@ -42,8 +44,6 @@ db=bu-bl;
 t=(x1-al)/da;
 u=(x2-bl)/db;
 res = 0;
-%for i = 4:-1:1
-%res=t*(res)+((c(i,4)*u+c(i,3))*u+c(i,2))*u+c(i,1);
 for i=0:3
     for j=0:3
         res = res + ct(i*4+j+1) * t^i * u^j;

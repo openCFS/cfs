@@ -74,55 +74,8 @@ elif dim ==3:
   
 
 jobfile = open(outfile, "w")
-if dim == 4:
-  # OLD Implementation
-  for x in range(steps):
-    for y in range(steps):
-      if x + y == 0:
-	       continue
-      print str(x) + " " + str(y)
-      steps2 = 2*(steps)
-      im = Image.new('L', (steps2, steps2), 0) # create a blank image
-      draw = ImageDraw.Draw(im) # create draw object
-      #draw.polygon([(x,y),(x,im.size[1]-y),(im.size[0]-x,im.size[1]-y),(im.size[0]-x,y)], fill='white')
-      draw.rectangle([(steps2-x-1,y),(x,steps2-y-1)],fill='white')
-      # now draw the lines into the picture
-      #for xx in range(x):
-      #  draw.line((0, xx) + (steps, xx), fill=0)
-      #for yy in range(y):
-      #  draw.line((yy, 0) + (yy, steps), fill=0)
-
-      del draw 
-
-      # resize image to proper resolution
-      if steps < minres:
-	         im = im.resize((minres, minres))
-      # create a smooth image by a gaussian_filter	
-      im = ndimage.gaussian_filter(im, 5)
-      # save image
-      imagename = str(steps) + "/" + str(x) + "-" + str(y) + ".png"
-      #im.save(imagename)
-      #imagename = str(steps) + "/" + str(x) + "-" + str(y) + "2.png"
-
-
-
-
-      #Rescale to 0-255 and convert to uint8
-      rescaled = (255.0 / im.max() * (im - im.min())).astype(np.uint8)
-
-      im = Image.fromarray(rescaled)
-      im.save(imagename)
-
-      densfilename = str(x) + "-" + str(y) + ".dens.xml.bz2"
-      save_image_as_densfile(im, str(steps) + "/" + densfilename)
-
-      # add new job to jobfile
-      jobfile.write('cfs.rel -m ~/meshes/' + str(minres) + '.mesh -x ' + densfilename + ' ' + str(x) + "-" + str(y) + ' \n')
-
-      # create xml file for cfs
-      os.system('cp inv_tensor.xml ' + str(steps) + '/' + str(x) + "-" + str(y) + '.xml')
 elif dim == 2:
-  #cross structure
+  #2D cross structure
   array = 1e-6*np.ones((minres,minres))
   for x in range(steps+1):
     for y in range(steps+1):
@@ -130,10 +83,10 @@ elif dim == 2:
       offy = int((minres/2.)*(1-float(y)/(steps))+0.5)
       for i in range(offx,minres-offx):
         for j in range(0,minres):
-          array[i][j] = 1.
+          array[j][i] = 1.
       for i in range(offy,minres-offy):
         for j in range(0,minres):
-          array[j][i] = 1.
+          array[i][j] = 1.
       densfilename = str(x) + "-" + str(y) +".dens.xml"
       print str(numpy.sum(array)/(minres*minres)) + " vs " + str(float(x)/steps + float(y)/steps - (float(x)/steps)*(float(y)/steps))
       # filtering of the data
@@ -144,29 +97,6 @@ elif dim == 2:
       jobfile.write('cfs.rel -m ~/meshes/' + str(minres) + '.mesh -x ' + densfilename + ' ' + str(x) + "-" + str(y)+' \n')
       # create xml file for cfs
       os.system('cp inv_tensor.xml ' + str(steps) + '/' + str(x) + "-" + str(y) + '.xml')    
-elif dim == 10:    
-  #frame structure
-  array = np.ones((minres,minres))
-  for x in range(steps+1):
-    for y in range(steps+1):
-      offx = int((minres/2.)*(float(x)/(steps))+0.5)
-      offy = int((minres/2.)*(float(y)/(steps))+0.5)
-      print "test: offx " + str(offx) + " test: offy " + str(offy)
-      print "test: x " + str(x) + " test: y " + str(y) + "-> " + str(float(x)/steps) + ", "+ str(float(y)/steps)
-      for i in range(offx,minres-offx):
-        for j in range(offy,minres-offy):
-          array[i][j] = 1e-6
-      densfilename = str(x) + "-" + str(y) +".dens.xml"
-      print str(numpy.sum(array)/(minres*minres)) + " vs " + str(float(x)/steps + float(y)/steps - (float(x)/steps)*(float(y)/steps))
-      # filtering of the data
-   
-      array_filter = ndimage.uniform_filter(array, size = 6)
-      write_density_file(str(steps) + "/" + densfilename,array_filter,"set")
-      array = np.ones((minres,minres))
-      # add new job to jobfile
-      jobfile.write('cfs.rel -m ~/meshes/' + str(minres) + '.mesh -x ' + densfilename + ' ' + str(x) + "-" + str(y)+' \n')
-      # create xml file for cfs
-      os.system('cp inv_tensor.xml ' + str(steps) + '/' + str(x) + "-" + str(y) + '.xml')           
 elif dim == 3:
   # 3D cross structure
   for x in range(steps+1):
@@ -204,39 +134,29 @@ elif dim == 3:
           xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
           replace(xml, "//cfs:loadErsatzMaterial/@file", str(x) + '-' + str(y) + '-' + str(z) + '.dens.xml')
           doc.saveFile(file)
-elif dim ==11:
+elif dim == 10:    
+  #2D frame structure
+  array = np.ones((minres,minres))
   for x in range(steps+1):
     for y in range(steps+1):
-      for z in range(steps+1):
-        offx = int((minres/2.)*(float(x)/(steps))+0.5)
-        offy = int((minres/2.)*(float(y)/(steps))+0.5)
-        offz = int((minres/2.)*(float(z)/(steps))+0.5)
-	tmp  = -1.
-	if pl.size > 3:
-         tmp = 1.
-        print "test: offx "+str(offx)+" test: offy "+str(offy)+" test: offz "+str(offz)
-        print "est: x " + str(x) + " test: y " + str(y) + " test: z " + str(z)
-	#if tmp > 0:
-	#  for i in range(0,pl
-        for i in range(offx,minres-offx):
-          for j in range(offy,minres-offy):
-            for k in range(offz,minres-offz):
-              array[i][j][k] = 1e-6
-        densfilename = str(x) + "-" + str(y) + "-" + str(z) +".dens.xml"
-        array_filter = ndimage.uniform_filter(array, size = 6)
-        write_density_file(str(steps) + "_3D/" + densfilename,array_filter,"set")
-        array = np.ones((minres,minres,minres))
-        # add new job to jobfile
-        jobfile.write('cfs.rel -m ~/meshes/'+'20x20x20'+ '.mesh ' + str(x) + '-' + str(y) + '-' + str(z) + ' \n')
-        # create xml file for cfs
-        os.system('cp inv_tensor_3D.xml ' + str(steps) + '_3D/' + str(x) + '-' + str(y) + '-' + str(z) + '.xml')
-        file = str(steps) + '_3D/' + str(x) + '-' + str(y) + '-' + str(z) + '.xml'
-        if os.path.isfile(file):      
-          doc = libxml2.parseFile(file)
-          xml = doc.xpathNewContext()
-          xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
-          replace(xml, "//cfs:loadErsatzMaterial/@file", str(x) + '-' + str(y) + '-' + str(z) + '.dens.xml')
-          doc.saveFile(file)
+      offx = int((minres/2.)*(float(x)/(steps))+0.5)
+      offy = int((minres/2.)*(float(y)/(steps))+0.5)
+      print "test: offx " + str(offx) + " test: offy " + str(offy)
+      print "test: x " + str(x) + " test: y " + str(y) + "-> " + str(float(x)/steps) + ", "+ str(float(y)/steps)
+      for i in range(offx,minres-offx):
+        for j in range(offy,minres-offy):
+          array[i][j] = 1e-6
+      densfilename = str(x) + "-" + str(y) +".dens.xml"
+      print str(numpy.sum(array)/(minres*minres)) + " vs " + str(float(x)/steps + float(y)/steps - (float(x)/steps)*(float(y)/steps))
+      # filtering of the data
+   
+      array_filter = ndimage.uniform_filter(array, size = 6)
+      write_density_file(str(steps) + "/" + densfilename,array_filter,"set")
+      array = np.ones((minres,minres))
+      # add new job to jobfile
+      jobfile.write('cfs.rel -m ~/meshes/' + str(minres) + '.mesh -x ' + densfilename + ' ' + str(x) + "-" + str(y)+' \n')
+      # create xml file for cfs
+      os.system('cp inv_tensor.xml ' + str(steps) + '/' + str(x) + "-" + str(y) + '.xml')           
 jobfile.close()
 sys.exit()
 
