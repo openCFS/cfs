@@ -635,6 +635,82 @@
   </xsd:complexType>  
   
   
+  <!-- ******************************************************************* -->
+  <!-- Definition of element for Ipopt Solver for contact                  -->
+  <!-- ******************************************************************* -->
+  
+  <xsd:element name="contact-ipopt" type="DT_ContactIpopt" substitutionGroup="SolverBasic"/>
+  
+  <xsd:complexType name="DT_ContactIpopt">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="obstacles" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:choice minOccurs="1" maxOccurs="unbounded">
+                  <xsd:element name="sphere">
+                    <xsd:complexType>
+                      <xsd:attribute name="x" type="xsd:double"/>
+                      <xsd:attribute name="y" type="xsd:double"/>
+                      <xsd:attribute name="z" type="xsd:double" default="0.0"/>
+                      <xsd:attribute name="radius" type="xsd:double"/>
+                      <xsd:attribute name="nodes" type="xsd:string"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:choice>
+              </xsd:sequence>
+            </xsd:complexType>            
+          </xsd:element>
+          <xsd:element name="bilateral" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="regionpair" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="region1" type="xsd:string"/>
+                    <xsd:attribute name="region2" type="xsd:string"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="option" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="type" use="required">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="string" />
+                    <xsd:enumeration value="integer" />
+                    <xsd:enumeration value="real" />
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              <xsd:attribute name="name" use="required">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <!-- integer options -->
+                    <xsd:enumeration value="print_level"/>
+                    <xsd:enumeration value="max_iter" />
+                    <!-- real options -->
+                    <xsd:enumeration value="tol" />
+                    <xsd:enumeration value="dual_inf_tol" />
+                    <xsd:enumeration value="constr_viol_tol" />
+                    <xsd:enumeration value="compl_inf_tol" />
+                    <!-- string options -->
+                    <xsd:enumeration value="output_file" />
+                    <xsd:enumeration value="option_file_name" />
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              <!-- the value attribute is always string, nontheless the type -->
+              <xsd:attribute name="value" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>  
+  
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                        OLAS_MINRES Solver                     == -->

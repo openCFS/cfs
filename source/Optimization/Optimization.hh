@@ -395,6 +395,9 @@ namespace CoupledField
 
            /** if set write the gradient of the design to logfile */
            bool designGradient;
+           
+           /** if set write the constraint gradient of the design to the logfile */
+           bool designConstraintGradients;
 
            /** optional log the iterations and cost value to a file to gnuplot it */
            std::ofstream* file;

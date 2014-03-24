@@ -278,6 +278,9 @@ template<typename T> class NodeStoreSol;
     //    virtual void Inner(const SingleVector& vec,Double& s) const;
     //    virtual void Inner(const SingleVector& vec,Complex& s) const;
 
+    //! Compute the square of the Euclidean norm of this vector object
+    Double NormL2Squared() const;
+
     //! Compute Euclidean norm of this vector object
     Double NormL2() const;
     

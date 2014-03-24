@@ -48,7 +48,7 @@ namespace CoupledField {
     string line;
     getline(inFile_, line, '\n');
     if(line != "[Info]"){
-      EXCEPTION("The mesh file does start with the correct header!");
+      EXCEPTION("The mesh file does not start with the correct header!");
     }
     boost::trim(line);
     while(!line.empty()){

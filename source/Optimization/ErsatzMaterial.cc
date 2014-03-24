@@ -570,7 +570,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
             Vector<double>& u_vec = dynamic_cast<Vector<double>&>(*(*forwards[t])[e]);
             v -= u_vec * dKp;
           }
-          if (t > 0 || !IsFirstTransientStepStatic())
+          if (t > 0 || !IsFirstTransientStepStatic()) // all transiently calculated timesteps
           {
             dMp = dM * p_vec;
             if (notDampingElement)
@@ -886,6 +886,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::BENSON_VANDERBEI_3:
       case Function::DESIGN_BOUND:
       case Function::MULTIMATERIAL_SUM:
+      case Function::SHAPE_INF:
       assert(c == NULL);
       result = CalcLocalConstraint(g, derivative);
       break;
@@ -1172,7 +1173,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         return(derivative ? 0.0 : 1.0);
       }
     }
-    else
+    else // no normalization needed, we set factor
     {
       if(design->IsRegular())
       { // we use 1/(the volume of the first element) as fraction
@@ -1590,7 +1591,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams)
   {
     int ts = domain->GetDriver()->GetActStep("mech") - 1; // drivers count timesteps starting with 1
-    unsigned int nts = domain->GetDriver()->GetNumSteps();
     Excitation& excite = *(adjointParams->GetExcitation());
     switch(adjointParams->GetFunction()->GetType())
     {
@@ -1620,35 +1620,31 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       double dt = dynamic_cast<TransientDriver*>(domain->GetDriver())->GetDeltaT();
       double gamma = pde->getTimeStepping()->GetNewmarkGamma();
       double beta = pde->getTimeStepping()->GetNewmarkBeta();
-      Vector<Double> coeffMass;
-      Vector<Double> coeffDamping;
+      
+      Vector<Double>& pp = pde->getTimeStepping()->GetDeriveMap()[FIRST_DERIV];
+      Vector<Double>& ppp = pde->getTimeStepping()->GetDeriveMap()[SECOND_DERIV];
+
+      // note, that these point eveluations are divided by dt, as our integral is missing multiplication by dt, it is normed by the number of timesteps using GetStepWeight
+      Vector<Double> coeffMass = pp;
+      coeffMass.ScalarMult(1.0 / dt);
+      coeffMass.Add(1.0 - gamma, ppp);
+      assemble_->GetAlgSys()->UpdateRHS(CoupledField::MASS, coeffMass);
+      
       // look up, whether the damping matrix exists
       std::set<FEMatrixType> matTypes;
       assemble_->GetAlgSys()->GetFEMatrixTypes(matTypes);
-      bool damping = (matTypes.find(CoupledField::DAMPING) != matTypes.end());
-      double u = 1.0;
-      double upp = 0.0;
-      double up = 0.0;
-      for (unsigned int t = 1;t < nts;++t)
-      {
-        Vector<Double>& p_vec = adjoint.Get(excite, adjointParams->GetFunction(), t)->GetRealVector(Solution::RAW_VECTOR);
-        double ut = u + (up + upp * (0.5 - beta) * dt) * dt;
-        double upt = up + (1.0 - gamma) * dt * upp;
-        // now we have the factor ut / (beta * dt * dt) for the mass matrix
-        coeffMass = p_vec * (ut / (beta * dt * dt));
-        assemble_->GetAlgSys()->UpdateRHS(CoupledField::MASS, coeffMass);
-        if (damping)
-        {
-          coeffDamping = p_vec * (ut * gamma / (beta * dt) - upt);
-          assemble_->GetAlgSys()->UpdateRHS(CoupledField::DAMPING, coeffDamping);
-        }
-        u = 0.0;
-        upp = (u - ut) / (beta * dt * dt);
-        up = (upt + upp * gamma * dt);
+      if(matTypes.find(CoupledField::DAMPING) != matTypes.end()){
+        Vector<Double> coeffDamping(0);
+        assemble_->GetAlgSys()->GetSolutionVal(coeffDamping);
+        coeffDamping.ScalarMult(1.0 / dt);
+        coeffDamping.Add(0.5, pp);
+        coeffDamping.Add(0.5 * (gamma - 2*beta) * dt, ppp);
+        assemble_->GetAlgSys()->UpdateRHS(CoupledField::DAMPING, coeffDamping);
       }
-
     }
-
+    
+    // in case of contact, we have to inform the solver, that an adjoint system is solved
+    assemble_->GetAlgSys()->PrepareForAdjoint(forward.Get(excite, NULL, ts)->GetRealVector(Solution::RAW_VECTOR));
   }
 
   double ErsatzMaterial::CalcEnergyFlux(Excitation& excite, Objective* f)
@@ -2699,7 +2695,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         res += fv;
         if(fv > 0) local->infeasible++;
         LOG_DBG2(em) << "CGF: !d c=" << f->type.ToString(f->GetType()) << " i=" << i << " de="
-        << id.element->elem->elemNum << " sign=" << id.sign << " fv=" << fv << " infeasible=" << local->infeasible << " -> " << res;
+        << ( typeid(id.element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(id.element)->elem->elemNum : -1 ) << " sign=" << id.sign << " fv=" << fv << " infeasible=" << local->infeasible << " -> " << res;
       }
 
       return res;

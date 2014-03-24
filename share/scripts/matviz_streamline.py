@@ -1,6 +1,4 @@
 from matviz_2d import *
-import matplotlib.pyplot
-from matplotlib.path import Path
 from scipy import ndimage
 import numpy 
 from  numpy.linalg import norm
@@ -33,7 +31,6 @@ def create_figure(min, max, res, for_save):
   ax.set_xlim(min[0],max[0])
   ax.set_ylim(min[1],max[1])
   return fig, ax
-
 
 ## Subclass for Fields
 # this performs an interpolation, stores the data and allows access 

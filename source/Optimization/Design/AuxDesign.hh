@@ -48,6 +48,9 @@ class AuxDesign : public DesignSpace
 
     /** write the aux gradient part */
     void WriteAuxGradientToExtern(StdVector<double>& out, Condition* constraint, bool scale = true) const;
+    
+    /** sparse version of WriteAuxGradientToExtern */
+    void WriteSparseAuxGradientToExtern(StdVector<double>& out, Condition* constraint, bool scale = true) const;
 
     /** same as in DesignSpace, setting elements to zero, but also aux elements */
     virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);
@@ -56,7 +59,7 @@ class AuxDesign : public DesignSpace
 
     virtual unsigned int GetNumberOfVariables() const;
 
-    int GetNumberOfAuxParameters() const { return aux_design_.GetSize(); }
+    virtual int GetNumberOfAuxParameters() const { return aux_design_.GetSize(); }
 
     void AddAuxDerivative(Function* f, unsigned int index, double value);
 
@@ -73,6 +76,9 @@ class AuxDesign : public DesignSpace
 
     /** @see DesignSpace::GetDesignElement() */
     BaseDesignElement* GetDesignElement(unsigned int idx);
+
+    /** design element with only Aux idx */
+    BaseDesignElement* GetAuxDesignElement(unsigned int idx);
 
   protected:
 

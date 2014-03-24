@@ -366,5 +366,9 @@ namespace CoupledField {
   Integer BaseSystem::GetNumIter() {
     return olasInfo_->Get( "NumIter" )->As<Integer>();
   }
-
+  
+  void BaseSystem::PrepareForAdjoint(BaseVector& sol){
+    solver_->PrepareForAdjoint(sol);
+  }
+  
 }// end of Namespace

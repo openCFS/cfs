@@ -156,6 +156,10 @@ public:
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
                    ROTANGLE,ROTANGLEX,ROTANGLEY,ROTANGLEZ, STIFF1, STIFF2,STIFF3, MULTIMATERIAL, ALL_DESIGNS} Type;
 
+    /** This defines how to access variables (design, objective_gradient, ...),
+     *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
+    typedef enum { PLAIN, SMART } Access; // not used here but needed for virtual method GetDesign(Access)
+
   BaseDesignElement(Type type = NO_TYPE);
   virtual ~BaseDesignElement() {};
 
@@ -173,6 +177,11 @@ public:
   /** Return the design value.
    * In the derived DesignElement() the instance is overloaded and invalidated! */
   virtual double GetDesign() const { return(this->design); }
+  
+  virtual double GetDesign(BaseDesignElement::Access access) const { EXCEPTION("Not implemented"); return(0.0); };
+
+  /** The index of this element within the design space - 0 based */
+  unsigned int GetIndex() const { assert(index_ != std::numeric_limits<unsigned int>::max()); return index_; }
 
   /** returns the type */
   virtual std::string ToString() const;
@@ -209,6 +218,9 @@ public:
 
   /** adjusts length of the gradient vectors possibly not known during creation */
   void PostInit(int objectives, int constraints);
+  
+  /** helper for LOG output */
+  static std::string ToString(const StdVector<BaseDesignElement*>& vec, bool print_type = false);  
 
   static Enum<Type> type;
 
@@ -237,7 +249,18 @@ protected:
 
   /** what is our design type */
   Type type_;
+  
+protected:
+  /** @see GetIndex() */
+  unsigned int index_;
 
+};
+
+class ShapeDesignElement : public BaseDesignElement
+{
+public:
+  /** ShapeDesignElement have an index, needed for sparse gradients, i.e. shape constraints */
+  ShapeDesignElement(unsigned int index);
 };
 
 
@@ -248,10 +271,6 @@ class DesignElement : public BaseDesignElement
 {     
 public:
 
-
-  /** This defines how to access variables (design, objective_gradient, ...),
-   *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
-  typedef enum { PLAIN, SMART } Access;
 
   /** The empty constructor is the StdVector and for ghost elements */
   DesignElement();
@@ -351,9 +370,6 @@ public:
     /** Pointer to the element of the region, parameter for integration, ... */
     Elem*  elem;
 
-    /** The index of this element within the design space - 0 based */
-    unsigned int GetIndex() const { assert(index_ != std::numeric_limits<unsigned int>::max()); return index_; }
-
     /** In case we are a pseudo design element which is not within the design domain but from the
      *  non-design region of a function (e.g. stress) this index stores the index within the element storage.
      *  It is -1 if we are a standard design element, otherwise it is >= the number of standard design elements.
@@ -408,9 +424,6 @@ private:
   
   /** the barycenter of this element only set on request. */
   Point* location_;
-
-  /** @see GetIndex() */
-  unsigned int index_;
 
   /** @see GetPseudoElementIndex() */
   int pseudoElementIndex_;

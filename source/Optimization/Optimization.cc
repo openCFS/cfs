@@ -271,6 +271,17 @@ void Optimization::PostInitSecond()
       this->log.fileHeader += "designGradient";
     }
   }
+  if (this->log.designConstraintGradients) {
+    for(unsigned int i = 0; i < constraints.all.GetSize(); i++) {
+      Condition* g = constraints.all[i];
+      if(!g->IsLocalCondition()) {
+        for (unsigned int i = 0; i < n; ++i) {
+          this->log.fileHeader += "\t";
+          this->log.fileHeader += "constraintGradient";
+        }
+      }
+    }
+  }
   design->SetOptimizer(baseOptimizer_);
   // add plot logging of the optimizer
   this->log.fileHeader += baseOptimizer_->LogFileHeader();
@@ -342,6 +353,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::DESIGN_BOUND, "designBound");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
+  Function::type.Add(Function::SHAPE_INF, "shape_inf");
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
@@ -354,6 +366,7 @@ void Optimization::SetEnums()
   Function::Local::locality.Add(Function::Local::BOUNDARY, "boundary");
   Function::Local::locality.Add(Function::Local::ELEMENT, "element");
   Function::Local::locality.Add(Function::Local::MULT_DESIGNS_ELEMENT, "multiple_designs_element");
+  Function::Local::locality.Add(Function::Local::SHAPE, "shape");
 
   Function::Local::phase.SetName("Function::Local::Phase");
   Function::Local::phase.Add(Function::Local::BOTH, "both");
@@ -1001,6 +1014,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
     Condition* g = constraints.all[i]; // Now traverse in global mode
+    if(g->GetType() == Function::SHAPE_INF) continue; //TODO: MaxValue does not correctly set indexes in view
 
     if(g->IsLocalCondition())
     {
@@ -1044,6 +1058,26 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     design->WriteGradientToExtern(d, DesignElement::COST_GRADIENT, DesignElement::PLAIN, NULL, false);
     for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
       *out << "\t" << d[i];
+    }
+  }
+  
+  if(out && log.designConstraintGradients){
+    for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
+    {
+      Condition* g = constraints.all[i]; // Now traverse in global mode
+      if(g->GetType() == Function::SHAPE_INF) continue; //TODO: MaxValue does not correctly set indexes in view
+
+      if(g->IsLocalCondition()) continue; // this would be huge
+      else
+      {
+        StdVector<double> d;
+        d.Resize(design->GetNumberOfVariables());
+        d.window.Set(d);
+        design->WriteGradientToExtern(d, DesignElement::CONSTRAINT_GRADIENT, DesignElement::PLAIN, g, false);
+        for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
+          *out << "\t" << d[i];
+        }
+      }
     }
   }
 
@@ -1227,6 +1261,7 @@ void Optimization::Log::Init(const string& log_name, PtrParamNode pn_log)
     {
       design = pn_log->Get("design")->As<bool>();
       designGradient = pn_log->Get("designGradient")->As<bool>();
+      designConstraintGradients = pn_log->Get("designConstraintGradients")->As<bool>();
     }
   }
 }

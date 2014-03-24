@@ -16,17 +16,11 @@ import xml.dom.minidom
 # @return s1, s2, s3, angle 
 def read_stiff_angle(hdf_file, dim_2D, args):
   # rot means, that we only show rotation according to rotAngle, e.g. for piezoelectric polarization
-  if args.parametrization == 'hom_rect' or args.parametrization == 'dxhom_rect':
+  if args.parametrization == 'hom_rect':
     s1 = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1 
     s2 = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1
     s3 = numpy.ones((len(centers),1)) * .1 if dim_2D or args.show == "rot" else get_element(f, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step)
-    if has_element(hdf_file, "design_density_" + args.hom_access):
-      rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
-      s1 *= rho
-      s2 *= rho
-      s3 *= rho
-      print "scale stiffness values by density_'" + args.hom_access + "' with average value " + str(numpy.mean(rho))
-  elif args.parametrization == 'trans-iso' or args.parametrization == 'dxtrans-iso':
+  elif args.parametrization == 'trans-iso':
     s1 = get_element(f, "design_emodul-iso_" + args.hom_access, args.h5_region, args.h5_step)
     s2 = get_element(f, "design_emodul_" + args.hom_access, args.h5_region, args.h5_step)
     try:
@@ -38,7 +32,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     s1 *= 1/(m*(1-theta))
     s2 *= 1/(m*(1-theta))
     s3 = numpy.ones((len(centers),1)) * .1 # fix for 3D
-  elif args.parametrization == 'ortho' or args.parametrization == 'dxortho':
+  elif args.parametrization == 'ortho':
     t11 = get_element(f, "design_tensor11_" + args.hom_access, args.h5_region, args.h5_step)
     t12 = get_element(f, "design_tensor12_" + args.hom_access, args.h5_region, args.h5_step)
     t22 = get_element(f, "design_tensor22_" + args.hom_access, args.h5_region, args.h5_step)
@@ -50,12 +44,13 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     s2 *= 1/m
     s3 = numpy.ones((len(centers),1)) * .1 # fix for 3D
     
-  if args.parametrization == 'dxhom_rect' or args.show == 'dxtrans-iso' or args.show == 'dxortho':
+  if has_element(hdf_file, "design_density_" + args.hom_access):
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
     rho = pow(rho, args.penalty)
     s1 *= rho
     s2 *= rho
     s3 *= rho
+    print "scale stiffness values by design_density_" + args.hom_access + " with average value " + str(numpy.mean(rho))  
   
   angle = numpy.zeros(((len(s1),3)))
   
@@ -149,8 +144,8 @@ parser.add_argument("--stream_style", help="select visualization", choices=['lin
 parser.add_argument("--stream_step", help="step length for ODE integration per macro cell", type=float, default=0.2)
 parser.add_argument("--stream_s2_samples", help="sampling of s2 if not given hom_samples applies", type=int)
 parser.add_argument("--minimal", help="minimal stiffness to be drawn, will be scaled", type=float, default=0.0)
-parser.add_argument("--parametrization", help="parametrization of the stiffness tensor", default="hom_rect", choices=['hom_rect', 'dxhom_rect', 'trans_iso', 'dx_trans_iso', 'ortho', 'dxortho'])
-parser.add_argument("--save", help="save 'image.png' or VTK Poly Data file 'file.vtp'")
+parser.add_argument("--parametrization", help="parametrization of the stiffness tensor", default="hom_rect", choices=['hom_rect', 'trans-iso', 'ortho'])
+parser.add_argument("--save", help="save 'image.png' (pixel), 'image.pdf' (vector) or VTK Poly Data file 'file.vtp'")
 parser.add_argument("--plot", help="for single tensors: creates gnuplot file instead of image")
 parser.add_argument("--penalty", help="penalty parameter for SIMP (default 5)", default=5.0)
 parser.add_argument("--color", help="only for hom_rot_cross: black or grayscale", default="grayscale")
@@ -255,7 +250,7 @@ if h5_read or dim_2D:
         # add optional angle bias
         print 'change angle'
         if args.hom_grad == 'none':
-          viz = show_rot_cross(coords, s1, s2, angle[:,0], args.hom_dir, args.res, args.scale, args.color)
+          viz = show_rot_cross(coords, s1, s2, angle[:,0], args.hom_dir, args.res, args.scale, args.color, args.save)
         else:
           viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, args.scale)
       elif args.show == "stream":
