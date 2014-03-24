@@ -69,6 +69,7 @@ struct ResultInfo;
 }  // namespace CoupledField
 
 using namespace std;
+using boost::make_tuple;
 
 DECLARE_LOG(conditions)
 DEFINE_LOG(conditions, "conditions")
@@ -771,7 +772,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       Matrix<double> hom_tensor = CalcHomogenizedTensor();
       if(c->HasHomogenizationEntry())
       {
-        return hom_tensor[get<0>(c->coord)-1][get<1>(c->coord)-1];
+        return hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1];
       }
       else
       {
@@ -916,7 +917,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         hom_tensor = CalcMaxwellHomogenizedTensor<Double>(forward);
         if(c->HasHomogenizationEntry())
         {
-          result = (hom_tensor[get<0>(c->coord)-1][get<1>(c->coord)-1]).real();
+          result = (hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1]).real();
         }
         else
         {
@@ -1016,13 +1017,13 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
             if(c->HasHomogenizationEntry())
             hom_tensor = CalcMaxwellHomogenizedTensor<Complex>(adjoint);
             maxwellHomogenizedTensorPermeability.Assign(hom_tensor, 1.0);
-            result = (hom_tensor[get<0>(c->coord)-1][get<1>(c->coord)-1]).real();
+            result = (hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1]).real();
 
             SetMaxwellHomMatType(ELEC_PERMITTIVITY);
             dynamic_cast<ElecMat *>(material)->ReInit();
             hom_tensor = CalcMaxwellHomogenizedTensor<Complex>(forward);
             if(c->HasHomogenizationEntry())
-            result += (hom_tensor[get<0>(c->coord)-1][get<1>(c->coord)-1]).real();
+            result += (hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1]).real();
           }
           else
           {
@@ -1032,7 +1033,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
             hom_tensor = CalcMaxwellHomogenizedTensor<Double>(adjoint);
             maxwellHomogenizedTensorPermeability.Assign(hom_tensor, 1.0);
             if(c->HasHomogenizationEntry())
-            result = (hom_tensor[get<0>(c->coord)-1][get<1>(c->coord)-1]).real();
+            result = (hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1]).real();
             else
             {
               std::cout << "Homogenized Permeability: " << std::endl << hom_tensor.ToString(0, true);
@@ -1048,7 +1049,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
             dynamic_cast<ElecMat *>(material)->ReInit();
             hom_tensor = CalcMaxwellHomogenizedTensor<Double>(forward);
             if(c->HasHomogenizationEntry())
-            result += (hom_tensor[get<0>(c->coord)-1][get<1>(c->coord)-1]).real();
+            result += (hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1]).real();
             else
             {
               std::cout << "Homogenized Permittivity: " << std::endl << hom_tensor.ToString(0, true);
@@ -2307,7 +2308,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     {
       tuple<int, int, double>& entry = g->coords[i];
       double t = CalcHomogenizedTensorEntry(entry, derivative, grad);
-      double factor = get<2>(entry);
+      double factor = boost::get<2>(entry);
 
       if(derivative)
       {
@@ -2318,9 +2319,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       {
         result += factor * t;
 
-        homogenizedTensor[get<0>(entry)-1][get<1>(entry)-1] = t;
+        homogenizedTensor[boost::get<0>(entry)-1][boost::get<1>(entry)-1] = t;
         // all tensors are symmetric. Makes reading easier!
-        homogenizedTensor[get<1>(entry)-1][get<0>(entry)-1] = t;
+        homogenizedTensor[boost::get<1>(entry)-1][boost::get<0>(entry)-1] = t;
 
         //LOG_DBG(em) << "CHTC: g=" << g->ToString() << " coord=" << i << " ["
         //    << g->coords[i].first << "-1][" << g->coords[i].second << "-1] = " << t;
@@ -2335,8 +2336,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     assert((dim == 2 && me->excitations.GetSize() == 3) || (dim == 3 && me->excitations.GetSize() == 6));
     Matrix<double> test_strain_matrix_ij(dim, dim);
     Matrix<double> test_strain_matrix_kl(dim, dim);
-    const unsigned int ij = get<0>(entry) - 1;
-    const unsigned int kl = get<1>(entry) - 1;
+    const unsigned int ij = boost::get<0>(entry) - 1;
+    const unsigned int kl = boost::get<1>(entry) - 1;
     SetTestStrainMatrix(test_strain_matrix_ij, me->excitations[ij].test_strain);
     StdVector<SingleVector*>& u1 = forward.Get(ij)->elem[MECH]; // equal to \chi^{ij}
     SetTestStrainMatrix(test_strain_matrix_kl, me->excitations[kl].test_strain);
@@ -2375,7 +2376,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     {
       tuple<int, int, double>& entry = g->coords[i];
       Complex t = CalcMaxwellHomogenizedTensorEntry(entry, derivative, grad, sol);
-      double factor = get<2>(entry);
+      double factor = boost::get<2>(entry);
 
       if(derivative)
       {
@@ -2395,9 +2396,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       {
         result += factor * t;
 
-//      maxwellHomogenizedTensor[get<0>(entry)-1][get<1>(entry)-1] = t;
+//      maxwellHomogenizedTensor[boost::get<0>(entry)-1][boost::get<1>(entry)-1] = t;
 //      // all tensors are symmetric. Makes reading easier!
-//      maxwellHomogenizedTensor[get<1>(entry)-1][get<0>(entry)-1] = t;
+//      maxwellHomogenizedTensor[boost::get<1>(entry)-1][boost::get<0>(entry)-1] = t;
 
         //LOG_DBG(em) << "CMHTC: g=" << g->ToString() << " coord=" << i << " ["
         //    << g->coords[i].first << "-1][" << g->coords[i].second << "-1] = " << t;
@@ -2412,8 +2413,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   {
     const double cube_vol(grid->CalcVolumeSpannedByNamedNodes());
     assert((dim == 2 && me->excitations.GetSize() == 2) || (dim == 3 && me->excitations.GetSize() == 3));
-    const unsigned int k = get<0>(entry) - 1;
-    const unsigned int l = get<1>(entry) - 1;
+    const unsigned int k = boost::get<0>(entry) - 1;
+    const unsigned int l = boost::get<1>(entry) - 1;
     StdVector<SingleVector*>& u1 = sol.Get(k)->elem[ELEC]; // equal to \u^{k}
     StdVector<SingleVector*>& u2 = sol.Get(l)->elem[ELEC];// equal to \u^{l}
     Complex result(0.0, 0.0);

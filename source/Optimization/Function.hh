@@ -25,6 +25,7 @@ class ErsatzMaterial;
 
 using boost::tuple;
 using std::pair;
+using boost::get;
 
 
 namespace CoupledField

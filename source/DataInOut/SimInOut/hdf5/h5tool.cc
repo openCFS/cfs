@@ -17,6 +17,8 @@
 
 using namespace CoupledField;
 
+using boost::char_separator;
+
 template <typename TYPE>
 CoupledField::Integer CreateAttribute(H5::H5File& file,
                         std::string path,

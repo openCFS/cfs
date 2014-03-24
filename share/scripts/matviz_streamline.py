@@ -5,6 +5,7 @@ from scipy import ndimage
 import numpy 
 from  numpy.linalg import norm
 import scipy.interpolate
+import xml.etree.ElementTree
 
 
 ## create and prepare a matplot figure where patched might be "added" to
@@ -182,16 +183,18 @@ class Fields:
     # no need to be much smaller than original, if coarser assume 0.2 step length.
     self.fine  = Data(min, max, numpy.min((3 * nx, 5 * dx)), c, v, 'linear')
  
-   ## calculates the streamline from a given point up to both ends
+  ## from macro index give cell center coordinates
+  def index2coord(self, cell):
+    x = (cell[0] + 0.5) * self.macro.dx 
+    y = (cell[1] + 0.5) * self.macro.dy
+    return x, y
+  ## calculates the streamline from a given point up to both ends
   # @param idx 0 for s1 and 1 for s2 which changes the angle!
   # return a list with two trace objects for both indices
   def streamline(self, cell, steplength, minimal, idx):
     
-    x = (cell[0] + 0.5) * self.macro.dx 
-    y = (cell[1] + 0.5) * self.macro.dy
+    x, y = self.index2coord(cell)
     
-    
-
     # print 'streamline x=' + str(x) + ' y=' + str(y) + ' idx=' + str(idx) + ' steplength=' + str(steplength) 
 
     # we construct the traces for both indices and determine by the average value what is stiff1 and stiff2. 
@@ -349,7 +352,7 @@ def draw_frustum(fig, dx, coord, thick):
   
 
  
-def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, s1_samples, s2_samples, res, do_save):            
+def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, s1_samples, s2_samples, res, do_save, info):            
 
   assert(not (s1_samples == None and s2_samples <> None))
  
@@ -362,7 +365,6 @@ def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, 
 
   # we scale minimal in such a way, that for different sampling the thinnest lines are drawn in the same thickness 
   minimal = (s1_minimal, s1_minimal if s2_samples == None else (1.0 * s2_samples / s1_samples) * s1_minimal)
-  print minimal
 
   # separate fields due to possibly separate sampling
   fields = (Fields(coords, s1, angle, s1_samples), Fields(coords, s2, angle, s2_samples if s2_samples <> None else s1_samples))
@@ -398,6 +400,8 @@ def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, 
   # here we count the macro cells touched by the traces. For both indices two fields
   cells = (numpy.zeros(fields[0].macro.ndim), numpy.zeros(fields[1].macro.ndim))  
 
+  # conditionally draw the traces
+  count = [0,0] 
   for trace in traces:
     mycells = cells[trace.idx]
     field   = fields[trace.idx]
@@ -406,12 +410,52 @@ def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, 
     if mycells[trace.cell] > 1:
       continue
     
-    # dont't draw if we would become too much traces accumulated within any cell 
     mycells += trace.touched(field.macro)
+    count[trace.idx] += 1 
 
     if style == 'line':      
       draw_trace(sub, trace)
     else:        
       draw_thick_trace(sub, field.macro.dx, trace, minimal[trace.idx])
+          
+  # finally some statistics        
+          
+  print 'drawn traces for s1: ' + str(count[0]) + ' and s2: ' + str(count[1])
+  if info <> None:
+    traces = xml.etree.ElementTree.SubElement(info, "drawnTraces")
+    traces.set("s1", str(count[0]))  
+    traces.set("s2", str(count[1]))
+          
+  # see how much we macro cells are not drawn
+  void_count = [0, 0]
+  mat_count  = [0, 0]
+  void_sum = [0.0, 0.0]
+  mat_sum  = [0.0, 0.0]
+
+  for idx in [0, 1]:
+    mycells = cells[idx]
+    field = fields[idx]
+    for i in range(field.macro.nx):
+      for j in range(field.macro.ny):
+        x, y = field.index2coord((i, j))
+        val = field.macro.getData(x, y)[0]
+        if mycells[i,j] == 0:
+          void_sum[idx] += val 
+          void_count[idx] += 1
+        else:
+          mat_sum[idx] += val
+          mat_count[idx] += 1
+  
+  print void_sum       
+  print mat_sum
+  print 'below minimal cells (fraction) s1: ' + str(float(void_count[0])/(void_count[0] + mat_count[0])) + ' s2: ' + str(float(void_count[1])/(void_count[1] + mat_count[1]))
+  print 'below minimal material (fraction) s1: ' + str(void_sum[0]/(void_sum[0] + mat_sum[0])) + ' s2: ' + str(void_sum[1]/(void_sum[1] + mat_sum[1])) 
+  if info <> None:
+    cells = xml.etree.ElementTree.SubElement(info, "belowMinimalCells")
+    cells.set("s1", str(float(void_count[0])/(void_count[0] + mat_count[0])))
+    cells.set("s2", str(float(void_count[1])/(void_count[1] + mat_count[1])))
+    cells = xml.etree.ElementTree.SubElement(info, "belowMinimalMaterial")
+    cells.set("s1", str(void_sum[0]/(void_sum[0] + mat_sum[0])))
+    cells.set("s2", str(void_sum[1]/(void_sum[1] + mat_sum[1])))
           
   return (fig, sub)

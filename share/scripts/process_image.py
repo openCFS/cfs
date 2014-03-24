@@ -66,7 +66,7 @@ else:
   if input_img.mode == 'I':
     print "Warning: mode is stupid, may give unusable results!"
   
-  input_img = input_img.convert("L") #.transpose(Image.FLIP_TOP_BOTTOM)
+  input_img = input_img.convert("L") 
   create_dense_mesh_img(input_img, mesh, float(args.threshold), float(args.scale), float(args.rhomin), float(args.shearangle))
 
 if not args.noshow:
