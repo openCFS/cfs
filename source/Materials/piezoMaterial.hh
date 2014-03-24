@@ -65,12 +65,7 @@ template <class TYPE> class Matrix;
     void GetTensor( Matrix<Complex>& param, MaterialType matType, Global::ComplexPart dataType,
 		               SubTensorType = FULL ) const;	
 
-
-  protected:
-
-  private:
-
-    //! compute the correct subTensor (3D, AXI, ..)
+    /** overloads BaseMaterial::ComputeSubTensor() */
     void ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, 
                           SubTensorType subTensor) const;
 

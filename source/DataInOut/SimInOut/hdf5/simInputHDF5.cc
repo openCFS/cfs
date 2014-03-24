@@ -36,6 +36,9 @@
 
 namespace fs = boost::filesystem;
 
+using boost::tokenizer;
+using boost::char_separator;
+
 namespace CoupledField {
 
   // declare logging stream

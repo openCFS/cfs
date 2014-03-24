@@ -89,13 +89,14 @@ template <class TYPE> class Matrix;
      * @param elem only relevant for SIMP, the D-Mat is in general no element specific! */
     virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem)
     {
-      calcDMat(dMat);
+      calcDMat(dMat); // call nonlinear stuff, elem was actually introducted for optimization
     };
+
     /** This is the ParamMat optimization version, overwrite this to provide Derivatives for the tensor
      * used in parametric material optimization. */
     virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem, DesignElement::Type direction, double force_factor = 0.0)
     {
-      calcDMat(dMat, elem); 
+      EXCEPTION("not correctly overwritten!");
     };
 
 

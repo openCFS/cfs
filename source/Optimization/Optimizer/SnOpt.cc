@@ -73,9 +73,9 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   EXIT(0),
   ObjRow(1),      // objective row, must be 1!!
   ObjAdd(0.0),
-  optimizer_pn_(pn->Get(Optimization::optimizer.ToString(Optimization::SNOPT_SOLVER), ParamNode::PASS)),
   lin_constraints(0),
   nonlin_constraints(0),
+  n_obj_grad(0),
   perform_commit_iteration_(false), // we want to perform commit iteration only after the first function eval.
   outfilename(""),
   timer_(new Timer()),
@@ -88,7 +88,7 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   
   static_snopt = this;
   
-  BaseOptimizer::PostInit(1.0);
+  BaseOptimizer::PostInitScale(1.0);
   
   Init();
 }
@@ -111,9 +111,9 @@ void SnOpt::Init()
   // First,  sninit_ MUST be called to initialize optional parameters   
   // to their default values.                                           
   //  ==================================================================
-  cw.resize(8*mincw);
-  rw.resize(minrw);
-  iw.resize(miniw);
+  cw.Resize(8*mincw);
+  rw.Resize(minrw);
+  iw.Resize(miniw);
   sninit_(&iPrint, &iSumm, &cw[0], &mincw, &iw[0], &miniw, &rw[0], &minrw, 8*mincw);
 
   // set the file for snopt, formerly fort.1
@@ -126,38 +126,36 @@ void SnOpt::Init()
   // call after get_nlp_info!! 
   SetSnOptOptions();  
   
-  x.resize(n, 1.0); // start value
-  xlow.resize(n, -GetInfBound());
-  xupp.resize(n,  GetInfBound());
-  xmul.resize(n,  0.0);
-  xstate.resize(n, 0);
+  x.Resize(n, 1.0); // start value
+  xlow.Resize(n, -GetInfBound());
+  xupp.Resize(n,  GetInfBound());
+  xmul.Resize(n,  0.0);
+  xstate.Resize(n, 0);
 
-  F.resize(nF, 0.0);
-  Flow.resize(nF, -GetInfBound());
-  Fupp.resize(nF,  GetInfBound());
-  Fmul.resize(nF, 0.0);
-  Fstate.resize(nF, 0);
+  F.Resize(nF, 0.0);
+  // make all arrays one larger such that there exist a pointer when there are no constraints.
+  Flow.Resize(nF + 1, -GetInfBound());
+  Fupp.Resize(nF + 1,  GetInfBound());
+  Fmul.Resize(nF + 1, 0.0);
+  Fstate.Resize(nF + 1, 0);
   
   // init Jacobian(s)
   initJacobians();
 
   LOG_TRACE(snopt) << "get_bounds_info";
-  GetBounds(n, &xlow[0], &xupp[0], nF - 1, &Flow[1], &Fupp[1]);
+  GetBounds(n, xlow.GetPointer(), xupp.GetPointer(), nF - 1, &Flow[1], &Fupp[1]);
   
-  //for(unsigned int i = 0; i < Flow.size(); ++i)
+  //for(unsigned int i = 0; i < Flow.GetSize(); ++i)
     //std::cout << "Flow[" << i << "] = " << Flow[i] << ", Fupp[" << i << "] = " << Fupp[i] << std::endl;
-  
-  optimization->GetDesign()->WriteBoundsToExtern(&xlow[0], &xupp[0]);
-  
-  gradhelper.Resize(std::max(n, nG - n), 0.0);
+  gradhelper.Resize(std::max(n_obj_grad, nG - n_obj_grad), 0.0);
 }
 
 void SnOpt::setSnoptOutputFiles()
 {
   outfilename = progOpts->GetSimName() + ".snopt";
 
-  if(optimizer_pn_ != NULL && optimizer_pn_->Has("output"))
-    outfilename = optimizer_pn_->Get("output")->As<std::string>();
+  if(this_opt_pn_ != NULL && this_opt_pn_->Has("output"))
+    outfilename = this_opt_pn_->Get("output")->As<std::string>();
   
   // we enable command line output
   if(outfilename == "commandline")
@@ -186,9 +184,9 @@ void SnOpt::SolveProblem()
   LOG_TRACE(snopt) << "SolveProblem";
   
   // set start parameters here to allow restarted SolveProblem()
-  // we initialize x in bounds, in the upper right quadrant
   LOG_TRACE(snopt) << "get_starting_point";
-  optimization->GetDesign()->WriteDesignToExtern(&x[0]);
+  optimization->GetDesign()->WriteDesignToExtern(x.GetPointer());
+  LOG_DBG3(snopt) << "SP x-org: " << StdVector<double>::ToString(n, x.GetPointer());
   
   // this must always be called AFTER sninit!!!
   AdjustWorkArrayMemory();
@@ -210,9 +208,7 @@ void SnOpt::SolveProblem()
   {
     lenA = 0;
     nA = 0;
-    assert(A.size() == 0);
-    assert(iAfun.size() == 0);
-    assert(jAvar.size() == 0);
+    assert(nA == 0);
   }
   
   timer_->Start();
@@ -220,7 +216,7 @@ void SnOpt::SolveProblem()
   snopta_(
       &Start, &nF, &n, &nxname, &nFname,
       &ObjAdd, &ObjRow, Prob, SnOpt_C_Callback,
-      &iAfun[0], &jAvar[0], &lenA, &nA, &A[0],
+      iAfun.GetPointer(), jAvar.GetPointer(), &lenA, &nA, A.GetPointer(),
       &iGfun[0], &jGvar[0], &lenG, &nG,
       &xlow[0], &xupp[0], xnames,  &Flow[0], &Fupp[0], Fnames,
       &x[0], &xstate[0], &xmul[0], &F[0], &Fstate[0], &Fmul[0],
@@ -266,7 +262,7 @@ void SnOpt::InfoXMLOutput()
     exitstring = "unbounded objective";
     break;
   case 31:
-    exitstring = "resource limit error - iteration limit reached";
+    exitstring = "resource limit error - minor iteration limit reached";
     break;
   case 32:
     exitstring = "resource limit error - major iteration limit reached";
@@ -310,20 +306,25 @@ void SnOpt::InfoXMLOutput()
 }
 
 int SnOpt::Callback(integer* Status, const integer n,
-    doublereal* x, integer* needF, integer* nF, doublereal* F,
+    doublereal* x_snopt, integer* needF, integer* nF, doublereal* F,
     integer* needG, integer* nG, doublereal* G,
     char* cu, integer* lencu, integer* iu, integer* leniu, doublereal* ru, integer* lenru)
 {
   timer_->Stop();
   timer_callback_->Start();
   
-  LOG_DBG(snopt) << "Callback: needF=" << *needF << " needG=" << *needG << " x_avg = " << Average(x, n) << " x_std_dev = " << StandardDeviation(x, n);
-  LOG_DBG3(snopt) << " x=" << StdVector<double>::ToString(n, x);
+  // reorder design
+  StdVector<double> x;
+  x.Import(x_snopt, n);
+
+  LOG_DBG(snopt)  << "CB: needF=" << *needF << " needG=" << *needG << " x_avg = " << Average(x.GetPointer(), n) << " x_std_dev = " << StandardDeviation(x.GetPointer(), n);
+  LOG_DBG3(snopt) << "CB: x_org=" << StdVector<double>::ToString(n, x_snopt);
+  LOG_DBG3(snopt) << "CB: x_srt=" << x.ToString();
 
   // when the last call was a gradient eval we interpret this as major and do a commit
   // with the OLD design and it's function evaluations. But only if there was really a change between the last commit.
   // the special cases are the first iteration if setupLinearConstraints() had a feasible design or on the last commit.
-  if(perform_commit_iteration_ && !optimization->GetDesign()->CompareDesign(x))
+  if(perform_commit_iteration_ && !optimization->GetDesign()->CompareDesign(x.GetPointer()))
   {
     optimization->CommitIteration();
     perform_commit_iteration_ = false; // to be reset when enough functions evaluations have been done
@@ -346,13 +347,13 @@ int SnOpt::Callback(integer* Status, const integer n,
     // The objective row
     // we assume that ObjRow is equal to 1!!
     assert(ObjRow == 1);
-    eval_f(n, x, F[0]);
+    eval_f(n, x.GetPointer(), F[0]);
     
     // evaluate the constraints
     // we need to calculate (nF-1) constraints
     // we put them in F+1, since the first entry is the objective!
     // we assume that ObjRow is equal to 1!!
-    eval_g(n, x, *nF - 1, &F[1]);
+    eval_g(n, x.GetPointer(), *nF - 1, &F[1]);
   }
   
   if(*needG > 0)
@@ -361,7 +362,7 @@ int SnOpt::Callback(integer* Status, const integer n,
     
     // evaluate the gradient of the cost function
     // this again assumes that ObjRow is equal to 1!!
-    eval_grad_f(n, x, G);
+    eval_grad_f(n, x.GetPointer(), G);
     
     // evaluate the constraint gradient
     // here we do the same pointer logic as for the function evaluations
@@ -374,7 +375,7 @@ int SnOpt::Callback(integer* Status, const integer n,
     
     //assert(*nG-n == nonlin_constraints*n); // this is only valid if nonlin constr are DENSE!!!!
     
-    eval_jac_g(n, x, nonlin_constraints, *nG - n, G + n);
+    eval_jac_g(n, x.GetPointer(), nonlin_constraints, *nG - n_obj_grad, G + n_obj_grad);
     
     // when the linear constraints are not fulfilled there will immediately be gradient evaluation as the
     // first snopt action and we do not want to loose the initial design in the output.
@@ -413,17 +414,20 @@ bool SnOpt::get_nlp_info()
     if(g->IsLinear())
     {
       ++lin_constraints;
-      nA += g->GetSparsityPattern().GetSize(); // zero slopes
+      nA += g->GetSparsityPatternSize(); // zero slopes
+      LOG_DBG3(snopt) << "gni: lin:" << Function::type.ToString(g->GetType()) << " lc=" << lin_constraints << " sps=" << g->GetSparsityPattern().GetSize() << " -> nA=" << nA;
     }
     else
     {
       ++nonlin_constraints;
-      nG += g->GetSparsityPattern().GetSize();
+      nG += g->GetSparsityPatternSize();
+      LOG_DBG3(snopt) << "gni: nonlin:" << Function::type.ToString(g->GetType()) << " nc=" << nonlin_constraints << " sps=" << g->GetSparsityPattern().GetSize() << " -> nG=" << nG;
     }
   }
   
   // number for nonlin gradient must be higher for objective function 
-  nG += n;
+  n_obj_grad = optimization->objectives.data[0]->GetSparsityPatternSize();
+  nG += n_obj_grad;
   
   optimization->constraints.view->Done();
 
@@ -445,7 +449,7 @@ bool SnOpt::eval_f(int n, const double* x, double &obj_value)
 bool SnOpt::eval_grad_f(int n, const double* x, double* grad_f)
 {
   LOG_TRACE(snopt) << "eval_grad_f";
-  assert(static_cast<int>(gradhelper.GetSize()) >= n);
+  assert((int) gradhelper.GetSize() >= n);
 
   // restart_requested handled in intermediate_callback
   bool result = EvalGradObjective(n, x, true, gradhelper);
@@ -466,7 +470,7 @@ bool SnOpt::eval_g(int n, const double* x, int m, double* g)
   
   // for(int i = 0; i < m; i++) LOG_DBG3(snopt) <<   "old G[" << i << "] = " << g[i];
 
-  EvalConstraints(n, x, m, true, g);
+  EvalConstraints(n, x, m, true, g, false); // no need to reorder
   
   for(int i = 0; i < m; i++) LOG_DBG3(snopt) <<   "g[" << i << "] = " << g[i];
 
@@ -475,8 +479,8 @@ bool SnOpt::eval_g(int n, const double* x, int m, double* g)
 
 bool SnOpt::eval_jac_g(int n, const double* x, int m, int nele_jac, double* pG)
 {
-  LOG_TRACE(snopt) << "eval_jac_g: n=" << n << ", m=" << m << ", nele_jac=" << nele_jac;
-  assert(static_cast<int>(gradhelper.GetSize()) >= nele_jac);
+  LOG_TRACE(snopt) << "ejg: n=" << n << ", m=" << m << ", nele_jac=" << nele_jac;
+  assert((int) gradhelper.GetSize() >= nele_jac);
 
   // the gradients are dense in snopt
   assert(pG != NULL);
@@ -484,15 +488,18 @@ bool SnOpt::eval_jac_g(int n, const double* x, int m, int nele_jac, double* pG)
 
   int nc(optimization->constraints.view->GetNumberOfActiveConstraints());
  
-  EvalGradConstraints(n, x, nc, nele_jac, true, gradhelper, BaseOptimizer::NONLINEAR);
+  EvalGradConstraints(n, x, nc, nele_jac, true, false, gradhelper, BaseOptimizer::NONLINEAR);
   
+  assert((unsigned int) nele_jac  + n_obj_grad == iGfun.GetSize());
+  assert((unsigned int) nele_jac  + n_obj_grad == jGvar.GetSize());
+
   for(int i = 0; i < nele_jac; i++)
   {
     // LOG_DBG3(snopt) <<   "old grad_G[" << i << "] = " << pG[i] << ", new grad_G[" << i << "] = " << gradhelper[i];
     pG[i] = gradhelper[i];
-    LOG_DBG3(snopt) <<   "grad_g[" << i << "] = " << pG[i];
+    LOG_DBG3(snopt) <<   "ejg: i=" << i << " iGfun[" << i + n_obj_grad << "]=" << iGfun[i + n_obj_grad]
+                                        << " jGvar[" << i + n_obj_grad << "]=" << jGvar[i + n_obj_grad] << " -> " << pG[i];
   }
-
   return true;
 }
 
@@ -525,7 +532,7 @@ void SnOpt::AdjustWorkArrayMemory()
   if(lencw < mincw)
   {
     lencw = static_cast<int>(factor * static_cast<double>(mincw));
-    cw.resize(8*lencw);
+    cw.Resize(8*lencw);
     snseti_("Total character workspace", &lencw, &iPrt, &iSum, &INFO,
             &cw[0], &tmpcw, &iw[0], &tmpiw, &rw[0], &tmprw, 25, 8*lencw);
     LOG_TRACE(snopt) << "new value: lencw = " << lencw << ", INFO = " << INFO;
@@ -534,7 +541,7 @@ void SnOpt::AdjustWorkArrayMemory()
   if(leniw < miniw)
   {
     leniw = static_cast<int>(factor * static_cast<double>(miniw));
-    iw.resize(leniw);
+    iw.Resize(leniw);
     snseti_("Total integer workspace", &leniw, &iPrt, &iSum, &INFO,
             &cw[0], &tmpcw, &iw[0], &tmpiw, &rw[0], &tmprw, 23, 8*lencw);
     LOG_TRACE(snopt) << "new value: leniw = " << leniw << ", INFO = " << INFO;
@@ -543,7 +550,7 @@ void SnOpt::AdjustWorkArrayMemory()
   if(lenrw < minrw)
   {
     lenrw = static_cast<int>(factor * static_cast<double>(minrw));
-    rw.resize(lenrw);
+    rw.Resize(lenrw);
     snseti_("Total real workspace", &lenrw, &iPrt, &iSum, &INFO,
             &cw[0], &tmpcw, &iw[0], &tmpiw, &rw[0], &tmprw, 20, 8*lencw);
     LOG_TRACE(snopt) << "new value: lenrw = " << lenrw << ", INFO = " << INFO;
@@ -568,10 +575,10 @@ void SnOpt::SetSnOptOptions()
   SetIntegerValue("superbasics_limit", n);
 
   // check for optional parameters from xml
-  if(optimizer_pn_ != NULL)
+  if(this_opt_pn_ != NULL)
   {
     ParamNodeList list;
-    list = optimizer_pn_->GetListByVal("option", "type", "integer");
+    list = this_opt_pn_->GetListByVal("option", "type", "integer");
     
     for(unsigned int i = 0; i < list.GetSize(); i++)
     {
@@ -591,19 +598,19 @@ void SnOpt::SetSnOptOptions()
       SetIntegerValue(name, value);
     }
     
-    list = optimizer_pn_->GetListByVal("option", "type", "real");
+    list = this_opt_pn_->GetListByVal("option", "type", "real");
     
     for(unsigned int i = 0; i < list.GetSize(); i++)
       SetNumericValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<double>());
     
-    list = optimizer_pn_->GetListByVal("option", "type", "string");
+    list = this_opt_pn_->GetListByVal("option", "type", "string");
     
     for(unsigned int i = 0; i < list.GetSize(); i++)
       SetStringValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<std::string>());
   }
   
-  if(!setMinorItLimit) SetIntegerValue("minor_iterations_limit", 5000);
-  if(!setItLimit) SetIntegerValue("iterations_limit", 1000000);
+  if(!setMinorItLimit) SetIntegerValue("minor_iterations_limit", 100000); // minors per major
+  if(!setItLimit) SetIntegerValue("iterations_limit", 1000000); // total minors
 }
 
 void SnOpt::initJacobians()
@@ -611,13 +618,13 @@ void SnOpt::initJacobians()
   LOG_TRACE(snopt) << "initJacobians()";
   
   // create Jacobian
-  G.resize(1, 0.0); // FIXME: G is not even used by snopt...
-  iGfun.reserve(nG);
-  jGvar.reserve(nG);
+  G.Resize(1, 0.0); // FIXME: G is not even used by snopt...
+  iGfun.Reserve(nG);
+  jGvar.Reserve(nG);
 
-  A.resize(nA, 0.0);
-  iAfun.reserve(nA);
-  jAvar.reserve(nA);
+  A.Resize(std::max(nA, 1), 0.0);
+  iAfun.Reserve(std::max(nA, 1));
+  jAvar.Reserve(std::max(nA, 1));
 
   // it is very important that we use the same row counter for all the
   // constraints, linear and nonlinear!!!
@@ -626,26 +633,30 @@ void SnOpt::initJacobians()
   int index = 0; // counter
   int indexlin = 0; // counter
 
-  // for objective function(s) which in cfs is only one
-  for(int e = 1; e <= n; ++e) // fortran
+  // for objective function(s) which in cfs is only one. But it might be sparse (slack!)
+  assert(optimization->objectives.data.GetSize() >= 1);
+  Objective* c = optimization->objectives.data[0]; // only slack is sparse!
+  assert(c->GetType() != Function::SLACK || optimization->objectives.data.GetSize() == 1);
+  StdVector<unsigned int>& pattern = c->GetSparsityPattern();
+  assert((int) pattern.GetSize() == n || (pattern.GetSize() == 1 && c->GetType() == Function::SLACK));
+  assert(pattern.GetSize() == n_obj_grad);
+
+  for(unsigned int e = 0; e < pattern.GetSize(); e++)
   {
-    iGfun.push_back(cstr);
-    jGvar.push_back(e);
+    iGfun.Push_back(cstr);
+    jGvar.Push_back(pattern[e] + 1);
     
-    LOG_DBG3(snopt) << "cost function"
-                    << "; iGfun[" << index << "] = " << iGfun[index]
-                    << ", jGvar[" << index << "] = " << jGvar[index];
-    
+    LOG_DBG3(snopt) << "cost function" << "; iGfun[" << index << "] = " << iGfun[index] << ", jGvar[" << index << "] = " << jGvar[index];
     ++index;
   }
   ++cstr;
 
-  LOG_DBG3(snopt) << "Flow.size() = " << Flow.size() << ", Fupp.size() = " << Fupp.size();
+  LOG_DBG3(snopt) << "Flow.GetSize() = " << Flow.GetSize() << ", Fupp.GetSize() = " << Fupp.GetSize();
   
   for(int c = 0, nc = optimization->constraints.view->GetNumberOfActiveConstraints(); c < nc; c++)
   {
     Condition* g = optimization->constraints.view->Get(c);
-    const StdVector<unsigned int>& pattern = g->GetSparsityPattern();
+    pattern = g->GetSparsityPattern();
     const unsigned int patternsize(pattern.GetSize());
     assert(patternsize > 0);
 
@@ -653,12 +664,11 @@ void SnOpt::initJacobians()
     {
       for(unsigned int e = 0; e < patternsize; ++e)
       {
-        iAfun.push_back(cstr);
-        jAvar.push_back(pattern[e] + 1);
+        iAfun.Push_back(cstr);
+        jAvar.Push_back(pattern[e] + 1);
 
-        LOG_DBG3(snopt) << "g = " << g->ToString() 
-                          << "; iAfun[" << indexlin << "] = " << iAfun[indexlin]
-                          << ", jAvar[" << indexlin << "] = " << jAvar[indexlin];
+        LOG_DBG3(snopt) << "IJ:lin g = " << g->ToString() << "; iAfun[" << indexlin << "] = " << iAfun[indexlin]
+                        << " pattern=" << pattern[e] << ", jAvar[" << indexlin << "] = " << jAvar[indexlin];
 
         ++indexlin;
       }
@@ -668,12 +678,11 @@ void SnOpt::initJacobians()
       // up to now only dense so we do not need anything
       for(unsigned int e = 0; e < patternsize; ++e)
       {
-        iGfun.push_back(cstr);
-        jGvar.push_back(pattern[e] + 1);
+        iGfun.Push_back(cstr);
+        jGvar.Push_back(pattern[e] + 1);
         
-        LOG_DBG3(snopt) << "g = " << g->ToString()
-                        << "; iGfun[" << index << "] = " << iGfun[index]
-                        << ", jGvar[" << index << "] = " << jGvar[index];
+        LOG_DBG3(snopt) << "IJ:nonlin g = " << g->ToString() << "; iGfun[" << index << "] = " << iGfun[index]
+                        << " pattern=" << pattern[e] << ", jGvar[" << index << "] = " << jGvar[index];
         ++index;
       }
     }
@@ -698,8 +707,8 @@ void SnOpt::setupLinearConstraints()
   // setup linear constraints
   StdVector<double> lincon(nA);
 
-  EvalGradConstraints(n, &x[0], optimization->constraints.view->GetNumberOfActiveConstraints(), nA,
-      true, lincon, BaseOptimizer::LINEAR);
+  EvalGradConstraints(n, x.GetPointer(), optimization->constraints.view->GetNumberOfActiveConstraints(), nA,
+      true, false, lincon, BaseOptimizer::LINEAR);
   
   // we have just evaluated the state problem, commit the (initial) iteration as snopt might
   // evaluate in its's callback already an updated  design

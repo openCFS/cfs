@@ -36,6 +36,8 @@
 #include "Utils/boost-serialization.hh"
 #endif
 
+using boost::tokenizer;
+using boost::char_separator;
 
 namespace CoupledField {
 

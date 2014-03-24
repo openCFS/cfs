@@ -29,6 +29,8 @@
 
 using std::string; 
 using boost::lexical_cast; 
+using boost::dynamic_pointer_cast;
+
 
 namespace CoupledField {
 

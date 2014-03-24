@@ -45,7 +45,8 @@ namespace CoupledField {
   //! \param delimiter (input)  character used as delimiter
   void SplitStringList( const std::string &list, StdVector<std::string> &strVec,
                         const char delimiter = ',' );
-
+  /** boost based SplitStringList() which consideres almost all whitespaces */
+  void SplitStringListWhitespace(const std::string &s, StdVector<std::string> &strVec);
     //@}
 
   // =========================================================================
@@ -91,6 +92,11 @@ namespace CoupledField {
     for (UInt i=2; i<=power; i++)
       p*=x;
     return p;
+  }
+
+  /** http://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c */
+  template <typename T> int sgn(T val) {
+      return (T(0) < val) - (val < T(0));
   }
 
   //! calculate distance between two points embedded in matrix
@@ -175,10 +181,8 @@ namespace CoupledField {
   /** makes sure the string is a valid xml element and attribute name */
   std::string ToValidXML(const std::string& input);
 
-
-  /** Calculates the L2 norm of a array. This is for cases where we
-   * don't use one of our vectors. E.g. with IPOPT */
-  Double NormL2(const Double* data, const UInt size);
+  /** Calculates the L2 norm of a difference vector */
+  Double NormL2(const Double* data1, const Double* data2, const UInt size);
 
   /** Calculate the average of an array */
   double Average(const double* data, unsigned int size);

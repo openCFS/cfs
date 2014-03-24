@@ -68,8 +68,13 @@ class ApproxData;
     //! Trigger finalization of material (calculation of rotated matrices)
     virtual void Finalize() {};
 
-    /** Print the material data which is actually read and stored in isSet */
-    void ToInfo(PtrParamNode in);
+    /** Print the material data which is actually read and stored in isSet
+     * @param rot the applied material rotation vector (alpha, beta, gamma) */
+    void ToInfo(PtrParamNode in, SubTensorType stt = NO_TENSOR,  const Vector<double>* rot = NULL);
+
+    /** compute the correct subTensor (3D, AXI, ..)
+     * Not all materials implement this method! */
+    virtual void ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const {};
 
     //! set the name of the material set
     void SetName(const char* name) {
@@ -392,6 +397,9 @@ class ApproxData;
                                  Double dampFreq, Double RatioDeltaF,
                                  bool adjustDamping, bool isHarmonic );
 
+    /** converts MaterialClass to the corresponding MaterialType tensor. Extend for your needs */
+    static MaterialType ConvertMaterialClass(MaterialClass mc);
+
   protected:
 
     //! Error for material type not defined
@@ -415,6 +423,9 @@ class ApproxData;
     //! rotate a tensor
     virtual void PerformRotation( Matrix<Complex>& rotMatrix,  Matrix<Complex>& matMatrix,
 				  const Matrix<Complex>& origMatMatrix);
+
+    /** helper for ToInfo() */
+    void StoreTensor(PtrParamNode in, bool isComplex, const Matrix<Complex>& mat);
 
     //! name of material database
     std::string materialDatabaseName_;

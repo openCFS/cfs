@@ -334,7 +334,8 @@
       <xsd:enumeration value="mechStress"/>
       <xsd:enumeration value="vonMisesStress"/>
       <xsd:enumeration value="elecPolarization"/> 
-      <xsd:enumeration value="elecFluxDensity"/> 
+      <xsd:enumeration value="elecFluxDensity"/>
+      <xsd:enumeration value="piezoTensor"/>
     </xsd:restriction>
   </xsd:simpleType>
 

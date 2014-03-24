@@ -43,6 +43,15 @@ def xpath(xml, path):
   data = res[0]
   return data.getContent()    
 
+# does at leas one element exist
+def has(xml, path):
+  res = xml.xpathEval(path)
+  if  len(res) == 0:
+   return false
+  else:
+   return true
+
+
   
 # dump a xml node
 def dump(xml, path):
@@ -210,6 +219,16 @@ def cleanOversampledArray(data):
       result[i][c] = val
   
   return result    
+
+
+## convert a list to a numpy array 
+def listToNDArray(data):
+  ret = numpy.zeros((len(data)))
+  
+  for i in range(len(data)):
+    ret[i] = data[i]
+    
+  return ret  
 
 
 ## finds a value in an ndarray

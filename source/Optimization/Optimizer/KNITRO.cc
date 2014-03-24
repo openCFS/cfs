@@ -34,7 +34,7 @@ KNITRO::KNITRO(Optimization* opt, PtrParamNode pn)
   // number of non-sparse constraint gradients
   nnzJ = 0;
   for(int i = 0; i < m; i++)
-    nnzJ += optimization->constraints.view->Get(i)->GetSparsityPattern().GetSize();
+    nnzJ += optimization->constraints.view->Get(i)->GetSparsityPatternSize();
   optimization->constraints.view->Done(); // mandatory after traversing the view
 
   // allocate stuff
@@ -45,7 +45,7 @@ KNITRO::KNITRO(Optimization* opt, PtrParamNode pn)
   jac.Resize(std::max(nnzJ,1));
 
 
-  BaseOptimizer::PostInit(1.0);
+  BaseOptimizer::PostInitScale(1.0);
   // call the initialize function of KNITRO
   Init(pn);
 }
@@ -177,7 +177,7 @@ void KNITRO::SolveProblem()
     case KTR_RC_EVALFC: // KNITRO WANTS obj AND c EVALUATED AT THE POINT x
     {
       obj = EvalObjective(n, x.GetPointer(), true);
-      EvalConstraints(n, x.GetPointer(), m, true, c.GetPointer());
+      EvalConstraints(n, x.GetPointer(), m, true, false, c.GetPointer());
       int curr_iter = KTR_get_number_iters(kc);
       if(curr_iter != iter)
       {
@@ -191,7 +191,7 @@ void KNITRO::SolveProblem()
     {
       bool ego = EvalGradObjective(n, x.GetPointer(), true, objGrad);
       if(!ego) EXCEPTION("don't do autoscale with KNITRO ");
-      EvalGradConstraints(n, x.GetPointer(), m, nnzJ, true, jac);
+      EvalGradConstraints(n, x.GetPointer(), m, nnzJ, true, false, jac);
       break;
     }
 

@@ -88,12 +88,14 @@ template <class TYPE> class Matrix;
 
     Double ComputeScalarHystVal( UInt nrElem, Double Xval );
 
-  private:
 
-    //! compute the correct subTensor (3D, AXI, ..)
+    /** overloads BaseMaterial::ComputeSubTensor() */
     void ComputeSubTensor(Matrix<Complex>& matMatrix,
 			  MaterialType matType, 
 			  SubTensorType subTensor) const;
+
+  private:
+
 
     Complex scalarPermittivity_;
 

@@ -75,7 +75,15 @@ template <class TYPE> class Matrix;
     //! Compute element matrix associated to ADB form
     void CalcElementMatrix( Matrix<Double>& elemMat,
                             EntityIterator& ent1, 
-                            EntityIterator& ent2 );
+                            EntityIterator& ent2 )
+    {
+      CalcElementMatrix(elemMat, ent1, ent2, DesignElement::NO_DERIVATIVE);
+    }
+
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1,
+                            EntityIterator& ent2,
+                            DesignElement::Type direction);
 
 
     // =======================================================================
@@ -99,12 +107,17 @@ template <class TYPE> class Matrix;
       EXCEPTION("not correctly overwritten!");
     };
 
-    
-    /** The Implement this with your SIMP variant! 
-     * @see BDBInt::calcDMat(Matrix<Double>, Elem*, Double&) */
     virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem)
     {
-      calcDMat(dMat);
+      calcDMat(dMat); // ugly stuff to make thermopiezo/transient_2d works
+    }
+
+    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem, DesignElement::Type direction)
+    {
+      if(direction == DesignElement::NO_DERIVATIVE)
+        calcDMat(dMat, elem);
+      else
+        EXCEPTION("not correctly overwritten!");
     };
 
     //! Query number of degrees of freedom for first physical quantity.

@@ -31,6 +31,9 @@ class ResultDescription;
 class SIMPElement;
 class SinglePDE;
 class TransferFunction;
+class DesignSpace;
+class MultiMaterial;
+class ErsatzMaterial;
 struct Elem;
 
 /** This DesignElement package provides information about the direct neighbours for uniform cartesian
@@ -144,8 +147,29 @@ public:
     PROJECTION, /* local value from projection || nu(rho_i) - H_eta_beta(rho_i) ||^2 */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
 
-  BaseDesignElement();
+    /** The type of this design element, influences the Get*Bound() methods.
+     * By definition the design elements are stored in the ordering of the type!!
+     * make sure, that ALL_DESIGNS is the last with the highest number!!! */
+    typedef enum { UNITY = -10, NO_DERIVATIVE = -9, NO_MULTIMATERIAL = -8, TENSOR_TRACE = -7, ELAST_ALL = -6, DIELEC_TRACE = -5, DIELEC_ALL = -4, PIEZO_ALL = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
+                   POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
+                   GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12, SLACK,
+                   DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
+                   ROTANGLE,ROTANGLEX,ROTANGLEY,ROTANGLEZ, STIFF1, STIFF2,STIFF3, MULTIMATERIAL, ALL_DESIGNS} Type;
+
+    /** This defines how to access variables (design, objective_gradient, ...),
+     *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
+    typedef enum { PLAIN, SMART } Access; // not used here but needed for virtual method GetDesign(Access)
+
+  BaseDesignElement(Type type = NO_TYPE);
   virtual ~BaseDesignElement() {};
+
+  Type GetType() const { return type_; }
+
+  /** Checks if test matches super. To be used in Function::SetElements()
+   * if super == test it is compatible
+   * @param super shall TENSOR_TRACE, ELAST_ALL, ... DEFAULT
+   * @param test ege. DIELEC_11, ... */
+  static bool IsCompatible(Type super, Type test);
 
   /** Allows to set the design element. */
   void SetDesign(double value) { this->design = value; }
@@ -153,6 +177,14 @@ public:
   /** Return the design value.
    * In the derived DesignElement() the instance is overloaded and invalidated! */
   virtual double GetDesign() const { return(this->design); }
+  
+  virtual double GetDesign(BaseDesignElement::Access access) const { EXCEPTION("Not implemented"); return(0.0); };
+
+  /** The index of this element within the design space - 0 based */
+  unsigned int GetIndex() const { assert(index_ != std::numeric_limits<unsigned int>::max()); return index_; }
+
+  /** returns the type */
+  virtual std::string ToString() const;
 
   /** Get the gradient values for either objective or constraint.
    * if neither f nor g is given the objective gradient sum is returned */
@@ -165,18 +197,17 @@ public:
 
   void AddGradient(const Function* f, double value);
 
-
   /** Reset either gradients of the class
    * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT 
-   * @param g this should preferably be a Funtion*, but it didn't work and 
+   * @param g this should preferably be a Function*, but it didn't work and
    *  it is currently only needed for Condition anyways */
   void Reset(ValueSpecifier vs, Function* f = NULL);
 
-  /**  Gets the lower bound of the desing variable -
+  /**  Gets the lower bound of the design variable -
    * up to now this are defaults by type */
   double GetLowerBound() const { return lower_; }
 
-  /** The upper bound of the desing variable for the optimizer */
+  /** The upper bound of the design variable for the optimizer */
   double GetUpperBound() const { return upper_; }
 
   /** Set the lower bound of the design variable */
@@ -187,6 +218,11 @@ public:
 
   /** adjusts length of the gradient vectors possibly not known during creation */
   void PostInit(int objectives, int constraints);
+  
+  /** helper for LOG output */
+  static std::string ToString(const StdVector<BaseDesignElement*>& vec, bool print_type = false);  
+
+  static Enum<Type> type;
 
 protected:
 
@@ -210,6 +246,21 @@ protected:
   double lower_;
 
   double upper_;
+
+  /** what is our design type */
+  Type type_;
+  
+protected:
+  /** @see GetIndex() */
+  unsigned int index_;
+
+};
+
+class ShapeDesignElement : public BaseDesignElement
+{
+public:
+  /** ShapeDesignElement have an index, needed for sparse gradients, i.e. shape constraints */
+  ShapeDesignElement(unsigned int index);
 };
 
 
@@ -221,16 +272,6 @@ class DesignElement : public BaseDesignElement
 public:
 
 
-  /** This defines how to access variables (design, objective_gradient, ...),
-   *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
-  typedef enum { PLAIN, SMART } Access;
-
-  /** The type of this design element, influences the Get*Bound() methods.
-   * By definition the design elements are stored in the ordering of the type!! */
-  typedef enum { UNITY = -5, NO_DERIVATIVE = -4, TENSOR_TRACE = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
-                 POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
-                 GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12, ALL_DESIGNS} Type;
-
   /** The empty constructor is the StdVector and for ghost elements */
   DesignElement();
 
@@ -238,12 +279,10 @@ public:
    * Is slow as it does the same evaluation often but is only O(n)
    * @param space to output 'penalizedDesign' the pointer is needed to find the transfer function
    * @param index location within the design space */
-  DesignElement(Type dt, double lower, double upper, Elem* elem, unsigned int index);
+  DesignElement(Type dt, double lower, double upper, Elem* elem, unsigned int index, MultiMaterial* mm);
 
-  /** Dummy elements for Funtion */
+  /** Dummy elements for Function */
   DesignElement(Elem* elem, Type type, unsigned int index, int pseudoElementIndex);
-
-
 
   virtual ~DesignElement();
 
@@ -308,20 +347,20 @@ public:
 
     /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
     void static SetEnums();
-
-    Type GetType() const { return type_; }
     
     /** Write key values as attributes
      * @param tf if given prints the physical lower bound */
-    void ToInfo(PtrParamNode in, TransferFunction* tf) const;
+    void ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial* em) const;
 
+    /** @see BaseDesignElement::ToString() */
     std::string ToString() const { return ToString(this); }
 
     /** makes a short dump, handles NULL */
     static std::string ToString(const DesignElement* de);
     
     /** helper for LOG output */
-    static std::string ToString(const StdVector<DesignElement*>& vec);
+    static std::string ToString(const StdVector<DesignElement*>& vec, bool print_type = false);
+    static std::string ToString(const StdVector<DesignElement>& vec, bool print_val = false, bool print_type = false);
 
     /** Calculates the volume of the element, used static helpers.
      * caches the result, hence cheap to query again */
@@ -330,9 +369,6 @@ public:
     /** to make the class polymorphi and we can dynamic_cast<> it */
     /** Pointer to the element of the region, parameter for integration, ... */
     Elem*  elem;
-
-    /** The index of this element within the design space - 0 based */
-    unsigned int GetIndex() const { assert(index_ != std::numeric_limits<unsigned int>::max()); return index_; }
 
     /** In case we are a pseudo design element which is not within the design domain but from the
      *  non-design region of a function (e.g. stress) this index stores the index within the element storage.
@@ -353,8 +389,6 @@ public:
      * <result id="optResult_3" design="density" access="plain" value="objective" /> */
     Vector<double> specialResult;
 
-    static Enum<Type> type;
-
     static Enum<ValueSpecifier> valueSpecifier;
 
     static Enum<Access> access;
@@ -373,6 +407,10 @@ public:
     /** The topgrad element, will be destroyed by TopGrad */
     TopGradElement *tge;
 
+    /** if we are a multimaterial this is our material
+     * and the index there is our own index*/
+    MultiMaterial* multimaterial;
+
     /** calculates the location on request and stores it */
     Point* GetLocation();
 
@@ -387,14 +425,8 @@ private:
   /** the barycenter of this element only set on request. */
   Point* location_;
 
-  /** @see GetIndex() */
-  unsigned int index_;
-
   /** @see GetPseudoElementIndex() */
   int pseudoElementIndex_;
-
-  /** what is our design type */
-  Type type_;
 
   /** the element volume calculated on request by CalcVolume() */
   double elemVol_;
@@ -471,6 +503,28 @@ private:
   /** We need our base design element to do the filtering */
   DesignElement* de_;
 };
+
+/** requires in DesignSpace and DesignMaterial */
+class DesignID
+{
+public:
+   DesignID(DesignElement::Type design = DesignElement::NO_TYPE, MultiMaterial* mm = NULL, double rb = -1.0)
+   {
+     this->design = design;
+     this->multimaterial = mm;
+     this->relative_bound = rb;
+   }
+
+   DesignElement::Type design;
+   /** index. -1 for non-multimaterial */
+   MultiMaterial*      multimaterial;
+   /** relative bounds for design, negative if not applicable, size by number of design types */
+   double              relative_bound;
+};
+
+
+/** implemented in StdVector.cc, there we need it */
+std::ostream & operator << ( std::ostream & out, const DesignID& id);
 
 
 /** <p>A result description holds the result element in the xml file which describes what data from

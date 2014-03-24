@@ -188,6 +188,9 @@ namespace CoupledField
     //! Compute relative dilatation per element
     void ComputeRelDilatation( shared_ptr<BaseResult> vals );
     
+    /** physical tensor (trace) for free and parametrized material optimization */
+    void ComputeTensorResults(shared_ptr<BaseResult> vals);
+
     //! computes averaged volume of an deformed element
     template<class TYPE>
     TYPE ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord,

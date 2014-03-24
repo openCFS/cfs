@@ -52,6 +52,7 @@
 #include "Utils/nodestoresol.hh"
 #include "Utils/result.hh"
 #include "Utils/tools.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 namespace CoupledField {
 
@@ -178,6 +179,10 @@ namespace CoupledField {
         CalcStressStrain<Complex>(result);
       else
         CalcStressStrain<Double>(result);
+      break;
+
+    case PIEZO_COUPL_TENSOR:
+      CalcPiezoTensor(result);
       break;
 
 
@@ -356,6 +361,34 @@ namespace CoupledField {
       // Delete integrator again (Stressabbau ;-)
       delete mechStressOp;
       delete FieldOp2;
+    }
+  }
+
+  void PiezoCoupling::CalcPiezoTensor(shared_ptr<BaseResult> vals)
+  {
+    Result<Double>& res = dynamic_cast< Result<Double>& >(*vals);
+    EntityIterator elemIt = res.GetEntityList()->GetIterator();
+    Vector<Double>& resVec = res.GetVector();
+    resVec.Resize(res.GetEntityList()->GetSize() * 6);
+
+    Matrix<double> E(2,3);
+
+    for (elemIt.Begin(); !elemIt.IsEnd(); elemIt++)
+    {
+      elemIt.GetElem()->ptElem;
+
+      if(domain->HasErsatzMaterialTensor())
+        domain->GetErsatzMaterial()->GetPiezoCouplingTensor(E, elemIt.GetElem(), DesignElement::NO_DERIVATIVE);
+      else
+        E.Init();
+
+      unsigned int base = elemIt.GetPos() * 6;
+      resVec[base + 0] = E[0][0];
+      resVec[base + 1] = E[0][1];
+      resVec[base + 2] = E[0][2];
+      resVec[base + 3] = E[1][0];
+      resVec[base + 4] = E[1][1];
+      resVec[base + 5] = E[1][2];
     }
   }
 
@@ -1436,6 +1469,16 @@ namespace CoupledField {
     strainIrr->definedOn = ResultInfo::ELEMENT;
     strainIrr->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( strainIrr );
+
+    //  tensor for piezo FMO optimization
+    shared_ptr<ResultInfo> piezo_tensor(new ResultInfo);
+    piezo_tensor->resultType = PIEZO_COUPL_TENSOR;
+    piezo_tensor->dofNames = "e11", "e12", "e13", "e21", "e22", "e23";
+    piezo_tensor->unit = "N/C";
+    piezo_tensor->entryType = ResultInfo::TENSOR;
+    piezo_tensor->definedOn = ResultInfo::ELEMENT;
+    piezo_tensor->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert(piezo_tensor);
 
     // === ELECTRIC POLARIZATION ===
     shared_ptr<ResultInfo> pol( new ResultInfo );

@@ -307,11 +307,11 @@ namespace CoupledField
 
   void Xerces::EventHandler::error(const SAXParseException &event)
   {
-    EXCEPTION("Error parsing the xml file' " << xerces_->file_
+    EXCEPTION("Error parsing the xml file '" << xerces_->file_
               << "' in line " << event.getLineNumber() << ", column "
-              << event.getColumnNumber() << std::endl << "-> '"
-              << XMLString::transcode(event.getMessage()) << "'"
-              << std::endl << " schema: '"
+              << event.getColumnNumber() << " : "
+              << XMLString::transcode(event.getMessage())
+              << std::endl << "schema: '"
               << (!xerces_->schema_.empty() ? xerces_->schema_ : "<no-schema>") << "'");
 
   }
@@ -343,7 +343,7 @@ namespace CoupledField
     }else{
       stack.Push_back(stack.Last()->Get(xstring, ParamNode::APPEND));
     }
-//    std::cout << std::endl << "I process element: "<< xstring << " attrs: " << attrs.getLength() << " before: ";  DumpStack();
+    // std::cout << std::endl << "I process element: "<< xstring << " attrs: " << attrs.getLength() << " before: ";  DumpStack();
     XMLString::release(&xstring);
 
     for(unsigned int i = 0; i < attrs.getLength(); i++)
@@ -355,12 +355,21 @@ namespace CoupledField
       XMLString::release(&xval);
     }
   }
+  void Xerces::SAXHandler::characters(const XMLCh* const chars, const XMLSize_t length) {
+    char* xstring = XMLString::transcode(chars);
+    std::string s(xstring);
+    boost::trim(s);
+    if(s.length() > 0)
+      stack.Last()->SetValue(s);
+    // std::cout << std::endl << "characters: "<< s << " length: " << length << " s length: " << s.length() << " before: ";  DumpStack();
+    XMLString::release(&xstring);
+  }
 
   void Xerces::SAXHandler::endElement(const XMLCh *const uri, const XMLCh *const localname, const XMLCh *const qname)
   {
-/*    char* message = XMLString::transcode(localname);
-    std::cout << std::endl << "finish: "<< message << " before: ";  DumpStack();
-    XMLString::release(&message);*/
+    char* message = XMLString::transcode(localname);
+    // std::cout << std::endl << "finish: "<< message << " before: ";  DumpStack();
+    XMLString::release(&message);
     // on the end of the file we have an end event for the root element
     if(stack.GetSize() > 1)
       stack.Erase(stack.GetSize()-1);

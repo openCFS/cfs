@@ -8,6 +8,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/elem.hh"
 #include "General/exception.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/TransferFunction.hh"
 #include "PDE/SinglePDE.hh"
@@ -87,6 +88,8 @@ TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_
   if(design_ == DesignElement::POLARIZATION && application_ != Optimization::PIEZO_COUPLING)
     throw Exception("transfer functions for 'polarization' can only be '" 
         + Optimization::application.ToString(Optimization::PIEZO_COUPLING) + "'");
+
+  LOG_DBG(trans) << "TF::TF " << ToString();
 }
 
 
@@ -106,13 +109,26 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type)
   switch(type)
   {
   case DesignElement::DENSITY:
+  case DesignElement::EMODUL:
+  case DesignElement::EMODULISO:
+  case DesignElement::GMODUL:
+  case DesignElement::POISSON:
+  case DesignElement::POISSONISO:
+  case DesignElement::ROTANGLE:
+  case DesignElement::ROTANGLEX:
+  case DesignElement::ROTANGLEY:
+  case DesignElement::ROTANGLEZ:
+  case DesignElement::STIFF1:
+  case DesignElement::STIFF2:
+  case DesignElement::STIFF3:
+  case DesignElement::MULTIMATERIAL:
     return Optimization::MECH;
   case DesignElement::ACOU_DENSITY:
     return Optimization::LAPLACE;
   case DesignElement::POLARIZATION:
     return Optimization::PIEZO_COUPLING;
   default:
-    throw Exception("invalid");
+    throw Exception("invalid request for transfer function");
   }
 }
 
@@ -261,7 +277,8 @@ double TransferFunction::Derivative(const DesignElement* de, DesignElement::Acce
   double value = de->GetValue(DesignElement::DESIGN, access);
 
   #ifdef CHECK_INDEX
-    if(de->GetType() != design_) throw Exception("type missmatch");
+    if(de->GetType() != design_ && (design_ == DesignElement::DEFAULT && de->GetDesignSpace() != NULL && de->GetDesignSpace()->design.GetSize() > 1))
+      throw Exception("type mismatch for the transfer function");
   #endif
     switch(type_)
     {

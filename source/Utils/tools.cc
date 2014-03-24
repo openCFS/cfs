@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <boost/tokenizer.hpp>
 
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
@@ -17,10 +18,12 @@
 #include "MatVec/vector.hh"
 #include "Utils/tools.hh"
 #include "boost/algorithm/string/classification.hpp"
-#include "boost/tokenizer.hpp"
 #include "math.h"
 #include "tools.hh"
 
+using boost::char_separator;
+using boost::tokenizer;
+using boost::bad_lexical_cast;
 
 DECLARE_LOG(tools)
 DEFINE_LOG(tools, "tools")
@@ -67,7 +70,13 @@ namespace CoupledField {
     strVec.Push_back( std::string( list, lastDelim, i-lastDelim ));
 
   }
-  
+  void SplitStringListWhitespace(const std::string &s, StdVector<std::string> &strVec)
+  {
+    char_separator<char> sep(" ,\t\n");
+    tokenizer<char_separator<char> > tok(s, sep);
+    for(tokenizer<char_separator<char> >::iterator beg=tok.begin(); beg!=tok.end();++beg)
+      strVec.Push_back(*beg);
+  }
   Double dist_Mat(const Matrix<Double> &a) {
     Double preSqrt=0;
     UInt i;
@@ -163,11 +172,11 @@ namespace CoupledField {
   }
 
 
-  Double NormL2(const Double* data, const UInt size)
+  Double NormL2(const Double* data1, const Double* data2, const UInt size)
   {
     Double result = 0.0;
     for(UInt i = 0; i < size; i++)
-      result += data[i] * data[i];
+      result += (data1[i] - data2[i]) * (data1[i] - data2[i]);
 
     return std::sqrt(result);
   }

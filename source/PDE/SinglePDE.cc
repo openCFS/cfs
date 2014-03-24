@@ -1477,8 +1477,6 @@ namespace CoupledField {
 
 
   void SinglePDE::ReadBCs() {
-
-
     // fetch "bcsAndLoads" parameter node, if present.
     // otherwise leave
     PtrParamNode bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
@@ -1784,12 +1782,54 @@ namespace CoupledField {
                      << slaveName << "' have different size" );
         }
 
+        // get center of gravity of bounding box for each list
+        Vector<Double> mLoc, sLoc, mMin (dim_), sMin (dim_), mMax (dim_), sMax (dim_), mCOG, sCOG;
+        EntityIterator masterIt = masterList.GetIterator();
+        EntityIterator slaveIt = slaveList.GetIterator();
+        for( UInt i=0; i<dim_; i++) {
+          mMin[i] = 1e42;
+          sMin[i] = 1e42;
+          mMax[i] = -1e42;
+          sMax[i] = -1e42;
+        }
+        // get bounding box of master nodes
+        for( masterIt.Begin(); !masterIt.IsEnd(); masterIt++ ) {
+          // obtain nodal coordinate
+          ptgrid_->GetNodeCoordinate( mLoc, masterIt.GetNode() );
+          for( UInt i=0; i<dim_; i++) {
+            if( mLoc[i] < mMin[i]) {
+              mMin[i] = mLoc[i];
+            }
+            if( mLoc[i] > mMax[i] ) {
+              mMax[i] = mLoc[i];
+            }
+          }
+        }
+        // get bounding box of slave nodes
+        for( slaveIt.Begin(); !slaveIt.IsEnd(); slaveIt++ ) {
+          // obtain nodal coordinate
+          ptgrid_->GetNodeCoordinate( sLoc, slaveIt.GetNode() );
+          for( UInt i=0; i<dim_; i++) {
+            if( sLoc[i] < sMin[i]) {
+              sMin[i] = sLoc[i];
+            }
+            if( sLoc[i] > sMax[i] ) {
+              sMax[i] = sLoc[i];
+            }
+          }
+        }
+        mCOG = (mMax + mMin);
+        sCOG = (sMax + sMin);
+        for( UInt i=0; i<dim_; i++) {
+          mCOG[i] = mCOG[i]/2;
+          sCOG[i] = sCOG[i]/2;
+        }
+
         // iterate over all master nodes and try to find "nearest"
         // node in slave list
-        Vector<Double> mLoc, sLoc, diff;
+        Vector<Double> diff;
         Double minDist, dist;
         StdVector<UInt> nodes(2);
-        EntityIterator masterIt = masterList.GetIterator();
         for( masterIt.Begin(); !masterIt.IsEnd(); masterIt++ ) {
 
           minDist = 1e42;
@@ -1804,7 +1844,7 @@ namespace CoupledField {
           EntityIterator slaveIt = slaveList.GetIterator();
           for( slaveIt.Begin(); !slaveIt.IsEnd(); slaveIt++ ) {
             ptgrid_->GetNodeCoordinate( sLoc, slaveIt.GetNode() );
-            diff = mLoc - sLoc;
+            diff = mLoc - sLoc - (mCOG - sCOG);
             dist = diff.NormL2();
             if( dist < minDist) {
               minDist = dist;
@@ -2154,15 +2194,6 @@ namespace CoupledField {
         // Read data
         materials_[actRegionId] = matLoader->LoadMaterial(material, pdematerialclass_);
 
-        if(progOpts->DoDetailedInfo())
-        {
-          // log the just read material. LoadMaterial() so to say initializes the ToInfo()
-          PtrParamNode in = infoNode_->GetByVal("material", "name", material);
-          // additional regions are automatically appended
-          in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
-          materials_[actRegionId]->ToInfo(in);
-        }
-
         // Check for local coordinate system
         if( !refCoordSys.empty() ) {
           CoordSystem * actCoosy =
@@ -2180,21 +2211,27 @@ namespace CoupledField {
         // 2D, -> material is rotated by
         // alpha = -90 and gamma = -90 degree,
         // so that we pick by default the yz-plane
-        if( !rotNode ) {
-          if( dim_ == 2) {
-            rotVec[0] = -90.0;
-            rotVec[2] = -90.0;
-            materials_[actRegionId]->
-              RotateAllTensorsByRotationAngles( rotVec, true );
-          }
-          continue;
-        } else {
+        if(!rotNode && dim_ == 2)
+        {
+          rotVec[0] = -90.0;
+          rotVec[2] = -90.0;
+          materials_[actRegionId]->RotateAllTensorsByRotationAngles( rotVec, true );
+        }
+        if(rotNode)
+        {
           rotVec[0] = rotNode->Get( "alpha" )->MathParse<Double>();
           rotVec[1] = rotNode->Get( "beta" )->MathParse<Double>(); 
           rotVec[2] = rotNode->Get( "gamma" )->MathParse<Double>();
+          materials_[actRegionId]->RotateAllTensorsByRotationAngles( rotVec, true );
+        }
 
-          materials_[actRegionId]->
-            RotateAllTensorsByRotationAngles( rotVec, true );
+        if(progOpts->DoDetailedInfo())
+        {
+          // log the just read material. LoadMaterial() so to say initializes the ToInfo()
+          PtrParamNode in = infoNode_->GetByVal("material", "name", material);
+          // additional regions are automatically appended
+          in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
+          materials_[actRegionId]->ToInfo(in, GetSubTensorType(), &rotVec);
         }
 
       } catch (Exception& ex ) {

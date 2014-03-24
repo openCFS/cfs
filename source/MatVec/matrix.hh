@@ -557,6 +557,11 @@ namespace CoupledField
     void SetPart( Global::ComplexPart part,
                   const Matrix<Double> & partMatrix );
 
+    /** give a specific row */
+    void GetRow(Vector<TYPE>& vec_out, UInt row) const;
+
+    void GetCol(Vector<TYPE>& vec_out, UInt col) const;
+
     //! Return a sub-part of the own matrix
     
     //! Copies a sub-matrix at the position (row, col) into subMat, 
@@ -580,7 +585,7 @@ namespace CoupledField
     void ConvertToVec_AppendCols( SingleVector& vec ) const;
  
     /** Dumps for developers or internal use
-     * @param level -1=list of all, 0=all data with structure, 1=summary info */
+     * @param level -1=list of all, 0=all data with structure, 1=summary info, 2=full data in matlab form */
     virtual std::string ToString(const int level = 0, const bool newline = false) const;
 
     /** Creates a xml string of the following form.

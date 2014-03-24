@@ -161,6 +161,7 @@
           <xsd:enumeration value="pardiso64"/>
           <xsd:enumeration value="ilupack"/>
           <xsd:enumeration value="cholmod"/>
+          <xsd:enumeration value="contact-ipopt"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

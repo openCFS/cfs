@@ -402,7 +402,6 @@ namespace CoupledField
         // iterate over all entities
         for ( UInt i=0; i<size; i++ ) {
           
-
           // Calc element matrix
           if ( form->IsComplex() )
             form->CalcElementMatrix( elemMatrixC, it1, it2 );
@@ -782,11 +781,6 @@ namespace CoupledField
           parser->SetExpr( mHandle_, actLoad.value );
           val = parser->Eval(mHandle_ );
 
-#ifndef NDEBUG
-          if ( std::isnan(val) || std::isinf(val) )
-            EXCEPTION("Trying to assemble nan/inf in AssembleRHSLoads!");
-#endif
-
           // for a harmonic simulation: evaluate phase
           if ( analysisType_ == BasePDE::HARMONIC )
           {
@@ -794,10 +788,6 @@ namespace CoupledField
             parser->SetExpr( mHandle_, actLoad.phase  );
             phase = parser->Eval( mHandle_ );
 
-#ifndef NDEBUG
-            if ( std::isnan(phase) || std::isinf(phase) )
-              EXCEPTION("Trying to assemble nan/inf in AssembleRHSLoads!");
-#endif
             complexValue = Complex( val * cos( phase / 180 * PI ),
                                     val * sin( phase / 180 * PI ) );
           }

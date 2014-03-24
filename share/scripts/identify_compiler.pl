@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
-use feature qw(switch);
+# we replace the given-when by plain if
+# use feature qw(switch);
 
 $COMPILER=$ARGV[0];
 $SOURCE=$ARGV[1];
@@ -61,12 +62,13 @@ foreach $line (`$COMPILER -E $SOURCE 2>&1`) {
 }   
 
 if ($CC_ID ne "") {
-    given ($CC_ID) {
-	when ("GCC") { 
-	    $CC_VERSION =~ s/ //g;
-	    $CC_GCC_VERSION =~ s/ //g; 
-	}
-	when ("ICC") { 
+   my $GOOD = 0;
+   if($CC_ID eq "GCC") {
+     $CC_VERSION =~ s/ //g;
+     $CC_GCC_VERSION =~ s/ //g; 
+     $GOOD = 1;
+   }
+   if($CC_ID eq "ICC") {
 	    $ICC_VER=$CC_VERSION;
 	    $ICC_VER =~ s/ [0-9].*$//;
 	    {
@@ -79,43 +81,44 @@ if ($CC_ID ne "") {
 	    $ICC_DATE =~ s/^[0-9].* //;
 	    $CC_VERSION = "$MAJOR_VER.$MINOR_VER $ICC_DATE";
 	    $CC_GCC_VERSION =~ s/ //g; 
-	}
-	when ("OPEN64") {
+            $GOOD = 1;
+   }
+   if($CC_ID eq "OPEN64") {
 	    $CC_VERSION =~ s/ //g;
 	    $CC_GCC_VERSION =~ s/ //g; 
-	}
-	when ("MSVC") {
+            $GOOD = 1;
+   }
+   if($CC_ID eq "MSVC") {
 	    $CC_VERSION =~ s/ //g;
-	}
-	default {
+            $GOOD = 1;
+   }
+   if($GOOD == 0) {
 	    print "C compiler not supported!\n";
 	    exit 1;
-	}
-    }
+   }
 
-    given ($OUTPUT) {
-	when ("cmake") { 
+   if($OUTPUT eq "cmake") {
 	    print "SET(CC_ID \"$CC_ID\")\n"; 
 	    print "SET(CC_VERSION \"$CC_VERSION\")\n"; 
 	    print "SET(CC_GCC_VERSION \"$CC_GCC_VERSION\")\n";
 	    exit 0;
-	}
-	when ("perl") { 
+   }
+   if($OUTPUT eq "perl") {
 	    print "\$CC_ID=\"$CC_ID\";\n"; 
 	    print "\$CC_VERSION=\"$CC_VERSION\";\n"; 
 	    print "\$CC_GCC_VERSION=\"$CC_GCC_VERSION\";\n";
 	    exit 0;
-	}
     }
 } 
 
 if ($CXX_ID ne "") {
-    given ($CXX_ID) {
-	when ("GCC") { 
+  my $GOOD = 0;
+  if($CXX_ID eq "GCC") { 
 	    $CXX_VERSION =~ s/ //g;
 	    $CXX_GCC_VERSION =~ s/ //g; 
-	}
-	when ("ICC") {
+            $GOOD = 1;
+  }
+  if($CXX_ID eq "ICC") {
 	    # Intel 12.x define __ICC and __INTEL_COMPILER to be 9999 therefore
             # we read the output of $COMPILER --version
 	    ($version, $build_date) = split(/ /, $CXX_VERSION, 2);
@@ -143,42 +146,43 @@ if ($CXX_ID ne "") {
 	    $ICC_DATE =~ s/^[0-9].* //;
 	    $CXX_VERSION = "$MAJOR_VER.$MINOR_VER $ICC_DATE";
 	    $CXX_GCC_VERSION =~ s/ //g; 
-	}
-	when ("OPEN64") {
+            $GOOD = 1;
+  }
+  if($CXX_ID eq "OPEN64") {
 	    $CXX_VERSION =~ s/ //g;
 	    $CXX_GCC_VERSION =~ s/ //g; 
-	}
-	when ("MSVC") {
+            $GOOD = 1;
+  }
+  if($CXX_ID eq "MSVC") {
 	    $CC_VERSION =~ s/ //g;
-	}
-	default {
+            $GOOD = 1;
+  }
+  if($GOOD == 0){
 	    print "C++ compiler not supported!\n";
 	    exit 1;
-	}
-    }
+  }
 
-    given ($OUTPUT) {
-	when ("cmake") { 
+  if($OUTPUT eq "cmake") { 
 	    print "SET(CXX_ID \"$CXX_ID\")\n"; 
 	    print "SET(CXX_VERSION \"$CXX_VERSION\")\n"; 
 	    print "SET(CXX_GCC_VERSION \"$CXX_GCC_VERSION\")\n";
 	    exit 0;
-	}
-	when ("perl") { 
+  }
+  if($OUTPUT eq "perl") { 
 	    print "\$CXX_ID=\"$CXX_ID\";\n"; 
 	    print "\$CXX_VERSION=\"$CXX_VERSION\";\n"; 
 	    print "\$CXX_GCC_VERSION=\"$CXX_GCC_VERSION\";\n";
 	    exit 0;
-	}
-    }
+  }
 }
 
 if ($FC_ID ne "") {
-    given ($FC_ID) {
-	when ("GNU") { 
+  my $GOOD = 0;
+  if($FC_ID eq "GNU") { 
 	    $FC_VERSION =~ s/ //g;
-	}
-	when ("IFORT") { 
+            $GOOD = 1;
+  }
+  if($FC_ID eq "IFORT") { 
 	    # Intel 12.x define __ICC and __INTEL_COMPILER to be 9999 therefore
             # we read the output of $COMPILER --version
 	    ($version, $build_date) = split(/ /, $FC_VERSION, 2);
@@ -204,28 +208,28 @@ if ($FC_ID ne "") {
 	    $ICC_DATE=$FC_VERSION;
 	    $ICC_DATE =~ s/^[0-9].* //;
 	    $FC_VERSION = "$MAJOR_VER.$MINOR_VER $ICC_DATE";
+            $GOOD = 1;
 	}
-	when ("OPEN64") {
+  if($FC_ID eq "OPEN64") {
 	    $FC_VERSION =~ s/ //g;
-	}
-	default {
+            $GOOD = 1;
+  }
+  if($GOOD == 0) {
 	    print "Fortran compiler not supported!\n";
 	    exit 1;
-	}
-    }
+  }
 
-    given ($OUTPUT) {
-	when ("cmake") { 
+
+  if($OUTPUT eq "cmake") { 
 	    print "SET(FC_ID \"$FC_ID\")\n"; 
 	    print "SET(FC_VERSION \"$FC_VERSION\")\n"; 
 	    exit 0;
-	}
-	when ("perl") { 
+  }
+  if($OUTPUT eq "perl") { 
 	    print "\$FC_ID=\"$FC_ID\";\n"; 
 	    print "\$FC_VERSION=\"$FC_VERSION\";\n"; 
 	    exit 0;
-	}
-    }
+  }
 }
 
 print "Compiler not supported!\n";

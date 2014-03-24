@@ -261,7 +261,7 @@ namespace CoupledField {
   //   Compute Euclidean Norm
   // **************************
   template <typename T>
-  double Vector<T>::NormL2() const
+  double Vector<T>::NormL2Squared() const
   {				
     double sum(0.0);
 
@@ -269,7 +269,13 @@ namespace CoupledField {
     for(unsigned int i = 0; i < size_; ++i)
       sum += OpType<T>::zConjz(data_[i]);
     
-    return sqrt(sum);
+    return sum;
+  }
+  
+  template <typename T>
+  double Vector<T>::NormL2() const
+  {
+    return(sqrt(NormL2Squared()));
   }
 
   template<class TYPE> 

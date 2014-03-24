@@ -187,7 +187,7 @@ void Domain::CreateGrid()
       // p.filename() does not compile for me!!
       // What should work:
       // boost::filesystem::base(p) << "." << boost::filesystem::extension(p)
-      std::cout << "'" << p.leaf() << "' ";
+      std::cout << p.leaf() << " ";
     }
 
     actGrid->FinishInit();
@@ -1069,7 +1069,7 @@ BaseMaterial* Domain::GetErsatzBiMaterial(const Elem* elem, const MaterialClass 
 {
   if(ersatzMaterial == NULL) return NULL;
 
-  DesignSpace::DesignRegion* dr = ersatzMaterial->GetRegion(elem->regionId, false); // silent
+  DesignSpace::DesignRegion* dr = ersatzMaterial->GetRegion(elem->regionId, DesignElement::NO_TYPE, -1, false); // silent
 
   if(dr != NULL && dr->HasBiMaterial())
     return dr->GetBiMaterial(mc);
@@ -1090,6 +1090,16 @@ bool Domain::HasErsatzMaterialTensor()
 {
   return ersatzMaterial == NULL ? false
       : ersatzMaterial->HasErsatzMaterialTensor();
+}
+
+bool Domain::HasErsatzMaterialPiezoCouplingTensor()
+{
+  return ersatzMaterial == NULL ? false : ersatzMaterial->HasPiezoCouplingTensor();
+}
+
+bool Domain::HasErsatzMaterialDielecTensor()
+{
+  return ersatzMaterial == NULL ? false  : ersatzMaterial->HasDielecTensor();
 }
 
 bool Domain::HasErsatzMaterialMass()

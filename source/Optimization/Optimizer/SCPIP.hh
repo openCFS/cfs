@@ -18,11 +18,18 @@ class Optimization;
   {
     public:
       /** @param optimization the problem we optimize
-       * @param pn here we can have options - might be NULL! */
-      SCPIP(Optimization* optimization, PtrParamNode pn);
+       * @param pn here we can have options - might be NULL!
+       * @param type given here to have it transparent with FeasSCP */
+      SCPIP(Optimization* optimization, PtrParamNode pn, Optimization::Optimizer type = Optimization::SCPIP_SOLVER);
       
       virtual ~SCPIP();
     
+      /** overwrites BaseOptimizer::PostInit() */
+      void PostInit();
+
+      /** overwrites BaseOptimizer::ToInfo() */
+      virtual void ToInfo(PtrParamNode pn);
+
     protected:
 
       /** Solves the problem. All stuff, including evaluations of the state problem is done
@@ -36,8 +43,6 @@ class Optimization;
         assert(mactiv >= 0);
         return mactiv;
       }
-
-    private:
 
       /** Overloads the default implementation to allow sparse jacobians */
       void SetConstraintSparsityPattern();
@@ -89,6 +94,12 @@ class Optimization;
       /** This method is called every time SCPIP returns. It is more common
        * to IPOPT when next_iter is true! */
       bool intermediate_callback(int iter, bool next_iter);
+
+      /** This are the virtual constraint indices of inequality constraints */
+      StdVector<unsigned int> ie_idx;
+
+      /** This are the virtual constraint indices of equality constraints */
+      StdVector<unsigned int> eq_idx;
   };
 
 } // end of namespace

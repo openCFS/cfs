@@ -46,9 +46,9 @@ namespace OutInfo{
 
 namespace CoupledField {
 
-  // Import Boost's namespace
-  using namespace boost;
-
+  // Import Boost's namespace as using namespace boost is evil. It breaks with gcc 4.8
+  using boost::shared_ptr;
+  using boost::lexical_cast;
 
   class CFSMessenger;
   // forward class declaration
@@ -127,13 +127,13 @@ namespace CoupledField {
     MECH_VELOCITY, MECH_FORCE, MECH_STRESS, MECH_STRAIN, MECH_STRAIN_IRR, 
     VON_MISES_STRESS, VON_MISES_STRAIN,
     MECH_ENERGY, MECH_DEF_VOLUME, MECH_RHS_LOAD, MECH_PRESSURE,
-    MECH_PSEUDO_DENSITY, PHYSICAL_PSEUDO_DENSITY, MECH_SHAPE, MECH_REL_DILATATION,
+    MECH_PSEUDO_DENSITY, PHYSICAL_PSEUDO_DENSITY, MECH_SHAPE, MECH_REL_DILATATION, MECH_TENSOR_TRACE, MECH_TENSOR,
     
     // === Electrostatic results ===
     ELEC_POTENTIAL, ELEC_FIELD_INTENSITY, ELEC_FORCE_VWP,
     ELEC_INTERFACE_FORCE, ELEC_CHARGE, ELEC_FLUX_DENSITY,
     ELEC_ENERGY, ELEC_POLARIZATION,ELEC_RHS_LOAD,ELEC_PSEUDO_POLARIZATION,
-    ELEC_PHYSICAL_PSEUDO_DENSITY,
+    ELEC_PHYSICAL_PSEUDO_DENSITY, ELEC_TENSOR_TRACE, ELEC_TENSOR,
     
     // === Pseudo mechanic smoothing results ===
     SMOOTH_DISPLACEMENT, SMOOTH_VELOCITY, GRID_VELOCITY, SMOOTH_STRAIN,  
@@ -158,7 +158,9 @@ namespace CoupledField {
     
     // === Heat results ===
     HEAT_TEMPERATURE, HEAT_RHS_LOAD,
-    MPCCI, FLUID_FORCE,
+
+    // === unqualified results ===
+    MPCCI, FLUID_FORCE, PIEZO_COUPL_TENSOR,
     ACOU_PRESSUREXYZ,
 
     // === Flow results ===
@@ -177,6 +179,7 @@ namespace CoupledField {
     OPT_RESULT_1, OPT_RESULT_2, OPT_RESULT_3,
     OPT_RESULT_4, OPT_RESULT_5, OPT_RESULT_6,
     OPT_RESULT_7, OPT_RESULT_8, OPT_RESULT_9,
+    OPT_RESULT_10,
     LAGRANGE_MULT, THERMOMECH_FORCE, THERMOELEC_FORCE,
     GRAD_ACOU_SOLUTION, GRAD_ELEC_POTENTIAL,
     GRAD_X_DISPLACEMENT, GRAD_Y_DISPLACEMENT, GRAD_Z_DISPLACEMENT, // nodal gradients
