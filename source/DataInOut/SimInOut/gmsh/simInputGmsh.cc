@@ -443,7 +443,7 @@ namespace CoupledField {
           //            continue;
 
           // remove " from physName
-          boost::trim_if(physName, is_any_of("\" \t"));
+          boost::trim_if(physName, boost::is_any_of("\" \t"));
 
           // std::cout << physDim << " " << physId << " #" << physName  << "#" << std::endl;
 
