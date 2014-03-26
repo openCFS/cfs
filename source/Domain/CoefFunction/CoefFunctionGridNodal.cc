@@ -15,6 +15,7 @@
 #include <def_expl_templ_inst.hh>
 
 #include "CoefFunctionGridNodal.hh"
+#include "Driver/SolveSteps/BaseSolveStep.hh"
 
 #include "FeBasis/FeSpace.hh"
 #include <boost/lexical_cast.hpp>
@@ -33,6 +34,8 @@ namespace CoupledField{
     lastStepRead_ = 0;
     //Set sequence Step according to XML definition
     this->aSeqStep_ = configNode->Get("sequenceStep")->As<UInt>();
+
+    this->snapToCFSStep_ = configNode->Get("snapToCFSTimeStep")->As<bool>();
 
     std::string solString = configNode->Get("quantity")->As<std::string>();
     solType_ = SolutionTypeEnum.Parse(solString );
@@ -248,32 +251,42 @@ namespace CoupledField{
       UInt stepnumber=0;
       bool needTinterp=false;
       Double factor1,factor2;
-      stepnumber = GetStepNum(needTinterp,factor1,factor2);
-      if(needTinterp){
-        WARN("Interpolating between src-file timestep #" << lastStepRead_ << " and " << stepnumber);
-        if(this->solVecFuture_.GetSize() == 0){
-          this->solVecFuture_.Resize(numEqns_);
-          this->solVecFuture_.Init();
-        }
-        if(lastStepRead_ != stepnumber){
-          this->solVecOld_ = this->solVecFuture_;
-          this->ReadSolution(stepnumber,this->solVecFuture_);
-        }
-        //should not happen anyway
-        if(this->solVecOld_.GetSize() == 0){
-          this->solVecOld_.Resize(this->solVecFuture_.GetSize());
-          this->solVecOld_.Init();
-        }
-        for(UInt i=0;i<this->solVecOld_.GetSize();i++){
-          this->solVec_[i] = factor1 * this->solVecOld_[i] + factor2 *  this->solVecFuture_[i];
-        }
-        lastStepRead_ = stepnumber;
-      }else{
-        //std::cout << "Got Step : " << lastStepRead_ << "Computed Step:" << stepnumber << std::endl;
-        //we just read the solution vector
+      if(this->snapToCFSStep_){
+        //we need this to set some class variables... this is not very good style
+        stepnumber = GetStepNum(needTinterp,factor1,factor2);
+        stepnumber = this->domain_->GetBasePDE()->GetSolveStep()->GetActStep();
         if(lastStepRead_ != stepnumber){
           this->ReadSolution(stepnumber,this->solVec_);
           lastStepRead_ = stepnumber;
+        }
+      }else{
+        stepnumber = GetStepNum(needTinterp,factor1,factor2);
+        if(needTinterp){
+          WARN("Interpolating between src-file timestep #" << lastStepRead_ << " and " << stepnumber);
+          if(this->solVecFuture_.GetSize() == 0){
+            this->solVecFuture_.Resize(numEqns_);
+            this->solVecFuture_.Init();
+          }
+          if(lastStepRead_ != stepnumber){
+            this->solVecOld_ = this->solVecFuture_;
+            this->ReadSolution(stepnumber,this->solVecFuture_);
+          }
+          //should not happen anyway
+          if(this->solVecOld_.GetSize() == 0){
+            this->solVecOld_.Resize(this->solVecFuture_.GetSize());
+            this->solVecOld_.Init();
+          }
+          for(UInt i=0;i<this->solVecOld_.GetSize();i++){
+            this->solVec_[i] = factor1 * this->solVecOld_[i] + factor2 *  this->solVecFuture_[i];
+          }
+          lastStepRead_ = stepnumber;
+        }else{
+          //std::cout << "Got Step : " << lastStepRead_ << "Computed Step:" << stepnumber << std::endl;
+          //we just read the solution vector
+          if(lastStepRead_ != stepnumber){
+            this->ReadSolution(stepnumber,this->solVec_);
+            lastStepRead_ = stepnumber;
+          }
         }
       }
     }

@@ -170,6 +170,9 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     //! stroes the stepnumber of the las read solution process
     UInt lastStepRead_;
 
+    //! flag indicating if the timevalue map of input should be ignored
+    bool snapToCFSStep_;
+
   private:
 
 };

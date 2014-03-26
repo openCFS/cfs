@@ -82,6 +82,7 @@
                <xsd:attribute name="quantity" use="required"/>
                <xsd:attribute name="dependtype" type="DT_CoefGridDependType" use="required" />
                <xsd:attribute name="sequenceStep" type="xsd:integer" use="optional" default="1" />
+               <xsd:attribute name="snapToCFSTimeStep" type="xsd:boolean" use="optional" default="false" />
              </xsd:complexType>
           </xsd:element>
           <xsd:element name="externalGrid">
@@ -116,6 +117,7 @@
               <xsd:attribute name="interpolation" type="DT_CoefGridInterpolMode" use="optional" default="standard"/>            
               <xsd:attribute name="sequenceStep" type="xsd:integer" use="optional" default="1" />
               <xsd:attribute name="verbose" type="xsd:boolean" use="optional" default="false" />
+              <xsd:attribute name="snapToCFSTimeStep" type="xsd:boolean" use="optional" default="false" />
             </xsd:complexType>
           </xsd:element>
         </xsd:choice>
