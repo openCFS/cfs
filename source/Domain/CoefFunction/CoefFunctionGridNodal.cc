@@ -250,7 +250,24 @@ namespace CoupledField{
       Double factor1,factor2;
       stepnumber = GetStepNum(needTinterp,factor1,factor2);
       if(needTinterp){
-        EXCEPTION("StepValue interpolation not supported right now")
+        WARN("Interpolating between src-file timestep #" << lastStepRead_ << " and " << stepnumber);
+        if(this->solVecFuture_.GetSize() == 0){
+          this->solVecFuture_.Resize(numEqns_);
+          this->solVecFuture_.Init();
+        }
+        if(lastStepRead_ != stepnumber){
+          this->solVecOld_ = this->solVecFuture_;
+          this->ReadSolution(stepnumber,this->solVecFuture_);
+        }
+        //should not happen anyway
+        if(this->solVecOld_.GetSize() == 0){
+          this->solVecOld_.Resize(this->solVecFuture_.GetSize());
+          this->solVecOld_.Init();
+        }
+        for(UInt i=0;i<this->solVecOld_.GetSize();i++){
+          this->solVec_[i] = factor1 * this->solVecOld_[i] + factor2 *  this->solVecFuture_[i];
+        }
+        lastStepRead_ = stepnumber;
       }else{
         //std::cout << "Got Step : " << lastStepRead_ << "Computed Step:" << stepnumber << std::endl;
         //we just read the solution vector

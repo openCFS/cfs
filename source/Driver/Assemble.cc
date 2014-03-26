@@ -345,7 +345,14 @@ namespace CoupledField
 
             NcBiLinFormContext* ncContext = dynamic_cast<NcBiLinFormContext*>(forms[iForm]);
 
-            if (ncContext) {
+            bool moving = false;
+            if(ncContext){
+              if(ncContext->GetMotion())
+                moving = true;
+            }
+
+
+            if (ncContext && moving) {
               // Just get all equations, so we out a dense block in the graph
               ncContext->GetEqns(eqnVec1, eqnVec2, id1, id2);
 

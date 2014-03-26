@@ -579,8 +579,8 @@ namespace CoupledField {
 
   void FlowPDE::InitTimeStepping() {
 
-    GLMScheme * schemeV = new Bdf2();
-    GLMScheme * schemeP = new Bdf2();
+    GLMScheme * schemeV = new Trapezoidal(0.5);
+    GLMScheme * schemeP = new Trapezoidal(0.5);
 
 //    Double gamma = 0.5;
 //    GLMScheme * schemeV = new Trapezoidal(gamma);

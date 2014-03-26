@@ -2984,8 +2984,8 @@ namespace CoupledField {
     
     // currently we have a moving formulation only for acoustics
     updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?
-    bool isMoving = updatedGeo_ && iface.movingMortarForm
-        && (solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL);
+    bool isMoving = updatedGeo_;
+    bool changeForms =   iface.movingMortarForm  && (solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL);
     
     // create ElemLists for slave surface and intersection
     shared_ptr<SurfElemList> elMaster(new SurfElemList(ptGrid_)),
@@ -3036,7 +3036,7 @@ namespace CoupledField {
     BiLinearForm *massInt = NULL, *massInt2 = NULL;
     massInt = new BBInt<>( new IdentityOperator<FeH1,DIM,D_DOF>, unity, 1.0, updatedGeo_);
     massInt->SetName("MortarMassInt");
-    if (isMoving) {
+    if (isMoving && changeForms) {
       massInt2 = new BBInt<>( new IdentityOperator<FeH1,DIM,D_DOF>, unity, 1.0, updatedGeo_);
       massInt2->SetName("MortarMassInt");
     }
@@ -3045,10 +3045,10 @@ namespace CoupledField {
     BiLinFormContext *massContext = new BiLinFormContext(massInt, STIFFNESS);
     massContext->SetEntities(elSlave, elSlave);
     massContext->SetFeFunctions( feFunctions_[solType], feFunctions_[LAGRANGE_MULT] );
-    massContext->SetCounterPart(!isMoving);
+    massContext->SetCounterPart(!(isMoving && changeForms));
     assemble_->AddBiLinearForm(massContext);
     
-    if (isMoving) {
+    if (isMoving && changeForms) {
       BiLinFormContext *massContext2 = new BiLinFormContext(massInt2, DAMPING);
       massContext2->SetEntities(elSlave, elSlave);
       massContext2->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[solType] );
@@ -3066,7 +3066,7 @@ namespace CoupledField {
         mortarIf->IsPlanar(),
         updatedGeo_ );
     ncInt->SetName("MortarNcInt");
-    if (isMoving) {
+    if (isMoving && changeForms) {
       ncInt2 = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,DIM,D_DOF>(),
           new IdentityOperator<FeH1,DIM,D_DOF>(),
           unity, -1.0,
@@ -3080,20 +3080,21 @@ namespace CoupledField {
     NcBiLinFormContext *ncContext = new NcBiLinFormContext(ncInt, STIFFNESS);
     ncContext->SetEntities(elMortar, elMortar);
     ncContext->SetFeFunctions( feFunctions_[solType], feFunctions_[LAGRANGE_MULT] );
-    ncContext->SetCounterPart(!isMoving);
+    ncContext->SetCounterPart(!(isMoving && changeForms));
     assemble_->AddBiLinearForm(ncContext);
     ncIf->RegisterIntegrator(ncContext);
-    
-    if (isMoving) {
-      ncContext->SetMotion(true);
 
-      NcBiLinFormContext *ncContext2 = new NcBiLinFormContext(ncInt2, DAMPING);
-      ncContext2->SetEntities(elMortar, elMortar);
-      ncContext2->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[solType] );
-      ncContext2->SetCounterPart(false);
-      ncContext2->SetMotion(true);
-      assemble_->AddBiLinearForm(ncContext2);
-      ncIf->RegisterIntegrator(ncContext2);
+    if (isMoving) {
+      if(changeForms){
+        NcBiLinFormContext *ncContext2 = new NcBiLinFormContext(ncInt2, DAMPING);
+        ncContext2->SetEntities(elMortar, elMortar);
+        ncContext2->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[solType] );
+        ncContext2->SetCounterPart(false);
+        ncContext2->SetMotion(true);
+        assemble_->AddBiLinearForm(ncContext2);
+        ncIf->RegisterIntegrator(ncContext2);
+      }
+      ncContext->SetMotion(true);
     }
   }
   
@@ -3113,8 +3114,8 @@ namespace CoupledField {
 
     // currently we have a moving formulation only for acoustics
     updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?
-    bool isMoving = updatedGeo_ && iface.movingMortarForm
-       && (solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL);
+    bool isMoving = updatedGeo_;
+    bool changeForms =   iface.movingMortarForm  && (solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL);
 
     // create new entity list
     shared_ptr<ElemList> actSDList = ncIf->GetElemList();
@@ -3279,8 +3280,6 @@ namespace CoupledField {
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
           factor, beta, curcpl, updatedGeo_, true, true);
 
-
-
     SurfaceBiLinFormContext *penalty_u1_v1_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v1_Context   = NULL;
     SurfaceBiLinFormContext *flux_u1_dv1_Context   = NULL;
@@ -3288,91 +3287,81 @@ namespace CoupledField {
     SurfaceBiLinFormContext *penalty_u1_v2_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v2_Context   = NULL;
 
+    curcpl = BiLinearForm::MASTER_MASTER;
+    penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, STIFFNESS, curcpl);
+    flux_du1_v1_Context   = new SurfaceBiLinFormContext(flux_du1_v1  , STIFFNESS, curcpl);
+    flux_u1_dv1_Context   = new SurfaceBiLinFormContext(flux_u1_dv1  , STIFFNESS, curcpl);
+    curcpl = BiLinearForm::SLAVE_SLAVE;
+    penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2, STIFFNESS, curcpl);
+    curcpl = BiLinearForm::MASTER_SLAVE;
+    penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, STIFFNESS, curcpl);
+    flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2  , STIFFNESS, curcpl);
+    curcpl = BiLinearForm::SLAVE_MASTER;
+
     if (isMoving) {
-      Double betaDamp = iface.nitscheFactorDamp;
-      BiLinearForm *penalty_u1_v1_M = NULL;
-      BiLinearForm *penalty_u1_v2_M = NULL;
-      BiLinearForm *penalty_u2_v2_M = NULL;
-      SurfaceBiLinFormContext *penalty_u2_v2_M_Context = NULL;
-      SurfaceBiLinFormContext *penalty_u1_v2_M_Context = NULL;
-      SurfaceBiLinFormContext *penalty_u1_v1_M_Context = NULL;
+      if(changeForms){
+        Double betaDamp = iface.nitscheFactorDamp;
+        BiLinearForm *penalty_u1_v1_M = NULL;
+        BiLinearForm *penalty_u1_v2_M = NULL;
+        BiLinearForm *penalty_u2_v2_M = NULL;
+        SurfaceBiLinFormContext *penalty_u2_v2_M_Context = NULL;
+        SurfaceBiLinFormContext *penalty_u1_v2_M_Context = NULL;
+        SurfaceBiLinFormContext *penalty_u1_v1_M_Context = NULL;
 
-      curcpl = BiLinearForm::MASTER_MASTER;
+        curcpl = BiLinearForm::MASTER_MASTER;
+        penalty_u1_v1_M = new SurfaceNitscheABInt<Double,Double>
+            ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, betaDamp, curcpl, updatedGeo_, true, true);
+        penalty_u1_v1_M_Context = new SurfaceBiLinFormContext(penalty_u1_v1_M, DAMPING, curcpl);
 
-      penalty_u1_v1_M = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, betaDamp, curcpl, updatedGeo_, true, true);
+        curcpl = BiLinearForm::SLAVE_SLAVE;
+        penalty_u2_v2_M = new SurfaceNitscheABInt<Double,Double>
+            ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, betaDamp, curcpl, updatedGeo_, true, true);
+        penalty_u2_v2_M_Context = new SurfaceBiLinFormContext(penalty_u2_v2_M, DAMPING, curcpl);
 
-
-      penalty_u1_v1_M_Context = new SurfaceBiLinFormContext(penalty_u1_v1_M, DAMPING, curcpl);
-      penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, STIFFNESS, curcpl);
-      flux_du1_v1_Context   = new SurfaceBiLinFormContext(flux_du1_v1, STIFFNESS, curcpl);
-      flux_u1_dv1_Context   = new SurfaceBiLinFormContext(flux_u1_dv1, STIFFNESS, curcpl);
-
-
-      curcpl = BiLinearForm::SLAVE_SLAVE;
-      penalty_u2_v2_M = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, betaDamp, curcpl, updatedGeo_, true, true);
-
-
-      penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2, STIFFNESS, curcpl);
-      penalty_u2_v2_M_Context = new SurfaceBiLinFormContext(penalty_u2_v2_M, DAMPING, curcpl);
-
-      curcpl = BiLinearForm::MASTER_SLAVE;
-      penalty_u1_v2_M = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, betaDamp * -1.0, curcpl, updatedGeo_, true, true);
-
-      penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, STIFFNESS, curcpl);
-      penalty_u1_v2_M_Context = new SurfaceBiLinFormContext(penalty_u1_v2_M, DAMPING, curcpl);
-      flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2, STIFFNESS, curcpl);
+        curcpl = BiLinearForm::MASTER_SLAVE;
+        penalty_u1_v2_M = new SurfaceNitscheABInt<Double,Double>
+            ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, betaDamp * -1.0, curcpl, updatedGeo_, true, true);
+        penalty_u1_v2_M_Context = new SurfaceBiLinFormContext(penalty_u1_v2_M, DAMPING, curcpl);
 
 
+        penalty_u1_v1_M_Context->SetMotion(true);
+        penalty_u2_v2_M_Context->SetMotion(true);
+        penalty_u1_v2_M_Context->SetMotion(true);
+
+        penalty_u2_v2_M->SetName("penalty_u2_v2_M");
+        penalty_u1_v2_M->SetName("penalty_u1_v2_M");
+        penalty_u1_v1_M->SetName("penalty_u1_v1_M");
+        penalty_u1_v1_M_Context->SetEntities(actSDList,actSDList);
+        penalty_u2_v2_M_Context->SetEntities(actSDList,actSDList);
+        penalty_u1_v2_M_Context->SetEntities(actSDList,actSDList);
+        penalty_u1_v1_M_Context->SetFeFunctions( feFunctions_[solType],
+                                               feFunctions_[solType] );
+        penalty_u2_v2_M_Context->SetFeFunctions( feFunctions_[solType],
+                                               feFunctions_[solType] );
+        penalty_u1_v2_M_Context->SetFeFunctions( feFunctions_[solType],
+                                               feFunctions_[solType] );
+        penalty_u1_v2_M_Context->SetCounterPart(true);
+        assemble_->AddBiLinearForm( penalty_u1_v1_M_Context );
+        assemble_->AddBiLinearForm( penalty_u2_v2_M_Context );
+        assemble_->AddBiLinearForm( penalty_u1_v2_M_Context );
+        ncIf->RegisterIntegrator( penalty_u1_v1_M_Context );
+        ncIf->RegisterIntegrator( penalty_u2_v2_M_Context );
+        ncIf->RegisterIntegrator( penalty_u1_v2_M_Context );
+      }
       penalty_u1_v1_Context->SetMotion(true);
       penalty_u2_v2_Context->SetMotion(true);
       penalty_u1_v2_Context->SetMotion(true);
-      penalty_u1_v1_M_Context->SetMotion(true);
-      penalty_u2_v2_M_Context->SetMotion(true);
-      penalty_u1_v2_M_Context->SetMotion(true);
       flux_du1_v1_Context->SetMotion(true);
       flux_u1_dv1_Context->SetMotion(true);
       flux_du1_v2_Context->SetMotion(true);
-
-      penalty_u2_v2_M->SetName("penalty_u2_v2_M");
-      penalty_u1_v2_M->SetName("penalty_u1_v2_M");
-      penalty_u1_v1_M->SetName("penalty_u1_v1_M");
-      penalty_u1_v1_M_Context->SetEntities(actSDList,actSDList);
-      penalty_u2_v2_M_Context->SetEntities(actSDList,actSDList);
-      penalty_u1_v2_M_Context->SetEntities(actSDList,actSDList);
-      penalty_u1_v1_M_Context->SetFeFunctions( feFunctions_[solType],
-                                             feFunctions_[solType] );
-      penalty_u2_v2_M_Context->SetFeFunctions( feFunctions_[solType],
-                                             feFunctions_[solType] );
-      penalty_u1_v2_M_Context->SetFeFunctions( feFunctions_[solType],
-                                             feFunctions_[solType] );
-      penalty_u1_v2_M_Context->SetCounterPart(true);
-      assemble_->AddBiLinearForm( penalty_u1_v1_M_Context );
-      assemble_->AddBiLinearForm( penalty_u2_v2_M_Context );
-      assemble_->AddBiLinearForm( penalty_u1_v2_M_Context );
-      ncIf->RegisterIntegrator( penalty_u1_v1_M_Context );
-      ncIf->RegisterIntegrator( penalty_u2_v2_M_Context );
-      ncIf->RegisterIntegrator( penalty_u1_v2_M_Context );
-    }else{
-      curcpl = BiLinearForm::MASTER_MASTER;
-      penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, STIFFNESS, curcpl);
-      flux_du1_v1_Context   = new SurfaceBiLinFormContext(flux_du1_v1  , STIFFNESS, curcpl);
-      flux_u1_dv1_Context   = new SurfaceBiLinFormContext(flux_u1_dv1  , STIFFNESS, curcpl);
-      curcpl = BiLinearForm::SLAVE_SLAVE;
-      penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2, STIFFNESS, curcpl);
-      curcpl = BiLinearForm::MASTER_SLAVE;
-      penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, STIFFNESS, curcpl);
-      flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2  , STIFFNESS, curcpl);
-      curcpl = BiLinearForm::SLAVE_MASTER;
     }
+
     penalty_u2_v2->SetName("penalty_u2_v2");
     penalty_u1_v2->SetName("penalty_u1_v2");
     penalty_u1_v1->SetName("penalty_u1_v1");

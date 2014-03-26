@@ -343,6 +343,11 @@ namespace CoupledField
       isMoving_ = moving;
     }
 
+    //! obtain moving flag
+    virtual bool GetMotion(){
+      return isMoving_;
+    }
+
   private:
 
     //flag indicating if we are moving

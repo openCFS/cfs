@@ -207,9 +207,9 @@ namespace CoupledField{
       UInt col = curScheme_->numStages_;
       Double coef = curScheme_->schemeCoefs_[cRow][col];
       if(coef !=0){
-        //This is currently a HACK!!
-        if ( curType_ == GLMScheme::BDF2 && col > 0 )
-          coef = curScheme_->schemeCoefs_[cRow][col-1];
+        ////This is currently a HACK!!
+        //if ( curType_ == GLMScheme::BDF2 && col > 0 )
+        //  coef = curScheme_->schemeCoefs_[cRow][col-1];
 
         //std::cout << "NL:  cRow: " << cRow << "  col: " << col << "  Value: " << coef << std::endl;
         SingleVector * curVec = stageVector_[actStage];
@@ -229,12 +229,13 @@ namespace CoupledField{
   void TimeSchemeGLM::FinishStep(){
 
     //just hack for flow and BDF2
-    bool usePredictorsOK = true;
-    if (curType_ == GLMScheme::BDF2 && nLinType_ == INCREMENTAL)
-      usePredictorsOK = false;
+    //bool usePredictorsOK = true;
+    //if (curType_ == GLMScheme::BDF2 && nLinType_ == INCREMENTAL)
+    //  usePredictorsOK = false;
 
     //update for old solutions
-    if(curScheme_->usePredictors_ && usePredictorsOK ) { //&& nLinType_ != INCREMENTAL){
+    //if(curScheme_->usePredictors_ && usePredictorsOK ) { //&& nLinType_ != INCREMENTAL){
+    if(curScheme_->usePredictors_) { //&& nLinType_ != INCREMENTAL){
       for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
         if((Integer)i != avoidUpdateIdx_){
           glmVector_[i]->Init();
