@@ -26,6 +26,7 @@
 #include "Forms/Operators/IdentityOperatorNormalTrans.hh"
 #include "Forms/Operators/StrainOperator.hh"
 #include "Forms/Operators/SurfaceNormalStressOperator.hh"
+#include "Forms/BiLinForms/SingleEntryBiLinInt.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -383,6 +384,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       // in the end, at the region to the feFunction      // to be implemented
       myFct->AddEntityList( actSDList );
     }
+    
+    // ====================================================================
+    //  Concentrated Mechanical Network Elements
+    // ====================================================================
+    DefineConcentratedElems();
   }
   
   void MechPDE::DefineNcIntegrators() {
@@ -421,6 +427,135 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       }
     }
   }
+  
+  void MechPDE::DefineConcentratedElems() {
+
+     // Get FESpace and FeFunction of mechanical displacement
+     shared_ptr<BaseFeFunction> myFct = feFunctions_[MECH_DISPLACEMENT];
+     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
+     
+      // try to get bcsAndLoads node
+      PtrParamNode bcNode = myParam_->Get("bcsAndLoads", ParamNode::PASS);
+      if( !bcNode )
+        return;
+
+      // fetch parameter node specifying spring
+      ParamNodeList springNodes =
+          bcNode->GetList("concentratedElem");
+
+      // Iterate over all springs
+      std::string name, dofName;
+      std::string massVal, dampVal, stiffVal;
+      for( UInt i = 0; i < springNodes.GetSize(); i++ ) {
+
+        // get data from node
+        springNodes[i]->GetValue( "name", name );
+        springNodes[i]->GetValue( "dof", dofName );
+        springNodes[i]->GetValue( "massValue", massVal );
+        springNodes[i]->GetValue( "dampingValue", dampVal );
+        springNodes[i]->GetValue( "stiffnessValue", stiffVal );
+
+        UInt dof = results_[0]->GetDofIndex( dofName );
+
+        shared_ptr<EntityList> nodes = 
+            ptGrid_->GetEntityList(EntityList::NODE_LIST, name);
+        UInt numNodes = nodes->GetSize();
+
+        // Ensure, that only lists with 1 or 2 nodes are present
+        if( numNodes > 2 ) {
+          WARN( "Concentrated mechanical element on '" 
+                 << name << "' is omitted, as it consists of more than "
+                 << "2 nodes!"; );
+          continue;
+        }
+
+        StdVector<FEMatrixType> matrices;
+        matrices = STIFFNESS, MASS, DAMPING;
+        StdVector<std::string> vals;
+        vals = stiffVal, massVal, dampVal;
+
+        if( numNodes == 1 ) {
+          // ============================
+          //  POINT CONCENTRATED ELEMENT
+          // ============================
+          
+          for( UInt i = 0; i < matrices.GetSize(); ++i ) {
+            // if value is zero, just continue
+            if( vals[i] == "0" || vals[i] == "0.0" ) {
+              continue;
+            }
+            
+            SingleEntryBiLinInt * myInt = new SingleEntryBiLinInt( dim_, vals[i], dof,
+                                                                   mp_ );
+            BiLinFormContext * intCtx =
+                new BiLinFormContext( myInt, matrices[i] );
+            intCtx->SetEntities( nodes, nodes );
+            intCtx->SetFeFunctions( myFct, myFct );
+            
+            assemble_->AddBiLinearForm( intCtx );
+          } // loop over mass/stiffness/damp
+
+        } else {
+          // =================================
+          //  PAIR-WISE CONCENTRATED ELEMENTS
+          // =================================
+
+          // extract both nodes and put them into a new node list
+          shared_ptr<NodeList> node1(new NodeList(ptGrid_));
+          shared_ptr<NodeList> node2(new NodeList(ptGrid_));
+          StdVector<UInt> tmp(1);
+          EntityIterator it = nodes->GetIterator();
+          tmp[0] = it.GetNode();
+          node1->SetNodes( tmp );
+          it++;
+          tmp[0] = it.GetNode();
+          node2->SetNodes( tmp );
+
+          // loop over stiffness, mass and dampingvalue
+          std::string diagVal, offDiagVal;
+          for( UInt i = 0; i < matrices.GetSize(); ++ i ) {
+            // if value is zero, just continue
+            if( vals[i] == "0" || vals[i] == "0.0" ) {
+              continue;
+            }
+            if( matrices[i] == STIFFNESS ) {
+              diagVal = "1.0 * (" + vals[i] + ")";
+              offDiagVal = "-1.0 * (" + vals[i] + ")";
+            } else {
+              diagVal = "(" + vals[i] + ") * 1.0 / 3.0";
+              offDiagVal = "(" + vals[i] + ") * 1.0 / 6.0";
+            }
+
+            // a) diagonal entries
+            SingleEntryBiLinInt * diagInt1 = new SingleEntryBiLinInt( dim_, diagVal, dof, mp_);
+            BiLinFormContext * diagCtx1 =
+                new BiLinFormContext( diagInt1, matrices[i] );
+            diagCtx1->SetEntities( node1, node1 );
+            diagCtx1->SetFeFunctions( myFct, myFct );
+            assemble_->AddBiLinearForm( diagCtx1 );
+
+            SingleEntryBiLinInt * diagInt2 = new SingleEntryBiLinInt( dim_, diagVal, dof, mp_);
+            BiLinFormContext * diagCtx2 =
+                new BiLinFormContext( diagInt2, matrices[i] );
+            diagCtx2->SetEntities( node2, node2 );
+            diagCtx2 ->SetFeFunctions( myFct, myFct );
+            assemble_->AddBiLinearForm( diagCtx2 );
+
+            // b) off-diagonal entries
+            SingleEntryBiLinInt * offDiagInt = 
+                new SingleEntryBiLinInt( dim_, offDiagVal, dof, mp_);
+            BiLinFormContext * offDiagCtx = 
+                new BiLinFormContext( offDiagInt, matrices[i] );
+            offDiagCtx->SetEntities( node1, node2 );
+            offDiagCtx->SetFeFunctions( myFct, myFct );
+            offDiagCtx->SetCounterPart( true );
+            assemble_->AddBiLinearForm( offDiagCtx );
+          } // loop matrix types
+        } // if: 1 / 2 nodes
+
+      } // loop concentrated elements
+
+    }
   
   void MechPDE::DefineRhsLoadIntegrators() {
     LOG_TRACE(mechpde) << "Defining rhs load integrators for mechanic PDE";

@@ -87,6 +87,9 @@ namespace CoupledField
     
     //! Define available postprocessing results
     void DefinePostProcResults();
+    
+    //! Define concentrated mechanical elements
+    void DefineConcentratedElems();
 
     //! Stores softening for each region
     std::map<RegionIdType, std::string> regionSoftening_;

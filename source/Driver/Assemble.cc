@@ -514,8 +514,8 @@ namespace CoupledField
       EntityIterator it2 = secondEntities.GetIterator();
       for( it1.Begin(); !it1.IsEnd(); it1++, it2++ ) {
 
-        LOG_DBG2(assemble) << "\telems are " << it1.GetElem()->elemNum 
-            << " and " << it2.GetElem()->elemNum;
+        LOG_DBG2(assemble) << "\telems are " << it1.GetIdString() 
+            << " and " << it2.GetIdString();
 
         // Loop over all bilinear forms
         for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
@@ -695,8 +695,8 @@ namespace CoupledField
       EntityIterator it1 = firstEntities.GetIterator();
       EntityIterator it2 = secondEntities.GetIterator();
       for( it1.Begin(); !it1.IsEnd(); it1++, it2++ ) {
-        LOG_DBG2(assemble) << "\telems are " << it1.GetElem()->elemNum 
-                           << " and " << it2.GetElem()->elemNum;
+        LOG_DBG2(assemble) << "\telems are " << it1.GetIdString() 
+                           << " and " << it2.GetIdString();
         try {
         // Loop over all bilinearforms
         for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
