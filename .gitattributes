@@ -578,6 +578,18 @@ share/doc/developer/AddDoc/element_types/tet10.dia -text
 share/doc/developer/AddDoc/element_types/tet4.dia -text
 share/doc/developer/AddDoc/element_types/tria3.dia -text
 share/doc/developer/AddDoc/element_types/tria6.dia -text
+share/doc/developer/AddDoc/fespace-concept/elems.pdf -text svneol=unset#application/pdf
+share/doc/developer/AddDoc/fespace-concept/elems.svg -text
+share/doc/developer/AddDoc/fespace-concept/fespace.dia -text
+share/doc/developer/AddDoc/fespace-concept/fespace.odp -text
+share/doc/developer/AddDoc/fespace-concept/fespace.svg -text
+share/doc/developer/AddDoc/fespace-concept/fespace.tex svneol=native#text/plain
+share/doc/developer/AddDoc/fespace-concept/ng-Ablauf.txt svneol=native#text/plain
+share/doc/developer/AddDoc/fespace-concept/sketches.svg -text
+share/doc/developer/AddDoc/fespace-concept/system1.png -text svneol=unset#image/png
+share/doc/developer/AddDoc/fespace-concept/system2.png -text svneol=unset#image/png
+share/doc/developer/AddDoc/fespace-concept/system3.png -text svneol=unset#image/png
+share/doc/developer/AddDoc/fespace-concept/system4.png -text svneol=unset#image/png
 share/doc/developer/AddDoc/numerical_integration/numerical_integration.tex svneol=native#text/plain
 share/doc/developer/AddDoc/splitting.png -text svneol=unset#image/png
 share/doc/developer/AddDoc/technical_ovv/branching.eps -text
@@ -586,27 +598,6 @@ share/doc/developer/AddDoc/technical_ovv/branching.svg -text
 share/doc/developer/AddDoc/technical_ovv/cfs_overview.tex -text
 share/doc/developer/AddDoc/technical_ovv/cfs_technical.odp -text
 share/doc/developer/CMakeLists.txt svneol=native#text/plain
-share/doc/developer/Concepts/Dof-Mapping/dof-mapping.dia -text
-share/doc/developer/Concepts/Dof-Mapping/dof-mapping.png -text svneol=unset#image/png
-share/doc/developer/Concepts/Dof-Mapping/dofmapping.pdf -text svneol=unset#application/pdf
-share/doc/developer/Concepts/Dof-Mapping/dofmapping.tex svneol=native#text/plain
-share/doc/developer/Concepts/Dof-Mapping/lse.eps -text svneol=unset#application/postscript
-share/doc/developer/Concepts/Dof-Mapping/lse.png -text svneol=unset#image/png
-share/doc/developer/Concepts/Dof-Mapping/lsepaper.sty svneol=native#text/plain
-share/doc/developer/Concepts/Dof-Mapping/mycommands.tex svneol=native#text/plain
-share/doc/developer/Concepts/resultHandling/resultHandling.dia -text
-share/doc/developer/Concepts/sbm-fespace/elems.pdf -text svneol=unset#application/pdf
-share/doc/developer/Concepts/sbm-fespace/elems.svg -text
-share/doc/developer/Concepts/sbm-fespace/fespace.dia -text
-share/doc/developer/Concepts/sbm-fespace/fespace.odp -text
-share/doc/developer/Concepts/sbm-fespace/fespace.svg -text
-share/doc/developer/Concepts/sbm-fespace/fespace.tex svneol=native#text/plain
-share/doc/developer/Concepts/sbm-fespace/ng-Ablauf.txt svneol=native#text/plain
-share/doc/developer/Concepts/sbm-fespace/sketches.svg -text
-share/doc/developer/Concepts/sbm-fespace/system1.png -text svneol=unset#image/png
-share/doc/developer/Concepts/sbm-fespace/system2.png -text svneol=unset#image/png
-share/doc/developer/Concepts/sbm-fespace/system3.png -text svneol=unset#image/png
-share/doc/developer/Concepts/sbm-fespace/system4.png -text svneol=unset#image/png
 share/doc/developer/DoxygenConfig/background.png -text svneol=unset#unset
 share/doc/developer/DoxygenConfig/doxy-config-new.in -text
 share/doc/developer/DoxygenConfig/doxy-config.in -text
@@ -622,13 +613,6 @@ share/doc/developer/DoxygenConfig/mainpage.txt svneol=native#text/plain
 share/doc/developer/DoxygenConfig/markdownSyntax.md -text
 share/doc/developer/DoxygenConfig/schemaDoc.md -text
 share/doc/developer/DoxygenConfig/xmlRef.md -text
-share/doc/developer/Protokolle/Treffen_03_11_2003.pdf -text svneol=unset#application/pdf
-share/doc/developer/Protokolle/Treffen_07_06_2005.pdf -text svneol=unset#application/pdf
-share/doc/developer/Protokolle/Treffen_12_11_2003.pdf -text svneol=unset#application/pdf
-share/doc/developer/Protokolle/Treffen_14_04_2005.pdf -text svneol=unset#application/pdf
-share/doc/developer/Protokolle/Treffen_16_11_2005.pdf -text svneol=unset#application/pdf
-share/doc/developer/Protokolle/Treffen_25_09_2007.pdf -text svneol=unset#application/pdf
-share/doc/developer/Protokolle/Treffen_27_07_2005.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/Int.bib -text
 share/doc/developer/develManual/TimeScheme.pdf -text
 share/doc/developer/develManual/arydshln.sty -text
