@@ -353,7 +353,9 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
         
         if (performOneMoreStep && iterationCounter == nonLinMaxIter_) {
-          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ << "' at iteration '" << iterationCounter 
+          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
+                  << "' in step no '" << iLevel+1 
+                  << "' at iteration '" << iterationCounter 
                   << "'.\n ==> incremental error: " << incrementalErr
                   << "\n ==> residual error: " << residualErr);
         }
@@ -731,7 +733,9 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
           (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
 
         if (performOneMoreStep && iterationCounter == nonLinMaxIter_) {
-          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ << "' at iteration '" << iterationCounter 
+          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
+                  << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+                  << "' at iteration '" << iterationCounter 
                   << "'.\n ==> incremental error: " << incrementalErr
                   << "\n ==> residual error: " << residualErr);
         }
@@ -907,7 +911,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
           (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
 
         if (performOneMoreStep && iterationCounter == nonLinMaxIter_) {
-          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ << "' at iteration '" << iterationCounter 
+          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
+                  << "' at iteration '" << iterationCounter 
                   << "'.\n ==> incremental error: " << incrementalErr
                   << "\n ==> residual error: " << residualErr);
         }
