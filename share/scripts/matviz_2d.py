@@ -582,7 +582,7 @@ def orientational_stiffness(centers, angle, data, nx, scale=-1.0):
   
 # @param aux see  perform_cfs_rotation()
 # @return list of angles and list of data which might be aux   
-def perform_rotations(tensors, notation, samples, name = "mechTensor", aux_code = "default"):
+def perform_rotations(tensors, notation, samples, name = "mechTensor", aux_code = None):
 
   res_angle = []
   res_data  = []
@@ -601,9 +601,8 @@ def perform_rotations(tensors, notation, samples, name = "mechTensor", aux_code 
       tensor = to_piezo_tensor(t.transpose())
 
     angle, data, aux = perform_cfs_rotation(tensor, samples, aux_code)
-    
     res_angle.append(angle)
-    res_data.append(data if aux_code == "default" else aux)
+    res_data.append(data if aux_code == None else aux)
 
   return res_angle, res_data  
     

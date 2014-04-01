@@ -280,7 +280,7 @@ if h5_read or dim_2D:
   else:
     if args.tensor == 'mechTensor':
       print "Input data is read as as " + args.notation
-    tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
+    #tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
     angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.tensor, args.show)
     
     if args.plot <> None:
@@ -293,8 +293,7 @@ if h5_read or dim_2D:
   if viz == None:
     print 'Error: no visualization calculated!'
   else:
-    show_or_write(viz, args)      
-
+    show_or_write(viz, args)
 
 # not from file and not 2D -> this is the single tensor with optional planes 
 else:
@@ -331,4 +330,5 @@ if args.info:
   print 'write info xml file: ' + args.info
   out = open(args.info, "w")
   out.write(xml.dom.minidom.parseString(xml.etree.ElementTree.tostring(info)).toprettyxml())
+  out.close()
   

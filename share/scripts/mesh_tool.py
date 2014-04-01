@@ -65,7 +65,7 @@ def show_dense_mesh_image(mesh, shape, binary, size):
       val = 1-e.density # black is 0 in the image but 1 as density
       # print str(val) + " - " + str(barrier)
       show = (200,10,10) if binary else (int(val*255),int(val*255),int(val*255)) 
-      check_pix[x,ny-y-1] = show if e.region == 'mech' else (10,10,200)
+      check_pix[x,ny-y-1] = show if e.region == 'mech' else (10,10,200) if e.region == 'void' else (200,10,10)
       
   check_img = check_img.resize((size, ny * size/nx))    
   check_img.show()     
@@ -74,25 +74,30 @@ def show_dense_mesh_image(mesh, shape, binary, size):
 def create_dense_mesh_img(input_img, mesh, threshold, scale, rhomin, shearAngle):
   input_pix = input_img.load()
   nx, ny = input_img.size
-  create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin,True,1,shearAngle)
+  create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin, 1, shearAngle)
 
-def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin,multi_d=1):
+def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin, multi_d=1):
   if multi_d == 1:
     nx, ny = numpy_array.shape
   else:
     nx,ny,nz,m = numpy_array.shape
-  create_dense_mesh(numpy_array, nx, ny, mesh, threshold, scale, rhomin,False,multi_design = multi_d,shearAngle = 0.0)
+  create_dense_mesh(numpy_array, nx, ny, mesh, threshold, scale, rhomin, multi_design = multi_d, shearAngle = 0.0)
   
-def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img = True,multi_design=1,shearAngle=0):
+def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin, multi_design=1, shearAngle=0):
   # convert angle to rad and check for feasibility
   angle = shearAngle/180 * math.pi
   if (abs(angle) > math.pi/2 - 1e-6):
     print 'angle has to be between -pi/2 + 1e-6 and pi/2 - 1e-6'
     return 0 
-  input_pix = input_array
   dx = scale/nx/math.cos(angle)
   # from daniel ?! dy = scale/ny
   dy = dx
+  
+  # input_array can be one of three cases: grayscale imgae (array of ints), color image (array of tuples (r,g,b(,a)), numpy.ndarray
+  is_data  = isinstance(input_array, numpy.ndarray)
+  is_gray  = False if is_data else isinstance(input_array[0,0], int)
+  is_color = False if is_data else isinstance(input_array[0,0], tuple)
+  assert(is_data or is_gray or is_color)
   
   # create mesh.nodes
   for y in range(ny + 1):
@@ -106,21 +111,28 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img =
         mesh.nodes.append((x_Coord,y * dy))
   # print mesh.nodes 
   mech_count = 0
+  colorful_count = 0
+  
   for x in range(nx):
     for y in range(ny):
       e = Element()
       e.type = QUAD4
-      if img:
+      # assign preliminary data value
+      if is_gray:
         # convert to black is one and white = 0
-        e.density = 1.0 - (input_pix[x,y] / 255.0)
-      else:
+        e.density = 1.0 - (input_array[x,y] / 255.0)
+      if is_color:
+        val = sum(input_array[x,y][0:3]) / 3.0
+        e.density = 1.0 - (val / 255.0)
+      if is_data:
         if multi_design == 1:
-          e.density = input_pix[x,y]
+          e.density = input_array[x,y]
         else:
-          e.stiff1 = input_pix[x,y,0,0]
-          e.stiff2 = input_pix[x,y,0,1]
+          e.stiff1 = input_array[x,y,0,0]
+          e.stiff2 = input_array[x,y,0,1]
           if multi_design == 3:
-            e.rotAngle = input_pix[x,y,0,2]
+            e.rotAngle = input_array[x,y,0,2]
+      # compare data against threshold value
       if multi_design == 1:
         if e.density < rhomin:
           e.density = rhomin
@@ -129,14 +141,30 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img =
           e.stiff1 = rhomin
         elif e.stiff2 < rhomin:
           e.stiff2 = rhomin
-      if multi_design == 1:    
-        if float(e.density) >= float(threshold):
-          e.region = 'mech'
-          mech_count += 1
+      # assign region    
+      if multi_design == 1:
+        # are we gray or not?
+        if is_gray or (input_array[x,y][0] == input_array[x,y][1] and input_array[x,y][1] == input_array[x,y][2]):  
+          if e.density >= threshold:
+            e.region = 'mech'
+            mech_count += 1
+          else:
+            e.region = 'void'
         else:
-          e.region = 'void'
+          if input_array[x,y][0] > 0 and input_array[x,y][1] == 0 and input_array[x,y][1] == input_array[x,y][2] == 0:
+            e.region = 'red'
+            colorful_count += 1
+          elif input_array[x,y][0] == 0 and input_array[x,y][1] > 0 and input_array[x,y][1] == input_array[x,y][2] == 0:
+            e.region = 'green'
+            colorful_count += 1
+          elif input_array[x,y][0] == 0 and input_array[x,y][1] == 0 and input_array[x,y][1] == input_array[x,y][2] > 0:
+            e.region = 'blue'
+            colorful_count += 1
+          else:
+            e.region = 'colorful'
+            colorful_count += 1
       else:
-        if (float(e.stiff1) >= float(threshold)) | (float(e.stiff2) >= float(threshold)):  
+        if e.stiff1 >= threshold or float(e.stiff2) >= threshold:  
           e.region = 'mech'
           mech_count += 1
         else:
@@ -157,6 +185,8 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img =
   print "dense resolution: " + str(nx) + " x " + str(ny) + " elements (" + str(scale) + "m x " + str(float(ny)/nx * scale) + "m)",
   print " -> " + str(mech_count) + " mech elements out of " + str(nx*ny) + " (" + str(float(mech_count) / (nx*ny) * 100.0) + " %)",
   print " with threshold " + str(threshold) 
+  if colorful_count > 0:
+    print 'plus ' + str(colorful_count) + ' non gray elements'
 
 # @param mesh dense mesh (input)
 # @return sparse mesh
@@ -169,7 +199,7 @@ def convert_to_sparse_mesh(dense):
   # copy element, the indices of the nodes will be replaced later
   for i in range(len(dense.elements)):
     e = dense.elements[i]
-    if e.region == 'mech':
+    if e.region <> 'void':
       sparse.elements.append(copy.deepcopy(e))
       for n in range(len(e.nodes)):
         nns.add(e.nodes[n])
@@ -231,9 +261,6 @@ def write_gid_elements(out, elements, dim):
 
 
 def write_gid_mesh(mesh, filename):
-  
-  
-  
   quad4  = count_elements(mesh.elements, QUAD4)
   hexa8  = count_elements(mesh.elements, HEXA8)
   wedge6 = count_elements(mesh.elements, WEDGE6)
