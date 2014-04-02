@@ -808,11 +808,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       shared_ptr<ResultInfo> energy(new ResultInfo);
       energy->resultType = MAG_ENERGY;
       energy->dofNames = "";
-      if( dim_ == 2 ){
-        energy->unit = "Ws/m";
-      } else {
-        energy->unit = "Ws";
-      }
+      energy->unit = "Ws";
       energy->definedOn = ResultInfo::REGION;
       energy->entryType = ResultInfo::SCALAR;
       availResults_.insert( energy );
