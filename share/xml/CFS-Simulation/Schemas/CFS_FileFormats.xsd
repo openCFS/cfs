@@ -588,7 +588,7 @@
       </xsd:documentation>
     </xsd:annotation>   
     <xsd:attribute name="directory" type="xsd:string" default="results_cgns"/>
-    <xsd:attribute name="id" type="xsd:token" default="hdf5"/>
+    <xsd:attribute name="id" type="xsd:token" default="cgns"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
     <xsd:attribute name="mll" type="DT_OutputCGNSMidLevelLibraries" default="default">
       <xsd:annotation>

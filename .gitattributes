@@ -174,7 +174,7 @@ cfsdeps/ilupack/ilupack-nomore-malloc-header.patch -text
 cfsdeps/ilupack/ilupack-patch.cmake.in -text
 cfsdeps/ilupack/ilupack-sparspak-revrse.patch -text
 cfsdeps/ilupack/ilupack-use-lapack-driver.patch -text
-cfsdeps/ilupack/ilupack2.2.1_src.tgz -text
+cfsdeps/ilupack/ilupack2.2.1_src.tgz.md5 -text
 cfsdeps/ilupack/ilupack_config.h.in -text
 cfsdeps/lapack/CMakeLists.txt -text
 cfsdeps/lapack/External_LAPACK.cmake -text
@@ -275,12 +275,11 @@ cfsdeps/qt4/qt4-nomore-questions.patch -text
 cfsdeps/qt4/qt4-patch.cmake.in -text
 cfsdeps/scpip/CMakeLists.txt -text
 cfsdeps/scpip/External_SCPIP.cmake -text
-cfsdeps/scpip/fulltext.pdf -text svneol=unset#unset
 cfsdeps/scpip/license.txt -text
 cfsdeps/scpip/scpip-dum2.patch -text
 cfsdeps/scpip/scpip-gfortran.patch -text
 cfsdeps/scpip/scpip-patch.cmake.in -text
-cfsdeps/scpip/scpip.tar.bz2 -text
+cfsdeps/scpip/scpip.tar.bz2.md5 -text
 cfsdeps/spacepart/External_spacepart.cmake -text
 cfsdeps/spacepart/libfbi-patch.cmake.in -text
 cfsdeps/spacepart/libfbi_cpp11.patch -text
@@ -326,24 +325,10 @@ cmake_modules/CheckFortranRuntime.cmake -text
 cmake_modules/CheckPardisoAPIVersion.cmake -text
 cmake_modules/ConfigureChecks.cmake -text
 cmake_modules/DetermineWorkingCopyInfos.cmake -text
-cmake_modules/FindACML.cmake -text
 cmake_modules/FindCFSDEPS.cmake -text
-cmake_modules/FindCFXCust.cmake -text
-cmake_modules/FindCGNS.cmake -text
-cmake_modules/FindCMake.cmake -text
-cmake_modules/FindCfs-hdf5.cmake -text
-cmake_modules/FindGotoBLAS.cmake -text
-cmake_modules/FindHDFView.cmake -text
-cmake_modules/FindIPOPT.cmake -text
 cmake_modules/FindIntelMKL.cmake -text
-cmake_modules/FindKNITRO.cmake -text
-cmake_modules/FindParaView.cmake -text
-cmake_modules/FindPardiso.cmake -text
 cmake_modules/FindPrograms.cmake -text
-cmake_modules/FindPythonForCFS.cmake -text
 cmake_modules/FindSVNKit.cmake -text
-cmake_modules/FindSnOpt.cmake -text
-cmake_modules/FindVTK.cmake -text
 cmake_modules/cfsdeps_download.cmake.in -text
 cmake_modules/compiler.cmake -text
 cmake_modules/configure_def_headers.cmake -text
@@ -587,7 +572,6 @@ share/doc/developer/DoxygenConfig/markdownSyntax.md -text
 share/doc/developer/DoxygenConfig/schemaDoc.md -text
 share/doc/developer/DoxygenConfig/xmlRef.md -text
 share/doc/developer/develManual/Int.bib -text
-share/doc/developer/develManual/TimeScheme.pdf -text
 share/doc/developer/develManual/arydshln.sty -text
 share/doc/developer/develManual/concepts.tex -text
 share/doc/developer/develManual/contributors.tex -text
@@ -637,9 +621,6 @@ share/doc/developer/develManual/pics/cfsdeps_interdependency_graph.dot -text
 share/doc/developer/develManual/pics/cfsdeps_interdependency_graph.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/cfsdeps_structure.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/cfsdeps_structure.svg -text
-share/doc/developer/develManual/pics/cfspp_orcan.png -text svneol=unset#image/png
-share/doc/developer/develManual/pics/cfspp_workshop.pdf -text svneol=unset#application/pdf
-share/doc/developer/develManual/pics/cfspp_workshop.svg -text
 share/doc/developer/develManual/pics/cmake-gui.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/concepts/dof-mapping.dia -text svneol=unset#unset
 share/doc/developer/develManual/pics/concepts/dof-mapping.png -text svneol=unset#unset
@@ -720,7 +701,6 @@ share/doc/developer/develManual/pics/persons/svn-developers.txt -text
 share/doc/developer/develManual/pics/persons/thumb.jpeg -text
 share/doc/developer/develManual/pics/persons/tlahmer.pdf -text
 share/doc/developer/develManual/pics/persons/tomLahmer09.jpg -text
-share/doc/developer/develManual/pics/planet-terror.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/software-process.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/splitting.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/totalview_acou_define_int.png -text svneol=unset#image/png
@@ -731,10 +711,8 @@ share/doc/developer/develManual/pics/understand_src_bin_dir.svg -text
 share/doc/developer/develManual/pics/xp_mingw_error.png -text svneol=unset#unset
 share/doc/developer/develManual/piezo_coupling.tex -text
 share/doc/developer/develManual/sources/eclipse-code-style.xml -text
-share/doc/developer/develManual/sources/emacs_settings.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/git_checkout_cfs.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/hdf5_file_format.xml -text
-share/doc/developer/develManual/sources/kreuzinger.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/lmboot.sh -text
 share/doc/developer/develManual/sources/macports_installed_pckgs.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/mingw_centos6_farkas_patch.txt -text
@@ -880,7 +858,6 @@ share/doc/user/advPrePostManual/sources/comsol_mphtxt_mph.xml -text
 share/doc/user/advPrePostManual/sources/comsol_mphtxt_tag.xml -text
 share/doc/user/advPrePostManual/sources/cplreader_meshgen.xml -text
 share/doc/user/advPrePostManual/sources/crosspoint_test.c svneol=native#text/plain
-share/doc/user/advPrePostManual/sources/emacs_settings.sh svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/gid_batch.tcl svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/gid_pw_server.sh svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/gmsh_cp_test.cpp -text
@@ -908,7 +885,6 @@ share/doc/user/advPrePostManual/sources/pv_texture_map.py -text
 share/doc/user/advPrePostManual/sources/pv_tria_local_global_mapping.py -text
 share/doc/user/advPrePostManual/sources/pv_trial_local_global_mapping.py -text
 share/doc/user/advPrePostManual/sources/pv_xi_eta.py -text
-share/doc/user/advPrePostManual/sources/unv_dataset_numbers.txt -text
 share/doc/user/advPrePostManual/special.tex -text
 share/doc/user/advPrePostManual/videos.tex -text
 share/doc/user/doc-advprepost.cmake.in -text

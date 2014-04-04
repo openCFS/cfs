@@ -26,7 +26,6 @@ SET(FILES
   qs_obtain_sources.sh
   git_checkout_cfs.sh
   qs_configure_build.sh
-  kreuzinger.sh
   platform_defaults_mac.cmake
   macports_installed_pckgs.txt
   nacs_win.txt
@@ -34,7 +33,6 @@ SET(FILES
   mpcci_reactivate_lse24_lic.txt
   org.eclipse.ui.editors.prefs
   org.eclipse.core.resources.prefs
-  emacs_settings.sh
   qs_bootstrap.sh
   eclipse-code-style.xml
   vagrant_box.sh

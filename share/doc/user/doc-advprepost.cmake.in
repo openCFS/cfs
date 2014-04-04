@@ -16,6 +16,11 @@ CLEANUP_LATEX_DIR("${ADV_PRE_POST_DIR}")
 # Apply syntax coloring to files in sources directory
 PYG_MAKE_AUX_STYLE_FILE()
 
+FILE(COPY 
+  "${CFS_SOURCE_DIR}/source/DataInOut/SimInOut/Unverg/unv_dataset_numbers.txt"
+  DESTINATION
+  "${CMAKE_CURRENT_BINARY_DIR}/advPrePostManual/sources")
+
 SET(FILES
   photo.c
   crosspoint_test.c

@@ -32,7 +32,7 @@ CONFIGURE_FILE("${INST_TEMPL}" "${INST}" @ONLY)
 #-------------------------------------------------------------------------------
 # Add standard remote object stores to user's configuration.
 list(APPEND ExternalData_URL_TEMPLATES
-  "${LSE17_SOURCES_DIR}/ansys_custom/%(algo)/%(hash)"
+  "${WEBDAV_FILES_DIR}/cfsdeps/sources/ansys_custom/%(algo)/%(hash)"
   )
 
 # Set standard local object stores.

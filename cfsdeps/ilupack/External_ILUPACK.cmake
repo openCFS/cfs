@@ -13,6 +13,30 @@ STRING(REPLACE ";" "^" ILUPACK_BLAS_LIBRARY "${BLAS_LIBRARY}")
 STRING(REPLACE ";" "^" ILUPACK_LAPACK_LIBRARY "${LAPACK_LIBRARY}")
 
 #-------------------------------------------------------------------------------
+# Configure target for downloading ILUPACK sources using CMake ExternalData
+# mechanism.
+#-------------------------------------------------------------------------------
+# Add standard remote object stores to user's configuration.
+list(APPEND ExternalData_URL_TEMPLATES
+  "${WEBDAV_FILES_DIR}/cfsdeps/sources/ilupack/%(algo)/%(hash)"
+  )
+
+# Set standard local object stores.
+SET(ExternalData_OBJECT_STORES
+  "${CFS_DEPS_CACHE_DIR}/sources/ilupack"
+)
+
+set(ILUPACK_EXTERNAL_DATA "DATA{cfsdeps/ilupack/ilupack2.2.1_src.tgz}")
+
+# Expand all arguments as a single string to preserve escaped semicolons.
+ExternalData_expand_arguments(ilupack_external_data
+  targetArgs "${ILUPACK_EXTERNAL_DATA}")
+
+# Add a build target to populate the real data.
+ExternalData_Add_Target(ilupack_external_data)
+
+
+#-------------------------------------------------------------------------------
 # Set common CMake arguments
 #-------------------------------------------------------------------------------
 SET(CMAKE_ARGS
@@ -67,7 +91,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # The ilupack external project (double real)
 #-------------------------------------------------------------------------------
 ExternalProject_Add(ilupack-double
-  DEPENDS lapack metis suitesparse
+  DEPENDS ilupack_external_data lapack metis suitesparse
   PREFIX "${ilupack_prefix}"
   SOURCE_DIR "${ilupack_source}"
   URL ${ILUPACK_PATH}/${ILUPACK_GZ}

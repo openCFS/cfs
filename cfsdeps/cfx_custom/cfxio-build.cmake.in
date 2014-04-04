@@ -1,6 +1,6 @@
 SET(cfxio_source "@cfxio_source@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-SET(CFS_BINARY_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
 SET(CMAKE_COMMAND "@CMAKE_COMMAND@")
 SET(CMAKE_SYSTEM_NAME "@CMAKE_SYSTEM_NAME@")
 SET(CFS_ARCH "@CFS_ARCH@")
@@ -13,7 +13,9 @@ MACRO (UNTAR_ARCHIVES ARCHIVES)
   foreach(archive ${ARCHIVES})
     MESSAGE(STATUS "Unpacking cfxio_${archive}.tar.bz2")
     EXECUTE_PROCESS(
-      COMMAND "${CMAKE_COMMAND}" -E tar xjf "${CFS_BINARY_DIR}/cfsdeps/cfx_custom/cfx_custom_${archive}.tar.bz2"
+      COMMAND "${CMAKE_COMMAND}"
+      -E tar xjf
+      "${CFS_BINARY_DIR}/cfsdeps/cfx_custom/cfx_custom_${archive}.tar.bz2"
       WORKING_DIRECTORY "@cfxio_source@"
       OUTPUT_QUIET
       RESULT_VARIABLE rv
