@@ -13,7 +13,7 @@
 #include <string>
 #include <boost/any.hpp>
 #include <boost/shared_ptr.hpp>
-#include <cpp/H5Cpp.h>
+#include <H5Cpp.h>
 
 using namespace boost;
 

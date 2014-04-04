@@ -9,9 +9,9 @@
 #=============================================================================
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
-SET(pv_sb_cfsdeps_srcdir 
+SET(pvsb_cfsdeps_srcdir 
   "${CFS_SOURCE_DIR}/cfsdeps/paraview/paraview-superbuild-srcdir")
-SET(paraview_sb_source "@paraview_sb_source@")
+SET(pvsb_source "@pvsb_source@")
 SET(LIB_SUFFIX "@LIB_SUFFIX@")
 SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
 
@@ -26,8 +26,8 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND}
   -E copy_directory
-  "${pv_sb_cfsdeps_srcdir}"
-  "${paraview_sb_source}"
+  "${pvsb_cfsdeps_srcdir}"
+  "${pvsb_source}"
   RESULT_VARIABLE RETVAL
 )
 
@@ -40,7 +40,7 @@ EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND}
   -E copy_directory
   "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
-  "${paraview_sb_source}-build/install"
+  "${pvsb_source}-build/install/lib"
   RESULT_VARIABLE RETVAL
 )
 

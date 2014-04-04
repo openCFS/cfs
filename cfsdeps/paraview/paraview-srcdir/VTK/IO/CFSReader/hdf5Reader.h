@@ -6,7 +6,7 @@
 #define FILE_HDF5_READER_HH
 
 #include <vector>
-#include <cpp/H5Cpp.h>
+#include <H5Cpp.h>
 
 #include "hdf5Common.h"
 

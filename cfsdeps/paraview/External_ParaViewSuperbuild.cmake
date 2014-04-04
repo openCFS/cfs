@@ -112,8 +112,8 @@
 #
 # Therefore, the ParaView source and binary directories end up under
 #
-# ${CFS_BINARY_DIR}/cfsdeps/paraview-superbuild/src/ \
-#                  paraview-superbuild-build/paraview/src
+# ${CFS_BINARY_DIR}/cfsdeps/pvsb/src/ \
+#                  pvsb-build/paraview/src
 #                   ├── paraview        ->  PARAVIEW_SOURCE_DIR
 #                   ├── paraview-build  ->  PARAVIEW_BINARY_DIR
 #                   └── paraview-stamp
@@ -138,9 +138,9 @@
 #-------------------------------------------------------------------------------
 # Set prefix path and path to paraview sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
-set(paraview_sb_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/paraview-superbuild")
-set(paraview_sb_install  "${CMAKE_CURRENT_BINARY_DIR}/paraview")
-set(paraview_sb_source  "${paraview_sb_prefix}/src/paraview-superbuild")
+set(pvsb_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/pvsb")
+set(pvsb_install  "${CMAKE_CURRENT_BINARY_DIR}/paraview")
+set(pvsb_source  "${pvsb_prefix}/src/pvsb")
 
 #-------------------------------------------------------------------------------
 # Info on SuperBuild
@@ -166,7 +166,7 @@ set(paraview_sb_source  "${paraview_sb_prefix}/src/paraview-superbuild")
 #-------------------------------------------------------------------------------
 
 SET(CMAKE_ARGS
-  -DCMAKE_INSTALL_PREFIX:PATH=${paraview_sb_install}
+  -DCMAKE_INSTALL_PREFIX:PATH=${pvsb_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
@@ -179,23 +179,29 @@ SET(CMAKE_ARGS
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
   -DCFS_DEPS_CACHE_DIR:PATH=${CFS_DEPS_CACHE_DIR}
   -DCFS_SOURCE_DIR:PATH=${CFS_SOURCE_DIR}
-  -DENABLE_boost:BOOL=OFF
-  -DENABLE_ffmpeg:BOOL=ON
-  -DENABLE_fontconfig:BOOL=ON
-  -DENABLE_freetype:BOOL=ON
-  -DENABLE_hdf5:BOOL=OFF
-  -DENABLE_cgns:BOOL=OFF
-  -DENABLE_visitbridge:BOOL=ON
-  -DENABLE_libxml2:BOOL=ON
+  # Of course we want to build ParaView
   -DENABLE_paraview:BOOL=ON
+  # We need VisItBridge for the CGNS reader
+  -DENABLE_visitbridge:BOOL=ON
   -DENABLE_png:BOOL=ON
-  -DENABLE_szip:BOOL=ON
-  -DENABLE_zlib:BOOL=OFF
+  -DENABLE_szip:BOOL=OFF
+  # ParaView has builtin versions of the following libraries
+  -DENABLE_ffmpeg:BOOL=OFF
+  -DENABLE_fontconfig:BOOL=OFF
+  -DENABLE_freetype:BOOL=OFF
+  -DENABLE_libxml2:BOOL=OFF
+  # We use the system Qt4 or the one from CFSDEPS, if the system Qt4 is to old.
   -DENABLE_qt:BOOL=ON
   -DUSE_SYSTEM_qt=ON
   -DQT_QMAKE_EXECUTABLE:FILEPATH=${QT_QMAKE_EXECUTABLE}
+  # We use the system Python, to take advantage of its installed packages.
   -DENABLE_python:BOOL=ON
   -DUSE_SYSTEM_python=ON
+  # We use Boost, CGNS, HDF5 and zlib from CFSDEPS instead of Superbuild.
+  -DENABLE_boost:BOOL=OFF
+  -DENABLE_hdf5:BOOL=OFF
+  -DENABLE_cgns:BOOL=OFF
+  -DENABLE_zlib:BOOL=OFF
   -DBoost_DIR:PATH=Boost_DIR_NOTFOUND
   -DBoost_INCLUDE_DIR:PATH=${Boost_INCLUDE_DIR}
   -DBoost_LIBRARY_DIRS:STRING=${Boost_LIBRARY_DIR}
@@ -227,7 +233,7 @@ ENDIF()
 
 SET(PFN_TEMPL 
   "${CFS_SOURCE_DIR}/cfsdeps/paraview/paraview-superbuild-patch.cmake.in")
-SET(PFN "${paraview_sb_prefix}/paraview-superbuild-patch.cmake")
+SET(PFN "${pvsb_prefix}/pvsb-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
@@ -235,36 +241,30 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 Find_Package(Git)
 
-LIST(APPEND CFS_PV_DEPENDENCIES
-  hdf5-shared
-  cgns31
-  boost
-  zlib
-  )
-
 #-------------------------------------------------------------------------------
-# The paraview-superbuild external project
+# The ParaView Superbuild pvsb external project
 #-------------------------------------------------------------------------------
-IF(GIT_FOUND)
+IF(0) # GIT_FOUND)
   # Clone Git repo for ParaView Superbuild 4.1.
-  ExternalProject_Add(paraview-superbuild
+  ExternalProject_Add(pvsb
     DEPENDS ${CFS_PV_DEPENDENCIES}
-    PREFIX ${paraview_sb_prefix}
+    PREFIX ${pvsb_prefix}
     GIT_REPOSITORY http://paraview.org/ParaViewSuperbuild.git
     GIT_TAG "5867b1c34b73aee16cc9411007b2d70a4fad73a4"
-    SOURCE_DIR ${paraview_source}
+    SOURCE_DIR ${pvsb_source}
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     CMAKE_ARGS
       ${CMAKE_ARGS}
     )
 ELSE()
   # If we do not have the Git executable available, fall back
-  # to downloading a zipped archive of the Git repo. 
-  ExternalProject_Add(paraview-superbuild
+  # to downloading a zipped archive of the Git repo.
+  MESSAGE("paraview_source ${paraview_source}")
+  ExternalProject_Add(pvsb
     DEPENDS ${CFS_PV_DEPENDENCIES}
-    PREFIX ${paraview_sb_prefix}
+    PREFIX ${pvsb_prefix}
     DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/paraview
-    SOURCE_DIR ${paraview_source}
+    SOURCE_DIR ${pvsb_source}
     URL ${PARAVIEW_SB_URL}/${PARAVIEW_SB_GZ}
     URL_MD5 ${PARAVIEW_SB_MD5}
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
