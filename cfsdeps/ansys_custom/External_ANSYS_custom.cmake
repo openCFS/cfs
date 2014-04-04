@@ -32,7 +32,7 @@ CONFIGURE_FILE("${INST_TEMPL}" "${INST}" @ONLY)
 #-------------------------------------------------------------------------------
 # Add standard remote object stores to user's configuration.
 SET(ExternalData_URL_TEMPLATES
-  "${WEBDAV_FILES_DIR}/cfsdeps/sources/ansys_custom/%(algo)/%(hash)"
+  "${CFS_DS_WEBDAV}/cfsdeps/sources/ansys_custom/%(algo)/%(hash)"
   )
 
 # Set standard local object stores.
@@ -90,7 +90,7 @@ DATA{cfsdeps/ansys_custom/ansys_custom_${archive}.tar.bz2}")
 
   IF(NOT EXISTS "${ExternalData_OBJECT_STORES}/MD5/${ANSCUST_HASH}")
     SET(MSG "Please download the file ")
-    SET(MSG "${MSG}'${WEBDAV_FILES_DIR}/cfsdeps/sources/ansys_custom/MD5/${ANSCUST_HASH}'")
+    SET(MSG "${MSG}'${CFS_DS_WEBDAV}/cfsdeps/sources/ansys_custom/MD5/${ANSCUST_HASH}'")
     SET(MSG "${MSG} to '${ExternalData_OBJECT_STORES}/MD5/${ANSCUST_HASH}'.")
     
     colormsg(HIYELLOW "${MSG}")

@@ -34,7 +34,7 @@ is how to conveniently perform this operation:
 \begin{itemize}
 \item go to the working copy directory
 \item issue: {\tt OLD\_REPO=\$(cat .svn/entries | grep 'CFS++/trunk')}
-\item issue: {\tt svn switch --relocate \$OLD\_REPO https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/trunk}
+\item issue: {\tt svn switch --relocate \$OLD\_REPO \CFSDSSVN/CFS++/trunk}
 \item repeat analogue steps for CFSDEPS and testsuite
 \end{itemize}
 
@@ -388,8 +388,7 @@ source /home/shareAll/linux_bin/intel/fc(e for 64Bit!)/COMPILER_VERSION/bin/ifor
 \end{verbatim}
 
 
-\todo[inline]{Put                           info                          from
-\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/CMake} here.}
+\todo[inline]{Put info from \url{\CFSDSHTTPS/trac/wiki/CMake} here.}
 
 \subsubsection{Building 32-bit Binaries on 64-bit Linux Host}
 
@@ -686,7 +685,7 @@ Fig.  \ref{fig:cfsdeps_structure}.
 the depencencies  of CFS++ from  source, since March 2009.   The corresponding
 Subversion repository can still be found at
 
-\noindent \url{https://lse17.e-technik.uni-erlangen.de:2001/svn/cfsdeps/trunk}
+\noindent \url{\CFSDSSVN/cfsdeps/trunk}
 
 The Perl based  build mechanism has been inspired from  the Python based build
 system
@@ -1469,8 +1468,8 @@ different clients \cite{cdash}.  We use it to gather information about nightly
 builds  on various  platforms. This  way we  can track  down errors  which are
 platform-dependent (e.g. 32 bit vs.  64 bit) more efficiently.
 
-The  central dashboard  for  CFS++ is  located  on the  development server  at
-\url{https://lse17.e-technik.uni-erlangen.de:2001/cdash}.
+The  central dashboard  for  CFS++ is  located on  the  development server  at
+\url{\CFSDSHTTPS/cdash}.
 
 \todo[inline]{Write   about  nightly  builds   in  Klagenfurt   and  Erlangen,
 ctest scripts, VBoxes etc.}
@@ -1558,13 +1557,11 @@ the   moment.    The   nightly   binaries    can   be   obtained   from   {\tt
   wiki}\footnote{Nightly      CFS++      binaries     on      {\tt      wiki}:
   \url{http://wiki.mdmt.tuwien.ac.at/cfs_nightly}}  inside  of  and  from  the
 CFS++  development  server\footnote{Nightly   binaries  on  CFS++  development
-  server:
-  \url{http://lse17.e-technik.uni-erlangen.de:2001/files/nightly-builds}}
-outside  of  TU   Wien.   The  Vagrant  base  boxes  are   available  on  {\tt
-  wiki}\footnote{Vagrant       base      boxes       on      {\tt       wiki}:
-  \url{http://wiki.mdmt.tuwien.ac.at/boxes}}    or    on    the    development
+  server: \url{\CFSDSWEBDAV/nightly-builds}} outside of  TU Wien.  The Vagrant
+base boxes  are available  on {\tt wiki}\footnote{Vagrant  base boxes  on {\tt
+    wiki}:  \url{http://wiki.mdmt.tuwien.ac.at/boxes}} or  on the  development
 server\footnote{Vagrant     base     boxes      on     development     server:
-  \url{ftp://lse17.e-technik.uni-erlangen.de:40065/boxes}}.
+  \url{\CFSDSFTP/boxes}}.
 
 \subsection{Test Scripts}
 \label{sec:nightly_test_scripts}
@@ -1604,7 +1601,7 @@ repository, can look at the changes been made between different versions, etc.
 \cite{trac}
 
 The  Trac  system   for  CFS++  is  located  on   the  development  server  at
-\url{https://lse17.e-technik.uni-erlangen.de:2001/trac}.
+\url{\CFSDSHTTPS/trac}.
 
 \section{ParaView}
 \label{sec:paraview}
@@ -1636,7 +1633,7 @@ in the following sections.
 \subsection{Obtaining ParaView}
 
 Prebuilt    binaries   of    ParaView   for    CFS++   can    be   found    at
-\url{ftp://lse17.e-technik.uni-erlangen.de:40065/binaries/paraview}.
+\url{\CFSDSFTP/binaries/paraview}.
 
 \subsection{Building ParaView}
 

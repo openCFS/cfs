@@ -6,6 +6,11 @@ SET(REQ_MINOR_VER 8)
 SET(REQ_PATCH_VER 11)
 
 #-----------------------------------------------------------------------------
+# Include global definitions for CFS++ development server (host name, etc.)
+#-----------------------------------------------------------------------------
+INCLUDE("cmake_modules/DevelopmentServer.cmake")
+
+#-----------------------------------------------------------------------------
 # Give some hints to the user, if CMake is too old.
 #-----------------------------------------------------------------------------
 IF(CMAKE_MAJOR_VERSION LESS REQ_MAJOR_VER OR
@@ -21,8 +26,8 @@ MESSAGE(
 
 1. On Unix download and run the latest bootstrapper script for CFS++
 
-    $ LSE17FTP='ftp://lse17.e-technik.uni-erlangen.de:40065'
-    $ wget $LSE17FTP/scripts/bootstrap_devel_machine.sh
+    $ CFSDSFTP='${CFS_DS_FTP}'
+    $ wget $CFSDSFTP/scripts/bootstrap_devel_machine.sh
     $ sudo bash
     $ sh bootstrap_devel_machine.sh
 
@@ -487,6 +492,13 @@ IF(BUILD_TESTING)
   INCLUDE(CTest)
 ENDIF(BUILD_TESTING)
 
+#-----------------------------------------------------------------------------
+# Set proper paths to development servers in testing readme.
+#-----------------------------------------------------------------------------
+CONFIGURE_FILE(
+  ${CMAKE_CURRENT_SOURCE_DIR}/ctest_scripts/README.md
+  ${CMAKE_CURRENT_BINARY_DIR}/ctest_scripts/README.md
+  @ONLY)
 
 #-----------------------------------------------------------------------------
 # Set path where shared/static libraries should go

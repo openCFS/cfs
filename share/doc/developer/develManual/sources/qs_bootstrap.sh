@@ -1,5 +1,5 @@
 # Directory on server
-SCRIPTS_DIR='ftp://lse17.e-technik.uni-erlangen.de:40065/scripts'
+SCRIPTS_DIR='@CFS_DS_FTP@/scripts'
 
 # Download script
 wget $SCRIPTS_DIR/bootstrap_devel_machine.sh

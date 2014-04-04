@@ -18,7 +18,7 @@ STRING(REPLACE ";" "^" ILUPACK_LAPACK_LIBRARY "${LAPACK_LIBRARY}")
 #-------------------------------------------------------------------------------
 # Add standard remote object stores to user's configuration.
 SET(ExternalData_URL_TEMPLATES
-  "${WEBDAV_FILES_DIR}/cfsdeps/sources/ilupack/%(algo)/%(hash)"
+  "${CFS_DS_WEBDAV}/cfsdeps/sources/ilupack/%(algo)/%(hash)"
   )
 
 # Set standard local object stores.
@@ -32,7 +32,7 @@ STRING(STRIP ${ILUPACK_HASH} ILUPACK_HASH)
 
 IF(NOT EXISTS "${ExternalData_OBJECT_STORES}/MD5/${ILUPACK_HASH}")
   SET(MSG "Please download the file ")
-  SET(MSG "${MSG}'${WEBDAV_FILES_DIR}/cfsdeps/sources/ilupack/MD5/${ILUPACK_HASH}'")
+  SET(MSG "${MSG}'${CFS_DS_WEBDAV}/cfsdeps/sources/ilupack/MD5/${ILUPACK_HASH}'")
   SET(MSG "${MSG} to '${ExternalData_OBJECT_STORES}/MD5/${ILUPACK_HASH}'.")
 
   colormsg(HIYELLOW "${MSG}")

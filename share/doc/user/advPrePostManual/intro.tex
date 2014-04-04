@@ -611,20 +611,20 @@ tools\footnote{cgnsToFoam                    and                   foamToCGNS:
 \section{Pre- and Postprocessors}
 
 \subsection{GiD} GiD  may be  downloaded along with  a free  one-month license
-from  the International Center  for Numerical  Methods in  Engineering (CIMNE)
-website\footnote{CIMNE                                                 website:
-\url{http://gid.cimne.upc.es/download/official-versions}}     .     The    GiD
-preprocessing  script  extension  for   CFS++  is  available  from  the  CFS++
-development         server\footnote{GiD        preprocessing        extension:
-\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/CAESAR.gid/trunk}}. CFS++
-can write the GiD postprocessing format, therefore data can be opened directly
-in GiD.  Please  note, that the license servers  at Erlangen (131.188.140.136)
-and  Klagenfurt  (rom,  143.205.120.86)  only provide  licenses  for  versions
-9.x. In  order to register GiD,  start GiD, go to  Help $\rightarrow$ Register
-GiD $\rightarrow$ select sysinfo for local host $\rightarrow$ enter IP address
-of license server. For an introduction to modeling refer to the chapter 'Basic
-Steps of Modeling in GiD' in the main reference concerning the usage of GiD in
-conjunction with CFS++ \cite{Simkovics2010}.
+from the  International Center  for Numerical  Methods in  Engineering (CIMNE)
+website\footnote{CIMNE                                                website:
+  \url{http://gid.cimne.upc.es/download/official-versions}}    .    The    GiD
+preprocessing  script  extension  for  CFS++   is  available  from  the  CFS++
+development        server\footnote{GiD         preprocessing        extension:
+  \url{\CFSDSSVN/CAESAR.gid/trunk}}.  CFS++ can  write the  GiD postprocessing
+format, therefore data  can be opened directly in GiD.   Please note, that the
+license   servers  at   Erlangen   (131.188.140.136)   and  Klagenfurt   (rom,
+143.205.120.86) only provide  licenses for versions 9.x. In  order to register
+GiD, start  GiD, go  to Help $\rightarrow$  Register GiD  $\rightarrow$ select
+sysinfo for local  host $\rightarrow$ enter IP address of  license server. For
+an introduction to  modeling refer to the chapter 'Basic  Steps of Modeling in
+GiD' in  the main reference  concerning the usage  of GiD in  conjunction with
+CFS++ \cite{Simkovics2010}.
 
 \begin{figure}[htb] 
   \centering
@@ -730,14 +730,14 @@ nonetheless cause postprocessors to crash.}
 
 \subsubsection{ANSYS Classic - Mechanical APDL}
 \label{sec:intro_ansys_classic} An ANSYS  Classic APDL preprocessing extension
-is   available   for  generating   ASCII   based   mesh   files  readable   by
+is   available   for  generating   ASCII   based   mesh  files   readable   by
 CFS++\footnote{ANSYS       preprocessing       extension      for       CFS++:
-\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/mkmesh/trunk}}.        An
-extension   for  generating   HDF5  mesh   files  based   on   cplreader  (cf.
-\cite{cplreadermanual})  is presented in  Sec.  \ref{sec:ansys_mkmesh_mkhdf5}.
-CFS++ can  write ANSYS  result files for  postprocessing if  the USE\_ANSYSRST
-configuration option in CMake  is set to ON. This is the  case for the nightly
-built executables ({\tt cfs\_nightly\_*, cfstool\_nightly\_*}) in Klagenfurt.
+  \url{\CFSDSSVN/mkmesh/trunk}}.  An extension for  generating HDF5 mesh files
+based  on  cplreader  (cf.    \cite{cplreadermanual})  is  presented  in  Sec.
+\ref{sec:ansys_mkmesh_mkhdf5}.   CFS++  can  write   ANSYS  result  files  for
+postprocessing if  the USE\_ANSYSRST configuration  option in CMake is  set to
+ON. This is the case for  the nightly built executables ({\tt cfs\_nightly\_*,
+  cfstool\_nightly\_*}) in Klagenfurt.
 
 \textcolor{red}{ATTENTION:  The  ANSYS  Classic  GUI  requires  the  OpenMotif
 library libXm.so.3.  Most modern Linux distributions, except openSUSE (package
@@ -923,7 +923,7 @@ further details about the implementation of the CFS++ HDF5 plugin.
 \item[ParaView Guide] The official ParaView Manual \cite{PVGuide2007} is also available as a free online resource inside the ParaView Wiki at \url{http://paraview.org/Wiki/ParaView/Users_Guide/Table_Of_Contents} since ParaView 3.10.
 \item[ParaView Wiki] \cite{PVWiki}
 \item[ParaView Online documentation] \url{http://www.paraview.org/paraview/help/documentation.html}
-\item[Precompiled ParaView Binaries with our plugin] \url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/Paraview}.
+\item[Precompiled ParaView Binaries with our plugin] \url{\CFSDSFTP/binaries/paraview}.
 \item[Kitware - The Source] The official newsletter provides reports about the
 latest  features   of  ParaView  and  other  Kitware   toolkits  (CMake,  VTK,
 etc.).   This    information   is    relevant   to   developers    and   users
@@ -1150,7 +1150,7 @@ has    its   roots    also    at   Lawrence    Livermore    Labs   is    VisIt
 \begin{description}
 \item[GMV website] \url{http://www.generalmeshviewer.com}
 \item[GMV Manual] \cite{GMVManual2008}
-\item[GMV binaries on CFS++ development server] \url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/GMV}
+\item[GMV binaries on CFS++ development server] \url{\CFSDSWEBDAV/programs/GMV}
 \end{description}
 
 

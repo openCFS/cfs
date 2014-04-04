@@ -271,7 +271,7 @@ FOREACH(XML_FILE IN ITEMS ${XML_FILES})
 
   # Re-submit with OSName set to Mac OS X.
   # EXECUTE_PROCESS(
-  #  COMMAND curl --http1.0 -T "${XML_FILE}" http://lse17.e-technik.uni-erlangen.de:2000/cdash/submit.php?project=CFS
+  #  COMMAND curl --http1.0 -T "${XML_FILE}" http://${CFS_DS_HOSTNAME}:2000/cdash/submit.php?project=CFS
   #)
 ENDFOREACH()
 

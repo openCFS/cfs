@@ -24,11 +24,7 @@ INCLUDE(ExternalProject)
 #-----------------------------------------------------------------------------
 INCLUDE(ExternalData)
 
-SET(LSE17_SOURCES_DIR "ftp://lse17.e-technik.uni-erlangen.de:40065")
-SET(LSE17_SOURCES_DIR "${LSE17_SOURCES_DIR}/cfsdeps/sources")
-
-SET(WEBDAV_FILES_DIR "https://lse17.e-technik.uni-erlangen.de:2001/files")
-
+SET(CFS_DS_SOURCES_DIR "${CFS_DS_CFSDEPS}/sources")
 SET(CFSDEPS_DIR "${CFS_SOURCE_DIR}/cfsdeps")
 
 #-----------------------------------------------------------------------------
@@ -92,7 +88,7 @@ FILE(TO_CMAKE_PATH
 #-------------------------------------------------------------------------------
 # Build MuParser library
 #-------------------------------------------------------------------------------
-SET(MUPARSER_URL "${LSE17_SOURCES_DIR}/muparser")
+SET(MUPARSER_URL "${CFS_DS_SOURCES_DIR}/muparser")
 SET(MUPARSER_ZIP "muparser_v2_2_2.zip")
 SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a")
 
@@ -101,7 +97,7 @@ INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 #-------------------------------------------------------------------------------
 # Build zlib library
 #-------------------------------------------------------------------------------
-SET(ZLIB_URL "${LSE17_SOURCES_DIR}/zlib")
+SET(ZLIB_URL "${CFS_DS_SOURCES_DIR}/zlib")
 SET(ZLIB_GZ "zlib-1.2.8.tar.gz")
 SET(ZLIB_MD5 "44d667c142d7cda120332623eab69f40")
 
@@ -110,7 +106,7 @@ INCLUDE("${CFSDEPS_DIR}/zlib/External_zlib.cmake")
 #-------------------------------------------------------------------------------
 # Build bzip2 library
 #-------------------------------------------------------------------------------
-SET(BZIP2_URL "${LSE17_SOURCES_DIR}/bzip2")
+SET(BZIP2_URL "${CFS_DS_SOURCES_DIR}/bzip2")
 SET(BZIP2_GZ "bzip2-1.0.6.tar.gz")
 SET(BZIP2_MD5 "00b516f4704d4a7cb50a1d97e6e8e15b")
 
@@ -120,7 +116,7 @@ INCLUDE("${CFSDEPS_DIR}/bzip2/External_bzip2.cmake")
 # Search for HDF5 library
 #-------------------------------------------------------------------------------
 IF(USE_HDF5)
-  SET(HDF5_URL "${LSE17_SOURCES_DIR}/hdf5")
+  SET(HDF5_URL "${CFS_DS_SOURCES_DIR}/hdf5")
   SET(HDF5_GZ "hdf5-1.8.12.tar.bz2")
   SET(HDF5_MD5 "03ad766d225f5e872eb3e5ce95524a08")
 
@@ -131,7 +127,7 @@ ENDIF(USE_HDF5)
 # Search for CGNS library
 #-------------------------------------------------------------------------------
 IF(USE_CGNS)
-  SET(CGNS_URL "${LSE17_SOURCES_DIR}/cgns")
+  SET(CGNS_URL "${CFS_DS_SOURCES_DIR}/cgns")
   SET(CGNS_GZ "cgnslib_3.1.4-2.tar.gz")
   SET(CGNS_MD5 "e2d57dc5e116ff723ee003eba667b9f9")
 
@@ -145,7 +141,7 @@ ENDIF(USE_CGNS)
 # Search for STAR-CCM+ I/O library
 #-------------------------------------------------------------------------------
 IF(USE_CCMIO)
-  SET(CCMIO_URL "${LSE17_SOURCES_DIR}/ccmio")
+  SET(CCMIO_URL "${CFS_DS_SOURCES_DIR}/ccmio")
   SET(CCMIO_GZ "libccmio-2.6.1.tar.gz")
   SET(CCMIO_MD5 "f81fbdfb960b1a4f3bcc7feee491efe4")
 
@@ -163,7 +159,7 @@ ENDIF(USE_CFXIO)
 # Search for METIS library
 #-------------------------------------------------------------------------------
 IF(USE_METIS)
-  SET(METIS_URL "${LSE17_SOURCES_DIR}/metis")
+  SET(METIS_URL "${CFS_DS_SOURCES_DIR}/metis")
   SET(METIS_GZ "metis-4.0.3.tar.gz")
   SET(METIS_MD5 "d3848b454532ef18dc83e4fb160d1e10")
 
@@ -174,7 +170,7 @@ ENDIF(USE_METIS)
 # Search for GiDpost library
 #-------------------------------------------------------------------------------
 IF(USE_GIDPOST)
-  SET(GIDPOST_URL "${LSE17_SOURCES_DIR}/gidpost")
+  SET(GIDPOST_URL "${CFS_DS_SOURCES_DIR}/gidpost")
   SET(GIDPOST_ZIP "gidpost-2.1.zip")
   SET(GIDPOST_MD5 "a7fe745e40593dc4598920b312663d29")
 
@@ -196,7 +192,7 @@ IF(USE_BLAS OR USE_LAPACK)
      CFS_BLAS_LAPACK STREQUAL "GOTO" OR
      USE_ILUPACK)
     
-    SET(LAPACK_URL "${LSE17_SOURCES_DIR}/lapack")
+    SET(LAPACK_URL "${CFS_DS_SOURCES_DIR}/lapack")
     SET(LAPACK_GZ "lapack-3.4.2.tgz")
     SET(LAPACK_MD5 "61bf1a8a4469d4bdb7604f5897179478")
     
@@ -236,7 +232,7 @@ IF(USE_BLAS OR USE_LAPACK)
   # If USE_ARPACK option is defined find ARPACK library
   #-----------------------------------------------------------------------------
   IF(USE_ARPACK)
-    SET(ARPACK_URL "${LSE17_SOURCES_DIR}/arpack")
+    SET(ARPACK_URL "${CFS_DS_SOURCES_DIR}/arpack")
     SET(ARPACK_GZ "arpack-ng_3.1.1.tar.gz")
     SET(ARPACK_MD5 "d65b915736650d8878719d4168e50c36")
   
@@ -247,7 +243,7 @@ IF(USE_BLAS OR USE_LAPACK)
   # Find SuiteSparse/CholMod/UMFPACK/AMD library
   #-----------------------------------------------------------------------------
   IF(USE_SUITESPARSE OR USE_ILUPACK)
-    SET(SUITESPARSE_URL "${LSE17_SOURCES_DIR}/suitesparse")
+    SET(SUITESPARSE_URL "${CFS_DS_SOURCES_DIR}/suitesparse")
     SET(SUITESPARSE_GZ "SuiteSparse-4.2.1.tar.gz")
     SET(SUITESPARSE_MD5 "4628df9eeae10ae5f0c486f1ac982fce")
 
@@ -275,7 +271,7 @@ ENDIF(USE_BLAS OR USE_LAPACK)
 # Find Library of Iterative Solvers
 #-------------------------------------------------------------------------------
 IF(USE_LIS)
-  SET(LIS_URL "${LSE17_SOURCES_DIR}/lis")
+  SET(LIS_URL "${CFS_DS_SOURCES_DIR}/lis")
   SET(LIS_GZ "lis-1.3.16.tar.gz")
   SET(LIS_MD5 "7bbbcd2070cca367a98d17767c0ea408")
   
@@ -286,7 +282,7 @@ ENDIF(USE_LIS)
 # Find SuperLU
 #-------------------------------------------------------------------------------
 IF(USE_SUPERLU)
-  SET(SUPERLU_URL "${LSE17_SOURCES_DIR}/superlu")
+  SET(SUPERLU_URL "${CFS_DS_SOURCES_DIR}/superlu")
   SET(SUPERLU_GZ "superlu_4.3.tar.gz")
   SET(SUPERLU_MD5 "b72c6309f25e9660133007b82621ba7c")
   
@@ -296,7 +292,7 @@ ENDIF(USE_SUPERLU)
 #-------------------------------------------------------------------------------
 # Find Boost
 #-------------------------------------------------------------------------------
-SET(BOOST_URL "${LSE17_SOURCES_DIR}/boost")
+SET(BOOST_URL "${CFS_DS_SOURCES_DIR}/boost")
 SET(BOOST_GZ "boost_1_52_0.tar.bz2")
 SET(BOOST_MD5 "3a855e0f919107e0ca4de4d84ad3f750")
 INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
@@ -305,7 +301,7 @@ INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 # If USE_XERCES option is defined find Xerces library
 #-------------------------------------------------------------------------------
 IF(USE_XERCES)
-  SET(XERCES_URL "${LSE17_SOURCES_DIR}/xerces")
+  SET(XERCES_URL "${CFS_DS_SOURCES_DIR}/xerces")
   SET(XERCES_GZ "xerces-c-3.1.1.tar.gz")
   SET(XERCES_MD5 "6a8ec45d83c8cfb1584c5a5345cb51ae")
   
@@ -329,17 +325,17 @@ IF(USE_CGAL)
     ENDIF()
   ENDIF()
 
-  SET(GMP_URL "${LSE17_SOURCES_DIR}/gmp")
+  SET(GMP_URL "${CFS_DS_SOURCES_DIR}/gmp")
   SET(GMP_BZ2 "gmp-4.2.4.tar.bz2")
   SET(GMP_MD5 "fc1e3b3a2a5038d4d74138d0b9cf8dbe")
   INCLUDE("${CFSDEPS_DIR}/gmp/External_gmp.cmake")
   
-  SET(MPFR_URL "${LSE17_SOURCES_DIR}/mpfr")
+  SET(MPFR_URL "${CFS_DS_SOURCES_DIR}/mpfr")
   SET(MPFR_BZ2 "mpfr-2.4.0.tar.bz2")
   SET(MPFR_MD5 "f5916d785d4f7e7282057f6a3ebff9ce")
   INCLUDE("${CFSDEPS_DIR}/mpfr/External_mpfr.cmake")
 
-  SET(CGAL_URL "${LSE17_SOURCES_DIR}/cgal")
+  SET(CGAL_URL "${CFS_DS_SOURCES_DIR}/cgal")
   SET(CGAL_BZ2 "CGAL-4.2.tar.bz2")
   SET(CGAL_MD5 "df8e33389a8d9f15eb7eb17200c17002")
   INCLUDE("${CFSDEPS_DIR}/cgal/External_CGAL.cmake")
@@ -359,7 +355,7 @@ IF(USE_LIBFBI)
     ENDIF()
   ENDIF()
 
-  SET(LIBFBI_URL "${LSE17_SOURCES_DIR}/spacepart")
+  SET(LIBFBI_URL "${CFS_DS_SOURCES_DIR}/spacepart")
   SET(LIBFBI_GZ "libfbi_for_cfs_gitrev_ee570e5e.tgz")
   SET(LIBFBI_MD5 "9484f3573450b20cadc262365eb74b7a")
 ENDIF(USE_LIBFBI)
@@ -369,7 +365,7 @@ INCLUDE("${CFSDEPS_DIR}/spacepart/External_spacepart.cmake")
 # FLANN - Fast Library for Approximate Nearest Neighbors
 #-----------------------------------------------------------------------------
 IF(USE_FLANN)
-  SET(FLANN_URL "${LSE17_SOURCES_DIR}/flann")
+  SET(FLANN_URL "${CFS_DS_SOURCES_DIR}/flann")
   SET(FLANN_GZ "flann-1.8.4-src.zip")
   SET(FLANN_MD5 "a0ecd46be2ee11a68d2a7d9c6b4ce701")
   INCLUDE("${CFSDEPS_DIR}/flann/External_FLANN.cmake")
@@ -409,7 +405,7 @@ IF(BUILD_PARAVIEW)
   #---------------------------------------------------------------------------
   FIND_PACKAGE(Qt4 4.8.2)
   IF(NOT QT4_FOUND)
-    set(QT4_URL "${LSE17_SOURCES_DIR}/qt4")
+    set(QT4_URL "${CFS_DS_SOURCES_DIR}/qt4")
     set(QT4_GZ qt-everywhere-opensource-src-4.8.2.tar.gz)
     set(QT4_MD5 3c1146ddf56247e16782f96910a8423b)
 
@@ -426,7 +422,7 @@ IF(BUILD_PARAVIEW)
   #---------------------------------------------------------------------------
   # Finally add an external project for ParaViewSuperbuild
   #---------------------------------------------------------------------------
-  set(PARAVIEW_SB_URL "${LSE17_SOURCES_DIR}/paraview")
+  set(PARAVIEW_SB_URL "${CFS_DS_SOURCES_DIR}/paraview")
   set(PARAVIEW_SB_GZ pvsuperbuild-4.1.0.tgz)
   set(PARAVIEW_SB_MD5 94e49d03e38955c0cb98c1159f417feb)
   INCLUDE("${CFSDEPS_DIR}/paraview/External_ParaViewSuperbuild.cmake")
@@ -445,7 +441,7 @@ IF(USE_PYTHON)
   set(PYTHON_MINOR 7)
   set(PYTHON_PATCH 2)
   set(PYTHON_VERSION ${PYTHON_MAJOR}.${PYTHON_MINOR}.${PYTHON_PATCH})
-  set(PYTHON_URL "${LSE17_SOURCES_DIR}/python")
+  set(PYTHON_URL "${CFS_DS_SOURCES_DIR}/python")
   set(PYTHON_GZ Python-${PYTHON_VERSION}.tgz)
   set(PYTHON_MD5 0ddfe265f1b3d0a8c2459f5bf66894c7)
   

@@ -85,7 +85,9 @@ SET(CTEST_UPDATE_OPTIONS "--non-interactive ${CTEST_SOURCE_DIRECTORY}")
 #-----------------------------------------------------------------------------
 # Copy CDash server configuration file to source dir.
 #-----------------------------------------------------------------------------
-EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different ${SITE_DIR}/../../shared/CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
+CONFIGURE_FILE(${SITE_DIR}/../../shared/CTestConfig.cmake.in
+  ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake
+  @ONLY)
 
 #-----------------------------------------------------------------------------
 # Start out with an empty binary directory.

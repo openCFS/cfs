@@ -1,5 +1,5 @@
-FTP_LSE17=ftp://lse17.e-technik.uni-erlangen.de:40065
-BASE_BOX=$FTP_LSE17/boxes/oracle6.box
+CFSDSFTP=@CFS_DS_FTP@
+BASE_BOX=$CFSDSFTP/boxes/oracle6.box
 
 mkdir oracle6 && cd oracle6    # Create temp directory
 vagrant init oracle6 $BASE_BOX # Create Vagrantfile

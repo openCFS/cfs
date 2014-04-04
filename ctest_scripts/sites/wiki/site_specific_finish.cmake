@@ -107,7 +107,7 @@ FOREACH(MAN IN ITEMS ${MANUALS})
   )
 ENDFOREACH()
 
-MESSAGE("Submitting documentation to lse17...")
+MESSAGE("Submitting documentation to development server...")
 file(GLOB CFS_DOCU_FILES
   RELATIVE "${CFS_DOCU_DIR}"
   "${CFS_DOCU_DIR}/*.pdf"
@@ -123,7 +123,7 @@ EXECUTE_PROCESS(
 EXECUTE_PROCESS(
   COMMAND curl -u ${CFS_TESTUSER}:${CFS_TESTUSER_PW} 
                -k -T cfs_docu_nightly.zip
-               https://lse17.e-technik.uni-erlangen.de:2001/files/doc/cfs_docu_nightly.zip
+               ${CFS_DS_WEBDAV}/doc/cfs_docu_nightly.zip
   WORKING_DIRECTORY "${CFS_DOCU_DIR}"
   RESULT_VARIABLE RETVAL
 )

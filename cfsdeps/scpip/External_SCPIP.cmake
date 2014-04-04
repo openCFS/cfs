@@ -20,7 +20,7 @@ set(scpip_install  "${CMAKE_CURRENT_BINARY_DIR}")
 #-------------------------------------------------------------------------------
 # Add standard remote object stores to user's configuration.
 list(APPEND ExternalData_URL_TEMPLATES
-  "${WEBDAV_FILES_DIR}/cfsdeps/sources/scpip/%(algo)/%(hash)"
+  "${CFS_DS_WEBDAV}/cfsdeps/sources/scpip/%(algo)/%(hash)"
   )
 
 # Set standard local object stores.
@@ -34,7 +34,7 @@ STRING(STRIP ${SCPIP_HASH} SCPIP_HASH)
 
 IF(NOT EXISTS "${ExternalData_OBJECT_STORES}/MD5/${SCPIP_HASH}")
   SET(MSG "Please download the file ")
-  SET(MSG "${MSG}'${WEBDAV_FILES_DIR}/cfsdeps/sources/scpip/MD5/${SCPIP_HASH}'")
+  SET(MSG "${MSG}'${CFS_DS_WEBDAV}/cfsdeps/sources/scpip/MD5/${SCPIP_HASH}'")
   SET(MSG "${MSG} to '${ExternalData_OBJECT_STORES}/MD5/${SCPIP_HASH}'.")
 
   colormsg(HIYELLOW "${MSG}")

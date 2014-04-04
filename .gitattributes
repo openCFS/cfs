@@ -325,6 +325,7 @@ cmake_modules/CheckFortranRuntime.cmake -text
 cmake_modules/CheckPardisoAPIVersion.cmake -text
 cmake_modules/ConfigureChecks.cmake -text
 cmake_modules/DetermineWorkingCopyInfos.cmake -text
+cmake_modules/DevelopmentServer.cmake -text
 cmake_modules/FindCFSDEPS.cmake -text
 cmake_modules/FindIntelMKL.cmake -text
 cmake_modules/FindPrograms.cmake -text
@@ -341,36 +342,7 @@ cmake_modules/platform_defaults_woody.cmake -text
 ctest_scripts/README.md svneol=native#text/plain
 ctest_scripts/nightly_doc.graphml -text
 ctest_scripts/nightly_test.cmake -text
-ctest_scripts/old_scripts/CTestConfig.cmake -text
-ctest_scripts/old_scripts/ctest_eam_gcc_nightly_debug.cmake -text
-ctest_scripts/old_scripts/ctest_eam_gcc_nightly_release.cmake -text
-ctest_scripts/old_scripts/ctest_mac_gcc_experimental.cmake -text
-ctest_scripts/old_scripts/ctest_mac_icc_experimental.cmake -text
-ctest_scripts/old_scripts/ctest_sedici_gcc_acml_nightly.cmake -text
-ctest_scripts/old_scripts/ctest_sedici_gcc_gotoblas_nightly.cmake -text
-ctest_scripts/old_scripts/ctest_sedici_gcc_ifort_nightly.cmake -text
-ctest_scripts/old_scripts/ctest_sedici_gcc_schenk_nightly.cmake -text
-ctest_scripts/old_scripts/ctest_sedici_icc_gfortran_nightly.cmake -text
-ctest_scripts/old_scripts/ctest_sedici_icc_nightly.cmake -text
-ctest_scripts/old_scripts/ctest_ubuntu804_gcc34_nightly.cmake -text
-ctest_scripts/old_scripts/ctest_ubuntu804_gcc41_nightly.cmake -text
-ctest_scripts/old_scripts/ctest_ubuntu804_gcc_nightly.cmake -text
-ctest_scripts/old_scripts/ctest_ubuntu804_icc100_nightly.cmake -text
-ctest_scripts/old_scripts/ctest_ubuntu804_icc101_nightly.cmake -text
-ctest_scripts/old_scripts/ctest_ubuntu804_icc110_nightly.cmake -text
-ctest_scripts/old_scripts/ctest_ubuntu804_icc91_nightly.cmake -text
-ctest_scripts/old_scripts/ctest_update.cmake -text
-ctest_scripts/old_scripts/ctest_update_cfs_klu.cmake -text
-ctest_scripts/old_scripts/ctest_update_cfsdeps_klu.cmake -text
-ctest_scripts/old_scripts/ctest_update_testsuite_klu.cmake -text
-ctest_scripts/old_scripts/experimental_test_mac.sh svneol=native#text/plain
-ctest_scripts/old_scripts/known_to_fail_gcc34.txt svneol=native#text/plain
-ctest_scripts/old_scripts/nightly_test.cmake -text
-ctest_scripts/old_scripts/nightly_test_eamc080.sh -text
-ctest_scripts/old_scripts/nightly_test_rom.sh -text
-ctest_scripts/old_scripts/nightly_test_sedici.sh -text
-ctest_scripts/old_scripts/nightly_test_ubuntu804.sh -text
-ctest_scripts/shared/CTestConfig.cmake -text
+ctest_scripts/shared/CTestConfig.cmake.in -text
 ctest_scripts/shared/provision_nightly_tests_linux.sh -text
 ctest_scripts/shared/test_macros.cmake -text
 ctest_scripts/sites/fedora18/Vagrantfile -text
@@ -514,6 +486,7 @@ share/doc/CMakeLists.txt -text
 share/doc/auxilliaries/LaTeX/attachfile.sty -text
 share/doc/auxilliaries/LaTeX/atveryend.sty -text
 share/doc/auxilliaries/LaTeX/catchfile.sty -text
+share/doc/auxilliaries/LaTeX/develserver.tex.in -text
 share/doc/auxilliaries/LaTeX/etexcmds.sty -text
 share/doc/auxilliaries/LaTeX/holtxdoc.sty -text
 share/doc/auxilliaries/LaTeX/hypdoc.sty -text
@@ -676,13 +649,15 @@ share/doc/developer/develManual/pics/nacs_win.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/pdf_attach_acroread.png -text
 share/doc/developer/develManual/pics/pdf_attach_foxit.png -text
 share/doc/developer/develManual/pics/pdf_attach_okular.png -text
+share/doc/developer/develManual/pics/persons/Grabinger-Jens.jpg -text svneol=unset#unset
+share/doc/developer/develManual/pics/persons/Manfred_Hofer_K.jpg -text svneol=unset#unset
 share/doc/developer/develManual/pics/persons/ahueppe.pdf -text
 share/doc/developer/develManual/pics/persons/ezelezina.pdf -text
-share/doc/developer/develManual/pics/persons/glink.png -text
+share/doc/developer/develManual/pics/persons/glink.jpg -text svneol=unset#unset
 share/doc/developer/develManual/pics/persons/glink2.pdf -text
-share/doc/developer/develManual/pics/persons/imbo.jpg -text
 share/doc/developer/develManual/pics/persons/jgrabinger.pdf -text
 share/doc/developer/develManual/pics/persons/jonas-thies.jpg -text
+share/doc/developer/develManual/pics/persons/kaltenbacher.jpg -text svneol=unset#unset
 share/doc/developer/develManual/pics/persons/lbahr.jpg -text
 share/doc/developer/develManual/pics/persons/ma_grabinger.jpg -text
 share/doc/developer/develManual/pics/persons/ma_hauck.jpg -text
@@ -697,7 +672,9 @@ share/doc/developer/develManual/pics/persons/people.txt -text
 share/doc/developer/develManual/pics/persons/portrait.gif -text
 share/doc/developer/develManual/pics/persons/portrait.png -text
 share/doc/developer/develManual/pics/persons/sim.jpg -text
+share/doc/developer/develManual/pics/persons/strieben.jpg -text svneol=unset#unset
 share/doc/developer/develManual/pics/persons/svn-developers.txt -text
+share/doc/developer/develManual/pics/persons/szoerner.jpg -text svneol=unset#unset
 share/doc/developer/develManual/pics/persons/thumb.jpeg -text
 share/doc/developer/develManual/pics/persons/tlahmer.pdf -text
 share/doc/developer/develManual/pics/persons/tomLahmer09.jpg -text
