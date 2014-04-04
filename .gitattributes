@@ -196,13 +196,6 @@ cfsdeps/metis/license.txt -text
 cfsdeps/metis/metis-gcc44.patch -text
 cfsdeps/metis/metis-patch.cmake.in -text
 cfsdeps/metis/metis-windows.patch -text
-cfsdeps/mkl/CMakeLists.txt -text
-cfsdeps/mkl/msvc100/amd64/runtmchk.lib -text svneol=unset#unset
-cfsdeps/mkl/msvc100/ia32/runtmchk.lib -text svneol=unset#unset
-cfsdeps/mkl/msvc90/amd64/runtmchk.lib -text svneol=unset#unset
-cfsdeps/mkl/msvc90/ia32/runtmchk.lib -text svneol=unset#unset
-cfsdeps/mkl/msvc90/ia64/runtmchk.lib -text svneol=unset#unset
-cfsdeps/mkl/wrap_chkstk.cc -text
 cfsdeps/mpfr/External_mpfr.cmake -text
 cfsdeps/mpfr/mpfr-configure.cmake.in -text
 cfsdeps/muparser/CMakeLists.txt -text
