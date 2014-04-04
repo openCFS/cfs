@@ -1,0 +1,51 @@
+# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
+# kate: indent-width 2; mixedindent on; indent-mode cstyle; line-numbers on;
+# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
+# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+
+#=============================================================================
+# Include some convenient macros (e.g. for applying patches).
+#=============================================================================
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+#-----------------------------------------------------------------------------
+# Add CFS++ HDF5 reader and Geomview .off reader to ParaView readers.
+#-----------------------------------------------------------------------------
+SET(patches "pv-cfs-off-reader.patch")
+
+#-----------------------------------------------------------------------------
+# Make sure that HDF5 C++ support gets built
+#-----------------------------------------------------------------------------
+list(APPEND patches "vtk-third-party-hdf5.patch")
+
+#-----------------------------------------------------------------------------
+# Fix problem where vtkCellDerivatives failed for vtkQuadraticQuad,
+# vtkBiQuadraticQuad and vtkQuadraticTriangle.
+# http://www.vtk.org/Bug/view.php?id=13455
+#-----------------------------------------------------------------------------
+list(APPEND patches "vtk-quadratic-quads-derivs.patch")
+
+#-----------------------------------------------------------------------------
+# Add some custom color maps to PV (GiD, Matlab, etc.).
+#-----------------------------------------------------------------------------
+list(APPEND patches "pv-colormaps.patch")
+
+#-----------------------------------------------------------------------------
+# Disable readers from VisItBridge, that we do not need. Many of these
+# readers read also from .h5 files and therefore the user would have to 
+# choose the proper reader everytime he opens a CFS++ HDF5 file. We only want
+# CGNS, Tecplot, ANSYS and a few other readers. 
+#-----------------------------------------------------------------------------
+list(APPEND patches "pv-disable-most-visitbridge-readers.patch")
+
+#-----------------------------------------------------------------------------
+# Quadratic triangles will be read as linear triangles and PYRA13 elements
+# will be read as PYRA5 elements.
+#-----------------------------------------------------------------------------
+list(APPEND patches "pv-cgns-reader-tria6-pyra13.patch")
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/paraview")
+
+# MESSAGE(FATAL_ERROR "Ich bin hier: ${CFS_SOURCE_DIR}")

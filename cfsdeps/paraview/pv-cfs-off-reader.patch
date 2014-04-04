@@ -1,12 +1,3 @@
---- Applications/ParaView/ParaViewReaders.xml	2013-02-07 16:41:15.000000000 +0100
-+++ Applications/ParaView/ParaViewReaders.xml	2013-03-18 11:30:46.179999900 +0100
-@@ -75,4 +75,6 @@
-   <Proxy group="sources" name="EnzoParticlesReader" />
-   <Proxy group="sources" name="FlashParticlesReader" />
-   <Proxy group="sources" name="CMLMoleculeReader"/>
-+  <Proxy group="sources" name="CFSReader" />
-+  <Proxy group="sources" name="OFFReader" />
- </ParaViewReaders>
 --- ParaViewCore/ServerManager/SMApplication/Resources/readers.xml	2013-02-07 16:41:16.000000000 +0100
 +++ ParaViewCore/ServerManager/SMApplication/Resources/readers.xml	2013-03-18 11:30:51.235999901 +0100
 @@ -7229,5 +7229,257 @@
@@ -704,9 +695,9 @@
 +    vtkCommonExecutionModel
 +    vtkhdf5
 +  )
---- /dev/null	2013-03-15 16:10:00.442260186 +0100
-+++ VTK/IO/CFSReader/hdf5Common.h	2013-03-17 16:00:52.000000000 +0100
-@@ -0,0 +1,461 @@
+--- /dev/null	2014-02-06 12:15:54.028200672 +0100
++++ VTK/IO/CFSReader/hdf5Common.h	2014-02-13 15:51:13.258106573 +0100
+@@ -0,0 +1,463 @@
 +// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 +// kate: space-indent on; indent-width 2; encoding utf-8;
 +// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
@@ -1102,6 +1093,8 @@
 +        CleanUp();
 +      };
 +
++      void AdaptToTypeBeforeRead(const H5::DataType& data) {}
++      
 +      //! Query, if data is set
 +      bool IsSet() { return isSet_; }
 +
@@ -1168,9 +1161,9 @@
 +} // end of namespace CoupledField
 +
 +#endif // FILE_CFS_HDF5_IO_HH
---- /dev/null	2013-03-15 16:10:00.442260186 +0100
-+++ VTK/IO/CFSReader/hdf5Common.cc	2013-03-17 15:48:41.000000000 +0100
-@@ -0,0 +1,1563 @@
+--- /dev/null	2014-02-06 12:15:54.028200672 +0100
++++ VTK/IO/CFSReader/hdf5Common.cc	2014-02-13 15:54:15.371106545 +0100
+@@ -0,0 +1,1631 @@
 +// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 +// kate: space-indent on; indent-width 2; encoding utf-8;
 +// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
@@ -1396,11 +1389,43 @@
 +
 +    const char** buffer_;
 +
++    bool isFixedLength;
++
++    unsigned int fixedLength;
++
 +  public:
 +    HdfTypeConversion()
-+      : buffer_( NULL ) {
++      : buffer_( NULL ),
++        isFixedLength (false),
++        fixedLength(0) {
 +      nativeType_ = new H5::StrType( H5::PredType::C_S1, H5T_VARIABLE);
 +      stdType_ = new H5::StrType( H5::PredType::C_S1, H5T_VARIABLE);
++    }
++
++    void AdaptToTypeBeforeRead(const H5::DataType& data) {
++      //only do special things if we have not variable length
++      if(!data.isVariableStr()){
++        //we need to check for fixed or variable length
++        delete nativeType_;
++        delete stdType_;
++        nativeType_ = NULL;
++        stdType_ = NULL;
++
++        unsigned int dim = H5Tget_size(data.getId());
++        nativeType_ = new H5::StrType( H5::PredType::C_S1, dim+1);
++        stdType_    = new H5::StrType( H5::PredType::C_S1, dim+1);
++
++        isFixedLength = true;
++        fixedLength = dim;
++        if( buffer_ ) {
++          delete[] buffer_;
++          buffer_ = NULL;
++          buffer_ = new const char*[numElems_];
++          for(unsigned int i = 0;i < numElems_;i++){
++            buffer_[i] = new char[fixedLength+1];
++          }
++        }
++      }
 +    }
 +
 +    const void * GetOutBufferPtr() {
@@ -1414,7 +1439,19 @@
 +      CleanUp();
 +      numElems_ = numData;
 +      buffer_ = new const char*[numElems_];
-+      return buffer_;
++      if(isFixedLength){
++        for(unsigned int i = 0;i < numElems_;i++){
++          buffer_[i] = new char[fixedLength+1];
++        }
++      }
++      //only adjust here was we do not want to write
++      // in fixed length string...
++      if(isFixedLength){
++        return const_cast<char *>(*buffer_);
++      } else {
++        return buffer_;
++      }
++      return NULL;
 +    }
 +
 +    void GetNativeData( std::string * data) {
@@ -1480,6 +1517,27 @@
 +      nativeType_ = new H5::VarLenType( &sType );
 +      stdType_ = new H5::VarLenType( &sType );
 +    }
++
++    void AdaptToTypeBeforeRead(const H5::DataType& data){
++
++      //we need to check for fixed or variable length
++      //this should work for fixed string lengths but i am not sure
++      //therefore we throw a warning
++      if(!data.isVariableStr()){
++        delete nativeType_;
++        delete stdType_;
++        nativeType_ = NULL;
++        stdType_ = NULL;
++
++        unsigned int dim = H5Tget_size(data.getId());
++
++        nativeType_ = new H5::StrType( H5::PredType::C_S1, dim+1);
++        stdType_    = new H5::StrType( H5::PredType::C_S1, dim+1);
++        
++        // WARN("HDF5 File input: Converting vectors of fixed length strings is experimental!");
++      }
++    }
++
 +
 +      const void * GetOutBufferPtr() {
 +        if( !isSet_ ) {
@@ -2125,6 +2183,8 @@
 +      // open attribute
 +      H5::Attribute attribute = obj.openAttribute( name );
 +
++      conv.AdaptToTypeBeforeRead(attribute.getDataType());
++
 +      // read data in buffer of conversion object
 +      attribute.read( *nativeType, conv.GetInBufferPtr(1) );
 +
@@ -2214,6 +2274,7 @@
 +      // check, that standard hdf5 datatype is the same as the datatype
 +      // of the stored dataset
 +      // .. not sure if this can be implemented properly ...
++      conv.AdaptToTypeBeforeRead(dataset.getDataType());
 +
 +      // read data in buffer of conversion object
 +      dataset.read( conv.GetInBufferPtr(size), *nativeType );
@@ -4434,9 +4495,9 @@
 +  }
 +**/  
 +}
---- /dev/null	2013-09-19 21:11:38.326175447 +0200
-+++ VTK/IO/CFSReader/vtkCFSReader.h	2013-10-02 18:54:08.511963273 +0200
-@@ -0,0 +1,303 @@
+--- /dev/null	2014-02-06 12:15:54.028200672 +0100
++++ VTK/IO/CFSReader/vtkCFSReader.h	2014-02-13 14:22:51.936107379 +0100
+@@ -0,0 +1,304 @@
 +/** This is the reader for HDF5 files from CFS++. */
 +#ifndef __vtkCFSReader_h
 +#define __vtkCFSReader_h
@@ -4616,6 +4677,7 @@
 +  vtkDoubleArray* SaveToArray( const std::vector<double>& vals,
 +                               unsigned int numDofs,
 +                               unsigned int numEntities,
++                               H5CFS::EntryType entryType,
 +                               const std::string& name );
 +
 +  //! Pretty print frequency including suffix (Hz, kHz, MHz...)
@@ -4740,9 +4802,9 @@
 +};
 +
 +#endif
---- /dev/null	2013-09-19 21:11:38.326175447 +0200
-+++ VTK/IO/CFSReader/vtkCFSReader.cxx	2013-10-02 19:32:37.579960318 +0200
-@@ -0,0 +1,1397 @@
+--- /dev/null	2014-02-06 12:15:54.028200672 +0100
++++ VTK/IO/CFSReader/vtkCFSReader.cxx	2014-02-13 14:33:13.944107284 +0100
+@@ -0,0 +1,1392 @@
 +
 +#include "vtkCFSReader.h"
 +#include "vtkInformation.h"
@@ -5595,6 +5657,7 @@
 +        std::vector<double> * ptImagVals = NULL;
 +        bool isComplex = false;
 +        std::vector<double> dummyVals;
++        H5CFS::EntryType entryType = actInfo->entryType;
 +        if( found ) {
 +          result = shared_ptr<H5CFS::Result>(new H5CFS::Result());
 +          result->resultInfo = actInfo;
@@ -5634,7 +5697,7 @@
 +              writeName += "]";
 +            }
 +            vals1 = SaveToArray( realVals, numDofs, numEntities,
-+                                 writeName );
++                                 entryType, writeName );
 +          } else { // We obviously have a real-valued eigenvalue solution
 +            //std::string freqNormed;
 +            unsigned int numEntries = realVals.size();
@@ -5654,7 +5717,7 @@
 +            }
 +
 +            vals1 = SaveToArray( realVals, numDofs, numEntities,
-+                                 writeName );
++                                 entryType, writeName );
 +
 +          }
 +        } else {
@@ -5674,9 +5737,9 @@
 +                imagName += "]";
 +              }
 +              vals1 = SaveToArray( realVals, numDofs, numEntities,
-+                                   realName );
++                                   entryType, realName );
 +              vals2 = SaveToArray( imagVals, numDofs, numEntities,
-+                                   imagName );
++                                   entryType, imagName );
 +            } else {
 +              // AMPL-PHASE
 +              unsigned int numEntries = realVals.size();
@@ -5695,8 +5758,8 @@
 +                    std::atan2( imagVals[i], realVals[i] ) * H180DEG_OVER_PI : 
 +                    ( realVals[i] < 0.0 ) ? 180 : 0 ; 
 +              }
-+              vals1 = SaveToArray( ampl, numDofs, numEntities, amplName );
-+              vals2 = SaveToArray( phase, numDofs, numEntities, phaseName );
++              vals1 = SaveToArray( ampl, numDofs, numEntities, entryType, amplName );
++              vals2 = SaveToArray( phase, numDofs, numEntities, entryType, phaseName );
 +            }
 +          } else { // !HarmonicDataAsModeShape
 +
@@ -5734,8 +5797,8 @@
 +              // Also compute the amplitude field
 +              ampl[i] = hypot( realVals[i], imagVals[i] );
 +            }
-+            vals1 = SaveToArray( modeShape, numDofs, numEntities, writeName );
-+            vals2 = SaveToArray( ampl, numDofs, numEntities, amplName );
++            vals1 = SaveToArray( modeShape, numDofs, numEntities, entryType, writeName );
++            vals2 = SaveToArray( ampl, numDofs, numEntities, entryType, amplName );
 +          } // harmonic data as mode shape
 +        } // if isComplex
 +
@@ -5772,6 +5835,7 @@
 +vtkDoubleArray* vtkCFSReader::SaveToArray( const std::vector<double>& vals,
 +                                           unsigned int numDofs,
 +                                           unsigned int numEntities,
++                                           H5CFS::EntryType entryType,
 +                                           const std::string& name ) {
 +  
 +  vtkDoubleArray * ret = vtkDoubleArray::New();
@@ -5779,19 +5843,10 @@
 +  // Case 1: numDofs is 1 (scalar) or >= 3 (real vector/tensor)
 +  if( numDofs == 1 || numDofs >= 3) {
 +    unsigned int nDofs = numDofs;
-+    bool isStrainOrStress = name.find("Strain") != std::string::npos ||
-+                            name.find("Stress") != std::string::npos;
++    bool isTensor = (entryType == H5CFS::TENSOR);
 +
-+    // Normal strains or stresses are vectors!
-+    if(name.find("NormalStrain") != std::string::npos ||
-+       name.find("NormalStress") != std::string::npos) 
-+    {
-+      isStrainOrStress = false;
-+    }
-+    
-+    
-+    if(isStrainOrStress) {
-+      nDofs = 6;      
++    if(isTensor) {
++      nDofs = 6;
 +    }
 +    
 +    ret->SetNumberOfComponents( nDofs );
@@ -5802,7 +5857,9 @@
 +    DBG_OUT("numEntries should be " << numEntries);
 +    DBG_OUT("length of vals array is " << vals.size());
 +    
-+    if(isStrainOrStress) {
++    if(isTensor) {
++      // Since VTK and ParaView have a different ordering of Voigt vectors,
++      // we fill our components accordingly.
 +      switch(numDofs) {
 +        case 3:
 +          {

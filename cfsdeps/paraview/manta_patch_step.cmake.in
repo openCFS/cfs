@@ -1,7 +1,0 @@
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different "@ParaViewSuperBuild_CMAKE_SOURCE_DIR@/mantaPatches/Image/CMakeLists.txt" "@Manta_source@/Image/CMakeLists.txt"
-  )
-EXECUTE_PROCESS(
-  COMMAND patch -p0 -i "@ParaViewSuperBuild_CMAKE_SOURCE_DIR@/mantaPatches/manta.patch"
-  WORKING_DIRECTORY "@Manta_source@"
-  )

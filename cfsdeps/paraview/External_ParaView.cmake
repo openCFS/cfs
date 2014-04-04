@@ -3,7 +3,43 @@
 # http://www.paraview.org
 # http://personal.cscs.ch/~jfavre/Projects/vtkLEA/vtklea.htm
 # see also the README_*.txt files in this directory.
-
+#
+# Building  ParaView with  the HDF5  reader  plugin for  CFS++ is  a two  step
+# process.  First  the ParaView Superbuild  gets downloaded and  configured as
+# the paraview-superbuild external project from the current CMake script. This
+# involves obtaining  a Git clone of  the PV Superbuild repository,  either by
+# using Git  itself or by downloading  a zipped archive of  the repository, if
+# the Git executable is not available.
+#
+# The actual  build of  ParaView takes place  in a second  step inside  the PV
+# Superbuild. Therefore, we have to modify the Superbuild, in order to get our
+# patches into ParaView at its build time. We do this during the patch step of
+# the paraview-superbuild external project defined in this CMake file.
+#
+# In the  patch step of the  paraview-superbuild a number of  files get copied
+# from the current source directory to  the Git repo.  These files reflect the
+# changes which are necessary, so that the PV Superbuild blends in nicely with
+# the CFS++ build.  This means, that  the Superbuild, should reuse the already
+# downloaded  archives  in  our  CFS_DEPS_CACHE_DIR,  and  also  put  its  own
+# downloads there.  Moreover,  an extra patch step gets added  to the paraview
+# external  project  inside  the PV  Superbuild  (Projects/paraview.cmake  and
+# Projects/paraview.patch.cmake.in). This makes sure,  that the patches needed
+# for the CFS++ features get applied during the patch phase of ParaView.
+#
+# Our additions to the off-the-shelf ParaView include at the moment:
+#   - The CFS++/NACS HDF5 reader
+#   - A reader for Geomview .off polyhedral surface geometry files, which 
+#     are e.g. produced by CGAL.
+#   - Some additional color maps
+#   - A reduced list of VisItBridge readers, to make sure our own reader is
+#     the only one, which can read .h5 files. Otherwise the user always has
+#     to choose the correct reader, when opening a file
+#   - Some small fixes to the VisItBridge CGNS reader for TRIA6 and PYRA13
+#     element types.
+#
+# The (super-)build of ParaView has been tested on CentOS 6 and Ubuntu 12.04 
+# x86_64, where the bootstrap_devel_machine.sh script has been run.
+#
 # http://www.paraview.org/Wiki/ParaView_Binaries
 # https://github.com/Kitware/ParaView/tree/v3.12.0/SuperBuild
 # http://www.paraview.org/Wiki/ParaView:Plugin_Deployment_with_Development_Installs
@@ -13,9 +49,9 @@
 #-------------------------------------------------------------------------------
 # Set prefix path and path to paraview sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
-set(paraview_sb_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/paraview_superbuild")
+set(paraview_sb_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/paraview-superbuild")
 set(paraview_sb_install  "${CMAKE_CURRENT_BINARY_DIR}/paraview")
-set(paraview_sb_source  "${paraview_prefix}/src/paraview_superbuild")
+set(paraview_sb_source  "${paraview_sb_prefix}/src/paraview-superbuild")
 
 #-------------------------------------------------------------------------------
 # Info on SuperBuild
@@ -58,6 +94,8 @@ SET(CMAKE_ARGS
   -DENABLE_fontconfig:BOOL=ON
   -DENABLE_freetype:BOOL=ON
   -DENABLE_hdf5:BOOL=ON
+  -DENABLE_cgns:BOOL=ON
+  -DENABLE_visitbridge:BOOL=ON
   -DENABLE_libxml2:BOOL=ON
   -DENABLE_paraview:BOOL=ON
   -DENABLE_png:BOOL=ON
@@ -86,19 +124,46 @@ IF(CMAKE_TOOLCHAIN_FILE)
   )
 ENDIF()
 
+SET(PFN_TEMPL 
+  "${CFS_SOURCE_DIR}/cfsdeps/paraview/paraview-superbuild-patch.cmake.in")
+SET(PFN "${paraview_sb_prefix}/paraview-superbuild-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
 #-------------------------------------------------------------------------------
-# The paraview-download external project
+# Find the Git executable.
 #-------------------------------------------------------------------------------
-ExternalProject_Add(paraview-superbuild
-  DEPENDS ${CFS_PV_DEPENDENCIES}
-  PREFIX ${paraview_sb_prefix}
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/paraview
-  SOURCE_DIR ${paraview_source}
-  URL ${PARAVIEW_SB_URL}/${PARAVIEW_SB_GZ}
-  URL_MD5 ${PARAVIEW_SB_MD5}
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
+Find_Package(Git)
+
+#-------------------------------------------------------------------------------
+# The paraview-superbuild external project
+#-------------------------------------------------------------------------------
+IF(GIT_FOUND)
+  # Clone Git repo for ParaView Superbuild 4.1.
+  ExternalProject_Add(paraview-superbuild
+    DEPENDS ${CFS_PV_DEPENDENCIES}
+    PREFIX ${paraview_sb_prefix}
+    GIT_REPOSITORY http://paraview.org/ParaViewSuperbuild.git
+    GIT_TAG "5867b1c34b73aee16cc9411007b2d70a4fad73a4"
+    SOURCE_DIR ${paraview_source}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+    )
+ELSE()
+  # If we do not have the Git executable available, fall back
+  # to downloading a zipped archive of the Git repo. 
+  ExternalProject_Add(paraview-superbuild
+    DEPENDS ${CFS_PV_DEPENDENCIES}
+    PREFIX ${paraview_sb_prefix}
+    DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/paraview
+    SOURCE_DIR ${paraview_source}
+    URL ${PARAVIEW_SB_URL}/${PARAVIEW_SB_GZ}
+    URL_MD5 ${PARAVIEW_SB_MD5}
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
   )
+ENDIF()
+
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
