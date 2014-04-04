@@ -33,13 +33,6 @@ namespace CoupledField{
   class SimInputCGNS : public SimInput {
   public:
     
-    struct CGNSElem{
-      StdVector<UInt> connect;
-      //one-based element number
-      UInt elemNum;
-      Elem::FEType eType;
-    };
-    
     //! Constructor
     SimInputCGNS( std::string fileName, PtrParamNode inputNode,
                   PtrParamNode infoNode );
@@ -48,11 +41,9 @@ namespace CoupledField{
     
     virtual void InitModule();
     
-    virtual void ReadMesh(Grid*)
-    { EXCEPTION("Not implemented!"); }
+    virtual void ReadMesh(Grid* ptGrid);
     
-    virtual UInt GetDim()
-    { EXCEPTION("Not implemented!"); }
+    virtual UInt GetDim() { return dim_; }
 
     virtual UInt GetNumNodes()
     { EXCEPTION("Not implemented!"); }
@@ -81,14 +72,6 @@ namespace CoupledField{
     virtual void GetElemNames(StdVector<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >&)
     { EXCEPTION("Not implemented!"); }
 
-    //! get node coordinates from the corresponding file
-    virtual void ReadNodalCoords(std::vector<Double> & NODECOORD);
-    
-    
-    //! get topology information from the  topology file
-    virtual void ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
-                              std::vector<UInt> & elemTypes);
-    
  #if 0
     //! get nodal values from the corresponding fluid datafile the new way
     virtual void ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
@@ -113,10 +96,9 @@ namespace CoupledField{
     std::string fileDir_;
     bool gridInitialized_;
     //storing the coordinates
-    StdVector< StdVector<Double> > nodeCoords_;
+    StdVector< Vector<Double> > nodeCoords_;
     std::map<CGNSLIB_H::ElementType_t,Elem::FEType> elemTypeMap_;
     std::map<Integer,std::string> regionIndexToNameMap_;
-    std::map<Integer,StdVector<CGNSElem> > elemRegionMap_;
     //std::map<Integer,Elem::FEType > elemTypeToRegionMap_;
     std::map<Integer,std::set<UInt> > nodesPerRegionMap_;
  
@@ -135,6 +117,17 @@ namespace CoupledField{
     // Maximum number of nodes per element
     UInt maxNumElemNodes_;
 
+    //! Dimension of the cells; 3 for volume cells, 2 for surface cells and 1
+    //! for line cells. 
+    Integer dim_;
+
+    //! Number of coordinates required to define a vector in the field.
+    Integer physDim_;
+
+    //! Number of vertices, cells, and boundary vertices in each (index)-
+    //! dimension.
+    Integer vertSize_[9];
+
   private:
     void ReadCGNSDirectory(std::string dirname, std::map<Double, std::string> & fileNames);
     Integer GetFileHandle(std::string fName);
@@ -143,11 +136,19 @@ namespace CoupledField{
     void ReadUnstructuredGrid(Integer fileHandle, Integer dim, cgsize_t* size);
     void PrintElementType(ElementType_t eType);
     void InitElemTypeMap();
-    void ReadGrid();
     void CalcNumNodesPerRegion();
     UInt MapVelocityIndex(char* coordName);
     UInt MapFrictionIndex(char* coordName);
-    UInt MapForceIndex(char* coordName);    
+    UInt MapForceIndex(char* coordName);
+
+    void AddRegionToGrid(RegionIdType& regionId,
+                         const Elem::FEType feType,
+                         const std::string& sectionName);
+
+    void TranslateConnectivity(Elem::FEType feType,
+                               cgsize_t* cgnsConn,
+                               StdVector<UInt>& connect);
+
   };
 }
 

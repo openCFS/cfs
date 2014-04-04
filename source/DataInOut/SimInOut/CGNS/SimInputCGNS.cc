@@ -43,7 +43,9 @@ namespace CoupledField{
                               PtrParamNode infoNode ) :
     SimInput(fileName, inputNode, infoNode ),
     numElems_(0),
-    maxNumElemNodes_(27)
+    maxNumElemNodes_(27),
+    dim_(0),
+    physDim_(0)
   {
     capabilities_.insert( SimInput::MESH );
     //    capabilities_.insert( SimInput::MESH_RESULTS );
@@ -79,101 +81,62 @@ namespace CoupledField{
     LOG_TRACE(simInputCGNS) << "fileDir_: " << fileDir_;
     LOG_TRACE(simInputCGNS) << "baseName: " << baseName;
 
-
     InitElemTypeMap();
 
-    //std::string cgnsFileName = "v-rho-5/v-rho-5.000030.cgns";
-    //std::cout << cgnsFileName << std::endl;
-    std::string curFName;
-
     ReadCGNSDirectory(fileDir_, fileNames_);
-    //=============================================
-    //Read the mesh information from the first file
-    //============================================
-    ReadGrid();
 
-    //exit(0);
-  }
-  
-  //! get node coordinates from the corresponding file
-  void SimInputCGNS::ReadNodalCoords(std::vector<Double> & NODECOORD){
-    //always 3D
-    NODECOORD.resize((numVertices_)*3,0);
+    //open the first cgns file
+    Integer fn = GetFileHandle(fileName_);
+    //Check if the file is what we expect
+    //i.e. 1 base, 1 zone, 1 grid
+    CheckFileValidity(fn);
 
-    for(UInt coord = 0;coord < nodeCoords_.GetSize();coord++){
-      for(UInt node = 0;node < nodeCoords_[coord].GetSize();node++){
-        NODECOORD[(3*node)+coord] = nodeCoords_[coord][node];
-      }
+    char firstBaseName[200];
+    char firstZoneName[200];
+    ZoneType_t zoneType;
+    
+    cg_base_read(fn,1,firstBaseName , &dim_ , &physDim_ );
+    cg_zone_type(fn,1,1,&zoneType);
+
+    switch(zoneType)
+    {
+    case ZoneTypeNull:
+      EXCEPTION("Meshes with ZoneTypeNull are not supported.");
+      break;
+    case ZoneTypeUserDefined:
+      EXCEPTION("Meshes with ZoneTypeUserDefined are not supported.");
+      break;
+    case Structured:
+      EXCEPTION("Meshes with Structured Meshes are not supported.");
+      break;
+    case Unstructured:
+      break;
+    default:
+      EXCEPTION("Unknown zone type.");
+      break;
     }
-    return;
+
+    std::fill(vertSize_, &vertSize_[8], 0);
+    cg_zone_read(fn,1,1,firstZoneName,(cgsize_t*)vertSize_);
   }
 
-  void SimInputCGNS::ReadGrid(){
+  void SimInputCGNS::ReadMesh(Grid* ptGrid) 
+  {
     std::cout << "Entering SimInputCGNS::ReadGrid" << std::endl;
 
-     std::string firstFile = fileDir_ + "/" + fileNames_.begin()->second;
-     //open the first cgns file
-     Integer fn = GetFileHandle(firstFile);
-     //Check if the file is what we expect
-     //i.e. 1 base, 1 zone, 1 grid
-     CheckFileValidity(fn);
+    mi_ = ptGrid;
 
-     char firstBaseName[200];
-     char firstZoneName[200];
-     int vertSize[9];
-     Integer dim = 0;
-     Integer physDim = 0;
-     ZoneType_t gridType;
+    Integer fn = GetFileHandle(fileName_);
 
-     //memset(vertSize,0,9*sizeof(cgsize_t));
+    std::cout << "Going to read " << vertSize_[0] << " Vertices, building " <<
+      vertSize_[1] << " Cells ";
+    std::cout << "of a " << dim_ << "D, unstructured mesh ...." << std::endl;
+    ReadUnstructuredGrid(fn,physDim_,(cgsize_t*)vertSize_);
 
-     cg_base_read(fn,1,firstBaseName , &dim , &physDim );
-     cg_zone_type(fn,1,1,&gridType);
-     cg_zone_read(fn,1,1,firstZoneName,(cgsize_t*)vertSize);
-
-     switch(gridType)
-     {
-      case ZoneTypeNull:
-          std::cout << "Meshes with ZoneTypeNull are not supported." << std::endl;
-          exit(1);
-          break;
-      case ZoneTypeUserDefined:
-          std::cout << "Meshes with ZoneTypeUserDefinied are not supported." << std::endl;
-          exit(1);
-          break;
-      case Structured:
-          std::cout << "Meshes with Structured Meshes are not supported." << std::endl;
-          exit(1);
-          break;
-      case Unstructured:
-          std::cout << "Going to read " << vertSize[0] << " Vertices, building " << vertSize[1] << " Cells ";
-          std::cout << "of a " << dim << "D, unstructured mesh ...." << std::endl;
-          ReadUnstructuredGrid(fn,physDim,(cgsize_t*)vertSize);
-
-          break;
-     }
-     CalcNumNodesPerRegion();
-     cg_close(fn);
+    cg_close(fn);
   }
   
   
-  //! get topology information from the corresponding topology file
-  void SimInputCGNS::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
-                                     std::vector<UInt> & elemTypes){
-    std::map<Integer,StdVector<CGNSElem> >::iterator regIter = elemRegionMap_.begin();
-    while(regIter != elemRegionMap_.end()){
-      StdVector<CGNSElem> regElems = regIter->second;
-      for(UInt curE = 0;curE<regElems.GetSize();curE++){
-        Integer eIdx = regElems[curE].elemNum-1;
-        elemTypes[eIdx] = regElems[curE].eType;
-        for(UInt con = 0 ; con< regElems[curE].connect.GetSize(); con++){
-          TOPOLOGYDATA[(eIdx*maxNumElemNodes_)+con] = regElems[curE].connect[con];
-        }
-      }
-      regIter++;
-    }
-  }
-
 #if 0
   //! get nodal values from the corresponding fluid datafile the new way
   void SimInputCGNS::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
@@ -518,45 +481,6 @@ namespace CoupledField{
              }
            }
         }
-
-       if(counter > 1){
-         std::string filename;
-         std::cout << "Found more than one CGNS file";
-         if(counter > 10){
-           std::cout << " please type in the filename (case sensitive): " << std::endl;
-           std::cin >> filename;
-         }else{
-           //print out each file with its number
-           std::map<Double, std::string>::iterator mIter = fileNames.begin();
-           std::cout <<std::endl;
-           while(mIter!=fileNames.end()){
-             std::cout << mIter->first << ") \t" << mIter->second << std::endl;
-             mIter++;
-           }
-           UInt fNum = 0;
-           while(true){
-            if(fNum<1 || fNum > counter){
-              std::cout << std::endl << "Please give the number of the file you want to convert:";
-              std::cin >> fNum;
-            }else{
-              break;
-            }
-           }
-           filename = fileNames[fNum];
-         }
-
-         //check if the file is there
-         std::string ftest = fileDir_ + "/" + filename;
-         if(std::fopen(ftest.c_str(),"r")==0){
-           std::cerr << "File not found " << filename << std::endl;
-           exit(0);
-         }else{
-           fileNames.clear();
-           fileNames[0] = filename;
-           std::cout << "converting file " << filename << std::endl;
-         }
-       }
-
      }else if(calcsrc == 1){
        std::cout << "Going to iterate through the CGNS directory to obtain all source files" << std::endl;
        //give a wanring that the user knows whats going on
@@ -628,50 +552,47 @@ namespace CoupledField{
   Integer SimInputCGNS::GetFileHandle(std::string fName){
     Integer fn = -1;
     if(fs::exists(fName)){
-//#ifdef CG_MODE_READ
-    if(cg_open(fName.c_str(), CG_MODE_READ, &fn) != CG_OK)
-//#else
-     // Still support pre 2.5 CGNS
- //    if(cg_open(fName.c_str(), MODE_READ, &fn) != CG_OK)
-//#endif
+      //#ifdef CG_MODE_READ
+      if(cg_open(fName.c_str(), CG_MODE_READ, &fn) != CG_OK)
+        //#else
+        // Still support pre 2.5 CGNS
+        //    if(cg_open(fName.c_str(), MODE_READ, &fn) != CG_OK)
+        //#endif
      {
-        std::cerr << "File open failed: " << fName << "... Going to exit" << std::endl; 
-        EXCEPTION(cg_get_error());
-        exit(1);
+       EXCEPTION("File open failed: " << fName << "..." << std::endl <<
+                 cg_get_error());
      }
-    }else{
-      std::cerr << "File does not exists: " << fName << "... Going to exit" << std::endl; 
-      exit(1);
+    } else {
+      EXCEPTION("File does not exists: " << fName << "...");
     }
-    //std::cout << "file opened" << std::endl;
     return fn;
   }
+
   void SimInputCGNS::CheckFileValidity(Integer fileHandle){
      Integer nbases,nzones,ngrids = 0;
 
      cg_nbases(fileHandle, &nbases);
      if(nbases != 1){
-       std::cout << "ERROR: Found " << nbases << " Bases in the dataset" << std::endl;
-       std::cout << "Found invalid number of bases, expected 1... Aborting" << std::endl;
        cg_close(fileHandle);
-       exit(1);
+       EXCEPTION("Found " << nbases << " Bases in the dataset." << std::endl <<
+                 "Found invalid number of bases, expected 1...");
      }
      
      cg_nzones(fileHandle,nbases,&nzones);
      if(nzones != 1){
-       std::cout << "ERROR: Found " << nzones << " Zones in the dataset" << std::endl;
-       std::cout << "Found invalid number of  zones, expected 1... Aborting" << std::endl;
        cg_close(fileHandle);
-       exit(1);
+       EXCEPTION("Found " << nzones << " Zones in the dataset" << std::endl <<
+                 "Found invalid number of  zones, expected 1...");
      }
+
      cg_ngrids(fileHandle, nbases, nzones, &ngrids );
      if(ngrids != 1){
-       std::cout << "ERROR: Found " << ngrids << " Grids in the dataset" << std::endl;
-       std::cout << "Found invalid number of  zones, expected 1... Aborting" << std::endl;
        cg_close(fileHandle);
-       exit(1);
+       EXCEPTION("Found " << ngrids << " Grids in the dataset" << std::endl <<
+                 "Found invalid number of  zones, expected 1...");
      }
   }
+
   UInt SimInputCGNS::MapCoordinateIndex(char* coordName){
     UInt coordinateIndex = 9999;
     //check if the name fulfils the naming convention
@@ -683,8 +604,9 @@ namespace CoupledField{
     }else if(strcmp(coordName,"CoordinateZ") == 0){
        coordinateIndex = 2;
     }else{
-       std::cerr << "Coordinate name is not recognized. invalid file or unsupported gridType (e.g.cylindical coord system)?" << std::endl;
-       exit(1);
+      EXCEPTION("Coordinate name is not recognized.\n" <<
+                "Invalid file or unsupported gridType " <<
+                "(e.g. cylindrical coord system)?");
     }
     return coordinateIndex;
   }
@@ -731,156 +653,225 @@ namespace CoupledField{
     return coordinateIndex;
   }
 
-  void SimInputCGNS::ReadUnstructuredGrid(Integer fileHandle,Integer dim,cgsize_t* size){
-     char gridCoordName[33];
-     char curCoordName[33];
-     Integer ncoords = 0;
-     DataType_t dataType;
+  void SimInputCGNS::ReadUnstructuredGrid(Integer fileHandle, Integer dim, cgsize_t* size){
+    char gridCoordName[33];
+    char curCoordName[33];
+    Integer ncoords = 0;
+    DataType_t dataType;
+    
+    numVertices_ = size[0];
+    
+    cg_grid_read(fileHandle, 1, 1, 1, gridCoordName );
+    cg_ncoords(fileHandle, 1, 1, &ncoords );
+    
+    if(ncoords != dim){
+      EXCEPTION("Physical grid dimension " << dim << " does not match " <<
+                "number of coordinate arrays: " << ncoords); 
+    }
+    dim_ = dim;
 
-     numVertices_ = size[0];
+    //==================================================================
+    // READ IN COORDINATES
+    //==================================================================
+    cgsize_t range_min[3] = {1,1,1};
+    cgsize_t range_max[3] = {numVertices_,1,1};
+    
+    nodeCoords_.Resize(numVertices_);
+    for(UInt j = 0; j<numVertices_; j++){
+      nodeCoords_[j].Resize(dim_);
+    }      
 
-     cg_grid_read(fileHandle, 1, 1, 1, gridCoordName );
-     cg_ncoords(fileHandle, 1, 1, &ncoords );
+    Double * curCoord = new Double[numVertices_];
+    for(Integer i = 1; i<=ncoords ; i++){
+      //get the first coordinate name
+      cg_coord_info(fileHandle,1,1,i, &dataType , curCoordName );
+      //map the index x y z
+      UInt idx = MapCoordinateIndex(curCoordName);
+      //read in coordinates
+      cg_coord_read(fileHandle, 1, 1, curCoordName, RealDouble , range_min, range_max, (void*)curCoord );
+      
+      for(UInt j = 0; j<numVertices_; j++){
+        nodeCoords_[j][idx] = curCoord[j];
+      }      
+    }
+    delete [] curCoord;
 
-     if(ncoords != dim){
-       std::cerr << "Physical grid dimension " << dim << " does not match number of coordinate arrays: " << ncoords << std::endl; 
-       exit(1);
-     }
-     dim_ = dim;
+    // Add nodes to grid
+    mi_->AddNodes(numVertices_);
+    for(UInt i = 0; i<numVertices_; i++){
+      mi_->SetNodeCoordinate( i+1, nodeCoords_[i] );
+    }
 
-     //==================================================================
-     // READ IN COORDINATES
-     //==================================================================
-     cgsize_t range_min[3] = {1,1,1};
-     cgsize_t range_max[3] = {numVertices_,1,1};
+    //==================================================================
+    // READ IN Topology 
+    //==================================================================
+    
+    Integer nsections = 0;
+    numElems_ = 0;
+    cg_nsections(fileHandle,1,1,&nsections);
+    std::cout << "Found " << nsections << " (Surface) Regions in the Grid"
+              << std::endl;
+    
+    for(Integer curReg = 1; curReg<=nsections; curReg++){
+      char sectionName[33];
+      ElementType_t eType;
+      cgsize_t start,end = 0;
+      Integer nboundary = 0;
+      Integer parentFlag = 0;
+      cgsize_t elemArraySize= 0;
+      Integer numEs = 0;
+      Integer vertsPerElem= 0;
+      
+      cg_section_read(fileHandle,1,1,curReg,sectionName,&eType,&start,&end,
+                      &nboundary,&parentFlag);
+      
+      //elemArraySize = numCells*NodesPerElem
+      cg_ElementDataSize(fileHandle,1,1,curReg,&elemArraySize);
 
-     nodeCoords_.Resize(ncoords);
-     Double * curCoord = new Double[numVertices_];
-     for(Integer i = 1; i<=ncoords ; i++){
-       //get the first coordinate name
-       cg_coord_info(fileHandle,1,1,i, &dataType , curCoordName );
-       //map the index x y z
-       UInt idx = MapCoordinateIndex(curCoordName);
-       //read in coordinates
-       cg_coord_read(fileHandle, 1, 1, curCoordName, RealDouble , range_min, range_max, (void*)curCoord );
+      numEs = (end-start+1);
 
-       //copy them into the datastructure
-       std::vector<Double> tmp;
-       tmp.resize(numVertices_,0);
-       tmp.assign(curCoord,curCoord+numVertices_);
-       nodeCoords_[idx] = StdVector<Double>(tmp);
-     }
-     delete [] curCoord;
+      if(eType==ElementTypeNull || eType==ElementTypeUserDefined) {
+        EXCEPTION("CGNS reader cannot handle nullType or user defined " <<
+                  "element types.");
+      }
+      
+      numElems_ += numEs;
 
-     //==================================================================
-     // READ IN Topology 
-     //==================================================================
-     
-     Integer nsections = 0;
-     numElems_ = 0;
-     cg_nsections(fileHandle,1,1,&nsections);
-     std::cout << "Found " << nsections << " (Surface) Regions in the Grid" << std::endl;
+      std::cout << "Reading section " << sectionName << std::endl;
+      std::cout << "------------------------------------------------------" << std::endl;
+      std::cout << "Element Type: ";
+      PrintElementType(eType);
+      std::cout << std::endl;
+      std::cout << "Number of elements: " << numEs << std::endl;
+      std::cout << "Element Index Range: " << start << " to " << end << std::endl;
+      std::cout << "Boundary number: " << nboundary << std::endl;
+      std::cout << "ParentFlag: " << parentFlag << std::endl << std::endl;
+      
+      //create the elements array
+      StdVector<cgsize_t> curElems(elemArraySize);
 
-     //clear some class variables
-     regionIndexToNameMap_.clear();
-     elemRegionMap_.clear(); 
-     numNodesPerRegion_.resize(nsections);
-     numElemsPerRegion_.resize(nsections);
+      //Ignore parental Data field for now and give NULL to function
+      cg_elements_read(fileHandle,1,1,curReg,&curElems[0],NULL);
 
-     numRegions_ = nsections;
+      UInt elemOffset = mi_->GetNumElems();
+      StdVector<UInt> connect(1024);
+      RegionIdType regionId = -2;
 
-     for(Integer curReg = 1; curReg<=nsections;curReg++){
-       char sectionName[33];
-       ElementType_t eType;
-       cgsize_t start,end = 0;
-       Integer nboundary = 0;
-       Integer parentFlag = 0;
-       cgsize_t elemArraySize= 0;
-       Integer numEs = 0;
-       Integer vertsPerElem= 0;
+      switch(eType) {
+      case MIXED:
+        {
+          //ok in this special case, the element connectivity array
+          //also stores the element type within it
+          //so we loop over and determine the type on the fly
 
-       cg_section_read(fileHandle,1,1,curReg,sectionName,&eType,&start,&end,&nboundary,&parentFlag);
+          mi_->AddElems(numEs);          
+          // Determine element type of first element in region.
+          Elem::FEType feType = elemTypeMap_[(ElementType_t)curElems[0]];
+          
+          AddRegionToGrid(regionId, feType, sectionName);
 
-       //elemArraySize = numCells*NodesPerElem
-       cg_ElementDataSize(fileHandle,1,1,curReg,&elemArraySize);
+          //should point to the index storing the current eType
+          //afterwards there will be the node numbers
+          UInt eTypeIdx = 0;
+          for(Integer i = 0;i<numEs;i++){
+            //read
+            eType = (ElementType_t)curElems[eTypeIdx];
+            cg_npe(eType,&vertsPerElem);
+            
+            feType = elemTypeMap_[eType];
+            TranslateConnectivity(feType,
+                                  &curElems[eTypeIdx+1],
+                                  connect);
+            
+            mi_->SetElemData(elemOffset+i+1,
+                             elemTypeMap_[eType],
+                             regionId,
+                             &connect[0]);
 
+            eTypeIdx += vertsPerElem+1;            
+          }
+        }
+        break;
+      case NGON_n:
+      case NFACE_n:
+        // We do not know how to handle polygonal or polyhedral cells.
+        break;
+      case NODE:
+        // Nodes are currently not handled as elements by CFS++.
+        break;
+      default:
+        {
+          mi_->AddElems(numEs);
 
-       numEs = (end-start+1);
+          //determine number of vertices for current element
+          cg_npe(eType,&vertsPerElem);
 
-       if(eType==ElementTypeNull || eType==ElementTypeUserDefined){
-    	   EXCEPTION("CGNS reader cannot handle nullType or User defined element types");
-       }
+          // Determine element type of first element in region.
+          Elem::FEType feType = elemTypeMap_[eType];
 
-       numElems_ += numEs;
+          AddRegionToGrid(regionId, feType, sectionName);
 
-
-
-       std::cout << "Reading section " << sectionName << std::endl;
-       std::cout << "------------------------------------------------------" << std::endl;
-       std::cout << "Element Type: ";
-       PrintElementType(eType);
-       std::cout << std::endl;
-       std::cout << "Number of elements: " << numEs << std::endl;
-       std::cout << "Element Index Range: " << start << " to " << end << std::endl;
-       std::cout << "Boundary number: " << nboundary << std::endl;
-       std::cout << "ParentFlag: " << parentFlag << std::endl << std::endl;
-
-       //create the elements array
-       cgsize_t * curElems = new cgsize_t[elemArraySize];
-
-       regionIndexToNameMap_[curReg] = std::string(sectionName);
-       elemRegionMap_[curReg] = StdVector<CGNSElem>(numEs);
-       //elemTypeToRegionMap_[curReg] = elemTypeMap_[eType];
-       //Ignore parental Data field for now and give NULL to function
-       cg_elements_read(fileHandle,1,1,curReg,curElems,NULL);
-       numElemsPerRegion_[curReg-1] = numEs;
-
-       if(eType==MIXED){
-    	   //ok in this special case, the element connectivity array
-    	   //also stores the element type within it
-    	   //so we loop over and determine the type on the fly
-
-         //should point to the index storing the current eType
-         //afterwards there will be the node numbers
-         UInt eTypeIdx = 0;
-         for(Integer i = 0;i<numEs;i++){
-           //read
-           eType = (ElementType_t)curElems[eTypeIdx];
-           cg_npe(eType,&vertsPerElem);
-           maxNumElemNodes_ = ((UInt)vertsPerElem>maxNumElemNodes_)? vertsPerElem : maxNumElemNodes_;
-
-           CGNSElem curElem;
-           curElem.elemNum = start+i;
-           curElem.eType = elemTypeMap_[eType];
-           curElem.connect.Resize(vertsPerElem);
-           curElem.connect.Init();
-           for(Integer j = 0;j < vertsPerElem ; j++){
-             curElem.connect[j] = (UInt)curElems[eTypeIdx+j+1];
-           }
-           elemRegionMap_[curReg][i] = curElem;
-           eTypeIdx+=vertsPerElem+1;
-         }
-       }else{
-         cg_npe(eType,&vertsPerElem);
-         maxNumElemNodes_ = ((UInt)vertsPerElem>maxNumElemNodes_)? vertsPerElem : maxNumElemNodes_;
-         for(Integer i = 0;i<numEs;i++){
-      	   //determine number of vertices for current element
-
-      	   CGNSElem curElem;
-           curElem.elemNum = start+i;
-           curElem.eType = elemTypeMap_[eType];
-           curElem.connect.Resize(vertsPerElem);
-           curElem.connect.Init();
-           for(Integer j = 0;j < vertsPerElem ; j++){
-             curElem.connect[j] = (UInt)curElems[(i*vertsPerElem)+j];
-           }
-           elemRegionMap_[curReg][i] = curElem;
-         }
-       }
-
-       delete [] curElems;
-     }
+          for(Integer i = 0;i<numEs;i++){
+            TranslateConnectivity(feType,
+                                  &curElems[i*vertsPerElem],
+                                  connect);
+            
+            mi_->SetElemData(elemOffset+i+1,
+                             elemTypeMap_[eType],
+                             regionId,
+                             &connect[0]);
+          }
+        }
+        break;        
+      }
+    }
   }
+  
+  void SimInputCGNS::AddRegionToGrid(RegionIdType& regionId,
+                                     const Elem::FEType feType,
+                                     const std::string& sectionName)
+  {
+    regionId = -2;
+    UInt elemDim = Elem::shapes[feType].dim;
+
+    switch(elemDim) 
+    {
+    case 1:
+      if(dim_ == 2) 
+      {              
+        regionId = mi_->AddRegion(std::string(sectionName));
+        mi_->regionData[regionId].type = Grid::SURFACE_REGION;
+      }
+      break;            
+    case 2:
+      if(dim_ == 2) 
+      {              
+        regionId = mi_->AddRegion(std::string(sectionName));
+        mi_->regionData[regionId].type = Grid::VOLUME_REGION;
+      }
+      if(dim_ == 3) 
+      {              
+        regionId = mi_->AddRegion(std::string(sectionName));
+        mi_->regionData[regionId].type = Grid::SURFACE_REGION;
+      }
+      break;            
+    case 3:
+      if(dim_ == 3) 
+      {              
+        regionId = mi_->AddRegion(std::string(sectionName));
+        mi_->regionData[regionId].type = Grid::VOLUME_REGION;
+      }
+      break;
+    }
+    
+    if(regionId < 0) 
+    {
+      EXCEPTION("Could not create region '" << sectionName << "' for " <<
+                "specified dimension!\nDimension of grid is " << dim_ <<
+                " and elements in region are of dimension " << elemDim << ".");
+    }
+  }
+  
 
   void SimInputCGNS::PrintElementType(ElementType_t eType){
    
@@ -925,6 +916,9 @@ namespace CoupledField{
       case CGNSLIB_H::PYRA_5:
         std::cout << "PYRA_5";
         break;
+      case CGNSLIB_H::PYRA_13:
+        std::cout << "PYRA_13";
+        break;
       case CGNSLIB_H::PYRA_14:
         std::cout << "PYRA_14";
         break;
@@ -952,11 +946,15 @@ namespace CoupledField{
       case CGNSLIB_H::NGON_n:
         std::cout << "NGON_n";
         break;
+      case CGNSLIB_H::NFACE_n:
+        std::cout << "NFACE_n";
+        break;
       default:
         std::cout << "Unknown element Type detected";
         break;
     }
   }
+
   void SimInputCGNS::InitElemTypeMap(){
     elemTypeMap_.clear();
     elemTypeMap_[CGNSLIB_H::ElementTypeNull] = Elem::ET_UNDEF;
@@ -984,25 +982,70 @@ namespace CoupledField{
     elemTypeMap_[CGNSLIB_H::NGON_n] = Elem::ET_UNDEF;
   }
 
-  void SimInputCGNS::CalcNumNodesPerRegion(){
-    std::map<Integer,StdVector<CGNSElem> >::iterator mIter = elemRegionMap_.begin();
-    numNodesPerRegion_.resize(elemRegionMap_.size());
-    while(mIter !=elemRegionMap_.end()){
-      StdVector<CGNSElem> curElems = mIter->second;
-      std::set<UInt> tmpset;
-     
-      for(UInt i = 0 ; i<curElems.GetSize();i++){
-        StdVector<UInt> curConn = curElems[i].connect;
-        tmpset.insert(curConn.Begin(),curConn.End());
-      }
-      std::set<UInt>::iterator it;
+  void SimInputCGNS::TranslateConnectivity(Elem::FEType feType,
+                                           cgsize_t* cgnsConn,
+                                           StdVector<UInt>& connect)
+  {
+    UInt numElemNodes = Elem::shapes[feType].numNodes;
 
-      numNodesPerRegion_[mIter->first-1] = tmpset.size();
-      nodesPerRegionMap_[mIter->first] = tmpset;
-      std::cout << "Calculated Number of nodes or region " << mIter->first;
-      std::cout << "\t result is " << tmpset.size() << std::endl;
+    static const int trDefault[27] = {
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+      20, 21, 22, 23, 24, 25, 26
+    };
 
-      mIter++;
+    // Map from a CGNS HEXA_20 connectivity
+    static const int trHEX20[20] = {
+      0, 1, 2, 3,
+      4, 5, 6, 7,
+      8, 9, 10, 11,
+      16, 17, 18, 19,
+      12, 13, 14, 15
+    };
+    // Map from a CGNS HEXA_27 connectivity
+    static const int trHEX27[27] = {
+      0, 1, 2, 3,
+      4, 5, 6, 7,
+      8, 9, 10, 11,
+      16, 17, 18, 19,
+      12, 13, 14, 15,
+      21, 22, 23, 24,
+      20, 25,
+      26
+    };
+    // Map from a CGNS PENTA_15 connectivity
+    static const int trPRI15[15] = {
+      0, 1, 2, 3, 4, 5, 6, 7, 8,
+      12, 13, 14,
+      9, 10, 11 
+    };
+    // Map from a CGNS PENTA_18 connectivity
+    static const int trPRI18[18] = {
+      0, 1, 2, 3, 4, 5,
+      6, 7, 8, 12, 13, 14,
+      9, 10, 11, 15, 16, 17
+    };
+    
+    const int *tr;
+    switch(feType) {
+    case Elem::ET_HEXA20:
+      tr = trHEX20;
+      break;
+    case Elem::ET_HEXA27:
+      tr = trHEX27;
+      break;
+    case Elem::ET_WEDGE15:
+      tr = trPRI15;
+      break;
+    case Elem::ET_WEDGE18:
+      tr = trPRI18;
+      break;
+    default:
+      tr = trDefault;
+      break;
+    }
+
+    for(UInt n = 0; n<numElemNodes; n++ ) {
+      connect[n] = cgnsConn[tr[n]];
     }
   }
 }
