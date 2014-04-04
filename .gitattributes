@@ -124,6 +124,7 @@ cfsdeps/cgns/cgns-version-numbers-in-filenames.patch -text
 cfsdeps/cgns/cgns25-declspec-double-underscore.patch -text
 cfsdeps/cgns/cgns25-patch.cmake.in -text
 cfsdeps/cgns/cgnstools-mingw.patch -text
+cfsdeps/cgns/cgnstools-tree-file2.patch -text
 cfsdeps/cgns/cgnsview-ccmio.patch -text
 cfsdeps/cmake/External_CMake.cmake -text
 cfsdeps/cmake/cmake-configure.cmake.in -text
