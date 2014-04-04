@@ -177,6 +177,9 @@ namespace CFSTool {
       
       sensorNodeName_  = sensorNodeNameNode->As<std::string>();
     }
+
+    wvtNode->GetValue("nodalResults", nodalResults_, ParamNode::PASS );
+
   }
 
   WVT::~WVT()
@@ -742,7 +745,9 @@ namespace CFSTool {
         // Since derivatives need to be taken the output entities need to be elements
         Enum<RegionIdType> regionEnum = ptGrid1->GetRegion();
         RegionIdType regionId = regionEnum.Parse(regions[iRegion]->GetName());
-        
+        ResultInfo::EntityUnknownType definedOn;
+        definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
+
         ElemList* outElemEntities = new ElemList(ptGrid1);
         outElemEntities->SetRegion(regionId);
         shared_ptr<EntityList> outElems(outElemEntities);             
@@ -764,7 +769,7 @@ namespace CFSTool {
         outInfo->dofNames = dofNames_;
         outInfo->unit = MapSolTypeToUnit(outInfo->resultType);
         outInfo->entryType = ResultInfo::VECTOR;
-        outInfo->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
+        outInfo->definedOn = definedOn;
         
         outResult->SetResultInfo( outInfo );
         
@@ -774,7 +779,7 @@ namespace CFSTool {
         outInfo2->dofNames = dofNames_;
         outInfo2->unit = MapSolTypeToUnit(outInfo2->resultType);
         outInfo2->entryType = ResultInfo::VECTOR;
-        outInfo2->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
+        outInfo2->definedOn = definedOn;
         
         outResult2->SetResultInfo( outInfo2 );
         
@@ -784,7 +789,7 @@ namespace CFSTool {
         outInfo3->dofNames = "";
         outInfo3->unit = MapSolTypeToUnit(outInfo3->resultType);
         outInfo3->entryType = ResultInfo::SCALAR;
-        outInfo3->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
+        outInfo3->definedOn = definedOn;
         
         outResult3->SetResultInfo( outInfo3 );
         
@@ -794,7 +799,7 @@ namespace CFSTool {
         outInfo4->dofNames = dofNames_;
         outInfo4->unit = MapSolTypeToUnit(outInfo4->resultType);
         outInfo4->entryType = ResultInfo::VECTOR;
-        outInfo4->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
+        outInfo4->definedOn = definedOn;
         
         outResult4->SetResultInfo( outInfo4 );
         
@@ -804,7 +809,7 @@ namespace CFSTool {
         outInfo5->dofNames = "";
         outInfo5->unit = MapSolTypeToUnit(outInfo5->resultType);
         outInfo5->entryType = ResultInfo::SCALAR;
-        outInfo5->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
+        outInfo5->definedOn = definedOn;
         
         outResult5->SetResultInfo( outInfo5 );
 
@@ -814,7 +819,7 @@ namespace CFSTool {
         outInfo6->dofNames = dofNames_;
         outInfo6->unit = MapSolTypeToUnit(outInfo6->resultType);
         outInfo6->entryType = ResultInfo::VECTOR;
-        outInfo6->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
+        outInfo6->definedOn = definedOn;
         
         outResult6->SetResultInfo( outInfo6 );
 
@@ -824,7 +829,7 @@ namespace CFSTool {
         outInfo7->dofNames = dofNames_;
         outInfo7->unit = MapSolTypeToUnit(outInfo7->resultType);
         outInfo7->entryType = ResultInfo::VECTOR;
-        outInfo7->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
+        outInfo7->definedOn = definedOn;
         
         outResult7->SetResultInfo( outInfo7 );
 
@@ -834,7 +839,7 @@ namespace CFSTool {
         outInfo8->dofNames = dofNames_;
         outInfo8->unit = MapSolTypeToUnit(outInfo8->resultType);
         outInfo8->entryType = ResultInfo::VECTOR;
-        outInfo8->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
+        outInfo8->definedOn = definedOn;
         
         outResult8->SetResultInfo( outInfo8 );
         
@@ -1021,7 +1026,6 @@ namespace CFSTool {
           entityList.reset(nl);  
           const StdVector<UInt> & nodes = nl->GetNodes();
 
-          //          UInt numElems = ptGrid1->GetNumElems(regionId);
           UInt numEntities = nodalResults_ ? nodes.GetSize() : 
                              ptGrid1->GetNumElems(regionId);
 
@@ -1034,7 +1038,11 @@ namespace CFSTool {
           outVec7.Resize( numEntities * numDofs_ ); outVec7.Init();
           outVec8.Resize( numEntities * numDofs_ ); outVec8.Init();
 
-          Vector<Double> nodalWeights(numEntities); nodalWeights.Init();
+          Vector<Double> nodalWeights;
+          if(nodalResults_) 
+          {
+            nodalWeights.Resize(numEntities); nodalWeights.Init();
+          }
 
           shared_ptr<BaseFeFunction> u1FeFunc =
             inputs_[PRIMARY_MODE]->GetFeFunction<Complex>( actMsStep,
@@ -1608,63 +1616,6 @@ namespace CFSTool {
               }
               else 
               {
-                if(!nodalResults_) 
-                {
-                  for( UInt i=0; i < numDofs_; i++ )
-                  {
-                    // Prepare weight vector
-                    outVec[elIdx*numDofs_+i] += W[i] * volume;
-                    
-                    // Prepare mean velocity
-                    //                   V[i] *= meanVel;                   
-                    
-                    durchfluss += V[i] * volume;
-                    
-                    // Prepare mean velocity output vector
-                    outVec2[elIdx*numDofs_+i] += Complex(V[i], 0) * volume;
-                    
-                    // Prepare weight vector density result
-                    Complex wvtDensity = W[i]*V[i]*volume;
-                    outVec3[elIdx] += wvtDensity;
-                    
-                    // Compute u_p_prime as given in Hemp1994 (13).
-                    u_p_prime += wvtDensity;
-                    
-                    f[i] = - rho_0 * (
-                      u1Derivs[i][0] * V[0] + u1Derivs[i][1] * V[1] + u1Derivs[i][2] * V[2] // + // C1
-                      // + VDerivs[i][0] * u1[0] + VDerivs[i][1] * u1[1] + VDerivs[i][2] * u1[2] // C2
-                      );
-                    
-                    // Prepare weight vector W_Phi as given in Hemp1994 (19).
-                    outVec4[elIdx*numDofs_+i] += W[i]/u_p_ * volume;
-                    
-                    // Prepare  weight  vector density  result  as inner  product
-                    // between V and W_Phi as given in Hemp1994 (18).
-                    Complex wvtDensityPhi(0,0);
-                    
-                    wvtDensityPhi = W[i]/u_p_ * V[i] * volume;
-                    
-                    // Compute "weight vector density" result from force and u2
-                    // Just take 2*C1 also with WVT!
-                    // wvtDensityPhi = 2*(f[i] * u2[i])/u_p_ * volume;
-                    
-                    outVec5[elIdx] += wvtDensityPhi;
-                    
-                    // Prepare u1 velocity output vector
-                    outVec6[elIdx*numDofs_+i] += u1[i] * volume;
-                    
-                    // Prepare u2 velocity output vector
-                    outVec7[elIdx*numDofs_+i] += u2[i] * volume;
-                    
-                    // Prepare force output vector
-                    outVec8[elIdx*numDofs_+i] += f[i] * volume;
-                    
-                    // Compute deltaPhi as given in Hemp1994 (18) and (19).
-                    deltaPhi += wvtDensityPhi.imag();
-                  }
-                }
-                else 
-                {
                   Vector<Complex> out(numDofs_);  out.Init();
                   Vector<Complex> out2(numDofs_); out2.Init();
                   Complex out3 = Complex(0,0);
@@ -1723,7 +1674,24 @@ namespace CFSTool {
                     // Compute deltaPhi as given in Hemp1994 (18) and (19).
                     deltaPhi += wvtDensityPhi.imag();
                   }
-                  
+
+                if(!nodalResults_) 
+                {
+                  // Assemble values to element vectors                  
+                  for( UInt i=0; i < numDofs_; i++ )
+                  {
+                    outVec[elIdx*numDofs_+i] += out[i];
+                    outVec2[elIdx*numDofs_+i] += out2[i];
+                    outVec3[elIdx] += out3;
+                    outVec4[elIdx*numDofs_+i] += out4[i];
+                    outVec5[elIdx] += out5;
+                    outVec6[elIdx*numDofs_+i] += out6[i];
+                    outVec7[elIdx*numDofs_+i] += out7[i];
+                    outVec8[elIdx*numDofs_+i] += out8[i];
+                  }
+                }
+                else 
+                {
                   // Assemble values to nodal vectors
                   for(UInt nIdx=0, numNodes=el1->connect.GetSize(); nIdx < numNodes; nIdx++)
                   {
@@ -1748,6 +1716,7 @@ namespace CFSTool {
               }
             } // loop over integration points
 
+            // Normalize element results by element volume
             if(!nodalResults_) 
             {
               for( UInt i=0; i < numDofs_; i++ )
@@ -1787,6 +1756,7 @@ namespace CFSTool {
              
           // deltaPhi *= correct;
 
+          // Normalize node results by nodal weights
           if(nodalResults_) 
           {
             for(UInt nodeIndex=0, n=nodalWeights.GetSize(); nodeIndex < n; nodeIndex++)
@@ -1806,7 +1776,6 @@ namespace CFSTool {
               outVec5[nodeIndex] /= w;
             }
           }
-
              
           WriteResultsToCSV(freq, u_p_prime, deltaPhi, 0,
                             vol, meanVel, correct);
