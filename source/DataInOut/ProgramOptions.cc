@@ -19,6 +19,8 @@
 #include <def_use_ccmio.hh>
 #include <def_use_lapack.hh>
 #include <def_use_cgal.hh>
+#include <def_use_libfbi.hh>
+#include <def_use_flann.hh>
 #include <def_xmlschema.hh>
 #include <def_use_openmp.hh>
 
@@ -72,6 +74,10 @@
 
 #ifdef USE_CGAL
 #include <CGAL/version.h>
+#endif
+
+#ifdef USE_FLANN
+#include <flann/flann.hpp>
 #endif
 
 #ifdef USE_XERCES
@@ -878,6 +884,23 @@ namespace CoupledField {
         << fg_reset << endl;
 #else
     out << "USE_CGAL:              "
+        << fg_blue << "NO" << fg_reset << endl;
+#endif
+#ifdef USE_LIBFBI
+    out << "USE_LIBFBI:            "
+        << fg_blue << "YES" << fg_reset << endl;
+#else
+    out << "USE_LIBFBI:            "
+        << fg_blue << "NO" << fg_reset << endl;
+#endif
+#ifdef USE_FLANN
+    out << "USE_FLANN:             "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "FLANN_VERSION:         "
+        << fg_blue << FLANN_VERSION_
+        << fg_reset << endl;
+#else
+    out << "USE_FLANN:             "
         << fg_blue << "NO" << fg_reset << endl;
 #endif
     
