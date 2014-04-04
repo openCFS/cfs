@@ -2,7 +2,8 @@
 // vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-// ================================================================================================
+
+// ===========================================================================
 /*!
  *       \file     TestPDE.hh
  *       \brief    This PDE will be used to train new developers
@@ -10,7 +11,7 @@
  *       \date     July 2, 2013
  *       \author   Manfred Kaltenbacher, TU Wien
  */
-//================================================================================================
+//============================================================================
 
 #ifndef TESTPDE_HH_
 #define TESTPDE_HH_
@@ -37,6 +38,10 @@ namespace CoupledField {
     //!  Constructor. Here we read integration parameters.
     /*!
       \param aGrid pointer to grid
+      \param paramNode pointer to the corresponding parameter node
+      \param infoNode pointer for writing to info (*.info.xml) file
+      \param simState pointer to state for stopping and restarting simulations
+      \param domain pointer do domain object
     */
     TestPDE( Grid* aGrid, PtrParamNode paramNode,
              PtrParamNode infoNode,

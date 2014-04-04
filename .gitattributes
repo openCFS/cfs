@@ -710,15 +710,12 @@ share/doc/developer/develManual/timestepping.tex -text
 share/doc/developer/doc-develmanual.cmake.in -text
 share/doc/developer/doc-doxygen.cmake.in -text
 share/doc/doc-common.cmake.in -text
-share/doc/tutorial/CFS++_NewPDE.pdf -text
 share/doc/tutorial/CFS++_NewPDE.pptx -text
-share/doc/tutorial/CFS++_OverviewAndSimulation.pdf -text
 share/doc/tutorial/CFS++_OverviewAndSimulation.pptx -text
 share/doc/tutorial/ExampleAcoustic/mat.xml -text
 share/doc/tutorial/ExampleAcoustic/noiseBarrier.xml -text
 share/doc/tutorial/ExampleAcoustic/part1.geo -text
 share/doc/tutorial/ExampleAcoustic/plateMesh.geo -text
-share/doc/tutorial/ExampleAcoustic/plateMesh.msh -text
 share/doc/tutorial/ExampleMechanics/cantilever.h5 -text
 share/doc/tutorial/ExampleMechanics/cantilever.xml -text
 share/doc/tutorial/ExampleMechanics/cantileverEigenfrequency.xml -text
