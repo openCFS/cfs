@@ -28,6 +28,18 @@ SET(ExternalData_OBJECT_STORES
   "${CFS_DEPS_CACHE_DIR}/sources/scpip"
 )
 
+# Give a hint about downloading the source archive to the developer.
+FILE(READ "cfsdeps/scpip/scpip.tar.bz2.md5" SCPIP_HASH)
+STRING(STRIP ${SCPIP_HASH} SCPIP_HASH)
+
+IF(NOT EXISTS "${ExternalData_OBJECT_STORES}/MD5/${SCPIP_HASH}")
+  SET(MSG "Please download the file ")
+  SET(MSG "${MSG}'${WEBDAV_FILES_DIR}/cfsdeps/sources/scpip/MD5/${SCPIP_HASH}'")
+  SET(MSG "${MSG} to '${ExternalData_OBJECT_STORES}/MD5/${SCPIP_HASH}'.")
+
+  colormsg(HIYELLOW "${MSG}")
+ENDIF()
+
 set(SCPIP_EXTERNAL_DATA "DATA{cfsdeps/scpip/scpip.tar.bz2}")
 
 # Expand all arguments as a single string to preserve escaped semicolons.

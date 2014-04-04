@@ -17,7 +17,7 @@ STRING(REPLACE ";" "^" ILUPACK_LAPACK_LIBRARY "${LAPACK_LIBRARY}")
 # mechanism.
 #-------------------------------------------------------------------------------
 # Add standard remote object stores to user's configuration.
-list(APPEND ExternalData_URL_TEMPLATES
+SET(ExternalData_URL_TEMPLATES
   "${WEBDAV_FILES_DIR}/cfsdeps/sources/ilupack/%(algo)/%(hash)"
   )
 
@@ -25,6 +25,18 @@ list(APPEND ExternalData_URL_TEMPLATES
 SET(ExternalData_OBJECT_STORES
   "${CFS_DEPS_CACHE_DIR}/sources/ilupack"
 )
+
+# Give a hint about downloading the source archive to the developer.
+FILE(READ "cfsdeps/ilupack/ilupack2.2.1_src.tgz.md5" ILUPACK_HASH)
+STRING(STRIP ${ILUPACK_HASH} ILUPACK_HASH)
+
+IF(NOT EXISTS "${ExternalData_OBJECT_STORES}/MD5/${ILUPACK_HASH}")
+  SET(MSG "Please download the file ")
+  SET(MSG "${MSG}'${WEBDAV_FILES_DIR}/cfsdeps/sources/ilupack/MD5/${ILUPACK_HASH}'")
+  SET(MSG "${MSG} to '${ExternalData_OBJECT_STORES}/MD5/${ILUPACK_HASH}'.")
+
+  colormsg(HIYELLOW "${MSG}")
+ENDIF()
 
 set(ILUPACK_EXTERNAL_DATA "DATA{cfsdeps/ilupack/ilupack2.2.1_src.tgz}")
 
