@@ -68,6 +68,8 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_knitro.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_cgal.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_cgal.hh")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_flann.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_flann.hh")
 
 IF(USE_LIBFBI)
   SET(USE_LIBFBI 1)
