@@ -42,10 +42,10 @@ add_external_project(paraview
     ${PV_EXTERNAL_PROJECTS}
 
   PATCH_COMMAND 
-    "${CMAKE_COMMAND}"
-      -P "${SuperBuild_BINARY_DIR}/paraview/paraview-patch.cmake"
+    "${CMAKE_COMMAND}" -P "${PFN}"
 
   CMAKE_ARGS
+    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
     -DBUILD_SHARED_LIBS:BOOL=ON
     -DBUILD_TESTING:BOOL=OFF
     -DPARAVIEW_BUILD_PLUGIN_CoProcessingScriptGenerator:BOOL=ON

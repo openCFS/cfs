@@ -81,18 +81,18 @@ namespace H5CFS {
 
   //! Entity types a result is related to
   typedef enum{ 
-    NODE = 1,
-    EDGE = 2, 
-    FACE = 3, 
-    ELEMENT = 4, 
-    SURF_ELEM = 5,
+    NODE,
+    EDGE, 
+    FACE, 
+    ELEMENT, 
+    SURF_ELEM,
     //PFEM = 6, 
-    REGION = 7, 
-    //SURF_REGION = 8,
-    NODE_GROUP = 9,
-    ELEM_GROUP = 10,
-    COIL = 11, 
-    FREE = 12
+    REGION, 
+    SURF_REGION,
+    NODELIST,
+    //ELEM_GROUP = 10,
+    COIL, 
+    FREE
   } EntityType;
 
   //! Type of analysis
@@ -324,21 +324,21 @@ namespace H5CFS {
 //    //! Map hdf5 representation of simOutput::Capability to enum representat
 //    static SimOutput::Capability MapCapabilityType( int c );
 //    
-//    //! Map EntityUnknownType enum to hdf5 type
-//    static int MapUnknownType( ResultInfo::EntityUnknownType t );
-//
-//    //! Map EntityUnknown hdf5 type to enum
-//    static ResultInfo::EntityUnknownType MapUnknownType( int t );
-//    
-//    //! Map EntityUnknownType enum to string representation
-//    static std::string MapUnknownTypeAsString( ResultInfo::EntityUnknownType t );
-//
-//    //! Map entryType from enum to hdf5 type
-//    static int MapEntryType( ResultInfo::EntryType t );
-//
-//    //! Map entryType from hdf5 type to enum
-//    static ResultInfo::EntryType MapEntryType( int t );
-//
+    //! Map EntityType enum to hdf5 type
+    static int MapUnknownType( EntityType t );
+
+    //! Map EntityUnknown hdf5 type to enum
+    static EntityType MapUnknownType( int t );
+    
+    //! Map EntityType enum to string representation
+    static std::string MapUnknownTypeAsString( EntityType t );
+
+    //! Map entryType from enum to hdf5 type
+    static int MapEntryType( EntryType t );
+
+    //! Map entryType from hdf5 type to enum
+    static EntryType MapEntryType( int t );
+
     // =======================================================================
     //  MISCELANEOUS METHODS
     // =======================================================================

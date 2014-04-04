@@ -1383,181 +1383,181 @@ hsize_t Hdf5Common::maxChunkSize_= 100;
 //  }
 //  
 //  
-//  int Hdf5Common::MapUnknownType( ResultInfo::EntityUnknownType t ) {
-//    int definedOn = 0;
-//    switch(t) {
-//    case ResultInfo::NODE:
-//      definedOn = 1;
-//      break;
-//    case ResultInfo::EDGE:
-//      definedOn = 2;
-//      break;
-//    case ResultInfo::FACE:
-//      definedOn = 3;
-//      break;
-//    case ResultInfo::ELEMENT:
-//      definedOn = 4;
-//      break;
-//    case ResultInfo::SURF_ELEM:
-//      definedOn = 5;
-//      break;
-//    case ResultInfo::PFEM:
-//      definedOn = 6;
-//      break;
-//    case ResultInfo::REGION:
-//      definedOn = 7;
-//      break;
-//    case ResultInfo::SURF_REGION:
-//      definedOn = 8;
-//      break;
-//    case ResultInfo::NODELIST:
-//      definedOn = 9;
-//      break;
-//    case ResultInfo::COIL:
-//      definedOn = 10;
-//      break;
-//    case ResultInfo::FREE:
-//      definedOn = 11;
-//      break;
-//    }
-//
-//    return definedOn;
-//
-//  }
-//  
-//  std::string Hdf5Common::MapUnknownTypeAsString( ResultInfo::EntityUnknownType t ) {
-//     std::string definedOn = "";
-//     switch(t) {
-//     case ResultInfo::NODE:
-//       definedOn = "Nodes";
-//       break;
-//     case ResultInfo::EDGE:
-//       definedOn = "Edges";
-//       break;
-//     case ResultInfo::FACE:
-//       definedOn = "Faces";
-//       break;
-//     case ResultInfo::ELEMENT:
-//       definedOn = "Elements";
-//       break;
-//     case ResultInfo::SURF_ELEM:
-//       definedOn = "Elements";
-//       break;
-//     case ResultInfo::PFEM:
-//       definedOn = "Nodes";
-//       break;
-//     case ResultInfo::REGION:
-//       definedOn = "Regions";
-//       break;
-//     case ResultInfo::SURF_REGION:
-//       definedOn = "ElementGroup";
-//       break;
-//     case ResultInfo::NODELIST:
-//       definedOn = "NodeGroup";
-//       break;
-//     case ResultInfo::COIL:
-//       definedOn = "Coils";
-//       break;
-//     case ResultInfo::FREE:
-//       definedOn = "Unknowns";
-//       break;
-//     }
-//
-//     return definedOn;
-//
-//   }
-//  
-//  ResultInfo::EntityUnknownType Hdf5Common::MapUnknownType( int t ) {
-//
-//    ResultInfo::EntityUnknownType definedOn;
-//    switch(t) {
-//    case 1:
-//      definedOn = ResultInfo::NODE;
-//      break;
-//    case 2:
-//      definedOn = ResultInfo::EDGE;
-//      break;
-//    case 3: 
-//      definedOn = ResultInfo::FACE;
-//      break;
-//    case 4:
-//      definedOn = ResultInfo::ELEMENT;
-//      break;
-//    case 5:
-//      definedOn = ResultInfo::SURF_ELEM;
-//      break;
-//    case 6:
-//      definedOn = ResultInfo::PFEM;
-//      break;
-//    case 7:
-//      definedOn = ResultInfo::REGION;
-//      break;
-//    case 8:
-//      definedOn = ResultInfo::SURF_REGION;
-//      break;
-//    case 9:
-//      definedOn = ResultInfo::NODELIST;
-//      break;
-//    case 10:
-//      definedOn = ResultInfo::COIL;
-//      break;
-//    case 11:
-//      definedOn = ResultInfo::FREE;
-//      break;
-//    }
-//
-//    return definedOn;
-//  }
-//  
-//  
-//  int Hdf5Common::MapEntryType( ResultInfo::EntryType t ) {
-//    int entryType = 0;
-//    
-//    switch(t) {
-//    case ResultInfo::UNKNOWN:
-//      entryType = 0;
-//      break;
-//    case ResultInfo::SCALAR:
-//      entryType = 1;
-//      break;
-//    case ResultInfo::VECTOR:
-//      entryType = 3;
-//      break;
-//    case ResultInfo::TENSOR:
-//      entryType = 6;
-//      break;
-//    case ResultInfo::STRING:
-//      entryType = 32;
-//      break;
-//    }
-//    return entryType;
-//  }
-//
-//  
-//  ResultInfo::EntryType Hdf5Common::MapEntryType( int t ) {
-//
-//    ResultInfo::EntryType entryType;
-//    
-//    switch(t) {
-//    case 0:
-//      entryType =ResultInfo::UNKNOWN;
-//      break;
-//    case 1:
-//      entryType = ResultInfo::SCALAR;
-//      break;
-//    case 3:
-//      entryType = ResultInfo::VECTOR;
-//      break;
-//    case 6:
-//      entryType = ResultInfo::TENSOR;
-//      break;
-//    case 32: 
-//      entryType = ResultInfo::STRING;
-//      break;
-//    }
-//    return entryType;
-//  }
-//
+  int Hdf5Common::MapUnknownType( EntityType t ) {
+    int definedOn = 0;
+    switch(t) {
+    case NODE:
+      definedOn = 1;
+      break;
+    case EDGE:
+      definedOn = 2;
+      break;
+    case FACE:
+      definedOn = 3;
+      break;
+    case ELEMENT:
+      definedOn = 4;
+      break;
+    case SURF_ELEM:
+      definedOn = 5;
+      break;
+      //    case PFEM:
+      //      definedOn = 6;
+      //      break;
+    case REGION:
+      definedOn = 7;
+      break;
+    case SURF_REGION:
+      definedOn = 8;
+      break;
+    case NODELIST:
+      definedOn = 9;
+      break;
+    case COIL:
+      definedOn = 10;
+      break;
+    case FREE:
+      definedOn = 11;
+      break;
+    }
+
+    return definedOn;
+
+  }
+  
+  std::string Hdf5Common::MapUnknownTypeAsString( EntityType t ) {
+     std::string definedOn = "";
+     switch(t) {
+     case NODE:
+       definedOn = "Nodes";
+       break;
+     case EDGE:
+       definedOn = "Edges";
+       break;
+     case FACE:
+       definedOn = "Faces";
+       break;
+     case ELEMENT:
+       definedOn = "Elements";
+       break;
+     case SURF_ELEM:
+       definedOn = "Elements";
+       break;
+       //     case PFEM:
+       //       definedOn = "Nodes";
+       //       break;
+     case REGION:
+       definedOn = "Regions";
+       break;
+     case SURF_REGION:
+       definedOn = "ElementGroup";
+       break;
+     case NODELIST:
+       definedOn = "NodeGroup";
+       break;
+     case COIL:
+       definedOn = "Coils";
+       break;
+     case FREE:
+       definedOn = "Unknowns";
+       break;
+     }
+
+     return definedOn;
+
+   }
+  
+  EntityType Hdf5Common::MapUnknownType( int t ) {
+
+    EntityType definedOn = NODE;
+    switch(t) {
+    case 1:
+      definedOn = NODE;
+      break;
+    case 2:
+      definedOn = EDGE;
+      break;
+    case 3: 
+      definedOn = FACE;
+      break;
+    case 4:
+      definedOn = ELEMENT;
+      break;
+    case 5:
+      definedOn = SURF_ELEM;
+      break;
+      //    case 6:
+      //      definedOn = PFEM;
+      //      break;
+    case 7:
+      definedOn = REGION;
+      break;
+    case 8:
+      definedOn = SURF_REGION;
+      break;
+    case 9:
+      definedOn = NODELIST;
+      break;
+    case 10:
+      definedOn = COIL;
+      break;
+    case 11:
+      definedOn = FREE;
+      break;
+    }
+
+    return definedOn;
+  }
+  
+  
+  int Hdf5Common::MapEntryType( EntryType t ) {
+    int entryType = 0;
+    
+    switch(t) {
+    case UNKNOWN:
+      entryType = 0;
+      break;
+    case SCALAR:
+      entryType = 1;
+      break;
+    case VECTOR:
+      entryType = 3;
+      break;
+    case TENSOR:
+      entryType = 6;
+      break;
+    case STRING:
+      entryType = 32;
+      break;
+    }
+    return entryType;
+  }
+
+  
+  EntryType Hdf5Common::MapEntryType( int t ) {
+
+    EntryType entryType;
+    
+    switch(t) {
+    case 0:
+      entryType = UNKNOWN;
+      break;
+    case 1:
+      entryType = SCALAR;
+      break;
+    case 3:
+      entryType = VECTOR;
+      break;
+    case 6:
+      entryType = TENSOR;
+      break;
+    case 32: 
+      entryType = STRING;
+      break;
+    }
+    return entryType;
+  }
+
   void Hdf5Common::CheckOpenObjects(H5::H5File& file, bool verbose) {
     std::vector<unsigned int> types;
     std::vector<std::string> typeNames;

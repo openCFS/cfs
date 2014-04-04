@@ -39,17 +39,17 @@
 # patch phase of ParaView.
 #
 # Our additions to the off-the-shelf ParaView include at the moment:
-#   - The CFS++/NACS HDF5 reader
-#   - A reader for Geomview .off polyhedral surface geometry files, which 
-#     are e.g. produced by CGAL.
-#   - Some additional color maps
-#   - Fixes to the calculation of derivatives on second order quads and
-#     triangles.
-#   - A reduced list of VisItBridge readers, to make sure our own reader is
-#     the only one, which can read .h5 files. Otherwise the user always has
-#     to choose the correct reader, when opening a file
-#   - Some small fixes to the VisItBridge CGNS reader for TRIA6 and PYRA13
-#     element types.
+#   (1) The CFS++/NACS HDF5 reader
+#   (2) A reader for Geomview .off polyhedral surface geometry files, which 
+#       are e.g. produced by CGAL.
+#   (3) Some additional color maps (GiD, Matlab, etc.).
+#   (4) Fixes to the calculation of derivatives on second order quads and
+#       triangles (cf. http://www.vtk.org/Bug/view.php?id=13455).
+#   (5) A reduced list of VisItBridge readers, to make sure our own reader is
+#       the only one, which can read .h5 files. Otherwise the user always has
+#       to choose the correct reader, when opening a file
+#   (6) Some small fixes to the VisItBridge CGNS reader for TRIA6 and PYRA13
+#       element types.
 #
 # These additions reside in the following files:
 #
@@ -58,27 +58,27 @@
 #   │   └── ServerManager
 #   │       └── SMApplication
 #   │           └── Resources
-#   │               └── readers.xml
+#   │               └── readers.xml (1) & (2)
 #   ├── Qt
 #   │   └── Components
 #   │       └── Resources
 #   │           └── XML
-#   │               └── ColorMaps.xml
+#   │               └── ColorMaps.xml (3)
 #   ├── Utilities
 #   │   └── VisItBridge
-#   │       └── databases
+#   │       └── databases (5)
 #   │           ├── CGNS
-#   │           │   └── avtCGNSFileFormat.C
+#   │           │   └── avtCGNSFileFormat.C (6)
 #   │           ├── CMakeLists.txt
 #   │           └── visit_readers.xml
 #   └── VTK
 #       ├── Common
-#       │   └── DataModel
+#       │   └── DataModel (4)
 #       │       ├── vtkBiQuadraticQuad.cxx
 #       │       ├── vtkQuadraticQuad.cxx
 #       │       └── vtkQuadraticTriangle.cxx
-#       ├── IO
-#       │   ├── CFSReader
+#       ├── IO 
+#       │   ├── CFSReader (1)
 #       │   │   ├── CMakeLists.txt
 #       │   │   ├── hdf5Common.cc
 #       │   │   ├── hdf5Common.h
@@ -91,14 +91,14 @@
 #       │   │   ├── vtkNACSReader_2013-03-18.h
 #       │   │   ├── vtkNACSReader_2013-08-12.cxx
 #       │   │   └── vtkNACSReader_2013-08-12.h
-#       │   └── OFFReader
+#       │   └── OFFReader (2)
 #       │       ├── CMakeLists.txt
 #       │       ├── module.cmake
 #       │       ├── vtkOFFReader.cxx
 #       │       └── vtkOFFReader.h
 #       └── ThirdParty
 #           └── hdf5
-#               └── CMakeLists.txt
+#               └── CMakeLists.txt (1)
 #
 # The (super-)build of  ParaView has been tested on machines  running CentOS 6
 # and Ubuntu 12.04 x86_64, on  which the bootstrap_devel_machine.sh script has
@@ -119,11 +119,11 @@
 #                   └── paraview-stamp
 #
 #  Once   the   Superbuild   is   finished,    one   can   therefore   go   to
-# PARAVIEW_BINARY_DIR,  set   CMAKE_BUILD_TYPE  to   Debug  and   do  ordinary
-# development,  since  all  changes  due  to CFS++  are  already  included  in
-# PARAVIEW_SOURCE_DIR. Once  development is finished,  the changes need  to be
-# just copied back  to CFS_SOURCE_DIR/cfsdeps/paraview/paraview-srcdir and the
-# corresponding patch scripts might need to be changed.
+# PARAVIEW_BINARY_DIR and  do ordinary development,  since all changes  due to
+# CFS++ are  already included  in PARAVIEW_SOURCE_DIR. If  CMAKE_BUILD_TYPE is
+# set  to Debug  in the  CFS_BINARY_DIR,  it will  also  be set  to Debug  for
+# ParaView.  Once development is finished, the  changes need to be just copied
+# back to CFS_SOURCE_DIR/cfsdeps/paraview/paraview-srcdir.
 #
 #
 #
@@ -226,7 +226,7 @@ Find_Package(Git)
 #-------------------------------------------------------------------------------
 # The paraview-superbuild external project
 #-------------------------------------------------------------------------------
-IF(GIT_FOUND)
+IF(0)#GIT_FOUND)
   # Clone Git repo for ParaView Superbuild 4.1.
   ExternalProject_Add(paraview-superbuild
     DEPENDS ${CFS_PV_DEPENDENCIES}
@@ -248,6 +248,7 @@ ELSE()
     SOURCE_DIR ${paraview_source}
     URL ${PARAVIEW_SB_URL}/${PARAVIEW_SB_GZ}
     URL_MD5 ${PARAVIEW_SB_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     CMAKE_ARGS
       ${CMAKE_ARGS}
   )

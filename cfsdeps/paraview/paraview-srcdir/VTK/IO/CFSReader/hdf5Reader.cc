@@ -566,8 +566,8 @@ namespace H5CFS {
       ptInfo->name = actResultName;
       ptInfo->dofNames = dofNames;
       ptInfo->unit = unit;
-      ptInfo->entryType = (EntryType) entryType;
-      ptInfo->listType = (EntityType)  definedOn;
+      ptInfo->entryType = Hdf5Common::MapEntryType(entryType);
+      ptInfo->listType = Hdf5Common::MapUnknownType(definedOn);
       
       // perform consistency check
       if( ptInfo->entryType == UNKNOWN ) {
