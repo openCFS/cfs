@@ -21,6 +21,7 @@ set(cgns25_source  "${cgns_prefix}/src/cgns25")
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${cgns_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_MAKE_PROGRAM:BOOL=${CMAKE_MAKE_PROGRAM}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
@@ -90,8 +91,8 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://heanet.dl.sourceforge.net/project/cgns/cgnslib_3.1/cgnslib_3.1-2.tar.gz"
-  "http://mirror.transact.net.au/pub/sourceforge/c/project/cg/cgns/cgnslib_3.1/cgnslib_3.1.3-2.tar.gz"
+  "http://heanet.dl.sourceforge.net/project/cgns/cgnslib_3.1/cgnslib_3.1.4-2.tar.gz"
+  "http://mirror.transact.net.au/pub/sourceforge/c/project/cg/cgns/cgnslib_3.1/cgnslib_3.1.4-2.tar.gz"
   "${CGNS_URL}/${CGNS_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/cgns/${CGNS_GZ}")

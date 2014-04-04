@@ -16,7 +16,7 @@
 #include <boost/filesystem/path.hpp>
 
 namespace fs = boost::filesystem;
-#include "cpp/H5Cpp.h"
+#include "H5Cpp.h"
 
 namespace CoupledField {
 

@@ -15,6 +15,7 @@ set(hdf5_source  "${hdf5_prefix}/src/hdf5")
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${hdf5_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
@@ -81,10 +82,11 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
+
 SET(MIRRORS
-  "ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4/hdf5-1.8.8.tar.gz"
-  "ftp://ftp.ca.freebsd.org/pub/packages/graphics/netcdf/netcdf-4/hdf5-1.8.8.tar.gz"
-#  "http://www.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8.8/src/hdf5-1.8.8.tar.gz"
+  "http://distfiles.macports.org/hdf5-18/hdf5-1.8.12.tar.bz2"
+  "http://pkgs.fedoraproject.org/repo/pkgs/hdf5/hdf5-1.8.12.tar.bz2/03ad766d225f5e872eb3e5ce95524a08/hdf5-1.8.12.tar.bz2"
+  "http://www.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8.12/src/hdf5-1.8.12.tar.bz2"
   "${HDF5_URL}/${HDF5_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/hdf5/${HDF5_GZ}")
@@ -282,7 +284,7 @@ ELSE(DEBUG)
 
   SET(HDF5_SHARED_LIBRARY "${HDF5_SHARED_LIBRARY_RELEASE}${HDF5_SHARED_LIBRARY_SUFFIX}")
   SET(HDF5_CPP_SHARED_LIBRARY "${HDF5_CPP_SHARED_LIBRARY_RELEASE}${HDF5_SHARED_LIBRARY_SUFFIX}")
-  SET(HDF5_LT_SHARED_LIBRARY "${HDF5_LT_SHARED_LIBRARY_RELEASE}${CMAKE_STATIC_SHARED_SUFFIX}")
+  SET(HDF5_LT_SHARED_LIBRARY "${HDF5_LT_SHARED_LIBRARY_RELEASE}${HDF5_SHARED_LIBRARY_SUFFIX}")
   SET(HDF5_LT_SHARED_CPP_LIBRARY "${HDF5_LT_CPP_SHARED_LIBRARY_RELEASE}${HDF5_SHARED_LIBRARY_SUFFIX}")
 
   SET(HDF5_LIBRARY "${HDF5_SHARED_LIBRARY_RELEASE}${HDF5_SHARED_LIBRARY_SUFFIX}")

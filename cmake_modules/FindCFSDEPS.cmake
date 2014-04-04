@@ -110,8 +110,8 @@ INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/bzip2/External_bzip2.cmake")
 #-------------------------------------------------------------------------------
 IF(USE_HDF5)
   SET(HDF5_URL "${LSE17_SOURCES_DIR}/hdf5")
-  SET(HDF5_GZ "hdf5-1.8.8.tar.gz")
-  SET(HDF5_MD5 "1196e668f5592bfb50d1de162eb16cff")
+  SET(HDF5_GZ "hdf5-1.8.12.tar.gz")
+  SET(HDF5_MD5 "03ad766d225f5e872eb3e5ce95524a08")
 
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/hdf5/External_HDF5.cmake")
 ENDIF(USE_HDF5)
@@ -121,8 +121,8 @@ ENDIF(USE_HDF5)
 #-------------------------------------------------------------------------------
 IF(USE_CGNS)
   SET(CGNS_URL "${LSE17_SOURCES_DIR}/cgns")
-  SET(CGNS_GZ "cgnslib_3.1.3-2.tar.gz")
-  SET(CGNS_MD5 "164040363bd821a5e22820487dc441b3")
+  SET(CGNS_GZ "cgnslib_3.1.4-2.tar.gz")
+  SET(CGNS_MD5 "e2d57dc5e116ff723ee003eba667b9f9")
 
   SET(CGNS25_GZ "cgnslib_2.5-5.tar.gz")
   SET(CGNS25_MD5 "ae2a2e79b99d41c63e5ed5f661f70fd9")

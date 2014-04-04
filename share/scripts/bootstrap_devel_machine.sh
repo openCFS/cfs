@@ -346,13 +346,13 @@ SetupCMake() {
     CMAKE_MINOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f2)
     CMAKE_PATCH_LEVEL=$(echo $CMAKE_VERSION | cut -d'.' -f3)
 
-    if [ $CMAKE_MAJOR_VERSION -ge 2 ] && [ $CMAKE_MINOR_VERSION -ge 8 ] && [ $CMAKE_PATCH_LEVEL -ge 8 ]; then
+    if [ $CMAKE_MAJOR_VERSION -ge 2 ] && [ $CMAKE_MINOR_VERSION -ge 8 ] && [ $CMAKE_PATCH_LEVEL -ge 10 ]; then
         return 1
     fi
 
     CMAKE_MAJOR_VERSION=2
     CMAKE_MINOR_VERSION=8
-    CMAKE_PATCH_LEVEL=10.2
+    CMAKE_PATCH_LEVEL=12
 
     PCKG_BASE_NAME="cmake-$CMAKE_MAJOR_VERSION.$CMAKE_MINOR_VERSION.$CMAKE_PATCH_LEVEL";
     MYTMPDIR="$TMPDIR/$(basename $0).$$"
@@ -366,7 +366,7 @@ SetupCMake() {
     mirrors="http://www.cmake.org/files/v$CMAKE_MAJOR_VERSION.$CMAKE_MINOR_VERSION/$PCKG_BASE_NAME.tar.gz
              ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/cmake/$PCKG_BASE_NAME.tar.gz"
 
-    MD5SUM="097278785da7182ec0aea8769d06860c"
+    MD5SUM="17c6513483d23590cbce6957ec6d1e66"
 
     # Download source
     for mirror in $mirrors; do

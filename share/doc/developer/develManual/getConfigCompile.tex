@@ -149,7 +149,7 @@ for C, C++ and Fortran compilers. Another toolchain is available at \url{http://
 There exists an older project \emph{GNU utilities for Win32}\footnote{GNU utilities for Win32: \url{http://unxutils.sourceforge.net}} or
 the \emph{GnuWin32}\footnote{GnuWin32 project: \url{http://gnuwin32.sourceforge.net}} project, which provides more up-to-date versions of the utilities.
 After following their corresponding download and installation instructions, one should end up with the installed trees. One has to add the corresponding
-binary dirs ({\tt GNUWIN32\_INSTALL\_DIR/bin} for GnuWin32 or {\tt UNXUTILS\_INSTALL\_DIR/usr/local/wbin} for UnxUtils) to the system path
+binary dirs ({\tt GNUWIN32\_INSTALL\_DIR/bin} for GnuWin32 or {\tt UNXUTILS\_INSTALL\_DIR/usr/local/wbin} for UnxUtils) to the system path. There exists a known problem, where {\tt patch.exe} has a problem with Windows 7 User Access Control UAC\footnote{Using \"patch\" from the GnuWin32 project on Windows 7: \url{http://math.nist.gov/oommf/software-patchsets/patch_on_Windows7.html}}. The {\tt patch.exe} therefore needs to be endowed with a manifest first! When applying a patch manually it is usually a good idea to add the {\tt --binary} command line switch to avoid CR/LF problems\footnote{patch error: Assertion failed, hunk, file patch.c: \url{http://solutionslog.blogspot.de/2009/07/patch-error-assertion-failed-hunk-file.html}}
 
 \item[CMake] for Windows can be obtained from download section of the official homepage\footnote{CMake  download page: \url{http://www.cmake.org/cmake/resources/software.html}}.
 

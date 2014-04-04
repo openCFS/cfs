@@ -3,7 +3,7 @@
 #-----------------------------------------------------------------------------
 SET(REQ_MAJOR_VER 2)
 SET(REQ_MINOR_VER 8)
-SET(REQ_PATCH_VER 8)
+SET(REQ_PATCH_VER 10)
 
 #-----------------------------------------------------------------------------
 # Give some hints to the user, if CMake is too old.
