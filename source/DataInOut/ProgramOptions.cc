@@ -91,7 +91,9 @@
 #undef NO_ERROR
 #undef NO_DATA
 #include <adf/ADF.h>
+#if CGNS_VERSION > 2550
 #include <adfh/ADFH.h>
+#endif
 #undef NO_ERROR
 #undef NO_DATA
 #define NO_ERROR CFS_DUMMY_NO_ERROR
@@ -869,9 +871,11 @@ namespace CoupledField {
     ADF_Library_Version(version, &error_return ) ;
     out << "ADF_VERSION:           "
         << fg_blue << version << fg_reset << endl;
+#if CGNS_VERSION > 2550
     ADFH_Library_Version(version, &error_return ) ;
     out << "ADFH_VERSION:          "
         << fg_blue << version << fg_reset << endl;
+#endif
 #else
     out << "USE_CGNS:              "
         << fg_blue << "NO" << fg_reset << endl;

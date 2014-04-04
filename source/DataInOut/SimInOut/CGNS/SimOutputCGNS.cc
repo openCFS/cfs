@@ -440,7 +440,9 @@ namespace CoupledField {
       elemTypeMap_[Elem::ET_QUAD8]   = CGNSLIB_H::QUAD_8;
       elemTypeMap_[Elem::ET_QUAD9]   = CGNSLIB_H::QUAD_9;
       elemTypeMap_[Elem::ET_TET10]   = CGNSLIB_H::TETRA_10;
+#if CGNS_VERSION > 2550
       elemTypeMap_[Elem::ET_PYRA13]  = CGNSLIB_H::PYRA_13;
+#endif
       elemTypeMap_[Elem::ET_PYRA14]  = CGNSLIB_H::PYRA_14;
       elemTypeMap_[Elem::ET_WEDGE15] = CGNSLIB_H::PENTA_15;
       elemTypeMap_[Elem::ET_WEDGE18] = CGNSLIB_H::PENTA_18;
@@ -599,6 +601,7 @@ namespace CoupledField {
     
     fs::path fileName (dirName_);
     
+#if CGNS_VERSION > 2550
     // Set type of mid level library to use.
     int file_type = CG_FILE_ADF;
     std::string mll = "adf";
@@ -626,6 +629,7 @@ namespace CoupledField {
       EXCEPTION("Cannot set file type to '" << mll <<
                 "':\n" << cg_get_error());
     }
+#endif
 
     indexFile_.Resize(2);
     if(!separateFiles_) 

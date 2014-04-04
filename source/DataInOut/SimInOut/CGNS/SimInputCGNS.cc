@@ -508,10 +508,12 @@ namespace CoupledField{
             eTypeIdx += vertsPerElem+1;            
           }
         }
+#if CGNS_VERSION > 2550
       case NGON_n:
       case NFACE_n:
         // Do nothing!!
         break;
+#endif
       default:
         {
           mi_->AddElems(numEs);
@@ -630,9 +632,11 @@ namespace CoupledField{
       case CGNSLIB_H::PYRA_5:
         LOG_TRACE(simInputCGNS) << "PYRA_5";
         break;
+#if CGNS_VERSION > 2550
       case CGNSLIB_H::PYRA_13:
         LOG_TRACE(simInputCGNS) << "PYRA_13";
         break;
+#endif
       case CGNSLIB_H::PYRA_14:
         LOG_TRACE(simInputCGNS) << "PYRA_14";
         break;
@@ -657,12 +661,14 @@ namespace CoupledField{
       case CGNSLIB_H::MIXED:
         LOG_TRACE(simInputCGNS) << "MIXED";
         break;
+#if CGNS_VERSION > 2550
       case CGNSLIB_H::NGON_n:
         LOG_TRACE(simInputCGNS) << "NGON_n";
         break;
       case CGNSLIB_H::NFACE_n:
         LOG_TRACE(simInputCGNS) << "NFACE_n";
         break;
+#endif
       default:
         LOG_TRACE(simInputCGNS) << "Unknown element Type detected";
         break;
@@ -685,7 +691,9 @@ namespace CoupledField{
     elemTypeMap_[CGNSLIB_H::TETRA_10] = Elem::ET_TET10;
     elemTypeMap_[CGNSLIB_H::PYRA_5] = Elem::ET_PYRA5;
 
+#if CGNS_VERSION > 2550
     elemTypeMap_[CGNSLIB_H::PYRA_13] = Elem::ET_PYRA13;
+#endif
     elemTypeMap_[CGNSLIB_H::PYRA_14] = Elem::ET_PYRA14;
     elemTypeMap_[CGNSLIB_H::PENTA_6] = Elem::ET_WEDGE6;
     elemTypeMap_[CGNSLIB_H::PENTA_15] = Elem::ET_WEDGE15;
@@ -694,8 +702,10 @@ namespace CoupledField{
     elemTypeMap_[CGNSLIB_H::HEXA_20] = Elem::ET_HEXA20;
     elemTypeMap_[CGNSLIB_H::HEXA_27] = Elem::ET_HEXA27;
     elemTypeMap_[CGNSLIB_H::MIXED] = Elem::ET_UNDEF;
+#if CGNS_VERSION > 2550
     elemTypeMap_[CGNSLIB_H::NGON_n] = Elem::ET_UNDEF;
     elemTypeMap_[CGNSLIB_H::NFACE_n] = Elem::ET_UNDEF;
+#endif
   }
 
   void SimInputCGNS::TranslateConnectivity(Elem::FEType feType,
