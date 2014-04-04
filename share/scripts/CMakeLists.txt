@@ -7,11 +7,7 @@ CONFIGURE_FILE(hdf5_concat.sh.in ${CFS_BINARY_DIR}/bin/hdf5_concat.sh)
 # Custom target for copying common.sh to ${CFS_BINARY_DIR}/bin
 #-------------------------------------------------------------------------------
 IF(WIN32)
-  IF(NOT $ENV{MSYSTEM} STREQUAL "MINGW32")
-    SET(COMMON_SCRIPT "common.bat")
-  ELSE()
-    SET(COMMON_SCRIPT "common.sh")
-  ENDIF()
+  SET(COMMON_SCRIPT "common.bat")
 ELSE(WIN32)
   SET(COMMON_SCRIPT "common.sh")
 ENDIF(WIN32)
@@ -22,23 +18,17 @@ ADD_CUSTOM_TARGET(common_script ALL
   COMMENT "Copying \"${COMMON_SCRIPT}\" script to ${CFS_BINARY_DIR}/bin folder...")
 
 IF(MINGW)
-  IF(CMAKE_CROSSCOMPILING)
-    ADD_CUSTOM_TARGET(common_script_sh ALL
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/common.sh ${CFS_BINARY_DIR}/bin
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/common.sh
-      COMMENT "Copying \"common.sh\" script to ${CFS_BINARY_DIR}/bin folder...")
-  ENDIF()
+  ADD_CUSTOM_TARGET(common_script_sh ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/common.sh ${CFS_BINARY_DIR}/bin
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/common.sh
+    COMMENT "Copying \"common.sh\" script to ${CFS_BINARY_DIR}/bin folder...")
 ENDIF()
 
 #-------------------------------------------------------------------------------
 # Custom target for copying cfs to ${CFS_BINARY_DIR}/bin
 #-------------------------------------------------------------------------------
 IF(WIN32)
-  IF(NOT $ENV{MSYSTEM} STREQUAL "MINGW32")
-    SET(CFS_SCRIPT "cfs.bat")
-  ELSE()
-    SET(CFS_SCRIPT "cfs")
-  ENDIF()
+  SET(CFS_SCRIPT "cfs.bat")
 ELSE(WIN32)
   SET(CFS_SCRIPT "cfs")
 ENDIF(WIN32)
@@ -50,12 +40,10 @@ ADD_CUSTOM_TARGET(cfs_script ALL
   ${CFS_BINARY_DIR}/bin folder...")
 
 IF(MINGW)
-  IF(CMAKE_CROSSCOMPILING)
-    ADD_CUSTOM_TARGET(cfs_script_sh ALL
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfs ${CFS_BINARY_DIR}/bin
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfs
-      COMMENT "Copying \"cfs\" script to ${CFS_BINARY_DIR}/bin folder...")
-  ENDIF()
+  ADD_CUSTOM_TARGET(cfs_script_sh ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfs ${CFS_BINARY_DIR}/bin
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfs
+    COMMENT "Copying \"cfs\" script to ${CFS_BINARY_DIR}/bin folder...")
 ENDIF()
 
 #-------------------------------------------------------------------------------
@@ -76,11 +64,7 @@ ENDIF(WIN32)
 #-------------------------------------------------------------------------------
 IF(CFSTOOL)
   IF(WIN32)
-    IF(NOT $ENV{MSYSTEM} STREQUAL "MINGW32")
-      SET(CFSTOOL_SCRIPT "cfstool.bat")
-    ELSE()
-      SET(CFSTOOL_SCRIPT "cfstool")
-    ENDIF()
+    SET(CFSTOOL_SCRIPT "cfstool.bat")
   ELSE(WIN32)
     SET(CFSTOOL_SCRIPT "cfstool")
   ENDIF(WIN32)
@@ -92,12 +76,10 @@ IF(CFSTOOL)
     ${CFS_BINARY_DIR}/bin folder...")
 
   IF(MINGW)
-    IF(CMAKE_CROSSCOMPILING)
-      ADD_CUSTOM_TARGET(cfstool_script_sh ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfstool ${CFS_BINARY_DIR}/bin
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfstool
-	COMMENT "Copying \"cfstool\" script to ${CFS_BINARY_DIR}/bin folder...")
-    ENDIF()
+    ADD_CUSTOM_TARGET(cfstool_script_sh ALL
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfstool ${CFS_BINARY_DIR}/bin
+      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfstool
+      COMMENT "Copying \"cfstool\" script to ${CFS_BINARY_DIR}/bin folder...")
   ENDIF()
 
 ENDIF(CFSTOOL)
@@ -106,11 +88,7 @@ ENDIF(CFSTOOL)
 # Custom target for copying h5tool to ${CFS_BINARY_DIR}/bin
 #-------------------------------------------------------------------------------
 IF(WIN32)
-  IF(NOT $ENV{MSYSTEM} STREQUAL "MINGW32")
-    SET(H5TOOL_SCRIPT "h5tool.bat")
-  ELSE()
-    SET(H5TOOL_SCRIPT "h5tool")
-  ENDIF()
+  SET(H5TOOL_SCRIPT "h5tool.bat")
 ELSE(WIN32)
   SET(H5TOOL_SCRIPT "h5tool")
 ENDIF(WIN32)
@@ -125,11 +103,7 @@ ADD_CUSTOM_TARGET(h5tool_script ALL
 # Custom target for copying distro.sh to ${CFS_BINARY_DIR}/share/scripts
 #-------------------------------------------------------------------------------
 IF(WIN32)
-  IF(NOT $ENV{MSYSTEM} STREQUAL "MINGW32")
-    SET(DISTRO_SCRIPT "winver.bat")
-  ELSE()
-    SET(DISTRO_SCRIPT "distro.sh")
-  ENDIF()
+  SET(DISTRO_SCRIPT "winver.bat")
 ELSE(WIN32)
   SET(DISTRO_SCRIPT "distro.sh")
 ENDIF(WIN32)
@@ -141,10 +115,8 @@ ADD_CUSTOM_TARGET(distro_script ALL
   )
 
 IF(MINGW)
-  IF(CMAKE_CROSSCOMPILING)
-    ADD_CUSTOM_TARGET(distro_script_sh ALL
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/distro.sh ${CFS_BINARY_DIR}/share/scripts
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/distro.sh
-      COMMENT "Copying \"distro.sh\" script to ${CFS_BINARY_DIR}/share/scripts folder...")
-  ENDIF()
+  ADD_CUSTOM_TARGET(distro_script_sh ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/distro.sh ${CFS_BINARY_DIR}/share/scripts
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/distro.sh
+    COMMENT "Copying \"distro.sh\" script to ${CFS_BINARY_DIR}/share/scripts folder...")
 ENDIF()
