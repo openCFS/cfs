@@ -125,7 +125,11 @@ namespace CoupledField {
     cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateY",&yCoord[0],&indexCoord);
     cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateZ",&zCoord[0],&indexCoord);
 
-
+    UInt elemRangeStart = 1;
+    StdVector<cgsize_t> regionIds;
+    StdVector<cgsize_t> origElemNums;
+    StdVector<cgsize_t> elemTypes;
+    
     for(UInt i=0, n=ptGrid_->regionData.GetSize(); i<n; i++) 
     {
       RegionIdType regionId = ptGrid_->regionData[i].id;
@@ -136,6 +140,9 @@ namespace CoupledField {
       UInt nElems = elems.GetSize();
       Elem::FEType feType = elems[0]->type;
       UInt j=1;
+      regionIds.Resize(regionIds.GetSize()+nElems);
+      origElemNums.Resize(regionIds.GetSize()+nElems);
+      elemTypes.Resize(regionIds.GetSize()+nElems);
       
       // Check if all elems in regions are of same type
       for( ; j<nElems; j++)
@@ -147,39 +154,68 @@ namespace CoupledField {
       if(j < nElems) 
       {
         // Write mixed section.
-        WriteMixedSection(elems, ptGrid_->regionData[regionId].name);
+        WriteMixedSection(elems,
+                          ptGrid_->regionData[regionId].name,
+                          regionIds,
+                          origElemNums,
+                          elemTypes,
+                          elemRangeStart);
       }
       else
       {
         // Write pure section.
-        WritePureSection(elems, ptGrid_->regionData[regionId].name);
+        WritePureSection(elems,
+                         ptGrid_->regionData[regionId].name,
+                         regionIds,
+                         origElemNums,
+                         elemTypes,
+                         elemRangeStart);
       }
     }
 
-    if (1 == 0) {
+    if (0 == 0) {
+
     std::string solname = "DummyPressure1";
-    double *press = new double[numNodes];
+    int indexFlow,indexField;
+    /*
+    StdVector<double> press(numNodes);
     for (UInt node=0; node<numNodes; node++) {
         press[node] = 1.0+xCoord[node]*(1.0 - yCoord[node]*yCoord[node])*exp(1.0-zCoord[node]);
     }
-    int indexFlow,indexField;
     cg_sol_write(indexFile_,indexBase_,indexZone_,solname.c_str(),Vertex,&indexFlow);
     cg_field_write(indexFile_,indexBase_,indexZone_,indexFlow,RealDouble,
-            "Pressure",press,&indexField);
+            "Pressure",&press[0],&indexField);
+
+    solname = "DummyPressure1";
+    cg_sol_write(indexFile_,indexBase_,indexZone_,solname.c_str(),Vertex,&indexFlow);
+    cg_field_write(indexFile_,indexBase_,indexZone_,indexFlow,RealDouble,
+            "Pressure",&press[0],&indexField);
+    */
+
+    solname = "MeshStats";
+    cg_sol_write(indexFile_,indexBase_,indexZone_,solname.c_str(), CellCenter,&indexFlow);
+    cg_field_write(indexFile_,indexBase_,indexZone_,indexFlow,CGNSLIB_H::Integer,
+            "RegionId",&regionIds[0],&indexField);
+    cg_field_write(indexFile_,indexBase_,indexZone_,indexFlow,CGNSLIB_H::Integer,
+            "OrigElemNum",&origElemNums[0],&indexField);
+    cg_field_write(indexFile_,indexBase_,indexZone_,indexFlow,CGNSLIB_H::Integer,
+            "ElemType",&elemTypes[0],&indexField);
+    
+    /*
     for (UInt node=0; node<numNodes; node++) {
         press[node] = 2.0+xCoord[node]*(1.0 - yCoord[node]*yCoord[node])*exp(1.0-zCoord[node]);
     }
     solname = "DummyPressure2";
     cg_sol_write(indexFile_,indexBase_,indexZone_,solname.c_str(),Vertex,&indexFlow);
     cg_field_write(indexFile_,indexBase_,indexZone_,indexFlow,RealDouble,
-            "Pressure",press,&indexField);
+            "Pressure",&press[0],&indexField);
     for (UInt node=0; node<numNodes; node++) {
         press[node] = 3.0+xCoord[node]*(1.0 - yCoord[node]*yCoord[node])*exp(1.0-zCoord[node]);
     }
     solname = "DummyPressure3";
     cg_sol_write(indexFile_,indexBase_,indexZone_,solname.c_str(),Vertex,&indexFlow);
     cg_field_write(indexFile_,indexBase_,indexZone_,indexFlow,RealDouble,
-            "Pressure",press,&indexField);
+            "Pressure",&press[0],&indexField);
 // create BaseIterativeData
     int nsteps=3;
     cg_biter_write(indexFile_,indexBase_,"TimeIterValues",nsteps);
@@ -211,13 +247,18 @@ namespace CoupledField {
     cg_array_write("FlowSolutionPointers",Character,2,idata,tmp);
 // add SimulationType
     cg_simulation_type_write(indexFile_,indexBase_,TimeAccurate);
+    */
     }
 
     cg_close(indexFile_);
   }
 
   void SimOutputCGNS::WriteMixedSection(const StdVector<Elem*>& elems,
-                                        const std::string name) 
+                                        const std::string& name,
+                                        StdVector<cgsize_t>& regionIds,
+                                        StdVector<cgsize_t>& origElemNums,
+                                        StdVector<cgsize_t>& elemTypes,
+                                        UInt& elemRangeStart) 
   {
     UInt numElems = elems.GetSize();
     Elem::FEType feType;
@@ -234,16 +275,26 @@ namespace CoupledField {
       TranslateConnectivity(feType, &elemData[idx+1], ptEl->connect);
 
       idx += numElemNodes+1;
+
+      regionIds[elemRangeStart-1+iElem] = ptEl->regionId;
+      origElemNums[elemRangeStart-1+iElem] = ptEl->elemNum;
+      elemTypes[elemRangeStart-1+iElem] = feType;
     }
 
     int indexSection;
-    int nelemStart = 1, nelemEnd = numElems, nbdyElem=0;
+    int nelemStart = elemRangeStart, nelemEnd = elemRangeStart+numElems-1, nbdyElem=0;
     cg_section_write(indexFile_,indexBase_,indexZone_,name.c_str(),MIXED,nelemStart,
                      nelemEnd,nbdyElem,&elemData[0],&indexSection);
+
+    elemRangeStart = nelemEnd+1;
   }
   
   void SimOutputCGNS::WritePureSection(const StdVector<Elem*>& elems,
-                                       const std::string name)
+                                       const std::string& name,
+                                       StdVector<cgsize_t>& regionIds,
+                                       StdVector<cgsize_t>& origElemNums,
+                                       StdVector<cgsize_t>& elemTypes,
+                                       UInt& elemRangeStart)
   {
     UInt numElems = elems.GetSize();
     Elem::FEType feType = elems[0]->type;
@@ -254,12 +305,18 @@ namespace CoupledField {
     for (UInt iElem=0; iElem<numElems; iElem++) {
       Elem* ptEl = elems[iElem];
       TranslateConnectivity(feType, &elemData[iElem*numElemNodes], ptEl->connect);
+
+      regionIds[elemRangeStart-1+iElem] = ptEl->regionId;
+      origElemNums[elemRangeStart-1+iElem] = ptEl->elemNum;
+      elemTypes[elemRangeStart-1+iElem] = feType;
     }
 
     int indexSection;
-    int nelemStart = 1, nelemEnd = numElems, nbdyElem=0;
+    int nelemStart = elemRangeStart, nelemEnd = elemRangeStart+numElems-1, nbdyElem=0;
     cg_section_write(indexFile_,indexBase_,indexZone_,name.c_str(),elemTypeMap_[feType],nelemStart,
                      nelemEnd,nbdyElem,&elemData[0],&indexSection);
+
+    elemRangeStart = nelemEnd+1;
   }
 
   void SimOutputCGNS::InitElemTypeMap(){

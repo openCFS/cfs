@@ -61,8 +61,18 @@ namespace CoupledField
 
     void WriteNodesAndElements();
     
-    void WriteMixedSection(const StdVector<Elem*>& elems, const std::string name);
-    void WritePureSection(const StdVector<Elem*>& elems, const std::string name);    
+    void WriteMixedSection(const StdVector<Elem*>& elems,
+                           const std::string& name,
+                           StdVector<cgsize_t>& regionIds,
+                           StdVector<cgsize_t>& origElemNums,
+                           StdVector<cgsize_t>& elemTypes,
+                           UInt& elemRangeStart);
+    void WritePureSection(const StdVector<Elem*>& elems,
+                          const std::string& name,
+                          StdVector<cgsize_t>& regionIds,
+                          StdVector<cgsize_t>& origElemNums,
+                          StdVector<cgsize_t>& elemTypes,
+                          UInt& elemRangeStart);    
 
     void TranslateConnectivity(Elem::FEType feType,
                                cgsize_t* cgnsConn,
