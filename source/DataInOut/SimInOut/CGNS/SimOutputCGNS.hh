@@ -69,33 +69,25 @@ namespace CoupledField
 
     void WriteNodesAndElements();
     
-    void WriteMixedSection(const StdVector<Elem*>& elems,
-                           const std::string& name,
-                           StdVector<int>& regionIds,
-                           StdVector<int>& origElemNums,
-                           StdVector<int>& elemTypes,
-                           UInt& elemRangeStart);
-    void WritePureSection(const StdVector<Elem*>& elems,
-                          const std::string& name,
-                          StdVector<int>& regionIds,
-                          StdVector<int>& origElemNums,
-                          StdVector<int>& elemTypes,
-                          UInt& elemRangeStart);    
+    void WriteMixedSection(const StdVector<Elem*>& elems);
+    void WritePureSection(const StdVector<Elem*>& elems);
 
     void TranslateConnectivity(Elem::FEType feType,
                                cgsize_t* cgnsConn,
-                               StdVector<UInt>& connect);
+                               Elem* elem);
 
     void InitElemTypeMap();
     
     std::map<Elem::FEType,CGNSLIB_H::ElementType_t> elemTypeMap_;
 
-    int indexFile_, indexBase_, indexZone_;
-    int indexNodeSol_, indexElemSol_;
+    int indexFile_, indexBase_;
+    StdVector<int> idxZone_;
+    StdVector<int> idxNodeSol_;
+    StdVector<int> idxElemSol_;
     int cellDim_;
-    int numNodes_;
     bool outputFileOK_;
-    char baseName_[33], zoneName_[33];
+
+    std::map< RegionIdType, std::map<UInt, UInt> > regionNodeMap_;
 
     //! Map with result objects for each result type
     ResultMapType resultMap_;
@@ -108,6 +100,9 @@ namespace CoupledField
 
     bool writeQuadElems_;
 
+    typedef std::map<std::string, std::map< RegionIdType, Vector<Double> > > RegionSolsType;
+    
+
     //! for printing nodal results of simulation (static/transient)
     /*!
       \param definedOnNode is data defined on nodes?
@@ -117,13 +112,13 @@ namespace CoupledField
       \param time time of the calculation
     */
     void NodeElemDataTransient(const bool definedOnNode,
-                               std::map< std::string, Vector<Double> >& gSol,
+                               RegionSolsType& regionSols,
                                const UInt step, 
                                const Double time);
   
-    void FillGlobalVectors(std::map< std::string, Vector<Double> >& gSol, 
-                           const StdVector<shared_ptr<BaseResult> > & solList,
-                           ResultInfo::EntityUnknownType entityType );
+    void FillRegionSols(RegionSolsType& regionSols, 
+                        const StdVector<shared_ptr<BaseResult> > & solList,
+                        ResultInfo::EntityUnknownType entityType );
 
   };
 

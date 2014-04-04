@@ -591,7 +591,7 @@
     <xsd:attribute name="directory" type="xsd:string" default="results_cgns"/>
     <xsd:attribute name="id" type="xsd:token" default="hdf5"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
-    <xsd:attribute name="mll" type="xsd:token" default="default">
+    <xsd:attribute name="mll" type="DT_OutputCGNSMidLevelLibraries" default="default">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
           Mid level library used to write CGNS SIDS. May be one of hdf5, adf,
@@ -601,7 +601,26 @@
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
+    <xsd:attribute name="writeQuadElems" type="xsd:boolean" default="false">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Even if the CGNS library properly defines complete and incomplete
+          quadratic element types, most post-processors (VisIt, ParaView with
+          VisItBridge, EnSight) have problems handling them. Therefore, we just
+          write linear element types by default.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
+
+  <xsd:simpleType name="DT_OutputCGNSMidLevelLibraries">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="adf"/>
+      <xsd:enumeration value="adf2"/>
+      <xsd:enumeration value="hdf5"/>
+      <xsd:enumeration value="default"/>
+    </xsd:restriction>
+  </xsd:simpleType>  
   
   <!-- ******************************************************************** -->
   <!--   Definition of data type for text output -->

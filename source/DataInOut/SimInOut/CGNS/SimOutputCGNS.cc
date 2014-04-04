@@ -30,11 +30,7 @@ namespace CoupledField {
     : SimOutput ( fileName, outputNode, infoNode, isRestart ),
       indexFile_(-1),
       indexBase_(-1),
-      indexZone_(-1),
-      indexNodeSol_(-1),
-      indexElemSol_(-1),
       cellDim_(-1),
-      numNodes_(0),
       outputFileOK_(false),
       stepNumOffset_(0),
       stepValOffset_(0.0),
@@ -48,8 +44,9 @@ namespace CoupledField {
     std::string dirString = "results_" + formatName_; 
     myParam_->GetValue("directory", dirString, ParamNode::PASS );
     dirName_ = dirString; 
-  }
 
+    myParam_->GetValue("writeQuadElems", writeQuadElems_, ParamNode::PASS );
+  }
 
   // **************
   //   Destructor
@@ -79,8 +76,14 @@ namespace CoupledField {
     cellDim_ = cellDim_ > 3 ? 3 : cellDim_;
     int phys_dim = 3;
 
-    strcpy(baseName_,"CFS_Simulation");
-    cg_base_write(indexFile_,baseName_,cellDim_,phys_dim,&indexBase_);
+    std::string baseName = "CFS_Mesh";
+    if(cg_base_write(indexFile_,baseName.c_str(),cellDim_,phys_dim,&indexBase_))
+    {
+      cg_close(indexFile_);
+      EXCEPTION("Cannot write base '" << baseName <<
+                "':\n" << cg_get_error());
+    }
+
 
     WriteNodesAndElements();
   }
@@ -90,136 +93,171 @@ namespace CoupledField {
     if (!ptGrid_)
       EXCEPTION("ptGrid_ is not initialized" );
 
-    // Try to fulfill CGNS assertion that vertices < CellDim + 1 cannot happen.
-    // This may be the case when using a single LINE2 element in 2D.
-    numNodes_ = ptGrid_->GetNumNodes();
-    if(numNodes_ < cellDim_ + 1) 
-    {
-      numNodes_++;
-    }
-    
-    UInt numElems = 0;
-    for(UInt i=0, n=ptGrid_->regionData.GetSize(); i<n; i++) 
+    // In order to write node and element solutions afterwards, we have to
+    // remember the indices of the corresponding CGNS tree nodes per region.
+    UInt numRegions = ptGrid_->regionData.GetSize();
+    idxZone_.Resize(numRegions);
+    idxNodeSol_.Resize(numRegions);
+    idxElemSol_.Resize(numRegions);
+
+    // We write one zone per region, since ParaView or CFD Post do not offer a
+    // way of selecting by CGNS sections.
+    for(UInt i=0; i<numRegions; i++) 
     {
       RegionIdType regionId = ptGrid_->regionData[i].id;
+      std::string regionName = ptGrid_->regionData[i].name;
 
+      // Get nodes of current region.
+      StdVector<UInt> nodes;
+      ptGrid_->GetNodesByRegion(nodes, regionId );
+      UInt numNodes = nodes.GetSize();
+
+      // Get elements of current region.
       StdVector<Elem*> elems;
-      
       ptGrid_->GetElems(elems, regionId);
-      UInt nElems = elems.GetSize();
+      UInt numElems = elems.GetSize();
 
-      numElems += nElems;
-    }    
-
-    // create zone
-    strcpy(zoneName_,"CFS_Mesh");
-    cgsize_t isize[3][1];
-    isize[0][0] = numNodes_;
-    isize[1][0] = numElems;
-    isize[2][0] = 0;
-    cg_zone_write(indexFile_,indexBase_,zoneName_,isize[0],Unstructured,&indexZone_);
-
-    // coordinates
-    StdVector< Vector<double> > coords(3);
-    Vector<Double> point;
-
-    UInt d = 0;
-    for ( ; d < 3; d++ ) {
-      coords[d].Resize(numNodes_);
-      coords[d].Init();
-    }
-    UInt dims=ptGrid_->GetDim();
-    d = 0;
-    for ( ; d < dims; d++ ) {
-      for ( UInt i = 0, n=ptGrid_->GetNumNodes(); i < n; i++ ) {
-        ptGrid_->GetNodeCoordinate(point,i+1);
-        coords[d][i] = point[d];
+      #if 0
+      // Try to fulfill CGNS assertion that vertices < CellDim + 1 cannot happen.
+      // This may be the case when using a single LINE2 element in 2D.
+      numNodes_ = ptGrid_->GetNumNodes();
+      if(numNodes_ < cellDim_ + 1) 
+      {
+        numNodes_++;
       }
-    }
-    
-    int indexCoord;
-    // write grid coordinates
-    cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateX",&coords[0][0],&indexCoord);
-    cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateY",&coords[1][0],&indexCoord);
-    cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateZ",&coords[2][0],&indexCoord);
+      #endif
 
-    UInt elemRangeStart = 1;
-    StdVector<int> regionIds;
-    StdVector<int> origElemNums;
-    StdVector<int> elemTypes;
-    
-    for(UInt i=0, n=ptGrid_->regionData.GetSize(); i<n; i++) 
-    {
-      RegionIdType regionId = ptGrid_->regionData[i].id;
-
-      StdVector<Elem*> elems;
+      // Create one zone per region.
+      cgsize_t isize[3][1];
+      isize[0][0] = numNodes;
+      isize[1][0] = numElems;
+      isize[2][0] = 0;
+      cg_zone_write(indexFile_, indexBase_, regionName.c_str(), 
+                    isize[0], Unstructured, &idxZone_[i]);
       
-      ptGrid_->GetElems(elems, regionId);
-      UInt nElems = elems.GetSize();
+      // Get node coordinates
+      StdVector< Vector<double> > coords(3);
+      Vector<Double> point;
+      
+      UInt d = 0;
+      for ( ; d < 3; d++ ) {
+        coords[d].Resize(numNodes);
+        coords[d].Init();
+      }
+      UInt dim=ptGrid_->GetDim();
+      for ( UInt j = 0; j < numNodes; j++ ) {
+        d = 0;
+        for ( ; d < dim; d++ ) {
+          ptGrid_->GetNodeCoordinate(point, nodes[j]);
+          coords[d][j] = point[d];
+        }
+
+        regionNodeMap_[regionId][nodes[j]] = j+1;
+      }
+      
+      int indexCoord;
+      // write grid coordinates
+      cg_coord_write(indexFile_,indexBase_,idxZone_[i],
+                     RealDouble,"CoordinateX",&coords[0][0],&indexCoord);
+      cg_coord_write(indexFile_,indexBase_,idxZone_[i],
+                     RealDouble,"CoordinateY",&coords[1][0],&indexCoord);
+      cg_coord_write(indexFile_,indexBase_,idxZone_[i],
+                     RealDouble,"CoordinateZ",&coords[2][0],&indexCoord);
+
       Elem::FEType feType = elems[0]->type;
       UInt j=1;
-      regionIds.Resize(regionIds.GetSize()+nElems);
-      origElemNums.Resize(regionIds.GetSize()+nElems);
-      elemTypes.Resize(regionIds.GetSize()+nElems);
       
-      // Check if all elems in regions are of same type
-      for( ; j<nElems; j++)
+      // Check if all elems in regions are of same type.
+      for( ; j<numElems; j++)
       {
         if(elems[j]->type != feType)
           break;
       }
 
-      if(j < nElems) 
-      {
+      // If not all elements in region are of same type write a mixed section.
+      if(j < numElems) {
         // Write mixed section.
-        WriteMixedSection(elems,
-                          ptGrid_->regionData[regionId].name,
-                          regionIds,
-                          origElemNums,
-                          elemTypes,
-                          elemRangeStart);
+        WriteMixedSection(elems);
       }
-      else
-      {
+      else {
         // Write pure section.
-        WritePureSection(elems,
-                         ptGrid_->regionData[regionId].name,
-                         regionIds,
-                         origElemNums,
-                         elemTypes,
-                         elemRangeStart);
+        WritePureSection(elems);
       }
-    }
 
-    int indexField;
-    std::string solName = "NodeSolution";
-    int* indexSol = &indexNodeSol_;
-    GridLocation_t location = Vertex;
 
-    if(cg_sol_write(indexFile_, indexBase_, indexZone_,
-                    solName.c_str(), location, indexSol))
-    {
-      cg_close(indexFile_);
-      EXCEPTION("Cannot write solution:\n" << cg_get_error());
-    }
+      // Write CGNS nodes for nodal and element solutions
+      // First we write some information about the grid: node numbers,
+      // element numbers, region ids and element types.
+      int indexField;
+
+      StdVector<int> origNodeNums(numNodes);
+      for(j=0; j<numNodes; j++)
+      {
+        origNodeNums[j] = nodes[j];
+      }
+
+      std::string solName = "NodeSolution";
+      GridLocation_t location = Vertex;
+      
+      if(cg_sol_write(indexFile_, indexBase_, idxZone_[i],
+                      solName.c_str(), location, &idxNodeSol_[i]))
+      {
+        cg_close(indexFile_);
+        EXCEPTION("Cannot write solution:\n" << cg_get_error());
+      }
+
+      if(cg_field_write(indexFile_,indexBase_,idxZone_[i],
+                        idxNodeSol_[i],CGNSLIB_H::Integer,
+                        "origNodeNums",&origNodeNums[0],&indexField))
+      {
+        cg_close(indexFile_);
+        EXCEPTION("Cannot write field:\n" << cg_get_error());
+      }
+
+
+      StdVector<int> regionIds(numElems);
+      StdVector<int> origElemNums(numElems);
+      StdVector<int> elemTypes(numElems);
+      for(j=0; j<numElems; j++)
+      {
+        Elem* ptEl = elems[j];
+        regionIds[j] = ptEl->regionId;
+        origElemNums[j] = ptEl->elemNum;
+        elemTypes[j] = static_cast<int>(ptEl->type);
+      }
     
-    solName = "ElementSolution";
-    indexSol = &indexElemSol_;
-    location = CellCenter;
-
-    if(cg_sol_write(indexFile_, indexBase_, indexZone_,
-                    solName.c_str(), location, indexSol))
-    {
-      cg_close(indexFile_);
-      EXCEPTION("Cannot write solution:\n" << cg_get_error());
-    }
-
-    cg_field_write(indexFile_,indexBase_,indexZone_,indexElemSol_,CGNSLIB_H::Integer,
-            "RegionId",&regionIds[0],&indexField);
-    cg_field_write(indexFile_,indexBase_,indexZone_,indexElemSol_,CGNSLIB_H::Integer,
-            "OrigElemNum",&origElemNums[0],&indexField);
-    cg_field_write(indexFile_,indexBase_,indexZone_,indexElemSol_,CGNSLIB_H::Integer,
-            "ElemType",&elemTypes[0],&indexField);
+      solName = "ElementSolution";
+      location = CellCenter;
+      
+      if(cg_sol_write(indexFile_, indexBase_, idxZone_[i],
+                      solName.c_str(), location, &idxElemSol_[i]))
+      {
+        cg_close(indexFile_);
+        EXCEPTION("Cannot write solution:\n" << cg_get_error());
+      }
+      
+      if(cg_field_write(indexFile_,indexBase_,idxZone_[i],
+                        idxElemSol_[i],CGNSLIB_H::Integer,
+                        "regionId",&regionIds[0],&indexField))
+      {
+        cg_close(indexFile_);
+        EXCEPTION("Cannot write field:\n" << cg_get_error());
+      }
+      if(cg_field_write(indexFile_,indexBase_,idxZone_[i],
+                        idxElemSol_[i],CGNSLIB_H::Integer,
+                        "origElemNums",&origElemNums[0],&indexField))
+      {
+        cg_close(indexFile_);
+        EXCEPTION("Cannot write field:\n" << cg_get_error());
+      }
+      if(cg_field_write(indexFile_,indexBase_,idxZone_[i],
+                        idxElemSol_[i],CGNSLIB_H::Integer,
+                        "elemTypes",&elemTypes[0],&indexField))
+      {
+        cg_close(indexFile_);
+        EXCEPTION("Cannot write field:\n" << cg_get_error());
+      }
+    }    
 
 #if 0
     int indexFlow,indexField;
@@ -285,15 +323,12 @@ namespace CoupledField {
 #endif
   }
 
-  void SimOutputCGNS::WriteMixedSection(const StdVector<Elem*>& elems,
-                                        const std::string& name,
-                                        StdVector<int>& regionIds,
-                                        StdVector<int>& origElemNums,
-                                        StdVector<int>& elemTypes,
-                                        UInt& elemRangeStart) 
+  void SimOutputCGNS::WriteMixedSection(const StdVector<Elem*>& elems) 
   {
+    RegionIdType regionId = elems[0]->regionId;
     UInt numElems = elems.GetSize();
     Elem::FEType feType;
+    std::string regionName = ptGrid_->regionData[regionId].name;
     
     StdVector<cgsize_t> elemData(numElems*30);
 
@@ -308,34 +343,31 @@ namespace CoupledField {
       
       elemData[idx] = elemTypeMap_[feType];
       
-      TranslateConnectivity(feType, &elemData[idx+1], ptEl->connect);
+      TranslateConnectivity(feType, &elemData[idx+1], ptEl);
 
       idx += numElemNodes+1;
-
-      regionIds[elemRangeStart-1+iElem] = ptEl->regionId;
-      origElemNums[elemRangeStart-1+iElem] = ptEl->elemNum;
-      elemTypes[elemRangeStart-1+iElem] = feType;
     }
 
     int indexSection;
-    cgsize_t nelemStart = elemRangeStart, nelemEnd = elemRangeStart+numElems-1;
+    cgsize_t nelemStart = 1, nelemEnd = numElems;
     int nbdyElem=0;
-    cg_section_write(indexFile_,indexBase_,indexZone_,name.c_str(),MIXED,nelemStart,
-                     nelemEnd,nbdyElem,&elemData[0],&indexSection);
-
-    elemRangeStart = nelemEnd+1;
+    if(cg_section_write(indexFile_, indexBase_, idxZone_[regionId],
+                        regionName.c_str(), MIXED, nelemStart,
+                        nelemEnd, nbdyElem, &elemData[0], &indexSection))
+    {
+      cg_close(indexFile_);
+      EXCEPTION("Cannot write mixed section for '" << regionName <<
+                "':\n" << cg_get_error());
+    }
   }
   
-  void SimOutputCGNS::WritePureSection(const StdVector<Elem*>& elems,
-                                       const std::string& name,
-                                       StdVector<int>& regionIds,
-                                       StdVector<int>& origElemNums,
-                                       StdVector<int>& elemTypes,
-                                       UInt& elemRangeStart)
+  void SimOutputCGNS::WritePureSection(const StdVector<Elem*>& elems) 
   {
+    RegionIdType regionId = elems[0]->regionId;
     UInt numElems = elems.GetSize();
     Elem::FEType feType = elems[0]->type;
     ElementType_t eType = elemTypeMap_[feType];
+    std::string regionName = ptGrid_->regionData[regionId].name;
     UInt numElemNodes = Elem::shapes[feType].numVertices;
     if(writeQuadElems_) 
     {
@@ -346,20 +378,20 @@ namespace CoupledField {
 
     for (UInt iElem=0; iElem<numElems; iElem++) {
       Elem* ptEl = elems[iElem];
-      TranslateConnectivity(feType, &elemData[iElem*numElemNodes], ptEl->connect);
-
-      regionIds[elemRangeStart-1+iElem] = ptEl->regionId;
-      origElemNums[elemRangeStart-1+iElem] = ptEl->elemNum;
-      elemTypes[elemRangeStart-1+iElem] = feType;
+      TranslateConnectivity(feType, &elemData[iElem*numElemNodes], ptEl);
     }
 
     int indexSection;
-    cgsize_t nelemStart = elemRangeStart, nelemEnd = elemRangeStart+numElems-1;
+    cgsize_t nelemStart = 1, nelemEnd = numElems;
     int nbdyElem=0;
-    cg_section_write(indexFile_,indexBase_,indexZone_,name.c_str(),eType,nelemStart,
-                     nelemEnd,nbdyElem,&elemData[0],&indexSection);
-
-    elemRangeStart = nelemEnd+1;
+    if(cg_section_write(indexFile_, indexBase_, idxZone_[regionId],
+                        regionName.c_str(), eType, nelemStart,
+                        nelemEnd, nbdyElem, &elemData[0], &indexSection))
+    {
+      cg_close(indexFile_);
+      EXCEPTION("Cannot write pure section for '" << regionName <<
+                "':\n" << cg_get_error());
+    }
   }
 
   void SimOutputCGNS::InitElemTypeMap(){
@@ -408,8 +440,10 @@ namespace CoupledField {
 
   void SimOutputCGNS::TranslateConnectivity(Elem::FEType feType,
                                            cgsize_t* cgnsConn,
-                                           StdVector<UInt>& connect)
+                                           Elem* elem)
   {
+    StdVector<UInt>& connect = elem->connect;
+    RegionIdType regionId = elem->regionId;
     UInt numElemNodes = Elem::shapes[feType].numVertices;
     if(writeQuadElems_) 
     {
@@ -473,40 +507,50 @@ namespace CoupledField {
     }
 
     for(UInt n = 0; n<numElemNodes; n++ ) {
-      cgnsConn[n] = connect[tr[n]];
+      cgnsConn[n] = regionNodeMap_[regionId][connect[tr[n]]];
     }
   }
 
   void  SimOutputCGNS::NodeElemDataTransient(const bool definedOnNode,
-                                             std::map< std::string, Vector<Double> >& gSol,
+                                             RegionSolsType& regionSols,
                                              const UInt step, 
                                              const Double time)
   {
-    std::map< std::string, Vector<Double> >::const_iterator it, end;
-    int* indexSol = &indexNodeSol_;
-    
-    // Check if solution node is already present, and write it if necessary.
-    if(!definedOnNode) 
-    {
-      indexSol = &indexElemSol_;
-    }    
+    RegionSolsType::const_iterator solIt, solEnd;
 
     // Write actual solution array.
-    it = gSol.begin();
-    end = gSol.end();
-    for( ; it != end; it++ ) 
-    {    
-      const Vector<Double>& sol = it->second;
-      std::string solName = it->first;
-      int indexField;
+    solIt = regionSols.begin();
+    solEnd = regionSols.end();
+    for( ; solIt != solEnd; solIt++ ) 
+    {
+      std::string solName = solIt->first;
+      RegionSolsType::mapped_type::const_iterator it, end;
 
-      if(cg_field_write(indexFile_, indexBase_, indexZone_,
-                        *indexSol, RealDouble, solName.c_str(),
-                        &sol[0], &indexField)) 
+      it = solIt->second.begin();
+      end = solIt->second.end();
+      
+      for( ; it != end; it++ ) 
       {
-        cg_close(indexFile_);
-        EXCEPTION("Cannot write field:\n" <<
-                  cg_get_error());
+        RegionIdType regionId = it->first;
+        int* indexSol = &idxNodeSol_[regionId];
+    
+        // Check if solution node is already present, and write it if necessary.
+        if(!definedOnNode) 
+        {
+          indexSol = &idxElemSol_[regionId];
+        }    
+
+        const Vector<Double>& sol = it->second;
+        int indexField;
+    
+        if(cg_field_write(indexFile_, indexBase_, idxZone_[regionId],
+                          *indexSol, RealDouble, solName.c_str(),
+                          &sol[0], &indexField)) 
+        {
+          cg_close(indexFile_);
+          EXCEPTION("Cannot write field:\n" <<
+                    cg_get_error());
+        }
       }
     }
   }  
@@ -555,11 +599,21 @@ namespace CoupledField {
       }
 #endif
       
-      cg_set_file_type(file_type);
-    }    
+      if(cg_set_file_type(file_type))
+      {
+        EXCEPTION("Cannot set file type to '" << mll <<
+                  "':\n" << cg_get_error());
+      }
+    }
 
-    // Open CGNS file for write
-    if (cg_open(fileName.string().c_str(),CG_MODE_WRITE,&indexFile_)) cg_error_exit();
+    // Open CGNS file for writing
+    if (cg_open(fileName.string().c_str(),CG_MODE_WRITE,&indexFile_))
+    {
+      EXCEPTION("Cannot open '" << fileName.string() <<
+                "':\n" << cg_get_error());
+    }
+
+    // Everything fine!
     outputFileOK_ = true;
 
     WriteGrid();
@@ -623,33 +677,42 @@ namespace CoupledField {
       const StdVector<shared_ptr<BaseResult> > actResults =
         it->second;
       
-      if(  actInfo.definedOn != ResultInfo::NODE &&
-           actInfo.definedOn != ResultInfo::ELEMENT &&
-           actInfo.definedOn != ResultInfo::SURF_ELEM ) {
-        WARN( "CGNS can only write results on element and nodes." );
-        continue;
-      }
-      
-      ResultInfo::EntityUnknownType entityType = actInfo.definedOn;      
-      std::string title =  SolutionTypeEnum.ToString( actInfo.resultType );
-      
-      // if result could not be mapped, omit it
-      if( title == "") {
-        std::stringstream warning;
-        warning  <<  "Result '" << actInfo.resultName
-                 << "' could not be mappted to CGNS result type and is "
-                 << "omitted!";
-        WARN( warning.str().c_str() );
-        continue;
-      }
-      
-      // Determine type of entity the result is defined on
-      bool definedOnNode = (actInfo.definedOn == ResultInfo::NODE);
+      ResultInfo::EntityUnknownType entityType = actInfo.definedOn;
+      if(entityType == ResultInfo::NODE ||
+         entityType == ResultInfo::ELEMENT ||
+         entityType == ResultInfo::SURF_ELEM ) {
 
-      // Create map of arrays, which are then written to CGNS.
-      std::map<std::string, Vector<Double> > gSol;
-      FillGlobalVectors(gSol, actResults, entityType );
-      NodeElemDataTransient( definedOnNode, gSol, actStep_, actStepVal_);
+        if(actInfo.resultType == NO_SOLUTION_TYPE) 
+        {
+          continue;
+        }
+
+        std::string title =  SolutionTypeEnum.ToString( actInfo.resultType );
+        
+        // if result could not be mapped, omit it
+        if( title == "") {
+          std::stringstream warning;
+          warning  <<  "Result '" << actInfo.resultName
+                   << "' could not be mappted to CGNS result type and is "
+                   << "omitted!";
+          WARN( warning.str().c_str() );
+          continue;
+        }
+        
+       
+        // Determine type of entity the result is defined on
+        bool definedOnNode = (entityType == ResultInfo::NODE);
+        
+        // Create map of arrays, which are then written to CGNS.
+        RegionSolsType regionSols;
+        FillRegionSols(regionSols, actResults, entityType );
+        NodeElemDataTransient( definedOnNode, regionSols, actStep_, actStepVal_);
+      } 
+      else 
+      {
+        WARN( "CGNS can only write results on element and nodes." );
+      }        
+      
     } // over all result types
   }
     
@@ -660,160 +723,211 @@ namespace CoupledField {
     stepValOffset_ = actStepVal_;
   }
 
-  void SimOutputCGNS::FillGlobalVectors(std::map< std::string, Vector<Double> >& gSol, 
-                                        const StdVector<shared_ptr<BaseResult> > & solList,
-                                        ResultInfo::EntityUnknownType entityType ) {
+  void SimOutputCGNS::FillRegionSols(RegionSolsType& regionSols, 
+                                     const StdVector<shared_ptr<BaseResult> > & solList,
+                                     ResultInfo::EntityUnknownType entityType ) {
+
     static const double H180DEG_OVER_PI = 180.0 / PI;
 
     BaseMatrix::EntryType entryType = solList[0]->GetEntryType();
 
-    std::map<UInt, UInt> entity2Idx;
-    if( entityType == ResultInfo::NODE ) {
-      for(UInt i=0, n=numNodes_; i<n; i++) 
-      {
-        entity2Idx[i+1] = i;
-      }
-    }
-    else {
-      UInt idx = 0;
-      // Iterate over all regions
-      for(UInt i=0, n=ptGrid_->regionData.GetSize(); i<n; i++) 
-      {
-        StdVector<Elem*> elems;
-        ptGrid_->GetElems(elems, ptGrid_->regionData[i].id );
-        for( UInt j=0, m=elems.GetSize(); j<m; j++ ) {
-          entity2Idx[elems[j]->elemNum] = idx;
-          idx++;
-        }
-      }
-    }
-    
-    UInt numEntities = entity2Idx.size();
     ResultInfo & actResultInfo = *(solList[0]->GetResultInfo());
     std::string resultName = actResultInfo.resultName;
     StdVector<std::string> dofNames = actResultInfo.dofNames;
     UInt numDofs = actResultInfo.dofNames.GetSize();
-    LOG_DBG(simOutputCGNS) << "Filling global vector for result '" 
+    UInt idx;
+    bool writeAmplPhase=false;
+
+    LOG_DBG(simOutputCGNS) << "Filling vectors for result '" 
                            << resultName << "' on ";
-    for( UInt i = 0; i < solList.GetSize(); i++ ) {
-      LOG_DBG(simOutputCGNS) << solList[i]->GetEntityList()->GetName();
-    }
 
-    if( entityType == ResultInfo::ELEMENT ||
-        entityType == ResultInfo::SURF_ELEM ) {
+    std::map< RegionIdType, std::map<UInt, UInt> >::const_iterator rNMIt, rNMEnd;
+    rNMIt = regionNodeMap_.begin();
+    rNMEnd = regionNodeMap_.end();
+    
+    for( ; rNMIt != rNMEnd; rNMIt++ ) {
+      RegionIdType regionId = rNMIt->first;
+      shared_ptr<EntityList> entityList;
+      bool solDefined=false;
+      shared_ptr<BaseResult> result;
 
-      // === Element Results ===
-      for(UInt iDof=0; iDof<numDofs; iDof++) 
-      {
-        std::string resultDofName = (numDofs == 1 ? resultName : resultName + "_" + dofNames[iDof]);
+      UInt i = 0;
+      for( ; i < solList.GetSize(); i++ ) {
+        std::string entityListName = solList[i]->GetEntityList()->GetName();
+        if(regionId == ptGrid_->GetRegion().Parse(entityListName))
+        {
+          LOG_DBG(simOutputCGNS) << entityListName;
+          entityList = solList[i]->GetEntityList();
+          result = solList[i];
+          solDefined = true;
+          
+          break;
+        }
+      }
 
-        if( entryType == BaseMatrix::DOUBLE ) {
-          // real valued results
-          gSol[resultDofName].Resize( numEntities );
-          gSol[resultDofName].Init();
-          for( UInt i = 0; i < solList.GetSize(); i++ ){
-            EntityIterator it = solList[i]->GetEntityList()->GetIterator();
-            Vector<Double> & actSol = dynamic_cast<Result<Double>&>
-                                      (*(solList[i])).GetVector();
-            for( it.Begin(); !it.IsEnd(); it++ ) {
-              UInt elemNum = it.GetElem()->elemNum;
-              gSol[resultDofName][entity2Idx[elemNum]] = actSol[it.GetPos()*numDofs+iDof];
+      if( entityType == ResultInfo::ELEMENT ||
+          entityType == ResultInfo::SURF_ELEM ) {
+        
+        if(!solDefined) 
+        {
+          ElemList* el = new ElemList(ptGrid_);
+          el->SetRegion(regionId);
+          entityList.reset(el);
+        }
+        
+        UInt numEntities = entityList->GetSize();
+        EntityIterator it = entityList->GetIterator();
+        
+        // === Element Results ===
+        for(UInt iDof=0; iDof<numDofs; iDof++) 
+        {
+          std::string resultDofName = (numDofs == 1 ? resultName : resultName + "_" + dofNames[iDof]);
+
+          if( entryType == BaseMatrix::DOUBLE ) {
+            // real valued results
+            regionSols[resultDofName][regionId].Resize( numEntities );
+            regionSols[resultDofName][regionId].Init();
+
+            Vector<Double> dummyVec;
+            if(!solDefined) { dummyVec.Resize(numEntities*numDofs); dummyVec.Init(); }
+            
+            Vector<Double> & actSol = solDefined ? dynamic_cast<Result<Double>&>
+                                      (*result).GetVector() : dummyVec;
+            
+            for( idx = 0, it.Begin(); !it.IsEnd(); it++, idx++ ) {
+              regionSols[resultDofName][regionId][idx] = actSol[it.GetPos()*numDofs+iDof];
             }
           }
-        }
-        else
-        {
-          // complex valued results
-          std::string resNameRe = resultDofName + "_Re";
-          std::string resNameIm = resultDofName + "_Im";
-          std::string resNameAmpl = resultDofName + "_Ampl";
-          std::string resNamePhase = resultDofName + "_Phase";
-
-          gSol[resNameRe].Resize( numEntities ); gSol[resNameRe].Init();
-          gSol[resNameIm].Resize( numEntities ); gSol[resNameIm].Init();
-          gSol[resNameAmpl].Resize( numEntities ); gSol[resNameAmpl].Init();
-          gSol[resNamePhase].Resize( numEntities ); gSol[resNamePhase].Init();
-
-          for( UInt i = 0; i < solList.GetSize(); i++ ){
-            EntityIterator it = solList[i]->GetEntityList()->GetIterator();
-            Vector<Complex> & actSol = dynamic_cast<Result<Complex>&>
-                                      (*(solList[i])).GetVector();
-            for( it.Begin(); !it.IsEnd(); it++ ) {
-              UInt elemNum = it.GetElem()->elemNum;
-              if(entity2Idx.find(elemNum) != entity2Idx.end()) 
-              {
-                UInt idx = entity2Idx[elemNum];
-                Complex sol = actSol[it.GetPos()*numDofs+iDof];
-                
-                gSol[resNameRe][idx] = sol.real();
-                gSol[resNameIm][idx] = sol.imag();
-                gSol[resNameAmpl][idx] = hypot(sol.real(), sol.imag());
-                gSol[resNamePhase][idx] = (std::abs(sol.imag()) > 1e-16) ?
-                                          std::atan2( sol.imag(), sol.real() ) * H180DEG_OVER_PI : 
-                                          ( sol.real() < 0.0 ) ? 180 : 0 ;
+          else
+          {
+            // complex valued results
+            std::string resNameRe = resultDofName + "_Re";
+            std::string resNameIm = resultDofName + "_Im";
+            std::string resNameAmpl = resultDofName + "_Ampl";
+            std::string resNamePhase = resultDofName + "_Phase";
+            
+            regionSols[resNameRe][regionId].Resize( numEntities );
+            regionSols[resNameRe][regionId].Init();
+            regionSols[resNameIm][regionId].Resize( numEntities );
+            regionSols[resNameIm][regionId].Init();
+            if(writeAmplPhase) 
+            {
+              regionSols[resNameAmpl][regionId].Resize( numEntities );
+              regionSols[resNameAmpl][regionId].Init();
+              regionSols[resNamePhase][regionId].Resize( numEntities );
+              regionSols[resNamePhase][regionId].Init();
+            }
+            
+            Vector<Complex> dummyVec;
+            if(!solDefined) { dummyVec.Resize(numEntities*numDofs); dummyVec.Init(); }
+            
+            Vector<Complex> & actSol = solDefined ? dynamic_cast<Result<Complex>&>
+                                       (*result).GetVector() : dummyVec;
+            for( idx=0, it.Begin(); !it.IsEnd(); it++, idx++ ) {
+              Complex sol = actSol[it.GetPos()*numDofs+iDof];
+              
+              regionSols[resNameRe][regionId][idx] = sol.real();
+              regionSols[resNameIm][regionId][idx] = sol.imag();
+              if(writeAmplPhase) 
+              {                
+                regionSols[resNameAmpl][regionId][idx] = hypot(sol.real(), sol.imag());
+                regionSols[resNamePhase][regionId][idx] = 
+                  (std::abs(sol.imag()) > 1e-16) ?
+                  std::atan2( sol.imag(), sol.real() ) * H180DEG_OVER_PI : 
+                  ( sol.real() < 0.0 ) ? 180 : 0 ;
               }
             }
           }
         }
-      }
-    } else if ( entityType == ResultInfo::NODE ) {
-
-      // === Nodal Results ===
-      for(UInt iDof=0; iDof<numDofs; iDof++) 
-      {
-        std::string resultDofName = (numDofs == 1 ? resultName : resultName + "_" + dofNames[iDof]);
+      } else if ( entityType == ResultInfo::NODE ) {
+        std::map<UInt, UInt>& nodeMap = regionNodeMap_[regionId];
         
-        if( entryType == BaseMatrix::DOUBLE ) {
-          // real valued results
-          gSol[resultDofName].Resize( numEntities );
-          gSol[resultDofName].Init();
-          for( UInt i = 0; i < solList.GetSize(); i++ ){
-            EntityIterator it = solList[i]->GetEntityList()->GetIterator();
-            Vector<Double> & actSol = dynamic_cast<Result<Double>&>
-                                      (*(solList[i])).GetVector();
-            assert( (UInt) (actSol.GetSize()/numDofs) 
-                    == solList[i]->GetEntityList()->GetSize());
+        if(!solDefined) 
+        {
+          NodeList* nl = new NodeList(ptGrid_);
+          nl->SetNodesOfRegion(regionId);
+          entityList.reset(nl);
+        }
+        
+        UInt numEntities = entityList->GetSize();
+        EntityIterator it = entityList->GetIterator();
+
+        // === Nodal Results ===
+        for(UInt iDof=0; iDof<numDofs; iDof++) 
+        {
+          std::string resultDofName = (numDofs == 1 ? resultName : resultName + "_" + dofNames[iDof]);
+          
+          if( entryType == BaseMatrix::DOUBLE ) {
+            // real valued results
+            regionSols[resultDofName][regionId].Resize( numEntities );
+            regionSols[resultDofName][regionId].Init();
+
+            Vector<Double> dummyVec;
+            if(!solDefined) { dummyVec.Resize(numEntities*numDofs); dummyVec.Init(); }            
+
+            Vector<Double> & actSol = solDefined ? dynamic_cast<Result<Double>&>
+                                      (*result).GetVector() : dummyVec;
             for( it.Begin(); !it.IsEnd(); it++ ) {
               UInt nodeNum = it.GetNode();
-              gSol[resultDofName][entity2Idx[nodeNum]] = actSol[it.GetPos()*numDofs+iDof];
+              if(nodeMap.find(nodeNum) != nodeMap.end()) 
+              {
+                idx = nodeMap[nodeNum]-1;
+                regionSols[resultDofName][regionId][idx] = actSol[it.GetPos()*numDofs+iDof];
+              }
             }
           }
-        }
-        else
-        {
-          // complex valued results
-          std::string resNameRe = resultDofName + "_Re";
-          std::string resNameIm = resultDofName + "_Im";
-          std::string resNameAmpl = resultDofName + "_Ampl";
-          std::string resNamePhase = resultDofName + "_Phase";
+          else
+          {
+            // complex valued results
+            std::string resNameRe = resultDofName + "_Re";
+            std::string resNameIm = resultDofName + "_Im";
+            std::string resNameAmpl = resultDofName + "_Ampl";
+            std::string resNamePhase = resultDofName + "_Phase";
+            
+            regionSols[resNameRe][regionId].Resize( numEntities );
+            regionSols[resNameRe][regionId].Init();
+            regionSols[resNameIm][regionId].Resize( numEntities );
+            regionSols[resNameIm][regionId].Init();
 
-          gSol[resNameRe].Resize( numEntities ); gSol[resNameRe].Init();
-          gSol[resNameIm].Resize( numEntities ); gSol[resNameIm].Init();
-          gSol[resNameAmpl].Resize( numEntities ); gSol[resNameAmpl].Init();
-          gSol[resNamePhase].Resize( numEntities ); gSol[resNamePhase].Init();
+            if(writeAmplPhase) 
+            {
+              regionSols[resNameAmpl][regionId].Resize( numEntities );
+              regionSols[resNameAmpl][regionId].Init();
+              regionSols[resNamePhase][regionId].Resize( numEntities );
+              regionSols[resNamePhase][regionId].Init();
+            }
+            
+            Vector<Complex> dummyVec;
+            if(!solDefined) { dummyVec.Resize(numEntities*numDofs); dummyVec.Init(); }
+            
+            Vector<Complex> & actSol = solDefined ? dynamic_cast<Result<Complex>&>
+                                       (*result).GetVector() : dummyVec;
 
-          for( UInt i = 0; i < solList.GetSize(); i++ ){
-            EntityIterator it = solList[i]->GetEntityList()->GetIterator();
-            Vector<Complex> & actSol = dynamic_cast<Result<Complex>&>
-                                      (*(solList[i])).GetVector();
             for( it.Begin(); !it.IsEnd(); it++ ) {
-              UInt idx = entity2Idx[it.GetNode()];
-              Complex sol = actSol[it.GetPos()*numDofs+iDof];
-
-              gSol[resNameRe][idx] = sol.real();
-              gSol[resNameIm][idx] = sol.imag();
-              gSol[resNameAmpl][idx] = hypot(sol.real(), sol.imag());
-              gSol[resNamePhase][idx] = (std::abs(sol.imag()) > 1e-16) ?
-                                        std::atan2( sol.imag(), sol.real() ) * H180DEG_OVER_PI : 
-                                        ( sol.real() < 0.0 ) ? 180 : 0 ;
+              UInt nodeNum = it.GetNode();
+              if(nodeMap.find(nodeNum) != nodeMap.end()) 
+              {
+                idx = nodeMap[nodeNum]-1;
+                Complex sol = actSol[it.GetPos()*numDofs+iDof];
+                
+                regionSols[resNameRe][regionId][idx] = sol.real();
+                regionSols[resNameIm][regionId][idx] = sol.imag();
+                if(writeAmplPhase) 
+                {
+                  regionSols[resNameAmpl][regionId][idx] = hypot(sol.real(), sol.imag());
+                  regionSols[resNamePhase][regionId][idx] = 
+                    (std::abs(sol.imag()) > 1e-16) ?
+                    std::atan2( sol.imag(), sol.real() ) * H180DEG_OVER_PI : 
+                    ( sol.real() < 0.0 ) ? 180 : 0 ;
+                }
+              }
             }
           }
-        }
+        }      
+      } else {
+        EXCEPTION( "Can only map nodal / element results to grid" );
       }
-      
-    } else {
-      EXCEPTION( "Can only map nodal / element results to grid" );
-    }      
+    }
   }
 
-}
+} // namespace CoupledField
