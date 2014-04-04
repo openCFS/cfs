@@ -32,6 +32,7 @@ SET(FILES
   emacs_settings.sh
   qs_bootstrap.sh
   eclipse-code-style.xml
+  vagrant_box.sh
 )
 
 PYGMENTIZE("${DEV_MAN_DIR}" "${FILES}")

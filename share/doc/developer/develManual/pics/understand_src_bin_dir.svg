@@ -13,8 +13,8 @@
    height="247.38721"
    id="svg10010"
    version="1.1"
-   inkscape:version="0.48.0 r9654"
-   sodipodi:docname="Neues Dokument 26">
+   inkscape:version="0.48.2 r9819"
+   sodipodi:docname="understand_src_bin_dir.svg">
   <defs
      id="defs3">
     <marker
@@ -54,9 +54,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.67702071"
-     inkscape:cx="275.69661"
-     inkscape:cy="147.99963"
+     inkscape:zoom="1.3804531"
+     inkscape:cx="350.59754"
+     inkscape:cy="149.18303"
      inkscape:current-layer="layer1"
      showgrid="false"
      fit-margin-top="0"
@@ -65,8 +65,8 @@
      fit-margin-bottom="0"
      inkscape:window-width="1257"
      inkscape:window-height="975"
-     inkscape:window-x="1446"
-     inkscape:window-y="22"
+     inkscape:window-x="236"
+     inkscape:window-y="227"
      inkscape:window-maximized="0" />
   <metadata
      id="metadata4">
@@ -76,7 +76,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -147,7 +147,7 @@
          sodipodi:role="line"
          x="178.27007"
          y="148.57848"
-         id="tspan10558"></tspan><tspan
+         id="tspan10558" /><tspan
          sodipodi:role="line"
          x="178.27007"
          y="158.57848"
@@ -313,7 +313,7 @@
          id="tspan10636"
          y="206.1396"
          x="374.92273"
-         sodipodi:role="line"></tspan><tspan
+         sodipodi:role="line" /><tspan
          id="tspan10638"
          y="216.1396"
          x="374.92273"
@@ -397,7 +397,7 @@
          y="132.57347"
          x="-31.920454"
          id="tspan10694"
-         sodipodi:role="line">Binary Directory 2</tspan></text>
+         sodipodi:role="line">Binary Directory 1</tspan></text>
     <path
        inkscape:connector-curvature="0"
        id="path10696"
@@ -447,7 +447,7 @@
          sodipodi:role="line"
          x="-15.811262"
          y="206.1396"
-         id="tspan10712"></tspan><tspan
+         id="tspan10712" /><tspan
          sodipodi:role="line"
          x="-15.811262"
          y="216.1396"

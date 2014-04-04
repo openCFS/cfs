@@ -778,6 +778,7 @@ share/doc/developer/develManual/sources/platform_defaults_mac.cmake -text
 share/doc/developer/develManual/sources/qs_bootstrap.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/qs_configure_build.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/qs_obtain_sources.sh -text
+share/doc/developer/develManual/sources/vagrant_box.sh -text
 share/doc/developer/develManual/timestepping.tex -text
 share/doc/developer/doc-develmanual.cmake.in -text
 share/doc/developer/doc-doxygen.cmake.in -text
