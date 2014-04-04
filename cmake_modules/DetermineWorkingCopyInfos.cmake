@@ -130,14 +130,21 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.git")
   EXECUTE_PROCESS(
     COMMAND ${GIT_EXECUTABLE} svn info
     OUTPUT_VARIABLE CFS_GIT_SVN_INFO
+    ERROR_VARIABLE CFS_GIT_SVN_ERROR
     RESULT_VARIABLE RETVAL)
 
-  STRING(REGEX REPLACE "^(.*\n)?URL: ([^\n]+).*"
-    "\\2" CFS_WC_URL "${CFS_GIT_SVN_INFO}")
-  STRING(REGEX REPLACE "^(.*\n)?Repository Root: ([^\n]+).*"
-    "\\2" CFS_WC_ROOT "${CFS_GIT_SVN_INFO}")
-  STRING(REGEX REPLACE "^(.*\n)?Revision: ([^\n]+).*"
-    "\\2" CFS_WC_REVISION "${CFS_GIT_SVN_INFO}")
+  IF(RETVAL)
+      SET(CFS_WC_URL "N/A")
+      SET(CFS_WC_ROOT "N/A")
+      SET(CFS_WC_REVISION "N/A")
+  ELSE()
+    STRING(REGEX REPLACE "^(.*\n)?URL: ([^\n]+).*"
+      "\\2" CFS_WC_URL "${CFS_GIT_SVN_INFO}")
+    STRING(REGEX REPLACE "^(.*\n)?Repository Root: ([^\n]+).*"
+      "\\2" CFS_WC_ROOT "${CFS_GIT_SVN_INFO}")
+    STRING(REGEX REPLACE "^(.*\n)?Revision: ([^\n]+).*"
+      "\\2" CFS_WC_REVISION "${CFS_GIT_SVN_INFO}")
+  ENDIF()
 
 #  MESSAGE("CFS_WC_URL ${CFS_WC_URL}")
 #  MESSAGE("CFS_WC_REVISION ${CFS_WC_REVISION}")

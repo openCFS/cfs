@@ -27,6 +27,9 @@ LIST(APPEND patches "cgns-adjust-install-paths.patch")
 IF(MINGW)
   # MinGW needs two underscores for the declspec keyword.
   LIST(APPEND patches "cgns-declspec-double-underscore.patch")
+
+  # Some patches concerning build of cgnstools on MinGW.
+  LIST(APPEND patches "cgnstools-mingw.patch")
 ENDIF()
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/cgns")

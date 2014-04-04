@@ -973,7 +973,9 @@ namespace CoupledField {
   void VBR_Matrix<T>::FindDiagonalEntries() {
 
     // loop over all rows
-    UInt bRow, bCol, offset;
+    UInt bRow = 0;
+    UInt bCol = 0;
+    UInt offset = 0;
     for( UInt i = 0; i < this->nrows_; ++i ) {
       FindBlock( i, i, bRow, bCol, offset );
       diagPtr_[i] = offset;

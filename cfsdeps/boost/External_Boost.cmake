@@ -40,17 +40,17 @@ SET(CMAKE_ARGS
 # has obviously  some problems when building  the thread lib and  we only need
 # static libs anyway.
  
-# if(MSVC)
-LIST(APPEND CMAKE_ARGS
-  -DENABLE_SHARED:BOOL=OFF
-  -DENABLE_STATIC:BOOL=ON
-  )
-#else()
-#  LIST(APPEND CMAKE_ARGS
-#    -DENABLE_SHARED:BOOL=ON
-#    -DENABLE_STATIC:BOOL=ON
-#  )
-# endif()
+if(MSVC)
+  LIST(APPEND CMAKE_ARGS
+    -DENABLE_SHARED:BOOL=OFF
+    -DENABLE_STATIC:BOOL=ON
+    )
+else()
+  LIST(APPEND CMAKE_ARGS
+    -DENABLE_SHARED:BOOL=ON
+    -DENABLE_STATIC:BOOL=ON
+    )
+endif()
 
 IF(CMAKE_TOOLCHAIN_FILE)
   LIST(APPEND CMAKE_ARGS
@@ -122,6 +122,7 @@ SET(BOOST_BUILD_LIBS
   "signals"
   "system"
   "thread"
+  "chrono"
 )
 
 SET(BPROJ "-DBUILD_PROJECTS:STRING=")

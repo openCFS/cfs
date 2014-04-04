@@ -61,7 +61,9 @@ IF(MINIZIP_BUILD_SHARED)
   # under windows we need to define ZLIB_DLL
   if (WIN32 OR CYGWIN)
     set_target_properties(minizip_shared
-                          PROPERTIES COMPILE_FLAGS -DZLIB_DLL)
+                          PROPERTIES COMPILE_FLAGS "-DZLIB_DLL -D_WIN32_WINNT=0x0602")
+    set_target_properties(minizip_static
+                          PROPERTIES COMPILE_FLAGS -D_WIN32_WINNT=0x0602)
   endif(WIN32 OR CYGWIN)
 
   target_link_libraries(minizip_shared ${ZLIB_LIBRARY})

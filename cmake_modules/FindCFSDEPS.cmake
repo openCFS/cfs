@@ -110,7 +110,7 @@ INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/bzip2/External_bzip2.cmake")
 #-------------------------------------------------------------------------------
 IF(USE_HDF5)
   SET(HDF5_URL "${LSE17_SOURCES_DIR}/hdf5")
-  SET(HDF5_GZ "hdf5-1.8.12.tar.gz")
+  SET(HDF5_GZ "hdf5-1.8.12.tar.bz2")
   SET(HDF5_MD5 "03ad766d225f5e872eb3e5ce95524a08")
 
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/hdf5/External_HDF5.cmake")
@@ -341,13 +341,16 @@ ENDIF(USE_XERCES)
 # Find CGAL
 #-----------------------------------------------------------------------------
 IF(USE_CGAL)
+  SET(MSG "The build of gmp and mpfr is only supported for MSYS on Windows!")
+  SET(MSG "${MSG} It is configure-based and therefore requires a shell")
+  SET(MSG "${MSG} interpreter like bash from MSYS. If you need CGAL, you need")
+  SET(MSG "${MSG} to use an MSYS environment or cross compile from Linux.")     
+
   IF(WIN32)
     IF(MINGW AND NOT CMAKE_CROSSCOMPILING OR MSVC)
-      SET(MSG "The build of gmp and mpfr is not supported on Windows!")
-      SET(MSG "${MSG} It is configure-based and therefore requires a shell")
-      SET(MSG "${MSG} interpreter like bash from MSYS.")
-      SET(MSG "${MSG} If you need CGAL, you need to cross compile from Linux.")
+      IF(NOT $ENV{MSYSTEM} STREQUAL "MINGW32")
       MESSAGE(FATAL_ERROR "${MSG}")
+      ENDIF()
     ENDIF()
   ENDIF()
 

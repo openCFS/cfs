@@ -20,7 +20,7 @@ set(cgns_source  "${cgns_prefix}/src/cgns")
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${cgns_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-  -DCMAKE_MAKE_PROGRAM:BOOL=${CMAKE_MAKE_PROGRAM}
+  -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
@@ -29,7 +29,7 @@ SET(CMAKE_ARGS
   -DENABLE_HDF5:BOOL=ON
   -DENABLE_LEGACY:BOOL=ON
   -DENABLE_64BIT:BOOL=OFF
-  -DENABLE_TESTS:BOOL=ON
+  -DENABLE_TESTS:BOOL=OFF
   -DHDF5_INCLUDE_PATH:PATH=${cgns_install}/include
   -DHDF5_LIBRARY:FILEPATH=${HDF5_SHARED_LIBRARY}
   -DHDF5_NEED_ZLIB:BOOL=ON
@@ -42,17 +42,22 @@ SET(CMAKE_ARGS
   -DCMAKE_CXX_FLAGS:STRING=${CFLAGS}
 )
 
-#-------------------------------------------------------------------------------
-# Let's only build the CGNS tools on platforms, which provide a TCL 
-# interpreter. There are certainly TCL interpreters on Windows and Mac, but we
-# have not installed them in our nightly test systems.
-#-------------------------------------------------------------------------------
-SET(BUILD_CGNSTOOLS ON)
-IF(MINGW)
-  SET(BUILD_CGNSTOOLS OFF)
-ELSEIF(CFS_DISTRO STREQUAL "MACOSX")
-  IF(CMAKE_CROSSCOMPILING)
+Find_Package(TCL)
+IF(TCLTK_FOUND AND TCL_INCLUDE_PATH AND TK_INCLUDE_PATH)
+  SET(BUILD_CGNSTOOLS ON)
+ELSE()
+  #-------------------------------------------------------------------------------
+  # Let's only build the CGNS tools on platforms, which provide a TCL 
+  # interpreter. There are certainly TCL interpreters on Windows and Mac, but we
+  # have not installed them on our nightly test systems.
+  #-------------------------------------------------------------------------------
+  SET(BUILD_CGNSTOOLS ON)
+  IF(MINGW)
     SET(BUILD_CGNSTOOLS OFF)
+  ELSEIF(CFS_DISTRO STREQUAL "MACOSX")
+    IF(CMAKE_CROSSCOMPILING)
+      SET(BUILD_CGNSTOOLS OFF)
+    ENDIF()
   ENDIF()
 ENDIF()
 
