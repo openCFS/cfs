@@ -150,48 +150,60 @@ SetupRHEL() {
     # Setup Red Hat Enterprise Linux, CentOS, Oracle, Scientific Linux, etc.
     RHEL_REL=$(echo $REV | cut -d'.' -f1)
 
+    # At the moment we support RHEL 5-7
+    SUPPORTED=0
+    # For RHEL 7 we only tested with the public Beta version for which no
+    # additional repositories were available yet (2014-02-27).
+    ADD_ADDITIONAL_REPOS=1
     case "${RHEL_REL}" in
-	5) echo "Fine! RHEL release ${RHEL_REL} is supported!";;
-	6) echo "Fine! RHEL release ${RHEL_REL} is supported!";;
+	5) SUPPORTED=1 ;;
+	6) SUPPORTED=1 ;;
+	7) SUPPORTED=1; ADD_ADDITIONAL_REPOS=0; ;;
 	*)
             echo "RHEL release ${RHEL_REL} is NOT supported!"
+	    exit 1
             ;;
     esac
+    if [ "$SUPPORTED" = 1 ]; then
+        echo "Fine! RHEL release ${RHEL_REL} is supported!";
+    fi
 
-    cd /etc/yum.repos.d && \
-    rm -f graphviz-rhel.repo || ExitFail 
-    wget http://www.graphviz.org/graphviz-rhel.repo || ExitFail
-
-    YC=atrpms.repo
-    echo "[atrpms]" > $YC && \
-    echo "name=Redhat Enterprise Linux RHEL\$releasever - \$basearch - ATrpms" >> $YC && \
-    echo "baseurl=http://dl.atrpms.net/el${RHEL_REL}-\$basearch/atrpms/stable/" >> $YC && \
-    echo "gpgkey=http://ATrpms.net/RPM-GPG-KEY.atrpms" >> $YC && \
-    echo "gpgcheck=1" >> $YC || ExitFail
-    rpm --import http://ATrpms.net/RPM-GPG-KEY.atrpms
-
-    YC=epel.repo
-    EPEL_MIRROR="http://ftp.uni-bayreuth.de/linux/fedora-epel"
-    echo "[epel]" > $YC && \
-    echo "name=EPEL RHEL\$releasever - \$basearch" >> $YC && \
-    echo "baseurl=${EPEL_MIRROR}/${RHEL_REL}/\$basearch" >> $YC || ExitFail
-    rm -f RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
-    wget ${EPEL_MIRROR}/RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
-    rpm --import RPM-GPG-KEY-EPEL-${RHEL_REL}
-
-    ARCH=$(uname -m | sed 's/i[0-9]86/i386/') || ExitFail
-    BASE=http://pkgs.repoforge.org/rpmforge-release
-    case "${RHEL_REL}" in
-	5) RPM=rpmforge-release-0.5.3-1.el5.rf.$ARCH.rpm
-	    ;;
-	6) RPM=rpmforge-release-0.5.3-1.el6.rf.$ARCH.rpm
-	    ;;
-	*)
-            echo "RHEL release ${RHEL_REL} is not supported!"
-            ;;
-    esac
-    wget $BASE/$RPM || ExitFail
-    rpm -Uhv --force $RPM || ExitFail
+    if [ "$ADD_ADDITIONAL_REPOS" = 1 ]; then
+	cd /etc/yum.repos.d && \
+	    rm -f graphviz-rhel.repo || ExitFail 
+	wget http://www.graphviz.org/graphviz-rhel.repo || ExitFail
+	
+	YC=atrpms.repo
+	echo "[atrpms]" > $YC && \
+	    echo "name=Redhat Enterprise Linux RHEL\$releasever - \$basearch - ATrpms" >> $YC && \
+	    echo "baseurl=http://dl.atrpms.net/el${RHEL_REL}-\$basearch/atrpms/stable/" >> $YC && \
+	    echo "gpgkey=http://ATrpms.net/RPM-GPG-KEY.atrpms" >> $YC && \
+	    echo "gpgcheck=1" >> $YC || ExitFail
+	rpm --import http://ATrpms.net/RPM-GPG-KEY.atrpms
+	
+	YC=epel.repo
+	EPEL_MIRROR="http://ftp.uni-bayreuth.de/linux/fedora-epel"
+	echo "[epel]" > $YC && \
+	    echo "name=EPEL RHEL\$releasever - \$basearch" >> $YC && \
+	    echo "baseurl=${EPEL_MIRROR}/${RHEL_REL}/\$basearch" >> $YC || ExitFail
+	rm -f RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
+	wget ${EPEL_MIRROR}/RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
+	rpm --import RPM-GPG-KEY-EPEL-${RHEL_REL}
+	
+	ARCH=$(uname -m | sed 's/i[0-9]86/i386/') || ExitFail
+	BASE=http://pkgs.repoforge.org/rpmforge-release
+	case "${RHEL_REL}" in
+	    5) RPM=rpmforge-release-0.5.3-1.el5.rf.$ARCH.rpm
+		;;
+	    6) RPM=rpmforge-release-0.5.3-1.el6.rf.$ARCH.rpm
+		;;
+	    *)
+		echo "RHEL release ${RHEL_REL} is not supported!"
+		;;
+	esac
+	wget $BASE/$RPM || ExitFail
+	rpm -Uhv --force $RPM || ExitFail
+    fi
 
     # http://public-yum.oracle.com/
     # http://linux.oracle.com/switch/
