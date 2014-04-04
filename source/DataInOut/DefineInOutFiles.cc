@@ -17,6 +17,7 @@
 #include <def_use_unv.hh>
 #include <def_use_ansysrst.hh>
 #include <def_use_comsol.hh>
+#include <def_use_cgns.hh>
 
 #include "DefineInOutFiles.hh"
 
@@ -62,6 +63,10 @@
 
 #ifdef USE_COMSOL
 #include "DataInOut/SimInOut/COMSOL/SimInputMPHTXT.hh"
+#endif
+
+#ifdef USE_CGNS
+#include "DataInOut/SimInOut/CGNS/SimInputCGNS.hh"
 #endif
 
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
@@ -246,6 +251,17 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
 #else
       EXCEPTION( "No support for Comsol .mphtxt input file format." );
 #endif // USE_COMSOL
+    }
+    else if (informat == "cgns")
+    {
+#ifdef USE_CGNS
+      if (meshFile == "")
+        meshFile = simName + ".cgns";
+      inFiles[actId] = shared_ptr<SimInput> (
+          new SimInputCGNS(meshFile, actNode, infoNode));
+#else
+      EXCEPTION( "No support for CGNS .cgns input file format." );
+#endif // USE_CGNS
     }
     else if (informat == "unv")
     {

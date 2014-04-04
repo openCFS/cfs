@@ -12,6 +12,7 @@
 #include <def_use_unv.hh>
 #include <def_use_ansysrst.hh>
 #include <def_use_comsol.hh>
+#include <def_use_cgns.hh>
 
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -67,6 +68,10 @@ namespace fs = boost::filesystem;
 
 #ifdef USE_COMSOL
 #include "DataInOut/SimInOut/COMSOL/SimInputMPHTXT.hh"
+#endif
+
+#ifdef USE_CGNS
+#include "DataInOut/SimInOut/CGNS/SimInputCGNS.hh"
 #endif
 
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
@@ -180,6 +185,19 @@ namespace CFSTool {
       reader = shared_ptr<SimInput>(new SimInputMPHTXT(fileName, readerNode, info) );
 #else  
       EXCEPTION( "No support for Comsol .mphtxt input file format." );
+#endif
+    } else if( fileName.find( ".cgns") != std::string::npos ) {
+#ifdef USE_CGNS
+      if(inputNode->Has("cgns")) {
+        readerNode = inputNode->Get("cgns");
+      } else {
+        readerNode = PtrParamNode(new ParamNode());
+        readerNode->SetName("cgns");
+      }
+
+      reader = shared_ptr<SimInput>(new SimInputCGNS(fileName, readerNode, info) );
+#else  
+      EXCEPTION( "No support for CGNS .cgns input file format." );
 #endif
     } else if( fileName.find( ".gmv") != std::string::npos ) {
 #ifdef USE_GMV

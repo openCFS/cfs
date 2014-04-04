@@ -248,6 +248,14 @@ SET(USE_METIS ${USE_METIS_DEFAULT}
 OPTION(USE_CGNS "Enable support for the CFD General Notation System."
   ${USE_CGNS_DEFAULT})
 
+# Since the CGNS library depends on the HDF5 library, we need to force
+# USE_HDF5 to ON.
+IF(USE_CGNS AND
+    NOT USE_HDF5)
+    SET(USE_HDF5 ON CACHE BOOL
+      "Use HDF5 for simulation in/output." FORCE)
+ENDIF()
+
 #-----------------------------------------------------------------------------
 # CCMIO - STAR-CCM+ I/O library
 #-----------------------------------------------------------------------------
@@ -619,6 +627,10 @@ ENDIF(USE_UNV)
 IF(USE_ANSYSRST)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/AnsysRST)
 ENDIF(USE_ANSYSRST)
+
+IF(USE_CGNS)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/CGNS)
+ENDIF(USE_CGNS)
 
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/TextOutput)
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/InfoResultOutput)

@@ -81,6 +81,7 @@
       <xsd:element name="mesh" type="DT_InputMesh"/>
       <xsd:element name="mphtxt" type="DT_InputComsol"/>
       <xsd:element name="hdf5" type="DT_InputHDF5"/>      
+      <xsd:element name="cgns" type="DT_InputCGNS"/>
       <xsd:element name="unv" type="DT_InputUNV"/>
       <xsd:element name="internal" type="DT_InputInternal"/>
     </xsd:choice>
@@ -349,6 +350,32 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- ******************************************************************** -->
+  <!--   Definition of CGNS data input type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Data type for specification of input file format -->
+  <xsd:complexType name="DT_InputCGNS">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Read (C)FD (G)eneral (N)otation (S)ystem files (http://www.cgns.org).
+      </xsd:documentation>
+    </xsd:annotation>    
+    <xsd:complexContent>
+      <xsd:extension base="DT_InputBasic">
+        <xsd:attribute name="fileName"
+          type="xsd:token"
+          default="default"/>
+        <xsd:attribute name="coordSysId"
+          type="xsd:token"
+          default="default"/>
+        <xsd:attribute name="scaleFac"
+          type="xsd:double"
+          default="1.0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
   <!-- ******************************************************************** -->
   <!--   Definition of UNV  data input type -->
   <!-- ******************************************************************** -->

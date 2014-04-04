@@ -1,0 +1,154 @@
+// =====================================================================================
+// 
+//       Filename:  SimInputCGNS.hh (originally FileReader_CGNS.hh in cplreader)
+// 
+//    Description:  File Reader for the cgns file format
+//                  Based on OpenFOAM reader
+// 
+//        Version:  1.0
+//        Created:  02/22/2011 12:51:01 PM
+//       Revision:  none
+//       Compiler:  g++
+// 
+//        Authors:  Simon Triebenbacher, simon.triebenbacher@tuwien.ac.at
+//                  Andreas Hueppe (AHU), andreas.hueppe@uni-klu.ac.at
+//        Company:  TU Wien, Universitaet Klagenfurt
+// 
+// =====================================================================================
+
+
+#ifndef SIMINPUT_CGNS_HH
+#define SIMINPUT_CGNS_HH
+
+#include <string>
+#include <set>
+
+#include <cgnslib.h>
+
+#include "DataInOut/SimInput.hh"
+
+
+namespace CoupledField{
+
+  class SimInputCGNS : public SimInput {
+  public:
+    
+    struct CGNSElem{
+      StdVector<UInt> connect;
+      //one-based element number
+      UInt elemNum;
+      Elem::FEType eType;
+    };
+    
+    //! Constructor
+    SimInputCGNS( std::string fileName, PtrParamNode inputNode,
+                  PtrParamNode infoNode );
+    
+    virtual ~SimInputCGNS();
+    
+    virtual void InitModule();
+    
+    virtual void ReadMesh(Grid*)
+    { EXCEPTION("Not implemented!"); }
+    
+    virtual UInt GetDim()
+    { EXCEPTION("Not implemented!"); }
+
+    virtual UInt GetNumNodes()
+    { EXCEPTION("Not implemented!"); }
+
+    virtual UInt GetNumElems(Integer)
+    { EXCEPTION("Not implemented!"); }
+
+    virtual UInt GetNumRegions()
+    { EXCEPTION("Not implemented!"); }
+
+    virtual UInt GetNumNamedNodes()
+    { EXCEPTION("Not implemented!"); }
+
+    virtual UInt GetNumNamedElems()
+    { EXCEPTION("Not implemented!"); }
+
+    virtual void GetAllRegionNames(StdVector<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >&)
+    { EXCEPTION("Not implemented!"); }
+
+    virtual void GetRegionNamesOfDim(StdVector<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >&, UInt)
+    { EXCEPTION("Not implemented!"); }
+
+    virtual void GetNodeNames(StdVector<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >&)
+    { EXCEPTION("Not implemented!"); }
+
+    virtual void GetElemNames(StdVector<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >&)
+    { EXCEPTION("Not implemented!"); }
+
+    //! get node coordinates from the corresponding file
+    virtual void ReadNodalCoords(std::vector<Double> & NODECOORD);
+    
+    
+    //! get topology information from the  topology file
+    virtual void ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
+                              std::vector<UInt> & elemTypes);
+    
+ #if 0
+    //! get nodal values from the corresponding fluid datafile the new way
+    virtual void ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
+                                 const std::vector<bool>& activeParts,
+                                 const UInt timeStepIdx);
+
+    virtual Double GetTimeStep(UInt stepNumber);
+    
+    virtual std::string GetRegionName(const UInt partitionIdx);
+    
+    //! get user data from file reader
+    virtual void GetUserData(std::map<std::string, std::string>& userData);
+    
+    virtual void GetRegionElements(std::vector<UInt> & regionElements,
+                                   const UInt regionIdx);
+ #endif
+    
+  protected:
+    UInt numElems_;
+    UInt numVertices_;
+    std::map<Double, std::string>  fileNames_;
+    std::string fileDir_;
+    bool gridInitialized_;
+    //storing the coordinates
+    StdVector< StdVector<Double> > nodeCoords_;
+    std::map<CGNSLIB_H::ElementType_t,Elem::FEType> elemTypeMap_;
+    std::map<Integer,std::string> regionIndexToNameMap_;
+    std::map<Integer,StdVector<CGNSElem> > elemRegionMap_;
+    //std::map<Integer,Elem::FEType > elemTypeToRegionMap_;
+    std::map<Integer,std::set<UInt> > nodesPerRegionMap_;
+ 
+    //! Number of regions
+    UInt numRegions_;
+
+    // Save number of  nodes and elems per region in first  time step to check
+    // whether the mesh changes with time, since we do not support that at the
+    // moment.
+    std::vector<UInt> numNodesPerRegion_;
+    std::vector<UInt> numElemsPerRegion_;
+
+    //! Number of time steps
+    UInt numSteps_;
+   
+    // Maximum number of nodes per element
+    UInt maxNumElemNodes_;
+
+  private:
+    void ReadCGNSDirectory(std::string dirname, std::map<Double, std::string> & fileNames);
+    Integer GetFileHandle(std::string fName);
+    void CheckFileValidity(Integer fileHandle);
+    UInt MapCoordinateIndex(char* coordName);
+    void ReadUnstructuredGrid(Integer fileHandle, Integer dim, cgsize_t* size);
+    void PrintElementType(ElementType_t eType);
+    void InitElemTypeMap();
+    void ReadGrid();
+    void CalcNumNodesPerRegion();
+    UInt MapVelocityIndex(char* coordName);
+    UInt MapFrictionIndex(char* coordName);
+    UInt MapForceIndex(char* coordName);    
+  };
+}
+
+#endif
