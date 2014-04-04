@@ -13,9 +13,16 @@
 #=============================================================================
 
 #-----------------------------------------------------------------------------
-# Include external project build capability of CMake 2.8
+# Include external project build capability of CMake 2.8, cf.
+# http://www.kitware.com/media/html/BuildingExternalProjectsWithCMake2.8.html
 #-----------------------------------------------------------------------------
 INCLUDE(ExternalProject)
+
+#-----------------------------------------------------------------------------
+# Include external data capability of CMake 2.8.11, cf.
+# http://www.kitware.com/source/home/post/107
+#-----------------------------------------------------------------------------
+INCLUDE(ExternalData)
 
 SET(LSE17_SOURCES_DIR "ftp://lse17.e-technik.uni-erlangen.de:40065")
 SET(LSE17_SOURCES_DIR "${LSE17_SOURCES_DIR}/cfsdeps/sources")
@@ -144,9 +151,9 @@ ENDIF(USE_CCMIO)
 #-------------------------------------------------------------------------------
 # Search for CFX I/O library
 #-------------------------------------------------------------------------------
-IF(USE_CFXIO)
+#IF(USE_CFXIO)
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cfx_custom/External_CFX_Custom.cmake")
-ENDIF(USE_CFXIO)
+#ENDIF(USE_CFXIO)
 
 #-------------------------------------------------------------------------------
 # Search for METIS library

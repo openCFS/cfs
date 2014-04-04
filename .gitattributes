@@ -3,37 +3,37 @@
 cfsdeps/ansys_custom/External_ANSYS_custom.cmake -text
 cfsdeps/ansys_custom/ansys_custom-build.cmake.in -text
 cfsdeps/ansys_custom/ansys_custom-install.cmake.in -text
-cfsdeps/ansys_custom/ansys_custom_v100_include.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v100_linem64t.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v100_linia32.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v100_linop64.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v100_win32.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v110_include.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v110_linem64t.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v110_linia32.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v110_linia64.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v110_linop64.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v110_win32.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v110_winx64.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v120_include.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v120_linx64.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v120_win32.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v120_winx64.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v121_include.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v121_linem64t.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v121_linia32.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v121_linia64.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v121_win32.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v121_winx64.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v130_include.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v130_linx64.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v130_win32.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v130_winx64.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v140_include.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v140_linx64.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v140_win32.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_custom_v140_winx64.tar.bz2 -text svneol=unset#unset
-cfsdeps/ansys_custom/ansys_nacscmdargs_win32.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v100_include.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v100_linem64t.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v100_linia32.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v100_linop64.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v100_win32.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v110_include.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v110_linem64t.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v110_linia32.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v110_linia64.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v110_linop64.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v110_win32.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v110_winx64.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v120_include.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v120_linx64.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v120_win32.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v120_winx64.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v121_include.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v121_linem64t.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v121_linia32.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v121_linia64.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v121_win32.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v121_winx64.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v130_include.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v130_linx64.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v130_win32.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v130_winx64.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v140_include.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v140_linx64.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v140_win32.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_custom_v140_winx64.tar.bz2.md5 -text
+cfsdeps/ansys_custom/ansys_nacscmdargs_win32.tar.bz2.md5 -text
 cfsdeps/ansys_custom/mingw_binlib_v110_winx64.def -text
 cfsdeps/ansys_custom/mingw_binlib_v120_winx64.def -text
 cfsdeps/ansys_custom/mingw_binlib_v121_winx64.def -text
@@ -70,29 +70,29 @@ cfsdeps/ccmio/CMakeLists_libccmio.txt -text
 cfsdeps/ccmio/External_CCMIO.cmake -text
 cfsdeps/ccmio/ccmio-patch.cmake.in -text
 cfsdeps/cfx_custom/External_CFX_Custom.cmake -text
-cfsdeps/cfx_custom/cfx_custom_v100_include.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v100_linux-amd64.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v100_linux.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v110_include.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v110_linux-amd64.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v110_linux-ia64.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v110_linux.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v120_include.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v120_linux-amd64.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v121_include.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v121_linux-amd64.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v121_linux-ia64.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v121_linux.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v121_win-amd64.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v121_win-ia32.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v130_include.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v130_linux-amd64.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v130_win-amd64.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v130_win-ia32.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v140_include.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v140_linux-amd64.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v140_win-amd64.tar.bz2 -text svneol=unset#unset
-cfsdeps/cfx_custom/cfx_custom_v140_win-ia32.tar.bz2 -text svneol=unset#unset
+cfsdeps/cfx_custom/cfx_custom_v100_include.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v100_linux-amd64.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v100_linux.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v110_include.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v110_linux-amd64.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v110_linux-ia64.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v110_linux.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v120_include.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v120_linux-amd64.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v121_include.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v121_linux-amd64.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v121_linux-ia64.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v121_linux.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v121_win-amd64.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v121_win-ia32.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v130_include.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v130_linux-amd64.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v130_win-amd64.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v130_win-ia32.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v140_include.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v140_linux-amd64.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v140_win-amd64.tar.bz2.md5 -text
+cfsdeps/cfx_custom/cfx_custom_v140_win-ia32.tar.bz2.md5 -text
 cfsdeps/cfx_custom/cfxio-build.cmake.in -text
 cfsdeps/cfx_custom/cfxio-install.cmake.in -text
 cfsdeps/cgal/CGAL-3.2.1-install_cgal-no_versions_in_compiler_config.h.patch -text

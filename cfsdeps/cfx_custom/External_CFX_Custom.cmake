@@ -18,9 +18,59 @@ SET(INSTCMD "${cfxio_prefix}/cfxio-install.cmake")
 CONFIGURE_FILE("${INSTCMD_TEMPL}" "${INSTCMD}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Configure target for downloading CFX I/O archives using CMake
+# ExternalData mechanism.
+#-------------------------------------------------------------------------------
+# Add standard remote object stores to user's configuration.
+list(APPEND ExternalData_URL_TEMPLATES
+  "${LSE17_SOURCES_DIR}/cfx_custom/%(algo)/%(hash)"
+  )
+
+# Set standard local object stores.
+SET(ExternalData_OBJECT_STORES
+  "${CFS_DEPS_CACHE_DIR}/sources/cfx_custom"
+)
+
+SET(ARCHIVES
+  "v100_include"
+  "v110_include"
+  "v120_include"
+  "v121_include"
+  "v130_include"
+  "v140_include"
+
+  "v100_linux-amd64"
+  "v110_linux-amd64"
+  "v120_linux-amd64"
+  "v121_linux-amd64"
+  "v130_linux-amd64"
+  "v140_linux-amd64"
+  
+  "v110_linux-ia64"
+  
+  "v100_linux"
+  "v110_linux"
+  )
+
+foreach(archive ${ARCHIVES})
+  set(CFX_CUSTOM_EXTERNAL_DATA
+    "${CFX_CUSTOM_EXTERNAL_DATA}
+DATA{cfsdeps/cfx_custom/cfx_custom_${archive}.tar.bz2}")
+endforeach(archive)
+
+# Expand all arguments as a single string to preserve escaped semicolons.
+ExternalData_expand_arguments(cfx_custom_external_data
+  targetArgs "${CFX_CUSTOM_EXTERNAL_DATA}")
+
+# Add a build target to populate the real data.
+ExternalData_Add_Target(cfx_custom_external_data)
+
+
+#-------------------------------------------------------------------------------
 # The cfxio external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cfxio
+  DEPENDS cfx_custom_external_data
   PREFIX "${cfxio_prefix}"
   SOURCE_DIR "${cfxio_source}"
   BUILD_IN_SOURCE 1
