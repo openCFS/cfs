@@ -24,6 +24,7 @@ SET(HDF5_BUILD_TYPE "@HDF5_BUILD_TYPE@")
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 IF(MINGW OR APPLE)
+
   IF(CMAKE_CROSSCOMPILING)
     IF(CFS_ARCH STREQUAL "X86_64")
       IF(APPLE)
@@ -72,11 +73,11 @@ IF(MINGW OR APPLE)
       "${H5LIB_SETTINGS_C}"
       "${hdf5_prefix}/src/hdf5-${HDF5_BUILD_TYPE}-build/H5lib_settings.c"
       )
+  ENDIF()
 
-  ELSE()
-      SET(patches
-	# The H5detect and H5_libsettings executables need to be linked
-        # against ws2_32.lib
+  IF(MINGW)
+      LIST(APPEND patches
+	# Adjust library names to MinGW conventions.
 	"hdf5-mingw.patch"
 	)
   ENDIF()

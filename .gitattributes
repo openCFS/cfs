@@ -110,6 +110,7 @@ cfsdeps/cgal/cgal-patch.cmake.in -text
 cfsdeps/cgns/CMakeLists_v2.5.txt -text
 cfsdeps/cgns/External_CGNS.cmake -text
 cfsdeps/cgns/cgns-2.5-patch.cmake.in -text
+cfsdeps/cgns/cgns-adjust-install-paths.patch -text
 cfsdeps/cgns/cgns-arch-mac.patch -text
 cfsdeps/cgns/cgns-cmake-mac.patch -text
 cfsdeps/cgns/cgns-cmake-policy.patch -text

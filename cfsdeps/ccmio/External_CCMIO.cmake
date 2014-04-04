@@ -77,7 +77,7 @@ CONFIGURE_FILE(
 # The CCMIO-static external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(ccmio-static
-  DEPENDS cgns31
+  DEPENDS cgns
   PREFIX ${ccmio_prefix}
   SOURCE_DIR ${ccmio_source}
   URL ${LOCAL_FILE}

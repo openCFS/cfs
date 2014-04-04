@@ -440,7 +440,12 @@ IF(BUILD_PARAVIEW)
   #---------------------------------------------------------------------------
   # Setup a list of dependencies for ParaView.
   #---------------------------------------------------------------------------
-  SET(CFS_PV_DEPENDENCIES "")
+  SET(CFS_PV_DEPENDENCIES 
+    hdf5-shared
+    cgns
+    boost
+    zlib
+    )
 
   #---------------------------------------------------------------------------
   # Qt - Let's check if a valid version of Qt is available

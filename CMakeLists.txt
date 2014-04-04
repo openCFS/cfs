@@ -250,10 +250,8 @@ OPTION(USE_CGNS "Enable support for the CFD General Notation System."
 
 # Since the CGNS library depends on the HDF5 library, we need to force
 # USE_HDF5 to ON.
-IF(USE_CGNS AND
-    NOT USE_HDF5)
-    SET(USE_HDF5 ON CACHE BOOL
-      "Use HDF5 for simulation in/output." FORCE)
+IF(USE_CGNS)
+    SET(USE_HDF5 ON CACHE BOOL "Use HDF5 for simulation in/output." FORCE)
 ENDIF()
 
 #-----------------------------------------------------------------------------
@@ -337,14 +335,19 @@ OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)." ${CFSDAT_DEFAULT})
 # Shall we build ParaView?
 #-----------------------------------------------------------------------------
 OPTION(BUILD_PARAVIEW
-  "Build the ParaView postprocessor with CFS++/NACS HDF5 and OpenFOAM extensions?."
+  "Build the ParaView post-processor with CFS++/NACS HDF5 and extension?."
   ${BUILD_PARAVIEW_DEFAULT})
+
+IF(BUILD_PARAVIEW)
+  # We need CGNS for ParaView
+  SET(USE_CGNS ON CACHE BOOL "Use CFD General Notation System." FORCE)
+ENDIF()
 
 #-----------------------------------------------------------------------------
 # Shall we build HDFView?
 #-----------------------------------------------------------------------------
 OPTION(BUILD_HDFVIEW
-  "Build the HDF 4/5 file viewer?"
+  "Build the HDF 5 file viewer?"
    ${BUILD_HDFVIEW_DEFAULT})
 
 #-----------------------------------------------------------------------------

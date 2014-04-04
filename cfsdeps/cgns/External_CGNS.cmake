@@ -12,8 +12,7 @@
 #-------------------------------------------------------------------------------
 set(cgns_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/cgns")
 set(cgns_install  "${CMAKE_CURRENT_BINARY_DIR}")
-set(cgns_source  "${cgns_prefix}/src/cgns31")
-set(cgns25_source  "${cgns_prefix}/src/cgns25")
+set(cgns_source  "${cgns_prefix}/src/cgns")
 
 #-------------------------------------------------------------------------------
 # Set common CMake arguments
@@ -108,7 +107,7 @@ CONFIGURE_FILE(
 #-------------------------------------------------------------------------------
 # The CGNS external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add(cgns31
+ExternalProject_Add(cgns
   DEPENDS hdf5-shared zlib
   PREFIX ${cgns_prefix}
   SOURCE_DIR ${cgns_source}
@@ -124,63 +123,10 @@ ExternalProject_Add(cgns31
 # Add custom download step to be able to download from a list of mirrors
 # instead of just a single URL.
 #-------------------------------------------------------------------------------
-ExternalProject_Add_Step(cgns31 cfsdeps_download
+ExternalProject_Add_Step(cgns cfsdeps_download
    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
    DEPENDERS download
    DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${cgns_prefix}
-)
-
-
-SET(PFN25_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/cgns/cgns25-patch.cmake.in")
-SET(PFN25 "${cgns_prefix}/cgns25-patch.cmake")
-CONFIGURE_FILE("${PFN25_TEMPL}" "${PFN25}" @ONLY) 
-
-#-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the CFS++ development server  may not be
-# accessible from behind firewalls.
-# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
-# used to configure the download CMake file for the library.
-#-------------------------------------------------------------------------------
-SET(MIRRORS
-  "ftp://ftp.de.cw.net/pub/FreeBSD/ports/distfiles/cgnslib_2.5-5.tar.gz"
-  "http://pkgs.fedoraproject.org/repo/pkgs/cgnslib/cgnslib_2.5-5.tar.gz/ae2a2e79b99d41c63e5ed5f661f70fd9/cgnslib_2.5-5.tar.gz"
-  "${CGNS_URL}/${CGNS25_GZ}"
-)
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/cgns/${CGNS25_GZ}")
-SET(MD5_SUM ${CGNS25_MD5})
-
-SET(DLFN25 "${cgns_prefix}/cgns25-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN25}"
-  @ONLY
-  )
-
-#-------------------------------------------------------------------------------
-# The CGNS 2.5 external project
-#-------------------------------------------------------------------------------
-ExternalProject_Add(cgns25
-  DEPENDS hdf5-shared zlib
-  PREFIX ${cgns_prefix}
-  SOURCE_DIR ${cgns25_source}
-  URL ${LOCAL_FILE}
-  URL_MD5 ${CGNS25_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN25}"
-  LIST_SEPARATOR ,
-  CMAKE_ARGS
-     ${CMAKE_ARGS}
-    )
-
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(cgns25 cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN25}"
-   DEPENDERS download
-   DEPENDS "${DLFN25}"
    WORKING_DIRECTORY ${cgns_prefix}
 )
 
@@ -190,8 +136,7 @@ ExternalProject_Add_Step(cgns25 cfsdeps_download
 #-------------------------------------------------------------------------------
 SET(CFSDEPS
   ${CFSDEPS}
-  cgns31
-  cgns25
+  cgns
 )
 
 #-------------------------------------------------------------------------------
@@ -199,34 +144,22 @@ SET(CFSDEPS
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 SET(CGNS_LIBRARY
-  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns.3.1${CMAKE_STATIC_LIBRARY_SUFFIX}"
-  CACHE FILEPATH "CGNS 3.1 library.")
-SET(CGNS25_LIBRARY
-  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns.2.5${CMAKE_STATIC_LIBRARY_SUFFIX}"
-  CACHE FILEPATH "CGNS 2.5 library.")
+  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  CACHE FILEPATH "CGNS library.")
 
 IF(CFS_OS STREQUAL LINUX)
   SET(CGNS_SHARED_LIBRARY
-    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns${CMAKE_SHARED_LIBRARY_SUFFIX}.3.1"
-    CACHE FILEPATH "CGNS 3.1 shared library.")
-  SET(CGNS25_SHARED_LIBRARY
-    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns${CMAKE_SHARED_LIBRARY_SUFFIX}.2.5"
-    CACHE FILEPATH "CGNS 2.5 shared library.")
+    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    CACHE FILEPATH "CGNS shared library.")
 ELSE()
   IF(WIN32)
     SET(CGNS_SHARED_LIBRARY
-      "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgnsdll.3.1${CMAKE_IMPORT_LIBRARY_SUFFIX}"
-      CACHE FILEPATH "CGNS 3.1 shared library.")
-    SET(CGNS25_SHARED_LIBRARY
-      "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgnsdll.2.5${CMAKE_IMPORT_LIBRARY_SUFFIX}"
-      CACHE FILEPATH "CGNS 2.5 shared library.")
+      "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgnsdll${CMAKE_IMPORT_LIBRARY_SUFFIX}"
+      CACHE FILEPATH "CGNS shared library.")
   ELSE()
     SET(CGNS_SHARED_LIBRARY
-      "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns.3.1${CMAKE_SHARED_LIBRARY_SUFFIX}"
-      CACHE FILEPATH "CGNS 3.1 shared library.")
-    SET(CGNS25_SHARED_LIBRARY
-      "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns.2.5${CMAKE_SHARED_LIBRARY_SUFFIX}"
-      CACHE FILEPATH "CGNS 2.5 shared library.")
+      "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns${CMAKE_SHARED_LIBRARY_SUFFIX}"
+      CACHE FILEPATH "CGNS shared library.")
   ENDIF()
 ENDIF()
 
@@ -234,7 +167,6 @@ IF(EXISTS "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns${CMAKE_SHARED_LIBRARY_SUFFIX
   FILE(REMOVE "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns${CMAKE_SHARED_LIBRARY_SUFFIX}")
 ENDIF()
 
-SET(CGNS_INCLUDE_DIR ${CFS_BINARY_DIR}/include/cgns-3.1 CACHE PATH "CGNS 3.1 include directory")
-SET(CGNS25_INCLUDE_DIR ${CFS_BINARY_DIR}/include/cgns-2.5 CACHE PATH "CGNS 2.5 include directory")
+SET(CGNS_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "CGNS include directory")
 
 MARK_AS_ADVANCED(CGNS_INCLUDE_DIR)

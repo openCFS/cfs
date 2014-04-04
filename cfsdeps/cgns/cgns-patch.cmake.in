@@ -22,9 +22,7 @@ IF(CFS_DISTRO STREQUAL "MACOSX")
 ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
 LIST(APPEND patches "cgns-hdf5.patch")
-# Since we want to keep CGNS 2.55 and 3.13 side by side, we add
-# version numbers to the file names.
-LIST(APPEND patches "cgns-version-numbers-in-filenames.patch")
+LIST(APPEND patches "cgns-adjust-install-paths.patch")
 
 IF(MINGW)
   # MinGW needs two underscores for the declspec keyword.
