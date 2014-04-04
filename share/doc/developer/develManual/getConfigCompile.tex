@@ -62,22 +62,22 @@ distributions. These include:
 
 \begin{description}
 
-\item[openSUSE and SLE] All openSUSE, SLES and SLED versions from  the 11.x series should work out of
-the box.   If some  package is not  available from the  standard repositories,
-there   is  a   good  chance   to  find   it  at   openSUSE   software  search
-\url{http://software.opensuse.org/search},      openSUSE     build     service
-\url{https://build.opensuse.org} or one of the other package repositories like
-PackMan (\url{http://packman.links2linux.org}).
+\item[openSUSE and  SLE] All openSUSE,  SLES and  SLED versions from  the 11.x
+  series should work  out of the box.   If some package is  not available from
+  the standard  repositories, there is  a good chance  to find it  at openSUSE
+  software  search  \url{http://software.opensuse.org/search}, openSUSE  build
+  service  \url{https://build.opensuse.org}  or  one   of  the  other  package
+  repositories like PackMan (\url{http://packman.links2linux.org}).
 
 \noindent Checking which package provides an already installed file:
 \begin{verbatim}
 rpm -q --whatprovides /usr/bin/g++
 \end{verbatim}
 
-\item[Debian Based]  Ubuntu versions  from 10.04  LTS  are known  to work.   Earlier
-versions  may also  work. Since  Ubuntu is  derived from  Debian,  also recent
-Debian releases should work. Support for Linux Mint, which is in turn a
-spinoff from Ubuntu, has also been incorporated.
+\item[Debian Based] Ubuntu versions from 10.04 LTS are known to work.  Earlier
+  versions may  also work. Since  Ubuntu is  derived from Debian,  also recent
+  Debian releases  should work.  Support for  Linux Mint, which  is in  turn a
+  spinoff from Ubuntu, has also been incorporated.
 
 \noindent Checking which package provides an already installed file:
 \begin{verbatim}
@@ -87,8 +87,8 @@ dpkg -S /usr/bin/g++
 Ubuntu is a little  special among other Linux distros since it  uses Dash as a
 shell instead of  Bash. Therefore some shell scripts written  for Bash may not
 work on  Ubuntu. Go  to \url{https://wiki.ubuntu.com/DashAsBinSh} for  tips on
-how  to  make  your  scripts  POSIX  compliant. We  also  provide  the  script
-\texttt{share/scripts/checkbashisms} which  gives warnings about bash-specific
+how  to  make  your  scripts  POSIX compliant.  We  also  provide  the  script
+\texttt{share/scripts/checkbashisms} which gives  warnings about bash-specific
 syntax. On  Ubuntu, there exists  also the \texttt{devscripts}  package, which
 contains a lot of other tools for script development.
 
@@ -130,47 +130,149 @@ tested on Snow  Leopard (10.6) but should also work on  Leopard (10.5) and the
 We support building of CFS++ for Windows in two different flavors:
 
 \begin{description}
-\item[Cross-compiling from Linux] At the moment we support two MinGW toolchains on CentOS 6 (gcc 4.5.3)
-and Ubuntu 12.04 (gcc 4.6.3, cf. Sec. \ref{sec:mingw_linux_crosscompile}).
-\item [Compiling on Windows] by making use of the MinGW toolchain (gcc 4.7.1) and some additional GNU utilities. 
+\item[Cross-compiling  from  Linux]  At  the   moment  we  support  two  MinGW
+  toolchains  on  CentOS 6  (gcc  4.5.3)  and  Ubuntu  12.04 (gcc  4.6.3,  cf.
+  Sec.  \ref{sec:mingw_linux_crosscompile}).    The  CentOS  6   toolchain  is
+  installed inside the centos6 Vagrant box for nightly testing as a reference.
+\item [Compiling on Windows] by making  use of the MinGW toolchain inside {\tt
+  cmd.exe} or MSYS (minimal Bash system) environments with some additional GNU
+  utilities. A  32-bit toolchain is  installed inside the winxp32  Vagrant box
+  for nightly testing as a reference.
 \end{description}%
 %
-Unlike on UNIX systems, there is no automated setup script for these tools. Therefore, we just describe
-here, where to obtain the tools and how to set up a build environment on Windows.
+Similar to UNIX systems, there exists an automated setup script for the native
+tools on  Windows. The  script can  be downloaded  from the  CFS++ development
+server                                                                      at
+\url{ftp://lse17.e-technik.uni-erlangen.de:40065/scripts/bootstrap_devel_machine.cmd}.
+The script should be placed inside a directory, where the MinGW environment is
+to        be        installed,         e.g.        {\tt        E:{\textbackslash}mingw\_env}
+cf.  Fig. \ref{fig:mingw_env_xp32}.  The drive  containing this  folder should
+have about 12GB of free space.
+ 
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.98\textwidth]{pics/mingw_env_xp32}
+  \end{overpic}
+  \caption{Contents of the MinGW environment folder for a 32-bit environment on Windows XP.}
+  \label{fig:mingw_env_xp32}
+\end{figure}%
+%
+The  bootstrap  script  will  try  to  perform its  task  with  as  less  user
+interaction as  possible. It  may however  be necessary  to define  some proxy
+settings inside the script and add some exceptions to the Windows firewall for
+{\tt ftp.exe} and {\tt  wget.exe}. Once finished, the user will  get a link to
+Console2  on  his Desktop.  Inside  Console2  the different  environments  are
+available as Fig. \ref{fig:mingw_env_console2} shows.
 
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.8\textwidth]{pics/mingw_env_console2}
+  \end{overpic}
+  \caption{CMD and MSYS environments can be started inside Console2.}
+  \label{fig:mingw_env_console2}
+\end{figure}%
+%
+CFS++ can be  built inside the CMD  or MSYS environments but in  some cases it
+may  be necessary  to use  the MSYS  environments.  This  can be  the case  if
+packages, which  contain an {\tt  autoconf/automake} build system, have  to be
+built. Such packages  require a Bash shell interpreter for  building using the
+{\tt configure/make/make  install} mechanism  known from  the UNIX  world.  If
+e.g. CGAL  is switched on,  GMP and  MPFR are pulled  in, which need  the MSYS
+environment.%
+
+\noindent
+Finally we want to describe the packages that make up the MinGW environment.
+%
 \begin{description}
-\item[GNU Compilers] There exist several distributions for the MinGW toolchain. The one we used for testing was the 
-\emph{TDM-GCC}\footnote{TDM-GCC toolchain: \url{http://tdm-gcc.tdragon.net}} toolchain. 
-In their download section one can either download, single packages or a bundle installer for either 32-bit or 64/32-bit development.
-We chose the tdm64-gcc bundle installer. This package provides a standard Windows installer with all required packages
-for C, C++ and Fortran compilers. Another toolchain is available at \url{http://www.equation.com}.
+\item[GNU Compilers]  There exist several distributions  for MinGW toolchains.
+  The  toolchain  set  up  by  the  bootstrap  script  is  the  one  from  the
+  MinGW-Builds\footnote{MinGW-builds                                  project:
+    \url{http://www.sourceforge.net/projects/mingwbuilds}}  project.   It  has
+  been chosen since  it contains dual target GNU compilers,  Python and Qt 4.8
+  environments  built using  these compilers  are available.   The environment
+  used   for  testing   and   inside   the  winxp32   Vagrant   box  was   the
+  \emph{TDM-GCC}\footnote{TDM-GCC toolchain: \url{http://tdm-gcc.tdragon.net}}
+  toolchain.   In  their download  section  one  can either  download,  single
+  packages or a  bundle installer for either 32-bit  or 64/32-bit development.
+  We chose the  tdm64-gcc bundle installer.  This package  provides a standard
+  Windows  installer  with  all  required  packages for  C,  C++  and  Fortran
+  compilers. Another toolchain is available at \url{http://www.equation.com}.
 
-\item[GNU Tools] We also need the usual GNU tools, like gmake, for building software. There are also two options available for obtaining these.
-There exists an older project \emph{GNU utilities for Win32}\footnote{GNU utilities for Win32: \url{http://unxutils.sourceforge.net}} or
-the \emph{GnuWin32}\footnote{GnuWin32 project: \url{http://gnuwin32.sourceforge.net}} project, which provides more up-to-date versions of the utilities.
-After following their corresponding download and installation instructions, one should end up with the installed trees. One has to add the corresponding
-binary dirs ({\tt GNUWIN32\_INSTALL\_DIR/bin} for GnuWin32 or {\tt UNXUTILS\_INSTALL\_DIR/usr/local/wbin} for UnxUtils) to the system path. There exists a known problem, where {\tt patch.exe} has a problem with Windows 7 User Access Control UAC\footnote{Using \"patch\" from the GnuWin32 project on Windows 7: \url{http://math.nist.gov/oommf/software-patchsets/patch_on_Windows7.html}}. The {\tt patch.exe} therefore needs to be endowed with a manifest first! When applying a patch manually it is usually a good idea to add the {\tt --binary} command line switch to avoid CR/LF problems\footnote{patch error: Assertion failed, hunk, file patch.c: \url{http://solutionslog.blogspot.de/2009/07/patch-error-assertion-failed-hunk-file.html}}
+\item[GNU Tools]  We also need the  usual GNU tools, like  gmake, for building
+  software. There are  also two options available for  obtaining these.  There
+  exists  an   older  project  \emph{GNU  utilities   for  Win32}\footnote{GNU
+    utilities   for  Win32:   \url{http://unxutils.sourceforge.net}}  or   the
+  \emph{GnuWin32}\footnote{GnuWin32                                   project:
+    \url{http://gnuwin32.sourceforge.net}}   project,   which  provides   more
+  up-to-date versions  of the utilities.  After  following their corresponding
+  download and installation instructions, one should end up with the installed
+  trees.   One   has   to   add    the   corresponding   binary   dirs   ({\tt
+    GNUWIN32\_INSTALL\_DIR/bin}        for       GnuWin32        or       {\tt
+    UNXUTILS\_INSTALL\_DIR/usr/local/wbin}   for  UnxUtils)   to  the   system
+  path. There exists a known problem, where {\tt patch.exe} has a problem with
+  Windows 7 User Access Control UAC\footnote{Using ``patch'' from the GnuWin32
+    project                   on                  Windows                   7:
+    \url{http://math.nist.gov/oommf/software-patchsets/patch_on_Windows7.html}}. The
+  {\tt patch.exe}  therefore needs to be  endowed with a manifest  first! When
+  applying  a patch  manually  it is  usually  a  good idea  to  add the  {\tt
+    --binary}  command  line  switch to  avoid  CR/LF  problems\footnote{Patch
+    error:       Assertion       failed,       hunk,       file       patch.c:
+    \url{http://solutionslog.blogspot.de/2009/07/patch-error-assertion-failed-hunk-file.html}}
 
-\item[CMake] for Windows can be obtained from download section of the official homepage\footnote{CMake  download page: \url{http://www.cmake.org/cmake/resources/software.html}}.
+\item[CMake] for Windows can be obtained from download section of the official
+  homepage\footnote{CMake                    download                    page:
+    \url{http://www.cmake.org/cmake/resources/software.html}}.
 
-\item[Subversion] The best-known Subversion distribution on Windows seems to be TortoiseSVN\footnote{Subversion for Windows: \url{http://tortoisesvn.tigris.org}}. A Java-based platform independent alternative which also provides command line tools is SVNKit\footnote{SVNKit: \url{http://svnkit.com}}.
+\item[Subversion]  Inside the  bootstrapped  environment we  use SlikSVN.  The
+  best-known    Subversion   distribution    on    Windows    seems   to    be
+  TortoiseSVN\footnote{Subversion                 for                 Windows:
+    \url{http://tortoisesvn.tigris.org}}.   A Java-based  platform independent
+  alternative    which     also    provides    command    line     tools    is
+  SVNKit\footnote{SVNKit: \url{http://svnkit.com}}.
 
-\item[Git] If the CFS++ working copy is Git-based, then one should get Git for Windows\footnote{Git for Windows: \url{http://msysgit.github.com}}. There seems to be also a TortoiseGit project\footnote{TortoiseGit project: \url{http://code.google.com/p/tortoisegit}}.
+\item[Git] If the CFS++ working copy is Git-based, then one should get Git for
+  Windows\footnote{Git  for  Windows: \url{http://msysgit.github.com}}.  There
+  seems  to  be  also   a  TortoiseGit  project\footnote{TortoiseGit  project:
+    \url{http://code.google.com/p/tortoisegit}}.
 
-\item[Intel MKL] If the optimized solvers from MKL need to be used, a Windows distribution (e.g. as provided by the latest Intel Compiler installations) is required. Unlike on UNIX-based systems, no advanced system for automatic detection of the required
-link parameters has been implemented so far. The corresponding settings can be found and hand-tuned in {\tt cmake\_modules/FindIntelMKL.cmake}, however. The only version of MKL known to work on Win64 with MinGW at the moment is 10.0.5.025.
+\item[Intel MKL] If the optimized solvers from  MKL need to be used, a Windows
+  distribution (e.g. as  provided by the latest  Intel Compiler installations)
+  is required. Unlike on UNIX-based  systems, no advanced system for automatic
+  detection of the  required link parameters has been implemented  so far. The
+  corresponding   settings    can   be   found   and    hand-tuned   in   {\tt
+    cmake\_modules/FindIntelMKL.cmake}, however. The only version of MKL known
+  to work on Win64 with MinGW at the moment is 10.0.5.025.
 \end{description}%
 %
-The binary directories of the aforementioned distributions need to be added to the system PATH, so 
-that the utilities can be found afterwards by our build system. The configuration of CFS++ on Windows is then pretty similar as compared to UNIX. The only difference is, that one should specify the additional parameter {\tt -G 'MinGW Makefiles'} on the command line of CMake, since Microsoft NMake files or Visual Studio projects would be generated otherwise.
+The binary directories of the aforementioned distributions need to be added to
+the system PATH,  so that the utilities  can be found afterwards  by the build
+system.   The configuration  of CFS++  on Windows  is then  pretty similar  as
+compared  to  UNIX. The  only  difference  is,  that  one should  specify  the
+additional parameter {\tt -G ``MinGW Makefiles''}  on the command line of CMake,
+since  Microsoft NMake  files or  Visual  Studio projects  would be  generated
+otherwise.  This is  however not  necessary inside  the Console2  environments
+since there a patched CMake is used, whose default generator can be configured
+using the {\tt CMAKE\_DEFAULT\_GENERATOR} environment variable.
 
-At the moment, we just support the absolute core components of CFSDEPS and CFS++ on Windows. Items like HDFView or ParaView are still to be ported. 
+It is in  principle possible to compile ParaView and  the required patches are
+contained  in  CFSDEPS.  But  it  still  requires  some user  interaction  for
+building, since  problems connected  to too long  command line  parameters are
+almost  certain  to  occur.  These problems  usually  manifest  themselves  in
+CreateProcess   errors.   It   has   been  found   that   mapping   the   {\tt
+  cfsdeps/pvsb/src/pvsb-build/paraview/src}  folder  to  a  drive  using  {\tt
+  subst},  replacing  the  paths  inside  {\tt  paraview-build/CMakeCache.txt}
+accordingly and deleting everything  else inside {\tt paraview-build} resolves
+these problems.
 
-There is also only very limited support for the Microsoft Visual Studio compilers, since we require also a Fortran compiler. Since a Fortran compiler is not part 
-of the Microsoft tools, either the Intel Fortran compiler would be needed or the GNU Fortran compiler could be used.
- This would however, require some changes to our build project\footnote{Fortran for C/C++ developers made easier with CMake: 
-\url{http://www.kitware.com/blog/home/post/231}}. These changes may be worth the effort in the future, since Visual Studio Express is 
-an excellent environment for debugging and is also available for free since the 2008 release.
+There  is also  only  very limited  support for  the  Microsoft Visual  Studio
+compilers, since we require also a  Fortran compiler. Since a Fortran compiler
+is not part of the Microsoft tools, either the Intel Fortran compiler would be
+needed or the GNU Fortran compiler could be used.  This would however, require
+some changes to  our build project\footnote{Fortran for  C/C++ developers made
+  easier  with CMake:  \url{http://www.kitware.com/blog/home/post/231}}. These
+changes may be worth the effort in  the future, since Visual Studio Express is
+an excellent  environment for debugging and  is also available for  free since
+the 2008 release.
 
 
 \todo[inline] {

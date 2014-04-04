@@ -4,12 +4,23 @@ SET(CMAKE_COMMAND "@CMAKE_COMMAND@")
 SET(PDFLATEX_COMPILER "@PDFLATEX_COMPILER@")
 SET(BIBTEX_COMPILER "@BIBTEX_COMPILER@")
 SET(PYTHON_EXECUTABLE "@PYTHON_EXECUTABLE@")
+SET(PYG "@PYGMENTIZE_EXECUTABLE@")
+SET(STYLE tango)
+SET(WIN32 "@WIN32@")
+SET(CMAKE_CROSSCOMPILING "@CMAKE_CROSSCOMPILING@")
 
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 SET(LATEX_AUX_DIR "${CFS_BINARY_DIR}/share/doc/auxilliaries/LaTeX")
 
-SET(ENV{TEXINPUTS} "${LATEX_AUX_DIR}:")
+FILE(TO_NATIVE_PATH "${LATEX_AUX_DIR}" LATEX_AUX_DIR)
+IF(WIN32 AND NOT CMAKE_CROSSCOMPILING)
+  SET(LATEX_AUX_DIR "${LATEX_AUX_DIR};")
+ELSE()
+  SET(LATEX_AUX_DIR "${LATEX_AUX_DIR}:")
+ENDIF()
+
+SET(ENV{TEXINPUTS} "${LATEX_AUX_DIR}")
 
 MACRO(CLEANUP_LATEX_DIR DIR)
   MESSAGE(STATUS "Cleaning up LaTeX files in ${DIR}...")
@@ -37,9 +48,28 @@ ENDMACRO(CLEANUP_LATEX_DIR)
 
 
 MACRO(RSYNC_DIR SRC DST)
-  EXECUTE_PROCESS(
-    COMMAND rsync -vaz "${SRC}" "${DST}"
-    )
+#  EXECUTE_PROCESS(
+#    COMMAND rsync -vaz "${SRC}" "${DST}"
+#    )
+  
+  if(NOT EXISTS "${DST}")
+    file(MAKE_DIRECTORY "${DST}")
+  endif()
+
+  file(GLOB_RECURSE FILES RELATIVE "${SRC}" "${SRC}/*")
+
+  foreach(FILE IN ITEMS ${FILES})
+#    message("${SRC}/${FILE} -> ${DST}/${FILE}")
+    
+    execute_process(
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${SRC}/${FILE}" "${DST}/${FILE}"
+      )
+  endforeach()
+
+#  EXECUTE_PROCESS(
+#    COMMAND ${CMAKE_COMMAND} -E copy_directory "${SRC}" "${DST}"
+#    )
 ENDMACRO(RSYNC_DIR)
 
 
@@ -48,7 +78,7 @@ ENDMACRO(RSYNC_DIR)
 MACRO(RSYNC_AUX_DIR)
   RSYNC_DIR(
     "${CFS_SOURCE_DIR}/share/doc/auxilliaries"
-    "${CFS_BINARY_DIR}/share/doc"
+    "${CFS_BINARY_DIR}/share/doc/auxilliaries"
     )
 ENDMACRO(RSYNC_AUX_DIR)
 
@@ -88,11 +118,6 @@ MACRO(BUILD_LATEX_DOC DIR DOC)
     )
     
 ENDMACRO(BUILD_LATEX_DOC)
-
-
-
-find_program(PYG pygmentize)
-SET(STYLE tango)
 
 
 MACRO(PYG_MAKE_AUX_STYLE_FILE)
