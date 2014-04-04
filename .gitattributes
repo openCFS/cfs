@@ -1267,6 +1267,8 @@ source/DataInOut/SimInOut/AnsysRST/bintwr.F -text
 source/DataInOut/SimInOut/CGNS/CMakeLists.txt -text
 source/DataInOut/SimInOut/CGNS/SimInputCGNS.cc -text
 source/DataInOut/SimInOut/CGNS/SimInputCGNS.hh -text
+source/DataInOut/SimInOut/CGNS/SimOutputCGNS.cc -text
+source/DataInOut/SimInOut/CGNS/SimOutputCGNS.hh -text
 source/DataInOut/SimInOut/COMSOL/CMakeLists.txt -text
 source/DataInOut/SimInOut/COMSOL/SimInputMPHTXT.cc -text
 source/DataInOut/SimInOut/COMSOL/SimInputMPHTXT.hh -text

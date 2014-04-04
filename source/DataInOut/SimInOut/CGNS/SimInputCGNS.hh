@@ -71,15 +71,41 @@ namespace CoupledField{
     virtual void GetElemNames(StdVector<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >&)
     { EXCEPTION("Not implemented!"); }
 
- #if 0
-    //! get nodal values from the corresponding fluid datafile the new way
-    virtual void ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
-                                 const std::vector<bool>& activeParts,
-                                 const UInt timeStepIdx);
+    // =========================================================================
+    //  GENERAL SOLUTION INFORMATION
+    // =========================================================================
+    //@{ \name General Solution Information
 
-    virtual Double GetTimeStep(UInt stepNumber);
- #endif
-    
+    //! Return multisequence steps and their analysistypes
+    void GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
+                                   std::map<UInt, UInt>& numSteps,
+                                   bool isHistory = false );
+
+    //! Obtain list with result types in each sequence step
+    void GetResultTypes( UInt sequenceStep, 
+                         StdVector<shared_ptr<ResultInfo> >& infos,
+                         bool isHistory = false );
+
+    //! Return list with time / frequency values and step for a given result
+    virtual void GetStepValues( UInt sequenceStep,
+                                shared_ptr<ResultInfo> info,
+                                std::map<UInt, Double>& steps,
+                                bool isHistory = false );
+
+    //! Return entitylist the result is defined on
+    void GetResultEntities( UInt sequenceStep,
+                            shared_ptr<ResultInfo> info,
+                            StdVector<shared_ptr<EntityList> >& list,
+                            bool isHistory = false );
+
+    //! Fill pre-initialized results object with values of specified step
+    void GetResult( UInt sequenceStep,
+                    UInt stepNum,
+                    shared_ptr<BaseResult> result,
+                    bool isHistory = false );
+    //@}
+
+
   protected:
     UInt numElems_;
     UInt numVertices_;
@@ -104,6 +130,9 @@ namespace CoupledField{
     //! dimension.
     Integer vertSize_[9];
 
+    //! Remember number of nodes in grid before we add our own ones.
+    UInt nodeOffset_;
+    
   private:
     void ReadCGNSDirectory(std::string dirname, std::map<Double, std::string> & fileNames);
     Integer GetFileHandle(std::string fName);

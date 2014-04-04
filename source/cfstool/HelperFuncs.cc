@@ -72,6 +72,7 @@ namespace fs = boost::filesystem;
 
 #ifdef USE_CGNS
 #include "DataInOut/SimInOut/CGNS/SimInputCGNS.hh"
+#include "DataInOut/SimInOut/CGNS/SimOutputCGNS.hh"
 #endif
 
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
@@ -444,6 +445,22 @@ namespace CFSTool {
                                                          info, restart ) );
 #else
       EXCEPTION( "No support for IDEAS universal output file format." );
+#endif
+    } else if(fileName.find( ".cgns") != std::string::npos) {
+#ifdef USE_CGNS
+      baseName = std::string(fileName, 0, fileName.find(".cgns"));
+
+      if(outputNode->Has("cgns")) {
+        writerNode = outputNode->Get("cgns");
+      } else {
+        writerNode = PtrParamNode(new ParamNode());
+        writerNode->SetName("cgns");
+      }
+
+      writer =  shared_ptr<SimOutput>( new SimOutputCGNS( baseName, writerNode, 
+                                                          info, restart ) );
+#else
+      EXCEPTION( "No support for CGNS output file format." );
 #endif
     } else {
       EXCEPTION( "Output format not supported!" );

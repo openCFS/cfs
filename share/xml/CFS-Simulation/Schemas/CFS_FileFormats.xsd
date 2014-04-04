@@ -446,6 +446,8 @@
         minOccurs="0" maxOccurs="1"/>
       <xsd:element name="rst" type="DT_OutputRST"
 		   minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="cgns" type="DT_OutputCGNS"
+        minOccurs="0" maxOccurs="1"/>
       <xsd:element name="text" type="DT_OutputText"
 		   minOccurs="0" maxOccurs="1"/>
       <xsd:element name="csv" type="DT_OutputCSV"
@@ -575,6 +577,30 @@
     </xsd:attribute>
     <xsd:attribute name="id" type="xsd:token" default="rst"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for CGNS output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputCGNS">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Write (C)FD (G)eneral (N)otation (S)ystem files (http://www.cgns.org).
+      </xsd:documentation>
+    </xsd:annotation>   
+    <xsd:attribute name="directory" type="xsd:string" default="results_cgns"/>
+    <xsd:attribute name="id" type="xsd:token" default="hdf5"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
+    <xsd:attribute name="mll" type="xsd:token" default="default">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Mid level library used to write CGNS SIDS. May be one of hdf5, adf,
+          adf2 or default. By default hdf5 is used. This behavior may however
+          be changed by setting the environment variable CGNS_FILETYPE to one
+          of hdf5, adf or adf2.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
   
   <!-- ******************************************************************** -->

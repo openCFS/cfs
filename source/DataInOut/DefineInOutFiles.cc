@@ -67,6 +67,7 @@
 
 #ifdef USE_CGNS
 #include "DataInOut/SimInOut/CGNS/SimInputCGNS.hh"
+#include "DataInOut/SimInOut/CGNS/SimOutputCGNS.hh"
 #endif
 
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
@@ -392,6 +393,16 @@ CreateSimOutputFiles(PtrParamNode rootNode,
                                                            infoNode, restart));
 #else
       EXCEPTION( "No support for UNV output file format." );
+#endif
+    }
+
+    if (actFormat == "cgns")
+    {
+#ifdef USE_CGNS
+      out[actId] = shared_ptr<SimOutput> (new SimOutputCGNS(simName, actNode, 
+                                                           infoNode, restart));
+#else
+      EXCEPTION( "No support for CGNS output file format." );
 #endif
     }
 

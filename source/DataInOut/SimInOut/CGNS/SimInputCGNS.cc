@@ -39,23 +39,25 @@ namespace CoupledField{
   DEFINE_LOG(simInputCGNS, "simInput.CGNS")
 
   //! Constructor
-  SimInputCGNS::SimInputCGNS( std::string fileName, PtrParamNode inputNode,
+  SimInputCGNS::SimInputCGNS( std::string fileName,
+                              PtrParamNode inputNode,
                               PtrParamNode infoNode ) :
     SimInput(fileName, inputNode, infoNode ),
     numElems_(0),
     numRegions_(0),
     dim_(0),
-    physDim_(0)
+    physDim_(0),
+    nodeOffset_(0)
   {
     capabilities_.insert( SimInput::MESH );
-    //    capabilities_.insert( SimInput::MESH_RESULTS );
+    capabilities_.insert( SimInput::MESH_RESULTS );
   }
   
   SimInputCGNS::~SimInputCGNS(){
   }
   
   void SimInputCGNS::InitModule(){
-    std::cout << "Entering SimInputCGNS::Init" << std::endl;
+    LOG_TRACE(simInputCGNS) << "Entering SimInputCGNS::Init" << std::endl;
 
     std::string baseName;
     try
@@ -81,7 +83,7 @@ namespace CoupledField{
 
     InitElemTypeMap();
 
-    ReadCGNSDirectory(fileDir_, fileNames_);
+    // ReadCGNSDirectory(fileDir_, fileNames_);
 
     //open the first cgns file
     Integer fn = GetFileHandle(fileName_);
@@ -120,402 +122,135 @@ namespace CoupledField{
 
   void SimInputCGNS::ReadMesh(Grid* ptGrid) 
   {
-    std::cout << "Entering SimInputCGNS::ReadGrid" << std::endl;
+    LOG_TRACE(simInputCGNS) << "Entering SimInputCGNS::ReadGrid" << std::endl;
 
     mi_ = ptGrid;
 
     Integer fn = GetFileHandle(fileName_);
 
-    std::cout << "Going to read " << vertSize_[0] << " Vertices, building " <<
-      vertSize_[1] << " Cells ";
-    std::cout << "of a " << dim_ << "D, unstructured mesh ...." << std::endl;
+    LOG_TRACE(simInputCGNS) << "Going to read " << vertSize_[0]
+                            << " Vertices, building " <<  vertSize_[1]
+                            << " Cells " << "of a " << dim_
+                            << "D, unstructured mesh ...." << std::endl;
+
     ReadUnstructuredGrid(fn,physDim_,(cgsize_t*)vertSize_);
 
     cg_close(fn);
   }
   
-  
-#if 0
-  //! get nodal values from the corresponding fluid datafile the new way
-  void SimInputCGNS::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
-                                        const std::vector<bool>& activeParts,
-                                        const UInt timeStepIdx){
+  void SimInputCGNS::ReadCGNSDirectory(std::string dirname,
+                                       std::map<Double, std::string> & fileNames)
+  {
+    std::string::size_type lastSlashPos=dirname.find_last_not_of('/');
+    
+    
+    if (lastSlashPos != std::string::npos)
+      dirname = dirname.substr( 0, lastSlashPos+1 );
+    
+    
+    fs::path trnDir( dirname );
+    //here we need to strap
 
-    //UNSTRUCTURED VERSION!!!!!
-     Integer numsols = 0; 
-     char solname[33];
-     GridLocation_t solLocation;
-     //get grip of first file name
-     std::map<Double, std::string>::iterator fIter = fileNames_.begin();
-     //advance iterator to current timestep
-     for(UInt i =0 ; i <timeStepIdx ; i++){
-       fIter++;
-     }
-     if(fIter == fileNames_.end()){
-       std::cerr << "Request for invalid stepIndex" << std::endl;
-       exit(1);
-     }
-     //std::cout << "Going to read values from file " << fIter->second << std::endl;
-
-     std::string firstFile = fileDir_ + "/" + fIter->second;
-     //open the cgns file
-     Integer fn = GetFileHandle(firstFile);
-
-     cg_nsols(fn,1,1,&numsols);
-     //std::cout << "found " << numsols << " solutions" << std::endl;
-     cg_sol_info(fn, 1, 1, numsols, solname , &solLocation );
-     //std::cout << "found " << solname << " solution" << std::endl;
-     if(solLocation != Vertex){
-       std::cout << "solution is definied on the cell center. mapping to nodes not supported right now" << std::endl;
-       exit(1);
-     }
-     Integer nfields = 0;
-     char fieldName[33];
-     DataType_t datatype;
-     std::vector< std::vector<Double> > solution;
-     std::vector<Double> solutionPressure;
-     std::vector< std::vector<Double> > solutionSkinFriction;
-     std::vector< std::vector<Double> > solutionForce;
-     solution.resize(3,std::vector<Double>(numVertices_));
-     solutionSkinFriction.resize(3,std::vector<Double>(numVertices_));
-     solutionForce.resize(3,std::vector<Double>(numVertices_));
-
-     cg_nfields(fn, 1, 1, numsols, &nfields ); 
-     bool velocityFound = false;
-     bool pressureFound = false;
-     bool frictionFound = false;
-     bool fluidForceFound = false;
-     for(UInt aSol = 1 ; aSol <= (UInt) nfields; aSol++){
-        cg_field_info(fn, 1, 1, numsols, aSol, &datatype , fieldName );
-        UInt spaceIdx = MapVelocityIndex(fieldName);
-        if(spaceIdx != 9999){
-          cgsize_t range_min[3] = {1,1,1};
-          cgsize_t range_max[3] = {numVertices_,1,1};
-          Double * curSol = new Double[numVertices_];
-          cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
-          solution[spaceIdx].resize(numVertices_,0);
-          solution[spaceIdx].assign(curSol,curSol +numVertices_);
-          velocityFound = true;
-          delete curSol;
-          curSol = NULL;
+    std::cout << trnDir.generic_string() << std::endl;
+    
+    fs::directory_iterator end_iter;
+    
+    //clear all contents of the map
+    fileNames.clear();
+    
+    std::set<UInt>::const_iterator it, end;
+    std::string fn;
+    
+    //new idea
+    // 1. first fill an array with all cgns files
+    // 2. check for the justmesh option
+    // 2a. if true, and i found multiple files, ask the user which one to convert
+    // 2b. if false we can continue with the standard
+    
+    //make a one based file counter
+    UInt counter = 0;
+    UInt justmesh = 1;// settings.GetInt("justmesh");
+    UInt calcsrc = 0;//settings.GetInt("calcsrc");
+    
+    if(justmesh == 1) {
+      LOG_TRACE(simInputCGNS) << "Going to read a single CGNS file..." << std::endl;
+      for ( fs::directory_iterator dir_itr( trnDir );
+            dir_itr != end_iter;
+            ++dir_itr ) {
+        if ( !fs::is_directory( *dir_itr ) ) { 
+          fn = dir_itr->path().filename().string();
+          if(algo::ends_with(fn, ".cgns")) {
+            fileNames[++counter] = fn;
+          }
         }
-        spaceIdx = MapFrictionIndex(fieldName);
-        if(spaceIdx != 9999){
-          cgsize_t range_min[3] = {1,1,1};
-          cgsize_t range_max[3] = {numVertices_,1,1};
-          Double * curSol = new Double[numVertices_];
-          cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
-          solutionSkinFriction[spaceIdx].resize(numVertices_,0);
-          solutionSkinFriction[spaceIdx].assign(curSol,curSol +numVertices_);
-          frictionFound = true;
-          delete curSol;
-          curSol = NULL;
-        }
-        spaceIdx = MapForceIndex(fieldName);
-        if(spaceIdx != 9999){
-          cgsize_t range_min[3] = {1,1,1};
-          cgsize_t range_max[3] = {numVertices_,1,1};
-          Double * curSol = new Double[numVertices_];
-          cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
-          solutionForce[spaceIdx].resize(numVertices_,0);
-          solutionForce[spaceIdx].assign(curSol,curSol +numVertices_);
-          fluidForceFound = true;
-          delete curSol;
-          curSol = NULL;
-        }
-
-        if(strcmp(fieldName,"Pressure") == 0){
-          cgsize_t range_min[3] = {1,1,1};
-          cgsize_t range_max[3] = {numVertices_,1,1};
-          Double * curSol = new Double[numVertices_];
-          cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
-          solutionPressure.resize(numVertices_,0);
-          solutionPressure.assign(curSol,curSol +numVertices_);
-          pressureFound = true;
-          delete curSol;
-          curSol = NULL;
-        }
-     }
-     if(!velocityFound){
-       WARN("Did not find velocity field this could cause errors!");
-     }
-     //Global solution vector created
-     //now fill the stupid array
-     //Obtain the information
-     FlowDataType curFlowData;
-
-     //If the cgns file has information about the solution it would have "arrays"
-     //but we assume that this is not hte case
-     char sectionName[33];
-     ElementType_t eType;
-     cgsize_t start,end = 0;
-     Integer nboundary = 0;
-     Integer parentFlag = 0;
-
-     std::map<Integer,std::set<UInt> >::iterator nodeIt = nodesPerRegionMap_.begin();
-     for(UInt curReg = 0;curReg < nodalFlowData.size(); curReg++ ){
-       FlowDataType& curType = nodalFlowData[curReg];
-
-
-
-       cg_section_read(fn,1,1,curReg+1,sectionName,&eType,&start,&end,&nboundary,&parentFlag);
-       //do the following only for volume regions i.e. nboundary == 0
-
-        if ( (requiredResults_[FLUIDMECH_VELOCITY] ||
-             requiredResults_[NO_SOLUTION_TYPE]) && velocityFound ){
-            /* copy the fluid velocity values */
-          FlowDataPartStruct & tmpSolStruct = curType[FLUIDMECH_VELOCITY];
-          
-          //          if(nboundary == 0){
-            tmpSolStruct.isActive = true;
-            if (tmpSolStruct.dofNames.empty()) {
-              tmpSolStruct.unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
-              tmpSolStruct.dofNames.push_back("x");
-              tmpSolStruct.dofNames.push_back("y");
-              if(dim_ == 3){
-                tmpSolStruct.dofNames.push_back("z");
-              }
-            
-              tmpSolStruct.resultName = SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY);
-              tmpSolStruct.definedOn = ResultInfo::NODE;
-              tmpSolStruct.entryType = ResultInfo::VECTOR;
-            }
-            std::set<UInt> curNodes = nodeIt->second;
-            std::set<UInt>::iterator curNodeIt = curNodes.begin();
-            UInt numDOFs = tmpSolStruct.dofNames.size();
-            tmpSolStruct.data.resize(numDOFs * curNodes.size());
-            for(UInt n = 0; n < curNodes.size() ;n++){
-              UInt idx = *curNodeIt;
-              for(UInt i = 0; i < dim_; i++){
-                tmpSolStruct.data[n*numDOFs+i] = solution[i][idx-1];
-              }
-              curNodeIt++;
-            }
-//           }else{
-//             tmpSolStruct->isActive = false;
-//           }
-
-        }
-
-        if (  pressureFound ){
-            /* copy the fluid velocity values */
-          FlowDataPartStruct & tmpSolStruct = curType[FLUIDMECH_PRESSURE];
-          
-          //          if(nboundary == 0){
-            tmpSolStruct.isActive = true;
-            if (tmpSolStruct.dofNames.empty()) {
-              tmpSolStruct.unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
-              tmpSolStruct.dofNames.resize(1);
-            
-              tmpSolStruct.resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE);
-              tmpSolStruct.definedOn = ResultInfo::NODE;
-              tmpSolStruct.entryType = ResultInfo::SCALAR;
-            }
-            std::set<UInt> curNodes = nodeIt->second;
-            std::set<UInt>::iterator curNodeIt = curNodes.begin();
-            UInt numDOFs = tmpSolStruct.dofNames.size();
-            tmpSolStruct.data.resize(numDOFs * curNodes.size());
-            for(UInt n = 0; n < curNodes.size() ;n++){
-              UInt idx = *curNodeIt;
-              tmpSolStruct.data[n] = solutionPressure[idx-1];
-              curNodeIt++;
-            }
-        }
-
-        if ( frictionFound){
-            /* copy the fluid velocity values */
-          FlowDataPartStruct & tmpSolStruct = curType[FLUIDMECH_SKINFRICTION];
-          
-          //          if(nboundary == 0){
-            tmpSolStruct.isActive = true;
-            if (tmpSolStruct.dofNames.empty()) {
-              tmpSolStruct.unit = MapSolTypeToUnit(FLUIDMECH_SKINFRICTION);
-              tmpSolStruct.dofNames.push_back("x");
-              tmpSolStruct.dofNames.push_back("y");
-              if(dim_ == 3){
-                tmpSolStruct.dofNames.push_back("z");
-              }
-            
-              tmpSolStruct.resultName = SolutionTypeEnum.ToString(FLUIDMECH_SKINFRICTION);
-              tmpSolStruct.definedOn = ResultInfo::NODE;
-              tmpSolStruct.entryType = ResultInfo::VECTOR;
-            }
-            std::set<UInt> curNodes = nodeIt->second;
-            std::set<UInt>::iterator curNodeIt = curNodes.begin();
-            UInt numDOFs = tmpSolStruct.dofNames.size();
-            tmpSolStruct.data.resize(numDOFs * curNodes.size());
-            for(UInt n = 0; n < curNodes.size() ;n++){
-              UInt idx = *curNodeIt;
-              for(UInt i = 0; i < dim_; i++){
-                tmpSolStruct.data[n*numDOFs+i] = solutionSkinFriction[i][idx-1];
-              }
-              curNodeIt++;
-            }
-        }
-
-        if ( fluidForceFound){
-            /* copy the fluid velocity values */
-          FlowDataPartStruct & tmpSolStruct = curType[FLUIDMECH_FORCE];
-
-          //          if(nboundary == 0){
-            tmpSolStruct.isActive = true;
-            if (tmpSolStruct.dofNames.empty()) {
-              tmpSolStruct.unit = MapSolTypeToUnit(FLUIDMECH_FORCE);
-              tmpSolStruct.dofNames.push_back("x");
-              tmpSolStruct.dofNames.push_back("y");
-              if(dim_ == 3){
-                tmpSolStruct.dofNames.push_back("z");
-              }
-
-              tmpSolStruct.resultName = SolutionTypeEnum.ToString(FLUIDMECH_FORCE);
-              tmpSolStruct.definedOn = ResultInfo::NODE;
-              tmpSolStruct.entryType = ResultInfo::VECTOR;
-            }
-            std::set<UInt> curNodes = nodeIt->second;
-            std::set<UInt>::iterator curNodeIt = curNodes.begin();
-            UInt numDOFs = tmpSolStruct.dofNames.size();
-            tmpSolStruct.data.resize(numDOFs * curNodes.size());
-            for(UInt n = 0; n < curNodes.size() ;n++){
-              UInt idx = *curNodeIt;
-              for(UInt i = 0; i < dim_; i++){
-                tmpSolStruct.data[n*numDOFs+i] = solutionForce[i][idx-1];
-              }
-              curNodeIt++;
-            }
-        }
-
-      nodeIt++;
       }
-       
-    // std::string firstFile = fileDir_ + "/" + fileNames_[timeStepIdx]->second;
-    // //open the first cgns file
-    // Integer fn = GetFileHandle(firstFile);
-    cg_close(fn);
-  }
-  
-  Double SimInputCGNS::GetTimeStep(UInt stepNumber){
-    Double timestep = settings.GetDouble("timestep");
-    if (timestep != -1)
-    {
-      return timestep * stepNumber;
-    }
-    return -1;
-  }
-#endif
+    }else if(calcsrc == 1){
+      std::cout << "Going to iterate through the CGNS directory to obtain all source files" << std::endl;
+      //give a wanring that the user knows whats going on
+      std::cout << "Assuming that the step numbers are the last thing in the filename before the extension.\n"<<
+        "If this is not the case the algorithm will fail!" << std::endl;
+      UInt firstStep = 1;//settings.GetInt("firststep");
+      UInt numSteps = 1;//settings.GetInt("numsteps");
+      for ( fs::directory_iterator dir_itr( trnDir );
+            dir_itr != end_iter;
+            ++dir_itr ) {
+        if ( !fs::is_directory( *dir_itr ) ) {
+          fn = dir_itr->path().filename().string();
+          std::cout << fn << std::endl;
+          boost::tokenizer<> tok(fn);
+          if(algo::ends_with(fn, ".cgns")) {
 
-  void SimInputCGNS::ReadCGNSDirectory(std::string dirname, std::map<Double, std::string> & fileNames){
-     std::string::size_type lastSlashPos=dirname.find_last_not_of('/');
-
-
-     if (lastSlashPos != std::string::npos)
-       dirname = dirname.substr( 0, lastSlashPos+1 );
-
-
-     fs::path trnDir( dirname );
-     //here we need to strap
-
-     std::cout << trnDir.generic_string() << std::endl;
-
-     fs::directory_iterator end_iter;
-
-     //clear all contents of the map
-     fileNames.clear();
-
-     std::set<UInt>::const_iterator it, end;
-     // UInt stepNum; // TODO: Unused variable stepNum
-     // stepNum = 0;
-     std::string fn;
-     
-
-     //new idea
-     // 1. first fill an array with all cgns files
-     // 2. check for the justmesh option
-     // 2a. if true, and i found multiple files, ask the user which one to convert
-     // 2b. if false we can continue with the standard
-
-     //make a one based file counter
-     UInt counter = 0;
-     UInt justmesh = 1;// settings.GetInt("justmesh");
-     UInt calcsrc = 0;//settings.GetInt("calcsrc");
-
-     if(justmesh == 1){
-       std::cout << "Going to convert a CGNS file to hdf5..." << std::endl;
-        for ( fs::directory_iterator dir_itr( trnDir );
-              dir_itr != end_iter;
-              ++dir_itr ) {
-           if ( !fs::is_directory( *dir_itr ) ) { 
-             fn = dir_itr->path().filename().string();
-             if(algo::ends_with(fn, ".cgns")) {
-               fileNames[++counter] = fn;
-             }
-           }
-        }
-     }else if(calcsrc == 1){
-       std::cout << "Going to iterate through the CGNS directory to obtain all source files" << std::endl;
-       //give a wanring that the user knows whats going on
-       std::cout << "Assuming that the step numbers are the last thing in the filename before the extension.\n"<<
-             "If this is not the case the algorithm will fail!" << std::endl;
-       UInt firstStep = 1;//settings.GetInt("firststep");
-       UInt numSteps = 1;//settings.GetInt("numsteps");
-       for ( fs::directory_iterator dir_itr( trnDir );
-                  dir_itr != end_iter;
-                  ++dir_itr ) {
-         if ( !fs::is_directory( *dir_itr ) ) {
-           fn = dir_itr->path().filename().string();
-           std::cout << fn << std::endl;
-           boost::tokenizer<> tok(fn);
-           if(algo::ends_with(fn, ".cgns")) {
-
-             //for(boost::tokenizer<>::iterator beg=tok.begin(); beg!=tok.end();++beg){
-              //ASSUME THE element before the last token to be the number
-              std::vector<std::string> parts( tok.begin(), tok.end() ) ;
+            //for(boost::tokenizer<>::iterator beg=tok.begin(); beg!=tok.end();++beg){
+            //ASSUME THE element before the last token to be the number
+            std::vector<std::string> parts( tok.begin(), tok.end() ) ;
+            try{
+              std::string doub =  parts[parts.size()-3] + "." + parts[parts.size()-2];
+              Double number = boost::lexical_cast< Double >( doub  );
+              std::cout.precision(16);
+              fileNames[number] = fn;
+            }catch( const boost::bad_lexical_cast & ){
+              ///std::cout << "Cannot cast to Double. Maybe your files have a different name convention than expected.";
+              std::cerr << "Cannot cast to double. Trying with int..." <<  std::endl;
               try{
-                std::string doub =  parts[parts.size()-3] + "." + parts[parts.size()-2];
-                Double number = boost::lexical_cast< Double >( doub  );
-                std::cout.precision(16);
+                Double number = boost::lexical_cast< UInt >( parts[parts.size()-2]  );
                 fileNames[number] = fn;
               }catch( const boost::bad_lexical_cast & ){
-                ///std::cout << "Cannot cast to Double. Maybe your files have a different name convention than expected.";
-                std::cerr << "Cannot cast to double. Trying with int..." <<  std::endl;
-                try{
-                  Double number = boost::lexical_cast< UInt >( parts[parts.size()-2]  );
-                  fileNames[number] = fn;
-                }catch( const boost::bad_lexical_cast & ){
-                  std::cout<< "Cannot cast to integer. Maybe your files have a different name convention than expected.";
-                }
+                std::cout<< "Cannot cast to integer. Maybe your files have a different name convention than expected.";
               }
-            }else{
-              std::cout << "Ignoring File " << fn << std::endl;
             }
+          }else{
+            std::cout << "Ignoring File " << fn << std::endl;
           }
-       }
-       //now erase the number of files according to startstep parameter
-       for(UInt i = 1;i<firstStep;i++){
-         fileNames.erase(fileNames.begin());
-       }
-       if(numSteps == 0){
-         numSteps = fileNames.size();
-       }
-       if(numSteps<fileNames.size()){
-         UInt diff = fileNames.size() - numSteps;
-         for(UInt i = 1;i<=diff;i++){
+        }
+      }
+      
+      //now erase the number of files according to startstep parameter
+      for(UInt i = 1;i<firstStep;i++){
+        fileNames.erase(fileNames.begin());
+      }
+      if(numSteps == 0){
+        numSteps = fileNames.size();
+      }
+      if(numSteps<fileNames.size()){
+        UInt diff = fileNames.size() - numSteps;
+        for(UInt i = 1;i<=diff;i++){
           std::map<Double, std::string>::iterator fiter = fileNames.end();
           fileNames.erase(--fiter);
-         }
-       }
-       
-       std::cout << "Found " << fileNames.size() << " files/steps which appear to be valid" << std::endl;
-       //std::map<Double, std::string>::iterator iter = fileNames.begin();
-       //for(UInt i = 1;i<=fileNames.size();i++){
-       //  std::cout << iter->first << " with name " << iter->second << std::endl;
-       //  iter++;
-       //}
-     }else{
-       std::cerr << "Please specify either calcsrc or justmesh option" << std::endl;
-       exit(0);
-     }
-
-     numSteps_ = 1;//fileNames.size();
+        }
+      }
+      
+      std::cout << "Found " << fileNames.size() << " files/steps which appear to be valid" << std::endl;
+      //std::map<Double, std::string>::iterator iter = fileNames.begin();
+      //for(UInt i = 1;i<=fileNames.size();i++){
+      //  std::cout << iter->first << " with name " << iter->second << std::endl;
+      //  iter++;
+      //}
+    }else{
+      std::cerr << "Please specify either calcsrc or justmesh option" << std::endl;
+      exit(0);
+    }
+    
+    numSteps_ = 1;//fileNames.size();
   }
   
   Integer SimInputCGNS::GetFileHandle(std::string fName){
@@ -669,6 +404,7 @@ namespace CoupledField{
     delete [] curCoord;
 
     // Add nodes to grid
+    nodeOffset_ = mi_->GetNumNodes();
     mi_->AddNodes(numVertices_);
     for(UInt i = 0; i<numVertices_; i++){
       mi_->SetNodeCoordinate( i+1, nodeCoords[i] );
@@ -681,8 +417,9 @@ namespace CoupledField{
     Integer nsections = 0;
     numElems_ = 0;
     cg_nsections(fileHandle,1,1,&nsections);
-    std::cout << "Found " << nsections << " (Surface) Regions in the Grid"
-              << std::endl;
+    LOG_TRACE(simInputCGNS) << "Found " << nsections
+                            <<" (Surface) Regions in the Grid"
+                            << std::endl;
     
     for(Integer curReg = 1; curReg<=nsections; curReg++){
       char sectionName[33];
@@ -709,15 +446,15 @@ namespace CoupledField{
       
       numElems_ += numEs;
 
-      std::cout << "Reading section " << sectionName << std::endl;
-      std::cout << "------------------------------------------------------" << std::endl;
-      std::cout << "Element Type: ";
+      LOG_TRACE(simInputCGNS) << "Reading section " << sectionName << std::endl;
+      LOG_TRACE(simInputCGNS) << "------------------------------------------------------" << std::endl;
+      LOG_TRACE(simInputCGNS) << "Element Type: ";
       PrintElementType(eType);
-      std::cout << std::endl;
-      std::cout << "Number of elements: " << numEs << std::endl;
-      std::cout << "Element Index Range: " << start << " to " << end << std::endl;
-      std::cout << "Boundary number: " << nboundary << std::endl;
-      std::cout << "ParentFlag: " << parentFlag << std::endl << std::endl;
+      LOG_TRACE(simInputCGNS) << std::endl;
+      LOG_TRACE(simInputCGNS) << "Number of elements: " << numEs << std::endl;
+      LOG_TRACE(simInputCGNS) << "Element Index Range: " << start << " to " << end << std::endl;
+      LOG_TRACE(simInputCGNS) << "Boundary number: " << nboundary << std::endl;
+      LOG_TRACE(simInputCGNS) << "ParentFlag: " << parentFlag << std::endl << std::endl;
       
       //create the elements array
       StdVector<cgsize_t> curElems(elemArraySize);
@@ -852,79 +589,79 @@ namespace CoupledField{
     ElementType_t test = eType;
     switch(test){
       case CGNSLIB_H::ElementTypeNull:
-        std::cout << "ElementTypeNull";
+        LOG_TRACE(simInputCGNS) << "ElementTypeNull";
         break;
       case CGNSLIB_H::ElementTypeUserDefined:
-        std::cout << "ElementTypeUserDefined";
+        LOG_TRACE(simInputCGNS) << "ElementTypeUserDefined";
         break;
       case CGNSLIB_H::NODE:
-        std::cout << "NODE";
+        LOG_TRACE(simInputCGNS) << "NODE";
         break;
       case CGNSLIB_H::BAR_2:
-        std::cout << "BAR_2";
+        LOG_TRACE(simInputCGNS) << "BAR_2";
         break;
       case CGNSLIB_H::BAR_3:
-        std::cout << "BAR_3";
+        LOG_TRACE(simInputCGNS) << "BAR_3";
         break;
       case CGNSLIB_H::TRI_3:
-        std::cout << "TRI_3";
+        LOG_TRACE(simInputCGNS) << "TRI_3";
         break;
       case CGNSLIB_H::TRI_6:
-        std::cout << "TRI_6";
+        LOG_TRACE(simInputCGNS) << "TRI_6";
         break;
       case CGNSLIB_H::QUAD_4:
-        std::cout << "QUAD_4";
+        LOG_TRACE(simInputCGNS) << "QUAD_4";
         break;
       case CGNSLIB_H::QUAD_8:
-        std::cout << "QUAD_8";
+        LOG_TRACE(simInputCGNS) << "QUAD_8";
         break;
       case CGNSLIB_H::QUAD_9:
-        std::cout << "QUAD_9";
+        LOG_TRACE(simInputCGNS) << "QUAD_9";
         break;
       case CGNSLIB_H::TETRA_4:
-        std::cout << "TETRA_4";
+        LOG_TRACE(simInputCGNS) << "TETRA_4";
         break;
       case CGNSLIB_H::TETRA_10:
-        std::cout << "TETRA_10";
+        LOG_TRACE(simInputCGNS) << "TETRA_10";
         break;
       case CGNSLIB_H::PYRA_5:
-        std::cout << "PYRA_5";
+        LOG_TRACE(simInputCGNS) << "PYRA_5";
         break;
       case CGNSLIB_H::PYRA_13:
-        std::cout << "PYRA_13";
+        LOG_TRACE(simInputCGNS) << "PYRA_13";
         break;
       case CGNSLIB_H::PYRA_14:
-        std::cout << "PYRA_14";
+        LOG_TRACE(simInputCGNS) << "PYRA_14";
         break;
       case CGNSLIB_H::PENTA_6:
-        std::cout << "PENTA_6";
+        LOG_TRACE(simInputCGNS) << "PENTA_6";
         break;
       case CGNSLIB_H::PENTA_15:
-        std::cout << "PENTA_15";
+        LOG_TRACE(simInputCGNS) << "PENTA_15";
         break;
       case CGNSLIB_H::PENTA_18:
-        std::cout << "PENTA_18";
+        LOG_TRACE(simInputCGNS) << "PENTA_18";
         break;
       case CGNSLIB_H::HEXA_8:
-        std::cout << "HEXA_8";
+        LOG_TRACE(simInputCGNS) << "HEXA_8";
         break;
       case CGNSLIB_H::HEXA_20:
-        std::cout << "HEXA_20";
+        LOG_TRACE(simInputCGNS) << "HEXA_20";
         break;
       case CGNSLIB_H::HEXA_27:
-        std::cout << "HEXA_27";
+        LOG_TRACE(simInputCGNS) << "HEXA_27";
         break;
       case CGNSLIB_H::MIXED:
-        std::cout << "MIXED";
+        LOG_TRACE(simInputCGNS) << "MIXED";
         break;
       case CGNSLIB_H::NGON_n:
-        std::cout << "NGON_n";
+        LOG_TRACE(simInputCGNS) << "NGON_n";
         break;
       case CGNSLIB_H::NFACE_n:
-        std::cout << "NFACE_n";
+        LOG_TRACE(simInputCGNS) << "NFACE_n";
         break;
       default:
-        std::cout << "Unknown element Type detected";
+        LOG_TRACE(simInputCGNS) << "Unknown element Type detected";
         break;
     }
   }
@@ -1022,4 +759,236 @@ namespace CoupledField{
       connect[n] = cgnsConn[tr[n]];
     }
   }
+
+  // =========================================================================
+  //  GENERAL SOLUTION INFORMATION
+  // =========================================================================
+
+  void SimInputCGNS::
+  GetNumMultiSequenceSteps( std::map<UInt,BasePDE::AnalysisType>& analysis,
+                            std::map<UInt, UInt>& numSteps,
+                            bool isHistory )
+  {
+    analysis.clear();
+    numSteps.clear();
+    
+    // At the moment we just can read RANS solutions
+    analysis[1] = BasePDE::STATIC;
+    numSteps[1] = 1;
+  }
+
+
+  void SimInputCGNS::
+  GetStepValues( UInt sequenceStep,
+                 shared_ptr<ResultInfo> info,
+                 std::map<UInt, Double>& steps,
+                 bool isHistory )
+  {
+    if(sequenceStep != 1) 
+    {
+      EXCEPTION("Only one static (RANS) sequence step supported!");
+    }
+    
+    steps[1] = 0.0;
+  }
+
+
+  void SimInputCGNS::
+  GetResultTypes( UInt sequenceStep,
+                  StdVector<shared_ptr<ResultInfo> >& infos,
+                  bool isHistory )
+  {
+    if(sequenceStep != 1) 
+    {
+      EXCEPTION("Only one static (RANS) sequence step supported!");
+    }
+
+    //UNSTRUCTURED VERSION!!!!!
+    Integer numsols = 0; 
+    char solname[33];
+    GridLocation_t solLocation;
+    
+    //open the cgns file
+    Integer fn = GetFileHandle(fileName_);
+    
+    cg_nsols(fn,1,1,&numsols);
+    LOG_TRACE(simInputCGNS) << "found " << numsols << " solutions" << std::endl;
+    cg_sol_info(fn, 1, 1, numsols, solname , &solLocation );
+    LOG_TRACE(simInputCGNS) << "found " << solname << " solution" << std::endl;
+    if(solLocation != Vertex){
+      EXCEPTION("Solution is defined on the cell center.\n" <<
+                "Mapping to nodes not supported right now.");
+    }
+
+    Integer nfields = 0;
+    char fieldName[33];
+    DataType_t datatype;
+
+    bool velocityFound = false;
+    bool pressureFound = false;
+
+    cg_nfields(fn, 1, 1, numsols, &nfields ); 
+    for(UInt aSol = 1 ; aSol <= (UInt) nfields; aSol++){
+      cg_field_info(fn, 1, 1, numsols, aSol, &datatype , fieldName );
+
+      LOG_TRACE(simInputCGNS) << "field name " << fieldName << std::endl;
+
+      UInt spaceIdx = MapVelocityIndex(fieldName);
+      if(spaceIdx != 9999){
+        velocityFound = true;
+      }
+      
+      if(strcmp(fieldName,"Pressure") == 0){
+        pressureFound = true;
+      }      
+    }
+
+    cg_close(fn);
+
+    if(velocityFound) 
+    {
+      // Check for subType
+      StdVector<std::string> velDofNames;
+      if ( dim_ == 3 ) {
+        velDofNames = "x", "y", "z";
+      } else { 
+        velDofNames = "x", "y";
+      }
+
+      shared_ptr<ResultInfo> velocity( new ResultInfo );
+      velocity->resultType = FLUIDMECH_VELOCITY;
+      velocity->resultName = SolutionTypeEnum.ToString(velocity->resultType);
+      velocity->dofNames = velDofNames;
+      velocity->unit = MapSolTypeToUnit(velocity->resultType);
+      
+      velocity->definedOn = ResultInfo::NODE;
+      velocity->entryType = ResultInfo::VECTOR;
+      infos.Push_back( velocity );
+    }
+
+    if(pressureFound) 
+    {
+      shared_ptr<ResultInfo> pressure( new ResultInfo );
+      pressure->resultType = FLUIDMECH_PRESSURE;
+      pressure->resultName = SolutionTypeEnum.ToString(pressure->resultType);
+      pressure->dofNames = "";
+      pressure->unit = MapSolTypeToUnit(pressure->resultType);
+      
+      pressure->definedOn = ResultInfo::NODE;
+      pressure->entryType = ResultInfo::SCALAR;
+      infos.Push_back( pressure );
+    }    
+  }
+
+  void SimInputCGNS::
+  GetResultEntities( UInt sequenceStep,
+                     shared_ptr<ResultInfo> info,
+                     StdVector<shared_ptr<EntityList> >& list,
+                     bool isHistory )
+  {
+    if(sequenceStep != 1) 
+    {
+      EXCEPTION("Only one static (RANS) sequence step supported!");
+    }
+
+    for(UInt i=0, n=mi_->regionData.GetSize(); i<n; i++)
+    {
+      if(mi_->regionData[i].type == Grid::VOLUME_REGION) 
+      {
+        list.Push_back(mi_->GetEntityList( EntityList::NODE_LIST,
+                                           mi_->regionData[i].name ) );
+      }
+    }
+  }
+
+  void SimInputCGNS::GetResult( UInt sequenceStep,
+                                UInt stepNum,
+                                shared_ptr<BaseResult> result,
+                                bool isHistory )
+  {
+    if(sequenceStep != 1) 
+    {
+      EXCEPTION("Only one static (RANS) sequence step supported!");
+    }
+
+    if(stepNum != 1) 
+    {
+      EXCEPTION("Only one time step supported!");
+    }
+
+    // determine region for this results
+    std::string regionName =  result->GetEntityList()->GetName();
+
+    switch( result->GetResultInfo()->definedOn ) {
+    case ResultInfo::NODE:
+      break;
+    default:
+      EXCEPTION( "Currently only results on nodes "
+                 << "can be read in from a CGNS file ");
+    }
+
+    //UNSTRUCTURED VERSION!!!!!
+    Integer numsols = 0; 
+    char solname[33];
+    GridLocation_t solLocation;
+    
+    //open the cgns file
+    Integer fn = GetFileHandle(fileName_);
+    
+    cg_nsols(fn,1,1,&numsols);
+    cg_sol_info(fn, 1, 1, numsols, solname , &solLocation );
+    if(solLocation != Vertex){
+      EXCEPTION("Solution is defined on the cell center.\n" <<
+                "Mapping to nodes not supported right now.");
+    }
+
+    UInt numDofs = result->GetResultInfo()->dofNames.GetSize();
+    UInt numEntities = result->GetEntityList()->GetSize();
+    UInt resVecSize =  numEntities * numDofs;
+
+    Vector<Double> & resVec = dynamic_cast<Result<Double>& >(*result).GetVector();
+    resVec.Resize( resVecSize );
+
+    Integer nfields = 0;
+    char fieldName[33];
+    DataType_t datatype;
+
+    cg_nfields(fn, 1, 1, numsols, &nfields ); 
+    for(UInt aSol = 1 ; aSol <= (UInt) nfields; aSol++){
+      cg_field_info(fn, 1, 1, numsols, aSol, &datatype , fieldName );
+
+      UInt spaceIdx = MapVelocityIndex(fieldName);
+      if(spaceIdx != 9999 &&
+         result->GetResultInfo()->resultType == FLUIDMECH_VELOCITY ) {
+        cgsize_t range_min[3] = {1,1,1};
+        cgsize_t range_max[3] = {numVertices_,1,1};
+        Vector<Double> curSol(numVertices_);
+        cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)&curSol[0] );
+        
+        EntityIterator it = result->GetEntityList()->GetIterator();        
+        for( UInt i = 0; i < numEntities; i++, it++ ) {
+          UInt idx = it.GetNode()-1-nodeOffset_;
+          resVec[i*numDofs+spaceIdx] = curSol[idx];
+        }        
+      }
+      
+      if(strcmp(fieldName,"Pressure") == 0 &&
+         result->GetResultInfo()->resultType == FLUIDMECH_PRESSURE){
+        cgsize_t range_min[3] = {1,1,1};
+        cgsize_t range_max[3] = {numVertices_,1,1};
+        Vector<Double> curSol(numVertices_);
+        cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)&curSol[0] );
+
+        EntityIterator it = result->GetEntityList()->GetIterator();        
+        for( UInt i = 0; i < numEntities; i++, it++ ) {
+          UInt idx = it.GetNode()-1-nodeOffset_;
+          resVec[i] = curSol[idx];
+        }
+      }    
+    }
+    
+    cg_close(fn);
+
+  }
+
 }
