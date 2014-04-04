@@ -595,9 +595,11 @@
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
           Mid level library used to write CGNS SIDS. May be one of hdf5, adf,
-          adf2 or default. By default hdf5 is used. This behavior may however
-          be changed by setting the environment variable CGNS_FILETYPE to one
-          of hdf5, adf or adf2.
+          adf2 or default. By default adf is used in order to support also older
+          post-processors. This behavior may however be changed by setting the 
+          environment variable CGNS_FILETYPE to one of hdf5, adf or adf2. CFS++
+          is linked to CGNS 3.1. Therefore hdf5 will be used if CGNS_FILETYPE is
+          not defined and 'mll' is set to 'default'.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
@@ -615,6 +617,20 @@
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
           Format for complex-valued results.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="separateFiles" type="xsd:boolean" default="true">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          It has been found, that some post-processors for CGNS (VisIt &lt;= 2.7,
+          EnSight &lt;= 10.0) have problems handling nodal and element results 
+          defined under the same base node. ParaView (&lt;= 4.1) may go to 100% CPU 
+          load and even crash! Even if the different result types are defined with
+          respect to different base nodes in the same .cgns file, which would be okay
+          for ParaView, VisIt and EnSight have problems handling this situation.
+          Therefore, the default is to write node and element results to different
+          files.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>

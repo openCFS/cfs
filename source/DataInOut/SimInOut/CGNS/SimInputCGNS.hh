@@ -37,6 +37,36 @@
 
 namespace CoupledField{
 
+  //! Class for reading unstructured simulation grids and CFD data from CGNS files.
+
+  //! This class is for reading (C)FD (G)eneral (N)otation (S)ystem file(s).
+  //!
+  //! Among others, CGNS files can be created in the following pre-processors
+  //! and CFD codes:
+  //! ANSYS Workbench mesher: File -&gt; Export Mesh -&gt; CGNS Format. ANSYS
+  //!          &lt;= 15.0 can only write linear element types. Named components
+  //!          are written as CGNS sections using all capital letters.
+  //! ANSYS CFX: Native CFX result files can be converted to CGNS by using
+  //!          cfx5export -cgns input.res
+  //! Pointwise: Uses CGNS as its native file format (www.pointwise.com).
+  //!
+  //! As the name CGNS states, the format is mostly used for exchange of CFD data.
+  //! Since most CFD codes are using linear cell types, most pre- (ANSYS WB) and
+  //! post-processors have problems handling quadratic element types often used in
+  //! FE codes, even if the CGNS standard properly defines such element types.
+  //! Nonetheless, this class is able to read all complete and incomplete element
+  //! types supported by CGNS and CFS++. This class handles CGNS sections as regions.
+  //! Therefore, it is not yet able to read CGNS files written with the SimOutputCGNS
+  //! class, since it maps regions to zones.
+  //!
+  //! Besides supporting unstructured mesh reading, this class also supports reading
+  //! the VelocityX, VelocityY, VelocityZ and Pressure fields for a single time step.
+  //!
+  //! \note ATTENTION: This class has been implemented for the exchange of CFD data
+  //!                  during the E+H harmonic FSI project by Simon Triebenbacher.
+  //!                  In this project we only need to transfer results for a single
+  //!                  RANS step from CFX. Therefore, no support for more time/freq steps
+  //!                  has been implemented and only one multisequence step is supported!
   class SimInputCGNS : public SimInput {
   public:
     

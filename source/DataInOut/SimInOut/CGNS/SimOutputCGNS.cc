@@ -28,10 +28,10 @@ namespace CoupledField {
                                 PtrParamNode infoNode,
                                 bool isRestart )
     : SimOutput ( fileName, outputNode, infoNode, isRestart ),
-      indexFile_(-1),
       cellDim_(-1),
       outputFileOK_(false),
       writeAmplPhase_(false),
+      separateFiles_(true),
       stepNumOffset_(0),
       stepValOffset_(0.0),
       writeQuadElems_(false)
@@ -46,6 +46,7 @@ namespace CoupledField {
     dirName_ = dirString; 
 
     myParam_->GetValue("writeQuadElems", writeQuadElems_, ParamNode::PASS );
+    myParam_->GetValue("separateFiles", separateFiles_, ParamNode::PASS );
 
     std::string complexFormat = "realImag"; 
     myParam_->GetValue("complexFormat", complexFormat, ParamNode::PASS );
@@ -56,9 +57,11 @@ namespace CoupledField {
   //   Destructor
   // **************
   SimOutputCGNS::~SimOutputCGNS() {
-    if(indexFile_ != -1) 
+    cg_close(indexFile_[0]);
+
+    if(separateFiles_) 
     {
-      cg_close(indexFile_);
+      cg_close(indexFile_[1]);
     }
   }
 
@@ -90,10 +93,12 @@ namespace CoupledField {
     cellDim_ = cellDim_ > 3 ? 3 : cellDim_;
     int phys_dim = 3;
 
+    int indexFile = indexFile_[baseIdx];
+
     std::string baseName = baseIdx == 0 ? "CFS_NodeSolutions" : "CFS_ElemSolutions";
-    if(cg_base_write(indexFile_,baseName.c_str(),cellDim_,phys_dim,&indexBase_[baseIdx]))
+    if(cg_base_write(indexFile,baseName.c_str(),cellDim_,phys_dim,&indexBase_[baseIdx]))
     {
-      cg_close(indexFile_);
+      cg_close(indexFile);
       EXCEPTION("Cannot write base '" << baseName <<
                 "':\n" << cg_get_error());
     }
@@ -138,7 +143,7 @@ namespace CoupledField {
       isize[0][0] = numNodes;
       isize[1][0] = numElems;
       isize[2][0] = 0;
-      cg_zone_write(indexFile_, indexBase, regionName.c_str(), 
+      cg_zone_write(indexFile, indexBase, regionName.c_str(), 
                     isize[0], Unstructured, &idxZone_[baseIdx][i]);
       
       // Get node coordinates
@@ -163,11 +168,11 @@ namespace CoupledField {
       
       int indexCoord;
       // write grid coordinates
-      cg_coord_write(indexFile_,indexBase,idxZone_[baseIdx][i],
+      cg_coord_write(indexFile,indexBase,idxZone_[baseIdx][i],
                      RealDouble,"CoordinateX",&coords[0][0],&indexCoord);
-      cg_coord_write(indexFile_,indexBase,idxZone_[baseIdx][i],
+      cg_coord_write(indexFile,indexBase,idxZone_[baseIdx][i],
                      RealDouble,"CoordinateY",&coords[1][0],&indexCoord);
-      cg_coord_write(indexFile_,indexBase,idxZone_[baseIdx][i],
+      cg_coord_write(indexFile,indexBase,idxZone_[baseIdx][i],
                      RealDouble,"CoordinateZ",&coords[2][0],&indexCoord);
 
       Elem::FEType feType = elems[0]->type;
@@ -211,18 +216,18 @@ namespace CoupledField {
             origNodeNums[j] = nodes[j];
           }
           
-          if(cg_sol_write(indexFile_, indexBase, idxZone_[baseIdx][i],
+          if(cg_sol_write(indexFile, indexBase, idxZone_[baseIdx][i],
                           solName.c_str(), location, &idxNodeSol_[i]))
           {
-            cg_close(indexFile_);
+            cg_close(indexFile);
             EXCEPTION("Cannot write solution:\n" << cg_get_error());
           }
           
-          if(cg_field_write(indexFile_,indexBase,idxZone_[baseIdx][i],
+          if(cg_field_write(indexFile,indexBase,idxZone_[baseIdx][i],
                             idxNodeSol_[i],CGNSLIB_H::Integer,
                             "origNodeNums",&origNodeNums[0],&indexField))
           {
-            cg_close(indexFile_);
+            cg_close(indexFile);
             EXCEPTION("Cannot write field:\n" << cg_get_error());
           }
         }
@@ -244,32 +249,32 @@ namespace CoupledField {
           solName = "ElementSolution";
           location = CellCenter;
           
-          if(cg_sol_write(indexFile_, indexBase, idxZone_[baseIdx][i],
+          if(cg_sol_write(indexFile, indexBase, idxZone_[baseIdx][i],
                           solName.c_str(), location, &idxElemSol_[i]))
           {
-            cg_close(indexFile_);
+            cg_close(indexFile);
             EXCEPTION("Cannot write solution:\n" << cg_get_error());
           }
           
-          if(cg_field_write(indexFile_,indexBase,idxZone_[baseIdx][i],
+          if(cg_field_write(indexFile,indexBase,idxZone_[baseIdx][i],
                             idxElemSol_[i],CGNSLIB_H::Integer,
                             "regionId",&regionIds[0],&indexField))
           {
-            cg_close(indexFile_);
+            cg_close(indexFile);
             EXCEPTION("Cannot write field:\n" << cg_get_error());
           }
-          if(cg_field_write(indexFile_,indexBase,idxZone_[baseIdx][i],
+          if(cg_field_write(indexFile,indexBase,idxZone_[baseIdx][i],
                             idxElemSol_[i],CGNSLIB_H::Integer,
                             "origElemNums",&origElemNums[0],&indexField))
           {
-            cg_close(indexFile_);
+            cg_close(indexFile);
             EXCEPTION("Cannot write field:\n" << cg_get_error());
           }
-          if(cg_field_write(indexFile_,indexBase,idxZone_[baseIdx][i],
+          if(cg_field_write(indexFile,indexBase,idxZone_[baseIdx][i],
                             idxElemSol_[i],CGNSLIB_H::Integer,
                             "elemTypes",&elemTypes[0],&indexField))
           {
-            cg_close(indexFile_);
+            cg_close(indexFile);
             EXCEPTION("Cannot write field:\n" << cg_get_error());
           }
         }
@@ -373,11 +378,11 @@ namespace CoupledField {
     int indexSection;
     cgsize_t nelemStart = 1, nelemEnd = numElems;
     int nbdyElem=0;
-    if(cg_section_write(indexFile_, indexBase_[baseIdx], idxZone_[baseIdx][regionId],
+    if(cg_section_write(indexFile_[baseIdx], indexBase_[baseIdx], idxZone_[baseIdx][regionId],
                         regionName.c_str(), MIXED, nelemStart,
                         nelemEnd, nbdyElem, &elemData[0], &indexSection))
     {
-      cg_close(indexFile_);
+      cg_close(indexFile_[baseIdx]);
       EXCEPTION("Cannot write mixed section for '" << regionName <<
                 "':\n" << cg_get_error());
     }
@@ -406,11 +411,11 @@ namespace CoupledField {
     int indexSection;
     cgsize_t nelemStart = 1, nelemEnd = numElems;
     int nbdyElem=0;
-    if(cg_section_write(indexFile_, indexBase_[baseIdx], idxZone_[baseIdx][regionId],
+    if(cg_section_write(indexFile_[baseIdx], indexBase_[baseIdx], idxZone_[baseIdx][regionId],
                         regionName.c_str(), eType, nelemStart,
                         nelemEnd, nbdyElem, &elemData[0], &indexSection))
     {
-      cg_close(indexFile_);
+      cg_close(indexFile_[baseIdx]);
       EXCEPTION("Cannot write pure section for '" << regionName <<
                 "':\n" << cg_get_error());
     }
@@ -566,18 +571,18 @@ namespace CoupledField {
         const Vector<Double>& sol = it->second;
         int indexField;
     
-        if(cg_field_write(indexFile_, indexBase_[baseIdx],
+        if(cg_field_write(indexFile_[baseIdx], indexBase_[baseIdx],
                           idxZone_[baseIdx][regionId],
                           *indexSol, RealDouble, solName.c_str(),
                           &sol[0], &indexField)) 
         {
-          cg_close(indexFile_);
+          cg_close(indexFile_[baseIdx]);
           EXCEPTION("Cannot write field:\n" <<
                     cg_get_error());
         }
       }
     }
-  }  
+  }
 
   void SimOutputCGNS::Init(Grid * ptGrid, bool printGridOnly )
   {
@@ -593,28 +598,20 @@ namespace CoupledField {
     }
     
     fs::path fileName (dirName_);
-    fileName = fileName / (fileName_ + std::string(".cgns"));
     
-    // Make sure a previous file with the same name gets removed.
-    try {
-      if(fs::exists(fileName))
-      {
-        fs::remove( fileName );
-      }
-    } catch (std::exception &ex) {
-      EXCEPTION(ex.what());
-    }
-
     // Set type of mid level library to use.
+    int file_type = CG_FILE_ADF;
+    std::string mll = "adf";
     if(myParam_->Has("mll")) 
     {
-      int file_type = CG_FILE_HDF5;
+      // We set the default mid-level library type to ADF, to support also
+      // older post-processors per default.
 
-      std::string mll = myParam_->Get("mll")->As<std::string>();
+      mll = myParam_->Get("mll")->As<std::string>();
 
-      if(mll == "adf") 
+      if(mll == "hdf5") 
       {
-        file_type = CG_FILE_ADF;
+        file_type = CG_FILE_HDF5;
       }
 #if CGNS_VERSION > 3000
       if(mll == "adf2")
@@ -622,19 +619,68 @@ namespace CoupledField {
         file_type = CG_FILE_ADF2;
       }
 #endif
-      
-      if(cg_set_file_type(file_type))
-      {
-        EXCEPTION("Cannot set file type to '" << mll <<
-                  "':\n" << cg_get_error());
-      }
     }
 
-    // Open CGNS file for writing
-    if (cg_open(fileName.string().c_str(),CG_MODE_WRITE,&indexFile_))
+    if(cg_set_file_type(file_type))
     {
-      EXCEPTION("Cannot open '" << fileName.string() <<
+      EXCEPTION("Cannot set file type to '" << mll <<
                 "':\n" << cg_get_error());
+    }
+
+    indexFile_.Resize(2);
+    if(!separateFiles_) 
+    {
+      fileName = fileName / (fileName_ + std::string(".cgns"));
+
+      // Make sure a previous file with the same name gets removed.
+      try {
+        if(fs::exists(fileName)) { fs::remove( fileName ); }
+      } catch (std::exception &ex) {
+        EXCEPTION(ex.what());
+      }
+
+      // Open CGNS file for writing
+      if (cg_open(fileName.string().c_str(),CG_MODE_WRITE,&indexFile_[0]))
+      {
+        EXCEPTION("Cannot open '" << fileName.string() <<
+                  "':\n" << cg_get_error());
+      }
+
+      indexFile_[1] = indexFile_[0];
+    }
+    else 
+    {
+      // Open CGNS file for writing nodal results
+      fs::path fnNode = fileName / (fileName_ + std::string("_NodeSol.cgns"));
+
+      // Make sure a previous file with the same name gets removed.
+      try {
+        if(fs::exists(fnNode)) { fs::remove( fnNode ); }
+      } catch (std::exception &ex) {
+        EXCEPTION(ex.what());
+      }
+
+      if (cg_open(fnNode.string().c_str(),CG_MODE_WRITE,&indexFile_[0]))
+      {
+        EXCEPTION("Cannot open '" << fnNode.string() <<
+                  "':\n" << cg_get_error());
+      }
+
+      // Open CGNS file for writing element results
+      fs::path fnElem = fileName / (fileName_ + std::string("_ElemSol.cgns"));
+
+      // Make sure a previous file with the same name gets removed.
+      try {
+        if(fs::exists(fnElem)) { fs::remove( fnElem ); }
+      } catch (std::exception &ex) {
+        EXCEPTION(ex.what());
+      }
+
+      if (cg_open(fnElem.string().c_str(),CG_MODE_WRITE,&indexFile_[1]))
+      {
+        EXCEPTION("Cannot open '" << fnElem.string() <<
+                  "':\n" << cg_get_error());
+      }
     }
 
     // Everything fine!
