@@ -27,7 +27,7 @@ SET(FILES
   pv_matlab_besselh.m
   pv_texture_map.py
   icem_to_ansys.in.txt
-  Pfeifenfussmodell_modificated_swept.in.txt
+  ansys_example.inp.txt
   mkmesh.txt
   mkmesh.mlib.txt
   ansys_surf_vol_mesh.txt

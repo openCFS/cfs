@@ -41,11 +41,36 @@ files generated  by our interface will not  be deleted once the  HDF5 file has
 been  successfully written. The  'verbose' flag  instructs cplreader  to print
 more information on the console.
 
+\subsubsection{Modifying Element Types for Meshes from Other Sources}
+\label{sec:ansys_modify_element_types}
+
+In some case, where meshes have not been created by {\tt /PREP7} but come from
+other sources like  ICEM, CDREAD or external ANSYS databases,  it is necessary
+to modify the element types for use with the {\tt mkhdf5} interface.
+
+\noindent    An    example    APDL    input    file    is    attached    here:
+\attachfile[icon=PushPin,description={Example  ANSYS   APDL  input   file  for
+    modifying                                                          element
+    types.},mimetype=text/plain]{attachments/ansys_example.inp.txt}
+
+\noindent How  to modify third  party ANSYS /prep7  meshes to write  them with
+mkhdf5:    \attachfile[icon=PushPin,description={ANSYS   input    script   for
+    converting            ICEM            mesh            to            mkhdf5
+    mesh.},mimetype=text/plain]{attachments/icem_to_ansys.in.txt}
+
 \subsection{GiD}
-\subsubsection{Installing   the  GiD   CFS++   Pre-processing  Extension}   The
-preprocessing extension can be obtained  from the CFS++ development server. It
-has to be  installed into the problem types subdirectory of  GiD e.g. by using
-the following sequence of commands:
+
+Meshes generated with GiD can be brought into CFS++ in two ways:
+\begin{enumerate}
+\item By using the TCL extension for writing {\tt .mesh} files.
+\item By using the built-in {\tt .unv} file writer
+\end{enumerate}
+
+\subsubsection{Installing   the  GiD   CFS++   Pre-processing  Extension}
+
+The  preprocessing  extension  can  be obtained  from  the  CFS++  development
+server. It  has to  be installed  into the problem  types subdirectory  of GiD
+e.g. by using the following sequence of commands:
 
 \begin{verbatim}
 cd gid-9.0.2-x86_64/problemtypes
@@ -55,6 +80,11 @@ cd ..
 # Start GiD using CAESER problem type.
 ./gid -p CAESAR
 \end{verbatim}
+
+\subsubsection{Writing Ideas Universal Files}
+
+Universal  files can  be written  from  GiD using  Files $\rightarrow$  Export
+$\rightarrow$ Using template .bas (only mesh) $\rightarrow$ UNV.
 
 \subsection{Gmsh}
 \label{sec:preproc_gmsh}
@@ -68,8 +98,9 @@ ASCII as well as binary. The XML input tag should look like this:
 </input>
 \end{verbatim}
 
-For the older  format version 1, region names can be  assigned to physical ids
-using subelements of the $<$gmsh$>$ element.
+For the older format  version 1, region names can be  assigned to physical ids
+using       subelements      of       the      {\tt       <gmsh>}      element
+(cf. Sec. \ref{sec:define_regions_gmsh})
 
 \subsection{ICEM CFD}
 
@@ -82,7 +113,8 @@ cplreader --type CGNS --name input --dim 3 --justmesh 1
 
 Another way to get  the meshes into HDF5 format is to  write ANSYS /PREP7 code
 using ICEM and afterwards modify the element types in the ANSYS script and use
-the mkhdf5 macro to generate the HDF5 file.
+the      mkhdf5      macro      to       generate      the      HDF5      file
+(cf. Sec. \ref{sec:ansys_modify_element_types}).
 
 \subsubsection{Export of ICEM Meshes to ANSYS and Modification of Element Types}
 
@@ -114,15 +146,6 @@ Attributes.  In the  dialogue box set the element type to  MESH200 for all 3D,
 The exported mesh contains node components (cmlist) and element regions tagged
 by element types (etlist). Please note,  that no pyramids will be written out,
 if the element types are not switched to MESH200.
-
-\attachfile[icon=PushPin,description={Result  of File  -> Export  ->  ANSYS in
-ICEM
-CFD.},mimetype=text/plain]{attachments/Pfeifenfussmodell_modificated_swept.in.txt}
-
-\noindent How  to modify third  party ANSYS /prep7  meshes to write  them with
-mkhdf5 \attachfile[icon=PushPin,description={ANSYS input script for converting
-ICEM                     mesh                     to                    mkhdf5
-mesh.},mimetype=text/plain]{attachments/icem_to_ansys.in.txt}
 
 \subsection{Pointwise}
 \subsection{Matlab}
@@ -193,6 +216,7 @@ the following XML tag:
 \input{pygmentized/comsol_mphtxt_mph}
 
 \subsection{Gmsh}
+\label{sec:define_regions_gmsh}
 Physical regions which are meaningful to CFS++ can be generated using the
 {\tt Physical Volume}, {\tt Physical Surface}, {\tt Physical Line} and
 {\tt Physical Point} Gmsh scripting commands. In the Gmsh mesh format 
