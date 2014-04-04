@@ -30,6 +30,7 @@ namespace fs=boost::filesystem;
 namespace algo=boost::algorithm;
 
 #include "DataInOut/Logging/LogConfigurator.hh"
+
 #include "SimInputCGNS.hh"
 
 namespace CoupledField{
@@ -47,7 +48,8 @@ namespace CoupledField{
     numRegions_(0),
     dim_(0),
     physDim_(0),
-    nodeOffset_(0)
+    nodeOffset_(0),
+    cgVersion_(-1)
   {
     capabilities_.insert( SimInput::MESH );
     capabilities_.insert( SimInput::MESH_RESULTS );
@@ -81,12 +83,17 @@ namespace CoupledField{
     LOG_TRACE(simInputCGNS) << "fileDir_: " << fileDir_;
     LOG_TRACE(simInputCGNS) << "baseName: " << baseName;
 
-    InitElemTypeMap();
 
     // ReadCGNSDirectory(fileDir_, fileNames_);
 
     //open the first cgns file
     Integer fn = GetFileHandle(fileName_);
+
+    // Determine CGNS version used to write the file.
+    cg_version(fn, &cgVersion_);
+
+    InitElemTypeMap();
+
     //Check if the file is what we expect
     //i.e. 1 base, 1 zone, 1 grid
     CheckFileValidity(fn);
@@ -117,7 +124,7 @@ namespace CoupledField{
     }
 
     std::fill(vertSize_, &vertSize_[8], 0);
-    cg_zone_read(fn,1,1,firstZoneName,(cgsize_t*)vertSize_);
+    cg_zone_read(fn,1,1,firstZoneName,vertSize_);
   }
 
   void SimInputCGNS::ReadMesh(Grid* ptGrid) 
@@ -466,19 +473,20 @@ namespace CoupledField{
       StdVector<UInt> connect(1024);
       RegionIdType regionId = -2;
 
-      switch(eType) {
+      switch(eType) 
+      {
       case MIXED:
         {
           //ok in this special case, the element connectivity array
           //also stores the element type within it
           //so we loop over and determine the type on the fly
-
+          
           mi_->AddElems(numEs);          
           // Determine element type of first element in region.
           Elem::FEType feType = elemTypeMap_[(ElementType_t)curElems[0]];
           
           AddRegionToGrid(regionId, feType, sectionName);
-
+          
           //should point to the index storing the current eType
           //afterwards there will be the node numbers
           UInt eTypeIdx = 0;
@@ -496,45 +504,40 @@ namespace CoupledField{
                              elemTypeMap_[eType],
                              regionId,
                              &connect[0]);
-
+            
             eTypeIdx += vertsPerElem+1;            
           }
         }
-        break;
       case NGON_n:
       case NFACE_n:
-        // We do not know how to handle polygonal or polyhedral cells.
-        break;
-      case NODE:
-        // Nodes are currently not handled as elements by CFS++.
+        // Do nothing!!
         break;
       default:
         {
           mi_->AddElems(numEs);
-
+          
           //determine number of vertices for current element
           cg_npe(eType,&vertsPerElem);
 
-          // Determine element type of first element in region.
           Elem::FEType feType = elemTypeMap_[eType];
-
+          
           AddRegionToGrid(regionId, feType, sectionName);
-
+          
           for(Integer i = 0;i<numEs;i++){
             TranslateConnectivity(feType,
                                   &curElems[i*vertsPerElem],
                                   connect);
-            
+          
             mi_->SetElemData(elemOffset+i+1,
-                             elemTypeMap_[eType],
+                             feType,
                              regionId,
                              &connect[0]);
           }
         }
-        break;        
+        break;
       }
     }
-  }
+  }  
   
   void SimInputCGNS::AddRegionToGrid(RegionIdType& regionId,
                                      const Elem::FEType feType,
@@ -681,6 +684,7 @@ namespace CoupledField{
     elemTypeMap_[CGNSLIB_H::TETRA_4] = Elem::ET_TET4;
     elemTypeMap_[CGNSLIB_H::TETRA_10] = Elem::ET_TET10;
     elemTypeMap_[CGNSLIB_H::PYRA_5] = Elem::ET_PYRA5;
+
     elemTypeMap_[CGNSLIB_H::PYRA_13] = Elem::ET_PYRA13;
     elemTypeMap_[CGNSLIB_H::PYRA_14] = Elem::ET_PYRA14;
     elemTypeMap_[CGNSLIB_H::PENTA_6] = Elem::ET_WEDGE6;
@@ -691,6 +695,7 @@ namespace CoupledField{
     elemTypeMap_[CGNSLIB_H::HEXA_27] = Elem::ET_HEXA27;
     elemTypeMap_[CGNSLIB_H::MIXED] = Elem::ET_UNDEF;
     elemTypeMap_[CGNSLIB_H::NGON_n] = Elem::ET_UNDEF;
+    elemTypeMap_[CGNSLIB_H::NFACE_n] = Elem::ET_UNDEF;
   }
 
   void SimInputCGNS::TranslateConnectivity(Elem::FEType feType,
@@ -786,7 +791,9 @@ namespace CoupledField{
   {
     if(sequenceStep != 1) 
     {
-      EXCEPTION("Only one static (RANS) sequence step supported!");
+      EXCEPTION("Only one static (RANS) sequence step supported!\n" <<
+                "Note, that this is no limitation of CGNS but " <<
+                "of the current implementation.");
     }
     
     steps[1] = 0.0;
@@ -800,7 +807,9 @@ namespace CoupledField{
   {
     if(sequenceStep != 1) 
     {
-      EXCEPTION("Only one static (RANS) sequence step supported!");
+      EXCEPTION("Only one static (RANS) sequence step supported!\n" <<
+                "Note, that this is no limitation of CGNS but " <<
+                "of the current implementation.");
     }
 
     //UNSTRUCTURED VERSION!!!!!
@@ -822,8 +831,9 @@ namespace CoupledField{
     LOG_TRACE(simInputCGNS) << "found " << solname << " solution" << std::endl;
     if(solLocation != Vertex){
       cg_close(fn);
-      EXCEPTION("Solution is defined on the cell center.\n" <<
-                "Mapping to nodes not supported right now.");
+      WARN("Solution is defined on the cell center.\n" <<
+           "Mapping to nodes not supported right now.");
+      return;
     }
 
     Integer nfields = 0;
@@ -914,12 +924,16 @@ namespace CoupledField{
   {
     if(sequenceStep != 1) 
     {
-      EXCEPTION("Only one static (RANS) sequence step supported!");
+      EXCEPTION("Only one static (RANS) sequence step supported!\n" <<
+                "Note, that this is no limitation of CGNS but " <<
+                "of the current implementation.");
     }
 
     if(stepNum != 1) 
     {
-      EXCEPTION("Only one time step supported!");
+      EXCEPTION("Only one time step supported!\n" <<
+                "Note, that this is no limitation of CGNS but " <<
+                "of the current implementation.");
     }
 
     // determine region for this results

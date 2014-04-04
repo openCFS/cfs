@@ -9,10 +9,14 @@
 #include <Domain/Results/ResultInfo.hh>
 #include <DataInOut/SimOutput.hh>
 
-#ifdef UNV_NONSTD_WIDTH
-#define UNV_WIDTH 14
+#include <cgnslib.h>
+
+#if CGNS_VERSION < 3100
+# define cgsize_t int
 #else
-#define UNV_WIDTH 13
+# if CG_BUILD_SCOPE
+#  error enumeration scoping needs to be off
+# endif
 #endif
 
 namespace CoupledField
@@ -39,6 +43,10 @@ namespace CoupledField
     //! Write grid definition in file
     void WriteGrid();
 
+    void BeginMultiSequenceStep( UInt step,
+                                 BasePDE::AnalysisType type,
+                                 UInt numSteps  );
+
     //! Register result (within one multisequence step)
     void RegisterResult( shared_ptr<BaseResult> sol,
                          UInt saveBegin, UInt saveInc,
@@ -63,15 +71,15 @@ namespace CoupledField
     
     void WriteMixedSection(const StdVector<Elem*>& elems,
                            const std::string& name,
-                           StdVector<cgsize_t>& regionIds,
-                           StdVector<cgsize_t>& origElemNums,
-                           StdVector<cgsize_t>& elemTypes,
+                           StdVector<int>& regionIds,
+                           StdVector<int>& origElemNums,
+                           StdVector<int>& elemTypes,
                            UInt& elemRangeStart);
     void WritePureSection(const StdVector<Elem*>& elems,
                           const std::string& name,
-                          StdVector<cgsize_t>& regionIds,
-                          StdVector<cgsize_t>& origElemNums,
-                          StdVector<cgsize_t>& elemTypes,
+                          StdVector<int>& regionIds,
+                          StdVector<int>& origElemNums,
+                          StdVector<int>& elemTypes,
                           UInt& elemRangeStart);    
 
     void TranslateConnectivity(Elem::FEType feType,
@@ -83,6 +91,9 @@ namespace CoupledField
     std::map<Elem::FEType,CGNSLIB_H::ElementType_t> elemTypeMap_;
 
     int indexFile_, indexBase_, indexZone_;
+    int indexNodeSol_, indexElemSol_;
+    int cellDim_;
+    int numNodes_;
     bool outputFileOK_;
     char baseName_[33], zoneName_[33];
 
@@ -95,46 +106,25 @@ namespace CoupledField
     //! Offset for step value in case of multisequence analysis
     Double stepValOffset_;
 
+    bool writeQuadElems_;
+
     //! for printing nodal results of simulation (static/transient)
     /*!
-      \param dataSetNr number of dataset (55/56)
+      \param definedOnNode is data defined on nodes?
       \param title title of the results.
       \param x array with nodal results
       \param step number of the step of the calculation
       \param time time of the calculation
     */
-    void NodeElemDataTransient(const UInt dataSetNr,
-                               const std::string & title, 
-                               const Vector<Double> & x, 
+    void NodeElemDataTransient(const bool definedOnNode,
+                               std::map< std::string, Vector<Double> >& gSol,
                                const UInt step, 
-                               const Double time, 
-                               const UInt nrNodes,
-                               const UInt nrDofs=1);
+                               const Double time);
   
-    //! for printing nodal results of simulation (harmonic)
-    /*!
-      \param dataSetNr number of dataset (55/56)
-      \param title title of the results.
-      \param x array with nodal results
-      \param freuqncy exciting frequency of current result
-      \param format output format for complex numbers
-    */
-    void NodeElemDataHarmonic(const UInt dataSetNr,
-                              const std::string & title, 
-                              const Vector<Complex> & x, 
-                              const UInt step,
-                              const Double frequency,
-                              const ComplexFormat format,
-                              const UInt nrNodes,
-                              const UInt nrDofs=1);
-  
-    //! Convertes enum SolutionType to string
-    std::string SolutionTypeToString(const SolutionType type) const;
-  
-    //! Re-sort stresses according to vector with dofnames
-    template<class TYPE>
-    void SortStresses( Vector<TYPE>& vec,
-                       const StdVector<std::string>& dofNames );
+    void FillGlobalVectors(std::map< std::string, Vector<Double> >& gSol, 
+                           const StdVector<shared_ptr<BaseResult> > & solList,
+                           ResultInfo::EntityUnknownType entityType );
+
   };
 
 } // end of namespace

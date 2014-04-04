@@ -4,6 +4,7 @@
 
 #include <string>
 #include <iomanip>
+#include <cmath>
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/exception.hpp>
@@ -11,19 +12,13 @@ namespace fs = boost::filesystem;
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-#include "cgnslib.h"
-#if CGNS_VERSION < 3100
-# define cgsize_t int
-#else
-# if CG_BUILD_SCOPE
-#  error enumeration scoping needs to be off
-# endif
-#endif
-
 #include "SimOutputCGNS.hh"
 
 namespace CoupledField {
 
+  // declare logging stream
+  DECLARE_LOG(simOutputCGNS)
+  DEFINE_LOG(simOutputCGNS, "simOutput.CGNS")
 
   // ***************
   //   Constructor
@@ -31,12 +26,21 @@ namespace CoupledField {
   SimOutputCGNS::SimOutputCGNS( std::string& fileName,
                                 PtrParamNode outputNode,
                                 PtrParamNode infoNode,
-                                bool isRestart ) 
-    : SimOutput ( fileName, outputNode, infoNode, isRestart ) {
-    
+                                bool isRestart )
+    : SimOutput ( fileName, outputNode, infoNode, isRestart ),
+      indexFile_(-1),
+      indexBase_(-1),
+      indexZone_(-1),
+      indexNodeSol_(-1),
+      indexElemSol_(-1),
+      cellDim_(-1),
+      numNodes_(0),
+      outputFileOK_(false),
+      stepNumOffset_(0),
+      stepValOffset_(0.0),
+      writeQuadElems_(false)
+  {    
     formatName_ = "cgns";
-    stepNumOffset_ = 0;
-    stepValOffset_ = 0.0;
     
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
@@ -51,6 +55,10 @@ namespace CoupledField {
   //   Destructor
   // **************
   SimOutputCGNS::~SimOutputCGNS() {
+    if(indexFile_ != -1) 
+    {
+      cg_close(indexFile_);
+    }
   }
 
 
@@ -66,9 +74,13 @@ namespace CoupledField {
       EXCEPTION("Grid pointer is not initialized" );
     }
 
-    int geodim=ptGrid_->GetDim(), physdim=geodim;
+    cellDim_ = ptGrid_->GetDim();
+    cellDim_ = cellDim_ < 2 ? 2 : cellDim_;
+    cellDim_ = cellDim_ > 3 ? 3 : cellDim_;
+    int phys_dim = 3;
+
     strcpy(baseName_,"CFS_Simulation");
-    cg_base_write(indexFile_,baseName_,geodim,physdim,&indexBase_);
+    cg_base_write(indexFile_,baseName_,cellDim_,phys_dim,&indexBase_);
 
     WriteNodesAndElements();
   }
@@ -78,9 +90,14 @@ namespace CoupledField {
     if (!ptGrid_)
       EXCEPTION("ptGrid_ is not initialized" );
 
-    UInt geodim=ptGrid_->GetDim();
-    UInt numNodes=ptGrid_->GetNumNodes();
-
+    // Try to fulfill CGNS assertion that vertices < CellDim + 1 cannot happen.
+    // This may be the case when using a single LINE2 element in 2D.
+    numNodes_ = ptGrid_->GetNumNodes();
+    if(numNodes_ < cellDim_ + 1) 
+    {
+      numNodes_++;
+    }
+    
     UInt numElems = 0;
     for(UInt i=0, n=ptGrid_->regionData.GetSize(); i<n; i++) 
     {
@@ -90,45 +107,46 @@ namespace CoupledField {
       
       ptGrid_->GetElems(elems, regionId);
       UInt nElems = elems.GetSize();
+
       numElems += nElems;
     }    
 
     // create zone
     strcpy(zoneName_,"CFS_Mesh");
     cgsize_t isize[3][1];
-    isize[0][0] = numNodes;
+    isize[0][0] = numNodes_;
     isize[1][0] = numElems;
     isize[2][0] = 0;
     cg_zone_write(indexFile_,indexBase_,zoneName_,isize[0],Unstructured,&indexZone_);
 
     // coordinates
-    StdVector<double> xCoord(numNodes);
-    StdVector<double> yCoord(numNodes);
-    StdVector<double> zCoord(numNodes);
-
+    StdVector< Vector<double> > coords(3);
     Vector<Double> point;
-    for ( UInt i = 0; i < numNodes; i++ ) {
-      ptGrid_->GetNodeCoordinate(point,i+1);
-      if ( geodim == 3 ) {
-        xCoord[i] = point[0];
-        yCoord[i] = point[1];
-        zCoord[i] = point[2];
-      } else if ( geodim == 2 ) {
-        xCoord[i] = point[0];
-        yCoord[i] = point[1];
+
+    UInt d = 0;
+    for ( ; d < 3; d++ ) {
+      coords[d].Resize(numNodes_);
+      coords[d].Init();
+    }
+    UInt dims=ptGrid_->GetDim();
+    d = 0;
+    for ( ; d < dims; d++ ) {
+      for ( UInt i = 0, n=ptGrid_->GetNumNodes(); i < n; i++ ) {
+        ptGrid_->GetNodeCoordinate(point,i+1);
+        coords[d][i] = point[d];
       }
     }
-
+    
     int indexCoord;
     // write grid coordinates
-    cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateX",&xCoord[0],&indexCoord);
-    cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateY",&yCoord[0],&indexCoord);
-    cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateZ",&zCoord[0],&indexCoord);
+    cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateX",&coords[0][0],&indexCoord);
+    cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateY",&coords[1][0],&indexCoord);
+    cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateZ",&coords[2][0],&indexCoord);
 
     UInt elemRangeStart = 1;
-    StdVector<cgsize_t> regionIds;
-    StdVector<cgsize_t> origElemNums;
-    StdVector<cgsize_t> elemTypes;
+    StdVector<int> regionIds;
+    StdVector<int> origElemNums;
+    StdVector<int> elemTypes;
     
     for(UInt i=0, n=ptGrid_->regionData.GetSize(); i<n; i++) 
     {
@@ -173,11 +191,39 @@ namespace CoupledField {
       }
     }
 
-    if (0 == 0) {
+    int indexField;
+    std::string solName = "NodeSolution";
+    int* indexSol = &indexNodeSol_;
+    GridLocation_t location = Vertex;
 
-    std::string solname = "DummyPressure1";
+    if(cg_sol_write(indexFile_, indexBase_, indexZone_,
+                    solName.c_str(), location, indexSol))
+    {
+      cg_close(indexFile_);
+      EXCEPTION("Cannot write solution:\n" << cg_get_error());
+    }
+    
+    solName = "ElementSolution";
+    indexSol = &indexElemSol_;
+    location = CellCenter;
+
+    if(cg_sol_write(indexFile_, indexBase_, indexZone_,
+                    solName.c_str(), location, indexSol))
+    {
+      cg_close(indexFile_);
+      EXCEPTION("Cannot write solution:\n" << cg_get_error());
+    }
+
+    cg_field_write(indexFile_,indexBase_,indexZone_,indexElemSol_,CGNSLIB_H::Integer,
+            "RegionId",&regionIds[0],&indexField);
+    cg_field_write(indexFile_,indexBase_,indexZone_,indexElemSol_,CGNSLIB_H::Integer,
+            "OrigElemNum",&origElemNums[0],&indexField);
+    cg_field_write(indexFile_,indexBase_,indexZone_,indexElemSol_,CGNSLIB_H::Integer,
+            "ElemType",&elemTypes[0],&indexField);
+
+#if 0
     int indexFlow,indexField;
-    /*
+
     StdVector<double> press(numNodes);
     for (UInt node=0; node<numNodes; node++) {
         press[node] = 1.0+xCoord[node]*(1.0 - yCoord[node]*yCoord[node])*exp(1.0-zCoord[node]);
@@ -190,18 +236,7 @@ namespace CoupledField {
     cg_sol_write(indexFile_,indexBase_,indexZone_,solname.c_str(),Vertex,&indexFlow);
     cg_field_write(indexFile_,indexBase_,indexZone_,indexFlow,RealDouble,
             "Pressure",&press[0],&indexField);
-    */
 
-    solname = "MeshStats";
-    cg_sol_write(indexFile_,indexBase_,indexZone_,solname.c_str(), CellCenter,&indexFlow);
-    cg_field_write(indexFile_,indexBase_,indexZone_,indexFlow,CGNSLIB_H::Integer,
-            "RegionId",&regionIds[0],&indexField);
-    cg_field_write(indexFile_,indexBase_,indexZone_,indexFlow,CGNSLIB_H::Integer,
-            "OrigElemNum",&origElemNums[0],&indexField);
-    cg_field_write(indexFile_,indexBase_,indexZone_,indexFlow,CGNSLIB_H::Integer,
-            "ElemType",&elemTypes[0],&indexField);
-    
-    /*
     for (UInt node=0; node<numNodes; node++) {
         press[node] = 2.0+xCoord[node]*(1.0 - yCoord[node]*yCoord[node])*exp(1.0-zCoord[node]);
     }
@@ -247,17 +282,14 @@ namespace CoupledField {
     cg_array_write("FlowSolutionPointers",Character,2,idata,tmp);
 // add SimulationType
     cg_simulation_type_write(indexFile_,indexBase_,TimeAccurate);
-    */
-    }
-
-    cg_close(indexFile_);
+#endif
   }
 
   void SimOutputCGNS::WriteMixedSection(const StdVector<Elem*>& elems,
                                         const std::string& name,
-                                        StdVector<cgsize_t>& regionIds,
-                                        StdVector<cgsize_t>& origElemNums,
-                                        StdVector<cgsize_t>& elemTypes,
+                                        StdVector<int>& regionIds,
+                                        StdVector<int>& origElemNums,
+                                        StdVector<int>& elemTypes,
                                         UInt& elemRangeStart) 
   {
     UInt numElems = elems.GetSize();
@@ -268,7 +300,11 @@ namespace CoupledField {
     for (UInt iElem=0, idx=0; iElem<numElems; iElem++) {
       Elem* ptEl = elems[iElem];
       feType = ptEl->type;
-      UInt numElemNodes = Elem::shapes[feType].numNodes;
+      UInt numElemNodes = Elem::shapes[feType].numVertices;
+      if(writeQuadElems_) 
+      {
+        numElemNodes = Elem::shapes[feType].numNodes;
+      }
       
       elemData[idx] = elemTypeMap_[feType];
       
@@ -282,7 +318,8 @@ namespace CoupledField {
     }
 
     int indexSection;
-    int nelemStart = elemRangeStart, nelemEnd = elemRangeStart+numElems-1, nbdyElem=0;
+    cgsize_t nelemStart = elemRangeStart, nelemEnd = elemRangeStart+numElems-1;
+    int nbdyElem=0;
     cg_section_write(indexFile_,indexBase_,indexZone_,name.c_str(),MIXED,nelemStart,
                      nelemEnd,nbdyElem,&elemData[0],&indexSection);
 
@@ -291,14 +328,19 @@ namespace CoupledField {
   
   void SimOutputCGNS::WritePureSection(const StdVector<Elem*>& elems,
                                        const std::string& name,
-                                       StdVector<cgsize_t>& regionIds,
-                                       StdVector<cgsize_t>& origElemNums,
-                                       StdVector<cgsize_t>& elemTypes,
+                                       StdVector<int>& regionIds,
+                                       StdVector<int>& origElemNums,
+                                       StdVector<int>& elemTypes,
                                        UInt& elemRangeStart)
   {
     UInt numElems = elems.GetSize();
     Elem::FEType feType = elems[0]->type;
-    UInt numElemNodes = Elem::shapes[feType].numNodes;
+    ElementType_t eType = elemTypeMap_[feType];
+    UInt numElemNodes = Elem::shapes[feType].numVertices;
+    if(writeQuadElems_) 
+    {
+      numElemNodes = Elem::shapes[feType].numNodes;
+    }
     
     StdVector<cgsize_t> elemData(numElems*numElemNodes);
 
@@ -312,8 +354,9 @@ namespace CoupledField {
     }
 
     int indexSection;
-    int nelemStart = elemRangeStart, nelemEnd = elemRangeStart+numElems-1, nbdyElem=0;
-    cg_section_write(indexFile_,indexBase_,indexZone_,name.c_str(),elemTypeMap_[feType],nelemStart,
+    cgsize_t nelemStart = elemRangeStart, nelemEnd = elemRangeStart+numElems-1;
+    int nbdyElem=0;
+    cg_section_write(indexFile_,indexBase_,indexZone_,name.c_str(),eType,nelemStart,
                      nelemEnd,nbdyElem,&elemData[0],&indexSection);
 
     elemRangeStart = nelemEnd+1;
@@ -324,30 +367,54 @@ namespace CoupledField {
     elemTypeMap_[Elem::ET_UNDEF]   = CGNSLIB_H::ElementTypeNull;
     elemTypeMap_[Elem::ET_POINT]   = CGNSLIB_H::NODE;
     elemTypeMap_[Elem::ET_LINE2]   = CGNSLIB_H::BAR_2;
-    elemTypeMap_[Elem::ET_LINE3]   = CGNSLIB_H::BAR_3;
     elemTypeMap_[Elem::ET_TRIA3]   = CGNSLIB_H::TRI_3;
-    elemTypeMap_[Elem::ET_TRIA6]   = CGNSLIB_H::TRI_6;
     elemTypeMap_[Elem::ET_QUAD4]   = CGNSLIB_H::QUAD_4;
-    elemTypeMap_[Elem::ET_QUAD8]   = CGNSLIB_H::QUAD_8;
-    elemTypeMap_[Elem::ET_QUAD9]   = CGNSLIB_H::QUAD_9;
     elemTypeMap_[Elem::ET_TET4]    = CGNSLIB_H::TETRA_4;
-    elemTypeMap_[Elem::ET_TET10]   = CGNSLIB_H::TETRA_10;
     elemTypeMap_[Elem::ET_PYRA5]   = CGNSLIB_H::PYRA_5;
-    elemTypeMap_[Elem::ET_PYRA13]  = CGNSLIB_H::PYRA_13;
-    elemTypeMap_[Elem::ET_PYRA14]  = CGNSLIB_H::PYRA_14;
     elemTypeMap_[Elem::ET_WEDGE6]  = CGNSLIB_H::PENTA_6;
-    elemTypeMap_[Elem::ET_WEDGE15] = CGNSLIB_H::PENTA_15;
-    elemTypeMap_[Elem::ET_WEDGE18] = CGNSLIB_H::PENTA_18;
     elemTypeMap_[Elem::ET_HEXA8]   = CGNSLIB_H::HEXA_8;
-    elemTypeMap_[Elem::ET_HEXA20]  = CGNSLIB_H::HEXA_20;
-    elemTypeMap_[Elem::ET_HEXA27]  = CGNSLIB_H::HEXA_27;
+
+    if(writeQuadElems_) 
+    {
+      elemTypeMap_[Elem::ET_LINE3]   = CGNSLIB_H::BAR_3;
+      elemTypeMap_[Elem::ET_TRIA6]   = CGNSLIB_H::TRI_6;
+      elemTypeMap_[Elem::ET_QUAD8]   = CGNSLIB_H::QUAD_8;
+      elemTypeMap_[Elem::ET_QUAD9]   = CGNSLIB_H::QUAD_9;
+      elemTypeMap_[Elem::ET_TET10]   = CGNSLIB_H::TETRA_10;
+      elemTypeMap_[Elem::ET_PYRA13]  = CGNSLIB_H::PYRA_13;
+      elemTypeMap_[Elem::ET_PYRA14]  = CGNSLIB_H::PYRA_14;
+      elemTypeMap_[Elem::ET_WEDGE15] = CGNSLIB_H::PENTA_15;
+      elemTypeMap_[Elem::ET_WEDGE18] = CGNSLIB_H::PENTA_18;
+      elemTypeMap_[Elem::ET_HEXA20]  = CGNSLIB_H::HEXA_20;
+      elemTypeMap_[Elem::ET_HEXA27]  = CGNSLIB_H::HEXA_27;
+    }
+    else 
+    {
+      WARN("Quadratic element type will be reduced to linear ones for CGNS!");
+
+      elemTypeMap_[Elem::ET_LINE3]   = CGNSLIB_H::BAR_2;
+      elemTypeMap_[Elem::ET_TRIA6]   = CGNSLIB_H::TRI_3;
+      elemTypeMap_[Elem::ET_QUAD8]   = CGNSLIB_H::QUAD_4;
+      elemTypeMap_[Elem::ET_QUAD9]   = CGNSLIB_H::QUAD_4;
+      elemTypeMap_[Elem::ET_TET10]   = CGNSLIB_H::TETRA_4;
+      elemTypeMap_[Elem::ET_PYRA13]  = CGNSLIB_H::PYRA_5;
+      elemTypeMap_[Elem::ET_PYRA14]  = CGNSLIB_H::PYRA_5;
+      elemTypeMap_[Elem::ET_WEDGE15] = CGNSLIB_H::PENTA_6;
+      elemTypeMap_[Elem::ET_WEDGE18] = CGNSLIB_H::PENTA_6;
+      elemTypeMap_[Elem::ET_HEXA20]  = CGNSLIB_H::HEXA_8;
+      elemTypeMap_[Elem::ET_HEXA27]  = CGNSLIB_H::HEXA_8;
+    }
   }
 
   void SimOutputCGNS::TranslateConnectivity(Elem::FEType feType,
                                            cgsize_t* cgnsConn,
                                            StdVector<UInt>& connect)
   {
-    UInt numElemNodes = Elem::shapes[feType].numNodes;
+    UInt numElemNodes = Elem::shapes[feType].numVertices;
+    if(writeQuadElems_) 
+    {
+      numElemNodes = Elem::shapes[feType].numNodes;
+    }
 
     static const int trDefault[27] = {
       0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
@@ -406,32 +473,43 @@ namespace CoupledField {
     }
 
     for(UInt n = 0; n<numElemNodes; n++ ) {
-      cgnsConn[tr[n]] = connect[n];
+      cgnsConn[n] = connect[tr[n]];
     }
   }
 
-  void  SimOutputCGNS::NodeElemDataTransient(const UInt dataSetNr,
-                                                  const std::string & title, 
-                                                  const Vector<Double> & x, 
-                                                  const UInt step, 
-                                                  const Double time, 
-                                                  const UInt nrNodes,
-                                                  const UInt nrDofs)
+  void  SimOutputCGNS::NodeElemDataTransient(const bool definedOnNode,
+                                             std::map< std::string, Vector<Double> >& gSol,
+                                             const UInt step, 
+                                             const Double time)
   {
-    //    EXCEPTION("NodeElemDataTransient not implemented!");
-  }  
+    std::map< std::string, Vector<Double> >::const_iterator it, end;
+    int* indexSol = &indexNodeSol_;
+    
+    // Check if solution node is already present, and write it if necessary.
+    if(!definedOnNode) 
+    {
+      indexSol = &indexElemSol_;
+    }    
 
-  void SimOutputCGNS::NodeElemDataHarmonic(const UInt dataSetNr,
-                                                const std::string & title, 
-                                                const Vector<Complex> & x, 
-                                                const UInt step,
-                                                const Double frequency, 
-                                                const ComplexFormat format,
-                                                const UInt nrNodes,
-                                                const UInt nrDofs)
-  {
-    //    EXCEPTION("NodeElemDataHarmonic not implemented!");
-  }
+    // Write actual solution array.
+    it = gSol.begin();
+    end = gSol.end();
+    for( ; it != end; it++ ) 
+    {    
+      const Vector<Double>& sol = it->second;
+      std::string solName = it->first;
+      int indexField;
+
+      if(cg_field_write(indexFile_, indexBase_, indexZone_,
+                        *indexSol, RealDouble, solName.c_str(),
+                        &sol[0], &indexField)) 
+      {
+        cg_close(indexFile_);
+        EXCEPTION("Cannot write field:\n" <<
+                  cg_get_error());
+      }
+    }
+  }  
 
   void SimOutputCGNS::Init(Grid * ptGrid, bool printGridOnly )
   {
@@ -470,42 +548,71 @@ namespace CoupledField {
       {
         file_type = CG_FILE_ADF;
       }
-      if(mll == "adf")
+#if CGNS_VERSION > 3000
+      if(mll == "adf2")
       {
         file_type = CG_FILE_ADF2;
       }
+#endif
       
       cg_set_file_type(file_type);
     }    
 
-    //     open CGNS file for write
-    outputFileOK_ = false;
-    if (cg_open(fileName.c_str(),CG_MODE_WRITE,&indexFile_)) cg_error_exit();
+    // Open CGNS file for write
+    if (cg_open(fileName.string().c_str(),CG_MODE_WRITE,&indexFile_)) cg_error_exit();
     outputFileOK_ = true;
 
     WriteGrid();
   }
 
-  void SimOutputCGNS::RegisterResult( shared_ptr<BaseResult> sol,
-                                     UInt saveBegin, UInt saveInc,
-                                     UInt saveEnd,
-                                     bool isHistory ) {
+  void SimOutputCGNS::BeginMultiSequenceStep( UInt step,
+                                              BasePDE::AnalysisType type,
+                                              UInt numSteps )
+  {
+    if(step != 1) 
+    {
+      EXCEPTION("Only one sequence step supported!\n" <<
+                "Note, that this is no limitation of CGNS but " <<
+                "of the current implementation.");
+    }
     
+    if(numSteps != 1) 
+    {
+      EXCEPTION("Only one time/freq step supported!\n" <<
+                "Note, that this is no limitation of CGNS but " <<
+                "of the current implementation.");
+    }
+  }
+  
+  void SimOutputCGNS::RegisterResult( shared_ptr<BaseResult> sol,
+                                      UInt saveBegin, UInt saveInc,
+                                      UInt saveEnd,
+                                      bool isHistory )
+  {
   }
 
-  void SimOutputCGNS::BeginStep( UInt stepNum, Double stepVal ) {
+  void SimOutputCGNS::BeginStep( UInt stepNum, Double stepVal )
+  {
+    if(stepNum != 1) 
+    {
+      EXCEPTION("Only one time/freq step supported!\n" <<
+                "Note, that this is no limitation of CGNS but " <<
+                "of the current implementation.");
+    }
     
     actStep_ = stepNum + stepNumOffset_;
     actStepVal_ = stepVal + stepValOffset_;
     resultMap_.clear();
   }
-
-  void SimOutputCGNS::AddResult( shared_ptr<BaseResult>  sol ) {
-    resultMap_[sol->GetResultInfo()->resultName].Push_back( sol );
+  
+  void SimOutputCGNS::AddResult( shared_ptr<BaseResult>  sol )
+  {
+    std::string resultName = sol->GetResultInfo()->resultName;
+    resultMap_[resultName].Push_back( sol );
   }
   
-  void SimOutputCGNS::FinishStep( ) {
-
+  void SimOutputCGNS::FinishStep( )
+  {
     // iterate over all result types
     ResultMapType::iterator it = resultMap_.begin();
     for( ; it != resultMap_.end(); it++ ) {
@@ -515,265 +622,198 @@ namespace CoupledField {
       
       const StdVector<shared_ptr<BaseResult> > actResults =
         it->second;
-
       
       if(  actInfo.definedOn != ResultInfo::NODE &&
            actInfo.definedOn != ResultInfo::ELEMENT &&
            actInfo.definedOn != ResultInfo::SURF_ELEM ) {
-        WARN( "Unv can only write results on element and nodes" );
+        WARN( "CGNS can only write results on element and nodes." );
         continue;
       }
       
-      ResultInfo::EntityUnknownType entityType = actInfo.definedOn;
-      std::string title =  SolutionTypeToString( actInfo.resultType );
+      ResultInfo::EntityUnknownType entityType = actInfo.definedOn;      
+      std::string title =  SolutionTypeEnum.ToString( actInfo.resultType );
       
       // if result could not be mapped, omit it
       if( title == "") {
         std::stringstream warning;
         warning  <<  "Result '" << actInfo.resultName
-                 << "' coul not be mappted to unv result type and is "
+                 << "' could not be mappted to CGNS result type and is "
                  << "omitted!";
         WARN( warning.str().c_str() );
         continue;
       }
       
-      StdVector<std::string> & dofNames = actInfo.dofNames;
-      UInt numDofs = dofNames.GetSize();
-      
       // Determine type of entity the result is defined on
-      UInt mapTo = 0;
-      UInt numEntities = 0;
-      if( actInfo.definedOn == ResultInfo::NODE ) {
-        mapTo = 55;
-        numEntities = ptGrid_->GetNumNodes();;
-      } else {
-        mapTo = 56;
-        numEntities = ptGrid_->GetNumVolElems();
-      }
-      
-      if( actResults[0]->GetEntryType() == BaseMatrix::DOUBLE ) {
-        Vector<Double> gSol;
-        FillGlobalVec<Double>(gSol, actResults, entityType );
-        
-        // Special case: If result is mechStress, restort entries 
-        // according to capa notation
-        if( actInfo.resultType == MECH_STRESS ) { 
-          SortStresses( gSol, dofNames);
-          numDofs = 6;
-        }
-        
-        NodeElemDataTransient( mapTo, title, gSol, actStep_, 
-                               actStepVal_ , numEntities ,
-                               numDofs );
-      } else {
-        Vector<Complex> gSol;
-        FillGlobalVec<Complex>(gSol, actResults, entityType );
+      bool definedOnNode = (actInfo.definedOn == ResultInfo::NODE);
 
-        // Special case: If result is mechStress, restort entries 
-        // according to capa notation
-        if( actInfo.resultType == MECH_STRESS ) { 
-          SortStresses( gSol, dofNames);
-          numDofs = 6;
-        }
-        
-        NodeElemDataHarmonic( mapTo, title, gSol, actStep_, 
-                              actStepVal_, actInfo.complexFormat,
-                              numEntities, numDofs );
-      }
+      // Create map of arrays, which are then written to CGNS.
+      std::map<std::string, Vector<Double> > gSol;
+      FillGlobalVectors(gSol, actResults, entityType );
+      NodeElemDataTransient( definedOnNode, gSol, actStep_, actStepVal_);
     } // over all result types
   }
-  
+    
   
   void SimOutputCGNS::FinishMultiSequenceStep() {
-
     // set offset for step value and number to last values
     stepNumOffset_ = actStep_;
     stepValOffset_ = actStepVal_;
   }
-  
-  
-  template<class TYPE>
-  void SimOutputCGNS::SortStresses( Vector<TYPE> & vec,
 
-                                   const StdVector<std::string>& dofNames ){
+  void SimOutputCGNS::FillGlobalVectors(std::map< std::string, Vector<Double> >& gSol, 
+                                        const StdVector<shared_ptr<BaseResult> > & solList,
+                                        ResultInfo::EntityUnknownType entityType ) {
+    static const double H180DEG_OVER_PI = 180.0 / PI;
 
+    BaseMatrix::EntryType entryType = solList[0]->GetEntryType();
 
-    //soring according to capa (unv) notation
-    //our notation is Voigt: Txx Tyy Tzz Tyz Txz Txy
-
-
-    // check size of dofNames:
-    // 6: 3D
-    // 4: axi
-    // 3: plane 
-
-    // ensure, that number of entries is multiples of number of dofs
-    assert( vec.GetSize() % dofNames.GetSize() == 0 );
-    UInt numDofs = dofNames.GetSize();
-    UInt numEntities = (UInt) vec.GetSize() / dofNames.GetSize();
-
-    // CAPA always expects a stress vector with 6 entries
-    Vector<TYPE> sorted;
-    sorted.Resize( numEntities * 6 );
-    
-    // a) 3D-case (6 entries for stress vector)
-    if( numDofs == 6 ) {
-      
-      //Txx Txy Tyy Txz Tyz Tzz
-      UInt j = 0;
-      for( UInt i = 0; i < vec.GetSize(); i+=6 ) {
-        sorted[j++] = vec[i];
-        sorted[j++] = vec[i+5];
-        sorted[j++] = vec[i+1];
-        sorted[j++] = vec[i+4];
-        sorted[j++] = vec[i+3];
-        sorted[j++] = vec[i+2];
-      }
-    }
-  
-    // b) axisymmetric-case (4 entries for stress vector)  
-    else if( numDofs == 4 ) {
-      //Tphiphi 0 Trr 0 Trz Tzz
-      
-      
-      UInt j = 0;
-      for( UInt i = 0; i < vec.GetSize(); i+=4 ) {
-        sorted[j++] = vec[i+3];
-        sorted[j++] = 0.0;
-        sorted[j++] = vec[i+0];
-        sorted[j++] = 0.0;
-        sorted[j++] = vec[i+2];
-        sorted[j++] = vec[i+1];
-      }
-    }
-
-    // c) planestress/strain-case (3 entries for stress vector)  
-    else if( numDofs == 3 ) {
-      //0 0 Tyy 0 Tyz Tzz
-    
-      UInt j = 0;
-      for( UInt i = 0; i < vec.GetSize(); i+=3 ) {
-        sorted[j++] = 0.0;
-        sorted[j++] = 0.0;
-        sorted[j++] = vec[i+0];
-        sorted[j++] = 0.0;
-        sorted[j++] = vec[i+2];
-        sorted[j++] = vec[i+1];
-      } 
-
-    } else {
-      EXCEPTION( "Can not resort a stress vector with " << numDofs << " entries" );
-    }
-   
-    // store sorted vector back to original one
-    vec = sorted;
-  }
-  
-  std::string SimOutputCGNS::SolutionTypeToString(const SolutionType type) const
-  {
-
-    //   std::string warnMsg;
-
-    switch (type)
+    std::map<UInt, UInt> entity2Idx;
+    if( entityType == ResultInfo::NODE ) {
+      for(UInt i=0, n=numNodes_; i<n; i++) 
       {
-      case MECH_DISPLACEMENT:
-        return "displacement";
-        break;
-      case MECH_ACCELERATION:
-        return "acceleration";
-        break;
-      case MECH_VELOCITY:
-        return "velocity";
-        break;
-      case MECH_FORCE:
-        break;
-      case MECH_STRESS:
-        return "stress";
-        break;
-      case MECH_STRAIN:
-        EXCEPTION("Not implemented" );
-        break;
-      case MECH_RHS_LOAD:
-        return "mechRhsLoad";
-         break;
-      case ELEC_POTENTIAL:
-        return "electric potential";
-        break;
-      case ELEC_FIELD_INTENSITY:
-        return "electric field";
-        break;
-      case ELEC_FORCE_VWP: 
-        EXCEPTION("Not implemented" );
-        break;
-      case ELEC_CHARGE:
-        return "electric charge";
-        break;
-      case ELEC_FLUX_DENSITY:
-        EXCEPTION("Not implemented");
-        break; 
-      case ELEC_ENERGY:
-        EXCEPTION("Not implemented");
-        break;
-      case ELEC_RHS_LOAD:
-        return "elecRhsLoad";
-        break;
-      case SMOOTH_DISPLACEMENT:
-        return "displacement";
-        break;
-      case ACOU_POTENTIAL:
-        return "fluid potential";
-        break;
-
-      case ACOU_RHS_LOAD:
-        return "fluid potential";
-        break;
-      case ACOU_PRESSURE:
-        //       warnMsg = "Due to the restrictions in the .unv file format, the ";
-        //       warnMsg += "acoustic pressure is written as acoustic (fluid) potential!";
-        //       WARN(warnMsg.c_str(), __FILE__, __LINE__);
-        return "fluid potential";
-        break;
-      case ACOU_FORCE:
-        EXCEPTION("Not implemented" );
-        break;
-      case ACOU_POTENTIAL_DERIV_1:
-        return "fluid potential, 1st deriv.";
-        break;
-      case ACOU_POTENTIAL_DERIV_2:
-        return "fluid potential, 2nd deriv.";
-        break;
-      case MAG_POTENTIAL:
-        return "mag. vector potential";
-        break;
-      case MAG_FLUX_DENSITY:
-        return "mag. flux density";
-        break;
-      case MAG_FORCE_VWP:
-        EXCEPTION("Not implemented");
-        break;
-      case MAG_FORCE_LORENTZ:
-        EXCEPTION("Not implemented");
-        break;
-      case MAG_ENERGY:
-        EXCEPTION("Not implemented");
-        break;
-      case MAG_RHS_LOAD:
-        return "magRhsLoad";
-        break;
-
-      case HEAT_TEMPERATURE:
-        return "temperature";
-        break;
-      case HEAT_RHS_LOAD:
-        return "temperatureRhsLoad";
-        break;
-
-      default:
-        WARN( "Wrong type of solution or 'SolutionType2String'" );
-        return "UNKNOWN";
-        break;
+        entity2Idx[i+1] = i;
       }
-    return std::string();
+    }
+    else {
+      UInt idx = 0;
+      // Iterate over all regions
+      for(UInt i=0, n=ptGrid_->regionData.GetSize(); i<n; i++) 
+      {
+        StdVector<Elem*> elems;
+        ptGrid_->GetElems(elems, ptGrid_->regionData[i].id );
+        for( UInt j=0, m=elems.GetSize(); j<m; j++ ) {
+          entity2Idx[elems[j]->elemNum] = idx;
+          idx++;
+        }
+      }
+    }
+    
+    UInt numEntities = entity2Idx.size();
+    ResultInfo & actResultInfo = *(solList[0]->GetResultInfo());
+    std::string resultName = actResultInfo.resultName;
+    StdVector<std::string> dofNames = actResultInfo.dofNames;
+    UInt numDofs = actResultInfo.dofNames.GetSize();
+    LOG_DBG(simOutputCGNS) << "Filling global vector for result '" 
+                           << resultName << "' on ";
+    for( UInt i = 0; i < solList.GetSize(); i++ ) {
+      LOG_DBG(simOutputCGNS) << solList[i]->GetEntityList()->GetName();
+    }
+
+    if( entityType == ResultInfo::ELEMENT ||
+        entityType == ResultInfo::SURF_ELEM ) {
+
+      // === Element Results ===
+      for(UInt iDof=0; iDof<numDofs; iDof++) 
+      {
+        std::string resultDofName = (numDofs == 1 ? resultName : resultName + "_" + dofNames[iDof]);
+
+        if( entryType == BaseMatrix::DOUBLE ) {
+          // real valued results
+          gSol[resultDofName].Resize( numEntities );
+          gSol[resultDofName].Init();
+          for( UInt i = 0; i < solList.GetSize(); i++ ){
+            EntityIterator it = solList[i]->GetEntityList()->GetIterator();
+            Vector<Double> & actSol = dynamic_cast<Result<Double>&>
+                                      (*(solList[i])).GetVector();
+            for( it.Begin(); !it.IsEnd(); it++ ) {
+              UInt elemNum = it.GetElem()->elemNum;
+              gSol[resultDofName][entity2Idx[elemNum]] = actSol[it.GetPos()*numDofs+iDof];
+            }
+          }
+        }
+        else
+        {
+          // complex valued results
+          std::string resNameRe = resultDofName + "_Re";
+          std::string resNameIm = resultDofName + "_Im";
+          std::string resNameAmpl = resultDofName + "_Ampl";
+          std::string resNamePhase = resultDofName + "_Phase";
+
+          gSol[resNameRe].Resize( numEntities ); gSol[resNameRe].Init();
+          gSol[resNameIm].Resize( numEntities ); gSol[resNameIm].Init();
+          gSol[resNameAmpl].Resize( numEntities ); gSol[resNameAmpl].Init();
+          gSol[resNamePhase].Resize( numEntities ); gSol[resNamePhase].Init();
+
+          for( UInt i = 0; i < solList.GetSize(); i++ ){
+            EntityIterator it = solList[i]->GetEntityList()->GetIterator();
+            Vector<Complex> & actSol = dynamic_cast<Result<Complex>&>
+                                      (*(solList[i])).GetVector();
+            for( it.Begin(); !it.IsEnd(); it++ ) {
+              UInt elemNum = it.GetElem()->elemNum;
+              if(entity2Idx.find(elemNum) != entity2Idx.end()) 
+              {
+                UInt idx = entity2Idx[elemNum];
+                Complex sol = actSol[it.GetPos()*numDofs+iDof];
+                
+                gSol[resNameRe][idx] = sol.real();
+                gSol[resNameIm][idx] = sol.imag();
+                gSol[resNameAmpl][idx] = hypot(sol.real(), sol.imag());
+                gSol[resNamePhase][idx] = (std::abs(sol.imag()) > 1e-16) ?
+                                          std::atan2( sol.imag(), sol.real() ) * H180DEG_OVER_PI : 
+                                          ( sol.real() < 0.0 ) ? 180 : 0 ;
+              }
+            }
+          }
+        }
+      }
+    } else if ( entityType == ResultInfo::NODE ) {
+
+      // === Nodal Results ===
+      for(UInt iDof=0; iDof<numDofs; iDof++) 
+      {
+        std::string resultDofName = (numDofs == 1 ? resultName : resultName + "_" + dofNames[iDof]);
+        
+        if( entryType == BaseMatrix::DOUBLE ) {
+          // real valued results
+          gSol[resultDofName].Resize( numEntities );
+          gSol[resultDofName].Init();
+          for( UInt i = 0; i < solList.GetSize(); i++ ){
+            EntityIterator it = solList[i]->GetEntityList()->GetIterator();
+            Vector<Double> & actSol = dynamic_cast<Result<Double>&>
+                                      (*(solList[i])).GetVector();
+            assert( (UInt) (actSol.GetSize()/numDofs) 
+                    == solList[i]->GetEntityList()->GetSize());
+            for( it.Begin(); !it.IsEnd(); it++ ) {
+              UInt nodeNum = it.GetNode();
+              gSol[resultDofName][entity2Idx[nodeNum]] = actSol[it.GetPos()*numDofs+iDof];
+            }
+          }
+        }
+        else
+        {
+          // complex valued results
+          std::string resNameRe = resultDofName + "_Re";
+          std::string resNameIm = resultDofName + "_Im";
+          std::string resNameAmpl = resultDofName + "_Ampl";
+          std::string resNamePhase = resultDofName + "_Phase";
+
+          gSol[resNameRe].Resize( numEntities ); gSol[resNameRe].Init();
+          gSol[resNameIm].Resize( numEntities ); gSol[resNameIm].Init();
+          gSol[resNameAmpl].Resize( numEntities ); gSol[resNameAmpl].Init();
+          gSol[resNamePhase].Resize( numEntities ); gSol[resNamePhase].Init();
+
+          for( UInt i = 0; i < solList.GetSize(); i++ ){
+            EntityIterator it = solList[i]->GetEntityList()->GetIterator();
+            Vector<Complex> & actSol = dynamic_cast<Result<Complex>&>
+                                      (*(solList[i])).GetVector();
+            for( it.Begin(); !it.IsEnd(); it++ ) {
+              UInt idx = entity2Idx[it.GetNode()];
+              Complex sol = actSol[it.GetPos()*numDofs+iDof];
+
+              gSol[resNameRe][idx] = sol.real();
+              gSol[resNameIm][idx] = sol.imag();
+              gSol[resNameAmpl][idx] = hypot(sol.real(), sol.imag());
+              gSol[resNamePhase][idx] = (std::abs(sol.imag()) > 1e-16) ?
+                                        std::atan2( sol.imag(), sol.real() ) * H180DEG_OVER_PI : 
+                                        ( sol.real() < 0.0 ) ? 180 : 0 ;
+            }
+          }
+        }
+      }
+      
+    } else {
+      EXCEPTION( "Can only map nodal / element results to grid" );
+    }      
   }
 
 }

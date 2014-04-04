@@ -1,9 +1,10 @@
 #-------------------------------------------------------------------------------
 # CFD General Notation System (CGNS)
-# Needed for ADF routines by STARCCM+ reader. Also provides adfview.
-#                                           
-# Project Homepage                          
-# http://www.cgns.org                       
+# Needed for ADF routines by STARCCM+ reader. Also provides cgnsview, which
+# can be used to view .cgns files (HDF5 and ADF) and .ccm files (ADF).
+#
+# Project Homepage
+# http://www.cgns.org
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
@@ -27,6 +28,8 @@ SET(CMAKE_ARGS
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
   -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
   -DENABLE_HDF5:BOOL=ON
+  -DENABLE_LEGACY:BOOL=ON
+  -DENABLE_64BIT:BOOL=OFF
   -DENABLE_TESTS:BOOL=ON
   -DHDF5_INCLUDE_PATH:PATH=${cgns_install}/include
   -DHDF5_LIBRARY:FILEPATH=${HDF5_LIBRARY},-lm
@@ -40,8 +43,12 @@ SET(CMAKE_ARGS
   -DCMAKE_CXX_FLAGS:STRING=${CFLAGS}
 )
 
+#-------------------------------------------------------------------------------
+# Let's only build the CGNS tools on platforms, which provide a TCL 
+# interpreter. There are certainly TCL interpreters on Windows and Mac, but we
+# have not installed them in our nightly test systems.
+#-------------------------------------------------------------------------------
 SET(BUILD_CGNSTOOLS ON)
-
 IF(MINGW)
   SET(BUILD_CGNSTOOLS OFF)
 ELSEIF(CFS_DISTRO STREQUAL "MACOSX")

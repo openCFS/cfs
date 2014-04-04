@@ -25,8 +25,15 @@
 
 #include <cgnslib.h>
 
-#include "DataInOut/SimInput.hh"
+#if CGNS_VERSION < 3100
+# define cgsize_t int
+#else
+# if CG_BUILD_SCOPE
+#  error enumeration scoping needs to be off
+# endif
+#endif
 
+#include "DataInOut/SimInput.hh"
 
 namespace CoupledField{
 
@@ -111,7 +118,7 @@ namespace CoupledField{
     UInt numVertices_;
     std::map<Double, std::string>  fileNames_;
     std::string fileDir_;
-    std::map<CGNSLIB_H::ElementType_t,Elem::FEType> elemTypeMap_;
+    std::map<int,Elem::FEType> elemTypeMap_;
  
     //! Number of regions
     UInt numRegions_;
@@ -128,10 +135,12 @@ namespace CoupledField{
 
     //! Number of vertices, cells, and boundary vertices in each (index)-
     //! dimension.
-    Integer vertSize_[9];
+    cgsize_t vertSize_[9];
 
     //! Remember number of nodes in grid before we add our own ones.
     UInt nodeOffset_;
+
+    float cgVersion_;
     
   private:
     void ReadCGNSDirectory(std::string dirname, std::map<Double, std::string> & fileNames);
