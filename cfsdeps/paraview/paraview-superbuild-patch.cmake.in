@@ -8,6 +8,8 @@
 # Set global variables, configured from the external build.
 #=============================================================================
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(pv_sb_cfsdeps_srcdir 
+  "${CFS_SOURCE_DIR}/cfsdeps/paraview/paraview-superbuild-srcdir")
 SET(paraview_sb_source "@paraview_sb_source@")
 
 #=============================================================================
@@ -20,43 +22,7 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 #=============================================================================
 EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND}
-  -E copy_if_different
-  "${CFS_SOURCE_DIR}/cfsdeps/paraview/ParaViewModules.cmake"
-  "${paraview_sb_source}/CMake/ParaViewModules.cmake"
+  -E copy_directory
+  "${pv_sb_cfsdeps_srcdir}"
+  "${paraview_sb_source}"
 )
-
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND}
-  -E copy_if_different
-  "${CFS_SOURCE_DIR}/cfsdeps/paraview/hdf5.cmake"
-  "${paraview_sb_source}/Projects/hdf5.cmake"
-)
-
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND}
-  -E copy_if_different
-  "${CFS_SOURCE_DIR}/cfsdeps/paraview/paraview.cmake"
-  "${paraview_sb_source}/Projects/paraview.cmake"
-)
-
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND}
-  -E copy_if_different
-  "${CFS_SOURCE_DIR}/cfsdeps/paraview/zlib.cmake"
-  "${paraview_sb_source}/Projects/zlib.cmake"
-)
-
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND}
-  -E copy_if_different
-  "${CFS_SOURCE_DIR}/cfsdeps/paraview/versions.cmake"
-  "${paraview_sb_source}/versions.cmake"
-)
-
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND}
-  -E copy_if_different
-  "${CFS_SOURCE_DIR}/cfsdeps/paraview/paraview.patch.cmake.in"
-  "${paraview_sb_source}/Projects/paraview.patch.cmake.in"
-)
-

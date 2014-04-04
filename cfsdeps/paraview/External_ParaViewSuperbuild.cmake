@@ -1,50 +1,139 @@
 #-------------------------------------------------------------------------------
 # Project Homepages
 # http://www.paraview.org
-# http://personal.cscs.ch/~jfavre/Projects/vtkLEA/vtklea.htm
-# see also the README_*.txt files in this directory.
+# http://paraview.org/Wiki/ParaView:Superbuild
 #
 # Building  ParaView with  the HDF5  reader  plugin for  CFS++ is  a two  step
 # process.  First  the ParaView Superbuild  gets downloaded and  configured as
 # the paraview-superbuild external project from the current CMake script. This
 # involves obtaining  a Git clone of  the PV Superbuild repository,  either by
-# using Git  itself or by downloading  a zipped archive of  the repository, if
-# the Git executable is not available.
-#
-# The actual  build of  ParaView takes place  in a second  step inside  the PV
-# Superbuild. Therefore, we have to modify the Superbuild, in order to get our
-# patches into ParaView at its build time. We do this during the patch step of
-# the paraview-superbuild external project defined in this CMake file.
+# using Git  itself or by downloading  a zipped archive of  the repository, in
+# the case if the Git executable is not available.
 #
 # In the  patch step of the  paraview-superbuild a number of  files get copied
-# from the current source directory to  the Git repo.  These files reflect the
-# changes which are necessary, so that the PV Superbuild blends in nicely with
-# the CFS++ build.  This means, that  the Superbuild, should reuse the already
+# from   the   current   source   directory   to  the   Git   repo   via   the
+# paraview-superbuild-patch.cmake.in script.  These  files reflect the changes
+# which are  necessary, so that  the PV Superbuild  blends in nicely  with the
+# CFS++  build.  This  means, that  the Superbuild,  should reuse  the already
 # downloaded  archives  in  our  CFS_DEPS_CACHE_DIR,  and  also  put  its  own
 # downloads there.  Moreover,  an extra patch step gets added  to the paraview
 # external  project  inside  the PV  Superbuild  (Projects/paraview.cmake  and
-# Projects/paraview.patch.cmake.in). This makes sure,  that the patches needed
-# for the CFS++ features get applied during the patch phase of ParaView.
+# Projects/paraview.patch.cmake.in).
+# 
+# The changes to the ParaView Superbuild reside in the following files:
+#
+#   paraview-superbuild-srcdir/
+#   ├── CMake
+#   │   └── ParaViewModules.cmake
+#   ├── Projects
+#   │   ├── hdf5.cmake
+#   │   ├── paraview.cmake
+#   │   ├── paraview.patch.cmake.in
+#   │   └── zlib.cmake
+#   └── versions.cmake
+#
+# The  additional  patch step  introduced  in  the paraview  external  project
+# (Projects/paraview.cmake in PV Superbuild) makes  sure, that the contents of
+# the cfsdeps/paraview/paraview-srcdir,  which reflect the changes  needed for
+# the CFS++  features, get copied over  to the PV source  directory during the
+# patch phase of ParaView.
 #
 # Our additions to the off-the-shelf ParaView include at the moment:
 #   - The CFS++/NACS HDF5 reader
 #   - A reader for Geomview .off polyhedral surface geometry files, which 
 #     are e.g. produced by CGAL.
 #   - Some additional color maps
+#   - Fixes to the calculation of derivatives on second order quads and
+#     triangles.
 #   - A reduced list of VisItBridge readers, to make sure our own reader is
 #     the only one, which can read .h5 files. Otherwise the user always has
 #     to choose the correct reader, when opening a file
 #   - Some small fixes to the VisItBridge CGNS reader for TRIA6 and PYRA13
 #     element types.
 #
-# The (super-)build of ParaView has been tested on CentOS 6 and Ubuntu 12.04 
-# x86_64, where the bootstrap_devel_machine.sh script has been run.
+# These additions reside in the following files:
+#
+#   paraview-srcdir/
+#   ├── ParaViewCore
+#   │   └── ServerManager
+#   │       └── SMApplication
+#   │           └── Resources
+#   │               └── readers.xml
+#   ├── Qt
+#   │   └── Components
+#   │       └── Resources
+#   │           └── XML
+#   │               └── ColorMaps.xml
+#   ├── Utilities
+#   │   └── VisItBridge
+#   │       └── databases
+#   │           ├── CGNS
+#   │           │   └── avtCGNSFileFormat.C
+#   │           ├── CMakeLists.txt
+#   │           └── visit_readers.xml
+#   └── VTK
+#       ├── Common
+#       │   └── DataModel
+#       │       ├── vtkBiQuadraticQuad.cxx
+#       │       ├── vtkQuadraticQuad.cxx
+#       │       └── vtkQuadraticTriangle.cxx
+#       ├── IO
+#       │   ├── CFSReader
+#       │   │   ├── CMakeLists.txt
+#       │   │   ├── hdf5Common.cc
+#       │   │   ├── hdf5Common.h
+#       │   │   ├── hdf5Reader.cc
+#       │   │   ├── hdf5Reader.h
+#       │   │   ├── module.cmake
+#       │   │   ├── vtkCFSReader.cxx
+#       │   │   ├── vtkCFSReader.h
+#       │   │   ├── vtkNACSReader_2013-03-18.cxx
+#       │   │   ├── vtkNACSReader_2013-03-18.h
+#       │   │   ├── vtkNACSReader_2013-08-12.cxx
+#       │   │   └── vtkNACSReader_2013-08-12.h
+#       │   └── OFFReader
+#       │       ├── CMakeLists.txt
+#       │       ├── module.cmake
+#       │       ├── vtkOFFReader.cxx
+#       │       └── vtkOFFReader.h
+#       └── ThirdParty
+#           └── hdf5
+#               └── CMakeLists.txt
+#
+# The (super-)build of  ParaView has been tested on machines  running CentOS 6
+# and Ubuntu 12.04 x86_64, on  which the bootstrap_devel_machine.sh script has
+# been run.
+#
+# Tips for development:
+# =====================
+#
+# As with any external project inside CFS++, the source and binary directories
+# for PV Superbuild and ParaView reside under ${CFS_BINARY_DIR}/cfsdeps.
+#
+# Therefore, the ParaView source and binary directories end up under
+#
+# ${CFS_BINARY_DIR}/cfsdeps/paraview-superbuild/src/ \
+#                  paraview-superbuild-build/paraview/src
+#                   ├── paraview        ->  PARAVIEW_SOURCE_DIR
+#                   ├── paraview-build  ->  PARAVIEW_BINARY_DIR
+#                   └── paraview-stamp
+#
+#  Once   the   Superbuild   is   finished,    one   can   therefore   go   to
+# PARAVIEW_BINARY_DIR,  set   CMAKE_BUILD_TYPE  to   Debug  and   do  ordinary
+# development,  since  all  changes  due  to CFS++  are  already  included  in
+# PARAVIEW_SOURCE_DIR. Once  development is finished,  the changes need  to be
+# just copied back  to CFS_SOURCE_DIR/cfsdeps/paraview/paraview-srcdir and the
+# corresponding patch scripts might need to be changed.
+#
+#
 #
 # http://www.paraview.org/Wiki/ParaView_Binaries
 # https://github.com/Kitware/ParaView/tree/v3.12.0/SuperBuild
 # http://www.paraview.org/Wiki/ParaView:Plugin_Deployment_with_Development_Installs
 # http://www.kitware.com/products/html/BuildingExternalProjectsWithCMake2.8.html
-#-------------------------------------------------------------------------------
+# http://personal.cscs.ch/~jfavre/Projects/vtkLEA/vtklea.htm   see  also   the
+# README_*.txt           files           in          this           directory.
+# -------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
 # Set prefix path and path to paraview sources according to ExternalProject.cmake 
