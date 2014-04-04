@@ -16,6 +16,11 @@ CLEANUP_LATEX_DIR("${DEV_MAN_DIR}")
 # Apply syntax coloring to files in sources directory
 PYG_MAKE_AUX_STYLE_FILE()
 
+FILE(COPY 
+  "${CFS_SOURCE_DIR}/share/xml/config/log.xml"
+  DESTINATION
+  "${CMAKE_CURRENT_BINARY_DIR}/develManual/sources")
+
 SET(FILES
   hdf5_file_format.xml
   qs_obtain_sources.sh
@@ -33,6 +38,8 @@ SET(FILES
   qs_bootstrap.sh
   eclipse-code-style.xml
   vagrant_box.sh
+  ng-Ablauf.txt
+  log.xml
 )
 
 PYGMENTIZE("${DEV_MAN_DIR}" "${FILES}")

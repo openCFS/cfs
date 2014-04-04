@@ -553,6 +553,9 @@ share/doc/auxilliaries/Pics/cfs-logo.png -text svneol=unset#image/png
 share/doc/auxilliaries/Pics/cfs-logo.svg -text
 share/doc/auxilliaries/Pics/cfs-logo_small.png -text svneol=unset#unset
 share/doc/auxilliaries/Pics/cfs.png -text svneol=unset#unset
+share/doc/auxilliaries/Pics/dummy.png -text svneol=unset#unset
+share/doc/auxilliaries/Pics/dummy.svg -text
+share/doc/auxilliaries/Pics/dummy_bg.png -text svneol=unset#unset
 share/doc/auxilliaries/Pics/e325_logo.png -text svneol=unset#unset
 share/doc/auxilliaries/Pics/fau_logo.svg -text
 share/doc/auxilliaries/Pics/logo_am2.svg -text
@@ -568,65 +571,6 @@ share/doc/auxilliaries/Pics/titelseite_logos.pdf -text svneol=unset#unset
 share/doc/auxilliaries/Pics/titelseite_logos.svg -text
 share/doc/auxilliaries/Pics/tu_signet.png -text svneol=unset#unset
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
-share/doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
-share/doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
-share/doc/developer/AddDoc/element_types/elementtypes.doc -text
-share/doc/developer/AddDoc/element_types/elementtypes.pdf -text svneol=unset#application/pdf
-share/doc/developer/AddDoc/element_types/hexa20.dia -text
-share/doc/developer/AddDoc/element_types/hexa27.dia -text
-share/doc/developer/AddDoc/element_types/hexa8.dia -text
-share/doc/developer/AddDoc/element_types/line2.dia -text
-share/doc/developer/AddDoc/element_types/line3.dia -text
-share/doc/developer/AddDoc/element_types/point.dia -text
-share/doc/developer/AddDoc/element_types/prism15.dia -text
-share/doc/developer/AddDoc/element_types/prism6.dia -text
-share/doc/developer/AddDoc/element_types/pyra13.dia -text
-share/doc/developer/AddDoc/element_types/pyra5.dia -text
-share/doc/developer/AddDoc/element_types/quad4.dia -text
-share/doc/developer/AddDoc/element_types/quad8.dia -text
-share/doc/developer/AddDoc/element_types/quad9.dia -text
-share/doc/developer/AddDoc/element_types/refelems/hex.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/line.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/line3.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/phex20.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/phex27.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/phex8.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/pprism15.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/pprism6.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/ppyrmd13.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/ppyrmd5.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/prism.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/ptet10.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/ptet4.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/pyramid.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/quad.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/quad8.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/tet.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/tri.gmv -text
-share/doc/developer/AddDoc/element_types/refelems/tri6.gmv -text
-share/doc/developer/AddDoc/element_types/tet10.dia -text
-share/doc/developer/AddDoc/element_types/tet4.dia -text
-share/doc/developer/AddDoc/element_types/tria3.dia -text
-share/doc/developer/AddDoc/element_types/tria6.dia -text
-share/doc/developer/AddDoc/fespace-concept/elems.pdf -text svneol=unset#application/pdf
-share/doc/developer/AddDoc/fespace-concept/elems.svg -text
-share/doc/developer/AddDoc/fespace-concept/fespace.dia -text
-share/doc/developer/AddDoc/fespace-concept/fespace.odp -text
-share/doc/developer/AddDoc/fespace-concept/fespace.svg -text
-share/doc/developer/AddDoc/fespace-concept/fespace.tex svneol=native#text/plain
-share/doc/developer/AddDoc/fespace-concept/ng-Ablauf.txt svneol=native#text/plain
-share/doc/developer/AddDoc/fespace-concept/sketches.svg -text
-share/doc/developer/AddDoc/fespace-concept/system1.png -text svneol=unset#image/png
-share/doc/developer/AddDoc/fespace-concept/system2.png -text svneol=unset#image/png
-share/doc/developer/AddDoc/fespace-concept/system3.png -text svneol=unset#image/png
-share/doc/developer/AddDoc/fespace-concept/system4.png -text svneol=unset#image/png
-share/doc/developer/AddDoc/numerical_integration/numerical_integration.tex svneol=native#text/plain
-share/doc/developer/AddDoc/splitting.png -text svneol=unset#image/png
-share/doc/developer/AddDoc/technical_ovv/branching.eps -text
-share/doc/developer/AddDoc/technical_ovv/branching.pdf -text
-share/doc/developer/AddDoc/technical_ovv/branching.svg -text
-share/doc/developer/AddDoc/technical_ovv/cfs_overview.tex -text
-share/doc/developer/AddDoc/technical_ovv/cfs_technical.odp -text
 share/doc/developer/CMakeLists.txt svneol=native#text/plain
 share/doc/developer/DoxygenConfig/background.png -text svneol=unset#unset
 share/doc/developer/DoxygenConfig/doxy-config-new.in -text
@@ -698,6 +642,18 @@ share/doc/developer/develManual/pics/cfspp_orcan.png -text svneol=unset#image/pn
 share/doc/developer/develManual/pics/cfspp_workshop.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/cfspp_workshop.svg -text
 share/doc/developer/develManual/pics/cmake-gui.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/concepts/dof-mapping.dia -text svneol=unset#unset
+share/doc/developer/develManual/pics/concepts/dof-mapping.png -text svneol=unset#unset
+share/doc/developer/develManual/pics/concepts/elems.pdf -text svneol=unset#unset
+share/doc/developer/develManual/pics/concepts/elems.svg -text
+share/doc/developer/develManual/pics/concepts/fespace.dia -text
+share/doc/developer/develManual/pics/concepts/fespace.svg -text
+share/doc/developer/develManual/pics/concepts/resultHandling.dia -text svneol=unset#unset
+share/doc/developer/develManual/pics/concepts/sketches.svg -text
+share/doc/developer/develManual/pics/concepts/system1.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/concepts/system2.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/concepts/system3.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/concepts/system4.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/coupled-system.pdf -text
 share/doc/developer/develManual/pics/dialog-error.svg -text
 share/doc/developer/develManual/pics/dialog-information.svg -text
@@ -707,6 +663,25 @@ share/doc/developer/develManual/pics/eclipse_bsd_style.png -text
 share/doc/developer/develManual/pics/eclipse_cpp_inc_paths.png -text
 share/doc/developer/develManual/pics/eclipse_editor_settings.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/eclipse_workspace_settings.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/elementtypes/elementtypes.doc -text
+share/doc/developer/develManual/pics/elementtypes/elementtypes.pdf -text svneol=unset#application/pdf
+share/doc/developer/develManual/pics/elementtypes/hexa20.dia -text
+share/doc/developer/develManual/pics/elementtypes/hexa27.dia -text
+share/doc/developer/develManual/pics/elementtypes/hexa8.dia -text
+share/doc/developer/develManual/pics/elementtypes/line2.dia -text
+share/doc/developer/develManual/pics/elementtypes/line3.dia -text
+share/doc/developer/develManual/pics/elementtypes/point.dia -text
+share/doc/developer/develManual/pics/elementtypes/prism15.dia -text
+share/doc/developer/develManual/pics/elementtypes/prism6.dia -text
+share/doc/developer/develManual/pics/elementtypes/pyra13.dia -text
+share/doc/developer/develManual/pics/elementtypes/pyra5.dia -text
+share/doc/developer/develManual/pics/elementtypes/quad4.dia -text
+share/doc/developer/develManual/pics/elementtypes/quad8.dia -text
+share/doc/developer/develManual/pics/elementtypes/quad9.dia -text
+share/doc/developer/develManual/pics/elementtypes/tet10.dia -text
+share/doc/developer/develManual/pics/elementtypes/tet4.dia -text
+share/doc/developer/develManual/pics/elementtypes/tria3.dia -text
+share/doc/developer/develManual/pics/elementtypes/tria6.dia -text
 share/doc/developer/develManual/pics/elems_hexa.png -text
 share/doc/developer/develManual/pics/elems_line.png -text
 share/doc/developer/develManual/pics/elems_pyra.png -text
@@ -754,6 +729,7 @@ share/doc/developer/develManual/pics/persons/tlahmer.pdf -text
 share/doc/developer/develManual/pics/persons/tomLahmer09.jpg -text
 share/doc/developer/develManual/pics/planet-terror.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/software-process.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/splitting.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/totalview_acou_define_int.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/totalview_acou_define_int_callgraph.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/totalview_enable_replay_engine.png -text svneol=unset#image/png
@@ -773,6 +749,7 @@ share/doc/developer/develManual/sources/mingw_lfarkas_repo.txt -text
 share/doc/developer/develManual/sources/mpcci_reactivate_lse24_lic.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/nacs_win.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/nacs_win_build_howto.txt svneol=native#text/plain
+share/doc/developer/develManual/sources/ng-Ablauf.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/org.eclipse.core.resources.prefs -text
 share/doc/developer/develManual/sources/org.eclipse.ui.editors.prefs -text
 share/doc/developer/develManual/sources/platform_defaults_mac.cmake -text

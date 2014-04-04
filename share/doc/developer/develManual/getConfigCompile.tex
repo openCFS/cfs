@@ -50,10 +50,9 @@ easily.
 
 The  file  {\tt  bootstrap\_devel\_machine.txt}   contained  in  this  PDF  is
 automatically   generated   by   concatenating  {\tt   distro.sh}   and   {\tt
-  bootstrap\_devel\_machine.sh} from the  {\tt share/scripts} directory inside
-the CFS++  source code.  If you  want to implement  support for a new  OS, you
-should therefore follow the examples given  there and commit your changes back
-to the repository.
+  bootstrap\_devel\_machine.sh} from  the CFS++ source  code.  If you  want to
+implement support for a new OS, you should therefore follow the examples given
+there and commit your changes back to the repository.
 
 \subsubsection{Linux}
 
@@ -250,8 +249,11 @@ environment.
   SVNKit\footnote{SVNKit: \url{http://svnkit.com}}.
 
 \item[Git] If the CFS++ working copy is Git-based, then one should get Git for
-  Windows\footnote{Git  for  Windows: \url{http://msysgit.github.com}}.  There
-  seems  to  be  also   a  TortoiseGit  project\footnote{TortoiseGit  project:
+  Windows\footnote{Git  for  Windows: \url{http://msysgit.github.com}}.   This
+  package also  provides a minimal  system (MSYS), which the  bootstrap script
+  extends with  a few  extra packages  to get  a full-fledged  environment for
+  building  automake-based software.   There seems  to be  also a  TortoiseGit
+  project\footnote{TortoiseGit                                        project:
     \url{http://code.google.com/p/tortoisegit}}.
 
 \item[Intel MKL] If the optimized solvers from  MKL need to be used, a Windows
@@ -259,8 +261,11 @@ environment.
   is required. Unlike on UNIX-based  systems, no advanced system for automatic
   detection of the  required link parameters has been implemented  so far. The
   corresponding   settings    can   be   found   and    hand-tuned   in   {\tt
-    cmake\_modules/FindIntelMKL.cmake}, however. The only version of MKL known
-  to work on Win64 with MinGW at the moment is 10.0.5.025.
+    cmake\_modules/FindIntelMKL.cmake},  however.  The  only  versions of  MKL
+  known to work on  Windows at the moment are 10.0.5.025  for the 64-bit MinGW
+  environments and 11.0 for the 32-bit environments. Be warned, that switching
+  compilers most certainly brakes compatibility  with MKL due to the different
+  OpenMP runtimes of the GNU and Microsoft compilers!
 \end{description}%
 %
 The binary directories of the aforementioned distributions need to be added to

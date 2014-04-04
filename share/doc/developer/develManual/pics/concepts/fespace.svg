@@ -1,0 +1,451 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/PR-SVG-20010719/DTD/svg10.dtd">
+<svg width="84cm" height="88cm" viewBox="-9 -9 84 88">
+  <rect style="fill: #ffffff" x="35.3" y="-8.3" width="3.175" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="35.3" y="-8.3" width="3.175" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 2.675 cm; font-family: sans; font-style: normal; font-weight: 700" x="35.55" y="-7.3">BaseFE</text>
+  <rect style="fill: #ffffff" x="35.3" y="-6.9" width="3.175" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="35.3" y="-6.9" width="3.175" height="0.4"/>
+  <rect style="fill: #ffffff" x="35.3" y="-6.5" width="3.175" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="35.3" y="-6.5" width="3.175" height="0.4"/>
+  <rect style="fill: #ffffff" x="4.15" y="-2.75" width="5.4" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="4.15" y="-2.75" width="5.4" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 2.6725 cm; font-family: sans; font-style: normal; font-weight: 700" x="5.51375" y="-1.75">H1LoFe</text>
+  <rect style="fill: #ffffff" x="4.15" y="-1.35" width="5.4" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="4.15" y="-1.35" width="5.4" height="0.4"/>
+  <rect style="fill: #ffffff" x="4.15" y="-0.95" width="5.4" height="2.6"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="4.15" y="-0.95" width="5.4" height="2.6"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.2 cm; font-family: monospace; font-style: normal; font-weight: normal" x="4.3" y="-0.32">+CalcShFnc()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.55 cm; font-family: monospace; font-style: normal; font-weight: normal" x="4.3" y="0.48">+CalcDShFnc()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.9 cm; font-family: monospace; font-style: normal; font-weight: normal" x="4.3" y="1.28">+H1Transform()</text>
+  <rect style="fill: #ffffff" x="25.355" y="-2.45" width="6.1" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="25.355" y="-2.45" width="6.1" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 3.7275 cm; font-family: sans; font-style: normal; font-weight: 700" x="26.5413" y="-1.45">HCurlLoFe</text>
+  <rect style="fill: #ffffff" x="25.355" y="-1.05" width="6.1" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="25.355" y="-1.05" width="6.1" height="0.4"/>
+  <rect style="fill: #ffffff" x="25.355" y="-0.65" width="6.1" height="2.6"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="25.355" y="-0.65" width="6.1" height="2.6"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.2 cm; font-family: monospace; font-style: normal; font-weight: normal" x="25.505" y="-0.02">+CalcShFnc()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.6 cm; font-family: monospace; font-style: normal; font-weight: normal" x="25.505" y="0.78">+CalcCurlShFnc()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.6 cm; font-family: monospace; font-style: normal; font-weight: normal" x="25.505" y="1.58">+CurlTransform()</text>
+  <rect style="fill: #ffffff" x="32.355" y="-2.65" width="6.1" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="32.355" y="-2.65" width="6.1" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 3.5675 cm; font-family: sans; font-style: normal; font-weight: 700" x="33.6212" y="-1.65">HCurlHiFe</text>
+  <rect style="fill: #ffffff" x="32.355" y="-1.25" width="6.1" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="32.355" y="-1.25" width="6.1" height="0.4"/>
+  <rect style="fill: #ffffff" x="32.355" y="-0.85" width="6.1" height="2.6"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="32.355" y="-0.85" width="6.1" height="2.6"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.2 cm; font-family: monospace; font-style: normal; font-weight: normal" x="32.505" y="-0.22">+CalcShFnc()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.6 cm; font-family: monospace; font-style: normal; font-weight: normal" x="32.505" y="0.58">+CalcCurlShFnc()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.6 cm; font-family: monospace; font-style: normal; font-weight: normal" x="32.505" y="1.38">+CurlTransform()</text>
+  <rect style="fill: #ffffff" x="36.155" y="-3.35" width="5.3" height="1"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke-dasharray: 0.3; stroke: #000000" x="36.155" y="-3.35" width="5.3" height="1"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.9 cm; font-family: monospace; font-style: normal; font-weight: normal" x="36.455" y="-2.72">PolynomClass:T</text>
+  <rect style="fill: #ffffff" x="8.15" y="64.05" width="7.5" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="8.15" y="64.05" width="7.5" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 2.9975 cm; font-family: sans; font-style: normal; font-weight: 700" x="10.4013" y="65.05">FeSpace</text>
+  <rect style="fill: #ffffff" x="8.15" y="65.45" width="7.5" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="8.15" y="65.45" width="7.5" height="0.4"/>
+  <rect style="fill: #ffffff" x="8.15" y="65.85" width="7.5" height="1.8"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="8.15" y="65.85" width="7.5" height="1.8"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 6.65 cm; font-family: monospace; font-style: normal; font-weight: normal" x="8.3" y="66.48">+GetFe(elem:Elem *)</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 7 cm; font-family: monospace; font-style: normal; font-weight: normal" x="8.3" y="67.28">+GetEqns(elem:Elem*)</text>
+  <rect style="fill: #ffffff" x="24.95" y="32.3" width="10.65" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="24.95" y="32.3" width="10.65" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 5.385 cm; font-family: sans; font-style: normal; font-weight: 700" x="27.5825" y="33.3">ElemShapeMap</text>
+  <rect style="fill: #ffffff" x="24.95" y="33.7" width="10.65" height="1"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="24.95" y="33.7" width="10.65" height="1"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 2.1 cm; font-family: monospace; font-style: normal; font-weight: normal" x="25.1" y="34.6">+isAxi</text>
+  <rect style="fill: #ffffff" x="24.95" y="34.7" width="10.65" height="6.6"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="24.95" y="34.7" width="10.65" height="6.6"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 10.15 cm; font-family: monospace; font-style: normal; font-weight: normal" x="25.1" y="35.33">+SetElement(elem:const Elem*)</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 2.8 cm; font-family: monospace; font-style: normal; font-weight: normal" x="25.1" y="36.13">+CalcJ()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 3.85 cm; font-family: monospace; font-style: normal; font-weight: normal" x="25.1" y="36.93">+CalcJInv()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 3.85 cm; font-family: monospace; font-style: normal; font-weight: normal" x="25.1" y="37.73">+CalcJDet()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.55 cm; font-family: monospace; font-style: normal; font-weight: normal" x="25.1" y="38.53">+CalcNormal()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.95 cm; font-family: monospace; font-style: normal; font-weight: normal" x="25.1" y="39.33">+GetMappedFeLoc()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 7 cm; font-family: monospace; font-style: normal; font-weight: normal" x="25.1" y="40.13">+Local2GlobalCoord()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 7 cm; font-family: monospace; font-style: normal; font-weight: normal" x="25.1" y="40.93">+Global2LocalCoord()</text>
+  <rect style="fill: #ffffff" x="24.95" y="44.45" width="3.66" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="24.95" y="44.45" width="3.66" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 3.16 cm; font-family: sans; font-style: normal; font-weight: 700" x="25.2" y="45.45">ShapeQ1</text>
+  <rect style="fill: #ffffff" x="24.95" y="45.85" width="3.66" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="24.95" y="45.85" width="3.66" height="0.4"/>
+  <rect style="fill: #ffffff" x="24.95" y="46.25" width="3.66" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="24.95" y="46.25" width="3.66" height="0.4"/>
+  <rect style="fill: #ffffff" x="32.35" y="44.15" width="5.1975" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="32.35" y="44.15" width="5.1975" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 4.6975 cm; font-family: sans; font-style: normal; font-weight: 700" x="32.6" y="45.15">ShapeCurved</text>
+  <rect style="fill: #ffffff" x="32.35" y="45.55" width="5.1975" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="32.35" y="45.55" width="5.1975" height="0.4"/>
+  <rect style="fill: #ffffff" x="32.35" y="45.95" width="5.1975" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="32.35" y="45.95" width="5.1975" height="0.4"/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="30.275,42.2118 30.275,42.8411 26.78,42.8411 26.78,44.4006 "/>
+  <polygon style="fill: #ffffff" points="30.675,42.2118 30.275,41.4118 29.875,42.2118 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="30.675,42.2118 30.275,41.4118 29.875,42.2118 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="30.275,42.2118 30.275,42.8911 34.9488,42.8911 34.9488,44.15 "/>
+  <polygon style="fill: #ffffff" points="30.675,42.2118 30.275,41.4118 29.875,42.2118 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="30.675,42.2118 30.275,41.4118 29.875,42.2118 "/>
+  <rect style="fill: #ffffff" x="3.9" y="14.9738" width="5.32" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="3.9" y="14.9738" width="5.32" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 4.82 cm; font-family: sans; font-style: normal; font-weight: 700" x="4.15" y="15.9738">FeSpaceH1Lo</text>
+  <rect style="fill: #ffffff" x="3.9" y="16.3738" width="5.32" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="3.9" y="16.3738" width="5.32" height="0.4"/>
+  <rect style="fill: #ffffff" x="3.9" y="16.7738" width="5.32" height="1"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="3.9" y="16.7738" width="5.32" height="1"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 3.85 cm; font-family: monospace; font-style: normal; font-weight: normal" x="4.05" y="17.4038">+SetOrder()</text>
+  <rect style="fill: #ffffff" x="16.066" y="15.3813" width="5.16" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="16.066" y="15.3813" width="5.16" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 4.66 cm; font-family: sans; font-style: normal; font-weight: 700" x="16.316" y="16.3813">FeSpaceH1Hi</text>
+  <rect style="fill: #ffffff" x="16.066" y="16.7813" width="5.16" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="16.066" y="16.7813" width="5.16" height="0.4"/>
+  <rect style="fill: #ffffff" x="16.066" y="17.1813" width="5.16" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="16.066" y="17.1813" width="5.16" height="0.4"/>
+  <rect style="fill: #ffffff" x="24.6481" y="15.6823" width="6.375" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="24.6481" y="15.6823" width="6.375" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 5.875 cm; font-family: sans; font-style: normal; font-weight: 700" x="24.8981" y="16.6823">FeSpaceHCurlLo</text>
+  <rect style="fill: #ffffff" x="24.6481" y="17.0823" width="6.375" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="24.6481" y="17.0823" width="6.375" height="0.4"/>
+  <rect style="fill: #ffffff" x="24.6481" y="17.4823" width="6.375" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="24.6481" y="17.4823" width="6.375" height="0.4"/>
+  <rect style="fill: #ffffff" x="33.3915" y="15.4313" width="6.215" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="33.3915" y="15.4313" width="6.215" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 5.715 cm; font-family: sans; font-style: normal; font-weight: 700" x="33.6415" y="16.4313">FeSpaceHCurlHi</text>
+  <rect style="fill: #ffffff" x="33.3915" y="16.8313" width="6.215" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="33.3915" y="16.8313" width="6.215" height="0.4"/>
+  <rect style="fill: #ffffff" x="33.3915" y="17.2313" width="6.215" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="33.3915" y="17.2313" width="6.215" height="0.4"/>
+  <rect style="fill: #ffffff" x="41.45" y="15.7238" width="6.0475" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="41.45" y="15.7238" width="6.0475" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 5.5475 cm; font-family: sans; font-style: normal; font-weight: 700" x="41.7" y="16.7238">FeSpaceHDivLo</text>
+  <rect style="fill: #ffffff" x="41.45" y="17.1238" width="6.0475" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="41.45" y="17.1238" width="6.0475" height="0.4"/>
+  <rect style="fill: #ffffff" x="41.45" y="17.5238" width="6.0475" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="41.45" y="17.5238" width="6.0475" height="0.4"/>
+  <rect style="fill: #ffffff" x="49.5" y="15.5738" width="5.8875" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="49.5" y="15.5738" width="5.8875" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 5.3875 cm; font-family: sans; font-style: normal; font-weight: 700" x="49.75" y="16.5738">FeSpaceHDivHi</text>
+  <rect style="fill: #ffffff" x="49.5" y="16.9738" width="5.8875" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="49.5" y="16.9738" width="5.8875" height="0.4"/>
+  <rect style="fill: #ffffff" x="49.5" y="17.3738" width="5.8875" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="49.5" y="17.3738" width="5.8875" height="0.4"/>
+  <rect style="fill: #ffffff" x="41.01" y="-2.15" width="5.75" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="41.01" y="-2.15" width="5.75" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 3.4 cm; font-family: sans; font-style: normal; font-weight: 700" x="42.185" y="-1.15">HDivLoFe</text>
+  <rect style="fill: #ffffff" x="41.01" y="-0.75" width="5.75" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="41.01" y="-0.75" width="5.75" height="0.4"/>
+  <rect style="fill: #ffffff" x="41.01" y="-0.35" width="5.75" height="2.6"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="41.01" y="-0.35" width="5.75" height="2.6"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.2 cm; font-family: monospace; font-style: normal; font-weight: normal" x="41.16" y="0.28">+CalcShFnc()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.25 cm; font-family: monospace; font-style: normal; font-weight: normal" x="41.16" y="1.08">+CalcDivShFnc()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.25 cm; font-family: monospace; font-style: normal; font-weight: normal" x="41.16" y="1.88">+DivTransform()</text>
+  <rect style="fill: #ffffff" x="40.65" y="34.5" width="8.55" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="40.65" y="34.5" width="8.55" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 1.745 cm; font-family: sans; font-style: normal; font-weight: 700" x="44.0525" y="35.5">Elem</text>
+  <rect style="fill: #ffffff" x="40.65" y="35.9" width="8.55" height="5"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="40.65" y="35.9" width="8.55" height="5"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.55 cm; font-family: monospace; font-style: normal; font-weight: normal" x="40.8" y="36.8">+elemNr: UInt</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 8.05 cm; font-family: monospace; font-style: normal; font-weight: normal" x="40.8" y="37.6">+regionId: RegionIdType</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 7.7 cm; font-family: monospace; font-style: normal; font-weight: normal" x="40.8" y="38.4">+connect: Vector&lt;UInt&gt;</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 7 cm; font-family: monospace; font-style: normal; font-weight: normal" x="40.8" y="39.2">+Edges: Vector&lt;UInt&gt;</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 7 cm; font-family: monospace; font-style: normal; font-weight: normal" x="40.8" y="40">+Faces: Vector&lt;UInt&gt;</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 3.5 cm; font-family: monospace; font-style: normal; font-weight: normal" x="40.8" y="40.8">+ShapeType</text>
+  <rect style="fill: #ffffff" x="40.65" y="40.9" width="8.55" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="40.65" y="40.9" width="8.55" height="0.4"/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke-dasharray: 0.4; stroke: #000000" points="40.65,35.2 36.75,35.2 36.75,35.2 35.9353,35.2 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.5676,34.95 35.7676,35.2 36.5676,35.45 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.8875,-5.1882 36.8875,-4.59499 6.85,-4.59499 6.85,-2.75 "/>
+  <polygon style="fill: #ffffff" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.8875,-5.1882 36.8875,-4.59499 18.73,-4.59499 18.73,-2.5 "/>
+  <polygon style="fill: #ffffff" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.8875,-5.1882 36.8875,-4.54499 28.405,-4.54499 28.405,-2.45 "/>
+  <polygon style="fill: #ffffff" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.8875,-5.1882 36.8875,-4.6125 35.405,-4.6125 35.405,-2.65 "/>
+  <polygon style="fill: #ffffff" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.8875,-5.1882 36.8875,-4.59499 43.885,-4.59499 43.885,-2.15 "/>
+  <polygon style="fill: #ffffff" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <rect style="fill: #ffffff" x="49.01" y="-2.15" width="5.75" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="49.01" y="-2.15" width="5.75" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 3.24 cm; font-family: sans; font-style: normal; font-weight: 700" x="50.265" y="-1.15">HDivHiFe</text>
+  <rect style="fill: #ffffff" x="49.01" y="-0.75" width="5.75" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="49.01" y="-0.75" width="5.75" height="0.4"/>
+  <rect style="fill: #ffffff" x="49.01" y="-0.35" width="5.75" height="2.6"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="49.01" y="-0.35" width="5.75" height="2.6"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.2 cm; font-family: monospace; font-style: normal; font-weight: normal" x="49.16" y="0.28">+CalcShFnc()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.25 cm; font-family: monospace; font-style: normal; font-weight: normal" x="49.16" y="1.08">+CalcDivShFnc()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.25 cm; font-family: monospace; font-style: normal; font-weight: normal" x="49.16" y="1.88">+DivTransform()</text>
+  <rect style="fill: #ffffff" x="52.46" y="-2.85" width="5.3" height="1"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke-dasharray: 0.3; stroke: #000000" x="52.46" y="-2.85" width="5.3" height="1"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.9 cm; font-family: monospace; font-style: normal; font-weight: normal" x="52.76" y="-2.22">PolynomClass:T</text>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.8875,-5.1882 36.8875,-4.59499 51.885,-4.59499 51.885,-2.89961 "/>
+  <polygon style="fill: #ffffff" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <rect style="fill: #ffffff" x="15.855" y="-2.5" width="5.75" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="15.855" y="-2.5" width="5.75" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 2.5125 cm; font-family: sans; font-style: normal; font-weight: 700" x="17.4737" y="-1.5">H1HiFe</text>
+  <rect style="fill: #ffffff" x="15.855" y="-1.1" width="5.75" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="15.855" y="-1.1" width="5.75" height="0.4"/>
+  <rect style="fill: #ffffff" x="15.855" y="-0.7" width="5.75" height="2.6"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="15.855" y="-0.7" width="5.75" height="2.6"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.9 cm; font-family: monospace; font-style: normal; font-weight: normal" x="16.005" y="-0.07">+CalcShFnc()()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.25 cm; font-family: monospace; font-style: normal; font-weight: normal" x="16.005" y="0.73">+CalcDShFnc()()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.9 cm; font-family: monospace; font-style: normal; font-weight: normal" x="16.005" y="1.53">+H1Transform()</text>
+  <rect style="fill: #ffffff" x="19.305" y="-3.2" width="5.3" height="1"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke-dasharray: 0.3; stroke: #000000" x="19.305" y="-3.2" width="5.3" height="1"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.9 cm; font-family: monospace; font-style: normal; font-weight: normal" x="19.605" y="-2.57">T:PolynomClass</text>
+  <rect style="fill: #ffffff" x="-4.9" y="44.755" width="9.25" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="-4.9" y="44.755" width="9.25" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 2.7125 cm; font-family: sans; font-style: normal; font-weight: 700" x="-1.63125" y="45.755">IntPoint</text>
+  <rect style="fill: #ffffff" x="-4.9" y="46.155" width="9.25" height="2.6"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="-4.9" y="46.155" width="9.25" height="2.6"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.55 cm; font-family: monospace; font-style: normal; font-weight: normal" x="-4.75" y="47.055">+number: UInt</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 8.75 cm; font-family: monospace; font-style: normal; font-weight: normal" x="-4.75" y="47.855">+location: Vector&lt;Double&gt;</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.25 cm; font-family: monospace; font-style: normal; font-weight: normal" x="-4.75" y="48.655">+Weight: Double</text>
+  <rect style="fill: #ffffff" x="-4.9" y="48.755" width="9.25" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="-4.9" y="48.755" width="9.25" height="0.4"/>
+  <rect style="fill: #ffffff" x="-7.1" y="37.405" width="13.8" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="-7.1" y="37.405" width="13.8" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 3.6875 cm; font-family: sans; font-style: normal; font-weight: 700" x="-2.04375" y="38.405">IntScheme</text>
+  <rect style="fill: #ffffff" x="-7.1" y="38.805" width="13.8" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="-7.1" y="38.805" width="13.8" height="0.4"/>
+  <rect style="fill: #ffffff" x="-7.1" y="39.205" width="13.8" height="1"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="-7.1" y="39.205" width="13.8" height="1"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 13.3 cm; font-family: monospace; font-style: normal; font-weight: normal" x="-6.95" y="39.835">+GetIntPoints(points:Vector&lt;IntPoint&gt;)</text>
+  <rect style="fill: #ffffff" x="30.4" y="51.455" width="4.35" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="30.4" y="51.455" width="4.35" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 3.485 cm; font-family: sans; font-style: normal; font-weight: 700" x="30.8325" y="52.455">Boperator</text>
+  <rect style="fill: #ffffff" x="30.4" y="52.855" width="4.35" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="30.4" y="52.855" width="4.35" height="0.4"/>
+  <rect style="fill: #ffffff" x="30.4" y="53.255" width="4.35" height="1.8"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="30.4" y="53.255" width="4.35" height="1.8"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 3.85 cm; font-family: monospace; font-style: normal; font-weight: normal" x="30.55" y="53.885">+CalcBMat()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 3.15 cm; font-family: monospace; font-style: normal; font-weight: normal" x="30.55" y="54.685">+ApplyB()</text>
+  <rect style="fill: #ffffff" x="6.85" y="51.655" width="17.65" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="6.85" y="51.655" width="17.65" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 3.5675 cm; font-family: sans; font-style: normal; font-weight: 700" x="13.8912" y="52.655">BaseForm</text>
+  <rect style="fill: #ffffff" x="6.85" y="53.055" width="17.65" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="6.85" y="53.055" width="17.65" height="0.4"/>
+  <rect style="fill: #ffffff" x="6.85" y="53.455" width="17.65" height="1.53"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="6.85" y="53.455" width="17.65" height="1.53"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 17.15 cm; font-family: monospace; font-style: normal; font-weight: normal" x="7" y="54.085">+CalcElementMatrix(fe:BaseFE*,elem:ElemShapeMap*,</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 14.35 cm; font-family: monospace; font-style: normal; font-weight: normal" x="7" y="54.615">                   matrix:Matrix&lt;Double&gt;)</text>
+  <rect style="fill: #ffffff" x="12" y="38.5" width="9.6" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="12" y="38.5" width="9.6" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 4.8925 cm; font-family: sans; font-style: normal; font-weight: 700" x="14.3538" y="39.5">MappedFeLoc</text>
+  <rect style="fill: #ffffff" x="12" y="39.9" width="9.6" height="5"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="12" y="39.9" width="9.6" height="5"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.2 cm; font-family: monospace; font-style: normal; font-weight: normal" x="12.15" y="40.8">+fe: BaseFE*</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.55 cm; font-family: monospace; font-style: normal; font-weight: normal" x="12.15" y="41.6">+elem: Elem *</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.55 cm; font-family: monospace; font-style: normal; font-weight: normal" x="12.15" y="42.4">+ip: IntPoint</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 8.05 cm; font-family: monospace; font-style: normal; font-weight: normal" x="12.15" y="43.2">+jacobi: Matrix&lt;Double&gt;</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 9.1 cm; font-family: monospace; font-style: normal; font-weight: normal" x="12.15" y="44">+invJacobi: Matrix&lt;Double&gt;</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.2 cm; font-family: monospace; font-style: normal; font-weight: normal" x="12.15" y="44.8">+det: Double</text>
+  <rect style="fill: #ffffff" x="12" y="44.9" width="9.6" height="1"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="12" y="44.9" width="9.6" height="1"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.9 cm; font-family: monospace; font-style: normal; font-weight: normal" x="12.15" y="45.53">+SetIntPoint()</text>
+  <rect style="fill: #ffffff" x="22.8" y="63.1" width="15.9" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="22.8" y="63.1" width="15.9" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 3.925 cm; font-family: sans; font-style: normal; font-weight: 700" x="28.7875" y="64.1">FeFunction</text>
+  <rect style="fill: #ffffff" x="22.8" y="64.5" width="15.9" height="9.8"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="22.8" y="64.5" width="15.9" height="9.8"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 2.45 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="65.4">+ptGrid</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 3.5 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="66.2">+ptFESpace</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.55 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="67">+solutionType</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 9.1 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="67.8">+dofs: Vector&lt;std::string&gt;</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 10.15 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="68.6">+functionId: OLAS::FunctionId</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 13.65 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="69.4">+subIds: StdVector&lt;OLAS::FunctionSubId&gt;</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 15.4 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="70.2">+nodalEqns: std::map&lt;UInt,Vector&lt;Integer&gt; &gt; </text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 15.05 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="71">+edgeEqns: std::map&lt;UInt, Vector&lt;Integer&gt; &gt;</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 15.05 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="71.8">+surfEqns: std::map&lt;UInt, Vector&lt;Integer&gt; &gt;</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 15.4 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="72.6">+elemEqns: std::map&lt;UInt, Vector&lt;Integer&gt; &gt; </text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 7.7 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="73.4">+coeff: Vector&lt;Double&gt;</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.2 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="74.2">+entityLists</text>
+  <rect style="fill: #ffffff" x="22.8" y="74.3" width="15.9" height="5"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="22.8" y="74.3" width="15.9" height="5"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 7.35 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="74.93">+SetNumberingScheme()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.2 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="75.73">+AddRegion()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 3.5 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="76.53">+SetGrid()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.55 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="77.33">+SetFESapce()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.6 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="78.13">+MapToFunction()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.6 cm; font-family: monospace; font-style: normal; font-weight: normal" x="22.95" y="78.93">+GetElemCoeffs()</text>
+  <rect style="fill: #ffffff" x="-8.90461" y="-0.495509" width="6.45" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="-8.90461" y="-0.495509" width="6.45" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 5.5125 cm; font-family: sans; font-style: normal; font-weight: 700" x="-8.43586" y="0.504491">RefElemShapes</text>
+  <rect style="fill: #ffffff" x="-8.90461" y="0.904491" width="6.45" height="2.6"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="-8.90461" y="0.904491" width="6.45" height="2.6"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 3.85 cm; font-family: monospace; font-style: normal; font-weight: normal" x="-8.75461" y="1.80449">+NodeCoords</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 2.1 cm; font-family: monospace; font-style: normal; font-weight: normal" x="-8.75461" y="2.60449">+Edges</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 2.1 cm; font-family: monospace; font-style: normal; font-weight: normal" x="-8.75461" y="3.40449">+Faces</text>
+  <rect style="fill: #ffffff" x="-8.90461" y="3.50449" width="6.45" height="4.2"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="-8.90461" y="3.50449" width="6.45" height="4.2"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 3.15 cm; font-family: monospace; font-style: normal; font-weight: normal" x="-8.75461" y="4.13449">+GetDim()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 3.5 cm; font-family: monospace; font-style: normal; font-weight: normal" x="-8.75461" y="4.93449">+GetType()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.25 cm; font-family: monospace; font-style: normal; font-weight: normal" x="-8.75461" y="5.73449">+GetLocCoords()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.95 cm; font-family: monospace; font-style: normal; font-weight: normal" x="-8.75461" y="6.53449">+GetEdgeIndices()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.95 cm; font-family: monospace; font-style: normal; font-weight: normal" x="-8.75461" y="7.33449">+GetFaceIndices()</text>
+  <rect style="fill: #ffffff" x="0.338919" y="3.3875" width="5.075" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="0.338919" y="3.3875" width="5.075" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 4.575 cm; font-family: sans; font-style: normal; font-weight: 700" x="0.588919" y="4.3875">H1LoLineFe1</text>
+  <rect style="fill: #ffffff" x="0.338919" y="4.7875" width="5.075" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="0.338919" y="4.7875" width="5.075" height="0.4"/>
+  <rect style="fill: #ffffff" x="0.338919" y="5.1875" width="5.075" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="0.338919" y="5.1875" width="5.075" height="0.4"/>
+  <rect style="fill: #ffffff" x="8.60892" y="3.4425" width="5.075" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="8.60892" y="3.4425" width="5.075" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 4.575 cm; font-family: sans; font-style: normal; font-weight: 700" x="8.85892" y="4.4425">H1LoLineFe2</text>
+  <rect style="fill: #ffffff" x="8.60892" y="4.8425" width="5.075" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="8.60892" y="4.8425" width="5.075" height="0.4"/>
+  <rect style="fill: #ffffff" x="8.60892" y="5.2425" width="5.075" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="8.60892" y="5.2425" width="5.075" height="0.4"/>
+  <rect style="fill: #ffffff" x="0.108919" y="7.2925" width="5.44" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="0.108919" y="7.2925" width="5.44" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 4.94 cm; font-family: sans; font-style: normal; font-weight: 700" x="0.358919" y="8.2925">H1LoQuadFe1</text>
+  <rect style="fill: #ffffff" x="0.108919" y="8.6925" width="5.44" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="0.108919" y="8.6925" width="5.44" height="0.4"/>
+  <rect style="fill: #ffffff" x="0.108919" y="9.0925" width="5.44" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="0.108919" y="9.0925" width="5.44" height="0.4"/>
+  <rect style="fill: #ffffff" x="8.15892" y="7.1425" width="5.44" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="8.15892" y="7.1425" width="5.44" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 4.94 cm; font-family: sans; font-style: normal; font-weight: 700" x="8.40892" y="8.1425">H1LoQuadFe2</text>
+  <rect style="fill: #ffffff" x="8.15892" y="8.5425" width="5.44" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="8.15892" y="8.5425" width="5.44" height="0.4"/>
+  <rect style="fill: #ffffff" x="8.15892" y="8.9425" width="5.44" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="8.15892" y="8.9425" width="5.44" height="0.4"/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="6.85,2.5618 6.85,2.51875 2.87642,2.51875 2.87642,3.3875 "/>
+  <polygon style="fill: #ffffff" points="7.25,2.5618 6.85,1.7618 6.45,2.5618 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="7.25,2.5618 6.85,1.7618 6.45,2.5618 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="6.85,2.61207 6.85,2.57139 11.1464,2.57139 11.1464,3.4425 "/>
+  <polygon style="fill: #ffffff" points="7.25,2.61207 6.85,1.81207 6.45,2.61207 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="7.25,2.61207 6.85,1.81207 6.45,2.61207 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="6.85,2.5618 6.85,6.1875 2.82892,6.1875 2.82892,7.24209 "/>
+  <polygon style="fill: #ffffff" points="7.25,2.5618 6.85,1.7618 6.45,2.5618 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="7.25,2.5618 6.85,1.7618 6.45,2.5618 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="6.85,2.5618 6.85,6.20756 10.8789,6.20756 10.8789,7.09288 "/>
+  <polygon style="fill: #ffffff" points="7.25,2.5618 6.85,1.7618 6.45,2.5618 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="7.25,2.5618 6.85,1.7618 6.45,2.5618 "/>
+  <rect style="fill: #ffffff" x="16.392" y="4.30006" width="4.51" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="16.392" y="4.30006" width="4.51" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 4.01 cm; font-family: sans; font-style: normal; font-weight: 700" x="16.642" y="5.30006">H1HiLineFe</text>
+  <rect style="fill: #ffffff" x="16.392" y="5.70006" width="4.51" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="16.392" y="5.70006" width="4.51" height="0.4"/>
+  <rect style="fill: #ffffff" x="16.392" y="6.10006" width="4.51" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="16.392" y="6.10006" width="4.51" height="0.4"/>
+  <rect style="fill: #ffffff" x="18.602" y="3.60006" width="5.3" height="1"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke-dasharray: 0.3; stroke: #000000" x="18.602" y="3.60006" width="5.3" height="1"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.9 cm; font-family: monospace; font-style: normal; font-weight: normal" x="18.902" y="4.23006">T:Polynomclass</text>
+  <rect style="fill: #ffffff" x="16.492" y="8.20006" width="4.51" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="16.492" y="8.20006" width="4.51" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 4.01 cm; font-family: sans; font-style: normal; font-weight: 700" x="16.742" y="9.20006">H1HiLineFe</text>
+  <rect style="fill: #ffffff" x="16.492" y="9.60006" width="4.51" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="16.492" y="9.60006" width="4.51" height="0.4"/>
+  <rect style="fill: #ffffff" x="16.492" y="10.0001" width="4.51" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="16.492" y="10.0001" width="4.51" height="0.4"/>
+  <rect style="fill: #ffffff" x="18.702" y="7.50006" width="5.3" height="1"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke-dasharray: 0.3; stroke: #000000" x="18.702" y="7.50006" width="5.3" height="1"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.9 cm; font-family: monospace; font-style: normal; font-weight: normal" x="19.002" y="8.13006">T:Polynomclass</text>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="18.73,2.8118 18.73,2.7248 18.647,2.7248 18.647,3.54961 "/>
+  <polygon style="fill: #ffffff" points="19.13,2.8118 18.73,2.0118 18.33,2.8118 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="19.13,2.8118 18.73,2.0118 18.33,2.8118 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="18.73,2.8118 18.73,3.34506 15.072,3.34506 15.072,9.30006 16.4421,9.30006 "/>
+  <polygon style="fill: #ffffff" points="19.13,2.8118 18.73,2.0118 18.33,2.8118 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="19.13,2.8118 18.73,2.0118 18.33,2.8118 "/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.2; stroke: #0000ff" x="-0.0279507" y="2.99506" width="13.95" height="10.15" rx="1.17549e-38" ry="1.17549e-38"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.2; stroke: #0000ff" x="14.892" y="2.90006" width="9.38" height="10.15" rx="1.17549e-38" ry="1.17549e-38"/>
+  <rect style="fill: #ffffff" x="32.1333" y="24.3839" width="8.9" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="32.1333" y="24.3839" width="8.9" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 3.8925 cm; font-family: sans; font-style: normal; font-weight: 700" x="34.6371" y="25.3839">ElemSpace</text>
+  <rect style="fill: #ffffff" x="32.1333" y="25.7839" width="8.9" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="32.1333" y="25.7839" width="8.9" height="0.4"/>
+  <rect style="fill: #ffffff" x="32.1333" y="26.1839" width="8.9" height="3.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="32.1333" y="26.1839" width="8.9" height="3.4"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.6 cm; font-family: monospace; font-style: normal; font-weight: normal" x="32.2833" y="26.8139">+GetEqns(BaseFe)</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 8.4 cm; font-family: monospace; font-style: normal; font-weight: normal" x="32.2833" y="27.6139">+GetFe(elem:const Elem*)</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 7.35 cm; font-family: monospace; font-style: normal; font-weight: normal" x="32.2833" y="28.4139">+SetOrder(order:UInt)</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 1.05 cm; font-family: monospace; font-style: normal; font-weight: normal" x="32.2833" y="29.2139">+()</text>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.5833,23.4721 36.5833,21.1062 6.56,21.1062 6.56,17.8241 "/>
+  <polygon style="fill: #ffffff" points="36.1833,23.4721 36.5833,24.2721 36.9833,23.4721 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.1833,23.4721 36.5833,24.2721 36.9833,23.4721 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.5833,23.4224 36.5833,21.1062 18.646,21.1062 18.646,17.6313 "/>
+  <polygon style="fill: #ffffff" points="36.1833,23.4224 36.5833,24.2224 36.9833,23.4224 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.1833,23.4224 36.5833,24.2224 36.9833,23.4224 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.5833,23.4721 36.5833,21.1062 27.8356,21.1062 27.8356,17.8823 "/>
+  <polygon style="fill: #ffffff" points="36.1833,23.4721 36.5833,24.2721 36.9833,23.4721 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.1833,23.4721 36.5833,24.2721 36.9833,23.4721 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.5833,23.4219 36.5833,21.1805 36.499,21.1805 36.499,17.6313 "/>
+  <polygon style="fill: #ffffff" points="36.1833,23.4219 36.5833,24.2219 36.9833,23.4219 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.1833,23.4219 36.5833,24.2219 36.9833,23.4219 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.5833,23.4721 36.5833,21.1562 44.4738,21.1562 44.4738,17.9238 "/>
+  <polygon style="fill: #ffffff" points="36.1833,23.4721 36.5833,24.2721 36.9833,23.4721 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.1833,23.4721 36.5833,24.2721 36.9833,23.4721 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.5833,23.4721 36.5833,21.1805 52.4438,21.1805 52.4438,17.7738 "/>
+  <polygon style="fill: #ffffff" points="36.1833,23.4721 36.5833,24.2721 36.9833,23.4721 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.1833,23.4721 36.5833,24.2721 36.9833,23.4721 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke-dasharray: 0.4; stroke: #000000" points="24.95,39.2 24.95,39.2 21.9353,39.2 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="22.5676,38.95 21.7676,39.2 22.5676,39.45 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke-dasharray: 0.4; stroke: #000000" points="12,45.4 8.175,45.4 8.175,45.455 4.68526,45.455 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="5.31763,45.205 4.51763,45.455 5.31763,45.705 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke-dasharray: 0.4; stroke: #000000" points="-0.2,40.2554 -0.2,42.5052 -0.275,42.5052 -0.275,44.4197 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="-0.525,43.7874 -0.275,44.5874 -0.025,43.7874 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="-0.128383,8.07006 -1.12838,8.07006 -1.12838,17.2738 2.64142,17.2738 "/>
+  <polygon style="fill: #ffffff" points="3.9,17.2738 3.2,17.5138 2.5,17.2738 3.2,17.0338 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="3.9,17.2738 3.2,17.5138 2.5,17.2738 3.2,17.0338 "/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 0 cm; font-family: monospace; font-style: normal; font-weight: normal" x="-1.02838" y="12.6719"></text>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="14.892,7.97506 14.385,7.97506 14.385,16.4813 14.7571,16.4813 "/>
+  <polygon style="fill: #ffffff" points="16.0157,16.4813 15.3157,16.7213 14.6157,16.4813 15.3157,16.2413 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="16.0157,16.4813 15.3157,16.7213 14.6157,16.4813 15.3157,16.2413 "/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 0 cm; font-family: monospace; font-style: normal; font-weight: normal" x="14.485" y="12.2282"></text>
+  <rect style="fill: #ffffff" x="58.2741" y="-1.86922" width="5.75" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="58.2741" y="-1.86922" width="5.75" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 2.59 cm; font-family: sans; font-style: normal; font-weight: 700" x="59.8541" y="-0.869218">L2LoFe</text>
+  <rect style="fill: #ffffff" x="58.2741" y="-0.469218" width="5.75" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="58.2741" y="-0.469218" width="5.75" height="0.4"/>
+  <rect style="fill: #ffffff" x="58.2741" y="-0.0692181" width="5.75" height="2.6"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="58.2741" y="-0.0692181" width="5.75" height="2.6"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.2 cm; font-family: monospace; font-style: normal; font-weight: normal" x="58.4241" y="0.560782">+CalcShFnc()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.25 cm; font-family: monospace; font-style: normal; font-weight: normal" x="58.4241" y="1.36078">+CalcDivShFnc()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.9 cm; font-family: monospace; font-style: normal; font-weight: normal" x="58.4241" y="2.16078">+L2Transform()</text>
+  <rect style="fill: #ffffff" x="65.6693" y="-1.98708" width="5.75" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="65.6693" y="-1.98708" width="5.75" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 2.43 cm; font-family: sans; font-style: normal; font-weight: 700" x="67.3293" y="-0.98708">L2HiFe</text>
+  <rect style="fill: #ffffff" x="65.6693" y="-0.58708" width="5.75" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="65.6693" y="-0.58708" width="5.75" height="0.4"/>
+  <rect style="fill: #ffffff" x="65.6693" y="-0.18708" width="5.75" height="2.6"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="65.6693" y="-0.18708" width="5.75" height="2.6"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.2 cm; font-family: monospace; font-style: normal; font-weight: normal" x="65.8193" y="0.44292">+CalcShFnc()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 5.25 cm; font-family: monospace; font-style: normal; font-weight: normal" x="65.8193" y="1.24292">+CalcDivShFnc()</text>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.9 cm; font-family: monospace; font-style: normal; font-weight: normal" x="65.8193" y="2.04292">+L2Transform()</text>
+  <rect style="fill: #ffffff" x="69.1193" y="-2.68708" width="5.3" height="1"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke-dasharray: 0.3; stroke: #000000" x="69.1193" y="-2.68708" width="5.3" height="1"/>
+  <text style="fill: #000000; font-size: 0.8 cm; length: 4.9 cm; font-family: monospace; font-style: normal; font-weight: normal" x="69.4193" y="-2.05708">PolynomClass:T</text>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.8875,-5.1882 36.8875,-4.68208 61.1491,-4.68208 61.1491,-1.86922 "/>
+  <polygon style="fill: #ffffff" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.8875,-5.1882 36.8875,-4.53208 68.5443,-4.53208 68.5443,-2.73707 "/>
+  <polygon style="fill: #ffffff" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="37.2875,-5.1882 36.8875,-5.9882 36.4875,-5.1882 "/>
+  <rect style="fill: #ffffff" x="57.5844" y="15.6529" width="6.0475" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="57.5844" y="15.6529" width="6.0475" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 5.5475 cm; font-family: sans; font-style: normal; font-weight: 700" x="57.8344" y="16.6529">FeSpaceHDivLo</text>
+  <rect style="fill: #ffffff" x="57.5844" y="17.0529" width="6.0475" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="57.5844" y="17.0529" width="6.0475" height="0.4"/>
+  <rect style="fill: #ffffff" x="57.5844" y="17.4529" width="6.0475" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="57.5844" y="17.4529" width="6.0475" height="0.4"/>
+  <rect style="fill: #ffffff" x="65.7344" y="15.6029" width="5.8875" height="1.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="65.7344" y="15.6029" width="5.8875" height="1.4"/>
+  <text style="fill: #000000; font-size: 1 cm; length: 5.3875 cm; font-family: sans; font-style: normal; font-weight: 700" x="65.9844" y="16.6029">FeSpaceHDivHi</text>
+  <rect style="fill: #ffffff" x="65.7344" y="17.0029" width="5.8875" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="65.7344" y="17.0029" width="5.8875" height="0.4"/>
+  <rect style="fill: #ffffff" x="65.7344" y="17.4029" width="5.8875" height="0.4"/>
+  <rect style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" x="65.7344" y="17.4029" width="5.8875" height="0.4"/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.5833,23.4721 36.5833,21.1179 60.6082,21.1179 60.6082,17.8529 "/>
+  <polygon style="fill: #ffffff" points="36.1833,23.4721 36.5833,24.2721 36.9833,23.4721 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.1833,23.4721 36.5833,24.2721 36.9833,23.4721 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.5833,23.4721 36.5833,21.1179 68.6782,21.1179 68.6782,17.8029 "/>
+  <polygon style="fill: #ffffff" points="36.1833,23.4721 36.5833,24.2721 36.9833,23.4721 "/>
+  <polygon style="fill: none; fill-opacity:0; stroke-width: 0.1; stroke: #000000" points="36.1833,23.4721 36.5833,24.2721 36.9833,23.4721 "/>
+</svg>
