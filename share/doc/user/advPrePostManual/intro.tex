@@ -839,7 +839,6 @@ symmetrischen                          Modellen                         6/2003:
 }
 \end{description}
 
-
 \subsubsection{CFD-Post}
 \label{sec:intro_ansys_cfdpost}
 
@@ -869,6 +868,26 @@ archive section also past issues of The Focus are available.
 \item[ANSYS Advantage Magazine] \url{http://www.ansys.com/magazine/default.asp}
 \item[CADFEM Infoplaner Magazin] \url{http://www.cadfem.de/unternehmen/infoplaner/archiv.html} 
 \end{description}
+
+\subsection{COMSOL}
+
+The multiphysics package COMSOL \footnote{COMSOL Multiphysics:
+\url{http://www.comsol.com}} is supported as a pre-processor for CFS++.
+Its {\tt .mphtxt} files can be read into CFS++ for mesh input. Please note,
+that also geometry or other entities may be defined inside {\tt .mphtxt}
+files, which cannot be read into CFS++. The {\tt .mphtxt} mesh files only
+define numbered geometric entities, which may not have any immediate physical
+meaning. Therefore, these entities need to be grouped into physical regions
+first. Please refer to Sec. \ref{sec:preproc_comsol_region_map} for information
+on how to achieve this.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/comsol/preproc}%
+  \end{overpic}
+  \caption{Postprocessing the mesh quality of the man with COMSOL.}
+  \label{fig:comsol}
+\end{figure}%
 
 \subsection{ParaView} 
 

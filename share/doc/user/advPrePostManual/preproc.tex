@@ -131,6 +131,78 @@ mesh.},mimetype=text/plain]{attachments/icem_to_ansys.in.txt}
 
 \section{Defining Regions and Named Entities}
 
+\subsection{COMSOL}
+\label{sec:preproc_comsol_region_map}
+
+The geometric entities defined inside the COMSOL {\tt .mphtxt} files, usually need to
+be grouped into physically meaningful regions first before conducting a simulation.
+Without grouping, a usually large number of numbered geometric {\tt vol\_domain\_*} and
+{\tt surf\_domain\_*} regions can be found in a converted mesh.
+
+These entities may be grouped into physical regions in two different manners. First,
+one can group the entities without further interaction with COMSOL in the CFS++
+{\tt .xml} file. The corresponding {\tt <mphtxt/>} input tag could look like this:
+
+\input{pygmentized/comsol_mphtxt_tag}
+
+For models containing a large number of entities, the previous approach quickly becomes
+very tedious. Therefore, it is also possible to read informations about physical regions
+from the {\tt model.xml} file inside the multiphysics {\tt .mph} file. This information
+is read from the explicit selection nodes in the COMSOL model tree. Such selections may
+be created by right-clicking on Definitions in the Model Builder and choosing Selections
+$\rightarrow$ Explicit\footnote{COMSOL Explicit Selections Video: 
+\url{http://www.comsol.com/products/tutorials/Selections_Explicit/}} as Fig. 
+\ref{fig:comsol_explicit_selections} shows. 
+
+\begin{figure}[htb] 
+  \centering
+
+  \subfloat[Creating an explicit selection inside COMSOL.]{
+    \begin{overpic}[width=0.48\textwidth]{pics/comsol/explicit_selection}%
+    \end{overpic}
+    \label{fig:comsol_explicit_selections}
+    }
+  \qquad
+  \subfloat[Making sure selected entities and not adjacent ones are selected
+             as output entities.]{
+    \begin{overpic}[width=0.48\textwidth]{pics/comsol/selected_domain}%
+    \end{overpic}
+    \label{fig:comsol_selected_domain}
+  } 
+  \caption{Explicit selections in COMSOL.}
+\end{figure}%
+%
+It is important to note, that under the Output Entities tab, the Selected domains,
+boundaries or edges are chosen and not the adjacent entities (cf. Fig. 
+\ref{fig:comsol_selected_domain}).
+Even if convenient inside the COMSOL GUI, please do not enable the All domains or
+All boundaries check box, since the no explicit entity numbers will be written to the
+{\tt model.xml} if doing so. The Last step is to make sure, the exported {\tt .mphtxt}
+is consistent with the {\tt .mph} model. Figure \ref{fig:comsol_export_mesh} shows
+how to export an {\tt .mphtxt}.
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/comsol/export_mesh}%
+  \end{overpic}
+  \caption{Exporting the {\tt .mphtxt} mesh file.}
+  \label{fig:comsol_export_mesh}
+\end{figure}%
+Finally the generated {\tt .mphtxt} and {\tt .mph} files can be read into CFS++ using
+the following XML tag:
+
+\input{pygmentized/comsol_mphtxt_mph}
+
+\subsection{Gmsh}
+Physical regions which are meaningful to CFS++ can be generated using the
+{\tt Physical Volume}, {\tt Physical Surface}, {\tt Physical Line} and
+{\tt Physical Point} Gmsh scripting commands. In the Gmsh mesh format 
+version 2, these entities are already assigned a name. For the older
+mesh format version 1, names may assigned to the numbered physical
+entities in the XML file. A corresponding input tag might look like this:
+
+\input{pygmentized/gmsh_physical_entities}
+
+
 \section{Creating Mapped Meshes}
 
 \section{Creating Hybrid Meshes}

@@ -107,10 +107,7 @@ ExternalProject_Add_Step(zlib cfsdeps_download
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  zlib
-)
+LIST(APPEND CFSDEPS zlib)
 
 IF(MINGW)
   SET(ZLIB_LIB zlibstatic)
@@ -129,8 +126,12 @@ ELSE(MINGW)
   ENDIF(UNIX)
 ENDIF(MINGW)
 
-SET(ZLIB_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${ZLIB_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX} CACHE FILEPATH "zlib library")
-SET(ZLIB_SHARED_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${ZLIB_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
+SET(LD ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR})
+SET(ZLIB_LIBRARY
+  ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${ZLIB_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX}
+  CACHE FILEPATH "zlib library")
+SET(ZLIB_SHARED_LIBRARY
+  ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${ZLIB_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
 IF(MINGW)
   SET(ZLIB_SHARED_LIBRARY "${ZLIB_SHARED_LIBRARY}.a")
 ENDIF(MINGW)
@@ -138,4 +139,47 @@ SET(ZLIB_SHARED_LIBRARY ${ZLIB_SHARED_LIBRARY} CACHE FILEPATH "zlib shared libra
 SET(ZLIB_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "zlib include directory")
 
 MARK_AS_ADVANCED(ZLIB_LIBRARY)
+MARK_AS_ADVANCED(ZLIB_SHARED_LIBRARY)
 MARK_AS_ADVANCED(ZLIB_INCLUDE_DIR)
+
+#-------------------------------------------------------------------------------
+# The minizip external project
+#-------------------------------------------------------------------------------
+ExternalProject_Add(minizip
+  DEPENDS zlib
+  PREFIX ${zlib_prefix}
+  SOURCE_DIR ${zlib_source}/contrib/minizip
+  DOWNLOAD_COMMAND ""
+  PATCH_COMMAND ""
+  CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
+    -DZLIB_LIBRARY:PATH=${ZLIB_SHARED_LIBRARY}
+)
+
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+LIST(APPEND CFSDEPS minizip)
+
+SET(MINIZIP_SHARED_LIB minizip)
+IF(MINGW OR WIN32)
+  SET(MINIZIP_SHARED_LIB minizipdll)
+ENDIF()
+
+SET(MINIZIP_LIBRARY 
+  ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}minizip_static${CMAKE_STATIC_LIBRARY_SUFFIX}
+  CACHE FILEPATH "minizip library")
+SET(MINIZIP_SHARED_LIBRARY
+  ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${MINIZIP_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
+IF(MINGW)
+  SET(MINIZIP_SHARED_LIBRARY "${MINIZIP_SHARED_LIBRARY}.a")
+ENDIF(MINGW)
+SET(MINIZIP_SHARED_LIBRARY ${MINIZIP_SHARED_LIBRARY}
+  CACHE FILEPATH "minizip shared library")
+SET(MINIZIP_INCLUDE_DIR ${CFS_BINARY_DIR}/include/minizip
+  CACHE PATH "minizip include directory")
+
+MARK_AS_ADVANCED(MINIZIP_LIBRARY)
+MARK_AS_ADVANCED(MINIZIP_SHARED_LIBRARY)
+MARK_AS_ADVANCED(MINIZIP_INCLUDE_DIR)

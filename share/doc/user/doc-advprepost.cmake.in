@@ -42,6 +42,9 @@ SET(FILES
   polarplot.plt
   polarloop.plt
   unv_dataset_numbers.txt
+  comsol_mphtxt_tag.xml
+  comsol_mphtxt_mph.xml
+  gmsh_physical_entities.xml
 )
 
 PYGMENTIZE("${ADV_PRE_POST_DIR}" "${FILES}")

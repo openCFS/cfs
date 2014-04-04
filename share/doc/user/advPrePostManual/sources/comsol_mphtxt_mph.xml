@@ -1,0 +1,5 @@
+<fileFormats>
+  <input>
+    <mphtxt fileName="helmholtz_coil.mphtxt" mph="helmholtz_coil.mph"/>
+  </input>
+</fileFormats>

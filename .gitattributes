@@ -298,6 +298,7 @@ cfsdeps/xerces/Src_CMakeLists.txt -text
 cfsdeps/xerces/Xerces_autoconf_config_cmake.hpp.in -text
 cfsdeps/xerces/config_cmake.h.in -text
 cfsdeps/xerces/xerces-patch.cmake.in -text
+cfsdeps/zlib/CMakeListsMinizip.txt -text
 cfsdeps/zlib/External_zlib.cmake -text
 cfsdeps/zlib/copyright.txt -text
 cfsdeps/zlib/zlib-cmakelists.patch -text
@@ -806,6 +807,10 @@ share/doc/user/advPrePostManual/pics/cgns/cgns_io.dia -text
 share/doc/user/advPrePostManual/pics/cgns/cgns_io.dot -text
 share/doc/user/advPrePostManual/pics/cgns/cgns_io.pdf -text
 share/doc/user/advPrePostManual/pics/cgns/cgns_io.svg -text
+share/doc/user/advPrePostManual/pics/comsol/explicit_selection.png -text svneol=unset#unset
+share/doc/user/advPrePostManual/pics/comsol/export_mesh.png -text svneol=unset#unset
+share/doc/user/advPrePostManual/pics/comsol/preproc.png -text svneol=unset#unset
+share/doc/user/advPrePostManual/pics/comsol/selected_domain.png -text svneol=unset#unset
 share/doc/user/advPrePostManual/pics/ensight_man.png -text
 share/doc/user/advPrePostManual/pics/ensight_rst_mat_to_part.png -text
 share/doc/user/advPrePostManual/pics/gid.png -text
@@ -879,6 +884,8 @@ share/doc/user/advPrePostManual/sources/ansys_doc_download.sh -text
 share/doc/user/advPrePostManual/sources/ansys_surf_vol_mesh.txt -text
 share/doc/user/advPrePostManual/sources/ansys_transitional_pyra.txt svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/batch_renumber_files.txt -text
+share/doc/user/advPrePostManual/sources/comsol_mphtxt_mph.xml -text
+share/doc/user/advPrePostManual/sources/comsol_mphtxt_tag.xml -text
 share/doc/user/advPrePostManual/sources/cplreader_meshgen.xml -text
 share/doc/user/advPrePostManual/sources/crosspoint_test.c svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/emacs_settings.sh svneol=native#text/plain
@@ -886,6 +893,7 @@ share/doc/user/advPrePostManual/sources/gid_batch.tcl svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/gid_pw_server.sh svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/gmsh_cp_test.cpp -text
 share/doc/user/advPrePostManual/sources/gmsh_mesh_from_pic.cpp -text
+share/doc/user/advPrePostManual/sources/gmsh_physical_entities.xml -text
 share/doc/user/advPrePostManual/sources/gmsh_wing_points.cpp svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/gnuplot_csv.plt -text
 share/doc/user/advPrePostManual/sources/icem_to_ansys.in.txt -text

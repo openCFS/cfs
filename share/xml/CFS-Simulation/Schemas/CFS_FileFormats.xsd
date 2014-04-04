@@ -268,14 +268,15 @@
   <xsd:complexType name="DT_InputComsol">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
-        Read mesh files generated using Comsol (http://www.comsol.com).
+        Read ASCII .mphtxt mesh files generated using Comsol (http://www.comsol.com).
       </xsd:documentation>
     </xsd:annotation>
     
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
         <xsd:sequence minOccurs="0">
-          <xsd:element name="region" type="DT_InputComsol_RegionType"  minOccurs="0" maxOccurs="unbounded"/>
+          <xsd:element name="region" type="DT_InputComsol_RegionType"
+                       minOccurs="0" maxOccurs="unbounded"/>
         </xsd:sequence>
         <xsd:attribute name="fileName"
 		       type="xsd:token"
@@ -286,24 +287,22 @@
             </xsd:documentation>
           </xsd:annotation>          
         </xsd:attribute>
-        <xsd:attribute name="info"
-          type="xsd:boolean"
-          default="false">
+        <xsd:attribute name="mph"
+          type="xsd:token"
+          default="default">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
-              Print out infos while reading the .mphtxt file.
+              File name of multiphysics .mph file corresponding to the grid
+              in the .mphtxt file. If an additional multiphysics file is
+              provided CFS++ reads the model.xml inside the .mph file, which
+              is an ordinary zip file, and tries to aquire region names 
+              from explicit selections of the first model. In the COMSOL GUI
+              this maps to /filename.mph/Model 1/Definitions/... and in the
+              model.xml this maps to
+              /com.comsol.mph-vXX:Model/selection[1]/selections[1...n].
             </xsd:documentation>
           </xsd:annotation>          
-        </xsd:attribute>        
-        <xsd:attribute name="debug"
-          type="xsd:boolean"
-          default="false">
-          <xsd:annotation>
-            <xsd:documentation xml:lang="en">
-              Print out debug information while reading the .mphtxt file.
-            </xsd:documentation>
-          </xsd:annotation>          
-        </xsd:attribute>        
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
