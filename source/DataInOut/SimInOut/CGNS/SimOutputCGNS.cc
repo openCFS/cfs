@@ -29,9 +29,9 @@ namespace CoupledField {
                                 bool isRestart )
     : SimOutput ( fileName, outputNode, infoNode, isRestart ),
       indexFile_(-1),
-      indexBase_(-1),
       cellDim_(-1),
       outputFileOK_(false),
+      writeAmplPhase_(false),
       stepNumOffset_(0),
       stepValOffset_(0.0),
       writeQuadElems_(false)
@@ -46,6 +46,10 @@ namespace CoupledField {
     dirName_ = dirString; 
 
     myParam_->GetValue("writeQuadElems", writeQuadElems_, ParamNode::PASS );
+
+    std::string complexFormat = "realImag"; 
+    myParam_->GetValue("complexFormat", complexFormat, ParamNode::PASS );
+    writeAmplPhase_ = (complexFormat == "realImag") ? false : true;
   }
 
   // **************
@@ -71,32 +75,34 @@ namespace CoupledField {
       EXCEPTION("Grid pointer is not initialized" );
     }
 
+    indexBase_.Resize(2);
+    WriteNodesAndElements(0);
+    WriteNodesAndElements(1);
+  }
+
+  void  SimOutputCGNS::WriteNodesAndElements(UInt baseIdx) {
+
+    if (!ptGrid_)
+      EXCEPTION("ptGrid_ is not initialized" );
+
     cellDim_ = ptGrid_->GetDim();
     cellDim_ = cellDim_ < 2 ? 2 : cellDim_;
     cellDim_ = cellDim_ > 3 ? 3 : cellDim_;
     int phys_dim = 3;
 
-    std::string baseName = "CFS_Mesh";
-    if(cg_base_write(indexFile_,baseName.c_str(),cellDim_,phys_dim,&indexBase_))
+    std::string baseName = baseIdx == 0 ? "CFS_NodeSolutions" : "CFS_ElemSolutions";
+    if(cg_base_write(indexFile_,baseName.c_str(),cellDim_,phys_dim,&indexBase_[baseIdx]))
     {
       cg_close(indexFile_);
       EXCEPTION("Cannot write base '" << baseName <<
                 "':\n" << cg_get_error());
     }
-
-
-    WriteNodesAndElements();
-  }
-
-  void  SimOutputCGNS::WriteNodesAndElements() {
-
-    if (!ptGrid_)
-      EXCEPTION("ptGrid_ is not initialized" );
+    int indexBase = indexBase_[baseIdx];
 
     // In order to write node and element solutions afterwards, we have to
     // remember the indices of the corresponding CGNS tree nodes per region.
     UInt numRegions = ptGrid_->regionData.GetSize();
-    idxZone_.Resize(numRegions);
+    idxZone_[baseIdx].Resize(numRegions);
     idxNodeSol_.Resize(numRegions);
     idxElemSol_.Resize(numRegions);
 
@@ -132,8 +138,8 @@ namespace CoupledField {
       isize[0][0] = numNodes;
       isize[1][0] = numElems;
       isize[2][0] = 0;
-      cg_zone_write(indexFile_, indexBase_, regionName.c_str(), 
-                    isize[0], Unstructured, &idxZone_[i]);
+      cg_zone_write(indexFile_, indexBase, regionName.c_str(), 
+                    isize[0], Unstructured, &idxZone_[baseIdx][i]);
       
       // Get node coordinates
       StdVector< Vector<double> > coords(3);
@@ -157,11 +163,11 @@ namespace CoupledField {
       
       int indexCoord;
       // write grid coordinates
-      cg_coord_write(indexFile_,indexBase_,idxZone_[i],
+      cg_coord_write(indexFile_,indexBase,idxZone_[baseIdx][i],
                      RealDouble,"CoordinateX",&coords[0][0],&indexCoord);
-      cg_coord_write(indexFile_,indexBase_,idxZone_[i],
+      cg_coord_write(indexFile_,indexBase,idxZone_[baseIdx][i],
                      RealDouble,"CoordinateY",&coords[1][0],&indexCoord);
-      cg_coord_write(indexFile_,indexBase_,idxZone_[i],
+      cg_coord_write(indexFile_,indexBase,idxZone_[baseIdx][i],
                      RealDouble,"CoordinateZ",&coords[2][0],&indexCoord);
 
       Elem::FEType feType = elems[0]->type;
@@ -177,11 +183,11 @@ namespace CoupledField {
       // If not all elements in region are of same type write a mixed section.
       if(j < numElems) {
         // Write mixed section.
-        WriteMixedSection(elems);
+        WriteMixedSection(baseIdx, elems);
       }
       else {
         // Write pure section.
-        WritePureSection(elems);
+        WritePureSection(baseIdx, elems);
       }
 
 
@@ -189,75 +195,91 @@ namespace CoupledField {
       // First we write some information about the grid: node numbers,
       // element numbers, region ids and element types.
       int indexField;
+      std::string solName;
+      GridLocation_t location;
 
-      StdVector<int> origNodeNums(numNodes);
-      for(j=0; j<numNodes; j++)
+      switch(baseIdx) 
       {
-        origNodeNums[j] = nodes[j];
-      }
-
-      std::string solName = "NodeSolution";
-      GridLocation_t location = Vertex;
+      case 0:
+        {
+          solName = "NodeSolution";
+          location = Vertex;
+          
+          StdVector<int> origNodeNums(numNodes);
+          for(j=0; j<numNodes; j++)
+          {
+            origNodeNums[j] = nodes[j];
+          }
+          
+          if(cg_sol_write(indexFile_, indexBase, idxZone_[baseIdx][i],
+                          solName.c_str(), location, &idxNodeSol_[i]))
+          {
+            cg_close(indexFile_);
+            EXCEPTION("Cannot write solution:\n" << cg_get_error());
+          }
+          
+          if(cg_field_write(indexFile_,indexBase,idxZone_[baseIdx][i],
+                            idxNodeSol_[i],CGNSLIB_H::Integer,
+                            "origNodeNums",&origNodeNums[0],&indexField))
+          {
+            cg_close(indexFile_);
+            EXCEPTION("Cannot write field:\n" << cg_get_error());
+          }
+        }
+      break;
       
-      if(cg_sol_write(indexFile_, indexBase_, idxZone_[i],
-                      solName.c_str(), location, &idxNodeSol_[i]))
-      {
-        cg_close(indexFile_);
-        EXCEPTION("Cannot write solution:\n" << cg_get_error());
+      case 1:
+        {          
+          StdVector<int> regionIds(numElems);
+          StdVector<int> origElemNums(numElems);
+          StdVector<int> elemTypes(numElems);
+          for(j=0; j<numElems; j++)
+          {
+            Elem* ptEl = elems[j];
+            regionIds[j] = ptEl->regionId;
+            origElemNums[j] = ptEl->elemNum;
+            elemTypes[j] = static_cast<int>(ptEl->type);
+          }
+          
+          solName = "ElementSolution";
+          location = CellCenter;
+          
+          if(cg_sol_write(indexFile_, indexBase, idxZone_[baseIdx][i],
+                          solName.c_str(), location, &idxElemSol_[i]))
+          {
+            cg_close(indexFile_);
+            EXCEPTION("Cannot write solution:\n" << cg_get_error());
+          }
+          
+          if(cg_field_write(indexFile_,indexBase,idxZone_[baseIdx][i],
+                            idxElemSol_[i],CGNSLIB_H::Integer,
+                            "regionId",&regionIds[0],&indexField))
+          {
+            cg_close(indexFile_);
+            EXCEPTION("Cannot write field:\n" << cg_get_error());
+          }
+          if(cg_field_write(indexFile_,indexBase,idxZone_[baseIdx][i],
+                            idxElemSol_[i],CGNSLIB_H::Integer,
+                            "origElemNums",&origElemNums[0],&indexField))
+          {
+            cg_close(indexFile_);
+            EXCEPTION("Cannot write field:\n" << cg_get_error());
+          }
+          if(cg_field_write(indexFile_,indexBase,idxZone_[baseIdx][i],
+                            idxElemSol_[i],CGNSLIB_H::Integer,
+                            "elemTypes",&elemTypes[0],&indexField))
+          {
+            cg_close(indexFile_);
+            EXCEPTION("Cannot write field:\n" << cg_get_error());
+          }
+        }
+        break;
+        
+      default:
+        break;
       }
-
-      if(cg_field_write(indexFile_,indexBase_,idxZone_[i],
-                        idxNodeSol_[i],CGNSLIB_H::Integer,
-                        "origNodeNums",&origNodeNums[0],&indexField))
-      {
-        cg_close(indexFile_);
-        EXCEPTION("Cannot write field:\n" << cg_get_error());
-      }
-
-
-      StdVector<int> regionIds(numElems);
-      StdVector<int> origElemNums(numElems);
-      StdVector<int> elemTypes(numElems);
-      for(j=0; j<numElems; j++)
-      {
-        Elem* ptEl = elems[j];
-        regionIds[j] = ptEl->regionId;
-        origElemNums[j] = ptEl->elemNum;
-        elemTypes[j] = static_cast<int>(ptEl->type);
-      }
+    }
     
-      solName = "ElementSolution";
-      location = CellCenter;
-      
-      if(cg_sol_write(indexFile_, indexBase_, idxZone_[i],
-                      solName.c_str(), location, &idxElemSol_[i]))
-      {
-        cg_close(indexFile_);
-        EXCEPTION("Cannot write solution:\n" << cg_get_error());
-      }
-      
-      if(cg_field_write(indexFile_,indexBase_,idxZone_[i],
-                        idxElemSol_[i],CGNSLIB_H::Integer,
-                        "regionId",&regionIds[0],&indexField))
-      {
-        cg_close(indexFile_);
-        EXCEPTION("Cannot write field:\n" << cg_get_error());
-      }
-      if(cg_field_write(indexFile_,indexBase_,idxZone_[i],
-                        idxElemSol_[i],CGNSLIB_H::Integer,
-                        "origElemNums",&origElemNums[0],&indexField))
-      {
-        cg_close(indexFile_);
-        EXCEPTION("Cannot write field:\n" << cg_get_error());
-      }
-      if(cg_field_write(indexFile_,indexBase_,idxZone_[i],
-                        idxElemSol_[i],CGNSLIB_H::Integer,
-                        "elemTypes",&elemTypes[0],&indexField))
-      {
-        cg_close(indexFile_);
-        EXCEPTION("Cannot write field:\n" << cg_get_error());
-      }
-    }    
 
 #if 0
     int indexFlow,indexField;
@@ -323,7 +345,7 @@ namespace CoupledField {
 #endif
   }
 
-  void SimOutputCGNS::WriteMixedSection(const StdVector<Elem*>& elems) 
+  void SimOutputCGNS::WriteMixedSection(UInt baseIdx, const StdVector<Elem*>& elems) 
   {
     RegionIdType regionId = elems[0]->regionId;
     UInt numElems = elems.GetSize();
@@ -351,7 +373,7 @@ namespace CoupledField {
     int indexSection;
     cgsize_t nelemStart = 1, nelemEnd = numElems;
     int nbdyElem=0;
-    if(cg_section_write(indexFile_, indexBase_, idxZone_[regionId],
+    if(cg_section_write(indexFile_, indexBase_[baseIdx], idxZone_[baseIdx][regionId],
                         regionName.c_str(), MIXED, nelemStart,
                         nelemEnd, nbdyElem, &elemData[0], &indexSection))
     {
@@ -361,7 +383,7 @@ namespace CoupledField {
     }
   }
   
-  void SimOutputCGNS::WritePureSection(const StdVector<Elem*>& elems) 
+  void SimOutputCGNS::WritePureSection(UInt baseIdx, const StdVector<Elem*>& elems) 
   {
     RegionIdType regionId = elems[0]->regionId;
     UInt numElems = elems.GetSize();
@@ -384,7 +406,7 @@ namespace CoupledField {
     int indexSection;
     cgsize_t nelemStart = 1, nelemEnd = numElems;
     int nbdyElem=0;
-    if(cg_section_write(indexFile_, indexBase_, idxZone_[regionId],
+    if(cg_section_write(indexFile_, indexBase_[baseIdx], idxZone_[baseIdx][regionId],
                         regionName.c_str(), eType, nelemStart,
                         nelemEnd, nbdyElem, &elemData[0], &indexSection))
     {
@@ -422,7 +444,7 @@ namespace CoupledField {
     }
     else 
     {
-      WARN("Quadratic element type will be reduced to linear ones for CGNS!");
+      WARN("Quadratic element types will be reduced to linear ones for CGNS!");
 
       elemTypeMap_[Elem::ET_LINE3]   = CGNSLIB_H::BAR_2;
       elemTypeMap_[Elem::ET_TRIA6]   = CGNSLIB_H::TRI_3;
@@ -517,6 +539,7 @@ namespace CoupledField {
                                              const Double time)
   {
     RegionSolsType::const_iterator solIt, solEnd;
+    UInt baseIdx = definedOnNode ? 0 : 1;
 
     // Write actual solution array.
     solIt = regionSols.begin();
@@ -543,7 +566,8 @@ namespace CoupledField {
         const Vector<Double>& sol = it->second;
         int indexField;
     
-        if(cg_field_write(indexFile_, indexBase_, idxZone_[regionId],
+        if(cg_field_write(indexFile_, indexBase_[baseIdx],
+                          idxZone_[baseIdx][regionId],
                           *indexSol, RealDouble, solName.c_str(),
                           &sol[0], &indexField)) 
         {
@@ -736,7 +760,6 @@ namespace CoupledField {
     StdVector<std::string> dofNames = actResultInfo.dofNames;
     UInt numDofs = actResultInfo.dofNames.GetSize();
     UInt idx;
-    bool writeAmplPhase=false;
 
     LOG_DBG(simOutputCGNS) << "Filling vectors for result '" 
                            << resultName << "' on ";
@@ -806,17 +829,21 @@ namespace CoupledField {
             std::string resNameAmpl = resultDofName + "_Ampl";
             std::string resNamePhase = resultDofName + "_Phase";
             
-            regionSols[resNameRe][regionId].Resize( numEntities );
-            regionSols[resNameRe][regionId].Init();
-            regionSols[resNameIm][regionId].Resize( numEntities );
-            regionSols[resNameIm][regionId].Init();
-            if(writeAmplPhase) 
+            if(writeAmplPhase_) 
             {
               regionSols[resNameAmpl][regionId].Resize( numEntities );
               regionSols[resNameAmpl][regionId].Init();
               regionSols[resNamePhase][regionId].Resize( numEntities );
               regionSols[resNamePhase][regionId].Init();
             }
+            else
+            {
+              regionSols[resNameRe][regionId].Resize( numEntities );
+              regionSols[resNameRe][regionId].Init();
+              regionSols[resNameIm][regionId].Resize( numEntities );
+              regionSols[resNameIm][regionId].Init();
+            }
+            
             
             Vector<Complex> dummyVec;
             if(!solDefined) { dummyVec.Resize(numEntities*numDofs); dummyVec.Init(); }
@@ -826,15 +853,18 @@ namespace CoupledField {
             for( idx=0, it.Begin(); !it.IsEnd(); it++, idx++ ) {
               Complex sol = actSol[it.GetPos()*numDofs+iDof];
               
-              regionSols[resNameRe][regionId][idx] = sol.real();
-              regionSols[resNameIm][regionId][idx] = sol.imag();
-              if(writeAmplPhase) 
+              if(writeAmplPhase_) 
               {                
                 regionSols[resNameAmpl][regionId][idx] = hypot(sol.real(), sol.imag());
                 regionSols[resNamePhase][regionId][idx] = 
                   (std::abs(sol.imag()) > 1e-16) ?
                   std::atan2( sol.imag(), sol.real() ) * H180DEG_OVER_PI : 
                   ( sol.real() < 0.0 ) ? 180 : 0 ;
+              }
+              else
+              {
+                regionSols[resNameRe][regionId][idx] = sol.real();
+                regionSols[resNameIm][regionId][idx] = sol.imag();
               }
             }
           }
@@ -884,17 +914,19 @@ namespace CoupledField {
             std::string resNameAmpl = resultDofName + "_Ampl";
             std::string resNamePhase = resultDofName + "_Phase";
             
-            regionSols[resNameRe][regionId].Resize( numEntities );
-            regionSols[resNameRe][regionId].Init();
-            regionSols[resNameIm][regionId].Resize( numEntities );
-            regionSols[resNameIm][regionId].Init();
-
-            if(writeAmplPhase) 
+            if(writeAmplPhase_) 
             {
               regionSols[resNameAmpl][regionId].Resize( numEntities );
               regionSols[resNameAmpl][regionId].Init();
               regionSols[resNamePhase][regionId].Resize( numEntities );
               regionSols[resNamePhase][regionId].Init();
+            }
+            else
+            {
+              regionSols[resNameRe][regionId].Resize( numEntities );
+              regionSols[resNameRe][regionId].Init();
+              regionSols[resNameIm][regionId].Resize( numEntities );
+              regionSols[resNameIm][regionId].Init();
             }
             
             Vector<Complex> dummyVec;
@@ -910,15 +942,18 @@ namespace CoupledField {
                 idx = nodeMap[nodeNum]-1;
                 Complex sol = actSol[it.GetPos()*numDofs+iDof];
                 
-                regionSols[resNameRe][regionId][idx] = sol.real();
-                regionSols[resNameIm][regionId][idx] = sol.imag();
-                if(writeAmplPhase) 
+                if(writeAmplPhase_) 
                 {
                   regionSols[resNameAmpl][regionId][idx] = hypot(sol.real(), sol.imag());
                   regionSols[resNamePhase][regionId][idx] = 
                     (std::abs(sol.imag()) > 1e-16) ?
                     std::atan2( sol.imag(), sol.real() ) * H180DEG_OVER_PI : 
                     ( sol.real() < 0.0 ) ? 180 : 0 ;
+                }
+                else
+                {
+                  regionSols[resNameRe][regionId][idx] = sol.real();
+                  regionSols[resNameIm][regionId][idx] = sol.imag();
                 }
               }
             }

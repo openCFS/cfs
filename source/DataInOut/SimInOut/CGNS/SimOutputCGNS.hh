@@ -67,10 +67,10 @@ namespace CoupledField
 
   private:
 
-    void WriteNodesAndElements();
+    void WriteNodesAndElements(UInt baseIdx);
     
-    void WriteMixedSection(const StdVector<Elem*>& elems);
-    void WritePureSection(const StdVector<Elem*>& elems);
+    void WriteMixedSection(UInt baseIdx, const StdVector<Elem*>& elems);
+    void WritePureSection(UInt baseIdx, const StdVector<Elem*>& elems);
 
     void TranslateConnectivity(Elem::FEType feType,
                                cgsize_t* cgnsConn,
@@ -80,12 +80,14 @@ namespace CoupledField
     
     std::map<Elem::FEType,CGNSLIB_H::ElementType_t> elemTypeMap_;
 
-    int indexFile_, indexBase_;
-    StdVector<int> idxZone_;
+    int indexFile_;
+    StdVector<int> indexBase_;
+    std::map<UInt, StdVector<int> > idxZone_;
     StdVector<int> idxNodeSol_;
     StdVector<int> idxElemSol_;
     int cellDim_;
     bool outputFileOK_;
+    bool writeAmplPhase_;
 
     std::map< RegionIdType, std::map<UInt, UInt> > regionNodeMap_;
 

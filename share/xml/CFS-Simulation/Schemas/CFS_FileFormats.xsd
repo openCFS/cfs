@@ -611,6 +611,13 @@
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
+    <xsd:attribute name="complexFormat" type="DT_ComplexFormat" default="realImag">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Format for complex-valued results.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
 
   <xsd:simpleType name="DT_OutputCGNSMidLevelLibraries">
