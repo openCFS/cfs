@@ -69,6 +69,7 @@ namespace CFSTool {
     integOrder_(1),
     dirCoupled_(false),
     u_p_(1.0, 0.0),
+    nodalResults_(true),
     meanFlowType_(MF_GRID_DATA),
     writeIntPointsFile_(false),
     intPointsFileName_("intpoints.vtk"),
@@ -763,7 +764,7 @@ namespace CFSTool {
         outInfo->dofNames = dofNames_;
         outInfo->unit = MapSolTypeToUnit(outInfo->resultType);
         outInfo->entryType = ResultInfo::VECTOR;
-        outInfo->definedOn = ResultInfo::ELEMENT;
+        outInfo->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
         
         outResult->SetResultInfo( outInfo );
         
@@ -773,7 +774,7 @@ namespace CFSTool {
         outInfo2->dofNames = dofNames_;
         outInfo2->unit = MapSolTypeToUnit(outInfo2->resultType);
         outInfo2->entryType = ResultInfo::VECTOR;
-        outInfo2->definedOn = ResultInfo::ELEMENT;
+        outInfo2->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
         
         outResult2->SetResultInfo( outInfo2 );
         
@@ -783,7 +784,7 @@ namespace CFSTool {
         outInfo3->dofNames = "";
         outInfo3->unit = MapSolTypeToUnit(outInfo3->resultType);
         outInfo3->entryType = ResultInfo::SCALAR;
-        outInfo3->definedOn = ResultInfo::ELEMENT;
+        outInfo3->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
         
         outResult3->SetResultInfo( outInfo3 );
         
@@ -793,7 +794,7 @@ namespace CFSTool {
         outInfo4->dofNames = dofNames_;
         outInfo4->unit = MapSolTypeToUnit(outInfo4->resultType);
         outInfo4->entryType = ResultInfo::VECTOR;
-        outInfo4->definedOn = ResultInfo::ELEMENT;
+        outInfo4->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
         
         outResult4->SetResultInfo( outInfo4 );
         
@@ -803,7 +804,7 @@ namespace CFSTool {
         outInfo5->dofNames = "";
         outInfo5->unit = MapSolTypeToUnit(outInfo5->resultType);
         outInfo5->entryType = ResultInfo::SCALAR;
-        outInfo5->definedOn = ResultInfo::ELEMENT;
+        outInfo5->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
         
         outResult5->SetResultInfo( outInfo5 );
 
@@ -813,7 +814,7 @@ namespace CFSTool {
         outInfo6->dofNames = dofNames_;
         outInfo6->unit = MapSolTypeToUnit(outInfo6->resultType);
         outInfo6->entryType = ResultInfo::VECTOR;
-        outInfo6->definedOn = ResultInfo::ELEMENT;
+        outInfo6->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
         
         outResult6->SetResultInfo( outInfo6 );
 
@@ -823,7 +824,7 @@ namespace CFSTool {
         outInfo7->dofNames = dofNames_;
         outInfo7->unit = MapSolTypeToUnit(outInfo7->resultType);
         outInfo7->entryType = ResultInfo::VECTOR;
-        outInfo7->definedOn = ResultInfo::ELEMENT;
+        outInfo7->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
         
         outResult7->SetResultInfo( outInfo7 );
 
@@ -833,7 +834,7 @@ namespace CFSTool {
         outInfo8->dofNames = dofNames_;
         outInfo8->unit = MapSolTypeToUnit(outInfo8->resultType);
         outInfo8->entryType = ResultInfo::VECTOR;
-        outInfo8->definedOn = ResultInfo::ELEMENT;
+        outInfo8->definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
         
         outResult8->SetResultInfo( outInfo8 );
         
@@ -1010,16 +1011,30 @@ namespace CFSTool {
             dynamic_cast<Result<Complex>& >(*outResults7[iRes]).GetVector();
           Vector<Complex> & outVec8 =
             dynamic_cast<Result<Complex>& >(*outResults8[iRes]).GetVector();
-          UInt numElems = outResults[iRes]->GetEntityList()->GetSize();
           
-          outVec.Resize( numElems * numDofs_ );
-          outVec2.Resize( numElems * numDofs_ );
-          outVec3.Resize( numElems );
-          outVec4.Resize( numElems * numDofs_ );
-          outVec5.Resize( numElems );
-          outVec6.Resize( numElems * numDofs_ );
-          outVec7.Resize( numElems * numDofs_ );
-          outVec8.Resize( numElems * numDofs_ );
+          std::string entityListName = outResults[iRes]->GetEntityList()->GetName();
+          RegionIdType regionId = ptGrid1->GetRegion().Parse(entityListName);
+
+          shared_ptr<EntityList> entityList;
+          NodeList* nl = new NodeList(ptGrid1);
+          nl->SetNodesOfRegion(regionId);
+          entityList.reset(nl);  
+          const StdVector<UInt> & nodes = nl->GetNodes();
+
+          //          UInt numElems = ptGrid1->GetNumElems(regionId);
+          UInt numEntities = nodalResults_ ? nodes.GetSize() : 
+                             ptGrid1->GetNumElems(regionId);
+
+          outVec.Resize( numEntities * numDofs_ );  outVec.Init();
+          outVec2.Resize( numEntities * numDofs_ ); outVec2.Init();
+          outVec3.Resize( numEntities );            outVec3.Init();
+          outVec4.Resize( numEntities * numDofs_ ); outVec4.Init();
+          outVec5.Resize( numEntities );            outVec5.Init();
+          outVec6.Resize( numEntities * numDofs_ ); outVec6.Init();
+          outVec7.Resize( numEntities * numDofs_ ); outVec7.Init();
+          outVec8.Resize( numEntities * numDofs_ ); outVec8.Init();
+
+          Vector<Double> nodalWeights(numEntities); nodalWeights.Init();
 
           shared_ptr<BaseFeFunction> u1FeFunc =
             inputs_[PRIMARY_MODE]->GetFeFunction<Complex>( actMsStep,
@@ -1268,36 +1283,7 @@ namespace CFSTool {
             
             //               std::cout << "Integration order " << order.GetIsoOrder() << " num. int points: " << intPoints.GetSize() << " weight: " << weights[0] << std::endl;
             
-            for( UInt i=0; i < numDofs_; i++ )
-            {
-              // Init weight vector
-              outVec[elIdx*numDofs_+i] = 0.0;
-              
-              // Init mean velocity
-              outVec2[elIdx*numDofs_+i] = 0.0;
-              
-              // Init weight vector W_Phi as given in Hemp1994 (19).
-              outVec4[elIdx*numDofs_+i] = 0.0;
-
-              // Init (u_1).
-              outVec6[elIdx*numDofs_+i] = 0.0;
-
-              // Init (u_2).
-              outVec7[elIdx*numDofs_+i] = 0.0;
-
-              // Init f.
-              outVec8[elIdx*numDofs_+i] = 0.0;
-            }
-            
-            // Init weight vector density result
-            outVec3[elIdx] = 0.0;
-            
-            // Init weight  vector density  result  as inner  product
-            // between V and W_Phi as given in Hemp1994 (18).
-            outVec5[elIdx] = 0.0;
-            
             Double elementVolume = 0.0;
-            
             
             shared_ptr<LocPointMapped> lpm1, lpm2, lpm3;
             LocPointMapped lpm1Surf, lpm2Surf, lpm3Surf;
@@ -1596,96 +1582,187 @@ namespace CFSTool {
                    
                 for( UInt i=0; i < numDofs_; i++ )
                 {
-                  // Prepare weight vector
-                  outVec[elIdx*numDofs_+i] += X[i] * volume;
-                     
-                  // Prepare mean velocity
-                  outVec2[elIdx*numDofs_+i] += Complex(V[i], 0) * volume;
-                     
-                  // Prepare weight vector density result
-                  outVec3[elIdx] += X[i]*curlV[i] * volume;
-                     
-                     
-                  // Prepare weight vector W_Phi as given in Hemp1994 (19).
-                  outVec4[elIdx*numDofs_+i] = curlV[i] * volume;
-                     
-                  // Prepare  weight  vector density  result  as inner  product
-                  // between V and W_Phi as given in Hemp1994 (18).
-                  //                     outVec5[elIdx] += W[i]/u_p * V[i];
-
-                  outVec5[elIdx] += X[i]/u_p_ * curlV[i] * volume;
+                  if(!nodalResults_) 
+                  {
+                    // Prepare weight vector
+                    outVec[elIdx*numDofs_+i] += X[i] * volume;
+                    
+                    // Prepare mean velocity
+                    outVec2[elIdx*numDofs_+i] += Complex(V[i], 0) * volume;
+                    
+                    // Prepare weight vector density result
+                    outVec3[elIdx] += X[i]*curlV[i] * volume;
+                    
+                    
+                    // Prepare weight vector W_Phi as given in Hemp1994 (19).
+                    outVec4[elIdx*numDofs_+i] = curlV[i] * volume;
+                    
+                    // Prepare  weight  vector density  result  as inner  product
+                    // between V and W_Phi as given in Hemp1994 (18).
+                    //                     outVec5[elIdx] += W[i]/u_p * V[i];
+                    
+                    outVec5[elIdx] += X[i]/u_p_ * curlV[i] * volume;
+                  }
                 }
 
               }
               else 
-              {         
-                for( UInt i=0; i < numDofs_; i++ )
+              {
+                if(!nodalResults_) 
                 {
-                  // Prepare weight vector
-                  outVec[elIdx*numDofs_+i] += W[i] * volume;
-                     
-                  // Prepare mean velocity
-                  //                   V[i] *= meanVel;                   
-                     
-                  durchfluss += V[i] * volume;
-                     
-                  // Prepare mean velocity output vector
-                  outVec2[elIdx*numDofs_+i] += Complex(V[i], 0) * volume;
-                     
-                  // Prepare weight vector density result
-                  Complex wvtDensity = W[i]*V[i]*volume;
-                  outVec3[elIdx] += wvtDensity;
-
-                  // Compute u_p_prime as given in Hemp1994 (13).
-                  u_p_prime += wvtDensity;
-
-                  f[i] = - rho_0 * (
-                    u1Derivs[i][0] * V[0] + u1Derivs[i][1] * V[1] + u1Derivs[i][2] * V[2] // + // C1
+                  for( UInt i=0; i < numDofs_; i++ )
+                  {
+                    // Prepare weight vector
+                    outVec[elIdx*numDofs_+i] += W[i] * volume;
+                    
+                    // Prepare mean velocity
+                    //                   V[i] *= meanVel;                   
+                    
+                    durchfluss += V[i] * volume;
+                    
+                    // Prepare mean velocity output vector
+                    outVec2[elIdx*numDofs_+i] += Complex(V[i], 0) * volume;
+                    
+                    // Prepare weight vector density result
+                    Complex wvtDensity = W[i]*V[i]*volume;
+                    outVec3[elIdx] += wvtDensity;
+                    
+                    // Compute u_p_prime as given in Hemp1994 (13).
+                    u_p_prime += wvtDensity;
+                    
+                    f[i] = - rho_0 * (
+                      u1Derivs[i][0] * V[0] + u1Derivs[i][1] * V[1] + u1Derivs[i][2] * V[2] // + // C1
                       // + VDerivs[i][0] * u1[0] + VDerivs[i][1] * u1[1] + VDerivs[i][2] * u1[2] // C2
-                    );
-                     
-                  // Prepare weight vector W_Phi as given in Hemp1994 (19).
-                  outVec4[elIdx*numDofs_+i] += W[i]/u_p_ * volume;
+                      );
+                    
+                    // Prepare weight vector W_Phi as given in Hemp1994 (19).
+                    outVec4[elIdx*numDofs_+i] += W[i]/u_p_ * volume;
+                    
+                    // Prepare  weight  vector density  result  as inner  product
+                    // between V and W_Phi as given in Hemp1994 (18).
+                    Complex wvtDensityPhi(0,0);
+                    
+                    wvtDensityPhi = W[i]/u_p_ * V[i] * volume;
+                    
+                    // Compute "weight vector density" result from force and u2
+                    // Just take 2*C1 also with WVT!
+                    // wvtDensityPhi = 2*(f[i] * u2[i])/u_p_ * volume;
+                    
+                    outVec5[elIdx] += wvtDensityPhi;
+                    
+                    // Prepare u1 velocity output vector
+                    outVec6[elIdx*numDofs_+i] += u1[i] * volume;
+                    
+                    // Prepare u2 velocity output vector
+                    outVec7[elIdx*numDofs_+i] += u2[i] * volume;
+                    
+                    // Prepare force output vector
+                    outVec8[elIdx*numDofs_+i] += f[i] * volume;
+                    
+                    // Compute deltaPhi as given in Hemp1994 (18) and (19).
+                    deltaPhi += wvtDensityPhi.imag();
+                  }
+                }
+                else 
+                {
+                  Vector<Complex> out(numDofs_);  out.Init();
+                  Vector<Complex> out2(numDofs_); out2.Init();
+                  Complex out3 = Complex(0,0);
+                  Vector<Complex> out4(numDofs_); out4.Init();
+                  Complex out5 = Complex(0,0);
+                  Vector<Complex> out6(numDofs_); out6.Init();
+                  Vector<Complex> out7(numDofs_); out7.Init();
+                  Vector<Complex> out8(numDofs_); out8.Init();
+
+                  for( UInt i=0; i < numDofs_; i++ )
+                  {
+                    // Prepare weight vector
+                    out[i] += W[i] * volume;
+
+                    durchfluss += V[i] * volume;
+                      
+                    // Prepare mean velocity output vector
+                    out2[i] += Complex(V[i], 0) * volume;
+                      
+                    // Prepare weight vector density result
+                    Complex wvtDensity = W[i]*V[i]*volume;
+                    out3 += wvtDensity;
+                      
+                    // Compute u_p_prime as given in Hemp1994 (13).
+                    u_p_prime += wvtDensity;
+                      
+                    f[i] = - rho_0 * (
+                      u1Derivs[i][0] * V[0] + u1Derivs[i][1] * V[1] + u1Derivs[i][2] * V[2] // + // C1
+                      // + VDerivs[i][0] * u1[0] + VDerivs[i][1] * u1[1] + VDerivs[i][2] * u1[2] // C2
+                      );
+                      
+                    // Prepare weight vector W_Phi as given in Hemp1994 (19).
+                    out4[i] += W[i]/u_p_ * volume;
+                      
+                    // Prepare  weight  vector density  result  as inner  product
+                    // between V and W_Phi as given in Hemp1994 (18).
+                    Complex wvtDensityPhi(0,0);
+                      
+                    wvtDensityPhi = W[i]/u_p_ * V[i] * volume;
+                      
+                    // Compute "weight vector density" result from force and u2
+                    // Just take 2*C1 also with WVT!
+                    // wvtDensityPhi = 2*(f[i] * u2[i])/u_p_ * volume;
+                      
+                    out5 += wvtDensityPhi;
+                      
+                    // Prepare u1 velocity output vector
+                    out6[i] += u1[i] * volume;
+                      
+                    // Prepare u2 velocity output vector
+                    out7[i] += u2[i] * volume;
+                      
+                    // Prepare force output vector
+                    out8[i] += f[i] * volume;
+                      
+                    // Compute deltaPhi as given in Hemp1994 (18) and (19).
+                    deltaPhi += wvtDensityPhi.imag();
+                  }
                   
-                  // Prepare  weight  vector density  result  as inner  product
-                  // between V and W_Phi as given in Hemp1994 (18).
-                  Complex wvtDensityPhi(0,0);
+                  // Assemble values to nodal vectors
+                  for(UInt nIdx=0, numNodes=el1->connect.GetSize(); nIdx < numNodes; nIdx++)
+                  {
+                    StdVector<UInt>::const_iterator nodeIt = std::find(nodes.Begin(), nodes.End(), el1->connect[nIdx]);
+                    UInt nodeIndex = std::distance(nodes.Begin(), nodeIt);
 
-                  wvtDensityPhi = W[i]/u_p_ * V[i] * volume;
+                    nodalWeights[nodeIndex] += volume;
 
-                  // Compute "weight vector density" result from force and u2
-                  // Just take 2*C1 also with WVT!
-                  // wvtDensityPhi = 2*(f[i] * u2[i])/u_p_ * volume;
-
-                  outVec5[elIdx] += wvtDensityPhi;
-
-                  // Prepare u1 velocity output vector
-                  outVec6[elIdx*numDofs_+i] += u1[i] * volume;
-
-                  // Prepare u2 velocity output vector
-                  outVec7[elIdx*numDofs_+i] += u2[i] * volume;
-
-                  // Prepare force output vector
-                  outVec8[elIdx*numDofs_+i] += f[i] * volume;
-
-                  // Compute deltaPhi as given in Hemp1994 (18) and (19).
-                  deltaPhi += wvtDensityPhi.imag();
+                    for( UInt i=0; i < numDofs_; i++ )
+                    {
+                      outVec[nodeIndex*numDofs_+i] += out[i];
+                      outVec2[nodeIndex*numDofs_+i] += out2[i];
+                      outVec3[nodeIndex] += out3;
+                      outVec4[nodeIndex*numDofs_+i] += out4[i];
+                      outVec5[nodeIndex] += out5;
+                      outVec6[nodeIndex*numDofs_+i] += out6[i];
+                      outVec7[nodeIndex*numDofs_+i] += out7[i];
+                      outVec8[nodeIndex*numDofs_+i] += out8[i];
+                    }
+                  }
                 }
               }
             } // loop over integration points
 
-            for( UInt i=0; i < numDofs_; i++ )
+            if(!nodalResults_) 
             {
-              outVec[elIdx*numDofs_+i] /= elementVolume;
-              outVec2[elIdx*numDofs_+i] /= elementVolume;
-              outVec4[elIdx*numDofs_+i] /= elementVolume;
-              outVec6[elIdx*numDofs_+i] /= elementVolume;
-              outVec7[elIdx*numDofs_+i] /= elementVolume;
-              outVec8[elIdx*numDofs_+i] /= elementVolume;
-            }               
-            outVec3[elIdx] /= elementVolume;
-            outVec5[elIdx] /= elementVolume;
-
+              for( UInt i=0; i < numDofs_; i++ )
+              {
+                outVec[elIdx*numDofs_+i] /= elementVolume;
+                outVec2[elIdx*numDofs_+i] /= elementVolume;
+                outVec4[elIdx*numDofs_+i] /= elementVolume;
+                outVec6[elIdx*numDofs_+i] /= elementVolume;
+                outVec7[elIdx*numDofs_+i] /= elementVolume;
+                outVec8[elIdx*numDofs_+i] /= elementVolume;
+              }               
+              outVec3[elIdx] /= elementVolume;
+              outVec5[elIdx] /= elementVolume;
+            }
+            
             vol += elementVolume;
           }
 
@@ -1709,6 +1786,27 @@ namespace CFSTool {
           //             outVec2 *= correct;
              
           // deltaPhi *= correct;
+
+          if(nodalResults_) 
+          {
+            for(UInt nodeIndex=0, n=nodalWeights.GetSize(); nodeIndex < n; nodeIndex++)
+            {
+              Double w = nodalWeights[nodeIndex];
+              
+              for( UInt i=0; i < numDofs_; i++ )
+              {
+                outVec[nodeIndex*numDofs_+i] /= w;
+                outVec2[nodeIndex*numDofs_+i] /= w;
+                outVec4[nodeIndex*numDofs_+i] /= w;
+                outVec6[nodeIndex*numDofs_+i] /= w;
+                outVec7[nodeIndex*numDofs_+i] /= w;
+                outVec8[nodeIndex*numDofs_+i] /= w;
+              }               
+              outVec3[nodeIndex] /= w;
+              outVec5[nodeIndex] /= w;
+            }
+          }
+
              
           WriteResultsToCSV(freq, u_p_prime, deltaPhi, 0,
                             vol, meanVel, correct);
@@ -1716,6 +1814,8 @@ namespace CFSTool {
                                vol, meanVel, correct);
 
         } // switch: Analysis type
+
+
         // add result to output file
         if (output ) {
           output->AddResult( outResults[iRes] );

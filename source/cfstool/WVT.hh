@@ -111,6 +111,8 @@ namespace CFSTool
     typedef std::map< InputFileType, shared_ptr<SimInput> > InputsType;
     InputsType inputs_;
 
+    bool nodalResults_;
+
     //! What kind of mean flow data do we use? Data given on grid points either from
     //! HDF5 file or given as analytical expression. Or do we use data on a point cloud
     //! read from a CSV file and provided through the CoefFunctionScatteredData.
