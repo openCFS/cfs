@@ -11,6 +11,7 @@
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/SimOutput.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 #include "ParamsInit.hh"
 #include "HelperFuncs.hh"
@@ -939,6 +940,7 @@ int main(int argc, char** argv)
   // todo: do better once! - Fabian
   CFSTool::InitEnums(); 
   ElemShape::Initialize();
+  shared_ptr<LogConfigurator> logConf;
 
   domain = NULL;
   
@@ -948,7 +950,7 @@ int main(int argc, char** argv)
   {
     param.reset(new ParamNode( ParamNode::PASS, ParamNode::ELEMENT));
 
-    CFSTool::ParamsInit(argc, argv, param);
+    CFSTool::ParamsInit(argc, argv, param, logConf);
 
     // Switch this flag tc true for debugging
     if (param->Get("forceSegFault")->As<bool>())
