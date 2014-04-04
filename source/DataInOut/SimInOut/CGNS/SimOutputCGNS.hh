@@ -59,14 +59,22 @@ namespace CoupledField
 
   private:
 
-    void writeNodesAndElements();
+    void WriteNodesAndElements();
     
+    void WriteMixedSection(const StdVector<Elem*>& elems, const std::string name);
+    void WritePureSection(const StdVector<Elem*>& elems, const std::string name);    
+
+    void TranslateConnectivity(Elem::FEType feType,
+                               cgsize_t* cgnsConn,
+                               StdVector<UInt>& connect);
+
+    void InitElemTypeMap();
+    
+    std::map<Elem::FEType,CGNSLIB_H::ElementType_t> elemTypeMap_;
+
     int indexFile_, indexBase_, indexZone_;
     bool outputFileOK_;
     char baseName_[33], zoneName_[33];
-
-    //! pointer to the ofstream with output -data
-    std::ofstream * output;
 
     //! Map with result objects for each result type
     ResultMapType resultMap_;

@@ -51,7 +51,6 @@ namespace CoupledField {
   //   Destructor
   // **************
   SimOutputCGNS::~SimOutputCGNS() {
-    delete output;
   }
 
 
@@ -59,8 +58,6 @@ namespace CoupledField {
   //   WriteGrid
   // *************
   void SimOutputCGNS::WriteGrid() {
-
-
     if ( !outputFileOK_) {
       EXCEPTION( "File for CGNS output results is not initialized" );
     }
@@ -73,52 +70,28 @@ namespace CoupledField {
     strcpy(baseName_,"CFS_Simulation");
     cg_base_write(indexFile_,baseName_,geodim,physdim,&indexBase_);
 
-    writeNodesAndElements();
-
+    WriteNodesAndElements();
   }
 
-  void  SimOutputCGNS::writeNodesAndElements() {
+  void  SimOutputCGNS::WriteNodesAndElements() {
 
     if (!ptGrid_)
       EXCEPTION("ptGrid_ is not initialized" );
 
     UInt geodim=ptGrid_->GetDim();
     UInt numNodes=ptGrid_->GetNumNodes();
-    // only 3D meshes at the moment
-    if (geodim != 3)
-       EXCEPTION("only 3 dimensional models supported at the moment" );
 
-    StdVector<RegionIdType> subdoms;
-    StdVector<Elem*> elemssd;
-    UInt numElems=ptGrid_->GetNumElems();
-    //numElems = 0;
-    //std::cout << "NumElems = " << numElems << std::endl;
-    //for (i=0; i<subdoms.GetSize(); i++) {
-    //  numElems += elemssd.GetSize();
-    //  std::cout << "NumElems = " << numElems << std::endl;
-    //}
+    UInt numElems = 0;
+    for(UInt i=0, n=ptGrid_->regionData.GetSize(); i<n; i++) 
+    {
+      RegionIdType regionId = ptGrid_->regionData[i].id;
 
-    const Elem* ptEl;
-
-    //std::cout << "NumElems1 = " << numElems << std::endl;
-    UInt nelTET4=0, nelTRIA3=0, nelHEXA8=0, nelQUAD4=0;
-    for (UInt iElem=0; iElem<numElems; iElem++) {
-      ptEl = ptGrid_->GetElem(iElem+1);
-      if (ptEl->type == Elem::ET_TET4)
-        nelTET4++;
-      if (ptEl->type == Elem::ET_TRIA3)
-        nelTRIA3++;
-      if (ptEl->type == Elem::ET_HEXA8)
-        nelHEXA8++;
-      if (ptEl->type == Elem::ET_QUAD4)
-        nelQUAD4++;
-    }
-    // only tet models at the moment
-    if (nelQUAD4 != 0 || nelHEXA8 != 0)
-       EXCEPTION("only tet models supported at the moment" );
-
-    numElems = nelTET4 + nelHEXA8;
-    //std::cout << "NumElems2 = " << numElems << std::endl;
+      StdVector<Elem*> elems;
+      
+      ptGrid_->GetElems(elems, regionId);
+      UInt nElems = elems.GetSize();
+      numElems += nElems;
+    }    
 
     // create zone
     strcpy(zoneName_,"CFS_Mesh");
@@ -129,9 +102,9 @@ namespace CoupledField {
     cg_zone_write(indexFile_,indexBase_,zoneName_,isize[0],Unstructured,&indexZone_);
 
     // coordinates
-    double *xCoord = new double[numNodes];
-    double *yCoord = new double[numNodes];
-    double *zCoord = new double[numNodes];
+    StdVector<double> xCoord(numNodes);
+    StdVector<double> yCoord(numNodes);
+    StdVector<double> zCoord(numNodes);
 
     Vector<Double> point;
     for ( UInt i = 0; i < numNodes; i++ ) {
@@ -148,43 +121,42 @@ namespace CoupledField {
 
     int indexCoord;
     // write grid coordinates
-    cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateX",xCoord,&indexCoord);
-    cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateY",yCoord,&indexCoord);
-    cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateZ",zCoord,&indexCoord);
+    cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateX",&xCoord[0],&indexCoord);
+    cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateY",&yCoord[0],&indexCoord);
+    cg_coord_write(indexFile_,indexBase_,indexZone_,RealDouble,"CoordinateZ",&zCoord[0],&indexCoord);
 
-    // for tet4 elements
-    cgsize_t *elemData = new cgsize_t [numElems*4];
 
-    StdVector<UInt> connect;
-    std::string errMsg;
+    for(UInt i=0, n=ptGrid_->regionData.GetSize(); i<n; i++) 
+    {
+      RegionIdType regionId = ptGrid_->regionData[i].id;
 
-    UInt k = 0;
-    UInt count = 0;
-    for (UInt iElem=0; iElem<numElems; iElem++) {
+      StdVector<Elem*> elems;
+      
+      ptGrid_->GetElems(elems, regionId);
+      UInt nElems = elems.GetSize();
+      Elem::FEType feType = elems[0]->type;
+      UInt j=1;
+      
+      // Check if all elems in regions are of same type
+      for( ; j<nElems; j++)
+      {
+        if(elems[j]->type != feType)
+          break;
+      }
 
-      ptEl = ptGrid_->GetElem(iElem+1);
-      if (ptEl->type == Elem::ET_TET4) {
-
-        connect=ptEl->connect;
-
-        for (UInt ii=0; ii < connect.GetSize(); ii++) { 
-          elemData[count] = connect[ii]; count++;
-        }
-        k++;
-
+      if(j < nElems) 
+      {
+        // Write mixed section.
+        WriteMixedSection(elems, ptGrid_->regionData[regionId].name);
+      }
+      else
+      {
+        // Write pure section.
+        WritePureSection(elems, ptGrid_->regionData[regionId].name);
       }
     }
-    if (k != numElems) {
-       EXCEPTION("Internal error in generation of cgns zone: element mismatch!");
-    }
 
-    int indexSection;
-    int nelemStart = 1, nelemEnd = numElems, nbdyElem=0;
-    cg_section_write(indexFile_,indexBase_,indexZone_,"Elements",TETRA_4,nelemStart,
-                     nelemEnd,nbdyElem,elemData,&indexSection);
-
-
-    if (0 == 0) {
+    if (1 == 0) {
     std::string solname = "DummyPressure1";
     double *press = new double[numNodes];
     for (UInt node=0; node<numNodes; node++) {
@@ -244,6 +216,143 @@ namespace CoupledField {
     cg_close(indexFile_);
   }
 
+  void SimOutputCGNS::WriteMixedSection(const StdVector<Elem*>& elems,
+                                        const std::string name) 
+  {
+    UInt numElems = elems.GetSize();
+    Elem::FEType feType;
+    
+    StdVector<cgsize_t> elemData(numElems*30);
+
+    for (UInt iElem=0, idx=0; iElem<numElems; iElem++) {
+      Elem* ptEl = elems[iElem];
+      feType = ptEl->type;
+      UInt numElemNodes = Elem::shapes[feType].numNodes;
+      
+      elemData[idx] = elemTypeMap_[feType];
+      
+      TranslateConnectivity(feType, &elemData[idx+1], ptEl->connect);
+
+      idx += numElemNodes+1;
+    }
+
+    int indexSection;
+    int nelemStart = 1, nelemEnd = numElems, nbdyElem=0;
+    cg_section_write(indexFile_,indexBase_,indexZone_,name.c_str(),MIXED,nelemStart,
+                     nelemEnd,nbdyElem,&elemData[0],&indexSection);
+  }
+  
+  void SimOutputCGNS::WritePureSection(const StdVector<Elem*>& elems,
+                                       const std::string name)
+  {
+    UInt numElems = elems.GetSize();
+    Elem::FEType feType = elems[0]->type;
+    UInt numElemNodes = Elem::shapes[feType].numNodes;
+    
+    StdVector<cgsize_t> elemData(numElems*numElemNodes);
+
+    for (UInt iElem=0; iElem<numElems; iElem++) {
+      Elem* ptEl = elems[iElem];
+      TranslateConnectivity(feType, &elemData[iElem*numElemNodes], ptEl->connect);
+    }
+
+    int indexSection;
+    int nelemStart = 1, nelemEnd = numElems, nbdyElem=0;
+    cg_section_write(indexFile_,indexBase_,indexZone_,name.c_str(),elemTypeMap_[feType],nelemStart,
+                     nelemEnd,nbdyElem,&elemData[0],&indexSection);
+  }
+
+  void SimOutputCGNS::InitElemTypeMap(){
+    elemTypeMap_.clear();
+    elemTypeMap_[Elem::ET_UNDEF]   = CGNSLIB_H::ElementTypeNull;
+    elemTypeMap_[Elem::ET_POINT]   = CGNSLIB_H::NODE;
+    elemTypeMap_[Elem::ET_LINE2]   = CGNSLIB_H::BAR_2;
+    elemTypeMap_[Elem::ET_LINE3]   = CGNSLIB_H::BAR_3;
+    elemTypeMap_[Elem::ET_TRIA3]   = CGNSLIB_H::TRI_3;
+    elemTypeMap_[Elem::ET_TRIA6]   = CGNSLIB_H::TRI_6;
+    elemTypeMap_[Elem::ET_QUAD4]   = CGNSLIB_H::QUAD_4;
+    elemTypeMap_[Elem::ET_QUAD8]   = CGNSLIB_H::QUAD_8;
+    elemTypeMap_[Elem::ET_QUAD9]   = CGNSLIB_H::QUAD_9;
+    elemTypeMap_[Elem::ET_TET4]    = CGNSLIB_H::TETRA_4;
+    elemTypeMap_[Elem::ET_TET10]   = CGNSLIB_H::TETRA_10;
+    elemTypeMap_[Elem::ET_PYRA5]   = CGNSLIB_H::PYRA_5;
+    elemTypeMap_[Elem::ET_PYRA13]  = CGNSLIB_H::PYRA_13;
+    elemTypeMap_[Elem::ET_PYRA14]  = CGNSLIB_H::PYRA_14;
+    elemTypeMap_[Elem::ET_WEDGE6]  = CGNSLIB_H::PENTA_6;
+    elemTypeMap_[Elem::ET_WEDGE15] = CGNSLIB_H::PENTA_15;
+    elemTypeMap_[Elem::ET_WEDGE18] = CGNSLIB_H::PENTA_18;
+    elemTypeMap_[Elem::ET_HEXA8]   = CGNSLIB_H::HEXA_8;
+    elemTypeMap_[Elem::ET_HEXA20]  = CGNSLIB_H::HEXA_20;
+    elemTypeMap_[Elem::ET_HEXA27]  = CGNSLIB_H::HEXA_27;
+  }
+
+  void SimOutputCGNS::TranslateConnectivity(Elem::FEType feType,
+                                           cgsize_t* cgnsConn,
+                                           StdVector<UInt>& connect)
+  {
+    UInt numElemNodes = Elem::shapes[feType].numNodes;
+
+    static const int trDefault[27] = {
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+      20, 21, 22, 23, 24, 25, 26
+    };
+
+    // Map from a CGNS HEXA_20 connectivity
+    static const int trHEX20[20] = {
+      0, 1, 2, 3,
+      4, 5, 6, 7,
+      8, 9, 10, 11,
+      16, 17, 18, 19,
+      12, 13, 14, 15
+    };
+    // Map from a CGNS HEXA_27 connectivity
+    static const int trHEX27[27] = {
+      0, 1, 2, 3,
+      4, 5, 6, 7,
+      8, 9, 10, 11,
+      16, 17, 18, 19,
+      12, 13, 14, 15,
+      21, 22, 23, 24,
+      20, 25,
+      26
+    };
+    // Map from a CGNS PENTA_15 connectivity
+    static const int trPRI15[15] = {
+      0, 1, 2, 3, 4, 5, 6, 7, 8,
+      12, 13, 14,
+      9, 10, 11 
+    };
+    // Map from a CGNS PENTA_18 connectivity
+    static const int trPRI18[18] = {
+      0, 1, 2, 3, 4, 5,
+      6, 7, 8, 12, 13, 14,
+      9, 10, 11, 15, 16, 17
+    };
+    
+    const int *tr;
+    switch(feType) {
+    case Elem::ET_HEXA20:
+      tr = trHEX20;
+      break;
+    case Elem::ET_HEXA27:
+      tr = trHEX27;
+      break;
+    case Elem::ET_WEDGE15:
+      tr = trPRI15;
+      break;
+    case Elem::ET_WEDGE18:
+      tr = trPRI18;
+      break;
+    default:
+      tr = trDefault;
+      break;
+    }
+
+    for(UInt n = 0; n<numElemNodes; n++ ) {
+      cgnsConn[tr[n]] = connect[n];
+    }
+  }
+
   void  SimOutputCGNS::NodeElemDataTransient(const UInt dataSetNr,
                                                   const std::string & title, 
                                                   const Vector<Double> & x, 
@@ -252,79 +361,7 @@ namespace CoupledField {
                                                   const UInt nrNodes,
                                                   const UInt nrDofs)
   {
-    //
-    if (!ptGrid_)
-      EXCEPTION("ptGrid_ is not initialized" );
-
-    return;
-
-    (*output) << std::setw(6) << -1 << std::endl 
-              << std::setw(6) << dataSetNr << std::endl;
-
-    (*output).setf(std::ios::scientific);
-    (*output).precision(5);
-    (*output).setf(std::ios::uppercase);
-
-    // Standard for scalar values
-    UInt dataCharac = 1;
-    UInt valsPerNode = 1;
- 
-    // needed for undocumented value of
-    // Dataset 55/56 in record8 , field4
-    UInt specDataCharac = 0;
-
-    // Vector type
-    if (nrDofs > 1 && nrDofs <= 3) 
-      {
-        valsPerNode = 3;
-        dataCharac = 2;
-      } 
-    // Tensor
-    else if(nrDofs == 6) 
-      { 
-        valsPerNode = 6;
-        specDataCharac = 2;
-        dataCharac = 4; // symmetric tensor
-        //      dataCharac = 3; // vector with 6 components
-        //      dataCharac = 5; // unsymmetric tensor
-      }
-     
- 
-    (*output) << " " << title << " step" << std::setw(6) << step <<
-      " time   " << time << std::endl;  
-    (*output) << std::endl << std::endl << std::endl << std::endl;
-    (*output) << std::setw(10) << 1 << std::setw(10) << 4 << std::setw(10) 
-              << dataCharac  << std::setw(10) << specDataCharac
-              << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
-    (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 
-              << std::setw(10) <<
-      step << std::endl;
-    (*output) << " " << time << std::endl;       
-
-    UInt i,j,n;
-    n=nrNodes;;  
-    for (i=0; i<n; i++)
-      {
-     
-        (*output) << std::setw(10) << i+1;
-        if (dataSetNr == 56)
-          (*output) << std::setw(10) << valsPerNode;
-
-        (*output) << std::endl;
-     
-        // in the universal file either one or three results datas must exist
-        if (nrDofs == 2)
-          (*output) << std::setw(UNV_WIDTH) << 0.0;
-
-        for (j=0; j<nrDofs; j++)
-          {
-            //std::cerr << "trying to write " << i << ", " << j << std::endl;
-            (*output) << std::setw(UNV_WIDTH) << x[i*nrDofs +j];
-          }
-     
-        (*output) << std::endl;
-      }    
-    (*output) << std::setw(6) << -1 << std::endl;
+    //    EXCEPTION("NodeElemDataTransient not implemented!");
   }  
 
   void SimOutputCGNS::NodeElemDataHarmonic(const UInt dataSetNr,
@@ -336,155 +373,15 @@ namespace CoupledField {
                                                 const UInt nrNodes,
                                                 const UInt nrDofs)
   {
-  
-    UInt dataCharact = 1;
-    if (!ptGrid_)
-      EXCEPTION("ptGrid_ is not initialized" );
-
-    return;
-  
-    (*output) << std::setw(6) << -1 << std::endl 
-              << std::setw(6) << dataSetNr << std::endl;
-  
-    (*output).setf(std::ios::scientific);
-    (*output).precision(5);
-    (*output).setf(std::ios::uppercase);
-  
-    UInt valsPerNode = 1;
-    if (nrDofs > 1)
-      {
-        dataCharact = 2;
-        valsPerNode = 3;
-      }
- 
-
-    if (format == REAL_IMAG)
-      {
-        // write out realpart
-        (*output) << " " << title << " cw realpart" << std::setw(6) <<" frequency   " << frequency << std::endl;  
-        (*output) << std::endl << std::endl << std::endl << std::endl;
-        (*output) << std::setw(10) << 1 << std::setw(10) << 5 << std::setw(10) << dataCharact << std::setw(10) << 0
-                  << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
-        (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << -2 << std::setw(10) <<
-          step << std::endl;
-        (*output) << " " << frequency << std::endl;       
-      
-        UInt i,j,n;
-        n=nrNodes;
-        for (i=0; i<n; i++)
-          {
-            (*output) << std::setw(10) << i+1 << std::endl;
-          
-            // in the universal file either one or three results datas must exist
-            if (nrDofs == 2)
-              (*output) << std::setw(UNV_WIDTH) << 0.0;
-          
-            for (j=0; j<nrDofs; j++)
-              {
-                //std::cerr << "trying to write " << i << ", " << j << std::endl;
-                (*output) << std::setw(UNV_WIDTH) << x[i*nrDofs +j].real();
-              }
-          
-            (*output) << std::endl;
-          }    
-        (*output) << std::setw(6) << -1 << std::endl;
-
-        // write out imag part
-        (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 55 << std::endl;
-        (*output) << " " << title << " cw imagpart" << std::setw(6) <<" frequency   " << frequency << std::endl;  
-        (*output) << std::endl << std::endl << std::endl << std::endl;
-        (*output) << std::setw(10) << 1 << std::setw(10) << 5 << std::setw(10) << dataCharact << std::setw(10) << 0
-                  << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
-        (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << -12 << std::setw(10) <<
-          step << std::endl;
-        (*output) << " " << frequency << std::endl;       
-      
-        for (i=0; i<n; i++)
-          {
-            (*output) << std::setw(10) << i+1 << std::endl;
-          
-            // in the universal file either one or three results datas must exist
-            if (nrDofs == 2)
-              (*output) << std::setw(UNV_WIDTH) << 0.0;
-          
-            for (j=0; j<nrDofs; j++)
-              {
-                //std::cerr << "trying to write " << i << ", " << j << std::endl;
-                (*output) << std::setw(UNV_WIDTH) << x[i*nrDofs +j].imag();
-              }
-          
-            (*output) << std::endl;
-          }    
-        (*output) << std::setw(6) << -1 << std::endl;
-      }
-  
-    else if (format == AMPLITUDE_PHASE) {
-      // write out amplitude
-      (*output) << " " << title << " cw amplitude" << std::setw(6) <<" frequency   " << frequency << std::endl;  
-      (*output) << std::endl << std::endl << std::endl << std::endl;
-      (*output) << std::setw(10) << 1 << std::setw(10) << 5 << std::setw(10) << dataCharact << std::setw(10) << 0
-                << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
-      (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << -1 << std::setw(10) <<
-        step << std::endl;
-      (*output) << " " << frequency << std::endl;       
-    
-      UInt i,j,n;
-      n=nrNodes;
-      for (i=0; i<n; i++)
-        {
-          (*output) << std::setw(10) << i+1 << std::endl;
-        
-          // in the universal file either one or three results datas must exist
-          if (nrDofs == 2)
-            (*output) << std::setw(UNV_WIDTH) << 0.0;
-        
-          for (j=0; j<nrDofs; j++)
-            {
-              //std::cerr << "trying to write " << i << ", " << j << std::endl;
-              (*output) << std::setw(UNV_WIDTH) << std::abs(x[i*nrDofs +j]);
-            }
-        
-          (*output) << std::endl;
-        }    
-      (*output) << std::setw(6) << -1 << std::endl;
-    
-      // write out phase
-      (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 55 << std::endl;
-      (*output) << " " << title << " cw phase" << std::setw(6) <<" frequency   " << frequency << std::endl;  
-      (*output) << std::endl << std::endl << std::endl << std::endl;
-      (*output) << std::setw(10) << 1 << std::setw(10) << 5 << std::setw(10) << dataCharact << std::setw(10) << 0
-                << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
-      (*output) << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << -11 << std::setw(10) <<
-        step << std::endl;
-      (*output) << " " << frequency << std::endl;       
-    
-      for (i=0; i<n; i++)
-        {
-          (*output) << std::setw(10) << i+1 << std::endl;
-        
-          // in the universal file either one or three results datas must exist
-          if (nrDofs == 2)
-            (*output) << std::setw(UNV_WIDTH) << 0.0;
-        
-          for (j=0; j<nrDofs; j++)
-            {
-              if (abs(x[i*nrDofs +j].imag()) > 1e-16)
-                (*output) << std::setw(UNV_WIDTH) << CPhase(x[i*nrDofs +j]);
-              else 
-                (*output) << std::setw(UNV_WIDTH) << 0.0;
-            }
-        
-          (*output) << std::endl;
-        }    
-      (*output) << std::setw(6) << -1 << std::endl;
-    }
-  
+    //    EXCEPTION("NodeElemDataHarmonic not implemented!");
   }
 
   void SimOutputCGNS::Init(Grid * ptGrid, bool printGridOnly )
   {
     ptGrid_=ptGrid;
 
+    InitElemTypeMap();
+    
     // concatenate output file name
     try {
       fs::create_directory( dirName_ );

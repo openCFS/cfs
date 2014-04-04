@@ -812,10 +812,16 @@ namespace CoupledField{
     Integer fn = GetFileHandle(fileName_);
     
     cg_nsols(fn,1,1,&numsols);
+    if(!numsols){
+      cg_close(fn);
+      return;
+    }
+    
     LOG_TRACE(simInputCGNS) << "found " << numsols << " solutions" << std::endl;
     cg_sol_info(fn, 1, 1, numsols, solname , &solLocation );
     LOG_TRACE(simInputCGNS) << "found " << solname << " solution" << std::endl;
     if(solLocation != Vertex){
+      cg_close(fn);
       EXCEPTION("Solution is defined on the cell center.\n" <<
                 "Mapping to nodes not supported right now.");
     }

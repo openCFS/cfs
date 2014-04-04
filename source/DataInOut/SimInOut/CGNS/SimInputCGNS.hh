@@ -153,7 +153,6 @@ namespace CoupledField{
     void TranslateConnectivity(Elem::FEType feType,
                                cgsize_t* cgnsConn,
                                StdVector<UInt>& connect);
-
   };
 }
 
