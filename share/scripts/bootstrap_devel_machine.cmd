@@ -1,13 +1,14 @@
 @ECHO OFF
 
 ::============================================================================
-:: Set URL on CFS++ development server for bootstrap CMake script.
+:: Set URL on CFS++ development server for bootstrap CMake script and 
+:: the mirror directory for the packages.
 ::============================================================================
 set CFS_DEVEL_FTP_SERVER=ftp://lse17.e-technik.uni-erlangen.de:40065
 set BOOTSTRAP_CMAKE_SCRIPT=bootstrap_devel_machine_win.cmake
 set BOOTSTRAP_FTP_DIR=%CFS_DEVEL_FTP_SERVER%/scripts
 set BOOTSTRAP_DOWNLOAD_URL=%BOOTSTRAP_FTP_DIR%/%BOOTSTRAP_CMAKE_SCRIPT%
-set BOOTSTRAP_PCKG_MIRROR=%CFS_DEVEL_FTP_SERVER%/binaries/mingw_env/packages
+set BOOTSTRAP_PCKG_MIRROR=%CFS_DEVEL_FTP_SERVER%/binaries/mingw/win/packages
 
 ::============================================================================
 :: Set version and name for CMake executables.
@@ -19,7 +20,7 @@ set CMAKE_DIR=cmake-%CMAKE_MAJOR%.%CMAKE_MINOR%.%CMAKE_PATCH%.2-win32-x86
 set CMAKE_ZIP=%CMAKE_DIR%.zip
 
 ::============================================================================
-:: Define proxy settings
+:: Proxy settings, only if required...
 ::============================================================================
 :: set http_proxy=http://my.proxy.com:8080
 :: set https_proxy=%http_proxy%

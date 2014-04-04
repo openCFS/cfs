@@ -211,7 +211,20 @@ set CMAKE_DEFAULT_GENERATOR=MinGW Makefiles
 set CC=gcc
 set CXX=g++
 set FC=gfortran
+
 ")
+
+  # Account for proxy settings.
+  set(PROXY_VARS http_proxy https_proxy ftp_proxy
+    HTTP_PROXY HTTPS_PROXY FTP_PROXY)
+  foreach(PV IN ITEMS ${PROXY_VARS})
+    set(PROXY "$ENV{${PV}}")
+    if(NOT PROXY STREQUAL "")
+      set(PROXIES "${PROXIES}set ${PV}=${PROXY}\n")
+    endif()
+  endforeach()
+  set(MINGW_ENV_32 "${MINGW_ENV_32}${PROXIES}\n")
+
   set(MINGW_ENV_64 "${MINGW_ENV_32}")
 
   math(EXPR LEN_BIN_DIRS "${LEN_BIN_DIRS}-1")
