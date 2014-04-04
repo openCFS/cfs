@@ -318,6 +318,13 @@ IF(USE_CGAL AND USE_LIBFBI)
     "Either USE_CGAL or USE_LIBFBI can be actived, but not both!")
 ENDIF()
 
+#-----------------------------------------------------------------------------
+# Use FLANN toggles the inclusion of the FLANN library.
+#-----------------------------------------------------------------------------
+OPTION(USE_FLANN
+  "Enable support for FLANN - Fast Library for Approximate Nearest Neighbors."
+  ${USE_FLANN_DEFAULT})
+
 OPTION(DEBUG "Build debug version of the code." ${DEBUG_DEFAULT})
 OPTION(PROFILING "Turn on compiler profiling (DEBUG/RELEASE)." ${PROFILING_DEFAULT})
 OPTION(COVERAGE "Turn on code coverage output." ${COVERAGE_DEFAULT})

@@ -9,6 +9,7 @@ SET(CMAKE_OSX_ARCHITECTURES x86_64
 SET(OSX_DEVELOPER_ROOT "/opt/pckg/macosx_10.6_dev")
 
 SET(CMAKE_TOOLCHAIN_PREFIX "i686-apple-darwin10")
+SET(BUILD_PREFIX "x86_64-unknown-linux-gnu")
 
 SET(SDKROOT "/opt/pckg/macosx_10.6_dev/lib/apple/SDKs/MacOSX10.6.sdk")
 SET(CMAKE_OSX_SYSROOT "${SDKROOT}"

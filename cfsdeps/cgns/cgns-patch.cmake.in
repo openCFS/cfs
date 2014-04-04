@@ -7,19 +7,28 @@ SET(MINGW "@MINGW@")
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 SET(patches
+  # It should be possible to select .ccm* files from the cgnsview
+  # file open dialog.
   "cgnsview-ccmio.patch"
   "cgns-cmake-policy.patch"
   "cgns-install-target.patch"
-)
+  )
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
- SET(patches
-   ${patches}
-   "cgns-cmake-mac.patch"
-   "cgns-arch-mac.patch"
-   )
+  LIST(APPEND patches
+    "cgns-cmake-mac.patch"
+    "cgns-arch-mac.patch"
+    )
 ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
 LIST(APPEND patches "cgns-hdf5.patch")
+# Since we want to keep CGNS 2.55 and 3.13 side by side, we add
+# version numbers to the file names.
+LIST(APPEND patches "cgns-version-numbers-in-filenames.patch")
+
+IF(MINGW)
+  # MinGW needs two underscores for the declspec keyword.
+  LIST(APPEND patches "cgns-declspec-double-underscore.patch")
+ENDIF()
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/cgns")

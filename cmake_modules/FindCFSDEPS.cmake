@@ -91,8 +91,8 @@ INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/muparser/External_muParser.cmake")
 # Build zlib library
 #-------------------------------------------------------------------------------
 SET(ZLIB_URL "${LSE17_SOURCES_DIR}/zlib")
-SET(ZLIB_GZ "zlib-1.2.7.tar.gz")
-SET(ZLIB_MD5 "60df6a37c56e7c1366cca812414f7b85")
+SET(ZLIB_GZ "zlib-1.2.8.tar.gz")
+SET(ZLIB_MD5 "44d667c142d7cda120332623eab69f40")
 
 INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/zlib/External_zlib.cmake")
 
@@ -123,6 +123,9 @@ IF(USE_CGNS)
   SET(CGNS_URL "${LSE17_SOURCES_DIR}/cgns")
   SET(CGNS_GZ "cgnslib_3.1.3-2.tar.gz")
   SET(CGNS_MD5 "164040363bd821a5e22820487dc441b3")
+
+  SET(CGNS25_GZ "cgnslib_2.5-5.tar.gz")
+  SET(CGNS25_MD5 "ae2a2e79b99d41c63e5ed5f661f70fd9")
 
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cgns/External_CGNS.cmake")
 ENDIF(USE_CGNS)
@@ -382,8 +385,17 @@ IF(USE_LIBFBI)
   SET(LIBFBI_GZ "libfbi_for_cfs_gitrev_ee570e5e.tgz")
   SET(LIBFBI_MD5 "9484f3573450b20cadc262365eb74b7a")
 ENDIF(USE_LIBFBI)
-
 INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/spacepart/External_spacepart.cmake")
+
+#-----------------------------------------------------------------------------
+# FLANN - Fast Library for Approximate Nearest Neighbors
+#-----------------------------------------------------------------------------
+IF(USE_FLANN)
+  SET(FLANN_URL "${LSE17_SOURCES_DIR}/flann")
+  SET(FLANN_GZ "flann-1.8.4-src.zip")
+  SET(FLANN_MD5 "a0ecd46be2ee11a68d2a7d9c6b4ce701")
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/flann/External_FLANN.cmake")
+ENDIF(USE_FLANN)
 
 #-----------------------------------------------------------------------------
 # Find IPOPT

@@ -82,26 +82,6 @@
 #include <gidpost.h>
 #endif
 
-#ifdef USE_CGNS
-#include <cgnslib.h>
-// The NO_ERROR and NO_DATA symbols are defined in some windows headers
-// and conflict with ADF headers...
-#define CFS_DUMMY_NO_ERROR NO_ERROR
-#define CFS_DUMMY_NO_DATA NO_DATA
-#undef NO_ERROR
-#undef NO_DATA
-#include <adf/ADF.h>
-#if CGNS_VERSION > 2550
-#include <adfh/ADFH.h>
-#endif
-#undef NO_ERROR
-#undef NO_DATA
-#define NO_ERROR CFS_DUMMY_NO_ERROR
-#define NO_DATA CFS_DUMMY_NO_DATA
-#undef CFS_DUMMY_NO_ERROR
-#undef CFS_DUMMY_NO_DATA
-#endif
-
 #ifdef USE_CCMIO
 #include <libccmio/ccmioversion.h>
 #endif
@@ -854,28 +834,6 @@ namespace CoupledField {
 #ifdef USE_CGNS
     out << "USE_CGNS:              "
         << fg_blue << "YES" << fg_reset << endl;
-    out << "CGNS_VERSION:          "
-        << fg_blue << (CGNS_VERSION/1000) 
-        << "." << ((CGNS_VERSION%1000)/100)
-        << ((CGNS_VERSION%100)/10)
-        << fg_reset << endl;
-#if defined(CGNS_COMPATVERSION)
-    out << "CGNS_COMPATVERSION:    "
-        << fg_blue << (CGNS_COMPATVERSION/1000) 
-        << "." << ((CGNS_COMPATVERSION%1000)/100)
-        << ((CGNS_COMPATVERSION%100)/10)
-        << fg_reset << endl;
-#endif
-    char version[1024];
-    int error_return = 0;
-    ADF_Library_Version(version, &error_return ) ;
-    out << "ADF_VERSION:           "
-        << fg_blue << version << fg_reset << endl;
-#if CGNS_VERSION > 2550
-    ADFH_Library_Version(version, &error_return ) ;
-    out << "ADFH_VERSION:          "
-        << fg_blue << version << fg_reset << endl;
-#endif
 #else
     out << "USE_CGNS:              "
         << fg_blue << "NO" << fg_reset << endl;

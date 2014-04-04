@@ -1,34 +1,37 @@
 #-------------------------------------------------------------------------------
-# A Massively Spiffy Yet Delicately Unobtrusive Compression Library
-# Needed by Botan, HDF5 and libxml2.
+# FLANN - Fast Library for Approximate Nearest Neighbors
+# 
+# Needed as a BSD-licensed alternative to CGAL for finding nearest neighbors
+# in CoefFunctionScatteredData.
 #
 # Project Homepage
-# http://www.zlib.net/
+# http://www.cs.ubc.ca/research/flann/
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-# Set prefix path and path to zlib sources according to ExternalProject.cmake 
+# Set prefix path and path to flann sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
-set(zlib_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/zlib")
-set(zlib_source  "${zlib_prefix}/src/zlib")
-set(zlib_install  "${CMAKE_CURRENT_BINARY_DIR}")
+set(flann_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/flann")
+set(flann_source  "${flann_prefix}/src/flann")
+set(flann_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/zlib/zlib-patch.cmake.in")
-SET(PFN "${zlib_prefix}/zlib-patch.cmake")
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/flann/flann-patch.cmake.in")
+SET(PFN "${flann_prefix}/flann-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
 # Set common CMake arguments
 #-------------------------------------------------------------------------------
 SET(CMAKE_ARGS
-  -DCMAKE_INSTALL_PREFIX:PATH=${zlib_install}
+  -DCMAKE_INSTALL_PREFIX:PATH=${flann_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-  -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}
+  -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
+  -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
+  -DUSE_OPENMP:BOOL=${USE_OPENMP}
 )
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
@@ -45,17 +48,11 @@ IF(CMAKE_TOOLCHAIN_FILE)
   )
 ENDIF()
 
-IF(MINGW)
-  LIST(APPEND CMAKE_ARGS
-    -DCFS_ARCH:STRING=${CFS_ARCH}
-  )
-ENDIF()
-
 #-------------------------------------------------------------------------------
 # Set names of patch file and template file.
 #-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/zlib/zlib-patch.cmake.in")
-SET(PFN "${zlib_prefix}/zlib-patch.cmake")
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/flann/flann-patch.cmake.in")
+SET(PFN "${flann_prefix}/flann-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
@@ -66,14 +63,15 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "ftp://ftp.pl.pgpi.org/vol/rzm1/GraphicsMagick/delegates/zlib-1.2.8.tar.gz"
-  "ftp://ftp.uwsg.indiana.edu/linux/gentoo/distfiles/zlib-1.2.8.tar.gz"
-  "${ZLIB_URL}/${ZLIB_GZ}"
+  "http://distfiles.macports.org/flann/flann-1.8.4-src.zip"
+  "http://pkgs.fedoraproject.org/repo/pkgs/flann/flann-1.8.4-src.zip/a0ecd46be2ee11a68d2a7d9c6b4ce701/flann-1.8.4-src.zip"
+  "http://www.cs.ubc.ca/research/flann/uploads/FLANN/flann-1.8.4-src.zip"
+  "${FLANN_URL}/${FLANN_GZ}"
 )
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/zlib/${ZLIB_GZ}")
-SET(MD5_SUM ${ZLIB_MD5})
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/flann/${FLANN_GZ}")
+SET(MD5_SUM ${FLANN_MD5})
 
-SET(DLFN "${zlib_prefix}/zlib-download.cmake")
+SET(DLFN "${flann_prefix}/flann-download.cmake")
 CONFIGURE_FILE(
   "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
   "${DLFN}"
@@ -81,27 +79,32 @@ CONFIGURE_FILE(
   )
 
 #-------------------------------------------------------------------------------
-# The zlib external project
+# The flann external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add(zlib
-  PREFIX ${zlib_prefix}
-  SOURCE_DIR ${zlib_source}
+ExternalProject_Add(flann
+  PREFIX ${flann_prefix}
+  SOURCE_DIR ${flann_source}
   URL ${LOCAL_FILE}
-  URL_MD5 ${ZLIB_MD5}
+  URL_MD5 ${FLANN_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   CMAKE_ARGS
     ${CMAKE_ARGS}
+    -DBUILD_CUDA_LIB:BOOL=OFF
+    -DBUILD_C_BINDINGS=OFF
+    -DBUILD_MATLAB_BINDINGS=OFF
+    -DBUILD_PYTHON_BINDINGS=OFF
+    -DPYTHON_EXECUTABLE=PYTHON_EXECUTABLE_NOTFOUND
 )
 
 #-------------------------------------------------------------------------------
 # Add custom download step to be able to download from a list of mirrors
 # instead of just a single URL.
 #-------------------------------------------------------------------------------
-ExternalProject_Add_Step(zlib cfsdeps_download
+ExternalProject_Add_Step(flann cfsdeps_download
    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
    DEPENDERS download
    DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${zlib_prefix}
+   WORKING_DIRECTORY ${flann_prefix}
 )
 
 #-------------------------------------------------------------------------------
@@ -109,33 +112,36 @@ ExternalProject_Add_Step(zlib cfsdeps_download
 #-------------------------------------------------------------------------------
 SET(CFSDEPS
   ${CFSDEPS}
-  zlib
+  flann
 )
 
+IF(0)
+
 IF(MINGW)
-  SET(ZLIB_LIB zlibstatic)
-  SET(ZLIB_SHARED_LIB zlib)
+  SET(FLANN_LIB flannstatic)
+  SET(FLANN_SHARED_LIB flann)
 ELSE(MINGW)
   IF(UNIX)
-    SET(ZLIB_LIB z)
-    SET(ZLIB_SHARED_LIB z)
+    SET(FLANN_LIB z)
+    SET(FLANN_SHARED_LIB z)
   ELSE(UNIX)
-    SET(ZLIB_LIB zlibstatic)
-    SET(ZLIB_SHARED_LIB zlib)
+    SET(FLANN_LIB flannstatic)
+    SET(FLANN_SHARED_LIB flann)
     IF(DEBUG)
-      SET(ZLIB_LIB "${ZLIB_LIB}d")
-      SET(ZLIB_SHARED_LIB "${ZLIB_SHARED_LIB}d")
+      SET(FLANN_LIB "${FLANN_LIB}d")
+      SET(FLANN_SHARED_LIB "${FLANN_SHARED_LIB}d")
     ENDIF()
   ENDIF(UNIX)
 ENDIF(MINGW)
 
-SET(ZLIB_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${ZLIB_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX} CACHE FILEPATH "zlib library")
-SET(ZLIB_SHARED_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${ZLIB_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
+SET(FLANN_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${FLANN_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX} CACHE FILEPATH "flann library")
+SET(FLANN_SHARED_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${FLANN_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
 IF(MINGW)
-  SET(ZLIB_SHARED_LIBRARY "${ZLIB_SHARED_LIBRARY}.a")
+  SET(FLANN_SHARED_LIBRARY "${FLANN_SHARED_LIBRARY}.a")
 ENDIF(MINGW)
-SET(ZLIB_SHARED_LIBRARY ${ZLIB_SHARED_LIBRARY} CACHE FILEPATH "zlib shared library")
-SET(ZLIB_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "zlib include directory")
+SET(FLANN_SHARED_LIBRARY ${FLANN_SHARED_LIBRARY} CACHE FILEPATH "flann shared library")
+SET(FLANN_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "flann include directory")
 
-MARK_AS_ADVANCED(ZLIB_LIBRARY)
-MARK_AS_ADVANCED(ZLIB_INCLUDE_DIR)
+MARK_AS_ADVANCED(FLANN_LIBRARY)
+MARK_AS_ADVANCED(FLANN_INCLUDE_DIR)
+ENDIF(0)

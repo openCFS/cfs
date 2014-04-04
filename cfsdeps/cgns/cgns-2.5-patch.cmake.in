@@ -1,0 +1,17 @@
+set(cgns25_source  "@cgns25_source@")
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
+SET(CFS_DISTRO "@CFS_DISTRO@")
+SET(MINGW "@MINGW@")
+
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+#=============================================================================
+# Copy some sources over to source directory.
+#=============================================================================
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND}
+  -E copy_if_different
+  "${CFS_SOURCE_DIR}/cfsdeps/cgns/CMakeLists_v2.5.txt"
+  "${cgns25_source}/CMakeLists.txt"
+)
