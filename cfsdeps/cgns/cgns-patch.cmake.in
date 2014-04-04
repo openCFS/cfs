@@ -21,6 +21,11 @@ SET(patches
   # an .uns file. We now split paths using the TCL split function 
   # with just slashes as split characters.
   "cgnstools-tree-file2.patch"
+
+  # Allow the specification of relative paths to a CGNS file on the
+  # command line of cgnsview and cgnsplot by generating an absolute
+  # path internally.
+  "cgnstools-allow-relpaths-on-cmdline.patch"
   )
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
