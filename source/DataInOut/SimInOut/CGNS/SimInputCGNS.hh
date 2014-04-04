@@ -51,8 +51,7 @@ namespace CoupledField{
     virtual UInt GetNumElems(Integer)
     { EXCEPTION("Not implemented!"); }
 
-    virtual UInt GetNumRegions()
-    { EXCEPTION("Not implemented!"); }
+    virtual UInt GetNumRegions() { return numRegions_; }
 
     virtual UInt GetNumNamedNodes()
     { EXCEPTION("Not implemented!"); }
@@ -79,14 +78,6 @@ namespace CoupledField{
                                  const UInt timeStepIdx);
 
     virtual Double GetTimeStep(UInt stepNumber);
-    
-    virtual std::string GetRegionName(const UInt partitionIdx);
-    
-    //! get user data from file reader
-    virtual void GetUserData(std::map<std::string, std::string>& userData);
-    
-    virtual void GetRegionElements(std::vector<UInt> & regionElements,
-                                   const UInt regionIdx);
  #endif
     
   protected:
@@ -94,29 +85,14 @@ namespace CoupledField{
     UInt numVertices_;
     std::map<Double, std::string>  fileNames_;
     std::string fileDir_;
-    bool gridInitialized_;
-    //storing the coordinates
-    StdVector< Vector<Double> > nodeCoords_;
     std::map<CGNSLIB_H::ElementType_t,Elem::FEType> elemTypeMap_;
-    std::map<Integer,std::string> regionIndexToNameMap_;
-    //std::map<Integer,Elem::FEType > elemTypeToRegionMap_;
-    std::map<Integer,std::set<UInt> > nodesPerRegionMap_;
  
     //! Number of regions
     UInt numRegions_;
 
-    // Save number of  nodes and elems per region in first  time step to check
-    // whether the mesh changes with time, since we do not support that at the
-    // moment.
-    std::vector<UInt> numNodesPerRegion_;
-    std::vector<UInt> numElemsPerRegion_;
-
     //! Number of time steps
     UInt numSteps_;
    
-    // Maximum number of nodes per element
-    UInt maxNumElemNodes_;
-
     //! Dimension of the cells; 3 for volume cells, 2 for surface cells and 1
     //! for line cells. 
     Integer dim_;

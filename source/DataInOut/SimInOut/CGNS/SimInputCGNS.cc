@@ -43,14 +43,12 @@ namespace CoupledField{
                               PtrParamNode infoNode ) :
     SimInput(fileName, inputNode, infoNode ),
     numElems_(0),
-    maxNumElemNodes_(27),
+    numRegions_(0),
     dim_(0),
     physDim_(0)
   {
     capabilities_.insert( SimInput::MESH );
     //    capabilities_.insert( SimInput::MESH_RESULTS );
-
-    gridInitialized_ = false;
   }
   
   SimInputCGNS::~SimInputCGNS(){
@@ -403,35 +401,6 @@ namespace CoupledField{
     }
     return -1;
   }
-
-
-  std::string SimInputCGNS::GetRegionName(const UInt partitionIdx){
-    std::map<Integer,std::string>::iterator rIter = regionIndexToNameMap_.find(partitionIdx+1);
-    if(rIter == regionIndexToNameMap_.end()){
-      std::cout << "requested unknown region index " << partitionIdx << "... going to exit" << std::endl;
-      exit(1);
-    }
-
-    return rIter->second;
-  }
-  
-  //! get user data from file reader
-  void SimInputCGNS::GetUserData(std::map<std::string, std::string>& userData){
-  }
-  
-  void SimInputCGNS::GetRegionElements(std::vector<UInt> & regionElements,
-                                          const UInt regionIdx){
-    std::map<Integer,StdVector<CGNSElem> >::iterator mIter = elemRegionMap_.find(regionIdx+1);
-    if(mIter == elemRegionMap_.end()){
-      std::cout << "requested unknown region index while getting elmeents... going to exit" << std::endl;
-      exit(1);
-    }
-    UInt numElems = mIter->second.GetSize();
-    regionElements.resize(numElems);
-    for(UInt iElem = 0; iElem < numElems; iElem++){
-      regionElements[iElem] = mIter->second[iElem].elemNum;
-    }
-  }
 #endif
 
   void SimInputCGNS::ReadCGNSDirectory(std::string dirname, std::map<Double, std::string> & fileNames){
@@ -675,10 +644,13 @@ namespace CoupledField{
     //==================================================================
     cgsize_t range_min[3] = {1,1,1};
     cgsize_t range_max[3] = {numVertices_,1,1};
+
+    //storing the coordinates
+    StdVector< Vector<Double> > nodeCoords;
     
-    nodeCoords_.Resize(numVertices_);
+    nodeCoords.Resize(numVertices_);
     for(UInt j = 0; j<numVertices_; j++){
-      nodeCoords_[j].Resize(dim_);
+      nodeCoords[j].Resize(dim_);
     }      
 
     Double * curCoord = new Double[numVertices_];
@@ -691,7 +663,7 @@ namespace CoupledField{
       cg_coord_read(fileHandle, 1, 1, curCoordName, RealDouble , range_min, range_max, (void*)curCoord );
       
       for(UInt j = 0; j<numVertices_; j++){
-        nodeCoords_[j][idx] = curCoord[j];
+        nodeCoords[j][idx] = curCoord[j];
       }      
     }
     delete [] curCoord;
@@ -699,7 +671,7 @@ namespace CoupledField{
     // Add nodes to grid
     mi_->AddNodes(numVertices_);
     for(UInt i = 0; i<numVertices_; i++){
-      mi_->SetNodeCoordinate( i+1, nodeCoords_[i] );
+      mi_->SetNodeCoordinate( i+1, nodeCoords[i] );
     }
 
     //==================================================================
@@ -870,6 +842,8 @@ namespace CoupledField{
                 "specified dimension!\nDimension of grid is " << dim_ <<
                 " and elements in region are of dimension " << elemDim << ".");
     }
+
+    numRegions_++;
   }
   
 
