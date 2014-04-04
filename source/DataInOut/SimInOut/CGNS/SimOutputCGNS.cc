@@ -11,8 +11,10 @@
 namespace fs = boost::filesystem;
 
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "DataInOut/ProgramOptions.hh"
 
 #include "SimOutputCGNS.hh"
+
 
 namespace CoupledField {
 
@@ -797,6 +799,19 @@ namespace CoupledField {
     stepValOffset_ = actStepVal_;
   }
 
+  void SimOutputCGNS::Finalize() {
+    // return, if no commandLine handler or
+    // global root ParaemNode are present
+    if( !progOpts || !myParam_ )
+      return;
+
+    std::string paramFile = progOpts->GetParamFileStr();
+    std::string matFile = myParam_->GetRoot()->Get("fileFormats")
+                          ->Get("materialData")
+                          ->Get("file")->As<std::string>();
+    WriteXmlFiles(paramFile, matFile);
+  }
+  
   void SimOutputCGNS::FillRegionSols(RegionSolsType& regionSols, 
                                      const StdVector<shared_ptr<BaseResult> > & solList,
                                      ResultInfo::EntityUnknownType entityType ) {
@@ -1015,4 +1030,45 @@ namespace CoupledField {
     }
   }
 
+  void SimOutputCGNS::WriteXmlFiles( fs::path simFile, fs::path matFile ) {
+    if( isRestart_)
+          return;
+
+    for(UInt idx = 0; idx < 2; idx++) 
+    {
+      cg_goto(indexFile_[idx], indexBase_[idx], "end");
+      
+      fs::ifstream fin;
+      std::ostringstream dumpStr;
+      
+      // open external Files
+      StdVector<fs::path> filePaths(2);
+      StdVector<std::string> setNames(2);
+      filePaths[0] = simFile;
+      setNames[0] = "ParameterFile";
+      filePaths[1] = matFile;
+      setNames[1] = "MaterialFile";
+      
+      for(UInt i=0; i<filePaths.GetSize(); i++)
+      {
+        fin.open( filePaths[i], std::ios::binary );
+        
+        if(fin.fail())
+          EXCEPTION("Cannot open file '" << filePaths[i]
+                    <<"' to dump into HDF5!");
+        
+        // seek to the end of the file
+        fin.seekg (0, std::ios::end);
+        UInt numBytes = fin.tellg();
+        fin.seekg (0, std::ios::beg);
+        
+        std::string str;
+        str.resize(numBytes);
+        fin.read(&str[0], numBytes);
+        fin.close();
+        
+        cg_descriptor_write(setNames[i].c_str(), str.c_str());
+      }
+    }
+  }
 } // namespace CoupledField

@@ -11,6 +11,8 @@
 
 #include <cgnslib.h>
 
+namespace fs = boost::filesystem;
+
 #if CGNS_VERSION < 3100
 # define cgsize_t int
 #else
@@ -111,6 +113,9 @@ namespace CoupledField
     //! Finish multisequence step
     void FinishMultiSequenceStep( );
 
+    //! Finalize the output
+    virtual void Finalize();
+
   private:
 
     void WriteNodesAndElements(UInt baseIdx);
@@ -168,6 +173,9 @@ namespace CoupledField
     void FillRegionSols(RegionSolsType& regionSols, 
                         const StdVector<shared_ptr<BaseResult> > & solList,
                         ResultInfo::EntityUnknownType entityType );
+
+    //! Write parameter and xml file
+    void WriteXmlFiles( fs::path simFile, fs::path matFile );
 
   };
 
