@@ -168,6 +168,7 @@ set(paraview_sb_source  "${paraview_sb_prefix}/src/paraview-superbuild")
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${paraview_sb_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
@@ -178,23 +179,34 @@ SET(CMAKE_ARGS
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
   -DCFS_DEPS_CACHE_DIR:PATH=${CFS_DEPS_CACHE_DIR}
   -DCFS_SOURCE_DIR:PATH=${CFS_SOURCE_DIR}
-  -DENABLE_boost:BOOL=ON
+  -DENABLE_boost:BOOL=OFF
   -DENABLE_ffmpeg:BOOL=ON
   -DENABLE_fontconfig:BOOL=ON
   -DENABLE_freetype:BOOL=ON
-  -DENABLE_hdf5:BOOL=ON
-  -DENABLE_cgns:BOOL=ON
+  -DENABLE_hdf5:BOOL=OFF
+  -DENABLE_cgns:BOOL=OFF
   -DENABLE_visitbridge:BOOL=ON
   -DENABLE_libxml2:BOOL=ON
   -DENABLE_paraview:BOOL=ON
   -DENABLE_png:BOOL=ON
   -DENABLE_szip:BOOL=ON
-  -DENABLE_zlib:BOOL=ON
+  -DENABLE_zlib:BOOL=OFF
   -DENABLE_qt:BOOL=ON
   -DUSE_SYSTEM_qt=ON
   -DQT_QMAKE_EXECUTABLE:FILEPATH=${QT_QMAKE_EXECUTABLE}
   -DENABLE_python:BOOL=ON
   -DUSE_SYSTEM_python=ON
+  -DBoost_DIR:PATH=Boost_DIR_NOTFOUND
+  -DBoost_INCLUDE_DIR:PATH=${Boost_INCLUDE_DIR}
+  -DBoost_LIBRARY_DIRS:STRING=${Boost_LIBRARY_DIR}
+  -DCGNS_INCLUDE_DIR:PATH=${CGNS_INCLUDE_DIR}
+  -DCGNS_LIBRARY:FILEPATH=${CGNS_SHARED_LIBRARY}
+  -DHDF5_CXX_LIBRARY:FILEPATH=${HDF5_CPP_SHARED_LIBRARY}
+  -DHDF5_C_LIBRARY:FILEPATH=${HDF5_SHARED_LIBRARY}
+  -DHDF5_DIR:PATH=${CFS_BINARY_DIR}/share/cmake/hdf5
+  -DHDF5_HL_LIBRARY:FILEPATH=${HDF5_LT_SHARED_LIBRARY}
+  -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
+  -DZLIB_LIBRARY:FILEPATH=${ZLIB_SHARED_LIBRARY}
   )
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
@@ -223,10 +235,17 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 Find_Package(Git)
 
+LIST(APPEND CFS_PV_DEPENDENCIES
+  hdf5-shared
+  cgns31
+  boost
+  zlib
+  )
+
 #-------------------------------------------------------------------------------
 # The paraview-superbuild external project
 #-------------------------------------------------------------------------------
-IF(0)#GIT_FOUND)
+IF(GIT_FOUND)
   # Clone Git repo for ParaView Superbuild 4.1.
   ExternalProject_Add(paraview-superbuild
     DEPENDS ${CFS_PV_DEPENDENCIES}

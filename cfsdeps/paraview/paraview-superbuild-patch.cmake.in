@@ -8,9 +8,12 @@
 # Set global variables, configured from the external build.
 #=============================================================================
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
 SET(pv_sb_cfsdeps_srcdir 
   "${CFS_SOURCE_DIR}/cfsdeps/paraview/paraview-superbuild-srcdir")
 SET(paraview_sb_source "@paraview_sb_source@")
+SET(LIB_SUFFIX "@LIB_SUFFIX@")
+SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
 
 #=============================================================================
 # Include some convenient macros (e.g. for applying patches).
@@ -25,4 +28,23 @@ EXECUTE_PROCESS(
   -E copy_directory
   "${pv_sb_cfsdeps_srcdir}"
   "${paraview_sb_source}"
+  RESULT_VARIABLE RETVAL
 )
+
+IF(NOT RETVAL EQUAL 0) 
+  MESSAGE(FATAL_ERROR
+    "A problem occurred while trying to copy paraview-superbuild-srcdir: ${RETVAL}")
+ENDIF()
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND}
+  -E copy_directory
+  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+  "${paraview_sb_source}-build/install"
+  RESULT_VARIABLE RETVAL
+)
+
+IF(NOT RETVAL EQUAL 0) 
+  MESSAGE(FATAL_ERROR
+    "A problem occurred while trying to copy libraries to Superbuild build dir: ${RETVAL}")
+ENDIF()

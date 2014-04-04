@@ -20,5 +20,10 @@ EXECUTE_PROCESS(
   -E copy_directory
   "${PV_CFSDEPS_SRCDIR}"
   "${PV_SOURCE_DIR}"
+  RESULT_VARIABLE RETVAL
 )
 
+IF(NOT RETVAL EQUAL 0) 
+  MESSAGE(FATAL_ERROR
+    "A problem occurred while trying to copy paraview-srcdir: ${RETVAL}")
+ENDIF()

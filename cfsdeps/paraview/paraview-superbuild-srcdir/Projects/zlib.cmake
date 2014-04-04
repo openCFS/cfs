@@ -6,6 +6,7 @@ add_external_project_or_use_system(
   PATCH_COMMAND ${CMAKE_COMMAND} -E remove -f <SOURCE_DIR>/zconf.h
   CMAKE_ARGS
     -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
+    -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
   )
 #-------------------------------------------------------
 # zlib needs a fix for '--version-script' linker option. The option needs to be
