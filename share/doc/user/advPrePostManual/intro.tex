@@ -3,20 +3,9 @@
 This chapter introduces the interaction between CFS++ and a number of pre- and
 postprocessing packages.
 
-Scientific Visualization Artist Tools \url{http://svat.sourceforge.net/}.
+\section{Simulation Data Formats}
 
-\section{Software Landscape}
-
-\begin{figure}[htp]
-  \begin{center}
-    \includegraphics[width=\textwidth]{pics/soft_landscape} 
-  \end{center}
-  \caption{Software landscape for CFS++.}
-  \label{fig:cfs_soft_landscape}
-\end{figure}
-
-\subsection{CFS++/NACS HDF5 (.h5) and XDMF2 (.xmf) Files}
-
+\subsection{CFS++/NACS Native HDF5 Files}
 
 \subsubsection{HDF5} The  internal data structures and  temporal succession of
 operations  in CFS++ are  most closely  matched by  a hierarchical  data model
@@ -25,17 +14,18 @@ hierarchical structure of a HDF5 file.  A number of plugins and extensions for
 external codes provide  interfaces to pre- as well  as postprocessors.
 
  HDF5 is  used as format for  input and output due  to the fact, that  it is a
-mature standard. The investigation of  the mesh and therefore visual debugging
-before the actual  simulation is possible.  This feature  is especially useful
-for  checking the results  of the  intersection calculation  step of  a Mortar
-coupled simulation.  The  output of a simulation run can be  used as input for
-next simulation,  enabling decoupled simulations.   This can be  necessary for
-the  investigation  of  intermediate  result  (esp.   in  aeroacoustics)  HDF5
-provides   tested   interoperability   with   other   packages   (Matlab   via
-h5read/h5write, Octave  via save -hdf5, Mathematica  via Import/Export, Python
-via h5py\footnote{h5py  web site: \url{http://h5py.alfven.org/}},  etc). There
-exist also a number of command  line utilities for querying and modifying HDF5
-files. For a broader overview cf. Sec. \ref{sec:intro_hdf5tools}.
+ mature standard. The investigation of the mesh and therefore visual debugging
+ before the actual simulation is  possible.  This feature is especially useful
+ for checking  the results of  the intersection  calculation step of  a Mortar
+ coupled simulation.  The output of a simulation  run can be used as input for
+ next simulation, enabling  decoupled simulations.  This can  be necessary for
+ the  investigation  of  intermediate  result (esp.   in  aeroacoustics)  HDF5
+ provides   tested   interoperability   with  other   packages   (Matlab   via
+ h5read/h5write, Octave  via {\tt save -hdf5},  Mathematica via Import/Export,
+ Python  via  h5py\footnote{h5py   web  site:  \url{http://h5py.alfven.org/}},
+ etc). There  exist also a number  of command line utilities  for querying and
+ modifying       HDF5      files.       For      a       broader      overview
+ cf. Sec. \ref{sec:intro_hdf5tools}.
 
  Meshes can also  be loaded partially and a global  compuational mesh in CFS++
 can be combined from a number HDF5 mesh  files.  A plugin in the form of a VTK
@@ -51,13 +41,15 @@ the following codes (cf. Fig. \ref{fig:hdf5_xdmf_io}).
 \begin{figure}[htb] 
   \centering 
   \includegraphics[scale=0.8]{pics/hdf5/hdf5_io}
-  \caption{Options for HDF5 and XDMF2 data I/O.}
+  \caption{Options for HDF5 data I/O.}
   \label{fig:hdf5_xdmf_io}
 \end{figure}
 
 
 \subsubsection{XDMF}
-As stated in the abstract of  \cite{Clarke2007}
+In previous versions  of CFS++ we wrapped  our HDF5 format also  into the XDMF
+format to make  changes inside the HDF5 hierarchy transparent  to ParaView and
+VisIt. The abstract of \cite{Clarke2007} states:
 
 \emph{The extensible data model and format (XDMF) is an active common data hub
 used to  pass meta data and  values between application modules  in a standard
@@ -66,17 +58,6 @@ heavy data.  Light  data is both meta data and small  amounts of values. Heavy
 data  typically consists  of  large arrays  of  values.  Support  for XDMF  is
 included in the widely used visualization package ParaView\dots}
 
-The customized HDF5 data model of CFS++ therefore perfectly fits into the more
-general XDMF \cite{Clarke2002,  Clarke2007, XDMFWebsite} model, which consists
-of slim XML files for describing the structure of the finite element model and
-HDF5 files which carry the  large data structures (geometry, mesh, field data,
-etc.). This way it is possible to  tune the CFS++ HDF5 format according to the
-internal structures within  the program but make the  produced data consumable
-by other codes  like ParaView or VisIt (cf.  Sec. \ref{sec:intro_visit}).  The
-XDMF format enjoys also growing support in the aforementioned codes, making it
-possible  to   use  very  large  files  beyound   four  gigabytes,  on-the-fly
-visualization and parallel I/O (cf.  \cite{hpcforgeWebsite}).
-
 Other  advantages  according  to  \cite{ParaViewXdmf}  include,  that  derived
 quantities can  be calculated and added  lightly to the data  model.  The Xdmf
 model  can reference multiple  HDF5 files.   Each node  of a  running parallel
@@ -84,6 +65,19 @@ simulation  can  write  its  own  HDF5  datafile while  an  Xdmf  wrapper  can
 concatenate  all pieces.   In transient  simulations the  geometry  can remain
 fixed  while  being shared  with  lightweight  links.  The XDMF  library  also
 includes converters to the older EXODUS II FEM data model \cite{Schoof1994}.
+
+The disadvantage of XDMF was however, that it did not cover the broad range of
+features of  the HDF5 standard completely  and therefore one did  not have the
+full freedom to change the HDF5  hierarchy. Another disadvantage was, that one
+had  to spend  a  lot of  time  to write  a wrapper  around  an existing  HDF5
+hierarchy,  which could  have been  spent  more productively,  to implement  a
+reader plugin  using the HDF5  API with full flexibility  rightaway. Moreover,
+the development  of the XDMF format  seems to have ceased  in 2010. Therefore,
+the support for XDMF has been  dropped from CFS++.  For further information on
+XDMF\footnote{XDMF                                                    website:
+  \url{http://www.xdmf.org/index.php/Main_Page}\\Using  XDMF   to  read  HDF5:
+  \url{http://www.visitusers.org/index.php?title=Using_XDMF_to_read_HDF5}}
+please refer to \cite{Clarke2002, Clarke2007, XDMFWebsite, hpcforgeWebsite}.
 
 
 \subsection{ANSYS Result Files (.rst)}
@@ -983,7 +977,7 @@ is  developed at  Lawrence  Livermore National  Laboratories.
 
 \begin{figure}[htb]
   \centering
-  \begin{overpic}[width=0.5\textwidth]{pics/visit}
+  \begin{overpic}[width=0.75\textwidth]{pics/visit}
 %    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
   \end{overpic}
   \caption{Postprocessing the electrostatic man with VisIt}

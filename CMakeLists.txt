@@ -639,7 +639,6 @@ ADD_SUBDIRECTORY(source/DataInOut/SimInOut/RefElems)
 
 IF(USE_HDF5)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/hdf5)
-  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/xdmf)
 ENDIF(USE_HDF5)
 
 IF(USE_GIDPOST)

@@ -47,8 +47,6 @@ namespace fs = boost::filesystem;
 #ifdef USE_HDF5
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
-
-#include "DataInOut/SimInOut/xdmf/SimOutputXDMF.hh"
 #endif
 
 #include "DataInOut/SimInOut/RefElems/SimInputRefElems.hh"
@@ -377,29 +375,6 @@ namespace CFSTool {
                                                           info, restart ) );
 #else
       EXCEPTION( "No support for HDF5 output file format." );
-#endif
-    } else if(fileName.find( ".xmf") != std::string::npos) {
-#ifdef USE_HDF5
-      baseName = std::string(fileName, 0, fileName.find(".xmf"));
-      PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
-      eFiles->SetName("externalFiles");
-      eFiles->SetValue( "false" );
-
-      if(outputNode->Has("xdmf")) {
-        writerNode = outputNode->Get("xdmf");
-        if(!writerNode->Has("externalFiles")) {
-          writerNode->AddChildNode( eFiles );
-        } 
-      } else {
-        writerNode = PtrParamNode(new ParamNode());
-        writerNode->SetName("xdmf");
-        writerNode->AddChildNode( eFiles );
-      }
-
-      writer =  shared_ptr<SimOutput>( new SimOutputXDMF( baseName, writerNode, 
-                                                          info, restart ) );
-#else
-      EXCEPTION( "No support for HDF5 output file format. Cannot write XDMF files." );
 #endif
     } else if(fileName.find( ".rst") != std::string::npos) {
 #ifdef USE_ANSYSRST

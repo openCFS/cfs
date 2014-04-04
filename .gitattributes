@@ -741,7 +741,6 @@ share/doc/user/advPrePostManual/pics/ansys_pml3d_real.png -text svneol=unset#ima
 share/doc/user/advPrePostManual/pics/ansys_trans_pyras.png -text svneol=unset#image/png
 share/doc/user/advPrePostManual/pics/cfdpost.png -text
 share/doc/user/advPrePostManual/pics/cfx_gmsh_man_model.png -text svneol=unset#image/png
-share/doc/user/advPrePostManual/pics/cgns/cgns_io.dia -text
 share/doc/user/advPrePostManual/pics/cgns/cgns_io.dot -text
 share/doc/user/advPrePostManual/pics/cgns/cgns_io.pdf -text
 share/doc/user/advPrePostManual/pics/cgns/cgns_io.svg -text
@@ -1284,9 +1283,6 @@ source/DataInOut/SimInOut/hdf5/hdf5io.hh svneol=native#text/plain
 source/DataInOut/SimInOut/internalMesh/CMakeLists.txt -text
 source/DataInOut/SimInOut/internalMesh/InternalMesh.cc -text
 source/DataInOut/SimInOut/internalMesh/InternalMesh.hh -text
-source/DataInOut/SimInOut/xdmf/CMakeLists.txt -text
-source/DataInOut/SimInOut/xdmf/SimOutputXDMF.cc -text
-source/DataInOut/SimInOut/xdmf/SimOutputXDMF.hh -text
 source/DataInOut/SimInput.cc -text
 source/DataInOut/SimInput.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimOutput.cc svneol=native#text/x-c%2B%2Bsrc
