@@ -385,7 +385,7 @@ namespace CoupledField{
     // READ IN COORDINATES
     //==================================================================
     cgsize_t range_min[3] = {1,1,1};
-    cgsize_t range_max[3] = {numVertices_,1,1};
+    cgsize_t range_max[3] = {cgsize_t(numVertices_),1,1};
 
     //storing the coordinates
     StdVector< Vector<Double> > nodeCoords;
@@ -991,7 +991,7 @@ namespace CoupledField{
       if(spaceIdx != 9999 &&
          result->GetResultInfo()->resultType == FLUIDMECH_VELOCITY ) {
         cgsize_t range_min[3] = {1,1,1};
-        cgsize_t range_max[3] = {numVertices_,1,1};
+        cgsize_t range_max[3] = {cgsize_t(numVertices_),1,1};
         Vector<Double> curSol(numVertices_);
         cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)&curSol[0] );
         
@@ -1005,7 +1005,7 @@ namespace CoupledField{
       if(strcmp(fieldName,"Pressure") == 0 &&
          result->GetResultInfo()->resultType == FLUIDMECH_PRESSURE){
         cgsize_t range_min[3] = {1,1,1};
-        cgsize_t range_max[3] = {numVertices_,1,1};
+        cgsize_t range_max[3] = {cgsize_t(numVertices_),1,1};
         Vector<Double> curSol(numVertices_);
         cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)&curSol[0] );
 
