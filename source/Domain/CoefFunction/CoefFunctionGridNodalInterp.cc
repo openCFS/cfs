@@ -304,7 +304,14 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
     }
   }
   if (elemCounter > 0) {
-    WARN("There were " << elemCounter << " unmapped nodes from source region \'" << *regIt << "\' which are not mapped to region \'" << this->destRegionName_ << "\'. Perhaps you should increase the tolerances!");
+    std::ostringstream oss;
+    regIt = this->srcRegions_.begin();
+    while (regIt != endIt) {
+      oss << *regIt;
+      ++regIt;
+      if (regIt != endIt) oss << ", ";
+    }
+    WARN("There were " << elemCounter << " unmapped nodes from source region(s) \'" << oss.str() << "\' which are not mapped to region \'" << this->destRegionName_ << "\'. Perhaps you should increase the tolerances!");
   }
 
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("numUnmappedNodes")->SetValue(elemCounter);
