@@ -1,0 +1,15 @@
+digraph G {
+	"CFS++" -> ".msh";
+        "CFS++" -> ".pos";
+        ".msh" -> "CFS++";
+
+        ".msh" -> "Gmsh";
+        ".pos" -> "Gmsh";
+        "Gmsh" -> ".msh";
+
+        "NETGEN" -> ".msh";
+
+        "CFS++" [shape=box,color=darkgrey,style=filled];
+        "Gmsh" [shape=box];
+        "NETGEN" [shape=box];
+}

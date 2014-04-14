@@ -30,6 +30,8 @@ namespace fs = boost::filesystem;
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 
+#include "DataInOut/SimInOut/AnsysCDB/SimInputCDB.hh"
+
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
 #endif
@@ -142,6 +144,16 @@ namespace CFSTool {
 #else
       EXCEPTION( "No support for MESH input file format." );
 #endif
+    } else if( fileName.find( ".cdb") != std::string::npos ||
+               fileName.find( ".inp") != std::string::npos ) {
+      if(inputNode->Has("cdb")) {
+        readerNode = inputNode->Get("cdb");
+      } else {
+        readerNode = PtrParamNode(new ParamNode());
+        readerNode->SetName("cdb");
+      }
+
+      reader = shared_ptr<SimInput>(new SimInputCDB(fileName, readerNode, info));
     } else if( fileName.find( ".h5") != std::string::npos ) {
 #ifdef USE_HDF5
       if(inputNode->Has("hdf5")) {

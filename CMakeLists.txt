@@ -612,6 +612,7 @@ ADD_SUBDIRECTORY(source/DataInOut)
 ADD_SUBDIRECTORY(source/DataInOut/Logging)
 ADD_SUBDIRECTORY(source/DataInOut/ParamHandling)
 
+ADD_SUBDIRECTORY(source/DataInOut/SimInOut/AnsysCDB)
 IF(USE_MESH)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/AnsysFile)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/internalMesh)

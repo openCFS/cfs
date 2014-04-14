@@ -21,6 +21,8 @@
 
 #include "DefineInOutFiles.hh"
 
+#include "DataInOut/SimInOut/AnsysCDB/SimInputCDB.hh"
+
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
 #include "DataInOut/SimInOut/internalMesh/InternalMesh.hh"
@@ -198,6 +200,13 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
 #else
       EXCEPTION( "No support for MESH input file format." );
 #endif // USE_MESH
+    }
+    else if (informat == "cdb")
+    {
+      if (meshFile.empty())
+        meshFile = simName + ".cdb";
+      inFiles[actId] = shared_ptr<SimInput> (
+          new SimInputCDB(meshFile, actNode, infoNode));
     }
     else if (informat == "hdf5")
     {

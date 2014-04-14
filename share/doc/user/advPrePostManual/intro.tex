@@ -5,7 +5,7 @@ postprocessing packages.
 
 \section{Simulation Data Formats}
 
-\subsection{CFS++/NACS Native HDF5 Files}
+\subsection{CFS++/NACS Native HDF5 Files ({\tt .h5/.h5ref/.nmf/.nrf})}
 
 \subsubsection{HDF5} The  internal data structures and  temporal succession of
 operations  in CFS++ are  most closely  matched by  a hierarchical  data model
@@ -79,8 +79,88 @@ XDMF\footnote{XDMF                                                    website:
   \url{http://www.visitusers.org/index.php?title=Using_XDMF_to_read_HDF5}}
 please refer to \cite{Clarke2002, Clarke2007, XDMFWebsite, hpcforgeWebsite}.
 
+\subsection{ANSYS Mesh Database Files ({\tt .cdb/.inp})}
 
-\subsection{ANSYS Result Files (.rst)}
+CFS++ can read and  write {\tt .cdb} or {\tt .inp} mesh  database files in the
+ANSYS Classic format  (cf. Fig.  \ref{fig:cdb_io}). Please  note however, that
+not all ANSYS element  types may be supported and no results  can read from or
+written into this format!
+
+\begin{figure}[htb] 
+  \centering 
+  \includegraphics[scale=0.8]{pics/cdb/cdb_io}
+  \caption{Options for {\tt .cdb} mesh data I/O.}
+  \label{fig:cdb_io}
+\end{figure}
+
+\paragraph{Create a .cdb file from ANSYS Classic:}
+
+\begin{verbatim}
+allsel
+cdwrite, db, 'file', 'cdb'
+\end{verbatim}
+
+\begin{figure}[htb] 
+  \centering
+  \includegraphics[width=\textwidth]{pics/cdb/workbench_femodeler_classic}
+  \caption{ANSYS Workbench  schematic for either  creating an {\tt  .inp} file
+    from the  Finite Element Modeler  or a {\tt  .cdb} file from  a Mechanical
+    APDL system starting from a mesh component system.}
+  \label{fig:cdb_workbench_femodeler_classic}
+\end{figure}
+
+\paragraph{Create a .cdb file from a FE Modeler system:}
+
+\begin{enumerate}
+\item Open your project in Workbench containing the FE Modeler System.
+
+\item In the  Project Schematic, create a the Mechanical  APDL system and link
+  the FE Modeler cell to the Mechanical APDL Analysis cell.
+
+\item Update the FE Modeler system,  right click on the Mechanical APDL system
+  Analysis cell,  and choose  \emph{Edit in Mechanical  APDL}. This  opens the
+  Mechanical          APDL         application          user         interface
+  (cf. Fig. \ref{fig:cdb_workbench_femodeler_classic}).
+
+\item  Select  \emph{Preprocessor  $\rightarrow$ Archive  Model  $\rightarrow$
+  Write} from the \emph{Mechanical APDL Main Menu}.
+
+\item In the dialog, choose \emph{DB  All finite element information} from the
+  \emph{Data to Archive} drop-down menu.
+
+\item Select the  \emph{Archive File Name} button and then  specify the folder
+  location and filename for the {\tt .cdb} file.
+\end{enumerate}
+
+\paragraph{Create a .inp file from a FE Modeler system:}
+
+\begin{enumerate}
+\item  In Workbench  Project  Flow Chart  add connection  to  FE Modeler  from
+  Solution or Mesh cells (cf. Fig. \ref{fig:cdb_workbench_femodeler_classic}).
+\item Update Cells
+\item Open FE Modeler
+\item Choose at the top  toolbar \emph{Target System $\rightarrow$ Mechanical
+  APDL}
+\item Choose at the top toolbar \emph{Write Solver File}
+\end{enumerate}
+
+\subsection{Gmsh Mesh and Result Files ({\tt .msh/.pos})}
+
+Version 2  of the  Gmsh format {\tt  .msh} is supported  by CFS++  for reading
+meshes and writing mesh and result data. The older version 1 is only supported
+for reading meshes. CFS++ also supports  the {\tt .pos} post processing format
+of  Gmsh for  higher  order  results.  Since  Joachim  Schöberl's NETGEN  also
+supports the {\tt .msh} format for second order meshes, it can also be used as
+a preprocessor for CFS++ (cf. Fig. \ref{fig:gmsh_io})
+
+\begin{figure}[htb] 
+  \centering 
+  \includegraphics[scale=0.8]{pics/gmsh/gmsh_io}
+  \caption{Options for I/O with Gmsh formats.}
+  \label{fig:gmsh_io}
+\end{figure}
+
+\subsection{ANSYS Result Files ({\tt .rst})}
 
 The .rst  file format is ANSYS  Classic's native output format  for meshes and
 simulation   results.    It   is   a  well-documented   binary   format   (cf.
@@ -89,8 +169,8 @@ the following codes (cf. Fig. \ref{fig:rst_io}).
 
 \begin{figure}[htb] 
   \centering 
-  \includegraphics[width=0.8\textwidth]{pics/ansys/rst_io}
-  \caption{Options for I-DEAS universal data I/O.}
+  \includegraphics[width=\textwidth]{pics/ansys/rst_io}
+  \caption{Options for post-processing of ANSYS result files.}
   \label{fig:rst_io}
 \end{figure}
 
@@ -211,7 +291,7 @@ not. \textcolor{red}{ATTENTION:  EnSight support was  known to work  with .rst
 13.0 files and is also broken now.  The problem seems to be the .rst writer of
 CFS++.}}
 
-\subsection{I-DEAS Universal Files (.unv) and CAPA (.unverg) Files}
+\subsection{I-DEAS Universal Files ({\tt .unv}) and CAPA ({\tt .unverg}) Files}
 \label{sec:intro_unv}
 
 The  I-DEAS universal  file  format is  a  general format  originally used  by
@@ -386,7 +466,7 @@ files\footnote{Code            ASTER            .unv            Preprocessing:
 \url{http://caelinux.com/downloads/docs/PRE_IDEAS_EN.pdf}}
 \end{description}
 
-\subsection{CFD General Notation System (.cgns) Files}
+\subsection{CFD General Notation System ({\tt .cgns}) Files}
 
 For  the import  of CFD data  CGNS is  the most general  choice of
 formats.  It defines a data  model (Standard Interface Data Structures (SIDS))
@@ -418,6 +498,22 @@ created in the following codes:
 \end{figure}
 
 \begin{description}
+
+\item[CFS++] can read and write  unstructured CGNS files.  Reading and writing
+  of  results is  limited to  one time-step  at the  moment. Also  only a  few
+  selected result  types can  be read  from CGNS files.   CFS++ uses  the CGNS
+  library version 3.1.4 at the moment. Therefore, generated CGNS files may not
+  be readable  by older post-processors  directly.  Conversion of a  CGNS file
+  from  HDF5   to  ADF   using  {\tt  hdf2adf}\footnote{CGNS   tools  website:
+    \url{http://www.grc.nasa.gov/WWW/cgns/CGNS_docs_current/cgnstools/index.html}}
+  and  downdating its  version  using {\tt  cgnsversion} may  help  in such  a
+  situation. These  tools are generated during  the build of CFS++  and can be
+  found in its binary directory.
+
+\item[ANSYS Workbench  Mesher] Linear  meshes can be  exported from  the ANSYS
+  Workbench mesher using \emph{File} $\rightarrow$ \emph{Export} $\rightarrow$
+  \emph{File type .cgns}.  The regions for CFS++ can be  generated by creating
+  \emph{Named Selections}.
 
 \item[cplreader]  The CAA coupling  reader of  CFS++ can  read CGNS  files and
 generate acoustic source terms from CFD fields (cf. \cite{cplreadermanual}).

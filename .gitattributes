@@ -739,6 +739,10 @@ share/doc/user/advPrePostManual/pics/ansys_heatsink.png -text svneol=unset#image
 share/doc/user/advPrePostManual/pics/ansys_pml3d_imag.png -text svneol=unset#image/png
 share/doc/user/advPrePostManual/pics/ansys_pml3d_real.png -text svneol=unset#image/png
 share/doc/user/advPrePostManual/pics/ansys_trans_pyras.png -text svneol=unset#image/png
+share/doc/user/advPrePostManual/pics/cdb/cdb_io.dot -text
+share/doc/user/advPrePostManual/pics/cdb/cdb_io.pdf -text svneol=unset#unset
+share/doc/user/advPrePostManual/pics/cdb/cdb_io.svg -text
+share/doc/user/advPrePostManual/pics/cdb/workbench_femodeler_classic.png -text svneol=unset#unset
 share/doc/user/advPrePostManual/pics/cfdpost.png -text
 share/doc/user/advPrePostManual/pics/cfx_gmsh_man_model.png -text svneol=unset#image/png
 share/doc/user/advPrePostManual/pics/cgns/cgns_io.dot -text
@@ -752,6 +756,9 @@ share/doc/user/advPrePostManual/pics/ensight_man.png -text
 share/doc/user/advPrePostManual/pics/ensight_rst_mat_to_part.png -text
 share/doc/user/advPrePostManual/pics/gid.png -text
 share/doc/user/advPrePostManual/pics/gmsh.png -text
+share/doc/user/advPrePostManual/pics/gmsh/gmsh_io.dot -text
+share/doc/user/advPrePostManual/pics/gmsh/gmsh_io.pdf -text svneol=unset#unset
+share/doc/user/advPrePostManual/pics/gmsh/gmsh_io.svg -text
 share/doc/user/advPrePostManual/pics/gmsh_cp_test.png -text svneol=unset#image/png
 share/doc/user/advPrePostManual/pics/gmsh_cutplanes.png -text svneol=unset#image/png
 share/doc/user/advPrePostManual/pics/gmsh_wing_spline.png -text svneol=unset#image/png
