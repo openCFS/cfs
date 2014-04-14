@@ -1201,6 +1201,9 @@ source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCCM.hh -text
 source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCCMDemo.cc -text
 source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCSV.cc -text
 source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCSV.hh -text
+source/DataInOut/SimInOut/AnsysCDB/CMakeLists.txt -text
+source/DataInOut/SimInOut/AnsysCDB/SimInputCDB.cc -text
+source/DataInOut/SimInOut/AnsysCDB/SimInputCDB.hh -text
 source/DataInOut/SimInOut/AnsysFile/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysFile/SimInputMESH.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/AnsysFile/SimInputMESH.hh svneol=native#text/x-c%2B%2Bhdr
