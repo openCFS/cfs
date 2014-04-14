@@ -32,6 +32,7 @@ IF(CFS_DISTRO STREQUAL "MACOSX")
   LIST(APPEND patches
     "cgns-cmake-mac.patch"
     "cgns-arch-mac.patch"
+    "cgns-osx-opengl.patch"
     )
 ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 

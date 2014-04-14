@@ -119,6 +119,7 @@ cfsdeps/cgns/cgns-cmake-policy.patch -text
 cfsdeps/cgns/cgns-declspec-double-underscore.patch -text
 cfsdeps/cgns/cgns-hdf5.patch -text
 cfsdeps/cgns/cgns-install-target.patch -text
+cfsdeps/cgns/cgns-osx-opengl.patch -text
 cfsdeps/cgns/cgns-patch.cmake.in -text
 cfsdeps/cgns/cgns-version-numbers-in-filenames.patch -text
 cfsdeps/cgns/cgns25-declspec-double-underscore.patch -text
