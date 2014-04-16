@@ -570,6 +570,7 @@ void Domain::InitPDEs(UInt sequenceStep)
   for (UInt i = 0; i < numDirectCoupledPde_; i++)
   {
     if( isParentDomain_) 
+      std::cout << "++ Initializing direct coupling" << std::endl;
     ptDirectCoupledPde_[i]->Init(sequenceStep);
     ptDirectCoupledPde_[i]->DefineAlgSys();
   }
