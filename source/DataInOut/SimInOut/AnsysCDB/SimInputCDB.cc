@@ -2835,7 +2835,7 @@ namespace CoupledField {
 
     line = buffer;
 
-    return true;
+    return success;
   }
 
   unsigned long SimInputCDB::GetFilePosition() {
