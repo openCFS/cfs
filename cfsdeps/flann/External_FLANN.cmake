@@ -19,6 +19,8 @@ SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/flann/flann-patch.cmake.in")
 SET(PFN "${flann_prefix}/flann-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
+STRING(REPLACE ";" "," FLANN_HDF5_LIBRARY "${HDF5_LIBRARY};${ZLIB_LIBRARY}")
+
 #-------------------------------------------------------------------------------
 # Set common CMake arguments
 #-------------------------------------------------------------------------------
@@ -32,6 +34,9 @@ SET(CMAKE_ARGS
   -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
   -DUSE_OPENMP:BOOL=${USE_OPENMP}
+  -DHDF5_DIR:FILEPATH=${CFS_BINARY_DIR}/cmake/hdf5
+  -DHDF5_C_LIBRARY:PATH=${FLANN_HDF5_LIBRARY}
+  -DHDF5_INCLUDE_DIR:FILEPATH=${CFS_BINARY_DIR}/include
 )
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
@@ -82,11 +87,13 @@ CONFIGURE_FILE(
 # The flann external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(flann
+  DEPENDS hdf5-static
   PREFIX ${flann_prefix}
   SOURCE_DIR ${flann_source}
   URL ${LOCAL_FILE}
   URL_MD5 ${FLANN_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+  LIST_SEPARATOR ,
   CMAKE_ARGS
     ${CMAKE_ARGS}
     -DBUILD_CUDA_LIB:BOOL=OFF
