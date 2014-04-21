@@ -222,6 +222,12 @@ namespace CoupledField {
     bool GetLine(std::string& line, std::streampos pos);
 #endif
     bool GetNextLine(std::string& line);
+    UInt SplitLine(const std::string& line,
+                   std::vector< std::string >& tokens,
+                   const std::string& addSplitChars = "",
+                   std::vector<int>* chunkSizes = NULL,
+                   bool trim = false,
+                   const std::string& trimChars = "") const;    
     void OpenCDBFile(std::string fileName);
     void CloseCDBFile();
 

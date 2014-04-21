@@ -9,6 +9,9 @@
 #include <algorithm>
 #include <cstdarg>
 #include <cctype>
+#include <cstdlib>
+
+#include <boost/algorithm/string/trim.hpp>
 
 #include "SimInputCDB.hh"
 
@@ -1425,7 +1428,6 @@ namespace CoupledField {
     // read node coordinates defined in nblock commands
     // cf. Programmer's Manual for Mechanical APDL - NBLOCK Command
 
-    std::stringstream sstr;
     std::string line;
     std::ostringstream errMsg;
     double x, y, z;
@@ -1434,8 +1436,7 @@ namespace CoupledField {
     UInt maxNodeNum = 0;
     UInt numNodes = 0;
     UInt numFields = 0;
-
-    sstr.clear(); sstr.str("");
+    std::vector< std::string > tokens(32);
 
     // loop on all found nblock commands
     for (UInt ib=0; ib<linePtsNBlocks_.size(); ib++) {
@@ -1449,34 +1450,38 @@ namespace CoupledField {
         EXCEPTION(errMsg);
       }
       std::cout << "Processing node block " << ib+1 << std::endl;
-      // read number of fields in blocked node lines from NBLOCK line
-      size_t len = line.length();
-      size_t pos1 = line.find(",")+1;
-      size_t pos2 = len-1;
-      if (line.find(",",pos1) != line.npos)
-        pos2 = line.find(",",pos1);
-      size_t pos3;
-      sstr.clear(); sstr.str("");
-      sstr << line.substr(pos1,pos2-pos1);
-      sstr >> numFields;
 
-      // retrieve format
+      // read number of fields in blocked node lines from NBLOCK line
+      UInt numTok = SplitLine(line, tokens);
+      numFields = std::strtoul(tokens[1].c_str(), NULL, 0);
+
+      // retrieve format by splitting a line of the form (3i8,6e20.13)
       GetNextLine(line);
-      UInt intWidth = 8;
-      if (line.substr(2,2) == "i8" || line.substr(2,2) == "I8") {
-	std::cout << "Using standard ANSYS 14 cdb file format for blocked node input" << std::endl;
-      } else if (line.substr(2,2) == "i9" || line.substr(2,2) == "I9") {
-        intWidth = 9;
-	std::cout << "Using ANSYS 14.5 cdb file format for blocked node input" << std::endl;
+      numTok = SplitLine(line, tokens);
+
+      std::string intLenStr = tokens[0];
+      std::string floatLenStr = tokens[1];
+
+      numTok = SplitLine(intLenStr, tokens, "(iI");
+      UInt numInts = std::strtoul(tokens[0].c_str(), NULL, 0);
+      UInt intWidth = std::strtoul(tokens[1].c_str(), NULL, 0);
+
+      numTok = SplitLine(floatLenStr, tokens, "eE.");
+      UInt numFloats = std::strtoul(tokens[0].c_str(), NULL, 0);
+      UInt floatWidth = std::strtoul(tokens[1].c_str(), NULL, 0);
+
+      // Generate an offset vector for the different fields.
+      std::vector<int> offsets;
+      for(UInt i=0; i<numInts; i++) 
+      {
+        offsets.push_back(intWidth);
       }
+      for(UInt i=0; i<numFloats; i++) 
+      {
+        offsets.push_back(floatWidth);
+      }      
 
       // read-in procedure for blocked case
-      UInt npos1 = 3*intWidth, npos2, npos3;
-      if (numFields==3) { npos1 = intWidth; }
-
-      npos2 = npos1+20; npos3 = npos2+20;
-      pos1 = (size_t) npos1; pos2 = (size_t) npos2; pos3 = (size_t) npos3;
-
       UInt numNodesInBlock = 0;
 
       GetNextLine(line);
@@ -1494,29 +1499,25 @@ namespace CoupledField {
         // ! end of nblock command
         // !
 
-
-
-        size_t len = line.length();
+        numTok = SplitLine(line, tokens, "", &offsets);
 
         fileNodeNum = x = y = z = 0;
 
-        sstr.clear(); sstr.str("");
-        sstr << line.substr(0,intWidth);
-        sstr >> fileNodeNum;
+        fileNodeNum = std::strtoul(tokens[0].c_str(), NULL, 0);
+        UInt numActualFloats = numTok - numInts;
+        if(numActualFloats > 0) 
+        {
+          x = std::strtod(tokens[numInts + 0].c_str(), NULL);
+          if(numActualFloats > 1) 
+          {
+            y = std::strtod(tokens[numInts + 1].c_str(), NULL);
+            if(numActualFloats > 2) 
+            {
+              z = std::strtod(tokens[numInts + 2].c_str(), NULL);
+            }
+          }
+        }
 
-        sstr.clear(); sstr.str("");
-        sstr << line.substr(pos1,20);
-        sstr >> x;
-        if (len > pos2) {
-          sstr.clear(); sstr.str("");
-          sstr << line.substr(pos2,20);
-          sstr >> y;
-        }
-        if (len > pos3) {
-          sstr.clear(); sstr.str("");
-          sstr << line.substr(pos3,20);
-          sstr >> z;
-        }
         StoreSingleNode(fileNodeNum,x,y,z, nodeNum, numNodes, maxNodeNum);
 	numNodesInBlock++;
         if (numNodes%1000000 == 0) {
@@ -1544,7 +1545,6 @@ namespace CoupledField {
 
   void SimInputCDB::ReadCoordinatesUnBlocked()
   {
-    std::stringstream sstr;
     std::string line;
     std::ostringstream errMsg;
     double x, y, z;
@@ -1552,34 +1552,22 @@ namespace CoupledField {
     UInt nodeNum = 1;
     UInt maxNodeNum = 0;
     UInt numNodes = 0;
-
-    // read node coordinates
-    sstr.clear(); sstr.str("");
+    std::vector< std::string > tokens(32);
 
     // loop on all found n commands
-    
-
     for (UInt ib=0; ib<linePtsNCmnds_.size(); ib++) {
 
       GetLine(line,linePtsNCmnds_[ib]);
 
       // process line for current node
       fileNodeNum = x = y = z = 0;
-      sstr.clear(); sstr.str("");
-      sstr << line.substr(11,9);
-      sstr >> fileNodeNum;
 
-      sstr.clear(); sstr.str("");
-      sstr << line.substr(37,16);
-      sstr >> x;
+      SplitLine(line, tokens);
 
-      sstr.clear(); sstr.str("");
-      sstr << line.substr(56,16);
-      sstr >> y;
-
-      sstr.clear(); sstr.str("");
-      sstr << line.substr(75,16);
-      sstr >> z;
+      fileNodeNum = std::strtoul(tokens[3].c_str(), NULL, 0);
+      x = std::strtod(tokens[6].c_str(), NULL);
+      y = std::strtod(tokens[7].c_str(), NULL);
+      z = std::strtod(tokens[8].c_str(), NULL);
 
       StoreSingleNode(fileNodeNum,x,y,z, nodeNum, numNodes, maxNodeNum);
       if (numNodes%1000000 == 0) {
@@ -2973,4 +2961,66 @@ namespace CoupledField {
       return inFile_.tellg();
   }
 #endif
+
+  UInt SimInputCDB::SplitLine(const std::string& line,
+                              std::vector< std::string >& tokens,
+                              const std::string& addSplitChars,
+                              std::vector<int>* chunkSizes,
+                              bool trim,
+                              const std::string& trimChars) const
+  {   
+    UInt i=0;
+
+    // If  chunkSize   is  greater   zero  lets   split  by   constant  length
+    // bits. Otherwise, we split along commas for APDL.
+    if(chunkSizes) 
+    {
+      int* offsets = &(*chunkSizes)[0];
+      boost::offset_separator f(offsets, offsets+(*chunkSizes).size());
+      boost::tokenizer<boost::offset_separator> tok(line, f);
+
+      for(boost::tokenizer<boost::offset_separator>::iterator it=tok.begin();
+          it != tok.end();
+          ++it, i++)
+      {
+        tokens[i] = *it;
+      }
+    }    
+    else
+    {
+      typedef boost::tokenizer<boost::char_separator<char> > Tok;
+      std::stringstream sstr;
+      sstr << "," << addSplitChars;      
+      boost::char_separator<char> sep(sstr.str().c_str());
+
+      Tok t(line, sep);
+      Tok::iterator it, end;
+
+      it = t.begin();
+      end = t.end();
+      
+      for( ; it != end; it++, i++) {
+        tokens[i] = *it;        
+      }      
+    }
+  
+    if(trim) 
+    {
+      if(trimChars == "") 
+      {
+        for(UInt n=0; n<i; n++) {
+          boost::trim(tokens[n]);
+        }   
+      }
+      else
+      {
+        for(UInt n=0; n<i; n++) {
+          boost::trim_if(tokens[n], boost::is_any_of(trimChars));
+        }   
+      }
+    }
+    
+    return i;
+  }
+  
 }
