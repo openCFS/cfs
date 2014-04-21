@@ -267,9 +267,11 @@ namespace CoupledField {
     std::map<UInt, std::vector<UInt> > topology_;
 
     // file entries resulting from scan
-#ifdef WIN32
+    std::vector<std::string > lineETCmnds_;
+    std::vector<std::string > lineKEYOPTCmnds_;
     UInt numNBlocks_, numEBlocks_, numNCmnds_, numENCmnds_, numCMBlocks_, numSFECmnds_;
     UInt numEselCmnds_, numNselCmnds_, numCMCmnds_, numPtsPSECmnds_, linePtsPSEStop_;
+#ifdef WIN32
     std::vector<__int64> linePtsNBlocks_;
     std::vector<__int64> linePtsEBlocks_;
     std::vector<__int64> linePtsNCmnds_;
@@ -278,15 +280,12 @@ namespace CoupledField {
     std::vector<__int64> linePtsEselCmnds_;
     std::vector<__int64> linePtsNselCmnds_;
     std::vector<__int64> linePtsCMCmnds_;
-    std::vector<std::string > lineETCmnds_;
     std::vector<__int64> linePtsPSECmnds_;
     std::vector<__int64> linePtsSFECmnds_;
     FILE *inStream_;
     __int64 inSize_;
     __int64 GetFilePosition();
 #else
-    UInt numNBlocks_, numEBlocks_, numNCmnds_, numENCmnds_, numCMBlocks_, numSFECmnds_;
-    UInt numEselCmnds_, numNselCmnds_, numCMCmnds_, numPtsPSECmnds_, linePtsPSEStop_;
     std::vector<unsigned long> linePtsNBlocks_;
     std::vector<unsigned long> linePtsEBlocks_;
     std::vector<unsigned long> linePtsNCmnds_;
@@ -295,7 +294,6 @@ namespace CoupledField {
     std::vector<unsigned long> linePtsEselCmnds_;
     std::vector<unsigned long> linePtsNselCmnds_;
     std::vector<unsigned long> linePtsCMCmnds_;
-    std::vector<std::string > lineETCmnds_;
     std::vector<unsigned long> linePtsPSECmnds_;
     std::vector<unsigned long> linePtsSFECmnds_;
     unsigned long GetFilePosition();

@@ -97,6 +97,7 @@ namespace CoupledField {
   {
 
     mi_ = mi;
+    UInt dim = mi_->GetDim();
 
     // Get nodes and add them to grid
     UInt numNodes = nodalCoords_.size()/3;
@@ -112,23 +113,66 @@ namespace CoupledField {
       mi_->SetNodeCoordinate(i+1, loc);
     }
 
+    UInt numElems = topology_.size();
+    bool hasVolElems = false;
+    bool hasSurfElems = false;
+    if(regionNames_.empty())
+    {
+      for(UInt i=0; i<numElems; i++)
+      {
+        Elem::FEType feType = Elem::FEType(elemTypes_[i+1]);
+        UInt elemDim = Elem::shapes[feType].dim;
+
+        if(hasVolElems == false && elemDim == dim) 
+        {
+          hasVolElems = true;
+        }
+        
+        if(hasSurfElems == false && elemDim != dim) 
+        {
+          hasSurfElems = true;
+        }
+      }
+
+      if(hasVolElems) 
+      {
+        regionNames_.push_back("volElems");
+      }
+      if(hasSurfElems) 
+      {
+        regionNames_.push_back("surfElems");
+      }
+    }
+
     StdVector<Integer> ids;
     mi_->AddRegions(regionNames_, ids);
 
-    UInt numElems = topology_.size();
     mi_->AddElems(numElems);
 
     for(UInt i=0; i<numElems; i++)
     {
-      UInt regionId = NO_REGION_ID;
+      Integer regionId = NO_REGION_ID;
       
       if(elemRegionMap_.find(i+1) != elemRegionMap_.end()) 
       {
         regionId = ids[elemRegionMap_[i+1]];
       }
       
-      mi_->SetElemData(i+1, Elem::FEType(elemTypes_[i+1]),
-                       regionId, &topology_[i+1][0]);
+      Elem::FEType feType = Elem::FEType(elemTypes_[i+1]);
+      UInt elemDim = Elem::shapes[feType].dim;
+      if(regionId == NO_REGION_ID) 
+      {
+        if(elemDim == dim) 
+        {
+          regionId = 0;
+        }
+        else
+        {
+          regionId = 1;
+        }
+      }
+
+      mi_->SetElemData(i+1, feType, regionId, &topology_[i+1][0]);
     }
 
     // Add named nodes to grid.
@@ -1003,6 +1047,9 @@ namespace CoupledField {
       if (line.substr(0,3) == "ET," || line.substr(0,3) == "et,") {
         lineETCmnds_.push_back(line);
       }
+      if (line.substr(0,5) == "KEYOP" || line.substr(0,5) == "keyop") {
+        lineKEYOPTCmnds_.push_back(line);
+      }
       if (line.find("Pressure Using Surface Effect Elements") != line.npos) {
         linePtsPSECmnds_.push_back(pos);
       }
@@ -1229,7 +1276,8 @@ namespace CoupledField {
     std::stringstream sstr;
     std::string line;
     std::ostringstream errMsg;
-    UInt ansysType = 0, ansElemType = 0, ansysSubType = 1;
+    UInt ansysType = 0, ansElemType = 0;
+    Integer ansysSubType = -1;
     UInt nacsElemType = 0;
 
     ansNacsMap_.clear();
@@ -1240,14 +1288,18 @@ namespace CoupledField {
 
     for (UInt i=0; i<numETCmnds; i++) {
 
+      // ET, ITYPE, Ename, KOP1, KOP2, KOP3, KOP4, KOP5, KOP6, INOPR
+      // Defines a local element type from the element library.
       line = lineETCmnds_[i];
 
       ansElemType = ansysType = nacsElemType = 0;
+      ansysSubType = -1;
 
       size_t pos1 = line.find(",");
       size_t pos2 = line.find(",",pos1+1);
-      // Ignore all  ASCII characters but  digits on  ET lines to  account for
-      // e.g. et,2,MESH200
+
+      // Ignore all  ASCII characters  of category name  and just  account for
+      // digits on ET lines. E.g. et,2,MESH200
       while(!std::isdigit(line[pos2]))
       {
         pos2++;
@@ -1266,6 +1318,69 @@ namespace CoupledField {
           sstr << line.substr(pos3+1);
           sstr >> ansysSubType;
         }
+      }
+
+      // If the subtype of the element could not be determined yet, we have to
+      // look it up in the KEYOPT lines.
+      if(ansysSubType < 0) 
+      {        
+        if(ansysType==200 || ansysType==154) 
+        {
+          // KEYOPT, ITYPE, KNUM, VALUE
+          // Sets element key options.
+          // ITYPE: Element type number as defined on the ET command.
+          // KNUM: Number of the KEYOPT to be defined (KEYOPT(KNUM)).
+          // VALUE: Value of this KEYOPT.
+          
+          UInt itype = 0;
+          Integer knum = -1;
+          Integer value = -1;
+          
+          for (UInt j=0, n=lineKEYOPTCmnds_.size(); j<n; j++) {
+            
+            line = lineKEYOPTCmnds_[j];
+            
+            pos1 = line.find(",");
+            pos2 = line.find(",",pos1+1);
+            pos3 = line.find(",",pos2+1);
+            
+            sstr.clear(); sstr.str("");
+            sstr << line.substr(pos1+1,pos2-pos1-1);
+            sstr >> itype;
+            
+            if(ansElemType != itype) continue;
+            
+            sstr.clear(); sstr.str("");
+            sstr << line.substr(pos2+1,pos3-pos2-1);
+            sstr >> knum;
+            
+            sstr.clear(); sstr.str("");
+            sstr << line.substr(pos3+1);
+            sstr >> value;
+            
+            break;
+          }
+          
+          if(knum < 0 || value < 0) 
+          {
+            errMsg << "ANSYS element type is 200 or 154 and no subtype could " 
+                   << "be determined!";
+            if(strict_) {
+              EXCEPTION(errMsg.str());
+            } else {
+              std::cerr << errMsg.str() << std::endl;
+            }
+          }
+        
+          if(knum == 1) 
+          {
+            ansysSubType = value+1;
+          }
+        }
+        else
+        {
+          ansysSubType = 1;
+        }        
       }
 
       // check for valid ANSYS element type
@@ -1308,6 +1423,7 @@ namespace CoupledField {
   void SimInputCDB::ReadCoordinatesBlocked()
   {
     // read node coordinates defined in nblock commands
+    // cf. Programmer's Manual for Mechanical APDL - NBLOCK Command
 
     std::stringstream sstr;
     std::string line;
@@ -1364,7 +1480,22 @@ namespace CoupledField {
       UInt numNodesInBlock = 0;
 
       GetNextLine(line);
-      while(line.substr(0,2) != "N," && line.substr(0,2) != "n," && line.substr(0,2) != "-1") {
+      while(line.substr(0,2) != "N," &&
+            line.substr(0,2) != "n," &&
+            line.substr(0,2) != "-1" &&
+            line.substr(0,1) != "!") {
+
+        // End of a typical node block in a .cdb file:
+        //     5706       0       0 9.3694972500000E+02-3.4946417960000E+02
+        // N,R5.3,LOC,       -1,
+
+        // End of a typical node block in an .inp file:
+        //    5706    9.369497250E+002   -3.494641796E+002    0.000000000E+000
+        // ! end of nblock command
+        // !
+
+
+
         size_t len = line.length();
 
         fileNodeNum = x = y = z = 0;
@@ -1443,11 +1574,11 @@ namespace CoupledField {
       sstr >> x;
 
       sstr.clear(); sstr.str("");
-      sstr << line.substr(54,16);
+      sstr << line.substr(56,16);
       sstr >> y;
 
       sstr.clear(); sstr.str("");
-      sstr << line.substr(71,16);
+      sstr << line.substr(75,16);
       sstr >> z;
 
       StoreSingleNode(fileNodeNum,x,y,z, nodeNum, numNodes, maxNodeNum);
@@ -1778,7 +1909,7 @@ namespace CoupledField {
         lCount++;
         len = line.length();
 
-        UInt pStart=0;
+        UInt pStart=13;
         for (UInt i=0; i<numElemNodes && pStart<=len-9; i++) {
           sstr.clear(); sstr.str("");
           sstr << line.substr(pStart,9);
@@ -1792,7 +1923,7 @@ namespace CoupledField {
         lCount++;
         len = line.length();
 
-        UInt pStart=0;
+        UInt pStart=13;
         for (UInt i=0; i<numElemNodes && pStart<=len-9; i++) {
           sstr.clear(); sstr.str("");
           sstr << line.substr(pStart,9);
