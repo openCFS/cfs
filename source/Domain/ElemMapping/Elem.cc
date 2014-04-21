@@ -109,7 +109,22 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       connect[1] = connect[3];
       connect[3] = dummy;
       break;
+    case ET_TET10:
+      dummy = connect[4];
+      connect[4] = connect[8];
+      connect[8] = dummy;
+
+      dummy = connect[6];
+      connect[6] = connect[9];
+      connect[9] = dummy;
+
+    case ET_TET4:
+      dummy = connect[0];
+      connect[0] = connect[3];
+      connect[3] = dummy;
+      break;
     default:
+      std::cout << "element " << elemNum << " " << std::endl;
       EXCEPTION("Connectivity for " << feType.ToString(type) << " element "
                 << elemNum << " in region "
                 << grid.GetRegion().ToString(regionId)
