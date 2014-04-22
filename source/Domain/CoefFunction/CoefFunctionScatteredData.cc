@@ -115,7 +115,11 @@ namespace CoupledField{
       dof2ValueColumn_[2] = 5;
     }    
     
-    factor_ = scatteredDataNode->Get("factor")->As<Double>();
+
+    if(scatteredDataNode->Has("factor")) 
+    {
+      factor_ = scatteredDataNode->Get("factor")->As<Double>();
+    }
   }
   
   template<typename T, UInt DOFS>
