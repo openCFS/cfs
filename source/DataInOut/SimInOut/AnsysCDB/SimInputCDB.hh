@@ -102,86 +102,6 @@ namespace CoupledField {
 
     //@}
 
-    // =======================================================================
-    // ENTITY ACCESS
-    // =======================================================================
-    //@{ \name Entity Access
-    
-    //! Get all nodal coordinates from 3D grid
-    
-    //! This method reads all nodal coordinates into a vector of 3D-Points.
-    //! \param nodeCoords (output) vector containing nodal coordinates
-    void GetCoordinates( std::vector< double > & nodeCoords );
-    
-    //! Get vector of nodes for each region
-
-    //! This method reads the node numbers of each region into a 
-    //! separate vector. 
-    //! \param nodes (output) vector containing the node numbers for each
-    //!                       region. The access is like \c elems 
-    //!                       \c [regionNr] \c [nodeNr]
-    //! \param regionId (output) vector containing the region Ids of the
-    //!                          nodes corresponding to the outer index in the
-    //!                          nodes vector
-    void GetNodesOfRegions( std::vector<std::vector<UInt> > &nodes,
-                            const std::vector<RegionIdType> & regionId );
-    //! Read all elements of given dimension
-
-    //! This method reads all elements of a given dimension (1D, 2D or 3D).
-    //! The output is a vector of vectors, where the outer index corresponds
-    //! to the different regions and the inner one to the different elements
-    //! per region.
-    //! \param elems (output) vector containing vectors of pointers to elements
-    //!                       per region. The access is like \c elems 
-    //!                       \c [regionNr] \c [elemeNr]
-    //! \param regionId (output) vector containing the region Ids of the
-    //!                          elements corresponding to the outer index in 
-    //!                          the elems vector
-    //! \param dim (input) dimension of the elements to be read (1,2 or 3)
-    void GetElements( std::vector< std::vector<UInt> > & elems,
-                      std::vector< std::vector<Elem::Elem::FEType> > & elemTypes,
-                      std::vector< std::vector<UInt> > & elemNums,
-                      std::vector<RegionIdType> & regionIds,
-                      const UInt dim );
-
-    //! Read all named nodes
-    
-    //! This method reads in all named nodes with their according names.
-    //! \param nodes (output) vector containing node numbers for each region.
-    //!                       The access is like \c nodes \c [nameNr] 
-    //!                       \c [nodeNr]
-    //! \param nodeNames (output) vector containing the corresponding
-    //!                           node names 
-    void GetNamedNodes(StdVector<StdVector<UInt> > & nodes,
-                       StdVector<std::string> & nodeNames );
-
-    //! Read all named elements
-
-    //! This method reads in all named elements with their according names.
-    //! \param elems (output) vector containing node numbers for each region.
-    //!                       The access is like \c elems \c [nameNr] 
-    //!                       \c [elemNr]
-    //! \param elemNames (output) vector containing the corresponding
-    //!                           element names 
-    void GetNamedElems(StdVector<StdVector<UInt> > &elems,
-                       StdVector<std::string> &elemNames );
-    //@}
-    
-
-    // =========================================================================
-    // GENERAL SOLUTION INFORMATION
-    // =========================================================================
-    //@{ \name General Solution Information
-    //! Fill pre-initialized results object with values of specified step
-    virtual void GetResult( UInt sequenceStep,
-                            UInt stepValue,
-                            shared_ptr<BaseResult> result,
-                            bool isHistory = false ) {
-      
-    } 
-    //@}
-
-
   protected:
     
     Elem::FEType DegenTypeToNativeType(UInt type, UInt numNodes);
@@ -216,7 +136,7 @@ namespace CoupledField {
     void GenElGroupFromSurfForceElems();
     void GenerateSurfElGroup(UInt elblock, StdVector<UInt> elemNumbers);
 
-#ifdef WIN32
+#if(WIN32 || __MINGW32__)
     bool GetLine(std::string& line, __int64 pos);
 #else
     bool GetLine(std::string& line, std::streampos pos);
@@ -227,7 +147,11 @@ namespace CoupledField {
                    const std::string& addSplitChars = "",
                    std::vector<int>* chunkSizes = NULL,
                    bool trim = false,
-                   const std::string& trimChars = "") const;    
+                   const std::string& trimChars = "") const;
+
+    UInt DecodeBlockFormatLine(const std::string& line,
+                               std::vector<int>& chunkSizes) const;
+    
     void OpenCDBFile(std::string fileName);
     void CloseCDBFile();
 
@@ -277,7 +201,7 @@ namespace CoupledField {
     std::vector<std::string > lineKEYOPTCmnds_;
     UInt numNBlocks_, numEBlocks_, numNCmnds_, numENCmnds_, numCMBlocks_, numSFECmnds_;
     UInt numEselCmnds_, numNselCmnds_, numCMCmnds_, numPtsPSECmnds_, linePtsPSEStop_;
-#ifdef WIN32
+#if(WIN32 || __MINGW32__)
     std::vector<__int64> linePtsNBlocks_;
     std::vector<__int64> linePtsEBlocks_;
     std::vector<__int64> linePtsNCmnds_;

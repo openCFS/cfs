@@ -19,7 +19,6 @@
 // TODO: - Workbench FE Modeler generiert Gitter ohne Oberflächenelemente nur node Components. In diesem Fall müssen die Volumenelemente in eine extra Dummyregion gesteckt werden.
 // TODO: - Herausfinden, wie man Oberflächenelemente erzeugen kann.
 
-
 namespace CoupledField {
 
   SimInputCDB::SimInputCDB(std::string fileName, PtrParamNode inputNode,
@@ -195,179 +194,42 @@ namespace CoupledField {
       
       mi_->AddNamedElems(name, nodes);
     }
-
-#if 0
-    // Get Regions
-    StdVector<std::string> regionNames;
-    StdVector<std::string> names;
-    StdVector<Integer> ids;
-
-    GetRegionNamesOfDim(names, 1);
-    for(UInt i = 0; i < names.GetSize(); i++)
-      regionNames.Push_back(names[i]);
-    
-    GetRegionNamesOfDim(names, 2);
-    for(UInt i = 0; i < names.GetSize(); i++)
-      regionNames.Push_back(names[i]);
-
-    if(GetDim() == 3)
-    {
-      GetRegionNamesOfDim(names, 3);
-      for(UInt i = 0; i < names.GetSize(); i++)
-        regionNames.Push_back(names[i]);
-    }
-
-    mi_->AddRegions(regionNames, ids);
-
-    // Get Elements
-    UInt numElems = 0;
-    UInt numElems1D = GetNumElems(1);
-    UInt numElems2D = GetNumElems(2);
-    UInt numElems3D = GetNumElems(3);
-    numElems = numElems1D + numElems2D + numElems3D;
-
-    mi_->AddElems(numElems);
-
-    std::vector< std::vector<UInt> > elems;
-    std::vector< std::vector<UInt> > elemNums;
-    std::vector< std::vector<Elem::Elem::FEType> > elemTypes;
-    std::vector<RegionIdType> regionId;
-
-    GetElements(elems,elemTypes,elemNums,regionId,1);
-    
-    UInt n;
-
-    for(UInt j=0; j<elems.size(); j++)
-    {
-      n=0;
-      for(UInt i=0; i<elemTypes[j].size(); i++)
-      {
-        mi_->SetElemData(elemNums[j][i], elemTypes[j][i], 
-                         ids[regionId[j]], &elems[j][n]);
-        n += Elem::shapes[elemTypes[j][i]].numNodes;
-      }
-    }
-
-    elems.clear();
-    elemTypes.clear();
-    elemNums.clear();
-    regionId.clear();
-    GetElements(elems,elemTypes,elemNums,regionId,2);
-    for(UInt j=0; j<elems.size(); j++)
-    {
-      n=0;
-      for(UInt i=0; i<elemTypes[j].size(); i++)
-      {
-        mi_->SetElemData(elemNums[j][i], elemTypes[j][i], 
-                         ids[regionId[j]], &elems[j][n]);
-        n += Elem::shapes[elemTypes[j][i]].numNodes;
-      }
-    }
-
-    elems.clear();
-    elemTypes.clear();
-    elemNums.clear();
-    regionId.clear();
-    GetElements(elems,elemTypes,elemNums,regionId,3);
-    n=0;
-    for(UInt j=0; j<elems.size(); j++)
-    {
-      n=0;
-      for(UInt i=0; i<elemTypes[j].size(); i++)
-      {
-        mi_->SetElemData(elemNums[j][i], elemTypes[j][i], 
-                         ids[regionId[j]], &elems[j][n]);
-        n += Elem::shapes[elemTypes[j][i]].numNodes;
-      }
-    }
-
-
-    // Get Named Nodes
-    StdVector<StdVector<UInt> > indices;
-
-    names.Clear();
-    GetNamedNodes(indices, names);
-
-    for(UInt i = 0; i < names.GetSize(); ++i)
-      mi_->AddNamedNodes(names[i], indices[i]);
-
-
-    // Get Named Elements
-    names.Clear();
-    indices.Clear();
-    
-    GetNamedElems(indices, names);
-
-    for(UInt i = 0; i < names.GetSize(); ++i)
-      mi_->AddNamedElems(names[i], indices[i]);
-#endif
   }
 
   // ======================================================
   // GENERAL MESH INFORMATION
   // ======================================================
-  UInt SimInputCDB::GetDim() {
-	return dim_;
+  UInt SimInputCDB::GetDim()
+  {
+    return dim_;
   }
   
-  UInt SimInputCDB::GetNumNodes(){
-	return nodalCoords_.size()/3;
+  UInt SimInputCDB::GetNumNodes()
+  {
+    return nodalCoords_.size()/3;
   }
     
-  UInt SimInputCDB::GetNumElems(const Integer dim){
-    
+  UInt SimInputCDB::GetNumElems(const Integer dim)
+  {
     UInt numElems = topology_.size();
-#if 0
-    std::stringstream search;
-    
-
-    // 1.) return number of all elements
-    if ( dim == 0) {
-      if( GetDim() == 3)
-        numElems += GetNumElems(3);
-      numElems += GetNumElems(2);
-      numElems += GetNumElems(1);
-    }  
-    else if ( dim >=1 && dim <= 3 ) {
-      search << "Num" << dim;
-      search << "DElements";
-      numElems = GetInteger(search.str());
-    }
-    else {
-      EXCEPTION("Dimension " << dim << " is out of range!");
-    }
-#endif
     return numElems;
   }
   
-  UInt SimInputCDB::GetNumRegions(){
-#if 0
-    if(regionNames_.size() == 0)
-    {
-      StdVector<std::string> names;
-
-      GetAllRegionNames(names);
-    }
-    return regionNames_.size();
-#endif
+  UInt SimInputCDB::GetNumRegions()
+  {
+    EXCEPTION("Not implemented!");
     return 0;
   }
 
-  UInt SimInputCDB::GetNumNamedNodes(){
-    UInt numNamedNodes = 0;
-#if 0
-    
-    numNamedNodes += GetInteger("NumNodeBC");
-    numNamedNodes += GetInteger("NumSaveNodes");
-#endif
-
-    return numNamedNodes;
+  UInt SimInputCDB::GetNumNamedNodes()
+  {
+    EXCEPTION("Not implemented!");
+    return 0;
   }
 
-  UInt SimInputCDB::GetNumNamedElems(){
-#if 0
-    return GetInteger("NumSaveElements");
-#endif
+  UInt SimInputCDB::GetNumNamedElems()
+  {
+    EXCEPTION("Not implemented!");
     return 0;
   }
   
@@ -375,477 +237,27 @@ namespace CoupledField {
   // ENTITY NAME ACCESS
   // ======================================================
 
-  void SimInputCDB::GetAllRegionNames( StdVector<std::string> & regionNames ){
-#if 0
-    
-    if(regionNames_.size() == 0)
-    {
-      StdVector<std::string>  names;
-
-      regionNames.Clear();
-
-      for ( UInt iDim=dim_; iDim>0; iDim-- ) {
-        names.Clear();
-        GetRegionNamesOfDim(names,iDim);
-        for ( UInt iName=0; iName<names.GetSize(); iName++ )
-          regionNames.Push_back(names[iName]);
-
-      }
-    }
-    else
-      regionNames = regionNames_;
-#endif
+  void SimInputCDB::GetAllRegionNames( StdVector<std::string> & regionNames )
+  {
+    EXCEPTION("Not implemented!");
   }
     
   void SimInputCDB::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
-                                       const UInt dim ) {
-#if 0
-    
-    regionNames.Clear();
-
-    // Check if elements of desired dimension were read in. If not,
-    // read them in into dummy variables
-    if ( elemDimReadIn_[dim-1] == false ) {
-      std::vector< std::vector<UInt> > elems, elemNums;
-      std::vector< std::vector<Elem::Elem::FEType> > elemTypes;
-      std::vector<RegionIdType> dummyId;
-      GetElements(elems,elemTypes,elemNums,dummyId,dim);
-    }
-    
-    // Look for region names of desired dimension
-    for ( UInt i=0; i<regionDim_.size(); i++ ) 
-      if ( regionDim_[i] == dim )
-        regionNames.Push_back( regionNames_[i] );
-#endif
-    
-  }
-
-  void SimInputCDB::GetNodeNames( StdVector<std::string> &nodeNames ) {
-#if 0
-
-    
-    std::string::size_type pos=0;
-    std::string str;
-    UInt nodalnum;
-    UInt i;    
-    std::vector<std::string> sections;
-    std::vector<UInt> numNamedNodes;
-    
-    nodeNames.Clear();
-    sections.push_back("Node BC");
-    sections.push_back("Save Nodes");
-    numNamedNodes.resize(2);
-    numNamedNodes[0] = GetInteger("NumNodeBC");
-    numNamedNodes[1] = GetInteger("NumSaveNodes");
-    
-    for ( UInt iSect=0; iSect<sections.size(); iSect++ ) {
-      
-      GetPosLine(sections[iSect], pos);
-      inFile_.seekg(pos,std::ios::beg);
-      
-      
-      for ( i = 0; i < numNamedNodes[iSect]; i++ ) {
-        inFile_ >> nodalnum >> str;
-        inFile_.ignore(100,'\n');
-
-
-        if ( nodeNames.Find(str) == -1 ) {
-          nodeNames.Push_back(str);
-        } 
-      }
-    }
-#endif
-  }
-
-  void SimInputCDB::GetElemNames( StdVector<std::string> & elemNames ) {
-#if 0
-
-    std::string::size_type pos=0;
-    std::string str;
-    UInt elemNum, numNamedElems;
-    UInt i;
-    
-    elemNames.Clear();
-    numNamedElems = GetInteger("NumSaveElements");
-    
-    GetPosLine("[Save Elements]", pos);
-    inFile_.seekg(pos,std::ios::beg);
-    
-    
-    for ( i = 0; i < numNamedElems; i++ ) {
-      inFile_ >> elemNum >> str;
-      inFile_.ignore(100,'\n');
-      
-      std::vector<std::string>::iterator it, end;
-                
-      if ( elemNames.Find(str) == -1 ) {
-        elemNames.Push_back(str);
-      } 
-    }
-#endif
-  }
-
-  // ======================================================
-  // ENTITY ACCESS
-  // ======================================================
-  
-  void SimInputCDB::GetCoordinates( std::vector< double > & nodeCoords ) {
-#if 0
-
-    UInt i, ibuf;
-
-    std::string::size_type pos=0;
-    
-    UInt numNodes = GetNumNodes();
-    nodeCoords.resize(numNodes*3);
-
-
-    GetPosLine("[Nodes]", pos);
-    inFile_.seekg(pos,std::ios::beg);
-  
-    for ( i = 0; i < numNodes; i++ ) {
-      inFile_ >> ibuf
-              >> nodeCoords[i*3+0]
-              >> nodeCoords[i*3+1]
-              >> nodeCoords[i*3+2];
-      inFile_.ignore(100,'\n');
-    }
-
-#endif
-  }
-
-
-  void SimInputCDB::GetNodesOfRegions( std::vector<std::vector<UInt> > &nodes,
-                                     const std::vector<RegionIdType> & regionId ) {
-
-#if 0
-
-    std::set<UInt>::iterator it;
-    UInt iRegion, index, iNode;
-    
-    
-    nodes.resize(regionId.size());
-
-    for ( iRegion = 0; iRegion < regionId.size(); iRegion++ ) {
-      
-      iNode = 0;
-      index = regionId[iRegion];
-      nodes[iRegion].resize(regionNodes_[index].size());
-
-      for (it = regionNodes_[index].begin();it != regionNodes_[index].end();
-           it++, iNode++ ) {
-        nodes[iRegion][iNode] = *it;
-      }
-    }
-
-#endif
-  }
-    
-  void SimInputCDB::GetElements( std::vector< std::vector<UInt> > & elems,
-                                  std::vector< std::vector<Elem::Elem::FEType> > & elemTypes,
-                                  std::vector< std::vector<UInt> > & elemNums,                                
-                                  std::vector<RegionIdType> & regionIds,
-                                  const UInt dim ) {
-#if 0
-    
-    // Check that dimension is correct
-    if ( dim < 1 || dim > 3 ) {
-      EXCEPTION("The dimension of elements to be read in was specified with "
-                << dim << "but is only allowed to have a value between 1 and 3!");
-    }
-    
-    // This string is used for assembling keywords that contain the
-    // task specifier elemType
-    std::stringstream searchString;
-
-    // Determine the number of elements of respective dimension from
-    // the header of the mesh-file
-    UInt numElems = GetNumElems(dim);
-
-    // If there are no elements, we assume that this is fine and
-    // simply return
-    if ( numElems <= 0 ) {
-      return;
-    }
-
-    // We need some strings for navigating the mesh-file
-    std::string::size_type pos = 0;
-    std::string::size_type lineEndPos = 0;
-    std::string buf;
-
-    // Position ourselves in the correct setion
-    searchString.clear();
-    searchString << dim;
-    searchString << "D Elements";
-    GetPosLine( searchString.str(), pos );
-    inFile_.seekg( pos, std::ios::beg );
-
-    // Some additional variables
-    UInt i, k, eNum, eType, eNodes;
-    std::string region, lastRegion;
-    RegionIdType regionId;
-    Integer regionIndex = 0;
-    
-    // Loop over all elements
-    for ( i = 0; i < numElems; i++ ) {
-
-      // Remember current position and get the position of endline
-      pos = inFile_.tellg();
-      std::getline( inFile_, buf, '\n' );
-      lineEndPos = inFile_.tellg();
-      inFile_.seekg( pos, std::ios::beg );
-
-      // try to read data
-      inFile_ >> eNum >> eType >> eNodes >> region;       
-
-      // if read in was successfull, enline position and current
-      // position are the same
-      inFile_.ignore( 100, '\n' );
-      pos = inFile_.tellg();
-      if ( pos != lineEndPos ) {
-        EXCEPTION("An error occured while reading the " << i << "-th "
-                  << dim << "D element");
-      }
-
-
-      // Check number of element
-      if ( eNum > maxNumElems_ ) {
-        EXCEPTION("Current element number = " << eNum << " > "
-                  << maxNumElems_ << " = actMaxElemNum_. Something might "
-                  << "have gone wrong in the meshing process.");
-      }
-
-
-      // Check if previous element had the same id. 
-      // If not, obtain new region identifier
-      if( lastRegion != region ) {
-        lastRegion = region;
-        regionId = ObtainRegionId(region, dim);
-        
-        // Check if region of this type already exists, and if not
-        // add new vector
-        std::vector<RegionIdType>::iterator it, end;
-                
-        end = regionIds.end();
-
-        it = std::find(regionIds.begin(), end, regionId);
-        
-        if ( it == end ) {
-          regionIds.push_back(regionId);
-          elems.push_back( std::vector<UInt>() );
-          elemNums.push_back( std::vector<UInt>() );
-          elemTypes.push_back( std::vector<Elem::Elem::FEType>() );
-          regionNodes_.push_back(std::set<UInt>());
-          regionIndex = regionIds.size() - 1;
-        } else {
-          regionIndex = std::distance(regionIds.begin(), it );
-        }
-      }
-
-      // Generate new element and insert basic information
-      //            el = new Elem();
-      //            el->elemNum = eNum;
-      //            el->ptElem  = Type2ptElem( eType );
-      //            el->connect.resize( eNodes );
-      //            el->regionId = regionId;
-
-            
-
-      // Read node numbers and insert them into the element and
-      // into the vector with all node-numbers per region
-      UInt dummy;
-      for ( k = 0; k < eNodes; k++ ) {
-        inFile_ >> dummy;
-        elems[regionIndex].push_back(dummy);
-        regionNodes_[regionId].insert(dummy);
-      }
-
-      elemTypes[regionIndex].push_back(AnsysType2ElemType(eType));
-      elemNums[regionIndex].push_back( eNum );
-            
-      // Proceed in mesh-file
-      inFile_.ignore( 100, '\n' );
-      pos = inFile_.tellg();
-
-      //            elems[regionIndex].push_back( el );
-    }
-
-    // Check that there are no more elements
-    if ( !IsNextLineEmpty(pos) ) {
-      EXCEPTION("The line after the last " << dim
-                << "D element no. " << eNum << " in region '" << region
-                << "' seems to contain elements too. Please check if the "
-                << "number of " << dim << "D elements specified in "
-                << "the header of the mesh-file matches the real number of "
-                << dim << "D elements!");
-    }
-
-    // Set flag which indicates, that elements of given dimension
-    // were read in
-    elemDimReadIn_[dim-1] = true;
-#endif
-  }
-
-  void SimInputCDB::GetNamedNodes(StdVector<StdVector<UInt> > &nodes,
-                                   StdVector<std::string> &nodeNames )
+                                       const UInt dim )
   {
-#if 0
-
-    std::string::size_type pos=0;
-    std::string::size_type lineEndPos =0;
-    std::string lastName = "";
-    Integer lastIndex = 0;
-    std::string str, buf, errMsg;
-    UInt nodalnum;
-    UInt i;
-
-    std::vector<std::string> sections;
-    std::vector<UInt> numNamedNodes;
-    sections.push_back("Node BC");
-    sections.push_back("Save Nodes");
-    numNamedNodes.resize(2);
-    numNamedNodes[0] = GetInteger("NumNodeBC");
-    numNamedNodes[1] = GetInteger("NumSaveNodes");
-    
-    for ( UInt iSect=0; iSect<sections.size(); iSect++) {
-
-      GetPosLine(sections[iSect], pos);
-      inFile_.seekg(pos,std::ios::beg);
-
-      for ( i = 0; i < numNamedNodes[iSect]; i++ ) {
-        
-        // remember current position and get the position of endline
-        pos = inFile_.tellg();
-        std::getline(inFile_,buf,'\n');
-        lineEndPos=inFile_.tellg();
-        inFile_.seekg(pos,std::ios::beg);
-        
-        // try to read in the data
-        inFile_ >> nodalnum >> str;
-        
-        // if read in was successfull, enline position and current
-        // position are the same
-        inFile_.ignore(100,'\n');
-        pos = inFile_.tellg();
-        if (pos != lineEndPos) {
-          EXCEPTION("The node list for the boundary "
-                    << "conditions has wrong size or format. Please correct it!");
-        }
-        
-        // get according vector index
-        if (str != lastName) {
-          lastName = str;
-          
-          // find the associated level
-
-          StdVector<std::string>::iterator it, end;
-                
-          end = nodeNames.End();
-
-          it = std::find(nodeNames.Begin(), end, str);
-                
-          if ( it == end ) {
-            nodeNames.Push_back(str);
-            nodes.Push_back( StdVector<UInt>() );
-            lastIndex = nodes.GetSize()-1; 
-          }
-          else
-          {
-            lastIndex = std::distance(nodeNames.Begin(), it);
-          }
-        }
-        
-        nodes[lastIndex].Push_back(nodalnum);
-      } 
-      
-      if (! IsNextLineEmpty(pos)) {
-        EXCEPTION("The line after the last BC"
-                  << "node "
-                  << "no. " << nodalnum << " in region '" << str
-                  << "' seems to contain nodes too. Please check if the "
-                  << "number of named nodes specified in the header of the "
-                  << "mesh-file matches the real number of BC  nodes!");
-      } // end if 
-    } // end for
-#endif
-
+    EXCEPTION("Not implemented!");
   }
 
-  void SimInputCDB::GetNamedElems(StdVector<StdVector<UInt> > & elems,
-                                   StdVector<std::string> & elemNames)
+  void SimInputCDB::GetNodeNames( StdVector<std::string> &nodeNames )
   {
-#if 0
-
-    std::string::size_type pos=0;
-    std::string::size_type lineEndPos =0;
-    std::string lastName = "";
-    Integer lastIndex = 0;
-    std::string str, buf, errMsg;
-    UInt elemNum;
-    UInt i;
-
-    UInt numNamedElems = GetInteger("NumSaveElements");
-
-    GetPosLine("Save Elements", pos);
-    inFile_.seekg(pos,std::ios::beg);
-
-    for ( i = 0; i < numNamedElems; i++ ) {
-      
-      // remember current position and get the position of endline
-      pos = inFile_.tellg();
-      std::getline(inFile_,buf,'\n');
-      lineEndPos=inFile_.tellg();
-      inFile_.seekg(pos,std::ios::beg);
-      
-      // try to read in the data
-      inFile_ >> elemNum >> str;
-      
-      // if read in was successfull, enline position and current
-      // position are the same
-      inFile_.ignore(100,'\n');
-      pos = inFile_.tellg();
-      if (pos != lineEndPos) {
-        EXCEPTION("The node list for the "
-                  << "boundary "
-                  << "conditions has wrong size or format. Please correct it!");
-      }
-      
-      // get according vector index
-      if (str != lastName) {
-        lastName = str;
-        
-        // find the associated level
-        StdVector<std::string>::iterator it, end;
-                
-        end = elemNames.End();
-
-        it = std::find(elemNames.Begin(), end, str);
-                
-        if ( it == end ) {
-          elemNames.Push_back(str);
-          elems.Push_back( StdVector<UInt>() );
-          lastIndex = elems.GetSize()-1; 
-        }
-        else {
-          lastIndex = std::distance(elemNames.Begin(), it);
-        }
-      }
-      
-      elems[lastIndex].Push_back(elemNum);
-    } 
-    
-    if (! IsNextLineEmpty(pos)) {
-      EXCEPTION("The line after the last "
-                << "named element "
-                << "no. " << elemNum << " in region '" << str
-                << "' seems to contain nodes too. Please check if the "
-                << "number of BC nodes specified in the header of the "
-                << "mesh-file matches the real number of named elems!");
-    } // end if 
-#endif
-      
+    EXCEPTION("Not implemented!");
   }
-  
+
+  void SimInputCDB::GetElemNames( StdVector<std::string> & elemNames )
+  {
+    EXCEPTION("Not implemented!");
+  }
+
   void SimInputCDB::DegenerateElement(const Elem::FEType elemTypeIn,
                                       Elem::FEType& elemTypeOut,
                                       std::vector<UInt>& elemNodes)
@@ -988,7 +400,7 @@ namespace CoupledField {
     std::string line;
 
     // for large file sizes, report file size rounded to 100 MB
-#ifdef WIN32
+#if(WIN32 || __MINGW32__)
     Double tmpVal = (Double) (inSize_/(1024.0*1024.0*1024.0));
 #else
     Double tmpVal = (Double) (fSize_/(1024.0*1024.0*1024.0));
@@ -1001,7 +413,7 @@ namespace CoupledField {
 
     std::cout << std::endl;
 
-#ifdef WIN32
+#if(WIN32 || __MINGW32__)
     __int64 pos = _ftelli64( inStream_ );
 #else
     unsigned long pos = inFile_.tellg();
@@ -1275,17 +687,14 @@ namespace CoupledField {
 
   void SimInputCDB::SetAnsys2NacsElementTypeMap()
   {
-
-    std::stringstream sstr;
     std::string line;
     std::ostringstream errMsg;
     UInt ansysType = 0, ansElemType = 0;
     Integer ansysSubType = -1;
     UInt nacsElemType = 0;
+    std::vector< std::string > tokens(32);
 
     ansNacsMap_.clear();
-
-    sstr.clear(); sstr.str("");
 
     UInt numETCmnds = lineETCmnds_.size();
 
@@ -1294,32 +703,25 @@ namespace CoupledField {
       // ET, ITYPE, Ename, KOP1, KOP2, KOP3, KOP4, KOP5, KOP6, INOPR
       // Defines a local element type from the element library.
       line = lineETCmnds_[i];
+      UInt numTok = SplitLine(line, tokens);
 
       ansElemType = ansysType = nacsElemType = 0;
       ansysSubType = -1;
 
-      size_t pos1 = line.find(",");
-      size_t pos2 = line.find(",",pos1+1);
-
       // Ignore all  ASCII characters  of category name  and just  account for
       // digits on ET lines. E.g. et,2,MESH200
-      while(!std::isdigit(line[pos2]))
+      size_t pos = 0;
+      while(!std::isdigit(tokens[2][pos]))
       {
-        pos2++;
+        pos++;
       }
-      size_t pos3 = line.find(",",pos2+1);
 
-      sstr.clear(); sstr.str("");
-      sstr << line.substr(pos1+1,pos2-pos1-1);
-      sstr >> ansElemType;
-      sstr.clear(); sstr.str("");
-      sstr << line.substr(pos2);
-      sstr >> ansysType;
-      if (pos3 != line.npos) {
+      ansElemType = std::strtoul(tokens[1].c_str(), NULL, 0);
+      ansysType = std::strtoul(tokens[2].substr(pos).c_str(), NULL, 0);
+
+      if (numTok > 3) {
         if (ansysType==200 || ansysType==154 ) {
-          sstr.clear(); sstr.str("");
-          sstr << line.substr(pos3+1);
-          sstr >> ansysSubType;
+          ansysSubType = std::strtoul(tokens[3].c_str(), NULL, 0);
         }
       }
 
@@ -1340,27 +742,14 @@ namespace CoupledField {
           Integer value = -1;
           
           for (UInt j=0, n=lineKEYOPTCmnds_.size(); j<n; j++) {
-            
             line = lineKEYOPTCmnds_[j];
-            
-            pos1 = line.find(",");
-            pos2 = line.find(",",pos1+1);
-            pos3 = line.find(",",pos2+1);
-            
-            sstr.clear(); sstr.str("");
-            sstr << line.substr(pos1+1,pos2-pos1-1);
-            sstr >> itype;
-            
+            numTok = SplitLine(line, tokens);
+            itype = std::strtoul(tokens[1].c_str(), NULL, 0);
+
             if(ansElemType != itype) continue;
             
-            sstr.clear(); sstr.str("");
-            sstr << line.substr(pos2+1,pos3-pos2-1);
-            sstr >> knum;
-            
-            sstr.clear(); sstr.str("");
-            sstr << line.substr(pos3+1);
-            sstr >> value;
-            
+            knum = std::strtoul(tokens[2].c_str(), NULL, 0);
+            value = std::strtoul(tokens[3].c_str(), NULL, 0);
             break;
           }
           
@@ -1432,10 +821,10 @@ namespace CoupledField {
     std::ostringstream errMsg;
     double x, y, z;
     UInt fileNodeNum = 0;
+    // UInt numFields = 0;
     UInt nodeNum = 1;
     UInt maxNodeNum = 0;
     UInt numNodes = 0;
-    UInt numFields = 0;
     std::vector< std::string > tokens(32);
 
     // loop on all found nblock commands
@@ -1453,33 +842,12 @@ namespace CoupledField {
 
       // read number of fields in blocked node lines from NBLOCK line
       UInt numTok = SplitLine(line, tokens);
-      numFields = std::strtoul(tokens[1].c_str(), NULL, 0);
+      // numFields = std::strtoul(tokens[1].c_str(), NULL, 0);
 
       // retrieve format by splitting a line of the form (3i8,6e20.13)
-      GetNextLine(line);
-      numTok = SplitLine(line, tokens);
-
-      std::string intLenStr = tokens[0];
-      std::string floatLenStr = tokens[1];
-
-      numTok = SplitLine(intLenStr, tokens, "(iI");
-      UInt numInts = std::strtoul(tokens[0].c_str(), NULL, 0);
-      UInt intWidth = std::strtoul(tokens[1].c_str(), NULL, 0);
-
-      numTok = SplitLine(floatLenStr, tokens, "eE.");
-      UInt numFloats = std::strtoul(tokens[0].c_str(), NULL, 0);
-      UInt floatWidth = std::strtoul(tokens[1].c_str(), NULL, 0);
-
-      // Generate an offset vector for the different fields.
       std::vector<int> offsets;
-      for(UInt i=0; i<numInts; i++) 
-      {
-        offsets.push_back(intWidth);
-      }
-      for(UInt i=0; i<numFloats; i++) 
-      {
-        offsets.push_back(floatWidth);
-      }      
+      GetNextLine(line);
+      UInt numInts = DecodeBlockFormatLine(line, offsets);
 
       // read-in procedure for blocked case
       UInt numNodesInBlock = 0;
@@ -1592,8 +960,11 @@ namespace CoupledField {
     std::cout << "Finished reading nodes (" << numNodes << " read)" << std::endl;
   }
 
-  void SimInputCDB::StoreSingleNode(UInt fileNodeNum, double x,double y,double z, 
-                       UInt &nodeNum, UInt &numNodes, UInt &maxNodeNum) {
+  void SimInputCDB::StoreSingleNode(UInt fileNodeNum,
+                                    double x, double y, double z,
+                                    UInt &nodeNum,
+                                    UInt &numNodes,
+                                    UInt &maxNodeNum) {
 
     std::ostringstream errMsg;
 
@@ -1641,24 +1012,23 @@ namespace CoupledField {
   }
 
   void SimInputCDB::ReadElementsBlocked() {
-    std::stringstream sstr;
     std::string line;
+    std::vector< std::string > tokens(32);
     std::ostringstream errMsg;
 
     // Read element types
     UInt elemType, elemMat;
+    // UInt ansElemNum = 0;
     UInt elemNum = 1;
-    UInt ansElemNum;
-    UInt elemDim;
+    UInt elemDim = 0;
     UInt dim = 0;
     std::vector<UInt> elemNodes(40);
     std::vector<UInt> lineContent(40);
     std::set<UInt> elemNodeSet;
     UInt numElemNodes;
-    UInt numBlockElems = 0;
     // maxNonSolidNodes is the maximum number of element nodes per non-solid eblock
     // if maxNonSolidNodes > 10, 2 records have to be read per element
-    UInt maxNonSolidNodes;
+    UInt maxNonSolidNodes = 0;
     bool isSolidEBlock = false;
     UInt numSkipElems = 0, firstSkippedElem = 0;
 
@@ -1666,8 +1036,8 @@ namespace CoupledField {
     for (UInt ib=0; ib<linePtsEBlocks_.size(); ib++) {
 
       if (!GetLine(line,linePtsEBlocks_[ib])) {
-        errMsg << "EBLOCK " << ib << " expected to start at line no. " << linePtsEBlocks_[ib]
-               << " not found!\nLine read was " << line;
+        errMsg << "EBLOCK " << ib << " expected to start at line no. "
+               << linePtsEBlocks_[ib] << " not found!\nLine read was " << line;
         EXCEPTION(errMsg);
       }
 
@@ -1675,105 +1045,64 @@ namespace CoupledField {
       if (line.find("solid") != line.npos || line.find("SOLID") != line.npos )
         isSolidEBlock = true;
 
-      // in case of a nonsolid eblock, we need to know the maximum number of element nodes per element
-      if (!isSolidEBlock) {
-          sstr.clear(); sstr.str("");
-	  size_t pos1=line.find(","),pos2=line.find(",",pos1+1);
-          sstr << line.substr(pos1+1,pos2-pos1-1);
-          sstr >> maxNonSolidNodes;
-      }
+      UInt numTok = SplitLine(line, tokens);
 
-      // number of nodes/data entries per first record
-      sstr.clear(); sstr.str("");
-      sstr << line.substr(line.rfind(",")+1,10);
-      sstr >> numBlockElems;
+      // in case of a  nonsolid eblock, we need to know  the maximum number of
+      // element nodes per element
+      if (!isSolidEBlock) {
+        maxNonSolidNodes = std::strtoul(tokens[1].c_str(), NULL, 0);
+      }
 
       // check format line
+      std::vector<int> offsets;
       GetNextLine(line);
-      UInt intWidth = 0;
-      if ( line.substr(3,2) == "i8" || line.substr(3,2) == "I8" ) {
-        intWidth = 8;
-	std::cout << "Using standard ANSYS 14 cdb file format for blocked element input" << std::endl;
-      } else if ( line.substr(3,2) == "i9" || line.substr(3,2) == "I9" ) {
-        intWidth = 9;
-	std::cout << "Using ANSYS 14.5 cdb file format for blocked element input" << std::endl;
-      }
+      DecodeBlockFormatLine(line, offsets);
 
       UInt numElemsInBlock = 0;
 
       GetNextLine(line);
       while(line.find("-1") == line.npos) {
-        UInt len = (UInt) line.length();
-
         std::fill(elemNodes.begin(), elemNodes.end(), 0);
         elemNodeSet.clear();
 
+        numTok = SplitLine(line, tokens, "", &offsets);
+
         if (isSolidEBlock) {
+          elemMat = std::strtoul(tokens[0].c_str(), NULL, 0);
+          elemType = std::strtoul(tokens[1].c_str(), NULL, 0);
+          // ansElemNum = std::strtoul(tokens[10].c_str(), NULL, 0);
+          numElemNodes = std::strtoul(tokens[8].c_str(), NULL, 0);
 
-          sstr.clear(); sstr.str("");
-          sstr << line.substr(0,intWidth);
-          sstr >> elemMat;
-          sstr.clear(); sstr.str("");
-          sstr << line.substr(intWidth,intWidth);
-          sstr >> elemType;
-          sstr.clear(); sstr.str("");
-          sstr << line.substr(10*intWidth,intWidth);
-          sstr >> ansElemNum;
-          sstr.clear(); sstr.str("");
-          sstr << line.substr(8*intWidth,intWidth);
-          sstr >> numElemNodes;
-
-          UInt pStart=11*intWidth;
-          for (UInt i=0; i<8 && pStart<=len-intWidth; i++) {
-            sstr.clear(); sstr.str("");
-            sstr << line.substr(pStart,intWidth);
-            sstr >> elemNodes[i];
-            pStart += intWidth;
+          for (UInt i=0, n=offsets.size()-11; i<n; i++) {
+            elemNodes[i] = std::strtoul(tokens[i + 11].c_str(), NULL, 0);
           }
 
           if (numElemNodes > 8) {
             GetNextLine(line);
-            UInt pStart=0;
-            for (UInt i=0; i<numElemNodes-8; i++) {
-              sstr.clear(); sstr.str("");
-              sstr << line.substr(pStart,intWidth);
-              sstr >> elemNodes[i+8];
-              pStart += intWidth;
+            numTok = SplitLine(line, tokens, "", &offsets);
+
+            for (UInt i=0; i<numTok; i++) {
+              elemNodes[i+8] = std::strtoul(tokens[i].c_str(), NULL, 0);
             }
           }
-
 	} else {
-
-          sstr.clear(); sstr.str("");
-          sstr << line.substr(3*intWidth,intWidth);
-          sstr >> elemMat;
-          sstr.clear(); sstr.str("");
-          sstr << line.substr(intWidth,intWidth);
-          sstr >> elemType;
-          sstr.clear(); sstr.str("");
-          sstr << line.substr(0,intWidth);
-          sstr >> ansElemNum;
-          sstr.clear(); sstr.str("");
+          elemMat = std::strtoul(tokens[3].c_str(), NULL, 0);
+          elemType = std::strtoul(tokens[1].c_str(), NULL, 0);
+          // ansElemNum = std::strtoul(tokens[0].c_str(), NULL, 0);
 
           numElemNodes = 0;
-          UInt pStart=40;
-          for (UInt i=0; i<8 && pStart<=len-intWidth; i++) {
-            sstr.clear(); sstr.str("");
-            sstr << line.substr(pStart,intWidth);
-            sstr >> elemNodes[i];
+          for (UInt i=0, n=10; i<n; i++) {
+            elemNodes[i] = std::strtoul(tokens[i + 5].c_str(), NULL, 0);
 	    numElemNodes++;
-            pStart += intWidth;
           }
 
           if (maxNonSolidNodes > 10) {
             GetNextLine(line);
-            UInt pStart=0;
-            for (UInt i=0; i<numElemNodes-8; i++) {
-              sstr.clear(); sstr.str("");
-              sstr << line.substr(pStart,intWidth);
-              sstr >> elemNodes[i+8];
-	      numElemNodes++;
-              pStart += intWidth;
+            numTok = SplitLine(line, tokens, "", &offsets);
+
+            for (UInt i=0, n=numTok; i<n; i++) {
+              elemNodes[i+10] = std::strtoul(tokens[i].c_str(), NULL, 0);
+              numElemNodes++;
             }
           }
 	}
@@ -1808,7 +1137,7 @@ namespace CoupledField {
           elemNum++;
 
 	} else {
-          if (numSkipElems ==0)
+          if (numSkipElems == 0)
             firstSkippedElem = elemNum;
 
           numSkipElems++;
@@ -1841,16 +1170,15 @@ namespace CoupledField {
   }
 
   void SimInputCDB::ReadElementsUnBlocked() {
-
-    std::stringstream sstr;
     std::string line;
     std::ostringstream errMsg;
+    std::vector< std::string > tokens(32);
 
     // Read element types
     UInt elemType;
     UInt elemNum = 1;
-    UInt ansElemNum;
-    UInt elemDim;
+    // UInt ansElemNum = 0;
+    UInt elemDim = 0;
     UInt dim = 0;
     std::vector<UInt> elemNodes(40);
     std::vector<UInt> lineContent(40);
@@ -1865,58 +1193,40 @@ namespace CoupledField {
 
       GetLine(line,linePtsENCmnds_[ib]);
       lCount++;
-      sstr.clear(); sstr.str("");
-      sstr << line.substr(13,9);
-      sstr >> numElemNodes;
+      UInt numTok = SplitLine(line, tokens);
 
-      sstr.clear(); sstr.str("");
-      sstr << line.substr(33,9);
-      sstr >> elemType;
-
-      sstr.clear(); sstr.str("");
-      sstr << line.substr(73,9);
-      sstr >> ansElemNum;
+      numElemNodes = std::strtoul(tokens[3].c_str(), NULL, 0);
+      elemType = std::strtoul(tokens[5].c_str(), NULL, 0);
+      // ansElemNum = std::strtoul(tokens[9].c_str(), NULL, 0);
 
       GetNextLine(line);
       lCount++;
-      size_t len = line.length();
+      numTok = SplitLine(line, tokens);
 
       std::fill(elemNodes.begin(), elemNodes.end(), 0);
       elemNodeSet.clear();
 
-      UInt pStart=13;
-      for (UInt i=0; i<8 && pStart<=len-9; i++) {
-        sstr.clear(); sstr.str("");
-        sstr << line.substr(pStart,9);
-        sstr >> elemNodes[i];
-        pStart += 10;
+      for (UInt i=0, n=numTok-3; i<n; i++) {
+        elemNodes[i] = std::strtoul(tokens[i+3].c_str(), NULL, 0);
       }
 
       if (numElemNodes > 8) {
         GetNextLine(line);
         lCount++;
-        len = line.length();
+        numTok = SplitLine(line, tokens);
 
-        UInt pStart=13;
-        for (UInt i=0; i<numElemNodes && pStart<=len-9; i++) {
-          sstr.clear(); sstr.str("");
-          sstr << line.substr(pStart,9);
-          sstr >> elemNodes[i+8];
-          pStart += 10;
+        for (UInt i=0, n=numTok-3; i<n; i++) {
+          elemNodes[i+8] = std::strtoul(tokens[i+3].c_str(), NULL, 0);
         }
       }
 
       if (numElemNodes > 16) {
         GetNextLine(line);
         lCount++;
-        len = line.length();
+        numTok = SplitLine(line, tokens);
 
-        UInt pStart=13;
-        for (UInt i=0; i<numElemNodes && pStart<=len-9; i++) {
-          sstr.clear(); sstr.str("");
-          sstr << line.substr(pStart,9);
-          sstr >> elemNodes[i+16];
-          pStart += 10;
+        for (UInt i=0, n=numTok-3; i<n; i++) {
+          elemNodes[i+16] = std::strtoul(tokens[i+3].c_str(), NULL, 0);
         }
       }
 
@@ -1978,7 +1288,6 @@ namespace CoupledField {
 
   void SimInputCDB::ReadRegionsAndGroups() {
 
-    std::stringstream sstr;
     std::string line;
     std::string regnam,regtype;
 
@@ -2004,10 +1313,10 @@ namespace CoupledField {
 
   void SimInputCDB::ReadBlockedRegionsAndGroups() {
 
-    std::stringstream sstr;
     std::string line;
     std::ostringstream errMsg;
     std::string regnam,regtype;
+    std::vector< std::string > tokens(32);
 
     std::vector<std::string>::const_iterator it, end;
 
@@ -2022,45 +1331,36 @@ namespace CoupledField {
                << " not found!\nLine read was " << line;
         EXCEPTION(errMsg);
       }
-      // read number of blocked elem lines from EBLOCK line
-      size_t pos1 = line.find(",");
-      size_t pos2 = line.find(",",pos1+1);
-      size_t pos3 = line.find(",",pos2+1);
 
-      std::cout << "Line: " << line << " pos1 " << pos1 << " pos2 " << pos2 << " pos3 " << pos3 << std::endl;
+      // read region name, component type number of elems from CMBLOCK line
+      UInt numTok = SplitLine(line, tokens, "!", NULL, true);
 
-      sstr.clear(); sstr.str("");
-      sstr << line.substr(pos1+1,pos2-pos1-1);
-      sstr >> regnam;
-      sstr.clear(); sstr.str("");
-      sstr << line.substr(pos2+1,pos3-pos2-1);
-      sstr >> regtype;
-      sstr.clear(); sstr.str("");
-      sstr << line.substr(pos3+1);
-      sstr >> numdata;
-
-      std::cout << regnam << " " << regtype << " " << numdata << std::endl;
+      regnam = tokens[1];
+      regtype = tokens[2];      
+      numdata = std::strtoul(tokens[3].c_str(), NULL, 0);
 
       dataVal = new int[numdata];
-      // skipp format specs
+
+      // Don't skip format specs
+      std::vector<int> offsets;
       GetNextLine(line);
+      DecodeBlockFormatLine(line, offsets);
 
       // data spec
       UInt count = 0;
       while (count < numdata) {
         GetNextLine(line);
-        UInt pStart=0;
-        for (UInt i=0; i<8 && pStart<=line.length()-10; i++) {
-          sstr.clear();sstr.str("");
-          sstr << line.substr(pStart,10);
-          sstr >> dataVal[count];
-          pStart += 10;
+        numTok = SplitLine(line, tokens, "", &offsets);
+
+        for (UInt i=0; i<numTok; i++) {
+          dataVal[count] = std::strtoul(tokens[i].c_str(), NULL, 0);
           count++;
         }
       }
-      if (regtype == "NODE") {
+
+      if (regtype == "NODE" || regtype == "node") {
         StoreNodeGroup(regnam,numdata,dataVal);
-      } else if (regtype == "ELEM") {
+      } else if (regtype == "ELEM" || regtype == "elem") {
         // test dimension of element type of first element in component
         // if this equals model dimension -> region
         // otherwise -> element group
@@ -2533,7 +1833,9 @@ namespace CoupledField {
     }
   }
 
-  void SimInputCDB::StoreNodeGroup(std::string grpname, UInt numdata, int* dataVal) {
+  void SimInputCDB::StoreNodeGroup(std::string grpname,
+                                   UInt numdata,
+                                   int* dataVal) {
 
     nodeGroupNames_.push_back(grpname);
 
@@ -2565,20 +1867,28 @@ namespace CoupledField {
       }
     }
     nodeGroupData_.push_back(tempVec);
-    std::cout << "NodeGroup " << numNodeGroups_+1 << " contains " << nodeGroupData_[numNodeGroups_].GetSize() << " entries" << std::endl;
+    std::cout << "NodeGroup " << numNodeGroups_+1 << " contains "
+              << nodeGroupData_[numNodeGroups_].GetSize() << " entries"
+              << std::endl;
     numNodeGroups_++;
   }
 
-  void SimInputCDB::StoreNodeGroup(std::string grpname, UInt numdata, StdVector<UInt> dataVal) {
+  void SimInputCDB::StoreNodeGroup(std::string grpname, 
+                                   UInt numdata,
+                                   StdVector<UInt> dataVal) {
 
     nodeGroupNames_.push_back(grpname);
 
     nodeGroupData_.push_back(dataVal);
-    std::cout << "NodeGroup " << numNodeGroups_+1 << " contains " << nodeGroupData_[numNodeGroups_].GetSize() << " entries" << std::endl;
+    std::cout << "NodeGroup " << numNodeGroups_+1 << " contains "
+              << nodeGroupData_[numNodeGroups_].GetSize() << " entries"
+              << std::endl;
     numNodeGroups_++;
   }
 
-  void SimInputCDB::StoreElemGroup(std::string grpname, UInt numdata, int* dataVal) {
+  void SimInputCDB::StoreElemGroup(std::string grpname,
+                                   UInt numdata,
+                                   int* dataVal) {
 
     elemGroupNames_.push_back(grpname);
 
@@ -2610,21 +1920,29 @@ namespace CoupledField {
       }
     }
     elemGroupData_.push_back(tempVec);
-    std::cout << "ElemGroup " << numElemGroups_+1 << " contains " << elemGroupData_[numElemGroups_].GetSize() << " entries" << std::endl;
+    std::cout << "ElemGroup " << numElemGroups_+1 << " contains "
+              << elemGroupData_[numElemGroups_].GetSize() << " entries"
+              << std::endl;
     numElemGroups_++;
   }
 
-  void SimInputCDB::StoreElemGroup(std::string grpname, UInt numdata, StdVector<UInt> dataVal) {
+  void SimInputCDB::StoreElemGroup(std::string grpname,
+                                   UInt numdata,
+                                   StdVector<UInt> dataVal) {
 
     elemGroupNames_.push_back(grpname);
 
     elemGroupData_.push_back(dataVal);
-    std::cout << "ElemGroup " << numElemGroups_+1 << " contains " << elemGroupData_[numElemGroups_].GetSize() << " entries" << std::endl;
+    std::cout << "ElemGroup " << numElemGroups_+1 << " contains "
+              << elemGroupData_[numElemGroups_].GetSize() << " entries"
+              << std::endl;
     numElemGroups_++;
   }
 
-  void SimInputCDB::StoreRegion(std::string grpname, UInt numdata, int* dataVal) {
-	std::cout << "Region name: " << grpname << std::endl;
+  void SimInputCDB::StoreRegion(std::string grpname,
+                                UInt numdata,
+                                int* dataVal) {
+    std::cout << "Region name: " << grpname << std::endl;
     regionNames_.push_back(grpname);
 
     StdVector<UInt> tempVec;
@@ -2655,7 +1973,9 @@ namespace CoupledField {
       }
     }
     regionData_.push_back(tempVec);
-    std::cout << "Region " << grpname << " contains " << regionData_[numRegions_].GetSize() << " entries" << std::endl;
+    std::cout << "Region " << grpname << " contains "
+              << regionData_[numRegions_].GetSize() << " entries"
+              << std::endl;
     for (UInt i=0; i<tempVec.GetSize(); i++) {
       // If an element is referenced in more than one domain region
       // throw an error, since this is not allowed.
@@ -2671,11 +1991,15 @@ namespace CoupledField {
     numRegions_++;
   }
 
-  void SimInputCDB::StoreRegion(std::string grpname, UInt numdata, StdVector<UInt> dataVal) {
+  void SimInputCDB::StoreRegion(std::string grpname,
+                                UInt numdata,
+                                StdVector<UInt> dataVal) {
     regionNames_.push_back(grpname);
 
     regionData_.push_back(dataVal);
-    std::cout << "Region " << grpname << " contains " << regionData_[numRegions_].GetSize() << " entries" << std::endl;
+    std::cout << "Region " << grpname << " contains "
+              << regionData_[numRegions_].GetSize() << " entries"
+              << std::endl;
     for (UInt i=0; i<dataVal.GetSize(); i++) {
       // If an element is referenced in more than one domain region
       // throw an error, since this is not allowed.
@@ -2690,56 +2014,6 @@ namespace CoupledField {
     }
     numRegions_++;
   }
-
-#if 0
-  void SimInputCDB::GetNodeGroups(std::map<std::string,
-      std::vector<UInt> >& nodeGroups)
-  {
-
-	std::vector<std::string> nodeFiles;
-    std::string line;
-    std::string groupName;
-    UInt nodeNum;
-    std::set<UInt> nodeSet;
-
-    for( UInt i=0; i<numNodeGroups_; i++ ) {
-
-      groupName = nodeGroupNames_[i];
-      nodeSet.clear();
-
-      for (UInt n=0; n<nodeGroupData_[i].size(); n++) {
-        nodeSet.insert(nodeGroupData_[i][n]);
-      }
-
-      std::copy(nodeSet.begin(), nodeSet.end(),
-          std::back_inserter(nodeGroups[groupName]));
-    }
-  }
-
-  void SimInputCDB::GetElemGroups(std::map<std::string,
-      std::vector<UInt> >& elemGroups)
-  {
-
-	std::vector<std::string> nodeFiles;
-    std::string line;
-    std::string groupName;
-    UInt elemNum;
-    std::set<UInt> elemSet;
-
-    for( UInt i=0; i<numElemGroups_; i++ ) {
-
-      groupName = elemGroupNames_[i];
-      elemSet.clear();
-
-      for (UInt n=0; n<elemGroupData_[i].size(); n++) {
-        elemSet.insert(elemGroupData_[i][n]);
-      }
-
-      std::copy(elemSet.begin(), elemSet.end(),
-          std::back_inserter(elemGroups[groupName]));
-    }
-  }
-#endif
 
   Elem::FEType SimInputCDB::DegenTypeToNativeType(UInt type, UInt numNodes)
   {
@@ -2822,12 +2096,12 @@ namespace CoupledField {
     return ret;
   }
 
-#ifdef WIN32
+#if(WIN32 || __MINGW32__)
   void SimInputCDB::OpenCDBFile(std::string fn)
   {
     std::string filename=fn.c_str();
 
-    if (fopen_s( &inStream_, fn.c_str(), "r" ) != 0 ) {
+    if (fopen_s( &inStream_, fn.c_str(), "rb" ) != 0 ) {
       EXCEPTION("Can't open " << filename);
     }
 
@@ -3021,6 +2295,48 @@ namespace CoupledField {
     }
     
     return i;
+  }
+  
+  UInt SimInputCDB::DecodeBlockFormatLine(const std::string& line,
+                                          std::vector<int>& chunkSizes) const
+  {
+    std::vector< std::string > tokens(32);
+    
+    chunkSizes.clear();
+    
+    // retrieve format by splitting a line of the form (3i8,6e20.13) or (19i8)
+    UInt numTok = SplitLine(line, tokens);
+
+    std::string intLenStr = tokens[0];
+    std::string floatLenStr = "";
+    if(numTok > 1) 
+    {
+      floatLenStr = tokens[1];
+    }
+    
+    numTok = SplitLine(intLenStr, tokens, "(iI)");
+    UInt numInts = std::strtoul(tokens[0].c_str(), NULL, 0);
+    UInt intWidth = std::strtoul(tokens[1].c_str(), NULL, 0);
+
+    // Generate an offset vector for the different fields.
+    for(UInt i=0; i<numInts; i++) 
+    {
+      chunkSizes.push_back(intWidth);
+    }
+    
+    if(floatLenStr != "") 
+    {
+      numTok = SplitLine(floatLenStr, tokens, "eE.");
+      UInt numFloats = std::strtoul(tokens[0].c_str(), NULL, 0);
+      UInt floatWidth = std::strtoul(tokens[1].c_str(), NULL, 0);
+    
+      for(UInt i=0; i<numFloats; i++) 
+      {
+        chunkSizes.push_back(floatWidth);
+      }      
+    }
+    
+    return numInts;
   }
   
 }
