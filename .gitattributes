@@ -422,6 +422,7 @@ ctest_scripts/sites/wiki/ctest_update_trunk_testsuite_wien.cmake -text
 ctest_scripts/sites/wiki/ctest_update_trunk_wien.cmake -text
 ctest_scripts/sites/wiki/di_log.cmake -text
 ctest_scripts/sites/wiki/linux64_fespace_clang_release.ctest -text
+ctest_scripts/sites/wiki/linux64_fespace_gcc47_release.ctest -text
 ctest_scripts/sites/wiki/linux64_fespace_gcc48_release.ctest -text
 ctest_scripts/sites/wiki/linux64_fespace_icc11_release.ctest -text
 ctest_scripts/sites/wiki/linux64_fespace_icc12_release.ctest -text

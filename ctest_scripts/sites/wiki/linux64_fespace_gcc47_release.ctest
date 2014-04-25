@@ -65,7 +65,7 @@ SET(GCC_COMPVARS_CMAKE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
 
 FILE(WRITE "${GCC_COMPVARS_SH}"
 "
-. /opt/rh/devtoolset-2/enable
+. /opt/rh/devtoolset-1.1/enable
 
 ${CTEST_CMAKE_COMMAND} -E environment
 ")
