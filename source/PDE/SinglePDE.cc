@@ -138,9 +138,26 @@ namespace CoupledField {
     }
     materials_.clear();
     
+    // Loop overall feFunctions and finalize them
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator feIt;
+    for( feIt = feFunctions_.begin(); feIt != feFunctions_.end(); ++feIt)  {
+      feIt->second->CleanUp();
+    }
+    for( feIt = prevFeFunctions_.begin(); feIt != prevFeFunctions_.end(); ++feIt)  {
+      feIt->second->CleanUp();
+    }
+    for( feIt = rhsFeFunctions_.begin(); feIt != rhsFeFunctions_.end(); ++feIt)  {
+      feIt->second->CleanUp();
+    }
+
+    for( feIt = timeDerivFeFunctions_.begin(); feIt != timeDerivFeFunctions_.end(); ++feIt)  {
+      feIt->second->CleanUp();
+    }
+
     feFunctions_.clear();
     prevFeFunctions_.clear();
     rhsFeFunctions_.clear();
+    timeDerivFeFunctions_.clear();
     
     // delete external domains
     std::map<shared_ptr<SimState>, Domain* >::iterator inputIt = inputs_.begin();

@@ -242,11 +242,6 @@ DECLARE_LOG(fefunc)
     // a child Domain, the mathParser might already be deleted when
     // we try to attempt this.
     
-    //    if( domain) {
-    //      if (mp_) {
-    //        mp_->ReleaseHandle( mHandle_ );
-    //      }
-    //    }
     
     if( idOp_ )
       delete idOp_;
@@ -368,6 +363,16 @@ DECLARE_LOG(fefunc)
             << "conditions:\n\n" << nodeListNames 
             << "\nPlease consider changing them to (surface) element lists "
             << "or use Lagrangian polynomials with grid order!")
+      }
+    }
+  }
+  
+  template<typename T>
+  void FeFunction<T>::CleanUp(){
+    if( domain) {
+      if (mp_) {
+        mp_->ReleaseHandle( mHandle_ );
+        mp_ = NULL;
       }
     }
   }
