@@ -114,7 +114,6 @@ namespace CoupledField {
   //   Destructor
   // **************
   SinglePDE::~SinglePDE() {
-
     // Delete algebraic system only if
     // PDE is not direct coupled
     if ( isDirectCoupled_ == false ) {
@@ -139,7 +138,11 @@ namespace CoupledField {
     }
     materials_.clear();
     
-    // delete simstates and externally loaded domains
+    feFunctions_.clear();
+    prevFeFunctions_.clear();
+    rhsFeFunctions_.clear();
+    
+    // delete external domains
     std::map<shared_ptr<SimState>, Domain* >::iterator inputIt = inputs_.begin();
     for( ; inputIt != inputs_.end(); ++inputIt) {
       inputIt->first->Finalize();
@@ -1404,7 +1407,13 @@ namespace CoupledField {
         actField.field = new Vector<Double>();
       }
       
-      std::set<RegionIdType> regions(regions_.Begin(), regions_.End());
+      StdVector<shared_ptr<EntityList> > lists;
+      StdVector<RegionIdType>::iterator regIt = regions_.Begin();
+      for(; regIt != regions_.End(); regIt++ ) {
+        shared_ptr<ElemList> newList(new ElemList(ptGrid_));
+        newList->SetRegion(*regIt);
+        lists.Push_back(newList);
+      }
 
       StdVector< Vector<Double> > globPoints( numSamples[0] *
                                               numSamples[1] *
@@ -1440,7 +1449,7 @@ namespace CoupledField {
       ptGrid_->GetElemsAtGlobalCoords( globPoints,
                                        locPoints,
                                        elems,
-                                       regions,
+                                       lists,
                                        0.0, 1.0e-2,
                                        false );
 
@@ -1763,7 +1772,11 @@ namespace CoupledField {
           std::set<UInt> definedDofs;
           PtrCoefFct coef;
           bool coefUpdatedGeo = false;
-          ReadUserFieldValues( actList, hdbcNodes[i], dofNames, ResultInfo::VECTOR,
+          ResultInfo::EntryType entryType = ResultInfo::VECTOR;
+          if(dofNames.GetSize() == 0 || dofNames.GetSize() == 1 ) {
+            entryType = ResultInfo::SCALAR;
+          }
+          ReadUserFieldValues( actList, hdbcNodes[i], dofNames, entryType,
                                isComplex_, coef, definedDofs,  coefUpdatedGeo );
           
           // ensure, that only the default coordinate system is used
@@ -1828,7 +1841,11 @@ namespace CoupledField {
         std::set<UInt> definedDofs;
         PtrCoefFct coef;
         bool updatedGeo;
-        ReadUserFieldValues( actList, idbcNodes[i], dofNames, ResultInfo::VECTOR,
+        ResultInfo::EntryType entryType = ResultInfo::VECTOR;
+        if(dofNames.GetSize() == 0 || dofNames.GetSize() == 1 ) {
+          entryType = ResultInfo::SCALAR;
+        }
+        ReadUserFieldValues( actList, idbcNodes[i], dofNames, entryType,
                              isComplex_, coef, definedDofs, updatedGeo );
         
         // ensure, that only the default coordinate system is used
@@ -2220,34 +2237,57 @@ namespace CoupledField {
       // here we assume no updated geometry
       updateGeo = false;
       
-    } else if( valueNode->Has("externalSimulation") ) {
-      // =====================
-      //  EXTERNAL SIMULATION 
-      // =====================
-      PtrParamNode esNode = valueNode->Get("externalSimulation");
+    } else if( valueNode->Has("externalSimulation") ||
+               valueNode->Has("sequenceStep") ) {
+      // ===========================================
+      //  EXTERNAL SIMULATION / MULTISEQUENCE STEP
+      // ============================================
+      PtrParamNode esNode;
+      if( valueNode->Has("externalSimulation") ) {
+        esNode = valueNode->Get("externalSimulation");
+      } else {
+        esNode = valueNode->Get("sequenceStep");
+      }
       PtrParamNode qNode = esNode->Get("quantity");
       PtrParamNode tfm = esNode->Get("timeFreqMapping");
-      
+
       // obtain fileId and SequenceStep
-      std::string fileId = esNode->Get("inputId")->As<std::string>();
-      UInt sequenceStep = esNode->Get("sequenceStep")->As<UInt>();
+      std::string fileId;
+      UInt sequenceStep = 0; 
       std::string quantityName = qNode->Get("name")->As<std::string>();
       std::string pdeName = qNode->Get("pdeName")->As<std::string>();
+      SolutionType solType = SolutionTypeEnum.Parse(quantityName);
+      
       try {
-
-        SolutionType solType = SolutionTypeEnum.Parse(quantityName);
-
         Domain * inDomain = NULL;
 
         // create SimState (for input)
         boost::shared_ptr<SimState> inState(new SimState(true, domain_));
-        shared_ptr<SimInput> reader = domain_->GetResultHandler()->GetInputReader(fileId);
+        shared_ptr<SimInput> reader;
         shared_ptr<SimInputHDF5> in;
-        try {
-          in = dynamic_pointer_cast<SimInputHDF5>(reader);
-        } catch (...) {
-          EXCEPTION( "Reader with id'" << fileId << "' has not HDF5 format." );
+
+        if( valueNode->Has("externalSimulation") ) {
+          sequenceStep = esNode->Get("sequenceStep")->As<UInt>();
+          fileId = esNode->Get("inputId")->As<std::string>();
+          reader = domain_->GetResultHandler()->GetInputReader(fileId);
+          try {
+            in = dynamic_pointer_cast<SimInputHDF5>(reader);
+          } catch (...) {
+            EXCEPTION( "Reader with id'" << fileId << "' has not HDF5 format." );
+          }
+        } else { 
+          
+          sequenceStep = esNode->Get("index")->As<UInt>();
+          // create new simState from current hdf file
+          std::string fileName = simState_->GetOutputWriter()->GetFileName().string();
+          // create new param and info node (without logging to console) for the
+          // newly created Domain object
+          PtrParamNode node(new ParamNode());
+          PtrParamNode infoNode(new ParamNode(ParamNode::APPEND, ParamNode::ELEMENT,
+                                              false));
+          in.reset(new SimInputHDF5(fileName, node, infoNode));
         }
+
         inState->SetInputHdf5Reader(in);
 
         // Get grid map of own domain, as the grids can be re-used
@@ -2323,7 +2363,10 @@ namespace CoupledField {
             << "Please check, if desired quantity and physic are defined for the "
             << "requested sequence step " << sequenceStep << ".");
       }
-      
+      // add the defined components
+      for( UInt i = 0; i < numComp; ++i ) {
+        definedDofs.insert(i);
+      }
       
       
     } else if( valueNode->Has("coupling") ) {

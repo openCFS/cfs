@@ -41,6 +41,8 @@ DECLARE_LOG(fefunc)
   }
 
   BaseFeFunction::~BaseFeFunction(){
+    idBcs_.Clear();
+
   }
   
   
@@ -136,12 +138,18 @@ DECLARE_LOG(fefunc)
     LOG_DBG(fefunc) << PREFIX << "AddHomDirichletBc()";
     hdBcs_.Push_back( bc );
     entities_.Push_back(bc->entities);
+    if( bc->entities->GetDefineType() == EntityList::REGION) {
+      regions_.insert( bc->entities->GetRegion());
+    }
   }
 
   void BaseFeFunction::AddInhomDirichletBc( shared_ptr<InhomDirichletBc> bc ){
     LOG_DBG(fefunc) << PREFIX << "AddInhomDirichletBc()";
     idBcs_.Push_back(bc);
     entities_.Push_back(bc->entities);
+    if( bc->entities->GetDefineType() == EntityList::REGION) {
+          regions_.insert( bc->entities->GetRegion());
+        }
   }
 
   void BaseFeFunction::AddLoadCoefFunction( PtrCoefFct load,
@@ -160,12 +168,7 @@ DECLARE_LOG(fefunc)
 
   void BaseFeFunction::AddExternalDataSource( PtrCoefFct coef,
                                               const StdVector<shared_ptr<EntityList> >& lists){
-    std::cerr << "size of lists is " << lists.GetSize() << std::endl;
     LOG_DBG(fefunc) << PREFIX << "AddExternalDataSource()" << "size of lists is " << lists.GetSize();
-    for( UInt i = 0; i < lists.GetSize(); ++i ) {
-      std::cerr << "\tregion: " << lists[i]->GetName() << std::endl;
-      LOG_DBG(fefunc) << "\tregion: " << lists[i]->GetName() ;
-    }
     this->externalDataCoefs_[coef] = lists;
   }
 
@@ -232,11 +235,19 @@ DECLARE_LOG(fefunc)
 
   template<typename T>
   FeFunction<T>::~FeFunction(){
-    if( domain) {
-      if (mp_) {
-        mp_->ReleaseHandle( mHandle_ );
-      }
-    }
+
+    // Note: Currently we can not release the handle in a safe way,
+    // as Fefunctions are only passed as shared_ptr, so we can not
+    // know exactly, when the last FeFunction is freed. If this is within
+    // a child Domain, the mathParser might already be deleted when
+    // we try to attempt this.
+    
+    //    if( domain) {
+    //      if (mp_) {
+    //        mp_->ReleaseHandle( mHandle_ );
+    //      }
+    //    }
+    
     if( idOp_ )
       delete idOp_;
     idOp_ = NULL;

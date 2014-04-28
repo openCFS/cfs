@@ -283,11 +283,19 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
     EXCEPTION("There are no nodes for interpolation at z = " << xyPlaneAtZ_
               << " m +/- " << zTol_ << " m.");
   }
+  
+  StdVector<shared_ptr<EntityList> > lists;
+  std::set<RegionIdType>::const_iterator destRegIt = this->destRegions_.begin();
+  for(; destRegIt != this->destRegions_.end(); ++destRegIt ) {
+    shared_ptr<ElemList> newList(new ElemList(this->destGrid_));
+    newList->SetRegion(*destRegIt);
+    lists.Push_back(newList);
+  }
 
   destGrid_->GetElemsAtGlobalCoords( nodeGlobCoords,
                                     localCoords,
                                     foundElements,
-                                    this->destRegions_,
+                                    lists,
                                     globalTol_,
                                     localTol_,
                                     false);
@@ -667,21 +675,21 @@ template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                                                       StdVector< Vector<DATA_TYPE> >& values,
                                                                       Grid* ptGrid,
-                                                                      const std::set<RegionIdType>& srcRegions )
+                                                                      const StdVector<shared_ptr<EntityList> >& srcEntities )
 {
   //build up set of source regions
-  std::set<std::string>::iterator regIter = this->srcRegions_.begin();
-  std::set<RegionIdType> scrRegIds;
-  if (srcRegions.size()>0) {
-    scrRegIds.insert(srcRegions.begin(), srcRegions.end());
-  }
-  else {
-    for( ; regIter != this->srcRegions_.end(); ++regIter) {
-      RegionIdType curId = this->srcGrid_->GetRegion().Parse(*regIter);
-      scrRegIds.insert(curId);
-    }
-  }
-  
+//  std::set<std::string>::iterator regIter = this->srcRegions_.begin();
+//  std::set<RegionIdType> scrRegIds;
+//  if (srcRegions.size()>0) {
+//    scrRegIds.insert(srcRegions.begin(), srcRegions.end());
+//  }
+//  else {
+//    for( ; regIter != this->srcRegions_.end(); ++regIter) {
+//      RegionIdType curId = this->srcGrid_->GetRegion().Parse(*regIter);
+//      scrRegIds.insert(curId);
+//    }
+//  }
+//  
   if(!this->stdInterpReady_){
     std::cout << "Preparing for interpolation of external data...";
     std::cout.flush();
@@ -702,7 +710,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdV
     this->srcGrid_->GetElemsAtGlobalCoords( globCoord,
                                              localCoords_,
                                              foundElements_,
-                                             std::set<RegionIdType>(),this->globalTol_,this->localTol_);
+                                             StdVector<shared_ptr<EntityList> >(),this->globalTol_,this->localTol_);
    }
 
   Vector<DATA_TYPE> eSol;
@@ -735,10 +743,10 @@ template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                                                       StdVector< DATA_TYPE >& values,
                                                                       Grid* ptGrid,
-                                                                      const std::set<RegionIdType>& srcRegions )
+                                                                      const StdVector<shared_ptr<EntityList> >& srcEntities )
 {
   StdVector< Vector<DATA_TYPE> > vecValues;
-  this->GetVectorValuesAtCoords(globCoord,vecValues, ptGrid, srcRegions);
+  this->GetVectorValuesAtCoords(globCoord,vecValues, ptGrid, srcEntities);
   values.Resize(globCoord.GetSize(),0.0);
   for(UInt i=0;i<vecValues.GetSize();++i){
     values[i] = vecValues[i][0];

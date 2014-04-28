@@ -300,16 +300,21 @@ namespace CoupledField{
         refElems_[region][Elem::ET_PYRA14] = new FeH1LagrangePyra1();
         break;
       case 2:
+        refElems_[region][Elem::ET_TRIA3]  = new FeH1LagrangeTria2();
         refElems_[region][Elem::ET_TRIA6]  = new FeH1LagrangeTria2();
 
         refElems_[region][Elem::ET_TET10]  = new FeH1LagrangeTet2();
+        refElems_[region][Elem::ET_TET4]  = new FeH1LagrangeTet2();
 
         // ET_WEDGE15 elements are not compatible with tensor product hexas.
-        // refElems_[region][Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
+        refElems_[region][Elem::ET_WEDGE6] = new FeH1LagrangeWedge18();
+        refElems_[region][Elem::ET_WEDGE15] = new FeH1LagrangeWedge18();
         refElems_[region][Elem::ET_WEDGE18] = new FeH1LagrangeWedge18();
 
         // ET_PYRA13 elements are not compatible with tensor product hexas.
         // refElems_[region][Elem::ET_PYRA13] = new FeH1LagrangePyra2();
+        refElems_[region][Elem::ET_PYRA5] = new FeH1LagrangePyra14();
+        refElems_[region][Elem::ET_PYRA13] = new FeH1LagrangePyra14();
         refElems_[region][Elem::ET_PYRA14] = new FeH1LagrangePyra14();
         break;
       default:

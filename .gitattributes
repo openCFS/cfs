@@ -109,9 +109,7 @@ cfsdeps/cgal/TryRunResults_MACOSX_X86_64_CENTOS6.cmake -text
 cfsdeps/cgal/cgal-intel-isfinite.patch -text
 cfsdeps/cgal/cgal-intmax_t.patch -text
 cfsdeps/cgal/cgal-patch.cmake.in -text
-cfsdeps/cgns/CMakeLists_v2.5.txt -text
 cfsdeps/cgns/External_CGNS.cmake -text
-cfsdeps/cgns/cgns-2.5-patch.cmake.in -text
 cfsdeps/cgns/cgns-adjust-install-paths.patch -text
 cfsdeps/cgns/cgns-arch-mac.patch -text
 cfsdeps/cgns/cgns-cmake-mac.patch -text
@@ -122,7 +120,6 @@ cfsdeps/cgns/cgns-install-target.patch -text
 cfsdeps/cgns/cgns-osx-opengl.patch -text
 cfsdeps/cgns/cgns-patch.cmake.in -text
 cfsdeps/cgns/cgns-version-numbers-in-filenames.patch -text
-cfsdeps/cgns/cgns25-declspec-double-underscore.patch -text
 cfsdeps/cgns/cgns25-patch.cmake.in -text
 cfsdeps/cgns/cgnstools-allow-relpaths-on-cmdline.patch -text
 cfsdeps/cgns/cgnstools-mingw.patch -text

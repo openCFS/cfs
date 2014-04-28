@@ -185,7 +185,7 @@ namespace CoupledField
 
   const Elem* Grid::GetElemAtGlobalCoord(const Vector<double>& globCoord,
                                          LocPoint& locCoord,
-                                         const std::set<RegionIdType>& srcRegions,
+                                         const StdVector<shared_ptr<EntityList> >& srcEntities,
                                          bool printWarnings) {
     
     StdVector<Vector<Double> > globCoords(1);
@@ -193,7 +193,7 @@ namespace CoupledField
     StdVector<const Elem*> elems;
     globCoords[0] = globCoord;
     globCoords[0].Resize(GetDim());
-    GetElemsAtGlobalCoords( globCoords, lps, elems, srcRegions);
+    GetElemsAtGlobalCoords( globCoords, lps, elems, srcEntities);
     if( elems.GetSize() == 0 && printWarnings ) {
       WARN( "Could not find element at global position " << globCoord.ToString() );
     }
@@ -204,7 +204,7 @@ namespace CoupledField
   void Grid::GetElemsAtGlobalCoords( const StdVector<Vector<double> >& globCoords,
                                      StdVector< LocPoint >& localCoords,
                                      StdVector< const Elem* > & elems,
-                                     const std::set<RegionIdType>& srcRegions,
+                                     const StdVector<shared_ptr<EntityList> >& srcEntities,
                                      Double globalTol, Double localTol,
                                      bool printWarnings) {
 
@@ -217,7 +217,19 @@ namespace CoupledField
      matches[i].globCoord = globCoords[i];
     }
     
-    MapPointsToBoundingBoxes( matches, srcRegions, globalTol );
+    MapPointsToBoundingBoxes( matches, srcEntities, globalTol );
+
+    // Debug information about found macthes
+//    std::cerr << "Found the following matches:\n";
+//    for( UInt i = 0; i < numPts; ++i ) {
+//      std::cerr << "coord: " <<matches[i].globCoord.ToString() << std::endl;
+//      std::cerr << "matches # " << matches[i].matches.size() << ":\n\t";
+//      std::set<const Elem*>::const_iterator it = matches[i].matches.begin();
+//      for( ; it != matches[i].matches.end(); ++it ) {
+//        std::cerr << (*it)->elemNum << ", ";
+//      }
+//      std::cerr<< "\n";
+//    }// loop over all matches
     
     // 2) Afterwards loop over all candidates 
     MapGlobPointsToLoc( matches, elems, localCoords, localTol, printWarnings );
@@ -783,6 +795,22 @@ namespace CoupledField
     }
 
   }
+
+  void Grid::GetElemNums( boost::unordered_set<UInt>& elemNums, 
+                          std::set<UInt>& dims,
+                          const StdVector<shared_ptr<EntityList> >& entities ) {
+    elemNums.clear();
+    // Loop over entities
+    for( UInt i = 0; i < entities.GetSize(); ++i ) {
+      UInt dim = GetEntityDim(entities[i]->GetName());
+      dims.insert(dim);
+      EntityIterator it = entities[i]->GetIterator();
+      for( ; !it.IsEnd(); it++ ) {
+        elemNums.insert(it.GetElem()->elemNum);
+      }
+      
+    }
+  }
   
   // =======================================================================
   //  ELEMENT / POINT MAPPING
@@ -842,7 +870,6 @@ namespace CoupledField
       }
     }
   }
-  
   
 #ifdef USE_CGAL
 
@@ -932,8 +959,10 @@ namespace CoupledField
     esm->CalcDiameter(dia);
     xmin -= globToler*dia[0];
     xmax += globToler*dia[0];
-    ymin -= globToler*dia[1];
-    ymax += globToler*dia[1];
+    if (p.GetSize() > 1) {
+      ymin -= globToler*dia[1];
+      ymax += globToler*dia[1];
+    }
     if (p.GetSize() == 2) {
       zmin = -globToler;
       zmax = globToler;
@@ -944,12 +973,20 @@ namespace CoupledField
     }
     HandleBox retBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
                      &elem->elemNum);
+    
+//    std::cerr << "created box for elem #" << elem->elemNum << ", tol = " << globToler << " with \n\t"
+//        << xmin << ", " 
+//        << ymin << ", "
+//        << zmin << ", "
+//        << xmax << ", "
+//        << ymax << ", "
+//        << zmax << std::endl;
     return retBox;
 
   }
   
   void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                       const std::set<RegionIdType> srcRegions,
+                                       const StdVector<shared_ptr<EntityList> >& srcEntities,
                                        Double tol ) {
 
     // If we haven't initialized the grid bounding boxes yet, do so now!
@@ -957,17 +994,33 @@ namespace CoupledField
     {
       StdVector<Elem*> elems;
       Vector<Double> p(3);
-      GetVolElems(elems, ALL_REGIONS );
-      UInt size = this->GetNumElemOfDim(GetDim());
+      GetElems(elems, ALL_REGIONS);
+      
+      // Loop over dimensions
+      for( UInt dim = 1; dim <= GetDim(); ++dim ) {
+        std::vector<HandleBox> & boxes = elemBoxes_[dim];
+        UInt size = this->GetNumElemOfDim(GetDim());
 
-      elemBoxes_.reserve( size );
-      for(UInt i = 0; i < size; i++)       {
-        // immediately leave, if the dimension of the element is 
-        // lower-dimensional
-        if( Elem::shapes[elems[i]->type].dim != GetDim() ) 
-          continue;
-        elemBoxes_.push_back(CreateBoxFromElement( elems[i], 1e-3) );
-      }
+        boxes.reserve( size );
+        for(UInt i = 0; i < elems.GetSize(); i++)       {
+          // immediately leave, if the dimension of the element is 
+          // lower-dimensional
+          if( Elem::shapes[elems[i]->type].dim != dim ) 
+            continue;
+          boxes.push_back(CreateBoxFromElement( elems[i], tol) );
+        }
+      } //loop: dimension
+    }
+    
+    // Get all element numbers and their dimension
+    boost::unordered_set<UInt> elemNums;
+    std::set<UInt> dims;
+    if( srcEntities.GetSize() != 0 ) {
+      GetElemNums(elemNums, dims, srcEntities);
+    } else {
+      dims.insert(1);
+      dims.insert(GetDim());
+      dims.insert(GetDim()-1);
     }
     
     // now set up box list containing the point coordinates
@@ -982,26 +1035,33 @@ namespace CoupledField
       pointBoxes[i] = CreateBoxFromCoord( matches[i].globCoord,
                                           &nodeIndices[i], tol );
     }
-
-    // run the intersection algorithm and store results in a vector
-    std::vector< std::pair<UInt, UInt > > result;
-    CGAL::box_intersection_d( elemBoxes_.begin(), elemBoxes_.end(),
-                              pointBoxes.begin(), pointBoxes.end(),
-                              elemPointIdReporter( std::back_inserter( result )));
     
-    // now loop over all results and store for each point all candidate elements
-    // if they are contained in the desired regions
-    std::vector< std::pair<UInt, UInt> >::iterator it = result.begin();
-    for(; it != result.end(); ++it ) {
-      UInt pointIndex = it->first;
-      UInt elemNum = it->second;
-      const Elem* ptEl = GetElem(elemNum);
-      if( srcRegions.size() ) { 
-        if( srcRegions.find(ptEl->regionId) != srcRegions.end() ) {
+    // Loop over all dimensions
+    std::set<UInt>::const_iterator dimIt = dims.begin();
+    for( ; dimIt != dims.end(); ++dimIt ) {
+      UInt dim = *dimIt;
+      std::vector<HandleBox> & boxes = elemBoxes_[dim];
+
+      // run the intersection algorithm and store results in a vector
+      std::vector< std::pair<UInt, UInt > > result;
+      CGAL::box_intersection_d( boxes.begin(), boxes.end(),
+                                pointBoxes.begin(), pointBoxes.end(),
+                                elemPointIdReporter( std::back_inserter( result )));
+
+      // now loop over all results and store for each point all candidate elements
+      // if they are contained in the desired regions
+      std::vector< std::pair<UInt, UInt> >::iterator it = result.begin();
+      for(; it != result.end(); ++it ) {
+        UInt pointIndex = it->first;
+        UInt elemNum = it->second;
+        const Elem* ptEl = GetElem(elemNum);
+        if( elemNums.size() ) { 
+          if( elemNums.find(ptEl->elemNum) != elemNums.end() ) {
+            matches[pointIndex].matches.insert(ptEl);
+          }
+        } else {
           matches[pointIndex].matches.insert(ptEl);
         }
-      } else {
-        matches[pointIndex].matches.insert(ptEl);
       }
     }
   }
@@ -1578,117 +1638,166 @@ namespace CoupledField {
   // This is a very basic implementation for axis-parallel box intersection. It is just used
   // as internal replacement in case we want to use valgrind and can not use CGAL.
   void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                       const std::set<RegionIdType> srcRegions,
+                                       const StdVector<shared_ptr<EntityList> >& srcEntities,
                                        Double tol ) {
 
     // obtain all volume elements from grid
     StdVector<Elem*> elems;
-    GetVolElems(elems, ALL_REGIONS);
+    GetElems(elems, ALL_REGIONS);
     
     // check, if element boxes are already initialized
-    if( elemBoxes_.GetSize() == 0 ) {
+    if( elemBoxes_.size() == 0 ) {
+
       Vector<Double> p(3);
-      UInt size = elems.GetSize();
-      elemBoxes_.Resize( size );
+      
+      // Loop over dimensions
+      for( UInt dim = 1; dim <= GetDim(); ++dim ) {
+        StdVector<BoxType> & boxes = elemBoxes_[dim];
+        boxes.Reserve(GetNumElemOfDim(dim));
 
-      // loop over all elements
-      for(UInt i = 0, m=elems.GetSize(); i < m; i++)       {
-        Vector<Double> p(3);
+        // loop over all elements
+        for(UInt i = 0, m=elems.GetSize(); i < m; i++)       {
+          Vector<Double> p(3);
 
-        // immediately leave, if the dimension of the element is 
-        // lower-dimensional
-        if( Elem::shapes[elems[i]->type].dim != GetDim() ) 
-          continue;
-        
-        // create bounding box array, with the following indices:
-        // [xmin, ymin,  zmin, xmax, ymax, zmax]
-        //   0     1      2     3     4     5
-        boost::array<Double,6> bbox;
+          // only map elements of the given dimension
+          if( Elem::shapes[elems[i]->type].dim != dim) 
+            continue;
 
-        GetNodeCoordinate(p, elems[i]->connect[0]);
+          // create bounding box array, with the following indices:
+          // [xmin, ymin,  zmin, xmax, ymax, zmax]
+          //   0     1      2     3     4     5
+          boost::array<Double,6> bbox;
 
-        bbox[0] = bbox[3] = p[0];
-        bbox[1] = bbox[4] = p[1];
-        if(p.GetSize() == 2)
-          bbox[2] = bbox[5] = 0;
-        else
-          bbox[2] = bbox[5] = p[2];
+          GetNodeCoordinate(p, elems[i]->connect[0]);
 
-        for(UInt j = 1, n=elems[i]->connect.GetSize(); j < n; j++)
-        {
-          GetNodeCoordinate(p, elems[i]->connect[j]);
-          bbox[0] = std::min( bbox[0], p[0]);
-          bbox[3] = std::max( bbox[3], p[0]);
-          bbox[1] = std::min( bbox[1], p[1]);
-          bbox[4] = std::max( bbox[4], p[1]);
-          if(p.GetSize()==2){
-            bbox[2] = 0;
-            bbox[5] = 0;
-          }else{
-            bbox[2] = std::min( bbox[2], p[2]);
-            bbox[5] = std::max( bbox[5], p[2]);
+          bbox[0] = bbox[3] = p[0];
+          bbox[1] = bbox[4] = p[1];
+          if(p.GetSize() == 2)
+            bbox[2] = bbox[5] = 0;
+          else
+            bbox[2] = bbox[5] = p[2];
+
+          for(UInt j = 1, n=elems[i]->connect.GetSize(); j < n; j++)
+          {
+            GetNodeCoordinate(p, elems[i]->connect[j]);
+            bbox[0] = std::min( bbox[0], p[0]);
+            bbox[3] = std::max( bbox[3], p[0]);
+            bbox[1] = std::min( bbox[1], p[1]);
+            bbox[4] = std::max( bbox[4], p[1]);
+            if(p.GetSize()==2){
+              bbox[2] = 0;
+              bbox[5] = 0;
+            }else{
+              bbox[2] = std::min( bbox[2], p[2]);
+              bbox[5] = std::max( bbox[5], p[2]);
+            }
           }
-        }
-        shared_ptr<ElemShapeMap> esm = this->GetElemShapeMap(elems[i]);
-        Vector<Double> dia;
-        esm->CalcDiameter(dia);
-        bbox[0] -= tol*dia[0];
-        bbox[3] += tol*dia[0];
-        bbox[1] -= tol*dia[1];
-        bbox[4] += tol*dia[1];
-        if( p.GetSize() == 3 ) {
-          bbox[2] -= tol*dia[2];
-          bbox[5] += tol*dia[2];
-        }
-        elemBoxes_[i] = bbox;
-      }
+          shared_ptr<ElemShapeMap> esm = this->GetElemShapeMap(elems[i]);
+          Vector<Double> dia;
+          esm->CalcDiameter(dia);
+          bbox[0] -= tol*dia[0];
+          bbox[3] += tol*dia[0];
+          if( dim > 1 ) {
+            bbox[1] -= tol*dia[1];
+            bbox[4] += tol*dia[1];
+          }
+          if( dim == 3 ) {
+            bbox[2] -= tol*dia[2];
+            bbox[5] += tol*dia[2];
+          }
+          
+          // assemble tuple of (bounding box, element number)
+          boxes.Push_back(BoxType(bbox, elems[i]->elemNum));
+          
+//          std::cerr << "created box for elem #" << elems[i]->elemNum << " with \n\t"
+//              << bbox[0] << ", " 
+//              << bbox[1] << ", "
+//              << bbox[2] << ", "
+//              << bbox[3] << ", "
+//              << bbox[4] << ", "
+//              << bbox[5] << std::endl;
+        } //loop: elements
+      } //loop: dimensions
     } // check for empty element boxes
 
 
     // result vector (pair first: point-index, second: element number)
     std::vector<std::pair<UInt, UInt> > result;
     
-
-    // Loop over all elements
-    UInt numElems = elemBoxes_.GetSize();
+    
+    // Get all element numbers and their dimension
+    boost::unordered_set<UInt> elemNums;
+    std::set<UInt> dims;
+    if( srcEntities.GetSize() != 0 ) {
+      GetElemNums(elemNums, dims, srcEntities);
+    } else {
+      dims.insert(1);
+      dims.insert(GetDim());
+      dims.insert(GetDim()-1);
+    }
+    
     UInt numPts = matches.GetSize();
     result.reserve(numPts * 2); // assume 2 matches on average
-    for( UInt iEl = 0; iEl < numElems; ++iEl ) {
-      const boost::array<Double,6> & eb = elemBoxes_[iEl];
+          
+    // Loop over all dimensions
+    std::set<UInt>::const_iterator dimIt = dims.begin();
+    for( ; dimIt != dims.end(); ++dimIt ) {
+      UInt dim = *dimIt;
+      StdVector<BoxType> & boxes = elemBoxes_[dim];
+      
+      // Loop over all elements of given dimension
+      UInt numElems = boxes.GetSize();
 
-      // Loop over all matches
-      for( UInt iPt = 0; iPt < numPts; ++iPt ) {
-        const Vector<Double> & point = matches[iPt].globCoord;
-        if( point[0] > eb[0] && point[0] < eb[3]) {
-          if( point[1] > eb[1] && point[1] < eb[4]) {
-            if( GetDim() == 3 ) {
-              if( point[2] > eb[2] && point[2] < eb[5]) {
-                result.push_back(std::pair<UInt,UInt>(iPt, iEl));
+      for( UInt iEl = 0; iEl < numElems; ++iEl ) {
+        const BoxType& actBox = boxes[iEl];
+        
+        const boost::array<Double,6> & eb = actBox.first;
+        UInt elemNum = actBox.second;
+//        const Elem* ptEl = GetElem(elemNum);
+//        std::cerr << "checking elem #" << ptEl->elemNum 
+//            << " with bbox \n\t " 
+//            << "x: [" << eb[0] << ", " << eb[3] << "] "
+//            << "y: [" << eb[1] << ", " << eb[4] << "] "
+//            << "y: [" << eb[2] << ", " << eb[5] << "] "
+//            << "\n----------------------------\n"; 
+
+        // Loop over all points and check bounding box
+        for( UInt iPt = 0; iPt < numPts; ++iPt ) {
+          const Vector<Double> & point = matches[iPt].globCoord;
+          if( point[0] >= eb[0] && point[0] <= eb[3]) {
+            if( point[1] >= eb[1] && point[1] <= eb[4]) {
+              if( dim == 3 ) {
+                if( point[2] >= eb[2] && point[2] <= eb[5]) {
+                  result.push_back(std::pair<UInt,UInt>(iPt, elemNum));
+                }
+              } else {
+                result.push_back(std::pair<UInt,UInt>(iPt, elemNum));
               }
-            } else {
-              result.push_back(std::pair<UInt,UInt>(iPt, iEl));
             }
           }
-        }
-      } // loop over points
-    } // loop over elements
+        } // loop over points
+      } // loop over elements
+    } // loop over dimension
 
     // now loop over all results and store for each point all candidate elements
     // if they are contained in the desired regions
     std::vector< std::pair<UInt, UInt> >::iterator it = result.begin();
     for(; it != result.end(); ++it ) {
       UInt pointIndex = it->first;
-      UInt elIndex = it->second;
-      const Elem* ptEl = GetElem(elems[elIndex]->elemNum);
-      if( srcRegions.size() ) { 
-        if( srcRegions.find(ptEl->regionId) != srcRegions.end() ) {
+      UInt elemNum = it->second;
+      const Elem* ptEl = GetElem(elemNum);
+      if( elemNums.size() ) { 
+        if( elemNums.find(ptEl->elemNum) != elemNums.end() ) {
           matches[pointIndex].matches.insert(ptEl);
+        } else {
+          //
         }
       } else {
         matches[pointIndex].matches.insert(ptEl);
       }
     }
   }
+  
 
 #endif // USE_CGAL
 } // end of namespace

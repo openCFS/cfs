@@ -216,6 +216,59 @@
 		</xsd:restriction>
 	</xsd:complexContent>
   </xsd:complexType>
+  
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data from previous multisequence step                -->  
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_SequenceStep">
+  <xsd:complexContent>
+    <xsd:restriction base="xsd:anyType">        
+      <xsd:sequence>
+        
+        <xsd:element name="quantity">
+          <xsd:complexType>
+            <xsd:attribute name="name" type="xsd:token" use="required"/>          
+            <xsd:attribute name="pdeName" type="xsd:token" use="required"/>
+          </xsd:complexType>        
+        </xsd:element>
+        
+        <!-- Determine time / frequency behavior-->       
+        <xsd:element name="timeFreqMapping">
+          <xsd:complexType>
+            <xsd:choice>
+              
+              <!-- a) fixed time / frequency step -->
+              <xsd:element name="constant">
+                <xsd:complexType>
+                  <xsd:attribute name="step" type="xsd:positiveInteger" 
+                                use="optional" default="1"/>
+                </xsd:complexType>                                  
+              </xsd:element>
+              
+              <!-- b) continuous mapping -->
+              <xsd:element name="continuous">
+                <xsd:complexType>
+                  <xsd:attribute name="interpolation" use="optional" default="linear">
+                    <xsd:simpleType>
+                      <xsd:restriction base="xsd:token">
+                        <xsd:enumeration value="nearestNeighbor"/>
+                        <xsd:enumeration value="linear"/>
+                      </xsd:restriction>
+                    </xsd:simpleType>
+                  </xsd:attribute>
+                  <xsd:attribute name="offset" type="xsd:float" 
+                                 use="optional" default="0.0"/>
+                </xsd:complexType>
+              </xsd:element>      
+            </xsd:choice>
+          </xsd:complexType>
+        </xsd:element>
+      </xsd:sequence>
+    <xsd:attribute name="index" type="xsd:integer" use="optional" default="1"/>
+    </xsd:restriction>
+  </xsd:complexContent>
+  </xsd:complexType>
 	
   <!-- ******************************************************************** -->
   <!--  Definition of scattered data on point clouds (measured, CSV, etc.)  -->
@@ -377,6 +430,9 @@
 
           <!-- External HDF5 file -->
           <xsd:element name="externalSimulation" maxOccurs="1" type="DT_ExternalSimulation"/>
+          
+          <!-- Same Simulation, other sequenceStep -->
+          <xsd:element name="sequenceStep" maxOccurs="1" type="DT_SequenceStep"/>
         </xsd:choice>
         <xsd:attribute name="value" type="xsd:token" use="optional"/>
         <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
@@ -447,9 +503,14 @@
           <!--  D) External HDF5 file      -->
           <!-- =========================== -->
           <xsd:element name="externalSimulation" maxOccurs="1" type="DT_ExternalSimulation"/>
+          
+          <!-- =========================== -->
+          <!--  E) Other Sequence Step      -->
+          <!-- =========================== -->
+          <xsd:element name="sequenceStep" maxOccurs="1" type="DT_SequenceStep"/>
 
           <!-- =========================== -->
-          <!--  E) Scattered data from CSV -->
+          <!--  F) Scattered data from CSV -->
           <!-- =========================== -->
           <xsd:element name="scatteredData" maxOccurs="1" type="DT_ScatteredData">
             <xsd:annotation>

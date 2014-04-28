@@ -194,20 +194,20 @@ public:
   // COLLECTION ACCESS
   virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<T >  & vals, Grid* ptGrid,
-                                        const std::set<RegionIdType>& srcRegions
-                                        = std::set<RegionIdType>() );
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() );
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Vector<T> >  & vals,
                                         Grid* ptGrid,
-                                        const std::set<RegionIdType>& srcRegions
-                                        = std::set<RegionIdType>()  );
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >()  );
 
   virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Matrix<T> >  & vals,
                                         Grid* ptGrid,
-                                        const std::set<RegionIdType>& srcRegions
-                                        = std::set<RegionIdType>() );
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() );
 
 protected:
   

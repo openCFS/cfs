@@ -542,7 +542,7 @@ void CoefFunction::GenTensorCompNames( StdVector<std::string>& realVar,
 void CoefFunction::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                             StdVector< Vector<Double> >& values, 
                                             Grid* ptGrid,
-                                            const std::set<RegionIdType>& srcRegions) {
+                                            const StdVector<shared_ptr<EntityList> >& srcEntities) {
 
   // loop over all coordinates
   UInt numEntries = globCoord.GetSize();
@@ -551,21 +551,27 @@ void CoefFunction::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& gl
   StdVector< const Elem* >  elems;
 
   // Get mapping
-  ptGrid->GetElemsAtGlobalCoords( globCoord, localCoords, elems, srcRegions );
+  ptGrid->GetElemsAtGlobalCoords( globCoord, localCoords, elems, srcEntities );
 
+  
   LocPointMapped lpm;
   for( UInt i = 0; i < numEntries; ++i ) {
-    LocPoint & lp = localCoords[i];
-    const Elem * ptElem = elems[i];
-    shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
-    lpm.Set( lp, esm, 0);
-    this->GetVector( values[i], lpm);
+    if (elems[i] == NULL ) {
+      WARN("Could not find suitable element for position " << globCoord[i]  
+           << ". Setting values to zero for this point" );
+    } else {
+      LocPoint & lp = localCoords[i];
+      const Elem * ptElem = elems[i];
+      shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
+      lpm.Set( lp, esm, 0);
+      this->GetVector( values[i], lpm);
+    }
   }
 }
 void CoefFunction::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                             StdVector< Vector<Complex> >& values, 
                                             Grid* ptGrid,
-                                            const std::set<RegionIdType>& srcRegions) {
+                                            const StdVector<shared_ptr<EntityList> >& srcEntities) {
   // loop over all coordinates
   UInt numEntries = globCoord.GetSize();
   values.Resize( numEntries );
@@ -573,22 +579,28 @@ void CoefFunction::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& gl
   StdVector< const Elem* >  elems;
 
   // Get mapping
-  ptGrid->GetElemsAtGlobalCoords( globCoord, localCoords, elems, srcRegions );
+  ptGrid->GetElemsAtGlobalCoords( globCoord, localCoords, elems, srcEntities );
 
   LocPointMapped lpm;
   for( UInt i = 0; i < numEntries; ++i ) {
     LocPoint & lp = localCoords[i];
-    const Elem * ptElem = elems[i];
-    shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
-    lpm.Set( lp, esm, 0);
-    this->GetVector( values[i], lpm);
+    // Note: we can not be sure that an element was always found
+    if (elems[i] == NULL ) {
+      WARN("Could not find suitable element for position " << globCoord[i]  
+           << ". Setting values to zero for this point" );
+    } else {
+      const Elem * ptElem = elems[i];
+      shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
+      lpm.Set( lp, esm, 0);
+      this->GetVector( values[i], lpm);
+    }
   }
 }
 
 void CoefFunction::GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                             StdVector< Double >& values,
                                             Grid* ptGrid,
-                                            const std::set<RegionIdType>& srcRegions) {
+                                            const StdVector<shared_ptr<EntityList> >& srcEntities) {
   // loop over all coordinates
   UInt numEntries = globCoord.GetSize();
   values.Resize( numEntries );
@@ -596,21 +608,26 @@ void CoefFunction::GetScalarValuesAtCoords( const StdVector<Vector<Double> >& gl
   StdVector< const Elem* >  elems;
 
   // Get mapping
-  ptGrid->GetElemsAtGlobalCoords( globCoord, localCoords, elems, srcRegions );
+  ptGrid->GetElemsAtGlobalCoords( globCoord, localCoords, elems, srcEntities );
 
   LocPointMapped lpm;
   for( UInt i = 0; i < numEntries; ++i ) {
-    LocPoint & lp = localCoords[i];
-    const Elem * ptElem = elems[i];
-    shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
-    lpm.Set( lp, esm, 0);
-    this->GetScalar( values[i], lpm);
+    if (elems[i] == NULL ) {
+      WARN("Could not find suitable element for position " << globCoord[i]  
+           << ". Setting values to zero for this point" );
+    } else {
+      LocPoint & lp = localCoords[i];
+      const Elem * ptElem = elems[i];
+      shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
+      lpm.Set( lp, esm, 0);
+      this->GetScalar( values[i], lpm);
+    }
   }
 }
 void CoefFunction::GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                             StdVector< Complex >& values,
                                             Grid* ptGrid,
-                                            const std::set<RegionIdType>& srcRegions) {
+                                            const StdVector<shared_ptr<EntityList> >& srcEntities) {
   // loop over all coordinates
   UInt numEntries = globCoord.GetSize();
   values.Resize( numEntries );
@@ -618,15 +635,20 @@ void CoefFunction::GetScalarValuesAtCoords( const StdVector<Vector<Double> >& gl
   StdVector< const Elem* >  elems;
 
   // Get mapping
-  ptGrid->GetElemsAtGlobalCoords( globCoord, localCoords, elems, srcRegions );
+  ptGrid->GetElemsAtGlobalCoords( globCoord, localCoords, elems, srcEntities );
 
   LocPointMapped lpm;
   for( UInt i = 0; i < numEntries; ++i ) {
-    LocPoint & lp = localCoords[i];
-    const Elem * ptElem = elems[i];
-    shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
-    lpm.Set( lp, esm, 0);
-    this->GetScalar( values[i], lpm);
+    if (elems[i] == NULL ) {
+      WARN("Could not find suitable element for position " << globCoord[i]  
+           << ". Setting values to zero for this point" );
+    } else {
+      LocPoint & lp = localCoords[i];
+      const Elem * ptElem = elems[i];
+      shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
+      lpm.Set( lp, esm, 0);
+      this->GetScalar( values[i], lpm);
+    }
   }
 }
 // ************************************************************************

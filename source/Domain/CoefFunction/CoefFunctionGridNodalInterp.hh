@@ -103,15 +103,15 @@ public:
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< Vector<DATA_TYPE> >& values, 
                                         Grid* ptGrid,
-                                        const std::set<RegionIdType>& srcRegions
-                                          = std::set<RegionIdType>());
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() );
 
   //! Give Values at global coordinate locations
   virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< DATA_TYPE >& values, 
                                         Grid* ptGrid,
-                                        const std::set<RegionIdType>& srcRegions
-                                        = std::set<RegionIdType>() );
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >()  );
 
   //@}
 

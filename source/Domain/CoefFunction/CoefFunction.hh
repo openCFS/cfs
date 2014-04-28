@@ -433,13 +433,13 @@ public:
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< Vector<Double> >& values,
                                         Grid* ptGrid,
-                                        const std::set<RegionIdType>& srcRegions 
-                                        = std::set<RegionIdType>() );
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() );
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< Vector<Complex> >& values, 
                                         Grid* ptGrid,
-                                        const std::set<RegionIdType>& srcRegions 
-                                        = std::set<RegionIdType>() );
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() );
   //@}
 
   //@{
@@ -458,13 +458,13 @@ public:
   virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< Double >& values, 
                                         Grid* ptGrid,
-                                        const std::set<RegionIdType>& srcRegions 
-                                        = std::set<RegionIdType>() );
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() );
   virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< Complex >& values, 
                                         Grid* ptGrid,
-                                        const std::set<RegionIdType>& srcRegions 
-                                        = std::set<RegionIdType>() );
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() );
   //@}
 
   //@{
@@ -483,16 +483,16 @@ public:
   virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< Matrix<Double> >& values,
                                         Grid* ptGrid,
-                                        const std::set<RegionIdType>& srcRegions 
-                                        = std::set<RegionIdType>() ) {
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() ) {
     Exception("GetTensorValuesAtCoords<Double> not implemented in base class");
   }
 
   virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< Matrix<Complex> >& values,
                                         Grid* ptGrid,
-                                        const std::set<RegionIdType>& srcRegions 
-                                        = std::set<RegionIdType>() ) {
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() ) {
     Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
   }
   //@}

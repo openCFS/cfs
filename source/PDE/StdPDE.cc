@@ -51,8 +51,14 @@ namespace CoupledField {
   {
   }
   
-  StdPDE::~StdPDE() 
+  StdPDE::~StdPDE()
   {
+
+    // delete all Fe functions explicitly
+    feFunctions_.clear();
+    prevFeFunctions_.clear();
+    timeDerivFeFunctions_.clear();
+    rhsFeFunctions_.clear();
     
   }
 

@@ -27,8 +27,19 @@ namespace CoupledField {
       numFcns.Resize( shape_.numVertices );
       numFcns.Init( 1 );
     }else if( fctEntityType == EDGE ) {
-      numFcns.Resize((order_-1)*shape_.numEdges);
-      numFcns.Init(1);
+      numFcns.Resize(shape_.numEdges);
+      numFcns.Init((order_-1));
+    }else if( fctEntityType == FACE && !serendipity_) {
+      // we only have face nodes, if we have the full tensorial
+      // elements. Here only 4-sided faces have interior nodes.
+      // collect all faces with 4 nodes
+      numFcns.Resize(shape_.numFaces);
+      numFcns.Init(0);
+      for( UInt i = 0; i < shape_.numFaces; ++i ) {
+        if( shape_.faceVertices[i].GetSize() == 4 ) {
+          numFcns[i] = (order_-1)*(order_-1);
+        }
+      }
     }else if( fctEntityType == ALL){
       numFcns.Resize(shape_.numNodes);
       numFcns.Init(1);
@@ -126,6 +137,19 @@ namespace CoupledField {
       pIt++;
     }
   }
+  
+  
+  void FeH1LagrangeExpl::GetLocalDOFCoordinates(Matrix<Double> & coordMat) {
+    coordMat.Resize(actNumFncs_, shape_.dim);
+    coordMat.Init();
+    
+    for( UInt iNode = 0; iNode < shape_.numNodes; ++iNode ) {
+      for( UInt iDim = 0; iDim < shape_.dim; ++iDim ) {
+        coordMat[iNode][iDim] = shape_.nodeCoords[iNode][iDim];  
+      }
+    }
+  }
+
   
   
   // ========================================================================
@@ -971,23 +995,23 @@ namespace CoupledField {
 
     deriv.Resize( 6, 2 );
 
-    deriv[0][0] =  4*point[0] + 4*point[1] - 3.0;
-    deriv[0][1] =  4*point[0] + 4*point[1] - 3.0;
+    deriv[0][0] =  4.0*point[0] + 4.0*point[1] - 3.0;
+    deriv[0][1] =  4.0*point[0] + 4.0*point[1] - 3.0;
 
-    deriv[1][0] =  4*point[0]-1;
+    deriv[1][0] =  4.0 * point[0] - 1.0;
     deriv[1][1] =  0;
 
     deriv[2][0] =  0;
-    deriv[2][1] =  4*point[1]-1;
+    deriv[2][1] =  4.0 * point[1] - 1.0;
 
-    deriv[3][0] =  4*(1 - 2*point[0] - point[1]);
-    deriv[3][1] = -4*point[0];
+    deriv[3][0] =  4.0 * (1.0 - 2.0*point[0] - point[1]);
+    deriv[3][1] = -4.0 * point[0];
 
-    deriv[4][0] =  4* point[1];
-    deriv[4][1] =  4* point[0];
+    deriv[4][0] =  4.0 * point[1];
+    deriv[4][1] =  4.0 * point[0];
 
-    deriv[5][0] = -4*point[1];
-    deriv[5][1] =  4*(1 - 2*point[1] - point[0]);
+    deriv[5][0] = -4.0 * point[1];
+    deriv[5][1] =  4.0 * (1.0 - 2.0*point[1] - point[0]);
   }
 
   // --- Quad 2nd order ---

@@ -93,20 +93,20 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
     virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                           StdVector< Double >  & vals,
                                           Grid* ptGrid,
-                                          const std::set<RegionIdType>& srcRegions 
-                                          = std::set<RegionIdType>() );
+                                          const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                          StdVector<shared_ptr<EntityList> >() );
 
     virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                           StdVector<Vector< Double> >  & vals, 
                                           Grid* ptGrid,
-                                          const std::set<RegionIdType>& srcRegions 
-                                          = std::set<RegionIdType>() );
+                                          const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                          StdVector<shared_ptr<EntityList> >() );
     
     virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                           StdVector<Matrix<Double> >  & vals,
                                           Grid* ptGrid,
-                                          const std::set<RegionIdType>& srcRegions 
-                                          = std::set<RegionIdType>() );
+                                          const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                          StdVector<shared_ptr<EntityList> >() );
 
 
 
@@ -203,20 +203,20 @@ class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic,
     virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                           StdVector< Complex >  & vals, 
                                           Grid* ptGrid,
-                                          const std::set<RegionIdType>& srcRegions 
-                                          = std::set<RegionIdType>() );
+                                          const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                              StdVector<shared_ptr<EntityList> >()  );
 
     virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                           StdVector<Vector< Complex> >  & vals, 
                                           Grid* ptGrid,
-                                          const std::set<RegionIdType>& srcRegions 
-                                          = std::set<RegionIdType>() );
-    
+                                          const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                              StdVector<shared_ptr<EntityList> >()  );
+
     virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                           StdVector<Matrix<Complex> >  & vals,
                                           Grid* ptGrid,
-                                          const std::set<RegionIdType>& srcRegions 
-                                          = std::set<RegionIdType>() );
+                                          const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                              StdVector<shared_ptr<EntityList> >()  );
 
 
   protected:

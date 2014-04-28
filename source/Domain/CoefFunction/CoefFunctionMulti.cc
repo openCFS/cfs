@@ -168,7 +168,7 @@ std::string CoefFunctionMulti::ToString() const {
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                   StdVector<Double >  & vals,
                                                   Grid* ptGrid,
-                                                  const std::set<RegionIdType>& srcRegions ){
+                                                  const StdVector<shared_ptr<EntityList> >& srcEntities ){
   EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
 
 }
@@ -176,7 +176,7 @@ void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double>
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                   StdVector<Vector<Double> >  & vals,
                                                   Grid* ptGrid,
-                                                  const std::set<RegionIdType>& srcRegions ){
+                                                  const StdVector<shared_ptr<EntityList> >& srcEntities ){
   EXCEPTION("CoefFunctionMulti::GetScalarValuesAtPoints: not implemented")
 }
 
@@ -184,14 +184,14 @@ void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double>
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                   StdVector<Complex >  & vals, 
                                                   Grid* ptGrid,
-                                                  const std::set<RegionIdType>& srcRegions ){
+                                                  const StdVector<shared_ptr<EntityList> >& srcEntities ){
   EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
 }
 
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                   StdVector<Vector<Complex> >  & vals,
                                                   Grid* ptGrid,
-                                                  const std::set<RegionIdType>& srcRegions ){
+                                                  const StdVector<shared_ptr<EntityList> >& srcEntities ){
   EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
 }
 

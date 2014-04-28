@@ -271,23 +271,24 @@ namespace CoupledField
     //! \param globCoord (in) Global coordinate for which the element is requested
     //! \param locCoord (out) Local projection of the global coordinate in the
     //!                      reference element coordinate system.
-    //! \param srcRegion (in) (Optional) List or regions, which are considered
+    //! \param srcEntities(in) (Optional) List or elements, which are considered
     //!                       for the element search. If the set is empty,
     //!                       all (volume) regions are considered. 
     //! \return Element at global coordinate position.
     const Elem* GetElemAtGlobalCoord(const Vector<double>& globCoord,
                                      LocPoint& locCoord,
-                                     const std::set<RegionIdType>& srcRegions
-                                     = std::set<RegionIdType> (),
+                                     const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                     StdVector<shared_ptr<EntityList> >(),
                                      bool printWarnings = true );
     
     //! Return a list of elements and local coordinate for global coordinates
     void GetElemsAtGlobalCoords( const StdVector<Vector<double> >& globCoords,
                                 StdVector< LocPoint >& localCoords,
                                 StdVector< const Elem* > & elems,
-                                const std::set<RegionIdType>& srcRegions 
-                                = std::set<RegionIdType>(),
-                                Double globalTol = 0.0, Double localTol = 1e-2,
+                                const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                StdVector<shared_ptr<EntityList> >(),
+                                Double globalTol = 1e-3, 
+                                Double localTol = 1e-2,
                                 bool printWarnings = true);
     
     //! Return for a given node number the element and a local coordinate
@@ -304,7 +305,7 @@ namespace CoupledField
     const Elem* GetElemAtNode( UInt nodeNum,
                                LocPoint& locCoord,
                                const std::set<RegionIdType>& srcRegions
-                               = std::set<RegionIdType> () );
+                               = std::set<RegionIdType>() );
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++++ REGION INFORMATION +++++++++++++++++++++++++
@@ -866,6 +867,11 @@ namespace CoupledField
 
   protected:
 
+    //! Return for a list of entitylists all element numbers
+    void GetElemNums( boost::unordered_set<UInt>& elemNums, 
+                      std::set<UInt>& dims,
+                      const StdVector<shared_ptr<EntityList> >& entities );
+    
     // =======================================================================
     //  ELEMENT / POINT MAPPING
     // =======================================================================
@@ -918,12 +924,12 @@ namespace CoupledField
     //! of elements, where the point is contained in the bounding box.
     //! This algorithm makes use of the CGAL fast intersection algorithm.
     void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                   const std::set<RegionIdType> srcRegions 
-                                   = std::set<RegionIdType>(),
+                                   const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                   StdVector<shared_ptr<EntityList> >(),
                                    Double tol = 0.0 );
 
-    //! List containing the "boxes" of all elements
-    std::vector<HandleBox> elemBoxes_;
+    //! Map for each dimension (key) a list containing the "boxes" of elements (value)
+    std::map<UInt, std::vector<HandleBox> > elemBoxes_;
 
     //! \param coords(in) The vector of global coordinates
     //! \param id(in) An identifier for this specific coordinate (e.g. index in a vector)
@@ -950,12 +956,15 @@ namespace CoupledField
     //! This method uses the own (potentially slow) algorithm, to determine
     //! the bounding boxed
     void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                   const std::set<RegionIdType> srcRegions 
-                                   = std::set<RegionIdType>(),
-                                   Double tol = 0.0 );
+                                   const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                   StdVector<shared_ptr<EntityList> >(),
+                                   Double tol = 1e-3 );
     
-    //! Bounding boxes
-    StdVector<boost::array<Double,6> > elemBoxes_;
+    //! Define type for bounding boxes
+    typedef std::pair<boost::array<Double,6>, UInt> BoxType;
+    
+    //! Define for each dimension type (key) bounding boxes (value)
+    std::map<UInt, StdVector<BoxType> > elemBoxes_;
 
 #endif // USE_CGAL
 
