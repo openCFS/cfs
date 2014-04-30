@@ -25,7 +25,7 @@ ApproxOrder::ApproxOrder( ) {
   maxOrder_= 0;
   dim_ = 0;
   isIsotropic_ = false;
-  completeType_ = BaseFE::TRUNK_SPACE;
+  polyMapType_ = UNDEF;
 }
 
 ApproxOrder::ApproxOrder(UInt dim ) {
@@ -33,7 +33,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   maxOrder_= 0;
   dim_ = dim;
   isIsotropic_ = false;
-  completeType_ = BaseFE::TRUNK_SPACE;
+  polyMapType_ = UNDEF;
 }
   
   void ApproxOrder::SetIsoOrder( UInt isoOrder ) {
@@ -72,16 +72,16 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     } 
   }
   
-  void ApproxOrder::SetPolyCompleteness (BaseFE::PolyCompleteType pct ) {
-    completeType_  = pct;
+  void ApproxOrder::SetPolyMapping(PolyMapType type) {
+    polyMapType_ = type;
   }
   
   bool ApproxOrder::IsIsotropic() const {
     return isIsotropic_;
   }
   
-  BaseFE::PolyCompleteType ApproxOrder::ReturnPolyCompleteness() const {
-    return completeType_;
+  ApproxOrder::PolyMapType ApproxOrder::GetPolyMapType() const {
+    return polyMapType_;
   }
   
   UInt ApproxOrder::GetIsoOrder() const {
@@ -1029,12 +1029,22 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       mapType= GRID;
       UInt gridOrder = ptGrid_->IsQuadratic() ? 2 : 1;
       order.SetIsoOrder( gridOrder );
+      order.SetPolyMapping(ApproxOrder::GRID_TYPE);
 
     } else if(node->Has("isoOrder")) {
       PtrParamNode isoOrderNode = node->Get("isoOrder", ParamNode::PASS );
       mapType= POLYNOMIAL;
       Integer isoOrder = isoOrderNode->As<Integer>();
       order.SetIsoOrder(isoOrder);
+      
+      // Try to find out polynomial mapping type for lagrange type
+      ApproxOrder::PolyMapType polyMapType = ApproxOrder::TENSOR_TYPE;
+      if (polyType_ == LAGRANGE ) {
+        if(node->Get("isoOrder")->Get("serendipity")->As<bool>() == true) 
+          polyMapType = ApproxOrder::SERENDIPITY_TYPE;
+      }
+      order.SetPolyMapping(polyMapType);
+     
 
     } else if(node->Has("anIsoOrder")) {
       PtrParamNode anIsoOrderNode = node->Get("anIsoOrder", ParamNode::PASS );
@@ -1064,6 +1074,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         }
       }
       order.SetAnisoOrder(orderMat);
+      // Anisotropic order makes only sense for tensorial functions.
+      order.SetPolyMapping(ApproxOrder::TENSOR_TYPE);
       
     } else {
       EXCEPTION( "Could not find definition of polynomial order" );

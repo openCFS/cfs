@@ -126,9 +126,6 @@ protected:
   
   //! Polynomial order of the finite element
   UInt order_;
-
-  //! Flag indicating if the element is of serendepedy type
-  bool serendipity_;
 };
 
 

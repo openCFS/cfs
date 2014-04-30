@@ -65,8 +65,15 @@
             </xsd:complexType>       
           </xsd:element>          
           <!-- 2) Explicit isotropic order given -->
-          <xsd:element name="isoOrder" type="xsd:int"
-            maxOccurs="1" minOccurs="0" />
+          <xsd:element name="isoOrder"  maxOccurs="1" minOccurs="0">
+            <xsd:complexType>
+              <xsd:simpleContent>
+                <xsd:extension base="xsd:int">
+                  <xsd:attribute name="serendipity" type="xsd:boolean" use="optional" default="true" />
+                </xsd:extension>
+              </xsd:simpleContent>
+            </xsd:complexType>
+          </xsd:element>          
         </xsd:choice>    
         <xsd:attribute name="spectral"     type="xsd:boolean" use="optional" default="false"/>
       </xsd:extension>

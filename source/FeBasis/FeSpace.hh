@@ -35,6 +35,9 @@ class SolStrategy;
 class ApproxOrder {
 public:
 
+  //! Define mapping type 
+  typedef enum { UNDEF, GRID_TYPE, SERENDIPITY_TYPE, TENSOR_TYPE  } PolyMapType;
+  
   //! Constructor
   ApproxOrder();
 
@@ -48,14 +51,14 @@ public:
   //! Set anisotropic order
   void SetAnisoOrder( const Matrix<UInt>& anisoOrder );
 
-  //! Set completeness of polynomial space
-  void SetPolyCompleteness (BaseFE::PolyCompleteType pct );
+  //! Specify the type of polynomial mapping
+  void SetPolyMapping(PolyMapType type);
 
   //! Return, if approximation order is isotropic
   bool IsIsotropic() const;
 
-  //! Return the type of completeness of the polynomial
-  BaseFE::PolyCompleteType ReturnPolyCompleteness() const;
+  //! Return the polynomial mapping type
+  PolyMapType GetPolyMapType() const;
 
   //! Return isotropic polynomial degree
   UInt GetIsoOrder() const;
@@ -74,8 +77,6 @@ public:
 
   //! Print to string
   std::string ToString() const;
-
-
 
 
 private:
@@ -98,8 +99,11 @@ private:
   //! Flag, if order is isotropic
   bool isIsotropic_;
 
-  //! Type of polynomial (tensor vs. trunk space) 
-  BaseFE::PolyCompleteType completeType_;
+  //! Flag, if grid order should be used
+  bool useGridOrder_;
+  
+  //! Type of polynonmial mapping
+  PolyMapType polyMapType_;
 };
 
   

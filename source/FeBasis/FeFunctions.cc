@@ -450,7 +450,8 @@ DECLARE_LOG(fefunc)
         // this fefunction
         LocPoint lp;
         const Elem* myElem = 
-            grid_->GetElemAtNode(nodeNum, lp, regions_ ); 
+            grid_->GetElemAtNode(nodeNum, lp, regions_ );
+        
         if( !myElem ) {
           WARN("Some elements were skipped during the interpolation");
           for(UInt iDim = 0; iDim < numDofs; iDim++ ) {
@@ -464,7 +465,6 @@ DECLARE_LOG(fefunc)
         LocPointMapped lpm;
         lpm.Set(lp,esm,0.0);
         
-
         this->GetElemSolution(elemSolution,myElem);
         BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
         idOp_->ApplyOp(dofSol, lpm, ptFe, elemSolution );
