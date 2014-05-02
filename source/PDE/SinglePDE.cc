@@ -751,12 +751,14 @@ namespace CoupledField {
     elemNames.insert(make_pair(ResultInfo::SURF_ELEM, "surfElemResult"));
     elemNames.insert(make_pair(ResultInfo::REGION, "regionResult"));
     elemNames.insert(make_pair(ResultInfo::SURF_REGION, "surfRegionResult"));
+    elemNames.insert(make_pair(ResultInfo::COIL, "coilResult"));
 
     isHistory.insert(make_pair(ResultInfo::NODE, false));
     isHistory.insert(make_pair(ResultInfo::ELEMENT, false));
     isHistory.insert(make_pair(ResultInfo::SURF_ELEM, false));
     isHistory.insert(make_pair(ResultInfo::REGION, true));
     isHistory.insert(make_pair(ResultInfo::SURF_REGION, true));
+    isHistory.insert(make_pair(ResultInfo::COIL, true));
     
 
     // fetch result node and leave, if none is present
@@ -797,6 +799,9 @@ namespace CoupledField {
           break;
         case ResultInfo::ELEMENT:
           entityType = EntityList::ELEM_LIST;
+          break;
+        case ResultInfo::COIL:
+          entityType = EntityList::COIL_LIST;
           break;
         default:
           EXCEPTION("Type of 'definedOn' was not found");
@@ -972,6 +977,10 @@ namespace CoupledField {
             neighborRegions.Push_back( histEntities[i]->
                                        Get("neighborRegion")->As<std::string>() );
           }
+        } else if(candidate->definedOn == ResultInfo::COIL ) {
+          histNode = actResultNode->Get("coilList", ParamNode::PASS);
+          if( histNode )
+            histEntities = histNode->GetList("coil");
         }
 
         // only proceed, if any history result is defined

@@ -1048,15 +1048,15 @@ namespace CoupledField
       // issymmetric
       tmp = context.GetIntegrator()->IsSymmetric() ? "yes" : "no";
       attr->Get("symmetric")->SetValue( tmp );
-      
-//      // isSolDependent
-//      tmp = context.GetIntegrator()->IsSolDependent() ? "yes" : "no";
-//      attr->Get("solutionDependent")->SetValue( tmp );
-//      
-//      // updated geometry
-//      tmp = context.GetIntegrator()->IsCoordUpdate() ? "yes" : "no";
-//      attr->Get("updatedGeo")->SetValue( tmp );
-      
+
+      // isSolDependent
+      tmp = context.GetIntegrator()->IsSolDependent() ? "yes" : "no";
+      attr->Get("solutionDependent")->SetValue( tmp );
+
+      // updated geometry
+      tmp = context.GetIntegrator()->IsCoordUpdate() ? "yes" : "no";
+      attr->Get("updatedGeo")->SetValue( tmp );
+
     }
 
     list = in->Get("rhsLinearForms");
@@ -1102,6 +1102,10 @@ namespace CoupledField
       std::string tmp;
       tmp = SolutionTypeEnum.ToString(context.GetResultInfo()->resultType);
       row->Get("result")->SetValue(tmp);
+      
+      // isSolDependent
+      tmp = context.GetIntegrator()->IsSolDependent() ? "yes" : "no";
+      row->Get("solutionDependent")->SetValue( tmp );
 
     }
   }
@@ -1117,6 +1121,7 @@ namespace CoupledField
 
       if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || setall)
       {
+        
         matReassemble_[actContext.GetDestMat()] = true;
         if ( actContext.GetSecDestMat() != NOTYPE )
           matReassemble_[actContext.GetSecDestMat()] = true;

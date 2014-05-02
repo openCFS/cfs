@@ -843,7 +843,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       } // for
 
       // ==================
-      //  SURFACE TRACTION
+      //  RHS NODAL VALUES
       // ==================
       LOG_DBG(mechpde) << "Reading direct right hand side values";
 

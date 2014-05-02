@@ -318,7 +318,6 @@ namespace CoupledField {
         break;
 
       case MAG_EDDY_CURRENT_DENSITY:
-      case MAG_COIL_CURRENT_DENSITY:
       case MAG_TOTAL_CURRENT_DENSITY:
         return "A/m^2";
         break;
@@ -1216,6 +1215,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_NORMAL_FLUX_DENSITY, "magNormalFluxDensity");
     SolutionTypeEnum.Add(MAG_FIELD_INTENSITY, "magFieldIntensity");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT_DENSITY, "magEddyCurrentDensity");
+    SolutionTypeEnum.Add(MAG_COIL_CURRENT_DENSITY, "magCoilCurrentDensity");
     SolutionTypeEnum.Add(MAG_TOTAL_CURRENT_DENSITY, "magTotalCurrentDensity");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY, "magForceLorentzDensity");
@@ -1227,10 +1227,15 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_ENERGY, "magEnergy");
     SolutionTypeEnum.Add(MAG_EDDY_POWER, "magEddyPower");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT, "magEddyCurrent");
-
-    SolutionTypeEnum.Add(MAG_COIL_CURRENT_DENSITY, "magCoilCurrentDensity");
-    
     SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
+
+    // magnetic - coil results
+    SolutionTypeEnum.Add(COIL_CURRENT, "coilCurrent");
+    
+    SolutionTypeEnum.Add(COIL_INDUCED_VOLTAGE, "coilInducedVoltage");
+    SolutionTypeEnum.Add(COIL_INDUCTANCE, "coilInductance");
+    SolutionTypeEnum.Add(COIL_LINKED_FLUX, "coilLinkedFlux");
+    
     //heat conduction
     SolutionTypeEnum.Add(HEAT_TEMPERATURE, "heatTemperature");
     SolutionTypeEnum.Add(HEAT_FLUX_DENSITY, "heatFluxDensity");

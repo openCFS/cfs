@@ -11,8 +11,9 @@ namespace CoupledField  {
 CoefFunctionFormBased::CoefFunctionFormBased( ) : CoefFunction(){
 
   
-  // set inherited attributes
-  dependType_ = CoefFunction::GENERAL;
+  // All coefficient functions are based on the solution vector, so 
+  // we have a general SOLUTION dependency.
+  dependType_ = CoefFunction::SOLUTION;
   isAnalytic_ = false;
 }
 

@@ -66,11 +66,6 @@ public:
     Bdim_ = opDim;
   }
 
-  //! \copydoc LinearForm::IsSolDependent
-  bool IsSolDependent() {
-    return rhsCoefs_->GetDependency() == CoefFunction::SOLUTION;
-  }
-
 protected:
   
   

@@ -6,9 +6,8 @@
 #define FILE_CFS_MAGNETIC_PDE_HH
 
 #include <map>
-
 #include "SinglePDE.hh"
-
+#include "Utils/Coil.hh"
 namespace CoupledField
 {
 
@@ -74,16 +73,16 @@ namespace CoupledField
     // =======================================================================
 
     //@{ \name Attributes related to coils
+    //! Map CoilID to coil definition
+    std::map<Coil::IdType, shared_ptr<Coil> > coils_;
 
-    //! Names of coils resp. their subdomains
-    StdVector<RegionIdType> coilRegionId_;  
-
-    //! Parameters of the individual coils;
-    StdVector<shared_ptr<Coil> > coilDef_;
-
-    //! Coefficients holding the current density for each coil
-    std::map<RegionIdType, PtrCoefFct> coilCoefs_;
+    //! Map regionIds to coil definitions 
+    typedef std::map<RegionIdType, shared_ptr<Coil> > CoilRegionMap;
+    CoilRegionMap coilRegions_;
     
+    //! Coefficients holding the current density for each coil
+    std::map<RegionIdType, PtrCoefFct> coilCurrentDens_;
+
     //@}
 
     //! Coefficient function, containing the overall reluctivity

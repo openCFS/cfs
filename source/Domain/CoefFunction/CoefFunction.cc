@@ -443,12 +443,14 @@ PtrCoefFct CoefFunction::Generate( MathParser * mp,
       }
       ret = cf;
     }
-   
-    
     // Determine the dependType of the returned coefFunction
     ret->dependType_ = xpr.GetDependency(); 
   }
   
+  // Check for coordinate system
+  if( xpr.GetCoordinateSystem() ) {
+    ret->SetCoordinateSystem( xpr.GetCoordinateSystem() );
+  }
   return ret;
 }
 

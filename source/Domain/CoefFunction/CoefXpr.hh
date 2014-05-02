@@ -59,6 +59,7 @@ public:
       isAnalytical_ = false;
       isComplex_ = false;
       dependType_ = CoefFunction::CONSTANT;
+      coordSys_ = NULL;
       dimType_ = CoefFunction::NO_DIM;
       mp_ = mp;
     }
@@ -95,6 +96,11 @@ public:
       return isComplex_;
     }
     
+    //! Get associated coordinate system
+    CoordSystem* GetCoordinateSystem() const {
+      return coordSys_;
+    }
+    
     //! Get MathParser instance
     MathParser * GetMathParser() {
       return mp_;
@@ -119,7 +125,9 @@ public:
     OP_POW,                   /*!< Binary x^y operation */
     OP_NORM,                  /*!< Unary L2-Norm operation */
     OP_SQRT,                   /*!< Unary square root operation */
-    OP_TRACE                  /*!< Unary trace of tensor operation  */
+    OP_TRACE,                  /*!< Unary trace of tensor operation  */
+    OP_INV,                   /*!< Unary inversion operation */
+    OP_DET                    /*!< Unary operation, returning the determinant of a square tensor*/
   } OpType;
   
   //! Get number of operands for OpType
@@ -259,6 +267,9 @@ protected:
   
   //! Dependency type of the coefficient function
   CoefFunction::CoefDependType dependType_;
+  
+  //! Pointer to coordinate system
+  CoordSystem* coordSys_;
   
   //! Pointer to MathParser
   MathParser * mp_;

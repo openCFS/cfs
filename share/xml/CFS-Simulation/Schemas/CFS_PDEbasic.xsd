@@ -1028,6 +1028,33 @@
   </xsd:complexType>
   
   <!-- ******************************************************************** -->
+  <!--   Definition of coil result -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Please but documentation here -->
+  <xsd:complexType name="DT_CoilResult">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BasicResult">
+        <xsd:sequence>
+          <!-- 1.) Definition by 'coilList' -->
+          <xsd:element name="coilList" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:complexContent>
+                <xsd:extension base="DT_ResultSavingType">
+                  <xsd:sequence>
+                    <xsd:element name="coil"
+                      type="DT_CoilResultDescr" minOccurs="1" maxOccurs="unbounded"/>
+                  </xsd:sequence>
+                </xsd:extension>
+              </xsd:complexContent>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
   <!--   Definition of field interpolation -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_FieldResult">
@@ -1136,7 +1163,19 @@
     <xsd:attribute name="writeResult" type="DT_CFSBool" default="yes"/>
   </xsd:complexType>
   
-
+  <!-- ******************************************************************** -->
+  <!--   Definition of coil result description  -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Please but documentation here -->
+  <xsd:complexType name="DT_CoilResultDescr">
+    <xsd:attribute name="id" type="xsd:token" use="required"/>
+    <xsd:attribute name="postProcId" type="xsd:token" default=""/>
+    <xsd:attribute name="outputIds" type="xsd:token"
+      default=""/>
+    <xsd:attribute name="writeResult" type="DT_CFSBool" default="yes"/>
+  </xsd:complexType>
+  
  <!-- ***************************************************** -->
  <!--   Definition for material dependencies in PDEs        -->
  <!-- ***************************************************** -->
@@ -1167,6 +1206,142 @@
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
+  
+ <!-- ******************************************************************* -->
+  <!--   Definition of syntax for specifying coils -->
+  <!-- ******************************************************************* -->
 
+  <!-- Data type for basic coil -->
+  <xsd:complexType name="DT_MagCoil">
+    <xsd:sequence>
+      <!-- Define source of coil (current, voltage) -->
+      <xsd:element name="source" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:attribute name="type" use="required">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="current"/>
+                <xsd:enumeration value="voltage"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+          <xsd:attribute name="value"      type="xsd:token" default="0.0"/>
+          <xsd:attribute name="phase"      type="xsd:token" default="0.0"/>
+        </xsd:complexType>
+      </xsd:element>
+      
+      <!-- Define parts of coil -->
+      <xsd:element name="part" minOccurs="1" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:sequence>
+            
+            <!-- Region this part is defined by -->
+            <xsd:element name="regionList">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="region" minOccurs="1" maxOccurs="unbounded"> 
+                    <xsd:complexType> 
+                      <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            
+            <!--Specify current direction -->
+            <xsd:element name="direction" minOccurs="1" maxOccurs="1">
+              <xsd:complexType>
+                <!-- 2 Possibilities: Either analytical (value+coordinate system)
+                     or by given input/output surface(s) -->
+                <xsd:choice>
+                  <!-- a) analytic current direction -->
+                  <xsd:element name="analytic">
+                    <xsd:complexType>
+                      <xsd:sequence>
+			            <xsd:element name="comp" minOccurs="0" maxOccurs="unbounded">
+			              <xsd:complexType>
+			                <xsd:attribute name="dof" type="xsd:token" use="required"/>
+			                <xsd:attribute name="value" type="xsd:token" use="required"/>
+			                <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+			              </xsd:complexType>              
+			            </xsd:element>
+			          </xsd:sequence>
+			          <xsd:attribute name="coordSysId" type="xsd:token" use="optional" default="default"/>
+                    </xsd:complexType>
+                  </xsd:element>                   
+
+                  <!-- b) current direction given by input / output areas-->
+                  <xsd:element name="automatic">
+                    <xsd:complexType>
+	                  <xsd:sequence>                 
+	                  <xsd:element name="inputSurfaceList" minOccurs="0" maxOccurs="1">
+	                    <xsd:complexType>
+	                      <xsd:sequence>
+	                        <xsd:element name="surface">
+	                          <xsd:complexType>
+	                            <xsd:attribute name="name" type="xsd:token"/>
+	                          </xsd:complexType>
+	                        </xsd:element>
+	                      </xsd:sequence>
+	                    </xsd:complexType>
+	                  </xsd:element>
+	                  <!-- output surfaces (optional) -->
+	                  <xsd:element name="outputSurfaceList" minOccurs="0" maxOccurs="1">
+	                    <xsd:complexType>
+	                      <xsd:sequence>
+	                        <xsd:element name="surface">
+	                          <xsd:complexType>
+	                            <xsd:attribute name="name" type="xsd:token"/>
+	                          </xsd:complexType>
+	                        </xsd:element>
+	                      </xsd:sequence>
+	                    </xsd:complexType>
+	                  </xsd:element>
+	                </xsd:sequence>
+  	              </xsd:complexType>
+	              </xsd:element>          
+	              </xsd:choice>
+                <xsd:attribute name="orientation" default="1" type="DT_DirFlag"
+                               use="optional"/>
+                <xsd:attribute name="uniformCurrentDensity" default="yes" type="DT_CFSBool"
+                               use="optional"/>
+              </xsd:complexType>
+            </xsd:element>
+            
+            <!-- Define layout of coil. Her we allow for two different
+                 definitions:
+                 a) number of turns and fill factor
+                 b) cross section of single winding
+            -->
+            <xsd:choice>
+              <xsd:element name="windingTurns">
+                <xsd:complexType> 
+                  <xsd:attribute name="number" type="xsd:positiveInteger" use="required"/>
+                  <xsd:attribute name="fillFactor" type="DT_PosFloat" default="1.0"/>
+                </xsd:complexType>
+              </xsd:element>
+              <xsd:element name="wireCrossSection">
+                <xsd:complexType>
+                  <xsd:attribute name="area" type="DT_PosFloat" use="required"/>
+                  <xsd:attribute name="fillFactor" type="DT_PosFloat" default="1.0"/>
+                </xsd:complexType>
+              </xsd:element>
+            </xsd:choice>
+            
+            <!-- Resistance of coil (given explicitly) -->
+            <xsd:element name="resistance" minOccurs="0">
+              <xsd:complexType>
+                <xsd:attribute name="value" type="xsd:token" use="required"/>
+              </xsd:complexType>
+            </xsd:element>  
+          </xsd:sequence> 
+          <xsd:attribute name="id" type="xsd:token" default="1"/>
+        </xsd:complexType>
+      </xsd:element><!-- end of part definition -->
+    </xsd:sequence>
+    
+    <!-- Identifier string to address the coil for results -->
+    <xsd:attribute name="id" type="xsd:token" use="required"/>
+  </xsd:complexType>
 
 </xsd:schema>

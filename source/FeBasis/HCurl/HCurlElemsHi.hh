@@ -103,7 +103,7 @@ protected:
   //! Flag vector (#edges) if gradient shape functions are used on edges
   StdVector<bool> useEdgeGrad_;
   
-  //! Flag vector (#edges) if gradient shape functions are used on face
+  //! Flag vector (#faces) if gradient shape functions are used on face
   StdVector<bool> useFaceGrad_;
   
   //! Flag if gradient shape functions are used in interior

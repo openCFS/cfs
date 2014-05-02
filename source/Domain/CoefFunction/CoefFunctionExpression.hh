@@ -130,6 +130,9 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
     //! Pointer to math parser instance
     MathParser* mp_;
     
+    //! Default coordinate system 
+    CoordSystem* coordSysDefault_;
+    
     //! Handle for expression
     MathParser::HandleType mHandle_;
 };
@@ -247,6 +250,9 @@ class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic,
 
     //! Pointer to math parser instance
     MathParser* mp_;
+    
+    //! Default coordinate system 
+    CoordSystem* coordSysDefault_;
     
     //@{
     //! Handle for expression

@@ -4,6 +4,7 @@
 #include <map>
 #include "SinglePDE.hh" 
 #include "Driver/SolveSteps/SolveStepMagEdge.hh"
+#include "Utils/Coil.hh"
 
 namespace CoupledField
 {
@@ -77,18 +78,17 @@ namespace CoupledField
     // =======================================================================
     //   COILS
     // =======================================================================
-    
+
     //@{ \name Attributes related to coils
-    
-    //! Names of coils resp. their subdomains
-    StdVector<RegionIdType> coilRegionId_;  
-    
-    //! Parameters of the individual coils;
-    StdVector<shared_ptr<Coil> > coilDef_;
+    //! Map CoilID to coil definition
+    std::map<Coil::IdType, shared_ptr<Coil> > coils_;
+
+    //! Map regionIds to coil definitions 
+    typedef std::map<RegionIdType, shared_ptr<Coil> > CoilRegionMap;
+    CoilRegionMap coilRegions_;
     
     //! Coefficients holding the current density for each coil
-    std::map<RegionIdType, PtrCoefFct> coilCoefs_;
-    
+    std::map<RegionIdType, PtrCoefFct> coilCurrentDens_;
     //@}
 
 

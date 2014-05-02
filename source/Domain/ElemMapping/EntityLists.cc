@@ -2,7 +2,7 @@
 
 #include "EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
-
+#include "Utils/Coil.hh"
 
 
 namespace CoupledField {
@@ -408,6 +408,36 @@ namespace CoupledField {
      return it;
    }
   
+   
+   // --- CoilList ---
+   CoilList::CoilList( Grid* grid )
+   : EntityList( grid ) {
+     type_ = COIL_LIST;
+   }
+
+   std::string CoilList::GetName() const {
+     std::string id = "";
+     if( size_ > 0 ) {
+       id = list_[0]->coilId_;
+     }
+     return id;
+   }
+
+   void CoilList::AddCoil( shared_ptr<Coil> aCoil ) {
+     defineType_ = NO_TYPE;
+     list_.Push_back( aCoil );
+     size_ = list_.GetSize();
+   }
+
+   EntityIterator CoilList::GetIterator() const {
+     EntityIterator it;
+     it.type_ = COIL_LIST;
+     it.coilList_ = this;
+     it.pos_ = 0;
+     it.size_ = list_.GetSize();
+     return it;
+   }
+
   
 
   // --- Number List ---
