@@ -92,6 +92,7 @@
       <xsd:enumeration value="heatConduction"/>
       <xsd:enumeration value="stokesFluid"/>
       <xsd:enumeration value="bubble"/>
+      <xsd:enumeration value="externLBM"/>
     </xsd:restriction>
   </xsd:simpleType>
 

@@ -161,7 +161,7 @@ namespace CoupledField {
 
     // === unqualified results ===
     MPCCI, FLUID_FORCE, PIEZO_COUPL_TENSOR,
-    ACOU_PRESSUREXYZ,
+    ACOU_PRESSUREXYZ, EXTERNLBM_VELOCITY, EXTERNLBM_DENSITY,
 
     // === Flow results ===
     LAMBDA_K, MEAN_FLUIDMECH_VELOCITY, MEAN_FLUIDMECH_PRESSURE,
