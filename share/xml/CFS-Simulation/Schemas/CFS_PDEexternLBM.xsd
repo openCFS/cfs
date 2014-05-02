@@ -1,0 +1,145 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://www.cfs++.org" xmlns="http://www.cfs++.org"
+	xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
+
+	<xsd:annotation>
+		<xsd:documentation xml:lang="en">
+			Coupled Field Solver
+			project CFS++
+			Schema for PDE description for an extern
+			Lattice-Boltzmann PDE
+		</xsd:documentation>
+	</xsd:annotation>
+
+
+	<!-- ******************************************************************* -->
+	<!-- Definition of element for externLBM PDEs -->
+	<!-- ******************************************************************* -->
+	<xsd:element name="externLBM" type="DT_PDEExternLBM"
+		substitutionGroup="PDEBasic">
+		<xsd:unique name="CS_ExternLBMRegion">
+			<xsd:selector xpath="cfs:region" />
+			<xsd:field xpath="@name" />
+		</xsd:unique>
+	</xsd:element>
+
+	<!-- ******************************************************************* -->
+	<!-- Definition of data type for externLBM PDEs -->
+	<!-- ******************************************************************* -->
+
+	<xsd:complexType name="DT_PDEExternLBM">
+		<xsd:complexContent>
+			<xsd:extension base="DT_PDEBasic">
+				<xsd:sequence>
+
+					<!-- Regions the PDE lives on -->
+					<xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+									<xsd:complexType>
+										<xsd:attribute name="name" type="xsd:token" use="required" />
+										<xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
+									</xsd:complexType>
+								</xsd:element>
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+
+					<!-- Boundary Conditions & Loads (optional) -->
+					<xsd:element name="bcsAndLoads" minOccurs="0"
+						maxOccurs="unbounded">
+						<xsd:complexType>
+							<xsd:choice maxOccurs="unbounded">
+								<xsd:element name="inlet" minOccurs="0" maxOccurs="unbounded">
+									<xsd:complexType>
+										<xsd:attribute name="name" type="xsd:token" use="required" />
+										<xsd:attribute name="dof" type="DT_ExternLBMDOF"
+											use="required" />
+										<xsd:attribute name="value" type="xsd:double"
+											use="required" />
+									</xsd:complexType>
+								</xsd:element>
+								<xsd:element name="outlet" minOccurs="0" maxOccurs="unbounded">
+									<xsd:complexType>
+										<xsd:attribute name="name" type="xsd:token" use="required" />
+										<xsd:attribute name="dof" type="DT_ExternLBMDOF"
+											use="optional" />
+										<xsd:attribute name="value" type="xsd:double"
+											use="optional" />
+									</xsd:complexType>
+								</xsd:element>
+							</xsd:choice>
+						</xsd:complexType>
+					</xsd:element>
+
+					<!-- Configurations for LBM simulation -->
+					<xsd:element name="LBM" minOccurs="1" maxOccurs="1">
+						<xsd:complexType>
+							<xsd:attribute name="omega" type="xsd:double" use="required" />
+							<xsd:attribute name="maxWallTime" type="xsd:double" use="required" />
+							<xsd:attribute name="maxIter" type="xsd:positiveInteger" use="required" />
+							<xsd:attribute name="epsilon" type="xsd:double" use="required" />
+              <!--  the executable. Either debug or release. With path if necessary -->
+							<xsd:attribute name="lbm" type="xsd:token" use="optional" default="./" />
+							<xsd:attribute name="type" use="optional" default="external" >
+								<xsd:simpleType>
+	              <xsd:restriction base="xsd:token">
+	                <xsd:enumeration value="external"/>
+	                <xsd:enumeration value="internal"/>
+	              </xsd:restriction>
+	            </xsd:simpleType>
+	            </xsd:attribute>
+						</xsd:complexType>
+					</xsd:element>
+
+					<!-- Desired solution values (optional) -->
+					<xsd:element name="storeResults" minOccurs="0"
+						maxOccurs="1">
+						<xsd:complexType>
+						  <xsd:sequence>
+						  
+							  <!-- Element result definition -->
+				        <xsd:element name="elemResult" minOccurs="0"
+				          maxOccurs="unbounded">
+				          <xsd:complexType>
+				            <xsd:complexContent>
+				              <xsd:extension base="DT_ElemResult">
+				                <xsd:attribute name="type" type="DT_ExternLBMElemResult" use="required"/>
+				              </xsd:extension>
+				            </xsd:complexContent>
+				          </xsd:complexType>
+				        </xsd:element>
+						  
+						  </xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<!-- ******************************************************************* -->
+	<!-- Definition of enumeration type describing the degrees of freedom -->
+	<!-- ******************************************************************* -->
+
+	<xsd:simpleType name="DT_ExternLBMDOF">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="x" />
+			<xsd:enumeration value="y" />
+			<xsd:enumeration value="z" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<!-- ******************************************************************* -->
+	<!-- Definition of syntax for specifying output quantity of CFS -->
+	<!-- ******************************************************************* -->
+	<xsd:simpleType name="DT_ExternLBMElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="externLBMVelocity"/>
+      <xsd:enumeration value="externLBMDensity"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+</xsd:schema>

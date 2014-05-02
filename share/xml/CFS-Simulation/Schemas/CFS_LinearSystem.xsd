@@ -19,7 +19,7 @@
   <xsd:complexType name="DT_SystemSpec">
     <xsd:sequence>
 
-      <!-- Syste setup (optional) -->
+      <!-- System setup (optional) -->
       <xsd:element name="setup" type="DT_SetupDescription" minOccurs="0"/>
 
       <!-- Matrix format, entries and layout (optional) -->
@@ -103,6 +103,7 @@
           <xsd:enumeration value="smooth"/>
           <xsd:enumeration value="heatConduction"/>
           <xsd:enumeration value="fluidMech"/>
+          <xsd:enumeration value="externLBM"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

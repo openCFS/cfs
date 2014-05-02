@@ -16,7 +16,11 @@ def create_figure(min, max, res, for_save):
   dpi_x = (res / 100) * (max[0] - min[0]) 
   dpi_y = dpi_x * (max[1] - min[1]) / (max[0] - min[0]) 
   
-  fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
+  fig = None
+  if for_save:
+    fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
+  else:
+    fig = matplotlib.pyplot.figure()
   ax = fig.add_subplot(111)
 
   if for_save:
@@ -169,7 +173,7 @@ class Fields:
     
     centers, min, max, elem = coords
     # convert to 2D
-    c, v = convert_interpolation_input(centers, s, angle)
+    c, v = convert_single_data_interpolation_input(centers, s, angle)
     
     # this is the original data discretization
     nx = int((max[0] - min[0]) / elem[0])

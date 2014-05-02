@@ -475,7 +475,7 @@ void CFS::SetupIO()
   map<string, shared_ptr<SimOutput> > outFiles;
   fileHandler.CreateSimOutputFiles( outFiles );
 
-  // Create resulthandler and pass the output files
+  // Create result handler and pass the output files
   resultHandler = new ResultHandler( ResultHandler::EMBEDDED );
   map<string, shared_ptr<SimOutput> >::iterator outputIt;
   map<string, shared_ptr<SimInput> >::iterator inputIt;
@@ -487,7 +487,6 @@ void CFS::SetupIO()
   for( ; inputIt != inFiles.end(); inputIt++ ) {
     resultHandler->AddInputReader( inputIt->second, inputIt->first );
   }
-
 
   // Log command line parameters
   progOpts->ToInfo(info->Get(ParamNode::HEADER)->Get("progOpts"));

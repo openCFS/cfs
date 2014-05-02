@@ -184,7 +184,7 @@ def get_interpol_data(coords, data, fallback, x, eval = True):
 
 ## helper for get_interpolation and Fields
 #@return 2d locations and 2d data
-def convert_interpolation_input(centers, s1, s2, angle):
+def convert_two_data_interpolation_input(centers, s1, s2, angle):
   # convert to 2D
   c = numpy.zeros((len(centers), 2))
   c[:,0] = [x[0] for x in centers]
@@ -199,9 +199,10 @@ def convert_interpolation_input(centers, s1, s2, angle):
       
   return c, v    
 
+
 ## helper for get_interpolation and Fields
 #@return 2d locations and 2d data
-def convert_interpolation_input(centers, s1, angle):
+def convert_single_data_interpolation_input(centers, s1, angle):
   # convert to 2D
   c = numpy.zeros((len(centers), 2))
   c[:,0] = [x[0] for x in centers]
@@ -252,7 +253,7 @@ def get_interpolation(coords, grad, sample, s1, s2, angle = None):
         out[nx + y * (2*nx+1) + x][1] = float(y)/ny * max[1] + 0.5 * elem[1]
         # print "out[" + str(nx + y * (2*nx+1) + x) + "] = " + str(out[nx + y * (2*nx+1) + x])
 
-  c, v = convert_interpolation_input(centers, s1, s2, angle)
+  c, v = convert_two_data_interpolation_input(centers, s1, s2, angle)
     
   ip_data = ip.griddata(c, v, out, grad, -1.0)
   # any interpolation but nearest neighbor can only interpolate in the convex hull,

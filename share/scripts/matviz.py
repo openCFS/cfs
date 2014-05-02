@@ -126,7 +126,7 @@ parser.add_argument("--h5_region", help="region name (default 'mech')", default=
 parser.add_argument('--h5_info', action='store_true', help='dump some meta data information about the h5 file')
 parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, 'elecTensor'", default="mechTensor")
 parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=float)
-parser.add_argument("--res", help="x-resolution (default 1000)", default=1000, type=int)
+parser.add_argument("--res", help="x-resolution (default 1000)", default=800, type=int)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
 parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'rot', 'stream'])
 parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", default="voigt")
@@ -139,6 +139,7 @@ parser.add_argument("--hom_access", help="the 'plain ' or 'smart' hom values (de
 parser.add_argument("--hom_grad", help="interpolation of design: 'none', 'nearest', linear', 'cubic' (default 'linear')", default="linear", choices=['none', 'nearest', 'linear', 'cubic'] )
 parser.add_argument("--hom_dir", help="visualization of stiffness directions (default 'all')", default="all", choices=['all', 'horizontal', 'vertical', 'sagittal'] )
 parser.add_argument("--angle_factor", help="factor for angle. -1.0 turns, 0.0 disables angles", default=1.0, type=float )
+parser.add_argument("--angle_bias", help="bias for the angle in deg. 90 switches s1 and s2", default=0.0, type=float )
 parser.add_argument("--hom_samples", help="activates interpolation and, the value gives samples in x-direction", type=int)
 parser.add_argument("--stream_style", help="select visualization", choices=['line', 'thick'], default='thick')
 parser.add_argument("--stream_step", help="step length for ODE integration per macro cell", type=float, default=0.2)
@@ -230,7 +231,9 @@ if h5_read or dim_2D:
   if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "rot" or args.show == 'stream':
 
     s1, s2, s3, angle = read_stiff_angle(f, dim_2D, args)
-    # add angle bias
+    # add angle bias, e.g. by 90 deg to correct thomas
+    angle += args.angle_bias * numpy.pi/180
+    # scale angle, e.g  by -1 to correct jannis 
     if args.angle_factor <> 1.0:
       print 'scale angle by ' + str(args.angle_factor)
       angle *= args.angle_factor  

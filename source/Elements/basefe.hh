@@ -465,7 +465,6 @@ namespace CoupledField
       EXCEPTION("GetEdgeLength not implemented");
     }
     
-    
     //! Return FE-Type
     virtual Elem::FEType feType() = 0;
 

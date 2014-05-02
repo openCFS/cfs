@@ -756,6 +756,7 @@ share/xml/CFS-Simulation/CFS.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Examples/SolverSpec.xml svneol=native#text/xml
 share/xml/CFS-Simulation/Examples/bubble.xml svneol=native#text/xml
 share/xml/CFS-Simulation/Examples/coordSys.xml svneol=native#text/xml
+share/xml/CFS-Simulation/Examples/externLBM.xml -text
 share/xml/CFS-Simulation/Examples/plate1.xml svneol=native#text/xml
 share/xml/CFS-Simulation/Examples/thermo-piezoelectric_static.xml -text
 share/xml/CFS-Simulation/Schemas/CFS_Analysis.xsd svneol=native#text/xml
@@ -775,6 +776,7 @@ share/xml/CFS-Simulation/Schemas/CFS_PDEacoustic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEacousticMixed.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDEbasic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEelectrostatic.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEexternLBM.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDEfluidMech.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEheatConduction.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmagedge.xsd svneol=native#text/xml
@@ -1596,6 +1598,8 @@ source/PDE/elecPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/elecPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/eqnMap.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/eqnMap.hh svneol=native#text/x-c%2B%2Bhdr
+source/PDE/extLBMPDE.cc -text
+source/PDE/extLBMPDE.hh -text
 source/PDE/fluidMechPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/fluidMechPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/heatCondPDE.cc svneol=native#text/x-c%2B%2Bsrc
