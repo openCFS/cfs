@@ -22,6 +22,7 @@
 // forms
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
+#include "Forms/BiLinForms/BiLinWrappredLinForm.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/BDUInt.hh"
 #include "Forms/LinForms/KXInt.hh"
@@ -369,6 +370,12 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         } // loop: parts
       } else {
         EXCEPTION(" Implement voltage driven coils .. see the following code from NACS");
+        
+        
+        // Note: Use the new BiLinWrappedLinForm to make a BiLinearForm out of 
+        //       the LinearForms f_A and (f_A)^T in the following
+   
+        
 //        // ===========================================
 //        // 2) VOLTAGE driven coils
 //        //
