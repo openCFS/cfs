@@ -129,6 +129,7 @@ cfsdeps/cmake/External_CMake.cmake -text
 cfsdeps/cmake/cmake-configure.cmake.in -text
 cfsdeps/cmake/cmake-install.cmake.in -text
 cfsdeps/flann/External_FLANN.cmake -text
+cfsdeps/flann/flann-any.patch -text
 cfsdeps/flann/flann-basic-type-serializer-for-64bit-ints.patch -text
 cfsdeps/flann/flann-extra-commas-at-end-of-enum-lists.patch -text
 cfsdeps/flann/flann-for-cfs.patch -text

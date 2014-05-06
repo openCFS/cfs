@@ -27,6 +27,10 @@ SET(patches
 
   # Extra commas at the end of enum lists may irritate some compilers.
   "flann-extra-commas-at-end-of-enum-lists.patch"
+
+  # warning: ‘struct flann::anyimpl::base_any_policy’ has virtual functions
+  # but non-virtual destructor 
+  "flann-any.patch"
 )
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/flann")
