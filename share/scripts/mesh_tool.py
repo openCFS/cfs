@@ -50,7 +50,10 @@ class Mesh:
   def __init__(self):
    self.nodes = []    # list 2d tupels (float, float) or 3d tuples
    self.elements = [] # list of Element
-   self.bc = []       # list of tupel (name, <list of zero based nodes>)  
+   # list of boundary conditon nodes
+   self.bc = []       # list of tupel (name, <list of zero based nodes>)
+   # list of named nodes (save element in gd)
+   self.ne = []       # list of tupel (name, <list of zero based elements>)
 
 def show_dense_mesh_image(mesh, shape, binary, size):
   check_img = Image.new("RGB", shape, "white")
@@ -283,8 +286,11 @@ def write_gid_mesh(mesh, filename):
   for i in range(len(mesh.bc)):
     bcn += len(mesh.bc[i][1])
   out.write('NumNodeBC ' + str(bcn) + '\n')
+  nen = 0
+  for i in range(len(mesh.ne)):
+    nen += len(mesh.ne[i][1])
   out.write('NumSaveNodes 0\n')
-  out.write('NumSaveElements 0\n')
+  out.write('NumSaveElements ' + str(nen) + '\n')
   out.write('Num 2d-line      : 0\n')
   out.write('Num 2d-line,quad : 0\n')
   out.write('Num 3d-line      : 0\n')
@@ -336,6 +342,10 @@ def write_gid_mesh(mesh, filename):
   out.write('#NodeNr Level\n')
   out.write('\n[Save Elements]\n')
   out.write('#ElemNr Level\n\n')
+  for e in range(len(mesh.ne)):
+    ne = mesh.ne[e]
+    for n in range(len(ne[1])):
+      out.write(str(ne[1][n]+1) + " " + ne[0] + "\n")
 
   out.close()
   
@@ -437,4 +447,51 @@ def create_mbb_mesh(type, resolution):
   mesh.bc.append(("left_upper", [(nx+1)*ny]))
   mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
   
+  return mesh
+
+
+## LBM pipe bend example as used by Pingen et al. 2007
+def create_pipe_bend(resolution):
+  mesh = Mesh()
+ 
+  size = 1.0 
+   
+  nx = resolution
+  ny = nx
+  
+  dx = size / nx
+  
+  eps = 1e-4
+
+
+  for y in range(nx + 1):
+    for x in range(nx + 1):
+      mesh.nodes.append((x * dx, y * dx))
+ 
+  # print mesh.nodes 
+  for y in range(ny):
+    for x in range(nx):
+      e = Element()
+      e.type = QUAD4
+      e.density = 1.0
+      if x > 0 and y > 0 and x < nx-1 and y < nx -1: 
+        e.region = 'design'
+      else:
+        e.region = 'boundary'
+
+      # assign nodes
+      ll = (nx+1) * y + x  # lowerleft
+      e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
+            
+      mesh.elements.append(e)
+ 
+
+  mesh.ne.append(('inlet', range(int(0.7*nx*ny + eps), int(0.9*nx*ny - eps), nx) ))
+  mesh.ne.append(('outlet', range(int(0.7*nx + eps), int(0.9*nx + eps)) ))
+
+  mesh.bc.append(("left_lower", [0]))
+  mesh.bc.append(("right_lower", [nx]))
+  mesh.bc.append(("left_upper", [(nx+1)*ny]))
+  mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+      
   return mesh

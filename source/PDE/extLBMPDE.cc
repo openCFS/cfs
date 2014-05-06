@@ -41,8 +41,8 @@ namespace CoupledField {
 class BaseMaterial;
 class SingleVector;
 
-ExtLBMPDE::ExtLBMPDE(Grid * aptgrid, PtrParamNode paramNode )
-:SinglePDE(aptgrid, paramNode ) {
+ExtLBMPDE::ExtLBMPDE(Grid* grid, PtrParamNode pn)
+:SinglePDE(grid, pn) {
 
   pdename_ = "externLBM";
   pdematerialclass_ = MECHANIC;
@@ -50,16 +50,38 @@ ExtLBMPDE::ExtLBMPDE(Grid * aptgrid, PtrParamNode paramNode )
   nonLin_ = false;
 
   method_ = "mechanic";
+
+
+  // find the unique boundary region id
+  boundary_ = -1;
+  ParamNodeList regions = pn->Get("regionList")->GetChildren();
+  if(regions.GetSize() < 2)
+    throw Exception("externLBM requires at least two regions where one has the boundary attribute set");
+  for(unsigned int i = 0; i < regions.GetSize(); i++)
+    if(regions[i]->Get("boundary")->As<bool>())
+    {
+      if(boundary_ != -1)
+        throw Exception("only a single region my have the boundary attribute set");
+      else
+        boundary_ = grid->GetRegion().Parse(regions[i]->Get("name")->As<std::string>());
+    }
+  if(boundary_ == -1)
+    throw Exception("externLBM requires a region with boundary attribute set");
+
+
   // for 2D n_z=1
-  StdVector<UInt> n = aptgrid[0].GetBoundaries(0);
+  StdVector<UInt> n = grid->GetBoundaries(boundary_);
   n_x = n[0];
   n_y = n[1];
   n_z = n[2];
   n_elems = n_x*n_y*n_z;
 
+  std::cout << "boundaries : " << n.ToString() << std::endl;
+
   //Initializing storage for PDFs
   pdfs = (Double *)malloc(sizeof(Double) * n_elems * _QN_);
   sim_type = myParam_->Get("LBM")->Get("type")->As<std::string>();
+
 }
 
 void ExtLBMPDE::DefineIntegrators() {
@@ -241,8 +263,8 @@ void ExtLBMPDE::CalcVelocities( shared_ptr<BaseResult> res ) {
         - PDF_IDX(elemId, 3) - PDF_IDX(elemId, 6) - PDF_IDX(elemId, 7)) / density;
     luy   = (PDF_IDX(elemId, 2) + PDF_IDX(elemId, 5) + PDF_IDX(elemId, 6)
         - PDF_IDX(elemId, 4) - PDF_IDX(elemId, 7) - PDF_IDX(elemId, 8)) / density;
-    velo[elemId * dim_] = lux;
-    velo[elemId * dim_ + 1] = luy;
+    velo[it.GetPos() * dim_] = lux;
+    velo[it.GetPos() * dim_ + 1] = luy;
   }
 }
 

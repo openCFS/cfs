@@ -41,7 +41,7 @@ namespace CoupledField
     /*!
       \param aGrid pointer to grid
     */
-    ExtLBMPDE( Grid* Grid, PtrParamNode paramNode );
+    ExtLBMPDE(Grid* grid, PtrParamNode pn);
 
 //    //!  Deconstructor
 //    virtual ~ExtLBMPDE() {;};
@@ -103,6 +103,9 @@ namespace CoupledField
 
     //! Vector storing factors for adapted pseudo mechanic bulk modulus
     Vector<Double> factor_;
+
+    /** this stores the boundary region id */
+    RegionIdType boundary_;
 
     //extents of computational grid
     UInt n_x,n_y,n_z;

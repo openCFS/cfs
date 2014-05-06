@@ -39,6 +39,7 @@
 								<xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
 									<xsd:complexType>
 										<xsd:attribute name="name" type="xsd:token" use="required" />
+                    <xsd:attribute name="boundary" type="xsd:boolean" use="required" />
 										<xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
 									</xsd:complexType>
 								</xsd:element>

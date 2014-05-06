@@ -58,6 +58,7 @@ INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/out.cmake)
 SET(CFS_FORTRAN_COMPILER_NAME ${FC_ID})
 SET(CFS_FORTRAN_COMPILER_VER "${FC_VERSION}")
 
+
 #-------------------------------------------------------------------------------
 # Check if we are using the GNU C++ compiler
 #-------------------------------------------------------------------------------
@@ -153,6 +154,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
   ENDIF(NOT USE_INTERPOLATION)
 
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
+
 
 #-------------------------------------------------------------------------------
 # Check for Intel C++ compiler
@@ -270,6 +272,13 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
     )
     
 ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
+
+
+# the current TCL lib requires that option
+IF(USE_TCL)
+  SET(CFS_CXX_FLAGS " ${CFS_CXX_FLAGS} -DUSE_INTERP_RESULT -Wno-deprecated-declarations ")
+ENDIF(USE_TCL) 
+
 
 
 #-------------------------------------------------------------------------------
