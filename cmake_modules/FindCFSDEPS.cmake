@@ -131,9 +131,6 @@ IF(USE_CGNS)
   SET(CGNS_GZ "cgnslib_3.1.4-2.tar.gz")
   SET(CGNS_MD5 "e2d57dc5e116ff723ee003eba667b9f9")
 
-  SET(CGNS25_GZ "cgnslib_2.5-5.tar.gz")
-  SET(CGNS25_MD5 "ae2a2e79b99d41c63e5ed5f661f70fd9")
-
   INCLUDE("${CFSDEPS_DIR}/cgns/External_CGNS.cmake")
 ENDIF(USE_CGNS)
 
