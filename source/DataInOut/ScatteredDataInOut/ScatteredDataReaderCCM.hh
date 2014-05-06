@@ -52,7 +52,8 @@ namespace CoupledField
     void ReadSolverInfo( CCMIOError &err, CCMIOID &solution);
     void ReadPost( CCMIOError &err, CCMIOID &solution );
     void ReadScalar( CCMIOError &err, CCMIOID& field, std::vector<int> &mapData,
-                     std::vector<float> &data, bool readingVector = false );
+                     std::vector<float> &data, bool readingVector = false,
+                     const char* shortName = NULL);
     void ReadSets( CCMIOError &err, CCMIOID &problem );
     void CheckError( CCMIOError const &err, char const *str );
     void PrintData( int n, int id, DataType type, void *data,
@@ -67,13 +68,15 @@ namespace CoupledField
     typedef std::map< int, std::vector< double > > VertexMap;
     VertexMap vertices_;
 
-    typedef std::map< int, std::set< int > > Cell2VertexMap;
-    Cell2VertexMap cell2Verts_;
+    typedef std::map< int, std::set< int > > Entity2VertexMap;
+    Entity2VertexMap cell2Verts_;
+    Entity2VertexMap face2Verts_;
 
     typedef std::map< std::string, float > Name2FloatMap;
-    typedef std::map< int, Name2FloatMap > Cell2DataMap;
+    typedef std::map< int, Name2FloatMap > Entity2DataMap;
 
-    Cell2DataMap dMap_;
+    Entity2DataMap dMap_;
+    Entity2DataMap f2dMap_;
 
     std::vector<std::string> componentShortNames_;
   };

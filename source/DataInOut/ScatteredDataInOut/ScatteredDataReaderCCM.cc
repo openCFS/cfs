@@ -39,10 +39,10 @@ namespace CoupledField
 
     csv << std::endl;
 
-    Cell2VertexMap::iterator it, end;
+    Entity2VertexMap::iterator it, end;
     it = cell2Verts_.begin();
     end = cell2Verts_.end();
-    Cell2DataMap::iterator c2dIt = dMap_.begin();
+    Entity2DataMap::iterator e2dIt = dMap_.begin();
 
     // std::cout << "cell2Verts_.size(): " << cell2Verts_.size() << std::endl;
     // std::cout << "dMap_.size(): " << dMap_.size() << std::endl;
@@ -76,18 +76,75 @@ namespace CoupledField
       {
         csv << ",";
 
-        nit = c2dIt->second.begin();
-        nend = c2dIt->second.end();
+        nit = e2dIt->second.begin();
+        nend = e2dIt->second.end();
         for( ; nit != nend; nit++ )
         {
           csv << nit->second << ",";
         }
-        c2dIt++;
+        e2dIt++;
       }
       
       csv << std::endl;
     }
+    csv.close();
+
+    csv.open("facecenters.csv", std::ios_base::binary);
+    csv << "x,y,z";
+
+    if(!f2dMap_.empty()) 
+    {
+      csv << ",";
+      
+      nit = f2dMap_.begin()->second.begin();
+      nend = f2dMap_.begin()->second.end();
+      for( ; nit != nend; nit++ )
+      {
+        csv << nit->first << ",";
+      }
+    }
+
+    csv << std::endl;
     
+    if(!f2dMap_.empty()) 
+    {
+      e2dIt = f2dMap_.begin();
+
+      for( ; e2dIt != f2dMap_.end(); e2dIt++ )
+      {
+        int face = e2dIt->first;        
+        std::set<int>::iterator vit, vend;
+        vit = face2Verts_[face].begin();
+        vend = face2Verts_[face].end();
+        
+        int nVerts = face2Verts_[face].size();
+        double x = 0.0;
+        double y = 0.0;
+        double z = 0.0;
+        
+        for( ; vit != vend; vit++ )
+        {
+          x += vertices_[*vit][0];
+          y += vertices_[*vit][1];
+          z += vertices_[*vit][2];        
+        }
+        
+        x /= nVerts;
+        y /= nVerts;
+        z /= nVerts;
+        
+        csv << x << "," << y << "," << z << ",";
+
+        nit = e2dIt->second.begin();
+        nend = e2dIt->second.end();
+        for( ; nit != nend; nit++ )
+        {
+          csv << nit->second << ",";
+        }
+        
+        csv << std::endl;
+      }
+    }
 
     csv.close();
   }
@@ -102,10 +159,10 @@ namespace CoupledField
     unsigned int numCells = cell2Verts_.size();
     scatteredData.resize(numCells);
     
-    Cell2VertexMap::iterator it, end;
+    Entity2VertexMap::iterator it, end;
     it = cell2Verts_.begin();
     end = cell2Verts_.end();
-    Cell2DataMap::iterator c2dIt = dMap_.begin();
+    Entity2DataMap::iterator e2dIt = dMap_.begin();
 
     // Iterate over all global cells.
     unsigned int i = 0;
@@ -138,11 +195,51 @@ namespace CoupledField
       {
         for(unsigned int j=0, n=componentShortNames_.size(); j<n; j++) 
         {
-          scatteredData[i][3+j] = c2dIt->second[componentShortNames_[j]];
+          scatteredData[i][3+j] = e2dIt->second[componentShortNames_[j]];
         }
-        c2dIt++;
+        e2dIt++;
       }
     }
+
+    // Iterate  over faces  and add  data on  boundary face  centers to  point
+    // cloud.
+    i = scatteredData.size();
+    if(!f2dMap_.empty()) 
+    {
+      scatteredData.resize(i+f2dMap_.size());
+
+      e2dIt = f2dMap_.begin();
+
+      for( ; e2dIt != f2dMap_.end(); e2dIt++, i++ )
+      {
+        int face = e2dIt->first;        
+        std::set<int>::iterator vit, vend;
+        vit = face2Verts_[face].begin();
+        vend = face2Verts_[face].end();
+        
+        int nVerts = face2Verts_[face].size();
+        double x = 0.0;
+        double y = 0.0;
+        double z = 0.0;
+        
+        for( ; vit != vend; vit++ )
+        {
+          x += vertices_[*vit][0];
+          y += vertices_[*vit][1];
+          z += vertices_[*vit][2];        
+        }
+        
+        scatteredData[i][0] = x / nVerts;
+        scatteredData[i][1] = y / nVerts;
+        scatteredData[i][2] = z / nVerts;
+        
+        for(unsigned int j=0, n=componentShortNames_.size(); j<n; j++) 
+        {
+          scatteredData[i][3+j] = e2dIt->second[componentShortNames_[j]];
+        }
+      }
+    }
+
   }
 
   void ScatteredDataReaderCCM::ReadInput()
@@ -356,6 +453,8 @@ namespace CoupledField
       cell2Verts_[cell1].insert(&faces[pos+1], &faces[pos+1+nVerts]);
       cell2Verts_[cell2].insert(&faces[pos+1], &faces[pos+1+nVerts]);
       
+      face2Verts_[mapData[i]].insert(&faces[pos+1], &faces[pos+1+nVerts]);
+
       PrintData(i, mapData[i], kInternalFace, &faces[pos], &faceCells[2 * i]);
       pos += faces[pos] + 1;
       i++;
@@ -403,6 +502,8 @@ namespace CoupledField
         int nVerts = faces[pos];
         cell2Verts_[cell].insert(&faces[pos+1], &faces[pos+1+nVerts]);
 
+        face2Verts_[mapData[j]].insert(&faces[pos+1], &faces[pos+1+nVerts]);
+
         PrintData(j, mapData[j], kBoundaryFace, &faces[pos],
                   &faceCells[j]);
         j++;
@@ -439,29 +540,6 @@ namespace CoupledField
     CCMIOEntityDescription(&err, vertices, NULL, label);
     cout << "label: '" << label << "'" << endl;
     delete [] label;
-
-    std::ofstream csv;
-    
-    csv.open("output.csv", std::ios_base::binary);
-    csv << "id,x,y,z" << std::endl;
-    for (i = 0;  i < nVertices && err == kCCMIONoErr;  ++i)
-    {
-      verts[dims * i    ] *= scale;
-      verts[dims * i + 1] *= scale;
-      verts[dims * i + 2] *= scale;   // This example assumes three
-      // dimensional vertices.
-
-      vertices_[mapData[i]].push_back(verts[dims * i    ]);
-      vertices_[mapData[i]].push_back(verts[dims * i + 1]);
-      vertices_[mapData[i]].push_back(verts[dims * i + 2]);
-
-      csv << mapData[i] << ","
-          << verts[dims * i    ] << ","
-          << verts[dims * i + 1] << ","
-          << verts[dims * i + 2] << std::endl;
-        
-    }
-    csv.close();         
 
     cout << "\t" << nVertices << " " << counter << endl;
     if (nVertices > (unsigned int)kNValues)
@@ -571,12 +649,10 @@ namespace CoupledField
         {
         case kCCMIOScalar:
           {
-            ReadScalar(err, field, mapData, data);
+            ReadScalar(err, field, mapData, data, false, shortName);
 
             for (unsigned int k = 0;  k < data.size();  ++k)
             {   
-              dMap_[mapData[k]][shortName] = data[k];
-                        
               PrintData(k, mapData[i], kScalar, &data[k]); 
             }
           }
@@ -642,7 +718,8 @@ namespace CoupledField
 
   void ScatteredDataReaderCCM::ReadScalar( CCMIOError &err, CCMIOID& field,
                                            vector<int> &mapData, vector<float> &data,
-                                           bool readingVector /* = false */)
+                                           bool readingVector /* = false */,
+                                           const char* shortName /* = NULL */)
   {
     CCMIOSize n;
     CCMIOIndex max;
@@ -664,6 +741,11 @@ namespace CoupledField
                           kCCMIOStart, kCCMIOEnd);
       CCMIOReadMap(&err, mapID, &mapData[0], kCCMIOStart, kCCMIOEnd);
 
+      if (readingVector)
+        data.resize(3 * n);
+      else
+        data.resize(n);
+
       // We are only going to process cell data.  Vertex data would
       // be processed similarly. If your appliation has only one value
       // for boundary data, you would separate the face data into
@@ -671,17 +753,38 @@ namespace CoupledField
       // stores boundary data on each face you could read it in using
       // similar procedures for the cell and vertex data.  Note that
       // the file may not contain all types of data.
-      if (type == kCCMIOCell)
+      switch(type)
       {
-        if (readingVector)
-          data.resize(3 * n);
-        else
-          data.resize(n);
+      case kCCMIOCell:
         // If we want double precision we should use
         // CCMIOReadFieldDatad().
         CCMIOReadFieldDataf(&err, fieldData, &mapID, NULL,
                             &data[0], kCCMIOStart, kCCMIOEnd);
 
+        if(shortName) 
+        {
+          for (unsigned int k = 0, dataLen = data.size();  k < dataLen;  ++k)
+          {   
+            dMap_[mapData[k]][shortName] = data[k];                        
+          }
+        }
+        
+        break;
+      case kCCMIOFace:
+        CCMIOReadFieldDataf(&err, fieldData, &mapID, NULL,
+                            &data[0], kCCMIOStart, kCCMIOEnd);
+
+        if(shortName) 
+        {
+          for (unsigned int k = 0, dataLen = data.size();  k < dataLen;  ++k)
+          {   
+            f2dMap_[mapData[k]][shortName] = data[k];                        
+          }
+        }
+
+        break;
+      default:
+        // Do nothing
         break;
       }
 
@@ -767,7 +870,8 @@ namespace CoupledField
     EXCEPTION(str << " (error " << err << ")");
   }
 
-  void ScatteredDataReaderCCM::PrintData( int n, int id, DataType type, void *data, void *data2 /*=NULL*/ )
+  void ScatteredDataReaderCCM::PrintData( int n, int id, DataType type,
+                                          void *data, void *data2 /*=NULL*/ )
   {
     if(verbose_) 
     {

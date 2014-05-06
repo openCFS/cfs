@@ -8,7 +8,7 @@ using namespace std;
 
 int main( int argc, char *argv[])
 {
-  CoupledField::ScatteredDataReaderCCM SCRCCM(argv[1]);
+  CoupledField::ScatteredDataReaderCCM SCRCCM(argv[1], true);
 
   try 
   {
