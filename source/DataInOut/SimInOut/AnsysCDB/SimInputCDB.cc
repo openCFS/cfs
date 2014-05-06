@@ -2112,7 +2112,12 @@ namespace CoupledField {
   {
     std::string filename=fn.c_str();
 
+#if (defined(_MSC_VER))
     if (fopen_s( &inStream_, fn.c_str(), "rb" ) != 0 ) {
+#else
+    inStream_ = fopen( fn.c_str(), "rb" );
+    if ( inStream_ == 0 ) {
+#endif
       EXCEPTION("Can't open " << filename);
     }
 
