@@ -518,9 +518,10 @@ namespace CoupledField
   {
     int dims = 1;
     unsigned int i, nVertices, size;
+    unsigned int kNVals = kNValues;    
     float scale;
     vector<int> mapData;
-    vector<float> verts;
+    vector<double> verts;
     CCMIOID mapID;
 
     // Read the vertices.  This involves reading both the vertex data and
@@ -531,7 +532,7 @@ namespace CoupledField
     CCMIOEntitySize(&err, vertices, &nVertices, NULL);
     mapData.resize(nVertices);
     verts.resize(nVertices*3);
-    CCMIOReadVerticesf(&err, vertices, &dims, &scale, &mapID, &verts[0],
+    CCMIOReadVerticesd(&err, vertices, &dims, &scale, &mapID, &verts[0],
                        offset, offset + nVertices);
     CCMIOReadMap(&err, mapID, &mapData[0], offset, offset + nVertices);
 
@@ -542,8 +543,6 @@ namespace CoupledField
     delete [] label;
 
     cout << "\t" << nVertices << " " << counter << endl;
-    if (nVertices > (unsigned int)kNValues)
-      nVertices = kNValues;
     for (i = 0;  i < nVertices && err == kCCMIONoErr;  ++i)
     {
       verts[dims * i    ] *= scale;
@@ -554,9 +553,12 @@ namespace CoupledField
       vertices_[mapData[i]].push_back(verts[dims * i    ]);
       vertices_[mapData[i]].push_back(verts[dims * i + 1]);
       vertices_[mapData[i]].push_back(verts[dims * i + 2]);
-        
+
+      if(i >= kNVals) continue;
+      
       PrintData(i, mapData[i], kVertex, &verts[dims * i]);
     }
+
     cout << "\t\t..." << endl;
     CheckError(err, "Error reading vertices");
 
@@ -596,7 +598,7 @@ namespace CoupledField
     CCMIOID field, phase;
     CCMIODimensionality dims;
     vector<int> mapData;
-    vector<float> data;
+    vector<double> data;
 
     oldFile = (CCMIONextEntity(NULL, solution, kCCMIOFieldPhase, &h, &phase)
                != kCCMIONoErr);
@@ -659,7 +661,7 @@ namespace CoupledField
           break;
         case kCCMIOVector:
           {
-            vector<float> u, v, w;
+            vector<double> u, v, w;
             CCMIOID scalar;
             CCMIOReadMultiDimensionalFieldData(&err, field,
                                                kCCMIOVectorX, &scalar);
@@ -717,7 +719,7 @@ namespace CoupledField
   }
 
   void ScatteredDataReaderCCM::ReadScalar( CCMIOError &err, CCMIOID& field,
-                                           vector<int> &mapData, vector<float> &data,
+                                           vector<int> &mapData, vector<double> &data,
                                            bool readingVector /* = false */,
                                            const char* shortName /* = NULL */)
   {
@@ -737,7 +739,7 @@ namespace CoupledField
       // make the array that size.
       CCMIOEntitySize(&err, fieldData, &n, &max);
       mapData.resize(n);
-      CCMIOReadFieldDataf(&err, fieldData, &mapID, &type, NULL,
+      CCMIOReadFieldDatad(&err, fieldData, &mapID, &type, NULL,
                           kCCMIOStart, kCCMIOEnd);
       CCMIOReadMap(&err, mapID, &mapData[0], kCCMIOStart, kCCMIOEnd);
 
@@ -757,9 +759,11 @@ namespace CoupledField
       {
       case kCCMIOCell:
         // If we want double precision we should use
-        // CCMIOReadFieldDatad().
-        CCMIOReadFieldDataf(&err, fieldData, &mapID, NULL,
+        CCMIOReadFieldDatad(&err, fieldData, &mapID, NULL,
                             &data[0], kCCMIOStart, kCCMIOEnd);
+
+        //CCMIOReadFieldDataf(&err, fieldData, &mapID, NULL,
+        //                    &data[0], kCCMIOStart, kCCMIOEnd);
 
         if(shortName) 
         {
@@ -771,7 +775,7 @@ namespace CoupledField
         
         break;
       case kCCMIOFace:
-        CCMIOReadFieldDataf(&err, fieldData, &mapID, NULL,
+        CCMIOReadFieldDatad(&err, fieldData, &mapID, NULL,
                             &data[0], kCCMIOStart, kCCMIOEnd);
 
         if(shortName) 

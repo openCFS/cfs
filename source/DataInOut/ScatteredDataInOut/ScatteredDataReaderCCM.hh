@@ -52,7 +52,7 @@ namespace CoupledField
     void ReadSolverInfo( CCMIOError &err, CCMIOID &solution);
     void ReadPost( CCMIOError &err, CCMIOID &solution );
     void ReadScalar( CCMIOError &err, CCMIOID& field, std::vector<int> &mapData,
-                     std::vector<float> &data, bool readingVector = false,
+                     std::vector<double> &data, bool readingVector = false,
                      const char* shortName = NULL);
     void ReadSets( CCMIOError &err, CCMIOID &problem );
     void CheckError( CCMIOError const &err, char const *str );
@@ -72,7 +72,7 @@ namespace CoupledField
     Entity2VertexMap cell2Verts_;
     Entity2VertexMap face2Verts_;
 
-    typedef std::map< std::string, float > Name2FloatMap;
+    typedef std::map< std::string, double > Name2FloatMap;
     typedef std::map< int, Name2FloatMap > Entity2DataMap;
 
     Entity2DataMap dMap_;
@@ -83,4 +83,4 @@ namespace CoupledField
   
 }
 
-#endif  
+#endif
