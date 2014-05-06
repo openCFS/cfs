@@ -221,20 +221,16 @@ namespace CoupledField {
     void InterpolateVector(Vector<Double> globPoint, Vector<T> & vec);
 
     void Read();
+    void GetQuantityData();
+    void DumpData();
     
+    std::vector< std::vector<double> > coordinates_;
     std::vector< std::vector<double> > scatteredData_;
 
-    std::string fileName_;
+    std::string qid_;
           
-    std::map<UInt, UInt> dof2CoordColumn_;
-    std::map<UInt, UInt> dof2ValueColumn_;
-
     // Scale factor for values.
     Double factor_;
-
-    //! Format of input file. Comma separated value files (csv) and STAR-CCM+
-    //! binary .ccm files (ccm) are supported.
-    std::string format_;
 
     //! Type of interpolation algorithm.
     InterpolationAlgorithm interpolAlgo_;
@@ -248,6 +244,8 @@ namespace CoupledField {
     //! Library used to find the k nearest neighbors of a point.
     KNNLibary knnLib_;
 
+    PtrParamNode quantityNode_;
+    
 #ifdef USE_CGAL
     boost::shared_ptr<Tree> searchTree_;
 

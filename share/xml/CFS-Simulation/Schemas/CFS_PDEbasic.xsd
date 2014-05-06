@@ -276,93 +276,16 @@
   <xsd:complexType name="DT_ScatteredData">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">  
-        <xsd:sequence>
-          <xsd:element name="fileName" minOccurs="1" maxOccurs="1" type="xsd:token">
-            <xsd:annotation>
-              <xsd:documentation xml:lang="en">
-                Full path of file containing the scattered data. Currently only
-                CSV files are supported.
-              </xsd:documentation>
-            </xsd:annotation>
-          </xsd:element>
-          <xsd:element name="coordinates" minOccurs="1" maxOccurs="1">
-            <xsd:annotation>
-              <xsd:documentation xml:lang="en">
-                The columns of the single degrees of freedom (dofs) for the point
-                coordinates can be specified component-wise.
-              </xsd:documentation>
-            </xsd:annotation>
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
-                  <xsd:complexType>
-                    <xsd:attribute name="dof" type="xsd:token" use="required"/>
-                    <xsd:attribute name="col" type="xsd:nonNegativeInteger" use="required"/>
-                  </xsd:complexType>  
-                </xsd:element>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="values" minOccurs="1" maxOccurs="1">
-            <xsd:annotation>
-              <xsd:documentation xml:lang="en">
-                The columns of the single degrees of freedom (dofs) for the values
-                can be specified component-wise.
-              </xsd:documentation>
-            </xsd:annotation>
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
-                  <xsd:complexType>
-                    <xsd:attribute name="dof" type="xsd:token" use="required"/>
-                    <xsd:attribute name="col" type="xsd:nonNegativeInteger" use="required"/>
-                  </xsd:complexType>  
-                </xsd:element>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="factor" minOccurs="0" maxOccurs="1" type="xsd:double" default="1.0">
-            <xsd:annotation>
-              <xsd:documentation xml:lang="en">
-                A scaling factor for all components of the values.
-              </xsd:documentation>
-            </xsd:annotation>
-          </xsd:element>
-        </xsd:sequence>
-        <xsd:attribute name="quantity" use="required"/>
-        <xsd:attribute name="format" use="optional" default="csv"/>
-        <xsd:attribute name="interpolAlgo" use="optional" default="shepard">
+        <xsd:attribute name="quantityId" use="required">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
-              Interpolation algorithm for scattered data points. May be one of shepard, nearest-neighbor.
-            </xsd:documentation>
-          </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="numNeighbors" use="optional" type="xsd:unsignedInt" default="20">
-          <xsd:annotation>
-            <xsd:documentation xml:lang="en">
-              Number of scattered data points to include in interpolation.
-            </xsd:documentation>
-          </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="p" use="optional" type="xsd:double" default="2.0">
-          <xsd:annotation>
-            <xsd:documentation xml:lang="en">
-              Exponent for calculation of weights.
-            </xsd:documentation>
-          </xsd:annotation>
-        </xsd:attribute>        
-        <xsd:attribute name="knnLib" use="optional" default="cgal">
-          <xsd:annotation>
-            <xsd:documentation xml:lang="en">
-              Library for k-nearest-neighbor search. May be one of cgal or flann.
+              Id of the input quantity in the scattered data input tag.              
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>  
-  
 
   <!-- ******************************************************************* -->
   <!--   Definition of standard types for BCs and RHS values               -->

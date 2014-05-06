@@ -26,6 +26,8 @@
           </xsd:documentation>
         </xsd:annotation>        
       </xsd:element>
+      <xsd:element name="scatteredData" type="DT_InputScatteredData"
+        minOccurs="0" maxOccurs="1"/>
       <xsd:element name="output" type="DT_OutputList" minOccurs="0" maxOccurs="1">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
@@ -494,7 +496,258 @@
     </xsd:complexContent>
   </xsd:complexType>
   
+  <!-- ******************************************************************** -->
+  <!--   Definition of scattered data input type -->
+  <!-- ******************************************************************** -->
 
+  <xsd:group name="ScatteredDataGroup">
+    <xsd:choice>
+      <xsd:element name="csv" type="DT_ScatteredDataCSV"/>
+      <xsd:element name="ccm" type="DT_ScatteredDataCCM"/>
+    </xsd:choice>
+  </xsd:group>
+  
+  <!-- Data type for specification of input file format -->
+  <xsd:complexType name="DT_InputScatteredData">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="de">
+        Scattered data is defined with respect to point clouds. No grid
+        is associated with scattered data.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:sequence>
+      <xsd:group ref="ScatteredDataGroup" minOccurs="1" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic scattered input type -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ScatteredDataBasic">
+    <xsd:attribute name="fileName"
+      use="required"
+      type="xsd:token">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Full path of file containing the scattered data.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="id"
+      use="required"
+      type="xsd:token">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Unique id for input reader which reads from the given file.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+  </xsd:complexType>  
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic quantity type for scattered data -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ScatteredQuantityBasic"  abstract="true">
+    <xsd:sequence>
+      <xsd:element name="bbox" maxOccurs="1" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Only data points contained in this bounding box are considered
+            for the database inside the CoefFunctionScatteredData.
+          </xsd:documentation>
+        </xsd:annotation>        
+        <xsd:complexType>
+          <xsd:attribute name="xmin" type="xsd:double" use="required"/>
+          <xsd:attribute name="ymin" type="xsd:double" use="required"/>
+          <xsd:attribute name="zmin" type="xsd:double" use="required"/>
+          <xsd:attribute name="xmax" type="xsd:double" use="required"/>
+          <xsd:attribute name="ymax" type="xsd:double" use="required"/>
+          <xsd:attribute name="zmax" type="xsd:double" use="required"/>          
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="dump" maxOccurs="1" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Dump point cloud data contained in the CoefFunctionScatteredData
+            to a file.
+          </xsd:documentation>
+        </xsd:annotation>        
+        <xsd:complexType>
+          <xsd:attribute name="fileName" type="xsd:token" use="required"/>
+          <xsd:attribute name="format" type="xsd:token" use="optional" default="csv"/>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+    <xsd:attribute name="name" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Name of this quantity
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="id"
+      use="required"
+      type="xsd:token">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Id for this scattered data quantity.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>    
+    <xsd:attribute name="factor" type="xsd:double" default="1.0">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          A scaling factor for all components of the values.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="interpolAlgo" use="optional" default="shepard">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Interpolation algorithm for scattered data points. May be one of shepard, nearest-neighbor.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="numNeighbors" use="optional" type="xsd:unsignedInt" default="20">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Number of scattered data points to include in interpolation.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="p" use="optional" type="xsd:double" default="2.0">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Exponent for calculation of weights.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>        
+    <xsd:attribute name="knnLib" use="optional" default="cgal">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Library for k-nearest-neighbor search. May be one of cgal or flann.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>    
+  </xsd:complexType>  
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of scattered quantity for .csv files -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ScatteredQuantityCSV">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        The columns of the single degrees of freedom (dofs) for the values
+        can be specified component-wise.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexContent>
+      <xsd:extension base="DT_ScatteredQuantityBasic">
+        <xsd:sequence>
+          <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="dof" type="xsd:token" use="required"/>
+              <xsd:attribute name="col" type="xsd:nonNegativeInteger" use="required"/>
+            </xsd:complexType>  
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of input tag for .csv files -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ScatteredDataCSV">
+    <xsd:complexContent>
+      <xsd:extension base="DT_ScatteredDataBasic">
+        <xsd:sequence>
+          <xsd:element name="coordinates" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                The columns of the single degrees of freedom (dofs) for the point
+                coordinates can be specified component-wise.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="dof" type="xsd:token" use="required"/>
+                    <xsd:attribute name="col" type="xsd:nonNegativeInteger" use="required"/>
+                  </xsd:complexType>  
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity" minOccurs="1" maxOccurs="1" type="DT_ScatteredQuantityCSV"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>  
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of scattered quantity for .ccm files -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ScatteredQuantityCCM">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        The field short names of the single degrees of freedom (dofs) for the values
+        can be specified component-wise. The default values for the dofs x, y, z are SU, SV and SW.
+        The short names of the fields can be found in the .ccm files under e.g.
+        /FieldSets/FieldSet-1/Phase-1/Fields/Velocity_0/ShortName. The cgnsview executable can be used
+        to open the ADF tree inside the .ccm file.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexContent>
+      <xsd:extension base="DT_ScatteredQuantityBasic">
+        <xsd:sequence>
+          <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="dof" type="xsd:token" use="required"/>
+              <xsd:attribute name="shortName" type="xsd:token" use="required"/>
+            </xsd:complexType>  
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of input tag for STAR-CCM+ .ccm files -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ScatteredDataCCM">
+    <xsd:complexContent>
+      <xsd:extension base="DT_ScatteredDataBasic">
+        <xsd:sequence>
+          <xsd:element name="quantity" minOccurs="1" maxOccurs="1" type="DT_ScatteredQuantityCCM">
+          </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="dump" type="xsd:boolean" use="optional" default="false">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              Dump point cloud data to a CSV file. 
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="cellCenters" type="xsd:boolean" use="optional" default="true">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              Read data from cell centers. 
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="faceCenters" type="xsd:boolean" use="optional" default="true">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              Read data from face centers. 
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>  
+  
   <xsd:group name="OutputGroup">
     <xsd:choice>
       <xsd:element name="gmsh" type="DT_OutputGMsh"

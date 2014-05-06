@@ -9,19 +9,14 @@
 #include "CoefFunctionScatteredData.hh"
 #include "FeBasis/FeSpace.hh"
 
-#include "def_use_ccmio.hh"
-#include "DataInOut/ScatteredDataInOut/ScatteredDataReaderCSV.hh"
-#ifdef USE_CCMIO
-#include "DataInOut/ScatteredDataInOut/ScatteredDataReaderCCM.hh"
-#endif
-
+#include "DataInOut/ScatteredDataInOut/ScatteredDataReader.hh"
 
 namespace CoupledField{
 
   template<typename T, UInt DOFS>
   CoefFunctionScatteredData<T,DOFS>::CoefFunctionScatteredData(PtrParamNode& scatteredDataNode)
     : CoefFunction(),
-      fileName_(""),
+      qid_("default"),
       factor_(1.0),
       interpolAlgo_(SHEPARD),
       numNeighbors_(20),
@@ -31,33 +26,61 @@ namespace CoupledField{
     dimType_ = VECTOR;
     dependType_ = CoefFunction::GENERAL;
 
-    fileName_ = scatteredDataNode->Get("fileName")->As<std::string>();
+    // Obtain id of quantity this CoefFunctionScatteredData should handle.
+    qid_ = scatteredDataNode->Get("quantityId")->As<std::string>();
 
-    format_ = scatteredDataNode->Get("format")->As<std::string>();
+    // Obtain base node for all scattered data inputs.
+    PtrParamNode scatteredInputNode = scatteredDataNode->GetRoot()
+      ->Get("fileFormats")->Get("scatteredData");
 
-    if(scatteredDataNode->Has("interpolAlgo")) 
+    // Create all listed scattered data input readers.
+    ScatteredDataReader::CreateReaders(scatteredInputNode);
+
+    // Now let's register our desired quantity with the corresponding reader.
+    ScatteredDataReader::RegisterQuantity(qid_);
+
+    // Get hold of quantity node for obtaining our parameters.
+    ParamNodeList scatteredNodes;
+    scatteredNodes = scatteredInputNode->GetChildren();
+    for(UInt i=0, n=scatteredNodes.GetSize(); i<n; i++) {
+      std::string id = scatteredNodes[i]->Get("id")->As<std::string>();
+
+      ParamNodeList quantityNodes;
+      quantityNodes = scatteredNodes[i]->GetList("quantity");
+      // Let's first check if we have unique ids.
+      for(UInt j=0, m=quantityNodes.GetSize(); j<m; j++) {
+        std::string qid = quantityNodes[j]->Get("id")->As<std::string>();
+
+        if(qid == qid_)
+        {
+          quantityNode_ = quantityNodes[j];
+        }
+      }
+    }
+
+    if(quantityNode_->Has("interpolAlgo")) 
     {
       std::string interpolAlgo;
-      interpolAlgo = scatteredDataNode->Get("interpolAlgo")->As<std::string>();
+      interpolAlgo = quantityNode_->Get("interpolAlgo")->As<std::string>();
       if(interpolAlgo == "nearest-neighbor") 
       {
         interpolAlgo_ = NEAREST_NEIGHBOR;
       }
     }    
 
-    if(scatteredDataNode->Has("knnLib")) 
+    if(quantityNode_->Has("knnLib")) 
     {
       std::string knnLib;
-      knnLib = scatteredDataNode->Get("knnLib")->As<std::string>();
+      knnLib = quantityNode_->Get("knnLib")->As<std::string>();
       if(knnLib == "flann") 
       {
         knnLib_ = FLANN;
       } 
     }    
 
-    if(scatteredDataNode->Has("numNeighbors")) 
+    if(quantityNode_->Has("numNeighbors")) 
     {
-      numNeighbors_ = scatteredDataNode->Get("numNeighbors")->As<UInt>();
+      numNeighbors_ = quantityNode_->Get("numNeighbors")->As<UInt>();
       
       if(numNeighbors_ < 2) 
       {
@@ -66,93 +89,118 @@ namespace CoupledField{
       }
     }
 
-    if(scatteredDataNode->Has("p")) 
+    if(quantityNode_->Has("p")) 
     {
-      p_ = scatteredDataNode->Get("p")->As<Double>();
+      p_ = quantityNode_->Get("p")->As<Double>();
     }
     
-    if(format_ == "csv") 
+    if(quantityNode_->Has("factor")) 
     {
-      ParamNodeList coordList;
-      coordList = scatteredDataNode->Get("coordinates")->GetList("comp");
-      for(UInt i=0, n=coordList.GetSize(); i<n; i++) {
-        std::string dof = coordList[i]->Get("dof")->As<std::string>();
-        
-        if( dof == "x" ) {
-          dof2CoordColumn_[0] = coordList[i]->Get("col")->As<UInt>();
-        }
-        if( dof == "y" ) {
-          dof2CoordColumn_[1] = coordList[i]->Get("col")->As<UInt>();
-        }
-        if( dof == "z" ) {
-          dof2CoordColumn_[2] = coordList[i]->Get("col")->As<UInt>();
-        }
-      }
-      
-      ParamNodeList valueList;
-      valueList = scatteredDataNode->Get("values")->GetList("comp");
-      for(UInt i=0, n=valueList.GetSize(); i<n; i++) {
-        std::string dof = valueList[i]->Get("dof")->As<std::string>();
-        
-        if( dof == "x" ) {
-          dof2ValueColumn_[0] = valueList[i]->Get("col")->As<UInt>();
-        }
-        if( dof == "y" ) {
-          dof2ValueColumn_[1] = valueList[i]->Get("col")->As<UInt>();
-        }
-        if( dof == "z" ) {
-          dof2ValueColumn_[2] = valueList[i]->Get("col")->As<UInt>();
-        }      
-      }
-    } else 
-    {
-      dof2CoordColumn_[0] = 0;
-      dof2CoordColumn_[1] = 1;
-      dof2CoordColumn_[2] = 2;
-      
-      dof2ValueColumn_[0] = 3;
-      dof2ValueColumn_[1] = 4;
-      dof2ValueColumn_[2] = 5;
-    }    
-    
-
-    if(scatteredDataNode->Has("factor")) 
-    {
-      factor_ = scatteredDataNode->Get("factor")->As<Double>();
+      factor_ = quantityNode_->Get("factor")->As<Double>();
     }
   }
   
   template<typename T, UInt DOFS>
+  void CoefFunctionScatteredData<T,DOFS>::GetQuantityData() 
+  {
+    ScatteredDataReader::Read();
+
+    if(quantityNode_->Has("bbox")) 
+    {
+      PtrParamNode bboxNode = quantityNode_->Get("bbox");
+
+      boost::array<Double,6> bbox;
+      bbox[0] = bboxNode->Get("xmin")->As<Double>();
+      bbox[1] = bboxNode->Get("ymin")->As<Double>();
+      bbox[2] = bboxNode->Get("zmin")->As<Double>();
+      bbox[3] = bboxNode->Get("xmax")->As<Double>();
+      bbox[4] = bboxNode->Get("ymax")->As<Double>();
+      bbox[5] = bboxNode->Get("zmax")->As<Double>();
+
+      std::vector< std::vector<double> > coords;
+      std::vector< std::vector<double> > data;
+      ScatteredDataReader::GetQuantity(qid_, coords, data);
+
+      UInt n = data.size();
+
+      for(UInt i=0; i<n; i++)
+      {
+        Double& x = coords[i][0];
+        Double& y = coords[i][1];
+        Double& z = coords[i][2];
+        
+        if( x >= bbox[0] && x <= bbox[3] &&
+            y >= bbox[1] && x <= bbox[4] &&
+            z >= bbox[2] && z <= bbox[5]) 
+        {
+          coordinates_.push_back(coords[i]);
+          scatteredData_.push_back(data[i]);
+        }      
+      }
+    }
+    else
+    {
+      ScatteredDataReader::GetQuantity(qid_, coordinates_, scatteredData_);
+    }
+  }
+
+  template<typename T, UInt DOFS>
+  void CoefFunctionScatteredData<T,DOFS>::DumpData() 
+  {
+    if(!quantityNode_->Has("dump")) 
+    {
+      return;
+    }
+    
+    PtrParamNode dumpNode = quantityNode_->Get("dump");
+    std::string fileName = dumpNode->Get("fileName")->As<std::string>();
+    std::string format = "csv";
+    if(dumpNode->Has("format")) 
+    {
+      format = dumpNode->Get("format")->As<std::string>();
+    }
+    
+    std::ofstream csv(fileName.c_str(), std::ios_base::binary);
+    if(!csv) 
+    {
+      EXCEPTION("Could not open scattered data dump file '" << fileName << "'.");
+    }
+    
+    // Write title line to CSV
+    UInt m=scatteredData_[0].size();
+    csv << "x,y,z";
+    for(UInt i=0; i<m; i++)
+    {
+      csv << "," << qid_ << ":" << i;
+    }    
+    csv << std::endl;
+
+    // Write actual data to CSV
+    UInt n = scatteredData_.size();
+    for(UInt i=0; i<n; i++)
+    {
+      Double& x = coordinates_[i][0];
+      Double& y = coordinates_[i][1];
+      Double& z = coordinates_[i][2];
+      
+      csv << x << ","
+          << y << ","
+          << z;
+      for(UInt j=0; j<m; j++)
+      {
+        csv << "," << scatteredData_[i][j] * factor_;
+      }    
+      csv << std::endl;
+    }
+    csv.close();
+  }
+
+  template<typename T, UInt DOFS>
   void CoefFunctionScatteredData<T,DOFS>::Read() 
   {
-    if(!boost::filesystem::exists(fileName_))
-    {
-      EXCEPTION("Scattered data file '" << fileName_ << "' does not exist!")
-    }
+    GetQuantityData();
+    DumpData();
 
-    ScatteredDataReaderPtr sdataReader;
-
-    if(format_ == "csv") 
-    {
-      ScatteredDataReaderCSV* SCRCSV = new ScatteredDataReaderCSV(fileName_);
-      SCRCSV->SetNumSkipLines(1);
-      sdataReader.reset(SCRCSV);
-    } else if (format_ == "ccm") {
-#ifdef USE_CCMIO
-      ScatteredDataReaderCCM* SCRCCM = new ScatteredDataReaderCCM(fileName_);
-      std::vector<std::string> componentShortNames(3);
-      componentShortNames[0] = "SU";
-      componentShortNames[1] = "SV";
-      componentShortNames[2] = "SW";
-      SCRCCM->SetComponentShortNames(componentShortNames);
-      sdataReader.reset(SCRCCM);
-#else
-      EXCEPTION("STAR-CCM+ files not supported! Compile with USE_CCMIO=ON.");
-#endif
-    } else {
-      EXCEPTION("No format for scattered data file specified!");
-    }      
-    sdataReader->Read(scatteredData_);
     UInt n = scatteredData_.size();
 
     switch(knnLib_)
@@ -164,25 +212,12 @@ namespace CoupledField{
 
       for(UInt i=0; i<n; i++)
       {
-        switch(dof2CoordColumn_.size())
-        {
-        case 2:
-          points.push_back(Point(scatteredData_[i][dof2CoordColumn_[0]],
-                                 scatteredData_[i][dof2CoordColumn_[1]],
-                                 0.0,
-                                 scatteredData_[i][dof2ValueColumn_[0]] * factor_,
-                                 scatteredData_[i][dof2ValueColumn_[1]] * factor_,
-                                 0.0));
-          break;        
-        case 3:
-          points.push_back(Point(scatteredData_[i][dof2CoordColumn_[0]],
-                                 scatteredData_[i][dof2CoordColumn_[1]],
-                                 scatteredData_[i][dof2CoordColumn_[2]],
-                                 scatteredData_[i][dof2ValueColumn_[0]] * factor_,
-                                 scatteredData_[i][dof2ValueColumn_[1]] * factor_,
-                                 scatteredData_[i][dof2ValueColumn_[2]] * factor_));
-          break;        
-        }    
+        points.push_back(Point(coordinates_[i][0],
+                               coordinates_[i][1],
+                               coordinates_[i][2],
+                               scatteredData_[i][0] * factor_,
+                               scatteredData_[i][1] * factor_,
+                               scatteredData_[i][2] * factor_));
       }
 
       searchTree_.reset(new Tree(points.begin(), points.end()));
@@ -201,23 +236,14 @@ namespace CoupledField{
       {
         UInt idx = i*3;
         
-        switch(dof2CoordColumn_.size())
-        {
-        case 2:
-          dPtr[idx+0] = scatteredData_[i][dof2CoordColumn_[0]];
-          dPtr[idx+1] = scatteredData_[i][dof2CoordColumn_[1]];
-          dPtr[idx+2] = 0.0;        
-          break;        
-        case 3:
-          dPtr[idx+0] = scatteredData_[i][dof2CoordColumn_[0]];
-          dPtr[idx+1] = scatteredData_[i][dof2CoordColumn_[1]];
-          dPtr[idx+2] = scatteredData_[i][dof2CoordColumn_[2]];
-          break;        
-        }    
+        dPtr[idx+0] = coordinates_[i][0];
+        dPtr[idx+1] = coordinates_[i][1];
+        dPtr[idx+2] = coordinates_[i][2];
       }
       
       // construct an randomized kd-tree index using a single kd-tree
-      index_.reset(new flann::Index<flann::L2<Double> >(*dataset_.get(), flann::KDTreeSingleIndexParams(12)));
+      index_.reset(new flann::Index<flann::L2<Double> >(*dataset_.get(),
+                                                        flann::KDTreeSingleIndexParams(12)));
       index_->buildIndex();
       }
 #else
@@ -225,6 +251,8 @@ namespace CoupledField{
 #endif
       break;
     default:
+      EXCEPTION("Unknown k-nearest neighbors library '" << knnLib_ 
+                << "' specified for quantity id '" << qid_ << "'.")
       break;
     }
 
@@ -511,8 +539,8 @@ namespace CoupledField{
 
         for(UInt d=0; d<DOFS; d++) 
         {
-          vectors[j][d] = scatteredData_[idx][dof2ValueColumn_[d]] * factor_;
-          neighbors[j][d] = scatteredData_[idx][dof2CoordColumn_[d]];
+          vectors[j][d] = scatteredData_[idx][d] * factor_;
+          neighbors[j][d] = coordinates_[idx][d];
         }
       }
     }

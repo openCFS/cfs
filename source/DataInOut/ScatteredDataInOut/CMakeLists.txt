@@ -1,4 +1,5 @@
 SET(SCATTEREDDATAINOUT_SRCS
+  ScatteredDataReader.cc
   ScatteredDataReaderCSV.cc
 )
 
@@ -25,11 +26,3 @@ ADD_LIBRARY(scattereddatainout STATIC ${SCATTEREDDATAINOUT_SRCS})
 TARGET_LINK_LIBRARIES(scattereddatainout
   ${TARGET_LL}
   )
-
-IF(USE_CCMIO)
-  ADD_EXECUTABLE(ScatteredDataReaderCCMDemo ScatteredDataReaderCCMDemo.cc)
-  TARGET_LINK_LIBRARIES(ScatteredDataReaderCCMDemo 
-    scattereddatainout
-    ${TARGET_LL}
-    cfsgeneral)
-ENDIF()
