@@ -15,7 +15,6 @@
 
 #include "SimInputCDB.hh"
 
-// TODO: - Named Elements und Nodes ins Gitter schreiben
 // TODO: - Workbench FE Modeler generiert Gitter ohne Oberflächenelemente nur node Components. In diesem Fall müssen die Volumenelemente in eine extra Dummyregion gesteckt werden.
 // TODO: - Herausfinden, wie man Oberflächenelemente erzeugen kann.
 
@@ -36,6 +35,16 @@ namespace CoupledField {
     maxNumElemNodes_(0)
   {
     capabilities_.insert(SimInput::MESH);
+
+    if(myParam_->Has("strict")) 
+    {
+      strict_ = myParam_->Get("strict")->As<bool>();
+    }
+    
+    if(myParam_->Has("degenerate")) 
+    {
+      degen_ = myParam_->Get("degenerate")->As<bool>();
+    }
   }
 
 

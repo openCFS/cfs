@@ -83,6 +83,7 @@
       <xsd:element name="hdf5" type="DT_InputHDF5"/>      
       <xsd:element name="cgns" type="DT_InputCGNS"/>
       <xsd:element name="unv" type="DT_InputUNV"/>
+      <xsd:element name="cdb" type="DT_InputCDB"/>
       <xsd:element name="internal" type="DT_InputInternal"/>
     </xsd:choice>
   </xsd:group>
@@ -313,6 +314,11 @@
 
   <!-- Data type for specification of input file format -->
   <xsd:complexType name="DT_InputGMV">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Read (G)eneral (M)esh (V)iewer files (http://www.generalmeshviewer.com)
+      </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
       </xsd:extension>
@@ -325,6 +331,13 @@
 
   <!-- Data type for specification of input file format -->
   <xsd:complexType name="DT_InputHDF5">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Read the native CFS++ HDF5 file format. This format has the most complete
+        set of supported features (mesh, data, restart info, etc.). HDF5 files
+        can be generated using the ANSYS mkhdf5 extension, cplreader and cfstool.
+      </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
         <xsd:attribute name="generateRegionNodes"
@@ -381,6 +394,13 @@
 
   <!-- Data type for specification of input file format -->
   <xsd:complexType name="DT_InputUNV">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="de">
+        Read Ideas universal files. These can e.g. be generated using
+        Siemens NX PLM, GiD (File -&gt; Export -&gt; Using Template .bas -&gt; UNV)
+        or Gmsh.
+      </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
         <xsd:attribute name="fileName"
@@ -407,6 +427,54 @@
       <xsd:enumeration value="zero"/>
     </xsd:restriction>
   </xsd:simpleType>  
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of ANSYS .cdb/.inp data input type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Data type for specification of input file format -->
+  <xsd:complexType name="DT_InputCDB">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="de">
+        The CFS++ .cdb/.inp reader can read mesh files generated with the
+        ANSYS CDWRITE command (e.g. allsel\n cdwrite, db, 'file', 'cdb').
+        The corresponding read command in ANSYS would therefore be CDREAD.
+        ANSYS .cdb files can also be written using the Workbench interface.
+        Also .inp files containing meshes may be read if they are not too
+        general. The corresponding APDL command would be /INPUT.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexContent>
+      <xsd:extension base="DT_InputBasic">
+        <xsd:attribute name="fileName"
+          type="xsd:token"
+          default="default"/>
+        <xsd:attribute name="strict"
+          type="xsd:boolean"
+          default="true">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              If strict is true, no gaps in the node number list and the element
+              number list are tolerated. Therefore, a nummrg may be in order before
+              writing out the .cdb or .inp file.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="degenerate"
+          type="xsd:boolean"
+          default="false">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              ANSYS usually writes wedges, pyras and tets as degenerated versions
+              of hexas. If degenerate is false, CFS++ will convert the degenerated
+              hexas to the proper type. If degenerate is true, CFS++ will just add
+              the degenerated hexa connectivity to the grid.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <!-- ******************************************************************** -->
   <!--   Definition of Internal data input type -->
@@ -441,8 +509,6 @@
 		   minOccurs="0" maxOccurs="1"/>
       <xsd:element name="hdf5" type="DT_OutputHDF5"
 		   minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="xdmf" type="DT_OutputXDMF"
-        minOccurs="0" maxOccurs="1"/>
       <xsd:element name="rst" type="DT_OutputRST"
 		   minOccurs="0" maxOccurs="1"/>
       <xsd:element name="cgns" type="DT_OutputCGNS"
@@ -553,15 +619,6 @@
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
 
-  <!-- ******************************************************************** -->
-  <!--   Definition of data type for XDMF output -->
-  <!-- ******************************************************************** -->
-  <xsd:complexType name="DT_OutputXDMF">
-    <xsd:attribute name="directory" type="xsd:string" default="results_hdf5"/>
-    <xsd:attribute name="id" type="xsd:token" default="xdmf"/>
-    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
-  </xsd:complexType>
-  
   <!-- ******************************************************************** -->
   <!--   Definition of data type for ANSYS RST output -->
   <!-- ******************************************************************** -->
