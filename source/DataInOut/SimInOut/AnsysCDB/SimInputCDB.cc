@@ -878,7 +878,8 @@ namespace CoupledField {
 
         numTok = SplitLine(line, tokens, "", &offsets);
 
-        fileNodeNum = x = y = z = 0;
+        fileNodeNum = 0;
+        x = y = z = 0.0;
 
         fileNodeNum = std::strtoul(tokens[0].c_str(), NULL, 0);
         UInt numActualFloats = numTok - numInts;
@@ -937,7 +938,8 @@ namespace CoupledField {
       GetLine(line,linePtsNCmnds_[ib]);
 
       // process line for current node
-      fileNodeNum = x = y = z = 0;
+      fileNodeNum = 0;
+      x = y = z = 0.0;
 
       SplitLine(line, tokens);
 
