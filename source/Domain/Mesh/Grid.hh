@@ -202,7 +202,7 @@ namespace CoupledField
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     virtual shared_ptr<ElemShapeMap> GetElemShapeMap( const Elem* ptElem,
-                                                        bool updated = false );
+                                                      bool updated = false );
     
     virtual void AddElems(UInt nElems) = 0;
 
@@ -909,6 +909,14 @@ namespace CoupledField
                              Double tol = 1e-2,
                              bool printWarnings = true);
 
+  public:
+    //! Create a bounding box from a given element. Mapping LIBFBI 
+    void CreateBBoxFromElement(const Elem* elem,
+                               Double globToler,
+                               Double* bbox);
+
+  protected:
+
 #ifdef USE_CGAL
 
     //! Define 3-dimensional bounding box
@@ -938,14 +946,11 @@ namespace CoupledField
                                   UInt *id,
                                   Double tol = 0.0 );
 
-    //! create a box from a given element
-    HandleBox CreateBoxFromElement(const Elem* elem,Double globToler);
-    
 #elif USE_LIBFBI // USE_CGAL
 
     void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                   const std::set<RegionIdType> srcRegions 
-                                   = std::set<RegionIdType>(),
+                                   const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                   StdVector<shared_ptr<EntityList> >(),
                                    Double tol = 1e-3 );
 
 #else

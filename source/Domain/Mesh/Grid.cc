@@ -871,6 +871,68 @@ namespace CoupledField
     }
   }
   
+  void Grid::CreateBBoxFromElement(const Elem* elem,
+                                   Double globToler,
+                                   Double* bbox)
+  {
+    Vector<Double> p;
+    Double& xmin = bbox[0];
+    Double& xmax = bbox[3];
+    Double& ymin = bbox[1];
+    Double& ymax = bbox[4];
+    Double& zmin = bbox[2];
+    Double& zmax = bbox[5];
+
+    // Create an exact bounding box from all corner nodes.
+    GetNodeCoordinate(p, elem->connect[0]);
+    UInt globalDim = p.GetSize();
+
+    xmin = xmax = p[0];
+    ymin = ymax = p[1];
+    if(globalDim == 2) {
+      zmin = zmax = 0.0;
+    }
+    else {
+      zmin = zmax = p[2];
+    }
+
+    for(UInt j = 1, n=elem->connect.GetSize(); j < n; ++j)
+    {
+      GetNodeCoordinate(p, elem->connect[j]);
+      xmin = (p[0] < xmin) ? p[0] : xmin;
+      xmax = (p[0] > xmax) ? p[0] : xmax;
+      ymin = (p[1] < ymin) ? p[1] : ymin;
+      ymax = (p[1] > ymax) ? p[1] : ymax;
+      if (globalDim == 3) {
+        zmin = (p[2] < zmin) ? p[2] : zmin;
+        zmax = (p[2] > zmax) ? p[2] : zmax;
+      }
+    }
+
+    // Calculate a diameter of the  element in each coordinate direction.  Use
+    // L2-length of element for directions in which no diameter is available.
+    shared_ptr<ElemShapeMap> esm = GetElemShapeMap(elem);
+    Vector<Double> dia;    
+    esm->CalcDiameter(dia);
+    UInt elemDim = dia.GetSize();
+    Double length = NormL2(&dia[0], elemDim);
+    if(elemDim < 3) 
+    {
+      dia.Resize(3);
+      for(UInt i=elemDim; i<3; i++) 
+      {
+        dia[i] = length;
+      }
+    }    
+
+    xmin -= globToler*dia[0];
+    xmax += globToler*dia[0];
+    ymin -= globToler*dia[1];
+    ymax += globToler*dia[1];
+    zmin -= globToler*dia[2];
+    zmax += globToler*dia[2];
+  }
+
 #ifdef USE_CGAL
 
   // ========================================================================
@@ -925,69 +987,10 @@ namespace CoupledField
     }
   }
 
-  HandleBox Grid::CreateBoxFromElement(const Elem* elem, Double globToler) {
-    Vector<Double> p(3);
-    Double xmin,xmax;
-    Double ymin,ymax;
-    Double zmin,zmax;
-
-    GetNodeCoordinate(p, elem->connect[0]);
-
-    xmin = xmax = p[0];
-    ymin = ymax = p[1];
-    if(p.GetSize() == 2) {
-      zmin = zmax = 0.0;
-    }
-    else {
-      zmin = zmax = p[2];
-    }
-
-    for(UInt j = 1, n=elem->connect.GetSize(); j < n; ++j)
-    {
-      GetNodeCoordinate(p, elem->connect[j]);
-      xmin = (p[0] < xmin) ? p[0] : xmin;
-      xmax = (p[0] > xmax) ? p[0] : xmax;
-      ymin = (p[1] < ymin) ? p[1] : ymin;
-      ymax = (p[1] > ymax) ? p[1] : ymax;
-      if (p.GetSize() == 3) {
-        zmin = (p[2] < zmin) ? p[2] : zmin;
-        zmax = (p[2] > zmax) ? p[2] : zmax;
-      }
-    }
-    shared_ptr<ElemShapeMap> esm = this->GetElemShapeMap(elem);
-    Vector<Double> dia;
-    esm->CalcDiameter(dia);
-    xmin -= globToler*dia[0];
-    xmax += globToler*dia[0];
-    if (p.GetSize() > 1) {
-      ymin -= globToler*dia[1];
-      ymax += globToler*dia[1];
-    }
-    if (p.GetSize() == 2) {
-      zmin = -globToler;
-      zmax = globToler;
-    }
-    else {
-      zmin -= globToler*dia[2];
-      zmax += globToler*dia[2];
-    }
-    HandleBox retBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
-                     &elem->elemNum);
-    
-//    std::cerr << "created box for elem #" << elem->elemNum << ", tol = " << globToler << " with \n\t"
-//        << xmin << ", " 
-//        << ymin << ", "
-//        << zmin << ", "
-//        << xmax << ", "
-//        << ymax << ", "
-//        << zmax << std::endl;
-    return retBox;
-
-  }
-  
   void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
                                        const StdVector<shared_ptr<EntityList> >& srcEntities,
                                        Double tol ) {
+    boost::array<Double,6> bbox;
 
     // If we haven't initialized the grid bounding boxes yet, do so now!
     if(elemBoxes_.empty())
@@ -1007,7 +1010,14 @@ namespace CoupledField
           // lower-dimensional
           if( Elem::shapes[elems[i]->type].dim != dim ) 
             continue;
-          boxes.push_back(CreateBoxFromElement( elems[i], tol) );
+
+          CreateBBoxFromElement(elems[i], tol, &bbox[0]);
+
+          HandleBox hbox(BBox3D(bbox[0], bbox[1], bbox[2],
+                                bbox[3], bbox[4], bbox[5]),
+                         &elems[i]->elemNum);
+
+          boxes.push_back( hbox );
         }
       } //loop: dimension
     }
@@ -1456,83 +1466,42 @@ namespace CoupledField {
   std::pair<double, double>
   ElemBoxGenerator::get<0>(const Elem* elem) const
   {
-    Vector<Double> p(dim_);
-    Double xmin,xmax;
+    // create bounding box array, with the following indices:
+    // [xmin, ymin,  zmin, xmax, ymax, zmax]
+    //   0     1      2     3     4     5
+    boost::array<Double,6> bbox;
+    
+    ptGrid_->CreateBBoxFromElement(elem, globTol_, &bbox[0]);
 
-    ptGrid_->GetNodeCoordinate(p, elem->connect[0]);
-
-    xmin = xmax = p[0];
-
-    for(UInt j = 1, n=elem->connect.GetSize(); j < n; j++)
-    {
-      ptGrid_->GetNodeCoordinate(p, elem->connect[j]);
-      xmin = (p[0] < xmin) ? p[0] : xmin;
-      xmax = (p[0] > xmax) ? p[0] : xmax;
-    }
-    shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(elem);
-    Vector<Double> dia;
-    esm->CalcDiameter(dia);
-    xmin -= globTol_*dia[0];
-    xmax += globTol_*dia[0];
-
-    return std::make_pair(xmin, xmax);
+    return std::make_pair(bbox[0], bbox[3]);
   }
   
   template <>
   std::pair<double, double>
   ElemBoxGenerator::get<1>(const Elem* elem) const
   {
-    Vector<Double> p(dim_);
-    Double ymin,ymax;
-    ptGrid_->GetNodeCoordinate(p, elem->connect[0]);
+    // create bounding box array, with the following indices:
+    // [xmin, ymin,  zmin, xmax, ymax, zmax]
+    //   0     1      2     3     4     5
+    boost::array<Double,6> bbox;
+    
+    ptGrid_->CreateBBoxFromElement(elem, globTol_, &bbox[0]);
 
-    ymin = ymax = p[1];
-
-    for(UInt j = 1, n=elem->connect.GetSize(); j < n; j++)
-    {
-      ptGrid_->GetNodeCoordinate(p, elem->connect[j]);
-      ymin = (p[1] < ymin) ? p[1] : ymin;
-      ymax = (p[1] > ymax) ? p[1] : ymax;
-    }
-    shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(elem);
-    Vector<Double> dia;
-    esm->CalcDiameter(dia);
-    ymin -= globTol_*dia[1];
-    ymax += globTol_*dia[1];
-
-    return std::make_pair(ymin, ymax);
+    return std::make_pair(bbox[1], bbox[4]);
   }
 
   template <>
   std::pair<double, double>
   ElemBoxGenerator::get<2>(const Elem* elem) const
   {
-    if(dim_ == 3) 
-    {
-      Vector<Double> p(3);
-      Double zmin,zmax;
-      ptGrid_->GetNodeCoordinate(p, elem->connect[0]);
-      
-      zmin = zmax = p[2];
-      
-      for(UInt j = 1, n=elem->connect.GetSize(); j < n; j++)
-      {
-        ptGrid_->GetNodeCoordinate(p, elem->connect[j]);
-        zmin = (p[2] < zmin) ? p[2] : zmin;
-        zmax = (p[2] > zmax) ? p[2] : zmax;
-      }
-      shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(elem);
-      Vector<Double> dia;
-      esm->CalcDiameter(dia);
-      zmin -= globTol_*dia[2];
-      zmax += globTol_*dia[2];
-      
-      return std::make_pair(zmin, zmax);
-    }
-    else 
-    {
-      return std::make_pair(-1, 1);
-    }
+    // create bounding box array, with the following indices:
+    // [xmin, ymin,  zmin, xmax, ymax, zmax]
+    //   0     1      2     3     4     5
+    boost::array<Double,6> bbox;
+    
+    ptGrid_->CreateBBoxFromElement(elem, globTol_, &bbox[0]);
+
+    return std::make_pair(bbox[2], bbox[5]);
   }
 
   struct PointBoxGenerator
@@ -1575,16 +1544,32 @@ namespace CoupledField {
   }
 
   void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                       const std::set<RegionIdType> srcRegions,
+                                       const StdVector<shared_ptr<EntityList> >& srcEntities,
                                        Double tol ) {
-
     std::vector< Elem* > elems;
     std::vector< Vector<Double>* > points;
     
-    StdVector<Elem*> volElems;
-    GetVolElems(volElems, ALL_REGIONS);
-    std::copy(volElems.Begin(), volElems.End(), std::back_inserter(elems));
-    
+    StdVector<Elem*> allElems;
+    GetElems(allElems, ALL_REGIONS);
+
+    if(srcEntities.GetSize()) 
+    {
+      for( UInt i = 0; i < srcEntities.GetSize(); ++i ) {
+        EntityIterator it = srcEntities[i]->GetIterator();
+        for( ; !it.IsEnd(); it++ ) {
+          const Elem* ptEl = it.GetElem();
+          StdVector<Elem*>::iterator elIt;
+          elIt = std::find(allElems.Begin(), allElems.End(), ptEl);          
+          elems.push_back(*elIt);
+        }
+      }
+    }
+    else 
+    {
+      StdVector<Elem*> volElems;
+      GetVolElems(volElems, ALL_REGIONS);
+      std::copy(volElems.Begin(), volElems.End(), std::back_inserter(elems));
+    } 
     
     UInt numPts = matches.GetSize();
     // Loop over all matches
@@ -1620,15 +1605,7 @@ namespace CoupledField {
       {
         const Elem* ptEl = elems[(*it)];
         // std::cout << "Elem: " << ptEl->elemNum << std::endl;
-        
-        if( srcRegions.size() ) { 
-          if( srcRegions.find(ptEl->regionId) != srcRegions.end() ) {
-            matches[ptIdx].matches.insert(ptEl);
-          }
-        } else {
-          matches[ptIdx].matches.insert(ptEl);
-        }
-        
+        matches[ptIdx].matches.insert(ptEl);
       }    
     }
   }
@@ -1668,43 +1645,7 @@ namespace CoupledField {
           //   0     1      2     3     4     5
           boost::array<Double,6> bbox;
 
-          GetNodeCoordinate(p, elems[i]->connect[0]);
-
-          bbox[0] = bbox[3] = p[0];
-          bbox[1] = bbox[4] = p[1];
-          if(p.GetSize() == 2)
-            bbox[2] = bbox[5] = 0;
-          else
-            bbox[2] = bbox[5] = p[2];
-
-          for(UInt j = 1, n=elems[i]->connect.GetSize(); j < n; j++)
-          {
-            GetNodeCoordinate(p, elems[i]->connect[j]);
-            bbox[0] = std::min( bbox[0], p[0]);
-            bbox[3] = std::max( bbox[3], p[0]);
-            bbox[1] = std::min( bbox[1], p[1]);
-            bbox[4] = std::max( bbox[4], p[1]);
-            if(p.GetSize()==2){
-              bbox[2] = 0;
-              bbox[5] = 0;
-            }else{
-              bbox[2] = std::min( bbox[2], p[2]);
-              bbox[5] = std::max( bbox[5], p[2]);
-            }
-          }
-          shared_ptr<ElemShapeMap> esm = this->GetElemShapeMap(elems[i]);
-          Vector<Double> dia;
-          esm->CalcDiameter(dia);
-          bbox[0] -= tol*dia[0];
-          bbox[3] += tol*dia[0];
-          if( dim > 1 ) {
-            bbox[1] -= tol*dia[1];
-            bbox[4] += tol*dia[1];
-          }
-          if( dim == 3 ) {
-            bbox[2] -= tol*dia[2];
-            bbox[5] += tol*dia[2];
-          }
+          CreateBBoxFromElement(elems[i], tol, &bbox[0]);
           
           // assemble tuple of (bounding box, element number)
           boxes.Push_back(BoxType(bbox, elems[i]->elemNum));
