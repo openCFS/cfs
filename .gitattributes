@@ -1429,6 +1429,8 @@ source/FeBasis/FeNodal.cc svneol=native#text/x-c%2B%2Bsrc
 source/FeBasis/FeNodal.hh svneol=native#text/x-c%2B%2Bhdr
 source/FeBasis/FeSpace.cc svneol=native#text/x-c%2B%2Bsrc
 source/FeBasis/FeSpace.hh svneol=native#text/x-c%2B%2Bhdr
+source/FeBasis/FeSpaceConst.cc -text
+source/FeBasis/FeSpaceConst.hh -text
 source/FeBasis/FeSpaceHi.cc svneol=native#text/x-c%2B%2Bsrc
 source/FeBasis/FeSpaceHi.hh svneol=native#text/x-c%2B%2Bhdr
 source/FeBasis/FeSpaceNodal.cc -text

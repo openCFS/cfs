@@ -701,6 +701,9 @@ namespace CoupledField {
     case EntityList::REGION_LIST:
       id = regionList_->grid_->GetRegion().ToString( GetRegion() );
       break;
+    case EntityList::COIL_LIST:
+      id = coilList_->list_[ pos_ ]->coilId_;
+      break;
     default:
       EXCEPTION( "Not implemented" );
       break;

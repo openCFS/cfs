@@ -500,7 +500,7 @@ namespace CoupledField {
     //! ELEM_LIST, SURF_ELEM_LIST, NC_ELEM_LIST: number of element 
     //! NODE_LIST: node number
     //! REGION_LIST: region name
-    //! COIL_LIST: coild id
+    //! COIL_LIST: coil id
     //! NUMBER_LIST: unknown number
     std::string GetIdString() const;
     

@@ -320,7 +320,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       // insert mass integrator to list of defined mass integrators
       massInts_[actRegion] = massInt;
 
-    }
+    } // end for regions
     
     // ============================
     // COIL INTEGRATORS
