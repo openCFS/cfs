@@ -273,7 +273,7 @@ IF(DAY EQUAL 1)
   LIST(APPEND VBOXES "oracle5" "fedora18")
 ENDIF()
 IF(DAY EQUAL 2)
-  LIST(APPEND VBOXES "hardy" "lucid" "lmde2013")
+  LIST(APPEND VBOXES "trusty" "lucid" "lmde2013" "hardy")
 ENDIF()
 
 FOREACH(VBOX IN ITEMS ${VBOXES})

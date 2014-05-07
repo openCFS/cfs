@@ -411,6 +411,10 @@ ctest_scripts/sites/sles11/Vagrantfile -text
 ctest_scripts/sites/sles11/linux64_fespace_gcc_debug.ctest -text
 ctest_scripts/sites/sles11/linux64_fespace_gcc_release.ctest -text
 ctest_scripts/sites/sles11/site_specific_vars.cmake -text
+ctest_scripts/sites/trusty/Vagrantfile -text
+ctest_scripts/sites/trusty/linux64_fespace_gcc_debug.ctest -text
+ctest_scripts/sites/trusty/linux64_fespace_gcc_release.ctest -text
+ctest_scripts/sites/trusty/site_specific_init.cmake -text
 ctest_scripts/sites/wiki/ctest_update.cmake -text
 ctest_scripts/sites/wiki/ctest_update_cfsdeps_trunk_wien.cmake -text
 ctest_scripts/sites/wiki/ctest_update_fespace_testsuite_wien.cmake -text

@@ -99,9 +99,6 @@ private:
   //! Flag, if order is isotropic
   bool isIsotropic_;
 
-  //! Flag, if grid order should be used
-  bool useGridOrder_;
-  
   //! Type of polynonmial mapping
   PolyMapType polyMapType_;
 };
