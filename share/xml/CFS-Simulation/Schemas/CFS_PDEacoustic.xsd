@@ -81,9 +81,6 @@
             </xsd:complexType>
           </xsd:element>
 
-          <xsd:element name="valRHS" type="DT_CFSBool" minOccurs="0"
-            maxOccurs="1" default="no"/>
-
 
           <!-- Type of FlowData (optional) -->
           <!-- List defining flows -->
@@ -122,7 +119,6 @@
 
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="absorbingBCs"   type="DT_AbsorbingBC"  />
-                <xsd:element name="flowData"       type="DT_AcousticFlow" />
                 <xsd:element name="rhsValues"      type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="impedance"      type="DT_AcouImpedance"/>
                 <xsd:element name="periodic"       type="DT_BcPeriodic"   />
@@ -459,25 +455,6 @@
     <xsd:attribute name="name" type="xsd:token" use="required"/>
     <xsd:attribute name="value" type="xsd:token" use="required"/>
     <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
-  </xsd:complexType>
-
-  <!-- ******************************************************************* -->
-  <!--   Definition for Flow data                                          -->
-  <!-- ******************************************************************* -->
-
-   <xsd:complexType name="DT_AcousticFlow">
-      <xsd:sequence>
-        <xsd:element name="flowDir" type="xsd:token"/>
-        <xsd:element name="flowOrd" type="xsd:nonNegativeInteger"/>
-        <xsd:element name="flowVel" type="xsd:double"/>
-        <xsd:element name="flowDia" type="xsd:double"/>
-        <xsd:element name="flowLen" type="xsd:double"/>
-        <xsd:element name="flowDecay" type="xsd:double"/>
-        <xsd:element name="flowCenterX" type="xsd:double"/>
-        <xsd:element name="flowCenterY" type="xsd:double"/>
-        <xsd:element name="flowCenterZ" type="xsd:double"/>
-      </xsd:sequence>
-    <xsd:attribute name="region" type="xsd:token" use="required"/>
   </xsd:complexType>
 
 
