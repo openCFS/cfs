@@ -1194,6 +1194,7 @@ source/DataInOut/ProgramOptions.hh svneol=native#text/plain
 source/DataInOut/ResultHandler.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ResultHandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ScatteredDataInOut/CMakeLists.txt -text
+source/DataInOut/ScatteredDataInOut/ScatteredDataReader.cc -text
 source/DataInOut/ScatteredDataInOut/ScatteredDataReader.hh -text
 source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCCM.cc -text
 source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCCM.hh -text
