@@ -54,18 +54,35 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     // =====================================================================
     pdename_          = "magneticEdge";
     pdematerialclass_ = ELECTROMAGNETIC;
-    
+
     //! Always use updated Lagrangian formulation 
     updatedGeo_        = true;
-      
+
     // check if we have a 3d setup
     bool is3d = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
     if ( !is3d )
       EXCEPTION("MagEdgePDE is just implemented for 3D setups!");
-    
-    
+
+    // initialize material coef functions covering all regions
     reluc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, isComplex_));
     conduc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
+
+    // determine if there are coils excited by voltage
+    hasVoltCoils_ = false;
+    PtrParamNode coilNode = myParam_->Get( "coilList", ParamNode::PASS );
+    if ( coilNode ){
+      ParamNodeList coilNodes = coilNode->GetChildren();
+      for( UInt k = 0; k < coilNodes.GetSize(); k++ ){
+        if( coilNodes[k]->Has("source") ){
+          std::string exType = coilNodes[k]->Get("source")->Get("type")->As<std::string>();
+          if( exType == "voltage" ){
+            hasVoltCoils_ = true;
+            break;
+          }
+        }
+      }
+    }
+
   }
 
 
@@ -667,21 +684,35 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     vecComponents = "x", "y", "z";
 
     // === MAGNETIC VECTOR POTENTIAL ===
-    shared_ptr<ResultInfo> res1(new ResultInfo);
-    res1->resultType = MAG_POTENTIAL;
-    res1->dofNames = vecComponents;
-    res1->unit = "Vs/m";
-    res1->definedOn = ResultInfo::ELEMENT;
-    res1->entryType = ResultInfo::VECTOR;
+    shared_ptr<ResultInfo> potInfo(new ResultInfo);
+    potInfo->resultType = MAG_POTENTIAL;
+    potInfo->dofNames = vecComponents;
+    potInfo->unit = "Vs/m";
+    potInfo->definedOn = ResultInfo::ELEMENT;
+    potInfo->entryType = ResultInfo::VECTOR;
 
-    feFunctions_[MAG_POTENTIAL]->SetResultInfo(res1);
-    DefineFieldResult( feFunctions_[MAG_POTENTIAL], res1 );
+    feFunctions_[MAG_POTENTIAL]->SetResultInfo(potInfo);
+    DefineFieldResult( feFunctions_[MAG_POTENTIAL], potInfo );
+
+    // === COIL CURRENT ===
+    if( hasVoltCoils_ ){
+      shared_ptr<ResultInfo> currentInfo(new ResultInfo);
+      currentInfo->resultType = COIL_CURRENT;
+      currentInfo->dofNames = "";
+      currentInfo->unit = "A";
+      currentInfo->definedOn = ResultInfo::COIL;
+      currentInfo->entryType = ResultInfo::SCALAR;
+
+      feFunctions_[COIL_CURRENT]->SetResultInfo(currentInfo);
+      DefineFieldResult( feFunctions_[COIL_CURRENT], currentInfo );
+    }
 
     // -----------------------------------
     //  Define xml-names of Dirichlet BCs
     // -----------------------------------
     hdbcSolNameMap_[MAG_POTENTIAL] = "fluxParallel";
     idbcSolNameMap_[MAG_POTENTIAL] = "potential";
+
   }
   
   void MagEdgePDE::DefinePostProcResults() {
@@ -1024,8 +1055,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       EXCEPTION("The formulation " << formulation 
                 << "of magnetic edge PDE is not known!");
     }
-    
-    
+
+
     // in addition query, if special treatment of anisotropic elements
     // is activated
     if( myParam_->Has("thinElements") ) {
@@ -1034,13 +1065,17 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       dynamic_pointer_cast<FeSpaceHCurlHi>(crSpaces[MAG_POTENTIAL])
           ->TreatThinElements(aspectRatio);
     }
-    
-    // =====================================
-    // Create FeSpaceConst for coil currents
-    // =====================================
-    WARN("Add here definition of new FeSpaceConst for coil currents in case of " 
-        << "voltage driven coils!");
-    
+
+    // ===================================================================
+    // Create FeSpaceConst for coil currents (of coils excited by voltage)
+    // ===================================================================
+    if( hasVoltCoils_ ){
+      PtrParamNode voltSpaceNode = infoNode->Get("coilCurrent");
+      crSpaces[COIL_CURRENT] =
+          FeSpace::CreateInstance(myParam_, voltSpaceNode, FeSpace::CONSTANT, ptGrid_);
+      crSpaces[COIL_CURRENT]->Init(solStrat_);
+    }
+
     return crSpaces;
   }
 

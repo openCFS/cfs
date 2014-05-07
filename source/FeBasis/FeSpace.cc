@@ -11,6 +11,7 @@
 #include "L2/FeSpaceL2Nodal.hh"
 #include "H1/FeSpaceH1Hi.hh"
 #include "HCurl/FeSpaceHCurlHi.hh"
+#include "FeSpaceConst.hh"
 
 
 namespace CoupledField {
@@ -304,6 +305,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         }
         break;
       case CONSTANT:
+        LOG_DBG(feSpace) << "Creating CONST space";
+        ret.reset(new FeSpaceConst(aNode, infoNode, ptGrid));
+        break;
       case HDIV:
       case L2:
         LOG_DBG(feSpace) << "Creating L2 space";

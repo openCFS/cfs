@@ -331,6 +331,7 @@ namespace CoupledField {
         break;
 
       case MAG_SCALAR_POTENTIAL:
+      case COIL_CURRENT:
         return "A";
         break;
 
@@ -381,8 +382,6 @@ namespace CoupledField {
       case MECH_DEFORM_ENERGY: 
       case MECH_TOTAL_ENERGY:
         return "Ws";
-        break;
-
         break;
 
       case MECH_STRESS:

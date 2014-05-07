@@ -89,6 +89,9 @@ namespace CoupledField
     
     //! Coefficients holding the current density for each coil
     std::map<RegionIdType, PtrCoefFct> coilCurrentDens_;
+
+    //! Tells if there are coils excited by voltage
+    bool hasVoltCoils_;
     //@}
 
 

@@ -36,7 +36,7 @@ public:
   //! \param solStrategy Solution strategy object, which encapsulates
   //!                    additional information (splitting, number of
   //!                    solution steps  etc.)
-  //virtual void Init( shared_ptr<SolStrategy> solStrat ) {};
+  virtual void Init( shared_ptr<SolStrategy> solStrat );
 
   //! Return type of FeSpace
   //SpaceType GetSpaceType() { return type_;}

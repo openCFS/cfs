@@ -17,7 +17,7 @@
 namespace CoupledField {
 
 FeSpaceConst::FeSpaceConst(PtrParamNode paramNode, PtrParamNode infoNode, Grid* ptGrid)
-    : FeSpace::FeSpace(paramNode, infoNode, ptGrid){
+  : FeSpace::FeSpace(paramNode, infoNode, ptGrid){
 
   type_ = CONSTANT;
 
@@ -27,6 +27,12 @@ FeSpaceConst::FeSpaceConst(PtrParamNode paramNode, PtrParamNode infoNode, Grid* 
 
 FeSpaceConst::~FeSpaceConst(){}
 
+void FeSpaceConst::Init( shared_ptr<SolStrategy> solStrat ){
+
+  solStrat_ = solStrat;
+
+}
+
 BaseFE* FeSpaceConst::GetFe( const EntityIterator ent ){
 
   // used by GetNumFunctions in FeSpace
@@ -34,9 +40,9 @@ BaseFE* FeSpaceConst::GetFe( const EntityIterator ent ){
 
 }
 
-BaseFE* FeSpaceConst::GetFe( const EntityIterator ent ,
-                         IntScheme::IntegMethod& method,
-                         IntegOrder & order ){
+BaseFE* FeSpaceConst::GetFe( const EntityIterator ent,
+                             IntScheme::IntegMethod& method,
+                             IntegOrder & order ){
 
   return(NULL);
 
@@ -59,11 +65,6 @@ void FeSpaceConst::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent )
 
   this->CheckEntityType(ent);
 
-  if( ent.GetCoil()->sourceType_ != Coil::VOLTAGE ){
-    eqns.Resize(0);
-    return;
-  }
-
   // determine equation number by trying to insert the entity to the equation map
   std::pair<std::map<std::string,Integer>::iterator,bool> ret;
   ret = equationMap_.insert( std::pair<std::string,Integer>( ent.GetIdString(),
@@ -81,22 +82,22 @@ void FeSpaceConst::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent )
 
 }
 
-void FeSpaceConst::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
-                        , UInt dof ){
+void FeSpaceConst::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent,
+                            UInt dof ){
 
   this->GetEqns(eqns, ent);
 
 }
 
 void FeSpaceConst::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent,
-                        UInt dof, BaseFE::EntityType ){
+                            UInt dof, BaseFE::EntityType ){
 
   this->GetEqns(eqns, ent);
 
 }
 
 void FeSpaceConst::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent,
-                                    BaseFE::EntityType ){
+                            BaseFE::EntityType ){
 
   this->GetEqns(eqns, ent);
 
@@ -153,42 +154,42 @@ void FeSpaceConst::GetEntityListEqns( StdVector<Integer>& eqns,
 
 void FeSpaceConst::Finalize(){
 
+  isFinalized_ = true;
+
+}
+
+void FeSpaceConst::MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support,
+                                     shared_ptr<CoefFunction> coefFct,
+                                     shared_ptr<BaseFeFunction> feFct,
+                                     std::map<Integer, Double>& vals,
+                                     bool cache,
+                                     const std::set<UInt>& comp ){
+
   EXCEPTION("Neee.");
 
 }
 
 void FeSpaceConst::MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support,
-                                 shared_ptr<CoefFunction> coefFct,
-                                 shared_ptr<BaseFeFunction> feFct,
-                                 std::map<Integer, Double>& vals,
-                                 bool cache,
-                                 const std::set<UInt>& comp = std::set<UInt>() ){
-
-  EXCEPTION("Neee.");
-
-}
-
-void FeSpaceConst::MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support,
-                                 shared_ptr<CoefFunction> coefFct,
-                                 shared_ptr<BaseFeFunction> feFct,
-                                 std::map<Integer, Complex>& vals,
-                                 bool cache,
-                                 const std::set<UInt>& comp = std::set<UInt>() ){
+                                     shared_ptr<CoefFunction> coefFct,
+                                     shared_ptr<BaseFeFunction> feFct,
+                                     std::map<Integer, Complex>& vals,
+                                     bool cache,
+                                     const std::set<UInt>& comp ){
 
   EXCEPTION("Neee.");
 
 }
 
 bool FeSpaceConst::IsSameEntityApproximation( shared_ptr<EntityList> list,
-                                                      shared_ptr<FeSpace> space ){
+                                              shared_ptr<FeSpace> space ){
 
   return( space->GetSpaceType() == FeSpace::CONSTANT );
 
 }
 
 void FeSpaceConst::SetRegionElements( RegionIdType region, MappingType mType,
-                                  const ApproxOrder& order,
-                                  PtrParamNode infoNode ){
+                                      const ApproxOrder& order,
+                                      PtrParamNode infoNode ){
 
   EXCEPTION("This space does not approximate spacially.");
 
