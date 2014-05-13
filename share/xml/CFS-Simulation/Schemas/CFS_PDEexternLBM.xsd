@@ -48,26 +48,21 @@
 					</xsd:element>
 
 					<!-- Boundary Conditions & Loads (optional) -->
-					<xsd:element name="bcsAndLoads" minOccurs="0"
-						maxOccurs="unbounded">
+					<xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
 						<xsd:complexType>
 							<xsd:choice maxOccurs="unbounded">
-								<xsd:element name="inlet" minOccurs="0" maxOccurs="unbounded">
+								<xsd:element name="inlet" minOccurs="0" maxOccurs="3">
 									<xsd:complexType>
 										<xsd:attribute name="name" type="xsd:token" use="required" />
-										<xsd:attribute name="dof" type="DT_ExternLBMDOF"
-											use="required" />
-										<xsd:attribute name="value" type="xsd:double"
-											use="required" />
+										<xsd:attribute name="dof" type="DT_ExternLBMDOF" use="required" />
+										<xsd:attribute name="value" type="xsd:double" use="required" />
 									</xsd:complexType>
 								</xsd:element>
-								<xsd:element name="outlet" minOccurs="0" maxOccurs="unbounded">
+								<xsd:element name="outlet" minOccurs="0" maxOccurs="3">
 									<xsd:complexType>
 										<xsd:attribute name="name" type="xsd:token" use="required" />
-										<xsd:attribute name="dof" type="DT_ExternLBMDOF"
-											use="optional" />
-										<xsd:attribute name="value" type="xsd:double"
-											use="optional" />
+										<xsd:attribute name="dof" type="DT_ExternLBMDOF" use="optional" />
+										<xsd:attribute name="value" type="xsd:double"	use="optional" />
 									</xsd:complexType>
 								</xsd:element>
 							</xsd:choice>
@@ -80,17 +75,23 @@
 							<xsd:attribute name="omega" type="xsd:double" use="required" />
 							<xsd:attribute name="maxWallTime" type="xsd:double" use="required" />
 							<xsd:attribute name="maxIter" type="xsd:positiveInteger" use="required" />
-							<xsd:attribute name="epsilon" type="xsd:double" use="required" />
+              <!-- convergence tolerance for the residuum of the LBM solver  -->
+							<xsd:attribute name="convergence" type="xsd:double" use="required" />
               <!--  the executable. Either debug or release. With path if necessary -->
 							<xsd:attribute name="lbm" type="xsd:token" use="optional" default="./" />
-							<xsd:attribute name="type" use="optional" default="external" >
+							<xsd:attribute name="type" use="optional" default="external_matlab_iface" />
+              <xsd:attribute name="solver" use="required">
 								<xsd:simpleType>
-	              <xsd:restriction base="xsd:token">
-	                <xsd:enumeration value="external"/>
-	                <xsd:enumeration value="internal"/>
-	              </xsd:restriction>
-	            </xsd:simpleType>
-	            </xsd:attribute>
+	                <xsd:restriction base="xsd:token">
+                    <!-- not yet implemented  --> 
+                    <!-- <xsd:enumeration value="internal"/>-->
+                    <!-- the old interface as in the diploma thesis of thomas guess -->
+	                  <xsd:enumeration value="external_matlab_iface"/>
+                    <!-- the new interface as implemented by RRZE (not working yet=) -->
+                    <xsd:enumeration value="external_single_file_iface"/>
+	                </xsd:restriction>
+	              </xsd:simpleType>
+              </xsd:attribute>
 						</xsd:complexType>
 					</xsd:element>
 

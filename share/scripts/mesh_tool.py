@@ -486,8 +486,8 @@ def create_pipe_bend(resolution):
       mesh.elements.append(e)
  
 
-  mesh.ne.append(('inlet', range(int(0.7*nx*ny + eps), int(0.9*nx*ny - eps), nx) ))
-  mesh.ne.append(('outlet', range(int(0.7*nx + eps), int(0.9*nx + eps)) ))
+  mesh.ne.append(('inlet', range(int(0.1*nx*ny + eps), int(0.3*nx*ny + nx + eps), nx) ))
+  mesh.ne.append(('outlet', range(int((ny-1)*nx + 0.7*nx - eps), int((ny-1)*nx + 0.9*nx + eps)) ))
 
   mesh.bc.append(("left_lower", [0]))
   mesh.bc.append(("right_lower", [nx]))
