@@ -328,10 +328,10 @@ namespace CoupledField {
     //vertices:
     coordMat[0][0] = supPoints1D[0];
     coordMat[1][0] = supPoints1D[order_];
-
+    
     //edges
     for(UInt i=1;i<order_;i++){
-      coordMat[i][0] = supPoints1D[i];
+      coordMat[i+1][0] = supPoints1D[i];
     }
   }
   //=========================================================================
