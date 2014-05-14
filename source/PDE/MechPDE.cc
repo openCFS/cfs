@@ -23,6 +23,7 @@
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/Operators/IdentityOperator.hh"
+#include "Forms/Operators/IdOpNormalStrain.hh"
 #include "Forms/Operators/IdentityOperatorNormalTrans.hh"
 #include "Forms/Operators/StrainOperator.hh"
 #include "Forms/Operators/SurfaceNormalStressOperator.hh"
@@ -384,6 +385,137 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       myFct->AddEntityList( actSDList );
     }
   }
+  
+  
+  void MechPDE::DefineSurfaceIntegrators( ){
+    //========================================================================================
+    // ABC boundaries
+    //========================================================================================
+    PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
+    if( bcNode ) {
+      ParamNodeList abcNodes = bcNode->GetList( "absorbingBCs" );
+
+      for( UInt i = 0; i < abcNodes.GetSize(); i++ ) {
+        std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
+        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+        std::string volRegName = abcNodes[i]->Get("volumeRegion")->As<std::string>();
+
+      //  std::cout << regionName << " " << volRegName << std::endl;
+          
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
+        
+        std::string factor = "1.0";
+        std::string factor2 = "2.0";
+        //c_long = sqrt( (youngModulus*(1-poissonRatio)) / (density*(1-poissonRatio-2*poissonRatio^2)) )
+        PtrCoefFct dens = materials_[aRegion]->GetScalCoefFnc(DENSITY,Global::REAL);
+        PtrCoefFct poisson = materials_[aRegion]->GetScalCoefFnc(MECH_POISSON,Global::REAL);
+        PtrCoefFct young = materials_[aRegion]->GetScalCoefFnc(MECH_EMODULUS,Global::REAL);
+        
+        // create nominator first
+        PtrCoefFct nominator1 = CoefFunction::Generate(mp_, Global::REAL,
+                                                CoefXprBinOp(mp_, //nominator
+                                                  young,
+                                                  CoefXprBinOp(mp_,
+                                                   factor,
+                                                   poisson,
+                                                   CoefXpr::OP_SUB
+                                                  ),
+                                                  CoefXpr::OP_MULT
+                                                 ) );
+        // now create denominator
+        PtrCoefFct denomiator1 = CoefFunction::Generate(mp_, Global::REAL,
+                                                 CoefXprBinOp(mp_, //denominator)
+                                                  dens,
+                                                  CoefXprBinOp(mp_,
+                                                   factor, // we calc 1 - (poisson + 2* poisson^2))
+                                                   CoefXprBinOp(mp_,
+                                                    poisson,
+                                                    CoefXprBinOp(mp_,
+                                                     factor2,
+                                                     CoefXprBinOp(mp_,
+                                                      poisson,
+                                                      poisson,
+                                                      CoefXpr::OP_MULT
+                                                     ),
+                                                     CoefXpr::OP_MULT
+                                                    ),
+                                                    CoefXpr::OP_ADD
+                                                   ),
+                                                   CoefXpr::OP_SUB
+                                                  ),
+                                                  CoefXpr::OP_MULT
+                                                 ) );
+
+        
+        PtrCoefFct cl = CoefFunction::Generate(mp_, Global::REAL,
+                                               CoefXprUnaryOp(mp_,  //sqrt
+                                                CoefXprBinOp(mp_, //div 
+                                                 nominator1,
+                                                 denomiator1,
+                                                 CoefXpr::OP_DIV
+                                                ),
+                                                CoefXpr::OP_SQRT) );
+        
+        //c_trans = sqrt( (youngModulus) / (2*density*(1+poissonRatio)) )
+        PtrCoefFct ct = CoefFunction::Generate(mp_,Global::REAL,
+                                               CoefXprUnaryOp(mp_, //sqrt
+                                                CoefXprBinOp(mp_,              
+                                                 young,
+                                                 CoefXprBinOp(mp_,
+                                                  factor2,            
+                                                  CoefXprBinOp(mp_,
+                                                   dens,
+                                                   CoefXprBinOp(mp_,
+                                                    factor,
+                                                    poisson,
+                                                    CoefXpr::OP_ADD
+                                                   ),
+                                                   CoefXpr::OP_MULT
+                                                  ),
+                                                  CoefXpr::OP_MULT
+                                                 ),
+                                                CoefXpr::OP_DIV
+                                               ),
+                                               CoefXpr::OP_SQRT) );
+
+        // scaling factor for normal component: density * cl
+        // scaling factor for tangential component: density * ct
+        // the density however is a scalar so we can simply pass it as scalar coefficient function
+        // this reduces the normal and tangential damping to cl and ct
+        // to apply these values to the correct component it is useful to apply the scaling direcly to the ScaledIdNormalStrainOperator.
+        // this operator will be used to create the B and B_transposed matrix so we have to pass only the ROOT of the scaling factors
+        // to apply correct damping in normal and tangential directon we need to scale the normal vector
+        // this is done by using IdOpNormalStrainScaled
+        // however the resulting operator will be used for B and B_transped inside SurfaceBBInt
+        // therefore we have to scale the normal just with the root the scaling factors
+        
+        PtrCoefFct coeffDampNormal = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_,cl,CoefXpr::OP_SQRT) );
+                                             
+        PtrCoefFct coeffDampTangential = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_,ct,CoefXpr::OP_SQRT) );                 
+         
+        BiLinearForm * abcInt = NULL;
+        std::set<RegionIdType> volRegions;
+        volRegions.insert(aRegion);
+        
+        if( dim_ == 2 ) {
+          abcInt = new SurfaceBBInt<>(new ScaledIdNormalStrainOperator<FeH1,2,Double>(coeffDampNormal,coeffDampTangential), dens, 1.0, volRegions, updatedGeo_ );
+        } else {
+          abcInt = new SurfaceBBInt<>(new ScaledIdNormalStrainOperator<FeH1,3,Double>(coeffDampNormal,coeffDampTangential), dens, 1.0, volRegions, updatedGeo_ );
+        }
+
+        abcInt->SetName("abcIntegrator");
+        BiLinFormContext *abcContext = new BiLinFormContext(abcInt, DAMPING );
+
+        abcContext->SetEntities( actSDList, actSDList );
+        abcContext->SetFeFunctions( feFunctions_[MECH_DISPLACEMENT] , feFunctions_[MECH_DISPLACEMENT]);
+        feFunctions_[MECH_DISPLACEMENT]->AddEntityList( actSDList );
+        assemble_->AddBiLinearForm( abcContext );
+      }
+    }
+  }
+
+  
+  
   
   void MechPDE::DefineNcIntegrators() {
     StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
