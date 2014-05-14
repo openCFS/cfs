@@ -509,13 +509,8 @@ DECLARE_LOG(fefunc)
         }
         break;
       case FeSpace::HCURL:
-        if(dim==2){
-          if(dofDim==1)
-            myOP = new IdentityOperator<FeHCurl,2,1,T>();
-        }else{
-          if(dofDim==1)
-            myOP = new IdentityOperator<FeHCurl,3,1,T>();
-        }
+        // currently the HCURL space exists only in 3D
+        myOP = new IdentityOperator<FeHCurl,3,1,T>();
         break;
       case FeSpace::CONSTANT:
         WARN("Interpolation Operator is not initialized.");
@@ -585,8 +580,19 @@ DECLARE_LOG(fefunc)
           }
         }
         break;
+        
       case FeSpace::HCURL:
+        if( spaceDim == 3 ) {
+          // =============
+          //  3D Entities
+          // =============
+            massInt = new BBInt<T>(new IdentityOperator<FeHCurl,3,1,T>(), 
+                                   unity, 1.0, updatedGeo );
+        } else {
+          EXCEPTION("HCURL mapping only working in 3D")
+        }
         break;
+        
       default:
         EXCEPTION("FeSpace type not suited for interpolation");
         break;
@@ -637,8 +643,19 @@ DECLARE_LOG(fefunc)
           }
         }
         break;
+        
       case FeSpace::HCURL:
+        if( spaceDim == 3 ) {
+          // =============
+          //  3D Entities
+          // =============
+          rhsInt = new BUIntegrator<T>(new IdentityOperator<FeHCurl,3,1,T>(), 1.0, coefFct, updatedGeo );
+        } else {
+          EXCEPTION("HCURL mapping only working in 3D")
+        }
+
         break;
+        
       default:
         EXCEPTION("FeSpace type not suited for interpolation");
         break;

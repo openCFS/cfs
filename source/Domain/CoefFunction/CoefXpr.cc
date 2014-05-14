@@ -617,7 +617,20 @@ void CoefXprUnaryOp::GetScalarXpr( std::string& real, std::string& imag ) const 
         imag = "0.0";
         real = args.Serialize(' ');
       } else {
-          EXCEPTION("Norm of complex valued vector not implemented yet");
+        args = "( sqrt(";
+        // Although we create temporary return variables for real- and imaginary part, 
+        // we only get a real-part in case of multiplication with conjugate transposed.
+        std::string tmpR, tmpI;
+        CoefXpr::ApplyBinaryFunc( tmpR, tmpI,  aR[0], aR[0], aI[0], aI[0], OP_MULT_CONJ );
+        args.Push_back(tmpR);
+        for( UInt i = 1; i < aR.GetSize(); ++ i ) {
+          CoefXpr::ApplyBinaryFunc( tmpR, tmpI, aR[i], aR[i], aI[i], aI[i], OP_MULT_CONJ );
+          args.Push_back("+");
+          args.Push_back(tmpR);
+        }
+        args.Push_back(") )");
+        imag = "0.0";
+        real = args.Serialize(' ');
         }
       } else {
         EXCEPTION( "Unary operation of type " << op_ 

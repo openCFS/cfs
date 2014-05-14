@@ -1655,17 +1655,28 @@ void LagrangeElemShapeMap::MapSurfLocDirs(const Elem* ptSurfElem,
     surfLocDirs[0] = shape.faceLocDirs[index][0];
     surfLocDirs[1] = shape.faceLocDirs[index][1];
 
-    // only for quad-faces, we must check. if both
-    // directions have to get interchanged.
-    if (shape.faceNodes[index].GetSize() == 4) {
-      // If the face of the volume element and on the surface
-      // element have different orientation, we have to interchange
-      // both local directions.
-      if( ptElem_->faceFlags[index][2] != ptSurfElem->faceFlags[0][2]) {
-        std::swap(surfLocDirs[0], surfLocDirs[1]);
+    // as we have identified the correct face, we have already the two 
+    // involved global directions. In order to determine the correct ordering
+    // of the directions, we compare the orientation of the first edge of each
+    // face.
+    
+    // get local volume nodes of surface edge #1, pointing in local xi/0 direction  
+    Integer volNode1, volNode2;
+    volNode1 = ptElem_->connect.Find(ptSurfElem->connect[0]);
+    volNode2 = ptElem_->connect.Find(ptSurfElem->connect[1]);
+
+    Integer edgeIndex = -1;
+    for( UInt i = 0; i < shape.numEdges; ++i ) {
+      const StdVector<UInt> & edgeNodes = shape.edgeNodes[i];
+      if( (edgeNodes[0] == UInt(volNode1) && edgeNodes[1] == UInt(volNode2) ) ||
+          (edgeNodes[1] == UInt(volNode1) && edgeNodes[0] == UInt(volNode2) ) ) {
+        edgeIndex = i;
+        break;
       }
     }
-
+    if(UInt(shape.edgeLocDirs[UInt(edgeIndex)]) != surfLocDirs[0]) {
+      std::swap(surfLocDirs[0], surfLocDirs[1]);
+    }
   } else {
     EXCEPTION("Can only handle 1D or 2D elements.")
   }

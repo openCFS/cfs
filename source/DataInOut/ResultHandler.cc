@@ -283,7 +283,11 @@ namespace CoupledField {
           // Check, if output writer "lives" on the same grid.
           // If not, we have to perform mapping
           // =================================================
-          if( outGridIds_[outId] != "default" ) {
+          ResultInfo & info = *(actContext.result->GetResultInfo());
+          if( outGridIds_[outId] != "default" &&
+              (info.definedOn == ResultInfo::NODE || 
+              info.definedOn == ResultInfo::ELEMENT ||
+              info.definedOn == ResultInfo::SURF_ELEM ) ) {
             
             // security check: if no result functor is present, we leave
             if( !actContext.functor )

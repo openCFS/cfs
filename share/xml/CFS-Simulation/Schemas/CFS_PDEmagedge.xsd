@@ -89,7 +89,7 @@
               <xsd:choice maxOccurs="unbounded">
                  <!-- Dirichlet Boundary Conditions -->
                 <xsd:element name="fluxParallel"  type="DT_BcHomScalar"    />
-                <xsd:element name="potential"     type="DT_BcInhomScalar"  />
+                <xsd:element name="potential"     type="DT_BcInhomVector"  />
                 
                 <!-- RHS Load Values-->
                 <xsd:element name="fluxDensity"   type="DT_BcInhomVector"/>
@@ -227,6 +227,7 @@
   <xsd:simpleType name="DT_MagneticEdgeEdgeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magPotential"/>
+      
     </xsd:restriction>
   </xsd:simpleType>
   
@@ -240,6 +241,7 @@
   <xsd:simpleType name="DT_MagneticEdgeElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magFluxDensity"/>
+      <xsd:enumeration value="magPotentialD1"/>
       <xsd:enumeration value="magFieldIntensity"/>
       <xsd:enumeration value="magPotentialDiv"/>
       <xsd:enumeration value="magEddyCurrentDensity"/>

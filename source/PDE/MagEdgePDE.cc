@@ -297,9 +297,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         // add region to set of "regularized" regions
         regularizedRegions_.insert(actRegion);
       }
-      if(useGrad) {
-        dynamic_pointer_cast<FeSpaceHCurlHi>(feSpace)->SetUseGradients(actRegion);
-      }
+//      if(useGrad) {
+//        dynamic_pointer_cast<FeSpaceHCurlHi>(feSpace)->SetUseGradients(actRegion);
+//      }
       
       PtrCoefFct coeff =
           CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));

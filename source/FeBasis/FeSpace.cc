@@ -788,7 +788,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
                 } // loop: fncs
               } else {
                 if( en.GetSize() != numFncs[iEdge] ) {
-                  EXCEPTION("Edge " << iEdge+1 << 
+                  EXCEPTION("Edge " << iEdge+1 << ", edge #" << edgeNum << 
                             " of element #" << actEl->elemNum << " got already "
                             << en.GetSize() << " virtual nodes and is now assigned "
                             << numFncs[iEdge] << " virtual nodes" );
@@ -860,6 +860,36 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       
       } // loop: elements
     } // loop: entity lists
+    
+    
+
+    // --------------------------------
+    // Print information to info block  
+    // --------------------------------
+    // Loop over entity types
+    PtrParamNode vNodeInfo = infoNode_->Get("virtualNodes");
+    
+    boost::unordered_map<BaseFE::EntityType, EntityNodesType>::const_iterator typeIt;
+    typeIt = vNodesCont_.begin();
+    UInt numVirtNodes = 0;
+    for( ; typeIt != vNodesCont_.end(); ++typeIt ) {
+      const BaseFE::EntityType & type = typeIt->first;
+      const EntityNodesType& nodesVec = typeIt->second;
+      
+      // Collect number of entities and total nodes
+      UInt numEntities = nodesVec.size();
+      UInt vNodesOfType = 0;
+      EntityNodesType::const_iterator nodeIt = nodesVec.begin();
+      for( ; nodeIt != nodesVec.end(); ++nodeIt ) {
+        vNodesOfType += nodeIt->second.GetSize();
+      }
+      numVirtNodes += vNodesOfType;
+      std::string entType = BaseFE::entityType.ToString(type);
+      vNodeInfo->Get(entType)->Get("numEntitiies")->SetValue(numEntities);
+      vNodeInfo->Get(entType)->Get("numVirtualNodes")->SetValue(vNodesOfType);
+    }
+    vNodeInfo->Get("numVirtualNodes")->SetValue(numVirtNodes);
+    
     
     // trim all vectors to get unused memory back
     boost::unordered_map<BaseFE::EntityType, EntityNodesType>::iterator it;

@@ -1838,10 +1838,10 @@ namespace CoupledField {
       StdVector<std::string>  dofNames = info->dofNames;
       // additional check: if we have a vector-valued function approximation,
       // we might have scalar unknowns
-      if( actFeFunction->GetFeSpace()->GetNumDofs() == 1 ) {
-        dofNames.Clear();
-        dofNames.Push_back("_");
-      }
+//      if( actFeFunction->GetFeSpace()->GetNumDofs() == 1 ) {
+//        dofNames.Clear();
+//        dofNames.Push_back("_");
+//      }
       ParamNodeList idbcNodes = bcsNode->GetList(elemName);
 
       // iterate over all parameter nodes
@@ -1884,7 +1884,12 @@ namespace CoupledField {
 
         actBc->entities = actList;
         actBc->result = actFeFunction->GetResultInfo();
-        actBc->dofs = definedDofs;
+        if( actFeFunction->GetFeSpace()->GetNumDofs() == 1 ) {
+          actBc->dofs.insert(0);
+        } else {
+          actBc->dofs = definedDofs;        
+        }
+        
         actBc->value = coef;
         actBc->updatedGeo = updatedGeo;
 
