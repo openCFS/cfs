@@ -392,6 +392,11 @@ namespace CoupledField {
       // register FeFunctions with SimState class
       simState_->RegisterFeFct( actFct );
       
+      // pass regions of primary function also RHS one
+      StdVector< shared_ptr<EntityList> > support =  actFct->GetEntityList();
+      for( UInt i = 0; i < support.GetSize(); ++i ) {
+        rhsFeFunctions_[fncIt->first]->AddEntityList( support[i] );
+      }
 
       // Pass feFctId of primary result also to RHS result
       rhsFeFunctions_[fncIt->first]->SetFctId(actFct->GetFctId());
@@ -2496,6 +2501,14 @@ namespace CoupledField {
 
       } else if (type == ResultInfo::VECTOR) {
         
+        
+        CoordSystem * coordSys = NULL;
+        std::string coordSysId = "default";
+        valueNode->GetValue("coordSysId", coordSysId, ParamNode::PASS);
+        if( coordSysId != "default" ) {
+          coordSys = domain_->GetCoordSystem(coordSysId);
+        }
+        
         // --------------
         //  V E C T O R
         // --------------
@@ -2543,7 +2556,13 @@ namespace CoupledField {
              index = 0;
              definedDofs.insert(0);
            } else {
-             index = compNames.Find(dof);
+             // try to map found component name to coordinate-system local one
+             if(coordSys) {
+               index = coordSys->GetVecComponent(dof)-1; 
+             } else {
+               index = compNames.Find(dof);
+             }
+             
              if( index == -1 ) {
                EXCEPTION("Could not find component with name '" << dof << "'");
              }

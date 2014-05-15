@@ -281,11 +281,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
       bool scaleByEdgeSize = false;
       // use gradient of shape functions?
-      bool useGrad = true;
+      //bool useGrad = true;
       if ( conductivity < 1e-10 || analysistype_ == STATIC ) {
         // do not use gradients for non-conductive regions (for regularization 
         // only the lowest order mass term is used)
-        useGrad = false;
+        //useGrad = false;
         
         Matrix<Double> reluc; 
 

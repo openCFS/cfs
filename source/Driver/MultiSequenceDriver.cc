@@ -293,13 +293,11 @@ DEFINE_LOG(msDriver, "msDriver")
     simState_->GetSequenceSteps( analysis, accTime, isFinished);
     std::map<UInt, BasePDE::AnalysisType>::const_iterator it;
     it = analysis.begin();
-    UInt lastFinishedStep = 0;
     for( ; it != analysis.end(); ++it ) {
       UInt actMsStep = it->first;
       // set sequenceStep
       if( isFinished[actMsStep]) {
         accumulatedTime_ = accTime[actMsStep];
-        lastFinishedStep = actMsStep;
       }
       // we always set the last multisequence step to continue
       sequenceStep_ = actMsStep;
