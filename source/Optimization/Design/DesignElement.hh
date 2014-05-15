@@ -322,7 +322,8 @@ public:
 
     /** Gives the physical design, which is penalized and filtered if we have density filtering.
      * Therefore there is no access as we are implicit SMART */
-    double GetPhysicalDesign(bool densForElec = false) const;
+    double GetPhysicalDesign(const SinglePDE* pde = NULL) const;
+
     
     /** Return whether physical design is reasonable for this DesignElement::Type */
     bool HasPhysicalDesign() const;

@@ -34,6 +34,7 @@
 #include "PDE/timestepping.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/baseelemstoresol.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Utils/result.hh"
 #include "math.h"
 #include "pseudoTS.hh" 
@@ -56,6 +57,7 @@ ExtLBMPDE::ExtLBMPDE(Grid* grid, PtrParamNode pn)
   nonLin_ = false;
 
   method_ = "mechanic";
+  dirty_ = true; // not solved yet!
 
   // LBM parametes
   omega_       = myParam_->Get("LBM/omega")->As<double>();
@@ -85,6 +87,17 @@ ExtLBMPDE::ExtLBMPDE(Grid* grid, PtrParamNode pn)
   n_elems = n_x_ * n_y_ * n_z_;
 
   SetupElementMapping(grid);
+
+  StdVector<Elem*> tmp;
+  grid->GetElemsByName(tmp,"inlet");
+  inlet.Resize(tmp.GetSize());
+  for(unsigned int i = 0; i < inlet.GetSize(); ++i)
+    inlet[i] = elem_to_idx[tmp[i]->elemNum];
+
+  grid->GetElemsByName(tmp,"outlet");
+  outlet.Resize(tmp.GetSize());
+  for(unsigned int i = 0; i < outlet.GetSize(); ++i)
+    outlet[i] = elem_to_idx[tmp[i]->elemNum];
 
   //Initializing storage for PDFs
   pdfs.Resize(n_elems * 9);
@@ -183,7 +196,10 @@ void ExtLBMPDE::InitCoupling(PDECoupling * coupling)
 void ExtLBMPDE::DefineSolveStep()
 {
   solveStep_ = new StdSolveStep(*this);
+}
 
+void ExtLBMPDE::Solve()
+{
   switch(iface_)
   {
   case EXT_MATLAB:
@@ -213,7 +229,10 @@ void ExtLBMPDE::DefineSolveStep()
   case INTERNAL:
     assert(false);
   }
+
+  dirty_ = false;
 }
+
 
 void ExtLBMPDE::InitTimeStepping()
 {
@@ -242,7 +261,7 @@ void ExtLBMPDE::CalcOutputCoupling() {
       ptCoupling_->GetOutputNodes(i, couplingnodes);
       ptCoupling_->GetOutputValues(i, values);
 
-      if (quantity == EXTERNLBM_VELOCITY) {
+      if (quantity == LBM_VELOCITY) {
         solDeriv1_.SetAlgSysVector(getDeriv(FIRST_DERIV));
         solDeriv1_.NodeSolutionToCoupling((*values),*couplingnodes);
       }
@@ -257,35 +276,68 @@ void ExtLBMPDE::CalcOutputCoupling() {
 
 bool ExtLBMPDE::HasOutput(SolutionType output) {
 
-  if (output == EXTERNLBM_VELOCITY || output == EXTERNLBM_DENSITY)
+  if (output == LBM_VELOCITY || output == LBM_DENSITY)
     return true;
   return false;
 }
 
 void ExtLBMPDE::CalcResults( shared_ptr<BaseResult> res )
 {
+  // in case we do no do optimzation, triggers solution
+  if(dirty_)
+    Solve();
+
   SolutionType solType = res->GetResultInfo()->resultType ;
   switch (solType) {
-  case EXTERNLBM_DENSITY:
+  case LBM_DENSITY:
     CalcDensities(res);
     break;
-  case EXTERNLBM_VELOCITY:
+  case LBM_VELOCITY:
     CalcVelocities(res);
     break;
+  case LBM_PRESSURE:
+    CalcPressures(res);
+    break;
+  case MECH_PSEUDO_DENSITY:
+  case PHYSICAL_PSEUDO_DENSITY:
+    if(domain->GetErsatzMaterial(false) == NULL) // no exception
+      res->Init();
+    else
+      domain->GetErsatzMaterial()->ExtractResults(res, false);
+    break;
+
   default:
-    WARN( "Result type not computable by externLBM PDE" );
+    WARN("Result type not computable by externLBM PDE" );
     break;
   }
 }
 
 double ExtLBMPDE::CalcLBMDensity(unsigned int idx) const
 {
-
   double density = 0.0;
   for(unsigned int h = 0; h < 9; h++)
     density += pdf(idx,h);
 
   return density;
+}
+
+double ExtLBMPDE::CalcVelocityX(unsigned int idx, double density) const
+{
+  return (pdf(idx, 1) + pdf(idx, 5) + pdf(idx, 8) - pdf(idx, 3) - pdf(idx, 6) - pdf(idx, 7)) / density;
+}
+
+double ExtLBMPDE::CalcVelocityY(unsigned int idx, double density) const
+{
+  return (pdf(idx, 2) + pdf(idx, 5) + pdf(idx, 6) - pdf(idx, 4) - pdf(idx, 7) - pdf(idx, 8)) / density;
+}
+
+double ExtLBMPDE::CalcPressure(unsigned int idx) const
+{
+  double density = CalcLBMDensity(idx);
+  double ux     = CalcVelocityX(idx, density);
+  double uy     = CalcVelocityY(idx, density);
+
+  return density / 3.0 + 0.5 * density * (ux * ux + uy * uy);
 }
 
 
@@ -321,18 +373,48 @@ void ExtLBMPDE::CalcVelocities( shared_ptr<BaseResult> base_result )
     unsigned int idx = elem_to_idx[it.GetElem()->elemNum];
     double density = CalcLBMDensity(idx);
 
-    double ux   = (pdf(idx, 1) + pdf(idx, 5) + pdf(idx, 8) - pdf(idx, 3) - pdf(idx, 6) - pdf(idx, 7)) / density;
-    double uy   = (pdf(idx, 2) + pdf(idx, 5) + pdf(idx, 6) - pdf(idx, 4) - pdf(idx, 7) - pdf(idx, 8)) / density;
-
-    val[it.GetPos() * dim_] = ux;
-    val[it.GetPos() * dim_ + 1] = uy;
+    val[it.GetPos() * dim_]     = CalcVelocityX(idx, density);
+    val[it.GetPos() * dim_ + 1] = CalcVelocityY(idx, density);
   }
 }
+
+void ExtLBMPDE::CalcPressures( shared_ptr<BaseResult> base_result )
+{
+  Result<double>& res = dynamic_cast<Result<double>&>(*base_result);
+
+  EntityIterator it = res.GetEntityList()->GetIterator();
+  assert(it.GetType() == EntityList::ELEM_LIST);
+
+  Vector<double>& val = res.GetVector();
+  val.Resize(res.GetEntityList()->GetSize());
+
+  // traverse the elements
+  for(it.Begin(); !it.IsEnd(); it++)
+    val[it.GetPos()] = CalcPressure(elem_to_idx[it.GetElem()->elemNum]);
+}
+
+
+double ExtLBMPDE::CalcPressureDrop()
+{
+  // Calculation of the pressure drop by Pingen
+  double in = 0.0;
+  for(unsigned int i = 0; i < inlet.GetSize(); i++)
+    in += CalcPressure(inlet[i]);
+
+  double out = 0.0;
+  for(unsigned int i = 0; i < outlet.GetSize(); i++)
+    out += CalcPressure(outlet[i]);
+
+  return in / inlet.GetSize() - out / outlet.GetSize();
+}
+
+
 
 // ***********************************************************************
 //   Obtain information on desired output quantities from parameter file
 // ***********************************************************************
-void ExtLBMPDE::ReadSpecialResults() {
+void ExtLBMPDE::ReadSpecialResults()
+{
 }
 
 
@@ -342,50 +424,87 @@ void ExtLBMPDE::DefineAvailResults() {
   // =====================================================================
   PtrParamNode resultsNode = myParam_->Get("storeResults", ParamNode::PASS );
 
-  // === MECHANIC DISPLACEMENT (dummy result type)===
+
+  // === solution by external LBM solver and also of adjoint linear system ===
   shared_ptr<ResultInfo> disp(new ResultInfo);
   StdVector<std::string> dispDofNames;
   dispDofNames = "x", "y";
   disp->resultType = MECH_DISPLACEMENT;
   disp->dofNames = dispDofNames;
-  disp->unit = "m";
-  if( subType_ != "flatShell" ) {
-    disp->entryType = ResultInfo::VECTOR;
-  } else {
-    disp->entryType = ResultInfo::TENSOR;
-  }
+  disp->unit = "";
+  disp->entryType = ResultInfo::VECTOR;
   shared_ptr<AnsatzFct> fct(new LagrangeFct);
   disp->fctType = fct;
   disp->definedOn = ResultInfo::NODE;
   results_.Push_back( disp );
   availResults_.insert( disp);
 
-  // === macroscopic LBM density ===
+
+  // === solution by external LBM solver and also of adjoint linear system ===
+  shared_ptr<ResultInfo> prob(new ResultInfo);
+  prob->resultType = LBM_PROBABILITY_DISTRIBUTION;
+  StdVector<std::string> probDofNames;
+  probDofNames = "f_0", "f_1", "f_2", "f_3", "f_4", "f_5", "f_6", "f_7", "f_8";
+  prob->dofNames = probDofNames;
+  prob->unit = "";
+  prob->entryType = ResultInfo::VECTOR;
+  prob->fctType = shared_ptr<ConstFct>(new ConstFct());
+  prob->definedOn = ResultInfo::ELEMENT;
+  availResults_.insert(prob);
+
+
   shared_ptr<ResultInfo> dens(new ResultInfo);
-  dens->resultType = EXTERNLBM_DENSITY;
-  dens->unit =  "kg/m^3";
+  dens->resultType = LBM_DENSITY;
+  dens->unit =  "";
   dens->dofNames = "";
   dens->entryType = ResultInfo::SCALAR;
   dens->definedOn = ResultInfo::ELEMENT;
   dens->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//  results_.Push_back( dens );
   availResults_.insert( dens );
 
-  // === macroscopic LBM velocity ===
+
+  shared_ptr<ResultInfo> pres(new ResultInfo);
+  pres->resultType = LBM_PRESSURE;
+  pres->unit =  "";
+  pres->dofNames = "";
+  pres->entryType = ResultInfo::SCALAR;
+  pres->definedOn = ResultInfo::ELEMENT;
+  pres->fctType = shared_ptr<ConstFct>(new ConstFct() );
+  availResults_.insert(pres);
+
+
+  shared_ptr<ResultInfo> velo(new ResultInfo);
+  velo->resultType = LBM_VELOCITY;
   StdVector<std::string> velDofNames;
   if (dim_ == 2)
     velDofNames = "x", "y";
   else
     velDofNames = "x", "y", "z";
-  shared_ptr<ResultInfo> velo(new ResultInfo);
-  velo->resultType = EXTERNLBM_VELOCITY;
   velo->dofNames = velDofNames;
-  velo->unit =  "m/s";
+  velo->unit =  "";
   velo->entryType = ResultInfo::VECTOR;
   velo->definedOn = ResultInfo::ELEMENT;
   velo->fctType = shared_ptr<ConstFct>(new ConstFct() );
   availResults_.insert( velo );
 
+  // === PSEUDO DENSITY for SIMP ===
+  shared_ptr<ResultInfo> mechPD(new ResultInfo);
+  mechPD->resultType = MECH_PSEUDO_DENSITY;
+  mechPD->dofNames = "";
+  mechPD->unit = "";
+  mechPD->entryType = ResultInfo::SCALAR;
+  mechPD->definedOn = ResultInfo::ELEMENT;
+  mechPD->fctType = shared_ptr<ConstFct>(new ConstFct() );
+  availResults_.insert( mechPD );
+
+  shared_ptr<ResultInfo> pysicalPD(new ResultInfo);
+  pysicalPD->resultType = PHYSICAL_PSEUDO_DENSITY;
+  pysicalPD->dofNames = "";
+  pysicalPD->unit = "";
+  pysicalPD->entryType = ResultInfo::SCALAR;
+  pysicalPD->definedOn = ResultInfo::ELEMENT;
+  pysicalPD->fctType = shared_ptr<ConstFct>(new ConstFct() );
+  availResults_.insert( pysicalPD );
 }
 
 // ***********************************************************************
@@ -421,7 +540,7 @@ void ExtLBMPDE::ReadData(const std::string& filename)
 }
 
 
-void ExtLBMPDE::ExportCFS2LBM(const StdVector<double>& elements, const StdVector<Elem*>& inlets)
+void ExtLBMPDE::ExportCFS2LBM(const StdVector<double>& elements)
 {
   // the single new interface file
   std::ofstream file("CFS2LBM.dat");
@@ -447,7 +566,7 @@ void ExtLBMPDE::ExportCFS2LBM(const StdVector<double>& elements, const StdVector
 
   file << "# only for the inlet cells the space separated vectors  \n";
 
-  for (UInt i = 0; i < inlets.GetSize(); ++i)
+  for (UInt i = 0; i < inlet.GetSize(); ++i)
     file <<  u_x_ << " " << u_y_ << " " << u_z_ << std::endl;
 
   file.close();
@@ -455,25 +574,8 @@ void ExtLBMPDE::ExportCFS2LBM(const StdVector<double>& elements, const StdVector
   std::cout << "++ CFS2LBM.dat created" << std::endl;
 }
 
-void ExtLBMPDE::ExportMultipleFiles(const StdVector<double>& elements, const StdVector<Elem*>& inlets)
+void ExtLBMPDE::ExportMultipleFiles(const StdVector<double>& elements)
 {
-
-  int num_non_sing = 712;
-
-  std::ofstream data("data.dat");
-  data << n_x_ << std::endl;
-  data << n_y_ << std::endl;
-  data << 3.0 << std::endl; // penalty parameter
-  data << u_x_ << std::endl;
-  data << u_y_ << std::endl;
-  data << 1.0 << std::endl;  // density at the outlet
-  data << omega_ << std::endl; // relaxation parameter for collision step
-  data << maxIter_ << std::endl;
-  data << convergence_ << std::endl; // lbm convergence tolerance
-  data << num_non_sing << std::endl; // number of lines in non_sing.dat
-  data << 1 << std::endl; // id of objective (1=pressure drop)
-  data.close();
-
   std::ofstream por("por.dat");
   assert(n_elems == elements.GetSize());
   for(unsigned int i = 0, n = elements.GetSize(); i < n; i++)
@@ -510,21 +612,56 @@ void ExtLBMPDE::ExportMultipleFiles(const StdVector<double>& elements, const Std
     ns << (non_sing[i] + 1) << " " << std::endl; // space to allow diff with matlab's non_sing.dat
   ns.close();
 
+  std::ofstream data("data.dat");
+  data << n_x_ << std::endl;
+  data << n_y_ << std::endl;
+  data << 3.0 << std::endl; // penalty parameter
+  data << u_x_ << std::endl;
+  data << u_y_ << std::endl;
+  data << 1.0 << std::endl;  // density at the outlet
+  data << omega_ << std::endl; // relaxation parameter for collision step
+  data << maxIter_ << std::endl;
+  data << convergence_ << std::endl; // lbm convergence tolerance
+  data << non_sing.GetSize() << std::endl; // number of lines in non_sing.dat
+  data << 1 << std::endl; // id of objective (1=pressure drop)
+  data.close();
+
+
 }
 
 
 void ExtLBMPDE::ExportExternalSolverFiles()
 {
+  Grid* grd = domain->GetGrid();
+
   // find out which elements are inlet, outlet, boundary and inner ones
   StdVector<Elem*> elems;
   StdVector<Elem*> boundaries;
-  StdVector<Elem*> inlets;
-  StdVector<Elem*> outlets;
   // auxiliary vector
   StdVector<double> elements(n_elems);
   // vector initialized with porosity value of inner cells
-  elements.Init(0.5); // TODO: initial design
-  Grid* grd = domain->GetGrid();
+  elements.Init(0.0);
+
+  DesignSpace* space = domain->GetErsatzMaterial(false);
+  if(space != NULL)
+  {
+    for(unsigned int r = 0; r < design_reg_.GetSize(); r++)
+    {
+      StdVector<Elem*> elems;
+      grd->GetElems(elems, design_reg_[r]);
+
+      for(unsigned int e = 0; e < elems.GetSize(); e++)
+      {
+        const Elem* elem = elems[e];
+        int idx = space->Find(elem, true);
+        double val = space->GetErsatzMaterialFactor(idx, Optimization::LBM);
+        // the ordering of the design elements and the LBM elements might be different as it is defined for LBM
+        // and might be arbitrary in the mesh which defines the ordering in the optimization design
+        elements[elem_to_idx[elem->elemNum]] = val;
+      }
+    }
+  }
+
   StdVector<std::string> regionNames;
   grd->GetRegionNames(regionNames);
   //specify regionId for boundary and inner region
@@ -542,24 +679,18 @@ void ExtLBMPDE::ExportExternalSolverFiles()
 
   grd->GetElems(boundaries,boundId);
   grd->GetElems(elems,innerId);
-  grd->GetElemsByName(inlets,"inlet");
-  grd->GetElemsByName(outlets,"outlet");
-  // FIXME: check if index by elemNum ist nonsense!!
-  for (UInt i = 0; i < boundaries.GetSize(); ++i)
+  for (unsigned int i = 0; i < boundaries.GetSize(); ++i)
     elements[boundaries[i]->elemNum - 1] = -1.0;
-  for (UInt i = 0; i < inlets.GetSize(); ++i)
-    elements[inlets[i]->elemNum - 1] = -2.0;
-  for (UInt i = 0; i < outlets.GetSize(); ++i)
-    elements[outlets[i]->elemNum - 1] = -3.0;
 
-  // estimate u_x, u_y and u_z from xml file
-  ParamNodeList inletNodes = myParam_->Get("bcsAndLoads")->GetList("inlet");
-
+  for(unsigned int i = 0; i < inlet.GetSize(); ++i)
+    elements[inlet[i]] = -2.0;
+  for(unsigned int i = 0; i < outlet.GetSize(); ++i)
+    elements[outlet[i]] = -3.0;
 
   if(iface_ == EXT_CFSxLBM)
-    ExportCFS2LBM(elements, inlets);
+    ExportCFS2LBM(elements);
   else
-    ExportMultipleFiles(elements, inlets);
+    ExportMultipleFiles(elements);
 
 }
 
@@ -635,15 +766,10 @@ void ExtLBMPDE::IdentifyNonSingualrityIndices(Matrix<int>& obst, StdVector<unsig
         }
       }
     }
-
   }
-
-
   // restrict indices
   indices.Resize(k);
 
 }
-
-
 
 }

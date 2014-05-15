@@ -756,7 +756,6 @@ share/xml/CFS-Simulation/CFS.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Examples/SolverSpec.xml svneol=native#text/xml
 share/xml/CFS-Simulation/Examples/bubble.xml svneol=native#text/xml
 share/xml/CFS-Simulation/Examples/coordSys.xml svneol=native#text/xml
-share/xml/CFS-Simulation/Examples/externLBM.xml -text
 share/xml/CFS-Simulation/Examples/plate1.xml svneol=native#text/xml
 share/xml/CFS-Simulation/Examples/thermo-piezoelectric_static.xml -text
 share/xml/CFS-Simulation/Schemas/CFS_Analysis.xsd svneol=native#text/xml
@@ -1515,6 +1514,8 @@ source/Optimization/Excitation.cc -text
 source/Optimization/Excitation.hh -text
 source/Optimization/Function.cc -text
 source/Optimization/Function.hh -text
+source/Optimization/LBMSIMP.cc -text
+source/Optimization/LBMSIMP.hh -text
 source/Optimization/LevelSet.cc -text
 source/Optimization/LevelSet.hh -text
 source/Optimization/Objective.cc -text
