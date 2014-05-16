@@ -224,6 +224,7 @@ cfsdeps/paraview/paraview-srcdir/Utilities/VisItBridge/databases/visit_readers.x
 cfsdeps/paraview/paraview-srcdir/VTK/Common/DataModel/vtkBiQuadraticQuad.cxx -text
 cfsdeps/paraview/paraview-srcdir/VTK/Common/DataModel/vtkQuadraticQuad.cxx -text
 cfsdeps/paraview/paraview-srcdir/VTK/Common/DataModel/vtkQuadraticTriangle.cxx -text
+cfsdeps/paraview/paraview-srcdir/VTK/Filters/Geometry/vtkDataSetSurfaceFilter.cxx -text
 cfsdeps/paraview/paraview-srcdir/VTK/IO/CFSReader/CMakeLists.txt -text
 cfsdeps/paraview/paraview-srcdir/VTK/IO/CFSReader/hdf5Common.cc -text
 cfsdeps/paraview/paraview-srcdir/VTK/IO/CFSReader/hdf5Common.h -text
