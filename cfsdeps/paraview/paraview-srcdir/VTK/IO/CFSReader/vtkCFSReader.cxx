@@ -1032,76 +1032,108 @@ vtkDoubleArray* vtkCFSReader::SaveToArray( const std::vector<double>& vals,
                                            const std::string& name ) {
   
   vtkDoubleArray * ret = vtkDoubleArray::New();
-  
-  // Case 1: numDofs is 1 (scalar) or >= 3 (real vector/tensor)
-  if( numDofs == 1 || numDofs >= 3) {
-    unsigned int nDofs = numDofs;
-    bool isTensor = (entryType == H5CFS::TENSOR);
+  double * retPtr = NULL;
+  unsigned int nDofs = numDofs;
+  bool isTensor = (entryType == H5CFS::TENSOR);
 
-    if(isTensor) {
-      nDofs = 6;
+  if(!isTensor) 
+  {
+    // Handle scalar and vector results.
+    // Case 1: numDofs is 1 (scalar) or 2 (vector in 2D) or 3 (vector in 3D)
+
+    // We handle 2D vectors also as 3D vectors.
+    if( numDofs == 2 ) {
+      nDofs = 3;
     }
     
     ret->SetNumberOfComponents( nDofs );
-    ret->SetNumberOfTuples( numEntities);
+    ret->SetNumberOfTuples( numEntities );
     ret->SetName( name.c_str() );
-    double * retPtr = ret->GetPointer(0);
+    retPtr = ret->GetPointer(0);
+    DBG_OUT("numEntities should be " << numEntities);
+    DBG_OUT("length of vals array is " << vals.size());
+
+    for( unsigned int j = 0; j < numEntities; j++ ) {
+      unsigned int idxSrc = j*numDofs;
+      unsigned int idxDst = j*nDofs;
+      unsigned int dof = 0;
+
+      for( ; dof < numDofs; dof++ ) { 
+        retPtr[idxDst+dof] = vals[idxSrc+dof];
+      }
+      
+      // Case 2: numDofs (vector field in 2D)
+      // -> add artificial 3rd component, which is 0
+      if(numDofs < nDofs) 
+      {
+        retPtr[idxDst+numDofs] = 0.0;
+      }
+    }
+  }
+  else 
+  {
+    // Handle Tensor results
+
+    // We handle 2D Strains/Stresses also as full 3D tensors.
+    if( numDofs == 3 ) {
+      nDofs = 6;
+    }
+
+    ret->SetNumberOfComponents( nDofs );
+    ret->SetNumberOfTuples( numEntities );
+    ret->SetName( name.c_str() );
+    retPtr = ret->GetPointer(0);
     unsigned int numEntries = nDofs * numEntities;
     DBG_OUT("numEntries should be " << numEntries);
     DBG_OUT("length of vals array is " << vals.size());
-    
-    if(isTensor) {
-      // Since VTK and ParaView have a different ordering of Voigt vectors,
-      // we fill our components accordingly.
-      switch(numDofs) {
-        case 3:
-          {
-            unsigned idx;
-            for( unsigned int iEnt = 0; iEnt < numEntities; iEnt++ ) { 
-              idx = iEnt*nDofs;
-              retPtr[idx+0] = vals[iEnt*3+0];
-              retPtr[idx+1] = vals[iEnt*3+1];
-              retPtr[idx+2] = 0.0;
-              retPtr[idx+3] = vals[iEnt*3+2];
-              retPtr[idx+4] = 0.0;
-              retPtr[idx+5] = 0.0;
-            }
-          }
-          break;
-        case 6:
-          {
-            unsigned idx;
-            for( unsigned int iEnt = 0; iEnt < numEntities; iEnt++ ) { 
-              idx = iEnt*nDofs;
-              retPtr[idx+0] = vals[idx+0];
-              retPtr[idx+1] = vals[idx+1];
-              retPtr[idx+2] = vals[idx+2];
-              retPtr[idx+3] = vals[idx+5];
-              retPtr[idx+4] = vals[idx+3];
-              retPtr[idx+5] = vals[idx+4];
-            }
-          }
-          break;
+
+    // Since VTK and ParaView have a different ordering of Voigt vectors,
+    // we fill our components accordingly.
+    switch(numDofs) {
+    case 3:
+      {
+        // Plane Strain/Stress
+        unsigned idx;
+        for( unsigned int iEnt = 0; iEnt < numEntities; iEnt++ ) { 
+          idx = iEnt*nDofs;
+          retPtr[idx+0] = vals[iEnt*3+0];
+          retPtr[idx+1] = vals[iEnt*3+1];
+          retPtr[idx+2] = 0.0;
+          retPtr[idx+3] = vals[iEnt*3+2];
+          retPtr[idx+4] = 0.0;
+          retPtr[idx+5] = 0.0;
+        }
       }
-    } else {
-      for( unsigned int j = 0; j < numEntries; j++ ) { 
-        retPtr[j] = vals[j];
+      break;
+    case 6:
+      {
+        // 3D Stress/Strain
+        unsigned idx;
+        for( unsigned int iEnt = 0; iEnt < numEntities; iEnt++ ) { 
+          idx = iEnt*nDofs;
+          retPtr[idx+0] = vals[idx+0];
+          retPtr[idx+1] = vals[idx+1];
+          retPtr[idx+2] = vals[idx+2];
+          retPtr[idx+3] = vals[idx+5];
+          retPtr[idx+4] = vals[idx+3];
+          retPtr[idx+5] = vals[idx+4];
+        }
       }
-    }
-  } else {
-    // Case 2: numDofs (vector field in 2D)
-    // -> add artificial 3rd component, which is 0
-    ret->SetNumberOfComponents( 3 );
-    ret->SetNumberOfTuples( numEntities );
-    ret->SetName( name.c_str() );
-    double * retPtr = ret->GetPointer(0);
-    unsigned int index = 0;
-    for( unsigned int iEnt = 0; iEnt < numEntities; iEnt++ ) { 
-      retPtr[index++] = vals[iEnt*2+0];
-      retPtr[index++] = vals[iEnt*2+1];
-      retPtr[index++] = 0.0;
-    }
+      break;
+    default:
+      {
+        // Also axi-symmetric case (4-components) is handled here.
+        // We have adapted the component names (RR, ZZ, RZ, PHIPHI)
+        // for 4-component tuples in 
+        // ParaViewCore/VTKExtensions/Core/vtkPVPostFilter.cxx
+        for( unsigned int iEnt = 0; iEnt < numEntities; iEnt++ ) { 
+          retPtr[iEnt] = vals[iEnt];
+        }
+      }
+      break;
+    }    
   }
+
   return ret;
   
   // Alternative, slower way of filling a double array

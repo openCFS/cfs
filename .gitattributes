@@ -216,6 +216,7 @@ cfsdeps/paraview/paraview-srcdir-mingw/Utilities/VisItBridge/Library/VisItLib/co
 cfsdeps/paraview/paraview-srcdir-mingw/VTK/Utilities/HashSource/vtkHashSource.cxx -text
 cfsdeps/paraview/paraview-srcdir-mingw/VTK/Web/WebGLExporter/vtkWebGLExporter.cxx -text
 cfsdeps/paraview/paraview-srcdir/ParaViewCore/ServerManager/SMApplication/Resources/readers.xml -text
+cfsdeps/paraview/paraview-srcdir/ParaViewCore/VTKExtensions/Core/vtkPVPostFilter.cxx -text
 cfsdeps/paraview/paraview-srcdir/Qt/Components/Resources/XML/ColorMaps.xml -text
 cfsdeps/paraview/paraview-srcdir/Utilities/VisItBridge/databases/CGNS/avtCGNSFileFormat.C -text
 cfsdeps/paraview/paraview-srcdir/Utilities/VisItBridge/databases/CMakeLists.txt -text
