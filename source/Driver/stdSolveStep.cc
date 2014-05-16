@@ -605,15 +605,15 @@ class Hysteresis;
 
         //check concerning the Dirichlet values; due to incremental formulation,
         //the inhomogeneous Dirichlet BCs are just ones allowed to update the solution!!
-//         UInt couplingIter = 0;
-//         if ( PDE_.IsIterCoupled() ) 
-//           couplingIter = PDE_.GetIterCoupledCounter();
+        UInt couplingIter = 0;
+        if ( PDE_.IsIterCoupled() ) 
+          couplingIter = PDE_.GetIterCoupledCounter();
         
-//         bool isIDBC = false;
-//         if ( iterationCounter == 1 && couplingIter == 0 )
-//           isIDBC = true;        
+        bool isIDBC = false;
+        if ( iterationCounter == 1 && couplingIter == 0 )
+          isIDBC = true;        
  
-//         algsys_->SetIDBC(isIDBC);
+        algsys_->SetIDBC(isIDBC);
 
         algsys_->Solve(child_id);
 
