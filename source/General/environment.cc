@@ -562,6 +562,10 @@ namespace CoupledField {
       return "Ws";
       break;
 
+    case MAG_SURF_CURRENT:
+      return "A/m";
+      break;
+
     case MAG_FORCE_VWP:
       return "N";
       break;
@@ -1410,6 +1414,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_HFIELD, "magHfield");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT, "magEddyCurrent");
+    SolutionTypeEnum.Add(MAG_SURF_CURRENT, "magSurfCurrent");
     SolutionTypeEnum.Add(MAG_FORCE_VWP, "magForceVWP");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ, "magForceLorentz");
     SolutionTypeEnum.Add(MAG_ENERGY, "magEnergy");

@@ -669,6 +669,17 @@
            </xsd:attribute>
          </xsd:complexType>
        </xsd:element>
+       <xsd:element name="prescribedRHS">
+         <xsd:complexType>
+           <xsd:attribute name="value">
+             <xsd:simpleType>
+               <xsd:restriction base="DT_DoubleList">
+                 <xsd:maxLength value="6"/>
+               </xsd:restriction>
+             </xsd:simpleType>
+           </xsd:attribute>
+         </xsd:complexType>
+       </xsd:element>
        <xsd:element name="computeLHS"/>
      </xsd:choice>
      <xsd:attribute name="region"  type="xsd:token"/>

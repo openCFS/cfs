@@ -539,8 +539,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
    nonLin_ = false;
    std::map<std::string, NonLinType>::iterator it;
    for ( it=nonLinTypes_.begin() ; it != nonLinTypes_.end(); it++ ) {
-     if ( (*it).second == GEOMETRIC )
+     if ( (*it).second == GEOMETRIC ) {
        nonLin_ = true;
+       //totalFormulation_ = true;
+     }
    }
 
    ParamNodeList regionNodes = 
@@ -691,7 +693,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       else {
         // ==============  add "standard" linear stiffness ===========================  
         // this we also have to do for geometric nonlinearity   
-        if ( !isMicroPiezo ) { 
+
+        if ( ( nonLinTypes.Find(GEOMETRIC) == -1 ) && !isMicroPiezo ) {
+          //          std::cout << "ADD LIN STIFF \n" << std::endl; 
           BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat, actRegion);
 
           //check  for softening!
@@ -766,6 +770,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         // pass solution pointer to nonlinear forms
         nLinPart1->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
         nLinPart2->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+
+        nLinPart1->SetSum4Boperator ();
 
         BiLinFormContext * stiffNL1Descr =
           new BiLinFormContext(nLinPart1, STIFFNESS );
@@ -851,7 +857,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         assemble_->AddLinearForm( nLinRhs );
       }
 
-      if (  preStressList_[actRegion] == "RHS" ) {
+      //check for prestressing
+      if (  preStressList_[actRegion] == "prescribedRHS" ) {
         Vector<Double> preStress = preStressVal_[actRegion];
 
         //transform the type
@@ -866,10 +873,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         assemble_->AddLinearForm( linRhs );
       }
       
-      //check for prestressing
-      if (  preStressList_[actRegion] == "RHS" ) {
-        EXCEPTION("RHS prestressing is not implemented ");
-      }
       else if ( preStressList_[actRegion] == "prescribedLHS"
           || preStressList_[actRegion] == "computeLHS" ) {
         //
@@ -2589,11 +2592,19 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         stressNodes[k]->GetValue( "region", actRegionName );
         RegionIdType actRegion = ptgrid_->GetRegion().Parse( actRegionName );
         // fetch data
-        if ( stressNodes[k]->Has( "prescribedLHS" ) ) {
-          preStressList_[actRegion] = "prescribedLHS";
+        if ( stressNodes[k]->Has( "prescribedLHS") ||  stressNodes[k]->Has( "prescribedRHS") ) {
           Matrix<Double> preStressMat;
-          ParamTools::AsTensor<double>(stressNodes[k]->Get("prescribedLHS" )->Get("value"),
-              1,6, preStressMat );
+          if (  stressNodes[k]->Has( "prescribedLHS" ) ) {
+            preStressList_[actRegion] = "prescribedLHS";
+            ParamTools::AsTensor<double>(stressNodes[k]->Get("prescribedLHS" )->Get("value"),
+                                         1,6, preStressMat );
+          }
+          else if ( stressNodes[k]->Has( "prescribedRHS" ) ) {
+            preStressList_[actRegion] = "prescribedRHS";           
+            ParamTools::AsTensor<double>(stressNodes[k]->Get("prescribedRHS" )->Get("value"),
+                                         1,6, preStressMat );
+          }
+
           // transform to vector
           Vector<Double> preStressVec;
           preStressVec.Resize( preStressMat.GetNumCols());
