@@ -14,6 +14,8 @@
 
 #include <def_expl_templ_inst.hh>
 
+#include <fstream>
+
 #include "CoefFunctionGridNodalInterp.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -320,6 +322,9 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
       if (regIt != endIt) oss << ", ";
     }
     WARN("There were " << elemCounter << " unmapped nodes from source region(s) \'" << oss.str() << "\' which are not mapped to region \'" << this->destRegionName_ << "\'. Perhaps you should increase the tolerances!");
+    if(this->verbose_ == true){
+      PrintNodesToCSV(foundElements,nodeGlobCoords);
+    }
   }
 
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("numUnmappedNodes")->SetValue(elemCounter);
@@ -337,6 +342,28 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
     }
   }
 }
+
+template<typename DATA_TYPE>
+void CoefFunctionGridNodalInterp<DATA_TYPE>::PrintNodesToCSV(const StdVector<const Elem*>& foundElements,
+                                                                     const StdVector< Vector<Double> >& nodeGlobCoords){
+
+  RegionIdType regID = this->destGrid_->GetRegion().Parse(this->destRegionName_);
+  std::string filename = "unmappedNodes_" + this->destRegionName_+ ".csv";
+  std::cerr << "Printing unmapped node coordinates to file: " << filename << std::endl;
+  std::ofstream outFile(filename.c_str(), std::ios::out | std::ios::trunc);
+  outFile << "x coord, y coord, z coord, scalar\n";
+  for (UInt i=0; i<foundElements.GetSize(); ++i) {
+    if (!foundElements[i]) {
+       Vector<Double> coord = nodeGlobCoords[i];
+       outFile << coord[0] << ", " << coord[1];
+       if(coord.GetSize()==3)
+         outFile << ", " << coord[2];
+       outFile << ", " << regID << "\n";
+    }
+  }
+  outFile.close();
+}
+
 
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode){

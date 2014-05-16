@@ -133,6 +133,10 @@ private:
   ///Compute datastructures for conservative interpolation
   void MapElemNodesConservative();
 
+  //! print unmaped nodes to CSV file for paraview read in
+  virtual void PrintNodesToCSV(const StdVector<const Elem*>& foundElements,
+                                  const StdVector< Vector<Double> >& nodeGlobCoords);
+
   //@{ \name Conservative interpolation datastructures
   ///flag to determine if everything is ready to go
   bool consInterpReady_;

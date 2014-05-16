@@ -80,57 +80,100 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
  
  void Elem::CorrectConnectivity( const Grid& grid )
  {
-    UInt dummy;
+   UInt dummy;
 
-    // This function rearanges the connectivity of the element so
-    // that the orientation is in such a way that the Jacobion determinant
-    // will always be positive. 
-    switch(type) 
-    {
-    case ET_TRIA6:
-      dummy = connect[4];
-      connect[4] = connect[5];
-      connect[5] = dummy;
-    case ET_TRIA3:
-      dummy = connect[0];
-      connect[0] = connect[1];
-      connect[1] = dummy;
-      break;
-    case ET_QUAD9:
-    case ET_QUAD8:
-      dummy = connect[4];
-      connect[4] = connect[7];
-      connect[7] = dummy;
-      dummy = connect[5];
-      connect[5] = connect[6];
-      connect[6] = dummy;
-    case ET_QUAD4:
-      dummy = connect[1];
-      connect[1] = connect[3];
-      connect[3] = dummy;
-      break;
-    case ET_TET10:
-      dummy = connect[4];
-      connect[4] = connect[8];
-      connect[8] = dummy;
-
-      dummy = connect[6];
-      connect[6] = connect[9];
-      connect[9] = dummy;
-
-    case ET_TET4:
-      dummy = connect[0];
-      connect[0] = connect[3];
-      connect[3] = dummy;
-      break;
-    default:
-      std::cout << "element " << elemNum << " " << std::endl;
-      EXCEPTION("Connectivity for " << feType.ToString(type) << " element "
-                << elemNum << " in region "
-                << grid.GetRegion().ToString(regionId)
-                << " is not properly oriented!" );
-      break;
-    }
+   // This funtion rearanges the connectivity of the element so
+   // that the orientation is in such a way that the Jacobian determinant
+   // will always be positive.
+   switch(type)
+   {
+   case ET_TRIA6:
+     dummy = connect[4];
+     connect[4] = connect[5];
+     connect[5] = dummy;
+   case ET_TRIA3:
+     dummy = connect[0];
+     connect[0] = connect[1];
+     connect[1] = dummy;
+     break;
+   case ET_QUAD8:
+   case ET_QUAD9:
+     dummy = connect[4];
+     connect[4] = connect[7];
+     connect[7] = dummy;
+     dummy = connect[5];
+     connect[5] = connect[6];
+     connect[6] = dummy;
+   case ET_QUAD4:
+     dummy = connect[1];
+     connect[1] = connect[3];
+     connect[3] = dummy;
+     break;
+   case ET_TET10:
+     dummy = connect[4];
+     connect[4] = connect[7];
+     connect[7] = connect[9];
+     connect[9] = connect[5];
+     connect[5] = dummy;
+     dummy = connect[6];
+     connect[6] = connect[8];
+     connect[8] = dummy;
+   case ET_TET4:
+     dummy = connect[3];
+     connect[3] = connect[2];
+     connect[2] = connect[1];
+     connect[1] = connect[0];
+     connect[0] = dummy;
+     dummy = connect[3];
+     break;
+   case ET_HEXA20:
+     for (int n1=8; n1<=11; n1++) {
+       dummy = connect[n1];
+       connect[n1] = connect[n1+4];
+       connect[n1+4] = dummy;
+     }
+   case ET_HEXA8:
+     for (int n1=0; n1<=3; n1++) {
+       dummy = connect[n1];
+       connect[n1] = connect[n1+4];
+       connect[n1+4] = dummy;
+     }
+     break;
+   case ET_PYRA13:
+     dummy = connect[8];
+     connect[8] = connect[6];
+     connect[6] = dummy;
+     dummy = connect[7];
+     connect[7] = connect[5];
+     connect[5] = dummy;
+     dummy = connect[12];
+     connect[12] = connect[10];
+     connect[10] = dummy;
+   case ET_PYRA5:
+     dummy = connect[1];
+     connect[1] = connect[3];
+     connect[3] = dummy;
+     break;
+   case ET_WEDGE15:
+     for (int n1=6; n1<=8; n1++) {
+       dummy = connect[n1];
+       connect[n1] = connect[n1+3];
+       connect[n1+3] = dummy;
+     }
+   case ET_WEDGE6:
+     for (int n1=0; n1<=2; n1++) {
+       dummy = connect[n1];
+       connect[n1] = connect[n1+3];
+       connect[n1+3] = dummy;
+     }
+     break;
+   default:
+     EXCEPTION("Connectivity for " << feType.ToString(type) << " element "
+               << elemNum << " in region "
+               << grid.GetRegion().ToString(regionId)
+               << " is not properly oriented!" );
+     break;
+   }
   }
   
   void SetElemInfo( ElemShape& shape,

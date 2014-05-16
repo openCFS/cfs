@@ -3338,14 +3338,20 @@ namespace CoupledField {
     // if some elements were successfully reoriented, issue warning
     if(corrElems.size() > 0 ) {
       std::stringstream out;
-      out << "The following elements have a wrong orientation and "
-          << "were re-oriented:\n";
-      std::set<const Elem*>::iterator it = corrElems.begin();
-      for( ; it != corrElems.end(); it++  ) {
-        out << (*it)->elemNum << ", ";
+      if(corrElems.size() > 10){
+        out << "A total number of " << corrElems.size() << " elements"
+            << " had a wrong orientation and were reoriented."
+            << "\n Usually this does not lead to further errors.";
+      }else{
+        out << "The following elements have a wrong orientation and "
+            << "were re-oriented:\n";
+        std::set<const Elem*>::iterator it = corrElems.begin();
+        for( ; it != corrElems.end(); it++  ) {
+          out << (*it)->elemNum << ", ";
+        }
+        out << "\n\nPlease check your mesh!\n";
       }
-      out << "\n\nPlease check your mesh!\n";
-      WARN( out.str().c_str() );
+        WARN( out.str().c_str() );
     }
 
     // if some elements could not be reoriented, generate exception
