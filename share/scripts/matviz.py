@@ -257,7 +257,7 @@ if h5_read or dim_2D:
         if args.hom_grad == 'none':
           viz = show_rot_cross(coords, s1, s2, angle[:,0], args.hom_dir, args.res, args.scale, args.color, args.save)
         else:
-          viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, args.scale)
+          viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, args.scale, args.save)
       elif args.show == "stream":
           viz = show_streamline(coords, s1, s2, angle[:,0], args.hom_dir, args.scale, args.minimal, args.stream_style, args.stream_step, args.hom_samples, args.stream_s2_samples, args.res, args.save <> None, info)            
       else:

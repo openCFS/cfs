@@ -126,7 +126,7 @@ def to_rectangle_center(height, width, angle, x_offset, y_offset):
 
 # draws a rotated frustum
 # @param direction either vertical or horizontal, not all! or 'sagittal'
-def to_frustum_center(start, end, center, elem_scale, elem, scale, direction):
+def to_frustum_center(start, end, center, elem, scale, direction):
   # 4 ------- 3
   # |         |
   # |         |
@@ -138,8 +138,10 @@ def to_frustum_center(start, end, center, elem_scale, elem, scale, direction):
   if direction == 'vertical':
     angle += 0.5 * numpy.pi
     
-  idx = 0 if direction == 'vertical' else 1
-  alt_idx = 1 if direction == 'vertical' else 0  
+  idx = 0 if direction == 'vertical' else 0
+  alt_idx = 1 if direction == 'vertical' else 1  
+
+  # print "to_frustum_centet: start=" + str(start) + " end=" + str(end) + " center=" + str(center) + " d=" + str(direction) + ' idx=' + str(idx)   
     
   val_1 = start[idx] 
   val_2 = end[idx]
@@ -162,7 +164,7 @@ def to_frustum_center(start, end, center, elem_scale, elem, scale, direction):
   for i in range(4):
     #print "i=" + str(i + 1) + " -> " + str(points[i])
     r = (cos(angle) * points[i][0] -sin(angle)*points[i][1], sin(angle) * points[i][0] + cos(angle) * points[i][1])
-    tupl.append(((center[0] + r[0]) * elem_scale[0], (center[1] + r[1]) * elem_scale[1]))
+    tupl.append(((center[0] + r[0]), (center[1] + r[1])))
   
   return tupl
 
@@ -352,20 +354,17 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
 
 ## visualize the orientational stiffness
 # @return the image
-def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale=-1):
+def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale, do_save):
 
   centers, min, max, elem = coords
-
-  im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white") 
-
-#  delta_angle = numpy.max(angle) - numpy.max(angle) 
+  
+  fig, sub = create_figure(min, max, nx, do_save)
+  
   delta_angle = numpy.max(angle[:]) - numpy.max(angle[:]) 
 
   #print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " min=" + str(min) + " max=" + str(max)
   ip_data, ip_near, out, nx, ny = get_interpolation(coords, grad, 'edge_centers', s1, s2, angle)
 
-  #print "nx="  + str(nx) + " ny=" + str(ny)
-  
   if scale == -1:
     scale = 1.0 if delta_angle == 0.0 else 0.8 
 
@@ -375,27 +374,25 @@ def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale=-1):
       for x in range(nx):
         start, v_start = get_interpol_data(out, ip_data, ip_near, nx + y * (2*nx+1) + x)
         right, v_right = get_interpol_data(out, ip_data, ip_near, nx + y * (2*nx+1) + x + 1)
-        
-        center = ((0.5 * (start[0] + right[0]), max[1] - start[1]))
-        
-        pol = to_frustum_center(v_start, v_right, center, (dx, dy), elem, scale, 'horizontal') 
-        draw.polygon(pol, fill="black")
+
+        center = ((0.5 * (start[0] + right[0]),start[1]))
+        # print 'start=' + str(start) + ' v_start=' + str(v_start)
+
+        pol = to_frustum_center(v_start, v_right, center, elem, scale, 'horizontal')
+        draw_verts(pol, sub, 'black') 
   
   if not direction == 'horizontal':
     for y in range(ny):
       for x in range(nx):
-        start, v_start = get_interpol_data(out, ip_data, ip_near, y * (2*nx+1) + x)
-        upper, v_upper = get_interpol_data(out, ip_data, ip_near, (y+1) * (2*nx+1) + x)
+        start, v_start = get_interpol_data(out, ip_data, ip_near, (y+1) * (2*nx+1) + x)
+        upper, v_upper = get_interpol_data(out, ip_data, ip_near,  y * (2*nx+1) + x)
 
-        center = ((start[0], max[1] - 0.5 * (start[1] + upper[1])))
+        center = ((start[0], 0.5 * (start[1] + upper[1])))
 
-        #if y == 0:
-        #  print "start=" + str(start) + " right=" + str(right) + " v_start=" + str(v_start) + " v_upper=" + str(v_upper)
-        
-        pol = to_frustum_center(v_upper, v_start, center, (dx, dy), elem, scale, 'vertical') 
-        draw.polygon(pol, fill="black")
+        pol = to_frustum_center(v_upper, v_start, center, elem, scale, 'vertical') 
+        draw_verts(pol, sub, 'black') 
 
-  return im  
+  return (fig, sub)  
 
 
 
