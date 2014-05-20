@@ -21,6 +21,8 @@ namespace CoupledField {
 class BaseResult;
 class Grid;
 class PDECoupling;
+class DesignElement;
+class Function;
 }  // namespace CoupledField
  
 namespace CoupledField
@@ -31,6 +33,7 @@ namespace CoupledField
   {
 
   public:
+    typedef enum { INTERNAL, EXT_MATLAB, EXT_CFSxLBM } Iface;
 
     //!  Constructor. here we read integration parameters
     /*!
@@ -67,6 +70,9 @@ namespace CoupledField
      * Triggered also by CalcResults() if dirty_ is set */
     void Solve();
 
+    /** For the olt multi-file interface, reads the files x_pardiso2.dat and dRdp.mtx and computes the gradient */
+    void SetPrecalculatedGradient(StdVector<DesignElement*>& design, Function* f);
+
     /** Üerform postprocessing on data. Conditionally calls Solve() if dirty is set */
     void CalcResults( shared_ptr<BaseResult> result );
 
@@ -77,6 +83,8 @@ namespace CoupledField
     virtual bool HasOutput(SolutionType output);
 
     virtual void ReadSpecialResults();
+
+    Iface GetIface() const { return iface_; }
 
     //! Contains LBM velocity
     NodeStoreSol<Double> solDeriv1_;
@@ -122,9 +130,8 @@ namespace CoupledField
 
     void CalcPressures(shared_ptr<BaseResult> res);
 
-
     // reads discrete velocities from extern LBM simulation
-    void ReadData(const std::string& file);
+    void ReadProbabilityDistribution(const std::string& file);
 
     /** export file(s) for external LBM communication. Checks iface_ */
     void ExportExternalSolverFiles();
@@ -182,7 +189,6 @@ namespace CoupledField
     /** this are the indices of the outlet elements */
     StdVector<unsigned int> outlet;
 
-
     double omega_;
     double maxWallTime_;
     unsigned int maxIter_;
@@ -196,7 +202,6 @@ namespace CoupledField
     std::string executable;
 
     /** type of interface */
-    typedef enum { INTERNAL, EXT_MATLAB, EXT_CFSxLBM } Iface;
     Iface iface_;
     Enum<Iface> iface;
   };

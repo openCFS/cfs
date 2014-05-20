@@ -13,27 +13,64 @@ import scipy.interpolate as ip
 
 
 ## create and prepare a matplot figure where patched might be "added" to
-# def create_figure(min, max):
-#   fig = plt.figure()
-#   ax = fig.add_subplot(111, aspect='equal')
-#   ax.set_xlim(min[0],max[0])
-#   ax.set_ylim(min[1],max[1])
-#   
-#   return fig, ax
-
-## create and prepare a matplot figure where patched might be "added" to
-def create_figure(min, max, res):
+def create_figure(min, max, res, for_save):
   
+  # we set the aspect ration and also the resolution such that we can export as png
+  # the problem is that we set the size of the figure but export the subplot w/o axes which is smaller than the figure
+  
+  # the dirty solution is to create the figure twice scaled by the error
   dpi_x = (res / 100) * (max[0] - min[0]) 
   dpi_y = dpi_x * (max[1] - min[1]) / (max[0] - min[0]) 
   
-  fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
+  fig = None
+  if for_save:
+    fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
+  else:
+    fig = matplotlib.pyplot.figure()
   ax = fig.add_subplot(111)
+
+  if for_save:
+    wrong = ax.get_window_extent().size
+    dpi_x *= res / wrong[0]  
+    dpi_y *= (dpi_y * 100) / wrong[1] 
+    fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
+    matplotlib.pyplot.axis('off')
+    ax = fig.add_subplot(111)
+    # the second figure would make problems with matplotlib.pyplot.show()
+  
   ax.set_xlim(min[0],max[0])
   ax.set_ylim(min[1],max[1])
   return fig, ax
 
-
+## @param centers barycenters
+# @param min/max minimal/maximal real node (not barycenter)
+# @retuen image, draw, dim of image, dx to scale from node coord to image coords  
+def create_image_new(centers, min, max, nx, color = "white"):
+  dim = (nx, int(nx *  (max[1] + min[1]) / (max[0] + min[0])))
+  
+  dx = dim[0] / (max[0] + 2.0 * min[0])
+  dy = dim[1] / (max[1] + 2.0 * min[1])
+ 
+  # print "dx=" + str(dx) + " dy=" + str(dy) + " nx=" + str(nx) + " dim=" + str(dim) + " max=" + str(max) 
+  im = Image.new("RGB", dim, color)
+  draw = ImageDraw.Draw(im)
+  
+  return im, draw, dim, dx, dy  
+  
+def create_image(centers, nx,color = "white"):
+  # zoom gives proper offsets of the elements
+  min, max = find_corners(centers) # we assume the real grid to start at 0/0
+  
+  dim = (nx, int(nx *  (max[1] + min[1]) / (max[0] + min[0]))) 
+  
+  dx = dim[0] / (max[0] + 2.0 * min[0])
+  dy = dim[1] / (max[1] + 2.0 * min[1])
+  
+  im = Image.new("RGB", dim, color)
+  draw = ImageDraw.Draw(im)
+  
+  return im, draw, dim, dx, dy, min, max
+  
 
 
 ## @return phi, r
@@ -143,35 +180,6 @@ def to_rectangle_corner(lower, upper):
   
   return tupl  
 
-  
-## @param centers barycenters
-# @param min/max minimal/maximal real node (not barycenter)
-# @retuen image, draw, dim of image, dx to scale from node coord to image coords  
-def create_image_new(centers, min, max, nx, color = "white"):
-  dim = (nx, int(nx *  (max[1] + min[1]) / (max[0] + min[0])))
-  
-  dx = dim[0] / (max[0] + 2.0 * min[0])
-  dy = dim[1] / (max[1] + 2.0 * min[1])
- 
-  # print "dx=" + str(dx) + " dy=" + str(dy) + " nx=" + str(nx) + " dim=" + str(dim) + " max=" + str(max) 
-  im = Image.new("RGB", dim, color)
-  draw = ImageDraw.Draw(im)
-  
-  return im, draw, dim, dx, dy  
-  
-def create_image(centers, nx,color = "white"):
-  # zoom gives proper offsets of the elements
-  min, max = find_corners(centers) # we assume the real grid to start at 0/0
-  
-  dim = (nx, int(nx *  (max[1] + min[1]) / (max[0] + min[0]))) 
-  
-  dx = dim[0] / (max[0] + 2.0 * min[0])
-  dy = dim[1] / (max[1] + 2.0 * min[1])
-  
-  im = Image.new("RGB", dim, color)
-  draw = ImageDraw.Draw(im)
-  
-  return im, draw, dim, dx, dy, min, max
   
 ## helper for show_rot_frame_grad
 def get_interpol_data(coords, data, fallback, x, eval = True):
@@ -442,89 +450,58 @@ def show_frame(coords, s1, s2, directions, nx):
 
 
 # @return the image
-def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1.0, color="grayscale", save=None):
+def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
 
   centers, min, max, elem = coords
 
-  if save == None:
-    im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white") 
-  else:
-    dim = (max[0]-min[0], max[1]-min[1])
-    #dim = (nx, int(nx *  (max[1] + min[1]) / (max[0] + min[0])))  
-    dx = 1#dim[0] / (max[0] + 2.0 * min[0])
-    dy = 1#dim[1] / (max[1] + 2.0 * min[1])
-    im, axsubplot = create_figure(min, max, nx)
-    
+  fig, sub = create_figure(min, max, nx, do_save)
+
   delta_angle = numpy.max(angle) - numpy.max(angle) 
 
   if scale == -1.0:
     scale = 1.02 if delta_angle == 0.0 else 0.8 
 
-  length =  scale * (elem[0]) * dx
+  length =  scale * (elem[0])
   
   max_val = numpy.max([numpy.max(s1), numpy.max(s2)])
   min_val = numpy.min([numpy.min(s1), numpy.min(s2)])
-  sm = cmx.ScalarMappable(colors.Normalize(vmin=min_val, vmax=max_val), cmap=plt.get_cmap('Greys'))
 
   for i in range(len(s1)):
   
     coord = centers[i]
 
-    x_off = (coord[0] + min[0]) * dx
-    y_off = (coord[1] + min[1]) * dy
+    x_off = (coord[0] + min[0])
+    y_off = (coord[1] + min[1])
 
     # we need downscale the values when we overscale due to overlapping 
-    v1 = [0,0]
-    v1[0] = s1[i,0] / numpy.max((scale, 1.))
-    v1[1] = s2[i,0] / numpy.max((scale, 1.))
+    v = [0,0]
+    v[0] = s1[i,0] / numpy.max((scale, 1.))
+    v[1] = s2[i,0] / numpy.max((scale, 1.))
     theta = angle[i]
     c = [0,0]
-    if save == None:
-      c[0] = color_code(sm,v1[0]) if color == "grayscale" else color_code(sm, max_val)
-      c[1] = color_code(sm,v1[1]) if color == "grayscale" else color_code(sm, max_val)
-    else:
-      m = numpy.max([numpy.max(s1), numpy.max(s2)])
-      c[0] = v1[0]/m
-      c[1] = v1[1]/m
+    c[0] = str(1.0 - v[0] / max_val) if color == "grayscale" else 'black'
+    c[1] = str(1.0 - v[1] / max_val) if color == "grayscale" else 'black'
+
+    #print 'S=' + str(s1[i,0]) + '/' + str(s2[i,0])  + ' v=' + str(v) + ' c=' + str(c)
 
     # a
     if direction == 'horizontal': 
-      pol = to_rectangle_center(length * v1[0], length, theta, x_off, dim[1] - y_off)
-      if save == None:
-        draw.polygon(pol, fill=c[0], outline=c[0])
-      else:
-        draw_verts(pol, axsubplot, str(1.0 - c[0]))    
+      pol = to_rectangle_center(length * v[0], length, theta, x_off, dim[1] - y_off)
+      draw_verts(pol, sub, c[0])    
     # b
     elif direction == 'vertical':
-      pol = to_rectangle_center(length * v1[1], length, theta + numpy.pi/2, x_off, dim[1] - y_off)
-      if save == None: 
-        draw.polygon(pol, fill=c[1], outline=c[1])
-      else:
-        draw_verts(pol, axsubplot, str(1.0 - c[1]))
+      pol = to_rectangle_center(length * v[1], length, theta + numpy.pi/2, x_off, y_off)
+      draw_verts(pol, sub, c[1])
     else:
-      vmax = 0 if v1[0] > v1[1] else 1
+      vmax = 0 if v[0] > v[1] else 1
       vmin = (vmax + 1) % 2
-      pol = to_rectangle_center(length * v1[vmin], length, theta + vmin*numpy.pi/2, x_off, dim[1] - y_off)
-      if save == None: 
-        draw.polygon(pol, fill=c[vmin], outline=c[vmin])
-      else:
-        draw_verts(pol, axsubplot, str(1.0 - c[vmin]))
-      pol = to_rectangle_center(length * v1[vmax], length, theta + vmax*numpy.pi/2, x_off, dim[1] - y_off)
-      if save == None: 
-        draw.polygon(pol, fill=c[vmax], outline=c[vmax])
-      else:
-        draw_verts(pol, axsubplot, str(1.0 - c[vmax]))
+      pol = to_rectangle_center(length * v[vmin], length, theta + vmin*numpy.pi/2, x_off, y_off)
+      #draw_verts(pol, sub, str(1.0 - c[vmin]))
+      draw_verts(pol, sub, c[vmin])
+      pol = to_rectangle_center(length * v[vmax], length, theta + vmax*numpy.pi/2, x_off, y_off)
+      draw_verts(pol, sub, c[vmax])
       
-  if save <> None:
-    # Save the full figure...
-    #im.savefig('full_figure.png')
-    # Save just the portion _inside_ the second axis's boundaries
-    extent = axsubplot.get_window_extent().transformed(im.dpi_scale_trans.inverted())
-    im.savefig(save, bbox_inches=extent)
-
-  return im
-
-
+  return (fig, sub)
 
 
 def color_code(color_map, value):
@@ -539,8 +516,8 @@ def draw_verts(verts, axsubplot, color):
   path = Path(verts, codes)
   patch = matplotlib.patches.PathPatch(path, edgecolor='none', facecolor=color, lw=1)
   axsubplot.add_patch(patch)
-
-
+  
+  
 # draws a thick circle, where the thickness is determined automatically by the radius 
 def draw_thick_circle(draw, center, radius):
   

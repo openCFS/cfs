@@ -6,35 +6,6 @@ import scipy.interpolate
 import xml.etree.ElementTree
 
 
-## create and prepare a matplot figure where patched might be "added" to
-def create_figure(min, max, res, for_save):
-  
-  # we set the aspect ration and also the resolution such that we can export as png
-  # the problem is that we set the size of the figure but export the subplot w/o axes which is smaller than the figure
-  
-  # the dirty solution is to create the figure twice scaled by the error
-  dpi_x = (res / 100) * (max[0] - min[0]) 
-  dpi_y = dpi_x * (max[1] - min[1]) / (max[0] - min[0]) 
-  
-  fig = None
-  if for_save:
-    fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
-  else:
-    fig = matplotlib.pyplot.figure()
-  ax = fig.add_subplot(111)
-
-  if for_save:
-    wrong = ax.get_window_extent().size
-    dpi_x *= res / wrong[0]  
-    dpi_y *= (dpi_y * 100) / wrong[1] 
-    fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
-    matplotlib.pyplot.axis('off')
-    ax = fig.add_subplot(111)
-    # the second figure would make problems with matplotlib.pyplot.show()
-  
-  ax.set_xlim(min[0],max[0])
-  ax.set_ylim(min[1],max[1])
-  return fig, ax
 
 ## Subclass for Fields
 # this performs an interpolation, stores the data and allows access 

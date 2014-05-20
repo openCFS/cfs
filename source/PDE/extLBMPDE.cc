@@ -7,6 +7,7 @@
 #include <fstream>
 #include <map>
 #include <string>
+#include <math.h>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -36,7 +37,7 @@
 #include "Utils/baseelemstoresol.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Utils/result.hh"
-#include "math.h"
+#include "MatVec/vector.hh"
 #include "pseudoTS.hh" 
 #include "extLBMPDE.hh"
 
@@ -221,9 +222,11 @@ void ExtLBMPDE::Solve()
       EXCEPTION("LBM simulation failed, no outputs available! \n");
 
     if(iface_ == EXT_CFSxLBM)
-      ReadData("LBM2CFS.dat");
+      ReadProbabilityDistribution("LBM2CFS.dat");
     else
-      ReadData("node_steady.dat");
+      ReadProbabilityDistribution("node_steady.dat");
+
+
     break;
   }
   case INTERNAL:
@@ -231,6 +234,74 @@ void ExtLBMPDE::Solve()
   }
 
   dirty_ = false;
+}
+
+void ExtLBMPDE::SetPrecalculatedGradient(StdVector<DesignElement*>& design, Function* f)
+{
+  // the gradient over all lbm elements (including boundary) are computed as element wise scalar product of
+  // x_parardiso * dRdp where we could interpret dRdp as vector but it is stored as sparse matrix and not all elements are contained
+
+
+  // the solution of the adjoint system:
+  Vector<double> x_pardiso2;
+  x_pardiso2.Import("x_pardiso2.dat");
+
+  LOG_DBG3(lbm) << "SPG: x_pardiso2 -> " << x_pardiso2.ToString();
+
+  // read dRdp and store as vector, not set values keep 0.0
+  Vector<double> dRdp(9 * n_elems, 0.0);
+  // %%MatrixMarket matrix coordinate real symmetric
+  // %
+  // % Matrix exported by OLAS
+  // %
+  // 900 100 576
+  // 100 12  0.000110019427034806
+  // 101 12  -0.00388473301942947
+  std::ifstream file("dRdp.mtx");
+  if(file.fail())
+    throw Exception("cannot read dRdp.mtx");
+
+  std::string line;
+  bool meta_info_read = false;
+  while(std::getline(file, line))
+  {
+    if(line != "" && !boost::starts_with(line, "%"))
+    {
+      std::istringstream ss(line);
+      // the first non-comment line is the meta data rows cols nnz
+      if(!meta_info_read)
+      {
+        unsigned int rows, cols, nnz;
+        if(!(ss >> rows >> cols >> nnz) || rows != 9*n_elems || cols != n_elems)
+          throw Exception("error reading dRdp.mtx, the first non-comment line has no proper meta data");
+        meta_info_read = true;
+      }
+      else
+      {
+        unsigned int row, col;
+        double val;
+        if((ss >>  row >> col >> val))
+          dRdp[row - 1] = val;
+        else
+          throw Exception("error reading dRdp.mtx values in out of line '" + line + "'");
+      }
+    }
+  }
+  file.close();
+
+  LOG_DBG3(lbm) << "SPG: dRdp -> " << dRdp.ToString();
+
+  LOG_DBG3(lbm) << "SPG: design size: " << design.GetSize();
+
+  // set the actually requested gradients
+  for(unsigned int e = 0; e < design.GetSize(); e++)
+  {
+    DesignElement* de = design[e];
+    unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
+    double val = -1.0 * x_pardiso2.Inner(dRdp, idx * 9, (idx + 1) * 9);
+    de->AddGradient(f, val);
+    LOG_DBG3(lbm) << "SPG: idx=" << idx << " e=" << de->elem->elemNum << " xp=" << StdVector<double>::ToString(9, x_pardiso2.GetPointer() + 9 * idx) << " dRdp=" << StdVector<double>::ToString(9, dRdp.GetPointer() + 9 * idx) << " -> " << val;
+  }
 }
 
 
@@ -424,7 +495,7 @@ void ExtLBMPDE::DefineAvailResults() {
   // =====================================================================
   PtrParamNode resultsNode = myParam_->Get("storeResults", ParamNode::PASS );
 
-
+/*
   // === solution by external LBM solver and also of adjoint linear system ===
   shared_ptr<ResultInfo> disp(new ResultInfo);
   StdVector<std::string> dispDofNames;
@@ -439,7 +510,7 @@ void ExtLBMPDE::DefineAvailResults() {
   results_.Push_back( disp );
   availResults_.insert( disp);
 
-
+*/
   // === solution by external LBM solver and also of adjoint linear system ===
   shared_ptr<ResultInfo> prob(new ResultInfo);
   prob->resultType = LBM_PROBABILITY_DISTRIBUTION;
@@ -450,6 +521,7 @@ void ExtLBMPDE::DefineAvailResults() {
   prob->entryType = ResultInfo::VECTOR;
   prob->fctType = shared_ptr<ConstFct>(new ConstFct());
   prob->definedOn = ResultInfo::ELEMENT;
+  results_.Push_back(prob);
   availResults_.insert(prob);
 
 
@@ -510,7 +582,7 @@ void ExtLBMPDE::DefineAvailResults() {
 // ***********************************************************************
 //   Read LBM velocities from LBM output file
 // ***********************************************************************
-void ExtLBMPDE::ReadData(const std::string& filename)
+void ExtLBMPDE::ReadProbabilityDistribution(const std::string& filename)
 {
   std::ifstream file(filename.c_str());
   if(file.fail())
@@ -595,7 +667,7 @@ void ExtLBMPDE::ExportMultipleFiles(const StdVector<double>& elements)
       // out: 1 bb1, 2 inlet, 3 outlet, 0 for porosity
       int v = (int) -1.0 * elements[n_x_ * y + x];
       obst << std::max(0, v) << " "; // org porosity would be -1
-      obst_m(y, x) = v;  // origin of the matrix is left upper!
+      obst_m(y, x) = std::max(0, v);  // origin of the matrix is left upper!
     }
     obst << std::endl;
   }

@@ -76,6 +76,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
 # @save filename for output
 def show_or_write(viz, args):
   assert(viz <> None)
+  print type(viz)
   global info
   if isinstance(viz, Image.Image):
     frac= 1 - numpy.average(numpy.array(viz)) / 255
@@ -100,8 +101,9 @@ def show_or_write(viz, args):
       if args.save.split('.')[-1] <> 'pdf':      
         # I war not able to  render a memory image first, make an array out of the data and determine the grayness
         # So read again from file :( 
-        tmp = Image.open(args.save)
-        frac= 1 - numpy.average(numpy.array(tmp)) / 255
+        tmp = Image.open(args.save).convert('L') # make gray, otherwise data has the dimension x*y*4 (rgm + alpha)
+        dat = numpy.array(tmp)
+        frac = len(numpy.where(dat.reshape(dat.size,1) < 128)[0]) / float(dat.size) # cont fields below 128 which is become black with a thrshold of 0.5
         print 'volume fraction from image : ' + str(frac)
         if info <> None:
           vol = xml.etree.ElementTree.SubElement(info, "volume")

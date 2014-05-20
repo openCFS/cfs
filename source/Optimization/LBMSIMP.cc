@@ -32,14 +32,16 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   switch(f->GetType())
   {
   case Function::PRESSURE_DROP:
-    if(derivative)
+  {
+    if(!derivative)
       return lbm->CalcPressureDrop();
     else
     {
       CalcPressureDropDerivative(f);
       return 0.0;
     }
-
+  }
+  break;
 
   default: // return below as we don't implement
     break;
@@ -50,7 +52,10 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 
 void LBMSIMP::CalcPressureDropDerivative(Function* f)
 {
-
+  if(lbm->GetIface() == ExtLBMPDE::EXT_MATLAB)
+    lbm->SetPrecalculatedGradient(f->elements, f);
+  else
+    WARN("LBM gradient not yet inplemented for new interface")
 }
 
 
