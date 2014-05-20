@@ -76,7 +76,6 @@ def read_stiff_angle(hdf_file, dim_2D, args):
 # @save filename for output
 def show_or_write(viz, args):
   assert(viz <> None)
-  print type(viz)
   global info
   if isinstance(viz, Image.Image):
     frac= 1 - numpy.average(numpy.array(viz)) / 255

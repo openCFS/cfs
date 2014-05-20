@@ -412,16 +412,12 @@ def show_frame(coords, s1, s2, directions, nx):
   
     coord = centers[i]
     
-    # if coord[1] > 0.04:
-    #  continue
-          
+         
     x_off = (coord[0] + min[0] - 0.5 * elem[0]) * dx 
     y_off = (coord[1] + min[1]  - 0.5 * elem[1]) * dy
 
-    #print str(coord) + " " + str(x_off) + " " + str(y_off)
-
-    hor = s1[i,0]  # it seems that stiff1 and stiff2 are mixed up. This tries to correct it
-    ver = s2[i,0]
+    hor = s2[i,0]  # it seems that stiff1 and stiff2 are mixed up. This tries to correct it
+    ver = s1[i,0]
 
     # print "hor=" + str(hor) + " ver=" + str(ver) 
     
