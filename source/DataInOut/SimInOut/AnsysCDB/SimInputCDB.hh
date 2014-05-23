@@ -106,9 +106,7 @@ namespace CoupledField {
     
     Elem::FEType DegenTypeToNativeType(UInt type, UInt numNodes);
     void PreScanCDBFile();
-    void SetAnsys2NacsElementTypeMap();
-
-//    void ReadAnsys2NacsElementTypeMap();
+    void SetAnsys2FETypeMap();
 
     void ReadCoordinatesBlocked();
     void ReadCoordinatesUnBlocked();
@@ -180,11 +178,11 @@ namespace CoupledField {
     std::map<UInt, UInt> elemRegionMap_;
 //    std::vector< std::vector<UInt> > elemNumsOrig_;
 
-    std::map<UInt, UInt> ansNacsMap_;
+    std::map<UInt, UInt> ans2FEMap_;
 
-    void InitAnsys2NacsTypes();
+    void InitAnsys2FETypes();
     UInt ansysSubTypes_, ansysElTypes_;
-    UInt *ans2NacsET_;
+    UInt *ans2FEType_;
 //    UInt *ansETDim_;
     std::vector<UInt> elemMaterials_;
 

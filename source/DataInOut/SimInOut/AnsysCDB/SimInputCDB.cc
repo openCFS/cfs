@@ -10,13 +10,17 @@
 #include <cstdarg>
 #include <cctype>
 #include <cstdlib>
+#include <stack>
 
 #include <boost/algorithm/string/trim.hpp>
 
 #include "SimInputCDB.hh"
 
-// TODO: - Workbench FE Modeler generiert Gitter ohne Oberflächenelemente nur node Components. In diesem Fall müssen die Volumenelemente in eine extra Dummyregion gesteckt werden.
+// TODO: - Workbench FE Modeler  generiert Gitter ohne Oberflächenelemente nur
+//         Node Components. In diesem Fall  müssen die Volumenelemente in eine
+//         extra Dummyregion gesteckt werden.
 // TODO: - Herausfinden, wie man Oberflächenelemente erzeugen kann.
+//         -> Pressure Randbedingung in ANSYS WB Mechanical setzen!
 
 namespace CoupledField {
 
@@ -31,7 +35,7 @@ namespace CoupledField {
     numRegions_(0),
     ansysSubTypes_(0),
     ansysElTypes_(0),
-    ans2NacsET_(NULL),
+    ans2FEType_(NULL),
     maxNumElemNodes_(0)
   {
     capabilities_.insert(SimInput::MESH);
@@ -64,12 +68,7 @@ namespace CoupledField {
     numNBlocks_ = numEBlocks_ = numCMBlocks_ = 0;
     numNCmnds_ = numENCmnds_ = numEselCmnds_ = numNselCmnds_ = numCMCmnds_ = 0;
     numSFECmnds_ = 0;
-    
-    if (!strict_) {
-      EXCEPTION("cdb based interface currently working only in strict mode!\n"
-                << "You will have to renumber your model (numcmp) eventually!");
-    }
-    
+
     // first we establish cdb file and test for blocked or unblocked cdb file format
     OpenCDBFile(fileName_);
     
@@ -85,8 +84,8 @@ namespace CoupledField {
     //
     // as ET commands are located before node and element definitions,
     // lets handle these first
-    InitAnsys2NacsTypes();
-    SetAnsys2NacsElementTypeMap();
+    InitAnsys2FETypes();
+    SetAnsys2FETypeMap();
     
     // nodes and elements
     if ( linePtsNBlocks_.size() > 0 ) {
@@ -124,35 +123,42 @@ namespace CoupledField {
       mi_->SetNodeCoordinate(i+1, loc);
     }
 
+    // Now for the elements...
     UInt numElems = topology_.size();
     bool hasVolElems = false;
     bool hasSurfElems = false;
+
+    // First, let's check if there are  surface and volume elements present in
+    // the grid.
+    for(UInt i=0; i<numElems; i++)
+    {
+      Elem::FEType feType = Elem::FEType(elemTypes_[i+1]);
+      UInt elemDim = Elem::shapes[feType].dim;
+      
+      if(hasVolElems == false && elemDim == dim) 
+      {
+        hasVolElems = true;
+      }
+      
+      if(hasSurfElems == false && elemDim != dim) 
+      {
+        hasSurfElems = true;
+      }
+    }
+
+    // Since ANSYS Workbench does not necessarily create components for volume
+    // and surface elements, we create a default region for either type.
     if(regionNames_.empty())
     {
-      for(UInt i=0; i<numElems; i++)
-      {
-        Elem::FEType feType = Elem::FEType(elemTypes_[i+1]);
-        UInt elemDim = Elem::shapes[feType].dim;
-
-        if(hasVolElems == false && elemDim == dim) 
-        {
-          hasVolElems = true;
-        }
-        
-        if(hasSurfElems == false && elemDim != dim) 
-        {
-          hasSurfElems = true;
-        }
-      }
-
       if(hasVolElems) 
       {
         regionNames_.push_back("volElems");
       }
-      if(hasSurfElems) 
-      {
-        regionNames_.push_back("surfElems");
-      }
+    }
+    
+    if(hasSurfElems)
+    {
+      regionNames_.push_back("surfElems");
     }
 
     StdVector<Integer> ids;
@@ -183,6 +189,11 @@ namespace CoupledField {
         }
       }
 
+      for(UInt j=0, n=topology_[i+1].size(); j<n; j++)
+      {
+        topology_[i+1][j] = nodeNumsMap_[topology_[i+1][j]];
+      }
+    
       mi_->SetElemData(i+1, feType, regionId, &topology_[i+1][0]);
     }
 
@@ -191,6 +202,11 @@ namespace CoupledField {
     {
       std::string name = nodeGroupNames_[i];
       StdVector<UInt>& nodes = nodeGroupData_[i];
+
+      for(UInt j=0, m=nodes.GetSize(); j<m; j++)
+      {
+        nodes[j] = nodeNumsMap_[nodes[j]];
+      }
       
       mi_->AddNamedNodes(name, nodes);
     }
@@ -282,7 +298,8 @@ namespace CoupledField {
       if(idxMap[elemTypeIn].empty())
       {
         UInt elemIdxMap[] = {0, 1, 2, 2};
-        std::copy(elemIdxMap, elemIdxMap+4, std::back_inserter(idxMap[elemTypeIn]));
+        std::copy(elemIdxMap, elemIdxMap+4,
+                  std::back_inserter(idxMap[elemTypeIn]));
       }
       break;
 
@@ -292,7 +309,8 @@ namespace CoupledField {
       if(idxMap[elemTypeIn].empty())
       {
         UInt elemIdxMap[] = {0, 1, 2, 2, 3, 4, 2, 5};
-        std::copy(elemIdxMap, elemIdxMap+8, std::back_inserter(idxMap[elemTypeIn]));
+        std::copy(elemIdxMap, elemIdxMap+8,
+                  std::back_inserter(idxMap[elemTypeIn]));
       }
       break;
 
@@ -302,7 +320,8 @@ namespace CoupledField {
       if(idxMap[elemTypeIn].empty())
       {
         UInt elemIdxMap[] = {0, 1, 2, 2, 3, 3, 3, 3};
-        std::copy(elemIdxMap, elemIdxMap+8,  std::back_inserter(idxMap[elemTypeIn]));
+        std::copy(elemIdxMap, elemIdxMap+8,
+                  std::back_inserter(idxMap[elemTypeIn]));
       }
       break;
 
@@ -316,7 +335,8 @@ namespace CoupledField {
                              4, 5, 2, 6,
                              3, 3, 3, 3,
                              7, 8, 9, 9};
-        std::copy(elemIdxMap, elemIdxMap+20,  std::back_inserter(idxMap[elemTypeIn]));
+        std::copy(elemIdxMap, elemIdxMap+20,
+                  std::back_inserter(idxMap[elemTypeIn]));
       }
       break;
 
@@ -327,7 +347,8 @@ namespace CoupledField {
       {
         UInt elemIdxMap[] = {0, 1, 2, 3,
                              4, 4, 4, 4};
-        std::copy(elemIdxMap, elemIdxMap+8,  std::back_inserter(idxMap[elemTypeIn]));
+        std::copy(elemIdxMap, elemIdxMap+8,
+                  std::back_inserter(idxMap[elemTypeIn]));
       }
       break;
 
@@ -341,7 +362,8 @@ namespace CoupledField {
                              5, 6, 7, 8,
                              4, 4, 4, 4,
                              9, 10, 11, 12};
-        std::copy(elemIdxMap, elemIdxMap+20,  std::back_inserter(idxMap[elemTypeIn]));
+        std::copy(elemIdxMap, elemIdxMap+20,
+                  std::back_inserter(idxMap[elemTypeIn]));
       }
       break;
 
@@ -352,7 +374,8 @@ namespace CoupledField {
       {
         UInt elemIdxMap[] = {0, 1, 2, 2,
                              3, 4, 5, 5};
-        std::copy(elemIdxMap, elemIdxMap+8,  std::back_inserter(idxMap[elemTypeIn]));
+        std::copy(elemIdxMap, elemIdxMap+8,
+                  std::back_inserter(idxMap[elemTypeIn]));
       }
       break;
 
@@ -366,7 +389,8 @@ namespace CoupledField {
                              6, 7, 2, 8,
                              9, 10, 5, 11,
                              12, 13, 14, 14};
-        std::copy(elemIdxMap, elemIdxMap+20,  std::back_inserter(idxMap[elemTypeIn]));
+        std::copy(elemIdxMap, elemIdxMap+20,
+                  std::back_inserter(idxMap[elemTypeIn]));
       }
       break;
 
@@ -404,74 +428,134 @@ namespace CoupledField {
        nodeSet.insert(elemNodes[i]);
      }
   }
+
   void SimInputCDB::PreScanCDBFile() {
 
     std::string line;
 
     // for large file sizes, report file size rounded to 100 MB
+    Double tmpVal = 1.0 / (1024.0*1024.0*1024.0);
 #if(WIN32 || __MINGW32__)
-    Double tmpVal = (Double) (inSize_/(1024.0*1024.0*1024.0));
+    tmpVal *= inSize_;
 #else
-    Double tmpVal = (Double) (fSize_/(1024.0*1024.0*1024.0));
+    tmpVal *= fSize_;
 #endif
     int tmp = (int) (tmpVal*10.0);
     tmpVal = tmp*0.1;
     std::cout << "Initial scan of input file";
     if (tmpVal > 0.1)
-      std::cout << " ("    << tmpVal << " GB)";
+      std::cout << " (" << tmpVal << " GB)";
 
     std::cout << std::endl;
 
-#if(WIN32 || __MINGW32__)
-    __int64 pos = _ftelli64( inStream_ );
-#else
-    unsigned long pos = inFile_.tellg();
-#endif
+    unsigned long pos = GetFilePosition();
 
     UInt count = 0;
     if (pos != 0) 
       EXCEPTION("File scan: initial position not at beginning of file");
 
+    // Since we do not support each and every feature of ANSYS (WB) APDL,
+    // we need to ignore some blocks, that we do not understand.
+    bool ignoreBlock = false;
+    std::vector< std::pair<std::string, std::string> > ignoreBlks;
+    std::stack< std::string > blkEnds;
+    std::pair<std::string, std::string> blk;
+
+    // We don't know  how to handle ANSYS workbench contacts.   In the future,
+    // this might be interesting for handling mortar couplings, however.
+    blk.first = "/wb,contact,start";
+    blk.second = "/wb,contact,end";
+    ignoreBlks.push_back(blk);
+
     while(GetNextLine(line)) {
       count++;
-      if (line.substr(0,6) == "NBLOCK" || line.substr(0,6) == "nblock") {
+
+      // Are we currently in a block, that we need to ignore?
+      if(!ignoreBlock) 
+      {
+        // If not, we need to check whether such a block starts on the current
+        // line.
+        for(UInt i=0, n=ignoreBlks.size(); i<n; i++) 
+        {
+          blk = ignoreBlks[i];
+          std::string& blkStart = blk.first;
+
+          if (line.substr(0,blkStart.length()) == blkStart) {
+            ignoreBlock = true;
+            blkEnds.push(blk.second);
+
+            std::cout << "Ignoring block '" << blkStart
+                      << "' starting in line " << count << "..." << std::endl;
+
+            break;
+          }   
+        }
+      }
+      else
+      {
+        // Does the ignore block end on the current line?
+        std::string& blkEnd = blkEnds.top();
+        if (line.substr(0,blkEnd.length()) == blkEnd) {
+          ignoreBlock = false;
+          blkEnds.pop();
+
+          std::cout << "Continuing scan after '" << blkEnd
+                    << "' in line " << count << "..." << std::endl;
+        }
+
+        // Continue outer loop
+        continue;
+      }
+      
+      if (line.substr(0,6) == "NBLOCK" ||
+          line.substr(0,6) == "nblock") {
         numNBlocks_++;
         linePtsNBlocks_.push_back(pos);
       }
-      if (line.substr(0,6) == "EBLOCK" || line.substr(0,6) == "eblock") {
+      if (line.substr(0,6) == "EBLOCK" ||
+          line.substr(0,6) == "eblock") {
         numEBlocks_++;
         linePtsEBlocks_.push_back(pos);
       }
-      if (line.substr(0,2) == "N," || line.substr(0,2) == "n,") {
+      if (line.substr(0,2) == "N," ||
+          line.substr(0,2) == "n,") {
         numNCmnds_++;
         linePtsNCmnds_.push_back(pos);
       }
-      if (line.substr(0,3) == "EN," || line.substr(0,3) == "en,") {
-        if (line.find("ATTR") != line.npos || line.find("attr") != line.npos) {
+      if (line.substr(0,3) == "EN," ||
+          line.substr(0,3) == "en,") {
+        if (line.find("ATTR") != line.npos ||
+            line.find("attr") != line.npos) {
           numENCmnds_++;
           linePtsENCmnds_.push_back(pos);
         }
       }
-      if (line.substr(0,7) == "CMBLOCK" || line.substr(0,7) == "cmblock") {
+      if (line.substr(0,7) == "CMBLOCK" ||
+          line.substr(0,7) == "cmblock") {
         numCMBlocks_++;
         linePtsCMBlocks_.push_back(pos);
       }
-      if (line.substr(0,4) == "ESEL" || line.substr(0,4) == "esel") {
+      if (line.substr(0,4) == "ESEL" ||
+          line.substr(0,4) == "esel") {
         numEselCmnds_++;
         linePtsEselCmnds_.push_back(pos);
       }
-      if (line.substr(0,4) == "NSEL" || line.substr(0,4) == "nsel") {
+      if (line.substr(0,4) == "NSEL" ||
+          line.substr(0,4) == "nsel") {
         numNselCmnds_++;
         linePtsNselCmnds_.push_back(pos);
       }
-      if (line.substr(0,3) == "CM," || line.substr(0,3) == "cm,") {
+      if (line.substr(0,3) == "CM," ||
+          line.substr(0,3) == "cm,") {
         numCMCmnds_++;
         linePtsCMCmnds_.push_back(pos);
       }
-      if (line.substr(0,3) == "ET," || line.substr(0,3) == "et,") {
+      if (line.substr(0,3) == "ET," ||
+          line.substr(0,3) == "et,") {
         lineETCmnds_.push_back(line);
       }
-      if (line.substr(0,5) == "KEYOP" || line.substr(0,5) == "keyop") {
+      if (line.substr(0,5) == "KEYOP" ||
+          line.substr(0,5) == "keyop") {
         lineKEYOPTCmnds_.push_back(line);
       }
       if (line.find("Pressure Using Surface Effect Elements") != line.npos) {
@@ -480,7 +564,8 @@ namespace CoupledField {
       if (line.find("Construct Weak Springs") != line.npos) {
         linePtsPSEStop_ = pos;
       }
-      if (line.substr(0,4) == "SFE," || line.substr(0,4) == "sfe,") {
+      if (line.substr(0,4) == "SFE," ||
+          line.substr(0,4) == "sfe,") {
         numSFECmnds_++;
         linePtsSFECmnds_.push_back(pos);
       }
@@ -493,158 +578,183 @@ namespace CoupledField {
     }
     std::cout << std::endl;
 
-    if (numNBlocks_>0)
-      std::cout << "Number of node blocks found " << numNBlocks_ << std::endl;
-    if (numEBlocks_>0) 
-      std::cout << "Number of element blocks found " << numEBlocks_ << std::endl;
-    if (numCMBlocks_>0)
-      std::cout << "Number of cm blocks found " << numCMBlocks_ << std::endl;
-    if (numNCmnds_>0)
-      std::cout << "Number of N commands found " << numNCmnds_ << std::endl;
-    if (numENCmnds_>0)
-      std::cout << "Number of EN commands found " << numENCmnds_ << std::endl;
-    if (numEselCmnds_>0)
-      std::cout << "Number of ESEL commands found " << numEselCmnds_ << std::endl;
-    if (numCMCmnds_>0)
-      std::cout << "Number of CM commands found " << numCMCmnds_ << std::endl;
-    if (lineETCmnds_.size()>0)
-      std::cout << "Number of ET commands found " << lineETCmnds_.size() << std::endl;
-    if (linePtsPSECmnds_.size()>0)
-      std::cout << "Number of Pressure Surface groups found " << linePtsPSECmnds_.size() << std::endl;
-    if (numSFECmnds_>0)
-      std::cout << "Number of SFE commands found " << numSFECmnds_ << std::endl;
+    if (numNBlocks_>0) {
+      std::cout << "Number of node blocks found " << numNBlocks_
+                << std::endl;
+    }
+    if (numEBlocks_>0) {
+      std::cout << "Number of element blocks found " << numEBlocks_
+                << std::endl;
+    }
+    if (numCMBlocks_>0) {
+      std::cout << "Number of cm blocks found " << numCMBlocks_
+                << std::endl;
+    }
+    if (numNCmnds_>0) {
+      std::cout << "Number of N commands found " << numNCmnds_
+                << std::endl;
+    }
+    if (numENCmnds_>0) {
+      std::cout << "Number of EN commands found " << numENCmnds_
+                << std::endl;
+    }
+    if (numEselCmnds_>0) {
+      std::cout << "Number of ESEL commands found " << numEselCmnds_
+                << std::endl;
+    }
+    if (numCMCmnds_>0) {
+      std::cout << "Number of CM commands found " << numCMCmnds_
+                << std::endl;
+    }
+    if (lineETCmnds_.size()>0) {
+      std::cout << "Number of ET commands found " << lineETCmnds_.size()
+                << std::endl;
+    }
+    if (linePtsPSECmnds_.size()>0) {
+      std::cout << "Number of Pressure Surface groups found "
+                << linePtsPSECmnds_.size() << std::endl;
+    }
+    if (numSFECmnds_>0) {
+      std::cout << "Number of SFE commands found " << numSFECmnds_
+                << std::endl;
+    }    
 
     std::cout << "Finished scanning input file" << std::endl;
 
+    // Prevent problems stemming from missing newline characters at the end of
+    // the file, by reopening it.
+    CloseCDBFile();
+    OpenCDBFile(fileName_);
   }
 
-  void SimInputCDB::InitAnsys2NacsTypes() {
+  void SimInputCDB::InitAnsys2FETypes() {
 
     ansysSubTypes_ = 12;
     ansysElTypes_  = 281;
 
-    ans2NacsET_ = new UInt[ansysSubTypes_*(ansysElTypes_+1)];
-    for (UInt i=0; i<=ansysSubTypes_*ansysElTypes_; i++)
-      ans2NacsET_[i] = Elem::ET_UNDEF;
+    ans2FEType_ = new UInt[ansysSubTypes_*(ansysElTypes_+1)];
+    for (UInt i=0, n=ansysSubTypes_*ansysElTypes_; i<=n; i++)
+      ans2FEType_[i] = Elem::ET_UNDEF;
 
-    std::vector<UInt> etList;
-
-    // NACS type 2=Elem::ET_LINE2
-    etList.push_back(1); etList.push_back(3); etList.push_back(4); etList.push_back(8);
-    etList.push_back(10); etList.push_back(23); etList.push_back(24); etList.push_back(32);
-    etList.push_back(33); etList.push_back(44); etList.push_back(54); etList.push_back(68);
-    etList.push_back(125); etList.push_back(129); etList.push_back(138); etList.push_back(180);
-    etList.push_back(188);
-    etList.push_back(189); etList.push_back(200); etList.push_back(208); etList.push_back(251);
-    for (UInt i=0; i<etList.size(); i++) {
-      ans2NacsET_[(etList[i]-1)*ansysSubTypes_+1] = Elem::ET_LINE2;
+    // =======================================================================
+    // Elem::ET_LINE2
+    // =======================================================================
+    static const UInt lts[] = {1, 3, 4, 8, 10, 23, 24, 32, 33, 44, 54, 68,
+                               125, 129, 138, 180, 188, 200, 208, 251};
+    for (UInt i=0, n=sizeof(lts)/sizeof(lts[0]); i<n; i++) {
+      ans2FEType_[(lts[i]-1)*ansysSubTypes_+1] = Elem::ET_LINE2;
     }
-    // ansys element 200,2 must also be accounted for
-    ans2NacsET_[(200-1)*ansysSubTypes_+3] = Elem::ET_LINE2;
-    // ansys element 153,0 must also be accounted for
-    ans2NacsET_[(153-1)*ansysSubTypes_+1] = Elem::ET_LINE2;
 
-    // NACS type 3=Elem::ET_LINE3
-    etList.clear();
-    etList.push_back(161); etList.push_back(209); 
-    for (UInt i=0; i<etList.size(); i++) {
-      ans2NacsET_[(etList[i]-1)*ansysSubTypes_+1] = Elem::ET_LINE3;
+    // ansys element 200,2 must also be accounted for
+    ans2FEType_[(200-1)*ansysSubTypes_+3] = Elem::ET_LINE2;
+    // ansys element 153,KOP1,KOP2,KOP3,1 must also be accounted for
+    ans2FEType_[(153-1)*ansysSubTypes_+1] = Elem::ET_LINE2;
+
+    // =======================================================================
+    // Elem::ET_LINE3
+    // =======================================================================
+    static const UInt qlts[] = {161, 189, 209};
+    for (UInt i=0, n=sizeof(qlts)/sizeof(qlts[0]); i<n; i++) {
+      ans2FEType_[(qlts[i]-1)*ansysSubTypes_+1] = Elem::ET_LINE3;
     }
     // ansys element 200,1 and 200,3 must also be accounted for
-    ans2NacsET_[(200-1)*ansysSubTypes_+2] = Elem::ET_LINE3;
-    ans2NacsET_[(200-1)*ansysSubTypes_+4] = Elem::ET_LINE3;
-    // ansys element 153,1
-    ans2NacsET_[(153-1)*ansysSubTypes_+2] = Elem::ET_LINE3;
+    ans2FEType_[(200-1)*ansysSubTypes_+2] = Elem::ET_LINE3;
+    ans2FEType_[(200-1)*ansysSubTypes_+4] = Elem::ET_LINE3;
+    // ansys element 153,KOP1,KOP2,KOP3,0
+    ans2FEType_[(153-1)*ansysSubTypes_+2] = Elem::ET_LINE3;
 
-    // NACS type 4 = TRIA3 (currently only 200,5)
+    // =======================================================================
+    // Elem::ET_TRIA3 (currently only 200,5)
+    // =======================================================================
     //etList.clear();
     //for (UInt i=0; i<etList.size(); i++) {
-    //  ans2NacsET_[(etList[i]-1)*ansysSubTypes_+1] = 5;
+    //  ans2FEType_[(etList[i]-1)*ansysSubTypes_+1] = 5;
     //}
-    ans2NacsET_[(200-1)*ansysSubTypes_+5] = Elem::ET_TRIA3;
+    ans2FEType_[(200-1)*ansysSubTypes_+5] = Elem::ET_TRIA3;
 
-    // NACS type 5 = TRIA6
-    etList.clear();
-    etList.push_back(35); etList.push_back(146); 
-    for (UInt i=0; i<etList.size(); i++) {
-      ans2NacsET_[(etList[i]-1)*ansysSubTypes_+1] = Elem::ET_TRIA6;
+    // =======================================================================
+    // Elem::ET_TRIA6
+    // =======================================================================
+    static const UInt qtts[] = {35, 146};
+    for (UInt i=0, n=sizeof(qtts)/sizeof(qtts[0]); i<n; i++) {
+      ans2FEType_[(qtts[i]-1)*ansysSubTypes_+1] = Elem::ET_TRIA6;
     }
     // ansys element 200,5 must also be accounted for
-    ans2NacsET_[(200-1)*ansysSubTypes_+6] = Elem::ET_TRIA6;
+    ans2FEType_[(200-1)*ansysSubTypes_+6] = Elem::ET_TRIA6;
 
-    // NACS type 6 = QUAD4
-    etList.clear();
-    etList.push_back(13); etList.push_back(25); etList.push_back(29); etList.push_back(42);
-    etList.push_back(55); etList.push_back(63); etList.push_back(67); etList.push_back(75);
-    etList.push_back(79); etList.push_back(106); etList.push_back(115); etList.push_back(130);
-    etList.push_back(141); etList.push_back(162); etList.push_back(181); etList.push_back(182);
-    etList.push_back(192); etList.push_back(202); etList.push_back(252);
-    for (UInt i=0; i<etList.size(); i++) {
-      ans2NacsET_[(etList[i]-1)*ansysSubTypes_+1] = Elem::ET_QUAD4;
+    // =======================================================================
+    // Elem::ET_QUAD4
+    // =======================================================================
+    static const UInt qts[] = {13, 25, 29, 42, 55, 63, 67, 75, 79, 106, 115,
+                               130, 141, 162, 181, 182, 192, 202, 252};
+    for (UInt i=0, n=sizeof(qts)/sizeof(qts[0]); i<n; i++) {
+      ans2FEType_[(qts[i]-1)*ansysSubTypes_+1] = Elem::ET_QUAD4;
     }
     // ansys element 200,6 must also be accounted for
-    ans2NacsET_[(200-1)*ansysSubTypes_+7] = Elem::ET_QUAD4;
-    // ansys element 154,0 must also be accounted for
-    ans2NacsET_[(154-1)*ansysSubTypes_+1] = Elem::ET_QUAD4;
+    ans2FEType_[(200-1)*ansysSubTypes_+7] = Elem::ET_QUAD4;
+    // ansys element 154,KOP1,KOP2,KOP3,1 must also be accounted for
+    ans2FEType_[(154-1)*ansysSubTypes_+1] = Elem::ET_QUAD4;
 
-    // NACS type 7 = QUAD8
-    etList.clear();
-    etList.push_back(53); etList.push_back(77); etList.push_back(78); etList.push_back(82);
-    etList.push_back(83); etList.push_back(88); etList.push_back(108); etList.push_back(118);
-    etList.push_back(121); etList.push_back(145); etList.push_back(183); etList.push_back(190);
-    etList.push_back(223); etList.push_back(230); etList.push_back(281);
-    for (UInt i=0; i<etList.size(); i++) {
-      ans2NacsET_[(etList[i]-1)*ansysSubTypes_+1] = Elem::ET_QUAD8;
+    // =======================================================================
+    // Elem::ET_QUAD8
+    // =======================================================================
+    static const UInt qqts[] = {53, 77, 78, 82, 83, 88, 108, 118, 121, 145,
+                                183, 190, 223, 230, 281};    
+    for (UInt i=0, n=sizeof(qqts)/sizeof(qqts[0]); i<n; i++) {
+      ans2FEType_[(qqts[i]-1)*ansysSubTypes_+1] = Elem::ET_QUAD8;
     }
     // ansys element 200,7 must also be accounted for
-    ans2NacsET_[(200-1)*ansysSubTypes_+8] = Elem::ET_QUAD8;
-    // ansys element 154,1 must also be accounted for
-    ans2NacsET_[(154-1)*ansysSubTypes_+2] = Elem::ET_QUAD8;
+    ans2FEType_[(200-1)*ansysSubTypes_+8] = Elem::ET_QUAD8;
+    // ansys element 154,KOP1,KOP2,KOP3,0 must also be accounted for
+    ans2FEType_[(154-1)*ansysSubTypes_+2] = Elem::ET_QUAD8;
 
-    // NACS type 9 - TET4 
+    // =======================================================================
+    // Elem::ET_TET4 
+    // =======================================================================
     //etList.clear();
     //for (UInt i=0; i<etList.size(); i++) {
-    //  ans2NacsET_[(etList[i]-1)*ansysSubTypes_+1] = Elem::ET_TET4;
+    //  ans2FEType_[(etList[i]-1)*ansysSubTypes_+1] = Elem::ET_TET4;
     //}
     // ansys element 200,8
-    ans2NacsET_[(200-1)*ansysSubTypes_+9] = Elem::ET_TET4;
+    ans2FEType_[(200-1)*ansysSubTypes_+9] = Elem::ET_TET4;
 
-    // NACS type 10 - TET10
-    etList.clear();
-    etList.push_back(87); etList.push_back(92); etList.push_back(98); etList.push_back(119);
-    etList.push_back(123); etList.push_back(127); etList.push_back(148); etList.push_back(168);
-    etList.push_back(187); etList.push_back(227); etList.push_back(232);
-    for (UInt i=0; i<etList.size(); i++) {
-      ans2NacsET_[(etList[i]-1)*ansysSubTypes_+1] = Elem::ET_TET10;
+    // =======================================================================
+    // Elem::ET_TET10
+    // =======================================================================
+    static const UInt qtetts[] = {87, 92, 98, 119, 123, 127, 148, 168, 187,
+                                  227, 232};    
+    for (UInt i=0, n=sizeof(qtetts)/sizeof(qtetts[0]); i<n; i++) {
+      ans2FEType_[(qtetts[i]-1)*ansysSubTypes_+1] = Elem::ET_TET10;
     }
     // ansys element 200,9
-    ans2NacsET_[(200-1)*ansysSubTypes_+10] = Elem::ET_TET10;
+    ans2FEType_[(200-1)*ansysSubTypes_+10] = Elem::ET_TET10;
 
-    // NACS type 11 - HEX8
-    etList.clear();
-    etList.push_back(5); etList.push_back(30); etList.push_back(45); etList.push_back(46);
-    etList.push_back(62); etList.push_back(65); etList.push_back(69); etList.push_back(70);
-    etList.push_back(80); etList.push_back(96); etList.push_back(97); etList.push_back(107);
-    etList.push_back(142); etList.push_back(164); etList.push_back(185); etList.push_back(195);
-    for (UInt i=0; i<etList.size(); i++) {
-      ans2NacsET_[(etList[i]-1)*ansysSubTypes_+1] = Elem::ET_HEXA8;
+    // =======================================================================
+    // Elem::ET_HEXA8
+    // =======================================================================
+    static const UInt hts[] = {5, 30, 45, 46, 62, 65, 69, 70, 80, 96, 97, 107,
+                               142, 164, 185, 195};
+    for (UInt i=0, n=sizeof(hts)/sizeof(hts[0]); i<n; i++) {
+      ans2FEType_[(hts[i]-1)*ansysSubTypes_+1] = Elem::ET_HEXA8;
     }
     // ansys element 200,10
-    ans2NacsET_[(200-1)*ansysSubTypes_+11] = Elem::ET_HEXA8;
+    ans2FEType_[(200-1)*ansysSubTypes_+11] = Elem::ET_HEXA8;
 
-    // NACS type 12 - HEX20
-    etList.clear();
-    etList.push_back(89); etList.push_back(90); etList.push_back(95); etList.push_back(117);
-    etList.push_back(120); etList.push_back(122); etList.push_back(128); etList.push_back(147);
-    etList.push_back(186); etList.push_back(191); etList.push_back(226); etList.push_back(231);
-    for (UInt i=0; i<etList.size(); i++) {
-      ans2NacsET_[(etList[i]-1)*ansysSubTypes_+1] = Elem::ET_HEXA20;
+    // =======================================================================
+    // Elem::ET_HEXA20
+    // =======================================================================
+    static const UInt qhts[] = {89, 90, 95, 117, 120, 122, 128, 147, 186,
+                                191, 226, 231};    
+    for (UInt i=0, n=sizeof(qhts)/sizeof(qhts[0]); i<n; i++) {
+      ans2FEType_[(qhts[i]-1)*ansysSubTypes_+1] = Elem::ET_HEXA20;
     }
     // ansys element 200,11
-    ans2NacsET_[(200-1)*ansysSubTypes_+12] = Elem::ET_HEXA20;
+    ans2FEType_[(200-1)*ansysSubTypes_+12] = Elem::ET_HEXA20;
 
-    // NACS type -1 --> should be ignored.....
-    // ans2NacsET_[(14-1)*ansysSubTypes_+1] = Elem::ET_UNDEF;
+
+
+    // type -1 --> should be ignored.....
+    // ans2FEType_[(14-1)*ansysSubTypes_+1] = Elem::ET_UNDEF;
 
 //----------------------------------------------------------------------------------------------
 //    dimensions currently not needed
@@ -694,16 +804,16 @@ namespace CoupledField {
 
   }
 
-  void SimInputCDB::SetAnsys2NacsElementTypeMap()
+  void SimInputCDB::SetAnsys2FETypeMap()
   {
     std::string line;
     std::ostringstream errMsg;
     UInt ansysType = 0, ansElemType = 0;
     Integer ansysSubType = -1;
-    UInt nacsElemType = 0;
+    UInt feElemType = 0;
     std::vector< std::string > tokens(32);
 
-    ansNacsMap_.clear();
+    ans2FEMap_.clear();
 
     UInt numETCmnds = lineETCmnds_.size();
 
@@ -714,7 +824,7 @@ namespace CoupledField {
       line = lineETCmnds_[i];
       UInt numTok = SplitLine(line, tokens);
 
-      ansElemType = ansysType = nacsElemType = 0;
+      ansElemType = ansysType = feElemType = 0;
       ansysSubType = -1;
 
       // Ignore all  ASCII characters  of category name  and just  account for
@@ -729,8 +839,33 @@ namespace CoupledField {
       ansysType = std::strtoul(tokens[2].substr(pos).c_str(), NULL, 0);
 
       if (numTok > 3) {
-        if (ansysType==200 || ansysType==154 ) {
+        switch(ansysType)
+        {
+        case 200:
+          // For element type 200, we need to look at KOP1 for ansysSubType.
           ansysSubType = std::strtoul(tokens[3].c_str(), NULL, 0);
+          break;
+          
+        case 153:
+        case 154:
+          // For  element  types  153  (quadratic or  linear  lines)  and  154
+          // (quadratic  or  linear  quad),  we  need  to  look  at  KOP4  for
+          // ansysSubType.  Chances are however, that  we also need to look at
+          // an additional keyop command.
+          if (numTok > 6) {
+            ansysSubType = std::strtoul(tokens[6].c_str(), NULL, 0);
+            if(ansysSubType != 0)
+            {
+              ansysSubType = 1;
+            } else
+            {
+              ansysSubType = 2;
+            }            
+          }
+          break;
+          
+        default:
+          break;          
         }
       }
 
@@ -738,7 +873,7 @@ namespace CoupledField {
       // look it up in the KEYOPT lines.
       if(ansysSubType < 0) 
       {        
-        if(ansysType==200 || ansysType==154) 
+        if(ansysType==200 || ansysType==153 || ansysType==154) 
         {
           // KEYOPT, ITYPE, KNUM, VALUE
           // Sets element key options.
@@ -750,6 +885,8 @@ namespace CoupledField {
           Integer knum = -1;
           Integer value = -1;
           
+          // Find  KEYOP lines,  which might  be of  interest for  setting the
+          // current element type.
           for (UInt j=0, n=lineKEYOPTCmnds_.size(); j<n; j++) {
             line = lineKEYOPTCmnds_[j];
             numTok = SplitLine(line, tokens);
@@ -761,21 +898,69 @@ namespace CoupledField {
             value = std::strtoul(tokens[3].c_str(), NULL, 0);
             break;
           }
+
+          // Decide depending on  the value of KOP(knum) what  kind of element
+          // type we have.  If no proper element type could be determined, set
+          // knum to -1 and set appropriate defaults afterwards.
+          switch(ansysType) 
+          {
+          case 200:
+            if(knum == 1)
+            {
+              ansysSubType = value+1;
+            }
+            else
+            {
+              knum = -1;
+            }            
+            break;
+          case 153:
+          case 154:
+            if(knum == 4)
+            {
+              if(value != 0)
+              {
+                ansysSubType = 1;
+              } else
+              {
+                ansysSubType = 2;
+              }        
+            }
+            else
+            {
+              knum = -1;
+            }
+            break;
+          default:
+            knum = -1;
+            break;
+          }
           
+          // No relevant keyop commands could be found! Let's set sane default
+          // values (cf.  ANSYS element type documentation)  for element types
+          // where this is applicable!
           if(knum < 0 || value < 0) 
           {
-            errMsg << "ANSYS element type is 200 or 154 and no subtype could " 
-                   << "be determined!";
-            if(strict_) {
-              EXCEPTION(errMsg.str());
-            } else {
-              std::cerr << errMsg.str() << std::endl;
+            switch(ansysType)
+            {
+            case 200:
+              errMsg << "ANSYS element type is 200 no subtype could " 
+                     << "be determined!";
+              if(strict_) {
+                EXCEPTION(errMsg.str());
+              } else {
+                std::cerr << errMsg.str() << std::endl;
+              }
+              break;
+            case 153:
+              // Quadratic 3-node lines.
+            case 154:
+              // Quadratic 8-node quads. May be degenerated triangles.
+              ansysSubType = 2;
+              break;
+            default:
+              break;
             }
-          }
-        
-          if(knum == 1) 
-          {
-            ansysSubType = value+1;
           }
         }
         else
@@ -787,8 +972,7 @@ namespace CoupledField {
       // check for valid ANSYS element type
       if(ansElemType==0 || ansysType==0 ) {
         errMsg << "ANSYS element type pointer or type is 0. A serious problem "
-            << "occurred during processing the interface output "
-            << "from ANSYS. Please contact SIMetris support!";
+               << "occurred during processing the interface output from ANSYS.";
         if(strict_) {
           EXCEPTION(errMsg.str());
         } else {
@@ -797,26 +981,29 @@ namespace CoupledField {
       }
 
       if (ansysType > 0 && ansysType <= ansysElTypes_) {
-        nacsElemType = ans2NacsET_[(ansysType-1)*ansysSubTypes_+ansysSubType];
+        feElemType = ans2FEType_[(ansysType-1)*ansysSubTypes_+ansysSubType];
       } else {
-        errMsg << "Error: invalid ansys element type encountered in cdb interface: "
-               << ansysType;
+        errMsg << "Error: invalid ANSYS element type encountered in .cdb/.inp "
+               << "interface: " << ansysType;
         EXCEPTION(errMsg.str());
       }
 
-      // check for valid NACS element type
-      if( nacsElemType == Elem::ET_UNDEF || nacsElemType == Elem::ET_POINT ) {
-        errMsg << "Warning:\nAn ANSYS element type which is mapped to NACS element type UNDEFINED or POINT"
-            << " has been found.\nThe ANSYS type, which has no NACS counterpart, is " << ansElemType
-	    << " and the selected ANSYS element is " << ansysType << ".\n";
+      // check for valid element type
+      if( feElemType == Elem::ET_UNDEF || feElemType == Elem::ET_POINT ) {
+        errMsg << "Warning:" << std::endl
+               << "An ANSYS element type which is mapped to element type "
+               << "UNDEFINED or POINT has been found." << std::endl
+               << "The ANSYS type, which has no counterpart, is "
+               << ansElemType << " and the selected ANSYS element is "
+               << ansysType << std::endl;
         if(strict_) {
-          std::cout << errMsg.str() << std::endl;
-        } else {
           std::cerr << errMsg.str() << std::endl;
+        } else {
+          std::cout << errMsg.str() << std::endl;
         }
       }
 
-      ansNacsMap_[ansElemType]=nacsElemType;
+      ans2FEMap_[ansElemType]=feElemType;
 
     }
   }
@@ -842,9 +1029,11 @@ namespace CoupledField {
       if (!GetLine(line,linePtsNBlocks_[ib]))
         EXCEPTION("Read error in GetLine");
 
-      if ((line.find("NBLOCK") == line.npos) && (line.find("nblock") == line.npos)) {
-        errMsg << "NBLOCK " << ib << " expected to start at line no. " << linePtsNBlocks_[ib]
-               << " not found!\nLine read was " << line;
+      if ((line.find("NBLOCK") == line.npos) &&
+          (line.find("nblock") == line.npos)) {
+        errMsg << "NBLOCK " << ib << " expected to start at line no. "
+               << linePtsNBlocks_[ib] << " not found!\nLine read was "
+               << line;
         EXCEPTION(errMsg);
       }
       std::cout << "Processing node block " << ib+1 << std::endl;
@@ -916,9 +1105,11 @@ namespace CoupledField {
         std::cerr << "maxNodeNum " << maxNodeNum << std::endl;
         std::cerr << "numNodes " << numNodes << std::endl;
       }
-      std::cout << "nblock " << ib+1 << " (" << numNodesInBlock << " nodes found in block)" << std::endl;
+      std::cout << "nblock " << ib+1 << " (" << numNodesInBlock 
+                << " nodes found in block)" << std::endl;
     }
-    std::cout << "Finished reading nodes (" << numNodes << " read)" << std::endl;
+    std::cout << "Finished reading nodes (" << numNodes 
+              << " read)" << std::endl;
   }
 
   void SimInputCDB::ReadCoordinatesUnBlocked()
@@ -979,46 +1170,43 @@ namespace CoupledField {
 
     std::ostringstream errMsg;
 
-    // Sollten die Knotennummern in der Knotendatei nicht mit der
-    // internen Knotennummerierung uebereinstimmen eine Meldung ausgeben
-
+    // If the node  numbers in the input  file do not match  with the internal
+    // ones, issue a warning or even error.
     if(fileNodeNum != nodeNum) {
       errMsg << "Nodes seem to be not consecutive. Node nr. in file "
-          << fileNodeNum << " does not match internal node nr. "
-          << nodeNum << ". Please check your model!";
+             << fileNodeNum << " does not match internal node nr. "
+             << nodeNum << ". Please check your model!" << std::endl
+             << "You will have to renumber your model (numcmp,all) "
+             << "eventually!";
+
       if(strict_) {
         EXCEPTION(errMsg.str());
       } else {
-        std::cerr << errMsg.str() << std::endl;
+        // Print warning only once!
+        static bool printMsg = true;
+        if(printMsg) 
+        {
+          std::cerr << errMsg.str() << std::endl;
+          printMsg = false;
+        }
       }
       errMsg.clear(); errMsg.str("");
     }
 
-    // Hier abfragen, ob die Knotennummern konsekutiv sind
-    if(!nodeNumsMap_.empty() &&
-        (nodeNumsMap_.rbegin()->first + 1) != nodeNum)
+    // We cannot insert the  same node twice no matter if we  are in strict or
+    // relaxed mode. Therefore, we issue an error.
+    if(nodeNumsMap_.find(fileNodeNum) != nodeNumsMap_.end()) 
     {
-      errMsg << "Nodes are not consecutive: " << nodeNumsMap_.rbegin()->first
-          << " -> " << nodeNum;
-      if(strict_) {
-        EXCEPTION(errMsg.str());
-      } else {
-        std::cerr << errMsg.str() << std::endl;
-      }
-      errMsg.clear(); errMsg.str("");
+      EXCEPTION("Node " << fileNodeNum << " has been referenced before!\n");
     }
-
-    // Dieser Fehler ist fatal! Er hat nichts mit strict oder relaxed zu tun.
-    if(nodeNumsMap_[nodeNum] != 0)
-      EXCEPTION("Node " << nodeNum << " has been referenced before!\n");
-
+    
     nodalCoords_.push_back(x);
     nodalCoords_.push_back(y);
     nodalCoords_.push_back(z);
 
     maxNodeNum = maxNodeNum < nodeNum ? nodeNum : maxNodeNum;
     numNodes++;
-    nodeNumsMap_[nodeNum] = numNodes;
+    nodeNumsMap_[fileNodeNum] = nodeNum;
     nodeNum++;
   }
 
@@ -1040,7 +1228,6 @@ namespace CoupledField {
     // maxNonSolidNodes is the maximum number of element nodes per non-solid eblock
     // if maxNonSolidNodes > 10, 2 records have to be read per element
     UInt maxNonSolidNodes = 0;
-    bool isSolidEBlock = false;
     UInt numSkipElems = 0, firstSkippedElem = 0;
 
     // loop on all found eblock commands
@@ -1053,6 +1240,7 @@ namespace CoupledField {
       }
 
       // do we have a solid eblock ?
+      bool isSolidEBlock = false;
       if (line.find("solid") != line.npos || line.find("SOLID") != line.npos )
         isSolidEBlock = true;
 
@@ -1071,6 +1259,7 @@ namespace CoupledField {
 
       UInt numElemsInBlock = 0;
 
+      // Get next line from input
       GetNextLine(line);
       while(line.find("-1") == line.npos) {
         std::fill(elemNodes.begin(), elemNodes.end(), 0);
@@ -1089,7 +1278,10 @@ namespace CoupledField {
           }
 
           if (numElemNodes > 8) {
+            // Get next line from input
             GetNextLine(line);
+            
+            // Split line into tokens according to the offsets array
             numTok = SplitLine(line, tokens, "", &offsets);
 
             for (UInt i=0; i<numTok; i++) {
@@ -1102,13 +1294,16 @@ namespace CoupledField {
           // ansElemNum = std::strtoul(tokens[0].c_str(), NULL, 0);
 
           numElemNodes = 0;
-          for (UInt i=0, n=10; i<n; i++) {
+          for (UInt i=0, n=numTok-5; i<n; i++) {
             elemNodes[i] = std::strtoul(tokens[i + 5].c_str(), NULL, 0);
 	    numElemNodes++;
           }
 
           if (maxNonSolidNodes > 10) {
+            // Get next line from input
             GetNextLine(line);
+            
+            // Split line into tokens according to the offsets array
             numTok = SplitLine(line, tokens, "", &offsets);
 
             for (UInt i=0, n=numTok; i<n; i++) {
@@ -1118,20 +1313,24 @@ namespace CoupledField {
           }
 	}
 
-        if (ansNacsMap_[elemType] != Elem::ET_UNDEF) {
-          elemTypes_[elemNum] = ansNacsMap_[elemType];
+        if (ans2FEMap_[elemType] != Elem::ET_UNDEF) {
+          elemTypes_[elemNum] = ans2FEMap_[elemType];
           // Determine number of element nodes by inserting nodes into a set.
-          elemNodeSet.insert(elemNodes.begin(), elemNodes.end());
+          elemNodeSet.insert(&elemNodes[0], &elemNodes[numElemNodes]);
           elemNodeSet.erase((UInt) 0);
-          // reset numElemNodes as set elemNodeSet might contain fewer node than elemNodes
+          // Reset numElemNodes as set elemNodeSet might contain fewer node
+          // than elemNodes
           numElemNodes = elemNodeSet.size();
 
-          maxNumElemNodes_ = numElemNodes > maxNumElemNodes_ ? numElemNodes : maxNumElemNodes_;
+          maxNumElemNodes_ = numElemNodes > maxNumElemNodes_ ?
+                             numElemNodes : maxNumElemNodes_;
 
-          Elem::FEType newFEType = DegenTypeToNativeType(elemTypes_[elemNum], numElemNodes);
+          Elem::FEType newFEType = DegenTypeToNativeType(elemTypes_[elemNum],
+                                                         numElemNodes);
 
           if(degen_) {
-            DegenerateElement((Elem::FEType)elemTypes_[elemNum], newFEType, elemNodes);
+            DegenerateElement((Elem::FEType)elemTypes_[elemNum],
+                              newFEType, elemNodes);
           } else {
             ResortNodes(elemNodes);
           }
@@ -1142,8 +1341,9 @@ namespace CoupledField {
           elemDim = Elem::shapes[newFEType].dim;
           dim = dim < elemDim ? elemDim : dim;
 
-          std::copy(elemNodes.begin(), elemNodes.begin() + Elem::shapes[newFEType].numNodes,
-              std::back_inserter(topology_[elemNum]));
+          std::copy(elemNodes.begin(),
+                    elemNodes.begin() + Elem::shapes[newFEType].numNodes,
+                    std::back_inserter(topology_[elemNum]));
 
           elemNum++;
 
@@ -1155,7 +1355,9 @@ namespace CoupledField {
         }
 
         numElemsInBlock++;
+        // Get next line from input
         GetNextLine(line);
+        
         if (elemNum%1000000 == 0) {
           std::cout << "Elements read " << elemNum << "\r";
           std::cout.flush();
@@ -1163,19 +1365,23 @@ namespace CoupledField {
 
       }
       std::cout << std::endl;
-      std::cout << "Element block " << ib << "(" << numElemsInBlock << " elements read)" << std::endl;
+      std::cout << "Element block " << ib << "(" << numElemsInBlock
+                << " elements read)" << std::endl;
       if (numSkipElems > 0)
-        std::cout << numSkipElems << " ANSYS elements have been skipped, as no NACS counterpart exists" 
-                  << std::endl;
+        std::cout << numSkipElems << " ANSYS elements have been skipped, "
+                  << " as no counterpart exists." << std::endl;
     }
 
     // store dimension to settings
     dim_ = dim;
-    std::cout << "Finished reading elements (" << elemNum-1 << " read)" << std::endl;
+    std::cout << "Finished reading elements (" << elemNum-1 << " read)"
+              << std::endl;
 
     if (numSkipElems>0 && elemNum > firstSkippedElem)
-      std::cout << "WARNING: non skipped elements found after first skipped element (= " 
-                << firstSkippedElem << ").\nThis might lead to incorrect mesh transfer.\n" 
+      std::cout << "WARNING: non skipped elements found after first "
+                << "skipped element (= " << firstSkippedElem << ")."
+                << std::endl
+                << "This might lead to incorrect mesh transfer." << std::endl
 		<< "Please check carefully!" << std::endl;
 
   }
@@ -1210,6 +1416,7 @@ namespace CoupledField {
       elemType = std::strtoul(tokens[5].c_str(), NULL, 0);
       // ansElemNum = std::strtoul(tokens[9].c_str(), NULL, 0);
 
+      // Get next line from input
       GetNextLine(line);
       lCount++;
       numTok = SplitLine(line, tokens);
@@ -1222,6 +1429,7 @@ namespace CoupledField {
       }
 
       if (numElemNodes > 8) {
+        // Get next line from input
         GetNextLine(line);
         lCount++;
         numTok = SplitLine(line, tokens);
@@ -1232,6 +1440,7 @@ namespace CoupledField {
       }
 
       if (numElemNodes > 16) {
+        // Get next line from input
         GetNextLine(line);
         lCount++;
         numTok = SplitLine(line, tokens);
@@ -1241,20 +1450,23 @@ namespace CoupledField {
         }
       }
 
-      if (ansNacsMap_[elemType] != Elem::ET_UNDEF) {
-        elemTypes_[elemNum] = ansNacsMap_[elemType];
+      if (ans2FEMap_[elemType] != Elem::ET_UNDEF) {
+        elemTypes_[elemNum] = ans2FEMap_[elemType];
 
         // Determine number of element nodes by inserting nodes into a set.
         elemNodeSet.insert(elemNodes.begin(), elemNodes.end());
         elemNodeSet.erase((UInt) 0);
         numElemNodes = elemNodeSet.size();
 
-        maxNumElemNodes_ = numElemNodes > maxNumElemNodes_ ? numElemNodes : maxNumElemNodes_;
+        maxNumElemNodes_ = numElemNodes > maxNumElemNodes_ ?
+                           numElemNodes : maxNumElemNodes_;
 
-        Elem::FEType newFEType = DegenTypeToNativeType(elemTypes_[elemNum], numElemNodes);
+        Elem::FEType newFEType = DegenTypeToNativeType(elemTypes_[elemNum],
+                                                       numElemNodes);
 
         if(degen_) {
-          DegenerateElement((Elem::FEType)elemTypes_[elemNum], newFEType, elemNodes);
+          DegenerateElement((Elem::FEType)elemTypes_[elemNum],
+                            newFEType, elemNodes);
         } else {
           ResortNodes(elemNodes);
         }
@@ -1264,8 +1476,9 @@ namespace CoupledField {
         elemDim = Elem::shapes[newFEType].dim;
         dim = dim < elemDim ? elemDim : dim;
 
-        std::copy(elemNodes.begin(), elemNodes.begin() + Elem::shapes[newFEType].numNodes,
-            std::back_inserter(topology_[elemNum]));
+        std::copy(elemNodes.begin(),
+                  elemNodes.begin() + Elem::shapes[newFEType].numNodes,
+                  std::back_inserter(topology_[elemNum]));
 
         elemNum++;
 
@@ -1285,16 +1498,18 @@ namespace CoupledField {
 
     // store dimension to settings
     dim_ = dim;
-    std::cout << "Finished reading elements (" << elemNum-1 << " read)" << std::endl;
+    std::cout << "Finished reading elements (" << elemNum-1 << " read)"
+              << std::endl;
     if (numSkipElems > 0)
-      std::cout << numSkipElems << " ANSYS elements have been skipped, as no NACS counterpart exists" 
-                << std::endl;
+      std::cout << numSkipElems << " ANSYS elements have been skipped, as no "
+                << "counterpart exists" << std::endl;
 
     // sanity check
     if (elemNum > firstSkippedElem)
-      std::cout << "WARNING: non skipped elements found after first skipped element (= " 
-                << firstSkippedElem << ").\nThis might lead to incorrect mesh transfer.\n" 
-		<< "Please check carefully!" << std::endl;
+      std::cout << "WARNING: non skipped elements found after first skipped "
+                << "element (= " << firstSkippedElem << ").\nThis might lead "
+                << "to incorrect mesh transfer.\nPlease check carefully!"
+                << std::endl;
   }
 
   void SimInputCDB::ReadRegionsAndGroups() {
@@ -1360,7 +1575,10 @@ namespace CoupledField {
       // data spec
       UInt count = 0;
       while (count < numdata) {
+        // Get next line from input
         GetNextLine(line);
+        
+        // Split line into tokens according to the offsets array
         numTok = SplitLine(line, tokens, "", &offsets);
 
         for (UInt i=0; i<numTok; i++) {
@@ -1441,40 +1659,52 @@ namespace CoupledField {
     UInt elemNum;
     StdVector<UInt> elemNumbers;
 
-    for (UInt ips=0; ips<linePtsPSECmnds_.size(); ips++) {
+    std::vector< std::string > tokens(32);
+
+    for (UInt ips=0, n=linePtsPSECmnds_.size(); ips<n; ips++) {
 
       if (!GetLine(line,linePtsPSECmnds_[ips])) {
-        errMsg << "pressure comment line" << ips << " expected at line no. " << linePtsCMCmnds_[ips]
-               << " not found!\nLine read was " << line;
+        errMsg << "Pressure comment line" << ips << " expected at line no. "
+               << linePtsCMCmnds_[ips] << " not found!\nLine read was "
+               << line;
         EXCEPTION(errMsg);
       }
 
       // find related eblock command
-      for (UInt ib=1; ib<linePtsEBlocks_.size(); ib++) {
+      for (UInt ib=1, m=linePtsEBlocks_.size(); ib<m; ib++) {
         if ( linePtsEBlocks_[ib] >= linePtsPSECmnds_[ips] &&
-               linePtsEBlocks_[ib] < linePtsPSEStop_ ) {
+             linePtsEBlocks_[ib] < linePtsPSEStop_ ) {
 
           // process/get element numbers of eblock command
           if (!GetLine(line,linePtsEBlocks_[ib])) {
-            errMsg << "eblock line" << ib << " expected at line no. " << linePtsEBlocks_[ib]
-                   << " not found!\nLine read was " << line;
+            errMsg << "eblock line" << ib << " expected at line no. "
+                   << linePtsEBlocks_[ib] << " not found!\nLine read was "
+                   << line;
             EXCEPTION(errMsg);
           }
-          // skipp format specs
+
+          // Don't skip format specs
+          std::vector<int> offsets;
           GetNextLine(line);
+          DecodeBlockFormatLine(line, offsets);
 
 	  elemNumbers.Clear();
           GetNextLine(line);
           while(line.find("-1") == line.npos) {
-            sstr.clear(); sstr.str("");
-            sstr << line.substr(0,8);
-            sstr >> elemNum;
+            // Split line into tokens according to the offsets array
+            SplitLine(line, tokens, "", &offsets);
+
+            elemNum = std::strtoul(tokens[0].c_str(), NULL, 0);
 	    elemNumbers.Push_back(elemNum);
+
             GetNextLine(line);
           }
-          std::cout << "Found " << elemNumbers.GetSize() << " elements for eblock" << std::endl;
-          
+          std::cout << "Found " << elemNumbers.GetSize() << " elements for "
+                    << "eblock" << std::endl;
+
           GenerateSurfElGroup(ib, elemNumbers);
+
+          break;
         }
       }
     }
@@ -1499,7 +1729,9 @@ namespace CoupledField {
     UInt dim = dim_;
     UInt numTotalElems = elemNumsMap_.size();
     UInt lastVolElem = numTotalElems;
-    while ( (Elem::shapes[Elem::FEType(elemTypes_[lastVolElem])].dim < dim) && (lastVolElem > 0) ) {
+    while ( (Elem::shapes[Elem::FEType(elemTypes_[lastVolElem])].dim < dim) &&
+            (lastVolElem > 0) )
+    {
       lastVolElem--;
     }
     std::cout << "Last volume element found is " << lastVolElem << std::endl;
@@ -1547,7 +1779,8 @@ namespace CoupledField {
     GenerateSurfElGroup(ib, elemNumbers);
   }
 
-  void SimInputCDB::GenerateSurfElGroup(UInt elblock, StdVector<UInt> elemNumbers) {
+  void SimInputCDB::GenerateSurfElGroup(UInt elblock,
+                                        StdVector<UInt> elemNumbers) {
 
     std::vector<bool> foundNodeGroup;
     std::set<UInt> elGrpNodeSet,nodeGrpNodeSet;
@@ -1559,31 +1792,57 @@ namespace CoupledField {
       }
     }
 
+#if 0
+    std::set<UInt>::iterator it, end;
+    it = elGrpNodeSet.begin();
+    end = elGrpNodeSet.end();
+    
+    std::cout << "Element block " << elblock << ":" << std::endl;
+    for(; it != end; it++)
+    {
+      std::cout << (*it) << " ";
+    }
+    std::cout << std::endl;
+#endif    
+
     foundNodeGroup.resize(numNodeGroups_);
     for (UInt nblock=0; nblock < numNodeGroups_; nblock++) {
       foundNodeGroup[nblock] = false;
       nodeGrpNodeSet.clear();
-      for (UInt grpNode=0; grpNode<nodeGroupData_[nblock].GetSize() ; grpNode++) {
+      for (UInt grpNode=0; grpNode<nodeGroupData_[nblock].GetSize(); grpNode++) {
         nodeGrpNodeSet.insert(nodeGroupData_[nblock][grpNode]);
       }
       if (elGrpNodeSet == nodeGrpNodeSet)
         foundNodeGroup[nblock] = true;
 
+#if 0
+      it = nodeGrpNodeSet.begin();
+      end = nodeGrpNodeSet.end();
+      std::cout << "Node block " << nblock << ":" << std::endl;
+      for(; it != end; it++)
+      {
+        std::cout << (*it) << " ";
+      }
+      std::cout << std::endl;
+#endif    
+      
     }
 
     UInt numFound = 0, grpFound = 0;
     for (UInt nblock=0; nblock < foundNodeGroup.size(); nblock++) {
       if (foundNodeGroup[nblock]) {
-        std::cout << "Node group " << nodeGroupNames_[nblock] << " (grp. no. " << nblock 
-		  << ") has been found" << std::endl;
+        std::cout << "Node group " << nodeGroupNames_[nblock] << " (grp. no. "
+                  << nblock << ") has been found" << std::endl;
         numFound++;
 	grpFound = nblock;
       }
     }
     if (numFound != 1) {
-        std::cout << "Case encountered which can not be handled: not excactly one node group has been found" << std::endl;
+        std::cout << "Case encountered which can not be handled: not excactly "
+                  << "one node group has been found" << std::endl;
     } else {
-      StoreElemGroup(nodeGroupNames_[grpFound], elemNumbers.GetSize(), elemNumbers);
+      StoreElemGroup(nodeGroupNames_[grpFound], elemNumbers.GetSize(),
+                     elemNumbers);
       nodeGroupNames_[grpFound] = nodeGroupNames_[grpFound] + "_NODES";
     }
   }
@@ -1680,9 +1939,9 @@ namespace CoupledField {
 
       // support for either esel,s|a,mat,, (wb) or esel,s|a,elem,,
       if (line.find("ESEL,S,MAT",0,10) != line.npos ||
-            line.find("esel,s,mat",0,10) != line.npos ||
-              line.find("ESEL,A,MAT",0,10) != line.npos ||
-                line.find("esel,a,mat",0,10) != line.npos) {
+          line.find("esel,s,mat",0,10) != line.npos ||
+          line.find("ESEL,A,MAT",0,10) != line.npos ||
+          line.find("esel,a,mat",0,10) != line.npos) {
         addGroupOrRegion = true;
         sstr.clear();sstr.str("");
         sstr << line.substr(line.rfind(",")+1);
@@ -1695,9 +1954,9 @@ namespace CoupledField {
       }
 
       if (line.find("ESEL,S,ELEM",0,11) != line.npos ||
-            line.find("esel,s,elem",0,11) != line.npos ||
-              line.find("ESEL,A,ELEM",0,11) != line.npos ||
-                line.find("esel,a,elem",0,11) != line.npos) {
+          line.find("esel,s,elem",0,11) != line.npos ||
+          line.find("ESEL,A,ELEM",0,11) != line.npos ||
+          line.find("esel,a,elem",0,11) != line.npos) {
         addGroupOrRegion = true;
         size_t pos1,pos2,pos3;
         UInt npos1=0,npos2=0,npos3=0;
@@ -2161,6 +2420,10 @@ namespace CoupledField {
       EXCEPTION("fgets read error");
 
     line = buffer;
+        
+    // Trim away left-over \r or alike from right end of line
+    boost::trim_right(line);
+
     return true;
   }
 
@@ -2181,6 +2444,9 @@ namespace CoupledField {
 
     line = buffer;
 
+    // Trim away left-over \r or alike from right end of line
+    boost::trim_right(line);
+
     return true;
   }
 
@@ -2200,9 +2466,6 @@ namespace CoupledField {
     if (!inFile_) {
       EXCEPTION("Can't open " << filename);
     }
-
-    // Let's remember which files we opened, so that we can delete them in the end.
-    // fileNames_.push_back(fn);
 
     // Determine size of file
     inFile_.seekg(0,std::ios::end);
@@ -2225,6 +2488,10 @@ namespace CoupledField {
     inFile_.getline(buffer,buflen);
     line = buffer;
     //     std::cout << "CDB file completely read in" << std::endl;
+
+    // Trim away left-over \r or alike from right end of line
+    boost::trim_right(line);
+
     return true;
   }
 
@@ -2243,6 +2510,9 @@ namespace CoupledField {
       EXCEPTION("Read error in GetLine");
 
     line = buffer;
+
+    // Trim away left-over \r or alike from right end of line
+    boost::trim_right(line);
 
     return success;
   }
