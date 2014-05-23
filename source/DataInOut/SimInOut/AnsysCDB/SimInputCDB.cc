@@ -10,9 +10,10 @@
 #include <cstdarg>
 #include <cctype>
 #include <cstdlib>
-#include <stack>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/functional/hash.hpp>
 
 #include "SimInputCDB.hh"
 
@@ -29,6 +30,7 @@ namespace CoupledField {
     SimInput(fileName, inputNode, infoNode ),
     strict_(true),
     degen_(false),
+    surfElemsFromNodeComps_(true),
     fSize_(0),
     numNodeGroups_(0),
     numElemGroups_(0),
@@ -48,6 +50,12 @@ namespace CoupledField {
     if(myParam_->Has("degenerate")) 
     {
       degen_ = myParam_->Get("degenerate")->As<bool>();
+    }
+
+    if(myParam_->Has("surfElemsFromNodeComps")) 
+    {
+      surfElemsFromNodeComps_ = myParam_->Get("surfElemsFromNodeComps")
+                                   ->As<bool>();
     }
   }
 
@@ -69,6 +77,24 @@ namespace CoupledField {
     numNCmnds_ = numENCmnds_ = numEselCmnds_ = numNselCmnds_ = numCMCmnds_ = 0;
     numSFECmnds_ = 0;
 
+    //! Since APDL is  a very general language  we have to ignore  some of the
+    //! blocks during the initial scan depending on the user's settings.
+
+    // We don't know  how to handle ANSYS workbench contacts.   In the future,
+    // this might be interesting for handling mortar couplings, however.
+    AddIgnoreBlock("/wb,contact,start", "/wb,contact,end");
+    // Same thing for contact elements written using FE Modeler.
+    AddIgnoreBlock("/com, Contact Elements", "/com, Components");
+
+    if(surfElemsFromNodeComps_) 
+    {
+      // If we are to create surface  elements from node components we have to
+      // ignore  the workbench  load block  which contains  e.g. the  pressure
+      // surfaces
+
+      AddIgnoreBlock("/wb,load,start", "/wb,load,end");
+    }
+    
     // first we establish cdb file and test for blocked or unblocked cdb file format
     OpenCDBFile(fileName_);
     
@@ -105,9 +131,9 @@ namespace CoupledField {
     
   void SimInputCDB::ReadMesh(Grid *mi)
   {
+    std::locale loc;
 
     mi_ = mi;
-    UInt dim = mi_->GetDim();
 
     // Get nodes and add them to grid
     UInt numNodes = nodalCoords_.size()/3;
@@ -124,41 +150,56 @@ namespace CoupledField {
     }
 
     // Now for the elements...
-    UInt numElems = topology_.size();
+    boost::unordered_set<UInt>::iterator reIt, reEnd;
+    reIt = referencedElems_.begin();
+    reEnd = referencedElems_.end();
+
+    UInt numElems = referencedElems_.size();
     bool hasVolElems = false;
     bool hasSurfElems = false;
 
     // First, let's check if there are  surface and volume elements present in
     // the grid.
-    for(UInt i=0; i<numElems; i++)
+    for(; reIt!=reEnd; reIt++)
     {
-      Elem::FEType feType = Elem::FEType(elemTypes_[i+1]);
+      UInt ansElemNum = *reIt;
+      Elem::FEType feType = Elem::FEType(elemTypes_[ansElemNum]);
       UInt elemDim = Elem::shapes[feType].dim;
-      
-      if(hasVolElems == false && elemDim == dim) 
+
+      if(hasVolElems == false && elemDim == dim_) 
       {
         hasVolElems = true;
       }
       
-      if(hasSurfElems == false && elemDim != dim) 
+      if(hasSurfElems == false && elemDim != dim_) 
       {
         hasSurfElems = true;
       }
     }
 
+    // Convert all region names to upper case letters
+    for(UInt i=0, n=regionNames_.size(); i<n; i++) {
+      std::string& str = regionNames_[i];
+      boost::to_upper(str);
+    }
+
     // Since ANSYS Workbench does not necessarily create components for volume
     // and surface elements, we create a default region for either type.
+    Integer volRegionId = -2;
     if(regionNames_.empty())
     {
       if(hasVolElems) 
       {
         regionNames_.push_back("volElems");
+        volRegionId = regionNames_.size() - 1;
       }
     }
     
+    Integer surfRegionId = -3;
     if(hasSurfElems)
     {
       regionNames_.push_back("surfElems");
+      surfRegionId = regionNames_.size() - 1;
     }
 
     StdVector<Integer> ids;
@@ -166,58 +207,411 @@ namespace CoupledField {
 
     mi_->AddElems(numElems);
 
-    for(UInt i=0; i<numElems; i++)
+    std::map<UInt, UInt> elemNumsMap;
+
+    reIt = referencedElems_.begin();
+    reEnd = referencedElems_.end();
+    for(UInt i=1; reIt!=reEnd; reIt++)
     {
       Integer regionId = NO_REGION_ID;
-      
-      if(elemRegionMap_.find(i+1) != elemRegionMap_.end()) 
-      {
-        regionId = ids[elemRegionMap_[i+1]];
-      }
-      
-      Elem::FEType feType = Elem::FEType(elemTypes_[i+1]);
+      UInt ansElemNum = *reIt;
+      Elem::FEType feType = Elem::FEType(elemTypes_[ansElemNum]);
       UInt elemDim = Elem::shapes[feType].dim;
-      if(regionId == NO_REGION_ID) 
+
+      if(elemRegionMap_.find(ansElemNum) != elemRegionMap_.end()) 
       {
-        if(elemDim == dim) 
+        regionId = ids[elemRegionMap_[ansElemNum]];
+      }
+      else 
+      {
+        if(elemDim == dim_) 
         {
-          regionId = 0;
+          if(volRegionId >= 0) 
+          {
+            regionId = volRegionId;
+          }
         }
         else
         {
-          regionId = 1;
+          if(surfRegionId >= 0) 
+          {
+            regionId = surfRegionId;
+          }
         }
       }
 
-      for(UInt j=0, n=topology_[i+1].size(); j<n; j++)
+      std::vector<UInt> topo = topology_[ansElemNum];      
+      for(UInt j=0, n=topo.size(); j<n; j++)
       {
-        topology_[i+1][j] = nodeNumsMap_[topology_[i+1][j]];
+        topo[j] = nodeNumsMap_[topo[j]];
       }
     
-      mi_->SetElemData(i+1, feType, regionId, &topology_[i+1][0]);
+      elemNumsMap[ansElemNum] = i;
+      
+      mi_->SetElemData(i++, feType, regionId, &topo[0]);
     }
+
+    // Add named elems to grid.
+    for(UInt i=0, n=elemGroupNames_.size(); i<n; i++) 
+    {
+      std::string name = elemGroupNames_[i];
+      UInt numElems = elemGroupData_[i].GetSize();
+      StdVector<UInt> elems(numElems);
+      
+      for(UInt j=0; j<numElems; j++) 
+      {
+        elems[j] = elemNumsMap[elemGroupData_[i][j]];
+      }
+
+      // Convert name to upper case letters
+      boost::to_upper(name);
+      
+      mi_->AddNamedElems(name, elems);
+    }
+
+    if(surfElemsFromNodeComps_) 
+    {
+      InitElemFaceTypeMaps();
+      FacesType faces;
+      GenerateVolElemFaces(faces);
+      std::map<std::string, StdVector<UInt> > elemGroupData;
+      std::map<UInt, std::vector<UInt> > surfTopo;
+      std::map<UInt, Elem::FEType > surfTypes;
+      GenerateElemGroupsFromVolElemFacesAndNodeGroups(faces, elemGroupData,
+                                                      surfTopo, surfTypes);
+
+      std::map<UInt, std::vector<UInt> >::iterator stIt, stEnd;
+      stIt = surfTopo.begin();
+      stEnd = surfTopo.end();
+      
+      mi_->AddElems(surfTopo.size());
+      
+      for( ; stIt!=stEnd; stIt++)
+      {
+        UInt elemNum = stIt->first;
+        Elem::FEType feType = surfTypes[elemNum];
+        
+        std::vector<UInt> topo = stIt->second;
+        for(UInt j=0, n=topo.size(); j<n; j++)
+        {
+          topo[j] = nodeNumsMap_[topo[j]];
+        }
+        
+        mi_->SetElemData(elemNum, feType, NO_REGION_ID, &topo[0]);
+      }    
+      
+      // Add additional named surface elems to grid.
+      std::map<std::string, StdVector<UInt> >::iterator egIt, egEnd;
+      std::vector<std::string>::iterator ngnIt;
+      egIt = elemGroupData.begin();
+      egEnd = elemGroupData.end();    
+      for( ; egIt != egEnd; egIt++) 
+      {
+        std::string name = egIt->first;
+        StdVector<UInt>& elems = egIt->second;
+        
+        // Convert name to upper case letters
+        std::string name_upper = boost::to_upper_copy(name);
+        
+        mi_->AddNamedElems(name_upper, elems);
+        
+        // Rename node list
+        ngnIt = std::find(nodeGroupNames_.begin(), nodeGroupNames_.end(),
+                          name);
+        (*ngnIt) = name+"_NODES";
+      }
+      
+    } // surfElemsFromNodeComps_
 
     // Add named nodes to grid.
     for(UInt i=0, n=nodeGroupNames_.size(); i<n; i++) 
     {
       std::string name = nodeGroupNames_[i];
-      StdVector<UInt>& nodes = nodeGroupData_[i];
+
+      if(name.length() > 6 && name.substr(name.length()-6) == "_NODES") 
+      {
+        continue;
+      }
+
+      StdVector<UInt> nodes = nodeGroupData_[i];
 
       for(UInt j=0, m=nodes.GetSize(); j<m; j++)
       {
         nodes[j] = nodeNumsMap_[nodes[j]];
       }
       
+      boost::to_upper(name);
       mi_->AddNamedNodes(name, nodes);
     }
+  }
+  
+  void SimInputCDB::InitElemFaceTypeMaps() 
+  {
+    // Create surface elements from node components and add them to grid.
+    ElemFacesType eFaces;
     
-    // Add named elems to grid.
-    for(UInt i=0, n=elemGroupNames_.size(); i<n; i++) 
+    eFaces.resize(3);
+    static const UInt triaFaces[3][3] = {{0, 1, 3}, 
+                                         {1, 2, 4}, 
+                                         {2, 0, 5}};
+    for(UInt i=0; i<3; i++) 
     {
-      std::string name = elemGroupNames_[i];
-      StdVector<UInt>& nodes = elemGroupData_[i];
-      
-      mi_->AddNamedElems(name, nodes);
+      eFaces[i].clear();
+      std::copy(&triaFaces[i][0], &triaFaces[i][3], std::back_inserter(eFaces[i]));
+      elemFaceTypes_[Elem::ET_TRIA3].push_back(Elem::ET_LINE2);
+      elemFaceTypes_[Elem::ET_TRIA6].push_back(Elem::ET_LINE3);
+    }
+    elemFaces_[Elem::ET_TRIA3] = eFaces;
+    elemFaces_[Elem::ET_TRIA6] = eFaces;
+
+    eFaces.resize(4);
+    static const UInt quadFaces[4][3] = {{0, 1, 4}, 
+                                         {1, 2, 5}, 
+                                         {2, 3, 6}, 
+                                         {3, 0, 7}};
+    for(UInt i=0; i<4; i++) 
+    {
+      eFaces[i].clear();
+      std::copy(&quadFaces[i][0], &quadFaces[i][3], std::back_inserter(eFaces[i]));
+      elemFaceTypes_[Elem::ET_QUAD4].push_back(Elem::ET_LINE2);
+      elemFaceTypes_[Elem::ET_QUAD8].push_back(Elem::ET_LINE3);
+    }
+    elemFaces_[Elem::ET_QUAD4] = eFaces;
+    elemFaces_[Elem::ET_QUAD8] = eFaces;
+
+    eFaces.resize(4);
+    static const UInt tetFaces[4][6] = {{0, 2, 1, 6, 5, 4}, 
+                                        {0, 3, 2, 7, 9, 6}, 
+                                        {0, 1, 3, 4, 8, 7}, 
+                                        {1, 2, 3, 5, 9, 8}};
+    for(UInt i=0; i<4; i++) 
+    {
+      eFaces[i].clear();
+      std::copy(&tetFaces[i][0], &tetFaces[i][6], std::back_inserter(eFaces[i]));
+      elemFaceTypes_[Elem::ET_TET4].push_back(Elem::ET_TRIA3);
+      elemFaceTypes_[Elem::ET_TET10].push_back(Elem::ET_TRIA6);
+    }
+    elemFaces_[Elem::ET_TET4] = eFaces;
+    elemFaces_[Elem::ET_TET10] = eFaces;
+
+    
+    eFaces.resize(5);
+    static const UInt pyraFaces[5][8] = {{0, 3, 2, 1, 8, 7, 6, 5}, 
+                                         {0, 1, 4, 5, 10, 9, 1111, 1111}, 
+                                         {1, 2, 4, 6, 11, 10, 1111, 1111}, 
+                                         {2, 3, 4, 7, 12, 11, 1111, 1111},
+                                         {3, 0, 4, 8, 9, 12, 1111, 1111}};
+    for(UInt i=0; i<5; i++) 
+    {
+      eFaces[i].clear();
+      for(UInt j=0; j<8; j++) 
+      {
+        if(pyraFaces[i][j] > 12) break;
+        
+        eFaces[i].push_back(pyraFaces[i][j]);
+      }
+      if(i==0) 
+      {
+        elemFaceTypes_[Elem::ET_PYRA5].push_back(Elem::ET_QUAD4);
+        elemFaceTypes_[Elem::ET_PYRA13].push_back(Elem::ET_QUAD8);
+      }
+      else 
+      {        
+        elemFaceTypes_[Elem::ET_PYRA5].push_back(Elem::ET_TRIA3);
+        elemFaceTypes_[Elem::ET_PYRA13].push_back(Elem::ET_TRIA6);
+      }
+    }
+    elemFaces_[Elem::ET_PYRA5] = eFaces;
+    elemFaces_[Elem::ET_PYRA13] = eFaces;
+
+    eFaces.resize(5);
+    static const UInt wedgeFaces[5][8] = {{0, 2, 1, 8, 7, 6, 1111, 1111}, 
+                                          {3, 4, 5, 9, 10, 11, 1111, 1111}, 
+                                          {0, 1, 4, 3, 6, 13, 9, 12}, 
+                                          {1, 2, 5, 4, 7, 14, 10, 13},
+                                          {2, 0, 3, 5, 8, 12, 11, 14}};
+    for(UInt i=0; i<5; i++) 
+    {
+      eFaces[i].clear();
+      for(UInt j=0; j<8; j++) 
+      {
+        if(wedgeFaces[i][j] > 14) break;
+        
+        eFaces[i].push_back(wedgeFaces[i][j]);
+      }
+      if(i<2)
+      {
+        elemFaceTypes_[Elem::ET_WEDGE6].push_back(Elem::ET_TRIA3);
+        elemFaceTypes_[Elem::ET_WEDGE15].push_back(Elem::ET_TRIA6);
+      }
+      else 
+      {
+        elemFaceTypes_[Elem::ET_WEDGE6].push_back(Elem::ET_QUAD4);
+        elemFaceTypes_[Elem::ET_WEDGE15].push_back(Elem::ET_QUAD8);
+      }
+    }
+    elemFaces_[Elem::ET_WEDGE6] = eFaces;
+    elemFaces_[Elem::ET_WEDGE15] = eFaces;
+
+    eFaces.resize(6);
+    static const UInt hexaFaces[6][8] = {{0, 3, 2, 1, 11, 10, 9, 8}, 
+                                         {4, 5, 6, 7, 12, 13, 14, 15}, 
+                                         {0, 1, 5, 4, 8, 17, 12, 16}, 
+                                         {1, 2, 6, 5, 9, 18, 13, 17},
+                                         {2, 3, 7, 6, 10, 19, 14, 18},
+                                         {0, 4, 7, 3, 16, 15, 19, 11}};
+    for(UInt i=0; i<6; i++) 
+    {
+      eFaces[i].clear();
+      std::copy(&hexaFaces[i][0], &hexaFaces[i][8], std::back_inserter(eFaces[i]));
+      elemFaceTypes_[Elem::ET_HEXA8].push_back(Elem::ET_QUAD4);
+      elemFaceTypes_[Elem::ET_HEXA20].push_back(Elem::ET_QUAD8);
+    }
+    elemFaces_[Elem::ET_HEXA8] = eFaces;
+    elemFaces_[Elem::ET_HEXA20] = eFaces;
+  }
+  
+  void SimInputCDB::GenerateVolElemFaces(FacesType& faces) 
+  {
+    std::vector<UInt> faceTopo(8);
+    std::vector<UInt> faceTopoSorted(8);
+
+    boost::unordered_set<UInt>::const_iterator reIt, reEnd;
+    reIt = referencedElems_.begin();
+    reEnd = referencedElems_.end();
+    for( ; reIt!=reEnd; reIt++)
+    {
+      UInt ansElemNum = *reIt;
+      Elem::FEType feType = Elem::FEType(elemTypes_[ansElemNum]);
+      UInt elemDim = Elem::shapes[feType].dim;
+
+      // Go over all volume elements
+      if(elemDim != dim_) 
+      {
+        continue;
+      }
+
+      ElemFacesType& eFaces = elemFaces_[feType];
+      std::vector<UInt>& volTopo = topology_[ansElemNum];
+
+      // Iterate over faces of volume element
+      for(UInt face=0, n=eFaces.size(); face<n; face++)
+      {
+        Elem::FEType faceType = elemFaceTypes_[feType][face];
+        UInt numFaceNodes = Elem::shapes[faceType].numNodes;
+
+        for(UInt faceNode=0; faceNode<numFaceNodes; faceNode++)
+        {
+          faceTopo[faceNode] = volTopo[eFaces[face][faceNode]];
+          faceTopoSorted[faceNode] = volTopo[eFaces[face][faceNode]];
+        }
+        std::sort(&faceTopoSorted[0], &faceTopoSorted[numFaceNodes]);
+
+        // Compute a hash over the range of sorted face nodes.
+        std::size_t hash;
+        hash = boost::hash_range(&faceTopoSorted[0],
+                                 &faceTopoSorted[numFaceNodes]);
+
+        bool addFace = true;
+
+        // Check for a  hash collision. If it not caused  by the same topology
+        // of the face, we have to insert the face into our multimap anyway.
+        if(faces.find(hash) != faces.end()) 
+        {
+          std::pair <FacesType::iterator, FacesType::iterator> ret;
+          ret = faces.equal_range(hash);
+
+          // A hash collision has occurred.  This  can either be caused by the
+          // same face  with the same sorted  connectivity or a real  crash in
+          // the hashing function.
+          for (FacesType::iterator it=ret.first; it!=ret.second; ++it) 
+          {
+            Elem::FEType otherFaceType = it->second.first;
+            const std::vector<UInt>& otherTopo = it->second.second;
+            
+            // Trivial case,  if we  have different element  types it  is very
+            // likely that we have to insert the current face.
+            if(otherFaceType != faceType) 
+            {
+              continue;
+            }
+            
+            // Now we really need to compare the sorted connectivity.
+            UInt k=0;
+            for(; k<numFaceNodes; k++)
+            {
+              if(faceTopoSorted[k] != otherTopo[numFaceNodes+k]) 
+              {
+                break;
+              }
+            }
+            
+            // Face connectivity is equal! Therefore  we do not need to insert
+            // this face again!
+            if(k == numFaceNodes) 
+            {
+              addFace = false;
+              break;
+            }
+          }
+        }
+
+        // Finally create a new face and add it to multimap
+        if(addFace) 
+        {
+          FaceType face;
+          face.first = faceType;
+          std::copy(&faceTopo[0], &faceTopo[numFaceNodes],
+                    std::back_inserter(face.second));
+          std::copy(&faceTopoSorted[0], &faceTopoSorted[numFaceNodes],
+                    std::back_inserter(face.second));
+
+          faces.insert( FacesType::value_type(hash, face));
+        }
+      }
+    }
+
+    std::cout << "Overall number of faces generated: " << faces.size() << std::endl;    
+  }
+  
+  void SimInputCDB::GenerateElemGroupsFromVolElemFacesAndNodeGroups(
+    FacesType& faces,
+    std::map<std::string, StdVector<UInt> >& elemGroupData,
+    std::map<UInt, std::vector<UInt> >& surfTopo,
+    std::map<UInt, Elem::FEType >& surfTypes)
+  {
+    FacesType::const_iterator fIt, fEnd;
+    fIt = faces.begin();
+    fEnd = faces.end();    
+    for(UInt i=referencedElems_.size()+1; fIt!=fEnd; fIt++)
+    {
+      Elem::FEType faceType = fIt->second.first;
+      UInt numFaceNodes = Elem::shapes[faceType].numNodes;
+      const UInt* topo = &fIt->second.second[0];
+      const UInt* topoSorted = &fIt->second.second[numFaceNodes];
+
+      for(UInt ng=0, ngs=nodeGroupNames_.size(); ng<ngs; ng++) 
+      {
+        std::string name = nodeGroupNames_[ng];
+        
+        if(name.length() > 6 && name.substr(name.length()-6) == "_NODES") 
+        {
+          continue;
+        }
+        
+        if(!IsSubset(&nodeGroupData_[ng][0], &topoSorted[0],
+                     nodeGroupData_[ng].GetSize(),
+                     numFaceNodes))
+        {
+          continue;
+        }
+        
+        std::copy(&topo[0], &topo[numFaceNodes],
+                  std::back_inserter(surfTopo[i]));
+        surfTypes[i] = faceType;
+        elemGroupData[name].Push_back(i);
+        i++;
+      }
     }
   }
 
@@ -268,7 +662,7 @@ namespace CoupledField {
   }
     
   void SimInputCDB::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
-                                       const UInt dim )
+                                         const UInt dim )
   {
     EXCEPTION("Not implemented!");
   }
@@ -454,59 +848,13 @@ namespace CoupledField {
     if (pos != 0) 
       EXCEPTION("File scan: initial position not at beginning of file");
 
-    // Since we do not support each and every feature of ANSYS (WB) APDL,
-    // we need to ignore some blocks, that we do not understand.
-    bool ignoreBlock = false;
-    std::vector< std::pair<std::string, std::string> > ignoreBlks;
-    std::stack< std::string > blkEnds;
-    std::pair<std::string, std::string> blk;
-
-    // We don't know  how to handle ANSYS workbench contacts.   In the future,
-    // this might be interesting for handling mortar couplings, however.
-    blk.first = "/wb,contact,start";
-    blk.second = "/wb,contact,end";
-    ignoreBlks.push_back(blk);
-
     while(GetNextLine(line)) {
       count++;
 
-      // Are we currently in a block, that we need to ignore?
-      if(!ignoreBlock) 
-      {
-        // If not, we need to check whether such a block starts on the current
-        // line.
-        for(UInt i=0, n=ignoreBlks.size(); i<n; i++) 
-        {
-          blk = ignoreBlks[i];
-          std::string& blkStart = blk.first;
+      // Since we do not support each and every feature of ANSYS (WB) APDL, we
+      // need to ignore some blocks, that we do not understand.
+      IgnoreBlock(line, count);
 
-          if (line.substr(0,blkStart.length()) == blkStart) {
-            ignoreBlock = true;
-            blkEnds.push(blk.second);
-
-            std::cout << "Ignoring block '" << blkStart
-                      << "' starting in line " << count << "..." << std::endl;
-
-            break;
-          }   
-        }
-      }
-      else
-      {
-        // Does the ignore block end on the current line?
-        std::string& blkEnd = blkEnds.top();
-        if (line.substr(0,blkEnd.length()) == blkEnd) {
-          ignoreBlock = false;
-          blkEnds.pop();
-
-          std::cout << "Continuing scan after '" << blkEnd
-                    << "' in line " << count << "..." << std::endl;
-        }
-
-        // Continue outer loop
-        continue;
-      }
-      
       if (line.substr(0,6) == "NBLOCK" ||
           line.substr(0,6) == "nblock") {
         numNBlocks_++;
@@ -626,6 +974,59 @@ namespace CoupledField {
     CloseCDBFile();
     OpenCDBFile(fileName_);
   }
+
+  void SimInputCDB::IgnoreBlock(std::string& line, UInt& count)
+  {
+    bool ignoreBlk = false;
+    std::string blkEnd;
+
+    // We need to check whether an ignore block starts on the current line.
+    for(UInt i=0, n=ignoreBlks_.size(); i<n; i++) 
+    {
+      const std::pair<std::string, std::string>& blk = ignoreBlks_[i];
+      const std::string& blkStart = blk.first;
+      
+      if (line.substr(0,blkStart.length()) == blkStart) {
+        ignoreBlk = true;
+        blkEnd = blk.second;
+        
+        std::cout << "Ignoring block '" << blkStart
+                  << "' starting in line " << count << "..." << std::endl;
+        
+        break;
+      }   
+    }
+
+    if(!ignoreBlk)
+    {
+      return;
+    }
+    
+    while(GetNextLine(line)) {
+      count++;
+
+      // Does the ignore block end on the current line?
+      if (line.substr(0,blkEnd.length()) == blkEnd) {
+        ignoreBlk = false;
+        
+        std::cout << "Continuing scan after '" << blkEnd
+                  << "' in line " << count << "..." << std::endl;
+
+        break;
+      }
+    }
+  }
+
+  void SimInputCDB::AddIgnoreBlock(const std::string& begin,
+                                   const std::string& end)
+  {
+    std::pair<std::string, std::string> blk;
+
+    blk.first = begin;
+    blk.second = end;
+    ignoreBlks_.push_back(blk);
+  }
+  
 
   void SimInputCDB::InitAnsys2FETypes() {
 
@@ -851,7 +1252,7 @@ namespace CoupledField {
           // For  element  types  153  (quadratic or  linear  lines)  and  154
           // (quadratic  or  linear  quad),  we  need  to  look  at  KOP4  for
           // ansysSubType.  Chances are however, that  we also need to look at
-          // an additional keyop command.
+          // an additional KEYOPT command.
           if (numTok > 6) {
             ansysSubType = std::strtoul(tokens[6].c_str(), NULL, 0);
             if(ansysSubType != 0)
@@ -949,7 +1350,7 @@ namespace CoupledField {
               if(strict_) {
                 EXCEPTION(errMsg.str());
               } else {
-                std::cerr << errMsg.str() << std::endl;
+                WARN(errMsg.str());
               }
               break;
             case 153:
@@ -976,7 +1377,7 @@ namespace CoupledField {
         if(strict_) {
           EXCEPTION(errMsg.str());
         } else {
-          std::cerr << errMsg.str() << std::endl;
+          WARN(errMsg.str());
         }
       }
 
@@ -990,17 +1391,11 @@ namespace CoupledField {
 
       // check for valid element type
       if( feElemType == Elem::ET_UNDEF || feElemType == Elem::ET_POINT ) {
-        errMsg << "Warning:" << std::endl
-               << "An ANSYS element type which is mapped to element type "
-               << "UNDEFINED or POINT has been found." << std::endl
-               << "The ANSYS type, which has no counterpart, is "
-               << ansElemType << " and the selected ANSYS element is "
-               << ansysType << std::endl;
-        if(strict_) {
-          std::cerr << errMsg.str() << std::endl;
-        } else {
-          std::cout << errMsg.str() << std::endl;
-        }
+        WARN("An ANSYS element type which is mapped to element type "
+             << "UNDEFINED or POINT has been found." << std::endl
+             << "The ANSYS type, which has no counterpart, is "
+             << ansElemType << " and the selected ANSYS element is "
+             << ansysType);
       }
 
       ans2FEMap_[ansElemType]=feElemType;
@@ -1154,7 +1549,7 @@ namespace CoupledField {
     }
     else if(maxNodeNum != numNodes)
     {
-      std::cerr << errMsg.str() << std::endl;
+      WARN(errMsg.str());
 
       std::cerr << "maxNodeNum " << maxNodeNum << std::endl;
       std::cerr << "numNodes " << numNodes << std::endl;
@@ -1173,11 +1568,15 @@ namespace CoupledField {
     // If the node  numbers in the input  file do not match  with the internal
     // ones, issue a warning or even error.
     if(fileNodeNum != nodeNum) {
-      errMsg << "Nodes seem to be not consecutive. Node nr. in file "
-             << fileNodeNum << " does not match internal node nr. "
-             << nodeNum << ". Please check your model!" << std::endl
+      errMsg << "Nodes seem to be not consecutive! Node number "
+             << fileNodeNum << " in file does not match internal node number "
+             << nodeNum << ".";
+      
+      if(strict_) {
+        errMsg << "\nPlease check your model! "
              << "You will have to renumber your model (numcmp,all) "
-             << "eventually!";
+             << "eventually or switch off strict mode.";
+      }
 
       if(strict_) {
         EXCEPTION(errMsg.str());
@@ -1186,7 +1585,7 @@ namespace CoupledField {
         static bool printMsg = true;
         if(printMsg) 
         {
-          std::cerr << errMsg.str() << std::endl;
+          WARN(errMsg.str());
           printMsg = false;
         }
       }
@@ -1217,10 +1616,9 @@ namespace CoupledField {
 
     // Read element types
     UInt elemType, elemMat;
-    // UInt ansElemNum = 0;
+    UInt ansElemNum = 0;
     UInt elemNum = 1;
     UInt elemDim = 0;
-    UInt dim = 0;
     std::vector<UInt> elemNodes(40);
     std::vector<UInt> lineContent(40);
     std::set<UInt> elemNodeSet;
@@ -1241,9 +1639,12 @@ namespace CoupledField {
 
       // do we have a solid eblock ?
       bool isSolidEBlock = false;
-      if (line.find("solid") != line.npos || line.find("SOLID") != line.npos )
+      if (line.find("solid") != line.npos ||
+          line.find("SOLID") != line.npos ) 
+      {
         isSolidEBlock = true;
-
+      }
+      
       UInt numTok = SplitLine(line, tokens);
 
       // in case of a  nonsolid eblock, we need to know  the maximum number of
@@ -1270,7 +1671,7 @@ namespace CoupledField {
         if (isSolidEBlock) {
           elemMat = std::strtoul(tokens[0].c_str(), NULL, 0);
           elemType = std::strtoul(tokens[1].c_str(), NULL, 0);
-          // ansElemNum = std::strtoul(tokens[10].c_str(), NULL, 0);
+          ansElemNum = std::strtoul(tokens[10].c_str(), NULL, 0);
           numElemNodes = std::strtoul(tokens[8].c_str(), NULL, 0);
 
           for (UInt i=0, n=offsets.size()-11; i<n; i++) {
@@ -1291,7 +1692,7 @@ namespace CoupledField {
 	} else {
           elemMat = std::strtoul(tokens[3].c_str(), NULL, 0);
           elemType = std::strtoul(tokens[1].c_str(), NULL, 0);
-          // ansElemNum = std::strtoul(tokens[0].c_str(), NULL, 0);
+          ansElemNum = std::strtoul(tokens[0].c_str(), NULL, 0);
 
           numElemNodes = 0;
           for (UInt i=0, n=numTok-5; i<n; i++) {
@@ -1314,7 +1715,7 @@ namespace CoupledField {
 	}
 
         if (ans2FEMap_[elemType] != Elem::ET_UNDEF) {
-          elemTypes_[elemNum] = ans2FEMap_[elemType];
+          elemTypes_[ansElemNum] = ans2FEMap_[elemType];
           // Determine number of element nodes by inserting nodes into a set.
           elemNodeSet.insert(&elemNodes[0], &elemNodes[numElemNodes]);
           elemNodeSet.erase((UInt) 0);
@@ -1325,25 +1726,24 @@ namespace CoupledField {
           maxNumElemNodes_ = numElemNodes > maxNumElemNodes_ ?
                              numElemNodes : maxNumElemNodes_;
 
-          Elem::FEType newFEType = DegenTypeToNativeType(elemTypes_[elemNum],
+          Elem::FEType newFEType = DegenTypeToNativeType(elemTypes_[ansElemNum],
                                                          numElemNodes);
 
           if(degen_) {
-            DegenerateElement((Elem::FEType)elemTypes_[elemNum],
+            DegenerateElement((Elem::FEType)elemTypes_[ansElemNum],
                               newFEType, elemNodes);
           } else {
             ResortNodes(elemNodes);
           }
 
-          elemMaterials_.push_back(elemMat);
-          elemTypes_[elemNum] = newFEType;
-          elemNumsMap_[elemNum] = elemNum;
+          elemMaterials_[ansElemNum] = elemMat;
+          elemTypes_[ansElemNum] = newFEType;
           elemDim = Elem::shapes[newFEType].dim;
-          dim = dim < elemDim ? elemDim : dim;
+          dim_ = dim_ < elemDim ? elemDim : dim_;
 
           std::copy(elemNodes.begin(),
                     elemNodes.begin() + Elem::shapes[newFEType].numNodes,
-                    std::back_inserter(topology_[elemNum]));
+                    std::back_inserter(topology_[ansElemNum]));
 
           elemNum++;
 
@@ -1365,7 +1765,7 @@ namespace CoupledField {
 
       }
       std::cout << std::endl;
-      std::cout << "Element block " << ib << "(" << numElemsInBlock
+      std::cout << "Element block " << ib << " (" << numElemsInBlock
                 << " elements read)" << std::endl;
       if (numSkipElems > 0)
         std::cout << numSkipElems << " ANSYS elements have been skipped, "
@@ -1373,17 +1773,17 @@ namespace CoupledField {
     }
 
     // store dimension to settings
-    dim_ = dim;
     std::cout << "Finished reading elements (" << elemNum-1 << " read)"
               << std::endl;
 
-    if (numSkipElems>0 && elemNum > firstSkippedElem)
-      std::cout << "WARNING: non skipped elements found after first "
-                << "skipped element (= " << firstSkippedElem << ")."
-                << std::endl
-                << "This might lead to incorrect mesh transfer." << std::endl
-		<< "Please check carefully!" << std::endl;
-
+    if (numSkipElems>0 && elemNum > firstSkippedElem) 
+    {
+      WARN("Non skipped elements found after first "
+           << "skipped element (= " << firstSkippedElem << ")."
+           << std::endl
+           << "This might lead to incorrect mesh transfer." << std::endl
+           << "Please check carefully!");
+    }
   }
 
   void SimInputCDB::ReadElementsUnBlocked() {
@@ -1394,9 +1794,8 @@ namespace CoupledField {
     // Read element types
     UInt elemType;
     UInt elemNum = 1;
-    // UInt ansElemNum = 0;
+    UInt ansElemNum = 0;
     UInt elemDim = 0;
-    UInt dim = 0;
     std::vector<UInt> elemNodes(40);
     std::vector<UInt> lineContent(40);
     std::set<UInt> elemNodeSet;
@@ -1414,7 +1813,7 @@ namespace CoupledField {
 
       numElemNodes = std::strtoul(tokens[3].c_str(), NULL, 0);
       elemType = std::strtoul(tokens[5].c_str(), NULL, 0);
-      // ansElemNum = std::strtoul(tokens[9].c_str(), NULL, 0);
+      ansElemNum = std::strtoul(tokens[9].c_str(), NULL, 0);
 
       // Get next line from input
       GetNextLine(line);
@@ -1451,34 +1850,33 @@ namespace CoupledField {
       }
 
       if (ans2FEMap_[elemType] != Elem::ET_UNDEF) {
-        elemTypes_[elemNum] = ans2FEMap_[elemType];
+        elemTypes_[ansElemNum] = ans2FEMap_[elemType];
 
         // Determine number of element nodes by inserting nodes into a set.
-        elemNodeSet.insert(elemNodes.begin(), elemNodes.end());
+        elemNodeSet.insert(&elemNodes[0], &elemNodes[numElemNodes]);
         elemNodeSet.erase((UInt) 0);
         numElemNodes = elemNodeSet.size();
 
         maxNumElemNodes_ = numElemNodes > maxNumElemNodes_ ?
                            numElemNodes : maxNumElemNodes_;
 
-        Elem::FEType newFEType = DegenTypeToNativeType(elemTypes_[elemNum],
+        Elem::FEType newFEType = DegenTypeToNativeType(elemTypes_[ansElemNum],
                                                        numElemNodes);
 
         if(degen_) {
-          DegenerateElement((Elem::FEType)elemTypes_[elemNum],
+          DegenerateElement((Elem::FEType)elemTypes_[ansElemNum],
                             newFEType, elemNodes);
         } else {
           ResortNodes(elemNodes);
         }
 
-        elemTypes_[elemNum] = newFEType;
-        elemNumsMap_[elemNum] = elemNum;
+        elemTypes_[ansElemNum] = newFEType;
         elemDim = Elem::shapes[newFEType].dim;
-        dim = dim < elemDim ? elemDim : dim;
+        dim_ = dim_ < elemDim ? elemDim : dim_;
 
         std::copy(elemNodes.begin(),
                   elemNodes.begin() + Elem::shapes[newFEType].numNodes,
-                  std::back_inserter(topology_[elemNum]));
+                  std::back_inserter(topology_[ansElemNum]));
 
         elemNum++;
 
@@ -1497,7 +1895,6 @@ namespace CoupledField {
     std::cout << std::endl;
 
     // store dimension to settings
-    dim_ = dim;
     std::cout << "Finished reading elements (" << elemNum-1 << " read)"
               << std::endl;
     if (numSkipElems > 0)
@@ -1505,18 +1902,15 @@ namespace CoupledField {
                 << "counterpart exists" << std::endl;
 
     // sanity check
-    if (elemNum > firstSkippedElem)
-      std::cout << "WARNING: non skipped elements found after first skipped "
-                << "element (= " << firstSkippedElem << ").\nThis might lead "
-                << "to incorrect mesh transfer.\nPlease check carefully!"
-                << std::endl;
+    if (elemNum > firstSkippedElem) 
+    {
+      WARN("Non skipped elements found after first skipped "
+           << "element (= " << firstSkippedElem << ").\nThis might lead "
+           << "to incorrect mesh transfer.\nPlease check carefully!");
+    }
   }
 
   void SimInputCDB::ReadRegionsAndGroups() {
-
-    std::string line;
-    std::string regnam,regtype;
-
     // std::cout << "Reading blocked " << linePtsCMBlocks_.size() << std::endl;
     // process all cmblocks
     if (linePtsCMBlocks_.size() > 0) 
@@ -1526,15 +1920,28 @@ namespace CoupledField {
     if (linePtsCMCmnds_.size() > 0)
       ReadUnBlockedRegionsAndGroups();
 
-    // in case of WB files, look for surface elements used for pressure loading
-    // this is due to that fact that these are not contained in any named selection
-    // std::cout << "Reading surface elems " << linePtsPSECmnds_.size() << std::endl;
+    // in  case of  WB  files, look  for surface  elements  used for  pressure
+    // loading this is  due to that fact  that these are not  contained in any
+    // named   selection   std::cout   <<   "Reading  surface   elems   "   <<
+    // linePtsPSECmnds_.size() << std::endl;
+
     if (linePtsPSECmnds_.size() > 0)
       GenElGroupFromPrsSrfElems();
 
     if (numSFECmnds_ > 0)
       GenElGroupFromSurfForceElems();
 
+    // Sort node groups for more efficient search operations
+    for(UInt ng=0, ngs=nodeGroupNames_.size(); ng<ngs; ng++) 
+    {
+      std::sort(nodeGroupData_[ng].Begin(), nodeGroupData_[ng].End());
+    }
+
+    // In case the input file has  been written using FE Modeler, the volume
+    // as well  as the  surfage regions are  written using  node components.
+    // Therefore, we need  to reconstruct, at least the  volume regions from
+    // the node groups.
+    GenerateVolRegionsFromNodeComponents();
   }
 
   void SimInputCDB::ReadBlockedRegionsAndGroups() {
@@ -1593,9 +2000,8 @@ namespace CoupledField {
         // test dimension of element type of first element in component
         // if this equals model dimension -> region
         // otherwise -> element group
-        UInt dim = dim_;
 
-        if (Elem::shapes[Elem::FEType(elemTypes_[dataVal[0]])].dim == dim) {
+        if (Elem::shapes[Elem::FEType(elemTypes_[dataVal[0]])].dim == dim_) {
           StoreRegion(regnam,numdata,dataVal);
         } else {
           StoreElemGroup(regnam,numdata,dataVal);
@@ -1656,7 +2062,7 @@ namespace CoupledField {
 
     std::vector<std::string>::const_iterator it, end;
 
-    UInt elemNum;
+    UInt ansElemNum;
     StdVector<UInt> elemNumbers;
 
     std::vector< std::string > tokens(32);
@@ -1694,8 +2100,8 @@ namespace CoupledField {
             // Split line into tokens according to the offsets array
             SplitLine(line, tokens, "", &offsets);
 
-            elemNum = std::strtoul(tokens[0].c_str(), NULL, 0);
-	    elemNumbers.Push_back(elemNum);
+            ansElemNum = std::strtoul(tokens[0].c_str(), NULL, 0);
+	    elemNumbers.Push_back(ansElemNum);
 
             GetNextLine(line);
           }
@@ -1726,10 +2132,9 @@ namespace CoupledField {
 
     // in case that there is an format error (ANSYS pre 14.5), we need to know about
     // the last "volume" element to get the correct surface element numbers
-    UInt dim = dim_;
-    UInt numTotalElems = elemNumsMap_.size();
+    UInt numTotalElems = elemTypes_.size();
     UInt lastVolElem = numTotalElems;
-    while ( (Elem::shapes[Elem::FEType(elemTypes_[lastVolElem])].dim < dim) &&
+    while ( (Elem::shapes[Elem::FEType(elemTypes_[lastVolElem])].dim < dim_) &&
             (lastVolElem > 0) )
     {
       lastVolElem--;
@@ -1786,9 +2191,9 @@ namespace CoupledField {
     std::set<UInt> elGrpNodeSet,nodeGrpNodeSet;
 
     for (UInt el=0; el < elemNumbers.GetSize(); el++) {
-      UInt elemNum = elemNumbers[el];
-      for (UInt elNode=0; elNode < topology_[elemNum].size() ; elNode++) {
-        elGrpNodeSet.insert(topology_[elemNum][elNode]);
+      UInt ansElemNum = elemNumbers[el];
+      for (UInt elNode=0; elNode < topology_[ansElemNum].size() ; elNode++) {
+        elGrpNodeSet.insert(topology_[ansElemNum][elNode]);
       }
     }
 
@@ -1898,6 +2303,76 @@ namespace CoupledField {
 //    }
 //  }
 
+  void SimInputCDB::GenerateVolRegionsFromNodeComponents()
+  {
+    std::map<std::string, StdVector<UInt> > regions;
+    std::map<std::string, StdVector<UInt> >::const_iterator rIt, rEnd;
+    std::map<UInt, UInt>::iterator eIt, eEnd;
+    UInt idx = 0;
+    StdVector<UInt> topo(128);
+
+    eIt = elemTypes_.begin();
+    eEnd = elemTypes_.end();
+
+    // Go over  all volume  elements an  try to find  their nodes  inside node
+    // groups. If all nodes  of an element are contained in  a node group add,
+    // this element to the corresponding region.
+    eIt = elemTypes_.begin();
+    eEnd = elemTypes_.end();
+    for(; eIt!=eEnd; eIt++)
+    {
+      UInt ansElemNum = eIt->first;
+      Elem::FEType feType = Elem::FEType(eIt->second);
+      UInt elemDim = Elem::shapes[feType].dim;
+
+      // Ignore all elements which are no volume elements
+      if(elemDim != dim_) 
+      {
+        continue;
+      }
+
+      UInt numNodes = Elem::shapes[feType].numNodes;
+      std::copy(&topology_[ansElemNum][0],
+                &topology_[ansElemNum][numNodes],
+                &topo[0]);
+      std::sort(&topo[0], &topo[numNodes]);
+
+      for(UInt ng=0, ngs=nodeGroupNames_.size(); ng<ngs; ng++) 
+      {
+        std::string name = nodeGroupNames_[ng];
+        
+        if(!IsSubset(&nodeGroupData_[ng][0], &topo[0],
+                     nodeGroupData_[ng].GetSize(),
+                     numNodes))
+        {
+          continue;
+        }
+
+        regions[name].Push_back(ansElemNum);
+        referencedElems_.insert(ansElemNum);
+      }
+    }
+
+    // Store all  generated volume regions  and rename the  corresponding node
+    // groups by adding "_NODES" to their names.
+    rIt = regions.begin();
+    rEnd = regions.end();
+    std::vector<std::string>::iterator ngnIt;
+    for(idx=0; rIt != rEnd; rIt++) 
+    {
+      std::string regionName = rIt->first;
+      const StdVector<UInt>& elems = rIt->second;
+      StoreRegion(regionName, elems.GetSize(), elems);
+
+      // Rename node list
+      ngnIt = std::find(nodeGroupNames_.begin(), nodeGroupNames_.end(),
+                        regionName);
+      (*ngnIt) = regionName+"_NODES";
+
+      idx++;
+    }
+  }
+
   void SimInputCDB::ReadUnBlockedElemRegionOrGroup(UInt numCmCmd, std::string regnam) {
 
     std::stringstream sstr;
@@ -1906,7 +2381,7 @@ namespace CoupledField {
 
     std::vector<std::string>::const_iterator it, end;
 
-    UInt elemNum, matNum;
+    UInt matNum;
     UInt numdata;
     StdVector<UInt> dataVal;
 
@@ -1946,9 +2421,14 @@ namespace CoupledField {
         sstr.clear();sstr.str("");
         sstr << line.substr(line.rfind(",")+1);
         sstr >> matNum;
-        for (elemNum=0; elemNum< elemMaterials_.size(); elemNum++) {
-          if (elemMaterials_[elemNum] == matNum) {
-            dataVal.Push_back(elemNum+1);
+
+        std::map<UInt, UInt>::iterator mit, mend;
+        mit = elemMaterials_.begin();
+        mend = elemMaterials_.end();
+
+        for ( ; mit != mend; mit++) {
+          if (mit->second == matNum) {
+            dataVal.Push_back(mit->first);
           }
         }
       }
@@ -2003,10 +2483,8 @@ namespace CoupledField {
       // test dimension of element type of first element in component
       // if this equals model dimension -> region
       // otherwise -> element group
-      UInt dim = dim_;
-      
       numdata = dataVal.GetSize();
-      if (Elem::shapes[Elem::FEType(elemTypes_[dataVal[0]])].dim == dim) {
+      if (Elem::shapes[Elem::FEType(elemTypes_[dataVal[0]])].dim == dim_) {
         StoreRegion(regnam,numdata,dataVal);
       } else {
         StoreElemGroup(regnam,numdata,dataVal);
@@ -2052,9 +2530,9 @@ namespace CoupledField {
       GetLine(line,nb);
 
       if (line.find("NSEL,S,NODE",0,11) != line.npos ||
-            line.find("nsel,s,node",0,11) != line.npos ||
-              line.find("NSEL,A,NODE",0,11) != line.npos ||
-                line.find("nsel,a,node",0,11) != line.npos) {
+          line.find("nsel,s,node",0,11) != line.npos ||
+          line.find("NSEL,A,NODE",0,11) != line.npos ||
+          line.find("nsel,a,node",0,11) != line.npos) {
         addGroup = true;
         size_t pos1,pos2,pos3;
         UInt npos1=0,npos2=0,npos3=0;
@@ -2106,9 +2584,6 @@ namespace CoupledField {
   void SimInputCDB::StoreNodeGroup(std::string grpname,
                                    UInt numdata,
                                    int* dataVal) {
-
-    nodeGroupNames_.push_back(grpname);
-
     StdVector<UInt> tempVec;
 
     if (numdata==1) {
@@ -2136,16 +2611,12 @@ namespace CoupledField {
         }
       }
     }
-    nodeGroupData_.push_back(tempVec);
-    std::cout << "NodeGroup " << numNodeGroups_+1 << " contains "
-              << nodeGroupData_[numNodeGroups_].GetSize() << " entries"
-              << std::endl;
-    numNodeGroups_++;
+    StoreNodeGroup(grpname, numdata, tempVec);
   }
 
   void SimInputCDB::StoreNodeGroup(std::string grpname, 
                                    UInt numdata,
-                                   StdVector<UInt> dataVal) {
+                                   const StdVector<UInt>& dataVal) {
 
     nodeGroupNames_.push_back(grpname);
 
@@ -2159,9 +2630,6 @@ namespace CoupledField {
   void SimInputCDB::StoreElemGroup(std::string grpname,
                                    UInt numdata,
                                    int* dataVal) {
-
-    elemGroupNames_.push_back(grpname);
-
     StdVector<UInt> tempVec;
 
     if (numdata==1) {
@@ -2190,15 +2658,12 @@ namespace CoupledField {
       }
     }
     elemGroupData_.push_back(tempVec);
-    std::cout << "ElemGroup " << numElemGroups_+1 << " contains "
-              << elemGroupData_[numElemGroups_].GetSize() << " entries"
-              << std::endl;
-    numElemGroups_++;
+    StoreElemGroup(grpname, numdata, tempVec);
   }
 
   void SimInputCDB::StoreElemGroup(std::string grpname,
                                    UInt numdata,
-                                   StdVector<UInt> dataVal) {
+                                   const StdVector<UInt>& dataVal) {
 
     elemGroupNames_.push_back(grpname);
 
@@ -2207,14 +2672,13 @@ namespace CoupledField {
               << elemGroupData_[numElemGroups_].GetSize() << " entries"
               << std::endl;
     numElemGroups_++;
+
+    referencedElems_.insert(dataVal.Begin(), dataVal.End());
   }
 
-  void SimInputCDB::StoreRegion(std::string grpname,
+  void SimInputCDB::StoreRegion(std::string regname,
                                 UInt numdata,
                                 int* dataVal) {
-    std::cout << "Region name: " << grpname << std::endl;
-    regionNames_.push_back(grpname);
-
     StdVector<UInt> tempVec;
 
     if (numdata==1) {
@@ -2242,32 +2706,17 @@ namespace CoupledField {
         }
       }
     }
-    regionData_.push_back(tempVec);
-    std::cout << "Region " << grpname << " contains "
-              << regionData_[numRegions_].GetSize() << " entries"
-              << std::endl;
-    for (UInt i=0; i<tempVec.GetSize(); i++) {
-      // If an element is referenced in more than one domain region
-      // throw an error, since this is not allowed.
-      if (elemRegionMap_.find(tempVec[i]) != elemRegionMap_.end()) {
-        EXCEPTION("Element nr. " << tempVec[i]
-            << " is contained in more than one region. This affects "
-            << "region " << regionNames_[numRegions_] << " and region "
-            << regionNames_[elemRegionMap_[tempVec[i]]] );
-      }
-      elemRegionMap_[tempVec[i]] = numRegions_;
-//      elemNumsOrig_[numRegions_].push_back(tempVec[i]);
-    }
-    numRegions_++;
+    StoreRegion(regname, numdata, tempVec);
   }
 
-  void SimInputCDB::StoreRegion(std::string grpname,
+  void SimInputCDB::StoreRegion(std::string regname,
                                 UInt numdata,
-                                StdVector<UInt> dataVal) {
-    regionNames_.push_back(grpname);
+                                const StdVector<UInt>& dataVal) {
+    std::cout << "Region name: " << regname << std::endl;
+    regionNames_.push_back(regname);
 
     regionData_.push_back(dataVal);
-    std::cout << "Region " << grpname << " contains "
+    std::cout << "Region " << regname << " contains "
               << regionData_[numRegions_].GetSize() << " entries"
               << std::endl;
     for (UInt i=0; i<dataVal.GetSize(); i++) {
@@ -2280,9 +2729,10 @@ namespace CoupledField {
             << regionNames_[elemRegionMap_[dataVal[i]]] );
       }
       elemRegionMap_[dataVal[i]] = numRegions_;
-//      elemNumsOrig_[numRegions_].push_back(dataVal[i]);
     }
     numRegions_++;
+
+    referencedElems_.insert(dataVal.Begin(), dataVal.End());
   }
 
   Elem::FEType SimInputCDB::DegenTypeToNativeType(UInt type, UInt numNodes)
@@ -2624,5 +3074,34 @@ namespace CoupledField {
     
     return numInts;
   }
+
+  bool SimInputCDB::IsSubset(const UInt arr1[], const UInt arr2[],
+                             UInt m, UInt n)
+  {
+    UInt i = 0, j = 0;
+    
+    if(m < n)
+      return 0;
+    
+    //    quickSort(arr1, 0, m-1);
+    // quickSort(arr2, 0, n-1);
+    while( i < n && j < m )
+    {
+      if( arr1[j] <arr2[i] )
+        j++;
+      else if( arr1[j] == arr2[i] )
+      {
+        j++;
+        i++;
+      }
+      else if( arr1[j] > arr2[i] )
+        return false;
+    }
+      
+    if( i < n )
+      return false;
+    else
+      return true;
+  }  
   
 }

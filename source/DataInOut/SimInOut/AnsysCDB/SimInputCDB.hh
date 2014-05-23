@@ -105,7 +105,20 @@ namespace CoupledField {
   protected:
     
     Elem::FEType DegenTypeToNativeType(UInt type, UInt numNodes);
+
+    //! Function  for performing  an  initial scan  of an  APDL  file for  the
+    //! locations of nodes, elements, compontents, etc.
     void PreScanCDBFile();
+
+    //! Since APDL is  a very general language  we have to ignore  some of the
+    //! blocks during the initial scan.
+    void IgnoreBlock(std::string& line, UInt& count);
+
+    void AddIgnoreBlock(const std::string& begin,
+                        const std::string& end);
+
+    std::vector< std::pair<std::string, std::string> > ignoreBlks_;
+
     void SetAnsys2FETypeMap();
 
     void ReadCoordinatesBlocked();
@@ -125,14 +138,44 @@ namespace CoupledField {
     void ReadUnBlockedElemRegionOrGroup(UInt cmLinePos, std::string regnam);
     void ReadUnBlockedNodeGroup(UInt cmLinePos, std::string regnam);
     void StoreRegion(std::string regname, UInt numdata, int* dataVal);
-    void StoreRegion(std::string regname, UInt numdata, StdVector<UInt> dataVal);
+    void StoreRegion(std::string regname, UInt numdata,
+                     const StdVector<UInt>& dataVal);
     void StoreElemGroup(std::string regname, UInt numdata, int* dataVal);
-    void StoreElemGroup(std::string regname, UInt numdata, StdVector<UInt> dataVal);
+    void StoreElemGroup(std::string regname, UInt numdata, 
+                        const StdVector<UInt>& dataVal);
     void StoreNodeGroup(std::string regname, UInt numdata, int* dataVal);
-    void StoreNodeGroup(std::string regname, UInt numdata, StdVector<UInt> dataVal);
+    void StoreNodeGroup(std::string regname, UInt numdata, 
+                        const StdVector<UInt>& dataVal);
     void GenElGroupFromPrsSrfElems();
     void GenElGroupFromSurfForceElems();
     void GenerateSurfElGroup(UInt elblock, StdVector<UInt> elemNumbers);
+
+    //! When writing the input file from  Workbench FE Modeler all regions are
+    //! written  only as  node  components.  Therefore,  at  least the  volume
+    //! regions have to be reconstructed from the previously read node groups.
+    void GenerateVolRegionsFromNodeComponents();
+
+    //! Set containing  all ANSYS  element number,  which are  referenced from
+    //! regions and element groups. 
+    boost::unordered_set<UInt> referencedElems_;
+
+    typedef std::vector< std::vector<UInt> > ElemFacesType;
+    typedef std::map<Elem::FEType, ElemFacesType > FEType2ElemFacesType;
+    typedef std::map<Elem::FEType, std::vector< Elem::FEType > > FEType2FacesFEType;
+    
+    typedef std::pair<Elem::FEType, std::vector<UInt> > FaceType;
+    typedef boost::unordered_multimap<std::size_t, FaceType > FacesType;
+
+    FEType2ElemFacesType elemFaces_;
+    FEType2FacesFEType elemFaceTypes_;
+
+    void InitElemFaceTypeMaps();
+    void GenerateVolElemFaces(FacesType& faces);    
+    void GenerateElemGroupsFromVolElemFacesAndNodeGroups(
+      FacesType& faces,
+      std::map<std::string, StdVector<UInt> >& elemGroupData,
+      std::map<UInt, std::vector<UInt> >& surfTopo,
+      std::map<UInt, Elem::FEType >& surfTypes);
 
 #if(WIN32 || __MINGW32__)
     bool GetLine(std::string& line, __int64 pos);
@@ -155,11 +198,16 @@ namespace CoupledField {
 
     void ResortNodes(std::vector<UInt>& elemNodes);
     void DegenerateElement(const Elem::FEType elemTypeIn,
-    		               Elem::FEType& elemTypeOut,
+                           Elem::FEType& elemTypeOut,
                            std::vector<UInt>& elemNodes);
+
+    //! Returns true if arr2[] is a subset of arr1[]
+    static bool IsSubset(const UInt arr1[], const UInt arr2[],
+                         UInt m, UInt n);
 
     bool strict_;
     bool degen_;
+    bool surfElemsFromNodeComps_;    
 
     std::ifstream inFile_;
     std::streampos fSize_;
@@ -175,24 +223,36 @@ namespace CoupledField {
     UInt numRegions_;
     std::vector<std::string> regionNames_;
     std::vector<StdVector<UInt> > regionData_;
-    std::map<UInt, UInt> elemRegionMap_;
-//    std::vector< std::vector<UInt> > elemNumsOrig_;
 
+    //! Map from ANSYS element type to FEType
     std::map<UInt, UInt> ans2FEMap_;
 
     void InitAnsys2FETypes();
     UInt ansysSubTypes_, ansysElTypes_;
     UInt *ans2FEType_;
 //    UInt *ansETDim_;
-    std::vector<UInt> elemMaterials_;
 
+    //! Coordinates of nodes.
     std::vector<Double> nodalCoords_;
+
+    //! Map from ANSYS node number to internal node number
     std::map<UInt, UInt> nodeNumsMap_;
 
+    //! Map from ANSYS element number to FEType
     std::map<UInt, UInt> elemTypes_;
-    std::map<UInt, UInt> elemNumsMap_;
-    UInt maxNumElemNodes_;
+
+    //! Map from ANSYS element number to ANSYS material number
+    std::map<UInt, UInt> elemMaterials_;
+
+    //! Map from ANSYS element number to region id
+    std::map<UInt, UInt> elemRegionMap_;
+
+    //! Map from ANSYS element number to connectivity
     std::map<UInt, std::vector<UInt> > topology_;
+
+    //! Maximum number of element nodes
+    UInt maxNumElemNodes_;
+
 
     // file entries resulting from scan
     std::vector<std::string > lineETCmnds_;
