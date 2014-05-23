@@ -12,6 +12,7 @@
 #include "DataInOut/SimOutput.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "DataInOut/ColoredConsole.hh"
 
 #include "ParamsInit.hh"
 #include "HelperFuncs.hh"
@@ -45,6 +46,20 @@ PtrParamNode param;
 PtrParamNode info;
 
 namespace CFSTool {
+
+  void PrintWarning(Exception& ex) {
+    
+    // Print warning on command line
+    std::string msg = ex.GetMsg();
+    std::string fileName = ex.GetFileName();
+    unsigned int lineNum = ex.GetLineNum();
+    
+    std::cerr << "\n "
+              << fg_blue << "WARNING:" << fg_reset << "\n "
+              << msg << std::endl;
+    std::cerr << "\n(" << fileName << ", Line " 
+              << lineNum  << ")\n\n";
+  }
 
   void Convert( const std::string& inFile, const std::string& outFile ) {
 
@@ -959,6 +974,9 @@ int main(int argc, char** argv)
     } else {
       Exception::segfault_ = false;
     }
+
+    // Register callback function with exception class for warning
+    Exception::SetCallbackWarn(CFSTool::PrintWarning);
 
     // Print out hard-coded node and element limits and exit.
     if (param->Has("printLimits"))
