@@ -81,6 +81,14 @@ def to_polar(x, y):
 def to_cart(phi, r):
   return r * numpy.cos(phi), r * numpy.sin(-phi)
 
+# calculate volume for s1, s2. Assume regular grid!
+def calc_volume(s1, s2):
+  vol = 0.0
+  for i in range(len(s1)):
+    vol += s1[i] + s2[i] - s1[i] * s2[i]
+  return (vol / len(s1))[0] # somehow this is a numpy.ndarry
+
+
 ## generate polygon vertices out of rotation data
 # to be applied as draw.polygon(result, fill="green", outline="black")
 #

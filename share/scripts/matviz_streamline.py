@@ -189,7 +189,7 @@ class Fields:
 
   ## helper for streamline
   #@param direction 1.0 for forward, -1.0 for backward
-  def directional_streamline(self, x, y, steplength, minimal, idx, direction):
+  def directional_streamline(self, x, y, steplength, minimal, idx, direction, method = "euler"):
     
     trace = []
     trace.append(((x, y), self.fine.getData(x, y)[0]))
@@ -199,11 +199,18 @@ class Fields:
       assert(val >= 0.0)
       angle = here[1] + idx * numpy.pi/2 # for idx==0 nothing changes
       
-      #print 'x=' + str(x) + ' y=' + str(y) + ' data=' + str(here),
-      x += steplength * numpy.cos(angle) * direction 
-      y += steplength * numpy.sin(angle) * direction
-      #print ' next_x=' + str(x) + ' next_y=' + str(y) + ' val=' + str(val)
-
+      if method == "euler":
+        #print 'x=' + str(x) + ' y=' + str(y) + ' data=' + str(here),
+        x += steplength * numpy.cos(angle) * direction 
+        y += steplength * numpy.sin(angle) * direction
+        #print ' next_x=' + str(x) + ' next_y=' + str(y) + ' val=' + str(val)
+      if method == "midpoint":
+        x_m = x + 0.5 * steplength * numpy.cos(angle) * direction 
+        y_m = y + 0.5 * steplength * numpy.sin(angle) * direction
+        mid = self.fine.getData(x_m, y_m)
+        angle_m = mid[1] + idx * numpy.pi/2 # for idx==0 nothing changes
+        x += steplength * numpy.cos(angle_m) * direction 
+        y += steplength * numpy.sin(angle_m) * direction
       if val < minimal: # stop stream if we go into void
         break;
       if len(trace) > 2000: # prevent circular streams  
@@ -324,7 +331,7 @@ def draw_frustum(fig, dx, coord, thick):
   
 
  
-def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, s1_samples, s2_samples, res, do_save, info):            
+def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, s1_samples, s2_samples, max_traces_per_cell, res, do_save, info):            
 
   assert(not (s1_samples == None and s2_samples <> None))
  
@@ -379,7 +386,7 @@ def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, 
     field   = fields[trace.idx]
     
     # draw the trace only if there is no line yet at the trace origin
-    if mycells[trace.cell] > 1:
+    if mycells[trace.cell] > max_traces_per_cell:
       continue
     
     mycells += trace.touched(field.macro)
@@ -418,8 +425,8 @@ def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, 
           mat_sum[idx] += val
           mat_count[idx] += 1
   
-  print void_sum       
-  print mat_sum
+  # print void_sum       
+  # print mat_sum
   print 'below minimal cells (fraction) s1: ' + str(float(void_count[0])/(void_count[0] + mat_count[0])) + ' s2: ' + str(float(void_count[1])/(void_count[1] + mat_count[1]))
   print 'below minimal material (fraction) s1: ' + str(void_sum[0]/(void_sum[0] + mat_sum[0])) + ' s2: ' + str(void_sum[1]/(void_sum[1] + mat_sum[1])) 
   if info <> None:

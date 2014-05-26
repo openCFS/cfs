@@ -50,8 +50,8 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     s1 *= rho
     s2 *= rho
     s3 *= rho
-    print "scale stiffness values by design_density_" + args.hom_access + " with average value " + str(numpy.mean(rho))  
-  
+    print "scale stiffness values by design_density_" + args.hom_access + " penalized by " + str(args.penalty) + " with average value " + str(numpy.mean(rho))  
+
   angle = numpy.zeros(((len(s1),3)))
   
   if args.show == "hom_rot_cross" or args.show == "rot" or args.show == "stream":
@@ -74,15 +74,18 @@ def read_stiff_angle(hdf_file, dim_2D, args):
 ## show or write either Image or polydata
 # @param viz eithe Image or polydata
 # @save filename for output
+# @return the volume fraction if determined or None
 def show_or_write(viz, args):
   assert(viz <> None)
+  volume = None
+  
   global info
   if isinstance(viz, Image.Image):
-    frac= 1 - numpy.average(numpy.array(viz)) / 255
-    print 'volume fraction from image : ' + str(frac)
+    volume = 1 - numpy.average(numpy.array(viz)) / 255
+    print 'volume fraction from image : ' + str(volume)
     if info <> None:
       vol = xml.etree.ElementTree.SubElement(info, "volume")
-      vol.set("imageMaterial", str(frac))  
+      vol.set("imageMaterial", str(volume))  
     
     if args.save:
       viz.save(args.save)
@@ -102,15 +105,20 @@ def show_or_write(viz, args):
         # So read again from file :( 
         tmp = Image.open(args.save).convert('L') # make gray, otherwise data has the dimension x*y*4 (rgm + alpha)
         dat = numpy.array(tmp)
-        frac = len(numpy.where(dat.reshape(dat.size,1) < 128)[0]) / float(dat.size) # cont fields below 128 which is become black with a thrshold of 0.5
-        print 'volume fraction from image : ' + str(frac)
+        volume = len(numpy.where(dat.reshape(dat.size,1) < 128)[0]) / float(dat.size) # cont fields below 128 which is become black with a thrshold of 0.5
+        print 'volume fraction from image : ' + str(volume)
         if info <> None:
           vol = xml.etree.ElementTree.SubElement(info, "volume")
-          vol.set("imageMaterial", str(frac))  
+          vol.set("imageMaterial", str(volume))  
     else:
       matplotlib.pyplot.show()
+
+    matplotlib.pyplot.close(fig)
+
   else:
     show_write_vtk(viz, args.res, args.save)
+    
+  return volume  
 
 def plot_angle_data(file, angle, data):
   plot = open(file, "w")
@@ -118,6 +126,131 @@ def plot_angle_data(file, angle, data):
   for i in range(len(angle[0])): # assume a single tensor, take the first element
     plot.write(str(angle[0][i]) + '\t' + str(data[0][i]) + '\n')
   plot.close()  
+
+
+# we extract the main processing such that we can run it within a loop to find the optimal scaling
+# @param force_scale overwrites args.scale
+# @return volume if calculated (e.g. via --save a pixel image) otherwise None
+def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None):
+  
+  volume = None # might ne set
+  
+  scale = force_scale if force_scale else args.scale
+  
+  
+  #perform 2D and 3D from file
+  if h5_read or dim_2D:
+    # either Image or polydata  
+    viz = None
+    if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "rot" or args.show == 'stream':
+  
+      s1, s2, s3, angle = read_stiff_angle(f, dim_2D, args)
+      v = calc_volume(s1, s2)
+      print "volume for regular grid: " + str(calc_volume(s1, s2))
+      
+      # add angle bias, e.g. by 90 deg to correct thomas
+      angle += args.angle_bias * numpy.pi/180
+      # scale angle, e.g  by -1 to correct jannis 
+      if args.angle_factor <> 1.0:
+        print 'scale angle by ' + str(args.angle_factor)
+        angle *= args.angle_factor  
+      
+      print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + '] s2 in [' + str(numpy.min(s2)) + ':' + str(numpy.max(s2)) + ']'
+  
+      coords = (centers, min, max, elem_dim)
+  
+      # viz is either Image or polydata
+      if dim_2D:
+        if args.show == "hom_rect": 
+          if args.hom_grad == 'none':
+            viz = show_frame(coords, s1, s2, args.hom_dir, args.res)
+          else:
+            viz = show_frame_grad(coords, s1, s2, args.hom_grad, args.hom_dir, args.res)
+        elif args.show == "hom_rot_cross" or args.show == "rot":
+          # add optional angle bias
+          print 'change angle'
+          if args.hom_grad == 'none':
+            viz = show_rot_cross(coords, s1, s2, angle[:,0], args.hom_dir, args.res, scale, args.color, args.save)
+          else:
+            viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, scale, args.save)
+        elif args.show == "stream":
+            viz = show_streamline(coords, s1, s2, angle[:,0], args.hom_dir, scale, args.minimal, args.stream_style, args.stream_step, args.hom_samples, args.stream_s2_samples, args.stream_max_traces_per_cell, args.res, args.save <> None, info)            
+        else:
+          assert(False)
+      # the 3D VTK stuff      
+      else:       
+        if args.show == "rot":
+          s1 = ones((len(s1),1)) * 0.25
+          s2 = ones((len(s1),1)) * 0.25
+          s3 = ones((len(s1),1)) * 0.25
+        if args.hom_samples:
+          if args.hom_grad == 'none':
+            print 'for hom_rect in 3D with hom_samples you need to specify hom_grad'
+            exit()
+          else:
+            viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale)
+        else: # no sample
+          if args.hom_grad == 'none':
+              viz = create_3d_frame(coords, s1, s2, s3, angle, args.hom_dir, scale)  
+          else:
+            print 'hom_rect in 3D only for --hom_grad none implemented'
+            exit()
+              
+    # no hom_rect stuff but orientational stiffness
+    else:
+      if args.tensor == 'mechTensor':
+        print "Input data is read as as " + args.notation
+      #tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
+      angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.tensor, args.show)
+      
+      if args.plot <> None:
+        plot_angle_data(args.plot, angle, data)
+        # quit!! such we can check for viz!!
+        exit() 
+      else:
+        viz = orientational_stiffness(centers, angle, data, args.res, scale)
+  
+    if viz == None:
+      print 'Error: no visualization calculated!'
+    else:
+      volume = show_or_write(viz, args)
+  
+  # not from file and not 2D -> this is the single tensor with optional planes 
+  else:
+    angle, data, aux = perform_cfs_rotation(tensor, int(args.sampling), aux_code)
+  
+    print "largest stiffness: " + str(numpy.max(data)) + " smallest stiffness: " + str(numpy.min(data))
+    if len(aux) > 0:
+      print "largest " + args.show +": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux))
+    
+    poly = create_vtk_poly_data(angle, data if args.show == "default" else aux)
+    
+    actors = []
+    if not args.symmetries == "default":
+      tmp = []
+      if args.symmetries_mode == "minima":   
+        tmp = find_minima(angle, aux)
+      else:
+        for i in range(len(angle)):
+          tmp.append((angle[i], aux[i]))
+      # sort by value  
+      tmp2 = sorted(tmp, key=lambda entry: entry[1])
+      # max
+      tmp3 = tmp2[0:int(args.symmetries_max)]
+      # handle threshold
+      mins = [] 
+      for i in range(len(tmp3)):
+        if tmp3[i][1] <= float(args.symmetries_threshold):
+          mins.append(tmp3[i]) 
+      actors = create_symmety_planes(mins, 1.2 * numpy.max(data if args.show == "default" else aux), not args.symmetries_planes == "false")
+  
+    show_write_vtk(poly, args.res, args.save, actors)  
+  
+  return volume
+  
+  
+  
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D")
@@ -127,6 +260,7 @@ parser.add_argument("--h5_region", help="region name (default 'mech')", default=
 parser.add_argument('--h5_info', action='store_true', help='dump some meta data information about the h5 file')
 parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, 'elecTensor'", default="mechTensor")
 parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=float)
+parser.add_argument("--target_volume", help="find optimal scaling. Makes only sense for streamline", type=float)
 parser.add_argument("--res", help="x-resolution (default 1000)", default=800, type=int)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
 parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'rot', 'stream'])
@@ -145,6 +279,8 @@ parser.add_argument("--hom_samples", help="activates interpolation and, the valu
 parser.add_argument("--stream_style", help="select visualization", choices=['line', 'thick'], default='thick')
 parser.add_argument("--stream_step", help="step length for ODE integration per macro cell", type=float, default=0.2)
 parser.add_argument("--stream_s2_samples", help="sampling of s2 if not given hom_samples applies", type=int)
+parser.add_argument("--stream_max_traces_per_cell", help="maximum number of traces such that we may start a trace (>= 1)", type=int, default=1)
+parser.add_argument("--stream_ode", help="method to solve the ODE", default="euler", choices=['euler', 'midpoint'] )
 parser.add_argument("--minimal", help="minimal stiffness to be drawn, will be scaled", type=float, default=0.0)
 parser.add_argument("--parametrization", help="parametrization of the stiffness tensor", default="hom_rect", choices=['hom_rect', 'trans-iso', 'ortho'])
 parser.add_argument("--save", help="save 'image.png' (pixel), 'image.pdf' (vector) or VTK Poly Data file 'file.vtp'")
@@ -160,7 +296,7 @@ if not args.symmetries == "default" and not args.show == "default" and not args.
   sys.exit()
 aux_code = args.show if not args.show == "default" else args.symmetries # might still be default
 
-# in this global varibale we can store meta-information to be exported as xml file 
+# in this global variable we can store meta-information to be exported as xml file 
 info = None
 if args.info is not None:
   info = xml.etree.ElementTree.Element("matviz")
@@ -223,112 +359,38 @@ else:
   centers, min, max, elem_dim  = centered_elements(f, args.h5_region)
   dim_2D = min[2] == max[2]
   print 'detected dimension ' + ('2D' if dim_2D else '3D')  
-  
-  
-#perform 2D and 3D from file
-if h5_read or dim_2D:
-  # either Image or polydata  
-  viz = None
-  if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "rot" or args.show == 'stream':
 
-    s1, s2, s3, angle = read_stiff_angle(f, dim_2D, args)
-    # add angle bias, e.g. by 90 deg to correct thomas
-    angle += args.angle_bias * numpy.pi/180
-    # scale angle, e.g  by -1 to correct jannis 
-    if args.angle_factor <> 1.0:
-      print 'scale angle by ' + str(args.angle_factor)
-      angle *= args.angle_factor  
-    
-    print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + '] s2 in [' + str(numpy.min(s2)) + ':' + str(numpy.max(s2)) + ']'
-
-    coords = (centers, min, max, elem_dim)
-
-    # viz is either Image or polydata
-    if dim_2D:
-      if args.show == "hom_rect": 
-        if args.hom_grad == 'none':
-          viz = show_frame(coords, s1, s2, args.hom_dir, args.res)
-        else:
-          viz = show_frame_grad(coords, s1, s2, args.hom_grad, args.hom_dir, args.res)
-      elif args.show == "hom_rot_cross" or args.show == "rot":
-        # add optional angle bias
-        print 'change angle'
-        if args.hom_grad == 'none':
-          viz = show_rot_cross(coords, s1, s2, angle[:,0], args.hom_dir, args.res, args.scale, args.color, args.save)
-        else:
-          viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, args.scale, args.save)
-      elif args.show == "stream":
-          viz = show_streamline(coords, s1, s2, angle[:,0], args.hom_dir, args.scale, args.minimal, args.stream_style, args.stream_step, args.hom_samples, args.stream_s2_samples, args.res, args.save <> None, info)            
-      else:
-        assert(False)
-    # the 3D VTK stuff      
-    else:       
-      if args.show == "rot":
-        s1 = ones((len(s1),1)) * 0.25
-        s2 = ones((len(s1),1)) * 0.25
-        s3 = ones((len(s1),1)) * 0.25
-      if args.hom_samples:
-        if args.hom_grad == 'none':
-          print 'for hom_rect in 3D with hom_samples you need to specify hom_grad'
-          exit()
-        else:
-          viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, args.scale)
-      else: # no sample
-        if args.hom_grad == 'none':
-            viz = create_3d_frame(coords, s1, s2, s3, angle, args.hom_dir, args.scale)  
-        else:
-          print 'hom_rect in 3D only for --hom_grad none implemented'
-          exit()
-            
-  # no hom_rect stuff but orientational stiffness
-  else:
-    if args.tensor == 'mechTensor':
-      print "Input data is read as as " + args.notation
-    #tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
-    angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.tensor, args.show)
-    
-    if args.plot <> None:
-      plot_angle_data(args.plot, angle, data)
-      # quit!! such we can check for viz!!
-      exit() 
-    else:
-      viz = orientational_stiffness(centers, angle, data, args.res, args.scale)
-
-  if viz == None:
-    print 'Error: no visualization calculated!'
-  else:
-    show_or_write(viz, args)
-
-# not from file and not 2D -> this is the single tensor with optional planes 
+# do we have to do 1D optimization? 
+if not args.target_volume:
+  perform(args, h5_read, dim_2D, tensor, centers, aux_code)
 else:
-  angle, data, aux = perform_cfs_rotation(tensor, int(args.sampling), aux_code)
+  if args.scale > 0:
+    print "Error: don't give --scale and --target_volume concurrently!"
+    sys.exit() 
+  
+  lower = 1e-4
+  upper = 2.0
+  
+  while upper - lower > 0.001:
+    mid = lower + 0.5 *(upper - lower)
+    
+    vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, mid)
+    if vol == None:
+      print "Error: --target_volume no possible as no volume is calculated. Try --save <file>.png"
+      sys.exit()
 
-  print "largest stiffness: " + str(numpy.max(data)) + " smallest stiffness: " + str(numpy.min(data))
-  if len(aux) > 0:
-    print "largest " + args.show +": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux))
-  
-  poly = create_vtk_poly_data(angle, data if args.show == "default" else aux)
-  
-  actors = []
-  if not args.symmetries == "default":
-    tmp = []
-    if args.symmetries_mode == "minima":   
-      tmp = find_minima(angle, aux)
+    tv = xml.etree.ElementTree.SubElement(info, "target_volume")
+    tv.set("target", str(args.target_volume))
+    tv.set("current", str(vol))
+    tv.set("scale_argument", str(mid))
+    print ">>>>>>> target_volume: lower=%15.15g mid=%15.15g upper=%15.15g -> volume=%15.15g " % (lower , mid , upper , vol), 
+
+    if vol > args.target_volume:
+      upper = mid
+      print ' too large'
     else:
-      for i in range(len(angle)):
-        tmp.append((angle[i], aux[i]))
-    # sort by value  
-    tmp2 = sorted(tmp, key=lambda entry: entry[1])
-    # max
-    tmp3 = tmp2[0:int(args.symmetries_max)]
-    # handle threshold
-    mins = [] 
-    for i in range(len(tmp3)):
-      if tmp3[i][1] <= float(args.symmetries_threshold):
-        mins.append(tmp3[i]) 
-    actors = create_symmety_planes(mins, 1.2 * numpy.max(data if args.show == "default" else aux), not args.symmetries_planes == "false")
-
-  show_write_vtk(poly, args.res, args.save, actors)  
+      lower = mid
+      print ' too small'
 
 if args.info:
   print 'write info xml file: ' + args.info
