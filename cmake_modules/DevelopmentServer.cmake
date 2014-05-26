@@ -31,3 +31,9 @@ SET(CFS_DS_SVN "${CFS_DS_HTTPS}/svn")
 # Base directory CFS_DEPS_CACHE_DIR mirror.
 #-----------------------------------------------------------------------------
 SET(CFS_DS_CFSDEPS "${CFS_DS_FTP}/cfsdeps")
+
+#-----------------------------------------------------------------------------
+# Drop site for nightly build/test results.
+#-----------------------------------------------------------------------------
+SET(CFS_DS_CDASH_DROP_SITE "${CFS_DS_HOSTNAME}:2000")
+
