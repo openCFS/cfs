@@ -367,30 +367,59 @@ else:
   if args.scale > 0:
     print "Error: don't give --scale and --target_volume concurrently!"
     sys.exit() 
-  
+
+  # unfortunately we are not necessary convex! therefore we may not do bisection
   lower = 1e-4
   upper = 2.0
-  
-  while upper - lower > 0.001:
-    mid = lower + 0.5 *(upper - lower)
-    
-    vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, mid)
-    if vol == None:
-      print "Error: --target_volume no possible as no volume is calculated. Try --save <file>.png"
-      sys.exit()
+  level = 0  
+  best_err = 999
+  err      = 999
+  best_s   = -1
 
-    tv = xml.etree.ElementTree.SubElement(info, "target_volume")
+  while upper - lower > 0.000001 and abs(best_err) > 0.001:
+    for s in numpy.arange(lower, upper, (upper - lower) / 5.):
+      vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, s)
+      err = abs(vol - args.target_volume)
+      if vol == None:
+        print "Error: --target_volume no possible as no volume is calculated. Try --save <file>.png"
+        sys.exit()
+  
+      tv = xml.etree.ElementTree.SubElement(info, "target_volume")
+      tv.set("target", str(args.target_volume))
+      tv.set("current", str(vol))
+      tv.set("scale_argument", str(s))
+      tv.set("err", str(err))
+       
+      tvs =  xml.etree.ElementTree.SubElement(tv, "search")
+      tvs.set("level", str(level))
+      tvs.set("lower", str(lower))
+      tvs.set("upper", str(upper))
+      tvs.set("delta", str(upper - lower))
+      tvs.set("best_err", str(best_err))
+
+      if(err < best_err):
+        best_err = err
+        best_s   = s
+
+      print ">>>> target_volume: level=" + str(level) + " lower= " + str(lower) + " upper= " + str(upper) + " delta= " + str(upper- lower) + " best=" + str(best_err) + " test=" + str(s),
+      print " -> " + str(vol) + " err=" + str(err) + (" *" if err == best_err else "")
+            
+    lower = numpy.max((1e-4, best_s - 0.5 * (upper - lower) / 5.)) 
+    upper = numpy.min((2.0, best_s + 0.5 * (upper - lower) / 5.))
+    level += 1
+
+  # the last result does not mean to be the best result
+  if err <> best_err:
+    vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, best_s)
+
+    print "!!!!! best_target_volume: best_scale=" + str(best_s) + " -> " + str(vol) + " err=" + str(abs(vol - args.target_volume))
+    
+    tv = xml.etree.ElementTree.SubElement(info, "best_target_volume")
     tv.set("target", str(args.target_volume))
     tv.set("current", str(vol))
-    tv.set("scale_argument", str(mid))
-    print ">>>>>>> target_volume: lower=%15.15g mid=%15.15g upper=%15.15g -> volume=%15.15g " % (lower , mid , upper , vol), 
+    tv.set("scale_argument", str(best_s))
+    tv.set("err", str(abs(vol - args.target_volume)))
 
-    if vol > args.target_volume:
-      upper = mid
-      print ' too large'
-    else:
-      lower = mid
-      print ' too small'
 
 if args.info:
   print 'write info xml file: ' + args.info
