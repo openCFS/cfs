@@ -376,7 +376,7 @@ else:
   err      = 999
   best_s   = -1
 
-  while upper - lower > 0.000001 and abs(best_err) > 0.001:
+  while upper - lower > 0.000001 and abs(best_err) > 0.0001:
     for s in numpy.arange(lower, upper, (upper - lower) / 5.):
       vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, s)
       err = abs(vol - args.target_volume)
