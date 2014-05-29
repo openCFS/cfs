@@ -65,6 +65,7 @@ using std::string;
 #include "Domain/CoefFunction/CoefFunctionGrid.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
+#include "Domain/CoefFunction/CoefXpr.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -2954,6 +2955,7 @@ namespace CoupledField {
     //idee: die PDE gibt zum attribute formulation die passenden space zur��ck
     //DOGMA: PRO UNBEKANNTE EINE FUNCTION UND EIN SPACE
     std::string formulation;
+    std::cout << "Get FESpaceForm" << std::endl;
     myParam_->GetValue("feSpaceFormulation",formulation,ParamNode::EX);
     infoNode_->SetComment("List of defined Spaces");
     PtrParamNode feSpaceNode = infoNode_->Get("feSpaces");
@@ -3236,6 +3238,30 @@ namespace CoupledField {
     else if ( solType == ELEC_POTENTIAL ) {
       factor = materials_[nitscheIf->GetMasterVolRegion()]
                        ->GetScalCoefFnc( ELEC_CONDUCTIVITY, Global::REAL );
+    }
+    else if ( solType == MAG_POTENTIAL) {
+      PtrCoefFct nu1, nu2;
+      PtrCoefFct oneHalf = CoefFunction::Generate( mp_, Global::REAL, "0.5");
+      factor = materials_[nitscheIf->GetMasterVolRegion()]
+                             ->GetScalCoefFnc( MAG_RELUCTIVITY, Global::REAL );
+//      nu2 = materials_[nitscheIf->GetSlaveVolRegion()]
+//                                   ->GetScalCoefFnc( MAG_RELUCTIVITY, Global::REAL );
+//      factor = CoefFunction::Generate( mp_, Global::REAL,
+//                         CoefXprBinOp(mp_, nu1, nu2, CoefXpr::OP_ADD));
+//      factor = nu2;
+//      factor = CoefFunction::Generate( mp_, Global::REAL,
+//                         CoefXprBinOp(mp_, factor, oneHalf, CoefXpr::OP_MULT));
+
+//      //get correct scaling of penalty term
+//      StdVector<Vector<Double> > points(1);
+//      Vector<Double> p1(DIM);
+//      p1.Init();
+//      points[0]= p1;
+//      StdVector<Double> values;
+//      nu1->GetScalarValuesAtCoords(points,values,this->ptGrid_);
+//      std::cout << "Nu1: " << values[0] << std::endl;
+//      nu2->GetScalarValuesAtCoords(points,values,this->ptGrid_);
+//      std::cout << "Nu2: " << values[0] << std::endl;
     }
     else
       factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");

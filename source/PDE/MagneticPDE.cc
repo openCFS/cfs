@@ -546,7 +546,10 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
         }
         break;
       case NC_NITSCHE:
-        EXCEPTION("ncInterface of Nitsche type is not implemented for MagneticPDE");
+        if (dim_ == 2)
+          DefineNitscheCoupling<2,1>(MAG_POTENTIAL, *ncIt );
+        else
+          EXCEPTION("Currently Nitsche for 3D not implemented");
         break;
       default:
         EXCEPTION("Unknown type of ncInterface");
