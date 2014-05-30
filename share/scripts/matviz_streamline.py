@@ -110,13 +110,15 @@ class Data:
 ## This holds a trace
 class Trace:
   #@param cell tupel if indices of macro cell where we start in the center
-  def __init__(self, points, data, cell, idx):
+  #@param prominent fakes max such the this Trace is sorted firsts
+  def __init__(self, points, data, cell, idx, prominent = False):
     self.points = points
     self.data   = data
     self.cell   = cell
     self.idx    = idx
-    self.max    = max(self.data)
+    self.max    = 9.0 if prominent else max(self.data)
     self.avg    = sum(self.data) / len(self.data)
+    self.prominent = prominent
     assert(min(self.data) >= 0.0)
     #print 'min trace ' + str(min(self.data)) + ' max trace ' + str(self.max)
     
@@ -124,8 +126,7 @@ class Trace:
   def touched(self, macro):     
     data = numpy.zeros((macro.nx, macro.ny))
     for p in self.points:
-      ix = (p[0] - 1e-6 - macro.min[0]) / macro.dx
-      iy = (p[1] - 1e-6 - macro.min[1]) / macro.dy
+      ix, iy = coord2index(macro, p)
       #print 'p=' + str(p) + ' min=' + str(macro.min) + ' d=' + str((macro.dy, macro.dy)) + ' i=' + str((ix, iy))
       
       data[ix,iy] = max((data[ix,iy], 1))
@@ -155,11 +156,6 @@ class Fields:
     # no need to be much smaller than original, if coarser assume 0.2 step length.
     self.fine  = Data(min, max, numpy.min((3 * nx, 5 * dx)), c, v, 'linear')
  
-  ## from macro index give cell center coordinates
-  def index2coord(self, cell):
-    x = (cell[0] + 0.5) * self.macro.dx 
-    y = (cell[1] + 0.5) * self.macro.dy
-    return x, y
   ## calculates the streamline from a given point up to both ends
   # @param idx 0 for s1 and 1 for s2 which changes the angle!
   # return a list with two trace objects for both indices
@@ -222,6 +218,18 @@ class Fields:
         trace.append((self.fine.limit(x, y), val))
         break
     return trace if len(trace) > 2 else []
+
+  ## from macro index give cell center coordinates
+  def index2coord(macro, cell):
+    x = (cell[0] + 0.5) * macro.macro.dx 
+    y = (cell[1] + 0.5) * macro.macro.dy
+    return x, y
+
+def coord2index(data, p):
+  ix = (p[0] - 1e-6 - data.min[0]) / data.dx
+  iy = (p[1] - 1e-6 - data.min[1]) / data.dy
+  return ix, iy
+
 
 ## draws a trace  
 # @param scale scale stiffness to color. 1.0 for normal or 2.0 if max stiff = 0.5
@@ -361,6 +369,18 @@ def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, 
 
   #generate all > minimal traces, draw (or not draw) them later
   traces = []
+ 
+  # if we enforce given lines
+  # if 4 == 4:
+  #  for x in numpy.arange(0.9, 1.0, 0.01):
+  #     tmp = fields[0].directional_streamline(x,0.0, fields[0].macro.dx * step, minimal[0], 0, -1.0)
+  #     val = [i[1] for i in tmp]
+  #     cell = (coord2index(fields[0].macro, (x, 0.0)))
+  #     if len(val) > 0:
+  #       traces.append(Trace([i[0] for i in tmp], val, cell, 0, prominent=True))
+  #     else:
+  #       print 'zero forced trace at x=' + str(x)    
+
   if True:
     for idx in dirs:
       field = fields[idx]
@@ -385,17 +405,16 @@ def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, 
     mycells = cells[trace.idx]
     field   = fields[trace.idx]
     
-    # draw the trace only if there is no line yet at the trace origin
-    if mycells[trace.cell] > max_traces_per_cell:
-      continue
-    
-    mycells += trace.touched(field.macro)
-    count[trace.idx] += 1 
-
-    if style == 'line':      
-      draw_trace(sub, trace)
-    else:        
-      draw_thick_trace(sub, field.macro.dx, trace, minimal[trace.idx])
+    # draw the trace only if there are not too much lines yet at the trace origin or if the drawing is enforced
+    if trace.prominent or mycells[trace.cell] <= max_traces_per_cell:
+      
+      mycells += trace.touched(field.macro)
+      count[trace.idx] += 1 
+  
+      if style == 'line':      
+        draw_trace(sub, trace)
+      else:        
+        draw_thick_trace(sub, field.macro.dx, trace, minimal[trace.idx])
           
   # finally some statistics        
           
@@ -430,10 +449,12 @@ def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, 
   print 'below minimal cells (fraction) s1: ' + str(float(void_count[0])/(void_count[0] + mat_count[0])) + ' s2: ' + str(float(void_count[1])/(void_count[1] + mat_count[1]))
   print 'below minimal material (fraction) s1: ' + str(void_sum[0]/(void_sum[0] + mat_sum[0])) + ' s2: ' + str(void_sum[1]/(void_sum[1] + mat_sum[1])) 
   if info <> None:
-    cells = xml.etree.ElementTree.SubElement(info, "belowMinimalCells")
+    stream = xml.etree.ElementTree.SubElement(info, "streamline")
+    stream.set("max_traces_per_sell", str(max_traces_per_cell))
+    cells = xml.etree.ElementTree.SubElement(stream, "belowMinimalCells")
     cells.set("s1", str(float(void_count[0])/(void_count[0] + mat_count[0])))
     cells.set("s2", str(float(void_count[1])/(void_count[1] + mat_count[1])))
-    cells = xml.etree.ElementTree.SubElement(info, "belowMinimalMaterial")
+    cells = xml.etree.ElementTree.SubElement(stream, "belowMinimalMaterial")
     cells.set("s1", str(void_sum[0]/(void_sum[0] + mat_sum[0])))
     cells.set("s2", str(void_sum[1]/(void_sum[1] + mat_sum[1])))
           
