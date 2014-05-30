@@ -93,6 +93,33 @@ namespace CoupledField {
     return ret;
   }
 
+  Double Chirp(Double sweepTime, Double startFreq, Double stopFreq, 
+               Double nPerFadeIn, Double nPerFadeOut, Double t) {
+
+    if( t > sweepTime)
+      return 0.0;
+
+    Double f00 = (stopFreq + startFreq) / 2.0;
+
+    Double t00 = nPerFadeIn / f00;
+    Double t01 = sweepTime - (nPerFadeOut / f00);
+    Double b = (stopFreq - startFreq) / 2.0 / sweepTime;
+    Double h = 1.0;
+    Double g = 1.0;
+    if( t < t00 ) {
+      h =  sin( 2 * PI * f00 * t / (4.*nPerFadeIn)) *
+           sin( 2 * PI * f00 * t / (4.*nPerFadeIn));
+    }
+    if( t > t01 ) {
+      g = 1 - sin(2 * PI * f00 * (t01-t) / (4.*nPerFadeOut)) *
+              sin(2 * PI * f00 * (t01-t) / (4.*nPerFadeOut));
+    }
+    Double c = sin(2 * PI * ( b * t * t + startFreq*t));
+    return h * c * g;
+
+  }
+  
+  
   //! Generate a band-filtered spike signal
   Double SpikeBPF( Double cutOff, Double slewRate, Double t ) {
     return 0;

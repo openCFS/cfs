@@ -672,11 +672,51 @@ DECLARE_LOG(fefunc)
     Vector<T> & vals = *coeffs_;
     feSpace_->GetEqns(eqns, it);
     temp.Resize(eqns.GetSize());
-    for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
-      if( eqns[iDof] != 0 ) {
-        temp[iDof] = factor_ * vals[std::abs(eqns[iDof])-1];
-      } else {
-        temp[iDof] = 0.0;
+    // In case no equation was found, this indicates that the nodes, for which
+    // the results should be calculated could not be found. Thus we have
+    // to use interpolation to interpolate the continuous result to the
+    // nodal locations in the entity list
+    if( eqns.GetSize() == 0){
+      //ok so the space does not know about this particular entity
+      //we try to determine its value via interpolation
+      Vector<T> elemSolution;
+      UInt nodeNum = 0;
+      if(it.GetType()== EntityList::NODE_LIST){
+        //now we obtain the global coords of the
+        //node assuming that everything is the same grid. if not, we are in trouble anyway
+        nodeNum = it.GetNode();
+      }else if(it.GetType() == EntityList::ELEM_LIST ||
+          it.GetType() == EntityList::SURF_ELEM_LIST){
+        //determine global coord of element midpoint
+        EXCEPTION("Interpolation for extract result not implemented for the Element case");
+      }
+      // try to find the correct element, being one belonging to the regionlist of
+      // this fefunction
+      LocPoint lp;
+      const Elem* myElem = 
+          grid_->GetElemAtNode(nodeNum, lp, regions_ );
+      if( !myElem ) {
+        WARN("Some elements were skipped during the interpolation");
+        temp.Init();
+      }
+
+      shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap( myElem, true );
+
+      LocPointMapped lpm;
+      lpm.Set(lp,esm,0.0);
+
+      this->GetElemSolution(elemSolution,myElem);
+      BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
+      idOp_->ApplyOp(temp, lpm, ptFe, elemSolution );
+    } else {
+
+
+      for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
+        if( eqns[iDof] != 0 ) {
+          temp[iDof] = factor_ * vals[std::abs(eqns[iDof])-1];
+        } else {
+          temp[iDof] = 0.0;
+        }
       }
     }
   }

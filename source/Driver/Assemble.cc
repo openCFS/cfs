@@ -643,6 +643,283 @@ namespace CoupledField
     
   }
   
+  
+  // NOTE: still only for singlePDE problems!
+  void Assemble::AssembleMatrices_CondTrans(bool isNewtonPart,UInt currentStage,
+                                            std::map<FeFctIdType, std::map<FEMatrixType,Double> > timeStepFactors ){
+    // assembling of element matrices for transient simulations
+    // NEW: the time integrations factors will be integrated on element level, such that
+    //      the resulting matrices can be sort directly into the system matrix
+    //      This summation on element level is necessary if static condensation shall be used
+    //      as the inversion of the interiour degrees of freedom has to be applied to the
+    //      summed up element matrix
+    //      To get the correct timestepping factors we need to provide the current stage
+    //      and the matMap map (from stdSolveStep)
+    //
+    // NOTE: still only for singlePDE problems!
+    Matrix<Double> elemMatrix;
+    Matrix<Complex> elemMatrixC;
+    StdVector<Integer> eqnVec1, eqnVec2;
+    FeFctIdType fctId1, fctId2;
+
+    timer_->Start();
+
+    // Reset for matrix update
+    matrixUpdated_ = false;
+
+    // Temporary: Check each time for non-linearities
+    // On first Assembly, assemble all matrices for each BilinearForm
+    CheckNonLinearities(isFirstTime_);
+
+    // check if any matrix needs to be reassembled
+    // if yes we have to reset the whole system matrix as we add the element matrices
+    // directly to it
+    // if no we can leave this function
+
+    std::map<FEMatrixType, bool>::iterator it;
+    for( it = matReassemble_.begin(); it != matReassemble_.end(); it++ ) {
+      if( it->second == true ) {
+        LOG_DBG2(assemble) << "AssembleMatrices: init matrix " << it->first;
+        algsys_->InitMatrix( matrixMap_[it->first] );
+        algsys_->InitMatrix( SYSTEM );
+        matrixUpdated_ = true;
+      }
+    }
+
+    if(matrixUpdated_ == false){
+      return;
+    }
+
+    // create temporary matrices for each pair of function ids (mech-mech,mech-acou,acou-mech,...)
+    // and for each of these pairs a matrix of each type (Stiffness, mass, ...)
+    std::map< std::pair<FeFctIdType,FeFctIdType>, std::map<FEMatrixType, Matrix<Double> > > rElemMats;
+    //std::map< std::pair<FeFctIdType,FeFctIdType>, std::map<FEMatrixType, Matrix<Complex> > > cElemMats;
+
+    // and we also have to store for each fctIdPair the equation vectors
+    std::map< std::pair<FeFctIdType,FeFctIdType>, std::pair<StdVector<Integer>,StdVector<Integer> > > eqnVecs;
+    // and for the actual context
+    std::map< std::pair<FeFctIdType,FeFctIdType>, bool > counterParts;
+
+    // iterate over all entitylist-pairs
+    BiLinContextListType::iterator listIt = biLinForms_.begin();
+    for ( ; listIt != biLinForms_.end(); ++listIt) {
+
+      // get vector of all formcontexts
+      StdVector<BiLinFormContext*> & forms = listIt->second;
+
+      // get lists of elements/entities
+      EntityList& firstEntities = *(listIt->first.first);
+      EntityList& secondEntities = *(listIt->first.second);
+
+      // total number of elements/entities in the first entitylist
+      UInt size = firstEntities.GetSize();
+
+      if( printProgressBar_) {
+        std::cout << "  - Calculating BiLinearForms on '"
+            << firstEntities.GetName()
+            << " (" << size << " elements)'\n";
+      }
+      // Total work: numElement x numForms
+      std::stringstream progStream;
+      boost::progress_display progress( size*forms.GetSize(),
+                                        progStream );
+
+      // Loop over all elements/entities
+      EntityIterator it1 = firstEntities.GetIterator();
+      EntityIterator it2 = secondEntities.GetIterator();
+      for( it1.Begin(); !it1.IsEnd(); it1++, it2++ ) {
+
+        // clear all maps (assume that each element is assigned only to one entitylist!)
+        eqnVecs.clear();
+        rElemMats.clear();
+        //cElemMats.clear();
+
+        LOG_DBG2(assemble) << "\telems are " << it1.GetElem()->elemNum
+            << " and " << it2.GetElem()->elemNum;
+        try {
+          // Loop over all bilinearforms
+          // for each bilinearform sort element matrix not directly into the system
+          // but sort it into the rElemMats resp. cElemMats
+          for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
+
+            // get current context
+            BiLinFormContext & actContext = *forms[iForm];
+
+            // get matrix destinations
+            FEMatrixType destMat = actContext.GetDestMat();
+            FEMatrixType secDestMat = actContext.GetSecDestMat();
+
+            // get function ids
+            fctId1 = actContext.GetFirstFeFunction().lock()->GetFctId();
+            fctId2 = actContext.GetSecondFeFunction().lock()->GetFctId();
+
+            // get eqnVecs
+            actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
+
+            // perform remapping
+            ReMapEquations(eqnVec1, fctId1);
+            ReMapEquations(eqnVec2, fctId2);
+
+            // build pair for map
+            std::pair<FeFctIdType,FeFctIdType> fctIdPair(fctId1,fctId2);
+
+            // sort equations into the map
+            std::pair<StdVector<Integer>,StdVector<Integer> > eqnPair (eqnVec1,eqnVec2);
+            eqnVecs[fctIdPair] = eqnPair;
+
+            // sort context to map
+            counterParts[fctIdPair] = actContext.IsSetCounterPart();
+
+
+            //          FEMatrixType secDestMat = actContext.GetSecDestMat();
+
+            // get secondary matrix factor string
+            //          Double secMatFac = actContext.EvalSecMatFac();
+
+            // If assemble was already called and the current destination
+            // matrix must not be reassembled -> continue with next iterator
+            //          if( matReassemble_[destMat] == false ) {
+            //            continue;
+            //          }
+            //
+            //          // Update flag
+            //          matrixUpdated_ = true;
+
+            BiLinearForm * form = actContext.GetIntegrator();
+
+            // make only output if desired
+            if( printProgressBar_) {
+              ++progress;
+              std::cout << progStream.str();
+              progStream.str("");
+            }
+
+            // Calc element matrix
+            if ( form->IsComplex() ){
+              EXCEPTION("Complex form not implemented yet");
+              //form->CalcElementMatrix( elemMatrixC, it1, it2 );
+              //cElemMats[fctIdPair][destMat] += elemMatrixC;
+            } else {
+              form->CalcElementMatrix( elemMatrix, it1, it2 );
+              if(actContext.IsSetNegate()== true){
+                assert(!form->IsComplex());
+                elemMatrix*= (-1.0);
+              }
+
+              // insert element matrix to dest (needed later to construct rhs)
+              InsertMatrix( destMat, actContext, elemMatrix,
+                            eqnVec1, eqnVec2,
+                            fctId1, fctId2, true);
+
+
+              if(rElemMats[fctIdPair].count(destMat) == 0){
+                rElemMats[fctIdPair][destMat] = elemMatrix;
+              } else {
+                rElemMats[fctIdPair][destMat] += elemMatrix;
+              }
+            }
+
+            // calc element matrix for second destination (for damping!)
+            if (secDestMat != NOTYPE ) { // Check for secondary matrix type
+              Double dampFactor = 1.0;
+              // get secondary matrix factor string
+              Double secMatFac = actContext.EvalSecMatFac();
+
+              // damping with "exotic" complex material
+              if ( form->IsComplex() ) {
+                EXCEPTION("Complex form not implemented yet");
+                // complex damping
+                //elemMatrixC *= secMatFac * dampFactor;
+
+                // Pass secondary matrix part to algebraic system
+                //InsertMatrix(secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2, true);
+              }
+              // "standard" Rayleigh damping. Includes the standard SIMP optimization!
+              else {
+                // Rayleigh damping
+                elemMatrix *= secMatFac * dampFactor;
+                LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " Rayleigh damping form=" << form->GetName() << " sMF=" << secMatFac << " df=" <<  dampFactor;
+                // Pass secondary matrix part to algebraic system
+                InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2, true);
+
+                if(rElemMats[fctIdPair].count(secDestMat) == 0){
+                  rElemMats[fctIdPair][secDestMat] = elemMatrix;
+                } else {
+                  rElemMats[fctIdPair][secDestMat] += elemMatrix;
+                }
+              }
+            } // handle secDestMat != NOTYPE
+
+          } // loop over bilinearforms
+        } catch (Exception& e) {
+          RETHROW_EXCEPTION(e, "Could not calculate element matrix of "
+                            << "BiLinearForm"  );
+        }
+
+
+        // up till now we have gathered for the current element all element-matrix-parts
+        // sorted by function IDs
+        // in the next step we loop over all function IDs and combine the element-matrix-parts
+        // with the corresponding time-stepping factors to the complete element-matrix (w.r.t. a fctId-pair)
+        // These element matrices can be passed to the algsys which can apply static condensation to it
+        // NOTE: static condensation only for single fields so far! for coupled fields the element matrices for
+        //       each fctId-pair have to be collected in a super-element matrix to which static condensation can
+        //       then be applied
+
+        std::map< std::pair<FeFctIdType,FeFctIdType>, bool >::iterator mapIt;
+        // loop over all fucntionIds pairs
+        for(mapIt = counterParts.begin(); mapIt != counterParts.end(); ++mapIt){
+
+          // get key pair
+          std::pair<FeFctIdType,FeFctIdType> keyPair = mapIt->first;
+
+          // combine timestepping factors with matrices
+          Matrix<Double> rElemMatSummed;
+          //Matrix<Complex> cElemMatSummed;
+          UInt count = 0;
+
+          std::map<FEMatrixType,Double>::iterator timeIt;
+          for ( timeIt = timeStepFactors[keyPair.first].begin(); timeIt != timeStepFactors[keyPair.first].end(); timeIt++ ) {
+
+            if ( rElemMats[keyPair].count(timeIt->first) == 1 && (*timeIt).second != 0.0 ) {
+
+              if(count == 0){
+                rElemMatSummed = rElemMats[keyPair][(*timeIt).first] * timeIt->second;
+              }else{
+                rElemMatSummed += rElemMats[keyPair][(*timeIt).first] * timeIt->second;
+              }
+              count++;
+            }
+            //              if ( cElemMats[keyPair][(*it).first] != NULL  && (*it).second != 0.0 ) {
+            //                if(count == 0){
+            //                  cElemMatSummed = it->second*cElemMats[keyPair][(*it).first];
+            //                }else{
+            //                  cElemMatSummed += it->second*cElemMats[keyPair][(*it).first];
+            //                }
+            //              }
+          }
+
+          // now we can sort in the summed up matrices
+          algsys_->SetElementMatrix( SYSTEM, rElemMatSummed,
+                                     keyPair.first, eqnVecs[keyPair].first,
+                                     keyPair.second, eqnVecs[keyPair].second,
+                                     mapIt->second,false);
+
+        }
+
+      } // loop over entities
+    }// loop over entitylist pairs
+    // Change flag
+    isFirstTime_ = false;
+
+    // We have assembled all matrices, we will not do so next time
+    // except: CheckNonLinearities sets one of these, or Optimization does
+    matReassemble_.clear();
+
+    timer_->Stop();
+
+  }
+  
     void Assemble::AssembleMatrices_Cond(bool isNewtonPart) {
 
     Matrix<Double> elemMatrix;
@@ -1361,7 +1638,8 @@ namespace CoupledField
                                Matrix<Double>& elemMat,
                                StdVector<Integer>& eqnVec1,
                                StdVector<Integer>& eqnVec2,
-                               FeFctIdType fctId1, FeFctIdType fctId2)
+                               FeFctIdType fctId1, FeFctIdType fctId2,
+                               bool preventStaticCond )
   {
     // map original matrix destination to analysis-dependent one
     FEMatrixType mappedDest = matrixMap_[dest];
@@ -1379,7 +1657,8 @@ namespace CoupledField
       algsys_->SetElementMatrix( mappedDest, elemMat,
                                  fctId1, eqnVec1,
                                  fctId2, eqnVec2,
-                                 context.IsSetCounterPart() );
+                                 context.IsSetCounterPart(),
+                                 preventStaticCond );
 
     } else {
       assert(analysisType_ == BasePDE::HARMONIC);
@@ -1390,7 +1669,8 @@ namespace CoupledField
       algsys_->SetElementMatrix( mappedDest, harmMat,
                                     fctId1, eqnVec1,
                                     fctId2, eqnVec2,
-                                    context.IsSetCounterPart() );
+                                    context.IsSetCounterPart(),
+                                    preventStaticCond );
     }
 
   }
@@ -1399,7 +1679,8 @@ namespace CoupledField
                                Matrix<Complex>& elemMat,
                                StdVector<Integer>& eqnVec1,
                                StdVector<Integer>& eqnVec2,
-                               FeFctIdType fctId1, FeFctIdType fctId2) {
+                               FeFctIdType fctId1, FeFctIdType fctId2,
+                               bool preventStaticCond) {
     Matrix<Complex> harmMat;
 
     // map original matrix destination to analysis-dependent one
@@ -1414,7 +1695,8 @@ namespace CoupledField
     Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
 
     algsys_->SetElementMatrix( mappedDest, harmMat, fctId1, eqnVec1,
-                               fctId2, eqnVec2, context.IsSetCounterPart() );
+                               fctId2, eqnVec2, context.IsSetCounterPart(),
+                               preventStaticCond );
   }
 
 

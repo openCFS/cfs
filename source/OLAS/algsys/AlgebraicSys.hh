@@ -531,6 +531,9 @@ namespace CoupledField {
     //!                numbers are interchanged. Note that this is only
     //!                supported for off-diagonal blocks, i.e. for cases
     //!                with different Fct identifiers.
+    //! \param noStaticCond If set to false, no static condensation will be
+    //!                     applied to this element matrix. This is needed e.g.
+    //!                     for matrices not being assembled to the system matrix.
     template<typename T>
     void SetElementMatrix( FEMatrixType matrixType, 
                            Matrix<T>& elemmat,
@@ -538,7 +541,8 @@ namespace CoupledField {
                            const StdVector<Integer>& eqnNrs1,
                            FeFctIdType fctId2,
                            const StdVector<Integer>& eqnNrs2,
-                           bool setCounterPart );
+                           bool setCounterPart, 
+                           bool noStaticCond );
 
     //! Assemble the local rhs vector to the global one
 

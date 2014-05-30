@@ -120,7 +120,7 @@ protected:
   
   //! Set the usage of gradients for one element
   void SetElemGrad( const Elem* ptEl, FeHCurlHi* ptFe, 
-                    bool applyMaxRule );
+                    RegionIdType regionId, bool applyMaxRule );
   
   //! Map for each region, if gradients should be used
   std::map< RegionIdType, bool> useGradients_;

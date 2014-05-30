@@ -126,9 +126,10 @@ namespace CoupledField {
 
         // Note: in case of a 2D coil, we only have direction in
         if( ptGrid_->GetDim() == 2 ) {
-          StdVector<std::string> dir(1);
-          dir[0] = "1";
-          actPart.jUnitVec = CoefFunction::Generate(mParser_, type, dir );
+          StdVector<std::string> dirReal(1), dirImag(1);
+          dirReal[0] = "1";
+          dirImag[0] = "0";
+          actPart.jUnitVec = CoefFunction::Generate(mParser_, type, dirReal, dirImag );
           
         } else {
 

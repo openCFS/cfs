@@ -470,22 +470,63 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
       algsys_->GetRHSVal(rhsVec_);
       
 
+      // if we want to use static condensation we have to perform the timestepping on element level
+      if(algsys_->UseStaticCondensation()){
 
-      assemble_->AssembleMatrices();
-      if(assemble_->IsMatrixUpdated()){
-        //std::cout << "in SolveStepLin: new matrices computed" << std::endl;
-
-        // set system matrix to zero initially, as ConstructEffectiveMatrix only
-        // sums up the contributions
-        algsys_->InitMatrix(SYSTEM);
         matrix_factor_.clear();
+        // get timeintegration factors and store them in a map
         for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
           FeFctIdType fctId = fncIt->second->GetFctId();
           fncIt->second->GetTimeScheme()
-              ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
-          algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+                                  ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
         }
-        effectiveMatrixUpdated = true;
+        // assemble all matrix parts (needed to update rhs) and also calculate complete
+        // system matrix
+        assemble_->AssembleMatrices_CondTrans(false,i,matrix_factor_);
+
+        if(assemble_->IsMatrixUpdated()){
+
+          //std::cout << "in SolveStepLin: new matrices computed" << std::endl;
+
+          // the system matrix was already created so do not init it!
+          //        algsys_->InitMatrix(SYSTEM);
+
+          for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+            FeFctIdType fctId = fncIt->second->GetFctId();
+
+            // we need to call this function
+            // but as we already have summed up all entries on element level we just have to give
+            // this function a matrix_factor_ list which contains only 0 else
+            std::map<FEMatrixType,Double> zero_factors;
+            zero_factors[MASS] = 0.0;
+            zero_factors[STIFFNESS] = 0.0;
+            zero_factors[DAMPING] = 0.0;
+
+            algsys_->ConstructEffectiveMatrix(fctId, zero_factors); //matrix_factor_[fctId]);
+          }
+          //        matrix_factor_[fctId]
+          effectiveMatrixUpdated = true;
+        }
+
+      } else {
+
+
+        assemble_->AssembleMatrices();
+        if(assemble_->IsMatrixUpdated()){
+          //std::cout << "in SolveStepLin: new matrices computed" << std::endl;
+
+          // set system matrix to zero initially, as ConstructEffectiveMatrix only
+          // sums up the contributions
+          algsys_->InitMatrix(SYSTEM);
+          matrix_factor_.clear();
+          for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+            FeFctIdType fctId = fncIt->second->GetFctId();
+            fncIt->second->GetTimeScheme()
+                  ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
+            algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+          }
+          effectiveMatrixUpdated = true;
+        }
       }
 
       //now compute the effective right hand side

@@ -1662,8 +1662,8 @@ void LagrangeElemShapeMap::MapSurfLocDirs(const Elem* ptSurfElem,
     
     // get local volume nodes of surface edge #1, pointing in local xi/0 direction  
     Integer volNode1, volNode2;
-    volNode1 = ptElem_->connect.Find(ptSurfElem->connect[0]);
-    volNode2 = ptElem_->connect.Find(ptSurfElem->connect[1]);
+    volNode1 = ptElem_->connect.Find(ptSurfElem->connect[0])+1;
+    volNode2 = ptElem_->connect.Find(ptSurfElem->connect[1])+1;
 
     Integer edgeIndex = -1;
     for( UInt i = 0; i < shape.numEdges; ++i ) {

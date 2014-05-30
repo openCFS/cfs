@@ -1344,9 +1344,11 @@ namespace CoupledField {
           shared_ptr<ElemShapeMap> esm = 
               ptGrid_->GetElemShapeMap(fap.elems[iPoint], true);
           esm->Local2Global(globPoint, fap.locPoints[iPoint]);
+          
+          fap.coordSys->Global2LocalCoord(globPointcSys, globPoint);
           // write to file
           out << fap.elems[iPoint]->elemNum << delim;
-          out << globPoint.ToString(0, delim) << delim;
+          out << globPointcSys.ToString(0, delim) << delim;
           for(UInt j = 0; j < numDofs; ++j ) {
             out << vec[iPoint*numDofs + j] << delim;
           }
