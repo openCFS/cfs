@@ -173,9 +173,9 @@
   <!-- ******************************************************************* -->
   <xsd:simpleType name="DT_WaterWaveUnknownType">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="acouPressure"/>
-      <xsd:enumeration value="acouPmlAuxScalar"/>
-      <xsd:enumeration value="acouPmlAuxVec"/>
+      <xsd:enumeration value="waterPressure"/>
+      <xsd:enumeration value="waterPmlAuxScalar"/>
+      <xsd:enumeration value="waterPmlAuxVec"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -189,7 +189,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
-        <xsd:attribute name="quantity" default="acouPressure"
+        <xsd:attribute name="quantity" default="waterPressure"
           type="DT_WaterWaveUnknownType"/>
         <xsd:attribute name="dof">
           <xsd:simpleType>
@@ -230,7 +230,7 @@
     <xsd:complexContent>
       <xsd:restriction base="DT_WaterWaveID">
         <xsd:attribute name="quantity" type="DT_WaterWaveUnknownType"
-                       default="acouPressure"/>
+                       default="waterPressure"/>
         </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
@@ -405,7 +405,7 @@
   <!-- Definition of nodal result types of acoustic PDE -->
   <xsd:simpleType name="DT_WaterWaveNodeResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="acouPressure"/>
+      <xsd:enumeration value="waterPressure"/>
       <xsd:enumeration value="lagrangeMultiplier"/>
       <xsd:enumeration value="waterWaveRhsLoad"/>
     </xsd:restriction>

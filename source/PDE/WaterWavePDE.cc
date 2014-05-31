@@ -81,11 +81,11 @@ namespace CoupledField{
 
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
     if(formulation == "default" || formulation == "H1"){
-      std::string form = SolutionTypeEnum.ToString(ACOU_PRESSURE);
+      std::string form = SolutionTypeEnum.ToString(WATER_PRESSURE);
       PtrParamNode potSpaceNode = infoNode->Get(form);
-      crSpaces[ACOU_PRESSURE] =
+      crSpaces[WATER_PRESSURE] =
         FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
-      crSpaces[ACOU_PRESSURE]->Init(solStrat_);
+      crSpaces[WATER_PRESSURE]->Init(solStrat_);
     }else{
       EXCEPTION("The formulation " << formulation << "of water wave PDE is not known!");
     }
@@ -99,15 +99,15 @@ namespace CoupledField{
 
 //      if(dim_==3 && !this->isAPML_){
 //        PtrParamNode scalarpml = infoNode->Get("TransientPMLScalarAuxVar");
-//        crSpaces[ACOU_PMLAUXSCALAR] =
+//        crSpaces[WATER_PMLAUXSCALAR] =
 //            FeSpace::CreateInstance(myParam_,scalarpml,FeSpace::H1, ptGrid_);
-//        crSpaces[ACOU_PMLAUXSCALAR]->Init(solStrat_);
+//        crSpaces[WATER_PMLAUXSCALAR]->Init(solStrat_);
 //      }
 //
 //      PtrParamNode vectorPML = infoNode->Get("TransientPMLVectorAuxVar");
-//      crSpaces[ACOU_PMLAUXVEC] =
+//      crSpaces[WATER_PMLAUXVEC] =
 //          FeSpace::CreateInstance(myParam_,vectorPML,FeSpace::H1, ptGrid_);
-//      crSpaces[ACOU_PMLAUXVEC]->Init(solStrat_);
+//      crSpaces[WATER_PMLAUXVEC]->Init(solStrat_);
 
     }
     return crSpaces;
@@ -179,7 +179,7 @@ namespace CoupledField{
 
     // Define integrators for "standard" materials
     std::map<RegionIdType, BaseMaterial*>::iterator it;
-    shared_ptr<FeSpace> mySpace = feFunctions_[ACOU_PRESSURE]->GetFeSpace();
+    shared_ptr<FeSpace> mySpace = feFunctions_[WATER_PRESSURE]->GetFeSpace();
 
     //flag indicating frequency PML formulation
     bool harmonicPML = false;
@@ -218,7 +218,7 @@ namespace CoupledField{
 
       // store coefficient functions
 //      matCoefs_[ELEM_DENSITY]->AddRegion(actRegion, factor ) ; //dens);
-//      matCoefs_[ACOU_ELEM_SPEED_OF_SOUND]->AddRegion( actRegion, factor); //c0);
+//      matCoefs_[WATER_ELEM_SPEED_OF_SOUND]->AddRegion( actRegion, factor); //c0);
 
       // ====================================================================
       // Take account for pml (frequency domain only)
@@ -283,11 +283,11 @@ namespace CoupledField{
       BiLinFormContext * stiffIntDescr =
         new BiLinFormContext(stiffInt, STIFFNESS );
 
-      feFunctions_[ACOU_PRESSURE]->AddEntityList( actSDList );
+      feFunctions_[WATER_PRESSURE]->AddEntityList( actSDList );
 
       stiffIntDescr->SetEntities( actSDList, actSDList );
-      stiffIntDescr->SetFeFunctions(feFunctions_[ACOU_PRESSURE],feFunctions_[ACOU_PRESSURE]);
-      stiffInt->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace());
+      stiffIntDescr->SetFeFunctions(feFunctions_[WATER_PRESSURE],feFunctions_[WATER_PRESSURE]);
+      stiffInt->SetFeSpace( feFunctions_[WATER_PRESSURE]->GetFeSpace());
 
       assemble_->AddBiLinearForm( stiffIntDescr );
       // Important: Add bdb-integrator to global list, as we need them later
@@ -340,8 +340,8 @@ namespace CoupledField{
         BiLinFormContext *gravityContext = new BiLinFormContext(gravityInt, MASS);
 
         gravityContext->SetEntities( actSDList, actSDList );
-        gravityContext->SetFeFunctions( feFunctions_[ACOU_PRESSURE] , feFunctions_[ACOU_PRESSURE]);
-        feFunctions_[ACOU_PRESSURE]->AddEntityList( actSDList );
+        gravityContext->SetFeFunctions( feFunctions_[WATER_PRESSURE] , feFunctions_[WATER_PRESSURE]);
+        feFunctions_[WATER_PRESSURE]->AddEntityList( actSDList );
         assemble_->AddBiLinearForm( gravityContext );
       } //free surface condition for gravity waves
 
@@ -410,8 +410,8 @@ namespace CoupledField{
         BiLinFormContext *gravityContextPML = new BiLinFormContext(gravityIntPML, MASS);
 
         gravityContextPML->SetEntities( actSDList, actSDList );
-        gravityContextPML->SetFeFunctions( feFunctions_[ACOU_PRESSURE] , feFunctions_[ACOU_PRESSURE]);
-        feFunctions_[ACOU_PRESSURE]->AddEntityList( actSDList );
+        gravityContextPML->SetFeFunctions( feFunctions_[WATER_PRESSURE] , feFunctions_[WATER_PRESSURE]);
+        feFunctions_[WATER_PRESSURE]->AddEntityList( actSDList );
         assemble_->AddBiLinearForm( gravityContextPML );
         //std::cout << "Have added gravityWaveIntegratorPML\n" << std::endl;
       }
@@ -423,7 +423,7 @@ namespace CoupledField{
     LOG_TRACE(waterWavepde) << "Defining rhs load integrators for acoustic PDE";
     
     // Get FESpace and FeFunction of mechanical displacement
-    shared_ptr<BaseFeFunction> myFct = feFunctions_[ACOU_PRESSURE];
+    shared_ptr<BaseFeFunction> myFct = feFunctions_[WATER_PRESSURE];
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     StdVector<shared_ptr<EntityList> > ent;
@@ -502,7 +502,7 @@ namespace CoupledField{
                           ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       coef[i]->SetConservative(true);
-      this->rhsFeFunctions_[ACOU_PRESSURE]->AddLoadCoefFunction(coef[i], ent[i]);
+      this->rhsFeFunctions_[WATER_PRESSURE]->AddLoadCoefFunction(coef[i], ent[i]);
     }
 
   }
@@ -516,36 +516,36 @@ namespace CoupledField{
     // === Primary result according to definition ===
     shared_ptr<ResultInfo> res1( new ResultInfo);
 
-    res1->resultType = ACOU_PRESSURE;
+    res1->resultType = WATER_PRESSURE;
     res1->dofNames = "";
     res1->unit = "Pa";
 
     res1->definedOn = ResultInfo::NODE;
     res1->entryType = ResultInfo::SCALAR;
-    feFunctions_[ACOU_PRESSURE]->SetResultInfo(res1);
+    feFunctions_[WATER_PRESSURE]->SetResultInfo(res1);
     results_.Push_back( res1 );
-    res1->SetFeFunction(feFunctions_[ACOU_PRESSURE]);
-    DefineFieldResult( feFunctions_[ACOU_PRESSURE], res1 );
+    res1->SetFeFunction(feFunctions_[WATER_PRESSURE]);
+    DefineFieldResult( feFunctions_[WATER_PRESSURE], res1 );
     
     // -----------------------------------
     //  Define xml-names of Dirichlet BCs
     // -----------------------------------
-    hdbcSolNameMap_[ACOU_PRESSURE] = "soundSoft";
-    idbcSolNameMap_[ACOU_PRESSURE] = "pressure";
+    hdbcSolNameMap_[WATER_PRESSURE] = "soundSoft";
+    idbcSolNameMap_[WATER_PRESSURE] = "pressure";
     
     // === ACOUSTIC RHS ===
     shared_ptr<ResultInfo> rhs ( new ResultInfo );
-    rhs->resultType = ACOU_RHS_LOAD;
+    rhs->resultType = WATER_RHS_LOAD;
     rhs->dofNames = "";
     rhs->unit = "?";
     rhs->definedOn = results_[0]->definedOn;
     rhs->entryType = ResultInfo::SCALAR;
-    this->rhsFeFunctions_[ACOU_PRESSURE]->SetResultInfo(rhs);
-    DefineFieldResult( this->rhsFeFunctions_[ACOU_PRESSURE], rhs );
+    this->rhsFeFunctions_[WATER_PRESSURE]->SetResultInfo(rhs);
+    DefineFieldResult( this->rhsFeFunctions_[WATER_PRESSURE], rhs );
     results_.Push_back( rhs );
     availResults_.insert( rhs );
 
-    //creates the mean flow
+    //creates vector dofs
     StdVector<std::string> vecDofNames;
     if( ptGrid_->GetDim() == 3 ) {
       vecDofNames = "x", "y", "z";
@@ -556,7 +556,6 @@ namespace CoupledField{
         vecDofNames = "x", "y";
       }
     }
-
 
     // === PML DAMPING FACTORS ===
     //if( matCoefs_.find(PML_DAMP_FACTOR) != matCoefs_.end() ) {
@@ -577,27 +576,27 @@ namespace CoupledField{
     if(this->isTimeDomPML_){
       if(!this->isAPML_ && dim_ == 3){
         shared_ptr<ResultInfo> pmlScal ( new ResultInfo );
-        pmlScal->resultType = ACOU_PMLAUXSCALAR;
+        pmlScal->resultType = WATER_PMLAUXSCALAR;
         pmlScal->dofNames = "";
         pmlScal->unit = "-";
         pmlScal->definedOn = ResultInfo::NODE;
         pmlScal->entryType = ResultInfo::SCALAR;
-        feFunctions_[ACOU_PMLAUXSCALAR]->SetResultInfo(pmlScal);
+        feFunctions_[WATER_PMLAUXSCALAR]->SetResultInfo(pmlScal);
         results_.Push_back( pmlScal );
-        pmlScal->SetFeFunction(feFunctions_[ACOU_PMLAUXSCALAR]);
-        DefineFieldResult( feFunctions_[ACOU_PMLAUXSCALAR], pmlScal );
+        pmlScal->SetFeFunction(feFunctions_[WATER_PMLAUXSCALAR]);
+        DefineFieldResult( feFunctions_[WATER_PMLAUXSCALAR], pmlScal );
       }
 
       shared_ptr<ResultInfo> pmlVec ( new ResultInfo );
-      pmlVec->resultType = ACOU_PMLAUXVEC;
+      pmlVec->resultType = WATER_PMLAUXVEC;
       pmlVec->dofNames = vecDofNames;
       pmlVec->unit = "-";
       pmlVec->definedOn = ResultInfo::NODE;
       pmlVec->entryType = ResultInfo::VECTOR;
-      feFunctions_[ACOU_PMLAUXVEC]->SetResultInfo(pmlVec);
+      feFunctions_[WATER_PMLAUXVEC]->SetResultInfo(pmlVec);
       results_.Push_back( pmlVec );
-      pmlVec->SetFeFunction(feFunctions_[ACOU_PMLAUXVEC]);
-      DefineFieldResult( feFunctions_[ACOU_PMLAUXVEC], pmlVec );
+      pmlVec->SetFeFunction(feFunctions_[WATER_PMLAUXVEC]);
+      DefineFieldResult( feFunctions_[WATER_PMLAUXVEC], pmlVec );
     }
 
   }
@@ -609,43 +608,6 @@ namespace CoupledField{
   }
 
   void WaterWavePDE::DefinePostProcResults(){
-    
-    shared_ptr<BaseFeFunction> feFct = feFunctions_[ACOU_PRESSURE];
-    shared_ptr<ResultInfo> res1 = feFct->GetResultInfo();
-    
-    StdVector<std::string> vecDofNames;
-    if( ptGrid_->GetDim() == 3 ) {
-      vecDofNames = "x", "y", "z";
-    } else {
-      if( ptGrid_->IsAxi() ) {
-        vecDofNames = "r", "z";
-      } else {
-        vecDofNames = "x", "y";
-      }
-    }
-    
-    // === PRESSURE / POTENTIAL - 1.DERIVATIVE ===
-    shared_ptr<ResultInfo> deriv1(new ResultInfo);
-    deriv1->resultType = ACOU_PRESSURE_DERIV_1;
-    deriv1->dofNames = "";
-    deriv1->unit = "Pa/s";
-
-    deriv1->entryType = res1->entryType;
-    deriv1->definedOn = res1->definedOn;
-    availResults_.insert( deriv1 );
-    DefineTimeDerivResult( deriv1->resultType, 1, ACOU_PRESSURE );
-
-    // === PRESSURE / POTENTIAL - 2.DERIVATIVE ===
-    shared_ptr<ResultInfo> deriv2(new ResultInfo);
-    deriv2->resultType = ACOU_PRESSURE_DERIV_2;
-    deriv2->dofNames = "";
-    deriv2->unit = "Pa/s^2";
-
-    deriv2->entryType = res1->entryType;
-    deriv2->definedOn = res1->definedOn;
-    availResults_.insert( deriv2 );
-    DefineTimeDerivResult( deriv2->resultType, 2, ACOU_PRESSURE );
-    
   }
 
   //! Init the time stepping
@@ -663,20 +625,20 @@ namespace CoupledField{
       shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
       shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(scheme2,0));
 
-      feFunctions_[ACOU_PMLAUXVEC]->SetTimeScheme(vecScheme);
-      feFunctions_[ACOU_PRESSURE]->SetTimeScheme(acouScheme);
+      feFunctions_[WATER_PMLAUXVEC]->SetTimeScheme(vecScheme);
+      feFunctions_[WATER_PRESSURE]->SetTimeScheme(acouScheme);
 
       if(!this->isAPML_ && dim_ == 3){
         GLMScheme * scheme3 = new Newmark(0.5,0.25,alpha);
         shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(scheme3,0));
-        feFunctions_[ACOU_PMLAUXSCALAR]->SetTimeScheme(scalScheme);
+        feFunctions_[WATER_PMLAUXSCALAR]->SetTimeScheme(scalScheme);
       }
     }else{
       //GLMScheme * scheme1 = new Newmark(0.8,0.4225,-0.3);
       //GLMScheme * scheme1 = new Newmark(0.6,0.3025,alpha);
       GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
       shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
-      feFunctions_[ACOU_PRESSURE]->SetTimeScheme(acouScheme);
+      feFunctions_[WATER_PRESSURE]->SetTimeScheme(acouScheme);
     }
   }
 

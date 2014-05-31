@@ -52,6 +52,8 @@
 #include "CoupledPDE/PiezoCoupling.hh"
 #include "CoupledPDE/AcouMechCoupling.hh"
 #include "CoupledPDE/FluidMechCoupling.hh"
+#include "CoupledPDE/WaterWaveAcousticsCoupling.hh"
+#include "CoupledPDE/WaterWaveMechCoupling.hh"
 
 // Include driver
 #include "Driver/BaseDriver.hh"
@@ -834,6 +836,25 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
 
       coupling = new FluidMechCoupling(pde1, pde2, pairNodes[i], info_,
                                        simState_, this );
+    }
+    // *** WATER WAVE-ACOUSTIC Coupling ***
+    else if (couplingName == "waterWaveAcouDirect")
+    {
+      pde1 = GetSinglePDE("waterWave");
+      pde2 = GetSinglePDE("acoustic");
+
+      coupling = new WaterWaveAcousticCoupling(pde1, pde2, pairNodes[i], info_,
+                                               simState_, this );
+    }
+    // *** Water Wave-MECH Coupling ***
+    else if (couplingName == "waterWaveMechDirect")
+    {
+
+      pde1 = GetSinglePDE("mechanic");
+      pde2 = GetSinglePDE("waterWave");
+
+      coupling = new WaterWaveMechCoupling(pde1, pde2, pairNodes[i], info_,
+                                           simState_, this );
     }
 //
 //    // ------------------------------------------------------------------------

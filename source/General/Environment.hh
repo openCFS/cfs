@@ -147,6 +147,11 @@ namespace CoupledField {
       ACOU_PMLAUXVEC, ACOU_PMLAUXSCALAR,
       ACOU_ELEM_SPEED_OF_SOUND,
 
+      // ==========
+      //  WATER WAVES
+      // ==========
+      WATER_PRESSURE, WATER_PMLAUXVEC, WATER_PMLAUXSCALAR, WATER_RHS_LOAD,
+
       // =========
       // AEROACOUSTIC SOURCE TERMS
       // =========

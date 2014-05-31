@@ -89,6 +89,10 @@ namespace CoupledField {
         return "Pa";
         break;
 
+      case WATER_PRESSURE:
+        return "Pa";
+        break;
+
       case ACOU_ACCELERATION:
         return "m/s^2";
         break;
@@ -1202,6 +1206,12 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_MIXED_MASS_LOAD, "acouMixedMassLoad");
     SolutionTypeEnum.Add(ACOU_MIXED_MOMENTUM_LOAD, "acouMixedMomentumLoad");
     SolutionTypeEnum.Add(ACOU_LAMB_RHS, "acouLambRhs");
+
+    //water waves
+    SolutionTypeEnum.Add(WATER_PRESSURE, "waterPressure");
+    SolutionTypeEnum.Add(WATER_PMLAUXVEC,"waterPmlAuxVec");
+    SolutionTypeEnum.Add(WATER_PMLAUXSCALAR, "waterPmlAuxScalar");
+    SolutionTypeEnum.Add(WATER_RHS_LOAD, "waterRhsLoad");
 
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");

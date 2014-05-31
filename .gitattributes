@@ -1150,6 +1150,10 @@ source/CoupledPDE/IterCoupledPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/IterCoupledPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/CoupledPDE/PiezoCoupling.cc -text
 source/CoupledPDE/PiezoCoupling.hh -text
+source/CoupledPDE/WaterWaveAcousticsCoupling.cc -text
+source/CoupledPDE/WaterWaveAcousticsCoupling.hh -text
+source/CoupledPDE/WaterWaveMechCoupling.cc -text
+source/CoupledPDE/WaterWaveMechCoupling.hh -text
 source/CoupledPDE/coupledPDE.conf svneol=native#text/plain
 source/DataInOut/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/ColoredConsole.cc svneol=native#text/plain

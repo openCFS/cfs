@@ -2957,7 +2957,6 @@ namespace CoupledField {
     //idee: die PDE gibt zum attribute formulation die passenden space zur��ck
     //DOGMA: PRO UNBEKANNTE EINE FUNCTION UND EIN SPACE
     std::string formulation;
-    std::cout << "Get FESpaceForm" << std::endl;
     myParam_->GetValue("feSpaceFormulation",formulation,ParamNode::EX);
     infoNode_->SetComment("List of defined Spaces");
     PtrParamNode feSpaceNode = infoNode_->Get("feSpaces");

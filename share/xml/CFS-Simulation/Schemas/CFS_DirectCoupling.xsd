@@ -367,6 +367,102 @@
       </xsd:complexContent>
     </xsd:complexType>
   </xsd:element> 
+
+
+
+  <!-- ******************************************************************* -->
+  <!--   WATER-WAVES-ACOUSTICS COUPLING -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="waterWaveAcouDirect"
+    substitutionGroup="PDEBasicDirectCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicDirectCoupling">
+          <xsd:sequence>
+            
+            <!-- (surface) region list -->
+            <xsd:element name="surfRegionList" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="surfRegion" minOccurs="1" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="name" type="xsd:token" use="required"/>
+                      <xsd:attribute name="polyId"  type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="integId"
+                      type="xsd:string" use="optional" default="default"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            
+            <!-- NC interface list -->
+            <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="name" type="xsd:token" use="required" />
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+
+            <!-- Desired solution values (optional) -->
+            <xsd:element name="storeResults" type="DT_WaterWaveAcouDirectDirectStoreResults"
+              minOccurs="0" maxOccurs="1"/>          
+          </xsd:sequence>
+          <xsd:attribute name="lmOrderSameAsVel" type="xsd:boolean" default="true"/>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
+
+  <!-- ******************************************************************* -->
+  <!--   WATER WAVE-MECHANIC COUPLING -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="waterWaveMechDirect"
+    substitutionGroup="PDEBasicDirectCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicDirectCoupling">
+          <xsd:sequence>
+            
+            <!-- (surface) region list -->
+            <xsd:element name="surfRegionList" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="surfRegion" minOccurs="0" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+	    
+	    <!-- NC interface list -->
+	    <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
+	      <xsd:complexType>
+		<xsd:sequence>
+		  <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+		    <xsd:complexType>
+		      <xsd:attribute name="name" type="xsd:token" use="required" />
+          <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional" default="Nitsche"/>
+          <xsd:attribute name="nitscheFactor" type="xsd:token" use="optional" default="50"/>
+		    </xsd:complexType>
+		  </xsd:element>
+		</xsd:sequence>
+	      </xsd:complexType>
+	    </xsd:element>
+	    
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
+
   <!-- ******************************************************************* -->
   <!--   Definition of Post Processing Results -->
   <!-- ******************************************************************* -->
@@ -474,6 +570,29 @@
     </xsd:sequence>
   </xsd:complexType>
   
+  <!-- Water waves coupled to acoustics -->
+  <!-- Global type for specifying the desired  output quantities -->
+  <xsd:complexType name="DT_WaterWaveAcouDirectDirectStoreResults">
+    <xsd:sequence>
+      <xsd:choice maxOccurs="unbounded">
+        
+        <!-- Surface element result definition -->
+        <xsd:element name="nodeResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_NodeResult">
+                <xsd:attribute name="type" type="DT_FluidMechDirectNodeResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
   
   <!-- Magnetostritive - Case -->
   <!-- Definition of nodal result types of mag-mech coupling -->
