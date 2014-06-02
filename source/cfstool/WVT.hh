@@ -29,8 +29,8 @@ namespace CFSTool
 
     ~WVT();
     
-    typedef enum {PRIMARY_MODE, SECONDARY_MODE, MEAN_FLOW} InputFileType;
-    static Enum<InputFileType> inputFileType;
+    typedef enum {PRIMARY_MODE, SECONDARY_MODE, MEAN_FLOW, EVAL_GRID, OUTPUT} FileType;
+    static Enum<FileType> fileType;
 
     typedef enum {MF_GRID_DATA, MF_ANALYTIC_EXP, MF_SCATTERED_DATA} MeanFlowDataType;
     static Enum<MeanFlowDataType> meanFlowDataType;
@@ -61,6 +61,9 @@ namespace CFSTool
                                      Double vol,
                                      Double meanVel,
                                      Double meanVelCorrectionFactor);
+
+    void Initialize();
+    
   private:
     const PtrParamNode& param_;
     const PtrParamNode& info_;
@@ -76,6 +79,11 @@ namespace CFSTool
 
     //! Global math parser instance.
     shared_ptr<MathParser> mp_;
+
+    //! File   name  of   input  file   for  the   evaluation  on   which  the
+    //! post-processing integrals  will be  evaluated.  If not  specified, the
+    //! primary mode file will be used.
+    std::string evalGridFile_;
 
     //! File name of input file for primary mode. Usually, this is the lateral
     //! mode.
@@ -108,8 +116,8 @@ namespace CFSTool
 
     Complex u_p_;
     
-    typedef std::map< InputFileType, shared_ptr<SimInput> > InputsType;
-    InputsType inputs_;
+    typedef std::map< FileType, shared_ptr<SimInput> > IOType;
+    IOType inputs_;
 
     bool nodalResults_;
 

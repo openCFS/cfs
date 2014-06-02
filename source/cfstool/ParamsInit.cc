@@ -368,28 +368,13 @@ namespace CFSTool
     pNode->SetValue(param_forceSegFault);
     param->AddChildNode(pNode);
 
-    // Parse inputs to wvtArgs parameter and build parameter tree.
-    pNode = ParamNodeFromPropertyTree( param_wvtArgs, "wvtArgs" );
-
-    PtrParamNode wvtNode = PtrParamNode(new ParamNode());
-    wvtNode->SetName("wvt");
-    param->AddChildNode(wvtNode);
-
-    if(pNode) 
-    {
-     if(pNode->GetName() == "wvt") {
-       MergeParamNodes(pNode, wvtNode);
-     } else {
-       wvtNode->AddChildNode( pNode );
-     }
-    }
-
     // Parse inputs to formatArgs parameter and build parameter tree.
     pNode = ParamNodeFromPropertyTree( param_formatArgs, "formatArgs" );
+
+    PtrParamNode inputNode, outputNode;
     
     if(pNode)
     {
-      PtrParamNode inputNode, outputNode;
       if(pNode->GetName() == "fileFormats") {
         std::cout << "fileFormats" << std::endl;
         
@@ -406,6 +391,30 @@ namespace CFSTool
       MergeParamNodes(inputNode, param->Get("fileFormats")->Get("input"));
       MergeParamNodes(outputNode, param->Get("fileFormats")->Get("output"));
     }
+
+    // Parse inputs to wvtArgs parameter and build parameter tree.
+    pNode = ParamNodeFromPropertyTree( param_wvtArgs, "wvtArgs" );
+
+    PtrParamNode wvtNode = PtrParamNode(new ParamNode());
+    wvtNode->SetName("wvt");
+    param->AddChildNode(wvtNode);
+
+    if(pNode) 
+    {
+      if(pNode->GetName() == "wvt") {
+        MergeParamNodes(pNode, wvtNode);
+      }
+      else if(pNode->GetName() == "cfstoolConfig") {
+        MergeParamNodes(pNode, param);
+      }
+      else
+      {
+        wvtNode->AddChildNode( pNode );
+      }
+    }
+
+    param->ToXML(std::cout);
+    
 
     logConf.reset(new LogConfigurator(param_logConfFile));
     logConf->ParseLogConfFile();

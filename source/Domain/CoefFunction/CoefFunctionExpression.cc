@@ -1,6 +1,8 @@
 #include "CoefFunctionExpression.hh"
 
 #include "Domain/CoordinateSystems/CoordSystem.hh"
+#include "Domain/CoordinateSystems/DefaultCoordSystem.hh"
+
 namespace CoupledField{
 
 
@@ -23,12 +25,23 @@ CoefFunctionExpression<Double>::CoefFunctionExpression(MathParser * mp) :
   isComplex_ = false;
   
   // obtain global coordinate system for registering coordinates (x,y,z)
-  this->coordSysDefault_ = domain->GetCoordSystem();
+  if(domain) 
+  {
+    coordSysDefault_ = domain->GetCoordSystem();
+  }
+  else
+  {
+    coordSysDefault_ = new DefaultCoordSystem( NULL );
+  }
 }   
 
 CoefFunctionExpression<Double>::~CoefFunctionExpression(){
   if( domain ) {
     mp_->ReleaseHandle(mHandle_);
+  }
+  else 
+  {
+    delete coordSysDefault_;
   }
 }
 

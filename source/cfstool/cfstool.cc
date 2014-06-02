@@ -1024,13 +1024,10 @@ int main(int argc, char** argv)
       }
     }
 
-    if (file1 != "")
-    {
-      // This is necessary to run, but I do not know what it is for
-      info.reset(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT));
-      infoFileName = param_mode + "_" + file1 + ".info.xml";
-      info->SetName("cfsInfo"); 
-    }
+    // This is necessary to run, but I do not know what it is for
+    info.reset(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT));
+    infoFileName = param_mode + "_" + file1 + ".info.xml";
+    info->SetName("cfsInfo"); 
 
     if (param_mode == "calcAverage")
     {
@@ -1096,10 +1093,6 @@ int main(int argc, char** argv)
       CFSTool::Diff( file1, file2, file3, \
                      true, false, maxDiffResultName);
     } else if (param_mode == "wvt") {
-      if (num_files < 2)
-      {
-        EXCEPTION( "Please provide 'lateral_mode_file', 'coriolis_mode_file',\n and optionally ['mean_velocity_file'] ['out_file']" );
-      }
 
       CFSTool::WVT wvt( param, info );
       wvt.PostProcess();

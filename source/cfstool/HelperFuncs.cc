@@ -619,7 +619,7 @@ namespace CFSTool {
             if( oldFormatNode->Has(str) ) 
             {
               ParamNodeList oldList = oldFormatNode->GetChildren();
-              for(UInt on=0, non=oldList.GetSize(); on < non; non++) 
+              for(UInt on=0, non=oldList.GetSize(); on < non; on++) 
               {
                 if(oldList[on]->GetName() == str) 
                 {

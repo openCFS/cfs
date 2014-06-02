@@ -17,7 +17,7 @@
 namespace CoupledField {
 
 FeSpaceConst::FeSpaceConst(PtrParamNode paramNode, PtrParamNode infoNode, Grid* ptGrid)
-  : FeSpace::FeSpace(paramNode, infoNode, ptGrid){
+  : FeSpace(paramNode, infoNode, ptGrid){
 
   type_ = CONSTANT;
 
