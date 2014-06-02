@@ -969,10 +969,12 @@ namespace CoupledField {
 
     std::cout << "Finished scanning input file" << std::endl;
 
+#if not defined(WIN32) && not defined (__MINGW32__)
     // Prevent problems stemming from missing newline characters at the end of
-    // the file, by reopening it.
-    CloseCDBFile();
-    OpenCDBFile(fileName_);
+    // the file, by cleaning the input stream before resetting it to start.
+    inFile_.clear();
+    inFile_.seekg(0,std::ios::beg);
+#endif
   }
 
   void SimInputCDB::IgnoreBlock(std::string& line, UInt& count)
@@ -1448,6 +1450,8 @@ namespace CoupledField {
       GetNextLine(line);
       while(line.substr(0,2) != "N," &&
             line.substr(0,2) != "n," &&
+            line.substr(0,3) != "N ," && // ICEM seems to add an extra space
+            line.substr(0,3) != "n ," &&
             line.substr(0,2) != "-1" &&
             line.substr(0,1) != "!") {
 
@@ -1479,7 +1483,7 @@ namespace CoupledField {
             }
           }
         }
-
+        
         StoreSingleNode(fileNodeNum,x,y,z, nodeNum, numNodes, maxNodeNum);
 	numNodesInBlock++;
         if (numNodes%1000000 == 0) {

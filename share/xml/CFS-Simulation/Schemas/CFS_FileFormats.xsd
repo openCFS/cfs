@@ -453,7 +453,7 @@
           default="default"/>
         <xsd:attribute name="strict"
           type="xsd:boolean"
-          default="true">
+          default="false">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
               If strict is true, no gaps in the node number list and the element
