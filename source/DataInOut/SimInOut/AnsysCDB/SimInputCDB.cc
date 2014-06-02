@@ -17,20 +17,14 @@
 
 #include "SimInputCDB.hh"
 
-// TODO: - Workbench FE Modeler  generiert Gitter ohne Oberflächenelemente nur
-//         Node Components. In diesem Fall  müssen die Volumenelemente in eine
-//         extra Dummyregion gesteckt werden.
-// TODO: - Herausfinden, wie man Oberflächenelemente erzeugen kann.
-//         -> Pressure Randbedingung in ANSYS WB Mechanical setzen!
-
 namespace CoupledField {
 
   SimInputCDB::SimInputCDB(std::string fileName, PtrParamNode inputNode,
                            PtrParamNode infoNode) :
     SimInput(fileName, inputNode, infoNode ),
+    surfElemsMode_(NODE_CMP_TO_SURF_REGIONS),
     strict_(true),
     degen_(false),
-    surfElemsFromNodeComps_(true),
     fSize_(0),
     numNodeGroups_(0),
     numElemGroups_(0),
@@ -52,10 +46,20 @@ namespace CoupledField {
       degen_ = myParam_->Get("degenerate")->As<bool>();
     }
 
-    if(myParam_->Has("surfElemsFromNodeComps")) 
+    if(myParam_->Has("surfElemsMode"))
     {
-      surfElemsFromNodeComps_ = myParam_->Get("surfElemsFromNodeComps")
-                                   ->As<bool>();
+      std::string surfElemsMode;
+      
+      surfElemsMode = myParam_->Get("surfElemsMode")
+                      ->As<std::string>();
+
+      if(surfElemsMode == "nodeCmpToNamedElems") 
+      {
+        surfElemsMode_ = NODE_CMP_TO_NAMED_ELEMS;
+      } else if(surfElemsMode == "surfBCsToNamedElems") 
+      {
+        surfElemsMode_ = SURF_BCS_TO_NAMED_ELEMS;
+      }
     }
   }
 
@@ -86,7 +90,7 @@ namespace CoupledField {
     // Same thing for contact elements written using FE Modeler.
     AddIgnoreBlock("/com, Contact Elements", "/com, Components");
 
-    if(surfElemsFromNodeComps_) 
+    if(surfElemsMode_ != SURF_BCS_TO_NAMED_ELEMS) 
     {
       // If we are to create surface  elements from node components we have to
       // ignore  the workbench  load block  which contains  e.g. the  pressure
@@ -269,7 +273,7 @@ namespace CoupledField {
       mi_->AddNamedElems(name, elems);
     }
 
-    if(surfElemsFromNodeComps_) 
+    if(surfElemsMode_ != SURF_BCS_TO_NAMED_ELEMS) 
     {
       InitElemFaceTypeMaps();
       FacesType faces;
@@ -281,47 +285,121 @@ namespace CoupledField {
                                                       surfTopo, surfTypes);
 
       std::map<UInt, std::vector<UInt> >::iterator stIt, stEnd;
-      stIt = surfTopo.begin();
-      stEnd = surfTopo.end();
-      
-      mi_->AddElems(surfTopo.size());
-      
-      for( ; stIt!=stEnd; stIt++)
-      {
-        UInt elemNum = stIt->first;
-        Elem::FEType feType = surfTypes[elemNum];
-        
-        std::vector<UInt> topo = stIt->second;
-        for(UInt j=0, n=topo.size(); j<n; j++)
-        {
-          topo[j] = nodeNumsMap_[topo[j]];
-        }
-        
-        mi_->SetElemData(elemNum, feType, NO_REGION_ID, &topo[0]);
-      }    
-      
-      // Add additional named surface elems to grid.
       std::map<std::string, StdVector<UInt> >::iterator egIt, egEnd;
       std::vector<std::string>::iterator ngnIt;
-      egIt = elemGroupData.begin();
-      egEnd = elemGroupData.end();    
-      for( ; egIt != egEnd; egIt++) 
+
+      switch(surfElemsMode_) 
       {
-        std::string name = egIt->first;
-        StdVector<UInt>& elems = egIt->second;
-        
-        // Convert name to upper case letters
-        std::string name_upper = boost::to_upper_copy(name);
-        
-        mi_->AddNamedElems(name_upper, elems);
-        
-        // Rename node list
-        ngnIt = std::find(nodeGroupNames_.begin(), nodeGroupNames_.end(),
-                          name);
-        (*ngnIt) = name+"_NODES";
+      case NODE_CMP_TO_NAMED_ELEMS: 
+        {          
+          stIt = surfTopo.begin();
+          stEnd = surfTopo.end();
+          
+          mi_->AddElems(surfTopo.size());
+          
+          for( ; stIt!=stEnd; stIt++)
+          {
+            UInt elemNum = stIt->first;
+            Elem::FEType feType = surfTypes[elemNum];
+            
+            std::vector<UInt> topo = stIt->second;
+            for(UInt j=0, n=topo.size(); j<n; j++)
+            {
+              topo[j] = nodeNumsMap_[topo[j]];
+            }
+            
+            mi_->SetElemData(elemNum, feType, NO_REGION_ID, &topo[0]);
+          }    
+          
+          // Add additional named surface elems to grid.
+          egIt = elemGroupData.begin();
+          egEnd = elemGroupData.end();    
+          for( ; egIt != egEnd; egIt++) 
+          {
+            std::string name = egIt->first;
+            StdVector<UInt>& elems = egIt->second;
+            
+            // Convert name to upper case letters
+            std::string name_upper = boost::to_upper_copy(name);
+            
+            mi_->AddNamedElems(name_upper, elems);
+            
+            // Rename node list
+            ngnIt = std::find(nodeGroupNames_.begin(), nodeGroupNames_.end(),
+                              name);
+            (*ngnIt) = name+"_NODES";
+          }
+        }
+        break;
+        case NODE_CMP_TO_SURF_REGIONS:
+        default:
+        {
+          StdVector<std::string> names;
+          StdVector<RegionIdType> ids;
+          std::map<UInt, RegionIdType> elemRegionIds;
+
+          // Add additional surface regions to grid.
+          egIt = elemGroupData.begin();
+          egEnd = elemGroupData.end();    
+          for( ; egIt != egEnd; egIt++) 
+          {
+            std::string name = egIt->first;
+
+            // Convert name to upper case letters
+            std::string name_upper = boost::to_upper_copy(name);
+            
+            names.Push_back(name_upper);
+            
+            // Rename node list
+            ngnIt = std::find(nodeGroupNames_.begin(), nodeGroupNames_.end(),
+                              name);
+            (*ngnIt) = name+"_NODES";
+          }
+
+          mi_->AddRegions(names, ids);
+
+          // Associate surface elements with region ids.
+          egIt = elemGroupData.begin();
+          egEnd = elemGroupData.end();    
+          for( ; egIt != egEnd; egIt++) 
+          {
+            std::string name = egIt->first;
+            StdVector<UInt>& elems = egIt->second;
+            
+            // Convert name to upper case letters
+            std::string name_upper = boost::to_upper_copy(name);
+
+            UInt id = ids[std::distance(names.Begin(), std::find(names.Begin(),
+                                                                 names.End(),
+                                                                 name_upper))];
+
+            for(UInt i=0, n=elems.GetSize(); i<n; i++) 
+            {  
+              elemRegionIds[elems[i]] = id;
+            }            
+          }
+
+          // Add surface elements to grid.
+          stIt = surfTopo.begin();
+          stEnd = surfTopo.end();          
+          mi_->AddElems(surfTopo.size());          
+          for( ; stIt!=stEnd; stIt++)
+          {
+            UInt elemNum = stIt->first;
+            Elem::FEType feType = surfTypes[elemNum];
+            
+            std::vector<UInt> topo = stIt->second;
+            for(UInt j=0, n=topo.size(); j<n; j++)
+            {
+              topo[j] = nodeNumsMap_[topo[j]];
+            }
+            
+            mi_->SetElemData(elemNum, feType, elemRegionIds[elemNum], &topo[0]);
+          }          
+        }
+        break;
       }
-      
-    } // surfElemsFromNodeComps_
+    } // surfElemsMode_ != SURF_BCS_TO_NAMED_ELEMS
 
     // Add named nodes to grid.
     for(UInt i=0, n=nodeGroupNames_.size(); i<n; i++) 

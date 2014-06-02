@@ -103,7 +103,7 @@ namespace CoupledField {
     //@}
 
   protected:
-    
+
     Elem::FEType DegenTypeToNativeType(UInt type, UInt numNodes);
 
     //! Function  for performing  an  initial scan  of an  APDL  file for  the
@@ -168,6 +168,11 @@ namespace CoupledField {
 
     FEType2ElemFacesType elemFaces_;
     FEType2FacesFEType elemFaceTypes_;
+
+    typedef enum {NODE_CMP_TO_NAMED_ELEMS,
+                  NODE_CMP_TO_SURF_REGIONS,
+                  SURF_BCS_TO_NAMED_ELEMS} SurfElemsModeType;
+    SurfElemsModeType surfElemsMode_;
 
     void InitElemFaceTypeMaps();
     void GenerateVolElemFaces(FacesType& faces);    
