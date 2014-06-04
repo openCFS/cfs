@@ -78,6 +78,7 @@ using std::string;
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
 #include "Forms/Operators/SurfaceNormalStressOperator.hh"
+#include "Forms/Operators/ConvectiveOperator.hh"
 
 // TEMPORARY
 #include "MagEdgePDE.hh"
@@ -3081,7 +3082,10 @@ namespace CoupledField {
     // currently we have a moving formulation only for acoustics
     updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?
     bool isMoving = updatedGeo_;
-    bool changeForms =   iface.movingMortarForm  && (solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL);
+    bool changeForms = iface.movingMortarForm 
+                     && (solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL);
+    
+    bool isEulerian = isMoving && mortarIf->IsEulerian();
     
     // create ElemLists for slave surface and intersection
     shared_ptr<SurfElemList> elMaster(new SurfElemList(ptGrid_)),
@@ -3191,6 +3195,38 @@ namespace CoupledField {
         ncIf->RegisterIntegrator(ncContext2);
       }
       ncContext->SetMotion(true);
+    }
+    
+    // assemble additional terms for Eulerian formulation of slave region
+    if (isEulerian) {
+      RegionIdType slaveRegion = mortarIf->GetSlaveVolRegion();
+      PtrCoefFct massCoef = massInts_[slaveRegion]->GetCoef();
+      PtrCoefFct gridVelocity = mortarIf->GetGridVelocity();
+      shared_ptr<ElemList> slaveEL(new ElemList(ptGrid_));
+      slaveEL->SetRegion(slaveRegion);
+      
+      BiLinearForm *eulerDampInt = new ABInt<>(
+          new IdentityOperator<FeH1,DIM,D_DOF>(),
+          new ConvectiveOperator<FeH1,DIM,D_DOF>(),
+          massCoef, -2.0, updatedGeo_);
+      eulerDampInt->SetBCoefFunctionOpB(gridVelocity);
+      eulerDampInt->SetName("eulerDampingInt");
+      
+      BiLinFormContext *eulerDampContext = new BiLinFormContext(eulerDampInt, DAMPING);
+      eulerDampContext->SetEntities(slaveEL, slaveEL);
+      eulerDampContext->SetFeFunctions(feFunctions_[solType], feFunctions_[solType]);
+      assemble_->AddBiLinearForm(eulerDampContext);
+      
+      BiLinearForm *eulerStiffInt = new BBInt<>(
+          new ConvectiveOperator<FeH1,DIM,D_DOF>(),
+          massCoef, 1.0, updatedGeo_);
+      eulerStiffInt->SetBCoefFunctionOpB(gridVelocity);
+      eulerStiffInt->SetName("eulerStiffnessInt");
+      
+      BiLinFormContext *eulerStiffContext = new BiLinFormContext(eulerStiffInt, STIFFNESS);
+      eulerStiffContext->SetEntities(slaveEL, slaveEL);
+      eulerStiffContext->SetFeFunctions(feFunctions_[solType], feFunctions_[solType]);
+      assemble_->AddBiLinearForm(eulerStiffContext);      
     }
   }
   
