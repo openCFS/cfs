@@ -35,6 +35,14 @@ public:
                                   EntityIterator& ent1,
                                   EntityIterator& ent2);
 
+  virtual bool IsSolDependent();
+
+  virtual bool IsComplex();
+
+  virtual void SetFeSpace( shared_ptr<FeSpace> feSpace );
+
+  virtual void SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2 );
+
 protected:
   
   //! Pointer to LinearForm

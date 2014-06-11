@@ -339,6 +339,10 @@ namespace CoupledField {
         return "A";
         break;
 
+      case COIL_CURRENT_DERIV1:
+        return "A/s";
+        break;
+
       case MAG_RHS_LOAD:
         return "Am";
         break;
@@ -1240,6 +1244,7 @@ namespace CoupledField {
 
     // magnetic - coil results
     SolutionTypeEnum.Add(COIL_CURRENT, "coilCurrent");
+    SolutionTypeEnum.Add(COIL_CURRENT_DERIV1, "coilCurrentD1");
     
     SolutionTypeEnum.Add(COIL_INDUCED_VOLTAGE, "coilInducedVoltage");
     SolutionTypeEnum.Add(COIL_INDUCTANCE, "coilInductance");

@@ -74,11 +74,8 @@ void FeSpaceConst::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent )
     // new entry in equation map was created
     numEqns_++;
     numFreeEquations_++;
-    eqns[0] = numEqns_;
-  } else {
-    // entry already existed, equation number is known
-    eqns[0] = ret.first->second;
   }
+  eqns[0] = ret.first->second;
 
 }
 
