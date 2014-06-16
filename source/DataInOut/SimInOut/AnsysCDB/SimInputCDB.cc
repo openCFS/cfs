@@ -79,6 +79,7 @@ namespace CoupledField {
     
     numNBlocks_ = numEBlocks_ = numCMBlocks_ = 0;
     numNCmnds_ = numENCmnds_ = numEselCmnds_ = numNselCmnds_ = numCMCmnds_ = 0;
+    numMATCmnds_ = numTYPECmnds_ = 0;
     numSFECmnds_ = 0;
 
     //! Since APDL is  a very general language  we have to ignore  some of the
@@ -125,6 +126,8 @@ namespace CoupledField {
     }
     if ( linePtsEBlocks_.size() > 0 ) {
       ReadElementsBlocked();
+    } else if ( linePtsMATCmnds_.size() > 0 ) {
+      ReadElementsFromMatBlocks();
     } else if ( linePtsENCmnds_.size() > 0 ) {
       ReadElementsUnBlocked();
     }
@@ -956,6 +959,16 @@ namespace CoupledField {
           linePtsENCmnds_.push_back(pos);
         }
       }
+      if (line.substr(0,5) == "TYPE," ||
+          line.substr(0,5) == "type,") {
+        numTYPECmnds_++;
+        linePtsTYPECmnds_.push_back(pos);
+      }
+      if (line.substr(0,4) == "MAT," ||
+          line.substr(0,4) == "mat,") {
+        numMATCmnds_++;
+        linePtsMATCmnds_.push_back(pos);
+      }
       if (line.substr(0,7) == "CMBLOCK" ||
           line.substr(0,7) == "cmblock") {
         numCMBlocks_++;
@@ -1020,6 +1033,10 @@ namespace CoupledField {
       std::cout << "Number of N commands found " << numNCmnds_
                 << std::endl;
     }
+    if (numMATCmnds_>0) {
+      std::cout << "Number of MAT commands found " << numMATCmnds_
+                << std::endl;
+    }
     if (numENCmnds_>0) {
       std::cout << "Number of EN commands found " << numENCmnds_
                 << std::endl;
@@ -1034,6 +1051,10 @@ namespace CoupledField {
     }
     if (lineETCmnds_.size()>0) {
       std::cout << "Number of ET commands found " << lineETCmnds_.size()
+                << std::endl;
+    }
+    if (numTYPECmnds_>0) {
+      std::cout << "Number of TYPE commands found " << numTYPECmnds_
                 << std::endl;
     }
     if (linePtsPSECmnds_.size()>0) {
@@ -1599,6 +1620,7 @@ namespace CoupledField {
     UInt maxNodeNum = 0;
     UInt numNodes = 0;
     std::vector< std::string > tokens(32);
+    UInt numTok = 0;
 
     // loop on all found n commands
     for (UInt ib=0; ib<linePtsNCmnds_.size(); ib++) {
@@ -1609,13 +1631,26 @@ namespace CoupledField {
       fileNodeNum = 0;
       x = y = z = 0.0;
 
-      SplitLine(line, tokens);
+      numTok = SplitLine(line, tokens);
 
-      fileNodeNum = std::strtoul(tokens[3].c_str(), NULL, 0);
-      x = std::strtod(tokens[6].c_str(), NULL);
-      y = std::strtod(tokens[7].c_str(), NULL);
-      z = std::strtod(tokens[8].c_str(), NULL);
-
+      if(numTok < 6) 
+      {
+        // For lines of the form: N,1,-0.024500,0.880150,0.558500
+        // E.g. written bei Pro/E Mechanica ANSYS export.
+        fileNodeNum = std::strtoul(tokens[1].c_str(), NULL, 0);
+        x = std::strtod(tokens[2].c_str(), NULL);
+        y = std::strtod(tokens[3].c_str(), NULL);
+        z = std::strtod(tokens[4].c_str(), NULL);
+      }
+      else 
+      {
+        // For lines of the form: N,R5.3,LOC,1,0,0,-1,1,1
+        fileNodeNum = std::strtoul(tokens[3].c_str(), NULL, 0);
+        x = std::strtod(tokens[6].c_str(), NULL);
+        y = std::strtod(tokens[7].c_str(), NULL);
+        z = std::strtod(tokens[8].c_str(), NULL);
+      }
+      
       StoreSingleNode(fileNodeNum,x,y,z, nodeNum, numNodes, maxNodeNum);
       if (numNodes%1000000 == 0) {
         std::cout << "Nodes read " << numNodes << "\r";
@@ -1989,6 +2024,163 @@ namespace CoupledField {
       WARN("Non skipped elements found after first skipped "
            << "element (= " << firstSkippedElem << ").\nThis might lead "
            << "to incorrect mesh transfer.\nPlease check carefully!");
+    }
+  }
+
+  void SimInputCDB::ReadElementsFromMatBlocks() {
+    std::string line;
+    std::ostringstream errMsg;
+    std::vector< std::string > tokens(32);
+
+    // Read element types
+    UInt typeIdx = linePtsTYPECmnds_.size()-1;
+    UInt elemType;
+    UInt elemNum = 1;
+    UInt ansElemNum = 0;
+    UInt elemDim = 0;
+    UInt elemMat = 0;
+    std::vector<UInt> elemNodes(40);
+    std::vector<UInt> lineContent(40);
+    std::set<UInt> elemNodeSet;
+    UInt numElemNodes;
+
+    std::map< UInt, StdVector<UInt> > matRegions;
+
+    // loop on all found MAT commands
+    UInt lCount = 0;
+    for (UInt ib=0; ib<linePtsMATCmnds_.size(); ib++) {
+
+#if(WIN32 || __MINGW32__)
+      __int64 matLinePos = linePtsMATCmnds_[ib];
+#else
+      unsigned long matLinePos = linePtsMATCmnds_[ib];
+#endif
+
+      // Search for maximum typeLinePos beneath matLinePos
+      for( ; typeIdx != 0; )
+      {
+        if(linePtsTYPECmnds_[typeIdx] > matLinePos) 
+        {
+          typeIdx--;
+          break;
+        }
+      }
+
+#if(WIN32 || __MINGW32__)
+      __int64 typeLinePos = linePtsTYPECmnds_[typeIdx];
+#else
+      unsigned long typeLinePos = linePtsTYPECmnds_[typeIdx];
+#endif
+
+      GetLine(line, typeLinePos);
+      lCount++;
+      UInt numTok = SplitLine(line, tokens);
+      elemType = std::strtoul(tokens[1].c_str(), NULL, 0);
+
+      GetLine(line, matLinePos);
+      lCount++;
+      numTok = SplitLine(line, tokens);
+      elemMat = std::strtoul(tokens[1].c_str(), NULL, 0);
+
+      GetNextLine(line);
+
+      UInt eNodeIdx=0;
+
+      while(line.find("EN,") != line.npos ||
+            line.find("en,") != line.npos ||
+            line.find("EMORE,") != line.npos ||
+            line.find("emore,") != line.npos) {
+
+        numElemNodes = 0;
+        
+        // Split line into tokens according to the offsets array
+        numTok = SplitLine(line, tokens);
+
+        if(line.find("EN,") != line.npos ||
+           line.find("en,") != line.npos)
+        {
+          ansElemNum = std::strtoul(tokens[1].c_str(), NULL, 0);
+
+          std::fill(elemNodes.begin(), elemNodes.end(), 0);
+
+          for(UInt i=2; i<numTok; i++) 
+          {
+            eNodeIdx = i-2;
+            elemNodes[eNodeIdx] = std::strtoul(tokens[i].c_str(), NULL, 0);
+            numElemNodes++;
+          }
+        }
+
+        GetNextLine(line);
+
+        if(line.find("EMORE,") != line.npos ||
+           line.find("emore,") != line.npos)
+        {
+          numTok = SplitLine(line, tokens);
+          for(UInt i=1; i<numTok; i++) 
+          {
+            eNodeIdx ++;
+            elemNodes[eNodeIdx] = std::strtoul(tokens[i].c_str(), NULL, 0);
+            numElemNodes++;
+          }
+
+          GetNextLine(line);
+        }
+        
+        if (ans2FEMap_[elemType] != Elem::ET_UNDEF) {
+          elemTypes_[ansElemNum] = ans2FEMap_[elemType];
+      
+          // Determine number of element nodes by inserting nodes into a set.
+          elemNodeSet.insert(&elemNodes[0], &elemNodes[numElemNodes]);
+          elemNodeSet.erase((UInt) 0);
+          numElemNodes = elemNodeSet.size();
+          
+          maxNumElemNodes_ = numElemNodes > maxNumElemNodes_ ?
+                             numElemNodes : maxNumElemNodes_;
+          
+          Elem::FEType newFEType = DegenTypeToNativeType(elemTypes_[ansElemNum],
+                                                         numElemNodes);
+          
+          if(degen_) {
+            DegenerateElement((Elem::FEType)elemTypes_[ansElemNum],
+                              newFEType, elemNodes);
+          } else {
+            ResortNodes(elemNodes);
+          }
+          
+          elemTypes_[ansElemNum] = newFEType;
+          elemDim = Elem::shapes[newFEType].dim;
+          dim_ = dim_ < elemDim ? elemDim : dim_;
+          
+          std::copy(elemNodes.begin(),
+                    elemNodes.begin() + Elem::shapes[newFEType].numNodes,
+                    std::back_inserter(topology_[ansElemNum]));
+          
+          elemNum++;
+
+          matRegions[elemMat].Push_back(ansElemNum);
+        }
+        if (elemNum%1000000 == 0) {
+          std::cout << "Elements read " << elemNum << "\r";
+          std::cout.flush();
+        }
+      }      
+    }
+    std::cout << std::endl;
+
+    // store dimension to settings
+    std::cout << "Finished reading elements (" << elemNum-1 << " read)"
+              << std::endl;
+
+
+    std::map< UInt, StdVector<UInt> >::const_iterator it, end;
+    it = matRegions.begin();
+    end = matRegions.end();
+    for( ; it != end; it++) 
+    {
+      std::stringstream sstr;      
+      sstr << "MAT_" << it->first;
+      StoreRegion(sstr.str(), it->second.GetSize(), it->second);
     }
   }
 

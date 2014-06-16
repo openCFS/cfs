@@ -126,6 +126,7 @@ namespace CoupledField {
 
     void ReadElementsBlocked();
     void ReadElementsUnBlocked();
+    void ReadElementsFromMatBlocks();
 
     void ReadRegionsAndGroups();
 
@@ -262,13 +263,15 @@ namespace CoupledField {
     // file entries resulting from scan
     std::vector<std::string > lineETCmnds_;
     std::vector<std::string > lineKEYOPTCmnds_;
-    UInt numNBlocks_, numEBlocks_, numNCmnds_, numENCmnds_, numCMBlocks_, numSFECmnds_;
+    UInt numNBlocks_, numEBlocks_, numNCmnds_, numENCmnds_, numMATCmnds_, numTYPECmnds_, numCMBlocks_, numSFECmnds_;
     UInt numEselCmnds_, numNselCmnds_, numCMCmnds_, numPtsPSECmnds_, linePtsPSEStop_;
 #if(WIN32 || __MINGW32__)
     std::vector<__int64> linePtsNBlocks_;
     std::vector<__int64> linePtsEBlocks_;
     std::vector<__int64> linePtsNCmnds_;
     std::vector<__int64> linePtsENCmnds_;
+    std::vector<__int64> linePtsMATCmnds_;
+    std::vector<__int64> linePtsTYPECmnds_;
     std::vector<__int64> linePtsCMBlocks_;
     std::vector<__int64> linePtsEselCmnds_;
     std::vector<__int64> linePtsNselCmnds_;
@@ -283,6 +286,8 @@ namespace CoupledField {
     std::vector<unsigned long> linePtsEBlocks_;
     std::vector<unsigned long> linePtsNCmnds_;
     std::vector<unsigned long> linePtsENCmnds_;
+    std::vector<unsigned long> linePtsMATCmnds_;
+    std::vector<unsigned long> linePtsTYPECmnds_;
     std::vector<unsigned long> linePtsCMBlocks_;
     std::vector<unsigned long> linePtsEselCmnds_;
     std::vector<unsigned long> linePtsNselCmnds_;
