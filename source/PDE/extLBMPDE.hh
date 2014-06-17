@@ -84,6 +84,8 @@ namespace CoupledField
 
     virtual void ReadSpecialResults();
 
+    std::string ToString(const StdVector<double>& elements, bool x_fast, bool as_int) const;
+
     Iface GetIface() const { return iface_; }
 
     //! Contains LBM velocity

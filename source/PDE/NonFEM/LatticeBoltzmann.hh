@@ -65,7 +65,6 @@ namespace CoupledField
     #define __PDFS__ m_pdfs
   #endif
 
-  #ifdef ARRAY_OF_STRUCTURES
 
     // -- ARRAYS OF STRUCTURES LAYOUT --
 
@@ -77,20 +76,15 @@ namespace CoupledField
     // Assuming array of structures layout.
     #define PDF_IDX(_arrayIndex, _index, _direction)  __PDFS__[_arrayIndex][(_index) * 9 + (_direction)]
 
-  #else
-
     // -- STRUCTURES OF ARRAYS LAYOUT --
 
     // Address PDFs via Coordinates and Direction.
     // Assuming structures of array layout.
-    #define PDF(_arrayIndex, _x, _y, _direction)  __PDFS__[_arrayIndex][ ((__LX__) * (__LY__)) * (_direction) +  (_y) * __LX__ + (_x) ]
+    // #define PDF(_arrayIndex, _x, _y, _direction)  __PDFS__[_arrayIndex][ ((__LX__) * (__LY__)) * (_direction) +  (_y) * __LX__ + (_x) ]
 
     // Address PDFs via Index and Direction only.
     // Assuming structures of array layout.
-    #define PDF_IDX(_arrayIndex, _index, _direction)  __PDFS__[_arrayIndex][ ((__LX__) * (__LY__)) * (_direction) + (_index) ]
-
-  #endif
-
+    // #define PDF_IDX(_arrayIndex, _index, _direction)  __PDFS__[_arrayIndex][ ((__LX__) * (__LY__)) * (_direction) + (_index) ]
 
     // Fluid nodes have values in the range of [0.0; 1.0].
     #define LBM_NODE_TYPE_BB      (-1.0)
@@ -103,20 +97,14 @@ public:
     struct Lattice
     {
       Lattice()
-      : Scales(NULL), SizeX(-1), SizeY(-1), doubleSizeX(-1), doubleSizeY(-1)
+      :SizeX(-1), SizeY(-1), doubleSizeX(-1), doubleSizeY(-1)
       {
         Pdfs[0] = NULL;
         Pdfs[1] = NULL;
       }
-
-      virtual ~Lattice()
-      {
-        if (Scales != NULL) { free(Scales); }
-      }
-
       double* Pdfs[2];
 
-      double* Scales;
+      StdVector<double> Scales;
 
       int SizeX;
       int SizeY;
@@ -158,8 +146,10 @@ public:
 
     ~LatticeBoltzmann();
 
-    /** Performs all the LBM iterations until a steady-state with a given tolerance is reached. */
-    void Iterate(double * output);
+    /** Performs all the LBM iterations until a steady-state with a given tolerance is reached.
+     * @param info stores current and final info there. Saves under way
+     * @return to pde*/
+    const StdVector<double>& Iterate(PtrParamNode info);
 
     void SetupDataStructures(const StdVector<double>& elements);
 
@@ -170,6 +160,9 @@ public:
 
     /** sets quadrature weights for t */
     void set_t();
+
+    /** debug information */
+    std::string ToString(const StdVector<StdVector<int> >& data);
 
 
     inline bool LbmNodeTypeIsFluid(double value)
@@ -193,30 +186,23 @@ public:
     }
 
     void create_output(const char * file, int cur);
-    void create_inlet(const char * file);
-    void create_outlet(const char * file);
-    void create_bb(const char * file);
-
 
     void prop_step(Lattice & lattice , int cur);
 
     void prop_coll_step(Lattice & lattice, int m_cur, int m_next, double omega);
 
-    void prop_coll_velinlet(int cur, StdVector<StdVector<int> >& inlet, StdVector<double>& velocities);
+    void prop_coll_velinlet(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY);
 
     void prop_coll_bounce_back(int cur, StdVector<StdVector<int> >& bb);
 
     void prop_coll_densoutlet(int cur, StdVector<StdVector<int> >&outlet, double density);
 
-
-
     int m_sizeX;
     int m_sizeY;
     int m_nNodes;     // Number of total nodes (fluid + obstacle)
-    double m_penalty;
     double m_ux;      // Inlet x velocity
     double m_uy;      // Inlet y velocity
-    double m_density;   // Prescirbed outlet density
+    double m_density;   // prescribed outlet density
     double m_omega;
     double m_xx;
     int m_maxIter;
@@ -238,13 +224,9 @@ public:
     StdVector<StdVector<int> > bb;
     StdVector<StdVector<int> > rel; // indices of the fluid m_nodes
 
-    StdVector<double> por;
-    std::set<int> sing;
-    StdVector<int> non_sing;
     // double read_fluid_resi;
     StdVector<double> t;
     StdVector<double> ux, dloc, uy;
-    int non_sing_length;
 
     LbmCase m_lbmCase;
 

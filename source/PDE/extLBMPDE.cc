@@ -202,6 +202,14 @@ void ExtLBMPDE::DefineSolveStep()
 
 void ExtLBMPDE::Solve()
 {
+  // infoNode_ is not set yet in the constructor
+  PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->Get("LBM");
+  in->Get("omega")->SetValue(omega_);
+  in->Get("maxIter")->SetValue(maxIter_);
+  in->Get("maxWallTime")->SetValue(maxWallTime_);
+  in->Get("convergence")->SetValue(convergence_);
+  in->Get("iface")->SetValue(iface.ToString(iface_));
+
   StdVector<double> elements;
   SetupElements(elements);
 
@@ -237,8 +245,14 @@ void ExtLBMPDE::Solve()
     break;
   }
   case INTERNAL:
+  {
+    LOG_DBG(lbm) << "call internal LBM";
+    LOG_DBG2(lbm) << "elements\n" << ToString(elements, true, true);
     LatticeBoltzmann lbm(n_x_, n_y_, u_x_, u_y_, omega_, maxIter_, convergence_, elements);
-    assert(false);
+    const StdVector<double>& result = lbm.Iterate(this->infoNode_->Get(ParamNode::PROCESS)->Get("LBM"));
+    pdfs = result; // TODO replace instead of copying.
+    break;
+  }
   }
 
   dirty_ = false;
@@ -707,6 +721,25 @@ void ExtLBMPDE::ExportMultipleFiles(const StdVector<double>& elements)
   data.close();
 
 
+}
+
+std::string ExtLBMPDE::ToString(const StdVector<double>& elements, bool x_fast, bool as_int) const
+{
+  std::stringstream ss;
+
+  for(int y = n_y_ - 1; y >=  0; y--)
+  {
+    for(unsigned int x = 0; x < n_x_; x++)
+    {
+      int idx = x_fast ? y * n_x_  + x : x * n_y_ + y;
+      if(as_int)
+        ss << (int) std::abs(elements[idx]) << " ";
+      else
+        ss << std::abs(elements[idx]) << " ";
+    }
+    ss << " <- " << y << std::endl;
+  }
+  return ss.str();
 }
 
 

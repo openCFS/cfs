@@ -8,6 +8,7 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "PDE/NonFEM/LatticeBoltzmann.hh"
+#include "Utils/Timer.hh"
 
 namespace CoupledField
 {
@@ -26,17 +27,17 @@ DEFINE_LOG(lattice, "lattice")
  {
    m_sizeX = sizeX;
    m_sizeY = sizeY;
-   m_penalty = 3.0; // penalty;
    m_ux = _ux;
    m_uy = _uy;
    m_density = 1.0; //density;
    m_omega = omega;
    m_maxIter = maxIterations;
    m_maxTol = maxTolerance;
-   non_sing_length = 99;
-
 
    m_nNodes = m_sizeX * m_sizeY;
+
+
+   SetupDataStructures(elements);
 
    //quadrature weights of LBM
    t.Resize(9);
@@ -45,21 +46,19 @@ DEFINE_LOG(lattice, "lattice")
    //matrix of the probability distributions
    LOG_DBG(lattice) << "Allocating arrays for " << m_nNodes << " PDFs (" << (sizeof(double) * m_nNodes * 9 * 2.0 / 1024.0 / 1024.0) << " MiB)";
 
-   m_pdfs[0] = (double *)malloc(sizeof(double) * m_nNodes * 9);
-   m_pdfs[1] = (double *)malloc(sizeof(double) * m_nNodes * 9);
+   m_pdfs.Resize(2);
+   m_pdfs[0].Resize(m_nNodes * 9);
+   m_pdfs[1].Resize(m_nNodes * 9);
 
-   assert(m_pdfs[0] != NULL);
-   assert(m_pdfs[1] != NULL);
+   m_lattice.Pdfs[0] = m_pdfs[0].GetPointer();
+   m_lattice.Pdfs[1] = m_pdfs[1].GetPointer();
 
-   m_lattice.Pdfs[0] = m_pdfs[0];
-   m_lattice.Pdfs[1] = m_pdfs[1];
+   m_lattice.Scales.Resize(m_nNodes);
 
-   m_lattice.Scales = (double *)malloc(sizeof(double) * m_nNodes);
-   assert(m_lattice.Scales != NULL);
+   assert((int) elements.GetSize() == m_nNodes);
+   for (int i = 0; i < m_nNodes; ++i)
+     m_lattice.Scales[i] = 1.0 - elements[i];
 
-   for (int i = 0; i < m_nNodes; ++i) {
-     m_lattice.Scales[i] = 1.0 - pow(por[i], m_penalty);
-   }
 
    m_lattice.SizeX = m_sizeX;
    m_lattice.SizeY = m_sizeY;
@@ -69,20 +68,6 @@ DEFINE_LOG(lattice, "lattice")
 
    InitializePdfs();
 
-   // // indices of the fluid m_nodes
-   // rel = new StdVector<StdVector<int> >(1, StdVector<int>(2));
-
-   // // indices of the bounce-back m_nodes
-   // bb = new StdVector<StdVector<int> >(1, StdVector<int>(2));
-   // // indices of the inlet m_nodes
-
-   // inlet = new StdVector<StdVector<int> >(1, StdVector<int>(2));
-   // // indices of the outlet m_nodes
-   // outlet = new StdVector<StdVector<int> >(1, StdVector<int>(2));
-
-   // set_data();
-
-   ux.Resize(m_nNodes);
    uy.Resize(m_nNodes);
    dloc.Resize(m_nNodes);
 
@@ -90,12 +75,9 @@ DEFINE_LOG(lattice, "lattice")
 
  LatticeBoltzmann::~LatticeBoltzmann()
  {
-   free(m_pdfs[0]);
-   free(m_pdfs[1]);
  }
 
-
-void LatticeBoltzmann::Iterate(double * output)
+const StdVector<double>& LatticeBoltzmann::Iterate(PtrParamNode in)
 {
     int index;
     int it = 0;
@@ -106,27 +88,17 @@ void LatticeBoltzmann::Iterate(double * output)
     double refnorm;
     bool nonsteady = true;
 
-    create_output("node.dat", m_cur);
-    create_inlet("inlet.dat");
+    Timer timer;
+    timer.Start();
 
-    std::cout << "bb: ";
-    for(unsigned int i = 0; i < bb.GetSize(); i++)
-      std::cout << bb[i][0] << ":" << bb[i][1] << " ";
+    // create_output("node.dat", m_cur);
 
-    std::cout << "\ninlet: ";
-    for(unsigned int i = 0; i < inlet.GetSize(); i++)
-      std::cout << inlet[i][0] << ":" << inlet[i][1] << " ";
+    LOG_DBG(lattice) << "bb = " << ToString(bb);
+    LOG_DBG(lattice) << "inlet = " << ToString(inlet);
+    LOG_DBG(lattice) << "outlet = " << ToString(outlet);
+    LOG_DBG(lattice) << "rel = " << ToString(rel);
 
-    std::cout << "\noutlet: ";
-    for(unsigned int i = 0; i < outlet.GetSize(); i++)
-      std::cout << outlet[i][0] << ":" << outlet[i][1] << " ";
-
-    std::cout << "\nrel: ";
-    for(unsigned int i = 0; i < rel.GetSize(); i++)
-      std::cout << rel[i][0] << ":" << rel[i][1] << " ";
-
-    std::cout << "\n";
-    std::cout.flush();
+    in->Get("converged")->SetValue("running");
 
     while(it < m_maxIter && nonsteady)
     {
@@ -136,12 +108,8 @@ void LatticeBoltzmann::Iterate(double * output)
       // -- Bounce back step ------------------------------------------------
       prop_coll_bounce_back(m_next, bb);
 
-      create_output(std::string("before_inlet_node_" + boost::lexical_cast<std::string>(it) + ".dat").c_str(), m_next);
-
       // -- Inlet condition -------------------------------------------------
-      prop_coll_velinlet(m_next, inlet, m_lbmCase.InletVelocities);
-
-      create_output(std::string("after_inlet_node_" + boost::lexical_cast<std::string>(it) + ".dat").c_str(), m_next);
+      prop_coll_velinlet(m_next, inlet, m_ux, m_uy);
 
       // -- Outlet condition ------------------------------------------------
       prop_coll_densoutlet(m_next, outlet, m_density);
@@ -181,10 +149,13 @@ void LatticeBoltzmann::Iterate(double * output)
           } else if(R >= 1000) {
             std::stringstream ss;
             ss << "In LBM iteration " << it << " residuum " << R << " too large -> abort";
-            info->Get("LBM")->Get(ParamNode::WARNING)->SetValue(ss.str());
+            in->Get(ParamNode::WARNING)->SetValue(ss.str());
             nonsteady = false;
           }
         }
+        in->Get("iterations")->SetValue(it);
+        in->Get("residuum")->SetValue(R / refnorm);
+        info->ToFile(); // is not written when called too often
       }
 
       m_cur  = (m_cur  + 1) % 2;
@@ -194,12 +165,20 @@ void LatticeBoltzmann::Iterate(double * output)
 
     }
 
+    timer.Stop();
+
     // DumpFluidNodes("fluid-nodes.dat", it, m_cur);
 
-    create_output("node_steady.dat", m_cur);
+    // create_output("node_steady.dat", m_cur);
     // output number of iterations; Residual
-    output[0] = --it;
-    output[1] = R / refnorm;
+    in->Get("converged")->SetValue(!nonsteady);
+
+    double wt = timer.GetWallTime();
+    double performance = (m_sizeX - 1) * (m_sizeY - 1) * it / wt;
+    in->Get("LUpS")->SetValue(performance);
+    in->Get("walltime")->SetValue(wt);
+
+    return m_pdfs[m_cur];
   }
 
 
@@ -246,7 +225,6 @@ void LatticeBoltzmann::set_t()
   }
 }
 
-
 void LatticeBoltzmann::SetupDataStructures(const StdVector<double>& elements)
 {
   StdVector<int> tmp(2);
@@ -254,38 +232,31 @@ void LatticeBoltzmann::SetupDataStructures(const StdVector<double>& elements)
   int n = 0;
   double porosity;
 
-  // TODO: maybe interchange loops as x is the fast dimension.
-
-  // TODO: this only works for two dimensions...
-
   // TODO: preallocate the StdVectors and just set the indices
 
-  for(int i = 0; i < m_sizeX; i++) {
-    for(int j = 0; j < m_sizeY; j++) {
-
+  for(int j = 0; j < m_sizeY; j++)
+  {
+    for(int i = 0; i < m_sizeX; i++)
+    {
       porosity = elements[n];
 
       if (LbmNodeTypeIsFluid(porosity)) {
         tmp[0] = i;
         tmp[1] = j;
         rel.Push_back(tmp);
-
       } else if (LbmNodeTypeIsBB(porosity)) {
         tmp[0] = i;
         tmp[1] = j;
         bb.Push_back(tmp);
-
       } else if (LbmNodeTypeIsInlet(porosity)) {
         tmp[0] = i;
         tmp[1] = j;
         inlet.Push_back(tmp);
-
       } else if (LbmNodeTypeIsOutlet(porosity)) {
         tmp[0] = i;
         tmp[1] = j;
         outlet.Push_back(tmp);
       }
-
       ++n;
     }
   }
@@ -293,6 +264,24 @@ void LatticeBoltzmann::SetupDataStructures(const StdVector<double>& elements)
   assert(m_nNodes == n);
 }
 
+
+std::string LatticeBoltzmann::ToString(const StdVector<StdVector<int> >& data)
+{
+  std::stringstream ss;
+
+  for(unsigned int e = 0; e < data.GetSize(); e++)
+  {
+    ss << e << ": (";
+    for(unsigned int d = 0; d < data[e].GetSize(); d++)
+    {
+      ss << data[e][d];
+      if(d < data[e].GetSize() - 1)
+       ss << ", ";
+    }
+    ss << ") ";
+  }
+  return ss.str();
+}
 
 void LatticeBoltzmann::create_output(const char * file, int cur)
 {
@@ -311,62 +300,6 @@ void LatticeBoltzmann::create_output(const char * file, int cur)
 
   f.close();
 }
-
-void LatticeBoltzmann::create_outlet(const char * file) {
-  // for debug purposes
-  fstream f;
-  f.open(file, ios::out);
-  f.precision(16);
-
-  for(unsigned int i = 0; i < outlet.GetSize(); i++) {
-    for(unsigned int j = 0; j < 2; j++) {
-      f << outlet[i][j] << " ";
-    }
-
-    f << std::endl;
-  }
-
-  f.close();
-}
-
-void LatticeBoltzmann::create_inlet(const char * file)
-{
-  // for debug purposes
-  fstream f;
-  f.open(file, ios::out);
-  f.precision(16);
-
-  for(unsigned int i = 0; i < inlet.GetSize(); i++) {
-    for(unsigned int j = 0; j < 2; j++) {
-      f << inlet[i][j] << " ";
-    }
-
-    f << std::endl;
-  }
-
-  f.close();
-}
-
-
-void LatticeBoltzmann::create_bb(const char * file)
-{
-  // for debug purposes
-  fstream f;
-  f.open(file, ios::out);
-  f.precision(16);
-
-  for(unsigned int i = 0; i < bb.GetSize(); i++) {
-    for(unsigned int j = 0; j < 2; j++) {
-      f << bb[i][j] << " ";
-    }
-
-    f << std::endl;
-  }
-
-  f.close();
-}
-
-
 
 
 void LatticeBoltzmann::prop_step(Lattice& lattice, int cur)
@@ -580,7 +513,7 @@ void LatticeBoltzmann::prop_coll_step(Lattice& lattice, int m_cur, int m_next, d
 
   // }}}
 
-  double * scales  = lattice.Scales;
+  double * scales  = lattice.Scales.GetPointer();
 
 
   #ifdef _OPENMP
@@ -612,7 +545,6 @@ void LatticeBoltzmann::prop_coll_step(Lattice& lattice, int m_cur, int m_next, d
       sum = pdf_0 + pdf_e + pdf_n + pdf_w + pdf_s + pdf_ne + pdf_nw + pdf_sw + pdf_se;
 
       // macroscopic scaling by design variable
-      // scale = 1.0 - pow(por[index], penal);
       scale = scales[index];
 
       tmp_ux = scale * (pdf_e + pdf_ne + pdf_se - pdf_w - pdf_nw - pdf_sw) / sum;
@@ -653,7 +585,7 @@ void LatticeBoltzmann::prop_coll_step(Lattice& lattice, int m_cur, int m_next, d
   return;
 }
 
-void LatticeBoltzmann::prop_coll_velinlet(int cur, StdVector<StdVector<int> >& inlet, StdVector<double>& velocities)
+void LatticeBoltzmann::prop_coll_velinlet(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY)
 {
 
   int x, y;
@@ -678,13 +610,13 @@ void LatticeBoltzmann::prop_coll_velinlet(int cur, StdVector<StdVector<int> >& i
 
     sum = pdf_0 + pdf_e + pdf_n + pdf_w + pdf_s + pdf_ne + pdf_nw + pdf_sw + pdf_se;
 
-    tmp_ux = velocities[i * 3 + 0];
-    tmp_uy = velocities[i * 3 + 1];
+    tmp_ux = UX;
+    tmp_uy = UY;
     tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
     tmp_ux = 3.0 * tmp_ux;
     tmp_uy = 3.0 * tmp_uy;
 
-    std::cout << "prop_coll_velinlet new: i=" << i << " ux_org=" << velocities[i * 3 + 0] << " uy_org=" << velocities[i * 3 + 1] << " tux=" << tmp_ux << " tuy=" << tmp_uy << std::endl;
+    LOG_DBG3(lattice) << "pcv: i=" << i << " tux=" << tmp_ux << " tuy=" << tmp_uy << std::endl;
 
     PDF(cur, x, y, Q9_0)  = sum * T_Q9_0  * (1.0 - tmp_us);
 
