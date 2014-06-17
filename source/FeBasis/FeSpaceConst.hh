@@ -538,7 +538,7 @@ private:
   void CheckEntityType(const EntityIterator ent) const;
 
   //! maps equation number to entity id provided by EntityIterator::GetIdString()
-  std::map<std::string,Integer> equationMap_;
+  boost::unordered_map<std::string,Integer> equationMap_;
 
 };
 

@@ -22,7 +22,7 @@
 // forms
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
-#include "Forms/BiLinForms/BiLinWrappredLinForm.hh"
+#include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/BDUInt.hh"
 #include "Forms/LinForms/KXInt.hh"
@@ -136,14 +136,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     //==============================================================
     shared_ptr<BaseFeFunction> feFunc = feFunctions_[MAG_POTENTIAL];
     shared_ptr<FeSpace> feSpace = feFunc->GetFeSpace();
-    
-    
+
     for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion ++){
       actRegion = regions_[iRegion];
       actMat    = materials_[actRegion];
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
-
-
 
       PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
       std::string polyId = curRegNode->Get("polyId")->As<std::string>();
@@ -414,6 +411,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         std::string totRstr = "";
         shared_ptr<CoilList> singleCoilList( new CoilList( ptGrid_ ) );
         singleCoilList->AddCoil( it->second );
+        feFunctions_[COIL_CURRENT]->AddEntityList( singleCoilList );
 
         for( partIt = actCoil.parts_.begin();
              partIt != actCoil.parts_.end();
@@ -449,8 +447,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           bool assembleTransposed = false;
           BiLinearForm* pseudoBiLin = new BiLinWrappedLinForm( psiDotInt, assembleTransposed );
           BiLinFormContext* voltCoilContext = new BiLinFormContext( pseudoBiLin, STIFFNESS );
-          voltCoilContext->SetEntities( singleCoilList, actSDList );
-          voltCoilContext->SetFeFunctions( feFunctions_[COIL_CURRENT], feFunc );
+          voltCoilContext->SetEntities( actSDList, singleCoilList );
+          voltCoilContext->SetFeFunctions( feFunc, feFunctions_[COIL_CURRENT] );
           voltCoilContext->SetCounterPart(false);
           assemble_->AddBiLinearForm( voltCoilContext );
 
@@ -468,8 +466,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           assembleTransposed = true;
           BiLinearForm* pseudoBiLinT = new BiLinWrappedLinForm( psiDotIntT, assembleTransposed );
           BiLinFormContext* voltCoilContextT = new BiLinFormContext( pseudoBiLinT, DAMPING );
-          voltCoilContextT->SetEntities( actSDList, singleCoilList );
-          voltCoilContextT->SetFeFunctions( feFunc, feFunctions_[COIL_CURRENT] );
+          voltCoilContextT->SetEntities( singleCoilList, actSDList );
+          voltCoilContextT->SetFeFunctions( feFunctions_[COIL_CURRENT], feFunc );
           voltCoilContextT->SetCounterPart(false);
           assemble_->AddBiLinearForm( voltCoilContextT );
 
@@ -1175,7 +1173,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       EXCEPTION("The formulation " << formulation 
                 << "of magnetic edge PDE is not known!");
     }
-
 
     // in addition query, if special treatment of anisotropic elements
     // is activated

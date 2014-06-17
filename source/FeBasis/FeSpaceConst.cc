@@ -63,19 +63,8 @@ UInt FeSpaceConst::GetNumFunctions( const EntityIterator ent ){
 
 void FeSpaceConst::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent ){
 
-  this->CheckEntityType(ent);
-
-  // determine equation number by trying to insert the entity to the equation map
-  std::pair<std::map<std::string,Integer>::iterator,bool> ret;
-  ret = equationMap_.insert( std::pair<std::string,Integer>( ent.GetIdString(),
-      (Integer)numEqns_ + 1 ) );
-  eqns.Resize(1);
-  if( ret.second ){
-    // new entry in equation map was created
-    numEqns_++;
-    numFreeEquations_++;
-  }
-  eqns[0] = ret.first->second;
+  eqns.Clear();
+  eqns.Resize( 1, equationMap_[ent.GetIdString()] );
 
 }
 
@@ -151,6 +140,28 @@ void FeSpaceConst::GetEntityListEqns( StdVector<Integer>& eqns,
 
 void FeSpaceConst::Finalize(){
 
+  // take all entities from the FeFunction and generate equation map based on entity id string
+  // every unique id gets an own equation
+
+  shared_ptr<BaseFeFunction> feFct = feFunction_.lock();
+  StdVector<shared_ptr<EntityList> > entListVec = feFct->GetEntityList();
+
+  for( UInt k = 0; k < entListVec.GetSize(); k++ ){
+    EntityIterator entIt = entListVec[k]->GetIterator();
+    this->CheckEntityType(entIt);
+    while ( !(entIt.IsEnd()) ){
+      std::pair<boost::unordered_map<std::string,Integer>::iterator,bool> ret;
+      ret = equationMap_.insert( std::pair<std::string,Integer>( entIt.GetIdString(),
+          (Integer)numEqns_ + 1 ) );
+      if( ret.second ){
+        // new entry in equation map was created
+        numEqns_++;
+        numFreeEquations_++;
+      }
+      entIt++;
+    }
+  }
+
   isFinalized_ = true;
 
 }
@@ -162,7 +173,7 @@ void FeSpaceConst::MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support,
                                      bool cache,
                                      const std::set<UInt>& comp ){
 
-  EXCEPTION("Neee.");
+  EXCEPTION("This should not be called.");
 
 }
 
@@ -173,7 +184,7 @@ void FeSpaceConst::MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support,
                                      bool cache,
                                      const std::set<UInt>& comp ){
 
-  EXCEPTION("Neee.");
+  EXCEPTION("This should not be called.");
 
 }
 

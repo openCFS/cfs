@@ -5,7 +5,7 @@ SET(BILINFORMS_SRCS
   ADBInt.cc
   BBInt.cc
   BDBInt.cc
-  BiLinWrappredLinForm.cc
+  BiLinWrappedLinForm.cc
   ICModesInt.cc
   SingleEntryBiLinInt.cc
   )
