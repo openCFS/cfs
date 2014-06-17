@@ -483,6 +483,13 @@ namespace CoupledField
         uniformElemNodeMapping_[et][3] = 2;
         break;
         
+      case Elem::TET4:
+        unstrucElemNodeMapping_[et][0] = 0;
+        unstrucElemNodeMapping_[et][1] = 2;
+        unstrucElemNodeMapping_[et][2] = 1;
+        unstrucElemNodeMapping_[et][3] = 3;
+        break;
+
       case Elem::WEDGE6:
         unstrucElemNodeMapping_[et][0] = 0;
         unstrucElemNodeMapping_[et][1] = 1;
