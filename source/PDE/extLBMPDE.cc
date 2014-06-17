@@ -33,6 +33,7 @@
 #include "PDE/StdPDE.hh"
 #include "PDE/eqnMap.hh"
 #include "PDE/timestepping.hh"
+#include "PDE/NonFEM/LatticeBoltzmann.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/baseelemstoresol.hh"
 #include "Optimization/Design/DesignSpace.hh"
@@ -201,6 +202,9 @@ void ExtLBMPDE::DefineSolveStep()
 
 void ExtLBMPDE::Solve()
 {
+  StdVector<double> elements;
+  SetupElements(elements);
+
   switch(iface_)
   {
   case EXT_MATLAB:
@@ -208,7 +212,10 @@ void ExtLBMPDE::Solve()
   {
     executable = myParam_->Get("LBM")->Get("lbm")->As<std::string>();
 
-    ExportExternalSolverFiles();
+    if(iface_ == EXT_CFSxLBM)
+      ExportCFS2LBM(elements);
+    else
+      ExportMultipleFiles(elements);
 
     std::fstream f(executable.c_str());
     if (!f.is_open())
@@ -230,6 +237,7 @@ void ExtLBMPDE::Solve()
     break;
   }
   case INTERNAL:
+    LatticeBoltzmann lbm(n_x_, n_y_, u_x_, u_y_, omega_, maxIter_, convergence_, elements);
     assert(false);
   }
 
@@ -702,7 +710,7 @@ void ExtLBMPDE::ExportMultipleFiles(const StdVector<double>& elements)
 }
 
 
-void ExtLBMPDE::ExportExternalSolverFiles()
+void ExtLBMPDE::SetupElements(StdVector<double>& elements)
 {
   Grid* grd = domain->GetGrid();
 
@@ -710,9 +718,8 @@ void ExtLBMPDE::ExportExternalSolverFiles()
   StdVector<Elem*> elems;
   StdVector<Elem*> boundaries;
   // auxiliary vector
-  StdVector<double> elements(n_elems);
   // vector initialized with porosity value of inner cells
-  elements.Init(0.0);
+  elements.Resize(n_elems, 0.0);
 
   DesignSpace* space = domain->GetErsatzMaterial(false);
   if(space != NULL)
@@ -758,12 +765,6 @@ void ExtLBMPDE::ExportExternalSolverFiles()
     elements[inlet[i]] = -2.0;
   for(unsigned int i = 0; i < outlet.GetSize(); ++i)
     elements[outlet[i]] = -3.0;
-
-  if(iface_ == EXT_CFSxLBM)
-    ExportCFS2LBM(elements);
-  else
-    ExportMultipleFiles(elements);
-
 }
 
 void ExtLBMPDE::IdentifyNonSingualrityIndices(Matrix<int>& obst, StdVector<unsigned int>& indices)

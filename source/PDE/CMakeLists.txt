@@ -55,6 +55,7 @@ SET(TARGET_LL
   paramh
   scripting
   utils
+  non_fem_pde
 )
 
 IF(USE_HDF5)

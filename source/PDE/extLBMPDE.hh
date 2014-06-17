@@ -133,8 +133,8 @@ namespace CoupledField
     // reads discrete velocities from extern LBM simulation
     void ReadProbabilityDistribution(const std::string& file);
 
-    /** export file(s) for external LBM communication. Checks iface_ */
-    void ExportExternalSolverFiles();
+    /** Setup structure for calling solver */
+    void SetupElements(StdVector<double>& elements);
 
     /** write the single CFS2LBM.dat dat (new interface) */
     void ExportCFS2LBM(const StdVector<double>& elements);
