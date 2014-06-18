@@ -5,7 +5,7 @@
 #-----------------------------------------------------------------------------
 # CFS_(D)evelopment_(S)erver_HOSTNAME
 #-----------------------------------------------------------------------------
-SET(CFS_DS_HOSTNAME "lse17.e-technik.uni-erlangen.de")
+SET(CFS_DS_HOSTNAME "cfs.mdmt.tuwien.ac.at")
 
 #-----------------------------------------------------------------------------
 # Base directory for public FTP server.
@@ -15,7 +15,7 @@ SET(CFS_DS_FTP "ftp://${CFS_DS_HOSTNAME}:40065")
 #-----------------------------------------------------------------------------
 # Base directory for restricted HTTPS server.
 #-----------------------------------------------------------------------------
-SET(CFS_DS_HTTPS "https://${CFS_DS_HOSTNAME}:2001")
+SET(CFS_DS_HTTPS "https://${CFS_DS_HOSTNAME}")
 
 #-----------------------------------------------------------------------------
 # Base directory of WEBDAV server.
@@ -35,5 +35,4 @@ SET(CFS_DS_CFSDEPS "${CFS_DS_FTP}/cfsdeps")
 #-----------------------------------------------------------------------------
 # Drop site for nightly build/test results.
 #-----------------------------------------------------------------------------
-SET(CFS_DS_CDASH_DROP_SITE "${CFS_DS_HOSTNAME}:2000")
-
+SET(CFS_DS_CDASH_DROP_SITE "${CFS_DS_HOSTNAME}:44088")
