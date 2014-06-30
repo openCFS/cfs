@@ -584,10 +584,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
   void MagEdgePDE::DefineSolveStep()
   {
-    SolveStepMagEdge *magSolveStep = new SolveStepMagEdge(*this);
-    solveStep_ = magSolveStep;
+    /*SolveStepMagEdge *magSolveStep = new SolveStepMagEdge(*this);
+    solveStep_ = magSolveStep;*/
     
-    //solveStep_ = new StdSolveStep(*this);
+    solveStep_ = new StdSolveStep(*this);
   }
 
 
