@@ -80,9 +80,9 @@ using std::string;
 #include "Forms/Operators/SurfaceNormalStressOperator.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
 
-// TEMPORARY
+// used for getting coils from the pde
 #include "MagEdgePDE.hh"
-#include "FeBasis/HCurl/FeSpaceHCurlHi.hh"
+#include "MagneticPDE.hh"
 
 
 namespace CoupledField {
@@ -951,7 +951,7 @@ namespace CoupledField {
         }
 
 
-        // ========== Look for defineType  node/elemList (history)  ==========
+        // ========== Look for defineType node/elemList/coilList (history) ==========
 
         std::string entityTypeName;
         StdVector<std::string> histNames;
@@ -979,7 +979,6 @@ namespace CoupledField {
           entityTypeName = "surfElems";
 
           // fetch entry with neighboring regions
-          // fetch entry with neighboring regions
           for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
             neighborRegions.Push_back( histEntities[i]->
                                        Get("neighborRegion")->As<std::string>() );
@@ -1004,7 +1003,10 @@ namespace CoupledField {
           outDestNames.Clear();
           writeResults.Clear();
           for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
-            histNames.Push_back( histEntities[i]->Get("name")->As<std::string>() );
+            std::string nameType = "name";
+            if( candidate->definedOn == ResultInfo::COIL )
+              nameType = "id";
+            histNames.Push_back( histEntities[i]->Get(nameType)->As<std::string>() );
             postProcNames.Push_back( histEntities[i]->Get("postProcId")->As<std::string>() );
             outDestNames.Push_back( histEntities[i]->Get("outputIds")->As<std::string>() );
             writeResults.Push_back( histEntities[i]->Get("writeResult")->As<std::string>() );
@@ -1018,7 +1020,24 @@ namespace CoupledField {
           // iterate over all entityNames
           for( UInt i = 0; i < histNames.GetSize(); i++ )
           {
-            actList = ptGrid_->GetEntityList( entityType, histNames[i] );
+            if( candidate->definedOn != ResultInfo::COIL ){
+              actList = ptGrid_->GetEntityList( entityType, histNames[i] );
+            } else {
+              // The grid does not know about coils beause depending on the space used
+              // we don't know if we need approximation in space, e.g. with the FeSpaceConst.
+              // But we know that we want only one result per coil, not for each element in the coil.
+              shared_ptr<Coil> actCoil;
+              if( pdename_ == "magneticEdge" ){
+                MagEdgePDE* askThePDE = dynamic_cast<MagEdgePDE*>(this);
+                actCoil = askThePDE->GetCoilById( histNames[i] );
+              } else {
+                MagneticPDE* askThePDE = dynamic_cast<MagneticPDE*>(this);
+                actCoil = askThePDE->GetCoilById( histNames[i] );
+              }
+              shared_ptr<CoilList> singleCoilList( new CoilList( ptGrid_ ) );
+              singleCoilList->AddCoil( actCoil );
+              actList = singleCoilList;
+            }
             shared_ptr<BaseResult> actSol;
             if( isComplex_ ) {
               actSol = shared_ptr<BaseResult>(new Result<Complex>());

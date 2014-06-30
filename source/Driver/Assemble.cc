@@ -300,6 +300,10 @@ namespace CoupledField
       EntityIterator it1 = firstEntities.GetIterator();
       EntityIterator it2 = secondEntities.GetIterator();
 
+      // take the maximum of both lists. 
+      UInt size = std::max( firstEntities.GetSize(),
+		                        secondEntities.GetSize() );
+
       // Loop over all bilinearforms
       for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
 
@@ -362,20 +366,22 @@ namespace CoupledField
 
               if( !doTranspose ) {
                 algsys_-> SetElementPos( id1, eqnVec1,
-                    id2, eqnVec2,
-                    destMap,
-                    setCounterPart );
+                                         id2, eqnVec2,
+                                         destMap,
+                                         setCounterPart );
               } else {
                 algsys_-> SetElementPos( id2, eqnVec2,
-                    id1, eqnVec1,
-                    destMap,
-                    setCounterPart );
+                                         id1, eqnVec1,
+                                         destMap,
+                                         setCounterPart );
               }
             } else {
               // Loop over all entities
               it1.Begin();
               it2.Begin();
-              for( ; !(it1.IsEnd() || it2.IsEnd()); it1++, it2++ ) {
+              //for( ; !(it1.IsEnd() || it2.IsEnd()); it1++, it2++ ) {
+              for ( UInt i = 0; i < size; i++ ) {
+
                 // Get equation numbers
                 actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, id1, id2 );
 
@@ -391,10 +397,18 @@ namespace CoupledField
                       setCounterPart );
                 } else {
                   algsys_-> SetElementPos( id2, eqnVec2,
-                      id1, eqnVec1,
-                      destMap,
-                      setCounterPart );
+                                           id1, eqnVec1,
+                                           destMap,
+                                           setCounterPart );
                 }
+
+                // The size of the entity lists is checked because FeSpaceConst can add single rows/columns.
+                if(firstEntities.GetSize() != 1) {
+                  it1++;
+                }
+                if(secondEntities.GetSize() != 1) {
+                  it2++;
+                }				                  
               } // loop over entities
 
             }
@@ -465,7 +479,8 @@ namespace CoupledField
       StdVector<BiLinFormContext*> & forms = listIt->second;
       EntityList& firstEntities = *(listIt->first.first);
       EntityList& secondEntities = *(listIt->first.second);
-      UInt size = firstEntities.GetSize();
+      UInt size = std::max( firstEntities.GetSize(),
+                            secondEntities.GetSize() );
 
 
       // Total work: numElement x numForms
@@ -512,7 +527,10 @@ namespace CoupledField
       // Loop over all entities
       EntityIterator it1 = firstEntities.GetIterator();
       EntityIterator it2 = secondEntities.GetIterator();
-      for( it1.Begin(); !it1.IsEnd(); it1++, it2++ ) {
+
+      it1.Begin();
+      it2.Begin();
+      for( UInt i = 0; i < size; ++i  ) {
 
         LOG_DBG2(assemble) << "\telems are " << it1.GetIdString() 
             << " and " << it2.GetIdString();
@@ -575,7 +593,7 @@ namespace CoupledField
             } else {
               form->CalcElementMatrix( elemMatrix, it1, it2 );
               LOG_DBG3(assemble) << "elementMatrix is \n" << elemMatrix << std::endl; 
-              if(actContext.IsSetNegate()== true){
+              if(actContext.IsSetNegate()){
                 assert(!form->IsComplex());
                 elemMatrix*= (-1.0);
               }
@@ -630,6 +648,15 @@ namespace CoupledField
                 << actContext.GetFirstEntities()->GetName()<< "'" );
           }
         } // loop over bilinearforms
+
+        // The size of the entity lists is checked because FeSpaceConst can add single rows/columns.
+        if( firstEntities.GetSize() != 1 ) {
+          it1++;
+        }
+        if( secondEntities.GetSize() != 1 ) {
+          it2++;
+        }
+
       } // loop over entities
     }// loop over entitylist pairs
     // Change flag

@@ -31,6 +31,10 @@ namespace CoupledField
     //! the ReadCoils() method brought into being.
     ~MagEdgePDE();
     
+    //! Get mehtod for specific coils. Needed e.g. by the SinglePDE for
+    //! specifying coil results.
+    shared_ptr<Coil> GetCoilById(const Coil::IdType& id);
+
   protected:
     
     //! Initialize NonLinearities
@@ -105,7 +109,11 @@ namespace CoupledField
     
     //! Coefficient function, containing the overall conductivity
     shared_ptr<CoefFunctionMulti> conduc_;
-    
+
+    //! Map containing the remanence (B excitation on RHS)
+    //! needed for calculating H field
+    std::map<RegionIdType,PtrCoefFct> bRHSRegions_;
+
     //! Set containing all regions with regularized conductivity
     
     //! This set contains all regions, which have no physical conductivity,

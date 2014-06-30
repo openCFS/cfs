@@ -4,6 +4,7 @@
 #include "General/Environment.hh"
 #include "MatVec/Vector.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/ElemMapping/EntityLists.hh"
 
 namespace CoupledField {
 
@@ -12,6 +13,7 @@ namespace CoupledField {
   class ParamNode;
   class CoordSystem;
   class MathParser;
+  class EntityList;
 
    //! Class for describing coils
 
@@ -57,6 +59,10 @@ namespace CoupledField {
      //! in the case that the object describes a measurement coil.
      ~Coil();
      
+     //! Returns all elements of the coil, i.e. collects elements from
+     //! all regions of all parts.
+     shared_ptr<EntityList> GetElems();
+
      //! Id of coil
      IdType coilId_;
      

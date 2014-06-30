@@ -22,6 +22,8 @@
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/DivOperator.hh"
+#include "Forms/LinForms/SingleEntryInt.hh"
+#include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -55,6 +57,22 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
   
   reluc_.reset(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, isComplex_));
 
+  // determine if there are coils excited by voltage
+  hasVoltCoils_ = false;
+  PtrParamNode coilNode = myParam_->Get( "coilList", ParamNode::PASS );
+  if ( coilNode ){
+    ParamNodeList coilNodes = coilNode->GetChildren();
+    for( UInt k = 0; k < coilNodes.GetSize(); k++ ){
+      if( coilNodes[k]->Has("source") ){
+        std::string exType = coilNodes[k]->Get("source")->Get("type")->As<std::string>();
+        if( exType == "voltage" ){
+          hasVoltCoils_ = true;
+          break;
+        }
+      }
+    }
+  }
+
 }
 
   MagneticPDE::~MagneticPDE()
@@ -62,6 +80,9 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
   }
 
+  shared_ptr<Coil> MagneticPDE::GetCoilById(const Coil::IdType& id) {
+    return coils_.at(id);
+  }
 
   void MagneticPDE::InitNonLin()
   {
@@ -336,6 +357,14 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       std::map<RegionIdType,shared_ptr<Coil::Part> >::iterator partIt;
       partIt = actCoil.parts_.begin();
       if( actCoil.sourceType_ == Coil::CURRENT ) {
+        /*
+        ============================================
+         1) CURRENT driven coils
+
+         Ref: M. Kaltenbacher, Numer. Sim. of. Mech.
+              Sens. and Act., 2nd edition, p. 131ff
+        ============================================
+        */
         for( partIt = actCoil.parts_.begin(); 
             partIt != actCoil.parts_.end(); 
             partIt++ ) {
@@ -400,129 +429,122 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           // obtain coefficient function
         } // loop: parts
       } else {
-        EXCEPTION(" Implement voltage driven coils .. see the following code from NACS");
-//        // ===========================================
-//        // 2) VOLTAGE driven coils
-//        //
-//        // Ref: M. Kaltenbacher, Numer. Sim. of. Mech.
-//        //      Sens. and Act, 2nd edition, p. 211ff
-//        // ===========================================
-//        LOG_DBG(magpdebase) << "=> Type is VOLTAGE";
-//
-//        // The coupled equation system in this case looks like
-//        //
-//        //    ( M_A     0 ) ( A_dot ) + ( K_A -f_A  ) ( A ) = ( 0 )
-//        //    ( (f_A)^T 0 ) ( i_dot )   ( 0     R   ) ( i )   ( u )
-//
-//
-//        // Define new result for coil current (just once)
-//        shared_ptr<ResultInfo> res = results_[resultIndex_[COIL_CURRENT]];
-//
-//        // Define entityList for coil
-//        shared_ptr<CoilList> actCoilList (new CoilList(ptgrid_) );
-//        actCoilList->AddCoil( it->second ); 
-//
-//        // calculate accumulated resistance
-//        std::string totalR = "0.0 ";
-//
-//        // Run over single parts
-//        for( partIt = actCoil.parts_.begin(); 
-//            partIt != actCoil.parts_.end(); partIt++ ) {
-//          Coil::Part & actPart = *(partIt->second);
-//          RegionIdType actRegion = partIt->first;
-//          shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
-//          actSDList->SetRegion( actRegion );
-//
-//          // append resistance of this coil part
-//          totalR += " + " + actPart.resistance;
-//
-//          LOG_DBG(magpdebase) << "Treating coil part on region '" << 
-//              ptgrid_->RegionIdToName(actRegion) << "'";
-//
-//          // Define symmetric coupling integrators -f_A and and (f_A)^T with 
-//          // 
-//          //     f_A = 1 / wireCrossSection * int ... dOmega
-//
-//          // === Coupling integrator K_12 = -f_A ===
-//          {
-//            MechVolForceInt * cplInt = GetRHSInt( jDim, actCoil.phase_ );
-//            StdVector<std::string> flowDir(1);
-//            flowDir[0] = boost::lexical_cast<std::string>(actPart.orientFlag) 
-//                                        + "* (-1.0)";
-//            // check for solid / stranded conductor model
-//            if( actPart.uniformCurrentDens_) {
-//              flowDir[0] += " /" +  
-//                  boost::lexical_cast<std::string>(actPart.wireCrossSect);
-//            }
-//            LOG_DBG3(magpdebase)  << "Vector for integrator -f_A: " << flowDir; 
-//            cplInt->SetVolForceVector( flowDir, actPart.coordSys.get(),
-//                                       true, 0.0 );
-//
-//            BiLinFormContext * cplContext = new BiLinFormContext( cplInt, STIFFNESS );
-//            cplContext->SetCounterPart( false );
-//            cplContext->SetPtPdes(this, this);
-//            cplContext->SetResults( results_[0],
-//                                    results_[resultIndex_[COIL_CURRENT]],
-//                                    actSDList, actCoilList );
-//            assemble_->AddBiLinearForm( cplContext );
-//          }
-//          // === Coupling integrator M_21 = (f_A)^T ===
-//          {
-//            MechVolForceInt * cplInt = GetRHSInt( jDim, actCoil.phase_ );
-//            StdVector<std::string> flowDir(1);
-//            flowDir[0] = boost::lexical_cast<std::string>(actPart.orientFlag);
-//            // check for solid / stranded conductor model
-//            if( actPart.uniformCurrentDens_) {
-//              flowDir[0] += " / " + 
-//                  boost::lexical_cast<std::string>(actPart.wireCrossSect);
-//            }
-//            LOG_DBG3(magpdebase)  << "Vector for integrator (f_A)^T: " << flowDir;
-//            cplInt->SetVolForceVector( flowDir, actPart.coordSys.get(),
-//                                       true, 0.0 );
-//            cplInt->SetTransposed();
-//            BiLinFormContext * cplContext = new BiLinFormContext( cplInt, MASS );
-//            cplContext->SetCounterPart( false );
-//            cplContext->SetPtPdes(this, this);
-//            cplContext->SetResults( results_[resultIndex_[COIL_CURRENT]],
-//                                    results_[0],
-//                                    actCoilList, actSDList  );
-//            assemble_->AddBiLinearForm( cplContext );
-//          }
-//        } // end loop over parts
-//
-//        LOG_DBG(magpdebase) << "Finished treating parts";
-//
-//        // === Diagonal Integrator for coil resistance K_22 = R ===
-//        LOG_DBG(magpdebase) << "Resistance value is " << totalR;
-//        SingleEntryInt * resistInt = 
-//            new SingleEntryInt( totalR, 1, 1 );
-//        BiLinFormContext * resistContext = 
-//            new BiLinFormContext( resistInt, STIFFNESS );
-//        resistContext->SetPtPdes(this, this);
-//        resistContext->SetResults( results_[resultIndex_[COIL_CURRENT]],
-//                                   results_[resultIndex_[COIL_CURRENT]],
-//                                   actCoilList, actCoilList );
-//        assemble_->AddBiLinearForm( resistContext );
-//
-//
-//
-//        // === RHS integrator (single entry) for coil voltageRHS_2 =
-//        shared_ptr<LoadBc> actLoad( new LoadBc );
-//
-//        actLoad->entities = actCoilList;
-//        actLoad->result = results_[resultIndex_[COIL_CURRENT]];
-//        actLoad->value = actCoil.value_;
-//        actLoad->phase = actCoil.phase_;
-//        actLoad->eqnMap = eqnMap_;
-//        actLoad->dof = 1;
-//        LoadList loadList;
-//        loadList.Push_back( actLoad );
-//        assemble_->AddLoads( loadList );
-//        LOG_DBG(magpdebase) << "Voltage value is " << actLoad->value;
-//
-//        // Pass result on this coils to the eqnMap class
-//        eqnMap_->AddResult( *res, actCoilList );
 
+        /*
+        ============================================
+         2) VOLTAGE driven coils
+
+         Ref: M. Kaltenbacher, Numer. Sim. of. Mech.
+              Sens. and Act., 2nd edition, p. 211ff
+        ============================================
+         The coupled equation system in this case looks like
+           ( M_A     0 ) ( A_dot ) + ( K_A -f_A  ) ( A ) = ( 0 )
+           ( (f_A)^T 0 ) ( i_dot )   ( 0     R   ) ( i )   ( u )
+        */
+
+        std::string totRstr = "";
+        shared_ptr<CoilList> singleCoilList( new CoilList( ptGrid_ ) );
+        singleCoilList->AddCoil( coilIt->second );
+        feFunctions_[COIL_CURRENT]->AddEntityList( singleCoilList );
+
+        for( partIt = actCoil.parts_.begin();
+             partIt != actCoil.parts_.end();
+             partIt++ ) {
+
+          Coil::Part & actPart = *(partIt->second);
+
+          if( totRstr.empty() ){
+            totRstr = actPart.resistance;
+          } else {
+            totRstr += " + " + actPart.resistance;
+          }
+
+          CoefXprVecScalOp eJscaledOp = CoefXprVecScalOp( mp_, actPart.jUnitVec,
+              boost::lexical_cast<std::string>(actPart.wireCrossSect), CoefXpr::OP_DIV );
+          PtrCoefFct eJscaled = CoefFunction::Generate( mp_, part, eJscaledOp );
+
+          shared_ptr<ElemList> actSDList( new ElemList( ptGrid_ ) );
+          RegionIdType actRegion = partIt->first;
+          actSDList->SetRegion( actRegion );
+
+          // === -f_A ===
+          LinearForm* psiDotInt;
+          if( dim_ == 3 ) {
+            if( isComplex_ ) {
+              psiDotInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
+                  -1.0, eJscaled, updatedGeo_);
+            } else {
+              psiDotInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(),
+                  -1.0, eJscaled, updatedGeo_);
+            }
+          } else {
+            if( isComplex_ ) {
+              psiDotInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1,Complex>(),
+                  -1.0, eJscaled, updatedGeo_);
+            } else {
+              psiDotInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1,Double>(),
+                  -1.0, eJscaled, updatedGeo_);
+            }
+          }
+          psiDotInt->SetName("CoilVoltCouplInt");
+
+          bool assembleTransposed = false;
+          BiLinearForm* pseudoBiLin = new BiLinWrappedLinForm( psiDotInt, assembleTransposed );
+          BiLinFormContext* voltCoilContext = new BiLinFormContext( pseudoBiLin, STIFFNESS );
+          voltCoilContext->SetEntities( actSDList, singleCoilList );
+          voltCoilContext->SetFeFunctions( myFct, feFunctions_[COIL_CURRENT] );
+          voltCoilContext->SetCounterPart(false);
+          assemble_->AddBiLinearForm( voltCoilContext );
+
+          // === (f_A)^T ===
+          LinearForm* psiDotIntT;
+          if( dim_ == 3 ) {
+            if( isComplex_ ) {
+              psiDotIntT = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
+                  1.0, eJscaled, updatedGeo_);
+            } else {
+              psiDotIntT = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(),
+                  1.0, eJscaled, updatedGeo_);
+            }
+          } else {
+            if( isComplex_ ) {
+              psiDotIntT = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1,Complex>(),
+                  1.0, eJscaled, updatedGeo_);
+            } else {
+              psiDotIntT = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1,Double>(),
+                  1.0, eJscaled, updatedGeo_);
+            }
+          }
+          psiDotIntT->SetName("CoilVoltCouplIntTransposed");
+
+          assembleTransposed = true;
+          BiLinearForm* pseudoBiLinT = new BiLinWrappedLinForm( psiDotIntT, assembleTransposed );
+          BiLinFormContext* voltCoilContextT = new BiLinFormContext( pseudoBiLinT, DAMPING );
+          voltCoilContextT->SetEntities( singleCoilList, actSDList );
+          voltCoilContextT->SetFeFunctions( feFunctions_[COIL_CURRENT], myFct );
+          voltCoilContextT->SetCounterPart(false);
+          assemble_->AddBiLinearForm( voltCoilContextT );
+
+        } // loop: parts
+
+        // === R ===
+        PtrCoefFct totR = CoefFunction::Generate( mp_, part, totRstr, "0.0" );
+        LinearForm* totRint = new SingleEntryInt( totR );
+        totRint->SetName( "CoilResistanceInt" );
+        BiLinearForm* totRBiLin = new BiLinWrappedLinForm( totRint, false );
+        BiLinFormContext* totRcontext = new BiLinFormContext( totRBiLin, STIFFNESS );
+        totRcontext->SetEntities( singleCoilList, singleCoilList );
+        totRcontext->SetFeFunctions( feFunctions_[COIL_CURRENT], feFunctions_[COIL_CURRENT] );
+        totRcontext->SetCounterPart(false);
+        assemble_->AddBiLinearForm( totRcontext );
+
+        // === u ===
+        LinearForm* voltInt = new SingleEntryInt( actCoil.srcVal_ );
+        voltInt->SetName( "CoilVoltageLoadInt" );
+        LinearFormContext* voltContext = new LinearFormContext( voltInt );
+        voltContext->SetEntities( singleCoilList );
+        voltContext->SetFeFunction( feFunctions_[COIL_CURRENT] );
+        assemble_->AddLinearForm( voltContext );
         
       } //if: current / voltage driven
     } // loop: coils
@@ -738,6 +760,14 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
     feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
 
+    if( hasVoltCoils_ ){
+      // Important: Create a new time scheme just for the current unknowns, as otherwise the
+      // size of the vectors does not match!
+      GLMScheme * scheme2 = new Trapezoidal(gamma);
+      shared_ptr<BaseTimeScheme> myScheme2(new TimeSchemeGLM(scheme2, 0, nlType) );
+
+      feFunctions_[COIL_CURRENT]->SetTimeScheme(myScheme2);
+    }
   }
 
 
@@ -841,7 +871,20 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       hdbcSolNameMap_[ELEC_POTENTIAL] = "ground";
       idbcSolNameMap_[ELEC_POTENTIAL] = "elecPotential";
     }
-    
+
+    // === COIL CURRENT ===
+    if( hasVoltCoils_ ){
+      shared_ptr<ResultInfo> currentInfo(new ResultInfo);
+      currentInfo->resultType = COIL_CURRENT;
+      currentInfo->dofNames = "";
+      currentInfo->unit = "A";
+      currentInfo->definedOn = ResultInfo::COIL;
+      currentInfo->entryType = ResultInfo::SCALAR;
+
+      feFunctions_[COIL_CURRENT]->SetResultInfo(currentInfo);
+      DefineFieldResult( feFunctions_[COIL_CURRENT], currentInfo );
+    }
+
   }
     
   void MagneticPDE::DefinePostProcResults() {
@@ -871,6 +914,18 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
         aDot->entryType = ResultInfo::VECTOR;
         availResults_.insert( aDot );
         DefineTimeDerivResult( MAG_POTENTIAL_DERIV1, 1, MAG_POTENTIAL );
+
+        // === COIL CURRENT OF COILS EXCITED BY VOLTAGE - 1ST DERIVATIVE ===
+        if( hasVoltCoils_ ){
+          shared_ptr<ResultInfo> iDot(new ResultInfo);
+          iDot->resultType = COIL_CURRENT_DERIV1;
+          iDot->dofNames = "";
+          iDot->unit = "A/s";
+          iDot->definedOn = ResultInfo::COIL;
+          iDot->entryType = ResultInfo::SCALAR;
+          availResults_.insert( iDot );
+          DefineTimeDerivResult( COIL_CURRENT_DERIV1, 1, COIL_CURRENT );
+        }
       }
 
       // === MAGNETIC RHS ===
@@ -1109,8 +1164,17 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     }else{
        EXCEPTION( "The formulation " << formulation 
                   << "of the magnetic PDE is not known!" );
-     }
-     return crSpaces;
+    }
+    // ===================================================================
+    // Create FeSpaceConst for coil currents (of coils excited by voltage)
+    // ===================================================================
+    if( hasVoltCoils_ ){
+      PtrParamNode voltSpaceNode = infoNode->Get("coilCurrent");
+      crSpaces[COIL_CURRENT] =
+          FeSpace::CreateInstance(myParam_, voltSpaceNode, FeSpace::CONSTANT, ptGrid_);
+      crSpaces[COIL_CURRENT]->Init(solStrat_);
+    }
+    return crSpaces;
    }
 
 } // end namespace CoupledField

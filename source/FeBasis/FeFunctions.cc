@@ -513,7 +513,8 @@ DECLARE_LOG(fefunc)
         myOP = new IdentityOperator<FeHCurl,3,1,T>();
         break;
       case FeSpace::CONSTANT:
-        WARN("Interpolation Operator is not initialized.");
+        // this space does not approximate space
+        WARN("The interpolation operator for FeSpaceConst is not initialized.");
         break;
       default:
         EXCEPTION("FeSpace type not suited for interpolation");

@@ -2,7 +2,6 @@
 
 #include "EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
-#include "Utils/Coil.hh"
 
 
 namespace CoupledField {
@@ -31,6 +30,7 @@ namespace CoupledField {
     EntityList::listType.Add(EntityList::REGION_LIST, "regionList", false);
     EntityList::listType.Add(EntityList::REGION_LIST, "region", false);
     EntityList::listType.Add(EntityList::NUMBER_LIST, "numberList");
+    EntityList::listType.Add(EntityList::COIL_LIST, "coilList");
   }
   
   void EntityList::Intersect(const StdVector<shared_ptr<EntityList> >& set1,
@@ -96,7 +96,6 @@ namespace CoupledField {
       type_ = ELEM_LIST;
       region_ = NO_REGION_ID;
       defineType_ = NO_TYPE;
-      region_ = NO_REGION_ID;
       list_.Push_back( elem->elemNum );
   }
   
@@ -183,6 +182,14 @@ namespace CoupledField {
     list_.Push_back(elem->elemNum);
     ++size_;
 }
+  }
+
+  void ElemList::AddElements( const StdVector<Elem*>& elems ){
+    list_.Reserve( list_.GetSize() + elems.GetSize() );
+    for( unsigned int k = 0; k < elems.GetSize(); ++k ){
+      list_.Push_back(elems[k]->elemNum);
+    }
+    size_ = list_.GetSize();
   }
 
 
@@ -438,7 +445,6 @@ namespace CoupledField {
      return it;
    }
 
-  
 
   // --- Number List ---
   NumberList::NumberList( Grid* grid )
@@ -683,6 +689,10 @@ namespace CoupledField {
     return 0;
   }
   
+  shared_ptr<Coil> EntityIterator::GetCoil() const {
+    return coilList_->list_[ pos_ ];
+  }
+
   std::string EntityIterator::GetIdString() const {
     
     std::string id = "";

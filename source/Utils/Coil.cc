@@ -476,6 +476,19 @@ namespace CoupledField {
     return shared_ptr<CoordSystem>();
   }
   
+  shared_ptr<EntityList> Coil::GetElems() {
+    shared_ptr<ElemList> elems;
+    elems.reset( new ElemList( ptGrid_ ) );
+    std::map<RegionIdType, shared_ptr<Coil::Part> >::iterator partIt =
+        parts_.begin();
+    while( partIt != parts_.end() ){
+      StdVector<Elem*> elemsReg;
+      ptGrid_->GetElems( elemsReg, partIt->first );
+      elems->AddElements( elemsReg );
+      partIt++;
+    }
+    return elems;
+  }
   
   Coil::Part::Part() {
     orientFlag = 0;

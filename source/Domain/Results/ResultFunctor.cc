@@ -23,15 +23,17 @@ EvalResult( shared_ptr<BaseResult> res ) {
 
   EntityList::ListType entityListType = res->GetEntityList()->GetType();
 
-  // check, if the node list is a 
-  if( entityListType == EntityList::NODE_LIST 
-      && typeid(*coef_) == typeid(FeFunction<TYPE>) ) {
+  // check for (combination of node list and fefunction) or coil list
+  // since the coil list is used with the FeSpaceConst which does not have elements
+  if( ( entityListType == EntityList::NODE_LIST
+      && typeid(*coef_) == typeid(FeFunction<TYPE>) ) ||
+      (entityListType == EntityList::COIL_LIST) ) {
     FeFunction<TYPE> & feFct= 
         dynamic_cast<FeFunction<TYPE>&> (*coef_);
     feFct.ExtractResult(res);
     return;
   }
-  
+
   Result<TYPE>& actSol = static_cast<Result<TYPE>& >(*res);
   EntityIterator it = actSol.GetEntityList()->GetIterator();
   Vector<TYPE>& vec = actSol.GetVector();
@@ -100,8 +102,9 @@ EvalResult( shared_ptr<BaseResult> res ) {
         }
       }
 
-    }    
+    }
     break;
+
   default:
     EXCEPTION("Cannot extract result for entity list type '" <<
               EntityList::listType.ToString(entityListType) << "'.");    
@@ -350,6 +353,11 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
   vec.Resize( nameIt.GetSize() * numDofs );
   vec.Init();
   
+  // when integrating a coil result, the FeSpaceConst is not used but
+  // the space of the magnetic unknowns, which is why we need to know
+  // if this is a coil list in order to get the elements
+  bool isCoil = nameIt.GetType() == EntityList::COIL_LIST;
+
   // switch depending on type of coefficient function:
   
   if( coef_->GetDimType() == CoefFunction::SCALAR ) {
@@ -360,8 +368,13 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
     // ---------------
     // Loop over names (= regions / surface regions / named elements)
     for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
-      shared_ptr<EntityList> actSDList = 
+      shared_ptr<EntityList> actSDList;
+      if( !isCoil ){
+        actSDList =
           nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
+      } else {
+        actSDList = nameIt.GetCoil()->GetElems();
+      }
       EntityIterator elemIt = actSDList->GetIterator();
 
       TYPE tempVal = 0.0;
@@ -406,8 +419,13 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
     // Loop over regions
     UInt pos = 0;
     for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
-      shared_ptr<EntityList> actSDList = 
+      shared_ptr<EntityList> actSDList;
+      if( !isCoil ){
+        actSDList =
           nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
+      } else {
+        actSDList = nameIt.GetCoil()->GetElems();
+      }
       EntityIterator elemIt = actSDList->GetIterator();
 
       Vector<TYPE> tempVal;

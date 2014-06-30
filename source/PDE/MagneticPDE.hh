@@ -32,6 +32,10 @@ namespace CoupledField
     //!  Destructor
     virtual ~MagneticPDE();
 
+    //! Get mehtod for specific coils. Needed e.g. by the SinglePDE for
+    //! specifying coil results.
+    shared_ptr<Coil> GetCoilById(const Coil::IdType& id);
+
   protected:
 
     //! Initialize NonLinearities
@@ -82,6 +86,9 @@ namespace CoupledField
     
     //! Coefficients holding the current density for each coil
     std::map<RegionIdType, PtrCoefFct> coilCurrentDens_;
+
+    //! Tells if there are coils excited by voltage
+    bool hasVoltCoils_;
 
     //@}
 

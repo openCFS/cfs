@@ -35,7 +35,6 @@ void FeSpaceConst::Init( shared_ptr<SolStrategy> solStrat ){
 
 BaseFE* FeSpaceConst::GetFe( const EntityIterator ent ){
 
-  // used by GetNumFunctions in FeSpace
   return(NULL);
 
 }
@@ -56,7 +55,6 @@ BaseFE* FeSpaceConst::GetFe( UInt elemNum ){
 
 UInt FeSpaceConst::GetNumFunctions( const EntityIterator ent ){
 
-  // uses GetFe in FeSpace
   return(1);
 
 }
@@ -64,7 +62,7 @@ UInt FeSpaceConst::GetNumFunctions( const EntityIterator ent ){
 void FeSpaceConst::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent ){
 
   eqns.Clear();
-  eqns.Resize( 1, equationMap_[ent.GetIdString()] );
+  eqns.Resize( 1, equationMap_.at(ent.GetIdString()) );
 
 }
 
@@ -101,43 +99,6 @@ void FeSpaceConst::GetElemEqns(StdVector<Integer>& eqns, const Elem* elem, UInt 
 
 }
 
-/*void FeSpaceConst::GetEntityListEqns( StdVector<Integer>& eqns,
-                                      shared_ptr<EntityList> ent,
-                                      BaseFE::EntityType entType ){
-
-  std::set<Integer> allEqns;
-  StdVector<Integer> tmp;
-  EntityIterator it = ent->GetIterator();
-  for( it.Begin(); ! it.IsEnd(); it++ ) {
-    tmp.Init();
-    this->GetEqns( tmp, it, entType);
-    allEqns.insert(tmp.Begin(), tmp.End());
-  }
-  eqns.Clear();
-  eqns.Resize(allEqns.size());
-  eqns.Init();
-  std::copy(allEqns.begin(), allEqns.end(), eqns.Begin());
-
-}
-
-void FeSpaceConst::GetEntityListEqns( StdVector<Integer>& eqns,
-                                      shared_ptr<EntityList> ent, UInt dof,
-                                      BaseFE::EntityType entType ){
-
-  std::set<Integer> allEqns;
-  StdVector<Integer> tmp;
-  EntityIterator it = ent->GetIterator();
-  for( it.Begin(); ! it.IsEnd(); it++ ) {
-    tmp.Init();
-    GetEqns( tmp, it, dof, entType );
-    allEqns.insert(tmp.Begin(), tmp.End());
-  }
-  eqns.Clear();
-  eqns.Resize(allEqns.size());
-  std::copy(allEqns.begin(), allEqns.end(), eqns.Begin());
-
-}*/
-
 void FeSpaceConst::Finalize(){
 
   // take all entities from the FeFunction and generate equation map based on entity id string
@@ -173,7 +134,7 @@ void FeSpaceConst::MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support,
                                      bool cache,
                                      const std::set<UInt>& comp ){
 
-  EXCEPTION("This should not be called.");
+  EXCEPTION("This FeSpace does not approximate space.");
 
 }
 
@@ -184,7 +145,7 @@ void FeSpaceConst::MapCoefFctToSpace(StdVector<shared_ptr<EntityList> > support,
                                      bool cache,
                                      const std::set<UInt>& comp ){
 
-  EXCEPTION("This should not be called.");
+  EXCEPTION("This FeSpace does not approximate space.");
 
 }
 
@@ -199,7 +160,7 @@ void FeSpaceConst::SetRegionElements( RegionIdType region, MappingType mType,
                                       const ApproxOrder& order,
                                       PtrParamNode infoNode ){
 
-  EXCEPTION("This space does not approximate spacially.");
+  EXCEPTION("This FeSpace does not approximate space.");
 
 }
 

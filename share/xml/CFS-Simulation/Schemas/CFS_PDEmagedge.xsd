@@ -263,10 +263,11 @@
     </xsd:restriction>
   </xsd:simpleType>
   
-  <!-- Definition of region result types of magnetic PDE -->
+  <!-- Definition of surf region result types of magnetic PDE -->
   <xsd:simpleType name="DT_MagneticEdgeSurfRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magEddyCurrent"/>
+      <xsd:enumeration value="magFlux"/>
     </xsd:restriction>
   </xsd:simpleType>
   
