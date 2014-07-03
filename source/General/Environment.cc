@@ -306,15 +306,13 @@ namespace CoupledField {
         break;
 
       case MAG_FLUX_DENSITY:
+      case MAG_NORMAL_FLUX_DENSITY:
+      case COIL_LINKED_FLUX:
         return "Vs/m^2";
         break;
 
       case MAG_FLUX:
         return "Vs";
-        break;
-
-      case MAG_NORMAL_FLUX_DENSITY:
-        return "Vs/m^2";
         break;
 
       case MAG_FIELD_INTENSITY:
