@@ -48,7 +48,7 @@
 #include "PDE/magneticScalarPDE.hh"
 #include "PDE/mechPDE.hh"
 #include "PDE/smoothPDE.hh"
-#include "PDE/extLBMPDE.hh"
+#include "PDE/LatticeBoltzmannPDE.hh"
 #include "Utils/cartesianCoordSys.hh"
 #include "Utils/coordSystem.hh"
 #include "Utils/cylCoordSys.hh"
@@ -568,8 +568,8 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
     if (actPdeName == "electrostatic")
       ptSinglePde_[i] = new ElecPDE(defaultGrid, actPdeNode);
 
-    else if (actPdeName == "externLBM")
-      ptSinglePde_[i] = new ExtLBMPDE(defaultGrid, actPdeNode);
+    else if (actPdeName == "LatticeBoltzmann")
+      ptSinglePde_[i] = new LatticeBoltzmannPDE(defaultGrid, actPdeNode);
 
     else if (actPdeName == "mechanic")
       ptSinglePde_[i] = new MechPDE(defaultGrid, actPdeNode);

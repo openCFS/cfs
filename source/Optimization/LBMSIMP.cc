@@ -1,17 +1,16 @@
 #include "Optimization/LBMSIMP.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Domain/domain.hh"
-#include "PDE/extLBMPDE.hh"
+#include "PDE/LatticeBoltzmannPDE.hh"
 
 
 
 LBMSIMP::LBMSIMP()
 {
-  lbm = dynamic_cast<ExtLBMPDE*>(pde);
+  lbm = dynamic_cast<LatticeBoltzmannPDE*>(pde);
 
-  // TODO change to propper form
   for(unsigned int r = 0; r < design->GetRegionIds().GetSize(); r++)
-    GetForm(design->GetRegionIds()[r], lbm, lbm, "linElastInt")->SetSolDependent(true);
+    GetForm(design->GetRegionIds()[r], lbm, lbm, "LatticeBoltzmannInt")->SetSolDependent(true);
 
 }
 
@@ -52,10 +51,17 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 
 void LBMSIMP::CalcPressureDropDerivative(Function* f)
 {
-  if(lbm->GetIface() == ExtLBMPDE::EXT_MATLAB)
+  switch(lbm->GetIface())
+  {
+  case LatticeBoltzmannPDE::EXT_MATLAB:
     lbm->SetPrecalculatedGradient(f->elements, f);
-  else
-    WARN("LBM gradient not yet inplemented for new interface")
+    break;
+
+  case LatticeBoltzmannPDE::EXT_CFSxLBM:
+  case LatticeBoltzmannPDE::INTERNAL:
+    lbm->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
+    break;
+  }
 }
 
 

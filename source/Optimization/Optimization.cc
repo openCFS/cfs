@@ -1187,7 +1187,7 @@ void Optimization::SetPDEs(OptimizationMaterial::System sys)
     break;
 
   case OptimizationMaterial::LBM:
-    pde = domain->GetSinglePDE("externLBM", true);
+    pde = domain->GetSinglePDE("LatticeBoltzmann", true);
     pdes[LBM] = pde;
     break;
 
@@ -1236,7 +1236,7 @@ Optimization::Application Optimization::ToApp(DesignElement::Type dt)
 DesignElement::Type Optimization::ToDesign(const SinglePDE* pde) const
 {
   if(pde->GetName() == "electrostatic") return DesignElement::POLARIZATION;
-  if(pde->GetName() == "externLBM") return DesignElement::DENSITY;
+  if(pde->GetName() == "LatticeBoltzmann") return DesignElement::DENSITY;
   if(pde->GetName() == "mechanic") return DesignElement::DENSITY;
   if(pde->GetName() == "acoustic") return DesignElement::ACOU_DENSITY;
 
@@ -1249,7 +1249,7 @@ Optimization::Application Optimization::ToApp(const SinglePDE* pde) const
   if(pde->GetName() == "mechanic") return MECH;
   if(pde->GetName() == "heatConduction") return HEAT;
   if(pde->GetName() == "acoustic") return ACOUSTIC;
-  if(pde->GetName() == "externLBM") return LBM;
+  if(pde->GetName() == "LatticeBoltzmann") return LBM;
 
   throw Exception("invalid");
 }

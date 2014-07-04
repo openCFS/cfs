@@ -771,11 +771,11 @@ share/xml/CFS-Simulation/Schemas/CFS_MeshDeformations.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_Misc.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_MpCCI.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Optimization.xsd -text
+share/xml/CFS-Simulation/Schemas/CFS_PDELatticeBoltzmann.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDEacoustic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEacousticMixed.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDEbasic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEelectrostatic.xsd svneol=native#text/xml
-share/xml/CFS-Simulation/Schemas/CFS_PDEexternLBM.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDEfluidMech.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEheatConduction.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmagedge.xsd svneol=native#text/xml
@@ -1579,6 +1579,8 @@ source/Optimization/TopGrad.hh -text
 source/Optimization/TransferFunction.cc -text
 source/Optimization/TransferFunction.hh -text
 source/PDE/CMakeLists.txt svneol=native#text/plain
+source/PDE/LatticeBoltzmannPDE.cc -text
+source/PDE/LatticeBoltzmannPDE.hh -text
 source/PDE/NonFEM/CMakeLists.txt -text
 source/PDE/NonFEM/LatticeBoltzmann.cc -text
 source/PDE/NonFEM/LatticeBoltzmann.hh -text
@@ -1602,8 +1604,6 @@ source/PDE/elecPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/elecPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/eqnMap.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/eqnMap.hh svneol=native#text/x-c%2B%2Bhdr
-source/PDE/extLBMPDE.cc -text
-source/PDE/extLBMPDE.hh -text
 source/PDE/fluidMechPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/fluidMechPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/heatCondPDE.cc svneol=native#text/x-c%2B%2Bsrc

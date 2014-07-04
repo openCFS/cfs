@@ -174,7 +174,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
           else:
             viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, scale, args.save)
         elif args.show == "stream":
-            viz = show_streamline(coords, s1, s2, angle[:,0], args.hom_dir, scale, args.minimal, args.stream_style, args.stream_step, args.hom_samples, args.stream_s2_samples, args.stream_max_traces_per_cell, args.res, args.save <> None, info)            
+            viz = show_streamline(coords, s1, s2, angle[:,0], args.hom_dir, scale, args.minimal, args.stream_style, args.stream_step, args.hom_samples, args.stream_s2_samples, args.stream_max_traces_per_cell, args.res, args.save <> None, info, args.stream_force)            
         else:
           assert(False)
       # the 3D VTK stuff      
@@ -208,7 +208,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
         # quit!! such we can check for viz!!
         exit() 
       else:
-        viz = orientational_stiffness(centers, angle, data, args.res, scale)
+        viz = orientational_stiffness(coords, angle, data, args.res, scale)
   
     if viz == None:
       print 'Error: no visualization calculated!'
@@ -281,6 +281,7 @@ parser.add_argument("--stream_step", help="step length for ODE integration per m
 parser.add_argument("--stream_s2_samples", help="sampling of s2 if not given hom_samples applies", type=int)
 parser.add_argument("--stream_max_traces_per_cell", help="maximum number of traces such that we may start a trace (>= 1)", type=int, default=1)
 parser.add_argument("--stream_ode", help="method to solve the ODE", default="euler", choices=['euler', 'midpoint'] )
+parser.add_argument("--stream_force", help="force streamlines for special cases", choices=['right_lower', 'rhombus'] )
 parser.add_argument("--minimal", help="minimal stiffness to be drawn, will be scaled", type=float, default=0.0)
 parser.add_argument("--parametrization", help="parametrization of the stiffness tensor", default="hom_rect", choices=['hom_rect', 'trans-iso', 'ortho'])
 parser.add_argument("--save", help="save 'image.png' (pixel), 'image.pdf' (vector) or VTK Poly Data file 'file.vtp'")

@@ -25,7 +25,7 @@
 #include "PDE/elecPDE.hh"
 #include "PDE/heatCondPDE.hh"
 #include "PDE/mechPDE.hh"
-#include "PDE/extLBMPDE.hh"
+#include "PDE/LatticeBoltzmannPDE.hh"
 
 namespace CoupledField {
 class BaseMaterial;
@@ -627,7 +627,7 @@ LBMMat::LBMMat(ErsatzMaterial* em) :
   OptimizationMaterial(em)
 {
   system_ = LBM;
-  lbm = dynamic_cast<ExtLBMPDE*>(opt != NULL ? opt->ToPDE(Optimization::LBM) : domain->GetSinglePDE("externLBM"));
+  lbm = dynamic_cast<LatticeBoltzmannPDE*>(opt != NULL ? opt->ToPDE(Optimization::LBM) : domain->GetSinglePDE("LatticeBoltzmann"));
   assert(lbm != NULL);
 }
 

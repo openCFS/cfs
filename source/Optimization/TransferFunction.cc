@@ -100,7 +100,7 @@ Optimization::Application TransferFunction::Default(const SinglePDE* pde)
   if(pde->GetName() == "mechanic")       return Optimization::MECH;
   if(pde->GetName() == "heatConduction") return Optimization::LAPLACE;
   if(pde->GetName() == "acoustic")       return Optimization::LAPLACE;
-  if(pde->GetName() == "externLBM")      return Optimization::LBM;
+  if(pde->GetName() == "LatticeBoltzmann")      return Optimization::LBM;
   throw Exception("invalid");
 }
 

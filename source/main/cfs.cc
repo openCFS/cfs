@@ -1,3 +1,4 @@
+
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // vim:fenc=utf-8:ft=tcl:et:sw=2:ts=2:sts=2
 // kate: space-indent on; indent-width 2; encoding utf-8;
@@ -310,20 +311,13 @@ int CFS::Run()
       const int wallmin((int) (walltime / 60.0));
       const int cpumin((int) (cputime / 60.0));
       if(wallmin > 60)
-      {
-        cout << wallmin / 60 << "h " << (wallmin % 60) 
-             << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'"; 
-      }
+        cout << wallmin / 60 << "h " << (wallmin % 60) << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'";
       else
-      {
-        cout << wallmin << "m " << (walltime % 60) 
-             << "s' CPU time: '" << cpumin << "m " << (cputime % 60) << "s'"; 
-      }
+        cout << wallmin << "m " << (walltime % 60) << "s' CPU time: '" << cpumin << "m " << (cputime % 60) << "s'";
     }
     else
     {
-      cout << walltime << "s' CPU time: '" 
-           << cputime << "s'";
+      cout << walltime << "s' CPU time: '" << cputime << "s'";
     }
     
     cout << endl << endl;

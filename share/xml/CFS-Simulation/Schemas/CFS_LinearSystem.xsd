@@ -103,7 +103,7 @@
           <xsd:enumeration value="smooth"/>
           <xsd:enumeration value="heatConduction"/>
           <xsd:enumeration value="fluidMech"/>
-          <xsd:enumeration value="externLBM"/>
+          <xsd:enumeration value="LatticeBoltzmann"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

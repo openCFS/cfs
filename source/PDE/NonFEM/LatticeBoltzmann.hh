@@ -51,8 +51,6 @@ namespace CoupledField
   #define T_Q9_SW  (1.0 / 36.0)
   #define T_Q9_SE  (1.0 / 36.0)
 
-
-
   #ifndef __LX__
     #define __LX__  m_sizeX
   #endif
@@ -64,7 +62,6 @@ namespace CoupledField
   #ifndef __PDFS__
     #define __PDFS__ m_pdfs
   #endif
-
 
     // -- ARRAYS OF STRUCTURES LAYOUT --
 
@@ -94,72 +91,27 @@ namespace CoupledField
   class LatticeBoltzmann
   {
 public:
-    struct Lattice
-    {
-      Lattice()
-      :SizeX(-1), SizeY(-1), doubleSizeX(-1), doubleSizeY(-1)
-      {
-        Pdfs[0] = NULL;
-        Pdfs[1] = NULL;
-      }
-      double* Pdfs[2];
-
-      StdVector<double> Scales;
-
-      int SizeX;
-      int SizeY;
-      int doubleSizeX;
-      int doubleSizeY;
-    };
 
 
-    struct LbmCaseDescription
-    {
-      long Nx;
-      long Ny;
-      long Nz;
-      double Omega;
-      double MaxWalltime;
-      long   MaxIterations;
-      double ConvergenceTolerance;
-
-      long NNodes;
-    };
-
-    struct LbmCase
-    {
-      LbmCaseDescription Description;
-
-      long NNodes;
-
-      long NOutlets;
-      long NInlets;
-      long NBounceBack;
-
-      StdVector<double> * Porosities;  // has nNodes
-
-      StdVector<double> InletVelocities;
-    };
-
-
-    LatticeBoltzmann(int sizeX, int sizeY, double ux, double uy, double omega, int maxIterations, double maxTolerance, const StdVector<double>& elements);
+    LatticeBoltzmann(int sizeX, int sizeY, double ux, double uy, double omega, int maxIterations, double maxTolerance);
 
     ~LatticeBoltzmann();
 
     /** Performs all the LBM iterations until a steady-state with a given tolerance is reached.
      * @param info stores current and final info there. Saves under way
-     * @return to pde*/
-    const StdVector<double>& Iterate(PtrParamNode info);
+     * @return pdfs will be subject to coll_step() called from LatticeBoltzmannPDE */
+    StdVector<double>* Iterate(const StdVector<double>& elements, PtrParamNode info);
 
-    void SetupDataStructures(const StdVector<double>& elements);
+    /*** performs a single propagation step on the current array. Called only by LatticeBoltzmannPDE to prepare for the adjoint calculation */
+    void prop_step();
 
   private:
 
+    void SetupDataStructures(const StdVector<double>& elements);
+
+
     /** Sets distribution functions to initial value. */
     void InitializePdfs();
-
-    /** sets quadrature weights for t */
-    void set_t();
 
     /** debug information */
     std::string ToString(const StdVector<StdVector<int> >& data);
@@ -187,29 +139,25 @@ public:
 
     void create_output(const char * file, int cur);
 
-    void prop_step(Lattice & lattice , int cur);
 
-    void prop_coll_step(Lattice & lattice, int m_cur, int m_next, double omega);
+    void prop_coll_step(int m_cur, int m_next, double omega);
 
     void prop_coll_velinlet(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY);
 
     void prop_coll_bounce_back(int cur, StdVector<StdVector<int> >& bb);
 
-    void prop_coll_densoutlet(int cur, StdVector<StdVector<int> >&outlet, double density);
+    void prop_coll_densoutlet(int cur, StdVector<StdVector<int> >&outlet);
 
     int m_sizeX;
     int m_sizeY;
     int m_nNodes;     // Number of total nodes (fluid + obstacle)
     double m_ux;      // Inlet x velocity
     double m_uy;      // Inlet y velocity
-    double m_density;   // prescribed outlet density
     double m_omega;
-    double m_xx;
     int m_maxIter;
-    double m_yy;
     double m_maxTol;
 
-    Lattice m_lattice;
+    StdVector<double> Scales;
 
     StdVector< StdVector<double> > m_pdfs;
 
@@ -217,19 +165,10 @@ public:
     int m_cur;
     int m_next;
 
-
-    StdVector<StdVector<int> > obst;
     StdVector<StdVector<int> > inlet;
     StdVector<StdVector<int> > outlet;
     StdVector<StdVector<int> > bb;
     StdVector<StdVector<int> > rel; // indices of the fluid m_nodes
-
-    // double read_fluid_resi;
-    StdVector<double> t;
-    StdVector<double> ux, dloc, uy;
-
-    LbmCase m_lbmCase;
-
   }; // end LatticeBoltzmann
 
 

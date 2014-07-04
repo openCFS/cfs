@@ -16,32 +16,21 @@ namespace CoupledField
 using std::fstream;
 using std::ios;
 
-// #define __PDFS__ lattice.Pdfs
-
-
 DECLARE_LOG(lattice)
 DEFINE_LOG(lattice, "lattice")
 
 
- LatticeBoltzmann::LatticeBoltzmann(int sizeX, int sizeY, double _ux, double _uy, double omega, int maxIterations, double maxTolerance, const StdVector<double>& elements)
+ LatticeBoltzmann::LatticeBoltzmann(int sizeX, int sizeY, double _ux, double _uy, double omega, int maxIterations, double maxTolerance)
  {
    m_sizeX = sizeX;
    m_sizeY = sizeY;
    m_ux = _ux;
    m_uy = _uy;
-   m_density = 1.0; //density;
    m_omega = omega;
    m_maxIter = maxIterations;
    m_maxTol = maxTolerance;
 
    m_nNodes = m_sizeX * m_sizeY;
-
-
-   SetupDataStructures(elements);
-
-   //quadrature weights of LBM
-   t.Resize(9);
-   set_t();
 
    //matrix of the probability distributions
    LOG_DBG(lattice) << "Allocating arrays for " << m_nNodes << " PDFs (" << (sizeof(double) * m_nNodes * 9 * 2.0 / 1024.0 / 1024.0) << " MiB)";
@@ -50,34 +39,19 @@ DEFINE_LOG(lattice, "lattice")
    m_pdfs[0].Resize(m_nNodes * 9);
    m_pdfs[1].Resize(m_nNodes * 9);
 
-   m_lattice.Pdfs[0] = m_pdfs[0].GetPointer();
-   m_lattice.Pdfs[1] = m_pdfs[1].GetPointer();
-
-   m_lattice.Scales.Resize(m_nNodes);
-
-   assert((int) elements.GetSize() == m_nNodes);
-   for (int i = 0; i < m_nNodes; ++i)
-     m_lattice.Scales[i] = 1.0 - elements[i];
-
-
-   m_lattice.SizeX = m_sizeX;
-   m_lattice.SizeY = m_sizeY;
+   Scales.Resize(m_nNodes);
+   rel.Resize(m_nNodes);
+   bb.Resize(2 * m_sizeX + 2 * m_sizeY);
 
    m_cur  = 0;
    m_next = 1;
-
-   InitializePdfs();
-
-   uy.Resize(m_nNodes);
-   dloc.Resize(m_nNodes);
-
  }
 
  LatticeBoltzmann::~LatticeBoltzmann()
  {
  }
 
-const StdVector<double>& LatticeBoltzmann::Iterate(PtrParamNode in)
+StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, PtrParamNode in)
 {
     int index;
     int it = 0;
@@ -85,8 +59,16 @@ const StdVector<double>& LatticeBoltzmann::Iterate(PtrParamNode in)
 
     double res;
     double R;
-    double refnorm;
-    bool nonsteady = true;
+    bool steady_state = false;
+
+
+   InitializePdfs();    
+   SetupDataStructures(elements);
+
+    assert((int) elements.GetSize() == m_nNodes);
+    for (int i = 0; i < m_nNodes; ++i)
+      Scales[i] = 1.0 - elements[i];
+
 
     Timer timer;
     timer.Start();
@@ -100,10 +82,10 @@ const StdVector<double>& LatticeBoltzmann::Iterate(PtrParamNode in)
 
     in->Get("converged")->SetValue("running");
 
-    while(it < m_maxIter && nonsteady)
+    while(it < m_maxIter && !steady_state)
     {
       // -- Combined propagation and collision step -------------------------
-      prop_coll_step(m_lattice, m_cur, m_next, m_omega);
+      prop_coll_step(m_cur, m_next, m_omega);
 
       // -- Bounce back step ------------------------------------------------
       prop_coll_bounce_back(m_next, bb);
@@ -112,7 +94,7 @@ const StdVector<double>& LatticeBoltzmann::Iterate(PtrParamNode in)
       prop_coll_velinlet(m_next, inlet, m_ux, m_uy);
 
       // -- Outlet condition ------------------------------------------------
-      prop_coll_densoutlet(m_next, outlet, m_density);
+      prop_coll_densoutlet(m_next, outlet);
 
       if((it == 0 || it % 100 == 0))
       {
@@ -139,22 +121,14 @@ const StdVector<double>& LatticeBoltzmann::Iterate(PtrParamNode in)
 
         R = sqrt(R);
 
-        if(it == 0) {
-          refnorm = 1.;
+        if(R <= m_maxTol)
+          steady_state = true;
 
-        } else {
-          if(R / refnorm <= m_maxTol) {
-            nonsteady = false;
+        if(R >= 1000) 
+          EXCEPTION("In LBM iteration " << it << " residuum " << R << " too large -> abort");
 
-          } else if(R >= 1000) {
-            std::stringstream ss;
-            ss << "In LBM iteration " << it << " residuum " << R << " too large -> abort";
-            in->Get(ParamNode::WARNING)->SetValue(ss.str());
-            nonsteady = false;
-          }
-        }
         in->Get("iterations")->SetValue(it);
-        in->Get("residuum")->SetValue(R / refnorm);
+        in->Get("residuum")->SetValue(R);
         info->ToFile(); // is not written when called too often
       }
 
@@ -162,23 +136,21 @@ const StdVector<double>& LatticeBoltzmann::Iterate(PtrParamNode in)
       m_next = (m_next + 1) % 2;
 
       it++;
-
     }
-
     timer.Stop();
 
-    // DumpFluidNodes("fluid-nodes.dat", it, m_cur);
-
-    // create_output("node_steady.dat", m_cur);
-    // output number of iterations; Residual
-    in->Get("converged")->SetValue(!nonsteady);
-
+    in->Get("iterations")->SetValue(it);
+    in->Get("residuum")->SetValue(R);
+    in->Get("converged")->SetValue(steady_state);
     double wt = timer.GetWallTime();
-    double performance = (m_sizeX - 1) * (m_sizeY - 1) * it / wt;
-    in->Get("LUpS")->SetValue(performance);
+    double performance = (m_sizeX - 1) * (m_sizeY - 1) * it / wt / 1e6;
+    in->Get("MFLUP_s")->SetValue(performance);
     in->Get("walltime")->SetValue(wt);
 
-    return m_pdfs[m_cur];
+    if(!steady_state)
+      EXCEPTION("internal LBM simulation could not converge: iterations: " << it << " residuum: " << R);
+    
+    return &(m_pdfs[m_cur]);
   }
 
 
@@ -211,28 +183,17 @@ void LatticeBoltzmann::InitializePdfs()
   }
 }
 
-void LatticeBoltzmann::set_t()
-{
-  // sets quadrature weights
-  t[0] = 4. / 9.;
-
-  for(int i = 1; i < 5; i++) {
-    t[i] = 1. / 9.;
-  }
-
-  for(int i = 5; i < 9; i++) {
-    t[i] = 1. / 36.;
-  }
-}
-
 void LatticeBoltzmann::SetupDataStructures(const StdVector<double>& elements)
 {
+  rel.Clear();
+  bb.Clear();
+  inlet.Clear();
+  outlet.Clear();
+
   StdVector<int> tmp(2);
 
   int n = 0;
   double porosity;
-
-  // TODO: preallocate the StdVectors and just set the indices
 
   for(int j = 0; j < m_sizeY; j++)
   {
@@ -302,13 +263,16 @@ void LatticeBoltzmann::create_output(const char * file, int cur)
 }
 
 
-void LatticeBoltzmann::prop_step(Lattice& lattice, int cur)
+void LatticeBoltzmann::prop_step()
 {
   // perform a propagation step
   int x, y;
 
-  int lx = lattice.SizeX;
-  int ly = lattice.SizeY;
+  int lx = m_sizeX;
+  int ly = m_sizeY;
+
+  int cur = m_cur;
+
 
   for(y = ly - 1; y >= 0; y--) {
     for(x = lx - 1; x > 0; x--) {
@@ -355,23 +319,19 @@ void LatticeBoltzmann::prop_step(Lattice& lattice, int cur)
 
 
 
-void LatticeBoltzmann::prop_coll_step(Lattice& lattice, int m_cur, int m_next, double omega)
+void LatticeBoltzmann::prop_coll_step(int m_cur, int m_next, double omega)
 {
   // perform a propagation step
   int x, y, index;
 
-  int lx = lattice.SizeX;
-  int ly = lattice.SizeY;
+  const int lx = m_sizeX;
+  const int ly = m_sizeY;
 
   double tmp_ux, tmp_uy, tmp_us, scale, sum;
   double pdf_0, pdf_w, pdf_s, pdf_e, pdf_n, pdf_sw, pdf_se, pdf_ne, pdf_nw;
   double tmp;
 
 
-  assert(lattice.SizeX > 0);
-  assert(lattice.SizeY > 0);
-  assert(lattice.Pdfs[0] != NULL);
-  assert(lattice.Pdfs[1] != NULL);
 
   // {{{ Propagation at the boundaries
 
@@ -513,7 +473,7 @@ void LatticeBoltzmann::prop_coll_step(Lattice& lattice, int m_cur, int m_next, d
 
   // }}}
 
-  double * scales  = lattice.Scales.GetPointer();
+  double * scales  = Scales.GetPointer();
 
 
   #ifdef _OPENMP
@@ -521,7 +481,7 @@ void LatticeBoltzmann::prop_coll_step(Lattice& lattice, int m_cur, int m_next, d
       default(none), \
       private(index, pdf_0, pdf_w, pdf_s, pdf_e, pdf_n, pdf_sw, pdf_se, pdf_ne, pdf_nw), \
       private(tmp_ux, tmp_uy, tmp_us, scale, sum, tmp, x, y), \
-      shared(lx, ly, m_cur, m_next, omega, scales, lattice)
+      shared(m_cur, m_next, omega, scales)
   #endif
   for (y = 1; y < ly - 1; ++y) {
     for (x = 1; x < lx - 1; ++x) {
@@ -691,7 +651,7 @@ void LatticeBoltzmann::prop_coll_bounce_back(int cur, StdVector<StdVector<int> >
 //
 // Density outlet condition.
 //
-void LatticeBoltzmann::prop_coll_densoutlet(int cur, StdVector<StdVector<int> >& outlet, double density)
+void LatticeBoltzmann::prop_coll_densoutlet(int cur, StdVector<StdVector<int> >& outlet)
 {
 
   double tmp_ux, tmp_uy, tmp_us, sum, tmp;
@@ -720,7 +680,7 @@ void LatticeBoltzmann::prop_coll_densoutlet(int cur, StdVector<StdVector<int> >&
     tmp_ux = (pdf_e + pdf_ne + pdf_se - pdf_w - pdf_nw - pdf_sw) / sum;
     tmp_uy = (pdf_n + pdf_ne + pdf_nw - pdf_s - pdf_sw - pdf_se) / sum;
 
-    sum = density;
+    sum = 1.0; // the enforced density
     tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
     tmp_ux = 3.0 * tmp_ux;
     tmp_uy = 3.0 * tmp_uy;

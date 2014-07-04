@@ -158,10 +158,11 @@ class Fields:
  
   ## calculates the streamline from a given point up to both ends
   # @param idx 0 for s1 and 1 for s2 which changes the angle!
+  # @param coord optional pair of coordinates. Take care not to have an invalid cell!!
+  # @param prominent see Trace
   # return a list with two trace objects for both indices
-  def streamline(self, cell, steplength, minimal, idx):
-    
-    x, y = self.index2coord(cell)
+  def streamline(self, steplength, minimal, idx, cell, coord = None, prominent = False):
+    x, y = coord if coord <> None else self.index2coord(cell)
     
     # print 'streamline x=' + str(x) + ' y=' + str(y) + ' idx=' + str(idx) + ' steplength=' + str(steplength) 
 
@@ -177,7 +178,7 @@ class Fields:
     val = [i[1] for i in tmp]
     
     if len(val) > 0:
-      return Trace([i[0] for i in tmp], val, cell, idx) 
+      return Trace([i[0] for i in tmp], val, cell, idx, prominent) 
     else:
       return None
          
@@ -338,8 +339,16 @@ def draw_frustum(fig, dx, coord, thick):
   #print str(o4[0]) + ', ' + str(o4[1]) + ' with points'
   
 
+# helper for forcing streamlines
+def force_prominent_streamline(traces, fields, minimal, step, x, y):
+  idx = 0 if fields[0].macro.getData(x,y)[0] > fields[1].macro.getData(x,y)[0] else 1 
+  cell = (coord2index(fields[idx].macro, (x, y)))
+  trace = fields[idx].streamline(step, minimal[idx], idx, cell, coord = (x, y), prominent = True)
+  if trace <> None:
+    traces.append(trace)
+
  
-def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, s1_samples, s2_samples, max_traces_per_cell, res, do_save, info):            
+def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, s1_samples, s2_samples, max_traces_per_cell, res, do_save, info, force):            
 
   assert(not (s1_samples == None and s2_samples <> None))
  
@@ -369,28 +378,36 @@ def show_streamline(coords, s1, s2, angle, dir, scale, s1_minimal, style, step, 
 
   #generate all > minimal traces, draw (or not draw) them later
   traces = []
- 
-  # if we enforce given lines
-  # if 4 == 4:
-  #  for x in numpy.arange(0.9, 1.0, 0.01):
-  #     tmp = fields[0].directional_streamline(x,0.0, fields[0].macro.dx * step, minimal[0], 0, -1.0)
-  #     val = [i[1] for i in tmp]
-  #     cell = (coord2index(fields[0].macro, (x, 0.0)))
-  #     if len(val) > 0:
-  #       traces.append(Trace([i[0] for i in tmp], val, cell, 0, prominent=True))
-  #     else:
-  #       print 'zero forced trace at x=' + str(x)    
 
-  if True:
+  if force == 'right_lower':
+    for x in numpy.arange(0.9, 1.0, 0.01):
+       tmp = fields[0].directional_streamline(x,0.0, fields[0].macro.dx * step, minimal[0], 0, -1.0)
+       val = [i[1] for i in tmp]
+       cell = (coord2index(fields[0].macro, (x, 0.0)))
+       if len(val) > 0:
+         traces.append(Trace([i[0] for i in tmp], val, cell, 0, prominent=True))
+       else:
+         print 'zero forced trace at x=' + str(x)
+
+  if force == 'rhombus': # assumes 0,0 -> 2,1 two-load case
+    assert(not s1_samples == None)
+    for x in numpy.arange(0.0, 0.5 * max[1], 0.2 * fields[0].macro.dx):
+      force_prominent_streamline(traces, fields, minimal, step, x, 0.5 * max[1] - x)
+      force_prominent_streamline(traces, fields, minimal, step, x, 0.5 * max[1] + x)
+      force_prominent_streamline(traces, fields, minimal, step, max[0] - 0.5 * max[1] + x, x)
+      force_prominent_streamline(traces, fields, minimal, step, max[0] - 0.5 * max[1] + x, max[1] - x - 1e-6)
+      force_prominent_streamline(traces, fields, minimal, step, 0.5 * max[0] - 0.25 * max[1] + x, 0.5 * max[1])
+
+  if False:
     for idx in dirs:
       field = fields[idx]
       for j in range(field.macro.ny):
         for i in range(field.macro.nx):
-          trace = field.streamline((i,j), step, minimal[idx], idx)
+          trace = field.streamline(step, minimal[idx], idx, cell = (i,j))
           if trace <> None:
             traces.append(trace)
   else:
-    trace = fields[0].streamline((0.2/fields[0].macro.nx, 0.2/fields[0].macro.ny), step, minimal[0], 0)
+    trace = fields[0].streamline(step, minimal[0], 0, cell = (0.2/fields[0].macro.nx, 0.2/fields[0].macro.ny))
     traces.append(trace)
 
   # sort by max field

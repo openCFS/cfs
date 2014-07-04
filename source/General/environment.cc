@@ -1422,6 +1422,7 @@ namespace CoupledField {
     //mpcci
     SolutionTypeEnum.Add(FLUID_FORCE, "fluidForce");
     //LBM velocity
+    SolutionTypeEnum.Add(LBM_NODAL_PROBABILITY_DISTRIBUTION, "LBMNodalProbabilityDistribution");
     SolutionTypeEnum.Add(LBM_PROBABILITY_DISTRIBUTION, "LBMProbabilityDistribution");
     SolutionTypeEnum.Add(LBM_VELOCITY, "LBMVelocity");
     SolutionTypeEnum.Add(LBM_DENSITY, "LBMDensity");
@@ -1551,7 +1552,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( NONLIN_DATA_NAME, "nonLinDataName" ); 
     MaterialTypeEnum.Add( DATA_ACCURACY, "dataAccuracy" ); 
     MaterialTypeEnum.Add( MAX_APPROX_VAL, "maxApproxVal" ); 
-    MaterialTypeEnum.Add( PYROCOEFFICIENT_TENSOR, "Pyrocoefficient_Tensor" ); 
+    MaterialTypeEnum.Add( PYROCOEFFICIENT_TENSOR, "Pyrocoefficient_Tensor" );
+    MaterialTypeEnum.Add( LBM_MATERIAL, "LatticeBoltzmannMaterial" );
 
     // ==== Initialization of Matrix Types ====
     feMatrixType.Add( NOTYPE, "no FE matrix" );

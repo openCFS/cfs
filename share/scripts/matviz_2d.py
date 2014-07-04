@@ -25,17 +25,15 @@ def create_figure(min, max, res, for_save):
   dpi_x = (res / 100) * (max[0] - min[0]) 
   dpi_y = dpi_x * (max[1] - min[1]) / (max[0] - min[0]) 
   
-  fig = None
-  if for_save:
-    fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
-  else:
-    fig = matplotlib.pyplot.figure()
+  fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
   ax = fig.add_subplot(111)
 
   if for_save:
+    # we need to correct the ratio
     wrong = ax.get_window_extent().size
+    ratio = dpi_x / dpi_y 
     dpi_x *= res / wrong[0]  
-    dpi_y *= (dpi_y * 100) / wrong[1] 
+    dpi_y *= (dpi_y * 100 / ratio) / wrong[1]
     fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
     matplotlib.pyplot.axis('off')
     ax = fig.add_subplot(111)
@@ -48,7 +46,7 @@ def create_figure(min, max, res, for_save):
 ## @param centers barycenters
 # @param min/max minimal/maximal real node (not barycenter)
 # @retuen image, draw, dim of image, dx to scale from node coord to image coords  
-def create_image_new(centers, min, max, nx, color = "white"):
+def create_image(min, max, nx, color = "white"):
   dim = (nx, int(nx *  (max[1] + min[1]) / (max[0] + min[0])))
   
   dx = dim[0] / (max[0] + 2.0 * min[0])
@@ -59,21 +57,6 @@ def create_image_new(centers, min, max, nx, color = "white"):
   draw = ImageDraw.Draw(im)
   
   return im, draw, dim, dx, dy  
-  
-def create_image(centers, nx,color = "white"):
-  # zoom gives proper offsets of the elements
-  min, max = find_corners(centers) # we assume the real grid to start at 0/0
-  
-  dim = (nx, int(nx *  (max[1] + min[1]) / (max[0] + min[0]))) 
-  
-  dx = dim[0] / (max[0] + 2.0 * min[0])
-  dy = dim[1] / (max[1] + 2.0 * min[1])
-  
-  im = Image.new("RGB", dim, color)
-  draw = ImageDraw.Draw(im)
-  
-  return im, draw, dim, dx, dy, min, max
-  
 
 
 ## @return phi, r
@@ -290,7 +273,7 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
 
   centers, min, max, elem = coords
 
-  im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white")
+  im, draw, dim, dx, dy = create_image(min, max, nx,"white")
 
   height = elem[1] * dy 
   length = elem[0] * dx
@@ -414,7 +397,7 @@ def show_frame(coords, s1, s2, directions, nx):
 
   centers, min, max, elem = coords
   
-  im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white")
+  im, draw, dim, dx, dy = create_image(min, max, nx,"white")
 
   height = elem[1] * dy 
   length = elem[0] * dx
@@ -531,13 +514,15 @@ def draw_thick_circle(draw, center, radius):
   
 ## visualize the orientational stiffness
 # @return the image
-def orientational_stiffness(centers, angle, data, nx, scale=-1.0):
+def orientational_stiffness(coords, angle, data, nx, scale=-1.0):
+
+  centers, min, max, elem = coords
 
   max_val = numpy.max(data[:])
   min_val = numpy.min(data[:])
   data_offset = -2 * min_val if min_val < 0 else 0
-
-  im, draw, dim, dx, dy, min, max = create_image(centers, nx)
+     
+  im, draw, dim, dx, dy = create_image(min, max, nx)   
    
   print "max=" + str(max_val) + " min=" + str(min_val)
    

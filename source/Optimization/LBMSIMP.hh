@@ -16,7 +16,7 @@ class TransferFunction;
 
 namespace CoupledField
 {
-class ExtLBMPDE;
+class LatticeBoltzmannPDE;
 
 /** Extension for LBM optimization based on an non-FE solver */
 class LBMSIMP : public SIMP
@@ -32,7 +32,7 @@ protected:
    * @see ErsatzMaterial::CalcFunction */
   double CalcFunction(Excitation& excite, Function* f, bool derivative);
 
-  /** overwrite. We have no FE and don't store the results, all done by extLBMPDE. */
+  /** overwrite. We have no FE and don't store the results, all done by LatticeBoltzmannPDE. */
   void SolveStateProblem(Excitation* ev_only_excite = NULL);
 
 private:
@@ -46,7 +46,7 @@ private:
   void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
 
   /** shortcut to our pde, is also in ErsatzMaterial::pdes */
-  ExtLBMPDE* lbm;
+  LatticeBoltzmannPDE* lbm;
 };
 
 } // end of namespace

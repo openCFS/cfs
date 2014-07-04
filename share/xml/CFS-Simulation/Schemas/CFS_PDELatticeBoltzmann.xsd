@@ -13,9 +13,9 @@
 
 
 	<!-- ******************************************************************* -->
-	<!-- Definition of element for externLBM PDEs -->
+	<!-- Definition of element for LatticeBoltzmann PDEs -->
 	<!-- ******************************************************************* -->
-	<xsd:element name="externLBM" type="DT_PDEExternLBM"
+	<xsd:element name="LatticeBoltzmann" type="DT_PDEExternLBM"
 		substitutionGroup="PDEBasic">
 		<xsd:unique name="CS_ExternLBMRegion">
 			<xsd:selector xpath="cfs:region" />
@@ -24,7 +24,7 @@
 	</xsd:element>
 
 	<!-- ******************************************************************* -->
-	<!-- Definition of data type for externLBM PDEs -->
+	<!-- Definition of data type for LatticeBoltzmann PDEs -->
 	<!-- ******************************************************************* -->
 
 	<xsd:complexType name="DT_PDEExternLBM">

@@ -30,7 +30,7 @@ class ElecPDE;
 class ErsatzMaterial;
 class HeatCondPDE;
 class LinearForm;
-class ExtLBMPDE;
+class LatticeBoltzmannPDE;
 
 /** For Optimization problems does this class provide an interface to the actual physics.
  * While ErsatzMaterial itself contains a vector of pdes and the solutions for these
@@ -301,7 +301,7 @@ public:
   LBMMat(ErsatzMaterial* em);
 
 protected:
-  ExtLBMPDE* lbm;
+  LatticeBoltzmannPDE* lbm;
 };
 
 
