@@ -427,6 +427,7 @@
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="voigt"/>
                 <xsd:enumeration value="hill_mandel"/>
+                <xsd:enumeration value="hill_mandel_no_density"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -1102,6 +1103,7 @@
                             <xsd:enumeration value="density-times-rotated-2dtensor"/>
                             <xsd:enumeration value="density-times-transversal-isotropic"/>
                             <xsd:enumeration value="density-times-transversal-isotropic-boxed"/>
+                            <xsd:enumeration value="density-times-rotated-transversal-isotropic"/>
                             <xsd:enumeration value="density-times-rotated-transversal-isotropic-boxed"/>
                             <xsd:enumeration value="laminates"/>
                             <xsd:enumeration value="density-times-laminates"/>

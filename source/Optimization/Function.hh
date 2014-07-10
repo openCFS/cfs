@@ -422,13 +422,13 @@ class Function
         double CalcBumpGradient(int neigh_idx) const;
 
         /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
-        double CalcSumModuli(DesignElement::Access access = DesignElement::SMART, int neigh_idx = -1, bool derivative = false) const;
+        double CalcSumModuli(DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
 
         /** tensor trace of the material tensor in (DENSITY_TIMES_)ORTHOTROPIC parametrizations */
-        double CalcOrthotropicTensorTrace(const Local* local, DesignElement::Access access = DesignElement::SMART, int neigh_idx = -1, bool derivative = false) const;
+        double CalcOrthotropicTensorTrace(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
 
         /** volume of material (strong phase for plane strain) in laminate homogenization formulas */
-        double CalcLaminatesVolume(DesignElement::Access access = DesignElement::SMART, int neigh_idx = -1, bool derivative = false) const;
+        double CalcLaminatesVolume(DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
 
         /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to hold */
         double CalcParamPSPosDef(int neigh_idx, bool derivative) const;

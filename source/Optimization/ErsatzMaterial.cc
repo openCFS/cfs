@@ -1375,7 +1375,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 // TODO: assumes a single transfer function for all regions!
     TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->GetDesignType(), Optimization::MECH) : NULL;
     bool regular = design->IsRegular();
-    unsigned int numEls = design->elements;
+    unsigned int numEls = f->elements.GetSize();
     unsigned int base = design->FindDesign(DesignElement::DENSITY)*numEls;
     double sum = 0.0;
 // we need the total volume in the non-regular case

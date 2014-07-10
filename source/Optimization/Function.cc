@@ -650,9 +650,11 @@ bool Function::ForDensityFiltering() const
   case SLACK:
   case DESIGN_BOUND: // TODO check if this is really true as physical material might harm the bound ?!
   case MULTIMATERIAL_SUM:
+  case SUM_MODULI:
   case GLOBAL_SUM_MODULI:                 // TODO Be careful! Right now this is hardcoded in
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:   // Function::Local::Identifier::EvalFunction
-  case GLOBAL_LAMINATES_VOL:              // and ::EvalGradient !!
+  case ORTHOTROPIC_TENSOR_TRACE:          // and ::EvalGradient !!
+  case GLOBAL_LAMINATES_VOL:
   case LAMINATES_VOL:
     return false;
 
@@ -1679,7 +1681,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     break;
 
   case SUM_MODULI:
-    fv = CalcSumModuli();
+    fv = CalcSumModuli(DesignElement::PLAIN);
     break;
   case GLOBAL_SUM_MODULI:
     fv = CalcSumModuli(DesignElement::PLAIN);
@@ -1709,7 +1711,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     break;
 
   case ORTHOTROPIC_TENSOR_TRACE:
-    fv = CalcOrthotropicTensorTrace(local);
+    fv = CalcOrthotropicTensorTrace(local, DesignElement::PLAIN);
     break;
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
     fv = CalcOrthotropicTensorTrace(local, DesignElement::PLAIN);
@@ -1838,7 +1840,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
       break;
 
     case SUM_MODULI:
-      gv = CalcSumModuli(DesignElement::SMART, n, true);
+      gv = CalcSumModuli(DesignElement::PLAIN, n, true);
       break;
     case GLOBAL_SUM_MODULI:
       gv = CalcSumModuli(DesignElement::PLAIN, n, true);
@@ -2768,7 +2770,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
         element->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type DOES matter)
 
     assert(ok);
-    assert((local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && E.GetNumRows() == 2) || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE && E.GetNumRows() == 3));
+    assert((local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && E.GetNumRows() == 2) || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE && (E.GetNumRows() == 3 || E.GetNumRows() == 6)));
 
     LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString(0, false);
 
