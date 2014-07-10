@@ -1110,6 +1110,8 @@ source/Forms/FlatShellPiezoInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/FlatShellPiezoInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/FlatShellStiffInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/FlatShellStiffInt.hh svneol=native#text/x-c%2B%2Bhdr
+source/Forms/LatticeBoltzmannInt.cc -text
+source/Forms/LatticeBoltzmannInt.hh -text
 source/Forms/PMLInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/PMLInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/PiezoStressStrain.cc -text

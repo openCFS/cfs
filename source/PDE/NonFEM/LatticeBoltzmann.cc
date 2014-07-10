@@ -5,6 +5,7 @@
 #include <fstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "PDE/NonFEM/LatticeBoltzmann.hh"
@@ -20,7 +21,7 @@ DECLARE_LOG(lattice)
 DEFINE_LOG(lattice, "lattice")
 
 
- LatticeBoltzmann::LatticeBoltzmann(int sizeX, int sizeY, double _ux, double _uy, double omega, int maxIterations, double maxTolerance)
+ LatticeBoltzmann::LatticeBoltzmann(int sizeX, int sizeY, double _ux, double _uy, double omega, int maxIterations, double maxTolerance, bool plot)
  {
    m_sizeX = sizeX;
    m_sizeY = sizeY;
@@ -31,6 +32,8 @@ DEFINE_LOG(lattice, "lattice")
    m_maxTol = maxTolerance;
 
    m_nNodes = m_sizeX * m_sizeY;
+
+   m_plot = plot;
 
    //matrix of the probability distributions
    LOG_DBG(lattice) << "Allocating arrays for " << m_nNodes << " PDFs (" << (sizeof(double) * m_nNodes * 9 * 2.0 / 1024.0 / 1024.0) << " MiB)";
@@ -53,105 +56,117 @@ DEFINE_LOG(lattice, "lattice")
 
 StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, PtrParamNode in)
 {
-    int index;
-    int it = 0;
-    int count;
+  int index;
+  int it = 0;
+  int count;
 
-    double res;
-    double R;
-    bool steady_state = false;
+  double res = -1.;
+  double R = 1.0;
+  bool steady_state = false;
+
+  std::ofstream plot;
+  if(m_plot)
+    plot.open(std::string(progOpts->GetSimName() + ".lbm.dat").c_str());
+
+  InitializePdfs();
+  SetupDataStructures(elements);
+
+  assert((int) elements.GetSize() == m_nNodes);
+  for (int i = 0; i < m_nNodes; ++i)
+    Scales[i] = 1.0 - elements[i];
 
 
-   InitializePdfs();    
-   SetupDataStructures(elements);
+  Timer timer;
+  timer.Start();
 
-    assert((int) elements.GetSize() == m_nNodes);
-    for (int i = 0; i < m_nNodes; ++i)
-      Scales[i] = 1.0 - elements[i];
+  // create_output("node.dat", m_cur);
 
+  LOG_DBG(lattice) << "bb = " << ToString(bb);
+  LOG_DBG(lattice) << "inlet = " << ToString(inlet);
+  LOG_DBG(lattice) << "outlet = " << ToString(outlet);
+  LOG_DBG(lattice) << "rel = " << ToString(rel);
 
-    Timer timer;
-    timer.Start();
+  in->Get("converged")->SetValue("running");
 
-    // create_output("node.dat", m_cur);
+  while(it < m_maxIter && !steady_state && R <= 1000)
+  {
+    // -- Combined propagation and collision step -------------------------
+    prop_coll_step(m_cur, m_next, m_omega);
 
-    LOG_DBG(lattice) << "bb = " << ToString(bb);
-    LOG_DBG(lattice) << "inlet = " << ToString(inlet);
-    LOG_DBG(lattice) << "outlet = " << ToString(outlet);
-    LOG_DBG(lattice) << "rel = " << ToString(rel);
+    // -- Bounce back step ------------------------------------------------
+    prop_coll_bounce_back(m_next, bb);
 
-    in->Get("converged")->SetValue("running");
+    // -- Inlet condition -------------------------------------------------
+    prop_coll_velinlet(m_next, inlet, m_ux, m_uy);
 
-    while(it < m_maxIter && !steady_state)
+    // -- Outlet condition ------------------------------------------------
+    prop_coll_densoutlet(m_next, outlet);
+
+    if((it == 0 || it % 100 == 0))
     {
-      // -- Combined propagation and collision step -------------------------
-      prop_coll_step(m_cur, m_next, m_omega);
+      //Calculation of the residual
+      R = 0.;
+      count = 0;
 
-      // -- Bounce back step ------------------------------------------------
-      prop_coll_bounce_back(m_next, bb);
+      // TODO: parallel computation of residual, take care of non_sing and
+      //       summation of residual.
+      // TG ORIG: for(int i = 0; i < m_sizeX; i++) {
+      // TG ORIG:   for(int j = 0; j < m_sizeY; j++) {
+      for(int j = 0; j < m_sizeY; j++) {
+        for(int i = 0; i < m_sizeX; i++) {
+          index = j * m_sizeX + i;
 
-      // -- Inlet condition -------------------------------------------------
-      prop_coll_velinlet(m_next, inlet, m_ux, m_uy);
-
-      // -- Outlet condition ------------------------------------------------
-      prop_coll_densoutlet(m_next, outlet);
-
-      if((it == 0 || it % 100 == 0))
-      {
-        //Calculation of the residual
-        R = 0.;
-        count = 0;
-
-        // TODO: parallel computation of residual, take care of non_sing and
-        //       summation of residual.
-        // TG ORIG: for(int i = 0; i < m_sizeX; i++) {
-        // TG ORIG:   for(int j = 0; j < m_sizeY; j++) {
-        for(int j = 0; j < m_sizeY; j++) {
-          for(int i = 0; i < m_sizeX; i++) {
-            index = j * m_sizeX + i;
-
-            for(int k = 0; k < 9; k++)
-            {
-              res = PDF_IDX(m_next, index, k) - PDF_IDX(m_cur, index, k);
-              R += res * res;
-              count++;
-            }
+          for(int k = 0; k < 9; k++)
+          {
+            res = PDF_IDX(m_next, index, k) - PDF_IDX(m_cur, index, k);
+            R += res * res;
+            count++;
           }
         }
-
-        R = sqrt(R);
-
-        if(R <= m_maxTol)
-          steady_state = true;
-
-        if(R >= 1000) 
-          EXCEPTION("In LBM iteration " << it << " residuum " << R << " too large -> abort");
-
-        in->Get("iterations")->SetValue(it);
-        in->Get("residuum")->SetValue(R);
-        info->ToFile(); // is not written when called too often
       }
 
-      m_cur  = (m_cur  + 1) % 2;
-      m_next = (m_next + 1) % 2;
+      R = sqrt(R);
 
-      it++;
+      if(R <= m_maxTol)
+        steady_state = true;
+
+      if(m_plot)
+        plot << it << "\t" << R << "\n";
+
+      in->Get("iterations")->SetValue(it);
+      in->Get("residuum")->SetValue(R);
+      info->ToFile(); // is not written when called too often
     }
-    timer.Stop();
 
-    in->Get("iterations")->SetValue(it);
-    in->Get("residuum")->SetValue(R);
-    in->Get("converged")->SetValue(steady_state);
-    double wt = timer.GetWallTime();
-    double performance = (m_sizeX - 1) * (m_sizeY - 1) * it / wt / 1e6;
-    in->Get("MFLUP_s")->SetValue(performance);
-    in->Get("walltime")->SetValue(wt);
+    m_cur  = (m_cur  + 1) % 2;
+    m_next = (m_next + 1) % 2;
 
-    if(!steady_state)
-      EXCEPTION("internal LBM simulation could not converge: iterations: " << it << " residuum: " << R);
-    
-    return &(m_pdfs[m_cur]);
+    it++;
   }
+  timer.Stop();
+
+  in->Get("iterations")->SetValue(it);
+  in->Get("residuum")->SetValue(R);
+  in->Get("converged")->SetValue(steady_state);
+
+  if(m_plot) {
+    plot << it << "\t" << R << "\n";
+    plot.flush();
+  }
+
+  double wt = timer.GetWallTime();
+  double performance = (m_sizeX - 1) * (m_sizeY - 1) * it / wt / 1e6;
+  in->Get("MFLUP_s")->SetValue(performance);
+  in->Get("walltime")->SetValue(wt);
+
+  if(R >= 1000) 
+    EXCEPTION("In LBM iteration " << it << " residuum " << R << " too large -> abort");
+
+  if(!steady_state)
+    EXCEPTION("internal LBM simulation could not converge: iterations: " << it << " residuum: " << R);
+
+  return &(m_pdfs[m_cur]);
+}
 
 
 void LatticeBoltzmann::InitializePdfs()

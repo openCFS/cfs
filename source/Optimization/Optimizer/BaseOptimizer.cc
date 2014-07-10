@@ -347,6 +347,7 @@ bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cf
   bool need_eval = design_.design_id != design_.gradient_design_id; 
   
   if(need_eval){ // the adjoints have to be recalculated
+
     optimization->SolveAdjointProblems();
     design_.gradient_design_id = design_.design_id;
   }

@@ -67,6 +67,36 @@ class SingleVector;
 DECLARE_LOG(lbm_pde)
 DEFINE_LOG(lbm_pde, "lbm_pde")
 
+void test_matrix()
+{
+  compressed_matrix<double> cm(3,3);
+  cm(0,0) = 1.0;
+  cm(1,1) = 2.0;
+  cm(2,2) = 3.0;
+  cm(0,2) = 4.0;
+  cm(1,0) = 5.0;
+
+  for(unsigned int i=0; i< cm.filled2();i++)
+    std::cout << "cm filled2: i=" << i << " -> index2_data=" << cm.index2_data()[i] << " v=" << cm.value_data()[i] << "\n";
+
+  // Create row array
+  for(unsigned int i=0;i< cm.filled1();i++)
+    std::cout << "cm filled1: i=" << i << " -> index1_data=" << cm.index1_data()[i] << " v=" << cm.value_data()[i] << "\n";
+
+  // this is the iterator over the rows
+  for(compressed_matrix<double>::const_iterator1 it = cm.begin1(); it != cm.end1(); ++it)
+  {
+    // it.i2 == 0
+    std::cout << "it1.i1=" << it.index1() << " it.i2=" << it.index2() << " it=" << *it << "\n";
+    // this is the iterator over the columns of the current row
+    for(compressed_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2)
+       std::cout << "it2.i1=" << it2.index1() << " it2.i2=" << it2.index2() << " it2=" << *it2 << " == " <<  cm(it2.index1(), it2.index2()) << "\n" ;
+  }
+
+  EXCEPTION("test_matrix");
+}
+
+
 LatticeBoltzmannPDE::LatticeBoltzmannPDE(Grid* grid, PtrParamNode pn) : SinglePDE(grid, pn)
 {
   pdename_ = "LatticeBoltzmann";
@@ -78,11 +108,14 @@ LatticeBoltzmannPDE::LatticeBoltzmannPDE(Grid* grid, PtrParamNode pn) : SinglePD
   method_ = "mechanic";
   dirty_ = true; // not solved yet!
 
+  // test_matrix();
+
   // LBM parametes
   omega_       = myParam_->Get("LBM/omega")->As<double>();
   maxWallTime_ = myParam_->Get("LBM/maxWallTime")->As<double>();
   maxIter_     = myParam_->Get("LBM/maxIter")->As<unsigned int>();
-  convergence_     = myParam_->Get("LBM/convergence")->As<double>();
+  convergence_ = myParam_->Get("LBM/convergence")->As<double>();
+  bool plot    = myParam_->Get("LBM/plot")->As<bool>();
 
   PtrParamNode bcsl = myParam_->Get("bcsAndLoads");
   // only one inlet region
@@ -122,7 +155,7 @@ LatticeBoltzmannPDE::LatticeBoltzmannPDE(Grid* grid, PtrParamNode pn) : SinglePD
   pdfs.Resize(n_elems * 9);
 
   if(iface_ == INTERNAL)
-    lbm = new LatticeBoltzmann(n_x_, n_y_, u_x_, u_y_, omega_, maxIter_, convergence_);
+    lbm = new LatticeBoltzmann(n_x_, n_y_, u_x_, u_y_, omega_, maxIter_, convergence_, plot);
 
 }
 
@@ -357,7 +390,8 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   Vector<double> dRdp(9 * n_elems);
   dRdp.Init(0.0);
 
-  compressed_matrix<double> col_jacobi(9 * n_elems, 9 * n_elems);
+  mapped_matrix<double> col_jacobi(9 * n_elems, 9 * n_elems);
+  //compressed_matrix<double> col_jacobi(9 * n_elems, 9 * n_elems);
 
   StdVector<double> dfeqdux(9);
   StdVector<double> dfeqduy(9);
@@ -395,23 +429,32 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       for(unsigned int l = 0; l<9; l++)
         col_jacobi(index * 9 + k,index * 9 + l) = block[l][k];
   }
+  
+  double d_collision_setup = timer.GetCPUTime();
 
   // the real jacobi combines d_collision with d_propagation
-  compressed_matrix<double> Jacobi(9 * n_elems , 9 * n_elems);
+  mapped_matrix<double> Jacobi(9 * n_elems , 9 * n_elems);
+  // compressed_matrix<double> Jacobi(9 * n_elems , 9 * n_elems);
   d_propagate_d_rho(Jacobi,col_jacobi);
 
   for(unsigned int i=0;i < 9 * n_elems; i++)
     Jacobi(i,i) -= 1.;
 
+  double d_propagation_setup = timer.GetCPUTime(); 
+
   //Data for Pardiso solver
-  compressed_matrix<double> Jacobi_new(n_elems * 9, n_elems * 9,0.);
+  compressed_matrix<double> Jacobi_new(n_elems * 9, n_elems * 9, Jacobi.nnz());
 
   // Delete singular rows from the Jacobian
   DeleteSingularities(Jacobi,Jacobi_new);
 
+  double delete_sing_setup = timer.GetCPUTime();
+
   // right-hand side
   Vector<double> b = d_pressuredrop_d_f(ux, uy, dloc);
 
+  double rhs_setup = timer.GetCPUTime();
+   
   // use the cfssystem matrix to solve the adjoint system
   StdMatrix* mat = algsys_->GetSysMat();
   LOG_DBG(lbm_pde) << "SA: mat structure=" << mat->GetStructureType();
@@ -451,12 +494,16 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   adjoint->Get("timer/wall")->SetValue(timer.GetWallTime());
   adjoint->Get("setupTimer/cpu")->SetValue(setup_cpu);
   adjoint->Get("setupTimer/wall")->SetValue(setup_wall);
+  adjoint->Get("setupTimer/d_coll")->SetValue(d_collision_setup);
+  adjoint->Get("setupTimer/d_prop")->SetValue(d_propagation_setup - d_collision_setup);
+  adjoint->Get("setupTimer/del_sing")->SetValue(rhs_setup - delete_sing_setup);
+  adjoint->Get("setupTimer/rhs")->SetValue(delete_sing_setup - d_propagation_setup);
+  
 
   adjoint = infoNode_->Get(ParamNode::SUMMARY)->Get("adjoint");
   adjoint->Get("totalTimer/cpu")->SetValue(adjoint_.GetCPUTime());
   adjoint->Get("totalTimer/wall")->SetValue(adjoint_.GetWallTime());
   adjoint->Get("totalTimer/calls")->SetValue(adjoint_.GetCalls());
-
 }
 
 void LatticeBoltzmannPDE::matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja)
@@ -474,8 +521,27 @@ void LatticeBoltzmannPDE::matrix_sparse_to_crs(compressed_matrix<double>& M, dou
 }
 
 
+//void LatticeBoltzmannPDE::matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja)
+void LatticeBoltzmannPDE::matrix_sparse_to_crs(mapped_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja)
+{
+  /*
+  //conversion of sparse matrix to compressed row storage format
+  // Create value array and column array
+  for(unsigned int i=0;i<M.filled2();i++) {
+    a[i] = M.value_data()[i];
+    ja[i] = M.index2_data()[i];
+  }
+  // Create row array
+  for(unsigned int i=0;i<M.filled1();i++) {
+    ia[i] = M.index1_data()[i];
+  }
+  */
+}
 
-void LatticeBoltzmannPDE::DeleteSingularities(const compressed_matrix<double> & M,compressed_matrix<double> & output)
+
+
+// void LatticeBoltzmannPDE::DeleteSingularities(const compressed_matrix<double> & M,compressed_matrix<double> & output)
+void LatticeBoltzmannPDE::DeleteSingularities(const mapped_matrix<double> & M, compressed_matrix<double> & output)
 {
   std::set<unsigned int> sing;
 
@@ -485,8 +551,10 @@ void LatticeBoltzmannPDE::DeleteSingularities(const compressed_matrix<double> & 
   // delete singular rows of the Jacobian in the sensitivit analysis for the optimization
   double val;
   std::set<unsigned int>::iterator sing_it1, sing_it2;
-  for(compressed_matrix<double>::const_iterator1 it = M.begin1(); it != M.end1(); ++it) {
-    for(compressed_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2) {
+  // for(compressed_matrix<double>::const_iterator1 it = M.begin1(); it != M.end1(); ++it) {
+  for(mapped_matrix<double>::const_iterator1 it = M.begin1(); it != M.end1(); ++it) {
+    // for(compressed_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2) {
+    for(mapped_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2) {
       val = M(it2.index1(),it2.index2());
       if (abs(val) > 1e-20) {
         sing_it1 = sing.find(it2.index1()+1);
@@ -650,50 +718,38 @@ void LatticeBoltzmannPDE::d_outflow_d_rho(int index, Matrix<double>& block, StdV
 }
 
 
-void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, const compressed_matrix<double>& J)
+// void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, const compressed_matrix<double>& J)
+void LatticeBoltzmannPDE::d_propagate_d_rho(mapped_matrix<double>& Jprop, const mapped_matrix<double>& J)
 {
   //gradient of the propagations step with resprect to the design variables by Georg Pingen, University of Colorado (CU), Boulder, Colorado
   // f0
   int rows1,rows2;
-  compressed_matrix<double>::const_iterator1 iter;
+  // compressed_matrix<double>::const_iterator1 iter;
+  mapped_matrix<double>::const_iterator1 iter;
   // fdist 0 */
   for(unsigned int y=1;y<=n_y_;y++) {
     for(unsigned int x=1;x<=n_x_;x++) {
       rows1=(y-1)*n_x_*9+(x-1)*9;
-      /*for(int i=0;i<J.size2();i++) {
-        Jprop(rows1,i)=J(rows1,i);
-      }*/
       iter = J.find1(0, rows1, 0);
-      for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+      for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
         Jprop(rows1,it.index2())=J(rows1,it.index2());
         // std::cout << "dp f_0 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 1\n";
       }
     }
   }
 
-
-  /*y=1:1:n_y_;
-  x=(1:1:n_x_)';
-  test1=ones(size(y));
-  test2=ones(size(x));
-  rows1=test2*(y-1)*n_x_*9+(x-1)*9*test1+1;
-  Jprop(rows1,:)=J(rows1,:);*/
-
   //* fdist 1 */
 
   for(unsigned int y=1;y<=n_y_;y++) {
     rows1=((y-1)*(n_x_)*9+1);
     rows2=((y-1)*(n_x_)*9+9+1);
-    /*for(int i=0;i<J.size2();i++) {
-      Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-    }*/
     iter = J.find1(0, rows1, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2())= J(rows1,it.index2());
       // std::cout << "dp f_1 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 2\n";
     }
     iter = J.find1(0, rows2, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
       // std::cout << "dp f_1 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 3\n";
     }
@@ -704,11 +760,8 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
     for(unsigned int x=2;x<=(n_x_-1);x++) {
       rows1=(y-1)*n_x_*9+(x-1)*9+1;
       rows2=rows1+9;
-      /*for(int i=0;i<J.size2();i++) {
-        Jprop(rows1,i)=J(rows2,i);
-      }*/
       iter = J.find1(0, rows2, 0);
-      for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+      for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
         Jprop(rows1,it.index2())=J(rows2,it.index2());
         // std::cout << "dp f_1 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 4 \n";
       }
@@ -719,16 +772,13 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
   for(unsigned int y=1;y<=n_y_;y++) {
     rows1=((y-1)*(n_x_)*9+(n_x_-1)*9+3);
     rows2=((y-1)*(n_x_)*9+(n_x_-2)*9+3);
-    /*for(int i=0;i<J.size2();i++) {
-      Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-    }*/
     iter = J.find1(0, rows1, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2())= J(rows1,it.index2());
       // std::cout << "dp f_3 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 5 \n";
     }
     iter = J.find1(0, rows2, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
       // std::cout << "dp f_3 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 6 \n";
 
@@ -739,11 +789,8 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
     for(unsigned int x=n_x_-1;x>=2;x--) {
       rows1=(y-1)*n_x_*9+(x-1)*9+3;
       rows2=rows1-9;
-      /*for(int i=0;i<J.size2();i++) {
-        Jprop(rows1,i)=J(rows2,i);
-      }*/
       iter = J.find1(0, rows2, 0);
-      for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+      for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
         Jprop(rows1,it.index2())=J(rows2,it.index2());
         // std::cout << "dp f_3 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 7 \n";
       }
@@ -754,16 +801,13 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
   for(unsigned int x=1;x<=n_x_;x++) {
     rows1=((x-1)*9+2);
     rows2=((n_x_)*9+(x-1)*9+2);
-    /*for(int i=0;i<J.size2();i++) {
-      Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-    }*/
     iter = J.find1(0, rows1, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2())= J(rows1,it.index2());
       // std::cout << "dp f_2 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 8 \n";
     }
     iter = J.find1(0, rows2, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
       // std::cout << "dp f_3 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 9 \n";
     }
@@ -773,11 +817,9 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
     for(unsigned int x=1;x<=n_x_;x++) {
       rows1=(y-1)*n_x_*9+(x-1)*9+2;
       rows2=rows1+n_x_*9;
-      /*for(int i=0;i<J.size2();i++) {
-        Jprop(rows1,i)=J(rows2,i);
-      }*/
       iter = J.find1(0, rows2, 0);
-      for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+      for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
         Jprop(rows1,it.index2())=J(rows2,it.index2());
       // std::cout << "dp f_3 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 10 \n";
       }
@@ -788,16 +830,15 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
   for(unsigned int x=1;x<=n_x_;x++) {
     rows1=((n_y_-1)*(n_x_)*9+(x-1)*9+4);
     rows2=((n_y_-2)*(n_x_)*9+(x-1)*9+4);
-    /*for(int i=0;i<J.size2();i++) {
-      Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-    }*/
     iter = J.find1(0, rows1, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2())= J(rows1,it.index2());
       // std::cout << "dp f_3 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 11 \n";
     }
     iter = J.find1(0, rows2, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
       // std::cout << "dp f_3 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 12 \n";
     }
@@ -807,11 +848,9 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
     for(unsigned int x=1;x<=n_x_;x++) {
       rows1=(y-1)*n_x_*9+(x-1)*9+4;
       rows2=rows1-n_x_*9;
-      /*for(int i=0;i<J.size2();i++) {
-        Jprop(rows1,i)=J(rows2,i);
-      }*/
       iter = J.find1(0, rows2, 0);
-      for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+      for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
         Jprop(rows1,it.index2())=J(rows2,it.index2());
         // std::cout << "dp f_3 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 13 \n";
       }
@@ -823,16 +862,15 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
 
   rows1=(5);
   rows2=((n_x_)*9+9+5);
-  /*for(int i=0;i<J.size2();i++) {
-    Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-  }*/
   iter = J.find1(0, rows1, 0);
-  for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
     Jprop(rows1,it.index2())= J(rows1,it.index2());
     // std::cout << "dp f_5 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 14 \n";
   }
   iter = J.find1(0, rows2, 0);
-  for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
     Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
     // std::cout << "dp f_5 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 15 \n";
   }
@@ -840,16 +878,15 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
   for(unsigned int y=2;y<=n_y_-1;y++) {
     rows1=((y-1)*(n_x_)*9+5);
     rows2=((y)*(n_x_)*9+9+5);
-    /*for(int i=0;i<J.size2();i++) {
-      Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-    }*/
     iter = J.find1(0, rows1, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2())= J(rows1,it.index2());
       // std::cout << "dp f_5 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 16 \n";
     }
     iter = J.find1(0, rows2, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
       // std::cout << "dp f_5 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 17 \n";
     }
@@ -858,16 +895,15 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
   for(unsigned int x=2;x<=n_x_-1;x++) {
     rows1=((x-1)*9+5);
     rows2=((n_x_)*9+(x)*9+5);
-    /*for(int i=0;i<J.size2();i++) {
-      Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-    }*/
     iter = J.find1(0, rows1, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2())= J(rows1,it.index2());
       // std::cout << "dp f_5 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 18 \n";
     }
     iter = J.find1(0, rows2, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
       // std::cout << "dp f_5 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 19 \n";
     }
@@ -877,11 +913,9 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
     for(unsigned int x=2;x<=n_x_-1;x++) {
       rows1=(y-1)*n_x_*9+(x-1)*9+5;
       rows2=rows1+n_x_*9+9;
-      /*for(int i=0;i<J.size2();i++) {
-        Jprop(rows1,i)=J(rows2,i);
-      }*/
       iter = J.find1(0, rows2, 0);
-      for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+      for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
         Jprop(rows1,it.index2())=J(rows2,it.index2());
         // std::cout << "dp f_5 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 20 \n";
       }
@@ -893,16 +927,15 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
 
   rows1=((n_x_-1)*9+6);
   rows2=((n_x_)*9+(n_x_-2)*9+6);
-  /*for(int i=0;i<J.size2();i++) {
-    Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-  }*/
   iter = J.find1(0, rows1, 0);
-  for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
     Jprop(rows1,it.index2())= J(rows1,it.index2());
     // std::cout << "dp f_6 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 21 \n";
   }
   iter = J.find1(0, rows2, 0);
-  for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
     Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
     // std::cout << "dp f_6 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 22 \n";
   }
@@ -910,17 +943,16 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
   for(unsigned int y=2;y<=n_y_-1;y++) {
     rows1=((y-1)*(n_x_)*9+(n_x_-1)*9+6);
     rows2=((y)*(n_x_)*9+(n_x_-2)*9+6);
-    /*for(int i=0;i<J.size2();i++) {
-      Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-    }*/
     iter = J.find1(0, rows1, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2())= J(rows1,it.index2());
       // std::cout << "dp f_6 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 22 \n";
 
     }
     iter = J.find1(0, rows2, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
       // std::cout << "dp f_6 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 23 \n";
     }
@@ -929,16 +961,15 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
   for(unsigned int x=n_x_-1;x>=2;x--) {
     rows1=((x-1)*9+6);
     rows2=((n_x_)*9+(x-2)*9+6);
-    /*for(int i=0;i<J.size2();i++) {
-      Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-    }*/
     iter = J.find1(0, rows1, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2())= J(rows1,it.index2());
       // std::cout << "dp f_6 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 24 \n";
     }
     iter = J.find1(0, rows2, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
       // std::cout << "dp f_6 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 25 \n";
     }
@@ -948,11 +979,9 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
     for(unsigned int x=n_x_-1;x>=2;x--) {
       rows1=(y-1)*n_x_*9+(x-1)*9+6;
       rows2=rows1+n_x_*9-9;
-      /*for(int i=0;i<J.size2();i++) {
-        Jprop(rows1,i)=J(rows2,i);
-      }*/
       iter = J.find1(0, rows2, 0);
-      for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+      for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
         Jprop(rows1,it.index2())=J(rows2,it.index2());
         // std::cout << "dp f_6 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 26 \n";
       }
@@ -963,16 +992,15 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
   //* fdist7 */
   rows1=((n_y_-1)*(n_x_)*9+(n_x_-1)*9+7);
   rows2=((n_y_-2)*(n_x_)*9+(n_x_-2)*9+7);
-  /*for(int i=0;i<J.size2();i++) {
-    Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-  }*/
   iter = J.find1(0, rows1, 0);
-  for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+  //for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
     Jprop(rows1,it.index2())= J(rows1,it.index2());
     // std::cout << "dp f_7 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 27 \n";
   }
   iter = J.find1(0, rows2, 0);
-  for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
     Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
     // std::cout << "dp f_7 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 28 \n";
   }
@@ -980,16 +1008,15 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
   for(unsigned int y=n_y_-1;y>=2;y--) {
     rows1=((y-1)*(n_x_)*9+(n_x_-1)*9+7);
     rows2=((y-2)*(n_x_)*9+(n_x_-2)*9+7);
-    /*for(int i=0;i<J.size2();i++) {
-      Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-    }*/
     iter = J.find1(0, rows1, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2())= J(rows1,it.index2());
       // std::cout << "dp f_7 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 29 \n";
     }
     iter = J.find1(0, rows2, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
       // std::cout << "dp f_7 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 30 \n";
     }
@@ -998,16 +1025,15 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
   for(unsigned int x=n_x_-1;x>=2;x--) {
     rows1=((n_y_-1)*(n_x_)*9+(x-1)*9+7);
     rows2=((n_y_-2)*(n_x_)*9+(x-2)*9+7);
-    /*for(int i=0;i<J.size2();i++) {
-      Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-    }*/
     iter = J.find1(0, rows1, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2())= J(rows1,it.index2());
       // std::cout << "dp f_7 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 31 \n";
     }
     iter = J.find1(0, rows2, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
       // std::cout << "dp f_7 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 32 \n";
     }
@@ -1017,11 +1043,9 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
     for(unsigned int x=n_x_-1;x>=2;x--) {
       rows1=(y-1)*n_x_*9+(x-1)*9+7;
       rows2=rows1-n_x_*9-9;
-      /*for(int i=0;i<J.size2();i++) {
-        Jprop(rows1,i)=J(rows2,i);
-      }*/
       iter = J.find1(0, rows2, 0);
-      for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+      for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
         Jprop(rows1,it.index2())=J(rows2,it.index2());
         // std::cout << "dp f_7 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 33 \n";
       }
@@ -1033,16 +1057,15 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
 
   rows1=((n_y_-1)*(n_x_)*9+8);
   rows2=((n_y_-2)*(n_x_)*9+9+8);
-  /*for(int i=0;i<J.size2();i++) {
-    Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-  }*/
   iter = J.find1(0, rows1, 0);
-  for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
     Jprop(rows1,it.index2())= J(rows1,it.index2());
     // std::cout << "dp f_8 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 34 \n";
   }
   iter = J.find1(0, rows2, 0);
-  for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
     Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
     // std::cout << "dp f_8 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 35 \n";
   }
@@ -1051,16 +1074,15 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
   for(unsigned int y=n_y_-1;y>=2;y--) {
     rows1=((y-1)*(n_x_)*9+8);
     rows2=((y-2)*(n_x_)*9+9+8);
-    /*for(int i=0;i<J.size2();i++) {
-      Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-    }*/
     iter = J.find1(0, rows1, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2())= J(rows1,it.index2());
       // std::cout << "dp f_8 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 36 \n";
     }
     iter = J.find1(0, rows2, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
       // std::cout << "dp f_8 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 37 \n";
     }
@@ -1070,16 +1092,15 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
   for(unsigned int x=2;x<=n_x_-1;x++) {
     rows1=((n_y_-1)*(n_x_)*9+(x-1)*9+8);
     rows2=((n_y_-2)*(n_x_)*9+(x)*9+8);
-    /*for(int i=0;i<J.size2();i++) {
-      Jprop(rows1,i)=J(rows1,i)+J(rows2,i);
-    }*/
     iter = J.find1(0, rows1, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2())= J(rows1,it.index2());
       // std::cout << "dp f_8 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 38 \n";
     }
     iter = J.find1(0, rows2, 0);
-    for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
       // std::cout << "dp f_8 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 39 \n";
     }
@@ -1089,11 +1110,9 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, co
     for(unsigned int x=2;x<=n_x_-1;x++) {
       rows1=(y-1)*n_x_*9+(x-1)*9+8;
       rows2=rows1-n_x_*9+9;
-      /*for(int i=0;i<J.size2();i++) {
-        Jprop(rows1,i)=J(rows2,i);
-      }*/
       iter = J.find1(0, rows2, 0);
-      for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+
+      for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
         Jprop(rows1,it.index2())=J(rows2,it.index2());
         // std::cout << "dp f_8 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 40 \n";
       }
@@ -1108,7 +1127,8 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
   double dB[9] = {0., 0., 1., 0., -1., 1., 1., -1., -1.};
   double dUX[9],dUY[9];
   //boost::numeric::ublas::compressed_compressed_matrix<double> dPD(dpd->size1(),dpd->size2());
-  compressed_matrix<double> dPD(n_x_*n_y_*9,1,0.);
+  // compressed_matrix<double> dPD(n_x_*n_y_*9,1,0.);
+  mapped_matrix<double> dPD(n_elems * 9, 1, n_x_*n_y_*9);
   int index;
   for(unsigned int y=1;y<=n_y_;y++) {
     for(unsigned int x=1;x<=n_x_;x++) {
@@ -1132,7 +1152,8 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
     }
   }
 
-  compressed_matrix<double> dFdf(n_elems * 9,1,0.);
+  // compressed_matrix<double> dFdf(n_elems * 9,1,0.);
+  mapped_matrix<double> dFdf(n_elems * 9, 1, n_elems * 9);
 
   d_propagate_d_rho(dFdf,dPD);
 
@@ -1277,7 +1298,7 @@ void LatticeBoltzmannPDE::CalcResults( shared_ptr<BaseResult> res )
     CalcPressures(res);
     break;
   case MECH_PSEUDO_DENSITY:
-  case PHYSICAL_PSEUDO_DENSITY:
+  case LBM_PHYSICAL_PSEUDO_DENSITY:
     if(domain->GetErsatzMaterial(false) == NULL) // no exception
       res->Init();
     else
@@ -1402,36 +1423,6 @@ void LatticeBoltzmannPDE::DefineAvailResults() {
   // =====================================================================
   PtrParamNode resultsNode = myParam_->Get("storeResults", ParamNode::PASS );
 
-/*
-  // === solution by external LBM solver and also of adjoint linear system ===
-  shared_ptr<ResultInfo> disp(new ResultInfo);
-  StdVector<std::string> dispDofNames;
-  dispDofNames = "x", "y";
-  disp->resultType = MECH_DISPLACEMENT;
-  disp->dofNames = dispDofNames;
-  disp->unit = "";
-  disp->entryType = ResultInfo::VECTOR;
-  shared_ptr<AnsatzFct> fct(new LagrangeFct);
-  disp->fctType = fct;
-  disp->definedOn = ResultInfo::NODE;
-  results_.Push_back( disp );
-  availResults_.insert( disp);
-
-*/
-/*  // === solution adjoint linear system, for technical reasons nodal, therefore the system is too large ===
-  shared_ptr<ResultInfo> nodal(new ResultInfo);
-  nodal->resultType = LBM_NODAL_PROBABILITY_DISTRIBUTION;
-  StdVector<std::string> probDofNames;
-  probDofNames = "f_0", "f_1", "f_2", "f_3", "f_4", "f_5", "f_6", "f_7", "f_8";
-  nodal->dofNames = probDofNames;
-  nodal->unit = "";
-  nodal->entryType = ResultInfo::VECTOR;
-  nodal->fctType = shared_ptr<ConstFct>(new ConstFct());
-  nodal->definedOn = ResultInfo::NODE;
-  results_.Push_back(nodal);
-  availResults_.insert(nodal);*/
-
-
   // === solution by external LBM solver ===
   shared_ptr<ResultInfo> prob(new ResultInfo);
   prob->resultType = LBM_PROBABILITY_DISTRIBUTION;
@@ -1491,7 +1482,7 @@ void LatticeBoltzmannPDE::DefineAvailResults() {
   availResults_.insert( mechPD );
 
   shared_ptr<ResultInfo> pysicalPD(new ResultInfo);
-  pysicalPD->resultType = PHYSICAL_PSEUDO_DENSITY;
+  pysicalPD->resultType = LBM_PHYSICAL_PSEUDO_DENSITY;
   pysicalPD->dofNames = "";
   pysicalPD->unit = "";
   pysicalPD->entryType = ResultInfo::SCALAR;
@@ -1769,16 +1760,19 @@ void LatticeBoltzmannPDE::create_output(const char * file)
     f.close();
 }
 
-void LatticeBoltzmannPDE::ToFile(const std::string& file, const compressed_matrix<double>& M)
+// void LatticeBoltzmannPDE::ToFile(const std::string& file, const compressed_matrix<double>& M)
+void LatticeBoltzmannPDE::ToFile(const std::string& file, const mapped_matrix<double>& M)
 {
   //writes a sparse matrix to file
   int number = M.nnz();
   double val;
   std::stringstream ss;
   ss.precision(16);
-  for(compressed_matrix<double>::const_iterator1 it = M.begin1(); it != M.end1(); ++it)
+  // for(compressed_matrix<double>::const_iterator1 it = M.begin1(); it != M.end1(); ++it)
+  for(mapped_matrix<double>::const_iterator1 it = M.begin1(); it != M.end1(); ++it)
   {
-    for(compressed_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2)
+    // for(compressed_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2)
+    for(mapped_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2)
     {
       val = M(it2.index1(),it2.index2());
       if(abs(val) > 1e-20)
@@ -1792,7 +1786,7 @@ void LatticeBoltzmannPDE::ToFile(const std::string& file, const compressed_matri
 
   f << "%%MatrixMarket matrix coordinate real general\n";
   f << "%\n";
-  f << "% Matrix extracted from boost::compressed_matrix\n";
+  f << "% Matrix extracted from boost::sparse_matrix\n";
   f << "%\n";
   f << M.size1() << "\t" << M.size2() << "\t" << number <<  "\n";
   f << ss.str() << std::endl;

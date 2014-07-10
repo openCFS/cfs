@@ -2,8 +2,10 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Domain/domain.hh"
 #include "PDE/LatticeBoltzmannPDE.hh"
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 
-
+DECLARE_LOG(simp)
 
 LBMSIMP::LBMSIMP()
 {
@@ -21,13 +23,19 @@ LBMSIMP::~LBMSIMP()
 
 void LBMSIMP::SolveStateProblem(Excitation* ev_only_excite)
 {
+  LOG_DBG(simp) << "SSP -> solve";
   lbm->Solve();
+
 }
 
 /** overloads SIMP::CalcFunction()
  * @see ErsatzMaterial::CalcFunction */
 double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 {
+  LOG_DBG(simp) << "CF -> f=" << f->ToString() << " d=" << derivative;
+
+  // assume the problem is solved for the current design by DesignChanged()
+
   switch(f->GetType())
   {
   case Function::PRESSURE_DROP:
@@ -36,7 +44,17 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
       return lbm->CalcPressureDrop();
     else
     {
-      CalcPressureDropDerivative(f);
+      switch(lbm->GetIface())
+      {
+      case LatticeBoltzmannPDE::EXT_MATLAB:
+        lbm->SetPrecalculatedGradient(f->elements, f);
+        break;
+
+      case LatticeBoltzmannPDE::EXT_CFSxLBM:
+      case LatticeBoltzmannPDE::INTERNAL:
+        lbm->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
+        break;
+      }
       return 0.0;
     }
   }
@@ -47,32 +65,5 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   }
 
   return SIMP::CalcFunction(excite, f, derivative);
-}
-
-void LBMSIMP::CalcPressureDropDerivative(Function* f)
-{
-  switch(lbm->GetIface())
-  {
-  case LatticeBoltzmannPDE::EXT_MATLAB:
-    lbm->SetPrecalculatedGradient(f->elements, f);
-    break;
-
-  case LatticeBoltzmannPDE::EXT_CFSxLBM:
-  case LatticeBoltzmannPDE::INTERNAL:
-    lbm->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
-    break;
-  }
-}
-
-
-void LBMSIMP::ConstructAdjointRHS(Excitation& excite, Function* f)
-{
-}
-
-
-/** This is our part for CalcU1KU2() -> This set the matrix derivatives form ELEC and
- * PIEZO_COUPLING ( + transposed) */
-void LBMSIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative)
-{
 }
 

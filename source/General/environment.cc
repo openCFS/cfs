@@ -594,6 +594,7 @@ namespace CoupledField {
     case MECH_PSEUDO_DENSITY:
     case PHYSICAL_PSEUDO_DENSITY:
     case ELEC_PHYSICAL_PSEUDO_DENSITY:
+    case LBM_PHYSICAL_PSEUDO_DENSITY:
       return "";
       break;
 
@@ -1427,6 +1428,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(LBM_VELOCITY, "LBMVelocity");
     SolutionTypeEnum.Add(LBM_DENSITY, "LBMDensity");
     SolutionTypeEnum.Add(LBM_PRESSURE, "LBMPressure");
+    SolutionTypeEnum.Add(LBM_PHYSICAL_PSEUDO_DENSITY, "LBMPhysicalPseudoDensity");
     //fluidMech
     SolutionTypeEnum.Add(MEAN_FLUIDMECH_VELOCITY, "meanFluidMechVelocity");
     SolutionTypeEnum.Add(MEAN_FLUIDMECH_PRESSURE, "meanFluidMechPressure");

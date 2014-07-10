@@ -28,6 +28,8 @@ class Function;
 class LatticeBoltzmann;
 
 using boost::numeric::ublas::compressed_matrix;
+using boost::numeric::ublas::mapped_matrix;
+using boost::numeric::ublas::generalized_vector_of_vector;
 
 
 //! Class for mechanic equation (no adaptivity)
@@ -95,7 +97,8 @@ public:
   std::string ToString(const StdVector<double>& elements, bool x_fast, bool as_int) const;
 
   /** exports a boost compressed matrix in Matrix-Market format */
-  static void ToFile(const std::string& file, const compressed_matrix<double>& M);
+  // static void ToFile(const std::string& file, const compressed_matrix<double>& M);
+  static void ToFile(const std::string& file, const mapped_matrix<double>& M);
 
   void create_output(const char * file);
 
@@ -163,7 +166,8 @@ private:
   /**  This method computes the indices of the adjoint system which avoid a singular Jacobian. Based on Georg Pingen and Thomas Guess, see non_singularities_new.m */
   void SetNonSingualrityIndices();
 
-  void DeleteSingularities(const compressed_matrix<double> & M,compressed_matrix<double> & output);
+  // void DeleteSingularities(const compressed_matrix<double> & M,compressed_matrix<double> & output);
+  void DeleteSingularities(const mapped_matrix<double> & M, compressed_matrix<double> & output);
 
   /** Sets up local data for SensitivityAnalysis() */
   void SetupSensitivityAnalysis(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& dcol, StdVector<double>& weights);
@@ -174,11 +178,13 @@ private:
   void d_inflow_d_rho(int index, Matrix<double>& block, StdVector<double>& weight);
   void d_outflow_d_rho(int index, Matrix<double>& block, StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& dloc, StdVector<double>& weight);
 
-  void d_propagate_d_rho(compressed_matrix<double>& Jprop, const compressed_matrix<double> & J);
+  // void d_propagate_d_rho(compressed_matrix<double>& Jprop, const compressed_matrix<double> & J);
+  void d_propagate_d_rho(mapped_matrix<double>& Jprop, const mapped_matrix<double> & J);
 
   Vector<double> d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& dloc);
 
   void matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
+  void matrix_sparse_to_crs(mapped_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
 
   /** ist solved for current "data". Cleared by Solve(). checked by CalcResults() to handle simulation w/o optimization.
    * @see SetDirty() */

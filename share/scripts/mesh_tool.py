@@ -450,8 +450,9 @@ def create_mbb_mesh(type, resolution):
   return mesh
 
 
-## LBM pipe bend example as used by Pingen et al. 2007
-def create_pipe_bend(resolution):
+## LBM pipe_bend and two_inlet_one_outlet example as used by Pingen et al. 2007
+# @param case pipe_bend or two_inlet_one_outlet 
+def create_lbm(resolution, case):
   mesh = Mesh()
  
   size = 1.0 
@@ -485,13 +486,17 @@ def create_pipe_bend(resolution):
             
       mesh.elements.append(e)
  
-
-  mesh.ne.append(('inlet', range(int(0.1*nx*ny + eps), int(0.3*nx*ny + nx + eps), nx) ))
-  mesh.ne.append(('outlet', range(int((ny-1)*nx + 0.7*nx - eps), int((ny-1)*nx + 0.9*nx + eps)) ))
-
   mesh.bc.append(("left_lower", [0]))
   mesh.bc.append(("right_lower", [nx]))
   mesh.bc.append(("left_upper", [(nx+1)*ny]))
   mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+
+  if case == 'pipe_bend': 
+    mesh.ne.append(('inlet', range(int(0.1*nx*ny + eps), int(0.3*nx*ny + nx + eps), nx) ))
+    mesh.ne.append(('outlet', range(int((ny-1)*nx + 0.7*nx - eps), int((ny-1)*nx + 0.9*nx + eps)) ))
+  elif case == 'two_inlet_one_outlet':
+    mesh.ne.append(('inlet', range(int((0.25 - 1./16) *nx*ny + eps), int((0.25 + 1./16) *nx*ny + nx + eps), nx) ))
+    mesh.ne.append(('inlet', range(int((0.75 - 1./16) *nx*ny + eps), int((0.75 + 1./16) *nx*ny + nx + eps), nx) ))
+    mesh.ne.append(('outlet', range(int(0.375*nx*ny - 1 + eps), int(0.625*nx*ny - 1 + eps), nx) ))
       
   return mesh

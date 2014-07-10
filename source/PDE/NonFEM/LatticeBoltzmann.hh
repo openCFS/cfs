@@ -93,7 +93,7 @@ namespace CoupledField
 public:
 
 
-    LatticeBoltzmann(int sizeX, int sizeY, double ux, double uy, double omega, int maxIterations, double maxTolerance);
+    LatticeBoltzmann(int sizeX, int sizeY, double ux, double uy, double omega, int maxIterations, double maxTolerance, bool plot);
 
     ~LatticeBoltzmann();
 
@@ -156,6 +156,8 @@ public:
     double m_omega;
     int m_maxIter;
     double m_maxTol;
+    /** plot the residuum over lbm iterations */
+    bool m_plot;
 
     StdVector<double> Scales;
 

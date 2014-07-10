@@ -37,14 +37,6 @@ protected:
 
 private:
 
-  void CalcPressureDropDerivative(Function* f);
-
-  void ConstructAdjointRHS(Excitation& excite, Function* f);
-
-  /** This is our part for CalcU1KU2() -> This set the matrix derivatives form ELEC and
-   * PIEZO_COUPLING ( + transposed) */
-  void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
-
   /** shortcut to our pde, is also in ErsatzMaterial::pdes */
   LatticeBoltzmannPDE* lbm;
 };
