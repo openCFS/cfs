@@ -497,33 +497,35 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           assemble_->AddBiLinearForm( voltCoilContext );
 
           // === (f_A)^T ===
-          LinearForm* psiDotIntT;
-          if( dim_ == 3 ) {
-            if( isComplex_ ) {
-              psiDotIntT = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
-                  1.0, eJscaled, updatedGeo_);
+          if( analysistype_ != STATIC ){
+            LinearForm* psiDotIntT;
+            if( dim_ == 3 ) {
+              if( isComplex_ ) {
+                psiDotIntT = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
+                    1.0, eJscaled, updatedGeo_);
+              } else {
+                psiDotIntT = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(),
+                    1.0, eJscaled, updatedGeo_);
+              }
             } else {
-              psiDotIntT = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(),
-                  1.0, eJscaled, updatedGeo_);
+              if( isComplex_ ) {
+                psiDotIntT = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1,Complex>(),
+                    1.0, eJscaled, updatedGeo_);
+              } else {
+                psiDotIntT = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1,Double>(),
+                    1.0, eJscaled, updatedGeo_);
+              }
             }
-          } else {
-            if( isComplex_ ) {
-              psiDotIntT = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1,Complex>(),
-                  1.0, eJscaled, updatedGeo_);
-            } else {
-              psiDotIntT = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1,Double>(),
-                  1.0, eJscaled, updatedGeo_);
-            }
-          }
-          psiDotIntT->SetName("CoilVoltCouplIntTransposed");
+            psiDotIntT->SetName("CoilVoltCouplIntTransposed");
 
-          assembleTransposed = true;
-          BiLinearForm* pseudoBiLinT = new BiLinWrappedLinForm( psiDotIntT, assembleTransposed );
-          BiLinFormContext* voltCoilContextT = new BiLinFormContext( pseudoBiLinT, DAMPING );
-          voltCoilContextT->SetEntities( singleCoilList, actSDList );
-          voltCoilContextT->SetFeFunctions( feFunctions_[COIL_CURRENT], myFct );
-          voltCoilContextT->SetCounterPart(false);
-          assemble_->AddBiLinearForm( voltCoilContextT );
+            assembleTransposed = true;
+            BiLinearForm* pseudoBiLinT = new BiLinWrappedLinForm( psiDotIntT, assembleTransposed );
+            BiLinFormContext* voltCoilContextT = new BiLinFormContext( pseudoBiLinT, DAMPING );
+            voltCoilContextT->SetEntities( singleCoilList, actSDList );
+            voltCoilContextT->SetFeFunctions( feFunctions_[COIL_CURRENT], myFct );
+            voltCoilContextT->SetCounterPart(false);
+            assemble_->AddBiLinearForm( voltCoilContextT );
+          }
 
         } // loop: parts
 
