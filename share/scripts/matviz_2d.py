@@ -470,21 +470,31 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1.0, color="gray
     coord = centers[i]
 
     x_off = (coord[0] + min[0]) * dx
-    y_off = (coord[1] + min[1]) * dy
+    if save == None: 
+      y_off = (coord[1] + min[1]) * dy
+      theta = angle[i]
+    else:
+      y_off = ((coord[1] + min[1]) * dy - dim[1])*(-1.0)
+      theta = -angle[i]
+      
 
     # we need downscale the values when we overscale due to overlapping 
     v1 = [0,0]
     v1[0] = s1[i,0] / numpy.max((scale, 1.))
     v1[1] = s2[i,0] / numpy.max((scale, 1.))
-    theta = angle[i]
     c = [0,0]
     if save == None:
       c[0] = color_code(sm,v1[0]) if color == "grayscale" else color_code(sm, max_val)
       c[1] = color_code(sm,v1[1]) if color == "grayscale" else color_code(sm, max_val)
     else:
+      if color == 'grayscale':
+        color = 'gray'
+      sm = cmx.ScalarMappable(colors.Normalize(vmin=min_val, vmax=max_val), cmap=plt.get_cmap(color))
       m = numpy.max([numpy.max(s1), numpy.max(s2)])
       c[0] = v1[0]/m
       c[1] = v1[1]/m
+      c[0] = sm.to_rgba(max_val-v1[0])
+      c[1] = sm.to_rgba(max_val-v1[1])
 
     # a
     if direction == 'horizontal': 
@@ -507,18 +517,19 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1.0, color="gray
       if save == None: 
         draw.polygon(pol, fill=c[vmin], outline=c[vmin])
       else:
-        draw_verts(pol, axsubplot, str(1.0 - c[vmin]))
+        draw_verts(pol, axsubplot, c[vmin])#str(1.0 - c[vmin]))
       pol = to_rectangle_center(length * v1[vmax], length, theta + vmax*numpy.pi/2, x_off, dim[1] - y_off)
       if save == None: 
         draw.polygon(pol, fill=c[vmax], outline=c[vmax])
       else:
-        draw_verts(pol, axsubplot, str(1.0 - c[vmax]))
+        draw_verts(pol, axsubplot, c[vmax])#str(1.0 - c[vmax]))
       
   if save <> None:
     # Save the full figure...
     #im.savefig('full_figure.png')
     # Save just the portion _inside_ the second axis's boundaries
     extent = axsubplot.get_window_extent().transformed(im.dpi_scale_trans.inverted())
+    plt.axis('off')
     im.savefig(save, bbox_inches=extent)
 
   return im

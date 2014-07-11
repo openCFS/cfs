@@ -39,18 +39,18 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     t33 = get_element(f, "design_tensor33_" + args.hom_access, args.h5_region, args.h5_step)
     s1 = t11*t11+t12*t12
     s2 = t12*t12+t22*t22
-    m = 2.0*numpy.max([numpy.max(s1), numpy.max(s2)])
+    m = 2*numpy.max([numpy.max(s1), numpy.max(s2)])
     s1 *= 1/m
     s2 *= 1/m
     s3 = numpy.ones((len(centers),1)) * .1 # fix for 3D
     
   if has_element(hdf_file, "design_density_" + args.hom_access):
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
-    rho = pow(rho, args.penalty)
+    rho = pow(rho, float(args.penalty))
     s1 *= rho
     s2 *= rho
     s3 *= rho
-    print "scale stiffness values by design_density_" + args.hom_access + " with average value " + str(numpy.mean(rho))  
+    print "scale stiffness values by design_density_" + args.hom_access + " with average value " + str(numpy.mean(rho)) + " and penalty " + str(args.penalty)
   
   angle = numpy.zeros(((len(s1),3)))
   
@@ -128,7 +128,7 @@ parser.add_argument("--tensor", help="tensor name: 'mechTensor', 'piezoTensor, '
 parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=float)
 parser.add_argument("--res", help="x-resolution (default 1000)", default=1000, type=int)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
-parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'rot', 'stream'])
+parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'rot', 'stream'], default='default')
 parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", default="voigt")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
@@ -282,7 +282,7 @@ if h5_read or dim_2D:
       print "Input data is read as as " + args.notation
     tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
     angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.tensor, args.show)
-    
+    #print data
     if args.plot <> None:
       plot_angle_data(args.plot, angle, data)
       # quit!! such we can check for viz!!
