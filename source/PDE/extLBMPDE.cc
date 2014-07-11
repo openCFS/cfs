@@ -118,12 +118,12 @@ void ExtLBMPDE::DefineSolveStep() {
 
     std::cout << "++ Calling extern LBM solver .. \n" << std::endl;
     std::string command = executable + " -o LBM2CFS.dat CFS2LBM.dat";
-    system(command.c_str());
-//    int err = system(command.c_str());
-//    if (err)
-//      EXCEPTION("LBM simulation failed, no outputs available! \n");
-//
-//    std::cout << "\n++ Extern LBM simulation finished" << std::endl;
+//    system(command.c_str());
+    int err = system(command.c_str());
+    if (err)
+      EXCEPTION("LBM simulation failed, no outputs available! \n");
+
+    std::cout << "\n++ Extern LBM simulation finished" << std::endl;
 
     this->readData("LBM2CFS.dat");
   }
