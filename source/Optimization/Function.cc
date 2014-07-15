@@ -2045,7 +2045,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
                      << " bound! grad_glob_gv=" << grad_glob_fv << " factor=" << factor << " new gv=" << gv;
     }
 
-    DesignElement* de = dynamic_cast<DesignElement*>(GetElement(n));
+    BaseDesignElement* de = GetElement(n);
 
     if (!local->IsGlobalized()) {
       // reset the constraint data. Note, as we are local, there are no side effects by elements
@@ -2053,9 +2053,9 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
       if(g->ForDensityFiltering())
       {
         // for constraints using filtered design variables also reset the constraint data in the filter neighborhood
-        for(int j = 0; j < (int) de->simp->neighborhood.GetSize(); j++)
+        for(int j = 0; j < (int) dynamic_cast<DesignElement*>(de)->simp->neighborhood.GetSize(); j++)
         {
-          DesignElement* de2 =  de->simp->neighborhood[j].neighbour;
+          DesignElement* de2 =  dynamic_cast<DesignElement*>(de)->simp->neighborhood[j].neighbour;
           de2->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
           for(int k = 0; k < (int) de2->simp->neighborhood.GetSize(); k++)
             de2->simp->neighborhood[k].neighbour->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
