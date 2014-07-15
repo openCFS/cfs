@@ -586,7 +586,7 @@ namespace CoupledField {
       in->Get("cols")->SetValue(mat->GetNumCols());
       in->Get("nnz")->SetValue(mat->GetNnz());
       in->Get("storageType")->SetValue(BaseMatrix::storageType.ToString(mat->GetStorageType()));
-      in->Get("structueType")->SetValue(BaseMatrix::structureType.ToString(mat->GetStructureType()));
+      in->Get("structureType")->SetValue(BaseMatrix::structureType.ToString(mat->GetStructureType()));
     }
 
     // -----------------

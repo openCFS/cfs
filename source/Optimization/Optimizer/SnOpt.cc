@@ -748,6 +748,10 @@ void SnOpt::SetIntegerValue(const std::string& key, integer value)
   {
     option = "Superbasics limit";
   }
+  else if(key == "new_superbasics_limit")
+  {
+    option = "New superbasics limit";
+  }
   else if(key == "timing_level")
   {
     option = "Timing level";
@@ -772,6 +776,14 @@ void SnOpt::SetIntegerValue(const std::string& key, integer value)
   {
     option = "Factorization frequency";
   }
+  else if(key == "total_integer_workspace")
+    option = "Total integer workspace";
+  else if(key == "total_real_workspace")
+    option = "Total real workspace";
+  else if(key == "user_integer_workspace")
+    option = "User integer workspace";
+  else if(key == "user_real_workspace")
+    option = "User real workspace";
   
   if(!option.empty())
   {

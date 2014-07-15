@@ -57,7 +57,7 @@ public:
   System GetSystem() const { return system_; }
 
   /** works fine for standard single pde SIMP stuff */
-  virtual const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
+  virtual DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
     EXCEPTION("overload!");
   }
 
@@ -136,10 +136,10 @@ public:
    * @param multimaterial index or negative
    * @param direction if given, calculate derivative of Stiffness Matrix instead
    * @return a pointer to the Element Stiffness Matrix*/
-  const Matrix<double>& MechStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  DenseMatrix& MechStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** overwrites OptimizationMaterial::Stiffness */
-  const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1 ) {
+  DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1 ) {
     return MechStiffness(elem, bimaterial, multimaterial, DesignElement::NO_DERIVATIVE);
   }
 
@@ -163,6 +163,7 @@ protected:
   /** The mechanical element stiffness matrix is constant.
    * We store multimaterial as a vector. No material one entry and legacy bimaterial two entries */
   std::map<RegionIdType, StdVector<Matrix<double> > > mechStiffness_map;
+  std::map<RegionIdType, StdVector<Matrix<Complex> > > mechStiffness_mapC;
 
   /** The mechanical element mass matrix is also constant. Only for harmonic!
    * @see mechStiffness_map*/
@@ -185,10 +186,10 @@ class AcouMat : public OptimizationMaterial
 public:
   AcouMat(ErsatzMaterial* em);
 
-  const Matrix<double>& AcouStiffness(const Elem* elem, bool bimaterial);
+  Matrix<double>& AcouStiffness(const Elem* elem, bool bimaterial);
 
   /** overwrites OptimizationMaterial::Stiffness */
-  const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false) {
+  DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false) {
     return AcouStiffness(elem, bimaterial);
   }
 
@@ -279,7 +280,7 @@ public:
   Vector<std::complex<double> > MaxwellHomRHS(const Elem* elem, bool bimaterial);
 
 //  /** overwrites OptimizationMaterial::Stiffness */
-//  const Matrix<std::complex<double> >& Stiffness(const Elem* elem, bool bimaterial = false) {
+//  Matrix<std::complex<double> >& Stiffness(const Elem* elem, bool bimaterial = false) {
 //    return ElecStiffness(elem, bimaterial, DesignElement::NO_DERIVATIVE);
 //  }
 

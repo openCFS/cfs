@@ -23,18 +23,19 @@ class ErsatzMaterial;
   {
   public:
     
-    typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
-      DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR,
-      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT, HOM_RECT_C1} Type;
+    typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED,
+      DENSITY_TIMES_TRANSVERSAL_ISOTROPIC, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC,
+      DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, ORTHOTROPIC, DENSITY_TIMES_ORTHOTROPIC, DENSITY_TIMES_2D_TENSOR,
+      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, D_LAMINATES, HOM_RECT, D_HOM_RECT, HOM_RECT_C1 } Type;
     
-    /* posibilities for the isotropic plane in transversal isotropy
+    /* possibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
      * EMODUL is in the orthogonal direction, POSSION is nu_io where i is in the isotropic plane, o not
      * GMODUL is G_io where i is in the isotropic plane o not (note G_io = G_jo) */
     typedef enum { TRANSISO_XY, TRANSISO_YZ, TRANSISO_XZ } TransIsoType;
     
-    /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt */
-    typedef enum { VOIGT, HILL_MANDEL } Notation;
+    /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt, _NO_DENSITY sets topology variable to 1 in simultaneous material and top. opt. */
+    typedef enum { VOIGT, HILL_MANDEL, HILL_MANDEL_NO_DENSITY } Notation;
 
     /** constructor, reads in DesignMaterial from XML
      * @param pn pointer to PtrParamNode */ 
@@ -130,10 +131,13 @@ class ErsatzMaterial;
     inline void GetLameMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
 
     /** Calculate the Trans-Iso Tensor */
-    inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+    inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
     
     /* general anisotropic FMO tensor */
     inline void GetElasticFMOTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
+
+    /** Calculate the orthotropic material tensor */
+    inline void GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
 
     /** Calculate the Tensor for Density times Tensor */
     inline void GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
@@ -170,25 +174,26 @@ class ErsatzMaterial;
     
     /** rotate elasticity tensor in t (in Hill-Mandel notation!) by the angle a and adjust the entries back to notation to fit with CFS++ */
     void RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double angle, Notation notation = VOIGT);
-
+    
     /** rotate elasticity tensor in Voigt notation according to the parameters, eventually calculating a derivative
-      *  in 3d: rotates the material by ROTANGLEZ around the z-axis by ROTANGLEY around the y-axis and by ROTANGLEX around the x-axis in this given order
-      *  in 2d: rotates the material by ROTANGLE
-      * @param t Material Tensor which is rotated in place (or the derivative is calculated in place)
-      * @param direction if one of ROTANGLEX, ROTANGLEY, ROTANGLEZ, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
-      */
+     *  in 3d: rotates the material by ROTANGLEZ around the z-axis by ROTANGLEY around the y-axis and by ROTANGLEX around the x-axis in this given order
+     *  in 2d: rotates the material by ROTANGLE
+     * @param t Material Tensor which is rotated in place (or the derivative is calculated in place)
+     * @param direction if one of ROTANGLEX, ROTANGLEY, ROTANGLEZ, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
+     */
     void RotateVoigtTensor(Matrix<double>& t, DesignElement::Type direction);
+    
     /** helper function to set a rotation matrix of size 3x3
-           * the matrix (when calculating R*x) would rotate the vector x by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
-           * @param R the place to set the rotation matrix
-           * @sthetax sin(thetax)
-           * @cthetax cos(thetax)
-           * @sthetay sin(thetax)
-           * @cthetay cos(thetax)
-           * @sthetaz sin(thetax)
-           * @cthetaz cos(thetax)
-           * @direction if given direction of the derivative to be calculated
-           */
+     * the matrix (when calculating R*x) would rotate the vector x by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
+     * @param R the place to set the rotation matrix
+     * @sthetax sin(thetax)
+     * @cthetax cos(thetax)
+     * @sthetay sin(thetax)
+     * @cthetay cos(thetax)
+     * @sthetaz sin(thetax)
+     * @cthetaz cos(thetax)
+     * @direction if given direction of the derivative to be calculated
+     */
     void SetRotationMatrix(Matrix<double>& R, double sthetax, double cthetax, double sthetay, double cthetay, double sthetaz, double cthetaz, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
     /** This exists only in Voigt notation! */
@@ -204,7 +209,6 @@ class ErsatzMaterial;
     
     /** Calculate the mass trans-iso case */
     inline double GetTransIsoMaterialMass(DesignElement::Type direction);
-
 
     /** Get the trans-iso mass (tensor trace) out of the corresponding tensor entries */
     inline double GetTransIsoMass(double iD, double iG, double oD, double oG);
