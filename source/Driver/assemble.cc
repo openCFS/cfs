@@ -463,8 +463,8 @@ namespace CoupledField
             }
           }
 #endif
-
           assert((form->IsComplex() && eqnVec1.GetSize() == elemMatrixC.GetNumRows() && eqnVec2.GetSize() == elemMatrixC.GetNumCols()) || !form->IsComplex());
+
           assert((!form->IsComplex() && eqnVec1.GetSize() == elemMatrix.GetNumRows() && eqnVec2.GetSize() == elemMatrix.GetNumCols()) || form->IsComplex());
 
           // Pass element matrix to algebraic system (primary matrix)
@@ -781,11 +781,6 @@ namespace CoupledField
           parser->SetExpr( mHandle_, actLoad.value );
           val = parser->Eval(mHandle_ );
 
-#ifndef NDEBUG
-          if ( std::isnan(val) || std::isinf(val) )
-            EXCEPTION("Trying to assemble nan/inf in AssembleRHSLoads!");
-#endif
-
           // for a harmonic simulation: evaluate phase
           if ( analysisType_ == BasePDE::HARMONIC )
           {
@@ -793,10 +788,6 @@ namespace CoupledField
             parser->SetExpr( mHandle_, actLoad.phase  );
             phase = parser->Eval( mHandle_ );
 
-#ifndef NDEBUG
-            if ( std::isnan(phase) || std::isinf(phase) )
-              EXCEPTION("Trying to assemble nan/inf in AssembleRHSLoads!");
-#endif
             complexValue = Complex( val * cos( phase / 180 * PI ),
                                     val * sin( phase / 180 * PI ) );
           }

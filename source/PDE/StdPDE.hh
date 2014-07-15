@@ -591,7 +591,7 @@ struct ResultInfo;
     bool isaxi_;             //!< true: axisymmetric problem
     bool isComplex_;         //!< true, if some part of PDE is complex (Material, solution)
     shared_ptr<EqnMap> eqnMap_; //!< new equation handling
-    bool needSolPrev_;          //! true, if solution at time step n has also to bve stored
+    bool needSolPrev_;          //! true, if solution at time step n has also to be stored
 
     BaseNodeStoreSol * sol_;    //!< solution
     SingleVector * solVec_;        //! needed in iterative coupled computation 

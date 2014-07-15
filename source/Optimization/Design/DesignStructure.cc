@@ -265,14 +265,20 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
     avg_neighbours += de->simp->neighborhood.GetSize();
     LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
   }
-
-  in->Get("avg_radius")->SetValue(avg_radius / (end-start+1));
-  in->Get("avg_neighbors")->SetValue(avg_neighbours / (end-start+1));
+  double normalized_avg_radius = avg_radius / (data.GetSize()/space->design.GetSize());
+  double normalized_avg_neighbours = avg_neighbours / (data.GetSize()/space->design.GetSize());
+  in->Get("avg_radius")->SetValue(normalized_avg_radius);
+  in->Get("avg_neighbors")->SetValue(normalized_avg_neighbours);
+//  in->Get("avg_radius")->SetValue(avg_radius / (end-start+1));
+//  in->Get("avg_neighbors")->SetValue(avg_neighbours / (end-start+1));
 
   timer->Stop();
   
-  std::cout << "Filter: " << "avg radius: " << (avg_radius / (end-start+1))
-            << " avg neighbourhood: " << (avg_neighbours / (end-start+1)) << std::endl;
+//  std::cout << "Filter: " << "avg radius: " << (avg_radius / (end-start+1))
+//            << " avg neighbourhood: " << (avg_neighbours / (end-start+1)) << std::endl;
+
+  std::cout << "Filter: " << "avg radius: " << normalized_avg_radius
+            << " avg neighbourhood: " << normalized_avg_neighbours << std::endl;
 }
 
 void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<SIMPElement::NeighbourElement>& neighbors)

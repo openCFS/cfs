@@ -1832,7 +1832,6 @@ namespace CoupledField
 
 
   UInt BaseFE::GetNumFncs( const shared_ptr<AnsatzFct>& fcnType ) {
-
     // Check ansatzFctType
     if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
       return GetNumNodes();
@@ -1841,7 +1840,6 @@ namespace CoupledField
     } else {
       EXCEPTION("In base class only implemented for Lagrange functions!");
     }
-
     return 0;
 
   }

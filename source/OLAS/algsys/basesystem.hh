@@ -786,7 +786,11 @@ template <class TYPE> class Matrix;
     //! while computing solution updates
     virtual void RemoveIDBCInfoFromMatrix() const {;};
     //@}
-
+    
+    //! This method prepares the solver for solution of the adjoint problem
+    //! for contact problems, the adjoint is not exactly equal to the original problem
+    virtual void PrepareForAdjoint(BaseVector& sol);
+    
   protected:
 
     //! Pointer to the graph manager object

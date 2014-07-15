@@ -46,9 +46,9 @@ namespace OutInfo{
 
 namespace CoupledField {
 
-  // Import Boost's namespace
-  using namespace boost;
-
+  // Import Boost's namespace as using namespace boost is evil. It breaks with gcc 4.8
+  using boost::shared_ptr;
+  using boost::lexical_cast;
 
   class CFSMessenger;
   // forward class declaration
@@ -161,13 +161,14 @@ namespace CoupledField {
 
     // === unqualified results ===
     MPCCI, FLUID_FORCE, PIEZO_COUPL_TENSOR,
-    ACOU_PRESSUREXYZ,
+    ACOU_PRESSUREXYZ, EXTERNLBM_VELOCITY, EXTERNLBM_DENSITY,
 
     // === Flow results ===
     LAMBDA_K, MEAN_FLUIDMECH_VELOCITY, MEAN_FLUIDMECH_PRESSURE,
     FLUIDMECH_VELOCITY, FLUIDMECH_PRESSURE,
     FLUIDMECH_VELOCITY_DERIV_1, FLUIDMECH_PRESSURE_DERIV_1,
     FLUIDMECH_VELOCITY_DERIV_2, FLUIDMECH_PRESSURE_DERIV_2,
+    FLUIDMECH_PRESSURE_TIME_DERIV_2,
     FLUIDMECH_DENSITY, FLUIDMECH_FORCE, FLUIDMECH_TKE, 
     FLUIDMECH_STRESS, FLUIDMECH_STRAINRATE, FLUIDMECH_ENERGY, FLUIDMECH_STABILPARAM,
     FLUIDMECH_SKINFRICTION, FLUIDMECH_DIV_LH_T, FLUIDMECH_DIV_LAMBVEC,

@@ -273,6 +273,22 @@ namespace CoupledField
 
   }
 
+  void ElemIntegr::PerformIntegrationAPEMomentumPres(const Matrix<Double> & coordMat,
+                            const Vector<Double>& NodalPres,
+                            Vector<Double>& elemVecLambRhs,
+                            Double density){
+    if(!ptElem_)
+      return;
+
+    //perform integration for lamb vector
+    linearLoad_->CalcElemVecWithGradP(coordMat,
+                                     NodalPres,
+                                     elemVecLambRhs,
+                                     ptElem_,
+                                     density);
+
+  }
+
   void ElemIntegr::PerformIntegrationMechRhs(const Matrix<Double> & coordMat,
                           const Matrix<Double>& NodalForce,
                           Vector<Double>& elemvec){

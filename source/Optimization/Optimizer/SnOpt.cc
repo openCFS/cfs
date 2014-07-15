@@ -262,7 +262,7 @@ void SnOpt::InfoXMLOutput()
     exitstring = "unbounded objective";
     break;
   case 31:
-    exitstring = "resource limit error - iteration limit reached";
+    exitstring = "resource limit error - minor iteration limit reached";
     break;
   case 32:
     exitstring = "resource limit error - major iteration limit reached";
@@ -609,8 +609,8 @@ void SnOpt::SetSnOptOptions()
       SetStringValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<std::string>());
   }
   
-  if(!setMinorItLimit) SetIntegerValue("minor_iterations_limit", 5000);
-  if(!setItLimit) SetIntegerValue("iterations_limit", 1000000);
+  if(!setMinorItLimit) SetIntegerValue("minor_iterations_limit", 100000); // minors per major
+  if(!setItLimit) SetIntegerValue("iterations_limit", 1000000); // total minors
 }
 
 void SnOpt::initJacobians()

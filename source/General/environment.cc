@@ -1421,6 +1421,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(HEAT_RHS_LOAD, "heatRhsLoad");
     //mpcci
     SolutionTypeEnum.Add(FLUID_FORCE, "fluidForce");
+    //LBM velocity
+    SolutionTypeEnum.Add(EXTERNLBM_VELOCITY, "externLBMVelocity");
+    SolutionTypeEnum.Add(EXTERNLBM_DENSITY, "externLBMDensity");
     //fluidMech
     SolutionTypeEnum.Add(MEAN_FLUIDMECH_VELOCITY, "meanFluidMechVelocity");
     SolutionTypeEnum.Add(MEAN_FLUIDMECH_PRESSURE, "meanFluidMechPressure");
@@ -1431,6 +1434,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_DERIV_1, "fluidMechPressure_deriv1");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_2, "fluidMechVelocity_deriv2");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_DERIV_2, "fluidMechPressure_deriv2");
+    SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_TIME_DERIV_2, "fluidMechPressure_timeDeriv2");
     SolutionTypeEnum.Add(FLUIDMECH_FORCE, "fluidMechForce");
     SolutionTypeEnum.Add(FLUIDMECH_DENSITY, "fluidMechDensity");
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");

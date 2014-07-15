@@ -1,3 +1,5 @@
+
+
 #-----------------------------------------------------------------------------
 # Don't build anything unless the version of CMake is high enough.
 #-----------------------------------------------------------------------------
@@ -457,8 +459,17 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.git")
     OUTPUT_VARIABLE CFS_SUBVERSION_REPOS
     RETURN_VALUE RETVAL)
 ELSE(EXISTS "${CFS_SOURCE_DIR}/.git")
-  FILE(READ "${CFS_SOURCE_DIR}/.svn/entries" SVNSTR)
-  STRING(REGEX MATCH "[a-z+]+://[a-zA-Z0-9_+-/@]+:[a-zA-Z0-9_+-/@]+" CFS_SUBVERSION_REPOS "${SVNSTR}")
+  # old svn has the data in the hidden subdirectory, new svn has it in the database
+  IF(EXISTS "${CFS_SOURCE_DIR}/.svn/entries")
+    FILE(READ "${CFS_SOURCE_DIR}/.svn/entries" SVNSTR)
+    STRING(REGEX MATCH "[a-z+]+://[a-zA-Z0-9_+-/@]+:[a-zA-Z0-9_+-/@]+" CFS_SUBVERSION_REPOS "${SVNSTR}")
+  ELSE(EXISTS "${CFS_SOURCE_DIR}/.svn/entries")
+    # newer subversion hast URL: and Relative URL: entries. Take the first one only
+    EXEC_PROGRAM("cd ${CFS_SOURCE_DIR} && svn info | grep 'URL: ht' | cut -d' ' -f2"
+      ARGS 
+      OUTPUT_VARIABLE CFS_SUBVERSION_REPOS
+      RETURN_VALUE RETVAL)
+  ENDIF(EXISTS "${CFS_SOURCE_DIR}/.svn/entries")
 ENDIF(EXISTS "${CFS_SOURCE_DIR}/.git")
 
 #-----------------------------------------------------------------------------
@@ -557,6 +568,10 @@ ENDIF(USE_CHOLMOD)
 IF(USE_PARDISO64)
   SUBDIRS(source/OLAS/external/pardiso64)
 ENDIF(USE_PARDISO64)
+
+IF(USE_IPOPT)
+  SUBDIRS(source/OLAS/external/contact-ipopt)
+ENDIF(USE_IPOPT)
 
 SUBDIRS(source/CoupledPDE)
 SUBDIRS(source/DataInOut)

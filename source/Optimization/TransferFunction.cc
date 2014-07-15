@@ -8,6 +8,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/elem.hh"
 #include "General/exception.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/TransferFunction.hh"
 #include "PDE/SinglePDE.hh"
@@ -114,8 +115,12 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type)
   case DesignElement::POISSON:
   case DesignElement::POISSONISO:
   case DesignElement::ROTANGLE:
+  case DesignElement::ROTANGLEX:
+  case DesignElement::ROTANGLEY:
+  case DesignElement::ROTANGLEZ:
   case DesignElement::STIFF1:
   case DesignElement::STIFF2:
+  case DesignElement::STIFF3:
   case DesignElement::TENSOR11:
   case DesignElement::TENSOR12:
   case DesignElement::TENSOR22:
@@ -276,7 +281,8 @@ double TransferFunction::Derivative(const DesignElement* de, DesignElement::Acce
   double value = de->GetValue(DesignElement::DESIGN, access);
 
   #ifdef CHECK_INDEX
-    if(de->GetType() != design_) throw Exception("type missmatch");
+    if(de->GetType() != design_ && (design_ == DesignElement::DEFAULT && de->GetDesignSpace() != NULL && de->GetDesignSpace()->design.GetSize() > 1))
+      throw Exception("type mismatch for the transfer function");
   #endif
     switch(type_)
     {

@@ -156,7 +156,7 @@ class Hysteresis;
       algsys_->ConstructEffectiveMatrix( matrix_factor_ );
     }
 
-    // Incorporate Boundary conitions and
+    // Incorporate Boundary conditions and
     // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
 
@@ -458,7 +458,7 @@ class Hysteresis;
     Vector<Double> tmpRhs;
     algsys_->GetRHSVal(tmpRhs);
     PDE_.SaveRHS( tmpRhs.GetPointer(), tmpRhs.GetSize() );
-
+    
     UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
     bool isIterCoupled    = PDE_.IsIterCoupled();
 

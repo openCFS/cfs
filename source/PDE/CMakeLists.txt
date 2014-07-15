@@ -32,6 +32,7 @@ SET(PDE_SRCS
   pseudoTS.cc
   timestepping.cc
   mixedEqnMap.cc
+  extLBMPDE.cc
   )
 # mpcciPDE.cc
 

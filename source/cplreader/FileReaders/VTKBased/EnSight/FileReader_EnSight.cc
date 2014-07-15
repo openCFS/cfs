@@ -492,23 +492,43 @@ namespace CoupledField
         unstrucElemNodeMapping_[et][5] = 5;
         break;
       case Elem::HEXA8:
-        uniformElemNodeMapping_[et][0] = 0;
-        uniformElemNodeMapping_[et][1] = 1;
-        uniformElemNodeMapping_[et][2] = 3;
-        uniformElemNodeMapping_[et][3] = 2;
-        uniformElemNodeMapping_[et][4] = 4;
-        uniformElemNodeMapping_[et][5] = 5;
-        uniformElemNodeMapping_[et][6] = 7;
-        uniformElemNodeMapping_[et][7] = 6;
+        //FLUENT  & KMT ensight
+        //unstrucElemNodeMapping_[et][0] = 4;
+        //unstrucElemNodeMapping_[et][1] = 5;
+        //unstrucElemNodeMapping_[et][2] = 6;
+        //unstrucElemNodeMapping_[et][3] = 7;
+        //unstrucElemNodeMapping_[et][4] = 0;
+        //unstrucElemNodeMapping_[et][5] = 1;
+        //unstrucElemNodeMapping_[et][6] = 2;
+        //unstrucElemNodeMapping_[et][7] = 3;
 
-        unstrucElemNodeMapping_[et][0] = 0;
-        unstrucElemNodeMapping_[et][1] = 1;
-        unstrucElemNodeMapping_[et][2] = 2;
-        unstrucElemNodeMapping_[et][3] = 3;
-        unstrucElemNodeMapping_[et][4] = 4;
-        unstrucElemNodeMapping_[et][5] = 5;
-        unstrucElemNodeMapping_[et][6] = 6;
-        unstrucElemNodeMapping_[et][7] = 7;
+        //uniformElemNodeMapping_[et][0] = 0;
+        //uniformElemNodeMapping_[et][1] = 1;
+        //uniformElemNodeMapping_[et][2] = 3;
+        //uniformElemNodeMapping_[et][3] = 2;
+        //uniformElemNodeMapping_[et][4] = 4;
+        //uniformElemNodeMapping_[et][5] = 5;
+        //uniformElemNodeMapping_[et][6] = 7;
+        //uniformElemNodeMapping_[et][7] = 6;
+
+        //FOAM
+         uniformElemNodeMapping_[et][0] = 0;
+         uniformElemNodeMapping_[et][1] = 1;
+         uniformElemNodeMapping_[et][2] = 3;
+         uniformElemNodeMapping_[et][3] = 2;
+         uniformElemNodeMapping_[et][4] = 4;
+         uniformElemNodeMapping_[et][5] = 5;
+         uniformElemNodeMapping_[et][6] = 7;
+         uniformElemNodeMapping_[et][7] = 6;
+         
+         unstrucElemNodeMapping_[et][0] = 0;
+         unstrucElemNodeMapping_[et][1] = 1;
+         unstrucElemNodeMapping_[et][2] = 2;
+         unstrucElemNodeMapping_[et][3] = 3;
+         unstrucElemNodeMapping_[et][4] = 4;
+         unstrucElemNodeMapping_[et][5] = 5;
+         unstrucElemNodeMapping_[et][6] = 6;
+         unstrucElemNodeMapping_[et][7] = 7;
         break;
 
       default:

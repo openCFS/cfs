@@ -108,6 +108,8 @@ namespace fs = boost::filesystem;
 
 using namespace CoupledField;
 
+using boost::bad_lexical_cast;
+
 namespace CFSTool {
 
 #ifdef CFSTOOL_FFTW

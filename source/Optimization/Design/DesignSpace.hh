@@ -66,8 +66,9 @@ namespace CoupledField
      }
 
      /** Set the DesignMaterial this is only used in parametric material optimization and therefore not in constructor
-      * @param dm ParamNode in XML */
-     void SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material);
+      * @param dm ParamNode in XML
+      * @param em only to be stored and used for pure ROTATION */
+     void SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material, ErsatzMaterial* em);
 
      /** Set the optimizer, required for level set give the level set values as nodal values.
       * Otherwise not required to be called */
@@ -247,8 +248,9 @@ namespace CoupledField
      /** gives a design element by idx. Handles als AuxDesign */
      virtual BaseDesignElement* GetDesignElement(unsigned int idx);
 
-     /** Service method to find a specific design element by element number and design type */
-     DesignElement* Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception = true, bool include_pseudo_designs = false);
+     /** Service method to find a specific design element by element number and design type
+      * @param mm_index multmaterial index. -1 for none*/
+     DesignElement* Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception = true, bool include_pseudo_designs = false, int mm_index = -1);
 
      /** Searches for the element idx.
       * @param elem checks region of elem or region of vol elemens if elem is a SurfElem
@@ -272,6 +274,9 @@ namespace CoupledField
      /** this is the number of ersatz material variables. Only below GetNumberOfVariables()
       * if AuxDesign or ShapeDesign is used*/
      unsigned int GetNumberOfErsatzMaterialVariables() const { return DesignSpace::GetNumberOfVariables(); }
+     
+     /** this is the number of Aux/Shape variables */
+     virtual int GetNumberOfAuxParameters() const { return 0; }
      
      /** Find the element with the largest Filter neighborhood, if no filter is used or if the
       * value is not unique (what should be the case) any suitable is returned.
@@ -336,7 +341,7 @@ namespace CoupledField
      std::string ToString();
 
      /** Writes summary information about design variables and transfer functions into the node */
-     virtual void ToInfo(PtrParamNode in);
+     virtual void ToInfo(PtrParamNode in, ErsatzMaterial* em);
      
      typedef enum { VARIABLE, CONSTANT_PER_REGION, CONSTANT_ON_ALL_REGIONS, FIXED } DesignConstant;
      
@@ -533,6 +538,9 @@ namespace CoupledField
     /** the material is PDE dependent therefore we create and cache it on the fly. This makes it
      * easy to be also simple for load ersatz material */
     BaseMaterial* GetMultiMaterial(const MaterialClass mc);
+
+    /** for all material classes */
+    void ToInfo(PtrParamNode in, ErsatzMaterial* opt);
 
     /** material name, to be allow creation on the fly. */
     std::string name;

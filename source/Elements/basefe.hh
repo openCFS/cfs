@@ -17,6 +17,8 @@
 #include "MatVec/vector.hh"
 #include "Utils/StdVector.hh"
 
+using boost::dynamic_pointer_cast;
+
 namespace CoupledField {
 class Point;
 }  // namespace CoupledField
@@ -462,7 +464,6 @@ namespace CoupledField
     { 
       EXCEPTION("GetEdgeLength not implemented");
     }
-    
     
     //! Return FE-Type
     virtual Elem::FEType feType() = 0;

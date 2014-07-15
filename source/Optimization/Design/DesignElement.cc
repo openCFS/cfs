@@ -69,6 +69,7 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     // Tensor trace for param mat
     case STIFF1:
     case STIFF2:
+    case STIFF3:
     // Batian's stuff
     // FIXMI!!
     case POISSON:
@@ -162,6 +163,7 @@ BaseDesignElement::BaseDesignElement(Type t) {
   upper_          = 0.0;
   lower_          = 0.0;
   type_           = t;
+  index_          = numeric_limits<unsigned int>::max();
 }
 
 
@@ -247,6 +249,28 @@ double BaseDesignElement::SumObjectiveGradient() const
   return result;
 }
 
+std::string BaseDesignElement::ToString(const StdVector<BaseDesignElement*>& vec, bool print_type)
+{
+  std::stringstream ss;
+  ss << "[";
+  for(unsigned int i = 0, s = vec.GetSize(); i < s; ++i) {
+    if(typeid(vec[i]) == typeid(DesignElement*)){
+      ss << DesignElement::ToString(dynamic_cast<DesignElement*>(vec[i]));
+    }else{
+      ss << " BaseDesignElement ";
+    }
+    if(print_type) ss << "=" << vec[i]->type_;
+    if(i < s-1) ss << ",";
+  }
+  ss << "]";
+
+  return ss.str();
+}
+
+ShapeDesignElement::ShapeDesignElement(unsigned int index) : BaseDesignElement() {
+  index_ = index;
+}
+
 /** The default constructor for StdVector and ghost elements*/
 DesignElement::DesignElement() : BaseDesignElement()
 {
@@ -298,7 +322,6 @@ void DesignElement::Init()
   location_       = NULL;
   elem            = NULL;
   type_           = NO_TYPE;
-  index_          = numeric_limits<unsigned int>::max();
   pseudoElementIndex_ = -1;
   elemVol_        = -1.0;
 }
@@ -546,7 +569,7 @@ bool DesignElement::HasPhysicalDesign() const
 }
 
 
-void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf) const
+void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial* em) const
 {
   in->Get("type")->SetValue(type.ToString(type_));
   in->Get("upperBound")->SetValue(upper_);
@@ -557,6 +580,7 @@ void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf) const
   {
     in->Get("material")->SetValue(multimaterial->name);
     in->Get("mm_index")->SetValue(multimaterial->index);
+    multimaterial->ToInfo(in, em);
   }
 }
 
@@ -632,6 +656,7 @@ void DesignElement::SetEnums()
   Filter::density.Add(Filter::TANH, "tanh");
 
   type.SetName("BaseDesignElement::Type");
+  type.Add(NO_TYPE, "no_type");
   type.Add(NO_MULTIMATERIAL, "no_multimaterial");
   type.Add(NO_DERIVATIVE, "no_derivative");
   type.Add(TENSOR_TRACE, "tensor_trace");
@@ -670,11 +695,12 @@ void DesignElement::SetEnums()
   type.Add(PIEZO_22, "piezo_22");
   type.Add(PIEZO_23, "piezo_23");
   type.Add(ROTANGLE, "rotAngle");
-  type.Add(STIFF1, "stiff1");
-  type.Add(STIFF2, "stiff2");
   type.Add(ROTANGLEX, "rotAngleX");
   type.Add(ROTANGLEY, "rotAngleY");
   type.Add(ROTANGLEZ, "rotAngleZ");
+  type.Add(STIFF1, "stiff1");
+  type.Add(STIFF2, "stiff2");
+  type.Add(STIFF3, "stiff3");
   type.Add(SLACK, "slack");
   type.Add(LOWER_EIG_BOUND, "lowerEigenBound");
   type.Add(MULTIMATERIAL, "multimaterial");
@@ -849,8 +875,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   double numerator = this->weight * this->de_->GetPlainValue(DesignElement::DESIGN);
   double denominator = this->weight;
 
-  // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
-  //                 << " w= " << this->weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " num=" << numerator << " den=" << denominator;
+   LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
+                   << " w= " << this->weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " num=" << numerator << " den=" << denominator;
 
   for(int i = 0, ni = (int) neighborhood.GetSize(); i < ni; i++)
   {
@@ -863,13 +889,13 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     numerator   += w * x;
     denominator += w;
 
-    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-    //                 << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+     LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+                    << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
   }
 
   double p_filt = numerator / denominator;
 
-  // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
+   LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
 
   assert(fd == Filter::STANDARD || fd == Filter::HEAVISIDE || fd == Filter::MOD_HEAVISIDE || fd == Filter::TANH);
 
@@ -887,8 +913,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     assert(p_filt >= 0.7 * this->de_->simp->filter.GetLowerBound(this->de_)); // relax the assert a little, cause of heaviside correction
   }
 
-  // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)
-  //                 << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
+  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)
+                   << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
 
   return p_filt;
 }

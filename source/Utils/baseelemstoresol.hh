@@ -198,7 +198,7 @@ namespace CoupledField{
     inline UInt GetNumSolutions() const;
 
   
-    //! Get vectot with one type of solution. The length
+    //! Get vector with one type of solution. The length
     //! of the vector will be (numer of elems in mesh *
     //! degree of freedoms)
     //! 

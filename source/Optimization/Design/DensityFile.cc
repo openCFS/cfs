@@ -152,7 +152,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
     PtrParamNode  reg = xml->Get("header/regularization/filter", ParamNode::PASS);
     if(reg) filter.SetFilters(reg, info->Get("ersatzMaterial"));
 
-    ersatzMaterial->ToInfo(info->Get("ersatzMaterial")->Get(ParamNode::HEADER));
+    ersatzMaterial->ToInfo(info->Get("ersatzMaterial")->Get(ParamNode::HEADER), NULL);
   }
 
 
@@ -167,6 +167,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
   string name = "design";
   if (pn != NULL && pn->Has("name"))
     name = pn->Get("name")->As<string>();
+  double db = -1;
   for (unsigned int e = 0; e < elsize; ++e)
   {
     // the design set consists of entries like
@@ -180,17 +181,34 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
       val = elems[e]->Get(name)->As<double>();
     else
       val = elems[e]->Get("design")->As<double>();
+    int idx = dt == DesignElement::MULTIMATERIAL ? elems[e]->Get("index")->As<int>() : -1;
 
     // replace the value of the DesignElement
     // we call Find(..,..,false) for meshes with two regions (e. g. cube and void)
     // where we want to ignore the "void"-region completely
-    DesignElement* de = force_region ? &(ersatzMaterial->data[e]) : ersatzMaterial->Find(nr, dt, false);
+    DesignElement* de = force_region ? &(ersatzMaterial->data[e]) : ersatzMaterial->Find(nr, dt, false, false, idx);
+    assert(de == NULL || de->GetType() == dt);
+
+    if(dt == DesignElement::MULTIMATERIAL)
+    {
+      de->multimaterial = &(ersatzMaterial->GetMultiMaterials()[idx]);
+      assert(de->multimaterial->index == idx);
+    }
 
     // this is also for the void-region! mainly for computing high resolution inv hom problems
     if(de != NULL) // && regionIds.Find(de->elem->regionId) >= 0)
-      de->SetDesign(val);
+    {
+        de->SetDesign(val);
+        // Get value of the relative bound for current design variable. If value not set, db = -1.
+        db = ersatzMaterial->design[ersatzMaterial->FindDesign(dt)].relative_bound;
+        if( db > 0.)
+        {
+          // if a relative_bound is set in the xml file, upper and lower bound are overwritten
+          de->SetUpperBound(val+db);
+          de->SetLowerBound(val-db);
+        }
+    }
   }
-
   return ersatzMaterial;
 
 }
