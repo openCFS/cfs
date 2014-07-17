@@ -1378,7 +1378,11 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->GetDesignType(), Optimization::MECH) : NULL;
     bool regular = design->IsRegular();
     unsigned int numEls = f->elements.GetSize();
-    unsigned int base = design->FindDesign(DesignElement::DENSITY)*numEls;
+    unsigned int base;
+    if(design->HasMultiMaterial())
+      base = 0;
+    else
+      base = design->FindDesign(DesignElement::DENSITY)*numEls;
     double sum = 0.0;
     // we need the total volume in the non-regular case
     double total_vol = 0.0;

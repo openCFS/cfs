@@ -858,13 +858,13 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
   std::list<unsigned int> indices;
   for(int i = -1 ; i < (int) id.neighbor.GetSize(); i++)
   {
-    DesignElement* de = dynamic_cast<DesignElement*>(id.GetElement(i));
+    BaseDesignElement* de = id.GetElement(i);
     // int other_idx = local->space->Find(de); // needs to be fast!
     int other_idx = de->GetIndex();
     indices.push_back(other_idx);
     if (this->ForDensityFiltering()) {
-      for(int j = 0; j < (int) de->simp->neighborhood.GetSize(); j++)
-        indices.push_back(de->simp->neighborhood[j].neighbour->GetIndex());
+      for(int j = 0; j < (int) dynamic_cast<DesignElement*>(de)->simp->neighborhood.GetSize(); j++)
+        indices.push_back(dynamic_cast<DesignElement*>(de)->simp->neighborhood[j].neighbour->GetIndex());
     }
   }
 
