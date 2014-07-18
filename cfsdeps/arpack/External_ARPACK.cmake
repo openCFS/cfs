@@ -53,8 +53,8 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "ftp://ftp1.rrzn.uni-hannover.de/pub/mirror/bsd/FreeBSD/ports/distfiles/arpack-ng_3.1.1.tar.gz"
-  "ftp://ftp.uwsg.indiana.edu/pub/FreeBSD/ports/distfiles/arpack-ng_3.1.1.tar.gz"
+  "http://forge.scilab.org/index.php/p/arpack-ng/downloads/get/arpack-ng_3.1.1.tar.gz"
+  "ftp://ftp.es.kde.org/sites/finkproject.org/distfiles/arpack-ng_3.1.1.tar.gz"
   "${ARPACK_URL}/${ARPACK_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/arpack/${ARPACK_GZ}")
