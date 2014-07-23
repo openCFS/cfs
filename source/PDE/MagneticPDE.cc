@@ -383,6 +383,9 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
             CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), 
                                                      CoefXpr::OP_DIV);
             PtrCoefFct jFct = CoefFunction::Generate(mp_, part, jVec);
+            
+            CoefFunction * tmp = jFct.get();
+            std::cerr << "jFct is " << tmp->ToString() << std::endl;
             // ===========
             //  3D CASE
             // ===========
@@ -1018,27 +1021,30 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
         massFormFunctors_.insert(epFunctor);
       }
 
+      // determine dimensionality of current density
+      UInt jDim = aVecComponents.GetSize();
+      
       // === COIL CURRENT DENSITY ===
       shared_ptr<ResultInfo> ccd(new ResultInfo);
       ccd->resultType = MAG_COIL_CURRENT_DENSITY;
-      ccd->dofNames = "";
+      ccd->dofNames = aVecComponents;
       ccd->unit = "A/m^2";
       ccd->definedOn = ResultInfo::ELEMENT;
       ccd->entryType = ResultInfo::VECTOR;
       availResults_.insert( ccd );
-      shared_ptr<CoefFunctionMulti> ccdCoef(new CoefFunctionMulti(CoefFunction::VECTOR, 1,1,isComplex_));
+      shared_ptr<CoefFunctionMulti> ccdCoef(new CoefFunctionMulti(CoefFunction::VECTOR, jDim, 1,isComplex_));
       DefineFieldResult( ccdCoef, ccd );
 
 
       // === TOTAL CURRENT DENSITY ===
       shared_ptr<ResultInfo> tcd(new ResultInfo);
       tcd->resultType = MAG_TOTAL_CURRENT_DENSITY;
-      tcd->dofNames = "";
+      tcd->dofNames = aVecComponents;
       tcd->unit = "A/m^2";
       tcd->definedOn = ResultInfo::ELEMENT;
       tcd->entryType = ResultInfo::VECTOR;
       availResults_.insert( tcd );
-      shared_ptr<CoefFunctionMulti> tcdCoef(new CoefFunctionMulti(CoefFunction::VECTOR,1,1, 
+      shared_ptr<CoefFunctionMulti> tcdCoef(new CoefFunctionMulti(CoefFunction::VECTOR,jDim,1, 
                                                                   isComplex_));
       DefineFieldResult( tcdCoef, tcd );
 
