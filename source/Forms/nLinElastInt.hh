@@ -65,7 +65,6 @@ protected:
   };
 
 
-    
     /** @see BaseForm::CalcBMat() */
     virtual void CalcBMat(Matrix<Double> & bMat, UInt ip,
                           const Matrix<Double> & ptCoord );

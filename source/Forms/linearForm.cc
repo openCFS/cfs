@@ -3405,19 +3405,20 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     // probably need to extract element info for bilinearStiff_ too! 
     // see AddStrainRHSInt::CalcElemVector
 
+    // extract pointer and get coords again for the integrator
+    bilinearStiff_->SetAnsatzFct( ansatzFct1_ );
+    bilinearStiff_->ExtractElemInfo(ent);
+
     partElemVec.Resize(nrNodes * nrDofs);
     partElemVec.Init();
 
     elemVec.Resize(nrNodes*nrDofs);
     elemVec.Init();
 
-
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
     {    
       bilinearStiff_->CalcBMatOnly(linBMat, actIntPt, ptelem, ptCoord_);
-
       linBMat.Transpose(transpB);
-
       partElemVec = transpB * addStress_;
 
       Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_,
