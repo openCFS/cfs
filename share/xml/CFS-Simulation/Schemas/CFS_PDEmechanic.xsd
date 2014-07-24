@@ -520,6 +520,8 @@
       <xsd:enumeration value="optResult_8"/>
       <xsd:enumeration value="optResult_9"/>
       <xsd:enumeration value="optResult_10"/>
+      <xsd:enumeration value="optResult_11"/>
+      <xsd:enumeration value="optResult_12"/>
       <xsd:enumeration value="gradXDisplacement"/>
       <xsd:enumeration value="gradYDisplacement"/>
       <xsd:enumeration value="gradZDisplacement"/>
@@ -554,6 +556,8 @@
       <xsd:enumeration value="optResult_8"/>
       <xsd:enumeration value="optResult_9"/>
       <xsd:enumeration value="optResult_10"/>
+      <xsd:enumeration value="optResult_11"/>
+      <xsd:enumeration value="optResult_12"/>
     </xsd:restriction>
   </xsd:simpleType>
 

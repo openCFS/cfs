@@ -463,8 +463,8 @@ namespace CoupledField
             }
           }
 #endif
-
           assert((form->IsComplex() && eqnVec1.GetSize() == elemMatrixC.GetNumRows() && eqnVec2.GetSize() == elemMatrixC.GetNumCols()) || !form->IsComplex());
+
           assert((!form->IsComplex() && eqnVec1.GetSize() == elemMatrix.GetNumRows() && eqnVec2.GetSize() == elemMatrix.GetNumCols()) || form->IsComplex());
 
           // Pass element matrix to algebraic system (primary matrix)

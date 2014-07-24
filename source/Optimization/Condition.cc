@@ -840,7 +840,10 @@ Function::Local::Identifier& LocalCondition::GetCurrentVirtualContext()
 
 unsigned int LocalCondition::GetSparsityPatternSize() const
 {
-  return local->virtual_elem_map[0].neighbor.GetSize() + 1;
+  if(!this->ForDensityFiltering())
+    return local->virtual_elem_map[0].neighbor.GetSize() + 1; // why the fuck +1
+  else
+    return ((Condition*) this)->GetSparsityPattern().GetSize();
 }
 
 StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
@@ -859,6 +862,10 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
     // int other_idx = local->space->Find(de); // needs to be fast!
     int other_idx = de->GetIndex();
     indices.push_back(other_idx);
+    if (this->ForDensityFiltering()) {
+      for(int j = 0; j < (int) dynamic_cast<DesignElement*>(de)->simp->neighborhood.GetSize(); j++)
+        indices.push_back(dynamic_cast<DesignElement*>(de)->simp->neighborhood[j].neighbour->GetIndex());
+    }
   }
 
   // sort and copy

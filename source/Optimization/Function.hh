@@ -117,6 +117,8 @@ class Function
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
+      ORTHOTROPIC_TENSOR_TRACE,  /*!< tensor trace in the (DENSITY_TIMES_)ORTHOTROPIC parametrizations */
+      GLOBAL_ORTHOTROPIC_TENSOR_TRACE, /*!< global constraint on the tensor trace in (DENSITY_TIMES_)ORTHOTROPIC parametrizations */
       TENSOR_TRACE,              /*!< local constraint on the tensor trace for FMO, laminates, hom_rect. Elasticity or dielec */
       TENSOR_NORM,               /*!< local squared L2 norm of the tensor coefficients (sum of the squared coefficients). For piezo-coupling in piezo FMP */
       LAMINATES_VOL,             /*!< Volume constraint / cost function for laminates parametrization */
@@ -433,7 +435,10 @@ class Function
         double CalcBumpGradient(int neigh_idx) const;
 
         /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
-        double CalcSumModuli(int neigh_idx = -1, bool derivative = false) const;
+        double CalcSumModuli(DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
+
+        /** tensor trace of the material tensor in (DENSITY_TIMES_)ORTHOTROPIC parametrizations */
+        double CalcOrthotropicTensorTrace(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
 
         /** volume of material of the homogenized cross shaped structure in 3D including derivatives */
         //double Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool derivative, double der) const;
@@ -452,10 +457,10 @@ class Function
             double direction) const;
 
         /** volume of material (strong phase for plane strain) in laminate homogenization formulas */
-        double CalcLaminatesVolume(const Local* local, int neigh_idx = -1, bool derivative = false) const;
+        double CalcLaminatesVolume(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
 
         /** volume of material from homogenized lattice structure in 3D */
-        double CalcLatticeVolume3D(const Local* local, int neigh_idx=-1, bool derivative = false) const;
+        double CalcLatticeVolume3D(const Local* local, DesignElement::Access access, int neigh_idx=-1, bool derivative = false) const;
 
 
         /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to hold */
@@ -617,7 +622,7 @@ class Function
     /** real or pseudo design elements defined by the region.
      * if region is ALL_REGIONS this points to the standard design space.
      * Otherwise it is a sub set pointing to the design space or if region is not within the design (stress constraint)
-     * it it is filled by DesignElements with dummy values.
+     * it is filled by DesignElements with dummy values.
      * Created on request */
     StdVector<DesignElement*> elements;
 

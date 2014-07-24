@@ -363,13 +363,10 @@ namespace CoupledField
     virtual void GetNodesByRegion( StdVector<UInt> & nodeList,
                                    const RegionIdType regionId ) = 0;
 
-    //! Returns number of element contained in one region
-
     //! Returns the number of element, which belong to a list of given
     //! regions.
     //! \param regions (in) contains the regionIds of
     virtual UInt GetNumElems(const StdVector<RegionIdType>& regions) const = 0;
-
 
     virtual UInt GetMaxNumNodesPerElem()
     { EXCEPTION( "Not implemented" );  return 0;}
@@ -419,7 +416,7 @@ namespace CoupledField
 
     //! Returns for a given list of surface elements those (volume) elements,
     //! which are neighbouring / have a face in common and are within a given
-    //! listof regions. This can be used to determine interfaces.
+    //! list of regions. This can be used to determine interfaces.
     //! \note A surface element is considered to be a neighbour of a volume
     //! element only, if all nodes of the surface element are common with
     //! a volume element
@@ -651,9 +648,14 @@ namespace CoupledField
     virtual void SurfRegionFromSingleVolRegion(
         const std::string& surfRegionName,
         const std::string& region);
+
+    //! Computes for regular grid number of elements in each direction for specified region
+    //! by using maximal and minimal values of barycenters
+    // result vector: [nx ny nz]
+    // returns 0 vecotr, if mesh is not regular
+    virtual StdVector<UInt> GetBoundaries(RegionIdType region);
+
     //@}
-
-
     // =======================================================================
     // NONCONFORMING GRID SECTION
     // =======================================================================
