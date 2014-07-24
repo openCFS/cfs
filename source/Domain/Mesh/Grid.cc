@@ -804,11 +804,9 @@ namespace CoupledField
     for( UInt i = 0; i < entities.GetSize(); ++i ) {
       UInt dim = GetEntityDim(entities[i]->GetName());
       dims.insert(dim);
-      EntityIterator it = entities[i]->GetIterator();
-      for( ; !it.IsEnd(); it++ ) {
-        elemNums.insert(it.GetElem()->elemNum);
-      }
-      
+      StdVector<UInt> elemNumVec;
+      GetElemNumsByName(elemNumVec, entities[i]->GetName());
+      elemNums.insert(elemNumVec.Begin(), elemNumVec.End());
     }
   }
   
@@ -918,7 +916,11 @@ namespace CoupledField
     Double length = NormL2(&dia[0], elemDim);
     if(elemDim < 3) 
     {
+      Vector<Double> tmpDia = dia;
       dia.Resize(3);
+      for( UInt i=0; i<tmpDia.GetSize(); ++i ) {
+        dia[i] = tmpDia[i];
+      }
       for(UInt i=elemDim; i<3; i++) 
       {
         dia[i] = length;

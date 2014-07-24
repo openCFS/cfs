@@ -25,24 +25,24 @@ CoefFunctionExpression<Double>::CoefFunctionExpression(MathParser * mp) :
   isComplex_ = false;
   
   // obtain global coordinate system for registering coordinates (x,y,z)
-  if(domain) 
-  {
+//  if(domain) 
+//  {
     coordSysDefault_ = domain->GetCoordSystem();
-  }
-  else
-  {
-    coordSysDefault_ = new DefaultCoordSystem( NULL );
-  }
+//  }
+//  else
+//  {
+//    coordSysDefault_ = new DefaultCoordSystem( NULL );
+//  }
 }   
 
 CoefFunctionExpression<Double>::~CoefFunctionExpression(){
   if( domain ) {
     mp_->ReleaseHandle(mHandle_);
   }
-  else 
-  {
-    delete coordSysDefault_;
-  }
+//  else 
+//  {
+//    delete coordSysDefault_;
+//  }
 }
 
 PtrCoefFct CoefFunctionExpression<Double>::GetComplexPart( Global::ComplexPart part ) {

@@ -76,8 +76,10 @@ EvalResult( shared_ptr<BaseResult> res ) {
         
         globCoords.Push_back(coord);
       }
-      
-      it.GetGrid()->GetElemsAtGlobalCoords(globCoords, localCoords, elems);
+      StdVector<shared_ptr<EntityList> > lists(1);
+      lists[0] = res->GetEntityList();
+      it.GetGrid()->GetElemsAtGlobalCoords(globCoords, localCoords, 
+                                           elems, lists);
 
       UInt numElems = elems.GetSize();
 
