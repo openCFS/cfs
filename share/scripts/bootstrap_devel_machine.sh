@@ -240,7 +240,8 @@ SetupRHEL() {
                 java-1.6.0-openjdk-devel tk-devel python-pygments doxygen \
                 tcl-devel python-devel git-svn patch diffutils zip \
                 libXt-devel libXp mesa-libGLU-devel libXmu-devel make \
-                glibc-devel.i386 glibc-devel.i686 util-linux-ng util-linux || ExitFail
+                glibc-devel.x86_64 glibc-devel.i686 util-linux-ng util-linux \
+                libstdc++-devel.x86_64 libstdc++-devel.i686 || ExitFail
            
     if [ "$ARCH" = "X86_64" ]; then
 	LIB="lib64"
