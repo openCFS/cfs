@@ -1,0 +1,59 @@
+--- src/CMakeLists.txt.orig	2014-02-24 21:12:49.502958854 +0100
++++ src/CMakeLists.txt	2014-02-24 21:13:31.813958847 +0100
+@@ -615,9 +615,9 @@
+ #-----------------------------------------------------------------------------
+ ADD_EXECUTABLE (H5detect ${HDF5_SRC_DIR}/H5detect.c)
+ TARGET_C_PROPERTIES (H5detect " " " ")
+-IF (MSVC)
++IF (MSVC OR MINGW OR CYGWIN)
+   TARGET_LINK_LIBRARIES (H5detect "ws2_32.lib")
+-ENDIF (MSVC)
++ENDIF (MSVC OR MINGW OR CYGWIN)
+ 
+ SET (CMD $<TARGET_FILE:H5detect>)
+ ADD_CUSTOM_COMMAND (
+@@ -629,9 +629,9 @@
+ 
+ ADD_EXECUTABLE (H5make_libsettings ${HDF5_SRC_DIR}/H5make_libsettings.c)
+ TARGET_C_PROPERTIES (H5make_libsettings " " " ")
+-IF (MSVC)
++IF (MSVC OR MINGW OR CYGWIN)
+   TARGET_LINK_LIBRARIES (H5make_libsettings "ws2_32.lib")
+-ENDIF (MSVC)
++ENDIF (MSVC OR MINGW OR CYGWIN)
+ 
+ SET (CMD $<TARGET_FILE:H5make_libsettings>)
+ ADD_CUSTOM_COMMAND (
+--- config/cmake/HDFMacros.cmake.orig	2014-03-03 17:55:06.075153564 +0100
++++ config/cmake/HDFMacros.cmake	2014-03-03 17:56:37.023153547 +0100
+@@ -78,16 +78,26 @@
+   # message (STATUS "${libname} libtype: ${libtype}")
+   IF (${libtype} MATCHES "SHARED")
+     IF (WIN32)
+-      SET (LIB_RELEASE_NAME "${libname}")
+-      SET (LIB_DEBUG_NAME "${libname}_D")
++      IF(MINGW)
++        SET (LIB_RELEASE_NAME "${libname}")
++        SET (LIB_DEBUG_NAME "${libname}_debug")
++      ELSE()
++        SET (LIB_RELEASE_NAME "${libname}")
++        SET (LIB_DEBUG_NAME "${libname}_D")
++      ENDIF()
+     ELSE (WIN32)
+       SET (LIB_RELEASE_NAME "${libname}")
+       SET (LIB_DEBUG_NAME "${libname}_debug")
+     ENDIF (WIN32)
+   ELSE (${libtype} MATCHES "SHARED")
+     IF (WIN32)
+-      SET (LIB_RELEASE_NAME "lib${libname}")
+-      SET (LIB_DEBUG_NAME "lib${libname}_D")
++      IF(MINGW)
++        SET (LIB_RELEASE_NAME "${libname}")
++        SET (LIB_DEBUG_NAME "${libname}_debug")
++      ELSE()
++        SET (LIB_RELEASE_NAME "lib${libname}")
++        SET (LIB_DEBUG_NAME "lib${libname}_D")
++      ENDIF()
+     ELSE (WIN32)
+       # if the generator supports configuration types or if the CMAKE_BUILD_TYPE has a value
+       IF (CMAKE_CONFIGURATION_TYPES OR CMAKE_BUILD_TYPE)

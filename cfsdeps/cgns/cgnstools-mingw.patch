@@ -1,0 +1,56 @@
+--- src/cgnstools/tkogl/tkogl.c.orig	2014-03-03 19:35:55.750152642 +0100
++++ src/cgnstools/tkogl/tkogl.c	2014-03-03 19:36:24.557152638 +0100
+@@ -1372,7 +1372,7 @@
+         nColors = 1 << pfd.cColorBits;
+         hHeap = GetProcessHeap ();
+ 
+-        (LPLOGPALETTE) lpPalette = HeapAlloc (hHeap, 0,
++        LPLOGPALETTE lpPalette = HeapAlloc (hHeap, 0,
+             sizeof (LOGPALETTE) + (nColors * sizeof (PALETTEENTRY)));
+             
+         lpPalette->palVersion = 0x300;
+--- src/cgnstools/cgnscalc/CMakeLists.txt.orig	2014-03-03 19:35:10.358152648 +0100
++++ src/cgnstools/cgnscalc/CMakeLists.txt	2014-03-03 19:36:02.300152622 +0100
+@@ -46,8 +46,10 @@
+ add_dependencies(calcwish calclib cgns_static)
+ 
+ if (WIN32)
+-  set_target_properties(calcwish PROPERTIES
+-  	LINK_FLAGS /subsystem:windows)
++  if(NOT MINGW)
++    set_target_properties(calcwish PROPERTIES
++    	LINK_FLAGS /subsystem:windows)
++  endif()
+ endif (WIN32)
+ 
+ if (WIN32)
+--- src/cgnstools/cgnsview/CMakeLists.txt.orig	2014-03-03 19:35:21.694152647 +0100
++++ src/cgnstools/cgnsview/CMakeLists.txt	2014-03-03 19:36:16.676152641 +0100
+@@ -48,8 +48,10 @@
+ add_dependencies(cgiowish cgns_static)
+ 
+ if (WIN32)
+-  set_target_properties(cgiowish PROPERTIES
+-  	LINK_FLAGS /subsystem:windows)
++  if(NOT MINGW)
++    set_target_properties(cgiowish PROPERTIES
++    	LINK_FLAGS /subsystem:windows)
++  endif()
+ endif (WIN32)
+ 
+ if (WIN32)
+--- src/cgnstools/cgnsplot/CMakeLists.txt.orig	2014-03-03 19:35:39.214152642 +0100
++++ src/cgnstools/cgnsplot/CMakeLists.txt	2014-03-03 19:36:10.140152639 +0100
+@@ -48,8 +48,10 @@
+ add_dependencies(plotwish cgns_static tkogl)
+ 
+ if (WIN32)
+-  set_target_properties(plotwish PROPERTIES
+-  	LINK_FLAGS /subsystem:windows)
++  if(NOT MINGW)
++    set_target_properties(plotwish PROPERTIES
++    	LINK_FLAGS /subsystem:windows)
++  endif()
+ endif (WIN32)
+ 
+ if (WIN32)

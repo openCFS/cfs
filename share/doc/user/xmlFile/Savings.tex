@@ -1,0 +1,132 @@
+\chapter{Saving of Results} 
+
+\section{Node Results}
+By default, the degree of freedom is saved to the universal file. But
+sometimes one needs (additionally) the time derivative (e.g. in
+\xel{acoustics}, to calculate the pressure from the acoustic velocity
+potential). Herefore, the command is given for \xel{mechanics}
+
+\begin{xmllisting}
+<storeResults>
+   <nodeResult type="mechVelocity">
+    <allRegions/>
+   </nodeResult>
+</storeResults>
+\end{xmllisting}
+
+may be used. The value of the attribute \xat{type} is PDE dependent,
+e.g. for mechanics, the following values are allowed:
+\begin{itemize}
+\item \xatv{mechDisplacement}
+\item \xatv{mechVelocity}
+\item \xatv{mechAcceleration}
+\end{itemize}
+The allowed types are mentioned at the individual PDE sections.
+
+By default, the values on every node are stored. With the additional
+attribute \xat{region} one can restrict the saved results to one or
+more selected regions.
+To store the results of the regions \xatv{bar} and \xatv{gap}, one
+has to write
+\begin{xmllisting}
+<storeResults>
+   <nodeResult type="mechVelocity">
+    <regionList>
+     <region name="bar"/>
+     <region name="gap"/>
+    </regionList>
+   </nodeResult>
+</storeResults>
+\end{xmllisting}
+Furthermore you have the possibility to restrict in a transient
+anaylsis the writing of time steps, e.g.
+\begin{xmllisting}
+<storeResults>
+   <nodeResult type="mechVelocity">
+    <regionList saveBegin="20" saveEnd="140" saveInc="5">
+     <region name="bar"/>
+     <region name="gap"/>
+    </regionList>
+   </nodeResult>
+</storeResults>
+\end{xmllisting}
+In addition, you can also specify to which output-Id you want to write
+the result, e.g.
+\begin{xmllisting}
+<storeResults>
+    <nodeResult type="mechDisplacement">
+       <allRegions outputIds="hdf5" saveBegin="10" saveEnd="40"/>
+    </nodeResult> 
+</storeResults>
+\end{xmllisting}
+Last, but not least, you can also specify a postprocessing-Id, so that
+with the results you can define the computation of additional global
+physical quantities.
+ 
+
+\section{Element Results}
+In general, saving of element results is, beside the different keyword
+{\bf elemResults} totally similar to the procedure of saving nodal
+results:
+\begin{xmllisting}
+<storeResults>
+   <elemResult type="mechStress"/>
+</storeResults>
+\end{xmllisting}
+Again, the values of \xat{type} depend on the regarded PDE. 
+
+
+\section{Results at Special Points} 
+In many applications we are only interested in the response of the
+system at a single point. In order to reduce necessary disk space,
+it is possible to store the nodal results only at a discrete
+location. Therefore, the command \xel{nodeList} with the
+\xel{nodes}, with attribute \xat{name} and attribute value as node name
+\xatv{nodeName} is provided. This command
+reduces the amount of results stored tremendously, because no
+universal-file is written.
+
+In the config-file, the command is as follows
+
+\begin{xmllisting}
+<storeResults>
+   <nodeResult type="mechVelocity">
+    <nodeList>
+     <nodes name="nodeName"/>
+    </nodeList>
+   </nodeResult>
+</storeResults>
+\end{xmllisting}
+
+has to be used. The results are stored in the -- if necessary new
+created -- directory {\em history} in a file with the name {\em
+  'xml-file-name'-'quantity'-'nodeNr'}.hist.
+
+\begin{verbatim}
+nsel,s,loc,x,len-1e-6,len+1e-6
+nsel,r,loc,y,height
+wsavnod,'ptName'
+\end{verbatim}
+
+As a special case, for storing nodal results at specific radial distances
+from a center point (e.g for directivity plots), first the nodes at these
+points have to be defined (searched) using the element
+\xel{directivityNodes} in section \xel{domain}. Then the
+procedure above can be used, using the name given to this set of
+nodes. 
+
+\section{Results at Special Elements} 
+Again, saving results of selected elements is similar to the procedure
+of saving results on selected nodes. The commands name is \xel{elemList},
+and the necessary keyword attribute name \xat{name} with value
+\xatv{elName}:
+\begin{xmllisting}
+   <storeResults>
+      <elemResult type="mechStress">
+       <elemList>
+        <elem name="elName"/>
+       </elemList>
+      </elemResult>
+   </storeResults>
+\end{xmllisting}
+

@@ -1,0 +1,112 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.cfs++.org ../../../sbm_fespace_090409/share/xml/CFS-Simulation/CFS.xsd"
+ xmlns="http://www.cfs++.org">
+  
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="bimorph.h5"/>
+    </input>
+    <output>
+      <text/>
+      <gid/>
+    </output>
+    <materialData file="mat.xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d">
+    <regionList>
+      <region name="cantilever" material="Steel"/>
+      <region name="piezoLayer" material="PZT-5H"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="gnd"/>
+      <surfRegion name="top"/>
+      <surfRegion name="fix-all"/>
+    </surfRegionList>
+    <nodeList>
+      <nodes name="record">
+        <coord x="400e-6" y="0" z="0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+  
+  
+  <sequenceStep>
+    <analysis>
+      <static/>
+    </analysis>
+    
+    <pdeList>
+      <mechanic subType="3d"> 
+        <regionList>
+          <region name="cantilever"/>
+          <region name="piezoLayer"/>
+        </regionList>
+        <bcsAndLoads>
+          <fix name="fix-all">
+            <comp dof="x"/>
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+        </bcsAndLoads>
+        <storeResults>
+          
+         <nodeResult type="mechDisplacement">
+            <allRegions/>
+           <nodeList>
+             <nodes name="record"/>
+           </nodeList>
+          </nodeResult> 
+        </storeResults>
+      </mechanic>
+      
+      <electrostatic>
+        <regionList>
+          <region name="piezoLayer"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <ground name="gnd"/>
+          <potential value="1" name="top"/>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="elecPotential">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="elecFieldIntensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </electrostatic>
+      
+      
+    </pdeList>
+    
+    <couplingList>
+      <direct>
+        <piezoDirect>
+          <regionList>
+            <region name="piezoLayer"/>
+          </regionList>
+        </piezoDirect>        
+      </direct>
+      
+    </couplingList>
+    <linearSystems>
+      <system>
+         <solverList>
+          <pardiso>
+            <IterRefineSteps> 5 </IterRefineSteps>
+          </pardiso>
+        </solverList>
+      </system>
+      <system></system>
+    </linearSystems>
+    
+  </sequenceStep>
+  
+</cfsSimulation>

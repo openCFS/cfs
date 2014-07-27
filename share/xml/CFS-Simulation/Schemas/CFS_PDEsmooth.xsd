@@ -1,0 +1,265 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for PDE description for a smoothening PDE
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of element for mechanic PDEs -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="smooth" type="DT_PDESmooth" substitutionGroup="PDEBasic">
+    <xsd:unique name="CS_SmoothRegion">
+      <xsd:selector xpath="cfs:region"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+  </xsd:element>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for smoothening PDEs -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_PDESmooth">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PDEBasic">
+
+        <xsd:sequence>
+
+          <!-- Regions the PDE lives on -->
+          <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="nonLinId" type="xsd:token"
+                    use="optional" default=""/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- List defining nonlinear types -->
+          <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="strainStiffening" type="DT_SmoothNonLinStrain"/>
+                </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <!-- Dirichlet Boundary Conditions -->
+                <xsd:element name="fix"          type="DT_BcHomVector"   />
+                <xsd:element name="displacement" type="DT_BcInhomVector" />
+
+                <!-- Old Style Boundary Conditions -->
+                <xsd:element name="dirichletInhom" type="DT_SmoothID"      />
+                <xsd:element name="dirichletFileInhom" type="DT_SmoothIdFile"/>
+                <xsd:element name="neumannInhom"   type="DT_SmoothIN"      />
+                <xsd:element name="load"           type="DT_SmoothLoad"    />
+                <xsd:element name="pressure"       type="DT_SmoothPressure"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Desired solution values (optional) -->
+          <xsd:element name="storeResults" type="DT_SmoothStoreResults"
+            minOccurs="0" maxOccurs="1"/>
+
+        </xsd:sequence>
+
+        <!-- Subtype of PDE -->
+        <xsd:attribute name="subType" type="xsd:token" use="optional"
+          default="planeStrain"/>
+        <xsd:attribute name="smoothing" use="optional" default="byArea">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="byStrain"/>
+              <xsd:enumeration value="byArea"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="size" use="optional" default="1.0"/>
+        <xsd:attribute name="exponent" type="xsd:token" default="-1.0"/>
+
+
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of strain stiffening nonlienarity -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of strain stiffening nonlinearity type -->
+  <xsd:complexType name="DT_SmoothNonLinStrain">
+    <xsd:complexContent>
+      <xsd:extension base="DT_NonLinBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+ <!-- ******************************************************************* -->
+  <!--   Definition of the smoothPDE unknown types -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_SmoothUnknownType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="smoothDisplacement"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of enumeration type describing the degrees of freedom  -->
+  <!-- ******************************************************************* -->
+
+  <xsd:simpleType name="DT_SmoothDOF">
+    <xsd:restriction base="xsd:token">
+     <xsd:enumeration value="x"/>
+      <xsd:enumeration value="y"/>
+      <xsd:enumeration value="z"/>
+      <xsd:enumeration value="tx"/>
+      <xsd:enumeration value="ty"/>
+      <xsd:enumeration value="tz"/>
+      <xsd:enumeration value="r"/>
+      <xsd:enumeration value="phi"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of the boundary condition types for smooth -->
+  <!-- ******************************************************************* -->
+
+  <!-- Element type for homogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_SmoothHD">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="DT_SmoothDOF" use="required"/>
+        <xsd:attribute name="quantity" default="smoothDisplacement"
+          type="DT_SmoothUnknownType"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_SmoothID">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SmoothHD">
+        <xsd:attribute name="value" type="xsd:token" use="required"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional"
+          default="0.0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet from file -->
+  <!-- boundary conditions. We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_SmoothIdFile">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SmoothHD">
+        <xsd:attribute name="inputId" type="xsd:token" default="default"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying inhomogeneous neumann conditions -->
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_SmoothIN">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SmoothID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying loads -->
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_SmoothLoad">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SmoothID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for pressure loads -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_SmoothPressure">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="value" type="xsd:double" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of syntax for specifying output quantities of CFS -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of nodal result types of smooth PDE -->
+  <xsd:simpleType name="DT_SmoothNodeResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="smoothDisplacement"/>
+      <xsd:enumeration value="smoothVelocity"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Definition of nodal result types of smooth PDE -->
+  <xsd:simpleType name="DT_SmoothElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value=""/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+ <!-- Global type for specifying desired electrostatic output quantities -->
+  <xsd:complexType name="DT_SmoothStoreResults">
+    <xsd:sequence>
+      <xsd:choice maxOccurs="unbounded">
+
+        <!-- Nodal result definition -->
+        <xsd:element name="nodeResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_NodeResult">
+                <xsd:attribute name="type" type="DT_SmoothNodeResult"
+                  use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Element result definition -->
+        <xsd:element name="elemResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_ElemResult">
+                <xsd:attribute name="type" type="DT_SmoothElemResult"
+                  use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+</xsd:schema>

@@ -1,0 +1,15 @@
+ADD_DEFINITIONS(-DADFLIB)
+
+ADD_LIBRARY(adf STATIC
+  ADF_fortran_2_c.c
+  ADF_interface.c
+  ADF_internals.c
+  )
+
+INSTALL(TARGETS adf ARCHIVE
+        DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
+
+INSTALL(FILES
+  ADF.h
+  ADF_internals.h
+  DESTINATION include)

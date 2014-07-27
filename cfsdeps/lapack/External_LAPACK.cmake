@@ -1,0 +1,158 @@
+#-------------------------------------------------------------------------------
+# Set paths to lapack sources according to ExternalProject.cmake 
+#-------------------------------------------------------------------------------
+set(lapack_prefix "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/lapack")
+set(lapack_source  "${lapack_prefix}/src/lapack")
+set(lapack_install  "${CFS_BINARY_DIR}")
+
+SET(CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX:PATH=${lapack_install}
+  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
+  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
+  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
+  -DCMAKE_Fortran_FLAGS:STRING=${CFSDEPS_Fortran_FLAGS}
+  -DBUILD_TESTING:BOOL=OFF
+#  -DBUILD_SINGLE:BOOL=OFF
+#  -DBUILD_COMPLEX:BOOL=OFF
+)
+
+IF(CFS_DISTRO STREQUAL "MACOSX")
+  SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
+    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
+    )
+ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+
+IF(CMAKE_TOOLCHAIN_FILE)
+  LIST(APPEND CMAKE_ARGS
+    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
+  )
+ENDIF()
+
+#-------------------------------------------------------------------------------
+# Set names of patch file and template file.
+#-------------------------------------------------------------------------------
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/lapack/lapack-patch.cmake.in")
+SET(PFN "${lapack_prefix}/lapack-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
+#-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since the non-standard port 
+# number of the FTP server on the CFS++ development server  may not be
+# accessible from behind firewalls.
+# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
+# used to configure the download CMake file for the library.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "ftp://ftp.mirrorservice.org/sites/distfiles.macports.org/atlas/lapack-3.4.2.tgz"
+  "http://www.netlib.org/lapack/lapack-3.4.2.tgz"
+  "${LAPACK_URL}/${LAPACK_GZ}"
+)
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/lapack/${LAPACK_GZ}")
+SET(MD5_SUM ${LAPACK_MD5})
+
+SET(DLFN "${lapack_prefix}/lapack-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  )
+
+#-------------------------------------------------------------------------------
+# The Lapack external project
+#-------------------------------------------------------------------------------
+ExternalProject_Add(lapack
+  PREFIX "${lapack_prefix}"
+  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/lapack
+  URL ${LOCAL_FILE}
+  URL_MD5 ${LAPACK_MD5}
+  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+  CMAKE_ARGS
+    ${CMAKE_ARGS}
+  )
+
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(lapack cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${lapack_prefix}
+)
+
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  lapack
+)
+
+#-------------------------------------------------------------------------------
+# Determine paths of LAPACK libraries.
+#-------------------------------------------------------------------------------
+IF(WIN32)
+  SET(NETLIB_BLAS_LIBRARY_DEBUG
+    ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}blas${CMAKE_STATIC_LIBRARY_SUFFIX}
+    CACHE FILEPATH "Netlib BLAS library.")
+  SET(NETLIB_BLAS_LIBRARY_RELEASE
+    ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}blas${CMAKE_STATIC_LIBRARY_SUFFIX}
+    CACHE FILEPATH "Netlib BLAS library.")
+  SET(NETLIB_LAPACK_LIBRARY_DEBUG
+    ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}lapack${CMAKE_STATIC_LIBRARY_SUFFIX}
+    CACHE FILEPATH "Netlib LAPACK library.")
+  SET(NETLIB_LAPACK_LIBRARY_RELEASE
+    ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}lapack${CMAKE_STATIC_LIBRARY_SUFFIX}
+    CACHE FILEPATH "Netlib LAPACK library.")
+ELSE(WIN32)
+  SET(BLAS_LIB "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libblas.a")
+  SET(LAPACK_LIB "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/liblapack.a")
+
+  IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
+    LIST(APPEND BLAS_LIB ${GFORTRAN_LIBRARY})
+  ENDIF()
+
+  SET(NETLIB_BLAS_LIBRARY_DEBUG
+    ${BLAS_LIB}
+    CACHE FILEPATH "Netlib BLAS library.")
+  SET(NETLIB_BLAS_LIBRARY_RELEASE
+    ${BLAS_LIB}
+    CACHE FILEPATH "Netlib BLAS library.")
+  SET(NETLIB_LAPACK_LIBRARY_DEBUG
+    ${LAPACK_LIB}
+    CACHE FILEPATH "Netlib LAPACK library.")
+  SET(NETLIB_LAPACK_LIBRARY_RELEASE
+    ${LAPACK_LIB}
+    CACHE FILEPATH "Netlib LAPACK library.")
+ENDIF(WIN32)
+
+#-------------------------------------------------------------------------------
+# Mark paths of LAPACK libraries as advanced.
+#-------------------------------------------------------------------------------
+MARK_AS_ADVANCED(NETLIB_BLAS_LIBRARY_DEBUG)
+MARK_AS_ADVANCED(NETLIB_BLAS_LIBRARY_RELEASE)
+MARK_AS_ADVANCED(NETLIB_LAPACK_LIBRARY_DEBUG)
+MARK_AS_ADVANCED(NETLIB_LAPACK_LIBRARY_RELEASE)
+
+#-------------------------------------------------------------------------------
+# Set LAPACK_LIBRARY according to configuration
+#-------------------------------------------------------------------------------
+IF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
+  IF(DEBUG)
+    SET(BLAS_LIBRARY "${NETLIB_BLAS_LIBRARY_DEBUG}")
+    SET(LAPACK_LIBRARY "${NETLIB_LAPACK_LIBRARY_DEBUG}")
+  ELSE(DEBUG)
+    SET(BLAS_LIBRARY "${NETLIB_BLAS_LIBRARY_RELEASE}")
+    SET(LAPACK_LIBRARY "${NETLIB_LAPACK_LIBRARY_RELEASE}")
+  ENDIF(DEBUG)
+
+  IF(MINGW)
+    LIST(APPEND BLAS_LIBRARY ${GFORTRAN_LIBRARY})
+  ENDIF(MINGW)
+ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB")

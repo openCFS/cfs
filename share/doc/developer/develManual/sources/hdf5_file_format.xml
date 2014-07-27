@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE ArrayDimension SYSTEM "HDF5-File.dtd">
+ 
+<HDF5-File>
+    <RootGroup OBJ-XID="">
+        <Group Name="Mesh" OBJ-XID="" Parents="" H5ParentPaths=""
+               H5Path="/Mesh">
+            <Group Name="Coordinates" OBJ-XID="" Parents=""
+                   H5ParentPaths="" H5Path=""></Group>
+            <Group Name="Connectivity" OBJ-XID="" Parents=""
+                   H5ParentPaths="" H5Path=""></Group>
+            <Group Name="Regions" OBJ-XID="" Parents=""
+                   H5ParentPaths="" H5Path=""></Group>
+        </Group>
+        <Group Name="Results" OBJ-XID="" Parents="" H5ParentPaths=""
+               H5Path="/Results"/>
+        <Group Name="UserData" OBJ-XID="" Parents="" H5ParentPaths=""
+               H5Path="/UserData"/>
+    </RootGroup>
+</HDF5-File>

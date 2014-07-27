@@ -1,0 +1,435 @@
+#include <iostream>
+
+#include "MatVec/StdMatrix.hh"
+#include "MatVec/Vector.hh"
+#include "MatVec/generatematvec.hh"
+#include "OLAS/precond/BasePrecond.hh"
+#include "OLAS/solver/generatesolver.hh"
+#include "OLAS/solver/BaseSolver.hh"
+
+#include "ArpackMatInterface.hh"
+
+namespace CoupledField {
+
+
+  ArpackMatInterface::ArpackMatInterface( const BaseMatrix * matA, 
+                                          bool shiftMode, Double shift) {
+
+    matrixA_ = matA;
+    matrixB_ = NULL;
+    matrixC_ = NULL;
+    matrixD_ = NULL;
+    
+    shift_ = pow(shift*8.0*atan(1.0),2);
+    size_ = matA->GetNumRows();
+    isGeneralized_ = false;
+    shiftAndInvert_ = shiftMode;
+  }
+
+  ArpackMatInterface::ArpackMatInterface( const BaseMatrix * matA, 
+                                          const BaseMatrix * matB, 
+                                          bool shiftMode, Double shift) {
+    
+    matrixA_ = matA;
+    matrixB_ = matB;
+    matrixC_ = NULL;
+    matrixD_ = NULL;
+    
+    shift_ = pow(shift*8.0*atan(1.0),2);
+    size_ = matA->GetNumRows();
+    isGeneralized_ = true;
+    shiftAndInvert_ = shiftMode;
+  }
+
+  ArpackMatInterface::ArpackMatInterface( BaseMatrix * matA, 
+                                          BaseMatrix * matB, 
+                                          BaseMatrix * matD, 
+                                          bool shiftMode, Double shift) {
+    
+    matrixA_ = matA;
+    matrixB_ = matB;
+    matrixC_ = NULL;
+    matrixD_ = matD;
+    
+    shift_   = shift*8.0*atan(1.0);
+    size_    = 2*matA->GetNumRows();
+    shiftAndInvert_ = shiftMode;
+    // useStiffInNMat_ = true;
+    useStiffInNMat_ = false;
+    isGeneralized_ = true;
+  }
+
+  ArpackMatInterface::~ArpackMatInterface() {
+    if( matrixC_ ) {
+      delete matrixC_;
+      matrixC_ = NULL;
+    }
+    solver_  = NULL;
+    precond_ = NULL;
+  }
+  
+  
+  void ArpackMatInterface::Setup( BaseSolver* solver, BasePrecond* precond ) {
+
+    // Copy references
+    solver_ = solver;
+    precond_ = precond;
+    solver_->SetPrecond(precond_);
+
+    // Note: At this point I am not really sure, if we have to copy the
+    // matrix into a new one
+    // Copy matrix b to matrix c
+
+    if( isGeneralized_ ) {
+
+      // Depending on calculation mode (regular / shift and invert)
+      // copy the correct matrix into matrixC_
+      if ( shiftAndInvert_ == false ) {
+        const StdMatrix & matB = dynamic_cast<const StdMatrix &>(*matrixB_);
+        matrixC_ = CopyStdMatrixObject( matB );
+      } else {
+        const StdMatrix & matA = dynamic_cast<const StdMatrix &>(*matrixA_);
+        const StdMatrix & matB = dynamic_cast<const StdMatrix &>(*matrixB_);
+        matrixC_ = CopyStdMatrixObject( matB );
+
+        matrixC_->Scale( -shift_ );
+        matrixC_->Add( 1.0, matA );
+      } 
+    } else {
+      // Standard EV problem
+      if ( shiftAndInvert_ == false ) {
+      EXCEPTION("Non-Shift-and-Invert mode not implemented for standard eigenvalue problem");
+      } else {
+        const StdMatrix & matA = dynamic_cast<const StdMatrix &>(*matrixA_);
+        matrixC_ = CopyStdMatrixObject( matA );
+        StdMatrix & matC = dynamic_cast<StdMatrix &>(*matrixC_);
+        
+        // calculate C = ( A - shift * I) with I being the unit matrix
+        Double diag = 0.0;
+        for( UInt i = 0; i < matC.GetNumRows(); i++) {
+          matC.GetDiagEntry( i, diag );
+          diag = (diag - shift_ * 1.0 );
+          matC.SetDiagEntry( i, diag );
+        }
+      }
+    }
+    //matrixC_->Export("cmat.mat");
+      
+    // Setup solver and precond-object
+    precond_->Setup( *matrixC_, shared_ptr<ParamNode>() );
+    solver_->Setup( *matrixC_, shared_ptr<ParamNode>() );
+  }
+
+  void ArpackMatInterface::QuadSetup( BaseSolver* solver, BasePrecond* precond ) {
+
+    // Copy references
+    solver_ = solver;
+    precond_ = precond;
+
+    const StdMatrix & matA = dynamic_cast<const StdMatrix &>(*matrixA_);
+    const StdMatrix & matB = dynamic_cast<const StdMatrix &>(*matrixB_);
+    const StdMatrix & matD = dynamic_cast<const StdMatrix &>(*matrixD_);
+
+    // form (B*shift + D)*shift + A) = A + sigma*D + sigma**2*B
+    matrixC_ = CopyStdMatrixObject( matB );
+    matrixC_->Scale( shift_ );
+    matrixC_->Add( 1.0, matD );
+    matrixC_->Scale( shift_ );
+    matrixC_->Add( 1.0, matA );
+    // matrixC_->Print(*cla); 
+
+    // set diagonal scaling entry (hard coded = 1)
+    diagScale_ = 1.0;
+
+    // Setup solver and precond-object
+    precond_->Setup( *matrixC_, shared_ptr<ParamNode>() );
+    solver_->Setup( *matrixC_, shared_ptr<ParamNode>() );
+  }
+  void ArpackMatInterface::MultShiftOpV( Double* x, Double* y ) {
+
+    // Create two temporary vectors as wrappers for x and y
+    Double *x1 = x;
+    Double *y1 = y;
+//     x1--;
+//     y1--;
+    Vector<Double> vecX, vecY;
+    vecX.Replace( size_, x1, false );
+    vecY.Replace( size_, y1, false );
+    
+    // Solve system 
+    solver_->Solve( *matrixC_, vecX, vecY );
+
+  }
+
+  void ArpackMatInterface::MultRegularOpV( Double* x, Double* y ) {
+
+    // Create two temporary vectors as wrappers for x and y
+    Double *x1 = x;
+    Double *y1 = y;
+//     x1--;
+//     y1--;
+    Vector<Double> vecX, vecY;
+    vecX.Replace( size_, x1, false );
+    vecY.Replace( size_, y1, false );
+    
+    // Create temporary vector
+    Vector<Double> ax(size_);
+    matrixA_->Mult( vecX, ax );
+
+    // Solve system 
+    solver_->Solve( *matrixC_,   ax, vecY );
+
+  }
+  
+  void ArpackMatInterface::MultBV( Double* x, Double* y ) {
+    
+    // Create two temporary vectors as wrappers for x and y
+    Double *x1 = x;
+    Double *y1 = y;
+//     x1--;
+//     y1--;
+    Vector<Double> vecX, vecY;
+    vecX.Replace( size_, x1, false );
+    vecY.Replace( size_, y1, false );
+    
+    // Perform matrix-vector multiplication
+    if( isGeneralized_ ) {
+      matrixB_->Mult( vecX, vecY );
+    } else {
+      vecY = vecX;
+    }
+    
+  }
+  
+  void ArpackMatInterface::MultAV( Double* x, Double* y ) {
+    
+    // Create two temporary vectors as wrappers for x and y
+    Double *x1 = x;
+    Double *y1 = y;
+//     x1--;
+//     y1--;
+    Vector<Double> vecX, vecY;
+    vecX.Replace( size_, x1, false );
+    vecY.Replace( size_, y1, false );
+    
+    // Perform matrix-vector multiplication
+    matrixA_->Mult( vecX, vecY );
+    
+  }
+  
+  
+    
+  void ArpackMatInterface::MultShiftOpV( Complex* x, Complex* y ) {
+
+    // do a solve operation A*y = x for the system matrix of the
+    // quadratic eigenvalue problem
+    // important notes: 
+    // x and y are vectors of length size_, which is twice the 
+    //       number of unknowns in this case x = (b1,b2), y=(a1,a2)
+    // the system matrix is (as in MultAV) given by
+    //   ( -C -K | N 0 )
+    // where K and C are the system stiffness and damping matrices, 
+    // and N is an arbitrary, nonsingular matrix. 
+    // we use a multiple of the identiy here (or, alternatively, of K).
+    // Solution is done in a 2 step procedure
+    // solve
+    //      a1 = sigma*a2 + N**(-1)*b2
+    // and
+    //     (K +sigma*C + sigma**2*M) a2 = -b1 - (C+sigma*M)*a1
+
+    // Create two temporary vectors as wrappers for x and y
+    Complex *b1 = x, *b2;
+    Complex *a1 = y, *a2;
+    Integer neq = size_/2;
+
+    b2 = b1 + neq;
+    a2 = a1 + neq;
+    Vector<Complex> vecB1, vecA1, vecB2, vecA2;
+
+    vecA1.Replace( neq, a1, false );
+    vecB1.Replace( neq, b1, false );
+    vecA2.Replace( neq, a2, false );
+    vecB2.Replace( neq, b2, false );
+    
+    Vector<Complex> cx(neq),mx(neq),nInvB2(neq);
+
+    // solve N*nInvB2 = b2
+    nInvB2.Init();
+    if ( useStiffInNMat_ ) {
+      solver_->Solve( *matrixC_, vecB2, nInvB2, shared_ptr<ParamNode>());
+    } else {
+      nInvB2.Add(vecB2);
+    }
+    nInvB2.ScalarMult(1./diagScale_);
+
+    // upper row
+    // mx = (C+sigma*M)*N**(-1)*b2
+    matrixD_->Mult(nInvB2,cx);
+    matrixB_->Mult(nInvB2,mx);
+    mx.Axpy(shift_,cx);
+
+    vecB1.Add(mx);
+    // full rhs
+    vecB1.ScalarMult(-1.0);
+    solver_->Solve( *matrixC_, vecB1, vecA2, shared_ptr<ParamNode>() );
+
+    // solve for a1 (lower part of equation system)
+    vecA1.Add(shift_, vecA2, 1., nInvB2);
+  }
+
+  void ArpackMatInterface::MultBV( Complex* x, Complex* y ) {
+
+    // do a Matrix times vector operation for the solution of the
+    // quadratic eigenvalue problem
+    // important notes: 
+    // x and y are vectors of length size_, which is twice the 
+    //       number of unknowns in this case
+    // B is a complex matrix which is of the form
+    //   ( M 0 | 0 N )
+    // where M is the system "mass" matrix, and N is an arbitrary,
+    // nonsingular matrix. we just take N to be a multiple of the identity
+    // (or, alternatively K).
+
+    // Create temporary vectors as wrappers for x and y
+    // note: x2,y2, vecX2, vecY2 are only required for N = K
+    Complex *x1 = x, *x2;
+    Complex *y1 = y, *y2;
+
+    x2 = x1 + size_/2;
+    y2 = y1 + size_/2;
+
+    Vector<Complex> vecX1, vecY1, vecX2, vecY2;
+    vecX1.Replace( size_/2, x1, false );
+    vecY1.Replace( size_/2, y1, false );
+    vecX2.Replace( size_/2, x2, false );
+    vecY2.Replace( size_/2, y2, false );
+
+    // Perform matrix-vector multiplication
+    matrixB_->Mult( vecX1, vecY1 );
+
+    //for (Integer i=size_/2; i < size_; i++) {
+    //  y[i] = diagScale_*x[i];
+    //}
+    // Perform matrix-vector multiplication
+    vecY2.Init();
+    if ( useStiffInNMat_ ) {
+      matrixC_->Mult( vecX2, vecY2 );
+    } else {
+      vecY2.Add(vecX2);
+    }
+    vecY2.ScalarMult(diagScale_);
+    
+  }
+  
+  void ArpackMatInterface::MultAV( Complex* x, Complex* y ) {
+    
+    // do a Matrix times vector operation for the solution of the
+    // quadratic eigenvalue problem
+    // important notes: 
+    // x and y are vectors of length size_, which is twice the 
+    //       number of unknowns in this case
+    // A is the complex matrix which has of the form
+    //   ( -C -K | N 0 )
+    // where K and C are the system stiffness and damping matrices, 
+    // and N is an arbitrary, nonsingular matrix. (as in MultBV)
+    // We just take N to be scaled identity matrix.
+
+    // Create two temporary vectors as wrappers for x and y
+    Complex *x1 = x, *x2;
+    Complex *y1 = y, *y2;
+    Integer neq = size_/2;
+
+    x2 = x1 + neq;
+    y2 = y1 + neq;
+    Vector<Complex> vecX1, vecY1, vecX2, vecY2, vecTemp(neq);
+
+    vecX1.Replace( neq, x1, false );
+    vecY1.Replace( neq, y1, false );
+    vecX2.Replace( neq, x2, false );
+    vecY2.Replace( neq, y2, false );
+    
+    // Perform matrix-vector multiplication - upper part
+    matrixD_->Mult( vecX1, vecY1 );
+    matrixA_->Mult( vecX2, vecTemp );
+    vecY1.Axpy(1.0,vecTemp);
+    vecY1.ScalarMult(-1.0);
+
+    // Perform matrix-vector multiplication - lower part
+    vecY2.Init();
+    vecY2.Axpy(diagScale_,vecX1);
+    
+  }
+
+  void ArpackMatInterface::MultZStiffV( Complex* x, Complex* y ) {
+    
+    // Create two temporary vectors as wrappers for x and y
+    Complex *x1 = x;
+    Complex *y1 = y;
+    Integer neq = size_/2;
+
+    Vector<Complex> vecX, vecY;
+    vecX.Replace( neq, x1, false );
+    vecY.Replace( neq, y1, false );
+    
+    // Perform matrix-vector multiplication
+    matrixA_->Mult( vecX, vecY );
+    
+  }
+
+  void ArpackMatInterface::MultZMassV( Complex* x, Complex* y ) {
+    
+    // Create two temporary vectors as wrappers for x and y
+    Complex *x1 = x;
+    Complex *y1 = y;
+    Integer neq = size_/2;
+
+    Vector<Complex> vecX, vecY;
+    vecX.Replace( neq, x1, false );
+    vecY.Replace( neq, y1, false );
+    
+    // Perform matrix-vector multiplication
+    matrixB_->Mult( vecX, vecY );
+    
+  }
+
+  void ArpackMatInterface::MultZDampV( Complex* x, Complex* y ) {
+    
+    // Create two temporary vectors as wrappers for x and y
+    Complex *x1 = x;
+    Complex *y1 = y;
+    Integer neq = size_/2;
+
+    Vector<Complex> vecX, vecY;
+    vecX.Replace( neq, x1, false );
+    vecY.Replace( neq, y1, false );
+    
+    // Perform matrix-vector multiplication
+    matrixD_->Mult( vecX, vecY );
+    
+  }
+
+  void ArpackMatInterface::ScaleDiag( Complex* x ) {
+    
+    for (UInt i=0; i<size_/2; i++) {
+      x[i] = x[i]*diagScale_;
+    }
+    
+  }
+
+  void ArpackMatInterface::InvScaleDiag( Complex* x ) {
+    
+    for (UInt i=0; i<size_/2; i++) {
+      x[i] = x[i]/diagScale_;
+    }
+    
+  }
+
+  void ArpackMatInterface::SetDiagScaling ( Double scaleFac ) {
+    diagScale_ = scaleFac;
+  }
+
+  Double ArpackMatInterface::GetDiagScaling ( ) {
+    return diagScale_;
+  }
+
+}

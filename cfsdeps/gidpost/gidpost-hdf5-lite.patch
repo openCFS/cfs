@@ -1,0 +1,1123 @@
+--- source/hdf5c.c.orig	2014-01-16 13:04:40.656907216 +0100
++++ source/hdf5c.c	2014-01-16 13:05:22.167907210 +0100
+@@ -729,1099 +729,3 @@
+   return 0;
+ }
+ 
+-/*###############################################################################
+- *    All functions until the end are literally copied from library: HDF5_HL
+- *###############################################################################*/
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTset_attribute_string
+-*
+-* Purpose: Creates and writes a string attribute named attr_name and attaches
+-*          it to the object specified by the name obj_name.
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: July 23, 2001
+-*
+-* Comments: If the attribute already exists, it is overwritten
+-*
+-* Modifications:
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-herr_t H5LTset_attribute_string( hid_t loc_id,
+-		                const char *obj_name,
+-		                const char *attr_name,
+-		                const char *attr_data )
+-{
+-    hid_t      attr_type;
+-    hid_t      attr_space_id;
+-    hid_t      attr_id;
+-    hid_t      obj_id;
+-    int        has_attr;
+-    size_t     attr_size;
+-
+-    /* Open the object */
+-    if ((obj_id = H5Oopen(loc_id, obj_name, H5P_DEFAULT)) < 0)
+-	return -1;
+-
+-    /* Create the attribute */
+-    if ( (attr_type = H5Tcopy( H5T_C_S1 )) < 0 )
+-	goto out;
+-
+-    attr_size = strlen( attr_data ) + 1; /* extra null term */
+-
+-    if ( H5Tset_size( attr_type, (size_t)attr_size) < 0 )
+-	goto out;
+-
+-    if ( H5Tset_strpad( attr_type, H5T_STR_NULLTERM ) < 0 )
+-	goto out;
+-
+-    if ( (attr_space_id = H5Screate( H5S_SCALAR )) < 0 )
+-	goto out;
+-
+-    /* Verify if the attribute already exists */
+-    has_attr = H5LT_find_attribute(obj_id, attr_name);
+-
+-    /* The attribute already exists, delete it */
+-    if(has_attr == 1)
+-	if(H5Adelete(obj_id, attr_name) < 0)
+-	    goto out;
+-
+-    /* Create and write the attribute */
+-
+-    if((attr_id = H5Acreate2(obj_id, attr_name, attr_type, attr_space_id, H5P_DEFAULT, H5P_DEFAULT)) < 0)
+-	goto out;
+-
+-    if(H5Awrite(attr_id, attr_type, attr_data) < 0)
+-	goto out;
+-
+-    if(H5Aclose(attr_id) < 0)
+-	goto out;
+-
+-    if(H5Sclose(attr_space_id) < 0)
+-	goto out;
+-
+-    if(H5Tclose(attr_type) < 0)
+-	goto out;
+-
+-    /* Close the object */
+-    if(H5Oclose(obj_id) < 0)
+-	return -1;
+-
+-    return 0;
+-
+-out:
+-
+-    H5Oclose(obj_id);
+-    return -1;
+-}
+-
+-
+-
+-
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LT_set_attribute_numerical
+-*
+-* Purpose: Private function used by H5LTset_attribute_int and H5LTset_attribute_float
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: July 25, 2001
+-*
+-* Comments:
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-
+-herr_t H5LT_set_attribute_numerical( hid_t loc_id,
+-		                    const char *obj_name,
+-		                    const char *attr_name,
+-		                    size_t size,
+-		                    hid_t tid,
+-		                    const void *data )
+-{
+-
+-    hid_t      obj_id, sid, attr_id;
+-    hsize_t    dim_size=size;
+-    int        has_attr;
+-
+-    /* Open the object */
+-    if ((obj_id = H5Oopen(loc_id, obj_name, H5P_DEFAULT)) < 0)
+-	return -1;
+-
+-    /* Create the data space for the attribute. */
+-    if ( (sid = H5Screate_simple( 1, &dim_size, NULL )) < 0 )
+-	goto out;
+-
+-    /* Verify if the attribute already exists */
+-    has_attr = H5LT_find_attribute(obj_id, attr_name);
+-
+-    /* The attribute already exists, delete it */
+-    if(has_attr == 1)
+-	if(H5Adelete(obj_id, attr_name) < 0)
+-	    goto out;
+-
+-    /* Create the attribute. */
+-    if((attr_id = H5Acreate2(obj_id, attr_name, tid, sid, H5P_DEFAULT, H5P_DEFAULT)) < 0)
+-	goto out;
+-
+-    /* Write the attribute data. */
+-    if(H5Awrite(attr_id, tid, data) < 0)
+-	goto out;
+-
+-    /* Close the attribute. */
+-    if(H5Aclose(attr_id) < 0)
+-	goto out;
+-
+-    /* Close the dataspace. */
+-    if(H5Sclose(sid) < 0)
+-	goto out;
+-
+-    /* Close the object */
+-    if(H5Oclose(obj_id) < 0)
+-	return -1;
+-
+-    return 0;
+-
+-out:
+-    H5Oclose(obj_id);
+-    return -1;
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LT_make_dataset
+-*
+-* Purpose: Creates and writes a dataset of a type tid
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Quincey Koziol, koziol@hdfgroup.org
+-*
+-* Date: October 10, 2007
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-static herr_t
+-H5LT_make_dataset_numerical( hid_t loc_id,
+-		            const char *dset_name,
+-		            int rank,
+-		            const hsize_t *dims,
+-		            hid_t tid,
+-		            const void *data )
+-{
+-    hid_t   did = -1, sid = -1;
+-
+-    /* Create the data space for the dataset. */
+-    if((sid = H5Screate_simple(rank, dims, NULL)) < 0)
+-	return -1;
+-
+-    /* Create the dataset. */
+-    if((did = H5Dcreate2(loc_id, dset_name, tid, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)) < 0)
+-	goto out;
+-
+-    /* Write the dataset only if there is data to write */
+-    if(data)
+-	if(H5Dwrite(did, tid, H5S_ALL, H5S_ALL, H5P_DEFAULT, data) < 0)
+-	    goto out;
+-
+-    /* End access to the dataset and release resources used by it. */
+-    if(H5Dclose(did) < 0)
+-	return -1;
+-
+-    /* Terminate access to the data space. */
+-    if(H5Sclose(sid) < 0)
+-	return -1;
+-
+-    return 0;
+-
+-out:
+-    H5E_BEGIN_TRY {
+-	H5Dclose(did);
+-	H5Sclose(sid);
+-    } H5E_END_TRY;
+-    return -1;
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTget_dataset_ndims
+-*
+-* Purpose: Gets the dimensionality of a dataset.
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: September 4, 2001
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-herr_t H5LTget_dataset_ndims( hid_t loc_id,
+-		             const char *dset_name,
+-		             int *rank )
+-{
+-    hid_t       did = -1;
+-    hid_t       sid = -1;
+-
+-    /* Open the dataset. */
+-    if((did = H5Dopen2(loc_id, dset_name, H5P_DEFAULT)) < 0)
+-	return -1;
+-
+-    /* Get the dataspace handle */
+-    if((sid = H5Dget_space(did)) < 0)
+-	goto out;
+-
+-    /* Get rank */
+-    if((*rank = H5Sget_simple_extent_ndims(sid)) < 0)
+-	goto out;
+-
+-    /* Terminate access to the dataspace */
+-    if(H5Sclose(sid) < 0)
+-	goto out;
+-
+-    /* End access to the dataset */
+-    if(H5Dclose(did))
+-	return -1;
+-
+-    return 0;
+-
+-out:
+-    H5E_BEGIN_TRY {
+-	H5Dclose(did);
+-	H5Sclose(sid);
+-    } H5E_END_TRY;
+-    return -1;
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTget_dataset_info
+-*
+-* Purpose: Gets information about a dataset.
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: September 4, 2001
+-*  Modified: February 28, 2006: checked for NULL parameters
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-herr_t H5LTget_dataset_info( hid_t loc_id,
+-		            const char *dset_name,
+-		            hsize_t *dims,
+-		            H5T_class_t *type_class,
+-		            size_t *type_size )
+-{
+-    hid_t       did = -1;
+-    hid_t       tid = -1;
+-    hid_t       sid = -1;
+-
+-    /* open the dataset. */
+-    if((did = H5Dopen2(loc_id, dset_name, H5P_DEFAULT)) < 0)
+-	return -1;
+-
+-    /* get an identifier for the datatype. */
+-    tid = H5Dget_type(did);
+-
+-    /* get the class. */
+-    if(type_class != NULL)
+-	*type_class = H5Tget_class(tid);
+-
+-    /* get the size. */
+-    if(type_size!=NULL)
+-	*type_size = H5Tget_size(tid);
+-
+-    if(dims != NULL) {
+-	/* get the dataspace handle */
+-	if((sid = H5Dget_space(did)) < 0)
+-	    goto out;
+-
+-	/* get dimensions */
+-	if(H5Sget_simple_extent_dims(sid, dims, NULL) < 0)
+-	    goto out;
+-
+-	/* terminate access to the dataspace */
+-	if(H5Sclose(sid) < 0)
+-	    goto out;
+-    } /* end if */
+-
+-    /* release the datatype. */
+-    if(H5Tclose(tid))
+-	return -1;
+-
+-    /* end access to the dataset */
+-    if(H5Dclose(did))
+-	return -1;
+-
+-    return 0;
+-
+-out:
+-    H5E_BEGIN_TRY {
+-	H5Tclose(tid);
+-	H5Sclose(sid);
+-	H5Dclose(did);
+-    } H5E_END_TRY;
+-    return -1;
+-
+-}
+-
+-
+-/*-------------------------------------------------------------------------
+-* Function: find_attr
+-*
+-* Purpose: operator function used by H5LT_find_attribute
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: June 21, 2001
+-*
+-* Comments:
+-*
+-* Modifications:
+-*
+-*-------------------------------------------------------------------------
+-*/
+-static herr_t
+-find_attr(hid_t loc_id, const char *name, const H5A_info_t *ainfo,
+-	  void *op_data)
+-{
+-    int ret = H5_ITER_CONT;
+-
+-    /* Shut compiler up */
+-    loc_id = loc_id; ainfo = ainfo;
+-
+-    /* Define a positive value for return value if the attribute was found. This will
+-    * cause the iterator to immediately return that positive value,
+-    * indicating short-circuit success
+-    */
+-    if(strcmp(name, (char *)op_data) == 0)
+-	ret = H5_ITER_STOP;
+-
+-    return ret;
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTfind_attribute
+-*
+-* Purpose: Inquires if an attribute named attr_name exists attached to
+-*          the object loc_id.
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: May 17, 2006
+-*
+-* Comments:
+-*  Calls the private version of the function
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-herr_t H5LTfind_attribute( hid_t loc_id, const char* attr_name )
+-{
+-    return H5LT_find_attribute(loc_id,attr_name);
+-}
+-
+-
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LT_find_attribute
+-*
+-* Purpose: Inquires if an attribute named attr_name exists attached to the object loc_id.
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: June 21, 2001
+-*
+-* Comments:
+-*  The function uses H5Aiterate2 with the operator function find_attr
+-*
+-* Return:
+-*  Success: The return value of the first operator that
+-*              returns non-zero, or zero if all members were
+-*              processed with no operator returning non-zero.
+-*
+-*  Failure: Negative if something goes wrong within the
+-*              library, or the negative value returned by one
+-*              of the operators.
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-herr_t
+-H5LT_find_attribute( hid_t loc_id, const char* attr_name )
+-{
+-    return H5Aiterate2(loc_id, H5_INDEX_NAME, H5_ITER_INC, NULL, find_attr, (void *)attr_name);
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTget_attribute_ndims
+-*
+-* Purpose: Gets the dimensionality of an attribute.
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: September 4, 2001
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-herr_t H5LTget_attribute_ndims( hid_t loc_id,
+-		               const char *obj_name,
+-		               const char *attr_name,
+-		               int *rank )
+-{
+-    hid_t       attr_id;
+-    hid_t       sid;
+-    hid_t       obj_id;
+-
+-    /* Open the object */
+-    if((obj_id = H5Oopen(loc_id, obj_name, H5P_DEFAULT)) < 0)
+-	return -1;
+-
+-    /* Open the attribute. */
+-    if((attr_id = H5Aopen(obj_id, attr_name, H5P_DEFAULT)) < 0)
+-    {
+-	H5Oclose(obj_id);
+-	return -1;
+-    }
+-
+-    /* Get the dataspace handle */
+-    if((sid = H5Aget_space(attr_id)) < 0)
+-	goto out;
+-
+-    /* Get rank */
+-    if((*rank = H5Sget_simple_extent_ndims(sid)) < 0)
+-	goto out;
+-
+-    /* Terminate access to the attribute */
+-    if ( H5Sclose( sid ) < 0 )
+-	goto out;
+-
+-    /* End access to the attribute */
+-    if ( H5Aclose( attr_id ) )
+-	goto out;;
+-
+-    /* Close the object */
+-    if(H5Oclose(obj_id) < 0 )
+-	return -1;
+-
+-    return 0;
+-
+-out:
+-    H5Aclose( attr_id );
+-    H5Oclose(obj_id);
+-    return -1;
+-
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTget_attribute_info
+-*
+-* Purpose: Gets information about an attribute.
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: September 4, 2001
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-herr_t H5LTget_attribute_info( hid_t loc_id,
+-		              const char *obj_name,
+-		              const char *attr_name,
+-		              hsize_t *dims,
+-		              H5T_class_t *type_class,
+-		              size_t *type_size )
+-{
+-    hid_t       attr_id;
+-    hid_t       tid;
+-    hid_t       sid;
+-    hid_t       obj_id;
+-
+-    /* Open the object */
+-    if((obj_id = H5Oopen(loc_id, obj_name, H5P_DEFAULT)) < 0)
+-	return -1;
+-
+-    /* Open the attribute. */
+-    if((attr_id = H5Aopen(obj_id, attr_name, H5P_DEFAULT)) < 0)
+-    {
+-	H5Oclose(obj_id);
+-	return -1;
+-    }
+-
+-    /* Get an identifier for the datatype. */
+-    tid = H5Aget_type(attr_id);
+-
+-    /* Get the class. */
+-    *type_class = H5Tget_class(tid);
+-
+-    /* Get the size. */
+-    *type_size = H5Tget_size( tid );
+-
+-    /* Get the dataspace handle */
+-    if ( (sid = H5Aget_space( attr_id )) < 0 )
+-	goto out;
+-
+-    /* Get dimensions */
+-    if ( H5Sget_simple_extent_dims( sid, dims, NULL) < 0 )
+-	goto out;
+-
+-    /* Terminate access to the dataspace */
+-    if ( H5Sclose( sid ) < 0 )
+-	goto out;
+-
+-    /* Release the datatype. */
+-    if ( H5Tclose( tid ) )
+-	goto out;
+-
+-    /* End access to the attribute */
+-    if ( H5Aclose( attr_id ) )
+-	goto out;
+-
+-    /* Close the object */
+-    if(H5Oclose(obj_id) < 0 )
+-	return -1;
+-
+-    return 0;
+-
+-out:
+-    H5Tclose(tid);
+-    H5Aclose(attr_id);
+-    H5Oclose(obj_id);
+-    return -1;
+-
+-}
+-
+-  /*-------------------------------------------------------------------------
+-* Function: H5LTset_attribute_char
+-*
+-* Purpose: Create and write an attribute.
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: November 7, 2001
+-*
+-* Comments:
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-herr_t H5LTset_attribute_char( hid_t loc_id,
+-		              const char *obj_name,
+-		              const char *attr_name,
+-		              const char *data,
+-		              size_t size )
+-{
+-
+-    if ( H5LT_set_attribute_numerical( loc_id, obj_name, attr_name, size,
+-	H5T_NATIVE_CHAR, data ) < 0 )
+-	return -1;
+-
+-    return 0;
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LT_get_attribute_mem
+-*
+-* Purpose: Reads an attribute named attr_name with the memory type mem_type_id
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: September 19, 2002
+-*
+-* Comments: Private function
+-*
+-* Modifications:
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-
+-static herr_t H5LT_get_attribute_mem(hid_t loc_id,
+-		                     const char *obj_name,
+-		                     const char *attr_name,
+-		                     hid_t mem_type_id,
+-		                     void *data)
+-{
+-    /* identifiers */
+-    hid_t obj_id = -1;
+-    hid_t attr_id = -1;
+-
+-    /* Open the object */
+-    if((obj_id = H5Oopen(loc_id, obj_name, H5P_DEFAULT)) < 0)
+-	goto out;
+-
+-    if((attr_id = H5Aopen(obj_id, attr_name, H5P_DEFAULT)) < 0)
+-	goto out;
+-
+-    if(H5Aread(attr_id, mem_type_id, data) < 0)
+-	goto out;
+-
+-    if(H5Aclose(attr_id) < 0)
+-	goto out;
+-    attr_id = -1;
+-
+-    /* Close the object */
+-    if(H5Oclose(obj_id) < 0)
+-	goto out;
+-    obj_id = -1;
+-
+-    return 0;
+-
+-out:
+-    if(attr_id > 0)
+-	H5Aclose(attr_id);
+-    return -1;
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LT_get_attribute_disk
+-*
+-* Purpose: Reads an attribute named attr_name with the datatype stored on disk
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: September 19, 2002
+-*
+-* Comments:
+-*
+-* Modifications:
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-herr_t H5LT_get_attribute_disk( hid_t loc_id,
+-		               const char *attr_name,
+-		               void *attr_out )
+-{
+-    /* identifiers */
+-    hid_t attr_id;
+-    hid_t attr_type;
+-
+-    if(( attr_id = H5Aopen(loc_id, attr_name, H5P_DEFAULT)) < 0)
+-	return -1;
+-
+-    if((attr_type = H5Aget_type(attr_id)) < 0)
+-	goto out;
+-
+-    if(H5Aread(attr_id, attr_type, attr_out) < 0)
+-	goto out;
+-
+-    if(H5Tclose(attr_type) < 0)
+-	goto out;
+-
+-    if ( H5Aclose( attr_id ) < 0 )
+-	return -1;;
+-
+-    return 0;
+-
+-out:
+-    H5Tclose( attr_type );
+-    H5Aclose( attr_id );
+-    return -1;
+-}
+-
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTget_attribute_string
+-*
+-* Purpose: Reads an attribute named attr_name
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: September 19, 2002
+-*
+-* Comments:
+-*
+-* Modifications:
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-
+-herr_t H5LTget_attribute_string( hid_t loc_id,
+-		                const char *obj_name,
+-		                const char *attr_name,
+-		                char *data )
+-{
+-    /* identifiers */
+-    hid_t      obj_id;
+-
+-    /* Open the object */
+-    if ((obj_id = H5Oopen( loc_id, obj_name, H5P_DEFAULT)) < 0)
+-	return -1;
+-
+-    /* Get the attribute */
+-    if ( H5LT_get_attribute_disk( obj_id, attr_name, data ) < 0 )
+-	return -1;
+-
+-    /* Close the object */
+-    if(H5Oclose(obj_id) < 0)
+-	return -1;
+-
+-    return 0;
+-
+-}
+-
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTget_attribute_char
+-*
+-* Purpose: Reads an attribute named attr_name
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: September 19, 2002
+-*
+-* Comments:
+-*
+-* Modifications:
+-*
+-*-------------------------------------------------------------------------
+-*/
+-herr_t H5LTget_attribute_char( hid_t loc_id,
+-		              const char *obj_name,
+-		              const char *attr_name,
+-		              char *data )
+-{
+-    /* Get the attribute */
+-    if(H5LT_get_attribute_mem(loc_id, obj_name, attr_name, H5T_NATIVE_CHAR, data) < 0)
+-	return -1;
+-
+-    return 0;
+-}
+-
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTmake_dataset_char
+-*
+-* Purpose: Creates and writes a dataset of H5T_NATIVE_CHAR type
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: September 14, 2001
+-*
+-* Comments:
+-*
+-* Modifications:
+-*
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-herr_t H5LTmake_dataset_char( hid_t loc_id,
+-		             const char *dset_name,
+-		             int rank,
+-		             const hsize_t *dims,
+-		             const char *data )
+-{
+-    return(H5LT_make_dataset_numerical(loc_id, dset_name, rank, dims, H5T_NATIVE_CHAR, data));
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTmake_dataset_int
+-*
+-* Purpose: Creates and writes a dataset of H5T_NATIVE_INT type
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: September 14, 2001
+-*
+-* Comments:
+-*
+-* Modifications:
+-*
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-
+-
+-herr_t H5LTmake_dataset_int( hid_t loc_id,
+-		            const char *dset_name,
+-		            int rank,
+-		            const hsize_t *dims,
+-		            const int *data )
+-{
+-    return(H5LT_make_dataset_numerical(loc_id, dset_name, rank, dims, H5T_NATIVE_INT, data));
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTmake_dataset_double
+-*
+-* Purpose: Creates and writes a dataset of H5T_NATIVE_DOUBLE type
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: September 14, 2001
+-*
+-* Comments:
+-*
+-* Modifications:
+-*
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-
+-herr_t H5LTmake_dataset_double( hid_t loc_id,
+-		               const char *dset_name,
+-		               int rank,
+-		               const hsize_t *dims,
+-		               const double *data )
+-{
+-    return(H5LT_make_dataset_numerical(loc_id, dset_name, rank, dims, H5T_NATIVE_DOUBLE, data));
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTmake_dataset_float
+-*
+-* Purpose: Creates and writes a dataset of H5T_NATIVE_FLOAT type
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: September 14, 2001
+-*
+-* Comments:
+-*
+-* Modifications:
+-*
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-
+-herr_t H5LTmake_dataset_float( hid_t loc_id,
+-		              const char *dset_name,
+-		              int rank,
+-		              const hsize_t *dims,
+-		              const float *data )
+-{
+-    return(H5LT_make_dataset_numerical(loc_id, dset_name, rank, dims, H5T_NATIVE_FLOAT, data));
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LT_read_dataset
+-*
+-* Purpose: Reads a dataset from disk.
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Quincey Koziol, koziol@hdfgroup.org
+-*
+-* Date: October 8, 2007
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-static herr_t
+-H5LT_read_dataset_numerical(hid_t loc_id, const char *dset_name, hid_t tid, void *data)
+-{
+-    hid_t   did;
+-
+-    /* Open the dataset. */
+-    if((did = H5Dopen2(loc_id, dset_name, H5P_DEFAULT)) < 0)
+-	return -1;
+-
+-    /* Read */
+-    if(H5Dread(did, tid, H5S_ALL, H5S_ALL, H5P_DEFAULT, data) < 0)
+-	goto out;
+-
+-    /* End access to the dataset and release resources used by it. */
+-    if(H5Dclose(did))
+-	return -1;
+-
+-    return 0;
+-
+-out:
+-    H5Dclose(did);
+-    return -1;
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTread_dataset_char
+-*
+-* Purpose: Reads a dataset from disk.
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: November 5, 2001
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-herr_t H5LTread_dataset_char( hid_t loc_id,
+-		             const char *dset_name,
+-		             char *data )
+-{
+-    return(H5LT_read_dataset_numerical(loc_id, dset_name, H5T_NATIVE_CHAR, data));
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTread_dataset_int
+-*
+-* Purpose: Reads a dataset from disk.
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: November 5, 2001
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-herr_t H5LTread_dataset_int( hid_t loc_id,
+-		            const char *dset_name,
+-		            int *data )
+-{
+-    return(H5LT_read_dataset_numerical(loc_id, dset_name, H5T_NATIVE_INT, data));
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTread_dataset_float
+-*
+-* Purpose: Reads a dataset from disk.
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: November 5, 2001
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-herr_t H5LTread_dataset_float( hid_t loc_id,
+-		              const char *dset_name,
+-		              float *data )
+-{
+-    return(H5LT_read_dataset_numerical(loc_id, dset_name, H5T_NATIVE_FLOAT, data));
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTread_dataset_double
+-*
+-* Purpose: Reads a dataset from disk.
+-*
+-* Return: Success: 0, Failure: -1
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: November 5, 2001
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-herr_t H5LTread_dataset_double( hid_t loc_id,
+-		               const char *dset_name,
+-		               double *data )
+-{
+-    return(H5LT_read_dataset_numerical(loc_id, dset_name, H5T_NATIVE_DOUBLE, data));
+-}
+-
+-/*-------------------------------------------------------------------------
+-* Function: find_dataset
+-*
+-* Purpose: operator function used by H5LTfind_dataset
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: June 21, 2001
+-*
+-* Comments:
+-*
+-* Modifications:
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-static herr_t
+-find_dataset(hid_t loc_id, const char *name, const H5L_info_t *linfo, void *op_data)
+-{
+-    /* Define a default zero value for return. This will cause the iterator to continue if
+-    * the dataset is not found yet.
+-    */
+-    int ret = 0;
+-
+-    /* Shut the compiler up */
+-    loc_id = loc_id;
+-    linfo = linfo;
+-
+-    /* Define a positive value for return value if the dataset was found. This will
+-    * cause the iterator to immediately return that positive value,
+-    * indicating short-circuit success
+-    */
+-    if(strcmp(name, (char *)op_data) == 0)
+-	ret = 1;
+-
+-    return ret;
+-}
+-
+-
+-/*-------------------------------------------------------------------------
+-* Function: H5LTfind_dataset
+-*
+-* Purpose:  Inquires if a dataset named dset_name exists attached
+-*           to the object loc_id.
+-*
+-* Programmer: Pedro Vicente, pvn@ncsa.uiuc.edu
+-*
+-* Date: July 15, 2001
+-*
+-* Return:
+-*     Success: The return value of the first operator that
+-*              returns non-zero, or zero if all members were
+-*              processed with no operator returning non-zero.
+-*
+-*      Failure:    Negative if something goes wrong within the
+-*              library, or the negative value returned by one
+-*              of the operators.
+-*
+-*-------------------------------------------------------------------------
+-*/
+-
+-herr_t
+-H5LTfind_dataset( hid_t loc_id, const char *dset_name )
+-{
+-    return H5Literate(loc_id, H5_INDEX_NAME, H5_ITER_INC, 0, find_dataset, (void *)dset_name);
+-}
+-  
+-  
+-  
+-  
+--- examples/CMakeLists.txt.orig	2014-01-16 13:17:04.147907103 +0100
++++ examples/CMakeLists.txt	2014-01-16 13:17:46.407907095 +0100
+@@ -5,15 +5,15 @@
+ endif (BUILD_FORTRAN_EXAMPLES)
+ 
+ add_executable ( testc_fd testpost_fd.c )
+-target_link_libraries ( testc_fd gidpost )
++target_link_libraries ( testc_fd gidpost ${HDF5_LT_LIBRARY})
+ 
+ add_executable ( testc testpost.c )
+-target_link_libraries ( testc gidpost )
++target_link_libraries ( testc gidpost ${HDF5_LT_LIBRARY})
+ 
+ if (CMAKE_Fortran_COMPILER)
+ 
+   add_executable ( testf testpostfor.f )
+-  target_link_libraries ( testf gidpost )
++  target_link_libraries ( testf gidpost ${HDF5_LT_LIBRARY})
+ 
+   if (UNIX)
+     target_link_libraries ( testf ${GID_FORTRAN_LIBS} )

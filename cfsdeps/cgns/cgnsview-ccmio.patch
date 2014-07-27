@@ -1,0 +1,32 @@
+--- src/cgns_io.c.orig	2011-07-20 21:13:01.000000000 +0200
++++ src/cgns_io.c	2011-07-20 21:18:00.000000000 +0200
+@@ -556,7 +556,7 @@
+ 
+     /* check for ADF */
+ 
+-    if (0 == strncmp (&buf[4], "ADF Database Version", 20)) {
++    if (0 == strncmp (&buf[4], "ADF Database", 12)) {
+         *file_type = CGIO_FILE_ADF;
+         return set_error(CGIO_ERR_NONE);
+     }
+--- src/adf/ADF_interface.c.orig	2011-07-20 21:16:18.000000000 +0200
++++ src/adf/ADF_interface.c	2011-07-20 21:17:49.000000000 +0200
+@@ -1022,7 +1022,7 @@
+     fread (header, sizeof(char), 32, fp);
+     fclose (fp);
+     header[32] = 0;
+-    if (strncmp (&header[4], "ADF Database Version", 20))
++    if (strncmp (&header[4], "ADF Database", 12))
+         *error_return = ADF_FILE_FORMAT_NOT_RECOGNIZED;
+     else
+         *error_return = NO_ERROR;
+--- src/cgnstools/cgnsview/cgnsview.tcl.orig	2011-07-20 21:28:25.000000000 +0200
++++ src/cgnstools/cgnsview/cgnsview.tcl	2011-07-20 21:29:52.000000000 +0200
+@@ -202,6 +202,7 @@
+ set ProgData(extensions) [list [list "CGNS Files" $cgnsexts]]
+ if {[CGIOsupported adf] != ""} {
+   lappend ProgData(extensions) [list "ADF Files" [list .adf .cga]]
++  lappend ProgData(extensions) [list "STARCCM+ Files" [list .ccm* .adf]]
+ }
+ if {[CGIOsupported hdf5] != ""} {
+   lappend ProgData(extensions) [list "HDF5 Files" [list .hdf .hdf5 .cgh]]

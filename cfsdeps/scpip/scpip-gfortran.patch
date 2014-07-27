@@ -1,0 +1,156 @@
+--- Sparsecz.f.orig	2009-02-13 12:33:10.000000000 +0100
++++ Sparsecz.f	2009-02-13 12:39:20.000000000 +0100
+@@ -479,7 +479,7 @@
+       CALL SYMBFCT1 (DIM,ADJPOINT,ADJLIST,MDORDER,MDORDER2,COLNNZ,
+      +               NNZL,INDLENG,SUPN_NUM,SUPN_MEM,SUPN_PART,IWS)
+ 
+-C INDLENG IST DIE NOETIGE LÄNGE VON LADJLIST. CHECKE HIER!!!!!!
++C INDLENG IST DIE NOETIGE LAENGE VON LADJLIST. CHECKE HIER!!!!!!
+ C NNZL IST DIE NOETIGE LAENGE VON LVAL.
+ 
+ 
+@@ -895,8 +895,8 @@
+ 
+       IMPLICIT NONE
+ 
+-	INTEGER          ROWS,COLS,COLS2,LCOLPNT(*),LENGTH,II,IJ,LAST,BEG,
+-     +                 FIN,LENG,ROWS2,COL,COL2
++	INTEGER        ROWS,COLS,COLS2,LCOLPNT(*),LENGTH,II,IJ,LAST,BEG
++	INTEGER        FIN,LENG,ROWS2,COL,COL2
+ 	DOUBLE PRECISION X(*),Y(*),DUM
+ 
+ 
+@@ -1558,7 +1558,8 @@
+      +                          SUPN_SPLIT(COLBEG2),LCOLPNT(COLBEG2),
+      +                          LVAL,DWS,COLLENG2)
+                      DO J=1,COLLENG2
+-	                  SUPN_DIST2(J) = SUPN_DIST(LADJLIST(NNZPTR2-1+J))
++	                  SUPN_DIST2(J) = SUPN_DIST(+
++     +                                    LADJLIST(NNZPTR2-1+J))
+ 	               ENDDO
+                      CALL INDJOIN (COLLENG2,COLNUMUPD,DWS,SUPN_DIST2,
+      +                             LCOLPNT(COLBEG),LVAL,COLLENG)
+--- Scpip30.f.orig	2009-02-13 12:32:49.000000000 +0100
++++ Scpip30.f	2009-02-13 12:39:36.000000000 +0100
+@@ -3452,18 +3452,20 @@
+       DOUBLE PRECISION X(*),U(*),L(*),X_L(*),X_U(*),XALT(*)
+       DOUBLE PRECISION T,TOL,INFINITY
+       INTEGER I,IT,N,SIGNUM(2,*)
++      LOGICAL DUMMY
+ 
+       T = 7.D-1
+-	tol=1.d-5 ! ????
++      tol=1.d-5 ! ????
+ 
+       IF (IT .LE. 2) THEN
+          DO I = 1,N
+-	     IF ((X_U(I) .EQ. INFINITY) .OR. (X_L(I) .EQ. -INFINITY)) THEN
++             DUMMY=(X_U(I) .EQ. INFINITY) .OR. (X_L(I) .EQ. -INFINITY)
++	     IF (DUMMY) THEN
+ 	         U(I) = X(I) + MAX(1.D0,DABS(X(I)))
+ 	         L(I) = X(I) - MAX(1.D0,DABS(X(I)))
+-	     ELSE
+-               U(I) = X_U(I) + 0.1D0*(X_U(I)-X_L(I))
+-               L(I) = X_L(I) - 0.1D0*(X_U(I)-X_L(I))
++             ELSE
++                 U(I) = X_U(I) + 0.1D0*(X_U(I)-X_L(I))
++                 L(I) = X_L(I) - 0.1D0*(X_U(I)-X_L(I))
+ 	     ENDIF
+          ENDDO
+       ELSE
+@@ -3515,6 +3517,7 @@
+       DOUBLE PRECISION X(*),U(*),L(*),X_L(*),X_U(*),XALT(*)
+       DOUBLE PRECISION T1,T2,GAMMA,INFINITY,TOL,LMIN,UMAX,DUM
+       INTEGER I,IT,N,SIGNUM(2,*)
++      LOGICAL DUMMY
+ 
+ 	TOL=1.D-14  !????
+ C	TOL=1.D-7
+@@ -3525,7 +3528,8 @@
+       IF (IT .LE. 2) THEN
+          DO I = 1,N
+ 	     DUM = MAX(1.D0,DABS(X(I)))
+-	     IF ((X_U(I) .EQ. INFINITY) .OR. (X_L(I) .EQ. -INFINITY)) THEN
++             DUMMY=(X_U(I) .EQ. INFINITY) .OR. (X_L(I) .EQ. -INFINITY)
++	     IF (DUMMY) THEN
+ 	         U(I) = X(I) + DUM
+ 	         L(I) = X(I) - DUM
+ 	     ELSE
+@@ -4466,7 +4470,6 @@
+ 	            CALL SCPERR(IPRINT,IERR,NOUT,INFO(6))
+ 	            RETURN
+ 	         ENDIF
+-
+ 103	         IF (IERR .EQ. 40) THEN
+ 	            NNZSPACE = SPIWDIM-(INT(NNZ/2)+3*NNZ+COMPSMAX+24*DIM+
+      +                                3*N+IELENG+EQLENG+NLISTMAX+22)
+@@ -4818,8 +4821,9 @@
+ 	      CALL SCPDCOPY(MEQ,RESULT(N+MIE+1),1,Y_EQ,1)
+ 	      CALL SCPDCOPY(IEVIOL,RESULT(N+MIE+MEQ+1),1,Q_IE,1)
+ 	      CALL SCPDCOPY(EQVIOL,RESULT(N+MIE+MEQ+IEVIOL+1),1,Q_EQ,1)
+-	      CALL SCPDCOPY(N,RESULT(N+MIE+MEQ+IEVIOL+EQVIOL+1),1,DUALS,1)
+-	      CALL SCPDCOPY(N,
++	      CALL SCPDCOPY(N,
++     +           RESULT(N+MIE+MEQ+IEVIOL+EQVIOL+1),1,DUALS,1)
++	      CALL SCPDCOPY(N,
+      +           RESULT(2*N+MIE+MEQ+IEVIOL+EQVIOL+1),1,DUALT,1)
+ C	      CALL SCPDCOPY(1,RESULT(3*N+MIE+MEQ+IEVIOL+EQVIOL+1),1,RESTOT,1)
+ 	   ENDIF
+@@ -5529,8 +5533,9 @@
+ 	      CALL SCPDCOPY(MEQ,Y_EQ,1,RESULT(N+MIE+1),1)
+ 	      CALL SCPDCOPY(IEVIOL,Q_IE,1,RESULT(N+MIE+MEQ+1),1)
+ 	      CALL SCPDCOPY(EQVIOL,Q_EQ,1,RESULT(N+MIE+MEQ+IEVIOL+1),1)
+-	      CALL SCPDCOPY(N,DUALS,1,RESULT(N+MIE+MEQ+IEVIOL+EQVIOL+1),1)
+-	      CALL SCPDCOPY(N,DUALT,1,
++	      CALL SCPDCOPY(N,DUALS,1,
++     +           RESULT(N+MIE+MEQ+IEVIOL+EQVIOL+1),1)
++	      CALL SCPDCOPY(N,DUALT,1,
+      +           RESULT(2*N+MIE+MEQ+IEVIOL+EQVIOL+1),1)
+ C	      CALL SCPDCOPY(1,RESTOT,1,RESULT(3*N+MIE+MEQ+IEVIOL+EQVIOL+1),1)
+ 	   ENDIF
+@@ -6034,7 +6039,8 @@
+      +			 (ZEROCP(2*N+IEVIOL+I) .EQ. 1)) THEN
+ 	            DQ_IE(J) = 0.D0
+ 	         ELSE
+-	            DQ_IE(J) = (MA47RS(N+J)+H_ORG(I)*DY_IE(I))/MA47VL(N+J)
++	            DQ_IE(J) = (MA47RS(N+J)+
++     +                         H_ORG(I)*DY_IE(I))/MA47VL(N+J)
+ 	         ENDIF
+ 	      ENDIF
+ 	   ENDDO
+@@ -6063,7 +6069,8 @@
+          ENDIF
+ 
+ 	   DO I = 1,EQLENG
+-	      DX(EQRN(I)) = DX(EQRN(I)) - MA47VL(STARTEQ+I)*DY_EQ(EQCN(I))
++	      DX(EQRN(I)) = DX(EQRN(I)) -
++     +                      MA47VL(STARTEQ+I)*DY_EQ(EQCN(I))
+ 	   ENDDO
+ 
+          DO I = 1,N
+@@ -7131,8 +7138,10 @@
+ 	      DO K=1,NEXT
+   	         IXUPP=MIE+MEQ+1
+ 	         DO J=1,NEXT
+-	            IF ((NLIST(J) .LT. IXUPP) .AND. (NLIST(J) .GT. IXLOW)) THEN
+-	               IXUPP=NLIST(J)
++	            IF (NLIST(J) .LT. IXUPP) THEN
++		       IF (NLIST(J) .GT. IXLOW) THEN
++			  IXUPP=NLIST(J)
++		       END IF
+ 	            END IF
+                ENDDO
+ 
+@@ -7204,8 +7213,10 @@
+ 	      DO K=1,NEXT
+   	         IXUPP=MIE+MEQ+1
+ 	         DO J=1,NEXT
+-	            IF ((NLIST(J) .LT. IXUPP) .AND. (NLIST(J) .GT. IXLOW)) THEN
+-	               IXUPP=NLIST(J)
++	            IF (NLIST(J) .LT. IXUPP) THEN
++		       IF (NLIST(J) .GT. IXLOW) THEN
++			  IXUPP=NLIST(J)
++		       END IF
+ 	            END IF
+                ENDDO
+ 
