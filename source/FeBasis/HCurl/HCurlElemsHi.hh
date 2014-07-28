@@ -113,6 +113,33 @@ protected:
 };
 
 
+//! HCurl conforming hierarchical higher order triangular element
+class  FeHCurlHiTria : public FeHCurlHi {
+
+public:
+
+  //! Constructor
+  FeHCurlHiTria();
+
+  //! Destructor
+  virtual ~FeHCurlHiTria();
+
+  //! @copydoc FeHCurl::CalcLocShFnc
+  void CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp,
+                     const Elem* elem, UInt comp = 1 );
+
+  //! @copydoc FeHCurl::CalcLocCurlShFnc
+  void CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lp,
+                         const Elem* elem, UInt comp = 1 );
+protected:
+  
+  //! Calculate number of unknowns
+  void CalcNumUnknowns();
+  
+};
+
+
+
 
 //! HCurl conforming hierarchical higher order quadrilateral element
 class  FeHCurlHiQuad : public FeHCurlHi {
@@ -207,6 +234,42 @@ protected:
   //! Calculate number of unknowns
   void CalcNumUnknowns();
 };
+
+// =======
+//  TET  
+// =======
+//! HCurl conforming hierarchical higher order tetrahedral element
+class  FeHCurlHiTet : public FeHCurlHi {
+
+public:
+
+  //! Constructor
+  FeHCurlHiTet();
+
+  //! Destructor
+  virtual ~FeHCurlHiTet();
+
+  //! Return HCurl shape functions 
+  virtual void GetShFnc( Matrix<Double>& shape, 
+                         const LocPointMapped& lp,
+                         const Elem* elem, UInt comp = 1 );
+
+  //! Return global curl of shape functions
+  virtual void GetCurlShFnc( Matrix<Double>& curl, 
+                             const LocPointMapped& lp,
+                             const Elem* elem, UInt comp = 1 );
+  
+  //! Internal method for calculating generalized curl functions
+  template<DiffType DIFF_TYPE>
+  void CalcLocShFnc2( Matrix<Double>& curl, 
+                      const LocPointMapped& lp,
+                      const Elem* elem, UInt comp = 1 );
+protected:
+
+  //! Calculate number of unknowns
+  void CalcNumUnknowns();
+};
+
 
 } // namespace
 
