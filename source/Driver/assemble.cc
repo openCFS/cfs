@@ -304,6 +304,9 @@ namespace CoupledField
             // Get equation numbers
             actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, id1, id2 );
 
+            LOG_DBG3(assemble) << "SMG: id1=" << id1 << " it1=" << it1.GetPos() << " eV1=" << eqnVec1.ToString();
+            LOG_DBG3(assemble) << "SMG: id2=" << id2 << " it2=" << it2.GetPos() << " eV2=" << eqnVec2.ToString();
+
             // Pass entity eqn-connectivity to algebraic system
             if( !doTranspose ) {
               algsys_-> SetElementPos( id1, eqnVec1,
@@ -350,8 +353,7 @@ namespace CoupledField
     std::map<FEMatrixType, bool>::iterator it;
     for( it = matReassemble_.begin(); it != matReassemble_.end(); it++ ) {
       if( it->second == true ) {
-        LOG_DBG2(assemble) << "AssembleMatrices: init matrix " 
-            << feMatrixType.ToString(it->first);
+        LOG_DBG2(assemble) << "AssembleMatrices: init matrix " << feMatrixType.ToString(it->first);
         algsys_->InitMatrix( matrixMap_[it->first] );
       }
     }

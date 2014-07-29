@@ -440,8 +440,10 @@ namespace CoupledField {
   template<class TYPE>
   TYPE* StdVector<TYPE>::GetPointer() const
   {
+#ifdef CHECK_INITIALIZED
     if (!data_)
       EXCEPTION("Vector: undefined Vector" );
+#endif
     return data_;
   }
 

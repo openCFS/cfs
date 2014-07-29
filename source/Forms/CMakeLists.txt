@@ -69,6 +69,7 @@ SET(FORMS_SRCS
   singleEntryInt.cc
   elecforceop.cc
   baseoperator.cc
+  LatticeBoltzmannInt.cc
   )
 
 ADD_LIBRARY(forms STATIC ${FORMS_SRCS})

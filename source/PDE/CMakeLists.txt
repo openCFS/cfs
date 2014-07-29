@@ -32,7 +32,7 @@ SET(PDE_SRCS
   pseudoTS.cc
   timestepping.cc
   mixedEqnMap.cc
-  extLBMPDE.cc
+  LatticeBoltzmannPDE.cc
   )
 # mpcciPDE.cc
 
@@ -55,6 +55,7 @@ SET(TARGET_LL
   paramh
   scripting
   utils
+  non_fem_pde
 )
 
 IF(USE_HDF5)

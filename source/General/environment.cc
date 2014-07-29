@@ -598,6 +598,7 @@ namespace CoupledField {
     case MECH_PSEUDO_DENSITY:
     case PHYSICAL_PSEUDO_DENSITY:
     case ELEC_PHYSICAL_PSEUDO_DENSITY:
+    case LBM_PHYSICAL_PSEUDO_DENSITY:
       return "";
       break;
 
@@ -1427,8 +1428,12 @@ namespace CoupledField {
     //mpcci
     SolutionTypeEnum.Add(FLUID_FORCE, "fluidForce");
     //LBM velocity
-    SolutionTypeEnum.Add(EXTERNLBM_VELOCITY, "externLBMVelocity");
-    SolutionTypeEnum.Add(EXTERNLBM_DENSITY, "externLBMDensity");
+    SolutionTypeEnum.Add(LBM_NODAL_PROBABILITY_DISTRIBUTION, "LBMNodalProbabilityDistribution");
+    SolutionTypeEnum.Add(LBM_PROBABILITY_DISTRIBUTION, "LBMProbabilityDistribution");
+    SolutionTypeEnum.Add(LBM_VELOCITY, "LBMVelocity");
+    SolutionTypeEnum.Add(LBM_DENSITY, "LBMDensity");
+    SolutionTypeEnum.Add(LBM_PRESSURE, "LBMPressure");
+    SolutionTypeEnum.Add(LBM_PHYSICAL_PSEUDO_DENSITY, "LBMPhysicalPseudoDensity");
     //fluidMech
     SolutionTypeEnum.Add(MEAN_FLUIDMECH_VELOCITY, "meanFluidMechVelocity");
     SolutionTypeEnum.Add(MEAN_FLUIDMECH_PRESSURE, "meanFluidMechPressure");
@@ -1556,7 +1561,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( NONLIN_DATA_NAME, "nonLinDataName" ); 
     MaterialTypeEnum.Add( DATA_ACCURACY, "dataAccuracy" ); 
     MaterialTypeEnum.Add( MAX_APPROX_VAL, "maxApproxVal" ); 
-    MaterialTypeEnum.Add( PYROCOEFFICIENT_TENSOR, "Pyrocoefficient_Tensor" ); 
+    MaterialTypeEnum.Add( PYROCOEFFICIENT_TENSOR, "Pyrocoefficient_Tensor" );
+    MaterialTypeEnum.Add( LBM_MATERIAL, "LatticeBoltzmannMaterial" );
 
     // ==== Initialization of Matrix Types ====
     feMatrixType.Add( NOTYPE, "no FE matrix" );

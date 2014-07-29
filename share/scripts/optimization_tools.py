@@ -168,7 +168,7 @@ def read_density_as_vector(filename, attribute="design"):
 # @param setname_inp the name of the set or a list of setnames
 # @param elemnr if set, the element number is taken from this elemnr ndarray.
 #               The data can be obtained from read_density(...,elemnr=True)
-def write_density_file(filename, data_inp, setname_inp, param=0, elemnr=None):
+def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=None):
   # check if we deal with lists or not
   data_list = []
   setname_list = []

@@ -310,7 +310,7 @@ namespace CoupledField
      * Domain::GetErsatzMaterial() identifies the proper penaltization via RTTI (typid)
      * @param elem the element
      * @return 1.0 if nothing is to be done or a factor */ 
-    virtual Double GetErsatzMaterialFactor(const Elem* elem, bool forBimaterial = false);
+    Double GetErsatzMaterialFactor(const Elem* elem, bool forBimaterial = false);
 
     /** Determines the multimaterial SIMP tensor if we do multimaterial and if the element is ok
      * @param mc MECHANIC, PIEZO or ELECTROSTATIC

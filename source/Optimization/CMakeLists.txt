@@ -12,6 +12,7 @@ SET(OPTIMIZATION_SRCS
   ErsatzMaterial_Solution.cc
   SIMP.cc
   PiezoSIMP.cc
+  LBMSIMP.cc
   PiezoParamMat.cc
   ShapeGrad.cc
   TransferFunction.cc
