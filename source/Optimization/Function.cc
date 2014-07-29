@@ -152,12 +152,8 @@ Function::Function(PtrParamNode pn) {
 
   case TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
-    if (design_ != DesignElement::DEFAULT
-        && design_ != DesignElement::TENSOR_TRACE
-        && design_ != DesignElement::DIELEC_TRACE)
-      throw Exception(
-          "function '" + type.ToString(type_) + "' has invalid design type "
-              + DesignElement::type.ToString(design_));
+    if(design_ != DesignElement::DEFAULT && design_ != DesignElement::TENSOR_TRACE && design_ != DesignElement::DIELEC_TRACE && design_ != DesignElement::ALL_DESIGNS)
+      throw Exception("function '" + type.ToString(type_) + "' has invalid design type " + DesignElement::type.ToString(design_));
     break;
 
   case POS_DEF_DET_MINOR_1:
@@ -183,8 +179,6 @@ Function::Function(PtrParamNode pn) {
   case VOLUME: // the volume is not linear on heaviside densities
   case SLOPE:
   case GLOBAL_SLOPE:
-  case SUM_MODULI:
-  case GLOBAL_SUM_MODULI:
   case SLACK:
   case MULTIMATERIAL_SUM:
   case SHAPE_INF:
@@ -193,7 +187,7 @@ Function::Function(PtrParamNode pn) {
   case TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
     if (design_ != DesignElement::ALL_DESIGNS)
-      linear_ = true;
+      linear_ = false;
     else
       linear_ = false;
     break;
@@ -449,7 +443,9 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
   // * different frequencies
   // * several homogenization test strains
   // * time steps
-  switch(type_) {
+
+  switch(type_)
+  {
   case VOLUME:
   case PENALIZED_VOLUME:
   case GAP:
@@ -493,6 +489,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case ORTHOTROPIC_TENSOR_TRACE:
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case TENSOR_TRACE:
   case TENSOR_NORM:
   case GLOBAL_TENSOR_TRACE:
@@ -504,7 +502,6 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
     assert(excite_index < 0);
     excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
     break;
-
   case COMPLIANCE:
   case OUTPUT:
   case DYNAMIC_OUTPUT:
@@ -621,6 +618,7 @@ bool Function::IsLocal(Type t) {
   case BUMP:
   case SUM_MODULI:
   case LAMINATES_VOL:
+  case ORTHOTROPIC_TENSOR_TRACE:
   case TENSOR_TRACE:
   case TENSOR_NORM:
   case PARAM_PS_POS_DEF:
@@ -655,12 +653,17 @@ bool Function::IsMaxwellHomogenization() const {
 
 bool Function::ForDensityFiltering() const {
   switch (type_) {
-  case PROJECTION:
+  case PROJECTION: // for the projection case we have a density filter manually on Function::projectionDesign only
   case SLACK:
   case SHAPE_INF:
   case DESIGN_BOUND: // TODO check if this is realy true as pyhsical material might harm the bound ?!
   case MULTIMATERIAL_SUM:
-    // for the projection case we have a density filter manually on Function::projectionDesign only
+  case SUM_MODULI:
+  case GLOBAL_SUM_MODULI:                 // TODO Be careful! Right now this is hardcoded in
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:   // Function::Local::Identifier::EvalFunction
+  case ORTHOTROPIC_TENSOR_TRACE:          // and ::EvalGradient !!
+//  case GLOBAL_LAMINATES_VOL:
+//  case LAMINATES_VOL:
     return false;
 
   case MULTI_OBJECTIVE:
@@ -719,6 +722,8 @@ bool Function::ForSensitivityFiltering() const {
   case BUMP:
   case DESIGN_TRACKING:
   case PROJECTION:
+  case ORTHOTROPIC_TENSOR_TRACE:
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case TENSOR_TRACE:
   case TENSOR_NORM:
   case GLOBAL_TENSOR_TRACE:
@@ -877,6 +882,8 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure,
 
   case LAMINATES_VOL:
   case GLOBAL_LAMINATES_VOL:
+  case ORTHOTROPIC_TENSOR_TRACE:
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case TENSOR_TRACE:
   case TENSOR_NORM:
   case GLOBAL_TENSOR_TRACE:
@@ -1009,6 +1016,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
 
   case GLOBAL_SUM_MODULI:
   case GLOBAL_LAMINATES_VOL:
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
     if (power_ != 1.0)
       info->Get("optimization/header")->Get(ParamNode::WARNING)->SetValue(
@@ -1121,6 +1129,8 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case TENSOR_TRACE:
   case TENSOR_NORM:
   case GLOBAL_TENSOR_TRACE:
+  case ORTHOTROPIC_TENSOR_TRACE:
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case LAMINATES_VOL:
@@ -1224,41 +1234,28 @@ void Function::Local::SetupVirtualElementMap(Phase ph) {
   virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
 
   // traverse all elements and check for full neighborhood
-  for (int e = 0, ss = space->data.GetSize(); e < ss; ++e) {
-    DesignElement* de = &(space->data[e]);
+  for (int e = 0, ss = func_->elements.GetSize(); e < ss; ++e) {
+    DesignElement* de = func_->elements[e];
     if (de->GetType()
         == ((func_->design_ == DesignElement::DEFAULT) ?
             DesignElement::DENSITY : func_->design_)) {
       VicinityElement* ve = de->vicinity;
 
-      // do we have a full neighborhood? All or none as in the original slope paper
-      bool full = true;
-      if (prev) {
-        if (ve->design[VicinityElement::X_N] == NULL)
-          full = false;
-        if (ve->design[VicinityElement::Y_N] == NULL)
-          full = false;
-        if (dim == 3 && ve->design[VicinityElement::Z_N] == NULL)
-          full = false;
-      }
-      if (next) {
-        if (ve->design[VicinityElement::X_P] == NULL)
-          full = false;
-        if (ve->design[VicinityElement::Y_P] == NULL)
-          full = false;
-        if (dim == 3 && ve->design[VicinityElement::Z_P] == NULL)
-          full = false;
-      }
+      for(int a = 0; a < dim; a++)
+      {
+        // do we have a full neighborhood? All or none as in the original slope paper
+        bool full = true;
+        if(prev)
+          if(ve->design[2*a + 1] == NULL) full = false; // X_N=1, Y_N=3, Z_N=5
+        if(next)
+          if(ve->design[2*a] == NULL) full = false; // X_P=0, Y_P=2, Z_P=4
 
-      LOG_DBG2(func)<< "Local::Local e_num=" << de->elem->elemNum << " vicinity=" << ve->ToString() << " full=" << full;
+        LOG_DBG2(func) << "Local::Local e_num=" << de->elem->elemNum << " vicinity=" << ve->ToString() << " full=" << full;
 
-      if (full) {
-        for (int a = 0; a < dim; a++) {
-          DesignElement* prev_de =
-              prev ?
-                  ve->GetNeighbour(VicinityElement::ToNeighbour(a, -1)) : NULL;
-          DesignElement* next_de = ve->GetNeighbour(
-              VicinityElement::ToNeighbour(a, 1));
+        if(full)
+        {
+          DesignElement* prev_de = prev ? ve->GetNeighbour(VicinityElement::ToNeighbour(a, -1)) : NULL;
+          DesignElement* next_de = ve->GetNeighbour(VicinityElement::ToNeighbour(a, 1));
 
           virtual_elem_map.Push_back(Identifier(de, prev_de, next_de, sign_1));
           if (two_signs)
@@ -1803,12 +1800,14 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
 
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
-    fv = CalcSumModuli();
+    fv = CalcSumModuli(DesignElement::PLAIN);
     break;
 
   case LAMINATES_VOL:
+    fv = CalcLaminatesVolume(local, DesignElement::SMART);
+        break;
   case GLOBAL_LAMINATES_VOL:
-    fv = CalcLaminatesVolume(local);
+    fv = CalcLaminatesVolume(local, DesignElement::SMART);
     break;
 
   case PARAM_PS_POS_DEF:
@@ -1825,6 +1824,13 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
     fv = CalcBensonVanderbei(-1, local, false, f->type_);
+    break;
+
+  case ORTHOTROPIC_TENSOR_TRACE:
+    fv = CalcOrthotropicTensorTrace(local, DesignElement::SMART);
+    break;
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
+    fv = CalcOrthotropicTensorTrace(local, DesignElement::PLAIN);
     break;
 
   case TENSOR_TRACE:
@@ -1866,8 +1872,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
   case STRESS_DENSITY:
   case GLOBAL_SUM_MODULI:
   case GLOBAL_LAMINATES_VOL:
-  case GLOBAL_TENSOR_TRACE: {
-    // we normalize all values by the number of "constraints". If Note that it is
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
+  case GLOBAL_TENSOR_TRACE:
+  {
+    // we normalize all values by the number of "constraints". Note that it is
     // sufficient for the function value, the gradient is then also right
     double factor;
     if (local->DoNormalizeGlobal()) {
@@ -1958,12 +1966,14 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
 
     case SUM_MODULI:
     case GLOBAL_SUM_MODULI:
-      gv = CalcSumModuli(n, true);
+      gv = CalcSumModuli(DesignElement::PLAIN, n, true);
       break;
 
     case LAMINATES_VOL:
+      gv = CalcLaminatesVolume(local, DesignElement::SMART, n, true);
+      break;
     case GLOBAL_LAMINATES_VOL:
-      gv = CalcLaminatesVolume(local, n, true);
+      gv = CalcLaminatesVolume(local, DesignElement::SMART, n, true);
       break;
 
     case PARAM_PS_POS_DEF:
@@ -1980,6 +1990,13 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
       gv = CalcBensonVanderbei(n, local, true, ft);
+      break;
+
+    case ORTHOTROPIC_TENSOR_TRACE:
+      gv = CalcOrthotropicTensorTrace(local, DesignElement::SMART, n, true);
+      break;
+    case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
+      gv = CalcOrthotropicTensorTrace(local, DesignElement::PLAIN, n, true);
       break;
 
     case TENSOR_TRACE:
@@ -2035,13 +2052,41 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     if (!local->IsGlobalized()) {
       // reset the constraint data. Note, as we are local, there are no side effects by elements
       de->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
+      if(g->ForDensityFiltering())
+      {
+        // for constraints using filtered design variables also reset the constraint data in the filter neighborhood
+        for(int j = 0; j < (int) dynamic_cast<DesignElement*>(de)->simp->neighborhood.GetSize(); j++)
+        {
+          DesignElement* de2 =  dynamic_cast<DesignElement*>(de)->simp->neighborhood[j].neighbour;
+          de2->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
+          for(int k = 0; k < (int) de2->simp->neighborhood.GetSize(); k++)
+            de2->simp->neighborhood[k].neighbour->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
+        }
+      }
     }
+
 
     de->AddGradient(f, g, gv);
     LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                    << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign << " n=" << n
                    << " curr=" << ( typeid(GetElement(n)) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(GetElement(n))->elem->elemNum : -1 ) << " gv=" << gv
-                   << " stored_gv=" << de->GetPlainGradient(f, g);
+                   << " stored_gv=" << de->GetPlainGradient(f, g)
+                   << " current_position: " << (g != NULL ? ((LocalCondition*) g)->GetCurrentPosition()+1 : -1); //somehow only seems to work for constraints
+
+//    if (de->GetIndex() == 89)
+//    {
+//      std::cout << "AddGradient: " << de->GetIndex() << std::endl;
+//      std::cout << de->GetType() << std::endl;
+//      for(int i = -1, ni = (int) de->simp->neighborhood.GetSize(); i < ni; i++)
+//      {
+//        const SIMPElement::NeighbourElement* ne = i == -1 ? NULL : &de->simp->neighborhood[i];
+//        const DesignElement* de2 = i == -1 ? de : ne->neighbour;
+//        std::cout << de2->GetIndex() << ": " << de2->GetPlainValue(DesignElement::CONSTRAINT_GRADIENT, g) << std::endl;
+//      }
+//      std::cout << std::endl;
+//    }
+
+
   }
 }
 
@@ -2332,31 +2377,24 @@ double Function::Local::Identifier::CalcBumpGradient(int neigh_idx) const {
   return res;
 }
 
-double Function::Local::Identifier::CalcSumModuli(int neigh_idx,
-    bool derivative) const {
-  if (derivative) {
-    DesignElement::Type type = GetElement(neigh_idx)->GetType();
-    if (type == DesignElement::EMODULISO || type == DesignElement::EMODUL)
-      return 1.0;
-    if (type == DesignElement::GMODUL)
-      return 2.0;
-    else
-      return 0.0;
-  }
 
-  double E1(0.0), E3(0.0), G(0.0);
+double Function::Local::Identifier::CalcSumModuli(DesignElement::Access access, int neigh_idx, bool derivative) const
+{
+  double E1(0.0), E3(0.0), G(0.0), theta(0.0);
   for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
     switch (GetElement(i)->GetType()) {
     case DesignElement::EMODULISO:
-      E1 = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      E1 = GetElement(i)->GetDesign(access);
       break;
     case DesignElement::EMODUL:
-      E3 = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      E3 = GetElement(i)->GetDesign(access);
       break;
     case DesignElement::GMODUL:
-      G = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      G = GetElement(i)->GetDesign(access);
       break;
     case DesignElement::POISSON:
+      theta = GetElement(i)->GetDesign(access);
+      break;
     case DesignElement::POISSONISO:
     case DesignElement::DENSITY:
     case DesignElement::ROTANGLE:
@@ -2367,7 +2405,84 @@ double Function::Local::Identifier::CalcSumModuli(int neigh_idx,
       break;
     }
   }
-  return E1 + E3 + 2 * G;
+
+  if(derivative)
+  {
+    switch(GetElement(neigh_idx)->GetType())
+    {
+    case DesignElement::EMODULISO:
+    case DesignElement::EMODUL:
+      return 1.0/(1.0-theta);
+    case DesignElement::GMODUL:
+      return 2.0;
+    case DesignElement::POISSON:
+    {
+      double nninvtmp = 1/((1.0-theta)*(1.0-theta));
+      return E1*nninvtmp+E3*nninvtmp;
+    }
+    default:
+      return 0.0;
+    }
+  }
+
+  return E1/(1.0-theta)+E3/(1.0-theta)+2*G;
+}
+
+
+double Function::Local::Identifier::CalcOrthotropicTensorTrace(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
+{
+  double e11(0.0), e22(0.0), e33(0.0), e12(0.0), lowerEigBound(-123.45);
+  for(int i=-1; i < (int) neighbor.GetSize(); ++i)
+  {
+    switch(GetElement(i)->GetType())
+    {
+    case DesignElement::TENSOR11:
+      e11 = GetElement(i)->GetDesign(access);
+      break;
+    case DesignElement::TENSOR22:
+      e22 = GetElement(i)->GetDesign(access);
+      break;
+    case DesignElement::TENSOR33:
+      e33 = GetElement(i)->GetDesign(access);
+      break;
+    case DesignElement::TENSOR12:
+      e12 = GetElement(i)->GetDesign(access);
+      break;
+    case DesignElement::LOWER_EIG_BOUND:
+      lowerEigBound = GetElement(i)->GetDesign(access);
+      break;
+    case DesignElement::DENSITY:
+    case DesignElement::ROTANGLE:
+      break;
+    default:
+      assert(false);
+      break;
+    }
+  }
+  if (lowerEigBound == -123.45)
+  {
+    lowerEigBound = local->space->designMaterial->GetParameter(DesignElement::LOWER_EIG_BOUND);
+  }
+  if(derivative)
+  {
+    DesignElement::Type type = GetElement(neigh_idx)->GetType();
+    if (type == DesignElement::TENSOR11)
+      return 2.0*e11;
+    else if(type == DesignElement::TENSOR22)
+      return 2.0*e22;
+    else if(type == DesignElement::TENSOR33)
+      return 1.0;
+    else if(type == DesignElement::TENSOR12)
+      return 4.0*e12;
+    else if(type == DesignElement::LOWER_EIG_BOUND)
+    {
+      std::cout << "Warning: lowerEigBound is supposed to be a parameter only, not a design!" << std::endl;
+      return 3.0;
+    }
+    else return 0.0;
+  }
+  else
+    return 3.0*lowerEigBound+e11*e11+2.0*e12*e12+e22*e22+e33;
 }
 
 double Function::Local::Identifier::Interpolate_Volume3D(Vector<double>& p,
@@ -2478,6 +2593,7 @@ double Function::Local::Identifier::Interpolate_Volume3D(Vector<double>& p,
   }
   return vol;
 }
+
 
 double Function::Local::Identifier::EvaluateC1Interpolation_3D(
     Vector<double>& p, const Matrix<double> & vol_a, const Matrix<double> & vol_b,
@@ -2608,18 +2724,18 @@ double Function::Local::Identifier::EvaluateC1Interpolation_Deriv_3D(
 //}
 
 
-double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, int neigh_idx, bool derivative) const {
+double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
   double stiff1(0.0), stiff2(0.0), stiff3(0.0);
   for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
     switch (GetElement(i)->GetType()) {
     case DesignElement::STIFF1:
-      stiff1 = GetElement(i)->GetDesign(DesignElement::SMART);
+      stiff1 = GetElement(i)->GetDesign(access);
       break;
     case DesignElement::STIFF2:
-      stiff2 = GetElement(i)->GetDesign(DesignElement::SMART);
+      stiff2 = GetElement(i)->GetDesign(access);
       break;
     case DesignElement::STIFF3:
-      stiff3 = GetElement(i)->GetDesign(DesignElement::SMART);
+      stiff3 = GetElement(i)->GetDesign(access);
       break;
     default:
       break;
@@ -2655,73 +2771,99 @@ double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, int 
   return -1.0;
 }
 
-double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, int neigh_idx, bool derivative) const {
-  DesignElement* de = dynamic_cast<DesignElement*>(element);
-  double scale(1.0), stiff1(0.0), stiff2(0.0), vol;
-  int dim = domain->GetGrid()->GetDim();
-  for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
-    switch (GetElement(i)->GetType()) {
+double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
+{
+  double stiff1(0.0), stiff2(0.0);
+  for(int i=-1; i < (int) neighbor.GetSize(); ++i)
+  {
+    switch(GetElement(i)->GetType())
+    {
     case DesignElement::STIFF1:
-      stiff1 = GetElement(i)->GetDesign(DesignElement::SMART);
+      stiff1 = GetElement(i)->GetDesign(access);
       break;
     case DesignElement::STIFF2:
-      stiff2 = GetElement(i)->GetDesign(DesignElement::SMART);
+      stiff2 = GetElement(i)->GetDesign(access);
       break;
     default:
       break;
     }
   }
-  if (de->GetDesignSpace()->designMaterial->GetType()
-      == DesignMaterial::LAMINATES) {
-    scale = de->GetDesignSpace()->designMaterial->GetParameter(
-        DesignElement::DENSITY);
-    stiff1 *= scale;
-    stiff2 *= scale;
-  }
-  bool regular = local->space->IsRegular();
-  /** if grid is nonregular, the volume has to be scaled by element size */
-  if (!regular) {
-    assert(local->total_vol_ != 0);
-  }
-  /**svol is a scaling factor for unstructured, nonregular grids. */
-  double svol = regular ? 1.0 : de->CalcVolume();
-  LOG_DBG2(func)<<"Element volume =  "<<de->CalcVolume();
-  if (!derivative) {
-      if (dim == 2) {
-        return svol*(stiff1 + stiff2 - stiff1 * stiff2);
-      } else {
-        return svol * CalcLatticeVolume3D(local,neigh_idx,derivative);
-      }
-    } else {
-      switch (GetElement(neigh_idx)->GetType()) {
-      case DesignElement::STIFF1:
-        if (dim == 2) {
-          return svol*(scale - scale * stiff2);
-        } else {
-          vol = svol * CalcLatticeVolume3D(local,neigh_idx,derivative);
-          assert(vol!= -1);
-          return vol;
-        }
-      case DesignElement::STIFF2:
-        if (dim == 2) {
-          return svol*(scale - scale * stiff1);
-        } else {
-          vol = svol * CalcLatticeVolume3D(local,neigh_idx,derivative);
-          assert(vol!= -1);
-          return vol;
-        }
-      case DesignElement::STIFF3:
-        vol = svol * CalcLatticeVolume3D(local,neigh_idx,derivative);
-        assert(vol!= -1);
-        return vol;
-
-      default:
-        return 0.0;
-      }
+  if(!derivative)
+    return stiff1+stiff2-stiff1*stiff2;
+  else
+  {
+    switch(GetElement(neigh_idx)->GetType())
+    {
+    case DesignElement::STIFF1:
+      return 1.0-stiff2;
+    case DesignElement::STIFF2:
+      return 1.0-stiff1;
+    default:
+      return 0.0;
     }
-    //should never be reached
-    return -1.0;
+  }
 }
+
+//double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
+//  DesignElement* de = dynamic_cast<DesignElement*>(element);
+//  double stiff1(0.0), stiff2(0.0), vol;
+//  int dim = domain->GetGrid()->GetDim();
+//  for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
+//    switch (GetElement(i)->GetType()) {
+//    case DesignElement::STIFF1:
+//      stiff1 = GetElement(i)->GetDesign(access);
+//      break;
+//    case DesignElement::STIFF2:
+//      stiff2 = GetElement(i)->GetDesign(access);
+//      break;
+//    default:
+//      break;
+//    }
+//  }
+//  bool regular = local->space->IsRegular();
+//  /** if grid is nonregular, the volume has to be scaled by element size */
+//  if (!regular) {
+//    assert(local->total_vol_ != 0);
+//  }
+//  /**svol is a scaling factor for unstructured, nonregular grids. */
+//  double svol = regular ? 1.0 : de->CalcVolume();
+//  LOG_DBG2(func)<<"Element volume =  "<<de->CalcVolume();
+//  if (!derivative) {
+//    if (dim == 2) {
+//      return svol*(stiff1 + stiff2 - stiff1 * stiff2);
+//    } else {
+//      return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+//    }
+//  } else {
+//    switch (GetElement(neigh_idx)->GetType()) {
+//    case DesignElement::STIFF1:
+//      if (dim == 2) {
+//        return svol*(1.0 - stiff2);
+//      } else {
+//        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+//        assert(vol!= -1);
+//        return vol;
+//      }
+//    case DesignElement::STIFF2:
+//      if (dim == 2) {
+//        return svol*(1.0 - stiff1);
+//      } else {
+//        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+//        assert(vol!= -1);
+//        return vol;
+//      }
+//    case DesignElement::STIFF3:
+//      vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+//      assert(vol!= -1);
+//      return vol;
+//
+//    default:
+//      return 0.0;
+//    }
+//  }
+//  //should never be reached
+//  return -1.0;
+//}
 
 double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx,
     bool derivative) const {
@@ -2729,13 +2871,13 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx,
   for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
     switch (GetElement(i)->GetType()) {
     case DesignElement::EMODULISO:
-      E1 = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      E1 = GetElement(i)->GetDesign(DesignElement::SMART);
       break;
     case DesignElement::EMODUL:
-      E3 = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      E3 = GetElement(i)->GetDesign(DesignElement::SMART);
       break;
     case DesignElement::POISSON:
-      nu31 = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      nu31 = GetElement(i)->GetDesign(DesignElement::SMART);
       break;
     case DesignElement::GMODUL:
     case DesignElement::POISSONISO:
@@ -3088,15 +3230,10 @@ double Function::Local::Identifier::CalcTensorTrace(int neigh_idx,
   DesignMaterial::Notation notation = local->func_->notation_;
   const DesignElement* de = dynamic_cast<const DesignElement*>(GetElement(neigh_idx));
 
-  bool ok = local->space->GetTensor(E, local->func_->GetDesignType(), PLANE_STRAIN, de->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type does'nt matter)
-
+  bool ok = local->space->GetTensor(E, local->func_->GetDesignType(), domain->GetSinglePDE("mechanic")->GetSubTensorType(),
+      dynamic_cast<DesignElement*>(element)->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type DOES matter)
   assert(ok);
-  assert(
-      (local->func_->GetDesignType() == DesignElement::DIELEC_TRACE
-          && E.GetNumRows() == 2)
-          || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE
-              && E.GetNumRows() == 3));
-
+  assert((local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && E.GetNumRows() == 2) || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE && (E.GetNumRows() == 3 || E.GetNumRows() == 6)));
   LOG_DBG3(func) << "L::I::CTT e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString(0, false);
 
   double ret = E.Trace() * (ok ? 1.0 : 1.0); // to use ok in assert

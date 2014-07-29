@@ -126,6 +126,10 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type, co
   case DesignElement::STIFF1:
   case DesignElement::STIFF2:
   case DesignElement::STIFF3:
+  case DesignElement::TENSOR11:
+  case DesignElement::TENSOR12:
+  case DesignElement::TENSOR22:
+  case DesignElement::TENSOR33:
   case DesignElement::MULTIMATERIAL:
     return Optimization::MECH;
   case DesignElement::ACOU_DENSITY:

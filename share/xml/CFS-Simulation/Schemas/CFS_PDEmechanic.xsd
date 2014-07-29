@@ -520,6 +520,8 @@
       <xsd:enumeration value="optResult_8"/>
       <xsd:enumeration value="optResult_9"/>
       <xsd:enumeration value="optResult_10"/>
+      <xsd:enumeration value="optResult_11"/>
+      <xsd:enumeration value="optResult_12"/>
       <xsd:enumeration value="gradXDisplacement"/>
       <xsd:enumeration value="gradYDisplacement"/>
       <xsd:enumeration value="gradZDisplacement"/>
@@ -554,6 +556,8 @@
       <xsd:enumeration value="optResult_8"/>
       <xsd:enumeration value="optResult_9"/>
       <xsd:enumeration value="optResult_10"/>
+      <xsd:enumeration value="optResult_11"/>
+      <xsd:enumeration value="optResult_12"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -659,6 +663,17 @@
    <xsd:complexType name="DT_MechPreStress">
      <xsd:choice>
        <xsd:element name="prescribedLHS">
+         <xsd:complexType>
+           <xsd:attribute name="value">
+             <xsd:simpleType>
+               <xsd:restriction base="DT_DoubleList">
+                 <xsd:maxLength value="6"/>
+               </xsd:restriction>
+             </xsd:simpleType>
+           </xsd:attribute>
+         </xsd:complexType>
+       </xsd:element>
+       <xsd:element name="prescribedRHS">
          <xsd:complexType>
            <xsd:attribute name="value">
              <xsd:simpleType>

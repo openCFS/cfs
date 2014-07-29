@@ -236,6 +236,7 @@ void MechMat::Init()
   {
     RegionIdType reg_id = regionIds[r];
     StdVector<Matrix<double> >& K = mechStiffness_map[reg_id];
+    StdVector<Matrix<Complex> >& KC = mechStiffness_mapC[reg_id];
 
     // three cases: multimaterial, (legacy) bimagterial, normal. Run once for the last tow
     for(unsigned int m = 0; m < (space->HasMultiMaterial() ? mm.GetSize() : 1); m++)
@@ -245,16 +246,40 @@ void MechMat::Init()
       // either system material or multimaterial
       BaseMaterial* bm = space->HasMultiMaterial() ? mm[m].GetMultiMaterial(MECHANIC) : NULL;
       // prepare target
-      K.Push_back(Matrix<double>());
+      //K.Push_back(Matrix<double>());
 
-      GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "linElastInt"), K.Last(), NULL, bm, DesignElement::NO_MULTIMATERIAL);
-      LOG_DBG(om) << "OptMechMat: MechStiffness region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << std::endl << K.Last().ToString(0,true);
+      //GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "linElastInt"), K.Last(), NULL, bm, DesignElement::NO_MULTIMATERIAL);
+      Matrix<double> tmp_mat;
+      Matrix<Complex> tmp_mat2;
+      GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "linElastInt", true, Global::REAL), tmp_mat, NULL, bm, DesignElement::NO_MULTIMATERIAL);
+      if (mech->HasComplexMatData(reg_id)){
+        tmp_mat2.Resize(tmp_mat.GetNumRows(), tmp_mat.GetNumCols());
+        tmp_mat2.SetPart(Global::REAL, tmp_mat);
+        GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "linElastInt", true, Global::IMAG), tmp_mat, NULL, bm, DesignElement::NO_MULTIMATERIAL);
+        tmp_mat2.SetPart(Global::IMAG, tmp_mat);
+        KC.Push_back(tmp_mat2);
+        LOG_DBG(om) << "OptMechMat: MechStiffness region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << std::endl << KC.Last().ToString(0,true);
+      }
+      else
+      {
+        K.Push_back(tmp_mat);
+        LOG_DBG(om) << "OptMechMat: MechStiffness region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << std::endl << K.Last().ToString(0,true);
+      }
 
       if(dr->HasBiMaterial())
       {
-        K.Push_back(Matrix<double>());
-
-        GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "linElastInt"), K.Last(), NULL, dr->GetBiMaterial(MECHANIC));
+//        K.Push_back(Matrix<double>());
+//
+//        GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "linElastInt"), K.Last(), NULL, dr->GetBiMaterial(MECHANIC));
+        GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "linElastInt", true, Global::REAL), tmp_mat, NULL, dr->GetBiMaterial(MECHANIC));
+        if (mech->HasComplexMatData(reg_id)){
+          tmp_mat2.Resize(tmp_mat.GetNumRows(), tmp_mat.GetNumCols());
+          tmp_mat2.SetPart(Global::REAL, tmp_mat);
+          GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "linElastInt", true, Global::IMAG), tmp_mat, NULL, dr->GetBiMaterial(MECHANIC));
+          tmp_mat2.SetPart(Global::IMAG, tmp_mat);
+          KC.Push_back(tmp_mat2);
+        }
+        else K.Push_back(tmp_mat);
         LOG_DBG(om) << "OptMechMat: MechStiffness region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << " bimaterial" << std::endl << K.Last().ToString(0,true);
       }
 
@@ -280,10 +305,10 @@ void MechMat::Init()
 
 
 
-
-const Matrix<double>& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction)
+DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction)
 {
   unsigned int index = multimaterial < 0 ? 0 : (unsigned int) multimaterial;
+  bool complexMaterial = mech->HasComplexMatData(elem->regionId);
 
   // in the multimaterial case we do not want the form to obtain the multimaterial tensor but only the one of the currently material
   if(space->HasMultiMaterial())
@@ -297,21 +322,52 @@ const Matrix<double>& MechMat::MechStiffness(const Elem* elem, bool bimaterial, 
     if(multimaterial >= 0) // TODO is actually nonsense but due to non-region dependency of DesignSpace::multimaterial
       bm = space->GetRegion(elem->regionId, &space->GetMultiMaterials()[multimaterial])->multimaterial->GetMultiMaterial(MECHANIC);
 
-    if(!bimaterial)
-      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId][index], elem, bm, direction);
+    Matrix<double> tmp_mat;
+    Matrix<Complex> tmp_mat2;
+    if(!bimaterial){
+      //GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId][index], elem, bm, direction);
+      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "linElastInt", true, Global::REAL), tmp_mat, elem, bm, direction);
+      if (complexMaterial){
+        tmp_mat2.Resize(tmp_mat.GetNumRows(), tmp_mat.GetNumCols());
+        tmp_mat2.SetPart(Global::REAL, tmp_mat);
+        GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "linElastInt", true, Global::IMAG), tmp_mat, elem, bm, direction);
+        tmp_mat2.SetPart(Global::IMAG, tmp_mat);
+        mechStiffness_mapC[elem->regionId][index] = tmp_mat2;
+      }
+      else mechStiffness_map[elem->regionId][index] = tmp_mat;
+    }
     else
     {
       BaseMaterial* bm = space->GetRegion(elem->regionId)->GetBiMaterial(MECHANIC);
-      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId][1], elem, bm, direction);
+      //GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId][1], elem, bm, direction);
+      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "linElastInt", true, Global::REAL), tmp_mat, elem, bm, direction);
+      if (complexMaterial){
+        tmp_mat2.Resize(tmp_mat.GetNumRows(), tmp_mat.GetNumCols());
+        tmp_mat2.SetPart(Global::REAL, tmp_mat);
+        GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "linElastInt", true, Global::IMAG), tmp_mat, elem, bm, direction);
+        tmp_mat2.SetPart(Global::IMAG, tmp_mat);
+        mechStiffness_mapC[elem->regionId][index] = tmp_mat2;
+      }
+      else mechStiffness_map[elem->regionId][1] = tmp_mat;
     }
   }
 
   if(bimaterial)
-    return mechStiffness_map[elem->regionId][1];
+  {
+    if (complexMaterial)
+      return dynamic_cast<DenseMatrix& >(mechStiffness_mapC[elem->regionId][1]);
+    else
+      return dynamic_cast<DenseMatrix& >(mechStiffness_map[elem->regionId][1]);
+  }
 
-  LOG_DBG3(om) << "MS: el=" << elem->elemNum << " -> " << mechStiffness_map[elem->regionId][index].ToString();
-
-  return mechStiffness_map[elem->regionId][index]; // no multimaterial is frst material
+  if (complexMaterial)
+  {
+    LOG_DBG3(om) << "MS: el=" << elem->elemNum << " -> " << mechStiffness_mapC[elem->regionId][index].ToString();
+    return dynamic_cast<DenseMatrix& >(mechStiffness_mapC[elem->regionId][index]); // no multimaterial is frst material
+  }
+  else
+    LOG_DBG3(om) << "MS: el=" << elem->elemNum << " -> " << mechStiffness_map[elem->regionId][index].ToString();
+    return dynamic_cast<DenseMatrix& >(mechStiffness_map[elem->regionId][index]);
 }
 
 const Matrix<double>& MechMat::MechMass(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction)
@@ -388,7 +444,7 @@ AcouMat::AcouMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 }
 
 
-const Matrix<double>& AcouMat::AcouStiffness(const Elem* elem, bool bimaterial)
+Matrix<double>& AcouMat::AcouStiffness(const Elem* elem, bool bimaterial)
 {
   RegionIdType reg_id = elem->regionId;
 

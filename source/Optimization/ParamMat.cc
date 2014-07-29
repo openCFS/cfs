@@ -75,7 +75,7 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Applic
   switch(app)
   {
   case MECH:
-    out = mech_mat_->MechStiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
+    out = dynamic_cast<Matrix<double>& >(mech_mat_->MechStiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
     break;
   case MASS:
     out = mech_mat_->MechMass(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);

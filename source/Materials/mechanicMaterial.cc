@@ -261,7 +261,7 @@ namespace CoupledField
 
   void MechanicMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
 				    Global::ComplexPart dataType ) {
-    
+
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {

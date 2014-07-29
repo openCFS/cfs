@@ -39,19 +39,19 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     t33 = get_element(f, "design_tensor33_" + args.hom_access, args.h5_region, args.h5_step)
     s1 = t11*t11+t12*t12
     s2 = t12*t12+t22*t22
-    m = 2.0*numpy.max([numpy.max(s1), numpy.max(s2)])
+    m = 2*numpy.max([numpy.max(s1), numpy.max(s2)])
     s1 *= 1/m
     s2 *= 1/m
     s3 = numpy.ones((len(centers),1)) * .1 # fix for 3D
     
   if has_element(hdf_file, "design_density_" + args.hom_access):
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
-    rho = pow(rho, args.penalty)
+    rho = pow(rho, float(args.penalty))
     s1 *= rho
     s2 *= rho
     s3 *= rho
-    print "scale stiffness values by design_density_" + args.hom_access + " penalized by " + str(args.penalty) + " with average value " + str(numpy.mean(rho))  
-
+    print "scale stiffness values by design_density_" + args.hom_access + " with average value " + str(numpy.mean(rho)) + " and penalty " + str(args.penalty)
+  
   angle = numpy.zeros(((len(s1),3)))
   
   if args.show == "hom_rot_cross" or args.show == "rot" or args.show == "stream":

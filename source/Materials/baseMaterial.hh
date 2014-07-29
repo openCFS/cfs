@@ -96,7 +96,7 @@ class ApproxData;
     { return isSet_;};
 
     //! get infor, which material parameter is complex
-    std::set<MaterialType> GetIsComplexInfo() const
+    std::set<MaterialType>& GetIsComplexInfo()
     { return isComplex_;};
 
     //! get the tensors

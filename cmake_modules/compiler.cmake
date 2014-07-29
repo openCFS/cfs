@@ -273,6 +273,10 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
     
 ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 
+# the current TCL lib requires that option
+IF(USE_TCL)
+  SET(CFS_CXX_FLAGS " ${CFS_CXX_FLAGS} -DUSE_INTERP_RESULT -Wno-deprecated-declarations ")
+ENDIF(USE_TCL)
 
 # the current TCL lib requires that option
 IF(USE_TCL)

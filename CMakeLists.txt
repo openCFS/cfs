@@ -1,7 +1,7 @@
 
 
 #-----------------------------------------------------------------------------
-# Don't build anything unless the version of CMake is high enough.
+# Do not build anything unless the version of CMake is high enough.
 #-----------------------------------------------------------------------------
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8 FATAL_ERROR)
 

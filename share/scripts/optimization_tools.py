@@ -70,7 +70,7 @@ def read_density(filename, attribute="design", x=None, y=None, z=None):
   return ret
 
 # # read arbitrary multi-design density file as numpy array
-def read_multi_design(filename, design1, design2=None, design3=None, design4=None, matrix=False, attribute="design"):
+def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, matrix=False, attribute="design"):
   if not os.path.exists(filename):
     raise RuntimeError("file '" + filename + "' doesn't exist")
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
@@ -101,6 +101,9 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
     designs = 3  
   if design4:
     designs = 4
+  if design5:
+    designs = 5
+    
   length = len(sett) / designs
   
   out = numpy.zeros((length, designs))
@@ -116,6 +119,8 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
       idx = 2
     if design4 and type == design4:
       idx = 3
+    if design5 and type == design5:
+      idx = 4
     if idx <> -1:
       des = float(element.get(attribute))
       out[nr - 1, idx] = des
@@ -898,7 +903,15 @@ def convert_hom_rect_tensor_to_xml(tensordata, xmlfile=None):
 # b = a[:,0:3]
 # write_multi_design_file("hom_rect_40.density.xml", b, "hom_rect_a", "hom_rect_b", "rotAngle")
 
-
-# a = read_multi_design("hom_rect_ml_min_compl.density.xml", "stiff1", "stiff2", "rotAngle")
-# numpy.savetxt("hom_rect_ml_min_compl.dat", a)
+#a = read_multi_design("hom_rect_ml_min_compl.density.xml", "stiff1", "stiff2", "rotAngle")
+#numpy.savetxt("hom_rect_ml_min_compl.dat", a)
     
+#a = read_multi_design("smooth-full-100.xml", "density", "stiff1, "stiff2", "rotAngle")
+#b = numpy.zeros(a.shape[0],4);
+#b[:,0] = a[:,0]*a[:,1]**.5;
+#b[:,1] = a[:,0]*a[:,2]**.5;
+#b[:,2] = a[:,3];
+#write_multi_design_file("sqrt-smooth-full-100.xml", b, "tensor11", "tensor22", "tensor33",  "rotAngle")
+#a[:,1] = a[:,1]**.5;
+#a[:,2] = a[:,2]**.5;
+#write_multi_design_file("sqrt-smooth-full-100.xml", a, "density", "tensor11", "tensor22", "tensor33", "rotAngle")

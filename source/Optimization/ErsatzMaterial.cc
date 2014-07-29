@@ -1039,6 +1039,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::GLOBAL_SUM_MODULI:
       case Function::GLOBAL_LAMINATES_VOL:
       case Function::GLOBAL_TENSOR_TRACE:
+      case Function::GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
       result = CalcGlobalFunction(f, derivative);
       break;
 
@@ -1049,6 +1050,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::BUMP:
       case Function::SUM_MODULI:
       case Function::LAMINATES_VOL:
+      case Function::ORTHOTROPIC_TENSOR_TRACE:
       case Function::TENSOR_TRACE:
       case Function::TENSOR_NORM:
       case Function::PARAM_PS_POS_DEF:
@@ -1357,7 +1359,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::VOLUME:
       // Bastian's stuff needs IntegrateDesignVariable(). The SIMP stuff is better with CalcTrivialVolume() as
       // we cannot assume SIMP_TYPE transfer functions here!
-      if(method_ == SIMP_METHOD)
+      if(method_ == SIMP_METHOD || GetDesign()->FindDesign(DesignElement::DENSITY, false) > -1)
       return CalcTrivialVolume(func, derivative, normalized);
       else// FIXME check if it is ok not to give an exponent in the physical case!
       return IntegrateDesignVariable(f, g, derivative, des, normalized, false, 1.0);// no scaling, exponent=1
@@ -1397,6 +1399,12 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     // TODO: assumes a single transfer function for all regions!
     TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->GetDesignType(), Optimization::MECH) : NULL;
     bool regular = design->IsRegular();
+    unsigned int numEls = f->elements.GetSize();
+    unsigned int base;
+    if(design->HasMultiMaterial())
+      base = 0;
+    else
+      base = design->FindDesign(DesignElement::DENSITY)*numEls;
     double sum = 0.0;
     // we need the total volume in the non-regular case
     double total_vol = 0.0;
@@ -1406,21 +1414,20 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
     else
     {
-
-      if (!regular) {
-        for (unsigned int i = 0, n = f->elements.GetSize();i < n;i++) {
+      if (!regular)
+      {
+        for (unsigned int i = base; i < base+numEls; i++)
           total_vol += f->elements[i]->CalcVolume();
-        }
-      } else {
-        total_vol = f->elements.GetSize();
       }
+      else
+      total_vol = numEls;
     }
     // in the multimaterial case we have to consider, the multiple design element case
     if(design->HasMultiMaterial())
       total_vol /= design->GetMultiMaterials().GetSize();
 
     LOG_DBG(em) << "CTV: d=" << derivative << " p=" << f->IsPhysical() << " n=" << normalized << " tv=" << total_vol;
-    for(unsigned int i = 0, n = f->elements.GetSize(); i < n; i++)
+    for (unsigned int i = base; i < base+numEls; i++)
     {
       DesignElement* de = f->elements[i];
 

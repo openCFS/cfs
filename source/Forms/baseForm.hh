@@ -297,6 +297,9 @@ namespace CoupledField
     /** @see other CalcBMatOnly(). This is just a variant in the parameters */
     void CalcBMatOnly(Matrix<Double> &bMat, UInt ip, BaseFE* elem, Matrix<Double> &ptCoord);
 
+
+    void SetSum4Boperator ();
+
   protected:
 
     /** Gets the factor for dMat to perform the ersatz material ansatz.
@@ -337,6 +340,7 @@ namespace CoupledField
       return TS_alg_;
     };
 
+    
     //! pointer to reference element
     BaseFE  * ptelem;   
 
@@ -349,6 +353,8 @@ namespace CoupledField
     shared_ptr<AnsatzFct> ansatzFct1_;
     shared_ptr<AnsatzFct> ansatzFct2_;
 #endif
+
+    bool isSumBoperator_ ;
 
     //! flag indicating if element matrix is symmetric
     bool isSymmetric_;
