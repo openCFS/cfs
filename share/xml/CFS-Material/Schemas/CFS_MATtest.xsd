@@ -1,0 +1,40 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for material description of the test PDE
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of material for flow PDEs -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_MatTest">
+    <xsd:sequence>
+      <xsd:element name="alpha" type="xsd:token">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            material parameter associated with time derivative in test
+            PDE.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="beta" minOccurs="0" type="xsd:token">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            material parameter associated with Laplace operator in
+            test PDE.
+          </xsd:documentation>
+        </xsd:annotation>        
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+</xsd:schema>

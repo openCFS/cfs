@@ -1,0 +1,23 @@
+ADD_LIBRARY(ccmio STATIC
+  ccmio.c
+  ccmiocore.c
+  ccmioprivate.c
+  ccmioutility.c
+  vector.c
+  ccmioversion.c)
+
+INSTALL(TARGETS ccmio ARCHIVE
+        DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
+
+INSTALL(FILES
+  ccmio.h
+  DESTINATION include)
+
+INSTALL(FILES
+  ccmiocore.h
+  ccmiotypes.h
+  ccmioprivate.h
+  ccmioutility.h
+  vector.h
+  ccmioversion.h
+  DESTINATION include/libccmio)

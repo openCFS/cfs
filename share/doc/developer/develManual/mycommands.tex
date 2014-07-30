@@ -1,0 +1,248 @@
+\usepackage{color}
+\usepackage{colortbl}
+\usepackage{fancyvrb}
+
+% ===============================
+%  XML Listing Definitions
+% ===============================
+
+% The following definitions should ease the pain of 
+% handling xml elements and attributes
+
+% background color for attribute / element listings
+\definecolor{darkgrey}{rgb}{0.8,0.8,0.8}
+
+% single xml <element> within text
+\newcommand\xel[1]{\textcolor[rgb]{0.00,0.50,0.00}{
+\tt{\textless#1\textgreater}}}
+
+% single closing </element> within txt
+\newcommand\xelclose[1]{\textcolor[rgb]{0.00,0.50,0.00}{
+\tt{\textless/#1\textgreater}}}
+
+% single empty <element/> within txt
+\newcommand\xelempty[1]{\textcolor[rgb]{0.00,0.50,0.00}{
+\tt{\textless #1/\textgreater}}}
+
+% single xml element value within the text
+\newcommand\xelv[1]{{\tt{#1}}}
+
+% single xml attribute within the text
+\newcommand\xat[1]{\textcolor[rgb]{0.49,0.56,0.16}{\tt{#1}}}
+
+% single xml attribute value within the text
+\newcommand\xatv[1]{\textcolor[rgb]{0.73,0.13,0.13}{\tt{#1}}}
+
+% generic xml value (no specfic value, just the name / meaning
+% of the parameter)
+\newcommand\xparam[1]{\textit{#1}}
+
+% definition list for attributes in the form
+% The first parameter names the description of the attribute
+% | Attribute | Values | Description |
+\newenvironment{xatlist}[1]
+{\begin{center} \newcommand{\attrDesc}{#1}
+\begin{tabular}{lp{0.3\textwidth}p{0.5\textwidth}} \toprule \rowcolor{darkgrey}
+Attribute & Values & Description \\ \midrule} {\\\bottomrule
+\end{tabular}\\[0.2ex] \attrDesc \end{center}}
+
+
+
+% definition list for element values in the form
+\newenvironment{xellist}[1]
+{\begin{center} \newcommand{\xelDesc}{#1} \begin{tabular}{llp{5cm}}
+\toprule \rowcolor{darkgrey} Element & Values & Description \\ \midrule}
+{\end{tabular} \\[0.2ex] \xelDesc\end{center}}
+
+% definition for inline xml code
+\newcommand{\xml}[1]{{\tt{#1}}}
+
+% definition for xml listing (do NOT use the verbatim environment!)
+\DefineVerbatimEnvironment{xmllisting}{Verbatim}{}
+
+% some helper definitions for plain verbatim style
+\newcommand{\myverb}[1]{\verb{#1}}
+\providecommand{\url}[1]{\texttt{#1}}
+
+% ===============================
+%  Mathematical Abbreviations
+% ===============================
+
+\newcommand{\ba}{{\bf a}}
+\newcommand{\bA}{{\bf A}}
+\newcommand{\bB}{{\bf B}}
+\newcommand{\bC}{{\bf C}}
+\newcommand{\bc}{{\bf c}}
+\newcommand{\cth}{{c}_{\rm th}}
+\newcommand{\bD}{{\bf D}}
+\newcommand{\bE}{{\bf E}}
+\newcommand{\bve}{{\bf e}}
+\newcommand{\bvf}{{\bf f}}
+\newcommand{\bfv}{{\bf f}_{\rm V}} 
+\newcommand{\bF}{{\bf F}}
+\newcommand{\cF}{{\cal F}}
+\newcommand{\bFd}{{\bf F}_{\rm d}}
+\newcommand{\bH}{{\bf H}}
+\newcommand{\bHd}{{\bf H}_{\rm d}}
+\newcommand{\bI}{{\bf I}}
+\newcommand{\bJ}{{\bf J}}
+\newcommand{\bK}{{\bf K}}
+\newcommand{\bk}{{\bf k}}
+\newcommand{\bl}{{\bf l}}
+\newcommand{\bM}{{\bf M}}
+\newcommand{\bm}{{\bf m}}
+\newcommand{\bN}{{\bf N}}
+\newcommand{\bn}{{\bf n}}
+\newcommand{\bq}{{\bf q}}
+\newcommand{\qe}{{q_{\rm e}}}
+\newcommand{\Qe}{{Q_{\rm e}}}
+\newcommand{\bP}{{\bf P}}
+\newcommand{\R}{{\bf R}} 
+\newcommand{\br}{{\bf r}}
+\newcommand{\bs}{{\bf s}}
+\newcommand{\bS}{{\bf S}}
+\newcommand{\bt}{{\bf t}}
+\newcommand{\bT}{{\bf T}}
+\newcommand{\bv}{{\bf v}} 
+\newcommand{\bV}{{\bf V}}
+\newcommand{\Ve}{{V}_{\rm e}}
+\newcommand{\bu}{{\bf u}}
+\newcommand{\bW}{{\bf W}}
+\newcommand{\bX}{{\bf X}}
+\newcommand{\bx}{{\bf x}}
+\newcommand{\bw}{{\bf w}}
+
+\newcommand{\cI}{{\cal I}}
+\newcommand{\cP}{{\cal P}}
+\newcommand{\cM}{{\cal M}}
+\newcommand{\cS}{{\cal S}}
+\newcommand{\cQ}{{\cal Q}}
+\newcommand{\cJ}{{\cal J}}
+\newcommand{\aJ}{{|{\cal J}|}}
+
+\newcommand{\Coarse}{{\bf coarse \,}}
+\newcommand{\Ind}{{\bf ind \,}}
+\newcommand{\Curl}{{\bf curl \,}}
+\newcommand{\Grad}{{\bf grad \,}}
+
+%\newcommand{\R}{{\mathbb{R}}}
+\newcommand{\Hk}{{B_k}}
+\newcommand{\Hkp}{{B_{k+1}}}
+\newcommand{\Hkm}{{B_{k-1}}}
+\def\B{{\cal B}}
+
+\newcommand{\rd}{{\,\rm d}}
+\newcommand{\rmd}{{\rm d}}
+\newcommand{\rme}{{\rm e}}
+\newcommand{\re}{{\,\rm e}}
+\newcommand{\rj}{{\rm j}}
+\newcommand{\rr}{{\rm r}}
+\newcommand{\rc}{{\rm c}}
+\newcommand{\rp}{{\rm p}}
+\newcommand{\rV}{{\rm V}}
+\newcommand{\rs}{{\rm s}}
+\newcommand{\rE}{{\,\rm E}}
+\newcommand{\rI}{{\,\rm I}}
+\newcommand{\rf}{{\,\rm f}}
+\newcommand{\rGC}{{\,\rm GC}}
+\newcommand{\rOC}{{\,\rm OC}}
+\newcommand{\rmn}{{\rm n}}
+
+\newcommand{\bsigma}{{\mbox{\boldmath $\sigma$ }\hspace*{-1.5mm}}} 
+\newcommand{\bDelta}{{\bf \Delta}}
+\newcommand{\bPhi}{{\bf \Phi}}
+\newcommand{\bGamma}{{\bf \Gamma}}
+\newcommand{\bpsi}{{\mbox{\boldmath $\psi$ }}}
+\newcommand{\beps}{{\mbox{\boldmath $\varepsilon$ }}} 
+\newcommand{\bxi}{{\mbox{\boldmath $\xi$ }}}
+\newcommand{\lambdaL}{{\lambda_{\rm L}}}
+\newcommand{\muL}{{\mu_{\rm L}}}
+\newcommand{\nup}{{\nu_{\rm p}}}
+
+\newcommand{\bnabla}{{\mbox{\boldmath $\nabla$ }\hspace*{-1mm}}} 
+\newcommand{\btriangle}{{\mbox{\boldmath $\Delta$}}}
+\newcommand{\bnablaX}{{\mbox{{\boldmath $\nabla$}\hspace*{-1mm}$_X\,$}}} 
+\newcommand{\bcurl}{{\bf curl \,}} 
+\newcommand{\bdiv}{{\bf div \,}} 
+\newcommand{\bgrad}{{\bf grad \,}} 
+\newcommand{\ul}[1]{{\underline #1}}  
+\newcommand{\eps}{\varepsilon\/} 
+%\newcommand{\beps}{[\varepsilon]}
+\newcommand{\opdiv}{\mathop{\rm div}\nolimits} 
+\newcommand{\oprot}{\mathop{\rm rot}\nolimits} 
+\newcommand{\btau}{{\mbox{\boldmath $\tau$ }}} 
+
+\def\be#1{\begin{equation} \label{#1} }
+\def\ee{\end{equation}} 
+\def\bea#1{\begin{eqnarray} \label{#1} }
+\def\eea{\end{eqnarray}} 
+\def\barr{\begin{array}}
+\def\earr{\end{array}}   
+\def\norm#1{\|#1\|}
+
+\newcommand{\uu}[1]{\underline{#1}}
+
+\newcommand{\Nedelec}{{N${\rm\acute{e}}$d${\rm\acute{e}}$lec }}
+\newcommand{\Ampere}{{Amp${\rm\grave{e}}$re}\hspace{1ex}}
+%von uffc2000-paper
+\def\N{{{\rm I}\!{\rm N}}}
+\def\R{{{\rm I}\!{\rm R}}}
+\def\Z{{{\rm Z}\!\!{\rm Z}}}
+\def\C{{{\rm I}\!\!\!{\rm C}}}
+\def\be#1{\begin{equation} \label{#1} }
+\def\ee{\end{equation}}
+\def\barr{\begin{array}}
+\def\earr{\end{array}}
+\def\req#1{(\ref{#1})}
+\def\norm#1{\hspace{0.2ex} \|#1\| \hspace{0.2ex}}
+\def\cE{{\bf c}^E}
+\def\e{{\bf e}}
+\def\eps{{\bf \varepsilon}^S}
+\def\cEcf{{c}^E}
+\def\ecf{{e}}
+\def\epscf{{\varepsilon}^S}
+\def\dd#1#2{\frac{\partial#1}{\partial#2}}
+\def\grad{\mbox{grad}}
+\def\div{\mbox{div}}
+\def\B{{\cal B}}
+\def\Gg{{\Gamma_g}}
+\def\Ge{{\Gamma_e}}
+\def\dh{\hat{d}}
+\def\phih{\hat{\phi}}
+\def\mdivt{\underline{-div}}
+\def\dcf{{\rm d}}
+\def\phicf{{\varphi}}
+\def\dcfh{\hat{\rm d}}
+\def\phicfh{\hat{\varphi}}
+\def\nmp{{n_{mp}}}
+\def\npar{{n_{par}}}
+\def\Phih{\hat{\Phi}}
+%\def\delp{\underline{dp}}
+\def\delp{{dp}}
+\def\delcE{{d{\bf c}^E}}
+\def\dele{{d{\bf e}}}
+\def\deleps{{d{\bf\varepsilon}^S}}
+\def\delcEcf{{d{c}^E}}
+\def\delecf{{d{e}}}
+\def\delepscf{{{\varepsilon}^S}}
+\def\delvdh{{d\vec{\hat{d}}}}
+\def\delphih{{d\hat{\phi}}}
+\def\delvdcfh{{d\vec{\hat{\rm d}}}}
+\def\delphicfh{{d\hat{\varphi}}}
+\def\pacu{\acute{p}}
+\def\nparacu{\acute{n}_{par}}                         
+\def\nmpd{{n_{mp}^d}}
+\def\op{{op}}   
+
+\newcommand{\nat}{\mathbb{N}}
+
+
+%\floatname{algorithm}{Procedure}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\renewcommand{\algorithmiccomment}[1]{\vspace{1mm}{\it #1}}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "chapter22"
+%%% End: 

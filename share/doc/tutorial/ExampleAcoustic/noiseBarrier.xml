@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.cfs++.org file:/home/ahueppe/Programmierung/CFS_BIN/fespace_svn/opt/share/xml/CFS-Simulation/CFS.xsd" xmlns="http://www.cfs++.org">
+    
+    
+    <fileFormats>
+        <input>
+            <!--
+              Generate the mesh file from command line:
+
+              gmsh -2 -bin -n -nopopup plateMesh.geo
+            -->
+            <gmsh fileName="plateMesh.msh"/>
+        </input>
+        <output>
+            <hdf5 id="h5"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+    <domain geometryType="plane">
+        <regionList>
+            <region name="prop" material="air"/>
+            <region name="plate" material="air"/>
+            <region name="pml" material="air"/>
+        </regionList>
+        <nodeList>
+            <!--choose a point near the center-->
+            <nodes name="excite">
+                <coord x="0.0" y="0.0" z="0.0"/>
+            </nodes>
+        </nodeList>
+    </domain>
+    
+    <sequenceStep>
+        <analysis>
+            <harmonic>
+                <numFreq>10</numFreq>
+                <startFreq>0.1</startFreq>
+                <stopFreq>2</stopFreq>
+            </harmonic>
+            <!--transient>
+                <numSteps>200</numSteps>
+                <deltaT>5e-2</deltaT>
+            </transient-->
+            
+        </analysis>
+        
+        <pdeList>
+            <acoustic>
+                <regionList>
+                    <region name="prop"/>
+                    <!--comment this if you want a hard plate-->
+                    <!--region name="plate"/-->
+                    <region name="pml" dampingId="myPml"/>
+                </regionList>
+                <dampingList>
+                    <pml id="myPml">
+                        <type>inverseDist</type>
+                        <dampFactor>1.0</dampFactor>
+                    </pml>
+                </dampingList>
+                <bcsAndLoads> 
+                    <!--transient BC-->                    
+                    <!--pressure value="sin(2*pi*1*t)*1" name="excite"/-->
+                    <!--harmonic BC-->
+                    <pressure value="1" name="excite"/>                    
+                </bcsAndLoads>
+            <storeResults>
+                <nodeResult type="acouPressure">
+                    <allRegions/>
+                </nodeResult>
+            </storeResults>
+            </acoustic>
+            
+        </pdeList>
+    </sequenceStep>
+    
+    
+    
+</cfsSimulation>

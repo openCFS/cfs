@@ -1,0 +1,69 @@
+SET(CMAKE_CURRENT_BINARY_DIR "@CMAKE_CURRENT_BINARY_DIR@")
+SET(CMAKE_CURRENT_SOURCE_DIR "@CMAKE_CURRENT_SOURCE_DIR@")
+
+INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/../../../cmake_modules/DevelopmentServer.cmake")
+
+INCLUDE("${CMAKE_CURRENT_BINARY_DIR}/../doc-common.cmake")
+
+SET(DEV_MAN_DIR "${CMAKE_CURRENT_BINARY_DIR}/develManual") 
+
+RSYNC_AUX_DIR()
+RSYNC_DIR(
+  "${CMAKE_CURRENT_SOURCE_DIR}/develManual"
+  "${CMAKE_CURRENT_BINARY_DIR}/develManual"
+  )
+
+CLEANUP_LATEX_DIR("${DEV_MAN_DIR}")
+
+# Apply syntax coloring to files in sources directory
+PYG_MAKE_AUX_STYLE_FILE()
+
+# Copy over log.xml to doc sources dir
+FILE(COPY 
+  "${CFS_SOURCE_DIR}/share/xml/config/log.xml"
+  DESTINATION
+  "${CMAKE_CURRENT_BINARY_DIR}/develManual/sources")
+
+# Configure some script files with paths to CFS++ development server.
+CONFIGURE_FILE(
+  "${CMAKE_CURRENT_SOURCE_DIR}/develManual/sources/git_checkout_cfs.sh"
+  "${CMAKE_CURRENT_BINARY_DIR}/develManual/sources/git_checkout_cfs.sh"
+  @ONLY)
+
+CONFIGURE_FILE(
+  "${CMAKE_CURRENT_SOURCE_DIR}/develManual/sources/qs_bootstrap.sh"
+  "${CMAKE_CURRENT_BINARY_DIR}/develManual/sources/qs_bootstrap.sh"
+  @ONLY)
+
+CONFIGURE_FILE(
+  "${CMAKE_CURRENT_SOURCE_DIR}/develManual/sources/qs_obtain_sources.sh"
+  "${CMAKE_CURRENT_BINARY_DIR}/develManual/sources/qs_obtain_sources.sh"
+  @ONLY)
+
+CONFIGURE_FILE(
+  "${CMAKE_CURRENT_SOURCE_DIR}/develManual/sources/vagrant_box.sh"
+  "${CMAKE_CURRENT_BINARY_DIR}/develManual/sources/vagrant_box.sh"
+  @ONLY)
+
+SET(FILES
+  hdf5_file_format.xml
+  qs_obtain_sources.sh
+  git_checkout_cfs.sh
+  qs_configure_build.sh
+  platform_defaults_mac.cmake
+  macports_installed_pckgs.txt
+  nacs_win.txt
+  nacs_win_build_howto.txt
+  mpcci_reactivate_lse24_lic.txt
+  org.eclipse.ui.editors.prefs
+  org.eclipse.core.resources.prefs
+  qs_bootstrap.sh
+  eclipse-code-style.xml
+  vagrant_box.sh
+  ng-Ablauf.txt
+  log.xml
+)
+
+PYGMENTIZE("${DEV_MAN_DIR}" "${FILES}")
+
+BUILD_LATEX_DOC("${DEV_MAN_DIR}" "develManual")

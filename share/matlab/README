@@ -1,0 +1,18 @@
+
+ In order to use these matlab scripts they must be in the search path
+ matlab uses for finding script files. There are two ways to alter this
+ path:
+
+ 1) To temporarily augment the path in a single matlab session simply do
+    a
+
+    > path( path, '<path_to_CFS++_sandbox>/auxiliary/matlab' );
+
+ 2) To permanently augment the path for each matlab session you must define
+    the MATLABPATH environment variable accordingly. In the tcsh this is
+    e.g. done by setting
+
+    a) if ( -x /home/shareAll/linux_bin/bin/matlab ) then
+    b)   alias matlab 'matlab -nodesktop -nosplash'
+    c)   setenv MATLABPATH <path_to_CFS++_sandbox>/auxiliary/matlab
+    d) endif

@@ -1,0 +1,33 @@
+# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
+# kate: indent-width 2; encoding utf-8; auto-brackets on;
+# kate: mixedindent on; indent-mode cstyle; line-numbers on;
+# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
+# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+
+#=============================================================================
+# Set global variables, configured from the external build.
+#=============================================================================
+set(scpip_source  "@scpip_source@")
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_DISTRO "@CFS_DISTRO@")
+
+#=============================================================================
+# Include some convenient macros (e.g. for applying patches).
+#=============================================================================
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+  "${CFS_SOURCE_DIR}/cfsdeps/scpip/CMakeLists.txt"
+  "${scpip_source}/CMakeLists.txt"
+)
+
+#=============================================================================
+# Apply some patches.
+#=============================================================================
+SET(patches
+    "scpip-gfortran.patch"
+    "scpip-dum2.patch"
+)
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/scpip")

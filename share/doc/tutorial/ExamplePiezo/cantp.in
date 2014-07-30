@@ -1,0 +1,77 @@
+fini
+/uis,msgpop,3        ! disable warning popups
+/clear
+/filname,bimorph,1        ! important: define name of the model: 't1'
+/prep7
+!/pnum,kp,1
+!/pnum,line,1
+!/pnum,area,1
+!!shpp,off
+/uis,msgpop,2        ! enable warning popups
+
+! initialize macros for .mesh-interface
+init
+
+eps=1e-7
+L=400e-6
+b=2e-6
+bc=45e-6
+
+block,0,L,0,bc,0,b
+block,0,L,0,bc,b,2*b
+
+nummrg,all,1e-7
+
+!mesh areas
+setelems,'brick'
+esize,5e-6
+vsel,all
+vmesh,all
+
+
+!For 2d surface
+setelems,'quadr'
+allsel,
+asel,s,,,2
+asel,a,,,5
+asel,a,,,8
+asel,a,,,11
+amesh,all
+
+/color,elem,red
+eplo
+
+! write elements
+allsel,all
+vsel,s,,,1
+eslv
+welems,'cantilever'
+
+allsel,all
+vsel,s,,,2
+eslv
+welems,'piezoLayer'
+
+allsel
+asel,s,,,2
+esla
+welems,'gnd'
+
+allsel
+asel,s,,,8
+esla,,1
+welems,'top'
+
+allsel
+asel,s,,,5
+asel,a,,,11
+esla,,1
+welems,'fix-all'
+
+
+! write all nodes
+allsel
+wnodes
+
+! make .mesh file
+mkhdf5 

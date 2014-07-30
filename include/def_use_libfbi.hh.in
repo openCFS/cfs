@@ -1,0 +1,3 @@
+// Define used to check if fast box intersection library is activated
+
+#cmakedefine USE_LIBFBI @USE_LIBFBI@

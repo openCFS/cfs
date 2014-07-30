@@ -1,0 +1,45 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for material description of an flow material
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of material for flow PDEs -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_MatFlow">
+    <xsd:sequence>
+      <xsd:element name="density" type="xsd:token">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Mean density of the fluid in kg/m^3.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="dynamicViscosity" minOccurs="0" type="xsd:token">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Dynamic viscosity of the fluid in Pas.
+          </xsd:documentation>
+        </xsd:annotation>        
+      </xsd:element>
+      <xsd:element name="kinematicViscosity" minOccurs="0" type="xsd:token">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Kinematic viscosity (dynamic viscosity / density) of the fluid in m^2/s = 10,000 Stokes = 1,000,000 Centistokes.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+</xsd:schema>

@@ -1,0 +1,121 @@
+
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for description of direct and iterative coupling of PDEs
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic coupling data type -->
+  <!-- ******************************************************************** -->
+
+  <!-- This is an abstract basic type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="DT_BasicCoupling" abstract="true"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic coupling element -->
+  <!-- ******************************************************************** -->
+
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised PDECoupling elements -->
+  <xsd:element name="PDEBasicCoupling" type="DT_BasicCoupling" abstract="true"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic iterative coupling data type -->
+  <!-- ******************************************************************** -->
+
+  <!-- This is an abstract basic type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="DT_BasicIterCoupling" abstract="true"/>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic iterative coupling element -->
+  <!-- ******************************************************************** -->
+
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised PDECoupling elements -->
+  <xsd:element name="PDEBasicIterCoupling" type="DT_BasicIterCoupling" abstract="true"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of iterative coupling section -->
+  <!-- ******************************************************************** -->
+
+  <xsd:element name="iterative" substitutionGroup="PDEBasicCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicCoupling">
+          <xsd:sequence>
+            <xsd:element ref="PDEBasicIterCoupling" minOccurs="0" maxOccurs="unbounded"/>
+            
+            <!-- Convergence criterions for the single quantities -->
+            <xsd:element name="convergence">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="quantity" type="DT_Nonlinear" minOccurs="0"
+                    maxOccurs="unbounded"/>
+                </xsd:sequence>
+                <xsd:attribute name="maxNumIters" type="xsd:positiveInteger"/>
+                <xsd:attribute name="stopOnDivergence" type="DT_CFSBool" use="optional" default="yes"/>
+                <xsd:attribute name="logging" type="DT_CFSBool" use="optional" default="no"/>
+              </xsd:complexType>
+            </xsd:element>
+            
+            <!-- Section for geometry updating -->
+            <xsd:element name="geometryUpdate" minOccurs="0">
+              <xsd:complexType>
+                <xsd:sequence>
+                   <xsd:element name="region" minOccurs="0" maxOccurs="unbounded">
+                    <xsd:complexType>
+                     <xsd:attribute name="name" type="xsd:token" use="required"/>                   
+                    </xsd:complexType>                  
+                   </xsd:element>                         
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element>
+
+
+  <!--nonlinear (concerning iterative coupling) part -->
+  <xsd:complexType name="DT_Nonlinear">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="name" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="magForceLorentzDensity"/>
+              <xsd:enumeration value="magForceLorentz"/>
+              <xsd:enumeration value="mechDisplacement"/>
+              <xsd:enumeration value="mechAcceleration"/>
+              <xsd:enumeration value="elecPower"/>
+              <xsd:enumeration value="elecCurrent"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+
+        <xsd:attribute name="value" type="DT_PosFloat" use="required"/>
+        <xsd:attribute name="normType" use="optional" default="rel">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="abs"/>
+              <xsd:enumeration value="rel"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+</xsd:schema>

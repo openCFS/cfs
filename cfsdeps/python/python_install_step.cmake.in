@@ -1,0 +1,21 @@
+if(UNIX)
+#  include("@ParaViewSuperBuild_CMAKE_BINARY_DIR@/paraview_common_environment.cmake")
+
+  if(APPLE)
+    set(ENV{DYLD_LIBRARY_PATH} "@python_build@/lib")
+  else(APPLE)
+    set(ENV{LD_LIBRARY_PATH} "@python_build@/lib")
+  endif(APPLE)
+
+  EXECUTE_PROCESS(
+    COMMAND make install
+    WORKING_DIRECTORY "@python_source@"
+    )
+
+  EXECUTE_PROCESS(
+    COMMAND @python_build@/bin/python setup.py install
+    WORKING_DIRECTORY "@python_build@"
+    RESULT_VARIABLE rv
+    )
+
+endif()

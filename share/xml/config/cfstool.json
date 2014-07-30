@@ -1,0 +1,68 @@
+// ===========================================================================
+//  Configuration file for cfstool in JSON format.
+//  Contains defaults for I/O file formats.
+// ===========================================================================
+
+{
+    // The fileFormats, input and output subtrees can also be specified to
+    // cfstool on the command line using the --formatArgs parameter.
+    // Please note the correct escaping of quotation marks for Windows and
+    // Linux.
+    //
+    // Windows:
+    // cfstool -m convert --formatArgs {\"input\":{\"unv\":{\"flavor\":\"gid\"}}} in.unv out.h5
+    // Linux:
+    // cfstool -m convert --formatArgs '{"input":{"unv":{"flavor":"gid"}}}' in.unv out.h5
+
+    "cfstoolConfig": 
+    {
+	"fileFormats":
+	{
+	    "input":
+	    {
+		"gmsh":"",
+		"gmv":"",
+		"hdf5":"",
+		"mphtxt":
+		{
+		    "debug":"false"
+		},
+		"mesh":"",
+		"unv":
+		{
+		    "flavor":"ideas"
+		}
+	    },
+	    "output":
+	    {
+		"csv":"",
+		"gid":
+		{
+		    "binaryFormat":"false"
+		},
+		"gmsh":
+		{
+		    "binaryFormat":"false",
+		    "endianness":"big"
+		},
+		"gmv":
+		{
+		    "binaryFormat":"false",
+		    "fixedGrid":"yes"
+		},
+		"hdf5":
+		{
+		    "externalFiles":"false"
+		},
+		"xdmf":
+		{
+		    "externalFiles":"false"
+		},
+		"unv":
+		{
+		    "flavor":"ideas"
+		}
+	    }
+	}
+    }
+}

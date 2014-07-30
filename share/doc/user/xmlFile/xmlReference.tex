@@ -1,0 +1,79 @@
+\documentclass[12pt]{report}
+%
+\usepackage{ifpdf}
+%
+%
+\usepackage{../../auxilliaries/LaTeX/lsepaper}
+\usepackage{ifthen}
+\usepackage[isolatin]{inputenc}
+\usepackage{subfigure}
+\usepackage{amssymb}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{booktabs}
+%
+% =============================================================================
+% PDF STUFF
+% =============================================================================
+%
+\ifpdf
+\typeout{--> PDF: Output mode detected}
+\typeout{--> PDF: Setting general document info}
+
+\usepackage{graphicx}
+\graphicspath{{./pics/}{../../auxilliaries/Pics/}}
+\DeclareGraphicsExtensions{.jpg,.pdf,.png}
+\usepackage{thumbpdf}
+\usepackage[pdftex,bookmarks=true]{hyperref}
+\hypersetup{pdfpagemode=UseThumbs}
+\hypersetup{colorlinks=true}
+\hypersetup{linkcolor=red}
+\hypersetup{citecolor=blue}
+
+\hypersetup{pdfauthor=cfs-devel}
+\hypersetup{pdftitle={CFS++ --- XML Reference Manual}}
+\hypersetup{pdfsubject={User's Guide}}
+\else
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.jpg,.pdf,.png}
+\graphicspath{{./pics/}{../../auxilliaries/Pics/}}
+\fi
+%
+% =============================================================================
+%
+\include{mycommands}
+%
+% =============================================================================
+\begin{document}
+% =============================================================================
+%
+%
+\LSETITLE{CFS++ -- XML Reference Manual}{\hspace{1em}}{\hspace{1em}}
+%
+%
+\tableofcontents
+%
+%
+\clearpage
+\pagestyle{headings}
+\pagenumbering{arabic}
+%
+%
+
+\include{xmlintro}
+\include{general}
+\include{mathExpressions}
+\include{basicCommands}
+\include{BCsLoads}
+\include{Savings}
+\include{singlefields}
+\include{coupledfields}
+\include{solverParams}
+%\include{paramIdent}
+\include{special}
+\include{optimization}
+%
+%
+% =============================================================================
+\end{document}
+% =============================================================================

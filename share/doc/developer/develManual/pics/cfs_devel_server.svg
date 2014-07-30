@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="597.62689"
+   height="424.99545"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.0 r9654"
+   sodipodi:docname="Neues Dokument 1">
+  <defs
+     id="defs4">
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow1Lend"
+       style="overflow:visible">
+      <path
+         id="path3958"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 z"
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;marker-start:none"
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.69842527"
+     inkscape:cx="282.61775"
+     inkscape:cy="356.2154"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     units="mm"
+     inkscape:window-width="1207"
+     inkscape:window-height="920"
+     inkscape:window-x="1501"
+     inkscape:window-y="22"
+     inkscape:window-maximized="0" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-0.45444244,-28.516251)">
+    <image
+       y="28.516247"
+       x="76.710312"
+       id="image3047"
+       xlink:href="file:///Users/simon/Documents/dev/CFS_TRUNK_GIT/share/doc/developer/develManual/pics/cfs_devel_server.png"
+       height="265.74802"
+       width="394.81421" />
+    <image
+       y="258.62979"
+       x="0.45444244"
+       id="image3112"
+       xlink:href="file:///Users/simon/Documents/dev/CFS_TRUNK_GIT/share/doc/developer/develManual/pics/cfs_devel_trac.png"
+       height="194.8819"
+       width="289.5304" />
+    <image
+       y="258.62979"
+       x="308.55096"
+       id="image3177"
+       xlink:href="file:///Users/simon/Documents/dev/CFS_TRUNK_GIT/share/doc/developer/develManual/pics/cfs_devel_cdash.png"
+       height="194.8819"
+       width="289.5304" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="M 122.73353,97.768027 C 121.52965,112.10196 77.99011,108.27039 62.891534,127.54847 47.792957,146.82655 44.010425,213.88092 43.941636,255.85689"
+       id="path3180"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="czc" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="m 142.43151,97.76803 c 4.07295,8.85589 23.93111,11.1993 56.29213,10.60136 32.36103,-0.59794 121.16656,-11.713388 151.0073,6.59027 41.25119,25.30259 36.03682,75.2286 36.65241,140.39217"
+       id="path3182"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cssc" />
+  </g>
+</svg>

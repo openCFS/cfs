@@ -1,0 +1,55 @@
+- Create a Virtual  Box for Linux with NAT networking and  set the MAC address
+  from the first line of the mpcci.lic file (the third item).
+    
+    SERVER fedora13 000476f8ceb4 47000
+
+- Deactivate automatic time sync between host and guest by issuing on host:
+
+    VBoxManage setextradata "NAME_OF_VBOX" "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled" 1
+
+- Install   an  older   Linux  (e.g.   openSUSE  10.2   available   e.g.  from
+  ftp5.gwdg.de/pub/opensuse/discontinued/distribution/10.2/repo/oss)     inside
+  the VBox and make sure to set  a date which is after the compilation date of
+  the kernel  (e.g. April  2007). Also make  sure that  the time does  not get
+  synchronized with an NTP server.
+
+- Install required developer tools.
+
+- Do not install VBox guest additions (maybe it works, but I didn't test it)
+
+- SCP the MpCCI from qnap:/share/pckg/MpCCI
+
+- Copy the mpcci-sdk-3.0.3/mpcci.lic  file to MpCCI-3.0.5/licenses and replace
+  lse24.... in the first line with the hostname of the VBox.
+
+- Put MpCCI-3.0.5/bin on PATH
+
+- Start license server by issuing mpcci license -start
+
+- Check running license server by mpcci license -local
+
+- Try  running the  simple test  by mpcci  test -simple.  I had  some problems
+  running  the test but  not because  of the  license server  but due  to some
+  strange   MPI   problems  ([1]   Mode   8   is   unknown  (internal   error)
+  chchkdev.c:126!). I did not dig deeper though.
+
+- If  the license  server  complains  about tampering  with  the system  clock
+  (i.e. "clock-surfing"), you can try to reset the file modifications dates by
+  doing the following:
+
+Re: Flexlm Date rollback
+This sometimes happens on license servers when someone clueless tries to service them.
+
+Try getting them to run this command:
+
+touch /tmp/stamp && find / -type f -newer /tmp/stamp -exec touch {} \; && rm -f /tmp/stamp
+
+This will bring back the date of all files made after the current time.
+
+Also if the above does not work, it means some symbols also need updating:
+
+touch /tmp/stamp && find / -newer /tmp/stamp -exec touch {} \; && rm -f /tmp/stamp
+
+You will get some error messages. Make sure it is only /proc files that are untouched by running this command:
+
+touch /tmp/stamp && find / -newer /tmp/stamp -print && rm -f /tmp/stamp

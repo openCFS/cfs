@@ -1,0 +1,23 @@
+digraph G {
+    "CFS++" -> ".rst"
+    "unv2rst" -> ".rst"
+    "ANSYS Classic" -> ".rst"
+    "ANSYS Workbench" -> ".rst"
+
+    ".rst" -> "ANSYS Classic"
+    ".rst" -> "ANSYS Workbench"
+    ".rst" -> "ANSYS CFD-Post"
+    ".rst" -> "Tecplot"
+    ".rst" -> "EnSight"
+    ".rst" -> "rstinfo"
+
+    "unv2rst" [shape=box];
+    "ANSYS Classic" [shape=box];
+    "ANSYS Workbench" [shape=box];
+    Tecplot [shape=box];
+    EnSight [shape=box];
+    "ANSYS CFD-Post" [shape=box];
+    "rstinfo" [shape=box];
+
+    "CFS++" [shape=box,color=darkgrey,style=filled];
+}

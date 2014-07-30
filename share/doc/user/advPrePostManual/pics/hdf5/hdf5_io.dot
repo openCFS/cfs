@@ -1,0 +1,16 @@
+digraph G {
+  "ANSYS Classic (mkhdf5)" -> ".h5"
+  "GiD" -> ".h5"
+  "cplreader" -> ".h5"
+  "CFS++" -> ".h5"
+  
+  ".h5" -> "CFS++"
+  ".h5" -> "cplreader"
+  ".h5" -> "ParaView"
+
+  "ANSYS Classic (mkhdf5)" [shape=box];
+  "CFS++" [shape=box,color=darkgrey,style=filled];
+  "cplreader" [shape=box,color=darkgrey,style=filled];
+  GiD [shape=box];
+  ParaView [shape=box];
+}
