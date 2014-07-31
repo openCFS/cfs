@@ -101,10 +101,10 @@ namespace CoupledField{
 
 #ifdef USE_BLAS_VERSION
       dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);
-      bMat_.Mult_Blas(dbMat_,elemMat,true,false,factor_*fac,1.0);
+      bMat_.Mult_Blas(dbMat_,elemMat,true,false,factor_*fac,1.0, true); // conjugate complex
 #else
       dbMat = (dMat * bMat) * fac;
-      elemMat += Transpose(bMat) * dbMat * factor_;
+      elemMat += TransposeConjugate(bMat) * dbMat * factor_;
 #endif
       //      std::cout << "dMat: \n " << dMat << std::endl;
 
@@ -325,10 +325,10 @@ namespace CoupledField{
 
 #ifdef USE_BLAS_VERSION
     dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);
-    bMat_.Mult_Blas(dbMat_,kernel,true,false,factor_,1.0);
+    bMat_.Mult_Blas(dbMat_,kernel,true,false,factor_,1.0, true); // conjugate complex
 #else
     dbMat = (dMat * bMat) * fac;
-    kernel += Transpose(bMat) * dbMat * factor_;
+    kernel += TransposeConjugate(bMat) * dbMat * factor_;
 #endif
 
   }

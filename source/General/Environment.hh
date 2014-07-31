@@ -26,7 +26,9 @@ namespace OutInfo{
 
 }
 
-#define REFACTOR WARN("Commented out due to refactoring");
+
+// KILLME #define REFACTOR WARN("Commented out due to refactoring");
+#define REFACTOR
 
 //! \file environment.hh
 //! This file contains some global macro, class and enumeration data type

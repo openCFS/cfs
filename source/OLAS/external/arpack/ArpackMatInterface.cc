@@ -35,7 +35,8 @@ namespace CoupledField {
     matrixC_ = NULL;
     matrixD_ = NULL;
     
-    shift_ = pow(shift*8.0*atan(1.0),2);
+    shift_ = pow(shift*8.0*atan(1.0),2); // 8*atan(1) = 2pi -> omega^2 -> f
+
     size_ = matA->GetNumRows();
     isGeneralized_ = true;
     shiftAndInvert_ = shiftMode;
@@ -76,6 +77,13 @@ namespace CoupledField {
     precond_ = precond;
     solver_->SetPrecond(precond_);
 
+    // Setup() might be called multiple times for Bloch mode analysis
+    if(matrixC_) {
+      delete matrixC_; // ReRegister from PatternPool
+      matrixC_ = NULL;
+    }
+
+
     // Note: At this point I am not really sure, if we have to copy the
     // matrix into a new one
     // Copy matrix b to matrix c
@@ -113,8 +121,6 @@ namespace CoupledField {
         }
       }
     }
-    //matrixC_->Export("cmat.mat");
-      
     // Setup solver and precond-object
     precond_->Setup( *matrixC_, shared_ptr<ParamNode>() );
     solver_->Setup( *matrixC_, shared_ptr<ParamNode>() );
@@ -145,14 +151,14 @@ namespace CoupledField {
     precond_->Setup( *matrixC_, shared_ptr<ParamNode>() );
     solver_->Setup( *matrixC_, shared_ptr<ParamNode>() );
   }
-  void ArpackMatInterface::MultShiftOpV( Double* x, Double* y ) {
+
+  template <class TYPE>
+  void ArpackMatInterface::MultShiftOpV(TYPE* x, TYPE* y) {
 
     // Create two temporary vectors as wrappers for x and y
-    Double *x1 = x;
-    Double *y1 = y;
-//     x1--;
-//     y1--;
-    Vector<Double> vecX, vecY;
+    TYPE* x1 = x;
+    TYPE* y1 = y;
+    Vector<TYPE> vecX, vecY;
     vecX.Replace( size_, x1, false );
     vecY.Replace( size_, y1, false );
     
@@ -161,34 +167,32 @@ namespace CoupledField {
 
   }
 
-  void ArpackMatInterface::MultRegularOpV( Double* x, Double* y ) {
+  template <class TYPE>
+  void ArpackMatInterface::MultRegularOpV(TYPE* x, TYPE* y) {
 
     // Create two temporary vectors as wrappers for x and y
-    Double *x1 = x;
-    Double *y1 = y;
-//     x1--;
-//     y1--;
-    Vector<Double> vecX, vecY;
+    TYPE* x1 = x;
+    TYPE* y1 = y;
+    Vector<TYPE> vecX, vecY;
     vecX.Replace( size_, x1, false );
     vecY.Replace( size_, y1, false );
     
     // Create temporary vector
-    Vector<Double> ax(size_);
-    matrixA_->Mult( vecX, ax );
+    Vector<TYPE> ax(size_);
+    matrixA_->Mult(vecX, ax);
 
     // Solve system 
-    solver_->Solve( *matrixC_,   ax, vecY );
+    solver_->Solve(*matrixC_, ax, vecY);
 
   }
   
-  void ArpackMatInterface::MultBV( Double* x, Double* y ) {
+  template <class TYPE>
+  void ArpackMatInterface::MultBV(TYPE* x, TYPE* y) {
     
     // Create two temporary vectors as wrappers for x and y
-    Double *x1 = x;
-    Double *y1 = y;
-//     x1--;
-//     y1--;
-    Vector<Double> vecX, vecY;
+    TYPE* x1 = x;
+    TYPE* y1 = y;
+    Vector<TYPE> vecX, vecY;
     vecX.Replace( size_, x1, false );
     vecY.Replace( size_, y1, false );
     
@@ -201,25 +205,23 @@ namespace CoupledField {
     
   }
   
-  void ArpackMatInterface::MultAV( Double* x, Double* y ) {
+  template <class TYPE>
+  void ArpackMatInterface::MultAV(TYPE* x, TYPE* y ) {
     
     // Create two temporary vectors as wrappers for x and y
-    Double *x1 = x;
-    Double *y1 = y;
-//     x1--;
-//     y1--;
-    Vector<Double> vecX, vecY;
+    TYPE* x1 = x;
+    TYPE* y1 = y;
+    Vector<TYPE> vecX, vecY;
     vecX.Replace( size_, x1, false );
     vecY.Replace( size_, y1, false );
     
     // Perform matrix-vector multiplication
     matrixA_->Mult( vecX, vecY );
-    
   }
   
   
     
-  void ArpackMatInterface::MultShiftOpV( Complex* x, Complex* y ) {
+  void ArpackMatInterface::MultShiftOpVQuad( Complex* x, Complex* y ) {
 
     // do a solve operation A*y = x for the system matrix of the
     // quadratic eigenvalue problem
@@ -277,7 +279,7 @@ namespace CoupledField {
     vecA1.Add(shift_, vecA2, 1., nInvB2);
   }
 
-  void ArpackMatInterface::MultBV( Complex* x, Complex* y ) {
+  void ArpackMatInterface::MultBVQuad( Complex* x, Complex* y ) {
 
     // do a Matrix times vector operation for the solution of the
     // quadratic eigenvalue problem
@@ -321,7 +323,7 @@ namespace CoupledField {
     
   }
   
-  void ArpackMatInterface::MultAV( Complex* x, Complex* y ) {
+  void ArpackMatInterface::MultAVQuad( Complex* x, Complex* y ) {
     
     // do a Matrix times vector operation for the solution of the
     // quadratic eigenvalue problem
@@ -431,5 +433,15 @@ namespace CoupledField {
   Double ArpackMatInterface::GetDiagScaling ( ) {
     return diagScale_;
   }
+
+  template void ArpackMatInterface::MultShiftOpV<double>(double*, double*);
+  template void ArpackMatInterface::MultRegularOpV<double>(double*, double*);
+  template void ArpackMatInterface::MultBV<double>(double*, double*);
+  template void ArpackMatInterface::MultAV<double>(double*, double*);
+
+  template void ArpackMatInterface::MultShiftOpV<Complex>(Complex*, Complex*);
+  template void ArpackMatInterface::MultRegularOpV<Complex>(Complex*, Complex*);
+  template void ArpackMatInterface::MultBV<Complex>(Complex*, Complex*);
+  template void ArpackMatInterface::MultAV<Complex>(Complex*, Complex*);
 
 }

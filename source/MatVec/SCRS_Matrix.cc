@@ -659,11 +659,11 @@ namespace CoupledField {
   //   Export matrix to file
   // *************************
   template<typename T>
-  void SCRS_Matrix<T>::ExportMatrixMarket( const char *fname, const char *comment ) const{
+  void SCRS_Matrix<T>::ExportMatrixMarket(const std::string& fname, const std::string& comment ) const{
 
 
     // open output file and check for errors
-    FILE *fp = fopen( fname, "w" );
+    FILE *fp = fopen( fname.c_str(), "w" );
     if ( fp == NULL ) {
       EXCEPTION( "Cannot open file " << fname << " for writing!" );
     }
@@ -684,8 +684,8 @@ namespace CoupledField {
     }
 
     // User-supplied private comment
-    if ( comment != NULL ) {
-      fprintf( fp, "%%\n%% %s\n%%\n", comment );
+    if ( comment != "" ) {
+      fprintf( fp, "%%\n%% %s\n%%\n", comment.c_str() );
     }
     else {
       fprintf( fp, "%%\n%% Matrix exported by CFS++\n%%\n" );
@@ -777,6 +777,7 @@ namespace CoupledField {
   // *******************************
   //   Add value to a matrix entry
   // *******************************
+
   template<typename T>
   void SCRS_Matrix<T>::AddToMatrixEntry( UInt i, UInt j, const T& v ) {
 
@@ -812,6 +813,15 @@ namespace CoupledField {
       }
     }
   }
+
+
+  /*template<>
+  void SCRS_Matrix<Complex>::AddToMatrixEntry( UInt i, UInt j, const double& v)
+  {
+  }
+*/
+
+
 
   // *****************************
   //   Get specific matrix entry

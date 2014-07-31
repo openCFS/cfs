@@ -2892,7 +2892,9 @@ namespace CoupledField {
       list->GetByVal("elements", "name", namedElemNames_[i], ParamNode::APPEND)
       ->Get("count")->SetValue(namedElems_[i].GetSize());
     
-    list = in->Get("coordinateSystems");
+    // coordinate systems
+    if(domain) // does not exist for cfstool
+      domain->ToInfo(in);
 
     // in the cfstool case progOpts is not set
     if(progOpts != NULL && progOpts->DoExportGrid())

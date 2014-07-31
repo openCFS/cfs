@@ -133,14 +133,13 @@ namespace CoupledField {
     //! \param fname base name of output file
     //! \param format matrix output format 1 = MatrixMarket, 2 = Harwell-Boeing (optional)
     //! \param comment string to be inserted into file header (optional)
-    virtual void Export( const char *fname,
+    virtual void Export( const std::string& fname,
                          OutputFormat format,
-                         const char *comment) const;
+                         const std::string& comment = "") const;
 
     //! The method will export the matrix to an ascii file according to the
     //! MatrixMarket and is only implemented in sub classes of StdMatrix.
-    virtual void ExportMatrixMarket( const char *fname,
-                                     const char *comment) const = 0;
+    virtual void ExportMatrixMarket( const std::string& fname, const std::string& comment = "") const = 0;
 
     /** Exports in Harwell-Boeing format. This format is used for the
      * ILUPACK frontend. A benefit is the included RHS, inital guesses, ...

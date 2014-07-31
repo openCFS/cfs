@@ -305,6 +305,7 @@ DECLARE_LOG(fefunc)
   void FeFunction<T>::Finalize(){
     
     // assert that functionId was set
+    // FIXME
     static bool warn = false;
     if(warn) 
     {

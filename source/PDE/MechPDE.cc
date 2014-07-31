@@ -39,6 +39,7 @@
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
+#include "Driver/EigenFrequencyDriver.hh"
 
 #include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 
@@ -297,11 +298,13 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
     
     
+    // determine if we do bloch eigenfrequency analysis
+    bool do_bloch = domain->GetDriver()->DoBlochModeEigenfrequency();
+
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-      
-      
+    for ( it = materials_.begin(); it != materials_.end(); it++ )
+    {
       // Set current region and material
       actRegion = it->first;
       actSDMat = it->second;
@@ -325,14 +328,15 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       // ====================================================================
       //  Standard Linear Stiffness
       // ====================================================================
-      if( !nonLin_ ) {
-        BaseBDBInt * stiffInt = 
-            GetStiffIntegrator( actSDMat, actRegion, complexMatData_[actRegion] );
+      if( !nonLin_ )
+      {
+        // either complex material or bloch mode with complex B-matrices
+        bool complex = do_bloch | complexMatData_[actRegion];
+        BaseBDBInt * stiffInt =  GetStiffIntegrator( actSDMat, actRegion, complex );
         stiffInt->SetName("LinElastInt");
         stiffInt->SetFeSpace( mySpace);
         
-        BiLinFormContext * stiffIntDescr =
-            new BiLinFormContext(stiffInt, STIFFNESS );
+        BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
         
         stiffIntDescr->SetEntities( actSDList, actSDList );
         stiffIntDescr->SetFeFunctions( myFct, myFct );
@@ -355,10 +359,19 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       //  Standard Mass Integrator
       // ====================================================================
       PtrCoefFct densCoeff = actSDMat->GetScalCoefFnc( DENSITY,Global::REAL );
-      
+
+      // BLOCH TODO
+      // PtrCoefFct densCoeff = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(density));
+
       BaseBDBInt *massInt = NULL;
-      if( dim_ == 2 ) {
-        massInt = new BBInt<>(new IdentityOperator<FeH1,2,2>(), densCoeff, 1.0);
+
+      if( dim_ == 2 )
+      {
+        if(do_bloch) // complex mass integrator due to complex bloch stiffness matrix
+          massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1,2,2>(), densCoeff, 1.0);
+        else
+          massInt = new BBInt<>(new IdentityOperator<FeH1,2,2>(), densCoeff, 1.0);
+
       } else {
         massInt = new BBInt<>(new IdentityOperator<FeH1,3,3>, densCoeff, 1.0);
       }
@@ -857,7 +870,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       }
   }
 
-  BaseBDBInt *
+  BaseBDBInt*
   MechPDE::GetStiffIntegrator( BaseMaterial* actSDMat,
                                RegionIdType regionId,
                                bool isComplex )
@@ -885,8 +898,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     //  Determine correct stiffness integrator 
     // ----------------------------------------
     
-    BaseBDBInt * integ = NULL;
-    BaseBOperator * bOp = GetStrainOperator( isComplex, false );
+    BaseBDBInt* integ = NULL;
+    BaseBOperator* bOp = GetStrainOperator(isComplex, false);
     
     if( regionSoftening_[regionId] == "icModesTW") {
       // ===================
@@ -912,33 +925,54 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
   }
 
   
-  BaseBOperator * MechPDE::GetStrainOperator( bool isComplex, bool icModes ){
-    BaseBOperator * bOp = NULL;
-    if( isComplex ) {
-      if( subType_ == "axi" ) {
+
+  BaseBOperator* MechPDE::GetStrainOperator(bool isComplex, bool icModes)
+  {
+    BaseBOperator* bOp = NULL;
+    // determine if we do bloch eigenfrequency analysis
+    bool do_bloch = domain->GetDriver()->DoBlochModeEigenfrequency();
+    assert(!(do_bloch && !isComplex));
+
+
+    if(isComplex)
+    {
+      if( subType_ == "planeStrain" )
+      {
+        if(do_bloch)
+        {
+          bOp = new StrainOperatorBloch2D<FeH1,Complex>(icModes);
+
+          EigenFrequencyDriver* efd = dynamic_cast<EigenFrequencyDriver*>(domain->GetSingleDriver());
+          assert(efd != NULL && efd->GetCurrentWaveVector().GetSize() == 2);
+          // efd->GetCurrentWaveVector() always contains the current one!
+
+          dynamic_cast<StrainOperatorBloch2D<FeH1,Complex>* >(bOp)->SetWaveVector(efd->GetCurrentWaveVector());
+        }
+        else
+          bOp = new StrainOperator2D<FeH1,Complex>(icModes);
+      }
+      if( subType_ == "axi" )
         bOp = new StrainOperatorAxi<FeH1,Complex>(icModes);
-      } else if( subType_ == "planeStrain" ) {
+      if(subType_ == "planeStress")
         bOp = new StrainOperator2D<FeH1,Complex>(icModes);
-      } else if( subType_ == "planeStress" ) {
-        bOp = new StrainOperator2D<FeH1,Complex>(icModes);
-      } else if( subType_ == "3d") {
+      if(subType_ == "3d")
         bOp = new StrainOperator3D<FeH1,Complex>(icModes);
-      } else {
-        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
-      }
-    } else {
-      if( subType_ == "axi" ) {
-        bOp = new StrainOperatorAxi<FeH1,Double>(icModes);
-      } else if( subType_ == "planeStrain" ) {
-        bOp = new StrainOperator2D<FeH1,Double>(icModes);
-      } else if( subType_ == "planeStress" ) {
-        bOp = new StrainOperator2D<FeH1,Double>(icModes);
-      } else if( subType_ == "3d") {
-        bOp = new StrainOperator3D<FeH1,Double>(icModes);
-      } else {
-        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
-      }
     }
+    else // not complex
+    {
+      if(subType_ == "axi")
+        bOp = new StrainOperatorAxi<FeH1,Double>(icModes);
+      if(subType_ == "planeStrain")
+        bOp = new StrainOperator2D<FeH1,Double>(icModes);
+      if(subType_ == "planeStress")
+        bOp = new StrainOperator2D<FeH1,Double>(icModes);
+      if(subType_ == "3d")
+        bOp = new StrainOperator3D<FeH1,Double>(icModes);
+    }
+
+    if(bOp == NULL)
+      EXCEPTION("strain operator not implemented for analysis type");
+
     return bOp;
   }
 

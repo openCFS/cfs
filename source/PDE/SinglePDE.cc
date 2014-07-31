@@ -207,8 +207,7 @@ namespace CoupledField {
 
 
     // Obtain regions the pde is defined on
-    ParamNodeList regionNodes =
-      myParam_->Get("regionList")->GetList("region");
+    ParamNodeList regionNodes = myParam_->Get("regionList")->GetList("region");
 
     // output to info-file
     PtrParamNode list = infoNode_->Get(ParamNode::PN_HEADER);
@@ -217,21 +216,20 @@ namespace CoupledField {
     for( UInt i = 0; i < regionNodes.GetSize(); i++ )
     {
       PtrParamNode in_ = list->Get("region");
-      in_->Get("name")->SetValue(regionNodes[i]->Get("name")->As<std::string>());
+      std::string name = regionNodes[i]->Get("name")->As<std::string>();
+      in_->Get("name")->SetValue(name);
       bool complexMat = false;
       regionNodes[i]->GetValue("complexMaterial",  complexMat, ParamNode::PASS );
       
-      RegionIdType actRegionId = ptGrid_->GetRegion().Parse(regionNodes[i]->Get("name")->As<std::string>());
+      RegionIdType actRegionId = ptGrid_->GetRegion().Parse(name);
       
       // Check, if region was already defined an issue a warning otherwise
-      if( std::find(regions_.Begin(), regions_.End(), actRegionId ) 
-          != regions_.End() )  {
+      if( std::find(regions_.Begin(), regions_.End(), actRegionId )!= regions_.End() )
         WARN( "The region '" << regionNodes[i]->Get("name")->As<std::string>()
               << "' was already defined for PDE '" << pdename_ 
               << "'. Please remove duplicate entries." );
-      }
           
-      regions_.Push_back( actRegionId );
+      regions_.Push_back(actRegionId);
 
       complexMatData_[actRegionId] = complexMat;
     }
@@ -369,7 +367,7 @@ namespace CoupledField {
     DefineRhsLoadIntegrators();
 
     // Print information about defined integrators
-    if( needsAlgsys_ == true && !isDirectCoupled_ ) 
+    if( needsAlgsys_ == true && !isDirectCoupled_ )
       assemble_->ToInfo(infoNode_->Get(ParamNode::PN_HEADER)->Get("integrators"));
   }
 

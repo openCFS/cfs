@@ -130,6 +130,8 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+    <!-- export all present matrices which set up the system matrix: stiffness, mass, damping, aux -->
+    <!-- BLOCH check  >xsd:attribute name="split_system" use="optional" default="false" type="xsd:boolean"/-->
     <xsd:attribute name="mass" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="stiffness" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="damping" use="optional" default="false" type="xsd:boolean"/>

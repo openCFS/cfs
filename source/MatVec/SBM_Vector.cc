@@ -556,7 +556,7 @@ namespace CoupledField {
   // *****************
   //   Export vector
   // *****************
-  void SBM_Vector::Export( const char *fname, BaseMatrix::OutputFormat format ) const {
+  void SBM_Vector::Export(const std::string& fname, BaseMatrix::OutputFormat format) const {
 
 
     std::stringstream fileName;

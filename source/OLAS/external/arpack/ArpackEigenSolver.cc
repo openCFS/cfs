@@ -5,6 +5,7 @@
 #include "MatVec/generatematvec.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 
 #include "OLAS/precond/generateprecond.hh"
@@ -13,6 +14,10 @@
 #include "OLAS/solver/BaseSolver.hh"
 
 #include "ArpackEigenSolver.hh"
+
+DECLARE_LOG(aes)
+DEFINE_LOG(aes, "arpackEigenSolver")
+
 
 namespace CoupledField {
 
@@ -39,6 +44,16 @@ namespace CoupledField {
     isGeneralized_ = false;
     shiftAndInvert_ = false;
     logging_ = false;
+
+    // Check trace settings
+    arpackSolver_->DebugOff();
+    if(xml_->Has("logging") ) {
+      xml_->GetValue("logging", logging_);
+      if (logging_) {
+        arpackSolver_->DebugOn();
+        logging_ = true;
+      }
+    }
   }
 
   ArpackEigenSolver::~ArpackEigenSolver() {
@@ -66,6 +81,8 @@ namespace CoupledField {
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
     isGeneralized_ = false;
+    isBloch_ = false;
+
     // NOTE: Hard coded as true!!!
     shiftAndInvert_ = true;
 
@@ -97,8 +114,7 @@ namespace CoupledField {
     strncpy(which_, whichString.c_str(), whichString.size()+1 );
 
     // Create the solver dependent on the problem type ( regular / shiftAndInvert )
-    arpackSolver_->
-    Setup( interface_, size, numFreq_, freqShift_, which_ , (char*) "I", shiftAndInvert_);
+    arpackSolver_->Setup( interface_, size, numFreq_, freqShift_, which_ , (char*) "I", shiftAndInvert_, isBloch_);
 
     // Set additional parameters for tolerance, number of Arnoldi vectors and
     // number of iterations
@@ -117,19 +133,6 @@ namespace CoupledField {
       arpackSolver_->SetIterations(maxIt);
     if (numVec > 0)
       arpackSolver_->SetNumVectors(numVec);
-
-    // Check trace settings
-    arpackSolver_->DebugOff();
-    if( xml_->Has("logging") ) {
-      xml_->GetValue("logging", logging_);
-      if (logging_) {
-        arpackSolver_->DebugOn();
-        logging_ = true;
-      }
-    }
-    
-    // Print log-info about EigenSolver
-    PrintInfo();
 
     // Create solver
     solver_ = GenerateSolverObject( *matrixA_, solStrat_,
@@ -155,17 +158,23 @@ namespace CoupledField {
   
   void ArpackEigenSolver::Setup(const  BaseMatrix & stiffMat,
                                 const  BaseMatrix & massMat,
-                                UInt numFreq, Double freqShift ) {
+                                UInt numFreq, Double freqShift, bool bloch) {
 
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
     isGeneralized_ = true;
+    isBloch_ = bloch;
 
     // Copy matrix references and determine size of system
     matrixA_ = & dynamic_cast<const StdMatrix&>(stiffMat);
     if ( matrixA_ == NULL ) {
       EXCEPTION( WRONG_CAST_MSG );
     }
+
+    // bloch works only for non-symmetric matrices as the stiffness matrix needs to be hermitian and standard
+    // complex solvers assume just symmetric for symmetric matrices.
+    if(bloch && matrixA_->GetStorageType() != BaseMatrix::SPARSE_NONSYM) // ignore skyline - who needs it?!
+      throw Exception("Bloch EVA needs non-symmetric system matrices. Use solver directLU or matrix storage='sparseNonSym'");
 
     matrixB_ = & dynamic_cast<const StdMatrix&>(massMat);
     if ( matrixB_ == NULL ) {
@@ -181,11 +190,15 @@ namespace CoupledField {
     // NOTE: Hard coded as true!!!
     shiftAndInvert_ = true;
 
-    // Create matrix interface for arpack
-    interface_ = new ArpackMatInterface( matrixA_, matrixB_, shiftAndInvert_, freqShift_ );
+    // Create matrix interface for arpack, it might already exist in the bloch mode case
+    if(interface_ == NULL)
+      interface_ = new ArpackMatInterface( matrixA_, matrixB_, shiftAndInvert_, freqShift_ );
 
-    // Create solver class
-    arpackSolver_ = new ArpackSolver();
+    LOG_DBG(aes) << "S(S,M) shift=" << freqShift_ << " s&i=" << shiftAndInvert_;
+
+    // Create solver class, it might already exist in the bloch mode case
+    if(arpackSolver_  == NULL)
+      arpackSolver_ = new ArpackSolver();
 
     // Check 'which'-settings regarding the type of eigenvalues searched for
     std::string whichString = "LM";
@@ -195,8 +208,7 @@ namespace CoupledField {
     strncpy(which_, whichString.c_str(), whichString.size()+1 );
 
     // Create the solver dependent on the problem type ( regular / shiftAndInvert )
-    arpackSolver_->
-        Setup( interface_, size, numFreq_, freqShift_, which_ , (char*) "G", shiftAndInvert_);
+    arpackSolver_->Setup( interface_, size, numFreq_, freqShift_, which_ , (char*) "G", shiftAndInvert_, isBloch_);
 
     // Set additional parameters for tolerance, number of Arnoldi vectors and
     // number of iterations
@@ -216,21 +228,7 @@ namespace CoupledField {
     if (numVec > 0)
         arpackSolver_->SetNumVectors(numVec);
 
-    // Check trace settings
-    arpackSolver_->DebugOff();
-    if( xml_->Has("logging") ) {
-      xml_->GetValue("logging", logging_);
-      if (logging_) {
-        arpackSolver_->DebugOn();
-        logging_ = true;
-      }
-    }
-    
-
-    // Print log-info about EigenSolver
-    PrintInfo();
-
-    // Create solver
+    // Create solver - for every bloch wave vector :(
     solver_ = GenerateSolverObject( *matrixB_, solStrat_, 
                                     solverList_, eigenInfo_ );
 
@@ -259,6 +257,7 @@ namespace CoupledField {
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = true;
     isGeneralized_ = true;
+    isBloch_ = false;
 
     // Copy matrix references and convert them to StdMatrices
     matrixA_ = & dynamic_cast<const StdMatrix&>(stiffMat);
@@ -357,19 +356,6 @@ namespace CoupledField {
     if (scaleFac > 0.0)
       interface_->SetDiagScaling(scaleFac);
 
-    // Check trace settings
-    arpackSolver_->DebugOff();
-    if( xml_->Has("logging") ) {
-      xml_->GetValue("logging", logging_);
-      if (logging_) {
-        arpackSolver_->DebugOn();
-        logging_ = true;
-      }
-    }
-
-    // Print log-info about EigenSolver
-    PrintInfo();
-
     // also report to terminal
     std::cout << "++ Running quadratic eigenvalue problem with the following settings\n" 
 	      << "       number of frequencies       :  " << arpackSolver_->GetNev() << "\n"
@@ -406,37 +392,44 @@ namespace CoupledField {
     interface_->QuadSetup( solver_, precond_ );
   }
 
-  UInt ArpackEigenSolver::CalcEigenFrequencies( BaseVector &sol,
-                                                BaseVector &err) {
-
+  UInt ArpackEigenSolver::CalcEigenFrequencies( BaseVector &sol, BaseVector &err)
+  {
+    assert(!(isBloch_ && isQuadratic_));
 
     UInt numEVs = 0;
 
-    // Save eigenvalues
-    // if non-negative eigenvalue, convert to eigenfrequency
-
-    if( !isQuadratic_ ) {
+    // case1: generalized real problem
+    if(!isQuadratic_ && !isBloch_)
+    {
       // Find the eigenvalues and calculate the eigenvectors
-      numEVs = arpackSolver_->FindEigenvalues();
+      numEVs = arpackSolver_->FindEigenvalues<Double>();
 
       // case1: generalized problem
       Vector<Double> & solConverted = dynamic_cast<Vector<Double>&>(sol);
       solConverted.Resize( numEVs );
       for (UInt i = 0; i < numEVs; i++ ) {
         solConverted[i] = arpackSolver_->Eigenvalue(i);
+        // if non-negative eigenvalue, convert to eigenfrequency
         if (solConverted[i] >= 0.0)
           solConverted[i] = sqrt(solConverted[i])/(8.0*atan(1.0));
       }
-    } else {
-      // case2: quadratic problem
-      numEVs = arpackSolver_->FindQuadEigenvalues();
+    }
+    // case2: quadratic complex problem
+    // case3: bloch modes are generalized complex problems
+    if(isQuadratic_ || isBloch_)
+    {
+      if(isQuadratic_)
+        numEVs = arpackSolver_->FindQuadEigenvalues();
+      else
+        numEVs = arpackSolver_->FindEigenvalues<Complex>();
 
       Vector<Complex> & solConverted = dynamic_cast<Vector<Complex>&>(sol);
       solConverted.Resize( numEVs );
       for (UInt i = 0; i < numEVs; i++ ) {
         solConverted[i] = arpackSolver_->CmplxEigenvalue(i);
+        if(isBloch_ && solConverted[i].real() >= 0.0)
+          solConverted[i] = sqrt(solConverted[i])/(8.0*atan(1.0));
       }
-      
     }
 
     // Save error norms
@@ -495,8 +488,7 @@ namespace CoupledField {
     freqShift_ = 0.0;
 
     // Create the solver dependent on the problem type ( regular / shiftAndInvert )
-    arpackSolver_->
-    Setup( interface_, size, numFreq_, freqShift_, which_ , (char*) "I", shiftAndInvert_);
+    arpackSolver_->Setup( interface_, size, numFreq_, freqShift_, which_ , (char*) "I", shiftAndInvert_, false);
 
 
     if (tol > 0.0)
@@ -516,9 +508,6 @@ namespace CoupledField {
         logging_ = true;
       }
     }
-    
-    // Print log-info about EigenSolver
-    PrintInfo();
     
     // Create standard solver
     solver_ = GenerateSolverObject( *matrixA_, solStrat_, 
@@ -540,7 +529,7 @@ namespace CoupledField {
     interface_->Setup( solver_, precond_ );
 
     //Find the eigenvalues and calculate the eigenvectors
-    UInt numEVs = arpackSolver_->FindEigenvalues();
+    UInt numEVs = arpackSolver_->FindEigenvalues<Double>();
     if( numEVs == 0) {
       EXCEPTION( "No convergence in search for eigenvalues");
     }
@@ -564,74 +553,21 @@ namespace CoupledField {
     for ( UInt i = 0; i < size; i++ ) {
         mode[i] = Complex((arpackSolver_->GetEigenvector( modeNr ))[i],0);
     }
+
+    // BLOCH better? mode.Fill(arpackSolver_->GetEigenvector(modeNr), matrixA_->GetNumRows());
+
   }
 
-  void ArpackEigenSolver::CalcQuadEigenMode( UInt modeNr, Vector<Complex> & mode ) {
+  void ArpackEigenSolver::CalcComplexEigenMode( UInt modeNr, Vector<Complex>& mode)
+  {
+    // in bloch mode case the same as CalcEigenMode,
+    // in quadratic case the modes have internally double size and we want the upper half
     
     UInt size = matrixA_->GetNumRows();
-    mode.Resize( size );
-    mode.Init();
 
-//    Double  rad2deg = 45.0/atan(1.0);
-    Complex *zMode = new Complex [2*size];
-
-//    (*cla) << "Mode no " << modeNr << std::endl;
-    for ( UInt i = 0; i < 2*size; i++ ) {
-      zMode[i] = (arpackSolver_->GetQuadEigenvector( modeNr ))[i];
-//      (*cla) << modeNr << ", " << i << ":  " << std::abs(zMode[i]);
-//      (*cla) << ", " << std::atan2(zMode[i].imag(),zMode[i].real())*rad2deg << std::endl;
-    }
-    
-    for ( UInt i = 0; i < size; i++ ) {
-      mode[i] = zMode[i+size];
-    }
+    if(isQuadratic_)
+      mode.Fill(arpackSolver_->GetComplexEigenvector(modeNr) + size, size);
+    else
+      mode.Fill(arpackSolver_->GetComplexEigenvector(modeNr), size);
   }
-
-  void ArpackEigenSolver::PrintInfo() {
-
-    (*cla) << " -------------------------------------------------------"
-           << "-----------------------\n"
-           << " ARPACK Eigenvalue Solver - Information\n\n";
-
-    // Type of problem to be solved
-    (*cla) << "Problem type: ";
-    if ( isQuadratic_ ) {
-      (*cla) << "QUADRATIC";
-    } else {
-      (*cla) << "GENERALIZED";
-    }
-    (*cla) << "\n";
-
-    // Number of eigenvalues
-    (*cla) << " Calculating " << arpackSolver_->GetNev()
-           << " eigenvalues\n";
-
-    // 'which'-settings
-    (*cla) << " Searching for eigenvalues with '"
-           << arpackSolver_->GetWhich() << "'\n";
-
-    // Shift-And-Invert info
-    if ( shiftAndInvert_ == true ) {
-      (*cla) << " Applying Shift-And-Invert mode with shift of "
-             << arpackSolver_->GetShift() << "\n";
-    } else {
-      (*cla) << " Applying regular mode\n";
-    }
-
-    // Tolerance, number of arnoldi vectors, number of Iterations
-    (*cla) << " Using tolerance of "
-            << arpackSolver_->GetTol() << "\n";
-    (*cla) << " Maximum number of iterations: "
-           << arpackSolver_->GetMaxit() << "\n";
-    (*cla) << " Maximum number of Arnoldi vectors: "
-           << arpackSolver_->GetNcv() << "\n";
-
-    // Trace settings
-    if ( logging_ ) {
-      (*cla) << " Logging activated\n";
-    }
-    (*cla) << " -------------------------------------------------------"
-           << "-----------------------\n\n";
-  }
-
 }

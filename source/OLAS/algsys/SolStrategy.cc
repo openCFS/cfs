@@ -77,15 +77,6 @@ namespace CoupledField {
       setupNode_ = param_->Get("setup");
     }
     
-    // <exportLinSys> element
-    if( !node->Has("exportLinSys")) {
-      exportNode_.reset(new ParamNode());
-      exportNode_->SetName("exportLinSys");
-      param_->AddChildNode(exportNode_);
-    } else {
-      exportNode_ = param_->Get("exportLinSys");
-    }
-    
     // <matrix> element
     if( !node->Has("matrix")) {
       matrixNode_.reset(new ParamNode());
@@ -237,10 +228,6 @@ namespace CoupledField {
     return id;
   }
 
-  PtrParamNode SolStrategyStd::GetExportLinSysNode(){
-    return exportNode_;
-  }
-
   PtrParamNode SolStrategyStd::GetNonLinNode(){
     return nonlinNode_;
   }
@@ -265,15 +252,6 @@ namespace CoupledField {
       param_->AddChildNode(setupNode_);
     } else {
       setupNode_ = param_->Get("setup");
-    }
-
-    // <exportLinSys> element
-    if( !node->Has("exportLinSys")) {
-      exportNode_.reset(new ParamNode());
-      exportNode_->SetName("exportLinSys");
-      param_->AddChildNode(exportNode_);
-    } else {
-      exportNode_ = param_->Get("exportLinSys");
     }
     
     // read in splitting node
@@ -443,10 +421,6 @@ namespace CoupledField {
     std::string id = "default";
     precondNodes_[curSolStep_]->GetValue("id", id, ParamNode::INSERT);
     return id;
-  }
-
-  PtrParamNode SolStrategyTwoLevel::GetExportLinSysNode(){
-    return exportNode_;
   }
 
   PtrParamNode SolStrategyTwoLevel::GetNonLinNode(){

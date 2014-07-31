@@ -186,7 +186,27 @@ namespace CoupledField
         }
         break;
 
-
+      case 2:
+        os << "[";
+        for(UInt j = 0; j < size_row_; j++)
+        {
+          for(UInt i = 0; i < size_col_; i++)
+          {
+            if(boost::is_complex<TYPE>::value)
+            {
+              Complex cval = (Complex) data_[j][i];
+              os << cval.real() << "+" << cval.imag() << "i";
+            }
+            else
+              os << data_[j][i];
+            os << (i < size_col_-1 ? " " : "");
+          }
+          if(j < size_row_-1)
+            os << "; ";
+        }
+        os << "]";
+        break;
+        //      std::cout << "dMat: \n " << dMat << std::endl;
       default:
         os << "size_row=" << size_row_ << " size_col=" << size_col_;
         if(size_row_ > 0 && size_col_ > 0)
@@ -650,185 +670,91 @@ namespace CoupledField
   
   // perform matrix-matrix multiplication using BLAS (general case)
   template<class TYPE>
-  void Matrix<TYPE>::Mult_Blas( const Matrix<TYPE>& mMat, 
-                                Matrix<TYPE>& rMat, 
+  void Matrix<TYPE>::Mult_Blas( const Matrix<TYPE>& mMat1,
+                                Matrix<TYPE>& rMat1,
                                 bool trans_a, bool trans_b,
-                                TYPE alpha, TYPE beta ) const {
-    EXCEPTION("General BLAS matrix, matrix multiplication not implemented");
+                                TYPE alpha, TYPE beta, bool conjugate ) const {
+
+#ifdef USE_BLAS
+#ifdef CHECK_INDEX
+    if((trans_a == true) && (trans_b == true)){
+      if (size_row_ != mMat1.GetNumCols())
+        EXCEPTION("incompatible dimension");
+    } else if((trans_a == false) && (trans_b == true)){
+      if (size_col_ != mMat1.GetNumCols())
+        EXCEPTION("incompatible dimension");
+    } else if((trans_a == true) && (trans_b == false)){
+      if (size_row_ != mMat1.GetNumRows())
+        EXCEPTION("incompatible dimension");
+    } else {
+      if (size_col_ != mMat1.GetNumRows())
+        EXCEPTION("incompatible dimension");
+    }
+#endif
+
+#ifdef CHECK_INITIALIZED
+    if(size_row_ == 0 || size_col_ == 0)
+      EXCEPTION("undefined Matrix");
+    if(mMat1.GetNumRows() == 0 || mMat1.GetNumCols() ==0)
+      EXCEPTION("undefined Matrix");
+    if(rMat1.GetNumRows() == 0||rMat1.GetNumCols()==0)
+      EXCEPTION("undefined Matrix");
+#endif
+
+    // because of the column-wise access of fortran the routine would calc
+    // C^T = A^T * B^T if you give it C, A and B
+    // but because A^T * B^T = (B * A)^T you can just calculate:
+    // C = B * A
+    // --> swap A and B
+
+    // actually many transposed in complex are meant to be conjugate complex, e.g. B'(DB). Unfortunately
+    // this is often not considered in CFS, so take care.
+    char transp = conjugate && boost::is_complex<TYPE>::value ? 'c' : 't';
+
+    char transa = trans_a ? transp : 'n';
+    char transb = trans_b ? transp : 'n';
+
+    // m would normally be the number of rows of C but Fortran accesses it as C^T so m is the number of columns
+    //  in the same way n is now the number of rows
+    //  k is the number of rows of op(B) and in our case op(B) = A or A^T so k would be rows of A in the first case and cols of A in the second one
+    // but here you also have to remember the column wise access so cols and rows are swapped like for c
+
+    int n = rMat1.GetNumRows();
+    int m = rMat1.GetNumCols();
+    int k = trans_a ? size_row_ : size_col_;
+
+    TYPE* A = data_[0];
+    TYPE* B = mMat1.data_[0];
+    TYPE* C = rMat1.data_[0];
+
+    // here you use the same properties as in the documentation of dgemm with the difference,
+    // that our lda is LDB and ldb is LDA because we swapped A and B
+
+    int lda = trans_a ? n : k;
+    int ldb = trans_b ? k : m;
+    int ldc = m;
+    CallGEMM(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
+#else
+    EXCEPTION("Compile with USE_BLAS = yes ");
+#endif
+   }
+  
+
+  template<class TYPE >
+  void Matrix<TYPE>::CallGEMM(char* transb, char* transa, int* m, int* n, int* k, TYPE* alpha, TYPE* B, int* ldb, TYPE* A, int* lda, TYPE* beta, TYPE* C, int* ldc) const {
+    EXCEPTION("wrong type");
   }
-  
-  template<>
-  void Matrix<Double>::Mult_Blas(const Matrix<Double>&  mMat1, Matrix<Double>& rMat1, 
-                                 bool trans_a, bool trans_b, 
-                                 Double alpha, Double beta ) const{
 
-#ifdef USE_BLAS
-#ifdef CHECK_INDEX
-      if((trans_a == true) && (trans_b == true)){
-        if (size_row_ != mMat1.GetNumCols())
-          EXCEPTION("incompatible dimension");
-      } else if((trans_a == false) && (trans_b == true)){
-        if (size_col_ != mMat1.GetNumCols())
-          EXCEPTION("incompatible dimension");
-      } else if((trans_a == true) && (trans_b == false)){
-        if (size_row_ != mMat1.GetNumRows())
-          EXCEPTION("incompatible dimension");
-      } else {
-        if (size_col_ != mMat1.GetNumRows())
-          EXCEPTION("incompatible dimension");
-      }
-  #endif
+  template< >
+  void Matrix<Double>::CallGEMM(char* transb, char* transa, int* m, int* n, int* k, Double* alpha, Double* B, int* ldb, Double* A, int* lda, Double* beta, Double* C, int* ldc) const {
+    dgemm(transb,transa,m,n,k,alpha,B,ldb,A,lda,beta,C,ldc);
+  }
 
-    #ifdef CHECK_INITIALIZED
-      UInt size_mMatRow = mMat1.GetNumRows();
-      UInt size_mMatCol = mMat1.GetNumCols();
-      UInt size_rMatRow = rMat1.GetNumRows();
-      UInt size_rMatCol = rMat1.GetNumCols();
+  template< >
+  void Matrix<Complex>::CallGEMM(char* transb, char* transa, int* m, int* n, int* k, Complex* alpha, Complex* B, int* ldb, Complex* A, int* lda, Complex* beta, Complex* C, int* ldc) const {
+    zgemm(transb,transa,m,n,k,alpha,B,ldb,A,lda,beta,C,ldc);
+  }
 
-      if (size_row_ == 0 || size_col_ == 0)
-        EXCEPTION("undefined Matrix");
-      if (size_mMatRow == 0 || size_mMatCol==0)
-          EXCEPTION("undefined Matrix");
-      if (size_rMatRow == 0||size_rMatCol==0)
-        EXCEPTION("undefined Matrix");
-    #endif
-
-      /*
-       * because of the column-wise access of fortran the routine would calc
-       * C^T = A^T * B^T if you give it C, A and B
-       * but because A^T * B^T = (B * A)^T you can just calculate:
-       * C = B * A
-       *
-       * --> swap A and B
-       *
-       */
-
-      char transa = trans_a ? 't' : 'n';
-      char transb = trans_b ? 't' : 'n';
-
-      int lda, ldb, ldc;
-      int m,n,k;
-
-      /*
-       *  m would normally be the number of rows of C but Fortran accesses it as C^T so m is the number of columns
-       *  in the same way n is now the number of rows
-       *  k is the number of rows of op(B) and in our case op(B) = A or A^T so k would be rows of A in the first case and cols of A in the second one
-       *  but here you also have to remember the column wise access so cols and rows are swapped like for c
-       */
-
-      n = rMat1.GetNumRows();
-      m = rMat1.GetNumCols();
-      k = trans_a ? size_row_ : size_col_;
-
-      // ensure that return matrix has correct size
-      rMat1.Resize( n, m);
-      
-      double* A = data_[0];
-      double* B = mMat1.data_[0];
-      double* C = rMat1.data_[0];
-      
-  /*
-   * here you use the same properties as in the documentation of dgemm with the difference, 
-   * that our lda is LDB and ldb is LDA because we swapped A and B
-   */
-
-      lda = trans_a ? n : k;
-      ldb = trans_b ? k : m;
-      ldc = m;
-      
-      dgemm(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
-#else
-    EXCEPTION("Compile with USE_BLAS = yes ");
-#endif
-   }
-  
-  template<>
-  void Matrix<Complex>::Mult_Blas(const Matrix<Complex>&  mMat1, Matrix<Complex>& rMat1, 
-                                 bool trans_a, bool trans_b, 
-                                 Complex alpha, Complex beta ) const{
-
-#ifdef USE_BLAS
-#ifdef CHECK_INDEX
-      if((trans_a == true) && (trans_b == true)){
-        if (size_row_ != mMat1.GetNumCols())
-          EXCEPTION("incompatible dimension");
-      } else if((trans_a == false) && (trans_b == true)){
-        if (size_col_ != mMat1.GetNumCols())
-          EXCEPTION("incompatible dimension");
-      } else if((trans_a == true) && (trans_b == false)){
-        if (size_row_ != mMat1.GetNumRows())
-          EXCEPTION("incompatible dimension");
-      } else {
-        if (size_col_ != mMat1.GetNumRows())
-          EXCEPTION("incompatible dimension");
-      }
-  #endif
-
-    #ifdef CHECK_INITIALIZED
-      UInt size_mMatRow = mMat1.GetNumRows();
-      UInt size_mMatCol = mMat1.GetNumCols();
-      UInt size_rMatRow = rMat1.GetNumRows();
-      UInt size_rMatCol = rMat1.GetNumCols();
-
-      if (size_row_ == 0 || size_col_ == 0)
-        EXCEPTION("undefined Matrix");
-      if (size_mMatRow == 0 || size_mMatCol==0)
-          EXCEPTION("undefined Matrix");
-      if (size_rMatRow == 0||size_rMatCol==0)
-        EXCEPTION("undefined Matrix");
-    #endif
-
-      /*
-       * because of the column-wise access of fortran the routine would calc
-       * C^T = A^T * B^T if you give it C, A and B
-       * but because A^T * B^T = (B * A)^T you can just calculate:
-       * C = B * A
-       *
-       * --> swap A and B
-       *
-       */
-
-      char transa = trans_a ? 't' : 'n';
-      char transb = trans_b ? 't' : 'n';
-
-      int lda, ldb, ldc;
-      int m,n,k;
-
-
-
-      /*
-       *  m would normally be the number of rows of C but Fortran accesses it as C^T so m is the number of columns
-       *  in the same way n is now the number of rows
-       *  k is the number of rows of op(B) and in our case op(B) = A or A^T so k would be rows of A in the first case and cols of A in the second one
-       *  but here you also have to remember the column wise access so cols and rows are swapped like for c
-       */
-
-      n = rMat1.GetNumRows();
-      m = rMat1.GetNumCols();
-      k = trans_a ? size_row_ : size_col_;
-
-      // ensure that return matrix has correct size
-      rMat1.Resize( n, m);
-
-      Complex* A = data_[0];
-      Complex* B = mMat1.data_[0];
-      Complex* C = rMat1.data_[0];
-
-      /*
-       * here you use the same properties as in the documentation of dgemm with the difference, 
-       * that our lda is LDB and ldb is LDA because we swapped A and B
-       */
-
-      lda = trans_a ? n : k;
-      ldb = trans_b ? k : m;
-      ldc = m;
-
-      zgemm(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
-#else
-    EXCEPTION("Compile with USE_BLAS = yes ");
-#endif
-   }
-  
   // Perform a matrix-vector multiplication rvec = this*mvec
   template<class TYPE>
   void Matrix<TYPE>::Mult(const SingleVector & mvec, SingleVector & rvec) const
@@ -1003,6 +929,42 @@ namespace CoupledField
   }
 
   
+
+  template<class TYPE>
+  bool Matrix<TYPE>::IsHermitian(double eps) const
+  {
+    for(UInt r = 0; r < size_row_; r++)
+      for(UInt c = r+1; c < size_col_; c++)
+        if(!close(data_[r][c], data_[c][r], eps))
+          return false;
+
+    return true;
+  }
+
+
+  template< >
+  bool Matrix<Complex>::IsHermitian(double eps) const
+  {
+    for(UInt r = 0; r < size_row_; r++)
+    {
+      if(!IsNoise(data_[r][r].imag()))
+        return false;
+
+      for(UInt c = r+1; c < size_col_; c++)
+      {
+        Complex u = data_[r][c]; // upper
+        Complex l = data_[c][r]; // lower
+
+        if(!close(u.real(), l.real()))
+          return false;
+
+        if(!close(std::abs(u.imag()), std::abs(l.imag())))
+          return false;
+      }
+    }
+    return true;
+  }
+
 
   template<class TYPE>
   void Matrix<TYPE>::DirectSolve( SingleVector & x1, const SingleVector & b1 ) const
@@ -1772,7 +1734,6 @@ namespace CoupledField
       }
     }
   }
-  
 
   template<class TYPE>
   bool Matrix<TYPE>::IsSymmetric() const
@@ -1783,6 +1744,27 @@ namespace CoupledField
     
     return true;
   }
+
+  template<class TYPE>
+  bool Matrix<TYPE>::IsSymmetric(double eps) const
+  {
+    for(UInt i = 1; i < size_row_; ++i)
+      for(UInt j = i+1; j < size_col_; ++j)
+        if(std::abs(data_[i][j] != data_[j][i]) > eps) return false;
+
+    return true;
+  }
+
+  template<>
+  bool Matrix<Complex>::IsSymmetric(double eps) const
+  {
+    for(UInt i = 1; i < size_row_; ++i)
+      for(UInt j = i+1; j < size_col_; ++j)
+        if(!close(data_[i][j], data_[j][i], eps)) return false;
+
+    return true;
+  }
+
 
   template<class TYPE>
   TYPE Matrix<TYPE>::NormL2() const
