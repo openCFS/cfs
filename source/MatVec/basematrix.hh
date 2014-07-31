@@ -118,9 +118,7 @@ namespace CoupledField {
     //! http://math.nist.gov/MatrixMarket
     //! \param fname name of output file
     //! \param comment string to be inserted into file header (optional)
-    virtual void Export( const char *fname, const char *comment = NULL )
-    const = 0;
-
+    virtual void Export( const char *fname, const char *comment = NULL ) const = 0;
 
     //! Add the multiple of a matrix to this matrix
 

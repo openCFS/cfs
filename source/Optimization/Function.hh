@@ -101,6 +101,9 @@ class Function
       STRESS_DENSITY,            /*!< global stress divided by volume */
       PROJECTION,                /*!< Michael's idea: sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2 <= eps */
 
+      // External Solvers
+      PRESSURE_DROP,             /*!< LBM Pressure Drop */
+
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
       REALVOLUME,

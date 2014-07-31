@@ -62,6 +62,56 @@ template <class TYPE> class Vector;
 
   };
 
+
+  class SurfCurrentLinForm : public LinearSurfForm {
+    
+  public:
+    
+    //! Standard constructor
+    SurfCurrentLinForm( const std::string& value, 
+                     const std::string& phase,
+                     const std::string& subType,
+                     bool isaxi );
+    
+    //! Destructor
+    virtual ~SurfCurrentLinForm();
+    
+    /// Calculation of RHS vector for double entries, i.e. transient and static 
+    virtual void CalcElemVector( Vector<Double>& result,
+                                 EntityIterator& ent );
+    
+    /// Calculation of RHS vector for double entries, i.e. harmonic 
+    virtual void CalcElemVector( Vector<Complex>& result,
+                                 EntityIterator& ent );
+
+    void SetValue(const std::string& value) { value_ = value; }
+    
+    //! Calcute current factor
+    void GetSurfCurrentFactor(EntityIterator& elem, 
+                              Vector<Double>& locPoint,
+                              Double& val);
+
+    //! Calcute current factor
+    void GetSurfCurrentFactor(EntityIterator& elem, 
+                              Vector<Double>& locPoint,
+                              Complex& val);
+
+  protected:
+    
+  private:
+
+    //! value string
+    std::string value_;
+
+    //! phase string
+    std::string phase_;
+    
+    //! subtype of integrator
+    std::string subType_;
+
+
+  };
+
 }// end of namespace
 
 #endif

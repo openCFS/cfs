@@ -179,6 +179,7 @@ class Hysteresis;
   void StdSolveStep::StepStaticNonLin(PtrParamNode analysis_id)
   {
 
+    std::cout << "In StepStaticNonLin\n" << std::endl; 
     bool performOneMoreStep;
     Double incrementalErr, residualErr;
 
@@ -235,6 +236,18 @@ class Hysteresis;
           algsys_->BuildInDirichlet();
           algsys_->SetupPrecond();
           algsys_->SetupSolver(child_id);
+
+          //check concerning the Dirichlet values; due to incremental formulation,
+          //the inhomogeneous Dirichlet BCs are just ones allowed to update the solution!!
+          UInt couplingIter = 0;
+          if ( PDE_.IsIterCoupled() ) 
+           couplingIter = PDE_.GetIterCoupledCounter();
+          
+          bool isIDBC = false;
+          if ( iterationCounter == 1 && couplingIter == 0 )
+            isIDBC = true;
+          algsys_->SetIDBC( isIDBC );
+
           algsys_->Solve(child_id);
 
           // new solution is only an increment of the full solution =============
@@ -314,9 +327,8 @@ class Hysteresis;
 
   void StdSolveStep::StepStaticNonLinTotal(PtrParamNode analysis_id)
   {
-
-    bool performOneMoreStep;
     std::cout << "In  stdSolveStep-NL-Total" << std::endl;
+    bool performOneMoreStep;
 
     Vector<Double> prevSol( numEqns_ );
 
@@ -367,7 +379,7 @@ class Hysteresis;
           algsys_->Solve(child_id);
 
           // new solution 
-          algsys_->GetSolutionVal( actSol );
+          algsys_->GetSolutionVal( actSol);
           //          std::cout << "actSol:\n" << actSol << std::endl;
 
           // store the new solution
@@ -534,7 +546,6 @@ class Hysteresis;
   }
 
 
-
   void StdSolveStep::StepTransNonLin(PtrParamNode base_analysis_id) {
 
 
@@ -578,7 +589,6 @@ class Hysteresis;
       // set iteration counter
       UInt iterationCounter=0;
 
-
       do {
         iterationCounter++;
 
@@ -586,11 +596,25 @@ class Hysteresis;
         PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(base_analysis_id, "load", iload, "nonLin", iterationCounter);
 
         assemble_->AssembleMatrices();
+
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
         algsys_->BuildInDirichlet();
 
         algsys_->SetupPrecond();
         algsys_->SetupSolver(child_id);
+
+        //check concerning the Dirichlet values; due to incremental formulation,
+        //the inhomogeneous Dirichlet BCs are just ones allowed to update the solution!!
+        UInt couplingIter = 0;
+        if ( PDE_.IsIterCoupled() ) 
+          couplingIter = PDE_.GetIterCoupledCounter();
+        
+        bool isIDBC = false;
+        if ( iterationCounter == 1 && couplingIter == 0 )
+          isIDBC = true;        
+ 
+        algsys_->SetIDBC(isIDBC);
+
         algsys_->Solve(child_id);
 
         // new solution is only an increment of the full solution =============
@@ -898,7 +922,7 @@ class Hysteresis;
 
         algsys_->SetupPrecond();
         algsys_->SetupSolver(child_id);
-        algsys_->Solve(child_id);
+        algsys_->Solve(child_id );
 
         // new solution is only an increment of the full solution =============
         algsys_->GetSolutionVal( solInc );
@@ -1208,7 +1232,7 @@ class Hysteresis;
 
     Vector<Double> solOld(actSol);
     const UInt nrEtas = 5;
-    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.1, 0.5};
+    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.1, 0.05};
 		// initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;

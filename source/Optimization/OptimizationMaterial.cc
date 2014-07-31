@@ -25,6 +25,7 @@
 #include "PDE/elecPDE.hh"
 #include "PDE/heatCondPDE.hh"
 #include "PDE/mechPDE.hh"
+#include "PDE/LatticeBoltzmannPDE.hh"
 
 namespace CoupledField {
 class BaseMaterial;
@@ -75,6 +76,9 @@ OptimizationMaterial* OptimizationMaterial::CreateInstance(System sys, ErsatzMat
 
   case ACOUSTIC:
     return new AcouMat(em);
+
+  case LBM:
+    return new LBMMat(em);
 
   default:
     assert(false);
@@ -673,5 +677,13 @@ Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bim
   }
 
   return !bimaterial ? elecStiffness_map[elem->regionId].first : elecStiffness_map[elem->regionId].second;
+}
+
+LBMMat::LBMMat(ErsatzMaterial* em) :
+  OptimizationMaterial(em)
+{
+  system_ = LBM;
+  lbm = dynamic_cast<LatticeBoltzmannPDE*>(opt != NULL ? opt->ToPDE(Optimization::LBM) : domain->GetSinglePDE("LatticeBoltzmann"));
+  assert(lbm != NULL);
 }
 

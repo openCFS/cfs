@@ -212,6 +212,14 @@
             </xsd:annotation>
           </xsd:element>
           
+          <xsd:element name="Transposed"  type="DT_PardisoTransposed" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Allows to transpose the matrix if required. Default is non_transposed. Acts on IPARM(12).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
           <xsd:element name="IterRefineSteps"  type="xsd:int" minOccurs="0">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
@@ -221,6 +229,7 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+
           
           <xsd:element name="tol" type="DT_PosFloat" minOccurs="0" default="1e-6">
             <xsd:annotation>
@@ -338,6 +347,16 @@
       <xsd:enumeration value="iterative"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+<!--  iparm(12) -->
+<xsd:simpleType name="DT_PardisoTransposed">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="not_transposed"/>
+      <xsd:enumeration value="conjugate_transposed"/>
+      <xsd:enumeration value="transposed"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
   
   <!-- =================================================================== -->
   <!-- ==                                                               == -->

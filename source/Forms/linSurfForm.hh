@@ -53,6 +53,11 @@ namespace CoupledField
                                    const SurfElem * ptSurfElem,
                                    const Elem * ptVolElem );
 
+    //! Register coordinates of surface element point with parser
+    void RegisterSurfElemPoint( MathParser::HandleType handle,
+                                const SurfElem * ptSurfElem,
+                                const Vector<Double>& locPoint );
+
     //! Current surface element
     const SurfElem * actElem_;
 

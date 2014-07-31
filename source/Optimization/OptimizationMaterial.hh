@@ -30,6 +30,7 @@ class ElecPDE;
 class ErsatzMaterial;
 class HeatCondPDE;
 class LinearForm;
+class LatticeBoltzmannPDE;
 
 /** For Optimization problems does this class provide an interface to the actual physics.
  * While ErsatzMaterial itself contains a vector of pdes and the solutions for these
@@ -46,7 +47,7 @@ public:
   virtual ~OptimizationMaterial();
   
   /** Id of our material class */
-  typedef enum { PIEZOCOUPLING, MECH, ELEC, HEAT, ACOUSTIC } System;
+  typedef enum { PIEZOCOUPLING, MECH, ELEC, HEAT, ACOUSTIC, LBM } System;
 
   /** calls the proper constructor */
   static OptimizationMaterial* CreateInstance(System sys, ErsatzMaterial* em);
@@ -250,15 +251,6 @@ private:
 
 
 
-class HeatMat : public OptimizationMaterial
-{
-public:
-  HeatMat(ErsatzMaterial* em);
-
-protected:
-  HeatCondPDE* heat;
-};
-
 
 /** For Jannis' Maxwell homogenization. The PiezoElecMat has elec for piezo */
 class ElecMat : public OptimizationMaterial
@@ -293,7 +285,27 @@ protected:
 };
 
 
-}
+class HeatMat : public OptimizationMaterial
+{
+public:
+  HeatMat(ErsatzMaterial* em);
 
+protected:
+  HeatCondPDE* heat;
+};
+
+
+
+class LBMMat : public OptimizationMaterial
+{
+public:
+  LBMMat(ErsatzMaterial* em);
+
+protected:
+  LatticeBoltzmannPDE* lbm;
+};
+
+
+}
 
 #endif /* OPTMATERIAL_HH_ */

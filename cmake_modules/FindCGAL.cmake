@@ -22,11 +22,11 @@ BUILD_EXTLIB("CGAL"
 # Mark path of CGAL library as advanced.
 #-------------------------------------------------------------------------------
 SET(CGAL_LIBRARY_DEBUG
-  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libCGAL.a"
+  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libCGAL.a;-ldl"
   CACHE FILEPATH "CGAL debug library.")
 
 SET(CGAL_LIBRARY_RELEASE
-  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libCGAL.a"
+  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libCGAL.a;-ldl"
   CACHE FILEPATH "CGAL release library.")
 
 MARK_AS_ADVANCED(CGAL_LIBRARY_DEBUG)

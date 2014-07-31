@@ -68,6 +68,8 @@ namespace CoupledField
     elemMat.Resize(numFncs); 
     elemMat.Init();
     
+    //    std::cout << "Laplace: " << intWeights << std::endl;
+
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
       jacDet = 0;
       
